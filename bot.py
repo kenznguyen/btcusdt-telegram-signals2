@@ -201,6 +201,8 @@ def add_indicators(df):
     d["adx"] = rma(dx, ADX_SMOOTH)
     return d
 
+STATE_FILE = "state.json"
+
 def load_state():
     default = {
         "last_processed_open": None,
@@ -212,19 +214,36 @@ def load_state():
         "last_event": None,
         "last_closed": None
     }
+
     if not os.path.exists(STATE_FILE):
-        return default
+        print(f"WARNING: Không tìm thấy {STATE_FILE}")
+        return default.copy()
+
     try:
         with open(STATE_FILE, "r", encoding="utf-8") as f:
             saved = json.load(f)
+
+        if not isinstance(saved, dict):
+            raise ValueError("Nội dung state.json phải là JSON object")
+
         default.update(saved)
         return default
-    except Exception:
-        return default
+
+    except (json.JSONDecodeError, OSError, ValueError) as exc:
+        raise RuntimeError(
+            f"Không thể đọc {STATE_FILE}: {exc}"
+        ) from exc
+
 
 def save_state(state):
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2)
+    temp_file = STATE_FILE + ".tmp"
+
+    with open(temp_file, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
+
+    os.replace(temp_file, STATE_FILE)
 
 def telegram_send(text):
     token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
