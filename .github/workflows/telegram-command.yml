@@ -4,7 +4,7 @@ on:
 workflow_dispatch:
 inputs:
 command:
-description: "Lenh Telegram can xu ly"
+description: "Telegram command"
 required: true
 type: choice
 options:
