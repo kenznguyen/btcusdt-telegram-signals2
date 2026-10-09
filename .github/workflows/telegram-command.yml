@@ -16,12 +16,20 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: telegram-command
+  cancel-in-progress: false
+
 jobs:
   telegram-command:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+
     steps:
-      - name: Checkout repository
+      - name: Checkout latest repository
         uses: actions/checkout@v5
+        with:
+          ref: main
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -31,8 +39,18 @@ jobs:
       - name: Install dependencies
         run: pip install requests pandas
 
+      - name: Check shared state
+        run: |
+          if [ -f state.json ]; then
+            echo "Shared state.json found."
+            python -m json.tool state.json > /dev/null
+          else
+            echo "WARNING: state.json does not exist yet."
+          fi
+
       - name: Execute Telegram command
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python telegram_commands.py "${{ inputs.command }}"
+          COMMAND: ${{ inputs.command }}
+        run: python telegram_commands.py "$COMMAND"
