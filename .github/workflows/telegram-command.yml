@@ -1,10 +1,8 @@
 name: Telegram Command
 
 on:
-  on:
   schedule:
     - cron: '*/15 * * * *'
-  workflow_dispatch:
   workflow_dispatch:
     inputs:
       command:
