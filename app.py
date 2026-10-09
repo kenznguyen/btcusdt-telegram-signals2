@@ -12,7 +12,7 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 TELEGRAM_WEBHOOK_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "").strip()
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
-GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY", "kenznguyen/btcusdt-telegram-signals").strip()
+GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY", "kenznguyen/btcusdt-telegram-signals2").strip()
 GITHUB_REF = os.getenv("GITHUB_REF", "main").strip()
 GITHUB_WORKFLOW_FILE = os.getenv("GITHUB_WORKFLOW_FILE", "telegram-command.yml").strip()
 
