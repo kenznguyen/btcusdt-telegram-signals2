@@ -5,7 +5,10 @@ import traceback
 import pandas as pd
 import bot
 
-COMMAND = os.getenv("COMMAND", "help").strip().lower()
+COMMAND = (
+    sys.argv[1] if len(sys.argv) > 1
+    else os.getenv("COMMAND", "help")
+).strip().lower().lstrip("/")
 
 
 def utc_text(value):
