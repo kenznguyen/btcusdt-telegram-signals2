@@ -19,7 +19,8 @@ contents: read
 jobs:
 telegram-command:
 runs-on: ubuntu-latest
-steps: - name: Checkout repository
+steps: 
+  - name: Checkout repository
 uses: actions/checkout@v5
 
   - name: Set up Python
