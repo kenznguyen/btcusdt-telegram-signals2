@@ -20,18 +20,18 @@ jobs:
 telegram-command:
 runs-on: ubuntu-latest
 steps:
-  - name: Checkout repository
+- name: Checkout repository
 uses: actions/checkout@v5
 
-  - name: Set up Python
+- name: Set up Python
     uses: actions/setup-python@v6
     with:
       python-version: "3.12"
 
-  - name: Install dependencies
+- name: Install dependencies
     run: pip install requests
 
-  - name: Execute Telegram command
+- name: Execute Telegram command
     env:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
