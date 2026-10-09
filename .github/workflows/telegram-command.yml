@@ -1,25 +1,25 @@
 name: Telegram Command
 
 on:
-workflow_dispatch:
-inputs:
-command:
-description: "Telegram command"
-required: true
-type: choice
-options:
-- help
-- status
-- position
-- signal
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "Telegram command"
+        required: true
+        type: choice
+        options:
+          - help
+          - status
+          - position
+          - signal
 
 permissions:
-contents: read
+  contents: read
 
 jobs:
-telegram-command:
-runs-on: ubuntu-latest
-    steps: 
+  telegram-command:
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v5
 
@@ -33,6 +33,6 @@ runs-on: ubuntu-latest
 
       - name: Execute Telegram command
         env:
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-    run: python telegram_commands.py "${{ inputs.command }}"
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python telegram_commands.py "${{ inputs.command }}"
