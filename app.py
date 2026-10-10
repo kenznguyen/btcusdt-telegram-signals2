@@ -81,8 +81,9 @@ def dispatch_github(command: str) -> None:
         timeout=10,
     )
     if response.status_code != 204:
-        # Do not include response headers or any credentials in logs/messages.
-        raise RuntimeError(f"GitHub API returned HTTP {response.status_code}")
+        # Log GitHub validation detail without exposing request headers or credentials.
+        detail = (response.text or "").replace("\n", " ")[:500]
+        raise RuntimeError(f"GitHub API returned HTTP {response.status_code}: {detail}")
 
 
 @app.get("/")
