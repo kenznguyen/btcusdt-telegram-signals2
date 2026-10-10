@@ -483,11 +483,10 @@ def main():
     )
 
     if new_rows.empty:
-        latest = m15.iloc[-1]
-        latest_h1 = h1.iloc[-1]
-        send_status_report(state, float(latest["close"]), latest["open_time"], latest, latest_h1)
+        # Frequent schedule runs must not spam status reports between closed M15 candles.
+        # Continue polling Telegram commands, but only send trade events when a new candle is processed.
         process_telegram_commands(state, m15, h1)
-        print("No new candles; status report sent and Telegram commands checked.")
+        print("No new closed M15 candle; skipped signal scan and status message, checked Telegram commands.")
         return
 
     events_sent = 0
