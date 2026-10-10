@@ -13,6 +13,9 @@ RESULT = Path("backtest_last_result.json")
 TRADES_CSV = Path("backtest_trades.csv")
 EQUITY_CSV = Path("backtest_equity.csv")
 FEE = float(os.getenv("TAKER_FEE_RATE", "0.0005"))
+INITIAL_CAPITAL = float(os.getenv("BACKTEST_INITIAL_CAPITAL", "100"))
+ENTRY_MARGIN_PCT = float(os.getenv("ENTRY_MARGIN_PCT", "0.50"))
+DCA_MARGIN_RATIO = float(os.getenv("DCA_MARGIN_RATIO", "1.00"))
 URL = "https://www.okx.com/api/v5/market/history-candles"
 
 
@@ -115,7 +118,10 @@ def run_backtest(days=90):
 
         pos, trades = None, []
         counts = {"DCA":0, "TP":0, "Soft SL":0, "Emergency SL":0}
-        equity = peak = max_dd = 0.0
+        balance = INITIAL_CAPITAL
+        equity = 0.0  # cumulative realized net PnL, excluding initial capital
+        peak = INITIAL_CAPITAL
+        max_dd = 0.0
         for i, row in m15.iterrows():
             if i == 0 or pd.isna(row["rsi"]) or pd.isna(row["adx"]):
                 continue
@@ -144,7 +150,7 @@ def run_backtest(days=90):
                 # Close-to-close mark-to-market drawdown, including estimated entry + exit fees.
                 unrealized = ((close-avg) if side=="LONG" else (avg-close))*qty
                 estimated_fees = (pos["notional"] + abs(close*qty))*FEE
-                mark_equity = equity + unrealized - estimated_fees
+                mark_equity = balance + unrealized - estimated_fees
                 peak = max(peak, mark_equity)
                 max_dd = max(max_dd, peak-mark_equity)
                 emergency_price = bot.threshold_price(side, avg, abs(bot.EMERGENCY_SL_ROE))
@@ -172,10 +178,13 @@ def run_backtest(days=90):
                     net = gross-fees
                     trades.append({"side":side,"entry_time":pos["time"].isoformat(),"exit_time":ts.isoformat(),
                         "avg_entry":avg,"exit_price":exit_price,"qty":qty,"gross_pnl":gross,
-                        "fees":fees,"net_pnl":net,"reason":reason,"dca_used":pos["dca"]})
+                        "fees":fees,"net_pnl":net,"reason":reason,"dca_used":pos["dca"],
+                        "initial_margin_usdt":pos["initial_margin"],
+                        "dca_margin_usdt":pos["initial_margin"]*DCA_MARGIN_RATIO if pos["dca"] else 0.0})
                     equity += net
-                    peak = max(peak, equity)
-                    max_dd = max(max_dd, peak-equity)
+                    balance += net
+                    peak = max(peak, balance)
+                    max_dd = max(max_dd, peak-balance)
                     counts[reason] += 1
                     pos = None
                     continue
@@ -184,21 +193,23 @@ def run_backtest(days=90):
                     dca = dca and ((rsi > bot.LONG_DCA_RSI and rsi > prsi) if side=="LONG"
                                    else (rsi < bot.SHORT_DCA_RSI and rsi < prsi))
                     if dca:
-                        add = bot.DCA_MARGIN*bot.LEVERAGE/close
+                        dca_margin = pos["initial_margin"] * DCA_MARGIN_RATIO
+                        add = dca_margin*bot.LEVERAGE/close
                         new_qty = qty+add
                         pos["avg"] = (avg*qty+close*add)/new_qty
                         pos["qty"] = new_qty
-                        pos["margin"] += bot.DCA_MARGIN
+                        pos["margin"] += dca_margin
                         pos["dca"] = True
                         pos["notional"] += close*add
                         counts["DCA"] += 1
                 continue
 
-            if go_long or go_short:
+            if (go_long or go_short) and balance > 0:
                 side = "LONG" if go_long else "SHORT"
-                qty = bot.INITIAL_MARGIN*bot.LEVERAGE/close
-                pos = {"side":side,"time":ts,"avg":close,"qty":qty,"margin":bot.INITIAL_MARGIN,
-                       "dca":False,"notional":close*qty}
+                initial_margin = balance * ENTRY_MARGIN_PCT
+                qty = initial_margin*bot.LEVERAGE/close
+                pos = {"side":side,"time":ts,"avg":close,"qty":qty,"margin":initial_margin,
+                       "initial_margin":initial_margin,"dca":False,"notional":close*qty}
 
         if pos:
             row = m15.iloc[-1]
@@ -209,8 +220,13 @@ def run_backtest(days=90):
             net = gross-fees
             trades.append({"side":side,"entry_time":pos["time"].isoformat(),"exit_time":row["open_time"].isoformat(),
                 "avg_entry":avg,"exit_price":exit_price,"qty":qty,"gross_pnl":gross,"fees":fees,
-                "net_pnl":net,"reason":"End of test","dca_used":pos["dca"]})
+                "net_pnl":net,"reason":"End of test","dca_used":pos["dca"],
+                "initial_margin_usdt":pos["initial_margin"],
+                "dca_margin_usdt":pos["initial_margin"]*DCA_MARGIN_RATIO if pos["dca"] else 0.0})
             equity += net
+            balance += net
+            peak = max(peak, balance)
+            max_dd = max(max_dd, peak-balance)
 
         wins = [t for t in trades if t["net_pnl"] > 0]
         losses = [t for t in trades if t["net_pnl"] <= 0]
@@ -218,26 +234,31 @@ def run_backtest(days=90):
         pf = gp/gl if gl else (999.0 if gp else None)
         # Export every trade and the realized cumulative PnL curve.
         trade_fields = ["trade_id","side","entry_time","exit_time","avg_entry","exit_price","qty",
-            "gross_pnl","fees","net_pnl","reason","dca_used"]
+            "gross_pnl","fees","net_pnl","reason","dca_used","initial_margin_usdt","dca_margin_usdt"]
         with TRADES_CSV.open("w", newline="", encoding="utf-8-sig") as f:
             writer = csv.DictWriter(f, fieldnames=trade_fields, extrasaction="ignore")
             writer.writeheader()
             for idx, trade in enumerate(trades, 1):
                 writer.writerow({"trade_id":idx, **trade})
         running_equity = 0.0
+        running_balance = INITIAL_CAPITAL
         with EQUITY_CSV.open("w", newline="", encoding="utf-8-sig") as f:
-            fields = ["trade_id","exit_time","side","exit_reason","trade_net_pnl_usdt","cumulative_net_pnl_usdt"]
+            fields = ["trade_id","exit_time","side","exit_reason","trade_net_pnl_usdt","cumulative_net_pnl_usdt","account_balance_usdt","initial_margin_usdt","dca_margin_usdt"]
             writer = csv.DictWriter(f, fieldnames=fields)
             writer.writeheader()
             for idx, trade in enumerate(trades, 1):
                 running_equity += float(trade["net_pnl"])
+                running_balance += float(trade["net_pnl"])
                 writer.writerow({"trade_id":idx,"exit_time":trade["exit_time"],"side":trade["side"],
                     "exit_reason":trade["reason"],"trade_net_pnl_usdt":trade["net_pnl"],
-                    "cumulative_net_pnl_usdt":running_equity})
+                    "cumulative_net_pnl_usdt":running_equity,"account_balance_usdt":running_balance,
+                    "initial_margin_usdt":trade.get("initial_margin_usdt"),"dca_margin_usdt":trade.get("dca_margin_usdt",0.0)})
         report = {"symbol":"BTCUSDT perpetual (OKX BTC-USDT-SWAP candles)",
           "timeframe":"M15 entry / closed H1 trend filter","period_days":days,
           "start":m15.iloc[0]["open_time"].isoformat(),"end":m15.iloc[-1]["open_time"].isoformat(),
           "candle_count":len(m15),"trade_count":len(trades),"win_rate_pct":len(wins)/len(trades)*100 if trades else 0,
+          "initial_capital_usdt":INITIAL_CAPITAL,"final_balance_usdt":balance,
+          "entry_margin_pct_of_current_balance":ENTRY_MARGIN_PCT,"dca_margin_ratio_of_initial_order":DCA_MARGIN_RATIO,
           "net_profit_usdt":sum(t["net_pnl"] for t in trades),"gross_profit_usdt":gp,"gross_loss_usdt":gl,
           "profit_factor":pf,"max_drawdown_usdt":max_dd,"fees_usdt":sum(t["fees"] for t in trades),
           "dca_count":counts["DCA"],"tp_count":counts["TP"],"soft_sl_count":counts["Soft SL"],
@@ -258,6 +279,8 @@ def format_report(r):
     return "\n".join(["📊 BTCUSDT — BACKTEST",
         f"Khung: {r['timeframe']} | Giai đoạn: {r['period_days']} ngày",
         f"Nến: {r['candle_count']} | Giao dịch: {r['trade_count']}",
+        f"Vốn đầu/cuối: {r.get('initial_capital_usdt',100):.2f} → {r.get('final_balance_usdt',100+r['net_profit_usdt']):.2f} USDT",
+        f"Margin entry: {r.get('entry_margin_pct_of_current_balance',0.5)*100:.0f}% số dư; DCA: {r.get('dca_margin_ratio_of_initial_order',1.0)*100:.0f}% margin entry",
         f"Net Profit sau phí: {r['net_profit_usdt']:+.2f} USDT",
         f"Win Rate: {r['win_rate_pct']:.2f}%","Profit Factor: "+pf_text,
         f"Max Drawdown (mark-to-market, close-to-close): {r['max_drawdown_usdt']:.2f} USDT",
