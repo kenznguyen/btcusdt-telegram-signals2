@@ -117,8 +117,9 @@ def run_backtest(days=90):
             if i == 0 or pd.isna(row["rsi"]) or pd.isna(row["adx"]):
                 continue
             ts = row["open_time"]
-            # Use only H1 candles that had closed by this M15 candle's open.
-            candidates = h1[h1["close_time"] <= ts]
+            # Match bot.py: latest H1 candle whose open is before this M15 hour.
+            # This intentionally excludes the current forming H1 candle.
+            candidates = h1[h1["open_time"] < ts.floor("h")]
             if candidates.empty:
                 continue
             hr, prev = candidates.iloc[-1], m15.iloc[i-1]
@@ -135,7 +136,14 @@ def run_backtest(days=90):
             if pos:
                 side, avg, qty = pos["side"], pos["avg"], pos["qty"]
                 margin = pos["margin"]
-                roe = (((close-avg) if side=="LONG" else (avg-close))*qty/margin*100) if margin else 0
+                # Match bot.py ROE semantics: price move multiplied by configured leverage.
+                roe = bot.roe_for(side, avg, close) or 0.0
+                # Close-to-close mark-to-market drawdown, including estimated entry + exit fees.
+                unrealized = ((close-avg) if side=="LONG" else (avg-close))*qty
+                estimated_fees = (pos["notional"] + abs(close*qty))*FEE
+                mark_equity = equity + unrealized - estimated_fees
+                peak = max(peak, mark_equity)
+                max_dd = max(max_dd, peak-mark_equity)
                 emergency_price = bot.threshold_price(side, avg, abs(bot.EMERGENCY_SL_ROE))
                 soft_price = bot.threshold_price(side, avg, abs(bot.SOFT_SL_ROE))
                 emergency = low <= emergency_price if side=="LONG" else high >= emergency_price
@@ -151,7 +159,10 @@ def run_backtest(days=90):
                 elif soft:
                     reason, exit_price = "Soft SL", soft_price
                 elif tp:
-                    reason, exit_price = "TP", bot.threshold_price(side, avg, bot.TP_ROE)
+                    # TP moves in the profitable direction, unlike stop-loss thresholds.
+                    target_move = bot.TP_ROE / (100.0 * bot.LEVERAGE)
+                    exit_price = avg * (1.0 + target_move) if side == "LONG" else avg * (1.0 - target_move)
+                    reason = "TP"
                 if reason:
                     gross = ((exit_price-avg) if side=="LONG" else (avg-exit_price))*qty
                     fees = (pos["notional"] + abs(exit_price*qty))*FEE
@@ -228,7 +239,7 @@ def format_report(r):
         f"Nến: {r['candle_count']} | Giao dịch: {r['trade_count']}",
         f"Net Profit sau phí: {r['net_profit_usdt']:+.2f} USDT",
         f"Win Rate: {r['win_rate_pct']:.2f}%","Profit Factor: "+pf_text,
-        f"Max Drawdown: {r['max_drawdown_usdt']:.2f} USDT",
+        f"Max Drawdown (mark-to-market, close-to-close): {r['max_drawdown_usdt']:.2f} USDT",
         f"Phí ước tính: {r['fees_usdt']:.2f} USDT ({r['fee_rate_per_side']*100:.03f}%/chiều)",
         f"DCA: {r['dca_count']} | TP: {r['tp_count']} | Soft SL: {r['soft_sl_count']} | Emergency SL: {r['emergency_sl_count']}",
         f"Khoảng thời gian: {r['start'][:16]} — {r['end'][:16]} UTC",
