@@ -158,9 +158,9 @@ def run_backtest(days=90):
                 tp = ((rsi >= bot.LONG_RSI_TP) if side=="LONG" else (rsi <= bot.SHORT_RSI_TP)) and roe >= bot.TP_ROE
                 reason, exit_price = None, close
                 if emergency:
-                    reason, exit_price = "Emergency SL", emergency_price
+                    reason, exit_price = "Emergency SL", bot.stop_fill_price(side, emergency_price, op)
                 elif soft:
-                    reason, exit_price = "Soft SL", soft_price
+                    reason, exit_price = "Soft SL", bot.stop_fill_price(side, soft_price, op)
                 elif tp:
                     # TP's RSI condition is known only after candle close; do not backfill at an earlier theoretical threshold.
                     # Match bot.py: simulate a market fill from the signal candle close with adverse slippage.
