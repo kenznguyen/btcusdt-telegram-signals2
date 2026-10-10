@@ -344,18 +344,6 @@ def send_status_report(state, price, candle_time, m15_row=None, h1_row=None):
     telegram_send(build_status_report(state, price, candle_time, m15_row, h1_row))
 
 
-def telegram_api(method, payload=None):
-    token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-    if not token:
-        raise RuntimeError("Missing TELEGRAM_BOT_TOKEN secret.")
-    url = f"https://api.telegram.org/bot{token}/{method}"
-    response = requests.post(url, json=payload or {}, timeout=20)
-    response.raise_for_status()
-    result = response.json()
-    if not result.get("ok"):
-        raise RuntimeError(f"Telegram API error in {method}: {result}")
-    return result.get("result", [])
-
 
 def build_signal_report(m15, h1):
     row = m15.iloc[-1]
@@ -386,64 +374,6 @@ def build_signal_report(m15, h1):
     ])
 
 
-def process_telegram_commands(state, m15, h1):
-    """Poll Telegram commands on each scheduled run; replies can be delayed up to the schedule interval."""
-    chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
-    if not chat_id:
-        return
-    offset = None
-    # Drain queued updates in bounded batches. Advancing offset acknowledges processed updates server-side.
-    for _ in range(10):
-        params = {"timeout": 0, "allowed_updates": ["message"]}
-        if offset is not None:
-            params["offset"] = offset
-        try:
-            updates = telegram_api("getUpdates", params)
-        except Exception as exc:
-            print(f"Telegram command polling skipped: {exc}")
-            return
-        if not updates:
-            break
-        for update in updates:
-            offset = max(offset or 0, int(update.get("update_id", 0)) + 1)
-            message = update.get("message") or {}
-            chat = message.get("chat") or {}
-            if str(chat.get("id", "")) != chat_id:
-                continue
-            text = (message.get("text") or "").strip()
-            if not text.startswith("/"):
-                continue
-            command = text.split()[0].split("@")[0].lower()
-            if command in ("/start", "/help"):
-                reply = "🤖 BTCUSDT Signal Bot\nCác lệnh:\n/status — báo cáo trạng thái\n/position — vị thế và PnL mô phỏng\n/signal — RSI/ADX và điều kiện entry hiện tại\n/help — trợ giúp\n\nBot chỉ phát tín hiệu mô phỏng, không đặt lệnh."
-            elif command == "/status":
-                latest = m15.iloc[-1]
-                reply = build_status_report(state, float(latest["close"]), latest["open_time"], latest, h1.iloc[-1])
-            elif command == "/position":
-                side = state.get("side") or "FLAT"
-                if side in ("LONG", "SHORT"):
-                    latest_price = float(m15.iloc[-1]["close"])
-                    avg = float(state.get("avg_entry") or 0)
-                    qty = float(state.get("qty") or 0)
-                    margin = INITIAL_MARGIN + (DCA_MARGIN if state.get("dca_used") else 0)
-                    pnl = ((latest_price - avg) if side == "LONG" else (avg - latest_price)) * qty
-                    roe = pnl / margin * 100 if margin > 0 else 0
-                    reply = f"📌 VỊ THẾ MÔ PHỎNG: {side}\nGiá hiện tại: {fmt_price(latest_price)}\nGiá vào TB: {fmt_price(avg)}\nKhối lượng: {qty:.8f} BTC\nPnL ước tính: {pnl:+.4f} USDT\nROE ước tính: {roe:+.2f}%\nDCA đã dùng: {'Có' if state.get('dca_used') else 'Chưa'}"
-                else:
-                    reply = "📌 VỊ THẾ MÔ PHỎNG: FLAT\nHiện không có vị thế mở."
-            elif command == "/signal":
-                try:
-                    reply = build_signal_report(m15, h1)
-                except Exception as exc:
-                    reply = f"Chưa thể tính tín hiệu: {exc}"
-            else:
-                reply = "Không nhận diện được lệnh. Gửi /help để xem danh sách lệnh."
-            try:
-                telegram_send(reply)
-            except Exception as exc:
-                print(f"Telegram command reply failed: {exc}")
-        if offset is None:
-            break
 
 def threshold_price(side, avg_entry, abs_roe):
     move = abs(abs_roe) / (100.0 * LEVERAGE)
@@ -504,9 +434,8 @@ def main():
 
     if new_rows.empty:
         # Frequent schedule runs must not spam status reports between closed M15 candles.
-        # Continue polling Telegram commands, but only send trade events when a new candle is processed.
-        process_telegram_commands(state, m15, h1)
-        print("No new closed M15 candle; skipped signal scan and status message, checked Telegram commands.")
+        # Telegram commands are handled exclusively by the Render webhook bridge.
+        print("No new closed M15 candle; skipped signal scan and status message.")
         return
 
     events_sent = 0
@@ -773,7 +702,6 @@ def main():
     latest = m15.iloc[-1]
     latest_h1 = h1.iloc[-1]
     send_status_report(state, float(latest["close"]), latest["open_time"], latest, latest_h1)
-    process_telegram_commands(state, m15, h1)
 
     print(
         f"Processed {len(new_rows)} candle(s); "
