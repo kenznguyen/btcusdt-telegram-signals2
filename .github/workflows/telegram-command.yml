@@ -2,6 +2,10 @@ name: Telegram Command
 run-name: ${{ github.event_name == 'schedule' && 'Scheduled signal run' || format('Telegram command {0}', inputs.command || 'help') }}
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/backtest-trigger.txt'
   schedule:
     - cron: '*/15 * * * *'
   workflow_dispatch:
@@ -57,6 +61,8 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "schedule" ]; then
             python bot.py
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            python telegram_commands.py "backtest"
           else
             python telegram_commands.py "${{ inputs.command || 'help' }}"
           fi
