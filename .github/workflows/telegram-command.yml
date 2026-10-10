@@ -68,7 +68,7 @@ jobs:
           fi
 
       - name: Upload detailed backtest report
-        if: always() && inputs.command == 'backtest'
+        if: always() && (inputs.command == 'backtest' || github.event_name == 'push')
         uses: actions/upload-artifact@v4
         with:
           name: backtest-detailed-report
