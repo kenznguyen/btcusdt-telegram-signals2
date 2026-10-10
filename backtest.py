@@ -1,4 +1,5 @@
 """90-day historical candle backtest; deliberately does not read/write live state.json."""
+import csv
 import json
 import os
 from pathlib import Path
@@ -9,6 +10,8 @@ import bot
 
 STATUS = Path("backtest_status.json")
 RESULT = Path("backtest_last_result.json")
+TRADES_CSV = Path("backtest_trades.csv")
+EQUITY_CSV = Path("backtest_equity.csv")
 FEE = float(os.getenv("TAKER_FEE_RATE", "0.0005"))
 URL = "https://www.okx.com/api/v5/market/history-candles"
 
@@ -18,7 +21,6 @@ def _status(value, **extra):
 
 
 def get_backtest_status():
-    # Prefer live GitHub Actions status so this command can see a backtest running in another job.
     token = os.getenv("ACTIONS_GITHUB_TOKEN", "").strip()
     repository = os.getenv("GITHUB_REPOSITORY", "").strip()
     if token and repository:
@@ -32,7 +34,7 @@ def get_backtest_status():
             response.raise_for_status()
             for run in response.json().get("workflow_runs", []):
                 title = str(run.get("display_title") or run.get("name") or "")
-                if title.strip().lower() == "telegram command: backtest":
+                if title.strip().lower() in ("telegram command backtest", "telegram command: backtest"):
                     return "\n".join([
                         "🧪 BACKTEST STATUS",
                         "Trạng thái: RUNNING",
@@ -89,6 +91,13 @@ def _candles(bar, start_ms, end_ms, limit):
     return df[df["confirm"].astype(str) == "1"].reset_index(drop=True)
 
 
+def _write_csv(path, rows, fieldnames):
+    with path.open("w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def run_backtest(days=90):
     days = int(days)
     if not 1 <= days <= 365:
@@ -113,12 +122,11 @@ def run_backtest(days=90):
         pos, trades = None, []
         counts = {"DCA":0, "TP":0, "Soft SL":0, "Emergency SL":0}
         equity = peak = max_dd = 0.0
+        equity_rows = []
         for i, row in m15.iterrows():
             if i == 0 or pd.isna(row["rsi"]) or pd.isna(row["adx"]):
                 continue
             ts = row["open_time"]
-            # Match bot.py: latest H1 candle whose open is before this M15 hour.
-            # This intentionally excludes the current forming H1 candle.
             candidates = h1[h1["open_time"] < ts.floor("h")]
             if candidates.empty:
                 continue
@@ -135,10 +143,17 @@ def run_backtest(days=90):
 
             if pos:
                 side, avg, qty = pos["side"], pos["avg"], pos["qty"]
-                margin = pos["margin"]
-                # Match bot.py ROE semantics: price move multiplied by configured leverage.
                 roe = bot.roe_for(side, avg, close) or 0.0
-                # Close-to-close mark-to-market drawdown, including estimated entry + exit fees.
+                # Track intrabar favorable/adverse excursion using OHLC extremes.
+                if side == "LONG":
+                    favorable = (high / avg - 1) * bot.LEVERAGE * 100
+                    adverse = (low / avg - 1) * bot.LEVERAGE * 100
+                else:
+                    favorable = (avg / low - 1) * bot.LEVERAGE * 100 if low else 0.0
+                    adverse = (avg / high - 1) * bot.LEVERAGE * 100 if high else 0.0
+                pos["max_favorable_roe_pct"] = max(pos["max_favorable_roe_pct"], favorable)
+                pos["max_adverse_roe_pct"] = min(pos["max_adverse_roe_pct"], adverse)
+
                 unrealized = ((close-avg) if side=="LONG" else (avg-close))*qty
                 estimated_fees = (pos["notional"] + abs(close*qty))*FEE
                 mark_equity = equity + unrealized - estimated_fees
@@ -159,7 +174,6 @@ def run_backtest(days=90):
                 elif soft:
                     reason, exit_price = "Soft SL", soft_price
                 elif tp:
-                    # TP moves in the profitable direction, unlike stop-loss thresholds.
                     target_move = bot.TP_ROE / (100.0 * bot.LEVERAGE)
                     exit_price = avg * (1.0 + target_move) if side == "LONG" else avg * (1.0 - target_move)
                     reason = "TP"
@@ -167,14 +181,29 @@ def run_backtest(days=90):
                     gross = ((exit_price-avg) if side=="LONG" else (avg-exit_price))*qty
                     fees = (pos["notional"] + abs(exit_price*qty))*FEE
                     net = gross-fees
-                    trades.append({"side":side,"entry_time":pos["time"].isoformat(),"exit_time":ts.isoformat(),
-                        "avg_entry":avg,"exit_price":exit_price,"qty":qty,"gross_pnl":gross,
-                        "fees":fees,"net_pnl":net,"reason":reason,"dca_used":pos["dca"]})
+                    held = max(0.0, (ts - pos["time"]).total_seconds()/60)
+                    trades.append({
+                        "trade_id": len(trades)+1, "side":side,
+                        "entry_time":pos["time"].isoformat(), "exit_time":ts.isoformat(),
+                        "hold_minutes":round(held,2), "initial_entry_price":pos["initial_entry"],
+                        "dca_time":pos["dca_time"].isoformat() if pos["dca_time"] is not None else "",
+                        "dca_price":pos["dca_price"], "avg_entry":avg, "exit_price":exit_price,
+                        "initial_qty":pos["initial_qty"], "dca_qty":pos["dca_qty"], "qty_total":qty,
+                        "margin_used_usdt":pos["margin"], "leverage":bot.LEVERAGE,
+                        "gross_pnl_usdt":gross, "entry_exit_fees_usdt":fees, "net_pnl_usdt":net,
+                        "net_return_on_margin_pct":(net/pos["margin"]*100) if pos["margin"] else 0,
+                        "roe_at_exit_pct":roe, "max_favorable_roe_pct":pos["max_favorable_roe_pct"],
+                        "max_adverse_roe_pct":pos["max_adverse_roe_pct"],
+                        "exit_reason":reason, "dca_used":bool(pos["dca"])
+                    })
                     equity += net
                     peak = max(peak, equity)
                     max_dd = max(max_dd, peak-equity)
                     counts[reason] += 1
                     pos = None
+                    equity_rows.append({"time":ts.isoformat(),"realized_equity_usdt":equity,
+                                        "mark_to_market_equity_usdt":equity,"drawdown_usdt":max(0,peak-equity),
+                                        "position_side":"","close_price":close})
                     continue
                 if not pos["dca"]:
                     dca = roe <= bot.DCA_ROE and adx > bot.DCA_ADX
@@ -182,6 +211,9 @@ def run_backtest(days=90):
                                    else (rsi < bot.SHORT_DCA_RSI and rsi < prsi))
                     if dca:
                         add = bot.DCA_MARGIN*bot.LEVERAGE/close
+                        pos["dca_time"] = ts
+                        pos["dca_price"] = close
+                        pos["dca_qty"] = add
                         new_qty = qty+add
                         pos["avg"] = (avg*qty+close*add)/new_qty
                         pos["qty"] = new_qty
@@ -189,13 +221,25 @@ def run_backtest(days=90):
                         pos["dca"] = True
                         pos["notional"] += close*add
                         counts["DCA"] += 1
+                equity_rows.append({"time":ts.isoformat(),"realized_equity_usdt":equity,
+                                    "mark_to_market_equity_usdt":mark_equity,
+                                    "drawdown_usdt":max(0,peak-mark_equity),
+                                    "position_side":pos["side"] if pos else "",
+                                    "close_price":close})
                 continue
 
             if go_long or go_short:
                 side = "LONG" if go_long else "SHORT"
                 qty = bot.INITIAL_MARGIN*bot.LEVERAGE/close
                 pos = {"side":side,"time":ts,"avg":close,"qty":qty,"margin":bot.INITIAL_MARGIN,
-                       "dca":False,"notional":close*qty}
+                       "dca":False,"notional":close*qty,"initial_entry":close,"initial_qty":qty,
+                       "dca_time":None,"dca_price":"","dca_qty":0.0,
+                       "max_favorable_roe_pct":0.0,"max_adverse_roe_pct":0.0}
+            equity_rows.append({"time":ts.isoformat(),"realized_equity_usdt":equity,
+                                "mark_to_market_equity_usdt":equity,
+                                "drawdown_usdt":max(0,peak-equity),
+                                "position_side":pos["side"] if pos else "",
+                                "close_price":close})
 
         if pos:
             row = m15.iloc[-1]
@@ -204,26 +248,54 @@ def run_backtest(days=90):
             gross = ((exit_price-avg) if side=="LONG" else (avg-exit_price))*qty
             fees = (pos["notional"]+abs(exit_price*qty))*FEE
             net = gross-fees
-            trades.append({"side":side,"entry_time":pos["time"].isoformat(),"exit_time":row["open_time"].isoformat(),
-                "avg_entry":avg,"exit_price":exit_price,"qty":qty,"gross_pnl":gross,"fees":fees,
-                "net_pnl":net,"reason":"End of test","dca_used":pos["dca"]})
+            ts = row["open_time"]
+            trades.append({
+                "trade_id":len(trades)+1,"side":side,"entry_time":pos["time"].isoformat(),
+                "exit_time":ts.isoformat(),"hold_minutes":max(0.0,(ts-pos["time"]).total_seconds()/60),
+                "initial_entry_price":pos["initial_entry"],
+                "dca_time":pos["dca_time"].isoformat() if pos["dca_time"] is not None else "",
+                "dca_price":pos["dca_price"],"avg_entry":avg,"exit_price":exit_price,
+                "initial_qty":pos["initial_qty"],"dca_qty":pos["dca_qty"],"qty_total":qty,
+                "margin_used_usdt":pos["margin"],"leverage":bot.LEVERAGE,
+                "gross_pnl_usdt":gross,"entry_exit_fees_usdt":fees,"net_pnl_usdt":net,
+                "net_return_on_margin_pct":(net/pos["margin"]*100) if pos["margin"] else 0,
+                "roe_at_exit_pct":bot.roe_for(side,avg,exit_price) or 0,
+                "max_favorable_roe_pct":pos["max_favorable_roe_pct"],
+                "max_adverse_roe_pct":pos["max_adverse_roe_pct"],
+                "exit_reason":"End of test","dca_used":bool(pos["dca"])
+            })
             equity += net
+            equity_rows.append({"time":ts.isoformat(),"realized_equity_usdt":equity,
+                                "mark_to_market_equity_usdt":equity,"drawdown_usdt":max(0,peak-equity),
+                                "position_side":"","close_price":exit_price})
 
-        wins = [t for t in trades if t["net_pnl"] > 0]
-        losses = [t for t in trades if t["net_pnl"] <= 0]
-        gp, gl = sum(t["net_pnl"] for t in wins), abs(sum(t["net_pnl"] for t in losses))
+        trade_fields = ["trade_id","side","entry_time","exit_time","hold_minutes",
+            "initial_entry_price","dca_time","dca_price","avg_entry","exit_price",
+            "initial_qty","dca_qty","qty_total","margin_used_usdt","leverage",
+            "gross_pnl_usdt","entry_exit_fees_usdt","net_pnl_usdt","net_return_on_margin_pct",
+            "roe_at_exit_pct","max_favorable_roe_pct","max_adverse_roe_pct","exit_reason","dca_used"]
+        _write_csv(TRADES_CSV, trades, trade_fields)
+        _write_csv(EQUITY_CSV, equity_rows, ["time","realized_equity_usdt",
+            "mark_to_market_equity_usdt","drawdown_usdt","position_side","close_price"])
+
+        wins = [t for t in trades if t["net_pnl_usdt"] > 0]
+        losses = [t for t in trades if t["net_pnl_usdt"] <= 0]
+        gp, gl = sum(t["net_pnl_usdt"] for t in wins), abs(sum(t["net_pnl_usdt"] for t in losses))
         pf = gp/gl if gl else (999.0 if gp else None)
         report = {"symbol":"BTCUSDT perpetual (OKX BTC-USDT-SWAP candles)",
           "timeframe":"M15 entry / closed H1 trend filter","period_days":days,
           "start":m15.iloc[0]["open_time"].isoformat(),"end":m15.iloc[-1]["open_time"].isoformat(),
-          "candle_count":len(m15),"trade_count":len(trades),"win_rate_pct":len(wins)/len(trades)*100 if trades else 0,
-          "net_profit_usdt":sum(t["net_pnl"] for t in trades),"gross_profit_usdt":gp,"gross_loss_usdt":gl,
-          "profit_factor":pf,"max_drawdown_usdt":max_dd,"fees_usdt":sum(t["fees"] for t in trades),
+          "candle_count":len(m15),"trade_count":len(trades),
+          "win_rate_pct":len(wins)/len(trades)*100 if trades else 0,
+          "net_profit_usdt":sum(t["net_pnl_usdt"] for t in trades),
+          "gross_profit_usdt":gp,"gross_loss_usdt":gl,"profit_factor":pf,
+          "max_drawdown_usdt":max_dd,"fees_usdt":sum(t["entry_exit_fees_usdt"] for t in trades),
           "dca_count":counts["DCA"],"tp_count":counts["TP"],"soft_sl_count":counts["Soft SL"],
-          "emergency_sl_count":counts["Emergency SL"],"fee_rate_per_side":FEE,"trades":trades[-500:]}
+          "emergency_sl_count":counts["Emergency SL"],"fee_rate_per_side":FEE,
+          "trades":trades,"trade_csv":str(TRADES_CSV),"equity_csv":str(EQUITY_CSV)}
         RESULT.write_text(json.dumps(report,indent=2),encoding="utf-8")
         _status("completed",started_at=started,finished_at=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M UTC"),
-                message=f"Hoàn tất {days} ngày; {len(trades)} giao dịch.")
+                message=f"Hoàn tất {days} ngày; {len(trades)} giao dịch. Đã xuất CSV chi tiết.")
         return report
     except Exception as exc:
         _status("failed",started_at=started,finished_at=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M UTC"),
@@ -243,4 +315,5 @@ def format_report(r):
         f"Phí ước tính: {r['fees_usdt']:.2f} USDT ({r['fee_rate_per_side']*100:.03f}%/chiều)",
         f"DCA: {r['dca_count']} | TP: {r['tp_count']} | Soft SL: {r['soft_sl_count']} | Emergency SL: {r['emergency_sl_count']}",
         f"Khoảng thời gian: {r['start'][:16]} — {r['end'][:16]} UTC",
+        "Chi tiết: backtest_trades.csv và backtest_equity.csv (GitHub Actions artifact).",
         "Mô phỏng OHLC với phí ước tính; không phải khớp lệnh thực tế."])
