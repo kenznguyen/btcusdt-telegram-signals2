@@ -123,10 +123,39 @@ def run_backtest(days=90):
         equity = 0.0  # cumulative realized net PnL, excluding initial capital
         peak = INITIAL_CAPITAL
         max_dd = 0.0
+        equity_curve = []
+        max_dd_details = None
         for i, row in m15.iterrows():
+            ts = row["open_time"]
+            mark_price = float(row["close"])
+            # Per-candle mark-to-market snapshot of the position carried into this candle.
+            side_now = pos["side"] if pos else ""
+            unrealized_now = 0.0
+            estimated_fees_now = 0.0
+            if pos:
+                unrealized_now = ((mark_price - pos["avg"]) if side_now == "LONG" else (pos["avg"] - mark_price)) * pos["qty"]
+                estimated_fees_now = (pos["notional"] + abs(mark_price * pos["qty"])) * FEE
+            mark_equity_now = balance + unrealized_now - estimated_fees_now
+            if mark_equity_now > peak:
+                peak = mark_equity_now
+            drawdown_now = max(0.0, peak - mark_equity_now)
+            drawdown_pct_now = drawdown_now / peak * 100.0 if peak > 0 else 0.0
+            equity_curve.append({
+                "timestamp_utc": ts.isoformat(), "mark_price": mark_price,
+                "account_balance_usdt": balance, "unrealized_pnl_gross_usdt": unrealized_now,
+                "estimated_entry_exit_fees_usdt": estimated_fees_now, "equity_usdt": mark_equity_now,
+                "peak_equity_usdt": peak, "drawdown_usdt": drawdown_now, "drawdown_pct": drawdown_pct_now,
+                "position_trade_id": pos.get("trade_id", "") if pos else "",
+                "position_side": side_now, "position_entry_time_utc": pos["time"].isoformat() if pos else "",
+                "avg_entry_price": pos["avg"] if pos else "", "position_qty": pos["qty"] if pos else "",
+                "position_margin_usdt": pos["margin"] if pos else "", "dca_used": pos["dca"] if pos else False
+            })
+            if drawdown_now > max_dd:
+                max_dd = drawdown_now
+                max_dd_details = {**equity_curve[-1], "max_drawdown_usdt": drawdown_now,
+                                  "peak_time_utc": "", "trough_time_utc": ts.isoformat()}
             if i == 0 or pd.isna(row["rsi"]) or pd.isna(row["adx"]):
                 continue
-            ts = row["open_time"]
             # Match bot.py: latest H1 candle whose open is before this M15 hour.
             # This intentionally excludes the current forming H1 candle.
             candidates = h1[h1["open_time"] < ts.floor("h")]
