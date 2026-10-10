@@ -125,6 +125,7 @@ def run_backtest(days=90):
         max_dd = 0.0
         equity_curve = []
         max_dd_details = None
+        peak_time_utc = None
         for i, row in m15.iterrows():
             ts = row["open_time"]
             mark_price = float(row["close"])
@@ -138,6 +139,7 @@ def run_backtest(days=90):
             mark_equity_now = balance + unrealized_now - estimated_fees_now
             if mark_equity_now > peak:
                 peak = mark_equity_now
+                peak_time_utc = ts.isoformat()
             drawdown_now = max(0.0, peak - mark_equity_now)
             drawdown_pct_now = drawdown_now / peak * 100.0 if peak > 0 else 0.0
             equity_curve.append({
@@ -153,7 +155,7 @@ def run_backtest(days=90):
             if drawdown_now > max_dd:
                 max_dd = drawdown_now
                 max_dd_details = {**equity_curve[-1], "max_drawdown_usdt": drawdown_now,
-                                  "peak_time_utc": "", "trough_time_utc": ts.isoformat()}
+                                  "peak_time_utc": peak_time_utc, "trough_time_utc": ts.isoformat()}
             if i == 0 or pd.isna(row["rsi"]) or pd.isna(row["adx"]):
                 continue
             # Match bot.py: latest H1 candle whose open is before this M15 hour.
@@ -239,7 +241,8 @@ def run_backtest(days=90):
                 initial_margin = balance * ENTRY_MARGIN_PCT
                 qty = initial_margin*bot.LEVERAGE/close
                 pos = {"side":side,"time":ts,"avg":close,"qty":qty,"margin":initial_margin,
-                       "initial_margin":initial_margin,"dca":False,"notional":close*qty}
+                       "initial_margin":initial_margin,"dca":False,"notional":close*qty,
+                       "trade_id":len(trades)+1}
 
         if pos:
             row = m15.iloc[-1]
@@ -283,6 +286,15 @@ def run_backtest(days=90):
                     "exit_reason":trade["reason"],"trade_net_pnl_usdt":trade["net_pnl"],
                     "cumulative_net_pnl_usdt":running_equity,"account_balance_usdt":running_balance,
                     "initial_margin_usdt":trade.get("initial_margin_usdt"),"dca_margin_usdt":trade.get("dca_margin_usdt",0.0)})
+        curve_fields = ["timestamp_utc","mark_price","account_balance_usdt","unrealized_pnl_gross_usdt",
+            "estimated_entry_exit_fees_usdt","equity_usdt","peak_equity_usdt","drawdown_usdt","drawdown_pct",
+            "position_trade_id","position_side","position_entry_time_utc","avg_entry_price","position_qty",
+            "position_margin_usdt","dca_used"]
+        with CURVE_CSV.open("w", newline="", encoding="utf-8-sig") as f:
+            writer = csv.DictWriter(f, fieldnames=curve_fields)
+            writer.writeheader()
+            writer.writerows(equity_curve)
+
         report = {"symbol":"BTCUSDT perpetual (OKX BTC-USDT-SWAP candles)",
           "timeframe":"M15 entry / closed H1 trend filter","period_days":days,
           "start":m15.iloc[0]["open_time"].isoformat(),"end":m15.iloc[-1]["open_time"].isoformat(),
@@ -290,9 +302,11 @@ def run_backtest(days=90):
           "initial_capital_usdt":INITIAL_CAPITAL,"final_balance_usdt":balance,
           "entry_margin_pct_of_current_balance":ENTRY_MARGIN_PCT,"dca_margin_ratio_of_initial_order":DCA_MARGIN_RATIO,
           "net_profit_usdt":sum(t["net_pnl"] for t in trades),"gross_profit_usdt":gp,"gross_loss_usdt":gl,
-          "profit_factor":pf,"max_drawdown_usdt":max_dd,"fees_usdt":sum(t["fees"] for t in trades),
+          "profit_factor":pf,"max_drawdown_usdt":max_dd,"max_drawdown_details":max_dd_details,
+          "equity_curve_candle_count":len(equity_curve),"fees_usdt":sum(t["fees"] for t in trades),
           "dca_count":counts["DCA"],"tp_count":counts["TP"],"soft_sl_count":counts["Soft SL"],
-          "emergency_sl_count":counts["Emergency SL"],"fee_rate_per_side":FEE,"trades":trades,"trade_csv":str(TRADES_CSV),"equity_csv":str(EQUITY_CSV)}
+          "emergency_sl_count":counts["Emergency SL"],"fee_rate_per_side":FEE,"trades":trades,"trade_csv":str(TRADES_CSV),"equity_csv":str(EQUITY_CSV),
+          "equity_curve_csv":str(CURVE_CSV)}
         RESULT.write_text(json.dumps(report,indent=2),encoding="utf-8")
         _status("completed",started_at=started,finished_at=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M UTC"),
                 message=f"Hoàn tất {days} ngày; {len(trades)} giao dịch.")
