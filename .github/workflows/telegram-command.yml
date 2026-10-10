@@ -1,5 +1,5 @@
 name: Telegram Command
-run-name: ${{ github.event_name == 'schedule' && 'Scheduled signal run' || format('Telegram command: {0}', inputs.command || 'help') }}
+run-name: ${{ github.event_name == 'schedule' && 'Scheduled signal run' || format('Telegram command {0}', inputs.command || 'help') }}
 
 on:
   schedule:
