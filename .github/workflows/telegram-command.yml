@@ -58,6 +58,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           ACTIONS_GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          BACKTEST_DAYS: ${{ github.event_name == 'push' && '180' || '90' }}
         run: |
           if [ "${{ github.event_name }}" = "schedule" ]; then
             python bot.py
