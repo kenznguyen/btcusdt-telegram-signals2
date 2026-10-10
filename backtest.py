@@ -125,7 +125,7 @@ def run_backtest(days=90):
         max_dd = 0.0
         equity_curve = []
         max_dd_details = None
-        peak_time_utc = None
+        peak_time_utc = m15.iloc[0]["open_time"].isoformat() if len(m15) else None
         for i, row in m15.iterrows():
             ts = row["open_time"]
             mark_price = float(row["close"])
@@ -327,7 +327,7 @@ def format_report(r):
         f"Margin entry: {r.get('entry_margin_pct_of_current_balance',0.5)*100:.0f}% số dư; DCA: {r.get('dca_margin_ratio_of_initial_order',1.0)*100:.0f}% margin entry",
         f"Net Profit sau phí: {r['net_profit_usdt']:+.2f} USDT",
         f"Win Rate: {r['win_rate_pct']:.2f}%","Profit Factor: "+pf_text,
-        f"Max Drawdown (mark-to-market, close-to-close): {r['max_drawdown_usdt']:.2f} USDT",
+        f"Max Drawdown (equity snapshot M15): {r['max_drawdown_usdt']:.2f} USDT",
         f"Phí ước tính: {r['fees_usdt']:.2f} USDT ({r['fee_rate_per_side']*100:.03f}%/chiều)",
         f"DCA: {r['dca_count']} | TP: {r['tp_count']} | Soft SL: {r['soft_sl_count']} | Emergency SL: {r['emergency_sl_count']}",
         f"Khoảng thời gian: {r['start'][:16]} — {r['end'][:16]} UTC",
