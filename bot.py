@@ -455,6 +455,19 @@ def execution_fill_price(reference_price, action):
     slip = max(0.0, SLIPPAGE_BPS) / 10000.0
     return float(reference_price) * (1.0 + slip if action.upper() == "BUY" else 1.0 - slip)
 
+def stop_fill_price(side, stop_price, candle_open):
+    """Conservative stop-market estimate: gap-through fills at open, otherwise at stop; then adverse slippage."""
+    side = str(side).upper()
+    stop_price = float(stop_price)
+    candle_open = float(candle_open)
+    if side == "LONG":
+        reference = candle_open if candle_open <= stop_price else stop_price
+        return execution_fill_price(reference, "SELL")
+    if side == "SHORT":
+        reference = candle_open if candle_open >= stop_price else stop_price
+        return execution_fill_price(reference, "BUY")
+    raise ValueError(f"Unsupported position side: {side}")
+
 def main():
     if os.getenv("TEST_TELEGRAM", "").strip() == "1":
         telegram_send("✅ BTCUSDT Signal Bot: Telegram kết nối thành công!")
@@ -599,19 +612,24 @@ def main():
                 and roe >= TP_ROE
             )
 
+            sl_exit_price = None
             if emergency_hit:
                 close_reason = "EMERGENCY SL"
+                sl_exit_price = stop_fill_price(side, emergency_price, candle_open)
                 send_event(
-                    close_reason, side, close, row["open_time"], roe,
-                    f"Mức ngưỡng tham chiếu: {fmt_price(emergency_price)}",
+                    close_reason, side, sl_exit_price, row["open_time"], roe,
+                    f"Ngưỡng SL: {fmt_price(emergency_price)}; giá khớp SL mô phỏng "
+                    f"(xét gap tại open + trượt giá {SLIPPAGE_BPS:g} bps): {fmt_price(sl_exit_price)}",
                 )
                 events_sent += 1
                 exited = True
             elif soft_hit:
                 close_reason = "SOFT SL"
+                sl_exit_price = stop_fill_price(side, soft_price, candle_open)
                 send_event(
-                    close_reason, side, close, row["open_time"], roe,
-                    f"Mức ngưỡng tham chiếu: {fmt_price(soft_price)}",
+                    close_reason, side, sl_exit_price, row["open_time"], roe,
+                    f"Ngưỡng SL: {fmt_price(soft_price)}; giá khớp SL mô phỏng "
+                    f"(xét gap tại open + trượt giá {SLIPPAGE_BPS:g} bps): {fmt_price(sl_exit_price)}",
                 )
                 events_sent += 1
                 exited = True
@@ -635,7 +653,11 @@ def main():
                 closed_margin = INITIAL_MARGIN + (
                     DCA_MARGIN if dca_used else 0
                 )
-                actual_exit = (exit_fill_price if close_reason == "TAKE PROFIT" else close)
+                actual_exit = (
+                    exit_fill_price if close_reason == "TAKE PROFIT"
+                    else sl_exit_price if close_reason in ("SOFT SL", "EMERGENCY SL")
+                    else close
+                )
                 realized_pnl = (
                     (actual_exit - closed_avg) * closed_qty
                     if side == "LONG"
