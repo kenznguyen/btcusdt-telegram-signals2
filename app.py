@@ -96,6 +96,8 @@ def health():
     return jsonify({"ok": True}), 200
 
 
+# Keep both paths valid: /telegram-webhook is descriptive, /webhook is the short Render URL.
+@app.post("/webhook")
 @app.post("/telegram-webhook")
 def telegram_webhook():
     if not TELEGRAM_WEBHOOK_SECRET:
