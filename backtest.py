@@ -1,4 +1,5 @@
 """90-day historical candle backtest; deliberately does not read/write live state.json."""
+import csv
 import json
 import os
 from pathlib import Path
@@ -9,6 +10,8 @@ import bot
 
 STATUS = Path("backtest_status.json")
 RESULT = Path("backtest_last_result.json")
+TRADES_CSV = Path("backtest_trades.csv")
+EQUITY_CSV = Path("backtest_equity.csv")
 FEE = float(os.getenv("TAKER_FEE_RATE", "0.0005"))
 URL = "https://www.okx.com/api/v5/market/history-candles"
 
@@ -213,6 +216,24 @@ def run_backtest(days=90):
         losses = [t for t in trades if t["net_pnl"] <= 0]
         gp, gl = sum(t["net_pnl"] for t in wins), abs(sum(t["net_pnl"] for t in losses))
         pf = gp/gl if gl else (999.0 if gp else None)
+        # Export every trade and the realized cumulative PnL curve.
+        trade_fields = ["trade_id","side","entry_time","exit_time","avg_entry","exit_price","qty",
+            "gross_pnl","fees","net_pnl","reason","dca_used"]
+        with TRADES_CSV.open("w", newline="", encoding="utf-8-sig") as f:
+            writer = csv.DictWriter(f, fieldnames=trade_fields, extrasaction="ignore")
+            writer.writeheader()
+            for idx, trade in enumerate(trades, 1):
+                writer.writerow({"trade_id":idx, **trade})
+        running_equity = 0.0
+        with EQUITY_CSV.open("w", newline="", encoding="utf-8-sig") as f:
+            fields = ["trade_id","exit_time","side","exit_reason","trade_net_pnl_usdt","cumulative_net_pnl_usdt"]
+            writer = csv.DictWriter(f, fieldnames=fields)
+            writer.writeheader()
+            for idx, trade in enumerate(trades, 1):
+                running_equity += float(trade["net_pnl"])
+                writer.writerow({"trade_id":idx,"exit_time":trade["exit_time"],"side":trade["side"],
+                    "exit_reason":trade["reason"],"trade_net_pnl_usdt":trade["net_pnl"],
+                    "cumulative_net_pnl_usdt":running_equity})
         report = {"symbol":"BTCUSDT perpetual (OKX BTC-USDT-SWAP candles)",
           "timeframe":"M15 entry / closed H1 trend filter","period_days":days,
           "start":m15.iloc[0]["open_time"].isoformat(),"end":m15.iloc[-1]["open_time"].isoformat(),
@@ -220,7 +241,7 @@ def run_backtest(days=90):
           "net_profit_usdt":sum(t["net_pnl"] for t in trades),"gross_profit_usdt":gp,"gross_loss_usdt":gl,
           "profit_factor":pf,"max_drawdown_usdt":max_dd,"fees_usdt":sum(t["fees"] for t in trades),
           "dca_count":counts["DCA"],"tp_count":counts["TP"],"soft_sl_count":counts["Soft SL"],
-          "emergency_sl_count":counts["Emergency SL"],"fee_rate_per_side":FEE,"trades":trades[-500:]}
+          "emergency_sl_count":counts["Emergency SL"],"fee_rate_per_side":FEE,"trades":trades,"trade_csv":str(TRADES_CSV),"equity_csv":str(EQUITY_CSV)}
         RESULT.write_text(json.dumps(report,indent=2),encoding="utf-8")
         _status("completed",started_at=started,finished_at=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M UTC"),
                 message=f"Hoàn tất {days} ngày; {len(trades)} giao dịch.")
@@ -243,4 +264,5 @@ def format_report(r):
         f"Phí ước tính: {r['fees_usdt']:.2f} USDT ({r['fee_rate_per_side']*100:.03f}%/chiều)",
         f"DCA: {r['dca_count']} | TP: {r['tp_count']} | Soft SL: {r['soft_sl_count']} | Emergency SL: {r['emergency_sl_count']}",
         f"Khoảng thời gian: {r['start'][:16]} — {r['end'][:16]} UTC",
+        "Chi tiết từng lệnh và đường vốn: tải artifact backtest-detailed-report trên GitHub Actions.",
         "Mô phỏng OHLC với phí ước tính; không phải khớp lệnh thực tế."])

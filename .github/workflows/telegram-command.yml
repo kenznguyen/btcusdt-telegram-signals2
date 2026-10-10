@@ -60,3 +60,16 @@ jobs:
           else
             python telegram_commands.py "${{ inputs.command || 'help' }}"
           fi
+
+      - name: Upload detailed backtest report
+        if: always() && inputs.command == 'backtest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backtest-detailed-report
+          path: |
+            backtest_last_result.json
+            backtest_status.json
+            backtest_trades.csv
+            backtest_equity.csv
+          if-no-files-found: warn
+          retention-days: 30
