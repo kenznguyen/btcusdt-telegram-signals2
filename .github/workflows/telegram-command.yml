@@ -1,4 +1,5 @@
 name: Telegram Command
+run-name: ${{ github.event_name == 'schedule' && 'Scheduled signal run' || format('Telegram command: {0}', inputs.command || 'help') }}
 
 on:
   schedule:
@@ -14,9 +15,13 @@ on:
           - status
           - position
           - signal
+          - backtest
+          - btstatus
+          - btresult
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   telegram-command:
@@ -31,10 +36,27 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install requests pandas
+        run: pip install requests pandas numpy
+
+      - name: Restore latest backtest report and status
+        uses: actions/cache@v4
+        with:
+          path: |
+            backtest_last_result.json
+            backtest_status.json
+          key: bt-state-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            bt-state-
 
       - name: Execute Telegram command
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python telegram_commands.py "${{ inputs.command }}"
+          ACTIONS_GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            python bot.py
+          else
+            python telegram_commands.py "${{ inputs.command || 'help' }}"
+          fi

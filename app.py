@@ -22,6 +22,9 @@ COMMANDS = {
     "/status": "status",
     "/position": "position",
     "/signal": "signal",
+    "/backtest": "backtest",
+    "/btstatus": "btstatus",
+    "/btresult": "btresult",
 }
 
 # In-memory deduplication prevents Telegram retries from dispatching the same update twice.
