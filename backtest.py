@@ -162,9 +162,9 @@ def run_backtest(days=90):
                 elif soft:
                     reason, exit_price = "Soft SL", soft_price
                 elif tp:
-                    # TP moves in the profitable direction, unlike stop-loss thresholds.
-                    target_move = bot.TP_ROE / (100.0 * bot.LEVERAGE)
-                    exit_price = avg * (1.0 + target_move) if side == "LONG" else avg * (1.0 - target_move)
+                    # TP's RSI condition is known only after candle close; do not backfill at an earlier theoretical threshold.
+                    # Match bot.py: simulate a market fill from the signal candle close with adverse slippage.
+                    exit_price = bot.execution_fill_price(close, "SELL" if side == "LONG" else "BUY")
                     reason = "TP"
                 if reason:
                     gross = ((exit_price-avg) if side=="LONG" else (avg-exit_price))*qty
