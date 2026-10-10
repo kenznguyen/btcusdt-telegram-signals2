@@ -30,6 +30,7 @@ EMERGENCY_SL_ROE = float(os.getenv("EMERGENCY_SL_ROE", "-90"))
 SOFT_SL_ADX = float(os.getenv("SOFT_SL_ADX", "35"))
 INITIAL_MARGIN = float(os.getenv("INITIAL_MARGIN_USD", "50"))
 DCA_MARGIN = float(os.getenv("DCA_MARGIN_USD", "50"))
+SLIPPAGE_BPS = float(os.getenv("SLIPPAGE_BPS", "5"))
 STATE_FILE = "state.json"
 FAPI = "https://fapi.binance.com"
 
@@ -448,6 +449,12 @@ def threshold_price(side, avg_entry, abs_roe):
     move = abs(abs_roe) / (100.0 * LEVERAGE)
     return avg_entry * (1.0 - move) if side == "LONG" else avg_entry * (1.0 + move)
 
+
+def execution_fill_price(reference_price, action):
+    """Estimated market fill after adverse slippage; not an exchange-confirmed fill."""
+    slip = max(0.0, SLIPPAGE_BPS) / 10000.0
+    return float(reference_price) * (1.0 + slip if action.upper() == "BUY" else 1.0 - slip)
+
 def main():
     if os.getenv("TEST_TELEGRAM", "").strip() == "1":
         telegram_send("✅ BTCUSDT Signal Bot: Telegram kết nối thành công!")
@@ -611,11 +618,13 @@ def main():
             elif tp_hit:
                 close_reason = "TAKE PROFIT"
                 tp_price = threshold_price(side, avg_entry, TP_ROE)
+                exit_fill_price = execution_fill_price(close, "SELL" if side == "LONG" else "BUY")
                 tp_rsi = LONG_RSI_TP if side == "LONG" else SHORT_RSI_TP
                 send_event(
-                    close_reason, side, close, row["open_time"], roe,
-                    f"Điều kiện TP đã đạt: RSI {'≥' if side == 'LONG' else '≤'} {tp_rsi:g}, "
-                    f"ROE ≥ +{TP_ROE:g}%. Mức giá tham chiếu TP: {fmt_price(tp_price)}",
+                    close_reason, side, exit_fill_price, row["open_time"], roe,
+                    f"TP kích hoạt khi nến đóng: RSI {'≥' if side == "LONG" else '≤'} {tp_rsi:g}, "
+                    f"ROE ≥ +{TP_ROE:g}%. Giá ngưỡng lý thuyết: {fmt_price(tp_price)}; "
+                    f"giá khớp mô phỏng tại close sau trượt giá {SLIPPAGE_BPS:g} bps: {fmt_price(exit_fill_price)}",
                 )
                 events_sent += 1
                 exited = True
@@ -626,10 +635,11 @@ def main():
                 closed_margin = INITIAL_MARGIN + (
                     DCA_MARGIN if dca_used else 0
                 )
+                actual_exit = (exit_fill_price if close_reason == "TAKE PROFIT" else close)
                 realized_pnl = (
-                    (close - closed_avg) * closed_qty
+                    (actual_exit - closed_avg) * closed_qty
                     if side == "LONG"
-                    else (closed_avg - close) * closed_qty
+                    else (closed_avg - actual_exit) * closed_qty
                 )
                 closed_roe = (
                     realized_pnl / closed_margin * 100
@@ -640,7 +650,7 @@ def main():
                     "side": side,
                     "reason": close_reason,
                     "avg_entry": closed_avg,
-                    "exit_price": close,
+                    "exit_price": actual_exit,
                     "qty": closed_qty,
                     "pnl_usd": realized_pnl,
                     "roe_pct": closed_roe,
