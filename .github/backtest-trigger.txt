@@ -1,2 +1,3 @@
 One-off trigger: run 180-day BTCUSDT historical backtest with detailed JSON/CSV artifact export after stop-loss gap/slippage model fix.
 Dynamic equity sizing simulation rerun: entry margin 50% of current balance, DCA 100% of initial margin; backtest-only, no bot.py changes.
+Added per-M15 equity curve export with mark price, balance, unrealized PnL, estimated exit costs, equity, peak, drawdown and open position attribution. Rerun 180-day backtest.
