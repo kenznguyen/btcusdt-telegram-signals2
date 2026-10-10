@@ -123,10 +123,34 @@ def main():
             "/status — Báo cáo thị trường và vị thế\n"
             "/position — Vị thế hiện tại và lệnh đã đóng gần nhất\n"
             "/signal — RSI, ADX, xu hướng H1 và điều kiện entry\n"
+            "/backtest — Backtest lịch sử 90 ngày\n"
+            "/btstatus — Trạng thái backtest gần nhất\n"
+            "/btresult — Báo cáo backtest gần nhất\n"
             "/help — Danh sách lệnh\n\n"
             "Bot chỉ phát tín hiệu mô phỏng, không đặt lệnh Futures."
         )
         print("Sent help response")
+        return
+
+    if COMMAND == "backtest":
+        from backtest import run_backtest, format_report
+        try:
+            report = run_backtest(days=int(os.getenv("BACKTEST_DAYS", "90")))
+            bot.telegram_send(format_report(report))
+        except Exception as exc:
+            bot.telegram_send(f"⚠️ Backtest thất bại: {str(exc)[:250]}")
+            traceback.print_exc()
+        return
+
+    if COMMAND == "btstatus":
+        from backtest import get_backtest_status
+        bot.telegram_send(get_backtest_status())
+        return
+
+    if COMMAND == "btresult":
+        from backtest import get_last_report, format_report
+        report = get_last_report()
+        bot.telegram_send(format_report(report) if report else "Chưa có kết quả. Gửi /backtest để chạy.")
         return
 
     if COMMAND not in {"status", "position", "signal"}:
