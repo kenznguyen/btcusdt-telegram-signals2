@@ -1,4 +1,5 @@
 name: Telegram Command
+# Refresh scheduled workflow
 run-name: ${{ github.event_name == 'schedule' && 'Scheduled signal run' || format('Telegram command {0}', inputs.command || 'help') }}
 
 on:
@@ -81,4 +82,3 @@ jobs:
             backtest_equity_m15.csv
           if-no-files-found: warn
           retention-days: 30
-# Refresh scheduled workflow,
