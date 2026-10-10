@@ -14,6 +14,9 @@ on:
           - status
           - position
           - signal
+          - backtest
+          - btstatus
+          - btresult
 
 permissions:
   contents: read
@@ -37,4 +40,9 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python telegram_commands.py "${{ inputs.command }}"
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            python bot.py
+          else
+            python telegram_commands.py "${{ inputs.command || 'help' }}"
+          fi
