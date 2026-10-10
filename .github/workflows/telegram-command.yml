@@ -36,6 +36,16 @@ jobs:
       - name: Install dependencies
         run: pip install requests pandas numpy
 
+      - name: Restore latest backtest report and status
+        uses: actions/cache@v4
+        with:
+          path: |
+            backtest_last_result.json
+            backtest_status.json
+          key: bt-state-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            bt-state-
+
       - name: Execute Telegram command
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
