@@ -1,14 +1,11 @@
 name: Telegram Command
-# Refresh scheduled workflow
-run-name: ${{ github.event_name == 'schedule' && 'Scheduled signal run' || format('Telegram command {0}', inputs.command || 'help') }}
+run-name: ${{ github.event_name == 'push' && 'Backtest trigger' || format('Telegram command {0}', inputs.command || 'help') }}
 
 on:
   push:
     branches: [main]
     paths:
       - '.github/backtest-trigger.txt'
-  schedule:
-    - cron: '*/1 * * * *'
   workflow_dispatch:
     inputs:
       command:
@@ -61,9 +58,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           BACKTEST_DAYS: ${{ github.event_name == 'push' && '180' || '90' }}
         run: |
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            python bot.py
-          elif [ "${{ github.event_name }}" = "push" ]; then
+          if [ "${{ github.event_name }}" = "push" ]; then
             python telegram_commands.py "backtest"
           else
             python telegram_commands.py "${{ inputs.command || 'help' }}"
