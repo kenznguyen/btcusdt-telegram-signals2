@@ -33,7 +33,7 @@ def get_backtest_status():
             for run in response.json().get("workflow_runs", []):
                 title = str(run.get("display_title") or run.get("name") or "")
                 if title.strip().lower() == "telegram command: backtest":
-                    return "\\n".join([
+                    return "\n".join([
                         "🧪 BACKTEST STATUS",
                         "Trạng thái: RUNNING",
                         f"Run ID: {run.get('id', 'N/A')}",
