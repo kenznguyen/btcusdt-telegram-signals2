@@ -8,7 +8,7 @@ on:
     paths:
       - '.github/backtest-trigger.txt'
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/1 * * * *'
   workflow_dispatch:
     inputs:
       command:
