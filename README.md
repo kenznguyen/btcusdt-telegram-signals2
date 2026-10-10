@@ -1,201 +1,209 @@
-BTCUSDT Telegram Signal Bot
+# BTCUSDT Telegram Signal Bot
 
-Bot Telegram dùng để tra cứu trạng thái, vị thế mô phỏng và tín hiệu BTCUSDT thông qua GitHub Actions.
+Bot Telegram theo dõi tín hiệu BTCUSDT Futures dựa trên nến M15 và bộ lọc xu hướng H1. Hệ thống sử dụng **một webhook Telegram chạy trên Render để nhận lệnh**, còn việc quét tín hiệu định kỳ được tách riêng sang **GitHub Actions workflow**.
 
-1. Tổng quan hệ thống
+> **Lưu ý rủi ro:** Đây là bot phát thông báo và mô phỏng vị thế. Bot không đặt, sửa hoặc đóng lệnh trên Binance Futures. Tín hiệu không phải lời khuyên đầu tư và cần được tự xác minh.
 
-Luồng hoạt động:
+## 1. Kiến trúc hiện tại
 
-1. Người dùng gửi lệnh trong Telegram.
-2. Render nhận lệnh qua webhook và kiểm tra mã bí mật cùng "TELEGRAM_CHAT_ID".
-3. Render gọi GitHub Actions để xử lý lệnh.
-4. GitHub Actions chạy "telegram_commands.py".
-5. Bot gửi kết quả trở lại Telegram.
+```text
+Người dùng Telegram
+        |
+        v
+Một Telegram webhook
+Render: app.py (/webhook)
+        |
+        | workflow_dispatch
+        v
+GitHub Actions: telegram-command.yml
+        |
+        v
+telegram_commands.py
+        |
+        v
+Kết quả trả về Telegram
 
-Lưu ý: Đây là hệ thống gửi tín hiệu và thông tin giao dịch mô phỏng. Bot không tự đặt, sửa hoặc đóng lệnh Binance Futures.
 
-2. Các lệnh Telegram
+GitHub Actions schedule (mỗi 5 phút)
+        |
+        v
+signal-scan.yml
+        |
+        v
+bot.py -> lấy nến đã đóng từ OKX
+        |
+        v
+Tín hiệu / thông báo -> Telegram
+```
 
-Lệnh| Chức năng
-"/start"| Hiển thị hướng dẫn
-"/help"| Danh sách lệnh
-"/status"| Xem trạng thái hệ thống
-"/position"| Xem thông tin vị thế mô phỏng
-"/signal"| Yêu cầu kiểm tra tín hiệu
+- **Render webhook:** chỉ nhận và xác thực lệnh Telegram, sau đó yêu cầu GitHub Actions xử lý.
+- **Telegram Command workflow:** chạy khi Render dispatch workflow hoặc khi có thay đổi ở `.github/backtest-trigger.txt` trên nhánh `main`.
+- **Signal Scanner workflow:** chạy theo lịch mỗi 5 phút và có thể chạy thủ công từ tab Actions.
+- Hai workflow dùng chung Telegram Bot API để gửi tin nhắn; workflow quét tín hiệu **không cần một webhook Telegram thứ hai**.
+- Không bật lại workflow polling dùng `getUpdates`/ `deleteWebhook` trong khi đang dùng webhook Render, vì polling có thể xóa webhook.
 
-Khi nhận lệnh, bot có thể gửi thông báo đang xử lý trước khi GitHub Actions trả kết quả.
+## 2. Các lệnh Telegram
 
-3. Cấu trúc repository
+| Lệnh | Chức năng |
+|---|---|
+| `/start` | Bắt đầu và xem hướng dẫn |
+| `/help` | Danh sách lệnh |
+| `/status` | Yêu cầu báo cáo trạng thái |
+| `/position` | Yêu cầu thông tin vị thế mô phỏng |
+| `/signal` | Kiểm tra tín hiệu hiện tại |
+| `/backtest` | Chạy backtest |
+| `/btstatus` | Kiểm tra trạng thái backtest |
+| `/btresult` | Xem kết quả backtest |
 
-Các thành phần chính:
+Các lệnh được Render chuyển thành `workflow_dispatch`; GitHub Actions cần được bật trong repository. Lệnh backtest có thể mất thời gian vì cần tải và xử lý dữ liệu lịch sử.
 
-- "app.py": Flask webhook bridge nhận lệnh Telegram và kích hoạt GitHub Actions.
-- "bot.py": Logic xử lý tín hiệu và báo cáo giao dịch.
-- "telegram_commands.py": Xử lý các lệnh Telegram.
-- "requirements-web.txt": Các thư viện phục vụ webhook trên Render.
-- "requirements.txt": Các thư viện cho chương trình Python.
-- ".github/workflows/telegram-command.yml": Workflow xử lý lệnh Telegram.
+## 3. Logic quét tín hiệu
 
-Các workflow khác đang hoạt động trong repository, chẳng hạn workflow báo cáo tín hiệu định kỳ, cần được giữ nguyên nếu hệ thống vẫn sử dụng chúng.
+- Mã thị trường: BTCUSDT; dữ liệu nến được lấy từ hợp đồng hoán đổi BTC-USDT trên OKX.
+- Khung thời gian: M15 để tìm điểm vào và quản lý vị thế mô phỏng; H1 để lọc xu hướng.
+- Chỉ xử lý nến đã đóng theo cờ xác nhận của nguồn dữ liệu.
+- Các điều kiện và tham số được cấu hình bằng biến môi trường trong `bot.py`; ví dụ gồm RSI, ADX H1, ROE DCA, ADX DCA, TP và các ngưỡng SL.
+- Khi không có nến M15 mới, scanner bỏ qua lượt chạy để tránh gửi lặp thông báo.
+- Khi xử lý nến mới, bot có thể gửi thông báo ENTRY, DCA, TAKE PROFIT, SOFT SL, EMERGENCY SL và báo cáo trạng thái.
+- Giá khớp, ROE, phí/trượt giá và vị thế trong tin nhắn là mô phỏng; kết quả thực tế trên sàn có thể khác.
 
-4. Cấu hình GitHub
+Các tham số mặc định trong mã không thay thế cho việc kiểm thử chiến lược trên dữ liệu lịch sử. Hãy kiểm tra trực tiếp mã nguồn trước khi thay đổi thông số.
 
-4.1. Tạo GitHub Personal Access Token
+## 4. Các file chính
 
-Trong GitHub, mở:
+| Đường dẫn | Vai trò |
+|---|---|
+| `app.py` | Flask webhook bridge trên Render; xác thực webhook và dispatch workflow |
+| `bot.py` | Quét nến, tính chỉ báo và gửi tín hiệu/vị thế mô phỏng |
+| `telegram_commands.py` | Xử lý lệnh Telegram và các tác vụ backtest |
+| `requirements-web.txt` | Thư viện cho dịch vụ webhook Render |
+| `requirements.txt` | Thư viện Python của dự án |
+| `.github/workflows/telegram-command.yml` | Workflow xử lý lệnh/backtest |
+| `.github/workflows/signal-scan.yml` | Workflow quét tín hiệu theo lịch |
+| `.github/backtest-trigger.txt` | File kích hoạt backtest khi được cập nhật trên nhánh `main` |
 
-"Settings → Developer settings → Personal access tokens → Fine-grained tokens"
+## 5. Cấu hình GitHub
 
-Tạo token với các thiết lập phù hợp:
+### 5.1. Repository secrets
 
-- Resource owner: Tài khoản sở hữu repository.
-- Repository access: Chỉ chọn repository "btcusdt-telegram-signals2".
-- Repository permissions: Cấp quyền Actions cần thiết để kích hoạt workflow; quyền Contents chỉ cấp theo nhu cầu thực tế.
+Vào **Repository → Settings → Secrets and variables → Actions**, tạo hoặc xác nhận:
 
-Lưu token để cấu hình vào Render dưới tên "GITHUB_TOKEN".
+- `TELEGRAM_BOT_TOKEN`: token bot từ BotFather.
+- `TELEGRAM_CHAT_ID`: chat ID được phép sử dụng/nhận thông báo.
 
-Không đưa token vào mã nguồn, README, file YAML hoặc tin nhắn Telegram.
+Không ghi các giá trị bí mật vào README, mã nguồn, commit hoặc ảnh chụp màn hình công khai.
 
-4.2. Cấu hình GitHub Actions Secrets
+### 5.2. Quyền kích hoạt workflow
 
-Mở repository:
+Render cần biến `GITHUB_TOKEN` là GitHub Personal Access Token có quyền kích hoạt workflow trong repository. Với fine-grained token, chỉ cấp quyền cần thiết cho đúng repository; kiểm tra quyền **Actions: Read and write** và quyền bổ sung nếu cấu hình repository yêu cầu.
 
-"Settings → Secrets and variables → Actions"
+Các giá trị Render liên quan:
+- `GITHUB_REPOSITORY=kenznguyen/btcusdt-telegram-signals2`
+- `GITHUB_REF=main`
+- `GITHUB_WORKFLOW_FILE=telegram-command.yml`
 
-Tạo hoặc kiểm tra hai repository secrets:
+Workflow sử dụng GitHub Actions `GITHUB_TOKEN` riêng bên trong job; token đó không tự động thay thế token PAT mà Render dùng để dispatch workflow.
 
-- "TELEGRAM_BOT_TOKEN": Token bot lấy từ BotFather.
-- "TELEGRAM_CHAT_ID": Chat ID được phép sử dụng bot và nhận kết quả.
+## 6. Triển khai webhook trên Render
 
-Các giá trị phải khớp với cấu hình tương ứng trên Render.
+Tạo hoặc mở Web Service kết nối với repository `kenznguyen/btcusdt-telegram-signals2`.
 
-5. Triển khai webhook trên Render
-
-Tạo hoặc mở Web Service đã kết nối với repository:
-
-"kenznguyen/btcusdt-telegram-signals2"
-
-5.1. Build Command
-
+**Build Command**
+```bash
 pip install -r requirements-web.txt
+```
 
-5.2. Start Command
-
+**Start Command**
+```bash
 gunicorn --workers 1 --threads 4 --timeout 30 app:app
+```
 
-5.3. Health Check Path
-
+**Health Check Path**
+```text
 /health
+```
 
-Sau khi triển khai, truy cập:
+Các biến môi trường cần có trên Render:
 
-https://TEN-MIEN-RENDER/health
+| Biến | Giá trị |
+|---|---|
+| `TELEGRAM_BOT_TOKEN` | Token bot Telegram |
+| `TELEGRAM_CHAT_ID` | Chat ID được phép điều khiển/nhận tin |
+| `TELEGRAM_WEBHOOK_SECRET` | Chuỗi bí mật riêng cho webhook |
+| `GITHUB_TOKEN` | GitHub PAT có quyền dispatch workflow |
+| `GITHUB_REPOSITORY` | `kenznguyen/btcusdt-telegram-signals2` |
+| `GITHUB_REF` | `main` |
+| `GITHUB_WORKFLOW_FILE` | `telegram-command.yml` |
 
-Kết quả mong đợi:
+Tạo `TELEGRAM_WEBHOOK_SECRET` ngẫu nhiên, không chia sẻ công khai; để tương thích với cách truyền header, chỉ dùng chữ cái, chữ số, dấu gạch dưới và dấu gạch ngang.
 
-{"ok":true}
+Sau khi deploy, mở `https://TEN-MIEN-RENDER/health`. Kết quả dự kiến là JSON cho biết dịch vụ hoạt động, ví dụ `{"ok":true}`.
 
-Thay "TEN-MIEN-RENDER" bằng tên miền Render thực tế của dịch vụ.
+## 7. Đăng ký một webhook Telegram
 
-5.4. Environment Variables
+Chỉ đăng ký **một URL webhook cho bot Telegram này**. Mã hiện tại hỗ trợ `/webhook` và `/telegram-webhook`; chọn một URL và dùng nhất quán. Ví dụ:
 
-Trong Render, mở:
+```text
+https://TEN-MIEN-RENDER/webhook
+```
 
-"Service → Environment"
+Đặt `secret_token` của Telegram trùng với `TELEGRAM_WEBHOOK_SECRET` trên Render. Có thể chạy lệnh sau trong terminal riêng; thay các giá trị bằng thông tin thật, không commit token:
 
-Thiết lập các biến sau:
-
-Biến| Giá trị
-"TELEGRAM_BOT_TOKEN"| Token từ BotFather
-"TELEGRAM_CHAT_ID"| Chat ID được phép điều khiển bot
-"TELEGRAM_WEBHOOK_SECRET"| Chuỗi bí mật riêng cho webhook
-"GITHUB_TOKEN"| GitHub token có quyền kích hoạt workflow
-"GITHUB_REPOSITORY"| "kenznguyen/btcusdt-telegram-signals2"
-"GITHUB_REF"| "main"
-"GITHUB_WORKFLOW_FILE"| "telegram-command.yml"
-
-Dùng một chuỗi ngẫu nhiên đủ mạnh cho "TELEGRAM_WEBHOOK_SECRET". Theo cách triển khai hiện tại, chuỗi này chỉ nên gồm chữ cái, chữ số, dấu gạch dưới hoặc dấu gạch ngang.
-
-Không chia sẻ các giá trị bí mật trong ảnh chụp màn hình hoặc nhật ký công khai.
-
-6. Đăng ký Telegram webhook
-
-Mã nguồn "app.py" hiện tại nhận webhook tại đường dẫn:
-
-/telegram-webhook
-
-Đăng ký URL đầy đủ có dạng:
-
-https://TEN-MIEN-RENDER/telegram-webhook
-
-Telegram webhook cần được thiết lập với "secret_token" trùng với giá trị "TELEGRAM_WEBHOOK_SECRET" trên Render.
-
-Ví dụ chạy từ terminal riêng, không commit lệnh chứa token vào repository:
-
+```bash
 export TELEGRAM_BOT_TOKEN='TOKEN_TU_BOTFATHER'
 export TELEGRAM_WEBHOOK_SECRET='CHUOI_BI_MAT_WEBHOOK'
-export WEBHOOK_URL='https://TEN-MIEN-RENDER/telegram-webhook'
+export WEBHOOK_URL='https://TEN-MIEN-RENDER/webhook'
 
 curl -sS -X POST \
   "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" \
   -d "url=${WEBHOOK_URL}" \
   -d "secret_token=${TELEGRAM_WEBHOOK_SECRET}" \
   -d 'allowed_updates=["message"]'
+```
 
-Phản hồi thành công từ Telegram API cần có:
+Để kiểm tra cấu hình webhook, gọi `getWebhookInfo` bằng Telegram Bot API và xác nhận URL đúng, không rỗng, đồng thời kiểm tra `pending_update_count` và `last_error_message` nếu có. Không đăng công khai URL API chứa bot token.
 
-{"ok":true,"result":true}
+Không chạy polling bằng `getUpdates` cùng lúc với webhook. Không cần webhook riêng cho workflow quét tín hiệu vì scanner gửi tin nhắn đi bằng Telegram Bot API.
 
-Nếu đã đăng ký webhook cho cùng bot trước đó, thao tác này sẽ thay đổi URL webhook hiện hành. Hãy kiểm tra URL đang dùng trước khi thực hiện.
+## 8. Chạy và kiểm tra GitHub Actions
 
-7. Kiểm tra hệ thống
+### Kiểm tra scanner
 
-Sau khi Render triển khai thành công:
+1. Mở [Actions](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions).
+2. Chọn **BTCUSDT Signal Scanner**.
+3. Chọn **Run workflow** để thử thủ công trên nhánh `main`.
+4. Mở log và kiểm tra bước cài thư viện cùng bước chạy `python bot.py`.
+5. Xác nhận tin nhắn Telegram nếu có sự kiện mới; không có nến mới thì bot có thể kết thúc mà không gửi tin.
 
-1. Mở URL "/health" và xác nhận dịch vụ hoạt động.
-2. Gửi "/help" cho bot Telegram.
-3. Gửi lần lượt "/status", "/position" và "/signal".
-4. Mở repository GitHub.
-5. Chọn tab Actions.
-6. Kiểm tra workflow xử lý lệnh Telegram có chạy thành công hay không.
+Scanner được đặt lịch mỗi 5 phút bằng cron GitHub Actions. GitHub có thể trễ lịch khi hệ thống bận; lịch chạy không bảo đảm đúng chính xác mỗi 5 phút.
 
-Nếu Telegram chỉ trả về thông báo đang xử lý mà không có kết quả:
+### Kiểm tra lệnh
 
-- Kiểm tra nhật ký Render.
-- Kiểm tra workflow trong GitHub Actions.
-- Kiểm tra "GITHUB_TOKEN" và quyền Actions.
-- Kiểm tra tên workflow, nhánh "main" và repository.
-- Kiểm tra hai GitHub Actions secrets "TELEGRAM_BOT_TOKEN" và "TELEGRAM_CHAT_ID".
-- Kiểm tra webhook URL và "TELEGRAM_WEBHOOK_SECRET".
+1. Gửi `/help` hoặc `/status` cho bot Telegram.
+2. Mở Actions và chọn **Telegram Command**.
+3. Kiểm tra lượt chạy tương ứng và log của `telegram_commands.py`.
+4. Nếu lệnh không chạy, kiểm tra log Render, biến `GITHUB_TOKEN`, tên workflow, nhánh và quyền Actions.
 
-8. Bảo mật
+## 9. Trạng thái và giới hạn cần biết
 
-- Không commit token hoặc thông tin bí mật vào repository.
-- Chỉ cho phép chat ID đã cấu hình sử dụng bot.
-- Webhook kiểm tra header "X-Telegram-Bot-Api-Secret-Token".
-- Chỉ xử lý các lệnh được cho phép.
-- Không sử dụng đầu vào Telegram làm lệnh shell tùy ý.
-- Nếu token bị lộ, hãy thu hồi hoặc tạo token mới ngay.
-- Không coi tín hiệu mô phỏng là lệnh giao dịch đã được thực hiện trên sàn.
+- GitHub Actions chạy trên máy ảo tạm thời. Scanner sử dụng GitHub Actions Cache cho `state.json`; cache là cơ chế khôi phục trạng thái tiện dụng, **không phải cơ sở dữ liệu bền vững hoặc giao dịch nguyên tử**. Nếu cần độ tin cậy cao, hãy chuyển trạng thái sang kho lưu trữ bền vững dùng chung.
+- Workflow scanner và workflow lệnh là hai tiến trình riêng. Báo cáo `/status` hoặc `/position` có thể không phản ánh cùng trạng thái nếu các workflow không đọc/ghi cùng một nguồn trạng thái.
+- Chống xử lý lặp webhook trong tiến trình Render có thể mất khi tiến trình khởi động lại.
+- Lịch GitHub Actions có thể trễ; scanner không phù hợp làm hệ thống thực thi lệnh hoặc dừng lỗ khẩn cấp.
+- Giá và sự kiện mô phỏng không đại diện cho lệnh đã khớp trên sàn.
+- Hãy kiểm tra log và lịch sử Actions để xác nhận hệ thống chạy thực tế; việc cấu hình workflow không tự chứng minh rằng Telegram đã nhận tin thành công.
 
-9. Giới hạn hiện tại
+## 10. Bảo mật
 
-- Bot gửi tín hiệu và thông tin mô phỏng, không trực tiếp giao dịch Binance Futures.
-- Cơ chế chống xử lý lặp webhook đang lưu trong bộ nhớ tiến trình; khi Render khởi động lại, trạng thái chống lặp có thể bị mất.
-- "/status" và "/position" chỉ chính xác khi dữ liệu trạng thái mà workflow đọc được đã được cập nhật và đồng bộ đúng cách.
-- Nếu các workflow chạy độc lập và dùng những bản "state.json" khác nhau, dữ liệu vị thế có thể không đồng nhất.
-- Dịch vụ Render miễn phí có thể tạm ngừng khi không hoạt động, khiến phản hồi đầu tiên chậm hơn.
-
-10. Mục tiêu phát triển tiếp theo
-
-- Cải thiện lưu trữ trạng thái giao dịch dùng chung giữa các workflow.
-- Bổ sung kiểm thử cho webhook và lệnh Telegram.
-- Tăng khả năng chống xử lý lặp sau khi dịch vụ khởi động lại.
-- Hoàn thiện giám sát lỗi và báo cáo trạng thái.
-- Chỉ tích hợp giao dịch tự động sau khi có cơ chế quản trị rủi ro, xác thực và kiểm thử riêng.
+- Không commit token, PAT hoặc secret.
+- Chỉ chấp nhận chat ID đã cấu hình và các lệnh được cho phép.
+- Webhook xác thực header `X-Telegram-Bot-Api-Secret-Token`.
+- Khi token bị lộ, thu hồi hoặc thay mới ngay, rồi cập nhật biến môi trường.
+- Không dùng dữ liệu Telegram làm lệnh shell tùy ý.
+- Không thêm API key giao dịch Binance vào hệ thống nếu chưa có yêu cầu, kiểm thử và cơ chế quản trị rủi ro riêng.
 
 ---
 
-Repository: "kenznguyen/btcusdt-telegram-signals2"
+**Repository:** [kenznguyen/btcusdt-telegram-signals2](https://github.com/kenznguyen/btcusdt-telegram-signals2)
 
-Mục đích: Telegram command bridge + GitHub Actions + BTCUSDT simulated signals.
+**Mục tiêu:** Một webhook Telegram trên Render để nhận lệnh + GitHub Actions workflow riêng cho lệnh/backtest và workflow riêng cho quét tín hiệu định kỳ.
