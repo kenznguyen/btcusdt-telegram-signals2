@@ -28,8 +28,10 @@ LONG_DCA_RSI = float(os.getenv("LONG_DCA_RSI", "20"))
 SOFT_SL_ROE = float(os.getenv("SOFT_SL_ROE", "-35"))
 EMERGENCY_SL_ROE = float(os.getenv("EMERGENCY_SL_ROE", "-90"))
 SOFT_SL_ADX = float(os.getenv("SOFT_SL_ADX", "35"))
-INITIAL_MARGIN = float(os.getenv("INITIAL_MARGIN_USD", "50"))
-DCA_MARGIN = float(os.getenv("DCA_MARGIN_USD", "50"))
+INITIAL_CAPITAL = float(os.getenv("BACKTEST_INITIAL_CAPITAL", "100"))
+ENTRY_MARGIN_PCT = float(os.getenv("ENTRY_MARGIN_PCT", "0.50"))
+DCA_MARGIN_RATIO = float(os.getenv("DCA_MARGIN_RATIO", "1.00"))
+FEE_RATE = float(os.getenv("TAKER_FEE_RATE", "0.0005"))
 SLIPPAGE_BPS = float(os.getenv("SLIPPAGE_BPS", "5"))
 STATE_FILE = "state.json"
 FAPI = "https://fapi.binance.com"
@@ -211,7 +213,8 @@ def load_state():
         "dca_used": False,
         "entry_time": None,
         "last_event": None,
-        "last_closed": None
+        "last_closed": None,
+        "account_balance": INITIAL_CAPITAL
     }
     if not os.path.exists(STATE_FILE):
         return default
@@ -219,6 +222,8 @@ def load_state():
         with open(STATE_FILE, "r", encoding="utf-8") as f:
             saved = json.load(f)
         default.update(saved)
+        if "account_balance" not in saved:
+            default["account_balance"] = INITIAL_CAPITAL
         return default
     except Exception:
         return default
@@ -295,7 +300,7 @@ def build_status_report(state, price, candle_time, m15_row=None, h1_row=None):
         avg_entry = float(state.get("avg_entry") or 0)
         qty = float(state.get("qty") or 0)
         dca_used = bool(state.get("dca_used", False))
-        margin_used = INITIAL_MARGIN + (DCA_MARGIN if dca_used else 0)
+        margin_used = float(state.get("initial_margin") or 0.0) + float(state.get("dca_margin") or 0.0)
         if avg_entry > 0 and qty > 0:
             pnl = (price - avg_entry) * qty if side == "LONG" else (avg_entry - price) * qty
             roe = pnl / margin_used * 100 if margin_used > 0 else 0
@@ -579,19 +584,17 @@ def main():
             if exited:
                 closed_qty = qty
                 closed_avg = avg_entry
-                closed_margin = INITIAL_MARGIN + (
-                    DCA_MARGIN if dca_used else 0
-                )
+                closed_margin = float(state.get("initial_margin") or 0.0) + float(state.get("dca_margin") or 0.0)
                 actual_exit = (
                     exit_fill_price if close_reason == "TAKE PROFIT"
                     else sl_exit_price if close_reason in ("SOFT SL", "EMERGENCY SL")
                     else close
                 )
-                realized_pnl = (
-                    (actual_exit - closed_avg) * closed_qty
-                    if side == "LONG"
-                    else (closed_avg - actual_exit) * closed_qty
-                )
+                entry_notional = float(state.get("entry_notional") or (closed_avg * closed_qty))
+                fees = (entry_notional + actual_exit * closed_qty) * FEE_RATE
+                gross_pnl = (actual_exit - closed_avg) * closed_qty if side == "LONG" else (closed_avg - actual_exit) * closed_qty
+                realized_pnl = gross_pnl - fees
+                state["account_balance"] = float(state.get("account_balance", INITIAL_CAPITAL)) + realized_pnl
                 closed_roe = (
                     realized_pnl / closed_margin * 100
                     if closed_margin > 0
@@ -604,7 +607,10 @@ def main():
                     "exit_price": actual_exit,
                     "qty": closed_qty,
                     "pnl_usd": realized_pnl,
-                    "roe_pct": closed_roe,
+                    "gross_pnl_usd": gross_pnl,
+                    "fees_usd": fees,
+                    "roe_pct": (realized_pnl / closed_margin * 100 if closed_margin > 0 else 0),
+                    "account_balance_after": state["account_balance"],
                     "entry_time": state.get("entry_time"),
                     "exit_time": row["open_time"].strftime(
                         "%Y-%m-%d %H:%M UTC"
@@ -617,6 +623,9 @@ def main():
                         "avg_entry": 0.0,
                         "dca_used": False,
                         "entry_time": None,
+                        "initial_margin": 0.0,
+                        "dca_margin": 0.0,
+                        "entry_notional": 0.0,
                     }
                 )
                 side, avg_entry, qty, dca_used = None, 0.0, 0.0, False
@@ -624,7 +633,9 @@ def main():
         # Do not open a new position on the same candle that closed one.
         if side is None and not exited:
             if long_signal:
-                new_qty = INITIAL_MARGIN * LEVERAGE / close
+                current_balance = float(state.get("account_balance", INITIAL_CAPITAL))
+                entry_margin = current_balance * ENTRY_MARGIN_PCT
+                new_qty = entry_margin * LEVERAGE / close
                 state.update(
                     {
                         "side": "LONG",
@@ -632,6 +643,9 @@ def main():
                         "avg_entry": close,
                         "dca_used": False,
                         "entry_time": row["open_time"].isoformat(),
+                        "initial_margin": entry_margin,
+                        "dca_margin": 0.0,
+                        "entry_notional": new_qty * close,
                     }
                 )
                 send_event(
@@ -640,7 +654,9 @@ def main():
                 )
                 events_sent += 1
             elif short_signal:
-                new_qty = INITIAL_MARGIN * LEVERAGE / close
+                current_balance = float(state.get("account_balance", INITIAL_CAPITAL))
+                entry_margin = current_balance * ENTRY_MARGIN_PCT
+                new_qty = entry_margin * LEVERAGE / close
                 state.update(
                     {
                         "side": "SHORT",
@@ -648,6 +664,9 @@ def main():
                         "avg_entry": close,
                         "dca_used": False,
                         "entry_time": row["open_time"].isoformat(),
+                        "initial_margin": entry_margin,
+                        "dca_margin": 0.0,
+                        "entry_notional": new_qty * close,
                     }
                 )
                 send_event(
@@ -676,7 +695,9 @@ def main():
                 )
 
             if dca_cond:
-                add_qty = DCA_MARGIN * LEVERAGE / close
+                initial_margin = float(state.get("initial_margin") or 0.0)
+                add_margin = initial_margin * DCA_MARGIN_RATIO
+                add_qty = add_margin * LEVERAGE / close
                 total_qty = qty + add_qty
                 if total_qty > 0:
                     new_avg = (
@@ -687,6 +708,8 @@ def main():
                             "qty": total_qty,
                             "avg_entry": new_avg,
                             "dca_used": True,
+                            "dca_margin": add_margin,
+                            "entry_notional": float(state.get("entry_notional") or (avg_entry * qty)) + close * add_qty,
                         }
                     )
                     send_event(
