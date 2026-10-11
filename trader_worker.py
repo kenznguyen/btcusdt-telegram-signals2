@@ -14,7 +14,7 @@ import logging
 import os
 import signal
 import time
-from decimal import Decimal, ROUND_DOWN
+from decimal import Decimal, ROUND_DOWN, ROUND_UP
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -108,7 +108,9 @@ def check_account_mode():
     if not symbol_info or symbol_info.get("status") != "TRADING":
         raise RuntimeError(f"{SYMBOL} is not available for trading on this demo endpoint.")
     filters = {x["filterType"]: x for x in symbol_info["filters"]}
-    return filters["LOT_SIZE"]["stepSize"], filters["PRICE_FILTER"]["tickSize"], filters["MIN_NOTIONAL"].get("notional", "5")
+    min_notional_filter = filters.get("MIN_NOTIONAL") or filters.get("NOTIONAL")
+    min_notional = min_notional_filter.get("notional", min_notional_filter.get("minNotional", "5")) if min_notional_filter else "5"
+    return filters["LOT_SIZE"]["stepSize"], filters["PRICE_FILTER"]["tickSize"], min_notional
 
 
 def floor_step(value, step):
