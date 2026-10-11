@@ -136,7 +136,10 @@ def run_backtest(days=90):
         balance = INITIAL_CAPITAL
         equity = 0.0  # cumulative realized net PnL, excluding initial capital
         peak = INITIAL_CAPITAL
-        max_dd = 0.0
+        max_dd = 0.0  # close-to-close drawdown, retained for backward compatibility
+        max_intrabar_dd = 0.0
+        max_intrabar_dd_pct = 0.0
+        max_intrabar_dd_details = None
         equity_curve = []
         max_dd_details = None
         peak_time_utc = m15.iloc[0]["open_time"].isoformat() if len(m15) else None
@@ -207,6 +210,38 @@ def run_backtest(days=90):
                 max_dd = drawdown_now
                 max_dd_details = {**equity_curve[-1], "max_drawdown_usdt": drawdown_now,
                                   "peak_time_utc": peak_time_utc, "trough_time_utc": ts.isoformat()}
+
+            # Intrabar adverse equity estimate for the position carried into this candle.
+            # OHLC cannot reveal whether the favorable or adverse extreme happened first;
+            # this deliberately compares the adverse extreme with the previously observed equity peak.
+            intrabar_adverse_price = None
+            intrabar_equity = mark_equity_now
+            if pos:
+                intrabar_adverse_price = float(row["low"] if pos["side"] == "LONG" else row["high"])
+                intrabar_unrealized = ((intrabar_adverse_price - pos["avg"]) if pos["side"] == "LONG"
+                                       else (pos["avg"] - intrabar_adverse_price)) * pos["qty"]
+                intrabar_fees = (pos["notional"] + abs(intrabar_adverse_price * pos["qty"])) * FEE
+                intrabar_equity = balance + intrabar_unrealized - intrabar_fees
+            intrabar_dd = max(0.0, peak - intrabar_equity)
+            intrabar_dd_pct = intrabar_dd / peak * 100.0 if peak > 0 else 0.0
+            equity_curve[-1]["intrabar_adverse_price"] = intrabar_adverse_price if pos else ""
+            equity_curve[-1]["intrabar_adverse_equity_usdt"] = intrabar_equity
+            equity_curve[-1]["intrabar_drawdown_usdt"] = intrabar_dd
+            equity_curve[-1]["intrabar_drawdown_pct"] = intrabar_dd_pct
+            if intrabar_dd > max_intrabar_dd:
+                max_intrabar_dd = intrabar_dd
+                max_intrabar_dd_pct = intrabar_dd_pct
+                max_intrabar_dd_details = {
+                    "timestamp_utc": ts.isoformat(),
+                    "adverse_price": intrabar_adverse_price,
+                    "adverse_equity_usdt": intrabar_equity,
+                    "peak_equity_usdt": peak,
+                    "drawdown_usdt": intrabar_dd,
+                    "drawdown_pct": intrabar_dd_pct,
+                    "position_side": pos["side"] if pos else "",
+                    "position_trade_id": pos.get("trade_id", "") if pos else "",
+                    "method": "OHLC adverse extreme vs observed equity peak; intrabar order unknown"
+                }
             if i == 0 or pd.isna(row["rsi"]) or pd.isna(row["adx"]):
                 continue
             # Match bot.py: latest H1 candle whose open is before this M15 hour.
@@ -356,6 +391,7 @@ def run_backtest(days=90):
                     "initial_margin_usdt":trade.get("initial_margin_usdt"),"dca_margin_usdt":trade.get("dca_margin_usdt",0.0)})
         curve_fields = ["run_id","generated_at_utc","timestamp_utc","mark_price","account_balance_usdt","unrealized_pnl_gross_usdt",
             "estimated_entry_exit_fees_usdt","equity_usdt","peak_equity_usdt","drawdown_usdt","drawdown_pct",
+            "intrabar_adverse_price","intrabar_adverse_equity_usdt","intrabar_drawdown_usdt","intrabar_drawdown_pct",
             "position_trade_id","position_side","position_entry_time_utc","avg_entry_price","position_qty",
             "position_margin_usdt","dca_used"]
         with CURVE_CSV.open("w", newline="", encoding="utf-8-sig") as f:
@@ -380,6 +416,11 @@ def run_backtest(days=90):
           "expectancy_per_trade_usdt":expectancy,
           "max_drawdown_usdt":curve_max_dd,"max_drawdown_pct":curve_max_dd_pct,
           "max_drawdown_details":curve_peak,
+          "max_drawdown_close_usdt":curve_max_dd,"max_drawdown_close_pct":curve_max_dd_pct,
+          "max_intrabar_drawdown_usdt":max_intrabar_dd,
+          "max_intrabar_drawdown_pct":max_intrabar_dd_pct,
+          "max_intrabar_drawdown_details":max_intrabar_dd_details,
+          "max_drawdown_method":"Close-to-close and conservative OHLC intrabar adverse estimate; intrabar high/low order is unknown",
           "equity_curve_candle_count":len(equity_curve),"fees_usdt":sum(float(t["fees"]) for t in trades),
           "dca_count":counts["DCA"],"tp_count":reason_counts["TP"],"soft_sl_count":reason_counts["Soft SL"],
           "emergency_sl_count":reason_counts["Emergency SL"],"end_of_test_close_count":reason_counts["End of test"],
@@ -414,7 +455,8 @@ def format_report(r):
         f"Win Rate: {r['win_rate_pct']:.2f}% ({r.get('winning_trade_count',0)} thắng / {r.get('losing_trade_count',0)} thua / {r.get('breakeven_trade_count',0)} hòa)",
         "Profit Factor: "+pf_text+" (lãi ròng lệnh thắng / trị tuyệt đối lỗ ròng lệnh thua)",
         f"Expectancy/lệnh: {r.get('expectancy_per_trade_usdt',0.0):+.3f} USDT | TB thắng: {r.get('average_win_usdt',0.0):+.3f} | TB thua: {r.get('average_loss_usdt',0.0):+.3f}",
-        f"Max Drawdown: {r['max_drawdown_usdt']:.2f} USDT ({r.get('max_drawdown_pct',0.0):.2f}% equity đỉnh)",
+        f"Max DD (đóng nến): {r.get('max_drawdown_close_usdt', r['max_drawdown_usdt']):.2f} USDT ({r.get('max_drawdown_close_pct', r.get('max_drawdown_pct',0.0)):.2f}%)",
+        f"Max DD (intrabar ước tính): {r.get('max_intrabar_drawdown_usdt', r['max_drawdown_usdt']):.2f} USDT ({r.get('max_intrabar_drawdown_pct', r.get('max_drawdown_pct',0.0)):.2f}%)",
         f"Phí ước tính: {r['fees_usdt']:.2f} USDT ({r['fee_rate_per_side']*100:.03f}%/chiều)",
         f"DCA: {r['dca_count']} | TP: {r['tp_count']} | Soft SL: {r['soft_sl_count']} | Emergency SL: {r['emergency_sl_count']} | Đóng cuối kỳ: {r.get('end_of_test_close_count',0)}",
         f"Khoảng thời gian: {r['start'][:16]} — {r['end'][:16]} UTC",
