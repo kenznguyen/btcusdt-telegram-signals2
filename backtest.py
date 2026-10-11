@@ -358,7 +358,10 @@ def run_backtest(days=90):
         net_profit = sum(float(t["net_pnl"]) for t in trades)
         winning_net_pnl = sum(float(t["net_pnl"]) for t in wins)
         losing_net_pnl = abs(sum(float(t["net_pnl"]) for t in losses))
-        pf = winning_net_pnl / losing_net_pnl if losing_net_pnl > 0 else (float("inf") if winning_net_pnl > 0 else None)
+        # JSON has no standard Infinity literal; use null for an undefined/unbounded PF and
+        # an explicit flag so dashboards can display ∞ without breaking JSON.parse.
+        pf_unbounded = losing_net_pnl == 0 and winning_net_pnl > 0
+        pf = winning_net_pnl / losing_net_pnl if losing_net_pnl > 0 else None
         avg_win = winning_net_pnl / len(wins) if wins else 0.0
         avg_loss = -losing_net_pnl / len(losses) if losses else 0.0
         expectancy = net_profit / len(trades) if trades else 0.0
@@ -412,7 +415,7 @@ def run_backtest(days=90):
           "winning_net_pnl_usdt":winning_net_pnl,"losing_net_pnl_usdt":losing_net_pnl,
           # Legacy aliases retained for consumers of older reports; these are net PnL, not gross PnL.
           "gross_profit_usdt":winning_net_pnl,"gross_loss_usdt":losing_net_pnl,
-          "profit_factor":pf,"average_win_usdt":avg_win,"average_loss_usdt":avg_loss,
+          "profit_factor":pf,"profit_factor_unbounded":pf_unbounded,"average_win_usdt":avg_win,"average_loss_usdt":avg_loss,
           "expectancy_per_trade_usdt":expectancy,
           "max_drawdown_usdt":curve_max_dd,"max_drawdown_pct":curve_max_dd_pct,
           "max_drawdown_details":curve_peak,
@@ -445,7 +448,7 @@ def run_backtest(days=90):
 
 def format_report(r):
     pf = r.get("profit_factor")
-    pf_text = ("∞" if pf is not None and isinstance(pf,(int,float)) and pf == float("inf")
+    pf_text = ("∞ (chưa có lệnh lỗ)" if r.get("profit_factor_unbounded")
                else f"{pf:.2f}" if isinstance(pf,(int,float)) else "N/A")
     return "\n".join(["📊 BTCUSDT — BACKTEST",
         f"Khung: {r['timeframe']} | Giai đoạn: {r['period_days']} ngày",
