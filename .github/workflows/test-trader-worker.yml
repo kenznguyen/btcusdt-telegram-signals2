@@ -1,0 +1,48 @@
+name: Test Binance demo worker
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [testnet-trading-worker]
+    paths:
+      - "trader_worker.py"
+      - "bot.py"
+      - "requirements-trader.txt"
+      - ".github/workflows/test-trader-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Compile Python files without credentials or network access
+        run: python -m py_compile trader_worker.py bot.py
+      - name: Install worker dependencies
+        run: pip install -r requirements-trader.txt
+      - name: Verify safety defaults and fixed demo endpoint
+        run: |
+          python - <<'PY'
+          import os
+          os.environ.pop("TRADING_ENABLED", None)
+          os.environ.pop("BINANCE_TESTNET", None)
+          import trader_worker as worker
+          assert worker.BASE_URL == "https://demo-fapi.binance.com"
+          assert worker.ENABLED is False
+          assert worker.TESTNET is True
+          try:
+              worker.require_safe_config()
+          except RuntimeError as exc:
+              assert "Trading is disabled" in str(exc)
+          else:
+              raise AssertionError("Worker must refuse to run while TRADING_ENABLED=false")
+          print("Safety smoke checks passed; no exchange calls were made.")
+          PY
