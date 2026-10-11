@@ -140,6 +140,42 @@ def run_backtest(days=90):
         equity_curve = []
         max_dd_details = None
         peak_time_utc = m15.iloc[0]["open_time"].isoformat() if len(m15) else None
+
+        def _refresh_last_equity(ts, mark_price):
+            nonlocal peak, max_dd, max_dd_details, peak_time_utc
+            side_now = pos["side"] if pos else ""
+            unrealized_now = 0.0
+            estimated_fees_now = 0.0
+            if pos:
+                unrealized_now = ((mark_price - pos["avg"]) if side_now == "LONG"
+                                  else (pos["avg"] - mark_price)) * pos["qty"]
+                estimated_fees_now = (pos["notional"] + abs(mark_price * pos["qty"])) * FEE
+            mark_equity_now = balance + unrealized_now - estimated_fees_now
+            if mark_equity_now > peak:
+                peak = mark_equity_now
+                peak_time_utc = ts.isoformat()
+            drawdown_now = max(0.0, peak - mark_equity_now)
+            drawdown_pct_now = drawdown_now / peak * 100.0 if peak > 0 else 0.0
+            snapshot = {
+                "run_id": RUN_ID, "generated_at_utc": GENERATED_AT_UTC,
+                "timestamp_utc": ts.isoformat(), "mark_price": mark_price,
+                "account_balance_usdt": balance, "unrealized_pnl_gross_usdt": unrealized_now,
+                "estimated_entry_exit_fees_usdt": estimated_fees_now, "equity_usdt": mark_equity_now,
+                "peak_equity_usdt": peak, "drawdown_usdt": drawdown_now, "drawdown_pct": drawdown_pct_now,
+                "position_trade_id": pos.get("trade_id", "") if pos else "",
+                "position_side": side_now, "position_entry_time_utc": pos["time"].isoformat() if pos else "",
+                "avg_entry_price": pos["avg"] if pos else "", "position_qty": pos["qty"] if pos else "",
+                "position_margin_usdt": pos["margin"] if pos else "", "dca_used": pos["dca"] if pos else False
+            }
+            if equity_curve and equity_curve[-1]["timestamp_utc"] == ts.isoformat():
+                equity_curve[-1] = snapshot
+            else:
+                equity_curve.append(snapshot)
+            if drawdown_now > max_dd:
+                max_dd = drawdown_now
+                max_dd_details = {**snapshot, "max_drawdown_usdt": drawdown_now,
+                                  "peak_time_utc": peak_time_utc, "trough_time_utc": ts.isoformat()}
+
         for i, row in m15.iterrows():
             ts = row["open_time"]
             mark_price = float(row["close"])
@@ -234,6 +270,7 @@ def run_backtest(days=90):
                     max_dd = max(max_dd, peak-balance)
                     counts[reason] += 1
                     pos = None
+                    _refresh_last_equity(ts, mark_price)
                     continue
                 if not pos["dca"]:
                     dca = roe <= bot.DCA_ROE and adx > bot.DCA_ADX
@@ -249,6 +286,7 @@ def run_backtest(days=90):
                         pos["dca"] = True
                         pos["notional"] += close*add
                         counts["DCA"] += 1
+                        _refresh_last_equity(ts, mark_price)
                 continue
 
             if (go_long or go_short) and balance > 0:
@@ -258,6 +296,7 @@ def run_backtest(days=90):
                 pos = {"side":side,"time":ts,"avg":close,"qty":qty,"margin":initial_margin,
                        "initial_margin":initial_margin,"dca":False,"notional":close*qty,
                        "trade_id":len(trades)+1}
+                _refresh_last_equity(ts, mark_price)
 
         if pos:
             row = m15.iloc[-1]
@@ -275,6 +314,7 @@ def run_backtest(days=90):
             balance += net
             peak = max(peak, balance)
             max_dd = max(max_dd, peak-balance)
+            _refresh_last_equity(row["open_time"], exit_price)
 
         wins = [t for t in trades if t["net_pnl"] > 0]
         losses = [t for t in trades if t["net_pnl"] <= 0]
