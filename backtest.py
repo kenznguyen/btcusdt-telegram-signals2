@@ -316,10 +316,23 @@ def run_backtest(days=90):
             max_dd = max(max_dd, peak-balance)
             _refresh_last_equity(row["open_time"], exit_price)
 
-        wins = [t for t in trades if t["net_pnl"] > 0]
-        losses = [t for t in trades if t["net_pnl"] <= 0]
-        gp, gl = sum(t["net_pnl"] for t in wins), abs(sum(t["net_pnl"] for t in losses))
-        pf = gp/gl if gl else (999.0 if gp else None)
+        # KPI definitions are based on closed-trade net PnL after estimated fees.
+        wins = [t for t in trades if float(t["net_pnl"]) > 0]
+        losses = [t for t in trades if float(t["net_pnl"]) < 0]
+        breakeven = [t for t in trades if float(t["net_pnl"]) == 0]
+        net_profit = sum(float(t["net_pnl"]) for t in trades)
+        winning_net_pnl = sum(float(t["net_pnl"]) for t in wins)
+        losing_net_pnl = abs(sum(float(t["net_pnl"]) for t in losses))
+        pf = winning_net_pnl / losing_net_pnl if losing_net_pnl > 0 else (float("inf") if winning_net_pnl > 0 else None)
+        avg_win = winning_net_pnl / len(wins) if wins else 0.0
+        avg_loss = -losing_net_pnl / len(losses) if losses else 0.0
+        expectancy = net_profit / len(trades) if trades else 0.0
+        return_pct = net_profit / INITIAL_CAPITAL * 100.0 if INITIAL_CAPITAL > 0 else 0.0
+        curve_peak = max(equity_curve, key=lambda x: float(x["drawdown_usdt"])) if equity_curve else None
+        curve_max_dd = float(curve_peak["drawdown_usdt"]) if curve_peak else 0.0
+        curve_max_dd_pct = float(curve_peak["drawdown_pct"]) if curve_peak else 0.0
+        reason_counts = {reason: sum(1 for t in trades if t["reason"] == reason)
+                         for reason in ("TP", "Soft SL", "Emergency SL", "End of test")}
         # Export every trade and the realized cumulative PnL curve.
         trade_fields = ["run_id","generated_at_utc","trade_id","side","entry_time","exit_time","avg_entry","exit_price","qty",
             "gross_pnl","fees","net_pnl","reason","dca_used","initial_margin_usdt","dca_margin_usdt"]
@@ -354,14 +367,23 @@ def run_backtest(days=90):
           "symbol":"BTCUSDT perpetual (OKX BTC-USDT-SWAP candles)",
           "timeframe":"M15 entry / closed H1 trend filter","period_days":days,
           "start":m15.iloc[0]["open_time"].isoformat(),"end":m15.iloc[-1]["open_time"].isoformat(),
-          "candle_count":len(m15),"trade_count":len(trades),"win_rate_pct":len(wins)/len(trades)*100 if trades else 0,
-          "initial_capital_usdt":INITIAL_CAPITAL,"final_balance_usdt":balance,
+          "candle_count":len(m15),"trade_count":len(trades),"closed_trade_count":len(trades),
+          "winning_trade_count":len(wins),"losing_trade_count":len(losses),"breakeven_trade_count":len(breakeven),
+          "win_rate_pct":len(wins)/len(trades)*100 if trades else 0.0,
+          "initial_capital_usdt":INITIAL_CAPITAL,"final_balance_usdt":INITIAL_CAPITAL+net_profit,
           "entry_margin_pct_of_current_balance":ENTRY_MARGIN_PCT,"dca_margin_ratio_of_initial_order":DCA_MARGIN_RATIO,
-          "net_profit_usdt":sum(t["net_pnl"] for t in trades),"gross_profit_usdt":gp,"gross_loss_usdt":gl,
-          "profit_factor":pf,"max_drawdown_usdt":max_dd,"max_drawdown_details":max_dd_details,
-          "equity_curve_candle_count":len(equity_curve),"fees_usdt":sum(t["fees"] for t in trades),
-          "dca_count":counts["DCA"],"tp_count":counts["TP"],"soft_sl_count":counts["Soft SL"],
-          "emergency_sl_count":counts["Emergency SL"],"fee_rate_per_side":FEE,"trades":trades,"trade_csv":str(TRADES_CSV),"equity_csv":str(EQUITY_CSV),
+          "net_profit_usdt":net_profit,"return_pct":return_pct,
+          "winning_net_pnl_usdt":winning_net_pnl,"losing_net_pnl_usdt":losing_net_pnl,
+          # Legacy aliases retained for consumers of older reports; these are net PnL, not gross PnL.
+          "gross_profit_usdt":winning_net_pnl,"gross_loss_usdt":losing_net_pnl,
+          "profit_factor":pf,"average_win_usdt":avg_win,"average_loss_usdt":avg_loss,
+          "expectancy_per_trade_usdt":expectancy,
+          "max_drawdown_usdt":curve_max_dd,"max_drawdown_pct":curve_max_dd_pct,
+          "max_drawdown_details":curve_peak,
+          "equity_curve_candle_count":len(equity_curve),"fees_usdt":sum(float(t["fees"]) for t in trades),
+          "dca_count":counts["DCA"],"tp_count":reason_counts["TP"],"soft_sl_count":reason_counts["Soft SL"],
+          "emergency_sl_count":reason_counts["Emergency SL"],"end_of_test_close_count":reason_counts["End of test"],
+          "fee_rate_per_side":FEE,"trades":trades,"trade_csv":str(TRADES_CSV),"equity_csv":str(EQUITY_CSV),
           "equity_curve_csv":str(CURVE_CSV)}
         finished = pd.Timestamp.now(tz="UTC")
         report["finished_at_utc"] = finished.isoformat()
@@ -382,17 +404,19 @@ def run_backtest(days=90):
 
 def format_report(r):
     pf = r.get("profit_factor")
-    pf_text = "∞" if pf == 999.0 else (f"{pf:.2f}" if isinstance(pf,(int,float)) else "N/A")
+    pf_text = ("∞" if pf is not None and isinstance(pf,(int,float)) and pf == float("inf")
+               else f"{pf:.2f}" if isinstance(pf,(int,float)) else "N/A")
     return "\n".join(["📊 BTCUSDT — BACKTEST",
         f"Khung: {r['timeframe']} | Giai đoạn: {r['period_days']} ngày",
-        f"Nến: {r['candle_count']} | Giao dịch: {r['trade_count']}",
+        f"Nến: {r['candle_count']} | Lệnh đóng: {r.get('closed_trade_count', r['trade_count'])}",
         f"Vốn đầu/cuối: {r.get('initial_capital_usdt',100):.2f} → {r.get('final_balance_usdt',100+r['net_profit_usdt']):.2f} USDT",
-        f"Margin entry: {r.get('entry_margin_pct_of_current_balance',0.5)*100:.0f}% số dư; DCA: {r.get('dca_margin_ratio_of_initial_order',1.0)*100:.0f}% margin entry",
-        f"Net Profit sau phí: {r['net_profit_usdt']:+.2f} USDT",
-        f"Win Rate: {r['win_rate_pct']:.2f}%","Profit Factor: "+pf_text,
-        f"Max Drawdown (equity snapshot M15): {r['max_drawdown_usdt']:.2f} USDT",
+        f"Net Profit sau phí: {r['net_profit_usdt']:+.2f} USDT ({r.get('return_pct',0.0):+.2f}%)",
+        f"Win Rate: {r['win_rate_pct']:.2f}% ({r.get('winning_trade_count',0)} thắng / {r.get('losing_trade_count',0)} thua / {r.get('breakeven_trade_count',0)} hòa)",
+        "Profit Factor: "+pf_text+" (lãi ròng lệnh thắng / trị tuyệt đối lỗ ròng lệnh thua)",
+        f"Expectancy/lệnh: {r.get('expectancy_per_trade_usdt',0.0):+.3f} USDT | TB thắng: {r.get('average_win_usdt',0.0):+.3f} | TB thua: {r.get('average_loss_usdt',0.0):+.3f}",
+        f"Max Drawdown: {r['max_drawdown_usdt']:.2f} USDT ({r.get('max_drawdown_pct',0.0):.2f}% equity đỉnh)",
         f"Phí ước tính: {r['fees_usdt']:.2f} USDT ({r['fee_rate_per_side']*100:.03f}%/chiều)",
-        f"DCA: {r['dca_count']} | TP: {r['tp_count']} | Soft SL: {r['soft_sl_count']} | Emergency SL: {r['emergency_sl_count']}",
+        f"DCA: {r['dca_count']} | TP: {r['tp_count']} | Soft SL: {r['soft_sl_count']} | Emergency SL: {r['emergency_sl_count']} | Đóng cuối kỳ: {r.get('end_of_test_close_count',0)}",
         f"Khoảng thời gian: {r['start'][:16]} — {r['end'][:16]} UTC",
-        "Chi tiết từng lệnh và đường vốn: tải artifact backtest-detailed-report trên GitHub Actions.",
-        "Mô phỏng OHLC với phí ước tính; không phải khớp lệnh thực tế."])
+        "Mọi KPI PnL dùng net PnL sau phí ước tính; lệnh đóng cuối kỳ được tính vào tổng lệnh nhưng không thuộc TP/SL.",
+        "Mô phỏng OHLC; không phải khớp lệnh thực tế."])
