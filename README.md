@@ -207,3 +207,21 @@ Scanner được đặt lịch mỗi 5 phút bằng cron GitHub Actions. GitHub 
 **Repository:** [kenznguyen/btcusdt-telegram-signals2](https://github.com/kenznguyen/btcusdt-telegram-signals2)
 
 **Mục tiêu:** Một webhook Telegram trên Render để nhận lệnh + GitHub Actions workflow riêng cho lệnh/backtest và workflow riêng cho quét tín hiệu định kỳ.
+
+
+## 11. Dashboard hiệu suất backtest
+
+Dashboard tĩnh ở `dashboard/index.html` dùng giao diện Dark Trading Terminal, chạy ngay trên trình duyệt và không cần cài thêm thư viện Python hay đưa secrets vào frontend.
+
+### Cách sử dụng
+
+1. Mở [GitHub Actions](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions), chọn lần chạy backtest mong muốn và tải artifact chứa các file backtest.
+2. Mở `dashboard/index.html` trong trình duyệt (hoặc bật GitHub Pages với thư mục gốc `/dashboard` theo cách triển khai phù hợp).
+3. Nhấn **Nạp dữ liệu backtest** và chọn các file cùng một lần chạy:
+   - `backtest_last_result.json`: KPI, kết quả và danh sách trade nếu JSON có trường `trades`.
+   - `backtest_trades.csv`: lịch sử trade chi tiết.
+   - `backtest_equity_m15.csv`: equity và drawdown theo nến.
+   - `backtest_status.json`: trạng thái backtest gần nhất trong artifact, nếu có.
+4. Kiểm tra Run ID và thời gian tạo để tránh trộn file từ nhiều lần backtest khác nhau.
+
+Dashboard không tự tải dữ liệu từ Actions và không khẳng định bot live đang chạy. Trạng thái chỉ hiển thị khi có status file được nạp. Nếu chưa có dữ liệu, KPI để trống thay vì dùng số minh họa. Intrabar drawdown là ước tính theo OHLC, không phải dữ liệu tick-level. Dashboard chỉ đọc và trình bày dữ liệu; không sửa logic Entry, DCA, TP hoặc SL.
