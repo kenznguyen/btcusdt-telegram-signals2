@@ -57,6 +57,7 @@ jobs:
           ACTIONS_GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           BACKTEST_DAYS: ${{ github.event_name == 'push' && '180' || '90' }}
+          BACKTEST_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
             python telegram_commands.py "backtest"

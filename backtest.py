@@ -2,6 +2,7 @@
 import csv
 import json
 import os
+import uuid
 from pathlib import Path
 
 import pandas as pd
@@ -18,10 +19,14 @@ INITIAL_CAPITAL = float(os.getenv("BACKTEST_INITIAL_CAPITAL", "100"))
 ENTRY_MARGIN_PCT = float(os.getenv("ENTRY_MARGIN_PCT", "0.50"))
 DCA_MARGIN_RATIO = float(os.getenv("DCA_MARGIN_RATIO", "1.00"))
 URL = "https://www.okx.com/api/v5/market/history-candles"
+RUN_ID = os.getenv("BACKTEST_RUN_ID", "").strip() or uuid.uuid4().hex
+GENERATED_AT_UTC = None
 
 
 def _status(value, **extra):
-    STATUS.write_text(json.dumps({"status": value, **extra}, indent=2), encoding="utf-8")
+    payload = {"status": value, "run_id": RUN_ID,
+               "generated_at_utc": GENERATED_AT_UTC, **extra}
+    STATUS.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 def get_backtest_status():
@@ -97,11 +102,20 @@ def _candles(bar, start_ms, end_ms, limit):
 
 
 def run_backtest(days=90):
+    global RUN_ID, GENERATED_AT_UTC
     days = int(days)
     if not 1 <= days <= 365:
         raise ValueError("Số ngày phải từ 1 đến 365.")
+    RUN_ID = os.getenv("BACKTEST_RUN_ID", "").strip() or uuid.uuid4().hex
     now = pd.Timestamp.now(tz="UTC")
+    GENERATED_AT_UTC = now.isoformat()
     started = now.strftime("%Y-%m-%d %H:%M UTC")
+    # Clear old outputs first so a failed run cannot publish stale results as current.
+    for output in (RESULT, TRADES_CSV, EQUITY_CSV, CURVE_CSV):
+        try:
+            output.unlink()
+        except FileNotFoundError:
+            pass
     _status("running", started_at=started, message=f"Đang tải và mô phỏng {days} ngày.")
     try:
         start = now - pd.Timedelta(days=days)
@@ -143,6 +157,7 @@ def run_backtest(days=90):
             drawdown_now = max(0.0, peak - mark_equity_now)
             drawdown_pct_now = drawdown_now / peak * 100.0 if peak > 0 else 0.0
             equity_curve.append({
+                "run_id": RUN_ID, "generated_at_utc": GENERATED_AT_UTC,
                 "timestamp_utc": ts.isoformat(), "mark_price": mark_price,
                 "account_balance_usdt": balance, "unrealized_pnl_gross_usdt": unrealized_now,
                 "estimated_entry_exit_fees_usdt": estimated_fees_now, "equity_usdt": mark_equity_now,
@@ -266,27 +281,27 @@ def run_backtest(days=90):
         gp, gl = sum(t["net_pnl"] for t in wins), abs(sum(t["net_pnl"] for t in losses))
         pf = gp/gl if gl else (999.0 if gp else None)
         # Export every trade and the realized cumulative PnL curve.
-        trade_fields = ["trade_id","side","entry_time","exit_time","avg_entry","exit_price","qty",
+        trade_fields = ["run_id","generated_at_utc","trade_id","side","entry_time","exit_time","avg_entry","exit_price","qty",
             "gross_pnl","fees","net_pnl","reason","dca_used","initial_margin_usdt","dca_margin_usdt"]
         with TRADES_CSV.open("w", newline="", encoding="utf-8-sig") as f:
             writer = csv.DictWriter(f, fieldnames=trade_fields, extrasaction="ignore")
             writer.writeheader()
             for idx, trade in enumerate(trades, 1):
-                writer.writerow({"trade_id":idx, **trade})
+                writer.writerow({"run_id":RUN_ID, "generated_at_utc":GENERATED_AT_UTC, "trade_id":idx, **trade})
         running_equity = 0.0
         running_balance = INITIAL_CAPITAL
         with EQUITY_CSV.open("w", newline="", encoding="utf-8-sig") as f:
-            fields = ["trade_id","exit_time","side","exit_reason","trade_net_pnl_usdt","cumulative_net_pnl_usdt","account_balance_usdt","initial_margin_usdt","dca_margin_usdt"]
+            fields = ["run_id","generated_at_utc","trade_id","exit_time","side","exit_reason","trade_net_pnl_usdt","cumulative_net_pnl_usdt","account_balance_usdt","initial_margin_usdt","dca_margin_usdt"]
             writer = csv.DictWriter(f, fieldnames=fields)
             writer.writeheader()
             for idx, trade in enumerate(trades, 1):
                 running_equity += float(trade["net_pnl"])
                 running_balance += float(trade["net_pnl"])
-                writer.writerow({"trade_id":idx,"exit_time":trade["exit_time"],"side":trade["side"],
+                writer.writerow({"run_id":RUN_ID,"generated_at_utc":GENERATED_AT_UTC,"trade_id":idx,"exit_time":trade["exit_time"],"side":trade["side"],
                     "exit_reason":trade["reason"],"trade_net_pnl_usdt":trade["net_pnl"],
                     "cumulative_net_pnl_usdt":running_equity,"account_balance_usdt":running_balance,
                     "initial_margin_usdt":trade.get("initial_margin_usdt"),"dca_margin_usdt":trade.get("dca_margin_usdt",0.0)})
-        curve_fields = ["timestamp_utc","mark_price","account_balance_usdt","unrealized_pnl_gross_usdt",
+        curve_fields = ["run_id","generated_at_utc","timestamp_utc","mark_price","account_balance_usdt","unrealized_pnl_gross_usdt",
             "estimated_entry_exit_fees_usdt","equity_usdt","peak_equity_usdt","drawdown_usdt","drawdown_pct",
             "position_trade_id","position_side","position_entry_time_utc","avg_entry_price","position_qty",
             "position_margin_usdt","dca_used"]
@@ -295,7 +310,8 @@ def run_backtest(days=90):
             writer.writeheader()
             writer.writerows(equity_curve)
 
-        report = {"symbol":"BTCUSDT perpetual (OKX BTC-USDT-SWAP candles)",
+        report = {"run_id":RUN_ID,"generated_at_utc":GENERATED_AT_UTC,"status":"completed",
+          "symbol":"BTCUSDT perpetual (OKX BTC-USDT-SWAP candles)",
           "timeframe":"M15 entry / closed H1 trend filter","period_days":days,
           "start":m15.iloc[0]["open_time"].isoformat(),"end":m15.iloc[-1]["open_time"].isoformat(),
           "candle_count":len(m15),"trade_count":len(trades),"win_rate_pct":len(wins)/len(trades)*100 if trades else 0,
@@ -307,13 +323,20 @@ def run_backtest(days=90):
           "dca_count":counts["DCA"],"tp_count":counts["TP"],"soft_sl_count":counts["Soft SL"],
           "emergency_sl_count":counts["Emergency SL"],"fee_rate_per_side":FEE,"trades":trades,"trade_csv":str(TRADES_CSV),"equity_csv":str(EQUITY_CSV),
           "equity_curve_csv":str(CURVE_CSV)}
+        finished = pd.Timestamp.now(tz="UTC")
+        report["finished_at_utc"] = finished.isoformat()
         RESULT.write_text(json.dumps(report,indent=2),encoding="utf-8")
-        _status("completed",started_at=started,finished_at=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M UTC"),
-                message=f"Hoàn tất {days} ngày; {len(trades)} giao dịch.")
+        _status("completed",started_at=started,finished_at=finished.strftime("%Y-%m-%d %H:%M UTC"),
+                finished_at_utc=finished.isoformat(), message=f"Hoàn tất {days} ngày; {len(trades)} giao dịch.")
         return report
     except Exception as exc:
-        _status("failed",started_at=started,finished_at=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M UTC"),
-                message=str(exc)[:300])
+        finished = pd.Timestamp.now(tz="UTC")
+        _status("failed",started_at=started,finished_at=finished.strftime("%Y-%m-%d %H:%M UTC"),
+                finished_at_utc=finished.isoformat(), message=str(exc)[:300])
+        RESULT.write_text(json.dumps({
+            "run_id": RUN_ID, "generated_at_utc": GENERATED_AT_UTC,
+            "status": "failed", "error": str(exc)[:300]
+        }, indent=2), encoding="utf-8")
         raise
 
 
