@@ -47,7 +47,7 @@ def position_lines(state, price):
         avg = float(state.get("avg_entry") or 0)
         qty = float(state.get("qty") or 0)
         dca_used = bool(state.get("dca_used", False))
-        margin = bot.INITIAL_MARGIN + (bot.DCA_MARGIN if dca_used else 0.0)
+        margin = float(state.get("initial_margin") or 0.0) + float(state.get("dca_margin") or 0.0)
         pnl = ((price - avg) if side == "LONG" else (avg - price)) * qty
         roe = pnl / margin * 100 if margin > 0 else 0.0
         lines.extend([
@@ -58,6 +58,7 @@ def position_lines(state, price):
             f"ROE trên margin mô phỏng: {roe:+.2f}%",
             f"DCA đã dùng: {'Có' if dca_used else 'Chưa'}",
             f"Margin mô phỏng: {margin:.2f} USDT",
+            f"Số dư mô phỏng: {float(state.get('account_balance', bot.INITIAL_CAPITAL)):.2f} USDT",
         ])
     last_closed = state.get("last_closed")
     if isinstance(last_closed, dict) and last_closed:
