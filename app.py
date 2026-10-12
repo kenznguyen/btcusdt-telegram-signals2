@@ -4,7 +4,7 @@ import threading
 from collections import deque
 
 import requests
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 
 app = Flask(__name__)
 
@@ -89,6 +89,11 @@ def dispatch_github(command: str) -> None:
 @app.get("/")
 def index():
     return "BTCUSDT Telegram command bridge is running.", 200
+
+
+@app.get("/dashboard")
+def dashboard_page():
+    return send_from_directory(os.path.join(os.path.dirname(__file__), "dashboard"), "index.html")
 
 
 @app.get("/health")
