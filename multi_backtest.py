@@ -64,15 +64,22 @@ def main():
                 report = json.loads(report_path.read_text(encoding="utf-8"))
             except (OSError, ValueError):
                 report = {}
+        status_path = ROOT / "backtest_status.json"
+        status = {}
+        if status_path.exists():
+            try:
+                status = json.loads(status_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                status = {}
         # Copy this symbol's files before the next run overwrites the root output names.
         for name in ("backtest_last_result.json", "backtest_status.json", "backtest_trades.csv",
                      "backtest_equity.csv", "backtest_equity_m15.csv"):
             src = ROOT / name
             if src.exists():
                 shutil.copy2(src, target / name)
-        if run.returncode != 0 or report.get("status") != "completed":
+        if run.returncode != 0 or report.get("status") != "completed" or report.get("symbol", "").split()[0] != symbol or status.get("status") != "completed":
             item = {"symbol": symbol, "status": "failed",
-                    "error": report.get("error") or f"backtest.py exited with code {run.returncode}"}
+                    "error": report.get("error") or status.get("message") or f"returncode={run.returncode}, report_status={report.get('status')}, status_file={status.get('status')}"}
         else:
             item = {k: report.get(k) for k in (
                 "symbol", "timeframe", "period_days", "start", "end", "candle_count",
