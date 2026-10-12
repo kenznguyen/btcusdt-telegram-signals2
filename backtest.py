@@ -16,8 +16,11 @@ EQUITY_CSV = Path("backtest_equity.csv")
 CURVE_CSV = Path("backtest_equity_m15.csv")
 FEE = float(os.getenv("TAKER_FEE_RATE", "0.0005"))
 INITIAL_CAPITAL = float(os.getenv("BACKTEST_INITIAL_CAPITAL", "100"))
-ENTRY_MARGIN_PCT = float(os.getenv("ENTRY_MARGIN_PCT", "0.50"))
-DCA_MARGIN_RATIO = float(os.getenv("DCA_MARGIN_RATIO", "1.00"))
+# Workflow/dashboard inputs use percentages (50, 100); legacy env values may use fractions (0.50, 1.00).
+_entry_margin_raw = float(os.getenv("ENTRY_MARGIN_PCT", "0.50"))
+ENTRY_MARGIN_PCT = _entry_margin_raw / 100.0 if _entry_margin_raw > 1.0 else _entry_margin_raw
+_dca_margin_raw = float(os.getenv("DCA_MARGIN_RATIO", "1.00"))
+DCA_MARGIN_RATIO = _dca_margin_raw / 100.0 if _dca_margin_raw > 5.0 else _dca_margin_raw
 URL = "https://www.okx.com/api/v5/market/history-candles"
 RUN_ID = os.getenv("BACKTEST_RUN_ID", "").strip() or uuid.uuid4().hex
 GENERATED_AT_UTC = None
@@ -101,11 +104,17 @@ def _candles(bar, start_ms, end_ms, limit):
     return df[df["confirm"].astype(str) == "1"].reset_index(drop=True)
 
 
-def run_backtest(days=90):
+def run_backtest(days=None):
     global RUN_ID, GENERATED_AT_UTC
-    days = int(days)
+    days = int(days if days is not None else os.getenv("BACKTEST_DAYS", "360"))
     if not 1 <= days <= 365:
         raise ValueError("Số ngày phải từ 1 đến 365.")
+    if INITIAL_CAPITAL <= 0:
+        raise ValueError("Vốn ban đầu phải lớn hơn 0.")
+    if not 0 < ENTRY_MARGIN_PCT <= 1:
+        raise ValueError("ENTRY_MARGIN_PCT phải nằm trong (0, 1], dạng tỷ lệ hoặc phần trăm.")
+    if not 0 <= DCA_MARGIN_RATIO <= 5:
+        raise ValueError("DCA_MARGIN_RATIO phải từ 0% đến 500%.")
     RUN_ID = os.getenv("BACKTEST_RUN_ID", "").strip() or uuid.uuid4().hex
     now = pd.Timestamp.now(tz="UTC")
     GENERATED_AT_UTC = now.isoformat()
