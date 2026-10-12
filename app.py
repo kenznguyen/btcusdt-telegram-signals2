@@ -146,3 +146,40 @@ def telegram_webhook():
             app.logger.exception("Could not send dispatch error to Telegram")
 
     return jsonify({"ok": True}), 200
+
+
+# Dashboard API: workflow metadata only; no exchange execution/fill claims.
+@app.get("/api/dashboard/status")
+def dashboard_status():
+    if not GITHUB_TOKEN:
+        return jsonify({"ok": False, "error": "GITHUB_TOKEN is not configured"}), 503
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    try:
+        result = {}
+        for key, workflow in (("scanner", "signal-scan.yml"), ("backtest", "telegram-command.yml")):
+            response = requests.get(
+                f"https://api.github.com/repos/{GITHUB_REPOSITORY}/actions/workflows/{workflow}/runs",
+                headers=headers, params={"per_page": 5, "branch": "main"}, timeout=12,
+            )
+            response.raise_for_status()
+            result[key] = [
+                {
+                    "id": run.get("id"),
+                    "name": run.get("name"),
+                    "display_title": run.get("display_title"),
+                    "status": run.get("status"),
+                    "conclusion": run.get("conclusion"),
+                    "created_at": run.get("created_at"),
+                    "updated_at": run.get("updated_at"),
+                    "html_url": run.get("html_url"),
+                }
+                for run in response.json().get("workflow_runs", [])
+            ]
+        return jsonify({"ok": True, "source": "GitHub Actions API", "workflows": result}), 200
+    except requests.RequestException:
+        app.logger.exception("Could not read GitHub Actions dashboard status")
+        return jsonify({"ok": False, "error": "Unable to read GitHub Actions. Check GITHUB_TOKEN Actions read permission."}), 502
