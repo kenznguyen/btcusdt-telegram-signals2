@@ -53,6 +53,9 @@ jobs:
       - name: Install dependencies
         run: pip install requests pandas numpy
 
+      - name: Compile Python files
+        run: python -m py_compile bot.py backtest.py multi_backtest.py
+
       - name: Validate inputs
         env:
           BACKTEST_SYMBOLS: ${{ inputs.symbols }}
