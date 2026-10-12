@@ -4,7 +4,7 @@ import threading
 from collections import deque
 
 import requests
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 
 app = Flask(__name__)
 
@@ -91,6 +91,11 @@ def index():
     return "BTCUSDT Telegram command bridge is running.", 200
 
 
+@app.get("/dashboard")
+def dashboard_page():
+    return send_from_directory(os.path.join(os.path.dirname(__file__), "dashboard"), "index.html")
+
+
 @app.get("/health")
 def health():
     return jsonify({"ok": True}), 200
@@ -146,3 +151,105 @@ def telegram_webhook():
             app.logger.exception("Could not send dispatch error to Telegram")
 
     return jsonify({"ok": True}), 200
+
+
+# Dashboard API: workflow metadata only; no exchange execution/fill claims.
+@app.get("/api/dashboard/status")
+def dashboard_status():
+    if not GITHUB_TOKEN:
+        return jsonify({"ok": False, "error": "GITHUB_TOKEN is not configured"}), 503
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    try:
+        result = {}
+        for key, workflow in (("scanner", "signal-scan.yml"), ("backtest", "telegram-command.yml")):
+            response = requests.get(
+                f"https://api.github.com/repos/{GITHUB_REPOSITORY}/actions/workflows/{workflow}/runs",
+                headers=headers, params={"per_page": 5, "branch": "main"}, timeout=12,
+            )
+            response.raise_for_status()
+            result[key] = [
+                {
+                    "id": run.get("id"),
+                    "name": run.get("name"),
+                    "display_title": run.get("display_title"),
+                    "status": run.get("status"),
+                    "conclusion": run.get("conclusion"),
+                    "created_at": run.get("created_at"),
+                    "updated_at": run.get("updated_at"),
+                    "html_url": run.get("html_url"),
+                }
+                for run in response.json().get("workflow_runs", [])
+            ]
+        return jsonify({"ok": True, "source": "GitHub Actions API", "workflows": result}), 200
+    except requests.RequestException:
+        app.logger.exception("Could not read GitHub Actions dashboard status")
+        return jsonify({"ok": False, "error": "Unable to read GitHub Actions. Check GITHUB_TOKEN Actions read permission."}), 502
+
+
+@app.get("/api/dashboard/backtest")
+def dashboard_backtest():
+    if not GITHUB_TOKEN:
+        return jsonify({"ok": False, "error": "GITHUB_TOKEN is not configured"}), 503
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    try:
+        runs_response = requests.get(
+            f"https://api.github.com/repos/{GITHUB_REPOSITORY}/actions/workflows/telegram-command.yml/runs",
+            headers=headers, params={"per_page": 15, "branch": "main"}, timeout=12,
+        )
+        runs_response.raise_for_status()
+        runs = runs_response.json().get("workflow_runs", [])
+        for run in runs:
+            title = (run.get("display_title") or run.get("name") or "").lower()
+            is_backtest = run.get("event") == "push" or "backtest" in title
+            if not is_backtest or run.get("status") != "completed":
+                continue
+            artifacts_response = requests.get(
+                f"https://api.github.com/repos/{GITHUB_REPOSITORY}/actions/runs/{run['id']}/artifacts",
+                headers=headers, params={"per_page": 30}, timeout=12,
+            )
+            artifacts_response.raise_for_status()
+            artifacts = artifacts_response.json().get("artifacts", [])
+            artifact = next((a for a in artifacts if a.get("name") == "backtest-detailed-report" and not a.get("expired")), None)
+            if not artifact:
+                continue
+            download = requests.get(artifact["archive_download_url"], headers=headers, timeout=30, allow_redirects=True)
+            download.raise_for_status()
+            import io
+            import zipfile
+            from pathlib import PurePosixPath
+            files = {}
+            with zipfile.ZipFile(io.BytesIO(download.content)) as archive:
+                allowed = {
+                    "backtest_last_result.json", "backtest_status.json",
+                    "backtest_trades.csv", "backtest_equity.csv", "backtest_equity_m15.csv",
+                }
+                for member in archive.namelist():
+                    name = PurePosixPath(member).name
+                    if name in allowed:
+                        files[name] = archive.read(member).decode("utf-8-sig", errors="replace")
+            return jsonify({
+                "ok": True,
+                "available": True,
+                "run": {
+                    "id": run.get("id"), "name": run.get("name"),
+                    "status": run.get("status"), "conclusion": run.get("conclusion"),
+                    "created_at": run.get("created_at"), "html_url": run.get("html_url"),
+                },
+                "artifact": {"name": artifact.get("name"), "created_at": artifact.get("created_at")},
+                "files": files,
+            }), 200
+        return jsonify({"ok": True, "available": False, "message": "Chưa tìm thấy artifact backtest hợp lệ trong các lần chạy gần đây."}), 200
+    except requests.RequestException:
+        app.logger.exception("Could not read backtest artifact from GitHub Actions")
+        return jsonify({"ok": False, "error": "Không đọc được artifact. Kiểm tra quyền Actions: read của GITHUB_TOKEN."}), 502
+    except (ValueError, KeyError):
+        app.logger.exception("Invalid backtest artifact response")
+        return jsonify({"ok": False, "error": "Artifact backtest không đúng định dạng mong đợi."}), 502
