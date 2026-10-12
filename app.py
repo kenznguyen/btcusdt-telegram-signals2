@@ -165,7 +165,7 @@ def dashboard_status():
     }
     try:
         result = {}
-        for key, workflow in (("scanner", "signal-scan.yml"), ("backtest", "telegram-command.yml")):
+        for key, workflow in (("scanner", "signal-scan.yml"), ("backtest", "dashboard-backtest.yml")):
             response = requests.get(
                 f"https://api.github.com/repos/{GITHUB_REPOSITORY}/actions/workflows/{workflow}/runs",
                 headers=headers, params={"per_page": 5, "branch": "main"}, timeout=12,
@@ -201,14 +201,14 @@ def dashboard_backtest():
     }
     try:
         runs_response = requests.get(
-            f"https://api.github.com/repos/{GITHUB_REPOSITORY}/actions/workflows/telegram-command.yml/runs",
+            f"https://api.github.com/repos/{GITHUB_REPOSITORY}/actions/workflows/dashboard-backtest.yml/runs",
             headers=headers, params={"per_page": 15, "branch": "main"}, timeout=12,
         )
         runs_response.raise_for_status()
         runs = runs_response.json().get("workflow_runs", [])
         for run in runs:
             title = (run.get("display_title") or run.get("name") or "").lower()
-            is_backtest = run.get("event") == "push" or "backtest" in title
+            is_backtest = "backtest" in title
             if not is_backtest or run.get("status") != "completed":
                 continue
             artifacts_response = requests.get(
@@ -217,7 +217,7 @@ def dashboard_backtest():
             )
             artifacts_response.raise_for_status()
             artifacts = artifacts_response.json().get("artifacts", [])
-            artifact = next((a for a in artifacts if a.get("name") == "backtest-detailed-report" and not a.get("expired")), None)
+            artifact = next((a for a in artifacts if a.get("name") == "dashboard-backtest-report" and not a.get("expired")), None)
             if not artifact:
                 continue
             download = requests.get(artifact["archive_download_url"], headers=headers, timeout=30, allow_redirects=True)
@@ -228,13 +228,13 @@ def dashboard_backtest():
             files = {}
             with zipfile.ZipFile(io.BytesIO(download.content)) as archive:
                 allowed = {
-                    "backtest_last_result.json", "backtest_status.json",
-                    "backtest_trades.csv", "backtest_equity.csv", "backtest_equity_m15.csv",
+                    "dashboard_backtest_last_result.json", "dashboard_backtest_status.json",
+                    "dashboard_backtest_trades.csv", "dashboard_backtest_equity.csv", "dashboard_backtest_equity_m15.csv",
                 }
                 for member in archive.namelist():
                     name = PurePosixPath(member).name
                     if name in allowed:
-                        files[name] = archive.read(member).decode("utf-8-sig", errors="replace")
+                        files[name.replace("dashboard_backtest_", "backtest_")] = archive.read(member).decode("utf-8-sig", errors="replace")
             return jsonify({
                 "ok": True,
                 "available": True,
@@ -280,7 +280,7 @@ def dashboard_run_backtest():
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "X-GitHub-Api-Version": "2022-11-28",
     }
-    url = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/actions/workflows/telegram-command.yml/dispatches"
+    url = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/actions/workflows/dashboard-backtest.yml/dispatches"
     inputs = {
         "command": "backtest",
         "backtest_days": str(days),
