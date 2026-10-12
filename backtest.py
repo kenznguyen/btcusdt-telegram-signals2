@@ -160,7 +160,7 @@ def run_backtest(days=None):
             )
 
         pos, trades = None, []
-        counts = {"DCA":0, "TP":0, "Soft SL":0, "Emergency SL":0}
+        counts = {"DCA":0, "TP":0, "Soft SL":0, "Emergency SL":0, "DCA skipped insufficient margin":0}
         balance = INITIAL_CAPITAL
         equity = 0.0  # cumulative realized net PnL, excluding initial capital
         peak = INITIAL_CAPITAL
@@ -340,16 +340,24 @@ def run_backtest(days=None):
                     dca = dca and ((rsi > bot.LONG_DCA_RSI and rsi > prsi) if side=="LONG"
                                    else (rsi < bot.SHORT_DCA_RSI and rsi < prsi))
                     if dca:
+                        # Do not add margin that the simulated account cannot fund.
+                        # Margin is reserved for the position, not deducted from wallet balance;
+                        # therefore compare total reserved margin with the current account balance.
                         dca_margin = pos["initial_margin"] * DCA_MARGIN_RATIO
-                        add = dca_margin*bot.LEVERAGE/close
-                        new_qty = qty+add
-                        pos["avg"] = (avg*qty+close*add)/new_qty
-                        pos["qty"] = new_qty
-                        pos["margin"] += dca_margin
-                        pos["dca"] = True
-                        pos["notional"] += close*add
-                        counts["DCA"] += 1
-                        _refresh_last_equity(ts, mark_price)
+                        available_margin = max(0.0, balance - pos["margin"])
+                        if dca_margin > 0 and dca_margin <= available_margin + 1e-9:
+                            add = dca_margin * bot.LEVERAGE / close
+                            new_qty = qty + add
+                            pos["avg"] = (avg * qty + close * add) / new_qty
+                            pos["qty"] = new_qty
+                            pos["margin"] += dca_margin
+                            pos["dca"] = True
+                            pos["notional"] += close * add
+                            counts["DCA"] += 1
+                            _refresh_last_equity(ts, mark_price)
+                        else:
+                            # Record skipped DCA attempts for transparency; never overspend simulated margin.
+                            counts["DCA skipped insufficient margin"] = counts.get("DCA skipped insufficient margin", 0) + 1
                 continue
 
             if (go_long or go_short) and balance > 0:
@@ -450,8 +458,10 @@ def run_backtest(days=None):
           "max_intrabar_drawdown_details":max_intrabar_dd_details,
           "max_drawdown_method":"Close-to-close and conservative OHLC intrabar adverse estimate; intrabar high/low order is unknown",
           "equity_curve_candle_count":len(equity_curve),"fees_usdt":sum(float(t["fees"]) for t in trades),
-          "dca_count":counts["DCA"],"tp_count":reason_counts["TP"],"soft_sl_count":reason_counts["Soft SL"],
+          "dca_count":counts["DCA"],"dca_skipped_insufficient_margin_count":counts["DCA skipped insufficient margin"],
+          "tp_count":reason_counts["TP"],"soft_sl_count":reason_counts["Soft SL"],
           "emergency_sl_count":reason_counts["Emergency SL"],"end_of_test_close_count":reason_counts["End of test"],
+          "margin_model":"DCA is skipped when added margin exceeds unreserved wallet balance; exchange maintenance-margin tiers and exact liquidation price are not modeled.",
           "fee_rate_per_side":FEE,"trades":trades,"trade_csv":str(TRADES_CSV),"equity_csv":str(EQUITY_CSV),
           "equity_curve_csv":str(CURVE_CSV)}
         finished = pd.Timestamp.now(tz="UTC")
