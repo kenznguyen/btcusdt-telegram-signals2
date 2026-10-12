@@ -4,7 +4,7 @@ run-name: BTCUSDT signal scan
 on:
   schedule:
     # GitHub Actions cron uses UTC. Run every 5 minutes.
-    - cron: '*/5* * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions:
