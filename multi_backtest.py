@@ -88,6 +88,7 @@ def main():
                 "max_drawdown_usdt", "max_drawdown_pct", "max_intrabar_drawdown_usdt",
                 "max_intrabar_drawdown_pct", "fees_usdt", "dca_count", "tp_count",
                 "soft_sl_count", "emergency_sl_count", "end_of_test_close_count",
+                "dca_skipped_insufficient_margin_count", "margin_model",
             )}
             item.update({"symbol_code": symbol, "status": "completed",
                          "result_file": f"{symbol}/backtest_last_result.json",
