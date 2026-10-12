@@ -124,7 +124,7 @@ def main():
             "/status — Báo cáo thị trường và vị thế\n"
             "/position — Vị thế hiện tại và lệnh đã đóng gần nhất\n"
             "/signal — RSI, ADX, xu hướng H1 và điều kiện entry\n"
-            "/backtest — Backtest lịch sử 90 ngày\n"
+            "/backtest — Backtest lịch sử 360 ngày\n"
             "/btstatus — Trạng thái backtest gần nhất\n"
             "/btresult — Báo cáo backtest gần nhất\n"
             "/help — Danh sách lệnh\n\n"
@@ -136,7 +136,7 @@ def main():
     if COMMAND == "backtest":
         from backtest import run_backtest, format_report
         try:
-            report = run_backtest(days=int(os.getenv("BACKTEST_DAYS", "90")))
+            report = run_backtest(days=int(os.getenv("BACKTEST_DAYS", "360")))
             bot.telegram_send(format_report(report))
         except Exception as exc:
             bot.telegram_send(f"⚠️ Backtest thất bại: {str(exc)[:250]}")
