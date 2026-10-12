@@ -22,6 +22,19 @@ ENTRY_MARGIN_PCT = _entry_margin_raw / 100.0 if _entry_margin_raw > 1.0 else _en
 _dca_margin_raw = float(os.getenv("DCA_MARGIN_RATIO", "1.00"))
 DCA_MARGIN_RATIO = _dca_margin_raw / 100.0 if _dca_margin_raw > 5.0 else _dca_margin_raw
 URL = "https://www.okx.com/api/v5/market/history-candles"
+SYMBOL = os.getenv("BACKTEST_SYMBOL", "BTCUSDT").strip().upper()
+OKX_INSTRUMENTS = {
+    "BTCUSDT": "BTC-USDT-SWAP",
+    "ETHUSDT": "ETH-USDT-SWAP",
+    "SOLUSDT": "SOL-USDT-SWAP",
+    "BNBUSDT": "BNB-USDT-SWAP",
+    "XRPUSDT": "XRP-USDT-SWAP",
+    "DOGEUSDT": "DOGE-USDT-SWAP",
+    "ADAUSDT": "ADA-USDT-SWAP",
+    "LINKUSDT": "LINK-USDT-SWAP",
+}
+if SYMBOL not in OKX_INSTRUMENTS:
+    raise ValueError(f"Symbol không được hỗ trợ: {SYMBOL}")
 RUN_ID = os.getenv("BACKTEST_RUN_ID", "").strip() or uuid.uuid4().hex
 GENERATED_AT_UTC = None
 
@@ -77,7 +90,7 @@ def get_last_report():
 def _candles(bar, start_ms, end_ms, limit):
     rows, after = [], None
     while len(rows) < limit:
-        params = {"instId": "BTC-USDT-SWAP", "bar": bar, "limit": "300"}
+        params = {"instId": OKX_INSTRUMENTS[SYMBOL], "bar": bar, "limit": "300"}
         if after is not None:
             params["after"] = after
         r = requests.get(URL, params=params, timeout=30)
@@ -409,7 +422,7 @@ def run_backtest(days=None):
             writer.writerows(equity_curve)
 
         report = {"run_id":RUN_ID,"generated_at_utc":GENERATED_AT_UTC,"status":"completed",
-          "symbol":"BTCUSDT perpetual (OKX BTC-USDT-SWAP candles)",
+          "symbol":f"{SYMBOL} perpetual (OKX {OKX_INSTRUMENTS[SYMBOL]} candles)",
           "timeframe":"M15 entry / closed H1 trend filter","period_days":days,
           "start":m15.iloc[0]["open_time"].isoformat(),"end":m15.iloc[-1]["open_time"].isoformat(),
           "candle_count":len(m15),"trade_count":len(trades),"closed_trade_count":len(trades),
@@ -456,7 +469,7 @@ def format_report(r):
     pf = r.get("profit_factor")
     pf_text = ("∞" if pf is not None and isinstance(pf,(int,float)) and pf == float("inf")
                else f"{pf:.2f}" if isinstance(pf,(int,float)) else "N/A")
-    return "\n".join(["📊 BTCUSDT — BACKTEST",
+    return "\n".join([f"📊 {r.get('symbol', 'Perpetual')} — BACKTEST",
         f"Khung: {r['timeframe']} | Giai đoạn: {r['period_days']} ngày",
         f"Nến: {r['candle_count']} | Lệnh đóng: {r.get('closed_trade_count', r['trade_count'])}",
         f"Vốn đầu/cuối: {r.get('initial_capital_usdt',100):.2f} → {r.get('final_balance_usdt',100+r['net_profit_usdt']):.2f} USDT",
