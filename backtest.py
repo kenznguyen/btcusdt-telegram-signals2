@@ -150,8 +150,14 @@ def run_backtest(days=None):
         m15 = bot.add_indicators(m15).reset_index(drop=True)
         h1 = bot.add_indicators(h1).reset_index(drop=True)
         m15 = m15[m15["open_time"] >= start].reset_index(drop=True)
-        if len(m15) < 100 or len(h1) < 100:
-            raise RuntimeError("Không đủ dữ liệu nến đã đóng.")
+        # M15 is trimmed to the requested test window, so a 1-day test has
+        # at most 96 candles. Keep the minimum proportional for short smoke tests.
+        min_m15 = min(100, max(30, int(days * 96 * 0.75)))
+        if len(m15) < min_m15 or len(h1) < 100:
+            raise RuntimeError(
+                f"Không đủ dữ liệu nến đã đóng: M15={len(m15)} (cần >= {min_m15}), "
+                f"H1={len(h1)} (cần >= 100), symbol={SYMBOL}, days={days}."
+            )
 
         pos, trades = None, []
         counts = {"DCA":0, "TP":0, "Soft SL":0, "Emergency SL":0}
