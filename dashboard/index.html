@@ -15,6 +15,16 @@ button,input{font:inherit}.app{display:grid;grid-template-columns:190px minmax(0
 <main class="main">
 <header class="top"><div><div class="eyebrow">Trading analytics / Backtest</div><h1>BTCUSDT Signal Bot</h1></div><div class="actions"><button class="btn" id="demoHelp" title="Không tạo số liệu demo">ⓘ Hướng dẫn dữ liệu</button><button class="btn primary" id="refreshBtn">↻ Đồng bộ dữ liệu</button><button class="btn" id="loadBtn">Nạp file thủ công</button><input class="hidden" id="files" type="file" multiple accept=".json,.csv,application/json,text/csv"></div></header>
 <div class="notice" id="notice"><strong>Đang kết nối dữ liệu tự động…</strong> Dashboard sẽ tải trạng thái GitHub Actions và artifact backtest. Nếu dữ liệu chưa xuất hiện, bấm “Đồng bộ dữ liệu” hoặc kiểm tra lỗi bên dưới.</div>
+<section class="card" style="margin-bottom:12px">
+<div class="cardhead"><h2>Cấu hình backtest</h2><span class="pill">Không thay đổi Entry / DCA / TP / SL</span></div>
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px">
+<label><div class="label">Số ngày backtest (1–365)</div><input id="btDays" type="number" min="1" max="365" step="1" value="360" style="width:100%;margin-top:6px;padding:10px;border:1px solid var(--line);border-radius:7px;background:#071525;color:var(--text)"></label>
+<label><div class="label">Vốn ban đầu (USDT)</div><input id="btCapital" type="number" min="1" max="100000000" step="1" value="100" style="width:100%;margin-top:6px;padding:10px;border:1px solid var(--line);border-radius:7px;background:#071525;color:var(--text)"></label>
+<label><div class="label">Margin lệnh đầu (% vốn hiện tại)</div><input id="btEntryMargin" type="number" min="1" max="100" step="1" value="50" style="width:100%;margin-top:6px;padding:10px;border:1px solid var(--line);border-radius:7px;background:#071525;color:var(--text)"></label>
+<label><div class="label">Margin lệnh DCA (% margin lệnh đầu)</div><input id="btDcaMargin" type="number" min="0" max="500" step="1" value="100" style="width:100%;margin-top:6px;padding:10px;border:1px solid var(--line);border-radius:7px;background:#071525;color:var(--text)"></label>
+</div>
+<div class="actions" style="margin-top:12px"><button class="btn primary" id="runBacktestBtn">▶ Chạy backtest với cấu hình này</button><span class="sub" id="runBacktestHint">Mặc định: 360 ngày · vốn 100 USDT · margin đầu 50% · DCA 100%</span></div>
+</section>
 <section class="grid kpis">
 <div class="card"><div class="label">Net Profit</div><div class="value" id="profit">—</div><div class="sub">PnL ròng sau phí ước tính</div></div>
 <div class="card"><div class="label">Win Rate</div><div class="value" id="winrate">—</div><div class="sub" id="winSub">Lệnh thắng / tổng lệnh</div></div>
@@ -95,6 +105,28 @@ async function syncDashboard(){
   if(errors.length) byId('error').textContent='Lỗi đồng bộ: '+errors.join(' · ');
   else byId('error').textContent='';
 }
+byId('runBacktestBtn').onclick=async()=>{
+ const btn=byId('runBacktestBtn'),hint=byId('runBacktestHint');
+ const params={
+  days:Number(byId('btDays').value),
+  initial_capital:Number(byId('btCapital').value),
+  entry_margin_pct:Number(byId('btEntryMargin').value),
+  dca_margin_ratio:Number(byId('btDcaMargin').value)
+ };
+ if(!Number.isInteger(params.days)||params.days<1||params.days>365){hint.textContent='Số ngày phải là số nguyên từ 1 đến 365.';return}
+ if(!Number.isFinite(params.initial_capital)||params.initial_capital<1){hint.textContent='Vốn ban đầu phải ít nhất 1 USDT.';return}
+ if(!Number.isFinite(params.entry_margin_pct)||params.entry_margin_pct<1||params.entry_margin_pct>100){hint.textContent='Margin lệnh đầu phải từ 1% đến 100%.';return}
+ if(!Number.isFinite(params.dca_margin_ratio)||params.dca_margin_ratio<0||params.dca_margin_ratio>500){hint.textContent='Margin DCA phải từ 0% đến 500% margin lệnh đầu.';return}
+ btn.disabled=true;btn.textContent='Đang gửi yêu cầu…';hint.textContent='Đang gửi cấu hình tới GitHub Actions…';
+ try{
+  const res=await fetch('/api/dashboard/run-backtest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)});
+  const data=await res.json();
+  if(!res.ok||!data.ok) throw Error(data.error||'Không thể khởi chạy backtest');
+  hint.textContent='Đã gửi: '+params.days+' ngày · vốn '+params.initial_capital+' USDT · margin đầu '+params.entry_margin_pct+'% · DCA '+params.dca_margin_ratio+'%. Chờ workflow hoàn tất rồi đồng bộ lại.';
+  set('btStatus','queued / đang chờ');
+ }catch(e){hint.textContent='Lỗi: '+e.message}
+ finally{btn.disabled=false;btn.textContent='▶ Chạy backtest với cấu hình này'}
+};
 byId('loadBtn').onclick=()=>byId('files').click();
 byId('refreshBtn').onclick=()=>{byId('refreshBtn').textContent='Đang đồng bộ…';syncDashboard().finally(()=>byId('refreshBtn').textContent='↻ Đồng bộ dữ liệu')};
 byId('demoHelp').onclick=()=>{byId('notice').innerHTML='<strong>Đồng bộ tự động đã bật.</strong> Nếu API chưa kết nối, có thể nạp thủ công các file cùng một artifact backtest trong GitHub Actions.'};

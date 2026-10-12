@@ -253,3 +253,55 @@ def dashboard_backtest():
     except (ValueError, KeyError):
         app.logger.exception("Invalid backtest artifact response")
         return jsonify({"ok": False, "error": "Artifact backtest không đúng định dạng mong đợi."}), 502
+
+
+@app.post("/api/dashboard/run-backtest")
+def dashboard_run_backtest():
+    if not GITHUB_TOKEN:
+        return jsonify({"ok": False, "error": "GITHUB_TOKEN is not configured"}), 503
+    payload = request.get_json(silent=True) or {}
+    try:
+        days = int(payload.get("days", 360))
+        capital = float(payload.get("initial_capital", 100))
+        entry_margin_pct = float(payload.get("entry_margin_pct", 50))
+        dca_margin_ratio = float(payload.get("dca_margin_ratio", 100))
+        if not 1 <= days <= 365:
+            raise ValueError("Số ngày phải từ 1 đến 365.")
+        if not 1 <= capital <= 100000000:
+            raise ValueError("Vốn ban đầu phải từ 1 đến 100.000.000 USDT.")
+        if not 1 <= entry_margin_pct <= 100:
+            raise ValueError("Margin lệnh đầu phải từ 1% đến 100% vốn hiện tại.")
+        if not 0 <= dca_margin_ratio <= 500:
+            raise ValueError("Margin DCA phải từ 0% đến 500% margin lệnh đầu.")
+    except (TypeError, ValueError) as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    url = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/actions/workflows/telegram-command.yml/dispatches"
+    inputs = {
+        "command": "backtest",
+        "backtest_days": str(days),
+        "initial_capital": str(capital),
+        "entry_margin_pct": str(entry_margin_pct),
+        "dca_margin_ratio": str(dca_margin_ratio),
+    }
+    try:
+        response = requests.post(url, headers=headers, json={"ref": GITHUB_REF, "inputs": inputs}, timeout=15)
+        if response.status_code != 204:
+            detail = (response.text or "").replace("\\n", " ")[:300]
+            app.logger.error("GitHub workflow dispatch failed: HTTP %s %s", response.status_code, detail)
+            return jsonify({"ok": False, "error": f"GitHub không nhận workflow dispatch (HTTP {response.status_code}). Kiểm tra quyền Actions: write và tên branch."}), 502
+        return jsonify({
+            "ok": True,
+            "message": "Đã gửi yêu cầu backtest tới GitHub Actions.",
+            "parameters": {
+                "days": days, "initial_capital": capital,
+                "entry_margin_pct": entry_margin_pct, "dca_margin_ratio": dca_margin_ratio,
+            },
+        }), 202
+    except requests.RequestException:
+        app.logger.exception("Could not dispatch dashboard backtest")
+        return jsonify({"ok": False, "error": "Không thể kết nối GitHub Actions."}), 502
