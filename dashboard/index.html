@@ -51,7 +51,7 @@ const money=v=>Number.isFinite(Number(v))?fmt(v)+' USDT':'—';
 const pct=v=>Number.isFinite(Number(v))?fmt(v)+'%':'—';
 const safe=v=>(v===undefined||v===null||v===''?'—':String(v));
 function set(id,val){byId(id).textContent=val}
-function date(v){if(!v)return'—';const d=new Date(v);return isNaN(d)?String(v):d.toISOString().replace('T',' ').replace('Z','')}
+function date(v){if(!v)return'—';const d=new Date(v);return isNaN(d)?String(v):d.toISOString().replace('T',' ').replace(/\.\d{3}Z$/,'').replace(/Z$/,'')}
 function parseCSV(s){const lines=s.replace(/^\uFEFF/,'').trim().split(/\r?\n/);if(lines.length<2)return[];const split=line=>{let out=[],v='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'&&q){v+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(v);v=''}else v+=c}out.push(v);return out};const keys=split(lines[0]);return lines.slice(1).filter(x=>x.trim()).map(line=>{const a=split(line),o={};keys.forEach((k,i)=>o[k]=a[i]??'');return o})}
 function pick(o,...keys){for(const k of keys)if(o&&o[k]!==undefined&&o[k]!==null&&o[k]!=='')return o[k];return null}
 function numberOrNaN(v){if(v===null||v===undefined||String(v).trim()==='')return NaN;const n=Number(String(v).replace(/,/g,''));return Number.isFinite(n)?n:NaN}
