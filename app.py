@@ -282,7 +282,6 @@ def dashboard_run_backtest():
     }
     url = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/actions/workflows/dashboard-backtest.yml/dispatches"
     inputs = {
-        "command": "backtest",
         "backtest_days": str(days),
         "initial_capital": str(capital),
         "entry_margin_pct": str(entry_margin_pct),
