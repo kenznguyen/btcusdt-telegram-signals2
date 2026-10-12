@@ -484,3 +484,16 @@ def format_report(r):
         f"Khoảng thời gian: {r['start'][:16]} — {r['end'][:16]} UTC",
         "Mọi KPI PnL dùng net PnL sau phí ước tính; lệnh đóng cuối kỳ được tính vào tổng lệnh nhưng không thuộc TP/SL.",
         "Mô phỏng OHLC; không phải khớp lệnh thực tế."])
+
+if __name__ == "__main__":
+    # The runner is a standalone CLI as well as an importable module.
+    # Without this guard Python exits successfully without producing a report.
+    result = run_backtest()
+    print(json.dumps({
+        "symbol": SYMBOL,
+        "status": result.get("status"),
+        "period_days": result.get("period_days"),
+        "trade_count": result.get("trade_count"),
+        "net_profit_usdt": result.get("net_profit_usdt"),
+        "result_file": str(RESULT),
+    }, ensure_ascii=False), flush=True)
