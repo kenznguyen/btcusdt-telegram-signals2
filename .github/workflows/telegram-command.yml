@@ -20,6 +20,26 @@ on:
           - backtest
           - btstatus
           - btresult
+      backtest_days:
+        description: "Backtest period in days (1-365)"
+        required: false
+        default: "360"
+        type: string
+      initial_capital:
+        description: "Initial capital in USDT"
+        required: false
+        default: "100"
+        type: string
+      entry_margin_pct:
+        description: "Initial order margin as % of current balance"
+        required: false
+        default: "50"
+        type: string
+      dca_margin_ratio:
+        description: "DCA margin as % of initial order margin"
+        required: false
+        default: "100"
+        type: string
 
 permissions:
   contents: read
@@ -56,7 +76,10 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           ACTIONS_GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          BACKTEST_DAYS: '360'
+          BACKTEST_DAYS: ${{ inputs.backtest_days || '360' }}
+          BACKTEST_INITIAL_CAPITAL: ${{ inputs.initial_capital || '100' }}
+          ENTRY_MARGIN_PCT: ${{ inputs.entry_margin_pct || '50' }}
+          DCA_MARGIN_RATIO: ${{ inputs.dca_margin_ratio || '100' }}
           BACKTEST_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
