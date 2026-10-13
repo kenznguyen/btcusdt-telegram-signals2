@@ -400,14 +400,17 @@ def run_backtest(days=None):
                             _refresh_last_equity(ts, mark_price)
                 continue
 
-                side = signal_side
+            # Open a new position only when none is active in this single-position baseline.
+            if (go_long or go_short) and balance > 0:
+                side = "LONG" if go_long else "SHORT"
                 initial_margin = balance * ENTRY_MARGIN_PCT
-                qty = initial_margin*bot.LEVERAGE/close
-                pos = {"side":side,"time":ts,"avg":close,"qty":qty,"margin":initial_margin,
-                       "initial_margin":initial_margin,"dca":False,"notional":close*qty,
-                       "trade_id":len(trades)+1,
-                       "legs":[{"entry_time":ts,"entry_price":close,"qty":qty,
-                                "margin_usdt":initial_margin,"entry_kind":"ENTRY"}]}
+                qty = initial_margin * bot.LEVERAGE / close
+                pos = {"side": side, "time": ts, "avg": close, "qty": qty,
+                       "margin": initial_margin, "initial_margin": initial_margin,
+                       "dca": False, "notional": close * qty,
+                       "trade_id": len(trades) + 1,
+                       "legs": [{"entry_time": ts, "entry_price": close, "qty": qty,
+                                 "margin_usdt": initial_margin, "entry_kind": "ENTRY"}]}
                 _refresh_last_equity(ts, mark_price)
 
         if pos:
