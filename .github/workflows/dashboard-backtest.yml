@@ -2,6 +2,8 @@ name: Dashboard Backtest
 run-name: Dashboard backtest · ${{ inputs.backtest_days || '360' }} days
 
 on:
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       backtest_days:
