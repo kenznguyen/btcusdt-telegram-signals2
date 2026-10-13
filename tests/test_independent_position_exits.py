@@ -36,9 +36,10 @@ class IndependentPositionExitTests(unittest.TestCase):
     def test_short_position_tp_and_long_position_soft_sl_are_independent(self):
         short_tp = self.decision("SHORT", 100, 90, 91, 89, 20, 10, plus=40, minus=20)
         # Long soft SL requires price threshold + trend reversal + two bearish candles.
-        long_soft = self.decision("LONG", 100, 95, 96, 90, 50, -40,
+        # Low crosses the soft-stop threshold but stays above the emergency-stop threshold.
+        long_soft = self.decision("LONG", 100, 98, 100, 97, 50, -40,
                                   plus=10, minus=40, hadx=40,
-                                  op=96, prev_open=102, prev_close=101)
+                                  op=99, prev_open=102, prev_close=101)
         self.assertEqual(short_tp[0], "TP")
         self.assertEqual(long_soft[0], "Soft SL")
 
