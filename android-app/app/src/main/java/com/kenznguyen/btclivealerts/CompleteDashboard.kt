@@ -2,6 +2,7 @@ package com.kenznguyen.btclivealerts
 
 import android.app.NotificationManager
 import android.content.Context
+import android.os.Build
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -38,6 +40,7 @@ fun CompleteDashboard(context: Context) {
     var price by remember { mutableStateOf<Double?>(null) }
     var status by remember { mutableStateOf("Đang kết nối Binance Futures…") }
     var alerts by remember { mutableStateOf(prefs.getBoolean("alerts_enabled", true)) }
+    var notificationTestStatus by remember { mutableStateOf("Chưa chạy kiểm thử thông báo") }
     var state by remember { mutableStateOf(StrategyState.fromJson(prefs.getString("state_json", null))) }
     var m15Ind by remember { mutableStateOf(IndicatorPoint()) }
     var h1Ind by remember { mutableStateOf(IndicatorPoint()) }
@@ -121,7 +124,33 @@ fun CompleteDashboard(context: Context) {
                             prefs.edit().putBoolean("alerts_enabled", it).apply()
                         })
                     }
-                    Text("Cảnh báo chỉ mô phỏng. Theo dõi khi chạy nền chưa được bảo đảm; Android có thể tạm dừng ứng dụng.", color = Color(0xFFFFC857), style = MaterialTheme.typography.bodySmall)
+                    Button(
+                        onClick = {
+                            val manager = NotificationManagerCompat.from(context)
+                            if (!manager.areNotificationsEnabled()) {
+                                notificationTestStatus = "THẤT BẠI: quyền thông báo đang bị tắt. Vào Cài đặt Android > Ứng dụng > BTCUSDT Live Alerts > Thông báo để bật."
+                            } else {
+                                try {
+                                    val now = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+                                    manager.notify(987654, NotificationCompat.Builder(context, "strategy_alerts")
+                                        .setSmallIcon(android.R.drawable.ic_dialog_info)
+                                        .setContentTitle("BTCUSDT · THÔNG BÁO THỬ")
+                                        .setContentText("Kiểm thử thành công lúc $now")
+                                        .setStyle(NotificationCompat.BigTextStyle().bigText("Đây là thông báo thử từ ứng dụng BTCUSDT Live Alerts. Thời gian: $now"))
+                                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                                        .setAutoCancel(true).build())
+                                    notificationTestStatus = "ĐÃ GỬI lúc $now — hãy kiểm tra thanh thông báo."
+                                } catch (e: SecurityException) {
+                                    notificationTestStatus = "THẤT BẠI: Android từ chối quyền thông báo. Kiểm tra quyền trong Cài đặt."
+                                } catch (e: Exception) {
+                                    notificationTestStatus = "THẤT BẠI: " + (e.message ?: "không rõ lỗi")
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("GỬI THÔNG BÁO THỬ") }
+                    Text(notificationTestStatus, color = if (notificationTestStatus.startsWith("ĐÃ GỬI")) NGreen else NMuted, style = MaterialTheme.typography.bodySmall)
+                    Text("Cảnh báo chiến lược chỉ phát sinh khi nến M15 đóng và đủ điều kiện. Thông báo thử chỉ kiểm tra quyền và kênh thông báo; không xác nhận chiến lược đã phát tín hiệu. Theo dõi nền có thể bị Android giới hạn.", color = Color(0xFFFFC857), style = MaterialTheme.typography.bodySmall)
                 }
             }
             item { Text("LỊCH SỬ SỰ KIỆN", color = Color.White, fontWeight = FontWeight.Bold) }
