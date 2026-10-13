@@ -83,5 +83,9 @@ class StrategyEngineTest {
         assertNotNull(points.last().adx)
         assertFalse(points.last().rsi!!.isNaN())
         assertTrue(points.last().rsi!! in 0.0..100.0)
+        // Reference values calculated by bot.py/add_indicators on the identical synthetic candles.
+        assertEquals(100.0, points.last().rsi!!, 1e-8)
+        assertEquals(100.0, points.last().adx!!, 1e-8)
+        assertEquals(34.54663034626543, points.last().plusDi!!, 1e-6)
     }
 }
