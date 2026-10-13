@@ -60,14 +60,24 @@ class StrategyMonitorService : Service() {
                             .apply()
                         val enabled = prefs.getBoolean("alerts_enabled", true)
                         if (enabled) result.second.forEach { event ->
+                            val key = event.dedupeKey + ":" + (event.side ?: "FLAT")
+                            if (!prefs.getBoolean("alert_" + alertPreferenceKey(event.kind), true)) return@forEach
+                            if (event.side == "LONG" && !prefs.getBoolean("alert_long", true)) return@forEach
+                            if (event.side == "SHORT" && !prefs.getBoolean("alert_short", true)) return@forEach
+                            if (isQuietHours(prefs)) return@forEach
+                            val sent = prefs.getStringSet("notified_event_keys", emptySet())?.toMutableSet() ?: mutableSetOf()
+                            if (!sent.add(key)) return@forEach
                             val body = (event.side ?: "FLAT") + " · Giá " + "%,.2f".format(event.price) + " · " + event.note
-                            val notification = NotificationCompat.Builder(this@StrategyMonitorService, "strategy_alerts")
+                            val builder = NotificationCompat.Builder(this@StrategyMonitorService, "strategy_alerts")
                                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                                 .setContentTitle("BTCUSDT.P · " + event.kind)
                                 .setContentText(body)
                                 .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-                                .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build()
-                            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify(event.dedupeKey.hashCode(), notification)
+                                .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true)
+                            if (prefs.getBoolean("alert_vibration", true)) builder.setVibrate(longArrayOf(0, 250, 120, 250)) else builder.setVibrate(longArrayOf(0))
+                            if (!prefs.getBoolean("alert_sound", true)) builder.setSilent(true)
+                            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify(key.hashCode(), builder.build())
+                            prefs.edit().putStringSet("notified_event_keys", sent.toList().takeLast(100).toSet()).apply()
                         }
                         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
                             .notify(1001, ongoing("Đang theo dõi · " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())))
@@ -86,6 +96,22 @@ class StrategyMonitorService : Service() {
         return START_STICKY
     }
 
+    private fun alertPreferenceKey(kind: String): String = when {
+        kind.contains("ENTRY") -> "entry"
+        kind == "DCA" -> "dca"
+        kind.contains("TAKE PROFIT") -> "take_profit"
+        kind.contains("SOFT SL") -> "soft_sl"
+        kind.contains("EMERGENCY SL") -> "emergency_sl"
+        else -> "other"
+    }
+
+    private fun isQuietHours(prefs: android.content.SharedPreferences): Boolean {
+        if (!prefs.getBoolean("quiet_hours_enabled", false)) return false
+        val start = prefs.getInt("quiet_start_hour", 23)
+        val end = prefs.getInt("quiet_end_hour", 7)
+        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        return if (start == end) true else if (start < end) hour >= start && hour < end else hour >= start || hour < end
+    }
     private fun ongoing(text: String): Notification =
         NotificationCompat.Builder(this, "monitor_status")
             .setSmallIcon(android.R.drawable.ic_menu_info_details)
