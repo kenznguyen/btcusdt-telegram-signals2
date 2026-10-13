@@ -27,3 +27,10 @@ A successful build and unit tests do not prove numerical parity with TradingView
 Open this directory in Android Studio or use the Android APK GitHub Actions workflow. The downloadable artifact is a debug APK; it is not a signed Play Store release.
 
 Package: `com.kenznguyen.btclivealerts`
+
+## Live chart and in-app backtest
+
+- The live candlestick chart displays up to 70 recent candles, a price grid, and a mark-price reference line when the mark price falls within the visible range.
+- The dashboard includes an initial local backtest panel using the shared strategy engine and up to 1,500 closed M15 candles returned by the public market-data endpoint (roughly 15.6 days at 15-minute intervals). It shows estimated net PnL, balance, closed exits, win rate, Profit Factor, max drawdown and recent closed events.
+- This initial panel is not yet a 7/30/90-day backtest selector. It replays candle prefixes to collect exit events and can be slow on lower-end phones; use it as an early diagnostic, not as verified historical performance.
+- Backtest and live signals are simulations. Fees/slippage are estimates; open positions at the end of the test are not marked to market in realized PnL statistics. Do not compare these figures directly with TradingView until the same candle fixture and fill assumptions have been verified.
