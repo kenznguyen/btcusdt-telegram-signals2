@@ -79,6 +79,20 @@ class StrategyMonitorService : Service() {
                             (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify(key.hashCode(), builder.build())
                             prefs.edit().putStringSet("notified_event_keys", sent.toList().takeLast(100).toSet()).apply()
                         }
+                        if (enabled && !isQuietHours(prefs) && prefs.getBoolean("alert_catch_up_after_quiet", true)) {
+                            val queue = prefs.getStringSet("quiet_alert_queue", emptySet())?.toMutableSet() ?: mutableSetOf()
+                            if (queue.isNotEmpty()) {
+                                val sent = prefs.getStringSet("notified_event_keys", emptySet())?.toMutableSet() ?: mutableSetOf()
+                                queue.toList().forEach { item ->
+                                    val parts = item.split("|", limit = 3)
+                                    if (parts.size == 3 && parts[0] !in sent) {
+                                        postAlert(parts[0], "Cảnh báo gửi bù · " + parts[1], parts[2], prefs)
+                                        sent.add(parts[0])
+                                    }
+                                }
+                                prefs.edit().putStringSet("quiet_alert_queue", emptySet()).putStringSet("notified_event_keys", sent.toList().takeLast(100).toSet()).apply()
+                            }
+                        }
                         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
                             .notify(1001, ongoing("Đang theo dõi · " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())))
                     } catch (e: Exception) {
@@ -96,6 +110,14 @@ class StrategyMonitorService : Service() {
         return START_STICKY
     }
 
+    private fun postAlert(key: String, title: String, body: String, prefs: android.content.SharedPreferences) {
+        val builder = NotificationCompat.Builder(this, "strategy_alerts").setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title).setContentText(body).setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true)
+        if (prefs.getBoolean("alert_vibration", true)) builder.setVibrate(longArrayOf(0, 250, 120, 250)) else builder.setVibrate(longArrayOf(0))
+        if (!prefs.getBoolean("alert_sound", true)) builder.setSilent(true)
+        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify(key.hashCode(), builder.build())
+    }
     private fun alertPreferenceKey(kind: String): String = when {
         kind.contains("ENTRY") -> "entry"
         kind == "DCA" -> "dca"
