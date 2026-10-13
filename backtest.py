@@ -1,6 +1,7 @@
 """90-day historical candle backtest; deliberately does not read/write live state.json."""
 import csv
 import json
+import math
 import os
 import uuid
 from pathlib import Path
@@ -450,7 +451,7 @@ def run_backtest(days=None):
           "winning_net_pnl_usdt":winning_net_pnl,"losing_net_pnl_usdt":losing_net_pnl,
           # Legacy aliases retained for consumers of older reports; these are net PnL, not gross PnL.
           "gross_profit_usdt":winning_net_pnl,"gross_loss_usdt":losing_net_pnl,
-          "profit_factor":pf,"average_win_usdt":avg_win,"average_loss_usdt":avg_loss,
+          "profit_factor":(pf if math.isfinite(pf) else None),"profit_factor_unbounded":bool(math.isinf(pf) and pf > 0),"average_win_usdt":avg_win,"average_loss_usdt":avg_loss,
           "expectancy_per_trade_usdt":expectancy,
           "max_drawdown_usdt":curve_max_dd,"max_drawdown_pct":curve_max_dd_pct,
           "max_drawdown_details":curve_peak,
@@ -485,7 +486,7 @@ def run_backtest(days=None):
 
 def format_report(r):
     pf = r.get("profit_factor")
-    pf_text = ("∞" if pf is not None and isinstance(pf,(int,float)) and pf == float("inf")
+    pf_text = ("∞" if r.get("profit_factor_unbounded") or (pf is not None and isinstance(pf,(int,float)) and pf == float("inf"))
                else f"{pf:.2f}" if isinstance(pf,(int,float)) else "N/A")
     return "\n".join([f"📊 {r.get('symbol', 'Perpetual')} — BACKTEST",
         f"Khung: {r['timeframe']} | Giai đoạn: {r['period_days']} ngày",
