@@ -136,6 +136,8 @@ def run_backtest(days=None):
         raise ValueError("MAX_SIMULTANEOUS_ENTRIES phải từ 1 đến 10.")
     if not 1 <= MAX_OPEN_POSITIONS <= 10:
         raise ValueError("MAX_OPEN_POSITIONS phải từ 1 đến 10.")
+    if not 1 <= MAX_OPEN_POSITIONS <= 10:
+        raise ValueError("MAX_OPEN_POSITIONS phải từ 1 đến 10.")
     RUN_ID = os.getenv("BACKTEST_RUN_ID", "").strip() or uuid.uuid4().hex
     now = pd.Timestamp.now(tz="UTC")
     GENERATED_AT_UTC = now.isoformat()
