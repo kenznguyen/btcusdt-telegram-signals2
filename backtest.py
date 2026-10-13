@@ -164,149 +164,141 @@ def run_backtest(days=None):
                 f"H1={len(h1)} (cần >= 100), symbol={SYMBOL}, days={days}."
             )
 
-        pos, trades = None, []
+        positions, trades = [], []
         counts = {"DCA":0, "TP":0, "Soft SL":0, "Emergency SL":0, "DCA skipped insufficient margin":0}
         balance = INITIAL_CAPITAL
-        equity = 0.0  # cumulative realized net PnL, excluding initial capital
+        equity = 0.0
         peak = INITIAL_CAPITAL
-        max_dd = 0.0  # close-to-close drawdown, retained for backward compatibility
+        max_dd = 0.0
         max_intrabar_dd = 0.0
         max_intrabar_dd_pct = 0.0
         max_intrabar_dd_details = None
         equity_curve = []
         max_dd_details = None
+        peak_time_utc = m15.iloc[0]["open_time"].isoformat() if len(m15) else None
 
         def _close_position_legs(position, exit_time, exit_price, reason):
-            """Emit one row per entry leg; per-leg PnL reconciles to aggregate position PnL."""
             rows = []
             for leg in position["legs"]:
                 gross_leg = ((exit_price - leg["entry_price"]) if position["side"] == "LONG"
                              else (leg["entry_price"] - exit_price)) * leg["qty"]
                 fees_leg = (leg["entry_price"] * leg["qty"] + abs(exit_price * leg["qty"])) * FEE
                 rows.append({
-                    "side": position["side"], "position_trade_id": position["trade_id"], "entry_time": leg["entry_time"].isoformat(),
-                    "exit_time": exit_time.isoformat(), "avg_entry": leg["entry_price"],
-                    "exit_price": exit_price, "qty": leg["qty"], "gross_pnl": gross_leg,
-                    "fees": fees_leg, "net_pnl": gross_leg - fees_leg, "reason": reason,
-                    "dca_used": position["dca"], "entry_kind": leg["entry_kind"],
-                    "entry_margin_usdt": leg["margin_usdt"],
-                    "initial_margin_usdt": position["initial_margin"],
+                    "side": position["side"], "position_trade_id": position["trade_id"],
+                    "entry_time": leg["entry_time"].isoformat(), "exit_time": exit_time.isoformat(),
+                    "avg_entry": leg["entry_price"], "exit_price": exit_price, "qty": leg["qty"],
+                    "gross_pnl": gross_leg, "fees": fees_leg, "net_pnl": gross_leg - fees_leg,
+                    "reason": reason, "dca_used": position["dca"], "entry_kind": leg["entry_kind"],
+                    "entry_margin_usdt": leg["margin_usdt"], "initial_margin_usdt": position["initial_margin"],
                     "dca_margin_usdt": sum(x["margin_usdt"] for x in position["legs"] if x["entry_kind"] == "DCA"),
                     "scale_in_margin_usdt": sum(x["margin_usdt"] for x in position["legs"] if x["entry_kind"] == "ADD"),
                     "position_entry_count": len(position["legs"]),
                 })
             return rows
-        peak_time_utc = m15.iloc[0]["open_time"].isoformat() if len(m15) else None
+
+        def _account_mark(mark_price):
+            unrealized = 0.0
+            fees = 0.0
+            for p in positions:
+                pnl = ((mark_price - p["avg"]) if p["side"] == "LONG" else (p["avg"] - mark_price)) * p["qty"]
+                unrealized += pnl
+                fees += (p["notional"] + abs(mark_price * p["qty"])) * FEE
+            return unrealized, fees, balance + unrealized - fees
 
         def _refresh_last_equity(ts, mark_price):
             nonlocal peak, max_dd, max_dd_details, peak_time_utc
-            side_now = pos["side"] if pos else ""
-            unrealized_now = 0.0
-            estimated_fees_now = 0.0
-            if pos:
-                unrealized_now = ((mark_price - pos["avg"]) if side_now == "LONG"
-                                  else (pos["avg"] - mark_price)) * pos["qty"]
-                estimated_fees_now = (pos["notional"] + abs(mark_price * pos["qty"])) * FEE
-            mark_equity_now = balance + unrealized_now - estimated_fees_now
-            if mark_equity_now > peak:
-                peak = mark_equity_now
-                peak_time_utc = ts.isoformat()
-            drawdown_now = max(0.0, peak - mark_equity_now)
-            drawdown_pct_now = drawdown_now / peak * 100.0 if peak > 0 else 0.0
-            snapshot = {
-                "run_id": RUN_ID, "generated_at_utc": GENERATED_AT_UTC,
-                "timestamp_utc": ts.isoformat(), "mark_price": mark_price,
-                "account_balance_usdt": balance, "unrealized_pnl_gross_usdt": unrealized_now,
-                "estimated_entry_exit_fees_usdt": estimated_fees_now, "equity_usdt": mark_equity_now,
-                "peak_equity_usdt": peak, "drawdown_usdt": drawdown_now, "drawdown_pct": drawdown_pct_now,
-                "position_trade_id": pos.get("trade_id", "") if pos else "",
-                "position_side": side_now, "position_entry_time_utc": pos["time"].isoformat() if pos else "",
-                "avg_entry_price": pos["avg"] if pos else "", "position_qty": pos["qty"] if pos else "",
-                "position_margin_usdt": pos["margin"] if pos else "", "dca_used": pos["dca"] if pos else False
+            unrealized, fees, marked = _account_mark(mark_price)
+            if marked > peak:
+                peak, peak_time_utc = marked, ts.isoformat()
+            dd = max(0.0, peak - marked)
+            pct = dd / peak * 100.0 if peak > 0 else 0.0
+            last = positions[-1] if positions else None
+            snap = {
+                "run_id": RUN_ID, "generated_at_utc": GENERATED_AT_UTC, "timestamp_utc": ts.isoformat(),
+                "mark_price": mark_price, "account_balance_usdt": balance,
+                "unrealized_pnl_gross_usdt": unrealized, "estimated_entry_exit_fees_usdt": fees,
+                "equity_usdt": marked, "peak_equity_usdt": peak, "drawdown_usdt": dd, "drawdown_pct": pct,
+                "position_trade_id": last.get("trade_id", "") if last else "",
+                "position_side": last["side"] if last else "",
+                "position_entry_time_utc": last["time"].isoformat() if last else "",
+                "avg_entry_price": last["avg"] if last else "", "position_qty": last["qty"] if last else "",
+                "position_margin_usdt": last["margin"] if last else "", "dca_used": last["dca"] if last else False,
+                "open_position_count": len(positions),
+                "open_position_ids": ";".join(str(p["trade_id"]) for p in positions),
+                "total_reserved_margin_usdt": sum(p["margin"] for p in positions),
             }
             if equity_curve and equity_curve[-1]["timestamp_utc"] == ts.isoformat():
-                equity_curve[-1] = snapshot
+                equity_curve[-1] = snap
             else:
-                equity_curve.append(snapshot)
-            if drawdown_now > max_dd:
-                max_dd = drawdown_now
-                max_dd_details = {**snapshot, "max_drawdown_usdt": drawdown_now,
-                                  "peak_time_utc": peak_time_utc, "trough_time_utc": ts.isoformat()}
+                equity_curve.append(snap)
+            if dd > max_dd:
+                max_dd = dd
+                max_dd_details = {**snap, "max_drawdown_usdt": dd, "peak_time_utc": peak_time_utc,
+                                  "trough_time_utc": ts.isoformat()}
 
         for i, row in m15.iterrows():
             ts = row["open_time"]
-            mark_price = float(row["close"])
-            # Per-candle mark-to-market snapshot of the position carried into this candle.
-            side_now = pos["side"] if pos else ""
-            unrealized_now = 0.0
-            estimated_fees_now = 0.0
-            if pos:
-                unrealized_now = ((mark_price - pos["avg"]) if side_now == "LONG" else (pos["avg"] - mark_price)) * pos["qty"]
-                estimated_fees_now = (pos["notional"] + abs(mark_price * pos["qty"])) * FEE
-            mark_equity_now = balance + unrealized_now - estimated_fees_now
-            if mark_equity_now > peak:
-                peak = mark_equity_now
-                peak_time_utc = ts.isoformat()
-            drawdown_now = max(0.0, peak - mark_equity_now)
-            drawdown_pct_now = drawdown_now / peak * 100.0 if peak > 0 else 0.0
-            equity_curve.append({
-                "run_id": RUN_ID, "generated_at_utc": GENERATED_AT_UTC,
-                "timestamp_utc": ts.isoformat(), "mark_price": mark_price,
-                "account_balance_usdt": balance, "unrealized_pnl_gross_usdt": unrealized_now,
-                "estimated_entry_exit_fees_usdt": estimated_fees_now, "equity_usdt": mark_equity_now,
-                "peak_equity_usdt": peak, "drawdown_usdt": drawdown_now, "drawdown_pct": drawdown_pct_now,
-                "position_trade_id": pos.get("trade_id", "") if pos else "",
-                "position_side": side_now, "position_entry_time_utc": pos["time"].isoformat() if pos else "",
-                "avg_entry_price": pos["avg"] if pos else "", "position_qty": pos["qty"] if pos else "",
-                "position_margin_usdt": pos["margin"] if pos else "", "dca_used": pos["dca"] if pos else False
-            })
-            if drawdown_now > max_dd:
-                max_dd = drawdown_now
-                max_dd_details = {**equity_curve[-1], "max_drawdown_usdt": drawdown_now,
-                                  "peak_time_utc": peak_time_utc, "trough_time_utc": ts.isoformat()}
+            op, high, low, close = [float(row[k]) for k in ("open", "high", "low", "close")]
+            mark_price = close
+            unrealized, fees, marked = _account_mark(mark_price)
+            if marked > peak:
+                peak, peak_time_utc = marked, ts.isoformat()
+            dd = max(0.0, peak - marked)
+            pct = dd / peak * 100.0 if peak > 0 else 0.0
+            snap = {
+                "run_id": RUN_ID, "generated_at_utc": GENERATED_AT_UTC, "timestamp_utc": ts.isoformat(),
+                "mark_price": mark_price, "account_balance_usdt": balance,
+                "unrealized_pnl_gross_usdt": unrealized, "estimated_entry_exit_fees_usdt": fees,
+                "equity_usdt": marked, "peak_equity_usdt": peak, "drawdown_usdt": dd, "drawdown_pct": pct,
+                "position_trade_id": positions[-1]["trade_id"] if positions else "",
+                "position_side": positions[-1]["side"] if positions else "",
+                "position_entry_time_utc": positions[-1]["time"].isoformat() if positions else "",
+                "avg_entry_price": positions[-1]["avg"] if positions else "",
+                "position_qty": positions[-1]["qty"] if positions else "",
+                "position_margin_usdt": positions[-1]["margin"] if positions else "",
+                "dca_used": positions[-1]["dca"] if positions else False,
+                "open_position_count": len(positions),
+                "open_position_ids": ";".join(str(p["trade_id"]) for p in positions),
+                "total_reserved_margin_usdt": sum(p["margin"] for p in positions),
+            }
+            equity_curve.append(snap)
+            if dd > max_dd:
+                max_dd = dd
+                max_dd_details = {**snap, "max_drawdown_usdt": dd, "peak_time_utc": peak_time_utc,
+                                  "trough_time_utc": ts.isoformat()}
 
-            # Intrabar adverse equity estimate for the position carried into this candle.
-            # OHLC cannot reveal whether the favorable or adverse extreme happened first;
-            # this deliberately compares the adverse extreme with the previously observed equity peak.
-            intrabar_adverse_price = None
-            intrabar_equity = mark_equity_now
-            if pos:
-                intrabar_adverse_price = float(row["low"] if pos["side"] == "LONG" else row["high"])
-                intrabar_unrealized = ((intrabar_adverse_price - pos["avg"]) if pos["side"] == "LONG"
-                                       else (pos["avg"] - intrabar_adverse_price)) * pos["qty"]
-                intrabar_fees = (pos["notional"] + abs(intrabar_adverse_price * pos["qty"])) * FEE
-                intrabar_equity = balance + intrabar_unrealized - intrabar_fees
-            intrabar_dd = max(0.0, peak - intrabar_equity)
-            intrabar_dd_pct = intrabar_dd / peak * 100.0 if peak > 0 else 0.0
-            equity_curve[-1]["intrabar_adverse_price"] = intrabar_adverse_price if pos else ""
-            equity_curve[-1]["intrabar_adverse_equity_usdt"] = intrabar_equity
-            equity_curve[-1]["intrabar_drawdown_usdt"] = intrabar_dd
-            equity_curve[-1]["intrabar_drawdown_pct"] = intrabar_dd_pct
+            adverse_equity = marked
+            adverse_price = None
+            if positions:
+                adverse_price = low if any(p["side"] == "LONG" for p in positions) else high
+                for p in positions:
+                    adverse = low if p["side"] == "LONG" else high
+                    adverse_pnl = ((adverse - p["avg"]) if p["side"] == "LONG" else (p["avg"] - adverse)) * p["qty"]
+                    adverse_fees = (p["notional"] + abs(adverse * p["qty"])) * FEE
+                    # Recompute portfolio adverse equity independently for each position's adverse extreme.
+                    adverse_equity += adverse_pnl - (( (close-p["avg"]) if p["side"] == "LONG" else (p["avg"]-close)) * p["qty"])
+                    adverse_equity -= adverse_fees - ((p["notional"] + abs(close*p["qty"])) * FEE)
+            intrabar_dd = max(0.0, peak - adverse_equity)
+            intrabar_pct = intrabar_dd / peak * 100.0 if peak > 0 else 0.0
+            equity_curve[-1].update({"intrabar_adverse_price": adverse_price,
+                "intrabar_adverse_equity_usdt": adverse_equity, "intrabar_drawdown_usdt": intrabar_dd,
+                "intrabar_drawdown_pct": intrabar_pct})
             if intrabar_dd > max_intrabar_dd:
-                max_intrabar_dd = intrabar_dd
-                max_intrabar_dd_pct = intrabar_dd_pct
-                max_intrabar_dd_details = {
-                    "timestamp_utc": ts.isoformat(),
-                    "adverse_price": intrabar_adverse_price,
-                    "adverse_equity_usdt": intrabar_equity,
-                    "peak_equity_usdt": peak,
-                    "drawdown_usdt": intrabar_dd,
-                    "drawdown_pct": intrabar_dd_pct,
-                    "position_side": pos["side"] if pos else "",
-                    "position_trade_id": pos.get("trade_id", "") if pos else "",
-                    "method": "OHLC adverse extreme vs observed equity peak; intrabar order unknown"
-                }
+                max_intrabar_dd, max_intrabar_dd_pct = intrabar_dd, intrabar_pct
+                max_intrabar_dd_details = {"timestamp_utc": ts.isoformat(), "adverse_price": adverse_price,
+                    "adverse_equity_usdt": adverse_equity, "peak_equity_usdt": peak,
+                    "drawdown_usdt": intrabar_dd, "drawdown_pct": intrabar_pct,
+                    "open_position_ids": ";".join(str(p["trade_id"]) for p in positions),
+                    "method": "Portfolio OHLC adverse estimate; high/low ordering is unknown"}
+
             if i == 0 or pd.isna(row["rsi"]) or pd.isna(row["adx"]):
                 continue
-            # Match bot.py: latest H1 candle whose open is before this M15 hour.
-            # This intentionally excludes the current forming H1 candle.
             candidates = h1[h1["open_time"] < ts.floor("h")]
             if candidates.empty:
                 continue
             hr, prev = candidates.iloc[-1], m15.iloc[i-1]
-            if any(pd.isna(x) for x in [hr["plus_di"],hr["minus_di"],hr["adx"],prev["rsi"]]):
+            if any(pd.isna(x) for x in [hr["plus_di"], hr["minus_di"], hr["adx"], prev["rsi"]]):
                 continue
-            op, high, low, close = [float(row[k]) for k in ("open","high","low","close")]
             rsi, adx, prsi = float(row["rsi"]), float(row["adx"]), float(prev["rsi"])
             plus, minus, hadx = float(hr["plus_di"]), float(hr["minus_di"]), float(hr["adx"])
             bull = plus > minus and hadx > bot.H1_ADX_ENTRY
@@ -314,116 +306,104 @@ def run_backtest(days=None):
             go_long = bull and prsi <= bot.LONG_RSI_ENTRY and rsi > bot.LONG_RSI_ENTRY
             go_short = bear and prsi >= bot.SHORT_RSI_ENTRY and rsi < bot.SHORT_RSI_ENTRY
 
-            if pos:
-                side, avg, qty = pos["side"], pos["avg"], pos["qty"]
-                margin = pos["margin"]
-                # Match bot.py ROE semantics: price move multiplied by configured leverage.
+            closed_ids = set()
+            for p in list(positions):
+                side, avg, qty = p["side"], p["avg"], p["qty"]
                 roe = bot.roe_for(side, avg, close) or 0.0
-                # Close-to-close mark-to-market drawdown, including estimated entry + exit fees.
-                unrealized = ((close-avg) if side=="LONG" else (avg-close))*qty
-                estimated_fees = (pos["notional"] + abs(close*qty))*FEE
-                mark_equity = balance + unrealized - estimated_fees
-                peak = max(peak, mark_equity)
-                max_dd = max(max_dd, peak-mark_equity)
                 emergency_price = bot.threshold_price(side, avg, abs(bot.EMERGENCY_SL_ROE))
                 soft_price = bot.threshold_price(side, avg, abs(bot.SOFT_SL_ROE))
-                emergency = low <= emergency_price if side=="LONG" else high >= emergency_price
-                reversal = (minus > plus if side=="LONG" else plus > minus) and hadx > bot.SOFT_SL_ADX
+                emergency = low <= emergency_price if side == "LONG" else high >= emergency_price
+                reversal = (minus > plus if side == "LONG" else plus > minus) and hadx > bot.SOFT_SL_ADX
                 two_bear = op > close and float(prev["close"]) < float(prev["open"])
                 two_bull = close > op and float(prev["close"]) > float(prev["open"])
-                soft = ((low <= soft_price and reversal and two_bear) if side=="LONG"
+                soft = ((low <= soft_price and reversal and two_bear) if side == "LONG"
                         else (high >= soft_price and reversal and two_bull))
-                tp = ((rsi >= bot.LONG_RSI_TP) if side=="LONG" else (rsi <= bot.SHORT_RSI_TP)) and roe >= bot.TP_ROE
+                tp = ((rsi >= bot.LONG_RSI_TP) if side == "LONG" else (rsi <= bot.SHORT_RSI_TP)) and roe >= bot.TP_ROE
                 reason, exit_price = None, close
                 if emergency:
                     reason, exit_price = "Emergency SL", bot.stop_fill_price(side, emergency_price, op)
                 elif soft:
                     reason, exit_price = "Soft SL", bot.stop_fill_price(side, soft_price, op)
                 elif tp:
-                    # TP's RSI condition is known only after candle close; do not backfill at an earlier theoretical threshold.
-                    # Match bot.py: simulate a market fill from the signal candle close with adverse slippage.
                     exit_price = bot.execution_fill_price(close, "SELL" if side == "LONG" else "BUY")
                     reason = "TP"
                 if reason:
-                    closed_legs = _close_position_legs(pos, ts, exit_price, reason)
+                    closed_legs = _close_position_legs(p, ts, exit_price, reason)
                     trades.extend(closed_legs)
                     net = sum(float(t["net_pnl"]) for t in closed_legs)
-                    equity += net
                     balance += net
-                    peak = max(peak, balance)
-                    max_dd = max(max_dd, peak-balance)
+                    equity += net
                     counts[reason] += 1
-                    pos = None
-                    _refresh_last_equity(ts, mark_price)
+                    positions.remove(p)
+                    closed_ids.add(p["trade_id"])
                     continue
-                if not pos["dca"]:
+
+                if not p["dca"]:
                     dca = roe <= bot.DCA_ROE and adx > bot.DCA_ADX
-                    dca = dca and ((rsi > bot.LONG_DCA_RSI and rsi > prsi) if side=="LONG"
+                    dca = dca and ((rsi > bot.LONG_DCA_RSI and rsi > prsi) if side == "LONG"
                                    else (rsi < bot.SHORT_DCA_RSI and rsi < prsi))
                     if dca:
-                        # Do not add margin that the simulated account cannot fund.
-                        # Margin is reserved for the position, not deducted from wallet balance;
-                        # therefore compare total reserved margin with the current account balance.
-                        dca_margin = pos["initial_margin"] * DCA_MARGIN_RATIO
-                        available_margin = max(0.0, balance - pos["margin"])
-                        if dca_margin > 0 and dca_margin <= available_margin + 1e-9:
-                            add = dca_margin * bot.LEVERAGE / close
-                            new_qty = qty + add
-                            pos["avg"] = (avg * qty + close * add) / new_qty
-                            pos["qty"] = new_qty
-                            pos["margin"] += dca_margin
-                            pos["dca"] = True
-                            pos["notional"] += close * add
-                            pos["legs"].append({"entry_time": ts, "entry_price": close, "qty": add,
-                                                "margin_usdt": dca_margin, "entry_kind": "DCA"})
+                        dca_margin = p["initial_margin"] * DCA_MARGIN_RATIO
+                        reserved = sum(x["margin"] for x in positions)
+                        available = max(0.0, balance - reserved)
+                        if dca_margin > 0 and dca_margin <= available + 1e-9:
+                            add_qty = dca_margin * bot.LEVERAGE / close
+                            new_qty = qty + add_qty
+                            p["avg"] = (avg * qty + close * add_qty) / new_qty
+                            p["qty"] = new_qty
+                            p["margin"] += dca_margin
+                            p["dca"] = True
+                            p["notional"] += close * add_qty
+                            p["legs"].append({"entry_time": ts, "entry_price": close, "qty": add_qty,
+                                              "margin_usdt": dca_margin, "entry_kind": "DCA"})
                             counts["DCA"] += 1
-                            _refresh_last_equity(ts, mark_price)
                         else:
-                            # Record skipped DCA attempts for transparency; never overspend simulated margin.
-                            counts["DCA skipped insufficient margin"] = counts.get("DCA skipped insufficient margin", 0) + 1
+                            counts["DCA skipped insufficient margin"] += 1
 
-                # Normal scale-in entries are separate from DCA and require a fresh same-side signal.
-                if (go_long or go_short) and (("LONG" if go_long else "SHORT") == pos["side"]):
-                    if sum(1 for leg in pos["legs"] if leg["entry_kind"] in ("ENTRY", "ADD")) < MAX_SIMULTANEOUS_ENTRIES:
+            # Signals create independent positions, rather than merging separate signals into one position.
+            signal_side = "LONG" if go_long else "SHORT" if go_short else None
+            if signal_side and len(positions) < MAX_OPEN_POSITIONS and balance > 0:
+                # Do not hedge opposing directions in this backtest model.
+                if not positions or all(p["side"] == signal_side for p in positions):
+                    same_side = [p for p in positions if p["side"] == signal_side]
+                    scale_target = next((p for p in same_side
+                        if sum(1 for leg in p["legs"] if leg["entry_kind"] in ("ENTRY", "ADD")) < MAX_SIMULTANEOUS_ENTRIES), None)
+                    if scale_target:
                         add_margin = balance * ENTRY_MARGIN_PCT
-                        available_margin = max(0.0, balance - pos["margin"])
-                        if add_margin > 0 and add_margin <= available_margin + 1e-9:
+                        reserved = sum(p["margin"] for p in positions)
+                        if add_margin > 0 and add_margin <= max(0.0, balance - reserved) + 1e-9:
                             add_qty = add_margin * bot.LEVERAGE / close
-                            old_qty = pos["qty"]
+                            old_qty = scale_target["qty"]
                             new_qty = old_qty + add_qty
-                            pos["avg"] = (pos["avg"] * old_qty + close * add_qty) / new_qty
-                            pos["qty"] = new_qty
-                            pos["margin"] += add_margin
-                            pos["notional"] += close * add_qty
-                            pos["legs"].append({"entry_time": ts, "entry_price": close, "qty": add_qty,
-                                                "margin_usdt": add_margin, "entry_kind": "ADD"})
-                            _refresh_last_equity(ts, mark_price)
-                continue
+                            scale_target["avg"] = (scale_target["avg"] * old_qty + close * add_qty) / new_qty
+                            scale_target["qty"] = new_qty
+                            scale_target["margin"] += add_margin
+                            scale_target["notional"] += close * add_qty
+                            scale_target["legs"].append({"entry_time": ts, "entry_price": close, "qty": add_qty,
+                                                         "margin_usdt": add_margin, "entry_kind": "ADD"})
+                    elif len(positions) < MAX_OPEN_POSITIONS:
+                        reserved = sum(p["margin"] for p in positions)
+                        entry_margin = balance * ENTRY_MARGIN_PCT
+                        if entry_margin > 0 and entry_margin <= max(0.0, balance - reserved) + 1e-9:
+                            qty = entry_margin * bot.LEVERAGE / close
+                            positions.append({"side": signal_side, "time": ts, "avg": close, "qty": qty,
+                                "margin": entry_margin, "initial_margin": entry_margin, "dca": False,
+                                "notional": close * qty, "trade_id": (max([p["trade_id"] for p in positions], default=0)
+                                    + len(trades) + 1),
+                                "legs": [{"entry_time": ts, "entry_price": close, "qty": qty,
+                                          "margin_usdt": entry_margin, "entry_kind": "ENTRY"}]})
+            _refresh_last_equity(ts, mark_price)
 
-            # Open a new position only when none is active in this single-position baseline.
-            if (go_long or go_short) and balance > 0:
-                side = "LONG" if go_long else "SHORT"
-                initial_margin = balance * ENTRY_MARGIN_PCT
-                qty = initial_margin * bot.LEVERAGE / close
-                pos = {"side": side, "time": ts, "avg": close, "qty": qty,
-                       "margin": initial_margin, "initial_margin": initial_margin,
-                       "dca": False, "notional": close * qty,
-                       "trade_id": len(trades) + 1,
-                       "legs": [{"entry_time": ts, "entry_price": close, "qty": qty,
-                                 "margin_usdt": initial_margin, "entry_kind": "ENTRY"}]}
-                _refresh_last_equity(ts, mark_price)
-
-        if pos:
+        if positions:
             row = m15.iloc[-1]
-            side, avg, qty = pos["side"], pos["avg"], pos["qty"]
             exit_price = float(row["close"])
-            closed_legs = _close_position_legs(pos, row["open_time"], exit_price, "End of test")
-            trades.extend(closed_legs)
-            net = sum(float(t["net_pnl"]) for t in closed_legs)
-            equity += net
-            balance += net
-            peak = max(peak, balance)
-            max_dd = max(max_dd, peak-balance)
+            for p in list(positions):
+                closed_legs = _close_position_legs(p, row["open_time"], exit_price, "End of test")
+                trades.extend(closed_legs)
+                net = sum(float(t["net_pnl"]) for t in closed_legs)
+                balance += net
+                equity += net
+                positions.remove(p)
             _refresh_last_equity(row["open_time"], exit_price)
 
         # KPI definitions use closed positions, while CSV preserves each entry leg.
