@@ -184,7 +184,7 @@ def run_backtest(days=None):
                              else (leg["entry_price"] - exit_price)) * leg["qty"]
                 fees_leg = (leg["entry_price"] * leg["qty"] + abs(exit_price * leg["qty"])) * FEE
                 rows.append({
-                    "side": position["side"], "entry_time": leg["entry_time"].isoformat(),
+                    "side": position["side"], "position_trade_id": position["trade_id"], "entry_time": leg["entry_time"].isoformat(),
                     "exit_time": exit_time.isoformat(), "avg_entry": leg["entry_price"],
                     "exit_price": exit_price, "qty": leg["qty"], "gross_pnl": gross_leg,
                     "fees": fees_leg, "net_pnl": gross_leg - fees_leg, "reason": reason,
@@ -443,25 +443,37 @@ def run_backtest(days=None):
             max_dd = max(max_dd, peak-balance)
             _refresh_last_equity(row["open_time"], exit_price)
 
-        # KPI definitions are based on closed-trade net PnL after estimated fees.
-        wins = [t for t in trades if float(t["net_pnl"]) > 0]
-        losses = [t for t in trades if float(t["net_pnl"]) < 0]
-        breakeven = [t for t in trades if float(t["net_pnl"]) == 0]
-        net_profit = sum(float(t["net_pnl"]) for t in trades)
+        # KPI definitions use closed positions, while CSV preserves each entry leg.
+        position_results = {}
+        for leg in trades:
+            pid = leg.get("position_trade_id", leg.get("trade_id"))
+            bucket = position_results.setdefault(pid, {
+                "side": leg["side"], "entry_time": leg["entry_time"],
+                "exit_time": leg["exit_time"], "reason": leg["reason"],
+                "net_pnl": 0.0, "gross_pnl": 0.0, "fees": 0.0,
+            })
+            bucket["net_pnl"] += float(leg["net_pnl"])
+            bucket["gross_pnl"] += float(leg["gross_pnl"])
+            bucket["fees"] += float(leg["fees"])
+        closed_positions = list(position_results.values())
+        wins = [p for p in closed_positions if p["net_pnl"] > 0]
+        losses = [p for p in closed_positions if p["net_pnl"] < 0]
+        breakeven = [p for p in closed_positions if p["net_pnl"] == 0]
+        net_profit = sum(float(p["net_pnl"]) for p in closed_positions)
         winning_net_pnl = sum(float(t["net_pnl"]) for t in wins)
         losing_net_pnl = abs(sum(float(t["net_pnl"]) for t in losses))
         pf = winning_net_pnl / losing_net_pnl if losing_net_pnl > 0 else (float("inf") if winning_net_pnl > 0 else None)
         avg_win = winning_net_pnl / len(wins) if wins else 0.0
         avg_loss = -losing_net_pnl / len(losses) if losses else 0.0
-        expectancy = net_profit / len(trades) if trades else 0.0
+        expectancy = net_profit / len(closed_positions) if closed_positions else 0.0
         return_pct = net_profit / INITIAL_CAPITAL * 100.0 if INITIAL_CAPITAL > 0 else 0.0
         curve_peak = max(equity_curve, key=lambda x: float(x["drawdown_usdt"])) if equity_curve else None
         curve_max_dd = float(curve_peak["drawdown_usdt"]) if curve_peak else 0.0
         curve_max_dd_pct = float(curve_peak["drawdown_pct"]) if curve_peak else 0.0
-        reason_counts = {reason: sum(1 for t in trades if t["reason"] == reason)
+        reason_counts = {reason: sum(1 for p in closed_positions if p["reason"] == reason)
                          for reason in ("TP", "Soft SL", "Emergency SL", "End of test")}
         # Export every trade and the realized cumulative PnL curve.
-        trade_fields = ["run_id","generated_at_utc","trade_id","side","entry_kind","entry_time","exit_time","avg_entry","exit_price","qty",
+        trade_fields = ["run_id","generated_at_utc","trade_id","position_trade_id","side","entry_kind","entry_time","exit_time","avg_entry","exit_price","qty",
             "gross_pnl","fees","net_pnl","reason","dca_used","entry_margin_usdt","initial_margin_usdt","dca_margin_usdt","scale_in_margin_usdt","position_entry_count"]
         with TRADES_CSV.open("w", newline="", encoding="utf-8-sig") as f:
             writer = csv.DictWriter(f, fieldnames=trade_fields, extrasaction="ignore")
@@ -495,18 +507,19 @@ def run_backtest(days=None):
           "symbol":f"{SYMBOL} perpetual (OKX {OKX_INSTRUMENTS[SYMBOL]} candles)",
           "timeframe":"M15 entry / closed H1 trend filter","period_days":days,
           "start":m15.iloc[0]["open_time"].isoformat(),"end":m15.iloc[-1]["open_time"].isoformat(),
-          "candle_count":len(m15),"trade_count":len(trades),"closed_trade_count":len(trades),
+          "candle_count":len(m15),"trade_count":len(closed_positions),"closed_trade_count":len(closed_positions),
           "winning_trade_count":len(wins),"losing_trade_count":len(losses),"breakeven_trade_count":len(breakeven),
           "win_rate_pct":len(wins)/len(trades)*100 if trades else 0.0,
           "initial_capital_usdt":INITIAL_CAPITAL,"final_balance_usdt":INITIAL_CAPITAL+net_profit,
           "entry_margin_pct_of_current_balance":ENTRY_MARGIN_PCT,"dca_margin_ratio_of_initial_order":DCA_MARGIN_RATIO,
           "max_simultaneous_entries":MAX_SIMULTANEOUS_ENTRIES,"entry_leg_count":len(trades),
+          "closed_position_count":len(closed_positions),
           "net_profit_usdt":net_profit,"return_pct":return_pct,
           "winning_net_pnl_usdt":winning_net_pnl,"losing_net_pnl_usdt":losing_net_pnl,
           # Legacy aliases retained for consumers of older reports; these are net PnL, not gross PnL.
           "gross_profit_usdt":winning_net_pnl,"gross_loss_usdt":losing_net_pnl,
           "profit_factor":(None if pf is not None and pf == float("inf") else pf),"profit_factor_label":("∞" if pf is not None and pf == float("inf") else None),"average_win_usdt":avg_win,"average_loss_usdt":avg_loss,
-          "expectancy_per_trade_usdt":expectancy,
+          "expectancy_per_trade_usdt":expectancy,"expectancy_per_closed_position_usdt":expectancy,
           "max_drawdown_usdt":curve_max_dd,"max_drawdown_pct":curve_max_dd_pct,
           "max_drawdown_details":curve_peak,
           "max_drawdown_close_usdt":curve_max_dd,"max_drawdown_close_pct":curve_max_dd_pct,
