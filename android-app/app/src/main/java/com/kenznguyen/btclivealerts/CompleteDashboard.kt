@@ -41,6 +41,18 @@ fun CompleteDashboard(context: Context) {
     var status by remember { mutableStateOf("Đang kết nối Binance Futures…") }
     var alerts by remember { mutableStateOf(prefs.getBoolean("alerts_enabled", true)) }
     var notificationTestStatus by remember { mutableStateOf("Chưa chạy kiểm thử thông báo") }
+    var longAlerts by remember { mutableStateOf(prefs.getBoolean("alert_long", true)) }
+    var shortAlerts by remember { mutableStateOf(prefs.getBoolean("alert_short", true)) }
+    var entryAlerts by remember { mutableStateOf(prefs.getBoolean("alert_entry", true)) }
+    var dcaAlerts by remember { mutableStateOf(prefs.getBoolean("alert_dca", true)) }
+    var tpAlerts by remember { mutableStateOf(prefs.getBoolean("alert_take_profit", true)) }
+    var softSlAlerts by remember { mutableStateOf(prefs.getBoolean("alert_soft_sl", true)) }
+    var emergencySlAlerts by remember { mutableStateOf(prefs.getBoolean("alert_emergency_sl", true)) }
+    var vibration by remember { mutableStateOf(prefs.getBoolean("alert_vibration", true)) }
+    var sound by remember { mutableStateOf(prefs.getBoolean("alert_sound", true)) }
+    var quietHours by remember { mutableStateOf(prefs.getBoolean("quiet_hours_enabled", false)) }
+    var quietStart by remember { mutableIntStateOf(prefs.getInt("quiet_start_hour", 23)) }
+    var quietEnd by remember { mutableIntStateOf(prefs.getInt("quiet_end_hour", 7)) }
     var monitorHeartbeat by remember { mutableStateOf("Đang chờ lần kiểm tra đầu tiên…") }
     var monitorError by remember { mutableStateOf("") }
     var lastProcessedCandle by remember { mutableStateOf("—") }
@@ -137,6 +149,31 @@ fun CompleteDashboard(context: Context) {
                             prefs.edit().putBoolean("alerts_enabled", it).apply()
                         })
                     }
+                    Text("TÙY CHỈNH THÔNG BÁO", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("Chọn loại tín hiệu và hướng giao dịch muốn nhận.", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    PreferenceSwitch("LONG", longAlerts, { longAlerts = it; prefs.edit().putBoolean("alert_long", it).apply() })
+                    PreferenceSwitch("SHORT", shortAlerts, { shortAlerts = it; prefs.edit().putBoolean("alert_short", it).apply() })
+                    PreferenceSwitch("Entry", entryAlerts, { entryAlerts = it; prefs.edit().putBoolean("alert_entry", it).apply() })
+                    PreferenceSwitch("DCA", dcaAlerts, { dcaAlerts = it; prefs.edit().putBoolean("alert_dca", it).apply() })
+                    PreferenceSwitch("Take Profit", tpAlerts, { tpAlerts = it; prefs.edit().putBoolean("alert_take_profit", it).apply() })
+                    PreferenceSwitch("Soft Stop Loss", softSlAlerts, { softSlAlerts = it; prefs.edit().putBoolean("alert_soft_sl", it).apply() })
+                    PreferenceSwitch("Emergency Stop Loss", emergencySlAlerts, { emergencySlAlerts = it; prefs.edit().putBoolean("alert_emergency_sl", it).apply() })
+                    PreferenceSwitch("Rung / rung nhắc", vibration, { vibration = it; prefs.edit().putBoolean("alert_vibration", it).apply() })
+                    PreferenceSwitch("Âm thanh", sound, { sound = it; prefs.edit().putBoolean("alert_sound", it).apply() })
+                    PreferenceSwitch("Giờ yên lặng", quietHours, { quietHours = it; prefs.edit().putBoolean("quiet_hours_enabled", it).apply() })
+                    if (quietHours) {
+                        Text("Giờ yên lặng theo giờ địa phương của điện thoại", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Bắt đầu: " + quietStart + ":00", color = Color.White)
+                                Slider(value = quietStart.toFloat(), onValueChange = { quietStart = it.toInt() }, valueRange = 0f..23f, steps = 22, onValueChangeFinished = { prefs.edit().putInt("quiet_start_hour", quietStart).apply() })
+                            }
+                            Column(Modifier.weight(1f)) {
+                                Text("Kết thúc: " + quietEnd + ":00", color = Color.White)
+                                Slider(value = quietEnd.toFloat(), onValueChange = { quietEnd = it.toInt() }, valueRange = 0f..23f, steps = 22, onValueChangeFinished = { prefs.edit().putInt("quiet_end_hour", quietEnd).apply() })
+                            }
+                        }
+                    }
                     Button(
                         onClick = {
                             val manager = NotificationManagerCompat.from(context)
@@ -218,5 +255,14 @@ private fun LiveCandles(candles: List<Candle>, markPrice: Double?, modifier: Mod
             drawRect(color, Offset(x - maxOf(1.5f, step * 0.28f), top),
                 androidx.compose.ui.geometry.Size(maxOf(3f, step * 0.56f), maxOf(2f, bottom - top)))
         }
+    }
+}
+
+
+@Composable
+private fun PreferenceSwitch(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = NMuted, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
