@@ -116,8 +116,8 @@ async function syncDashboard(){
     if(!res.ok||!data.ok) throw Error(data.error||'Không tải được artifact backtest');
     if(data.available&&data.files){
       const files=data.files;
-      if(files['backtest_last_result.json']) report=JSON.parse(files['backtest_last_result.json']);
-      if(files['backtest_status.json']) status=JSON.parse(files['backtest_status.json']);
+      if(files['backtest_last_result.json']) { try { report=JSON.parse(files['backtest_last_result.json']); } catch(e) { report=null; errors.push('JSON report không hợp lệ: '+e.message); } }
+      if(files['backtest_status.json']) { try { status=JSON.parse(files['backtest_status.json']); } catch(e) { status=null; errors.push('JSON status không hợp lệ: '+e.message); } }
       if(files['backtest_trades.csv']) trades=parseCSV(files['backtest_trades.csv']);
       if(files['backtest_equity_m15.csv']) curve=parseCSV(files['backtest_equity_m15.csv']);
       else if(files['backtest_equity.csv']) curve=parseCSV(files['backtest_equity.csv']);
