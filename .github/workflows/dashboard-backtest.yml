@@ -56,13 +56,16 @@ jobs:
       - name: Install dependencies
         run: pip install requests pandas numpy
 
+      - name: Check Python syntax
+        run: python -m py_compile backtest.py bot.py app.py
+
       - name: Run shared backtest engine for dashboard
         env:
-          BACKTEST_DAYS: ${{ inputs.backtest_days || '360' }}
-          BACKTEST_INITIAL_CAPITAL: ${{ inputs.initial_capital || '100' }}
-          ENTRY_MARGIN_PCT: ${{ inputs.entry_margin_pct || '50' }}
+          BACKTEST_DAYS: ${{ github.event_name == 'pull_request' && '3' || inputs.backtest_days || '360' }}
+          BACKTEST_INITIAL_CAPITAL: ${{ github.event_name == 'pull_request' && '100' || inputs.initial_capital || '100' }}
+          ENTRY_MARGIN_PCT: ${{ github.event_name == 'pull_request' && '25' || inputs.entry_margin_pct || '50' }}
           DCA_MARGIN_RATIO: ${{ inputs.dca_margin_ratio || '100' }}
-          MAX_OPEN_POSITIONS: ${{ inputs.max_open_positions || '1' }}
+          MAX_OPEN_POSITIONS: ${{ github.event_name == 'pull_request' && '3' || inputs.max_open_positions || '1' }}
           BACKTEST_RUN_ID: dashboard-${{ github.run_id }}-${{ github.run_attempt }}
           BACKTEST_STATUS_FILE: dashboard_backtest_status.json
           BACKTEST_RESULT_FILE: dashboard_backtest_last_result.json
