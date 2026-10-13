@@ -145,6 +145,7 @@ byId('runBacktestBtn').onclick=async()=>{
  if(!Number.isFinite(params.initial_capital)||params.initial_capital<1){hint.textContent='Vốn ban đầu phải ít nhất 1 USDT.';return}
  if(!Number.isFinite(params.entry_margin_pct)||params.entry_margin_pct<1||params.entry_margin_pct>100){hint.textContent='Margin lệnh đầu phải từ 1% đến 100%.';return}
  if(!Number.isFinite(params.dca_margin_ratio)||params.dca_margin_ratio<0||params.dca_margin_ratio>500){hint.textContent='Margin DCA phải từ 0% đến 500% margin lệnh đầu.';return}
+ if(!Number.isInteger(params.max_open_positions)||params.max_open_positions<1||params.max_open_positions>10){hint.textContent='Số vị thế độc lập phải là số nguyên từ 1 đến 10.';return}
  btn.disabled=true;btn.textContent='Đang gửi yêu cầu…';hint.textContent='Đang gửi cấu hình tới GitHub Actions…';
  try{
   const res=await fetch('/api/dashboard/run-backtest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)});
