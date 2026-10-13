@@ -54,25 +54,8 @@ fun CompleteDashboard(context: Context) {
                 m15Ind = engine.indicatorSeries(closed15).lastOrNull() ?: IndicatorPoint()
                 h1Ind = engine.indicatorSeries(closed1h).lastOrNull() ?: IndicatorPoint()
 
-                // On first launch warm up indicators but do not replay hundreds of historical alerts.
-                if (state.lastProcessedOpenTime == 0L && closed15.size >= 2) {
-                    state = state.copy(lastProcessedOpenTime = closed15[closed15.size - 2].openTime)
-                }
-                val result = engine.processClosedCandles(m15, h1, state)
-                state = result.first
-                prefs.edit().putString("state_json", state.toJson()).apply()
-                result.second.forEach { event ->
-                    if (alerts) {
-                        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                        val body = event.side.orEmpty() + " · Giá " + "%,.2f".format(event.price) + " · " + event.note
-                        manager.notify(event.dedupeKey.hashCode(), NotificationCompat.Builder(context, "strategy_alerts")
-                            .setSmallIcon(android.R.drawable.ic_dialog_info)
-                            .setContentTitle("BTCUSDT.P · " + event.kind)
-                            .setContentText(body)
-                            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-                            .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build())
-                    }
-                }
+                // The foreground service is the single writer for position state; UI only reads it.
+                state = StrategyState.fromJson(prefs.getString("state_json", null))
                 status = "Đang kết nối · cập nhật " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
             } catch (e: Exception) {
                 status = "Mất kết nối: " + (e.message ?: "lỗi mạng")
