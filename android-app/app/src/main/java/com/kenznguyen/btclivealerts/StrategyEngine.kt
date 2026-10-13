@@ -139,6 +139,8 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
         val hi = indicatorSeries(hours)
         var state = oldState
         val emitted = mutableListOf<StrategyEvent>()
+        // H1 candles are sorted. Advance a cursor instead of scanning the entire H1 list for every M15 candle.
+        var hidx = 0
         for (i in candles.indices) {
             val c = candles[i]
             if (c.openTime <= state.lastProcessedOpenTime || i == 0) continue
@@ -149,8 +151,8 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
                 state = state.copy(lastProcessedOpenTime = c.openTime); continue
             }
             val hourBucket = c.openTime - c.openTime % 3_600_000L
-            val hidx = hours.indexOfLast { it.openTime < hourBucket }
-            if (hidx < 0) { state = state.copy(lastProcessedOpenTime = c.openTime); continue }
+            while (hidx + 1 < hours.size && hours[hidx + 1].openTime < hourBucket) hidx++
+            if (hours[hidx].openTime >= hourBucket) { state = state.copy(lastProcessedOpenTime = c.openTime); continue }
             val hp = hi[hidx].plusDi; val hm = hi[hidx].minusDi; val ha = hi[hidx].adx
             if (hp == null || hm == null || ha == null) {
                 state = state.copy(lastProcessedOpenTime = c.openTime); continue
