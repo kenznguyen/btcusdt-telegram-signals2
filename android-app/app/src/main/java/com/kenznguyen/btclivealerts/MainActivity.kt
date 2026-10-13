@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -46,6 +47,7 @@ class MainActivity : ComponentActivity() {
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+        ContextCompat.startForegroundService(this, Intent(this, StrategyMonitorService::class.java))
         setContent { MaterialTheme(colorScheme = darkColorScheme()) { CompleteDashboard(this) } }
     }
 
