@@ -23,7 +23,6 @@ _entry_margin_raw = float(os.getenv("ENTRY_MARGIN_PCT", "0.50"))
 ENTRY_MARGIN_PCT = _entry_margin_raw / 100.0 if _entry_margin_raw > 1.0 else _entry_margin_raw
 _dca_margin_raw = float(os.getenv("DCA_MARGIN_RATIO", "1.00"))
 DCA_MARGIN_RATIO = _dca_margin_raw / 100.0 if _dca_margin_raw > 5.0 else _dca_margin_raw
-MAX_SIMULTANEOUS_ENTRIES = int(os.getenv("MAX_SIMULTANEOUS_ENTRIES", "1"))
 MAX_OPEN_POSITIONS = int(os.getenv("MAX_OPEN_POSITIONS", "1"))
 URL = "https://www.okx.com/api/v5/market/history-candles"
 SYMBOL = os.getenv("BACKTEST_SYMBOL", "BTCUSDT").strip().upper()
@@ -132,10 +131,6 @@ def run_backtest(days=None):
         raise ValueError("ENTRY_MARGIN_PCT phải nằm trong (0, 1], dạng tỷ lệ hoặc phần trăm.")
     if not 0 <= DCA_MARGIN_RATIO <= 5:
         raise ValueError("DCA_MARGIN_RATIO phải từ 0% đến 500%.")
-    if not 1 <= MAX_SIMULTANEOUS_ENTRIES <= 10:
-        raise ValueError("MAX_SIMULTANEOUS_ENTRIES phải từ 1 đến 10.")
-    if not 1 <= MAX_OPEN_POSITIONS <= 10:
-        raise ValueError("MAX_OPEN_POSITIONS phải từ 1 đến 10.")
     if not 1 <= MAX_OPEN_POSITIONS <= 10:
         raise ValueError("MAX_OPEN_POSITIONS phải từ 1 đến 10.")
     RUN_ID = os.getenv("BACKTEST_RUN_ID", "").strip() or uuid.uuid4().hex
@@ -468,7 +463,7 @@ def run_backtest(days=None):
           "win_rate_pct":len(wins)/len(closed_positions)*100 if closed_positions else 0.0,
           "initial_capital_usdt":INITIAL_CAPITAL,"final_balance_usdt":INITIAL_CAPITAL+net_profit,
           "entry_margin_pct_of_current_balance":ENTRY_MARGIN_PCT,"dca_margin_ratio_of_initial_order":DCA_MARGIN_RATIO,
-          "max_simultaneous_entries":MAX_SIMULTANEOUS_ENTRIES,"max_open_positions":MAX_OPEN_POSITIONS,"entry_leg_count":len(trades),
+          "max_open_positions":MAX_OPEN_POSITIONS,"entry_leg_count":len(trades),
           "closed_position_count":len(closed_positions),
           "net_profit_usdt":net_profit,"return_pct":return_pct,
           "winning_net_pnl_usdt":winning_net_pnl,"losing_net_pnl_usdt":losing_net_pnl,
