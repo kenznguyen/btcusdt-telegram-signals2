@@ -381,6 +381,23 @@ def run_backtest(days=None):
                         else:
                             # Record skipped DCA attempts for transparency; never overspend simulated margin.
                             counts["DCA skipped insufficient margin"] = counts.get("DCA skipped insufficient margin", 0) + 1
+
+                # Normal scale-in entries are separate from DCA and require a fresh same-side signal.
+                if (go_long or go_short) and (("LONG" if go_long else "SHORT") == pos["side"]):
+                    if len(pos["legs"]) < MAX_SIMULTANEOUS_ENTRIES:
+                        add_margin = balance * ENTRY_MARGIN_PCT
+                        available_margin = max(0.0, balance - pos["margin"])
+                        if add_margin > 0 and add_margin <= available_margin + 1e-9:
+                            add_qty = add_margin * bot.LEVERAGE / close
+                            old_qty = pos["qty"]
+                            new_qty = old_qty + add_qty
+                            pos["avg"] = (pos["avg"] * old_qty + close * add_qty) / new_qty
+                            pos["qty"] = new_qty
+                            pos["margin"] += add_margin
+                            pos["notional"] += close * add_qty
+                            pos["legs"].append({"entry_time": ts, "entry_price": close, "qty": add_qty,
+                                                "margin_usdt": add_margin, "entry_kind": "ADD"})
+                            _refresh_last_equity(ts, mark_price)
                 continue
 
             if (go_long or go_short) and balance > 0:
