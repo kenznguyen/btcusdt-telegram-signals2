@@ -53,6 +53,8 @@ fun CompleteDashboard(context: Context) {
     var quietHours by remember { mutableStateOf(prefs.getBoolean("quiet_hours_enabled", false)) }
     var quietStart by remember { mutableIntStateOf(prefs.getInt("quiet_start_hour", 23)) }
     var quietEnd by remember { mutableIntStateOf(prefs.getInt("quiet_end_hour", 7)) }
+    var catchUp by remember { mutableStateOf(prefs.getBoolean("alert_catch_up_after_quiet", true)) }
+    var alertSettingsExpanded by remember { mutableStateOf(false) }
     var monitorHeartbeat by remember { mutableStateOf("Đang chờ lần kiểm tra đầu tiên…") }
     var monitorError by remember { mutableStateOf("") }
     var lastProcessedCandle by remember { mutableStateOf("—") }
@@ -149,8 +151,15 @@ fun CompleteDashboard(context: Context) {
                             prefs.edit().putBoolean("alerts_enabled", it).apply()
                         })
                     }
-                    Text("TÙY CHỈNH THÔNG BÁO", color = Color.White, fontWeight = FontWeight.Bold)
-                    Text("Chọn loại tín hiệu và hướng giao dịch muốn nhận.", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Cài đặt thông báo", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("Loại tín hiệu, âm thanh, rung và giờ yên lặng", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                        }
+                        TextButton(onClick = { alertSettingsExpanded = !alertSettingsExpanded }) { Text(if (alertSettingsExpanded) "Thu gọn" else "Tùy chỉnh") }
+                    }
+                    if (alertSettingsExpanded) {
+                        Column(Modifier.fillMaxWidth().background(NBg, RoundedCornerShape(10.dp)).padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     PreferenceSwitch("LONG", longAlerts, { longAlerts = it; prefs.edit().putBoolean("alert_long", it).apply() })
                     PreferenceSwitch("SHORT", shortAlerts, { shortAlerts = it; prefs.edit().putBoolean("alert_short", it).apply() })
                     PreferenceSwitch("Entry", entryAlerts, { entryAlerts = it; prefs.edit().putBoolean("alert_entry", it).apply() })
@@ -172,6 +181,11 @@ fun CompleteDashboard(context: Context) {
                                 Text("Kết thúc: " + quietEnd + ":00", color = Color.White)
                                 Slider(value = quietEnd.toFloat(), onValueChange = { quietEnd = it.toInt() }, valueRange = 0f..23f, steps = 22, onValueChangeFinished = { prefs.edit().putInt("quiet_end_hour", quietEnd).apply() })
                             }
+                        }
+                    }
+
+                            PreferenceSwitch("Gửi bù sau giờ yên lặng", catchUp, { catchUp = it; prefs.edit().putBoolean("alert_catch_up_after_quiet", it).apply() })
+                            if (quietHours && catchUp) Text("Các cảnh báo đủ điều kiện sẽ được gửi sau khi hết giờ yên lặng.", color = NMuted, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                     Button(
