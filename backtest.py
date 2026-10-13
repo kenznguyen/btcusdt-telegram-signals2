@@ -24,6 +24,7 @@ ENTRY_MARGIN_PCT = _entry_margin_raw / 100.0 if _entry_margin_raw > 1.0 else _en
 _dca_margin_raw = float(os.getenv("DCA_MARGIN_RATIO", "1.00"))
 DCA_MARGIN_RATIO = _dca_margin_raw / 100.0 if _dca_margin_raw > 5.0 else _dca_margin_raw
 MAX_SIMULTANEOUS_ENTRIES = int(os.getenv("MAX_SIMULTANEOUS_ENTRIES", "1"))
+MAX_OPEN_POSITIONS = int(os.getenv("MAX_OPEN_POSITIONS", "1"))
 URL = "https://www.okx.com/api/v5/market/history-candles"
 SYMBOL = os.getenv("BACKTEST_SYMBOL", "BTCUSDT").strip().upper()
 OKX_INSTRUMENTS = {
@@ -133,6 +134,8 @@ def run_backtest(days=None):
         raise ValueError("DCA_MARGIN_RATIO phải từ 0% đến 500%.")
     if not 1 <= MAX_SIMULTANEOUS_ENTRIES <= 10:
         raise ValueError("MAX_SIMULTANEOUS_ENTRIES phải từ 1 đến 10.")
+    if not 1 <= MAX_OPEN_POSITIONS <= 10:
+        raise ValueError("MAX_OPEN_POSITIONS phải từ 1 đến 10.")
     RUN_ID = os.getenv("BACKTEST_RUN_ID", "").strip() or uuid.uuid4().hex
     now = pd.Timestamp.now(tz="UTC")
     GENERATED_AT_UTC = now.isoformat()
@@ -360,38 +363,22 @@ def run_backtest(days=None):
                         else:
                             counts["DCA skipped insufficient margin"] += 1
 
-            # Signals create independent positions, rather than merging separate signals into one position.
+            # Each fresh signal opens its own position; existing positions keep independent TP/SL/DCA state.
             signal_side = "LONG" if go_long else "SHORT" if go_short else None
             if signal_side and len(positions) < MAX_OPEN_POSITIONS and balance > 0:
                 # Do not hedge opposing directions in this backtest model.
                 if not positions or all(p["side"] == signal_side for p in positions):
-                    same_side = [p for p in positions if p["side"] == signal_side]
-                    scale_target = next((p for p in same_side
-                        if sum(1 for leg in p["legs"] if leg["entry_kind"] in ("ENTRY", "ADD")) < MAX_SIMULTANEOUS_ENTRIES), None)
-                    if scale_target:
-                        add_margin = balance * ENTRY_MARGIN_PCT
-                        reserved = sum(p["margin"] for p in positions)
-                        if add_margin > 0 and add_margin <= max(0.0, balance - reserved) + 1e-9:
-                            add_qty = add_margin * bot.LEVERAGE / close
-                            old_qty = scale_target["qty"]
-                            new_qty = old_qty + add_qty
-                            scale_target["avg"] = (scale_target["avg"] * old_qty + close * add_qty) / new_qty
-                            scale_target["qty"] = new_qty
-                            scale_target["margin"] += add_margin
-                            scale_target["notional"] += close * add_qty
-                            scale_target["legs"].append({"entry_time": ts, "entry_price": close, "qty": add_qty,
-                                                         "margin_usdt": add_margin, "entry_kind": "ADD"})
-                    elif len(positions) < MAX_OPEN_POSITIONS:
-                        reserved = sum(p["margin"] for p in positions)
-                        entry_margin = balance * ENTRY_MARGIN_PCT
-                        if entry_margin > 0 and entry_margin <= max(0.0, balance - reserved) + 1e-9:
-                            qty = entry_margin * bot.LEVERAGE / close
-                            positions.append({"side": signal_side, "time": ts, "avg": close, "qty": qty,
-                                "margin": entry_margin, "initial_margin": entry_margin, "dca": False,
-                                "notional": close * qty, "trade_id": (max([p["trade_id"] for p in positions], default=0)
-                                    + len(trades) + 1),
-                                "legs": [{"entry_time": ts, "entry_price": close, "qty": qty,
-                                          "margin_usdt": entry_margin, "entry_kind": "ENTRY"}]})
+                    reserved = sum(p["margin"] for p in positions)
+                    entry_margin = balance * ENTRY_MARGIN_PCT
+                    if entry_margin > 0 and entry_margin <= max(0.0, balance - reserved) + 1e-9:
+                        qty = entry_margin * bot.LEVERAGE / close
+                        next_trade_id = max((p["trade_id"] for p in positions), default=0)
+                        next_trade_id = max(next_trade_id, max((int(t.get("position_trade_id", 0)) for t in trades), default=0)) + 1
+                        positions.append({"side": signal_side, "time": ts, "avg": close, "qty": qty,
+                            "margin": entry_margin, "initial_margin": entry_margin, "dca": False,
+                            "notional": close * qty, "trade_id": next_trade_id,
+                            "legs": [{"entry_time": ts, "entry_price": close, "qty": qty,
+                                      "margin_usdt": entry_margin, "entry_kind": "ENTRY"}]})
             _refresh_last_equity(ts, mark_price)
 
         if positions:
@@ -479,7 +466,7 @@ def run_backtest(days=None):
           "win_rate_pct":len(wins)/len(closed_positions)*100 if closed_positions else 0.0,
           "initial_capital_usdt":INITIAL_CAPITAL,"final_balance_usdt":INITIAL_CAPITAL+net_profit,
           "entry_margin_pct_of_current_balance":ENTRY_MARGIN_PCT,"dca_margin_ratio_of_initial_order":DCA_MARGIN_RATIO,
-          "max_simultaneous_entries":MAX_SIMULTANEOUS_ENTRIES,"entry_leg_count":len(trades),
+          "max_simultaneous_entries":MAX_SIMULTANEOUS_ENTRIES,"max_open_positions":MAX_OPEN_POSITIONS,"entry_leg_count":len(trades),
           "closed_position_count":len(closed_positions),
           "net_profit_usdt":net_profit,"return_pct":return_pct,
           "winning_net_pnl_usdt":winning_net_pnl,"losing_net_pnl_usdt":losing_net_pnl,
