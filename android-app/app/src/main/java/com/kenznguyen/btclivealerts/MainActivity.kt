@@ -46,7 +46,7 @@ class MainActivity : ComponentActivity() {
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
-        setContent { MaterialTheme(colorScheme = darkColorScheme()) { Dashboard(this) } }
+        setContent { MaterialTheme(colorScheme = darkColorScheme()) { CompleteDashboard(this) } }
     }
 
     private fun createNotificationChannel() {
