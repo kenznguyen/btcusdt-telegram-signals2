@@ -384,7 +384,7 @@ def run_backtest(days=None):
 
                 # Normal scale-in entries are separate from DCA and require a fresh same-side signal.
                 if (go_long or go_short) and (("LONG" if go_long else "SHORT") == pos["side"]):
-                    if len(pos["legs"]) < MAX_SIMULTANEOUS_ENTRIES:
+                    if sum(1 for leg in pos["legs"] if leg["entry_kind"] in ("ENTRY", "ADD")) < MAX_SIMULTANEOUS_ENTRIES:
                         add_margin = balance * ENTRY_MARGIN_PCT
                         available_margin = max(0.0, balance - pos["margin"])
                         if add_margin > 0 and add_margin <= available_margin + 1e-9:
@@ -405,7 +405,7 @@ def run_backtest(days=None):
                 if pos:
                     # Only scale in on a same-direction M15 signal aligned with the closed H1 trend.
                     # Opposite-side signals are ignored; no hedge/reversal is opened.
-                    if signal_side == pos["side"] and len(pos["legs"]) < MAX_SIMULTANEOUS_ENTRIES:
+                    if signal_side == pos["side"] and sum(1 for leg in pos["legs"] if leg["entry_kind"] in ("ENTRY", "ADD")) < MAX_SIMULTANEOUS_ENTRIES:
                         add_margin = balance * ENTRY_MARGIN_PCT
                         available_margin = max(0.0, balance - pos["margin"])
                         if add_margin > 0 and add_margin <= available_margin + 1e-9:
