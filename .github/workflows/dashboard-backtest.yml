@@ -90,6 +90,29 @@ jobs:
           BACKTEST_CURVE_FILE: dashboard_backtest_equity_m15.csv
         run: python backtest.py
 
+      - name: Print single-position vs multi-position comparison
+        if: github.event_name == 'pull_request'
+        run: |
+          python - <<'PY'
+          import json
+          for label, path in [('baseline_1_position', 'baseline_result.json'),
+                              ('multi_position_3', 'dashboard_backtest_last_result.json')]:
+              with open(path, encoding='utf-8') as f:
+                  r = json.load(f)
+              print(json.dumps({
+                  'mode': label,
+                  'status': r.get('status'),
+                  'period_days': r.get('period_days'),
+                  'max_open_positions': r.get('max_open_positions', 1),
+                  'closed_positions': r.get('closed_position_count', r.get('trade_count')),
+                  'entry_legs': r.get('entry_leg_count'),
+                  'net_profit_usdt': r.get('net_profit_usdt'),
+                  'win_rate_pct': r.get('win_rate_pct'),
+                  'max_drawdown_usdt': r.get('max_drawdown_usdt'),
+                  'fees_usdt': r.get('fees_usdt'),
+              }, ensure_ascii=False))
+          PY
+
       - name: Upload dashboard backtest report
         if: always()
         uses: actions/upload-artifact@v4
