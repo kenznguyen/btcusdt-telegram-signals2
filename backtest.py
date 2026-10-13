@@ -450,11 +450,15 @@ def run_backtest(days=None):
             bucket = position_results.setdefault(pid, {
                 "side": leg["side"], "entry_time": leg["entry_time"],
                 "exit_time": leg["exit_time"], "reason": leg["reason"],
-                "net_pnl": 0.0, "gross_pnl": 0.0, "fees": 0.0,
+                "net_pnl": 0.0, "gross_pnl": 0.0, "fees": 0.0, "margin_usdt": 0.0, "dca_margin_usdt": 0.0, "entry_leg_count": 0,
             })
             bucket["net_pnl"] += float(leg["net_pnl"])
             bucket["gross_pnl"] += float(leg["gross_pnl"])
             bucket["fees"] += float(leg["fees"])
+            bucket["margin_usdt"] += float(leg.get("entry_margin_usdt", 0.0))
+            if leg.get("entry_kind") == "DCA":
+                bucket["dca_margin_usdt"] += float(leg.get("entry_margin_usdt", 0.0))
+            bucket["entry_leg_count"] += 1
         closed_positions = list(position_results.values())
         wins = [p for p in closed_positions if p["net_pnl"] > 0]
         losses = [p for p in closed_positions if p["net_pnl"] < 0]
@@ -486,13 +490,13 @@ def run_backtest(days=None):
             fields = ["run_id","generated_at_utc","trade_id","exit_time","side","exit_reason","trade_net_pnl_usdt","cumulative_net_pnl_usdt","account_balance_usdt","initial_margin_usdt","dca_margin_usdt"]
             writer = csv.DictWriter(f, fieldnames=fields)
             writer.writeheader()
-            for idx, trade in enumerate(trades, 1):
-                running_equity += float(trade["net_pnl"])
-                running_balance += float(trade["net_pnl"])
-                writer.writerow({"run_id":RUN_ID,"generated_at_utc":GENERATED_AT_UTC,"trade_id":idx,"exit_time":trade["exit_time"],"side":trade["side"],
-                    "exit_reason":trade["reason"],"trade_net_pnl_usdt":trade["net_pnl"],
+            for idx, position in enumerate(closed_positions, 1):
+                running_equity += float(position["net_pnl"])
+                running_balance += float(position["net_pnl"])
+                writer.writerow({"run_id":RUN_ID,"generated_at_utc":GENERATED_AT_UTC,"trade_id":idx,"exit_time":position["exit_time"],"side":position["side"],
+                    "exit_reason":position["reason"],"trade_net_pnl_usdt":position["net_pnl"],
                     "cumulative_net_pnl_usdt":running_equity,"account_balance_usdt":running_balance,
-                    "initial_margin_usdt":trade.get("initial_margin_usdt"),"dca_margin_usdt":trade.get("dca_margin_usdt",0.0)})
+                    "initial_margin_usdt":position["margin_usdt"],"dca_margin_usdt":position["dca_margin_usdt"]})
         curve_fields = ["run_id","generated_at_utc","timestamp_utc","mark_price","account_balance_usdt","unrealized_pnl_gross_usdt",
             "estimated_entry_exit_fees_usdt","equity_usdt","peak_equity_usdt","drawdown_usdt","drawdown_pct",
             "intrabar_adverse_price","intrabar_adverse_equity_usdt","intrabar_drawdown_usdt","intrabar_drawdown_pct",
@@ -509,7 +513,7 @@ def run_backtest(days=None):
           "start":m15.iloc[0]["open_time"].isoformat(),"end":m15.iloc[-1]["open_time"].isoformat(),
           "candle_count":len(m15),"trade_count":len(closed_positions),"closed_trade_count":len(closed_positions),
           "winning_trade_count":len(wins),"losing_trade_count":len(losses),"breakeven_trade_count":len(breakeven),
-          "win_rate_pct":len(wins)/len(trades)*100 if trades else 0.0,
+          "win_rate_pct":len(wins)/len(closed_positions)*100 if closed_positions else 0.0,
           "initial_capital_usdt":INITIAL_CAPITAL,"final_balance_usdt":INITIAL_CAPITAL+net_profit,
           "entry_margin_pct_of_current_balance":ENTRY_MARGIN_PCT,"dca_margin_ratio_of_initial_order":DCA_MARGIN_RATIO,
           "max_simultaneous_entries":MAX_SIMULTANEOUS_ENTRIES,"entry_leg_count":len(trades),
