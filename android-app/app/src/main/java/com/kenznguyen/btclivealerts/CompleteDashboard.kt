@@ -108,7 +108,7 @@ fun CompleteDashboard(context: Context) {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(14.dp)).padding(12.dp)) {
                     Text("Candlestick · " + timeframe.uppercase(), color = Color.White, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(8.dp))
-                    LiveCandles(chart, Modifier.fillMaxWidth().height(220.dp))
+                    LiveCandles(chart, Modifier.fillMaxWidth().height(260.dp))
                     Text("Binance Futures · tải lại 15 giây", color = NMuted)
                 }
             }
