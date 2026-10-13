@@ -64,7 +64,7 @@ class StrategyEngineTest {
         assertTrue(engine.softStopTriggered("LONG", soft, 99.0, 99.0, 98.0, 101.0, 99.0, 10.0, 20.0, 36.0, 100.0))
         assertFalse(engine.softStopTriggered("LONG", soft, 99.0, 99.0, 98.0, 101.0, 102.0, 10.0, 20.0, 36.0, 100.0))
         val shortSoft = engine.thresholdPrice("SHORT", 100.0, 35.0)
-        assertTrue(engine.softStopTriggered("SHORT", 101.0, shortSoft, 98.0, 99.0, 99.0, 98.0, 20.0, 10.0, 36.0, 100.0))
+        assertTrue(engine.softStopTriggered("SHORT", 101.0, shortSoft, 98.0, 99.0, 98.0, 99.0, 20.0, 10.0, 36.0, 100.0))
     }
 
     @Test fun invalidStateDefaultsSafely() {
