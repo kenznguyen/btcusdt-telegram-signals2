@@ -400,26 +400,6 @@ def run_backtest(days=None):
                             _refresh_last_equity(ts, mark_price)
                 continue
 
-            if (go_long or go_short) and balance > 0:
-                signal_side = "LONG" if go_long else "SHORT"
-                if pos:
-                    # Only scale in on a same-direction M15 signal aligned with the closed H1 trend.
-                    # Opposite-side signals are ignored; no hedge/reversal is opened.
-                    if signal_side == pos["side"] and sum(1 for leg in pos["legs"] if leg["entry_kind"] in ("ENTRY", "ADD")) < MAX_SIMULTANEOUS_ENTRIES:
-                        add_margin = balance * ENTRY_MARGIN_PCT
-                        available_margin = max(0.0, balance - pos["margin"])
-                        if add_margin > 0 and add_margin <= available_margin + 1e-9:
-                            add_qty = add_margin * bot.LEVERAGE / close
-                            old_qty = pos["qty"]
-                            new_qty = old_qty + add_qty
-                            pos["avg"] = (pos["avg"] * old_qty + close * add_qty) / new_qty
-                            pos["qty"] = new_qty
-                            pos["margin"] += add_margin
-                            pos["notional"] += close * add_qty
-                            pos["legs"].append({"entry_time": ts, "entry_price": close, "qty": add_qty,
-                                                "margin_usdt": add_margin, "entry_kind": "ADD"})
-                            _refresh_last_equity(ts, mark_price)
-                    continue
                 side = signal_side
                 initial_margin = balance * ENTRY_MARGIN_PCT
                 qty = initial_margin*bot.LEVERAGE/close
