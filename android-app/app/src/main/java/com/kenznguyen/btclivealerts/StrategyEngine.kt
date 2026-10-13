@@ -155,25 +155,18 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
             if (hp == null || hm == null || ha == null) {
                 state = state.copy(lastProcessedOpenTime = c.openTime); continue
             }
-            val bull = hp > hm && ha > config.h1AdxEntry
-            val bear = hm > hp && ha > config.h1AdxEntry
-            val goLong = bull && prevRsi <= config.longRsiEntry && rsi > config.longRsiEntry
-            val goShort = bear && prevRsi >= config.shortRsiEntry && rsi < config.shortRsiEntry
+            val goLong = longEntrySignal(prevRsi, rsi, hp, hm, ha)
+            val goShort = shortEntrySignal(prevRsi, rsi, hp, hm, ha)
             val pos = state.position
             var exited = false
             if (pos != null) {
                 val roe = roeFor(pos.side, pos.avgEntry, c.close)
                 val emergencyPrice = thresholdPrice(pos.side, pos.avgEntry, abs(config.emergencySlRoe))
                 val softPrice = thresholdPrice(pos.side, pos.avgEntry, abs(config.softSlRoe))
-                val emergency = if (pos.side == "LONG") c.low <= emergencyPrice else c.high >= emergencyPrice
-                val reversal = (if (pos.side == "LONG") hm > hp else hp > hm) && ha > config.softSlAdx
+                val emergency = emergencyStopTriggered(pos.side, c.low, c.high, pos.avgEntry)
                 val prev = candles[i - 1]
-                val twoBear = c.open > c.close && prev.close < prev.open
-                val twoBull = c.close > c.open && prev.close > prev.open
-                val soft = if (pos.side == "LONG") c.low <= softPrice && reversal && twoBear
-                           else c.high >= softPrice && reversal && twoBull
-                val tp = if (pos.side == "LONG") rsi >= config.longRsiTp && roe >= config.tpRoe
-                         else rsi <= config.shortRsiTp && roe >= config.tpRoe
+                val soft = softStopTriggered(pos.side, c.low, c.high, c.open, c.close, prev.open, prev.close, hp, hm, ha, pos.avgEntry)
+                val tp = takeProfitSignal(pos.side, rsi, roe)
                 val reason = when { emergency -> "EMERGENCY SL"; soft -> "SOFT SL"; tp -> "TAKE PROFIT"; else -> null }
                 if (reason != null) {
                     val exit = when (reason) {
@@ -204,9 +197,7 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
                 val p = state.position!!
                 if (!p.dcaUsed) {
                     val currentRoe = roeFor(p.side, p.avgEntry, c.close)
-                    val condition = currentRoe <= config.dcaRoe && adx > config.dcaAdx &&
-                        (if (p.side == "LONG") rsi > config.longDcaRsi && rsi > prevRsi
-                         else rsi < config.shortDcaRsi && rsi < prevRsi)
+                    val condition = dcaSignal(p.side, currentRoe, adx, rsi, prevRsi)
                     if (condition) {
                         val addMargin = p.initialMargin * config.dcaMarginRatio
                         val available = max(0.0, state.balance - p.reservedMargin)
@@ -226,6 +217,38 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
             state = state.copy(lastProcessedOpenTime = c.openTime)
         }
         return state to emitted
+    }
+
+
+    fun longEntrySignal(previousRsi: Double, rsi: Double, h1PlusDi: Double, h1MinusDi: Double, h1Adx: Double): Boolean =
+        h1PlusDi > h1MinusDi && h1Adx > config.h1AdxEntry &&
+            previousRsi <= config.longRsiEntry && rsi > config.longRsiEntry
+
+    fun shortEntrySignal(previousRsi: Double, rsi: Double, h1PlusDi: Double, h1MinusDi: Double, h1Adx: Double): Boolean =
+        h1MinusDi > h1PlusDi && h1Adx > config.h1AdxEntry &&
+            previousRsi >= config.shortRsiEntry && rsi < config.shortRsiEntry
+
+    fun takeProfitSignal(side: String, rsi: Double, roePct: Double): Boolean =
+        if (side == "LONG") rsi >= config.longRsiTp && roePct >= config.tpRoe
+        else rsi <= config.shortRsiTp && roePct >= config.tpRoe
+
+    fun dcaSignal(side: String, roePct: Double, adx: Double, rsi: Double, previousRsi: Double): Boolean =
+        roePct <= config.dcaRoe && adx > config.dcaAdx &&
+            (if (side == "LONG") rsi > config.longDcaRsi && rsi > previousRsi
+             else rsi < config.shortDcaRsi && rsi < previousRsi)
+
+    fun emergencyStopTriggered(side: String, low: Double, high: Double, avgEntry: Double): Boolean {
+        val threshold = thresholdPrice(side, avgEntry, abs(config.emergencySlRoe))
+        return if (side == "LONG") low <= threshold else high >= threshold
+    }
+
+    fun softStopTriggered(side: String, low: Double, high: Double, candleOpen: Double, candleClose: Double,
+                          previousOpen: Double, previousClose: Double, h1PlusDi: Double, h1MinusDi: Double,
+                          h1Adx: Double, avgEntry: Double): Boolean {
+        val threshold = thresholdPrice(side, avgEntry, abs(config.softSlRoe))
+        val reversal = (if (side == "LONG") h1MinusDi > h1PlusDi else h1PlusDi > h1MinusDi) && h1Adx > config.softSlAdx
+        return if (side == "LONG") low <= threshold && reversal && candleOpen > candleClose && previousClose < previousOpen
+        else high >= threshold && reversal && candleClose > candleOpen && previousClose > previousOpen
     }
 
     fun roeFor(side: String, avg: Double, price: Double): Double =
