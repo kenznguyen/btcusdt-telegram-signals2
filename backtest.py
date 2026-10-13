@@ -505,7 +505,7 @@ def run_backtest(days=None):
           "winning_net_pnl_usdt":winning_net_pnl,"losing_net_pnl_usdt":losing_net_pnl,
           # Legacy aliases retained for consumers of older reports; these are net PnL, not gross PnL.
           "gross_profit_usdt":winning_net_pnl,"gross_loss_usdt":losing_net_pnl,
-          "profit_factor":pf,"average_win_usdt":avg_win,"average_loss_usdt":avg_loss,
+          "profit_factor":(None if pf is not None and pf == float("inf") else pf),"profit_factor_label":("∞" if pf is not None and pf == float("inf") else None),"average_win_usdt":avg_win,"average_loss_usdt":avg_loss,
           "expectancy_per_trade_usdt":expectancy,
           "max_drawdown_usdt":curve_max_dd,"max_drawdown_pct":curve_max_dd_pct,
           "max_drawdown_details":curve_peak,
@@ -523,7 +523,7 @@ def run_backtest(days=None):
           "equity_curve_csv":str(CURVE_CSV)}
         finished = pd.Timestamp.now(tz="UTC")
         report["finished_at_utc"] = finished.isoformat()
-        RESULT.write_text(json.dumps(report,indent=2),encoding="utf-8")
+        RESULT.write_text(json.dumps(report,indent=2,allow_nan=False),encoding="utf-8")
         _status("completed",started_at=started,finished_at=finished.strftime("%Y-%m-%d %H:%M UTC"),
                 finished_at_utc=finished.isoformat(), message=f"Hoàn tất {days} ngày; {len(trades)} giao dịch.")
         return report
@@ -540,7 +540,7 @@ def run_backtest(days=None):
 
 def format_report(r):
     pf = r.get("profit_factor")
-    pf_text = ("∞" if pf is not None and isinstance(pf,(int,float)) and pf == float("inf")
+    pf_text = ("∞" if r.get("profit_factor_label") == "∞" or (pf is not None and isinstance(pf,(int,float)) and pf == float("inf"))
                else f"{pf:.2f}" if isinstance(pf,(int,float)) else "N/A")
     return "\n".join([f"📊 {r.get('symbol', 'Perpetual')} — BACKTEST",
         f"Khung: {r['timeframe']} | Giai đoạn: {r['period_days']} ngày",
