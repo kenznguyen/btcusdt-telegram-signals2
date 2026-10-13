@@ -120,6 +120,26 @@ def _candles(bar, start_ms, end_ms, limit):
     return df[df["confirm"].astype(str) == "1"].reset_index(drop=True)
 
 
+def _position_exit_decision(*, side, avg, close, op, high, low, rsi, roe, prev_open, prev_close, plus, minus, hadx):
+    """Return (reason, exit_price) for one position; no portfolio state is mutated."""
+    emergency_price = bot.threshold_price(side, avg, abs(bot.EMERGENCY_SL_ROE))
+    soft_price = bot.threshold_price(side, avg, abs(bot.SOFT_SL_ROE))
+    emergency = low <= emergency_price if side == "LONG" else high >= emergency_price
+    reversal = (minus > plus if side == "LONG" else plus > minus) and hadx > bot.SOFT_SL_ADX
+    two_bear = op > close and prev_close < prev_open
+    two_bull = close > op and prev_close > prev_open
+    soft = ((low <= soft_price and reversal and two_bear) if side == "LONG"
+            else (high >= soft_price and reversal and two_bull))
+    tp = ((rsi >= bot.LONG_RSI_TP) if side == "LONG" else (rsi <= bot.SHORT_RSI_TP)) and roe >= bot.TP_ROE
+    if emergency:
+        return "Emergency SL", bot.stop_fill_price(side, emergency_price, op)
+    if soft:
+        return "Soft SL", bot.stop_fill_price(side, soft_price, op)
+    if tp:
+        return "TP", bot.execution_fill_price(close, "SELL" if side == "LONG" else "BUY")
+    return None, close
+
+
 def run_backtest(days=None):
     global RUN_ID, GENERATED_AT_UTC
     days = int(days if days is not None else os.getenv("BACKTEST_DAYS", "360"))
@@ -310,23 +330,10 @@ def run_backtest(days=None):
             for p in list(positions):
                 side, avg, qty = p["side"], p["avg"], p["qty"]
                 roe = bot.roe_for(side, avg, close) or 0.0
-                emergency_price = bot.threshold_price(side, avg, abs(bot.EMERGENCY_SL_ROE))
-                soft_price = bot.threshold_price(side, avg, abs(bot.SOFT_SL_ROE))
-                emergency = low <= emergency_price if side == "LONG" else high >= emergency_price
-                reversal = (minus > plus if side == "LONG" else plus > minus) and hadx > bot.SOFT_SL_ADX
-                two_bear = op > close and float(prev["close"]) < float(prev["open"])
-                two_bull = close > op and float(prev["close"]) > float(prev["open"])
-                soft = ((low <= soft_price and reversal and two_bear) if side == "LONG"
-                        else (high >= soft_price and reversal and two_bull))
-                tp = ((rsi >= bot.LONG_RSI_TP) if side == "LONG" else (rsi <= bot.SHORT_RSI_TP)) and roe >= bot.TP_ROE
-                reason, exit_price = None, close
-                if emergency:
-                    reason, exit_price = "Emergency SL", bot.stop_fill_price(side, emergency_price, op)
-                elif soft:
-                    reason, exit_price = "Soft SL", bot.stop_fill_price(side, soft_price, op)
-                elif tp:
-                    exit_price = bot.execution_fill_price(close, "SELL" if side == "LONG" else "BUY")
-                    reason = "TP"
+                reason, exit_price = _position_exit_decision(
+                    side=side, avg=avg, close=close, op=op, high=high, low=low,
+                    rsi=rsi, roe=roe, prev_open=float(prev["open"]),
+                    prev_close=float(prev["close"]), plus=plus, minus=minus, hadx=hadx)
                 if reason:
                     closed_legs = _close_position_legs(p, ts, exit_price, reason)
                     trades.extend(closed_legs)
