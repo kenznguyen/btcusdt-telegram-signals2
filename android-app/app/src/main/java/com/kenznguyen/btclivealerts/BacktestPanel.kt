@@ -41,7 +41,7 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                     val pnls = closedTrades.map { e ->
                         val prefix = "PnL ròng ước tính "
                         val start = e.note.indexOf(prefix)
-                        if (start < 0) 0.0 else e.note.substring(start + prefix.length).substringBefore(" ").toDoubleOrNull() ?: 0.0
+                        if (start < 0) 0.0 else e.note.substring(start + prefix.length).substringBefore(" ").replace(",", ".").toDoubleOrNull() ?: 0.0
                     }
                     val wins = pnls.count { it > 0.0 }
                     val losses = pnls.count { it < 0.0 }
