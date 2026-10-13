@@ -22,7 +22,7 @@ button,input{font:inherit}.app{display:grid;grid-template-columns:190px minmax(0
 <label><div class="label">Vốn ban đầu (USDT)</div><input id="btCapital" type="number" min="1" max="100000000" step="1" value="100" style="width:100%;margin-top:6px;padding:10px;border:1px solid var(--line);border-radius:7px;background:#071525;color:var(--text)"></label>
 <label><div class="label">Margin lệnh đầu (% vốn hiện tại)</div><input id="btEntryMargin" type="number" min="1" max="100" step="1" value="10" style="width:100%;margin-top:6px;padding:10px;border:1px solid var(--line);border-radius:7px;background:#071525;color:var(--text)"></label>
 <label><div class="label">Margin lệnh DCA (% margin lệnh đầu)</div><input id="btDcaMargin" type="number" min="0" max="500" step="1" value="100" style="width:100%;margin-top:6px;padding:10px;border:1px solid var(--line);border-radius:7px;background:#071525;color:var(--text)"></label>
-<label><div class="label">Số lệnh vào tối đa cùng lúc (1–10)</div><input id="btMaxEntries" type="number" min="1" max="10" step="1" value="1" style="width:100%;margin-top:6px;padding:10px;border:1px solid var(--line);border-radius:7px;background:#071525;color:var(--text)"></label>
+<label><div class="label">Số vị thế độc lập mở tối đa (1–10)</div><input id="btMaxPositions" type="number" min="1" max="10" step="1" value="1" style="width:100%;margin-top:6px;padding:10px;border:1px solid var(--line);border-radius:7px;background:#071525;color:var(--text)"></label>
 </div>
 <div class="actions" style="margin-top:12px"><button class="btn primary" id="runBacktestBtn">▶ Chạy backtest với cấu hình này</button><span class="sub" id="runBacktestHint">Mặc định: 360 ngày · vốn 100 USDT · margin đầu 50% · DCA 100%</span></div>
 </section>
@@ -139,7 +139,7 @@ byId('runBacktestBtn').onclick=async()=>{
   initial_capital:Number(byId('btCapital').value),
   entry_margin_pct:Number(byId('btEntryMargin').value),
   dca_margin_ratio:Number(byId('btDcaMargin').value),
-   max_simultaneous_entries:Number(byId('btMaxEntries').value)
+   max_open_positions:Number(byId('btMaxPositions').value)
  };
  if(!Number.isInteger(params.days)||params.days<1||params.days>365){hint.textContent='Số ngày phải là số nguyên từ 1 đến 365.';return}
  if(!Number.isFinite(params.initial_capital)||params.initial_capital<1){hint.textContent='Vốn ban đầu phải ít nhất 1 USDT.';return}
