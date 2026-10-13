@@ -48,6 +48,35 @@ class MarketEngine {
             }
         }
 
+    suspend fun fetchHistory(interval: String, days: Int): List<Candle> = withContext(Dispatchers.IO) {
+        require(days in setOf(7, 30, 90, 180)) { "Chọn 7, 30, 90 hoặc 180 ngày" }
+        val step = when (interval) { "15m" -> 900000L; "1h" -> 3600000L; else -> error("Khung thời gian không hỗ trợ") }
+        val end = System.currentTimeMillis()
+        val start = end - days.toLong() * 86400000L
+        val candles = sortedMapOf<Long, Candle>()
+        var cursor = start
+        var pages = 0
+        while (cursor < end && pages < 40) {
+            val url = "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=" + interval + "&limit=1500&startTime=" + cursor + "&endTime=" + end
+            val request = Request.Builder().url(url).build()
+            val page = client.newCall(request).execute().use { response ->
+                check(response.isSuccessful) { "Binance Futures HTTP " + response.code }
+                val array = JSONArray(response.body?.string() ?: "[]")
+                (0 until array.length()).map { i ->
+                    val row = array.getJSONArray(i)
+                    Candle(row.getLong(0), row.getDouble(1), row.getDouble(2), row.getDouble(3), row.getDouble(4), row.getDouble(5), row.getLong(6) < System.currentTimeMillis())
+                }
+            }
+            if (page.isEmpty()) break
+            page.forEach { candles[it.openTime] = it }
+            val next = page.last().openTime + step
+            if (next <= cursor) break
+            cursor = next
+            pages++
+            if (page.size < 1500) break
+        }
+        candles.values.filter { it.closed }
+    }
     suspend fun fetchMarkPrice(): Double = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url("https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT")
