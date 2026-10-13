@@ -29,13 +29,40 @@ jobs:
           java-version: "17"
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-      - name: Build debug APK
+      - name: Build and test debug APK
         working-directory: android-app
         run: gradle testDebugUnitTest assembleDebug
-      - name: Upload APK
+      - name: Prepare stable signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.APK_SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+            echo "HAS_RELEASE_KEY=true" >> "$GITHUB_ENV"
+          else
+            echo "HAS_RELEASE_KEY=false" >> "$GITHUB_ENV"
+          fi
+      - name: Build signed release APK
+        if: env.HAS_RELEASE_KEY == 'true'
+        working-directory: android-app
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.APK_SIGNING_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.APK_SIGNING_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.APK_SIGNING_KEY_PASSWORD }}
+        run: gradle assembleRelease
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: btcusdt-live-alerts-debug-apk
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+      - name: Upload signed release APK
+        if: env.HAS_RELEASE_KEY == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: btcusdt-live-alerts-release-apk
+          path: android-app/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
