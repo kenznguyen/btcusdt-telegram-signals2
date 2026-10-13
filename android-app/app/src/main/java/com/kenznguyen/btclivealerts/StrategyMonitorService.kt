@@ -64,20 +64,35 @@ class StrategyMonitorService : Service() {
                             if (!prefs.getBoolean("alert_" + alertPreferenceKey(event.kind), true)) return@forEach
                             if (event.side == "LONG" && !prefs.getBoolean("alert_long", true)) return@forEach
                             if (event.side == "SHORT" && !prefs.getBoolean("alert_short", true)) return@forEach
-                            if (isQuietHours(prefs)) return@forEach
                             val sent = prefs.getStringSet("notified_event_keys", emptySet())?.toMutableSet() ?: mutableSetOf()
-                            if (!sent.add(key)) return@forEach
+                            if (key in sent) return@forEach
+                            val title = "BTCUSDT.P · " + event.kind
                             val body = (event.side ?: "FLAT") + " · Giá " + "%,.2f".format(event.price) + " · " + event.note
-                            val builder = NotificationCompat.Builder(this@StrategyMonitorService, "strategy_alerts")
-                                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                                .setContentTitle("BTCUSDT.P · " + event.kind)
-                                .setContentText(body)
-                                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-                                .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true)
-                            if (prefs.getBoolean("alert_vibration", true)) builder.setVibrate(longArrayOf(0, 250, 120, 250)) else builder.setVibrate(longArrayOf(0))
-                            if (!prefs.getBoolean("alert_sound", true)) builder.setSilent(true)
-                            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify(key.hashCode(), builder.build())
+                            if (isQuietHours(prefs)) {
+                                if (prefs.getBoolean("alert_catch_up_after_quiet", true)) {
+                                    val queue = prefs.getStringSet("quiet_alert_queue", emptySet())?.toMutableSet() ?: mutableSetOf()
+                                    queue.add(key + "|" + title + "|" + body)
+                                    prefs.edit().putStringSet("quiet_alert_queue", queue).apply()
+                                }
+                                return@forEach
+                            }
+                            postAlert(key, title, body, prefs)
+                            sent.add(key)
                             prefs.edit().putStringSet("notified_event_keys", sent.toList().takeLast(100).toSet()).apply()
+                        }
+                        if (enabled && !isQuietHours(prefs) && prefs.getBoolean("alert_catch_up_after_quiet", true)) {
+                            val queue = prefs.getStringSet("quiet_alert_queue", emptySet())?.toMutableSet() ?: mutableSetOf()
+                            if (queue.isNotEmpty()) {
+                                val sent = prefs.getStringSet("notified_event_keys", emptySet())?.toMutableSet() ?: mutableSetOf()
+                                queue.toList().forEach { item ->
+                                    val parts = item.split("|", limit = 3)
+                                    if (parts.size == 3 && parts[0] !in sent) {
+                                        postAlert(parts[0], "Cảnh báo gửi bù · " + parts[1], parts[2], prefs)
+                                        sent.add(parts[0])
+                                    }
+                                }
+                                prefs.edit().putStringSet("quiet_alert_queue", emptySet()).putStringSet("notified_event_keys", sent.toList().takeLast(100).toSet()).apply()
+                            }
                         }
                         if (enabled && !isQuietHours(prefs) && prefs.getBoolean("alert_catch_up_after_quiet", true)) {
                             val queue = prefs.getStringSet("quiet_alert_queue", emptySet())?.toMutableSet() ?: mutableSetOf()
