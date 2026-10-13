@@ -175,6 +175,7 @@ fun CompleteDashboard(context: Context) {
                     if (event.note.isNotBlank()) Text(event.note, color = NMuted)
                 }
             }
+            item { BacktestPanel(market, engine) }
         }
     }
 }
