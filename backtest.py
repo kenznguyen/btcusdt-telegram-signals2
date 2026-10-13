@@ -451,7 +451,7 @@ def run_backtest(days=None):
             "estimated_entry_exit_fees_usdt","equity_usdt","peak_equity_usdt","drawdown_usdt","drawdown_pct",
             "intrabar_adverse_price","intrabar_adverse_equity_usdt","intrabar_drawdown_usdt","intrabar_drawdown_pct",
             "position_trade_id","position_side","position_entry_time_utc","avg_entry_price","position_qty",
-            "position_margin_usdt","dca_used"]
+            "position_margin_usdt","dca_used","open_position_count","open_position_ids","total_reserved_margin_usdt"]
         with CURVE_CSV.open("w", newline="", encoding="utf-8-sig") as f:
             writer = csv.DictWriter(f, fieldnames=curve_fields)
             writer.writeheader()
