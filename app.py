@@ -265,7 +265,7 @@ def dashboard_run_backtest():
         capital = float(payload.get("initial_capital", 100))
         entry_margin_pct = float(payload.get("entry_margin_pct", 50))
         dca_margin_ratio = float(payload.get("dca_margin_ratio", 100))
-        max_simultaneous_entries = int(payload.get("max_simultaneous_entries", 1))
+        max_open_positions = int(payload.get("max_open_positions", 1))
         if not 1 <= days <= 365:
             raise ValueError("Số ngày phải từ 1 đến 365.")
         if not 1 <= capital <= 100000000:
@@ -274,8 +274,8 @@ def dashboard_run_backtest():
             raise ValueError("Margin lệnh đầu phải từ 1% đến 100% vốn hiện tại.")
         if not 0 <= dca_margin_ratio <= 500:
             raise ValueError("Margin DCA phải từ 0% đến 500% margin lệnh đầu.")
-        if not 1 <= max_simultaneous_entries <= 10:
-            raise ValueError("Số lệnh vào tối đa cùng lúc phải từ 1 đến 10.")
+        if not 1 <= max_open_positions <= 10:
+            raise ValueError("Số vị thế độc lập mở tối đa phải từ 1 đến 10.")
     except (TypeError, ValueError) as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
     headers = {
@@ -289,7 +289,7 @@ def dashboard_run_backtest():
         "initial_capital": str(capital),
         "entry_margin_pct": str(entry_margin_pct),
         "dca_margin_ratio": str(dca_margin_ratio),
-        "max_simultaneous_entries": str(max_simultaneous_entries),
+        "max_open_positions": str(max_open_positions),
     }
     try:
         response = requests.post(url, headers=headers, json={"ref": GITHUB_REF, "inputs": inputs}, timeout=15)
@@ -303,7 +303,7 @@ def dashboard_run_backtest():
             "parameters": {
                 "days": days, "initial_capital": capital,
                 "entry_margin_pct": entry_margin_pct, "dca_margin_ratio": dca_margin_ratio,
-                "max_simultaneous_entries": max_simultaneous_entries,
+                "max_open_positions": max_open_positions,
             },
         }), 202
     except requests.RequestException:
