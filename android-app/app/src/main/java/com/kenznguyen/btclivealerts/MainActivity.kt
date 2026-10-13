@@ -136,8 +136,8 @@ private fun Dashboard(context: Context) {
             }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    IndicatorCard("RSI (14)", indicators.rsi)
-                    IndicatorCard("ADX (14)", indicators.adx)
+                    IndicatorCard("RSI (14)", indicators.rsi, Modifier.weight(1f))
+                    IndicatorCard("ADX (14)", indicators.adx, Modifier.weight(1f))
                 }
             }
             item {
@@ -159,8 +159,8 @@ private fun Dashboard(context: Context) {
 }
 
 @Composable
-private fun IndicatorCard(label: String, value: Double?) {
-    Column(Modifier.weight(1f).background(Panel, RoundedCornerShape(12.dp)).padding(14.dp)) {
+private fun IndicatorCard(label: String, value: Double?, modifier: Modifier = Modifier) {
+    Column(modifier.background(Panel, RoundedCornerShape(12.dp)).padding(14.dp)) {
         Text(label, color = Muted)
         Text(value?.let { "%.2f".format(it) } ?: "—", color = Color.White, style = MaterialTheme.typography.titleLarge)
     }
