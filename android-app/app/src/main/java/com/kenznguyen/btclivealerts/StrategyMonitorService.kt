@@ -50,7 +50,14 @@ class StrategyMonitorService : Service() {
                         }
                         val result = engine.processClosedCandles(m15, h1, state)
                         state = result.first
-                        prefs.edit().putString("state_json", state.toJson()).apply()
+                        val lastClosedOpen = closed.lastOrNull()?.openTime ?: 0L
+                        prefs.edit()
+                            .putString("state_json", state.toJson())
+                            .putLong("monitor_last_success_ms", System.currentTimeMillis())
+                            .putLong("monitor_last_candle_open", lastClosedOpen)
+                            .putInt("monitor_last_event_count", result.second.size)
+                            .putString("monitor_last_error", "")
+                            .apply()
                         val enabled = prefs.getBoolean("alerts_enabled", true)
                         if (enabled) result.second.forEach { event ->
                             val body = (event.side ?: "FLAT") + " · Giá " + "%,.2f".format(event.price) + " · " + event.note
@@ -65,6 +72,10 @@ class StrategyMonitorService : Service() {
                         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
                             .notify(1001, ongoing("Đang theo dõi · " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())))
                     } catch (e: Exception) {
+                        getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE).edit()
+                            .putLong("monitor_last_attempt_ms", System.currentTimeMillis())
+                            .putString("monitor_last_error", e.message ?: e.javaClass.simpleName)
+                            .apply()
                         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
                             .notify(1001, ongoing("Lỗi mạng; sẽ thử lại: " + (e.message ?: "không rõ")))
                     }
