@@ -59,6 +59,22 @@ jobs:
       - name: Check Python syntax
         run: python -m py_compile backtest.py bot.py app.py
 
+      - name: Run single-position baseline for comparison
+        if: github.event_name == 'pull_request'
+        env:
+          BACKTEST_DAYS: '30'
+          BACKTEST_INITIAL_CAPITAL: '100'
+          ENTRY_MARGIN_PCT: '25'
+          DCA_MARGIN_RATIO: '100'
+          MAX_OPEN_POSITIONS: '1'
+          BACKTEST_RUN_ID: baseline-${{ github.run_id }}-${{ github.run_attempt }}
+          BACKTEST_STATUS_FILE: baseline_status.json
+          BACKTEST_RESULT_FILE: baseline_result.json
+          BACKTEST_TRADES_FILE: baseline_trades.csv
+          BACKTEST_EQUITY_FILE: baseline_equity.csv
+          BACKTEST_CURVE_FILE: baseline_curve.csv
+        run: python backtest.py
+
       - name: Run shared backtest engine for dashboard
         env:
           BACKTEST_DAYS: ${{ github.event_name == 'pull_request' && '30' || inputs.backtest_days || '360' }}
@@ -85,5 +101,10 @@ jobs:
             dashboard_backtest_trades.csv
             dashboard_backtest_equity.csv
             dashboard_backtest_equity_m15.csv
+            baseline_result.json
+            baseline_status.json
+            baseline_trades.csv
+            baseline_equity.csv
+            baseline_curve.csv
           if-no-files-found: warn
           retention-days: 30
