@@ -24,8 +24,8 @@ on:
         required: false
         default: "100"
         type: string
-      max_simultaneous_entries:
-        description: "Maximum same-direction entries in one open position (1-10)"
+      max_open_positions:
+        description: "Maximum independent open positions (1-10)"
         required: false
         default: "1"
         type: string
@@ -60,7 +60,7 @@ jobs:
           BACKTEST_INITIAL_CAPITAL: ${{ inputs.initial_capital || '100' }}
           ENTRY_MARGIN_PCT: ${{ inputs.entry_margin_pct || '50' }}
           DCA_MARGIN_RATIO: ${{ inputs.dca_margin_ratio || '100' }}
-          MAX_SIMULTANEOUS_ENTRIES: ${{ inputs.max_simultaneous_entries || '1' }}
+          MAX_OPEN_POSITIONS: ${{ inputs.max_open_positions || '1' }}
           BACKTEST_RUN_ID: dashboard-${{ github.run_id }}-${{ github.run_attempt }}
           BACKTEST_STATUS_FILE: dashboard_backtest_status.json
           BACKTEST_RESULT_FILE: dashboard_backtest_last_result.json
