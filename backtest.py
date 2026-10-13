@@ -23,6 +23,7 @@ _entry_margin_raw = float(os.getenv("ENTRY_MARGIN_PCT", "0.50"))
 ENTRY_MARGIN_PCT = _entry_margin_raw / 100.0 if _entry_margin_raw > 1.0 else _entry_margin_raw
 _dca_margin_raw = float(os.getenv("DCA_MARGIN_RATIO", "1.00"))
 DCA_MARGIN_RATIO = _dca_margin_raw / 100.0 if _dca_margin_raw > 5.0 else _dca_margin_raw
+MAX_SIMULTANEOUS_ENTRIES = int(os.getenv("MAX_SIMULTANEOUS_ENTRIES", "1"))
 URL = "https://www.okx.com/api/v5/market/history-candles"
 SYMBOL = os.getenv("BACKTEST_SYMBOL", "BTCUSDT").strip().upper()
 OKX_INSTRUMENTS = {
@@ -130,6 +131,8 @@ def run_backtest(days=None):
         raise ValueError("ENTRY_MARGIN_PCT phải nằm trong (0, 1], dạng tỷ lệ hoặc phần trăm.")
     if not 0 <= DCA_MARGIN_RATIO <= 5:
         raise ValueError("DCA_MARGIN_RATIO phải từ 0% đến 500%.")
+    if not 1 <= MAX_SIMULTANEOUS_ENTRIES <= 10:
+        raise ValueError("MAX_SIMULTANEOUS_ENTRIES phải từ 1 đến 10.")
     RUN_ID = os.getenv("BACKTEST_RUN_ID", "").strip() or uuid.uuid4().hex
     now = pd.Timestamp.now(tz="UTC")
     GENERATED_AT_UTC = now.isoformat()
@@ -172,6 +175,27 @@ def run_backtest(days=None):
         max_intrabar_dd_details = None
         equity_curve = []
         max_dd_details = None
+
+        def _close_position_legs(position, exit_time, exit_price, reason):
+            """Emit one row per entry leg; per-leg PnL reconciles to aggregate position PnL."""
+            rows = []
+            for leg in position["legs"]:
+                gross_leg = ((exit_price - leg["entry_price"]) if position["side"] == "LONG"
+                             else (leg["entry_price"] - exit_price)) * leg["qty"]
+                fees_leg = (leg["entry_price"] * leg["qty"] + abs(exit_price * leg["qty"])) * FEE
+                rows.append({
+                    "side": position["side"], "entry_time": leg["entry_time"].isoformat(),
+                    "exit_time": exit_time.isoformat(), "avg_entry": leg["entry_price"],
+                    "exit_price": exit_price, "qty": leg["qty"], "gross_pnl": gross_leg,
+                    "fees": fees_leg, "net_pnl": gross_leg - fees_leg, "reason": reason,
+                    "dca_used": position["dca"], "entry_kind": leg["entry_kind"],
+                    "entry_margin_usdt": leg["margin_usdt"],
+                    "initial_margin_usdt": position["initial_margin"],
+                    "dca_margin_usdt": sum(x["margin_usdt"] for x in position["legs"] if x["entry_kind"] == "DCA"),
+                    "scale_in_margin_usdt": sum(x["margin_usdt"] for x in position["legs"] if x["entry_kind"] == "ADD"),
+                    "position_entry_count": len(position["legs"]),
+                })
+            return rows
         peak_time_utc = m15.iloc[0]["open_time"].isoformat() if len(m15) else None
 
         def _refresh_last_equity(ts, mark_price):
@@ -321,14 +345,9 @@ def run_backtest(days=None):
                     exit_price = bot.execution_fill_price(close, "SELL" if side == "LONG" else "BUY")
                     reason = "TP"
                 if reason:
-                    gross = ((exit_price-avg) if side=="LONG" else (avg-exit_price))*qty
-                    fees = (pos["notional"] + abs(exit_price*qty))*FEE
-                    net = gross-fees
-                    trades.append({"side":side,"entry_time":pos["time"].isoformat(),"exit_time":ts.isoformat(),
-                        "avg_entry":avg,"exit_price":exit_price,"qty":qty,"gross_pnl":gross,
-                        "fees":fees,"net_pnl":net,"reason":reason,"dca_used":pos["dca"],
-                        "initial_margin_usdt":pos["initial_margin"],
-                        "dca_margin_usdt":pos["initial_margin"]*DCA_MARGIN_RATIO if pos["dca"] else 0.0})
+                    closed_legs = _close_position_legs(pos, ts, exit_price, reason)
+                    trades.extend(closed_legs)
+                    net = sum(float(t["net_pnl"]) for t in closed_legs)
                     equity += net
                     balance += net
                     peak = max(peak, balance)
@@ -355,6 +374,8 @@ def run_backtest(days=None):
                             pos["margin"] += dca_margin
                             pos["dca"] = True
                             pos["notional"] += close * add
+                            pos["legs"].append({"entry_time": ts, "entry_price": close, "qty": add,
+                                                "margin_usdt": dca_margin, "entry_kind": "DCA"})
                             counts["DCA"] += 1
                             _refresh_last_equity(ts, mark_price)
                         else:
@@ -363,26 +384,42 @@ def run_backtest(days=None):
                 continue
 
             if (go_long or go_short) and balance > 0:
-                side = "LONG" if go_long else "SHORT"
+                signal_side = "LONG" if go_long else "SHORT"
+                if pos:
+                    # Only scale in on a same-direction M15 signal aligned with the closed H1 trend.
+                    # Opposite-side signals are ignored; no hedge/reversal is opened.
+                    if signal_side == pos["side"] and len(pos["legs"]) < MAX_SIMULTANEOUS_ENTRIES:
+                        add_margin = balance * ENTRY_MARGIN_PCT
+                        available_margin = max(0.0, balance - pos["margin"])
+                        if add_margin > 0 and add_margin <= available_margin + 1e-9:
+                            add_qty = add_margin * bot.LEVERAGE / close
+                            old_qty = pos["qty"]
+                            new_qty = old_qty + add_qty
+                            pos["avg"] = (pos["avg"] * old_qty + close * add_qty) / new_qty
+                            pos["qty"] = new_qty
+                            pos["margin"] += add_margin
+                            pos["notional"] += close * add_qty
+                            pos["legs"].append({"entry_time": ts, "entry_price": close, "qty": add_qty,
+                                                "margin_usdt": add_margin, "entry_kind": "ADD"})
+                            _refresh_last_equity(ts, mark_price)
+                    continue
+                side = signal_side
                 initial_margin = balance * ENTRY_MARGIN_PCT
                 qty = initial_margin*bot.LEVERAGE/close
                 pos = {"side":side,"time":ts,"avg":close,"qty":qty,"margin":initial_margin,
                        "initial_margin":initial_margin,"dca":False,"notional":close*qty,
-                       "trade_id":len(trades)+1}
+                       "trade_id":len(trades)+1,
+                       "legs":[{"entry_time":ts,"entry_price":close,"qty":qty,
+                                "margin_usdt":initial_margin,"entry_kind":"ENTRY"}]}
                 _refresh_last_equity(ts, mark_price)
 
         if pos:
             row = m15.iloc[-1]
             side, avg, qty = pos["side"], pos["avg"], pos["qty"]
             exit_price = float(row["close"])
-            gross = ((exit_price-avg) if side=="LONG" else (avg-exit_price))*qty
-            fees = (pos["notional"]+abs(exit_price*qty))*FEE
-            net = gross-fees
-            trades.append({"side":side,"entry_time":pos["time"].isoformat(),"exit_time":row["open_time"].isoformat(),
-                "avg_entry":avg,"exit_price":exit_price,"qty":qty,"gross_pnl":gross,"fees":fees,
-                "net_pnl":net,"reason":"End of test","dca_used":pos["dca"],
-                "initial_margin_usdt":pos["initial_margin"],
-                "dca_margin_usdt":pos["initial_margin"]*DCA_MARGIN_RATIO if pos["dca"] else 0.0})
+            closed_legs = _close_position_legs(pos, row["open_time"], exit_price, "End of test")
+            trades.extend(closed_legs)
+            net = sum(float(t["net_pnl"]) for t in closed_legs)
             equity += net
             balance += net
             peak = max(peak, balance)
@@ -407,8 +444,8 @@ def run_backtest(days=None):
         reason_counts = {reason: sum(1 for t in trades if t["reason"] == reason)
                          for reason in ("TP", "Soft SL", "Emergency SL", "End of test")}
         # Export every trade and the realized cumulative PnL curve.
-        trade_fields = ["run_id","generated_at_utc","trade_id","side","entry_time","exit_time","avg_entry","exit_price","qty",
-            "gross_pnl","fees","net_pnl","reason","dca_used","initial_margin_usdt","dca_margin_usdt"]
+        trade_fields = ["run_id","generated_at_utc","trade_id","side","entry_kind","entry_time","exit_time","avg_entry","exit_price","qty",
+            "gross_pnl","fees","net_pnl","reason","dca_used","entry_margin_usdt","initial_margin_usdt","dca_margin_usdt","scale_in_margin_usdt","position_entry_count"]
         with TRADES_CSV.open("w", newline="", encoding="utf-8-sig") as f:
             writer = csv.DictWriter(f, fieldnames=trade_fields, extrasaction="ignore")
             writer.writeheader()
@@ -446,6 +483,7 @@ def run_backtest(days=None):
           "win_rate_pct":len(wins)/len(trades)*100 if trades else 0.0,
           "initial_capital_usdt":INITIAL_CAPITAL,"final_balance_usdt":INITIAL_CAPITAL+net_profit,
           "entry_margin_pct_of_current_balance":ENTRY_MARGIN_PCT,"dca_margin_ratio_of_initial_order":DCA_MARGIN_RATIO,
+          "max_simultaneous_entries":MAX_SIMULTANEOUS_ENTRIES,"entry_leg_count":len(trades),
           "net_profit_usdt":net_profit,"return_pct":return_pct,
           "winning_net_pnl_usdt":winning_net_pnl,"losing_net_pnl_usdt":losing_net_pnl,
           # Legacy aliases retained for consumers of older reports; these are net PnL, not gross PnL.
