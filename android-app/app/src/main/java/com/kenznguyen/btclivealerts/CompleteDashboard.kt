@@ -108,7 +108,7 @@ fun CompleteDashboard(context: Context) {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(14.dp)).padding(12.dp)) {
                     Text("Candlestick · " + timeframe.uppercase(), color = Color.White, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(8.dp))
-                    LiveCandles(chart, Modifier.fillMaxWidth().height(260.dp))
+                    LiveCandles(chart, price, Modifier.fillMaxWidth().height(260.dp))
                     Text("Binance Futures · tải lại 15 giây", color = NMuted)
                 }
             }
@@ -190,13 +190,22 @@ private fun StatCard(label: String, value: Double?, modifier: Modifier = Modifie
 }
 
 @Composable
-private fun LiveCandles(candles: List<Candle>, modifier: Modifier = Modifier) {
+private fun LiveCandles(candles: List<Candle>, markPrice: Double?, modifier: Modifier = Modifier) {
     Canvas(modifier.background(NBg, RoundedCornerShape(8.dp))) {
         val data = candles.takeLast(70)
         if (data.isEmpty()) return@Canvas
         val low = data.minOf { it.low }
         val high = data.maxOf { it.high }
         val range = (high - low).takeIf { it > 0 } ?: 1.0
+        // Price grid makes candle ranges easier to read.
+        for (line in 1..4) {
+            val gy = size.height * line / 5f
+            drawLine(Color(0xFF263243), Offset(0f, gy), Offset(size.width, gy), strokeWidth = 1f)
+        }
+        markPrice?.takeIf { it in low..high }?.let { current ->
+            val py = size.height - (((current - low) / range).toFloat() * size.height)
+            drawLine(Color(0xFFFFC857), Offset(0f, py), Offset(size.width, py), strokeWidth = 1.5f)
+        }
         val step = size.width / data.size
         data.forEachIndexed { i, c ->
             val x = step * (i + 0.5f)
