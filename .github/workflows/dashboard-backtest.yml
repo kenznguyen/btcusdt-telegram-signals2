@@ -61,7 +61,7 @@ jobs:
 
       - name: Run shared backtest engine for dashboard
         env:
-          BACKTEST_DAYS: ${{ github.event_name == 'pull_request' && '3' || inputs.backtest_days || '360' }}
+          BACKTEST_DAYS: ${{ github.event_name == 'pull_request' && '30' || inputs.backtest_days || '360' }}
           BACKTEST_INITIAL_CAPITAL: ${{ github.event_name == 'pull_request' && '100' || inputs.initial_capital || '100' }}
           ENTRY_MARGIN_PCT: ${{ github.event_name == 'pull_request' && '25' || inputs.entry_margin_pct || '50' }}
           DCA_MARGIN_RATIO: ${{ inputs.dca_margin_ratio || '100' }}
