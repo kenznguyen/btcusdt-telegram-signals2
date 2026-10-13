@@ -59,6 +59,9 @@ jobs:
       - name: Check Python syntax
         run: python -m py_compile backtest.py bot.py app.py
 
+      - name: Test independent position TP/SL decisions
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+
       - name: Run single-position baseline for comparison
         if: github.event_name == 'pull_request'
         env:
