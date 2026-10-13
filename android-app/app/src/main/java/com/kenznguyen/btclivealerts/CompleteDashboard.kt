@@ -41,6 +41,10 @@ fun CompleteDashboard(context: Context) {
     var status by remember { mutableStateOf("Đang kết nối Binance Futures…") }
     var alerts by remember { mutableStateOf(prefs.getBoolean("alerts_enabled", true)) }
     var notificationTestStatus by remember { mutableStateOf("Chưa chạy kiểm thử thông báo") }
+    var monitorHeartbeat by remember { mutableStateOf("Đang chờ lần kiểm tra đầu tiên…") }
+    var monitorError by remember { mutableStateOf("") }
+    var lastProcessedCandle by remember { mutableStateOf("—") }
+    var lastEventCount by remember { mutableIntStateOf(0) }
     var state by remember { mutableStateOf(StrategyState.fromJson(prefs.getString("state_json", null))) }
     var m15Ind by remember { mutableStateOf(IndicatorPoint()) }
     var h1Ind by remember { mutableStateOf(IndicatorPoint()) }
@@ -59,6 +63,12 @@ fun CompleteDashboard(context: Context) {
 
                 // The foreground service is the single writer for position state; UI only reads it.
                 state = StrategyState.fromJson(prefs.getString("state_json", null))
+                val heartbeat = prefs.getLong("monitor_last_success_ms", 0L)
+                monitorHeartbeat = if (heartbeat > 0L) "Lần quét thành công: " + SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()).format(Date(heartbeat)) else "Chưa có lần quét thành công"
+                val candleTime = prefs.getLong("monitor_last_candle_open", 0L)
+                lastProcessedCandle = if (candleTime > 0L) SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date(candleTime)) else "Chưa có nến được xử lý"
+                lastEventCount = prefs.getInt("monitor_last_event_count", 0)
+                monitorError = prefs.getString("monitor_last_error", "").orEmpty()
                 status = "Đang kết nối · cập nhật " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
             } catch (e: Exception) {
                 status = "Mất kết nối: " + (e.message ?: "lỗi mạng")
@@ -79,6 +89,9 @@ fun CompleteDashboard(context: Context) {
                     Text("MARK PRICE", color = NMuted)
                     Text(price?.let { "$" + "%,.2f".format(it) } ?: "—", style = MaterialTheme.typography.headlineLarge, color = Color.White)
                     Text(status, color = if (status.startsWith("Đang kết nối")) NGreen else NRed)
+                    Text(monitorHeartbeat, color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    Text("Nến M15 xử lý gần nhất: $lastProcessedCandle · Sự kiện lần quét gần nhất: $lastEventCount", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    if (monitorError.isNotBlank()) Text("Lỗi giám sát gần nhất: $monitorError", color = NRed, style = MaterialTheme.typography.bodySmall)
                 }
             }
             item {
