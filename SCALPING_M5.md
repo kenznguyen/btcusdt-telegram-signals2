@@ -26,9 +26,9 @@ This branch adds a **signal-only** M5 scalping engine. It does not alter `bot.py
 ## Prototype exits and defaults
 
 - TP: estimated gross ROE >= 3% **and** M5 RSI >= 70 for LONG / <= 30 for SHORT.
-- ATR stop reference: 1.5 × M5 ATR from entry. Stop touches are checked against completed candle low/high; gap-through fills are approximated using candle open.
-- Soft SL: closed M15 trend is confirmed in the opposite direction and M5 confirms an opposite break.
-- Emergency SL: estimated gross ROE <= -35%.
+- Hard SL: estimated gross ROE reaches -90%, converted to a price threshold using configured leverage and checked against completed candle low/high. If price gaps through the threshold, fill is approximated using candle open. At 13x leverage, -90% gross ROE corresponds to about a 6.92% adverse price move from entry.
+- Soft SL: estimated gross ROE is at or below -35%, and the closed M15 trend is confirmed in the opposite direction while M5 confirms an opposite break.
+- The hard SL is detected by this signal scanner from completed candle data; it is not an exchange-native protective order and must not be relied on for live risk protection.
 - Default leverage for ROE estimates: 13x.
 
 These are **test parameters, not validated profitable settings**. ROE is a simplified price-move × leverage estimate; reported values do not fully model fees, funding, liquidation, queue position, or live slippage. Candle OHLC cannot reconstruct exact intrabar order. Do not use this prototype as an execution or emergency risk-control system.
@@ -44,7 +44,8 @@ GitHub → Actions → **BTCUSDT M5 Scalping Scanner** → Run workflow. Confirm
 - [ ] Same closed M5 candle is not processed twice.
 - [ ] LONG and SHORT are never open simultaneously.
 - [ ] M15 trend filter is respected for entries.
-- [ ] ATR stop checks candle low/high, including a gap-through approximation.
+- [ ] Hard SL threshold is -90% estimated gross ROE and checked against candle low/high, including a gap-through approximation.
+- [ ] Soft SL requires ROE <= -35% plus confirmed M15 reversal and opposite M5 break.
 - [ ] State and metrics are isolated from the existing strategy.
 - [ ] Verify Telegram messages in paper/signal mode before considering any live integration.
 - [ ] Backtest 90/180/360 days where data is available, including fees/slippage, before evaluating performance.
