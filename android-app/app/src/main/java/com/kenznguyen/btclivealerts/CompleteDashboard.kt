@@ -103,8 +103,9 @@ fun CompleteDashboard(context: Context) {
                         val liveCandles = cache.values.toList()
                         chart = liveCandles
                         chartIndicators = engine.indicatorSeries(liveCandles)
-                        val latestIndicator = chartIndicators.lastOrNull() ?: IndicatorPoint()
-                        if (timeframe == "15m") m15Ind = latestIndicator else h1Ind = latestIndicator
+                        // Keep strategy/status cards based on confirmed candles; the plot may preview the forming candle.
+                        val latestClosed = engine.indicatorSeries(liveCandles.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                        if (timeframe == "15m") m15Ind = latestClosed else h1Ind = latestClosed
                         socketStatus = "WebSocket live · " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
                     }
                 },
