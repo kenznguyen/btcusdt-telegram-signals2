@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import okhttp3.WebSocket
 import java.text.SimpleDateFormat
@@ -90,14 +91,15 @@ fun CompleteDashboard(context: Context) {
                 interval = timeframe,
                 onCandle = { candle ->
                     mainHandler.post {
+                        status = "Dữ liệu live đang hoạt động"
                         cache[candle.openTime] = candle
                         while (cache.size > 500) cache.pollFirstEntry()
                         chart = cache.values.toList()
                         socketStatus = "WebSocket live · " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
                     }
                 },
-                onMarkPrice = { mark -> mainHandler.post { price = mark } },
-                onStatus = { message -> mainHandler.post { socketStatus = message } }
+                onMarkPrice = { mark -> mainHandler.post { price = mark; status = "Dữ liệu live đang hoạt động" } },
+                onStatus = { message -> mainHandler.post { socketStatus = message; status = message } }
             )
             while (true) {
                 delay(60_000)
@@ -119,8 +121,13 @@ fun CompleteDashboard(context: Context) {
                     status = socketStatus
                 }
             }
+        } catch (e: CancellationException) {
+            // LaunchedEffect is cancelled normally when timeframe changes or the screen leaves composition.
+            // Do not show coroutine cancellation as a sync/network error.
+            throw e
         } catch (e: Exception) {
             status = "Lỗi đồng bộ: " + (e.message ?: "lỗi mạng")
+            socketStatus = "REST/WebSocket cần đồng bộ lại"
         } finally {
             socket?.close(1000, "timeframe changed")
         }
@@ -137,7 +144,7 @@ fun CompleteDashboard(context: Context) {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
                     Text("MARK PRICE", color = NMuted)
                     Text(price?.let { "$" + "%,.2f".format(it) } ?: "—", style = MaterialTheme.typography.headlineLarge, color = Color.White)
-                    Text(status, color = if (status.startsWith("Đang kết nối")) NGreen else NRed)
+                    Text(status, color = if (status.startsWith("Đang kết nối") || status.startsWith("Đang tải") || status.startsWith("Đang đồng bộ")) NGreen else if (status.startsWith("Lỗi")) NRed else NMuted)
                     Text(monitorHeartbeat, color = NMuted, style = MaterialTheme.typography.bodySmall)
                     Text("Nến M15 xử lý gần nhất: $lastProcessedCandle · Sự kiện lần quét gần nhất: $lastEventCount", color = NMuted, style = MaterialTheme.typography.bodySmall)
                     if (monitorError.isNotBlank()) Text("Lỗi giám sát gần nhất: $monitorError", color = NRed, style = MaterialTheme.typography.bodySmall)
