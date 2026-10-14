@@ -174,15 +174,22 @@ def main():
 
     if side in ("LONG", "SHORT"):
         entry = float(state["entry"])
+        exit_price = price
         current_roe = roe(side, entry, price)
-        stop_hit = price <= float(state["stop"]) if side == "LONG" else price >= float(state["stop"])
+        stop_price = float(state["stop"])
+        # Approximate intrabar stop touch from the completed candle OHLC.
+        # If the candle opens through the stop, use its open as a conservative gap fill.
+        stop_hit = float(row["low"]) <= stop_price if side == "LONG" else float(row["high"]) >= stop_price
+        if stop_hit:
+            exit_price = min(float(row["open"]), stop_price) if side == "LONG" else max(float(row["open"]), stop_price)
+        exit_roe = roe(side, entry, exit_price)
         opposite_confirm = (side == "LONG" and price < float(prev["low"]) and rsi < 50) or (
             side == "SHORT" and price > float(prev["high"]) and rsi > 50)
         tp_rsi = (side == "LONG" and rsi >= 70) or (side == "SHORT" and rsi <= 30)
         if current_roe <= EMERGENCY_SL_ROE:
             event = ("EMERGENCY SL", side, current_roe)
         elif stop_hit:
-            event = ("HARD SL (ATR)", side, current_roe)
+            event = ("HARD SL (ATR)", side, exit_roe)
         elif current_roe >= TP_ROE and tp_rsi:
             event = ("TAKE PROFIT", side, current_roe)
         elif (m15_reverse and opposite_confirm):
@@ -191,7 +198,7 @@ def main():
             telegram_send(
                 f"{'✅' if event[0] == 'TAKE PROFIT' else '🚨' if 'EMERGENCY' in event[0] else '⚠️'} "
                 f"BTCUSDT M5 SCALP — {event[0]}\nSide: {side}\n"
-                f"Entry: {entry:,.2f}\nExit reference: {price:,.2f}\n"
+                f"Entry: {entry:,.2f}\nExit reference: {exit_price:,.2f}\n"
                 f"Gross ROE estimate: {current_roe:.2f}%\n"
                 f"M5 RSI/ADX: {rsi:.2f}/{adx:.2f}\n"
                 f"M15 trend: {'LONG' if m15_long else 'SHORT' if m15_short else 'NO TRADE'}\n"
