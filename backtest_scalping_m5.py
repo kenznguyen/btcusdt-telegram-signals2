@@ -106,7 +106,7 @@ def add_indicators(df):
 
 def run_backtest(days=90, leverage=13.0, fee_rate=0.0005, slippage_bps=5.0,
                  m15_adx_min=20.0, m5_adx_min=18.0, tp_roe=3.0,
-                 emergency_roe=-35.0, atr_mult=1.5, start_balance=100.0):
+                 hard_sl_roe=-90.0, soft_sl_roe=-35.0, start_balance=100.0):
     m5 = add_indicators(fetch_history("5m", days))
     m15 = add_indicators(fetch_history("15m", days))
     if len(m5) < 100 or len(m15) < 100:
