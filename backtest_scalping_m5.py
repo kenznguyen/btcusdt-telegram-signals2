@@ -149,20 +149,20 @@ def run_backtest(days=90, leverage=13.0, fee_rate=0.0005, slippage_bps=5.0,
 
         if side:
             gross_roe_close = ((price - entry) / entry if side == "LONG" else (entry - price) / entry) * leverage * 100
-            # Conservative intrabar hard stop; stop takes precedence if OHLC also satisfies TP.
-            stop_hit = float(r.low) <= stop if side == "LONG" else float(r.high) >= stop
-            if stop_hit:
-                exit_reason = "HARD_SL_ATR"
-                exit_raw = min(float(r.open), stop) if side == "LONG" else max(float(r.open), stop)
-            elif gross_roe_close <= emergency_roe:
-                exit_reason = "EMERGENCY_SL"
+            # Hard SL uses the -90% gross ROE threshold, checked against candle extremes.
+            adverse_move = abs(hard_sl_roe) / (leverage * 100)
+            hard_stop_price = entry * (1 - adverse_move) if side == "LONG" else entry * (1 + adverse_move)
+            hard_stop_hit = float(r.low) <= hard_stop_price if side == "LONG" else float(r.high) >= hard_stop_price
+            if hard_stop_hit:
+                exit_reason = "HARD_SL_ROE_MINUS_90"
+                exit_raw = min(float(r.open), hard_stop_price) if side == "LONG" else max(float(r.open), hard_stop_price)
             elif gross_roe_close >= tp_roe and ((side == "LONG" and r.rsi >= 70) or (side == "SHORT" and r.rsi <= 30)):
                 exit_reason = "TAKE_PROFIT"
             else:
                 opposite = (side == "LONG" and price < float(p.low) and r.rsi < 50) or (
                     side == "SHORT" and price > float(p.high) and r.rsi > 50)
-                if m15_reverse and opposite:
-                    exit_reason = "SOFT_SL_M15_REVERSAL"
+                if gross_roe_close <= soft_sl_roe and m15_reverse and opposite:
+                    exit_reason = "SOFT_SL_ROE_MINUS_35_M15_REVERSAL"
             if exit_reason:
                 exit_fill = fill_price(exit_raw, "SHORT" if side == "LONG" else "LONG")
                 qty = 1.0 / entry if entry else 0.0  # normalized notional; PnL in account-currency units below
