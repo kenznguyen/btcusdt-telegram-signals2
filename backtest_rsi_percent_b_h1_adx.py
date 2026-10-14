@@ -152,7 +152,8 @@ def run(days: int, initial_capital: float, margin_pct: float, leverage: float,
                  else (position["entry_price"] - exit_price)) * position["qty"]
         exit_fee = abs(exit_price * position["qty"]) * fee_rate
         net = gross - position["entry_fee"] - exit_fee
-        balance += net
+        # Entry fee was deducted at entry; add only gross PnL less exit fee here.
+        balance += gross - exit_fee
         trades.append({
             "side": side, "entry_time": position["entry_time"].isoformat(),
             "exit_time": ts.isoformat(), "entry_price": position["entry_price"],
