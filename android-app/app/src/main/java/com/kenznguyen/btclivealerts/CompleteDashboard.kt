@@ -70,6 +70,7 @@ fun CompleteDashboard(context: Context) {
     var state by remember { mutableStateOf(StrategyState.fromJson(prefs.getString("state_json", null))) }
     var m15Ind by remember { mutableStateOf(IndicatorPoint()) }
     var h1Ind by remember { mutableStateOf(IndicatorPoint()) }
+    var chartIndicators by remember { mutableStateOf<List<IndicatorPoint>>(emptyList()) }
     var showRsi by remember { mutableStateOf(prefs.getBoolean("chart_show_rsi", true)) }
     var showAdx by remember { mutableStateOf(prefs.getBoolean("chart_show_adx", true)) }
     var showDi by remember { mutableStateOf(prefs.getBoolean("chart_show_di", true)) }
@@ -89,6 +90,7 @@ fun CompleteDashboard(context: Context) {
             var h1Data = if (timeframe == "1h") initial else market.fetchCandles("1h", 500)
             m15Ind = engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
             h1Ind = engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+            chartIndicators = engine.indicatorSeries(initial)
             price = market.fetchMarkPrice()
             socketStatus = "REST đồng bộ xong · WebSocket đang kết nối"
             socket = market.connectLive(
@@ -98,7 +100,11 @@ fun CompleteDashboard(context: Context) {
                         status = "Dữ liệu live đang hoạt động"
                         cache[candle.openTime] = candle
                         while (cache.size > 500) cache.pollFirstEntry()
-                        chart = cache.values.toList()
+                        val liveCandles = cache.values.toList()
+                        chart = liveCandles
+                        chartIndicators = engine.indicatorSeries(liveCandles)
+                        val latestIndicator = chartIndicators.lastOrNull() ?: IndicatorPoint()
+                        if (timeframe == "15m") m15Ind = latestIndicator else h1Ind = latestIndicator
                         socketStatus = "WebSocket live · " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
                     }
                 },
@@ -112,9 +118,10 @@ fun CompleteDashboard(context: Context) {
                     reconciled.forEach { cache[it.openTime] = it }
                     while (cache.size > 500) cache.pollFirstEntry()
                     chart = cache.values.toList()
+                    chartIndicators = engine.indicatorSeries(cache.values.toList())
                     if (timeframe == "15m") m15Data = cache.values.toList() else h1Data = cache.values.toList()
-                    m15Ind = engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
-                    h1Ind = engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                    m15Ind = if (timeframe == "15m") chartIndicators.lastOrNull() ?: IndicatorPoint() else engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                    h1Ind = if (timeframe == "1h") chartIndicators.lastOrNull() ?: IndicatorPoint() else engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
                     state = StrategyState.fromJson(prefs.getString("state_json", null))
                     val heartbeat = prefs.getLong("monitor_last_success_ms", 0L)
                     monitorHeartbeat = if (heartbeat > 0L) "Lần quét thành công: " + SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()).format(Date(heartbeat)) else "Chưa có lần quét thành công"
@@ -169,6 +176,24 @@ fun CompleteDashboard(context: Context) {
                     Text("Candlestick · " + timeframe.uppercase(), color = Color.White, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(8.dp))
                     LiveCandles(chart, price, Modifier.fillMaxWidth().height(260.dp))
+                    if (showRsi) {
+                        Spacer(Modifier.height(10.dp))
+                        IndicatorLineChart(
+                            title = "RSI (14)", points = chartIndicators, valueSelector = { it.rsi },
+                            minValue = 0.0, maxValue = 100.0, thresholds = listOf(30.0, 70.0),
+                            lineColor = Color(0xFF9B8AFB), modifier = Modifier.fillMaxWidth().height(112.dp)
+                        )
+                    }
+                    if (showAdx) {
+                        Spacer(Modifier.height(10.dp))
+                        IndicatorLineChart(
+                            title = if (showDi) "ADX (14) · +DI · −DI" else "ADX (14)",
+                            points = chartIndicators, valueSelector = { it.adx },
+                            secondarySelectors = if (showDi) listOf({ p: IndicatorPoint -> p.plusDi }, { p: IndicatorPoint -> p.minusDi }) else emptyList(),
+                            minValue = 0.0, maxValue = 100.0, thresholds = listOf(20.0, 25.0, 45.0),
+                            lineColor = Color(0xFFFFC857), modifier = Modifier.fillMaxWidth().height(112.dp)
+                        )
+                    }
                     Text("Binance Futures · REST + WebSocket · 500 nến", color = NMuted)
                     Text(socketStatus, color = if (socketStatus.contains("live") || socketStatus.contains("kết nối")) NGreen else NRed, style = MaterialTheme.typography.bodySmall)
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -301,6 +326,58 @@ fun CompleteDashboard(context: Context) {
 }
 
 private fun fmt(value: Double?): String = value?.let { "%.2f".format(it) } ?: "—"
+
+@Composable
+private fun IndicatorLineChart(
+    title: String,
+    points: List<IndicatorPoint>,
+    valueSelector: (IndicatorPoint) -> Double?,
+    minValue: Double,
+    maxValue: Double,
+    thresholds: List<Double>,
+    lineColor: Color,
+    modifier: Modifier = Modifier,
+    secondarySelectors: List<(IndicatorPoint) -> Double?> = emptyList()
+) {
+    Column(
+        modifier.background(NBg, RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 6.dp)
+    ) {
+        Text(title, color = Color.White, style = MaterialTheme.typography.labelMedium)
+        Canvas(Modifier.fillMaxWidth().height(76.dp)) {
+            if (points.size < 2 || size.width <= 0f || size.height <= 0f) return@Canvas
+            val range = (maxValue - minValue).takeIf { it > 0.0 } ?: 1.0
+            fun y(value: Double): Float =
+                size.height - (((value.coerceIn(minValue, maxValue) - minValue) / range).toFloat() * size.height)
+            for (fraction in listOf(0.25f, 0.5f, 0.75f)) {
+                val gy = size.height * fraction
+                drawLine(Color(0xFF263243), Offset(0f, gy), Offset(size.width, gy), strokeWidth = 1f)
+            }
+            thresholds.forEach { level ->
+                val yy = y(level)
+                drawLine(Color(0xFF566579), Offset(0f, yy), Offset(size.width, yy), strokeWidth = 1f)
+            }
+            val series = listOf(valueSelector) + secondarySelectors
+            val colors = listOf(lineColor, NGreen, NRed)
+            series.forEachIndexed { seriesIndex, selector ->
+                var previous: Offset? = null
+                points.forEachIndexed { index, point ->
+                    val value = selector(point)
+                    val current = if (value == null || value.isNaN() || value.isInfinite()) null else
+                        Offset(size.width * index / (points.size - 1).toFloat(), y(value))
+                    if (previous != null && current != null) {
+                        drawLine(colors[seriesIndex.coerceAtMost(colors.lastIndex)], previous!!, current!!, strokeWidth = 1.8f)
+                    }
+                    previous = current
+                }
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("%.1f".format(minValue), color = NMuted, style = MaterialTheme.typography.labelSmall)
+            Text("Nến " + points.size, color = NMuted, style = MaterialTheme.typography.labelSmall)
+            Text("%.1f".format(maxValue), color = NMuted, style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
 
 @Composable
 private fun StatCard(label: String, value: Double?, modifier: Modifier = Modifier) {
