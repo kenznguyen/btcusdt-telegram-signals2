@@ -94,20 +94,7 @@ class StrategyMonitorService : Service() {
                                 prefs.edit().putStringSet("quiet_alert_queue", emptySet()).putStringSet("notified_event_keys", sent.toList().takeLast(100).toSet()).apply()
                             }
                         }
-                        if (enabled && !isQuietHours(prefs) && prefs.getBoolean("alert_catch_up_after_quiet", true)) {
-                            val queue = prefs.getStringSet("quiet_alert_queue", emptySet())?.toMutableSet() ?: mutableSetOf()
-                            if (queue.isNotEmpty()) {
-                                val sent = prefs.getStringSet("notified_event_keys", emptySet())?.toMutableSet() ?: mutableSetOf()
-                                queue.toList().forEach { item ->
-                                    val parts = item.split("|", limit = 3)
-                                    if (parts.size == 3 && parts[0] !in sent) {
-                                        postAlert(parts[0], "Cảnh báo gửi bù · " + parts[1], parts[2], prefs)
-                                        sent.add(parts[0])
-                                    }
-                                }
-                                prefs.edit().putStringSet("quiet_alert_queue", emptySet()).putStringSet("notified_event_keys", sent.toList().takeLast(100).toSet()).apply()
-                            }
-                        }
+
                         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
                             .notify(1001, ongoing("Đang theo dõi · " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())))
                     } catch (e: Exception) {
