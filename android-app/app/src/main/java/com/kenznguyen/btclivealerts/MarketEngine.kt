@@ -4,6 +4,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
+import okhttp3.Response
+import okio.ByteString
+import org.json.JSONObject
 import org.json.JSONArray
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
@@ -77,6 +82,30 @@ class MarketEngine {
         }
         candles.values.filter { it.closed }
     }
+    fun connectLive(interval: String, onCandle: (Candle) -> Unit, onMarkPrice: (Double) -> Unit, onStatus: (String) -> Unit): WebSocket {
+        val stream = "btcusdt@kline_$interval/btcusdt@markPrice@1s"
+        val request = Request.Builder().url("wss://fstream.binance.com/stream?streams=$stream").build()
+        return client.newWebSocket(request, object : WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) { onStatus("WebSocket kết nối") }
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                try {
+                    val root = JSONObject(text)
+                    val data = root.optJSONObject("data") ?: root
+                    when (data.optString("e")) {
+                        "kline" -> {
+                            val k = data.getJSONObject("k")
+                            onCandle(Candle(k.getLong("t"), k.getString("o").toDouble(), k.getString("h").toDouble(),
+                                k.getString("l").toDouble(), k.getString("c").toDouble(), k.getString("v").toDouble(), k.optBoolean("x")))
+                        }
+                        "markPriceUpdate" -> onMarkPrice(data.getString("p").toDouble())
+                    }
+                } catch (_: Exception) { onStatus("Đang đồng bộ dữ liệu…") }
+            }
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) { onStatus("WebSocket gián đoạn; đang thử kết nối lại") }
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) { onStatus("WebSocket đã đóng") }
+        })
+    }
+
     suspend fun fetchMarkPrice(): Double = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url("https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT")
