@@ -16,6 +16,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -308,35 +312,80 @@ private fun StatCard(label: String, value: Double?, modifier: Modifier = Modifie
 
 @Composable
 private fun LiveCandles(candles: List<Candle>, markPrice: Double?, modifier: Modifier = Modifier) {
-    Canvas(modifier.background(NBg, RoundedCornerShape(8.dp))) {
-        val data = candles.takeLast(70)
+    var visibleCount by remember { mutableIntStateOf(70) }
+    var panBars by remember { mutableIntStateOf(0) }
+    var selectedOpenTime by remember { mutableStateOf<Long?>(null) }
+    Canvas(
+        modifier
+            .background(NBg, RoundedCornerShape(8.dp))
+            .pointerInput(candles.size, visibleCount) {
+                detectTapGestures { point ->
+                    if (candles.isNotEmpty()) {
+                        val end = (candles.size - panBars).coerceIn(1, candles.size)
+                        val start = (end - visibleCount).coerceAtLeast(0)
+                        val shown = candles.subList(start, end)
+                        val index = (point.x / size.width * shown.size).toInt().coerceIn(0, shown.lastIndex)
+                        selectedOpenTime = shown[index].openTime
+                    }
+                }
+            }
+            .pointerInput(candles.size, visibleCount) {
+                detectDragGestures { change, drag ->
+                    change.consume()
+                    val shown = visibleCount.coerceAtLeast(1)
+                    val bars = (drag.x / size.width * shown).toInt()
+                    panBars = (panBars + bars).coerceIn(0, (candles.size - 1).coerceAtLeast(0))
+                }
+            }
+            .pointerInput(candles.size) {
+                detectTransformGestures { _, _, zoom, _ ->
+                    visibleCount = (visibleCount / zoom).toInt().coerceIn(20, 150)
+                    panBars = panBars.coerceIn(0, (candles.size - 1).coerceAtLeast(0))
+                }
+            }
+    ) {
+        if (candles.isEmpty() || size.width <= 0f || size.height <= 0f) return@Canvas
+        val end = (candles.size - panBars).coerceIn(1, candles.size)
+        val start = (end - visibleCount).coerceAtLeast(0)
+        val data = candles.subList(start, end)
         if (data.isEmpty()) return@Canvas
-        val low = data.minOf { it.low }
-        val high = data.maxOf { it.high }
+
+        // Include mark price in the scale so the live-price line remains visible after sharp moves.
+        var low = data.minOf { it.low }
+        var high = data.maxOf { it.high }
+        markPrice?.let { low = minOf(low, it); high = maxOf(high, it) }
+        val rawRange = (high - low).takeIf { it > 0.0 } ?: (high * 0.001).coerceAtLeast(1.0)
+        val padding = rawRange * 0.04
+        low -= padding
+        high += padding
         val range = (high - low).takeIf { it > 0 } ?: 1.0
-        // Price grid makes candle ranges easier to read.
+        fun y(price: Double) = size.height - (((price - low) / range).toFloat() * size.height)
+
         for (line in 1..4) {
             val gy = size.height * line / 5f
             drawLine(Color(0xFF263243), Offset(0f, gy), Offset(size.width, gy), strokeWidth = 1f)
         }
-        markPrice?.takeIf { it in low..high }?.let { current ->
-            val py = size.height - (((current - low) / range).toFloat() * size.height)
-            drawLine(Color(0xFFFFC857), Offset(0f, py), Offset(size.width, py), strokeWidth = 1.5f)
-        }
+
         val step = size.width / data.size
-        data.forEachIndexed { i, c ->
+        data.forEachIndexed { i, candle ->
             val x = step * (i + 0.5f)
-            fun y(p: Double) = size.height - (((p - low) / range).toFloat() * size.height)
-            val color = if (c.close >= c.open) NGreen else NRed
-            drawLine(color, Offset(x, y(c.high)), Offset(x, y(c.low)), strokeWidth = 2f)
-            val top = minOf(y(c.open), y(c.close))
-            val bottom = maxOf(y(c.open), y(c.close))
-            drawRect(color, Offset(x - maxOf(1.5f, step * 0.28f), top),
-                androidx.compose.ui.geometry.Size(maxOf(3f, step * 0.56f), maxOf(2f, bottom - top)))
+            val color = if (candle.close >= candle.open) NGreen else NRed
+            drawLine(color, Offset(x, y(candle.high)), Offset(x, y(candle.low)), strokeWidth = 1.5f)
+            val top = minOf(y(candle.open), y(candle.close))
+            val bottom = maxOf(y(candle.open), y(candle.close))
+            drawRect(color, Offset(x - maxOf(1.5f, step * 0.30f), top),
+                androidx.compose.ui.geometry.Size(maxOf(2f, step * 0.60f), maxOf(1.5f, bottom - top)))
+            if (candle.openTime == selectedOpenTime) {
+                drawLine(Color(0xFF9B8AFB), Offset(x, 0f), Offset(x, size.height), strokeWidth = 1f)
+                drawLine(Color(0xFF9B8AFB), Offset(0f, y(candle.close)), Offset(size.width, y(candle.close)), strokeWidth = 1f)
+            }
+        }
+        markPrice?.let { current ->
+            val py = y(current)
+            drawLine(Color(0xFFFFC857), Offset(0f, py), Offset(size.width, py), strokeWidth = 1.5f)
         }
     }
 }
-
 
 @Composable
 private fun PreferenceSwitch(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
