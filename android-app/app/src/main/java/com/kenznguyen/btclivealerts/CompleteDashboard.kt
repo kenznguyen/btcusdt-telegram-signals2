@@ -3,6 +3,8 @@ package com.kenznguyen.btclivealerts
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.delay
+import okhttp3.WebSocket
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -62,32 +65,64 @@ fun CompleteDashboard(context: Context) {
     var state by remember { mutableStateOf(StrategyState.fromJson(prefs.getString("state_json", null))) }
     var m15Ind by remember { mutableStateOf(IndicatorPoint()) }
     var h1Ind by remember { mutableStateOf(IndicatorPoint()) }
+    var showRsi by remember { mutableStateOf(prefs.getBoolean("chart_show_rsi", true)) }
+    var showAdx by remember { mutableStateOf(prefs.getBoolean("chart_show_adx", true)) }
+    var showDi by remember { mutableStateOf(prefs.getBoolean("chart_show_di", true)) }
+    var showH1Trend by remember { mutableStateOf(prefs.getBoolean("chart_show_h1", true)) }
+    var chartSettingsExpanded by remember { mutableStateOf(false) }
+    var socketStatus by remember { mutableStateOf("Đang đồng bộ REST…") }
 
     LaunchedEffect(timeframe) {
-        while (true) {
-            try {
-                val m15 = market.fetchCandles("15m", 500)
-                val h1 = market.fetchCandles("1h", 500)
-                val closed15 = m15.filter { it.closed }
-                val closed1h = h1.filter { it.closed }
-                chart = if (timeframe == "15m") m15 else h1
-                price = market.fetchMarkPrice()
-                m15Ind = engine.indicatorSeries(closed15).lastOrNull() ?: IndicatorPoint()
-                h1Ind = engine.indicatorSeries(closed1h).lastOrNull() ?: IndicatorPoint()
-
-                // The foreground service is the single writer for position state; UI only reads it.
-                state = StrategyState.fromJson(prefs.getString("state_json", null))
-                val heartbeat = prefs.getLong("monitor_last_success_ms", 0L)
-                monitorHeartbeat = if (heartbeat > 0L) "Lần quét thành công: " + SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()).format(Date(heartbeat)) else "Chưa có lần quét thành công"
-                val candleTime = prefs.getLong("monitor_last_candle_open", 0L)
-                lastProcessedCandle = if (candleTime > 0L) SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date(candleTime)) else "Chưa có nến được xử lý"
-                lastEventCount = prefs.getInt("monitor_last_event_count", 0)
-                monitorError = prefs.getString("monitor_last_error", "").orEmpty()
-                status = "Đang kết nối · cập nhật " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-            } catch (e: Exception) {
-                status = "Mất kết nối: " + (e.message ?: "lỗi mạng")
+        val mainHandler = Handler(Looper.getMainLooper())
+        var socket: WebSocket? = null
+        try {
+            val initial = market.fetchCandles(timeframe, 500)
+            val cache = java.util.TreeMap<Long, Candle>()
+            initial.forEach { cache[it.openTime] = it }
+            chart = cache.values.toList()
+            var m15Data = if (timeframe == "15m") initial else market.fetchCandles("15m", 500)
+            var h1Data = if (timeframe == "1h") initial else market.fetchCandles("1h", 500)
+            m15Ind = engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+            h1Ind = engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+            price = market.fetchMarkPrice()
+            socketStatus = "REST đồng bộ xong · WebSocket đang kết nối"
+            socket = market.connectLive(
+                interval = timeframe,
+                onCandle = { candle ->
+                    mainHandler.post {
+                        cache[candle.openTime] = candle
+                        while (cache.size > 500) cache.pollFirstEntry()
+                        chart = cache.values.toList()
+                        socketStatus = "WebSocket live · " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+                    }
+                },
+                onMarkPrice = { mark -> mainHandler.post { price = mark } },
+                onStatus = { message -> mainHandler.post { socketStatus = message } }
+            )
+            while (true) {
+                delay(60_000)
+                val reconciled = market.fetchCandles(timeframe, 500)
+                mainHandler.post {
+                    reconciled.forEach { cache[it.openTime] = it }
+                    while (cache.size > 500) cache.pollFirstEntry()
+                    chart = cache.values.toList()
+                    if (timeframe == "15m") m15Data = cache.values.toList() else h1Data = cache.values.toList()
+                    m15Ind = engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                    h1Ind = engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                    state = StrategyState.fromJson(prefs.getString("state_json", null))
+                    val heartbeat = prefs.getLong("monitor_last_success_ms", 0L)
+                    monitorHeartbeat = if (heartbeat > 0L) "Lần quét thành công: " + SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()).format(Date(heartbeat)) else "Chưa có lần quét thành công"
+                    val candleTime = prefs.getLong("monitor_last_candle_open", 0L)
+                    lastProcessedCandle = if (candleTime > 0L) SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date(candleTime)) else "Chưa có nến được xử lý"
+                    lastEventCount = prefs.getInt("monitor_last_event_count", 0)
+                    monitorError = prefs.getString("monitor_last_error", "").orEmpty()
+                    status = socketStatus
+                }
             }
-            delay(15_000)
+        } catch (e: Exception) {
+            status = "Lỗi đồng bộ: " + (e.message ?: "lỗi mạng")
+        } finally {
+            socket?.close(1000, "timeframe changed")
         }
     }
 
@@ -123,19 +158,38 @@ fun CompleteDashboard(context: Context) {
                     Text("Candlestick · " + timeframe.uppercase(), color = Color.White, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(8.dp))
                     LiveCandles(chart, price, Modifier.fillMaxWidth().height(260.dp))
-                    Text("Binance Futures · tải lại 15 giây", color = NMuted)
+                    Text("Binance Futures · REST + WebSocket · 500 nến", color = NMuted)
+                    Text(socketStatus, color = if (socketStatus.contains("live") || socketStatus.contains("kết nối")) NGreen else NRed, style = MaterialTheme.typography.bodySmall)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Chỉ báo hiển thị", color = Color.White, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { chartSettingsExpanded = !chartSettingsExpanded }) { Text(if (chartSettingsExpanded) "Thu gọn" else "Tùy chỉnh") }
+                    }
+                    if (chartSettingsExpanded) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            PreferenceSwitch("RSI (14)", showRsi, { showRsi = it; prefs.edit().putBoolean("chart_show_rsi", it).apply() })
+                            PreferenceSwitch("ADX (14)", showAdx, { showAdx = it; prefs.edit().putBoolean("chart_show_adx", it).apply() })
+                            PreferenceSwitch("+DI / −DI", showDi, { showDi = it; prefs.edit().putBoolean("chart_show_di", it).apply() })
+                            PreferenceSwitch("Xu hướng H1", showH1Trend, { showH1Trend = it; prefs.edit().putBoolean("chart_show_h1", it).apply() })
+                        }
+                    }
                 }
             }
-            item {
+            if (showRsi || showAdx) item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatCard("RSI (14)", shown.rsi, Modifier.weight(1f))
-                    StatCard("ADX (14)", shown.adx, Modifier.weight(1f))
+                    if (showRsi) StatCard("RSI (14)", shown.rsi, Modifier.weight(1f))
+                    if (showAdx) StatCard("ADX (14)", shown.adx, Modifier.weight(1f))
                 }
             }
             item {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(14.dp)).padding(14.dp)) {
                     Text("CHIẾN LƯỢC M15 / H1", color = Color.White, fontWeight = FontWeight.Bold)
-                    Text("H1 ADX " + fmt(h1Ind.adx) + " · +DI " + fmt(h1Ind.plusDi) + " · -DI " + fmt(h1Ind.minusDi), color = NMuted)
+                    if (showH1Trend) Text("Xu hướng H1: " + when {
+                        h1Ind.plusDi == null || h1Ind.minusDi == null -> "Đang tính"
+                        h1Ind.plusDi > h1Ind.minusDi -> "TĂNG"
+                        h1Ind.minusDi > h1Ind.plusDi -> "GIẢM"
+                        else -> "TRUNG TÍNH"
+                    }, color = NMuted)
+                    if (showDi) Text("H1 ADX " + fmt(h1Ind.adx) + " · +DI " + fmt(h1Ind.plusDi) + " · -DI " + fmt(h1Ind.minusDi), color = NMuted)
                     Text("Vị thế mô phỏng: " + (state.position?.side ?: "FLAT"), color = Color.White)
                     Text("Số dư mô phỏng: " + "%.2f".format(state.balance) + " USDT", color = Color.White)
                     state.position?.let { p ->
