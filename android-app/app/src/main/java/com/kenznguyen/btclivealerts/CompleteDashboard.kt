@@ -123,8 +123,8 @@ fun CompleteDashboard(context: Context) {
                     chart = cache.values.toList()
                     chartIndicators = engine.indicatorSeries(cache.values.toList())
                     if (timeframe == "15m") m15Data = cache.values.toList() else h1Data = cache.values.toList()
-                    m15Ind = if (timeframe == "15m") chartIndicators.lastOrNull() ?: IndicatorPoint() else engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
-                    h1Ind = if (timeframe == "1h") chartIndicators.lastOrNull() ?: IndicatorPoint() else engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                    m15Ind = if (timeframe == "15m") engine.indicatorSeries(cache.values.filter { it.closed }).lastOrNull() ?: IndicatorPoint() else engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                    h1Ind = if (timeframe == "1h") engine.indicatorSeries(cache.values.filter { it.closed }).lastOrNull() ?: IndicatorPoint() else engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
                     state = StrategyState.fromJson(prefs.getString("state_json", null))
                     val heartbeat = prefs.getLong("monitor_last_success_ms", 0L)
                     monitorHeartbeat = if (heartbeat > 0L) "Lần quét thành công: " + SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()).format(Date(heartbeat)) else "Chưa có lần quét thành công"
@@ -404,7 +404,6 @@ private fun LiveCandles(
     onVisibleCountChange: (Int) -> Unit, onPanBarsChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedOpenTime by remember { mutableStateOf<Long?>(null) }
     var selectedOpenTime by remember { mutableStateOf<Long?>(null) }
     Canvas(
         modifier
