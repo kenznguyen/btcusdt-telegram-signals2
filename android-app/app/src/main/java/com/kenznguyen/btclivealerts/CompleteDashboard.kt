@@ -116,11 +116,11 @@ fun CompleteDashboard(context: Context) {
                             val previousRsi = closedPoints.getOrNull(closedPoints.lastIndex - 1)?.rsi
                             val high = prefs.getInt("alert_rsi_m15_high", 70).toDouble().coerceIn(1.0, 99.0)
                             val low = prefs.getInt("alert_rsi_m15_low", 30).toDouble().coerceIn(1.0, 99.0)
-                            val condition = when {
+                            val condition = if (low < high) when {
                                 latestRsi != null && previousRsi != null && previousRsi < high && latestRsi >= high -> "HIGH"
                                 latestRsi != null && previousRsi != null && previousRsi > low && latestRsi <= low -> "LOW"
                                 else -> null
-                            }
+                            } else null
                             if (condition != null) {
                                 val dedupeKey = "alert_rsi_m15_last_event"
                                 val eventKey = "${candle.openTime}:$condition"
