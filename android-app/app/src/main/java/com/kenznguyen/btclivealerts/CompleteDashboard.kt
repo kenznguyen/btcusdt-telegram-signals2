@@ -117,14 +117,22 @@ fun CompleteDashboard(context: Context) {
             while (true) {
                 delay(60_000)
                 val reconciled = market.fetchCandles(timeframe, 500)
+                val otherTimeframe = if (timeframe == "15m") "1h" else "15m"
+                val otherReconciled = market.fetchCandles(otherTimeframe, 500)
                 mainHandler.post {
                     reconciled.forEach { cache[it.openTime] = it }
                     while (cache.size > 500) cache.pollFirstEntry()
                     chart = cache.values.toList()
                     chartIndicators = engine.indicatorSeries(cache.values.toList())
-                    if (timeframe == "15m") m15Data = cache.values.toList() else h1Data = cache.values.toList()
-                    m15Ind = if (timeframe == "15m") engine.indicatorSeries(cache.values.filter { it.closed }).lastOrNull() ?: IndicatorPoint() else engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
-                    h1Ind = if (timeframe == "1h") engine.indicatorSeries(cache.values.filter { it.closed }).lastOrNull() ?: IndicatorPoint() else engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                    if (timeframe == "15m") {
+                        m15Data = cache.values.toList()
+                        h1Data = otherReconciled
+                    } else {
+                        h1Data = cache.values.toList()
+                        m15Data = otherReconciled
+                    }
+                    m15Ind = engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                    h1Ind = engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
                     state = StrategyState.fromJson(prefs.getString("state_json", null))
                     val heartbeat = prefs.getLong("monitor_last_success_ms", 0L)
                     monitorHeartbeat = if (heartbeat > 0L) "Lần quét thành công: " + SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()).format(Date(heartbeat)) else "Chưa có lần quét thành công"
