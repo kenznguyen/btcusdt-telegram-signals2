@@ -405,14 +405,18 @@ private fun LiveCandles(
     modifier: Modifier = Modifier
 ) {
     var selectedOpenTime by remember { mutableStateOf<Long?>(null) }
+    val currentVisibleCount by rememberUpdatedState(visibleCount)
+    val currentPanBars by rememberUpdatedState(panBars)
+    val latestOnVisibleCountChange by rememberUpdatedState(onVisibleCountChange)
+    val latestOnPanBarsChange by rememberUpdatedState(onPanBarsChange)
     Canvas(
         modifier
             .background(NBg, RoundedCornerShape(8.dp))
             .pointerInput(candles.size, visibleCount) {
                 detectTapGestures { point ->
                     if (candles.isNotEmpty()) {
-                        val end = (candles.size - panBars).coerceIn(1, candles.size)
-                        val start = (end - visibleCount).coerceAtLeast(0)
+                        val end = (candles.size - currentPanBars).coerceIn(1, candles.size)
+                        val start = (end - currentVisibleCount).coerceAtLeast(0)
                         val shown = candles.subList(start, end)
                         val index = (point.x / size.width * shown.size).toInt().coerceIn(0, shown.lastIndex)
                         selectedOpenTime = shown[index].openTime
@@ -422,21 +426,21 @@ private fun LiveCandles(
             .pointerInput(candles.size, visibleCount) {
                 detectDragGestures { change, drag ->
                     change.consume()
-                    val shown = visibleCount.coerceAtLeast(1)
+                    val shown = currentVisibleCount.coerceAtLeast(1)
                     val bars = (drag.x / size.width * shown).toInt()
-                    onPanBarsChange((panBars + bars).coerceIn(0, (candles.size - 1).coerceAtLeast(0)))
+                    latestOnPanBarsChange((currentPanBars + bars).coerceIn(0, (candles.size - 1).coerceAtLeast(0)))
                 }
             }
             .pointerInput(candles.size) {
                 detectTransformGestures { _, _, zoom, _ ->
-                    onVisibleCountChange((visibleCount / zoom).toInt().coerceIn(20, 150))
-                    onPanBarsChange(panBars.coerceIn(0, (candles.size - 1).coerceAtLeast(0)))
+                    latestOnVisibleCountChange((currentVisibleCount / zoom).toInt().coerceIn(20, 150))
+                    latestOnPanBarsChange(currentPanBars.coerceIn(0, (candles.size - 1).coerceAtLeast(0)))
                 }
             }
     ) {
         if (candles.isEmpty() || size.width <= 0f || size.height <= 0f) return@Canvas
-        val end = (candles.size - panBars).coerceIn(1, candles.size)
-        val start = (end - visibleCount).coerceAtLeast(0)
+        val end = (candles.size - currentPanBars).coerceIn(1, candles.size)
+        val start = (end - currentVisibleCount).coerceAtLeast(0)
         val data = candles.subList(start, end)
         if (data.isEmpty()) return@Canvas
 
