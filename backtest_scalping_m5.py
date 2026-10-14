@@ -1,6 +1,6 @@
 """Historical OHLC backtest for the isolated BTCUSDT M5 scalping prototype.
 
-Uses confirmed OKX candles, closed M15 trend filter, one position at a time,
+Uses confirmed OKX candles, closed M15 + H1 trend filters, one position at a time,
 no DCA, fee/slippage estimates, and conservative stop-first intrabar handling.
 """
 import argparse
@@ -21,7 +21,8 @@ ADX_SMOOTH = 14
 
 
 def fetch_history(bar, days, page_limit=300):
-    duration = pd.Timedelta(minutes=5 if bar == "5m" else 15)
+    duration = {"5m": pd.Timedelta(minutes=5), "15m": pd.Timedelta(minutes=15),
+                "1H": pd.Timedelta(hours=1)}[bar]
     start_ms = int((pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=days)).timestamp() * 1000)
     rows, after = [], None
     session = requests.Session()
@@ -109,13 +110,18 @@ def run_backtest(days=90, leverage=13.0, fee_rate=0.0005, slippage_bps=5.0,
                  hard_sl_roe=-90.0, soft_sl_roe=-35.0, start_balance=100.0):
     m5 = add_indicators(fetch_history("5m", days))
     m15 = add_indicators(fetch_history("15m", days))
-    if len(m5) < 100 or len(m15) < 100:
-        raise RuntimeError(f"Not enough data: M5={len(m5)}, M15={len(m15)}")
+    h1 = add_indicators(fetch_history("1H", days))
+    if len(m5) < 100 or len(m15) < 100 or len(h1) < 50:
+        raise RuntimeError(f"Not enough data: M5={len(m5)}, M15={len(m15)}, H1={len(h1)}")
 
-    # For each M5 close, map only to an M15 candle whose close time is <= that close.
-    trend = m15[["close_time", "rsi", "adx", "plus_di", "minus_di"]].rename(
+    # Map only fully closed M15/H1 candles to each closed M5 candle.
+    trend15 = m15[["close_time", "rsi", "adx", "plus_di", "minus_di"]].rename(
         columns={"rsi": "rsi15", "adx": "adx15", "plus_di": "plus15", "minus_di": "minus15"})
-    d = pd.merge_asof(m5.sort_values("close_time"), trend.sort_values("close_time"),
+    trend1h = h1[["close_time", "rsi", "adx", "plus_di", "minus_di"]].rename(
+        columns={"rsi": "rsi1h", "adx": "adx1h", "plus_di": "plus1h", "minus_di": "minus1h"})
+    d = pd.merge_asof(m5.sort_values("close_time"), trend15.sort_values("close_time"),
+                      on="close_time", direction="backward", allow_exact_matches=True)
+    d = pd.merge_asof(d.sort_values("close_time"), trend1h.sort_values("close_time"),
                       on="close_time", direction="backward", allow_exact_matches=True)
     d = d.reset_index(drop=True)
 
@@ -135,16 +141,22 @@ def run_backtest(days=90, leverage=13.0, fee_rate=0.0005, slippage_bps=5.0,
         # action_side is the position direction: conservative adverse fill.
         return raw * (1 + slippage) if action_side == "LONG" else raw * (1 - slippage)
 
-    for i in range(1, len(d)):
-        r, p = d.iloc[i], d.iloc[i - 1]
-        vals = [r.rsi, r.adx, r.atr, r.rsi15, r.adx15, r.plus15, r.minus15, r.plus_di, r.minus_di]
+    for i in range(2, len(d)):
+        r, p, p2 = d.iloc[i], d.iloc[i - 1], d.iloc[i - 2]
+        vals = [r.rsi, r.adx, r.atr, r.rsi15, r.adx15, r.plus15, r.minus15,
+                r.rsi1h, r.adx1h, r.plus1h, r.minus1h, r.plus_di, r.minus_di]
         if not np.isfinite(np.array(vals, dtype=float)).all():
             equity_curve.append({"time": r.close_time.isoformat(), "equity": balance})
             continue
         price = float(r.close)
         m15_long = r.adx15 > m15_adx_min and r.plus15 > r.minus15 and r.rsi15 > 50
         m15_short = r.adx15 > m15_adx_min and r.minus15 > r.plus15 and r.rsi15 < 50
-        m15_reverse = (side == "LONG" and m15_short) or (side == "SHORT" and m15_long)
+        h1_long = r.adx1h > m15_adx_min and r.plus1h > r.minus1h and r.rsi1h > 50
+        h1_short = r.adx1h > m15_adx_min and r.minus1h > r.plus1h and r.rsi1h < 50
+        trend_long = m15_long and h1_long
+        trend_short = m15_short and h1_short
+        trend_reverse = (side == "LONG" and m15_short and h1_short) or (
+            side == "SHORT" and m15_long and h1_long)
         exit_reason, exit_raw = None, price
 
         if side:
@@ -159,10 +171,14 @@ def run_backtest(days=90, leverage=13.0, fee_rate=0.0005, slippage_bps=5.0,
             elif gross_roe_close >= tp_roe and ((side == "LONG" and r.rsi >= 70) or (side == "SHORT" and r.rsi <= 30)):
                 exit_reason = "TAKE_PROFIT"
             else:
-                opposite = (side == "LONG" and price < float(p.low) and r.rsi < 50) or (
+                # Soft SL requires two consecutive CLOSED M5 candles to confirm reversal.
+                opposite_now = (side == "LONG" and price < float(p.low) and r.rsi < 50) or (
                     side == "SHORT" and price > float(p.high) and r.rsi > 50)
-                if gross_roe_close <= soft_sl_roe and m15_reverse and opposite:
-                    exit_reason = "SOFT_SL_ROE_MINUS_35_M15_REVERSAL"
+                prev_close = float(p.close)
+                opposite_prev = (side == "LONG" and prev_close < float(p2.low) and float(p.rsi) < 50) or (
+                    side == "SHORT" and prev_close > float(p2.high) and float(p.rsi) > 50)
+                if gross_roe_close <= soft_sl_roe and trend_reverse and opposite_now and opposite_prev:
+                    exit_reason = "SOFT_SL_ROE_MINUS_35_M15_H1_REVERSAL_2X_M5"
             if exit_reason:
                 exit_fill = fill_price(exit_raw, "SHORT" if side == "LONG" else "LONG")
                 qty = 1.0 / entry if entry else 0.0  # normalized notional; PnL in account-currency units below
@@ -184,9 +200,9 @@ def run_backtest(days=90, leverage=13.0, fee_rate=0.0005, slippage_bps=5.0,
                 side, entry, stop, entry_fee, entry_time = None, 0.0, 0.0, 0.0, None
                 cooldown_index = i
         elif i > cooldown_index + 1 and float(r.adx) > m5_adx_min:
-            long_entry = (m15_long and 40 <= float(p.rsi) <= 50 and float(r.rsi) > 50
+            long_entry = (trend_long and 40 <= float(p.rsi) <= 50 and float(r.rsi) > 50
                           and float(r.plus_di) > float(r.minus_di) and price > float(p.high))
-            short_entry = (m15_short and 50 <= float(p.rsi) <= 60 and float(r.rsi) < 50
+            short_entry = (trend_short and 50 <= float(p.rsi) <= 60 and float(r.rsi) < 50
                            and float(r.minus_di) > float(r.plus_di) and price < float(p.low))
             if long_entry or short_entry:
                 side = "LONG" if long_entry else "SHORT"
@@ -210,10 +226,10 @@ def run_backtest(days=90, leverage=13.0, fee_rate=0.0005, slippage_bps=5.0,
     gross_loss = abs(sum(min(0, t["net_pnl"]) for t in trades))
     total_net = sum(t["net_pnl"] for t in trades)
     result = {
-        "symbol": "BTCUSDT (OKX BTC-USDT-SWAP candles)", "strategy": "M5 scalping with closed M15 trend filter",
+        "symbol": "BTCUSDT (OKX BTC-USDT-SWAP candles)", "strategy": "M5 entry with closed M15 + H1 trend filters; Soft SL needs 2 closed M5 confirmations",
         "period_days_requested": days, "data_start_utc": m5.open_time.iloc[0].isoformat(),
         "data_end_utc": m5.close_time.iloc[-1].isoformat(), "m5_candles": int(len(m5)),
-        "m15_candles": int(len(m15)), "starting_balance": start_balance,
+        "m15_candles": int(len(m15)), "h1_candles": int(len(h1)), "starting_balance": start_balance,
         "ending_balance_realized_only": round(start_balance + total_net, 4),
         "net_pnl": round(total_net, 4), "net_return_pct": round(total_net / start_balance * 100, 4),
         "trades": len(trades), "wins": wins, "losses": losses,
@@ -223,7 +239,7 @@ def run_backtest(days=90, leverage=13.0, fee_rate=0.0005, slippage_bps=5.0,
         "max_drawdown_close_to_close_pct": round(max_dd_pct, 4),
         "leverage_estimate": leverage, "fee_rate_per_side": fee_rate,
         "slippage_bps_per_side": slippage_bps, "dca": "disabled",
-        "open_position_at_end": side, "hard_sl_roe": hard_sl_roe, "soft_sl_roe": soft_sl_roe, "warning": "Approximate OHLC backtest; hard SL uses -90% gross ROE and candle high/low, but gap fills may be worse. No funding/liquidation/tick data; unrealized PnL excluded from equity curve; not a profit guarantee.",
+        "open_position_at_end": side, "hard_sl_roe": hard_sl_roe, "soft_sl_roe": soft_sl_roe, "warning": "Approximate OHLC backtest; M5 entries require both latest fully closed M15 and H1 trends; Soft SL requires trend reversal on both timeframes plus two consecutive closed M5 reversal candles. Hard SL uses -90% gross ROE and candle high/low, but gap fills may be worse. No funding/liquidation/tick data; unrealized PnL excluded from equity curve; not a profit guarantee.",
         "trade_list": trades
     }
     Path("backtest_m5_90d_result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
