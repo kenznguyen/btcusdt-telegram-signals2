@@ -10,6 +10,9 @@ import argparse
 import json
 import os
 import time
+import io
+import zipfile
+import calendar
 from pathlib import Path
 
 import numpy as np
@@ -24,31 +27,9 @@ SLIPPAGE_TICKS = int(os.getenv("SLIPPAGE_TICKS", "2"))
 TICK_SIZE = float(os.getenv("TICK_SIZE", "0.1"))
 
 
-def fetch_klines(interval: str, start_ms: int, end_ms: int) -> pd.DataFrame:
-    rows: list[list] = []
-    cursor = start_ms
-    session = requests.Session()
-    while cursor < end_ms:
-        response = session.get(
-            f"{BASE_URL}/fapi/v1/klines",
-            params={"symbol": SYMBOL, "interval": interval, "startTime": cursor,
-                    "endTime": end_ms, "limit": 1500},
-            timeout=30,
-        )
-        response.raise_for_status()
-        batch = response.json()
-        if not batch:
-            break
-        rows.extend(batch)
-        next_cursor = int(batch[-1][0]) + 1
-        if next_cursor <= cursor:
-            raise RuntimeError("Binance klines pagination did not advance.")
-        cursor = next_cursor
-        if len(batch) < 1500:
-            break
-        time.sleep(0.12)
+def _normalise_klines(rows: list[list]) -> pd.DataFrame:
     if not rows:
-        raise RuntimeError(f"No {interval} candles returned for {SYMBOL}.")
+        raise RuntimeError(f"No candles returned for {SYMBOL}.")
     columns = ["open_ms", "open", "high", "low", "close", "volume", "close_ms",
                "quote_volume", "trades", "taker_base", "taker_quote", "ignore"]
     df = pd.DataFrame(rows, columns=columns)
@@ -57,9 +38,116 @@ def fetch_klines(interval: str, start_ms: int, end_ms: int) -> pd.DataFrame:
     df["open_time"] = pd.to_datetime(pd.to_numeric(df["open_ms"]), unit="ms", utc=True)
     df["close_time"] = pd.to_datetime(pd.to_numeric(df["close_ms"]), unit="ms", utc=True)
     df = df.drop_duplicates("open_time").sort_values("open_time")
-    # Do not use a currently unfinished candle.
     now = pd.Timestamp.now(tz="UTC")
     return df.loc[df["close_time"] < now].reset_index(drop=True)
+
+
+def _read_archive_zip(url: str, session: requests.Session) -> list[list] | None:
+    response = session.get(url, timeout=45)
+    if response.status_code == 404:
+        return None
+    response.raise_for_status()
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        csv_names = [name for name in archive.namelist() if name.lower().endswith(".csv")]
+        if not csv_names:
+            return None
+        with archive.open(csv_names[0]) as stream:
+            frame = pd.read_csv(stream, header=None)
+    return frame.values.tolist()
+
+
+def _fetch_from_data_vision(interval: str, start_ms: int, end_ms: int) -> pd.DataFrame:
+    """Fallback to Binance's public historical archive when the REST API is region-blocked."""
+    session = requests.Session()
+    start = pd.to_datetime(start_ms, unit="ms", utc=True).normalize()
+    end = pd.to_datetime(end_ms, unit="ms", utc=True).normalize()
+    rows: list[list] = []
+    month = pd.Timestamp(year=start.year, month=start.month, day=1, tz="UTC")
+    last_month = pd.Timestamp(year=end.year, month=end.month, day=1, tz="UTC")
+    now = pd.Timestamp.now(tz="UTC")
+    while month <= last_month:
+        next_month = month + pd.offsets.MonthBegin(1)
+        # Binance publishes completed months as monthly archives. For the current
+        # month use daily archives so recent completed candles are available.
+        if next_month <= now.normalize():
+            filename = f"{SYMBOL}-{interval}-{month.year:04d}-{month.month:02d}.zip"
+            url = (f"https://data.binance.vision/data/futures/um/monthly/klines/"
+                   f"{SYMBOL}/{interval}/{filename}")
+            batch = _read_archive_zip(url, session)
+            if batch is None:
+                # If an older monthly archive is absent, recover from daily archives.
+                day = month
+                while day < next_month:
+                    daily = f"{SYMBOL}-{interval}-{day:%Y-%m-%d}.zip"
+                    daily_url = (f"https://data.binance.vision/data/futures/um/daily/klines/"
+                                 f"{SYMBOL}/{interval}/{daily}")
+                    daily_rows = _read_archive_zip(daily_url, session)
+                    if daily_rows:
+                        rows.extend(daily_rows)
+                    day += pd.Timedelta(days=1)
+        else:
+            day = max(month, start)
+            month_end = min(next_month, end + pd.Timedelta(days=1))
+            while day < month_end:
+                daily = f"{SYMBOL}-{interval}-{day:%Y-%m-%d}.zip"
+                daily_url = (f"https://data.binance.vision/data/futures/um/daily/klines/"
+                             f"{SYMBOL}/{interval}/{daily}")
+                daily_rows = _read_archive_zip(daily_url, session)
+                if daily_rows:
+                    rows.extend(daily_rows)
+                day += pd.Timedelta(days=1)
+        month = next_month
+
+    if not rows:
+        raise RuntimeError(
+            f"Could not download {SYMBOL} {interval} klines from Binance Data Vision. "
+            "Check whether the archive is reachable from this runner and whether the symbol "
+            "has data for the requested period."
+        )
+    df = _normalise_klines(rows)
+    start_time = pd.to_datetime(start_ms, unit="ms", utc=True)
+    end_time = pd.to_datetime(end_ms, unit="ms", utc=True)
+    return df[(df["open_time"] >= start_time) & (df["open_time"] < end_time)].reset_index(drop=True)
+
+
+def fetch_klines(interval: str, start_ms: int, end_ms: int) -> pd.DataFrame:
+    rows: list[list] = []
+    cursor = start_ms
+    session = requests.Session()
+    try:
+        while cursor < end_ms:
+            response = session.get(
+                f"{BASE_URL}/fapi/v1/klines",
+                params={"symbol": SYMBOL, "interval": interval, "startTime": cursor,
+                        "endTime": end_ms, "limit": 1500},
+                timeout=30,
+            )
+            # Binance returns HTTP 451 when access is restricted from the runner's region.
+            # Switch to public archive instead of failing the entire workflow.
+            if response.status_code == 451:
+                print(f"REST API returned 451 for {interval}; falling back to Binance Data Vision.")
+                return _fetch_from_data_vision(interval, start_ms, end_ms)
+            response.raise_for_status()
+            batch = response.json()
+            if not batch:
+                break
+            rows.extend(batch)
+            next_cursor = int(batch[-1][0]) + 1
+            if next_cursor <= cursor:
+                raise RuntimeError("Binance klines pagination did not advance.")
+            cursor = next_cursor
+            if len(batch) < 1500:
+                break
+            time.sleep(0.12)
+        if not rows:
+            # Empty REST response: attempt the archive fallback too.
+            return _fetch_from_data_vision(interval, start_ms, end_ms)
+        return _normalise_klines(rows)
+    except requests.RequestException as exc:
+        # Network errors/region blocks can also affect REST access; archive access is
+        # attempted once, and will raise a clear error if it is unavailable too.
+        print(f"Binance REST request failed for {interval}: {exc}. Trying Data Vision archive.")
+        return _fetch_from_data_vision(interval, start_ms, end_ms)
 
 
 def rma(series: pd.Series, length: int) -> pd.Series:
