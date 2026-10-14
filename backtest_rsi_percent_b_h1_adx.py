@@ -12,7 +12,6 @@ import os
 import time
 import io
 import zipfile
-import calendar
 from pathlib import Path
 
 import numpy as np
@@ -35,8 +34,12 @@ def _normalise_klines(rows: list[list]) -> pd.DataFrame:
     df = pd.DataFrame(rows, columns=columns)
     for col in ("open", "high", "low", "close", "volume"):
         df[col] = pd.to_numeric(df[col], errors="coerce")
-    df["open_time"] = pd.to_datetime(pd.to_numeric(df["open_ms"]), unit="ms", utc=True)
-    df["close_time"] = pd.to_datetime(pd.to_numeric(df["close_ms"]), unit="ms", utc=True)
+    # Binance archive CSVs may include a header row; discard malformed rows safely.
+    df["open_ms"] = pd.to_numeric(df["open_ms"], errors="coerce")
+    df["close_ms"] = pd.to_numeric(df["close_ms"], errors="coerce")
+    df = df.dropna(subset=["open_ms", "close_ms", "open", "high", "low", "close"])
+    df["open_time"] = pd.to_datetime(df["open_ms"], unit="ms", utc=True)
+    df["close_time"] = pd.to_datetime(df["close_ms"], unit="ms", utc=True)
     df = df.drop_duplicates("open_time").sort_values("open_time")
     now = pd.Timestamp.now(tz="UTC")
     return df.loc[df["close_time"] < now].reset_index(drop=True)
