@@ -18,8 +18,8 @@ ADX_SMOOTHING = int(os.getenv("SCALP_ADX_SMOOTHING", "14"))
 M15_ADX_MIN = float(os.getenv("SCALP_M15_ADX_MIN", "20"))
 M5_ADX_MIN = float(os.getenv("SCALP_M5_ADX_MIN", "18"))
 TP_ROE = float(os.getenv("SCALP_TP_ROE", "3"))
-EMERGENCY_SL_ROE = float(os.getenv("SCALP_EMERGENCY_SL_ROE", "-35"))
-ATR_MULTIPLIER = float(os.getenv("SCALP_ATR_MULTIPLIER", "1.5"))
+SOFT_SL_ROE = float(os.getenv("SCALP_SOFT_SL_ROE", "-35"))
+HARD_SL_ROE = float(os.getenv("SCALP_HARD_SL_ROE", "-90"))
 FEE_RATE = float(os.getenv("SCALP_TAKER_FEE_RATE", "0.0005"))
 STATE_FILE = "scalping_state.json"
 API_URL = "https://www.okx.com/api/v5/market/history-candles"
@@ -122,7 +122,7 @@ def telegram_send(message):
 
 def load_state():
     default = {"last_m5_open": None, "side": None, "entry": None,
-               "entry_time": None, "stop": None, "last_exit_time": None}
+               "entry_time": None, "last_exit_time": None}
     try:
         with open(STATE_FILE, "r", encoding="utf-8") as f:
             default.update(json.load(f))
@@ -176,36 +176,34 @@ def main():
         entry = float(state["entry"])
         exit_price = price
         current_roe = roe(side, entry, price)
-        stop_price = float(state["stop"])
-        # Approximate intrabar stop touch from the completed candle OHLC.
-        # If the candle opens through the stop, use its open as a conservative gap fill.
-        stop_hit = float(row["low"]) <= stop_price if side == "LONG" else float(row["high"]) >= stop_price
-        if stop_hit:
-            exit_price = min(float(row["open"]), stop_price) if side == "LONG" else max(float(row["open"]), stop_price)
+        # Hard SL is based on intrabar ROE, not ATR.
+        adverse_move = abs(HARD_SL_ROE) / (LEVERAGE * 100)
+        hard_stop_price = entry * (1 - adverse_move) if side == "LONG" else entry * (1 + adverse_move)
+        hard_stop_hit = float(row["low"]) <= hard_stop_price if side == "LONG" else float(row["high"]) >= hard_stop_price
+        if hard_stop_hit:
+            exit_price = min(float(row["open"]), hard_stop_price) if side == "LONG" else max(float(row["open"]), hard_stop_price)
         exit_roe = roe(side, entry, exit_price)
         opposite_confirm = (side == "LONG" and price < float(prev["low"]) and rsi < 50) or (
             side == "SHORT" and price > float(prev["high"]) and rsi > 50)
         tp_rsi = (side == "LONG" and rsi >= 70) or (side == "SHORT" and rsi <= 30)
-        if current_roe <= EMERGENCY_SL_ROE:
-            event = ("EMERGENCY SL", side, current_roe)
-        elif stop_hit:
-            event = ("HARD SL (ATR)", side, exit_roe)
+        if hard_stop_hit:
+            event = ("HARD SL (ROE -90%)", side, exit_roe)
         elif current_roe >= TP_ROE and tp_rsi:
             event = ("TAKE PROFIT", side, current_roe)
-        elif (m15_reverse and opposite_confirm):
-            event = ("SOFT SL (M15 REVERSAL)", side, current_roe)
+        elif current_roe <= SOFT_SL_ROE and m15_reverse and opposite_confirm:
+            event = ("SOFT SL (ROE -35% + M15 REVERSAL)", side, current_roe)
         if event:
             telegram_send(
                 f"{'✅' if event[0] == 'TAKE PROFIT' else '🚨' if 'EMERGENCY' in event[0] else '⚠️'} "
                 f"BTCUSDT M5 SCALP — {event[0]}\nSide: {side}\n"
                 f"Entry: {entry:,.2f}\nExit reference: {exit_price:,.2f}\n"
-                f"Gross ROE estimate: {current_roe:.2f}%\n"
+                f"Gross ROE estimate: {(exit_roe if hard_stop_hit else current_roe):.2f}%\n"
                 f"M5 RSI/ADX: {rsi:.2f}/{adx:.2f}\n"
                 f"M15 trend: {'LONG' if m15_long else 'SHORT' if m15_short else 'NO TRADE'}\n"
                 f"Candle close: {row['close_time'].strftime('%Y-%m-%d %H:%M UTC')}\n"
                 "Signal-only simulation; no exchange order was placed."
             )
-            state.update({"side": None, "entry": None, "entry_time": None, "stop": None,
+            state.update({"side": None, "entry": None, "entry_time": None,
                           "last_exit_time": candle_key})
     elif state.get("last_exit_time") != candle_key and adx > M5_ADX_MIN:
         long_entry = (m15_long and 40 <= float(prev["rsi"]) <= 50 and rsi > 50
@@ -214,12 +212,13 @@ def main():
                        and minus5 > plus5 and price < float(prev["low"]))
         if long_entry or short_entry:
             side = "LONG" if long_entry else "SHORT"
-            atr = float(row["atr"])
-            stop = price - ATR_MULTIPLIER * atr if side == "LONG" else price + ATR_MULTIPLIER * atr
-            state.update({"side": side, "entry": price, "entry_time": candle_key, "stop": stop})
+            hard_move = abs(HARD_SL_ROE) / (LEVERAGE * 100)
+            hard_stop = price * (1 - hard_move) if side == "LONG" else price * (1 + hard_move)
+            state.update({"side": side, "entry": price, "entry_time": candle_key})
             telegram_send(
                 f"{'🟢' if side == 'LONG' else '🔴'} BTCUSDT M5 SCALP — {side} ENTRY\n"
-                f"Entry reference: {price:,.2f}\nATR stop reference: {stop:,.2f}\n"
+                f"Entry reference: {price:,.2f}\nHard SL (-90% ROE) reference: {hard_stop:,.2f}\n"
+                f"Soft SL: ROE <= {SOFT_SL_ROE:.1f}% plus confirmed M15 reversal\n"
                 f"TP condition: ROE estimate >= {TP_ROE:.1f}% plus M5 RSI "
                 f"{' >= 70' if side == 'LONG' else ' <= 30'}\n"
                 f"M5 RSI/ADX: {rsi:.2f}/{adx:.2f}\n"
