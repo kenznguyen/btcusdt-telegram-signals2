@@ -1,0 +1,47 @@
+name: BTCUSDT M5 Scalping Scanner
+run-name: BTCUSDT M5 scalping scan
+
+on:
+  schedule:
+    # Independent scanner; entries only evaluate newly closed M5 candles.
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: btcusdt-m5-scalping-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install requests pandas numpy
+      - name: Restore independent scalping state
+        uses: actions/cache@v4
+        with:
+          path: scalping_state.json
+          key: btcusdt-m5-scalp-state-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            btcusdt-m5-scalp-state-
+      - name: Scan closed M5 candles
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SCALP_LEVERAGE: "13"
+          SCALP_M15_ADX_MIN: "20"
+          SCALP_M5_ADX_MIN: "18"
+          SCALP_TP_ROE: "3"
+          SCALP_EMERGENCY_SL_ROE: "-35"
+          SCALP_ATR_MULTIPLIER: "1.5"
+        run: python scalping_bot.py
