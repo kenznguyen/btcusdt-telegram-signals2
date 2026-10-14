@@ -191,7 +191,7 @@ def run_backtest(days=90, leverage=13.0, fee_rate=0.0005, slippage_bps=5.0,
             if long_entry or short_entry:
                 side = "LONG" if long_entry else "SHORT"
                 entry = fill_price(price, side)
-                stop = entry - atr_mult * float(r.atr) if side == "LONG" else entry + atr_mult * float(r.atr)
+                stop = None  # Hard SL is calculated from the -90% ROE threshold.
                 entry_time = r.close_time
                 notional = start_balance * leverage
                 entry_fee = notional * fee_rate
@@ -223,7 +223,7 @@ def run_backtest(days=90, leverage=13.0, fee_rate=0.0005, slippage_bps=5.0,
         "max_drawdown_close_to_close_pct": round(max_dd_pct, 4),
         "leverage_estimate": leverage, "fee_rate_per_side": fee_rate,
         "slippage_bps_per_side": slippage_bps, "dca": "disabled",
-        "open_position_at_end": side, "warning": "Approximate OHLC backtest; no funding/liquidation/tick data; unrealized PnL excluded from equity curve; not a profit guarantee.",
+        "open_position_at_end": side, "hard_sl_roe": hard_sl_roe, "soft_sl_roe": soft_sl_roe, "warning": "Approximate OHLC backtest; hard SL uses -90% gross ROE and candle high/low, but gap fills may be worse. No funding/liquidation/tick data; unrealized PnL excluded from equity curve; not a profit guarantee.",
         "trade_list": trades
     }
     Path("backtest_m5_90d_result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
