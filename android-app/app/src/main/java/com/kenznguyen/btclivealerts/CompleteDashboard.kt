@@ -183,12 +183,16 @@ fun CompleteDashboard(context: Context) {
             item {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(14.dp)).padding(14.dp)) {
                     Text("CHIẾN LƯỢC M15 / H1", color = Color.White, fontWeight = FontWeight.Bold)
-                    if (showH1Trend) Text("Xu hướng H1: " + when {
-                        h1Ind.plusDi == null || h1Ind.minusDi == null -> "Đang tính"
-                        h1Ind.plusDi > h1Ind.minusDi -> "TĂNG"
-                        h1Ind.minusDi > h1Ind.plusDi -> "GIẢM"
-                        else -> "TRUNG TÍNH"
-                    }, color = NMuted)
+                    if (showH1Trend) {
+                        val plusDiValue = h1Ind.plusDi
+                        val minusDiValue = h1Ind.minusDi
+                        Text("Xu hướng H1: " + when {
+                            plusDiValue == null || minusDiValue == null -> "Đang tính"
+                            plusDiValue > minusDiValue -> "TĂNG"
+                            minusDiValue > plusDiValue -> "GIẢM"
+                            else -> "TRUNG TÍNH"
+                        }, color = NMuted)
+                    }
                     if (showDi) Text("H1 ADX " + fmt(h1Ind.adx) + " · +DI " + fmt(h1Ind.plusDi) + " · -DI " + fmt(h1Ind.minusDi), color = NMuted)
                     Text("Vị thế mô phỏng: " + (state.position?.side ?: "FLAT"), color = Color.White)
                     Text("Số dư mô phỏng: " + "%.2f".format(state.balance) + " USDT", color = Color.White)
