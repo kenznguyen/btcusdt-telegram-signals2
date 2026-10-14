@@ -81,6 +81,7 @@ fun CompleteDashboard(context: Context) {
     var socketStatus by remember { mutableStateOf("Đang đồng bộ REST…") }
 
     LaunchedEffect(timeframe) {
+        chartPanBars = 0
         val mainHandler = Handler(Looper.getMainLooper())
         var socket: WebSocket? = null
         try {
@@ -192,7 +193,7 @@ fun CompleteDashboard(context: Context) {
                         onPanBarsChange = { chartPanBars = it },
                         modifier = Modifier.fillMaxWidth().height(260.dp)
                     )
-                    val viewEnd = (chart.size - chartPanBars).coerceIn(0, chart.size)
+                    val viewEnd = if (chart.isEmpty()) 0 else (chart.size - chartPanBars).coerceIn(1, chart.size)
                     val viewStart = (viewEnd - chartVisibleCount).coerceAtLeast(0)
                     val visibleIndicators = chartIndicators.drop(viewStart).take((viewEnd - viewStart).coerceAtLeast(0))
                     if (showRsi) {
