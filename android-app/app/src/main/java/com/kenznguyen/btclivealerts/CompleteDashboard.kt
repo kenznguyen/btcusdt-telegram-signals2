@@ -71,6 +71,8 @@ fun CompleteDashboard(context: Context) {
     var m15Ind by remember { mutableStateOf(IndicatorPoint()) }
     var h1Ind by remember { mutableStateOf(IndicatorPoint()) }
     var chartIndicators by remember { mutableStateOf<List<IndicatorPoint>>(emptyList()) }
+    var chartVisibleCount by remember { mutableIntStateOf(70) }
+    var chartPanBars by remember { mutableIntStateOf(0) }
     var showRsi by remember { mutableStateOf(prefs.getBoolean("chart_show_rsi", true)) }
     var showAdx by remember { mutableStateOf(prefs.getBoolean("chart_show_adx", true)) }
     var showDi by remember { mutableStateOf(prefs.getBoolean("chart_show_di", true)) }
@@ -176,11 +178,19 @@ fun CompleteDashboard(context: Context) {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(14.dp)).padding(12.dp)) {
                     Text("Candlestick · " + timeframe.uppercase(), color = Color.White, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(8.dp))
-                    LiveCandles(chart, price, Modifier.fillMaxWidth().height(260.dp))
+                    LiveCandles(
+                        chart, price, chartVisibleCount, chartPanBars,
+                        onVisibleCountChange = { chartVisibleCount = it },
+                        onPanBarsChange = { chartPanBars = it },
+                        modifier = Modifier.fillMaxWidth().height(260.dp)
+                    )
+                    val viewEnd = (chart.size - chartPanBars).coerceIn(0, chart.size)
+                    val viewStart = (viewEnd - chartVisibleCount).coerceAtLeast(0)
+                    val visibleIndicators = chartIndicators.drop(viewStart).take((viewEnd - viewStart).coerceAtLeast(0))
                     if (showRsi) {
                         Spacer(Modifier.height(10.dp))
                         IndicatorLineChart(
-                            title = "RSI (14)", points = chartIndicators, valueSelector = { it.rsi },
+                            title = "RSI (14)", points = visibleIndicators, valueSelector = { it.rsi },
                             minValue = 0.0, maxValue = 100.0, thresholds = listOf(30.0, 70.0),
                             lineColor = Color(0xFF9B8AFB), modifier = Modifier.fillMaxWidth().height(112.dp)
                         )
@@ -189,7 +199,7 @@ fun CompleteDashboard(context: Context) {
                         Spacer(Modifier.height(10.dp))
                         IndicatorLineChart(
                             title = if (showDi) "ADX (14) · +DI · −DI" else "ADX (14)",
-                            points = chartIndicators, valueSelector = { it.adx },
+                            points = visibleIndicators, valueSelector = { it.adx },
                             secondarySelectors = if (showDi) listOf({ p: IndicatorPoint -> p.plusDi }, { p: IndicatorPoint -> p.minusDi }) else emptyList(),
                             minValue = 0.0, maxValue = 100.0, thresholds = listOf(20.0, 25.0, 45.0),
                             lineColor = Color(0xFFFFC857), modifier = Modifier.fillMaxWidth().height(112.dp)
@@ -389,9 +399,12 @@ private fun StatCard(label: String, value: Double?, modifier: Modifier = Modifie
 }
 
 @Composable
-private fun LiveCandles(candles: List<Candle>, markPrice: Double?, modifier: Modifier = Modifier) {
-    var visibleCount by remember { mutableIntStateOf(70) }
-    var panBars by remember { mutableIntStateOf(0) }
+private fun LiveCandles(
+    candles: List<Candle>, markPrice: Double?, visibleCount: Int, panBars: Int,
+    onVisibleCountChange: (Int) -> Unit, onPanBarsChange: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var selectedOpenTime by remember { mutableStateOf<Long?>(null) }
     var selectedOpenTime by remember { mutableStateOf<Long?>(null) }
     Canvas(
         modifier
@@ -412,13 +425,13 @@ private fun LiveCandles(candles: List<Candle>, markPrice: Double?, modifier: Mod
                     change.consume()
                     val shown = visibleCount.coerceAtLeast(1)
                     val bars = (drag.x / size.width * shown).toInt()
-                    panBars = (panBars + bars).coerceIn(0, (candles.size - 1).coerceAtLeast(0))
+                    onPanBarsChange((panBars + bars).coerceIn(0, (candles.size - 1).coerceAtLeast(0)))
                 }
             }
             .pointerInput(candles.size) {
                 detectTransformGestures { _, _, zoom, _ ->
-                    visibleCount = (visibleCount / zoom).toInt().coerceIn(20, 150)
-                    panBars = panBars.coerceIn(0, (candles.size - 1).coerceAtLeast(0))
+                    onVisibleCountChange((visibleCount / zoom).toInt().coerceIn(20, 150))
+                    onPanBarsChange(panBars.coerceIn(0, (candles.size - 1).coerceAtLeast(0)))
                 }
             }
     ) {
