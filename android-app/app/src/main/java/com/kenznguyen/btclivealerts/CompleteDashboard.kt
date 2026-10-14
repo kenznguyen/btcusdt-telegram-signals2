@@ -201,7 +201,8 @@ fun CompleteDashboard(context: Context) {
                         IndicatorLineChart(
                             title = "RSI (14)", points = visibleIndicators, valueSelector = { it.rsi },
                             minValue = 0.0, maxValue = 100.0, thresholds = listOf(30.0, 70.0),
-                            lineColor = Color(0xFF9B8AFB), modifier = Modifier.fillMaxWidth().height(112.dp)
+                            lineColor = Color(0xFF9B8AFB), modifier = Modifier.fillMaxWidth().height(142.dp),
+                            thresholdLabels = listOf("30", "70")
                         )
                     }
                     if (showAdx) {
@@ -211,7 +212,9 @@ fun CompleteDashboard(context: Context) {
                             points = visibleIndicators, valueSelector = { it.adx },
                             secondarySelectors = if (showDi) listOf({ p: IndicatorPoint -> p.plusDi }, { p: IndicatorPoint -> p.minusDi }) else emptyList(),
                             minValue = 0.0, maxValue = 100.0, thresholds = listOf(20.0, 25.0, 45.0),
-                            lineColor = Color(0xFFFFC857), modifier = Modifier.fillMaxWidth().height(112.dp)
+                            lineColor = Color(0xFFFFC857), modifier = Modifier.fillMaxWidth().height(142.dp),
+                            thresholdLabels = listOf("20", "25", "45"),
+                            legend = if (showDi) listOf("ADX", "+DI", "−DI") else listOf("ADX")
                         )
                     }
                     Text("Binance Futures · REST + WebSocket · 500 nến", color = NMuted)
@@ -357,13 +360,19 @@ private fun IndicatorLineChart(
     thresholds: List<Double>,
     lineColor: Color,
     modifier: Modifier = Modifier,
-    secondarySelectors: List<(IndicatorPoint) -> Double?> = emptyList()
+    secondarySelectors: List<(IndicatorPoint) -> Double?> = emptyList(),
+    thresholdLabels: List<String> = emptyList(),
+    legend: List<String> = emptyList()
 ) {
+    val latest = points.lastOrNull()?.let(valueSelector)?.takeIf { it.isFinite() }
     Column(
-        modifier.background(NBg, RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 6.dp)
+        modifier.background(NBg, RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 8.dp)
     ) {
-        Text(title, color = Color.White, style = MaterialTheme.typography.labelMedium)
-        Canvas(Modifier.fillMaxWidth().height(76.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(title, color = Color.White, style = MaterialTheme.typography.labelLarge)
+            Text(latest?.let { "%.1f".format(Locale.US, it) } ?: "—", color = lineColor, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        }
+        Canvas(Modifier.fillMaxWidth().height(82.dp)) {
             if (points.size < 2 || size.width <= 0f || size.height <= 0f) return@Canvas
             val range = (maxValue - minValue).takeIf { it > 0.0 } ?: 1.0
             fun y(value: Double): Float =
@@ -391,10 +400,25 @@ private fun IndicatorLineChart(
                 }
             }
         }
+        if (legend.isNotEmpty()) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                legend.forEachIndexed { index, item ->
+                    val color = listOf(lineColor, NGreen, NRed)[index.coerceAtMost(2)]
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(Modifier.size(width = 10.dp, height = 3.dp).background(color, RoundedCornerShape(2.dp)))
+                        Text(item, color = color, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("%.1f".format(minValue), color = NMuted, style = MaterialTheme.typography.labelSmall)
-            Text("Nến " + points.size, color = NMuted, style = MaterialTheme.typography.labelSmall)
-            Text("%.1f".format(maxValue), color = NMuted, style = MaterialTheme.typography.labelSmall)
+            Text("%.0f".format(Locale.US, minValue), color = NMuted, style = MaterialTheme.typography.labelSmall)
+            if (thresholdLabels.isNotEmpty()) {
+                Text("Ngưỡng " + thresholdLabels.joinToString("/"), color = NMuted, style = MaterialTheme.typography.labelSmall)
+            } else {
+                Text("Nến " + points.size, color = NMuted, style = MaterialTheme.typography.labelSmall)
+            }
+            Text("%.0f".format(Locale.US, maxValue), color = NMuted, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
