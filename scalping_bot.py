@@ -194,7 +194,7 @@ def main():
             event = ("SOFT SL (ROE -35% + M15 REVERSAL)", side, current_roe)
         if event:
             telegram_send(
-                f"{'✅' if event[0] == 'TAKE PROFIT' else '🚨' if 'EMERGENCY' in event[0] else '⚠️'} "
+                f"{'✅' if event[0] == 'TAKE PROFIT' else '🚨' if 'HARD SL' in event[0] else '⚠️'} "
                 f"BTCUSDT M5 SCALP — {event[0]}\nSide: {side}\n"
                 f"Entry: {entry:,.2f}\nExit reference: {exit_price:,.2f}\n"
                 f"Gross ROE estimate: {(exit_roe if hard_stop_hit else current_roe):.2f}%\n"
