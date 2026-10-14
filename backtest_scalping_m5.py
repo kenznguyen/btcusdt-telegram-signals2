@@ -170,7 +170,9 @@ def run_backtest(days=90, leverage=13.0, fee_rate=0.0005, slippage_bps=5.0,
                 exit_reason = "HARD_SL_ROE_MINUS_90"
                 exit_raw = min(float(r.open), hard_stop_price) if side == "LONG" else max(float(r.open), hard_stop_price)
             elif gross_roe_close > tp_roe and side == "LONG" and r.rsi >= 76:
-                exit_reason = "TAKE_PROFIT_RSI_M5_GE_76_ROE_GT_5"
+                exit_reason = "TAKE_PROFIT_LONG_RSI_M5_GE_76_ROE_GT_5"
+            elif gross_roe_close > tp_roe and side == "SHORT" and r.rsi <= 24:
+                exit_reason = "TAKE_PROFIT_SHORT_RSI_M5_LE_24_ROE_GT_5"
             else:
                 # Soft SL requires two consecutive CLOSED M5 candles to confirm reversal.
                 opposite_now = (side == "LONG" and price < float(p.low) and r.rsi < 50) or (
@@ -201,11 +203,13 @@ def run_backtest(days=90, leverage=13.0, fee_rate=0.0005, slippage_bps=5.0,
                 side, entry, stop, entry_fee, entry_time = None, 0.0, 0.0, 0.0, None
                 cooldown_index = i
         elif i > cooldown_index + 1:
-            # Long-only setup: closed M15 uptrend with ADX > 20, closed H1 uptrend,
-            # and M5 RSI crossing upward through 30 on the just-closed M5 candle.
-            long_entry = (trend_long and float(p.rsi) <= 30 and float(r.rsi) > 30)
-            if long_entry:
-                side = "LONG"
+            # Mirror-image M5 RSI entries; trend filters use fully closed M15 and H1 bars.
+            # LONG: both higher timeframes up, M15 ADX > 20, M5 RSI crosses up through 30.
+            # SHORT: both higher timeframes down, M15 ADX > 20, M5 RSI crosses down through 70.
+            long_entry = (trend_long and r.adx15 > 20 and float(p.rsi) <= 30 and float(r.rsi) > 30)
+            short_entry = (trend_short and r.adx15 > 20 and float(p.rsi) >= 70 and float(r.rsi) < 70)
+            if long_entry or short_entry:
+                side = "LONG" if long_entry else "SHORT"
                 entry = fill_price(price, side)
                 stop = None  # Hard SL is calculated from the -90% ROE threshold.
                 entry_time = r.close_time
@@ -226,7 +230,7 @@ def run_backtest(days=90, leverage=13.0, fee_rate=0.0005, slippage_bps=5.0,
     gross_loss = abs(sum(min(0, t["net_pnl"]) for t in trades))
     total_net = sum(t["net_pnl"] for t in trades)
     result = {
-        "symbol": "BTCUSDT (OKX BTC-USDT-SWAP candles)", "strategy": "Long-only M5 RSI cross above 30; closed M15 uptrend ADX>20 + closed H1 uptrend; TP M5 RSI>=76 and gross ROE>5%; Soft SL needs 2 closed M5 confirmations",
+        "symbol": "BTCUSDT (OKX BTC-USDT-SWAP candles)", "strategy": "M5 RSI mirror-image LONG/SHORT entries with closed M15 + H1 trend filters; TP RSI>=76 LONG / RSI<=24 SHORT and gross ROE>5%; Soft SL needs 2 closed M5 confirmations",
         "period_days_requested": days, "data_start_utc": m5.open_time.iloc[0].isoformat(),
         "data_end_utc": m5.close_time.iloc[-1].isoformat(), "m5_candles": int(len(m5)),
         "m15_candles": int(len(m15)), "h1_candles": int(len(h1)), "starting_balance": start_balance,
@@ -239,7 +243,7 @@ def run_backtest(days=90, leverage=13.0, fee_rate=0.0005, slippage_bps=5.0,
         "max_drawdown_close_to_close_pct": round(max_dd_pct, 4),
         "leverage_estimate": leverage, "fee_rate_per_side": fee_rate,
         "slippage_bps_per_side": slippage_bps, "dca": "disabled",
-        "open_position_at_end": side, "hard_sl_roe": hard_sl_roe, "soft_sl_roe": soft_sl_roe, "warning": "Approximate OHLC backtest; long entries require closed M15 uptrend with ADX>20, closed H1 uptrend, and M5 RSI crossing above 30. TP requires M5 RSI>=76 and gross ROE strictly greater than 5%. Soft SL requires trend reversal on both timeframes plus two consecutive closed M5 reversal candles. Hard SL uses -90% gross ROE and candle high/low, but gap fills may be worse. No funding/liquidation/tick data; unrealized PnL excluded from equity curve; not a profit guarantee.",
+        "open_position_at_end": side, "hard_sl_roe": hard_sl_roe, "soft_sl_roe": soft_sl_roe, "warning": "Approximate OHLC backtest; LONG entry requires closed M15/H1 uptrend, M15 ADX>20, and M5 RSI crossing above 30; SHORT entry mirrors this with closed M15/H1 downtrend, M15 ADX>20, and M5 RSI crossing below 70. TP requires M5 RSI>=76 LONG or <=24 SHORT and gross ROE strictly greater than 5%. Soft SL requires trend reversal on both timeframes plus two consecutive closed M5 reversal candles. Hard SL uses -90% gross ROE and candle high/low, but gap fills may be worse. No funding/liquidation/tick data; unrealized PnL excluded from equity curve; not a profit guarantee.",
         "trade_list": trades
     }
     Path("backtest_m5_90d_result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
