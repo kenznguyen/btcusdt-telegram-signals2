@@ -67,6 +67,40 @@ class StrategyEngineTest {
         assertTrue(engine.softStopTriggered("SHORT", 101.0, shortSoft, 98.0, 99.0, 98.0, 99.0, 20.0, 10.0, 36.0, 100.0))
     }
 
+    @Test fun indicatorSeriesHandlesRisingFallingAndFlatMarkets() {
+        fun candlesFor(step: Double): List<Candle> = (0 until 100).map { i ->
+            val close = 1000.0 + step * i
+            Candle(
+                openTime = i * 900000L,
+                open = close - step / 2.0,
+                high = close + 2.0,
+                low = close - 2.0,
+                close = close,
+                volume = 1.0,
+                closed = true
+            )
+        }
+
+        val rising = engine.indicatorSeries(candlesFor(2.0)).last()
+        assertEquals(100.0, rising.rsi!!, 1e-8)
+        assertTrue(rising.plusDi!! > 0.0)
+        assertEquals(0.0, rising.minusDi!!, 1e-8)
+        assertTrue(rising.adx!! in 0.0..100.0)
+
+        val falling = engine.indicatorSeries(candlesFor(-2.0)).last()
+        assertEquals(0.0, falling.rsi!!, 1e-8)
+        assertEquals(0.0, falling.plusDi!!, 1e-8)
+        assertTrue(falling.minusDi!! > 0.0)
+        assertTrue(falling.adx!! in 0.0..100.0)
+
+        val flat = engine.indicatorSeries(candlesFor(0.0)).last()
+        assertEquals(50.0, flat.rsi!!, 1e-8)
+        assertEquals(0.0, flat.plusDi!!, 1e-8)
+        assertEquals(0.0, flat.minusDi!!, 1e-8)
+        // With no directional movement, DX/ADX is undefined rather than a fabricated trend.
+        assertNull(flat.adx)
+    }
+
     @Test fun invalidStateDefaultsSafely() {
         assertEquals(100.0, StrategyState.fromJson(null).balance, 1e-8)
         assertNull(StrategyState.fromJson("{not-json").position)
