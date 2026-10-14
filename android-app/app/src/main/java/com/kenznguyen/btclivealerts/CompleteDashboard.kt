@@ -56,6 +56,9 @@ fun CompleteDashboard(context: Context) {
     var tpAlerts by remember { mutableStateOf(prefs.getBoolean("alert_take_profit", true)) }
     var softSlAlerts by remember { mutableStateOf(prefs.getBoolean("alert_soft_sl", true)) }
     var emergencySlAlerts by remember { mutableStateOf(prefs.getBoolean("alert_emergency_sl", true)) }
+    var rsiM15Alerts by remember { mutableStateOf(prefs.getBoolean("alert_rsi_m15_enabled", false)) }
+    var rsiM15High by remember { mutableFloatStateOf(prefs.getInt("alert_rsi_m15_high", 70).toFloat()) }
+    var rsiM15Low by remember { mutableFloatStateOf(prefs.getInt("alert_rsi_m15_low", 30).toFloat()) }
     var vibration by remember { mutableStateOf(prefs.getBoolean("alert_vibration", true)) }
     var sound by remember { mutableStateOf(prefs.getBoolean("alert_sound", true)) }
     var quietHours by remember { mutableStateOf(prefs.getBoolean("quiet_hours_enabled", false)) }
@@ -106,6 +109,41 @@ fun CompleteDashboard(context: Context) {
                         val liveCandles = cache.values.toList()
                         chart = liveCandles
                         chartIndicators = engine.indicatorSeries(liveCandles)
+                        // RSI M15 alerts are evaluated only once a candle is confirmed closed.
+                        if (timeframe == "15m" && candle.closed && prefs.getBoolean("alerts_enabled", true) && prefs.getBoolean("alert_rsi_m15_enabled", false)) {
+                            val closedPoints = engine.indicatorSeries(liveCandles.filter { it.closed })
+                            val latestRsi = closedPoints.lastOrNull()?.rsi
+                            val previousRsi = closedPoints.getOrNull(closedPoints.lastIndex - 1)?.rsi
+                            val high = prefs.getInt("alert_rsi_m15_high", 70).toDouble().coerceIn(1.0, 99.0)
+                            val low = prefs.getInt("alert_rsi_m15_low", 30).toDouble().coerceIn(1.0, 99.0)
+                            val condition = when {
+                                latestRsi != null && previousRsi != null && previousRsi < high && latestRsi >= high -> "HIGH"
+                                latestRsi != null && previousRsi != null && previousRsi > low && latestRsi <= low -> "LOW"
+                                else -> null
+                            }
+                            if (condition != null) {
+                                val dedupeKey = "alert_rsi_m15_last_event"
+                                val eventKey = "${candle.openTime}:$condition"
+                                if (prefs.getString(dedupeKey, null) != eventKey) {
+                                    val manager = NotificationManagerCompat.from(context)
+                                    if (manager.areNotificationsEnabled()) {
+                                        val now = SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date())
+                                        val value = latestRsi ?: 0.0
+                                        val title = if (condition == "HIGH") "BTCUSDT · RSI M15 vượt ngưỡng cao" else "BTCUSDT · RSI M15 xuống ngưỡng thấp"
+                                        val body = "RSI(14) = ${"%.1f".format(Locale.US, value)} · ngưỡng ${if (condition == "HIGH") high.toInt() else low.toInt()} · nến đóng $now"
+                                        try {
+                                            manager.notify(if (condition == "HIGH") 987661 else 987662,
+                                                NotificationCompat.Builder(context, "strategy_alerts")
+                                                    .setSmallIcon(android.R.drawable.ic_dialog_info)
+                                                    .setContentTitle(title).setContentText(body)
+                                                    .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                                                    .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build())
+                                            prefs.edit().putString(dedupeKey, eventKey).apply()
+                                        } catch (_: SecurityException) { }
+                                    }
+                                }
+                            }
+                        }
                         // Keep strategy/status cards based on confirmed candles; the plot may preview the forming candle.
                         val latestClosed = engine.indicatorSeries(liveCandles.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
                         if (timeframe == "15m") m15Ind = latestClosed else h1Ind = latestClosed
@@ -284,6 +322,14 @@ fun CompleteDashboard(context: Context) {
                     PreferenceSwitch("Take Profit", tpAlerts, { tpAlerts = it; prefs.edit().putBoolean("alert_take_profit", it).apply() })
                     PreferenceSwitch("Soft Stop Loss", softSlAlerts, { softSlAlerts = it; prefs.edit().putBoolean("alert_soft_sl", it).apply() })
                     PreferenceSwitch("Emergency Stop Loss", emergencySlAlerts, { emergencySlAlerts = it; prefs.edit().putBoolean("alert_emergency_sl", it).apply() })
+                    Divider(color = Color(0xFF263243))
+                    PreferenceSwitch("Cảnh báo RSI M15", rsiM15Alerts, { rsiM15Alerts = it; prefs.edit().putBoolean("alert_rsi_m15_enabled", it).apply() })
+                    Text("Chỉ thông báo khi RSI(14) cắt qua ngưỡng trên/dưới ở nến M15 đã đóng. Không thay đổi tín hiệu chiến lược.", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    Text("Ngưỡng cao: ${rsiM15High.toInt()}", color = Color.White)
+                    Slider(value = rsiM15High, onValueChange = { rsiM15High = it }, valueRange = 50f..95f, steps = 44, onValueChangeFinished = { prefs.edit().putInt("alert_rsi_m15_high", rsiM15High.toInt()).apply() })
+                    Text("Ngưỡng thấp: ${rsiM15Low.toInt()}", color = Color.White)
+                    Slider(value = rsiM15Low, onValueChange = { rsiM15Low = it }, valueRange = 5f..50f, steps = 44, onValueChangeFinished = { prefs.edit().putInt("alert_rsi_m15_low", rsiM15Low.toInt()).apply() })
+                    if (rsiM15Low >= rsiM15High) Text("Lưu ý: ngưỡng thấp nên nhỏ hơn ngưỡng cao.", color = NRed, style = MaterialTheme.typography.bodySmall)
                     PreferenceSwitch("Rung / rung nhắc", vibration, { vibration = it; prefs.edit().putBoolean("alert_vibration", it).apply() })
                     PreferenceSwitch("Âm thanh", sound, { sound = it; prefs.edit().putBoolean("alert_sound", it).apply() })
                     PreferenceSwitch("Giờ yên lặng", quietHours, { quietHours = it; prefs.edit().putBoolean("quiet_hours_enabled", it).apply() })
