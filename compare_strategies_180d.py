@@ -291,7 +291,7 @@ def metrics(name, trades, curve, final_balance):
         "trade_count_including_end_mark":len(trades),"winning_trade_count":len(wins),"losing_trade_count":len(losses),
         "win_rate_pct":len(wins)/len(pnl_values)*100 if pnl_values else 0.0,
         "profit_factor":None if profit_factor is None or not math.isfinite(profit_factor) else profit_factor,
-        "profit_factor_unbounded":bool(math.isinf(profit_factor)),"average_trade_net_usdt":sum(pnl_values)/len(pnl_values) if pnl_values else 0,
+        "profit_factor_unbounded":bool(profit_factor is not None and math.isinf(profit_factor)),"average_trade_net_usdt":sum(pnl_values)/len(pnl_values) if pnl_values else 0,
         "fees_usdt":sum(float(t["fees_usdt"]) for t in trades),"max_drawdown_usdt":max_dd,
         "max_drawdown_pct":max_dd_pct,"dca_count":sum(1 for t in trades if t.get("dca_used")),
         "funding_modeled":False,"slippage_bps_per_side":SLIPPAGE_BPS}
@@ -339,7 +339,7 @@ def main():
                  "Fees and slippage are estimated; funding, liquidation and maintenance-margin tiers are excluded.",
                  "B's RSI calculation is approximated using the repository's Wilder RSI and EMA initialization; verify parity against TradingView before treating results as final."]
     }
-    all_trades = trades_a + trades_b
+    all_trades = trades_a + trades_b + trades_c
     for fname, rows in (("trades_A.csv",trades_a),("trades_B.csv",trades_b),("trades_C.csv",trades_c)):
         fields = sorted({k for r in rows for k in r}) if rows else ["strategy","side","entry_time","exit_time","net_pnl_usdt"]
         with (OUT/fname).open("w",newline="",encoding="utf-8-sig") as f:
@@ -369,7 +369,7 @@ def main():
         ]
         w=csv.DictWriter(f,fieldnames=summary_fields,extrasaction="raise")
         w.writeheader(); w.writerow(summary["strategy_A"]); w.writerow(summary["strategy_B"]); w.writerow(summary["strategy_C"])
-    (OUT/"README_RESULTS.md").write_text("# BTCUSDT A/B 180-day comparison\n\n" + json.dumps(summary,indent=2,ensure_ascii=False) + "\n",encoding="utf-8")
+    (OUT/"README_RESULTS.md").write_text("# BTCUSDT A/B/C 180-day comparison\n\n" + json.dumps(summary,indent=2,ensure_ascii=False) + "\n",encoding="utf-8")
     print(json.dumps({"status":"completed","period_days":DAYS,"start_utc":summary["start_utc"],"end_utc":summary["end_utc"],"outputs":str(OUT),"strategy_A":summary["strategy_A"],"strategy_B":summary["strategy_B"],"strategy_C":summary["strategy_C"]},indent=2))
 
 
