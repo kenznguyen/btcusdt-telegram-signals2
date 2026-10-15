@@ -357,7 +357,15 @@ def main():
     with (OUT/"comparison_summary.json").open("w",encoding="utf-8") as f:
         json.dump(summary,f,indent=2,ensure_ascii=False)
     with (OUT/"comparison_summary.csv").open("w",newline="",encoding="utf-8-sig") as f:
-        w=csv.DictWriter(f,fieldnames=["strategy","starting_balance_usdt","ending_balance_usdt","net_profit_usdt","return_pct","trade_count_including_end_mark","win_rate_pct","profit_factor","max_drawdown_usdt","max_drawdown_pct","fees_usdt","dca_count","funding_modeled","slippage_bps_per_side"])
+        summary_fields = [
+            "strategy", "starting_balance_usdt", "ending_balance_usdt",
+            "net_profit_usdt", "return_pct", "trade_count_including_end_mark",
+            "winning_trade_count", "losing_trade_count", "win_rate_pct",
+            "profit_factor", "profit_factor_unbounded", "average_trade_net_usdt",
+            "max_drawdown_usdt", "max_drawdown_pct", "fees_usdt", "dca_count",
+            "funding_modeled", "slippage_bps_per_side"
+        ]
+        w=csv.DictWriter(f,fieldnames=summary_fields,extrasaction="raise")
         w.writeheader(); w.writerow(summary["strategy_A"]); w.writerow(summary["strategy_B"])
     (OUT/"README_RESULTS.md").write_text("# BTCUSDT A/B 180-day comparison\n\n" + json.dumps(summary,indent=2,ensure_ascii=False) + "\n",encoding="utf-8")
     print(json.dumps({"status":"completed","period_days":DAYS,"start_utc":summary["start_utc"],"end_utc":summary["end_utc"],"outputs":str(OUT),"strategy_A":summary["strategy_A"],"strategy_B":summary["strategy_B"]},indent=2))
