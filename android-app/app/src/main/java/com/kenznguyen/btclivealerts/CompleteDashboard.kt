@@ -46,7 +46,7 @@ private fun mergeCandle(cache: java.util.TreeMap<Long, Candle>, candle: Candle) 
     val existing = cache[candle.openTime]
     // A REST snapshot must never downgrade a WebSocket-confirmed closed candle.
     if (existing?.closed == true && !candle.closed) return
-    mergeCandle(cache, candle)
+    cache[candle.openTime] = candle
 }
 
 private fun maybeNotifyRsiM15(
@@ -177,16 +177,14 @@ fun CompleteDashboard(context: Context) {
                 }
             )
             var retryDelayMs = 1_000L
-            var connected = AtomicBoolean(false)
-            var reconnectRequested = AtomicBoolean(false)
             var lastSyncAt = System.currentTimeMillis()
-            var connectionStartedAt = System.currentTimeMillis()
             while (currentCoroutineContext().isActive) {
                 delay(1_000)
                 val now = System.currentTimeMillis()
                 if (!connected.get() && now - connectionStartedAt > 15_000L) reconnectRequested.set(true)
                 if (reconnectRequested.get()) {
                     socket?.close(1001, "reconnect")
+                    retryDelayMs = (retryDelayMs * 2).coerceAtMost(30_000L)
                     delay(retryDelayMs)
                     try {
                         val reconciled = market.fetchCandles(timeframe, 500)
@@ -223,7 +221,6 @@ fun CompleteDashboard(context: Context) {
                                 if (message.contains("gián đoạn", true) || message.contains("đã đóng", true)) { connected.set(false); reconnectRequested.set(true) }
                                 mainHandler.post { socketStatus = message; status = message }
                             })
-                        retryDelayMs = 1_000L
                         lastSyncAt = System.currentTimeMillis()
                     } catch (e: CancellationException) { throw e }
                     catch (_: Exception) { retryDelayMs = (retryDelayMs * 2).coerceAtMost(30_000L) }
