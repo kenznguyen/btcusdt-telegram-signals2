@@ -1,18 +1,7 @@
 name: Android Live Chart CI
 
 on:
-  push:
-    branches:
-      - feature/android-btcusdt-live-alerts
-    paths:
-      - "android-app/**"
-      - ".github/workflows/android-live-chart-ci.yml"
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "android-app/**"
-      - ".github/workflows/android-live-chart-ci.yml"
+  # Android feature is out of current scope; retain manual QA/build only.
   workflow_dispatch:
 
 permissions:
