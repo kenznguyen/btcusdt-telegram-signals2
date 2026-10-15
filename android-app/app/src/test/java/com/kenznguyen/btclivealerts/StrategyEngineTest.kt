@@ -3,7 +3,8 @@ package com.kenznguyen.btclivealerts
 import org.junit.Assert.*
 import org.junit.Test
 
-class StrategyEngineTest {\n    @Test fun strategyDefaultsMatchRequestedM15H1DcaProfile() {
+class StrategyEngineTest {
+    @Test fun strategyDefaultsMatchRequestedM15H1DcaProfile() {
         val cfg = StrategyConfig()
         assertEquals(13.0, cfg.leverage, 0.0)
         assertEquals(14, cfg.rsiLength)
