@@ -86,7 +86,10 @@ def pnl(side, avg, price, qty):
 
 def run_strategy_a(m15, h1, test_start, require_pb_confirmation=False, strategy_name="A"):
     """A/C: current bot entry/risk rules; C also requires an M15 RSI %b crossing."""
-    d = add_b_indicators(m15).reset_index(drop=True)
+    d = bot.add_indicators(m15).reset_index(drop=True)
+    pb_data = add_b_indicators(m15)
+    d["pb"] = pb_data["pb"].to_numpy()
+    d["pb_prev"] = pb_data["pb_prev"].to_numpy()
     h = bot.add_indicators(h1).set_index("open_time")
     balance, pos, trades, curve = START_BALANCE, None, [], []
     counts = {"DCA": 0, "TP": 0, "Soft SL": 0, "Emergency SL": 0, "DCA skipped insufficient margin": 0}
