@@ -1,12 +1,8 @@
 name: BTCUSDT A-B Backtest 180 Days
 
 on:
+  # Experimental comparison is out of current scope; manual runs only.
   workflow_dispatch:
-  pull_request:
-    branches: [main]
-    paths:
-      - "compare_strategies_180d.py"
-      - ".github/workflows/backtest-comparison-180d.yml"
 
 permissions:
   contents: read
