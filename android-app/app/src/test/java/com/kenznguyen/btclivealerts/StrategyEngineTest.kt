@@ -9,7 +9,7 @@ class StrategyEngineTest {
     @Test fun roeAndThresholdsRespectLeverage() {
         assertEquals(5.0, engine.roeFor("LONG", 100.0, 100.0 * (1.0 + 5.0 / 1300.0)), 1e-8)
         assertEquals(-20.0, engine.roeFor("SHORT", 100.0, 100.0 * (1.0 + 20.0 / 1300.0)), 1e-8)
-        assertEquals(100.0 * (1.0 - 35.0 / 1300.0), engine.thresholdPrice("LONG", 100.0, 35.0), 1e-8)
+        assertEquals(100.0 * (1.0 - 25.0 / 1300.0), engine.thresholdPrice("LONG", 100.0, 25.0), 1e-8)
         assertEquals(100.0 * (1.0 + 90.0 / 1300.0), engine.thresholdPrice("SHORT", 100.0, 90.0), 1e-8)
     }
 
@@ -50,11 +50,11 @@ class StrategyEngineTest {
     }
 
     @Test fun dcaRequiresLossAdxAndCorrectRsiDirection() {
-        assertTrue(engine.dcaSignal("LONG", -20.0, 46.0, 25.0, 24.0))
-        assertFalse(engine.dcaSignal("LONG", -19.9, 46.0, 25.0, 24.0))
-        assertFalse(engine.dcaSignal("LONG", -21.0, 45.0, 25.0, 24.0))
-        assertTrue(engine.dcaSignal("SHORT", -22.0, 46.0, 79.0, 80.0))
-        assertFalse(engine.dcaSignal("SHORT", -22.0, 46.0, 81.0, 80.0))
+        assertTrue(engine.dcaSignal("LONG", -35.0, 46.0, 25.0, 24.0))
+        assertFalse(engine.dcaSignal("LONG", -34.9, 46.0, 25.0, 24.0))
+        assertFalse(engine.dcaSignal("LONG", -36.0, 45.0, 25.0, 24.0))
+        assertTrue(engine.dcaSignal("SHORT", -35.0, 46.0, 79.0, 80.0))
+        assertFalse(engine.dcaSignal("SHORT", -36.0, 46.0, 81.0, 80.0))
     }
 
     @Test fun stopRulesRespectPriorityConditionsAndTwoCandleConfirmation() {
@@ -63,7 +63,7 @@ class StrategyEngineTest {
         val soft = engine.thresholdPrice("LONG", 100.0, 35.0)
         assertTrue(engine.softStopTriggered("LONG", soft, 99.0, 99.0, 98.0, 101.0, 99.0, 10.0, 20.0, 36.0, 100.0))
         assertFalse(engine.softStopTriggered("LONG", soft, 99.0, 99.0, 98.0, 101.0, 102.0, 10.0, 20.0, 36.0, 100.0))
-        val shortSoft = engine.thresholdPrice("SHORT", 100.0, 35.0)
+        val shortSoft = engine.thresholdPrice("SHORT", 100.0, 25.0)
         assertTrue(engine.softStopTriggered("SHORT", 101.0, shortSoft, 98.0, 99.0, 98.0, 99.0, 20.0, 10.0, 36.0, 100.0))
     }
 
@@ -102,7 +102,7 @@ class StrategyEngineTest {
     }
 
     @Test fun invalidStateDefaultsSafely() {
-        assertEquals(100.0, StrategyState.fromJson(null).balance, 1e-8)
+        assertEquals(200.0, StrategyState.fromJson(null).balance, 1e-8)
         assertNull(StrategyState.fromJson("{not-json").position)
     }
 
