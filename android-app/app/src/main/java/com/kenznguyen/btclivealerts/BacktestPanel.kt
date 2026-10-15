@@ -58,7 +58,7 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                         require(m15.size > 60 && h1.size > 30) { "Không đủ dữ liệu lịch sử." }
                         // Critical optimization: calculate indicator series once and process the entire candle set once.
                         // Never replay each growing candle prefix (that made the old implementation O(n²)).
-                        val initial = StrategyState(balance = 100.0)
+                        val initial = StrategyState(balance = 200.0)
                         val (finalState, emitted) = engine.processClosedCandles(m15, h1, initial)
                         val closed = emitted.filter { it.kind == "TAKE PROFIT" || it.kind == "SOFT SL" || it.kind == "EMERGENCY SL" }
                         fun pnl(e: StrategyEvent): Double = noteNumber(e.note, "PnL ròng ước tính ")
