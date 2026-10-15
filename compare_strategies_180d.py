@@ -1,11 +1,4 @@
-"""Isolated A/B backtest for BTCUSDT perpetual; never touches live state or Telegram outputs.
-
-A uses the current project's M15 RSI + last fully closed H1 directional ADX strategy
-with Smart DCA and risk exits. B implements the exact user-supplied RSI %b Pine rules
-on H1 by default. Both use the same OKX BTC-USDT-SWAP candles, $200 starting balance,
-$50 initial margin, $50 DCA margin for A, $50 standardized entry margin for B,
-13x leverage, 0.04% fee per side and 5 bps adverse slippage.
-Funding, maintenance-margin tiers and liquidation are not modeled.
+"""Isolated A/B/C backtest. A uses M15 RSI + closed-H1 directional ADX with Smart DCA/risk exits. B applies supplied RSI %b crossings on M15. C requires A's M15 RSI entry plus M15 %b confirmation and retains A risk management. All use identical OKX candles, $200 balance, $50 entry margin, $50 DCA margin, 13x leverage, 0.04% fee per side, 5 bps slippage; funding/liquidation are not modeled.
 """
 import csv
 import json
@@ -91,9 +84,9 @@ def pnl(side, avg, price, qty):
     return (price - avg) * qty if side == "LONG" else (avg - price) * qty
 
 
-def run_strategy_a(m15, h1, test_start):
-    """A: mirror current bot/backtest exit and DCA rules, with explicit fixed margins."""
-    d = bot.add_indicators(m15).reset_index(drop=True)
+def run_strategy_a(m15, h1, test_start, require_pb_confirmation=False, strategy_name="A"):
+    """A/C: current bot entry/risk rules; C also requires an M15 RSI %b crossing."""
+    d = add_b_indicators(m15).reset_index(drop=True)
     h = bot.add_indicators(h1).set_index("open_time")
     balance, pos, trades, curve = START_BALANCE, None, [], []
     counts = {"DCA": 0, "TP": 0, "Soft SL": 0, "Emergency SL": 0, "DCA skipped insufficient margin": 0}
@@ -113,6 +106,12 @@ def run_strategy_a(m15, h1, test_start):
         hp, hm, ha = float(hr.plus_di), float(hr.minus_di), float(hr.adx)
         go_long = hp > hm and ha > 20 and prev_rsi <= 30 and rsi > 30
         go_short = hm > hp and ha > 20 and prev_rsi >= 70 and rsi < 70
+        if require_pb_confirmation:
+            pb_prev, pb_now = row.pb_prev, row.pb
+            pb_long = pd.notna(pb_prev) and pd.notna(pb_now) and pb_prev < 0.2 and pb_now > 0.2
+            pb_short = pd.notna(pb_prev) and pd.notna(pb_now) and pb_prev > 0.8 and pb_now < 0.8
+            go_long = go_long and pb_long
+            go_short = go_short and pb_short
         exited = False
         if pos:
             side, avg, qty = pos["side"], pos["avg"], pos["qty"]
@@ -145,7 +144,7 @@ def run_strategy_a(m15, h1, test_start):
                 fees = (pos["notional"] + exit_price * qty) * FEE
                 net = gross - fees
                 balance += net
-                trades.append({"strategy":"A","side":side,"entry_time":pos["time"].isoformat(),
+                trades.append({"strategy":strategy_name,"side":side,"entry_time":pos["time"].isoformat(),
                     "exit_time":ts.isoformat(),"avg_entry":avg,"exit_price":exit_price,"qty":qty,
                     "gross_pnl_usdt":gross,"fees_usdt":fees,"net_pnl_usdt":net,"reason":reason,
                     "dca_used":pos["dca"],"margin_used_usdt":pos["margin"]})
@@ -175,12 +174,12 @@ def run_strategy_a(m15, h1, test_start):
             mark = pnl(pos["side"], pos["avg"], close, pos["qty"])
             exit_fee_est = close * pos["qty"] * FEE
             equity = balance + mark - pos["notional"] * FEE - exit_fee_est
-            curve.append({"timestamp_utc":ts.isoformat(),"strategy":"A","mark_price":close,
+            curve.append({"timestamp_utc":ts.isoformat(),"strategy":strategy_name,"mark_price":close,
                 "balance_usdt":balance,"unrealized_pnl_usdt":mark,"equity_usdt":equity,
                 "drawdown_usdt":0.0,"drawdown_pct":0.0,"position_side":pos["side"],
                 "position_margin_usdt":pos["margin"]})
         else:
-            curve.append({"timestamp_utc":ts.isoformat(),"strategy":"A","mark_price":close,
+            curve.append({"timestamp_utc":ts.isoformat(),"strategy":strategy_name,"mark_price":close,
                 "balance_usdt":balance,"unrealized_pnl_usdt":0.0,"equity_usdt":balance,
                 "drawdown_usdt":0.0,"drawdown_pct":0.0,"position_side":"","position_margin_usdt":0.0})
     if pos:
@@ -189,7 +188,7 @@ def run_strategy_a(m15, h1, test_start):
         gross = pnl(pos["side"], pos["avg"], exit_price, pos["qty"])
         fees = (pos["notional"] + exit_price * pos["qty"]) * FEE
         net = gross - fees
-        trades.append({"strategy":"A","side":pos["side"],"entry_time":pos["time"].isoformat(),
+        trades.append({"strategy":strategy_name,"side":pos["side"],"entry_time":pos["time"].isoformat(),
             "exit_time":row.open_time.isoformat(),"avg_entry":pos["avg"],"exit_price":exit_price,
             "qty":pos["qty"],"gross_pnl_usdt":gross,"fees_usdt":fees,"net_pnl_usdt":net,
             "reason":"End of test (marked/closed for ledger)","dca_used":pos["dca"],"margin_used_usdt":pos["margin"]})
@@ -197,9 +196,9 @@ def run_strategy_a(m15, h1, test_start):
     return trades, curve, counts, balance
 
 
-def run_strategy_b(h1, test_start):
-    """B: exact supplied Pine threshold crossings; next-open fills per default Pine strategy semantics."""
-    d = add_b_indicators(h1).reset_index(drop=True)
+def run_strategy_b(m15, test_start):
+    """B: supplied Pine RSI %b crossings evaluated on M15 with next-open fills."""
+    d = add_b_indicators(m15).reset_index(drop=True)
     balance, pos, trades, curve = START_BALANCE, None, [], []
     for i, row in d.iterrows():
         ts = row.open_time
@@ -314,15 +313,14 @@ def main():
     gaps = test_m15.open_time.diff().dropna()
     if not gaps.eq(pd.Timedelta(minutes=15)).all():
         raise RuntimeError("M15 candles contain gaps or duplicate timestamps; aborting report.")
-    # Strategy A operates on M15; B's Pine source is H1 and must be evaluated on H1.
-    a_m15 = m15[(m15.open_time >= start) & (m15.open_time < end)].reset_index(drop=True)
+    # Keep warm-up candles; no strategy may open a position before test_start.
     a_h1 = h1[h1.open_time < end].reset_index(drop=True)
-    b_h1 = h1[(h1.open_time >= start - pd.Timedelta(days=20)) & (h1.open_time < end)].reset_index(drop=True)
-    if len(a_h1) < 100 or len(b_h1) < 100:
-        raise RuntimeError("Insufficient H1 warm-up coverage.")
-    # Keep warm-up candles for indicators, but do not allow trades before test_start.
-    trades_a, curve_a, counts_a, balance_a = run_strategy_a(m15, a_h1, start)
-    trades_b, curve_b, counts_b, balance_b = run_strategy_b(b_h1, start)
+    b_m15 = m15[m15.open_time >= start - pd.Timedelta(days=20)].reset_index(drop=True)
+    if len(a_h1) < 100 or len(b_m15) < 1000:
+        raise RuntimeError("Insufficient indicator warm-up coverage.")
+    trades_a, curve_a, counts_a, balance_a = run_strategy_a(m15, a_h1, start, False, "A")
+    trades_b, curve_b, counts_b, balance_b = run_strategy_b(b_m15, start)
+    trades_c, curve_c, counts_c, balance_c = run_strategy_a(m15, a_h1, start, True, "C")
     summary = {
         "status":"completed","symbol":INSTRUMENT,"exchange":"OKX swap historical candles",
         "period_days":DAYS,"start_utc":start.isoformat(),"end_utc":end.isoformat(),
@@ -330,19 +328,20 @@ def main():
         "leverage":LEVERAGE,"fee_rate_per_side":FEE,"slippage_bps_per_side":SLIPPAGE_BPS,
         "funding_modeled":False,"maintenance_margin_or_liquidation_modeled":False,
         "strategy_A":metrics("A_M15_RSI_H1_ADX_DCA",trades_a,curve_a,balance_a),
-        "strategy_B":metrics("B_H1_RSI_percent_b",trades_b,curve_b,balance_b),
-        "notes":["A rules follow the current bot.py thresholds; A entry margin is fixed $50 and one DCA add is fixed $50.",
-                 "B follows supplied Pine %b crossings; because Pine strategy has no sizing, B uses standardized $50 margin x 13 leverage.",
-                 "B uses H1 as its Pine source contains no timeframe override. Pine default market entries/exits fill at next bar open.",
+        "strategy_B":metrics("B_M15_RSI_percent_b",trades_b,curve_b,balance_b),
+        "strategy_C":metrics("C_A_entry_plus_M15_RSI_percent_b",trades_c,curve_c,balance_c),
+        "notes":["A follows current bot.py thresholds; fixed $50 entry margin and one fixed $50 DCA add.",
+                 "B follows the supplied Pine %b crossings on M15; standardized $50 margin x 13 leverage is used because the Pine source has no sizing.",
+                 "C requires A's M15 RSI entry and M15 %b confirmation on the same candle, with A's DCA and exit management.",
                  "Fees and slippage are estimated; funding, liquidation and maintenance-margin tiers are excluded.",
                  "B's RSI calculation is approximated using the repository's Wilder RSI and EMA initialization; verify parity against TradingView before treating results as final."]
     }
     all_trades = trades_a + trades_b
-    for fname, rows in (("trades_A.csv",trades_a),("trades_B.csv",trades_b)):
+    for fname, rows in (("trades_A.csv",trades_a),("trades_B.csv",trades_b),("trades_C.csv",trades_c)):
         fields = sorted({k for r in rows for k in r}) if rows else ["strategy","side","entry_time","exit_time","net_pnl_usdt"]
         with (OUT/fname).open("w",newline="",encoding="utf-8-sig") as f:
             w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(rows)
-    for curve in (curve_a, curve_b):
+    for curve in (curve_a, curve_b, curve_c):
         peak = START_BALANCE
         for point in curve:
             equity = float(point["equity_usdt"])
@@ -350,7 +349,7 @@ def main():
             dd = max(0.0, peak - equity)
             point["drawdown_usdt"] = dd
             point["drawdown_pct"] = dd / peak * 100 if peak > 0 else 0.0
-    curve_rows = curve_a + curve_b
+    curve_rows = curve_a + curve_b + curve_c
     with (OUT/"equity_curve_m15.csv").open("w",newline="",encoding="utf-8-sig") as f:
         fields=["timestamp_utc","strategy","mark_price","balance_usdt","unrealized_pnl_usdt","equity_usdt","drawdown_usdt","drawdown_pct","position_side","position_margin_usdt"]
         w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(curve_rows)
@@ -366,9 +365,9 @@ def main():
             "funding_modeled", "slippage_bps_per_side"
         ]
         w=csv.DictWriter(f,fieldnames=summary_fields,extrasaction="raise")
-        w.writeheader(); w.writerow(summary["strategy_A"]); w.writerow(summary["strategy_B"])
+        w.writeheader(); w.writerow(summary["strategy_A"]); w.writerow(summary["strategy_B"]); w.writerow(summary["strategy_C"])
     (OUT/"README_RESULTS.md").write_text("# BTCUSDT A/B 180-day comparison\n\n" + json.dumps(summary,indent=2,ensure_ascii=False) + "\n",encoding="utf-8")
-    print(json.dumps({"status":"completed","period_days":DAYS,"start_utc":summary["start_utc"],"end_utc":summary["end_utc"],"outputs":str(OUT),"strategy_A":summary["strategy_A"],"strategy_B":summary["strategy_B"]},indent=2))
+    print(json.dumps({"status":"completed","period_days":DAYS,"start_utc":summary["start_utc"],"end_utc":summary["end_utc"],"outputs":str(OUT),"strategy_A":summary["strategy_A"],"strategy_B":summary["strategy_B"],"strategy_C":summary["strategy_C"]},indent=2))
 
 
 if __name__ == "__main__":
