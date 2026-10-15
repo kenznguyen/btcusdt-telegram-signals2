@@ -1,12 +1,8 @@
 name: Backtest Comparison Rule Tests
 
 on:
+  # Experimental comparison is out of current scope; manual runs only.
   workflow_dispatch:
-  pull_request:
-    branches: [main]
-    paths:
-      - "tests/test_backtest_comparison_rules.py"
-      - "BACKTEST_COMPARISON_180D.md"
 
 permissions:
   contents: read
