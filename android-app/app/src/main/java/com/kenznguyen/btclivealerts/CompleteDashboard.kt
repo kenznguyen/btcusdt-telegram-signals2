@@ -24,6 +24,8 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.CancellationException
@@ -131,6 +133,7 @@ fun CompleteDashboard(context: Context) {
     var showDi by remember { mutableStateOf(prefs.getBoolean("chart_show_di", true)) }
     var showH1Trend by remember { mutableStateOf(prefs.getBoolean("chart_show_h1", true)) }
     var chartSettingsExpanded by remember { mutableStateOf(false) }
+    var chartFullscreen by remember { mutableStateOf(false) }
     var socketStatus by remember { mutableStateOf("Đang đồng bộ REST…") }
 
     LaunchedEffect(timeframe) {
@@ -360,7 +363,13 @@ fun CompleteDashboard(context: Context) {
             }
             item {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(14.dp)).padding(12.dp)) {
-                    Text("Candlestick · " + timeframe.uppercase(), color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Candlestick · " + timeframe.uppercase(), color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Text("Chạm toàn màn hình để mở rộng biểu đồ và chỉ báo", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                        }
+                        TextButton(onClick = { chartFullscreen = true }) { Text("⛶ Toàn màn hình") }
+                    }
                     Spacer(Modifier.height(8.dp))
                     LiveCandles(
                         chart, price, chartVisibleCount, chartPanBars,
@@ -530,6 +539,86 @@ fun CompleteDashboard(context: Context) {
         }
     }
 }
+
+    if (chartFullscreen) {
+        val viewEnd = if (chart.isEmpty()) 0 else (chart.size - chartPanBars).coerceIn(1, chart.size)
+        val viewStart = (viewEnd - chartVisibleCount).coerceAtLeast(0)
+        val visibleIndicators = chartIndicators.drop(viewStart).take((viewEnd - viewStart).coerceAtLeast(0))
+        Dialog(
+            onDismissRequest = { chartFullscreen = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+        ) {
+            Surface(Modifier.fillMaxSize(), color = NBg) {
+                Column(
+                    Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("BTCUSDT.P · LIVE CHART", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(
+                                (price?.let { "$" + "%,.2f".format(it) } ?: "—") + " · " + socketStatus,
+                                color = if (socketStatus.contains("live", true) || socketStatus.contains("kết nối", true)) NGreen else NMuted,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1
+                            )
+                        }
+                        listOf("15m", "1h").forEach { tf ->
+                            FilterChip(
+                                selected = timeframe == tf,
+                                onClick = { if (timeframe != tf) timeframe = tf },
+                                label = { Text(tf.uppercase()) }
+                            )
+                            Spacer(Modifier.width(4.dp))
+                        }
+                        TextButton(onClick = { chartFullscreen = false }) { Text("Đóng ✕") }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Nến: $chartVisibleCount", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                        Slider(
+                            value = chartVisibleCount.toFloat(),
+                            onValueChange = { chartVisibleCount = it.toInt().coerceIn(20, 150) },
+                            valueRange = 20f..150f,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = { chartPanBars = 0; chartVisibleCount = 70 }) { Text("Đặt lại") }
+                    }
+                    LiveCandles(
+                        chart, price, chartVisibleCount, chartPanBars,
+                        onVisibleCountChange = { chartVisibleCount = it },
+                        onPanBarsChange = { chartPanBars = it },
+                        modifier = Modifier.fillMaxWidth().weight(if (showRsi && showAdx) 0.56f else 0.76f)
+                    )
+                    if (showRsi) {
+                        IndicatorLineChart(
+                            title = "RSI (14)", points = visibleIndicators, valueSelector = { it.rsi },
+                            minValue = 0.0, maxValue = 100.0, thresholds = listOf(30.0, 70.0),
+                            lineColor = Color(0xFF9B8AFB),
+                            modifier = Modifier.fillMaxWidth().weight(0.20f),
+                            thresholdLabels = listOf("30", "70")
+                        )
+                    }
+                    if (showAdx) {
+                        IndicatorLineChart(
+                            title = if (showDi) "ADX (14) · +DI · −DI" else "ADX (14)",
+                            points = visibleIndicators, valueSelector = { it.adx },
+                            secondarySelectors = if (showDi) listOf({ p: IndicatorPoint -> p.plusDi }, { p: IndicatorPoint -> p.minusDi }) else emptyList(),
+                            minValue = 0.0, maxValue = 100.0, thresholds = listOf(20.0, 25.0, 45.0),
+                            lineColor = Color(0xFFFFC857),
+                            modifier = Modifier.fillMaxWidth().weight(0.20f),
+                            thresholdLabels = listOf("20", "25", "45"),
+                            legend = if (showDi) listOf("ADX", "+DI", "−DI") else listOf("ADX")
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("REST + WebSocket · 500 nến", color = NMuted, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { showRsi = !showRsi; prefs.edit().putBoolean("chart_show_rsi", showRsi).apply() }) { Text(if (showRsi) "Ẩn RSI" else "Hiện RSI") }
+                        TextButton(onClick = { showAdx = !showAdx; prefs.edit().putBoolean("chart_show_adx", showAdx).apply() }) { Text(if (showAdx) "Ẩn ADX" else "Hiện ADX") }
+                    }
+                }
+            }
+        }
+    }
 
 private fun fmt(value: Double?): String = value?.let { "%.2f".format(it) } ?: "—"
 
