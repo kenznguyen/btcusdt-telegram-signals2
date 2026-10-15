@@ -91,7 +91,7 @@ def pnl(side, avg, price, qty):
     return (price - avg) * qty if side == "LONG" else (avg - price) * qty
 
 
-def run_strategy_a(m15, h1):
+def run_strategy_a(m15, h1, test_start):
     """A: mirror current bot/backtest exit and DCA rules, with explicit fixed margins."""
     d = bot.add_indicators(m15).reset_index(drop=True)
     h = bot.add_indicators(h1).set_index("open_time")
@@ -99,6 +99,8 @@ def run_strategy_a(m15, h1):
     counts = {"DCA": 0, "TP": 0, "Soft SL": 0, "Emergency SL": 0, "DCA skipped insufficient margin": 0}
     for i, row in d.iterrows():
         ts = row.open_time
+        if ts < test_start:
+            continue
         close, op, high, low = map(float, (row.close, row.open, row.high, row.low))
         prior = d.iloc[i-1] if i else None
         available_h = h.loc[h.index < ts.floor("h")]
@@ -195,12 +197,14 @@ def run_strategy_a(m15, h1):
     return trades, curve, counts, balance
 
 
-def run_strategy_b(h1):
+def run_strategy_b(h1, test_start):
     """B: exact supplied Pine threshold crossings; next-open fills per default Pine strategy semantics."""
     d = add_b_indicators(h1).reset_index(drop=True)
     balance, pos, trades, curve = START_BALANCE, None, [], []
     for i, row in d.iterrows():
         ts = row.open_time
+        if ts < test_start:
+            continue
         op, close = float(row.open), float(row.close)
         prev_pb, pb = row.pb_prev, row.pb
         long_signal = pd.notna(prev_pb) and pd.notna(pb) and prev_pb < 0.2 and pb > 0.2
@@ -316,8 +320,9 @@ def main():
     b_h1 = h1[(h1.open_time >= start - pd.Timedelta(days=20)) & (h1.open_time < end)].reset_index(drop=True)
     if len(a_h1) < 100 or len(b_h1) < 100:
         raise RuntimeError("Insufficient H1 warm-up coverage.")
-    trades_a, curve_a, counts_a, balance_a = run_strategy_a(a_m15, a_h1)
-    trades_b, curve_b, counts_b, balance_b = run_strategy_b(b_h1[b_h1.open_time >= start].reset_index(drop=True))
+    # Keep warm-up candles for indicators, but do not allow trades before test_start.
+    trades_a, curve_a, counts_a, balance_a = run_strategy_a(m15, a_h1, start)
+    trades_b, curve_b, counts_b, balance_b = run_strategy_b(b_h1, start)
     summary = {
         "status":"completed","symbol":INSTRUMENT,"exchange":"OKX swap historical candles",
         "period_days":DAYS,"start_utc":start.isoformat(),"end_utc":end.isoformat(),
@@ -337,6 +342,14 @@ def main():
         fields = sorted({k for r in rows for k in r}) if rows else ["strategy","side","entry_time","exit_time","net_pnl_usdt"]
         with (OUT/fname).open("w",newline="",encoding="utf-8-sig") as f:
             w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(rows)
+    for curve in (curve_a, curve_b):
+        peak = START_BALANCE
+        for point in curve:
+            equity = float(point["equity_usdt"])
+            peak = max(peak, equity)
+            dd = max(0.0, peak - equity)
+            point["drawdown_usdt"] = dd
+            point["drawdown_pct"] = dd / peak * 100 if peak > 0 else 0.0
     curve_rows = curve_a + curve_b
     with (OUT/"equity_curve_m15.csv").open("w",newline="",encoding="utf-8-sig") as f:
         fields=["timestamp_utc","strategy","mark_price","balance_usdt","unrealized_pnl_usdt","equity_usdt","drawdown_usdt","drawdown_pct","position_side","position_margin_usdt"]
