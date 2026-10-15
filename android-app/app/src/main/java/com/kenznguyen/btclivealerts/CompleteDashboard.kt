@@ -14,6 +14,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -26,6 +28,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.CancellationException
@@ -548,6 +553,21 @@ fun CompleteDashboard(context: Context) {
             onDismissRequest = { chartFullscreen = false },
             properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
         ) {
+            val dialogView = LocalView.current
+            val dialogWindow = (dialogView.parent as? DialogWindowProvider)?.window
+            DisposableEffect(dialogWindow) {
+                if (dialogWindow != null) {
+                    WindowCompat.setDecorFitsSystemWindows(dialogWindow, false)
+                    val controller = WindowInsetsControllerCompat(dialogWindow, dialogWindow.decorView)
+                    controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    controller.hide(WindowInsetsCompat.Type.systemBars())
+                }
+                onDispose {
+                    if (dialogWindow != null) {
+                        WindowInsetsControllerCompat(dialogWindow, dialogWindow.decorView).show(WindowInsetsCompat.Type.systemBars())
+                    }
+                }
+            }
             Surface(Modifier.fillMaxSize(), color = NBg) {
                 Column(
                     Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp),
