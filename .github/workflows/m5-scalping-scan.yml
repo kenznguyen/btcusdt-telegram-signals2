@@ -2,9 +2,7 @@ name: BTCUSDT M5 Scalping Scanner
 run-name: BTCUSDT M5 scalping scan
 
 on:
-  schedule:
-    # Independent scanner; entries only evaluate newly closed M5 candles.
-    - cron: '*/5 * * * *'
+  # Experimental scanner is out of current scope; manual runs only.
   workflow_dispatch:
 
 permissions:
