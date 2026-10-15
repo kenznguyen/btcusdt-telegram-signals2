@@ -2,12 +2,7 @@ name: BTCUSDT M5 Scalping Backtest
 run-name: M5 scalping backtest (90d)
 
 on:
-  push:
-    branches:
-      - feature/btcusdt-m5-scalping
-    paths:
-      - ".github/workflows/m5-scalping-backtest.yml"
-      - "backtest_scalping_m5.py"
+  # Experimental M5 backtest is out of current scope; manual runs only.
   workflow_dispatch:
     inputs:
       days:
