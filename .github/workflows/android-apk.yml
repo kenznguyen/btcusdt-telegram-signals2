@@ -1,13 +1,8 @@
 name: Android APK
 
 on:
+  # Android feature is out of current scope; retain manual build for later QA.
   workflow_dispatch:
-  push:
-    branches:
-      - feature/android-btcusdt-live-alerts
-    paths:
-      - "android-app/**"
-      - ".github/workflows/android-apk.yml"
 
 concurrency:
   group: android-apk-${{ github.ref }}
