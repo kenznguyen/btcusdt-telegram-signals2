@@ -2,6 +2,7 @@ package com.kenznguyen.btclivealerts
 
 import android.app.NotificationManager
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -31,12 +32,61 @@ import okhttp3.WebSocket
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 
 private val NBg = Color(0xFF0B1018)
 private val NPanel = Color(0xFF151D29)
 private val NGreen = Color(0xFF20C997)
 private val NRed = Color(0xFFFF647C)
 private val NMuted = Color(0xFF91A0B5)
+
+private fun mergeCandle(cache: java.util.TreeMap<Long, Candle>, candle: Candle) {
+    val existing = cache[candle.openTime]
+    // A REST snapshot must never downgrade a WebSocket-confirmed closed candle.
+    if (existing?.closed == true && !candle.closed) return
+    mergeCandle(cache, candle)
+}
+
+private fun maybeNotifyRsiM15(
+    context: Context,
+    prefs: SharedPreferences,
+    engine: StrategyEngine,
+    candles: List<Candle>,
+    closedCandle: Candle
+) {
+    if (!closedCandle.closed || !prefs.getBoolean("alerts_enabled", true) ||
+        !prefs.getBoolean("alert_rsi_m15_enabled", false)) return
+    val closedPoints = engine.indicatorSeries(candles.filter { it.closed }.sortedBy { it.openTime })
+    val latestRsi = closedPoints.lastOrNull()?.rsi ?: return
+    val previousRsi = closedPoints.getOrNull(closedPoints.lastIndex - 1)?.rsi ?: return
+    val high = prefs.getInt("alert_rsi_m15_high", 70).toDouble().coerceIn(1.0, 99.0)
+    val low = prefs.getInt("alert_rsi_m15_low", 30).toDouble().coerceIn(1.0, 99.0)
+    val condition = if (low < high) when {
+        previousRsi < high && latestRsi >= high -> "HIGH"
+        previousRsi > low && latestRsi <= low -> "LOW"
+        else -> null
+    } else null
+    if (condition == null) return
+    val eventKey = "${closedCandle.openTime}:$condition"
+    if (prefs.getString("alert_rsi_m15_last_event", null) == eventKey) return
+    val manager = NotificationManagerCompat.from(context)
+    if (!manager.areNotificationsEnabled()) return
+    val now = SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date())
+    val threshold = if (condition == "HIGH") high.toInt() else low.toInt()
+    val title = if (condition == "HIGH") "BTCUSDT · RSI M15 vượt ngưỡng cao" else "BTCUSDT · RSI M15 xuống ngưỡng thấp"
+    val body = "RSI(14) = ${"%.1f".format(Locale.US, latestRsi)} · ngưỡng $threshold · nến đóng $now"
+    try {
+        manager.notify(if (condition == "HIGH") 987661 else 987662,
+            NotificationCompat.Builder(context, "strategy_alerts")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(title).setContentText(body)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build())
+        prefs.edit().putString("alert_rsi_m15_last_event", eventKey).apply()
+    } catch (_: SecurityException) { }
+}
 
 @Composable
 fun CompleteDashboard(context: Context) {
@@ -87,10 +137,13 @@ fun CompleteDashboard(context: Context) {
         chartPanBars = 0
         val mainHandler = Handler(Looper.getMainLooper())
         var socket: WebSocket? = null
+        var connected = AtomicBoolean(false)
+        var reconnectRequested = AtomicBoolean(false)
+        var connectionStartedAt = System.currentTimeMillis()
         try {
             val initial = market.fetchCandles(timeframe, 500)
             val cache = java.util.TreeMap<Long, Candle>()
-            initial.forEach { cache[it.openTime] = it }
+            initial.forEach { mergeCandle(cache, it) }
             chart = cache.values.toList()
             var m15Data = if (timeframe == "15m") initial else market.fetchCandles("15m", 500)
             var h1Data = if (timeframe == "1h") initial else market.fetchCandles("1h", 500)
@@ -109,41 +162,7 @@ fun CompleteDashboard(context: Context) {
                         val liveCandles = cache.values.toList()
                         chart = liveCandles
                         chartIndicators = engine.indicatorSeries(liveCandles)
-                        // RSI M15 alerts are evaluated only once a candle is confirmed closed.
-                        if (timeframe == "15m" && candle.closed && prefs.getBoolean("alerts_enabled", true) && prefs.getBoolean("alert_rsi_m15_enabled", false)) {
-                            val closedPoints = engine.indicatorSeries(liveCandles.filter { it.closed })
-                            val latestRsi = closedPoints.lastOrNull()?.rsi
-                            val previousRsi = closedPoints.getOrNull(closedPoints.lastIndex - 1)?.rsi
-                            val high = prefs.getInt("alert_rsi_m15_high", 70).toDouble().coerceIn(1.0, 99.0)
-                            val low = prefs.getInt("alert_rsi_m15_low", 30).toDouble().coerceIn(1.0, 99.0)
-                            val condition = if (low < high) when {
-                                latestRsi != null && previousRsi != null && previousRsi < high && latestRsi >= high -> "HIGH"
-                                latestRsi != null && previousRsi != null && previousRsi > low && latestRsi <= low -> "LOW"
-                                else -> null
-                            } else null
-                            if (condition != null) {
-                                val dedupeKey = "alert_rsi_m15_last_event"
-                                val eventKey = "${candle.openTime}:$condition"
-                                if (prefs.getString(dedupeKey, null) != eventKey) {
-                                    val manager = NotificationManagerCompat.from(context)
-                                    if (manager.areNotificationsEnabled()) {
-                                        val now = SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date())
-                                        val value = latestRsi ?: 0.0
-                                        val title = if (condition == "HIGH") "BTCUSDT · RSI M15 vượt ngưỡng cao" else "BTCUSDT · RSI M15 xuống ngưỡng thấp"
-                                        val body = "RSI(14) = ${"%.1f".format(Locale.US, value)} · ngưỡng ${if (condition == "HIGH") high.toInt() else low.toInt()} · nến đóng $now"
-                                        try {
-                                            manager.notify(if (condition == "HIGH") 987661 else 987662,
-                                                NotificationCompat.Builder(context, "strategy_alerts")
-                                                    .setSmallIcon(android.R.drawable.ic_dialog_info)
-                                                    .setContentTitle(title).setContentText(body)
-                                                    .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-                                                    .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build())
-                                            prefs.edit().putString(dedupeKey, eventKey).apply()
-                                        } catch (_: SecurityException) { }
-                                    }
-                                }
-                            }
-                        }
+                        if (timeframe == "15m" && candle.closed) maybeNotifyRsiM15(context, prefs, engine, liveCandles, candle)
                         // Keep strategy/status cards based on confirmed candles; the plot may preview the forming candle.
                         val latestClosed = engine.indicatorSeries(liveCandles.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
                         if (timeframe == "15m") m15Ind = latestClosed else h1Ind = latestClosed
@@ -151,35 +170,92 @@ fun CompleteDashboard(context: Context) {
                     }
                 },
                 onMarkPrice = { mark -> mainHandler.post { price = mark; status = "Dữ liệu live đang hoạt động" } },
-                onStatus = { message -> mainHandler.post { socketStatus = message; status = message } }
+                onStatus = { message ->
+                    if (message.contains("kết nối", true)) connected.set(true)
+                    if (message.contains("gián đoạn", true) || message.contains("đã đóng", true)) { connected.set(false); reconnectRequested.set(true) }
+                    mainHandler.post { socketStatus = message; status = message }
+                }
             )
-            while (true) {
-                delay(60_000)
-                val reconciled = market.fetchCandles(timeframe, 500)
-                val otherTimeframe = if (timeframe == "15m") "1h" else "15m"
-                val otherReconciled = market.fetchCandles(otherTimeframe, 500)
-                mainHandler.post {
-                    reconciled.forEach { cache[it.openTime] = it }
-                    while (cache.size > 500) cache.pollFirstEntry()
-                    chart = cache.values.toList()
-                    chartIndicators = engine.indicatorSeries(cache.values.toList())
-                    if (timeframe == "15m") {
-                        m15Data = cache.values.toList()
-                        h1Data = otherReconciled
-                    } else {
-                        h1Data = cache.values.toList()
-                        m15Data = otherReconciled
-                    }
-                    m15Ind = engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
-                    h1Ind = engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
-                    state = StrategyState.fromJson(prefs.getString("state_json", null))
-                    val heartbeat = prefs.getLong("monitor_last_success_ms", 0L)
-                    monitorHeartbeat = if (heartbeat > 0L) "Lần quét thành công: " + SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()).format(Date(heartbeat)) else "Chưa có lần quét thành công"
-                    val candleTime = prefs.getLong("monitor_last_candle_open", 0L)
-                    lastProcessedCandle = if (candleTime > 0L) SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date(candleTime)) else "Chưa có nến được xử lý"
-                    lastEventCount = prefs.getInt("monitor_last_event_count", 0)
-                    monitorError = prefs.getString("monitor_last_error", "").orEmpty()
-                    status = socketStatus
+            var retryDelayMs = 1_000L
+            var connected = AtomicBoolean(false)
+            var reconnectRequested = AtomicBoolean(false)
+            var lastSyncAt = System.currentTimeMillis()
+            var connectionStartedAt = System.currentTimeMillis()
+            while (currentCoroutineContext().isActive) {
+                delay(1_000)
+                val now = System.currentTimeMillis()
+                if (!connected.get() && now - connectionStartedAt > 15_000L) reconnectRequested.set(true)
+                if (reconnectRequested.get()) {
+                    socket?.close(1001, "reconnect")
+                    delay(retryDelayMs)
+                    try {
+                        val reconciled = market.fetchCandles(timeframe, 500)
+                        val otherTimeframe = if (timeframe == "15m") "1h" else "15m"
+                        val otherReconciled = market.fetchCandles(otherTimeframe, 500)
+                        mainHandler.post {
+                            reconciled.forEach { mergeCandle(cache, it) }
+                            while (cache.size > 500) cache.pollFirstEntry()
+                            chart = cache.values.toList()
+                            chartIndicators = engine.indicatorSeries(cache.values.toList())
+                            if (timeframe == "15m") { m15Data = cache.values.toList(); h1Data = otherReconciled }
+                            else { h1Data = cache.values.toList(); m15Data = otherReconciled }
+                            m15Ind = engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                            h1Ind = engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                        }
+                        price = market.fetchMarkPrice()
+                        connected = AtomicBoolean(false)
+                        reconnectRequested = AtomicBoolean(false)
+                        connectionStartedAt = System.currentTimeMillis()
+                        socket = market.connectLive(timeframe,
+                            onCandle = { c -> mainHandler.post {
+                                mergeCandle(cache, c)
+                                while (cache.size > 500) cache.pollFirstEntry()
+                                val liveCandles = cache.values.toList()
+                                chart = liveCandles
+                                chartIndicators = engine.indicatorSeries(liveCandles)
+                                if (timeframe == "15m" && c.closed) maybeNotifyRsiM15(context, prefs, engine, liveCandles, c)
+                                val closed = engine.indicatorSeries(liveCandles.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                                if (timeframe == "15m") m15Ind = closed else h1Ind = closed
+                            } },
+                            onMarkPrice = { mark -> mainHandler.post { price = mark } },
+                            onStatus = { message ->
+                                if (message.contains("kết nối", true)) connected.set(true)
+                                if (message.contains("gián đoạn", true) || message.contains("đã đóng", true)) { connected.set(false); reconnectRequested.set(true) }
+                                mainHandler.post { socketStatus = message; status = message }
+                            })
+                        retryDelayMs = 1_000L
+                        lastSyncAt = System.currentTimeMillis()
+                    } catch (e: CancellationException) { throw e }
+                    catch (_: Exception) { retryDelayMs = (retryDelayMs * 2).coerceAtMost(30_000L) }
+                    continue
+                }
+                if (connected.get()) retryDelayMs = 1_000L
+                if (now - lastSyncAt >= 60_000L) {
+                    try {
+                        val reconciled = market.fetchCandles(timeframe, 500)
+                        val otherTimeframe = if (timeframe == "15m") "1h" else "15m"
+                        val otherReconciled = market.fetchCandles(otherTimeframe, 500)
+                        mainHandler.post {
+                            reconciled.forEach { mergeCandle(cache, it) }
+                            while (cache.size > 500) cache.pollFirstEntry()
+                            chart = cache.values.toList()
+                            chartIndicators = engine.indicatorSeries(cache.values.toList())
+                            if (timeframe == "15m") { m15Data = cache.values.toList(); h1Data = otherReconciled }
+                            else { h1Data = cache.values.toList(); m15Data = otherReconciled }
+                            m15Ind = engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                            h1Ind = engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                            state = StrategyState.fromJson(prefs.getString("state_json", null))
+                            val heartbeat = prefs.getLong("monitor_last_success_ms", 0L)
+                            monitorHeartbeat = if (heartbeat > 0L) "Lần quét thành công: " + SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()).format(Date(heartbeat)) else "Chưa có lần quét thành công"
+                            val candleTime = prefs.getLong("monitor_last_candle_open", 0L)
+                            lastProcessedCandle = if (candleTime > 0L) SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date(candleTime)) else "Chưa có nến được xử lý"
+                            lastEventCount = prefs.getInt("monitor_last_event_count", 0)
+                            monitorError = prefs.getString("monitor_last_error", "").orEmpty()
+                            status = socketStatus
+                        }
+                        lastSyncAt = now
+                    } catch (e: CancellationException) { throw e }
+                    catch (_: Exception) { socketStatus = "REST đồng bộ lỗi; sẽ thử lại" }
                 }
             }
         } catch (e: CancellationException) {
@@ -192,6 +268,66 @@ fun CompleteDashboard(context: Context) {
         } finally {
             socket?.close(1000, "timeframe changed")
         }
+    }
+
+    // M15 RSI monitor is independent of chart timeframe. When chart is M15, its single socket is reused;
+    // when chart is H1, this effect owns the only M15 socket.
+    LaunchedEffect(timeframe) {
+        if (timeframe != "1h") return@LaunchedEffect
+        val handler = Handler(Looper.getMainLooper())
+        val cache = java.util.TreeMap<Long, Candle>()
+        var socket: WebSocket? = null
+        var connected = AtomicBoolean(false)
+        var reconnect = AtomicBoolean(false)
+        var startedAt = System.currentTimeMillis()
+        var retryMs = 1_000L
+        var lastClosedOpen = 0L
+        try {
+            val initial = market.fetchCandles("15m", 500)
+            initial.forEach { mergeCandle(cache, it) }
+            lastClosedOpen = cache.values.filter { it.closed }.maxOfOrNull { it.openTime } ?: 0L
+            while (currentCoroutineContext().isActive) {
+                if (socket == null || reconnect.get() || (!connected.get() && System.currentTimeMillis() - startedAt > 15_000L)) {
+                    socket?.close(1001, "M15 monitor reconnect")
+                    if (socket != null) delay(retryMs)
+                    try {
+                        val snapshot = market.fetchCandles("15m", 500)
+                        snapshot.forEach { mergeCandle(cache, it) }
+                        while (cache.size > 500) cache.pollFirstEntry()
+                        val newest = cache.values.filter { it.closed }.maxByOrNull { it.openTime }
+                        if (newest != null && newest.openTime > lastClosedOpen) {
+                            maybeNotifyRsiM15(context, prefs, engine, cache.values.toList(), newest)
+                            lastClosedOpen = newest.openTime
+                        }
+                        connected.set(false)
+                        reconnect.set(false)
+                        startedAt = System.currentTimeMillis()
+                        socket = market.connectLive("15m",
+                            onCandle = { candle -> handler.post {
+                                mergeCandle(cache, candle)
+                                while (cache.size > 500) cache.pollFirstEntry()
+                                if (candle.closed && candle.openTime > lastClosedOpen) {
+                                    maybeNotifyRsiM15(context, prefs, engine, cache.values.toList(), candle)
+                                    lastClosedOpen = candle.openTime
+                                }
+                            } },
+                            onMarkPrice = { },
+                            onStatus = { message ->
+                                if (message.contains("kết nối", true)) connected.set(true)
+                                if (message.contains("gián đoạn", true) || message.contains("đã đóng", true)) {
+                                    connected.set(false); reconnect.set(true)
+                                }
+                                handler.post { if (timeframe == "1h") socketStatus = "RSI M15 · $message" }
+                            })
+                        retryMs = 1_000L
+                    } catch (e: CancellationException) { throw e }
+                    catch (_: Exception) { retryMs = (retryMs * 2).coerceAtMost(30_000L) }
+                }
+                delay(1_000)
+            }
+        } catch (e: CancellationException) { throw e }
+        catch (_: Exception) { if (timeframe == "1h") socketStatus = "Giám sát RSI M15 cần đồng bộ lại" }
+        finally { socket?.close(1000, "M15 monitor stopped") }
     }
 
     val shown = if (timeframe == "15m") m15Ind else h1Ind
