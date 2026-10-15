@@ -284,9 +284,14 @@ fun CompleteDashboard(context: Context) {
             initial.forEach { mergeCandle(cache, it) }
             lastClosedOpen = cache.values.filter { it.closed }.maxOfOrNull { it.openTime } ?: 0L
             while (currentCoroutineContext().isActive) {
+                if (connected.get()) retryMs = 1_000L
                 if (socket == null || reconnect.get() || (!connected.get() && System.currentTimeMillis() - startedAt > 15_000L)) {
+                    val hadSocket = socket != null
                     socket?.close(1001, "M15 monitor reconnect")
-                    if (socket != null) delay(retryMs)
+                    if (hadSocket) {
+                        retryMs = (retryMs * 2).coerceAtMost(30_000L)
+                        delay(retryMs)
+                    }
                     try {
                         val snapshot = market.fetchCandles("15m", 500)
                         snapshot.forEach { mergeCandle(cache, it) }
@@ -316,7 +321,6 @@ fun CompleteDashboard(context: Context) {
                                 }
                                 handler.post { if (timeframe == "1h") socketStatus = "RSI M15 · $message" }
                             })
-                        retryMs = 1_000L
                     } catch (e: CancellationException) { throw e }
                     catch (_: Exception) { retryMs = (retryMs * 2).coerceAtMost(30_000L) }
                 }
