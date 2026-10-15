@@ -3,7 +3,31 @@ package com.kenznguyen.btclivealerts
 import org.junit.Assert.*
 import org.junit.Test
 
-class StrategyEngineTest {
+class StrategyEngineTest {\n    @Test fun strategyDefaultsMatchRequestedM15H1DcaProfile() {
+        val cfg = StrategyConfig()
+        assertEquals(13.0, cfg.leverage, 0.0)
+        assertEquals(14, cfg.rsiLength)
+        assertEquals(14, cfg.dmiLength)
+        assertEquals(14, cfg.adxSmoothing)
+        assertEquals(20.0, cfg.h1AdxEntry, 0.0)
+        assertEquals(30.0, cfg.longRsiEntry, 0.0)
+        assertEquals(70.0, cfg.shortRsiEntry, 0.0)
+        assertEquals(76.0, cfg.longRsiTp, 0.0)
+        assertEquals(24.0, cfg.shortRsiTp, 0.0)
+        assertEquals(5.0, cfg.tpRoe, 0.0)
+        assertEquals(-35.0, cfg.dcaRoe, 0.0)
+        assertEquals(-25.0, cfg.softSlRoe, 0.0)
+        assertEquals(-90.0, cfg.emergencySlRoe, 0.0)
+        assertEquals(35.0, cfg.softSlAdx, 0.0)
+        assertEquals(45.0, cfg.dcaAdx, 0.0)
+        assertEquals(80.0, cfg.shortDcaRsi, 0.0)
+        assertEquals(20.0, cfg.longDcaRsi, 0.0)
+        assertEquals(0.25, cfg.entryMarginPct, 0.0)
+        assertEquals(1.0, cfg.dcaMarginRatio, 0.0)
+        assertEquals(200.0, StrategyState().balance, 0.0)
+    }
+
+
     private val engine = StrategyEngine()
 
     @Test fun roeAndThresholdsRespectLeverage() {
