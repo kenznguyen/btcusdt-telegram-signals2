@@ -704,7 +704,7 @@ private fun IndicatorLineChart(
                 .pointerInput(points.size, visibleCount) {
                     detectDragGestures { change, drag ->
                         change.consume()
-                        val bars = (drag.x / size.width.coerceAtLeast(1f) * currentVisibleCount.toFloat()).toInt()
+                        val bars = (drag.x / size.width.coerceAtLeast(1).toFloat() * currentVisibleCount.toFloat()).toInt()
                         latestOnPanBarsChange((currentPanBars + bars).coerceIn(0, 1499))
                     }
                 }
@@ -955,7 +955,7 @@ private fun DmiAdxTrendChart(
                 .pointerInput(points.size, visibleCount) {
                     detectDragGestures { change, drag ->
                         change.consume()
-                        val bars = (drag.x / size.width.coerceAtLeast(1f) * currentVisibleCount.toFloat()).toInt()
+                        val bars = (drag.x / size.width.coerceAtLeast(1).toFloat() * currentVisibleCount.toFloat()).toInt()
                         latestOnPanBarsChange((currentPanBars + bars).coerceIn(0, 1499))
                     }
                 }
