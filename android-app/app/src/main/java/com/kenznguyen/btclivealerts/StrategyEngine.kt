@@ -60,8 +60,14 @@ data class StrategyState(
     }
 }
 
-data class IndicatorPoint(val rsi: Double? = null, val adx: Double? = null,
-                          val plusDi: Double? = null, val minusDi: Double? = null)
+data class IndicatorPoint(
+    val rsi: Double? = null,
+    val adx: Double? = null,
+    val plusDi: Double? = null,
+    val minusDi: Double? = null,
+    val rsiPercentB: Double? = null,
+    val rsiPercentBSignal: Double? = null
+)
 
 data class StrategyConfig(
     val leverage: Double = 13.0, val rsiLength: Int = 14, val dmiLength: Int = 14,
@@ -128,7 +134,32 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
             if (p == null || m == null || p + m == 0.0) null else 100.0 * abs(p - m) / (p + m)
         }
         val adx = rma(dx, config.adxSmoothing)
-        return (0 until n).map { IndicatorPoint(rsi[it], adx[it], pdi[it], mdi[it]) }
+
+        // Bollinger %B applied to RSI(14): 20-period SMA, 2 standard deviations.
+        // Signal line is a 5-period EMA of %B. These are chart-only indicators;
+        // strategy entry/exit rules continue using the existing RSI/ADX series.
+        val percentB = MutableList<Double?>(n) { null }
+        for (i in 19 until n) {
+            val window = (i - 19..i).mapNotNull { rsi[it] }
+            if (window.size != 20) continue
+            val mean = window.average()
+            val variance = window.map { (it - mean) * (it - mean) }.average()
+            val deviation = kotlin.math.sqrt(variance)
+            val upper = mean + 2.0 * deviation
+            val lower = mean - 2.0 * deviation
+            percentB[i] = if (upper - lower <= 1e-12) 0.5 else ((rsi[i]!! - lower) / (upper - lower)).coerceIn(-2.0, 3.0)
+        }
+        val percentBSignal = MutableList<Double?>(n) { null }
+        var ema: Double? = null
+        val alpha = 2.0 / 6.0
+        percentB.indices.forEach { i ->
+            val value = percentB[i]
+            if (value != null) {
+                ema = if (ema == null) value else alpha * value + (1.0 - alpha) * ema!!
+                percentBSignal[i] = ema
+            }
+        }
+        return (0 until n).map { IndicatorPoint(rsi[it], adx[it], pdi[it], mdi[it], percentB[it], percentBSignal[it]) }
     }
 
     fun processClosedCandles(m15: List<Candle>, h1: List<Candle>, oldState: StrategyState): Pair<StrategyState, List<StrategyEvent>> {
