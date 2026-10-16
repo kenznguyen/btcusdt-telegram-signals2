@@ -401,12 +401,16 @@ fun CompleteDashboard(context: Context) {
                             lineColor = Color(0xFF9B8AFB), modifier = Modifier.fillMaxWidth().height(142.dp),
                             secondarySelectors = listOf({ it.rsiPercentBSignal }),
                             thresholdLabels = listOf("0", "0.5", "1"),
-                            legend = listOf("%B", "Signal")
+                            legend = listOf("%B", "Signal"),
+                            visibleCount = chartVisibleCount,
+                            panBars = chartPanBars,
+                            onVisibleCountChange = { chartVisibleCount = it },
+                            onPanBarsChange = { chartPanBars = it }
                         )
                     }
                     if (showAdx) {
                         Spacer(Modifier.height(10.dp))
-                        DmiAdxTrendChart(candles = visibleCandles, points = visibleIndicators, showDi = showDi, modifier = Modifier.fillMaxWidth().height(164.dp))
+                        DmiAdxTrendChart(candles = visibleCandles, points = visibleIndicators, showDi = showDi, visibleCount = chartVisibleCount, panBars = chartPanBars, onVisibleCountChange = { chartVisibleCount = it }, onPanBarsChange = { chartPanBars = it }, modifier = Modifier.fillMaxWidth().height(164.dp))
                     }
                     Text("Binance Futures · REST + WebSocket · ${chart.size} nến đã tải (tối đa 1.500)", color = NMuted)
                     Text(socketStatus, color = if (socketStatus.contains("live") || socketStatus.contains("kết nối")) NGreen else NRed, style = MaterialTheme.typography.bodySmall)
@@ -620,11 +624,15 @@ fun CompleteDashboard(context: Context) {
                             modifier = Modifier.fillMaxWidth().weight(0.20f),
                             secondarySelectors = listOf({ it.rsiPercentBSignal }),
                             thresholdLabels = listOf("0", "0.5", "1"),
-                            legend = listOf("%B", "Signal")
+                            legend = listOf("%B", "Signal"),
+                            visibleCount = chartVisibleCount,
+                            panBars = chartPanBars,
+                            onVisibleCountChange = { chartVisibleCount = it },
+                            onPanBarsChange = { chartPanBars = it }
                         )
                     }
                     if (showAdx) {
-                        DmiAdxTrendChart(candles = visibleCandles, points = visibleIndicators, showDi = showDi, modifier = Modifier.fillMaxWidth().weight(0.24f))
+                        DmiAdxTrendChart(candles = visibleCandles, points = visibleIndicators, showDi = showDi, visibleCount = chartVisibleCount, panBars = chartPanBars, onVisibleCountChange = { chartVisibleCount = it }, onPanBarsChange = { chartPanBars = it }, modifier = Modifier.fillMaxWidth().weight(0.24f))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("REST + WebSocket · ${chart.size}/1.500 nến", color = NMuted, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
@@ -668,8 +676,16 @@ private fun IndicatorLineChart(
     modifier: Modifier = Modifier,
     secondarySelectors: List<(IndicatorPoint) -> Double?> = emptyList(),
     thresholdLabels: List<String> = emptyList(),
-    legend: List<String> = emptyList()
+    legend: List<String> = emptyList(),
+    visibleCount: Int,
+    panBars: Int,
+    onVisibleCountChange: (Int) -> Unit,
+    onPanBarsChange: (Int) -> Unit
 ) {
+    val currentVisibleCount by rememberUpdatedState(visibleCount)
+    val currentPanBars by rememberUpdatedState(panBars)
+    val latestOnVisibleCountChange by rememberUpdatedState(onVisibleCountChange)
+    val latestOnPanBarsChange by rememberUpdatedState(onPanBarsChange)
     val latest = points.lastOrNull()?.let(valueSelector)?.takeIf { it.isFinite() }
     Column(
         modifier.background(NBg, RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 8.dp)
@@ -678,7 +694,21 @@ private fun IndicatorLineChart(
             Text(title, color = Color.White, style = MaterialTheme.typography.labelLarge)
             Text(latest?.let { "%.1f".format(Locale.US, it) } ?: "—", color = lineColor, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
         }
-        Canvas(Modifier.fillMaxWidth().height(82.dp)) {
+        Canvas(
+            Modifier.fillMaxWidth().height(82.dp)
+                .pointerInput(points.size, visibleCount) {
+                    detectTransformGestures { _, _, zoom, _ ->
+                        latestOnVisibleCountChange((currentVisibleCount / zoom).toInt().coerceIn(20, 600))
+                    }
+                }
+                .pointerInput(points.size, visibleCount) {
+                    detectDragGestures { change, drag ->
+                        change.consume()
+                        val bars = (drag.x / size.width.coerceAtLeast(1f) * currentVisibleCount).toInt()
+                        latestOnPanBarsChange((currentPanBars + bars).coerceIn(0, 1499))
+                    }
+                }
+        ) {
             if (points.size < 2 || size.width <= 0f || size.height <= 0f) return@Canvas
             val range = (maxValue - minValue).takeIf { it > 0.0 } ?: 1.0
             fun y(value: Double): Float =
@@ -892,7 +922,16 @@ private fun LiveCandles(
 }
 
 @Composable
-private fun DmiAdxTrendChart(candles: List<Candle>, points: List<IndicatorPoint>, showDi: Boolean, modifier: Modifier = Modifier) {
+private fun DmiAdxTrendChart(
+    candles: List<Candle>, points: List<IndicatorPoint>, showDi: Boolean,
+    visibleCount: Int, panBars: Int,
+    onVisibleCountChange: (Int) -> Unit, onPanBarsChange: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val currentVisibleCount by rememberUpdatedState(visibleCount)
+    val currentPanBars by rememberUpdatedState(panBars)
+    val latestOnVisibleCountChange by rememberUpdatedState(onVisibleCountChange)
+    val latestOnPanBarsChange by rememberUpdatedState(onPanBarsChange)
     val latest = points.lastOrNull()
     val priorAdx = points.getOrNull(points.lastIndex - 1)?.adx
     val rising = latest?.adx != null && priorAdx != null && latest.adx!! >= priorAdx
@@ -906,7 +945,21 @@ private fun DmiAdxTrendChart(candles: List<Candle>, points: List<IndicatorPoint>
             Text("DMI & ADX TREND", color = Color.White, style = MaterialTheme.typography.labelLarge)
             Text("ADX " + fmt(latest?.adx) + " · +DI " + fmt(latest?.plusDi) + " · −DI " + fmt(latest?.minusDi), color = trendColor, style = MaterialTheme.typography.labelSmall, maxLines = 1)
         }
-        Canvas(Modifier.fillMaxWidth().weight(1f)) {
+        Canvas(
+            Modifier.fillMaxWidth().weight(1f)
+                .pointerInput(points.size, visibleCount) {
+                    detectTransformGestures { _, _, zoom, _ ->
+                        latestOnVisibleCountChange((currentVisibleCount / zoom).toInt().coerceIn(20, 600))
+                    }
+                }
+                .pointerInput(points.size, visibleCount) {
+                    detectDragGestures { change, drag ->
+                        change.consume()
+                        val bars = (drag.x / size.width.coerceAtLeast(1f) * currentVisibleCount).toInt()
+                        latestOnPanBarsChange((currentPanBars + bars).coerceIn(0, 1499))
+                    }
+                }
+        ) {
             if (points.isEmpty() || size.width <= 0f || size.height <= 0f) return@Canvas
             val n = minOf(points.size, candles.size)
             if (n == 0) return@Canvas
