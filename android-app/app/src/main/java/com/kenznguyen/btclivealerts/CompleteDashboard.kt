@@ -1,6 +1,8 @@
 package com.kenznguyen.btclivealerts
 
 import android.app.NotificationManager
+import android.graphics.Paint as AndroidPaint
+import android.graphics.Typeface
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
@@ -24,6 +26,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -377,7 +380,7 @@ fun CompleteDashboard(context: Context) {
                     }
                     Spacer(Modifier.height(8.dp))
                     LiveCandles(
-                        chart, price, chartVisibleCount, chartPanBars,
+                        chart, price, chartVisibleCount, chartPanBars, state.recentEvents, state.recentEvents,
                         onVisibleCountChange = { chartVisibleCount = it },
                         onPanBarsChange = { chartPanBars = it },
                         modifier = Modifier.fillMaxWidth().height(260.dp)
@@ -388,10 +391,12 @@ fun CompleteDashboard(context: Context) {
                     if (showRsi) {
                         Spacer(Modifier.height(10.dp))
                         IndicatorLineChart(
-                            title = "RSI (14)", points = visibleIndicators, valueSelector = { it.rsi },
-                            minValue = 0.0, maxValue = 100.0, thresholds = listOf(30.0, 70.0),
+                            title = "RSI %B SIGNAL", points = visibleIndicators, valueSelector = { it.rsiPercentB },
+                            minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
                             lineColor = Color(0xFF9B8AFB), modifier = Modifier.fillMaxWidth().height(142.dp),
-                            thresholdLabels = listOf("30", "70")
+                            secondarySelectors = listOf({ it.rsiPercentBSignal }),
+                            thresholdLabels = listOf("0", "0.5", "1"),
+                            legend = listOf("%B", "Signal")
                         )
                     }
                     if (showAdx) {
@@ -414,7 +419,7 @@ fun CompleteDashboard(context: Context) {
                     }
                     if (chartSettingsExpanded) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            PreferenceSwitch("RSI (14)", showRsi, { showRsi = it; prefs.edit().putBoolean("chart_show_rsi", it).apply() })
+                            PreferenceSwitch("RSI %B Signal", showRsi, { showRsi = it; prefs.edit().putBoolean("chart_show_rsi", it).apply() })
                             PreferenceSwitch("ADX (14)", showAdx, { showAdx = it; prefs.edit().putBoolean("chart_show_adx", it).apply() })
                             PreferenceSwitch("+DI / −DI", showDi, { showDi = it; prefs.edit().putBoolean("chart_show_di", it).apply() })
                             PreferenceSwitch("Xu hướng H1", showH1Trend, { showH1Trend = it; prefs.edit().putBoolean("chart_show_h1", it).apply() })
@@ -424,7 +429,7 @@ fun CompleteDashboard(context: Context) {
             }
             if (showRsi || showAdx) item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (showRsi) StatCard("RSI (14)", shown.rsi, Modifier.weight(1f))
+                    if (showRsi) StatCard("RSI %B Signal", shown.rsiPercentB, Modifier.weight(1f))
                     if (showAdx) StatCard("ADX (14)", shown.adx, Modifier.weight(1f))
                 }
             }
@@ -610,11 +615,13 @@ fun CompleteDashboard(context: Context) {
                     )
                     if (showRsi) {
                         IndicatorLineChart(
-                            title = "RSI (14)", points = visibleIndicators, valueSelector = { it.rsi },
-                            minValue = 0.0, maxValue = 100.0, thresholds = listOf(30.0, 70.0),
+                            title = "RSI %B SIGNAL", points = visibleIndicators, valueSelector = { it.rsiPercentB },
+                            minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
                             lineColor = Color(0xFF9B8AFB),
                             modifier = Modifier.fillMaxWidth().weight(0.20f),
-                            thresholdLabels = listOf("30", "70")
+                            secondarySelectors = listOf({ it.rsiPercentBSignal }),
+                            thresholdLabels = listOf("0", "0.5", "1"),
+                            legend = listOf("%B", "Signal")
                         )
                     }
                     if (showAdx) {
@@ -726,6 +733,7 @@ private fun StatCard(label: String, value: Double?, modifier: Modifier = Modifie
 @Composable
 private fun LiveCandles(
     candles: List<Candle>, markPrice: Double?, visibleCount: Int, panBars: Int,
+    events: List<StrategyEvent>,
     onVisibleCountChange: (Int) -> Unit, onPanBarsChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -799,6 +807,54 @@ private fun LiveCandles(
                 drawLine(Color(0xFF9B8AFB), Offset(0f, y(candle.close)), Offset(size.width, y(candle.close)), strokeWidth = 1f)
             }
         }
+
+        // Overlay strategy event labels at their candle/price without changing strategy logic.
+        val visibleStartTime = data.first().openTime
+        val visibleEndTime = data.last().openTime
+        val eventPaint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
+            textSize = 10f * density
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textAlign = AndroidPaint.Align.CENTER
+        }
+        events.asSequence()
+            .filter { it.candleTime in visibleStartTime..visibleEndTime }
+            .sortedBy { it.candleTime }
+            .forEach { event ->
+                val idx = data.indexOfLast { it.openTime <= event.candleTime }
+                if (idx >= 0) {
+                    val candle = data[idx]
+                    val x = step * (idx + 0.5f)
+                    val isLong = event.side == "LONG" || event.kind.contains("LONG", true)
+                    val isShort = event.side == "SHORT" || event.kind.contains("SHORT", true)
+                    val color = when {
+                        isLong -> 0xFF20C997.toInt()
+                        isShort -> 0xFFFF647C.toInt()
+                        event.kind.contains("TAKE", true) || event.kind.contains("TP", true) -> 0xFFFFC857.toInt()
+                        else -> 0xFF9B8AFB.toInt()
+                    }
+                    val label = when {
+                        event.kind.contains("EMERGENCY", true) -> "E-SL"
+                        event.kind.contains("SOFT SL", true) -> "S-SL"
+                        event.kind.contains("TAKE", true) -> "TP"
+                        event.kind.contains("DCA", true) -> "DCA"
+                        isLong -> "LONG"
+                        isShort -> "SHORT"
+                        else -> event.kind.take(8)
+                    }
+                    val anchorPrice = if (isLong) candle.low else if (isShort) candle.high else event.price
+                    val labelY = (y(anchorPrice) + if (isLong) 14f * density else -6f * density)
+                        .coerceIn(12f * density, size.height - 4f * density)
+                    eventPaint.color = color
+                    val bgPaint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply { this.color = 0xDD0B1018.toInt() }
+                    val width = eventPaint.measureText(label) + 8f * density
+                    drawContext.canvas.nativeCanvas.drawRoundRect(
+                        x - width / 2f, labelY - 11f * density, x + width / 2f, labelY + 3f * density,
+                        4f * density, 4f * density, bgPaint
+                    )
+                    drawContext.canvas.nativeCanvas.drawText(label, x, labelY, eventPaint)
+                }
+            }
+
         markPrice?.let { current ->
             val py = y(current)
             drawLine(Color(0xFFFFC857), Offset(0f, py), Offset(size.width, py), strokeWidth = 1.5f)
