@@ -380,7 +380,7 @@ fun CompleteDashboard(context: Context) {
                     }
                     Spacer(Modifier.height(8.dp))
                     LiveCandles(
-                        chart, price, chartVisibleCount, chartPanBars, state.recentEvents, state.recentEvents,
+                        chart, price, chartVisibleCount, chartPanBars, state.recentEvents,
                         onVisibleCountChange = { chartVisibleCount = it },
                         onPanBarsChange = { chartPanBars = it },
                         modifier = Modifier.fillMaxWidth().height(260.dp)
@@ -608,7 +608,7 @@ fun CompleteDashboard(context: Context) {
                         TextButton(onClick = { chartPanBars = 0; chartVisibleCount = 70 }) { Text("Đặt lại") }
                     }
                     LiveCandles(
-                        chart, price, chartVisibleCount, chartPanBars,
+                        chart, price, chartVisibleCount, chartPanBars, state.recentEvents,
                         onVisibleCountChange = { chartVisibleCount = it },
                         onPanBarsChange = { chartPanBars = it },
                         modifier = Modifier.fillMaxWidth().weight(if (showRsi && showAdx) 0.56f else 0.76f)
