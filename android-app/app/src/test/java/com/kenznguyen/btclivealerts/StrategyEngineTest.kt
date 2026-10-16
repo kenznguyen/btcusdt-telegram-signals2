@@ -75,11 +75,12 @@ class StrategyEngineTest {
     }
 
     @Test fun dcaRequiresLossAdxAndCorrectRsiDirection() {
-        assertTrue(engine.dcaSignal("LONG", -35.0, 46.0, 25.0, 24.0))
-        assertFalse(engine.dcaSignal("LONG", -34.9, 46.0, 25.0, 24.0))
-        assertFalse(engine.dcaSignal("LONG", -36.0, 45.0, 25.0, 24.0))
-        assertTrue(engine.dcaSignal("SHORT", -35.0, 46.0, 79.0, 80.0))
-        assertFalse(engine.dcaSignal("SHORT", -36.0, 46.0, 81.0, 80.0))
+        // DCA threshold is -20% ROE; ADX must be strictly greater than 45.
+        assertTrue(engine.dcaSignal("LONG", -20.0, 46.0, 25.0, 24.0))
+        assertFalse(engine.dcaSignal("LONG", -19.9, 46.0, 25.0, 24.0))
+        assertFalse(engine.dcaSignal("LONG", -20.0, 45.0, 25.0, 24.0))
+        assertTrue(engine.dcaSignal("SHORT", -20.0, 46.0, 79.0, 80.0))
+        assertFalse(engine.dcaSignal("SHORT", -20.0, 46.0, 81.0, 80.0))
     }
 
     @Test fun stopRulesRespectPriorityConditionsAndTwoCandleConfirmation() {
