@@ -135,7 +135,7 @@ fun CompleteDashboard(context: Context) {
     var m15Ind by remember { mutableStateOf(IndicatorPoint()) }
     var h1Ind by remember { mutableStateOf(IndicatorPoint()) }
     var chartIndicators by remember { mutableStateOf<List<IndicatorPoint>>(emptyList()) }
-    var chartVisibleCount by remember { mutableIntStateOf(70) }
+    var chartVisibleCount by remember { mutableIntStateOf(120) }
     var chartPanBars by remember { mutableIntStateOf(0) }
     var showRsi by remember { mutableStateOf(prefs.getBoolean("chart_show_rsi", true)) }
     var showAdx by remember { mutableStateOf(prefs.getBoolean("chart_show_adx", true)) }
@@ -153,12 +153,12 @@ fun CompleteDashboard(context: Context) {
         var reconnectRequested = AtomicBoolean(false)
         var connectionStartedAt = System.currentTimeMillis()
         try {
-            val initial = market.fetchCandles(timeframe, 500)
+            val initial = market.fetchCandles(timeframe, 1500)
             val cache = java.util.TreeMap<Long, Candle>()
             initial.forEach { mergeCandle(cache, it) }
             chart = cache.values.toList()
-            var m15Data = if (timeframe == "15m") initial else market.fetchCandles("15m", 500)
-            var h1Data = if (timeframe == "1h") initial else market.fetchCandles("1h", 500)
+            var m15Data = if (timeframe == "15m") initial else market.fetchCandles("15m", 1500)
+            var h1Data = if (timeframe == "1h") initial else market.fetchCandles("1h", 1500)
             m15Ind = engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
             h1Ind = engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
             chartIndicators = engine.indicatorSeries(initial)
@@ -170,7 +170,7 @@ fun CompleteDashboard(context: Context) {
                     mainHandler.post {
                         status = "Dữ liệu live đang hoạt động"
                         cache[candle.openTime] = candle
-                        while (cache.size > 500) cache.pollFirstEntry()
+                        while (cache.size > 1500) cache.pollFirstEntry()
                         val liveCandles = cache.values.toList()
                         chart = liveCandles
                         chartIndicators = engine.indicatorSeries(liveCandles)
@@ -199,12 +199,12 @@ fun CompleteDashboard(context: Context) {
                     retryDelayMs = (retryDelayMs * 2).coerceAtMost(30_000L)
                     delay(retryDelayMs)
                     try {
-                        val reconciled = market.fetchCandles(timeframe, 500)
+                        val reconciled = market.fetchCandles(timeframe, 1500)
                         val otherTimeframe = if (timeframe == "15m") "1h" else "15m"
                         val otherReconciled = market.fetchCandles(otherTimeframe, 500)
                         mainHandler.post {
                             reconciled.forEach { mergeCandle(cache, it) }
-                            while (cache.size > 500) cache.pollFirstEntry()
+                            while (cache.size > 1500) cache.pollFirstEntry()
                             chart = cache.values.toList()
                             chartIndicators = engine.indicatorSeries(cache.values.toList())
                             if (timeframe == "15m") { m15Data = cache.values.toList(); h1Data = otherReconciled }
@@ -219,7 +219,7 @@ fun CompleteDashboard(context: Context) {
                         socket = market.connectLive(timeframe,
                             onCandle = { c -> mainHandler.post {
                                 mergeCandle(cache, c)
-                                while (cache.size > 500) cache.pollFirstEntry()
+                                while (cache.size > 1500) cache.pollFirstEntry()
                                 val liveCandles = cache.values.toList()
                                 chart = liveCandles
                                 chartIndicators = engine.indicatorSeries(liveCandles)
@@ -241,12 +241,12 @@ fun CompleteDashboard(context: Context) {
                 if (connected.get()) retryDelayMs = 1_000L
                 if (now - lastSyncAt >= 60_000L) {
                     try {
-                        val reconciled = market.fetchCandles(timeframe, 500)
+                        val reconciled = market.fetchCandles(timeframe, 1500)
                         val otherTimeframe = if (timeframe == "15m") "1h" else "15m"
                         val otherReconciled = market.fetchCandles(otherTimeframe, 500)
                         mainHandler.post {
                             reconciled.forEach { mergeCandle(cache, it) }
-                            while (cache.size > 500) cache.pollFirstEntry()
+                            while (cache.size > 1500) cache.pollFirstEntry()
                             chart = cache.values.toList()
                             chartIndicators = engine.indicatorSeries(cache.values.toList())
                             if (timeframe == "15m") { m15Data = cache.values.toList(); h1Data = otherReconciled }
@@ -292,7 +292,7 @@ fun CompleteDashboard(context: Context) {
         var retryMs = 1_000L
         var lastClosedOpen = 0L
         try {
-            val initial = market.fetchCandles("15m", 500)
+            val initial = market.fetchCandles("15m", 1500)
             initial.forEach { mergeCandle(cache, it) }
             lastClosedOpen = cache.values.filter { it.closed }.maxOfOrNull { it.openTime } ?: 0L
             while (currentCoroutineContext().isActive) {
@@ -305,9 +305,9 @@ fun CompleteDashboard(context: Context) {
                         delay(retryMs)
                     }
                     try {
-                        val snapshot = market.fetchCandles("15m", 500)
+                        val snapshot = market.fetchCandles("15m", 1500)
                         snapshot.forEach { mergeCandle(cache, it) }
-                        while (cache.size > 500) cache.pollFirstEntry()
+                        while (cache.size > 1500) cache.pollFirstEntry()
                         val newest = cache.values.filter { it.closed }.maxByOrNull { it.openTime }
                         if (newest != null && newest.openTime > lastClosedOpen) {
                             maybeNotifyRsiM15(context, prefs, engine, cache.values.toList(), newest)
@@ -319,7 +319,7 @@ fun CompleteDashboard(context: Context) {
                         socket = market.connectLive("15m",
                             onCandle = { candle -> handler.post {
                                 mergeCandle(cache, candle)
-                                while (cache.size > 500) cache.pollFirstEntry()
+                                while (cache.size > 1500) cache.pollFirstEntry()
                                 if (candle.closed && candle.openTime > lastClosedOpen) {
                                     maybeNotifyRsiM15(context, prefs, engine, cache.values.toList(), candle)
                                     lastClosedOpen = candle.openTime
@@ -386,6 +386,9 @@ fun CompleteDashboard(context: Context) {
                         onPanBarsChange = { chartPanBars = it },
                         modifier = Modifier.fillMaxWidth().height(260.dp)
                     )
+                    val axisEnd = if (chart.isEmpty()) 0 else (chart.size - chartPanBars).coerceIn(1, chart.size)
+                    val axisStart = (axisEnd - chartVisibleCount).coerceAtLeast(0)
+                    TimeAxisBar(chart.subList(axisStart, axisEnd))
                     val viewEnd = if (chart.isEmpty()) 0 else (chart.size - chartPanBars).coerceIn(1, chart.size)
                     val viewStart = (viewEnd - chartVisibleCount).coerceAtLeast(0)
                     val visibleCandles = chart.drop(viewStart).take((viewEnd - viewStart).coerceAtLeast(0))
@@ -405,7 +408,7 @@ fun CompleteDashboard(context: Context) {
                         Spacer(Modifier.height(10.dp))
                         DmiAdxTrendChart(candles = visibleCandles, points = visibleIndicators, showDi = showDi, modifier = Modifier.fillMaxWidth().height(164.dp))
                     }
-                    Text("Binance Futures · REST + WebSocket · 500 nến", color = NMuted)
+                    Text("Binance Futures · REST + WebSocket · ${chart.size} nến đã tải (tối đa 1.500)", color = NMuted)
                     Text(socketStatus, color = if (socketStatus.contains("live") || socketStatus.contains("kết nối")) NGreen else NRed, style = MaterialTheme.typography.bodySmall)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Chỉ báo hiển thị", color = Color.White, modifier = Modifier.weight(1f))
@@ -593,14 +596,14 @@ fun CompleteDashboard(context: Context) {
                         TextButton(onClick = { chartFullscreen = false }) { Text("Đóng ✕") }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Nến: $chartVisibleCount", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                        Text("Nến hiển thị: $chartVisibleCount", color = NMuted, style = MaterialTheme.typography.labelSmall)
                         Slider(
                             value = chartVisibleCount.toFloat(),
-                            onValueChange = { chartVisibleCount = it.toInt().coerceIn(20, 150) },
-                            valueRange = 20f..150f,
+                            onValueChange = { chartVisibleCount = it.toInt().coerceIn(20, 600) },
+                            valueRange = 20f..600f,
                             modifier = Modifier.weight(1f)
                         )
-                        TextButton(onClick = { chartPanBars = 0; chartVisibleCount = 70 }) { Text("Đặt lại") }
+                        TextButton(onClick = { chartPanBars = 0; chartVisibleCount = 120 }) { Text("Đặt lại") }
                     }
                     LiveCandles(
                         chart, price, chartVisibleCount, chartPanBars, state.recentEvents,
@@ -608,6 +611,7 @@ fun CompleteDashboard(context: Context) {
                         onPanBarsChange = { chartPanBars = it },
                         modifier = Modifier.fillMaxWidth().weight(if (showRsi && showAdx) 0.56f else 0.76f)
                     )
+                    TimeAxisBar(visibleCandles)
                     if (showRsi) {
                         IndicatorLineChart(
                             title = "RSI %B SIGNAL", points = visibleIndicators, valueSelector = { it.rsiPercentB },
@@ -623,7 +627,7 @@ fun CompleteDashboard(context: Context) {
                         DmiAdxTrendChart(candles = visibleCandles, points = visibleIndicators, showDi = showDi, modifier = Modifier.fillMaxWidth().weight(0.24f))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("REST + WebSocket · 500 nến", color = NMuted, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+                        Text("REST + WebSocket · ${chart.size}/1.500 nến", color = NMuted, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
                         TextButton(onClick = { showRsi = !showRsi; prefs.edit().putBoolean("chart_show_rsi", showRsi).apply() }) { Text(if (showRsi) "Ẩn RSI" else "Hiện RSI") }
                         TextButton(onClick = { showAdx = !showAdx; prefs.edit().putBoolean("chart_show_adx", showAdx).apply() }) { Text(if (showAdx) "Ẩn DMI/ADX" else "Hiện DMI/ADX") }
                     }
@@ -634,6 +638,23 @@ fun CompleteDashboard(context: Context) {
 }
 
 private fun fmt(value: Double?): String = value?.let { "%.2f".format(it) } ?: "—"
+
+@Composable
+private fun TimeAxisBar(candles: List<Candle>) {
+    val format = remember { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
+    val first = candles.firstOrNull()?.openTime
+    val middle = candles.getOrNull(candles.size / 2)?.openTime
+    val last = candles.lastOrNull()?.openTime
+    Row(
+        Modifier.fillMaxWidth().background(NBg, RoundedCornerShape(bottomStart = 6.dp, bottomEnd = 6.dp)).padding(horizontal = 4.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(first?.let { format.format(Date(it)) } ?: "—", color = NMuted, style = MaterialTheme.typography.labelSmall)
+        Text(middle?.let { format.format(Date(it)) } ?: "—", color = NMuted, style = MaterialTheme.typography.labelSmall)
+        Text(last?.let { format.format(Date(it)) } ?: "—", color = NGreen, style = MaterialTheme.typography.labelSmall)
+    }
+}
 
 @Composable
 private fun IndicatorLineChart(
@@ -754,7 +775,7 @@ private fun LiveCandles(
             }
             .pointerInput(candles.size) {
                 detectTransformGestures { _, _, zoom, _ ->
-                    latestOnVisibleCountChange((currentVisibleCount / zoom).toInt().coerceIn(20, 150))
+                    latestOnVisibleCountChange((currentVisibleCount / zoom).toInt().coerceIn(20, 600))
                     latestOnPanBarsChange(currentPanBars.coerceIn(0, (candles.size - 1).coerceAtLeast(0)))
                 }
             }
