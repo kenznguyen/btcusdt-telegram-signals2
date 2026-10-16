@@ -27,6 +27,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -387,6 +388,7 @@ fun CompleteDashboard(context: Context) {
                     )
                     val viewEnd = if (chart.isEmpty()) 0 else (chart.size - chartPanBars).coerceIn(1, chart.size)
                     val viewStart = (viewEnd - chartVisibleCount).coerceAtLeast(0)
+                    val visibleCandles = chart.drop(viewStart).take((viewEnd - viewStart).coerceAtLeast(0))
                     val visibleIndicators = chartIndicators.drop(viewStart).take((viewEnd - viewStart).coerceAtLeast(0))
                     if (showRsi) {
                         Spacer(Modifier.height(10.dp))
@@ -401,15 +403,7 @@ fun CompleteDashboard(context: Context) {
                     }
                     if (showAdx) {
                         Spacer(Modifier.height(10.dp))
-                        IndicatorLineChart(
-                            title = if (showDi) "ADX (14) · +DI · −DI" else "ADX (14)",
-                            points = visibleIndicators, valueSelector = { it.adx },
-                            secondarySelectors = if (showDi) listOf({ p: IndicatorPoint -> p.plusDi }, { p: IndicatorPoint -> p.minusDi }) else emptyList(),
-                            minValue = 0.0, maxValue = 100.0, thresholds = listOf(20.0, 25.0, 45.0),
-                            lineColor = Color(0xFFFFC857), modifier = Modifier.fillMaxWidth().height(142.dp),
-                            thresholdLabels = listOf("20", "25", "45"),
-                            legend = if (showDi) listOf("ADX", "+DI", "−DI") else listOf("ADX")
-                        )
+                        DmiAdxTrendChart(candles = visibleCandles, points = visibleIndicators, showDi = showDi, modifier = Modifier.fillMaxWidth().height(164.dp))
                     }
                     Text("Binance Futures · REST + WebSocket · 500 nến", color = NMuted)
                     Text(socketStatus, color = if (socketStatus.contains("live") || socketStatus.contains("kết nối")) NGreen else NRed, style = MaterialTheme.typography.bodySmall)
@@ -420,7 +414,7 @@ fun CompleteDashboard(context: Context) {
                     if (chartSettingsExpanded) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             PreferenceSwitch("RSI %B Signal", showRsi, { showRsi = it; prefs.edit().putBoolean("chart_show_rsi", it).apply() })
-                            PreferenceSwitch("ADX (14)", showAdx, { showAdx = it; prefs.edit().putBoolean("chart_show_adx", it).apply() })
+                            PreferenceSwitch("DMI & ADX Trend", showAdx, { showAdx = it; prefs.edit().putBoolean("chart_show_adx", it).apply() })
                             PreferenceSwitch("+DI / −DI", showDi, { showDi = it; prefs.edit().putBoolean("chart_show_di", it).apply() })
                             PreferenceSwitch("Xu hướng H1", showH1Trend, { showH1Trend = it; prefs.edit().putBoolean("chart_show_h1", it).apply() })
                         }
@@ -430,7 +424,7 @@ fun CompleteDashboard(context: Context) {
             if (showRsi || showAdx) item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (showRsi) StatCard("RSI %B Signal", shown.rsiPercentB, Modifier.weight(1f))
-                    if (showAdx) StatCard("ADX (14)", shown.adx, Modifier.weight(1f))
+                    if (showAdx) StatCard("ADX Trend", shown.adx, Modifier.weight(1f))
                 }
             }
             item {
@@ -552,6 +546,7 @@ fun CompleteDashboard(context: Context) {
     if (chartFullscreen) {
         val viewEnd = if (chart.isEmpty()) 0 else (chart.size - chartPanBars).coerceIn(1, chart.size)
         val viewStart = (viewEnd - chartVisibleCount).coerceAtLeast(0)
+        val visibleCandles = chart.drop(viewStart).take((viewEnd - viewStart).coerceAtLeast(0))
         val visibleIndicators = chartIndicators.drop(viewStart).take((viewEnd - viewStart).coerceAtLeast(0))
         Dialog(
             onDismissRequest = { chartFullscreen = false },
@@ -625,21 +620,12 @@ fun CompleteDashboard(context: Context) {
                         )
                     }
                     if (showAdx) {
-                        IndicatorLineChart(
-                            title = if (showDi) "ADX (14) · +DI · −DI" else "ADX (14)",
-                            points = visibleIndicators, valueSelector = { it.adx },
-                            secondarySelectors = if (showDi) listOf({ p: IndicatorPoint -> p.plusDi }, { p: IndicatorPoint -> p.minusDi }) else emptyList(),
-                            minValue = 0.0, maxValue = 100.0, thresholds = listOf(20.0, 25.0, 45.0),
-                            lineColor = Color(0xFFFFC857),
-                            modifier = Modifier.fillMaxWidth().weight(0.20f),
-                            thresholdLabels = listOf("20", "25", "45"),
-                            legend = if (showDi) listOf("ADX", "+DI", "−DI") else listOf("ADX")
-                        )
+                        DmiAdxTrendChart(candles = visibleCandles, points = visibleIndicators, showDi = showDi, modifier = Modifier.fillMaxWidth().weight(0.24f))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("REST + WebSocket · 500 nến", color = NMuted, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
                         TextButton(onClick = { showRsi = !showRsi; prefs.edit().putBoolean("chart_show_rsi", showRsi).apply() }) { Text(if (showRsi) "Ẩn RSI" else "Hiện RSI") }
-                        TextButton(onClick = { showAdx = !showAdx; prefs.edit().putBoolean("chart_show_adx", showAdx).apply() }) { Text(if (showAdx) "Ẩn ADX" else "Hiện ADX") }
+                        TextButton(onClick = { showAdx = !showAdx; prefs.edit().putBoolean("chart_show_adx", showAdx).apply() }) { Text(if (showAdx) "Ẩn DMI/ADX" else "Hiện DMI/ADX") }
                     }
                 }
             }
@@ -751,7 +737,8 @@ private fun LiveCandles(
                         val end = (candles.size - currentPanBars).coerceIn(1, candles.size)
                         val start = (end - currentVisibleCount).coerceAtLeast(0)
                         val shown = candles.subList(start, end)
-                        val index = (point.x / size.width * shown.size).toInt().coerceIn(0, shown.lastIndex)
+                        val plotWidth = (size.width - 70.dp.toPx()).coerceAtLeast(1f)
+                        val index = (point.x / plotWidth * shown.size).toInt().coerceIn(0, shown.lastIndex)
                         selectedOpenTime = shown[index].openTime
                     }
                 }
@@ -760,7 +747,8 @@ private fun LiveCandles(
                 detectDragGestures { change, drag ->
                     change.consume()
                     val shown = currentVisibleCount.coerceAtLeast(1)
-                    val bars = (drag.x / size.width * shown).toInt()
+                    val plotWidth = (size.width - 70.dp.toPx()).coerceAtLeast(1f)
+                    val bars = (drag.x / plotWidth * shown).toInt()
                     latestOnPanBarsChange((currentPanBars + bars).coerceIn(0, (candles.size - 1).coerceAtLeast(0)))
                 }
             }
@@ -777,7 +765,9 @@ private fun LiveCandles(
         val data = candles.subList(start, end)
         if (data.isEmpty()) return@Canvas
 
-        // Include mark price in the scale so the live-price line remains visible after sharp moves.
+        val density = this.density
+        val axisWidth = 70.dp.toPx()
+        val plotWidth = (size.width - axisWidth).coerceAtLeast(1f)
         var low = data.minOf { it.low }
         var high = data.maxOf { it.high }
         markPrice?.let { low = minOf(low, it); high = maxOf(high, it) }
@@ -787,13 +777,19 @@ private fun LiveCandles(
         high += padding
         val range = (high - low).takeIf { it > 0 } ?: 1.0
         fun y(price: Double) = size.height - (((price - low) / range).toFloat() * size.height)
-
-        for (line in 1..4) {
-            val gy = size.height * line / 5f
-            drawLine(Color(0xFF263243), Offset(0f, gy), Offset(size.width, gy), strokeWidth = 1f)
+        val axisPaint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF91A0B5.toInt(); textSize = 10f * density
+            textAlign = AndroidPaint.Align.LEFT
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         }
-
-        val step = size.width / data.size
+        for (line in 0..4) {
+            val gy = size.height * line / 4f
+            val gridPrice = high - range * line / 4.0
+            drawLine(Color(0xFF263243), Offset(0f, gy), Offset(plotWidth, gy), strokeWidth = 1f)
+            drawContext.canvas.nativeCanvas.drawText("%,.1f".format(Locale.US, gridPrice), plotWidth + 5f * density,
+                (gy + 3.5f * density).coerceIn(10f * density, size.height - 2f * density), axisPaint)
+        }
+        val step = plotWidth / data.size
         data.forEachIndexed { i, candle ->
             val x = step * (i + 0.5f)
             val color = if (candle.close >= candle.open) NGreen else NRed
@@ -844,24 +840,94 @@ private fun LiveCandles(
                     val anchorPrice = if (isLong) candle.low else if (isShort) candle.high else event.price
                     val labelY = (y(anchorPrice) + if (isLong) 14f * density else -6f * density)
                         .coerceIn(12f * density, size.height - 4f * density)
+                    val labelX = x.coerceIn(4f * density, plotWidth - 4f * density)
                     eventPaint.color = color
                     val bgPaint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply { this.color = 0xDD0B1018.toInt() }
                     val width = eventPaint.measureText(label) + 8f * density
                     drawContext.canvas.nativeCanvas.drawRoundRect(
-                        x - width / 2f, labelY - 11f * density, x + width / 2f, labelY + 3f * density,
+                        labelX - width / 2f, labelY - 11f * density, labelX + width / 2f, labelY + 3f * density,
                         4f * density, 4f * density, bgPaint
                     )
-                    drawContext.canvas.nativeCanvas.drawText(label, x, labelY, eventPaint)
+                    drawContext.canvas.nativeCanvas.drawText(label, labelX, labelY, eventPaint)
                 }
             }
 
         markPrice?.let { current ->
             val py = y(current)
-            drawLine(Color(0xFFFFC857), Offset(0f, py), Offset(size.width, py), strokeWidth = 1.5f)
+            drawLine(Color(0xFFFFC857), Offset(0f, py), Offset(plotWidth, py), strokeWidth = 1.5f)
+            val badgePaint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFC857.toInt() }
+            val priceTextPaint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFF0B1018.toInt(); textSize = 10f * density
+                textAlign = AndroidPaint.Align.CENTER; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            }
+            val label = "%,.1f".format(Locale.US, current)
+            val badgeWidth = axisWidth - 4f * density
+            val badgeHeight = 18f * density
+            val badgeY = (py - badgeHeight / 2f).coerceIn(0f, size.height - badgeHeight)
+            drawContext.canvas.nativeCanvas.drawRoundRect(plotWidth + 2f * density, badgeY, plotWidth + badgeWidth, badgeY + badgeHeight, 3f * density, 3f * density, badgePaint)
+            drawContext.canvas.nativeCanvas.drawText(label, plotWidth + badgeWidth / 2f + density, badgeY + 12f * density, priceTextPaint)
         }
     }
 }
 
+@Composable
+private fun DmiAdxTrendChart(candles: List<Candle>, points: List<IndicatorPoint>, showDi: Boolean, modifier: Modifier = Modifier) {
+    val latest = points.lastOrNull()
+    val priorAdx = points.getOrNull(points.lastIndex - 1)?.adx
+    val rising = latest?.adx != null && priorAdx != null && latest.adx!! >= priorAdx
+    val trendColor = when {
+        latest?.adx != null && latest.adx >= 20.0 && rising && (latest.plusDi ?: 0.0) > (latest.minusDi ?: 0.0) -> NGreen
+        latest?.adx != null && latest.adx >= 20.0 && rising && (latest.minusDi ?: 0.0) > (latest.plusDi ?: 0.0) -> NRed
+        else -> Color(0xFFFFC857)
+    }
+    Column(modifier.background(NBg, RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 8.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("DMI & ADX TREND", color = Color.White, style = MaterialTheme.typography.labelLarge)
+            Text("ADX " + fmt(latest?.adx) + " · +DI " + fmt(latest?.plusDi) + " · −DI " + fmt(latest?.minusDi), color = trendColor, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+        }
+        Canvas(Modifier.fillMaxWidth().weight(1f)) {
+            if (points.isEmpty() || size.width <= 0f || size.height <= 0f) return@Canvas
+            val n = minOf(points.size, candles.size)
+            if (n == 0) return@Canvas
+            val ps = points.takeLast(n); val cs = candles.takeLast(n)
+            val left = 2f * density; val right = size.width - 2f * density
+            val top = 5f * density; val bottom = size.height - 4f * density
+            val h = (bottom - top).coerceAtLeast(1f)
+            fun y(v: Double) = bottom - (v.coerceIn(0.0, 100.0) / 100.0).toFloat() * h
+            for (level in listOf(20.0, 40.0, 60.0, 80.0)) drawLine(Color(0xFF263243), Offset(left, y(level)), Offset(right, y(level)), strokeWidth = 1f)
+            drawLine(Color(0xFFFFC857), Offset(left, y(20.0)), Offset(right, y(20.0)), strokeWidth = 1.3f)
+            val step = (right - left) / n; val barWidth = (step * 0.62f).coerceAtLeast(1f)
+            val paint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG)
+            ps.forEachIndexed { i, point ->
+                val adx = point.adx
+                if (adx != null && adx.isFinite()) {
+                    val prev = ps.getOrNull(i - 1)?.adx; val risingNow = prev != null && adx >= prev
+                    val plus = point.plusDi ?: 0.0; val minus = point.minusDi ?: 0.0; val candle = cs[i]
+                    val up = plus > minus && adx >= 20.0 && risingNow && candle.close > candle.open
+                    val down = minus > plus && adx >= 20.0 && risingNow && candle.close < candle.open
+                    val color = when { risingNow && plus > minus && adx >= 20.0 -> NGreen; risingNow && minus > plus && adx >= 20.0 -> NRed; else -> Color(0xFFFFC857) }
+                    if (up || down) drawRect(color.copy(alpha = 0.08f), Offset(left + step * i, top), androidx.compose.ui.geometry.Size(step + 1f, h))
+                    paint.color = color.toArgb(); val x = left + step * (i + 0.5f)
+                    drawContext.canvas.nativeCanvas.drawRect(x - barWidth / 2f, y(adx), x + barWidth / 2f, bottom, paint)
+                }
+            }
+            if (showDi) {
+                fun diLine(selector: (IndicatorPoint) -> Double?, color: Color) {
+                    var previous: Offset? = null
+                    ps.forEachIndexed { i, point -> val v = selector(point); if (v != null && v.isFinite()) {
+                        val current = Offset(left + step * (i + 0.5f), y(v)); previous?.let { drawLine(color, it, current, strokeWidth = 1.8f * density) }; previous = current
+                    } else previous = null }
+                }
+                diLine({ it.plusDi }, Color(0xFF4DA3FF)); diLine({ it.minusDi }, Color(0xFFE879F9))
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("ADX histogram", color = Color(0xFFFFC857), style = MaterialTheme.typography.labelSmall)
+            if (showDi) { Text("+DI", color = Color(0xFF4DA3FF), style = MaterialTheme.typography.labelSmall); Text("−DI", color = Color(0xFFE879F9), style = MaterialTheme.typography.labelSmall) }
+            Text("Tăng / Giảm / Trung tính", color = NMuted, style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
 @Composable
 private fun PreferenceSwitch(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
