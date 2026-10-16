@@ -17,7 +17,7 @@ data class StrategyEvent(
 ) { val dedupeKey: String get() = kind + ":" + candleTime }
 
 data class StrategyState(
-    val balance: Double = 200.0,
+    val balance: Double = 100.0,
     val position: StrategyPosition? = null,
     val lastProcessedOpenTime: Long = 0L,
     val recentEvents: List<StrategyEvent> = emptyList()
@@ -54,7 +54,7 @@ data class StrategyState(
                         e.optDouble("price"), e.optLong("candleTime"),
                         if (e.isNull("roePct")) null else e.optDouble("roePct"), e.optString("note"))
                 }
-                StrategyState(root.optDouble("balance", 200.0), p, root.optLong("lastProcessedOpenTime", 0L), events)
+                StrategyState(root.optDouble("balance", 100.0), p, root.optLong("lastProcessedOpenTime", 0L), events)
             }
         } catch (_: Exception) { StrategyState() }
     }
@@ -74,10 +74,10 @@ data class StrategyConfig(
     val adxSmoothing: Int = 14, val h1AdxEntry: Double = 20.0,
     val longRsiEntry: Double = 30.0, val shortRsiEntry: Double = 70.0,
     val longRsiTp: Double = 76.0, val shortRsiTp: Double = 24.0, val tpRoe: Double = 5.0,
-    val dcaRoe: Double = -35.0, val dcaAdx: Double = 45.0,
+    val dcaRoe: Double = -20.0, val dcaAdx: Double = 45.0,
     val shortDcaRsi: Double = 80.0, val longDcaRsi: Double = 20.0,
-    val softSlRoe: Double = -25.0, val emergencySlRoe: Double = -90.0,
-    val softSlAdx: Double = 35.0, val entryMarginPct: Double = 0.25,
+    val softSlRoe: Double = -35.0, val emergencySlRoe: Double = -90.0,
+    val softSlAdx: Double = 35.0, val entryMarginPct: Double = 0.50,
     val dcaMarginRatio: Double = 1.00, val feeRate: Double = 0.0005,
     val slippageBps: Double = 5.0
 )
