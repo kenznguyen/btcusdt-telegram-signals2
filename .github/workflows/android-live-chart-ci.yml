@@ -1,0 +1,74 @@
+name: Android Live Chart CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: "Branch to build and test (this does not merge it into main)"
+        required: true
+        type: choice
+        default: feature/android-btcusdt-live-alerts
+        options:
+          - feature/android-btcusdt-live-alerts
+          - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-live-chart-ci-${{ inputs.source_branch }}
+  cancel-in-progress: true
+
+jobs:
+  unit-test-and-debug-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout selected source branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_branch }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Verify Gradle project files
+        working-directory: android-app
+        run: |
+          test -f settings.gradle.kts
+          test -f build.gradle.kts
+          test -f app/build.gradle.kts
+          gradle --version
+
+      - name: Run unit tests
+        working-directory: android-app
+        run: gradle :app:testDebugUnitTest --no-daemon
+
+      - name: Assemble debug APK
+        working-directory: android-app
+        run: gradle :app:assembleDebug --no-daemon
+
+      - name: Upload unit-test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-unit-test-reports
+          path: android-app/app/build/reports/tests/testDebugUnitTest/
+          if-no-files-found: ignore
+
+      - name: Upload debug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: btcusdt-live-chart-debug-apk
+          path: android-app/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
