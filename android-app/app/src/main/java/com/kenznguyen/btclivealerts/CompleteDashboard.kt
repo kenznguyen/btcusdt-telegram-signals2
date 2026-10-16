@@ -543,7 +543,6 @@ fun CompleteDashboard(context: Context) {
             item { BacktestPanel(market, engine) }
         }
     }
-}
 
     if (chartFullscreen) {
         val viewEnd = if (chart.isEmpty()) 0 else (chart.size - chartPanBars).coerceIn(1, chart.size)
@@ -639,6 +638,7 @@ fun CompleteDashboard(context: Context) {
             }
         }
     }
+}
 
 private fun fmt(value: Double?): String = value?.let { "%.2f".format(it) } ?: "—"
 
