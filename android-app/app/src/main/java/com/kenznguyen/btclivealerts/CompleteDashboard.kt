@@ -380,6 +380,7 @@ fun CompleteDashboard(context: Context) {
                         TextButton(onClick = { chartFullscreen = true }) { Text("⛶ Toàn màn hình") }
                     }
                     Spacer(Modifier.height(8.dp))
+                    if (timeframe == "15m" && showH1Trend) H1TrendRibbon(h1Ind)
                     LiveCandles(
                         chart, price, chartVisibleCount, chartPanBars, state.recentEvents,
                         onVisibleCountChange = { chartVisibleCount = it },
@@ -609,6 +610,7 @@ fun CompleteDashboard(context: Context) {
                         )
                         TextButton(onClick = { chartPanBars = 0; chartVisibleCount = 120 }) { Text("Đặt lại") }
                     }
+                    if (timeframe == "15m" && showH1Trend) H1TrendRibbon(h1Ind)
                     LiveCandles(
                         chart, price, chartVisibleCount, chartPanBars, state.recentEvents,
                         onVisibleCountChange = { chartVisibleCount = it },
@@ -646,6 +648,37 @@ fun CompleteDashboard(context: Context) {
 }
 
 private fun fmt(value: Double?): String = value?.let { "%.2f".format(it) } ?: "—"
+
+@Composable
+private fun H1TrendRibbon(indicator: IndicatorPoint) {
+    val plus = indicator.plusDi
+    val minus = indicator.minusDi
+    val adx = indicator.adx
+    val direction = when {
+        plus == null || minus == null -> "ĐANG TÍNH"
+        plus > minus -> "H1 TĂNG"
+        minus > plus -> "H1 GIẢM"
+        else -> "H1 TRUNG TÍNH"
+    }
+    val color = when {
+        plus == null || minus == null -> NMuted
+        adx != null && adx >= 20.0 && plus > minus -> NGreen
+        adx != null && adx >= 20.0 && minus > plus -> NRed
+        else -> Color(0xFFFFC857)
+    }
+    Row(
+        Modifier.fillMaxWidth().background(NBg, RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(Modifier.width(4.dp).height(22.dp).background(color, RoundedCornerShape(2.dp)))
+        Column(Modifier.weight(1f)) {
+            Text(direction, color = color, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+            Text("Xu hướng khung H1 · +DI ${fmt(plus)} / −DI ${fmt(minus)}", color = NMuted, style = MaterialTheme.typography.labelSmall)
+        }
+        Text("ADX ${fmt(adx)}", color = color, style = MaterialTheme.typography.labelMedium)
+    }
+}
 
 @Composable
 private fun TimeAxisBar(candles: List<Candle>) {
