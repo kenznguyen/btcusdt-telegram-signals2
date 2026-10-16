@@ -16,16 +16,16 @@ class StrategyEngineTest {
         assertEquals(76.0, cfg.longRsiTp, 0.0)
         assertEquals(24.0, cfg.shortRsiTp, 0.0)
         assertEquals(5.0, cfg.tpRoe, 0.0)
-        assertEquals(-35.0, cfg.dcaRoe, 0.0)
-        assertEquals(-25.0, cfg.softSlRoe, 0.0)
+        assertEquals(-20.0, cfg.dcaRoe, 0.0)
+        assertEquals(-35.0, cfg.softSlRoe, 0.0)
         assertEquals(-90.0, cfg.emergencySlRoe, 0.0)
         assertEquals(35.0, cfg.softSlAdx, 0.0)
         assertEquals(45.0, cfg.dcaAdx, 0.0)
         assertEquals(80.0, cfg.shortDcaRsi, 0.0)
         assertEquals(20.0, cfg.longDcaRsi, 0.0)
-        assertEquals(0.25, cfg.entryMarginPct, 0.0)
+        assertEquals(0.50, cfg.entryMarginPct, 0.0)
         assertEquals(1.0, cfg.dcaMarginRatio, 0.0)
-        assertEquals(200.0, StrategyState().balance, 0.0)
+        assertEquals(100.0, StrategyState().balance, 0.0)
     }
 
 
@@ -88,7 +88,7 @@ class StrategyEngineTest {
         val soft = engine.thresholdPrice("LONG", 100.0, 35.0)
         assertTrue(engine.softStopTriggered("LONG", soft, 99.0, 99.0, 98.0, 101.0, 99.0, 10.0, 20.0, 36.0, 100.0))
         assertFalse(engine.softStopTriggered("LONG", soft, 99.0, 99.0, 98.0, 101.0, 102.0, 10.0, 20.0, 36.0, 100.0))
-        val shortSoft = engine.thresholdPrice("SHORT", 100.0, 25.0)
+        val shortSoft = engine.thresholdPrice("SHORT", 100.0, 35.0)
         assertTrue(engine.softStopTriggered("SHORT", 101.0, shortSoft, 98.0, 99.0, 98.0, 99.0, 20.0, 10.0, 36.0, 100.0))
     }
 
@@ -127,7 +127,7 @@ class StrategyEngineTest {
     }
 
     @Test fun invalidStateDefaultsSafely() {
-        assertEquals(200.0, StrategyState.fromJson(null).balance, 1e-8)
+        assertEquals(100.0, StrategyState.fromJson(null).balance, 1e-8)
         assertNull(StrategyState.fromJson("{not-json").position)
     }
 
