@@ -43,6 +43,8 @@ import okhttp3.WebSocket
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private data class H1TrendMark(val openTime: Long, val direction: Int, val strong: Boolean)
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
@@ -134,6 +136,7 @@ fun CompleteDashboard(context: Context) {
     var state by remember { mutableStateOf(StrategyState.fromJson(prefs.getString("state_json", null))) }
     var m15Ind by remember { mutableStateOf(IndicatorPoint()) }
     var h1Ind by remember { mutableStateOf(IndicatorPoint()) }
+    var h1TrendMarks by remember { mutableStateOf<List<H1TrendMark>>(emptyList()) }
     var chartIndicators by remember { mutableStateOf<List<IndicatorPoint>>(emptyList()) }
     var chartVisibleCount by remember { mutableIntStateOf(120) }
     var chartPanBars by remember { mutableIntStateOf(0) }
@@ -160,7 +163,15 @@ fun CompleteDashboard(context: Context) {
             var m15Data = if (timeframe == "15m") initial else market.fetchCandles("15m", 1500)
             var h1Data = if (timeframe == "1h") initial else market.fetchCandles("1h", 1500)
             m15Ind = engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
-            h1Ind = engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+            val closedH1 = h1Data.filter { it.closed }.sortedBy { it.openTime }
+            val h1Series = engine.indicatorSeries(closedH1)
+            h1Ind = h1Series.lastOrNull() ?: IndicatorPoint()
+            h1TrendMarks = closedH1.mapIndexedNotNull { index, candle ->
+                val point = h1Series.getOrNull(index) ?: return@mapIndexedNotNull null
+                val plus = point.plusDi ?: return@mapIndexedNotNull null
+                val minus = point.minusDi ?: return@mapIndexedNotNull null
+                H1TrendMark(candle.openTime, if (plus > minus) 1 else if (minus > plus) -1 else 0, (point.adx ?: 0.0) >= 20.0)
+            }
             chartIndicators = engine.indicatorSeries(initial)
             price = market.fetchMarkPrice()
             socketStatus = "REST đồng bộ xong · WebSocket đang kết nối"
@@ -382,7 +393,8 @@ fun CompleteDashboard(context: Context) {
                     Spacer(Modifier.height(8.dp))
                     if (timeframe == "15m" && showH1Trend) H1TrendRibbon(h1Ind)
                     LiveCandles(
-                        chart, price, chartVisibleCount, chartPanBars, state.recentEvents,
+                        candles = chart, markPrice = price, visibleCount = chartVisibleCount, panBars = chartPanBars, events = state.recentEvents,
+                        h1TrendMarks = if (timeframe == "15m" && showH1Trend) h1TrendMarks else emptyList(),
                         onVisibleCountChange = { chartVisibleCount = it },
                         onPanBarsChange = { chartPanBars = it },
                         modifier = Modifier.fillMaxWidth().height(260.dp)
@@ -612,7 +624,8 @@ fun CompleteDashboard(context: Context) {
                     }
                     if (timeframe == "15m" && showH1Trend) H1TrendRibbon(h1Ind)
                     LiveCandles(
-                        chart, price, chartVisibleCount, chartPanBars, state.recentEvents,
+                        candles = chart, markPrice = price, visibleCount = chartVisibleCount, panBars = chartPanBars, events = state.recentEvents,
+                        h1TrendMarks = if (timeframe == "15m" && showH1Trend) h1TrendMarks else emptyList(),
                         onVisibleCountChange = { chartVisibleCount = it },
                         onPanBarsChange = { chartPanBars = it },
                         modifier = Modifier.fillMaxWidth().weight(if (showRsi && showAdx) 0.56f else 0.76f)
@@ -804,6 +817,7 @@ private fun StatCard(label: String, value: Double?, modifier: Modifier = Modifie
 private fun LiveCandles(
     candles: List<Candle>, markPrice: Double?, visibleCount: Int, panBars: Int,
     events: List<StrategyEvent>,
+    h1TrendMarks: List<H1TrendMark> = emptyList(),
     onVisibleCountChange: (Int) -> Unit, onPanBarsChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -874,6 +888,42 @@ private fun LiveCandles(
                 (gy + 3.5f * density).coerceIn(10f * density, size.height - 2f * density), axisPaint)
         }
         val step = plotWidth / data.size
+        // H1 direction ribbon mapped onto M15 candle timestamps; marks use closed H1 candles only.
+        if (h1TrendMarks.isNotEmpty()) {
+            val trendPaint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
+                textSize = 9f * density
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                textAlign = AndroidPaint.Align.CENTER
+            }
+            data.forEachIndexed { i, candle ->
+                val hour = candle.openTime - candle.openTime % 3_600_000L
+                val mark = h1TrendMarks.lastOrNull { it.openTime <= hour }
+                if (mark != null) {
+                    val x = step * (i + 0.5f)
+                    val color = when {
+                        mark.direction > 0 && mark.strong -> 0xFF20C997.toInt()
+                        mark.direction < 0 && mark.strong -> 0xFFFF5C70.toInt()
+                        mark.direction > 0 -> 0xFF8ACFB7.toInt()
+                        mark.direction < 0 -> 0xFFFFA3AD.toInt()
+                        else -> 0xFFFFC857.toInt()
+                    }
+                    drawLine(Color(color), Offset(x, 3f * density), Offset(x, 15f * density), strokeWidth = maxOf(2f, step * 0.65f))
+                    val prevHour = if (i == 0) Long.MIN_VALUE else data[i - 1].openTime - data[i - 1].openTime % 3_600_000L
+                    val prevMark = if (prevHour == Long.MIN_VALUE) null else h1TrendMarks.lastOrNull { it.openTime <= prevHour }
+                    if (i == 0 || prevMark?.direction != mark.direction || prevMark?.strong != mark.strong) {
+                        val label = when {
+                            mark.direction > 0 && mark.strong -> "H1 TĂNG"
+                            mark.direction < 0 && mark.strong -> "H1 GIẢM"
+                            mark.direction > 0 -> "TĂNG"
+                            mark.direction < 0 -> "GIẢM"
+                            else -> "SIDE"
+                        }
+                        trendPaint.color = color
+                        drawContext.canvas.nativeCanvas.drawText(label, x, 28f * density, trendPaint)
+                    }
+                }
+            }
+        }
         data.forEachIndexed { i, candle ->
             val x = step * (i + 0.5f)
             val color = if (candle.close >= candle.open) NGreen else NRed
