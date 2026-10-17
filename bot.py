@@ -380,6 +380,48 @@ def build_signal_report(m15, h1):
 
 
 
+def entry_signals(previous_rsi, rsi, h1_plus_di, h1_minus_di, h1_adx):
+    """Canonical M15 RSI-cross entry rules with the last fully closed H1 trend."""
+    h1_bull = h1_plus_di > h1_minus_di and h1_adx > H1_ADX_ENTRY
+    h1_bear = h1_minus_di > h1_plus_di and h1_adx > H1_ADX_ENTRY
+    return (
+        h1_bull and previous_rsi <= LONG_RSI_ENTRY and rsi > LONG_RSI_ENTRY,
+        h1_bear and previous_rsi >= SHORT_RSI_ENTRY and rsi < SHORT_RSI_ENTRY,
+    )
+
+
+def take_profit_signal(side, rsi, roe):
+    return ((side == "LONG" and rsi >= LONG_RSI_TP) or
+            (side == "SHORT" and rsi <= SHORT_RSI_TP)) and roe is not None and roe >= TP_ROE
+
+
+def dca_signal(side, roe, adx, rsi, previous_rsi):
+    if roe > DCA_ROE or adx <= DCA_ADX:
+        return False
+    if side == "LONG":
+        return rsi > LONG_DCA_RSI and rsi > previous_rsi
+    if side == "SHORT":
+        return rsi < SHORT_DCA_RSI and rsi < previous_rsi
+    return False
+
+
+def emergency_stop_triggered(side, low, high, avg_entry):
+    threshold = threshold_price(side, avg_entry, abs(EMERGENCY_SL_ROE))
+    return (low <= threshold) if side == "LONG" else (high >= threshold)
+
+
+def soft_stop_triggered(side, low, high, candle_open, candle_close,
+                        previous_open, previous_close, h1_plus_di, h1_minus_di,
+                        h1_adx, avg_entry):
+    threshold = threshold_price(side, avg_entry, abs(SOFT_SL_ROE))
+    reversal = ((h1_minus_di > h1_plus_di) if side == "LONG" else
+                (h1_plus_di > h1_minus_di)) and h1_adx > SOFT_SL_ADX
+    two_bear = candle_open > candle_close and previous_close < previous_open
+    two_bull = candle_close > candle_open and previous_close > previous_open
+    return ((low <= threshold and reversal and two_bear) if side == "LONG" else
+            (high >= threshold and reversal and two_bull))
+
+
 def threshold_price(side, avg_entry, abs_roe):
     move = abs(abs_roe) / (100.0 * LEVERAGE)
     return avg_entry * (1.0 - move) if side == "LONG" else avg_entry * (1.0 + move)
