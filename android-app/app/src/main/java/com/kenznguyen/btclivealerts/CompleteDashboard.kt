@@ -145,6 +145,8 @@ fun CompleteDashboard(context: Context) {
     var showAdx by remember { mutableStateOf(prefs.getBoolean("chart_show_adx", true)) }
     var showDi by remember { mutableStateOf(prefs.getBoolean("chart_show_di", true)) }
     var showH1Trend by remember { mutableStateOf(prefs.getBoolean("chart_show_h1", true)) }
+    var showBollinger by remember { mutableStateOf(prefs.getBoolean("chart_show_bollinger", true)) }
+    var showVolumeProfile by remember { mutableStateOf(prefs.getBoolean("chart_show_volume_profile", true)) }
     var chartSettingsExpanded by remember { mutableStateOf(false) }
     var chartFullscreen by remember { mutableStateOf(false) }
     var socketStatus by remember { mutableStateOf("Đang đồng bộ REST…") }
@@ -396,6 +398,8 @@ fun CompleteDashboard(context: Context) {
                     LiveCandles(
                         candles = chart, markPrice = price, visibleCount = chartVisibleCount, panBars = chartPanBars, events = state.recentEvents,
                         h1TrendMarks = if (timeframe == "15m" && showH1Trend) h1TrendMarks else emptyList(),
+                        showBollinger = showBollinger,
+                        showVolumeProfile = showVolumeProfile,
                         onVisibleCountChange = { chartVisibleCount = it },
                         onPanBarsChange = { chartPanBars = it },
                         modifier = Modifier.fillMaxWidth().height(260.dp)
@@ -438,6 +442,8 @@ fun CompleteDashboard(context: Context) {
                             PreferenceSwitch("DMI & ADX Trend", showAdx, { showAdx = it; prefs.edit().putBoolean("chart_show_adx", it).apply() })
                             PreferenceSwitch("+DI / −DI", showDi, { showDi = it; prefs.edit().putBoolean("chart_show_di", it).apply() })
                             PreferenceSwitch("Xu hướng H1", showH1Trend, { showH1Trend = it; prefs.edit().putBoolean("chart_show_h1", it).apply() })
+                            PreferenceSwitch("Bollinger Bands (20, 2)", showBollinger, { showBollinger = it; prefs.edit().putBoolean("chart_show_bollinger", it).apply() })
+                            PreferenceSwitch("Volume Profile", showVolumeProfile, { showVolumeProfile = it; prefs.edit().putBoolean("chart_show_volume_profile", it).apply() })
                         }
                     }
                 }
@@ -627,6 +633,8 @@ fun CompleteDashboard(context: Context) {
                     LiveCandles(
                         candles = chart, markPrice = price, visibleCount = chartVisibleCount, panBars = chartPanBars, events = state.recentEvents,
                         h1TrendMarks = if (timeframe == "15m" && showH1Trend) h1TrendMarks else emptyList(),
+                        showBollinger = showBollinger,
+                        showVolumeProfile = showVolumeProfile,
                         onVisibleCountChange = { chartVisibleCount = it },
                         onPanBarsChange = { chartPanBars = it },
                         modifier = Modifier.fillMaxWidth().weight(if (showRsi && showAdx) 0.56f else 0.76f)
@@ -819,6 +827,8 @@ private fun LiveCandles(
     candles: List<Candle>, markPrice: Double?, visibleCount: Int, panBars: Int,
     events: List<StrategyEvent>,
     h1TrendMarks: List<H1TrendMark> = emptyList(),
+    showBollinger: Boolean = true,
+    showVolumeProfile: Boolean = true,
     onVisibleCountChange: (Int) -> Unit, onPanBarsChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -889,6 +899,32 @@ private fun LiveCandles(
                 (gy + 3.5f * density).coerceIn(10f * density, size.height - 2f * density), axisPaint)
         }
         val step = plotWidth / data.size
+        if (showVolumeProfile) {
+            val bins = 24
+            val binVolumes = DoubleArray(bins)
+            val binSize = range / bins
+            data.forEach { candle ->
+                val first = (((candle.low - low) / range * bins).toInt()).coerceIn(0, bins - 1)
+                val last = (((candle.high - low) / range * bins).toInt()).coerceIn(0, bins - 1)
+                val covered = (last - first + 1).coerceAtLeast(1)
+                for (bin in first..last) binVolumes[bin] += candle.volume / covered
+            }
+            val maxVolume = binVolumes.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0
+            val profileMaxWidth = minOf(plotWidth * 0.22f, 72.dp.toPx())
+            val profilePaint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply { color = 0x553FA9F5 }
+            for (bin in 0 until bins) {
+                val barWidth = (binVolumes[bin] / maxVolume).toFloat() * profileMaxWidth
+                val centerPrice = low + (bin + 0.5) * binSize
+                val top = y(centerPrice + binSize / 2)
+                val bottom = y(centerPrice - binSize / 2)
+                drawContext.canvas.nativeCanvas.drawRect(plotWidth - barWidth, top, plotWidth, bottom, profilePaint)
+            }
+            val maxBin = binVolumes.indices.maxByOrNull { binVolumes[it] }
+            if (maxBin != null) {
+                val pocPrice = low + (maxBin + 0.5) * binSize
+                drawLine(Color(0xFF4FC3F7), Offset(plotWidth * 0.72f, y(pocPrice)), Offset(plotWidth, y(pocPrice)), strokeWidth = 1.5f)
+            }
+        }
         // H1 direction ribbon mapped onto M15 candle timestamps; marks use closed H1 candles only.
         if (h1TrendMarks.isNotEmpty()) {
             val trendPaint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
@@ -923,6 +959,28 @@ private fun LiveCandles(
                         drawContext.canvas.nativeCanvas.drawText(label, x, 28f * density, trendPaint)
                     }
                 }
+            }
+        }
+        if (showBollinger && data.size >= 20) {
+            val bbUpper = mutableListOf<Offset>()
+            val bbMiddle = mutableListOf<Offset>()
+            val bbLower = mutableListOf<Offset>()
+            data.indices.forEach { i ->
+                if (i >= 19) {
+                    val window = data.subList(i - 19, i + 1).map { it.close }
+                    val mean = window.average()
+                    val variance = window.sumOf { (it - mean) * (it - mean) } / window.size
+                    val deviation = kotlin.math.sqrt(variance)
+                    val x = step * (i + 0.5f)
+                    bbUpper += Offset(x, y(mean + 2.0 * deviation))
+                    bbMiddle += Offset(x, y(mean))
+                    bbLower += Offset(x, y(mean - 2.0 * deviation))
+                }
+            }
+            for (i in 1 until bbUpper.size) {
+                drawLine(Color(0xFF4FC3F7), bbUpper[i - 1], bbUpper[i], strokeWidth = 1.5f)
+                drawLine(Color(0xFF9B8AFB), bbMiddle[i - 1], bbMiddle[i], strokeWidth = 1.1f)
+                drawLine(Color(0xFF4FC3F7), bbLower[i - 1], bbLower[i], strokeWidth = 1.5f)
             }
         }
         data.forEachIndexed { i, candle ->
