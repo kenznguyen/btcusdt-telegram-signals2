@@ -286,10 +286,7 @@ def run_backtest(days=None):
             op, high, low, close = [float(row[k]) for k in ("open","high","low","close")]
             rsi, adx, prsi = float(row["rsi"]), float(row["adx"]), float(prev["rsi"])
             plus, minus, hadx = float(hr["plus_di"]), float(hr["minus_di"]), float(hr["adx"])
-            bull = plus > minus and hadx > bot.H1_ADX_ENTRY
-            bear = minus > plus and hadx > bot.H1_ADX_ENTRY
-            go_long = bull and prsi <= bot.LONG_RSI_ENTRY and rsi > bot.LONG_RSI_ENTRY
-            go_short = bear and prsi >= bot.SHORT_RSI_ENTRY and rsi < bot.SHORT_RSI_ENTRY
+            go_long, go_short = bot.entry_signals(prsi, rsi, plus, minus, hadx)
 
             if pos:
                 side, avg, qty = pos["side"], pos["avg"], pos["qty"]
@@ -304,13 +301,12 @@ def run_backtest(days=None):
                 max_dd = max(max_dd, peak-mark_equity)
                 emergency_price = bot.threshold_price(side, avg, abs(bot.EMERGENCY_SL_ROE))
                 soft_price = bot.threshold_price(side, avg, abs(bot.SOFT_SL_ROE))
-                emergency = low <= emergency_price if side=="LONG" else high >= emergency_price
-                reversal = (minus > plus if side=="LONG" else plus > minus) and hadx > bot.SOFT_SL_ADX
-                two_bear = op > close and float(prev["close"]) < float(prev["open"])
-                two_bull = close > op and float(prev["close"]) > float(prev["open"])
-                soft = ((low <= soft_price and reversal and two_bear) if side=="LONG"
-                        else (high >= soft_price and reversal and two_bull))
-                tp = ((rsi >= bot.LONG_RSI_TP) if side=="LONG" else (rsi <= bot.SHORT_RSI_TP)) and roe >= bot.TP_ROE
+                emergency = bot.emergency_stop_triggered(side, low, high, avg)
+                soft = bot.soft_stop_triggered(
+                    side, low, high, op, close, float(prev["open"]), float(prev["close"]),
+                    plus, minus, hadx, avg
+                )
+                tp = bot.take_profit_signal(side, rsi, roe)
                 reason, exit_price = None, close
                 if emergency:
                     reason, exit_price = "Emergency SL", bot.stop_fill_price(side, emergency_price, op)
@@ -339,9 +335,7 @@ def run_backtest(days=None):
                     _refresh_last_equity(ts, mark_price)
                     continue
                 if not pos["dca"]:
-                    dca = roe <= bot.DCA_ROE and adx > bot.DCA_ADX
-                    dca = dca and ((rsi > bot.LONG_DCA_RSI and rsi > prsi) if side=="LONG"
-                                   else (rsi < bot.SHORT_DCA_RSI and rsi < prsi))
+                    dca = bot.dca_signal(side, roe, adx, rsi, prsi)
                     if dca:
                         # Do not add margin that the simulated account cannot fund.
                         # Margin is reserved for the position, not deducted from wallet balance;
