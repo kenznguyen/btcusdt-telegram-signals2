@@ -414,12 +414,12 @@ fun CompleteDashboard(context: Context) {
                     if (showRsi) {
                         Spacer(Modifier.height(10.dp))
                         IndicatorLineChart(
-                            title = "RSI %B SIGNAL", points = visibleIndicators, valueSelector = { it.rsiPercentB },
+                            title = "MFI & %B [SEIGLERJ]", points = visibleIndicators, valueSelector = { it.mfiScaled },
                             minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
-                            lineColor = Color(0xFF9B8AFB), modifier = Modifier.fillMaxWidth().height(142.dp),
-                            secondarySelectors = listOf({ it.rsiPercentBSignal }),
+                            lineColor = Color(0xFFFFD166), modifier = Modifier.fillMaxWidth().height(142.dp),
+                            secondarySelectors = listOf({ it.pricePercentB }, { it.mfiBProduct }),
                             thresholdLabels = listOf("0", "0.5", "1"),
-                            legend = listOf("%B", "Signal"),
+                            legend = listOf("MFI scaled", "Price %B", "Combined"),
                             visibleCount = chartVisibleCount,
                             panBars = chartPanBars,
                             onVisibleCountChange = { chartVisibleCount = it },
@@ -438,7 +438,7 @@ fun CompleteDashboard(context: Context) {
                     }
                     if (chartSettingsExpanded) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            PreferenceSwitch("RSI %B Signal", showRsi, { showRsi = it; prefs.edit().putBoolean("chart_show_rsi", it).apply() })
+                            PreferenceSwitch("MFI & %B [seiglerj]", showRsi, { showRsi = it; prefs.edit().putBoolean("chart_show_rsi", it).apply() })
                             PreferenceSwitch("DMI & ADX Trend", showAdx, { showAdx = it; prefs.edit().putBoolean("chart_show_adx", it).apply() })
                             PreferenceSwitch("+DI / −DI", showDi, { showDi = it; prefs.edit().putBoolean("chart_show_di", it).apply() })
                             PreferenceSwitch("Xu hướng H1", showH1Trend, { showH1Trend = it; prefs.edit().putBoolean("chart_show_h1", it).apply() })
@@ -450,7 +450,7 @@ fun CompleteDashboard(context: Context) {
             }
             if (showRsi || showAdx) item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (showRsi) StatCard("RSI %B Signal", shown.rsiPercentB, Modifier.weight(1f))
+                    if (showRsi) StatCard("MFI & %B Combined", shown.mfiBProduct, Modifier.weight(1f))
                     if (showAdx) StatCard("ADX Trend", shown.adx, Modifier.weight(1f))
                 }
             }
