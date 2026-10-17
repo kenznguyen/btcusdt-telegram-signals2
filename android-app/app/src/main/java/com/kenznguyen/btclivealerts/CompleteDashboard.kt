@@ -102,6 +102,114 @@ private fun maybeNotifyRsiM15(
     } catch (_: SecurityException) { }
 }
 
+
+private fun notifyChartAlert(
+    context: Context,
+    prefs: SharedPreferences,
+    key: String,
+    notificationId: Int,
+    title: String,
+    body: String
+) {
+    if (!prefs.getBoolean("alerts_enabled", true)) return
+    val manager = NotificationManagerCompat.from(context)
+    if (!manager.areNotificationsEnabled()) return
+    if (prefs.getString("chart_alert_last_$key", null) == key.substringAfterLast(":")) return
+    try {
+        manager.notify(notificationId, NotificationCompat.Builder(context, "strategy_alerts")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title).setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build())
+        prefs.edit().putString("chart_alert_last_$key", key.substringAfterLast(":")).apply()
+    } catch (_: SecurityException) { }
+}
+
+private fun maybeNotifyChartAlerts(
+    context: Context,
+    prefs: SharedPreferences,
+    engine: StrategyEngine,
+    candles: List<Candle>,
+    closedCandle: Candle,
+    timeframe: String
+) {
+    if (!closedCandle.closed || !prefs.getBoolean("alerts_enabled", true)) return
+    val closed = candles.filter { it.closed }.sortedBy { it.openTime }
+    if (closed.size < 22 || closed.lastOrNull()?.openTime != closedCandle.openTime) return
+    val points = engine.indicatorSeries(closed)
+    val current = points.lastOrNull() ?: return
+    val previous = points.getOrNull(points.lastIndex - 1) ?: return
+    val time = SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date(closedCandle.openTime))
+    fun fire(setting: String, condition: String, id: Int, title: String, value: String) {
+        if (prefs.getBoolean(setting, false)) {
+            val eventKey = "$timeframe:$condition:${closedCandle.openTime}"
+            val prefKey = "chart_alert_last_$setting"
+            if (prefs.getString(prefKey, null) != eventKey) {
+                val manager = NotificationManagerCompat.from(context)
+                if (manager.areNotificationsEnabled()) {
+                    try {
+                        manager.notify(id, NotificationCompat.Builder(context, "strategy_alerts")
+                            .setSmallIcon(android.R.drawable.ic_dialog_info)
+                            .setContentTitle(title).setContentText(value)
+                            .setStyle(NotificationCompat.BigTextStyle().bigText("$value · nến đóng $time · ${timeframe.uppercase()}"))
+                            .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build())
+                        prefs.edit().putString(prefKey, eventKey).apply()
+                    } catch (_: SecurityException) { }
+                }
+            }
+        }
+    }
+
+    // MFI & %B: alert when the combined line crosses user-defined upper/lower levels.
+    val combined = current.mfiBProduct
+    val priorCombined = previous.mfiBProduct
+    val upper = prefs.getFloat("chart_alert_mfib_upper", 0.8f).toDouble()
+    val lower = prefs.getFloat("chart_alert_mfib_lower", 0.2f).toDouble()
+    if (combined != null && priorCombined != null && lower < upper) {
+        if (priorCombined < upper && combined >= upper)
+            fire("chart_alert_mfib_enabled", "MFIB_HIGH", 987671, "BTCUSDT · MFI & %B vượt ngưỡng cao", "Combined ${"%.2f".format(Locale.US, combined)} ≥ ${"%.2f".format(Locale.US, upper)}")
+        if (priorCombined > lower && combined <= lower)
+            fire("chart_alert_mfib_enabled", "MFIB_LOW", 987672, "BTCUSDT · MFI & %B xuống ngưỡng thấp", "Combined ${"%.2f".format(Locale.US, combined)} ≤ ${"%.2f".format(Locale.US, lower)}")
+    }
+
+    // DMI/ADX: alert only on a fresh upward cross of the ADX strength threshold.
+    val adx = current.adx
+    val priorAdx = previous.adx
+    val adxThreshold = prefs.getFloat("chart_alert_adx_threshold", 20f).toDouble()
+    if (adx != null && priorAdx != null && priorAdx < adxThreshold && adx >= adxThreshold) {
+        val direction = if ((current.plusDi ?: 0.0) > (current.minusDi ?: 0.0)) "TĂNG (+DI > −DI)" else "GIẢM (−DI ≥ +DI)"
+        fire("chart_alert_adx_enabled", "ADX_CROSS", 987673, "BTCUSDT · ADX đạt ngưỡng", "ADX ${"%.1f".format(Locale.US, adx)} · $direction")
+    }
+
+    // Bollinger %B: signal on crossing the upper or lower band.
+    val bb = current.pricePercentB
+    val priorBb = previous.pricePercentB
+    if (bb != null && priorBb != null) {
+        if (priorBb < 1.0 && bb >= 1.0)
+            fire("chart_alert_bollinger_enabled", "BB_UPPER", 987674, "BTCUSDT · Giá vượt Bollinger trên", "Price %B = ${"%.2f".format(Locale.US, bb)}")
+        if (priorBb > 0.0 && bb <= 0.0)
+            fire("chart_alert_bollinger_enabled", "BB_LOWER", 987675, "BTCUSDT · Giá xuống dưới Bollinger", "Price %B = ${"%.2f".format(Locale.US, bb)}")
+    }
+
+    // H1 trend direction change; only evaluate this on a confirmed H1 candle.
+    if (timeframe == "1h") {
+        val priorDirection = when {
+            (previous.plusDi ?: 0.0) > (previous.minusDi ?: 0.0) -> 1
+            (previous.minusDi ?: 0.0) > (previous.plusDi ?: 0.0) -> -1
+            else -> 0
+        }
+        val direction = when {
+            (current.plusDi ?: 0.0) > (current.minusDi ?: 0.0) -> 1
+            (current.minusDi ?: 0.0) > (current.plusDi ?: 0.0) -> -1
+            else -> 0
+        }
+        if (direction != 0 && priorDirection != 0 && direction != priorDirection) {
+            val label = if (direction > 0) "TĂNG" else "GIẢM"
+            fire("chart_alert_h1_enabled", "H1_TREND_$direction", 987676, "BTCUSDT · Xu hướng H1 đổi sang $label", "DI xác nhận hướng $label")
+        }
+    }
+}
+
 @Composable
 fun CompleteDashboard(context: Context) {
     val market = remember { MarketEngine() }
@@ -123,6 +231,13 @@ fun CompleteDashboard(context: Context) {
     var rsiM15Alerts by remember { mutableStateOf(prefs.getBoolean("alert_rsi_m15_enabled", false)) }
     var rsiM15High by remember { mutableFloatStateOf(prefs.getInt("alert_rsi_m15_high", 70).toFloat()) }
     var rsiM15Low by remember { mutableFloatStateOf(prefs.getInt("alert_rsi_m15_low", 30).toFloat()) }
+    var mfiBAlerts by remember { mutableStateOf(prefs.getBoolean("chart_alert_mfib_enabled", false)) }
+    var mfiBUpper by remember { mutableFloatStateOf(prefs.getFloat("chart_alert_mfib_upper", 0.8f)) }
+    var mfiBLower by remember { mutableFloatStateOf(prefs.getFloat("chart_alert_mfib_lower", 0.2f)) }
+    var adxChartAlerts by remember { mutableStateOf(prefs.getBoolean("chart_alert_adx_enabled", false)) }
+    var adxChartThreshold by remember { mutableFloatStateOf(prefs.getFloat("chart_alert_adx_threshold", 20f)) }
+    var bollingerChartAlerts by remember { mutableStateOf(prefs.getBoolean("chart_alert_bollinger_enabled", false)) }
+    var h1TrendChartAlerts by remember { mutableStateOf(prefs.getBoolean("chart_alert_h1_enabled", false)) }
     var vibration by remember { mutableStateOf(prefs.getBoolean("alert_vibration", true)) }
     var sound by remember { mutableStateOf(prefs.getBoolean("alert_sound", true)) }
     var quietHours by remember { mutableStateOf(prefs.getBoolean("quiet_hours_enabled", false)) }
@@ -188,7 +303,10 @@ fun CompleteDashboard(context: Context) {
                         val liveCandles = cache.values.toList()
                         chart = liveCandles
                         chartIndicators = engine.indicatorSeries(liveCandles)
-                        if (timeframe == "15m" && candle.closed) maybeNotifyRsiM15(context, prefs, engine, liveCandles, candle)
+                        if (candle.closed) {
+                            maybeNotifyChartAlerts(context, prefs, engine, liveCandles, candle, timeframe)
+                            if (timeframe == "15m") maybeNotifyRsiM15(context, prefs, engine, liveCandles, candle)
+                        }
                         // Keep strategy/status cards based on confirmed candles; the plot may preview the forming candle.
                         val latestClosed = engine.indicatorSeries(liveCandles.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
                         if (timeframe == "15m") m15Ind = latestClosed else h1Ind = latestClosed
@@ -501,6 +619,22 @@ fun CompleteDashboard(context: Context) {
                     PreferenceSwitch("Emergency Stop Loss", emergencySlAlerts, { emergencySlAlerts = it; prefs.edit().putBoolean("alert_emergency_sl", it).apply() })
                     Divider(color = Color(0xFF263243))
                     PreferenceSwitch("Cảnh báo RSI M15", rsiM15Alerts, { rsiM15Alerts = it; prefs.edit().putBoolean("alert_rsi_m15_enabled", it).apply() })
+                    Divider(color = Color(0xFF263243))
+                    Text("CẢNH BÁO RIÊNG THEO BIỂU ĐỒ", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("Mỗi mục có công tắc độc lập; chỉ phát cảnh báo sau khi nến của khung đang theo dõi đóng và có chống lặp.", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    PreferenceSwitch("MFI & %B · Combined chạm ngưỡng", mfiBAlerts, { mfiBAlerts = it; prefs.edit().putBoolean("chart_alert_mfib_enabled", it).apply() })
+                    Text("Ngưỡng cao: ${"%.2f".format(Locale.US, mfiBUpper)}", color = Color.White)
+                    Slider(value = mfiBUpper, onValueChange = { mfiBUpper = it }, valueRange = 0.5f..1.5f, steps = 19, onValueChangeFinished = { prefs.edit().putFloat("chart_alert_mfib_upper", mfiBUpper).apply() })
+                    Text("Ngưỡng thấp: ${"%.2f".format(Locale.US, mfiBLower)}", color = Color.White)
+                    Slider(value = mfiBLower, onValueChange = { mfiBLower = it }, valueRange = -0.5f..0.5f, steps = 19, onValueChangeFinished = { prefs.edit().putFloat("chart_alert_mfib_lower", mfiBLower).apply() })
+                    if (mfiBLower >= mfiBUpper) Text("Ngưỡng thấp phải nhỏ hơn ngưỡng cao.", color = NRed, style = MaterialTheme.typography.bodySmall)
+                    PreferenceSwitch("DMI & ADX · ADX vượt ngưỡng", adxChartAlerts, { adxChartAlerts = it; prefs.edit().putBoolean("chart_alert_adx_enabled", it).apply() })
+                    Text("Ngưỡng ADX: ${adxChartThreshold.toInt()}", color = Color.White)
+                    Slider(value = adxChartThreshold, onValueChange = { adxChartThreshold = it }, valueRange = 10f..50f, steps = 39, onValueChangeFinished = { prefs.edit().putFloat("chart_alert_adx_threshold", adxChartThreshold).apply() })
+                    PreferenceSwitch("Bollinger Bands · Giá vượt dải", bollingerChartAlerts, { bollingerChartAlerts = it; prefs.edit().putBoolean("chart_alert_bollinger_enabled", it).apply() })
+                    Text("Báo khi %B cắt lên 1 (dải trên) hoặc cắt xuống 0 (dải dưới).", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    PreferenceSwitch("Xu hướng H1 · Đổi TĂNG/GIẢM", h1TrendChartAlerts, { h1TrendChartAlerts = it; prefs.edit().putBoolean("chart_alert_h1_enabled", it).apply() })
+                    Text("Chỉ kiểm tra khi nến H1 đóng; dùng +DI/−DI để xác định hướng.", color = NMuted, style = MaterialTheme.typography.bodySmall)
                     Text("Chỉ thông báo khi RSI(14) cắt qua ngưỡng trên/dưới ở nến M15 đã đóng. Không thay đổi tín hiệu chiến lược.", color = NMuted, style = MaterialTheme.typography.bodySmall)
                     Text("Ngưỡng cao: ${rsiM15High.toInt()}", color = Color.White)
                     Slider(value = rsiM15High, onValueChange = { rsiM15High = it }, valueRange = 50f..95f, steps = 44, onValueChangeFinished = { prefs.edit().putInt("alert_rsi_m15_high", rsiM15High.toInt()).apply() })
