@@ -66,7 +66,10 @@ data class IndicatorPoint(
     val plusDi: Double? = null,
     val minusDi: Double? = null,
     val rsiPercentB: Double? = null,
-    val rsiPercentBSignal: Double? = null
+    val rsiPercentBSignal: Double? = null,
+    val mfiScaled: Double? = null,
+    val pricePercentB: Double? = null,
+    val mfiBProduct: Double? = null
 )
 
 data class StrategyConfig(
@@ -159,7 +162,53 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
                 percentBSignal[i] = ema
             }
         }
-        return (0 until n).map { IndicatorPoint(rsi[it], adx[it], pdi[it], mdi[it], percentB[it], percentBSignal[it]) }
+
+        // MFI & %B [seiglerj] port for the chart pane only.
+        // source = HLC3; MFI length 14; Bollinger length 20 and 2 population standard deviations.
+        // Keep the original RSI-%B series above for compatibility, but the UI now plots this combined indicator.
+        val source = candles.map { (it.high + it.low + it.close) / 3.0 }
+        val mfiScaled = MutableList<Double?>(n) { null }
+        for (i in 13 until n) {
+            var positiveFlow = 0.0
+            var negativeFlow = 0.0
+            for (j in (i - 13)..i) {
+                if (j == 0) continue
+                val flow = source[j] * candles[j].volume
+                when {
+                    source[j] > source[j - 1] -> positiveFlow += flow
+                    source[j] < source[j - 1] -> negativeFlow += flow
+                }
+            }
+            val totalFlow = positiveFlow + negativeFlow
+            val mfi = if (totalFlow <= 0.0) 50.0 else 100.0 * positiveFlow / totalFlow
+            mfiScaled[i] = (mfi - 20.0) / (80.0 - 20.0)
+        }
+
+        val pricePercentB = MutableList<Double?>(n) { null }
+        for (i in 19 until n) {
+            val window = source.subList(i - 19, i + 1)
+            val mean = window.average()
+            val variance = window.map { (it - mean) * (it - mean) }.average()
+            val deviation = 2.0 * kotlin.math.sqrt(variance)
+            val upper = mean + deviation
+            val lower = mean - deviation
+            pricePercentB[i] = if (upper - lower <= 1e-12) 0.5 else (source[i] - lower) / (upper - lower)
+        }
+
+        val mfiBProduct = MutableList<Double?>(n) { i ->
+            val mfi = mfiScaled[i]
+            val bbp = pricePercentB[i]
+            if (mfi == null || bbp == null) null
+            else when {
+                mfi > 0.5 && bbp > 0.5 -> minOf(mfi, bbp)
+                mfi < 0.5 && bbp < 0.5 -> maxOf(mfi, bbp)
+                else -> (mfi + bbp) / 2.0
+            }
+        }
+        return (0 until n).map {
+            IndicatorPoint(rsi[it], adx[it], pdi[it], mdi[it], percentB[it], percentBSignal[it],
+                mfiScaled[it], pricePercentB[it], mfiBProduct[it])
+        }
     }
 
     fun processClosedCandles(m15: List<Candle>, h1: List<Candle>, oldState: StrategyState): Pair<StrategyState, List<StrategyEvent>> {
