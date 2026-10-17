@@ -44,10 +44,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private data class H1TrendMark(val openTime: Long, val direction: Int, val strong: Boolean)
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
+
+private data class H1TrendMark(val openTime: Long, val direction: Int, val strong: Boolean)
 
 private val NBg = Color(0xFF0B1018)
 private val NPanel = Color(0xFF151D29)
