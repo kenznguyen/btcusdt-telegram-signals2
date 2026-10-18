@@ -279,10 +279,12 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
             if (state.position == null && !exited && state.balance > 0.0 && (goLong || goShort)) {
                 val side = if (goLong) "LONG" else "SHORT"
                 val margin = state.balance * config.entryMarginPct
-                val qty = margin * config.leverage / c.close
-                state = state.copy(position = StrategyPosition(side, qty, c.close, margin, 0.0, qty * c.close, c.openTime, false))
-                val ev = StrategyEvent(if (side == "LONG") "LONG ENTRY" else "SHORT ENTRY", side, c.close, c.openTime,
-                    note = "Margin mô phỏng " + "%.2f".format(margin) + " USDT; khối lượng " + "%.8f".format(qty) + " BTC")
+                val action = if (side == "LONG") "BUY" else "SELL"
+                val fillPrice = executionFillPrice(c.close, action)
+                val qty = margin * config.leverage / fillPrice
+                state = state.copy(position = StrategyPosition(side, qty, fillPrice, margin, 0.0, qty * fillPrice, c.openTime, false))
+                val ev = StrategyEvent(if (side == "LONG") "LONG ENTRY" else "SHORT ENTRY", side, fillPrice, c.openTime,
+                    note = "Margin mô phỏng " + "%.2f".format(margin) + " USDT; giá khớp đã tính trượt giá; khối lượng " + "%.8f".format(qty) + " BTC")
                 emitted += ev; state = addEvent(state, ev)
             } else if (state.position != null && !exited) {
                 val p = state.position!!
@@ -293,13 +295,15 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
                         val addMargin = p.initialMargin * config.dcaMarginRatio
                         val available = max(0.0, state.balance - p.reservedMargin)
                         if (addMargin > 0.0 && addMargin <= available + 1e-9) {
-                            val addQty = addMargin * config.leverage / c.close
+                            val action = if (p.side == "LONG") "BUY" else "SELL"
+                            val fillPrice = executionFillPrice(c.close, action)
+                            val addQty = addMargin * config.leverage / fillPrice
                             val qty = p.qty + addQty
-                            val avg = (p.avgEntry * p.qty + c.close * addQty) / qty
+                            val avg = (p.avgEntry * p.qty + fillPrice * addQty) / qty
                             state = state.copy(position = p.copy(qty = qty, avgEntry = avg,
-                                dcaMargin = p.dcaMargin + addMargin, entryNotional = p.entryNotional + c.close * addQty, dcaUsed = true))
-                            val ev = StrategyEvent("DCA", p.side, c.close, c.openTime, currentRoe,
-                                "DCA margin " + "%.2f".format(addMargin) + " USDT; giá vốn TB " + "%.2f".format(avg))
+                                dcaMargin = p.dcaMargin + addMargin, entryNotional = p.entryNotional + fillPrice * addQty, dcaUsed = true))
+                            val ev = StrategyEvent("DCA", p.side, fillPrice, c.openTime, currentRoe,
+                                "DCA margin " + "%.2f".format(addMargin) + " USDT; đã tính trượt giá; giá vốn TB " + "%.2f".format(avg))
                             emitted += ev; state = addEvent(state, ev)
                         }
                     }
