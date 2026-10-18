@@ -90,7 +90,7 @@ private fun mergeCandle(cache: java.util.TreeMap<Long, Candle>, candle: Candle) 
     cache[candle.openTime] = candle
 }
 
-private fun maybeNotifyRsiM15(
+internal fun maybeNotifyRsiM15(
     context: Context,
     prefs: SharedPreferences,
     engine: StrategyEngine,
@@ -155,7 +155,7 @@ private fun notifyChartAlert(
     } catch (_: SecurityException) { }
 }
 
-private fun maybeNotifyChartAlerts(
+internal fun maybeNotifyChartAlerts(
     context: Context,
     prefs: SharedPreferences,
     engine: StrategyEngine,
