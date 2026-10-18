@@ -90,7 +90,7 @@ private fun maybeNotifyRsiM15(
     val now = SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date())
     val threshold = if (condition == "HIGH") high.toInt() else low.toInt()
     val title = if (condition == "HIGH") "BTCUSDT · RSI M15 vượt ngưỡng cao" else "BTCUSDT · RSI M15 xuống ngưỡng thấp"
-    val body = "RSI(14) = ${"%.1f".format(Locale.US, latestRsi)} · ngưỡng $threshold · nến đóng $now"
+    val body = "Khung M15 · RSI(14): ${"%.1f".format(Locale.US, latestRsi)} · ngưỡng: $threshold · giá đóng: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT · nến đóng: $now"
     try {
         manager.notify(if (condition == "HIGH") 987661 else 987662,
             NotificationCompat.Builder(context, "strategy_alerts")
@@ -150,8 +150,8 @@ private fun maybeNotifyChartAlerts(
                     try {
                         manager.notify(id, NotificationCompat.Builder(context, "strategy_alerts")
                             .setSmallIcon(android.R.drawable.ic_dialog_info)
-                            .setContentTitle(title).setContentText(value)
-                            .setStyle(NotificationCompat.BigTextStyle().bigText("$value · nến đóng $time · ${timeframe.uppercase()}"))
+                            .setContentTitle(title).setContentText("$value · ${timeframe.uppercase()} · $time")
+                            .setStyle(NotificationCompat.BigTextStyle().bigText("BTCUSDT PERPETUAL\n$value\nKhung thời gian: ${timeframe.uppercase()}\nGiá đóng nến: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT\nThời điểm nến đóng: $time"))
                             .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build())
                         prefs.edit().putString(prefKey, eventKey).apply()
                     } catch (_: SecurityException) { }
@@ -167,9 +167,9 @@ private fun maybeNotifyChartAlerts(
     val lower = prefs.getFloat("chart_alert_mfib_lower", 0.2f).toDouble()
     if (combined != null && priorCombined != null && lower < upper) {
         if (priorCombined < upper && combined >= upper)
-            fire("chart_alert_mfib_enabled", "MFIB_HIGH", 987671, "BTCUSDT · MFI & %B vượt ngưỡng cao", "Combined ${"%.2f".format(Locale.US, combined)} ≥ ${"%.2f".format(Locale.US, upper)}")
+            fire("chart_alert_mfib_enabled", "MFIB_HIGH", 987671, "BTCUSDT · MFI & %B vượt ngưỡng cao", "Combined: ${"%.2f".format(Locale.US, combined)} (đã cắt lên ngưỡng ${"%.2f".format(Locale.US, upper)}) · giá đóng: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT")
         if (priorCombined > lower && combined <= lower)
-            fire("chart_alert_mfib_enabled", "MFIB_LOW", 987672, "BTCUSDT · MFI & %B xuống ngưỡng thấp", "Combined ${"%.2f".format(Locale.US, combined)} ≤ ${"%.2f".format(Locale.US, lower)}")
+            fire("chart_alert_mfib_enabled", "MFIB_LOW", 987672, "BTCUSDT · MFI & %B xuống ngưỡng thấp", "Combined: ${"%.2f".format(Locale.US, combined)} (đã cắt xuống ngưỡng ${"%.2f".format(Locale.US, lower)}) · giá đóng: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT")
     }
 
     // DMI/ADX: alert only on a fresh upward cross of the ADX strength threshold.
@@ -177,8 +177,10 @@ private fun maybeNotifyChartAlerts(
     val priorAdx = previous.adx
     val adxThreshold = prefs.getFloat("chart_alert_adx_threshold", 20f).toDouble()
     if (adx != null && priorAdx != null && priorAdx < adxThreshold && adx >= adxThreshold) {
-        val direction = if ((current.plusDi ?: 0.0) > (current.minusDi ?: 0.0)) "TĂNG (+DI > −DI)" else "GIẢM (−DI ≥ +DI)"
-        fire("chart_alert_adx_enabled", "ADX_CROSS", 987673, "BTCUSDT · ADX đạt ngưỡng", "ADX ${"%.1f".format(Locale.US, adx)} · $direction")
+        val plusDi = current.plusDi ?: 0.0
+        val minusDi = current.minusDi ?: 0.0
+        val direction = if (plusDi > minusDi) "TĂNG (+DI lớn hơn −DI)" else "GIẢM (−DI lớn hơn hoặc bằng +DI)"
+        fire("chart_alert_adx_enabled", "ADX_CROSS", 987673, "BTCUSDT · ADX đạt ngưỡng", "ADX: ${"%.1f".format(Locale.US, adx)} / ngưỡng: ${"%.1f".format(Locale.US, adxThreshold)} · +DI: ${"%.1f".format(Locale.US, plusDi)} · −DI: ${"%.1f".format(Locale.US, minusDi)} · hướng: $direction")
     }
 
     // Bollinger %B: signal on crossing the upper or lower band.
@@ -186,9 +188,9 @@ private fun maybeNotifyChartAlerts(
     val priorBb = previous.pricePercentB
     if (bb != null && priorBb != null) {
         if (priorBb < 1.0 && bb >= 1.0)
-            fire("chart_alert_bollinger_enabled", "BB_UPPER", 987674, "BTCUSDT · Giá vượt Bollinger trên", "Price %B = ${"%.2f".format(Locale.US, bb)}")
+            fire("chart_alert_bollinger_enabled", "BB_UPPER", 987674, "BTCUSDT · Giá vượt Bollinger trên", "Giá đóng: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT · %B: ${"%.2f".format(Locale.US, bb)} (≥ 1.00, vượt dải trên)")
         if (priorBb > 0.0 && bb <= 0.0)
-            fire("chart_alert_bollinger_enabled", "BB_LOWER", 987675, "BTCUSDT · Giá xuống dưới Bollinger", "Price %B = ${"%.2f".format(Locale.US, bb)}")
+            fire("chart_alert_bollinger_enabled", "BB_LOWER", 987675, "BTCUSDT · Giá xuống dưới Bollinger", "Giá đóng: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT · %B: ${"%.2f".format(Locale.US, bb)} (≤ 0.00, xuống dưới dải dưới)")
     }
 
     // H1 trend direction change; only evaluate this on a confirmed H1 candle.
@@ -204,8 +206,9 @@ private fun maybeNotifyChartAlerts(
             else -> 0
         }
         if (direction != 0 && priorDirection != 0 && direction != priorDirection) {
+            val oldLabel = if (priorDirection > 0) "TĂNG" else "GIẢM"
             val label = if (direction > 0) "TĂNG" else "GIẢM"
-            fire("chart_alert_h1_enabled", "H1_TREND_$direction", 987676, "BTCUSDT · Xu hướng H1 đổi sang $label", "DI xác nhận hướng $label")
+            fire("chart_alert_h1_enabled", "H1_TREND_$direction", 987676, "BTCUSDT · Xu hướng H1 đổi sang $label", "Xu hướng: $oldLabel → $label · +DI: ${"%.1f".format(Locale.US, current.plusDi ?: 0.0)} · −DI: ${"%.1f".format(Locale.US, current.minusDi ?: 0.0)} · ADX: ${"%.1f".format(Locale.US, current.adx ?: 0.0)}")
         }
     }
 }
