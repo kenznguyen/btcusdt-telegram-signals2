@@ -44,6 +44,14 @@ class StrategyEngineTest {
         assertEquals(97.0 * (1.0 - 5.0 / 10000.0), engine.stopFillPrice("LONG", 97.0, 100.0), 1e-8)
     }
 
+    @Test fun entrySlippageIsAdverseForBothSides() {
+        assertTrue(engine.executionFillPrice(100.0, "BUY") > 100.0)
+        assertTrue(engine.executionFillPrice(100.0, "SELL") < 100.0)
+        val noSlippage = StrategyEngine(StrategyConfig(slippageBps = 0.0))
+        assertEquals(100.0, noSlippage.executionFillPrice(100.0, "BUY"), 0.0)
+        assertEquals(100.0, noSlippage.executionFillPrice(100.0, "SELL"), 0.0)
+    }
+
     @Test fun stateSurvivesSerialization() {
         val state = StrategyState(balance = 123.45,
             position = StrategyPosition("LONG", 0.1, 65000.0, 50.0, 50.0, 6500.0, 1234L, true),
