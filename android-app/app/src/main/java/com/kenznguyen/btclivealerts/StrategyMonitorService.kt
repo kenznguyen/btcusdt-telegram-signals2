@@ -47,15 +47,10 @@ class StrategyMonitorService : Service() {
                         val closed = m15.filter { it.closed }.sortedBy { it.openTime }
                         val prefs = getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE)
 
-                        // Evaluate chart alerts in the foreground service too, so they do not
-                        // depend on which timeframe the user currently has open on screen.
-                        closed.lastOrNull()?.let { latest ->
-                            maybeNotifyChartAlerts(this@StrategyMonitorService, prefs, engine, m15, latest, "15m")
-                            maybeNotifyRsiM15(this@StrategyMonitorService, prefs, engine, m15, latest)
-                        }
-                        h1.filter { it.closed }.maxByOrNull { it.openTime }?.let { latest ->
-                            maybeNotifyChartAlerts(this@StrategyMonitorService, prefs, engine, h1, latest, "1h")
-                        }
+                        // Evaluate every newly closed candle in the background, not only the
+                        // latest one, so reconnect/network gaps do not silently skip chart signals.
+                        processChartAlerts("15m", m15, prefs)
+                        processChartAlerts("1h", h1, prefs)
 
                         var state = StrategyState.fromJson(prefs.getString("state_json", null))
                         if (state.lastProcessedOpenTime == 0L && closed.size >= 2) {
@@ -123,6 +118,31 @@ class StrategyMonitorService : Service() {
             }
         }
         return START_STICKY
+    }
+
+    private fun processChartAlerts(
+        timeframe: String,
+        candles: List<Candle>,
+        prefs: android.content.SharedPreferences
+    ) {
+        val closed = candles.filter { it.closed }.sortedBy { it.openTime }
+        if (closed.isEmpty()) return
+        val cursorKey = "chart_alert_monitor_last_$timeframe"
+        var cursor = prefs.getLong(cursorKey, Long.MIN_VALUE)
+        if (cursor == Long.MIN_VALUE) {
+            // Start from the prior candle so the most recent close is checked once,
+            // without replaying hundreds of historical alerts on first launch.
+            cursor = closed.getOrNull(closed.lastIndex - 1)?.openTime ?: closed.last().openTime
+            prefs.edit().putLong(cursorKey, cursor).apply()
+        }
+        for (candle in closed) {
+            if (candle.openTime <= cursor) continue
+            val prefix = closed.takeWhile { it.openTime <= candle.openTime }
+            maybeNotifyChartAlerts(this, prefs, engine, prefix, candle, timeframe)
+            if (timeframe == "15m") maybeNotifyRsiM15(this, prefs, engine, prefix, candle)
+            prefs.edit().putLong(cursorKey, candle.openTime).apply()
+            cursor = candle.openTime
+        }
     }
 
     private fun postAlert(key: String, title: String, body: String, prefs: android.content.SharedPreferences) {
