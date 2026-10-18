@@ -44,8 +44,19 @@ class StrategyMonitorService : Service() {
                     try {
                         val m15 = market.fetchCandles("15m", 500)
                         val h1 = market.fetchCandles("1h", 500)
-                        val closed = m15.filter { it.closed }
+                        val closed = m15.filter { it.closed }.sortedBy { it.openTime }
                         val prefs = getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE)
+
+                        // Evaluate chart alerts in the foreground service too, so they do not
+                        // depend on which timeframe the user currently has open on screen.
+                        closed.lastOrNull()?.let { latest ->
+                            maybeNotifyChartAlerts(this@StrategyMonitorService, prefs, engine, m15, latest, "15m")
+                            maybeNotifyRsiM15(this@StrategyMonitorService, prefs, engine, m15, latest)
+                        }
+                        h1.filter { it.closed }.maxByOrNull { it.openTime }?.let { latest ->
+                            maybeNotifyChartAlerts(this@StrategyMonitorService, prefs, engine, h1, latest, "1h")
+                        }
+
                         var state = StrategyState.fromJson(prefs.getString("state_json", null))
                         if (state.lastProcessedOpenTime == 0L && closed.size >= 2) {
                             state = state.copy(lastProcessedOpenTime = closed[closed.size - 2].openTime)
