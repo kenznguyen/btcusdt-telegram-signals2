@@ -214,7 +214,7 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
     fun processClosedCandles(m15: List<Candle>, h1: List<Candle>, oldState: StrategyState): Pair<StrategyState, List<StrategyEvent>> {
         val candles = m15.filter { it.closed }.sortedBy { it.openTime }
         val hours = h1.filter { it.closed }.sortedBy { it.openTime }
-        if (candles.size < 2 || hours.isEmpty()) return oldState to emptyList()
+        if (candles.size < 2) return oldState to emptyList()
         val mi = indicatorSeries(candles)
         val hi = indicatorSeries(hours)
         var state = oldState
@@ -238,10 +238,10 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
 
             val hourBucket = c.openTime - c.openTime % 3_600_000L
             while (hidx + 1 < hours.size && hours[hidx + 1].openTime < hourBucket) hidx++
-            val hasPriorClosedHour = hours[hidx].openTime < hourBucket
-            val hp = if (hasPriorClosedHour) hi[hidx].plusDi else null
-            val hm = if (hasPriorClosedHour) hi[hidx].minusDi else null
-            val ha = if (hasPriorClosedHour) hi[hidx].adx else null
+            val hasPriorClosedHour = hours.getOrNull(hidx)?.openTime?.let { it < hourBucket } == true
+            val hp = if (hasPriorClosedHour) hi.getOrNull(hidx)?.plusDi else null
+            val hm = if (hasPriorClosedHour) hi.getOrNull(hidx)?.minusDi else null
+            val ha = if (hasPriorClosedHour) hi.getOrNull(hidx)?.adx else null
             val hasHourIndicators = hp != null && hm != null && ha != null
             val goLong = hasHourIndicators && adx != null && longEntrySignal(prevRsi, rsi, hp!!, hm!!, ha!!)
             val goShort = hasHourIndicators && adx != null && shortEntrySignal(prevRsi, rsi, hp!!, hm!!, ha!!)
