@@ -20,6 +20,8 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import org.json.JSONArray
+import org.json.JSONObject
 
 class StrategyMonitorService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -119,6 +121,15 @@ class StrategyMonitorService : Service() {
         if (prefs.getBoolean("alert_vibration", true)) builder.setVibrate(longArrayOf(0, 250, 120, 250)) else builder.setVibrate(longArrayOf(0))
         if (!prefs.getBoolean("alert_sound", true)) builder.setSilent(true)
         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify(key.hashCode(), builder.build())
+        synchronized(prefs) {
+            val history = runCatching { JSONArray(prefs.getString("notification_history_json", "[]")) }.getOrDefault(JSONArray())
+            val updated = JSONArray().put(JSONObject().put("title", title).put("body", body)
+                .put("timestamp", System.currentTimeMillis()).put("source", "Chiến lược"))
+            for (i in 0 until minOf(history.length(), 99)) {
+                updated.put(history.getJSONObject(history.length() - 1 - i))
+            }
+            prefs.edit().putString("notification_history_json", updated.toString()).apply()
+        }
     }
     private fun alertPreferenceKey(kind: String): String = when {
         kind.contains("ENTRY") -> "entry"
