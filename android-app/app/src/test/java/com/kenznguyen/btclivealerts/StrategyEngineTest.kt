@@ -132,6 +132,20 @@ class StrategyEngineTest {
         assertNull(StrategyState.fromJson("{not-json").position)
     }
 
+    @Test fun missingHourlyIndicatorsDoNotSuppressEmergencyExit() {
+        val m15 = (0 until 100).map { i ->
+            val close = if (i == 99) 90.0 else 100.0
+            Candle(i * 900000L, 100.0, 101.0, if (i == 99) 80.0 else 99.0, close, 1.0, true)
+        }
+        // Only one H1 candle means no prior closed hourly trend is available.
+        val h1 = listOf(Candle(99 * 900000L, 100.0, 101.0, 99.0, 100.0, 1.0, true))
+        val position = StrategyPosition("LONG", 1.0, 100.0, 50.0, 0.0, 100.0, 0L, false)
+        val initial = StrategyState(balance = 100.0, position = position, lastProcessedOpenTime = 98 * 900000L)
+        val result = engine.processClosedCandles(m15, h1, initial)
+        assertNull(result.first.position)
+        assertTrue(result.second.any { it.kind == "EMERGENCY SL" })
+    }
+
     @Test fun indicatorsWarmUpAndStayInRange() {
         val candles = (0 until 120).map { i ->
             val close = 60000.0 + i * 12.0 + kotlin.math.sin(i / 3.0) * 35.0
