@@ -113,20 +113,22 @@ private fun maybeNotifyRsiM15(
     val eventKey = "${closedCandle.openTime}:$condition"
     if (prefs.getString("alert_rsi_m15_last_event", null) == eventKey) return
     val manager = NotificationManagerCompat.from(context)
-    if (!manager.areNotificationsEnabled()) return
     val now = SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date())
     val threshold = if (condition == "HIGH") high.toInt() else low.toInt()
     val title = if (condition == "HIGH") "BTCUSDT · RSI M15 vượt ngưỡng cao" else "BTCUSDT · RSI M15 xuống ngưỡng thấp"
     val body = "Khung M15 · RSI(14): ${"%.1f".format(Locale.US, latestRsi)} · ngưỡng: $threshold · giá đóng: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT · nến đóng: $now"
+    // Record and deduplicate the detected event even when OS notifications are disabled.
+    saveAlertHistory(prefs, title, body, "RSI M15")
+    prefs.edit().putString("alert_rsi_m15_last_event", eventKey).apply()
+    if (!manager.areNotificationsEnabled()) return
     try {
-        manager.notify(if (condition == "HIGH") 987661 else 987662,
+        val notificationId = ("RSI_M15:$condition").hashCode() and 0x7fffffff
+        manager.notify(notificationId,
             NotificationCompat.Builder(context, "strategy_alerts")
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle(title).setContentText(body)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(body))
                 .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build())
-        saveAlertHistory(prefs, title, body, "RSI M15")
-        prefs.edit().putString("alert_rsi_m15_last_event", eventKey).apply()
     } catch (_: SecurityException) { }
 }
 
@@ -173,16 +175,21 @@ private fun maybeNotifyChartAlerts(
             val eventKey = "$timeframe:$condition:${closedCandle.openTime}"
             val prefKey = "chart_alert_last_$setting"
             if (prefs.getString(prefKey, null) != eventKey) {
+                val body = "$value · ${timeframe.uppercase()} · giá đóng ${"%,.2f".format(Locale.US, closedCandle.close)} USDT"
+                // Save and deduplicate detected events regardless of notification permission.
+                saveAlertHistory(prefs, title, body, "Biểu đồ · ${timeframe.uppercase()}")
+                prefs.edit().putString(prefKey, eventKey).apply()
+
                 val manager = NotificationManagerCompat.from(context)
                 if (manager.areNotificationsEnabled()) {
                     try {
-                        manager.notify(id, NotificationCompat.Builder(context, "strategy_alerts")
+                        // Distinct stable ID per timeframe and condition prevents cross-chart overwrites.
+                        val notificationId = ("chart:$timeframe:$condition").hashCode() and 0x7fffffff
+                        manager.notify(notificationId, NotificationCompat.Builder(context, "strategy_alerts")
                             .setSmallIcon(android.R.drawable.ic_dialog_info)
                             .setContentTitle(title).setContentText("$value · ${timeframe.uppercase()} · $time")
                             .setStyle(NotificationCompat.BigTextStyle().bigText("BTCUSDT PERPETUAL\n$value\nKhung thời gian: ${timeframe.uppercase()}\nGiá đóng nến: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT\nThời điểm nến đóng: $time"))
                             .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build())
-                        saveAlertHistory(prefs, title, "$value · ${timeframe.uppercase()} · giá đóng ${"%,.2f".format(Locale.US, closedCandle.close)} USDT", "Biểu đồ")
-                        prefs.edit().putString(prefKey, eventKey).apply()
                     } catch (_: SecurityException) { }
                 }
             }
