@@ -1,7 +1,10 @@
 name: Android Live Chart CI
 
 on:
-  # Android feature is out of current scope; retain manual QA/build only.
+  # Build and test changes pushed to this Android feature branch automatically.
+  push:
+    branches:
+      - feature/android-btcusdt-live-alerts
   workflow_dispatch:
 
 permissions:
