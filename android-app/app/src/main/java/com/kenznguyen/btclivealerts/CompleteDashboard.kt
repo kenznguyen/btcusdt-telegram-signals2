@@ -430,7 +430,10 @@ fun CompleteDashboard(context: Context) {
                                 val liveCandles = cache.values.toList()
                                 chart = liveCandles
                                 chartIndicators = engine.indicatorSeries(liveCandles)
-                                if (timeframe == "15m" && c.closed) maybeNotifyRsiM15(context, prefs, engine, liveCandles, c)
+                                if (c.closed) {
+                                    maybeNotifyChartAlerts(context, prefs, engine, liveCandles, c, timeframe)
+                                    if (timeframe == "15m") maybeNotifyRsiM15(context, prefs, engine, liveCandles, c)
+                                }
                                 val closed = engine.indicatorSeries(liveCandles.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
                                 if (timeframe == "15m") m15Ind = closed else h1Ind = closed
                             } },
