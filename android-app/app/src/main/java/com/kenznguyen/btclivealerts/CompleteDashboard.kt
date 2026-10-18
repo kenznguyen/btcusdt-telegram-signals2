@@ -338,7 +338,8 @@ fun CompleteDashboard(context: Context) {
     var chartIndicators by remember { mutableStateOf<List<IndicatorPoint>>(emptyList()) }
     var chartVisibleCount by remember { mutableIntStateOf(120) }
     var chartPanBars by remember { mutableIntStateOf(0) }
-    var showRsi by remember { mutableStateOf(prefs.getBoolean("chart_show_rsi", true)) }
+    var showRsi by remember { mutableStateOf(prefs.getBoolean("chart_show_rsi_percent_b", prefs.getBoolean("chart_show_rsi", true))) }
+    var showMfiB by remember { mutableStateOf(prefs.getBoolean("chart_show_mfi_b", prefs.getBoolean("chart_show_rsi", true))) }
     var showAdx by remember { mutableStateOf(prefs.getBoolean("chart_show_adx", true)) }
     var showDi by remember { mutableStateOf(prefs.getBoolean("chart_show_di", true)) }
     var showH1Trend by remember { mutableStateOf(prefs.getBoolean("chart_show_h1", true)) }
@@ -634,7 +635,7 @@ fun CompleteDashboard(context: Context) {
                     val viewStart = (viewEnd - chartVisibleCount).coerceAtLeast(0)
                     val visibleCandles = chart.drop(viewStart).take((viewEnd - viewStart).coerceAtLeast(0))
                     val visibleIndicators = chartIndicators.drop(viewStart).take((viewEnd - viewStart).coerceAtLeast(0))
-                    if (showRsi) {
+                    if (showMfiB) {
                         Spacer(Modifier.height(10.dp))
                         IndicatorLineChart(
                             title = "MFI & %B [SEIGLERJ]", points = visibleIndicators, valueSelector = { it.mfiScaled },
@@ -661,7 +662,8 @@ fun CompleteDashboard(context: Context) {
                     }
                     if (chartSettingsExpanded) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            PreferenceSwitch("MFI & %B [seiglerj]", showRsi, { showRsi = it; prefs.edit().putBoolean("chart_show_rsi", it).apply() })
+                            PreferenceSwitch("MFI & %B [seiglerj]", showMfiB, { showMfiB = it; prefs.edit().putBoolean("chart_show_mfi_b", it).apply() })
+                            PreferenceSwitch("RSI %B Signal", showRsi, { showRsi = it; prefs.edit().putBoolean("chart_show_rsi_percent_b", it).apply() })
                             PreferenceSwitch("DMI & ADX Trend", showAdx, { showAdx = it; prefs.edit().putBoolean("chart_show_adx", it).apply() })
                             PreferenceSwitch("+DI / −DI", showDi, { showDi = it; prefs.edit().putBoolean("chart_show_di", it).apply() })
                             PreferenceSwitch("Xu hướng H1", showH1Trend, { showH1Trend = it; prefs.edit().putBoolean("chart_show_h1", it).apply() })
@@ -671,9 +673,9 @@ fun CompleteDashboard(context: Context) {
                     }
                 }
             }
-            if (showRsi || showAdx) item {
+            if (showMfiB || showAdx) item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (showRsi) StatCard("MFI & %B Combined", shown.mfiBProduct, Modifier.weight(1f))
+                    if (showMfiB) StatCard("MFI & %B Combined", shown.mfiBProduct, Modifier.weight(1f))
                     if (showAdx) StatCard("ADX Trend", shown.adx, Modifier.weight(1f))
                 }
             }
@@ -876,7 +878,7 @@ fun CompleteDashboard(context: Context) {
                         showVolumeProfile = showVolumeProfile,
                         onVisibleCountChange = { chartVisibleCount = it },
                         onPanBarsChange = { chartPanBars = it },
-                        modifier = Modifier.fillMaxWidth().weight(if (showRsi && showAdx) 0.56f else 0.76f)
+                        modifier = Modifier.fillMaxWidth().weight(if ((showRsi || showMfiB) && showAdx) 0.48f else if (showRsi || showMfiB || showAdx) 0.62f else 0.76f)
                     )
                     TimeAxisBar(visibleCandles)
                     if (showRsi) {
@@ -899,7 +901,8 @@ fun CompleteDashboard(context: Context) {
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("REST + WebSocket · ${chart.size}/1.500 nến", color = NMuted, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-                        TextButton(onClick = { showRsi = !showRsi; prefs.edit().putBoolean("chart_show_rsi", showRsi).apply() }) { Text(if (showRsi) "Ẩn RSI" else "Hiện RSI") }
+                        TextButton(onClick = { showRsi = !showRsi; prefs.edit().putBoolean("chart_show_rsi_percent_b", showRsi).apply() }) { Text(if (showRsi) "Ẩn RSI %B" else "Hiện RSI %B") }
+                        TextButton(onClick = { showMfiB = !showMfiB; prefs.edit().putBoolean("chart_show_mfi_b", showMfiB).apply() }) { Text(if (showMfiB) "Ẩn MFI & %B" else "Hiện MFI & %B") }
                         TextButton(onClick = { showAdx = !showAdx; prefs.edit().putBoolean("chart_show_adx", showAdx).apply() }) { Text(if (showAdx) "Ẩn DMI/ADX" else "Hiện DMI/ADX") }
                     }
                 }
