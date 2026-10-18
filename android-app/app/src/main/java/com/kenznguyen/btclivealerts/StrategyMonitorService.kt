@@ -115,12 +115,7 @@ class StrategyMonitorService : Service() {
     }
 
     private fun postAlert(key: String, title: String, body: String, prefs: android.content.SharedPreferences) {
-        val builder = NotificationCompat.Builder(this, "strategy_alerts").setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle(title).setContentText(body).setStyle(NotificationCompat.BigTextStyle().bigText(body))
-            .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true)
-        if (prefs.getBoolean("alert_vibration", true)) builder.setVibrate(longArrayOf(0, 250, 120, 250)) else builder.setVibrate(longArrayOf(0))
-        if (!prefs.getBoolean("alert_sound", true)) builder.setSilent(true)
-        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify(key.hashCode(), builder.build())
+        // Persist the event independently from Android notification permission.
         synchronized(prefs) {
             val history = runCatching { JSONArray(prefs.getString("notification_history_json", "[]")) }.getOrDefault(JSONArray())
             val updated = JSONArray().put(JSONObject().put("title", title).put("body", body)
@@ -129,6 +124,18 @@ class StrategyMonitorService : Service() {
                 updated.put(history.getJSONObject(history.length() - 1 - i))
             }
             prefs.edit().putString("notification_history_json", updated.toString()).apply()
+        }
+
+        val builder = NotificationCompat.Builder(this, "strategy_alerts").setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title).setContentText(body).setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true)
+        if (prefs.getBoolean("alert_vibration", true)) builder.setVibrate(longArrayOf(0, 250, 120, 250)) else builder.setVibrate(longArrayOf(0))
+        if (!prefs.getBoolean("alert_sound", true)) builder.setSilent(true)
+        try {
+            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                .notify(key.hashCode() and 0x7fffffff, builder.build())
+        } catch (_: SecurityException) {
+            // Keep the event in history; the monitor loop still records its dedupe key.
         }
     }
     private fun alertPreferenceKey(kind: String): String = when {
