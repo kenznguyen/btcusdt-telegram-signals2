@@ -37,6 +37,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import okhttp3.WebSocket
@@ -49,6 +51,31 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 
 private data class H1TrendMark(val openTime: Long, val direction: Int, val strong: Boolean)
+private data class SavedAlert(val title: String, val body: String, val timestamp: Long, val source: String)
+
+private fun saveAlertHistory(prefs: SharedPreferences, title: String, body: String, source: String) {
+    synchronized(prefs) {
+        val history = runCatching { JSONArray(prefs.getString("notification_history_json", "[]")) }.getOrDefault(JSONArray())
+        val item = JSONObject().put("title", title).put("body", body)
+            .put("timestamp", System.currentTimeMillis()).put("source", source)
+        val updated = JSONArray().put(item)
+        for (i in 0 until minOf(history.length(), 99)) {
+            val oldIndex = history.length() - 1 - i
+            updated.put(history.getJSONObject(oldIndex))
+        }
+        prefs.edit().putString("notification_history_json", updated.toString()).apply()
+    }
+}
+
+private fun readAlertHistory(prefs: SharedPreferences): List<SavedAlert> {
+    val array = runCatching { JSONArray(prefs.getString("notification_history_json", "[]")) }.getOrDefault(JSONArray())
+    return (0 until array.length()).mapNotNull { i ->
+        runCatching {
+            val item = array.getJSONObject(i)
+            SavedAlert(item.optString("title"), item.optString("body"), item.optLong("timestamp"), item.optString("source"))
+        }.getOrNull()
+    }
+}
 
 private val NBg = Color(0xFF0B1018)
 private val NPanel = Color(0xFF151D29)
@@ -98,6 +125,7 @@ private fun maybeNotifyRsiM15(
                 .setContentTitle(title).setContentText(body)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(body))
                 .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build())
+        saveAlertHistory(prefs, title, body, "RSI M15")
         prefs.edit().putString("alert_rsi_m15_last_event", eventKey).apply()
     } catch (_: SecurityException) { }
 }
@@ -153,6 +181,7 @@ private fun maybeNotifyChartAlerts(
                             .setContentTitle(title).setContentText("$value · ${timeframe.uppercase()} · $time")
                             .setStyle(NotificationCompat.BigTextStyle().bigText("BTCUSDT PERPETUAL\n$value\nKhung thời gian: ${timeframe.uppercase()}\nGiá đóng nến: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT\nThời điểm nến đóng: $time"))
                             .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build())
+                        saveAlertHistory(prefs, title, "$value · ${timeframe.uppercase()} · giá đóng ${"%,.2f".format(Locale.US, closedCandle.close)} USDT", "Biểu đồ")
                         prefs.edit().putString(prefKey, eventKey).apply()
                     } catch (_: SecurityException) { }
                 }
@@ -214,6 +243,47 @@ private fun maybeNotifyChartAlerts(
 }
 
 @Composable
+private fun AlertHistoryDialog(entries: List<SavedAlert>, onDismiss: () -> Unit, onClear: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(0.94f).fillMaxHeight(0.82f),
+            shape = RoundedCornerShape(18.dp),
+            color = NPanel
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🔔 Lịch sử thông báo", color = Color.White, fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    TextButton(onClick = onClear) { Text("Xóa") }
+                    TextButton(onClick = onDismiss) { Text("Đóng") }
+                }
+                Text("Lưu trên thiết bị · tối đa 100 thông báo gần nhất", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(10.dp))
+                if (entries.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Chưa có thông báo được lưu", color = NMuted)
+                    }
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(entries) { entry ->
+                            Column(Modifier.fillMaxWidth().background(NBg, RoundedCornerShape(10.dp)).padding(12.dp)) {
+                                Text(entry.title, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                Text(entry.body, color = NMuted, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    SimpleDateFormat("HH:mm:ss · dd/MM/yyyy", Locale.getDefault()).format(Date(entry.timestamp)) +
+                                        if (entry.source.isNotBlank()) " · " + entry.source else "",
+                                    color = NMuted, style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun CompleteDashboard(context: Context) {
     val market = remember { MarketEngine() }
     val engine = remember { StrategyEngine() }
@@ -248,6 +318,8 @@ fun CompleteDashboard(context: Context) {
     var quietEnd by remember { mutableIntStateOf(prefs.getInt("quiet_end_hour", 7)) }
     var catchUp by remember { mutableStateOf(prefs.getBoolean("alert_catch_up_after_quiet", true)) }
     var alertSettingsExpanded by remember { mutableStateOf(false) }
+    var showNotificationHistory by remember { mutableStateOf(false) }
+    var notificationHistory by remember { mutableStateOf(readAlertHistory(prefs)) }
     var monitorHeartbeat by remember { mutableStateOf("Đang chờ lần kiểm tra đầu tiên…") }
     var monitorError by remember { mutableStateOf("") }
     var lastProcessedCandle by remember { mutableStateOf("—") }
@@ -479,11 +551,31 @@ fun CompleteDashboard(context: Context) {
     }
 
     val shown = if (timeframe == "15m") m15Ind else h1Ind
+    if (showNotificationHistory) {
+        AlertHistoryDialog(
+            entries = notificationHistory,
+            onDismiss = { showNotificationHistory = false },
+            onClear = {
+                prefs.edit().putString("notification_history_json", "[]").apply()
+                notificationHistory = emptyList()
+            }
+        )
+    }
     Surface(Modifier.fillMaxSize(), color = NBg) {
         LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
-                Text("BTCUSDT.P", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                Text("USDⓈ-M Perpetual · Chỉ xem · Không đặt lệnh", color = NMuted)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("BTCUSDT.P", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("USDⓈ-M Perpetual · Chỉ xem · Không đặt lệnh", color = NMuted)
+                    }
+                    TextButton(onClick = {
+                        notificationHistory = readAlertHistory(prefs)
+                        showNotificationHistory = true
+                    }) {
+                        Text("🔔 ${notificationHistory.size}", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
             }
             item {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
