@@ -111,15 +111,21 @@ internal fun maybeNotifyRsiM15(
     } else null
     if (condition == null) return
     val eventKey = "${closedCandle.openTime}:$condition"
-    if (prefs.getString("alert_rsi_m15_last_event", null) == eventKey) return
-    val manager = NotificationManagerCompat.from(context)
     val now = SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date())
     val threshold = if (condition == "HIGH") high.toInt() else low.toInt()
     val title = if (condition == "HIGH") "BTCUSDT · RSI M15 vượt ngưỡng cao" else "BTCUSDT · RSI M15 xuống ngưỡng thấp"
     val body = "Khung M15 · RSI(14): ${"%.1f".format(Locale.US, latestRsi)} · ngưỡng: $threshold · giá đóng: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT · nến đóng: $now"
-    // Record and deduplicate the detected event even when OS notifications are disabled.
-    saveAlertHistory(prefs, title, body, "RSI M15")
-    prefs.edit().putString("alert_rsi_m15_last_event", eventKey).apply()
+    // Atomically reserve the event across the UI socket and background monitor.
+    val shouldNotify = synchronized(prefs) {
+        if (prefs.getString("alert_rsi_m15_last_event", null) == eventKey) false
+        else {
+            saveAlertHistory(prefs, title, body, "RSI M15")
+            prefs.edit().putString("alert_rsi_m15_last_event", eventKey).apply()
+            true
+        }
+    }
+    if (!shouldNotify) return
+    val manager = NotificationManagerCompat.from(context)
     if (!manager.areNotificationsEnabled()) return
     try {
         val notificationId = ("RSI_M15:$condition").hashCode() and 0x7fffffff
@@ -174,12 +180,17 @@ internal fun maybeNotifyChartAlerts(
         if (prefs.getBoolean(setting, false)) {
             val eventKey = "$timeframe:$condition:${closedCandle.openTime}"
             val prefKey = "chart_alert_last_$setting"
-            if (prefs.getString(prefKey, null) != eventKey) {
-                val body = "$value · ${timeframe.uppercase()} · giá đóng ${"%,.2f".format(Locale.US, closedCandle.close)} USDT"
-                // Save and deduplicate detected events regardless of notification permission.
-                saveAlertHistory(prefs, title, body, "Biểu đồ · ${timeframe.uppercase()}")
-                prefs.edit().putString(prefKey, eventKey).apply()
-
+            val body = "$value · ${timeframe.uppercase()} · giá đóng ${"%,.2f".format(Locale.US, closedCandle.close)} USDT"
+            // Atomically reserve the event across the UI socket and background monitor.
+            val shouldNotify = synchronized(prefs) {
+                if (prefs.getString(prefKey, null) == eventKey) false
+                else {
+                    saveAlertHistory(prefs, title, body, "Biểu đồ · ${timeframe.uppercase()}")
+                    prefs.edit().putString(prefKey, eventKey).apply()
+                    true
+                }
+            }
+            if (shouldNotify) {
                 val manager = NotificationManagerCompat.from(context)
                 if (manager.areNotificationsEnabled()) {
                     try {
