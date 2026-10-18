@@ -59,9 +59,9 @@ class StrategyMonitorService : Service() {
                         val result = engine.processClosedCandles(m15, h1, state)
                         state = result.first
                         val lastClosedOpen = closed.lastOrNull()?.openTime ?: 0L
+                        // Do not advance the durable strategy cursor until its emitted events
+                        // have been persisted/queued. This avoids losing signals on process death.
                         prefs.edit()
-                            .putString("state_json", state.toJson())
-                            .putLong("monitor_last_success_ms", System.currentTimeMillis())
                             .putLong("monitor_last_candle_open", lastClosedOpen)
                             .putInt("monitor_last_event_count", result.second.size)
                             .putString("monitor_last_error", "")
@@ -102,6 +102,11 @@ class StrategyMonitorService : Service() {
                                 prefs.edit().putStringSet("quiet_alert_queue", emptySet()).putStringSet("notified_event_keys", sent.toList().takeLast(100).toSet()).apply()
                             }
                         }
+
+                        prefs.edit()
+                            .putString("state_json", state.toJson())
+                            .putLong("monitor_last_success_ms", System.currentTimeMillis())
+                            .apply()
 
                         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
                             .notify(1001, ongoing("Đang theo dõi · " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())))
