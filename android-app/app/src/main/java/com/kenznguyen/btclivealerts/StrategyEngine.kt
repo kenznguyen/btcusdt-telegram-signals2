@@ -227,18 +227,24 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
             val prevRsi = mi[i - 1].rsi
             val rsi = mi[i].rsi
             val adx = mi[i].adx
-            if (prevRsi == null || rsi == null || adx == null) {
-                state = state.copy(lastProcessedOpenTime = c.openTime); continue
+
+            // Warm-up candles before RSI exists cannot produce a strategy event.
+            // Advance through these only when no existing position needs exit checks.
+            if (prevRsi == null || rsi == null) {
+                if (state.position == null) state = state.copy(lastProcessedOpenTime = c.openTime)
+                else break
+                continue
             }
+
             val hourBucket = c.openTime - c.openTime % 3_600_000L
             while (hidx + 1 < hours.size && hours[hidx + 1].openTime < hourBucket) hidx++
-            if (hours[hidx].openTime >= hourBucket) { state = state.copy(lastProcessedOpenTime = c.openTime); continue }
-            val hp = hi[hidx].plusDi; val hm = hi[hidx].minusDi; val ha = hi[hidx].adx
-            if (hp == null || hm == null || ha == null) {
-                state = state.copy(lastProcessedOpenTime = c.openTime); continue
-            }
-            val goLong = longEntrySignal(prevRsi, rsi, hp, hm, ha)
-            val goShort = shortEntrySignal(prevRsi, rsi, hp, hm, ha)
+            val hasPriorClosedHour = hours[hidx].openTime < hourBucket
+            val hp = if (hasPriorClosedHour) hi[hidx].plusDi else null
+            val hm = if (hasPriorClosedHour) hi[hidx].minusDi else null
+            val ha = if (hasPriorClosedHour) hi[hidx].adx else null
+            val hasHourIndicators = hp != null && hm != null && ha != null
+            val goLong = hasHourIndicators && adx != null && longEntrySignal(prevRsi, rsi, hp!!, hm!!, ha!!)
+            val goShort = hasHourIndicators && adx != null && shortEntrySignal(prevRsi, rsi, hp!!, hm!!, ha!!)
             val pos = state.position
             var exited = false
             if (pos != null) {
@@ -247,7 +253,10 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
                 val softPrice = thresholdPrice(pos.side, pos.avgEntry, abs(config.softSlRoe))
                 val emergency = emergencyStopTriggered(pos.side, c.low, c.high, pos.avgEntry)
                 val prev = candles[i - 1]
-                val soft = softStopTriggered(pos.side, c.low, c.high, c.open, c.close, prev.open, prev.close, hp, hm, ha, pos.avgEntry)
+                val soft = hasHourIndicators && softStopTriggered(
+                    pos.side, c.low, c.high, c.open, c.close, prev.open, prev.close,
+                    hp!!, hm!!, ha!!, pos.avgEntry
+                )
                 val tp = takeProfitSignal(pos.side, rsi, roe)
                 val reason = when { emergency -> "EMERGENCY SL"; soft -> "SOFT SL"; tp -> "TAKE PROFIT"; else -> null }
                 if (reason != null) {
@@ -279,7 +288,7 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
                 val p = state.position!!
                 if (!p.dcaUsed) {
                     val currentRoe = roeFor(p.side, p.avgEntry, c.close)
-                    val condition = dcaSignal(p.side, currentRoe, adx, rsi, prevRsi)
+                    val condition = adx != null && dcaSignal(p.side, currentRoe, adx, rsi, prevRsi)
                     if (condition) {
                         val addMargin = p.initialMargin * config.dcaMarginRatio
                         val available = max(0.0, state.balance - p.reservedMargin)
