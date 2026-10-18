@@ -650,6 +650,18 @@ fun CompleteDashboard(context: Context) {
                             onPanBarsChange = { chartPanBars = it }
                         )
                     }
+                    if (showRsi) {
+                        Spacer(Modifier.height(10.dp))
+                        IndicatorLineChart(
+                            title = "RSI %B SIGNAL", points = visibleIndicators, valueSelector = { it.rsiPercentB },
+                            minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
+                            lineColor = Color(0xFF9B8AFB), modifier = Modifier.fillMaxWidth().height(120.dp),
+                            secondarySelectors = listOf({ it.rsiPercentBSignal }),
+                            thresholdLabels = listOf("0", "0.5", "1"), legend = listOf("%B", "Signal"),
+                            visibleCount = chartVisibleCount, panBars = chartPanBars,
+                            onVisibleCountChange = { chartVisibleCount = it }, onPanBarsChange = { chartPanBars = it }
+                        )
+                    }
                     if (showAdx) {
                         Spacer(Modifier.height(10.dp))
                         DmiAdxTrendChart(candles = visibleCandles, points = visibleIndicators, showDi = showDi, visibleCount = chartVisibleCount, panBars = chartPanBars, onVisibleCountChange = { chartVisibleCount = it }, onPanBarsChange = { chartPanBars = it }, modifier = Modifier.fillMaxWidth().height(164.dp))
@@ -881,6 +893,17 @@ fun CompleteDashboard(context: Context) {
                         modifier = Modifier.fillMaxWidth().weight(if ((showRsi || showMfiB) && showAdx) 0.48f else if (showRsi || showMfiB || showAdx) 0.62f else 0.76f)
                     )
                     TimeAxisBar(visibleCandles)
+                    if (showMfiB) {
+                        IndicatorLineChart(
+                            title = "MFI & %B [SEIGLERJ]", points = visibleIndicators, valueSelector = { it.mfiScaled },
+                            minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
+                            lineColor = Color(0xFFFFD166), modifier = Modifier.fillMaxWidth().weight(0.18f),
+                            secondarySelectors = listOf({ it.pricePercentB }, { it.mfiBProduct }),
+                            thresholdLabels = listOf("0", "0.5", "1"), legend = listOf("MFI scaled", "Price %B", "Combined"),
+                            visibleCount = chartVisibleCount, panBars = chartPanBars,
+                            onVisibleCountChange = { chartVisibleCount = it }, onPanBarsChange = { chartPanBars = it }
+                        )
+                    }
                     if (showRsi) {
                         IndicatorLineChart(
                             title = "RSI %B SIGNAL", points = visibleIndicators, valueSelector = { it.rsiPercentB },
