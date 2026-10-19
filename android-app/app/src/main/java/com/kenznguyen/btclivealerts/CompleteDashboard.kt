@@ -125,7 +125,7 @@ internal fun maybeNotifyRsiM15(
         }
     }
     if (!shouldNotify) return
-    deliverChartNotification(context, prefs, "RSI_M15:$condition", title, body)
+    deliverChartNotification(context, prefs, "RSI_M15:$eventKey", title, body)
 }
 
 
@@ -224,7 +224,7 @@ internal fun maybeNotifyChartAlerts(
             if (shouldNotify) {
                 val notificationBody = "BTCUSDT PERPETUAL\n$value\nKhung thời gian: ${timeframe.uppercase()}\nGiá đóng nến: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT\nThời điểm nến đóng: $time"
                 // Stable timeframe + condition key avoids cross-chart notification overwrites.
-                deliverChartNotification(context, prefs, "chart:$timeframe:$condition", title, notificationBody)
+                deliverChartNotification(context, prefs, "chart:$timeframe:$condition:${closedCandle.openTime}", title, notificationBody)
             }
         }
     }
