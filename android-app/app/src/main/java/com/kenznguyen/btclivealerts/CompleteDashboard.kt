@@ -1135,6 +1135,7 @@ private fun LiveCandles(
     val currentPanBars by rememberUpdatedState(panBars)
     val latestOnVisibleCountChange by rememberUpdatedState(onVisibleCountChange)
     val latestOnPanBarsChange by rememberUpdatedState(onPanBarsChange)
+    val allBands = remember(candles) { ChartAnalytics.bollinger(candles) }
     Canvas(
         modifier
             .background(NBg, RoundedCornerShape(8.dp))
@@ -1198,29 +1199,19 @@ private fun LiveCandles(
         }
         val step = plotWidth / data.size
         if (showVolumeProfile) {
-            val bins = 24
-            val binVolumes = DoubleArray(bins)
-            val binSize = range / bins
-            data.forEach { candle ->
-                val first = (((candle.low - low) / range * bins).toInt()).coerceIn(0, bins - 1)
-                val last = (((candle.high - low) / range * bins).toInt()).coerceIn(0, bins - 1)
-                val covered = (last - first + 1).coerceAtLeast(1)
-                for (bin in first..last) binVolumes[bin] += candle.volume / covered
-            }
-            val maxVolume = binVolumes.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0
+            // Estimated OHLCV profile: volume is allocated by price-range overlap, not trade-level prints.
+            val profile = ChartAnalytics.volumeProfile(data, low, high, binCount = 24)
+            val maxVolume = profile?.bins?.maxOfOrNull { it.volume }?.takeIf { it > 0.0 } ?: 1.0
             val profileMaxWidth = minOf(plotWidth * 0.22f, 72.dp.toPx())
             val profilePaint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply { color = 0x553FA9F5 }
-            for (bin in 0 until bins) {
-                val barWidth = (binVolumes[bin] / maxVolume).toFloat() * profileMaxWidth
-                val centerPrice = low + (bin + 0.5) * binSize
-                val top = y(centerPrice + binSize / 2)
-                val bottom = y(centerPrice - binSize / 2)
+            profile?.bins?.forEach { bin ->
+                val barWidth = (bin.volume / maxVolume).toFloat() * profileMaxWidth
+                val top = y(bin.upperPrice)
+                val bottom = y(bin.lowerPrice)
                 drawContext.canvas.nativeCanvas.drawRect(plotWidth - barWidth, top, plotWidth, bottom, profilePaint)
             }
-            val maxBin = binVolumes.indices.maxByOrNull { binVolumes[it] }
-            if (maxBin != null) {
-                val pocPrice = low + (maxBin + 0.5) * binSize
-                drawLine(Color(0xFF4FC3F7), Offset(plotWidth * 0.72f, y(pocPrice)), Offset(plotWidth, y(pocPrice)), strokeWidth = 1.5f)
+            profile?.let {
+                drawLine(Color(0xFF4FC3F7), Offset(plotWidth * 0.72f, y(it.pointOfControl)), Offset(plotWidth, y(it.pointOfControl)), strokeWidth = 1.5f)
             }
         }
         // H1 direction ribbon mapped onto M15 candle timestamps; marks use closed H1 candles only.
@@ -1259,20 +1250,18 @@ private fun LiveCandles(
                 }
             }
         }
-        if (showBollinger && data.size >= 20) {
+        if (showBollinger && data.size >= 2) {
+            // Calculate on the full candle cache, then map visible bars by their original index.
             val bbUpper = mutableListOf<Offset>()
             val bbMiddle = mutableListOf<Offset>()
             val bbLower = mutableListOf<Offset>()
             data.indices.forEach { i ->
-                if (i >= 19) {
-                    val window = data.subList(i - 19, i + 1).map { it.close }
-                    val mean = window.average()
-                    val variance = window.sumOf { (it - mean) * (it - mean) } / window.size
-                    val deviation = kotlin.math.sqrt(variance)
+                val band = allBands.getOrNull(start + i)
+                if (band != null) {
                     val x = step * (i + 0.5f)
-                    bbUpper += Offset(x, y(mean + 2.0 * deviation))
-                    bbMiddle += Offset(x, y(mean))
-                    bbLower += Offset(x, y(mean - 2.0 * deviation))
+                    bbUpper += Offset(x, y(band.upper))
+                    bbMiddle += Offset(x, y(band.middle))
+                    bbLower += Offset(x, y(band.lower))
                 }
             }
             for (i in 1 until bbUpper.size) {
