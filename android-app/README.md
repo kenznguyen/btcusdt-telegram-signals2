@@ -1,4 +1,4 @@
-# BTCUSDT Live Alerts (Android)
+# BTCUSDT Chart Pro (Android)
 
 Standalone Android signal-only monitor for BTCUSDT perpetual. The app uses public Binance USDⓈ-M Futures data and never places orders or requests trading API keys.
 
@@ -13,7 +13,7 @@ Standalone Android signal-only monitor for BTCUSDT perpetual. The app uses publi
 - Emergency SL: -90% ROE price threshold; checked before Soft SL and TP.
 - Leverage 13x, default initial margin 50% of simulated balance, DCA margin 100% of initial order margin, estimated taker fee 0.05% per side, adverse slippage 5 bps.
 - DCA is skipped if the simulated wallet balance cannot cover the additional reserved margin, matching the conservative backtest behavior.
-- Simulated state, position, processed candle timestamp, balance, and recent events are persisted locally. First launch warms up indicators and evaluates only the newest closed M15 candle instead of replaying old historical alerts.
+- Simulated state, position, processed candle timestamp, balance, and recent events are persisted locally. Chart alert history stores up to 100 recent events and shows local counts for today, chart alerts, RSI alerts, and strategy events. First launch warms up indicators and evaluates only the newest closed M15 candle instead of replaying old historical alerts.
 - A foreground data-sync service performs monitoring while Android allows it to run. Battery settings, force-stop, manufacturer restrictions, and Android foreground-service limits may still interrupt monitoring.
 
 ## Validation
@@ -30,7 +30,7 @@ Package: `com.kenznguyen.btclivealerts`
 
 ## Live chart and in-app backtest
 
-- The live candlestick chart displays up to 70 recent candles, a price grid, and a mark-price reference line when the mark price falls within the visible range.
+- The live candlestick chart displays recent candles, a price grid, Bollinger Bands (20, 2), and an estimated OHLCV Volume Profile with a Point of Control (POC). Volume Profile distributes each candle's volume by high-low price overlap; it is not an exchange trade-by-price histogram.
 - The dashboard includes an initial local backtest panel using the shared strategy engine and up to 1,500 closed M15 candles returned by the public market-data endpoint (roughly 15.6 days at 15-minute intervals). It shows estimated net PnL, balance, closed exits, win rate, Profit Factor, max drawdown and recent closed events.
 - This initial panel is not yet a 7/30/90-day backtest selector. It replays candle prefixes to collect exit events and can be slow on lower-end phones; use it as an early diagnostic, not as verified historical performance.
 - Backtest and live signals are simulations. Fees/slippage are estimates; open positions at the end of the test are not marked to market in realized PnL statistics. Do not compare these figures directly with TradingView until the same candle fixture and fill assumptions have been verified.
