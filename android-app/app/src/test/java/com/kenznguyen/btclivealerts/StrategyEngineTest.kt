@@ -154,6 +154,26 @@ class StrategyEngineTest {
         assertTrue(result.second.any { it.kind == "EMERGENCY SL" })
     }
 
+    @Test fun emergencyStopStillRunsBeforeRsiWarmupCompletes() {
+        val m15 = (0 until 25).map { i ->
+            val breached = i == 1
+            Candle(
+                openTime = i * 900000L,
+                open = 100.0,
+                high = 101.0,
+                low = if (breached) 80.0 else 99.0,
+                close = if (breached) 90.0 else 100.0,
+                volume = 1.0,
+                closed = true
+            )
+        }
+        val position = StrategyPosition("LONG", 1.0, 100.0, 50.0, 0.0, 100.0, 0L, false)
+        val initial = StrategyState(balance = 100.0, position = position, lastProcessedOpenTime = 0L)
+        val result = engine.processClosedCandles(m15, emptyList(), initial)
+        assertNull(result.first.position)
+        assertTrue(result.second.any { it.kind == "EMERGENCY SL" && it.candleTime == 900000L })
+    }
+
     @Test fun indicatorsWarmUpAndStayInRange() {
         val candles = (0 until 120).map { i ->
             val close = 60000.0 + i * 12.0 + kotlin.math.sin(i / 3.0) * 35.0
