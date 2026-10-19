@@ -216,7 +216,7 @@ internal fun maybeNotifyChartAlerts(
             prefs.getBoolean(setting, false))
         if (enabled) {
             val eventKey = "$timeframe:$condition:${closedCandle.openTime}"
-            val prefKey = "chart_alert_last_$setting"
+            val prefKey = "chart_alert_last_${timeframe}_$setting"
             val body = "$value · ${timeframe.uppercase()} · giá đóng ${"%,.2f".format(Locale.US, closedCandle.close)} USDT"
             // Atomically reserve the event across the UI socket and background monitor.
             val shouldNotify = synchronized(prefs) {
@@ -302,6 +302,15 @@ private fun AlertHistoryDialog(entries: List<SavedAlert>, onDismiss: () -> Unit,
     val chartCount = entries.count { it.source.contains("Biểu đồ", ignoreCase = true) }
     val rsiCount = entries.count { it.source.contains("RSI", ignoreCase = true) }
     val strategyCount = entries.size - chartCount - rsiCount
+    var historyFilter by remember { mutableStateOf("ALL") }
+    val filteredEntries = remember(entries, historyFilter) {
+        when (historyFilter) {
+            "CHART" -> entries.filter { it.source.contains("Biểu đồ", ignoreCase = true) }
+            "RSI" -> entries.filter { it.source.contains("RSI", ignoreCase = true) }
+            "STRATEGY" -> entries.filter { !it.source.contains("Biểu đồ", ignoreCase = true) && !it.source.contains("RSI", ignoreCase = true) }
+            else -> entries
+        }
+    }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(
             modifier = Modifier.fillMaxWidth(0.94f).fillMaxHeight(0.82f),
@@ -335,13 +344,20 @@ private fun AlertHistoryDialog(entries: List<SavedAlert>, onDismiss: () -> Unit,
                     }
                 }
                 Spacer(Modifier.height(10.dp))
-                if (entries.isEmpty()) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf("ALL" to "Tất cả", "CHART" to "Biểu đồ", "RSI" to "RSI M15", "STRATEGY" to "Chiến lược").forEach { (key, label) ->
+                        TextButton(onClick = { historyFilter = key }, modifier = Modifier.weight(1f)) {
+                            Text(label, color = if (historyFilter == key) Color(0xFF4FC3F7) else NMuted, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                        }
+                    }
+                }
+                if (filteredEntries.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Chưa có thông báo được lưu", color = NMuted)
+                        Text(if (entries.isEmpty()) "Chưa có thông báo được lưu" else "Không có thông báo thuộc bộ lọc này", color = NMuted)
                     }
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(entries) { entry ->
+                        items(filteredEntries) { entry ->
                             Column(Modifier.fillMaxWidth().background(NBg, RoundedCornerShape(10.dp)).padding(12.dp)) {
                                 Text(entry.title, color = Color.White, fontWeight = FontWeight.SemiBold)
                                 Text(entry.body, color = NMuted, style = MaterialTheme.typography.bodyMedium)
@@ -759,7 +775,7 @@ fun CompleteDashboard(context: Context) {
                             PreferenceSwitch("+DI / −DI", showDi, { showDi = it; prefs.edit().putBoolean("chart_show_di", it).apply() })
                             PreferenceSwitch("Xu hướng H1", showH1Trend, { showH1Trend = it; prefs.edit().putBoolean("chart_show_h1", it).apply() })
                             PreferenceSwitch("Bollinger Bands (20, 2)", showBollinger, { showBollinger = it; prefs.edit().putBoolean("chart_show_bollinger", it).apply() })
-                            PreferenceSwitch("Volume Profile", showVolumeProfile, { showVolumeProfile = it; prefs.edit().putBoolean("chart_show_volume_profile", it).apply() })
+                            PreferenceSwitch("Volume Profile (ước tính OHLCV)", showVolumeProfile, { showVolumeProfile = it; prefs.edit().putBoolean("chart_show_volume_profile", it).apply() })
                         }
                     }
                 }
