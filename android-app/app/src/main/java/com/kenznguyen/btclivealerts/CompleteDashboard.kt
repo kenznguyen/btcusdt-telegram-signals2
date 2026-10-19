@@ -53,6 +53,9 @@ import kotlinx.coroutines.isActive
 private data class H1TrendMark(val openTime: Long, val direction: Int, val strong: Boolean)
 private data class SavedAlert(val title: String, val body: String, val timestamp: Long, val source: String)
 
+private fun chartAlertPrefKey(timeframe: String, name: String): String =
+    "chart_alert_${timeframe}_${name}"
+
 private fun saveAlertHistory(prefs: SharedPreferences, title: String, body: String, source: String) {
     synchronized(prefs) {
         val history = runCatching { JSONArray(prefs.getString("notification_history_json", "[]")) }.getOrDefault(JSONArray())
@@ -208,7 +211,10 @@ internal fun maybeNotifyChartAlerts(
     val previous = points.getOrNull(points.lastIndex - 1) ?: return
     val time = SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date(closedCandle.openTime))
     fun fire(setting: String, condition: String, id: Int, title: String, value: String) {
-        if (prefs.getBoolean(setting, false)) {
+        val settingName = setting.removePrefix("chart_alert_")
+        val enabled = prefs.getBoolean(chartAlertPrefKey(timeframe, settingName),
+            prefs.getBoolean(setting, false))
+        if (enabled) {
             val eventKey = "$timeframe:$condition:${closedCandle.openTime}"
             val prefKey = "chart_alert_last_$setting"
             val body = "$value · ${timeframe.uppercase()} · giá đóng ${"%,.2f".format(Locale.US, closedCandle.close)} USDT"
@@ -232,8 +238,8 @@ internal fun maybeNotifyChartAlerts(
     // MFI & %B: alert when the combined line crosses user-defined upper/lower levels.
     val combined = current.mfiBProduct
     val priorCombined = previous.mfiBProduct
-    val upper = prefs.getFloat("chart_alert_mfib_upper", 0.8f).toDouble()
-    val lower = prefs.getFloat("chart_alert_mfib_lower", 0.2f).toDouble()
+    val upper = prefs.getFloat(chartAlertPrefKey(timeframe, "mfib_upper"), prefs.getFloat("chart_alert_mfib_upper", 0.8f)).toDouble()
+    val lower = prefs.getFloat(chartAlertPrefKey(timeframe, "mfib_lower"), prefs.getFloat("chart_alert_mfib_lower", 0.2f)).toDouble()
     if (combined != null && priorCombined != null && lower < upper) {
         if (priorCombined < upper && combined >= upper)
             fire("chart_alert_mfib_enabled", "MFIB_HIGH", 987671, "BTCUSDT · MFI & %B vượt ngưỡng cao", "Combined: ${"%.2f".format(Locale.US, combined)} (đã cắt lên ngưỡng ${"%.2f".format(Locale.US, upper)}) · giá đóng: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT")
@@ -244,7 +250,7 @@ internal fun maybeNotifyChartAlerts(
     // DMI/ADX: alert only on a fresh upward cross of the ADX strength threshold.
     val adx = current.adx
     val priorAdx = previous.adx
-    val adxThreshold = prefs.getFloat("chart_alert_adx_threshold", 20f).toDouble()
+    val adxThreshold = prefs.getFloat(chartAlertPrefKey(timeframe, "adx_threshold"), prefs.getFloat("chart_alert_adx_threshold", 20f)).toDouble()
     if (adx != null && priorAdx != null && priorAdx < adxThreshold && adx >= adxThreshold) {
         val plusDi = current.plusDi ?: 0.0
         val minusDi = current.minusDi ?: 0.0
@@ -374,13 +380,13 @@ fun CompleteDashboard(context: Context) {
     var rsiM15Alerts by remember { mutableStateOf(prefs.getBoolean("alert_rsi_m15_enabled", false)) }
     var rsiM15High by remember { mutableFloatStateOf(prefs.getInt("alert_rsi_m15_high", 70).toFloat()) }
     var rsiM15Low by remember { mutableFloatStateOf(prefs.getInt("alert_rsi_m15_low", 30).toFloat()) }
-    var mfiBAlerts by remember { mutableStateOf(prefs.getBoolean("chart_alert_mfib_enabled", false)) }
-    var mfiBUpper by remember { mutableFloatStateOf(prefs.getFloat("chart_alert_mfib_upper", 0.8f)) }
-    var mfiBLower by remember { mutableFloatStateOf(prefs.getFloat("chart_alert_mfib_lower", 0.2f)) }
-    var adxChartAlerts by remember { mutableStateOf(prefs.getBoolean("chart_alert_adx_enabled", false)) }
-    var adxChartThreshold by remember { mutableFloatStateOf(prefs.getFloat("chart_alert_adx_threshold", 20f)) }
-    var bollingerChartAlerts by remember { mutableStateOf(prefs.getBoolean("chart_alert_bollinger_enabled", false)) }
-    var h1TrendChartAlerts by remember { mutableStateOf(prefs.getBoolean("chart_alert_h1_enabled", false)) }
+    var mfiBAlerts by remember { mutableStateOf(prefs.getBoolean(chartAlertPrefKey(timeframe, "mfib_enabled"), prefs.getBoolean("chart_alert_mfib_enabled", false))) }
+    var mfiBUpper by remember { mutableFloatStateOf(prefs.getFloat(chartAlertPrefKey(timeframe, "mfib_upper"), prefs.getFloat("chart_alert_mfib_upper", 0.8f))) }
+    var mfiBLower by remember { mutableFloatStateOf(prefs.getFloat(chartAlertPrefKey(timeframe, "mfib_lower"), prefs.getFloat("chart_alert_mfib_lower", 0.2f))) }
+    var adxChartAlerts by remember { mutableStateOf(prefs.getBoolean(chartAlertPrefKey(timeframe, "adx_enabled"), prefs.getBoolean("chart_alert_adx_enabled", false))) }
+    var adxChartThreshold by remember { mutableFloatStateOf(prefs.getFloat(chartAlertPrefKey(timeframe, "adx_threshold"), prefs.getFloat("chart_alert_adx_threshold", 20f))) }
+    var bollingerChartAlerts by remember { mutableStateOf(prefs.getBoolean(chartAlertPrefKey(timeframe, "bollinger_enabled"), prefs.getBoolean("chart_alert_bollinger_enabled", false))) }
+    var h1TrendChartAlerts by remember { mutableStateOf(prefs.getBoolean(chartAlertPrefKey(timeframe, "h1_enabled"), prefs.getBoolean("chart_alert_h1_enabled", false))) }
     var vibration by remember { mutableStateOf(prefs.getBoolean("alert_vibration", true)) }
     var sound by remember { mutableStateOf(prefs.getBoolean("alert_sound", true)) }
     var quietHours by remember { mutableStateOf(prefs.getBoolean("quiet_hours_enabled", false)) }
@@ -411,6 +417,16 @@ fun CompleteDashboard(context: Context) {
     var chartSettingsExpanded by remember { mutableStateOf(false) }
     var chartFullscreen by remember { mutableStateOf(false) }
     var socketStatus by remember { mutableStateOf("Đang đồng bộ REST…") }
+
+    LaunchedEffect(timeframe) {
+        mfiBAlerts = prefs.getBoolean(chartAlertPrefKey(timeframe, "mfib_enabled"), prefs.getBoolean("chart_alert_mfib_enabled", false))
+        mfiBUpper = prefs.getFloat(chartAlertPrefKey(timeframe, "mfib_upper"), prefs.getFloat("chart_alert_mfib_upper", 0.8f))
+        mfiBLower = prefs.getFloat(chartAlertPrefKey(timeframe, "mfib_lower"), prefs.getFloat("chart_alert_mfib_lower", 0.2f))
+        adxChartAlerts = prefs.getBoolean(chartAlertPrefKey(timeframe, "adx_enabled"), prefs.getBoolean("chart_alert_adx_enabled", false))
+        adxChartThreshold = prefs.getFloat(chartAlertPrefKey(timeframe, "adx_threshold"), prefs.getFloat("chart_alert_adx_threshold", 20f))
+        bollingerChartAlerts = prefs.getBoolean(chartAlertPrefKey(timeframe, "bollinger_enabled"), prefs.getBoolean("chart_alert_bollinger_enabled", false))
+        h1TrendChartAlerts = prefs.getBoolean(chartAlertPrefKey(timeframe, "h1_enabled"), prefs.getBoolean("chart_alert_h1_enabled", false))
+    }
 
     LaunchedEffect(timeframe) {
         chartPanBars = 0
@@ -802,20 +818,20 @@ fun CompleteDashboard(context: Context) {
                     Divider(color = Color(0xFF263243))
                     PreferenceSwitch("Cảnh báo RSI M15", rsiM15Alerts, { rsiM15Alerts = it; prefs.edit().putBoolean("alert_rsi_m15_enabled", it).apply() })
                     Divider(color = Color(0xFF263243))
-                    Text("CẢNH BÁO RIÊNG THEO BIỂU ĐỒ", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("CẢNH BÁO RIÊNG THEO BIỂU ĐỒ · ${timeframe.uppercase()}", color = Color.White, fontWeight = FontWeight.Bold)
                     Text("Mỗi mục có công tắc độc lập; chỉ phát cảnh báo sau khi nến của khung đang theo dõi đóng và có chống lặp.", color = NMuted, style = MaterialTheme.typography.bodySmall)
-                    PreferenceSwitch("MFI & %B · Combined chạm ngưỡng", mfiBAlerts, { mfiBAlerts = it; prefs.edit().putBoolean("chart_alert_mfib_enabled", it).apply() })
+                    PreferenceSwitch("MFI & %B · Combined chạm ngưỡng", mfiBAlerts, { mfiBAlerts = it; prefs.edit().putBoolean(chartAlertPrefKey(timeframe, "mfib_enabled"), it).apply() })
                     Text("Ngưỡng cao: ${"%.2f".format(Locale.US, mfiBUpper)}", color = Color.White)
-                    Slider(value = mfiBUpper, onValueChange = { mfiBUpper = it }, valueRange = 0.5f..1.5f, steps = 19, onValueChangeFinished = { prefs.edit().putFloat("chart_alert_mfib_upper", mfiBUpper).apply() })
+                    Slider(value = mfiBUpper, onValueChange = { mfiBUpper = it }, valueRange = 0.5f..1.5f, steps = 19, onValueChangeFinished = { prefs.edit().putFloat(chartAlertPrefKey(timeframe, "mfib_upper"), mfiBUpper).apply() })
                     Text("Ngưỡng thấp: ${"%.2f".format(Locale.US, mfiBLower)}", color = Color.White)
-                    Slider(value = mfiBLower, onValueChange = { mfiBLower = it }, valueRange = -0.5f..0.5f, steps = 19, onValueChangeFinished = { prefs.edit().putFloat("chart_alert_mfib_lower", mfiBLower).apply() })
+                    Slider(value = mfiBLower, onValueChange = { mfiBLower = it }, valueRange = -0.5f..0.5f, steps = 19, onValueChangeFinished = { prefs.edit().putFloat(chartAlertPrefKey(timeframe, "mfib_lower"), mfiBLower).apply() })
                     if (mfiBLower >= mfiBUpper) Text("Ngưỡng thấp phải nhỏ hơn ngưỡng cao.", color = NRed, style = MaterialTheme.typography.bodySmall)
-                    PreferenceSwitch("DMI & ADX · ADX vượt ngưỡng", adxChartAlerts, { adxChartAlerts = it; prefs.edit().putBoolean("chart_alert_adx_enabled", it).apply() })
+                    PreferenceSwitch("DMI & ADX · ADX vượt ngưỡng", adxChartAlerts, { adxChartAlerts = it; prefs.edit().putBoolean(chartAlertPrefKey(timeframe, "adx_enabled"), it).apply() })
                     Text("Ngưỡng ADX: ${adxChartThreshold.toInt()}", color = Color.White)
-                    Slider(value = adxChartThreshold, onValueChange = { adxChartThreshold = it }, valueRange = 10f..50f, steps = 39, onValueChangeFinished = { prefs.edit().putFloat("chart_alert_adx_threshold", adxChartThreshold).apply() })
-                    PreferenceSwitch("Bollinger Bands · Giá vượt dải", bollingerChartAlerts, { bollingerChartAlerts = it; prefs.edit().putBoolean("chart_alert_bollinger_enabled", it).apply() })
+                    Slider(value = adxChartThreshold, onValueChange = { adxChartThreshold = it }, valueRange = 10f..50f, steps = 39, onValueChangeFinished = { prefs.edit().putFloat(chartAlertPrefKey(timeframe, "adx_threshold"), adxChartThreshold).apply() })
+                    PreferenceSwitch("Bollinger Bands · Giá vượt dải", bollingerChartAlerts, { bollingerChartAlerts = it; prefs.edit().putBoolean(chartAlertPrefKey(timeframe, "bollinger_enabled"), it).apply() })
                     Text("Báo khi %B cắt lên 1 (dải trên) hoặc cắt xuống 0 (dải dưới).", color = NMuted, style = MaterialTheme.typography.bodySmall)
-                    PreferenceSwitch("Xu hướng H1 · Đổi TĂNG/GIẢM", h1TrendChartAlerts, { h1TrendChartAlerts = it; prefs.edit().putBoolean("chart_alert_h1_enabled", it).apply() })
+                    PreferenceSwitch("Xu hướng H1 · Đổi TĂNG/GIẢM", h1TrendChartAlerts, { h1TrendChartAlerts = it; prefs.edit().putBoolean(chartAlertPrefKey(timeframe, "h1_enabled"), it).apply() })
                     Text("Chỉ kiểm tra khi nến H1 đóng; dùng +DI/−DI để xác định hướng.", color = NMuted, style = MaterialTheme.typography.bodySmall)
                     Text("Chỉ thông báo khi RSI(14) cắt qua ngưỡng trên/dưới ở nến M15 đã đóng. Không thay đổi tín hiệu chiến lược.", color = NMuted, style = MaterialTheme.typography.bodySmall)
                     Text("Ngưỡng cao: ${rsiM15High.toInt()}", color = Color.White)
