@@ -857,7 +857,6 @@ fun CompleteDashboard(context: Context) {
                         candles = chart, markPrice = price, visibleCount = chartVisibleCount, panBars = chartPanBars, events = state.recentEvents,
                         h1TrendMarks = if (timeframe == "15m" && showH1Trend) h1TrendMarks else emptyList(),
                         showBollinger = showBollinger,
-                        showVolumeProfile = showVolumeProfile,
                         onVisibleCountChange = { chartVisibleCount = it },
                         onPanBarsChange = { chartPanBars = it },
                         modifier = Modifier.fillMaxWidth().weight(if ((showRsi || showMfiB) && showAdx) 0.48f else if (showRsi || showMfiB || showAdx) 0.62f else 0.76f)
