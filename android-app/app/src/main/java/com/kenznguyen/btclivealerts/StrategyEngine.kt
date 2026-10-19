@@ -228,11 +228,11 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
             val rsi = mi[i].rsi
             val adx = mi[i].adx
 
-            // Warm-up candles before RSI exists cannot produce a strategy event.
-            // Advance through these only when no existing position needs exit checks.
-            if (prevRsi == null || rsi == null) {
-                if (state.position == null) state = state.copy(lastProcessedOpenTime = c.openTime)
-                else break
+            val hasRsi = prevRsi != null && rsi != null
+            // Warm-up candles cannot create RSI-dependent entries or exits, but price-based
+            // emergency stops must still be evaluated for an already-open position.
+            if (!hasRsi && state.position == null) {
+                state = state.copy(lastProcessedOpenTime = c.openTime)
                 continue
             }
 
@@ -243,8 +243,8 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
             val hm = if (hasPriorClosedHour) hi.getOrNull(hidx)?.minusDi else null
             val ha = if (hasPriorClosedHour) hi.getOrNull(hidx)?.adx else null
             val hasHourIndicators = hp != null && hm != null && ha != null
-            val goLong = hasHourIndicators && adx != null && longEntrySignal(prevRsi, rsi, hp!!, hm!!, ha!!)
-            val goShort = hasHourIndicators && adx != null && shortEntrySignal(prevRsi, rsi, hp!!, hm!!, ha!!)
+            val goLong = hasRsi && hasHourIndicators && adx != null && longEntrySignal(prevRsi!!, rsi!!, hp!!, hm!!, ha!!)
+            val goShort = hasRsi && hasHourIndicators && adx != null && shortEntrySignal(prevRsi!!, rsi!!, hp!!, hm!!, ha!!)
             val pos = state.position
             var exited = false
             if (pos != null) {
@@ -257,7 +257,7 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
                     pos.side, c.low, c.high, c.open, c.close, prev.open, prev.close,
                     hp!!, hm!!, ha!!, pos.avgEntry
                 )
-                val tp = takeProfitSignal(pos.side, rsi, roe)
+                val tp = rsi != null && takeProfitSignal(pos.side, rsi, roe)
                 val reason = when { emergency -> "EMERGENCY SL"; soft -> "SOFT SL"; tp -> "TAKE PROFIT"; else -> null }
                 if (reason != null) {
                     val exit = when (reason) {
@@ -290,7 +290,7 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
                 val p = state.position!!
                 if (!p.dcaUsed) {
                     val currentRoe = roeFor(p.side, p.avgEntry, c.close)
-                    val condition = adx != null && dcaSignal(p.side, currentRoe, adx, rsi, prevRsi)
+                    val condition = adx != null && rsi != null && prevRsi != null && dcaSignal(p.side, currentRoe, adx, rsi, prevRsi)
                     if (condition) {
                         val addMargin = p.initialMargin * config.dcaMarginRatio
                         val available = max(0.0, state.balance - p.reservedMargin)
