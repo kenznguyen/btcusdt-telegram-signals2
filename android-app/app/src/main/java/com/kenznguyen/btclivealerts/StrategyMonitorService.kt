@@ -2,6 +2,7 @@ package com.kenznguyen.btclivealerts
 
 import android.app.Notification
 import android.app.NotificationChannel
+import android.app.PendingIntent
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
@@ -211,6 +212,30 @@ class StrategyMonitorService : Service() {
             .putString("monitor_last_error", "Android đã dừng dịch vụ dataSync do giới hạn thời gian; mở lại ứng dụng để tiếp tục theo dõi.")
             .apply()
         monitorJob?.cancel()
+
+        // Keep the timeout visible after the foreground service stops. Tapping this
+        // notification opens the app, whose Activity starts the monitor again.
+        val restartIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this, 1002, restartIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val warning = NotificationCompat.Builder(this, "monitor_status")
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle("Theo dõi BTCUSDT đã tạm dừng")
+            .setContentText("Android giới hạn thời gian chạy nền. Mở ứng dụng để khởi động lại.")
+            .setStyle(NotificationCompat.BigTextStyle().bigText(
+                "Android đã dừng dịch vụ theo dõi do giới hạn thời gian chạy nền. Chạm để mở ứng dụng và khởi động lại theo dõi."
+            ))
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setOngoing(false)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        try { manager.notify(1002, warning) } catch (_: SecurityException) { }
         stopSelf(startId)
     }
 
