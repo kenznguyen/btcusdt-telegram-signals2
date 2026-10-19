@@ -29,6 +29,9 @@ data class Indicators(val rsi: Double?, val adx: Double?, val plusDi: Double?, v
 class MarketEngine {
     private val client = OkHttpClient.Builder()
         .callTimeout(12, TimeUnit.SECONDS)
+        // WebSocket pings detect half-open connections even when no close/failure
+        // callback arrives from the network stack.
+        .pingInterval(20, TimeUnit.SECONDS)
         .build()
 
     suspend fun fetchCandles(interval: String, limit: Int = 200): List<Candle> =
