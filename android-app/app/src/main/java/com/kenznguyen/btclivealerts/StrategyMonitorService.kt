@@ -145,7 +145,6 @@ class StrategyMonitorService : Service() {
             if (candle.openTime <= cursor) continue
             val prefix = closed.takeWhile { it.openTime <= candle.openTime }
             maybeNotifyChartAlerts(this, prefs, engine, prefix, candle, timeframe)
-            if (timeframe == "15m") maybeNotifyRsiM15(this, prefs, engine, prefix, candle)
             prefs.edit().putLong(cursorKey, candle.openTime).apply()
             cursor = candle.openTime
         }
