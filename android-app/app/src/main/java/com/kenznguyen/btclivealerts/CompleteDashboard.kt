@@ -125,19 +125,50 @@ internal fun maybeNotifyRsiM15(
         }
     }
     if (!shouldNotify) return
-    val manager = NotificationManagerCompat.from(context)
-    if (!manager.areNotificationsEnabled()) return
-    try {
-        val notificationId = ("RSI_M15:$condition").hashCode() and 0x7fffffff
-        manager.notify(notificationId,
-            NotificationCompat.Builder(context, "strategy_alerts")
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentTitle(title).setContentText(body)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-                .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build())
-    } catch (_: SecurityException) { }
+    deliverChartNotification(context, prefs, "RSI_M15:$condition", title, body)
 }
 
+
+private fun isChartAlertQuietHours(prefs: SharedPreferences): Boolean {
+    if (!prefs.getBoolean("quiet_hours_enabled", false)) return false
+    val start = prefs.getInt("quiet_start_hour", 23)
+    val end = prefs.getInt("quiet_end_hour", 7)
+    val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+    return if (start == end) true else if (start < end) hour >= start && hour < end else hour >= start || hour < end
+}
+
+/** Applies quiet-hours, catch-up, sound and vibration preferences to chart alerts. */
+private fun deliverChartNotification(
+    context: Context,
+    prefs: SharedPreferences,
+    key: String,
+    title: String,
+    body: String
+) {
+    if (isChartAlertQuietHours(prefs)) {
+        if (prefs.getBoolean("alert_catch_up_after_quiet", true)) {
+            synchronized(prefs) {
+                val queue = prefs.getStringSet("quiet_alert_queue", emptySet())?.toMutableSet() ?: mutableSetOf()
+                queue.add("$key|$title|$body")
+                prefs.edit().putStringSet("quiet_alert_queue", queue).apply()
+            }
+        }
+        return
+    }
+    val manager = NotificationManagerCompat.from(context)
+    if (!manager.areNotificationsEnabled()) return
+    val builder = NotificationCompat.Builder(context, "strategy_alerts")
+        .setSmallIcon(android.R.drawable.ic_dialog_info)
+        .setContentTitle(title).setContentText(body)
+        .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+        .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true)
+    if (prefs.getBoolean("alert_vibration", true)) builder.setVibrate(longArrayOf(0, 250, 120, 250))
+    else builder.setVibrate(longArrayOf(0))
+    if (!prefs.getBoolean("alert_sound", true)) builder.setSilent(true)
+    try {
+        manager.notify(key.hashCode() and 0x7fffffff, builder.build())
+    } catch (_: SecurityException) { }
+}
 
 private fun notifyChartAlert(
     context: Context,
@@ -191,18 +222,9 @@ internal fun maybeNotifyChartAlerts(
                 }
             }
             if (shouldNotify) {
-                val manager = NotificationManagerCompat.from(context)
-                if (manager.areNotificationsEnabled()) {
-                    try {
-                        // Distinct stable ID per timeframe and condition prevents cross-chart overwrites.
-                        val notificationId = ("chart:$timeframe:$condition").hashCode() and 0x7fffffff
-                        manager.notify(notificationId, NotificationCompat.Builder(context, "strategy_alerts")
-                            .setSmallIcon(android.R.drawable.ic_dialog_info)
-                            .setContentTitle(title).setContentText("$value · ${timeframe.uppercase()} · $time")
-                            .setStyle(NotificationCompat.BigTextStyle().bigText("BTCUSDT PERPETUAL\n$value\nKhung thời gian: ${timeframe.uppercase()}\nGiá đóng nến: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT\nThời điểm nến đóng: $time"))
-                            .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build())
-                    } catch (_: SecurityException) { }
-                }
+                val notificationBody = "BTCUSDT PERPETUAL\n$value\nKhung thời gian: ${timeframe.uppercase()}\nGiá đóng nến: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT\nThời điểm nến đóng: $time"
+                // Stable timeframe + condition key avoids cross-chart notification overwrites.
+                deliverChartNotification(context, prefs, "chart:$timeframe:$condition", title, notificationBody)
             }
         }
     }
