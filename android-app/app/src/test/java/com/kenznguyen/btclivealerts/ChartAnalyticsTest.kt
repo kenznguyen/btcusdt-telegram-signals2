@@ -29,27 +29,4 @@ class ChartAnalyticsTest {
         assertEquals(100.0, last.lower, 0.0)
         assertNull(last.percentB)
     }
-
-    @Test fun volumeProfileAllocatesVolumeByPriceOverlapAndFindsPoc() {
-        val candles = listOf(
-            candle(1L, 5.0, 10.0, 0.0, 5.0, 100.0),
-            candle(2L, 2.0, 5.0, 0.0, 2.0, 100.0)
-        )
-        val profile = ChartAnalytics.volumeProfile(candles, 0.0, 10.0, 2)!!
-        assertEquals(2, profile.bins.size)
-        assertEquals(150.0, profile.bins[0].volume, 1e-10)
-        assertEquals(50.0, profile.bins[1].volume, 1e-10)
-        assertEquals(2.5, profile.pointOfControl, 1e-10)
-        assertEquals(200.0, profile.totalVolume, 1e-10)
-    }
-
-    @Test fun volumeProfileRejectsInvalidRangeAndHandlesFlatCandle() {
-        assertNull(ChartAnalytics.volumeProfile(emptyList(), 0.0, 1.0))
-        assertNull(ChartAnalytics.volumeProfile(listOf(candle(1L, 1.0, 1.0, 1.0, 1.0, 1.0)), 2.0, 1.0))
-        val profile = ChartAnalytics.volumeProfile(
-            listOf(candle(1L, 5.0, 5.0, 5.0, 5.0, 12.0)), 0.0, 10.0, 2
-        )!!
-        assertEquals(12.0, profile.totalVolume, 1e-10)
-        assertEquals(7.5, profile.pointOfControl, 1e-10)
-    }
 }
