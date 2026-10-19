@@ -93,45 +93,6 @@ private fun mergeCandle(cache: java.util.TreeMap<Long, Candle>, candle: Candle) 
     cache[candle.openTime] = candle
 }
 
-internal fun maybeNotifyRsiM15(
-    context: Context,
-    prefs: SharedPreferences,
-    engine: StrategyEngine,
-    candles: List<Candle>,
-    closedCandle: Candle
-) {
-    if (!closedCandle.closed || !prefs.getBoolean("alerts_enabled", true) ||
-        !prefs.getBoolean("alert_rsi_m15_enabled", false)) return
-    val closedPoints = engine.indicatorSeries(candles.filter { it.closed }.sortedBy { it.openTime })
-    val latestRsi = closedPoints.lastOrNull()?.rsi ?: return
-    val previousRsi = closedPoints.getOrNull(closedPoints.lastIndex - 1)?.rsi ?: return
-    val high = prefs.getInt("alert_rsi_m15_high", 70).toDouble().coerceIn(1.0, 99.0)
-    val low = prefs.getInt("alert_rsi_m15_low", 30).toDouble().coerceIn(1.0, 99.0)
-    val condition = if (low < high) when {
-        previousRsi < high && latestRsi >= high -> "HIGH"
-        previousRsi > low && latestRsi <= low -> "LOW"
-        else -> null
-    } else null
-    if (condition == null) return
-    val eventKey = "${closedCandle.openTime}:$condition"
-    val now = SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date())
-    val threshold = if (condition == "HIGH") high.toInt() else low.toInt()
-    val title = if (condition == "HIGH") "BTCUSDT · RSI M15 vượt ngưỡng cao" else "BTCUSDT · RSI M15 xuống ngưỡng thấp"
-    val body = "Khung M15 · RSI(14): ${"%.1f".format(Locale.US, latestRsi)} · ngưỡng: $threshold · giá đóng: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT · nến đóng: $now"
-    // Atomically reserve the event across the UI socket and background monitor.
-    val shouldNotify = synchronized(prefs) {
-        if (prefs.getString("alert_rsi_m15_last_event", null) == eventKey) false
-        else {
-            saveAlertHistory(prefs, title, body, "RSI M15")
-            prefs.edit().putString("alert_rsi_m15_last_event", eventKey).apply()
-            true
-        }
-    }
-    if (!shouldNotify) return
-    deliverChartNotification(context, prefs, "RSI_M15:$eventKey", title, body)
-}
-
-
 private fun isChartAlertQuietHours(prefs: SharedPreferences): Boolean {
     if (!prefs.getBoolean("quiet_hours_enabled", false)) return false
     val start = prefs.getInt("quiet_start_hour", 23)
@@ -300,14 +261,12 @@ private fun AlertHistoryDialog(entries: List<SavedAlert>, onDismiss: () -> Unit,
     }
     val todayCount = entries.count { it.timestamp >= startOfToday }
     val chartCount = entries.count { it.source.contains("Biểu đồ", ignoreCase = true) }
-    val rsiCount = entries.count { it.source.contains("RSI", ignoreCase = true) }
-    val strategyCount = entries.size - chartCount - rsiCount
+    val strategyCount = entries.size - chartCount
     var historyFilter by remember { mutableStateOf("ALL") }
     val filteredEntries = remember(entries, historyFilter) {
         when (historyFilter) {
             "CHART" -> entries.filter { it.source.contains("Biểu đồ", ignoreCase = true) }
-            "RSI" -> entries.filter { it.source.contains("RSI", ignoreCase = true) }
-            "STRATEGY" -> entries.filter { !it.source.contains("Biểu đồ", ignoreCase = true) && !it.source.contains("RSI", ignoreCase = true) }
+            "STRATEGY" -> entries.filter { !it.source.contains("Biểu đồ", ignoreCase = true) }
             else -> entries
         }
     }
@@ -335,17 +294,13 @@ private fun AlertHistoryDialog(entries: List<SavedAlert>, onDismiss: () -> Unit,
                         Text("$chartCount", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                     Column(Modifier.weight(1f).background(NBg, RoundedCornerShape(8.dp)).padding(10.dp)) {
-                        Text("RSI M15", color = NMuted, style = MaterialTheme.typography.labelSmall)
-                        Text("$rsiCount", color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                    Column(Modifier.weight(1f).background(NBg, RoundedCornerShape(8.dp)).padding(10.dp)) {
                         Text("Chiến lược", color = NMuted, style = MaterialTheme.typography.labelSmall)
                         Text("$strategyCount", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf("ALL" to "Tất cả", "CHART" to "Biểu đồ", "RSI" to "RSI M15", "STRATEGY" to "Chiến lược").forEach { (key, label) ->
+                    listOf("ALL" to "Tất cả", "CHART" to "Biểu đồ", "STRATEGY" to "Chiến lược").forEach { (key, label) ->
                         TextButton(onClick = { historyFilter = key }, modifier = Modifier.weight(1f)) {
                             Text(label, color = if (historyFilter == key) Color(0xFF4FC3F7) else NMuted, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                         }
@@ -393,9 +348,6 @@ fun CompleteDashboard(context: Context) {
     var tpAlerts by remember { mutableStateOf(prefs.getBoolean("alert_take_profit", true)) }
     var softSlAlerts by remember { mutableStateOf(prefs.getBoolean("alert_soft_sl", true)) }
     var emergencySlAlerts by remember { mutableStateOf(prefs.getBoolean("alert_emergency_sl", true)) }
-    var rsiM15Alerts by remember { mutableStateOf(prefs.getBoolean("alert_rsi_m15_enabled", false)) }
-    var rsiM15High by remember { mutableFloatStateOf(prefs.getInt("alert_rsi_m15_high", 70).toFloat()) }
-    var rsiM15Low by remember { mutableFloatStateOf(prefs.getInt("alert_rsi_m15_low", 30).toFloat()) }
     var mfiBAlerts by remember { mutableStateOf(prefs.getBoolean(chartAlertPrefKey(timeframe, "mfib_enabled"), prefs.getBoolean("chart_alert_mfib_enabled", false))) }
     var mfiBUpper by remember { mutableFloatStateOf(prefs.getFloat(chartAlertPrefKey(timeframe, "mfib_upper"), prefs.getFloat("chart_alert_mfib_upper", 0.8f))) }
     var mfiBLower by remember { mutableFloatStateOf(prefs.getFloat(chartAlertPrefKey(timeframe, "mfib_lower"), prefs.getFloat("chart_alert_mfib_lower", 0.2f))) }
@@ -429,7 +381,6 @@ fun CompleteDashboard(context: Context) {
     var showDi by remember { mutableStateOf(prefs.getBoolean("chart_show_di", true)) }
     var showH1Trend by remember { mutableStateOf(prefs.getBoolean("chart_show_h1", true)) }
     var showBollinger by remember { mutableStateOf(prefs.getBoolean("chart_show_bollinger", true)) }
-    var showVolumeProfile by remember { mutableStateOf(prefs.getBoolean("chart_show_volume_profile", true)) }
     var chartSettingsExpanded by remember { mutableStateOf(false) }
     var chartFullscreen by remember { mutableStateOf(false) }
     var socketStatus by remember { mutableStateOf("Đang đồng bộ REST…") }
@@ -483,7 +434,6 @@ fun CompleteDashboard(context: Context) {
                         chartIndicators = engine.indicatorSeries(liveCandles)
                         if (candle.closed) {
                             maybeNotifyChartAlerts(context, prefs, engine, liveCandles, candle, timeframe)
-                            if (timeframe == "15m") maybeNotifyRsiM15(context, prefs, engine, liveCandles, candle)
                         }
                         // Keep strategy/status cards based on confirmed candles; the plot may preview the forming candle.
                         val latestClosed = engine.indicatorSeries(liveCandles.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
@@ -535,7 +485,6 @@ fun CompleteDashboard(context: Context) {
                                 chartIndicators = engine.indicatorSeries(liveCandles)
                                 if (c.closed) {
                                     maybeNotifyChartAlerts(context, prefs, engine, liveCandles, c, timeframe)
-                                    if (timeframe == "15m") maybeNotifyRsiM15(context, prefs, engine, liveCandles, c)
                                 }
                                 val closed = engine.indicatorSeries(liveCandles.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
                                 if (timeframe == "15m") m15Ind = closed else h1Ind = closed
@@ -590,70 +539,6 @@ fun CompleteDashboard(context: Context) {
         } finally {
             socket?.close(1000, "timeframe changed")
         }
-    }
-
-    // M15 RSI monitor is independent of chart timeframe. When chart is M15, its single socket is reused;
-    // when chart is H1, this effect owns the only M15 socket.
-    LaunchedEffect(timeframe) {
-        if (timeframe != "1h") return@LaunchedEffect
-        val handler = Handler(Looper.getMainLooper())
-        val cache = java.util.TreeMap<Long, Candle>()
-        var socket: WebSocket? = null
-        var connected = AtomicBoolean(false)
-        var reconnect = AtomicBoolean(false)
-        var startedAt = System.currentTimeMillis()
-        var retryMs = 1_000L
-        var lastClosedOpen = 0L
-        try {
-            val initial = market.fetchCandles("15m", 1500)
-            initial.forEach { mergeCandle(cache, it) }
-            lastClosedOpen = cache.values.filter { it.closed }.maxOfOrNull { it.openTime } ?: 0L
-            while (currentCoroutineContext().isActive) {
-                if (connected.get()) retryMs = 1_000L
-                if (socket == null || reconnect.get() || (!connected.get() && System.currentTimeMillis() - startedAt > 15_000L)) {
-                    val hadSocket = socket != null
-                    socket?.close(1001, "M15 monitor reconnect")
-                    if (hadSocket) {
-                        retryMs = (retryMs * 2).coerceAtMost(30_000L)
-                        delay(retryMs)
-                    }
-                    try {
-                        val snapshot = market.fetchCandles("15m", 1500)
-                        snapshot.forEach { mergeCandle(cache, it) }
-                        while (cache.size > 1500) cache.pollFirstEntry()
-                        val newest = cache.values.filter { it.closed }.maxByOrNull { it.openTime }
-                        if (newest != null && newest.openTime > lastClosedOpen) {
-                            maybeNotifyRsiM15(context, prefs, engine, cache.values.toList(), newest)
-                            lastClosedOpen = newest.openTime
-                        }
-                        connected.set(false)
-                        reconnect.set(false)
-                        startedAt = System.currentTimeMillis()
-                        socket = market.connectLive("15m",
-                            onCandle = { candle -> handler.post {
-                                mergeCandle(cache, candle)
-                                while (cache.size > 1500) cache.pollFirstEntry()
-                                if (candle.closed && candle.openTime > lastClosedOpen) {
-                                    maybeNotifyRsiM15(context, prefs, engine, cache.values.toList(), candle)
-                                    lastClosedOpen = candle.openTime
-                                }
-                            } },
-                            onMarkPrice = { },
-                            onStatus = { message ->
-                                if (message.contains("kết nối", true)) connected.set(true)
-                                if (message.contains("gián đoạn", true) || message.contains("đã đóng", true)) {
-                                    connected.set(false); reconnect.set(true)
-                                }
-                                handler.post { if (timeframe == "1h") socketStatus = "RSI M15 · $message" }
-                            })
-                    } catch (e: CancellationException) { throw e }
-                    catch (_: Exception) { retryMs = (retryMs * 2).coerceAtMost(30_000L) }
-                }
-                delay(1_000)
-            }
-        } catch (e: CancellationException) { throw e }
-        catch (_: Exception) { if (timeframe == "1h") socketStatus = "Giám sát RSI M15 cần đồng bộ lại" }
-        finally { socket?.close(1000, "M15 monitor stopped") }
     }
 
     val shown = if (timeframe == "15m") m15Ind else h1Ind
@@ -718,7 +603,6 @@ fun CompleteDashboard(context: Context) {
                         candles = chart, markPrice = price, visibleCount = chartVisibleCount, panBars = chartPanBars, events = state.recentEvents,
                         h1TrendMarks = if (timeframe == "15m" && showH1Trend) h1TrendMarks else emptyList(),
                         showBollinger = showBollinger,
-                        showVolumeProfile = showVolumeProfile,
                         onVisibleCountChange = { chartVisibleCount = it },
                         onPanBarsChange = { chartPanBars = it },
                         modifier = Modifier.fillMaxWidth().height(260.dp)
@@ -775,7 +659,6 @@ fun CompleteDashboard(context: Context) {
                             PreferenceSwitch("+DI / −DI", showDi, { showDi = it; prefs.edit().putBoolean("chart_show_di", it).apply() })
                             PreferenceSwitch("Xu hướng H1", showH1Trend, { showH1Trend = it; prefs.edit().putBoolean("chart_show_h1", it).apply() })
                             PreferenceSwitch("Bollinger Bands (20, 2)", showBollinger, { showBollinger = it; prefs.edit().putBoolean("chart_show_bollinger", it).apply() })
-                            PreferenceSwitch("Volume Profile (ước tính OHLCV)", showVolumeProfile, { showVolumeProfile = it; prefs.edit().putBoolean("chart_show_volume_profile", it).apply() })
                         }
                     }
                 }
@@ -832,8 +715,6 @@ fun CompleteDashboard(context: Context) {
                     PreferenceSwitch("Soft Stop Loss", softSlAlerts, { softSlAlerts = it; prefs.edit().putBoolean("alert_soft_sl", it).apply() })
                     PreferenceSwitch("Emergency Stop Loss", emergencySlAlerts, { emergencySlAlerts = it; prefs.edit().putBoolean("alert_emergency_sl", it).apply() })
                     Divider(color = Color(0xFF263243))
-                    PreferenceSwitch("Cảnh báo RSI M15", rsiM15Alerts, { rsiM15Alerts = it; prefs.edit().putBoolean("alert_rsi_m15_enabled", it).apply() })
-                    Divider(color = Color(0xFF263243))
                     Text("CẢNH BÁO RIÊNG THEO BIỂU ĐỒ · ${timeframe.uppercase()}", color = Color.White, fontWeight = FontWeight.Bold)
                     Text("Mỗi mục có công tắc độc lập; chỉ phát cảnh báo sau khi nến của khung đang theo dõi đóng và có chống lặp.", color = NMuted, style = MaterialTheme.typography.bodySmall)
                     PreferenceSwitch("MFI & %B · Combined chạm ngưỡng", mfiBAlerts, { mfiBAlerts = it; prefs.edit().putBoolean(chartAlertPrefKey(timeframe, "mfib_enabled"), it).apply() })
@@ -849,12 +730,6 @@ fun CompleteDashboard(context: Context) {
                     Text("Báo khi %B cắt lên 1 (dải trên) hoặc cắt xuống 0 (dải dưới).", color = NMuted, style = MaterialTheme.typography.bodySmall)
                     PreferenceSwitch("Xu hướng H1 · Đổi TĂNG/GIẢM", h1TrendChartAlerts, { h1TrendChartAlerts = it; prefs.edit().putBoolean(chartAlertPrefKey(timeframe, "h1_enabled"), it).apply() })
                     Text("Chỉ kiểm tra khi nến H1 đóng; dùng +DI/−DI để xác định hướng.", color = NMuted, style = MaterialTheme.typography.bodySmall)
-                    Text("Chỉ thông báo khi RSI(14) cắt qua ngưỡng trên/dưới ở nến M15 đã đóng. Không thay đổi tín hiệu chiến lược.", color = NMuted, style = MaterialTheme.typography.bodySmall)
-                    Text("Ngưỡng cao: ${rsiM15High.toInt()}", color = Color.White)
-                    Slider(value = rsiM15High, onValueChange = { rsiM15High = it }, valueRange = 50f..95f, steps = 44, onValueChangeFinished = { prefs.edit().putInt("alert_rsi_m15_high", rsiM15High.toInt()).apply() })
-                    Text("Ngưỡng thấp: ${rsiM15Low.toInt()}", color = Color.White)
-                    Slider(value = rsiM15Low, onValueChange = { rsiM15Low = it }, valueRange = 5f..50f, steps = 44, onValueChangeFinished = { prefs.edit().putInt("alert_rsi_m15_low", rsiM15Low.toInt()).apply() })
-                    if (rsiM15Low >= rsiM15High) Text("Lưu ý: ngưỡng thấp nên nhỏ hơn ngưỡng cao.", color = NRed, style = MaterialTheme.typography.bodySmall)
                     PreferenceSwitch("Rung / rung nhắc", vibration, { vibration = it; prefs.edit().putBoolean("alert_vibration", it).apply() })
                     PreferenceSwitch("Âm thanh", sound, { sound = it; prefs.edit().putBoolean("alert_sound", it).apply() })
                     PreferenceSwitch("Giờ yên lặng", quietHours, { quietHours = it; prefs.edit().putBoolean("quiet_hours_enabled", it).apply() })
@@ -1188,7 +1063,6 @@ private fun LiveCandles(
     events: List<StrategyEvent>,
     h1TrendMarks: List<H1TrendMark> = emptyList(),
     showBollinger: Boolean = true,
-    showVolumeProfile: Boolean = true,
     onVisibleCountChange: (Int) -> Unit, onPanBarsChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1260,22 +1134,6 @@ private fun LiveCandles(
                 (gy + 3.5f * density).coerceIn(10f * density, size.height - 2f * density), axisPaint)
         }
         val step = plotWidth / data.size
-        if (showVolumeProfile) {
-            // Estimated OHLCV profile: volume is allocated by price-range overlap, not trade-level prints.
-            val profile = ChartAnalytics.volumeProfile(data, low, high, binCount = 24)
-            val maxVolume = profile?.bins?.maxOfOrNull { it.volume }?.takeIf { it > 0.0 } ?: 1.0
-            val profileMaxWidth = minOf(plotWidth * 0.22f, 72.dp.toPx())
-            val profilePaint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply { color = 0x553FA9F5 }
-            profile?.bins?.forEach { bin ->
-                val barWidth = (bin.volume / maxVolume).toFloat() * profileMaxWidth
-                val top = y(bin.upperPrice)
-                val bottom = y(bin.lowerPrice)
-                drawContext.canvas.nativeCanvas.drawRect(plotWidth - barWidth, top, plotWidth, bottom, profilePaint)
-            }
-            profile?.let {
-                drawLine(Color(0xFF4FC3F7), Offset(plotWidth * 0.72f, y(it.pointOfControl)), Offset(plotWidth, y(it.pointOfControl)), strokeWidth = 1.5f)
-            }
-        }
         // H1 direction ribbon mapped onto M15 candle timestamps; marks use closed H1 candles only.
         if (h1TrendMarks.isNotEmpty()) {
             val trendPaint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
