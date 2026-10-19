@@ -284,6 +284,18 @@ internal fun maybeNotifyChartAlerts(
 
 @Composable
 private fun AlertHistoryDialog(entries: List<SavedAlert>, onDismiss: () -> Unit, onClear: () -> Unit) {
+    val startOfToday = remember(entries) {
+        java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }.timeInMillis
+    }
+    val todayCount = entries.count { it.timestamp >= startOfToday }
+    val chartCount = entries.count { it.source.contains("Biểu đồ", ignoreCase = true) }
+    val rsiCount = entries.count { it.source.contains("RSI", ignoreCase = true) }
+    val strategyCount = entries.size - chartCount - rsiCount
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(
             modifier = Modifier.fillMaxWidth(0.94f).fillMaxHeight(0.82f),
@@ -298,6 +310,24 @@ private fun AlertHistoryDialog(entries: List<SavedAlert>, onDismiss: () -> Unit,
                     TextButton(onClick = onDismiss) { Text("Đóng") }
                 }
                 Text("Lưu trên thiết bị · tối đa 100 thông báo gần nhất", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.weight(1f).background(NBg, RoundedCornerShape(8.dp)).padding(10.dp)) {
+                        Text("Hôm nay", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                        Text("$todayCount", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                    Column(Modifier.weight(1f).background(NBg, RoundedCornerShape(8.dp)).padding(10.dp)) {
+                        Text("Biểu đồ", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                        Text("$chartCount", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                    Column(Modifier.weight(1f).background(NBg, RoundedCornerShape(8.dp)).padding(10.dp)) {
+                        Text("RSI M15", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                        Text("$rsiCount", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                    Column(Modifier.weight(1f).background(NBg, RoundedCornerShape(8.dp)).padding(10.dp)) {
+                        Text("Chiến lược", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                        Text("$strategyCount", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
                 Spacer(Modifier.height(10.dp))
                 if (entries.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
