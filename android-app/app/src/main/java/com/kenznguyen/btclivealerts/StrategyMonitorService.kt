@@ -199,6 +199,21 @@ class StrategyMonitorService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    /**
+     * Android 15 limits dataSync foreground services to six hours per 24-hour period.
+     * Stop cleanly when the OS calls this callback; otherwise Android can crash the process.
+     * The UI can restart monitoring when the user returns to the app.
+     */
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        val prefs = getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putLong("monitor_timeout_ms", System.currentTimeMillis())
+            .putString("monitor_last_error", "Android đã dừng dịch vụ dataSync do giới hạn thời gian; mở lại ứng dụng để tiếp tục theo dõi.")
+            .apply()
+        monitorJob?.cancel()
+        stopSelf(startId)
+    }
+
     override fun onDestroy() {
         monitorJob?.cancel()
         scope.cancel()
