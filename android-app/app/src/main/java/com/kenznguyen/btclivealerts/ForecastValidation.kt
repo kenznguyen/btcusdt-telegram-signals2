@@ -33,7 +33,7 @@ class ForecastWalkForwardValidator(
 
     fun evaluate(candles: List<Candle>): ForecastValidationReport {
         val data = candles.filter { it.closed }.distinctBy { it.openTime }.sortedBy { it.openTime }
-        if (data.size < minimumTrainingSamples + horizonMinutes + 2) {
+        if (data.size < minimumTrainingSamples + 2 * horizonMinutes + 1) {
             return ForecastValidationReport(0, null, null, null, null)
         }
         // Reject gaps globally rather than silently producing misleading validation.
