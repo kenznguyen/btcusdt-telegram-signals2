@@ -20,6 +20,7 @@ class ForecastEngineTest {
         assertTrue(result.lowerPrice <= result.medianPrice)
         assertTrue(result.medianPrice <= result.upperPrice)
         assertEquals("NOT_VALIDATED", result.validationStatus)
+        assertEquals(input.last().openTime + 6 * 60_000L, result.targetAtMs)
     }
 
     @Test fun insufficientHistoryReturnsNull() {
