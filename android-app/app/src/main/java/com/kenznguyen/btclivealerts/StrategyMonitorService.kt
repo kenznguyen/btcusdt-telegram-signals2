@@ -60,54 +60,82 @@ class StrategyMonitorService : Service() {
                         val result = engine.processClosedCandles(m15, h1, state)
                         state = result.first
                         val lastClosedOpen = closed.lastOrNull()?.openTime ?: 0L
-                        // Do not advance the durable strategy cursor until its emitted events
-                        // have been persisted/queued. This avoids losing signals on process death.
-                        prefs.edit()
+                        val pendingKey = "pending_strategy_events_json"
+                        val pending = runCatching {
+                            JSONArray(prefs.getString(pendingKey, "[]"))
+                        }.getOrElse {
+                            throw IllegalStateException("Hàng đợi cảnh báo bị lỗi; giữ nguyên trạng thái để tránh mất sự kiện.", it)
+                        }
+                        val queuedKeys = (0 until pending.length()).mapNotNull { pending.optJSONObject(it)?.optString("key") }.toMutableSet()
+                        result.second.forEach { event ->
+                            val key = event.dedupeKey + ":" + (event.side ?: "FLAT")
+                            if (queuedKeys.add(key)) {
+                                pending.put(JSONObject()
+                                    .put("key", key)
+                                    .put("kind", event.kind)
+                                    .put("side", event.side ?: JSONObject.NULL)
+                                    .put("price", event.price)
+                                    .put("candleTime", event.candleTime)
+                                    .put("note", event.note))
+                            }
+                        }
+                        // Persist state and pending notifications together before advancing the
+                        // durable cursor. After a process restart, unsent events are drained below.
+                        check(prefs.edit()
+                            .putString("state_json", state.toJson())
+                            .putString(pendingKey, pending.toString())
                             .putLong("monitor_last_candle_open", lastClosedOpen)
                             .putInt("monitor_last_event_count", result.second.size)
                             .putString("monitor_last_error", "")
-                            .apply()
+                            .commit()) { "Không lưu được trạng thái chiến lược/hàng đợi cảnh báo." }
+
                         val enabled = prefs.getBoolean("alerts_enabled", true)
-                        if (enabled) result.second.forEach { event ->
-                            val key = event.dedupeKey + ":" + (event.side ?: "FLAT")
-                            if (!prefs.getBoolean("alert_" + alertPreferenceKey(event.kind), true)) return@forEach
-                            if (event.side == "LONG" && !prefs.getBoolean("alert_long", true)) return@forEach
-                            if (event.side == "SHORT" && !prefs.getBoolean("alert_short", true)) return@forEach
-                            val sent = prefs.getStringSet("notified_event_keys", emptySet())?.toMutableSet() ?: mutableSetOf()
-                            if (key in sent) return@forEach
-                            val title = "BTCUSDT.P · " + event.kind
-                            val body = (event.side ?: "FLAT") + " · Giá " + "%,.2f".format(event.price) + " · " + event.note
+                        val sent = prefs.getStringSet("notified_event_keys", emptySet())?.toMutableSet() ?: mutableSetOf()
+                        val remaining = JSONArray()
+                        for (i in 0 until pending.length()) {
+                            val item = pending.optJSONObject(i) ?: continue
+                            val key = item.optString("key")
+                            val kind = item.optString("kind")
+                            val side = item.optString("side").takeUnless { it == "null" || it.isBlank() }
+                            if (key.isBlank() || key in sent) continue
+                            if (!enabled ||
+                                !prefs.getBoolean("alert_" + alertPreferenceKey(kind), true) ||
+                                (side == "LONG" && !prefs.getBoolean("alert_long", true)) ||
+                                (side == "SHORT" && !prefs.getBoolean("alert_short", true))
+                            ) continue
+                            val title = "BTCUSDT.P · " + kind
+                            val body = (side ?: "FLAT") + " · Giá " + "%,.2f".format(item.optDouble("price")) + " · " + item.optString("note")
                             if (isQuietHours(prefs)) {
                                 if (prefs.getBoolean("alert_catch_up_after_quiet", true)) {
-                                    val queue = prefs.getStringSet("quiet_alert_queue", emptySet())?.toMutableSet() ?: mutableSetOf()
-                                    queue.add(key + "|" + title + "|" + body)
-                                    prefs.edit().putStringSet("quiet_alert_queue", queue).apply()
+                                    val quiet = prefs.getStringSet("quiet_alert_queue", emptySet())?.toMutableSet() ?: mutableSetOf()
+                                    quiet.add(key + "|" + title + "|" + body)
+                                    prefs.edit().putStringSet("quiet_alert_queue", quiet).commit()
                                 }
-                                return@forEach
+                                continue
                             }
                             postAlert(key, title, body, prefs)
                             sent.add(key)
-                            prefs.edit().putStringSet("notified_event_keys", sent.toList().takeLast(100).toSet()).apply()
                         }
+                        prefs.edit()
+                            .putString(pendingKey, remaining.toString())
+                            .putStringSet("notified_event_keys", sent.toList().takeLast(500).toSet())
+                            .putLong("monitor_last_success_ms", System.currentTimeMillis())
+                            .commit()
+
                         if (enabled && !isQuietHours(prefs) && prefs.getBoolean("alert_catch_up_after_quiet", true)) {
-                            val queue = prefs.getStringSet("quiet_alert_queue", emptySet())?.toMutableSet() ?: mutableSetOf()
-                            if (queue.isNotEmpty()) {
-                                val sent = prefs.getStringSet("notified_event_keys", emptySet())?.toMutableSet() ?: mutableSetOf()
-                                queue.toList().forEach { item ->
+                            val quiet = prefs.getStringSet("quiet_alert_queue", emptySet())?.toMutableSet() ?: mutableSetOf()
+                            if (quiet.isNotEmpty()) {
+                                quiet.toList().forEach { item ->
                                     val parts = item.split("|", limit = 3)
                                     if (parts.size == 3 && parts[0] !in sent) {
                                         postAlert(parts[0], "Cảnh báo gửi bù · " + parts[1], parts[2], prefs)
                                         sent.add(parts[0])
                                     }
                                 }
-                                prefs.edit().putStringSet("quiet_alert_queue", emptySet()).putStringSet("notified_event_keys", sent.toList().takeLast(100).toSet()).apply()
+                                prefs.edit().putStringSet("quiet_alert_queue", emptySet())
+                                    .putStringSet("notified_event_keys", sent.toList().takeLast(500).toSet()).commit()
                             }
                         }
-
-                        prefs.edit()
-                            .putString("state_json", state.toJson())
-                            .putLong("monitor_last_success_ms", System.currentTimeMillis())
-                            .apply()
 
                         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
                             .notify(1001, ongoing("Đang theo dõi · " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())))
@@ -154,12 +182,18 @@ class StrategyMonitorService : Service() {
         // Persist the event independently from Android notification permission.
         synchronized(prefs) {
             val history = runCatching { JSONArray(prefs.getString("notification_history_json", "[]")) }.getOrDefault(JSONArray())
-            val updated = JSONArray().put(JSONObject().put("title", title).put("body", body)
-                .put("timestamp", System.currentTimeMillis()).put("source", "Chiến lược"))
-            for (i in 0 until minOf(history.length(), 99)) {
-                updated.put(history.getJSONObject(history.length() - 1 - i))
+            val alreadyRecorded = (0 until history.length()).any { index ->
+                history.optJSONObject(index)?.optString("key") == key
             }
-            prefs.edit().putString("notification_history_json", updated.toString()).apply()
+            if (!alreadyRecorded) {
+                val updated = JSONArray().put(JSONObject().put("key", key).put("title", title).put("body", body)
+                    .put("timestamp", System.currentTimeMillis()).put("source", "Chiến lược"))
+                for (i in (history.length() - 1) downTo 0) {
+                    if (updated.length() >= 100) break
+                    updated.put(history.getJSONObject(i))
+                }
+                prefs.edit().putString("notification_history_json", updated.toString()).commit()
+            }
         }
 
         val builder = NotificationCompat.Builder(this, "strategy_alerts").setSmallIcon(android.R.drawable.ic_dialog_info)
