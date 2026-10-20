@@ -14,7 +14,8 @@ Audit-only branch. Strategy thresholds, sizing parameters, and production behavi
 2. **End-of-test liquidation:** fixed backtest to apply the configured adverse slippage to final liquidation.
 3. **H1 close-time selection:** fixed Python bot, backtest and Android engine to use the latest H1 candle whose close time is no later than the closed M15 candle close time. At M15 open 00:45 (close 01:00), the H1 candle opened 00:00 is now eligible. Only closed H1 candles are selected.
 4. **Protective exits with NaN indicators:** removed early indicator guards from Python bot/backtest. RSI/ADX-dependent entry, TP and Soft SL conditions evaluate false for NaN, while price-based Emergency SL still executes. Android already allows Emergency SL evaluation while RSI is warming up when a position exists.
-5. **Fee source discrepancy remains unresolved:** Python/backtest default is 0.05% per side; an earlier supplied Pine configuration used 0.04%. The intended production commission source must be explicitly confirmed before changing this parameter. No fee or strategy threshold was changed.
+5. **DCA margin guard:** added the same available-margin check to the Python signal bot that already existed in backtest and Android. A DCA add is skipped when its reserved margin would exceed simulated account balance.
+6. **Fee source discrepancy remains unresolved:** Python/backtest/Android default is 0.05% per side; an earlier supplied Pine configuration used 0.04%. The intended Pine commission assumption must be explicitly confirmed before changing this parameter. No fee or strategy threshold was changed.
 
 ## Already aligned in inspected source
 - Entry RSI cross inequalities and H1 DI/ADX thresholds are consistent between Python rule helpers and Android pure-rule functions.
