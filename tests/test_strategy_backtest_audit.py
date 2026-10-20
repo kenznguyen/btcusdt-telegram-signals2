@@ -12,6 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 BACKTEST_SOURCE = (ROOT / "backtest.py").read_text(encoding="utf-8")
 BOT_SOURCE = (ROOT / "bot.py").read_text(encoding="utf-8")
 ANDROID_SOURCE = (ROOT / "android-app/app/src/main/java/com/kenznguyen/btclivealerts/StrategyEngine.kt").read_text(encoding="utf-8")
+ANDROID_SERVICE = (ROOT / "android-app/app/src/main/java/com/kenznguyen/btclivealerts/StrategyMonitorService.kt").read_text(encoding="utf-8")
+ANDROID_MARKET = (ROOT / "android-app/app/src/main/java/com/kenznguyen/btclivealerts/MarketEngine.kt").read_text(encoding="utf-8")
+ANDROID_DASHBOARD = (ROOT / "android-app/app/src/main/java/com/kenznguyen/btclivealerts/CompleteDashboard.kt").read_text(encoding="utf-8")
 
 
 class StrategyRuleTests(unittest.TestCase):
@@ -114,6 +117,17 @@ class StrategyRuleTests(unittest.TestCase):
         self.assertIn('os.getenv("BOT_STATE_DIR", ".")', BOT_SOURCE)
         self.assertIn("TELEGRAM_OUTBOX_FILE", BOT_SOURCE)
         self.assertIn("TELEGRAM_SENT_FILE", BOT_SOURCE)
+
+    def test_android_data_state_and_notifications_fail_safe(self):
+        self.assertIn("Binance returned invalid OHLCV candle", ANDROID_MARKET)
+        self.assertIn("conflicting duplicate candle", ANDROID_MARKET)
+        self.assertIn("Cannot safely restore strategy state", ANDROID_SOURCE)
+        self.assertIn('putString("pending_strategy_events_json", pending.toString())', ANDROID_SERVICE)
+        self.assertIn('putString(pendingKey, remaining.toString())', ANDROID_SERVICE)
+        self.assertIn("drainPendingChartNotifications(this@StrategyMonitorService, prefs)", ANDROID_SERVICE)
+        self.assertIn("enqueuePendingChartNotification(prefs, key, title, body)", ANDROID_SERVICE)
+        self.assertIn("pending_android_notifications_json", ANDROID_DASHBOARD)
+        self.assertIn("if (!manager.areNotificationsEnabled())", ANDROID_DASHBOARD)
 
     def test_backtest_end_exit_applies_adverse_slippage(self):
         tail_start = BACKTEST_SOURCE.find('if pos:\n            row = m15.iloc[-1]')
