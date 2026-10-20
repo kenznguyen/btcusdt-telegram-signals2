@@ -37,7 +37,11 @@ class ForecastEngineTest {
     }
 
     @Test fun unclosedCandlesAreIgnored() {
-        val input = candles(180).dropLast(1) + candles(180).last().copy(closed = false)
-        assertNull(ForecastEngine().forecast(input, nowMs = 180 * 60_000L))
+        val all = candles(180)
+        val input = all.dropLast(1) + all.last().copy(closed = false)
+        val result = ForecastEngine().forecast(input, nowMs = 180 * 60_000L)
+        assertNotNull(result)
+        // The unclosed candle at index 179 must not become the reference price.
+        assertEquals(all[178].close, result!!.referencePrice, 0.0)
     }
 }
