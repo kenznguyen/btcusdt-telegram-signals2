@@ -102,6 +102,49 @@ private fun isChartAlertQuietHours(prefs: SharedPreferences): Boolean {
 }
 
 /** Applies quiet-hours, catch-up, sound and vibration preferences to chart alerts. */
+private fun enqueuePendingChartNotification(
+    prefs: SharedPreferences, key: String, title: String, body: String
+) {
+    synchronized(prefs) {
+        val queue = runCatching { JSONArray(prefs.getString("pending_android_notifications_json", "[]")) }
+            .getOrDefault(JSONArray())
+        if ((0 until queue.length()).any { queue.optJSONObject(it)?.optString("key") == key }) return
+        queue.put(JSONObject().put("key", key).put("title", title).put("body", body))
+        prefs.edit().putString("pending_android_notifications_json", queue.toString()).commit()
+    }
+}
+
+internal fun drainPendingChartNotifications(context: Context, prefs: SharedPreferences) {
+    if (isChartAlertQuietHours(prefs)) return
+    val manager = NotificationManagerCompat.from(context)
+    if (!manager.areNotificationsEnabled()) return
+    synchronized(prefs) {
+        val queue = runCatching { JSONArray(prefs.getString("pending_android_notifications_json", "[]")) }
+            .getOrDefault(JSONArray())
+        val remaining = JSONArray()
+        for (i in 0 until queue.length()) {
+            val item = queue.optJSONObject(i) ?: continue
+            val key = item.optString("key")
+            val title = item.optString("title")
+            val body = item.optString("body")
+            val builder = NotificationCompat.Builder(context, "strategy_alerts")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(title).setContentText(body)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true)
+            if (prefs.getBoolean("alert_vibration", true)) builder.setVibrate(longArrayOf(0, 250, 120, 250))
+            else builder.setVibrate(longArrayOf(0))
+            if (!prefs.getBoolean("alert_sound", true)) builder.setSilent(true)
+            try {
+                manager.notify(key.hashCode() and 0x7fffffff, builder.build())
+            } catch (_: SecurityException) {
+                remaining.put(item)
+            }
+        }
+        prefs.edit().putString("pending_android_notifications_json", remaining.toString()).commit()
+    }
+}
+
 private fun deliverChartNotification(
     context: Context,
     prefs: SharedPreferences,
@@ -114,13 +157,16 @@ private fun deliverChartNotification(
             synchronized(prefs) {
                 val queue = prefs.getStringSet("quiet_alert_queue", emptySet())?.toMutableSet() ?: mutableSetOf()
                 queue.add("$key|$title|$body")
-                prefs.edit().putStringSet("quiet_alert_queue", queue).apply()
+                prefs.edit().putStringSet("quiet_alert_queue", queue).commit()
             }
         }
         return
     }
     val manager = NotificationManagerCompat.from(context)
-    if (!manager.areNotificationsEnabled()) return
+    if (!manager.areNotificationsEnabled()) {
+        enqueuePendingChartNotification(prefs, key, title, body)
+        return
+    }
     val builder = NotificationCompat.Builder(context, "strategy_alerts")
         .setSmallIcon(android.R.drawable.ic_dialog_info)
         .setContentTitle(title).setContentText(body)
@@ -131,7 +177,9 @@ private fun deliverChartNotification(
     if (!prefs.getBoolean("alert_sound", true)) builder.setSilent(true)
     try {
         manager.notify(key.hashCode() and 0x7fffffff, builder.build())
-    } catch (_: SecurityException) { }
+    } catch (_: SecurityException) {
+        enqueuePendingChartNotification(prefs, key, title, body)
+    }
 }
 
 private fun notifyChartAlert(
