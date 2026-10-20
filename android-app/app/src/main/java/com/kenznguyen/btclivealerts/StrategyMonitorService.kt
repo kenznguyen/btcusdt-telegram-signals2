@@ -203,11 +203,17 @@ class StrategyMonitorService : Service() {
             .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true)
         if (prefs.getBoolean("alert_vibration", true)) builder.setVibrate(longArrayOf(0, 250, 120, 250)) else builder.setVibrate(longArrayOf(0))
         if (!prefs.getBoolean("alert_sound", true)) builder.setSilent(true)
+        val manager = NotificationManagerCompat.from(this)
+        if (!manager.areNotificationsEnabled()) {
+            enqueuePendingChartNotification(prefs, key, title, body)
+            return
+        }
         try {
             (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
                 .notify(key.hashCode() and 0x7fffffff, builder.build())
         } catch (_: SecurityException) {
-            // Keep the event in history; the monitor loop still records its dedupe key.
+            // Preserve the event for a later retry if permission changes or the OS rejects it.
+            enqueuePendingChartNotification(prefs, key, title, body)
         }
     }
     private fun alertPreferenceKey(kind: String): String = when {
