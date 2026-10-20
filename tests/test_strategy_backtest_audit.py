@@ -122,7 +122,7 @@ class StrategyRuleTests(unittest.TestCase):
         self.assertIn("Binance returned invalid OHLCV candle", ANDROID_MARKET)
         self.assertIn("conflicting duplicate candle", ANDROID_MARKET)
         self.assertIn("Cannot safely restore strategy state", ANDROID_SOURCE)
-        self.assertIn('putString("pending_strategy_events_json", pending.toString())', ANDROID_SERVICE)
+        self.assertIn('putString(pendingKey, pending.toString())', ANDROID_SERVICE)
         self.assertIn('putString(pendingKey, remaining.toString())', ANDROID_SERVICE)
         self.assertIn("drainPendingChartNotifications(this@StrategyMonitorService, prefs)", ANDROID_SERVICE)
         self.assertIn("enqueuePendingChartNotification(prefs, key, title, body)", ANDROID_SERVICE)
