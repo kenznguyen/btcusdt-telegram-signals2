@@ -1426,7 +1426,7 @@ private fun ForecastPaperPanel(
                 Text("$evaluated", color = Color.White, fontWeight = FontWeight.Bold)
             }
             Column(Modifier.weight(1f)) {
-                Text("ĐÚNG HƯỚNG", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                Text("ĐÚNG PHÂN LOẠI", color = NMuted, style = MaterialTheme.typography.labelSmall)
                 Text(accuracy?.let { "${"%.1f".format(Locale.US, it * 100)}%" } ?: "—", color = Color.White, fontWeight = FontWeight.Bold)
             }
             Column(Modifier.weight(1f)) {
