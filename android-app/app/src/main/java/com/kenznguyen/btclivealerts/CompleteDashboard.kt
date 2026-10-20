@@ -386,8 +386,10 @@ fun CompleteDashboard(context: Context) {
     var socketStatus by remember { mutableStateOf("Đang đồng bộ REST…") }
     val forecastStore = remember { ForecastPaperStore(context) }
     val forecastEngine = remember { ForecastEngine() }
+    val forecastValidator = remember { ForecastWalkForwardValidator() }
     var forecastSnapshot by remember { mutableStateOf(forecastStore.latestForecast()) }
     var forecastHistory by remember { mutableStateOf(forecastStore.history()) }
+    var forecastValidation by remember { mutableStateOf<ForecastValidationReport?>(null) }
     var forecastStatus by remember { mutableStateOf("Đang chuẩn bị dữ liệu M1…") }
 
     // Experimental five-minute forecast and device-local paper evaluation.
@@ -401,12 +403,16 @@ fun CompleteDashboard(context: Context) {
                 if (latestClosed == null) {
                     forecastStatus = "Chưa có nến M1 đã đóng"
                 } else {
+                    if (forecastValidation == null) {
+                        forecastValidation = forecastValidator.evaluate(m1)
+                    }
                     val lastSourceOpen = prefs.getLong("forecast_last_source_open", 0L)
                     if (lastSourceOpen == 0L || latestClosed.openTime - lastSourceOpen >= 5 * 60_000L) {
                         val candidate = forecastEngine.forecast(m1, now)
                         if (candidate != null && forecastStore.savePending(candidate)) {
                             prefs.edit().putLong("forecast_last_source_open", latestClosed.openTime).apply()
                             forecastSnapshot = candidate
+                            forecastValidation = forecastValidator.evaluate(m1)
                             forecastStatus = "Dự báo mới · chờ đối chiếu sau 5 phút"
                         } else {
                             forecastStatus = "Chưa đủ dữ liệu M1 liên tục để tạo dự báo"
@@ -635,7 +641,7 @@ fun CompleteDashboard(context: Context) {
                 }
             }
             item {
-                ForecastPaperPanel(snapshot = forecastSnapshot, status = forecastStatus, history = forecastHistory)
+                ForecastPaperPanel(snapshot = forecastSnapshot, status = forecastStatus, history = forecastHistory, validation = forecastValidation)
             }
             item {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(14.dp)).padding(12.dp)) {
@@ -1412,7 +1418,8 @@ private fun PreferenceSwitch(label: String, checked: Boolean, onCheckedChange: (
 private fun ForecastPaperPanel(
     snapshot: ForecastSnapshot?,
     status: String,
-    history: List<ForecastPaperResult>
+    history: List<ForecastPaperResult>,
+    validation: ForecastValidationReport?
 ) {
     val evaluated = history.size
     val accuracy = if (evaluated > 0) history.count { it.actualClass == it.predictedClass }.toDouble() / evaluated else null
@@ -1461,6 +1468,13 @@ private fun ForecastPaperPanel(
                 Text("BRIER TB", color = NMuted, style = MaterialTheme.typography.labelSmall)
                 Text(meanBrier?.let { "%.3f".format(Locale.US, it) } ?: "—", color = Color.White, fontWeight = FontWeight.Bold)
             }
+        }
+        if (validation != null && validation.forecastsEvaluated > 0) {
+            Divider(color = Color(0xFF263243))
+            Text("KIỂM ĐỊNH WALK-FORWARD LỊCH SỬ", color = Color.White, fontWeight = FontWeight.SemiBold)
+            Text("Mẫu đánh giá: ${validation.forecastsEvaluated} · Brier mô hình: ${validation.multiclassBrierScore?.let { "%.3f".format(Locale.US, it) } ?: "—"} · luôn đi ngang: ${validation.alwaysSidewaysBrierScore?.let { "%.3f".format(Locale.US, it) } ?: "—"}", color = NMuted, style = MaterialTheme.typography.bodySmall)
+            Text("Brier skill so với luôn đi ngang: ${validation.brierSkillVsAlwaysSideways?.let { "%.1f".format(Locale.US, it * 100) + "%" } ?: "—"} · Độ phủ Q10–Q90: ${validation.centralIntervalCoverage?.let { "%.1f".format(Locale.US, it * 100) + "%" } ?: "—"}", color = NMuted, style = MaterialTheme.typography.bodySmall)
+            Text("Chỉ là kiểm định lịch sử trên dữ liệu đã tải; chưa đại diện nhiều chế độ thị trường.", color = NMuted, style = MaterialTheme.typography.bodySmall)
         }
         if (history.isNotEmpty()) {
             Text("Paper gần nhất", color = Color.White, fontWeight = FontWeight.SemiBold)
