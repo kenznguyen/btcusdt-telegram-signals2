@@ -102,7 +102,7 @@ private fun isChartAlertQuietHours(prefs: SharedPreferences): Boolean {
 }
 
 /** Applies quiet-hours, catch-up, sound and vibration preferences to chart alerts. */
-private fun enqueuePendingChartNotification(
+internal fun enqueuePendingChartNotification(
     prefs: SharedPreferences, key: String, title: String, body: String
 ) {
     synchronized(prefs) {
