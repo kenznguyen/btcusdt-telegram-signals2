@@ -29,6 +29,9 @@ class StrategyMonitorService : Service() {
     private var monitorJob: Job? = null
     private val market by lazy { MarketEngine() }
     private val engine by lazy { StrategyEngine() }
+    private val forecastEngine by lazy { ForecastEngine() }
+    private val forecastValidator by lazy { ForecastWalkForwardValidator() }
+    private val forecastStore by lazy { ForecastPaperStore(this) }
 
     override fun onCreate() {
         super.onCreate()
@@ -109,6 +112,10 @@ class StrategyMonitorService : Service() {
                             .putLong("monitor_last_success_ms", System.currentTimeMillis())
                             .apply()
 
+                        // Forecast paper tracking runs in the existing foreground service,
+                        // independently from whether the chart screen is visible.
+                        processForecastPaper(prefs)
+
                         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
                             .notify(1001, ongoing("Đang theo dõi · " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())))
                     } catch (e: Exception) {
@@ -124,6 +131,56 @@ class StrategyMonitorService : Service() {
             }
         }
         return START_STICKY
+    }
+
+
+    private suspend fun processForecastPaper(prefs: android.content.SharedPreferences) {
+        val now = System.currentTimeMillis()
+        val lastFetch = prefs.getLong("forecast_last_fetch_ms", 0L)
+        if (now - lastFetch < 60_000L) return
+        // Throttle even after a network error so the background service does not hammer REST.
+        prefs.edit().putLong("forecast_last_fetch_ms", now).apply()
+
+        try {
+            val m1 = market.fetchCandles("1m", 1500)
+                .filter { it.closed }
+                .distinctBy { it.openTime }
+                .sortedBy { it.openTime }
+            val latestClosed = m1.lastOrNull()
+            if (latestClosed == null) {
+                forecastStore.saveStatus("Chưa có nến M1 đã đóng")
+                return
+            }
+
+            if (forecastStore.validationReport() == null) {
+                forecastStore.saveValidationReport(forecastValidator.evaluate(m1))
+            }
+
+            val lastSourceOpen = prefs.getLong("forecast_last_source_open", 0L)
+            if (lastSourceOpen == 0L || latestClosed.openTime - lastSourceOpen >= 5 * 60_000L) {
+                val candidate = forecastEngine.forecast(m1, now)
+                if (candidate != null && forecastStore.savePending(candidate)) {
+                    prefs.edit().putLong("forecast_last_source_open", latestClosed.openTime).apply()
+                    forecastStore.saveValidationReport(forecastValidator.evaluate(m1))
+                    forecastStore.saveStatus("Dự báo mới · chờ đối chiếu sau 5 phút")
+                } else if (candidate == null) {
+                    forecastStore.saveStatus("Chưa đủ dữ liệu M1 liên tục để tạo dự báo")
+                }
+            }
+
+            val settled = forecastStore.settleDue(m1, now)
+            if (settled.isNotEmpty()) {
+                forecastStore.saveStatus("Đã đối chiếu ${settled.size} dự báo paper")
+            } else if (forecastStore.pending().isNotEmpty()) {
+                forecastStore.saveStatus("Đang chờ nến M1 đúng mốc 5 phút")
+            } else if (forecastStore.latestForecast() != null) {
+                forecastStore.saveStatus("Paper tracking đang hoạt động")
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            forecastStore.saveStatus("Dự báo M5 lỗi mạng/dữ liệu: ${e.message ?: e.javaClass.simpleName}")
+        }
     }
 
     private fun processChartAlerts(
