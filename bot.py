@@ -255,6 +255,7 @@ def _atomic_write_json(path, payload):
     """Replace JSON files atomically so a process restart cannot read a partial write."""
     import tempfile
     directory = os.path.dirname(os.path.abspath(path))
+    os.makedirs(directory, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=".state-", suffix=".tmp", dir=directory)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
@@ -395,8 +396,9 @@ def send_event(kind, side, price, candle_time, roe=None, note=""):
         _atomic_write_json(TELEGRAM_OUTBOX_FILE, queue)
         flush_telegram_outbox()
     except Exception as exc:
-        # Delivery failures must not stop state persistence; retry the durable outbox later.
-        print(f"Could not enqueue Telegram event {key}: {exc}")
+        # If durable enqueue itself fails, abort this candle before its cursor is committed.
+        # The scheduler can replay it after the storage issue is corrected.
+        raise RuntimeError(f"Could not durably enqueue Telegram event {key}: {exc}") from exc
 
 def roe_for(side, avg_entry, close):
     if not side or avg_entry <= 0:
