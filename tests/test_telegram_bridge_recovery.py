@@ -15,8 +15,10 @@ class TelegramBridgeRecoveryTests(unittest.TestCase):
         self.state_path = os.path.join(self.tempdir.name, "telegram_seen_updates.json")
         self.original_updates = set(bridge._seen_updates)
         self.original_order = list(bridge._seen_order)
+        self.original_processing = set(bridge._processing_updates)
         bridge._seen_updates.clear()
         bridge._seen_order.clear()
+        bridge._processing_updates.clear()
         self.addCleanup(self._restore_seen)
 
     def _restore_seen(self):
@@ -24,6 +26,8 @@ class TelegramBridgeRecoveryTests(unittest.TestCase):
         bridge._seen_updates.update(self.original_updates)
         bridge._seen_order.clear()
         bridge._seen_order.extend(self.original_order)
+        bridge._processing_updates.clear()
+        bridge._processing_updates.update(self.original_processing)
 
     def _post(self, update_id=8675309, text="/status", secret="test-secret"):
         return bridge.app.test_client().post(
@@ -62,6 +66,13 @@ class TelegramBridgeRecoveryTests(unittest.TestCase):
             self.assertEqual(duplicate.status_code, 200)
             self.assertTrue(duplicate.get_json()["duplicate"])
             self.assertEqual(dispatch.call_count, 1)
+
+    def test_concurrent_duplicate_update_cannot_claim_twice(self):
+        self.assertTrue(bridge.claim_update("same-update"))
+        self.assertFalse(bridge.claim_update("same-update"))
+        bridge.release_update("same-update")
+        self.assertTrue(bridge.claim_update("same-update"))
+        bridge.release_update("same-update")
 
     def test_invalid_webhook_secret_is_rejected(self):
         with patch.object(bridge, "TELEGRAM_WEBHOOK_SECRET", "expected-secret"):
