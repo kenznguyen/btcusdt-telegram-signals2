@@ -145,8 +145,9 @@ class StrategyMonitorService : Service() {
     private suspend fun processForecastPaper(prefs: android.content.SharedPreferences) {
         val now = System.currentTimeMillis()
         val lastFetch = prefs.getLong("forecast_last_fetch_ms", 0L)
-        if (now - lastFetch < 60_000L) return
-        // Throttle even after a network error so the background service does not hammer REST.
+        if (now - lastFetch < 15_000L) return
+        // The monitor wakes every 15s; keep the forecast feed responsive near 5m boundaries
+        // while throttling requests to at most one per 15 seconds.
         prefs.edit().putLong("forecast_last_fetch_ms", now).apply()
 
         try {
@@ -167,18 +168,24 @@ class StrategyMonitorService : Service() {
 
             val lastSourceOpen = prefs.getLong("forecast_last_source_open", 0L)
             val latestClosedAt = latestClosed.openTime + 60_000L
-            // Only create a five-minute forecast on a 5m boundary. Then the reference
-            // is the just-closed 1m candle and targetAtMs aligns with the 5m candle close.
-            val onFiveMinuteBoundary = latestClosedAt % (5 * 60_000L) == 0L
-            if (onFiveMinuteBoundary &&
-                (lastSourceOpen == 0L || latestClosed.openTime - lastSourceOpen >= 5 * 60_000L)
+            val boundaryOpen = latestClosedAt - (latestClosedAt % (5 * 60_000L)) - 60_000L
+            val boundaryCandle = m1.firstOrNull { it.openTime == boundaryOpen }
+            // If a 5m boundary was briefly missed during sleep/network loss, create the
+            // forecast from that boundary candle when still available; never shift its
+            // reference to an arbitrary later candle.
+            if (boundaryCandle != null &&
+                (lastSourceOpen == 0L || boundaryCandle.openTime > lastSourceOpen)
             ) {
-                val candidate = forecastEngine.forecast(m1, now)?.copy(
+                val boundaryHistory = m1.filter { it.openTime <= boundaryCandle.openTime }
+                val candidate = forecastEngine.forecast(boundaryHistory, boundaryCandle.openTime + 60_000L)?.copy(
+                    generatedAtMs = boundaryCandle.openTime + 60_000L,
+                    targetAtMs = boundaryCandle.openTime + 6 * 60_000L,
+                    referencePrice = boundaryCandle.close,
                     modelVersion = "historical-frequency-baseline-v1-binance-spot-proxy",
                     validationStatus = "PROXY_NOT_CHAINLINK"
                 )
                 if (candidate != null && forecastStore.savePending(candidate)) {
-                    prefs.edit().putLong("forecast_last_source_open", latestClosed.openTime).apply()
+                    prefs.edit().putLong("forecast_last_source_open", boundaryCandle.openTime).apply()
                     forecastStore.saveValidationReport(forecastValidator.evaluate(m1))
                     forecastStore.saveStatus("BINANCE SPOT PROXY · dự báo paper, không phải phân xử Chainlink")
                 } else if (candidate == null) {
