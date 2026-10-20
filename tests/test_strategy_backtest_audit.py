@@ -51,8 +51,8 @@ class StrategyRuleTests(unittest.TestCase):
     def test_h1_filter_uses_latest_candle_closed_by_m15_close(self):
         self.assertIn('t + pd.Timedelta(hours=1) <= closed_at', BOT_SOURCE)
         self.assertIn('h1["close_time"] <= row["close_time"]', BACKTEST_SOURCE)
-        self.assertIn("hours[hidx + 1].openTime + 60L * 60L * 1000L <= m15CloseTime", ANDROID_SOURCE)
-        self.assertIn("it.openTime + 60L * 60L * 1000L <= m15CloseTime", ANDROID_SOURCE)
+        self.assertIn("h1CandleClosedByM15Close(hours[hidx + 1].openTime, c.openTime)", ANDROID_SOURCE)
+        self.assertIn("h1CandleClosedByM15Close(it.openTime, c.openTime)", ANDROID_SOURCE)
 
     def test_protective_stop_checks_are_not_skipped_for_nan_indicators(self):
         self.assertNotIn('if pd.isna(row["rsi"]) or pd.isna(row["adx"]):', BOT_SOURCE)
