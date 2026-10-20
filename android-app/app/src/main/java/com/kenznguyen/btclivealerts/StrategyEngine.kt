@@ -5,6 +5,9 @@ import org.json.JSONObject
 import kotlin.math.abs
 import kotlin.math.max
 
+internal fun h1CandleClosedByM15Close(h1OpenTime: Long, m15OpenTime: Long): Boolean =
+    h1OpenTime + 60L * 60L * 1000L <= m15OpenTime + 15L * 60L * 1000L
+
 data class StrategyPosition(
     val side: String, val qty: Double, val avgEntry: Double,
     val initialMargin: Double, val dcaMargin: Double, val entryNotional: Double,
@@ -241,10 +244,10 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
             // trend filters at quarter-hour boundaries without reading a forming H1 candle.
             val m15CloseTime = c.openTime + 15L * 60L * 1000L
             while (hidx + 1 < hours.size &&
-                hours[hidx + 1].openTime + 60L * 60L * 1000L <= m15CloseTime
+                h1CandleClosedByM15Close(hours[hidx + 1].openTime, c.openTime)
             ) hidx++
             val hasPriorClosedHour = hours.getOrNull(hidx)?.let {
-                it.openTime + 60L * 60L * 1000L <= m15CloseTime
+                h1CandleClosedByM15Close(it.openTime, c.openTime)
             } == true
             val hp = if (hasPriorClosedHour) hi.getOrNull(hidx)?.plusDi else null
             val hm = if (hasPriorClosedHour) hi.getOrNull(hidx)?.minusDi else null
