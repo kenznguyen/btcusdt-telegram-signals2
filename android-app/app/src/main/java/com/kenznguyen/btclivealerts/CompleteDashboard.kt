@@ -579,6 +579,54 @@ fun CompleteDashboard(context: Context) {
                 }
             }
             item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val position = state.position
+                        DashboardMetricCard(
+                            label = "VỊ THẾ PAPER",
+                            value = position?.side ?: "FLAT",
+                            detail = if (position == null) "Không có vị thế mô phỏng" else "Giá vốn ${"%.2f".format(Locale.US, position.avgEntry)} USDT",
+                            accent = if (position?.side == "LONG") NGreen else if (position?.side == "SHORT") NRed else NMuted,
+                            modifier = Modifier.weight(1f)
+                        )
+                        DashboardMetricCard(
+                            label = "SỐ DƯ MÔ PHỎNG",
+                            value = "${"%.2f".format(Locale.US, state.balance)} USDT",
+                            detail = "Số dư ảo · không phải tài sản thật",
+                            accent = Color(0xFF4FC3F7),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val trendLabel = when {
+                            h1Ind.plusDi == null || h1Ind.minusDi == null -> "ĐANG TÍNH"
+                            h1Ind.plusDi!! > h1Ind.minusDi!! -> "H1 TĂNG"
+                            h1Ind.minusDi!! > h1Ind.plusDi!! -> "H1 GIẢM"
+                            else -> "TRUNG TÍNH"
+                        }
+                        val trendColor = when (trendLabel) {
+                            "H1 TĂNG" -> NGreen
+                            "H1 GIẢM" -> NRed
+                            else -> NMuted
+                        }
+                        DashboardMetricCard(
+                            label = "XU HƯỚNG H1",
+                            value = trendLabel,
+                            detail = "ADX ${fmt(h1Ind.adx)} · +DI / −DI",
+                            accent = trendColor,
+                            modifier = Modifier.weight(1f)
+                        )
+                        DashboardMetricCard(
+                            label = "CẢNH BÁO",
+                            value = if (alerts) "ĐANG BẬT" else "ĐANG TẮT",
+                            detail = "${notificationHistory.size} sự kiện đã lưu trên máy",
+                            accent = if (alerts) NGreen else NMuted,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+            item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     listOf("15m", "1h").forEach { tf ->
                         FilterChip(selected = timeframe == tf, onClick = { timeframe = tf }, label = { Text(tf.uppercase()) })
@@ -1355,5 +1403,28 @@ private fun PreferenceSwitch(label: String, checked: Boolean, onCheckedChange: (
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, color = NMuted, modifier = Modifier.weight(1f))
         Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+private fun DashboardMetricCard(
+    label: String,
+    value: String,
+    detail: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier
+            .background(NPanel, RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Box(Modifier.size(6.dp).background(accent, RoundedCornerShape(3.dp)))
+            Text(label, color = NMuted, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+        }
+        Text(value, color = accent, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text(detail, color = NMuted, style = MaterialTheme.typography.labelSmall, maxLines = 2)
     }
 }
