@@ -70,16 +70,10 @@ class KnownParityGapTests(unittest.TestCase):
 
     @unittest.expectedFailure
     def test_python_bot_and_backtest_do_not_skip_emergency_stop_when_indicators_are_nan(self):
-        # Both implementations currently skip candle processing before the emergency
-        # stop check when RSI or ADX is NaN. Protective exits must not depend on indicators.
-        self.assertNotRegex(
-            BOT_SOURCE,
-            r'if pd\\.isna\\(row\\["rsi"\\]\\) or pd\\.isna\\(row\\["adx"\\]\\):\\s*state\\["last_processed_open"\\].*?continue',
-        )
-        self.assertNotRegex(
-            BACKTEST_SOURCE,
-            r'if i == 0 or pd\\.isna\\(row\\["rsi"\\]\\) or pd\\.isna\\(row\\["adx"\\]\\):\\s*continue',
-        )
+        # Protective exits should still run if RSI/ADX are unavailable. Current source
+        # contains early-continue guards before the emergency-stop checks.
+        self.assertNotIn('if pd.isna(row["rsi"]) or pd.isna(row["adx"]):', BOT_SOURCE)
+        self.assertNotIn('if i == 0 or pd.isna(row["rsi"]) or pd.isna(row["adx"]):', BACKTEST_SOURCE)
 
     @unittest.expectedFailure
     def test_end_of_test_exit_applies_adverse_slippage(self):
