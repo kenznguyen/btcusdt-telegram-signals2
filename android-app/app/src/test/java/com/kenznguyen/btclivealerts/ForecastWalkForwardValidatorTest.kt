@@ -18,6 +18,12 @@ class ForecastWalkForwardValidatorTest {
         assertTrue(report.directionAccuracy!! in 0.0..1.0)
         assertTrue(report.medianPriceMae!! >= 0.0)
         assertTrue(report.centralIntervalCoverage!! in 0.0..1.0)
+        assertNotNull(report.alwaysSidewaysBrierScore)
+        assertTrue(report.alwaysSidewaysBrierScore!! in 0.0..2.0)
+        assertNotNull(report.alwaysSidewaysAccuracy)
+        assertTrue(report.alwaysSidewaysAccuracy!! in 0.0..1.0)
+        assertNotNull(report.brierSkillVsAlwaysSideways)
+        assertTrue(report.brierSkillVsAlwaysSideways!!.isFinite())
     }
 
     @Test fun tooLittleDataProducesNoMetrics() {
