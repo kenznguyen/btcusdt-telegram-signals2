@@ -242,7 +242,6 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
             // A closed M15 candle is available at openTime + 15 minutes.
             // Select the latest closed H1 candle available by that instant, avoiding stale
             // trend filters at quarter-hour boundaries without reading a forming H1 candle.
-            val m15CloseTime = c.openTime + 15L * 60L * 1000L
             while (hidx + 1 < hours.size &&
                 h1CandleClosedByM15Close(hours[hidx + 1].openTime, c.openTime)
             ) hidx++
