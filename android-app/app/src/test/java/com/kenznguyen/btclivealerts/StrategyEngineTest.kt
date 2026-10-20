@@ -137,7 +137,12 @@ class StrategyEngineTest {
 
     @Test fun invalidStateDefaultsSafely() {
         assertEquals(100.0, StrategyState.fromJson(null).balance, 1e-8)
-        assertNull(StrategyState.fromJson("{not-json").position)
+        try {
+            StrategyState.fromJson("{not-json")
+            fail("Corrupt persisted state must not silently reset")
+        } catch (expected: IllegalStateException) {
+            assertTrue(expected.message!!.contains("refusing to reset"))
+        }
     }
 
     @Test fun corruptPersistedStrategyStateFailsClosedInsteadOfResetting() {
