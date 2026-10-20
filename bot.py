@@ -620,42 +620,44 @@ def main():
             if long_signal:
                 current_balance = float(state.get("account_balance", INITIAL_CAPITAL))
                 entry_margin = current_balance * ENTRY_MARGIN_PCT
-                new_qty = entry_margin * LEVERAGE / close
+                fill_price = execution_fill_price(close, "BUY")
+                new_qty = entry_margin * LEVERAGE / fill_price
                 state.update(
                     {
                         "side": "LONG",
                         "qty": new_qty,
-                        "avg_entry": close,
+                        "avg_entry": fill_price,
                         "dca_used": False,
                         "entry_time": row["open_time"].isoformat(),
                         "initial_margin": entry_margin,
                         "dca_margin": 0.0,
-                        "entry_notional": new_qty * close,
+                        "entry_notional": new_qty * fill_price,
                     }
                 )
                 send_event(
-                    "LONG ENTRY", "LONG", close, row["open_time"],
+                    "LONG ENTRY", "LONG", fill_price, row["open_time"],
                     note=f"Khối lượng mô phỏng: {new_qty:.8f} BTC",
                 )
                 events_sent += 1
             elif short_signal:
                 current_balance = float(state.get("account_balance", INITIAL_CAPITAL))
                 entry_margin = current_balance * ENTRY_MARGIN_PCT
-                new_qty = entry_margin * LEVERAGE / close
+                fill_price = execution_fill_price(close, "SELL")
+                new_qty = entry_margin * LEVERAGE / fill_price
                 state.update(
                     {
                         "side": "SHORT",
                         "qty": new_qty,
-                        "avg_entry": close,
+                        "avg_entry": fill_price,
                         "dca_used": False,
                         "entry_time": row["open_time"].isoformat(),
                         "initial_margin": entry_margin,
                         "dca_margin": 0.0,
-                        "entry_notional": new_qty * close,
+                        "entry_notional": new_qty * fill_price,
                     }
                 )
                 send_event(
-                    "SHORT ENTRY", "SHORT", close, row["open_time"],
+                    "SHORT ENTRY", "SHORT", fill_price, row["open_time"],
                     note=f"Khối lượng mô phỏng: {new_qty:.8f} BTC",
                 )
                 events_sent += 1
@@ -682,11 +684,13 @@ def main():
             if dca_cond:
                 initial_margin = float(state.get("initial_margin") or 0.0)
                 add_margin = initial_margin * DCA_MARGIN_RATIO
-                add_qty = add_margin * LEVERAGE / close
+                action = "BUY" if side == "LONG" else "SELL"
+                fill_price = execution_fill_price(close, action)
+                add_qty = add_margin * LEVERAGE / fill_price
                 total_qty = qty + add_qty
                 if total_qty > 0:
                     new_avg = (
-                        (avg_entry * qty) + (close * add_qty)
+                        (avg_entry * qty) + (fill_price * add_qty)
                     ) / total_qty
                     state.update(
                         {
@@ -694,11 +698,11 @@ def main():
                             "avg_entry": new_avg,
                             "dca_used": True,
                             "dca_margin": add_margin,
-                            "entry_notional": float(state.get("entry_notional") or (avg_entry * qty)) + close * add_qty,
+                            "entry_notional": float(state.get("entry_notional") or (avg_entry * qty)) + fill_price * add_qty,
                         }
                     )
                     send_event(
-                        "DCA", side, close, row["open_time"], current_roe,
+                        "DCA", side, fill_price, row["open_time"], current_roe,
                         f"Khối lượng DCA mô phỏng: {add_qty:.8f} BTC; "
                         f"giá vốn mô phỏng sau DCA: {fmt_price(new_avg)}",
                     )
