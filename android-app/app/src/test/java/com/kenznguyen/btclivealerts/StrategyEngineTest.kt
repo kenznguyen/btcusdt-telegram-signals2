@@ -140,6 +140,20 @@ class StrategyEngineTest {
         assertNull(StrategyState.fromJson("{not-json").position)
     }
 
+    @Test fun h1FilterUsesOnlyCandlesClosedByM15Close() {
+        val h1AtMidnight = 0L
+        val h1AtOneAm = 60L * 60L * 1000L
+        val m15At0045 = 45L * 60L * 1000L
+        val m15At0030 = 30L * 60L * 1000L
+
+        // M15 00:45 closes at 01:00, so H1 00:00 is closed and available.
+        assertTrue(h1CandleClosedByM15Close(h1AtMidnight, m15At0045))
+        // M15 00:30 closes at 00:45; H1 00:00 is still forming.
+        assertFalse(h1CandleClosedByM15Close(h1AtMidnight, m15At0030))
+        // H1 01:00 cannot be used by the M15 candle closing at 01:00.
+        assertFalse(h1CandleClosedByM15Close(h1AtOneAm, m15At0045))
+    }
+
     @Test fun missingHourlyIndicatorsDoNotSuppressEmergencyExit() {
         val m15 = (0 until 100).map { i ->
             val close = if (i == 99) 90.0 else 100.0
