@@ -143,16 +143,24 @@ def run_backtest(days=None):
             pass
     _status("running", started_at=started, message=f"Đang tải và mô phỏng {days} ngày.")
     try:
-        start = now - pd.Timedelta(days=days)
+        requested_end = os.getenv("BACKTEST_END_UTC", "").strip()
+        if requested_end:
+            end = pd.Timestamp(requested_end)
+            end = end.tz_localize("UTC") if end.tzinfo is None else end.tz_convert("UTC")
+            # The end is exclusive to keep adjacent walk-forward windows disjoint.
+            now = end
+        else:
+            end = now
+        start = end - pd.Timedelta(days=days)
         warm = start - pd.Timedelta(days=10)
-        end_ms = int(now.timestamp() * 1000)
+        end_ms = int(end.timestamp() * 1000)
         m15 = _candles("15m", int(warm.timestamp()*1000), end_ms, days*96+1100)
         h1 = _candles("1H", int(warm.timestamp()*1000), end_ms, days*24+300)
         m15["close_time"] = m15["open_time"] + pd.Timedelta(minutes=15)
         h1["close_time"] = h1["open_time"] + pd.Timedelta(hours=1)
         m15 = bot.add_indicators(m15).reset_index(drop=True)
         h1 = bot.add_indicators(h1).reset_index(drop=True)
-        m15 = m15[m15["open_time"] >= start].reset_index(drop=True)
+        m15 = m15[(m15["open_time"] >= start) & (m15["open_time"] < end)].reset_index(drop=True)
         # M15 is trimmed to the requested test window, so a 1-day test has
         # at most 96 candles. Keep the minimum proportional for short smoke tests.
         min_m15 = min(100, max(30, int(days * 96 * 0.75)))
@@ -447,6 +455,7 @@ def run_backtest(days=None):
           "symbol":f"{SYMBOL} perpetual (OKX {OKX_INSTRUMENTS[SYMBOL]} candles)",
           "timeframe":"M15 entry / closed H1 trend filter","period_days":days,
           "start":m15.iloc[0]["open_time"].isoformat(),"end":m15.iloc[-1]["open_time"].isoformat(),
+          "requested_end_exclusive_utc":end.isoformat(),
           "candle_count":len(m15),"trade_count":len(trades),"closed_trade_count":len(trades),
           "winning_trade_count":len(wins),"losing_trade_count":len(losses),"breakeven_trade_count":len(breakeven),
           "win_rate_pct":len(wins)/len(trades)*100 if trades else 0.0,
