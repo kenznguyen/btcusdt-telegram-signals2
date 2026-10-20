@@ -57,7 +57,9 @@ object ForecastCore {
         if (now - (latest.closeTime + 1) > 90_000L) return null
         for (i in 1 until closed.size) if (closed[i].openTime - closed[i - 1].openTime != ONE_MINUTE) return null
 
-        val returns = (0 until closed.size - 5).mapNotNull { i ->
+        // Exclude any return whose outcome is the latest/reference candle; only completed
+        // historical five-minute outcomes strictly before the reference may train the baseline.
+        val returns = (0 until closed.size - 6).mapNotNull { i ->
             val start = closed[i].close
             val end = closed[i + 5].close
             if (start > 0.0 && end > 0.0) end / start - 1.0 else null
