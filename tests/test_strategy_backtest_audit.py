@@ -1,6 +1,10 @@
 """Regression tests for strategy/backtest execution parity; no strategy params changed."""
 import unittest
+import json
+import os
+import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import bot
 
@@ -61,6 +65,55 @@ class StrategyRuleTests(unittest.TestCase):
         self.assertNotIn('if i == 0 or pd.isna(row["rsi"]) or pd.isna(row["adx"]):', BACKTEST_SOURCE)
         self.assertIn("if (!hasRsi && state.position == null)", ANDROID_SOURCE)
         self.assertIn("val emergency = emergencyStopTriggered", ANDROID_SOURCE)
+
+    def test_state_save_is_atomic_and_corrupt_state_is_not_reset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_path = os.path.join(tmp, "state.json")
+            with patch.object(bot, "STATE_FILE", state_path):
+                expected = {"side": "LONG", "qty": 0.01, "avg_entry": 65000.0,
+                            "account_balance": 100.0, "last_processed_open": None}
+                bot.save_state(expected)
+                self.assertEqual(bot.load_state()["side"], "LONG")
+                self.assertTrue(os.path.exists(state_path))
+                self.assertFalse(any(name.endswith(".tmp") for name in os.listdir(tmp)))
+                with open(state_path, "w", encoding="utf-8") as f:
+                    f.write("{broken")
+                with self.assertRaisesRegex(RuntimeError, "refusing to reset"):
+                    bot.load_state()
+
+    def test_telegram_outbox_retries_and_deduplicates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = {
+                "TELEGRAM_OUTBOX_FILE": os.path.join(tmp, "outbox.json"),
+                "TELEGRAM_SENT_FILE": os.path.join(tmp, "sent.json"),
+            }
+            with patch.multiple(bot, **paths):
+                candle_time = bot.pd.Timestamp("2026-10-20T12:00:00Z")
+                with patch.object(bot, "telegram_send", side_effect=RuntimeError("network down")) as send:
+                    bot.send_event("LONG ENTRY", "LONG", 65000.0, candle_time)
+                    self.assertEqual(send.call_count, 1)
+                    queued = json.loads(Path(paths["TELEGRAM_OUTBOX_FILE"]).read_text(encoding="utf-8"))
+                    self.assertEqual(len(queued), 1)
+                with patch.object(bot, "telegram_send", return_value=None) as send:
+                    self.assertEqual(bot.flush_telegram_outbox(), 0)
+                    self.assertEqual(send.call_count, 1)
+                    self.assertEqual(json.loads(Path(paths["TELEGRAM_OUTBOX_FILE"]).read_text(encoding="utf-8")), [])
+                    sent = json.loads(Path(paths["TELEGRAM_SENT_FILE"]).read_text(encoding="utf-8"))
+                    self.assertEqual(len(sent), 1)
+                    bot.send_event("LONG ENTRY", "LONG", 65000.0, candle_time)
+                    self.assertEqual(send.call_count, 1)
+
+    def test_candle_data_validation_precedes_strategy_loop(self):
+        source = BOT_SOURCE[BOT_SOURCE.index("def get_klines"):BOT_SOURCE.index("def rma")]
+        self.assertIn("OKX returned NaN/inf candle values", source)
+        self.assertIn("invalid_ohlc.any()", source)
+        self.assertIn("Conflicting duplicate OKX candle", source)
+        self.assertIn("candle gap(s)", source)
+
+    def test_outbox_and_state_support_persistent_mount(self):
+        self.assertIn('os.getenv("BOT_STATE_DIR", ".")', BOT_SOURCE)
+        self.assertIn("TELEGRAM_OUTBOX_FILE", BOT_SOURCE)
+        self.assertIn("TELEGRAM_SENT_FILE", BOT_SOURCE)
 
     def test_backtest_end_exit_applies_adverse_slippage(self):
         tail_start = BACKTEST_SOURCE.find('if pos:\n            row = m15.iloc[-1]')
