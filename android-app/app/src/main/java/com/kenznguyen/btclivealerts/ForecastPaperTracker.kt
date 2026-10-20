@@ -45,10 +45,13 @@ object ForecastPaperTracker {
         if (probabilities.any { !it.isFinite() || it !in 0.0..1.0 } ||
             abs(probabilities.sum() - 1.0) > 1e-6) return null
 
-        val actualReturn = actualPrice / forecast.referencePrice - 1.0
+        // Market-comparison rule: any positive change is UP, any negative change
+        // is DOWN, and only an exactly equal final/reference price is a tie.
+        // sidewaysThreshold remains accepted for source compatibility but is not used
+        // to alter the market's directional settlement rule.
         val actualClass = when {
-            actualReturn > sidewaysThreshold -> ForecastClass.UP
-            actualReturn < -sidewaysThreshold -> ForecastClass.DOWN
+            actualPrice > forecast.referencePrice -> ForecastClass.UP
+            actualPrice < forecast.referencePrice -> ForecastClass.DOWN
             else -> ForecastClass.SIDEWAYS
         }
         val classes = listOf(ForecastClass.UP, ForecastClass.DOWN, ForecastClass.SIDEWAYS)
