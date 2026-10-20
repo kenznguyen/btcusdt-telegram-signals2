@@ -9,7 +9,7 @@ import org.json.JSONObject
  * Keeps a bounded history and never records orders or trading PnL.
  */
 
-internal fun firstClosedCandleAtOrAfter(targetAtMs: Long, candles: List<Candle>, nowMs: Long): Candle? =
+internal fun closedCandleAtExactTarget(targetAtMs: Long, candles: List<Candle>, nowMs: Long): Candle? =
     candles.asSequence()
         .filter { it.closed }
         .sortedBy { it.openTime }
@@ -50,7 +50,7 @@ class ForecastPaperStore(context: Context) {
         val remaining = mutableListOf<ForecastSnapshot>()
         val settled = mutableListOf<ForecastPaperResult>()
         for (forecast in pending()) {
-            val targetCandle = firstClosedCandleAtOrAfter(forecast.targetAtMs, closed, nowMs)
+            val targetCandle = closedCandleAtExactTarget(forecast.targetAtMs, closed, nowMs)
             if (nowMs < forecast.targetAtMs || targetCandle == null) {
                 remaining += forecast
                 continue
