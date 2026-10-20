@@ -12,7 +12,7 @@ class BinanceSpotApi(
         .build()
 ) {
     fun fetchOneMinute(limit: Int = 1500, now: Long = System.currentTimeMillis()): List<Candle> {
-        require(limit in 10..1500)
+        require(limit in 10..1000)
         val request = Request.Builder()
             .url("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=$limit")
             .header("Accept", "application/json").build()
