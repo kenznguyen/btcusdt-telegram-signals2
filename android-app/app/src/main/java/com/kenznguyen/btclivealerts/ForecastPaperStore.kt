@@ -49,10 +49,19 @@ class ForecastPaperStore(context: Context) {
         if (closed.isEmpty()) return emptyList()
         val remaining = mutableListOf<ForecastSnapshot>()
         val settled = mutableListOf<ForecastPaperResult>()
+        var skipped = 0
         for (forecast in pending()) {
             val targetCandle = closedCandleAtExactTarget(forecast.targetAtMs, closed, nowMs)
-            if (nowMs < forecast.targetAtMs || targetCandle == null) {
+            if (nowMs < forecast.targetAtMs) {
                 remaining += forecast
+                continue
+            }
+            if (targetCandle == null) {
+                if (nowMs - forecast.targetAtMs > MAX_TARGET_DELAY_MS) {
+                    skipped++
+                } else {
+                    remaining += forecast
+                }
                 continue
             }
             val result = ForecastPaperTracker.settle(
@@ -62,9 +71,12 @@ class ForecastPaperStore(context: Context) {
             )
             if (result == null) remaining += forecast else settled += result
         }
-        preferences.edit().putString(KEY_PENDING, JSONArray().apply {
-            remaining.forEach { put(it.toJson()) }
-        }.toString()).apply()
+        preferences.edit()
+            .putString(KEY_PENDING, JSONArray().apply {
+                remaining.forEach { put(it.toJson()) }
+            }.toString())
+            .putInt(KEY_SKIPPED, preferences.getInt(KEY_SKIPPED, 0) + skipped)
+            .apply()
         if (settled.isNotEmpty()) {
             val all = (history() + settled).takeLast(MAX_HISTORY)
             preferences.edit().putString(KEY_HISTORY, JSONArray().apply {
@@ -78,6 +90,9 @@ class ForecastPaperStore(context: Context) {
     fun history(): List<ForecastPaperResult> = readArray(KEY_HISTORY).mapNotNull { value ->
         runCatching { value.asPaperResult() }.getOrNull()
     }
+
+    @Synchronized
+    fun skippedCount(): Int = preferences.getInt(KEY_SKIPPED, 0)
 
     @Synchronized
     fun saveStatus(value: String) {
@@ -196,6 +211,8 @@ class ForecastPaperStore(context: Context) {
         const val KEY_LATEST = "latest_forecast_json"
         const val KEY_STATUS = "forecast_status"
         const val KEY_VALIDATION = "forecast_validation_report"
+        const val KEY_SKIPPED = "skipped_forecast_count"
+        const val MAX_TARGET_DELAY_MS = 120_000L
         const val MAX_PENDING = 100
         const val MAX_HISTORY = 500
         const val ONE_MINUTE_MS = 60_000L
