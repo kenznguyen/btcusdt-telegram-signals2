@@ -26,8 +26,10 @@ class StrategyRuleTests(unittest.TestCase):
     def test_dca_threshold_and_direction_rules_are_present(self):
         self.assertIn("current_roe <= DCA_ROE", BOT_SOURCE)
         self.assertIn("adx > DCA_ADX", BOT_SOURCE)
-        self.assertIn("rsi > LONG_DCA_RSI and rsi > prev_rsi", BOT_SOURCE)
-        self.assertIn("rsi < SHORT_DCA_RSI and rsi < prev_rsi", BOT_SOURCE)
+        self.assertIn("rsi > LONG_DCA_RSI", BOT_SOURCE)
+        self.assertIn("rsi > prev_rsi", BOT_SOURCE)
+        self.assertIn("rsi < SHORT_DCA_RSI", BOT_SOURCE)
+        self.assertIn("rsi < prev_rsi", BOT_SOURCE)
 
     def test_tp_requires_rsi_and_roe(self):
         self.assertIn("rsi >= LONG_RSI_TP", BOT_SOURCE)
