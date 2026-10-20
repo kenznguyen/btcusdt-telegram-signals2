@@ -1,0 +1,49 @@
+name: DMI ADX BTC 5m Paper Backtest
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Historical days (default 180)"
+        required: true
+        default: "180"
+        type: choice
+        options: ["30", "90", "180"]
+      thresholds:
+        description: "ADX thresholds to compare"
+        required: true
+        default: "20,25,30"
+        type: choice
+        options: ["20,25,30", "20", "25", "30"]
+  push:
+    paths:
+      - "research/dmi_adx_5m_backtest.py"
+      - ".github/workflows/dmi-adx-5m-backtest.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run leakage-aware paper backtest
+        env:
+          DAYS: ${{ inputs.days || '180' }}
+          THRESHOLDS: ${{ inputs.thresholds || '20,25,30' }}
+        run: |
+          python research/dmi_adx_5m_backtest.py --days "$DAYS" --thresholds "$THRESHOLDS" --out dmi-adx-backtest-results
+      - name: Upload report and predictions
+        uses: actions/upload-artifact@v4
+        with:
+          name: dmi-adx-btcusdt-5m-backtest
+          path: dmi-adx-backtest-results/
+          if-no-files-found: error
+          retention-days: 30
