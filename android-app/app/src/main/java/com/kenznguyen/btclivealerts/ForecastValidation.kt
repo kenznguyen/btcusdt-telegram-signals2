@@ -8,7 +8,10 @@ data class ForecastValidationReport(
     val directionAccuracy: Double?,
     val medianPriceMae: Double?,
     val centralIntervalCoverage: Double?,
-    val baselineVersion: String = "historical-frequency-baseline-v1",
+    val alwaysSidewaysBrierScore: Double? = null,
+    val alwaysSidewaysAccuracy: Double? = null,
+    val brierSkillVsAlwaysSideways: Double? = null,
+    val baselineVersion: String = "always-sideways-v1",
     val note: String = "Historical walk-forward diagnostic; not a guarantee of future performance."
 )
 
@@ -45,6 +48,8 @@ class ForecastWalkForwardValidator(
 
         var count = 0
         var brierSum = 0.0
+        var baselineBrierSum = 0.0
+        var baselineCorrect = 0
         var correct = 0
         var absoluteErrorSum = 0.0
         var covered = 0
@@ -71,9 +76,13 @@ class ForecastWalkForwardValidator(
                 val observed = if (classIndex == actualClass) 1.0 else 0.0
                 val difference = probabilities[classIndex] - observed
                 brierSum += difference * difference
+                val baselineProbability = if (classIndex == 2) 1.0 else 0.0
+                val baselineDifference = baselineProbability - observed
+                baselineBrierSum += baselineDifference * baselineDifference
             }
             val predictedClass = probabilities.indices.maxByOrNull { probabilities[it] } ?: 2
             if (predictedClass == actualClass) correct++
+            if (actualClass == 2) baselineCorrect++
             absoluteErrorSum += abs(forecast.medianPrice - actualPrice)
             if (actualPrice >= forecast.lowerPrice && actualPrice <= forecast.upperPrice) covered++
             count++
@@ -85,7 +94,11 @@ class ForecastWalkForwardValidator(
             multiclassBrierScore = brierSum / count,
             directionAccuracy = correct.toDouble() / count,
             medianPriceMae = absoluteErrorSum / count,
-            centralIntervalCoverage = covered.toDouble() / count
+            centralIntervalCoverage = covered.toDouble() / count,
+            alwaysSidewaysBrierScore = baselineBrierSum / count,
+            alwaysSidewaysAccuracy = baselineCorrect.toDouble() / count,
+            brierSkillVsAlwaysSideways = (baselineBrierSum / count).takeIf { it > 0.0 }
+                ?.let { 1.0 - (brierSum / count) / it }
         )
     }
 }
