@@ -9,12 +9,12 @@ Audit-only branch. Strategy thresholds, sizing parameters, and production behavi
 - Android engine and existing unit tests: `feature/android-btcusdt-live-alerts`.
 - Python defaults currently specify fee 0.05% per side (0.0005) and slippage 5 bps. This is recorded as an implementation fact, not a recommendation to change a parameter.
 
-## Confirmed discrepancies / risks
-1. **Entry fill model differs.** Android applies adverse slippage to entry via `executionFillPrice`. Python bot signal-state and Python backtest entry use raw candle close for average entry and quantity sizing. This changes quantity, entry notional, fees and all later ROE/exit calculations.
-2. **DCA fill model differs.** Android applies adverse slippage to the DCA fill. Python backtest and Python bot use raw close for DCA quantity and average entry.
-3. **End-of-test liquidation is optimistic vs the configured execution model.** Backtest closes a remaining position at the final raw close without the adverse slippage used by TP/SL fills.
-4. **H1 filter may be one hour stale at quarter-hour boundary.** Both Python and Android select H1 data using `h1.open_time < floor(m15.open_time, 1h)`. At M15 open 00:45, the M15 close is 01:00; the 00:00 H1 candle has also closed at that time, but the current selector still uses the prior H1 candle. This should be checked against the exact Pine/TradingView bar-timing contract before changing it.
-5. **Parameter-source discrepancy to reconcile, not change now.** Current Python/Android engine default fee is 0.05% per side. Earlier supplied Pine configuration used 0.04% commission. Do not compare performance numbers until the intended commission assumption is documented and identical across platforms.
+## Findings and fixes on this branch
+1. **Entry/DCA fill parity:** fixed Python bot and backtest to apply the existing adverse-slippage model to entry and DCA, and to derive quantity, average entry and notional from fill price.
+2. **End-of-test liquidation:** fixed backtest to apply the configured adverse slippage to final liquidation.
+3. **H1 close-time selection:** fixed Python bot, backtest and Android engine to use the latest H1 candle whose close time is no later than the closed M15 candle close time. At M15 open 00:45 (close 01:00), the H1 candle opened 00:00 is now eligible. Only closed H1 candles are selected.
+4. **Protective exits with NaN indicators:** removed early indicator guards from Python bot/backtest. RSI/ADX-dependent entry, TP and Soft SL conditions evaluate false for NaN, while price-based Emergency SL still executes. Android already allows Emergency SL evaluation while RSI is warming up when a position exists.
+5. **Fee source discrepancy remains unresolved:** Python/backtest default is 0.05% per side; an earlier supplied Pine configuration used 0.04%. The intended production commission source must be explicitly confirmed before changing this parameter. No fee or strategy threshold was changed.
 
 ## Already aligned in inspected source
 - Entry RSI cross inequalities and H1 DI/ADX thresholds are consistent between Python rule helpers and Android pure-rule functions.
@@ -24,7 +24,7 @@ Audit-only branch. Strategy thresholds, sizing parameters, and production behavi
 - Both Python and Android use stop-gap logic plus adverse slippage for stop fills.
 
 ## Tests
-`tests/test_strategy_backtest_audit.py` covers boundary behavior and records four known execution/timing gaps as expected failures. Expected failures are not passes of the underlying behavior; they are tracked gaps that should turn into ordinary passing regression tests after a separately reviewed implementation fix.
+`tests/test_strategy_backtest_audit.py` now contains ordinary regression assertions for adverse Entry/DCA/end-exit fills, closed-H1 timing in Python and Android, protective-stop evaluation with missing indicators, core strategy conditions, and unchanged fee/slippage defaults. CI must pass before this branch is considered validated.
 
 ## Not claimed
 No fresh historical backtest metrics are claimed by this audit. No market data was downloaded or replayed in this commit. Do not treat historical profitability as verified until execution parity is resolved and a deterministic fixture plus a fresh backtest report have been reviewed.
