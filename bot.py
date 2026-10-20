@@ -684,11 +684,13 @@ def main():
             if dca_cond:
                 initial_margin = float(state.get("initial_margin") or 0.0)
                 add_margin = initial_margin * DCA_MARGIN_RATIO
+                reserved_margin = float(state.get("initial_margin") or 0.0) + float(state.get("dca_margin") or 0.0)
+                available_margin = max(0.0, float(state.get("account_balance", INITIAL_CAPITAL)) - reserved_margin)
                 action = "BUY" if side == "LONG" else "SELL"
                 fill_price = execution_fill_price(close, action)
-                add_qty = add_margin * LEVERAGE / fill_price
+                add_qty = add_margin * LEVERAGE / fill_price if fill_price > 0 else 0.0
                 total_qty = qty + add_qty
-                if total_qty > 0:
+                if total_qty > 0 and add_margin > 0 and add_margin <= available_margin + 1e-9:
                     new_avg = (
                         (avg_entry * qty) + (fill_price * add_qty)
                     ) / total_qty
