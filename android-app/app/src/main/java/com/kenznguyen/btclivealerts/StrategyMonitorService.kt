@@ -28,6 +28,7 @@ import org.json.JSONObject
 class StrategyMonitorService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var monitorJob: Job? = null
+    private var forecastJob: Job? = null
     private val market by lazy { MarketEngine() }
     private val engine by lazy { StrategyEngine() }
     private val forecastEngine by lazy { ForecastEngine() }
@@ -43,6 +44,15 @@ class StrategyMonitorService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (forecastJob?.isActive != true) {
+            forecastJob = scope.launch {
+                while (isActive) {
+                    val prefs = getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE)
+                    processForecastPaper(prefs)
+                    delay(15_000L)
+                }
+            }
+        }
         if (monitorJob?.isActive != true) {
             monitorJob = scope.launch {
                 while (isActive) {
@@ -112,10 +122,6 @@ class StrategyMonitorService : Service() {
                             .putString("state_json", state.toJson())
                             .putLong("monitor_last_success_ms", System.currentTimeMillis())
                             .apply()
-
-                        // Forecast paper tracking runs in the existing foreground service,
-                        // independently from whether the chart screen is visible.
-                        processForecastPaper(prefs)
 
                         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
                             .notify(1001, ongoing("Đang theo dõi · " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())))
@@ -269,6 +275,7 @@ class StrategyMonitorService : Service() {
             .putString("monitor_last_error", "Android đã dừng dịch vụ dataSync do giới hạn thời gian; mở lại ứng dụng để tiếp tục theo dõi.")
             .apply()
         monitorJob?.cancel()
+        forecastJob?.cancel()
 
         // Keep the timeout visible after the foreground service stops. Tapping this
         // notification opens the app, whose Activity starts the monitor again.
@@ -298,6 +305,7 @@ class StrategyMonitorService : Service() {
 
     override fun onDestroy() {
         monitorJob?.cancel()
+        forecastJob?.cancel()
         scope.cancel()
         super.onDestroy()
     }
