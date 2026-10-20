@@ -14,7 +14,7 @@ class ForecastSettlementCandleTest {
         closed = closed
     )
 
-    @Test fun picksFirstClosedCandleAtOrAfterTarget() {
+    @Test fun picksClosedCandleAtExactTarget() {
         val candles = listOf(
             candle(0L),
             candle(60_000L),
