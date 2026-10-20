@@ -273,19 +273,18 @@ def run_backtest(days=None):
                     "position_trade_id": pos.get("trade_id", "") if pos else "",
                     "method": "OHLC adverse extreme vs observed equity peak; intrabar order unknown"
                 }
-            if i == 0 or pd.isna(row["rsi"]) or pd.isna(row["adx"]):
+            if i == 0:
                 continue
-            # Match bot.py: latest H1 candle whose open is before this M15 hour.
-            # This intentionally excludes the current forming H1 candle.
-            candidates = h1[h1["open_time"] < ts.floor("h")]
-            if candidates.empty:
-                continue
-            hr, prev = candidates.iloc[-1], m15.iloc[i-1]
-            if any(pd.isna(x) for x in [hr["plus_di"],hr["minus_di"],hr["adx"],prev["rsi"]]):
-                continue
+            # Use only H1 candles closed by the close of this M15 candle.
+            # E.g. the 00:45 M15 candle closes at 01:00 and can use H1 00:00.
+            candidates = h1[h1["close_time"] <= row["close_time"]]
+            prev = m15.iloc[i-1]
+            hr = candidates.iloc[-1] if not candidates.empty else None
             op, high, low, close = [float(row[k]) for k in ("open","high","low","close")]
             rsi, adx, prsi = float(row["rsi"]), float(row["adx"]), float(prev["rsi"])
-            plus, minus, hadx = float(hr["plus_di"]), float(hr["minus_di"]), float(hr["adx"])
+            plus = float(hr["plus_di"]) if hr is not None else float("nan")
+            minus = float(hr["minus_di"]) if hr is not None else float("nan")
+            hadx = float(hr["adx"]) if hr is not None else float("nan")
             bull = plus > minus and hadx > bot.H1_ADX_ENTRY
             bear = minus > plus and hadx > bot.H1_ADX_ENTRY
             go_long = bull and prsi <= bot.LONG_RSI_ENTRY and rsi > bot.LONG_RSI_ENTRY
@@ -349,13 +348,15 @@ def run_backtest(days=None):
                         dca_margin = pos["initial_margin"] * DCA_MARGIN_RATIO
                         available_margin = max(0.0, balance - pos["margin"])
                         if dca_margin > 0 and dca_margin <= available_margin + 1e-9:
-                            add = dca_margin * bot.LEVERAGE / close
+                            action = "BUY" if side == "LONG" else "SELL"
+                            fill_price = bot.execution_fill_price(close, action)
+                            add = dca_margin * bot.LEVERAGE / fill_price
                             new_qty = qty + add
-                            pos["avg"] = (avg * qty + close * add) / new_qty
+                            pos["avg"] = (avg * qty + fill_price * add) / new_qty
                             pos["qty"] = new_qty
                             pos["margin"] += dca_margin
                             pos["dca"] = True
-                            pos["notional"] += close * add
+                            pos["notional"] += fill_price * add
                             counts["DCA"] += 1
                             _refresh_last_equity(ts, mark_price)
                         else:
@@ -366,16 +367,20 @@ def run_backtest(days=None):
             if (go_long or go_short) and balance > 0:
                 side = "LONG" if go_long else "SHORT"
                 initial_margin = balance * ENTRY_MARGIN_PCT
-                qty = initial_margin*bot.LEVERAGE/close
-                pos = {"side":side,"time":ts,"avg":close,"qty":qty,"margin":initial_margin,
-                       "initial_margin":initial_margin,"dca":False,"notional":close*qty,
+                action = "BUY" if side == "LONG" else "SELL"
+                fill_price = bot.execution_fill_price(close, action)
+                qty = initial_margin * bot.LEVERAGE / fill_price
+                pos = {"side":side,"time":ts,"avg":fill_price,"qty":qty,"margin":initial_margin,
+                       "initial_margin":initial_margin,"dca":False,"notional":fill_price*qty,
                        "trade_id":len(trades)+1}
                 _refresh_last_equity(ts, mark_price)
 
         if pos:
             row = m15.iloc[-1]
             side, avg, qty = pos["side"], pos["avg"], pos["qty"]
-            exit_price = float(row["close"])
+            reference_exit = float(row["close"])
+            exit_action = "SELL" if side == "LONG" else "BUY"
+            exit_price = bot.execution_fill_price(reference_exit, exit_action)
             gross = ((exit_price-avg) if side=="LONG" else (avg-exit_price))*qty
             fees = (pos["notional"]+abs(exit_price*qty))*FEE
             net = gross-fees
