@@ -44,11 +44,16 @@ class TelegramBridgeRecoveryTests(unittest.TestCase):
              patch.object(bridge, "TELEGRAM_CHAT_ID", "12345"), \
              patch.object(bridge, "BOT_STATE_DIR", self.tempdir.name), \
              patch.object(bridge, "TELEGRAM_UPDATE_STATE_FILE", self.state_path), \
-             patch.object(bridge, "dispatch_github", side_effect=RuntimeError("temporary API failure")), \
+             patch.object(bridge, "dispatch_github",
+                          side_effect=[RuntimeError("temporary API failure"), None]) as dispatch, \
              patch.object(bridge, "telegram_send", return_value=None):
             failed = self._post()
             self.assertEqual(failed.status_code, 503)
             self.assertNotIn("8675309", bridge._seen_updates)
+            retried = self._post()
+            self.assertEqual(retried.status_code, 200)
+            self.assertEqual(dispatch.call_count, 2)
+            self.assertIn("8675309", bridge._seen_updates)
 
     def test_successful_dispatch_is_persistently_deduplicated(self):
         with patch.object(bridge, "TELEGRAM_WEBHOOK_SECRET", "test-secret"), \
