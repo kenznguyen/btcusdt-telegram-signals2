@@ -21,7 +21,7 @@ class ForecastSettlementCandleTest {
             candle(120_000L),
             candle(180_000L)
         )
-        val selected = firstClosedCandleAtOrAfter(
+        val selected = closedCandleAtExactTarget(
             targetAtMs = 180_000L,
             candles = candles,
             nowMs = 240_000L
@@ -32,7 +32,7 @@ class ForecastSettlementCandleTest {
 
     @Test fun missingExactTargetCandleIsNotReplacedWithALaterPrice() {
         val candles = listOf(candle(60_000L), candle(180_000L))
-        assertNull(firstClosedCandleAtOrAfter(180_000L, candles, 240_000L))
+        assertNull(closedCandleAtExactTarget(180_000L, candles, 240_000L))
     }
 
     @Test fun doesNotUseFormingOrFutureCandle() {
@@ -40,6 +40,6 @@ class ForecastSettlementCandleTest {
             candle(60_000L, closed = false),
             candle(120_000L)
         )
-        assertNull(firstClosedCandleAtOrAfter(50_000L, candles, 100_000L))
+        assertNull(closedCandleAtExactTarget(50_000L, candles, 100_000L))
     }
 }
