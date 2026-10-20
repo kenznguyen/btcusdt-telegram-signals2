@@ -148,7 +148,6 @@ def run_backtest(days=None):
             end = pd.Timestamp(requested_end)
             end = end.tz_localize("UTC") if end.tzinfo is None else end.tz_convert("UTC")
             # The end is exclusive to keep adjacent walk-forward windows disjoint.
-            now = end
         else:
             end = now
         start = end - pd.Timedelta(days=days)
