@@ -53,9 +53,9 @@ jobs:
         run: python -m py_compile backtest.py bot.py tools/multi_window_walk_forward.py
       - name: Run rolling walk-forward with fixed strategy parameters
         env:
-          IS_DAYS: \${{ inputs.is_days || '180' }}
-          OOS_DAYS: \${{ inputs.oos_days || '30' }}
-          WF_WINDOWS: \${{ inputs.windows || '6' }}
+          IS_DAYS: ${{ inputs.is_days || '180' }}
+          OOS_DAYS: ${{ inputs.oos_days || '30' }}
+          WF_WINDOWS: ${{ inputs.windows || '6' }}
           BACKTEST_INITIAL_CAPITAL: "100"
           ENTRY_MARGIN_PCT: "0.50"
           DCA_MARGIN_RATIO: "1.00"
