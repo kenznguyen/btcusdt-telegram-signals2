@@ -34,7 +34,10 @@ jobs:
       - name: Restore scanner state
         uses: actions/cache@v4
         with:
-          path: state.json
+          path: |
+            state.json
+            telegram_outbox.json
+            telegram_sent_event_ids.json
           key: signal-state-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             signal-state-
