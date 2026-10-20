@@ -433,7 +433,7 @@ fun CompleteDashboard(context: Context) {
             } catch (e: Exception) {
                 forecastStatus = "Dự báo M5 lỗi dữ liệu/mạng: ${e.message ?: "không xác định"}"
             }
-            delay(15_000L)
+            delay(60_000L)
         }
     }
 
