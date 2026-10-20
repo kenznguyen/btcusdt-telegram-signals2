@@ -101,6 +101,31 @@ def get_klines(interval, limit=500):
     if not rows:
         raise RuntimeError("OKX returned no candle data")
 
+    # Validate the source batch before indicators/state are allowed to advance.
+    # Duplicate timestamps are tolerated across paginated pages but conflicting duplicates are not.
+    by_timestamp = {}
+    for source_row in rows:
+        if len(source_row) < 9:
+            raise RuntimeError("OKX candle row is incomplete")
+        timestamp = str(source_row[0])
+        if timestamp in by_timestamp and by_timestamp[timestamp] != source_row:
+            raise RuntimeError(f"Conflicting duplicate OKX candle at {timestamp}")
+        by_timestamp[timestamp] = source_row
+    rows = sorted(by_timestamp.values(), key=lambda row: int(row[0]))
+    interval_ms = {"15m": 15 * 60_000, "1h": 60 * 60_000,
+                   "1d": 24 * 60 * 60_000, "1w": 7 * 24 * 60 * 60_000}[interval]
+    for previous, current in zip(rows, rows[1:]):
+        delta = int(current[0]) - int(previous[0])
+        if delta <= 0:
+            raise RuntimeError("OKX candles are not strictly chronological")
+        if delta % interval_ms != 0:
+            raise RuntimeError("OKX candle timestamps are not aligned to interval")
+    # Missing intervals are recorded as a warning; do not fabricate candles or indicators.
+    gaps = sum(1 for previous, current in zip(rows, rows[1:])
+               if int(current[0]) - int(previous[0]) > interval_ms)
+    if gaps:
+        print(f"WARNING: OKX returned {gaps} candle gap(s) for {interval}; indicators may be less reliable.")
+
     # Loại nến trùng và sắp xếp thời gian tăng dần
     unique_rows = {row[0]: row for row in rows}
     rows = sorted(unique_rows.values(), key=lambda row: int(row[0]))
@@ -132,6 +157,25 @@ def get_klines(interval, limit=500):
     df["close_time"] = (
         df["open_time"] + duration_map[interval]
     )
+
+    price_cols = ["open", "high", "low", "close", "volume", "quote_volume"]
+    numeric = df[price_cols].to_numpy(dtype=float)
+    if not np.isfinite(numeric).all():
+        raise RuntimeError("OKX returned NaN/inf candle values")
+    invalid_ohlc = (
+        (df["low"] <= 0)
+        | (df["high"] < df["low"])
+        | (df["high"] < df["open"])
+        | (df["high"] < df["close"])
+        | (df["low"] > df["open"])
+        | (df["low"] > df["close"])
+        | (df["open"] <= 0)
+        | (df["close"] <= 0)
+        | (df["volume"] < 0)
+        | (df["quote_volume"] < 0)
+    )
+    if invalid_ohlc.any():
+        raise RuntimeError(f"OKX returned {int(invalid_ohlc.sum())} invalid OHLCV candle(s)")
 
     # Chỉ dùng nến đã đóng theo cờ xác nhận của OKX
     # và thời gian đóng nến.
