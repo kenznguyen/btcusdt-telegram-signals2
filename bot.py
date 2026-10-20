@@ -574,7 +574,7 @@ def main():
                 tp_rsi = LONG_RSI_TP if side == "LONG" else SHORT_RSI_TP
                 send_event(
                     close_reason, side, exit_fill_price, row["open_time"], roe,
-                    f"TP kích hoạt khi nến đóng: RSI {'≥' if side == "LONG" else '≤'} {tp_rsi:g}, "
+                    f"TP kích hoạt khi nến đóng: RSI {'≥' if side == 'LONG' else '≤'} {tp_rsi:g}, "
                     f"ROE ≥ +{TP_ROE:g}%. Giá ngưỡng lý thuyết: {fmt_price(tp_price)}; "
                     f"giá khớp mô phỏng tại close sau trượt giá {SLIPPAGE_BPS:g} bps: {fmt_price(exit_fill_price)}",
                 )
