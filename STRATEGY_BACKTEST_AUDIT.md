@@ -29,3 +29,14 @@ Audit-only branch. Strategy thresholds, sizing parameters, and production behavi
 
 ## Not claimed
 No fresh historical backtest metrics are claimed by this audit. No market data was downloaded or replayed in this commit. Do not treat historical profitability as verified until execution parity is resolved and a deterministic fixture plus a fresh backtest report have been reviewed.
+
+
+## State and notification recovery hardening
+
+- Python state and Telegram outbox/ledger JSON writes are atomic (fsync + os.replace). A corrupt state file now fails closed rather than silently resetting an open paper position.
+- BOT_STATE_DIR controls the directory for state.json, telegram_outbox.json, telegram_sent_event_ids.json, and Telegram webhook update IDs. On Render, point this to a mounted persistent disk path if restart/deploy durability is required. Without persistent storage, local files may be lost on instance replacement.
+- Telegram signal events are queued durably before delivery, retried on later runs, and deduplicated by event type/side/closed-candle timestamp. Telegram Bot API does not provide an idempotency key for sendMessage; a crash after Telegram accepts a message but before the sent ledger is written leaves a narrow duplicate-delivery window.
+- Telegram webhook updates are persisted to telegram_seen_updates.json; failed GitHub workflow dispatches return HTTP 503 without marking the update handled, allowing Telegram to retry. Configure the same BOT_STATE_DIR on a persistent Render disk to preserve this ledger across restarts.
+- Android validates OHLCV, timestamps and conflicting duplicate candles; corrupt persisted strategy state now fails closed. Strategy alerts are persisted to a SharedPreferences outbox before state/cursor commit. Chart/strategy notifications denied by Android notification permission are queued and retried when permission is restored.
+- Android stable notification IDs update the same system notification on retry, but OS delivery cannot be transactionally coupled to SharedPreferences. Device-level validation still requires testing on the target phone with notifications enabled, battery restrictions reviewed, and the app allowed to run in the background.
+- GitHub Actions cache is best-effort recovery, not a transactional database or guarantee of permanent storage. For the scheduled scanner, state/outbox/ledger files are included in the cache path; a persistent service volume or external database is stronger if strict durability is required.
