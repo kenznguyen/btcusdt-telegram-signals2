@@ -13,7 +13,7 @@ internal fun firstClosedCandleAtOrAfter(targetAtMs: Long, candles: List<Candle>,
     candles.asSequence()
         .filter { it.closed }
         .sortedBy { it.openTime }
-        .firstOrNull { it.openTime + 60_000L >= targetAtMs && it.openTime + 60_000L <= nowMs }
+        .firstOrNull { it.openTime + 60_000L == targetAtMs && it.openTime + 60_000L <= nowMs }
 
 class ForecastPaperStore(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences(
