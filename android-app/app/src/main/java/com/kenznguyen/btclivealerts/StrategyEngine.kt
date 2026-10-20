@@ -236,9 +236,16 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
                 continue
             }
 
-            val hourBucket = c.openTime - c.openTime % 3_600_000L
-            while (hidx + 1 < hours.size && hours[hidx + 1].openTime < hourBucket) hidx++
-            val hasPriorClosedHour = hours.getOrNull(hidx)?.openTime?.let { it < hourBucket } == true
+            // A closed M15 candle is available at openTime + 15 minutes.
+            // Select the latest closed H1 candle available by that instant, avoiding stale
+            // trend filters at quarter-hour boundaries without reading a forming H1 candle.
+            val m15CloseTime = c.openTime + 15L * 60L * 1000L
+            while (hidx + 1 < hours.size &&
+                hours[hidx + 1].openTime + 60L * 60L * 1000L <= m15CloseTime
+            ) hidx++
+            val hasPriorClosedHour = hours.getOrNull(hidx)?.let {
+                it.openTime + 60L * 60L * 1000L <= m15CloseTime
+            } == true
             val hp = if (hasPriorClosedHour) hi.getOrNull(hidx)?.plusDi else null
             val hm = if (hasPriorClosedHour) hi.getOrNull(hidx)?.minusDi else null
             val ha = if (hasPriorClosedHour) hi.getOrNull(hidx)?.adx else null
