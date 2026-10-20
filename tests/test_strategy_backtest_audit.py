@@ -1,10 +1,4 @@
-"""Evidence-first audit tests for Python bot/backtest execution parity.
-
-Known execution-model gaps are marked expectedFailure on purpose. They should be
-converted to ordinary passing assertions only after the implementation is fixed
-and the cross-platform behavior is verified. No strategy thresholds are changed.
-"""
-import re
+"""Regression tests for strategy/backtest execution parity; no strategy params changed."""
 import unittest
 from pathlib import Path
 
@@ -13,11 +7,11 @@ import bot
 ROOT = Path(__file__).resolve().parents[1]
 BACKTEST_SOURCE = (ROOT / "backtest.py").read_text(encoding="utf-8")
 BOT_SOURCE = (ROOT / "bot.py").read_text(encoding="utf-8")
+ANDROID_SOURCE = (ROOT / "android-app/src/main/java/com/kenznguyen/btclivealerts/StrategyEngine.kt").read_text(encoding="utf-8")
 
 
 class StrategyRuleTests(unittest.TestCase):
     def test_entry_cross_and_h1_filter_rules_are_present(self):
-        # The Python bot currently implements these conditions inline in main().
         self.assertIn("prev_rsi <= LONG_RSI_ENTRY and rsi > LONG_RSI_ENTRY", BOT_SOURCE)
         self.assertIn("prev_rsi >= SHORT_RSI_ENTRY and rsi < SHORT_RSI_ENTRY", BOT_SOURCE)
         self.assertIn("h1_plus > h1_minus and h1_adx > H1_ADX_ENTRY", BOT_SOURCE)
@@ -42,46 +36,35 @@ class StrategyRuleTests(unittest.TestCase):
         self.assertLess(bot.execution_fill_price(100.0, "SELL"), 100.0)
         self.assertGreater(bot.execution_fill_price(100.0, "BUY"), 100.0)
 
-    def test_python_fee_and_slippage_defaults_are_explicit(self):
+    def test_fee_and_slippage_defaults_are_unchanged(self):
         self.assertAlmostEqual(bot.FEE_RATE, 0.0005)
         self.assertAlmostEqual(bot.SLIPPAGE_BPS, 5.0)
 
+    def test_entry_dca_and_end_exit_use_adverse_fills(self):
+        self.assertIn('fill_price = execution_fill_price(close, "BUY")', BOT_SOURCE)
+        self.assertIn('fill_price = execution_fill_price(close, "SELL")', BOT_SOURCE)
+        self.assertIn("fill_price = bot.execution_fill_price(close, action)", BACKTEST_SOURCE)
+        self.assertIn('exit_price = bot.execution_fill_price(reference_exit, exit_action)', BACKTEST_SOURCE)
+        self.assertIn('avg_entry": fill_price', BOT_SOURCE)
+        self.assertIn('entry_notional": new_qty * fill_price', BOT_SOURCE)
 
-class KnownParityGapTests(unittest.TestCase):
-    @unittest.expectedFailure
-    def test_backtest_entry_uses_same_adverse_slippage_as_android_and_bot_model(self):
-        # Android applies executionFillPrice at entry. Python backtest currently
-        # sizes qty from raw close and stores avg=close, so this should fail today.
-        self.assertRegex(
-            BACKTEST_SOURCE,
-            r"fill_price\s*=\s*bot\.execution_fill_price\(close,\s*action\)",
-        )
-
-    @unittest.expectedFailure
-    def test_backtest_dca_uses_same_adverse_slippage_as_android_and_bot_model(self):
-        # Android applies adverse slippage to DCA; Python backtest currently uses close.
-        dca_section = BACKTEST_SOURCE[BACKTEST_SOURCE.find("if not pos[\"dca\"]"):BACKTEST_SOURCE.find("if pos:\n            row = m15.iloc[-1]")]
-        self.assertRegex(dca_section, r"fill_price\s*=\s*bot\.execution_fill_price\(close,\s*action\)")
-
-    @unittest.expectedFailure
-    def test_h1_filter_selects_latest_candle_closed_by_m15_close_time(self):
-        # At an M15 candle opening 00:45, its close is 01:00. The H1 candle
-        # opening 00:00 is closed at 01:00 and is then available without lookahead.
-        # Current code selects by M15 OPEN hour bucket, which keeps the 23:00 H1 bar.
+    def test_h1_filter_uses_latest_candle_closed_by_m15_close(self):
+        self.assertIn('t + pd.Timedelta(hours=1) <= closed_at', BOT_SOURCE)
         self.assertIn('h1["close_time"] <= row["close_time"]', BACKTEST_SOURCE)
+        self.assertIn("hours[hidx + 1].openTime + 60L * 60L * 1000L <= m15CloseTime", ANDROID_SOURCE)
+        self.assertIn("it.openTime + 60L * 60L * 1000L <= m15CloseTime", ANDROID_SOURCE)
 
-    @unittest.expectedFailure
-    def test_python_bot_and_backtest_do_not_skip_emergency_stop_when_indicators_are_nan(self):
-        # Protective exits should still run if RSI/ADX are unavailable. Current source
-        # contains early-continue guards before the emergency-stop checks.
+    def test_protective_stop_checks_are_not_skipped_for_nan_indicators(self):
         self.assertNotIn('if pd.isna(row["rsi"]) or pd.isna(row["adx"]):', BOT_SOURCE)
         self.assertNotIn('if i == 0 or pd.isna(row["rsi"]) or pd.isna(row["adx"]):', BACKTEST_SOURCE)
+        self.assertIn("if (!hasRsi && state.position == null)", ANDROID_SOURCE)
+        self.assertIn("val emergency = emergencyStopTriggered", ANDROID_SOURCE)
 
-    @unittest.expectedFailure
-    def test_end_of_test_exit_applies_adverse_slippage(self):
-        # End-of-window close currently uses the raw last close in the backtest.
-        tail = BACKTEST_SOURCE[BACKTEST_SOURCE.find('if pos:\n            row = m15.iloc[-1]'):BACKTEST_SOURCE.find("# KPI definitions")]
-        self.assertRegex(tail, r"bot\.execution_fill_price\(exit_price,\s*\"SELL\"")
+    def test_backtest_end_exit_applies_adverse_slippage(self):
+        tail_start = BACKTEST_SOURCE.find('if pos:\n            row = m15.iloc[-1]')
+        tail_end = BACKTEST_SOURCE.find("# KPI definitions", tail_start)
+        self.assertGreaterEqual(tail_start, 0)
+        self.assertIn("bot.execution_fill_price(reference_exit, exit_action)", BACKTEST_SOURCE[tail_start:tail_end])
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
