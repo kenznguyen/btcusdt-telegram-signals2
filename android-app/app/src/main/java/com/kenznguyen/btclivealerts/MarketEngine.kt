@@ -41,18 +41,39 @@ class MarketEngine {
             client.newCall(request).execute().use { response ->
                 check(response.isSuccessful) { "Binance Futures HTTP ${response.code}" }
                 val array = JSONArray(response.body?.string() ?: "[]")
-                (0 until array.length()).map { i ->
+                val now = System.currentTimeMillis()
+                val byTime = sortedMapOf<Long, Candle>()
+                for (i in 0 until array.length()) {
                     val row = array.getJSONArray(i)
-                    Candle(
+                    val candle = Candle(
                         openTime = row.getLong(0),
                         open = row.getDouble(1),
                         high = row.getDouble(2),
                         low = row.getDouble(3),
                         close = row.getDouble(4),
                         volume = row.getDouble(5),
-                        closed = row.getLong(6) < System.currentTimeMillis()
+                        closed = row.getLong(6) < now
                     )
+                    require(candle.openTime >= 0L && candle.open.isFinite() && candle.close.isFinite() &&
+                        candle.high.isFinite() && candle.low.isFinite() && candle.open > 0.0 && candle.close > 0.0 &&
+                        candle.high >= candle.low && candle.high >= candle.open && candle.high >= candle.close &&
+                        candle.low <= candle.open && candle.low <= candle.close &&
+                        candle.volume.isFinite() && candle.volume >= 0.0
+                    ) { "Binance returned invalid OHLCV candle at " + candle.openTime }
+                    val previous = byTime.put(candle.openTime, candle)
+                    require(previous == null || previous == candle) {
+                        "Binance returned conflicting duplicate candle at " + candle.openTime
+                    }
                 }
+                val result = byTime.values.toList()
+                require(result.isNotEmpty()) { "Binance returned no candle data" }
+                val step = when (interval) { "15m" -> 900_000L; "1h" -> 3_600_000L; else -> error("Unsupported interval") }
+                require(result.zipWithNext().all { (a, b) -> b.openTime > a.openTime && (b.openTime - a.openTime) % step == 0L }) {
+                    "Binance candle timestamps are not strictly chronological/aligned"
+                }
+                val gaps = result.zipWithNext().count { (a, b) -> b.openTime - a.openTime > step }
+                if (gaps > 0) android.util.Log.w("MarketEngine", "Binance returned " + gaps + " candle gap(s) for " + interval)
+                result
             }
         }
 
