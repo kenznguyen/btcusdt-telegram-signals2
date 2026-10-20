@@ -24,6 +24,8 @@ class StrategyRuleTests(unittest.TestCase):
         self.assertIn("rsi > prev_rsi", BOT_SOURCE)
         self.assertIn("rsi < SHORT_DCA_RSI", BOT_SOURCE)
         self.assertIn("rsi < prev_rsi", BOT_SOURCE)
+        self.assertIn("available_margin = max(0.0", BOT_SOURCE)
+        self.assertIn("add_margin <= available_margin + 1e-9", BOT_SOURCE)
 
     def test_tp_requires_rsi_and_roe(self):
         self.assertIn("rsi >= LONG_RSI_TP", BOT_SOURCE)
