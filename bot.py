@@ -34,6 +34,8 @@ DCA_MARGIN_RATIO = float(os.getenv("DCA_MARGIN_RATIO", "1.00"))
 FEE_RATE = float(os.getenv("TAKER_FEE_RATE", "0.0005"))
 SLIPPAGE_BPS = float(os.getenv("SLIPPAGE_BPS", "5"))
 STATE_FILE = "state.json"
+TELEGRAM_OUTBOX_FILE = "telegram_outbox.json"
+TELEGRAM_SENT_FILE = "telegram_sent_event_ids.json"
 FAPI = "https://fapi.binance.com"
 
 def utc_now():
@@ -204,6 +206,27 @@ def add_indicators(df):
     d["adx"] = rma(dx, ADX_SMOOTH)
     return d
 
+def _atomic_write_json(path, payload):
+    """Replace JSON files atomically so a process restart cannot read a partial write."""
+    import tempfile
+    directory = os.path.dirname(os.path.abspath(path))
+    fd, temporary = tempfile.mkstemp(prefix=".state-", suffix=".tmp", dir=directory)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+def _read_json(path, default):
+    if not os.path.exists(path):
+        return default
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
 def load_state():
     default = {
         "last_processed_open": None,
@@ -219,18 +242,26 @@ def load_state():
     if not os.path.exists(STATE_FILE):
         return default
     try:
-        with open(STATE_FILE, "r", encoding="utf-8") as f:
-            saved = json.load(f)
+        saved = _read_json(STATE_FILE, {})
+        if not isinstance(saved, dict):
+            raise ValueError("state.json must contain a JSON object")
         default.update(saved)
         if "account_balance" not in saved:
             default["account_balance"] = INITIAL_CAPITAL
+        if default.get("side") not in (None, "LONG", "SHORT"):
+            raise ValueError("state.json has an unsupported position side")
+        for key in ("qty", "avg_entry", "account_balance"):
+            value = float(default.get(key) or 0.0)
+            if not np.isfinite(value) or value < 0:
+                raise ValueError(f"state.json has invalid {key}")
         return default
-    except Exception:
-        return default
+    except Exception as exc:
+        raise RuntimeError(
+            f"Cannot safely restore {STATE_FILE}; refusing to reset position state: {exc}"
+        ) from exc
 
 def save_state(state):
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2)
+    _atomic_write_json(STATE_FILE, state)
 
 def telegram_send(text):
     token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
@@ -247,6 +278,53 @@ def telegram_send(text):
 def fmt_price(x):
     return f"{x:,.2f}"
 
+def _event_key(kind, side, candle_time):
+    stamp = pd.Timestamp(candle_time)
+    if stamp.tzinfo is None:
+        stamp = stamp.tz_localize("UTC")
+    else:
+        stamp = stamp.tz_convert("UTC")
+    return f"{kind}|{side or 'FLAT'}|{stamp.isoformat()}"
+
+def flush_telegram_outbox():
+    """Deliver queued alerts; retain failures for the next scheduled run."""
+    try:
+        queue = _read_json(TELEGRAM_OUTBOX_FILE, [])
+        sent = _read_json(TELEGRAM_SENT_FILE, [])
+        if not isinstance(queue, list) or not isinstance(sent, list):
+            raise ValueError("Telegram outbox/ledger JSON has an invalid shape")
+        sent_set = set(str(x) for x in sent)
+        remaining = []
+        changed = False
+        for item in queue:
+            key = item.get("key") if isinstance(item, dict) else None
+            if not key:
+                changed = True
+                continue
+            if key in sent_set:
+                changed = True
+                continue
+            try:
+                telegram_send(item["text"])
+            except Exception as exc:
+                print(f"Telegram delivery pending for {key}: {exc}")
+                remaining.append(item)
+                continue
+            # Persist the ledger before removing the queue item. Telegram sendMessage has
+            # no idempotency key, so a crash after API acceptance but before this write is
+            # the one narrow window in which duplicate delivery cannot be ruled out.
+            sent.append(key)
+            sent_set.add(key)
+            sent = sent[-500:]
+            _atomic_write_json(TELEGRAM_SENT_FILE, sent)
+            changed = True
+        if changed or len(remaining) != len(queue):
+            _atomic_write_json(TELEGRAM_OUTBOX_FILE, remaining)
+        return len(remaining)
+    except Exception as exc:
+        print(f"Telegram outbox retained for retry: {exc}")
+        return -1
+
 def send_event(kind, side, price, candle_time, roe=None, note=""):
     emoji = {"LONG ENTRY":"🟢", "SHORT ENTRY":"🔴", "DCA":"🟠",
              "TAKE PROFIT":"✅", "SOFT SL":"⚠️", "EMERGENCY SL":"🚨"}.get(kind, "ℹ️")
@@ -262,7 +340,18 @@ def send_event(kind, side, price, candle_time, roe=None, note=""):
     if note:
         lines.append(note)
     lines.append("Người nhận tự xác minh giá và quản lý rủi ro.")
-    telegram_send("\n".join(lines))
+    key = _event_key(kind, side, candle_time)
+    try:
+        sent = _read_json(TELEGRAM_SENT_FILE, [])
+        queue = _read_json(TELEGRAM_OUTBOX_FILE, [])
+        if key in sent or any(isinstance(item, dict) and item.get("key") == key for item in queue):
+            return
+        queue.append({"key": key, "text": "\n".join(lines), "queued_at": utc_now().isoformat()})
+        _atomic_write_json(TELEGRAM_OUTBOX_FILE, queue)
+        flush_telegram_outbox()
+    except Exception as exc:
+        # Delivery failures must not stop state persistence; retry the durable outbox later.
+        print(f"Could not enqueue Telegram event {key}: {exc}")
 
 def roe_for(side, avg_entry, close):
     if not side or avg_entry <= 0:
@@ -404,6 +493,8 @@ def stop_fill_price(side, stop_price, candle_open):
     raise ValueError(f"Unsupported position side: {side}")
 
 def main():
+    # Retry alerts left by a network outage or process restart before scanning new candles.
+    flush_telegram_outbox()
     if os.getenv("TEST_TELEGRAM", "").strip() == "1":
         telegram_send("✅ BTCUSDT Signal Bot: Telegram kết nối thành công!")
         print("Telegram test message sent successfully.")
