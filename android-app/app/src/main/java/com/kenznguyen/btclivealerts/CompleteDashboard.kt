@@ -1400,6 +1400,7 @@ private fun ForecastPaperPanel(
             Text("DỰ BÁO BTCUSDT · 5 PHÚT", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             Text("THỬ NGHIỆM", color = Color(0xFFFFC857), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
         }
+        Text("NGUỒN: BINANCE SPOT PROXY · không phải dữ liệu phân xử Chainlink.", color = Color(0xFFFFC857), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
         Text("Xác suất lịch sử, chưa hiệu chỉnh và chưa chứng minh có lợi thế dự báo.", color = NMuted, style = MaterialTheme.typography.bodySmall)
         if (snapshot == null) {
             Text("Chưa có dự báo · cần ít nhất 100 mẫu lịch sử và nến M1 liên tục.", color = NMuted)
