@@ -1,0 +1,142 @@
+package com.kenznguyen.btclivealerts
+
+import android.content.Context
+import org.json.JSONArray
+import org.json.JSONObject
+
+/**
+ * Device-local persistence for experimental forecasts and settled paper results.
+ * Keeps a bounded history and never records orders or trading PnL.
+ */
+class ForecastPaperStore(context: Context) {
+    private val preferences = context.applicationContext.getSharedPreferences(
+        "btc_m5_forecast_paper", Context.MODE_PRIVATE
+    )
+
+    @Synchronized
+    fun savePending(snapshot: ForecastSnapshot): Boolean {
+        val current = pending()
+        if (current.any { it.generatedAtMs == snapshot.generatedAtMs }) return false
+        val updated = (current + snapshot).takeLast(MAX_PENDING)
+        preferences.edit().putString(KEY_PENDING, JSONArray().apply {
+            updated.forEach { put(it.toJson()) }
+        }.toString()).apply()
+        return true
+    }
+
+    @Synchronized
+    fun pending(): List<ForecastSnapshot> = readArray(KEY_PENDING).mapNotNull { value ->
+        runCatching { value.asForecastSnapshot() }.getOrNull()
+    }
+
+    @Synchronized
+    fun settleDue(actualClosedCandles: List<Candle>, nowMs: Long): List<ForecastPaperResult> {
+        val closed = actualClosedCandles.filter { it.closed }.sortedBy { it.openTime }
+        if (closed.isEmpty()) return emptyList()
+        val remaining = mutableListOf<ForecastSnapshot>()
+        val settled = mutableListOf<ForecastPaperResult>()
+        for (forecast in pending()) {
+            val targetCandle = closed.lastOrNull {
+                it.openTime + ONE_MINUTE_MS >= forecast.targetAtMs &&
+                    it.openTime + ONE_MINUTE_MS <= nowMs
+            }
+            if (nowMs < forecast.targetAtMs || targetCandle == null) {
+                remaining += forecast
+                continue
+            }
+            val result = ForecastPaperTracker.settle(
+                forecast = forecast,
+                actualPrice = targetCandle.close,
+                settledAtMs = targetCandle.openTime + ONE_MINUTE_MS
+            )
+            if (result == null) remaining += forecast else settled += result
+        }
+        preferences.edit().putString(KEY_PENDING, JSONArray().apply {
+            remaining.forEach { put(it.toJson()) }
+        }.toString()).apply()
+        if (settled.isNotEmpty()) {
+            val all = (history() + settled).takeLast(MAX_HISTORY)
+            preferences.edit().putString(KEY_HISTORY, JSONArray().apply {
+                all.forEach { put(it.toJson()) }
+            }.toString()).apply()
+        }
+        return settled
+    }
+
+    @Synchronized
+    fun history(): List<ForecastPaperResult> = readArray(KEY_HISTORY).mapNotNull { value ->
+        runCatching { value.asPaperResult() }.getOrNull()
+    }
+
+    private fun readArray(key: String): List<JSONObject> {
+        val raw = preferences.getString(key, "[]") ?: "[]"
+        return runCatching {
+            val array = JSONArray(raw)
+            (0 until array.length()).mapNotNull { array.optJSONObject(it) }
+        }.getOrDefault(emptyList())
+    }
+
+    private fun ForecastSnapshot.toJson() = JSONObject().apply {
+        put("generatedAtMs", generatedAtMs)
+        put("targetAtMs", targetAtMs)
+        put("referencePrice", referencePrice)
+        put("probabilityUp", probabilityUp)
+        put("probabilityDown", probabilityDown)
+        put("probabilitySideways", probabilitySideways)
+        put("lowerPrice", lowerPrice)
+        put("medianPrice", medianPrice)
+        put("upperPrice", upperPrice)
+        put("historicalSamples", historicalSamples)
+        put("modelVersion", modelVersion)
+        put("validationStatus", validationStatus)
+    }
+
+    private fun JSONObject.asForecastSnapshot() = ForecastSnapshot(
+        generatedAtMs = getLong("generatedAtMs"),
+        targetAtMs = getLong("targetAtMs"),
+        referencePrice = getDouble("referencePrice"),
+        probabilityUp = getDouble("probabilityUp"),
+        probabilityDown = getDouble("probabilityDown"),
+        probabilitySideways = getDouble("probabilitySideways"),
+        lowerPrice = getDouble("lowerPrice"),
+        medianPrice = getDouble("medianPrice"),
+        upperPrice = getDouble("upperPrice"),
+        historicalSamples = getInt("historicalSamples"),
+        modelVersion = optString("modelVersion", "historical-frequency-baseline-v1"),
+        validationStatus = optString("validationStatus", "NOT_VALIDATED")
+    )
+
+    private fun ForecastPaperResult.toJson() = JSONObject().apply {
+        put("generatedAtMs", generatedAtMs)
+        put("targetAtMs", targetAtMs)
+        put("settledAtMs", settledAtMs)
+        put("referencePrice", referencePrice)
+        put("actualPrice", actualPrice)
+        put("actualClass", actualClass.name)
+        put("predictedClass", predictedClass.name)
+        put("absolutePriceError", absolutePriceError)
+        put("intervalCovered", intervalCovered)
+        put("multiclassBrierScore", multiclassBrierScore)
+    }
+
+    private fun JSONObject.asPaperResult() = ForecastPaperResult(
+        generatedAtMs = getLong("generatedAtMs"),
+        targetAtMs = getLong("targetAtMs"),
+        settledAtMs = getLong("settledAtMs"),
+        referencePrice = getDouble("referencePrice"),
+        actualPrice = getDouble("actualPrice"),
+        actualClass = ForecastClass.valueOf(getString("actualClass")),
+        predictedClass = ForecastClass.valueOf(getString("predictedClass")),
+        absolutePriceError = getDouble("absolutePriceError"),
+        intervalCovered = getBoolean("intervalCovered"),
+        multiclassBrierScore = getDouble("multiclassBrierScore")
+    )
+
+    private companion object {
+        const val KEY_PENDING = "pending_forecasts_json"
+        const val KEY_HISTORY = "settled_history_json"
+        const val MAX_PENDING = 100
+        const val MAX_HISTORY = 500
+        const val ONE_MINUTE_MS = 60_000L
+    }
+}
