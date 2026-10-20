@@ -384,6 +384,52 @@ fun CompleteDashboard(context: Context) {
     var chartSettingsExpanded by remember { mutableStateOf(false) }
     var chartFullscreen by remember { mutableStateOf(false) }
     var socketStatus by remember { mutableStateOf("Đang đồng bộ REST…") }
+    val forecastStore = remember { ForecastPaperStore(context) }
+    val forecastEngine = remember { ForecastEngine() }
+    var forecastSnapshot by remember { mutableStateOf(forecastStore.latestForecast()) }
+    var forecastHistory by remember { mutableStateOf(forecastStore.history()) }
+    var forecastStatus by remember { mutableStateOf("Đang chuẩn bị dữ liệu M1…") }
+
+    // Experimental five-minute forecast and device-local paper evaluation.
+    // Create at most one forecast per newly closed M1 candle; no trading orders are sent.
+    LaunchedEffect(Unit) {
+        while (currentCoroutineContext().isActive) {
+            try {
+                val m1 = market.fetchCandles("1m", 1500).filter { it.closed }.sortedBy { it.openTime }
+                val now = System.currentTimeMillis()
+                val latestClosed = m1.lastOrNull()
+                if (latestClosed == null) {
+                    forecastStatus = "Chưa có nến M1 đã đóng"
+                } else {
+                    val lastSourceOpen = prefs.getLong("forecast_last_source_open", 0L)
+                    if (latestClosed.openTime > lastSourceOpen) {
+                        val candidate = forecastEngine.forecast(m1, now)
+                        if (candidate != null && forecastStore.savePending(candidate)) {
+                            prefs.edit().putLong("forecast_last_source_open", latestClosed.openTime).apply()
+                            forecastSnapshot = candidate
+                            forecastStatus = "Dự báo mới · chờ đối chiếu sau 5 phút"
+                        } else {
+                            forecastStatus = "Chưa đủ dữ liệu M1 liên tục để tạo dự báo"
+                        }
+                    }
+                    val settled = forecastStore.settleDue(m1, now)
+                    if (settled.isNotEmpty()) {
+                        forecastHistory = forecastStore.history()
+                        forecastStatus = "Đã đối chiếu ${settled.size} dự báo paper"
+                    } else if (forecastStore.pending().isNotEmpty()) {
+                        forecastStatus = "Đang chờ giá thực tế sau mốc 5 phút"
+                    }
+                    forecastSnapshot = forecastStore.latestForecast()
+                    forecastHistory = forecastStore.history()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                forecastStatus = "Dự báo M5 lỗi dữ liệu/mạng: ${e.message ?: "không xác định"}"
+            }
+            delay(15_000L)
+        }
+    }
 
     LaunchedEffect(timeframe) {
         mfiBAlerts = prefs.getBoolean(chartAlertPrefKey(timeframe, "mfib_enabled"), prefs.getBoolean("chart_alert_mfib_enabled", false))
@@ -587,6 +633,9 @@ fun CompleteDashboard(context: Context) {
                     Spacer(Modifier.weight(1f))
                     Text("LIVE", color = NGreen)
                 }
+            }
+            item {
+                ForecastPaperPanel(snapshot = forecastSnapshot, status = forecastStatus, history = forecastHistory)
             }
             item {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(14.dp)).padding(12.dp)) {
@@ -1355,5 +1404,81 @@ private fun PreferenceSwitch(label: String, checked: Boolean, onCheckedChange: (
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, color = NMuted, modifier = Modifier.weight(1f))
         Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+
+@Composable
+private fun ForecastPaperPanel(
+    snapshot: ForecastSnapshot?,
+    status: String,
+    history: List<ForecastPaperResult>
+) {
+    val evaluated = history.size
+    val accuracy = if (evaluated > 0) history.count { it.actualClass == it.predictedClass }.toDouble() / evaluated else null
+    val meanBrier = if (evaluated > 0) history.map { it.multiclassBrierScore }.average() else null
+    Column(
+        Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(14.dp)).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("DỰ BÁO BTCUSDT · 5 PHÚT", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Text("THỬ NGHIỆM", color = Color(0xFFFFC857), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        }
+        Text("Xác suất lịch sử, chưa hiệu chỉnh và chưa chứng minh có lợi thế dự báo.", color = NMuted, style = MaterialTheme.typography.bodySmall)
+        if (snapshot == null) {
+            Text("Chưa có dự báo · cần ít nhất 100 mẫu lịch sử và nến M1 liên tục.", color = NMuted)
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ForecastProbability("TĂNG", snapshot.probabilityUp, NGreen, Modifier.weight(1f))
+                ForecastProbability("GIẢM", snapshot.probabilityDown, NRed, Modifier.weight(1f))
+                ForecastProbability("ĐI NGANG", snapshot.probabilitySideways, Color(0xFFFFC857), Modifier.weight(1f))
+            }
+            Text("Giá tham chiếu: ${"%,.2f".format(Locale.US, snapshot.referencePrice)} USDT", color = Color.White)
+            Text(
+                "Vùng Q10–Q90: ${"%,.2f".format(Locale.US, snapshot.lowerPrice)} – ${"%,.2f".format(Locale.US, snapshot.upperPrice)} USDT",
+                color = Color.White
+            )
+            Text("Trung vị ước lượng: ${"%,.2f".format(Locale.US, snapshot.medianPrice)} USDT", color = NMuted)
+            Text(
+                "Mốc dự báo: " + SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()).format(Date(snapshot.targetAtMs)) +
+                    " · mẫu lịch sử: ${snapshot.historicalSamples}",
+                color = NMuted, style = MaterialTheme.typography.bodySmall
+            )
+        }
+        Text(status, color = if (status.contains("lỗi", true)) NRed else NMuted, style = MaterialTheme.typography.bodySmall)
+        Divider(color = Color(0xFF263243))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.weight(1f)) {
+                Text("ĐÃ ĐỐI CHIẾU", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                Text("$evaluated", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+            Column(Modifier.weight(1f)) {
+                Text("ĐÚNG HƯỚNG", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                Text(accuracy?.let { "${"%.1f".format(Locale.US, it * 100)}%" } ?: "—", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+            Column(Modifier.weight(1f)) {
+                Text("BRIER TB", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                Text(meanBrier?.let { "%.3f".format(Locale.US, it) } ?: "—", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        }
+        if (history.isNotEmpty()) {
+            Text("Paper gần nhất", color = Color.White, fontWeight = FontWeight.SemiBold)
+            history.takeLast(5).asReversed().forEach { result ->
+                val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(result.settledAtMs))
+                Text(
+                    "$time · dự báo ${result.predictedClass.name} / thực tế ${result.actualClass.name} · giá ${"%,.2f".format(Locale.US, result.actualPrice)} · Brier ${"%.3f".format(Locale.US, result.multiclassBrierScore)}",
+                    color = NMuted, style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ForecastProbability(label: String, value: Double, color: Color, modifier: Modifier = Modifier) {
+    Column(modifier.background(NBg, RoundedCornerShape(9.dp)).padding(9.dp)) {
+        Text(label, color = color, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+        Text("${"%.1f".format(Locale.US, value * 100)}%", color = Color.White, fontWeight = FontWeight.Bold)
     }
 }
