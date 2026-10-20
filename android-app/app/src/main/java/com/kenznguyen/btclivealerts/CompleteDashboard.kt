@@ -388,6 +388,7 @@ fun CompleteDashboard(context: Context) {
     var forecastSnapshot by remember { mutableStateOf(forecastStore.latestForecast()) }
     var forecastHistory by remember { mutableStateOf(forecastStore.history()) }
     var forecastValidation by remember { mutableStateOf(forecastStore.validationReport()) }
+    var forecastSkipped by remember { mutableIntStateOf(forecastStore.skippedCount()) }
     var forecastStatus by remember { mutableStateOf(forecastStore.status()) }
 
     // The foreground monitor service owns forecast generation and settlement.
@@ -397,6 +398,7 @@ fun CompleteDashboard(context: Context) {
             forecastSnapshot = forecastStore.latestForecast()
             forecastHistory = forecastStore.history()
             forecastValidation = forecastStore.validationReport()
+            forecastSkipped = forecastStore.skippedCount()
             forecastStatus = forecastStore.status()
             delay(5_000L)
         }
@@ -606,7 +608,7 @@ fun CompleteDashboard(context: Context) {
                 }
             }
             item {
-                ForecastPaperPanel(snapshot = forecastSnapshot, status = forecastStatus, history = forecastHistory, validation = forecastValidation)
+                ForecastPaperPanel(snapshot = forecastSnapshot, status = forecastStatus, history = forecastHistory, validation = forecastValidation, skipped = forecastSkipped)
             }
             item {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(14.dp)).padding(12.dp)) {
@@ -1384,7 +1386,8 @@ private fun ForecastPaperPanel(
     snapshot: ForecastSnapshot?,
     status: String,
     history: List<ForecastPaperResult>,
-    validation: ForecastValidationReport?
+    validation: ForecastValidationReport?,
+    skipped: Int
 ) {
     val evaluated = history.size
     val accuracy = if (evaluated > 0) history.count { it.actualClass == it.predictedClass }.toDouble() / evaluated else null
@@ -1419,6 +1422,9 @@ private fun ForecastPaperPanel(
             )
         }
         Text(status, color = if (status.contains("lỗi", true)) NRed else NMuted, style = MaterialTheme.typography.bodySmall)
+        if (skipped > 0) {
+            Text("Đã bỏ qua $skipped dự báo vì thiếu nến đúng mốc 5 phút.", color = NMuted, style = MaterialTheme.typography.bodySmall)
+        }
         Divider(color = Color(0xFF263243))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.weight(1f)) {
