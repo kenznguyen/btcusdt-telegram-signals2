@@ -579,6 +579,7 @@ def main():
         return
 
     events_sent = 0
+    last_safe_state = dict(state)
     for idx, row in new_rows.iterrows():
         # Process only closed M15 rows; use H1 candles closed by this M15 close.
         # Price-based Emergency SL must remain active while indicators warm up.
@@ -846,8 +847,14 @@ def main():
                     events_sent += 1
 
         state["last_processed_open"] = row["open_time"].isoformat()
+        # Persist each closed candle, not only at the end of a batch. If a later event
+        # or row fails, restart resumes from the last fully committed candle.
+        save_state(state)
+        last_safe_state = dict(state)
 
     save_state(state)
+    # If delivery is still pending, the durable outbox will retry on the next run.
+    flush_telegram_outbox()
     latest = m15.iloc[-1]
     latest_h1 = h1.iloc[-1]
     send_status_report(state, float(latest["close"]), latest["open_time"], latest, latest_h1)
