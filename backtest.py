@@ -209,6 +209,16 @@ def run_backtest(days=None):
                 "position_margin_usdt": pos["margin"] if pos else "", "dca_used": pos["dca"] if pos else False
             }
             if equity_curve and equity_curve[-1]["timestamp_utc"] == ts.isoformat():
+                # The end-of-candle strategy may refresh this timestamp after an exit.
+                # Preserve the intrabar metrics already measured for this candle so the
+                # exported curve can reproduce max_intrabar_dd and its percentage.
+                previous = equity_curve[-1]
+                for field in (
+                    "intrabar_adverse_price", "intrabar_adverse_equity_usdt",
+                    "intrabar_drawdown_usdt", "intrabar_drawdown_pct",
+                ):
+                    if field in previous:
+                        snapshot[field] = previous[field]
                 equity_curve[-1] = snapshot
             else:
                 equity_curve.append(snapshot)
