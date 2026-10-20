@@ -402,7 +402,7 @@ fun CompleteDashboard(context: Context) {
                     forecastStatus = "Chưa có nến M1 đã đóng"
                 } else {
                     val lastSourceOpen = prefs.getLong("forecast_last_source_open", 0L)
-                    if (latestClosed.openTime > lastSourceOpen) {
+                    if (lastSourceOpen == 0L || latestClosed.openTime - lastSourceOpen >= 5 * 60_000L) {
                         val candidate = forecastEngine.forecast(m1, now)
                         if (candidate != null && forecastStore.savePending(candidate)) {
                             prefs.edit().putLong("forecast_last_source_open", latestClosed.openTime).apply()
