@@ -1,0 +1,71 @@
+name: BTCUSDT Multi-Window Walk-Forward
+run-name: BTCUSDT fixed-parameter rolling OOS validation
+
+on:
+  push:
+    branches:
+      - feature/strategy-backtest-audit
+    paths:
+      - "backtest.py"
+      - "bot.py"
+      - "tools/multi_window_walk_forward.py"
+      - ".github/workflows/multi-window-walk-forward.yml"
+  workflow_dispatch:
+    inputs:
+      is_days:
+        description: "Rolling in-sample diagnostic days"
+        required: true
+        default: "180"
+        type: string
+      oos_days:
+        description: "Length of each non-overlapping OOS window"
+        required: true
+        default: "30"
+        type: string
+      windows:
+        description: "Number of adjacent OOS windows (2-8)"
+        required: true
+        default: "6"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: btcusdt-multi-window-walk-forward
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Compile validation scripts
+        run: python -m py_compile backtest.py bot.py tools/multi_window_walk_forward.py
+      - name: Run rolling walk-forward with fixed strategy parameters
+        env:
+          IS_DAYS: \${{ inputs.is_days || '180' }}
+          OOS_DAYS: \${{ inputs.oos_days || '30' }}
+          WF_WINDOWS: \${{ inputs.windows || '6' }}
+          BACKTEST_INITIAL_CAPITAL: "100"
+          ENTRY_MARGIN_PCT: "0.50"
+          DCA_MARGIN_RATIO: "1.00"
+          VALIDATION_OUTPUT_DIR: multi_window_validation_report
+        run: python tools/multi_window_walk_forward.py
+      - name: Upload walk-forward report and per-window CSV files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: btcusdt-multi-window-walk-forward
+          path: multi_window_validation_report/
+          if-no-files-found: warn
+          retention-days: 90
