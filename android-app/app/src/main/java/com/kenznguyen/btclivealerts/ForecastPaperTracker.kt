@@ -30,7 +30,12 @@ object ForecastPaperTracker {
     ): ForecastPaperResult? {
         if (!actualPrice.isFinite() || actualPrice <= 0.0) return null
         if (!sidewaysThreshold.isFinite() || sidewaysThreshold < 0.0) return null
-        if (settledAtMs < forecast.targetAtMs || forecast.referencePrice <= 0.0) return null
+        if (settledAtMs < forecast.targetAtMs) return null
+        val forecastPrices = listOf(
+            forecast.referencePrice, forecast.lowerPrice, forecast.medianPrice, forecast.upperPrice
+        )
+        if (forecastPrices.any { !it.isFinite() || it <= 0.0 }) return null
+        if (forecast.lowerPrice > forecast.medianPrice || forecast.medianPrice > forecast.upperPrice) return null
 
         val probabilities = listOf(
             forecast.probabilityUp,
