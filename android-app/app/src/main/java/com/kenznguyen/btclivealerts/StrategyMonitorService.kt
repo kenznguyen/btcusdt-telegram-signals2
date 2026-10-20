@@ -173,7 +173,8 @@ class StrategyMonitorService : Service() {
             // If a 5m boundary was briefly missed during sleep/network loss, create the
             // forecast from that boundary candle when still available; never shift its
             // reference to an arbitrary later candle.
-            if (boundaryCandle != null &&
+            val boundaryAgeMs = boundaryCandle?.let { now - (it.openTime + 60_000L) } ?: Long.MAX_VALUE
+            if (boundaryCandle != null && boundaryAgeMs in 0L..60_000L &&
                 (lastSourceOpen == 0L || boundaryCandle.openTime > lastSourceOpen)
             ) {
                 val boundaryHistory = m1.filter { it.openTime <= boundaryCandle.openTime }
