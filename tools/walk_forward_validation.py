@@ -7,7 +7,11 @@ No live orders are submitted. Strategy defaults are not changed in production.
 import csv
 import json
 import os
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 import pandas as pd
 import bot
