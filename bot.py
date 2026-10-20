@@ -33,9 +33,10 @@ ENTRY_MARGIN_PCT = float(os.getenv("ENTRY_MARGIN_PCT", "0.50"))
 DCA_MARGIN_RATIO = float(os.getenv("DCA_MARGIN_RATIO", "1.00"))
 FEE_RATE = float(os.getenv("TAKER_FEE_RATE", "0.0005"))
 SLIPPAGE_BPS = float(os.getenv("SLIPPAGE_BPS", "5"))
-STATE_FILE = "state.json"
-TELEGRAM_OUTBOX_FILE = "telegram_outbox.json"
-TELEGRAM_SENT_FILE = "telegram_sent_event_ids.json"
+STATE_DIR = os.getenv("BOT_STATE_DIR", ".")
+STATE_FILE = os.path.join(STATE_DIR, "state.json")
+TELEGRAM_OUTBOX_FILE = os.path.join(STATE_DIR, "telegram_outbox.json")
+TELEGRAM_SENT_FILE = os.path.join(STATE_DIR, "telegram_sent_event_ids.json")
 FAPI = "https://fapi.binance.com"
 
 def utc_now():
