@@ -445,29 +445,14 @@ def main():
 
     events_sent = 0
     for idx, row in new_rows.iterrows():
-        if pd.isna(row["rsi"]) or pd.isna(row["adx"]):
-            state["last_processed_open"] = row["open_time"].isoformat()
-            continue
-
-        bucket = row["open_time"].floor("h")
-        prior_h1_candidates = [t for t in h1_times if t < bucket]
-        if not prior_h1_candidates:
-            state["last_processed_open"] = row["open_time"].isoformat()
-            continue
-
-        h1row = h1_by_open[prior_h1_candidates[-1]]
-        if (
-            pd.isna(h1row.plus_di)
-            or pd.isna(h1row.minus_di)
-            or pd.isna(h1row.adx)
-        ):
-            state["last_processed_open"] = row["open_time"].isoformat()
-            continue
-
+        # Process only closed M15 rows; use H1 candles closed by this M15 close.
+        # Price-based Emergency SL must remain active while indicators warm up.
+        closed_at = row["open_time"] + pd.Timedelta(minutes=15)
+        prior_h1_candidates = [
+            t for t in h1_times if t + pd.Timedelta(hours=1) <= closed_at
+        ]
+        h1row = h1_by_open[prior_h1_candidates[-1]] if prior_h1_candidates else None
         prev_rsi = m15.loc[idx - 1, "rsi"] if idx > 0 else np.nan
-        if pd.isna(prev_rsi):
-            state["last_processed_open"] = row["open_time"].isoformat()
-            continue
 
         close = float(row["close"])
         high = float(row["high"])
@@ -475,9 +460,9 @@ def main():
         candle_open = float(row["open"])
         rsi = float(row["rsi"])
         adx = float(row["adx"])
-        h1_plus = float(h1row.plus_di)
-        h1_minus = float(h1row.minus_di)
-        h1_adx = float(h1row.adx)
+        h1_plus = float(h1row.plus_di) if h1row is not None else np.nan
+        h1_minus = float(h1row.minus_di) if h1row is not None else np.nan
+        h1_adx = float(h1row.adx) if h1row is not None else np.nan
 
         h1_bull = h1_plus > h1_minus and h1_adx > H1_ADX_ENTRY
         h1_bear = h1_minus > h1_plus and h1_adx > H1_ADX_ENTRY
