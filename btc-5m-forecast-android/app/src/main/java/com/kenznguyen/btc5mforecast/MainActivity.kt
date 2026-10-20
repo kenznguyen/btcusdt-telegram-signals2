@@ -55,7 +55,7 @@ class MainActivity : ComponentActivity() {
                         if (!busy) {
                             busy = true
                             try {
-                                val fresh = withContext(Dispatchers.IO) { api.fetchOneMinute(1500) }
+                                val fresh = withContext(Dispatchers.IO) { api.fetchOneMinute(1000) }
                                 candles = fresh
                                 val openCandidates = fresh.filter {
                                     val boundary = it.closeTime + 1
