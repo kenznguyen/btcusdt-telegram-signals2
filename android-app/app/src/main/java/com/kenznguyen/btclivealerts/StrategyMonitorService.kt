@@ -30,6 +30,7 @@ class StrategyMonitorService : Service() {
     private var monitorJob: Job? = null
     private var forecastJob: Job? = null
     private val market by lazy { MarketEngine() }
+    private val spotForecastSource by lazy { BinanceSpotForecastSource() }
     private val engine by lazy { StrategyEngine() }
     private val forecastEngine by lazy { ForecastEngine() }
     private val forecastValidator by lazy { ForecastWalkForwardValidator() }
@@ -149,8 +150,9 @@ class StrategyMonitorService : Service() {
         prefs.edit().putLong("forecast_last_fetch_ms", now).apply()
 
         try {
-            val m1 = market.fetchCandles("1m", 1500)
-                .filter { it.closed }
+            // Forecast generation and settlement use the same Binance Spot proxy source.
+            // This is explicitly not the official Chainlink Data Streams resolution feed.
+            val m1 = spotForecastSource.fetchClosedOneMinuteCandles(1500, now)
                 .distinctBy { it.openTime }
                 .sortedBy { it.openTime }
             val latestClosed = m1.lastOrNull()
@@ -164,12 +166,21 @@ class StrategyMonitorService : Service() {
             }
 
             val lastSourceOpen = prefs.getLong("forecast_last_source_open", 0L)
-            if (lastSourceOpen == 0L || latestClosed.openTime - lastSourceOpen >= 5 * 60_000L) {
-                val candidate = forecastEngine.forecast(m1, now)
+            val latestClosedAt = latestClosed.openTime + 60_000L
+            // Only create a five-minute forecast on a 5m boundary. Then the reference
+            // is the just-closed 1m candle and targetAtMs aligns with the 5m candle close.
+            val onFiveMinuteBoundary = latestClosedAt % (5 * 60_000L) == 0L
+            if (onFiveMinuteBoundary &&
+                (lastSourceOpen == 0L || latestClosed.openTime - lastSourceOpen >= 5 * 60_000L)
+            ) {
+                val candidate = forecastEngine.forecast(m1, now)?.copy(
+                    modelVersion = "historical-frequency-baseline-v1-binance-spot-proxy",
+                    validationStatus = "PROXY_NOT_CHAINLINK"
+                )
                 if (candidate != null && forecastStore.savePending(candidate)) {
                     prefs.edit().putLong("forecast_last_source_open", latestClosed.openTime).apply()
                     forecastStore.saveValidationReport(forecastValidator.evaluate(m1))
-                    forecastStore.saveStatus("Dự báo mới · chờ đối chiếu sau 5 phút")
+                    forecastStore.saveStatus("BINANCE SPOT PROXY · dự báo paper, không phải phân xử Chainlink")
                 } else if (candidate == null) {
                     forecastStore.saveStatus("Chưa đủ dữ liệu M1 liên tục để tạo dự báo")
                 }
