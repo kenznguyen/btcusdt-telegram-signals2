@@ -35,6 +35,7 @@ TELEGRAM_UPDATE_STATE_FILE = os.path.join(BOT_STATE_DIR, "telegram_seen_updates.
 _seen_updates = set()
 _seen_order = deque(maxlen=2000)
 _seen_lock = threading.Lock()
+_processing_updates = set()
 
 
 def _persist_seen_updates(keys):
@@ -89,22 +90,46 @@ def already_seen(update_id) -> bool:
         return key in _seen_updates
 
 
+def claim_update(update_id) -> bool:
+    if update_id is None:
+        return True
+    key = str(update_id)
+    with _seen_lock:
+        if key in _seen_updates or key in _processing_updates:
+            return False
+        _processing_updates.add(key)
+        return True
+
+
+def release_update(update_id) -> None:
+    if update_id is None:
+        return
+    with _seen_lock:
+        _processing_updates.discard(str(update_id))
+
+
 def mark_seen(update_id) -> None:
     if update_id is None:
         return
     key = str(update_id)
     with _seen_lock:
         if key in _seen_updates:
+            _processing_updates.discard(key)
             return
         next_order = list(_seen_order)
         next_order.append(key)
         next_order = next_order[-2000:]
-        # Persist first; only acknowledge the update once the dedupe ledger is durable.
-        _persist_seen_updates(next_order)
+        try:
+            # Persist first; only acknowledge the update once the dedupe ledger is durable.
+            _persist_seen_updates(next_order)
+        except Exception:
+            _processing_updates.discard(key)
+            raise
         _seen_order.clear()
         _seen_order.extend(next_order)
         _seen_updates.clear()
         _seen_updates.update(next_order)
+        _processing_updates.discard(key)
 
 
 def dispatch_github(command: str) -> None:
@@ -161,6 +186,10 @@ def telegram_webhook():
         return jsonify({"ok": True, "duplicate": True}), 200
 
     update_id = update.get("update_id")
+    if not claim_update(update_id):
+        # Another request is handling this update; ask Telegram to retry rather than
+        # acknowledging a command that has not yet been durably dispatched.
+        return jsonify({"ok": False, "error": "update already processing"}), 503
     message = update.get("message") or update.get("edited_message")
     if not message:
         mark_seen(update_id)
@@ -181,9 +210,14 @@ def telegram_webhook():
     command_token = text.split()[0].split("@", 1)[0].lower()
     command = COMMANDS.get(command_token)
     if not command:
-        telegram_send("Lệnh chưa hỗ trợ. Gõ /help để xem các lệnh có sẵn.")
-        mark_seen(update_id)
-        return jsonify({"ok": True, "unknown_command": True}), 200
+        try:
+            telegram_send("Lệnh chưa hỗ trợ. Gõ /help để xem các lệnh có sẵn.")
+            mark_seen(update_id)
+            return jsonify({"ok": True, "unknown_command": True}), 200
+        except Exception:
+            release_update(update_id)
+            app.logger.exception("Could not respond to unsupported Telegram command")
+            return jsonify({"ok": False, "error": "Telegram response failed"}), 503
 
     try:
         dispatch_github(command)
@@ -196,6 +230,7 @@ def telegram_webhook():
         except Exception:
             app.logger.exception("Could not send dispatch error to Telegram")
         # Do not mark the update as handled; Telegram can retry after a transient failure.
+        release_update(update_id)
         return jsonify({"ok": False, "error": "workflow dispatch failed"}), 503
 
     # Dispatch succeeded; persist dedupe before sending the optional acknowledgement.
