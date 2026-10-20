@@ -8,6 +8,13 @@ import org.json.JSONObject
  * Device-local persistence for experimental forecasts and settled paper results.
  * Keeps a bounded history and never records orders or trading PnL.
  */
+
+internal fun firstClosedCandleAtOrAfter(targetAtMs: Long, candles: List<Candle>, nowMs: Long): Candle? =
+    candles.asSequence()
+        .filter { it.closed }
+        .sortedBy { it.openTime }
+        .firstOrNull { it.openTime + 60_000L >= targetAtMs && it.openTime + 60_000L <= nowMs }
+
 class ForecastPaperStore(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences(
         "btc_m5_forecast_paper", Context.MODE_PRIVATE
@@ -43,10 +50,7 @@ class ForecastPaperStore(context: Context) {
         val remaining = mutableListOf<ForecastSnapshot>()
         val settled = mutableListOf<ForecastPaperResult>()
         for (forecast in pending()) {
-            val targetCandle = closed.firstOrNull {
-                it.openTime + ONE_MINUTE_MS >= forecast.targetAtMs &&
-                    it.openTime + ONE_MINUTE_MS <= nowMs
-            }
+            val targetCandle = firstClosedCandleAtOrAfter(forecast.targetAtMs, closed, nowMs)
             if (nowMs < forecast.targetAtMs || targetCandle == null) {
                 remaining += forecast
                 continue
