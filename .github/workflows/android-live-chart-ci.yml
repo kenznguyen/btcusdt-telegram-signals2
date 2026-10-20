@@ -1,10 +1,11 @@
 name: Android Live Chart CI
 
 on:
-  # Build and test changes pushed to this Android feature branch automatically.
+  # Run Android unit tests and debug APK build for the live app and forecast feature branches.
   push:
     branches:
       - feature/android-btcusdt-live-alerts
+      - feature/android-btcusdt-5m-forecast
   workflow_dispatch:
 
 permissions:
