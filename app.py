@@ -1,5 +1,7 @@
 import hmac
+import json
 import os
+import tempfile
 import threading
 from collections import deque
 
@@ -27,10 +29,41 @@ COMMANDS = {
     "/btresult": "btresult",
 }
 
-# In-memory deduplication prevents Telegram retries from dispatching the same update twice.
+# Persist webhook update IDs so Render restarts do not forget recent deliveries.
+BOT_STATE_DIR = os.getenv("BOT_STATE_DIR", ".")
+TELEGRAM_UPDATE_STATE_FILE = os.path.join(BOT_STATE_DIR, "telegram_seen_updates.json")
 _seen_updates = set()
 _seen_order = deque(maxlen=2000)
 _seen_lock = threading.Lock()
+
+
+def _persist_seen_updates(keys):
+    os.makedirs(BOT_STATE_DIR, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=".telegram-updates-", suffix=".tmp", dir=BOT_STATE_DIR)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(list(keys)[-2000:], f)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporary, TELEGRAM_UPDATE_STATE_FILE)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+try:
+    if os.path.exists(TELEGRAM_UPDATE_STATE_FILE):
+        with open(TELEGRAM_UPDATE_STATE_FILE, "r", encoding="utf-8") as f:
+            _saved_updates = json.load(f)
+        if not isinstance(_saved_updates, list):
+            raise ValueError("telegram_seen_updates.json must contain a JSON list")
+        for _saved_id in _saved_updates[-2000:]:
+            _key = str(_saved_id)
+            _seen_order.append(_key)
+            _seen_updates.add(_key)
+except Exception as _state_error:
+    # Do not silently discard the dedupe ledger; fail service startup to avoid replaying commands.
+    raise RuntimeError("Cannot safely restore Telegram webhook dedupe state") from _state_error
 
 
 def telegram_send(message: str) -> None:
@@ -53,14 +86,25 @@ def already_seen(update_id) -> bool:
         return False
     key = str(update_id)
     with _seen_lock:
+        return key in _seen_updates
+
+
+def mark_seen(update_id) -> None:
+    if update_id is None:
+        return
+    key = str(update_id)
+    with _seen_lock:
         if key in _seen_updates:
-            return True
-        if len(_seen_order) == _seen_order.maxlen:
-            oldest = _seen_order[0]
-            _seen_updates.discard(oldest)
-        _seen_order.append(key)
-        _seen_updates.add(key)
-    return False
+            return
+        next_order = list(_seen_order)
+        next_order.append(key)
+        next_order = next_order[-2000:]
+        # Persist first; only acknowledge the update once the dedupe ledger is durable.
+        _persist_seen_updates(next_order)
+        _seen_order.clear()
+        _seen_order.extend(next_order)
+        _seen_updates.clear()
+        _seen_updates.update(next_order)
 
 
 def dispatch_github(command: str) -> None:
@@ -116,40 +160,52 @@ def telegram_webhook():
     if already_seen(update.get("update_id")):
         return jsonify({"ok": True, "duplicate": True}), 200
 
+    update_id = update.get("update_id")
     message = update.get("message") or update.get("edited_message")
     if not message:
+        mark_seen(update_id)
         return jsonify({"ok": True, "ignored": True}), 200
 
     chat = message.get("chat") or {}
     sender_chat_id = str(chat.get("id", ""))
     if not TELEGRAM_CHAT_ID or sender_chat_id != TELEGRAM_CHAT_ID:
         # Silently ignore unauthorized chats; never expose whether the configured ID is valid.
+        mark_seen(update_id)
         return jsonify({"ok": True, "ignored": True}), 200
 
     text = (message.get("text") or "").strip()
     if not text.startswith("/"):
+        mark_seen(update_id)
         return jsonify({"ok": True, "ignored": True}), 200
 
     command_token = text.split()[0].split("@", 1)[0].lower()
     command = COMMANDS.get(command_token)
     if not command:
         telegram_send("Lệnh chưa hỗ trợ. Gõ /help để xem các lệnh có sẵn.")
+        mark_seen(update_id)
         return jsonify({"ok": True, "unknown_command": True}), 200
 
     try:
         dispatch_github(command)
-        telegram_send(
-            f"⏳ Đã nhận {command_token}. GitHub Actions đang xử lý; kết quả sẽ được gửi tại đây sau khi hoàn tất."
-        )
     except Exception:
         app.logger.exception("Could not dispatch Telegram command")
         try:
             telegram_send(
-                "⚠️ Không kích hoạt được GitHub Actions. Hãy kiểm tra workflow và secret GITHUB_TOKEN trong dịch vụ bridge."
+                "⚠️ Không kích hoạt được GitHub Actions. Lệnh sẽ được Telegram thử gửi lại; kiểm tra workflow và secret GITHUB_TOKEN."
             )
         except Exception:
             app.logger.exception("Could not send dispatch error to Telegram")
+        # Do not mark the update as handled; Telegram can retry after a transient failure.
+        return jsonify({"ok": False, "error": "workflow dispatch failed"}), 503
 
+    # Dispatch succeeded; persist dedupe before sending the optional acknowledgement.
+    mark_seen(update_id)
+    try:
+        telegram_send(
+            f"⏳ Đã nhận {command_token}. GitHub Actions đang xử lý; kết quả sẽ được gửi tại đây sau khi hoàn tất."
+        )
+    except Exception:
+        app.logger.exception("Command dispatched but Telegram acknowledgement failed")
     return jsonify({"ok": True}), 200
 
 
