@@ -47,6 +47,8 @@ class StrategyMonitorService : Service() {
                         val h1 = market.fetchCandles("1h", 500)
                         val closed = m15.filter { it.closed }.sortedBy { it.openTime }
                         val prefs = getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE)
+                        // Retry chart alerts queued while Android notification permission was disabled.
+                        drainPendingChartNotifications(this@StrategyMonitorService, prefs)
 
                         // Evaluate every newly closed candle in the background, not only the
                         // latest one, so reconnect/network gaps do not silently skip chart signals.
