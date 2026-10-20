@@ -75,7 +75,7 @@ class ForecastEngine(
 
         return ForecastSnapshot(
             generatedAtMs = nowMs,
-            targetAtMs = nowMs + horizonMinutes * 60_000L,
+            targetAtMs = latest.openTime + 60_000L + horizonMinutes * 60_000L,
             referencePrice = ref,
             probabilityUp = up / total,
             probabilityDown = down / total,
