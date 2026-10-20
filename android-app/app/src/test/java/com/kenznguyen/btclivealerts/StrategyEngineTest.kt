@@ -140,6 +140,27 @@ class StrategyEngineTest {
         assertNull(StrategyState.fromJson("{not-json").position)
     }
 
+    @Test fun corruptPersistedStrategyStateFailsClosedInsteadOfResetting() {
+        try {
+            StrategyState.fromJson("{broken")
+            fail("Corrupt persisted state must not silently reset an open position")
+        } catch (expected: IllegalStateException) {
+            assertTrue(expected.message!!.contains("refusing to reset"))
+        }
+    }
+
+    @Test fun persistedPositionRoundTripsAcrossRestart() {
+        val state = StrategyState(
+            balance = 123.0,
+            position = StrategyPosition("LONG", 0.02, 65000.0, 50.0, 50.0, 1300.0, 123456L, true),
+            lastProcessedOpenTime = 987654L
+        )
+        val restored = StrategyState.fromJson(state.toJson())
+        assertEquals(state.balance, restored.balance, 0.000001)
+        assertEquals(state.position, restored.position)
+        assertEquals(state.lastProcessedOpenTime, restored.lastProcessedOpenTime)
+    }
+
     @Test fun h1FilterUsesOnlyCandlesClosedByM15Close() {
         val h1AtMidnight = 0L
         val h1AtOneAm = 60L * 60L * 1000L
