@@ -385,55 +385,20 @@ fun CompleteDashboard(context: Context) {
     var chartFullscreen by remember { mutableStateOf(false) }
     var socketStatus by remember { mutableStateOf("Đang đồng bộ REST…") }
     val forecastStore = remember { ForecastPaperStore(context) }
-    val forecastEngine = remember { ForecastEngine() }
-    val forecastValidator = remember { ForecastWalkForwardValidator() }
     var forecastSnapshot by remember { mutableStateOf(forecastStore.latestForecast()) }
     var forecastHistory by remember { mutableStateOf(forecastStore.history()) }
-    var forecastValidation by remember { mutableStateOf<ForecastValidationReport?>(null) }
-    var forecastStatus by remember { mutableStateOf("Đang chuẩn bị dữ liệu M1…") }
+    var forecastValidation by remember { mutableStateOf(forecastStore.validationReport()) }
+    var forecastStatus by remember { mutableStateOf(forecastStore.status()) }
 
-    // Experimental five-minute forecast and device-local paper evaluation.
-    // Create at most one forecast per newly closed M1 candle; no trading orders are sent.
+    // The foreground monitor service owns forecast generation and settlement.
+    // The chart screen only observes device-local state; it makes no duplicate REST calls.
     LaunchedEffect(Unit) {
         while (currentCoroutineContext().isActive) {
-            try {
-                val m1 = market.fetchCandles("1m", 1500).filter { it.closed }.sortedBy { it.openTime }
-                val now = System.currentTimeMillis()
-                val latestClosed = m1.lastOrNull()
-                if (latestClosed == null) {
-                    forecastStatus = "Chưa có nến M1 đã đóng"
-                } else {
-                    if (forecastValidation == null) {
-                        forecastValidation = forecastValidator.evaluate(m1)
-                    }
-                    val lastSourceOpen = prefs.getLong("forecast_last_source_open", 0L)
-                    if (lastSourceOpen == 0L || latestClosed.openTime - lastSourceOpen >= 5 * 60_000L) {
-                        val candidate = forecastEngine.forecast(m1, now)
-                        if (candidate != null && forecastStore.savePending(candidate)) {
-                            prefs.edit().putLong("forecast_last_source_open", latestClosed.openTime).apply()
-                            forecastSnapshot = candidate
-                            forecastValidation = forecastValidator.evaluate(m1)
-                            forecastStatus = "Dự báo mới · chờ đối chiếu sau 5 phút"
-                        } else {
-                            forecastStatus = "Chưa đủ dữ liệu M1 liên tục để tạo dự báo"
-                        }
-                    }
-                    val settled = forecastStore.settleDue(m1, now)
-                    if (settled.isNotEmpty()) {
-                        forecastHistory = forecastStore.history()
-                        forecastStatus = "Đã đối chiếu ${settled.size} dự báo paper"
-                    } else if (forecastStore.pending().isNotEmpty()) {
-                        forecastStatus = "Đang chờ giá thực tế sau mốc 5 phút"
-                    }
-                    forecastSnapshot = forecastStore.latestForecast()
-                    forecastHistory = forecastStore.history()
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                forecastStatus = "Dự báo M5 lỗi dữ liệu/mạng: ${e.message ?: "không xác định"}"
-            }
-            delay(60_000L)
+            forecastSnapshot = forecastStore.latestForecast()
+            forecastHistory = forecastStore.history()
+            forecastValidation = forecastStore.validationReport()
+            forecastStatus = forecastStore.status()
+            delay(5_000L)
         }
     }
 
