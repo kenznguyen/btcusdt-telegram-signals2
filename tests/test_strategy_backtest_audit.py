@@ -7,7 +7,7 @@ import bot
 ROOT = Path(__file__).resolve().parents[1]
 BACKTEST_SOURCE = (ROOT / "backtest.py").read_text(encoding="utf-8")
 BOT_SOURCE = (ROOT / "bot.py").read_text(encoding="utf-8")
-ANDROID_SOURCE = (ROOT / "android-app/src/main/java/com/kenznguyen/btclivealerts/StrategyEngine.kt").read_text(encoding="utf-8")
+ANDROID_SOURCE = (ROOT / "android-app/app/src/main/java/com/kenznguyen/btclivealerts/StrategyEngine.kt").read_text(encoding="utf-8")
 
 
 class StrategyRuleTests(unittest.TestCase):
