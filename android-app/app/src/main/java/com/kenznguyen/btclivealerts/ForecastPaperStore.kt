@@ -18,11 +18,18 @@ class ForecastPaperStore(context: Context) {
         val current = pending()
         if (current.any { it.generatedAtMs == snapshot.generatedAtMs }) return false
         val updated = (current + snapshot).takeLast(MAX_PENDING)
-        preferences.edit().putString(KEY_PENDING, JSONArray().apply {
-            updated.forEach { put(it.toJson()) }
-        }.toString()).apply()
+        preferences.edit()
+            .putString(KEY_PENDING, JSONArray().apply {
+                updated.forEach { put(it.toJson()) }
+            }.toString())
+            .putString(KEY_LATEST, snapshot.toJson().toString())
+            .apply()
         return true
     }
+
+    @Synchronized
+    fun latestForecast(): ForecastSnapshot? = preferences.getString(KEY_LATEST, null)
+        ?.let { raw -> runCatching { JSONObject(raw).asForecastSnapshot() }.getOrNull() }
 
     @Synchronized
     fun pending(): List<ForecastSnapshot> = readArray(KEY_PENDING).mapNotNull { value ->
@@ -135,6 +142,7 @@ class ForecastPaperStore(context: Context) {
     private companion object {
         const val KEY_PENDING = "pending_forecasts_json"
         const val KEY_HISTORY = "settled_history_json"
+        const val KEY_LATEST = "latest_forecast_json"
         const val MAX_PENDING = 100
         const val MAX_HISTORY = 500
         const val ONE_MINUTE_MS = 60_000L
