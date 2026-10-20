@@ -35,5 +35,9 @@ class ForecastPaperTrackerTest {
         assertNull(ForecastPaperTracker.settle(sampleForecast(), Double.NaN, 301_000L))
         val invalid = sampleForecast().copy(probabilityUp = 1.2)
         assertNull(ForecastPaperTracker.settle(invalid, 102.0, 301_000L))
+        val invalidRange = sampleForecast().copy(lowerPrice = 104.0)
+        assertNull(ForecastPaperTracker.settle(invalidRange, 102.0, 301_000L))
+        val invalidPrice = sampleForecast().copy(medianPrice = Double.NaN)
+        assertNull(ForecastPaperTracker.settle(invalidPrice, 102.0, 301_000L))
     }
 }
