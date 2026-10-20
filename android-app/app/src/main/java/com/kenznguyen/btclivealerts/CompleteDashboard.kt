@@ -1408,7 +1408,7 @@ private fun ForecastPaperPanel(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ForecastProbability("TĂNG", snapshot.probabilityUp, NGreen, Modifier.weight(1f))
                 ForecastProbability("GIẢM", snapshot.probabilityDown, NRed, Modifier.weight(1f))
-                ForecastProbability("ĐI NGANG", snapshot.probabilitySideways, Color(0xFFFFC857), Modifier.weight(1f))
+                ForecastProbability("HÒA", snapshot.probabilitySideways, Color(0xFFFFC857), Modifier.weight(1f))
             }
             Text("Giá tham chiếu: ${"%,.2f".format(Locale.US, snapshot.referencePrice)} USDT", color = Color.White)
             Text(
@@ -1444,8 +1444,8 @@ private fun ForecastPaperPanel(
         if (validation != null && validation.forecastsEvaluated > 0) {
             Divider(color = Color(0xFF263243))
             Text("KIỂM ĐỊNH WALK-FORWARD LỊCH SỬ", color = Color.White, fontWeight = FontWeight.SemiBold)
-            Text("Mẫu đánh giá: ${validation.forecastsEvaluated} · Brier mô hình: ${validation.multiclassBrierScore?.let { "%.3f".format(Locale.US, it) } ?: "—"} · luôn đi ngang: ${validation.alwaysSidewaysBrierScore?.let { "%.3f".format(Locale.US, it) } ?: "—"}", color = NMuted, style = MaterialTheme.typography.bodySmall)
-            Text("Brier skill so với luôn đi ngang: ${validation.brierSkillVsAlwaysSideways?.let { "%.1f".format(Locale.US, it * 100) + "%" } ?: "—"} · Độ phủ Q10–Q90: ${validation.centralIntervalCoverage?.let { "%.1f".format(Locale.US, it * 100) + "%" } ?: "—"}", color = NMuted, style = MaterialTheme.typography.bodySmall)
+            Text("Mẫu đánh giá: ${validation.forecastsEvaluated} · Brier mô hình: ${validation.multiclassBrierScore?.let { "%.3f".format(Locale.US, it) } ?: "—"} · luôn hòa: ${validation.alwaysSidewaysBrierScore?.let { "%.3f".format(Locale.US, it) } ?: "—"}", color = NMuted, style = MaterialTheme.typography.bodySmall)
+            Text("Brier skill so với luôn hòa: ${validation.brierSkillVsAlwaysSideways?.let { "%.1f".format(Locale.US, it * 100) + "%" } ?: "—"} · Độ phủ Q10–Q90: ${validation.centralIntervalCoverage?.let { "%.1f".format(Locale.US, it * 100) + "%" } ?: "—"}", color = NMuted, style = MaterialTheme.typography.bodySmall)
             Text("Chỉ là kiểm định lịch sử trên dữ liệu đã tải; chưa đại diện nhiều chế độ thị trường.", color = NMuted, style = MaterialTheme.typography.bodySmall)
         }
         if (history.isNotEmpty()) {
