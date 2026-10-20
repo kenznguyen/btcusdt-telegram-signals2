@@ -43,7 +43,7 @@ class ForecastPaperStore(context: Context) {
         val remaining = mutableListOf<ForecastSnapshot>()
         val settled = mutableListOf<ForecastPaperResult>()
         for (forecast in pending()) {
-            val targetCandle = closed.lastOrNull {
+            val targetCandle = closed.firstOrNull {
                 it.openTime + ONE_MINUTE_MS >= forecast.targetAtMs &&
                     it.openTime + ONE_MINUTE_MS <= nowMs
             }
