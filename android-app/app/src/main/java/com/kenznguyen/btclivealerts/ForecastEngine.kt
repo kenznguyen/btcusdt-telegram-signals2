@@ -66,9 +66,12 @@ class ForecastEngine(
         }
         if (returns.size < minimumSamples) return null
 
-        val up = returns.count { it > sidewaysThreshold }
-        val down = returns.count { it < -sidewaysThreshold }
-        val sideways = returns.size - up - down
+        // Match the requested market resolution rule: every positive return is UP,
+        // every negative return is DOWN, and only an exactly unchanged close is a tie.
+        // Keep sidewaysThreshold in the constructor for backward compatibility only.
+        val up = returns.count { it > 0.0 }
+        val down = returns.count { it < 0.0 }
+        val sideways = returns.count { it == 0.0 }
         val total = returns.size.toDouble()
         val sorted = returns.sorted()
         val ref = latest.close
