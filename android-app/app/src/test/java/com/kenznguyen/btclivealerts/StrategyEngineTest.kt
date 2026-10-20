@@ -137,7 +137,47 @@ class StrategyEngineTest {
 
     @Test fun invalidStateDefaultsSafely() {
         assertEquals(100.0, StrategyState.fromJson(null).balance, 1e-8)
-        assertNull(StrategyState.fromJson("{not-json").position)
+        try {
+            StrategyState.fromJson("{not-json")
+            fail("Corrupt persisted state must not silently reset")
+        } catch (expected: IllegalStateException) {
+            assertTrue(expected.message!!.contains("refusing to reset"))
+        }
+    }
+
+    @Test fun corruptPersistedStrategyStateFailsClosedInsteadOfResetting() {
+        try {
+            StrategyState.fromJson("{broken")
+            fail("Corrupt persisted state must not silently reset an open position")
+        } catch (expected: IllegalStateException) {
+            assertTrue(expected.message!!.contains("refusing to reset"))
+        }
+    }
+
+    @Test fun persistedPositionRoundTripsAcrossRestart() {
+        val state = StrategyState(
+            balance = 123.0,
+            position = StrategyPosition("LONG", 0.02, 65000.0, 50.0, 50.0, 1300.0, 123456L, true),
+            lastProcessedOpenTime = 987654L
+        )
+        val restored = StrategyState.fromJson(state.toJson())
+        assertEquals(state.balance, restored.balance, 0.000001)
+        assertEquals(state.position, restored.position)
+        assertEquals(state.lastProcessedOpenTime, restored.lastProcessedOpenTime)
+    }
+
+    @Test fun h1FilterUsesOnlyCandlesClosedByM15Close() {
+        val h1AtMidnight = 0L
+        val h1AtOneAm = 60L * 60L * 1000L
+        val m15At0045 = 45L * 60L * 1000L
+        val m15At0030 = 30L * 60L * 1000L
+
+        // M15 00:45 closes at 01:00, so H1 00:00 is closed and available.
+        assertTrue(h1CandleClosedByM15Close(h1AtMidnight, m15At0045))
+        // M15 00:30 closes at 00:45; H1 00:00 is still forming.
+        assertFalse(h1CandleClosedByM15Close(h1AtMidnight, m15At0030))
+        // H1 01:00 cannot be used by the M15 candle closing at 01:00.
+        assertFalse(h1CandleClosedByM15Close(h1AtOneAm, m15At0045))
     }
 
     @Test fun missingHourlyIndicatorsDoNotSuppressEmergencyExit() {

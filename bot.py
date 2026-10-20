@@ -33,7 +33,10 @@ ENTRY_MARGIN_PCT = float(os.getenv("ENTRY_MARGIN_PCT", "0.50"))
 DCA_MARGIN_RATIO = float(os.getenv("DCA_MARGIN_RATIO", "1.00"))
 FEE_RATE = float(os.getenv("TAKER_FEE_RATE", "0.0005"))
 SLIPPAGE_BPS = float(os.getenv("SLIPPAGE_BPS", "5"))
-STATE_FILE = "state.json"
+STATE_DIR = os.getenv("BOT_STATE_DIR", ".")
+STATE_FILE = os.path.join(STATE_DIR, "state.json")
+TELEGRAM_OUTBOX_FILE = os.path.join(STATE_DIR, "telegram_outbox.json")
+TELEGRAM_SENT_FILE = os.path.join(STATE_DIR, "telegram_sent_event_ids.json")
 FAPI = "https://fapi.binance.com"
 
 def utc_now():
@@ -99,6 +102,31 @@ def get_klines(interval, limit=500):
     if not rows:
         raise RuntimeError("OKX returned no candle data")
 
+    # Validate the source batch before indicators/state are allowed to advance.
+    # Duplicate timestamps are tolerated across paginated pages but conflicting duplicates are not.
+    by_timestamp = {}
+    for source_row in rows:
+        if len(source_row) < 9:
+            raise RuntimeError("OKX candle row is incomplete")
+        timestamp = str(source_row[0])
+        if timestamp in by_timestamp and by_timestamp[timestamp] != source_row:
+            raise RuntimeError(f"Conflicting duplicate OKX candle at {timestamp}")
+        by_timestamp[timestamp] = source_row
+    rows = sorted(by_timestamp.values(), key=lambda row: int(row[0]))
+    interval_ms = {"15m": 15 * 60_000, "1h": 60 * 60_000,
+                   "1d": 24 * 60 * 60_000, "1w": 7 * 24 * 60 * 60_000}[interval]
+    for previous, current in zip(rows, rows[1:]):
+        delta = int(current[0]) - int(previous[0])
+        if delta <= 0:
+            raise RuntimeError("OKX candles are not strictly chronological")
+        if delta % interval_ms != 0:
+            raise RuntimeError("OKX candle timestamps are not aligned to interval")
+    # Missing intervals are recorded as a warning; do not fabricate candles or indicators.
+    gaps = sum(1 for previous, current in zip(rows, rows[1:])
+               if int(current[0]) - int(previous[0]) > interval_ms)
+    if gaps:
+        print(f"WARNING: OKX returned {gaps} candle gap(s) for {interval}; indicators may be less reliable.")
+
     # Loại nến trùng và sắp xếp thời gian tăng dần
     unique_rows = {row[0]: row for row in rows}
     rows = sorted(unique_rows.values(), key=lambda row: int(row[0]))
@@ -130,6 +158,25 @@ def get_klines(interval, limit=500):
     df["close_time"] = (
         df["open_time"] + duration_map[interval]
     )
+
+    price_cols = ["open", "high", "low", "close", "volume", "quote_volume"]
+    numeric = df[price_cols].to_numpy(dtype=float)
+    if not np.isfinite(numeric).all():
+        raise RuntimeError("OKX returned NaN/inf candle values")
+    invalid_ohlc = (
+        (df["low"] <= 0)
+        | (df["high"] < df["low"])
+        | (df["high"] < df["open"])
+        | (df["high"] < df["close"])
+        | (df["low"] > df["open"])
+        | (df["low"] > df["close"])
+        | (df["open"] <= 0)
+        | (df["close"] <= 0)
+        | (df["volume"] < 0)
+        | (df["quote_volume"] < 0)
+    )
+    if invalid_ohlc.any():
+        raise RuntimeError(f"OKX returned {int(invalid_ohlc.sum())} invalid OHLCV candle(s)")
 
     # Chỉ dùng nến đã đóng theo cờ xác nhận của OKX
     # và thời gian đóng nến.
@@ -204,6 +251,28 @@ def add_indicators(df):
     d["adx"] = rma(dx, ADX_SMOOTH)
     return d
 
+def _atomic_write_json(path, payload):
+    """Replace JSON files atomically so a process restart cannot read a partial write."""
+    import tempfile
+    directory = os.path.dirname(os.path.abspath(path))
+    os.makedirs(directory, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=".state-", suffix=".tmp", dir=directory)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+def _read_json(path, default):
+    if not os.path.exists(path):
+        return default
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
 def load_state():
     default = {
         "last_processed_open": None,
@@ -219,18 +288,26 @@ def load_state():
     if not os.path.exists(STATE_FILE):
         return default
     try:
-        with open(STATE_FILE, "r", encoding="utf-8") as f:
-            saved = json.load(f)
+        saved = _read_json(STATE_FILE, {})
+        if not isinstance(saved, dict):
+            raise ValueError("state.json must contain a JSON object")
         default.update(saved)
         if "account_balance" not in saved:
             default["account_balance"] = INITIAL_CAPITAL
+        if default.get("side") not in (None, "LONG", "SHORT"):
+            raise ValueError("state.json has an unsupported position side")
+        for key in ("qty", "avg_entry", "account_balance"):
+            value = float(default.get(key) or 0.0)
+            if not np.isfinite(value) or value < 0:
+                raise ValueError(f"state.json has invalid {key}")
         return default
-    except Exception:
-        return default
+    except Exception as exc:
+        raise RuntimeError(
+            f"Cannot safely restore {STATE_FILE}; refusing to reset position state: {exc}"
+        ) from exc
 
 def save_state(state):
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2)
+    _atomic_write_json(STATE_FILE, state)
 
 def telegram_send(text):
     token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
@@ -247,6 +324,53 @@ def telegram_send(text):
 def fmt_price(x):
     return f"{x:,.2f}"
 
+def _event_key(kind, side, candle_time):
+    stamp = pd.Timestamp(candle_time)
+    if stamp.tzinfo is None:
+        stamp = stamp.tz_localize("UTC")
+    else:
+        stamp = stamp.tz_convert("UTC")
+    return f"{kind}|{side or 'FLAT'}|{stamp.isoformat()}"
+
+def flush_telegram_outbox():
+    """Deliver queued alerts; retain failures for the next scheduled run."""
+    try:
+        queue = _read_json(TELEGRAM_OUTBOX_FILE, [])
+        sent = _read_json(TELEGRAM_SENT_FILE, [])
+        if not isinstance(queue, list) or not isinstance(sent, list):
+            raise ValueError("Telegram outbox/ledger JSON has an invalid shape")
+        sent_set = set(str(x) for x in sent)
+        remaining = []
+        changed = False
+        for item in queue:
+            key = item.get("key") if isinstance(item, dict) else None
+            if not key:
+                changed = True
+                continue
+            if key in sent_set:
+                changed = True
+                continue
+            try:
+                telegram_send(item["text"])
+            except Exception as exc:
+                print(f"Telegram delivery pending for {key}: {exc}")
+                remaining.append(item)
+                continue
+            # Persist the ledger before removing the queue item. Telegram sendMessage has
+            # no idempotency key, so a crash after API acceptance but before this write is
+            # the one narrow window in which duplicate delivery cannot be ruled out.
+            sent.append(key)
+            sent_set.add(key)
+            sent = sent[-500:]
+            _atomic_write_json(TELEGRAM_SENT_FILE, sent)
+            changed = True
+        if changed or len(remaining) != len(queue):
+            _atomic_write_json(TELEGRAM_OUTBOX_FILE, remaining)
+        return len(remaining)
+    except Exception as exc:
+        print(f"Telegram outbox retained for retry: {exc}")
+        return -1
+
 def send_event(kind, side, price, candle_time, roe=None, note=""):
     emoji = {"LONG ENTRY":"🟢", "SHORT ENTRY":"🔴", "DCA":"🟠",
              "TAKE PROFIT":"✅", "SOFT SL":"⚠️", "EMERGENCY SL":"🚨"}.get(kind, "ℹ️")
@@ -262,7 +386,19 @@ def send_event(kind, side, price, candle_time, roe=None, note=""):
     if note:
         lines.append(note)
     lines.append("Người nhận tự xác minh giá và quản lý rủi ro.")
-    telegram_send("\n".join(lines))
+    key = _event_key(kind, side, candle_time)
+    try:
+        sent = _read_json(TELEGRAM_SENT_FILE, [])
+        queue = _read_json(TELEGRAM_OUTBOX_FILE, [])
+        if key in sent or any(isinstance(item, dict) and item.get("key") == key for item in queue):
+            return
+        queue.append({"key": key, "text": "\n".join(lines), "queued_at": utc_now().isoformat()})
+        _atomic_write_json(TELEGRAM_OUTBOX_FILE, queue)
+        flush_telegram_outbox()
+    except Exception as exc:
+        # If durable enqueue itself fails, abort this candle before its cursor is committed.
+        # The scheduler can replay it after the storage issue is corrected.
+        raise RuntimeError(f"Could not durably enqueue Telegram event {key}: {exc}") from exc
 
 def roe_for(side, avg_entry, close):
     if not side or avg_entry <= 0:
@@ -404,6 +540,8 @@ def stop_fill_price(side, stop_price, candle_open):
     raise ValueError(f"Unsupported position side: {side}")
 
 def main():
+    # Retry alerts left by a network outage or process restart before scanning new candles.
+    flush_telegram_outbox()
     if os.getenv("TEST_TELEGRAM", "").strip() == "1":
         telegram_send("✅ BTCUSDT Signal Bot: Telegram kết nối thành công!")
         print("Telegram test message sent successfully.")
@@ -444,30 +582,16 @@ def main():
         return
 
     events_sent = 0
+    last_safe_state = dict(state)
     for idx, row in new_rows.iterrows():
-        if pd.isna(row["rsi"]) or pd.isna(row["adx"]):
-            state["last_processed_open"] = row["open_time"].isoformat()
-            continue
-
-        bucket = row["open_time"].floor("h")
-        prior_h1_candidates = [t for t in h1_times if t < bucket]
-        if not prior_h1_candidates:
-            state["last_processed_open"] = row["open_time"].isoformat()
-            continue
-
-        h1row = h1_by_open[prior_h1_candidates[-1]]
-        if (
-            pd.isna(h1row.plus_di)
-            or pd.isna(h1row.minus_di)
-            or pd.isna(h1row.adx)
-        ):
-            state["last_processed_open"] = row["open_time"].isoformat()
-            continue
-
+        # Process only closed M15 rows; use H1 candles closed by this M15 close.
+        # Price-based Emergency SL must remain active while indicators warm up.
+        closed_at = row["open_time"] + pd.Timedelta(minutes=15)
+        prior_h1_candidates = [
+            t for t in h1_times if t + pd.Timedelta(hours=1) <= closed_at
+        ]
+        h1row = h1_by_open[prior_h1_candidates[-1]] if prior_h1_candidates else None
         prev_rsi = m15.loc[idx - 1, "rsi"] if idx > 0 else np.nan
-        if pd.isna(prev_rsi):
-            state["last_processed_open"] = row["open_time"].isoformat()
-            continue
 
         close = float(row["close"])
         high = float(row["high"])
@@ -475,9 +599,9 @@ def main():
         candle_open = float(row["open"])
         rsi = float(row["rsi"])
         adx = float(row["adx"])
-        h1_plus = float(h1row.plus_di)
-        h1_minus = float(h1row.minus_di)
-        h1_adx = float(h1row.adx)
+        h1_plus = float(h1row.plus_di) if h1row is not None else np.nan
+        h1_minus = float(h1row.minus_di) if h1row is not None else np.nan
+        h1_adx = float(h1row.adx) if h1row is not None else np.nan
 
         h1_bull = h1_plus > h1_minus and h1_adx > H1_ADX_ENTRY
         h1_bear = h1_minus > h1_plus and h1_adx > H1_ADX_ENTRY
@@ -574,7 +698,7 @@ def main():
                 tp_rsi = LONG_RSI_TP if side == "LONG" else SHORT_RSI_TP
                 send_event(
                     close_reason, side, exit_fill_price, row["open_time"], roe,
-                    f"TP kích hoạt khi nến đóng: RSI {'≥' if side == "LONG" else '≤'} {tp_rsi:g}, "
+                    f"TP kích hoạt khi nến đóng: RSI {'≥' if side == 'LONG' else '≤'} {tp_rsi:g}, "
                     f"ROE ≥ +{TP_ROE:g}%. Giá ngưỡng lý thuyết: {fmt_price(tp_price)}; "
                     f"giá khớp mô phỏng tại close sau trượt giá {SLIPPAGE_BPS:g} bps: {fmt_price(exit_fill_price)}",
                 )
@@ -635,42 +759,44 @@ def main():
             if long_signal:
                 current_balance = float(state.get("account_balance", INITIAL_CAPITAL))
                 entry_margin = current_balance * ENTRY_MARGIN_PCT
-                new_qty = entry_margin * LEVERAGE / close
+                fill_price = execution_fill_price(close, "BUY")
+                new_qty = entry_margin * LEVERAGE / fill_price
                 state.update(
                     {
                         "side": "LONG",
                         "qty": new_qty,
-                        "avg_entry": close,
+                        "avg_entry": fill_price,
                         "dca_used": False,
                         "entry_time": row["open_time"].isoformat(),
                         "initial_margin": entry_margin,
                         "dca_margin": 0.0,
-                        "entry_notional": new_qty * close,
+                        "entry_notional": new_qty * fill_price,
                     }
                 )
                 send_event(
-                    "LONG ENTRY", "LONG", close, row["open_time"],
+                    "LONG ENTRY", "LONG", fill_price, row["open_time"],
                     note=f"Khối lượng mô phỏng: {new_qty:.8f} BTC",
                 )
                 events_sent += 1
             elif short_signal:
                 current_balance = float(state.get("account_balance", INITIAL_CAPITAL))
                 entry_margin = current_balance * ENTRY_MARGIN_PCT
-                new_qty = entry_margin * LEVERAGE / close
+                fill_price = execution_fill_price(close, "SELL")
+                new_qty = entry_margin * LEVERAGE / fill_price
                 state.update(
                     {
                         "side": "SHORT",
                         "qty": new_qty,
-                        "avg_entry": close,
+                        "avg_entry": fill_price,
                         "dca_used": False,
                         "entry_time": row["open_time"].isoformat(),
                         "initial_margin": entry_margin,
                         "dca_margin": 0.0,
-                        "entry_notional": new_qty * close,
+                        "entry_notional": new_qty * fill_price,
                     }
                 )
                 send_event(
-                    "SHORT ENTRY", "SHORT", close, row["open_time"],
+                    "SHORT ENTRY", "SHORT", fill_price, row["open_time"],
                     note=f"Khối lượng mô phỏng: {new_qty:.8f} BTC",
                 )
                 events_sent += 1
@@ -697,11 +823,15 @@ def main():
             if dca_cond:
                 initial_margin = float(state.get("initial_margin") or 0.0)
                 add_margin = initial_margin * DCA_MARGIN_RATIO
-                add_qty = add_margin * LEVERAGE / close
+                reserved_margin = float(state.get("initial_margin") or 0.0) + float(state.get("dca_margin") or 0.0)
+                available_margin = max(0.0, float(state.get("account_balance", INITIAL_CAPITAL)) - reserved_margin)
+                action = "BUY" if side == "LONG" else "SELL"
+                fill_price = execution_fill_price(close, action)
+                add_qty = add_margin * LEVERAGE / fill_price if fill_price > 0 else 0.0
                 total_qty = qty + add_qty
-                if total_qty > 0:
+                if total_qty > 0 and add_margin > 0 and add_margin <= available_margin + 1e-9:
                     new_avg = (
-                        (avg_entry * qty) + (close * add_qty)
+                        (avg_entry * qty) + (fill_price * add_qty)
                     ) / total_qty
                     state.update(
                         {
@@ -709,19 +839,25 @@ def main():
                             "avg_entry": new_avg,
                             "dca_used": True,
                             "dca_margin": add_margin,
-                            "entry_notional": float(state.get("entry_notional") or (avg_entry * qty)) + close * add_qty,
+                            "entry_notional": float(state.get("entry_notional") or (avg_entry * qty)) + fill_price * add_qty,
                         }
                     )
                     send_event(
-                        "DCA", side, close, row["open_time"], current_roe,
+                        "DCA", side, fill_price, row["open_time"], current_roe,
                         f"Khối lượng DCA mô phỏng: {add_qty:.8f} BTC; "
                         f"giá vốn mô phỏng sau DCA: {fmt_price(new_avg)}",
                     )
                     events_sent += 1
 
         state["last_processed_open"] = row["open_time"].isoformat()
+        # Persist each closed candle, not only at the end of a batch. If a later event
+        # or row fails, restart resumes from the last fully committed candle.
+        save_state(state)
+        last_safe_state = dict(state)
 
     save_state(state)
+    # If delivery is still pending, the durable outbox will retry on the next run.
+    flush_telegram_outbox()
     latest = m15.iloc[-1]
     latest_h1 = h1.iloc[-1]
     send_status_report(state, float(latest["close"]), latest["open_time"], latest, latest_h1)

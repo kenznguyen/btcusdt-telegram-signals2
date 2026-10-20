@@ -143,16 +143,23 @@ def run_backtest(days=None):
             pass
     _status("running", started_at=started, message=f"Đang tải và mô phỏng {days} ngày.")
     try:
-        start = now - pd.Timedelta(days=days)
+        requested_end = os.getenv("BACKTEST_END_UTC", "").strip()
+        if requested_end:
+            end = pd.Timestamp(requested_end)
+            end = end.tz_localize("UTC") if end.tzinfo is None else end.tz_convert("UTC")
+            # The end is exclusive to keep adjacent walk-forward windows disjoint.
+        else:
+            end = now
+        start = end - pd.Timedelta(days=days)
         warm = start - pd.Timedelta(days=10)
-        end_ms = int(now.timestamp() * 1000)
+        end_ms = int(end.timestamp() * 1000)
         m15 = _candles("15m", int(warm.timestamp()*1000), end_ms, days*96+1100)
         h1 = _candles("1H", int(warm.timestamp()*1000), end_ms, days*24+300)
         m15["close_time"] = m15["open_time"] + pd.Timedelta(minutes=15)
         h1["close_time"] = h1["open_time"] + pd.Timedelta(hours=1)
         m15 = bot.add_indicators(m15).reset_index(drop=True)
         h1 = bot.add_indicators(h1).reset_index(drop=True)
-        m15 = m15[m15["open_time"] >= start].reset_index(drop=True)
+        m15 = m15[(m15["open_time"] >= start) & (m15["open_time"] < end)].reset_index(drop=True)
         # M15 is trimmed to the requested test window, so a 1-day test has
         # at most 96 candles. Keep the minimum proportional for short smoke tests.
         min_m15 = min(100, max(30, int(days * 96 * 0.75)))
@@ -202,6 +209,16 @@ def run_backtest(days=None):
                 "position_margin_usdt": pos["margin"] if pos else "", "dca_used": pos["dca"] if pos else False
             }
             if equity_curve and equity_curve[-1]["timestamp_utc"] == ts.isoformat():
+                # The end-of-candle strategy may refresh this timestamp after an exit.
+                # Preserve the intrabar metrics already measured for this candle so the
+                # exported curve can reproduce max_intrabar_dd and its percentage.
+                previous = equity_curve[-1]
+                for field in (
+                    "intrabar_adverse_price", "intrabar_adverse_equity_usdt",
+                    "intrabar_drawdown_usdt", "intrabar_drawdown_pct",
+                ):
+                    if field in previous:
+                        snapshot[field] = previous[field]
                 equity_curve[-1] = snapshot
             else:
                 equity_curve.append(snapshot)
@@ -273,19 +290,18 @@ def run_backtest(days=None):
                     "position_trade_id": pos.get("trade_id", "") if pos else "",
                     "method": "OHLC adverse extreme vs observed equity peak; intrabar order unknown"
                 }
-            if i == 0 or pd.isna(row["rsi"]) or pd.isna(row["adx"]):
+            if i == 0:
                 continue
-            # Match bot.py: latest H1 candle whose open is before this M15 hour.
-            # This intentionally excludes the current forming H1 candle.
-            candidates = h1[h1["open_time"] < ts.floor("h")]
-            if candidates.empty:
-                continue
-            hr, prev = candidates.iloc[-1], m15.iloc[i-1]
-            if any(pd.isna(x) for x in [hr["plus_di"],hr["minus_di"],hr["adx"],prev["rsi"]]):
-                continue
+            # Use only H1 candles closed by the close of this M15 candle.
+            # E.g. the 00:45 M15 candle closes at 01:00 and can use H1 00:00.
+            candidates = h1[h1["close_time"] <= row["close_time"]]
+            prev = m15.iloc[i-1]
+            hr = candidates.iloc[-1] if not candidates.empty else None
             op, high, low, close = [float(row[k]) for k in ("open","high","low","close")]
             rsi, adx, prsi = float(row["rsi"]), float(row["adx"]), float(prev["rsi"])
-            plus, minus, hadx = float(hr["plus_di"]), float(hr["minus_di"]), float(hr["adx"])
+            plus = float(hr["plus_di"]) if hr is not None else float("nan")
+            minus = float(hr["minus_di"]) if hr is not None else float("nan")
+            hadx = float(hr["adx"]) if hr is not None else float("nan")
             bull = plus > minus and hadx > bot.H1_ADX_ENTRY
             bear = minus > plus and hadx > bot.H1_ADX_ENTRY
             go_long = bull and prsi <= bot.LONG_RSI_ENTRY and rsi > bot.LONG_RSI_ENTRY
@@ -349,13 +365,15 @@ def run_backtest(days=None):
                         dca_margin = pos["initial_margin"] * DCA_MARGIN_RATIO
                         available_margin = max(0.0, balance - pos["margin"])
                         if dca_margin > 0 and dca_margin <= available_margin + 1e-9:
-                            add = dca_margin * bot.LEVERAGE / close
+                            action = "BUY" if side == "LONG" else "SELL"
+                            fill_price = bot.execution_fill_price(close, action)
+                            add = dca_margin * bot.LEVERAGE / fill_price
                             new_qty = qty + add
-                            pos["avg"] = (avg * qty + close * add) / new_qty
+                            pos["avg"] = (avg * qty + fill_price * add) / new_qty
                             pos["qty"] = new_qty
                             pos["margin"] += dca_margin
                             pos["dca"] = True
-                            pos["notional"] += close * add
+                            pos["notional"] += fill_price * add
                             counts["DCA"] += 1
                             _refresh_last_equity(ts, mark_price)
                         else:
@@ -366,16 +384,20 @@ def run_backtest(days=None):
             if (go_long or go_short) and balance > 0:
                 side = "LONG" if go_long else "SHORT"
                 initial_margin = balance * ENTRY_MARGIN_PCT
-                qty = initial_margin*bot.LEVERAGE/close
-                pos = {"side":side,"time":ts,"avg":close,"qty":qty,"margin":initial_margin,
-                       "initial_margin":initial_margin,"dca":False,"notional":close*qty,
+                action = "BUY" if side == "LONG" else "SELL"
+                fill_price = bot.execution_fill_price(close, action)
+                qty = initial_margin * bot.LEVERAGE / fill_price
+                pos = {"side":side,"time":ts,"avg":fill_price,"qty":qty,"margin":initial_margin,
+                       "initial_margin":initial_margin,"dca":False,"notional":fill_price*qty,
                        "trade_id":len(trades)+1}
                 _refresh_last_equity(ts, mark_price)
 
         if pos:
             row = m15.iloc[-1]
             side, avg, qty = pos["side"], pos["avg"], pos["qty"]
-            exit_price = float(row["close"])
+            reference_exit = float(row["close"])
+            exit_action = "SELL" if side == "LONG" else "BUY"
+            exit_price = bot.execution_fill_price(reference_exit, exit_action)
             gross = ((exit_price-avg) if side=="LONG" else (avg-exit_price))*qty
             fees = (pos["notional"]+abs(exit_price*qty))*FEE
             net = gross-fees
@@ -442,6 +464,7 @@ def run_backtest(days=None):
           "symbol":f"{SYMBOL} perpetual (OKX {OKX_INSTRUMENTS[SYMBOL]} candles)",
           "timeframe":"M15 entry / closed H1 trend filter","period_days":days,
           "start":m15.iloc[0]["open_time"].isoformat(),"end":m15.iloc[-1]["open_time"].isoformat(),
+          "requested_end_exclusive_utc":end.isoformat(),
           "candle_count":len(m15),"trade_count":len(trades),"closed_trade_count":len(trades),
           "winning_trade_count":len(wins),"losing_trade_count":len(losses),"breakeven_trade_count":len(breakeven),
           "win_rate_pct":len(wins)/len(trades)*100 if trades else 0.0,

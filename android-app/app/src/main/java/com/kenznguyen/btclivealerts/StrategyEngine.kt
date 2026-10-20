@@ -5,6 +5,9 @@ import org.json.JSONObject
 import kotlin.math.abs
 import kotlin.math.max
 
+internal fun h1CandleClosedByM15Close(h1OpenTime: Long, m15OpenTime: Long): Boolean =
+    h1OpenTime + 60L * 60L * 1000L <= m15OpenTime + 15L * 60L * 1000L
+
 data class StrategyPosition(
     val side: String, val qty: Double, val avgEntry: Double,
     val initialMargin: Double, val dcaMargin: Double, val entryNotional: Double,
@@ -39,24 +42,39 @@ data class StrategyState(
     }
 
     companion object {
-        fun fromJson(raw: String?): StrategyState = try {
-            if (raw.isNullOrBlank()) StrategyState() else {
+        fun fromJson(raw: String?): StrategyState {
+            if (raw.isNullOrBlank()) return StrategyState()
+            try {
                 val root = JSONObject(raw)
+                val balance = root.optDouble("balance", Double.NaN)
+                val cursor = root.optLong("lastProcessedOpenTime", -1L)
+                require(balance.isFinite() && balance >= 0.0) { "invalid account balance" }
+                require(cursor >= 0L) { "invalid last processed candle cursor" }
                 val p = root.optJSONObject("position")?.let { x ->
-                    StrategyPosition(x.getString("side"), x.getDouble("qty"), x.getDouble("avgEntry"),
+                    val position = StrategyPosition(x.getString("side"), x.getDouble("qty"), x.getDouble("avgEntry"),
                         x.getDouble("initialMargin"), x.optDouble("dcaMargin", 0.0),
                         x.getDouble("entryNotional"), x.getLong("entryTime"), x.optBoolean("dcaUsed", false))
+                    require(position.side == "LONG" || position.side == "SHORT") { "invalid position side" }
+                    require(position.qty.isFinite() && position.qty > 0.0) { "invalid position quantity" }
+                    require(position.avgEntry.isFinite() && position.avgEntry > 0.0) { "invalid average entry" }
+                    require(position.initialMargin.isFinite() && position.initialMargin >= 0.0) { "invalid initial margin" }
+                    require(position.dcaMargin.isFinite() && position.dcaMargin >= 0.0) { "invalid DCA margin" }
+                    require(position.entryNotional.isFinite() && position.entryNotional >= 0.0) { "invalid entry notional" }
+                    position
                 }
                 val arr = root.optJSONArray("recentEvents") ?: JSONArray()
                 val events = (0 until arr.length()).mapNotNull { i ->
                     val e = arr.optJSONObject(i) ?: return@mapNotNull null
+                    val price = e.optDouble("price", Double.NaN)
+                    require(price.isFinite() && price > 0.0) { "invalid recent event price" }
                     StrategyEvent(e.optString("kind"), e.optString("side").takeUnless { it == "null" || it.isBlank() },
-                        e.optDouble("price"), e.optLong("candleTime"),
-                        if (e.isNull("roePct")) null else e.optDouble("roePct"), e.optString("note"))
+                        price, e.optLong("candleTime"), if (e.isNull("roePct")) null else e.optDouble("roePct"), e.optString("note"))
                 }
-                StrategyState(root.optDouble("balance", 100.0), p, root.optLong("lastProcessedOpenTime", 0L), events)
+                return StrategyState(balance, p, cursor, events)
+            } catch (e: Exception) {
+                throw IllegalStateException("Cannot safely restore strategy state; refusing to reset an open position.", e)
             }
-        } catch (_: Exception) { StrategyState() }
+        }
     }
 }
 
@@ -236,9 +254,15 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
                 continue
             }
 
-            val hourBucket = c.openTime - c.openTime % 3_600_000L
-            while (hidx + 1 < hours.size && hours[hidx + 1].openTime < hourBucket) hidx++
-            val hasPriorClosedHour = hours.getOrNull(hidx)?.openTime?.let { it < hourBucket } == true
+            // A closed M15 candle is available at openTime + 15 minutes.
+            // Select the latest closed H1 candle available by that instant, avoiding stale
+            // trend filters at quarter-hour boundaries without reading a forming H1 candle.
+            while (hidx + 1 < hours.size &&
+                h1CandleClosedByM15Close(hours[hidx + 1].openTime, c.openTime)
+            ) hidx++
+            val hasPriorClosedHour = hours.getOrNull(hidx)?.let {
+                h1CandleClosedByM15Close(it.openTime, c.openTime)
+            } == true
             val hp = if (hasPriorClosedHour) hi.getOrNull(hidx)?.plusDi else null
             val hm = if (hasPriorClosedHour) hi.getOrNull(hidx)?.minusDi else null
             val ha = if (hasPriorClosedHour) hi.getOrNull(hidx)?.adx else null

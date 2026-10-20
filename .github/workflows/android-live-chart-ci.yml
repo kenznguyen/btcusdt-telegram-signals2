@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feature/android-btcusdt-live-alerts
+      - feature/strategy-backtest-audit
   workflow_dispatch:
 
 permissions:
@@ -12,7 +13,8 @@ permissions:
 
 concurrency:
   group: android-live-chart-ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Let the full Android test + APK build finish while the audit branch is being updated.
+  cancel-in-progress: false
 
 jobs:
   unit-test-and-debug-build:
