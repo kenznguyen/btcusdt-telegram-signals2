@@ -251,7 +251,7 @@ class StrategyMonitorService : Service() {
         } catch (_: Exception) { null }
 
         val result = MultiStreamSignalEngine().evaluate(
-            TechnicalSignalInput(technicalScore, technicalConfidence, closedM15.last().openTime, "M15+H1"),
+            TechnicalSignalInput(technicalScore, technicalConfidence, closedM15.last().openTime + 15L * 60_000L - 1L, "M15+H1"),
             book
         )
         val output = JSONObject()
