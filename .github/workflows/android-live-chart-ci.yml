@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feature/android-btcusdt-live-alerts
+      - fix/orderbook-snapshot-sequence
   workflow_dispatch:
 
 permissions:

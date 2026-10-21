@@ -137,18 +137,26 @@ class OrderBookEngine(
                     for (event in events) {
                         val first = event.optLong("U")
                         val last = event.optLong("u")
-                        if (last < lastUpdateId) continue
+                        // Binance diff-depth events are ranges [U, u]. The first event
+                        // after a REST snapshot must bridge snapshotId + 1, not merely
+                        // contain snapshotId. Older events can be safely discarded.
+                        if (last <= lastUpdateId) continue
                         if (!bridged) {
-                            if (first <= lastUpdateId && last >= lastUpdateId) {
+                            if (OrderBookSequence.bridgesSnapshot(lastUpdateId, first, last)) {
                                 applyLevels(event)
                                 lastUpdateId = last
                                 bridged = true
-                            } else if (first > lastUpdateId) {
+                            } else if (first > lastUpdateId + 1L) {
                                 valid = false
                                 break
                             }
                         } else {
-                            if (event.optLong("pu", lastUpdateId) != lastUpdateId) {
+                            if (!OrderBookSequence.isContiguous(
+                                    previousUpdateId = lastUpdateId,
+                                    firstUpdateId = first,
+                                    finalUpdateId = last,
+                                    previousFinalUpdateId = event.optLong("pu").takeIf { event.has("pu") }
+                                )) {
                                 valid = false
                                 break
                             }
@@ -188,8 +196,12 @@ class OrderBookEngine(
         val first = event.optLong("U")
         val last = event.optLong("u")
         if (last <= lastUpdateId) return true // stale/duplicate
-        if (first > lastUpdateId + 1 && event.optLong("pu", lastUpdateId) != lastUpdateId) return false
-        if (event.has("pu") && event.optLong("pu") != lastUpdateId) return false
+        if (!OrderBookSequence.isContiguous(
+                previousUpdateId = lastUpdateId,
+                firstUpdateId = first,
+                finalUpdateId = last,
+                previousFinalUpdateId = event.optLong("pu").takeIf { event.has("pu") }
+            )) return false
         applyLevels(event)
         lastUpdateId = last
         return true
