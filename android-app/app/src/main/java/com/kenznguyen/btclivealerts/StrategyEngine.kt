@@ -323,6 +323,65 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
 
 
     /**
+     * Counts where closed-candle entry opportunities are filtered out over loaded history.
+     * Diagnostic only: this method never changes strategy decisions.
+     */
+    fun entryFrequencyAudit(m15: List<Candle>, h1: List<Candle>): JSONObject {
+        val candles = m15.filter { it.closed }.sortedBy { it.openTime }
+        val hours = h1.filter { it.closed }.sortedBy { it.openTime }
+        val mi = indicatorSeries(candles)
+        val hi = indicatorSeries(hours)
+        var m15Ready = 0
+        var h1Ready = 0
+        var longCross = 0
+        var shortCross = 0
+        var longTrendPass = 0
+        var shortTrendPass = 0
+        var longCandidate = 0
+        var shortCandidate = 0
+        var noPriorClosedH1 = 0
+        var h1IndicatorsMissing = 0
+        for (i in 1 until candles.size) {
+            val previousRsi = mi[i - 1].rsi
+            val rsi = mi[i].rsi
+            if (previousRsi == null || rsi == null || mi[i].adx == null) continue
+            m15Ready++
+            val hourBucket = candles[i].openTime - candles[i].openTime % 3_600_000L
+            val hourIndex = hours.indexOfLast { it.openTime < hourBucket }
+            if (hourIndex < 0) { noPriorClosedH1++; continue }
+            val hp = hi[hourIndex]
+            val plus = hp.plusDi
+            val minus = hp.minusDi
+            val adx = hp.adx
+            if (plus == null || minus == null || adx == null) { h1IndicatorsMissing++; continue }
+            h1Ready++
+            val lCross = previousRsi <= config.longRsiEntry && rsi > config.longRsiEntry
+            val sCross = previousRsi >= config.shortRsiEntry && rsi < config.shortRsiEntry
+            if (lCross) longCross++
+            if (sCross) shortCross++
+            val lTrend = plus > minus && adx > config.h1AdxEntry
+            val sTrend = minus > plus && adx > config.h1AdxEntry
+            if (lTrend) longTrendPass++
+            if (sTrend) shortTrendPass++
+            if (lCross && lTrend) longCandidate++
+            if (sCross && sTrend) shortCandidate++
+        }
+        return JSONObject()
+            .put("loadedClosedM15Candles", candles.size)
+            .put("evaluatedTransitions", max(0, candles.size - 1))
+            .put("m15IndicatorsReady", m15Ready)
+            .put("h1TrendDataReady", h1Ready)
+            .put("noPriorClosedH1", noPriorClosedH1)
+            .put("h1IndicatorsMissing", h1IndicatorsMissing)
+            .put("longRsiCrosses", longCross)
+            .put("shortRsiCrosses", shortCross)
+            .put("longH1TrendPasses", longTrendPass)
+            .put("shortH1TrendPasses", shortTrendPass)
+            .put("longStrategyCandidates", longCandidate)
+            .put("shortStrategyCandidates", shortCandidate)
+            .put("note", "Diagnostic only; candidates still require separate Order Book confirmation.")
+    }
+    /**
      * Returns an entry candidate only when the latest CLOSED M15 candle satisfies
      * the same entry rules used by processClosedCandles. Analysis only.
      */
