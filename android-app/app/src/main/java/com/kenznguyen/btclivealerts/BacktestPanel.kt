@@ -65,19 +65,20 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                         val curve = mutableListOf(EquityPoint(m15.first().openTime, initial.balance, 0.0))
                         // Mark equity on every closed M15 candle, including unrealized PnL and
                         // estimated entry + exit fees while a position remains open.
-                        val (trackedState, trackedEvents) = engine.processClosedCandles(m15, h1, initial) { candle, state ->
+                        val (trackedState, trackedEvents) = engine.processClosedCandles(m15, h1, initial) { candle, beforeState, state ->
                             val mark = engine.markToMarketEquity(state, candle.close)
                             peak = max(peak, mark)
-                            val position = state.position
-                            // Estimate adverse mark-to-market at the candle's low (LONG) or high (SHORT)
-                            // so intrabar losses are not hidden by a recovery before candle close.
-                            val adversePrice = when (position?.side) {
+                            // Use the position and balance from before this candle for its intrabar
+                            // excursion. A position opened at candle close must not be marked against
+                            // the same candle's earlier high/low.
+                            val positionBefore = beforeState.position
+                            val adversePrice = when (positionBefore?.side) {
                                 "LONG" -> candle.low
                                 "SHORT" -> candle.high
                                 else -> candle.close
                             }
-                            val worstMark = if (position == null) state.balance
-                                else engine.markToMarketEquity(state, adversePrice)
+                            val worstMark = if (positionBefore == null) mark
+                                else engine.markToMarketEquity(beforeState, adversePrice)
                             val ddAbs = max(0.0, peak - minOf(mark, worstMark))
                             val ddPct = if (peak > 0.0) ddAbs / peak * 100.0 else 0.0
                             maxDd = max(maxDd, ddPct)
