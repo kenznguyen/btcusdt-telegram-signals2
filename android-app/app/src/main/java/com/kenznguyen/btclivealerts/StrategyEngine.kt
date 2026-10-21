@@ -315,6 +315,31 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
     }
 
 
+    /**
+     * Returns an entry candidate only when the latest CLOSED M15 candle satisfies
+     * the same entry rules used by processClosedCandles. Analysis only.
+     */
+    fun latestClosedEntryCandidate(m15: List<Candle>, h1: List<Candle>): String? {
+        val candles = m15.filter { it.closed }.sortedBy { it.openTime }
+        val hours = h1.filter { it.closed }.sortedBy { it.openTime }
+        if (candles.size < 2 || hours.isEmpty()) return null
+        val m15Points = indicatorSeries(candles)
+        val h1Points = indicatorSeries(hours)
+        val i = candles.lastIndex
+        val previousRsi = m15Points[i - 1].rsi ?: return null
+        val rsi = m15Points[i].rsi ?: return null
+        if (m15Points[i].adx == null) return null
+        val hourBucket = candles[i].openTime - candles[i].openTime % 3_600_000L
+        val hourIndex = hours.indexOfLast { it.openTime < hourBucket }
+        if (hourIndex < 0) return null
+        val h1Point = h1Points[hourIndex]
+        val plus = h1Point.plusDi ?: return null
+        val minus = h1Point.minusDi ?: return null
+        val adx = h1Point.adx ?: return null
+        if (longEntrySignal(previousRsi, rsi, plus, minus, adx)) return "BUY"
+        if (shortEntrySignal(previousRsi, rsi, plus, minus, adx)) return "SELL"
+        return null
+    }
     fun longEntrySignal(previousRsi: Double, rsi: Double, h1PlusDi: Double, h1MinusDi: Double, h1Adx: Double): Boolean =
         h1PlusDi > h1MinusDi && h1Adx > config.h1AdxEntry &&
             previousRsi <= config.longRsiEntry && rsi > config.longRsiEntry
