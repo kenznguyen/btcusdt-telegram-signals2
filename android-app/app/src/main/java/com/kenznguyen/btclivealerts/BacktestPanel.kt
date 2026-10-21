@@ -85,7 +85,8 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                             return SideStats(items.size, items.count { pnl(it) > 0 }, items.sumOf { pnl(it) }, items.sumOf { fee(it) })
                         }
                         val p = finalState.position
-                        val last = m15.last().close
+                        val last = m15.filter { it.closed }.maxByOrNull { it.openTime }?.close
+                            ?: error("Không có nến M15 đã đóng để định giá vị thế cuối kỳ.")
                         val unrealized = if (p == null) 0.0 else engine.markToMarketEquity(finalState, last) - finalState.balance
                         BacktestReport(
                             initial.balance, finalState.balance, finalState.balance - initial.balance,
