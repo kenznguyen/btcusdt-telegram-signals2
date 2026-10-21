@@ -97,6 +97,8 @@ class StrategyMonitorService : Service() {
                         // have been persisted/queued. This avoids losing signals on process death.
                         prefs.edit()
                             .putLong("monitor_last_candle_open", lastClosedOpen)
+                            .putLong("monitor_last_candle_close_ms", if (lastClosedOpen > 0L) lastClosedOpen + 15L * 60_000L else 0L)
+                            .putLong("monitor_last_candle_processed_at_ms", System.currentTimeMillis())
                             .putInt("monitor_last_event_count", result.second.size)
                             .putString("monitor_last_error", "")
                             .apply()
@@ -109,7 +111,8 @@ class StrategyMonitorService : Service() {
                             val sent = prefs.getStringSet("notified_event_keys", emptySet())?.toMutableSet() ?: mutableSetOf()
                             if (key in sent) return@forEach
                             val title = "BTCUSDT.P · " + event.kind
-                            val body = (event.side ?: "FLAT") + " · Giá " + "%,.2f".format(event.price) + " · " + event.note
+                            val candleLabel = SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date(event.candleTime))
+                            val body = (event.side ?: "FLAT") + " · Nến M15 mở " + candleLabel + " · Giá " + "%,.2f".format(event.price) + " · " + event.note
                             if (isQuietHours(prefs)) {
                                 if (prefs.getBoolean("alert_catch_up_after_quiet", true)) {
                                     val queue = prefs.getStringSet("quiet_alert_queue", emptySet())?.toMutableSet() ?: mutableSetOf()
@@ -272,6 +275,10 @@ class StrategyMonitorService : Service() {
             .put("orderBookAgrees", bookAgrees)
             .put("reason", finalReason)
             .put("evaluatedAtMs", evaluatedAt)
+            .put("m15CandleOpenTimeMs", closedM15.last().openTime)
+            .put("m15CandleCloseTimeMs", closedM15.last().openTime + 15L * 60_000L)
+            .put("h1CandleOpenTimeMs", closedH1.lastOrNull()?.openTime ?: 0L)
+            .put("h1CandleCloseTimeMs", closedH1.lastOrNull()?.let { it.openTime + 60L * 60_000L } ?: 0L)
             .put("timeframe", "M15+H1")
         prefs.edit().putString("multi_stream_signal_json", output.toString()).apply()
     }
