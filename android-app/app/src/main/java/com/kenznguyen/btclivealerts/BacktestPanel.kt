@@ -67,25 +67,41 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                             val items = closed.filter { it.side == side }
                             return SideStats(items.size, items.count { pnl(it) > 0 }, items.sumOf { pnl(it) }, items.sumOf { fee(it) })
                         }
-                        var equityValue = initial.balance
-                        var peak = equityValue
+                        var peak = initial.balance
                         var maxDd = 0.0
                         var maxAbs = 0.0
-                        val curve = mutableListOf(EquityPoint(m15.first().openTime, equityValue, 0.0))
-                        closed.forEach { e ->
-                            equityValue += pnl(e)
-                            peak = max(peak, equityValue)
-                            val dd = if (peak > 0) (peak - equityValue) / peak * 100.0 else 0.0
-                            maxDd = max(maxDd, dd)
-                            maxAbs = max(maxAbs, peak - equityValue)
-                            curve += EquityPoint(e.candleTime, equityValue, dd)
+                        val curve = mutableListOf(EquityPoint(m15.first().openTime, initial.balance, 0.0))
+                        // Mark equity on every closed M15 candle, including unrealized PnL and
+                        // estimated entry + exit fees while a position remains open.
+                        val (trackedState, trackedEvents) = engine.processClosedCandles(m15, h1, initial) { candle, state ->
+                            val position = state.position
+                            val mark = if (position == null) state.balance else {
+                                val exitAction = if (position.side == "LONG") "SELL" else "BUY"
+                                val exitFill = engine.executionFillPrice(candle.close, exitAction)
+                                val gross = if (position.side == "LONG")
+                                    (exitFill - position.avgEntry) * position.qty
+                                else (position.avgEntry - exitFill) * position.qty
+                                val estimatedFees = (position.entryNotional + exitFill * position.qty) * engine.config.feeRate
+                                state.balance + gross - estimatedFees
+                            }
+                            peak = max(peak, mark)
+                            val ddAbs = max(0.0, peak - mark)
+                            val ddPct = if (peak > 0.0) ddAbs / peak * 100.0 else 0.0
+                            maxDd = max(maxDd, ddPct)
+                            maxAbs = max(maxAbs, ddAbs)
+                            curve += EquityPoint(candle.openTime, mark, ddPct)
                         }
+                        // Keep report state/events from the same engine pass used for the equity curve.
+                        val finalState = trackedState
+                        val emitted = trackedEvents
                         val p = finalState.position
                         val last = m15.last().close
                         val unrealized = if (p == null) 0.0 else {
-                            val gross = if (p.side == "LONG") (last - p.avgEntry) * p.qty else (p.avgEntry - last) * p.qty
-                            val exitFee = last * p.qty * engine.config.feeRate
-                            gross - exitFee
+                            val exitAction = if (p.side == "LONG") "SELL" else "BUY"
+                            val exitFill = engine.executionFillPrice(last, exitAction)
+                            val gross = if (p.side == "LONG") (exitFill - p.avgEntry) * p.qty else (p.avgEntry - exitFill) * p.qty
+                            val estimatedFees = (p.entryNotional + exitFill * p.qty) * engine.config.feeRate
+                            gross - estimatedFees
                         }
                         BacktestReport(
                             initial.balance, finalState.balance, finalState.balance - initial.balance,
@@ -139,7 +155,7 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                     Text(e.note, color = Muted, style = MaterialTheme.typography.bodySmall)
                 }
             }
-            Text("Lưu ý: equity/drawdown đang dựa trên lệnh đã đóng; vị thế cuối kỳ được báo riêng, chưa cộng vào Net PnL đã đóng. Phí và trượt giá là mô phỏng.", color = Color(0xFFFFC857), style = MaterialTheme.typography.bodySmall)
+            Text("Equity/Max DD tính theo từng nến M15, gồm PnL thả nổi và phí vào/thoát ước tính cho vị thế mở. Net PnL đã đóng chỉ gồm lệnh đã tất toán; phí và trượt giá là mô phỏng.", color = Color(0xFFFFC857), style = MaterialTheme.typography.bodySmall)
         }
     }
 }
