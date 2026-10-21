@@ -59,14 +59,6 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                         // Critical optimization: calculate indicator series once and process the entire candle set once.
                         // Never replay each growing candle prefix (that made the old implementation O(n²)).
                         val initial = StrategyState(balance = 200.0)
-                        val (finalState, emitted) = engine.processClosedCandles(m15, h1, initial)
-                        val closed = emitted.filter { it.kind == "TAKE PROFIT" || it.kind == "SOFT SL" || it.kind == "EMERGENCY SL" }
-                        fun pnl(e: StrategyEvent): Double = noteNumber(e.note, "PnL ròng ước tính ")
-                        fun fee(e: StrategyEvent): Double = noteNumber(e.note, "phí ")
-                        fun stats(side: String): SideStats {
-                            val items = closed.filter { it.side == side }
-                            return SideStats(items.size, items.count { pnl(it) > 0 }, items.sumOf { pnl(it) }, items.sumOf { fee(it) })
-                        }
                         var peak = initial.balance
                         var maxDd = 0.0
                         var maxAbs = 0.0
@@ -94,6 +86,13 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                         // Keep report state/events from the same engine pass used for the equity curve.
                         val finalState = trackedState
                         val emitted = trackedEvents
+                        val closed = emitted.filter { it.kind == "TAKE PROFIT" || it.kind == "SOFT SL" || it.kind == "EMERGENCY SL" }
+                        fun pnl(e: StrategyEvent): Double = noteNumber(e.note, "PnL ròng ước tính ")
+                        fun fee(e: StrategyEvent): Double = noteNumber(e.note, "phí ")
+                        fun stats(side: String): SideStats {
+                            val items = closed.filter { it.side == side }
+                            return SideStats(items.size, items.count { pnl(it) > 0 }, items.sumOf { pnl(it) }, items.sumOf { fee(it) })
+                        }
                         val p = finalState.position
                         val last = m15.last().close
                         val unrealized = if (p == null) 0.0 else {
