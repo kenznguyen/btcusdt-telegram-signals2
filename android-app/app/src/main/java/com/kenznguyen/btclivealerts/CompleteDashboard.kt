@@ -367,6 +367,8 @@ fun CompleteDashboard(context: Context) {
     var monitorHeartbeat by remember { mutableStateOf("Đang chờ lần kiểm tra đầu tiên…") }
     var monitorError by remember { mutableStateOf("") }
     var lastProcessedCandle by remember { mutableStateOf("—") }
+    var lastProcessedCandleClose by remember { mutableStateOf("—") }
+    var lastProcessedAt by remember { mutableStateOf("—") }
     var lastEventCount by remember { mutableIntStateOf(0) }
     var state by remember { mutableStateOf(StrategyState.fromJson(prefs.getString("state_json", null))) }
     var m15Ind by remember { mutableStateOf(IndicatorPoint()) }
@@ -527,6 +529,10 @@ fun CompleteDashboard(context: Context) {
                             monitorHeartbeat = if (heartbeat > 0L) "Lần quét thành công: " + SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()).format(Date(heartbeat)) else "Chưa có lần quét thành công"
                             val candleTime = prefs.getLong("monitor_last_candle_open", 0L)
                             lastProcessedCandle = if (candleTime > 0L) SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date(candleTime)) else "Chưa có nến được xử lý"
+                            val candleCloseTime = prefs.getLong("monitor_last_candle_close_ms", 0L)
+                            lastProcessedCandleClose = if (candleCloseTime > 0L) SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date(candleCloseTime)) else "—"
+                            val candleProcessedAt = prefs.getLong("monitor_last_candle_processed_at_ms", 0L)
+                            lastProcessedAt = if (candleProcessedAt > 0L) SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()).format(Date(candleProcessedAt)) else "—"
                             lastEventCount = prefs.getInt("monitor_last_event_count", 0)
                             monitorError = prefs.getString("monitor_last_error", "").orEmpty()
                             refreshMultiSignal()
@@ -582,7 +588,8 @@ fun CompleteDashboard(context: Context) {
                     Text(price?.let { "$" + "%,.2f".format(it) } ?: "—", style = MaterialTheme.typography.headlineLarge, color = Color.White)
                     Text(status, color = if (status.startsWith("Đang kết nối") || status.startsWith("Đang tải") || status.startsWith("Đang đồng bộ")) NGreen else if (status.startsWith("Lỗi")) NRed else NMuted)
                     Text(monitorHeartbeat, color = NMuted, style = MaterialTheme.typography.bodySmall)
-                    Text("Nến M15 xử lý gần nhất: $lastProcessedCandle · Sự kiện lần quét gần nhất: $lastEventCount", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    Text("Nến M15 mở: $lastProcessedCandle · đóng: $lastProcessedCandleClose", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    Text("Xử lý lúc: $lastProcessedAt · Sự kiện lần quét gần nhất: $lastEventCount", color = NMuted, style = MaterialTheme.typography.bodySmall)
                     if (monitorError.isNotBlank()) Text("Lỗi giám sát gần nhất: $monitorError", color = NRed, style = MaterialTheme.typography.bodySmall)
                 }
             }
@@ -613,6 +620,11 @@ fun CompleteDashboard(context: Context) {
                         color = NMuted, style = MaterialTheme.typography.bodySmall
                     )
                     if (signalFresh) {
+                        val m15OpenMs = multiSignal.optLong("m15CandleOpenTimeMs", 0L)
+                        val h1OpenMs = multiSignal.optLong("h1CandleOpenTimeMs", 0L)
+                        val timeFormat = SimpleDateFormat("HH:mm dd/MM", Locale.getDefault())
+                        Text("Nến M15: " + if (m15OpenMs > 0L) timeFormat.format(Date(m15OpenMs)) + " mở · đóng " + timeFormat.format(Date(multiSignal.optLong("m15CandleCloseTimeMs", 0L))) else "—" + " · H1: " + if (h1OpenMs > 0L) timeFormat.format(Date(h1OpenMs)) + " mở" else "—", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                        Text("Đánh giá lúc: " + SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()).format(Date(evaluatedAt)), color = NMuted, style = MaterialTheme.typography.bodySmall)
                         Text(
                             "Điểm tổng hợp: " + "%.2f".format(Locale.US, multiSignal.optDouble("score", 0.0)) +
                                 " · Tin cậy nội bộ: " + "%.0f%%".format(Locale.US, multiSignal.optDouble("confidence", 0.0) * 100.0),
