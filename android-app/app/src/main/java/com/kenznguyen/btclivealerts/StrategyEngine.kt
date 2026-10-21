@@ -211,7 +211,7 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
         }
     }
 
-    fun processClosedCandles(m15: List<Candle>, h1: List<Candle>, oldState: StrategyState, onCandle: ((Candle, StrategyState) -> Unit)? = null): Pair<StrategyState, List<StrategyEvent>> {
+    fun processClosedCandles(m15: List<Candle>, h1: List<Candle>, oldState: StrategyState, onCandle: ((Candle, StrategyState, StrategyState) -> Unit)? = null): Pair<StrategyState, List<StrategyEvent>> {
         val candles = m15.filter { it.closed }.sortedBy { it.openTime }
         val hours = h1.filter { it.closed }.sortedBy { it.openTime }
         if (candles.size < 2) return oldState to emptyList()
@@ -224,6 +224,7 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
         for (i in candles.indices) {
             val c = candles[i]
             if (c.openTime <= state.lastProcessedOpenTime || i == 0) continue
+            val stateBeforeCandle = state
             val prevRsi = mi[i - 1].rsi
             val rsi = mi[i].rsi
             val adx = mi[i].adx
@@ -233,7 +234,7 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
             // emergency stops must still be evaluated for an already-open position.
             if (!hasRsi && state.position == null) {
                 state = state.copy(lastProcessedOpenTime = c.openTime)
-                onCandle?.invoke(c, state)
+                onCandle?.invoke(c, stateBeforeCandle, state)
                 continue
             }
 
