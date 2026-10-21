@@ -216,23 +216,11 @@ class StrategyMonitorService : Service() {
         val closedH1 = h1.filter { it.closed }.sortedBy { it.openTime }
         if (closedM15.size < 32 || closedH1.size < 32) return
 
-        val m15Indicators = market.indicators(closedM15)
-        val h1Indicators = market.indicators(closedH1)
-        fun directionScore(indicators: Indicators): Double? {
-            val plus = indicators.plusDi ?: return null
-            val minus = indicators.minusDi ?: return null
-            val rsi = indicators.rsi ?: return null
-            val dmiTotal = plus + minus
-            val dmiScore = if (dmiTotal <= 0.0) 0.0 else (plus - minus) / dmiTotal
-            val rsiScore = ((rsi - 50.0) / 50.0).coerceIn(-1.0, 1.0)
-            return (0.65 * dmiScore + 0.35 * rsiScore).coerceIn(-1.0, 1.0)
-        }
-        val m15Score = directionScore(m15Indicators) ?: return
-        val h1Score = directionScore(h1Indicators) ?: return
-        val technicalScore = (0.65 * m15Score + 0.35 * h1Score).coerceIn(-1.0, 1.0)
-        val adxStrength = (((m15Indicators.adx ?: 0.0) + (h1Indicators.adx ?: 0.0)) / 2.0 / 50.0)
-            .coerceIn(0.0, 1.0)
-        val technicalConfidence = (0.55 + 0.45 * adxStrength).coerceIn(0.0, 1.0)
+        // BUY/SELL starts only from the exact closed-candle entry rules in StrategyEngine.
+        // The order book is a mandatory directional confirmation filter, not an independent entry trigger.
+        val strategyCandidate = engine.latestClosedEntryCandidate(closedM15, closedH1)
+        val technicalScore = when (strategyCandidate) { "BUY" -> 1.0; "SELL" -> -1.0; else -> 0.0 }
+        val technicalConfidence = if (strategyCandidate != null) 1.0 else 0.0
 
         val book = try {
             val json = JSONObject(prefs.getString("orderbook_metrics_json", null) ?: "")
@@ -250,19 +238,40 @@ class StrategyMonitorService : Service() {
             )
         } catch (_: Exception) { null }
 
+        val evaluatedAt = System.currentTimeMillis()
         val result = MultiStreamSignalEngine().evaluate(
             TechnicalSignalInput(technicalScore, technicalConfidence, closedM15.last().openTime + 15L * 60_000L - 1L, "M15+H1"),
-            book
+            book,
+            evaluatedAt
         )
+        val bookAgrees = when (strategyCandidate) {
+            "BUY" -> result.orderBookScore != null && result.orderBookScore > 0.0
+            "SELL" -> result.orderBookScore != null && result.orderBookScore < 0.0
+            else -> false
+        }
+        val finalSignal = if (strategyCandidate != null && result.dataComplete && bookAgrees && result.signal == strategyCandidate) {
+            strategyCandidate
+        } else {
+            "WAIT"
+        }
+        val finalReason = when {
+            strategyCandidate == null -> "Chưa có điều kiện vào lệnh M15/H1 theo StrategyEngine"
+            !result.dataComplete -> "WAIT: Order Book chưa đồng bộ hoặc dữ liệu đã cũ"
+            !bookAgrees -> "WAIT: Order Book không xác nhận cùng hướng với tín hiệu chiến lược"
+            result.signal != strategyCandidate -> "WAIT: điểm hợp nhất chưa đạt ngưỡng xác nhận"
+            else -> "Đã xác nhận: điều kiện StrategyEngine + Order Book cùng hướng"
+        }
         val output = JSONObject()
-            .put("signal", result.signal)
+            .put("signal", finalSignal)
+            .put("strategyCandidate", strategyCandidate ?: JSONObject.NULL)
             .put("score", result.score)
-            .put("technicalScore", result.technicalScore)
+            .put("technicalScore", technicalScore)
             .put("orderBookScore", result.orderBookScore ?: JSONObject.NULL)
             .put("confidence", result.confidence)
             .put("dataComplete", result.dataComplete)
-            .put("reason", result.reason)
-            .put("evaluatedAtMs", result.evaluatedAtMs)
+            .put("orderBookAgrees", bookAgrees)
+            .put("reason", finalReason)
+            .put("evaluatedAtMs", evaluatedAt)
             .put("timeframe", "M15+H1")
         prefs.edit().putString("multi_stream_signal_json", output.toString()).apply()
     }
