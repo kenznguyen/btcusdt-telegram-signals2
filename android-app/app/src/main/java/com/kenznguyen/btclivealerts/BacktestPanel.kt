@@ -58,7 +58,7 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                         require(m15.size > 60 && h1.size > 30) { "Không đủ dữ liệu lịch sử." }
                         // Critical optimization: calculate indicator series once and process the entire candle set once.
                         // Never replay each growing candle prefix (that made the old implementation O(n²)).
-                        val initial = StrategyState(balance = 200.0)
+                        val initial = StrategyState(balance = 100.0)
                         var peak = initial.balance
                         var maxDd = 0.0
                         var maxAbs = 0.0
@@ -89,8 +89,9 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                         val finalState = trackedState
                         val emitted = trackedEvents
                         val closed = emitted.filter { it.kind == "TAKE PROFIT" || it.kind == "SOFT SL" || it.kind == "EMERGENCY SL" }
-                        fun pnl(e: StrategyEvent): Double = noteNumber(e.note, "PnL ròng ước tính ")
-                        fun fee(e: StrategyEvent): Double = noteNumber(e.note, "phí ")
+                        // Use structured accounting values from StrategyEngine, not localized display notes.
+                        fun pnl(e: StrategyEvent): Double = e.netPnl ?: 0.0
+                        fun fee(e: StrategyEvent): Double = e.fees ?: 0.0
                         fun stats(side: String): SideStats {
                             val items = closed.filter { it.side == side }
                             return SideStats(items.size, items.count { pnl(it) > 0 }, items.sumOf { pnl(it) }, items.sumOf { fee(it) })
@@ -105,7 +106,8 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                                 .sumOf { fee(it) },
                             closed, emitted, stats("LONG"), stats("SHORT"), curve, maxDd, maxAbs,
                             p?.side, p?.qty ?: 0.0, p?.avgEntry ?: 0.0, unrealized,
-                            m15.size, m15.first().openTime, m15.last().openTime
+                            m15.count { it.closed }, m15.filter { it.closed }.minOf { it.openTime },
+                            m15.filter { it.closed }.maxOf { it.openTime }
                         )
                     }
                     report = r
@@ -160,12 +162,6 @@ private val Muted = Color(0xFF91A0B5)
 private val Green = Color(0xFF20C997)
 private val Red = Color(0xFFFF647C)
 
-private fun noteNumber(note: String, marker: String): Double {
-    val start = note.indexOf(marker)
-    if (start < 0) return 0.0
-    val raw = note.substring(start + marker.length).substringBefore(" ").replace(",", ".")
-    return raw.toDoubleOrNull() ?: 0.0
-}
 private fun date(ms: Long) = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(ms))
 
 @Composable
