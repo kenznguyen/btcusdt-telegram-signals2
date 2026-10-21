@@ -208,4 +208,29 @@ class StrategyEngineTest {
         assertEquals(withoutCallback.position, withCallback.position)
         assertEquals(events.map { it.kind to it.candleTime }, trackedEvents.map { it.kind to it.candleTime })
     }
+
+    @Test fun markToMarketIncludesDcaNotionalFeesAndExitSlippage() {
+        val cfg = StrategyConfig(feeRate = 0.001, slippageBps = 10.0)
+        val accounting = StrategyEngine(cfg)
+        val position = StrategyPosition(
+            side = "LONG", qty = 2.0, avgEntry = 100.0,
+            initialMargin = 20.0, dcaMargin = 20.0,
+            entryNotional = 200.0, entryTime = 1L, dcaUsed = true
+        )
+        val state = StrategyState(balance = 200.0, position = position)
+        // Sell-side estimated fill = 99.9; gross = -0.2; fees = (200 + 199.8) * 0.1%.
+        val equity = accounting.markToMarketEquity(state, 100.0)
+        assertEquals(199.4002, equity, 1e-6)
+        // Mark-to-market is read-only; it must not realize PnL or mutate position/balance.
+        assertEquals(200.0, state.balance, 0.0)
+        assertEquals(position, state.position)
+    }
+
+    @Test fun markToMarketReturnsBalanceWhenFlatOrPriceIsInvalid() {
+        assertEquals(150.0, engine.markToMarketEquity(StrategyState(balance = 150.0), 100.0), 0.0)
+        val p = StrategyPosition("LONG", 1.0, 100.0, 20.0, 0.0, 100.0, 1L, false)
+        val state = StrategyState(balance = 150.0, position = p)
+        assertEquals(150.0, engine.markToMarketEquity(state, Double.NaN), 0.0)
+        assertEquals(150.0, engine.markToMarketEquity(state, 0.0), 0.0)
+    }
 }
