@@ -79,6 +79,7 @@ class StrategyMonitorService : Service() {
                         val h1 = market.fetchCandles("1h", 500)
                         val closed = m15.filter { it.closed }.sortedBy { it.openTime }
                         val prefs = getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE)
+                        updateMultiStreamSignal(m15, h1, prefs)
 
                         // Evaluate every newly closed candle in the background, not only the
                         // latest one, so reconnect/network gaps do not silently skip chart signals.
@@ -206,6 +207,66 @@ class StrategyMonitorService : Service() {
             // Keep the event in history; the monitor loop still records its dedupe key.
         }
     }
+    private fun updateMultiStreamSignal(
+        m15: List<Candle>,
+        h1: List<Candle>,
+        prefs: android.content.SharedPreferences
+    ) {
+        val closedM15 = m15.filter { it.closed }.sortedBy { it.openTime }
+        val closedH1 = h1.filter { it.closed }.sortedBy { it.openTime }
+        if (closedM15.size < 32 || closedH1.size < 32) return
+
+        val m15Indicators = market.indicators(closedM15)
+        val h1Indicators = market.indicators(closedH1)
+        fun directionScore(indicators: Indicators): Double? {
+            val plus = indicators.plusDi ?: return null
+            val minus = indicators.minusDi ?: return null
+            val rsi = indicators.rsi ?: return null
+            val dmiTotal = plus + minus
+            val dmiScore = if (dmiTotal <= 0.0) 0.0 else (plus - minus) / dmiTotal
+            val rsiScore = ((rsi - 50.0) / 50.0).coerceIn(-1.0, 1.0)
+            return (0.65 * dmiScore + 0.35 * rsiScore).coerceIn(-1.0, 1.0)
+        }
+        val m15Score = directionScore(m15Indicators) ?: return
+        val h1Score = directionScore(h1Indicators) ?: return
+        val technicalScore = (0.65 * m15Score + 0.35 * h1Score).coerceIn(-1.0, 1.0)
+        val adxStrength = (((m15Indicators.adx ?: 0.0) + (h1Indicators.adx ?: 0.0)) / 2.0 / 50.0)
+            .coerceIn(0.0, 1.0)
+        val technicalConfidence = (0.55 + 0.45 * adxStrength).coerceIn(0.0, 1.0)
+
+        val book = try {
+            val json = JSONObject(prefs.getString("orderbook_metrics_json", null) ?: "")
+            OrderBookMetrics(
+                bestBid = json.getDouble("bestBid"),
+                bestAsk = json.getDouble("bestAsk"),
+                spreadBps = json.getDouble("spreadBps"),
+                bidDepth = json.getDouble("bidDepth"),
+                askDepth = json.getDouble("askDepth"),
+                imbalance = json.getDouble("imbalance"),
+                weightedImbalance = json.getDouble("weightedImbalance"),
+                updateId = json.getLong("updateId"),
+                updatedAtMs = json.getLong("updatedAtMs"),
+                synchronized = json.optBoolean("synchronized", false)
+            )
+        } catch (_: Exception) { null }
+
+        val result = MultiStreamSignalEngine().evaluate(
+            TechnicalSignalInput(technicalScore, technicalConfidence, closedM15.last().openTime, "M15+H1"),
+            book
+        )
+        val output = JSONObject()
+            .put("direction", result.direction)
+            .put("score", result.score)
+            .put("technicalScore", result.technicalScore)
+            .put("orderBookScore", result.orderBookScore ?: JSONObject.NULL)
+            .put("confidence", result.confidence)
+            .put("dataComplete", result.dataComplete)
+            .put("reason", result.reason)
+            .put("evaluatedAtMs", result.evaluatedAtMs)
+            .put("timeframe", "M15+H1")
+        prefs.edit().putString("multi_stream_signal_json", output.toString()).apply()
+    }
+
     private fun alertPreferenceKey(kind: String): String = when {
         kind.contains("ENTRY") -> "entry"
         kind == "DCA" -> "dca"
