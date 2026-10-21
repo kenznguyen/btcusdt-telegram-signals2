@@ -12,7 +12,7 @@ data class TechnicalSignalInput(
 )
 
 data class MultiStreamSignal(
-    val direction: String, // UP, DOWN, NEUTRAL
+    val signal: String, // BUY, SELL, WAIT
     val score: Double,
     val technicalScore: Double,
     val orderBookScore: Double?,
@@ -49,7 +49,7 @@ class MultiStreamSignalEngine(
             orderBook.spreadBps.isFinite() && orderBook.spreadBps >= 0.0
 
         if (!technicalFresh) {
-            return MultiStreamSignal("NEUTRAL", 0.0, techScore, null, 0.0, false,
+            return MultiStreamSignal("WAIT", 0.0, techScore, null, 0.0, false,
                 "Dữ liệu kỹ thuật cũ hoặc timestamp không hợp lệ", nowMs)
         }
 
@@ -78,11 +78,13 @@ class MultiStreamSignalEngine(
             reason = "Thiếu Order Book mới/đã đồng bộ; chỉ dùng kỹ thuật"
         }
 
-        val direction = when {
-            score >= threshold -> "UP"
-            score <= -threshold -> "DOWN"
-            else -> "NEUTRAL"
+        // An actionable trade signal requires both synchronized technical data and a fresh order book.
+        val signal = when {
+            !complete -> "WAIT"
+            score >= threshold -> "BUY"
+            score <= -threshold -> "SELL"
+            else -> "WAIT"
         }
-        return MultiStreamSignal(direction, score, techScore, bookScore, confidence, complete, reason, nowMs)
+        return MultiStreamSignal(signal, score, techScore, bookScore, confidence, complete, reason, nowMs)
     }
 }
