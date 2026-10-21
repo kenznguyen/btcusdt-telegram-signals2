@@ -67,18 +67,25 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                         // estimated entry + exit fees while a position remains open.
                         val (trackedState, trackedEvents) = engine.processClosedCandles(m15, h1, initial) { candle, beforeState, state ->
                             val mark = engine.markToMarketEquity(state, candle.close)
-                            peak = max(peak, mark)
-                            // Use the position and balance from before this candle for its intrabar
-                            // excursion. A position opened at candle close must not be marked against
-                            // the same candle's earlier high/low.
+                            // Use the position and balance from before this candle for intrabar
+                            // extremes; a position opened at the close cannot use earlier OHLC.
                             val positionBefore = beforeState.position
+                            val favorablePrice = when (positionBefore?.side) {
+                                "LONG" -> candle.high
+                                "SHORT" -> candle.low
+                                else -> candle.close
+                            }
                             val adversePrice = when (positionBefore?.side) {
                                 "LONG" -> candle.low
                                 "SHORT" -> candle.high
                                 else -> candle.close
                             }
+                            val favorableMark = if (positionBefore == null) mark
+                                else engine.markToMarketEquity(beforeState, favorablePrice)
                             val worstMark = if (positionBefore == null) mark
                                 else engine.markToMarketEquity(beforeState, adversePrice)
+                            // Peak must include favorable intrabar equity as well as candle closes.
+                            peak = max(peak, max(mark, favorableMark))
                             val ddAbs = max(0.0, peak - minOf(mark, worstMark))
                             val ddPct = if (peak > 0.0) ddAbs / peak * 100.0 else 0.0
                             maxDd = max(maxDd, ddPct)
