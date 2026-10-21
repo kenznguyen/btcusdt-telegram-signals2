@@ -299,6 +299,7 @@ class StrategyMonitorService : Service() {
             .put("h1CandleOpenTimeMs", closedH1.lastOrNull()?.openTime ?: 0L)
             .put("h1CandleCloseTimeMs", closedH1.lastOrNull()?.let { it.openTime + 60L * 60_000L } ?: 0L)
             .put("timeframe", "M15+H1")
+            .put("entryFrequencyAudit", engine.entryFrequencyAudit(m15, h1))
         prefs.edit().putString("multi_stream_signal_json", output.toString()).apply()
     }
 
