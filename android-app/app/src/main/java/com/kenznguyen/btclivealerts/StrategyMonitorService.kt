@@ -300,6 +300,23 @@ class StrategyMonitorService : Service() {
             .put("h1CandleCloseTimeMs", closedH1.lastOrNull()?.let { it.openTime + 60L * 60_000L } ?: 0L)
             .put("timeframe", "M15+H1")
             .put("entryFrequencyAudit", engine.entryFrequencyAudit(m15, h1))
+            .put("confirmationGate", JSONObject()
+                .put("technicalCandidateExists", strategyCandidate != null)
+                .put("orderBookPresent", book != null)
+                .put("orderBookSynchronized", book?.synchronized ?: false)
+                .put("orderBookAgeMs", book?.let { evaluatedAt - it.updatedAtMs } ?: JSONObject.NULL)
+                .put("orderBookAgrees", bookAgrees)
+                .put("dataComplete", result.dataComplete)
+                .put("blockReason", when {
+                    strategyCandidate == null -> "NO_TECHNICAL_CANDIDATE"
+                    book == null -> "ORDERBOOK_MISSING"
+                    !book.synchronized -> "ORDERBOOK_UNSYNCED"
+                    book.updatedAtMs > evaluatedAt -> "ORDERBOOK_FUTURE_TIMESTAMP"
+                    evaluatedAt - book.updatedAtMs > 2000L -> "ORDERBOOK_STALE"
+                    !bookAgrees -> "ORDERBOOK_DIRECTION_MISMATCH"
+                    result.signal != strategyCandidate -> "COMBINED_SCORE_REJECTED"
+                    else -> "CONFIRMED"
+                }))
         prefs.edit().putString("multi_stream_signal_json", output.toString()).apply()
     }
 
