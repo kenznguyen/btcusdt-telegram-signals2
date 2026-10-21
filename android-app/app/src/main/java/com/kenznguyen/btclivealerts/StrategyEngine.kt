@@ -340,6 +340,33 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
         if (shortEntrySignal(previousRsi, rsi, plus, minus, adx)) return "SELL"
         return null
     }
+    /** Intrabar candidate for EARLY WARNING only. Never used to create strategy positions. */
+    fun earlyEntryCandidate(m15: List<Candle>, h1: List<Candle>): String? {
+        val closed = m15.filter { it.closed }.sortedBy { it.openTime }
+        val forming = m15.filterNot { it.closed }.maxByOrNull { it.openTime } ?: return null
+        val hours = h1.filter { it.closed }.sortedBy { it.openTime }
+        if (closed.size < 2 || hours.isEmpty()) return null
+        if (forming.openTime <= closed.last().openTime) return null
+        val series = indicatorSeries(closed + forming)
+        val previousRsi = series[closed.lastIndex].rsi ?: return null
+        val currentRsi = series.last().rsi ?: return null
+        val hourBucket = forming.openTime - forming.openTime % 3_600_000L
+        val hourIndex = hours.indexOfLast { it.openTime < hourBucket }
+        if (hourIndex < 0) return null
+        val hp = indicatorSeries(hours)[hourIndex]
+        val plus = hp.plusDi ?: return null
+        val minus = hp.minusDi ?: return null
+        val adx = hp.adx ?: return null
+        // Early warnings use proximity to the entry threshold, not a confirmed cross.
+        return when {
+            plus > minus && adx > config.h1AdxEntry &&
+                previousRsi > config.longRsiEntry && currentRsi <= config.longRsiEntry + 3.0 -> "EARLY BUY"
+            minus > plus && adx > config.h1AdxEntry &&
+                previousRsi < config.shortRsiEntry && currentRsi >= config.shortRsiEntry - 3.0 -> "EARLY SELL"
+            else -> null
+        }
+    }
+
     fun longEntrySignal(previousRsi: Double, rsi: Double, h1PlusDi: Double, h1MinusDi: Double, h1Adx: Double): Boolean =
         h1PlusDi > h1MinusDi && h1Adx > config.h1AdxEntry &&
             previousRsi <= config.longRsiEntry && rsi > config.longRsiEntry
