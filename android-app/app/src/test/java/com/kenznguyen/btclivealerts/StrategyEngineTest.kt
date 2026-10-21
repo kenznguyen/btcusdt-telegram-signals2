@@ -190,4 +190,22 @@ class StrategyEngineTest {
         assertEquals(100.0, points.last().adx!!, 1e-8)
         assertEquals(34.54663034626543, points.last().plusDi!!, 1e-6)
     }
+
+    @Test fun perCandleCallbackOnlyTracksClosedCandlesAndPreservesFinalState() {
+        val closed = (0 until 100).map { i ->
+            val close = 1000.0 + i
+            Candle(i * 900000L, close - 0.5, close + 2.0, close - 2.0, close, 1.0, true)
+        }
+        val input = closed + Candle(100 * 900000L, 1100.0, 1110.0, 1090.0, 1105.0, 1.0, false)
+        val tracked = mutableListOf<Long>()
+        val (withoutCallback, events) = engine.processClosedCandles(closed, emptyList(), StrategyState(balance = 200.0))
+        val (withCallback, trackedEvents) = engine.processClosedCandles(input, emptyList(), StrategyState(balance = 200.0)) { candle, _ ->
+            tracked += candle.openTime
+        }
+        assertEquals(closed.size - 1, tracked.size)
+        assertTrue(tracked.all { it < 100 * 900000L })
+        assertEquals(withoutCallback.balance, withCallback.balance, 1e-8)
+        assertEquals(withoutCallback.position, withCallback.position)
+        assertEquals(events.map { it.kind to it.candleTime }, trackedEvents.map { it.kind to it.candleTime })
+    }
 }
