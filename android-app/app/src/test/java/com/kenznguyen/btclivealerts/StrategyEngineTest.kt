@@ -151,7 +151,22 @@ class StrategyEngineTest {
         val initial = StrategyState(balance = 100.0, position = position, lastProcessedOpenTime = 98 * 900000L)
         val result = engine.processClosedCandles(m15, h1, initial)
         assertNull(result.first.position)
-        assertTrue(result.second.any { it.kind == "EMERGENCY SL" })
+        val emergencyEvent = result.second.first { it.kind == "EMERGENCY SL" }
+        assertNotNull(emergencyEvent.netPnl)
+        assertNotNull(emergencyEvent.fees)
+        assertTrue(emergencyEvent.fees!! > 0.0)
+        assertTrue(emergencyEvent.netPnl!!.isFinite())
+    }
+
+    @Test fun strategyEventStructuredAccountingSurvivesStateSerialization() {
+        val event = StrategyEvent("TAKE PROFIT", "LONG", 101.0, 900000L,
+            5.0, "display note", netPnl = 1.25, fees = 0.15)
+        val restored = StrategyState.fromJson(
+            StrategyState(balance = 101.25, recentEvents = listOf(event)).toJson()
+        )
+        val copy = restored.recentEvents.single()
+        assertEquals(1.25, copy.netPnl!!, 1e-8)
+        assertEquals(0.15, copy.fees!!, 1e-8)
     }
 
     @Test fun emergencyStopStillRunsBeforeRsiWarmupCompletes() {
