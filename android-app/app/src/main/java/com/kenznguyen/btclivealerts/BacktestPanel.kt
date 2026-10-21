@@ -68,7 +68,17 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                         val (trackedState, trackedEvents) = engine.processClosedCandles(m15, h1, initial) { candle, state ->
                             val mark = engine.markToMarketEquity(state, candle.close)
                             peak = max(peak, mark)
-                            val ddAbs = max(0.0, peak - mark)
+                            val position = state.position
+                            // Estimate adverse mark-to-market at the candle's low (LONG) or high (SHORT)
+                            // so intrabar losses are not hidden by a recovery before candle close.
+                            val adversePrice = when (position?.side) {
+                                "LONG" -> candle.low
+                                "SHORT" -> candle.high
+                                else -> candle.close
+                            }
+                            val worstMark = if (position == null) state.balance
+                                else engine.markToMarketEquity(state, adversePrice)
+                            val ddAbs = max(0.0, peak - minOf(mark, worstMark))
                             val ddPct = if (peak > 0.0) ddAbs / peak * 100.0 else 0.0
                             maxDd = max(maxDd, ddPct)
                             maxAbs = max(maxAbs, ddAbs)
