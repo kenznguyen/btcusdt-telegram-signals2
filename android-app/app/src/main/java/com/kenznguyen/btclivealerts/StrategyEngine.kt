@@ -400,6 +400,20 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
         else high >= threshold && reversal && candleClose > candleOpen && previousClose > previousOpen
     }
 
+    /** Mark-to-market equity includes accumulated entry notional (including DCA),
+     * estimated exit notional, exit slippage and both sides' fees. No state is mutated. */
+    fun markToMarketEquity(state: StrategyState, markPrice: Double): Double {
+        val position = state.position ?: return state.balance
+        if (!markPrice.isFinite() || markPrice <= 0.0) return state.balance
+        val exitAction = if (position.side == "LONG") "SELL" else "BUY"
+        val exitFill = executionFillPrice(markPrice, exitAction)
+        val gross = if (position.side == "LONG")
+            (exitFill - position.avgEntry) * position.qty
+        else (position.avgEntry - exitFill) * position.qty
+        val fees = (position.entryNotional + exitFill * position.qty) * config.feeRate
+        return state.balance + gross - fees
+    }
+
     fun roeFor(side: String, avg: Double, price: Double): Double =
         if (side == "LONG") (price - avg) / avg * config.leverage * 100.0
         else (avg - price) / avg * config.leverage * 100.0
