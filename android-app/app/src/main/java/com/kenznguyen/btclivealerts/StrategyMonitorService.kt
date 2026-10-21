@@ -255,7 +255,7 @@ class StrategyMonitorService : Service() {
             book
         )
         val output = JSONObject()
-            .put("direction", result.direction)
+            .put("signal", result.signal)
             .put("score", result.score)
             .put("technicalScore", result.technicalScore)
             .put("orderBookScore", result.orderBookScore ?: JSONObject.NULL)
