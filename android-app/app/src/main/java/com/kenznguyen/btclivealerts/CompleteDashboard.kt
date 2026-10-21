@@ -693,6 +693,7 @@ fun CompleteDashboard(context: Context) {
                             minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
                             lineColor = Color(0xFF9B8AFB), modifier = Modifier.fillMaxWidth().height(120.dp),
                             secondarySelectors = listOf({ it.rsiPercentBSignal }),
+                            highlightPercentB = true,
                             thresholdLabels = listOf("0", "0.5", "1"), legend = listOf("%B", "Signal"),
                             visibleCount = chartVisibleCount, panBars = chartPanBars,
                             onVisibleCountChange = { chartVisibleCount = it }, onPanBarsChange = { chartPanBars = it }
@@ -937,6 +938,7 @@ fun CompleteDashboard(context: Context) {
                             lineColor = Color(0xFF9B8AFB),
                             modifier = Modifier.fillMaxWidth().weight(0.20f),
                             secondarySelectors = listOf({ it.rsiPercentBSignal }),
+                            highlightPercentB = true,
                             thresholdLabels = listOf("0", "0.5", "1"),
                             legend = listOf("%B", "Signal"),
                             visibleCount = chartVisibleCount,
@@ -1023,6 +1025,7 @@ private fun IndicatorLineChart(
     secondarySelectors: List<(IndicatorPoint) -> Double?> = emptyList(),
     thresholdLabels: List<String> = emptyList(),
     legend: List<String> = emptyList(),
+    highlightPercentB: Boolean = false,
     visibleCount: Int,
     panBars: Int,
     onVisibleCountChange: (Int) -> Unit,
@@ -1059,6 +1062,13 @@ private fun IndicatorLineChart(
             val range = (maxValue - minValue).takeIf { it > 0.0 } ?: 1.0
             fun y(value: Double): Float =
                 size.height - (((value.coerceIn(minValue, maxValue) - minValue) / range).toFloat() * size.height)
+            if (highlightPercentB) {
+                // Highlight extreme %B zones: below the lower band (<= 0) and above the upper band (>= 1).
+                val lowerY = y(0.0)
+                val upperY = y(1.0)
+                drawRect(Color(0xFF20C997).copy(alpha = 0.12f), Offset(0f, lowerY), androidx.compose.ui.geometry.Size(size.width, (size.height - lowerY).coerceAtLeast(0f)))
+                drawRect(Color(0xFFFF647C).copy(alpha = 0.12f), Offset(0f, 0f), androidx.compose.ui.geometry.Size(size.width, upperY.coerceAtLeast(0f)))
+            }
             for (fraction in listOf(0.25f, 0.5f, 0.75f)) {
                 val gy = size.height * fraction
                 drawLine(Color(0xFF263243), Offset(0f, gy), Offset(size.width, gy), strokeWidth = 1f)
@@ -1069,6 +1079,20 @@ private fun IndicatorLineChart(
             }
             val series = listOf(valueSelector) + secondarySelectors
             val colors = listOf(lineColor, NGreen, NRed)
+            if (highlightPercentB) {
+                // Mark confirmed crossings of the %B 0/1 levels on the visible closed-candle series.
+                points.forEachIndexed { index, point ->
+                    val value = valueSelector(point)
+                    val prior = if (index > 0) valueSelector(points[index - 1]) else null
+                    if (value != null && prior != null && value.isFinite() && prior.isFinite()) {
+                        val crossedLower = (prior > 0.0 && value <= 0.0) || (prior < 0.0 && value >= 0.0)
+                        val crossedUpper = (prior < 1.0 && value >= 1.0) || (prior > 1.0 && value <= 1.0)
+                        val x = size.width * index / (points.size - 1).toFloat()
+                        if (crossedLower) drawCircle(Color(0xFF20C997), radius = 4.2f, center = Offset(x, y(0.0)))
+                        if (crossedUpper) drawCircle(Color(0xFFFF647C), radius = 4.2f, center = Offset(x, y(1.0)))
+                    }
+                }
+            }
             series.forEachIndexed { seriesIndex, selector ->
                 var previous: Offset? = null
                 points.forEachIndexed { index, point ->
