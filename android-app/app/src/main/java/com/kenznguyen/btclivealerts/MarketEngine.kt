@@ -57,7 +57,7 @@ class MarketEngine {
         }
 
     suspend fun fetchHistory(interval: String, days: Int): List<Candle> = withContext(Dispatchers.IO) {
-        require(days in setOf(7, 30, 90, 180)) { "Chọn 7, 30, 90 hoặc 180 ngày" }
+        require(days in setOf(7, 30, 90, 180, 360)) { "Chọn 7, 30, 90, 180 hoặc 360 ngày" }
         val step = when (interval) { "15m" -> 900000L; "1h" -> 3600000L; else -> error("Khung thời gian không hỗ trợ") }
         val end = System.currentTimeMillis()
         val start = end - days.toLong() * 86400000L
