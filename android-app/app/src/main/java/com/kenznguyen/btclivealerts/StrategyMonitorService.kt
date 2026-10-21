@@ -29,6 +29,7 @@ class StrategyMonitorService : Service() {
     private var monitorJob: Job? = null
     private val market by lazy { MarketEngine() }
     private val engine by lazy { StrategyEngine() }
+    @Volatile private var orderBookEngine: OrderBookEngine? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -39,6 +40,37 @@ class StrategyMonitorService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (orderBookEngine == null) {
+            synchronized(this) {
+                if (orderBookEngine == null) {
+                    orderBookEngine = OrderBookEngine(
+                        onMetrics = { metrics ->
+                            val json = JSONObject()
+                                .put("bestBid", metrics.bestBid)
+                                .put("bestAsk", metrics.bestAsk)
+                                .put("spreadBps", metrics.spreadBps)
+                                .put("bidDepth", metrics.bidDepth)
+                                .put("askDepth", metrics.askDepth)
+                                .put("imbalance", metrics.imbalance)
+                                .put("weightedImbalance", metrics.weightedImbalance)
+                                .put("updateId", metrics.updateId)
+                                .put("updatedAtMs", metrics.updatedAtMs)
+                                .put("synchronized", metrics.synchronized)
+                            getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE).edit()
+                                .putString("orderbook_metrics_json", json.toString())
+                                .putLong("orderbook_last_update_ms", metrics.updatedAtMs)
+                                .putString("orderbook_status", "Đã đồng bộ")
+                                .apply()
+                        },
+                        onStatus = { status ->
+                            getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE).edit()
+                                .putString("orderbook_status", status)
+                                .apply()
+                        }
+                    ).also { it.start() }
+                }
+            }
+        }
         if (monitorJob?.isActive != true) {
             monitorJob = scope.launch {
                 while (isActive) {
@@ -240,6 +272,8 @@ class StrategyMonitorService : Service() {
 
     override fun onDestroy() {
         monitorJob?.cancel()
+        orderBookEngine?.close()
+        orderBookEngine = null
         scope.cancel()
         super.onDestroy()
     }
