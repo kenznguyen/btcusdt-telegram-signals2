@@ -10,25 +10,25 @@ class MultiStreamSignalEngineTest {
     private val now = 1_800_000_000_000L
 
     @Test
-    fun staleTechnicalDataProducesNeutralIncompleteSignal() {
+    fun staleTechnicalDataProducesWaitSignal() {
         val signal = engine.evaluate(
-            TechnicalSignalInput(0.9, 0.9, now - 30 * 60_000L, "5m"),
+            TechnicalSignalInput(0.9, 0.9, now - 30 * 60_000L, "M15+H1"),
             freshBook(now),
             now
         )
-        assertEquals("NEUTRAL", signal.direction)
+        assertEquals("WAIT", signal.signal)
         assertFalse(signal.dataComplete)
         assertTrue(signal.reason.contains("cũ"))
     }
 
     @Test
-    fun missingOrderBookUsesTechnicalOnlyAndMarksIncomplete() {
+    fun missingOrderBookReturnsWaitAndMarksIncomplete() {
         val signal = engine.evaluate(
             TechnicalSignalInput(0.8, 0.9, now - 60_000L, "5m"),
             null,
             now
         )
-        assertEquals("UP", signal.direction)
+        assertEquals("WAIT", signal.signal)
         assertFalse(signal.dataComplete)
         assertEquals(null, signal.orderBookScore)
         assertEquals(0.585, signal.confidence, 0.000001)
@@ -41,7 +41,7 @@ class MultiStreamSignalEngineTest {
             freshBook(now).copy(imbalance = 0.6, weightedImbalance = 0.4),
             now
         )
-        assertEquals("UP", signal.direction)
+        assertEquals("BUY", signal.signal)
         assertTrue(signal.dataComplete)
         assertEquals(0.48, signal.orderBookScore!!, 0.000001)
         assertEquals(0.704, signal.score, 0.000001)
@@ -54,7 +54,7 @@ class MultiStreamSignalEngineTest {
             freshBook(now).copy(updatedAtMs = now - 5_000L),
             now
         )
-        assertEquals("DOWN", signal.direction)
+        assertEquals("WAIT", signal.signal)
         assertFalse(signal.dataComplete)
         assertEquals(null, signal.orderBookScore)
     }
