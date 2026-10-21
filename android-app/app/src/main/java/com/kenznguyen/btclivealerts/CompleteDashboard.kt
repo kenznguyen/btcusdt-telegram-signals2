@@ -384,6 +384,13 @@ fun CompleteDashboard(context: Context) {
     var chartSettingsExpanded by remember { mutableStateOf(false) }
     var chartFullscreen by remember { mutableStateOf(false) }
     var socketStatus by remember { mutableStateOf("Đang đồng bộ REST…") }
+    var multiSignal by remember { mutableStateOf(runCatching { JSONObject(prefs.getString("multi_stream_signal_json", "{}") ?: "{}") }.getOrDefault(JSONObject())) }
+
+    fun refreshMultiSignal() {
+        multiSignal = runCatching {
+            JSONObject(prefs.getString("multi_stream_signal_json", "{}") ?: "{}")
+        }.getOrDefault(JSONObject())
+    }
 
     LaunchedEffect(timeframe) {
         mfiBAlerts = prefs.getBoolean(chartAlertPrefKey(timeframe, "mfib_enabled"), prefs.getBoolean("chart_alert_mfib_enabled", false))
@@ -522,6 +529,7 @@ fun CompleteDashboard(context: Context) {
                             lastProcessedCandle = if (candleTime > 0L) SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date(candleTime)) else "Chưa có nến được xử lý"
                             lastEventCount = prefs.getInt("monitor_last_event_count", 0)
                             monitorError = prefs.getString("monitor_last_error", "").orEmpty()
+                            refreshMultiSignal()
                             status = socketStatus
                         }
                         lastSyncAt = now
@@ -576,6 +584,41 @@ fun CompleteDashboard(context: Context) {
                     Text(monitorHeartbeat, color = NMuted, style = MaterialTheme.typography.bodySmall)
                     Text("Nến M15 xử lý gần nhất: $lastProcessedCandle · Sự kiện lần quét gần nhất: $lastEventCount", color = NMuted, style = MaterialTheme.typography.bodySmall)
                     if (monitorError.isNotBlank()) Text("Lỗi giám sát gần nhất: $monitorError", color = NRed, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            item {
+                val signal = multiSignal.optString("signal", "WAIT").takeIf { it in setOf("BUY", "SELL", "WAIT") } ?: "WAIT"
+                val evaluatedAt = multiSignal.optLong("evaluatedAtMs", 0L)
+                val signalFresh = evaluatedAt > 0L && System.currentTimeMillis() - evaluatedAt in 0L..120_000L
+                val displaySignal = if (signalFresh) signal else "WAIT"
+                val signalColor = when (displaySignal) {
+                    "BUY" -> NGreen
+                    "SELL" -> NRed
+                    else -> Color(0xFFFFC857)
+                }
+                Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("TÍN HIỆU GIAO DỊCH", color = NMuted, style = MaterialTheme.typography.labelMedium)
+                            Text(displaySignal, color = signalColor, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                        }
+                        Text(if (signalFresh && multiSignal.optBoolean("dataComplete", false)) "KỸ THUẬT + ORDER BOOK" else "CHƯA ĐỦ XÁC NHẬN",
+                            color = if (signalFresh && multiSignal.optBoolean("dataComplete", false)) NGreen else NMuted,
+                            style = MaterialTheme.typography.labelSmall)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        if (!signalFresh) "Tín hiệu chưa có hoặc đã cũ · chờ dữ liệu mới"
+                        else multiSignal.optString("reason", "Đang chờ xác nhận"),
+                        color = NMuted, style = MaterialTheme.typography.bodySmall
+                    )
+                    if (signalFresh) {
+                        Text(
+                            "Điểm tổng hợp: " + "%.2f".format(Locale.US, multiSignal.optDouble("score", 0.0)) +
+                                " · Tin cậy nội bộ: " + "%.0f%%".format(Locale.US, multiSignal.optDouble("confidence", 0.0) * 100.0),
+                            color = NMuted, style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
             }
             item {
