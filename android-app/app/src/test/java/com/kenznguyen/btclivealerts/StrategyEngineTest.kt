@@ -199,7 +199,7 @@ class StrategyEngineTest {
         val input = closed + Candle(100 * 900000L, 1100.0, 1110.0, 1090.0, 1105.0, 1.0, false)
         val tracked = mutableListOf<Long>()
         val (withoutCallback, events) = engine.processClosedCandles(closed, emptyList(), StrategyState(balance = 200.0))
-        val (withCallback, trackedEvents) = engine.processClosedCandles(input, emptyList(), StrategyState(balance = 200.0)) { candle, _ ->
+        val (withCallback, trackedEvents) = engine.processClosedCandles(input, emptyList(), StrategyState(balance = 200.0)) { candle, _, _ ->
             tracked += candle.openTime
         }
         assertEquals(closed.size - 1, tracked.size)
