@@ -623,7 +623,9 @@ fun CompleteDashboard(context: Context) {
                         val m15OpenMs = multiSignal.optLong("m15CandleOpenTimeMs", 0L)
                         val h1OpenMs = multiSignal.optLong("h1CandleOpenTimeMs", 0L)
                         val timeFormat = SimpleDateFormat("HH:mm dd/MM", Locale.getDefault())
-                        Text("Nến M15: " + if (m15OpenMs > 0L) timeFormat.format(Date(m15OpenMs)) + " mở · đóng " + timeFormat.format(Date(multiSignal.optLong("m15CandleCloseTimeMs", 0L))) else "—" + " · H1: " + if (h1OpenMs > 0L) timeFormat.format(Date(h1OpenMs)) + " mở" else "—", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                        val m15TimeLabel = if (m15OpenMs > 0L) timeFormat.format(Date(m15OpenMs)) + " mở · đóng " + timeFormat.format(Date(multiSignal.optLong("m15CandleCloseTimeMs", 0L))) else "—"
+                        val h1TimeLabel = if (h1OpenMs > 0L) timeFormat.format(Date(h1OpenMs)) + " mở" else "—"
+                        Text("Nến M15: $m15TimeLabel · H1: $h1TimeLabel", color = NMuted, style = MaterialTheme.typography.bodySmall)
                         Text("Đánh giá lúc: " + SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()).format(Date(evaluatedAt)), color = NMuted, style = MaterialTheme.typography.bodySmall)
                         Text(
                             "Điểm tổng hợp: " + "%.2f".format(Locale.US, multiSignal.optDouble("score", 0.0)) +
