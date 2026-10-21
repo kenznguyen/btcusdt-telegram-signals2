@@ -13,7 +13,8 @@ data class StrategyPosition(
 
 data class StrategyEvent(
     val kind: String, val side: String?, val price: Double, val candleTime: Long,
-    val roePct: Double? = null, val note: String = ""
+    val roePct: Double? = null, val note: String = "",
+    val netPnl: Double? = null, val fees: Double? = null
 ) { val dedupeKey: String get() = kind + ":" + candleTime }
 
 data class StrategyState(
@@ -33,7 +34,8 @@ data class StrategyState(
         recentEvents.take(30).forEach { e ->
             events.put(JSONObject().put("kind", e.kind).put("side", e.side ?: JSONObject.NULL)
                 .put("price", e.price).put("candleTime", e.candleTime)
-                .put("roePct", e.roePct ?: JSONObject.NULL).put("note", e.note))
+                .put("roePct", e.roePct ?: JSONObject.NULL).put("note", e.note)
+                .put("netPnl", e.netPnl ?: JSONObject.NULL).put("fees", e.fees ?: JSONObject.NULL))
         }
         return root.put("recentEvents", events).toString()
     }
@@ -52,7 +54,9 @@ data class StrategyState(
                     val e = arr.optJSONObject(i) ?: return@mapNotNull null
                     StrategyEvent(e.optString("kind"), e.optString("side").takeUnless { it == "null" || it.isBlank() },
                         e.optDouble("price"), e.optLong("candleTime"),
-                        if (e.isNull("roePct")) null else e.optDouble("roePct"), e.optString("note"))
+                        if (e.isNull("roePct")) null else e.optDouble("roePct"), e.optString("note"),
+                        if (e.isNull("netPnl")) null else e.optDouble("netPnl"),
+                        if (e.isNull("fees")) null else e.optDouble("fees"))
                 }
                 StrategyState(root.optDouble("balance", 100.0), p, root.optLong("lastProcessedOpenTime", 0L), events)
             }
@@ -274,7 +278,7 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
                     state = state.copy(balance = state.balance + net, position = null)
                     val ev = StrategyEvent(reason, pos.side, exit, c.openTime, roe,
                         "PnL ròng ước tính " + "%.4f".format(net) + " USDT; phí " + "%.4f".format(fees) +
-                            " USDT; ROE sau phí " + "%.2f".format(closedRoe) + "%")
+                            " USDT; ROE sau phí " + "%.2f".format(closedRoe) + "%", netPnl = net, fees = fees)
                     emitted += ev; state = addEvent(state, ev); exited = true
                 }
             }
