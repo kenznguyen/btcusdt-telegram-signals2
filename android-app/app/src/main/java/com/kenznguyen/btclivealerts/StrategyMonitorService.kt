@@ -264,6 +264,25 @@ class StrategyMonitorService : Service() {
             result.signal != strategyCandidate -> "WAIT: điểm hợp nhất chưa đạt ngưỡng xác nhận"
             else -> "Đã xác nhận: điều kiện StrategyEngine + Order Book cùng hướng"
         }
+        // Separate provisional alert: never changes the confirmed BUY/SELL card or strategy state.
+        val earlyCandidate = engine.earlyEntryCandidate(m15, h1)
+        val earlyAgrees = when (earlyCandidate) {
+            "EARLY BUY" -> result.orderBookScore != null && result.orderBookScore > 0.0
+            "EARLY SELL" -> result.orderBookScore != null && result.orderBookScore < 0.0
+            else -> false
+        }
+        if (earlyCandidate != null && result.dataComplete && earlyAgrees) {
+            val candleOpen = m15.filterNot { it.closed }.maxByOrNull { it.openTime }?.openTime ?: 0L
+            val alertKey = "early_warning:$earlyCandidate:$candleOpen"
+            val sent = prefs.getString("early_warning_last_key", "")
+            if (candleOpen > 0L && sent != alertKey && prefs.getBoolean("early_warning_enabled", true)) {
+                val time = SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()).format(Date(evaluatedAt))
+                postAlert(alertKey, "BTCUSDT · $earlyCandidate (sơ bộ)",
+                    "Cảnh báo sớm, chưa phải tín hiệu xác nhận · M15 đang hình thành · RSI gần ngưỡng vào · H1 đã lọc xu hướng · Order Book cùng hướng · ghi nhận $time", prefs)
+                prefs.edit().putString("early_warning_last_key", alertKey).apply()
+            }
+        }
+
         val output = JSONObject()
             .put("signal", finalSignal)
             .put("strategyCandidate", strategyCandidate ?: JSONObject.NULL)
