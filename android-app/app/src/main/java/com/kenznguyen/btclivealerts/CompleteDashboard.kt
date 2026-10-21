@@ -178,7 +178,7 @@ internal fun maybeNotifyChartAlerts(
         if (enabled) {
             val eventKey = "$timeframe:$condition:${closedCandle.openTime}"
             val prefKey = "chart_alert_last_${timeframe}_$setting"
-            val body = "$value · ${timeframe.uppercase()} · giá đóng ${"%,.2f".format(Locale.US, closedCandle.close)} USDT"
+            val body = "$value · ${timeframe.uppercase()} · nến đóng lúc $time · giá đóng ${"%,.2f".format(Locale.US, closedCandle.close)} USDT"
             // Atomically reserve the event across the UI socket and background monitor.
             val shouldNotify = synchronized(prefs) {
                 if (prefs.getString(prefKey, null) == eventKey) false
