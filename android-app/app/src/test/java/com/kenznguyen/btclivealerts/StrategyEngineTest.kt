@@ -233,4 +233,28 @@ class StrategyEngineTest {
         assertEquals(150.0, engine.markToMarketEquity(state, Double.NaN), 0.0)
         assertEquals(150.0, engine.markToMarketEquity(state, 0.0), 0.0)
     }
+
+    @Test fun markToMarketEquityIncludesDcaEntryNotionalFeesAndExitSlippage() {
+        val cfg = StrategyConfig(feeRate = 0.001, slippageBps = 10.0)
+        val accountingEngine = StrategyEngine(cfg)
+        val position = StrategyPosition(
+            side = "LONG",
+            qty = 0.03,
+            avgEntry = 1000.0,
+            initialMargin = 10.0,
+            dcaMargin = 10.0,
+            entryNotional = 30.0, // aggregate original entry plus DCA fill notionals
+            entryTime = 1L,
+            dcaUsed = true
+        )
+        val state = StrategyState(balance = 180.0, position = position)
+        val markPrice = 990.0
+        val exitFill = markPrice * (1.0 - cfg.slippageBps / 10000.0)
+        val gross = (exitFill - position.avgEntry) * position.qty
+        val fees = (position.entryNotional + exitFill * position.qty) * cfg.feeRate
+        assertEquals(state.balance + gross - fees,
+            accountingEngine.markToMarketEquity(state, markPrice), 1e-8)
+        assertEquals(state.balance, accountingEngine.markToMarketEquity(state, 0.0), 1e-8)
+        assertEquals(state.balance, accountingEngine.markToMarketEquity(state, Double.NaN), 1e-8)
+    }
 }
