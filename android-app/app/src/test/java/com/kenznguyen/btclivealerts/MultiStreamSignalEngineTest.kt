@@ -24,7 +24,7 @@ class MultiStreamSignalEngineTest {
     @Test
     fun missingOrderBookReturnsWaitAndMarksIncomplete() {
         val signal = engine.evaluate(
-            TechnicalSignalInput(0.8, 0.9, now - 60_000L, "5m"),
+            TechnicalSignalInput(0.8, 0.9, now - 60_000L, "M15+H1"),
             null,
             now
         )
@@ -37,7 +37,7 @@ class MultiStreamSignalEngineTest {
     @Test
     fun freshBookIsCombinedWithTechnicalScore() {
         val signal = engine.evaluate(
-            TechnicalSignalInput(0.8, 0.9, now - 60_000L, "5m"),
+            TechnicalSignalInput(0.8, 0.9, now - 60_000L, "M15+H1"),
             freshBook(now).copy(imbalance = 0.6, weightedImbalance = 0.4),
             now
         )
@@ -50,7 +50,7 @@ class MultiStreamSignalEngineTest {
     @Test
     fun staleOrderBookIsNotUsedAsCurrentEvidence() {
         val signal = engine.evaluate(
-            TechnicalSignalInput(-0.8, 0.8, now - 60_000L, "5m"),
+            TechnicalSignalInput(-0.8, 0.8, now - 60_000L, "M15+H1"),
             freshBook(now).copy(updatedAtMs = now - 5_000L),
             now
         )
