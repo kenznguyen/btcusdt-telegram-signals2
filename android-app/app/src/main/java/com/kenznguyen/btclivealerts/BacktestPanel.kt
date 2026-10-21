@@ -43,7 +43,7 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
         Text("BACKTEST · BTCUSDT M15 / H1", color = Color.White, style = MaterialTheme.typography.titleMedium)
         Text("Dữ liệu Binance Futures · mô phỏng cục bộ · không đặt lệnh thật", color = Muted, style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf(7, 30, 90, 180).forEach { d ->
+            listOf(7, 30, 90, 180, 360).forEach { d ->
                 FilterChip(selected = days == d, onClick = { days = d }, enabled = !loading, label = { Text("${d}D") })
             }
         }
@@ -66,16 +66,7 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                         // Mark equity on every closed M15 candle, including unrealized PnL and
                         // estimated entry + exit fees while a position remains open.
                         val (trackedState, trackedEvents) = engine.processClosedCandles(m15, h1, initial) { candle, state ->
-                            val position = state.position
-                            val mark = if (position == null) state.balance else {
-                                val exitAction = if (position.side == "LONG") "SELL" else "BUY"
-                                val exitFill = engine.executionFillPrice(candle.close, exitAction)
-                                val gross = if (position.side == "LONG")
-                                    (exitFill - position.avgEntry) * position.qty
-                                else (position.avgEntry - exitFill) * position.qty
-                                val estimatedFees = (position.entryNotional + exitFill * position.qty) * engine.config.feeRate
-                                state.balance + gross - estimatedFees
-                            }
+                            val mark = engine.markToMarketEquity(state, candle.close)
                             peak = max(peak, mark)
                             val ddAbs = max(0.0, peak - mark)
                             val ddPct = if (peak > 0.0) ddAbs / peak * 100.0 else 0.0
@@ -95,13 +86,7 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                         }
                         val p = finalState.position
                         val last = m15.last().close
-                        val unrealized = if (p == null) 0.0 else {
-                            val exitAction = if (p.side == "LONG") "SELL" else "BUY"
-                            val exitFill = engine.executionFillPrice(last, exitAction)
-                            val gross = if (p.side == "LONG") (exitFill - p.avgEntry) * p.qty else (p.avgEntry - exitFill) * p.qty
-                            val estimatedFees = (p.entryNotional + exitFill * p.qty) * engine.config.feeRate
-                            gross - estimatedFees
-                        }
+                        val unrealized = if (p == null) 0.0 else engine.markToMarketEquity(finalState, last) - finalState.balance
                         BacktestReport(
                             initial.balance, finalState.balance, finalState.balance - initial.balance,
                             emitted.filter { it.kind == "TAKE PROFIT" || it.kind == "SOFT SL" || it.kind == "EMERGENCY SL" }
