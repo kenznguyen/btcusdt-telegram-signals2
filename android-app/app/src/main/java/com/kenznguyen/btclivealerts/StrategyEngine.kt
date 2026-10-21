@@ -312,7 +312,7 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
                 }
             }
             state = state.copy(lastProcessedOpenTime = c.openTime)
-            onCandle?.invoke(c, state)
+            onCandle?.invoke(c, stateBeforeCandle, state)
         }
         return state to emitted
     }
