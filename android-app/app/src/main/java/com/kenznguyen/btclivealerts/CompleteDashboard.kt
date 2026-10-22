@@ -676,8 +676,11 @@ fun CompleteDashboard(context: Context) {
                         IndicatorLineChart(
                             title = "MFI & %B [SEIGLERJ]", points = visibleIndicators, valueSelector = { it.mfiScaled },
                             minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
-                            lineColor = Color(0xFFFFD166), modifier = Modifier.fillMaxWidth().height(142.dp),
+                            lineColor = Color.Yellow, modifier = Modifier.fillMaxWidth().height(142.dp),
                             secondarySelectors = listOf({ it.pricePercentB }, { it.mfiBProduct }),
+                            seriesColors = listOf(Color.Yellow, Color.Cyan, Color.Black.copy(alpha = 0f)),
+                            legendColors = listOf(Color.Yellow, Color.Cyan, NMuted),
+                            highlightMfiB = true,
                             thresholdLabels = listOf("0", "0.5", "1"),
                             legend = listOf("MFI scaled", "Price %B", "Combined"),
                             visibleCount = chartVisibleCount,
@@ -924,8 +927,11 @@ fun CompleteDashboard(context: Context) {
                         IndicatorLineChart(
                             title = "MFI & %B [SEIGLERJ]", points = visibleIndicators, valueSelector = { it.mfiScaled },
                             minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
-                            lineColor = Color(0xFFFFD166), modifier = Modifier.fillMaxWidth().weight(0.18f),
+                            lineColor = Color.Yellow, modifier = Modifier.fillMaxWidth().weight(0.18f),
                             secondarySelectors = listOf({ it.pricePercentB }, { it.mfiBProduct }),
+                            seriesColors = listOf(Color.Yellow, Color.Cyan, Color.Black.copy(alpha = 0f)),
+                            legendColors = listOf(Color.Yellow, Color.Cyan, NMuted),
+                            highlightMfiB = true,
                             thresholdLabels = listOf("0", "0.5", "1"), legend = listOf("MFI scaled", "Price %B", "Combined"),
                             visibleCount = chartVisibleCount, panBars = chartPanBars,
                             onVisibleCountChange = { chartVisibleCount = it }, onPanBarsChange = { chartPanBars = it }
@@ -1023,6 +1029,9 @@ private fun IndicatorLineChart(
     lineColor: Color,
     modifier: Modifier = Modifier,
     secondarySelectors: List<(IndicatorPoint) -> Double?> = emptyList(),
+    seriesColors: List<Color> = listOf(lineColor, NGreen, NRed),
+    legendColors: List<Color> = seriesColors,
+    highlightMfiB: Boolean = false,
     thresholdLabels: List<String> = emptyList(),
     legend: List<String> = emptyList(),
     highlightPercentB: Boolean = false,
@@ -1063,11 +1072,30 @@ private fun IndicatorLineChart(
             fun y(value: Double): Float =
                 size.height - (((value.coerceIn(minValue, maxValue) - minValue) / range).toFloat() * size.height)
             if (highlightPercentB) {
-                // Highlight extreme %B zones: below the lower band (<= 0) and above the upper band (>= 1).
+                // RSI %B panel: show its 0/1 extreme zones.
                 val lowerY = y(0.0)
                 val upperY = y(1.0)
                 drawRect(Color(0xFF20C997).copy(alpha = 0.12f), Offset(0f, lowerY), androidx.compose.ui.geometry.Size(size.width, (size.height - lowerY).coerceAtLeast(0f)))
                 drawRect(Color(0xFFFF647C).copy(alpha = 0.12f), Offset(0f, 0f), androidx.compose.ui.geometry.Size(size.width, upperY.coerceAtLeast(0f)))
+            }
+            if (highlightMfiB) {
+                // Match Pine bgcolor(): shade only candles where Combined breaches the 0..1 range.
+                val barWidth = size.width / points.size.toFloat()
+                points.forEachIndexed { index, point ->
+                    val combined = point.mfiBProduct
+                    val color = when {
+                        combined != null && combined > 1.0 -> Color.Red.copy(alpha = 0.28f)
+                        combined != null && combined < 0.0 -> Color.Green.copy(alpha = 0.24f)
+                        else -> null
+                    }
+                    if (color != null) {
+                        drawRect(
+                            color = color,
+                            topLeft = Offset(index * barWidth, 0f),
+                            size = androidx.compose.ui.geometry.Size(barWidth + 0.5f, size.height)
+                        )
+                    }
+                }
             }
             for (fraction in listOf(0.25f, 0.5f, 0.75f)) {
                 val gy = size.height * fraction
@@ -1078,7 +1106,7 @@ private fun IndicatorLineChart(
                 drawLine(Color(0xFF566579), Offset(0f, yy), Offset(size.width, yy), strokeWidth = 1f)
             }
             val series = listOf(valueSelector) + secondarySelectors
-            val colors = listOf(lineColor, NGreen, NRed)
+            val colors = seriesColors
             if (highlightPercentB) {
                 // Mark confirmed crossings of the %B 0/1 levels on the visible closed-candle series.
                 points.forEachIndexed { index, point ->
@@ -1109,7 +1137,7 @@ private fun IndicatorLineChart(
         if (legend.isNotEmpty()) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 legend.forEachIndexed { index, item ->
-                    val color = listOf(lineColor, NGreen, NRed)[index.coerceAtMost(2)]
+                    val color = legendColors[index.coerceAtMost(legendColors.lastIndex)]
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Box(Modifier.size(width = 10.dp, height = 3.dp).background(color, RoundedCornerShape(2.dp)))
                         Text(item, color = color, style = MaterialTheme.typography.labelSmall)
