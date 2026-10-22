@@ -308,6 +308,7 @@ class StrategyMonitorService : Service() {
                 .put("orderBookAgrees", bookAgrees)
                 .put("dataComplete", result.dataComplete)
                 .put("blockReason", when {
+                    !result.dataComplete -> "DATA_INCOMPLETE"
                     strategyCandidate == null -> "NO_TECHNICAL_CANDIDATE"
                     book == null -> "ORDERBOOK_MISSING"
                     !book.synchronized -> "ORDERBOOK_UNSYNCED"
