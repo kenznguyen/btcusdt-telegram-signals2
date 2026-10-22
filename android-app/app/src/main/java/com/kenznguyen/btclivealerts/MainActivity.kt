@@ -31,7 +31,6 @@ import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import org.json.JSONArray
 
 private val Bg = Color(0xFF0B1018)
 private val Panel = Color(0xFF151D29)
@@ -69,33 +68,6 @@ private fun Dashboard(context: Context) {
     var alertsEnabled by remember { mutableStateOf(true) }
     var lastSignal by remember { mutableStateOf("") }
     var history by remember { mutableStateOf(listOf("Ứng dụng chỉ tạo cảnh báo; không đặt lệnh.")) }
-    var scannerStatus by remember { mutableStateOf("Đang chờ dữ liệu scanner…") }
-    var scannerRows by remember { mutableStateOf<List<ScannerUiRow>>(emptyList()) }
-
-    LaunchedEffect(Unit) {
-        val prefs = context.getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE)
-        while (true) {
-            scannerStatus = prefs.getString("multi_symbol_scanner_status", "Scanner chưa có trạng thái") ?: "Scanner chưa có trạng thái"
-            val raw = prefs.getString("multi_symbol_scan_json", null)
-            scannerRows = runCatching {
-                if (raw.isNullOrBlank()) emptyList() else {
-                    val array = JSONArray(raw)
-                    (0 until array.length()).map { index ->
-                        val item = array.getJSONObject(index)
-                        ScannerUiRow(
-                            symbol = item.optString("symbol", "—"),
-                            candidate = item.optString("candidate").takeUnless { it == "null" || it.isBlank() },
-                            confirmed = item.optString("confirmed").takeUnless { it == "null" || it.isBlank() },
-                            reason = item.optString("reason", "UNKNOWN"),
-                            bookAgeMs = if (item.isNull("orderBookAgeMs")) null else item.optLong("orderBookAgeMs")
-                        )
-                    }.sortedBy { it.symbol }
-                }
-            }.getOrDefault(emptyList())
-            delay(1_000L)
-        }
-    }
-
     LaunchedEffect(timeframe) {
         while (true) {
             try {
@@ -147,41 +119,6 @@ private fun Dashboard(context: Context) {
                 }
             }
             item {
-                Column(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(16.dp)).padding(14.dp)) {
-                    Text("MULTI-SYMBOL SCANNER", color = Color.White, fontWeight = FontWeight.Bold)
-                    Text("20 hợp đồng USDT Perpetual · Chỉ đọc, không đặt lệnh", color = Muted, style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(6.dp))
-                    Text(scannerStatus, color = if (scannerStatus.contains("đang theo dõi", true)) Green else Color(0xFFFFC857), style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(10.dp))
-                    if (scannerRows.isEmpty()) {
-                        Text("Chưa có kết quả. Kiểm tra trạng thái kết nối và quyền truy cập Binance.", color = Muted, style = MaterialTheme.typography.bodySmall)
-                    } else {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("SYMBOL", color = Muted, style = MaterialTheme.typography.labelSmall)
-                            Text("TÍN HIỆU", color = Muted, style = MaterialTheme.typography.labelSmall)
-                        }
-                        scannerRows.forEach { row ->
-                            Divider(color = Bg)
-                            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(row.symbol, color = Color.White, fontWeight = FontWeight.SemiBold)
-                                    Text(scannerReasonVi(row.reason), color = Muted, style = MaterialTheme.typography.labelSmall)
-                                    Text(if (row.bookAgeMs == null) "Order Book: —" else "Order Book: " + row.bookAgeMs + " ms", color = Muted, style = MaterialTheme.typography.labelSmall)
-                                }
-                                val side = row.confirmed?.let { "✓ " + it } ?: row.candidate?.let { it + " · CHỜ" } ?: "WAIT"
-                                val sideColor = when {
-                                    row.confirmed == "BUY" -> Green
-                                    row.confirmed == "SELL" -> Red
-                                    row.candidate != null -> Color(0xFFFFC857)
-                                    else -> Muted
-                                }
-                                Text(side, color = sideColor, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            }
-            item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("15m", "1h").forEach { tf ->
                         FilterChip(selected = timeframe == tf, onClick = { timeframe = tf }, label = { Text(tf.uppercase()) })
@@ -220,32 +157,6 @@ private fun Dashboard(context: Context) {
             }
         }
     }
-}
-
-private data class ScannerUiRow(
-    val symbol: String,
-    val candidate: String?,
-    val confirmed: String?,
-    val reason: String,
-    val bookAgeMs: Long?
-)
-
-private fun scannerReasonVi(reason: String): String = when (reason) {
-    "NO_TECHNICAL_CANDIDATE" -> "Chưa có điều kiện M15/H1"
-    "ORDERBOOK_MISSING" -> "Thiếu dữ liệu Order Book"
-    "ORDERBOOK_UNSYNCED" -> "Order Book chưa đồng bộ"
-    "ORDERBOOK_FUTURE_TIMESTAMP" -> "Timestamp Order Book không hợp lệ"
-    "ORDERBOOK_STALE" -> "Order Book đã cũ"
-    "DATA_INCOMPLETE" -> "Dữ liệu xác nhận chưa đủ"
-    "ORDERBOOK_DIRECTION_MISMATCH" -> "Order Book không cùng hướng"
-    "COMBINED_SCORE_REJECTED" -> "Điểm xác nhận chưa đạt"
-    "CONFIRMED" -> "Đã xác nhận M15/H1 + Order Book"
-    else -> "Đang chờ dữ liệu / " + reason
-}
-
-@Composable
-private fun MultiSymbolDashboardEntry(context: Context) {
-    Dashboard(context)
 }
 
 @Composable
