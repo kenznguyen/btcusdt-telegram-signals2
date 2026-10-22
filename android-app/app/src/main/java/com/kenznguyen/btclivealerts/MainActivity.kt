@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
         ContextCompat.startForegroundService(this, Intent(this, StrategyMonitorService::class.java))
-        setContent { MaterialTheme(colorScheme = darkColorScheme()) { MultiSymbolDashboardEntry(this) } }
+        setContent { MaterialTheme(colorScheme = darkColorScheme()) { CompleteDashboard(this) } }
     }
 
     private fun createNotificationChannel() {
