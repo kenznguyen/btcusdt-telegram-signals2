@@ -404,7 +404,6 @@ fun CompleteDashboard(context: Context) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var scannerStatus by remember { mutableStateOf("Đang chờ dữ liệu scanner…") }
     var scannerRows by remember { mutableStateOf<List<ScannerUiRow>>(emptyList()) }
-
     LaunchedEffect(Unit) {
         while (true) {
             scannerStatus = prefs.getString("multi_symbol_scanner_status", "Scanner chưa có trạng thái") ?: "Scanner chưa có trạng thái"
@@ -633,7 +632,7 @@ fun CompleteDashboard(context: Context) {
                     if (monitorError.isNotBlank()) Text("Lỗi giám sát gần nhất: $monitorError", color = NRed, style = MaterialTheme.typography.bodySmall)
                 }
             }
-            item {
+            if (selectedTab == 0) item {
                 val signal = multiSignal.optString("signal", "WAIT").takeIf { it in setOf("BUY", "SELL", "WAIT") } ?: "WAIT"
                 val evaluatedAt = multiSignal.optLong("evaluatedAtMs", 0L)
                 val signalFresh = evaluatedAt > 0L && System.currentTimeMillis() - evaluatedAt in 0L..120_000L
@@ -675,7 +674,7 @@ fun CompleteDashboard(context: Context) {
                     }
                 }
             }
-            item {
+            if (selectedTab == 0) item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     listOf("15m", "1h").forEach { tf ->
                         FilterChip(selected = timeframe == tf, onClick = { timeframe = tf }, label = { Text(tf.uppercase()) })
@@ -685,7 +684,7 @@ fun CompleteDashboard(context: Context) {
                     Text("LIVE", color = NGreen)
                 }
             }
-            item {
+            if (selectedTab == 0) item {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(14.dp)).padding(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -764,13 +763,13 @@ fun CompleteDashboard(context: Context) {
                     }
                 }
             }
-            if (showMfiB || showAdx) item {
+            if (selectedTab == 0 && (showMfiB || showAdx)) item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (showMfiB) StatCard("MFI & %B Combined", shown.mfiBProduct, Modifier.weight(1f))
                     if (showAdx) StatCard("ADX Trend", shown.adx, Modifier.weight(1f))
                 }
             }
-            item {
+            if (selectedTab == 0) item {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(14.dp)).padding(14.dp)) {
                     Text("CHIẾN LƯỢC M15 / H1", color = Color.White, fontWeight = FontWeight.Bold)
                     if (showH1Trend) {
@@ -881,7 +880,7 @@ fun CompleteDashboard(context: Context) {
                     Text("Cảnh báo chiến lược chỉ phát sinh khi nến M15 đóng và đủ điều kiện. Thông báo thử chỉ kiểm tra quyền và kênh thông báo; không xác nhận chiến lược đã phát tín hiệu. Theo dõi nền có thể bị Android giới hạn.", color = Color(0xFFFFC857), style = MaterialTheme.typography.bodySmall)
                 }
             }
-            item { Text("LỊCH SỬ SỰ KIỆN", color = Color.White, fontWeight = FontWeight.Bold) }
+            if (selectedTab == 0) item { Text("LỊCH SỬ SỰ KIỆN", color = Color.White, fontWeight = FontWeight.Bold) }
             items(state.recentEvents) { event ->
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(10.dp)).padding(12.dp)) {
                     Text(event.kind + " · " + (event.side ?: "FLAT") + " · " + "%,.2f".format(event.price),
@@ -890,7 +889,7 @@ fun CompleteDashboard(context: Context) {
                     if (event.note.isNotBlank()) Text(event.note, color = NMuted)
                 }
             }
-            item { BacktestPanel(market, engine) }
+            if (selectedTab == 0) item { BacktestPanel(market, engine) }
         }
     }
 
@@ -1003,27 +1002,26 @@ fun CompleteDashboard(context: Context) {
                         TextButton(onClick = { showAdx = !showAdx; prefs.edit().putBoolean("chart_show_adx", showAdx).apply() }) { Text(if (showAdx) "Ẩn DMI/ADX" else "Hiện DMI/ADX") }
                     }
                 }
-            item {
-                if (selectedTab == 1) {
-                    Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
-                        Text("MULTI-SYMBOL SCANNER", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Text("20 cặp USDT Perpetual · Chỉ đọc · Không đặt lệnh", color = NMuted, style = MaterialTheme.typography.bodySmall)
-                        Spacer(Modifier.height(8.dp))
-                        Text(scannerStatus, color = if (scannerStatus.contains("đang theo dõi", true)) NGreen else Color(0xFFFFC857), style = MaterialTheme.typography.bodySmall)
-                        Spacer(Modifier.height(8.dp))
-                        if (scannerRows.isEmpty()) Text("Chưa có kết quả scanner được lưu.", color = NMuted, style = MaterialTheme.typography.bodySmall)
-                        scannerRows.forEach { row ->
-                            Divider(color = NBg)
-                            Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(row.symbol, color = Color.White, fontWeight = FontWeight.SemiBold)
-                                    Text(scannerReasonVi(row.reason), color = NMuted, style = MaterialTheme.typography.labelSmall)
-                                    Text(if (row.bookAgeMs == null) "Order Book: —" else "Order Book: ${row.bookAgeMs} ms", color = NMuted, style = MaterialTheme.typography.labelSmall)
-                                }
-                                val side = row.confirmed?.let { "✓ " + it } ?: row.candidate?.let { it + " · CHỜ" } ?: "WAIT"
-                                val sideColor = when { row.confirmed == "BUY" -> NGreen; row.confirmed == "SELL" -> NRed; row.candidate != null -> Color(0xFFFFC857); else -> NMuted }
-                                Text(side, color = sideColor, fontWeight = FontWeight.Bold)
+            }
+            if (selectedTab == 1) item {
+                Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
+                    Text("MULTI-SYMBOL SCANNER", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("20 cặp USDT Perpetual · Chỉ đọc · Không đặt lệnh", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(8.dp))
+                    Text(scannerStatus, color = if (scannerStatus.contains("đang theo dõi", true)) NGreen else Color(0xFFFFC857), style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(8.dp))
+                    if (scannerRows.isEmpty()) Text("Chưa có kết quả scanner được lưu.", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    scannerRows.forEach { row ->
+                        Divider(color = NBg)
+                        Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(row.symbol, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                Text(scannerReasonVi(row.reason), color = NMuted, style = MaterialTheme.typography.labelSmall)
+                                Text(if (row.bookAgeMs == null) "Order Book: —" else "Order Book: ${row.bookAgeMs} ms", color = NMuted, style = MaterialTheme.typography.labelSmall)
                             }
+                            val side = row.confirmed?.let { "✓ " + it } ?: row.candidate?.let { it + " · CHỜ" } ?: "WAIT"
+                            val sideColor = when { row.confirmed == "BUY" -> NGreen; row.confirmed == "SELL" -> NRed; row.candidate != null -> Color(0xFFFFC857); else -> NMuted }
+                            Text(side, color = sideColor, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
