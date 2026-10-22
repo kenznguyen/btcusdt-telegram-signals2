@@ -622,8 +622,7 @@ fun CompleteDashboard(context: Context) {
                     Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Multi Symbol Scanner") })
                 }
             }
-            if (selectedTab == 0) {
-            item {
+            if (selectedTab == 0) item {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
                     Text("MARK PRICE", color = NMuted)
                     Text(price?.let { "$" + "%,.2f".format(it) } ?: "—", style = MaterialTheme.typography.headlineLarge, color = Color.White)
@@ -1004,7 +1003,6 @@ fun CompleteDashboard(context: Context) {
                         TextButton(onClick = { showAdx = !showAdx; prefs.edit().putBoolean("chart_show_adx", showAdx).apply() }) { Text(if (showAdx) "Ẩn DMI/ADX" else "Hiện DMI/ADX") }
                     }
                 }
-            }
             }
             item {
                 if (selectedTab == 1) {
