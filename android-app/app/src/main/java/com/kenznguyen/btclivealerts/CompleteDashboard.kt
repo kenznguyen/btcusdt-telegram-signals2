@@ -457,6 +457,8 @@ fun CompleteDashboard(context: Context) {
                     mainHandler.post { socketStatus = message; status = message }
                 }
             )
+            // Keep exponential backoff across WebSocket reconnects; HTTP 418 can
+            // outlast a short socket reconnect and should not trigger rapid REST retries.
             var retryDelayMs = 1_000L
             var lastSyncAt = System.currentTimeMillis()
             while (currentCoroutineContext().isActive) {
@@ -465,7 +467,7 @@ fun CompleteDashboard(context: Context) {
                 if (!connected.get() && now - connectionStartedAt > 15_000L) reconnectRequested.set(true)
                 if (reconnectRequested.get()) {
                     socket?.close(1001, "reconnect")
-                    retryDelayMs = (retryDelayMs * 2).coerceAtMost(30_000L)
+                    retryDelayMs = (retryDelayMs * 2).coerceAtMost(300_000L)
                     delay(retryDelayMs)
                     try {
                         val reconciled = market.fetchCandles(timeframe, 1500)
@@ -506,10 +508,16 @@ fun CompleteDashboard(context: Context) {
                             })
                         lastSyncAt = System.currentTimeMillis()
                     } catch (e: CancellationException) { throw e }
-                    catch (_: Exception) { retryDelayMs = (retryDelayMs * 2).coerceAtMost(30_000L) }
+                    catch (e: Exception) {
+                        retryDelayMs = (retryDelayMs * 2).coerceAtMost(300_000L)
+                        mainHandler.post {
+                            val detail = e.message ?: "Lỗi mạng không xác định"
+                            socketStatus = "REST đồng bộ lỗi: $detail · thử lại sau ${retryDelayMs / 1000}s"
+                            status = socketStatus
+                        }
+                    }
                     continue
                 }
-                if (connected.get()) retryDelayMs = 1_000L
                 if (now - lastSyncAt >= 60_000L) {
                     try {
                         val reconciled = market.fetchCandles(timeframe, 1500)

@@ -67,6 +67,26 @@ class StrategyEngineTest {
     }
 
 
+    @Test fun entryFrequencyAuditReportsFilterCountsWithoutChangingDefaults() {
+        val m15 = (0 until 120).map { i ->
+            val close = 60000.0 + kotlin.math.sin(i * 0.31) * 180.0 + i * 0.2
+            Candle(i * 900000L, close - 3.0, close + 12.0, close - 12.0, close, 10.0, true)
+        }
+        val h1 = (0 until 80).map { i ->
+            val close = 60000.0 + kotlin.math.sin(i * 0.12) * 250.0 + i * 0.7
+            Candle(i * 3600000L, close - 5.0, close + 20.0, close - 20.0, close, 100.0, true)
+        }
+        val audit = engine.entryFrequencyAudit(m15, h1)
+        assertEquals(120, audit.getInt("loadedClosedM15Candles"))
+        assertEquals(119, audit.getInt("evaluatedTransitions"))
+        assertTrue(audit.getInt("m15IndicatorsReady") in 0..119)
+        assertTrue(audit.getInt("h1TrendDataReady") <= audit.getInt("m15IndicatorsReady"))
+        assertTrue(audit.getInt("longStrategyCandidates") <= audit.getInt("longRsiCrosses"))
+        assertTrue(audit.getInt("shortStrategyCandidates") <= audit.getInt("shortRsiCrosses"))
+        assertEquals(30.0, StrategyConfig().longRsiEntry, 0.0)
+        assertEquals(70.0, StrategyConfig().shortRsiEntry, 0.0)
+        assertEquals(20.0, StrategyConfig().h1AdxEntry, 0.0)
+    }
     @Test fun entryRulesRequireCrossAndClosedH1TrendStrength() {
         assertTrue(engine.longEntrySignal(29.0, 31.0, 30.0, 20.0, 21.0))
         assertFalse(engine.longEntrySignal(31.0, 32.0, 30.0, 20.0, 21.0))
