@@ -56,6 +56,37 @@ class MarketEngine {
             }
         }
 
+    /** Returns the 20 highest-quote-volume trading USDT perpetual symbols. */
+    suspend fun fetchTopPerpetualSymbols(limit: Int = 20): List<String> = withContext(Dispatchers.IO) {
+        require(limit in 1..20) { "Scanner currently supports 1..20 symbols" }
+        val exchangeRequest = Request.Builder()
+            .url("https://fapi.binance.com/fapi/v1/exchangeInfo").build()
+        val exchangeInfo = client.newCall(exchangeRequest).execute().use { response ->
+            check(response.isSuccessful) { "Binance Futures exchangeInfo HTTP ${response.code}" }
+            JSONObject(response.body?.string() ?: "{}")
+        }
+        val eligible = (0 until exchangeInfo.optJSONArray("symbols").length()).mapNotNull { i ->
+            val item = exchangeInfo.getJSONArray("symbols").getJSONObject(i)
+            val symbol = item.optString("symbol")
+            if (item.optString("status") == "TRADING" &&
+                item.optString("contractType") == "PERPETUAL" &&
+                item.optString("quoteAsset") == "USDT" &&
+                symbol.endsWith("USDT")) symbol else null
+        }.toSet()
+        val tickerRequest = Request.Builder()
+            .url("https://fapi.binance.com/fapi/v1/ticker/24hr").build()
+        val tickers = client.newCall(tickerRequest).execute().use { response ->
+            check(response.isSuccessful) { "Binance Futures ticker24hr HTTP ${response.code}" }
+            JSONArray(response.body?.string() ?: "[]")
+        }
+        (0 until tickers.length()).mapNotNull { i ->
+            val item = tickers.getJSONObject(i)
+            val symbol = item.optString("symbol")
+            val quoteVolume = item.optString("quoteVolume").toDoubleOrNull() ?: return@mapNotNull null
+            if (symbol in eligible && quoteVolume.isFinite() && quoteVolume > 0.0) symbol to quoteVolume else null
+        }.sortedByDescending { it.second }.take(limit).map { it.first }
+    }
+
     suspend fun fetchHistory(interval: String, days: Int, symbol: String = "BTCUSDT"): List<Candle> = withContext(Dispatchers.IO) {
         require(days in setOf(7, 30, 90, 180, 360)) { "Chọn 7, 30, 90, 180 hoặc 360 ngày" }
         val step = when (interval) { "15m" -> 900000L; "1h" -> 3600000L; else -> error("Khung thời gian không hỗ trợ") }
