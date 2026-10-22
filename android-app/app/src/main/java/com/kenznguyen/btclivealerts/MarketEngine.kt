@@ -140,6 +140,48 @@ class MarketEngine {
         })
     }
 
+    /** One multiplexed connection for kline + mark-price streams across selected symbols. */
+    fun connectMultiplex(
+        symbols: List<String>,
+        intervals: List<String> = listOf("15m", "1h"),
+        onCandle: (String, String, Candle) -> Unit,
+        onMarkPrice: (String, Double) -> Unit,
+        onStatus: (String) -> Unit
+    ): WebSocket {
+        require(symbols.isNotEmpty() && symbols.size <= 20) { "Choose 1..20 symbols" }
+        require(intervals.all { it == "15m" || it == "1h" }) { "Unsupported scanner timeframe" }
+        val streams = symbols.flatMap { raw ->
+            val symbol = raw.lowercase()
+            intervals.map { "$symbol@kline_$it" } + "$symbol@markPrice@1s"
+        }.joinToString("/")
+        val request = Request.Builder().url("wss://fstream.binance.com/stream?streams=$streams").build()
+        return client.newWebSocket(request, object : WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) { onStatus("Scanner WebSocket multiplex đã kết nối") }
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                try {
+                    val root = JSONObject(text)
+                    val stream = root.optString("stream")
+                    val data = root.optJSONObject("data") ?: root
+                    val symbol = stream.substringBefore("@").uppercase()
+                    when (data.optString("e")) {
+                        "kline" -> {
+                            val k = data.getJSONObject("k")
+                            onCandle(symbol, k.optString("i"),
+                                Candle(k.getLong("t"), k.getString("o").toDouble(), k.getString("h").toDouble(),
+                                    k.getString("l").toDouble(), k.getString("c").toDouble(), k.getString("v").toDouble(),
+                                    k.optBoolean("x")))
+                        }
+                        "markPriceUpdate" -> onMarkPrice(symbol, data.getString("p").toDouble())
+                    }
+                } catch (e: Exception) { onStatus("Scanner nhận dữ liệu không hợp lệ: ${e.message ?: "parse error"}") }
+            }
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                onStatus("Scanner WebSocket gián đoạn: ${t.message ?: "lỗi mạng"}")
+            }
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) { onStatus("Scanner WebSocket đã đóng ($code)") }
+        })
+    }
+
     suspend fun fetchMarkPrice(symbol: String = "BTCUSDT"): Double = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url("https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol.uppercase()}")
