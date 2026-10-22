@@ -54,6 +54,17 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 
 private data class H1TrendMark(val openTime: Long, val direction: Int, val strong: Boolean)
+
+private fun buildH1TrendMarks(engine: StrategyEngine, candles: List<Candle>): List<H1TrendMark> {
+    val closed = candles.filter { it.closed }.sortedBy { it.openTime }
+    val series = engine.indicatorSeries(closed)
+    return closed.mapIndexedNotNull { index, candle ->
+        val point = series.getOrNull(index) ?: return@mapIndexedNotNull null
+        val plus = point.plusDi ?: return@mapIndexedNotNull null
+        val minus = point.minusDi ?: return@mapIndexedNotNull null
+        H1TrendMark(candle.openTime, if (plus > minus) 1 else if (minus > plus) -1 else 0, (point.adx ?: 0.0) >= 20.0)
+    }
+}
 private data class SavedAlert(val title: String, val body: String, val timestamp: Long, val source: String)
 
 private fun chartAlertPrefKey(timeframe: String, name: String): String =
@@ -460,14 +471,8 @@ fun CompleteDashboard(context: Context) {
             var h1Data = if (timeframe == "1h") initial else market.fetchCandles("1h", 1500)
             m15Ind = engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
             val closedH1 = h1Data.filter { it.closed }.sortedBy { it.openTime }
-            val h1Series = engine.indicatorSeries(closedH1)
-            h1Ind = h1Series.lastOrNull() ?: IndicatorPoint()
-            h1TrendMarks = closedH1.mapIndexedNotNull { index, candle ->
-                val point = h1Series.getOrNull(index) ?: return@mapIndexedNotNull null
-                val plus = point.plusDi ?: return@mapIndexedNotNull null
-                val minus = point.minusDi ?: return@mapIndexedNotNull null
-                H1TrendMark(candle.openTime, if (plus > minus) 1 else if (minus > plus) -1 else 0, (point.adx ?: 0.0) >= 20.0)
-            }
+            h1Ind = engine.indicatorSeries(closedH1).lastOrNull() ?: IndicatorPoint()
+            h1TrendMarks = buildH1TrendMarks(engine, closedH1)
             chartIndicators = engine.indicatorSeries(initial)
             price = market.fetchMarkPrice()
             socketStatus = "REST đồng bộ xong · WebSocket đang kết nối"
@@ -522,6 +527,7 @@ fun CompleteDashboard(context: Context) {
                             else { h1Data = cache.values.toList(); m15Data = otherReconciled }
                             m15Ind = engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
                             h1Ind = engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                            h1TrendMarks = buildH1TrendMarks(engine, h1Data)
                         }
                         price = market.fetchMarkPrice()
                         connected = AtomicBoolean(false)
