@@ -68,7 +68,6 @@ private fun Dashboard(context: Context) {
     var alertsEnabled by remember { mutableStateOf(true) }
     var lastSignal by remember { mutableStateOf("") }
     var history by remember { mutableStateOf(listOf("Ứng dụng chỉ tạo cảnh báo; không đặt lệnh.")) }
-
     LaunchedEffect(timeframe) {
         while (true) {
             try {

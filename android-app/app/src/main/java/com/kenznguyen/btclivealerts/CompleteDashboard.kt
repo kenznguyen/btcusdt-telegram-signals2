@@ -10,9 +10,11 @@ import android.os.Handler
 import android.os.Looper
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.ui.graphics.Color
@@ -51,6 +54,17 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 
 private data class H1TrendMark(val openTime: Long, val direction: Int, val strong: Boolean)
+
+private fun buildH1TrendMarks(engine: StrategyEngine, candles: List<Candle>): List<H1TrendMark> {
+    val closed = candles.filter { it.closed }.sortedBy { it.openTime }
+    val series = engine.indicatorSeries(closed)
+    return closed.mapIndexedNotNull { index, candle ->
+        val point = series.getOrNull(index) ?: return@mapIndexedNotNull null
+        val plus = point.plusDi ?: return@mapIndexedNotNull null
+        val minus = point.minusDi ?: return@mapIndexedNotNull null
+        H1TrendMark(candle.openTime, if (plus > minus) 1 else if (minus > plus) -1 else 0, (point.adx ?: 0.0) >= 20.0)
+    }
+}
 private data class SavedAlert(val title: String, val body: String, val timestamp: Long, val source: String)
 
 private fun chartAlertPrefKey(timeframe: String, name: String): String =
@@ -330,12 +344,28 @@ private fun AlertHistoryDialog(entries: List<SavedAlert>, onDismiss: () -> Unit,
     }
 }
 
+private data class ScannerUiRow(val symbol: String, val candidate: String?, val confirmed: String?, val reason: String, val bookAgeMs: Long?)
+private fun scannerReasonVi(reason: String): String = when (reason) {
+    "NO_TECHNICAL_CANDIDATE" -> "Chưa có điều kiện M15/H1"
+    "ORDERBOOK_MISSING" -> "Thiếu dữ liệu Order Book"
+    "ORDERBOOK_UNSYNCED" -> "Order Book chưa đồng bộ"
+    "ORDERBOOK_FUTURE_TIMESTAMP" -> "Timestamp Order Book không hợp lệ"
+    "ORDERBOOK_STALE" -> "Order Book đã cũ"
+    "DATA_INCOMPLETE" -> "Dữ liệu xác nhận chưa đủ"
+    "ORDERBOOK_DIRECTION_MISMATCH" -> "Order Book không cùng hướng"
+    "COMBINED_SCORE_REJECTED" -> "Điểm xác nhận chưa đạt"
+    "CONFIRMED" -> "Đã xác nhận M15/H1 + Order Book"
+    else -> "Đang chờ dữ liệu / " + reason
+}
 @Composable
 fun CompleteDashboard(context: Context) {
     val market = remember { MarketEngine() }
     val engine = remember { StrategyEngine() }
     val prefs = remember { context.getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE) }
     var timeframe by remember { mutableStateOf("15m") }
+    var manualRefreshRequest by remember { mutableIntStateOf(0) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    val dashboardListState = rememberLazyListState()
     var chart by remember { mutableStateOf<List<Candle>>(emptyList()) }
     var price by remember { mutableStateOf<Double?>(null) }
     var status by remember { mutableStateOf("Đang kết nối Binance Futures…") }
@@ -377,7 +407,7 @@ fun CompleteDashboard(context: Context) {
     var chartIndicators by remember { mutableStateOf<List<IndicatorPoint>>(emptyList()) }
     var chartVisibleCount by remember { mutableIntStateOf(120) }
     var chartPanBars by remember { mutableIntStateOf(0) }
-    var showRsi by remember { mutableStateOf(prefs.getBoolean("chart_show_rsi_percent_b", prefs.getBoolean("chart_show_rsi", true))) }
+    var showRsi by remember { mutableStateOf(false) }
     var showMfiB by remember { mutableStateOf(prefs.getBoolean("chart_show_mfi_b", prefs.getBoolean("chart_show_rsi", true))) }
     var showAdx by remember { mutableStateOf(prefs.getBoolean("chart_show_adx", true)) }
     var showDi by remember { mutableStateOf(prefs.getBoolean("chart_show_di", true)) }
@@ -387,6 +417,26 @@ fun CompleteDashboard(context: Context) {
     var chartFullscreen by remember { mutableStateOf(false) }
     var socketStatus by remember { mutableStateOf("Đang đồng bộ REST…") }
     var multiSignal by remember { mutableStateOf(runCatching { JSONObject(prefs.getString("multi_stream_signal_json", "{}") ?: "{}") }.getOrDefault(JSONObject())) }
+    var scannerStatus by remember { mutableStateOf("Đang chờ dữ liệu scanner…") }
+    var scannerRows by remember { mutableStateOf<List<ScannerUiRow>>(emptyList()) }
+    var scannerExpanded by remember { mutableStateOf(prefs.getBoolean("multi_symbol_scanner_expanded", false)) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            scannerStatus = prefs.getString("multi_symbol_scanner_status", "Scanner chưa có trạng thái") ?: "Scanner chưa có trạng thái"
+            scannerRows = runCatching {
+                val raw = prefs.getString("multi_symbol_scan_json", null)
+                if (raw.isNullOrBlank()) emptyList() else {
+                    val array = JSONArray(raw)
+                    (0 until array.length()).map { index ->
+                        val item = array.getJSONObject(index)
+                        ScannerUiRow(item.optString("symbol", "—"), item.optString("candidate").takeUnless { it == "null" || it.isBlank() }, item.optString("confirmed").takeUnless { it == "null" || it.isBlank() }, item.optString("reason", "UNKNOWN"), if (item.isNull("orderBookAgeMs")) null else item.optLong("orderBookAgeMs"))
+                    }.sortedBy { it.symbol }
+                }
+            }.getOrDefault(emptyList())
+            delay(1_000L)
+        }
+    }
 
     fun refreshMultiSignal() {
         multiSignal = runCatching {
@@ -404,7 +454,8 @@ fun CompleteDashboard(context: Context) {
         h1TrendChartAlerts = prefs.getBoolean(chartAlertPrefKey(timeframe, "h1_enabled"), prefs.getBoolean("chart_alert_h1_enabled", false))
     }
 
-    LaunchedEffect(timeframe) {
+    LaunchedEffect(timeframe, manualRefreshRequest) {
+        isRefreshing = manualRefreshRequest > 0
         chartPanBars = 0
         val mainHandler = Handler(Looper.getMainLooper())
         var socket: WebSocket? = null
@@ -420,14 +471,8 @@ fun CompleteDashboard(context: Context) {
             var h1Data = if (timeframe == "1h") initial else market.fetchCandles("1h", 1500)
             m15Ind = engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
             val closedH1 = h1Data.filter { it.closed }.sortedBy { it.openTime }
-            val h1Series = engine.indicatorSeries(closedH1)
-            h1Ind = h1Series.lastOrNull() ?: IndicatorPoint()
-            h1TrendMarks = closedH1.mapIndexedNotNull { index, candle ->
-                val point = h1Series.getOrNull(index) ?: return@mapIndexedNotNull null
-                val plus = point.plusDi ?: return@mapIndexedNotNull null
-                val minus = point.minusDi ?: return@mapIndexedNotNull null
-                H1TrendMark(candle.openTime, if (plus > minus) 1 else if (minus > plus) -1 else 0, (point.adx ?: 0.0) >= 20.0)
-            }
+            h1Ind = engine.indicatorSeries(closedH1).lastOrNull() ?: IndicatorPoint()
+            h1TrendMarks = buildH1TrendMarks(engine, closedH1)
             chartIndicators = engine.indicatorSeries(initial)
             price = market.fetchMarkPrice()
             socketStatus = "REST đồng bộ xong · WebSocket đang kết nối"
@@ -482,6 +527,7 @@ fun CompleteDashboard(context: Context) {
                             else { h1Data = cache.values.toList(); m15Data = otherReconciled }
                             m15Ind = engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
                             h1Ind = engine.indicatorSeries(h1Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
+                            h1TrendMarks = buildH1TrendMarks(engine, h1Data)
                         }
                         price = market.fetchMarkPrice()
                         connected = AtomicBoolean(false)
@@ -560,6 +606,7 @@ fun CompleteDashboard(context: Context) {
             socketStatus = "REST/WebSocket cần đồng bộ lại"
         } finally {
             socket?.close(1000, "timeframe changed")
+            isRefreshing = false
         }
     }
 
@@ -575,7 +622,40 @@ fun CompleteDashboard(context: Context) {
         )
     }
     Surface(Modifier.fillMaxSize(), color = NBg) {
-        LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(
+            state = dashboardListState,
+            modifier = Modifier.fillMaxSize().pointerInput(timeframe, isRefreshing, dashboardListState) {
+                var dragDistance = 0f
+                detectVerticalDragGestures(
+                    onVerticalDrag = { change, dragAmount ->
+                        if (dashboardListState.firstVisibleItemIndex == 0 && dashboardListState.firstVisibleItemScrollOffset == 0 && dragAmount > 0f) {
+                            dragDistance += dragAmount
+                            change.consume()
+                        }
+                    },
+                    onDragEnd = {
+                        if (dragDistance >= 88.dp.toPx() && !isRefreshing) {
+                            isRefreshing = true
+                            manualRefreshRequest += 1
+                        }
+                        dragDistance = 0f
+                    },
+                    onDragCancel = { dragDistance = 0f }
+                )
+            }.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                if (isRefreshing) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color(0xFFB9A6FF), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Đang tải lại dữ liệu M15/H1…", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    }
+                } else {
+                    Text("Kéo xuống để tải lại dữ liệu M15/H1", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                }
+            }
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
@@ -644,6 +724,41 @@ fun CompleteDashboard(context: Context) {
                 }
             }
             item {
+                Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            scannerExpanded = !scannerExpanded
+                            prefs.edit().putBoolean("multi_symbol_scanner_expanded", scannerExpanded).apply()
+                        },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("MULTI-SYMBOL SCANNER", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("20 cặp USDT Perpetual · Chỉ đọc", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                        }
+                        Text(if (scannerExpanded) "Thu gọn ▲" else "Mở danh sách ▼", color = Color(0xFFB9A6FF), fontWeight = FontWeight.SemiBold)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(scannerStatus, color = if (scannerStatus.contains("đang theo dõi", true)) NGreen else Color(0xFFFFC857), style = MaterialTheme.typography.bodySmall)
+                    if (scannerExpanded) {
+                        if (scannerRows.isEmpty()) Text("Chưa có kết quả scanner được lưu.", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                        scannerRows.forEach { row ->
+                            Divider(color = NBg)
+                            Row(Modifier.fillMaxWidth().padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(row.symbol, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                    Text(scannerReasonVi(row.reason), color = NMuted, style = MaterialTheme.typography.labelSmall)
+                                    Text(if (row.bookAgeMs == null) "Order Book: —" else "Order Book: " + row.bookAgeMs + " ms", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                                }
+                                val side = row.confirmed?.let { "✓ " + it } ?: row.candidate?.let { it + " · CHỜ" } ?: "WAIT"
+                                val sideColor = when { row.confirmed == "BUY" -> NGreen; row.confirmed == "SELL" -> NRed; row.candidate != null -> Color(0xFFFFC857); else -> NMuted }
+                                Text(side, color = sideColor, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+            item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     listOf("15m", "1h").forEach { tf ->
                         FilterChip(selected = timeframe == tf, onClick = { timeframe = tf }, label = { Text(tf.uppercase()) })
@@ -682,29 +797,17 @@ fun CompleteDashboard(context: Context) {
                     if (showMfiB) {
                         Spacer(Modifier.height(10.dp))
                         IndicatorLineChart(
-                            title = "MFI & %B [SEIGLERJ]", points = visibleIndicators, valueSelector = { it.mfiScaled },
+                            title = "MFI %B · HIGHLIGHT 0/1", points = visibleIndicators, valueSelector = { it.mfiBProduct },
                             minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
                             lineColor = Color(0xFFFFD166), modifier = Modifier.fillMaxWidth().height(142.dp),
-                            secondarySelectors = listOf({ it.pricePercentB }, { it.mfiBProduct }),
+                            secondarySelectors = listOf({ it.mfiScaled }, { it.pricePercentB }),
+                            highlightPercentB = true,
                             thresholdLabels = listOf("0", "0.5", "1"),
-                            legend = listOf("MFI scaled", "Price %B", "Combined"),
+                            legend = listOf("MFI %B Combined", "MFI scaled", "Price %B"),
                             visibleCount = chartVisibleCount,
                             panBars = chartPanBars,
                             onVisibleCountChange = { chartVisibleCount = it },
                             onPanBarsChange = { chartPanBars = it }
-                        )
-                    }
-                    if (showRsi) {
-                        Spacer(Modifier.height(10.dp))
-                        IndicatorLineChart(
-                            title = "RSI %B SIGNAL", points = visibleIndicators, valueSelector = { it.rsiPercentB },
-                            minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
-                            lineColor = Color(0xFF9B8AFB), modifier = Modifier.fillMaxWidth().height(120.dp),
-                            secondarySelectors = listOf({ it.rsiPercentBSignal }),
-                            highlightPercentB = true,
-                            thresholdLabels = listOf("0", "0.5", "1"), legend = listOf("%B", "Signal"),
-                            visibleCount = chartVisibleCount, panBars = chartPanBars,
-                            onVisibleCountChange = { chartVisibleCount = it }, onPanBarsChange = { chartPanBars = it }
                         )
                     }
                     if (showAdx) {
@@ -720,7 +823,6 @@ fun CompleteDashboard(context: Context) {
                     if (chartSettingsExpanded) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             PreferenceSwitch("MFI & %B [seiglerj]", showMfiB, { showMfiB = it; prefs.edit().putBoolean("chart_show_mfi_b", it).apply() })
-                            PreferenceSwitch("RSI %B Signal", showRsi, { showRsi = it; prefs.edit().putBoolean("chart_show_rsi_percent_b", it).apply() })
                             PreferenceSwitch("DMI & ADX Trend", showAdx, { showAdx = it; prefs.edit().putBoolean("chart_show_adx", it).apply() })
                             PreferenceSwitch("+DI / −DI", showDi, { showDi = it; prefs.edit().putBoolean("chart_show_di", it).apply() })
                             PreferenceSwitch("Xu hướng H1", showH1Trend, { showH1Trend = it; prefs.edit().putBoolean("chart_show_h1", it).apply() })
@@ -925,34 +1027,19 @@ fun CompleteDashboard(context: Context) {
                         showBollinger = showBollinger,
                         onVisibleCountChange = { chartVisibleCount = it },
                         onPanBarsChange = { chartPanBars = it },
-                        modifier = Modifier.fillMaxWidth().weight(if ((showRsi || showMfiB) && showAdx) 0.48f else if (showRsi || showMfiB || showAdx) 0.62f else 0.76f)
+                        modifier = Modifier.fillMaxWidth().weight(if (showMfiB && showAdx) 0.48f else if (showMfiB || showAdx) 0.62f else 0.76f)
                     )
                     TimeAxisBar(visibleCandles)
                     if (showMfiB) {
                         IndicatorLineChart(
-                            title = "MFI & %B [SEIGLERJ]", points = visibleIndicators, valueSelector = { it.mfiScaled },
+                            title = "MFI %B · HIGHLIGHT 0/1", points = visibleIndicators, valueSelector = { it.mfiBProduct },
                             minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
-                            lineColor = Color(0xFFFFD166), modifier = Modifier.fillMaxWidth().weight(0.18f),
-                            secondarySelectors = listOf({ it.pricePercentB }, { it.mfiBProduct }),
-                            thresholdLabels = listOf("0", "0.5", "1"), legend = listOf("MFI scaled", "Price %B", "Combined"),
+                            lineColor = Color(0xFFFFD166), modifier = Modifier.fillMaxWidth().weight(0.20f),
+                            secondarySelectors = listOf({ it.mfiScaled }, { it.pricePercentB }),
+                            highlightPercentB = true,
+                            thresholdLabels = listOf("0", "0.5", "1"), legend = listOf("MFI %B Combined", "MFI scaled", "Price %B"),
                             visibleCount = chartVisibleCount, panBars = chartPanBars,
                             onVisibleCountChange = { chartVisibleCount = it }, onPanBarsChange = { chartPanBars = it }
-                        )
-                    }
-                    if (showRsi) {
-                        IndicatorLineChart(
-                            title = "RSI %B SIGNAL", points = visibleIndicators, valueSelector = { it.rsiPercentB },
-                            minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
-                            lineColor = Color(0xFF9B8AFB),
-                            modifier = Modifier.fillMaxWidth().weight(0.20f),
-                            secondarySelectors = listOf({ it.rsiPercentBSignal }),
-                            highlightPercentB = true,
-                            thresholdLabels = listOf("0", "0.5", "1"),
-                            legend = listOf("%B", "Signal"),
-                            visibleCount = chartVisibleCount,
-                            panBars = chartPanBars,
-                            onVisibleCountChange = { chartVisibleCount = it },
-                            onPanBarsChange = { chartPanBars = it }
                         )
                     }
                     if (showAdx) {
@@ -960,7 +1047,6 @@ fun CompleteDashboard(context: Context) {
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("REST + WebSocket · ${chart.size}/1.500 nến", color = NMuted, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-                        TextButton(onClick = { showRsi = !showRsi; prefs.edit().putBoolean("chart_show_rsi_percent_b", showRsi).apply() }) { Text(if (showRsi) "Ẩn RSI %B" else "Hiện RSI %B") }
                         TextButton(onClick = { showMfiB = !showMfiB; prefs.edit().putBoolean("chart_show_mfi_b", showMfiB).apply() }) { Text(if (showMfiB) "Ẩn MFI & %B" else "Hiện MFI & %B") }
                         TextButton(onClick = { showAdx = !showAdx; prefs.edit().putBoolean("chart_show_adx", showAdx).apply() }) { Text(if (showAdx) "Ẩn DMI/ADX" else "Hiện DMI/ADX") }
                     }
