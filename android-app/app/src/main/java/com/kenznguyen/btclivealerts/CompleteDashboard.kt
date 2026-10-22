@@ -1006,8 +1006,8 @@ fun CompleteDashboard(context: Context) {
                 }
             }
             }
-            if (selectedTab == 1) {
-                item {
+            item {
+                if (selectedTab == 1) {
                     Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
                         Text("MULTI-SYMBOL SCANNER", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text("20 cặp USDT Perpetual · Chỉ đọc · Không đặt lệnh", color = NMuted, style = MaterialTheme.typography.bodySmall)
