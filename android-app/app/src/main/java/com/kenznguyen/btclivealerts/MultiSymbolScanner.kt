@@ -72,7 +72,7 @@ class MultiSymbolScanner(
                     if (closed) return@launch
                     bookEngines.computeIfAbsent(symbol) {
                         OrderBookEngine(
-                            onMetrics = { metrics -> books[symbol] = metrics; evaluate(symbol) },
+                            onMetrics = { metrics -> books[symbol] = metrics; evaluate(symbol, allowSameCandle = true) },
                             onStatus = { status -> if (status.contains("lỗi", true) || status.contains("đồng bộ lại", true)) onStatus("$symbol Order Book: $status") },
                             symbol = symbol
                         ).also { it.start() }
@@ -100,7 +100,7 @@ class MultiSymbolScanner(
         }
     }
 
-    private fun evaluate(symbol: String) {
+    private fun evaluate(symbol: String, allowSameCandle: Boolean = false) {
         val state = states[symbol] ?: return
         val snapshot = synchronized(state) {
             val m15 = state.m15.values.toList()
