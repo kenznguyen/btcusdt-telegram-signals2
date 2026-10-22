@@ -149,7 +149,8 @@ class MultiSymbolScanner(
             confirmedResult.signal != candidate -> "COMBINED_SCORE_REJECTED"
             else -> "CONFIRMED"
         }
-        latestResults[symbol] = SymbolScanResult(symbol, candidate, confirmed, reason, closeTime, evaluatedAt, age)\n        onUpdate(latestResults.values.sortedBy { it.symbol })
+        latestResults[symbol] = SymbolScanResult(symbol, candidate, confirmed, reason, closeTime, evaluatedAt, age)
+        onUpdate(latestResults.values.sortedBy { it.symbol })
     }
 
     private fun trim(cache: java.util.TreeMap<Long, Candle>, max: Int) {
