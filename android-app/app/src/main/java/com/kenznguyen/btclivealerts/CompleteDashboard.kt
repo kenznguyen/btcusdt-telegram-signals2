@@ -621,6 +621,29 @@ fun CompleteDashboard(context: Context) {
                     Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Multi Symbol Scanner") })
                 }
             }
+            item {
+                if (selectedTab == 1) Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
+                    Text("MULTI-SYMBOL SCANNER", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("20 cặp USDT Perpetual · Chỉ đọc · Không đặt lệnh", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(8.dp))
+                    Text(scannerStatus, color = if (scannerStatus.contains("đang theo dõi", true)) NGreen else Color(0xFFFFC857), style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(8.dp))
+                    if (scannerRows.isEmpty()) Text("Chưa có kết quả scanner được lưu.", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    scannerRows.forEach { row ->
+                        Divider(color = NBg)
+                        Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(row.symbol, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                Text(scannerReasonVi(row.reason), color = NMuted, style = MaterialTheme.typography.labelSmall)
+                                Text(if (row.bookAgeMs == null) "Order Book: —" else "Order Book: ${row.bookAgeMs} ms", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                            }
+                            val side = row.confirmed?.let { "✓ " + it } ?: row.candidate?.let { it + " · CHỜ" } ?: "WAIT"
+                            val sideColor = when { row.confirmed == "BUY" -> NGreen; row.confirmed == "SELL" -> NRed; row.candidate != null -> Color(0xFFFFC857); else -> NMuted }
+                            Text(side, color = sideColor, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
             if (selectedTab == 0) item {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
                     Text("MARK PRICE", color = NMuted)
@@ -1003,29 +1026,7 @@ fun CompleteDashboard(context: Context) {
                     }
                 }
             }
-            if (selectedTab == 1) item {
-                Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
-                    Text("MULTI-SYMBOL SCANNER", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("20 cặp USDT Perpetual · Chỉ đọc · Không đặt lệnh", color = NMuted, style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(8.dp))
-                    Text(scannerStatus, color = if (scannerStatus.contains("đang theo dõi", true)) NGreen else Color(0xFFFFC857), style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(8.dp))
-                    if (scannerRows.isEmpty()) Text("Chưa có kết quả scanner được lưu.", color = NMuted, style = MaterialTheme.typography.bodySmall)
-                    scannerRows.forEach { row ->
-                        Divider(color = NBg)
-                        Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(row.symbol, color = Color.White, fontWeight = FontWeight.SemiBold)
-                                Text(scannerReasonVi(row.reason), color = NMuted, style = MaterialTheme.typography.labelSmall)
-                                Text(if (row.bookAgeMs == null) "Order Book: —" else "Order Book: ${row.bookAgeMs} ms", color = NMuted, style = MaterialTheme.typography.labelSmall)
-                            }
-                            val side = row.confirmed?.let { "✓ " + it } ?: row.candidate?.let { it + " · CHỜ" } ?: "WAIT"
-                            val sideColor = when { row.confirmed == "BUY" -> NGreen; row.confirmed == "SELL" -> NRed; row.candidate != null -> Color(0xFFFFC857); else -> NMuted }
-                            Text(side, color = sideColor, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
+
         }
     }
 }
