@@ -21,6 +21,7 @@ class MultiSymbolScanner(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val strategy = StrategyEngine()
     private val books = ConcurrentHashMap<String, OrderBookMetrics>()
+    private val latestResults = ConcurrentHashMap<String, SymbolScanResult>()
     private val states = ConcurrentHashMap<String, SymbolState>()
     private val bookEngines = ConcurrentHashMap<String, OrderBookEngine>()
     @Volatile private var socket: WebSocket? = null
@@ -139,7 +140,7 @@ class MultiSymbolScanner(
             confirmedResult.signal != candidate -> "COMBINED_SCORE_REJECTED"
             else -> "CONFIRMED"
         }
-        onUpdate(listOf(SymbolScanResult(symbol, candidate, confirmed, reason, closeTime, evaluatedAt, age)))
+        latestResults[symbol] = SymbolScanResult(symbol, candidate, confirmed, reason, closeTime, evaluatedAt, age)\n        onUpdate(latestResults.values.sortedBy { it.symbol })
     }
 
     private fun trim(cache: java.util.TreeMap<Long, Candle>, max: Int) {
