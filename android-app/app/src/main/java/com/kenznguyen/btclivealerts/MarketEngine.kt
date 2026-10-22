@@ -34,9 +34,9 @@ class MarketEngine {
         .pingInterval(20, TimeUnit.SECONDS)
         .build()
 
-    suspend fun fetchCandles(interval: String, limit: Int = 200): List<Candle> =
+    suspend fun fetchCandles(interval: String, limit: Int = 200, symbol: String = "BTCUSDT"): List<Candle> =
         withContext(Dispatchers.IO) {
-            val url = "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=$interval&limit=$limit"
+            val url = "https://fapi.binance.com/fapi/v1/klines?symbol=${symbol.uppercase()}&interval=$interval&limit=$limit"
             val request = Request.Builder().url(url).build()
             client.newCall(request).execute().use { response ->
                 check(response.isSuccessful) { "Binance Futures HTTP ${response.code}" }
@@ -56,7 +56,7 @@ class MarketEngine {
             }
         }
 
-    suspend fun fetchHistory(interval: String, days: Int): List<Candle> = withContext(Dispatchers.IO) {
+    suspend fun fetchHistory(interval: String, days: Int, symbol: String = "BTCUSDT"): List<Candle> = withContext(Dispatchers.IO) {
         require(days in setOf(7, 30, 90, 180, 360)) { "Chọn 7, 30, 90, 180 hoặc 360 ngày" }
         val step = when (interval) { "15m" -> 900000L; "1h" -> 3600000L; else -> error("Khung thời gian không hỗ trợ") }
         val end = System.currentTimeMillis()
@@ -65,7 +65,7 @@ class MarketEngine {
         var cursor = start
         var pages = 0
         while (cursor < end && pages < 40) {
-            val url = "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=" + interval + "&limit=1500&startTime=" + cursor + "&endTime=" + end
+            val url = "https://fapi.binance.com/fapi/v1/klines?symbol=" + symbol.uppercase() + "&interval=" + interval + "&limit=1500&startTime=" + cursor + "&endTime=" + end
             val request = Request.Builder().url(url).build()
             val page = client.newCall(request).execute().use { response ->
                 check(response.isSuccessful) { "Binance Futures HTTP " + response.code }
@@ -85,8 +85,8 @@ class MarketEngine {
         }
         candles.values.filter { it.closed }
     }
-    fun connectLive(interval: String, onCandle: (Candle) -> Unit, onMarkPrice: (Double) -> Unit, onStatus: (String) -> Unit): WebSocket {
-        val stream = "btcusdt@kline_$interval/btcusdt@markPrice@1s"
+    fun connectLive(interval: String, onCandle: (Candle) -> Unit, onMarkPrice: (Double) -> Unit, onStatus: (String) -> Unit, symbol: String = "BTCUSDT"): WebSocket {
+        val stream = "${symbol.lowercase()}@kline_$interval/${symbol.lowercase()}@markPrice@1s"
         val request = Request.Builder().url("wss://fstream.binance.com/stream?streams=$stream").build()
         return client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) { onStatus("WebSocket kết nối") }
@@ -109,9 +109,9 @@ class MarketEngine {
         })
     }
 
-    suspend fun fetchMarkPrice(): Double = withContext(Dispatchers.IO) {
+    suspend fun fetchMarkPrice(symbol: String = "BTCUSDT"): Double = withContext(Dispatchers.IO) {
         val request = Request.Builder()
-            .url("https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT")
+            .url("https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol.uppercase()}")
             .build()
         client.newCall(request).execute().use { response ->
             check(response.isSuccessful) { "Binance Futures HTTP ${response.code}" }
