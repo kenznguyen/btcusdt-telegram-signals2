@@ -34,11 +34,18 @@ class MarketEngine {
         .pingInterval(20, TimeUnit.SECONDS)
         .build()
 
+    private suspend fun executeRest(request: Request): Response {
+        BinanceRestGate.awaitPermit()
+        val response = client.newCall(request).execute()
+        BinanceRestGate.observe(response)
+        return response
+    }
+
     suspend fun fetchCandles(interval: String, limit: Int = 200, symbol: String = "BTCUSDT"): List<Candle> =
         withContext(Dispatchers.IO) {
             val url = "https://fapi.binance.com/fapi/v1/klines?symbol=${symbol.uppercase()}&interval=$interval&limit=$limit"
             val request = Request.Builder().url(url).build()
-            client.newCall(request).execute().use { response ->
+            executeRest(request).use { response ->
                 check(response.isSuccessful) { "Binance Futures HTTP ${response.code}" }
                 val array = JSONArray(response.body?.string() ?: "[]")
                 (0 until array.length()).map { i ->
@@ -61,7 +68,7 @@ class MarketEngine {
         require(limit in 1..20) { "Scanner currently supports 1..20 symbols" }
         val exchangeRequest = Request.Builder()
             .url("https://fapi.binance.com/fapi/v1/exchangeInfo").build()
-        val exchangeInfo = client.newCall(exchangeRequest).execute().use { response ->
+        val exchangeInfo = executeRest(exchangeRequest).use { response ->
             check(response.isSuccessful) { "Binance Futures exchangeInfo HTTP ${response.code}" }
             JSONObject(response.body?.string() ?: "{}")
         }
@@ -75,7 +82,7 @@ class MarketEngine {
         }.toSet()
         val tickerRequest = Request.Builder()
             .url("https://fapi.binance.com/fapi/v1/ticker/24hr").build()
-        val tickers = client.newCall(tickerRequest).execute().use { response ->
+        val tickers = executeRest(tickerRequest).use { response ->
             check(response.isSuccessful) { "Binance Futures ticker24hr HTTP ${response.code}" }
             JSONArray(response.body?.string() ?: "[]")
         }
@@ -98,7 +105,7 @@ class MarketEngine {
         while (cursor < end && pages < 40) {
             val url = "https://fapi.binance.com/fapi/v1/klines?symbol=" + symbol.uppercase() + "&interval=" + interval + "&limit=1500&startTime=" + cursor + "&endTime=" + end
             val request = Request.Builder().url(url).build()
-            val page = client.newCall(request).execute().use { response ->
+            val page = executeRest(request).use { response ->
                 check(response.isSuccessful) { "Binance Futures HTTP " + response.code }
                 val array = JSONArray(response.body?.string() ?: "[]")
                 (0 until array.length()).map { i ->
@@ -186,7 +193,7 @@ class MarketEngine {
         val request = Request.Builder()
             .url("https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol.uppercase()}")
             .build()
-        client.newCall(request).execute().use { response ->
+        executeRest(request).use { response ->
             check(response.isSuccessful) { "Binance Futures HTTP ${response.code}" }
             org.json.JSONObject(response.body?.string() ?: "{}").getString("markPrice").toDouble()
         }
