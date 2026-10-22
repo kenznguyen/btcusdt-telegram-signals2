@@ -390,7 +390,7 @@ fun CompleteDashboard(context: Context) {
     var chartIndicators by remember { mutableStateOf<List<IndicatorPoint>>(emptyList()) }
     var chartVisibleCount by remember { mutableIntStateOf(120) }
     var chartPanBars by remember { mutableIntStateOf(0) }
-    var showRsi by remember { mutableStateOf(prefs.getBoolean("chart_show_rsi_percent_b", prefs.getBoolean("chart_show_rsi", true))) }
+    var showRsi by remember { mutableStateOf(false) }
     var showMfiB by remember { mutableStateOf(prefs.getBoolean("chart_show_mfi_b", prefs.getBoolean("chart_show_rsi", true))) }
     var showAdx by remember { mutableStateOf(prefs.getBoolean("chart_show_adx", true)) }
     var showDi by remember { mutableStateOf(prefs.getBoolean("chart_show_di", true)) }
@@ -402,6 +402,7 @@ fun CompleteDashboard(context: Context) {
     var multiSignal by remember { mutableStateOf(runCatching { JSONObject(prefs.getString("multi_stream_signal_json", "{}") ?: "{}") }.getOrDefault(JSONObject())) }
     var scannerStatus by remember { mutableStateOf("Đang chờ dữ liệu scanner…") }
     var scannerRows by remember { mutableStateOf<List<ScannerUiRow>>(emptyList()) }
+    var scannerExpanded by remember { mutableStateOf(prefs.getBoolean("multi_symbol_scanner_expanded", false)) }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -677,22 +678,35 @@ fun CompleteDashboard(context: Context) {
             }
             item {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(14.dp)) {
-                    Text("MULTI-SYMBOL SCANNER", color = Color.White, fontWeight = FontWeight.Bold)
-                    Text("20 hợp đồng USDT Perpetual · Chỉ đọc, không đặt lệnh", color = NMuted, style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            scannerExpanded = !scannerExpanded
+                            prefs.edit().putBoolean("multi_symbol_scanner_expanded", scannerExpanded).apply()
+                        },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("MULTI-SYMBOL SCANNER", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("20 cặp USDT Perpetual · Chỉ đọc", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                        }
+                        Text(if (scannerExpanded) "Thu gọn ▲" else "Mở danh sách ▼", color = Color(0xFFB9A6FF), fontWeight = FontWeight.SemiBold)
+                    }
+                    Spacer(Modifier.height(4.dp))
                     Text(scannerStatus, color = if (scannerStatus.contains("đang theo dõi", true)) NGreen else Color(0xFFFFC857), style = MaterialTheme.typography.bodySmall)
-                    if (scannerRows.isEmpty()) Text("Chưa có kết quả scanner được lưu.", color = NMuted, style = MaterialTheme.typography.bodySmall)
-                    scannerRows.forEach { row ->
-                        Divider(color = NBg)
-                        Row(Modifier.fillMaxWidth().padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(row.symbol, color = Color.White, fontWeight = FontWeight.SemiBold)
-                                Text(scannerReasonVi(row.reason), color = NMuted, style = MaterialTheme.typography.labelSmall)
-                                Text(if (row.bookAgeMs == null) "Order Book: —" else "Order Book: " + row.bookAgeMs + " ms", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                    if (scannerExpanded) {
+                        if (scannerRows.isEmpty()) Text("Chưa có kết quả scanner được lưu.", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                        scannerRows.forEach { row ->
+                            Divider(color = NBg)
+                            Row(Modifier.fillMaxWidth().padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(row.symbol, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                    Text(scannerReasonVi(row.reason), color = NMuted, style = MaterialTheme.typography.labelSmall)
+                                    Text(if (row.bookAgeMs == null) "Order Book: —" else "Order Book: " + row.bookAgeMs + " ms", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                                }
+                                val side = row.confirmed?.let { "✓ " + it } ?: row.candidate?.let { it + " · CHỜ" } ?: "WAIT"
+                                val sideColor = when { row.confirmed == "BUY" -> NGreen; row.confirmed == "SELL" -> NRed; row.candidate != null -> Color(0xFFFFC857); else -> NMuted }
+                                Text(side, color = sideColor, fontWeight = FontWeight.Bold)
                             }
-                            val side = row.confirmed?.let { "✓ " + it } ?: row.candidate?.let { it + " · CHỜ" } ?: "WAIT"
-                            val sideColor = when { row.confirmed == "BUY" -> NGreen; row.confirmed == "SELL" -> NRed; row.candidate != null -> Color(0xFFFFC857); else -> NMuted }
-                            Text(side, color = sideColor, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -736,29 +750,17 @@ fun CompleteDashboard(context: Context) {
                     if (showMfiB) {
                         Spacer(Modifier.height(10.dp))
                         IndicatorLineChart(
-                            title = "MFI & %B [SEIGLERJ]", points = visibleIndicators, valueSelector = { it.mfiScaled },
+                            title = "MFI %B · HIGHLIGHT 0/1", points = visibleIndicators, valueSelector = { it.mfiBProduct },
                             minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
                             lineColor = Color(0xFFFFD166), modifier = Modifier.fillMaxWidth().height(142.dp),
-                            secondarySelectors = listOf({ it.pricePercentB }, { it.mfiBProduct }),
+                            secondarySelectors = listOf({ it.mfiScaled }, { it.pricePercentB }),
+                            highlightPercentB = true,
                             thresholdLabels = listOf("0", "0.5", "1"),
-                            legend = listOf("MFI scaled", "Price %B", "Combined"),
+                            legend = listOf("MFI %B Combined", "MFI scaled", "Price %B"),
                             visibleCount = chartVisibleCount,
                             panBars = chartPanBars,
                             onVisibleCountChange = { chartVisibleCount = it },
                             onPanBarsChange = { chartPanBars = it }
-                        )
-                    }
-                    if (showRsi) {
-                        Spacer(Modifier.height(10.dp))
-                        IndicatorLineChart(
-                            title = "RSI %B SIGNAL", points = visibleIndicators, valueSelector = { it.rsiPercentB },
-                            minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
-                            lineColor = Color(0xFF9B8AFB), modifier = Modifier.fillMaxWidth().height(120.dp),
-                            secondarySelectors = listOf({ it.rsiPercentBSignal }),
-                            highlightPercentB = true,
-                            thresholdLabels = listOf("0", "0.5", "1"), legend = listOf("%B", "Signal"),
-                            visibleCount = chartVisibleCount, panBars = chartPanBars,
-                            onVisibleCountChange = { chartVisibleCount = it }, onPanBarsChange = { chartPanBars = it }
                         )
                     }
                     if (showAdx) {
@@ -774,7 +776,6 @@ fun CompleteDashboard(context: Context) {
                     if (chartSettingsExpanded) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             PreferenceSwitch("MFI & %B [seiglerj]", showMfiB, { showMfiB = it; prefs.edit().putBoolean("chart_show_mfi_b", it).apply() })
-                            PreferenceSwitch("RSI %B Signal", showRsi, { showRsi = it; prefs.edit().putBoolean("chart_show_rsi_percent_b", it).apply() })
                             PreferenceSwitch("DMI & ADX Trend", showAdx, { showAdx = it; prefs.edit().putBoolean("chart_show_adx", it).apply() })
                             PreferenceSwitch("+DI / −DI", showDi, { showDi = it; prefs.edit().putBoolean("chart_show_di", it).apply() })
                             PreferenceSwitch("Xu hướng H1", showH1Trend, { showH1Trend = it; prefs.edit().putBoolean("chart_show_h1", it).apply() })
@@ -979,34 +980,19 @@ fun CompleteDashboard(context: Context) {
                         showBollinger = showBollinger,
                         onVisibleCountChange = { chartVisibleCount = it },
                         onPanBarsChange = { chartPanBars = it },
-                        modifier = Modifier.fillMaxWidth().weight(if ((showRsi || showMfiB) && showAdx) 0.48f else if (showRsi || showMfiB || showAdx) 0.62f else 0.76f)
+                        modifier = Modifier.fillMaxWidth().weight(if (showMfiB && showAdx) 0.48f else if (showMfiB || showAdx) 0.62f else 0.76f)
                     )
                     TimeAxisBar(visibleCandles)
                     if (showMfiB) {
                         IndicatorLineChart(
-                            title = "MFI & %B [SEIGLERJ]", points = visibleIndicators, valueSelector = { it.mfiScaled },
+                            title = "MFI %B · HIGHLIGHT 0/1", points = visibleIndicators, valueSelector = { it.mfiBProduct },
                             minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
-                            lineColor = Color(0xFFFFD166), modifier = Modifier.fillMaxWidth().weight(0.18f),
-                            secondarySelectors = listOf({ it.pricePercentB }, { it.mfiBProduct }),
-                            thresholdLabels = listOf("0", "0.5", "1"), legend = listOf("MFI scaled", "Price %B", "Combined"),
+                            lineColor = Color(0xFFFFD166), modifier = Modifier.fillMaxWidth().weight(0.20f),
+                            secondarySelectors = listOf({ it.mfiScaled }, { it.pricePercentB }),
+                            highlightPercentB = true,
+                            thresholdLabels = listOf("0", "0.5", "1"), legend = listOf("MFI %B Combined", "MFI scaled", "Price %B"),
                             visibleCount = chartVisibleCount, panBars = chartPanBars,
                             onVisibleCountChange = { chartVisibleCount = it }, onPanBarsChange = { chartPanBars = it }
-                        )
-                    }
-                    if (showRsi) {
-                        IndicatorLineChart(
-                            title = "RSI %B SIGNAL", points = visibleIndicators, valueSelector = { it.rsiPercentB },
-                            minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
-                            lineColor = Color(0xFF9B8AFB),
-                            modifier = Modifier.fillMaxWidth().weight(0.20f),
-                            secondarySelectors = listOf({ it.rsiPercentBSignal }),
-                            highlightPercentB = true,
-                            thresholdLabels = listOf("0", "0.5", "1"),
-                            legend = listOf("%B", "Signal"),
-                            visibleCount = chartVisibleCount,
-                            panBars = chartPanBars,
-                            onVisibleCountChange = { chartVisibleCount = it },
-                            onPanBarsChange = { chartPanBars = it }
                         )
                     }
                     if (showAdx) {
@@ -1014,7 +1000,6 @@ fun CompleteDashboard(context: Context) {
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("REST + WebSocket · ${chart.size}/1.500 nến", color = NMuted, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-                        TextButton(onClick = { showRsi = !showRsi; prefs.edit().putBoolean("chart_show_rsi_percent_b", showRsi).apply() }) { Text(if (showRsi) "Ẩn RSI %B" else "Hiện RSI %B") }
                         TextButton(onClick = { showMfiB = !showMfiB; prefs.edit().putBoolean("chart_show_mfi_b", showMfiB).apply() }) { Text(if (showMfiB) "Ẩn MFI & %B" else "Hiện MFI & %B") }
                         TextButton(onClick = { showAdx = !showAdx; prefs.edit().putBoolean("chart_show_adx", showAdx).apply() }) { Text(if (showAdx) "Ẩn DMI/ADX" else "Hiện DMI/ADX") }
                     }
