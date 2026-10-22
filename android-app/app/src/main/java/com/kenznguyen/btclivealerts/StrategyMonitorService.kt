@@ -81,7 +81,7 @@ class StrategyMonitorService : Service() {
                         val prefs = getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE)
                         updateMultiStreamSignal(m15, h1, prefs)
                         val nowMs = System.currentTimeMillis()
-                        if (nowMs - prefs.getLong("multi_symbol_scanner_last_scan_ms", 0L) >= 60_000L) {
+                        if (prefs.getBoolean("multi_symbol_scanner_enabled", true) && nowMs - prefs.getLong("multi_symbol_scanner_last_scan_ms", 0L) >= 60_000L) {
                             scanMultipleSymbols(prefs)
                         }
 
