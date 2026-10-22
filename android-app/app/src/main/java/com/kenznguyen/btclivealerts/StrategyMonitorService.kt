@@ -145,8 +145,16 @@ class StrategyMonitorService : Service() {
                             .putLong("monitor_last_success_ms", System.currentTimeMillis())
                             .apply()
 
+                        val currentPrice = m15.lastOrNull()?.close
+                        if (currentPrice != null && currentPrice.isFinite() && currentPrice > 0.0) {
+                            prefs.edit().putString("monitor_current_price", currentPrice.toString()).apply()
+                        }
+                        val priceLabel = currentPrice
+                            ?.takeIf { it.isFinite() && it > 0.0 }
+                            ?.let { "Giá BTCUSDT: $" + "%,.2f".format(Locale.US, it) + " · " }
+                            ?: ""
                         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-                            .notify(1001, ongoing("Đang theo dõi · " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())))
+                            .notify(1001, ongoing(priceLabel + "Đang theo dõi · " + SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())))
                     } catch (e: Exception) {
                         getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE).edit()
                             .putLong("monitor_last_attempt_ms", System.currentTimeMillis())
