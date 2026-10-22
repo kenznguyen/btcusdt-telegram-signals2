@@ -18,12 +18,13 @@ import java.util.TreeMap
 import java.util.concurrent.TimeUnit
 
 /**
- * Collects Binance USDⓈ-M Futures BTCUSDT diff-depth events and reconciles them
+ * Collects Binance USDⓈ-M Futures per-symbol diff-depth events and reconciles them
  * with a REST snapshot before publishing metrics. Analysis only; no order endpoints.
  */
 class OrderBookEngine(
     private val onMetrics: (OrderBookMetrics) -> Unit,
-    private val onStatus: (String) -> Unit
+    private val onStatus: (String) -> Unit,
+    private val symbol: String = "BTCUSDT"
 ) : Closeable {
     private val client = OkHttpClient.Builder()
         .callTimeout(10, TimeUnit.SECONDS)
@@ -45,7 +46,7 @@ class OrderBookEngine(
             if (closed || socket != null) return
             onStatus("Đang kết nối Order Book Binance Futures…")
             socket = client.newWebSocket(
-                Request.Builder().url("wss://fstream.binance.com/ws/btcusdt@depth@100ms").build(),
+                Request.Builder().url("wss://fstream.binance.com/ws/${symbol.lowercase()}@depth@100ms").build(),
                 object : WebSocketListener() {
                     override fun onOpen(webSocket: WebSocket, response: Response) {
                         onStatus("Order Book đã kết nối; đang đồng bộ snapshot…")
@@ -114,7 +115,7 @@ class OrderBookEngine(
         scope.launch {
             try {
                 val request = Request.Builder()
-                    .url("https://fapi.binance.com/fapi/v1/depth?symbol=BTCUSDT&limit=1000")
+                    .url("https://fapi.binance.com/fapi/v1/depth?symbol=${symbol.uppercase()}&limit=1000")
                     .build()
                 val snapshot = client.newCall(request).execute().use { response ->
                     check(response.isSuccessful) { "Snapshot HTTP ${response.code}" }
