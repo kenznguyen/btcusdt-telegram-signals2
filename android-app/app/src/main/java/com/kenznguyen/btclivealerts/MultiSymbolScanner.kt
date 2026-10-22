@@ -66,7 +66,16 @@ class MultiSymbolScanner(
                             trim(state.m15, 500); trim(state.h1, 500)
                         }
                     } catch (e: CancellationException) { throw e }
-                    catch (e: Exception) { onStatus("$symbol: chưa tải được nến ban đầu (${e.message ?: "lỗi REST"})") }
+                    catch (e: Exception) {
+                        val detail = e.message ?: "lỗi REST"
+                        onStatus("$symbol: chưa tải được nến ban đầu ($detail)")
+                        // Stop the REST bootstrap on rate limiting or an IP restriction.
+                        // Continuing through the universe would amplify the ban.
+                        if (detail.contains("HTTP 418") || detail.contains("HTTP 429")) {
+                            onStatus("Scanner tạm dừng: Binance trả HTTP 418/429; không tiếp tục gọi REST.")
+                            return@launch
+                        }
+                    }
                     delay(350L)
                 }
                 for (symbol in symbols) {
