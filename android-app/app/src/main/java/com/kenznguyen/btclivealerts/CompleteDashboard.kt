@@ -50,6 +50,20 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 
+private data class ScannerUiRow(val symbol: String, val candidate: String?, val confirmed: String?, val reason: String, val bookAgeMs: Long?)
+private fun scannerReasonVi(reason: String): String = when (reason) {
+    "NO_TECHNICAL_CANDIDATE" -> "Chưa có điều kiện M15/H1"
+    "ORDERBOOK_MISSING" -> "Thiếu dữ liệu Order Book"
+    "ORDERBOOK_UNSYNCED" -> "Order Book chưa đồng bộ"
+    "ORDERBOOK_FUTURE_TIMESTAMP" -> "Timestamp Order Book không hợp lệ"
+    "ORDERBOOK_STALE" -> "Order Book đã cũ"
+    "DATA_INCOMPLETE" -> "Dữ liệu xác nhận chưa đủ"
+    "ORDERBOOK_DIRECTION_MISMATCH" -> "Order Book không cùng hướng"
+    "COMBINED_SCORE_REJECTED" -> "Điểm xác nhận chưa đạt"
+    "CONFIRMED" -> "Đã xác nhận M15/H1 + Order Book"
+    else -> "Đang chờ dữ liệu / " + reason
+}
+
 private data class H1TrendMark(val openTime: Long, val direction: Int, val strong: Boolean)
 private data class SavedAlert(val title: String, val body: String, val timestamp: Long, val source: String)
 
@@ -387,6 +401,26 @@ fun CompleteDashboard(context: Context) {
     var chartFullscreen by remember { mutableStateOf(false) }
     var socketStatus by remember { mutableStateOf("Đang đồng bộ REST…") }
     var multiSignal by remember { mutableStateOf(runCatching { JSONObject(prefs.getString("multi_stream_signal_json", "{}") ?: "{}") }.getOrDefault(JSONObject())) }
+    var selectedTab by remember { mutableIntStateOf(0) }
+    var scannerStatus by remember { mutableStateOf("Đang chờ dữ liệu scanner…") }
+    var scannerRows by remember { mutableStateOf<List<ScannerUiRow>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            scannerStatus = prefs.getString("multi_symbol_scanner_status", "Scanner chưa có trạng thái") ?: "Scanner chưa có trạng thái"
+            scannerRows = runCatching {
+                val raw = prefs.getString("multi_symbol_scan_json", null)
+                if (raw.isNullOrBlank()) emptyList() else {
+                    val array = JSONArray(raw)
+                    (0 until array.length()).map { index ->
+                        val item = array.getJSONObject(index)
+                        ScannerUiRow(item.optString("symbol", "—"), item.optString("candidate").takeUnless { it == "null" || it.isBlank() }, item.optString("confirmed").takeUnless { it == "null" || it.isBlank() }, item.optString("reason", "UNKNOWN"), if (item.isNull("orderBookAgeMs")) null else item.optLong("orderBookAgeMs"))
+                    }.sortedBy { it.symbol }
+                }
+            }.getOrDefault(emptyList())
+            delay(1_000L)
+        }
+    }
 
     fun refreshMultiSignal() {
         multiSignal = runCatching {
@@ -582,6 +616,13 @@ fun CompleteDashboard(context: Context) {
                     }
                 }
             }
+            item {
+                TabRow(selectedTabIndex = selectedTab, containerColor = NPanel, contentColor = Color.White) {
+                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Biểu đồ") })
+                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Multi Symbol Scanner") })
+                }
+            }
+            if (selectedTab == 0) {
             item {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
                     Text("MARK PRICE", color = NMuted)
@@ -961,6 +1002,31 @@ fun CompleteDashboard(context: Context) {
                         TextButton(onClick = { showRsi = !showRsi; prefs.edit().putBoolean("chart_show_rsi_percent_b", showRsi).apply() }) { Text(if (showRsi) "Ẩn RSI %B" else "Hiện RSI %B") }
                         TextButton(onClick = { showMfiB = !showMfiB; prefs.edit().putBoolean("chart_show_mfi_b", showMfiB).apply() }) { Text(if (showMfiB) "Ẩn MFI & %B" else "Hiện MFI & %B") }
                         TextButton(onClick = { showAdx = !showAdx; prefs.edit().putBoolean("chart_show_adx", showAdx).apply() }) { Text(if (showAdx) "Ẩn DMI/ADX" else "Hiện DMI/ADX") }
+                    }
+                }
+            }
+            } else {
+                item {
+                    Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
+                        Text("MULTI-SYMBOL SCANNER", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("20 cặp USDT Perpetual · Chỉ đọc · Không đặt lệnh", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                        Spacer(Modifier.height(8.dp))
+                        Text(scannerStatus, color = if (scannerStatus.contains("đang theo dõi", true)) NGreen else Color(0xFFFFC857), style = MaterialTheme.typography.bodySmall)
+                        Spacer(Modifier.height(8.dp))
+                        if (scannerRows.isEmpty()) Text("Chưa có kết quả scanner được lưu.", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                        scannerRows.forEach { row ->
+                            Divider(color = NBg)
+                            Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(row.symbol, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                    Text(scannerReasonVi(row.reason), color = NMuted, style = MaterialTheme.typography.labelSmall)
+                                    Text(if (row.bookAgeMs == null) "Order Book: —" else "Order Book: ${row.bookAgeMs} ms", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                                }
+                                val side = row.confirmed?.let { "✓ " + it } ?: row.candidate?.let { it + " · CHỜ" } ?: "WAIT"
+                                val sideColor = when { row.confirmed == "BUY" -> NGreen; row.confirmed == "SELL" -> NRed; row.candidate != null -> Color(0xFFFFC857); else -> NMuted }
+                                Text(side, color = sideColor, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
                 }
             }
