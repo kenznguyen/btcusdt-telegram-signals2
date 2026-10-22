@@ -38,6 +38,7 @@ class OrderBookEngine(
     private var socket: WebSocket? = null
     private var lastUpdateId = 0L
     private var snapshotInFlight = false
+    private var snapshotRetryCount = 0
     private var synchronizedBook = false
     private var closed = false
 
@@ -114,10 +115,12 @@ class OrderBookEngine(
         snapshotInFlight = true
         scope.launch {
             try {
+                BinanceRestGate.awaitPermit()
                 val request = Request.Builder()
                     .url("https://fapi.binance.com/fapi/v1/depth?symbol=${symbol.uppercase()}&limit=1000")
                     .build()
                 val snapshot = client.newCall(request).execute().use { response ->
+                    BinanceRestGate.observe(response)
                     check(response.isSuccessful) { "Snapshot HTTP ${response.code}" }
                     JSONObject(response.body?.string() ?: error("Snapshot rỗng"))
                 }
@@ -172,6 +175,7 @@ class OrderBookEngine(
                         requestSnapshot()
                     } else {
                         synchronizedBook = true
+                        snapshotRetryCount = 0
                         onStatus("Order Book đã đồng bộ")
                         publish()
                     }
@@ -186,7 +190,11 @@ class OrderBookEngine(
 
     private fun scheduleSnapshotRetry() {
         scope.launch {
-            delay(2_000L)
+            val waitMs = synchronized(lock) {
+                snapshotRetryCount = (snapshotRetryCount + 1).coerceAtMost(8)
+                minOf(120_000L, 2_000L * (1L shl (snapshotRetryCount - 1)))
+            }
+            delay(waitMs)
             synchronized(lock) {
                 if (!closed && socket != null && !synchronizedBook && !snapshotInFlight) requestSnapshot()
             }
