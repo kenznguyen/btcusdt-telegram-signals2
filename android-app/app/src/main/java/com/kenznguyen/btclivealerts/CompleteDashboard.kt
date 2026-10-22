@@ -404,6 +404,7 @@ fun CompleteDashboard(context: Context) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var scannerStatus by remember { mutableStateOf("Đang chờ dữ liệu scanner…") }
     var scannerRows by remember { mutableStateOf<List<ScannerUiRow>>(emptyList()) }
+    var continuousScannerEnabled by remember { mutableStateOf(prefs.getBoolean("multi_symbol_scanner_enabled", true)) }
     LaunchedEffect(Unit) {
         while (true) {
             scannerStatus = prefs.getString("multi_symbol_scanner_status", "Scanner chưa có trạng thái") ?: "Scanner chưa có trạng thái"
@@ -625,6 +626,17 @@ fun CompleteDashboard(context: Context) {
                 if (selectedTab == 1) Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
                     Text("MULTI-SYMBOL SCANNER", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text("20 cặp USDT Perpetual · Chỉ đọc · Không đặt lệnh", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Quét liên tục", color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Text(if (continuousScannerEnabled) "Tự quét nền mỗi ~60 giây khi Strategy Monitor chạy" else "Đã tắt quét tự động", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                        }
+                        Switch(checked = continuousScannerEnabled, onCheckedChange = { enabled ->
+                            continuousScannerEnabled = enabled
+                            prefs.edit().putBoolean("multi_symbol_scanner_enabled", enabled).apply()
+                        })
+                    }
                     Spacer(Modifier.height(8.dp))
                     Text(scannerStatus, color = if (scannerStatus.contains("đang theo dõi", true)) NGreen else Color(0xFFFFC857), style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.height(8.dp))
