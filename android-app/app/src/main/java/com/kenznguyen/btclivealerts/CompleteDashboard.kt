@@ -14,6 +14,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.ui.graphics.Color
@@ -350,6 +352,9 @@ fun CompleteDashboard(context: Context) {
     val engine = remember { StrategyEngine() }
     val prefs = remember { context.getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE) }
     var timeframe by remember { mutableStateOf("15m") }
+    var manualRefreshRequest by remember { mutableIntStateOf(0) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    val dashboardListState = rememberLazyListState()
     var chart by remember { mutableStateOf<List<Candle>>(emptyList()) }
     var price by remember { mutableStateOf<Double?>(null) }
     var status by remember { mutableStateOf("Đang kết nối Binance Futures…") }
@@ -438,7 +443,8 @@ fun CompleteDashboard(context: Context) {
         h1TrendChartAlerts = prefs.getBoolean(chartAlertPrefKey(timeframe, "h1_enabled"), prefs.getBoolean("chart_alert_h1_enabled", false))
     }
 
-    LaunchedEffect(timeframe) {
+    LaunchedEffect(timeframe, manualRefreshRequest) {
+        isRefreshing = manualRefreshRequest > 0
         chartPanBars = 0
         val mainHandler = Handler(Looper.getMainLooper())
         var socket: WebSocket? = null
@@ -594,6 +600,7 @@ fun CompleteDashboard(context: Context) {
             socketStatus = "REST/WebSocket cần đồng bộ lại"
         } finally {
             socket?.close(1000, "timeframe changed")
+            isRefreshing = false
         }
     }
 
@@ -609,7 +616,40 @@ fun CompleteDashboard(context: Context) {
         )
     }
     Surface(Modifier.fillMaxSize(), color = NBg) {
-        LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(
+            state = dashboardListState,
+            modifier = Modifier.fillMaxSize().pointerInput(timeframe, isRefreshing, dashboardListState) {
+                var dragDistance = 0f
+                detectVerticalDragGestures(
+                    onVerticalDrag = { change, dragAmount ->
+                        if (dashboardListState.firstVisibleItemIndex == 0 && dashboardListState.firstVisibleItemScrollOffset == 0 && dragAmount > 0f) {
+                            dragDistance += dragAmount
+                            change.consume()
+                        }
+                    },
+                    onDragEnd = {
+                        if (dragDistance >= 88.dp.toPx() && !isRefreshing) {
+                            isRefreshing = true
+                            manualRefreshRequest += 1
+                        }
+                        dragDistance = 0f
+                    },
+                    onDragCancel = { dragDistance = 0f }
+                )
+            }.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                if (isRefreshing) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color(0xFFB9A6FF), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Đang tải lại dữ liệu M15/H1…", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    }
+                } else {
+                    Text("Kéo xuống để tải lại dữ liệu M15/H1", color = NMuted, style = MaterialTheme.typography.labelSmall)
+                }
+            }
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
