@@ -1005,7 +1005,8 @@ fun CompleteDashboard(context: Context) {
                     }
                 }
             }
-            } else {
+            }
+            if (selectedTab == 1) {
                 item {
                     Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
                         Text("MULTI-SYMBOL SCANNER", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
