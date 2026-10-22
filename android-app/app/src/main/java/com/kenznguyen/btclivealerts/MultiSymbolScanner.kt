@@ -116,8 +116,8 @@ class MultiSymbolScanner(
             val m15 = state.m15.values.toList()
             val h1 = state.h1.values.toList()
             val latest = m15.lastOrNull { it.closed } ?: return
-            if (latest.openTime <= state.lastEvaluatedM15Open) return
-            state.lastEvaluatedM15Open = latest.openTime
+            if (!allowSameCandle && latest.openTime <= state.lastEvaluatedM15Open) return
+            if (latest.openTime > state.lastEvaluatedM15Open) state.lastEvaluatedM15Open = latest.openTime
             Triple(m15, h1, latest)
         }
         val (m15, h1, candle) = snapshot
