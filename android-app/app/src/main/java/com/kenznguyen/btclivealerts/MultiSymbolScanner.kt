@@ -68,7 +68,8 @@ class MultiSymbolScanner(
                     catch (e: Exception) { onStatus("$symbol: chưa tải được nến ban đầu (${e.message ?: "lỗi REST"})") }
                     delay(350L)
                 }
-                symbols.forEach { symbol ->
+                for (symbol in symbols) {
+                    if (closed) return@launch
                     bookEngines.computeIfAbsent(symbol) {
                         OrderBookEngine(
                             onMetrics = { metrics -> books[symbol] = metrics; evaluate(symbol) },
@@ -76,6 +77,8 @@ class MultiSymbolScanner(
                             symbol = symbol
                         ).also { it.start() }
                     }
+                    // Stagger depth snapshot requests to avoid a burst after selecting the universe.
+                    delay(500L)
                 }
                 socket = market.connectMultiplex(
                     symbols = symbols,
@@ -108,7 +111,7 @@ class MultiSymbolScanner(
             Triple(m15, h1, latest)
         }
         val (m15, h1, candle) = snapshot
-        val candidate = strategy.entryCandidate(m15, h1)
+        val candidate = strategy.latestClosedEntryCandidate(m15, h1)
         val evaluatedAt = System.currentTimeMillis()
         val book = books[symbol]
         val age = book?.let { evaluatedAt - it.updatedAtMs }
