@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
         ContextCompat.startForegroundService(this, Intent(this, StrategyMonitorService::class.java))
-        setContent { MaterialTheme(colorScheme = darkColorScheme()) { CompleteDashboard(this) } }
+        setContent { MaterialTheme(colorScheme = darkColorScheme()) { MultiSymbolDashboardEntry(this) } }
     }
 
     private fun createNotificationChannel() {
@@ -244,7 +244,7 @@ private fun scannerReasonVi(reason: String): String = when (reason) {
 }
 
 @Composable
-private fun CompleteDashboard(context: Context) {
+private fun MultiSymbolDashboardEntry(context: Context) {
     Dashboard(context)
 }
 
