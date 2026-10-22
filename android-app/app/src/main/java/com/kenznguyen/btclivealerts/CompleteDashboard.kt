@@ -1003,7 +1003,6 @@ fun CompleteDashboard(context: Context) {
                         TextButton(onClick = { showAdx = !showAdx; prefs.edit().putBoolean("chart_show_adx", showAdx).apply() }) { Text(if (showAdx) "Ẩn DMI/ADX" else "Hiện DMI/ADX") }
                     }
                 }
-            }
             item {
                 if (selectedTab == 1) {
                     Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
