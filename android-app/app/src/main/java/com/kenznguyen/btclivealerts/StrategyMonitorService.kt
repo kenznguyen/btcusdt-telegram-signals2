@@ -80,6 +80,10 @@ class StrategyMonitorService : Service() {
                         val closed = m15.filter { it.closed }.sortedBy { it.openTime }
                         val prefs = getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE)
                         updateMultiStreamSignal(m15, h1, prefs)
+                        val nowMs = System.currentTimeMillis()
+                        if (nowMs - prefs.getLong("multi_symbol_scanner_last_scan_ms", 0L) >= 60_000L) {
+                            scanMultipleSymbols(prefs)
+                        }
 
                         // Evaluate every newly closed candle in the background, not only the
                         // latest one, so reconnect/network gaps do not silently skip chart signals.
@@ -217,6 +221,53 @@ class StrategyMonitorService : Service() {
         } catch (_: SecurityException) {
             // Keep the event in history; the monitor loop still records its dedupe key.
         }
+    }
+    /**
+     * Periodic multi-symbol technical scan. It deliberately does not label BUY/SELL as
+     * confirmed because the current synchronized OrderBookEngine is BTCUSDT-only.
+     * Confirmation stays WAIT until each symbol has its own fresh, synchronized book.
+     */
+    private suspend fun scanMultipleSymbols(prefs: android.content.SharedPreferences) {
+        val symbols = listOf(
+            "BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT",
+            "DOGEUSDT", "ADAUSDT", "AVAXUSDT", "LINKUSDT", "DOTUSDT",
+            "TRXUSDT", "LTCUSDT", "BCHUSDT", "SUIUSDT", "TONUSDT",
+            "1000PEPEUSDT", "APTUSDT", "NEARUSDT", "ETCUSDT", "UNIUSDT"
+        )
+        val rows = JSONArray()
+        var scanned = 0
+        var errors = 0
+        for (symbol in symbols) {
+            try {
+                val m15 = market.fetchCandles("15m", 120, symbol)
+                val h1 = market.fetchCandles("1h", 120, symbol)
+                val candidate = engine.latestClosedEntryCandidate(m15, h1)
+                val reason = if (candidate == null) "NO_TECHNICAL_CANDIDATE" else "ORDERBOOK_MISSING"
+                rows.put(JSONObject()
+                    .put("symbol", symbol)
+                    .put("candidate", candidate ?: JSONObject.NULL)
+                    .put("confirmed", JSONObject.NULL)
+                    .put("reason", reason)
+                    .put("orderBookAgeMs", JSONObject.NULL))
+                scanned++
+            } catch (e: Exception) {
+                errors++
+                rows.put(JSONObject()
+                    .put("symbol", symbol)
+                    .put("candidate", JSONObject.NULL)
+                    .put("confirmed", JSONObject.NULL)
+                    .put("reason", "DATA_INCOMPLETE")
+                    .put("detail", e.message ?: e.javaClass.simpleName)
+                    .put("orderBookAgeMs", JSONObject.NULL))
+            }
+        }
+        val status = "Đã quét " + scanned + "/" + symbols.size + " cặp · lỗi dữ liệu: " + errors + " · cập nhật " +
+            SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        prefs.edit()
+            .putString("multi_symbol_scan_json", rows.toString())
+            .putString("multi_symbol_scanner_status", status)
+            .putLong("multi_symbol_scanner_last_scan_ms", System.currentTimeMillis())
+            .apply()
     }
     private fun updateMultiStreamSignal(
         m15: List<Candle>,
