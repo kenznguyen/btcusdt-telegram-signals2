@@ -391,7 +391,6 @@ fun CompleteDashboard(context: Context) {
     var chartIndicators by remember { mutableStateOf<List<IndicatorPoint>>(emptyList()) }
     var chartVisibleCount by remember { mutableIntStateOf(120) }
     var chartPanBars by remember { mutableIntStateOf(0) }
-    var showRsi by remember { mutableStateOf(prefs.getBoolean("chart_show_rsi_percent_b", prefs.getBoolean("chart_show_rsi", true))) }
     var showMfiB by remember { mutableStateOf(prefs.getBoolean("chart_show_mfi_b", prefs.getBoolean("chart_show_rsi", true))) }
     var showAdx by remember { mutableStateOf(prefs.getBoolean("chart_show_adx", true)) }
     var showDi by remember { mutableStateOf(prefs.getBoolean("chart_show_di", true)) }
@@ -763,19 +762,6 @@ fun CompleteDashboard(context: Context) {
                             onPanBarsChange = { chartPanBars = it }
                         )
                     }
-                    if (showRsi) {
-                        Spacer(Modifier.height(10.dp))
-                        IndicatorLineChart(
-                            title = "RSI %B SIGNAL", points = visibleIndicators, valueSelector = { it.rsiPercentB },
-                            minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
-                            lineColor = Color(0xFF9B8AFB), modifier = Modifier.fillMaxWidth().height(120.dp),
-                            secondarySelectors = listOf({ it.rsiPercentBSignal }),
-                            highlightPercentB = true,
-                            thresholdLabels = listOf("0", "0.5", "1"), legend = listOf("%B", "Signal"),
-                            visibleCount = chartVisibleCount, panBars = chartPanBars,
-                            onVisibleCountChange = { chartVisibleCount = it }, onPanBarsChange = { chartPanBars = it }
-                        )
-                    }
                     if (showAdx) {
                         Spacer(Modifier.height(10.dp))
                         DmiAdxTrendChart(candles = visibleCandles, points = visibleIndicators, showDi = showDi, visibleCount = chartVisibleCount, panBars = chartPanBars, onVisibleCountChange = { chartVisibleCount = it }, onPanBarsChange = { chartPanBars = it }, modifier = Modifier.fillMaxWidth().height(164.dp))
@@ -789,7 +775,6 @@ fun CompleteDashboard(context: Context) {
                     if (chartSettingsExpanded) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             PreferenceSwitch("MFI & %B [seiglerj]", showMfiB, { showMfiB = it; prefs.edit().putBoolean("chart_show_mfi_b", it).apply() })
-                            PreferenceSwitch("RSI %B Signal", showRsi, { showRsi = it; prefs.edit().putBoolean("chart_show_rsi_percent_b", it).apply() })
                             PreferenceSwitch("DMI & ADX Trend", showAdx, { showAdx = it; prefs.edit().putBoolean("chart_show_adx", it).apply() })
                             PreferenceSwitch("+DI / −DI", showDi, { showDi = it; prefs.edit().putBoolean("chart_show_di", it).apply() })
                             PreferenceSwitch("Xu hướng H1", showH1Trend, { showH1Trend = it; prefs.edit().putBoolean("chart_show_h1", it).apply() })
@@ -994,7 +979,7 @@ fun CompleteDashboard(context: Context) {
                         showBollinger = showBollinger,
                         onVisibleCountChange = { chartVisibleCount = it },
                         onPanBarsChange = { chartPanBars = it },
-                        modifier = Modifier.fillMaxWidth().weight(if ((showRsi || showMfiB) && showAdx) 0.48f else if (showRsi || showMfiB || showAdx) 0.62f else 0.76f)
+                        modifier = Modifier.fillMaxWidth().weight(if (showMfiB && showAdx) 0.48f else if (showMfiB || showAdx) 0.62f else 0.76f)
                     )
                     TimeAxisBar(visibleCandles)
                     if (showMfiB) {
@@ -1011,28 +996,11 @@ fun CompleteDashboard(context: Context) {
                             onVisibleCountChange = { chartVisibleCount = it }, onPanBarsChange = { chartPanBars = it }
                         )
                     }
-                    if (showRsi) {
-                        IndicatorLineChart(
-                            title = "RSI %B SIGNAL", points = visibleIndicators, valueSelector = { it.rsiPercentB },
-                            minValue = -0.5, maxValue = 1.5, thresholds = listOf(0.0, 0.5, 1.0),
-                            lineColor = Color(0xFF9B8AFB),
-                            modifier = Modifier.fillMaxWidth().weight(0.20f),
-                            secondarySelectors = listOf({ it.rsiPercentBSignal }),
-                            highlightPercentB = true,
-                            thresholdLabels = listOf("0", "0.5", "1"),
-                            legend = listOf("%B", "Signal"),
-                            visibleCount = chartVisibleCount,
-                            panBars = chartPanBars,
-                            onVisibleCountChange = { chartVisibleCount = it },
-                            onPanBarsChange = { chartPanBars = it }
-                        )
-                    }
                     if (showAdx) {
                         DmiAdxTrendChart(candles = visibleCandles, points = visibleIndicators, showDi = showDi, visibleCount = chartVisibleCount, panBars = chartPanBars, onVisibleCountChange = { chartVisibleCount = it }, onPanBarsChange = { chartPanBars = it }, modifier = Modifier.fillMaxWidth().weight(0.24f))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("REST + WebSocket · ${chart.size}/1.500 nến", color = NMuted, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-                        TextButton(onClick = { showRsi = !showRsi; prefs.edit().putBoolean("chart_show_rsi_percent_b", showRsi).apply() }) { Text(if (showRsi) "Ẩn RSI %B" else "Hiện RSI %B") }
                         TextButton(onClick = { showMfiB = !showMfiB; prefs.edit().putBoolean("chart_show_mfi_b", showMfiB).apply() }) { Text(if (showMfiB) "Ẩn MFI & %B" else "Hiện MFI & %B") }
                         TextButton(onClick = { showAdx = !showAdx; prefs.edit().putBoolean("chart_show_adx", showAdx).apply() }) { Text(if (showAdx) "Ẩn DMI/ADX" else "Hiện DMI/ADX") }
                     }
@@ -1146,13 +1114,6 @@ private fun IndicatorLineChart(
             val range = (maxValue - minValue).takeIf { it > 0.0 } ?: 1.0
             fun y(value: Double): Float =
                 size.height - (((value.coerceIn(minValue, maxValue) - minValue) / range).toFloat() * size.height)
-            if (highlightPercentB) {
-                // RSI %B panel: show its 0/1 extreme zones.
-                val lowerY = y(0.0)
-                val upperY = y(1.0)
-                drawRect(Color(0xFF20C997).copy(alpha = 0.12f), Offset(0f, lowerY), androidx.compose.ui.geometry.Size(size.width, (size.height - lowerY).coerceAtLeast(0f)))
-                drawRect(Color(0xFFFF647C).copy(alpha = 0.12f), Offset(0f, 0f), androidx.compose.ui.geometry.Size(size.width, upperY.coerceAtLeast(0f)))
-            }
             if (highlightMfiB) {
                 // Match Pine bgcolor(): shade only candles where Combined breaches the 0..1 range.
                 val barWidth = size.width / points.size.toFloat()
@@ -1182,20 +1143,6 @@ private fun IndicatorLineChart(
             }
             val series = listOf(valueSelector) + secondarySelectors
             val colors = seriesColors
-            if (highlightPercentB) {
-                // Mark confirmed crossings of the %B 0/1 levels on the visible closed-candle series.
-                points.forEachIndexed { index, point ->
-                    val value = valueSelector(point)
-                    val prior = if (index > 0) valueSelector(points[index - 1]) else null
-                    if (value != null && prior != null && value.isFinite() && prior.isFinite()) {
-                        val crossedLower = (prior > 0.0 && value <= 0.0) || (prior < 0.0 && value >= 0.0)
-                        val crossedUpper = (prior < 1.0 && value >= 1.0) || (prior > 1.0 && value <= 1.0)
-                        val x = size.width * index / (points.size - 1).toFloat()
-                        if (crossedLower) drawCircle(Color(0xFF20C997), radius = 4.2f, center = Offset(x, y(0.0)))
-                        if (crossedUpper) drawCircle(Color(0xFFFF647C), radius = 4.2f, center = Offset(x, y(1.0)))
-                    }
-                }
-            }
             series.forEachIndexed { seriesIndex, selector ->
                 var previous: Offset? = null
                 points.forEachIndexed { index, point ->

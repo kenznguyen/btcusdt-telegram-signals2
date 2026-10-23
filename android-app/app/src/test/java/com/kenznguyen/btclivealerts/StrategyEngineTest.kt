@@ -135,6 +135,36 @@ class StrategyEngineTest {
         assertNull(flat.adx)
     }
 
+    @Test fun mfiPercentBUsesHlc3VolumeAndAlignedWarmup() {
+        val candles = (0 until 40).map { i ->
+            val close = 100.0 + i
+            Candle(
+                openTime = i * 900000L,
+                open = close - 0.25,
+                high = close + 1.0,
+                low = close - 1.0,
+                close = close,
+                volume = (i + 1).toDouble(),
+                closed = true
+            )
+        }
+        val points = engine.indicatorSeries(candles)
+        // MFI(14) first becomes valid after 14 price changes; %B(20) after 20 samples.
+        assertNull(points[13].mfiScaled)
+        assertNotNull(points[14].mfiScaled)
+        assertNull(points[18].pricePercentB)
+        assertNotNull(points[19].pricePercentB)
+        assertNull(points[18].mfiBProduct)
+        assertNotNull(points[19].mfiBProduct)
+        // Rising HLC3 with positive volume gives MFI=100, scaled by (MFI-20)/60.
+        assertEquals((100.0 - 20.0) / 60.0, points[19].mfiScaled!!, 1e-8)
+        val mfi = points[19].mfiScaled!!
+        val bbp = points[19].pricePercentB!!
+        val expectedCombined = if (mfi > 0.5 && bbp > 0.5) minOf(mfi, bbp)
+            else if (mfi < 0.5 && bbp < 0.5) maxOf(mfi, bbp) else (mfi + bbp) / 2.0
+        assertEquals(expectedCombined, points[19].mfiBProduct!!, 1e-8)
+    }
+
     @Test fun invalidStateDefaultsSafely() {
         assertEquals(100.0, StrategyState.fromJson(null).balance, 1e-8)
         assertNull(StrategyState.fromJson("{not-json").position)
