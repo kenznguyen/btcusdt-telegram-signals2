@@ -34,9 +34,11 @@ class MarketEngine {
         .pingInterval(20, TimeUnit.SECONDS)
         .build()
 
-    suspend fun fetchCandles(interval: String, limit: Int = 200): List<Candle> =
+    suspend fun fetchCandles(interval: String, limit: Int = 200, symbol: String = "BTCUSDT"): List<Candle> =
         withContext(Dispatchers.IO) {
-            val url = "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=$interval&limit=$limit"
+            val safeSymbol = symbol.uppercase().filter { it in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" }
+            require(safeSymbol.isNotBlank()) { "Invalid symbol" }
+            val url = "https://fapi.binance.com/fapi/v1/klines?symbol=$safeSymbol&interval=$interval&limit=$limit"
             val request = Request.Builder().url(url).build()
             client.newCall(request).execute().use { response ->
                 check(response.isSuccessful) { "Binance Futures HTTP ${response.code}" }
