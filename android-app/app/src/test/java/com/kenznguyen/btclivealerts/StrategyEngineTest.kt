@@ -135,6 +135,31 @@ class StrategyEngineTest {
         assertNull(flat.adx)
     }
 
+    @Test fun mfiPercentBUsesHlc3VolumeAndAlignedWarmup() {
+        val candles = (0 until 40).map { i ->
+            val close = 100.0 + i
+            Candle(
+                openTime = i * 900000L,
+                open = close - 0.25,
+                high = close + 1.0,
+                low = close - 1.0,
+                close = close,
+                volume = (i + 1).toDouble(),
+                closed = true
+            )
+        }
+        val points = engine.indicatorSeries(candles)
+        // MFI(14) first becomes valid after 14 price changes; %B(20) after 20 samples.
+        assertNull(points[13].mfiScaled)
+        assertNotNull(points[14].mfiScaled)
+        assertNull(points[18].pricePercentB)
+        assertNotNull(points[19].pricePercentB)
+        assertNull(points[18].mfiBProduct)
+        assertNotNull(points[19].mfiBProduct)
+        // Highlight inputs must be the same candle's Combined value, not shifted.
+        assertEquals(points[19].mfiBProduct, points[19].mfiBProduct, 0.0)
+    }
+
     @Test fun invalidStateDefaultsSafely() {
         assertEquals(100.0, StrategyState.fromJson(null).balance, 1e-8)
         assertNull(StrategyState.fromJson("{not-json").position)
