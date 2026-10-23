@@ -156,8 +156,13 @@ class StrategyEngineTest {
         assertNotNull(points[19].pricePercentB)
         assertNull(points[18].mfiBProduct)
         assertNotNull(points[19].mfiBProduct)
-        // Highlight inputs must be the same candle's Combined value, not shifted.
-        assertEquals(points[19].mfiBProduct, points[19].mfiBProduct, 0.0)
+        // Rising HLC3 with positive volume gives MFI=100, scaled by (MFI-20)/60.
+        assertEquals((100.0 - 20.0) / 60.0, points[19].mfiScaled!!, 1e-8)
+        val mfi = points[19].mfiScaled!!
+        val bbp = points[19].pricePercentB!!
+        val expectedCombined = if (mfi > 0.5 && bbp > 0.5) minOf(mfi, bbp)
+            else if (mfi < 0.5 && bbp < 0.5) maxOf(mfi, bbp) else (mfi + bbp) / 2.0
+        assertEquals(expectedCombined, points[19].mfiBProduct!!, 1e-8)
     }
 
     @Test fun invalidStateDefaultsSafely() {
