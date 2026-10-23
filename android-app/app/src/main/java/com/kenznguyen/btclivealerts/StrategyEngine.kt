@@ -172,7 +172,9 @@ class StrategyEngine(val config: StrategyConfig = StrategyConfig()) {
         // Keep the original RSI-%B series above for compatibility, but the UI now plots this combined indicator.
         val source = candles.map { (it.high + it.low + it.close) / 3.0 }
         val mfiScaled = MutableList<Double?>(n) { null }
-        for (i in 13 until n) {
+        // MFI(14) needs 14 price-change/volume-flow observations, so the first
+        // valid value is at index 14 (the first observation compares to index 0).
+        for (i in 14 until n) {
             var positiveFlow = 0.0
             var negativeFlow = 0.0
             for (j in (i - 13)..i) {
