@@ -22,8 +22,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # GitHub ubuntu-24.04 runner already includes Android SDK command-line tools.
+      # Avoid setup-android@v3, which attempts to install removed SDK package 'tools'.
       - name: Set up Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
