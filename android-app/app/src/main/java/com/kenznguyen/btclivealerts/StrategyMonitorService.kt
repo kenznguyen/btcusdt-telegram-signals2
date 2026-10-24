@@ -72,7 +72,7 @@ class StrategyMonitorService : Service() {
                 }
             }
         }
-        if (multiSymbolScanner == null) {
+        if (getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE).getBoolean("multi_symbol_scanner_enabled", true) && multiSymbolScanner == null) {
             synchronized(this) {
                 if (multiSymbolScanner == null) {
                     multiSymbolScanner = MultiSymbolScanner(
