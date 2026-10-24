@@ -442,7 +442,7 @@ fun CompleteDashboard(context: Context) {
         h1TrendChartAlerts = prefs.getBoolean(chartAlertPrefKey(timeframe, "h1_enabled"), prefs.getBoolean("chart_alert_h1_enabled", false))
     }
 
-    LaunchedEffect(timeframe) {
+    LaunchedEffect(timeframe, selectedSymbol) {
         chartPanBars = 0
         val mainHandler = Handler(Looper.getMainLooper())
         var socket: WebSocket? = null
@@ -471,6 +471,7 @@ fun CompleteDashboard(context: Context) {
             socketStatus = "REST đồng bộ xong · WebSocket đang kết nối"
             socket = market.connectLive(
                 interval = timeframe,
+                symbol = selectedSymbol,
                 onCandle = { candle ->
                     mainHandler.post {
                         status = "Dữ liệu live đang hoạt động"
@@ -710,6 +711,13 @@ fun CompleteDashboard(context: Context) {
                                 " · Tin cậy nội bộ: " + "%.0f%%".format(Locale.US, multiSignal.optDouble("confidence", 0.0) * 100.0),
                             color = NMuted, style = MaterialTheme.typography.bodySmall
                         )
+                    }
+                }
+            }
+            if (selectedTab == 0) item {
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    (listOf("BTCUSDT") + scannerRows.map { it.symbol }.distinct()).forEach { symbol ->
+                        FilterChip(selected = selectedSymbol == symbol, onClick = { selectedSymbol = symbol; prefs.edit().putString("chart_selected_symbol", symbol).apply() }, label = { Text(symbol) })
                     }
                 }
             }
