@@ -10,6 +10,7 @@ on:
         default: feature/android-btcusdt-live-alerts
         options:
           - feature/android-btcusdt-live-alerts
+          - integration/android-scanner-orderbook-20261024
           - main
 
 permissions:
