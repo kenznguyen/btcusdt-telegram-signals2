@@ -225,6 +225,19 @@ internal fun maybeNotifyChartAlerts(
             fire("chart_alert_mfib_enabled", "MFIB_LOW", 987672, "BTCUSDT · MFI & %B xuống ngưỡng thấp", "Combined: ${"%.2f".format(Locale.US, combined)} (đã cắt xuống ngưỡng ${"%.2f".format(Locale.US, lower)}) · giá đóng: ${"%,.2f".format(Locale.US, closedCandle.close)} USDT")
     }
 
+    // SEIGLERJ bgcolor: red for Combined > 1, green for Combined < 0.
+    // Fire once on the first closed candle entering a highlighted region.
+    if (combined != null && priorCombined != null) {
+        if (combined < 0.0 && priorCombined >= 0.0)
+            fire("chart_alert_mfib_highlight_enabled", "MFIB_GREEN", 987678,
+                "BTCUSDT · MFI & %B vùng XANH xuất hiện",
+                "Highlight xanh · Combined: ${"%.2f".format(Locale.US, combined)}")
+        if (combined > 1.0 && priorCombined <= 1.0)
+            fire("chart_alert_mfib_highlight_enabled", "MFIB_RED", 987679,
+                "BTCUSDT · MFI & %B vùng ĐỎ xuất hiện",
+                "Highlight đỏ · Combined: ${"%.2f".format(Locale.US, combined)}")
+    }
+
     // DMI/ADX: alert only on a fresh upward cross of the ADX strength threshold.
     val adx = current.adx
     val priorAdx = previous.adx
@@ -366,6 +379,7 @@ fun CompleteDashboard(context: Context) {
     var tpAlerts by remember { mutableStateOf(prefs.getBoolean("alert_take_profit", true)) }
     var softSlAlerts by remember { mutableStateOf(prefs.getBoolean("alert_soft_sl", true)) }
     var emergencySlAlerts by remember { mutableStateOf(prefs.getBoolean("alert_emergency_sl", true)) }
+    var mfiBHighlightAlerts by remember { mutableStateOf(prefs.getBoolean(chartAlertPrefKey(timeframe, "mfib_highlight_enabled"), false)) }
     var mfiBAlerts by remember { mutableStateOf(prefs.getBoolean(chartAlertPrefKey(timeframe, "mfib_enabled"), prefs.getBoolean("chart_alert_mfib_enabled", false))) }
     var mfiBUpper by remember { mutableFloatStateOf(prefs.getFloat(chartAlertPrefKey(timeframe, "mfib_upper"), prefs.getFloat("chart_alert_mfib_upper", 0.8f))) }
     var mfiBLower by remember { mutableFloatStateOf(prefs.getFloat(chartAlertPrefKey(timeframe, "mfib_lower"), prefs.getFloat("chart_alert_mfib_lower", 0.2f))) }
@@ -432,6 +446,7 @@ fun CompleteDashboard(context: Context) {
     }
 
     LaunchedEffect(timeframe) {
+        mfiBHighlightAlerts = prefs.getBoolean(chartAlertPrefKey(timeframe, "mfib_highlight_enabled"), false)
         mfiBAlerts = prefs.getBoolean(chartAlertPrefKey(timeframe, "mfib_enabled"), prefs.getBoolean("chart_alert_mfib_enabled", false))
         mfiBUpper = prefs.getFloat(chartAlertPrefKey(timeframe, "mfib_upper"), prefs.getFloat("chart_alert_mfib_upper", 0.8f))
         mfiBLower = prefs.getFloat(chartAlertPrefKey(timeframe, "mfib_lower"), prefs.getFloat("chart_alert_mfib_lower", 0.2f))
@@ -850,6 +865,7 @@ fun CompleteDashboard(context: Context) {
                     Divider(color = Color(0xFF263243))
                     Text("CẢNH BÁO RIÊNG THEO BIỂU ĐỒ · ${timeframe.uppercase()}", color = Color.White, fontWeight = FontWeight.Bold)
                     Text("Mỗi mục có công tắc độc lập; chỉ phát cảnh báo sau khi nến của khung đang theo dõi đóng và có chống lặp.", color = NMuted, style = MaterialTheme.typography.bodySmall)
+                    PreferenceSwitch("MFI & %B · Cảnh báo vùng xanh/đỏ", mfiBHighlightAlerts, { mfiBHighlightAlerts = it; prefs.edit().putBoolean(chartAlertPrefKey(timeframe, "mfib_highlight_enabled"), it).apply() })
                     PreferenceSwitch("MFI & %B · Combined chạm ngưỡng", mfiBAlerts, { mfiBAlerts = it; prefs.edit().putBoolean(chartAlertPrefKey(timeframe, "mfib_enabled"), it).apply() })
                     Text("Ngưỡng cao: ${"%.2f".format(Locale.US, mfiBUpper)}", color = Color.White)
                     Slider(value = mfiBUpper, onValueChange = { mfiBUpper = it }, valueRange = 0.5f..1.5f, steps = 19, onValueChangeFinished = { prefs.edit().putFloat(chartAlertPrefKey(timeframe, "mfib_upper"), mfiBUpper).apply() })
