@@ -24,7 +24,7 @@ telegram_commands.py
 Kết quả trả về Telegram
 
 
-GitHub Actions schedule (mỗi 5 phút)
+GitHub Actions thủ công (lịch tự động đang tắt)
         |
         v
 signal-scan.yml
@@ -38,7 +38,7 @@ Tín hiệu / thông báo -> Telegram
 
 - **Render webhook:** chỉ nhận và xác thực lệnh Telegram, sau đó yêu cầu GitHub Actions xử lý.
 - **Telegram Command workflow:** chạy khi Render dispatch workflow hoặc khi có thay đổi ở `.github/backtest-trigger.txt` trên nhánh `main`.
-- **Signal Scanner workflow:** chạy theo lịch mỗi 5 phút và có thể chạy thủ công từ tab Actions.
+- **Signal Scanner workflow:** hiện chỉ chạy thủ công từ tab Actions; lịch tự động đã tắt.
 - Hai workflow dùng chung Telegram Bot API để gửi tin nhắn; workflow quét tín hiệu **không cần một webhook Telegram thứ hai**.
 - Không bật lại workflow polling dùng `getUpdates`/ `deleteWebhook` trong khi đang dùng webhook Render, vì polling có thể xóa webhook.
 
@@ -175,7 +175,7 @@ Không chạy polling bằng `getUpdates` cùng lúc với webhook. Không cần
 4. Mở log và kiểm tra bước cài thư viện cùng bước chạy `python bot.py`.
 5. Xác nhận tin nhắn Telegram nếu có sự kiện mới; không có nến mới thì bot có thể kết thúc mà không gửi tin.
 
-Scanner được đặt lịch mỗi 5 phút bằng cron GitHub Actions. GitHub có thể trễ lịch khi hệ thống bận; lịch chạy không bảo đảm đúng chính xác mỗi 5 phút.
+Scanner hiện chỉ chạy thủ công qua workflow_dispatch. Không có lịch cron tự động trong workflow hiện tại.
 
 ### Kiểm tra lệnh
 
