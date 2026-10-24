@@ -8,6 +8,9 @@ import android.content.SharedPreferences
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -350,6 +353,7 @@ fun CompleteDashboard(context: Context) {
     val engine = remember { StrategyEngine() }
     val prefs = remember { context.getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE) }
     var timeframe by remember { mutableStateOf("15m") }
+    var selectedSymbol by remember { mutableStateOf(prefs.getString("chart_selected_symbol", "BTCUSDT") ?: "BTCUSDT") }
     var chart by remember { mutableStateOf<List<Candle>>(emptyList()) }
     var price by remember { mutableStateOf<Double?>(null) }
     var status by remember { mutableStateOf("Đang kết nối Binance Futures…") }
@@ -437,7 +441,7 @@ fun CompleteDashboard(context: Context) {
         h1TrendChartAlerts = prefs.getBoolean(chartAlertPrefKey(timeframe, "h1_enabled"), prefs.getBoolean("chart_alert_h1_enabled", false))
     }
 
-    LaunchedEffect(timeframe) {
+    LaunchedEffect(timeframe, selectedSymbol) {
         chartPanBars = 0
         val mainHandler = Handler(Looper.getMainLooper())
         var socket: WebSocket? = null
@@ -445,12 +449,12 @@ fun CompleteDashboard(context: Context) {
         var reconnectRequested = AtomicBoolean(false)
         var connectionStartedAt = System.currentTimeMillis()
         try {
-            val initial = market.fetchCandles(timeframe, 1500)
+            val initial = market.fetchCandles(timeframe, 1500, selectedSymbol)
             val cache = java.util.TreeMap<Long, Candle>()
             initial.forEach { mergeCandle(cache, it) }
             chart = cache.values.toList()
-            var m15Data = if (timeframe == "15m") initial else market.fetchCandles("15m", 1500)
-            var h1Data = if (timeframe == "1h") initial else market.fetchCandles("1h", 1500)
+            var m15Data = if (timeframe == "15m") initial else market.fetchCandles("15m", 1500, selectedSymbol)
+            var h1Data = if (timeframe == "1h") initial else market.fetchCandles("1h", 1500, selectedSymbol)
             m15Ind = engine.indicatorSeries(m15Data.filter { it.closed }).lastOrNull() ?: IndicatorPoint()
             val closedH1 = h1Data.filter { it.closed }.sortedBy { it.openTime }
             val h1Series = engine.indicatorSeries(closedH1)
@@ -462,10 +466,11 @@ fun CompleteDashboard(context: Context) {
                 H1TrendMark(candle.openTime, if (plus > minus) 1 else if (minus > plus) -1 else 0, (point.adx ?: 0.0) >= 20.0)
             }
             chartIndicators = engine.indicatorSeries(initial)
-            price = market.fetchMarkPrice()
+            price = market.fetchMarkPrice(selectedSymbol)
             socketStatus = "REST đồng bộ xong · WebSocket đang kết nối"
             socket = market.connectLive(
                 interval = timeframe,
+                symbol = selectedSymbol,
                 onCandle = { candle ->
                     mainHandler.post {
                         status = "Dữ liệu live đang hoạt động"
@@ -503,7 +508,7 @@ fun CompleteDashboard(context: Context) {
                     try {
                         val reconciled = market.fetchCandles(timeframe, 1500)
                         val otherTimeframe = if (timeframe == "15m") "1h" else "15m"
-                        val otherReconciled = market.fetchCandles(otherTimeframe, 500)
+                        val otherReconciled = market.fetchCandles(otherTimeframe, 500, selectedSymbol)
                         mainHandler.post {
                             reconciled.forEach { mergeCandle(cache, it) }
                             while (cache.size > 1500) cache.pollFirstEntry()
@@ -519,6 +524,7 @@ fun CompleteDashboard(context: Context) {
                         reconnectRequested = AtomicBoolean(false)
                         connectionStartedAt = System.currentTimeMillis()
                         socket = market.connectLive(timeframe,
+                            symbol = selectedSymbol,
                             onCandle = { c -> mainHandler.post {
                                 mergeCandle(cache, c)
                                 while (cache.size > 1500) cache.pollFirstEntry()
@@ -604,7 +610,7 @@ fun CompleteDashboard(context: Context) {
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("BTCUSDT.P", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("$selectedSymbol.P", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White)
                         Text("USDⓈ-M Perpetual · Chỉ xem · Không đặt lệnh", color = NMuted)
                     }
                     TextButton(onClick = {
@@ -642,7 +648,7 @@ fun CompleteDashboard(context: Context) {
                     if (scannerRows.isEmpty()) Text("Chưa có kết quả scanner được lưu.", color = NMuted, style = MaterialTheme.typography.bodySmall)
                     scannerRows.forEach { row ->
                         Divider(color = NBg)
-                        Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.fillMaxWidth().clickable { selectedSymbol = row.symbol; prefs.edit().putString("chart_selected_symbol", row.symbol).apply(); selectedTab = 0 }.padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text(row.symbol, color = Color.White, fontWeight = FontWeight.SemiBold)
                                 Text(scannerReasonVi(row.reason), color = NMuted, style = MaterialTheme.typography.labelSmall)
@@ -709,6 +715,13 @@ fun CompleteDashboard(context: Context) {
                 }
             }
             if (selectedTab == 0) item {
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    (listOf("BTCUSDT") + scannerRows.map { it.symbol }.distinct()).forEach { symbol ->
+                        FilterChip(selected = selectedSymbol == symbol, onClick = { selectedSymbol = symbol; prefs.edit().putString("chart_selected_symbol", symbol).apply() }, label = { Text(symbol) })
+                    }
+                }
+            }
+            if (selectedTab == 0) item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     listOf("15m", "1h").forEach { tf ->
                         FilterChip(selected = timeframe == tf, onClick = { timeframe = tf }, label = { Text(tf.uppercase()) })
@@ -722,7 +735,7 @@ fun CompleteDashboard(context: Context) {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(14.dp)).padding(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Candlestick · " + timeframe.uppercase(), color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Text("Candlestick · $selectedSymbol · " + timeframe.uppercase(), color = Color.White, fontWeight = FontWeight.SemiBold)
                             Text("Chạm toàn màn hình để mở rộng biểu đồ và chỉ báo", color = NMuted, style = MaterialTheme.typography.labelSmall)
                         }
                         TextButton(onClick = { chartFullscreen = true }) { Text("⛶ Toàn màn hình") }
