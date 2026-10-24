@@ -6,6 +6,7 @@ on:
     branches:
       - feature/android-btcusdt-live-alerts
       - feature/android-scanner-tab
+      - feature/chart-multisymbol-switcher
   workflow_dispatch:
 
 permissions:
