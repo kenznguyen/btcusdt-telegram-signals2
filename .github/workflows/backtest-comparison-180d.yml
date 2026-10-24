@@ -1,0 +1,44 @@
+name: BTCUSDT A-B Backtest 180 Days
+
+on:
+  # Experimental comparison is out of current scope; manual runs only.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      COMPARE_DAYS: "180"
+      COMPARE_INITIAL_CAPITAL: "200"
+      COMPARE_ENTRY_MARGIN: "50"
+      COMPARE_DCA_MARGIN: "50"
+      COMPARE_LEVERAGE: "13"
+      COMPARE_FEE_RATE: "0.0004"
+      COMPARE_SLIPPAGE_BPS: "5"
+    steps:
+      - name: Checkout comparison branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy requests
+      - name: Compile engine
+        run: python -m py_compile compare_strategies_180d.py
+      - name: Run 180-day A/B backtest
+        run: python compare_strategies_180d.py
+      - name: Upload comparison reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: btcusdt-ab-comparison-180d
+          path: comparison_results/
+          if-no-files-found: warn
+          retention-days: 30

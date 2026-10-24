@@ -1,0 +1,24 @@
+name: Backtest Comparison Rule Tests
+
+on:
+  # Experimental comparison is out of current scope; manual runs only.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rule-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout isolated comparison branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run rule tests
+        run: python -m unittest discover -s tests -p "test_backtest_comparison_rules.py" -v
