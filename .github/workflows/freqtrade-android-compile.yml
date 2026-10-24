@@ -1,0 +1,40 @@
+name: Freqtrade Android Compile Gate
+
+on:
+  pull_request:
+    paths:
+      - 'android-app/**'
+      - 'freqtrade-backtest/**'
+      - '.github/workflows/freqtrade-android-compile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR source
+        uses: actions/checkout@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Verify Android module exists
+        run: |
+          test -d android-app/app/src/main
+          test -f android-app/settings.gradle || test -f android-app/settings.gradle.kts
+      - name: Android unit tests
+        working-directory: android-app
+        run: gradle :app:testDebugUnitTest --no-daemon
+      - name: Compile debug APK without signing or publishing
+        working-directory: android-app
+        run: gradle :app:assembleDebug --no-daemon
