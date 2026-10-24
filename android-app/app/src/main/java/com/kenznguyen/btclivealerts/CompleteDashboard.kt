@@ -525,6 +525,7 @@ fun CompleteDashboard(context: Context) {
                         reconnectRequested = AtomicBoolean(false)
                         connectionStartedAt = System.currentTimeMillis()
                         socket = market.connectLive(timeframe,
+                            symbol = selectedSymbol,
                             onCandle = { c -> mainHandler.post {
                                 mergeCandle(cache, c)
                                 while (cache.size > 1500) cache.pollFirstEntry()
