@@ -122,6 +122,10 @@ class StrategyMonitorService : Service() {
                 }
             }
         }
+        if (!getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE).getBoolean("multi_symbol_scanner_enabled", true)) {
+            multiSymbolScanner?.close()
+            multiSymbolScanner = null
+        }
         if (monitorJob?.isActive != true) {
             monitorJob = scope.launch {
                 while (isActive) {
