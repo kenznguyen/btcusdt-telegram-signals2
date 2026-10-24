@@ -135,9 +135,12 @@ class StrategyMonitorService : Service() {
                         val closed = m15.filter { it.closed }.sortedBy { it.openTime }
                         val prefs = getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE)
                         updateMultiStreamSignal(m15, h1, prefs)
-                        val nowMs = System.currentTimeMillis()
-                        if (prefs.getBoolean("multi_symbol_scanner_enabled", true) && nowMs - prefs.getLong("multi_symbol_scanner_last_scan_ms", 0L) >= 60_000L) {
-                            scanMultipleSymbols(prefs)
+                        // The WebSocket scanner owns multi_symbol_scan_json. Do not overwrite
+                        // confirmed Order Book results with the legacy REST-only snapshot.
+                        if (!prefs.getBoolean("multi_symbol_scanner_enabled", true)) {
+                            multiSymbolScanner?.close()
+                            multiSymbolScanner = null
+                            prefs.edit().putString("multi_symbol_scanner_status", "Đã tắt quét liên tục").apply()
                         }
 
                         // Evaluate every newly closed candle in the background, not only the
