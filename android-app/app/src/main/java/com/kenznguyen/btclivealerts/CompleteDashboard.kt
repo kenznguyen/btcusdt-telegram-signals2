@@ -649,7 +649,7 @@ fun CompleteDashboard(context: Context) {
                     if (scannerRows.isEmpty()) Text("Chưa có kết quả scanner được lưu.", color = NMuted, style = MaterialTheme.typography.bodySmall)
                     scannerRows.forEach { row ->
                         Divider(color = NBg)
-                        Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.fillMaxWidth().clickable { selectedSymbol = row.symbol; prefs.edit().putString("chart_selected_symbol", row.symbol).apply(); selectedTab = 0 }.padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text(row.symbol, color = Color.White, fontWeight = FontWeight.SemiBold)
                                 Text(scannerReasonVi(row.reason), color = NMuted, style = MaterialTheme.typography.labelSmall)
