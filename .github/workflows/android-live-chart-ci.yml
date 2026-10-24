@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feature/android-btcusdt-live-alerts
+      - integration/android-scanner-orderbook-20261024
       - feature/android-scanner-tab
       - feature/chart-multisymbol-switcher
   workflow_dispatch:

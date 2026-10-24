@@ -1,7 +1,7 @@
 name: Android APK
 
 on:
-  # Android feature is out of current scope; retain manual build for later QA.
+  # Manual Android build and release verification.
   workflow_dispatch:
 
 concurrency:
@@ -29,7 +29,7 @@ jobs:
         run: gradle testDebugUnitTest assembleDebug
       - name: Prepare stable signing key
         env:
-          KEYSTORE_B64: ${{ secrets.APK_SIGNING_KEYSTORE_BASE64 }}
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           if [ -n "$KEYSTORE_B64" ]; then
             echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
@@ -42,11 +42,11 @@ jobs:
         if: env.HAS_RELEASE_KEY == 'true'
         working-directory: android-app
         env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.APK_SIGNING_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.APK_SIGNING_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.APK_SIGNING_KEY_PASSWORD }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: gradle assembleRelease
-      - name: Upload debug APK
+      - name: Verify release signing identity\n        if: env.HAS_RELEASE_KEY == 'true'\n        env:\n          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}\n        run: |\n          test \"$ANDROID_KEY_ALIAS\" = \"btc-chart-release\"\n          keytool -list -v -keystore \"$RUNNER_TEMP/release.keystore\" -alias \"$ANDROID_KEY_ALIAS\" -storepass \"${{ secrets.ANDROID_KEYSTORE_PASSWORD }}\" | grep -E 'SHA256:|Alias name:'\n          \"$ANDROID_HOME/build-tools/35.0.0/apksigner\" verify --verbose --print-certs android-app/app/build/outputs/apk/release/app-release.apk\n      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: btcusdt-live-alerts-debug-apk

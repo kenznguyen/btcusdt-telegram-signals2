@@ -34,13 +34,18 @@ class MarketEngine {
         .pingInterval(20, TimeUnit.SECONDS)
         .build()
 
+    private suspend fun executeRest(request: Request): Response {
+        BinanceRestGate.awaitPermit()
+        val response = client.newCall(request).execute()
+        BinanceRestGate.observe(response)
+        return response
+    }
+
     suspend fun fetchCandles(interval: String, limit: Int = 200, symbol: String = "BTCUSDT"): List<Candle> =
         withContext(Dispatchers.IO) {
-            val safeSymbol = symbol.uppercase().filter { it in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" }
-            require(safeSymbol.isNotBlank()) { "Invalid symbol" }
-            val url = "https://fapi.binance.com/fapi/v1/klines?symbol=$safeSymbol&interval=$interval&limit=$limit"
+            val url = "https://fapi.binance.com/fapi/v1/klines?symbol=${symbol.uppercase()}&interval=$interval&limit=$limit"
             val request = Request.Builder().url(url).build()
-            client.newCall(request).execute().use { response ->
+            executeRest(request).use { response ->
                 check(response.isSuccessful) { "Binance Futures HTTP ${response.code}" }
                 val array = JSONArray(response.body?.string() ?: "[]")
                 (0 until array.length()).map { i ->
@@ -58,6 +63,37 @@ class MarketEngine {
             }
         }
 
+    /** Returns the 20 highest-quote-volume trading USDT perpetual symbols. */
+    suspend fun fetchTopPerpetualSymbols(limit: Int = 20): List<String> = withContext(Dispatchers.IO) {
+        require(limit in 1..20) { "Scanner currently supports 1..20 symbols" }
+        val exchangeRequest = Request.Builder()
+            .url("https://fapi.binance.com/fapi/v1/exchangeInfo").build()
+        val exchangeInfo = executeRest(exchangeRequest).use { response ->
+            check(response.isSuccessful) { "Binance Futures exchangeInfo HTTP ${response.code}" }
+            JSONObject(response.body?.string() ?: "{}")
+        }
+        val eligible = (0 until exchangeInfo.optJSONArray("symbols").length()).mapNotNull { i ->
+            val item = exchangeInfo.getJSONArray("symbols").getJSONObject(i)
+            val symbol = item.optString("symbol")
+            if (item.optString("status") == "TRADING" &&
+                item.optString("contractType") == "PERPETUAL" &&
+                item.optString("quoteAsset") == "USDT" &&
+                symbol.endsWith("USDT")) symbol else null
+        }.toSet()
+        val tickerRequest = Request.Builder()
+            .url("https://fapi.binance.com/fapi/v1/ticker/24hr").build()
+        val tickers = executeRest(tickerRequest).use { response ->
+            check(response.isSuccessful) { "Binance Futures ticker24hr HTTP ${response.code}" }
+            JSONArray(response.body?.string() ?: "[]")
+        }
+        (0 until tickers.length()).mapNotNull { i ->
+            val item = tickers.getJSONObject(i)
+            val symbol = item.optString("symbol")
+            val quoteVolume = item.optString("quoteVolume").toDoubleOrNull() ?: return@mapNotNull null
+            if (symbol in eligible && quoteVolume.isFinite() && quoteVolume > 0.0) symbol to quoteVolume else null
+        }.sortedByDescending { it.second }.take(limit).map { it.first }
+    }
+
     suspend fun fetchHistory(interval: String, days: Int, symbol: String = "BTCUSDT"): List<Candle> = withContext(Dispatchers.IO) {
         require(days in setOf(7, 30, 90, 180, 360)) { "Chọn 7, 30, 90, 180 hoặc 360 ngày" }
         val step = when (interval) { "15m" -> 900000L; "1h" -> 3600000L; else -> error("Khung thời gian không hỗ trợ") }
@@ -67,11 +103,9 @@ class MarketEngine {
         var cursor = start
         var pages = 0
         while (cursor < end && pages < 40) {
-            val safeSymbol = symbol.uppercase().filter { it in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" }
-            require(safeSymbol.isNotBlank()) { "Invalid symbol" }
-            val url = "https://fapi.binance.com/fapi/v1/klines?symbol=" + safeSymbol + "&interval=" + interval + "&limit=1500&startTime=" + cursor + "&endTime=" + end
+            val url = "https://fapi.binance.com/fapi/v1/klines?symbol=" + symbol.uppercase() + "&interval=" + interval + "&limit=1500&startTime=" + cursor + "&endTime=" + end
             val request = Request.Builder().url(url).build()
-            val page = client.newCall(request).execute().use { response ->
+            val page = executeRest(request).use { response ->
                 check(response.isSuccessful) { "Binance Futures HTTP " + response.code }
                 val array = JSONArray(response.body?.string() ?: "[]")
                 (0 until array.length()).map { i ->
@@ -90,9 +124,7 @@ class MarketEngine {
         candles.values.filter { it.closed }
     }
     fun connectLive(interval: String, onCandle: (Candle) -> Unit, onMarkPrice: (Double) -> Unit, onStatus: (String) -> Unit, symbol: String = "BTCUSDT"): WebSocket {
-        val safeSymbol = symbol.lowercase().filter { it in "abcdefghijklmnopqrstuvwxyz0123456789" }
-        require(safeSymbol.isNotBlank()) { "Invalid symbol" }
-        val stream = "${safeSymbol}@kline_$interval/${safeSymbol}@markPrice@1s"
+        val stream = "${symbol.lowercase()}@kline_$interval/${symbol.lowercase()}@markPrice@1s"
         val request = Request.Builder().url("wss://fstream.binance.com/stream?streams=$stream").build()
         return client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) { onStatus("WebSocket kết nối") }
@@ -115,13 +147,53 @@ class MarketEngine {
         })
     }
 
+    /** One multiplexed connection for kline + mark-price streams across selected symbols. */
+    fun connectMultiplex(
+        symbols: List<String>,
+        intervals: List<String> = listOf("15m", "1h"),
+        onCandle: (String, String, Candle) -> Unit,
+        onMarkPrice: (String, Double) -> Unit,
+        onStatus: (String) -> Unit
+    ): WebSocket {
+        require(symbols.isNotEmpty() && symbols.size <= 20) { "Choose 1..20 symbols" }
+        require(intervals.all { it == "15m" || it == "1h" }) { "Unsupported scanner timeframe" }
+        val streams = symbols.flatMap { raw ->
+            val symbol = raw.lowercase()
+            intervals.map { "$symbol@kline_$it" } + "$symbol@markPrice@1s"
+        }.joinToString("/")
+        val request = Request.Builder().url("wss://fstream.binance.com/stream?streams=$streams").build()
+        return client.newWebSocket(request, object : WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) { onStatus("Scanner WebSocket multiplex đã kết nối") }
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                try {
+                    val root = JSONObject(text)
+                    val stream = root.optString("stream")
+                    val data = root.optJSONObject("data") ?: root
+                    val symbol = stream.substringBefore("@").uppercase()
+                    when (data.optString("e")) {
+                        "kline" -> {
+                            val k = data.getJSONObject("k")
+                            onCandle(symbol, k.optString("i"),
+                                Candle(k.getLong("t"), k.getString("o").toDouble(), k.getString("h").toDouble(),
+                                    k.getString("l").toDouble(), k.getString("c").toDouble(), k.getString("v").toDouble(),
+                                    k.optBoolean("x")))
+                        }
+                        "markPriceUpdate" -> onMarkPrice(symbol, data.getString("p").toDouble())
+                    }
+                } catch (e: Exception) { onStatus("Scanner nhận dữ liệu không hợp lệ: ${e.message ?: "parse error"}") }
+            }
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                onStatus("Scanner WebSocket gián đoạn: ${t.message ?: "lỗi mạng"}")
+            }
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) { onStatus("Scanner WebSocket đã đóng ($code)") }
+        })
+    }
+
     suspend fun fetchMarkPrice(symbol: String = "BTCUSDT"): Double = withContext(Dispatchers.IO) {
-        val safeSymbol = symbol.uppercase().filter { it in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" }
-        require(safeSymbol.isNotBlank()) { "Invalid symbol" }
         val request = Request.Builder()
-            .url("https://fapi.binance.com/fapi/v1/premiumIndex?symbol=$safeSymbol")
+            .url("https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol.uppercase()}")
             .build()
-        client.newCall(request).execute().use { response ->
+        executeRest(request).use { response ->
             check(response.isSuccessful) { "Binance Futures HTTP ${response.code}" }
             org.json.JSONObject(response.body?.string() ?: "{}").getString("markPrice").toDouble()
         }

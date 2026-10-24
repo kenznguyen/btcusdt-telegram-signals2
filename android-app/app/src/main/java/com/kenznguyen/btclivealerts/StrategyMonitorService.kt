@@ -30,6 +30,7 @@ class StrategyMonitorService : Service() {
     private val market by lazy { MarketEngine() }
     private val engine by lazy { StrategyEngine() }
     @Volatile private var orderBookEngine: OrderBookEngine? = null
+    @Volatile private var multiSymbolScanner: MultiSymbolScanner? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -71,6 +72,60 @@ class StrategyMonitorService : Service() {
                 }
             }
         }
+        if (getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE).getBoolean("multi_symbol_scanner_enabled", true) && multiSymbolScanner == null) {
+            synchronized(this) {
+                if (multiSymbolScanner == null) {
+                    multiSymbolScanner = MultiSymbolScanner(
+                        market = market,
+                        onStatus = { message ->
+                            getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE).edit()
+                                .putString("multi_symbol_scanner_status", message).apply()
+                        },
+                        onUpdate = { updates ->
+                            val prefs = getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE)
+                            val now = System.currentTimeMillis()
+                            val json = JSONArray()
+                            updates.forEach { item ->
+                                json.put(JSONObject()
+                                    .put("symbol", item.symbol)
+                                    .put("candidate", item.candidate ?: JSONObject.NULL)
+                                    .put("confirmed", item.confirmed ?: JSONObject.NULL)
+                                    .put("reason", item.reason)
+                                    .put("m15CloseTime", item.m15CloseTime)
+                                    .put("evaluatedAt", item.evaluatedAt)
+                                    .put("orderBookAgeMs", item.orderBookAgeMs ?: JSONObject.NULL))
+                                val side = item.confirmed ?: item.candidate ?: return@forEach
+                                val kind = if (item.confirmed != null) "CONFIRMED" else "CANDIDATE"
+                                val key = "multi_symbol_alert:${item.symbol}:${kind}:${item.m15CloseTime}"
+                                val sent = prefs.getStringSet("multi_symbol_alert_keys", emptySet())?.toMutableSet() ?: mutableSetOf()
+                                if (key !in sent && prefs.getBoolean("alerts_enabled", true)) {
+                                    val title = if (kind == "CONFIRMED") "${item.symbol} ${side} ĐÃ XÁC NHẬN" else "${item.symbol} ỨNG VIÊN ${side}"
+                                    val body = if (kind == "CONFIRMED") "M15/H1 + Order Book xác nhận · ${item.reason}" else "Ứng viên kỹ thuật M15/H1 · đang chờ xác nhận Order Book"
+                                    val notification = NotificationCompat.Builder(this, "strategy_alerts")
+                                        .setSmallIcon(android.R.drawable.ic_dialog_info)
+                                        .setContentTitle(title).setContentText(body)
+                                        .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                                        .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build()
+                                    (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                                        .notify(key.hashCode() and 0x7fffffff, notification)
+                                    sent.add(key)
+                                    while (sent.size > 500) sent.remove(sent.first())
+                                    prefs.edit().putStringSet("multi_symbol_alert_keys", sent).apply()
+                                }
+                            }
+                            prefs.edit()
+                                .putString("multi_symbol_scan_json", json.toString())
+                                .putLong("multi_symbol_scan_updated_at", now)
+                                .apply()
+                        }
+                    ).also { it.start() }
+                }
+            }
+        }
+        if (!getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE).getBoolean("multi_symbol_scanner_enabled", true)) {
+            multiSymbolScanner?.close()
+            multiSymbolScanner = null
+        }
         if (monitorJob?.isActive != true) {
             monitorJob = scope.launch {
                 while (isActive) {
@@ -80,9 +135,12 @@ class StrategyMonitorService : Service() {
                         val closed = m15.filter { it.closed }.sortedBy { it.openTime }
                         val prefs = getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE)
                         updateMultiStreamSignal(m15, h1, prefs)
-                        val nowMs = System.currentTimeMillis()
-                        if (prefs.getBoolean("multi_symbol_scanner_enabled", true) && nowMs - prefs.getLong("multi_symbol_scanner_last_scan_ms", 0L) >= 60_000L) {
-                            scanMultipleSymbols(prefs)
+                        // The WebSocket scanner owns multi_symbol_scan_json. Do not overwrite
+                        // confirmed Order Book results with the legacy REST-only snapshot.
+                        if (!prefs.getBoolean("multi_symbol_scanner_enabled", true)) {
+                            multiSymbolScanner?.close()
+                            multiSymbolScanner = null
+                            prefs.edit().putString("multi_symbol_scanner_status", "Đã tắt quét liên tục").apply()
                         }
 
                         // Evaluate every newly closed candle in the background, not only the
@@ -429,6 +487,8 @@ class StrategyMonitorService : Service() {
         monitorJob?.cancel()
         orderBookEngine?.close()
         orderBookEngine = null
+        multiSymbolScanner?.close()
+        multiSymbolScanner = null
         scope.cancel()
         super.onDestroy()
     }
