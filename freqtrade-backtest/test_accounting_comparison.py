@@ -29,8 +29,8 @@ class AccountingComparisonTests(unittest.TestCase):
     def test_missing_accounting_field_fails(self):
         right = event()
         del right["net_pnl"]
-        report = compare([event()], [right])
-        self.assertIn("net_pnl", [item["field"] for item in report["mismatches"]])
+        with self.assertRaisesRegex(ValueError, "Missing accounting field: net_pnl"):
+            compare([event()], [right])
 
     def test_matching_null_fees_passes(self):
         self.assertTrue(compare([event(fees=None)], [event(fees=None)])["passed"])
