@@ -1,0 +1,49 @@
+name: Android Release Readiness (No Signing Secrets)
+
+on:
+  push:
+    branches:
+      - integration/android-freqtrade-analytics-20261025
+  pull_request:
+    paths:
+      - 'android-app/**'
+      - '.github/workflows/android-release-readiness.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify preserved Android features and no accidental trading permissions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f android-app/app/src/main/java/com/kenznguyen/btclivealerts/StrategyEngine.kt
+          test -f android-app/app/src/main/java/com/kenznguyen/btclivealerts/OrderBookEngine.kt
+          test -f android-app/app/src/main/java/com/kenznguyen/btclivealerts/CompleteDashboard.kt
+          test -f android-app/app/src/main/java/com/kenznguyen/btclivealerts/analytics/BacktestAnalyticsScreen.kt
+          grep -q 'Multi Symbol Scanner' android-app/app/src/main/java/com/kenznguyen/btclivealerts/CompleteDashboard.kt
+          grep -q 'BacktestAnalyticsScreen' android-app/app/src/main/java/com/kenznguyen/btclivealerts/CompleteDashboard.kt
+          grep -q 'android-freqtrade-analytics-debug' .github/workflows/android-freqtrade-integration-ci.yml
+      - name: Audit versionCode and package ID
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib, re
+          source = pathlib.Path('android-app/app/build.gradle.kts').read_text()
+          package = re.search(r'applicationId\s*=\s*"([^"]+)"', source)
+          version = re.search(r'versionCode\s*=\s*(\d+)', source)
+          assert package and package.group(1) == 'com.kenznguyen.btclivealerts'
+          assert version, 'Missing versionCode'
+          print('package:', package.group(1), 'versionCode:', version.group(1))
+          print('BLOCKER: installed APK versionCode and signing certificate still require independent comparison.')
+          PY
+      - name: Explicit release gate
+        run: |
+          echo 'Debug tests alone do not certify release update compatibility.'
+          echo 'No release keystore is used or exposed in this workflow.'
