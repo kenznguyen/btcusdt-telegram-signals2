@@ -63,7 +63,7 @@ class StrategyTraceExporterTest {
         assertEquals(0.0, item.getDouble("roe_pct"), 0.0)
     }
 
-    @Test(expected = IllegalStateException::class)
+    @Test(expected = IllegalArgumentException::class)
     fun exitWithoutFeesCannotBeCertified() {
         val position = StrategyPosition("LONG", 0.013, 50000.0, 50.0, 0.0, 650.0, 900000L, false)
         val event = StrategyEvent("TAKE PROFIT", "LONG", 51000.0, 1800000L, 5.0)
