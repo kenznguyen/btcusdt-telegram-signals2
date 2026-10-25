@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - feature/android-btcusdt-live-alerts
+          - integration/android-freqtrade-analytics-20261025
           - main
         default: feature/android-btcusdt-live-alerts
 
