@@ -34,7 +34,9 @@ def validate_event(event):
         if type(value) not in (int, float) or not math.isfinite(value):
             raise ValueError("Invalid numeric field: " + key)
     for key in ACCOUNTING:
-        if key in event and event[key] is not None:
+        if key not in event:
+            raise ValueError("Missing accounting field: " + key)
+        if event[key] is not None:
             value = event[key]
             if type(value) not in (int, float) or not math.isfinite(value):
                 raise ValueError("Invalid accounting field: " + key)
@@ -58,11 +60,6 @@ def compare(android_events, freqtrade_events, *, abs_tolerance=1e-8):
             continue
         left, right = normalize_event(android_events[index]), normalize_event(freqtrade_events[index])
         for key in FIELDS + ACCOUNTING:
-            if key in ACCOUNTING and key not in left and key not in right:
-                continue
-            if key in ACCOUNTING and (key not in left or key not in right):
-                mismatches.append({"index": index, "field": key, "android": left.get(key), "freqtrade": right.get(key), "reason": "missing_field"})
-                continue
             if key in NUMERIC or key in ACCOUNTING:
                 same = (left[key] is None and right[key] is None) if (left[key] is None or right[key] is None) else math.isclose(left[key], right[key], rel_tol=0, abs_tol=abs_tolerance)
             else:
