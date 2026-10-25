@@ -29,6 +29,16 @@ jobs:
           grep -q 'Multi Symbol Scanner' android-app/app/src/main/java/com/kenznguyen/btclivealerts/CompleteDashboard.kt
           grep -q 'BacktestAnalyticsScreen' android-app/app/src/main/java/com/kenznguyen/btclivealerts/CompleteDashboard.kt
           grep -q 'android-freqtrade-analytics-debug' .github/workflows/android-freqtrade-integration-ci.yml
+      - name: Validate offline release upgrade verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n android-app/scripts/check-release-upgrade.sh
+          if bash android-app/scripts/check-release-upgrade.sh >/tmp/verifier-usage.log 2>&1; then
+            echo "Expected missing-arguments failure" >&2
+            exit 1
+          fi
+          grep -q 'Usage:' /tmp/verifier-usage.log
       - name: Audit versionCode and package ID
         shell: bash
         run: |
