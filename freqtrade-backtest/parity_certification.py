@@ -33,7 +33,9 @@ def main():
                      json.loads(args.freqtrade_trace.read_text(encoding="utf-8")),
                      source_commit=args.source_commit, dataset_sha256=args.dataset_sha256)
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-    if not result["comparison"] or not result["comparison"]["passed"]:
+    # Matching traces are necessary but NOT sufficient for certification.
+    # Fail closed until the real Freqtrade adapter and manual review are complete.
+    if not result["verified"]:
         raise SystemExit(1)
 
 
