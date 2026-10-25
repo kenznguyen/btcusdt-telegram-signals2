@@ -1,0 +1,69 @@
+name: Android Analytics Signed Release Candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  signed-candidate:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Validate release signing prerequisites
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          test "$ANDROID_KEY_ALIAS" = 'btc-chart-release'
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_PASSWORD"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+          test -s "$RUNNER_TEMP/release.keystore"
+      - name: Verify package and candidate version
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'applicationId = "com.kenznguyen.btclivealerts"' android-app/app/build.gradle.kts
+          grep -q 'versionCode = 3' android-app/app/build.gradle.kts
+      - name: Run Android unit tests
+        working-directory: android-app
+        run: gradle :app:testDebugUnitTest --no-daemon
+      - name: Build signed release candidate
+        working-directory: android-app
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
+        run: gradle :app:assembleRelease --no-daemon
+      - name: Verify release certificate and metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=android-app/app/build/outputs/apk/release/app-release.apk
+          test -s "$APK"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -n 1)"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
+          "$AAPT" dump badging "$APK" | grep -m 1 '^package:'
+          "$APKSIGNER" verify --verbose --print-certs "$APK" | tee "$RUNNER_TEMP/release-certificate.txt"
+          grep -Eiq 'certificate SHA-256 digest|certificate SHA-256' "$RUNNER_TEMP/release-certificate.txt"
+          echo 'CAUTION: certificate and installed versionCode still need comparison with installed APK.'
+      - name: Upload signed release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: btcusdt-chart-pro-analytics-release-candidate-v0.3.0
+          path: android-app/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
