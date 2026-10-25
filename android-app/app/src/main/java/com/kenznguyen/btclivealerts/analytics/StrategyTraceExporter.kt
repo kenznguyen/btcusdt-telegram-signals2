@@ -42,6 +42,16 @@ object StrategyTraceExporter {
             val isExit = kind == "TP" || kind == "SOFT_SL" || kind == "EMERGENCY_SL"
             val position = if (isExit) transition.before.position else transition.after.position
             require(position != null && position.side == side) { "Missing position snapshot for $kind" }
+            // Entry events do not carry ROE in StrategyEngine; use the
+            // well-defined zero at the moment a new position is opened.
+            val roe = event.roePct ?: if (kind == "ENTRY") 0.0 else
+                error("Missing ROE for $kind")
+            require(roe.isFinite()) { "Non-finite ROE" }
+            if (isExit) {
+                require(transition.after.position == null) { "Exit did not close position" }
+                require(event.netPnl != null && event.fees != null) { "Missing exit accounting" }
+                require(event.netPnl.isFinite() && event.fees.isFinite()) { "Invalid exit accounting" }
+            }
             val values = listOf(event.price, position.qty, position.avgEntry,
                 position.reservedMargin, transition.after.balance)
             require(values.all { it.isFinite() }) { "Non-finite trace value" }
@@ -56,7 +66,7 @@ object StrategyTraceExporter {
                 .put("quantity", position.qty)
                 .put("avg_entry", position.avgEntry)
                 .put("margin", position.reservedMargin)
-                .put("roe_pct", event.roePct ?: JSONObject.NULL)
+                .put("roe_pct", roe)
                 .put("balance", transition.after.balance)
                 .put("net_pnl", event.netPnl ?: JSONObject.NULL)
                 .put("fees", event.fees ?: JSONObject.NULL)
