@@ -21,6 +21,50 @@ object StrategyTraceExporter {
         "EMERGENCY SL" to "EMERGENCY_SL"
     )
 
+    /**
+     * Canonical complete trace: for an exit, quantity/margin/average entry
+     * come from the pre-event position, never the already-flat post state.
+     * Capture snapshots using the existing per-candle StrategyEngine callback.
+     */
+    data class Transition(val event: StrategyEvent, val before: StrategyState, val after: StrategyState)
+
+    fun exportTransitions(transitions: List<Transition>, symbol: String): String {
+        require(symbol.isNotBlank()) { "Missing symbol" }
+        val result = JSONArray()
+        var lastTimestamp = -1L
+        for (transition in transitions) {
+            val event = transition.event
+            val kind = kinds[event.kind] ?: error("Unknown event kind: ${event.kind}")
+            val side = event.side ?: error("Missing event side")
+            require(side == "LONG" || side == "SHORT")
+            require(event.candleTime >= lastTimestamp) { "Unordered events" }
+            lastTimestamp = event.candleTime
+            val isExit = kind == "TP" || kind == "SOFT_SL" || kind == "EMERGENCY_SL"
+            val position = if (isExit) transition.before.position else transition.after.position
+            require(position != null && position.side == side) { "Missing position snapshot for $kind" }
+            val values = listOf(event.price, position.qty, position.avgEntry,
+                position.reservedMargin, transition.after.balance)
+            require(values.all { it.isFinite() }) { "Non-finite trace value" }
+            require(event.price > 0 && position.qty > 0 && position.avgEntry > 0 &&
+                position.reservedMargin > 0) { "Invalid position accounting" }
+            val item = JSONObject()
+                .put("timestamp_ms", event.candleTime)
+                .put("symbol", symbol)
+                .put("kind", kind)
+                .put("side", side)
+                .put("price", event.price)
+                .put("quantity", position.qty)
+                .put("avg_entry", position.avgEntry)
+                .put("margin", position.reservedMargin)
+                .put("roe_pct", event.roePct ?: JSONObject.NULL)
+                .put("balance", transition.after.balance)
+                .put("net_pnl", event.netPnl ?: JSONObject.NULL)
+                .put("fees", event.fees ?: JSONObject.NULL)
+            result.put(item)
+        }
+        return result.toString()
+    }
+
     fun export(snapshots: List<Pair<StrategyEvent, StrategyState>>, symbol: String): String {
         require(symbol.isNotBlank()) { "Missing symbol" }
         val result = JSONArray()
