@@ -23,6 +23,26 @@ class CompareEventsTest(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertEqual(result["mismatches"][0]["field"], "price")
 
+    def test_android_take_profit_alias_matches_canonical_tp(self):
+        android = event()
+        android["kind"] = "TAKE PROFIT"
+        canonical = event()
+        canonical["kind"] = "TP"
+        self.assertTrue(compare([android], [canonical])["passed"])
+
+    def test_android_emergency_stop_alias_matches_canonical(self):
+        android = event()
+        android["kind"] = "EMERGENCY SL"
+        canonical = event()
+        canonical["kind"] = "EMERGENCY_SL"
+        self.assertTrue(compare([android], [canonical])["passed"])
+
+    def test_unknown_kind_is_rejected(self):
+        invalid = event()
+        invalid["kind"] = "SOMETHING_ELSE"
+        with self.assertRaises(ValueError):
+            compare([invalid], [event()])
+
     def test_detects_missing_event(self):
         self.assertFalse(compare([event()], [])["passed"])
 
