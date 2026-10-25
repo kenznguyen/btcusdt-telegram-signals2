@@ -1,5 +1,7 @@
 package com.kenznguyen.btclivealerts.analytics
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,10 +9,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -20,6 +28,24 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun BacktestAnalyticsScreen(report: BacktestAnalyticsReport?, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    var importedReport by remember { mutableStateOf<BacktestAnalyticsReport?>(null) }
+    var importError by remember { mutableStateOf<String?>(null) }
+    val chooseReport = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            importedReport = null
+            importError = null
+            runCatching {
+                val bytes = context.contentResolver.openInputStream(uri)?.use { stream ->
+                    stream.readNBytes(1_048_577)
+                } ?: error("Không mở được tệp")
+                require(bytes.size <= 1_048_576) { "Tệp JSON vượt quá 1 MB" }
+                BacktestAnalyticsReport.fromJson(bytes.toString(Charsets.UTF_8))
+            }.onSuccess { importedReport = it }
+                .onFailure { importError = "Không thể đọc báo cáo: " + (it.message ?: "JSON không hợp lệ") }
+        }
+    }
+    val currentReport = importedReport ?: report
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -29,11 +55,15 @@ fun BacktestAnalyticsScreen(report: BacktestAnalyticsReport?, modifier: Modifier
             "Chỉ phân tích dữ liệu offline · Không đặt lệnh thật",
             style = MaterialTheme.typography.bodySmall
         )
-        if (report == null) {
-            Text("Chưa có báo cáo. Cần nhập JSON backtest đã kiểm tra.")
+        Button(onClick = { chooseReport.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }) {
+            Text("Nhập báo cáo JSON")
+        }
+        if (importError != null) Text(importError!!, color = MaterialTheme.colorScheme.error)
+        if (currentReport == null) {
+            Text("Chưa có báo cáo. Chọn tệp JSON backtest từ bộ nhớ Android.")
             return@Column
         }
-        val summary = AnalyticsSummaryFormatter.format(report)
+        val summary = AnalyticsSummaryFormatter.format(currentReport)
         Text(summary.title, style = MaterialTheme.typography.titleMedium)
         Text(summary.verificationLabel, color = MaterialTheme.colorScheme.error)
         KpiRow("Net Profit", summary.netProfit, "Win Rate", summary.winRate)
