@@ -1,0 +1,48 @@
+name: Freqtrade Android Source Readiness
+
+on:
+  pull_request:
+    paths:
+      - 'android-app/**'
+      - 'freqtrade-backtest/**'
+      - '.github/workflows/freqtrade-android-compile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR source
+        uses: actions/checkout@v4
+      - name: Check Android project structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f android-app/settings.gradle && ! -f android-app/settings.gradle.kts ]]; then
+            echo "::notice::Android Gradle project is not present on this branch; compile is not verified."
+            echo "Android build must be run after integration with the full Android source branch."
+            exit 0
+          fi
+          echo "Android Gradle project detected."
+      - name: Set up Java 17
+        if: ${{ hashFiles('android-app/settings.gradle', 'android-app/settings.gradle.kts') != '' }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle 8.9
+        if: ${{ hashFiles('android-app/settings.gradle', 'android-app/settings.gradle.kts') != '' }}
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Android unit tests
+        if: ${{ hashFiles('android-app/settings.gradle', 'android-app/settings.gradle.kts') != '' }}
+        working-directory: android-app
+        run: gradle :app:testDebugUnitTest --no-daemon
+      - name: Compile debug APK
+        if: ${{ hashFiles('android-app/settings.gradle', 'android-app/settings.gradle.kts') != '' }}
+        working-directory: android-app
+        run: gradle :app:assembleDebug --no-daemon
