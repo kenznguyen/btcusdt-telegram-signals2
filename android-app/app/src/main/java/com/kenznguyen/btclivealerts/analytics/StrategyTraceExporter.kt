@@ -13,6 +13,8 @@ import org.json.JSONObject
 object StrategyTraceExporter {
     private val kinds = mapOf(
         "ENTRY" to "ENTRY",
+        "LONG ENTRY" to "ENTRY",
+        "SHORT ENTRY" to "ENTRY",
         "DCA" to "DCA",
         "TAKE PROFIT" to "TP",
         "SOFT SL" to "SOFT_SL",
