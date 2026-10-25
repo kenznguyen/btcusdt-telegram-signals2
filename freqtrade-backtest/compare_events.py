@@ -6,6 +6,15 @@ from pathlib import Path
 
 FIELDS = ("timestamp_ms", "symbol", "kind", "side", "price", "quantity", "avg_entry", "margin", "roe_pct")
 NUMERIC = {"price", "quantity", "avg_entry", "margin", "roe_pct"}
+KIND_ALIASES = {"TAKE PROFIT": "TP", "SOFT SL": "SOFT_SL", "EMERGENCY SL": "EMERGENCY_SL"}
+
+def normalize_event(event):
+    if not isinstance(event, dict):
+        raise ValueError("Invalid event")
+    normalized = dict(event)
+    normalized["kind"] = KIND_ALIASES.get(normalized.get("kind"), normalized.get("kind"))
+    return normalized
+
 
 
 def validate_event(event):
@@ -33,7 +42,7 @@ def compare(android_events, freqtrade_events, *, abs_tolerance=1e-8):
         if not isinstance(trace, list):
             raise ValueError("Expected event list")
         for event in trace:
-            validate_event(event)
+            validate_event(normalize_event(event))
         if any(trace[i]["timestamp_ms"] > trace[i+1]["timestamp_ms"] for i in range(len(trace)-1)):
             raise ValueError("Trace not ordered")
     mismatches = []
@@ -41,7 +50,7 @@ def compare(android_events, freqtrade_events, *, abs_tolerance=1e-8):
         if index >= len(android_events) or index >= len(freqtrade_events):
             mismatches.append({"index": index, "field": "event_count"})
             continue
-        left, right = android_events[index], freqtrade_events[index]
+        left, right = normalize_event(android_events[index]), normalize_event(freqtrade_events[index])
         for key in FIELDS:
             same = (math.isclose(left[key], right[key], rel_tol=0, abs_tol=abs_tolerance)
                     if key in NUMERIC else left[key] == right[key])
