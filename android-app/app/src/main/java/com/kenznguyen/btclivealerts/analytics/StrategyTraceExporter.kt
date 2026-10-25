@@ -32,8 +32,8 @@ object StrategyTraceExporter {
             require(event.candleTime >= lastTimestamp) { "Unordered events" }
             lastTimestamp = event.candleTime
             val position = state.position
-            // After exits the position is null; retain null rather than inventing
-            // the pre-exit quantity or margin.
+            // Exit snapshots need the pre-exit position. The single-state
+            // exporter deliberately leaves those values null rather than guessing.
             val item = JSONObject()
                 .put("timestamp_ms", event.candleTime)
                 .put("symbol", symbol)
