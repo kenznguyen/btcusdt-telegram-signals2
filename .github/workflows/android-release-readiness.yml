@@ -41,6 +41,8 @@ jobs:
           assert package and package.group(1) == 'com.kenznguyen.btclivealerts'
           assert version, 'Missing versionCode'
           print('package:', package.group(1), 'versionCode:', version.group(1))
+          # Version code 2 is the currently declared source value, not proof of an upgrade.
+          assert int(version.group(1)) > 0
           print('BLOCKER: installed APK versionCode and signing certificate still require independent comparison.')
           PY
       - name: Explicit release gate
