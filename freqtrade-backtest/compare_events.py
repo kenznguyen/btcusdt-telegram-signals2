@@ -6,6 +6,7 @@ from pathlib import Path
 
 FIELDS = ("timestamp_ms", "symbol", "kind", "side", "price", "quantity", "avg_entry", "margin", "roe_pct")
 NUMERIC = {"price", "quantity", "avg_entry", "margin", "roe_pct"}
+ACCOUNTING = ("balance", "net_pnl", "fees")
 KIND_ALIASES = {"LONG ENTRY": "ENTRY", "SHORT ENTRY": "ENTRY", "TAKE PROFIT": "TP", "SOFT SL": "SOFT_SL", "EMERGENCY SL": "EMERGENCY_SL"}
 
 def normalize_event(event):
@@ -32,6 +33,11 @@ def validate_event(event):
         value = event[key]
         if type(value) not in (int, float) or not math.isfinite(value):
             raise ValueError("Invalid numeric field: " + key)
+    for key in ACCOUNTING:
+        if key in event and event[key] is not None:
+            value = event[key]
+            if type(value) not in (int, float) or not math.isfinite(value):
+                raise ValueError("Invalid accounting field: " + key)
     return event
 
 
@@ -51,9 +57,16 @@ def compare(android_events, freqtrade_events, *, abs_tolerance=1e-8):
             mismatches.append({"index": index, "field": "event_count"})
             continue
         left, right = normalize_event(android_events[index]), normalize_event(freqtrade_events[index])
-        for key in FIELDS:
-            same = (math.isclose(left[key], right[key], rel_tol=0, abs_tol=abs_tolerance)
-                    if key in NUMERIC else left[key] == right[key])
+        for key in FIELDS + ACCOUNTING:
+            if key in ACCOUNTING and key not in left and key not in right:
+                continue
+            if key in ACCOUNTING and (key not in left or key not in right):
+                mismatches.append({"index": index, "field": key, "android": left.get(key), "freqtrade": right.get(key), "reason": "missing_field"})
+                continue
+            if key in NUMERIC or key in ACCOUNTING:
+                same = (left[key] is None and right[key] is None) if (left[key] is None or right[key] is None) else math.isclose(left[key], right[key], rel_tol=0, abs_tol=abs_tolerance)
+            else:
+                same = left[key] == right[key]
             if not same:
                 mismatches.append({"index": index, "field": key, "android": left[key], "freqtrade": right[key]})
     return {"passed": not mismatches, "android_events": len(android_events),
