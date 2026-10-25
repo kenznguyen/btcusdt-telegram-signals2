@@ -25,6 +25,18 @@ class ParityCertificationTest(unittest.TestCase):
         self.assertFalse(result["verified"])
         self.assertEqual(result["reason"], "manual_strategy_review_required")
 
+    def test_mismatched_trace_reports_specific_reason(self):
+        event = {"timestamp_ms": 1700000000000, "symbol": "BTCUSDT", "kind": "ENTRY",
+                 "side": "LONG", "price": 50000.0, "quantity": 0.013,
+                 "avg_entry": 50000.0, "margin": 50.0, "roe_pct": 0.0,
+                 "balance": 100.0, "net_pnl": None, "fees": None}
+        different = dict(event, price=50010.0)
+        result = certify([event], [different], source_commit="1234567", dataset_sha256=SHA)
+        self.assertFalse(result["verified"])
+        self.assertEqual(result["reason"], "trace_mismatch")
+        self.assertFalse(result["comparison"]["passed"])
+        self.assertEqual(result["comparison"]["mismatches"][0]["field"], "price")
+
     def test_missing_dataset_fingerprint_rejected(self):
         with self.assertRaises(ValueError):
             certify([], [], source_commit="1234567", dataset_sha256="missing")
