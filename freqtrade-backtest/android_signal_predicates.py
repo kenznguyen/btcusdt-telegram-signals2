@@ -155,3 +155,40 @@ def exit_reason(side, low, high, candle_open, candle_close,
     if rsi is not None and take_profit_signal(side, rsi, roe_pct, config):
         return "TP"
     return None
+
+
+def entry_position(balance, side, candle_close, timestamp_ms,
+                   entry_margin_pct=0.50, config=AndroidExecutionConfig()):
+    """Android initial margin is reserved, not debited from cash balance."""
+    if balance <= 0 or not 0 < entry_margin_pct <= 1:
+        raise ValueError("Invalid entry capital or margin")
+    if side not in ("LONG", "SHORT"):
+        raise ValueError("Invalid side")
+    margin = balance * entry_margin_pct
+    fill = execution_fill_price(candle_close, "BUY" if side == "LONG" else "SELL", config)
+    qty = margin * config.leverage / fill
+    return {"side": side, "qty": qty, "avg_entry": fill,
+            "initial_margin": margin, "dca_margin": 0.0,
+            "entry_notional": qty * fill, "entry_time": timestamp_ms,
+            "dca_used": False}
+
+
+def dca_position(position, balance, candle_close, margin_ratio=1.0,
+                 config=AndroidExecutionConfig()):
+    """Return unchanged position when margin is unavailable; otherwise one DCA."""
+    if position["dca_used"]:
+        return position
+    add_margin = position["initial_margin"] * margin_ratio
+    reserved = position["initial_margin"] + position["dca_margin"]
+    available = max(0.0, balance - reserved)
+    if not (add_margin > 0 and add_margin <= available + 1e-9):
+        return position
+    fill = execution_fill_price(candle_close,
+                                "BUY" if position["side"] == "LONG" else "SELL", config)
+    add_qty = add_margin * config.leverage / fill
+    qty = position["qty"] + add_qty
+    avg = (position["avg_entry"] * position["qty"] + fill * add_qty) / qty
+    return {**position, "qty": qty, "avg_entry": avg,
+            "dca_margin": position["dca_margin"] + add_margin,
+            "entry_notional": position["entry_notional"] + fill * add_qty,
+            "dca_used": True}
