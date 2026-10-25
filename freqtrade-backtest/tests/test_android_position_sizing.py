@@ -26,7 +26,7 @@ class PositionSizingTests(unittest.TestCase):
 
     def test_dca_is_blocked_when_reserved_margin_unavailable(self):
         initial = entry_position(100, "SHORT", 100, 900000)
-        self.assertEqual(initial, dca_position(initial, 99))
+        self.assertEqual(initial, dca_position(initial, 99, 95))
 
     def test_entry_rejects_invalid_side(self):
         with self.assertRaises(ValueError):
