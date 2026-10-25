@@ -45,6 +45,17 @@ jobs:
       - name: Assemble debug APK
         working-directory: android-app
         run: gradle :app:assembleDebug --no-daemon
+      - name: Inspect debug APK metadata and certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=android-app/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -n 1)"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
+          "$AAPT" dump badging "$APK" | grep -m 1 '^package:'
+          "$APKSIGNER" verify --print-certs "$APK" | grep -E 'Signer #1 certificate SHA-256 digest'
+          echo 'DEBUG signature only. This certificate must NOT be used to judge Release upgrade compatibility.'
       - name: Upload unsigned-for-release debug APK
         uses: actions/upload-artifact@v4
         with:
