@@ -6,7 +6,7 @@ from pathlib import Path
 
 FIELDS = ("timestamp_ms", "symbol", "kind", "side", "price", "quantity", "avg_entry", "margin", "roe_pct")
 NUMERIC = {"price", "quantity", "avg_entry", "margin", "roe_pct"}
-KIND_ALIASES = {"TAKE PROFIT": "TP", "SOFT SL": "SOFT_SL", "EMERGENCY SL": "EMERGENCY_SL"}
+KIND_ALIASES = {"LONG ENTRY": "ENTRY", "SHORT ENTRY": "ENTRY", "TAKE PROFIT": "TP", "SOFT SL": "SOFT_SL", "EMERGENCY SL": "EMERGENCY_SL"}
 
 def normalize_event(event):
     if not isinstance(event, dict):
