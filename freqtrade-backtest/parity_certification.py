@@ -16,7 +16,8 @@ def certify(android_events, freqtrade_events, *, source_commit, dataset_sha256):
     if not android_events or not freqtrade_events:
         return {"verified": False, "reason": "empty_trace", "comparison": None}
     result = compare(android_events, freqtrade_events)
-    return {"verified": False, "reason": "manual_strategy_review_required",
+    reason = "manual_strategy_review_required" if result["passed"] else "trace_mismatch"
+    return {"verified": False, "reason": reason,
             "comparison": result, "source_commit": source_commit,
             "dataset_sha256": dataset_sha256}
 
