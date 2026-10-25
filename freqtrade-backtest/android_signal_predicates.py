@@ -131,3 +131,27 @@ def closed_trade_accounting(side, quantity, avg_entry, entry_notional,
              (avg_entry - exit_price)) * quantity
     fees = (entry_notional + exit_price * quantity) * config.fee_rate
     return {"gross": gross, "fees": fees, "net_pnl": gross - fees}
+
+
+def exit_reason(side, low, high, candle_open, candle_close,
+                previous_open, previous_close, h1_plus_di, h1_minus_di,
+                h1_adx, avg_entry, rsi, roe_pct,
+                config=AndroidExitThresholds()):
+    """Android priority: EMERGENCY SL > SOFT SL > TAKE PROFIT.
+
+    Soft stop requires valid H1 indicators. TP requires RSI. Both checks
+    are skipped when their required inputs are missing; emergency remains
+    price-only and always takes priority.
+    """
+    if side not in ("LONG", "SHORT"):
+        raise ValueError("Invalid side")
+    if emergency_stop_triggered(side, low, high, avg_entry, config):
+        return "EMERGENCY_SL"
+    if all(value is not None for value in (h1_plus_di, h1_minus_di, h1_adx)):
+        if soft_stop_triggered(side, low, high, candle_open, candle_close,
+                             previous_open, previous_close, h1_plus_di,
+                             h1_minus_di, h1_adx, avg_entry, config):
+            return "SOFT_SL"
+    if rsi is not None and take_profit_signal(side, rsi, roe_pct, config):
+        return "TP"
+    return None
