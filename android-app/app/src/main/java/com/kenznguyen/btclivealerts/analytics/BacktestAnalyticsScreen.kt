@@ -37,9 +37,16 @@ fun BacktestAnalyticsScreen(report: BacktestAnalyticsReport?, modifier: Modifier
             importError = null
             runCatching {
                 val bytes = context.contentResolver.openInputStream(uri)?.use { stream ->
-                    stream.readNBytes(1_048_577)
+                    val output = java.io.ByteArrayOutputStream()
+                    val buffer = ByteArray(8192)
+                    while (true) {
+                        val count = stream.read(buffer)
+                        if (count < 0) break
+                        require(output.size() + count <= 1_048_576) { "Tệp JSON vượt quá 1 MB" }
+                        output.write(buffer, 0, count)
+                    }
+                    output.toByteArray()
                 } ?: error("Không mở được tệp")
-                require(bytes.size <= 1_048_576) { "Tệp JSON vượt quá 1 MB" }
                 BacktestAnalyticsReport.fromJson(bytes.toString(Charsets.UTF_8))
             }.onSuccess { importedReport = it }
                 .onFailure { importError = "Không thể đọc báo cáo: " + (it.message ?: "JSON không hợp lệ") }
