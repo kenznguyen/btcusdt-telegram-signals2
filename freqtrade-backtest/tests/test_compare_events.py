@@ -9,7 +9,8 @@ from compare_events import compare
 def event():
     return {"timestamp_ms": 1700000000000, "symbol": "BTCUSDT", "kind": "ENTRY",
             "side": "LONG", "price": 50000.0, "quantity": 0.013,
-            "avg_entry": 50000.0, "margin": 50.0, "roe_pct": 0.0}
+            "avg_entry": 50000.0, "margin": 50.0, "roe_pct": 0.0,
+            "balance": 100.0, "net_pnl": None, "fees": None}
 
 
 class CompareEventsTest(unittest.TestCase):
