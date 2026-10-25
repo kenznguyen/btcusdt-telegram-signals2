@@ -18,7 +18,8 @@ class ParityCertificationTest(unittest.TestCase):
     def test_matching_trace_still_requires_manual_review(self):
         event = {"timestamp_ms": 1700000000000, "symbol": "BTCUSDT", "kind": "ENTRY",
                  "side": "LONG", "price": 50000.0, "quantity": 0.013,
-                 "avg_entry": 50000.0, "margin": 50.0, "roe_pct": 0.0}
+                 "avg_entry": 50000.0, "margin": 50.0, "roe_pct": 0.0,
+            "balance": 100.0, "net_pnl": None, "fees": None}
         result = certify([event], [dict(event)], source_commit="1234567", dataset_sha256=SHA)
         self.assertTrue(result["comparison"]["passed"])
         self.assertFalse(result["verified"])
