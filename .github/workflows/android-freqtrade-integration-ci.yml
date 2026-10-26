@@ -39,9 +39,15 @@ jobs:
         run: |
           test -f android-app/settings.gradle.kts
           test -f android-app/app/build.gradle.kts
-      - name: Android unit tests
+      - name: Android unit tests and parity trace
         working-directory: android-app
+        env:
+          ANDROID_PARITY_TRACE_OUTPUT: ${{ github.workspace }}/android-emergency-trace.json
         run: gradle :app:testDebugUnitTest --no-daemon
+      - name: Compare Android and Python emergency traces
+        run: |
+          python freqtrade-backtest/export_emergency_parity_trace.py python-emergency-trace.json
+          python freqtrade-backtest/compare_events.py android-emergency-trace.json python-emergency-trace.json
       - name: Assemble debug APK
         working-directory: android-app
         run: gradle :app:assembleDebug --no-daemon
