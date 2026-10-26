@@ -26,7 +26,7 @@ class AndroidIndicatorsTests(unittest.TestCase):
         candles = [{"high": i + 2.0, "low": i, "close": i + 1.0} for i in range(40)]
         result = indicator_series(candles)
         self.assertEqual(100.0, result[14]["rsi"])
-        self.assertAlmostEqual(100.0, result[-1]["plus_di"])
+        self.assertAlmostEqual(50.0, result[-1]["plus_di"])
         self.assertEqual(0.0, result[-1]["minus_di"])
         self.assertAlmostEqual(100.0, result[-1]["adx"])
 
