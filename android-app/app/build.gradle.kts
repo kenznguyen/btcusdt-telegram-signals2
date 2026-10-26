@@ -54,3 +54,10 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
 }
+
+tasks.withType<Test>().configureEach {
+    val parityTrace = System.getenv("ANDROID_PARITY_TRACE_OUTPUT")
+    if (!parityTrace.isNullOrBlank()) {
+        systemProperty("android.parity.trace.output", parityTrace)
+    }
+}
