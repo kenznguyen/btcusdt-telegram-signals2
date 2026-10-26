@@ -46,6 +46,12 @@ class SharedEmergencyExitFixtureTest {
         assertEquals("EMERGENCY SL", result.transitions.single().event.kind)
         assertEquals(expected.getString("side"), result.transitions.single().event.side)
         assertNull(result.finalState.position)
+        val tracePath = System.getProperty("android.parity.trace.output")
+        if (!tracePath.isNullOrBlank()) {
+            val output = java.io.File(tracePath)
+            output.parentFile?.mkdirs()
+            output.writeText(result.json + "\\n")
+        }
         val event = JSONArray(result.json).getJSONObject(0)
         assertEquals(expected.getString("kind"), event.getString("kind"))
         assertEquals(p.getDouble("qty"), event.getDouble("quantity"), 1e-9)
