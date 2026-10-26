@@ -1,0 +1,53 @@
+workflows:
+  android_freqtrade_debug:
+    name: Android Freqtrade offline parity + Debug APK
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      java: 17
+      vars:
+        ANDROID_PARITY_TRACE_OUTPUT: "$CM_BUILD_DIR/android-emergency-trace.json"
+        ANDROID_PARITY_ENTRY_TRACE_OUTPUT: "$CM_BUILD_DIR/android-entry-trace.json"
+        ANDROID_PARITY_DCA_TRACE_OUTPUT: "$CM_BUILD_DIR/android-dca-trace.json"
+        ANDROID_PARITY_TP_TRACE_OUTPUT: "$CM_BUILD_DIR/android-tp-trace.json"
+    scripts:
+      - name: Verify project and Python offline analytics
+        script: |
+          set -eu
+          test -f android-app/settings.gradle.kts
+          test -f android-app/app/build.gradle.kts
+          python3 -m unittest discover -s freqtrade-backtest/tests -v
+      - name: Android unit tests and canonical trace exports
+        script: |
+          set -eu
+          cd android-app
+          gradle :app:testDebugUnitTest --no-daemon
+      - name: Compare Android and Python parity traces
+        script: |
+          set -eu
+          python3 freqtrade-backtest/export_emergency_parity_trace.py python-emergency-trace.json
+          python3 freqtrade-backtest/compare_events.py android-emergency-trace.json python-emergency-trace.json
+          python3 freqtrade-backtest/export_entry_parity_trace.py python-entry-trace.json
+          python3 freqtrade-backtest/compare_events.py android-entry-trace.json python-entry-trace.json
+          python3 freqtrade-backtest/export_dca_parity_trace.py python-dca-trace.json
+          python3 freqtrade-backtest/compare_events.py android-dca-trace.json python-dca-trace.json
+          python3 freqtrade-backtest/export_tp_parity_trace.py python-tp-trace.json
+          python3 freqtrade-backtest/compare_events.py android-tp-trace.json python-tp-trace.json
+      - name: Assemble Android Debug APK
+        script: |
+          set -eu
+          cd android-app
+          gradle :app:assembleDebug --no-daemon
+      - name: Verify Debug APK signature
+        script: |
+          set -eu
+          APK=android-app/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -n 1)"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
+          "$AAPT" dump badging "$APK" | grep -m 1 '^package:'
+          "$APKSIGNER" verify --print-certs "$APK"
+          echo "DEBUG ONLY: this APK is not signed with the installed Release certificate."
+    artifacts:
+      - android-app/app/build/outputs/apk/debug/*.apk
+      - android-app/app/build/reports/tests/testDebugUnitTest/**/*
