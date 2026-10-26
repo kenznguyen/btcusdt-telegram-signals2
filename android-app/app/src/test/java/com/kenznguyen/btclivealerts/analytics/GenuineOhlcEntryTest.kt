@@ -26,6 +26,12 @@ class GenuineOhlcEntryTest {
             bar(60 * hour + i * quarter, price)
         }
         val result = StrategyTraceReplay.run(StrategyEngine(), m15, h1, "BTCUSDT")
+        val tracePath = System.getProperty("android.parity.entry.trace.output")
+        if (!tracePath.isNullOrBlank()) {
+            val output = java.io.File(tracePath)
+            output.parentFile?.mkdirs()
+            output.writeText(result.json)
+        }
         val events = JSONArray(result.json)
         val entries = (0 until events.length()).map { events.getJSONObject(it) }
             .filter { it.getString("kind") == "ENTRY" && it.getString("side") == "LONG" }
