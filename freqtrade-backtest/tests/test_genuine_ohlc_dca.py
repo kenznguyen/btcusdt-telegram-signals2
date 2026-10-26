@@ -20,7 +20,7 @@ def bar(i, price):
 
 
 class GenuineOhlcDcaTests(unittest.TestCase):
-    def test_warmed_indicators_trigger_one_dca(self):
+    def test_emergency_stop_preempts_late_dca_candidate(self):
         # Repeated strong downswings and modest rebounds can lift RSI
         # while keeping ADX elevated; a seeded LONG remains underwater.
         prices = [100.0]
@@ -39,15 +39,14 @@ class GenuineOhlcDcaTests(unittest.TestCase):
                            points[i]["adx"], points[i]["rsi"], points[i-1]["rsi"])
         ]
         self.assertTrue(candidates, "Fixture must exercise a genuine DCA predicate")
-        # Replay on a prefix stopping at the first DCA candidate; no H1
-        # data means no H1-driven soft stop or new entry.
+        # A late technical DCA candidate cannot override an earlier stop.
         end = candidates[0] + 1
         state, events = replay_ohlc(candles[:end], [], ReplayState(100.0, initial))
         self.assertEqual(1, len(events))
-        self.assertEqual("DCA", events[0]["kind"])
-        self.assertEqual(100.0, events[0]["margin"])
-        self.assertTrue(state.position["dca_used"])
-        self.assertEqual(100.0, state.balance)
+        self.assertEqual("EMERGENCY_SL", events[0]["kind"])
+        self.assertIsNone(state.position)
+        self.assertAlmostEqual(100.0 + events[0]["net_pnl"], state.balance)
+        self.assertGreater(events[0]["fees"], 0.0)
 
 
 if __name__ == "__main__":
