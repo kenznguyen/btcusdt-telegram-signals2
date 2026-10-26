@@ -50,7 +50,7 @@ class SharedEmergencyExitFixtureTest {
         if (!tracePath.isNullOrBlank()) {
             val output = java.io.File(tracePath)
             output.parentFile?.mkdirs()
-            output.writeText(result.json + "\\n")
+            output.writeText(result.json + "\n")
         }
         val event = JSONArray(result.json).getJSONObject(0)
         assertEquals(expected.getString("kind"), event.getString("kind"))
