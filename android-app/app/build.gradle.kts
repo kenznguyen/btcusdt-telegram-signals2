@@ -61,3 +61,9 @@ tasks.withType<Test>().configureEach {
         systemProperty("android.parity.trace.output", parityTrace)
     }
 }
+
+tasks.withType<Test>().configureEach {
+    System.getenv("ANDROID_PARITY_ENTRY_TRACE_OUTPUT")?.takeIf { it.isNotBlank() }?.let {
+        systemProperty("android.parity.entry.trace.output", it)
+    }
+}
