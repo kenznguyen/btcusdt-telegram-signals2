@@ -45,6 +45,7 @@ jobs:
           ANDROID_PARITY_TRACE_OUTPUT: ${{ github.workspace }}/android-emergency-trace.json
           ANDROID_PARITY_ENTRY_TRACE_OUTPUT: ${{ github.workspace }}/android-entry-trace.json
           ANDROID_PARITY_DCA_TRACE_OUTPUT: ${{ github.workspace }}/android-dca-trace.json
+          ANDROID_PARITY_TP_TRACE_OUTPUT: ${{ github.workspace }}/android-tp-trace.json
         run: gradle :app:testDebugUnitTest --no-daemon
       - name: Compare Android and Python emergency traces
         run: |
@@ -58,6 +59,10 @@ jobs:
         run: |
           python freqtrade-backtest/export_dca_parity_trace.py python-dca-trace.json
           python freqtrade-backtest/compare_events.py android-dca-trace.json python-dca-trace.json
+      - name: Compare real RSI Take Profit traces
+        run: |
+          python freqtrade-backtest/export_tp_parity_trace.py python-tp-trace.json
+          python freqtrade-backtest/compare_events.py android-tp-trace.json python-tp-trace.json
       - name: Assemble debug APK
         working-directory: android-app
         run: gradle :app:assembleDebug --no-daemon
