@@ -46,6 +46,11 @@ class GenuineOhlcDcaTest {
         val expectedAvg = (qty * fill + addedQty * dcaFill) / expectedQty
         assertEquals(expectedQty, position.qty, 1e-9)
         assertEquals(expectedAvg, position.avgEntry, 1e-9)
+        System.getProperty("android.parity.dca.trace.output")?.takeIf { it.isNotBlank() }?.let { path ->
+            val output = java.io.File(path)
+            output.parentFile?.mkdirs()
+            output.writeText(result.json)
+        }
         val event = JSONArray(result.json).getJSONObject(0)
         assertEquals("DCA", event.getString("kind"))
         assertEquals(expectedQty, event.getDouble("quantity"), 1e-9)
