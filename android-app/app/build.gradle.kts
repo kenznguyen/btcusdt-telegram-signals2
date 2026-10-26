@@ -73,3 +73,9 @@ tasks.withType<Test>().configureEach {
         systemProperty("android.parity.dca.trace.output", it)
     }
 }
+
+tasks.withType<Test>().configureEach {
+    System.getenv("ANDROID_PARITY_TP_TRACE_OUTPUT")?.takeIf { it.isNotBlank() }?.let {
+        systemProperty("android.parity.tp.trace.output", it)
+    }
+}
