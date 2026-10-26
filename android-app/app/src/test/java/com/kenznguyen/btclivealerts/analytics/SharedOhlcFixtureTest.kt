@@ -27,7 +27,12 @@ class SharedOhlcFixtureTest {
         }
 
     @Test fun sharedFixtureReplaysWithoutInventingSignals() {
-        val fixtureFile = java.io.File("../freqtrade-backtest/fixtures/android_python_ohlc_v1.json")
+        val fixtureName = "freqtrade-backtest/fixtures/android_python_ohlc_v1.json"
+        val workingDir = java.io.File(System.getProperty("user.dir")).canonicalFile
+        val fixtureFile = generateSequence(workingDir) { it.parentFile }
+            .map { java.io.File(it, fixtureName) }
+            .firstOrNull { it.isFile }
+            ?: java.io.File(workingDir, fixtureName)
         assertTrue("Shared fixture must be present in checkout", fixtureFile.isFile)
         val fixture = JSONObject(fixtureFile.readText())
         assertEquals(1, fixture.getInt("schema_version"))
