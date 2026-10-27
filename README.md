@@ -1,4 +1,15 @@
-# BTCUSDT Telegram Signal Bot
+# BTCUSDT Chart Pro + Telegram Signal Bot
+
+## Android Chart Pro
+
+Ứng dụng Android nằm trong [`android-app/`](android-app/README.md), dùng dữ liệu công khai Binance USDⓈ-M Futures để hiển thị biểu đồ, quét nhiều mã và phát cảnh báo. Ứng dụng chỉ mô phỏng và thông báo; không đặt lệnh giao dịch.
+
+- Biểu đồ và cảnh báo biểu đồ được tách theo mã giao dịch/khung thời gian.
+- Scanner tự kết nối lại và tải bù nến khi mạng trở lại.
+- Chiến lược vị thế và backtest hiện vẫn dành cho BTCUSDT; các thẻ này được ghi rõ trong giao diện.
+- Xem [`android-app/README.md`](android-app/README.md) để build, chạy kiểm thử và hiểu giới hạn mô phỏng.
+
+## Telegram Signal Bot
 
 Bot Telegram theo dõi tín hiệu BTCUSDT Futures dựa trên nến M15 và bộ lọc xu hướng H1. Hệ thống sử dụng **một webhook Telegram chạy trên Render để nhận lệnh**, còn việc quét tín hiệu định kỳ được tách riêng sang **GitHub Actions workflow**.
 
@@ -225,3 +236,4 @@ Dashboard tĩnh ở `dashboard/index.html` dùng giao diện Dark Trading Termin
 4. Kiểm tra Run ID và thời gian tạo để tránh trộn file từ nhiều lần backtest khác nhau.
 
 Dashboard không tự tải dữ liệu từ Actions và không khẳng định bot live đang chạy. Trạng thái chỉ hiển thị khi có status file được nạp. Nếu chưa có dữ liệu, KPI để trống thay vì dùng số minh họa. Intrabar drawdown là ước tính theo OHLC, không phải dữ liệu tick-level. Dashboard chỉ đọc và trình bày dữ liệu; không sửa logic Entry, DCA, TP hoặc SL.
+

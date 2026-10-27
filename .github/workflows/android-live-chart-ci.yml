@@ -1,23 +1,27 @@
 name: Android Live Chart CI
 
 on:
+  push:
+    paths:
+      - 'android-app/**'
+      - '.github/workflows/android-*.yml'
+  pull_request:
+    paths:
+      - 'android-app/**'
+      - '.github/workflows/android-*.yml'
   workflow_dispatch:
     inputs:
       source_branch:
         description: "Branch to build and test (this does not merge it into main)"
         required: true
-        type: choice
-        default: feature/android-btcusdt-live-alerts
-        options:
-          - feature/android-btcusdt-live-alerts
-          - integration/android-scanner-orderbook-20261024
-          - main
+        type: string
+        default: main
 
 permissions:
   contents: read
 
 concurrency:
-  group: android-live-chart-ci-${{ inputs.source_branch }}
+  group: android-live-chart-ci-${{ github.event_name }}-${{ github.event.pull_request.number || inputs.source_branch || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -25,10 +29,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout selected source branch
+      - name: Checkout tested source
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.source_branch }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.source_branch || github.sha }}
+
+      - name: Record actual source commit
+        run: |
+          git rev-parse HEAD > android-source-sha.txt
+          printf 'Built source commit: %s\n' "$(cat android-source-sha.txt)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -62,14 +71,20 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-unit-test-reports
-          path: android-app/app/build/reports/tests/testDebugUnitTest/
-          if-no-files-found: ignore
+          path: |
+            android-app/app/build/reports/tests/testDebugUnitTest/
+            android-app/app/build/test-results/testDebugUnitTest/
+            android-source-sha.txt
+          if-no-files-found: warn
 
       - name: Upload debug APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: btcusdt-live-chart-debug-apk
-          path: android-app/app/build/outputs/apk/debug/*.apk
+          path: |
+            android-app/app/build/outputs/apk/debug/*.apk
+            android-source-sha.txt
           if-no-files-found: error
           retention-days: 14
+

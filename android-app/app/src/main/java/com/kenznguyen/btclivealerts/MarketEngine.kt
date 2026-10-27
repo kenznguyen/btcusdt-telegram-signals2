@@ -1,0 +1,276 @@
+package com.kenznguyen.btclivealerts
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
+import okhttp3.Response
+import okio.ByteString
+import org.json.JSONObject
+import org.json.JSONArray
+import java.util.concurrent.TimeUnit
+import kotlin.math.abs
+import kotlin.math.max
+
+data class Candle(
+    val openTime: Long,
+    val open: Double,
+    val high: Double,
+    val low: Double,
+    val close: Double,
+    val volume: Double,
+    val closed: Boolean
+)
+
+data class Indicators(val rsi: Double?, val adx: Double?, val plusDi: Double?, val minusDi: Double?)
+
+class MarketEngine {
+    private val client = OkHttpClient.Builder()
+        .callTimeout(12, TimeUnit.SECONDS)
+        // WebSocket pings detect half-open connections even when no close/failure
+        // callback arrives from the network stack.
+        .pingInterval(20, TimeUnit.SECONDS)
+        .build()
+
+    private suspend fun executeRest(request: Request): Response {
+        BinanceRestGate.awaitPermit()
+        val response = client.newCall(request).execute()
+        BinanceRestGate.observe(response)
+        return response
+    }
+
+    suspend fun fetchCandles(interval: String, limit: Int = 200, symbol: String = "BTCUSDT"): List<Candle> =
+        withContext(Dispatchers.IO) {
+            val url = "https://fapi.binance.com/fapi/v1/klines?symbol=${symbol.uppercase()}&interval=$interval&limit=$limit"
+            val request = Request.Builder().url(url).build()
+            executeRest(request).use { response ->
+                check(response.isSuccessful) { "Binance Futures HTTP ${response.code}" }
+                val array = JSONArray(response.body?.string() ?: "[]")
+                (0 until array.length()).map { i ->
+                    val row = array.getJSONArray(i)
+                    Candle(
+                        openTime = row.getLong(0),
+                        open = row.getDouble(1),
+                        high = row.getDouble(2),
+                        low = row.getDouble(3),
+                        close = row.getDouble(4),
+                        volume = row.getDouble(5),
+                        closed = row.getLong(6) < System.currentTimeMillis()
+                    )
+                }
+            }
+        }
+
+    /** Returns the 20 highest-quote-volume trading USDT perpetual symbols. */
+    suspend fun fetchTopPerpetualSymbols(limit: Int = 20): List<String> = withContext(Dispatchers.IO) {
+        require(limit in 1..20) { "Scanner currently supports 1..20 symbols" }
+        val exchangeRequest = Request.Builder()
+            .url("https://fapi.binance.com/fapi/v1/exchangeInfo").build()
+        val exchangeInfo = executeRest(exchangeRequest).use { response ->
+            check(response.isSuccessful) { "Binance Futures exchangeInfo HTTP ${response.code}" }
+            JSONObject(response.body?.string() ?: "{}")
+        }
+        val eligible = (0 until exchangeInfo.optJSONArray("symbols").length()).mapNotNull { i ->
+            val item = exchangeInfo.getJSONArray("symbols").getJSONObject(i)
+            val symbol = item.optString("symbol")
+            if (item.optString("status") == "TRADING" &&
+                item.optString("contractType") == "PERPETUAL" &&
+                item.optString("quoteAsset") == "USDT" &&
+                symbol.endsWith("USDT")) symbol else null
+        }.toSet()
+        val tickerRequest = Request.Builder()
+            .url("https://fapi.binance.com/fapi/v1/ticker/24hr").build()
+        val tickers = executeRest(tickerRequest).use { response ->
+            check(response.isSuccessful) { "Binance Futures ticker24hr HTTP ${response.code}" }
+            JSONArray(response.body?.string() ?: "[]")
+        }
+        (0 until tickers.length()).mapNotNull { i ->
+            val item = tickers.getJSONObject(i)
+            val symbol = item.optString("symbol")
+            val quoteVolume = item.optString("quoteVolume").toDoubleOrNull() ?: return@mapNotNull null
+            if (symbol in eligible && quoteVolume.isFinite() && quoteVolume > 0.0) symbol to quoteVolume else null
+        }.sortedByDescending { it.second }.take(limit).map { it.first }
+    }
+
+    suspend fun fetchHistory(interval: String, days: Int, symbol: String = "BTCUSDT"): List<Candle> = withContext(Dispatchers.IO) {
+        require(days in setOf(7, 30, 90, 180, 360)) { "Chọn 7, 30, 90, 180 hoặc 360 ngày" }
+        val step = when (interval) { "15m" -> 900000L; "1h" -> 3600000L; else -> error("Khung thời gian không hỗ trợ") }
+        val end = System.currentTimeMillis()
+        val start = end - days.toLong() * 86400000L
+        val candles = sortedMapOf<Long, Candle>()
+        var cursor = start
+        var pages = 0
+        while (cursor < end && pages < 40) {
+            val url = "https://fapi.binance.com/fapi/v1/klines?symbol=" + symbol.uppercase() + "&interval=" + interval + "&limit=1500&startTime=" + cursor + "&endTime=" + end
+            val request = Request.Builder().url(url).build()
+            val page = executeRest(request).use { response ->
+                check(response.isSuccessful) { "Binance Futures HTTP " + response.code }
+                val array = JSONArray(response.body?.string() ?: "[]")
+                (0 until array.length()).map { i ->
+                    val row = array.getJSONArray(i)
+                    Candle(row.getLong(0), row.getDouble(1), row.getDouble(2), row.getDouble(3), row.getDouble(4), row.getDouble(5), row.getLong(6) < System.currentTimeMillis())
+                }
+            }
+            if (page.isEmpty()) break
+            page.forEach { candles[it.openTime] = it }
+            val next = page.last().openTime + step
+            if (next <= cursor) break
+            cursor = next
+            pages++
+            if (page.size < 1500) break
+        }
+        candles.values.filter { it.closed }
+    }
+    fun connectLive(interval: String, onCandle: (Candle) -> Unit, onMarkPrice: (Double) -> Unit, onStatus: (String) -> Unit, symbol: String = "BTCUSDT"): WebSocket {
+        val stream = "${symbol.lowercase()}@kline_$interval/${symbol.lowercase()}@markPrice@1s"
+        val request = Request.Builder().url("wss://fstream.binance.com/stream?streams=$stream").build()
+        return client.newWebSocket(request, object : WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) { onStatus("WebSocket kết nối") }
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                try {
+                    val root = JSONObject(text)
+                    val data = root.optJSONObject("data") ?: root
+                    when (data.optString("e")) {
+                        "kline" -> {
+                            val k = data.getJSONObject("k")
+                            onCandle(Candle(k.getLong("t"), k.getString("o").toDouble(), k.getString("h").toDouble(),
+                                k.getString("l").toDouble(), k.getString("c").toDouble(), k.getString("v").toDouble(), k.optBoolean("x")))
+                        }
+                        "markPriceUpdate" -> onMarkPrice(data.getString("p").toDouble())
+                    }
+                } catch (_: Exception) { onStatus("Đang đồng bộ dữ liệu…") }
+            }
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) { onStatus("WebSocket gián đoạn; đang thử kết nối lại") }
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                webSocket.close(code, reason)
+                onStatus("WebSocket đã đóng ($code)")
+            }
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) { onStatus("WebSocket đã đóng") }
+        })
+    }
+
+    /** One multiplexed connection for kline + mark-price streams across selected symbols. */
+    fun connectMultiplex(
+        symbols: List<String>,
+        intervals: List<String> = listOf("15m", "1h"),
+        onCandle: (String, String, Candle) -> Unit,
+        onMarkPrice: (String, Double) -> Unit,
+        onStatus: (String) -> Unit,
+        onConnected: () -> Unit = {},
+        onDisconnected: (String) -> Unit = {}
+    ): WebSocket {
+        require(symbols.isNotEmpty() && symbols.size <= 20) { "Choose 1..20 symbols" }
+        require(intervals.all { it == "15m" || it == "1h" }) { "Unsupported scanner timeframe" }
+        val streams = symbols.flatMap { raw ->
+            val symbol = raw.lowercase()
+            intervals.map { "$symbol@kline_$it" } + "$symbol@markPrice@1s"
+        }.joinToString("/")
+        val request = Request.Builder().url("wss://fstream.binance.com/stream?streams=$streams").build()
+        return client.newWebSocket(request, object : WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) {
+                onStatus("Scanner WebSocket multiplex đã kết nối")
+                onConnected()
+            }
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                try {
+                    val root = JSONObject(text)
+                    val stream = root.optString("stream")
+                    val data = root.optJSONObject("data") ?: root
+                    val symbol = stream.substringBefore("@").uppercase()
+                    when (data.optString("e")) {
+                        "kline" -> {
+                            val k = data.getJSONObject("k")
+                            onCandle(symbol, k.optString("i"),
+                                Candle(k.getLong("t"), k.getString("o").toDouble(), k.getString("h").toDouble(),
+                                    k.getString("l").toDouble(), k.getString("c").toDouble(), k.getString("v").toDouble(),
+                                    k.optBoolean("x")))
+                        }
+                        "markPriceUpdate" -> onMarkPrice(symbol, data.getString("p").toDouble())
+                    }
+                } catch (e: Exception) { onStatus("Scanner nhận dữ liệu không hợp lệ: ${e.message ?: "parse error"}") }
+            }
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                val message = "Scanner WebSocket gián đoạn: ${t.message ?: "lỗi mạng"}"
+                onStatus(message)
+                onDisconnected(message)
+            }
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                webSocket.close(code, reason)
+                onDisconnected("Scanner WebSocket đang đóng ($code)")
+            }
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                val message = "Scanner WebSocket đã đóng ($code)"
+                onStatus(message)
+                onDisconnected(message)
+            }
+        })
+    }
+
+    suspend fun fetchMarkPrice(symbol: String = "BTCUSDT"): Double = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url("https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol.uppercase()}")
+            .build()
+        executeRest(request).use { response ->
+            check(response.isSuccessful) { "Binance Futures HTTP ${response.code}" }
+            org.json.JSONObject(response.body?.string() ?: "{}").getString("markPrice").toDouble()
+        }
+    }
+
+    // Wilder-style RSI. ADX is computed from directional movement and Wilder smoothing.
+    fun indicators(candles: List<Candle>, period: Int = 14): Indicators {
+        if (candles.size < period * 2 + 2) return Indicators(null, null, null, null)
+        val closes = candles.map { it.close }
+        var gain = 0.0
+        var loss = 0.0
+        for (i in 1..period) {
+            val change = closes[i] - closes[i - 1]
+            if (change >= 0) gain += change else loss -= change
+        }
+        var avgGain = gain / period
+        var avgLoss = loss / period
+        for (i in period + 1 until closes.size) {
+            val change = closes[i] - closes[i - 1]
+            avgGain = (avgGain * (period - 1) + max(change, 0.0)) / period
+            avgLoss = (avgLoss * (period - 1) + max(-change, 0.0)) / period
+        }
+        val rsi = if (avgLoss == 0.0) 100.0 else 100.0 - 100.0 / (1.0 + avgGain / avgLoss)
+
+        val tr = mutableListOf<Double>()
+        val plusDm = mutableListOf<Double>()
+        val minusDm = mutableListOf<Double>()
+        for (i in 1 until candles.size) {
+            val c = candles[i]
+            val p = candles[i - 1]
+            tr += max(c.high - c.low, max(abs(c.high - p.close), abs(c.low - p.close)))
+            val up = c.high - p.high
+            val down = p.low - c.low
+            plusDm += if (up > down && up > 0) up else 0.0
+            minusDm += if (down > up && down > 0) down else 0.0
+        }
+        var smTr = tr.take(period).sum()
+        var smPlus = plusDm.take(period).sum()
+        var smMinus = minusDm.take(period).sum()
+        val dx = mutableListOf<Double>()
+        fun appendDx() {
+            val pdi = if (smTr == 0.0) 0.0 else 100.0 * smPlus / smTr
+            val mdi = if (smTr == 0.0) 0.0 else 100.0 * smMinus / smTr
+            dx += if (pdi + mdi == 0.0) 0.0 else 100.0 * abs(pdi - mdi) / (pdi + mdi)
+        }
+        appendDx()
+        for (i in period until tr.size) {
+            smTr = smTr - smTr / period + tr[i]
+            smPlus = smPlus - smPlus / period + plusDm[i]
+            smMinus = smMinus - smMinus / period + minusDm[i]
+            appendDx()
+        }
+        if (dx.size < period) return Indicators(rsi, null, null, null)
+        var adx = dx.take(period).average()
+        for (i in period until dx.size) adx = (adx * (period - 1) + dx[i]) / period
+        val pdi = if (smTr == 0.0) 0.0 else 100.0 * smPlus / smTr
+        val mdi = if (smTr == 0.0) 0.0 else 100.0 * smMinus / smTr
+        return Indicators(rsi, adx, pdi, mdi)
+    }
+}
+
