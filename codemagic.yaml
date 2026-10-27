@@ -50,3 +50,70 @@ workflows:
     artifacts:
       - android-app/app/build/outputs/apk/debug/*.apk
       - android-app/app/build/reports/tests/testDebugUnitTest/**/*
+
+  android_freqtrade_release:
+    name: Android Freqtrade parity + signed Release APK
+    max_build_duration: 60
+    environment:
+      java: 17
+      groups:
+        - release_signing
+      vars:
+        ANDROID_PARITY_TRACE_OUTPUT: "$CM_BUILD_DIR/android-emergency-trace.json"
+        ANDROID_PARITY_ENTRY_TRACE_OUTPUT: "$CM_BUILD_DIR/android-entry-trace.json"
+        ANDROID_PARITY_DCA_TRACE_OUTPUT: "$CM_BUILD_DIR/android-dca-trace.json"
+        ANDROID_PARITY_TP_TRACE_OUTPUT: "$CM_BUILD_DIR/android-tp-trace.json"
+    scripts:
+      - name: Verify project and Python offline analytics
+        script: |
+          set -eu
+          test -f android-app/settings.gradle.kts
+          test -f android-app/app/build.gradle.kts
+          python3 -m unittest discover -s freqtrade-backtest/tests -v
+      - name: Android unit tests and canonical trace exports
+        script: |
+          set -eu
+          cd android-app
+          gradle :app:testDebugUnitTest --no-daemon
+      - name: Compare Android and Python parity traces
+        script: |
+          set -eu
+          python3 freqtrade-backtest/export_emergency_parity_trace.py python-emergency-trace.json
+          python3 freqtrade-backtest/compare_events.py android-emergency-trace.json python-emergency-trace.json
+          python3 freqtrade-backtest/export_entry_parity_trace.py python-entry-trace.json
+          python3 freqtrade-backtest/compare_events.py android-entry-trace.json python-entry-trace.json
+          python3 freqtrade-backtest/export_dca_parity_trace.py python-dca-trace.json
+          python3 freqtrade-backtest/compare_events.py android-dca-trace.json python-dca-trace.json
+          python3 freqtrade-backtest/export_tp_parity_trace.py python-tp-trace.json
+          python3 freqtrade-backtest/compare_events.py android-tp-trace.json python-tp-trace.json
+      - name: Decode release keystore securely
+        script: |
+          set -eu
+          : "${ANDROID_KEYSTORE_BASE64:?Set secure ANDROID_KEYSTORE_BASE64 in Codemagic release_signing group}"
+          : "${ANDROID_KEYSTORE_PASSWORD:?Set secure ANDROID_KEYSTORE_PASSWORD}"
+          : "${ANDROID_KEY_PASSWORD:?Set secure ANDROID_KEY_PASSWORD}"
+          : "${ANDROID_KEY_ALIAS:?Set secure ANDROID_KEY_ALIAS}"
+          test "$ANDROID_KEY_ALIAS" = "btc-chart-release"
+          export ANDROID_KEYSTORE_PATH="$CM_BUILD_DIR/android-app/release-signing.keystore"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
+          test -s "$ANDROID_KEYSTORE_PATH"
+          echo "Keystore loaded (content and passwords not printed)."
+      - name: Assemble signed Android Release APK
+        script: |
+          set -eu
+          export ANDROID_KEYSTORE_PATH="$CM_BUILD_DIR/android-app/release-signing.keystore"
+          cd android-app
+          gradle :app:assembleRelease --no-daemon
+      - name: Verify Release APK signature and identity
+        script: |
+          set -eu
+          APK=android-app/app/build/outputs/apk/release/app-release.apk
+          test -s "$APK"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -n 1)"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
+          "$AAPT" dump badging "$APK" | grep -m 1 "^package: name='com.kenznguyen.btclivealerts'"
+          "$APKSIGNER" verify --print-certs "$APK"
+          echo "Compare the signer SHA-256 above with the installed Release APK before attempting an update."
+    artifacts:
+      - android-app/app/build/outputs/apk/release/*.apk
+      - android-app/app/build/reports/tests/testDebugUnitTest/**/*
