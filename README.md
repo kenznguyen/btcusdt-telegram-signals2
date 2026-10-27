@@ -8,6 +8,7 @@
 - Scanner tự kết nối lại và tải bù nến khi mạng trở lại.
 - Chiến lược vị thế và backtest hiện vẫn dành cho BTCUSDT; các thẻ này được ghi rõ trong giao diện.
 - Xem [`android-app/README.md`](android-app/README.md) để build, chạy kiểm thử và hiểu giới hạn mô phỏng.
+- CI Android dùng [`codemagic.yaml`](codemagic.yaml): workflow `android-chart-pro-debug` chạy unit test và xuất APK debug. Các workflow Android trên GitHub Actions chỉ còn chạy thủ công.
 
 ## Telegram Signal Bot
 

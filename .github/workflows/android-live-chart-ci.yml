@@ -1,14 +1,7 @@
 name: Android Live Chart CI
 
 on:
-  push:
-    paths:
-      - 'android-app/**'
-      - '.github/workflows/android-*.yml'
-  pull_request:
-    paths:
-      - 'android-app/**'
-      - '.github/workflows/android-*.yml'
+  # Automatic Android builds run on Codemagic while GitHub Actions quota is exhausted.
   workflow_dispatch:
     inputs:
       source_branch:

@@ -1,0 +1,77 @@
+# yaml-language-server: $schema=https://codemagic.io/codemagic-schema.json
+workflows:
+  android-chart-pro-debug:
+    name: BTC Chart Pro - tests and debug APK
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      java: 17
+    cache:
+      cache_paths:
+        - $HOME/.gradle/caches
+        - $HOME/.cache/btc-chart-pro
+    triggering:
+      # A source-branch push validates PR changes without a second PR-event build.
+      events:
+        - push
+      branch_patterns:
+        - pattern: fix/chart-pro-reliability-20261027
+          include: true
+          source: true
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true
+    when:
+      changeset:
+        includes:
+          - android-app/
+          - codemagic.yaml
+    scripts:
+      - name: Record checked-out source
+        script: |
+          set -euo pipefail
+          git -C "$CM_BUILD_DIR" rev-parse HEAD | tee "$CM_BUILD_DIR/android-source-sha.txt"
+      - name: Install verified Gradle 8.9
+        script: |
+          set -euo pipefail
+          chart_tools_dir="$CM_BUILD_DIR/.ci-tools"
+          chart_cache_dir="$HOME/.cache/btc-chart-pro"
+          chart_gradle_zip="$chart_cache_dir/gradle-8.9-bin.zip"
+          mkdir -p "$chart_tools_dir" "$chart_cache_dir"
+          if [ ! -f "$chart_gradle_zip" ]; then
+            curl --fail --location --retry 3 --connect-timeout 30 \
+              https://services.gradle.org/distributions/gradle-8.9-bin.zip \
+              --output "$chart_gradle_zip.tmp"
+            mv "$chart_gradle_zip.tmp" "$chart_gradle_zip"
+          fi
+          # Official binary distribution checksum: https://gradle.org/release-checksums/
+          printf '%s  %s\n' \
+            d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab \
+            "$chart_gradle_zip" | shasum -a 256 -c -
+          unzip -qo "$chart_gradle_zip" -d "$chart_tools_dir"
+          printf 'CHART_GRADLE_BIN=%s\n' "$chart_tools_dir/gradle-8.9/bin/gradle" >> "$CM_ENV"
+          "$chart_tools_dir/gradle-8.9/bin/gradle" --version
+      - name: Prepare Android SDK 35
+        script: |
+          set -euo pipefail
+          : "${ANDROID_SDK_ROOT:?Android SDK is required on the build machine}"
+          java -version
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+          printf 'sdk.dir=%s\n' "$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android-app/local.properties"
+      - name: Run Android unit tests
+        working_directory: android-app
+        script: |
+          set -euo pipefail
+          "$CHART_GRADLE_BIN" :app:testDebugUnitTest --no-daemon --stacktrace
+        test_report: android-app/app/build/test-results/testDebugUnitTest/*.xml
+      - name: Build debug APK
+        working_directory: android-app
+        script: |
+          set -euo pipefail
+          "$CHART_GRADLE_BIN" :app:assembleDebug --no-daemon --stacktrace
+    artifacts:
+      - android-app/app/build/outputs/apk/debug/*.apk
+      - android-app/app/build/test-results/testDebugUnitTest/*.xml
+      - android-app/app/build/reports/tests/testDebugUnitTest/**
+      - android-source-sha.txt
