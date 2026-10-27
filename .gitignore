@@ -1,0 +1,9 @@
+.gradle/
+.ci-tools/
+**/build/
+local.properties
+.idea/
+*.iml
+*.keystore
+*.jks
+android-source-sha.txt

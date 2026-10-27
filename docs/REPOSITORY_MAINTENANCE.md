@@ -32,3 +32,4 @@ The Telegram signal scanner is currently manual-only (`workflow_dispatch`); no s
 - Never delete backup/restore branches or keystore/secrets during routine cleanup.
 - Never build a release from `main` by default if it lacks current Android features.
 - Never claim tests, builds or APK signatures are verified without CI results.
+
