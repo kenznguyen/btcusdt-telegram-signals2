@@ -57,7 +57,17 @@ workflows:
           set -euo pipefail
           : "${ANDROID_SDK_ROOT:?Android SDK is required on the build machine}"
           java -version
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+          # Codemagic's macOS image has the CLI tools under the SDK root, outside PATH.
+          # https://docs.codemagic.io/specs-macos/xcode-26-3/
+          chart_sdkmanager="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$chart_sdkmanager" ]; then
+            printf 'Android SDK Manager is missing or not executable: %s\n' "$chart_sdkmanager" >&2
+            exit 1
+          fi
+          printf 'Using Android SDK Manager: %s\n' "$chart_sdkmanager"
+          # AGP 8.7.3 uses Build Tools 34.0.0 by default, including with compileSdk 35.
+          "$chart_sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" \
+            --install "platforms;android-35" "build-tools;34.0.0"
           printf 'sdk.dir=%s\n' "$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android-app/local.properties"
       - name: Run Android unit tests
         working_directory: android-app
