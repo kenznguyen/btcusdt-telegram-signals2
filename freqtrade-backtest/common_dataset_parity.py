@@ -46,7 +46,7 @@ def compare_events(android_events, freqtrade_events):
                        "android_price": a.get("price") if a else None,
                        "freqtrade_price": f.get("price") if f else None})
     return {"events": result,
-            "all_events_match": all(x["status"] == "matched" for x in result),
+            "all_events_match": bool(result) and all(x["status"] == "matched" for x in result),
             "event_count": len(result)}
 
 
