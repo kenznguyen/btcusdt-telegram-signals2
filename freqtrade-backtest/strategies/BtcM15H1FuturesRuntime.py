@@ -19,7 +19,8 @@ from pandas import DataFrame, Timestamp
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from entry_frame import entry_diagnostics
-from android_signal_predicates import exit_reason, dca_signal, roe_for
+from android_signal_predicates import (exit_reason, dca_signal, roe_for,
+                                       threshold_price, stop_fill_price)
 
 
 def evaluate_exit(side, candle, previous, avg_entry):
@@ -170,9 +171,26 @@ class BtcM15H1FuturesRuntime(IStrategy):
         if candle is None:
             return None
         side = "SHORT" if trade.is_short else "LONG"
-        reason = evaluate_exit(side, candle, previous, float(trade.open_rate))
-        # Freqtrade custom_exit is an order at engine fill price, not the
-        # intrabar stopFillPrice used by Android; reconcile after export.
+        avg_entry = float(trade.open_rate)
+        reason = evaluate_exit(side, candle, previous, avg_entry)
+        if reason is not None:
+            abs_roe = 90.0 if reason == "EMERGENCY_SL" else 35.0 if reason == "SOFT_SL" else None
+            threshold = threshold_price(side, avg_entry, abs_roe) if abs_roe else None
+            android_stop_fill = stop_fill_price(side, threshold, float(candle["open"])) if threshold else None
+            write_dca_trace(os.environ.get("FREQTRADE_EXIT_TRACE"), {
+                "callback_time": current_time,
+                "closed_candle_time": candle.get("date"),
+                "pair": pair, "side": side, "reason": reason,
+                "candle_open": float(candle["open"]), "candle_high": float(candle["high"]),
+                "candle_low": float(candle["low"]), "candle_close": float(candle["close"]),
+                "trade_avg_entry": avg_entry,
+                "android_stop_threshold": threshold,
+                "android_expected_stop_fill": android_stop_fill,
+                "freqtrade_callback_rate": float(current_rate),
+                "note": "Expected price is diagnostic only; actual Freqtrade fill is in exported trade JSON."
+            })
+        # A custom_exit return requests a Freqtrade fill, not an Android
+        # intrabar stop order. Do not label this as fill-level parity.
         return reason.lower() if reason is not None else None
 
     def adjust_trade_position(self, trade: Trade, current_time, current_rate,
