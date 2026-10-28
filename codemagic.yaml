@@ -122,3 +122,31 @@ workflows:
     artifacts:
       - android-app/app/build/outputs/apk/release/*.apk
       - android-app/app/build/reports/tests/testDebugUnitTest/**/*
+
+  freqtrade_runtime_probe:
+    name: Freqtrade actual runtime discovery (NOT parity)
+    max_build_duration: 60
+    environment:
+      java: 17
+    scripts:
+      - name: Verify Docker availability
+        script: |
+          set -eu
+          command -v docker
+          docker info >/dev/null
+      - name: Invoke actual Freqtrade runtime and discover strategy
+        script: |
+          set -eu
+          mkdir -p freqtrade-runtime-results
+          docker run --rm freqtradeorg/freqtrade:stable --version | tee freqtrade-runtime-results/freqtrade-version.txt
+          docker run --rm -v "$CM_BUILD_DIR/freqtrade-backtest/strategies:/freqtrade/user_data/strategies:ro" \
+            freqtradeorg/freqtrade:stable list-strategies \
+            --strategy-path /freqtrade/user_data/strategies --one-column \
+            | tee freqtrade-runtime-results/strategy-discovery.txt
+          grep -q '^BtcM15H1ParityGate$' freqtrade-runtime-results/strategy-discovery.txt
+      - name: Record limitations (no real strategy backtest yet)
+        script: |
+          set -eu
+          python3 -c 'import json,pathlib; pathlib.Path("freqtrade-runtime-results/verification.json").write_text(json.dumps({"runtime_version_invoked": True, "strategy_discovered": True, "actual_backtest_executed": False, "android_freqtrade_parity_verified": False, "reason": "adapter_has_disabled_entry_exit_and_no_shared_historical_trade_ledger"}, indent=2)+"\\n")'
+    artifacts:
+      - freqtrade-runtime-results/**/*
