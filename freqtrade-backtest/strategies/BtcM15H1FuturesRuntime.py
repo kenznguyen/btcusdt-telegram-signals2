@@ -94,7 +94,9 @@ class BtcM15H1FuturesRuntime(IStrategy):
     process_only_new_candles = True
     startup_candle_count = 120
     minimal_roi = {"0": 1000}
-    stoploss = -0.99
+    # Freqtrade futures stoploss is expressed as risk on leveraged stake.
+    # -0.90 means 90% stake loss at 13x, matching the emergency ROE limit.
+    stoploss = -0.90
     use_exit_signal = True
     trailing_stop = False
     position_adjustment_enable = True
@@ -192,6 +194,11 @@ class BtcM15H1FuturesRuntime(IStrategy):
                 "freqtrade_callback_rate": float(current_rate),
                 "note": "Expected price is diagnostic only; actual Freqtrade fill is in exported trade JSON."
             })
+        if reason == "EMERGENCY_SL":
+            # The engine's protective stoploss must fill this breach,
+            # potentially within a detailed 5m candle. Do not submit a
+            # competing delayed market exit via custom_exit.
+            return None
         # A custom_exit return requests a Freqtrade fill, not an Android
         # intrabar stop order. Do not label this as fill-level parity.
         return reason.lower() if reason is not None else None
