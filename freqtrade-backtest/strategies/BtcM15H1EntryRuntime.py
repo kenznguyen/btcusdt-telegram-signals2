@@ -25,6 +25,13 @@ class BtcM15H1EntryRuntime(IStrategy):
     use_exit_signal = False
     trailing_stop = False
 
+    def bot_start(self, **kwargs):
+        # The class is strictly limited to backtesting, regardless of a
+        # user's configuration or the presence of exchange credentials.
+        from freqtrade.enums import RunMode
+        if self.config.get("runmode") != RunMode.BACKTEST:
+            raise RuntimeError("BtcM15H1EntryRuntime may run in BACKTEST mode only")
+
     def informative_pairs(self):
         # Pair metadata is provided by the Freqtrade runtime during backtesting.
         return [(pair, "1h") for pair in self.dp.current_whitelist()] if self.dp else []
