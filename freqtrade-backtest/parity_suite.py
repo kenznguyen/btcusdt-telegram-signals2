@@ -9,7 +9,6 @@ import hashlib
 import json
 import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 from compare_events import compare
@@ -19,7 +18,7 @@ CASES = (
     ("emergency", "export_emergency_parity_trace.py", "android-emergency-trace.json",
      "shared JSON fixture", "fixtures/android_python_emergency_exit_v1.json"),
     ("entry", "export_entry_parity_trace.py", "android-entry-trace.json",
-     "mirrored deterministic generators", None),
+     "shared JSON fixture", "fixtures/android_python_entry_ohlc_v1.json"),
     ("dca", "export_dca_parity_trace.py", "android-dca-trace.json",
      "mirrored deterministic generators", None),
     ("tp", "export_tp_parity_trace.py", "android-tp-trace.json",
@@ -86,7 +85,7 @@ def run_suite(android_dir, output_dir):
         "parity_checks_passed": passed,
         "cases": cases,
         "limitations": [
-            "ENTRY/DCA/TP candles are created by mirrored generators, not loaded from a common fixture.",
+            "DCA/TP candles are created by mirrored generators, not loaded from a common fixture.",
             "Parity on synthetic fixtures does not establish historical profitability or exchange-fill parity.",
             "Freqtrade strategy/runtime execution and independent trade-ledger parity are not yet proven.",
         ],
