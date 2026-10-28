@@ -316,8 +316,8 @@ workflows:
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_reconcile_fills.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_walkforward_windows.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_equity_reconstruction.py -v
-          python3 -m unittest discover -s freqtrade-backtest/tests -p test_market_risk_audit.py -v
-          python3 -m unittest discover -s freqtrade-backtest/tests -p test_funding_timeline_audit.py -v
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" -m unittest discover -s freqtrade-backtest/tests -p test_market_risk_audit.py -v
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" -m unittest discover -s freqtrade-backtest/tests -p test_funding_timeline_audit.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_common_dataset_parity.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_export_freqtrade_events.py -v
       - name: Record actual Freqtrade version
