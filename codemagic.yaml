@@ -318,6 +318,7 @@ workflows:
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_equity_reconstruction.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_market_risk_audit.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_funding_timeline_audit.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_common_dataset_parity.py -v
       - name: Record actual Freqtrade version
         script: |
           set -eu
@@ -350,6 +351,12 @@ workflows:
           "$CM_BUILD_DIR/.freqtrade-venv/bin/python" freqtrade-backtest/export_common_ohlcv.py \
             --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
             --output "$CM_BUILD_DIR/freqtrade-futures-results/common-ohlcv"
+      - name: Verify common-data checksums and report Android parity pending
+        script: |
+          set -eu
+          python3 freqtrade-backtest/common_dataset_parity.py \
+            --ohlcv freqtrade-futures-results/common-ohlcv \
+            --output freqtrade-futures-results/common-dataset-parity-status.json
       - name: Run actual Freqtrade CLI backtesting
         script: |
           set -eu
@@ -463,6 +470,7 @@ workflows:
               "android_fill_price_and_event_order_verified": False,
               "common_ohlcv_exported": True,
               "android_common_dataset_replay_verified": False,
+              "common_dataset_parity_status": "common-dataset-parity-status.json",
               "dca_callback_trace": "dca-diagnostics.jsonl",
               "exit_callback_trace": "exit-diagnostics.jsonl",
               "requested_days": int(__import__("os").environ.get("BACKTEST_DAYS", "360")),
