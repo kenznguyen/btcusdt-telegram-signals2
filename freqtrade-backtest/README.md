@@ -329,3 +329,47 @@ It does **not** silently certify incomplete funding history,
 5m mark-price equity, liquidation parity, or projected profitability.
 Android signing / multi-symbol chart / orderbook / notifications
 remain unchanged.
+
+## FreqAI LightGBM Research (optional; NOT a live trading strategy)
+
+Codemagic workflow `freqai_lightgbm_research` is isolated from
+`freqtrade_chart_pro_analytics` (the primary trading backtest) and
+`freqtrade_futures_backtest` (strict Kotlin parity). It installs
+`freqtrade[freqai]` and runs Freqtrade's real
+`--freqaimodel LightGBMRegressor` with
+`strategies/BtcFreqaiResearch.py`.
+
+The FreqAI strategy's `populate_entry_trend` and
+`populate_exit_trend` generate **no orders**. Its sole FreqAI
+training target is the next **four closed M15 candles' return (60m)**.
+RSI/ADX/MFI, Bollinger %B, OHLCV and closed H1 features come from
+past information only. The model uses a 45-day training lookback,
+15-day re-training windows, and a separate model identifier.
+This is **not** part of StrategyEngine, does not replace its
+13x/DCA/SL/TP parameters, and cannot execute real orders.
+
+Independent diagnostic validation
+(`freqai_research_metrics.py`) trains two stand-alone LightGBM
+regressors for **60-minute return** and **future four-bar volatility**
+on exactly the fetched OHLCV. It purges the 60-minute forward-label
+overlap at each 15-day chronological test boundary and only merges
+H1 data after the H1 candle closed. Outputs:
+- `freqai-research-results/freqai-research-report.json`: out-of-sample
+  MAE, RMSE, directional accuracy, zero-return baseline,
+  volatility forecast MAE and per-window sample counts.
+- `freqai-research-results/freqai-research-predictions.csv`: individual
+  independent validation predictions, targets and UTC times.
+- `freqai-research-results/freqai-backtest.log`: actual FreqAI CLI log.
+- `freqai-research-results/run-manifest.json`: model, restrictions
+  and source attestations.
+
+**Critical distinction:** the standalone diagnostic numbers are NOT
+FreqAI's own internal model predictions. They do NOT establish
+future accuracy or profitability. The Android Analytics FreqAI
+research viewer imports this separate JSON and preserves that label.
+
+Set `BACKTEST_DAYS=90` by default, optionally `180` or `360`.
+Download includes 65 extra days for FreqAI's first training window
+and warm-up. Native macOS ARM64 Freqtrade/FreqAI installation is
+experimental and may fail on unsupported dependencies. No successful
+Codemagic run is claimed until a real build and Artifacts exist.
