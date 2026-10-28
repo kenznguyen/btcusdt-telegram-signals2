@@ -31,10 +31,16 @@ fun FreqaiResearchPanel(context: Context) {
                     context.contentResolver.openInputStream(uri)?.use { input ->
                         // Strictly bounded research report: do not open untrusted huge files.
                         val limit = 2 * 1024 * 1024
-                        val bytes = input.readNBytes(limit + 1)
-                        require(bytes.size <= limit) { "Tệp báo cáo vượt 2 MB" }
-                        FreqaiResearchReportParser.parse(bytes.toString(Charsets.UTF_8))
-                    } ?: error("Không thể đọc báo cáo FreqAI")
+                        val out = java.io.ByteArrayOutputStream()
+                        val buffer = ByteArray(8192)
+                        while (true) {
+                            val n = input.read(buffer)
+                            if (n == -1) break
+                            require(out.size() + n <= limit) { "Tệp báo cáo vượt 2 MB" }
+                            out.write(buffer, 0, n)
+                        }
+                        FreqaiResearchReportParser.parse(out.toString("UTF-8"))
+                    } ?: throw IllegalArgumentException("Không thể đọc báo cáo FreqAI")
                 }
             } catch (ex: Exception) {
                 error = ex.message ?: ex.javaClass.simpleName
