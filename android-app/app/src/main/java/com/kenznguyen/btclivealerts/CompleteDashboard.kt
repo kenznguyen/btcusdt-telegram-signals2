@@ -42,6 +42,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import org.json.JSONArray
 import org.json.JSONObject
+import com.kenznguyen.btclivealerts.analytics.BacktestAnalyticsScreen
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import okhttp3.WebSocket
@@ -640,6 +641,7 @@ fun CompleteDashboard(context: Context) {
                 TabRow(selectedTabIndex = selectedTab, containerColor = NPanel, contentColor = Color.White) {
                     Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Biểu đồ") })
                     Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Multi Symbol Scanner") })
+                    Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("Analytics") })
                 }
             }
             item {
@@ -674,6 +676,11 @@ fun CompleteDashboard(context: Context) {
                             Text(side, color = sideColor, fontWeight = FontWeight.Bold)
                         }
                     }
+                }
+            }
+            if (selectedTab == 2) item {
+                Column(Modifier.fillMaxWidth()) {
+                    FreqtradeBacktestPanel(context, market, engine)
                 }
             }
             if (selectedTab == 0) item {
@@ -938,7 +945,6 @@ fun CompleteDashboard(context: Context) {
                     if (event.note.isNotBlank()) Text(event.note, color = NMuted)
                 }
             }
-            if (selectedTab == 0) item { BacktestPanel(market, engine) }
         }
     }
 

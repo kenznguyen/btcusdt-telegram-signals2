@@ -12,8 +12,9 @@ android {
         applicationId = "com.kenznguyen.btclivealerts"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
+        manifestPlaceholders["appLabel"] = "BTCUSDT Chart Pro"
     }
 
     signingConfigs {
@@ -26,6 +27,12 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            // Install alongside the signed Release app; never overwrite its data.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            manifestPlaceholders["appLabel"] = "BTCUSDT Chart Pro (Debug)"
+        }
         getByName("release") {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("release")
@@ -53,4 +60,42 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
+}
+
+tasks.withType<Test>().configureEach {
+    val parityTrace = System.getenv("ANDROID_PARITY_TRACE_OUTPUT")
+    if (!parityTrace.isNullOrBlank()) {
+        systemProperty("android.parity.trace.output", parityTrace)
+    }
+}
+
+tasks.withType<Test>().configureEach {
+    System.getenv("ANDROID_PARITY_ENTRY_TRACE_OUTPUT")?.takeIf { it.isNotBlank() }?.let {
+        systemProperty("android.parity.entry.trace.output", it)
+    }
+}
+
+tasks.withType<Test>().configureEach {
+    System.getenv("ANDROID_PARITY_DCA_TRACE_OUTPUT")?.takeIf { it.isNotBlank() }?.let {
+        systemProperty("android.parity.dca.trace.output", it)
+    }
+}
+
+tasks.withType<Test>().configureEach {
+    System.getenv("ANDROID_PARITY_TP_TRACE_OUTPUT")?.takeIf { it.isNotBlank() }?.let {
+        systemProperty("android.parity.tp.trace.output", it)
+    }
+}
+
+// Opt-in offline Kotlin replay: same OKX Futures CSVs as Freqtrade, never network calls.
+tasks.withType<Test>().configureEach {
+    System.getenv("OKX_PARITY_OHLCV_DIR")?.takeIf { it.isNotBlank() }?.let {
+        systemProperty("okx.parity.ohlcv.dir", it)
+    }
+    System.getenv("OKX_PARITY_ANDROID_EVENTS")?.takeIf { it.isNotBlank() }?.let {
+        systemProperty("okx.parity.android.events", it)
+    }
+    System.getenv("OKX_PARITY_START_MS")?.takeIf { it.isNotBlank() }?.let {
+        systemProperty("okx.parity.start.ms", it)
+    }
 }

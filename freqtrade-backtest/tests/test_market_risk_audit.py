@@ -1,0 +1,54 @@
+"""Liquidation accounting contract; no conjectured maintenance margin."""
+import sys
+import unittest
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from market_risk_audit import audit_liquidations
+
+class LiquidationAuditTest(unittest.TestCase):
+    def test_short_liquidation_occurs_before_recorded_stop(self):
+        trade = {
+            "pair": "BTC/USDT:USDT", "exit_reason": "liquidation", "is_short": True,
+            "open_date": "2026-02-24 15:45:00+00:00",
+            "close_date": "2026-02-25 16:45:00+00:00",
+            "open_rate": 63716.1, "close_rate": 68080.3,
+            "stop_loss_abs": 68127.2, "profit_abs": -81.9568167,
+            "funding_fees": 0.0,
+        }
+        item = audit_liquidations([trade])[0]
+        self.assertTrue(item["liquidation_before_stop"])
+        self.assertAlmostEqual(item["liquidation_minus_stop_price"], -46.9)
+        self.assertFalse(item["liquidation_formula_verified"])
+
+    def test_no_liquidation_event(self):
+        self.assertEqual([], audit_liquidations([{"exit_reason": "tp"}]))
+
+    def test_funding_rate_uses_rate_field_when_open_missing(self):
+        from market_risk_audit import normalize_market_frame
+        import pandas as pd
+        frame = pd.DataFrame({"date": pd.to_datetime(["2026-02-25T00:00:00Z"]), "funding_rate": [0.0001]})
+        dates, values, col = normalize_market_frame(frame, "funding_rate")
+        self.assertEqual(col, "funding_rate")
+        self.assertEqual(values.tolist(), [0.0001])
+
+    def test_missing_funding_values_reported_not_fabricated(self):
+        from market_risk_audit import normalize_market_frame
+        import pandas as pd
+        frame = pd.DataFrame({"date": pd.to_datetime([], utc=True), "open": []})
+        with self.assertRaisesRegex(ValueError, "empty"):
+            normalize_market_frame(frame, "funding_rate")
+
+    def test_incomplete_funding_history_is_flagged(self):
+        from market_risk_audit import funding_coverage_status
+        data = {"funding_rate": {
+            "first_utc": "2026-07-27T16:00:00+00:00",
+            "last_utc": "2026-10-28T00:00:00+00:00"
+        }}
+        trades = [{"open_date": "2025-11-10T15:15:00+00:00",
+                   "close_date": "2026-10-21T14:30:00+00:00"}]
+        result = funding_coverage_status(data, trades)
+        self.assertFalse(result["complete_for_trade_period"])
+        self.assertEqual(result["reason"], "funding_history_incomplete")
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "engine",
+    "symbol",
+    "timeframe",
+    "period_days",
+    "strategy_commit",
+    "verified",
+    "metrics",
+    "trades"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "engine": {
+      "const": "freqtrade"
+    },
+    "symbol": {
+      "type": "string"
+    },
+    "timeframe": {
+      "type": "string"
+    },
+    "period_days": {
+      "enum": [
+        90,
+        180,
+        360
+      ]
+    },
+    "strategy_commit": {
+      "type": "string"
+    },
+    "verified": {
+      "type": "boolean"
+    },
+    "metrics": {
+      "type": "object"
+    },
+    "trades": {
+      "type": "array"
+    }
+  }
+}

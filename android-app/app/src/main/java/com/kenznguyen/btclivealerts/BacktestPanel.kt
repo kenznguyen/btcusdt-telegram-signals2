@@ -35,30 +35,50 @@ private data class BacktestReport(
 fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
     val scope = rememberCoroutineScope()
     var days by remember { mutableIntStateOf(30) }
+    var capitalInput by remember { mutableStateOf("100") }
     var loading by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Chưa chạy backtest") }
     var report by remember { mutableStateOf<BacktestReport?>(null) }
 
     Column(Modifier.fillMaxWidth().background(Color(0xFF151D29), RoundedCornerShape(14.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("BACKTEST · BTCUSDT M15 / H1", color = Color.White, style = MaterialTheme.typography.titleMedium)
-        Text("Dữ liệu Binance Futures · mô phỏng cục bộ · không đặt lệnh thật", color = Muted, style = MaterialTheme.typography.bodySmall)
+        Text("BACKTEST TRỰC TIẾP · BTCUSDT M15 / H1", color = Color.White, style = MaterialTheme.typography.titleMedium)
+        Text("Chạy ngay trên điện thoại bằng StrategyEngine · dữ liệu Binance Futures · không đặt lệnh thật", color = Muted, style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf(7, 30, 90, 180, 360).forEach { d ->
                 FilterChip(selected = days == d, onClick = { days = d }, enabled = !loading, label = { Text("${d}D") })
             }
         }
+        OutlinedTextField(
+            value = capitalInput,
+            onValueChange = { capitalInput = it },
+            label = { Text("Vốn ban đầu (USDT)") },
+            singleLine = true,
+            enabled = !loading,
+            modifier = Modifier.fillMaxWidth()
+        )
         Button(enabled = !loading, onClick = {
+            val runDays = days
+            val runCapital = capitalInput.toDoubleOrNull()
+            if (runCapital == null || !runCapital.isFinite() || runCapital <= 0.0 || runCapital > 1_000_000_000.0) {
+                status = "Vốn ban đầu phải lớn hơn 0 và không vượt quá 1 tỷ USDT."
+                return@Button
+            }
             scope.launch {
                 loading = true
                 status = "Đang tải nến phân trang và tính chỉ báo một lần…"
                 try {
                     val r = withContext(Dispatchers.Default) {
-                        val m15 = market.fetchHistory("15m", days)
-                        val h1 = market.fetchHistory("1h", days)
+                        val m15 = market.fetchHistory("15m", runDays)
+                        val h1 = market.fetchHistory("1h", runDays)
                         require(m15.size > 60 && h1.size > 30) { "Không đủ dữ liệu lịch sử." }
+                        validateBacktestCandles(m15, 900_000L, "M15")
+                        validateBacktestCandles(h1, 3_600_000L, "H1")
+                        val checkedAt = System.currentTimeMillis()
+                        validateBacktestCoverage(m15, runDays, 900_000L, checkedAt, "M15")
+                        validateBacktestCoverage(h1, runDays, 3_600_000L, checkedAt, "H1")
                         // Critical optimization: calculate indicator series once and process the entire candle set once.
                         // Never replay each growing candle prefix (that made the old implementation O(n²)).
-                        val initial = StrategyState(balance = 100.0)
+                        val initial = StrategyState(balance = runCapital)
                         var peak = initial.balance
                         var maxDd = 0.0
                         var maxAbs = 0.0
@@ -128,6 +148,7 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
         }, modifier = Modifier.fillMaxWidth()) { Text(if (loading) "ĐANG CHẠY…" else "CHẠY BACKTEST ${days} NGÀY") }
         Text(status, color = if (status.startsWith("Hoàn tất")) Green else Muted, style = MaterialTheme.typography.bodySmall)
         report?.let { r ->
+            Text("Vốn đã dùng khi chạy: ${"%.2f".format(r.startBalance)} USDT", color = Muted, style = MaterialTheme.typography.bodySmall)
             Metric("Net PnL đã đóng", "%+.2f USDT".format(r.netPnl), r.netPnl >= 0)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Metric("Số dư sau lệnh đóng", "%.2f".format(r.endBalance), r.endBalance >= r.startBalance, Modifier.weight(1f))
@@ -150,8 +171,17 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                 Text("$p · Qty ${"%.6f".format(r.openQty)} BTC · Giá vốn ${"%.2f".format(r.openEntry)}", color = Color.White)
                 Text("PnL chưa thực hiện ước tính sau phí thoát: ${"%+.2f".format(r.openUnrealized)} USDT", color = if (r.openUnrealized >= 0) Green else Red)
             }
+            val tpCount = r.closed.count { it.kind == "TAKE PROFIT" }
+            val softSlCount = r.closed.count { it.kind == "SOFT SL" }
+            val emergencySlCount = r.closed.count { it.kind == "EMERGENCY SL" }
+            val dcaCount = r.events.count { it.kind == "DCA" }
+            Text("TP: $tpCount · Soft SL: $softSlCount · Emergency SL: $emergencySlCount · DCA: $dcaCount",
+                color = Color.White, style = MaterialTheme.typography.bodySmall)
+            Text("Lưu ý rủi ro Futures 13x: backtest Android chưa mô phỏng đầy đủ funding, liquidation và giá mark. Equity theo M15 không thay thế kiểm toán 5m từ Freqtrade.",
+                color = Muted, style = MaterialTheme.typography.bodySmall)
             Text("Số lệnh đóng: ${r.closed.size} · Số sự kiện: ${r.events.size}", color = Muted)
             Text("Dữ liệu: ${date(r.from)} – ${date(r.to)}", color = Muted, style = MaterialTheme.typography.bodySmall)
+            Text("Engine: Android StrategyEngine · Không phải Freqtrade Python chạy trong APK. Chỉ số mô phỏng, chưa chứng nhận tương đương Freqtrade.", color = Muted, style = MaterialTheme.typography.bodySmall)
             Text("LỊCH SỬ LỆNH ĐÓNG GẦN NHẤT", color = Color.White, style = MaterialTheme.typography.titleSmall)
             r.closed.takeLast(15).reversed().forEach { e ->
                 Column(Modifier.fillMaxWidth().background(Color(0xFF0B1018), RoundedCornerShape(8.dp)).padding(10.dp)) {
@@ -195,5 +225,39 @@ private fun EquityChart(values: List<Double>, lineColor: Color, modifier: Modifi
                 size.height - ((value - low) / range).toFloat() * size.height)
         }
         points.zipWithNext().forEach { (a, b) -> drawLine(lineColor, a, b, 2f) }
+    }
+}
+
+/** Reject incomplete or duplicated historical candles before presenting performance metrics. */
+internal fun validateBacktestCandles(candles: List<Candle>, stepMs: Long, timeframe: String) {
+    require(candles.isNotEmpty()) { "Không có dữ liệu $timeframe" }
+    val ordered = candles.filter { it.closed }.sortedBy { it.openTime }
+    require(ordered.size == candles.size) { "$timeframe có nến chưa đóng" }
+    require(ordered.distinctBy { it.openTime }.size == ordered.size) { "$timeframe có timestamp trùng" }
+    require(ordered.all {
+        it.openTime % stepMs == 0L && it.high >= maxOf(it.open, it.close, it.low) &&
+            it.low <= minOf(it.open, it.close, it.high) && it.low > 0.0 &&
+            it.volume >= 0.0 && it.open.isFinite() && it.high.isFinite() &&
+            it.low.isFinite() && it.close.isFinite() && it.volume.isFinite()
+    }) { "$timeframe có nến OHLCV không hợp lệ" }
+    require(ordered.zipWithNext().all { (a, b) -> b.openTime - a.openTime == stepMs }) {
+        "$timeframe có khoảng trống dữ liệu lịch sử. Hãy tải lại trước khi backtest."
+    }
+}
+
+/** Ensure pagination returned the requested window, not merely a short but valid subset. */
+internal fun validateBacktestCoverage(
+    candles: List<Candle>, days: Int, stepMs: Long, nowMs: Long, timeframe: String
+) {
+    require(days in setOf(7, 30, 90, 180, 360)) { "Kỳ backtest không hỗ trợ" }
+    require(stepMs > 0L && nowMs > 0L) { "Thời gian kiểm tra không hợp lệ" }
+    val first = candles.minOfOrNull { it.openTime } ?: error("$timeframe không có nến")
+    val last = candles.maxOfOrNull { it.openTime } ?: error("$timeframe không có nến")
+    val requestedStart = nowMs - days.toLong() * 86_400_000L
+    require(first <= requestedStart + 2L * stepMs) {
+        "$timeframe thiếu dữ liệu đầu kỳ ($days ngày). Không dùng kết quả chưa đủ kỳ."
+    }
+    require(last >= nowMs - 3L * stepMs) {
+        "$timeframe thiếu dữ liệu cuối kỳ. Không dùng kết quả chưa đủ kỳ."
     }
 }

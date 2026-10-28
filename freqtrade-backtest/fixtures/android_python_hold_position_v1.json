@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "symbol": "BTCUSDT",
+  "initial_balance": 100.0,
+  "initial_position": {
+    "side": "LONG",
+    "qty": 6.496751624187906,
+    "avg_entry": 100.05,
+    "initial_margin": 50.0,
+    "dca_margin": 0.0,
+    "entry_notional": 650.0,
+    "entry_time": 0,
+    "dca_used": false
+  },
+  "candles_m15": [
+    {"timestamp_ms": 0, "open": 100, "high": 101, "low": 99, "close": 100, "volume": 10, "closed": true},
+    {"timestamp_ms": 900000, "open": 100, "high": 102, "low": 99, "close": 101, "volume": 12, "closed": true}
+  ],
+  "candles_h1": [],
+  "expected": {"event_count": 0, "position_open": true}
+}
