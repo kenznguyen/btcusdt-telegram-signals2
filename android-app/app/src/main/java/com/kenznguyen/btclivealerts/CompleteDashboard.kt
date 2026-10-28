@@ -680,8 +680,7 @@ fun CompleteDashboard(context: Context) {
             }
             if (selectedTab == 2) item {
                 Column(Modifier.fillMaxWidth()) {
-                    BacktestPanel(market, engine)
-                    BacktestAnalyticsScreen(report = null, modifier = Modifier.fillMaxWidth())
+                    FreqtradeBacktestPanel(context, market, engine)
                 }
             }
             if (selectedTab == 0) item {
