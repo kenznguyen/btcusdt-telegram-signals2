@@ -10,7 +10,7 @@
   "tradable_balance_ratio": 1,
   "cancel_open_orders_on_exit": false,
   "exchange": {
-    "name": "binance",
+    "name": "okx",
     "key": "",
     "secret": "",
     "pair_whitelist": [
