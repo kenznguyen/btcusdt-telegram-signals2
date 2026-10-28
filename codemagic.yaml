@@ -413,6 +413,19 @@ workflows:
             --result "$ZIP" \
             --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
             --output freqtrade-futures-results/liquidation-funding-input-audit.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path("freqtrade-futures-results/liquidation-funding-input-audit.json").read_text())
+          coverage = result["funding_coverage"]
+          if not coverage["complete_for_trade_period"]:
+              print("WARNING: Funding history incomplete for 360-day backtest.")
+              print("First funding:", coverage["first_funding_utc"])
+              print("First trade:", coverage["first_trade_utc"])
+              print("Backtest PnL and equity are not fully funding-verified.")
+          else:
+              print("Funding history spans trade dates; settlement schedule still unverified.")
+          PY
           "$CM_BUILD_DIR/.freqtrade-venv/bin/python" freqtrade-backtest/funding_timeline_audit.py \
             --result "$ZIP" \
             --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
