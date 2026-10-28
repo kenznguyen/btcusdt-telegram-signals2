@@ -320,6 +320,7 @@ workflows:
           "$CM_BUILD_DIR/.freqtrade-venv/bin/python" -m unittest discover -s freqtrade-backtest/tests -p test_funding_timeline_audit.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_common_dataset_parity.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_export_freqtrade_events.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_strict_trade_pairing.py -v
       - name: Record actual Freqtrade version
         script: |
           set -eu
@@ -386,6 +387,32 @@ workflows:
             echo "No DCA diagnostics were emitted; callback may not have been invoked."
           fi
           find freqtrade-futures-data/backtest_results -type f -name '*.zip' | grep -q .
+      - name: Export actual fills to Android parity input schema
+        script: |
+          set -eu
+          ZIP=$(find freqtrade-futures-data/backtest_results -maxdepth 1 -type f -name '*.zip' | sort | tail -n 1)
+          test -n "$ZIP"
+          python3 freqtrade-backtest/export_freqtrade_events.py \
+            --result "$ZIP" \
+            --output freqtrade-futures-results/freqtrade-execution-events.json
+      - name: Kotlin and Freqtrade must replay identical checksum OKX dataset
+        script: |
+          set -eu
+          export OKX_PARITY_OHLCV_DIR="$CM_BUILD_DIR/freqtrade-futures-results/common-ohlcv"
+          export OKX_PARITY_ANDROID_EVENTS="$CM_BUILD_DIR/freqtrade-futures-results/android-kotlin-execution-events.json"
+          cd android-app
+          gradle :app:testDebugUnitTest --tests "com.kenznguyen.btclivealerts.OkxCommonOhlcvParityTest" --no-daemon
+          cd "$CM_BUILD_DIR"
+          test -s "$OKX_PARITY_ANDROID_EVENTS"
+      - name: Fail-closed per-trade five-event parity gate
+        script: |
+          set -eu
+          python3 freqtrade-backtest/strict_trade_pairing.py \
+            --ohlcv freqtrade-futures-results/common-ohlcv \
+            --android freqtrade-futures-results/android-kotlin-execution-events.json \
+            --freqtrade freqtrade-futures-results/freqtrade-execution-events.json \
+            --output freqtrade-futures-results/strict-parity-report.json \
+            --csv freqtrade-futures-results/strict-trade-differences.csv
       - name: Reconcile open-position equity and drawdown on each 5m candle
         script: |
           set -eu
@@ -396,14 +423,6 @@ workflows:
             --ohlcv freqtrade-futures-results/common-ohlcv/btc-usdt-okx-futures-5m-utc.csv.gz \
             --csv freqtrade-futures-results/equity-5m.csv.gz \
             --json freqtrade-futures-results/equity-5m-summary.json
-      - name: Export actual fills to Android parity input schema
-        script: |
-          set -eu
-          ZIP=$(find freqtrade-futures-data/backtest_results -maxdepth 1 -type f -name '*.zip' | sort | tail -n 1)
-          test -n "$ZIP"
-          python3 freqtrade-backtest/export_freqtrade_events.py \
-            --result "$ZIP" \
-            --output freqtrade-futures-results/freqtrade-execution-events.json
       - name: Audit liquidation rule and funding at observed UTC marks
         script: |
           set -eu
@@ -491,7 +510,9 @@ workflows:
               "dca_short_tp_soft_sl_emergency_sl_parity_verified": False,
               "android_fill_price_and_event_order_verified": False,
               "common_ohlcv_exported": True,
-              "android_common_dataset_replay_verified": False,
+              "android_common_dataset_replay_verified": True,
+              "strict_parity_verified": True,
+              "strict_trade_difference_report": "strict-trade-differences.csv",
               "common_dataset_parity_status": "common-dataset-parity-status.json",
               "actual_freqtrade_event_export": "freqtrade-execution-events.json",
               "dca_callback_trace": "dca-diagnostics.jsonl",
