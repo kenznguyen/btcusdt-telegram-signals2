@@ -327,6 +327,7 @@ workflows:
         script: |
           set -eu
           export FREQTRADE_DCA_TRACE="$CM_BUILD_DIR/freqtrade-futures-results/dca-diagnostics.jsonl"
+          export FREQTRADE_EXIT_TRACE="$CM_BUILD_DIR/freqtrade-futures-results/exit-diagnostics.jsonl"
           "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" backtesting \
             --userdir "$CM_BUILD_DIR/freqtrade-futures-data" \
             --config "$CM_BUILD_DIR/freqtrade-futures-data/config.json" \
@@ -364,6 +365,7 @@ workflows:
               "dca_short_tp_soft_sl_emergency_sl_parity_verified": False,
               "android_fill_price_and_event_order_verified": False,
               "dca_callback_trace": "dca-diagnostics.jsonl",
+              "exit_callback_trace": "exit-diagnostics.jsonl",
               "no_real_orders": True
           }
           Path("freqtrade-futures-results/run-manifest.json").write_text(
