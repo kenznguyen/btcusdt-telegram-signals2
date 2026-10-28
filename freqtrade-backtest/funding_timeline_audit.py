@@ -3,6 +3,7 @@
 This is an independent audit, not a replay of exact OKX settlement times.
 """
 import argparse
+import bisect
 import json
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from market_risk_audit import exported_trades
 def funding_ledger(trades, funding, marks):
     marks = sorted(marks, key=lambda x: x["timestamp_ms"])
     funding = sorted(funding, key=lambda x: x["timestamp_ms"])
+    mark_times = [x["timestamp_ms"] for x in marks]
     events = []
     totals = []
     for i, trade in enumerate(trades, 1):
@@ -22,10 +24,10 @@ def funding_ledger(trades, funding, marks):
             t = int(observation["timestamp_ms"])
             if not start < t < end:
                 continue
-            prior_mark = [p for p in marks if p["timestamp_ms"] <= t]
-            if not prior_mark:
+            mark_index = bisect.bisect_right(mark_times, t) - 1
+            if mark_index < 0:
                 continue
-            mark = float(prior_mark[-1]["price"])
+            mark = float(marks[mark_index]["price"])
             amount = sum(float(o["amount"]) for o in entries
                          if int(o["order_filled_timestamp"]) < t)
             if amount <= 0:
