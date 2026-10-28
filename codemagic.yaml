@@ -847,3 +847,121 @@ workflows:
       - freqtrade-futures-results/**/*
       - freqtrade-futures-data/backtest_results/**/*
       - freqtrade-futures-data/walkforward/**/*
+
+
+  freqai_lightgbm_research:
+    name: BTCUSDT Chart Pro — FreqAI LightGBM research (no orders)
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      java: 17
+      vars:
+        BACKTEST_DAYS: '90'
+    scripts:
+      - name: Verify isolated no-order FreqAI configuration
+        script: |
+          set -eu
+          python3 - <<'PY'
+          import ast
+          import json
+          from pathlib import Path
+          c=json.loads(Path("freqtrade-backtest/config.freqai-research.json").read_text())
+          assert c["dry_run"] and c["trading_mode"] == "futures"
+          assert c["exchange"]["name"] == "okx"
+          assert c["exchange"]["key"] == c["exchange"]["secret"] == ""
+          assert c["freqai"]["enabled"] is True
+          assert c["freqai"]["data_split_parameters"]["shuffle"] is False
+          text=Path("freqtrade-backtest/strategies/BtcFreqaiResearch.py").read_text()
+          assert 'RunMode.BACKTEST' in text and 'self.freqai.start' in text
+          ast.parse(text)
+          print("FreqAI regression is research-only; trading signals disabled.")
+          PY
+      - name: Install native Freqtrade with FreqAI LightGBM dependencies
+        script: |
+          set -eu
+          brew install python@3.12 ta-lib libomp
+          "$(brew --prefix python@3.12)/bin/python3.12" -m venv "$CM_BUILD_DIR/.freqai-venv"
+          "$CM_BUILD_DIR/.freqai-venv/bin/python" -m pip install --upgrade pip setuptools wheel
+          "$CM_BUILD_DIR/.freqai-venv/bin/python" -m pip install 'freqtrade[freqai]' lightgbm
+          "$CM_BUILD_DIR/.freqai-venv/bin/freqtrade" --version
+      - name: Run FreqAI research contract and leakage tests
+        script: |
+          set -eu
+          "$CM_BUILD_DIR/.freqai-venv/bin/python" -m unittest discover -s freqtrade-backtest/tests -p test_freqai_research.py -v
+      - name: Prepare research workspace and historical window
+        script: |
+          set -eu
+          mkdir -p freqai-research-data/data freqai-research-data/strategies freqai-research-data/backtest_results freqai-research-results
+          cp freqtrade-backtest/config.freqai-research.json freqai-research-data/config.json
+          cp freqtrade-backtest/strategies/BtcFreqaiResearch.py freqai-research-data/strategies/BtcFreqaiResearch.py
+          python3 freqtrade-backtest/backtest_window.py --days "$BACKTEST_DAYS" --output freqai-research-results/window.json
+      - name: Download OKX Futures M15 H1 with 45-day training prehistory
+        script: |
+          set -eu
+          DOWNLOAD_DAYS=$(python3 - <<'PY'
+          import json
+          w=json.load(open("freqai-research-results/window.json"))
+          print(w["days"]+65)
+          PY
+          )
+          "$CM_BUILD_DIR/.freqai-venv/bin/freqtrade" download-data \
+            --userdir "$CM_BUILD_DIR/freqai-research-data" \
+            --config "$CM_BUILD_DIR/freqai-research-data/config.json" \
+            --exchange okx --pairs BTC/USDT:USDT --trading-mode futures \
+            --timeframes 15m 1h --days "$DOWNLOAD_DAYS" \
+            --datadir "$CM_BUILD_DIR/freqai-research-data/data"
+      - name: Run real FreqAI LightGBMRegressor historical backtesting
+        script: |
+          set -eu
+          TIMERANGE=$(python3 - <<'PY'
+          import json
+          print(json.load(open("freqai-research-results/window.json"))["timerange"])
+          PY
+          )
+          "$CM_BUILD_DIR/.freqai-venv/bin/freqtrade" backtesting \
+            --userdir "$CM_BUILD_DIR/freqai-research-data" \
+            --config "$CM_BUILD_DIR/freqai-research-data/config.json" \
+            --strategy BtcFreqaiResearch \
+            --strategy-path "$CM_BUILD_DIR/freqai-research-data/strategies" \
+            --freqaimodel LightGBMRegressor \
+            --timerange "$TIMERANGE" \
+            --datadir "$CM_BUILD_DIR/freqai-research-data/data" \
+            --export-directory "$CM_BUILD_DIR/freqai-research-data/backtest_results" \
+            --cache none --export signals \
+            > freqai-research-results/freqai-backtest.log 2>&1 || {
+              tail -n 160 freqai-research-results/freqai-backtest.log
+              exit 1
+            }
+          tail -n 80 freqai-research-results/freqai-backtest.log
+      - name: Independent purged walk-forward forecast validation
+        script: |
+          set -eu
+          "$CM_BUILD_DIR/.freqai-venv/bin/python" freqtrade-backtest/freqai_research_metrics.py \
+            --datadir "$CM_BUILD_DIR/freqai-research-data/data" \
+            --timerange-start "$(python3 -c 'import json; print(json.load(open("freqai-research-results/window.json"))["start"])')" \
+            --timerange-end "$(python3 -c 'import json; print(json.load(open("freqai-research-results/window.json"))["end_exclusive"])')" \
+            --output "$CM_BUILD_DIR/freqai-research-results/freqai-research-report.json"
+      - name: Write research-only run manifest
+        script: |
+          set -eu
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report={
+              "freqai_runtime_backtest_completed": True,
+              "model": "LightGBMRegressor",
+              "market": "OKX BTC/USDT:USDT Futures",
+              "target": "four 15m candle forward return (60m)",
+              "strategy_produced_trading_orders": False,
+              "research_only": True,
+              "automatic_live_trading": False,
+              "strategy_engine_parameters_changed": False,
+              "independent_metrics_are_not_freqai_internal_predictions": True,
+              "android_integration_verified": False,
+              "actual_profitability_verified": False
+          }
+          Path("freqai-research-results/run-manifest.json").write_text(json.dumps(report,indent=2)+"\n")
+          PY
+    artifacts:
+      - freqai-research-results/**/*
+      - freqai-research-data/backtest_results/**/*
