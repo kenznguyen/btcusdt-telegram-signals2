@@ -66,6 +66,9 @@ fun FreqaiResearchPanel(context: Context) {
             Text("Mẫu ngoài kỳ: ${r.samples} · ${r.windows} cửa sổ", color = Color.White)
             Text("MAE: ${"%.5f".format(r.mae)} · Mốc lợi suất 0: ${"%.5f".format(r.baselineMae)}", color = Color.White)
             Text("Độ chính xác hướng: ${"%.2f".format(r.directionAccuracy * 100.0)}%", color = Color.White)
+            r.volatilityMae?.let { value ->
+                Text("MAE dự báo biến động 60 phút: ${"%.5f".format(value)}", color = Color.White)
+            }
             Text(if (r.improvesBaseline) "MAE tốt hơn dự báo lợi suất bằng 0 trên tập kiểm định."
                  else "MAE chưa vượt dự báo lợi suất bằng 0.", color = Color(0xFF91A0B5))
             Text("Đây là báo cáo LightGBM walk-forward độc lập, KHÔNG phải dự báo được xuất trực tiếp từ nội bộ FreqAI; chưa chứng minh lợi nhuận giao dịch.",
