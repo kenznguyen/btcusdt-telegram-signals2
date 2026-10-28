@@ -174,15 +174,16 @@ workflows:
       - python-entry-trace.json
 
   freqtrade_runtime_backtest:
-    name: REAL Freqtrade runtime backtest (ENTRY diagnostic only)
-    max_build_duration: 60
+    name: Freqtrade REAL backtest — macOS M2 native experiment
+    instance_type: mac_mini_m2
+    max_build_duration: 120
     environment:
       java: 17
     scripts:
-      - name: Assert Docker and backtest-only configuration
+      - name: Validate backtest-only configuration
         script: |
           set -eu
-          docker info >/dev/null
+          uname -sm
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -190,9 +191,18 @@ workflows:
           assert c["dry_run"] is True and c["trading_mode"] == "spot"
           assert c["exchange"]["key"] == "" and c["exchange"]["secret"] == ""
           assert c["exchange"]["pair_whitelist"] == ["BTC/USDT"]
-          print("Runtime is isolated: SPOT diagnostic only, no trading credentials.")
+          print("Keyless spot historical backtest only.")
           PY
-      - name: Prepare Freqtrade workspace
+      - name: Install native Freqtrade (experimental, ARM64 unsupported upstream)
+        script: |
+          set -eu
+          command -v brew || { echo "Homebrew is required for native install"; exit 1; }
+          brew install python@3.12 ta-lib libomp
+          "$(brew --prefix python@3.12)/bin/python3.12" -m venv "$CM_BUILD_DIR/.freqtrade-venv"
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" -m pip install --upgrade pip wheel setuptools
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" -m pip install freqtrade
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" --version
+      - name: Prepare backtest workspace
         script: |
           set -eu
           mkdir -p freqtrade-runtime-data/data freqtrade-runtime-data/backtest_results freqtrade-runtime-results
@@ -201,38 +211,35 @@ workflows:
           cp freqtrade-backtest/entry_frame.py freqtrade-runtime-data/entry_frame.py
           cp freqtrade-backtest/android_indicators.py freqtrade-runtime-data/android_indicators.py
           cp freqtrade-backtest/android_signal_predicates.py freqtrade-runtime-data/android_signal_predicates.py
-      - name: Check actual Freqtrade CLI version
+      - name: Record actual Freqtrade version
         script: |
           set -eu
-          docker run --rm freqtradeorg/freqtrade:stable --version | tee freqtrade-runtime-results/version.txt
-      - name: Download historical Binance SPOT BTC/USDT candles
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" --version | tee freqtrade-runtime-results/version.txt
+      - name: Download Binance SPOT candles for native backtest
         script: |
           set -eu
-          docker run --rm -v "$CM_BUILD_DIR/freqtrade-runtime-data:/freqtrade/user_data" \
-            freqtradeorg/freqtrade:stable download-data \
-            --config /freqtrade/user_data/config.json \
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" download-data \
+            --config "$CM_BUILD_DIR/freqtrade-runtime-data/config.json" \
             --exchange binance --pairs BTC/USDT \
             --trading-mode spot --timeframes 15m 1h --days 45 \
-            --datadir /freqtrade/user_data/data
-      - name: Run actual Freqtrade backtesting engine
+            --datadir "$CM_BUILD_DIR/freqtrade-runtime-data/data"
+      - name: Run actual Freqtrade CLI backtesting
         script: |
           set -eu
-          docker run --rm -v "$CM_BUILD_DIR/freqtrade-runtime-data:/freqtrade/user_data" \
-            freqtradeorg/freqtrade:stable backtesting \
-            --config /freqtrade/user_data/config.json \
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" backtesting \
+            --config "$CM_BUILD_DIR/freqtrade-runtime-data/config.json" \
             --strategy BtcM15H1EntryRuntime \
-            --strategy-path /freqtrade/user_data \
-            --datadir /freqtrade/user_data/data \
-            --export-directory /freqtrade/user_data/backtest_results \
+            --strategy-path "$CM_BUILD_DIR/freqtrade-runtime-data" \
+            --datadir "$CM_BUILD_DIR/freqtrade-runtime-data/data" \
+            --export-directory "$CM_BUILD_DIR/freqtrade-runtime-data/backtest_results" \
             --fee 0.0005 --cache none --export trades \
             > freqtrade-runtime-results/backtest.log 2>&1 || {
               tail -n 120 freqtrade-runtime-results/backtest.log
               exit 1
             }
           tail -n 100 freqtrade-runtime-results/backtest.log
-          find freqtrade-runtime-data/backtest_results -type f -maxdepth 2 -print
           find freqtrade-runtime-data/backtest_results -type f -name '*.zip' | grep -q .
-      - name: Record experiment boundaries
+      - name: Write verified command-execution manifest
         script: |
           set -eu
           python3 - <<'PY'
@@ -240,16 +247,16 @@ workflows:
           from pathlib import Path
           report = {
               "actual_freqtrade_backtest_command_completed": True,
+              "runtime_install": "experimental native macOS ARM64",
               "strategy": "BtcM15H1EntryRuntime",
               "market": "Binance BTC/USDT SPOT",
-              "strategy_scope": "LONG ENTRY diagnostic; ROI/stoploss are placeholders",
+              "strategy_scope": "LONG entry diagnostic, placeholder ROI/stoploss",
               "android_13x_futures_parity_verified": False,
               "dca_short_tp_soft_sl_emergency_sl_parity_verified": False,
-              "no_real_orders": True,
-              "note": "Read the real Freqtrade result ZIP for trade counts and metrics; do not infer profitability."
+              "no_real_orders": True
           }
           Path("freqtrade-runtime-results/run-manifest.json").write_text(
-              json.dumps(report, ensure_ascii=False, indent=2) + "\\n")
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n")
           PY
     artifacts:
       - freqtrade-runtime-results/**/*
