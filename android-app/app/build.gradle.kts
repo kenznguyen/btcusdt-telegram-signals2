@@ -79,3 +79,13 @@ tasks.withType<Test>().configureEach {
         systemProperty("android.parity.tp.trace.output", it)
     }
 }
+
+// Opt-in offline Kotlin replay: same OKX Futures CSVs as Freqtrade, never network calls.
+tasks.withType<Test>().configureEach {
+    System.getenv("OKX_PARITY_OHLCV_DIR")?.takeIf { it.isNotBlank() }?.let {
+        systemProperty("okx.parity.ohlcv.dir", it)
+    }
+    System.getenv("OKX_PARITY_ANDROID_EVENTS")?.takeIf { it.isNotBlank() }?.let {
+        systemProperty("okx.parity.android.events", it)
+    }
+}
