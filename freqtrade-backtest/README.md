@@ -49,3 +49,26 @@ offline replay parity suite, then builds a Debug APK. The optional
 break normal Android builds.
 
 No Release signing, exchange API keys, or real trade execution is required.
+
+## ENTRY DataFrame parity progress
+
+`entry_frame.py` now computes RSI(14), Wilder DMI/ADX(14), and LONG/SHORT
+entry *diagnostic columns* from M15 OHLCV plus closed H1 OHLCV. It uses
+`android_indicators.indicator_series` and the already audited
+`android_signal_predicates.entry_side`, both independent of the Freqtrade
+package. H1 open-time rows become visible only at open time + one hour,
+preventing same-hour lookahead.
+
+`tests/test_entry_frame.py` compares the initial LONG ENTRY timestamp to
+the Python state replay on the **same**
+`fixtures/android_python_entry_ohlc_v1.json` used by the Android JVM test.
+It also checks H1 close timing and missing/duplicate candle rejection. The
+tests require pandas, and skip when pandas is not installed; such a skip
+must not be treated as verified parity.
+
+**Limitations:** this is diagnostic ENTRY logic, not the live Freqtrade
+strategy adapter; Freqtrade-specific data-provider integration, exchange
+data import, position-state handling, DCA/TP/stops, trade ledger and
+runtime backtest are still unimplemented. Existing
+`BtcM15H1ParityGate` deliberately continues to suppress all entries
+and exits. No trading functionality is enabled.
