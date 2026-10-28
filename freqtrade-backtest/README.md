@@ -159,3 +159,41 @@ and free CI resource consumption. Start with 90 days if the 180-day
 download is rate-limited, then check the full coverage report before
 evaluating performance. DCA and exit callback diagnostic logs remain
 enabled. No automatic tuning, real orders, or Android strategy changes.
+
+## Detailed stop-fill validation and historical walk-forward (October 2026)
+
+The futures adapter now uses Freqtrade's **native -90% stoploss on leveraged
+stake** for the emergency protection threshold. This is the exchange/engine
+risk cap for backtesting, not a claim of identical Android intrabar fills.
+The custom Android emergency predicate is still evaluated for diagnostics,
+but no competing `custom_exit` is submitted for emergency breaches.
+Soft SL retains its H1 reversal + two-candle confirmation and a
+`custom_exit` request after confirmation; the resulting simulated fill
+will not necessarily equal the Android theoretical stop price.
+
+`freqtrade_futures_backtest` downloads 5m/15m/1h OKX Futures OHLCV and
+uses `--timeframe-detail 5m` in its full-period backtest (180 days by
+default, `BACKTEST_DAYS=360` for the longer run). The history
+validator fails on gaps or incomplete timeframes.
+
+New exported artifacts:
+- `freqtrade-futures-results/fill-reconciliation.csv` and `.json`:
+  `expected_fill_price` from an actually matched Android-model stop
+  trace, `actual_fill_price` from the Freqtrade trade, signed
+  `fill_difference = actual - expected`. Unmatched emergency stops,
+  missing traces and ordinary TP fills remain **null**, never guessed.
+- `freqtrade-futures-results/common-ohlcv/*.csv.gz` plus
+  `shared-ohlcv-manifest.json`: common UTC timestamp OHLCV and SHA256
+  checksums for future Kotlin/Python input comparison.
+- With `BACKTEST_DAYS=360`: three **120-day, non-overlapping,
+  chronological** validation reports under
+  `freqtrade-futures-data/walkforward/window-{1,2,3}`.
+  These are fixed-parameter sequential evaluation windows,
+  **not** model re-training/optimization.
+
+**Not yet verified:** The Kotlin Android engine has not been executed
+against this exported OKX dataset. Stop fills and accounting do not have
+bar-for-bar parity certificates. Native stoploss may be affected by
+market gaps, leverage funding, order simulation, and data granularity.
+All backtests remain paper/historical only, and every real-trading
+mode is rejected by the strategy.
