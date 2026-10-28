@@ -313,6 +313,7 @@ workflows:
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_futures_runtime_contract.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_dca_diagnostics.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_futures_dynamic_stake.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_reconcile_fills.py -v
       - name: Record actual Freqtrade version
         script: |
           set -eu
@@ -367,6 +368,50 @@ workflows:
             echo "No DCA diagnostics were emitted; callback may not have been invoked."
           fi
           find freqtrade-futures-data/backtest_results -type f -name '*.zip' | grep -q .
+      - name: Reconcile expected and actual fill prices
+        script: |
+          set -eu
+          ZIP=$(find freqtrade-futures-data/backtest_results -maxdepth 1 -type f -name '*.zip' | sort | tail -n 1)
+          test -n "$ZIP"
+          python3 freqtrade-backtest/reconcile_fills.py \
+            --result "$ZIP" \
+            --exit-trace freqtrade-futures-results/exit-diagnostics.jsonl \
+            --csv freqtrade-futures-results/fill-reconciliation.csv \
+            --json freqtrade-futures-results/fill-reconciliation.json
+      - name: Walk-forward 3 x 120 days when 360 days selected
+        script: |
+          set -eu
+          if [ "$BACKTEST_DAYS" != "360" ]; then
+            echo "Walk-forward is enabled for 360-day runs only."
+            exit 0
+          fi
+          python3 freqtrade-backtest/walkforward_windows.py --output freqtrade-futures-results/walkforward-windows.json
+          mkdir -p freqtrade-futures-data/walkforward
+          python3 - <<'PY' > freqtrade-futures-results/walkforward-timeranges.txt
+          import json
+          for item in json.load(open("freqtrade-futures-results/walkforward-windows.json")):
+              print(item["timerange"])
+          PY
+          n=0
+          while IFS= read -r WINDOW; do
+            n=$((n + 1))
+            mkdir -p "$CM_BUILD_DIR/freqtrade-futures-data/walkforward/window-$n"
+            export FREQTRADE_DCA_TRACE="$CM_BUILD_DIR/freqtrade-futures-results/dca-window-$n.jsonl"
+            export FREQTRADE_EXIT_TRACE="$CM_BUILD_DIR/freqtrade-futures-results/exit-window-$n.jsonl"
+            "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" backtesting \
+              --userdir "$CM_BUILD_DIR/freqtrade-futures-data" \
+              --config "$CM_BUILD_DIR/freqtrade-futures-data/config.json" \
+              --strategy BtcM15H1FuturesRuntime \
+              --strategy-path "$CM_BUILD_DIR/freqtrade-futures-data/strategies" \
+              --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
+              --export-directory "$CM_BUILD_DIR/freqtrade-futures-data/walkforward/window-$n" \
+              --timerange "$WINDOW" --timeframe-detail 5m \
+              --fee 0.0005 --cache none --export trades \
+              > "freqtrade-futures-results/walkforward-$n.log" 2>&1 || {
+                tail -n 80 "freqtrade-futures-results/walkforward-$n.log"
+                exit 1
+              }
+          done < freqtrade-futures-results/walkforward-timeranges.txt
       - name: Write verified command-execution manifest
         script: |
           set -eu
@@ -388,6 +433,7 @@ workflows:
               "requested_days": int(__import__("os").environ.get("BACKTEST_DAYS", "180")),
               "history_coverage_checked": True,
               "timeframe_detail": "5m",
+              "walkforward_windows": 3 if int(__import__("os").environ.get("BACKTEST_DAYS", "180")) == 360 else 0,
               "protective_emergency_stop_roe": -90.0,
               "no_real_orders": True
           }
@@ -397,3 +443,4 @@ workflows:
     artifacts:
       - freqtrade-futures-results/**/*
       - freqtrade-futures-data/backtest_results/**/*
+      - freqtrade-futures-data/walkforward/**/*
