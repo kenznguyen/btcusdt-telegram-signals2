@@ -1,14 +1,13 @@
 package com.kenznguyen.btclivealerts
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -80,7 +79,6 @@ object FreqtradeReportImporter {
 fun FreqtradeBacktestPanel(context: Context, market: MarketEngine, engine: StrategyEngine) {
     val scope = rememberCoroutineScope()
     var report by remember { mutableStateOf<FreqtradeReport?>(null) }
-    var filename by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var showKotlinComparison by remember { mutableStateOf(false) }
@@ -95,7 +93,6 @@ fun FreqtradeBacktestPanel(context: Context, market: MarketEngine, engine: Strat
                         FreqtradeReportImporter.import(context, uri)
                     }
                     report = imported
-                    filename = uri.lastPathSegment
                 } catch (exc: Exception) {
                     error = exc.message ?: exc.javaClass.simpleName
                 } finally {
@@ -118,6 +115,12 @@ fun FreqtradeBacktestPanel(context: Context, market: MarketEngine, engine: Strat
         ) {
             Text(if (loading) "ĐANG ĐỌC BÁO CÁO…" else "MỞ BÁO CÁO FREQTRADE ZIP / JSON")
         }
+        OutlinedButton(onClick = {
+            context.startActivity(Intent(Intent.ACTION_VIEW,
+                Uri.parse("https://codemagic.io/apps")))
+        }) { Text("MỞ CODEMAGIC · CHẠY FREQTRADE 90/180/360 NGÀY") }
+        Text("Workflow: freqtrade_chart_pro_analytics · tải backtest-result ZIP từ Artifacts sau khi chạy. Không yêu cầu Binance API key.",
+            color = FreqMuted, style = MaterialTheme.typography.bodySmall)
         if (error != null) Text("Không nhập được báo cáo: $error", color = FreqNegative)
         report?.let { r ->
             Text("Nguồn: ${r.source}", color = FreqMuted)
