@@ -882,7 +882,7 @@ workflows:
           brew install python@3.12 ta-lib libomp
           "$(brew --prefix python@3.12)/bin/python3.12" -m venv "$CM_BUILD_DIR/.freqai-venv"
           "$CM_BUILD_DIR/.freqai-venv/bin/python" -m pip install --upgrade pip setuptools wheel
-          "$CM_BUILD_DIR/.freqai-venv/bin/python" -m pip install 'freqtrade[freqai]' lightgbm
+          "$CM_BUILD_DIR/.freqai-venv/bin/python" -m pip install 'freqtrade[freqai]==2026.9' lightgbm
           "$CM_BUILD_DIR/.freqai-venv/bin/freqtrade" --version
       - name: Run FreqAI research contract and leakage tests
         script: |
