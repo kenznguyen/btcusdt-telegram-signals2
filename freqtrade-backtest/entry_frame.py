@@ -38,7 +38,8 @@ def entry_diagnostics(m15, h1):
     h1 = h1.copy()
     if m15.empty:
         for col in ("android_entry_long", "android_entry_short",
-                    "android_rsi", "android_h1_adx"):
+                    "android_rsi", "android_prev_rsi", "android_adx",
+                    "android_h1_adx", "android_h1_plus_di", "android_h1_minus_di"):
             m15[col] = pd.Series(dtype=float)
         return m15
     left = _as_candles(m15)
@@ -56,7 +57,8 @@ def entry_diagnostics(m15, h1):
         for candle, indicator in zip(right, h1_ind)
     ]
     hidx = 0
-    long_flags, short_flags, rsi_values, h1_adx_values = [], [], [], []
+    long_flags, short_flags, rsi_values, prev_rsi_values, adx_values = [], [], [], [], []
+    h1_adx_values, h1_plus_values, h1_minus_values = [], [], []
     for i, candle in enumerate(left):
         # Advance only after the corresponding H1 candle is fully closed.
         while hidx < len(indexed_h1) and indexed_h1[hidx]["available_ms"] <= candle["timestamp_ms"]:
@@ -71,9 +73,17 @@ def entry_diagnostics(m15, h1):
         long_flags.append(int(side == "LONG"))
         short_flags.append(int(side == "SHORT"))
         rsi_values.append(point["rsi"])
+        prev_rsi_values.append(m15_ind[i - 1]["rsi"] if i else None)
+        adx_values.append(point["adx"])
         h1_adx_values.append(prior.get("adx"))
+        h1_plus_values.append(prior.get("plus_di"))
+        h1_minus_values.append(prior.get("minus_di"))
     m15["android_entry_long"] = long_flags
     m15["android_entry_short"] = short_flags
     m15["android_rsi"] = rsi_values
+    m15["android_prev_rsi"] = prev_rsi_values
+    m15["android_adx"] = adx_values
     m15["android_h1_adx"] = h1_adx_values
+    m15["android_h1_plus_di"] = h1_plus_values
+    m15["android_h1_minus_di"] = h1_minus_values
     return m15
