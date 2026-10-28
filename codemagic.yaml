@@ -205,7 +205,7 @@ workflows:
       - name: Prepare backtest workspace
         script: |
           set -eu
-          mkdir -p freqtrade-runtime-data/data freqtrade-runtime-data/backtest_results freqtrade-runtime-results
+          mkdir -p freqtrade-runtime-data/data freqtrade-runtime-data/backtest_results freqtrade-runtime-data/strategies freqtrade-runtime-results
           cp freqtrade-backtest/config.runtime-entry.json freqtrade-runtime-data/config.json
           cp freqtrade-backtest/strategies/BtcM15H1EntryRuntime.py freqtrade-runtime-data/BtcM15H1EntryRuntime.py
           cp freqtrade-backtest/entry_frame.py freqtrade-runtime-data/entry_frame.py
@@ -219,6 +219,7 @@ workflows:
         script: |
           set -eu
           "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" download-data \
+            --userdir "$CM_BUILD_DIR/freqtrade-runtime-data" \
             --config "$CM_BUILD_DIR/freqtrade-runtime-data/config.json" \
             --exchange binance --pairs BTC/USDT \
             --trading-mode spot --timeframes 15m 1h --days 45 \
@@ -227,6 +228,7 @@ workflows:
         script: |
           set -eu
           "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" backtesting \
+            --userdir "$CM_BUILD_DIR/freqtrade-runtime-data" \
             --config "$CM_BUILD_DIR/freqtrade-runtime-data/config.json" \
             --strategy BtcM15H1EntryRuntime \
             --strategy-path "$CM_BUILD_DIR/freqtrade-runtime-data" \
