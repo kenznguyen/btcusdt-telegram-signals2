@@ -309,6 +309,7 @@ workflows:
         script: |
           set -eu
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_futures_runtime_contract.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_dca_diagnostics.py -v
       - name: Record actual Freqtrade version
         script: |
           set -eu
@@ -325,6 +326,7 @@ workflows:
       - name: Run actual Freqtrade CLI backtesting
         script: |
           set -eu
+          export FREQTRADE_DCA_TRACE="$CM_BUILD_DIR/freqtrade-futures-results/dca-diagnostics.jsonl"
           "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" backtesting \
             --userdir "$CM_BUILD_DIR/freqtrade-futures-data" \
             --config "$CM_BUILD_DIR/freqtrade-futures-data/config.json" \
@@ -338,6 +340,12 @@ workflows:
               exit 1
             }
           tail -n 100 freqtrade-futures-results/backtest.log
+          if test -f freqtrade-futures-results/dca-diagnostics.jsonl; then
+            echo "DCA callback samples:"
+            tail -n 12 freqtrade-futures-results/dca-diagnostics.jsonl
+          else
+            echo "No DCA diagnostics were emitted; callback may not have been invoked."
+          fi
           find freqtrade-futures-data/backtest_results -type f -name '*.zip' | grep -q .
       - name: Write verified command-execution manifest
         script: |
@@ -355,6 +363,7 @@ workflows:
               "android_13x_futures_parity_verified": False,
               "dca_short_tp_soft_sl_emergency_sl_parity_verified": False,
               "android_fill_price_and_event_order_verified": False,
+              "dca_callback_trace": "dca-diagnostics.jsonl",
               "no_real_orders": True
           }
           Path("freqtrade-futures-results/run-manifest.json").write_text(
