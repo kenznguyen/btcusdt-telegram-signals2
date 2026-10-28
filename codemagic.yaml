@@ -394,7 +394,9 @@ workflows:
           test -n "$ZIP"
           python3 freqtrade-backtest/export_freqtrade_events.py \
             --result "$ZIP" \
-            --output freqtrade-futures-results/freqtrade-execution-events.json
+            --output freqtrade-futures-results/freqtrade-execution-events.json || {
+              echo "Freqtrade trace export failed; strict parity will report false."
+            }
       - name: Kotlin and Freqtrade must replay identical checksum OKX dataset
         script: |
           set -eu
