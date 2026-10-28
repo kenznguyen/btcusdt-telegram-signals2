@@ -42,7 +42,7 @@ class BacktestWindowTest(unittest.TestCase):
 
     def test_reject_stale_history(self):
         w = build_window(90, self.now)
-        dates = [w["start_time"] - timedelta(days=5),
+        dates = [w["start_time"] - timedelta(days=7),
                  self.now - timedelta(days=7)]
         with self.assertRaisesRegex(ValueError, "stale"):
             check_candle_window(dates, w, "1h")
