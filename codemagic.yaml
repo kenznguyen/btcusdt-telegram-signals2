@@ -150,3 +150,25 @@ workflows:
           python3 -c 'import json,pathlib; pathlib.Path("freqtrade-runtime-results/verification.json").write_text(json.dumps({"runtime_version_invoked": True, "strategy_discovered": True, "actual_backtest_executed": False, "android_freqtrade_parity_verified": False, "reason": "adapter_has_disabled_entry_exit_and_no_shared_historical_trade_ledger"}, indent=2)+"\\n")'
     artifacts:
       - freqtrade-runtime-results/**/*
+
+  freqtrade_entry_diagnostics:
+    name: Android/Freqtrade ENTRY dataframe parity diagnostics
+    max_build_duration: 30
+    environment:
+      java: 17
+    scripts:
+      - name: Install dataframe dependency
+        script: |
+          set -eu
+          python3 -m pip install "pandas>=2.1,<3"
+      - name: Verify shared OHLCV ENTRY diagnostic tests
+        script: |
+          set -eu
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_entry_frame.py -v
+          python3 freqtrade-backtest/export_entry_parity_trace.py python-entry-trace.json
+      - name: Explain runtime parity status
+        script: |
+          set -eu
+          echo "ENTRY dataframe diagnostics only; actual Freqtrade order simulation, DCA and exits NOT certified."
+    artifacts:
+      - python-entry-trace.json
