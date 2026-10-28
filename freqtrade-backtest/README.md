@@ -72,3 +72,33 @@ data import, position-state handling, DCA/TP/stops, trade ledger and
 runtime backtest are still unimplemented. Existing
 `BtcM15H1ParityGate` deliberately continues to suppress all entries
 and exits. No trading functionality is enabled.
+
+## Actual Freqtrade backtesting command (diagnostic-only MVP)
+
+Codemagic now defines `freqtrade_runtime_backtest`. Unlike
+`freqtrade_runtime_probe`, this workflow executes actual
+`freqtrade download-data` and `freqtrade backtesting` commands in the
+`freqtradeorg/freqtrade:stable` Docker image. It downloads 45 days of
+Binance **SPOT** BTC/USDT 15m/1h candles, invokes
+`BtcM15H1EntryRuntime`, and archives the resulting Freqtrade result ZIP
+and logs. It does not use live trading API credentials.
+
+The adapter is deliberately a **backtest-only, LONG-only ENTRY diagnostic**.
+Its exit rules are temporary spot ROI 5% and spot stoploss -20%, which
+are NOT equivalent to Android TP +5% ROE at 13x, Soft SL -35% ROE, or
+Emergency SL -90% ROE. It does not reproduce Android DCA, SHORT,
+isolated futures margin, fees/slippage or intrabar priority. Its profit,
+win rate and drawdown **must not** be compared as equivalent to Android.
+No reported numbers are invented; read the real exported Freqtrade ZIP.
+
+The workflow requires Docker access and Binance public historical
+downloads from the Codemagic worker. If unavailable, it must fail and
+the run cannot be represented as successful. On completion, its manifest
+still states Android–Freqtrade parity is **not verified**. The Docker
+`stable` tag is mutable, so the workflow records `freqtrade --version`
+but reproducible comparisons will require pinning an image digest.
+
+To reach actual 13x Android parity, implement a separate futures strategy
+with matching leverage callbacks, position adjustments, exact TP/SL
+conditions and ledger export, then use **the same** time-aligned
+OHLCV and fee assumptions for both engines.
