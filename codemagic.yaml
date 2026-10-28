@@ -319,6 +319,7 @@ workflows:
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_market_risk_audit.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_funding_timeline_audit.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_common_dataset_parity.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_export_freqtrade_events.py -v
       - name: Record actual Freqtrade version
         script: |
           set -eu
@@ -395,6 +396,14 @@ workflows:
             --ohlcv freqtrade-futures-results/common-ohlcv/btc-usdt-okx-futures-5m-utc.csv.gz \
             --csv freqtrade-futures-results/equity-5m.csv.gz \
             --json freqtrade-futures-results/equity-5m-summary.json
+      - name: Export actual fills to Android parity input schema
+        script: |
+          set -eu
+          ZIP=$(find freqtrade-futures-data/backtest_results -maxdepth 1 -type f -name '*.zip' | sort | tail -n 1)
+          test -n "$ZIP"
+          python3 freqtrade-backtest/export_freqtrade_events.py \
+            --result "$ZIP" \
+            --output freqtrade-futures-results/freqtrade-execution-events.json
       - name: Audit liquidation rule and funding at observed UTC marks
         script: |
           set -eu
@@ -471,6 +480,7 @@ workflows:
               "common_ohlcv_exported": True,
               "android_common_dataset_replay_verified": False,
               "common_dataset_parity_status": "common-dataset-parity-status.json",
+              "actual_freqtrade_event_export": "freqtrade-execution-events.json",
               "dca_callback_trace": "dca-diagnostics.jsonl",
               "exit_callback_trace": "exit-diagnostics.jsonl",
               "requested_days": int(__import__("os").environ.get("BACKTEST_DAYS", "360")),
