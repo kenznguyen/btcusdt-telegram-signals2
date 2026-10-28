@@ -280,7 +280,8 @@ workflows:
           import json
           from pathlib import Path
           c = json.loads(Path("freqtrade-backtest/config.runtime-futures.json").read_text())
-          assert c["dry_run"] is True and c["trading_mode"] == "futures"\n          assert c["margin_mode"] == "isolated"
+          assert c["dry_run"] is True and c["trading_mode"] == "futures"
+          assert c["margin_mode"] == "isolated"
           assert c["exchange"]["key"] == "" and c["exchange"]["secret"] == ""
           assert c["exchange"]["pair_whitelist"] == ["BTC/USDT:USDT"]
           assert c["exchange"]["name"] == "okx"
@@ -299,8 +300,8 @@ workflows:
         script: |
           set -eu
           mkdir -p freqtrade-futures-data/data freqtrade-futures-data/backtest_results freqtrade-futures-data/strategies freqtrade-futures-results
-          cp freqtrade-backtest/config.runtime-entry.json freqtrade-futures-data/config.json
-          cp freqtrade-backtest/strategies/BtcM15H1FuturesRuntime.py freqtrade-futures-data/BtcM15H1FuturesRuntime.py
+          cp freqtrade-backtest/config.runtime-futures.json freqtrade-futures-data/config.json
+          cp freqtrade-backtest/strategies/BtcM15H1FuturesRuntime.py freqtrade-futures-data/strategies/BtcM15H1FuturesRuntime.py
           cp freqtrade-backtest/entry_frame.py freqtrade-futures-data/entry_frame.py
           cp freqtrade-backtest/android_indicators.py freqtrade-futures-data/android_indicators.py
           cp freqtrade-backtest/android_signal_predicates.py freqtrade-futures-data/android_signal_predicates.py
@@ -328,7 +329,7 @@ workflows:
             --userdir "$CM_BUILD_DIR/freqtrade-futures-data" \
             --config "$CM_BUILD_DIR/freqtrade-futures-data/config.json" \
             --strategy BtcM15H1FuturesRuntime \
-            --strategy-path "$CM_BUILD_DIR/freqtrade-futures-data" \
+            --strategy-path "$CM_BUILD_DIR/freqtrade-futures-data/strategies" \
             --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
             --export-directory "$CM_BUILD_DIR/freqtrade-futures-data/backtest_results" \
             --fee 0.0005 --cache none --export trades \
@@ -346,12 +347,14 @@ workflows:
           from pathlib import Path
           report = {
               "actual_freqtrade_backtest_command_completed": True,
-              "runtime_install": "experimental native macOS ARM64",\n              "futures_13x_callbacks_implemented": True,
+              "runtime_install": "experimental native macOS ARM64",
+              "futures_13x_callbacks_implemented": True,
               "strategy": "BtcM15H1FuturesRuntime",
               "market": "OKX BTC/USDT:USDT Futures",
               "strategy_scope": "13x LONG/SHORT DCA candidate + prioritized custom_exit; fill-level parity unverified",
               "android_13x_futures_parity_verified": False,
-              "dca_short_tp_soft_sl_emergency_sl_parity_verified": False,\n              "android_fill_price_and_event_order_verified": False,
+              "dca_short_tp_soft_sl_emergency_sl_parity_verified": False,
+              "android_fill_price_and_event_order_verified": False,
               "no_real_orders": True
           }
           Path("freqtrade-futures-results/run-manifest.json").write_text(
