@@ -28,7 +28,7 @@ def build_window(days, now=None):
 
 
 def check_candle_window(dates, window, timeframe):
-    if timeframe not in ("15m", "1h"):
+    if timeframe not in ("5m", "15m", "1h"):
         raise ValueError("Unsupported timeframe")
     ordered = sorted(dates)
     if not ordered:
