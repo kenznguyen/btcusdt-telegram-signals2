@@ -2,8 +2,24 @@ workflows:
   android_chart_pro_qa:
     name: BTCUSDT Chart Pro — Android independent QA and Debug APK
     max_build_duration: 60
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: integration/android-freqtrade-analytics-20261025
+          include: true
+          source: true
+      cancel_previous_builds: true
+    when:
+      changeset:
+        includes:
+          - 'android-app/**'
+          - 'scripts/**'
+          - 'codemagic.yaml'
     environment:
       java: 17
+      groups:
+        - github_release
     scripts:
       - name: Verify existing Android product source and strategy defaults
         script: |
@@ -610,6 +626,8 @@ workflows:
     max_build_duration: 120
     environment:
       java: 17
+      groups:
+        - github_release
       vars:
         BACKTEST_DAYS: '360'
     scripts:
@@ -888,6 +906,8 @@ workflows:
     max_build_duration: 120
     environment:
       java: 17
+      groups:
+        - github_release
       vars:
         BACKTEST_DAYS: '90'
     scripts:
