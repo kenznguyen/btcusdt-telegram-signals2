@@ -297,3 +297,35 @@ available in Artifacts when the gate fails.
 different; the first strict run is expected to expose discrepancies,
 not automatically certify parity. Android StrategyEngine defaults
 were not modified, and no real trading was added.
+
+## BTCUSDT Chart Pro uses Freqtrade as primary backtest engine
+
+Chart Pro Android tab **Analytics** now imports an actual Freqtrade
+`backtest-result-*.zip` or its contained JSON via the Android file picker.
+It shows actual Futures 13x trade statistics, LONG/SHORT count, DCA,
+realized PnL, Freqtrade account drawdown, and liquidation count.
+It explicitly marks funding coverage and Kotlin/Freqtrade parity as
+**not verified**, rather than displaying historical performance as
+live-trading evidence.
+
+Choose `freqtrade_chart_pro_analytics` in Codemagic. It uses
+actual Freqtrade Futures runtime to backtest OKX BTC/USDT:USDT
+with 5m detailed candles; `BACKTEST_DAYS=90,180,360` is configurable,
+default 360. Download the `backtest-result-*.zip` from the results
+Artifacts and open it in Analytics on the Android phone. No server,
+credentials or automatic orders are required in the APK.
+
+`freqtrade_futures_backtest` remains the **strict** Kotlin/Freqtrade
+common-OHLCV parity gate: it fails when any trade event diverges or a
+trace is missing. The independent Chart Pro analytics workflow
+can generate historical backtests even while parity fails.
+The Kotlin `BacktestPanel` is retained but collapsed under
+**Backtest Kotlin — comparison only**, not presented as the principal
+performance result.
+
+The Freqtrade importer checks one strategy, Futures mode,
+complete trade counts, and starting/ending balance reconciliation.
+It does **not** silently certify incomplete funding history,
+5m mark-price equity, liquidation parity, or projected profitability.
+Android signing / multi-symbol chart / orderbook / notifications
+remain unchanged.
