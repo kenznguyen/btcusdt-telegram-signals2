@@ -22,13 +22,18 @@ class OkxCommonOhlcvParityTest {
         val dir = System.getProperty("okx.parity.ohlcv.dir") ?: return
         val output = System.getProperty("okx.parity.android.events")
             ?: error("Missing Kotlin replay trace destination")
+        val backtestStart = System.getProperty("okx.parity.start.ms")?.toLongOrNull()
+            ?: error("Missing UTC backtest start boundary; refusing warm-up trades")
         val root = File(dir)
         val m15 = readCandles(File(root, "btc-usdt-okx-futures-15m-utc.csv.gz"))
         val h1 = readCandles(File(root, "btc-usdt-okx-futures-1h-utc.csv.gz"))
         require(m15.size > 100 && h1.size > 100)
         val trace = JSONArray()
         val engine = StrategyEngine()
-        val (_, emitted) = engine.processClosedCandles(m15, h1, StrategyState()) { candle, before, after ->
+        val (_, emitted) = engine.processClosedCandles(
+            m15, h1, StrategyState(lastProcessedOpenTime = backtestStart - 1L)
+        ) { candle, before, after ->
+            require(candle.openTime >= backtestStart) { "Warm-up candle emitted a trade" }
             val changed = before.position !== after.position
             if (!changed) return@processClosedCandles
             val entry = before.position == null && after.position != null
