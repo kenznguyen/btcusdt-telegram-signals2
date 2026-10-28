@@ -316,6 +316,8 @@ workflows:
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_reconcile_fills.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_walkforward_windows.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_equity_reconstruction.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_market_risk_audit.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_funding_timeline_audit.py -v
       - name: Record actual Freqtrade version
         script: |
           set -eu
@@ -386,6 +388,19 @@ workflows:
             --ohlcv freqtrade-futures-results/common-ohlcv/btc-usdt-okx-futures-5m-utc.csv.gz \
             --csv freqtrade-futures-results/equity-5m.csv.gz \
             --json freqtrade-futures-results/equity-5m-summary.json
+      - name: Audit liquidation rule and funding at observed UTC marks
+        script: |
+          set -eu
+          ZIP=$(find freqtrade-futures-data/backtest_results -maxdepth 1 -type f -name '*.zip' | sort | tail -n 1)
+          test -n "$ZIP"
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" freqtrade-backtest/market_risk_audit.py \
+            --result "$ZIP" \
+            --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
+            --output freqtrade-futures-results/liquidation-funding-input-audit.json
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" freqtrade-backtest/funding_timeline_audit.py \
+            --result "$ZIP" \
+            --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
+            --output freqtrade-futures-results/funding-timeline-estimate.json
       - name: Reconcile expected and actual fill prices
         script: |
           set -eu
@@ -453,6 +468,9 @@ workflows:
               "requested_days": int(__import__("os").environ.get("BACKTEST_DAYS", "360")),
               "equity_5m_reconciliation_run": True,
               "equity_funding_timestamps_available": False,
+              "funding_timeline_estimate_available": True,
+              "liquidation_maintenance_margin_verified": False,
+              "funding_settlement_timestamps_verified": False,
               "equity_based_on_exchange_mark_price": False,
               "history_coverage_checked": True,
               "timeframe_detail": "5m",
