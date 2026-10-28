@@ -34,7 +34,7 @@ class BacktestWindowTest(unittest.TestCase):
 
     def test_accept_sufficient_coverage(self):
         w = build_window(90, self.now)
-        dates = [w["start_time"] - timedelta(days=5),
+        dates = [w["start_time"] - timedelta(days=7),
                  self.now - timedelta(minutes=15)]
         result = check_candle_window(dates, w, "15m")
         self.assertEqual(result["days_requested"], 90)
