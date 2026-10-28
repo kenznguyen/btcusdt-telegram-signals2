@@ -314,6 +314,7 @@ workflows:
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_dca_diagnostics.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_futures_dynamic_stake.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_reconcile_fills.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_walkforward_windows.py -v
       - name: Record actual Freqtrade version
         script: |
           set -eu
