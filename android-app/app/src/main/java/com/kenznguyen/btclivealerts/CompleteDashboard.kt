@@ -679,7 +679,10 @@ fun CompleteDashboard(context: Context) {
                 }
             }
             if (selectedTab == 2) item {
-                BacktestAnalyticsScreen(report = null, modifier = Modifier.fillMaxWidth())
+                Column(Modifier.fillMaxWidth()) {
+                    BacktestPanel(market, engine)
+                    BacktestAnalyticsScreen(report = null, modifier = Modifier.fillMaxWidth())
+                }
             }
             if (selectedTab == 0) item {
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(16.dp)).padding(16.dp)) {
@@ -943,7 +946,6 @@ fun CompleteDashboard(context: Context) {
                     if (event.note.isNotBlank()) Text(event.note, color = NMuted)
                 }
             }
-            if (selectedTab == 0) item { BacktestPanel(market, engine) }
         }
     }
 
