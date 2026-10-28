@@ -7,7 +7,7 @@ import bisect
 import json
 from pathlib import Path
 
-from market_risk_audit import exported_trades
+from market_risk_audit import exported_trades, normalize_market_frame
 
 
 def funding_ledger(trades, funding, marks):
@@ -57,14 +57,11 @@ def funding_ledger(trades, funding, marks):
 
 def load_bars(path, value_name):
     import pandas as pd
-    f = pd.read_feather(path)
-    if f.empty or "date" not in f or "open" not in f:
-        raise ValueError("Incomplete funding/mark OHLCV")
-    times = pd.to_datetime(f["date"], utc=True)
-    if times.duplicated().any() or not times.is_monotonic_increasing:
-        raise ValueError("Invalid UTC observations")
+    frame = pd.read_feather(path)
+    kind = "funding_rate" if value_name == "rate" else "mark"
+    times, values, _ = normalize_market_frame(frame, kind)
     return [{"timestamp_ms": int(t.timestamp() * 1000), value_name: float(v)}
-            for t, v in zip(times, f["open"])]
+            for t, v in zip(times, values)]
 
 
 def main():
