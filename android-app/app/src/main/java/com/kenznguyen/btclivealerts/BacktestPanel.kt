@@ -171,6 +171,14 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                 Text("$p · Qty ${"%.6f".format(r.openQty)} BTC · Giá vốn ${"%.2f".format(r.openEntry)}", color = Color.White)
                 Text("PnL chưa thực hiện ước tính sau phí thoát: ${"%+.2f".format(r.openUnrealized)} USDT", color = if (r.openUnrealized >= 0) Green else Red)
             }
+            val tpCount = r.closed.count { it.kind == "TAKE PROFIT" }
+            val softSlCount = r.closed.count { it.kind == "SOFT SL" }
+            val emergencySlCount = r.closed.count { it.kind == "EMERGENCY SL" }
+            val dcaCount = r.events.count { it.kind == "DCA" }
+            Text("TP: $tpCount · Soft SL: $softSlCount · Emergency SL: $emergencySlCount · DCA: $dcaCount",
+                color = Color.White, style = MaterialTheme.typography.bodySmall)
+            Text("Lưu ý rủi ro Futures 13x: backtest Android chưa mô phỏng đầy đủ funding, liquidation và giá mark. Equity theo M15 không thay thế kiểm toán 5m từ Freqtrade.",
+                color = Muted, style = MaterialTheme.typography.bodySmall)
             Text("Số lệnh đóng: ${r.closed.size} · Số sự kiện: ${r.events.size}", color = Muted)
             Text("Dữ liệu: ${date(r.from)} – ${date(r.to)}", color = Muted, style = MaterialTheme.typography.bodySmall)
             Text("Engine: Android StrategyEngine · Không phải Freqtrade Python chạy trong APK. Chỉ số mô phỏng, chưa chứng nhận tương đương Freqtrade.", color = Muted, style = MaterialTheme.typography.bodySmall)
