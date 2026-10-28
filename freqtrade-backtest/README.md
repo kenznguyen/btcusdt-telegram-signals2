@@ -102,3 +102,37 @@ To reach actual 13x Android parity, implement a separate futures strategy
 with matching leverage callbacks, position adjustments, exact TP/SL
 conditions and ledger export, then use **the same** time-aligned
 OHLCV and fee assumptions for both engines.
+
+## Futures 13x candidate (NEW, not parity-certified)
+
+`strategies/BtcM15H1FuturesRuntime.py` is a separate experimental
+**BACKTEST-ONLY** Freqtrade strategy, with `config.runtime-futures.json`
+and the `freqtrade_futures_backtest` Codemagic workflow.
+
+- OKX **BTC/USDT:USDT perpetual**, isolated margin, 100 USDT starting wallet.
+- `leverage()` demands 13x instead of silently reducing it.
+- Both LONG/SHORT entries from the Android RSI cross + prior closed H1.
+- Initial stake target 50 USDT; `adjust_trade_position()` can add one
+  DCA stake, gated by Android ROE/ADX/RSI and wallet limits.
+- `custom_exit()` evaluates **EMERGENCY_SL -> SOFT_SL -> TP** in this
+  priority order, using candle OHLC and prior closed H1.
+- Static ROI/stoploss are disabled as performance targets; Freqtrade
+  nevertheless maintains an emergency -99% safety bound as required by
+  the framework.
+
+**Known discrepancies that MUST be resolved before parity certification:**
+1. Freqtrade callbacks may run after the Android closed-bar event timestamp
+   and the exit fill may not equal Android `stopFillPrice`; a high/low
+   threshold crossed within a candle does not imply the same fill.
+2. Intra-candle exit-versus-DCA ordering, short liquidation/funding and fees
+   are controlled by Freqtrade's execution simulation, not Kotlin accounting.
+3. Initial stake currently references a configured 100-USDT starting wallet,
+   not Android's **dynamic balance * 50%** across sequential trades.
+4. Freqtrade backtesting may use different candle availability in callbacks;
+   bar-by-bar, common-dataset trace comparison is mandatory.
+5. Full equity and fee reconciliation, including open positions at final bar,
+   has not been implemented. No win-rate/profit assertions are made.
+
+A complete Codemagic run only proves the **Freqtrade runtime** processed
+futures backtesting with this candidate strategy. It does not prove parity.
+The existing Spot workflow stays available as the verified runtime baseline.
