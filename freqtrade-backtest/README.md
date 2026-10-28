@@ -225,3 +225,44 @@ the largest percentage drawdown; they need not coincide.
 No Android parity or liquidation parity is claimed.
 Per user preference, no separate Emergency SL stress-test workflow
 was added.
+
+## Post-360d risk-engine audit (no StrategyEngine tuning)
+
+This phase adds only auditing, tests, and CI artifacts. Android Kotlin
+StrategyEngine, its 13x leverage, RSI/ADX thresholds, DCA, TP, Soft SL,
+and Emergency SL are **unchanged**.
+
+- `market_risk_audit.py` reports actual Freqtrade liquidation fills,
+  the protective stop price, the recorded fee/funding totals, and the
+  presence and date coverage of raw OKX funding-rate and mark candles.
+- `funding_timeline_audit.py` independently estimates funding
+  observations at historical UTC candle timestamps using the open
+  position quantity (including additional DCA fills) and the last
+  available mark price. The output explicitly provides per-trade
+  differences versus actual Freqtrade funding totals. These
+  observations are **not verified exchange settlement timestamps** and
+  must not replace Freqtrade accounting.
+- `common_dataset_parity.py` checks SHA256 of the shared 5m/M15/H1
+  OHLCV files. It can compare independently supplied Kotlin and
+  Freqtrade event traces using timestamp/side/event type/price, but
+  without those actual traces it returns `parity_verified: false`.
+  Shared-source files alone do not prove identical event processing.
+
+### Liquidation caveat
+
+In the 360-day result the SHORT opened 2026-02-24 15:45 UTC
+at 63716.10 closed as `liquidation` on 2026-02-25 16:45 UTC at
+68080.30, before its recorded stop-loss price 68127.20. Per the
+Freqtrade 2026.9 documentation, `liquidation_buffer` defaults to
+0.05 and the engine computes a buffer-adjusted liquidation threshold.
+Liquidation fees are *not* modelled by Freqtrade. The original
+backtest config did not specify a different buffer. This finding
+shows a gap versus an ideal emergency SL fill; it does not prove
+the exact exchange maintenance margin or independent mark-price
+liquidation trigger.
+
+Codemagic now exports
+`liquidation-funding-input-audit.json`,
+`funding-timeline-estimate.json`, and
+`common-dataset-parity-status.json`. Review the contents before any
+claims about 360-day funding accuracy or Android parity.
