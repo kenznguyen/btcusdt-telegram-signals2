@@ -50,6 +50,12 @@ class FuturesRuntimeContractTest(unittest.TestCase):
         self.assertIn('max_entry_position_adjustment = 1', src)
         self.assertIn("return 13.0", src)
 
+    def test_engine_protective_emergency_sl_not_custom_exit(self):
+        text = PATH.read_text(encoding="utf-8")
+        self.assertIn("stoploss = -0.90", text)
+        self.assertIn('if reason == "EMERGENCY_SL":', text)
+        self.assertIn("return None", text)
+
     def test_emergency_wins_over_soft_and_tp(self):
         run = load_exit_evaluator()
         candle = {
