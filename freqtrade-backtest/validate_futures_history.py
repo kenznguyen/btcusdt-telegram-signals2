@@ -10,7 +10,7 @@ def validate_files(data_dir, days):
     import pandas as pd
     window = build_window(days)
     checks = {}
-    for timeframe in ("15m", "1h"):
+    for timeframe in ("5m", "15m", "1h"):
         candidates = list(data_dir.rglob("BTC_USDT_USDT-" + timeframe + "-futures.feather"))
         if len(candidates) != 1:
             raise ValueError(f"Expected exactly one OKX futures {timeframe} Feather file: {candidates}")
@@ -20,7 +20,7 @@ def validate_files(data_dir, days):
         dates = pd.to_datetime(frame["date"], utc=True)
         if dates.duplicated().any() or not dates.is_monotonic_increasing:
             raise ValueError(f"Invalid {timeframe} order/duplicates")
-        step = pd.Timedelta(minutes=15 if timeframe == "15m" else 60)
+        step = pd.Timedelta(minutes=5 if timeframe == "5m" else 15 if timeframe == "15m" else 60)
         if (dates.diff().dropna() > step).any():
             raise ValueError(f"{timeframe} contains missing historical bars")
         details = check_candle_window(dates.to_list(), window, timeframe)
