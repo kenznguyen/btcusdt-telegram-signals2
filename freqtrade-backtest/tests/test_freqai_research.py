@@ -44,9 +44,10 @@ class ResearchTest(unittest.TestCase):
         h1 = pd.DataFrame({"date":dates1h, "close":[float(i)+100 for i in range(60)],
                            "volume":[100.0]*60})
         original, features = build_samples(m15, h1)
-        self.assertEqual(original.loc[0,"h1_close"], float(100))
+        self.assertTrue(pd.isna(original.loc[0,"h1_close"]))
         self.assertEqual(original.loc[3,"h1_close"], float(100))
-        self.assertEqual(original.loc[4,"h1_close"], float(101))
+        self.assertEqual(original.loc[4,"h1_close"], float(100))
+        self.assertEqual(original.loc[7,"h1_close"], float(101))
         self.assertEqual(original.loc[0,"label_available"],
                          pd.Timestamp("2026-01-01 01:15", tz="UTC"))
         self.assertAlmostEqual(original.loc[40,"target"], (44.5/40.5)-1)
