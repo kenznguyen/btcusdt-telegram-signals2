@@ -38,5 +38,17 @@ class LiquidationAuditTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "empty"):
             normalize_market_frame(frame, "funding_rate")
 
+    def test_incomplete_funding_history_is_flagged(self):
+        from market_risk_audit import funding_coverage_status
+        data = {"funding_rate": {
+            "first_utc": "2026-07-27T16:00:00+00:00",
+            "last_utc": "2026-10-28T00:00:00+00:00"
+        }}
+        trades = [{"open_date": "2025-11-10T15:15:00+00:00",
+                   "close_date": "2026-10-21T14:30:00+00:00"}]
+        result = funding_coverage_status(data, trades)
+        self.assertFalse(result["complete_for_trade_period"])
+        self.assertEqual(result["reason"], "funding_history_incomplete")
+
 if __name__ == "__main__":
     unittest.main()
