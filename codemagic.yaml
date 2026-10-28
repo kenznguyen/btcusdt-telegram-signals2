@@ -33,9 +33,24 @@ workflows:
           "$AAPT" dump badging "$APK" | grep -q "package: name='com.kenznguyen.btclivealerts.debug'"
           "$APKSIGNER" verify --print-certs "$APK"
           echo "DEBUG APK verified: installs alongside existing Release, not as a replacement."
+      - name: Publish Debug APK to GitHub Releases (optional)
+        script: |
+          set -eu
+          mkdir -p release-metadata
+          python3 -m unittest discover -s scripts/tests -p 'test_publish_and_package.py' -v
+          if [ -z "${GH_RELEASE_TOKEN:-}" ]; then
+            echo '{"github_release_publish_verified":false,"reason":"GH_RELEASE_TOKEN_not_configured"}' > release-metadata/github-release-status.json
+            echo "GitHub publication skipped. APK remains in Codemagic Artifacts."
+          else
+            python3 scripts/publish_codemagic_release.py \
+              --kind android \
+              --asset android-app/app/build/outputs/apk/debug/app-debug.apk \
+              --manifest release-metadata/github-release-status.json
+          fi
     artifacts:
       - android-app/app/build/outputs/apk/debug/*.apk
       - android-app/app/build/reports/tests/testDebugUnitTest/**/*
+      - release-metadata/**/*
 
   android_freqtrade_debug:
     name: Android Freqtrade offline parity + Debug APK
@@ -820,8 +835,8 @@ workflows:
               "dca_short_tp_soft_sl_emergency_sl_parity_verified": False,
               "android_fill_price_and_event_order_verified": False,
               "common_ohlcv_exported": True,
-              "android_common_dataset_replay_verified": True,
-              "strict_parity_verified": True,
+              "android_common_dataset_replay_verified": False,
+              "strict_parity_verified": False,
               "strict_trade_difference_report": "strict-trade-differences.csv",
               "common_dataset_parity_status": "common-dataset-parity-status.json",
               "actual_freqtrade_event_export": "freqtrade-execution-events.json",
@@ -843,10 +858,28 @@ workflows:
           Path("freqtrade-futures-results/run-manifest.json").write_text(
               json.dumps(report, ensure_ascii=False, indent=2) + "\n")
           PY
+      - name: Package Freqtrade results and publish GitHub Release (optional)
+        script: |
+          set -eu
+          mkdir -p release-metadata
+          python3 -m unittest discover -s scripts/tests -p 'test_publish_and_package.py' -v
+          python3 scripts/package_codemagic_outputs.py \
+            --kind freqtrade --root "$CM_BUILD_DIR" \
+            --output release-metadata/freqtrade-backtest-${CM_BUILD_ID}.zip
+          if [ -z "${GH_RELEASE_TOKEN:-}" ]; then
+            echo '{"github_release_publish_verified":false,"reason":"GH_RELEASE_TOKEN_not_configured"}' > release-metadata/github-release-status.json
+            echo "GitHub publication skipped; complete reports remain in Codemagic Artifacts."
+          else
+            python3 scripts/publish_codemagic_release.py \
+              --kind freqtrade \
+              --asset "release-metadata/freqtrade-backtest-${CM_BUILD_ID}.zip" \
+              --manifest release-metadata/github-release-status.json
+          fi
     artifacts:
       - freqtrade-futures-results/**/*
       - freqtrade-futures-data/backtest_results/**/*
       - freqtrade-futures-data/walkforward/**/*
+      - release-metadata/**/*
 
 
   freqai_lightgbm_research:
@@ -962,6 +995,24 @@ workflows:
           }
           Path("freqai-research-results/run-manifest.json").write_text(json.dumps(report,indent=2)+"\n")
           PY
+      - name: Package FreqAI research and publish GitHub Release (optional)
+        script: |
+          set -eu
+          mkdir -p release-metadata
+          python3 -m unittest discover -s scripts/tests -p 'test_publish_and_package.py' -v
+          python3 scripts/package_codemagic_outputs.py \
+            --kind freqai --root "$CM_BUILD_DIR" \
+            --output "release-metadata/freqai-research-${CM_BUILD_ID}.zip"
+          if [ -z "${GH_RELEASE_TOKEN:-}" ]; then
+            echo '{"github_release_publish_verified":false,"reason":"GH_RELEASE_TOKEN_not_configured"}' > release-metadata/github-release-status.json
+            echo "GitHub publication skipped; reports remain in Codemagic Artifacts."
+          else
+            python3 scripts/publish_codemagic_release.py \
+              --kind freqai \
+              --asset "release-metadata/freqai-research-${CM_BUILD_ID}.zip" \
+              --manifest release-metadata/github-release-status.json
+          fi
     artifacts:
       - freqai-research-results/**/*
       - freqai-research-data/backtest_results/**/*
+      - release-metadata/**/*
