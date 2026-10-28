@@ -402,6 +402,13 @@ workflows:
           set -eu
           export OKX_PARITY_OHLCV_DIR="$CM_BUILD_DIR/freqtrade-futures-results/common-ohlcv"
           export OKX_PARITY_ANDROID_EVENTS="$CM_BUILD_DIR/freqtrade-futures-results/android-kotlin-execution-events.json"
+          export OKX_PARITY_START_MS=$(python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          start=json.load(open("freqtrade-futures-results/window.json"))["start"]
+          print(int(datetime.strptime(start,"%Y%m%d").replace(tzinfo=timezone.utc).timestamp()*1000))
+          PY
+          )
           cd android-app
           gradle :app:testDebugUnitTest --tests "com.kenznguyen.btclivealerts.OkxCommonOhlcvParityTest" --no-daemon || {
             echo "Kotlin replay failed; strict parity step will report false."
