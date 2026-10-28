@@ -6,6 +6,9 @@ callback timing and same-candle precedence still require independent parity
 validation against the Kotlin engine; this is not parity-certified.
 """
 import sys
+import os
+import json
+import math
 from pathlib import Path
 from datetime import timedelta
 
@@ -32,6 +35,55 @@ def evaluate_exit(side, candle, previous, avg_entry):
         candle.get("android_h1_plus_di"), candle.get("android_h1_minus_di"),
         candle.get("android_h1_adx"), avg_entry, rsi, roe
     )
+
+
+def dca_diagnosis(side, candle, previous, avg_entry, entry_count, has_open_orders,
+                  stake, max_stake):
+    """Explain why the Freqtrade DCA callback did or did not propose an order."""
+    result = {
+        "reason": None, "dca_candidate": False, "roe_pct": None,
+        "rsi": candle.get("android_rsi") if candle else None,
+        "adx": candle.get("android_adx") if candle else None,
+        "previous_rsi": candle.get("android_prev_rsi") if candle else None,
+        "proposed_stake": float(stake),
+        "max_stake": float(max_stake),
+    }
+    if entry_count != 1 or has_open_orders:
+        result["reason"] = "position_already_adjusted_or_open_order"
+    elif candle is None or previous is None:
+        result["reason"] = "missing_closed_candles"
+    elif evaluate_exit(side, candle, previous, avg_entry) is not None:
+        result["reason"] = "exit_has_priority"
+    elif any(v is None or not math.isfinite(float(v)) for v in (
+        result["rsi"], result["adx"], result["previous_rsi"]
+    )):
+        result["reason"] = "indicator_not_ready"
+    else:
+        roe = roe_for(side, avg_entry, float(candle["close"]))
+        result["roe_pct"] = roe
+        result["dca_candidate"] = dca_signal(
+            side, roe, result["adx"], result["rsi"], result["previous_rsi"]
+        )
+        if not result["dca_candidate"]:
+            if roe > -20.0:
+                result["reason"] = "roe_not_below_minus_20"
+            elif result["adx"] <= 45.0:
+                result["reason"] = "adx_not_above_45"
+            else:
+                result["reason"] = "rsi_direction_filter_not_met"
+        elif stake <= 0 or max_stake < stake:
+            result["reason"] = "insufficient_free_stake"
+        else:
+            result["reason"] = "dca_proposed"
+    return result
+
+
+def write_dca_trace(trace_file, record):
+    """Append diagnostics only when opt-in path is supplied by CI."""
+    if not trace_file:
+        return
+    with open(trace_file, "a", encoding="utf-8") as stream:
+        stream.write(json.dumps(record, allow_nan=False, default=str) + "\n")
 
 
 class BtcM15H1FuturesRuntime(IStrategy):
@@ -120,25 +172,23 @@ class BtcM15H1FuturesRuntime(IStrategy):
                               current_profit, min_stake, max_stake,
                               current_entry_rate, current_exit_rate,
                               current_entry_profit, current_exit_profit, **kwargs):
-        if trade.nr_of_successful_entries != 1 or trade.has_open_orders:
-            return None
         candle, previous = self._closed_rows(trade.pair, current_time)
-        if candle is None or previous is None:
-            return None
         side = "SHORT" if trade.is_short else "LONG"
-        avg_entry = float(trade.open_rate)
-        # Never DCA if Android would first exit in this same candle.
-        if evaluate_exit(side, candle, previous, avg_entry) is not None:
-            return None
-        rsi = candle.get("android_rsi")
-        prev_rsi = candle.get("android_prev_rsi")
-        adx = candle.get("android_adx")
-        if any(v is None for v in (rsi, prev_rsi, adx)):
-            return None
-        roe = roe_for(side, avg_entry, float(candle["close"]))
-        if not dca_signal(side, roe, adx, rsi, prev_rsi):
-            return None
-        added_margin = float(trade.stake_amount)
-        if added_margin <= 0 or max_stake < added_margin:
-            return None
-        return added_margin, "android_dca"
+        proposed_margin = float(trade.stake_amount)
+        result = dca_diagnosis(
+            side, candle, previous, float(trade.open_rate),
+            trade.nr_of_successful_entries, trade.has_open_orders,
+            proposed_margin, max_stake
+        )
+        write_dca_trace(os.environ.get("FREQTRADE_DCA_TRACE"), {
+            "callback_time": current_time,
+            "closed_candle_time": candle.get("date") if candle else None,
+            "pair": trade.pair,
+            "side": side,
+            "position_entries": trade.nr_of_successful_entries,
+            "rate": float(current_rate),
+            **result,
+        })
+        if result["reason"] == "dca_proposed":
+            return proposed_margin, "android_dca"
+        return None
