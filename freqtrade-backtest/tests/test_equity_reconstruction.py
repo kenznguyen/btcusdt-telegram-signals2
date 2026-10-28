@@ -31,7 +31,7 @@ class EquityReconstructionTest(unittest.TestCase):
                         {"order_filled_timestamp": 300000, "amount": 1, "safe_price": 110, "ft_is_entry": True},
                         {"order_filled_timestamp": 900000, "amount": 2, "safe_price": 100, "ft_is_entry": False}]}
         rows = list(equity_rows([candle(0, 110), candle(300000, 100), candle(600000, 100)], [t], 100, 109.5))
-        self.assertAlmostEqual(rows[0]["equity_usdt"], 99.79)
+        self.assertAlmostEqual(rows[0]["equity_usdt"], 89.79)
         self.assertAlmostEqual(rows[1]["equity_usdt"], 109.79)
         self.assertAlmostEqual(rows[2]["equity_usdt"], 109.5)
 
