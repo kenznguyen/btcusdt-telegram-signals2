@@ -142,7 +142,10 @@ class BtcM15H1FuturesRuntime(IStrategy):
             return 0.0
         # In Freqtrade backtesting, wallet total in callbacks reflects
         # realized balance and allocated stake; it is NOT assumed static.
-        balance = float(self.wallets.get_total(self.config.get("stake_currency", "USDT")))
+        wallet_total = self.wallets.get_total(self.config.get("stake_currency", "USDT"))
+        if wallet_total is None:
+            return 0.0
+        balance = float(wallet_total)
         if not math.isfinite(balance) or balance <= 0:
             return 0.0
         desired = balance * 0.50
