@@ -26,7 +26,7 @@ private val FreqPositive = Color(0xFF20C997)
 private val FreqNegative = Color(0xFFFF647C)
 
 object FreqtradeReportImporter {
-    fun import(context: Context, uri: Uri): FreqtradeReport {
+    fun readReport(context: Context, uri: Uri): FreqtradeReport {
         val filename = context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             val index = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
             if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
@@ -90,7 +90,7 @@ fun FreqtradeBacktestPanel(context: Context, market: MarketEngine, engine: Strat
                 report = null
                 try {
                     val imported = withContext(Dispatchers.IO) {
-                        FreqtradeReportImporter.import(context, uri)
+                        FreqtradeReportImporter.readReport(context, uri)
                     }
                     report = imported
                 } catch (exc: Exception) {
