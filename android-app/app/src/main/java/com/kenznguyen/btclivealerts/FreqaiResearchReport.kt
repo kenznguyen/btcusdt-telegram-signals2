@@ -10,7 +10,8 @@ data class FreqaiResearchReport(
     val mae: Double,
     val baselineMae: Double,
     val directionAccuracy: Double,
-    val windows: Int
+    val windows: Int,
+    val volatilityMae: Double?
 ) {
     val improvesBaseline get() = mae < baselineMae
 }
@@ -36,7 +37,8 @@ object FreqaiResearchReportParser {
         require(accuracy.isFinite() && accuracy in 0.0..1.0) {
             "Độ chính xác hướng không hợp lệ"
         }
+        val volMae = root.optDouble("oos_volatility_mae", Double.NaN).takeIf { it.isFinite() && it >= 0 }
         return FreqaiResearchReport(root.getString("engine"), root.getString("target"),
-            samples, mae, baseline, accuracy, windows.length())
+            samples, mae, baseline, accuracy, windows.length(), volMae)
     }
 }
