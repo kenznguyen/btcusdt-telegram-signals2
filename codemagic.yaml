@@ -264,3 +264,99 @@ workflows:
     artifacts:
       - freqtrade-runtime-results/**/*
       - freqtrade-runtime-data/backtest_results/**/*
+
+  freqtrade_futures_backtest:
+    name: Freqtrade FUTURES 13x backtest — candidate not parity-certified
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      java: 17
+    scripts:
+      - name: Validate backtest-only configuration
+        script: |
+          set -eu
+          uname -sm
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          c = json.loads(Path("freqtrade-backtest/config.runtime-futures.json").read_text())
+          assert c["dry_run"] is True and c["trading_mode"] == "futures"\n          assert c["margin_mode"] == "isolated"
+          assert c["exchange"]["key"] == "" and c["exchange"]["secret"] == ""
+          assert c["exchange"]["pair_whitelist"] == ["BTC/USDT:USDT"]
+          assert c["exchange"]["name"] == "okx"
+          print("Keyless futures historical backtest only.")
+          PY
+      - name: Install native Freqtrade (experimental, ARM64 unsupported upstream)
+        script: |
+          set -eu
+          command -v brew || { echo "Homebrew is required for native install"; exit 1; }
+          brew install python@3.12 ta-lib libomp
+          "$(brew --prefix python@3.12)/bin/python3.12" -m venv "$CM_BUILD_DIR/.freqtrade-venv"
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" -m pip install --upgrade pip wheel setuptools
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" -m pip install freqtrade
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" --version
+      - name: Prepare backtest workspace
+        script: |
+          set -eu
+          mkdir -p freqtrade-futures-data/data freqtrade-futures-data/backtest_results freqtrade-futures-data/strategies freqtrade-futures-results
+          cp freqtrade-backtest/config.runtime-entry.json freqtrade-futures-data/config.json
+          cp freqtrade-backtest/strategies/BtcM15H1FuturesRuntime.py freqtrade-futures-data/BtcM15H1FuturesRuntime.py
+          cp freqtrade-backtest/entry_frame.py freqtrade-futures-data/entry_frame.py
+          cp freqtrade-backtest/android_indicators.py freqtrade-futures-data/android_indicators.py
+          cp freqtrade-backtest/android_signal_predicates.py freqtrade-futures-data/android_signal_predicates.py
+      - name: Verify futures contract and priority unit tests
+        script: |
+          set -eu
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_futures_runtime_contract.py -v
+      - name: Record actual Freqtrade version
+        script: |
+          set -eu
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" --version | tee freqtrade-futures-results/version.txt
+      - name: Download OKX perpetual candles plus mark and funding history
+        script: |
+          set -eu
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" download-data \
+            --userdir "$CM_BUILD_DIR/freqtrade-futures-data" \
+            --config "$CM_BUILD_DIR/freqtrade-futures-data/config.json" \
+            --exchange okx --pairs BTC/USDT:USDT \
+            --trading-mode futures --timeframes 15m 1h --days 45 \
+            --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data"
+      - name: Run actual Freqtrade CLI backtesting
+        script: |
+          set -eu
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" backtesting \
+            --userdir "$CM_BUILD_DIR/freqtrade-futures-data" \
+            --config "$CM_BUILD_DIR/freqtrade-futures-data/config.json" \
+            --strategy BtcM15H1FuturesRuntime \
+            --strategy-path "$CM_BUILD_DIR/freqtrade-futures-data" \
+            --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
+            --export-directory "$CM_BUILD_DIR/freqtrade-futures-data/backtest_results" \
+            --fee 0.0005 --cache none --export trades \
+            > freqtrade-futures-results/backtest.log 2>&1 || {
+              tail -n 120 freqtrade-futures-results/backtest.log
+              exit 1
+            }
+          tail -n 100 freqtrade-futures-results/backtest.log
+          find freqtrade-futures-data/backtest_results -type f -name '*.zip' | grep -q .
+      - name: Write verified command-execution manifest
+        script: |
+          set -eu
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = {
+              "actual_freqtrade_backtest_command_completed": True,
+              "runtime_install": "experimental native macOS ARM64",\n              "futures_13x_callbacks_implemented": True,
+              "strategy": "BtcM15H1FuturesRuntime",
+              "market": "OKX BTC/USDT:USDT Futures",
+              "strategy_scope": "13x LONG/SHORT DCA candidate + prioritized custom_exit; fill-level parity unverified",
+              "android_13x_futures_parity_verified": False,
+              "dca_short_tp_soft_sl_emergency_sl_parity_verified": False,\n              "android_fill_price_and_event_order_verified": False,
+              "no_real_orders": True
+          }
+          Path("freqtrade-futures-results/run-manifest.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+          PY
+    artifacts:
+      - freqtrade-futures-results/**/*
+      - freqtrade-futures-data/backtest_results/**/*
