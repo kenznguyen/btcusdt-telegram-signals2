@@ -88,4 +88,7 @@ tasks.withType<Test>().configureEach {
     System.getenv("OKX_PARITY_ANDROID_EVENTS")?.takeIf { it.isNotBlank() }?.let {
         systemProperty("okx.parity.android.events", it)
     }
+    System.getenv("OKX_PARITY_START_MS")?.takeIf { it.isNotBlank() }?.let {
+        systemProperty("okx.parity.start.ms", it)
+    }
 }
