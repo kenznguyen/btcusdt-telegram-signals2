@@ -35,6 +35,7 @@ private data class BacktestReport(
 fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
     val scope = rememberCoroutineScope()
     var days by remember { mutableIntStateOf(30) }
+    var capitalInput by remember { mutableStateOf("100") }
     var loading by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Chưa chạy backtest") }
     var report by remember { mutableStateOf<BacktestReport?>(null) }
@@ -47,20 +48,37 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                 FilterChip(selected = days == d, onClick = { days = d }, enabled = !loading, label = { Text("${d}D") })
             }
         }
+        OutlinedTextField(
+            value = capitalInput,
+            onValueChange = { capitalInput = it },
+            label = { Text("Vốn ban đầu (USDT)") },
+            singleLine = true,
+            enabled = !loading,
+            modifier = Modifier.fillMaxWidth()
+        )
         Button(enabled = !loading, onClick = {
+            val runDays = days
+            val runCapital = capitalInput.toDoubleOrNull()
+            if (runCapital == null || !runCapital.isFinite() || runCapital <= 0.0 || runCapital > 1_000_000_000.0) {
+                status = "Vốn ban đầu phải lớn hơn 0 và không vượt quá 1 tỷ USDT."
+                return@Button
+            }
             scope.launch {
                 loading = true
                 status = "Đang tải nến phân trang và tính chỉ báo một lần…"
                 try {
                     val r = withContext(Dispatchers.Default) {
-                        val m15 = market.fetchHistory("15m", days)
-                        val h1 = market.fetchHistory("1h", days)
+                        val m15 = market.fetchHistory("15m", runDays)
+                        val h1 = market.fetchHistory("1h", runDays)
                         require(m15.size > 60 && h1.size > 30) { "Không đủ dữ liệu lịch sử." }
                         validateBacktestCandles(m15, 900_000L, "M15")
                         validateBacktestCandles(h1, 3_600_000L, "H1")
+                        val checkedAt = System.currentTimeMillis()
+                        validateBacktestCoverage(m15, runDays, 900_000L, checkedAt, "M15")
+                        validateBacktestCoverage(h1, runDays, 3_600_000L, checkedAt, "H1")
                         // Critical optimization: calculate indicator series once and process the entire candle set once.
                         // Never replay each growing candle prefix (that made the old implementation O(n²)).
-                        val initial = StrategyState(balance = 100.0)
+                        val initial = StrategyState(balance = runCapital)
                         var peak = initial.balance
                         var maxDd = 0.0
                         var maxAbs = 0.0
@@ -130,6 +148,7 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
         }, modifier = Modifier.fillMaxWidth()) { Text(if (loading) "ĐANG CHẠY…" else "CHẠY BACKTEST ${days} NGÀY") }
         Text(status, color = if (status.startsWith("Hoàn tất")) Green else Muted, style = MaterialTheme.typography.bodySmall)
         report?.let { r ->
+            Text("Vốn đã dùng khi chạy: ${"%.2f".format(r.startBalance)} USDT", color = Muted, style = MaterialTheme.typography.bodySmall)
             Metric("Net PnL đã đóng", "%+.2f USDT".format(r.netPnl), r.netPnl >= 0)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Metric("Số dư sau lệnh đóng", "%.2f".format(r.endBalance), r.endBalance >= r.startBalance, Modifier.weight(1f))
@@ -215,5 +234,22 @@ internal fun validateBacktestCandles(candles: List<Candle>, stepMs: Long, timefr
     }) { "$timeframe có nến OHLCV không hợp lệ" }
     require(ordered.zipWithNext().all { (a, b) -> b.openTime - a.openTime == stepMs }) {
         "$timeframe có khoảng trống dữ liệu lịch sử. Hãy tải lại trước khi backtest."
+    }
+}
+
+/** Ensure pagination returned the requested window, not merely a short but valid subset. */
+internal fun validateBacktestCoverage(
+    candles: List<Candle>, days: Int, stepMs: Long, nowMs: Long, timeframe: String
+) {
+    require(days in setOf(7, 30, 90, 180, 360)) { "Kỳ backtest không hỗ trợ" }
+    require(stepMs > 0L && nowMs > 0L) { "Thời gian kiểm tra không hợp lệ" }
+    val first = candles.minOfOrNull { it.openTime } ?: error("$timeframe không có nến")
+    val last = candles.maxOfOrNull { it.openTime } ?: error("$timeframe không có nến")
+    val requestedStart = nowMs - days.toLong() * 86_400_000L
+    require(first <= requestedStart + 2L * stepMs) {
+        "$timeframe thiếu dữ liệu đầu kỳ ($days ngày). Không dùng kết quả chưa đủ kỳ."
+    }
+    require(last >= nowMs - 3L * stepMs) {
+        "$timeframe thiếu dữ liệu cuối kỳ. Không dùng kết quả chưa đủ kỳ."
     }
 }
