@@ -272,7 +272,7 @@ workflows:
     environment:
       java: 17
       vars:
-        BACKTEST_DAYS: '180'
+        BACKTEST_DAYS: '360'
     scripts:
       - name: Validate backtest-only configuration
         script: |
@@ -315,6 +315,7 @@ workflows:
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_futures_dynamic_stake.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_reconcile_fills.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_walkforward_windows.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_equity_reconstruction.py -v
       - name: Record actual Freqtrade version
         script: |
           set -eu
@@ -375,6 +376,16 @@ workflows:
             echo "No DCA diagnostics were emitted; callback may not have been invoked."
           fi
           find freqtrade-futures-data/backtest_results -type f -name '*.zip' | grep -q .
+      - name: Reconcile open-position equity and drawdown on each 5m candle
+        script: |
+          set -eu
+          ZIP=$(find freqtrade-futures-data/backtest_results -maxdepth 1 -type f -name '*.zip' | sort | tail -n 1)
+          test -n "$ZIP"
+          python3 freqtrade-backtest/equity_reconstruction.py \
+            --result "$ZIP" \
+            --ohlcv freqtrade-futures-results/common-ohlcv/btc-usdt-okx-futures-5m-utc.csv.gz \
+            --csv freqtrade-futures-results/equity-5m.csv.gz \
+            --json freqtrade-futures-results/equity-5m-summary.json
       - name: Reconcile expected and actual fill prices
         script: |
           set -eu
@@ -439,10 +450,13 @@ workflows:
               "android_common_dataset_replay_verified": False,
               "dca_callback_trace": "dca-diagnostics.jsonl",
               "exit_callback_trace": "exit-diagnostics.jsonl",
-              "requested_days": int(__import__("os").environ.get("BACKTEST_DAYS", "180")),
+              "requested_days": int(__import__("os").environ.get("BACKTEST_DAYS", "360")),
+              "equity_5m_reconciliation_run": True,
+              "equity_funding_timestamps_available": False,
+              "equity_based_on_exchange_mark_price": False,
               "history_coverage_checked": True,
               "timeframe_detail": "5m",
-              "walkforward_windows": 3 if int(__import__("os").environ.get("BACKTEST_DAYS", "180")) == 360 else 0,
+              "walkforward_windows": 3 if int(__import__("os").environ.get("BACKTEST_DAYS", "360")) == 360 else 0,
               "protective_emergency_stop_roe": -90.0,
               "no_real_orders": True
           }
