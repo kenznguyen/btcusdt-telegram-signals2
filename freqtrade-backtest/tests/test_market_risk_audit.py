@@ -23,5 +23,20 @@ class LiquidationAuditTest(unittest.TestCase):
     def test_no_liquidation_event(self):
         self.assertEqual([], audit_liquidations([{"exit_reason": "tp"}]))
 
+    def test_funding_rate_uses_rate_field_when_open_missing(self):
+        from market_risk_audit import normalize_market_frame
+        import pandas as pd
+        frame = pd.DataFrame({"date": pd.to_datetime(["2026-02-25T00:00:00Z"]), "fundingRate": [0.0001]})
+        dates, values, col = normalize_market_frame(frame, "funding_rate")
+        self.assertEqual(col, "fundingRate")
+        self.assertEqual(values.tolist(), [0.0001])
+
+    def test_missing_funding_values_reported_not_fabricated(self):
+        from market_risk_audit import normalize_market_frame
+        import pandas as pd
+        frame = pd.DataFrame({"date": pd.to_datetime([], utc=True), "open": []})
+        with self.assertRaisesRegex(ValueError, "empty"):
+            normalize_market_frame(frame, "funding_rate")
+
 if __name__ == "__main__":
     unittest.main()
