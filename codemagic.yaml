@@ -172,3 +172,85 @@ workflows:
           echo "ENTRY dataframe diagnostics only; actual Freqtrade order simulation, DCA and exits NOT certified."
     artifacts:
       - python-entry-trace.json
+
+  freqtrade_runtime_backtest:
+    name: REAL Freqtrade runtime backtest (ENTRY diagnostic only)
+    max_build_duration: 60
+    environment:
+      java: 17
+    scripts:
+      - name: Assert Docker and backtest-only configuration
+        script: |
+          set -eu
+          docker info >/dev/null
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          c = json.loads(Path("freqtrade-backtest/config.runtime-entry.json").read_text())
+          assert c["dry_run"] is True and c["trading_mode"] == "spot"
+          assert c["exchange"]["key"] == "" and c["exchange"]["secret"] == ""
+          assert c["exchange"]["pair_whitelist"] == ["BTC/USDT"]
+          print("Runtime is isolated: SPOT diagnostic only, no trading credentials.")
+          PY
+      - name: Prepare Freqtrade workspace
+        script: |
+          set -eu
+          mkdir -p freqtrade-runtime-data/data freqtrade-runtime-data/backtest_results freqtrade-runtime-results
+          cp freqtrade-backtest/config.runtime-entry.json freqtrade-runtime-data/config.json
+          cp freqtrade-backtest/strategies/BtcM15H1EntryRuntime.py freqtrade-runtime-data/BtcM15H1EntryRuntime.py
+          cp freqtrade-backtest/entry_frame.py freqtrade-runtime-data/entry_frame.py
+          cp freqtrade-backtest/android_indicators.py freqtrade-runtime-data/android_indicators.py
+          cp freqtrade-backtest/android_signal_predicates.py freqtrade-runtime-data/android_signal_predicates.py
+      - name: Check actual Freqtrade CLI version
+        script: |
+          set -eu
+          docker run --rm freqtradeorg/freqtrade:stable --version | tee freqtrade-runtime-results/version.txt
+      - name: Download historical Binance SPOT BTC/USDT candles
+        script: |
+          set -eu
+          docker run --rm -v "$CM_BUILD_DIR/freqtrade-runtime-data:/freqtrade/user_data" \\
+            freqtradeorg/freqtrade:stable download-data \\
+            --config /freqtrade/user_data/config.json \\
+            --exchange binance --pairs BTC/USDT \\
+            --trading-mode spot --timeframes 15m 1h --days 45 \\
+            --datadir /freqtrade/user_data/data
+      - name: Run actual Freqtrade backtesting engine
+        script: |
+          set -eu
+          docker run --rm -v "$CM_BUILD_DIR/freqtrade-runtime-data:/freqtrade/user_data" \\
+            freqtradeorg/freqtrade:stable backtesting \\
+            --config /freqtrade/user_data/config.json \\
+            --strategy BtcM15H1EntryRuntime \\
+            --strategy-path /freqtrade/user_data \\
+            --datadir /freqtrade/user_data/data \\
+            --export-directory /freqtrade/user_data/backtest_results \\
+            --fee 0.0005 --cache none --export trades \\
+            > freqtrade-runtime-results/backtest.log 2>&1 || {
+              tail -n 120 freqtrade-runtime-results/backtest.log
+              exit 1
+            }
+          tail -n 100 freqtrade-runtime-results/backtest.log
+          find freqtrade-runtime-data/backtest_results -type f -maxdepth 2 -print
+          find freqtrade-runtime-data/backtest_results -type f -name '*.zip' | grep -q .
+      - name: Record experiment boundaries
+        script: |
+          set -eu
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = {
+              "actual_freqtrade_backtest_command_completed": True,
+              "strategy": "BtcM15H1EntryRuntime",
+              "market": "Binance BTC/USDT SPOT",
+              "strategy_scope": "LONG ENTRY diagnostic; ROI/stoploss are placeholders",
+              "android_13x_futures_parity_verified": False,
+              "dca_short_tp_soft_sl_emergency_sl_parity_verified": False,
+              "no_real_orders": True,
+              "note": "Read the real Freqtrade result ZIP for trade counts and metrics; do not infer profitability."
+          }
+          Path("freqtrade-runtime-results/run-manifest.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\\n")
+          PY
+    artifacts:
+      - freqtrade-runtime-results/**/*
+      - freqtrade-runtime-data/backtest_results/**/*
