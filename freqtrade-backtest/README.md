@@ -197,3 +197,31 @@ bar-for-bar parity certificates. Native stoploss may be affected by
 market gaps, leverage funding, order simulation, and data granularity.
 All backtests remain paper/historical only, and every real-trading
 mode is rejected by the strategy.
+
+## 360-day default and 5m open-position equity audit
+
+The `freqtrade_futures_backtest` Codemagic workflow now defaults to
+`BACKTEST_DAYS=360`. It performs a complete 360-day futures backtest
+with 5m intra-candle simulation followed by three independent
+120-day chronological windows. It **does not run real orders**.
+The historical exchange coverage check fails rather than inventing
+missing data.
+
+`equity_reconstruction.py` exports
+`freqtrade-futures-results/equity-5m.csv.gz` and
+`equity-5m-summary.json`. It reconstructs mark-to-market unrealized PnL
+at each 5m closing price from actual entry fills (including DCA), deducts
+entry fees while positions are open, and settles Freqtrade's reported
+`profit_abs` at the exit. Settlement includes Freqtrade's exit
+fees and funding. The script **fails the build** if final equity does
+not reconcile with Freqtrade's final account balance.
+
+**Disclosure:** The 5m OHLCV close is not the exchange's mark price.
+Per-funding-event timestamps are not available in standard Freqtrade
+trade exports, so accumulated funding is recognized only on exit;
+the resulting intermediate equity/drawdown is an audit estimate.
+The report separately labels the largest absolute drawdown and
+the largest percentage drawdown; they need not coincide.
+No Android parity or liquidation parity is claimed.
+Per user preference, no separate Emergency SL stress-test workflow
+was added.
