@@ -14,6 +14,7 @@ android {
         targetSdk = 35
         versionCode = 3
         versionName = "0.3.0"
+        manifestPlaceholders["appLabel"] = "BTCUSDT Chart Pro"
     }
 
     signingConfigs {
@@ -26,6 +27,12 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            // Install alongside the signed Release app; never overwrite its data.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            manifestPlaceholders["appLabel"] = "BTCUSDT Chart Pro (Debug)"
+        }
         getByName("release") {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("release")
