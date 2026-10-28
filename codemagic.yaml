@@ -30,8 +30,9 @@ workflows:
           AAPT="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -n 1)"
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
           "$AAPT" dump badging "$APK" | grep -m 1 '^package:'
+          "$AAPT" dump badging "$APK" | grep -q "package: name='com.kenznguyen.btclivealerts.debug'"
           "$APKSIGNER" verify --print-certs "$APK"
-          echo "Debug signature only. Not an in-place update to the user's signed Release APK."
+          echo "DEBUG APK verified: installs alongside existing Release, not as a replacement."
     artifacts:
       - android-app/app/build/outputs/apk/debug/*.apk
       - android-app/app/build/reports/tests/testDebugUnitTest/**/*
