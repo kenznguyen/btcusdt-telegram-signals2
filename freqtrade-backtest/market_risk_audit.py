@@ -6,6 +6,7 @@ of per-position settlement cashflows or liquidation maintenance margin.
 import argparse
 import json
 import zipfile
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 
@@ -89,14 +90,42 @@ def audit_market_data(data_dir):
     return result
 
 
+
+def funding_coverage_status(market_data, trades):
+    """Explicitly distinguish funding coverage from OHLCV completeness."""
+    if not trades:
+        return {"complete_for_trade_period": False, "reason": "no_trades"}
+    funding = market_data.get("funding_rate", {})
+    if not funding.get("first_utc") or not funding.get("last_utc"):
+        return {"complete_for_trade_period": False, "reason": "missing_funding_data"}
+    first_trade = min(datetime.fromisoformat(str(t["open_date"]).replace("Z", "+00:00")) for t in trades)
+    last_trade = max(datetime.fromisoformat(str(t["close_date"]).replace("Z", "+00:00")) for t in trades)
+    first_rate = datetime.fromisoformat(funding["first_utc"])
+    last_rate = datetime.fromisoformat(funding["last_utc"])
+    # Funding is periodic, not an OHLCV candle. Allow one day around edges,
+    # but NEVER accept multi-month absent history as complete.
+    complete = first_rate <= first_trade + timedelta(days=1) and last_rate >= last_trade - timedelta(days=1)
+    return {
+        "complete_for_trade_period": complete,
+        "first_trade_utc": first_trade.isoformat(),
+        "last_trade_utc": last_trade.isoformat(),
+        "first_funding_utc": first_rate.isoformat(),
+        "last_funding_utc": last_rate.isoformat(),
+        "reason": "coverage_verified" if complete else "funding_history_incomplete",
+        "funding_event_schedule_verified": False,
+    }
+
+
 def audit(result_zip, data_dir):
     trades = exported_trades(result_zip)
+    market_data = audit_market_data(data_dir)
     return {
         "source": "Freqtrade export + OKX historical mark and funding data",
         "trades": len(trades),
         "liquidation_count": len(audit_liquidations(trades)),
         "liquidations": audit_liquidations(trades),
-        "market_data": audit_market_data(data_dir),
+        "market_data": market_data,
+        "funding_coverage": funding_coverage_status(market_data, trades),
         "freqtrade_reported_funding_total_usdt": sum(float(x.get("funding_fees") or 0) for x in trades),
         "funding_per_event_cashflow_verified": False,
         "liquidation_buffer_and_maintenance_margin_verified": False,
