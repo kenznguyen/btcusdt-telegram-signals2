@@ -40,8 +40,8 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
     var report by remember { mutableStateOf<BacktestReport?>(null) }
 
     Column(Modifier.fillMaxWidth().background(Color(0xFF151D29), RoundedCornerShape(14.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("BACKTEST · BTCUSDT M15 / H1", color = Color.White, style = MaterialTheme.typography.titleMedium)
-        Text("Dữ liệu Binance Futures · mô phỏng cục bộ · không đặt lệnh thật", color = Muted, style = MaterialTheme.typography.bodySmall)
+        Text("BACKTEST TRỰC TIẾP · BTCUSDT M15 / H1", color = Color.White, style = MaterialTheme.typography.titleMedium)
+        Text("Chạy ngay trên điện thoại bằng StrategyEngine · dữ liệu Binance Futures · không đặt lệnh thật", color = Muted, style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf(7, 30, 90, 180, 360).forEach { d ->
                 FilterChip(selected = days == d, onClick = { days = d }, enabled = !loading, label = { Text("${d}D") })
@@ -56,6 +56,8 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
                         val m15 = market.fetchHistory("15m", days)
                         val h1 = market.fetchHistory("1h", days)
                         require(m15.size > 60 && h1.size > 30) { "Không đủ dữ liệu lịch sử." }
+                        validateBacktestCandles(m15, 900_000L, "M15")
+                        validateBacktestCandles(h1, 3_600_000L, "H1")
                         // Critical optimization: calculate indicator series once and process the entire candle set once.
                         // Never replay each growing candle prefix (that made the old implementation O(n²)).
                         val initial = StrategyState(balance = 100.0)
@@ -152,6 +154,7 @@ fun BacktestPanel(market: MarketEngine, engine: StrategyEngine) {
             }
             Text("Số lệnh đóng: ${r.closed.size} · Số sự kiện: ${r.events.size}", color = Muted)
             Text("Dữ liệu: ${date(r.from)} – ${date(r.to)}", color = Muted, style = MaterialTheme.typography.bodySmall)
+            Text("Engine: Android StrategyEngine · Không phải Freqtrade Python chạy trong APK. Chỉ số mô phỏng, chưa chứng nhận tương đương Freqtrade.", color = Muted, style = MaterialTheme.typography.bodySmall)
             Text("LỊCH SỬ LỆNH ĐÓNG GẦN NHẤT", color = Color.White, style = MaterialTheme.typography.titleSmall)
             r.closed.takeLast(15).reversed().forEach { e ->
                 Column(Modifier.fillMaxWidth().background(Color(0xFF0B1018), RoundedCornerShape(8.dp)).padding(10.dp)) {
@@ -195,5 +198,22 @@ private fun EquityChart(values: List<Double>, lineColor: Color, modifier: Modifi
                 size.height - ((value - low) / range).toFloat() * size.height)
         }
         points.zipWithNext().forEach { (a, b) -> drawLine(lineColor, a, b, 2f) }
+    }
+}
+
+/** Reject incomplete or duplicated historical candles before presenting performance metrics. */
+internal fun validateBacktestCandles(candles: List<Candle>, stepMs: Long, timeframe: String) {
+    require(candles.isNotEmpty()) { "Không có dữ liệu $timeframe" }
+    val ordered = candles.filter { it.closed }.sortedBy { it.openTime }
+    require(ordered.size == candles.size) { "$timeframe có nến chưa đóng" }
+    require(ordered.distinctBy { it.openTime }.size == ordered.size) { "$timeframe có timestamp trùng" }
+    require(ordered.all {
+        it.openTime % stepMs == 0L && it.high >= maxOf(it.open, it.close, it.low) &&
+            it.low <= minOf(it.open, it.close, it.high) && it.low > 0.0 &&
+            it.volume >= 0.0 && it.open.isFinite() && it.high.isFinite() &&
+            it.low.isFinite() && it.close.isFinite() && it.volume.isFinite()
+    }) { "$timeframe có nến OHLCV không hợp lệ" }
+    require(ordered.zipWithNext().all { (a, b) -> b.openTime - a.openTime == stepMs }) {
+        "$timeframe có khoảng trống dữ liệu lịch sử. Hãy tải lại trước khi backtest."
     }
 }
