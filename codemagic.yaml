@@ -191,6 +191,7 @@ workflows:
           assert c["dry_run"] is True and c["trading_mode"] == "spot"
           assert c["exchange"]["key"] == "" and c["exchange"]["secret"] == ""
           assert c["exchange"]["pair_whitelist"] == ["BTC/USDT"]
+          assert c["exchange"]["name"] == "okx"
           print("Keyless spot historical backtest only.")
           PY
       - name: Install native Freqtrade (experimental, ARM64 unsupported upstream)
@@ -215,13 +216,13 @@ workflows:
         script: |
           set -eu
           "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" --version | tee freqtrade-runtime-results/version.txt
-      - name: Download Binance SPOT candles for native backtest
+      - name: Download OKX SPOT candles for native backtest
         script: |
           set -eu
           "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" download-data \
             --userdir "$CM_BUILD_DIR/freqtrade-runtime-data" \
             --config "$CM_BUILD_DIR/freqtrade-runtime-data/config.json" \
-            --exchange binance --pairs BTC/USDT \
+            --exchange okx --pairs BTC/USDT \
             --trading-mode spot --timeframes 15m 1h --days 45 \
             --datadir "$CM_BUILD_DIR/freqtrade-runtime-data/data"
       - name: Run actual Freqtrade CLI backtesting
@@ -251,7 +252,7 @@ workflows:
               "actual_freqtrade_backtest_command_completed": True,
               "runtime_install": "experimental native macOS ARM64",
               "strategy": "BtcM15H1EntryRuntime",
-              "market": "Binance BTC/USDT SPOT",
+              "market": "OKX BTC/USDT SPOT",
               "strategy_scope": "LONG entry diagnostic, placeholder ROI/stoploss",
               "android_13x_futures_parity_verified": False,
               "dca_short_tp_soft_sl_emergency_sl_parity_verified": False,
