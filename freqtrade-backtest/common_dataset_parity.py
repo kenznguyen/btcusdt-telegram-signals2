@@ -40,11 +40,17 @@ def compare_events(android_events, freqtrade_events):
         f = freqtrade.get(key)
         status = ("android_only" if f is None else
                   "freqtrade_only" if a is None else
-                  "matched" if a.get("price") == f.get("price") else
-                  "price_disagreement")
+                  "missing_fill_price" if a.get("price") is None or f.get("price") is None else
+                  "price_disagreement" if abs(float(a["price"]) - float(f["price"])) > 1e-8 else
+                  "quantity_disagreement" if a.get("quantity") is not None and f.get("quantity") is not None
+                      and abs(float(a["quantity"]) - float(f["quantity"])) > 1e-10 else
+                  "missing_quantity" if a.get("quantity") is None or f.get("quantity") is None else
+                  "matched")
         result.append({"key": key, "status": status,
                        "android_price": a.get("price") if a else None,
-                       "freqtrade_price": f.get("price") if f else None})
+                       "freqtrade_price": f.get("price") if f else None,
+                       "android_quantity": a.get("quantity") if a else None,
+                       "freqtrade_quantity": f.get("quantity") if f else None})
     return {"events": result,
             "all_events_match": bool(result) and all(x["status"] == "matched" for x in result),
             "event_count": len(result)}
