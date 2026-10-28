@@ -32,6 +32,10 @@ workflows:
           python3 freqtrade-backtest/compare_events.py android-dca-trace.json python-dca-trace.json
           python3 freqtrade-backtest/export_tp_parity_trace.py python-tp-trace.json
           python3 freqtrade-backtest/compare_events.py android-tp-trace.json python-tp-trace.json
+      - name: Write Android/Python parity discrepancy report
+        script: |
+          set -eu
+          python3 freqtrade-backtest/parity_suite.py --android-dir . --output-dir parity-results
       - name: Assemble Android Debug APK
         script: |
           set -eu
@@ -49,6 +53,7 @@ workflows:
           echo "DEBUG ONLY: this APK is not signed with the installed Release certificate."
     artifacts:
       - android-app/app/build/outputs/apk/debug/*.apk
+      - parity-results/*.json
       - android-app/app/build/reports/tests/testDebugUnitTest/**/*
 
   android_freqtrade_release:
