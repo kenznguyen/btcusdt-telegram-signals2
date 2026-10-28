@@ -3,6 +3,7 @@ import argparse
 import csv
 import json
 from pathlib import Path
+from collections import Counter
 from common_dataset_parity import verify_manifest
 
 FIVE = {"ENTRY","DCA","TP","SOFT_SL","EMERGENCY_SL"}
@@ -103,7 +104,21 @@ def main():
         for trade in report.get("trades",[]):
             writer.writerow({k:(json.dumps(trade["differences"],ensure_ascii=False) if k=="differences_json" else trade.get(k))
                 for k in writer.fieldnames})
-    print("parity_verified:",report["parity_verified"],"reason:",report.get("reason"))
+    print("parity_verified:", report["parity_verified"], "reason:", report.get("reason"))
+    print("Kotlin events:", report.get("android_events", 0),
+          "Freqtrade events:", report.get("freqtrade_events", 0))
+    print("Kotlin trades:", report.get("android_trade_count", 0),
+          "Freqtrade trades:", report.get("freqtrade_trade_count", 0))
+    differences = [d for trade in report.get("trades", []) for d in trade.get("differences", [])]
+    print("Mismatch categories:", dict(Counter(d.get("field", "unknown") for d in differences)))
+    for trade in (t for t in report.get("trades", []) if not t.get("matched")):
+        print("Trade", trade["trade_index"],
+              "Kotlin side:", trade.get("android_side"),
+              "Freqtrade side:", trade.get("freqtrade_side"),
+              "first differences:", json.dumps(trade.get("differences", [])[:4], ensure_ascii=False))
+        if (shown := sum(not t.get("matched") for t in
+                         report.get("trades", [])[:trade["trade_index"]])) >= 5:
+            break
     return 0 if report["parity_verified"] else 1
 
 if __name__=="__main__":
