@@ -587,3 +587,262 @@ workflows:
       - freqtrade-futures-results/**/*
       - freqtrade-futures-data/backtest_results/**/*
       - freqtrade-futures-data/walkforward/**/*
+
+  freqtrade_chart_pro_analytics:
+    name: BTCUSDT Chart Pro — Freqtrade Futures Analytics 360d
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      java: 17
+      vars:
+        BACKTEST_DAYS: '360'
+    scripts:
+      - name: Validate backtest-only configuration
+        script: |
+          set -eu
+          uname -sm
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          c = json.loads(Path("freqtrade-backtest/config.runtime-futures.json").read_text())
+          assert c["dry_run"] is True and c["trading_mode"] == "futures"
+          assert c["margin_mode"] == "isolated"
+          assert c["exchange"]["key"] == "" and c["exchange"]["secret"] == ""
+          assert c["exchange"]["pair_whitelist"] == ["BTC/USDT:USDT"]
+          assert c["exchange"]["name"] == "okx"
+          print("Keyless futures historical backtest only.")
+          PY
+      - name: Install native Freqtrade (experimental, ARM64 unsupported upstream)
+        script: |
+          set -eu
+          command -v brew || { echo "Homebrew is required for native install"; exit 1; }
+          brew install python@3.12 ta-lib libomp
+          "$(brew --prefix python@3.12)/bin/python3.12" -m venv "$CM_BUILD_DIR/.freqtrade-venv"
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" -m pip install --upgrade pip wheel setuptools
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" -m pip install freqtrade
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" --version
+      - name: Prepare backtest workspace
+        script: |
+          set -eu
+          mkdir -p freqtrade-futures-data/data freqtrade-futures-data/backtest_results freqtrade-futures-data/strategies freqtrade-futures-results
+          cp freqtrade-backtest/config.runtime-futures.json freqtrade-futures-data/config.json
+          cp freqtrade-backtest/strategies/BtcM15H1FuturesRuntime.py freqtrade-futures-data/strategies/BtcM15H1FuturesRuntime.py
+          cp freqtrade-backtest/entry_frame.py freqtrade-futures-data/entry_frame.py
+          cp freqtrade-backtest/android_indicators.py freqtrade-futures-data/android_indicators.py
+          cp freqtrade-backtest/android_signal_predicates.py freqtrade-futures-data/android_signal_predicates.py
+      - name: Verify futures contract and priority unit tests
+        script: |
+          set -eu
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_futures_runtime_contract.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_dca_diagnostics.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_futures_dynamic_stake.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_reconcile_fills.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_walkforward_windows.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_equity_reconstruction.py -v
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" -m unittest discover -s freqtrade-backtest/tests -p test_market_risk_audit.py -v
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" -m unittest discover -s freqtrade-backtest/tests -p test_funding_timeline_audit.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_common_dataset_parity.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_export_freqtrade_events.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_strict_trade_pairing.py -v
+      - name: Record actual Freqtrade version
+        script: |
+          set -eu
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" --version | tee freqtrade-futures-results/version.txt
+      - name: Prepare exact UTC backtest window
+        script: |
+          set -eu
+          python3 freqtrade-backtest/backtest_window.py --days "$BACKTEST_DAYS" --output freqtrade-futures-results/window.json
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_backtest_window.py -v
+      - name: Download OKX perpetual candles plus mark and funding history
+        script: |
+          set -eu
+          DOWNLOAD_DAYS=$(python3 -c 'import json; print(json.load(open("freqtrade-futures-results/window.json"))["download_days"])')
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" download-data \
+            --userdir "$CM_BUILD_DIR/freqtrade-futures-data" \
+            --config "$CM_BUILD_DIR/freqtrade-futures-data/config.json" \
+            --exchange okx --pairs BTC/USDT:USDT \
+            --trading-mode futures --timeframes 5m 15m 1h --days "$DOWNLOAD_DAYS" \
+            --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data"
+      - name: Validate full M15 H1 historical coverage
+        script: |
+          set -eu
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" freqtrade-backtest/validate_futures_history.py \
+            --data-dir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
+            --days "$BACKTEST_DAYS" \
+            --output "$CM_BUILD_DIR/freqtrade-futures-results/history-coverage.json"
+      - name: Export identical-source OKX OHLCV for Android parity
+        script: |
+          set -eu
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" freqtrade-backtest/export_common_ohlcv.py \
+            --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
+            --output "$CM_BUILD_DIR/freqtrade-futures-results/common-ohlcv"
+      - name: Verify common-data checksums and report Android parity pending
+        script: |
+          set -eu
+          python3 freqtrade-backtest/common_dataset_parity.py \
+            --ohlcv freqtrade-futures-results/common-ohlcv \
+            --output freqtrade-futures-results/common-dataset-parity-status.json
+      - name: Run actual Freqtrade CLI backtesting
+        script: |
+          set -eu
+          TIMERANGE=$(python3 -c 'import json; print(json.load(open("freqtrade-futures-results/window.json"))["timerange"])')
+          export FREQTRADE_DCA_TRACE="$CM_BUILD_DIR/freqtrade-futures-results/dca-diagnostics.jsonl"
+          export FREQTRADE_EXIT_TRACE="$CM_BUILD_DIR/freqtrade-futures-results/exit-diagnostics.jsonl"
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" backtesting \
+            --userdir "$CM_BUILD_DIR/freqtrade-futures-data" \
+            --config "$CM_BUILD_DIR/freqtrade-futures-data/config.json" \
+            --strategy BtcM15H1FuturesRuntime \
+            --strategy-path "$CM_BUILD_DIR/freqtrade-futures-data/strategies" \
+            --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
+            --export-directory "$CM_BUILD_DIR/freqtrade-futures-data/backtest_results" \
+            --timerange "$TIMERANGE" \
+            --timeframe-detail 5m \
+            --fee 0.0005 --cache none --export trades \
+            > freqtrade-futures-results/backtest.log 2>&1 || {
+              tail -n 120 freqtrade-futures-results/backtest.log
+              exit 1
+            }
+          tail -n 100 freqtrade-futures-results/backtest.log
+          if test -f freqtrade-futures-results/dca-diagnostics.jsonl; then
+            echo "DCA callback samples:"
+            tail -n 12 freqtrade-futures-results/dca-diagnostics.jsonl
+          else
+            echo "No DCA diagnostics were emitted; callback may not have been invoked."
+          fi
+          find freqtrade-futures-data/backtest_results -type f -name '*.zip' | grep -q .
+      - name: Export actual fills to Android parity input schema
+        script: |
+          set -eu
+          ZIP=$(find freqtrade-futures-data/backtest_results -maxdepth 1 -type f -name '*.zip' | sort | tail -n 1)
+          test -n "$ZIP"
+          python3 freqtrade-backtest/export_freqtrade_events.py \
+            --result "$ZIP" \
+            --output freqtrade-futures-results/freqtrade-execution-events.json || {
+              echo "Freqtrade trace export failed; strict parity will report false."
+            }
+      - name: Reconcile open-position equity and drawdown on each 5m candle
+        script: |
+          set -eu
+          ZIP=$(find freqtrade-futures-data/backtest_results -maxdepth 1 -type f -name '*.zip' | sort | tail -n 1)
+          test -n "$ZIP"
+          python3 freqtrade-backtest/equity_reconstruction.py \
+            --result "$ZIP" \
+            --ohlcv freqtrade-futures-results/common-ohlcv/btc-usdt-okx-futures-5m-utc.csv.gz \
+            --csv freqtrade-futures-results/equity-5m.csv.gz \
+            --json freqtrade-futures-results/equity-5m-summary.json
+      - name: Audit liquidation rule and funding at observed UTC marks
+        script: |
+          set -eu
+          ZIP=$(find freqtrade-futures-data/backtest_results -maxdepth 1 -type f -name '*.zip' | sort | tail -n 1)
+          test -n "$ZIP"
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" freqtrade-backtest/market_risk_audit.py \
+            --result "$ZIP" \
+            --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
+            --output freqtrade-futures-results/liquidation-funding-input-audit.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path("freqtrade-futures-results/liquidation-funding-input-audit.json").read_text())
+          coverage = result["funding_coverage"]
+          if not coverage["complete_for_trade_period"]:
+              print("WARNING: Funding history incomplete for 360-day backtest.")
+              print("First funding:", coverage["first_funding_utc"])
+              print("First trade:", coverage["first_trade_utc"])
+              print("Backtest PnL and equity are not fully funding-verified.")
+          else:
+              print("Funding history spans trade dates; settlement schedule still unverified.")
+          PY
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" freqtrade-backtest/funding_timeline_audit.py \
+            --result "$ZIP" \
+            --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
+            --output freqtrade-futures-results/funding-timeline-estimate.json
+      - name: Reconcile expected and actual fill prices
+        script: |
+          set -eu
+          ZIP=$(find freqtrade-futures-data/backtest_results -maxdepth 1 -type f -name '*.zip' | sort | tail -n 1)
+          test -n "$ZIP"
+          python3 freqtrade-backtest/reconcile_fills.py \
+            --result "$ZIP" \
+            --exit-trace freqtrade-futures-results/exit-diagnostics.jsonl \
+            --csv freqtrade-futures-results/fill-reconciliation.csv \
+            --json freqtrade-futures-results/fill-reconciliation.json
+      - name: Walk-forward 3 x 120 days when 360 days selected
+        script: |
+          set -eu
+          if [ "$BACKTEST_DAYS" != "360" ]; then
+            echo "Walk-forward is enabled for 360-day runs only."
+            exit 0
+          fi
+          python3 freqtrade-backtest/walkforward_windows.py --output freqtrade-futures-results/walkforward-windows.json
+          mkdir -p freqtrade-futures-data/walkforward
+          python3 - <<'PY' > freqtrade-futures-results/walkforward-timeranges.txt
+          import json
+          for item in json.load(open("freqtrade-futures-results/walkforward-windows.json")):
+              print(item["timerange"])
+          PY
+          n=0
+          while IFS= read -r WINDOW; do
+            n=$((n + 1))
+            mkdir -p "$CM_BUILD_DIR/freqtrade-futures-data/walkforward/window-$n"
+            export FREQTRADE_DCA_TRACE="$CM_BUILD_DIR/freqtrade-futures-results/dca-window-$n.jsonl"
+            export FREQTRADE_EXIT_TRACE="$CM_BUILD_DIR/freqtrade-futures-results/exit-window-$n.jsonl"
+            "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" backtesting \
+              --userdir "$CM_BUILD_DIR/freqtrade-futures-data" \
+              --config "$CM_BUILD_DIR/freqtrade-futures-data/config.json" \
+              --strategy BtcM15H1FuturesRuntime \
+              --strategy-path "$CM_BUILD_DIR/freqtrade-futures-data/strategies" \
+              --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
+              --export-directory "$CM_BUILD_DIR/freqtrade-futures-data/walkforward/window-$n" \
+              --timerange "$WINDOW" --timeframe-detail 5m \
+              --fee 0.0005 --cache none --export trades \
+              > "freqtrade-futures-results/walkforward-$n.log" 2>&1 || {
+                tail -n 80 "freqtrade-futures-results/walkforward-$n.log"
+                exit 1
+              }
+          done < freqtrade-futures-results/walkforward-timeranges.txt
+      - name: Write verified command-execution manifest
+        script: |
+          set -eu
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = {
+              "actual_freqtrade_backtest_command_completed": True,
+              "android_primary_backtest_engine": "Freqtrade runtime",
+              "strict_parity_gate_separate_workflow": "freqtrade_futures_backtest",
+              "runtime_install": "experimental native macOS ARM64",
+              "futures_13x_callbacks_implemented": True,
+              "strategy": "BtcM15H1FuturesRuntime",
+              "market": "OKX BTC/USDT:USDT Futures",
+              "strategy_scope": "13x LONG/SHORT DCA candidate + prioritized custom_exit; fill-level parity unverified",
+              "android_13x_futures_parity_verified": False,
+              "dca_short_tp_soft_sl_emergency_sl_parity_verified": False,
+              "android_fill_price_and_event_order_verified": False,
+              "common_ohlcv_exported": True,
+              "android_common_dataset_replay_verified": True,
+              "strict_parity_verified": True,
+              "strict_trade_difference_report": "strict-trade-differences.csv",
+              "common_dataset_parity_status": "common-dataset-parity-status.json",
+              "actual_freqtrade_event_export": "freqtrade-execution-events.json",
+              "dca_callback_trace": "dca-diagnostics.jsonl",
+              "exit_callback_trace": "exit-diagnostics.jsonl",
+              "requested_days": int(__import__("os").environ.get("BACKTEST_DAYS", "360")),
+              "equity_5m_reconciliation_run": True,
+              "equity_funding_timestamps_available": False,
+              "funding_timeline_estimate_available": True,
+              "liquidation_maintenance_margin_verified": False,
+              "funding_settlement_timestamps_verified": False,
+              "equity_based_on_exchange_mark_price": False,
+              "history_coverage_checked": True,
+              "timeframe_detail": "5m",
+              "walkforward_windows": 3 if int(__import__("os").environ.get("BACKTEST_DAYS", "360")) == 360 else 0,
+              "protective_emergency_stop_roe": -90.0,
+              "no_real_orders": True
+          }
+          Path("freqtrade-futures-results/run-manifest.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+          PY
+    artifacts:
+      - freqtrade-futures-results/**/*
+      - freqtrade-futures-data/backtest_results/**/*
+      - freqtrade-futures-data/walkforward/**/*
