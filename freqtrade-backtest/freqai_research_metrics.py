@@ -48,6 +48,13 @@ def build_samples(m15, h1):
     base["h1_distance"] = close / base["h1_close"] - 1
     # Target is known 4 candles later, at end of the fourth future candle.
     base["target"] = close.shift(-4) / close - 1
+    # Realized volatility of the *future four bars*, never a feature.
+    future_returns = pd.concat(
+        [(close.shift(-j) / close.shift(-(j-1)) - 1) for j in range(1, 5)],
+        axis=1
+    )
+    base["volatility_target"] = future_returns.std(axis=1, ddof=0)
+    base.loc[future_returns.isna().any(axis=1), "volatility_target"] = np.nan
     base["label_available"] = base["available"] + pd.Timedelta(hours=1)
     features = ["rsi14", "mfi14", "percent_b", "bb_width",
                 "return1", "return4", "volatility20", "volume_ratio",
@@ -70,7 +77,7 @@ def run_walkforward(m15, h1, start, end, train_days=45, step_days=15):
         train = df.loc[
             (df["available"] >= cursor - pd.Timedelta(days=train_days)) &
             (df["label_available"] <= cursor) &
-            df["target"].notna() &
+            df["target"].notna() & df["volatility_target"].notna() &
             df[features].notna().all(axis=1)
         ]
         test = df.loc[
@@ -87,6 +94,15 @@ def run_walkforward(m15, h1, start, end, train_days=45, step_days=15):
         model.fit(train[features], train["target"])
         y = test["target"].to_numpy()
         yhat = model.predict(test[features])
+        # Independent volatility model. This is a diagnostic forecast,
+        # not FreqAI's internal target or any automatic risk adjustment.
+        vol_model = LGBMRegressor(n_estimators=100, learning_rate=.05,
+                                  num_leaves=15, verbosity=-1, random_state=42,
+                                  n_jobs=2)
+        vol_model.fit(train[features], train["volatility_target"])
+        vol_true = test["volatility_target"].to_numpy()
+        vol_pred = np.maximum(0.0, vol_model.predict(test[features]))
+        vol_baseline = float(train["volatility_target"].mean())
         mae = float(mean_absolute_error(y, yhat))
         rmse = float(np.sqrt(mean_squared_error(y, yhat)))
         baseline = float(mean_absolute_error(y, np.zeros_like(y)))
@@ -95,19 +111,25 @@ def run_walkforward(m15, h1, start, end, train_days=45, step_days=15):
             "train_rows": int(len(train)), "test_rows": int(len(test)),
             "train_last_label_available": train["label_available"].max().isoformat(),
             "mae": mae, "rmse": rmse, "zero_return_baseline_mae": baseline,
+            "volatility_mae": float(mean_absolute_error(vol_true, vol_pred)),
+            "volatility_train_mean_baseline_mae": float(mean_absolute_error(vol_true, np.full_like(vol_true, vol_baseline))),
             "direction_accuracy": float(np.mean((yhat > 0) == (y > 0))),
             "beats_zero_baseline": bool(mae < baseline)
         })
-        for time, target, pred in zip(test["available"], y, yhat):
+        for time, target, pred, v_true, v_pred in zip(test["available"], y, yhat, vol_true, vol_pred):
             predictions.append({"available_utc": time.isoformat(),
                                 "actual_forward_return": float(target),
                                 "predicted_forward_return": float(pred),
+                                "actual_future_volatility": float(v_true),
+                                "predicted_future_volatility": float(v_pred),
                                 "window_start_utc": cursor.isoformat()})
         cursor = stop
     if not predictions:
         raise ValueError("No out-of-sample predictions")
     true = np.array([p["actual_forward_return"] for p in predictions])
     pred = np.array([p["predicted_forward_return"] for p in predictions])
+    true_vol = np.array([p["actual_future_volatility"] for p in predictions])
+    pred_vol = np.array([p["predicted_future_volatility"] for p in predictions])
     return {
         "engine": "independent LightGBM walk-forward diagnostics; not FreqAI internal predictions",
         "target": "four M15 closed-candle forward return (60 minutes)",
@@ -119,6 +141,9 @@ def run_walkforward(m15, h1, start, end, train_days=45, step_days=15):
         "oos_mae": float(np.mean(np.abs(true - pred))),
         "zero_return_mae": float(np.mean(np.abs(true))),
         "oos_direction_accuracy": float(np.mean((true > 0) == (pred > 0))),
+        "oos_volatility_mae": float(np.mean(np.abs(true_vol - pred_vol))),
+        "oos_volatility_rmse": float(np.sqrt(np.mean((true_vol - pred_vol)**2))),
+        "volatility_target": "std of next 4 fifteen-minute returns",
         "windows": windows,
         "predictions": predictions,
     }
