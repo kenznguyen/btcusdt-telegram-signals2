@@ -151,6 +151,7 @@ fun FreqtradeBacktestPanel(context: Context, market: MarketEngine, engine: Strat
                 }
             }
         }
+        FreqaiResearchPanel(context)
         HorizontalDivider()
         TextButton(onClick = { showKotlinComparison = !showKotlinComparison }) {
             Text(if (showKotlinComparison) "ẨN BACKTEST KOTLIN ĐỐI CHIẾU" else "BACKTEST KOTLIN · CHỈ ĐỐI CHIẾU")
