@@ -266,3 +266,34 @@ Codemagic now exports
 `funding-timeline-estimate.json`, and
 `common-dataset-parity-status.json`. Review the contents before any
 claims about 360-day funding accuracy or Android parity.
+
+## Strict common-OHLCV Kotlin ↔ Freqtrade gate
+
+The `freqtrade_futures_backtest` Codemagic job now exports canonical
+OKX BTC/USDT perpetual 5m/15m/1h OHLCV with SHA256 checksums, runs
+**real** Freqtrade backtesting on that data, and runs
+`OkxCommonOhlcvParityTest`, which feeds the identical M15/H1
+files into the actual Kotlin `StrategyEngine.processClosedCandles`.
+The test writes `android-kotlin-execution-events.json` using an
+explicit close-time timestamp and records entry/DCA/exit quantities
+from actual Kotlin state changes.
+
+`strict_trade_pairing.py` exports `strict-parity-report.json` and
+`strict-trade-differences.csv`. For each chronological trade,
+it checks ENTRY, DCA, TP, SOFT_SL, EMERGENCY_SL by type, direction,
+timestamp, fill price and quantity; LIQUIDATION is deliberately a
+separate, mismatching type, not relabeled as EMERGENCY_SL.
+
+This is an **exact execution-parity** gate, not just signal agreement:
+different candle-open/close fill conventions or liquidation will
+correctly produce `parity_verified: false`. Missing/empty/invalid
+Kotlin or Freqtrade traces also produce `false` and nonzero exit.
+No parity is inferred from replay fixtures or results with matching PnL.
+The funding, liquidation and 5m drawdown audits run only after this
+gate passes. An earlier partial report and Freqtrade ZIP remain
+available in Artifacts when the gate fails.
+
+**Note:** Current Android and Freqtrade execution models remain
+different; the first strict run is expected to expose discrepancies,
+not automatically certify parity. Android StrategyEngine defaults
+were not modified, and no real trading was added.
