@@ -310,6 +310,7 @@ workflows:
           set -eu
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_futures_runtime_contract.py -v
           python3 -m unittest discover -s freqtrade-backtest/tests -p test_dca_diagnostics.py -v
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_futures_dynamic_stake.py -v
       - name: Record actual Freqtrade version
         script: |
           set -eu
