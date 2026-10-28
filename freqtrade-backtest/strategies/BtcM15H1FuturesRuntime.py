@@ -135,9 +135,16 @@ class BtcM15H1FuturesRuntime(IStrategy):
     def custom_stake_amount(self, pair, current_time, current_rate,
                             proposed_stake, min_stake, max_stake,
                             leverage, entry_tag, side, **kwargs):
-        # Initial margin is 50% of free + allocated simulated account equity.
-        # The API's available stake is not Android's settled-balance accounting.
-        desired = float(self.config.get("dry_run_wallet", 100)) * 0.50
+        # Target 50% of dynamic simulated wallet value, not initial capital.
+        # Wallet accounting may still differ from Android settled balance.
+        if self.wallets is None:
+            return 0.0
+        # In Freqtrade backtesting, wallet total in callbacks reflects
+        # realized balance and allocated stake; it is NOT assumed static.
+        balance = float(self.wallets.get_total(self.config.get("stake_currency", "USDT")))
+        if not math.isfinite(balance) or balance <= 0:
+            return 0.0
+        desired = balance * 0.50
         if max_stake < desired or (min_stake is not None and desired < min_stake):
             return 0.0
         return desired
