@@ -136,3 +136,26 @@ and the `freqtrade_futures_backtest` Codemagic workflow.
 A complete Codemagic run only proves the **Freqtrade runtime** processed
 futures backtesting with this candidate strategy. It does not prove parity.
 The existing Spot workflow stays available as the verified runtime baseline.
+
+## Extended 90 / 180 / 360-day futures backtesting
+
+Codemagic workflow `freqtrade_futures_backtest` defaults to **180 days**
+and accepts the `BACKTEST_DAYS` environment variable: `90`, `180`,
+or `360`. The download requests an additional **7 days** to warm up
+RSI/ADX indicators and H1 filters. The backtest command includes an
+explicit UTC `--timerange`; it does not assume all downloaded bars form
+the performance measurement window.
+
+The `backtest_window.py` helper writes `window.json` and
+`validate_futures_history.py` reads the actual 15m and 1h futures
+Feather files to reject missing/duplicate candles, insufficient
+warm-up/start coverage, or stale end-of-period data. The coverage
+report `history-coverage.json` is a workflow artifact. If the exchange
+cannot provide 180/360 days, the workflow deliberately fails instead
+of silently reporting a shorter backtest.
+
+**Practical note:** Longer runs increase OKX download requests, time
+and free CI resource consumption. Start with 90 days if the 180-day
+download is rate-limited, then check the full coverage report before
+evaluating performance. DCA and exit callback diagnostic logs remain
+enabled. No automatic tuning, real orders, or Android strategy changes.
