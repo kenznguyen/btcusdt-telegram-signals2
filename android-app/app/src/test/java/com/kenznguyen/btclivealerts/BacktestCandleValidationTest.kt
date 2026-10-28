@@ -43,4 +43,32 @@ class BacktestCandleValidationTest {
             validateBacktestCandles(listOf(candle(1).copy(low = 103.0)), step, "M15")
         }
     }
+    @Test fun acceptsCompleteRequestedWindow() {
+        val now = 7L * 86_400_000L + 10L * step
+        val candles = listOf(
+            Candle(0L, 100.0, 102.0, 99.0, 101.0, 12.0, true),
+            Candle(now - step, 100.0, 102.0, 99.0, 101.0, 12.0, true)
+        )
+        validateBacktestCoverage(candles, 7, step, now, "M15")
+    }
+
+    @Test fun rejectsShortHistoryDespiteValidCandles() {
+        val now = 30L * 86_400_000L
+        val candles = listOf(candle(100), candle(101), candle(102))
+        assertThrows(IllegalArgumentException::class.java) {
+            validateBacktestCoverage(candles, 30, step, now, "M15")
+        }
+    }
+
+    @Test fun rejectsStaleEndOfHistory() {
+        val now = 7L * 86_400_000L + 20L * step
+        val candles = listOf(
+            Candle(0L, 100.0, 102.0, 99.0, 101.0, 12.0, true),
+            Candle(now - 6L * step, 100.0, 102.0, 99.0, 101.0, 12.0, true)
+        )
+        assertThrows(IllegalArgumentException::class.java) {
+            validateBacktestCoverage(candles, 7, step, now, "M15")
+        }
+    }
+
 }
