@@ -271,6 +271,8 @@ workflows:
     max_build_duration: 120
     environment:
       java: 17
+      vars:
+        BACKTEST_DAYS: '180'
     scripts:
       - name: Validate backtest-only configuration
         script: |
@@ -315,18 +317,32 @@ workflows:
         script: |
           set -eu
           "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" --version | tee freqtrade-futures-results/version.txt
+      - name: Prepare exact UTC backtest window
+        script: |
+          set -eu
+          python3 freqtrade-backtest/backtest_window.py --days "$BACKTEST_DAYS" --output freqtrade-futures-results/window.json
+          python3 -m unittest discover -s freqtrade-backtest/tests -p test_backtest_window.py -v
       - name: Download OKX perpetual candles plus mark and funding history
         script: |
           set -eu
+          DOWNLOAD_DAYS=$(python3 -c 'import json; print(json.load(open("freqtrade-futures-results/window.json"))["download_days"])')
           "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" download-data \
             --userdir "$CM_BUILD_DIR/freqtrade-futures-data" \
             --config "$CM_BUILD_DIR/freqtrade-futures-data/config.json" \
             --exchange okx --pairs BTC/USDT:USDT \
-            --trading-mode futures --timeframes 15m 1h --days 45 \
+            --trading-mode futures --timeframes 15m 1h --days "$DOWNLOAD_DAYS" \
             --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data"
+      - name: Validate full M15 H1 historical coverage
+        script: |
+          set -eu
+          "$CM_BUILD_DIR/.freqtrade-venv/bin/python" freqtrade-backtest/validate_futures_history.py \
+            --data-dir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
+            --days "$BACKTEST_DAYS" \
+            --output "$CM_BUILD_DIR/freqtrade-futures-results/history-coverage.json"
       - name: Run actual Freqtrade CLI backtesting
         script: |
           set -eu
+          TIMERANGE=$(python3 -c 'import json; print(json.load(open("freqtrade-futures-results/window.json"))["timerange"])')
           export FREQTRADE_DCA_TRACE="$CM_BUILD_DIR/freqtrade-futures-results/dca-diagnostics.jsonl"
           export FREQTRADE_EXIT_TRACE="$CM_BUILD_DIR/freqtrade-futures-results/exit-diagnostics.jsonl"
           "$CM_BUILD_DIR/.freqtrade-venv/bin/freqtrade" backtesting \
@@ -336,6 +352,7 @@ workflows:
             --strategy-path "$CM_BUILD_DIR/freqtrade-futures-data/strategies" \
             --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
             --export-directory "$CM_BUILD_DIR/freqtrade-futures-data/backtest_results" \
+            --timerange "$TIMERANGE" \
             --fee 0.0005 --cache none --export trades \
             > freqtrade-futures-results/backtest.log 2>&1 || {
               tail -n 120 freqtrade-futures-results/backtest.log
@@ -367,6 +384,8 @@ workflows:
               "android_fill_price_and_event_order_verified": False,
               "dca_callback_trace": "dca-diagnostics.jsonl",
               "exit_callback_trace": "exit-diagnostics.jsonl",
+              "requested_days": int(__import__("os").environ.get("BACKTEST_DAYS", "180")),
+              "history_coverage_checked": True,
               "no_real_orders": True
           }
           Path("freqtrade-futures-results/run-manifest.json").write_text(
