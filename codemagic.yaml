@@ -208,23 +208,23 @@ workflows:
       - name: Download historical Binance SPOT BTC/USDT candles
         script: |
           set -eu
-          docker run --rm -v "$CM_BUILD_DIR/freqtrade-runtime-data:/freqtrade/user_data" \\
-            freqtradeorg/freqtrade:stable download-data \\
-            --config /freqtrade/user_data/config.json \\
-            --exchange binance --pairs BTC/USDT \\
-            --trading-mode spot --timeframes 15m 1h --days 45 \\
+          docker run --rm -v "$CM_BUILD_DIR/freqtrade-runtime-data:/freqtrade/user_data" \
+            freqtradeorg/freqtrade:stable download-data \
+            --config /freqtrade/user_data/config.json \
+            --exchange binance --pairs BTC/USDT \
+            --trading-mode spot --timeframes 15m 1h --days 45 \
             --datadir /freqtrade/user_data/data
       - name: Run actual Freqtrade backtesting engine
         script: |
           set -eu
-          docker run --rm -v "$CM_BUILD_DIR/freqtrade-runtime-data:/freqtrade/user_data" \\
-            freqtradeorg/freqtrade:stable backtesting \\
-            --config /freqtrade/user_data/config.json \\
-            --strategy BtcM15H1EntryRuntime \\
-            --strategy-path /freqtrade/user_data \\
-            --datadir /freqtrade/user_data/data \\
-            --export-directory /freqtrade/user_data/backtest_results \\
-            --fee 0.0005 --cache none --export trades \\
+          docker run --rm -v "$CM_BUILD_DIR/freqtrade-runtime-data:/freqtrade/user_data" \
+            freqtradeorg/freqtrade:stable backtesting \
+            --config /freqtrade/user_data/config.json \
+            --strategy BtcM15H1EntryRuntime \
+            --strategy-path /freqtrade/user_data \
+            --datadir /freqtrade/user_data/data \
+            --export-directory /freqtrade/user_data/backtest_results \
+            --fee 0.0005 --cache none --export trades \
             > freqtrade-runtime-results/backtest.log 2>&1 || {
               tail -n 120 freqtrade-runtime-results/backtest.log
               exit 1
