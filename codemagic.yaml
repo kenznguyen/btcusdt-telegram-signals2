@@ -330,7 +330,7 @@ workflows:
             --userdir "$CM_BUILD_DIR/freqtrade-futures-data" \
             --config "$CM_BUILD_DIR/freqtrade-futures-data/config.json" \
             --exchange okx --pairs BTC/USDT:USDT \
-            --trading-mode futures --timeframes 15m 1h --days "$DOWNLOAD_DAYS" \
+            --trading-mode futures --timeframes 5m 15m 1h --days "$DOWNLOAD_DAYS" \
             --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data"
       - name: Validate full M15 H1 historical coverage
         script: |
@@ -353,6 +353,7 @@ workflows:
             --datadir "$CM_BUILD_DIR/freqtrade-futures-data/data" \
             --export-directory "$CM_BUILD_DIR/freqtrade-futures-data/backtest_results" \
             --timerange "$TIMERANGE" \
+            --timeframe-detail 5m \
             --fee 0.0005 --cache none --export trades \
             > freqtrade-futures-results/backtest.log 2>&1 || {
               tail -n 120 freqtrade-futures-results/backtest.log
@@ -386,6 +387,8 @@ workflows:
               "exit_callback_trace": "exit-diagnostics.jsonl",
               "requested_days": int(__import__("os").environ.get("BACKTEST_DAYS", "180")),
               "history_coverage_checked": True,
+              "timeframe_detail": "5m",
+              "protective_emergency_stop_roe": -90.0,
               "no_real_orders": True
           }
           Path("freqtrade-futures-results/run-manifest.json").write_text(
