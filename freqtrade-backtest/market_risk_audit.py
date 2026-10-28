@@ -45,6 +45,30 @@ def audit_liquidations(trades):
     return records
 
 
+def normalize_market_frame(frame, kind):
+    """Freqtrade >=2026.8 funding data uses funding_rate, not OHLCV.open."""
+    import pandas as pd
+    if frame.empty:
+        raise ValueError(f"empty {kind} data")
+    if "date" not in frame.columns:
+        raise ValueError(f"missing date in {kind} data")
+    if kind == "funding_rate":
+        column = next((x for x in ("funding_rate", "fundingRate", "open") if x in frame.columns), None)
+    elif kind == "mark":
+        column = "open" if "open" in frame.columns else None
+    else:
+        raise ValueError(f"unsupported candle kind: {kind}")
+    if column is None:
+        raise ValueError(f"invalid {kind} columns: {list(frame.columns)}")
+    times = pd.to_datetime(frame["date"], utc=True, errors="coerce")
+    values = pd.to_numeric(frame[column], errors="coerce")
+    if times.isna().any() or values.isna().any():
+        raise ValueError(f"missing or invalid {kind} timestamps/values")
+    if times.duplicated().any() or not times.is_monotonic_increasing:
+        raise ValueError(f"nonmonotonic or duplicate {kind} timestamps")
+    return times, values, column
+
+
 def audit_market_data(data_dir):
     import pandas as pd
     result = {}
@@ -53,17 +77,14 @@ def audit_market_data(data_dir):
         if len(candidates) != 1:
             raise ValueError(f"Missing/ambiguous required {kind} data: {candidates}")
         frame = pd.read_feather(candidates[0])
-        if frame.empty or "date" not in frame or "open" not in frame:
-            raise ValueError(f"Empty or invalid {kind} data")
-        times = pd.to_datetime(frame["date"], utc=True)
-        if times.duplicated().any() or not times.is_monotonic_increasing:
-            raise ValueError(f"Nonmonotonic/duplicate {kind} timestamps")
+        times, values, column = normalize_market_frame(frame, kind)
         result[kind] = {
             "file": str(candidates[0]), "rows": len(frame),
+            "value_column": column,
             "first_utc": times.iloc[0].isoformat(),
             "last_utc": times.iloc[-1].isoformat(),
-            "nonzero_rates_or_prices": int((frame["open"] != 0).sum()),
-            "missing_values": int(frame["open"].isna().sum())
+            "nonzero_rates_or_prices": int((values != 0).sum()),
+            "missing_values": int(values.isna().sum()),
         }
     return result
 
