@@ -1,4 +1,41 @@
 workflows:
+  android_chart_pro_qa:
+    name: BTCUSDT Chart Pro — Android independent QA and Debug APK
+    max_build_duration: 60
+    environment:
+      java: 17
+    scripts:
+      - name: Verify existing Android product source and strategy defaults
+        script: |
+          set -eu
+          test -f android-app/app/src/main/java/com/kenznguyen/btclivealerts/StrategyEngine.kt
+          test -f android-app/app/src/main/java/com/kenznguyen/btclivealerts/CompleteDashboard.kt
+          test -f android-app/app/src/main/java/com/kenznguyen/btclivealerts/StrategyMonitorService.kt
+          test -f android-app/app/src/main/java/com/kenznguyen/btclivealerts/BacktestPanel.kt
+      - name: Run complete Android unit test suite
+        script: |
+          set -eu
+          cd android-app
+          gradle :app:testDebugUnitTest --no-daemon
+      - name: Assemble independent Chart Pro Debug APK
+        script: |
+          set -eu
+          cd android-app
+          gradle :app:assembleDebug --no-daemon
+      - name: Verify APK packaging and Debug signature
+        script: |
+          set -eu
+          APK=android-app/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -n 1)"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
+          "$AAPT" dump badging "$APK" | grep -m 1 '^package:'
+          "$APKSIGNER" verify --print-certs "$APK"
+          echo "Debug signature only. Not an in-place update to the user's signed Release APK."
+    artifacts:
+      - android-app/app/build/outputs/apk/debug/*.apk
+      - android-app/app/build/reports/tests/testDebugUnitTest/**/*
+
   android_freqtrade_debug:
     name: Android Freqtrade offline parity + Debug APK
     max_build_duration: 60
