@@ -32,6 +32,24 @@ def build_samples(m15, h1):
     up = change.clip(lower=0).ewm(alpha=1/14, adjust=False).mean()
     down = (-change.clip(upper=0)).ewm(alpha=1/14, adjust=False).mean()
     base["rsi14"] = 100 - 100 / (1 + up / down.replace(0, np.nan))
+    plus_move = base["high"].diff()
+    minus_move = -base["low"].diff()
+    plus_dm = pd.Series(np.where((plus_move > minus_move) & (plus_move > 0),
+                                 plus_move, 0.0), index=base.index)
+    minus_dm = pd.Series(np.where((minus_move > plus_move) & (minus_move > 0),
+                                  minus_move, 0.0), index=base.index)
+    previous_close = close.shift(1)
+    true_range = pd.concat([
+        base["high"] - base["low"],
+        (base["high"] - previous_close).abs(),
+        (base["low"] - previous_close).abs()
+    ], axis=1).max(axis=1)
+    atr14 = true_range.ewm(alpha=1/14, adjust=False).mean().replace(0, np.nan)
+    plus_di = 100 * plus_dm.ewm(alpha=1/14, adjust=False).mean() / atr14
+    minus_di = 100 * minus_dm.ewm(alpha=1/14, adjust=False).mean() / atr14
+    dx = 100 * (plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, np.nan)
+    base["adx14"] = dx.ewm(alpha=1/14, adjust=False).mean()
+
     hlc3 = (base["high"] + base["low"] + close) / 3
     flow = hlc3 * base["volume"]
     positive = flow.where(hlc3.diff() > 0, 0.0).rolling(14).sum()
@@ -56,7 +74,7 @@ def build_samples(m15, h1):
     base["volatility_target"] = future_returns.std(axis=1, ddof=0)
     base.loc[future_returns.isna().any(axis=1), "volatility_target"] = np.nan
     base["label_available"] = base["available"] + pd.Timedelta(hours=1)
-    features = ["rsi14", "mfi14", "percent_b", "bb_width",
+    features = ["rsi14", "adx14", "mfi14", "percent_b", "bb_width",
                 "return1", "return4", "volatility20", "volume_ratio",
                 "h1_distance"]
     base = base.replace([np.inf, -np.inf], np.nan)
