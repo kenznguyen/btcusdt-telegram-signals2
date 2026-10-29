@@ -50,6 +50,13 @@ requests never start training.
 
 ## Canonical data and provenance hand-off
 
+The [central data lake](../data_lake/README.md) can supply canonical PostgreSQL
+windows through `DATA_LAKE_DATABASE_URL` and export native Freqtrade OHLCV Feather
+files through the internal read API. The existing strategy still owns its FreqAI
+feature functions; the new causal feature API is a separate, versioned dataset
+interface. OHLCV export does not supply missing futures funding/mark data or train
+a model. Keep research exports and point-in-time provenance distinct.
+
 Run canonical CCXT collection before the prediction process. The strategy reads
 the shared SQLite database at `freqai_bridge.canonical_db_path`, by default
 `.data/market-data.sqlite3`. The inference window defaults to **two closed M15

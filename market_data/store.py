@@ -16,6 +16,22 @@ EXCHANGE, MARKET_TYPE, SYMBOL = "binance", "USDT_PERPETUAL", "BTCUSDT"
 PRICE_FIELDS = ("open", "high", "low", "close", "volume")
 
 
+class StoreUnavailable(OSError):
+    """Storage failed without exposing connection strings or credentials."""
+
+
+def is_postgres(location):
+    return isinstance(location, str) and location.startswith(("postgresql://", "postgres://"))
+
+
+def open_store(location):
+    """Explicit initialization for ingestion; never call this on a read route."""
+    if is_postgres(location):
+        from market_data.postgres import PostgresCandleStore
+        return PostgresCandleStore(location)
+    return CandleStore(location)
+
+
 def _integer(value):
     if type(value) is not int or not 0 <= value <= MAX_TIMESTAMP:
         raise ValueError("Timestamp must be a nonnegative 64-bit integer")
@@ -116,7 +132,7 @@ class CandleStore:
         return inserted
 
 
-def read_window(db_path, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
+def _validate_window(symbol, timeframe, start_ms, end_ms, as_of_ms=None):
     if symbol != SYMBOL or not isinstance(timeframe, str) or timeframe not in INTERVAL_MS:
         raise ValueError("Unsupported market or timeframe")
     start, end = _integer(start_ms), _integer(end_ms)
@@ -125,6 +141,14 @@ def read_window(db_path, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
         raise ValueError("Window must be aligned, nonempty and bounded")
     if as_of_ms is not None:
         _integer(as_of_ms)
+    return start, end, interval
+
+
+def read_window(db_path, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
+    start, end, interval = _validate_window(symbol, timeframe, start_ms, end_ms, as_of_ms)
+    if is_postgres(db_path):
+        from market_data.postgres import read_window as read_postgres_window
+        return read_postgres_window(db_path, symbol, timeframe, start, end, as_of_ms)
     path = Path(db_path).resolve()
     if not path.is_file():
         raise FileNotFoundError("Candle database is unavailable")
@@ -138,6 +162,12 @@ def read_window(db_path, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
                 AND (? IS NULL OR available_at_ms<=?) ORDER BY open_time_ms""",
             (EXCHANGE, MARKET_TYPE, symbol, timeframe, start, end, as_of_ms, as_of_ms)).fetchall()
         candles = [Candle(**dict(row)).as_dict() for row in rows]
+    return _render_window(symbol, timeframe, start, end, as_of_ms, candles)
+
+
+def _render_window(symbol, timeframe, start, end, as_of_ms, candles):
+    """Shared canonical JSON and dataset hash for every storage backend."""
+    interval = INTERVAL_MS[timeframe]
     gaps, cursor = [], start
     for candle in candles:
         if candle["openTimeMs"] > cursor:

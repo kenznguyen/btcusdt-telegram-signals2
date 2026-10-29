@@ -87,6 +87,23 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertFalse(state["liveTradingSupported"])
         self.assertGreater(float(state["feesQuote"]), 0)
 
+    def test_shared_candle_source_is_separate_from_local_paper_state(self):
+        shared = self.root / "lake.sqlite3"
+        CandleStore(shared).insert([Candle("15m", self.end-900_000, "200", "202", "199", "201", "4", self.end+1000)])
+        os.environ["DATA_LAKE_DATABASE_URL"] = str(shared)
+        query = f"symbol=BTCUSDT&timeframe=15m&startMs={self.end-900_000}&endMs={self.end}"
+        code, window = self.request("/v1/candles", query=query)
+        self.assertEqual(code, 200)
+        self.assertEqual(window["candles"][0]["close"], "201")
+        code, state = self.request("/v1/paper/pause", "POST", {"paused": True})
+        self.assertEqual(code, 200)
+        self.assertTrue(state["paused"])
+        with sqlite3.connect(shared) as connection:
+            tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        self.assertEqual(tables, {"candles"})
+        with sqlite3.connect(self.db) as connection:
+            self.assertEqual(connection.execute("SELECT paused FROM paper_state WHERE id=1").fetchone()[0], 1)
+
     def test_retries_do_not_duplicate_positions_or_fees(self):
         _, first = self.request("/v1/paper/evaluate", "POST", {})
         _, before = self.request("/v1/paper")

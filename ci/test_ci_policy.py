@@ -52,6 +52,21 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("android-apks.json", workflow["artifacts"])
         self.assertIn("artifacts/BTC-5-Tang-Paper-*.apk", workflow["artifacts"])
 
+    def test_data_lake_requires_real_postgres_and_feather_dependencies(self):
+        workflow = self.workflows["data-lake-postgres"]
+        self.assertIn("push", workflow["triggering"]["events"])
+        commands = "\n".join(item["script"] for item in workflow["scripts"])
+        self.assertIn("requirements-data-lake.txt", commands)
+        self.assertIn("requirements-data-lake-export.txt", commands)
+        self.assertIn("ci/test-data-lake.sh", commands)
+        self.assertIn("postgres-server.log", workflow["artifacts"])
+        runner = (ROOT / "ci/test-data-lake.sh").read_text()
+        for gate in ("import psycopg, pyarrow, pandas", "initdb", "DATA_LAKE_REQUIRE_POSTGRES=1",
+                     "market_data.test_postgres", "-s data_lake", "trap cleanup_lake_postgres EXIT",
+                     "postgres-server.log", "Data-lake CI failed during:"):
+            with self.subTest(gate=gate):
+                self.assertIn(gate, runner)
+
     def test_shell_scripts_parse_and_no_unsupported_python_version_key(self):
         for path in (ROOT / "ci").glob("*.sh"):
             subprocess.run(["bash", "-n", str(path)], check=True)

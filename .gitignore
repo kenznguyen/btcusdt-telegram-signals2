@@ -10,12 +10,14 @@ android-source-sha.txt
 __pycache__/
 .data/
 .venv-market-data/
+.venv-data-lake/
 ci-source-sha.txt
 android-release-apk-signature.txt
 android-apks.json
 /artifacts/
 state-provenance.json
 *-tests.log
+postgres-server.log
 control_dashboard/node_modules/
 control_dashboard/dist/
 .env

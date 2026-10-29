@@ -10,7 +10,7 @@ import argparse
 import json
 import time
 
-from market_data.store import Candle, CandleStore, INTERVAL_MS, MAX_CANDLES, MAX_TIMESTAMP, read_window
+from market_data.store import Candle, CandleStore, INTERVAL_MS, MAX_CANDLES, MAX_TIMESTAMP, open_store, read_window
 
 
 EXCHANGE_SYMBOL = "BTC/USDT:USDT"
@@ -99,7 +99,7 @@ def main():
         parser.exit(1, "Install requirements-market-data.txt to fetch exchange data.\n")
     try:
         exchange = ccxt.binanceusdm({"enableRateLimit": True, "timeout": 15_000})
-        store = CandleStore(args.db)
+        store = open_store(args.db)
         count = sync_window(exchange, store, args.timeframe, args.start_ms, args.end_ms)
         window = read_window(args.db, "BTCUSDT", args.timeframe, args.start_ms, args.end_ms)
     except Exception as error:

@@ -102,3 +102,8 @@ python3 -m unittest market_data.test_store market_data.test_sync market_data.tes
 Các kiểm thử dùng SQLite thật, handler WSGI thật và giả lập duy nhất kết nối CCXT ngoài hệ thống. Có kiểm tra pagination, metadata thị trường, nến đang chạy, dữ liệu sai/trùng/xung đột, timestamp khả dụng, gaps, hash và xác thực. Không cần CCXT cho bộ kiểm thử offline; cài gói và kết nối Binance thật là kiểm chứng riêng, chưa được suy ra từ test giả lập.
 
 Nguồn adapter: [CCXT binanceusdm](https://github.com/ccxt/ccxt/blob/master/python/ccxt/binanceusdm.py), [Binance fetch_ohlcv/fetch_time](https://github.com/ccxt/ccxt/blob/master/python/ccxt/binance.py), [Freqtrade data download](https://github.com/freqtrade/freqtrade/blob/develop/docs/data-download.md). Bước sau: xuất dataset dùng chung cho nghiên cứu Freqtrade/FreqAI và nối đặc trưng trinh sát theo [kiến trúc 5 tầng](../docs/FIVE_LAYER_ARCHITECTURE.md).
+## PostgreSQL and central dataset service
+
+The compatible PostgreSQL backend, FastAPI features/cross-analysis, central
+collector and API-only Freqtrade exports are documented in
+[data_lake/README.md](../data_lake/README.md). SQLite usage below remains supported.

@@ -24,6 +24,11 @@ def now_ms():
     return time.time_ns() // 1_000_000
 
 
+def candle_database():
+    # The shared candle lake can be PostgreSQL; the paper ledger remains local SQLite.
+    return os.environ.get("DATA_LAKE_DATABASE_URL") or os.environ.get("MARKET_DATA_DB", "")
+
+
 def control_root():
     return Path(os.environ.get("CONTROL_DIST_PATH") or ROOT / "control_dashboard/dist").resolve()
 
@@ -105,7 +110,7 @@ def context(timestamp):
     data = {}
     errors = {}
     try:
-        data["candles"] = read_window(os.environ.get("MARKET_DATA_DB", ""), "BTCUSDT", "15m",
+        data["candles"] = read_window(candle_database(), "BTCUSDT", "15m",
                                       end - 1_800_000, end)
     except (ValueError, OSError, sqlite3.Error):
         data["candles"], errors["candles"] = None, "CANDLES_UNAVAILABLE"
@@ -219,7 +224,7 @@ def application(environ, start_response):
         elif path == "/v1/candles":
             query = candle_query(environ.get("QUERY_STRING", ""))
             try:
-                result = read_window(os.environ.get("MARKET_DATA_DB", ""), **query)
+                result = read_window(candle_database(), **query)
             except (ValueError, OSError, sqlite3.Error):
                 return response("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
         elif path == "/v1/paper":
@@ -246,7 +251,7 @@ def application(environ, start_response):
         else:
             end = timestamp // 900_000 * 900_000
             try:
-                candles = read_window(os.environ.get("MARKET_DATA_DB", ""), "BTCUSDT", "15m", end-1_800_000, end)
+                candles = read_window(candle_database(), "BTCUSDT", "15m", end-1_800_000, end)
                 candle_ready = candles["coverage"]["complete"] and all(c["availableAtMs"] <= timestamp for c in candles["candles"])
             except (ValueError, OSError, sqlite3.Error):
                 candle_ready = False
