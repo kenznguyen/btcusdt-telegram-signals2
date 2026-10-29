@@ -28,15 +28,18 @@ class StrategyRulesTest(unittest.TestCase):
         self.assertEqual("SOFT SL", self.rules.exit_priority(False, True, True))
         self.assertEqual("TAKE PROFIT", self.rules.exit_priority(False, False, True))
 
-    def test_explicit_trace_parity_never_green_without_both_real_traces(self):
-        self.assertFalse(compare_event_traces(None, [], "sha256:" + "a"*64)["parity_verified"])
-        self.assertFalse(compare_event_traces([], [], "abc")["parity_verified"])
-        self.assertFalse(compare_event_traces([{"kind":"DCA","candleTime":1}],
-                                              [{"kind":"TP","candleTime":1}], "abc")["parity_verified"])
-        self.assertTrue(compare_event_traces([{"kind":"DCA","candleTime":1}],
-                                             [{"kind":"DCA","candleTime":1}], "sha256:" + "a"*64)["parity_verified"])
-        self.assertFalse(compare_event_traces([{"kind":"DCA","candleTime":1}],
-                                              [{"kind":"DCA","candleTime":1}], "")["parity_verified"])
+    def test_explicit_trace_parity_requires_separate_provenance(self):
+        checksum = "sha256:" + "a"*64
+        rows = [{"kind":"DCA","candleTime":900000}]
+        kotlin = {"engine":"kotlin","dataset_sha256":checksum,"events":rows}
+        python = {"engine":"freqtrade","dataset_sha256":checksum,"events":rows}
+        self.assertFalse(compare_event_traces(rows,rows,checksum)["parity_verified"])
+        self.assertTrue(compare_event_traces(kotlin,python,checksum)["parity_verified"])
+        self.assertFalse(compare_event_traces(kotlin,{**python,"dataset_sha256":"sha256:"+"b"*64},checksum)["parity_verified"])
+        self.assertFalse(compare_event_traces(kotlin,{**python,"engine":"kotlin"},checksum)["parity_verified"])
+        self.assertFalse(compare_event_traces(kotlin,{**python,"events":[]},checksum)["parity_verified"])
+        self.assertFalse(compare_event_traces(None,python,checksum)["parity_verified"])
+        self.assertFalse(compare_event_traces(kotlin,python,"abc")["parity_verified"])
 
 
 if __name__ == "__main__":
