@@ -258,6 +258,10 @@ internal fun FiveLayerPanel(context: Context) {
                 Text("Giao dịch lớn: ${intel.largeTradeQuote ?: "—"} USDT", color = fiveMuted)
                 Text("Thanh lý mua / bán ghi nhận: ${intel.observedLiquidationBuyQuote ?: "—"} / ${intel.observedLiquidationSellQuote ?: "—"} USDT", color = fiveMuted)
                 intel.coverage.forEach { feed ->
+                    val health = fiveLayerFeedHealth(feed, clock)
+                    Text("${fiveLayerFeedVi(feed.name)} · $health",
+                        color = if (health == "MỚI") fiveGreen else fiveAmber,
+                        style = MaterialTheme.typography.bodySmall)
                     Text("${fiveLayerFeedVi(feed.name)}: ${fiveLayerStatusVi(feed.status)} · ${feed.rows} dòng · sự kiện cuối ${fiveTime(feed.lastEventAtMs)}" +
                         (feed.tradeIdGaps?.let { " · khoảng thiếu ID: $it" } ?: ""),
                         color = fiveMuted, style = MaterialTheme.typography.bodySmall)
