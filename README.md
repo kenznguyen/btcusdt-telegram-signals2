@@ -8,6 +8,7 @@
 - [Kho dữ liệu chuẩn](market_data/README.md): CCXT, SQLite và API chỉ đọc cho nến BTCUSDT perpetual.
 - [Hummingbot bridge](integrations/README.md): snapshot sổ lệnh; credentials Hummingbot nằm ở server.
 - [Kiến trúc 5 tầng](docs/FIVE_LAYER_ARCHITECTURE.md): phân chia dữ liệu, trinh sát, FreqAI, thực thi và giao diện. Đây là thiết kế đích; chưa triển khai toàn bộ.
+- [Luồng paper 5 tầng](docs/FIVE_LAYER_PAPER_RUNBOOK.md): CSV collector → dự báo FreqAI đã xác minh đầu vào → paper ledger → API/React. Mã và kiểm thử đã có; runtime/model/frontend build thực tế còn cần xác minh.
 - `app.py`: webhook Telegram và dashboard backend trên Render; gửi yêu cầu tới Codemagic.
 - `bot.py`, `telegram_commands.py`, `backtest.py`: logic tín hiệu, báo cáo và backtest hiện có, dữ liệu OKX. Không đặt lệnh sàn.
 - `dashboard/index.html`: xem báo cáo backtest, đồng bộ artifact Codemagic hoặc nạp JSON/CSV thủ công.

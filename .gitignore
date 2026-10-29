@@ -14,4 +14,8 @@ ci-source-sha.txt
 android-release-apk-signature.txt
 state-provenance.json
 *-tests.log
+control_dashboard/node_modules/
+control_dashboard/dist/
+.env
+.env.local
 

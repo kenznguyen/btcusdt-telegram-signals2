@@ -97,6 +97,7 @@ Khóa sàn và Hummingbot Basic credentials nằm ở server. Browser/APK chỉ 
 
 ## 6. Hiện trạng của repository
 
+- Đã có bản tích hợp paper nối mã cả năm tầng: `futures_intelligence`, `freqai_bridge`, `pipeline`, `paper_execution`, `control_dashboard`. Xem [runbook](FIVE_LAYER_PAPER_RUNBOOK.md). Các kiểm thử fixture không chứng minh đã train AI, kết nối exchange hoặc build UI thành công; live execution vẫn không được hỗ trợ.
 - GitHub chỉ lưu mã nguồn/PR; Codemagic thực hiện CI/build và các tác vụ thủ công theo [CODEMAGIC_SETUP.md](CODEMAGIC_SETUP.md). Mã webhook/dashboard đã chuyển provider; cấu hình tài khoản, secrets và chạy live vẫn cần được xác minh.
 
 - Bước 1 đã có mã nguồn tại [market_data](../market_data/README.md): kho SQLite, đồng bộ CCXT đúng BTCUSDT perpetual, nến đóng M15/H1, API chỉ đọc có gaps/as-of/content hash. Kiểm thử offline dùng kho và WSGI thật; chưa xác minh cài CCXT/kết nối Binance thật hoặc triển khai server. Chưa tự chuyển APK/Freqtrade sang API này.
