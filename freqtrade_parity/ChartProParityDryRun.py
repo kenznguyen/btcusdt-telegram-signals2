@@ -36,6 +36,9 @@ class ChartProParityDryRun(IStrategy):
         from freqtrade_parity.context import enrich_closed_m15
         if self.dp is None or dataframe.empty:
             return dataframe
+        required=("date","open","high","low","close","volume")
+        if not all(col in dataframe.columns for col in required):
+            return dataframe
         h1=self.dp.get_pair_dataframe(pair=metadata["pair"],timeframe="1h")
         if h1 is None or h1.empty:
             return dataframe
