@@ -53,7 +53,7 @@ Kho lệnh/vị thế ở server là nguồn trạng thái chung. React và APK 
 
 ## 3. Hợp đồng tối thiểu
 
-Các hợp đồng dưới đây là **đề xuất**, chưa có endpoint tương ứng ngoài `/v1/order-book` đang tồn tại.
+Các hợp đồng dưới đây mô tả thiết kế đích. `/v1/order-book` và API nến `/v1/candles` đã có mã nguồn; các hợp đồng trinh sát/chiến lược/thực thi/điều khiển vẫn là đề xuất.
 
 | Hợp đồng | Trường bắt buộc / quy tắc |
 | --- | --- |
@@ -97,6 +97,9 @@ Khóa sàn và Hummingbot Basic credentials nằm ở server. Browser/APK chỉ 
 
 ## 6. Hiện trạng của repository
 
+- GitHub chỉ lưu mã nguồn/PR; Codemagic thực hiện CI/build và các tác vụ thủ công theo [CODEMAGIC_SETUP.md](CODEMAGIC_SETUP.md). Mã webhook/dashboard đã chuyển provider; cấu hình tài khoản, secrets và chạy live vẫn cần được xác minh.
+
+- Bước 1 đã có mã nguồn tại [market_data](../market_data/README.md): kho SQLite, đồng bộ CCXT đúng BTCUSDT perpetual, nến đóng M15/H1, API chỉ đọc có gaps/as-of/content hash. Kiểm thử offline dùng kho và WSGI thật; chưa xác minh cài CCXT/kết nối Binance thật hoặc triển khai server. Chưa tự chuyển APK/Freqtrade sang API này.
 - [PR #59](https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/59): mã gateway Hummingbot chỉ đọc và tab Order Book cho APK. Bảy kiểm thử gateway đạt; Android build và kết nối Hummingbot thật chưa được xác minh. Timestamp API là thời điểm lấy snapshot; `sequenceVerified` chưa có, không dùng snapshot này làm bằng chứng đồng bộ để giao dịch.
 - Python bot/backtest hiện dùng OKX, APK dùng Binance Futures. Chưa có dataset chung hoặc chứng nhận ngang bằng; không tự đổi nguồn của phần Telegram/backtest đang có.
 - Nhánh `integration/android-freqtrade-analytics-20261025` có nghiên cứu và báo cáo Freqtrade/FreqAI riêng; không suy ra đã có AI live hoặc executor Hummingbot. Tích hợp có chọn lọc và giữ nhãn nghiên cứu.

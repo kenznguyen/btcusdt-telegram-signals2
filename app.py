@@ -6,15 +6,14 @@ from collections import deque
 import requests
 from flask import Flask, jsonify, request, send_from_directory
 
+from integrations import codemagic_client as codemagic
+
 app = Flask(__name__)
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 TELEGRAM_WEBHOOK_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "").strip()
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
-GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY", "kenznguyen/btcusdt-telegram-signals2").strip()
-GITHUB_REF = os.getenv("GITHUB_REF", "main").strip()
-GITHUB_WORKFLOW_FILE = os.getenv("GITHUB_WORKFLOW_FILE", "telegram-command.yml").strip()
+
 
 COMMANDS = {
     "/start": "help",
@@ -63,27 +62,8 @@ def already_seen(update_id) -> bool:
     return False
 
 
-def dispatch_github(command: str) -> None:
-    if not GITHUB_TOKEN:
-        raise RuntimeError("GitHub dispatch token is not configured")
-    url = (
-        f"https://api.github.com/repos/{GITHUB_REPOSITORY}"
-        f"/actions/workflows/{GITHUB_WORKFLOW_FILE}/dispatches"
-    )
-    response = requests.post(
-        url,
-        headers={
-            "Accept": "application/vnd.github+json",
-            "Authorization": f"Bearer {GITHUB_TOKEN}",
-            "X-GitHub-Api-Version": "2022-11-28",
-        },
-        json={"ref": GITHUB_REF, "inputs": {"command": command}},
-        timeout=10,
-    )
-    if response.status_code != 204:
-        # Log GitHub validation detail without exposing request headers or credentials.
-        detail = (response.text or "").replace("\n", " ")[:500]
-        raise RuntimeError(f"GitHub API returned HTTP {response.status_code}: {detail}")
+def dispatch_codemagic(command: str) -> str:
+    return codemagic.start_build("telegram-command", {"TELEGRAM_COMMAND": command})
 
 
 @app.get("/")
@@ -137,15 +117,15 @@ def telegram_webhook():
         return jsonify({"ok": True, "unknown_command": True}), 200
 
     try:
-        dispatch_github(command)
+        dispatch_codemagic(command)
         telegram_send(
-            f"⏳ Đã nhận {command_token}. GitHub Actions đang xử lý; kết quả sẽ được gửi tại đây sau khi hoàn tất."
+            f"⏳ Đã nhận {command_token}. Codemagic đang xử lý; kết quả sẽ được gửi tại đây sau khi hoàn tất."
         )
     except Exception:
         app.logger.exception("Could not dispatch Telegram command")
         try:
             telegram_send(
-                "⚠️ Không kích hoạt được GitHub Actions. Hãy kiểm tra workflow và secret GITHUB_TOKEN trong dịch vụ bridge."
+                "⚠️ Không kích hoạt được Codemagic. Hãy kiểm tra cấu hình dịch vụ và thử lại."
             )
         except Exception:
             app.logger.exception("Could not send dispatch error to Telegram")
@@ -153,115 +133,43 @@ def telegram_webhook():
     return jsonify({"ok": True}), 200
 
 
-# Dashboard API: workflow metadata only; no exchange execution/fill claims.
+# Dashboard API keeps its existing response shape while Codemagic owns compute.
 @app.get("/api/dashboard/status")
 def dashboard_status():
-    if not GITHUB_TOKEN:
-        return jsonify({"ok": False, "error": "GITHUB_TOKEN is not configured"}), 503
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
+    if not codemagic.configured():
+        return jsonify({"ok": False, "error": "Codemagic chưa được cấu hình."}), 503
     try:
-        result = {}
-        for key, workflow in (("scanner", "signal-scan.yml"), ("backtest", "dashboard-backtest.yml")):
-            response = requests.get(
-                f"https://api.github.com/repos/{GITHUB_REPOSITORY}/actions/workflows/{workflow}/runs",
-                headers=headers, params={"per_page": 5, "branch": "main"}, timeout=12,
-            )
-            response.raise_for_status()
-            result[key] = [
-                {
-                    "id": run.get("id"),
-                    "name": run.get("name"),
-                    "display_title": run.get("display_title"),
-                    "status": run.get("status"),
-                    "conclusion": run.get("conclusion"),
-                    "created_at": run.get("created_at"),
-                    "updated_at": run.get("updated_at"),
-                    "html_url": run.get("html_url"),
-                }
-                for run in response.json().get("workflow_runs", [])
-            ]
-        return jsonify({"ok": True, "source": "GitHub Actions API", "workflows": result}), 200
-    except requests.RequestException:
-        app.logger.exception("Could not read GitHub Actions dashboard status")
-        return jsonify({"ok": False, "error": "Unable to read GitHub Actions. Check GITHUB_TOKEN Actions read permission."}), 502
+        workflows = {key: [codemagic.normalize_build(build) for build in codemagic.list_builds(workflow, 5)]
+                     for key, workflow in (("scanner", "signal-scan"), ("backtest", "dashboard-backtest"))}
+        return jsonify({"ok": True, "source": "Codemagic API", "workflows": workflows}), 200
+    except codemagic.CodemagicError:
+        app.logger.warning("Could not read Codemagic build history")
+        return jsonify({"ok": False, "error": "Chưa đọc được trạng thái Codemagic."}), 502
 
 
 @app.get("/api/dashboard/backtest")
 def dashboard_backtest():
-    if not GITHUB_TOKEN:
-        return jsonify({"ok": False, "error": "GITHUB_TOKEN is not configured"}), 503
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
+    if not codemagic.configured():
+        return jsonify({"ok": False, "error": "Codemagic chưa được cấu hình."}), 503
     try:
-        runs_response = requests.get(
-            f"https://api.github.com/repos/{GITHUB_REPOSITORY}/actions/workflows/dashboard-backtest.yml/runs",
-            headers=headers, params={"per_page": 15, "branch": "main"}, timeout=12,
-        )
-        runs_response.raise_for_status()
-        runs = runs_response.json().get("workflow_runs", [])
-        for run in runs:
-            title = (run.get("display_title") or run.get("name") or "").lower()
-            is_backtest = "backtest" in title
-            if not is_backtest or run.get("status") != "completed":
-                continue
-            artifacts_response = requests.get(
-                f"https://api.github.com/repos/{GITHUB_REPOSITORY}/actions/runs/{run['id']}/artifacts",
-                headers=headers, params={"per_page": 30}, timeout=12,
-            )
-            artifacts_response.raise_for_status()
-            artifacts = artifacts_response.json().get("artifacts", [])
-            artifact = next((a for a in artifacts if a.get("name") == "dashboard-backtest-report" and not a.get("expired")), None)
-            if not artifact:
-                continue
-            download = requests.get(artifact["archive_download_url"], headers=headers, timeout=30, allow_redirects=True)
-            download.raise_for_status()
-            import io
-            import zipfile
-            from pathlib import PurePosixPath
-            files = {}
-            with zipfile.ZipFile(io.BytesIO(download.content)) as archive:
-                allowed = {
-                    "dashboard_backtest_last_result.json", "dashboard_backtest_status.json",
-                    "dashboard_backtest_trades.csv", "dashboard_backtest_equity.csv", "dashboard_backtest_equity_m15.csv",
-                }
-                for member in archive.namelist():
-                    name = PurePosixPath(member).name
-                    if name in allowed:
-                        files[name.replace("dashboard_backtest_", "backtest_")] = archive.read(member).decode("utf-8-sig", errors="replace")
-            return jsonify({
-                "ok": True,
-                "available": True,
-                "run": {
-                    "id": run.get("id"), "name": run.get("name"),
-                    "status": run.get("status"), "conclusion": run.get("conclusion"),
-                    "created_at": run.get("created_at"), "html_url": run.get("html_url"),
-                },
-                "artifact": {"name": artifact.get("name"), "created_at": artifact.get("created_at")},
-                "files": files,
-            }), 200
-        return jsonify({"ok": True, "available": False, "message": "Chưa tìm thấy artifact backtest hợp lệ trong các lần chạy gần đây."}), 200
-    except requests.RequestException:
-        app.logger.exception("Could not read backtest artifact from GitHub Actions")
-        return jsonify({"ok": False, "error": "Không đọc được artifact. Kiểm tra quyền Actions: read của GITHUB_TOKEN."}), 502
-    except (ValueError, KeyError):
-        app.logger.exception("Invalid backtest artifact response")
-        return jsonify({"ok": False, "error": "Artifact backtest không đúng định dạng mong đợi."}), 502
+        return jsonify(codemagic.latest_report()), 200
+    except codemagic.CodemagicError:
+        app.logger.warning("Could not read Codemagic backtest artifacts")
+        return jsonify({"ok": False, "error": "Chưa đọc được báo cáo backtest từ Codemagic."}), 502
 
 
 @app.post("/api/dashboard/run-backtest")
 def dashboard_run_backtest():
-    if not GITHUB_TOKEN:
-        return jsonify({"ok": False, "error": "GITHUB_TOKEN is not configured"}), 503
-    payload = request.get_json(silent=True) or {}
+    if not codemagic.configured():
+        return jsonify({"ok": False, "error": "Codemagic chưa được cấu hình."}), 503
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"ok": False, "error": "Cấu hình backtest không hợp lệ."}), 400
     try:
-        days = int(payload.get("days", 360))
+        raw_days = payload.get("days", 360)
+        if isinstance(raw_days, bool) or float(raw_days) != int(raw_days):
+            raise ValueError("Số ngày phải là số nguyên.")
+        days = int(raw_days)
         capital = float(payload.get("initial_capital", 100))
         entry_margin_pct = float(payload.get("entry_margin_pct", 50))
         dca_margin_ratio = float(payload.get("dca_margin_ratio", 100))
@@ -273,34 +181,15 @@ def dashboard_run_backtest():
             raise ValueError("Margin lệnh đầu phải từ 1% đến 100% vốn hiện tại.")
         if not 0 <= dca_margin_ratio <= 500:
             raise ValueError("Margin DCA phải từ 0% đến 500% margin lệnh đầu.")
-    except (TypeError, ValueError) as exc:
+    except (TypeError, ValueError, OverflowError) as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
-    url = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/actions/workflows/dashboard-backtest.yml/dispatches"
-    inputs = {
-        "backtest_days": str(days),
-        "initial_capital": str(capital),
-        "entry_margin_pct": str(entry_margin_pct),
-        "dca_margin_ratio": str(dca_margin_ratio),
-    }
+    variables = {"BACKTEST_DAYS": str(days), "BACKTEST_INITIAL_CAPITAL": str(capital),
+                 "ENTRY_MARGIN_PCT": str(entry_margin_pct), "DCA_MARGIN_RATIO": str(dca_margin_ratio)}
     try:
-        response = requests.post(url, headers=headers, json={"ref": GITHUB_REF, "inputs": inputs}, timeout=15)
-        if response.status_code != 204:
-            detail = (response.text or "").replace("\\n", " ")[:300]
-            app.logger.error("GitHub workflow dispatch failed: HTTP %s %s", response.status_code, detail)
-            return jsonify({"ok": False, "error": f"GitHub không nhận workflow dispatch (HTTP {response.status_code}). Kiểm tra quyền Actions: write và tên branch."}), 502
-        return jsonify({
-            "ok": True,
-            "message": "Đã gửi yêu cầu backtest tới GitHub Actions.",
-            "parameters": {
-                "days": days, "initial_capital": capital,
-                "entry_margin_pct": entry_margin_pct, "dca_margin_ratio": dca_margin_ratio,
-            },
-        }), 202
-    except requests.RequestException:
-        app.logger.exception("Could not dispatch dashboard backtest")
-        return jsonify({"ok": False, "error": "Không thể kết nối GitHub Actions."}), 502
+        build_id = codemagic.start_build("dashboard-backtest", variables)
+        return jsonify({"ok": True, "message": "Đã gửi yêu cầu backtest tới Codemagic.", "build_id": build_id,
+                        "parameters": {"days": days, "initial_capital": capital,
+                                       "entry_margin_pct": entry_margin_pct, "dca_margin_ratio": dca_margin_ratio}}), 202
+    except codemagic.CodemagicError:
+        app.logger.warning("Could not start Codemagic dashboard backtest")
+        return jsonify({"ok": False, "error": "Không thể gửi yêu cầu backtest tới Codemagic."}), 502

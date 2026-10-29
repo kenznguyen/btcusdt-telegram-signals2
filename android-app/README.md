@@ -16,40 +16,21 @@ Standalone Android chart and signal monitor using public Binance USDⓈ-M Future
 - Simulated state, position, processed candle timestamp, balance, and recent events are persisted locally. Chart alert history stores up to 100 recent events and shows local counts for today, chart alerts, and strategy events. Standalone RSI M15 threshold notifications have been removed; RSI remains part of the trading-strategy calculations. First launch warms up indicators and evaluates only the newest closed M15 candle instead of replaying old historical alerts.
 - A foreground data-sync service performs monitoring while Android allows it to run. Battery settings, force-stop, manufacturer restrictions, and Android foreground-service limits may still interrupt monitoring.
 
-## Validation
+## Validation and build on Codemagic
 
-Codemagic runs JUnit tests before assembling a debug APK on Android-related pushes to `fix/chart-pro-reliability-20261027` and `main`. Each build tests the checked-out source commit. A push to the fix branch also validates the code proposed in its pull request; a separate pull-request trigger is omitted to avoid duplicate builds. GitHub Actions remains available as a manual fallback while its build quota is exhausted. Regression tests cover symbol isolation, stale callbacks, scanner reconnection/backfill, closed-candle preservation, alert history/policy, Order Book retries, and close-confirmed Soft SL pricing, alongside the existing indicator and strategy tests.
+GitHub stores source and PRs; Codemagic runs all build/test jobs. Active configuration is [`codemagic.yaml`](../codemagic.yaml); historical GitHub Actions YAML is archived outside `.github/workflows`.
 
-A successful build and unit tests do not prove numerical parity with TradingView or live fills. Indicator results must still be compared against the Python engine on the same candle fixture before relying on alerts. Data source is Binance Futures while the existing Python bot/backtest use OKX candles, so prices and indicator values can differ slightly. This app is a simulation/alerting tool only, not financial advice. Do not use the simulated PnL or alerts as a guarantee of future results.
+Use [`docs/CODEMAGIC_SETUP.md`](../docs/CODEMAGIC_SETUP.md) for the full setup. Start `android-chart-pro-debug` on `feature/canonical-market-data` for the current integrated source. It uses JDK 17, checksum-verified Gradle 8.9, SDK 35 and Build Tools 34.0.0, runs Hummingbot gateway tests and Android unit tests, then assembles the debug APK. Artifacts include the APK, JUnit XML/HTML and actual source SHA.
 
-## Build
+For a signed APK, manually start `android-chart-pro-release` after configuring the `android_release` secret group with the **existing** keystore and `btc-chart-release` alias. The workflow runs tests, assembles release, verifies the APK certificate against the supplied keystore and cleans up the temporary key. It does not publish to Play Store. Certificate and install-over-existing-app verification remain required before claiming release compatibility.
 
-Use JDK 17, Gradle 8.9 and Android SDK 35, or open this directory in Android Studio:
+Local build, when JDK 17, Gradle 8.9 and SDK 35 are installed:
 
 ```bash
 gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
 ```
 
-The repository currently does not include a Gradle wrapper; use the pinned Gradle version above. The debug APK is at `app/build/outputs/apk/debug/app-debug.apk`.
-
-- **Codemagic / android-chart-pro-debug** is the primary automatic test and debug build workflow; setup and manual start instructions are below.
-- **Android Live Chart CI** manually runs tests and builds debug APKs. Its `source_branch` input accepts existing integration branches, including `integration/android-freqtrade-analytics-20261025`.
-- **Android APK** manually builds the selected workflow branch; when the existing signing secrets are present, it also builds and verifies a release APK.
-- **Android Release APK** manually builds a selected source branch using the existing release keystore secrets and `btc-chart-release` alias. It uploads an APK artifact, not a Play Store publication.
-- Every workflow records the actual checked-out commit in `android-source-sha.txt` and build logs or the run summary. Check that commit when comparing artifacts: a GitHub workflow launched from `main` can intentionally build another branch.
-
-Package: `com.kenznguyen.btclivealerts`
-
-### Codemagic setup and first build
-
-The repository-root [`codemagic.yaml`](../codemagic.yaml) defines `android-chart-pro-debug`. It uses a Mac mini M2 runner with JDK 17, downloads Gradle 8.9 with a pinned SHA-256 check, ensures Android SDK 35 is installed, runs unit tests, and then assembles the debug APK. The build has a 30-minute limit, caches Gradle dependencies and its verified distribution, and cancels outdated webhook builds. No signing variables or release keystore are needed for this debug workflow.
-
-1. Open the `btcusdt-telegram-signals2` application already added to Codemagic and use its YAML configuration.
-2. Select **Start new build**, branch **`fix/chart-pro-reliability-20261027`**, and workflow **`android-chart-pro-debug`**. Select `main` only after the Android changes and YAML have been merged there.
-3. Start the build. On success, download **`app-debug.apk`** and **`android-source-sha.txt`** from the build artifacts. JUnit XML and the HTML unit-test report are also collected, with test results displayed in the build overview.
-4. For subsequent automatic builds, ensure the application's GitHub webhook is enabled. Pushes to the two configured branches run when `android-app/` or `codemagic.yaml` changes; the first build establishes the change-tracking baseline. If the webhook is not configured, start builds manually as above.
-
-The workflow produces debug artifacts only. A passing build is the source of truth for compilation and test results; adding the YAML alone does not verify the app. For configuration details, see the official [Codemagic YAML guide](https://docs.codemagic.io/yaml-basic-configuration/yaml-getting-started/), [automatic build triggers](https://docs.codemagic.io/yaml-running-builds/starting-builds-automatically/), and [test reports](https://docs.codemagic.io/yaml-testing/testing/).
+The repository has no Gradle wrapper. Package: `com.kenznguyen.btclivealerts`. No application ID or signing configuration change is part of the runner migration. A YAML change alone does not prove the APK has built or run on a device.
 
 ## Live chart and in-app backtest
 

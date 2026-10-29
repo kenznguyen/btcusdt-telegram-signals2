@@ -14,7 +14,7 @@ button,input{font:inherit}.app{display:grid;grid-template-columns:190px minmax(0
 <aside class="sidebar"><div class="brand">₿ BTCUSDT<br>Signal Bot<small>PERFORMANCE TERMINAL</small></div><div class="nav"><span class="active">▦　Tổng quan</span><span>⌁　Equity & Drawdown</span><span>▤　Lịch sử giao dịch</span><span>◉　Trạng thái bot</span></div><div style="margin:30px 8px 0;color:#6684a7;font-size:11px">DỮ LIỆU BACKTEST</div></aside>
 <main class="main">
 <header class="top"><div><div class="eyebrow">Trading analytics / Backtest</div><h1>BTCUSDT Signal Bot</h1></div><div class="actions"><button class="btn" id="demoHelp" title="Không tạo số liệu demo">ⓘ Hướng dẫn dữ liệu</button><button class="btn primary" id="refreshBtn">↻ Đồng bộ dữ liệu</button><button class="btn" id="loadBtn">Nạp file thủ công</button><input class="hidden" id="files" type="file" multiple accept=".json,.csv,application/json,text/csv"></div></header>
-<div class="notice" id="notice"><strong>Đang kết nối dữ liệu tự động…</strong> Dashboard sẽ tải trạng thái GitHub Actions và artifact backtest. Nếu dữ liệu chưa xuất hiện, bấm “Đồng bộ dữ liệu” hoặc kiểm tra lỗi bên dưới.</div>
+<div class="notice" id="notice"><strong>Đang kết nối dữ liệu tự động…</strong> Dashboard sẽ tải trạng thái Codemagic và artifact backtest. Nếu dữ liệu chưa xuất hiện, bấm “Đồng bộ dữ liệu” hoặc kiểm tra lỗi bên dưới.</div>
 <section class="card" style="margin-bottom:12px">
 <div class="cardhead"><h2>Cấu hình backtest</h2><span class="pill">Không thay đổi Entry / DCA / TP / SL</span></div>
 <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px">
@@ -40,7 +40,7 @@ button,input{font:inherit}.app{display:grid;grid-template-columns:190px minmax(0
 </section>
 <section class="grid bottomgrid">
 <div class="card"><div class="cardhead"><h2>Lịch sử giao dịch</h2><span class="pill" id="tradeRows">0 giao dịch</span></div><div class="tablewrap"><table><thead><tr><th>#</th><th>Side</th><th>Entry (UTC)</th><th>Exit (UTC)</th><th>Giá vào TB</th><th>Giá thoát</th><th>Margin (USDT)</th><th>Net PnL (USDT)</th><th>PnL (%)</th><th>Đóng bởi</th><th>DCA</th></tr></thead><tbody id="tradesBody"><tr><td colspan="11" class="empty">Nạp backtest_last_result.json hoặc backtest_trades.csv</td></tr></tbody></table></div><div class="sub" style="margin-top:10px">Hiển thị giao dịch đúng theo dữ liệu đã nạp; không tự tạo lệnh.</div></div>
-<div class="card"><div class="cardhead"><h2>Trạng thái bot / backtest</h2><span class="pill amber" id="botBadge">Chưa xác định</span></div><div class="statusbig"><i class="dot" id="botDot"></i><span id="botState">Chưa nạp status JSON</span></div><div class="stats" style="margin-top:10px"><div class="stat"><span>Trạng thái backtest</span><span id="btStatus">—</span></div><div class="stat"><span>Run ID</span><span id="statusRun">—</span></div><div class="stat"><span>Cập nhật gần nhất</span><span id="statusTime">—</span></div><div class="stat"><span>Nguồn dữ liệu</span><span id="dataSource">GitHub Actions / artifact</span></div></div><div class="notice" style="margin-top:14px;margin-bottom:0;font-size:12px">Đây là dashboard hiệu suất backtest, không phải giám sát live tự động. Trạng thái bot chỉ được xác nhận khi có file status tương ứng.</div></div>
+<div class="card"><div class="cardhead"><h2>Trạng thái bot / backtest</h2><span class="pill amber" id="botBadge">Chưa xác định</span></div><div class="statusbig"><i class="dot" id="botDot"></i><span id="botState">Chưa nạp status JSON</span></div><div class="stats" style="margin-top:10px"><div class="stat"><span>Trạng thái backtest</span><span id="btStatus">—</span></div><div class="stat"><span>Run ID</span><span id="statusRun">—</span></div><div class="stat"><span>Cập nhật gần nhất</span><span id="statusTime">—</span></div><div class="stat"><span>Nguồn dữ liệu</span><span id="dataSource">Codemagic / artifact</span></div></div><div class="notice" style="margin-top:14px;margin-bottom:0;font-size:12px">Đây là dashboard hiệu suất backtest, không phải giám sát live tự động. Trạng thái bot chỉ được xác nhận khi có file status tương ứng.</div></div>
 </section>
 <footer class="footer"><span>BTCUSDT Signal Bot · Performance Dashboard</span><span>Dữ liệu mô phỏng · Không phải khuyến nghị đầu tư</span></footer><div class="error" id="error"></div>
 </main></div>
@@ -108,7 +108,7 @@ async function syncDashboard(){
       set('btStatus',st);
     }
     set('notice','');
-    byId('notice').innerHTML='<strong>Đồng bộ tự động.</strong> Trạng thái workflow lấy trực tiếp từ GitHub Actions · cập nhật mỗi 60 giây.';
+    byId('notice').innerHTML='<strong>Đồng bộ tự động.</strong> Trạng thái workflow lấy trực tiếp từ Codemagic · cập nhật mỗi 60 giây.';
   } catch(e) { errors.push(e.message); }
   try {
     const res=await fetch('/api/dashboard/backtest',{cache:'no-store'});
@@ -123,9 +123,9 @@ async function syncDashboard(){
       else if(files['backtest_equity.csv']) curve=parseCSV(files['backtest_equity.csv']);
       if(report) renderReport();
       renderTrades(); renderCurve(); renderStatus();
-      byId('notice').innerHTML='<strong>Đồng bộ backtest thành công.</strong> Artifact: '+safe(data.artifact&&data.artifact.name)+' · Run #'+safe(data.run&&data.run.id)+' · Dữ liệu từ GitHub Actions, không phải lệnh khớp trực tiếp trên sàn.';
+      byId('notice').innerHTML='<strong>Đồng bộ backtest thành công.</strong> Artifact: '+safe(data.artifact&&data.artifact.name)+' · Run #'+safe(data.run&&data.run.id)+' · Dữ liệu từ Codemagic, không phải lệnh khớp trực tiếp trên sàn.';
     } else if(!report) {
-      byId('notice').innerHTML='<strong>Chưa có artifact backtest.</strong> Workflow status vẫn được cập nhật; chạy lệnh /backtest trên Telegram hoặc kiểm tra GitHub Actions để tạo báo cáo.';
+      byId('notice').innerHTML='<strong>Chưa có artifact backtest.</strong> Workflow status vẫn được cập nhật; chạy lệnh /backtest trên Telegram hoặc kiểm tra Codemagic để tạo báo cáo.';
     }
   } catch(e) { errors.push(e.message); }
   if(errors.length) byId('error').textContent='Lỗi đồng bộ: '+errors.join(' · ');
@@ -143,7 +143,7 @@ byId('runBacktestBtn').onclick=async()=>{
  if(!Number.isFinite(params.initial_capital)||params.initial_capital<1){hint.textContent='Vốn ban đầu phải ít nhất 1 USDT.';return}
  if(!Number.isFinite(params.entry_margin_pct)||params.entry_margin_pct<1||params.entry_margin_pct>100){hint.textContent='Margin lệnh đầu phải từ 1% đến 100%.';return}
  if(!Number.isFinite(params.dca_margin_ratio)||params.dca_margin_ratio<0||params.dca_margin_ratio>500){hint.textContent='Margin DCA phải từ 0% đến 500% margin lệnh đầu.';return}
- btn.disabled=true;btn.textContent='Đang gửi yêu cầu…';hint.textContent='Đang gửi cấu hình tới GitHub Actions…';
+ btn.disabled=true;btn.textContent='Đang gửi yêu cầu…';hint.textContent='Đang gửi cấu hình tới Codemagic…';
  try{
   const res=await fetch('/api/dashboard/run-backtest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)});
   const data=await res.json();
@@ -155,7 +155,7 @@ byId('runBacktestBtn').onclick=async()=>{
 };
 byId('loadBtn').onclick=()=>byId('files').click();
 byId('refreshBtn').onclick=()=>{byId('refreshBtn').textContent='Đang đồng bộ…';syncDashboard().finally(()=>byId('refreshBtn').textContent='↻ Đồng bộ dữ liệu')};
-byId('demoHelp').onclick=()=>{byId('notice').innerHTML='<strong>Đồng bộ tự động đã bật.</strong> Nếu API chưa kết nối, có thể nạp thủ công các file cùng một artifact backtest trong GitHub Actions.'};
+byId('demoHelp').onclick=()=>{byId('notice').innerHTML='<strong>Đồng bộ tự động đã bật.</strong> Nếu API chưa kết nối, có thể nạp thủ công các file cùng một artifact backtest trong Codemagic.'};
 byId('files').onchange=async e=>{byId('error').textContent='';for(const f of e.target.files){try{const txt=await f.text(),name=f.name.toLowerCase();if(name.endsWith('.json')){const o=JSON.parse(txt);if(name.includes('status'))status=o;else if(o&&('net_profit_usdt'in o||'trade_count'in o||'trades'in o))report=o;else if(o&&'status'in o)status=o;else throw Error('Không nhận diện được JSON: '+f.name)}else if(name.endsWith('.csv')){const arr=parseCSV(txt);if(name.includes('trade'))trades=arr;else if(name.includes('equity_m15')||arr.some(r=>'equity_usdt'in r))curve=arr;else if(arr.some(r=>'cumulative_net_pnl_usdt'in r))curve=arr.map(r=>({...r,equity_usdt:r.account_balance_usdt,drawdown_pct:0}));else throw Error('CSV không có cột trades/equity: '+f.name)}}catch(err){byId('error').textContent+=err.message+' ';}}if(report)renderReport();renderTrades();renderCurve();renderStatus();};
 syncDashboard();
 setInterval(syncDashboard,60000);
