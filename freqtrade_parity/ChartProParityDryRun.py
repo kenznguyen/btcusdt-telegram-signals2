@@ -5,7 +5,7 @@ entries stay disabled until true Kotlin/Freqtrade trace parity is available.
 """
 from freqtrade.strategy import IStrategy
 from pandas import DataFrame
-from .callbacks import PaperCallbackCore
+from freqtrade_parity.callbacks import PaperCallbackCore
 
 class ChartProParityDryRun(IStrategy):
     INTERFACE_VERSION=3
@@ -33,7 +33,7 @@ class ChartProParityDryRun(IStrategy):
         return [(pair, "1h") for pair in pairs]
 
     def populate_indicators(self,dataframe:DataFrame,metadata:dict)->DataFrame:
-        from .context import enrich_closed_m15
+        from freqtrade_parity.context import enrich_closed_m15
         if self.dp is None or dataframe.empty:
             return dataframe
         h1=self.dp.get_pair_dataframe(pair=metadata["pair"],timeframe="1h")
