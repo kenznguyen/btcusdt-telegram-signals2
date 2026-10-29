@@ -48,14 +48,49 @@ class ChartProParityDryRun(IStrategy):
     def leverage(self,pair,current_time,current_rate,proposed_leverage,max_leverage,entry_tag,side,**kwargs):
         return min(13.0,max_leverage)
 
+    def _latest_closed_context(self,pair,current_time):
+        if self.dp is None:
+            return None
+        dataframe,_=self.dp.get_analyzed_dataframe(pair,self.timeframe)
+        if dataframe is None or len(dataframe)<2:
+            return None
+        row=dataframe.iloc[-1]
+        date=row.get("date")
+        if date is None or getattr(date,"tzinfo",None) is None:
+            return None
+        open_ms=int(date.timestamp()*1000)
+        if open_ms+900000>int(current_time.timestamp()*1000):
+            return None
+        columns=("open","high","low","close","rsi","adx","previous_rsi",
+                 "previous_open","previous_close","h1_plus","h1_minus","h1_adx")
+        if any(col not in row or row[col] is None for col in columns):
+            return None
+        import math
+        if any(not math.isfinite(float(row[col])) for col in columns):
+            return None
+        return {"open_time":open_ms,**{col:float(row[col]) for col in columns}}
+
     def adjust_trade_position(self,trade,current_time,current_rate,current_profit,
                               min_stake,max_stake,current_entry_rate,current_exit_rate,
                               current_entry_profit,current_exit_profit,**kwargs):
-        # Do not generate orders until confirmed closed candle indicators and liquidity
-        # metadata are wired from identical canonical Kotlin/Freqtrade OHLCV.
-        return None
+        row=self._latest_closed_context(trade.pair,current_time)
+        if row is None:
+            return None
+        # A historical imported trade is necessary: new entries are intentionally disabled.
+        side="SHORT" if trade.is_short else "LONG"
+        balance=self.wallets.get_total_stake_amount()
+        core=getattr(self,"_parity_core",PaperCallbackCore())
+        request=core.dca_request(trade,row,side,trade.open_rate, balance,
+                                 getattr(trade,"has_open_orders",True))
+        if request is None:return None
+        amount,tag=request
+        if amount<min_stake or (max_stake is not None and amount>max_stake):
+            # Fail closed. REQUESTED marker remains persisted to prevent retries.
+            return None
+        return amount,tag
 
     def custom_exit(self,pair,trade,current_time,current_rate,current_profit,**kwargs):
-        # Protective stoploss remains independent of close-confirmed exits.
-        # No exchange orders can originate from this guarded strategy.
-        return None
+        row=self._latest_closed_context(pair,current_time)
+        if row is None:return None
+        core=getattr(self,"_parity_core",PaperCallbackCore())
+        return core.custom_exit_reason("SHORT" if trade.is_short else "LONG",trade.open_rate,row)
