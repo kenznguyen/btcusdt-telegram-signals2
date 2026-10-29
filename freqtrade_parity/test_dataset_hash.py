@@ -17,7 +17,7 @@ class DatasetHashTests(unittest.TestCase):
     def test_binary_canonical_golden_bytes(self):
         from freqtrade_parity.dataset_hash import canonical_bytes
         row={"open_time":0,"open":1.0,"high":2.0,"low":0.5,"close":1.5,"volume":5.0,"closed":True}
-        expected=b"CHARTPRO-OHLCV-V2\\x00"+b"M15\\x00"+struct.pack(">q5d",0,1.,2.,0.5,1.5,5.)+b"H1\\x00"
+        expected=b"CHARTPRO-OHLCV-V2\x00"+b"M15\x00"+struct.pack(">q5d",0,1.,2.,0.5,1.5,5.)+b"H1\x00"
         self.assertEqual(expected,canonical_bytes([row],[]))
         self.assertEqual("sha256:"+hashlib.sha256(expected).hexdigest(),dataset_hash([row],[]))
     def test_non_finite_ohlcv_rejected(self):
