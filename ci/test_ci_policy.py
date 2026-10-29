@@ -18,7 +18,7 @@ class CiPolicyTest(unittest.TestCase):
         self.assertTrue((ROOT / "ci/archive/github-actions/market-data-ci.yml").exists())
 
     def test_manual_stateful_and_release_tasks_never_start_on_push(self):
-        for name in ("android-chart-pro-release", "signal-scan", "telegram-command", "dashboard-backtest"):
+        for name in ("android-chart-pro-release", "signal-scan", "telegram-command", "dashboard-backtest", "local-data-lake-smoke"):
             with self.subTest(name=name):
                 self.assertNotIn("triggering", self.workflows[name])
 
@@ -66,6 +66,32 @@ class CiPolicyTest(unittest.TestCase):
                      "postgres-server.log", "Data-lake CI failed during:"):
             with self.subTest(gate=gate):
                 self.assertIn(gate, runner)
+
+    def test_local_trial_branch_keeps_postgres_and_regression_jobs(self):
+        for name in ("canonical-market-data", "data-lake-postgres"):
+            with self.subTest(name=name):
+                workflow = self.workflows[name]
+                self.assertIn(
+                    {"pattern": "feature/local-data-lake", "include": True, "source": True},
+                    workflow["triggering"]["branch_patterns"],
+                )
+                self.assertIn("deploy/data-lake/", workflow["when"]["changeset"]["includes"])
+                self.assertIn(".dockerignore", workflow["when"]["changeset"]["includes"])
+
+    def test_docker_smoke_is_manual_and_preserves_trial_boundaries(self):
+        workflow = self.workflows["local-data-lake-smoke"]
+        self.assertEqual(workflow["instance_type"], "linux_x2")
+        self.assertLessEqual(workflow["max_build_duration"], 30)
+        self.assertIn("local-smoke-tests.log", workflow["artifacts"])
+        self.assertFalse(any(".env" in name or "secret" in name.lower() for name in workflow["artifacts"]))
+        runner = (ROOT / "ci/test-local-data-lake.sh").read_text()
+        for gate in ("config --quiet", "up -d --build", "--check", "report['freshData'] is False",
+                     "'collector' not in services", "error.code == 401", "down --remove-orphans",
+                     "lake_deadline=$((SECONDS + 120))", 'timeout "$lake_remaining" python3'):
+            with self.subTest(gate=gate):
+                self.assertIn(gate, runner)
+        self.assertNotIn("--profile collector", runner)
+        self.assertNotIn("down -v", runner)
 
     def test_shell_scripts_parse_and_no_unsupported_python_version_key(self):
         for path in (ROOT / "ci").glob("*.sh"):

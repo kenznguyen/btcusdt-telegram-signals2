@@ -107,6 +107,9 @@ workflows:
     triggering:
       events: [push]
       branch_patterns:
+        - pattern: feature/local-data-lake
+          include: true
+          source: true
         - pattern: feature/data-lake-api
           include: true
           source: true
@@ -142,6 +145,8 @@ workflows:
           - requirements-web.txt
           - requirements-ci.txt
           - data_lake/
+          - deploy/data-lake/
+          - .dockerignore
           - requirements-data-lake.txt
           - requirements-data-lake-export.txt
           - codemagic.yaml
@@ -184,6 +189,9 @@ workflows:
     triggering:
       events: [push]
       branch_patterns:
+        - pattern: feature/local-data-lake
+          include: true
+          source: true
         - pattern: feature/data-lake-api
           include: true
           source: true
@@ -196,6 +204,8 @@ workflows:
         includes:
           - market_data/
           - data_lake/
+          - deploy/data-lake/
+          - .dockerignore
           - futures_intelligence/
           - pipeline/
           - freqai_bridge/
@@ -214,6 +224,21 @@ workflows:
       - postgres-tests.log
       - data-lake-tests.log
       - postgres-server.log
+
+  local-data-lake-smoke:
+    name: Local data lake - Docker smoke test (manual)
+    # Official Ubuntu runner includes Docker. Linux runners require billing enabled.
+    instance_type: linux_x2
+    max_build_duration: 30
+    # No triggering section: this optional container-build job is started manually.
+    scripts:
+      - name: Record container-test source
+        script: git rev-parse HEAD > ci-source-sha.txt
+      - name: Build local PostgreSQL and API stack without exchange collection
+        script: bash ci/test-local-data-lake.sh
+    artifacts:
+      - ci-source-sha.txt
+      - local-smoke-tests.log
 
   telegram-command:
     name: Telegram command
