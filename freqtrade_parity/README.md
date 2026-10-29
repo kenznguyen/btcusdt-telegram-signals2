@@ -19,3 +19,9 @@ The first port is `freqtrade_parity/rules.py`: immutable parameters and matching
 
 ## CI
 Codemagic: `freqtrade-strategy-parity` (offline Python) and `android-chart-pro-debug` (Android tests and APKs) on this branch. Neither run has been verified for this head yet. GitHub is source/PR storage only.
+
+## Wilder implementation delivered in this increment
+`freqtrade_parity/indicators.py` now implements Kotlin-style RMA seeding and gaps, RSI, true-range directional movement, DI, DX and ADX. `prior_closed_h1_index` excludes the current H1 bucket and unclosed H1 bars. The Codemagic offline workflow runs `test_indicators` alongside rules tests.
+
+## Remaining blockers (not completed)
+A full native Freqtrade position lifecycle, DCA and stop callback adapter, signed shared OHLCV dataset, genuine paired Kotlin/Freqtrade trace exports and 180/360-day Freqtrade backtests are **not yet implemented/verified**. Do not claim parity or profitability. The source branch remains draft and has no live trading.
