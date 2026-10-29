@@ -51,6 +51,15 @@ class CandleApiTest(unittest.TestCase):
         self.assertEqual(body["candles"], [])
         self.assertFalse(body["coverage"]["complete"])
 
+    def test_shared_lake_configuration_takes_precedence_over_local_path(self):
+        self.config["DATA_LAKE_DATABASE_URL"] = str(self.db)
+        missing = Path(self.temp.name) / "unused-local.sqlite3"
+        self.config["MARKET_DATA_DB"] = str(missing)
+        code, body = self.request()
+        self.assertEqual(code, 200)
+        self.assertEqual(body["candles"][0]["close"], "100.5")
+        self.assertFalse(missing.exists())
+
     def test_missing_auth_or_store_fails_without_creating_database(self):
         self.assertEqual(self.request(token="wrong")[0], 401)
         self.config["MARKET_DATA_TOKEN"] = ""

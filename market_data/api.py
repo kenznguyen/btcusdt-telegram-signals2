@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from urllib.parse import parse_qs
 
-from market_data.store import INTERVAL_MS, MAX_CANDLES, read_window
+from market_data.store import INTERVAL_MS, MAX_CANDLES, is_postgres, read_window
 
 
 def candle_query(query):
@@ -56,7 +56,8 @@ def application(environ, start_response):
         return reply("200 OK", {"ok": True, "service": "canonical-market-data"})
     if path != "/v1/candles":
         return reply("404 Not Found", {"error": "NOT_FOUND"})
-    token, db_path = os.environ.get("MARKET_DATA_TOKEN", ""), os.environ.get("MARKET_DATA_DB", "")
+    token = os.environ.get("MARKET_DATA_TOKEN", "")
+    db_path = os.environ.get("DATA_LAKE_DATABASE_URL") or os.environ.get("MARKET_DATA_DB", "")
     if not token or not db_path:
         return reply("503 Service Unavailable", {"error": "UNCONFIGURED"})
     if not hmac.compare_digest(environ.get("HTTP_AUTHORIZATION", "").encode(), ("Bearer " + token).encode()):
@@ -66,7 +67,7 @@ def application(environ, start_response):
     except ValueError:
         return reply("400 Bad Request", {"error": "INVALID_QUERY"})
     try:
-        if not Path(db_path).is_file():
+        if not is_postgres(db_path) and not Path(db_path).is_file():
             return reply("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
         result = read_window(db_path, **query)
         return reply("200 OK", {**result, "generatedAtMs": time.time_ns() // 1_000_000})
