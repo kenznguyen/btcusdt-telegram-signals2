@@ -28,6 +28,10 @@ class ChartProParityDryRun(IStrategy):
             raise RuntimeError("Requires futures research configuration")
         self._parity_core=PaperCallbackCore()
 
+    def informative_pairs(self):
+        pairs=self.dp.current_whitelist() if self.dp is not None else []
+        return [(pair, "1h") for pair in pairs]
+
     def populate_indicators(self,dataframe:DataFrame,metadata:dict)->DataFrame:
         from .context import enrich_closed_m15
         if self.dp is None or dataframe.empty:
