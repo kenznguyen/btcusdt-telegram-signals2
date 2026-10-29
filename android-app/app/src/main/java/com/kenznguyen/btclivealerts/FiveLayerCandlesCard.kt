@@ -23,6 +23,13 @@ import java.util.Locale
 import java.util.TimeZone
 import kotlin.math.abs
 
+/** Age is measured from the last observed closed candle, not from HTTP refresh time. */
+internal fun canonicalCandleLagMs(window: CandleWindowView, nowMs: Long): Long? =
+    window.candles.lastOrNull()?.let { nowMs - it.closeTimeMs }
+
+internal fun canonicalCandlesStale(window: CandleWindowView, nowMs: Long): Boolean =
+    canonicalCandleLagMs(window, nowMs)?.let { it !in 0L..1_800_000L } ?: true
+
 /** Only observed closed candles are drawn; missing time slots stay empty. */
 @Composable
 internal fun CanonicalCandlesContent(window: CandleWindowView) {
