@@ -113,6 +113,28 @@ class DataLakeApiTest(unittest.TestCase):
         self.assertNotIn(secret, response.text)
         self.assertNotIn("private-password", response.text)
 
+    def test_ready_is_authenticated_and_distinguishes_storage_from_data_freshness(self):
+        from market_data.archive import init_archive
+
+        self.assertEqual(401, self.request("/ready", query="", token="wrong").status_code)
+        missing = self.request("/ready", query="")
+        self.assertEqual(503, missing.status_code)
+        self.assertFalse(missing.json()["ready"])
+        self.assertFalse(missing.json()["checks"]["archive"]["ready"])
+        with sqlite3.connect(self.database) as connection:
+            tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        self.assertEqual({"candles"}, tables)
+        self.assertEqual(200, self.request("/health", query="", token="").status_code)
+        init_archive(self.database)
+        response = self.request("/ready", query="")
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(response.json()["ready"])
+        self.assertFalse(response.json()["freshData"])
+        self.assertEqual(self.now, response.json()["checkedAtMs"])
+        self.assertNotIn(str(self.database), response.text)
+        self.assertEqual(400, self.request("/ready", query="token=secret").status_code)
+        self.assertEqual(405, self.request("/ready", query="", method="POST").status_code)
+
     def test_features_and_cross_analysis_use_real_canonical_and_archived_data(self):
         from futures_intelligence.import_collector import build_snapshot
         from market_data.archive import archive_snapshot, init_archive
