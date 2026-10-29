@@ -8,7 +8,7 @@ class StrategyContractTest(unittest.TestCase):
     def test_h1_is_declared_for_data_provider(self):
         source=(ROOT/"ChartProParityDryRun.py").read_text()
         self.assertIn("def informative_pairs(self):",source)
-        self.assertIn('("1h")',source.replace(", ",""))
+        self.assertIn('return [(pair, "1h") for pair in pairs]',source)
     def test_entries_remain_disabled(self):
         source=(ROOT/"ChartProParityDryRun.py").read_text()
         self.assertIn('dataframe["enter_long"]=0',source)
