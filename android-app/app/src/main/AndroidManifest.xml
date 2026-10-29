@@ -6,12 +6,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <application
         android:allowBackup="false"
-        android:label="BTCUSDT Chart Pro"
+        android:label="@string/app_name"
+        android:icon="@drawable/ic_app"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:usesCleartextTraffic="false">
-        <service android:name=".StrategyMonitorService" android:exported="false" android:foregroundServiceType="dataSync" />
+        <service android:name="com.kenznguyen.btclivealerts.StrategyMonitorService" android:exported="false" android:foregroundServiceType="dataSync" />
         <activity
-            android:name=".MainActivity"
+            android:name="com.kenznguyen.btclivealerts.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -20,4 +21,5 @@
         </activity>
     </application>
 </manifest>
+
 

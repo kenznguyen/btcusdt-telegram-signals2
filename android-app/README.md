@@ -20,23 +20,29 @@ Standalone Android chart and signal monitor using public Binance USDⓈ-M Future
 
 GitHub stores source and PRs; Codemagic runs all build/test jobs. Active configuration is [`codemagic.yaml`](../codemagic.yaml); historical GitHub Actions YAML is archived outside `.github/workflows`.
 
-Use [`docs/CODEMAGIC_SETUP.md`](../docs/CODEMAGIC_SETUP.md) for the full setup. Start `android-chart-pro-debug` on `feature/android-five-layer-control` for the APK with the five-layer panel. Its push trigger also accepts that branch when the repository webhook is connected. It uses JDK 17, checksum-verified Gradle 8.9, SDK 35 and Build Tools 34.0.0, runs Hummingbot gateway tests and Android unit tests, then assembles the debug APK. Artifacts include the APK, JUnit XML/HTML and actual source SHA in `android-source-sha.txt`.
+Use [`docs/CODEMAGIC_SETUP.md`](../docs/CODEMAGIC_SETUP.md) for the full setup. Start `android-chart-pro-debug` on `feature/android-five-layer-control` for both the regular and parallel-install APKs. Its push trigger also accepts that branch when the repository webhook is connected. It uses JDK 17, checksum-verified Gradle 8.9, SDK 35 and Build Tools 34.0.0, runs Hummingbot gateway/artifact checks and both Android unit-test suites, then assembles both variants. The artifact gate checks actual package IDs, launcher activity, labels, versions and APK signatures. Artifacts include the APKs, JUnit XML/HTML, `android-source-sha.txt` and `android-apks.json` with source SHA, APK hashes and certificate fingerprints.
+
+### Install alongside the existing app
+
+Download **`BTC-5-Tang-Paper-<source SHA>.apk`** from the successful Codemagic build. It installs as **BTC 5 Tầng Paper**, with an amber icon and package `com.kenznguyen.btclivealerts.paper`; it opens the five-layer tab. The regular APK retains package `com.kenznguyen.btclivealerts`, so installing Paper does not replace it. Preferences, app storage, permissions and notifications are separate on Android. Both apps still access the **same server paper ledger** when configured with the same common API; use a separate test server/database for a separate server ledger.
+
+The parallel variant is a debug-signed testing APK, built alongside the regular debug APK. Updating an installed Paper APK requires the same signing certificate; a fresh CI debug keystore may require reinstalling only the Paper app. Compare `android-apks.json` fingerprints before an update. This does not change the existing release signing identity.
 
 For a signed APK, manually start `android-chart-pro-release` after configuring the `android_release` secret group with the **existing** keystore and `btc-chart-release` alias. The workflow runs tests, assembles release, verifies the APK certificate against the supplied keystore and cleans up the temporary key. It does not publish to Play Store. Certificate and install-over-existing-app verification remain required before claiming release compatibility.
 
 Local build, when JDK 17, Gradle 8.9 and SDK 35 are installed:
 
 ```bash
-gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
+gradle :app:testDebugUnitTest :app:testParallelUnitTest :app:assembleDebug :app:assembleParallel --no-daemon
 ```
 
-The repository has no Gradle wrapper. Package: `com.kenznguyen.btclivealerts`. No application ID or signing configuration change is part of the runner migration. A YAML change alone does not prove the APK has built or run on a device.
+The repository has no Gradle wrapper. The regular application ID and release signing configuration are unchanged. A YAML change alone does not prove the APK has built or run on a device.
 
 ## Live chart and in-app backtest
 
 ### Hệ thống 5 tầng · BTCUSDT PAPER
 
-The **Hệ thống 5 tầng** tab connects to the common API described in [`pipeline/CONTRACTS.md`](../pipeline/CONTRACTS.md). Enter the server's HTTPS base URL and its `MARKET_DATA_TOKEN` as the read token. This panel always represents BTCUSDT, independently of the symbol selected for charts or the scanner. It shows layer status, observed futures flow, the AI decision and server paper ledger; unavailable data remains unavailable rather than becoming zero.
+The **Hệ thống 5 tầng** tab connects to the common API described in [`pipeline/CONTRACTS.md`](../pipeline/CONTRACTS.md). Enter the server's HTTPS base URL and its `MARKET_DATA_TOKEN` as the read token. This panel always represents BTCUSDT, independently of the symbol selected for charts or the scanner. It shows layer status, observed futures flow, Hummingbot Order Book, the AI decision and server paper ledger; unavailable data remains unavailable rather than becoming zero.
 
 To evaluate a paper intent, pause/resume the paper ledger or cancel a pending paper order, enter the separate `CONTROL_TOKEN`. Read-only use does not need that control token. The app saves only the base URL; both tokens stay in screen memory and must be entered again after leaving the panel or restarting the app. No exchange credentials belong in either field. Requests use the configured common API; a paper action never places an exchange order.
 

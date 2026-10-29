@@ -76,6 +76,7 @@ internal fun FiveLayerPanel(context: Context) {
     var intelligence by remember(connection, refresh) { mutableStateOf(FiveLayerReading<IntelligenceView>()) }
     var decision by remember(connection, refresh) { mutableStateOf(FiveLayerReading<DecisionView>()) }
     var paper by remember(connection, refresh) { mutableStateOf(FiveLayerReading<PaperView>()) }
+    var book by remember(connection, refresh) { mutableStateOf(FiveLayerReading<HummingbotSnapshot>()) }
     var writing by remember { mutableStateOf(false) }
     var mutationJob by remember { mutableStateOf<Job?>(null) }
     var actionMessage by remember { mutableStateOf("") }
@@ -97,6 +98,7 @@ internal fun FiveLayerPanel(context: Context) {
     LaunchedEffect(connection, refresh) {
         system = FiveLayerReading(); intelligence = FiveLayerReading()
         decision = FiveLayerReading(); paper = FiveLayerReading()
+        book = FiveLayerReading()
         val config = connection ?: return@LaunchedEffect
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             try {
@@ -106,14 +108,17 @@ internal fun FiveLayerPanel(context: Context) {
                         val nextIntel = async { readFiveLayer { FiveLayerClient.getIntelligence(config.url, config.readToken) } }
                         val nextDecision = async { readFiveLayer { FiveLayerClient.getDecision(config.url, config.readToken) } }
                         val nextPaper = async { readFiveLayer { FiveLayerClient.getPaper(config.url, config.readToken) } }
+                        val nextBook = async { readFiveLayer { HummingbotClient.fetch(config.url, config.readToken, "BTCUSDT") } }
                         system = nextSystem.await(); intelligence = nextIntel.await()
                         decision = nextDecision.await(); paper = nextPaper.await()
+                        book = nextBook.await()
                     }
                     delay(5_000L)
                 }
             } finally {
                 system = FiveLayerReading(); intelligence = FiveLayerReading()
                 decision = FiveLayerReading(); paper = FiveLayerReading()
+                book = FiveLayerReading()
             }
         }
     }
@@ -152,6 +157,8 @@ internal fun FiveLayerPanel(context: Context) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         FiveLayerCard("KẾT NỐI · BTCUSDT PAPER") {
             Text("Binance USDⓈ-M · Sổ mô phỏng trên máy chủ", color = fiveMuted)
+            if (BuildConfig.PARALLEL_INSTALL) Text("Cùng địa chỉ API sẽ dùng chung sổ paper. Dùng máy chủ thử nghiệm riêng nếu cần sổ tách biệt.",
+                color = fiveAmber, style = MaterialTheme.typography.bodySmall)
             OutlinedTextField(url, { if (it.length <= 2048) url = it }, Modifier.fillMaxWidth(),
                 enabled = connection == null, singleLine = true, label = { Text("API chung (HTTPS)") })
             OutlinedTextField(readToken, { if (it.length <= 4096) readToken = it }, Modifier.fillMaxWidth(),
@@ -225,6 +232,26 @@ internal fun FiveLayerPanel(context: Context) {
                 Text("Thanh lý quan sát không đại diện toàn bộ thị trường. Dấu — là dữ liệu chưa có.",
                     color = fiveMuted, style = MaterialTheme.typography.bodySmall)
             }
+        }
+
+        FiveLayerCard("ORDER BOOK HUMMINGBOT · BTCUSDT") {
+            val snapshot = book.fresh(clock)?.takeIf { clock - it.observedAtMs in -5_000L..30_000L }
+            if (snapshot == null) {
+                Text("Chưa có snapshot Order Book hợp lệ hoặc dữ liệu đã cũ.", color = fiveMuted)
+            } else {
+                val metrics = snapshot.metrics
+                fun number(value: Double) = "%,.4f".format(Locale.US, value)
+                Text("Bid ${number(metrics.bestBid)} · Ask ${number(metrics.bestAsk)} USDT", color = Color.White)
+                Text("Spread: ${number(metrics.spreadBps)} bps", color = fiveMuted)
+                Text("Độ sâu tối đa 20 mức · Mua ${number(metrics.bidDepth)} / Bán ${number(metrics.askDepth)} BTC", color = Color.White)
+                Text("Chênh lệch thanh khoản: ${"%.1f%%".format(Locale.US, metrics.imbalance * 100)}",
+                    color = if (metrics.imbalance >= 0) fiveGreen else fiveAmber)
+                Text("Có trọng số theo khoảng cách giá: ${"%.1f%%".format(Locale.US, metrics.weightedImbalance * 100)}", color = fiveMuted)
+                Text("Lấy snapshot lúc ${fiveTime(snapshot.observedAtMs)}", color = fiveMuted,
+                    style = MaterialTheme.typography.bodySmall)
+            }
+            Text("Thời điểm lấy snapshot không xác nhận lần cập nhật cuối của sàn hoặc đồng bộ chuỗi Order Book.",
+                color = fiveMuted, style = MaterialTheme.typography.bodySmall)
         }
 
         FiveLayerCard("QUYẾT ĐỊNH FREQAI") {

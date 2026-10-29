@@ -43,8 +43,14 @@ class CiPolicyTest(unittest.TestCase):
         commands = "\n".join(item["script"] for item in workflow["scripts"])
         self.assertIn(":app:testDebugUnitTest", commands)
         self.assertIn(":app:assembleDebug", commands)
+        self.assertIn(":app:testParallelUnitTest", commands)
+        self.assertIn(":app:assembleParallel", commands)
+        self.assertIn("ci.test_android_apks", commands)
+        self.assertIn("ci/verify-android-apks.py", commands)
         self.assertIn("ci/setup-android.sh", commands)
         self.assertIn("android-source-sha.txt", workflow["artifacts"])
+        self.assertIn("android-apks.json", workflow["artifacts"])
+        self.assertIn("artifacts/BTC-5-Tang-Paper-*.apk", workflow["artifacts"])
 
     def test_shell_scripts_parse_and_no_unsupported_python_version_key(self):
         for path in (ROOT / "ci").glob("*.sh"):

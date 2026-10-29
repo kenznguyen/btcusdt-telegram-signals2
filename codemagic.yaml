@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://codemagic.io/codemagic-schema.json
 workflows:
   android-chart-pro-debug:
-    name: BTC Chart Pro - tests and debug APK
+    name: BTC Chart Pro - tests, regular and parallel APKs
     instance_type: mac_mini_m2
     max_build_duration: 30
     environment:
@@ -45,24 +45,31 @@ workflows:
         script: |
           set -euo pipefail
           python3 -m unittest integrations.test_hummingbot_bridge -v
+          python3 -m unittest ci.test_android_apks -v
       - name: Prepare Android build tools and record source
         script: bash ci/setup-android.sh
       - name: Run Android unit tests
         working_directory: android-app
         script: |
           set -euo pipefail
-          "$CHART_GRADLE_BIN" :app:testDebugUnitTest --no-daemon --stacktrace
-        test_report: android-app/app/build/test-results/testDebugUnitTest/*.xml
-      - name: Build debug APK
+          "$CHART_GRADLE_BIN" :app:testDebugUnitTest :app:testParallelUnitTest --no-daemon --stacktrace
+        test_report: android-app/app/build/test-results/test*UnitTest/*.xml
+      - name: Build regular and parallel APKs
         working_directory: android-app
         script: |
           set -euo pipefail
-          "$CHART_GRADLE_BIN" :app:assembleDebug --no-daemon --stacktrace
+          "$CHART_GRADLE_BIN" :app:assembleDebug :app:assembleParallel --no-daemon --stacktrace
+      - name: Verify application identities and publish parallel APK
+        script: python3 ci/verify-android-apks.py
     artifacts:
       - android-app/app/build/outputs/apk/debug/*.apk
+      - artifacts/BTC-5-Tang-Paper-*.apk
       - android-app/app/build/test-results/testDebugUnitTest/*.xml
       - android-app/app/build/reports/tests/testDebugUnitTest/**
+      - android-app/app/build/test-results/testParallelUnitTest/*.xml
+      - android-app/app/build/reports/tests/testParallelUnitTest/**
       - android-source-sha.txt
+      - android-apks.json
 
   android-chart-pro-release:
     name: BTC Chart Pro - verified signed release APK
