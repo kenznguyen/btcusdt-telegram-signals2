@@ -1,6 +1,6 @@
 # BTCUSDT Chart Pro (Android)
 
-Standalone Android chart and signal monitor using public Binance USDⓈ-M Futures data. Charts and the scanner support multiple USDT perpetual symbols; the persisted position simulation and in-app backtest remain BTCUSDT-specific and are labeled accordingly. The app never places orders or requests trading API keys.
+Standalone Android chart and signal monitor using public Binance USDⓈ-M Futures data. Charts and the scanner support multiple USDT perpetual symbols; the persisted position simulation, in-app backtest and five-layer paper system remain BTCUSDT-specific and are labeled accordingly. The app never places exchange orders or requests exchange trading API keys.
 
 ## Strategy rules ported from bot.py/backtest.py
 
@@ -20,7 +20,7 @@ Standalone Android chart and signal monitor using public Binance USDⓈ-M Future
 
 GitHub stores source and PRs; Codemagic runs all build/test jobs. Active configuration is [`codemagic.yaml`](../codemagic.yaml); historical GitHub Actions YAML is archived outside `.github/workflows`.
 
-Use [`docs/CODEMAGIC_SETUP.md`](../docs/CODEMAGIC_SETUP.md) for the full setup. Start `android-chart-pro-debug` on `feature/canonical-market-data` for the current integrated source. It uses JDK 17, checksum-verified Gradle 8.9, SDK 35 and Build Tools 34.0.0, runs Hummingbot gateway tests and Android unit tests, then assembles the debug APK. Artifacts include the APK, JUnit XML/HTML and actual source SHA.
+Use [`docs/CODEMAGIC_SETUP.md`](../docs/CODEMAGIC_SETUP.md) for the full setup. Start `android-chart-pro-debug` on `feature/android-five-layer-control` for the APK with the five-layer panel. Its push trigger also accepts that branch when the repository webhook is connected. It uses JDK 17, checksum-verified Gradle 8.9, SDK 35 and Build Tools 34.0.0, runs Hummingbot gateway tests and Android unit tests, then assembles the debug APK. Artifacts include the APK, JUnit XML/HTML and actual source SHA in `android-source-sha.txt`.
 
 For a signed APK, manually start `android-chart-pro-release` after configuring the `android_release` secret group with the **existing** keystore and `btc-chart-release` alias. The workflow runs tests, assembles release, verifies the APK certificate against the supplied keystore and cleans up the temporary key. It does not publish to Play Store. Certificate and install-over-existing-app verification remain required before claiming release compatibility.
 
@@ -33,6 +33,14 @@ gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
 The repository has no Gradle wrapper. Package: `com.kenznguyen.btclivealerts`. No application ID or signing configuration change is part of the runner migration. A YAML change alone does not prove the APK has built or run on a device.
 
 ## Live chart and in-app backtest
+
+### Hệ thống 5 tầng · BTCUSDT PAPER
+
+The **Hệ thống 5 tầng** tab connects to the common API described in [`pipeline/CONTRACTS.md`](../pipeline/CONTRACTS.md). Enter the server's HTTPS base URL and its `MARKET_DATA_TOKEN` as the read token. This panel always represents BTCUSDT, independently of the symbol selected for charts or the scanner. It shows layer status, observed futures flow, the AI decision and server paper ledger; unavailable data remains unavailable rather than becoming zero.
+
+To evaluate a paper intent, pause/resume the paper ledger or cancel a pending paper order, enter the separate `CONTROL_TOKEN`. Read-only use does not need that control token. The app saves only the base URL; both tokens stay in screen memory and must be entered again after leaving the panel or restarting the app. No exchange credentials belong in either field. Requests use the configured common API; a paper action never places an exchange order.
+
+Deploy and configure the API separately using the [five-layer runbook](../docs/FIVE_LAYER_PAPER_RUNBOOK.md). Codemagic builds the APK and runs finite checks; it does not host the API, Hummingbot or model training. Source/configuration alone does not confirm a successful APK build, device run or connection to those services.
 
 ### Hummingbot Order Book
 

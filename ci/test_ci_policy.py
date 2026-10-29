@@ -34,6 +34,12 @@ class CiPolicyTest(unittest.TestCase):
 
     def test_android_debug_keeps_unit_tests_and_apk_gate(self):
         workflow = self.workflows["android-chart-pro-debug"]
+        self.assertIn("push", workflow["triggering"]["events"])
+        self.assertIn(
+            {"pattern": "feature/android-five-layer-control", "include": True, "source": True},
+            workflow["triggering"]["branch_patterns"],
+        )
+        self.assertIn("android-app/", workflow["when"]["changeset"]["includes"])
         commands = "\n".join(item["script"] for item in workflow["scripts"])
         self.assertIn(":app:testDebugUnitTest", commands)
         self.assertIn(":app:assembleDebug", commands)
