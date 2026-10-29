@@ -12,6 +12,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONObject
 import java.io.IOException
+import java.io.InterruptedIOException
 import java.math.BigDecimal
 import java.util.concurrent.TimeUnit
 
@@ -40,6 +41,39 @@ internal data class PaperView(val paused: Boolean, val positionBase: String, val
     val realizedPnlQuote: String, val feesQuote: String, val netRealizedPnlQuote: String,
     val orders: List<PaperOrderView>)
 internal data class PaperEvaluationView(val decision: DecisionView, val order: PaperOrderView?)
+internal data class CanonicalCandle(val openTimeMs: Long, val closeTimeMs: Long,
+    val open: String, val high: String, val low: String, val close: String, val volume: String,
+    val availableAtMs: Long)
+internal data class CandleGap(val startMs: Long, val endMs: Long)
+internal data class CandleWindowView(val startMs: Long, val endMs: Long, val generatedAtMs: Long?,
+    val datasetVersion: String, val expected: Int, val returned: Int, val complete: Boolean,
+    val gaps: List<CandleGap>, val candles: List<CanonicalCandle>)
+
+internal enum class FiveLayerFailure(val messageVi: String) {
+    AUTH("Mã truy cập không hợp lệ hoặc không đủ quyền"),
+    ENDPOINT("Máy chủ chưa cung cấp API này; kiểm tra địa chỉ và phiên bản máy chủ"),
+    RATE_LIMIT("Đã vượt giới hạn yêu cầu; chờ rồi làm mới"),
+    UNAVAILABLE("Dữ liệu hoặc cấu hình máy chủ chưa sẵn sàng"),
+    HTTP("Máy chủ từ chối yêu cầu"),
+    NETWORK("Không kết nối được máy chủ; kiểm tra mạng và địa chỉ HTTPS"),
+    TIMEOUT("Máy chủ phản hồi quá chậm; thử làm mới dữ liệu"),
+    INVALID_RESPONSE("Dữ liệu máy chủ không hợp lệ hoặc không đúng hợp đồng API")
+}
+
+/** Contains only fixed messages and status codes, never a response body, URL or token. */
+internal class FiveLayerApiException(val code: FiveLayerFailure, val httpStatus: Int? = null) :
+    IOException(code.messageVi)
+
+internal fun fiveLayerHttpFailure(status: Int): FiveLayerApiException = FiveLayerApiException(when (status) {
+    401, 403 -> FiveLayerFailure.AUTH
+    404 -> FiveLayerFailure.ENDPOINT
+    429 -> FiveLayerFailure.RATE_LIMIT
+    503 -> FiveLayerFailure.UNAVAILABLE
+    else -> FiveLayerFailure.HTTP
+}, status)
+
+internal fun fiveLayerNetworkFailure(error: IOException): FiveLayerApiException = FiveLayerApiException(
+    if (error is InterruptedIOException) FiveLayerFailure.TIMEOUT else FiveLayerFailure.NETWORK)
 
 /** Values stay decimal strings: displaying money must not lose precision through Double. */
 internal object FiveLayerJson {
@@ -194,14 +228,77 @@ internal object FiveLayerJson {
         return PaperEvaluationView(decision(json.getJSONObject("decision"), nowMs),
             if (json.isNull("order")) null else order(json.getJSONObject("order"), nowMs))
     }
+
+    fun candles(json: JSONObject, startMs: Long, endMs: Long, nowMs: Long): CandleWindowView {
+        val step = 900_000L
+        require(startMs >= 0 && endMs - startMs == 20 * step && startMs % step == 0L && endMs <= nowMs)
+        market(json)
+        require(text(json, "timeframe") == "15m" && integer(json, "startMs") == startMs && integer(json, "endMs") == endMs)
+        require(json.has("asOfMs") && json.isNull("asOfMs"))
+        val generated = if (json.has("generatedAtMs"))
+            stamp(json, "generatedAtMs", nowMs).also { require(it <= nowMs && it >= endMs) } else null
+        val version = text(json, "datasetVersion", 71)
+        require(Regex("sha256:[a-f0-9]{64}").matches(version))
+        val rows = json.getJSONArray("candles")
+        require(rows.length() <= 20)
+        val candles = (0 until rows.length()).map { index ->
+            val row = rows.getJSONObject(index)
+            market(row)
+            require(text(row, "timeframe") == "15m" && bool(row, "isClosed"))
+            require(text(row, "source") == "ccxt.binanceusdm" && text(row, "quality") == "VALIDATED" &&
+                text(row, "availabilityKind") == "FIRST_OBSERVED")
+            val opening = integer(row, "openTimeMs")
+            val closing = integer(row, "closeTimeMs")
+            val available = stamp(row, "availableAtMs", nowMs)
+            require(opening >= startMs && opening < endMs && opening % step == 0L && closing == opening + step)
+            require(closing <= nowMs && available >= closing && available <= (generated ?: nowMs))
+            fun amount(key: String): String = decimal(row, key).also {
+                val value = BigDecimal(it)
+                require(it.length <= 128 && value.precision() <= 40 && value.scale() in -30..30 &&
+                    value.precision() - value.scale() <= 31 && (key == "volume" || value.signum() > 0))
+            }
+            val open = amount("open"); val high = amount("high"); val low = amount("low"); val close = amount("close")
+            require(BigDecimal(low) <= BigDecimal(high) && BigDecimal(open) >= BigDecimal(low) &&
+                BigDecimal(open) <= BigDecimal(high) && BigDecimal(close) >= BigDecimal(low) && BigDecimal(close) <= BigDecimal(high))
+            CanonicalCandle(opening, closing, open, high, low, close, amount("volume"), available)
+        }
+        require(candles.zipWithNext().all { (left, right) -> left.openTimeMs < right.openTimeMs })
+        val gaps = mutableListOf<CandleGap>()
+        var cursor = startMs
+        candles.forEach { candle ->
+            if (cursor < candle.openTimeMs) gaps += CandleGap(cursor, candle.openTimeMs)
+            cursor = candle.closeTimeMs
+        }
+        if (cursor < endMs) gaps += CandleGap(cursor, endMs)
+        val coverage = json.getJSONObject("coverage")
+        require(integer(coverage, "expected") == 20L && integer(coverage, "returned") == candles.size.toLong())
+        require(bool(coverage, "complete") == gaps.isEmpty())
+        val reportedGaps = coverage.getJSONArray("gaps")
+        require(reportedGaps.length() == gaps.size)
+        gaps.forEachIndexed { index, gap ->
+            val reported = reportedGaps.getJSONObject(index)
+            require(integer(reported, "startMs") == gap.startMs && integer(reported, "endMs") == gap.endMs)
+        }
+        return CandleWindowView(startMs, endMs, generated, version, 20, candles.size, gaps.isEmpty(), gaps, candles)
+    }
 }
 
 internal fun fiveLayerEndpoint(baseUrl: String, path: String): HttpUrl {
-    require(path in setOf("system", "intelligence", "decision", "paper", "paper/evaluate", "paper/pause", "paper/cancel"))
+    require(path in setOf("system", "intelligence", "decision", "paper", "paper/evaluate", "paper/pause", "paper/cancel", "candles", "order-book"))
     val base = baseUrl.trim().toHttpUrl()
     require(base.isHttps && base.username.isEmpty() && base.password.isEmpty() &&
         base.query == null && base.fragment == null) { "Cần URL HTTPS không chứa mã truy cập" }
     return base.newBuilder().addPathSegments("v1/$path").build()
+}
+
+/** Last twenty already closed M15 slots; no moving asOfMs enters the dataset identity. */
+internal fun fiveLayerCandleEndpoint(baseUrl: String, nowMs: Long): HttpUrl {
+    require(nowMs >= 20 * 900_000L)
+    val end = nowMs / 900_000L * 900_000L
+    return fiveLayerEndpoint(baseUrl, "candles").newBuilder()
+        .addQueryParameter("symbol", "BTCUSDT").addQueryParameter("timeframe", "15m")
+        .addQueryParameter("startMs", (end - 20 * 900_000L).toString())
+        .addQueryParameter("endMs", end.toString()).build()
 }
 
 internal object FiveLayerClient {
@@ -210,7 +307,7 @@ internal object FiveLayerClient {
         .retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false).build()
     private fun <T> decode(json: JSONObject, parser: (JSONObject, Long) -> T): T =
         try { parser(json, System.currentTimeMillis()) }
-        catch (_: Exception) { throw IOException("Dữ liệu máy chủ không hợp lệ") }
+        catch (_: Exception) { throw FiveLayerApiException(FiveLayerFailure.INVALID_RESPONSE) }
     suspend fun getSystem(baseUrl: String, token: String): SystemView =
         decode(request(baseUrl, token, "system")) { json, _ -> FiveLayerJson.system(json) }
     suspend fun getIntelligence(baseUrl: String, token: String): IntelligenceView =
@@ -219,6 +316,18 @@ internal object FiveLayerClient {
         decode(request(baseUrl, token, "decision"), FiveLayerJson::decision)
     suspend fun getPaper(baseUrl: String, token: String): PaperView =
         decode(request(baseUrl, token, "paper"), FiveLayerJson::ledger)
+    suspend fun getCandles(baseUrl: String, token: String, nowMs: Long = System.currentTimeMillis()): CandleWindowView {
+        val endpoint = fiveLayerCandleEndpoint(baseUrl, nowMs)
+        val end = nowMs / 900_000L * 900_000L
+        return decode(request(baseUrl, token, "candles", endpoint = endpoint)) { json, receivedAt ->
+            FiveLayerJson.candles(json, end - 20 * 900_000L, end, receivedAt)
+        }
+    }
+    suspend fun getOrderBook(baseUrl: String, token: String): HummingbotSnapshot =
+        decode(request(baseUrl, token, "order-book", endpoint = fiveLayerEndpoint(baseUrl, "order-book")
+            .newBuilder().addQueryParameter("symbol", "BTCUSDT").build())) { json, now ->
+            HummingbotSnapshot.parse(json, "BTCUSDT", now)
+        }
     suspend fun evaluate(baseUrl: String, token: String): PaperEvaluationView =
         decode(request(baseUrl, token, "paper/evaluate", JSONObject()), FiveLayerJson::evaluation)
     suspend fun setPaused(baseUrl: String, token: String, paused: Boolean): PaperView =
@@ -228,9 +337,10 @@ internal object FiveLayerClient {
         return decode(request(baseUrl, token, "paper/cancel", JSONObject().put("orderId", orderId)), FiveLayerJson::order)
     }
 
-    private suspend fun request(baseUrl: String, token: String, path: String, payload: JSONObject? = null): JSONObject {
+    private suspend fun request(baseUrl: String, token: String, path: String, payload: JSONObject? = null,
+        endpoint: HttpUrl = fiveLayerEndpoint(baseUrl, path)): JSONObject {
         require(token.length in 1..4096 && token.all { it.code in 33..126 }) { "Cần mã truy cập hợp lệ" }
-        val builder = Request.Builder().url(fiveLayerEndpoint(baseUrl, path))
+        val builder = Request.Builder().url(endpoint)
             .header("Authorization", "Bearer $token").header("Accept", "application/json")
         if (payload != null) builder.post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
         val request = builder.build()
@@ -239,21 +349,22 @@ internal object FiveLayerClient {
             continuation.invokeOnCancellation { call.cancel() }
             call.enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    if (continuation.isActive) continuation.resumeWith(Result.failure(IOException("Không kết nối được máy chủ")))
+                    if (continuation.isActive) continuation.resumeWith(Result.failure(fiveLayerNetworkFailure(e)))
                 }
                 override fun onResponse(call: Call, response: Response) {
                     val result = runCatching {
                         response.use {
-                            check(it.isSuccessful) { when (it.code) {
-                                401 -> "Mã truy cập không hợp lệ"
-                                429 -> "Đã vượt giới hạn điều khiển; chờ rồi làm mới"
-                                503 -> "Dữ liệu hoặc cấu hình máy chủ chưa sẵn sàng"
-                                else -> "Yêu cầu thất bại (HTTP ${it.code})"
-                            } }
-                            val source = checkNotNull(it.body).source()
-                            check(!source.request(1_048_577L)) { "Phản hồi vượt giới hạn" }
+                            if (!it.isSuccessful) throw fiveLayerHttpFailure(it.code)
+                            val source = (it.body ?: throw FiveLayerApiException(FiveLayerFailure.INVALID_RESPONSE)).source()
+                            if (source.request(1_048_577L)) throw FiveLayerApiException(FiveLayerFailure.INVALID_RESPONSE)
                             try { JSONObject(source.readUtf8()) }
-                            catch (_: Exception) { throw IOException("Phản hồi JSON không hợp lệ") }
+                            catch (_: Exception) { throw FiveLayerApiException(FiveLayerFailure.INVALID_RESPONSE) }
+                        }
+                    }.recoverCatching { error ->
+                        throw when (error) {
+                            is FiveLayerApiException -> error
+                            is IOException -> fiveLayerNetworkFailure(error)
+                            else -> FiveLayerApiException(FiveLayerFailure.INVALID_RESPONSE)
                         }
                     }
                     if (continuation.isActive) continuation.resumeWith(result)
