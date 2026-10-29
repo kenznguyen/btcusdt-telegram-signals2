@@ -89,3 +89,10 @@ Scanner không có lịch tự động. Không dùng CI cache làm state có th�
 - [Image Xcode 26.3](https://github.com/codemagic-ci-cd/codemagic-docs/blob/master/content/specs-macos/xcode-26-3.md).
 - [Codemagic REST builds](https://github.com/codemagic-ci-cd/codemagic-docs/blob/master/content/rest-api/builds.md).
 - [Hợp đồng history cũ](https://github.com/codemagic-ci-cd/codemagic-docs/blob/3102fb2/content/rest-api/builds.md); chưa chứng nhận tương thích live.
+## Kiểm thử kho dữ liệu PostgreSQL
+
+Nhánh `feature/data-lake-api` có workflow `data-lake-postgres`: cài dependency
+FastAPI/psycopg/pyarrow, khởi động PostgreSQL 17 tạm thời, chạy kiểm thử DB/API/export
+thật và dọn server khi kết thúc. `DATA_LAKE_REQUIRE_POSTGRES=1` buộc lỗi nếu thiếu
+DB/driver, không coi kiểm thử bị bỏ qua là đạt. Xem
+[runbook data lake](../data_lake/README.md) để chạy dịch vụ thường trực ngoài CI.

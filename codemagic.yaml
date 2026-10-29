@@ -107,6 +107,9 @@ workflows:
     triggering:
       events: [push]
       branch_patterns:
+        - pattern: feature/data-lake-api
+          include: true
+          source: true
         - pattern: feature/five-layer-paper
           include: true
           source: true
@@ -138,6 +141,9 @@ workflows:
           - requirements-freqai.txt
           - requirements-web.txt
           - requirements-ci.txt
+          - data_lake/
+          - requirements-data-lake.txt
+          - requirements-data-lake-export.txt
           - codemagic.yaml
     scripts:
       - name: Prepare Python and record source
@@ -167,6 +173,46 @@ workflows:
       - gateway-tests.log
       - ci-policy-tests.log
       - paper-system-tests.log
+
+  data-lake-postgres:
+    name: Data lake - PostgreSQL, FastAPI and research exports
+    instance_type: mac_mini_m2
+    max_build_duration: 25
+    cache:
+      cache_paths:
+        - $HOME/.cache/pip
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: feature/data-lake-api
+          include: true
+          source: true
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true
+    when:
+      changeset:
+        includes:
+          - market_data/
+          - data_lake/
+          - futures_intelligence/
+          - pipeline/
+          - freqai_bridge/
+          - ci/
+          - requirements-data-lake.txt
+          - requirements-data-lake-export.txt
+          - requirements-ci.txt
+          - codemagic.yaml
+    scripts:
+      - name: Prepare Python and record source
+        script: bash ci/setup-python.sh requirements-market-data.txt requirements-data-lake.txt requirements-data-lake-export.txt requirements-ci.txt
+      - name: Run required PostgreSQL and export checks
+        script: bash ci/test-data-lake.sh
+    artifacts:
+      - ci-source-sha.txt
+      - postgres-tests.log
+      - data-lake-tests.log
 
   telegram-command:
     name: Telegram command
