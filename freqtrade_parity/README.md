@@ -25,3 +25,10 @@ Codemagic: `freqtrade-strategy-parity` (offline Python) and `android-chart-pro-d
 
 ## Remaining blockers (not completed)
 A full native Freqtrade position lifecycle, DCA and stop callback adapter, signed shared OHLCV dataset, genuine paired Kotlin/Freqtrade trace exports and 180/360-day Freqtrade backtests are **not yet implemented/verified**. Do not claim parity or profitability. The source branch remains draft and has no live trading.
+
+## Position/fill simulation increment
+`position.py` is an **offline adapter**, not Freqtrade native callbacks. It mirrors Kotlin entry sizing (50% balance and 13x leverage), DCA only once via immutable `dca_used`, exit precedence (Emergency > Soft > TP), candle-close soft/TP fill estimates, and emergency threshold/open-gap estimate. `reconcile_fills` pairs trace entries with strict ID/kind/candleTime keys and returns `expected_fill_price`, `actual_fill_price`, and `fill_difference` without inventing missing fills.
+
+Timing fields are simulation semantics: emergency threshold recognition is intrabar from OHLC; without 1m/5m detail the actual crossing sequence and true fill time are unknown. Soft/TP confirm only at M15 close. A production Freqtrade callback port must use stateful trade custom data and verify no duplicate DCA on callback repeats, including process restarts. This increment has not done so.
+
+**Important:** These offline unit tests are not actual independent Kotlin/Freqtrade execution traces, do not verify parity, and do not establish realistic fills, funding, liquidation or 180/360-day performance.
