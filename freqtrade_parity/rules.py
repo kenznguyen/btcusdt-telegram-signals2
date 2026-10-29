@@ -82,16 +82,22 @@ class StrategyRules:
 
 
 def compare_event_traces(kotlin_trace, python_trace, dataset_sha256):
-    """No green result for absent traces, absent dataset hash or mismatched events."""
-    if not isinstance(dataset_sha256, str) or not __import__("re").fullmatch(r"sha256:[0-9a-f]{64}", dataset_sha256):
-        return {"parity_verified": False, "reason": "MISSING_DATASET_CHECKSUM"}
-    if not isinstance(kotlin_trace, list) or not isinstance(python_trace, list):
-        return {"parity_verified": False, "reason": "MISSING_TRACE"}
-    if not kotlin_trace or not python_trace:
-        return {"parity_verified": False, "reason": "EMPTY_TRACE"}
-    for trace in (kotlin_trace, python_trace):
-        if not all(isinstance(row, dict) and "kind" in row and "candleTime" in row for row in trace):
-            return {"parity_verified": False, "reason": "INVALID_TRACE"}
-    if kotlin_trace != python_trace:
-        return {"parity_verified": False, "reason": "EVENT_MISMATCH"}
-    return {"parity_verified": True, "reason": "EVENT_TRACE_MATCH"}
+    """Fail closed unless independent named traces reference the same canonical OHLCV hash."""
+    import re
+    if not isinstance(dataset_sha256, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}",dataset_sha256):
+        return {"parity_verified":False,"reason":"INVALID_DATASET_CHECKSUM"}
+    if not isinstance(kotlin_trace,dict) or not isinstance(python_trace,dict):
+        return {"parity_verified":False,"reason":"MISSING_TRACE_PROVENANCE"}
+    if kotlin_trace.get("engine")!="kotlin" or python_trace.get("engine")!="freqtrade":
+        return {"parity_verified":False,"reason":"WRONG_ENGINE"}
+    if kotlin_trace.get("dataset_sha256")!=dataset_sha256 or python_trace.get("dataset_sha256")!=dataset_sha256:
+        return {"parity_verified":False,"reason":"DATASET_MISMATCH"}
+    a,b=kotlin_trace.get("events"),python_trace.get("events")
+    if not isinstance(a,list) or not isinstance(b,list) or not a or not b:
+        return {"parity_verified":False,"reason":"EMPTY_TRACE"}
+    for rows in (a,b):
+        if not all(isinstance(row,dict) and type(row.get("candleTime")) is int and row.get("candleTime")>=0 and
+                   row.get("kind") in {"LONG ENTRY","SHORT ENTRY","DCA","TAKE PROFIT","SOFT SL","EMERGENCY SL"}
+                   for row in rows):
+            return {"parity_verified":False,"reason":"INVALID_EVENT"}
+    return {"parity_verified":a==b,"reason":"EVENT_TRACE_MATCH" if a==b else "EVENT_MISMATCH"}
