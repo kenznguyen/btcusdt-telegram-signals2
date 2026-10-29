@@ -1,4 +1,6 @@
 import os
+import json
+import math
 import sys
 import traceback
 
@@ -72,6 +74,27 @@ def position_lines(state, price):
             f"Thời gian đóng: {last_closed.get('exit_time', 'N/A')}",
         ])
     return lines
+
+
+def restored_state():
+    """Do not let bot.load_state's convenience fallback invent a flat position."""
+    try:
+        with open(bot.STATE_FILE, "rb") as source:
+            data = source.read(1_048_577)
+        if len(data) > 1_048_576:
+            raise ValueError("Oversized state")
+        state = json.loads(data)
+        required = {"side", "qty", "avg_entry", "account_balance"}
+        if not isinstance(state, dict) or not required <= state.keys() or state["side"] not in (None, "LONG", "SHORT"):
+            raise ValueError("Invalid state")
+        for key in ("qty", "avg_entry", "account_balance"):
+            if isinstance(state[key], bool) or not isinstance(state[key], (int, float)) or not math.isfinite(state[key]) or state[key] < 0:
+                raise ValueError("Invalid state amount")
+        if state["side"] in {"LONG", "SHORT"} and (state["qty"] <= 0 or state["avg_entry"] <= 0):
+            raise ValueError("Incomplete position")
+    except (OSError, ValueError, TypeError, OverflowError) as exc:
+        raise RuntimeError("Chưa có trạng thái scanner hợp lệ được khôi phục; không thể xác nhận vị thế mô phỏng.") from exc
+    return state
 
 
 def build_status(m15, h1, latest, h1row, state):
@@ -158,8 +181,8 @@ def main():
         raise ValueError("Unsupported command")
 
     try:
+        state = restored_state() if COMMAND in {"status", "position"} else None
         m15, h1, latest, previous, h1row = snapshot()
-        state = bot.load_state()
         if COMMAND == "signal":
             message = build_signal(latest, previous, h1row)
         elif COMMAND == "position":
@@ -170,13 +193,14 @@ def main():
         bot.telegram_send(message)
         print(f"Sent command response: {COMMAND}")
     except Exception as exc:
-        # Send a concise user-facing error; traceback remains in GitHub Actions logs.
+        # Send a concise user-facing error; traceback remains in Codemagic logs.
         bot.telegram_send(
             f"⚠️ Không thể hoàn tất /{COMMAND}. Lỗi: {str(exc)[:250]}\n"
-            "Hãy mở GitHub Actions để xem log chi tiết."
+            "Hãy mở Codemagic để xem log chi tiết."
         )
         traceback.print_exc()
 
 
 if __name__ == "__main__":
     main()
+

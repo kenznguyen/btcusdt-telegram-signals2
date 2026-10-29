@@ -11,10 +11,12 @@ workflows:
         - $HOME/.gradle/caches
         - $HOME/.cache/btc-chart-pro
     triggering:
-      # A source-branch push validates PR changes without a second PR-event build.
       events:
         - push
       branch_patterns:
+        - pattern: feature/canonical-market-data
+          include: true
+          source: true
         - pattern: feature/hummingbot-order-book
           include: true
           source: true
@@ -30,53 +32,15 @@ workflows:
         includes:
           - android-app/
           - integrations/
+          - ci/
           - codemagic.yaml
     scripts:
       - name: Test Hummingbot read-only bridge
         script: |
           set -euo pipefail
           python3 -m unittest integrations.test_hummingbot_bridge -v
-      - name: Record checked-out source
-        script: |
-          set -euo pipefail
-          git -C "$CM_BUILD_DIR" rev-parse HEAD | tee "$CM_BUILD_DIR/android-source-sha.txt"
-      - name: Install verified Gradle 8.9
-        script: |
-          set -euo pipefail
-          chart_tools_dir="$CM_BUILD_DIR/.ci-tools"
-          chart_cache_dir="$HOME/.cache/btc-chart-pro"
-          chart_gradle_zip="$chart_cache_dir/gradle-8.9-bin.zip"
-          mkdir -p "$chart_tools_dir" "$chart_cache_dir"
-          if [ ! -f "$chart_gradle_zip" ]; then
-            curl --fail --location --retry 3 --connect-timeout 30 \
-              https://services.gradle.org/distributions/gradle-8.9-bin.zip \
-              --output "$chart_gradle_zip.tmp"
-            mv "$chart_gradle_zip.tmp" "$chart_gradle_zip"
-          fi
-          # Official binary distribution checksum: https://gradle.org/release-checksums/
-          printf '%s  %s\n' \
-            d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab \
-            "$chart_gradle_zip" | shasum -a 256 -c -
-          unzip -qo "$chart_gradle_zip" -d "$chart_tools_dir"
-          printf 'CHART_GRADLE_BIN=%s\n' "$chart_tools_dir/gradle-8.9/bin/gradle" >> "$CM_ENV"
-          "$chart_tools_dir/gradle-8.9/bin/gradle" --version
-      - name: Prepare Android SDK 35
-        script: |
-          set -euo pipefail
-          : "${ANDROID_SDK_ROOT:?Android SDK is required on the build machine}"
-          java -version
-          # Codemagic's macOS image has the CLI tools under the SDK root, outside PATH.
-          # https://docs.codemagic.io/specs-macos/xcode-26-3/
-          chart_sdkmanager="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          if [ ! -x "$chart_sdkmanager" ]; then
-            printf 'Android SDK Manager is missing or not executable: %s\n' "$chart_sdkmanager" >&2
-            exit 1
-          fi
-          printf 'Using Android SDK Manager: %s\n' "$chart_sdkmanager"
-          # AGP 8.7.3 uses Build Tools 34.0.0 by default, including with compileSdk 35.
-          "$chart_sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" \
-            --install "platforms;android-35" "build-tools;34.0.0"
-          printf 'sdk.dir=%s\n' "$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android-app/local.properties"
+      - name: Prepare Android build tools and record source
+        script: bash ci/setup-android.sh
       - name: Run Android unit tests
         working_directory: android-app
         script: |
@@ -93,4 +57,156 @@ workflows:
       - android-app/app/build/test-results/testDebugUnitTest/*.xml
       - android-app/app/build/reports/tests/testDebugUnitTest/**
       - android-source-sha.txt
+
+  android-chart-pro-release:
+    name: BTC Chart Pro - verified signed release APK
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      java: 17
+      groups:
+        - android_release
+    cache:
+      cache_paths:
+        - $HOME/.gradle/caches
+        - $HOME/.cache/btc-chart-pro
+    # No triggering section: start this workflow manually on the intended source branch.
+    scripts:
+      - name: Prepare Android build tools and record source
+        script: bash ci/setup-android.sh
+      - name: Test, build and verify the existing release signing identity
+        script: bash ci/release-android.sh
+        test_report: android-app/app/build/test-results/testDebugUnitTest/*.xml
+    artifacts:
+      - android-app/app/build/outputs/apk/release/*.apk
+      - android-app/app/build/test-results/testDebugUnitTest/*.xml
+      - android-app/app/build/reports/tests/testDebugUnitTest/**
+      - android-source-sha.txt
+      - android-release-apk-signature.txt
+
+  canonical-market-data:
+    name: Canonical market data - Python checks
+    instance_type: mac_mini_m2
+    max_build_duration: 15
+    cache:
+      cache_paths:
+        - $HOME/.cache/pip
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: feature/canonical-market-data
+          include: true
+          source: true
+        - pattern: feature/hummingbot-order-book
+          include: true
+          source: true
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true
+    when:
+      changeset:
+        includes:
+          - market_data/
+          - integrations/
+          - ci/
+          - app.py
+          - backtest.py
+          - telegram_commands.py
+          - requirements-market-data.txt
+          - requirements-web.txt
+          - requirements-ci.txt
+          - codemagic.yaml
+    scripts:
+      - name: Prepare Python and record source
+        script: bash ci/setup-python.sh requirements-market-data.txt requirements-web.txt requirements-ci.txt
+      - name: Verify installed adapters and application
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -c 'import ccxt; import app; assert ccxt.binanceusdm().id == "binanceusdm"'
+      - name: Run data tests and gateway regressions
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m unittest market_data.test_store market_data.test_sync market_data.test_api -v 2>&1 | tee market-data-tests.log
+          "$CI_PYTHON" -m unittest discover -s integrations -p 'test_*.py' -v 2>&1 | tee gateway-tests.log
+          "$CI_PYTHON" -m unittest discover -s ci -p 'test_*.py' -v 2>&1 | tee ci-policy-tests.log
+      - name: Verify CLI and syntax
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m market_data.sync --help
+          "$CI_PYTHON" -m compileall -q market_data integrations ci app.py backtest.py telegram_commands.py
+    artifacts:
+      - ci-source-sha.txt
+      - market-data-tests.log
+      - gateway-tests.log
+      - ci-policy-tests.log
+
+  telegram-command:
+    name: Telegram command
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      groups: [codemagic_legacy]
+      vars:
+        TELEGRAM_COMMAND: help
+        BACKTEST_DAYS: "360"
+        BACKTEST_INITIAL_CAPITAL: "100"
+        ENTRY_MARGIN_PCT: "50"
+        DCA_MARGIN_RATIO: "100"
+    scripts:
+      - name: Prepare Python and record source
+        script: bash ci/setup-python.sh requirements.txt
+      - name: Execute authorized Telegram command
+        script: '"$CI_PYTHON" ci/run-legacy.py telegram'
+    artifacts:
+      - ci-source-sha.txt
+      - backtest_last_result.json
+      - backtest_status.json
+      - backtest_trades.csv
+      - backtest_equity.csv
+      - backtest_equity_m15.csv
+
+  dashboard-backtest:
+    name: Dashboard backtest
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      vars:
+        BACKTEST_DAYS: "360"
+        BACKTEST_INITIAL_CAPITAL: "100"
+        ENTRY_MARGIN_PCT: "50"
+        DCA_MARGIN_RATIO: "100"
+        BACKTEST_STATUS_FILE: dashboard_backtest_status.json
+        BACKTEST_RESULT_FILE: dashboard_backtest_last_result.json
+        BACKTEST_TRADES_FILE: dashboard_backtest_trades.csv
+        BACKTEST_EQUITY_FILE: dashboard_backtest_equity.csv
+        BACKTEST_CURVE_FILE: dashboard_backtest_equity_m15.csv
+    scripts:
+      - name: Prepare Python and record source
+        script: bash ci/setup-python.sh requirements.txt
+      - name: Run backtest
+        script: '"$CI_PYTHON" ci/run-legacy.py dashboard'
+    artifacts:
+      - ci-source-sha.txt
+      - dashboard_backtest_last_result.json
+      - dashboard_backtest_status.json
+      - dashboard_backtest_trades.csv
+      - dashboard_backtest_equity.csv
+      - dashboard_backtest_equity_m15.csv
+
+  signal-scan:
+    name: Manual paper signal scan
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    environment:
+      groups: [codemagic_legacy]
+    scripts:
+      - name: Prepare Python and record source
+        script: bash ci/setup-python.sh requirements.txt
+      - name: Scan using explicitly supplied paper state
+        script: '"$CI_PYTHON" ci/run-legacy.py scanner'
+    artifacts:
+      - ci-source-sha.txt
+      - state.json
+      - state-provenance.json
 

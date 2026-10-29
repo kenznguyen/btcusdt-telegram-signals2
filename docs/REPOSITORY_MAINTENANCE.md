@@ -16,7 +16,7 @@
 ## Release gate
 1. Review changed files and feature parity; verify scanner, symbol switcher, M15/H1, indicator charts and notifications.
 2. Run `gradle :app:testDebugUnitTest --no-daemon` and `gradle :app:assembleDebug --no-daemon` on the selected Android source branch.
-3. Run the signed `android-release.yml` workflow on `main` with `source_branch=feature/android-btcusdt-live-alerts` (until release source is consolidated).
+3. Run Codemagic `android-chart-pro-release` manually on the reviewed source branch, using the existing release keystore from the `android_release` secret group.
 4. Confirm `assembleRelease`, signature alias, applicationId/versionCode compatibility, artifact and successful install-over-existing-app.
 5. Only then promote the tested source into `main`.
 
@@ -26,10 +26,11 @@
 - Older chart/scanner branches and stacked PRs (#42, #43, #44, #47): do not delete before verifying their feature code is present in the integrated Android branch.
 
 ## Documentation parity
-The Telegram signal scanner is currently manual-only (`workflow_dispatch`); no scheduled cron trigger is enabled in `.github/workflows/signal-scan.yml`.
+GitHub stores source and PRs only. All runner workflows are defined in `codemagic.yaml`; old GitHub Actions YAML is archived under `ci/archive/github-actions`. The Codemagic scanner remains manual-only, requires an explicit state snapshot, and has no automatic schedule. Follow `docs/CODEMAGIC_SETUP.md` when switching the Render bridge and secret groups.
 
 ## Do not do
 - Never delete backup/restore branches or keystore/secrets during routine cleanup.
 - Never build a release from `main` by default if it lacks current Android features.
 - Never claim tests, builds or APK signatures are verified without CI results.
+
 

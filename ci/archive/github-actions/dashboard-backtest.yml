@@ -76,3 +76,4 @@ jobs:
             dashboard_backtest_equity_m15.csv
           if-no-files-found: warn
           retention-days: 30
+
