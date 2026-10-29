@@ -33,7 +33,7 @@ internal object StrategyShadow {
             model == null || status == null -> "UNAVAILABLE"
             validUntilMs != null && validUntilMs < candleTimeMs -> "EXPIRED"
             model == "WAIT" || baseSide == null -> "NOT_COMPARABLE"
-            modelCandleTimeMs == null || modelCandleTimeMs != latest.candleTime -> "UNVERIFIED_TIME"
+            modelCandleTimeMs == null || modelCandleTimeMs != latest?.candleTime -> "UNVERIFIED_TIME"
             model == baseSide -> "AGREE"
             else -> "DISAGREE"
         }
