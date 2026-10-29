@@ -29,7 +29,7 @@ class StrategyRulesTest(unittest.TestCase):
         self.assertEqual("TAKE PROFIT", self.rules.exit_priority(False, False, True))
 
     def test_explicit_trace_parity_never_green_without_both_real_traces(self):
-        self.assertFalse(compare_event_traces(None, [], "abc")["parity_verified"])
+        self.assertFalse(compare_event_traces(None, [], "sha256:" + "a"*64)["parity_verified"])
         self.assertFalse(compare_event_traces([], [], "abc")["parity_verified"])
         self.assertFalse(compare_event_traces([{"kind":"DCA","candleTime":1}],
                                               [{"kind":"TP","candleTime":1}], "abc")["parity_verified"])
