@@ -19,7 +19,7 @@ internal data class StrategyShadowResult(
 internal object StrategyShadow {
     fun observe(state: StrategyState, events: List<StrategyEvent>,
                 freqaiAction: String?, intelligenceStatus: String?, candleTimeMs: Long,
-                validUntilMs: Long? = null): StrategyShadowResult {
+                validUntilMs: Long? = null, modelCandleTimeMs: Long? = null): StrategyShadowResult {
         val latest = events.lastOrNull()
         val base = latest?.kind ?: "NONE"
         val baseSide = when (latest?.side) {
@@ -33,6 +33,7 @@ internal object StrategyShadow {
             model == null || status == null -> "UNAVAILABLE"
             validUntilMs != null && validUntilMs < candleTimeMs -> "EXPIRED"
             model == "WAIT" || baseSide == null -> "NOT_COMPARABLE"
+            modelCandleTimeMs == null || modelCandleTimeMs != latest.candleTime -> "UNVERIFIED_TIME"
             model == baseSide -> "AGREE"
             else -> "DISAGREE"
         }
