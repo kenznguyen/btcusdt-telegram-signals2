@@ -42,3 +42,8 @@ Timing fields are simulation semantics: emergency threshold recognition is intra
 `context.py` enriches closed M15 rows with exact Kotlin-style indicator values and prior-closed-hour H1 DI/ADX. The guarded native Freqtrade strategy now attempts to populate these columns from the Freqtrade dataframe/provider, but does not enable entries. `test_context.py` covers same-hour exclusion and unclosed M15.
 
 Important: Freqtrade's dataframe API normally exposes historical bars with no explicit per-row `closed` flag; this adapter treats delivered dataframe rows as historical, while `_latest_closed_context` rejects the latest incomplete M15 in real-time callbacks. Before any parity claim, verify the framework's candle timing semantics, availability limits, startup history and exact H1 mapping against Kotlin on real OHLCV. No live execution.
+
+## Canonical OHLCV V2 bytes (2026-10-30)
+Kotlin and Python now use **binary** `CHARTPRO-OHLCV-V2\\0`, then the `M15\\0` section and `H1\\0` section, each containing sorted closed candles encoded as signed int64 UTC open milliseconds plus five IEEE754 float64 values (open, high, low, close, volume) in big endian. The shared fixed SHA256 golden vector is asserted in Android JUnit and Python tests. This replaces the earlier ambiguous text/Double.toString format in the parity exporter only; StrategyEngine itself is untouched.
+
+**Do not mix V1 text hashes with V2 binary hashes.** Golden vector is a protocol compatibility test, not a real OHLCV trace parity result. The native Freqtrade exporter and independently executed 180/360-day backtests remain pending.
