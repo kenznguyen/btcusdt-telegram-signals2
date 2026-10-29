@@ -29,7 +29,25 @@ class ChartProParityDryRun(IStrategy):
         self._parity_core=PaperCallbackCore()
 
     def populate_indicators(self,dataframe:DataFrame,metadata:dict)->DataFrame:
-        # No fabricated indicator signals. Historical OHLCV + H1 parity integration remains pending.
+        from .context import enrich_closed_m15
+        if self.dp is None or dataframe.empty:
+            return dataframe
+        h1=self.dp.get_pair_dataframe(pair=metadata["pair"],timeframe="1h")
+        if h1 is None or h1.empty:
+            return dataframe
+        def records(frame):
+            return [{"open_time":int(row["date"].timestamp()*1000),
+                     "open":float(row["open"]),"high":float(row["high"]),
+                     "low":float(row["low"]),"close":float(row["close"]),
+                     "volume":float(row["volume"]),"closed":True}
+                    for _,row in frame.iterrows()]
+        context=enrich_closed_m15(records(dataframe),records(h1))
+        by_time={row["open_time"]:row for row in context}
+        keys=("rsi","adx","previous_rsi","previous_open","previous_close",
+              "h1_plus","h1_minus","h1_adx","h1_source_open_time")
+        for key in keys:
+            dataframe[key]=[by_time.get(int(date.timestamp()*1000),{}).get(key)
+                            for date in dataframe["date"]]
         return dataframe
 
     def populate_entry_trend(self,dataframe:DataFrame,metadata:dict)->DataFrame:
