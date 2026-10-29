@@ -11,7 +11,7 @@ class StrategyShadowParityTest {
         val events = listOf(StrategyEvent("LONG ENTRY", "LONG", 100000.0, 900000L))
         val state = initial.copy(lastProcessedOpenTime = 900000L)
         val original = state.toJson()
-        val buy = StrategyShadow.observe(state, events, "SELL", "OBSERVED", 900000L)
+        val buy = StrategyShadow.observe(state, events, "SELL", "OBSERVED", 900000L, modelCandleTimeMs = 900000L)
         assertEquals(original, state.toJson())
         assertEquals(original, buy.state.toJson())
         assertEquals(events, buy.events)
@@ -31,6 +31,37 @@ class StrategyShadowParityTest {
         assertEquals("EXPIRED", expired.observation.alignment)
         assertEquals("NONE", expired.observation.baseAction)
         assertTrue(expired.events.isEmpty())
+    }
+
+    @Test fun unmatchedModelCandleNeverClaimsParity() {
+        val events = listOf(StrategyEvent("SHORT ENTRY", "SHORT", 100000.0, 900000L))
+        val unverified = StrategyShadow.observe(initial, events, "SELL", "OBSERVED", 900000L)
+        assertEquals("UNVERIFIED_TIME", unverified.observation.alignment)
+        val mismatch = StrategyShadow.observe(initial, events, "SELL", "OBSERVED",
+            900000L, modelCandleTimeMs = 1800000L)
+        assertEquals("UNVERIFIED_TIME", mismatch.observation.alignment)
+        val matched = StrategyShadow.observe(initial, events, "SELL", "OBSERVED",
+            900000L, modelCandleTimeMs = 900000L)
+        assertEquals("AGREE", matched.observation.alignment)
+    }
+
+    @Test fun replayClosedCandlesHasExactBaselineParityWithObserver() {
+        val m15 = (0 until 130).map { i ->
+            val price = 100000.0 + (i % 31 - 15) * 35.0
+            Candle(i * 900000L, price, price + 90, price - 90, price + 12, 3.0, true)
+        }
+        val h1 = (0 until 70).map { i ->
+            val price = 100000.0 + (i % 17 - 8) * 125.0
+            Candle(i * 3600000L, price, price + 150, price - 150, price + 20, 15.0, true)
+        }
+        val baseline = engine.processClosedCandles(m15, h1, initial)
+        listOf("BUY", "SELL", "WAIT", null).forEach { model ->
+            val observed = StrategyShadow.observe(baseline.first, baseline.second, model,
+                "OBSERVED", m15.last().openTime)
+            assertEquals(baseline.first.toJson(), observed.state.toJson())
+            assertEquals(baseline.second, observed.events)
+            assertEquals(baseline.first.lastProcessedOpenTime, observed.state.lastProcessedOpenTime)
+        }
     }
 
     @Test fun closedCandleEngineResultsRemainIdenticalWithShadowObserver() {
