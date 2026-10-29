@@ -81,3 +81,14 @@ internal fun fiveLayerFeedVi(name: String): String = when (name) {
     "liquidations" -> "Thanh lý quan sát"
     else -> "Nguồn dữ liệu khác"
 }
+
+/** Feed timestamp is evaluated independently of the HTTP response timestamp. */
+internal fun fiveLayerFeedHealth(feed: FeedCoverage, nowMs: Long): String = when {
+    feed.status == "MISSING" -> "THIẾU"
+    feed.status == "NO_ROWS" -> "KHÔNG CÓ BẢN GHI"
+    feed.status != "OBSERVED" || feed.lastEventAtMs == null -> "CHƯA XÁC MINH"
+    feed.lastEventAtMs > nowMs + 5_000L -> "CHƯA XÁC MINH"
+    feed.name == "trades" && (feed.tradeIdGaps ?: 0) > 0 -> "THIẾU ID"
+    nowMs - feed.lastEventAtMs > 60_000L -> "ĐÃ CŨ"
+    else -> "MỚI"
+}
