@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 import uuid
+from urllib.parse import quote, unquote, urlencode, urlsplit, urlunsplit
 
 from futures_intelligence.import_collector import build_snapshot
 from market_data.archive import archive_snapshot, init_archive, read_snapshots
@@ -15,6 +16,31 @@ from market_data.store import Candle, CandleStore, INTERVAL_MS, StoreUnavailable
 
 DSN = os.environ.get("DATA_LAKE_TEST_POSTGRES", "")
 REQUIRED = os.environ.get("DATA_LAKE_REQUIRE_POSTGRES") == "1"
+
+
+def schema_url(location, schema):
+    parts = urlsplit(location)
+    if parts.scheme not in {"postgres", "postgresql"}:
+        raise ValueError("PostgreSQL tests require a database URI")
+    params = []
+    for pair in filter(None, parts.query.split("&")):
+        key, separator, value = pair.partition("=")
+        if not separator:
+            raise ValueError("PostgreSQL URI requires key=value parameters")
+        if unquote(key) != "options":
+            params.append((unquote(key), unquote(value)))
+    params.append(("options", "-c search_path=" + schema))
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(params, quote_via=quote), parts.fragment))
+
+
+class PostgresUriEncodingTest(unittest.TestCase):
+    def test_schema_options_preserve_spaces_under_postgres_uri_decoding(self):
+        uri = schema_url("postgresql://127.0.0.1/test?application_name=ci+worker&options=old", "test_schema")
+        # libpq URI decoding is percent-only; parse_qs would conceal this bug by
+        # applying HTML form decoding and incorrectly treating '+' as a space.
+        options = dict(pair.split("=", 1) for pair in urlsplit(uri).query.split("&"))
+        self.assertEqual(unquote(options["options"]), "-c search_path=test_schema")
+        self.assertEqual(unquote(options["application_name"]), "ci+worker")
 
 
 @unittest.skipUnless(DSN or REQUIRED, "Real PostgreSQL not configured: set DATA_LAKE_TEST_POSTGRES")
@@ -61,12 +87,7 @@ class PostgresStorageTest(unittest.TestCase):
         return read_postgres_window(self.location, "BTCUSDT", "15m", 0, count * self.step, as_of_ms)
 
     def postgres_url(self):
-        from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
-        parts = urlsplit(DSN)
-        self.assertIn(parts.scheme, {"postgres", "postgresql"})
-        params = [(key, value) for key, value in parse_qsl(parts.query) if key != "options"]
-        params.append(("options", "-c search_path=" + self.schema))
-        return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(params), parts.fragment))
+        return schema_url(DSN, self.schema)
 
     def test_exact_numeric_hash_gaps_and_asof_match_sqlite(self):
         candles = [self.candle(), self.candle(2)]

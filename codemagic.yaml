@@ -213,6 +213,7 @@ workflows:
       - ci-source-sha.txt
       - postgres-tests.log
       - data-lake-tests.log
+      - postgres-server.log
 
   telegram-command:
     name: Telegram command

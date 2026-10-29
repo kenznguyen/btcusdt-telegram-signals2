@@ -59,9 +59,11 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("requirements-data-lake.txt", commands)
         self.assertIn("requirements-data-lake-export.txt", commands)
         self.assertIn("ci/test-data-lake.sh", commands)
+        self.assertIn("postgres-server.log", workflow["artifacts"])
         runner = (ROOT / "ci/test-data-lake.sh").read_text()
         for gate in ("import psycopg, pyarrow, pandas", "initdb", "DATA_LAKE_REQUIRE_POSTGRES=1",
-                     "market_data.test_postgres", "-s data_lake", "trap cleanup_lake_postgres EXIT"):
+                     "market_data.test_postgres", "-s data_lake", "trap cleanup_lake_postgres EXIT",
+                     "postgres-server.log", "Data-lake CI failed during:"):
             with self.subTest(gate=gate):
                 self.assertIn(gate, runner)
 
