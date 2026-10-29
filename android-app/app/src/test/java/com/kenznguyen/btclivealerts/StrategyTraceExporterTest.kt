@@ -21,6 +21,11 @@ class StrategyTraceExporterTest {
         assertEquals(report.events.size, report.json.getJSONArray("events").length())
     }
 
+    @Test fun binaryHashMatchesSharedPythonGoldenVector() {
+        val bar = Candle(0L, 1.0, 2.0, 0.5, 1.5, 5.0, true)
+        assertEquals("sha256:8e39ddb3256cd38e90e160a40767c4d99e93570bca1d402d1972772ee2722a93", StrategyTraceExporter.datasetHash(listOf(bar), emptyList()))
+    }
+
     @Test fun datasetHashDependsOnClosedOhlcvAndNotOpenCandle() {
         val a = Candle(0L, 1.0, 2.0, 0.5, 1.5, 5.0, true)
         val unclosed = a.copy(openTime = 900000L, closed = false)
