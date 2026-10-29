@@ -17,6 +17,9 @@ workflows:
         - pattern: feature/android-five-layer-control
           include: true
           source: true
+        - pattern: feature/strategy-shadow-parity-20261029
+          include: true
+          source: true
         - pattern: feature/five-layer-paper
           include: true
           source: true

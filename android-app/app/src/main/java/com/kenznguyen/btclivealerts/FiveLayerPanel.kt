@@ -296,6 +296,23 @@ internal fun FiveLayerPanel(context: Context) {
             }
         }
 
+        FiveLayerCard("SHADOW MODE · SO SÁNH ĐỘC LẬP") {
+            val localState = StrategyState.fromJson(prefs.getString("state_json", null))
+            val latestBaseEvent = localState.recentEvents.firstOrNull()
+            val model = decision.fresh(clock)?.action
+            val intelStatus = intelligence.fresh(clock)?.coverage?.firstOrNull { it.name == "trades" }?.status
+            val shadow = StrategyShadow.observe(localState,
+                listOfNotNull(latestBaseEvent), model, intelStatus,
+                latestBaseEvent?.candleTime ?: localState.lastProcessedOpenTime)
+            Text("StrategyEngine: ${shadow.observation.baseAction}", color = Color.White)
+            Text("FreqAI: ${shadow.observation.freqaiAction ?: "Chưa có"} · Futures Intelligence: ${shadow.observation.intelligenceStatus ?: "Chưa có"}",
+                color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+            Text("Parity: chưa xác minh · các nguồn chưa có định danh nến khớp nhau",
+                color = fiveAmber, style = MaterialTheme.typography.bodySmall)
+            Text("Shadow chỉ quan sát. Không sửa ENTRY, DCA, TP, SL, không mở lệnh và không tác động cảnh báo.",
+                color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+        }
+
         FiveLayerCard("SỔ PAPER TRÊN MÁY CHỦ") {
             if (currentPaper == null) Text("${paper.unavailableMessage(connection != null)} Điều khiển đang khóa.", color = fiveMuted)
             else {
