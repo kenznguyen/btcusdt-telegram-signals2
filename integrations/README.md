@@ -1,5 +1,7 @@
 # Hummingbot Order Book bridge
 
+See [the five-layer architecture](../docs/FIVE_LAYER_ARCHITECTURE.md) for the proposed collector, microstructure, FreqAI, execution and React/APK integration. That design is a roadmap; this adapter only implements read-only Hummingbot snapshots.
+
 This optional server adapter exposes Hummingbot's public-market order book to
 BTCUSDT Chart Pro. It uses Python's standard library and does not alter the
 Telegram webhook. Exchange credentials are not required for public market data;
