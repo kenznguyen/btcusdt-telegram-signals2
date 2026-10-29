@@ -33,7 +33,7 @@ internal data class IntentView(val targetPositionBase: String, val limitPrice: S
     val modelVersion: String, val strategyVersion: String, val datasetVersion: String,
     val decisionAtMs: Long, val validUntilMs: Long)
 internal data class DecisionView(val action: String, val reason: String, val intent: IntentView?)
-internal data class PaperOrderView(val orderId: String, val status: String, val side: String,
+internal data class PaperOrderView(val orderId: String, val intentId: String, val status: String, val side: String,
     val quantityBase: String, val filledBase: String, val remainingBase: String,
     val averagePrice: String?, val feeQuote: String, val createdAtMs: Long, val updatedAtMs: Long,
     val reason: String)
@@ -197,14 +197,29 @@ internal object FiveLayerJson {
         val quantity = decimal(json, "quantityBase")
         val filled = decimal(json, "filledBase")
         val remaining = decimal(json, "remainingBase")
-        require(BigDecimal(filled) <= BigDecimal(quantity) && BigDecimal(remaining) <= BigDecimal(quantity))
+        val quantityValue = BigDecimal(quantity)
+        val filledValue = BigDecimal(filled)
+        val remainingValue = BigDecimal(remaining)
+        require(quantityValue.compareTo(filledValue + remainingValue) == 0)
+        require((side == "NONE") == (quantityValue.signum() == 0))
         val average = optionalDecimal(json, "averagePrice")
-        require(if (BigDecimal(filled).signum() == 0) average == null else average != null && BigDecimal(average).signum() > 0)
+        val fee = decimal(json, "feeQuote")
+        require(if (filledValue.signum() == 0) average == null && BigDecimal(fee).signum() == 0
+            else average != null && BigDecimal(average).signum() > 0)
+        require(when (status) {
+            "OPEN" -> quantityValue.signum() > 0 && filledValue.signum() == 0
+            "PARTIALLY_FILLED" -> filledValue.signum() > 0 && remainingValue.signum() > 0
+            "FILLED" -> remainingValue.signum() == 0
+            "REJECTED" -> filledValue.signum() == 0
+            "CANCELED" -> remainingValue.signum() > 0
+            else -> false
+        })
         val created = stamp(json, "createdAtMs", nowMs)
         val updated = stamp(json, "updatedAtMs", nowMs)
         require(updated >= created)
-        return PaperOrderView(text(json, "orderId", 100), status, side, quantity, filled, remaining,
-            average, decimal(json, "feeQuote"), created, updated, text(json, "reason"))
+        val intentId = text(json, "intentId", 200).also { require(it.isNotBlank()) }
+        return PaperOrderView(text(json, "orderId", 100), intentId, status, side, quantity, filled, remaining,
+            average, fee, created, updated, text(json, "reason"))
     }
 
     fun ledger(json: JSONObject, nowMs: Long): PaperView {

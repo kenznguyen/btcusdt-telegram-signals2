@@ -50,6 +50,10 @@ Each section updates independently and shows safe Vietnamese diagnostics for rej
 
 To evaluate a paper intent, pause/resume the paper ledger or cancel a pending paper order, enter the separate `CONTROL_TOKEN`. Read-only use does not need that control token. The app saves only the base URL; both tokens stay in screen memory and must be entered again after leaving the panel or restarting the app. No exchange credentials belong in either field. Requests use the configured common API; a paper action never places an exchange order.
 
+Paper history now browses the server's bounded latest 100 records, with status filters, pages of 10 and a detail dialog containing order/intent IDs, quantities, fill price, fee, reason and UTC timestamps. The dialog uses the latest valid snapshot and disables cancellation while data is unavailable. Canceled orders can retain an unfilled quantity; that value is not an active pending order.
+
+The last action's validated server response is shown separately with received time and exact fill/fee details. Starting another action clears that prior receipt. A timeout or lost response remains an unconfirmed outcome while the app rereads the ledger; it never presents the previous response as the new result or automatically resubmits a command.
+
 Deploy and configure the API separately using the [five-layer runbook](../docs/FIVE_LAYER_PAPER_RUNBOOK.md). Codemagic builds the APK and runs finite checks; it does not host the API, Hummingbot or model training. Source/configuration alone does not confirm a successful APK build, device run or connection to those services.
 
 ### Hummingbot Order Book

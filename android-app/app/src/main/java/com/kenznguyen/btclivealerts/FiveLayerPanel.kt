@@ -87,6 +87,8 @@ internal fun FiveLayerPanel(context: Context) {
     var writing by remember { mutableStateOf(false) }
     var mutationJob by remember { mutableStateOf<Job?>(null) }
     var actionMessage by remember { mutableStateOf("") }
+    var lastActionOrder by remember(connection) { mutableStateOf<PaperOrderView?>(null) }
+    var lastActionAt by remember(connection) { mutableLongStateOf(0L) }
     val lifecycle = (context as LifecycleOwner).lifecycle
     val scope = rememberCoroutineScope()
 
@@ -145,10 +147,13 @@ internal fun FiveLayerPanel(context: Context) {
             system.fresh(now) == null || paper.fresh(now) == null) return
         writing = true
         paper = FiveLayerReading(); decision = FiveLayerReading()
+        lastActionOrder = null
+        lastActionAt = 0L
         actionMessage = "Đang gửi yêu cầu paper…"
         mutationJob = scope.launch {
             try {
                 actionMessage = command(target)
+                lastActionAt = System.currentTimeMillis()
             } catch (e: CancellationException) {
                 actionMessage = "Chưa xác định kết quả. Kiểm tra sổ paper trước khi gửi lại."
                 throw e
@@ -304,6 +309,7 @@ internal fun FiveLayerPanel(context: Context) {
             Button(enabled = canControl && currentPaper?.paused == false, onClick = {
                 submit { target ->
                     val result = FiveLayerClient.evaluate(target.url, target.controlToken)
+                    lastActionOrder = result.order
                     "Đánh giá: ${result.decision.action} · ${result.order?.status?.let(::fiveLayerStatusVi) ?: fiveLayerReasonVi(result.decision.reason)}"
                 }
             }) { Text("Đánh giá và mô phỏng một lần") }
@@ -314,25 +320,28 @@ internal fun FiveLayerPanel(context: Context) {
                     if (result.paused) "Đã tạm dừng paper." else "Đã cho phép đánh giá paper."
                 }
             }) { Text(if (currentPaper?.paused == true) "Cho phép paper" else "Tạm dừng paper") }
-            if (actionMessage.isNotEmpty()) Text(actionMessage, color = fiveAmber)
+            if (actionMessage.isNotEmpty()) {
+                HorizontalDivider(color = Color(0xFF263448))
+                Text("KẾT QUẢ THAO TÁC GẦN NHẤT", color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text(actionMessage, color = fiveAmber)
+                if (lastActionAt > 0L) Text("Nhận phản hồi lúc ${fiveTime(lastActionAt)}",
+                    color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+                lastActionOrder?.let { order ->
+                    Text("${fiveLayerStatusVi(order.side)} · …${order.orderId.takeLast(12)}", color = Color.White)
+                    Text("Đã khớp ${order.filledBase}/${order.quantityBase} BTC · Chưa khớp ${order.remainingBase} BTC", color = fiveMuted)
+                    Text("Giá khớp trung bình ${order.averagePrice ?: "—"} USDT · Phí ${order.feeQuote} USDT", color = fiveMuted)
+                    Text(fiveLayerReasonVi(order.reason), color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+                }
+            }
             Text("Chỉ thao tác sổ mô phỏng. Khi mất phản hồi, ứng dụng đọc lại sổ và không tự gửi lại yêu cầu.",
                 color = fiveMuted, style = MaterialTheme.typography.bodySmall)
-            Text("LỆNH PAPER GẦN NHẤT", color = Color.White, fontWeight = FontWeight.SemiBold)
-            if (currentPaper?.orders?.isEmpty() == true) Text("Chưa có lệnh paper.", color = fiveMuted)
-            currentPaper?.orders?.take(5)?.forEach { order ->
-                HorizontalDivider(color = Color(0xFF263448))
-                Text("${order.side} · ${fiveLayerStatusVi(order.status)} · …${order.orderId.takeLast(12)}", color = Color.White)
-                Text("Đã khớp ${order.filledBase}/${order.quantityBase} BTC · Giá ${order.averagePrice ?: "—"}", color = fiveMuted)
-                Text(fiveLayerReasonVi(order.reason), color = fiveMuted, style = MaterialTheme.typography.bodySmall)
-                Text("Cập nhật ${fiveTime(order.updatedAtMs)}", color = fiveMuted, style = MaterialTheme.typography.bodySmall)
-                if (order.status in setOf("OPEN", "PARTIALLY_FILLED"))
-                    TextButton(enabled = canControl, onClick = {
-                        submit { target ->
-                            val result = FiveLayerClient.cancel(target.url, target.controlToken, order.orderId)
-                            "Lệnh …${result.orderId.takeLast(12)}: ${fiveLayerStatusVi(result.status)}"
-                        }
-                    }) { Text("Hủy phần còn lại") }
-            }
+            PaperOrderHistory(orders = currentPaper?.orders, canCancel = canControl, onCancel = { orderId ->
+                submit { target ->
+                    val result = FiveLayerClient.cancel(target.url, target.controlToken, orderId)
+                    lastActionOrder = result
+                    "Lệnh …${result.orderId.takeLast(12)}: ${fiveLayerStatusVi(result.status)}"
+                }
+            })
         }
     }
 }
