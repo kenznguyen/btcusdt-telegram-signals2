@@ -15,6 +15,10 @@ class StrategyContractTest(unittest.TestCase):
         self.assertIn("from freqtrade_parity.context import enrich_closed_m15",source)
         self.assertNotIn("from .callbacks import",source)
         self.assertNotIn("from .context import",source)
+    def test_callbacks_refuse_missing_required_ohlcv(self):
+        source=(ROOT/"ChartProParityDryRun.py").read_text()
+        self.assertIn('if not all(col in dataframe.columns for col in required):',source)
+        self.assertIn('return dataframe',source)
     def test_entries_remain_disabled(self):
         source=(ROOT/"ChartProParityDryRun.py").read_text()
         self.assertIn('dataframe["enter_long"]=0',source)
