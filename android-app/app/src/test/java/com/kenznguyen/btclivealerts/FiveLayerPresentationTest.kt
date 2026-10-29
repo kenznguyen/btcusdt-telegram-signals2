@@ -29,6 +29,19 @@ class FiveLayerPresentationTest {
         assertEquals("Thanh lý quan sát", fiveLayerFeedVi("liquidations"))
     }
 
+    @Test fun futuresFeedHealthDoesNotConfuseMissingWithZeroOrRecentApiFetch() {
+        val missing = FeedCoverage("funding", "MISSING", 0, null, null)
+        val empty = FeedCoverage("openInterest", "NO_ROWS", 0, null, null)
+        val recent = FeedCoverage("trades", "OBSERVED", 5, 1_000_000L, 0)
+        val delayed = FeedCoverage("trades", "OBSERVED", 5, 1_000_000L, 2)
+        assertEquals("THIẾU", fiveLayerFeedHealth(missing, 1_000_000L))
+        assertEquals("KHÔNG CÓ BẢN GHI", fiveLayerFeedHealth(empty, 1_000_000L))
+        assertEquals("MỚI", fiveLayerFeedHealth(recent, 1_010_000L))
+        assertEquals("THIẾU ID", fiveLayerFeedHealth(delayed, 1_010_000L))
+        assertEquals("ĐÃ CŨ", fiveLayerFeedHealth(recent, 1_070_001L))
+        assertEquals("CHƯA XÁC MINH", fiveLayerFeedHealth(recent.copy(lastEventAtMs = 1_080_000L), 1_000_000L))
+    }
+
     @Test fun unknownServerTextIsNeverEchoed() {
         listOf("", "new_reason", "https://private.example/?token=secret", "secret\n/path/db.sqlite").forEach {
             assertEquals("Máy chủ chưa cung cấp giải thích được hỗ trợ.", fiveLayerReasonVi(it))
