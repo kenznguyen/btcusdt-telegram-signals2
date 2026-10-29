@@ -15,7 +15,7 @@ workflows:
       - name: Validate offline rules and fail-closed trace policy
         script: |
           set -euo pipefail
-          python3 -m unittest freqtrade_parity.test_rules freqtrade_parity.test_indicators freqtrade_parity.test_position freqtrade_parity.test_callbacks freqtrade_parity.test_context freqtrade_parity.test_strategy_contract freqtrade_parity.test_reconciliation -v
+          python3 -m unittest freqtrade_parity.test_rules freqtrade_parity.test_indicators freqtrade_parity.test_position freqtrade_parity.test_callbacks freqtrade_parity.test_context freqtrade_parity.test_strategy_contract freqtrade_parity.test_reconciliation freqtrade_parity.test_report_cli -v
           python3 -m compileall -q freqtrade_parity
     artifacts:
       - android-source-sha.txt
