@@ -558,9 +558,23 @@ fun CompleteDashboard(context: Context) {
                 }
             }
             item {
-                TabRow(selectedTabIndex = selectedTab, containerColor = NPanel, contentColor = Color.White) {
+                ScrollableTabRow(selectedTabIndex = selectedTab, containerColor = NPanel, contentColor = Color.White, edgePadding = 0.dp) {
                     Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Biểu đồ") })
                     Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Multi Symbol Scanner") })
+                    Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("Order Book") })
+                }
+            }
+            if (selectedTab == 2) item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        (listOf("BTCUSDT", "ETHUSDT") + scannerRows.map { it.symbol }).distinct().forEach { symbol ->
+                            FilterChip(selected = selectedSymbol == symbol, onClick = {
+                                selectedSymbol = symbol
+                                prefs.edit().putString("chart_selected_symbol", symbol).apply()
+                            }, label = { Text(symbol) })
+                        }
+                    }
+                    OrderBookPanel(context, selectedSymbol)
                 }
             }
             item {
@@ -853,7 +867,7 @@ fun CompleteDashboard(context: Context) {
                 }
             }
             if (selectedTab == 0) item { Text("LỊCH SỬ SỰ KIỆN", color = Color.White, fontWeight = FontWeight.Bold) }
-            items(state.recentEvents) { event ->
+            items(if (selectedTab == 0) state.recentEvents else emptyList()) { event ->
                 Column(Modifier.fillMaxWidth().background(NPanel, RoundedCornerShape(10.dp)).padding(12.dp)) {
                     Text(event.kind + " · " + (event.side ?: "FLAT") + " · " + "%,.2f".format(event.price),
                         color = if (event.kind.contains("SL")) NRed else NGreen, fontWeight = FontWeight.SemiBold)
@@ -1440,4 +1454,5 @@ private fun PreferenceSwitch(label: String, checked: Boolean, onCheckedChange: (
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
+
 

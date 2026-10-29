@@ -15,6 +15,9 @@ workflows:
       events:
         - push
       branch_patterns:
+        - pattern: feature/hummingbot-order-book
+          include: true
+          source: true
         - pattern: fix/chart-pro-reliability-20261027
           include: true
           source: true
@@ -26,8 +29,13 @@ workflows:
       changeset:
         includes:
           - android-app/
+          - integrations/
           - codemagic.yaml
     scripts:
+      - name: Test Hummingbot read-only bridge
+        script: |
+          set -euo pipefail
+          python3 -m unittest integrations.test_hummingbot_bridge -v
       - name: Record checked-out source
         script: |
           set -euo pipefail
@@ -85,3 +93,4 @@ workflows:
       - android-app/app/build/test-results/testDebugUnitTest/*.xml
       - android-app/app/build/reports/tests/testDebugUnitTest/**
       - android-source-sha.txt
+
