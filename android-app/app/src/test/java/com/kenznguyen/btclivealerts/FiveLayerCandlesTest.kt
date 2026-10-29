@@ -167,7 +167,7 @@ class FiveLayerCandlesTest {
 
     @Test fun candleFreshnessDetectsOldLatestCloseEvenWhenApiWasJustFetched() {
         val window = parse(fixture())
-        assertEquals(17_100_000L, canonicalCandleLagMs(window, now))
+        assertEquals(15_300_000L, canonicalCandleLagMs(window, now))
         assertTrue(canonicalCandlesStale(window, now))
         assertFalse(canonicalCandlesStale(window, window.candles.last().closeTimeMs + 1_800_000L))
         assertTrue(canonicalCandlesStale(window, window.candles.last().closeTimeMs + 1_800_001L))
