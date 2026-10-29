@@ -89,6 +89,10 @@ internal fun fiveLayerFeedHealth(feed: FeedCoverage, nowMs: Long): String = when
     feed.status != "OBSERVED" || feed.lastEventAtMs == null -> "CHƯA XÁC MINH"
     feed.lastEventAtMs > nowMs + 5_000L -> "CHƯA XÁC MINH"
     feed.name == "trades" && (feed.tradeIdGaps ?: 0) > 0 -> "THIẾU ID"
-    nowMs - feed.lastEventAtMs > 60_000L -> "ĐÃ CŨ"
+    nowMs - feed.lastEventAtMs > when (feed.name) {
+        "funding" -> 9L * 60 * 60 * 1_000
+        "openInterest", "liquidations" -> 15L * 60 * 1_000
+        else -> 60_000L
+    } -> "ĐÃ CŨ"
     else -> "MỚI"
 }
