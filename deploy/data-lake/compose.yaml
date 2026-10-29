@@ -1,0 +1,78 @@
+name: chart-lake-local
+
+x-lake-image: &lake-image
+  image: chart-lake-local:trial
+  build:
+    context: ../..
+    dockerfile: deploy/data-lake/Dockerfile
+
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: chart_lake
+      POSTGRES_USER: lake_owner
+      POSTGRES_PASSWORD: ${LAKE_OWNER_PASSWORD:?Run python -m data_lake.local_setup first}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    volumes:
+      - lake-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD, pg_isready, -h, 127.0.0.1, -U, lake_owner, -d, chart_lake]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  bootstrap:
+    <<: *lake-image
+    command: [bootstrap]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      LAKE_OWNER_PASSWORD: ${LAKE_OWNER_PASSWORD:?Run local_setup first}
+      LAKE_READER_PASSWORD: ${LAKE_READER_PASSWORD:?Run local_setup first}
+      LAKE_WRITER_PASSWORD: ${LAKE_WRITER_PASSWORD:?Run local_setup first}
+    restart: "no"
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  api:
+    <<: *lake-image
+    command: [api]
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+    environment:
+      LAKE_DB_PASSWORD: ${LAKE_READER_PASSWORD:?Run local_setup first}
+      MARKET_DATA_TOKEN: ${LAKE_READ_TOKEN:?Run local_setup first}
+    ports:
+      - "127.0.0.1:${LAKE_API_PORT:-8788}:8788"
+    healthcheck:
+      test: [CMD, python, /app/deploy/data-lake/runtime.py, probe]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  collector:
+    <<: *lake-image
+    profiles: [collector]
+    command: [collector]
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+    environment:
+      LAKE_DB_PASSWORD: ${LAKE_WRITER_PASSWORD:?Run local_setup first}
+    restart: unless-stopped
+    stop_grace_period: 30s
+    read_only: true
+    tmpfs:
+      - /tmp
+
+volumes:
+  lake-data:
