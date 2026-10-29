@@ -83,7 +83,7 @@ class StrategyRules:
 
 def compare_event_traces(kotlin_trace, python_trace, dataset_sha256):
     """No green result for absent traces, absent dataset hash or mismatched events."""
-    if not isinstance(dataset_sha256, str) or not dataset_sha256.strip():
+    if not isinstance(dataset_sha256, str) or not __import__("re").fullmatch(r"sha256:[0-9a-f]{64}", dataset_sha256):
         return {"parity_verified": False, "reason": "MISSING_DATASET_CHECKSUM"}
     if not isinstance(kotlin_trace, list) or not isinstance(python_trace, list):
         return {"parity_verified": False, "reason": "MISSING_TRACE"}
