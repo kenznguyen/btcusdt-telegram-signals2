@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
-from urllib.request import HTTPHandler, build_opener as real_build_opener
+from urllib.request import HTTPHandler, ProxyHandler, build_opener as real_build_opener
 
 from data_lake.client import DataLakeClient, DataLakeError, MAX_RESPONSE_BYTES, _NoRedirect
 from market_data.api import application
@@ -121,6 +121,23 @@ class ClientTest(unittest.TestCase):
         with self.assertRaises(DataLakeError):
             self.client.read_candles("15m", self.start, self.end, 2**63-1)
         self.assertEqual(self.transport.requests, [])
+
+    def test_only_literal_loopback_bypasses_inherited_proxies_without_enabling_redirects(self):
+        proxy_environment = {"http_proxy": "http://proxy.invalid:8888",
+                             "https_proxy": "http://proxy.invalid:8888"}
+        with patch.dict(os.environ, proxy_environment, clear=True):
+            for base_url in ("http://127.0.0.1:8788", "https://127.0.0.1:8788", "http://[::1]:8788"):
+                with self.subTest(base_url=base_url), patch("data_lake.client.build_opener", wraps=real_build_opener) as build:
+                    DataLakeClient(base_url, "safe")
+                    handlers = build.call_args.args
+                    proxies = [handler for handler in handlers if isinstance(handler, ProxyHandler)]
+                    self.assertEqual(len(proxies), 1)
+                    self.assertEqual(proxies[0].proxies, {})
+                    self.assertTrue(any(isinstance(handler, _NoRedirect) for handler in handlers))
+            remote = DataLakeClient("https://data.example.com", "safe")
+            proxies = [handler.proxies for handler in remote._opener.handlers if isinstance(handler, ProxyHandler)]
+            self.assertEqual(proxies, [{"http": "http://proxy.invalid:8888", "https": "http://proxy.invalid:8888"}])
+            self.assertEqual(dict(os.environ), proxy_environment)
 
     def test_redirect_is_rejected_before_sending_bearer_to_second_origin(self):
         calls = []

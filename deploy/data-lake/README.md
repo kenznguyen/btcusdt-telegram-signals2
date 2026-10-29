@@ -11,16 +11,18 @@ Chuyển checkout sang nhánh **`feature/local-data-lake`**, mở terminal tại
 gốc repository. Nếu máy dùng tên lệnh `python3`, thay `python` bằng `python3`.
 
 ```bash
-python -m data_lake.local_setup
-docker compose --env-file .data/local-lake.env -f deploy/data-lake/compose.yaml up -d --build
-python -m data_lake.local_setup --check
+python -m data_lake.local_trial
 ```
 
-Lần build image đầu cần tải image/dependency. Chạy lại lệnh kiểm tra sau khi
-container khởi động. Kết quả ban đầu mong đợi:
+Lệnh này kiểm tra Docker chạy container Linux trên máy hiện tại, tạo cấu hình
+riêng nếu chưa có, build và khởi động PostgreSQL/API rồi chờ readiness. Docker
+context dùng SSH/TCP sẽ bị từ chối trước khi khởi động; Docker Desktop dùng socket
+hoặc named pipe cục bộ được hỗ trợ. Lần build đầu cần tải image/dependency.
+Mặc định không gọi sàn hoặc bật collector, kể cả khi shell có profile collector.
+Kết quả ban đầu mong đợi, ngoài thông tin địa chỉ API:
 
 ```json
-{"service":"canonical-data-lake","ready":true,"freshData":false}
+{"ok":true,"dataRequested":false,"api":{"service":"canonical-data-lake","ready":true,"freshData":false}}
 ```
 
 `ready: true` nghĩa là API đọc được schema DB bằng tài khoản chỉ đọc.
@@ -30,25 +32,38 @@ container khởi động. Kết quả ban đầu mong đợi:
 Nếu cổng 8788 đang được dùng, chọn cổng khi tạo cấu hình lần đầu:
 
 ```bash
-python -m data_lake.local_setup --port 8899
+python -m data_lake.local_trial --port 8899
 ```
 
 Tệp cấu hình đã tồn tại sẽ được giữ nguyên, không tự đổi mật khẩu/token hoặc cổng.
 Nếu cần đổi cổng sau đó, chỉ sửa `LAKE_API_PORT` trong tệp cục bộ rồi chạy lại
-`compose up -d`. Không đặt các biến `LAKE_*` khác trong shell để ghi đè cấu hình.
+`python -m data_lake.local_trial`. Launcher dùng tệp này làm nguồn cấu hình,
+bỏ qua các biến `LAKE_*` tương ứng đã đặt trong shell. Có thể dùng `--config`
+để chọn đường dẫn tệp khác. Kiểm tra riêng API đang chạy bằng
+`python -m data_lake.local_setup --check`.
 
 ## 2. Nạp một ít dữ liệu thật
 
-Sau khi API sẵn sàng, chạy một lượt lấy tối đa 20 nến đóng cho mỗi khung M15/H1:
+Để chủ động lấy một lượt dữ liệu thật và xác minh 20 nến đóng ở mỗi khung M15/H1:
 
 ```bash
-docker compose --env-file .data/local-lake.env -f deploy/data-lake/compose.yaml run --rm collector refresh --bars 20
-python -m data_lake.local_setup --check
+python -m data_lake.local_trial --load-candles --bars 20
 ```
 
 Lệnh này gọi nguồn Binance public bằng CCXT có rate limit. Nếu nguồn không truy
 cập được, collector báo lỗi và giữ dữ liệu thiếu; không sinh nến mẫu. `freshData`
 chỉ đạt khi đủ hai nến đóng mới nhất ở cả hai khung tại thời điểm kiểm tra.
+Sau khi nạp, launcher đọc lại cửa sổ nến qua API và kiểm tra hợp đồng dữ liệu,
+khoảng thiếu, provenance và hash. `verification.verified: true` yêu cầu đủ số nến
+đã chọn ở cả hai khung. Báo cáo từng khung giữ giá đóng dưới dạng chuỗi thập phân,
+số nến, hash và lý do nếu thiếu/lỗi. Lệnh trả mã lỗi nếu nạp hoặc xác minh thất bại;
+DB và container vẫn được giữ để kiểm tra, không tự gọi lại sàn.
+
+Để chỉ đọc và xác minh dữ liệu đang có, không tải thêm:
+
+```bash
+python -m data_lake.local_verify --bars 20
+```
 
 Để đồng bộ nền mỗi 60 giây, bật profile collector:
 
@@ -90,7 +105,7 @@ docker compose --env-file .data/local-lake.env -f deploy/data-lake/compose.yaml 
 ```
 
 Lệnh dừng trên giữ nguyên volume và tệp bí mật. Không thêm `-v` nếu muốn giữ DB.
-Để chạy lại, dùng lệnh `up -d` ở bước đầu với chính tệp cấu hình cũ.
+Để chạy lại, dùng `python -m data_lake.local_trial` với chính tệp cấu hình cũ.
 
 Địa chỉ `127.0.0.1` này dành cho chương trình trên máy tính. APK trên điện thoại
 cần một địa chỉ HTTPS truy cập được; gói thử nghiệm này không thay đổi yêu cầu
@@ -102,7 +117,9 @@ HTTPS của APK. Hợp đồng nến, features và xuất Freqtrade nằm trong
 Nhánh này chạy regression và PostgreSQL trên Codemagic. Kiểm thử mới kiểm tra
 readiness với DB thật và quyền reader không thể ghi, kể cả khi tắt mặc định
 read-only của session. Workflow thủ công **`local-data-lake-smoke`** build/chạy
-Compose trên Linux, kiểm tra API rỗng đúng trạng thái, xác thực và collector chưa
-bật. Runner Linux trên Codemagic yêu cầu bật billing; đây là kiểm tra tùy chọn,
+Compose trên Linux qua chính launcher, kiểm tra API rỗng đúng trạng thái, xác thực
+và collector chưa bật. Kiểm thử Python riêng xác minh cửa sổ nến qua API dùng DB
+SQLite thật; kiểm thử launcher mô phỏng ranh giới Docker, không chứng minh image
+đã chạy thành công. Runner Linux trên Codemagic yêu cầu bật billing; đây là kiểm tra tùy chọn,
 không cần để bạn chạy gói trên máy tính. Chưa chạy container thành công thì chưa
 thể suy ra image đã được xác minh chỉ từ việc YAML hợp lệ.

@@ -85,12 +85,17 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("local-smoke-tests.log", workflow["artifacts"])
         self.assertFalse(any(".env" in name or "secret" in name.lower() for name in workflow["artifacts"]))
         runner = (ROOT / "ci/test-local-data-lake.sh").read_text()
-        for gate in ("config --quiet", "up -d --build", "--check", "report['freshData'] is False",
+        for gate in ("python3 -m data_lake.local_trial", "--project-name chart-lake-smoke",
+                     "--wait-seconds 120", "report['api']['freshData'] is False",
+                     "report['dataRequested'] is False", "report['ok'] is True",
                      "'collector' not in services", "error.code == 401", "down --remove-orphans",
-                     "lake_deadline=$((SECONDS + 120))", 'timeout "$lake_remaining" python3'):
+                     "export DOCKER_HOST=unix:///var/run/docker.sock", 'docker --host "$DOCKER_HOST" compose',
+                     "unset DOCKER_CONTEXT DOCKER_TLS DOCKER_TLS_VERIFY DOCKER_CERT_PATH COMPOSE_PROFILES",
+                     "[ -f .data/local-lake.env ] && [ ! -L .data/local-lake.env ]"):
             with self.subTest(gate=gate):
                 self.assertIn(gate, runner)
         self.assertNotIn("--profile collector", runner)
+        self.assertNotIn("--load-candles", runner)
         self.assertNotIn("down -v", runner)
 
     def test_shell_scripts_parse_and_no_unsupported_python_version_key(self):

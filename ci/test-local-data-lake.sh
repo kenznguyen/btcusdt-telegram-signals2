@@ -5,46 +5,33 @@ set -euo pipefail
 cd "$CM_BUILD_DIR"
 exec > >(tee local-smoke-tests.log) 2>&1
 
-python3 --version
-docker compose version
-command -v timeout >/dev/null
-python3 -m data_lake.local_setup --port 8788
-lake_compose=(docker compose --project-name chart-lake-smoke \
+# This job owns the managed Linux daemon, never an inherited remote context.
+unset DOCKER_CONTEXT DOCKER_TLS DOCKER_TLS_VERIFY DOCKER_CERT_PATH COMPOSE_PROFILES
+export DOCKER_HOST=unix:///var/run/docker.sock
+lake_compose=(docker --host "$DOCKER_HOST" compose --project-name chart-lake-smoke \
   --env-file .data/local-lake.env -f deploy/data-lake/compose.yaml)
-# Quiet validation never renders the resolved environment or its generated secrets.
-"${lake_compose[@]}" config --quiet
 
 cleanup_local_lake() {
   lake_status=$?
   trap - EXIT
-  if [ "$lake_status" -ne 0 ]; then
-    # These processes emit fixed diagnostics; raw PostgreSQL logs are excluded.
-    "${lake_compose[@]}" logs --no-color --tail 200 api bootstrap || true
+  if [ -f .data/local-lake.env ] && [ ! -L .data/local-lake.env ]; then
+    if [ "$lake_status" -ne 0 ]; then
+      # These processes emit fixed diagnostics; raw PostgreSQL logs are excluded.
+      "${lake_compose[@]}" logs --no-color --tail 200 api bootstrap || true
+    fi
+    # Retain named volumes; the disposable CI machine owns their eventual cleanup.
+    "${lake_compose[@]}" down --remove-orphans || true
   fi
-  # Retain named volumes; the disposable CI machine owns their eventual cleanup.
-  "${lake_compose[@]}" down --remove-orphans || true
   exit "$lake_status"
 }
 trap cleanup_local_lake EXIT
 
-"${lake_compose[@]}" up -d --build
-lake_ready=0
-lake_deadline=$((SECONDS + 120))
-while (( SECONDS < lake_deadline )); do
-  lake_remaining=$((lake_deadline - SECONDS))
-  if timeout "$lake_remaining" python3 -m data_lake.local_setup --check > .data/local-lake-status.json; then
-    lake_ready=1
-    break
-  fi
-  lake_remaining=$((lake_deadline - SECONDS))
-  if (( lake_remaining > 0 )); then
-    sleep "$((lake_remaining < 2 ? lake_remaining : 2))"
-  fi
-done
-if [ "$lake_ready" -ne 1 ]; then
-  printf '%s\n' 'Local API did not become ready within 120 seconds.' >&2
-  exit 1
-fi
+python3 --version
+mkdir -p .data
+# The launcher owns preflight, quiet configuration, build/start and readiness.
+# Its stdout contract is safe JSON; progress and diagnostics go to stderr.
+python3 -m data_lake.local_trial --project-name chart-lake-smoke \
+  --port 8788 --wait-seconds 120 | tee .data/local-lake-status.json
 
 "${lake_compose[@]}" ps --all --services > .data/local-lake-services.txt
 python3 - <<'PY'
@@ -62,9 +49,11 @@ class NoRedirect(HTTPRedirectHandler):
 opener = build_opener(ProxyHandler({}), NoRedirect())
 
 report = json.loads(Path('.data/local-lake-status.json').read_text())
-assert report['service'] == 'canonical-data-lake'
-assert report['ready'] is True
-assert report['freshData'] is False, 'An empty local trial must not manufacture candles'
+assert report['ok'] is True
+assert report['dataRequested'] is False, 'Smoke test must not request exchange data'
+assert report['api']['service'] == 'canonical-data-lake'
+assert report['api']['ready'] is True
+assert report['api']['freshData'] is False, 'An empty local trial must not manufacture candles'
 services = set(Path('.data/local-lake-services.txt').read_text().splitlines())
 assert {'postgres', 'bootstrap', 'api'} <= services
 assert 'collector' not in services, 'Smoke test must not start an exchange collector'
