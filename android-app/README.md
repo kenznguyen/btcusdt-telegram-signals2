@@ -53,9 +53,18 @@ The workflow produces debug artifacts only. A passing build is the source of tru
 
 ## Live chart and in-app backtest
 
+### Hummingbot Order Book
+
+The **Order Book** tab supports Binance direct data and Hummingbot snapshots for the selected USDT perpetual symbol. It displays best bid/ask, spread in basis points, depth over 20 price levels, and plain/distance-weighted liquidity imbalance. Hummingbot also shows its five nearest levels on each side. Snapshots remain separate from the scanner and strategy confirmation stream: the API timestamp is retrieval time, not an exchange event time or proof of sequence synchronization.
+
+Run the read-only gateway using [integrations/README.md](../integrations/README.md), then enter its HTTPS base URL and dedicated access token in the Hummingbot source settings. The token stays in screen memory; only the URL and source selection are saved. Hummingbot Basic credentials remain on the server. The app polls every five seconds while the panel is visible and the activity is started, cancels requests when switching symbols/sources, clears results on fetch failure, and hides expired snapshots. It never silently substitutes Binance results for Hummingbot.
+
+Focused regression tests: `gradle :app:testDebugUnitTest --tests '*HummingbotOrderBookTest' --no-daemon`. Full validation remains the test/build command above. Codemagic accepts `feature/hummingbot-order-book` and runs the bridge tests before Android tests/build. Start `android-chart-pro-debug` on that branch if its GitHub webhook is unavailable. This source change does not include a signed release artifact.
+
 - The live candlestick chart displays recent candles, a price grid, and Bollinger Bands (20, 2). Initial loading, periodic reconciliation and reconnection use the selected symbol. Late callbacks from replaced connections are ignored.
 - Chart alert titles, history and deduplication keys include the symbol and timeframe. The newest 100 history items are retained. Master notification settings, direction filters where applicable, quiet hours, sound and vibration share one delivery policy.
 - The multi-symbol scanner reconnects with backoff and loads candle history before resuming evaluation; switching continuous scanning off and on restarts it without reopening the app.
 - The BTCUSDT backtest offers 7/30/90/180/360-day history through paginated requests and processes each candle once. It shows estimated net PnL, balance, closed exits, win rate, Profit Factor, max drawdown and recent closed events.
 - Closed-trade PnL and open-position unrealized PnL are displayed separately. Equity/drawdown include estimated unrealized PnL and fees; intrabar extremes are estimates from OHLC, not tick-order reconstruction. Validate the same candle fixture and fill assumptions before comparing results with another engine.
+
 
