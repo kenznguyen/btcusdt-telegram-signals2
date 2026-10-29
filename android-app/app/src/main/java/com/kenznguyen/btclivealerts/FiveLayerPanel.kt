@@ -227,6 +227,15 @@ internal fun FiveLayerPanel(context: Context) {
             val window = candles.fresh(clock)
             if (window == null) Text(candles.unavailableMessage(connection != null), color = fiveMuted)
             else {
+                val lag = canonicalCandleLagMs(window, clock)
+                val stale = canonicalCandlesStale(window, clock)
+                Text(if (stale) "DỮ LIỆU NẾN ĐÃ CŨ · Chờ đồng bộ kho tầng 0"
+                    else "Nến chuẩn còn mới · Tầng 0",
+                    color = if (stale) fiveAmber else fiveGreen,
+                    style = MaterialTheme.typography.bodySmall)
+                if (lag != null && lag >= 0L)
+                    Text("Tuổi nến đóng cuối: ${lag / 60_000L} phút", color = fiveMuted,
+                        style = MaterialTheme.typography.bodySmall)
                 CanonicalCandlesContent(window)
                 Text("Đọc API lúc ${fiveTime(candles.fetchedAtMs)} · Nến đóng từ kho tầng 0",
                     color = fiveMuted, style = MaterialTheme.typography.bodySmall)
