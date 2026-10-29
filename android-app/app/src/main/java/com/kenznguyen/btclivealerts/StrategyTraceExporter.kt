@@ -9,16 +9,27 @@ internal data class KotlinReplayTrace(
     val state: StrategyState, val events: List<StrategyEvent>, val json: JSONObject
 )
 internal object StrategyTraceExporter {
-    private fun canonical(candles: List<Candle>, label: String): String =
-        candles.filter { it.closed }.sortedBy { it.openTime }.joinToString("\n") { c ->
-            listOf(label, c.openTime.toString(), c.open.toString(), c.high.toString(),
-                c.low.toString(), c.close.toString(), c.volume.toString()).joinToString(",")
+    private fun canonicalBytes(m15: List<Candle>, h1: List<Candle>): ByteArray {
+        val bytes = java.io.ByteArrayOutputStream()
+        val writer = java.io.DataOutputStream(bytes)
+        writer.write("CHARTPRO-OHLCV-V2".toByteArray(Charsets.US_ASCII))
+        writer.writeByte(0)
+        for ((label, candles) in listOf("M15" to m15, "H1" to h1)) {
+            writer.write(label.toByteArray(Charsets.US_ASCII))
+            writer.writeByte(0)
+            for (c in candles.filter { it.closed }.sortedBy { it.openTime }) {
+                val values = listOf(c.open, c.high, c.low, c.close, c.volume)
+                require(values.all { it.isFinite() }) { "Non-finite OHLCV" }
+                writer.writeLong(c.openTime)
+                values.forEach { writer.writeDouble(it) }
+            }
         }
+        writer.flush()
+        return bytes.toByteArray()
+    }
 
     fun datasetHash(m15: List<Candle>, h1: List<Candle>): String {
-        val payload = canonical(m15, "15m") + "\n" + canonical(h1, "1h")
-        val digest = MessageDigest.getInstance("SHA-256")
-            .digest(payload.toByteArray(Charsets.UTF_8))
+        val digest = MessageDigest.getInstance("SHA-256").digest(canonicalBytes(m15, h1))
         return "sha256:" + digest.joinToString("") { "%02x".format(it.toInt() and 0xff) }
     }
 
