@@ -13,6 +13,8 @@ Không có công cụ Codemagic hoặc credential được cấu hình trong phi
 
 ## 2. Kiểm thử dữ liệu và gateway
 
+Nhánh `feature/five-layer-paper` bổ sung kiểm thử toàn luồng paper và workflow React `five-layer-dashboard`. Workflow thủ công `freqai-strategy-smoke` cài Freqtrade/FreqAI 2026.9 để kiểm tra load strategy, không chạy train/trade. Xem [runbook 5 tầng](FIVE_LAYER_PAPER_RUNBOOK.md) để thiết lập runtime.
+
 Workflow **`canonical-market-data`**:
 
 - Tạo Python venv riêng; cài `requirements-market-data.txt`, `requirements-web.txt`, `requirements-ci.txt`.
