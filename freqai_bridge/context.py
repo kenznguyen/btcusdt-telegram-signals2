@@ -1,6 +1,7 @@
 """Read the same closed-candle window used by the common paper API."""
 
 import argparse
+import os
 import time
 
 from freqai_bridge.exporter import write_artifact
@@ -24,10 +25,12 @@ def canonical_context(database, now_ms=None, bars=2):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--db", required=True)
+    parser.add_argument("--db", default=os.environ.get("DATA_LAKE_DATABASE_URL"))
     parser.add_argument("--output", default=".data/canonical-window.json")
     parser.add_argument("--bars", type=int, default=2)
     args = parser.parse_args()
+    if not args.db:
+        parser.error("Set --db or DATA_LAKE_DATABASE_URL")
     try:
         window = canonical_context(args.db, bars=args.bars)
         write_artifact(args.output, window)

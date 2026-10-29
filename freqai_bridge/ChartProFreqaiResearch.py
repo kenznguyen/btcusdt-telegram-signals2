@@ -1,6 +1,7 @@
 """FreqAI prediction-only strategy: this strategy never requests native orders."""
 
 import logging
+import os
 import time
 
 from freqtrade.strategy import IStrategy
@@ -55,7 +56,8 @@ class ChartProFreqaiResearch(IStrategy):
 
     def _publish_prediction(self, dataframe):
         context = self.config.get("freqai_bridge", {})
-        paths = (context.get("canonical_db_path"), context.get("provenance_path"), context.get("output_path"))
+        paths = (os.environ.get("DATA_LAKE_DATABASE_URL") or context.get("canonical_db_path"),
+                 context.get("provenance_path"), context.get("output_path"))
         if not all(isinstance(path, str) and path for path in paths):
             return
         observed = time.time_ns() // 1_000_000
