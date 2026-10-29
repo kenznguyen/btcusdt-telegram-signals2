@@ -116,6 +116,19 @@ class FiveLayerApiTest {
         }
     }
 
+    @Test fun rejectsPaperLedgerNetPnlMismatchWithoutFloatingPointRounding() {
+        val valid = FiveLayerJson.ledger(ledger(), now)
+        assertEquals("-0.000000000000000000000003", valid.netRealizedPnlQuote)
+        listOf("0", "-0.000000000000000000000002", "0.000000000000000000000003").forEach { wrong ->
+            assertThrows(IllegalArgumentException::class.java) {
+                FiveLayerJson.ledger(ledger().put("netRealizedPnlQuote", wrong), now)
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            FiveLayerJson.ledger(ledger().put("realizedPnlQuote", "0"), now)
+        }
+    }
+
     @Test fun evaluateDistinguishesWaitFromSubmittedPaperOrder() {
         val wait = JSONObject("""{"decision":{"action":"WAIT","reason":"STALE_INPUT","intent":null},"order":null}""")
         assertNull(FiveLayerJson.evaluation(wait, now).order)

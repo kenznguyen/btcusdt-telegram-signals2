@@ -235,6 +235,9 @@ internal object FiveLayerJson {
         val realized = decimal(json, "realizedPnlQuote", signed = true)
         val fees = decimal(json, "feesQuote")
         val net = decimal(json, "netRealizedPnlQuote", signed = true)
+        require(BigDecimal(net).compareTo(BigDecimal(realized) - BigDecimal(fees)) == 0) {
+            "Inconsistent paper net realized PnL"
+        }
         return PaperView(bool(json, "paused"), position, average, realized, fees, net, orders)
     }
 

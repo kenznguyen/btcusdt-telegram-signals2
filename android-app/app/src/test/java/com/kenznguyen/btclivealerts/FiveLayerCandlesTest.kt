@@ -165,6 +165,16 @@ class FiveLayerCandlesTest {
         variants.forEach { assertThrows(IllegalArgumentException::class.java) { parse(it) } }
     }
 
+    @Test fun candleFreshnessDetectsOldLatestCloseEvenWhenApiWasJustFetched() {
+        val window = parse(fixture())
+        assertEquals(15_300_000L, canonicalCandleLagMs(window, now))
+        assertTrue(canonicalCandlesStale(window, now))
+        assertFalse(canonicalCandlesStale(window, window.candles.last().closeTimeMs + 1_800_000L))
+        assertTrue(canonicalCandlesStale(window, window.candles.last().closeTimeMs + 1_800_001L))
+        assertNull(canonicalCandleLagMs(window.copy(candles = emptyList()), now))
+        assertTrue(canonicalCandlesStale(window.copy(candles = emptyList()), now))
+    }
+
     @Test fun errorsExposeOnlyStructuredCodesAndFixedMessages() {
         val expected = mapOf(401 to FiveLayerFailure.AUTH, 403 to FiveLayerFailure.AUTH,
             404 to FiveLayerFailure.ENDPOINT, 429 to FiveLayerFailure.RATE_LIMIT,
