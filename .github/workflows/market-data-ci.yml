@@ -1,0 +1,41 @@
+name: Canonical Market Data CI
+
+on:
+  push:
+    branches: [feature/canonical-market-data, main]
+    paths:
+      - 'market_data/**'
+      - 'requirements-market-data.txt'
+      - '.github/workflows/market-data-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'market_data/**'
+      - 'requirements-market-data.txt'
+      - '.github/workflows/market-data-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: market-data-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install public-data adapter
+        run: python -m pip install -r requirements-market-data.txt
+      - name: Verify optional adapter import
+        run: python -c 'import ccxt; assert ccxt.binanceusdm().id == "binanceusdm"'
+      - name: Run offline integration and regression tests
+        run: python -m unittest market_data.test_store market_data.test_sync market_data.test_api integrations.test_hummingbot_bridge -v
+      - name: Check sync CLI
+        run: python -m market_data.sync --help
