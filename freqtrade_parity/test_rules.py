@@ -34,7 +34,7 @@ class StrategyRulesTest(unittest.TestCase):
         self.assertFalse(compare_event_traces([{"kind":"DCA","candleTime":1}],
                                               [{"kind":"TP","candleTime":1}], "abc")["parity_verified"])
         self.assertTrue(compare_event_traces([{"kind":"DCA","candleTime":1}],
-                                             [{"kind":"DCA","candleTime":1}], "abc")["parity_verified"])
+                                             [{"kind":"DCA","candleTime":1}], "sha256:" + "a"*64)["parity_verified"])
         self.assertFalse(compare_event_traces([{"kind":"DCA","candleTime":1}],
                                               [{"kind":"DCA","candleTime":1}], "")["parity_verified"])
 
