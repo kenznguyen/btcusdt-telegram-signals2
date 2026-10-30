@@ -216,7 +216,7 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
                 "dataset_sha256": "sha256:"+"b"*64,
                 "detail_sha256": "sha256:"+"c"*64,
             }
-            with patch("quant_system.native_research.audit_history",return_value=stats), \\
+            with patch("quant_system.native_research.audit_history",return_value=stats), \
                  patch("quant_system.native_research.training_window",
                        return_value=(stats["start_ms"], stats["end_ms"])):
                 audit, commands = research_commands(
