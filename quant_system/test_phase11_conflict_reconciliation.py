@@ -63,7 +63,7 @@ def evidence(folder,forecast='.003',flag='1',side='SHORT'):
     p10.write_text(json.dumps(dict(
         contention_audit_verified=True,errors=[],
         ready_for_360=False,full_core_parity_certified=False,
-        live_orders_enabled=False,
+        live_orders_enabled=False,oos_certified=False,
         unexplained_without_active_obstruction=1,
         core_only_entries_absent_in_dual=1,
         details_csv_sha256=digest(attribution),
@@ -82,6 +82,28 @@ class Phase11Test(unittest.TestCase):
             self.assertEqual(details[0]['new_category'],'SAME_CANDLE_CORE_AI_SOURCE_CONFLICT')
             self.assertFalse(result['oos_certified'])
             self.assertFalse(result['ready_for_360'])
+
+    def test_phase10_missing_or_true_oos_flag_must_still_fail_closed(self):
+        # A real Phase 10 attestation must explicitly deny OOS certification.
+        # The fixture must never weaken the Phase 11 fail-closed gate.
+        with tempfile.TemporaryDirectory() as root:
+            paper,pred,native,market=evidence(root)
+            path=paper/'portfolio-180-source-contention.json'
+            baseline=json.loads(path.read_text())
+            for invalid in (None,True):
+                with self.subTest(oos_certified=invalid):
+                    tampered=dict(baseline)
+                    if invalid is None:
+                        tampered.pop('oos_certified',None)
+                    else:
+                        tampered['oos_certified']=invalid
+                    path.write_text(json.dumps(tampered))
+                    result,_=audit_conflicts(paper,pred,native,market)
+                    self.assertFalse(result['source_conflict_reconciliation_verified'])
+                    self.assertIn('UPSTREAM_PHASE10_NOT_VERIFIED',result['errors'])
+            path.write_text(json.dumps(baseline))
+            passed,_=audit_conflicts(paper,pred,native,market)
+            self.assertTrue(passed['source_conflict_reconciliation_verified'],passed)
 
     def test_same_direction_keeps_unexplained_and_fails_closed(self):
         with tempfile.TemporaryDirectory() as root:
