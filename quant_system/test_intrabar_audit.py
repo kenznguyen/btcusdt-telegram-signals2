@@ -106,6 +106,28 @@ class IntrabarAuditTests(unittest.TestCase):
         self.assertIsNotNone(report["event_diagnostics"][0]["fill_difference"])
         self.assertFalse(report["parity_verified"])
 
+    def test_short_emergency_stop_intrabar_crossing_and_fill_gap_estimate(self):
+        for path in (self.m15, self.h1, self.detail):
+            lines = path.read_text().splitlines()
+            # Raise only the first candle's high; keep H1/M15/5m consistent.
+            lines[1] = lines[1].replace(",100,101,", ",100,108,", 1)
+            path.write_text("\\n".join(lines) + "\\n")
+        stop = StrategyRules().threshold_price("SHORT", 100, 90)
+        report = self.call(events=[{
+            "kind": "EMERGENCY SL", "side": "SHORT",
+            "candleTime": self.start, "avg_entry": 100, "stop_price": stop,
+        }])
+        touch = report["event_diagnostics"][0]
+        self.assertEqual(touch["first_touch_open_ms"], self.start)
+        self.assertGreater(touch["expected_fill_price"], stop)
+        self.assertIsNone(touch["actual_fill_price"])
+
+    def test_soft_stop_confirmation_must_follow_m15_close(self):
+        event = {"kind": "SOFT SL", "side": "LONG", "candleTime": self.start,
+                 "confirmed_at_ms": self.start + 300_000}
+        with self.assertRaises(ValueError):
+            self.call(events=[event])
+
     def test_forged_emergency_stop_threshold_is_rejected(self):
         event = {"kind": "EMERGENCY SL", "side": "LONG", "candleTime": self.start,
                  "avg_entry": 100, "stop_price": 95.}
