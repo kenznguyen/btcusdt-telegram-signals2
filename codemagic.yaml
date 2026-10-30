@@ -35,6 +35,13 @@ workflows:
           export PYTHONPATH="$CM_BUILD_DIR"
           python3 -m quant_engine.replay_cli --m15 "$PARITY_M15_CSV" --h1 "$PARITY_H1_CSV" --output artifacts/history/python-trace.json
           python3 -m quant_engine.trace_gate artifacts/history
+      - name: Stop-loss M1 M5 intrabar diagnostics and independent review
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -m quant_engine.intrabar_fetch --trace artifacts/history/kotlin-trace.json --output artifacts/history/intrabar
+          python3 -m quant_engine.independent_audit artifacts/history
       - name: Mark independent audit pending
         script: |
           set -euo pipefail
