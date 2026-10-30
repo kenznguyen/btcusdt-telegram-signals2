@@ -136,8 +136,10 @@ class DualPaperBridge:
                 return PaperBridgeResult("WAIT", "SIGNAL_REVALIDATION_FAILED")
             if latest["closeTimeMs"] != route.selected.candle_close_ms:
                 return PaperBridgeResult("WAIT", "SIGNAL_CANDLE_MISMATCH")
-            sides, price_id = None, None
-            bids, asks, spread, price_id = book_value(book, now)
+            try:
+                bids, asks, spread, price_id = book_value(book, now)
+            except (ValueError, TypeError, KeyError, OverflowError):
+                return PaperBridgeResult("WAIT", "INVALID_BOOK")
             if spread > self.paper.spread:
                 return PaperBridgeResult("WAIT", "SPREAD_LIMIT")
             side = route.selected.side
