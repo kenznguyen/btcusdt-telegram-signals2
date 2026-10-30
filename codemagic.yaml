@@ -1,0 +1,29 @@
+# Isolated Codemagic smoke tests for Dual-Strategy Phase 1.
+# Keep this on the CI branch only. Do not merge into main without reviewing
+# existing Codemagic Workflow Editor settings (root YAML takes precedence).
+workflows:
+  dual-strategy-phase1-tests:
+    name: Dual-Strategy Phase 1 | Python unit tests
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: "ci/codemagic-dual-strategy-phase1"
+          include: true
+          source: true
+    scripts:
+      - name: Verify Python and commit
+        script: |
+          set -eu
+          python3 --version
+          git rev-parse HEAD
+      - name: Compile dual-strategy sources
+        script: |
+          set -eu
+          python3 -m compileall -q quant_system tests/test_dual_strategy.py
+      - name: Independent CORE and AI risk admission unit tests
+        script: |
+          set -eu
+          python3 -m unittest discover -s tests -p 'test_dual_strategy.py' -v
