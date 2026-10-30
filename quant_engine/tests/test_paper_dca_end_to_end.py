@@ -2,7 +2,7 @@
 
 Requires QUANT_PAPER_SOURCE pointing to a checked-out PR67 tree. No live exchange.
 """
-import os,sys,tempfile,unittest
+import os,sys,tempfile,unittest,json
 from pathlib import Path
 from quant_engine.dca_state import DcaStore
 
@@ -53,6 +53,21 @@ class PaperDcaEndToEnd(unittest.TestCase):
                 snapshot=after_restart.snapshot()
                 self.assertEqual(snapshot["positionBase"],"0.2")
                 self.assertFalse(snapshot["liveTradingSupported"])
+                output=os.environ.get("QUANT_PAPER_EVIDENCE_OUTPUT")
+                if output:
+                    target=Path(output)
+                    target.parent.mkdir(parents=True,exist_ok=True)
+                    target.write_text(json.dumps({
+                        "paper_dca_e2e_verified":True,
+                        "order_status":filled["status"],
+                        "restart_reconciliation":True,
+                        "duplicate_dca_blocked":True,
+                        "live_trading_supported":snapshot["liveTradingSupported"],
+                        "intent_id":filled["intentId"],
+                        "order_id":filled["orderId"],
+                        "final_position_base":snapshot["positionBase"],
+                        "source":"PaperLedger.submit controlled order book"
+                    },indent=2)+"\n")
         finally:
             sys.path.remove(source)
 if __name__=="__main__":unittest.main()
