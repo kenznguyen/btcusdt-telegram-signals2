@@ -84,6 +84,11 @@ def inspect_forecasts(artifacts_root):
         root = Path(artifacts_root)
         phase12 = load_json(root / "paper/phase12-native-fit-label-audit.json")
         native = load_json(root / "native/native-research-180.json")
+        phase8 = load_json(root / "paper/phase8-native-model-evidence.json")
+        require(phase8.get("native_model_lineage_verified") is True and
+                phase8.get("errors") == [] and
+                isinstance(phase8.get("evidence_sha256"), dict),
+                "PHASE13_PHASE8_MODEL_LINK_NOT_VERIFIED")
         require(phase12.get("train_test_label_purge_verified") is True and
                 phase12.get("actual_fit_sample_lineage_verified") is True and
                 phase12.get("errors") == [],
@@ -91,8 +96,10 @@ def inspect_forecasts(artifacts_root):
         pred_path = root / "native/freqai-native-predictions.csv"
         lineage_path = root / "native/freqai-native-model-lineage.csv"
         candles_path = root / "canonical/15m.csv"
-        require(sha(pred_path) == native.get("prediction_capture_sha256") and
-                sha(lineage_path) == native.get("phase8_model_lineage_sha256") and
+        require(sha(pred_path) == native.get("prediction_capture_sha256") ==
+                    phase8["evidence_sha256"].get("predictions") and
+                sha(lineage_path) == native.get("phase8_model_lineage_sha256") ==
+                    phase8["evidence_sha256"].get("lineage") and
                 sha(candles_path) == phase12.get("canonical_m15_sha256"),
                 "PHASE13_FORECAST_EVIDENCE_SHA_MISMATCH")
         candles = {}
