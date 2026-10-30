@@ -10,6 +10,22 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def sample_venue_manifest(exchange):
+    import hashlib
+    import json
+    fields = {
+        "exchange": exchange,
+        "symbol": "BTC/USDT:USDT",
+        "marketType": "USDT_PERPETUAL",
+        "dataset_sha256": "sha256:" + "b" * 64,
+        "detail_sha256": "sha256:" + "c" * 64,
+    }
+    digest = hashlib.sha256(json.dumps(
+        fields, sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+    return {**fields, "provenance_sha256": "sha256:" + digest, "ohlcv_verified": True}
+
+
 class Phase3NativeWorkflowTest(unittest.TestCase):
     def test_install_step_exports_python_before_invoking_it(self):
         yaml = (ROOT / "codemagic.yaml").read_text(encoding="utf-8")
@@ -60,15 +76,14 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as location:
             root = Path(location)
             userdir = root / "user-data"
-            (root / "native-export-report.json").write_text(json.dumps({
-                "exchange": "binance", "symbol": "BTC/USDT:USDT",
-                "marketType": "USDT_PERPETUAL", "ohlcv_verified": True,
-                "dataset_sha256": "sha256:" + "b" * 64,
-            }))
+            (root / "native-export-report.json").write_text(
+                json.dumps(sample_venue_manifest("binance"))
+            )
             with patch("quant_system.native_research.audit_history",
                        return_value={"ohlcv_verified": True, "start_ms": 1_700_000_040_000,
                                      "end_ms": 1_700_000_940_000,
-                                     "dataset_sha256": "sha256:" + "b" * 64}), \
+                                     "dataset_sha256": "sha256:" + "b" * 64,
+                                     "detail_sha256": "sha256:" + "c" * 64}), \
                  patch("quant_system.native_research.training_window",
                        return_value=(1_700_000_040_000, 1_700_000_940_000)):
                 with self.assertRaisesRegex(ValueError, "MISSING_INITIALIZED_FREQTRADE_USERDIR"):
@@ -152,11 +167,7 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
             (root / "user-data" / "strategies").mkdir(parents=True)
             (root / "dataset").mkdir()
             report = root / "dataset" / "native-export-report.json"
-            report.write_text(json.dumps({
-                "exchange": "binance", "ohlcv_verified": True,
-                "symbol": "BTC/USDT:USDT", "marketType": "USDT_PERPETUAL",
-                "dataset_sha256": "sha256:"+"b"*64,
-            }))
+            report.write_text(json.dumps(sample_venue_manifest("binance")))
             config = ROOT / "freqai_bridge/config.okx-research.json"
             with patch(
                 "quant_system.native_research.audit_history",
@@ -164,6 +175,7 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
                     "ohlcv_verified":True,"start_ms":1_700_000_040_000,
                     "end_ms":1_700_000_940_000,
                     "dataset_sha256":"sha256:"+"b"*64,
+                    "detail_sha256":"sha256:"+"c"*64,
                 },
             ), patch(
                 "quant_system.native_research.training_window",
@@ -175,11 +187,7 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
                     config_path=config, exchange="okx")
                 with self.assertRaisesRegex(ValueError, "VENUE_MISMATCH"):
                     research_commands(**kwargs)
-                report.write_text(json.dumps({
-                    "exchange":"okx","ohlcv_verified":True,
-                    "symbol":"BTC/USDT:USDT","marketType":"USDT_PERPETUAL",
-                    "dataset_sha256":"sha256:"+"b"*64,
-                }))
+                report.write_text(json.dumps(sample_venue_manifest("okx")))
                 manifest, commands = research_commands(**kwargs)
                 self.assertEqual(len(commands),2)
                 for _label, cmd in commands:
