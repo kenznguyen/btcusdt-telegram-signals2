@@ -87,16 +87,32 @@ class Phase14FittedInterventionTests(unittest.TestCase):
             bundle.write_bytes(b"trusted synthetic placeholder; NEVER unpickle")
             from quant_system.phase13b_matrix import matrix_digest
             metadata = root / "candidate.json"
-            metadata.write_text(json.dumps({"candidate_sha256": matrix_digest(bundle),
-                "source_commit_sha": "0" * 40}))
+            metadata.write_text(json.dumps({
+                "candidate_sha256": matrix_digest(bundle),
+                "source_commit_sha": "0" * 40,
+                "model_sha256": "sha256:" + "a" * 64,
+                "model_identifier": "test-model",
+                "training_end_ms": 1792965600000
+            }))
             protocol = root / "protocol.json"
-            protocol.write_text('{"holdout_start_utc":"2026-11-04T00:00:00Z"}')
+            protocol.write_text(json.dumps({
+                "holdout_start_utc": "2026-11-04T00:00:00Z",
+                "holdout_end_utc": "2026-12-04T00:00:00Z",
+                "model_identifier": "test-model"
+            }))
             seal = root / "seal.json"
             seal.write_text(json.dumps({
                 "candidate_bundle_sha256": matrix_digest(bundle),
                 "candidate_metadata_sha256": matrix_digest(metadata),
                 "protocol_sha256": matrix_digest(protocol),
                 "source_commit_sha": "0" * 40,
+                "model_booster_sha256": "sha256:" + "a" * 64,
+                "model_identifier": "test-model",
+                "training_end_ms": 1792965600000,
+                "holdout_start_utc": "2026-11-04T00:00:00Z",
+                "holdout_end_utc": "2026-12-04T00:00:00Z",
+                "independent_oos_verified": False,
+                "oos_certified": False,
                 "full_model_pipeline_causality_verified": False,
                 "live_orders_enabled": False
             }))
