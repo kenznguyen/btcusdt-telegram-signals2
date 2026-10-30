@@ -33,7 +33,18 @@ def fetch_closed(bar,step_ms,count,fetch_page=None,now_ms=None):
     candles={};after=None
     for _ in range((count+99)//100+8):
         if fetch_page is not None and _ > 0 and count > 1200: time.sleep(0.25)
-        payload=fetch_page(after)
+        payload=None
+        for attempt in range(4):
+            try:
+                payload=fetch_page(after)
+                if isinstance(payload,dict) and payload.get("code")=="50011":
+                    if attempt==3:raise ValueError("OKX_RATE_LIMIT_EXHAUSTED")
+                    time.sleep(1.5*(attempt+1))
+                    continue
+                break
+            except (urllib.error.URLError,TimeoutError):
+                if attempt==3:raise
+                time.sleep(1.5*(attempt+1))
         if not isinstance(payload,dict) or payload.get("code")!="0" or not isinstance(payload.get("data"),list):
             raise ValueError("OKX_API_FAILURE")
         raw=payload["data"]
