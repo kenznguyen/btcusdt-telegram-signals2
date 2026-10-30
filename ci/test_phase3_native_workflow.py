@@ -35,7 +35,10 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
         userdir = '"$CM_BUILD_DIR/.ci-tools/phase3-freqtrade-userdata"'
         self.assertIn('freqtrade create-userdir --userdir ' + userdir, install)
         self.assertIn('--userdir ' + userdir, download)
-        self.assertLess(install.index('freqtrade create-userdir'), install.index("Pinned Freqtrade/FreqAI imports OK") if False else len(install))
+        self.assertLess(
+            install.index('freqtrade create-userdir'),
+            install.index('test -d ' + userdir),
+        )
         self.assertIn('test -d ' + userdir, install)
 
     def test_native_research_uses_same_explicit_userdir(self):
@@ -47,6 +50,40 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
         source = (ROOT / "quant_system/native_research.py").read_text(encoding="utf-8")
         self.assertIn('parser.add_argument("--userdir", required=True)', source)
         self.assertIn('userdir=args.userdir', source)
+
+    def test_native_backtest_commands_share_initialized_directory(self):
+        import tempfile
+        from unittest.mock import patch
+        from quant_system.native_research import research_commands
+
+        with tempfile.TemporaryDirectory() as location:
+            root = Path(location)
+            userdir = root / "user-data"
+            with patch("quant_system.native_research.audit_history",
+                       return_value={"ohlcv_verified": True, "start_ms": 1_700_000_000_000,
+                                     "end_ms": 1_700_000_900_000}), \
+                 patch("quant_system.native_research.training_window",
+                       return_value=(1_700_000_000_000, 1_700_000_900_000)):
+                with self.assertRaisesRegex(ValueError, "MISSING_INITIALIZED_FREQTRADE_USERDIR"):
+                    research_commands(
+                        days=180, detail_minutes=5, dataset_dir=root,
+                        native_datadir=root / "data", out_dir=root / "results",
+                        userdir=userdir,
+                    )
+                (userdir / "strategies").mkdir(parents=True)
+                audit, commands = research_commands(
+                    days=180, detail_minutes=5, dataset_dir=root,
+                    native_datadir=root / "data", out_dir=root / "results",
+                    userdir=userdir,
+                )
+                self.assertEqual(len(commands), 2)
+                for source, command in commands:
+                    with self.subTest(source=source):
+                        self.assertIn("--userdir", command)
+                        self.assertEqual(command[command.index("--userdir")+1], str(userdir.resolve()))
+                        self.assertIn("--timeframe-detail", command)
+                        self.assertEqual(command[command.index("--timeframe-detail")+1], "5m")
+                        self.assertEqual(command[command.index("--datadir")+1], str((root/"data").resolve()))
 
     def test_installer_persists_python_for_following_steps(self):
         setup = (ROOT / "ci/setup-python.sh").read_text(encoding="utf-8")
