@@ -38,9 +38,11 @@ def fixture(root):
             configured_label_horizon_candles='4',do_predict='1'))
     write(pred,rows)
     write(root/'native/freqai-native-model-lineage.csv',lineage)
+    lineage_sha=sha(root/'native/freqai-native-model-lineage.csv')
     (root/'native/native-research-180.json').write_text(json.dumps(dict(
         freqai_native_runtime_succeeded=True,core_native_runtime_succeeded=True,
         prediction_capture_sha256=sha(pred),prediction_capture_accepted=8,
+        phase8_model_lineage_sha256=lineage_sha,
         prediction_capture_rows=8,freqai_oos_verified=False,
         full_core_parity_certified=False)))
     (root/'paper/phase7-inferred-model-lineage.json').write_text(json.dumps(dict(
@@ -48,6 +50,12 @@ def fixture(root):
         oos_certified=False,ready_for_360=False,accepted_forecasts=8,
         evidence_sha256=dict(predictions=sha(pred)))))
     return root
+
+def update_manifest(root,path):
+    native=root/'native/native-research-180.json'
+    report=json.loads(native.read_text())
+    report['phase8_model_lineage_sha256']=sha(path)
+    native.write_text(json.dumps(report))
 
 class Phase8Test(unittest.TestCase):
     def test_joined_native_rows_remain_noncertified(self):
@@ -65,6 +73,7 @@ class Phase8Test(unittest.TestCase):
             root=fixture(tmp);p=root/'native/freqai-native-model-lineage.csv'
             with p.open(newline='') as f: rows=list(csv.DictReader(f))
             write(p,rows[:-1])
+            update_manifest(root,p)
             self.assertIn('MISSING_ACCEPTED_MODEL_LINEAGE',
                           audit_native_model_evidence(root)['errors'])
 
@@ -74,6 +83,7 @@ class Phase8Test(unittest.TestCase):
             with p.open(newline='') as f: rows=list(csv.DictReader(f))
             rows[0]['latest_observed_label_end_ms']=str(START+M15)
             write(p,rows)
+            update_manifest(root,p)
             self.assertIn('NONCAUSAL_MODEL_LABEL_BOUNDARY',
                           audit_native_model_evidence(root)['errors'])
 
@@ -82,6 +92,7 @@ class Phase8Test(unittest.TestCase):
             root=fixture(tmp);p=root/'native/freqai-native-model-lineage.csv'
             with p.open(newline='') as f: rows=list(csv.DictReader(f))
             write(p,rows+[rows[0]])
+            update_manifest(root,p)
             self.assertIn('DUPLICATE_MODEL_PREDICTION_TIME',
                           audit_native_model_evidence(root)['errors'])
 
@@ -91,7 +102,16 @@ class Phase8Test(unittest.TestCase):
             with p.open(newline='') as f: rows=list(csv.DictReader(f))
             rows[0]['model_sha256']='sha256:fake'
             write(p,rows)
+            update_manifest(root,p)
             self.assertIn('INVALID_MODEL_FINGERPRINT',
+                          audit_native_model_evidence(root)['errors'])
+
+    def test_fingerprint_trace_sha_tamper_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=fixture(tmp)
+            path=root/'native/freqai-native-model-lineage.csv'
+            path.write_text(path.read_text()+'\\n')
+            self.assertIn('NATIVE_MODEL_LINEAGE_SHA_MISMATCH',
                           audit_native_model_evidence(root)['errors'])
 
     def test_missing_model_trace_fails(self):
