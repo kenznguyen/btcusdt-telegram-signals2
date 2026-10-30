@@ -108,6 +108,15 @@ class PaperReplayTests(unittest.TestCase):
         self.assertEqual(tp['events'][1]['expected_fill_price'],101.)
         self.assertAlmostEqual(tp['events'][1]['actual_fill_price'],99.95)
 
+    def test_gap_through_emergency_overrides_prior_confirmed_tp(self):
+        candles=[row(0),row(1,close=101.,rsi=78.),row(2)]
+        detail=fine(3,{(2,0):dict(open=90.,high=91.,low=89.,close=90.)})
+        result=self.run_mode(candles,'AI_ONLY',[pred(0,.006)],detail)
+        self.assertEqual([x['kind'] for x in result['events']],
+                         ['LONG ENTRY','EMERGENCY SL'])
+        self.assertLess(result['events'][1]['actual_fill_price'],
+                        result['events'][1]['expected_fill_price'])
+
     def test_dca_one_shot_and_margin_preserved(self):
         candles=[row(0),row(1),row(2,close=98.,rsi=32.,previous_rsi=31.),
                  row(3,close=98.,rsi=33.,previous_rsi=32.),row(4,close=98.)]
