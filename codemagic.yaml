@@ -60,7 +60,7 @@ workflows:
           python3 -m quant_engine.scenario_runner --output artifacts/core-scenarios
           cp ci/kotlin/QuantControlledScenarioTest.kt /tmp/quant-kotlin-parity/android-app/app/src/test/java/com/kenznguyen/btclivealerts/
           source "$CM_ENV"
-          for scenario in DCA "SOFT SL" "EMERGENCY SL"; do
+          for scenario in "SHORT ENTRY" DCA "SOFT SL" "EMERGENCY SL"; do
             export QUANT_SCENARIO_DIR="$CM_BUILD_DIR/artifacts/core-scenarios/$scenario"
             export QUANT_KOTLIN_TRACE_OUTPUT="$QUANT_SCENARIO_DIR/kotlin-trace.json"
             ( cd /tmp/quant-kotlin-parity/android-app && "$CHART_GRADLE_BIN" :app:testDebugUnitTest --tests "*QuantControlledScenarioTest" --no-daemon --rerun-tasks )
