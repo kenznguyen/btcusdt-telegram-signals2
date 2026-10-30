@@ -17,12 +17,14 @@ workflows:
           set -euo pipefail
           cd "$CM_BUILD_DIR"
           mkdir -p artifacts/parity
-          if [ ! -s parity-input/m15.csv ] || [ ! -s parity-input/h1.csv ]; then
-            echo "ERROR MISSING_OHLCV: parity-input/m15.csv and parity-input/h1.csv are required."
-            printf '{"parity_verified":false,"reason":"MISSING_OHLCV"}\n' > artifacts/parity/parity-report.json
+          export PYTHONPATH="$CM_BUILD_DIR"
+          # Fetch genuine confirmed BTC-USDT-SWAP candles on the build machine.
+          # Preserve input CSV + provenance manifest as build artifacts.
+          if ! python3 -m quant_engine.okx_ohlcv --output parity-input --m15-count 600 --h1-count 180; then
+            echo "ERROR OHLCV_DOWNLOAD_FAILED: cannot verify real market candles"
+            printf '{"parity_verified":false,"reason":"OHLCV_DOWNLOAD_FAILED"}\n' > artifacts/parity/parity-report.json
             exit 1
           fi
-          export PYTHONPATH="$CM_BUILD_DIR"
           python3 -c 'from quant_engine.canonical_csv import read_csv,digest; m=read_csv("parity-input/m15.csv",900000); h=read_csv("parity-input/h1.csv",3600000); print("Verified canonical OHLCV:",len(m),len(h),digest(m,h))'
           git fetch origin feature/freqtrade-strategy-parity-20261029
           git worktree add /tmp/quant-kotlin-parity FETCH_HEAD
@@ -52,4 +54,5 @@ workflows:
           python3 -m quant_engine.trace_gate artifacts/parity
     artifacts:
       - artifacts/parity/**
+      - parity-input/**
       - android-app/app/build/test-results/testDebugUnitTest/*.xml
