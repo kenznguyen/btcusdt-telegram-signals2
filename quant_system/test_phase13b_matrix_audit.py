@@ -55,8 +55,19 @@ class MatrixAuditTests(unittest.TestCase):
             "train_rows":2,"test_rows":2,"errors":[]}))
         (self.root/"paper/phase8-native-model-evidence.json").write_text(json.dumps({
             "native_model_lineage_verified":True,"errors":[]}))
+        bundle=self.native/"phase13b-unsealed-model-candidate.joblib"
+        bundle.write_bytes(b"trusted test-only candidate")
+        meta=self.native/"phase13b-unsealed-model-candidate.json"
+        meta.write_text(json.dumps({
+            "fold_model_name":self.fold,"model_sha256":self.sha,
+            "training_end_ms":12600000,"ordered_feature_columns":["%-a","%-b"],
+            "candidate_sha256":matrix_digest(bundle),
+            "sealed_in_git":False
+        }))
         self.report=self.native/"native-research-180.json"
         self.report.write_text(json.dumps({
+            "phase13b_candidate_sha256":matrix_digest(bundle),
+            "phase13b_candidate_metadata_sha256":matrix_digest(meta),
             "phase13b_matrix_events_sha256":matrix_digest(self.events),
             "phase12_training_samples_sha256":matrix_digest(train_file),
             "phase8_model_lineage_sha256":matrix_digest(lineage),
@@ -76,6 +87,18 @@ class MatrixAuditTests(unittest.TestCase):
         self.assertEqual(result["predict_rows"],2)
         self.assertFalse(result["independent_oos_verified"])
         self.assertFalse(result["full_model_pipeline_causality_verified"])
+
+    def test_candidate_must_be_same_latest_model_and_schema(self):
+        meta_path=self.native/"phase13b-unsealed-model-candidate.json"
+        meta=json.loads(meta_path.read_text())
+        meta["model_sha256"]="sha256:"+"c"*64
+        meta_path.write_text(json.dumps(meta))
+        report=json.loads(self.report.read_text())
+        report["phase13b_candidate_metadata_sha256"]=matrix_digest(meta_path)
+        self.report.write_text(json.dumps(report))
+        outcome=audit_matrices(self.root)
+        self.assertFalse(outcome["actual_fit_predict_matrices_verified"])
+        self.assertIn("PHASE13B_CANDIDATE_NOT_LAST_VERIFIED_MODEL",outcome["errors"])
 
     def test_tampered_npz_detected(self):
         events=[json.loads(x) for x in self.events.read_text().splitlines()]
