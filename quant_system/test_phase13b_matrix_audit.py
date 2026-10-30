@@ -155,8 +155,12 @@ class MatrixAuditTests(unittest.TestCase):
         phase8={"matched_accepted_forecasts":1,"emitted_lineage_rows":2}
         lineage={(self.fold,self.sha):[(13500000,1),(15300000,0)]}
         with self.assertRaisesRegex(MatrixEvidenceError,
-                "PHASE13B_UNMODELED_ROW_INSIDE_INFERENCE_WINDOW"):
+                "PHASE13B_UNMODELED_ROW_INSIDE_INFERENCE_WINDOW") as failure:
             reconcile_exported_predictions(self.native,report,phase8,lineage)
+        self.assertEqual(failure.exception.row_diagnostics["open_time_ms"],
+                         14400000)
+        self.assertEqual(failure.exception.row_diagnostics["last_model_open_ms"],
+                         15300000)
 
     def test_nonadjacent_trailing_neutral_candle_is_denied(self):
         lines=self.predictions.read_text().splitlines()
@@ -169,6 +173,10 @@ class MatrixAuditTests(unittest.TestCase):
         outcome=audit_matrices(self.root)
         self.assertFalse(outcome["actual_fit_predict_matrices_verified"])
         self.assertIn("PHASE13B_UNEXPLAINED_POSTMODEL_NEUTRAL_ROW",outcome["errors"])
+        self.assertEqual(outcome["failing_unmodeled_row"]["open_time_ms"],
+                         16200000)
+        self.assertEqual(outcome["failing_unmodeled_row"]["last_model_open_ms"],
+                         14400000)
 
     def test_untraced_accepted_forecast_after_last_model_is_denied(self):
         lines=self.predictions.read_text().splitlines()
