@@ -1,0 +1,49 @@
+# StrategyEngine Kotlin → Freqtrade research parity
+
+## Safety boundary
+Android remains the production signal UI. This branch is an **offline research port in progress**, not a full Freqtrade strategy, not an executable backtest and not an approved equivalent engine. There is no exchange order endpoint, API credential or live trading path. The pre-existing `ChartProFreqaiResearch` remains prediction-only, with native entries disabled.
+
+The first port is `freqtrade_parity/rules.py`: immutable parameters and matching decision helpers from `android-app/.../StrategyEngine.kt`. Python tests in `test_rules.py` run via Codemagic `freqtrade-strategy-parity`.
+
+## Required for complete conversion
+- Port precise Kotlin Wilder RSI, DMI/ADX, closed M15 candle handling, prior **closed** H1 hour mapping and indicator warmup. Avoid TA-Lib substitution until parity is proven.
+- Port full position/state transitions, entry sizing, one-shot DCA, event order, execution slippage, synthetic equity and cooldown semantics.
+- Map execution to Freqtrade 2026.9 hooks carefully; for testing `dry_run` and exchange-independent backtest only. No `trade` command or live config; no live API credentials.
+- Preserve risk precedence: EMERGENCY SL > SOFT SL > TAKE PROFIT > entry/DCA. Emergency may require finer `--timeframe-detail 1m` data; document OHLC ambiguity and gap-risk mismatch.
+- Export actual event traces from *both* Android Kotlin and Python for identical checksum-pinned OHLCV, and compare all five event classes, timestamps, price/qty, margin, fees and net PnL. Distinguish signal parity from fill parity.
+- Trace-verification gate must require real nonempty traces, canonical checksum and matching schema/parameters; missing evidence means `parity_verified: false`. The current elementary `compare_event_traces` is deliberately **not** a certification of Freqtrade runtime parity.
+- Only after event parity, run native Freqtrade backtests 180/360 days with funding, stop fills, liquidation and mark-to-market drawdown reviews.
+
+## Source defaults checked against Kotlin
+13x leverage, RSI(14), DMI(14), ADX smoothing(14), H1 ADX > 20, LONG RSI cross above 30, SHORT RSI cross below 70, TP +5% ROE + RSI 76/24, DCA -20% ROE + ADX >45 + RSI direction, soft stop -35% ROE + reversal + two candle bodies + H1 ADX >35, emergency -90% ROE, initial stake 50% of balance, DCA stake 100% of initial, fee 0.0005 and slippage 5 bps.
+
+## CI
+Codemagic: `freqtrade-strategy-parity` (offline Python) and `android-chart-pro-debug` (Android tests and APKs) on this branch. Neither run has been verified for this head yet. GitHub is source/PR storage only.
+
+## Wilder implementation delivered in this increment
+`freqtrade_parity/indicators.py` now implements Kotlin-style RMA seeding and gaps, RSI, true-range directional movement, DI, DX and ADX. `prior_closed_h1_index` excludes the current H1 bucket and unclosed H1 bars. The Codemagic offline workflow runs `test_indicators` alongside rules tests.
+
+## Remaining blockers (not completed)
+A full native Freqtrade position lifecycle, DCA and stop callback adapter, signed shared OHLCV dataset, genuine paired Kotlin/Freqtrade trace exports and 180/360-day Freqtrade backtests are **not yet implemented/verified**. Do not claim parity or profitability. The source branch remains draft and has no live trading.
+
+## Position/fill simulation increment
+`position.py` is an **offline adapter**, not Freqtrade native callbacks. It mirrors Kotlin entry sizing (50% balance and 13x leverage), DCA only once via immutable `dca_used`, exit precedence (Emergency > Soft > TP), candle-close soft/TP fill estimates, and emergency threshold/open-gap estimate. `reconcile_fills` pairs trace entries with strict ID/kind/candleTime keys and returns `expected_fill_price`, `actual_fill_price`, and `fill_difference` without inventing missing fills.
+
+Timing fields are simulation semantics: emergency threshold recognition is intrabar from OHLC; without 1m/5m detail the actual crossing sequence and true fill time are unknown. Soft/TP confirm only at M15 close. A production Freqtrade callback port must use stateful trade custom data and verify no duplicate DCA on callback repeats, including process restarts. This increment has not done so.
+
+**Important:** These offline unit tests are not actual independent Kotlin/Freqtrade execution traces, do not verify parity, and do not establish realistic fills, funding, liquidation or 180/360-day performance.
+
+## Guarded native callback wiring (latest increment)
+`ChartProParityDryRun.py` now exposes native Freqtrade callback signatures, reading only an already closed M15 analyzed row and delegating to `PaperCallbackCore`. It persists a `chart_pro_dca_status=REQUESTED` marker **before** returning a DCA request to avoid repeated callbacks or restarts. This is deliberately conservative: if the order is rejected, manual reconciliation/reset is needed. Freqtrade's `nr_of_successful_entries` also prevents DCA after a confirmed second fill. No further DCA is generated while orders are open.
+
+**Critical not-yet-verified behavior:** The stoploss is a static Freqtrade stoploss risk setting of -0.90, NOT a verified exchange stop-fill equivalent to Kotlin's intrabar emergency threshold. Freqtrade callback timing and `stoploss` semantics require runtime validation. The code does not yet populate the canonical indicator/H1 columns into the analyzed dataframe, and native entries remain forced to zero; until verified data plumbing is added these callbacks fail closed and the strategy will generate no native trades. This is NOT a complete Freqtrade strategy and must not be used for evaluating profits.
+
+## Closed M15/H1 indicator plumbing
+`context.py` enriches closed M15 rows with exact Kotlin-style indicator values and prior-closed-hour H1 DI/ADX. The guarded native Freqtrade strategy now attempts to populate these columns from the Freqtrade dataframe/provider, but does not enable entries. `test_context.py` covers same-hour exclusion and unclosed M15.
+
+Important: Freqtrade's dataframe API normally exposes historical bars with no explicit per-row `closed` flag; this adapter treats delivered dataframe rows as historical, while `_latest_closed_context` rejects the latest incomplete M15 in real-time callbacks. Before any parity claim, verify the framework's candle timing semantics, availability limits, startup history and exact H1 mapping against Kotlin on real OHLCV. No live execution.
+
+## Canonical OHLCV V2 bytes (2026-10-30)
+Kotlin and Python now use **binary** `CHARTPRO-OHLCV-V2\\0`, then the `M15\\0` section and `H1\\0` section, each containing sorted closed candles encoded as signed int64 UTC open milliseconds plus five IEEE754 float64 values (open, high, low, close, volume) in big endian. The shared fixed SHA256 golden vector is asserted in Android JUnit and Python tests. This replaces the earlier ambiguous text/Double.toString format in the parity exporter only; StrategyEngine itself is untouched.
+
+**Do not mix V1 text hashes with V2 binary hashes.** Golden vector is a protocol compatibility test, not a real OHLCV trace parity result. The native Freqtrade exporter and independently executed 180/360-day backtests remain pending.

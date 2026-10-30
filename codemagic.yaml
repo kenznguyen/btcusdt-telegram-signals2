@@ -1,5 +1,76 @@
 # yaml-language-server: $schema=https://codemagic.io/codemagic-schema.json
 workflows:
+  kotlin-freqtrade-trace-gate:
+    name: Kotlin vs Freqtrade trace export and fail-closed audit
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      java: 17
+    # Manual only: provide genuine input files and both independent engine traces.
+    scripts:
+      - name: Export Kotlin trace from supplied canonical CSV if available
+        script: |
+          set -euo pipefail
+          mkdir -p artifacts/parity
+          if [ -s parity-input/m15.csv ] && [ -s parity-input/h1.csv ]; then
+            bash ci/setup-android.sh
+            export PARITY_M15_CSV="$CM_BUILD_DIR/parity-input/m15.csv"
+            export PARITY_H1_CSV="$CM_BUILD_DIR/parity-input/h1.csv"
+            export PARITY_KOTLIN_TRACE_OUTPUT="$CM_BUILD_DIR/artifacts/parity/kotlin-trace.json"
+            cd android-app
+            "$CHART_GRADLE_BIN" :app:testDebugUnitTest --tests "*StrategyCsvArtifactTest" --no-daemon
+          else
+            echo "Missing canonical parity-input CSV; parity will fail closed"
+          fi
+      - name: Enforce independent trace gate
+        script: |
+          set -euo pipefail
+          python3 ci/parity-artifact-gate.py artifacts/parity
+    artifacts:
+      - artifacts/parity/**
+      - android-app/app/build/test-results/testDebugUnitTest/*.xml
+
+  freqtrade-strategy-parity:
+    name: Freqtrade strategy rule parity - no live orders
+    instance_type: mac_mini_m2
+    max_build_duration: 15
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: feature/freqtrade-strategy-parity-20261029
+          include: true
+          source: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Validate offline rules and fail-closed trace policy
+        script: |
+          set -euo pipefail
+          python3 -m unittest freqtrade_parity.test_rules freqtrade_parity.test_indicators freqtrade_parity.test_position freqtrade_parity.test_callbacks freqtrade_parity.test_context freqtrade_parity.test_strategy_contract freqtrade_parity.test_reconciliation freqtrade_parity.test_report_cli freqtrade_parity.test_dataset_hash freqtrade_parity.test_dataset_io freqtrade_parity.test_freqtrade_trace -v
+          python3 -m compileall -q freqtrade_parity
+    artifacts:
+      - android-source-sha.txt
+
+  freqtrade-native-smoke:
+    name: Freqtrade 2026.9 native resolver - no orders
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    scripts:
+      - name: Install research runtime
+        script: |
+          set -euo pipefail
+          if ! brew list --versions libomp > /dev/null 2>&1; then
+            brew install libomp
+          fi
+          bash ci/setup-python.sh requirements-freqai.txt requirements-market-data.txt
+      - name: Load guarded native strategy
+        script: |
+          set -euo pipefail
+          export PYTHONPATH="$CM_BUILD_DIR"
+          "$CI_PYTHON" ci/freqtrade-parity-smoke.py 2>&1 | tee freqtrade-parity-smoke.log
+    artifacts:
+      - ci-source-sha.txt
+      - freqtrade-parity-smoke.log
+
   android-chart-pro-debug:
     name: BTC Chart Pro - tests, regular and parallel APKs
     instance_type: mac_mini_m2
@@ -18,6 +89,9 @@ workflows:
           include: true
           source: true
         - pattern: feature/strategy-shadow-parity-20261029
+          include: true
+          source: true
+        - pattern: feature/freqtrade-strategy-parity-20261029
           include: true
           source: true
         - pattern: feature/five-layer-paper
