@@ -39,9 +39,14 @@ def capture_predictions(frame, destination, model_identifier, *, pair='BTC/USDT:
             if opened%900_000:
                 raise ValueError('UNALIGNED_NATIVE_FREQAI_CANDLE')
             raw_flag=float(item['do_predict'])
-            if not math.isfinite(raw_flag) or not raw_flag.is_integer() or raw_flag>1 or raw_flag < -10:
+            # Historical warmup rows may lack a model decision. Convert
+            # NaN into an explicit ABSTENTION, never an accepted forecast.
+            if math.isnan(raw_flag):
+                flag=0
+            elif not math.isfinite(raw_flag) or not raw_flag.is_integer() or raw_flag>1 or raw_flag < -10:
                 raise ValueError('INVALID_NATIVE_DO_PREDICT')
-            flag=int(raw_flag)
+            else:
+                flag=int(raw_flag)
             values=[float(item[name]) for name in ('open','high','low','close','volume')]
             if not all(math.isfinite(v) for v in values):
                 raise ValueError('INVALID_NATIVE_PREDICTION_OHLCV')
