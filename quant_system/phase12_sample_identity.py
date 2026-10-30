@@ -57,8 +57,36 @@ def resolve_fit_row_ids(dk,data_dictionary,raw_labels,*,split_fraction):
     require(steps==['const','scaler','di'],
             'PHASE12_UNAPPROVED_FEATURE_PIPELINE')
     ntest=math.ceil(len(idx)*split_fraction)
-    train_source=idx[:-ntest]
+    complete_train=idx[:-ntest]
     test_source=idx[-ntest:]
+    train_source=getattr(dk,'_phase12_purged_train_source_indices',None)
+    if train_source is None:
+        # Legacy unit fixtures; actual Phase12 FreqAI runtime requires a
+        # recorded purge marker before invoking this resolver.
+        train_source=complete_train
+    else:
+        require(isinstance(train_source,list) and len(train_source)>=8 and
+                len(train_source)<=len(complete_train) and
+                train_source==complete_train[:len(train_source)],
+                'PHASE12_INVALID_RECORDED_PURGE_INDICES')
+        meta=getattr(dk,'_phase12_purge_meta',None)
+        require(isinstance(meta,dict) and
+                meta.get('horizon_candles')==4 and
+                meta.get('original_train_rows')==len(complete_train) and
+                meta.get('fitted_train_rows')==len(train_source) and
+                meta.get('removed_train_rows')==len(complete_train)-len(train_source),
+                'PHASE12_PURGE_METADATA_MISMATCH')
+        def _to_ms(value):
+            require(getattr(value,'tzinfo',None) is not None and
+                    value.utcoffset() is not None,
+                    'PHASE12_INVALID_RECORDED_PURGE_TIMESTAMP')
+            return int(value.timestamp()*1000)
+        earliest_test=_to_ms(dates.loc[test_source[0]])
+        latest_label=_to_ms(dates.loc[train_source[-1]])+4*900000
+        require(latest_label<earliest_test and
+                meta.get('first_test_feature_open_ms')==earliest_test and
+                meta.get('last_train_label_end_ms')==latest_label,
+                'PHASE12_PURGE_BOUNDARY_UNVERIFIED')
     xtrain=data_dictionary['train_features']
     xtest=data_dictionary['test_features']
     ytrain=data_dictionary['train_labels']
