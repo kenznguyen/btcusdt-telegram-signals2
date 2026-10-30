@@ -487,6 +487,11 @@ workflows:
           test -x "$CI_PYTHON"
           "$CI_PYTHON" -m freqtrade --version
           "$CI_PYTHON" -c 'import freqtrade, lightgbm; print("Pinned Freqtrade/FreqAI imports OK")'
+          # A fresh Codemagic checkout has NO default ./user_data. Freqtrade
+          # requires a real userdir before it loads config for download-data.
+          "$CI_PYTHON" -m freqtrade create-userdir --userdir "$CM_BUILD_DIR/.ci-tools/phase3-freqtrade-userdata"
+          test -d "$CM_BUILD_DIR/.ci-tools/phase3-freqtrade-userdata"
+          "$CI_PYTHON" -m freqtrade create-userdir --help > artifacts/phase3/create-userdir-cli-help.txt
           # Validate the pinned CLI before the expensive historical download.
           "$CI_PYTHON" -m freqtrade download-data --help > artifacts/phase3/download-cli-help.txt
           "$CI_PYTHON" -m freqtrade backtesting --help > artifacts/phase3/backtest-cli-help.txt
@@ -505,6 +510,7 @@ workflows:
           set -euo pipefail
           "$CI_PYTHON" -m freqtrade download-data \
             --config freqai_bridge/config.research.json \
+            --userdir "$CM_BUILD_DIR/.ci-tools/phase3-freqtrade-userdata" \
             --datadir "$CM_BUILD_DIR/.ci-tools/phase3-native-binance" \
             --data-format-ohlcv feather \
             --timeframes "${PHASE3_DETAIL_MINUTES}m" 15m 1h \
@@ -538,6 +544,7 @@ workflows:
             --days "$PHASE3_DAYS" --detail-minutes "$PHASE3_DETAIL_MINUTES" \
             --dataset-dir artifacts/phase3/canonical \
             --native-datadir "$CM_BUILD_DIR/.ci-tools/phase3-native-binance" \
+            --userdir "$CM_BUILD_DIR/.ci-tools/phase3-freqtrade-userdata" \
             --out-dir artifacts/phase3/native
     artifacts:
       - phase3-source-sha.txt
