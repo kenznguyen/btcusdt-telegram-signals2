@@ -190,20 +190,31 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
         prediction_path = target / "freqai-native-predictions.csv"
         prediction_path.unlink(missing_ok=True)  # Reject cached forecasts from a prior model run.
         phase8_enabled = os.environ.get("PHASE8_CAPTURE_MODEL_LINEAGE") == "1"
+        phase12_flag = os.environ.get("PHASE12_CAPTURE_TRAIN_ROWS", "0")
+        if phase12_flag not in ("0","1") or (phase12_flag=="1" and not phase8_enabled):
+            raise ValueError("PHASE12_REQUIRES_ACTUAL_PHASE8_NATIVE_MODEL")
+        phase12_enabled = phase12_flag=="1"
+        samples_path = target / "freqai-native-training-samples.csv"
+        samples_path.unlink(missing_ok=True)
         lineage_path = target / "freqai-native-model-lineage.csv"
         lineage_path.unlink(missing_ok=True)
         if phase8_enabled:
             report["phase8_model_trace_requested"] = True
+        if phase12_enabled:
+            report["phase12_fit_sample_trace_requested"] = True
         for label, command in commands:
             # AI must originate in the real FreqAI backtesting dataframe; no
             # fabricated predictions or entry flags from the offline simulator.
             environment = os.environ.copy()
             environment.pop("PHASE3_PREDICTIONS_CSV", None)
             environment.pop("PHASE8_LINEAGE_CSV", None)
+            environment.pop("PHASE12_SAMPLES_CSV", None)
             if label == "freqai" and days == 180 and exchange == "okx":
                 environment["PHASE3_PREDICTIONS_CSV"] = str(prediction_path.resolve())
                 if phase8_enabled:
                     environment["PHASE8_LINEAGE_CSV"] = str(lineage_path.resolve())
+                if phase12_enabled:
+                    environment["PHASE12_SAMPLES_CSV"] = str(samples_path.resolve())
             log = target / f"{label}-native-{days}.log"
             with log.open("w", encoding="utf-8") as handle:
                 completed = subprocess.run(
@@ -264,6 +275,13 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
                 "sha256:" + hashlib.sha256(lineage_path.read_bytes()).hexdigest()
             )
             report["phase8_model_lineage_bytes"] = lineage_path.stat().st_size
+        if phase12_enabled:
+            if not samples_path.is_file() or samples_path.stat().st_size<=0:
+                raise RuntimeError("MISSING_NATIVE_PHASE12_FIT_SAMPLE_ROWS")
+            report["phase12_training_samples_sha256"] = (
+                "sha256:" + hashlib.sha256(samples_path.read_bytes()).hexdigest()
+            )
+            report["phase12_training_samples_bytes"] = samples_path.stat().st_size
         report["reason"] = "NATIVE_RESEARCH_COMPLETED_TRADE_PARITY_NOT_VERIFIED"
     except (ValueError, OSError, RuntimeError, subprocess.TimeoutExpired) as error:
         report["reason"] = str(error)[:180]
