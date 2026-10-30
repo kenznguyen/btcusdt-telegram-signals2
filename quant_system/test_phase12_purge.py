@@ -20,6 +20,8 @@ class Series:
 class Dates:
     def __init__(self,values):self.data=dict(values)
     @property
+    def index(self):return list(self.data)
+    @property
     def loc(self):return self
     def __getitem__(self,index):return self.data[index]
 
