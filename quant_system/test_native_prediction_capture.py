@@ -44,6 +44,16 @@ class NativeCaptureTest(unittest.TestCase):
             self.assertEqual(actual[0]['do_predict'],'-1')
             self.assertEqual(actual[0]['predicted_return'],'')
 
+    def test_nan_warmup_do_predict_is_abstention_without_fabricated_signal(self):
+        with tempfile.TemporaryDirectory() as d:
+            destination=Path(d)/'pred.csv'
+            capture_predictions(self.sample(float('nan')),destination,'chart-pro-okx-shadow-v1')
+            with destination.open() as handle:
+                rows=list(csv.DictReader(handle))
+            self.assertEqual(len(rows),1)
+            self.assertEqual(rows[0]['do_predict'],'0')
+            self.assertEqual(rows[0]['predicted_return'],'')
+
     def test_fails_if_real_prediction_column_absent(self):
         with tempfile.TemporaryDirectory() as d:
             frame=self.sample().without('&-future_return')
