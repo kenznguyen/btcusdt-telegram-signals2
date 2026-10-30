@@ -263,6 +263,23 @@ class ChartProAuditLightGBMRegressor(LightGBMRegressor):
         event['training_end_ms']=meta['training_end_ms']
         event['label_horizon_candles']=meta['configured_label_horizon_candles']
         append_event(matrix_log,event)
+        # Store a *candidate*, not an automatically approved OOS model.
+        # Save the exact fitted preprocessing state paired to the latest
+        # observed native LightGBM booster. A later Git commit must SEAL
+        # its SHA before the untouched holdout opens.
+        from quant_system.phase13b_freeze import capture_candidate
+        config_snapshot={
+            'freqai':self.config['freqai'],
+            'exchange':{'name':self.config['exchange']['name']},
+            'timeframe':self.config['timeframe'],
+            'dry_run':self.config['dry_run'],
+            'force_entry_enable':self.config['force_entry_enable'],
+        }
+        capture_candidate(Path(matrix_log).parent,
+            model=self.model,pipeline=dk.feature_pipeline,
+            label_pipeline=dk.label_pipeline,meta=meta,
+            source_commit_sha=os.environ.get('PHASE13B_SOURCE_SHA',''),
+            config=config_snapshot,model_sha256=model_sha,columns=list(x.columns))
 
     def predict(self,unfiltered_df,dk,**kwargs):
         matrix_log=os.environ.get('PHASE13B_MATRIX_EVENTS_JSONL')
