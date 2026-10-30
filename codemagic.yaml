@@ -63,7 +63,7 @@ workflows:
           for scenario in DCA "SOFT SL" "EMERGENCY SL"; do
             export QUANT_SCENARIO_DIR="$CM_BUILD_DIR/artifacts/core-scenarios/$scenario"
             export QUANT_KOTLIN_TRACE_OUTPUT="$QUANT_SCENARIO_DIR/kotlin-trace.json"
-            ( cd /tmp/quant-kotlin-parity/android-app && "$CHART_GRADLE_BIN" :app:testDebugUnitTest --tests "*QuantControlledScenarioTest" --no-daemon )
+            ( cd /tmp/quant-kotlin-parity/android-app && "$CHART_GRADLE_BIN" :app:testDebugUnitTest --tests "*QuantControlledScenarioTest" --no-daemon --rerun-tasks )
             test -s "$QUANT_KOTLIN_TRACE_OUTPUT"
           done
           python3 -m quant_engine.scenario_gate artifacts/core-scenarios
@@ -73,6 +73,7 @@ workflows:
           cd "$CM_BUILD_DIR"
           export PYTHONPATH="$CM_BUILD_DIR"
           export QUANT_PAPER_SOURCE=/tmp/quant-kotlin-parity
+          export QUANT_REQUIRE_PAPER_E2E=1
           python3 -m unittest quant_engine.tests.test_paper_dca_end_to_end -v
     artifacts:
       - artifacts/parity/**
