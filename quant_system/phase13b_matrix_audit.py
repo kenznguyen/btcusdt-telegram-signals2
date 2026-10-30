@@ -29,6 +29,84 @@ def csv_rows(path,needed):
               for row in rows),"PHASE13B_INVALID_CSV_ROW")
     return rows
 
+def reconcile_exported_predictions(native, report, phase8, lineage):
+    """Reconcile two intentionally different populations, never omit evidence.
+
+    LightGBM.predict sees only FreqAI's inference window (model lineage).
+    The downstream strategy exports a longer candle history, including
+    warmup/pre-model rows with do_predict=0 and NO forecast. Both groups
+    must be fully counted and every actual model forecast must be traced.
+    """
+    path=native/"freqai-native-predictions.csv"
+    check(matrix_digest(path)==report.get("prediction_capture_sha256"),
+          "PHASE13B_EXPORTED_PREDICTION_SHA_MISMATCH")
+    fields=("open_time","do_predict","predicted_return",
+            "model_identifier","source","pair")
+    rows=csv_rows(path,fields)
+    check(len(rows)==report.get("prediction_capture_rows"),
+          "PHASE13B_EXPORTED_PREDICTION_COUNT_MISMATCH")
+    recorded={}
+    for key,group in lineage.items():
+        for time,flag in group:
+            check(time not in recorded,"PHASE13B_DUPLICATE_MODEL_PREDICTION_TIME")
+            recorded[time]=(int(flag),key)
+    check(bool(recorded),"PHASE13B_NO_MODEL_PREDICTIONS")
+    seen=set()
+    unmodeled=matched=accepted=0
+    for row in rows:
+        try:
+            time=int(row["open_time"])
+        except (TypeError,ValueError,OverflowError) as exc:
+            raise MatrixEvidenceError("PHASE13B_INVALID_EXPORTED_TIMESTAMP") from exc
+        check(time>0 and time%900000==0 and
+              str(time)==row["open_time"] and time not in seen,
+              "PHASE13B_DUPLICATE_OR_INVALID_EXPORTED_TIMESTAMP")
+        seen.add(time)
+        flag=row["do_predict"]
+        check(flag in ("1","0","-1","-2") and
+              row["model_identifier"]==report.get("prediction_model_identifier") and
+              row["source"]=="freqai-native-backtest" and
+              row["pair"]=="BTC/USDT:USDT",
+              "PHASE13B_INVALID_EXPORTED_PREDICTION_SOURCE")
+        evidence=recorded.get(time)
+        if evidence is None:
+            check(flag!="1",
+                  "PHASE13B_ACCEPTED_FORECAST_WITHOUT_MODEL_MATRIX")
+            check(flag=="0" and row["predicted_return"]=="",
+                  "PHASE13B_NONMODEL_ROW_NOT_NEUTRAL")
+            unmodeled+=1
+            continue
+        expected_flag,model_key=evidence
+        check(flag==str(expected_flag),
+              "PHASE13B_EXPORTED_PREDICTION_MODEL_FLAG_MISMATCH")
+        if flag=="1":
+            try:
+                forecast=float(row["predicted_return"])
+            except (ValueError,TypeError,OverflowError) as exc:
+                raise MatrixEvidenceError(
+                    "PHASE13B_INVALID_ACCEPTED_FORECAST_VALUE") from exc
+            import math
+            check(math.isfinite(forecast),
+                  "PHASE13B_INVALID_ACCEPTED_FORECAST_VALUE")
+            accepted+=1
+        else:
+            check(row["predicted_return"]=="",
+                  "PHASE13B_REJECTED_MODEL_FORECAST_NOT_EMPTY")
+        matched+=1
+    check(matched==len(recorded) and
+          len(seen)==len(rows) and
+          len(rows)==matched+unmodeled,
+          "PHASE13B_MISSING_OR_UNACCOUNTED_MODEL_PREDICTIONS")
+    check(accepted==report.get("prediction_capture_accepted") and
+          accepted==phase8.get("matched_accepted_forecasts") and
+          matched==phase8.get("emitted_lineage_rows"),
+          "PHASE13B_PHASE8_ACCEPTED_MODEL_COUNTS_MISMATCH")
+    return dict(exported_prediction_rows=len(rows),
+                modeled_prediction_rows=matched,
+                unmodeled_neutral_rows=unmodeled,
+                modeled_accepted_rows=accepted)
+
+
 def audit_matrices(artifacts_root):
     out=dict(schemaVersion=1,audit="PHASE13B_ACTUAL_LIGHTGBM_X_Y_AND_PREDICT_X",
         actual_fit_predict_matrices_verified=False,
@@ -144,10 +222,21 @@ def audit_matrices(artifacts_root):
             schemas[key[0]]={"model_sha256":key[1],
                 "n_features":len(schema),
                 "feature_columns":schema}
+        # Phase12 TRAIN/TEST counts are fit rows. Phase8 PREDICT counts
+        # are calls to LightGBM, NOT the longer exported FreqAI warmup history.
+        out["row_accounting"]=dict(
+            matrix_train_rows=train_rows,matrix_validation_rows=test_rows,
+            matrix_predict_rows=pred_rows,
+            phase12_train_rows=phase12.get("train_rows"),
+            phase12_validation_rows=phase12.get("test_rows"),
+            phase8_model_lineage_rows=sum(len(v) for v in lineage.values()),
+            native_exported_prediction_rows=report.get("prediction_capture_rows"))
         check(train_rows==phase12.get("train_rows") and
               test_rows==phase12.get("test_rows") and
-              pred_rows==report.get("prediction_capture_rows"),
+              pred_rows==sum(len(v) for v in lineage.values()),
               "PHASE13B_NATIVE_MATRIX_ROW_COUNTS_MISMATCH")
+        coverage=reconcile_exported_predictions(native,report,phase8,lineage)
+        out["row_accounting"].update(coverage)
         meta_path=native/"phase13b-unsealed-model-candidate.json"
         bundle_path=native/"phase13b-unsealed-model-candidate.joblib"
         check(matrix_digest(meta_path)==
@@ -170,7 +259,7 @@ def audit_matrices(artifacts_root):
         out.update(actual_fit_predict_matrices_verified=True,
             model_fold_count=len(grouped),matrix_event_count=event_count,
             fit_train_rows=train_rows,fit_validation_rows=test_rows,
-            predict_rows=pred_rows,model_feature_schemas=schemas,
+            predict_rows=pred_rows,**coverage,model_feature_schemas=schemas,
             matrix_events_sha256=matrix_digest(events_path))
     except MatrixEvidenceError as exc:
         out["errors"].append(str(exc))
@@ -193,6 +282,7 @@ def main():
     print(json.dumps({k:result[k] for k in (
         "actual_fit_predict_matrices_verified",
         "model_fold_count","fit_train_rows","predict_rows",
+        "exported_prediction_rows","unmodeled_neutral_rows","row_accounting",
         "independent_oos_verified","errors") if k in result},sort_keys=True))
     return 0 if result["actual_fit_predict_matrices_verified"] else 2
 
