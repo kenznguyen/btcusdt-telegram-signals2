@@ -85,6 +85,97 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
                         self.assertEqual(command[command.index("--timeframe-detail")+1], "5m")
                         self.assertEqual(command[command.index("--datadir")+1], str((root/"data").resolve()))
 
+    def test_research_provider_is_explicit_okx_and_not_binance(self):
+        import json
+        original = json.loads((ROOT / "freqai_bridge/config.research.json").read_text())
+        config = json.loads((ROOT / "freqai_bridge/config.okx-research.json").read_text())
+        self.assertEqual(original["exchange"]["name"], "binance")
+        self.assertEqual(config["exchange"]["name"], "okx")
+        self.assertEqual(config["exchange"]["pair_whitelist"], ["BTC/USDT:USDT"])
+        self.assertEqual(config["trading_mode"], "futures")
+        self.assertEqual(config["margin_mode"], "isolated")
+        self.assertIs(config["dry_run"], True)
+        self.assertIs(config["force_entry_enable"], False)
+        self.assertNotEqual(
+            config["freqai"]["identifier"], original["freqai"]["identifier"],
+        )
+        expected = dict(original)
+        expected.pop("exchange")
+        expected.pop("freqai")
+        actual = dict(config)
+        actual.pop("exchange")
+        actual.pop("freqai")
+        self.assertEqual(expected, actual)
+        self.assertEqual(
+            {k:v for k,v in original["freqai"].items() if k != "identifier"},
+            {k:v for k,v in config["freqai"].items() if k != "identifier"},
+        )
+
+    def test_native_download_uses_okx_config_and_isolated_folder(self):
+        yaml = (ROOT / "codemagic.yaml").read_text()
+        native = yaml.split("  dual-strategy-phase3-native-research:", 1)[1]
+        download = native.split(
+            "      - name: Download genuine futures OHLCV plus exchange-managed funding and mark data",1
+        )[1].split("      - name:",1)[0]
+        self.assertIn("--config freqai_bridge/config.okx-research.json", download)
+        self.assertIn("phase3-native-okx", download)
+        self.assertNotIn("config.research.json", download)
+        self.assertNotIn("phase3-native-binance", download)
+        self.assertIn("--trading-mode futures", download)
+        export = native.split(
+            "      - name: Export exactly the native candles and audit 180 or 360 days",1
+        )[1].split("      - name:",1)[0]
+        self.assertIn("--exchange okx", export)
+        research = native.split(
+            "      - name: Native Freqtrade and FreqAI research on the SAME audited candles",1
+        )[1].split("    artifacts:",1)[0]
+        self.assertIn("--config-path freqai_bridge/config.okx-research.json", research)
+        self.assertIn("--exchange okx", research)
+        self.assertIn("phase3-native-okx", research)
+
+    def test_native_commands_refuse_wrong_exchange_manifest(self):
+        import json
+        import tempfile
+        from unittest.mock import patch
+        from quant_system.native_research import research_commands
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "user-data" / "strategies").mkdir(parents=True)
+            (root / "dataset").mkdir()
+            report = root / "dataset" / "native-export-report.json"
+            report.write_text(json.dumps({
+                "exchange": "binance", "ohlcv_verified": True,
+                "dataset_sha256": "sha256:"+"b"*64,
+            }))
+            config = ROOT / "freqai_bridge/config.okx-research.json"
+            with patch(
+                "quant_system.native_research.audit_history",
+                return_value={
+                    "ohlcv_verified":True,"start_ms":1_700_000_000_000,
+                    "end_ms":1_700_000_900_000,
+                    "dataset_sha256":"sha256:"+"b"*64,
+                },
+            ), patch(
+                "quant_system.native_research.training_window",
+                return_value=(1_700_000_000_000,1_700_000_900_000),
+            ):
+                kwargs = dict(days=180, detail_minutes=5,
+                    dataset_dir=root/"dataset",native_datadir=root/"native",
+                    out_dir=root/"out", userdir=root/"user-data",
+                    config_path=config, exchange="okx")
+                with self.assertRaisesRegex(ValueError, "VENUE_MISMATCH"):
+                    research_commands(**kwargs)
+                report.write_text(json.dumps({
+                    "exchange":"okx","ohlcv_verified":True,
+                    "dataset_sha256":"sha256:"+"b"*64,
+                }))
+                manifest, commands = research_commands(**kwargs)
+                self.assertEqual(len(commands),2)
+                for _label, cmd in commands:
+                    self.assertEqual(
+                        cmd[cmd.index("--config")+1],str(config.resolve()),
+                    )
+
     def test_installer_persists_python_for_following_steps(self):
         setup = (ROOT / "ci/setup-python.sh").read_text(encoding="utf-8")
         self.assertIn("printf 'CI_PYTHON=%s\\n' \"$ci_python\" >> \"$CM_ENV\"", setup)
