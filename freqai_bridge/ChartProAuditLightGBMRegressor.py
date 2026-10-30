@@ -90,24 +90,17 @@ class ChartProAuditLightGBMRegressor(LightGBMRegressor):
             raise EvidenceError('PHASE12_MISSING_FIT_DATA_PROVENANCE')
         horizon=meta['configured_label_horizon_candles']
         date_index=dk.train_dates
-        if not date_index.index.is_unique:
-            raise EvidenceError('PHASE12_NONUNIQUE_FILTERED_TRAIN_DATES')
-        train=data_dictionary['train_features']
-        test=data_dictionary['test_features']
-        train_labels=data_dictionary['train_labels']
-        test_labels=data_dictionary['test_labels']
-        if not train.index.is_unique or not test.index.is_unique or (
-            not train.index.equals(train_labels.index)
-        ) or not test.index.equals(test_labels.index) or (
-            len(train)==0 or len(test)==0
-        ) or not train.index.isin(date_index.index).all() or (
-            not test.index.isin(date_index.index).all()
-        ) or not train.index.isin(raw.index).all() or (
-            not test.index.isin(raw.index).all()
-        ):
-            raise EvidenceError('PHASE12_FIT_INDEX_IDENTITY_UNVERIFIED')
-        if len(set(train.index)&set(test.index)):
-            raise EvidenceError('PHASE12_OVERLAPPING_TRAIN_TEST_INDICES')
+        if not date_index.index.is_unique or not raw.index.is_unique:
+            raise EvidenceError('PHASE12_NONUNIQUE_SOURCE_SAMPLE_INDEX')
+        # DataSieve reconstructs pandas RangeIndex in _convert_back_to_df(),
+        # so the fitted X/y index is NOT the original candle index.
+        # Rebuild chronological train_test_split origin row IDs using the
+        # actual filtered FreqAI train_dates and the DI test-row mask, then
+        # independently inverse-transform the fitted labels to prove order.
+        from quant_system.phase12_sample_identity import resolve_fit_row_ids
+        train_ids,test_ids=resolve_fit_row_ids(
+            dk,data_dictionary,raw['&-future_return'].to_dict(),
+            split_fraction=self.freqai_info['data_split_parameters']['test_size'])
         path=Path(destination)
         if not path.is_absolute() or path.suffix!='.csv' or path.is_symlink():
             raise EvidenceError('INVALID_PHASE12_SAMPLES_PATH')
@@ -115,8 +108,8 @@ class ChartProAuditLightGBMRegressor(LightGBMRegressor):
         model_hash=booster_sha256(fitted)
         rows=[]
         expected_future=raw['close'].shift(-horizon)
-        for kind,features in (('TRAIN',train),('TEST',test)):
-            for index in features.index:
+        for kind,source_ids in (('TRAIN',train_ids),('TEST',test_ids)):
+            for index in source_ids:
                 moment=date_index.loc[index]
                 source=raw.loc[index]
                 if _ms(moment)!=_ms(source['date']):
