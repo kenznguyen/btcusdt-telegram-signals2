@@ -240,6 +240,8 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
                 report["prediction_capture_path"] = str(prediction_path)
                 report["prediction_capture_rows"] = total
                 report["prediction_capture_accepted"] = accepted
+                native_config = json.loads(Path(config_path).read_text(encoding="utf-8"))
+                report["prediction_model_identifier"] = native_config["freqai"]["identifier"]
                 report["prediction_capture_verified"] = True
         report["reason"] = "NATIVE_RESEARCH_COMPLETED_TRADE_PARITY_NOT_VERIFIED"
     except (ValueError, OSError, RuntimeError, subprocess.TimeoutExpired) as error:
