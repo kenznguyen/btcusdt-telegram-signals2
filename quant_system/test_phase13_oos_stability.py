@@ -87,13 +87,17 @@ class Phase13StabilityTests(unittest.TestCase):
         content = path.read_text().splitlines()
         path.write_text("\n".join(content[:300] + content[301:]) + "\n")
         outcome = inspect_stability(self.root)
-        self.assertIn("PHASE13_EXPECTED_EXACT_180D_M15_EQUITY", outcome["errors"])
+        self.assertIn("PHASE13_PORTFOLIO_PHASE9_SHA_MISMATCH", outcome["errors"])
 
     def test_report_drawdown_forgery_denied(self):
         path = self.root / "paper/portfolio-ai-only-report.json"
         report = json.loads(path.read_text())
         report["max_drawdown_ex_funding_usdt"] = 1.0
         path.write_text(json.dumps(report))
+        phase9_path = self.root / "paper/portfolio-180-independent-audit.json"
+        phase9 = json.loads(phase9_path.read_text())
+        phase9["artifact_sha256"][path.name] = sha(path)
+        phase9_path.write_text(json.dumps(phase9))
         outcome = inspect_stability(self.root)
         self.assertIn("PHASE13_FULL_DRAWDOWN_MISMATCH", outcome["errors"])
 
@@ -105,7 +109,7 @@ class Phase13StabilityTests(unittest.TestCase):
             p.write_text(json.dumps(report))
         outcome = inspect_stability(self.root)
         self.assertFalse(outcome["retrospective_stability_verified"])
-        self.assertIn("PHASE13_PORTFOLIO_PROVENANCE_MISMATCH", outcome["errors"])
+        self.assertIn("PHASE13_PORTFOLIO_PHASE9_SHA_MISMATCH", outcome["errors"])
 
 if __name__ == "__main__":
     unittest.main()
