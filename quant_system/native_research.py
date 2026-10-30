@@ -5,6 +5,7 @@ block native orders. Exported model research can only be used as candidate AI
 artifacts after an independent provenance and out-of-sample validation gate.
 """
 import argparse
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,7 +29,10 @@ def research_commands(*, days, detail_minutes, dataset_dir, native_datadir, out_
     verified = audit_history(
         *files, days=days, detail_minutes=detail_minutes,
     )
-    training_window(files[0], files[1], days=days, warmup_days=35)
+    warmup_start, warmup_end = training_window(files[0], files[1], days=days, warmup_days=35)
+    if (warmup_start != verified.get("start_ms") or
+        warmup_end != verified.get("end_ms")):
+        raise ValueError("NATIVE_TRAINING_WINDOW_MISMATCH")
     if not verified["ohlcv_verified"]:
         raise ValueError("Missing or invalid shared OHLCV data")
     root = Path(__file__).resolve().parents[1]
@@ -44,11 +48,19 @@ def research_commands(*, days, detail_minutes, dataset_dir, native_datadir, out_
     if not provenance_path.is_file():
         raise ValueError("MISSING_VENUE_DATASET_PROVENANCE")
     provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
-    if (provenance.get("exchange") != exchange or
-        provenance.get("symbol") != "BTC/USDT:USDT" or
-        provenance.get("marketType") != "USDT_PERPETUAL" or
-        provenance.get("dataset_sha256") != verified.get("dataset_sha256") or
-        provenance.get("ohlcv_verified") is not True):
+    trusted_fields = {
+        "exchange": exchange, "symbol": "BTC/USDT:USDT",
+        "marketType": "USDT_PERPETUAL",
+        "dataset_sha256": verified.get("dataset_sha256"),
+        "detail_sha256": verified.get("detail_sha256"),
+    }
+    trusted_digest = "sha256:" + hashlib.sha256(json.dumps(
+        trusted_fields, sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+    if (provenance.get("ohlcv_verified") is not True or
+        any(provenance.get(k) != v or not isinstance(v, str)
+            for k, v in trusted_fields.items()) or
+        provenance.get("provenance_sha256") != trusted_digest):
         raise ValueError("VENUE_MISMATCH_OR_UNVERIFIED_DATASET")
     if (config.get("dry_run") is not True or config.get("trading_mode") != "futures"
         or config.get("exchange", {}).get("name") != exchange
