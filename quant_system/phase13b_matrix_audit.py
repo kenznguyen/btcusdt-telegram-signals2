@@ -105,6 +105,10 @@ def audit_matrices(artifacts_root):
                 event_count+=1
         check(set(grouped)==set(samples),
               "PHASE13B_UNOBSERVED_FIT_OR_PREDICT_MODEL")
+        archived={"phase13b-matrices/"+p.name
+                  for p in (native/"phase13b-matrices").glob("*.npz")}
+        check(archived==used,
+              "PHASE13B_UNREFERENCED_OR_MISSING_MATRIX_ARCHIVES")
         train_rows=test_rows=pred_rows=0
         schemas={}
         for key,parts in grouped.items():
@@ -140,6 +144,10 @@ def audit_matrices(artifacts_root):
             schemas[key[0]]={"model_sha256":key[1],
                 "n_features":len(schema),
                 "feature_columns":schema}
+        check(train_rows==phase12.get("train_rows") and
+              test_rows==phase12.get("test_rows") and
+              pred_rows==report.get("prediction_capture_rows"),
+              "PHASE13B_NATIVE_MATRIX_ROW_COUNTS_MISMATCH")
         out.update(actual_fit_predict_matrices_verified=True,
             model_fold_count=len(grouped),matrix_event_count=event_count,
             fit_train_rows=train_rows,fit_validation_rows=test_rows,
