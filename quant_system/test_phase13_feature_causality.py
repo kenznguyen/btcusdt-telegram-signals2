@@ -10,7 +10,7 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
-from quant_system.phase13_feature_causality import inspect_features
+from quant_system.phase13_feature_causality import inspect_features, prefix_cut_points
 
 class SafeStrategy:
     def feature_engineering_expand_all(self, df, period, metadata, **kwargs):
@@ -78,6 +78,22 @@ class Phase13FeatureTests(unittest.TestCase):
 
     def tearDown(self):
         self.temp.cleanup()
+
+    def test_prefix_cuts_cover_small_and_full_historical_datasets(self):
+        # Regression for Codemagic: 1,200 candles yielded only ~6 cuts,
+        # while 20 features require >=400 real invariance comparisons.
+        for candles in (1000, 1200, 17280, 34560):
+            with self.subTest(candles=candles):
+                cuts = prefix_cut_points(candles)
+                self.assertGreaterEqual(len(cuts), 20)
+                self.assertLessEqual(len(cuts), 40)
+                self.assertEqual(cuts, sorted(set(cuts)))
+                self.assertGreater(min(cuts), 64)
+                self.assertLess(max(cuts), candles)
+                self.assertIn(candles - 3, cuts)
+                self.assertIn(candles - 28, cuts)
+                # 20 expected feature columns * at least 20 prefixes.
+                self.assertGreaterEqual(20 * len(cuts), 400)
 
     def test_safe_features_obey_all_prefix_interventions(self):
         result = inspect_features(self.csv, self.config, SafeStrategy)
