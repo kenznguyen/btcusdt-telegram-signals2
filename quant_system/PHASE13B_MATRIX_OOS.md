@@ -30,6 +30,33 @@ later unseen market data. Full pipeline prefix-intervention causal audit remains
 `full_model_pipeline_causality_verified=false`, regardless of successful
 capture. This is NOT an independent OOS result.
 
+## Phase 13B row-accounting bugfix after first Codemagic native run
+
+The first Codemagic native Phase13B audit failed with
+`PHASE13B_NATIVE_MATRIX_ROW_COUNTS_MISMATCH` although Phase8/12/13 passed.
+This reflected an incorrect attempt to compare model `predict(X)` invocation
+rows against the **full exported** FreqAI candle history (including neutral
+pre-model warmup rows). The correct independent accounting is:
+
+- **FIT_TRAIN / FIT_TEST** actual matrix rows == corresponding Phase12
+  observed fitted rows.
+- **PREDICT** actual matrix rows == **Phase8 model lineage rows**, with exact
+  timestamp/model fingerprint/flag matches.
+- Full exported FreqAI CSV rows == all modeled prediction rows **plus**
+  independently verified neutral pre-model rows (`do_predict=0` with an
+  **empty** predicted return). Any accepted (`do_predict=1`) row without
+  a model trace, mismatch in `do_predict`, nonempty invalid forecast, extra
+  matrix archive, or SHA divergence fails closed.
+- `row_accounting` in the Phase13B JSON shows each independent count when
+  diagnosing any future mismatch.
+
+Previously uploaded Phase13 artifacts (not the new failing Phase13B ZIP)
+had 17,280 model lineage rows, 20,224 exported rows, 2,944 neutral
+pre-model rows, and 17,103 accepted model forecasts. Reconciliation of
+that archived evidence matched exactly. This is **not** proof that a fresh
+Phase13B build has passed; rerun this head on Codemagic and inspect all
+artifacts.
+
 ## Model candidate (not yet immutable)
 
 During the historical research, the same instrumented FreqAI module writes
