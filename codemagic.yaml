@@ -721,6 +721,7 @@ workflows:
       - artifacts/phase3/canonical/*.csv
       - artifacts/phase3/native/*.json
       - artifacts/phase3/native/*.csv
+      - artifacts/phase3/native/*.jsonl
       - artifacts/phase3/native/*.log
       - artifacts/phase3/paper/*.json
       - artifacts/phase3/paper/*.csv
