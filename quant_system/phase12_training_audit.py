@@ -85,6 +85,10 @@ def audit_training_samples(artifacts_root):
               native.get('freqai_oos_verified') is False and
               native.get('full_core_parity_certified') is False,
               'PHASE8_OR_11_OR_NATIVE_NOT_VERIFIED')
+        # A postfit observation error may be suppressed by FreqAI native
+        # training internals. Never certify a partial or failed fit trace.
+        check(native.get('phase12_observer_failure_count')==0,
+              'PHASE12_FIT_OBSERVER_REPORTED_ERROR')
         file=root/'native/freqai-native-training-samples.csv'
         lineage=root/'native/freqai-native-model-lineage.csv'
         pred=root/'native/freqai-native-predictions.csv'
