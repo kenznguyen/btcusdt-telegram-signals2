@@ -56,14 +56,19 @@ Codemagic `dual-strategy-phase3-native-research` is **manual only**.
 The research workflow (with no exchange API credentials):
 
 1. Installs pinned Freqtrade/FreqAI 2026.9.
-2. Downloads public Binance USDT perpetual futures history, including native
-   exchange-managed funding/mark data when available, for 400 days by default.
-3. Loads the **native Freqtrade OHLCV file** and exports identical observed
+2. Downloads public **OKX USDT perpetual futures** history using an isolated
+   `freqai_bridge/config.okx-research.json`, including native mark/funding
+   candles when the exchange offers them. For a 180-day initial research
+   window, request 220 days (180 days + 35-day warmup + buffer); 360-day
+   windows need at least 395 days. No georestriction bypass of Binance.
+3. Loads the **native OKX Freqtrade OHLCV file** and exports identical observed
    closed 15m, 1h and 5m (or 1m) candle sets to CSV.
 4. Checks a continuous 180- or 360-day window, closed H1 alignment, OHLCV
    aggregation, native dataset checksum, detailed candle checksum and at
-   least 35 days of preceding model-training history. Gaps or source
-   restrictions fail the job, never silently forward-fill.
+   least 35 days of preceding model-training history. The manifest includes
+   `exchange=okx`, `marketType=USDT_PERPETUAL`, pair, and a venue-bound
+   provenance SHA; each native backtest verifies those fields before running.
+   Gaps, mismatched venue, or source restrictions fail closed.
 5. Loads both guarded native strategies, then executes Freqtrade CORE and
    FreqAI LightGBM research backtests with `--timeframe-detail 5m` or
    `--timeframe-detail 1m`, passing the **same native data directory**.
@@ -74,8 +79,16 @@ The research workflow (with no exchange API credentials):
    FreqAI prediction provenance, OOS testing and exchange-independent
    trade traces are still required.
 
-If Binance access is blocked (403/451/418), funding/mark data is missing,
-or the required 1m/5m coverage is incomplete, the workflow fails closed.
+Binance access was blocked with HTTP 451 in Codemagic on 2026-10-30,
+so this *separate research workflow* uses OKX; the existing Binance
+paper-trading and model-admission paths are not relabeled as OKX. Freqtrade
+warns that OKX only exposes about three months of historical MARK candles,
+so **180/360-day funding/mark coverage is NOT verified**. The native data
+manifest and research report must keep `funding_mark_full_coverage_verified`
+false until independent complete proof exists. If the necessary 1m/5m
+OHLCV, funding or mark data is absent, never fabricate it or declare
+trading-profit / funding / liquidation parity. Any OKX access restriction
+also fails closed.
 Do not change RSI/ADX/DCA/stop thresholds merely to create an Emergency SL.
 
 For a separately acquired canonical dataset, the offline command is:
@@ -106,8 +119,9 @@ Open the existing Codemagic application for `btcusdt-telegram-signals2`.
   `dual-strategy-phase3-native-research`.
   Set `PHASE3_DAYS=180` for the first run and `PHASE3_DAYS=360` for
   the second run. Keep `PHASE3_DETAIL_MINUTES=5` initially; a separate
-  run with `1` is useful if funding/data limits permit. Default download
-  is 400 days to supply a training warmup for 360-day research.
+  run with `1` is useful if data limits permit. Default download is
+  `PHASE3_DOWNLOAD_DAYS=220` for 180-day research; set this to `400`
+  for 360-day research. Both use OKX-only exchange provenance.
 
 Artifacts (if the native workflow reaches them):
 `artifacts/phase3/canonical/native-export-report.json`,
