@@ -121,10 +121,9 @@ class MatrixAuditTests(unittest.TestCase):
         self.assertEqual(result["modeled_prediction_rows"],2)
         self.assertEqual(result["modeled_accepted_rows"],1)
 
-    def test_neutral_row_after_model_inference_is_not_warmup(self):
-        # All unmodeled rows must be PRE-model warmup. A late neutral
-        # candle without any LightGBM model witness must not be excused
-        # by merely balancing total exported and modeled row counts.
+    def test_one_adjacent_trailing_neutral_candle_is_accounted(self):
+        # FreqAI may export the next closed candle after the last actual
+        # LightGBM.predict window. This cannot be called training warmup.
         lines=self.predictions.read_text().splitlines()
         lines.append("15300000,0,,test-model,freqai-native-backtest,BTC/USDT:USDT")
         self.predictions.write_text("\n".join(lines)+"\n")
@@ -133,9 +132,57 @@ class MatrixAuditTests(unittest.TestCase):
         report["prediction_capture_rows"]=5
         self.report.write_text(json.dumps(report))
         output=audit_matrices(self.root)
-        self.assertFalse(output["actual_fit_predict_matrices_verified"])
-        self.assertIn("PHASE13B_NONMODEL_ROW_AFTER_FIRST_MODEL_INFERENCE",
-                      output["errors"])
+        self.assertEqual(output["errors"],[])
+        self.assertTrue(output["actual_fit_predict_matrices_verified"])
+        self.assertEqual(output["unmodeled_neutral_rows"],3)
+        self.assertEqual(output["unmodeled_warmup_rows"],2)
+        self.assertEqual(output["unmodeled_trailing_rows"],1)
+        self.assertEqual(output["modeled_prediction_rows"],2)
+
+    def test_untraced_neutral_inside_model_time_range_is_denied(self):
+        from quant_system.phase13b_matrix_audit import reconcile_exported_predictions
+        from quant_system.phase13b_matrix import MatrixEvidenceError
+        # Make a synthetic model lineage with a hole at 14,400,000.
+        self.predictions.write_text(
+            "open_time,do_predict,predicted_return,model_identifier,source,pair\n"
+            "13500000,1,0.025,test-model,freqai-native-backtest,BTC/USDT:USDT\n"
+            "14400000,0,,test-model,freqai-native-backtest,BTC/USDT:USDT\n"
+            "15300000,0,,test-model,freqai-native-backtest,BTC/USDT:USDT\n")
+        report={"prediction_capture_sha256":matrix_digest(self.predictions),
+                "prediction_capture_rows":3,
+                "prediction_capture_accepted":1,
+                "prediction_model_identifier":"test-model"}
+        phase8={"matched_accepted_forecasts":1,"emitted_lineage_rows":2}
+        lineage={(self.fold,self.sha):[(13500000,1),(15300000,0)]}
+        with self.assertRaisesRegex(MatrixEvidenceError,
+                "PHASE13B_UNMODELED_ROW_INSIDE_INFERENCE_WINDOW"):
+            reconcile_exported_predictions(self.native,report,phase8,lineage)
+
+    def test_nonadjacent_trailing_neutral_candle_is_denied(self):
+        lines=self.predictions.read_text().splitlines()
+        lines.append("16200000,0,,test-model,freqai-native-backtest,BTC/USDT:USDT")
+        self.predictions.write_text("\n".join(lines)+"\n")
+        report=json.loads(self.report.read_text())
+        report["prediction_capture_sha256"]=matrix_digest(self.predictions)
+        report["prediction_capture_rows"]=5
+        self.report.write_text(json.dumps(report))
+        outcome=audit_matrices(self.root)
+        self.assertFalse(outcome["actual_fit_predict_matrices_verified"])
+        self.assertIn("PHASE13B_UNEXPLAINED_POSTMODEL_NEUTRAL_ROW",outcome["errors"])
+
+    def test_untraced_accepted_forecast_after_last_model_is_denied(self):
+        lines=self.predictions.read_text().splitlines()
+        lines.append("15300000,1,0.025,test-model,freqai-native-backtest,BTC/USDT:USDT")
+        self.predictions.write_text("\n".join(lines)+"\n")
+        report=json.loads(self.report.read_text())
+        report["prediction_capture_sha256"]=matrix_digest(self.predictions)
+        report["prediction_capture_rows"]=5
+        report["prediction_capture_accepted"]=2
+        self.report.write_text(json.dumps(report))
+        outcome=audit_matrices(self.root)
+        self.assertFalse(outcome["actual_fit_predict_matrices_verified"])
+        self.assertIn("PHASE13B_ACCEPTED_FORECAST_WITHOUT_MODEL_MATRIX",
+                      outcome["errors"])
 
     def test_unmodeled_accepted_forecast_is_never_exempted(self):
         lines=self.predictions.read_text().splitlines()
