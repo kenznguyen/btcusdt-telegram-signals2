@@ -29,6 +29,14 @@ def csv_rows(path,needed):
               for row in rows),"PHASE13B_INVALID_CSV_ROW")
     return rows
 
+def invalid_unmodeled_row(code, timestamp, first, last):
+    """Attach the exact source candle to an audit failure, not a success."""
+    exc=MatrixEvidenceError(code)
+    exc.row_diagnostics=dict(open_time_ms=timestamp,
+                             first_model_open_ms=first,
+                             last_model_open_ms=last)
+    raise exc
+
 def reconcile_exported_predictions(native, report, phase8, lineage):
     """Reconcile two intentionally different populations, never omit evidence.
 
@@ -86,12 +94,15 @@ def reconcile_exported_predictions(native, report, phase8, lineage):
                 # end-boundary candle outside the last LightGBM.predict(X)
                 # window. Never extend this exemption to an arbitrary
                 # trailing period or to an accepted prediction.
-                check(time==last_model_time+900000 and trailing==0,
-                      "PHASE13B_UNEXPLAINED_POSTMODEL_NEUTRAL_ROW")
+                if time!=last_model_time+900000 or trailing!=0:
+                    invalid_unmodeled_row(
+                        "PHASE13B_UNEXPLAINED_POSTMODEL_NEUTRAL_ROW",
+                        time,first_model_time,last_model_time)
                 trailing+=1
             else:
-                raise MatrixEvidenceError(
-                    "PHASE13B_UNMODELED_ROW_INSIDE_INFERENCE_WINDOW")
+                invalid_unmodeled_row(
+                    "PHASE13B_UNMODELED_ROW_INSIDE_INFERENCE_WINDOW",
+                    time,first_model_time,last_model_time)
             unmodeled+=1
             continue
         expected_flag,model_key=evidence
@@ -289,6 +300,8 @@ def audit_matrices(artifacts_root):
             matrix_events_sha256=matrix_digest(events_path))
     except MatrixEvidenceError as exc:
         out["errors"].append(str(exc))
+        if hasattr(exc,"row_diagnostics"):
+            out["failing_unmodeled_row"]=exc.row_diagnostics
     except (ValueError,TypeError,KeyError,OSError,UnicodeError,
             OverflowError,csv.Error,json.JSONDecodeError) as exc:
         out["errors"].append("PHASE13B_MISSING_OR_INVALID_EVIDENCE")
@@ -309,7 +322,8 @@ def main():
         "actual_fit_predict_matrices_verified",
         "model_fold_count","fit_train_rows","predict_rows",
         "exported_prediction_rows","unmodeled_neutral_rows","row_accounting",
-        "independent_oos_verified","errors") if k in result},sort_keys=True))
+        "independent_oos_verified","failing_unmodeled_row","errors"
+    ) if k in result},sort_keys=True))
     return 0 if result["actual_fit_predict_matrices_verified"] else 2
 
 if __name__=="__main__":raise SystemExit(main())
