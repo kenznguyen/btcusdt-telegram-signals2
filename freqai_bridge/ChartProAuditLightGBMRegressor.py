@@ -67,11 +67,23 @@ class ChartProAuditLightGBMRegressor(LightGBMRegressor):
                 del self._phase12_unfiltered
 
     def fit(self,data_dictionary,dk,**kwargs):
-        """Observe actual LightGBM X/y + validation set at the model.fit boundary."""
+        """Fit upstream model; audit failure must never masquerade as no FreqAI model."""
         fitted=super().fit(data_dictionary,dk,**kwargs)
         destination=os.environ.get('PHASE12_SAMPLES_CSV')
         if not destination:
             return fitted
+        diagnostics=os.environ.get('PHASE12_OBSERVER_ERRORS_JSONL')
+        if not diagnostics:
+            raise EvidenceError('PHASE12_OBSERVER_DIAGNOSTICS_NOT_CONFIGURED')
+        from quant_system.phase12_fit_observer import observe_post_fit
+        return observe_post_fit(
+            fitted,
+            lambda:self._capture_phase12_fit_rows(fitted,data_dictionary,dk,destination),
+            diagnostics,dk.model_filename
+        )
+
+    def _capture_phase12_fit_rows(self,fitted,data_dictionary,dk,destination):
+        """Observed X/y row identity; failures recorded, never reported as certified."""
         raw=getattr(self,'_phase12_unfiltered',None)
         meta=getattr(self,'_phase8_train_meta',None)
         if raw is None or meta is None or dk.model_filename!=meta['fold_model_name']:
