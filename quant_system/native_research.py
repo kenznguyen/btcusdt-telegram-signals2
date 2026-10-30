@@ -5,6 +5,7 @@ block native orders. Exported model research can only be used as candidate AI
 artifacts after an independent provenance and out-of-sample validation gate.
 """
 import argparse
+from collections import deque
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -115,6 +116,25 @@ def research_commands(*, days, detail_minutes, dataset_dir, native_datadir, out_
     return verified, [("core", core), ("freqai", freqai)]
 
 
+def native_failure_excerpt(path, max_lines=60):
+    """Return a bounded excerpt from a persisted native failure log.
+
+    The original full log remains a Codemagic artifact. No success is inferred
+    from an error excerpt; empty or absent logs remain explicit.
+    """
+    if not isinstance(max_lines, int) or not 1 <= max_lines <= 100:
+        raise ValueError("INVALID_LOG_TAIL_LIMIT")
+    source = Path(path)
+    if not source.is_file():
+        return "[NO_NATIVE_LOG_FILE]"
+    try:
+        with source.open("r", encoding="utf-8", errors="replace") as handle:
+            excerpt = "".join(deque(handle, maxlen=max_lines))
+        return excerpt[-10000:] if excerpt else "[EMPTY_NATIVE_LOG_FILE]"
+    except OSError:
+        return "[NATIVE_LOG_UNREADABLE]"
+
+
 def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, userdir,
                  config_path=None, exchange="binance"):
     target = Path(out_dir).resolve()
@@ -152,6 +172,20 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
             report[f"{label}_native_runtime_succeeded"] = completed.returncode == 0
             report[f"{label}_native_exit_code"] = completed.returncode
             if completed.returncode:
+                excerpt = native_failure_excerpt(log)
+                report["failure_source"] = label
+                report["failure_log_path"] = str(log)
+                report["failure_log_tail"] = excerpt
+                # Make the cause visible directly in the failed Codemagic
+                # build step, not just in a downloadable ZIP artifact.
+                print(
+                    f"NATIVE_{label.upper()}_FAILURE_EXIT_CODE={completed.returncode}"
+                    f" LOG={log}",
+                    flush=True,
+                )
+                print("--- Native failure log (last lines) ---", flush=True)
+                print(excerpt, flush=True)
+                print("--- End native failure log ---", flush=True)
                 raise RuntimeError(f"{label.upper()}_NATIVE_BACKTEST_FAILED")
         report["reason"] = "NATIVE_RESEARCH_COMPLETED_TRADE_PARITY_NOT_VERIFIED"
     except (ValueError, OSError, RuntimeError, subprocess.TimeoutExpired) as error:
