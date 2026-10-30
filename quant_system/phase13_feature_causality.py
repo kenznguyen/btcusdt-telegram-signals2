@@ -31,6 +31,28 @@ def require(value, code):
 def digest(path):
     return "sha256:" + hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
+def prefix_cut_points(candle_count):
+    """Deterministic broad and boundary coverage, independent of history size.
+
+    At least 25 distinct checks span every approved dataset (>=1000 candles),
+    including edge cases close to the feature warmup and most recent close.
+    Keep the >=400 comparison gate; never shrink it to pass a small fixture.
+    """
+    require(type(candle_count) is int and candle_count >= 1000,
+            "PHASE13_INSUFFICIENT_CANDLES_FOR_CAUSALITY")
+    left, right = 65, candle_count - 1
+    # 25 well-spaced prefixes: 20 source features x 25 >= 400 checks.
+    spread = {left + (right - left) * i // 24 for i in range(25)}
+    boundaries = {
+        65, 66, 95, 127, 128, 256, 512,
+        candle_count - 3, candle_count - 28, candle_count - 128,
+        candle_count - 2880,
+    }
+    lengths = sorted(n for n in spread | boundaries if 64 < n < candle_count)
+    require(len(lengths) >= 20,
+            "PHASE13_INSUFFICIENT_PREFIX_INTERVENTIONS")
+    return lengths
+
 def feature_matrix(frame, strategy):
     """Re-execute precisely the configured strategy feature methods."""
     features = {}
@@ -145,11 +167,9 @@ def inspect_features(canonical_path, config_path, strategy_class):
                 bool(whole.iloc[64:].apply(
                     lambda s: s.map(math.isfinite)).all().all()),
                 "PHASE13_INVALID_FINITE_MODEL_FEATURE")
-        # Check many interior / fold-like cut points, including late history.
-        indexes = sorted(set(
-            list(range(128, len(frame), 397)) +
-            [len(frame) - i for i in (3, 28, 128, 2880)]
-        ))
+        # Check >=20 time-distributed prefixes even for a 1000-row
+        # fixture; additionally exercise feature warmup and recent edges.
+        indexes = prefix_cut_points(len(frame))
         checks = 0
         for length in indexes:
             if length <= 64 or length >= len(frame):
@@ -171,6 +191,7 @@ def inspect_features(canonical_path, config_path, strategy_class):
             feature_inventory_verified=True,
             audited_feature_columns=list(whole.columns),
             audited_feature_column_count=len(whole.columns),
+            prefix_cut_count=len(indexes),
             prefix_intervention_comparisons=checks,
             first_candle_open_ms=int(frame["open_time"].iloc[0]),
             last_candle_open_ms=int(frame["open_time"].iloc[-1]),
