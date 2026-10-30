@@ -22,13 +22,13 @@ class MatrixAuditTests(unittest.TestCase):
         x=pd.DataFrame({"%-a":[.2,.4], "%-b":[.7,.8]})
         for stage,times in (("FIT_TRAIN",[900000,1800000]),
                             ("FIT_TEST",[6300000,7200000]),
-                            ("PREDICT",[9000000,9900000])):
+                            ("PREDICT",[13500000,14400000])):
             e=record_matrix(self.native,stage=stage,fold=self.fold,
                 model_sha=self.sha,features=x,timestamps=times,
                 labels=[.01,.02] if stage!="PREDICT" else None,
                 weights=[1.,1.] if stage!="PREDICT" else None,
                 flags=[1,0] if stage=="PREDICT" else None)
-            e["training_end_ms"]=8100000
+            e["training_end_ms"]=12600000
             e["label_horizon_candles"]=4
             append_event(self.events,e)
         train_file=self.native/"freqai-native-training-samples.csv"
@@ -46,7 +46,7 @@ class MatrixAuditTests(unittest.TestCase):
             writer=csv.DictWriter(file,fieldnames=(
                 "fold_model_name","model_sha256","open_time","do_predict"))
             writer.writeheader()
-            for t,flag in ((9000000,1),(9900000,0)):
+            for t,flag in ((13500000,1),(14400000,0)):
                 writer.writerow(dict(fold_model_name=self.fold,
                     model_sha256=self.sha,open_time=t,do_predict=flag))
         (self.root/"paper/phase12-native-fit-label-audit.json").write_text(json.dumps({
