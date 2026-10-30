@@ -57,7 +57,7 @@ class Phase14FittedInterventionTests(unittest.TestCase):
                 PipelineCausalityError, "PHASE14_FUTURE_DEPENDENT_FEATURE_PIPELINE"):
             verify_fitted_row_invariance(
                 LeakingFeatures(), FittedLabels(), self.row, self.future,
-                [3.5, 12.0], 1)
+                [3.75, 12.0], 1)
 
     def test_future_sensitive_label_scaler_must_fail(self):
         with self.assertRaisesRegex(
