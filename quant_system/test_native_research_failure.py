@@ -66,10 +66,10 @@ class NativeResearchFailureTest(TestCase):
         with TemporaryDirectory() as location:
             path=Path(location)/"native.log"
             path.write_text(
-                "Starting native FreqAI\\n"
+                "Starting native FreqAI\n"
                 "2026-10-31 Training BTC/USDT:USDT raised exception EvidenceError. "
-                "Message: PHASE12_FIT_INDEX_IDENTITY_UNVERIFIED, skipping.\\n"
-                + ("Successful boilerplate\\n"*120)
+                "Message: PHASE12_FIT_INDEX_IDENTITY_UNVERIFIED, skipping.\n"
+                + ("Successful boilerplate\n"*120)
             )
             excerpt=native_training_exception_lines(path)
             self.assertEqual(len(excerpt),1)
