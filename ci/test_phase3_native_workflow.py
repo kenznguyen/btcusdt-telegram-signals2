@@ -190,10 +190,14 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
                 report.write_text(json.dumps(sample_venue_manifest("okx")))
                 manifest, commands = research_commands(**kwargs)
                 self.assertEqual(len(commands),2)
-                for _label, cmd in commands:
-                    self.assertEqual(
-                        cmd[cmd.index("--config")+1],str(config.resolve()),
-                    )
+                core_cmd, ai_cmd = commands[0][1], commands[1][1]
+                self.assertEqual(ai_cmd[ai_cmd.index("--config")+1],str(config.resolve()))
+                core_config_path = Path(core_cmd[core_cmd.index("--config")+1])
+                self.assertNotEqual(core_config_path.resolve(),config.resolve())
+                self.assertIs(json.loads(core_config_path.read_text())["freqai"]["enabled"],False)
+                self.assertEqual(
+                    json.loads(core_config_path.read_text())["exchange"]["name"], "okx"
+                )
 
     def test_core_research_disables_freqai_only_in_derived_config(self):
         import json
