@@ -87,6 +87,8 @@ def audit_native_model_evidence(folder):
         preds=read_rows(predpath,('open_time','model_identifier','do_predict',
                                   'source','pair','predicted_return'))
         tracepath=root/'native/freqai-native-model-lineage.csv'
+        require(sha(tracepath)==native.get('phase8_model_lineage_sha256'),
+                'NATIVE_MODEL_LINEAGE_SHA_MISMATCH')
         lineage=read_rows(tracepath,FIELDS)
         traces={}
         models={}
