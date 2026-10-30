@@ -108,6 +108,11 @@ def inspect_stability(artifacts_root):
         root = Path(artifacts_root)
         phase12 = load_json(root / "paper/phase12-native-fit-label-audit.json")
         native = load_json(root / "native/native-research-180.json")
+        phase9 = load_json(root / "paper/portfolio-180-independent-audit.json")
+        require(phase9.get("paper_portfolio_integrity_verified") is True and
+                phase9.get("errors") == [] and
+                isinstance(phase9.get("artifact_sha256"), dict),
+                "PHASE13_PHASE9_PORTFOLIO_AUDIT_NOT_VERIFIED")
         require(phase12.get("actual_fit_sample_lineage_verified") is True and
                 phase12.get("label_reconstruction_verified") is True and
                 phase12.get("train_test_label_purge_verified") is True and
@@ -131,6 +136,10 @@ def inspect_stability(artifacts_root):
             report_path = root / ("paper/portfolio-" + mode + "-report.json")
             csv_path = root / ("paper/portfolio-" + mode + "-equity.csv")
             paper = load_json(report_path)
+            pins = phase9["artifact_sha256"]
+            require(sha(report_path) == pins.get(report_path.name) and
+                    sha(csv_path) == pins.get(csv_path.name),
+                    "PHASE13_PORTFOLIO_PHASE9_SHA_MISMATCH")
             require(paper.get("mode") == mode.replace("-", "_").upper() and
                     paper.get("dataset_sha256") == dataset_sha and
                     paper.get("detail_sha256") == detail_sha and
