@@ -196,6 +196,8 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
         phase12_enabled = phase12_flag=="1"
         samples_path = target / "freqai-native-training-samples.csv"
         samples_path.unlink(missing_ok=True)
+        observer_errors_path = target / "phase12-fit-observer-errors.jsonl"
+        observer_errors_path.unlink(missing_ok=True)
         lineage_path = target / "freqai-native-model-lineage.csv"
         lineage_path.unlink(missing_ok=True)
         if phase8_enabled:
@@ -209,12 +211,14 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
             environment.pop("PHASE3_PREDICTIONS_CSV", None)
             environment.pop("PHASE8_LINEAGE_CSV", None)
             environment.pop("PHASE12_SAMPLES_CSV", None)
+            environment.pop("PHASE12_OBSERVER_ERRORS_JSONL", None)
             if label == "freqai" and days == 180 and exchange == "okx":
                 environment["PHASE3_PREDICTIONS_CSV"] = str(prediction_path.resolve())
                 if phase8_enabled:
                     environment["PHASE8_LINEAGE_CSV"] = str(lineage_path.resolve())
                 if phase12_enabled:
                     environment["PHASE12_SAMPLES_CSV"] = str(samples_path.resolve())
+                    environment["PHASE12_OBSERVER_ERRORS_JSONL"] = str(observer_errors_path.resolve())
             log = target / f"{label}-native-{days}.log"
             with log.open("w", encoding="utf-8") as handle:
                 completed = subprocess.run(
@@ -249,15 +253,38 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
                     if not set(FIELDS).issubset(rows.fieldnames or []):
                         raise RuntimeError("INVALID_NATIVE_PREDICTION_COLUMNS")
                     total = accepted = 0
+                    flags = {}
                     for row in rows:
                         total += 1
+                        flag = row.get("do_predict")
+                        flags[flag] = flags.get(flag, 0) + 1
                         if row.get("source") != "freqai-native-backtest" or (
                             row.get("pair") != "BTC/USDT:USDT"
                         ):
                             raise RuntimeError("WRONG_NATIVE_PREDICTION_SOURCE")
                         if row.get("do_predict") == "1":
                             accepted += 1
+                report["prediction_capture_rows"] = total
+                report["prediction_capture_accepted"] = accepted
+                report["prediction_do_predict_distribution"] = flags
+                if phase12_enabled:
+                    from quant_system.phase12_fit_observer import read_observer_errors
+                    obs_errors = read_observer_errors(observer_errors_path)
+                    report["phase12_observer_failure_count"] = len(obs_errors)
+                    report["phase12_observer_failure_examples"] = obs_errors[:5]
+                    if observer_errors_path.is_file():
+                        report["phase12_observer_errors_sha256"] = (
+                            "sha256:" + hashlib.sha256(observer_errors_path.read_bytes()).hexdigest()
+                        )
+                    else:
+                        report["phase12_observer_errors_sha256"] = None
                 if not accepted:
+                    # Upstream FreqAI can log a training error and emit only
+                    # neutral do_predict=0 rows while returning exit code 0.
+                    # Preserve the diagnostic log path without fabricating
+                    # any accepted predictions or weakening the risk gate.
+                    report["freqai_training_log_path"] = str(log)
+                    report["freqai_training_log_tail"] = native_failure_excerpt(log,80)
                     raise RuntimeError("NO_ACCEPTED_NATIVE_FREQAI_FORECASTS")
                 report["prediction_capture_sha256"] = (
                     "sha256:" + hashlib.sha256(prediction_path.read_bytes()).hexdigest()
