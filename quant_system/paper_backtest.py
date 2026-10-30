@@ -477,7 +477,34 @@ def write_paper_outputs(directory,result,mode):
     return result_paths
 
 
-def run_180(input_dir,predictions_path,outdir,*,detail_minutes=5,expected_model='chart-pro-okx-shadow-v1'):
+def verify_native_prediction_evidence(predictions_path, native_report_path,
+                                     dataset_sha256, detail_sha256, model_identifier):
+    """Require a successful FreqAI native report and checksum-matched CSV."""
+    if native_report_path is None:
+        raise ValueError('MISSING_NATIVE_FREQAI_PROVENANCE')
+    captured=Path(predictions_path)
+    reportfile=Path(native_report_path)
+    if not captured.is_file() or not reportfile.is_file():
+        raise ValueError('MISSING_NATIVE_FREQAI_PROVENANCE')
+    report=json.loads(reportfile.read_text(encoding='utf-8'))
+    expected='sha256:'+hashlib.sha256(captured.read_bytes()).hexdigest()
+    if (report.get('exchange')!='okx' or report.get('days')!=180 or
+        report.get('detail_timeframe')!='5m' or
+        report.get('dataset_sha256')!=dataset_sha256 or
+        report.get('detail_sha256')!=detail_sha256 or
+        report.get('core_native_runtime_succeeded') is not True or
+        report.get('freqai_native_runtime_succeeded') is not True or
+        report.get('prediction_capture_verified') is not True or
+        report.get('prediction_model_identifier')!=model_identifier or
+        report.get('prediction_capture_sha256')!=expected or
+        type(report.get('prediction_capture_accepted')) is not int or
+        report['prediction_capture_accepted']<=0):
+        raise ValueError('INVALID_NATIVE_FREQAI_PROVENANCE')
+    return expected
+
+
+def run_180(input_dir,predictions_path,outdir,*,native_report_path=None,
+            detail_minutes=5,expected_model='chart-pro-okx-shadow-v1'):
     """Strict 180-day gate. 360-day execution is intentionally NOT enabled."""
     if detail_minutes!=5:
         raise ValueError('PAPER_5M_ONLY_UNTIL_INTRABAR_VALIDATION')
@@ -501,6 +528,8 @@ def run_180(input_dir,predictions_path,outdir,*,detail_minutes=5,expected_model=
     start,end=checked['start_ms'],checked['end_ms']
     m15=[x for x in context if start<=x['open_time']<end]
     fine=[x for x in read_closed_csv(fine_path,300_000) if start<=x['open_time']<end]
+    prediction_sha=verify_native_prediction_evidence(predictions_path,native_report_path,
+        checked['dataset_sha256'],checked['detail_sha256'],expected_model)
     with Path(predictions_path).open(newline='',encoding='utf-8') as handle:
         raw_preds=list(csv.DictReader(handle))
     if not raw_preds:
