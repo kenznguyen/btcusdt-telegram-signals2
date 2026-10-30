@@ -52,7 +52,30 @@ workflows:
           cd "$CM_BUILD_DIR"
           export PYTHONPATH="$CM_BUILD_DIR"
           python3 -m quant_engine.trace_gate artifacts/parity
+      - name: Controlled DCA Soft SL Emergency scenarios on real Kotlin and Python engines
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -m quant_engine.scenario_runner --output artifacts/core-scenarios
+          cp ci/kotlin/QuantControlledScenarioTest.kt /tmp/quant-kotlin-parity/android-app/app/src/test/java/com/kenznguyen/btclivealerts/
+          source "$CM_ENV"
+          for scenario in DCA "SOFT SL" "EMERGENCY SL"; do
+            export QUANT_SCENARIO_DIR="$CM_BUILD_DIR/artifacts/core-scenarios/$scenario"
+            export QUANT_KOTLIN_TRACE_OUTPUT="$QUANT_SCENARIO_DIR/kotlin-trace.json"
+            ( cd /tmp/quant-kotlin-parity/android-app && "$CHART_GRADLE_BIN" :app:testDebugUnitTest --tests "*QuantControlledScenarioTest" --no-daemon )
+            test -s "$QUANT_KOTLIN_TRACE_OUTPUT"
+          done
+          python3 -m quant_engine.scenario_gate artifacts/core-scenarios
+      - name: Real PaperLedger DCA submit restart and fill reconciliation
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          export QUANT_PAPER_SOURCE=/tmp/quant-kotlin-parity
+          python3 -m unittest quant_engine.tests.test_paper_dca_end_to_end -v
     artifacts:
       - artifacts/parity/**
+      - artifacts/core-scenarios/**
       - parity-input/**
       - android-app/app/build/test-results/testDebugUnitTest/*.xml
