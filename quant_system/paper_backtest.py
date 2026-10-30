@@ -509,6 +509,7 @@ def run_180(input_dir,predictions_path,outdir,*,detail_minutes=5,expected_model=
     report=dict(schemaVersion=1,phase='PAPER_180_ONLY',exchange='okx',
         dataset_sha256=checked['dataset_sha256'],detail_sha256=checked['detail_sha256'],
         start_ms=start,end_ms=end,ohlcv_verified=True,
+        prediction_capture_sha256=prediction_sha,
         full_core_parity_certified=False,exchange_fills_verified=False,
         funding_mark_full_coverage_verified=False,
         kotlin_trace_verified=False,model_oos_verified=False,
@@ -533,10 +534,12 @@ def main():
     p.add_argument('--days',required=True,type=int,choices=[180])
     p.add_argument('--dataset-dir',required=True)
     p.add_argument('--predictions',required=True)
+    p.add_argument('--native-report',required=True)
     p.add_argument('--out-dir',required=True)
     p.add_argument('--model-identifier',default='chart-pro-okx-shadow-v1')
     args=p.parse_args()
     report=run_180(args.dataset_dir,args.predictions,args.out_dir,
+                   native_report_path=args.native_report,
                    expected_model=args.model_identifier)
     print(json.dumps({k:report[k] for k in ('phase','paper_trade_bearing_verified',
         'dataset_sha256','full_core_parity_certified')},sort_keys=True))
