@@ -34,7 +34,21 @@ def main(root):
         ok,reason=audit(k,p)
     except (OSError,ValueError,TypeError) as e:
         ok,reason=False,"MISSING_OR_INVALID_TRACE"
-    result={"parity_verified":ok,"reason":reason}
+    required=("LONG ENTRY","SHORT ENTRY","DCA","TAKE PROFIT","SOFT SL","EMERGENCY SL")
+    observed={}
+    if ok:
+        for event in k["events"]:
+            observed[event["kind"]]=observed.get(event["kind"],0)+1
+    coverage={name:{"observed":observed.get(name,0),"matched":bool(ok and observed.get(name,0))}
+              for name in required}
+    # This verifies ONLY event types observed in one authentic data replay.
+    # Controlled branch scenarios and journal recovery are separately required;
+    # this workflow cannot certify complete CORE parity by itself.
+    result={"parity_verified":ok,"reason":reason,
+            "coverage_matrix":coverage,"full_core_parity_certified":False,
+            "certification_blockers":[name for name in required if not coverage[name]["matched"]]
+                + ["CONTROLLED_KOTLIN_PYTHON_BRANCH_SCENARIOS_REQUIRED",
+                   "PAPER_LEDGER_RESTART_RECONCILIATION_EVIDENCE_REQUIRED"]}
     (root/"parity-report.json").write_text(json.dumps(result,indent=2)+"\n")
     print(json.dumps(result))
     return 0 if ok else 1
