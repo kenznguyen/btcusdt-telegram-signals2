@@ -10,7 +10,9 @@ class PaperDcaEndToEnd(unittest.TestCase):
     def test_submit_restart_journal_and_idempotency(self):
         source=os.environ.get("QUANT_PAPER_SOURCE")
         if not source:
-            self.skipTest("PR67 PaperLedger source absent; CI integration step requires this")
+            if os.environ.get("QUANT_REQUIRE_PAPER_E2E") == "1":
+                self.fail("PR67 PaperLedger source absent in mandatory integration step")
+            self.skipTest("PR67 PaperLedger source absent; run dedicated CI integration step")
         sys.path.insert(0,source)
         try:
             from paper_execution.ledger import PaperLedger
