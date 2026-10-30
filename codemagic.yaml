@@ -428,6 +428,9 @@ workflows:
         - pattern: feature/dual-strategy-phase4-artifact-audit-20261030
           include: true
           source: true
+        - pattern: feature/dual-strategy-phase5-contention-audit-20261030
+          include: true
+          source: true
       cancel_previous_builds: true
     scripts:
       - name: Record source commit
@@ -443,6 +446,7 @@ workflows:
             ci.test_phase3_paper_workflow \
             quant_system.test_paper_backtest \
             quant_system.test_paper_audit \
+            quant_system.test_paper_contention_audit \
             quant_system.test_dca_risk_gate \
             quant_system.test_native_prediction_capture \
             quant_system.test_native_research_failure \
@@ -593,6 +597,14 @@ workflows:
             --predictions artifacts/phase3/native/freqai-native-predictions.csv \
             --out artifacts/phase3/paper/paper-180-independent-audit.json \
             2>&1 | tee artifacts/phase3/paper/paper-independent-audit.log
+      - name: Attribute CORE displacement by AI paper position occupancy
+        script: |
+          set -euo pipefail
+          export PYTHONPATH="$CM_BUILD_DIR"
+          "$CI_PYTHON" -m quant_system.paper_contention_audit \
+            --paper-dir artifacts/phase3/paper \
+            --out artifacts/phase3/paper/paper-180-source-contention.json \
+            2>&1 | tee artifacts/phase3/paper/paper-source-contention.log
     artifacts:
       - phase3-source-sha.txt
       - ci-source-sha.txt
