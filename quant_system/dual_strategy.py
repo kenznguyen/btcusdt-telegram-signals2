@@ -5,7 +5,7 @@ The AI source consumes *validated real FreqAI artifacts*, not synthetic indicato
 No exchange orders or Freqtrade native entry flags are emitted by this module.
 """
 from contextlib import closing
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal, InvalidOperation
 from enum import Enum
 import hashlib
@@ -122,6 +122,28 @@ def admit(signal, risk):
             if not 0 <= score <= 1:
                 return Decision(False, "INVALID_AI_CONFIDENCE")
     return Decision(True, "RISK_ADMITTED", signal)
+
+
+def admit_adjustment(signal, risk, *, position_side, dca_count):
+    """Shared-risk gate for ONE DCA on an already verified single position.
+
+    Reuse admit() for every data, provenance, margin and consistency gate.
+    The position slot is temporarily available *only after* confirming the
+    one existing position is the same direction and has no prior DCA.
+    This does NOT alter default admit() behavior or the CORE DCA thresholds.
+    """
+    if (not isinstance(signal, Signal) or not isinstance(risk, RiskSnapshot)
+        or type(risk.active_positions) is not int
+        or type(risk.max_positions) is not int
+        or risk.active_positions != 1 or risk.max_positions != 1):
+        return Decision(False, "INVALID_ADJUSTMENT_POSITION")
+    if (not isinstance(position_side, Side) or signal.side != position_side
+        or type(dca_count) is not int or dca_count != 0):
+        return Decision(False, "DCA_ALREADY_USED_OR_WRONG_SIDE")
+    base = admit(signal, replace(risk, active_positions=0))
+    return Decision(base.accepted,
+                    "RISK_ADMITTED_EXISTING_POSITION_DCA" if base.accepted
+                    else base.reason, base.signal if base.accepted else None)
 
 
 def core_signal(row, rules=None):
