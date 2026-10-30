@@ -95,6 +95,15 @@ class ThreeSlotPaperTests(unittest.TestCase):
         self.assertEqual(kinds,['LONG ENTRY','TAKE PROFIT'])
         self.assertEqual(result['events'][-1]['filled_at_ms'],T0+2*M15)
 
+    def test_open_gap_through_emergency_overrides_prior_confirmed_tp(self):
+        candles=[candle(0),candle(1,close=101.,rsi=78.),candle(2)]
+        detail=fine(3,{(2,0):dict(open=90.,high=91.,low=89.,close=90.)})
+        result=run(candles,[prediction(0)],detail=detail)
+        self.assertEqual([e['kind'] for e in result['events']],
+                         ['LONG ENTRY','EMERGENCY SL'])
+        self.assertLess(result['events'][-1]['actual_fill_price'],
+                        result['events'][-1]['expected_fill_price'])
+
     def test_emergency_sl_exits_each_position_independently(self):
         candles=[candle(i) for i in range(6)]
         detail=fine(6,{(4,0):dict(open=90.,high=92.,low=89.,close=90.)})
