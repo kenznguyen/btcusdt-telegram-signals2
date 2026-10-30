@@ -15,7 +15,7 @@ class EvidenceSummaryTests(unittest.TestCase):
         }}
         self.scenarios={"controlled_branch_parity_verified":True,
             "cases":{name:{"passed":True,"reason":"MATCH","scenario_type":"CONTROLLED_SYNTHETIC"}
-                     for name in ("DCA","SOFT SL","EMERGENCY SL")}}
+                     for name in ("SHORT ENTRY","DCA","SOFT SL","EMERGENCY SL")}}
         self.paper={"paper_dca_e2e_verified":True,"order_status":"FILLED",
                     "restart_reconciliation":True,"duplicate_dca_blocked":True,
                     "live_trading_supported":False}
