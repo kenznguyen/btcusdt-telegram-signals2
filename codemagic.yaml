@@ -433,6 +433,7 @@ workflows:
         script: |
           set -euo pipefail
           python3 -m unittest \
+            ci.test_phase3_native_workflow \
             quant_system.test_phase3_paper_bridge \
             quant_system.test_intrabar_audit \
             quant_system.test_dual_strategy_phase2 \
@@ -480,7 +481,12 @@ workflows:
             brew install libomp
           fi
           bash ci/setup-python.sh requirements-freqai.txt requirements-market-data.txt
+          # setup-python.sh persists CI_PYTHON to CM_ENV for later steps only.
+          # The current shell must export the venv path explicitly (set -u).
+          export CI_PYTHON="$CM_BUILD_DIR/.ci-tools/python-venv/bin/python"
+          test -x "$CI_PYTHON"
           "$CI_PYTHON" -m freqtrade --version
+          "$CI_PYTHON" -c 'import freqtrade, lightgbm; print("Pinned Freqtrade/FreqAI imports OK")'
       - name: Download genuine futures OHLCV plus exchange-managed funding and mark data
         script: |
           set -euo pipefail
