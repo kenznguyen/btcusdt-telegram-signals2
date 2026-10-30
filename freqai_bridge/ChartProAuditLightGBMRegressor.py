@@ -93,8 +93,43 @@ class ChartProAuditLightGBMRegressor(LightGBMRegressor):
                 del self._phase12_unfiltered
 
     def fit(self,data_dictionary,dk,**kwargs):
-        """Fit upstream model; audit failure must never masquerade as no FreqAI model."""
-        fitted=super().fit(data_dictionary,dk,**kwargs)
+        """Witness the exact X/y passed to pinned LightGBM.fit(), not a mock."""
+        matrix_log=os.environ.get('PHASE13B_MATRIX_EVENTS_JSONL')
+        observed={}
+        if matrix_log:
+            from lightgbm import LGBMRegressor
+            from unittest.mock import patch
+            original_fit=LGBMRegressor.fit
+            from copy import deepcopy
+            def observe_lightgbm_fit(model,*args,**kw):
+                if observed:
+                    raise EvidenceError('PHASE13B_MULTIPLE_FIT_INVOCATIONS')
+                x=kw.get('X',args[0] if len(args)>0 else None)
+                y=kw.get('y',args[1] if len(args)>1 else None)
+                eval_set=kw.get('eval_set')
+                if (x is None or y is None or not isinstance(eval_set,list)
+                    or len(eval_set)!=1 or len(eval_set[0])!=2):
+                    raise EvidenceError('PHASE13B_UNEXPECTED_NATIVE_FIT_SIGNATURE')
+                observed['model']=model
+                observed['train_x']=x.copy(deep=True)
+                observed['train_y']=deepcopy(y)
+                observed['train_weights']=deepcopy(kw.get('sample_weight'))
+                observed['test_x']=eval_set[0][0].copy(deep=True)
+                observed['test_y']=deepcopy(eval_set[0][1])
+                eval_weights=kw.get('eval_sample_weight')
+                if not isinstance(eval_weights,list) or len(eval_weights)!=1:
+                    raise EvidenceError('PHASE13B_MISSING_TEST_WEIGHTS')
+                observed['test_weights']=deepcopy(eval_weights[0])
+                return original_fit(model,*args,**kw)
+            # Scoped within this SINGLE paper research fit. FreqAI's
+            # DataSieve transform and LightGBM algorithm are unchanged.
+            with patch.object(LGBMRegressor,'fit',observe_lightgbm_fit):
+                fitted=super().fit(data_dictionary,dk,**kwargs)
+            if not observed or observed.get('model') is not fitted:
+                raise EvidenceError('PHASE13B_FIT_WITNESS_NOT_CALLED')
+            self._capture_phase13b_fit(observed,data_dictionary,dk,matrix_log,fitted)
+        else:
+            fitted=super().fit(data_dictionary,dk,**kwargs)
         destination=os.environ.get('PHASE12_SAMPLES_CSV')
         if not destination:
             return fitted
@@ -107,6 +142,46 @@ class ChartProAuditLightGBMRegressor(LightGBMRegressor):
             lambda:self._capture_phase12_fit_rows(fitted,data_dictionary,dk,destination),
             diagnostics,dk.model_filename
         )
+
+    def _capture_phase13b_fit(self,observed,dd,dk,matrix_log,fitted):
+        """Retain row-ordered actual fit/test matrices, not pre-pipeline X."""
+        from quant_system.phase12_sample_identity import resolve_fit_row_ids
+        from quant_system.phase13b_matrix import record_matrix,append_event
+        import numpy as np
+        raw=getattr(self,'_phase12_unfiltered',None)
+        meta=getattr(self,'_phase8_train_meta',None)
+        if raw is None or meta is None or not hasattr(dk,'_phase12_purge_meta'):
+            raise EvidenceError('PHASE13B_REQUIRES_PHASE12_FIT_IDENTITY')
+        train_ids,test_ids=resolve_fit_row_ids(
+            dk,dd,raw['&-future_return'].to_dict(),
+            split_fraction=self.freqai_info['data_split_parameters']['test_size'])
+        model_sha=booster_sha256(fitted)
+        if list(fitted.booster_.feature_name()) != list(observed['train_x'].columns):
+            raise EvidenceError('PHASE13B_BOOSTER_FEATURE_SCHEMA_MISMATCH')
+        if list(observed['train_x'].columns)!=list(observed['test_x'].columns):
+            raise EvidenceError('PHASE13B_FIT_EVAL_FEATURE_SCHEMA_MISMATCH')
+        def as_one_label(value):
+            a=np.asarray(value,dtype=float)
+            if a.ndim==2 and a.shape[1]==1:
+                a=a[:,0]
+            if a.ndim!=1:
+                raise EvidenceError('PHASE13B_INVALID_FIT_LABEL_DIMENSIONS')
+            return a
+        for stage,ids,x,y,w in (
+            ('FIT_TRAIN',train_ids,observed['train_x'],observed['train_y'],
+             observed['train_weights']),
+            ('FIT_TEST',test_ids,observed['test_x'],observed['test_y'],
+             observed['test_weights'])
+        ):
+            if len(ids)!=len(x):
+                raise EvidenceError('PHASE13B_SOURCE_FITTED_ROW_MISMATCH')
+            stamps=[_ms(dk.train_dates.loc[i]) for i in ids]
+            event=record_matrix(Path(matrix_log).parent,stage=stage,
+                fold=meta['fold_model_name'],model_sha=model_sha,
+                features=x,timestamps=stamps,labels=as_one_label(y),weights=w)
+            event['training_end_ms']=meta['training_end_ms']
+            event['label_horizon_candles']=meta['configured_label_horizon_candles']
+            append_event(matrix_log,event)
 
     def _capture_phase12_fit_rows(self,fitted,data_dictionary,dk,destination):
         """Observed X/y row identity; failures recorded, never reported as certified."""
@@ -173,8 +248,56 @@ class ChartProAuditLightGBMRegressor(LightGBMRegressor):
             os.fsync(stream.fileno())
         return fitted
 
+    def _capture_phase13b_predict(self,captured,unfiltered_df,flags,dk,matrix_log):
+        from quant_system.phase13b_matrix import record_matrix,append_event
+        meta=getattr(self,'_phase8_train_meta',None)
+        x=captured.get('x')
+        if meta is None or x is None or len(x)!=len(unfiltered_df):
+            raise EvidenceError('PHASE13B_MISSING_ACTUAL_INFERENCE_X')
+        model_sha=booster_sha256(self.model)
+        if list(self.model.booster_.feature_name())!=list(x.columns):
+            raise EvidenceError('PHASE13B_PREDICT_FIT_FEATURE_SCHEMA_MISMATCH')
+        times=[_ms(t) for t in unfiltered_df['date']]
+        event=record_matrix(Path(matrix_log).parent,stage='PREDICT',
+            fold=meta['fold_model_name'],model_sha=model_sha,
+            features=x,timestamps=times,flags=flags)
+        event['training_end_ms']=meta['training_end_ms']
+        event['label_horizon_candles']=meta['configured_label_horizon_candles']
+        append_event(matrix_log,event)
+        # Store a *candidate*, not an automatically approved OOS model.
+        # Save the exact fitted preprocessing state paired to the latest
+        # observed native LightGBM booster. A later Git commit must SEAL
+        # its SHA before the untouched holdout opens.
+        from quant_system.phase13b_freeze import capture_candidate
+        config_snapshot={
+            'freqai':self.config['freqai'],
+            'exchange':{'name':self.config['exchange']['name']},
+            'timeframe':self.config['timeframe'],
+            'dry_run':self.config['dry_run'],
+            'force_entry_enable':self.config['force_entry_enable'],
+        }
+        capture_candidate(Path(matrix_log).parent,
+            model=self.model,pipeline=dk.feature_pipeline,
+            label_pipeline=dk.label_pipeline,meta=meta,
+            source_commit_sha=os.environ.get('PHASE13B_SOURCE_SHA',''),
+            config=config_snapshot,model_sha256=model_sha,columns=list(x.columns))
+
     def predict(self,unfiltered_df,dk,**kwargs):
-        predictions,flags=super().predict(unfiltered_df,dk,**kwargs)
+        matrix_log=os.environ.get('PHASE13B_MATRIX_EVENTS_JSONL')
+        if matrix_log:
+            from unittest.mock import patch
+            captured={}
+            original_predict=self.model.predict
+            def observe_lightgbm_predict(x,*args,**kw):
+                if captured:
+                    raise EvidenceError('PHASE13B_MULTIPLE_PREDICT_INVOCATIONS')
+                captured['x']=x.copy(deep=True)
+                return original_predict(x,*args,**kw)
+            with patch.object(self.model,'predict',observe_lightgbm_predict):
+                predictions,flags=super().predict(unfiltered_df,dk,**kwargs)
+            self._capture_phase13b_predict(captured,unfiltered_df,flags,dk,matrix_log)
+        else:
+            predictions,flags=super().predict(unfiltered_df,dk,**kwargs)
         destination=os.environ.get('PHASE8_LINEAGE_CSV')
         if not destination:
             return predictions,flags

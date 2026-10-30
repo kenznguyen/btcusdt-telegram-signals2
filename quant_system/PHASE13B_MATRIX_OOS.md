@@ -1,0 +1,148 @@
+# Phase 13B — Actual LightGBM X/y evidence and prospective frozen-model OOS
+
+**Research-only / Codemagic only.** Based on Phase 13 Draft PR #82. No change
+to Core RSI+ADX+Smart DCA thresholds, AI signal logic, shared risk,
+3-slot / 2-AI-slot paper policy, keystore, Android APK, or main.
+
+## What the instrumentation actually proves
+
+Pinned `freqtrade[freqai]==2026.9`:
+- BaseRegressionModel.train transforms training/evaluation X/y using the fitted
+  DataSieve feature/label pipelines before invoking `self.fit(dd,dk)`.
+- This branch scopes a witness around the real `lightgbm.LGBMRegressor.fit`
+  call. It copies the **actual X, y, sample_weight, eval_set and eval weights**
+  passed to LightGBM, then calls the unchanged original sklearn method.
+- It witnesses the real **`self.model.predict(X)` call** after native
+  `dk.feature_pipeline.transform`. Each feature vector, its source
+  M15 timestamp and the resultant native `do_predict` flag are persisted.
+- Each stage writes an ordered, numeric, finite `.npz` **without object/pickle**
+  serialization plus a SHA256-pinned JSONL event. TRAIN/TEST sample timestamps
+  come from the existing Phase12 *actual fit sample identity* resolver.
+- `phase13b_matrix_audit` independently opens every archive with
+  `allow_pickle=False`, checks file and manifest SHA, actual raw sample row
+  identities vs Phase12, inference model timestamps and flags vs Phase8,
+  exact ordered feature column equality across fit, validation and prediction,
+  4-candle purge horizon, no missing/extra archives, and 180d row totals.
+
+**Boundaries:** this proves what the estimator consumed in this native run,
+not yet that every fitted scaler/DataSieve pipeline operation is invariant to
+later unseen market data. Full pipeline prefix-intervention causal audit remains
+`full_model_pipeline_causality_verified=false`, regardless of successful
+capture. This is NOT an independent OOS result.
+
+## Phase 13B row-accounting bugfix after first Codemagic native run
+
+The first Codemagic native Phase13B audit failed with
+`PHASE13B_NATIVE_MATRIX_ROW_COUNTS_MISMATCH` although Phase8/12/13 passed.
+This reflected an incorrect attempt to compare model `predict(X)` invocation
+rows against the **full exported** FreqAI candle history (including neutral
+pre-model warmup rows). The correct independent accounting is:
+
+- **FIT_TRAIN / FIT_TEST** actual matrix rows == corresponding Phase12
+  observed fitted rows.
+- **PREDICT** actual matrix rows == **Phase8 model lineage rows**, with exact
+  timestamp/model fingerprint/flag matches.
+- Full exported FreqAI CSV rows == all modeled prediction rows **plus**
+  independently verified neutral pre-model rows (`do_predict=0` with an
+  **empty** predicted return), and optionally **one immediately adjacent
+  trailing candle** after the final LightGBM inference timestamp. This
+  narrow boundary exception does not cover gaps within the inference window,
+  an arbitrary trailing period, untraced accepted forecasts, nonempty
+  forecast values, additional matrix archives, or SHA divergence.
+  Diagnostics separate `unmodeled_warmup_rows` and `unmodeled_trailing_rows`.
+- `row_accounting` in the Phase13B JSON shows each independent count when
+  diagnosing any future mismatch.
+
+Previously uploaded Phase13 artifacts (not the new failing Phase13B ZIP)
+had 17,280 model lineage rows, 20,224 exported rows, 2,944 neutral
+pre-model rows, and 17,103 accepted model forecasts. Reconciliation of
+that archived evidence matched exactly. This is **not** proof that a fresh
+Phase13B build has passed; rerun this head on Codemagic and inspect all
+artifacts.
+
+## Second Codemagic run: terminal-candle boundary correction
+
+The follow-up native 180d research passed Phase 8/12/13 and observed matching
+TRAIN 59,696, validation 14,825 and actual PREDICT 17,280 rows. The FreqAI
+export had 20,225 rows (2,945 rows without model prediction), but the
+overly broad `PHASE13B_NONMODEL_ROW_AFTER_FIRST_MODEL_INFERENCE` rule
+rejected any neutral row after the *first* model inference.
+
+The next guard partitions unmodeled neutral rows into pre-model warmup versus
+**exactly one next M15 candle after the last model inference**. It rejects
+unmodeled rows inside the first-to-last inference window and arbitrary late
+rows. The 2,945-row difference suggests 2,944 warmup rows + one boundary row,
+but this is a **hypothesis until the new Codemagic artifact proves exact
+timestamps and `errors=[]`**. No count or prediction is fabricated, and
+the candidate stays unsealed and ineligible for OOS certification.
+
+## Model candidate (not yet immutable)
+
+During the historical research, the same instrumented FreqAI module writes
+`native/phase13b-unsealed-model-candidate.joblib` and JSON metadata from the
+**latest observed** trained FreqAI model. It includes the real LightGBM
+estimator and **fitted feature and label pipelines**, source Git SHA, schema,
+training cutoff, and SHA-256 of the serialized bundle. Earlier candidates
+are replaced only by strictly later training cutoffs.
+
+The joblib bundle is for trusted offline research only. **Never unpickle a
+third-party or unverified uploaded model**; always check the SHA recorded in
+a pre-holdout Git commit first. Candidate existence is NOT a frozen model
+approval. Its report explicitly has `sealed_in_git=false`.
+
+## Pre-registered untouched chronological OOS
+
+File `quant_system/phase13b-oos-protocol.json` fixes the protocol before
+any OOS data collection:
+- **Start:** 2026-11-04 00:00 UTC; **end:** 2026-12-04 00:00 UTC,
+  exactly 30 days = 2,880 CLOSED 15m candles. Any required final +4-bar
+  evaluation labels can be read **after** the 30d close, never as model input.
+- OKX BTC/USDT:USDT, H1 closed trend, M15 decision, 5m paper fill detail,
+  13x, 0.05%/side modeled fees, original Shared Risk, 3 positions total,
+  at most 2 AI-origin DUAL positions, 10% initial margin and one DCA/position,
+  max 60% total margin, 100 USDT starting equity.
+- **One genuinely frozen model and pipelines** for the entire OOS period.
+  No OOS refitting, validation, hyperparameter tweaking, feature selection,
+  model retraining, FreqAI rolling backtest training or threshold tuning.
+- Compare CORE_ONLY / AI_ONLY / DUAL on exactly the same holdout candles,
+  including mark-to-market equity, funds/fees, liquidation and full
+  path-dependent drawdown; report weekly performance and abstentions.
+- Any unavailability of actual venue funding/mark data, any mismatch with
+  native execution/Kotlin, or a violation of the freeze must fail closed.
+  No automatic strategy promotion whatever the PnL.
+
+### How to cryptographically seal BEFORE the OOS window
+
+1. On Codemagic choose branch `feature/dual-strategy-phase13b-fitted-matrix-oos-freeze-20261031`.
+   Confirm `dual-strategy-phase3-unit`, then run manual
+   `dual-strategy-phase3-native-research`:
+   `PHASE3_DAYS=180`, `PHASE3_DETAIL_MINUTES=5`,
+   `PHASE3_DOWNLOAD_DAYS=220`.
+2. Verify `paper/phase13b-native-matrix-audit.json` has
+   `actual_fit_predict_matrices_verified=true` and `errors=[]`.
+   Verify `paper/phase13b-oos-freeze-preflight.json` has
+   `candidate_sha_verified=true`, `sealed_in_git=false` and `errors=[]`.
+   Compare actual files and hashes against the report **from the same build**.
+3. **Before 2026-11-04 00:00 UTC**, independently review the model metadata
+   and protocol, then **commit an explicit seal declaration to GitHub**
+   containing the exact protocol SHA, source commit SHA, candidate bundle SHA,
+   metadata SHA, model fingerprint, cutoff, frozen pipeline schema,
+   model identifier and pre-holdout Git commit evidence.
+   A proposed seal generated by Codemagic is NOT an actual Git seal.
+   Confirm the GitHub server-side commit date is pre-holdout and immutable;
+   do not trust a self-reported timestamp in an artifact.
+4. Only after that immutable commit exists and the holdout closes can the
+   independent OOS evaluation be developed/activated using the *same frozen*
+   model, predictors and risk policy. Additional 30d historical training on
+   this OOS window would invalidate the claim.
+5. If the seal is NOT committed before Nov 4, **abort this 30d window** and
+   pre-register a NEW, later untouched window. Never backdate or relabel
+   already-inspected market data as a virgin holdout.
+
+**Not yet done:** Codemagic execution for Phase13B commit, actual independent
+fitted-pipeline future-candle intervention, Git seal, 30d holdout observations,
+native-only frozen inference replay, funding/liquidation/exchange-fill evidence.
+Keep `independent_oos_verified=false`, `oos_certified=false`,
+`ai_promotion_eligible=false`, `ready_for_360=false`,
+`full_core_parity_certified=false`, `live_orders_enabled=false`.
+Do not merge stacked Draft PRs based only on source-level or matrix SHA audits.

@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "protocol": "PHASE13B_PROSPECTIVE_FROZEN_MODEL_OOS",
+  "status": "PRE_REGISTERED_PROTOCOL_CANDIDATE_NOT_SEALED",
+  "scope": "BTC/USDT:USDT OKX USDT perpetual paper-only",
+  "holdout_start_utc": "2026-11-04T00:00:00Z",
+  "holdout_end_utc": "2026-12-04T00:00:00Z",
+  "holdout_days": 30,
+  "holdout_data_already_used_for_model_selection": false,
+  "model_identifier": "chart-pro-okx-shadow-v1",
+  "freqtrade_version": "2026.9",
+  "source_commit_sha": null,
+  "frozen_model_bundle_sha256": null,
+  "frozen_model_metadata_sha256": null,
+  "seal_git_commit": null,
+  "sealed_in_git": false,
+  "frozen_model_policy": {
+    "retrain_inside_holdout": false,
+    "tune_parameters_using_holdout": false,
+    "change_strategy_or_features_after_seal": false,
+    "reuse_existing_trained_model_with_fitted_datasieve_and_label_pipeline": true,
+    "all_training_labels_end_before_holdout_start": true,
+    "freeze_all_feature_scalers_and_outlier_transformers": true
+  },
+  "data": {
+    "venue": "OKX",
+    "symbol": "BTC/USDT:USDT",
+    "timeframe": "15m",
+    "context_timeframe": "1h",
+    "execution_detail": "5m",
+    "label_horizon_m15_candles": 4,
+    "only_closed_candles": true,
+    "exact_holdout_15m_rows": 2880,
+    "no_backfill_of_missing_holdout_candles": true,
+    "no_use_of_holdout_rows_for_training_or_scalers": true
+  },
+  "evaluation": {
+    "modes": ["CORE_ONLY", "AI_ONLY", "DUAL"],
+    "initial_equity_usdt": 100,
+    "futures_leverage": 13,
+    "entry_margin_fraction_of_equity": 0.10,
+    "max_total_margin_fraction_of_equity": 0.60,
+    "max_positions": 3,
+    "max_ai_origin_positions_in_dual": 2,
+    "max_dca_per_position": 1,
+    "fee_per_side_fraction": 0.0005,
+    "no_real_orders": true,
+    "execution_price_model": "NEXT_5M_OPEN_PLUS_MODELED_FEE",
+    "equity_includes_open_position_mark_to_market": true,
+    "primary_comparison": "DUAL_vs_CORE_ON_SAME_MARKET_AND_RISK",
+    "must_report": ["return_pct", "max_drawdown_pct_peak",
+      "net_pnl_after_fees_and_funding", "liquidation_incidents",
+      "closed_trade_count", "ai_model_forecast_accuracy",
+      "exposure_pct", "per_week_net_pnl", "prediction_abstention_rate"],
+    "automatic_promotion_allowed": false
+  },
+  "fail_closed": {
+    "if_model_seal_missing": true,
+    "if_seal_registered_after_holdout_start": true,
+    "if_source_or_bundle_hash_mismatch": true,
+    "if_any_holdout_row_was_used_to_train_or_fit_preprocessing": true,
+    "if_any_missing_or_nonclosed_candle": true,
+    "if_future_data_changes_past_predictions": true,
+    "if_execution_or_funding_data_insufficient": true
+  },
+  "certification": {
+    "independent_oos_verified": false,
+    "oos_certified": false,
+    "ai_promotion_eligible": false,
+    "ready_for_360": false,
+    "live_orders_enabled": false
+  }
+}

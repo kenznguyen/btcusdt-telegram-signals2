@@ -213,6 +213,24 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
         if phase12_flag not in ("0","1") or (phase12_flag=="1" and not phase8_enabled):
             raise ValueError("PHASE12_REQUIRES_ACTUAL_PHASE8_NATIVE_MODEL")
         phase12_enabled = phase12_flag=="1"
+        phase13b_flag = os.environ.get("PHASE13B_CAPTURE_MATRICES","0")
+        if phase13b_flag not in ("0","1"):
+            raise ValueError("INVALID_PHASE13B_CAPTURE_SWITCH")
+        phase13b_enabled = phase13b_flag=="1"
+        if phase13b_enabled and (not phase12_enabled or not phase8_enabled or
+                                  days!=180 or exchange!="okx"):
+            raise ValueError("PHASE13B_REQUIRES_PHASE12_180D_OKX")
+        matrix_events_path=target/"phase13b-native-matrix-events.jsonl"
+        matrix_events_path.unlink(missing_ok=True)
+        matrix_dir=target/"phase13b-matrices"
+        if phase13b_enabled:
+            # New SHA-bound build only: reject a stale candidate or matrices.
+            if matrix_dir.exists() and any(matrix_dir.iterdir()):
+                raise ValueError("STALE_PHASE13B_MATRIX_ARCHIVES")
+            for name in ("phase13b-unsealed-model-candidate.joblib",
+                         "phase13b-unsealed-model-candidate.json"):
+                (target/name).unlink(missing_ok=True)
+            report["phase13b_matrix_capture_requested"]=True
         samples_path = target / "freqai-native-training-samples.csv"
         samples_path.unlink(missing_ok=True)
         observer_errors_path = target / "phase12-fit-observer-errors.jsonl"
@@ -231,6 +249,8 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
             environment.pop("PHASE8_LINEAGE_CSV", None)
             environment.pop("PHASE12_SAMPLES_CSV", None)
             environment.pop("PHASE12_OBSERVER_ERRORS_JSONL", None)
+            environment.pop("PHASE13B_MATRIX_EVENTS_JSONL", None)
+            environment.pop("PHASE13B_SOURCE_SHA", None)
             if label == "freqai" and days == 180 and exchange == "okx":
                 environment["PHASE3_PREDICTIONS_CSV"] = str(prediction_path.resolve())
                 if phase8_enabled:
@@ -238,6 +258,10 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
                 if phase12_enabled:
                     environment["PHASE12_SAMPLES_CSV"] = str(samples_path.resolve())
                     environment["PHASE12_OBSERVER_ERRORS_JSONL"] = str(observer_errors_path.resolve())
+                    if phase13b_enabled:
+                        environment["PHASE13B_MATRIX_EVENTS_JSONL"]=str(matrix_events_path.resolve())
+                        environment["PHASE13B_SOURCE_SHA"]=os.environ.get(
+                            "PHASE13B_SOURCE_SHA","")
             log = target / f"{label}-native-{days}.log"
             with log.open("w", encoding="utf-8") as handle:
                 completed = subprocess.run(
@@ -329,6 +353,22 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
                 "sha256:" + hashlib.sha256(samples_path.read_bytes()).hexdigest()
             )
             report["phase12_training_samples_bytes"] = samples_path.stat().st_size
+        if phase13b_enabled:
+            candidate_meta=target/"phase13b-unsealed-model-candidate.json"
+            candidate_bundle=target/"phase13b-unsealed-model-candidate.joblib"
+            if not matrix_events_path.is_file() or not candidate_meta.is_file() or not candidate_bundle.is_file():
+                raise RuntimeError("PHASE13B_MISSING_ACTUAL_MATRIX_OR_FROZEN_CANDIDATE")
+            from quant_system.phase13b_matrix import matrix_digest
+            candidate=json.loads(candidate_meta.read_text(encoding="utf8"))
+            if candidate.get("candidate_sha256")!=matrix_digest(candidate_bundle) or (
+                candidate.get("sealed_in_git") is not False):
+                raise RuntimeError("PHASE13B_CANDIDATE_BUNDLE_SHA_MISMATCH")
+            report["phase13b_matrix_events_sha256"]=matrix_digest(matrix_events_path)
+            report["phase13b_matrix_events_bytes"]=matrix_events_path.stat().st_size
+            report["phase13b_candidate_sha256"]=matrix_digest(candidate_bundle)
+            report["phase13b_candidate_metadata_sha256"]=matrix_digest(candidate_meta)
+            report["phase13b_candidate_sealed_in_git"]=False
+            report["independent_oos_verified"]=False
         report["reason"] = "NATIVE_RESEARCH_COMPLETED_TRADE_PARITY_NOT_VERIFIED"
     except (ValueError, OSError, RuntimeError, subprocess.TimeoutExpired) as error:
         report["reason"] = str(error)[:180]
