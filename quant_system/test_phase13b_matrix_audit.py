@@ -51,7 +51,8 @@ class MatrixAuditTests(unittest.TestCase):
                     model_sha256=self.sha,open_time=t,do_predict=flag))
         (self.root/"paper/phase12-native-fit-label-audit.json").write_text(json.dumps({
             "actual_fit_sample_lineage_verified":True,
-            "train_test_label_purge_verified":True,"errors":[]}))
+            "train_test_label_purge_verified":True,
+            "train_rows":2,"test_rows":2,"errors":[]}))
         (self.root/"paper/phase8-native-model-evidence.json").write_text(json.dumps({
             "native_model_lineage_verified":True,"errors":[]}))
         self.report=self.native/"native-research-180.json"
@@ -60,7 +61,8 @@ class MatrixAuditTests(unittest.TestCase):
             "phase12_training_samples_sha256":matrix_digest(train_file),
             "phase8_model_lineage_sha256":matrix_digest(lineage),
             "core_native_runtime_succeeded":True,
-            "freqai_native_runtime_succeeded":True}))
+            "freqai_native_runtime_succeeded":True,
+            "prediction_capture_rows":2}))
 
     def tearDown(self):
         self.tmp.cleanup()
