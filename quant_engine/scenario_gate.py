@@ -3,7 +3,7 @@ import json,sys
 from pathlib import Path
 from .trace_gate import audit
 
-REQUIRED=("DCA","SOFT SL","EMERGENCY SL")
+REQUIRED=("SHORT ENTRY","DCA","SOFT SL","EMERGENCY SL")
 def main(root):
     root=Path(root)
     cases={}
