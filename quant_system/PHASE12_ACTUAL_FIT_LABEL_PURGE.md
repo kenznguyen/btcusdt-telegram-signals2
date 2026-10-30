@@ -161,3 +161,68 @@ at the train/test boundary. If `TRAIN_TEST_LABEL_HORIZON_NOT_PURGED`
 occurs, keep that as a legitimate failed independent audit and implement
 a separate chronological label-horizon purge under new tests **without
 changing strategy thresholds, paper risk sizing or live enablement**.
+
+## Phase 12 observed actual training overlap — corrective patch
+
+The next native Codemagic run passed actual fit-row and target reconstruction,
+then correctly blocked at:
+
+```json
+{"actual_fit_sample_lineage_verified": true,
+ "train_test_label_purge_verified": false,
+ "errors": ["TRAIN_TEST_LABEL_HORIZON_NOT_PURGED"],
+ "ready_for_360": false}
+```
+
+This is **confirmed unpurged TRAIN/TEST label overlap**, not a failed
+DataSieve observer. With the fixed FreqAI 2026.9 chronological 80/20
+train/test split and target `close.shift(-4)/close-1`, the last
+four contiguous TRAIN samples each use a price at or after the first
+TEST feature timestamp.
+
+### Actual correction (before model fitting)
+
+`phase12_purge.purge_train_test_split` is invoked immediately after the
+pinned upstream `dk.make_train_test_datasets(...)` result and **before**
+`dk.fit_labels()`, DataSieve's feature MinMaxScaler and label scaler,
+and `LightGBM.fit()`. It uses the actual unfiltered, chronological
+`dk.train_dates` and first TEST feature timestamp, removing precisely
+TRAIN rows where `feature_open + 4*M15 >= first_test_feature_open`
+from train features, raw train labels and corresponding train weights.
+No TEST samples are moved, removed or refitted into TRAIN. For
+contiguous M15 data the removed count should be **four per fold**;
+for historical gaps the bound is calculated from timestamps, not a
+blind hard-coded row count.
+
+`ChartProAuditLightGBMRegressor.train()` temporarily wraps only the
+current fold's `dk.make_train_test_datasets()` call and restores the
+original bound method in `finally`. There is no global Freqtrade,
+DataSieve or live system patch. `resolve_fit_row_ids` checks that
+the observed LightGBM-fitted X/y/weights map to the recorded purged
+prefix, the validation rows selected by the true DI mask and the
+inverse-transformed LightGBM target values. The independent Phase12
+audit still checks actual fit sample timestamps, 4-candle reconstructed
+target values, booster SHA-256 and the STRICT `max(TRAIN label end) <
+min(TEST feature start)` boundary. Any missing/mismatched evidence
+fails closed.
+
+### Critical consequences
+
+- Every model trained on purged data is a **new LightGBM model**:
+  fingerprints and predictions are expected to differ from the
+  previous, leaking baseline. **Recalculate** CORE_ONLY / AI_ONLY /
+  DUAL Phase9–11 on the newly generated same SHA-pinned OHLCV and
+  FreqAI forecasts; do not carry forward previous profitability or
+  CORE displacement statistics.
+- Removing future-label overlap does NOT independently certify other
+  feature causality, true untouched walk-forward OOS, trade parity,
+  mark/funding/liquidation or real exchange 3-slot support.
+- Preserve all false certification flags, CORE thresholds, AI signal
+  threshold, Shared Risk, 3 slots, 10% equity margin/entry, 13×,
+  Android APK signing, no native orders and no main merge.
+
+The patch is **not yet Codemagic-validated**. First run unit, then
+manual native research at the tested revision on OKX 180 days with
+5m detail. If the native Phase12 gate still fails, examine the
+observer error JSONL and SHA-pinned fit-row CSV rather than overriding
+the independent audit.
