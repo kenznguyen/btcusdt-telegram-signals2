@@ -3,6 +3,7 @@
 No Freqtrade, DataSieve, or pandas dependency in the unit runner.
 """
 import unittest
+from datetime import datetime,timedelta,timezone
 from types import SimpleNamespace
 from quant_system.phase12_sample_identity import resolve_fit_row_ids, RowIdentityError
 
@@ -89,6 +90,41 @@ class FitRowIdentityTest(unittest.TestCase):
         train,test=resolve_fit_row_ids(dk,dd,raw,split_fraction=.2)
         self.assertEqual(len(train),8)
         self.assertEqual(test,[108,109])
+
+    def test_sample_identity_uses_actual_prefit_purged_train_indices(self):
+        ids=list(range(100,130))
+        dates={i:datetime(2026,9,1,tzinfo=timezone.utc)+timedelta(minutes=15*k)
+               for k,i in enumerate(ids)}
+        class RealDates:
+            index=ids
+            @property
+            def loc(self):return self
+            def __getitem__(self,index):return dates[index]
+        di=SimpleNamespace(di_values=[0.0]*6,di_threshold=.9)
+        class Pipeline:
+            steps=[('const',object()),('scaler',object()),('di',di)]
+            def __getitem__(self,key):return di if key=='di' else None
+        dk=SimpleNamespace(train_dates=RealDates(),feature_pipeline=Pipeline(),
+                           label_pipeline=IdentityLabelPipeline(),
+                           _phase12_purged_train_source_indices=ids[:20],
+                           _phase12_purge_meta=dict(horizon_candles=4,
+                               original_train_rows=24,fitted_train_rows=20,
+                               removed_train_rows=4,
+                               first_test_feature_open_ms=int(dates[124].timestamp()*1000),
+                               last_train_label_end_ms=int(dates[119].timestamp()*1000)+4*900000))
+        dd=dict(train_features=Frame(range(20)),
+                train_labels=Frame([[i/100] for i in ids[:20]]),
+                train_weights=[1]*20,
+                test_features=Frame(range(6)),
+                test_labels=Frame([[i/100] for i in ids[24:]]),
+                test_weights=[1]*6)
+        original={i:i/100 for i in ids}
+        train,test=resolve_fit_row_ids(dk,dd,original,split_fraction=.2)
+        self.assertEqual(train,ids[:20])
+        self.assertEqual(test,ids[24:])
+        dk._phase12_purge_meta['removed_train_rows']=0
+        with self.assertRaisesRegex(RowIdentityError,'PHASE12_PURGE_METADATA_MISMATCH'):
+            resolve_fit_row_ids(dk,dd,original,split_fraction=.2)
 
     def test_model_label_reorder_is_not_misrepresented_as_lineage(self):
         dk,dd,raw=fixture()
