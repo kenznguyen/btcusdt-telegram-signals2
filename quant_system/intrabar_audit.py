@@ -123,7 +123,14 @@ def audit_history(m15_path, h1_path, detail_path, *, days, detail_minutes,
     fine = read_closed_csv(detail_path, step)
     for row in (*primary, *hourly, *fine):
         _check_ohlc(row)
-    end = primary[-1]["open_time"] + M15_MS
+    # Real feeds may end between hour boundaries. Choose the last commonly
+    # CLOSED H1 boundary rather than silently treating a forming H1 as closed.
+    last_common_end = min(
+        primary[-1]["open_time"] + M15_MS,
+        hourly[-1]["open_time"] + H1_MS,
+        fine[-1]["open_time"] + step,
+    )
+    end = (last_common_end // H1_MS) * H1_MS
     start = end - days * DAY_MS
     if start < 0 or start % H1_MS:
         raise ValueError("UNALIGNED_AUDIT_PERIOD")
