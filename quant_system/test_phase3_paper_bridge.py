@@ -131,15 +131,15 @@ class Phase3PaperBridgeTest(unittest.TestCase):
         self.paper.submit = Mock(side_effect=RuntimeError("simulated crash after prebind"))
         with self.assertRaises(RuntimeError):
             self.submit(selected)
-        self.assertEqual(self.reservations.entries()[0]["status"], "BOUND")
-        self.assertEqual(self.bridge.recover(selected.selected.signal_id)["reason"], "BOUND_NO_PAPER_ORDER")
+        self.assertEqual(self.reservations.entries()[0]["status"], "RESERVED")
+        self.assertEqual(self.bridge.recover(selected.selected.signal_id)["reason"], "ATTEMPTED_NO_PAPER_ORDER")
         restarted = DualPaperBridge(
             ReservationLedger(self.shared_path),
             PaperLedger(self.shared_path, max_position_base="10"),
             initial_capital_usdt="100",
         )
         refused = restarted.execute(selected, self.row, self.window, None, self.risk, self.book, self.now)
-        self.assertEqual((refused.action, refused.reason), ("WAIT", "RESERVATION_NOT_READY"))
+        self.assertEqual((refused.action, refused.reason), ("WAIT", "ALREADY_ATTEMPTED"))
         self.assertEqual(len(restarted.paper.snapshot()["orders"]), 0)
 
     def test_recovery_filled_order_does_not_claim_trade_closed(self):
