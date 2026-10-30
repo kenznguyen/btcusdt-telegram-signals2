@@ -14,7 +14,7 @@ from quant_system.intrabar_audit import audit_history
 from quant_system.native_dataset import training_window
 
 
-def research_commands(*, days, detail_minutes, dataset_dir, native_datadir, out_dir):
+def research_commands(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, userdir):
     if type(days) is not int or days not in (180, 360):
         raise ValueError("Only 180/360-day research is supported")
     if detail_minutes not in (1, 5):
@@ -49,8 +49,11 @@ def research_commands(*, days, detail_minutes, dataset_dir, native_datadir, out_
     timerange = f"{beginning // 1000}-{ending // 1000}"
     target = Path(out_dir).resolve()
     target.mkdir(parents=True, exist_ok=True)
-    user_dir = target / "user-data"
-    user_dir.mkdir(exist_ok=True)
+    user_dir = Path(userdir).resolve()
+    # Freqtrade CLI requires a pre-created user-data root. Never rely on
+    # the implicit checkout ./user_data or create a new one mid-backtest.
+    if not user_dir.is_dir() or not (user_dir / "strategies").is_dir():
+        raise ValueError("MISSING_INITIALIZED_FREQTRADE_USERDIR")
     common = [
         sys.executable, "-m", "freqtrade", "backtesting",
         "--config", str(root / "freqai_bridge/config.research.json"),
@@ -73,7 +76,7 @@ def research_commands(*, days, detail_minutes, dataset_dir, native_datadir, out_
     return verified, [("core", core), ("freqai", freqai)]
 
 
-def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir):
+def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, userdir):
     target = Path(out_dir).resolve()
     target.mkdir(parents=True, exist_ok=True)
     report = {
@@ -90,7 +93,7 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir):
     try:
         verified, commands = research_commands(
             days=days, detail_minutes=detail_minutes, dataset_dir=dataset_dir,
-            native_datadir=native_datadir, out_dir=out_dir,
+            native_datadir=native_datadir, out_dir=out_dir, userdir=userdir,
         )
         report.update(dataset_sha256=verified["dataset_sha256"],
                       detail_sha256=verified["detail_sha256"],
@@ -121,12 +124,13 @@ def main():
     parser.add_argument("--detail-minutes", type=int, choices=(1, 5), default=5)
     parser.add_argument("--dataset-dir", required=True)
     parser.add_argument("--native-datadir", required=True)
+    parser.add_argument("--userdir", required=True)
     parser.add_argument("--out-dir", required=True)
     args = parser.parse_args()
     report = run_research(
         days=args.days, detail_minutes=args.detail_minutes,
         dataset_dir=args.dataset_dir, native_datadir=args.native_datadir,
-        out_dir=args.out_dir,
+        out_dir=args.out_dir, userdir=args.userdir,
     )
     print(json.dumps(report, sort_keys=True))
     return 0 if report["core_native_runtime_succeeded"] and report["freqai_native_runtime_succeeded"] else 1
