@@ -222,5 +222,25 @@ class PaperLedgerTest(unittest.TestCase):
             self.assertEqual(connection.execute("SELECT * FROM candles").fetchall(), [(123,)])
 
 
+    def test_shared_sqlite_transaction_can_rollback_paper_submit_atomically(self):
+        intent = self.intent("external-transaction", "0.1")
+        with self.assertRaises(RuntimeError):
+            with sqlite3.connect(self.path) as connection, connection:
+                connection.execute("BEGIN IMMEDIATE")
+                order = self.ledger.submit(intent, self.book(), self.now, connection=connection)
+                self.assertEqual(order["status"], "FILLED")
+                raise RuntimeError("simulate crash before atomic commit")
+        recovered = PaperLedger(self.path, max_position_base="1").snapshot()
+        self.assertEqual(recovered["positionBase"], "0")
+        self.assertEqual(recovered["orders"], [])
+
+    def test_external_connection_without_active_transaction_is_rejected(self):
+        with sqlite3.connect(self.path) as connection:
+            with self.assertRaises(ValueError):
+                self.ledger.submit(self.intent("not-transactional"), self.book(), self.now,
+                                   connection=connection)
+        self.assertEqual(self.ledger.snapshot()["orders"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

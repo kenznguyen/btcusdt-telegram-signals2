@@ -141,80 +141,96 @@ class PaperLedger:
         connection.execute("INSERT INTO paper_audit(at_ms,kind,document) VALUES (?,?,?)",
                            (at_ms, kind, json.dumps(value, allow_nan=False)))
 
-    def submit(self, raw, book, now_ms):
+    def submit(self, raw, book, now_ms, *, connection=None):
+        """Submit a paper intent either standalone or inside an owned SQLite transaction.
+
+        The external-transaction path is used exclusively by the dual-strategy
+        reservation bridge to bind and simulate an intent atomically. It does
+        not commit or roll back the caller's transaction.
+        """
         intent, now = intent_value(raw), stamp(now_ms)
         digest = identity("payload:", intent)
+        if connection is not None:
+            if not isinstance(connection, sqlite3.Connection) or not connection.in_transaction:
+                raise ValueError("External paper transaction must be active")
+            with localcontext() as context:
+                context.prec = 80
+                return self._submit_locked(connection, intent, now, digest, book)
         with closing(self.connect()) as connection, connection, localcontext() as context:
             context.prec = 80
             connection.execute("BEGIN IMMEDIATE")
-            position, average, realized, fees, paused = stored_state(connection)
-            previous = connection.execute("SELECT payload_hash,document FROM paper_orders WHERE intent_id=?", (intent["intentId"],)).fetchone()
-            if previous:
-                if previous[0] != digest:
-                    raise ValueError("Intent ID was reused with a different payload")
-                return json.loads(previous[1])
-            target, limit = Decimal(intent["targetPositionBase"]), Decimal(intent["limitPrice"])
-            delta, reason = target-position, None
-            side = "BUY" if delta > 0 else "SELL" if delta < 0 else "NONE"
-            quantity, filled, quote, fee = abs(delta), ZERO, ZERO, ZERO
-            pending = connection.execute("SELECT 1 FROM paper_orders WHERE status IN ('OPEN','PARTIALLY_FILLED') LIMIT 1").fetchone()
-            if paused:
-                reason = "PAUSED"
-            elif not intent["decisionAtMs"] <= now <= intent["validUntilMs"]:
-                reason = "EXPIRED_INTENT"
-            elif abs(target) > self.maximum:
-                reason = "POSITION_LIMIT"
-            elif pending:
-                reason = "PENDING_ORDER"
+            return self._submit_locked(connection, intent, now, digest, book)
+
+    def _submit_locked(self, connection, intent, now, digest, book):
+        position, average, realized, fees, paused = stored_state(connection)
+        previous = connection.execute("SELECT payload_hash,document FROM paper_orders WHERE intent_id=?", (intent["intentId"],)).fetchone()
+        if previous:
+            if previous[0] != digest:
+                raise ValueError("Intent ID was reused with a different payload")
+            return json.loads(previous[1])
+        target, limit = Decimal(intent["targetPositionBase"]), Decimal(intent["limitPrice"])
+        delta, reason = target-position, None
+        side = "BUY" if delta > 0 else "SELL" if delta < 0 else "NONE"
+        quantity, filled, quote, fee = abs(delta), ZERO, ZERO, ZERO
+        pending = connection.execute("SELECT 1 FROM paper_orders WHERE status IN ('OPEN','PARTIALLY_FILLED') LIMIT 1").fetchone()
+        if paused:
+            reason = "PAUSED"
+        elif not intent["decisionAtMs"] <= now <= intent["validUntilMs"]:
+            reason = "EXPIRED_INTENT"
+        elif abs(target) > self.maximum:
+            reason = "POSITION_LIMIT"
+        elif pending:
+            reason = "PENDING_ORDER"
+        else:
+            try:
+                bids, asks, spread, book_id = book_value(book, now)
+            except (ValueError, TypeError):
+                reason = "INVALID_BOOK"
             else:
-                try:
-                    bids, asks, spread, book_id = book_value(book, now)
-                except (ValueError, TypeError):
-                    reason = "INVALID_BOOK"
+                if spread > self.spread:
+                    reason = "SPREAD_LIMIT"
+                elif connection.execute("SELECT 1 FROM paper_books WHERE book_id=?", (book_id,)).fetchone():
+                    reason = "SNAPSHOT_ALREADY_USED"
+        if reason is None and quantity:
+            for price, visible in (asks if delta > 0 else bids):
+                if (delta > 0 and price > limit) or (delta < 0 and price < limit):
+                    break
+                take = min(quantity-filled, visible)
+                filled, quote = filled+take, quote+take*price
+                # Book levels can straddle the point where an old position is
+                # closed. Account each fill at its own price, not order VWAP.
+                signed_fill = take if delta > 0 else -take
+                new_position = position+signed_fill
+                if position == 0 or position*signed_fill > 0:
+                    average = (abs(position)*average+take*price)/abs(new_position)
                 else:
-                    if spread > self.spread:
-                        reason = "SPREAD_LIMIT"
-                    elif connection.execute("SELECT 1 FROM paper_books WHERE book_id=?", (book_id,)).fetchone():
-                        reason = "SNAPSHOT_ALREADY_USED"
-            if reason is None and quantity:
-                for price, visible in (asks if delta > 0 else bids):
-                    if (delta > 0 and price > limit) or (delta < 0 and price < limit):
-                        break
-                    take = min(quantity-filled, visible)
-                    filled, quote = filled+take, quote+take*price
-                    # Book levels can straddle the point where an old position is
-                    # closed. Account each fill at its own price, not order VWAP.
-                    signed_fill = take if delta > 0 else -take
-                    new_position = position+signed_fill
-                    if position == 0 or position*signed_fill > 0:
-                        average = (abs(position)*average+take*price)/abs(new_position)
-                    else:
-                        realized += min(abs(position), take)*(price-average)*(1 if position > 0 else -1)
-                        if new_position == 0:
-                            average = ZERO
-                        elif position*new_position < 0:
-                            average = price
-                    position = new_position
-                    if filled == quantity:
-                        break
-                if filled:
-                    # ponytail: consume a whole snapshot once; add per-level reservations
-                    # only if repeated fills against one paper snapshot are required.
-                    connection.execute("INSERT INTO paper_books VALUES (?,?)", (book_id, now))
-                    fee = quote*self.fee_rate
-                    fees += fee
-                    connection.execute("UPDATE paper_state SET position=?,average=?,realized=?,fees=? WHERE id=1",
-                                       tuple(map(text, (position, average, realized, fees))))
-            status = "REJECTED" if reason else "FILLED" if filled == quantity else "PARTIALLY_FILLED" if filled else "OPEN"
-            order = {"orderId": identity("paper:", intent["intentId"]), "intentId": intent["intentId"],
-                     "status": status, "side": side, "quantityBase": text(quantity), "filledBase": text(filled),
-                     "remainingBase": text(quantity-filled), "averagePrice": text(quote/filled) if filled else None,
-                     "feeQuote": text(fee), "createdAtMs": now, "updatedAtMs": now, "mode": "PAPER",
-                     "reason": reason or ("TARGET_ALREADY_REACHED" if quantity == 0 else "VISIBLE_DEPTH_SIMULATION")}
-            connection.execute("INSERT INTO paper_orders VALUES (?,?,?,?,?)",
-                               (intent["intentId"], digest, order["orderId"], status, json.dumps(order, allow_nan=False)))
-            self.audit(connection, now, "SUBMIT", order)
-            return order
+                    realized += min(abs(position), take)*(price-average)*(1 if position > 0 else -1)
+                    if new_position == 0:
+                        average = ZERO
+                    elif position*new_position < 0:
+                        average = price
+                position = new_position
+                if filled == quantity:
+                    break
+            if filled:
+                # ponytail: consume a whole snapshot once; add per-level reservations
+                # only if repeated fills against one paper snapshot are required.
+                connection.execute("INSERT INTO paper_books VALUES (?,?)", (book_id, now))
+                fee = quote*self.fee_rate
+                fees += fee
+                connection.execute("UPDATE paper_state SET position=?,average=?,realized=?,fees=? WHERE id=1",
+                                   tuple(map(text, (position, average, realized, fees))))
+        status = "REJECTED" if reason else "FILLED" if filled == quantity else "PARTIALLY_FILLED" if filled else "OPEN"
+        order = {"orderId": identity("paper:", intent["intentId"]), "intentId": intent["intentId"],
+                 "status": status, "side": side, "quantityBase": text(quantity), "filledBase": text(filled),
+                 "remainingBase": text(quantity-filled), "averagePrice": text(quote/filled) if filled else None,
+                 "feeQuote": text(fee), "createdAtMs": now, "updatedAtMs": now, "mode": "PAPER",
+                 "reason": reason or ("TARGET_ALREADY_REACHED" if quantity == 0 else "VISIBLE_DEPTH_SIMULATION")}
+        connection.execute("INSERT INTO paper_orders VALUES (?,?,?,?,?)",
+                           (intent["intentId"], digest, order["orderId"], status, json.dumps(order, allow_nan=False)))
+        self.audit(connection, now, "SUBMIT", order)
+        return order
+
 
     def snapshot(self):
         return read_snapshot(self.path)
