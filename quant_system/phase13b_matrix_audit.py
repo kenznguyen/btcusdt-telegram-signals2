@@ -33,9 +33,11 @@ def reconcile_exported_predictions(native, report, phase8, lineage):
     """Reconcile two intentionally different populations, never omit evidence.
 
     LightGBM.predict sees only FreqAI's inference window (model lineage).
-    The downstream strategy exports a longer candle history, including
-    warmup/pre-model rows with do_predict=0 and NO forecast. Both groups
-    must be fully counted and every actual model forecast must be traced.
+    The downstream strategy exports more candles than LightGBM predicts:
+    pre-model training/warmup rows and, at most, one next-candle boundary
+    after the final native model inference. These neutral rows must have
+    do_predict=0 and an empty forecast. Interior inference gaps and all
+    untraced accepted forecasts are invalid.
     """
     path=native/"freqai-native-predictions.csv"
     check(matrix_digest(path)==report.get("prediction_capture_sha256"),
@@ -52,8 +54,10 @@ def reconcile_exported_predictions(native, report, phase8, lineage):
             recorded[time]=(int(flag),key)
     check(bool(recorded),"PHASE13B_NO_MODEL_PREDICTIONS")
     first_model_time=min(recorded)
+    last_model_time=max(recorded)
     seen=set()
     unmodeled=matched=accepted=0
+    warmup=trailing=0
     for row in rows:
         try:
             time=int(row["open_time"])
@@ -75,8 +79,19 @@ def reconcile_exported_predictions(native, report, phase8, lineage):
                   "PHASE13B_ACCEPTED_FORECAST_WITHOUT_MODEL_MATRIX")
             check(flag=="0" and row["predicted_return"]=="",
                   "PHASE13B_NONMODEL_ROW_NOT_NEUTRAL")
-            check(time<first_model_time,
-                  "PHASE13B_NONMODEL_ROW_AFTER_FIRST_MODEL_INFERENCE")
+            if time<first_model_time:
+                warmup+=1
+            elif time>last_model_time:
+                # The native FreqAI dataframe can include exactly ONE
+                # end-boundary candle outside the last LightGBM.predict(X)
+                # window. Never extend this exemption to an arbitrary
+                # trailing period or to an accepted prediction.
+                check(time==last_model_time+900000 and trailing==0,
+                      "PHASE13B_UNEXPLAINED_POSTMODEL_NEUTRAL_ROW")
+                trailing+=1
+            else:
+                raise MatrixEvidenceError(
+                    "PHASE13B_UNMODELED_ROW_INSIDE_INFERENCE_WINDOW")
             unmodeled+=1
             continue
         expected_flag,model_key=evidence
@@ -107,6 +122,10 @@ def reconcile_exported_predictions(native, report, phase8, lineage):
     return dict(exported_prediction_rows=len(rows),
                 modeled_prediction_rows=matched,
                 unmodeled_neutral_rows=unmodeled,
+                unmodeled_warmup_rows=warmup,
+                unmodeled_trailing_rows=trailing,
+                model_inference_first_open_ms=first_model_time,
+                model_inference_last_open_ms=last_model_time,
                 modeled_accepted_rows=accepted)
 
 
@@ -233,7 +252,11 @@ def audit_matrices(artifacts_root):
             phase12_train_rows=phase12.get("train_rows"),
             phase12_validation_rows=phase12.get("test_rows"),
             phase8_model_lineage_rows=sum(len(v) for v in lineage.values()),
-            native_exported_prediction_rows=report.get("prediction_capture_rows"))
+            native_exported_prediction_rows=report.get("prediction_capture_rows"),
+            expected_unmodeled_neutral_rows=(
+                report["prediction_capture_rows"]-pred_rows
+                if type(report.get("prediction_capture_rows")) is int
+                else None))
         check(train_rows==phase12.get("train_rows") and
               test_rows==phase12.get("test_rows") and
               pred_rows==sum(len(v) for v in lineage.values()),
