@@ -51,6 +51,7 @@ def reconcile_exported_predictions(native, report, phase8, lineage):
             check(time not in recorded,"PHASE13B_DUPLICATE_MODEL_PREDICTION_TIME")
             recorded[time]=(int(flag),key)
     check(bool(recorded),"PHASE13B_NO_MODEL_PREDICTIONS")
+    first_model_time=min(recorded)
     seen=set()
     unmodeled=matched=accepted=0
     for row in rows:
@@ -74,6 +75,8 @@ def reconcile_exported_predictions(native, report, phase8, lineage):
                   "PHASE13B_ACCEPTED_FORECAST_WITHOUT_MODEL_MATRIX")
             check(flag=="0" and row["predicted_return"]=="",
                   "PHASE13B_NONMODEL_ROW_NOT_NEUTRAL")
+            check(time<first_model_time,
+                  "PHASE13B_NONMODEL_ROW_AFTER_FIRST_MODEL_INFERENCE")
             unmodeled+=1
             continue
         expected_flag,model_key=evidence
