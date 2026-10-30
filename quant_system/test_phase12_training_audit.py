@@ -115,6 +115,30 @@ class Phase12Test(unittest.TestCase):
             self.assertFalse(actual['train_test_label_purge_verified'])
             self.assertIn('PHASE12_FIT_OBSERVER_REPORTED_ERROR',actual['errors'])
 
+    def test_observer_errors_expose_fold_details_but_remain_unverified(self):
+        with tempfile.TemporaryDirectory() as d:
+            root,_=setup(d)
+            report=root/'native/native-research-180.json'
+            obj=json.loads(report.read_text())
+            obj['phase12_observer_failure_count']=2
+            obj['phase12_observer_failure_examples']=[
+                dict(fold_model_name='sub-train-BTC_1',
+                     error_type='EvidenceError',
+                     error_code='PHASE12_FIT_INDEX_IDENTITY_UNVERIFIED'),
+                dict(fold_model_name='sub-train-BTC_2',
+                     error_type='ValueError',
+                     error_code='PHASE12_RAW_LABEL_MISMATCH')]
+            report.write_text(json.dumps(obj))
+            actual=audit_training_samples(root)
+            self.assertFalse(actual['actual_fit_sample_lineage_verified'])
+            self.assertFalse(actual['ready_for_360'])
+            self.assertFalse(actual['oos_certified'])
+            self.assertIn('PHASE12_FIT_OBSERVER_REPORTED_ERROR',actual['errors'])
+            self.assertEqual(actual['phase12_observer_failure_count'],2)
+            self.assertEqual(len(actual['phase12_observer_failure_examples']),2)
+            self.assertEqual(actual['phase12_observer_failure_examples'][0]['error_code'],
+                             'PHASE12_FIT_INDEX_IDENTITY_UNVERIFIED')
+
     def test_train_test_timestamp_overlap_fails_closed(self):
         with tempfile.TemporaryDirectory() as d:
             root,_=setup(d,train=(1,7),test=(7,8))
