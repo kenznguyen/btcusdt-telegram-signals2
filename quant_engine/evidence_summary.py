@@ -8,7 +8,7 @@ def summarize(market,scenarios,paper):
     market_ok=market.get("parity_verified") is True
     controlled_ok=(scenarios.get("controlled_branch_parity_verified") is True and
                    all(scenarios.get("cases",{}).get(name,{}).get("passed") is True
-                       for name in ("DCA","SOFT SL","EMERGENCY SL")))
+                       for name in ("SHORT ENTRY","DCA","SOFT SL","EMERGENCY SL")))
     paper_ok=(paper.get("paper_dca_e2e_verified") is True and
               paper.get("order_status")=="FILLED" and
               paper.get("restart_reconciliation") is True and
