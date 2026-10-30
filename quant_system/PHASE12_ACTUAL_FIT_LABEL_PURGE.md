@@ -73,3 +73,41 @@ Keep CORE RSI + ADX + Smart DCA unchanged, three virtual DUAL slots with
 max two AI-origin positions, entry margin 10% current equity, max total
 margin 60%, 13x leverage, one DCA per position, independent SL/TP, no
 live order execution. Keep Android release, signing keys and main unchanged.
+
+## 2026-10-31 — native FreqAI 0 accepted forecast diagnosis
+
+The first Phase12 Codemagic native research run returned **exit 0 for both
+CORE and FreqAI**, but `prediction_capture_verified=false` with
+`NO_ACCEPTED_NATIVE_FREQAI_FORECASTS`. The 180-day OKX input had a different
+checksum from the previous Phase11 run. This alone neither establishes a
+label purge failure nor permits acceptance of neutral forecasts.
+
+Pinned upstream FreqAI 2026.9 can **catch train() exceptions**, append
+synthetic *neutral* backtest rows with `do_predict=0`, and still return
+native exit code 0. In the original Phase12 code, an exception during
+postfit observational row matching could discard an otherwise trained
+model in that upstream exception handler.
+
+Phase12 now isolates the observation AFTER the actual LightGBM `fit()`.
+When observation fails it records one row in
+`native/phase12-fit-observer-errors.jsonl` per affected fold, including
+exception type and code, but returns the exact already-fitted booster to
+FreqAI. This is NOT a downgrade of the verification gates:
+- `native-research-180.json` always records native `do_predict` counts
+  and the observer-error count/examples; native still fails when accepted
+  forecasts are zero, and includes native log tail.
+- `phase12-native-fit-label-audit.json` **rejects every nonzero observer
+  failure count** with `PHASE12_FIT_OBSERVER_REPORTED_ERROR` and still
+  requires row SHA, exact labels and purged boundaries.
+- Neutral `do_predict=0` rows cannot become entries. No metadata-only
+  approval or synthetic predictions are permitted.
+- The original FreqAI and CORE strategy rules and risk policy are unchanged.
+
+If the next Codemagic build still produces zero accepted forecasts,
+inspect `prediction_do_predict_distribution`,
+`phase12_observer_failure_examples` and `freqai_training_log_tail` in
+`native-research-180.json`, plus the original full
+`native/freqai-native-180.log`; do not change `DI_threshold` or any
+signals to force acceptance. If FreqAI restores real predictions but
+the postfit mapping fails, the Phase12 audit correctly blocks and the
+row-index linkage must be repaired using the native observed evidence.
