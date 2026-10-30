@@ -61,6 +61,20 @@ class OkxCollectorTests(unittest.TestCase):
             fetch_closed("15m",900000,3,fetch_page=lambda _:payload([
                 candle(3*900000),candle(3*900000,close="99"),candle(2*900000)]),now_ms=10*900000)
 
+    @patch("quant_engine.okx_ohlcv.time.sleep")
+    def test_rate_limited_page_retries_then_keeps_real_data(self, sleep):
+        outcomes = iter([{"code":"50011","data":[]},
+                         payload([candle(3*900000),candle(2*900000)])])
+        got=fetch_closed("15m",900000,2,fetch_page=lambda _:next(outcomes),
+                         now_ms=10*900000)
+        self.assertEqual([c["open_time"] for c in got],[1800000,2700000])
+        self.assertTrue(sleep.called)
+
+    @patch("quant_engine.okx_ohlcv.time.sleep")
+    def test_rate_limit_exhaustion_fails_closed(self, sleep):
+        with self.assertRaises(ValueError):
+            fetch_closed("15m",900000,2,fetch_page=lambda _:{"code":"50011","data":[]},
+                         now_ms=10*900000)
     def test_atomic_csv_and_manifest(self):
         m = [{"open_time":i*900000,"open":100.0,"high":105.0,"low":95.0,
               "close":100.0,"volume":10.0,"closed":True} for i in range(2)]
