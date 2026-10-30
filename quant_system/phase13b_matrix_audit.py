@@ -148,6 +148,25 @@ def audit_matrices(artifacts_root):
               test_rows==phase12.get("test_rows") and
               pred_rows==report.get("prediction_capture_rows"),
               "PHASE13B_NATIVE_MATRIX_ROW_COUNTS_MISMATCH")
+        meta_path=native/"phase13b-unsealed-model-candidate.json"
+        bundle_path=native/"phase13b-unsealed-model-candidate.joblib"
+        check(matrix_digest(meta_path)==
+              report.get("phase13b_candidate_metadata_sha256") and
+              matrix_digest(bundle_path)==
+              report.get("phase13b_candidate_sha256"),
+              "PHASE13B_CANDIDATE_NATIVE_SHA_MISMATCH")
+        candidate=load_json(meta_path)
+        latest_key=max(grouped,key=lambda key:
+            grouped[key]["FIT_TRAIN"][0][0]["training_end_ms"])
+        last_event=grouped[latest_key]["FIT_TRAIN"][0][0]
+        check(candidate.get("fold_model_name")==latest_key[0] and
+              candidate.get("model_sha256")==latest_key[1] and
+              candidate.get("training_end_ms")==last_event["training_end_ms"] and
+              candidate.get("ordered_feature_columns")==
+                  grouped[latest_key]["FIT_TRAIN"][0][1]["columns"] and
+              candidate.get("candidate_sha256")==matrix_digest(bundle_path) and
+              candidate.get("sealed_in_git") is False,
+              "PHASE13B_CANDIDATE_NOT_LAST_VERIFIED_MODEL")
         out.update(actual_fit_predict_matrices_verified=True,
             model_fold_count=len(grouped),matrix_event_count=event_count,
             fit_train_rows=train_rows,fit_validation_rows=test_rows,
