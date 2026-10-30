@@ -39,7 +39,11 @@ class PortfolioConfig:
             or type(self.ai_slots_in_dual) is not int or self.ai_slots_in_dual != 2
             or not math.isfinite(self.entry_margin_pct) or self.entry_margin_pct != .10
             or not math.isfinite(self.max_total_margin_pct)
-            or self.max_total_margin_pct < self.max_positions*self.entry_margin_pct
+            or (self.max_total_margin_pct < self.max_positions*self.entry_margin_pct
+                and not math.isclose(
+                    self.max_total_margin_pct,
+                    self.max_positions*self.entry_margin_pct,
+                    rel_tol=0.0, abs_tol=1e-12))
             or self.max_total_margin_pct > .60):
             raise ValueError('UNAPPROVED_PAPER_PORTFOLIO_POLICY')
 
