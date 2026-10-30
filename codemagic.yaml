@@ -559,7 +559,8 @@ workflows:
           "$CI_PYTHON" -m unittest \
             quant_system.test_phase13b_matrix \
             quant_system.test_phase13b_matrix_audit \
-            quant_system.test_phase13b_oos -v \
+            quant_system.test_phase13b_oos \
+            quant_system.test_phase13b_native_fit_contract -v \
             2>&1 | tee artifacts/phase3/native/phase13b-unit-tests.log
           # A fresh Codemagic checkout has NO default ./user_data. Freqtrade
           # requires a real userdir before it loads config for download-data.
