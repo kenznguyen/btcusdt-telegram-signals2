@@ -61,6 +61,20 @@ class NativeResearchFailureTest(TestCase):
             self.assertEqual(written["core_native_exit_code"], 2)
             self.assertIn("FREQTRADE_CORE_ERROR", written["failure_log_tail"])
 
+    def test_extracts_fold_training_errors_even_before_end_of_native_log(self):
+        from quant_system.native_research import native_training_exception_lines
+        with TemporaryDirectory() as location:
+            path=Path(location)/"native.log"
+            path.write_text(
+                "Starting native FreqAI\n"
+                "2026-10-31 Training BTC/USDT:USDT raised exception EvidenceError. "
+                "Message: PHASE12_FIT_INDEX_IDENTITY_UNVERIFIED, skipping.\n"
+                + ("Successful boilerplate\n"*120)
+            )
+            excerpt=native_training_exception_lines(path)
+            self.assertEqual(len(excerpt),1)
+            self.assertIn('PHASE12_FIT_INDEX_IDENTITY_UNVERIFIED',excerpt[0])
+
     def test_log_tail_is_bounded(self):
         from quant_system.native_research import native_failure_excerpt
         with TemporaryDirectory() as location:
