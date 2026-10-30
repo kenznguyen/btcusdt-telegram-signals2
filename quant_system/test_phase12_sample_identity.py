@@ -74,6 +74,22 @@ class FitRowIdentityTest(unittest.TestCase):
         train,test=resolve_fit_row_ids(dk,dd,raw,split_fraction=.2)
         self.assertEqual(train,list(range(100,108)))
         self.assertEqual(test,[108])
+    def test_inverse_fitted_minmax_labels_match_source_even_with_reset_index(self):
+        dk,dd,raw=fixture()
+        minimum,maximum=.01,.08
+        scale=lambda y: (y-minimum)*2/(maximum-minimum)-1
+        for name in ('train_labels','test_labels'):
+            dd[name]=Frame([[scale(v[0])] for v in dd[name].rows])
+        class ScaledLabelPipeline:
+            steps=[('scaler',object())]
+            def inverse_transform(self,frame):
+                return (Frame([[((v[0]+1)/2)*(maximum-minimum)+minimum]
+                               for v in frame.rows]),None,None)
+        dk.label_pipeline=ScaledLabelPipeline()
+        train,test=resolve_fit_row_ids(dk,dd,raw,split_fraction=.2)
+        self.assertEqual(len(train),8)
+        self.assertEqual(test,[108,109])
+
     def test_model_label_reorder_is_not_misrepresented_as_lineage(self):
         dk,dd,raw=fixture()
         dd['train_labels']=Frame([[.02],[.01],[.03],[.04],[.05],[.06],[.07],[.08]])
