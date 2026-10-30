@@ -257,6 +257,13 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
                 native_config = json.loads(Path(config_path).read_text(encoding="utf-8"))
                 report["prediction_model_identifier"] = native_config["freqai"]["identifier"]
                 report["prediction_capture_verified"] = True
+        if phase8_enabled:
+            if not lineage_path.is_file() or lineage_path.stat().st_size <= 0:
+                raise RuntimeError("MISSING_NATIVE_PHASE8_MODEL_FINGERPRINTS")
+            report["phase8_model_lineage_sha256"] = (
+                "sha256:" + hashlib.sha256(lineage_path.read_bytes()).hexdigest()
+            )
+            report["phase8_model_lineage_bytes"] = lineage_path.stat().st_size
         report["reason"] = "NATIVE_RESEARCH_COMPLETED_TRADE_PARITY_NOT_VERIFIED"
     except (ValueError, OSError, RuntimeError, subprocess.TimeoutExpired) as error:
         report["reason"] = str(error)[:180]
