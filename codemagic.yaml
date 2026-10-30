@@ -74,8 +74,17 @@ workflows:
           export PYTHONPATH="$CM_BUILD_DIR"
           export QUANT_PAPER_SOURCE=/tmp/quant-kotlin-parity
           export QUANT_REQUIRE_PAPER_E2E=1
+          export QUANT_PAPER_EVIDENCE_OUTPUT="$CM_BUILD_DIR/artifacts/paper-dca-e2e-report.json"
           python3 -m unittest quant_engine.tests.test_paper_dca_end_to_end -v
+      - name: Export consolidated CORE evidence (fail closed)
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -m quant_engine.evidence_cli artifacts
     artifacts:
+      - artifacts/core-evidence-report.json
+      - artifacts/paper-dca-e2e-report.json
       - artifacts/parity/**
       - artifacts/core-scenarios/**
       - parity-input/**
