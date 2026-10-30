@@ -165,7 +165,7 @@ def replay_portfolio(m15, fine, predictions, *, mode, dataset_sha256,
         actual=rules.execution_fill(bar['open'],'BUY' if request['side']=='LONG' else 'SELL')
         qty=stake*rules.p.leverage/actual
         fee=qty*actual*rules.p.fee_rate
-        if fee>=available(bar['open'])-stake+fee and current_equity<=fee:
+        if current_equity-reserved()-stake-fee < -1e-9:
             collateral_denials+=1;denied+=1;return
         p=PaperPosition(request['trade_id'],request['origin'],request['side'],
             bar['open_time'],actual,actual,qty,stake,stake,fee)
@@ -196,6 +196,8 @@ def replay_portfolio(m15, fine, predictions, *, mode, dataset_sha256,
         actual=rules.execution_fill(bar['open'],'BUY' if p.side=='LONG' else 'SELL')
         qty=stake*rules.p.leverage/actual
         fee=qty*actual*rules.p.fee_rate
+        if equity(bar['open'])-reserved()-stake-fee < -1e-9:
+            denied+=1;dca_denied+=1;return
         new_qty=p.quantity+qty
         p.average=(p.average*p.quantity+actual*qty)/new_qty
         p.quantity=new_qty
