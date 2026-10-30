@@ -75,6 +75,14 @@ class ThreeSlotPaperTests(unittest.TestCase):
             self.assertAlmostEqual(dca[0]['margin_usdt'],10.,places=4)
         self.assertEqual(result['report']['max_positions'],3)
 
+    def test_confirmed_tp_fills_at_next_open_before_later_intrabar_stop(self):
+        candles=[candle(0),candle(1,close=101.,rsi=78.),candle(2)]
+        detail=fine(3,{(2,0):dict(open=100.,high=101.,low=89.,close=95.)})
+        result=run(candles,[prediction(0)],detail=detail)
+        kinds=[x['kind'] for x in result['events']]
+        self.assertEqual(kinds,['LONG ENTRY','TAKE PROFIT'])
+        self.assertEqual(result['events'][-1]['filled_at_ms'],T0+2*M15)
+
     def test_emergency_sl_exits_each_position_independently(self):
         candles=[candle(i) for i in range(6)]
         detail=fine(6,{(4,0):dict(open=90.,high=92.,low=89.,close=90.)})
