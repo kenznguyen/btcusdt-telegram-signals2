@@ -104,7 +104,24 @@ def research_commands(*, days, detail_minutes, dataset_dir, native_datadir, out_
         "--dry-run-wallet", "100", "--fee", "0.0005", "--cache", "none",
         "--export", "signals",
     ]
-    core = common + [
+    # CORE's signals are RSI/ADX/Smart DCA only. It must NOT initialize
+    # FreqAI just because the separate AI research configuration enables it.
+    # Freqtrade 2026.9 rejects an enabled FreqAI config without --freqaimodel:
+    # "No freqaimodel set". Passing an AI model to CORE would conflate the
+    # independent strategy sources, so derive an isolated fail-closed config.
+    core_config = json.loads(json.dumps(config))
+    core_config["freqai"]["enabled"] = False
+    if (core_config["exchange"]["name"] != exchange or
+        core_config.get("dry_run") is not True or
+        core_config.get("force_entry_enable") is not False):
+        raise ValueError("UNSAFE_CORE_RESEARCH_CONFIG")
+    core_config_file = target / f"core-research-config-{days}.json"
+    core_config_file.write_text(
+        json.dumps(core_config, sort_keys=True, indent=2), encoding="utf-8",
+    )
+    core = common.copy()
+    core[core.index("--config") + 1] = str(core_config_file.resolve())
+    core += [
         "--strategy-path", str(root / "freqtrade_parity"),
         "--strategy", "ChartProParityDryRun",
     ]
