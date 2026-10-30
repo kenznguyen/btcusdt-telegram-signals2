@@ -411,3 +411,119 @@ workflows:
     artifacts:
       - dual-strategy-source-sha.txt
       - dual-strategy-phase2-tests.log
+
+  dual-strategy-phase3-unit:
+    name: Phase 3 | atomic paper execution and intrabar audit tests
+    instance_type: mac_mini_m2
+    max_build_duration: 20
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: feature/dual-strategy-phase3-paper-audit-20261030
+          include: true
+          source: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Record source commit
+        script: |
+          set -euo pipefail
+          git rev-parse HEAD | tee phase3-source-sha.txt
+          python3 --version
+      - name: Cross-ledger, crash, DCA/SL and data-integrity regression tests
+        script: |
+          set -euo pipefail
+          python3 -m unittest \
+            quant_system.test_phase3_paper_bridge \
+            quant_system.test_intrabar_audit \
+            quant_system.test_dual_strategy_phase2 \
+            paper_execution.test_ledger \
+            freqtrade_parity.test_rules \
+            freqtrade_parity.test_context \
+            freqtrade_parity.test_callbacks \
+            freqtrade_parity.test_strategy_contract \
+            freqtrade_parity.test_dataset_io \
+            freqtrade_parity.test_dataset_hash -v 2>&1 | tee phase3-unit-tests.log
+      - name: Compile source without exchange access
+        script: |
+          set -euo pipefail
+          python3 -m compileall -q quant_system paper_execution freqtrade_parity freqai_bridge
+    artifacts:
+      - phase3-source-sha.txt
+      - phase3-unit-tests.log
+
+  dual-strategy-phase3-native-research:
+    name: Phase 3 | native Freqtrade FreqAI historical research (manual)
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    environment:
+      vars:
+        PHASE3_DAYS: "180"
+        PHASE3_DETAIL_MINUTES: "5"
+        PHASE3_DOWNLOAD_DAYS: "400"
+    # NO triggering: operator manually selects 180 or 360 days. May consume
+    # significant Codemagic resources; never run as a push-triggered job.
+    scripts:
+      - name: Validate explicit historical research parameters
+        script: |
+          set -euo pipefail
+          case "$PHASE3_DAYS" in 180|360) ;; *) echo "PHASE3_DAYS must be 180 or 360"; exit 2 ;; esac
+          case "$PHASE3_DETAIL_MINUTES" in 1|5) ;; *) echo "Detail must be 1m or 5m"; exit 2 ;; esac
+          test "$PHASE3_DOWNLOAD_DAYS" -ge "$((PHASE3_DAYS+35))" || {
+            echo "At least 35 days of FreqAI model-training prehistory required"; exit 2;
+          }
+          git rev-parse HEAD | tee phase3-source-sha.txt
+          mkdir -p artifacts/phase3/canonical artifacts/phase3/native
+      - name: Install pinned CPU Freqtrade and FreqAI runtime
+        script: |
+          set -euo pipefail
+          if ! brew list --versions libomp > /dev/null 2>&1; then
+            brew install libomp
+          fi
+          bash ci/setup-python.sh requirements-freqai.txt requirements-market-data.txt
+          "$CI_PYTHON" -m freqtrade --version
+      - name: Download genuine futures OHLCV plus exchange-managed funding and mark data
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m freqtrade download-data \
+            --config freqai_bridge/config.research.json \
+            --datadir "$CM_BUILD_DIR/.ci-tools/phase3-native-binance" \
+            --data-format-ohlcv feather \
+            --timeframes "${PHASE3_DETAIL_MINUTES}m" 15m 1h \
+            --days "$PHASE3_DOWNLOAD_DAYS" \
+            2>&1 | tee artifacts/phase3/native-download.log
+      - name: Export exactly the native candles and audit 180 or 360 days
+        script: |
+          set -euo pipefail
+          export PYTHONPATH="$CM_BUILD_DIR"
+          "$CI_PYTHON" -m quant_system.native_exchange_export \
+            --datadir "$CM_BUILD_DIR/.ci-tools/phase3-native-binance" \
+            --output-dir artifacts/phase3/canonical \
+            --days "$PHASE3_DAYS" --detail-minutes "$PHASE3_DETAIL_MINUTES"
+          "$CI_PYTHON" -m quant_system.intrabar_audit \
+            --m15 artifacts/phase3/canonical/15m.csv \
+            --h1 artifacts/phase3/canonical/1h.csv \
+            --detail "artifacts/phase3/canonical/${PHASE3_DETAIL_MINUTES}m.csv" \
+            --days "$PHASE3_DAYS" --detail-minutes "$PHASE3_DETAIL_MINUTES" \
+            --output "artifacts/phase3/history-audit-${PHASE3_DAYS}.json"
+      - name: Verify actual native strategy resolvers
+        script: |
+          set -euo pipefail
+          export PYTHONPATH="$CM_BUILD_DIR"
+          "$CI_PYTHON" ci/freqtrade-parity-smoke.py
+          "$CI_PYTHON" ci/freqai-smoke.py
+      - name: Native Freqtrade and FreqAI research on the SAME audited candles
+        script: |
+          set -euo pipefail
+          export PYTHONPATH="$CM_BUILD_DIR"
+          "$CI_PYTHON" -m quant_system.native_research \
+            --days "$PHASE3_DAYS" --detail-minutes "$PHASE3_DETAIL_MINUTES" \
+            --dataset-dir artifacts/phase3/canonical \
+            --native-datadir "$CM_BUILD_DIR/.ci-tools/phase3-native-binance" \
+            --out-dir artifacts/phase3/native
+    artifacts:
+      - phase3-source-sha.txt
+      - ci-source-sha.txt
+      - artifacts/phase3/canonical/*.json
+      - artifacts/phase3/native/*.json
+      - artifacts/phase3/native/*.log
+      - artifacts/phase3/native-download.log
