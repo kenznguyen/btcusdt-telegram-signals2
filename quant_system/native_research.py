@@ -160,6 +160,25 @@ def native_failure_excerpt(path, max_lines=60):
         return "[NATIVE_LOG_UNREADABLE]"
 
 
+def native_training_exception_lines(path, limit=12):
+    """Bounded fold-train warnings that may be far above the native log tail."""
+    if type(limit) is not int or not 1<=limit<=50:
+        raise ValueError("INVALID_NATIVE_TRAINING_ERROR_LIMIT")
+    found=[]
+    try:
+        with Path(path).open('r',encoding='utf8',errors='replace') as stream:
+            for line in stream:
+                if ('raised exception' in line and 'Training' in line) or (
+                    'PHASE12_' in line and 'Error' in line
+                ):
+                    found.append(line.strip()[:600])
+                    if len(found)>limit:
+                        found.pop(0)
+    except OSError:
+        return []
+    return found
+
+
 def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, userdir,
                  config_path=None, exchange="binance"):
     target = Path(out_dir).resolve()
@@ -284,6 +303,7 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
                     # Preserve the diagnostic log path without fabricating
                     # any accepted predictions or weakening the risk gate.
                     report["freqai_training_log_path"] = str(log)
+                    report["freqai_training_exception_lines"] = native_training_exception_lines(log)
                     report["freqai_training_log_tail"] = native_failure_excerpt(log,80)
                     raise RuntimeError("NO_ACCEPTED_NATIVE_FREQAI_FORECASTS")
                 report["prediction_capture_sha256"] = (
