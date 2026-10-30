@@ -66,11 +66,11 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
                 "dataset_sha256": "sha256:" + "b" * 64,
             }))
             with patch("quant_system.native_research.audit_history",
-                       return_value={"ohlcv_verified": True, "start_ms": 1_700_000_000_000,
-                                     "end_ms": 1_700_000_900_000,
+                       return_value={"ohlcv_verified": True, "start_ms": 1_700_000_040_000,
+                                     "end_ms": 1_700_000_940_000,
                                      "dataset_sha256": "sha256:" + "b" * 64}), \
                  patch("quant_system.native_research.training_window",
-                       return_value=(1_700_000_000_000, 1_700_000_900_000)):
+                       return_value=(1_700_000_040_000, 1_700_000_940_000)):
                 with self.assertRaisesRegex(ValueError, "MISSING_INITIALIZED_FREQTRADE_USERDIR"):
                     research_commands(
                         days=180, detail_minutes=5, dataset_dir=root,
@@ -161,13 +161,13 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
             with patch(
                 "quant_system.native_research.audit_history",
                 return_value={
-                    "ohlcv_verified":True,"start_ms":1_700_000_000_000,
-                    "end_ms":1_700_000_900_000,
+                    "ohlcv_verified":True,"start_ms":1_700_000_040_000,
+                    "end_ms":1_700_000_940_000,
                     "dataset_sha256":"sha256:"+"b"*64,
                 },
             ), patch(
                 "quant_system.native_research.training_window",
-                return_value=(1_700_000_000_000,1_700_000_900_000),
+                return_value=(1_700_000_040_000,1_700_000_940_000),
             ):
                 kwargs = dict(days=180, detail_minutes=5,
                     dataset_dir=root/"dataset",native_datadir=root/"native",
