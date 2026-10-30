@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://codemagic.io/codemagic-schema.json
+workflows:
+  quant-core-parity-draft:
+    name: PR68 CORE Kotlin Python trace + DCA recovery (manual, paper only)
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      java: 17
+    scripts:
+      - name: Python tests and restart persistence tests
+        script: |
+          set -euo pipefail
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -m unittest discover -s quant_engine/tests -v
+      - name: Independent Kotlin replay from PR67 source
+        script: |
+          set -euo pipefail
+          mkdir -p artifacts/parity
+          # Distinct Kotlin runner; never generate a Kotlin trace from Python.
+          git fetch origin feature/freqtrade-strategy-parity-20261029
+          git worktree add /tmp/quant-kotlin-parity FETCH_HEAD
+          test -s parity-input/m15.csv
+          test -s parity-input/h1.csv
+          bash /tmp/quant-kotlin-parity/ci/setup-android.sh
+          export PARITY_M15_CSV="$CM_BUILD_DIR/parity-input/m15.csv"
+          export PARITY_H1_CSV="$CM_BUILD_DIR/parity-input/h1.csv"
+          export PARITY_KOTLIN_TRACE_OUTPUT="$CM_BUILD_DIR/artifacts/parity/kotlin-trace.json"
+          cd /tmp/quant-kotlin-parity/android-app
+          "$CHART_GRADLE_BIN" :app:testDebugUnitTest --tests "*StrategyCsvArtifactTest" --no-daemon
+          test -s "$PARITY_KOTLIN_TRACE_OUTPUT"
+      - name: Python replay on exactly the same CSV
+        script: |
+          set -euo pipefail
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -m quant_engine.replay_cli --m15 parity-input/m15.csv --h1 parity-input/h1.csv --output artifacts/parity/python-trace.json
+          test -s artifacts/parity/python-trace.json
+      - name: Audit genuine traces (fail closed)
+        script: |
+          set -euo pipefail
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -m quant_engine.trace_gate artifacts/parity
+    artifacts:
+      - artifacts/parity/**
+      - /tmp/quant-kotlin-parity/android-app/app/build/test-results/testDebugUnitTest/*.xml
