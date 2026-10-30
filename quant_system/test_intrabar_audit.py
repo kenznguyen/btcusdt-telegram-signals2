@@ -111,7 +111,7 @@ class IntrabarAuditTests(unittest.TestCase):
             lines = path.read_text().splitlines()
             # Raise only the first candle's high; keep H1/M15/5m consistent.
             lines[1] = lines[1].replace(",100,101,", ",100,108,", 1)
-            path.write_text("\\n".join(lines) + "\\n")
+            path.write_text("\n".join(lines) + "\n")
         stop = StrategyRules().threshold_price("SHORT", 100, 90)
         report = self.call(events=[{
             "kind": "EMERGENCY SL", "side": "SHORT",
