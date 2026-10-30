@@ -46,7 +46,9 @@ workflows:
         script: |
           set -euo pipefail
           cd "$CM_BUILD_DIR"
-          python3 -c 'import json,pathlib; p=pathlib.Path("artifacts/history/parity-report.json"); d=json.loads(p.read_text()); d["full_core_parity_certified"]=False; d["independent_audit_status"]="PENDING"; d["intrabar_fill_verified"]=False; p.write_text(json.dumps(d,indent=2)+"\\n")'
+          python3 -m quant_engine.history_finalize artifacts/history
+          python3 -m unittest quant_engine.tests.test_history_finalize -v
+          python3 -m json.tool artifacts/history/parity-report.json > /dev/null
     artifacts:
       - artifacts/history/**
       - artifacts/test-logs/**
