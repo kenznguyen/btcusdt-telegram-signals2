@@ -455,6 +455,9 @@ workflows:
         - pattern: feature/dual-strategy-phase13-oos-feature-causality-20261031
           include: true
           source: true
+        - pattern: feature/dual-strategy-phase13b-fitted-matrix-oos-freeze-20261031
+          include: true
+          source: true
       cancel_previous_builds: true
     scripts:
       - name: Record source commit
@@ -553,6 +556,11 @@ workflows:
           # Regression on configured feature hooks; synthetic data only.
           "$CI_PYTHON" -m unittest quant_system.test_phase13_feature_causality -v \
             2>&1 | tee artifacts/phase3/native/phase13-feature-tests.log
+          "$CI_PYTHON" -m unittest \
+            quant_system.test_phase13b_matrix \
+            quant_system.test_phase13b_matrix_audit \
+            quant_system.test_phase13b_oos -v \
+            2>&1 | tee artifacts/phase3/native/phase13b-unit-tests.log
           # A fresh Codemagic checkout has NO default ./user_data. Freqtrade
           # requires a real userdir before it loads config for download-data.
           "$CI_PYTHON" -m freqtrade create-userdir --userdir "$CM_BUILD_DIR/.ci-tools/phase3-freqtrade-userdata"
@@ -617,6 +625,8 @@ workflows:
           export PYTHONPATH="$CM_BUILD_DIR"
           export PHASE8_CAPTURE_MODEL_LINEAGE=1
           export PHASE12_CAPTURE_TRAIN_ROWS=1
+          export PHASE13B_CAPTURE_MATRICES=1
+          export PHASE13B_SOURCE_SHA="$(git rev-parse HEAD)"
           "$CI_PYTHON" -m quant_system.native_research \
             --days "$PHASE3_DAYS" --detail-minutes "$PHASE3_DETAIL_MINUTES" \
             --dataset-dir artifacts/phase3/canonical \
@@ -746,6 +756,24 @@ workflows:
             --artifacts-root artifacts/phase3 \
             --out artifacts/phase3/paper/phase13-native-forecast-quality.json \
             2>&1 | tee artifacts/phase3/paper/phase13-native-forecast-quality.log
+      - name: Phase 13B audit the ACTUAL LightGBM fit and inference matrices
+        script: |
+          set -euo pipefail
+          export PYTHONPATH="$CM_BUILD_DIR"
+          "$CI_PYTHON" -m quant_system.phase13b_matrix_audit \
+            --artifacts-root artifacts/phase3 \
+            --out artifacts/phase3/paper/phase13b-native-matrix-audit.json \
+            2>&1 | tee artifacts/phase3/paper/phase13b-native-matrix-audit.log
+      - name: Phase 13B prepare frozen model candidate (NOT an OOS certificate)
+        script: |
+          set -euo pipefail
+          export PYTHONPATH="$CM_BUILD_DIR"
+          "$CI_PYTHON" -m quant_system.phase13b_oos \
+            --protocol quant_system/phase13b-oos-protocol.json \
+            --candidate-metadata artifacts/phase3/native/phase13b-unsealed-model-candidate.json \
+            --bundle artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib \
+            --out artifacts/phase3/paper/phase13b-oos-freeze-preflight.json \
+            2>&1 | tee artifacts/phase3/paper/phase13b-oos-freeze-preflight.log
       - name: Phase 13 SHA-bound 30d risk-stability diagnostics (NOT an OOS certificate)
         script: |
           set -euo pipefail
@@ -762,6 +790,8 @@ workflows:
       - artifacts/phase3/native/*.json
       - artifacts/phase3/native/*.csv
       - artifacts/phase3/native/*.jsonl
+      - artifacts/phase3/native/phase13b-matrices/*.npz
+      - artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib
       - artifacts/phase3/native/*.log
       - artifacts/phase3/paper/*.json
       - artifacts/phase3/paper/*.csv
