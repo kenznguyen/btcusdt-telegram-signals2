@@ -162,12 +162,12 @@ class DualStrategyPhase2Test(unittest.TestCase):
     def test_pending_reservation_blocks_other_candles_until_manual_resolution(self):
         first = self.decide(prediction=None)
         second = Signal(Origin.CORE, Side.SHORT, self.opened + 2*900_000, "different-candle")
-        self.assertEqual(self.ledger.reserve(second).reason, "PENDING_RESERVATION")
+        self.assertEqual(self.ledger.reserve(second, self.safe).reason, "PENDING_RESERVATION")
         self.ledger.bind(first.selected.signal_id, "paper-intent-1")
         self.assertEqual(self.ledger.entries()[0]["status"], "BOUND")
-        self.assertEqual(self.ledger.reserve(second).reason, "PENDING_RESERVATION")
+        self.assertEqual(self.ledger.reserve(second, self.safe).reason, "PENDING_RESERVATION")
         self.ledger.resolve(first.selected.signal_id, "CLOSED", "manual-paper-reconciliation")
-        self.assertEqual(self.ledger.reserve(second).reason, "RESERVED_FOR_PAPER_BINDING")
+        self.assertEqual(self.ledger.reserve(second, self.safe).reason, "RESERVED_FOR_PAPER_BINDING")
         self.assertEqual(self.decide(prediction=None).reason, "DUPLICATE_CANDLE")
 
     def test_bind_requires_existing_reservation_and_stable_intent_id(self):
@@ -183,7 +183,7 @@ class DualStrategyPhase2Test(unittest.TestCase):
         a = Signal(Origin.CORE, Side.LONG, self.opened + 900_000, "core-concurrent")
         b = Signal(Origin.AI, Side.LONG, self.opened + 900_000, "ai-concurrent")
         with ThreadPoolExecutor(max_workers=2) as pool:
-            outcomes = list(pool.map(lambda s: ReservationLedger(self.ledger.path).reserve(s), (a, b)))
+            outcomes = list(pool.map(lambda s: ReservationLedger(self.ledger.path).reserve(s, self.safe), (a, b)))
         self.assertEqual(sum(x.accepted for x in outcomes), 1)
         self.assertEqual(len(self.ledger.entries()), 1)
 
