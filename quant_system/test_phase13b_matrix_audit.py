@@ -121,6 +121,22 @@ class MatrixAuditTests(unittest.TestCase):
         self.assertEqual(result["modeled_prediction_rows"],2)
         self.assertEqual(result["modeled_accepted_rows"],1)
 
+    def test_neutral_row_after_model_inference_is_not_warmup(self):
+        # All unmodeled rows must be PRE-model warmup. A late neutral
+        # candle without any LightGBM model witness must not be excused
+        # by merely balancing total exported and modeled row counts.
+        lines=self.predictions.read_text().splitlines()
+        lines.append("15300000,0,,test-model,freqai-native-backtest,BTC/USDT:USDT")
+        self.predictions.write_text("\n".join(lines)+"\n")
+        report=json.loads(self.report.read_text())
+        report["prediction_capture_sha256"]=matrix_digest(self.predictions)
+        report["prediction_capture_rows"]=5
+        self.report.write_text(json.dumps(report))
+        output=audit_matrices(self.root)
+        self.assertFalse(output["actual_fit_predict_matrices_verified"])
+        self.assertIn("PHASE13B_NONMODEL_ROW_AFTER_FIRST_MODEL_INFERENCE",
+                      output["errors"])
+
     def test_unmodeled_accepted_forecast_is_never_exempted(self):
         lines=self.predictions.read_text().splitlines()
         lines[1]=lines[1].replace(",0,,",",1,0.123,")
