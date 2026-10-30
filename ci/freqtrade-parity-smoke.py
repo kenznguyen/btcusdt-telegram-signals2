@@ -1,11 +1,19 @@
 """Load native Freqtrade strategy without creating exchange, trades or models."""
 import json
+import os
 from pathlib import Path
 from freqtrade.enums import RunMode
 from freqtrade.resolvers import StrategyResolver
 
 root=Path(__file__).resolve().parents[1]
-config=json.loads((root/"freqai_bridge/config.research.json").read_text())
+chosen=Path(os.environ.get("PHASE3_RESEARCH_CONFIG", str(root/"freqai_bridge/config.research.json"))).resolve()
+allowed={(root/"freqai_bridge/config.research.json").resolve(),
+         (root/"freqai_bridge/config.okx-research.json").resolve()}
+if chosen not in allowed:
+    raise RuntimeError("Unapproved native research config")
+config=json.loads(chosen.read_text())
+assert config["exchange"]["name"] in ("okx", "binance")
+assert config["dry_run"] is True and config["trading_mode"] == "futures"
 config["freqai"]["enabled"]=False
 config.update(strategy="ChartProParityDryRun",strategy_path=str(root/"freqtrade_parity"),
               runmode=RunMode.DRY_RUN,user_data_dir=root/".ci-tools/freqtrade-user-data")
