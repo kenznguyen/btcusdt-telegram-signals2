@@ -44,9 +44,12 @@ pre-model warmup rows). The correct independent accounting is:
   timestamp/model fingerprint/flag matches.
 - Full exported FreqAI CSV rows == all modeled prediction rows **plus**
   independently verified neutral pre-model rows (`do_predict=0` with an
-  **empty** predicted return). Any accepted (`do_predict=1`) row without
-  a model trace, mismatch in `do_predict`, nonempty invalid forecast, extra
-  matrix archive, or SHA divergence fails closed.
+  **empty** predicted return), and optionally **one immediately adjacent
+  trailing candle** after the final LightGBM inference timestamp. This
+  narrow boundary exception does not cover gaps within the inference window,
+  an arbitrary trailing period, untraced accepted forecasts, nonempty
+  forecast values, additional matrix archives, or SHA divergence.
+  Diagnostics separate `unmodeled_warmup_rows` and `unmodeled_trailing_rows`.
 - `row_accounting` in the Phase13B JSON shows each independent count when
   diagnosing any future mismatch.
 
@@ -56,6 +59,22 @@ pre-model rows, and 17,103 accepted model forecasts. Reconciliation of
 that archived evidence matched exactly. This is **not** proof that a fresh
 Phase13B build has passed; rerun this head on Codemagic and inspect all
 artifacts.
+
+## Second Codemagic run: terminal-candle boundary correction
+
+The follow-up native 180d research passed Phase 8/12/13 and observed matching
+TRAIN 59,696, validation 14,825 and actual PREDICT 17,280 rows. The FreqAI
+export had 20,225 rows (2,945 rows without model prediction), but the
+overly broad `PHASE13B_NONMODEL_ROW_AFTER_FIRST_MODEL_INFERENCE` rule
+rejected any neutral row after the *first* model inference.
+
+The next guard partitions unmodeled neutral rows into pre-model warmup versus
+**exactly one next M15 candle after the last model inference**. It rejects
+unmodeled rows inside the first-to-last inference window and arbitrary late
+rows. The 2,945-row difference suggests 2,944 warmup rows + one boundary row,
+but this is a **hypothesis until the new Codemagic artifact proves exact
+timestamps and `errors=[]`**. No count or prediction is fabricated, and
+the candidate stays unsealed and ineligible for OOS certification.
 
 ## Model candidate (not yet immutable)
 
