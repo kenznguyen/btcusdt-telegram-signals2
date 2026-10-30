@@ -127,7 +127,8 @@ def _inverse_fitted(label_pipeline, samples):
 
 
 def verify_fitted_row_invariance(feature_pipeline, label_pipeline,
-                                 row, future, native_x, native_flag):
+                                 row, future, native_x, native_flag,
+                                 *, normalized_model_prediction=0.123):
     """One actual inference-row witness and adversarial FUTURE suffix.
 
     Independently cloned, ALREADY FITTED transforms must not learn
@@ -170,8 +171,9 @@ def verify_fitted_row_invariance(feature_pipeline, label_pipeline,
             "PHASE14_FUTURE_DEPENDENT_FEATURE_PIPELINE")
     # The fitted label scaler must also be row-independent. Never refit
     # it using the unseen holdout or this deliberately altered suffix.
-    original_y = _inverse_fitted(label_pipeline, [0.123])
-    changed_y = _inverse_fitted(label_pipeline, [0.123, 5000.0])
+    original_y = _inverse_fitted(label_pipeline, [normalized_model_prediction])
+    changed_y = _inverse_fitted(
+        label_pipeline, [normalized_model_prediction, 5000.0])
     require(math.isfinite(original_y) and math.isfinite(changed_y) and
             math.isclose(original_y, changed_y, rel_tol=1e-10, abs_tol=1e-10),
             "PHASE14_FUTURE_DEPENDENT_LABEL_PIPELINE")
@@ -249,6 +251,22 @@ def inspect_frozen_candidate(artifacts_root, bundle, metadata,
         require(len(stamps) >= 64 and len(stamps) == len(set(stamps)) and
                 all(a < b for a, b in zip(stamps, stamps[1:])),
                 "PHASE14_INVALID_SEALED_MODEL_TIMESTAMPS")
+        predictions_path = root / "native/freqai-native-predictions.csv"
+        require(matrix_digest(predictions_path) ==
+                native.get("prediction_capture_sha256"),
+                "PHASE14_NATIVE_FORECAST_TRACE_SHA_MISMATCH")
+        predictions = {}
+        with predictions_path.open(newline="", encoding="utf8") as source:
+            reader = csv.DictReader(source)
+            require(set(("open_time", "predicted_return", "do_predict",
+                         "model_identifier", "pair", "source")).issubset(
+                         reader.fieldnames or []),
+                    "PHASE14_NATIVE_FORECAST_SCHEMA_INVALID")
+            for row in reader:
+                t = int(row["open_time"])
+                require(t not in predictions,
+                        "PHASE14_DUPLICATE_NATIVE_FORECAST_TIMESTAMP")
+                predictions[t] = row
         from freqai_bridge.ChartProFreqaiResearch import ChartProFreqaiResearch
         closed = canonical_frame(root / "canonical/15m.csv")
         base = feature_matrix(closed, ChartProFreqaiResearch)
@@ -275,11 +293,43 @@ def inspect_frozen_candidate(artifacts_root, bundle, metadata,
             require(bool(current.notna().all().all()) and
                     bool(future.notna().all().all()),
                     "PHASE14_NONFINITE_SOURCE_FEATURE")
+            observed = predictions.get(time)
+            require(observed is not None and
+                    observed["model_identifier"] == meta["model_identifier"] and
+                    observed["source"] == "freqai-native-backtest" and
+                    observed["pair"] == "BTC/USDT:USDT" and
+                    observed["do_predict"] == str(int(native_flags[cut])),
+                    "PHASE14_NATIVE_FORECAST_IDENTITY_MISMATCH")
+            # Real normalized output of the EXACT pinned Booster, not a
+            # made-up y value: reverse it through the frozen label scaler
+            # and compare to the archived accepted FreqAI forecast.
+            observed_x = pd.DataFrame(
+                [feature_rows[cut]],
+                columns=meta["ordered_feature_columns"])
+            normalized_y = np.asarray(
+                payload["model"].predict(observed_x), dtype=float).reshape(-1)
+            require(len(normalized_y) == 1 and
+                    np.isfinite(normalized_y).all(),
+                    "PHASE14_NONFINITE_FROZEN_MODEL_PREDICTION")
             actual = verify_fitted_row_invariance(
                 feature_pipe, label_pipe, current, future,
-                feature_rows[cut], native_flags[cut])
+                feature_rows[cut], native_flags[cut],
+                normalized_model_prediction=float(normalized_y[0]))
+            if int(native_flags[cut]) == 1:
+                expected_forecast = float(observed["predicted_return"])
+                replayed_forecast = _inverse_fitted(
+                    label_pipe, [float(normalized_y[0])])
+                require(math.isfinite(expected_forecast) and
+                        math.isclose(expected_forecast,replayed_forecast,
+                                     rel_tol=1e-7, abs_tol=1e-9),
+                        "PHASE14_INVERSE_LABEL_NATIVE_FORECAST_MISMATCH")
+            else:
+                require(observed["predicted_return"] == "",
+                        "PHASE14_UNACCEPTED_NATIVE_FORECAST_NOT_EMPTY")
             witnesses.append({"open_time_ms": time,
                               "model_flag": int(native_flags[cut]),
+                              "replayed_accepted_native_forecast":
+                                  int(native_flags[cut]) == 1,
                               **actual})
         report.update(fitted_preprocessing_prefix_invariance_verified=True,
             observed_model_sha256=meta["model_sha256"],
@@ -292,6 +342,9 @@ def inspect_frozen_candidate(artifacts_root, bundle, metadata,
                 w["feature_comparisons"] for w in witnesses),
             label_intervention_comparisons=sum(
                 w["label_comparisons"] for w in witnesses),
+            native_accepted_forecast_replays=sum(
+                w["replayed_accepted_native_forecast"] for w in witnesses),
+            original_prediction_trace_sha256=matrix_digest(predictions_path),
             source_canonical_sha256=matrix_digest(root / "canonical/15m.csv"),
             matrix_ledger_sha256=matrix_digest(events_path))
     except PipelineCausalityError as exc:
