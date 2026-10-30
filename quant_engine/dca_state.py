@@ -172,6 +172,18 @@ class DcaStore:
             raise StateConflict("invalid paper fill record") from error
         return self.confirm_fill(symbol, trade_id, persisted_order)
 
+    def recovery_status(self, symbol, trade_id):
+        """Read-only fail-closed recovery classification; never authorizes a submit."""
+        row=self.read(symbol,trade_id)
+        if row is None:
+            return {"status":"UNKNOWN","may_submit":False,"manual_review_required":True}
+        bound=self.db.execute("SELECT intent_id FROM dca_intent_binding WHERE symbol=? AND trade_id=?",
+                              (symbol,trade_id)).fetchone()
+        status=("FILLED" if row["status"]=="FILLED" else
+                "RESERVED_BOUND" if bound else "RESERVED_UNBOUND")
+        return {"status":status,"may_submit":False,
+                "manual_review_required":status!="FILLED"}
+
     def close(self):
         self.db.close()
 
