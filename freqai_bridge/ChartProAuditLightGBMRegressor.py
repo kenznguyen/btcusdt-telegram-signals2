@@ -60,9 +60,35 @@ class ChartProAuditLightGBMRegressor(LightGBMRegressor):
             self._phase12_unfiltered=unfiltered_df[['date','close','&-future_return']].copy()
             if not self._phase12_unfiltered.index.is_unique:
                 raise EvidenceError('PHASE12_NONUNIQUE_RAW_INDEX')
+        # This hook runs at the exact upstream train/test split boundary.
+        # Remove rows whose 4-candle future target reaches TEST BEFORE
+        # feature MinMaxScaler, label scaler and LightGBM.fit() see them.
+        # Preserve the original bound method even if FreqAI raises.
+        split_original=None
+        split_override_present=False
+        split_previous=None
+        if phase12:
+            from quant_system.phase12_purge import purge_train_test_split
+            split_override_present='make_train_test_datasets' in vars(dk)
+            if split_override_present:
+                split_previous=vars(dk)['make_train_test_datasets']
+            split_original=dk.make_train_test_datasets
+            if hasattr(dk,'_phase12_purged_train_source_indices'):
+                del dk._phase12_purged_train_source_indices
+            if hasattr(dk,'_phase12_purge_meta'):
+                del dk._phase12_purge_meta
+            def phase12_purged_split(filtered_features,filtered_labels):
+                dictionary=split_original(filtered_features,filtered_labels)
+                return purge_train_test_split(dk,dictionary,horizon=horizon)
+            dk.make_train_test_datasets=phase12_purged_split
         try:
             return super().train(unfiltered_df,pair,dk,**kwargs)
         finally:
+            if split_original is not None:
+                if split_override_present:
+                    dk.make_train_test_datasets=split_previous
+                else:
+                    del dk.make_train_test_datasets
             if hasattr(self,'_phase12_unfiltered'):
                 del self._phase12_unfiltered
 
@@ -98,6 +124,8 @@ class ChartProAuditLightGBMRegressor(LightGBMRegressor):
         # actual filtered FreqAI train_dates and the DI test-row mask, then
         # independently inverse-transform the fitted labels to prove order.
         from quant_system.phase12_sample_identity import resolve_fit_row_ids
+        if not hasattr(dk,'_phase12_purge_meta'):
+            raise EvidenceError('PHASE12_PREFIT_PURGE_NOT_OBSERVED')
         train_ids,test_ids=resolve_fit_row_ids(
             dk,data_dictionary,raw['&-future_return'].to_dict(),
             split_fraction=self.freqai_info['data_split_parameters']['test_size'])
