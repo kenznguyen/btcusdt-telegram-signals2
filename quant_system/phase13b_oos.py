@@ -48,8 +48,8 @@ def verify_candidate(protocol_path,metadata_path,bundle_path):
             m.get("sealed_in_git") is not False or
             m.get("candidate_path")!=bundle.name):
             raise ValueError("PHASE13B_UNTRUSTED_CANDIDATE_METADATA")
-        if not bundle.is_file() or bundle.is_symlink() or
-                matrix_digest(bundle)!=m.get("candidate_sha256"):
+        if (not bundle.is_file() or bundle.is_symlink() or
+                matrix_digest(bundle)!=m.get("candidate_sha256")):
             raise ValueError("PHASE13B_CANDIDATE_SHA_MISMATCH")
         stamp=int(start.timestamp()*1000)
         if (type(m.get("training_end_ms")) is not int or
