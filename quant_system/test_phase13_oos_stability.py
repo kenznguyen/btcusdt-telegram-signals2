@@ -30,6 +30,7 @@ def setup(root):
         "dataset_sha256": dataset_sha,
         "detail_sha256": detail_sha
     }))
+    pins = {}
     for mode in ("core-only", "ai-only", "dual"):
         path = root / ("paper/portfolio-" + mode + "-equity.csv")
         with path.open("w", newline="") as f:
@@ -49,6 +50,14 @@ def setup(root):
                 "equity_mtm_ex_funding_usdt": end,
                 "max_drawdown_ex_funding_usdt": 0.0
             }))
+        report_path = root / ("paper/portfolio-" + mode + "-report.json")
+        pins[path.name] = sha(path)
+        pins[report_path.name] = sha(report_path)
+    (root / "paper/portfolio-180-independent-audit.json").write_text(json.dumps({
+        "paper_portfolio_integrity_verified": True,
+        "errors": [],
+        "artifact_sha256": pins
+    }))
 
 class Phase13StabilityTests(unittest.TestCase):
     def setUp(self):
