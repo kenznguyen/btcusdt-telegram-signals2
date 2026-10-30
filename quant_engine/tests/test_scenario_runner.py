@@ -10,12 +10,13 @@ class ControlledScenarioTests(unittest.TestCase):
             scenarios=Path(tmp)/"scenarios"
             write_scenarios(scenarios)
             report=replay_scenarios(scenarios)
-            self.assertEqual(set(report),{"DCA","SOFT SL","EMERGENCY SL"})
+            self.assertEqual(set(report),{"SHORT ENTRY","DCA","SOFT SL","EMERGENCY SL"})
             for name,item in report.items():
                 self.assertEqual(item["events"],[name])
                 self.assertTrue((scenarios/name/"python-trace.json").is_file())
                 self.assertEqual(item["data_class"],"CONTROLLED_SYNTHETIC")
             self.assertEqual(report["DCA"]["dca_used"],True)
+            self.assertFalse(report["SHORT ENTRY"]["dca_used"])
 
     def test_missing_required_initial_state_is_not_silently_reset(self):
         with tempfile.TemporaryDirectory() as tmp:
