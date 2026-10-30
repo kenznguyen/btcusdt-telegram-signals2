@@ -85,9 +85,22 @@ def audit_training_samples(artifacts_root):
               native.get('freqai_oos_verified') is False and
               native.get('full_core_parity_certified') is False,
               'PHASE8_OR_11_OR_NATIVE_NOT_VERIFIED')
-        # A postfit observation error may be suppressed by FreqAI native
-        # training internals. Never certify a partial or failed fit trace.
-        check(native.get('phase12_observer_failure_count')==0,
+        # Native FreqAI may swallow a training-observer exception and emit
+        # valid forecasts anyway. Preserve the observer error's fold and
+        # exception code for diagnosis, but NEVER count it as evidence.
+        failure_count=native.get('phase12_observer_failure_count')
+        failure_examples=native.get('phase12_observer_failure_examples',[])
+        if type(failure_count) is int and failure_count>0:
+            out['phase12_observer_failure_count']=failure_count
+            if isinstance(failure_examples,list):
+                out['phase12_observer_failure_examples']=[
+                    dict(fold_model_name=x.get('fold_model_name',''),
+                         error_type=x.get('error_type',''),
+                         error_code=x.get('error_code',''))
+                    for x in failure_examples[:5] if isinstance(x,dict)
+                ]
+            out['phase12_observer_errors_sha256']=native.get('phase12_observer_errors_sha256')
+        check(failure_count==0 and type(failure_count) is int,
               'PHASE12_FIT_OBSERVER_REPORTED_ERROR')
         file=root/'native/freqai-native-training-samples.csv'
         lineage=root/'native/freqai-native-model-lineage.csv'
@@ -193,9 +206,15 @@ def main():
     result=audit_training_samples(args.artifacts_root)
     file=Path(args.out);file.parent.mkdir(parents=True,exist_ok=True)
     file.write_text(json.dumps(result,indent=2,sort_keys=True,allow_nan=False)+'\n')
-    print(json.dumps({k:result[k] for k in
-          ('actual_fit_sample_lineage_verified','train_test_label_purge_verified',
-           'errors','ready_for_360')}))
+    # Surface the actual fold exception in Codemagic's collapsed step log:
+    # the original observer JSONL and full native report remain artifacts.
+    displayed=('actual_fit_sample_lineage_verified',
+               'train_test_label_purge_verified',
+               'phase12_observer_failure_count',
+               'phase12_observer_failure_examples',
+               'errors','ready_for_360')
+    print(json.dumps({k:result[k] for k in displayed if k in result},
+                     sort_keys=True))
     return 0 if result['actual_fit_sample_lineage_verified'] and not result['errors'] else 2
 
 if __name__=='__main__':
