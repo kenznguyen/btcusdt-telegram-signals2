@@ -54,7 +54,25 @@ class MatrixAuditTests(unittest.TestCase):
             "train_test_label_purge_verified":True,
             "train_rows":2,"test_rows":2,"errors":[]}))
         (self.root/"paper/phase8-native-model-evidence.json").write_text(json.dumps({
-            "native_model_lineage_verified":True,"errors":[]}))
+            "native_model_lineage_verified":True,"errors":[],
+            "emitted_lineage_rows":2,
+            "matched_accepted_forecasts":1}))
+        # The FreqAI-exported CSV includes pre-training neutral rows that
+        # have never entered LightGBM.predict(). The model witness must
+        # reconcile to Phase8 lineage, NOT demand equality with these rows.
+        self.predictions=self.native/"freqai-native-predictions.csv"
+        with self.predictions.open("w",newline="") as file:
+            writer=csv.DictWriter(file,fieldnames=(
+                "open_time","do_predict","predicted_return",
+                "model_identifier","source","pair"))
+            writer.writeheader()
+            for t,flag,forecast in (
+                (2700000,0,""),(3600000,0,""),
+                (13500000,1,"0.025"),(14400000,0,"")
+            ):
+                writer.writerow(dict(open_time=t,do_predict=flag,
+                    predicted_return=forecast,model_identifier="test-model",
+                    source="freqai-native-backtest",pair="BTC/USDT:USDT"))
         bundle=self.native/"phase13b-unsealed-model-candidate.joblib"
         bundle.write_bytes(b"trusted test-only candidate")
         meta=self.native/"phase13b-unsealed-model-candidate.json"
@@ -73,7 +91,9 @@ class MatrixAuditTests(unittest.TestCase):
             "phase8_model_lineage_sha256":matrix_digest(lineage),
             "core_native_runtime_succeeded":True,
             "freqai_native_runtime_succeeded":True,
-            "prediction_capture_rows":2}))
+            "prediction_capture_rows":4,
+            "prediction_capture_accepted":1,
+            "prediction_capture_sha256":matrix_digest(self.predictions)}))
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -87,6 +107,51 @@ class MatrixAuditTests(unittest.TestCase):
         self.assertEqual(result["predict_rows"],2)
         self.assertFalse(result["independent_oos_verified"])
         self.assertFalse(result["full_model_pipeline_causality_verified"])
+
+    def test_pretraining_neutral_csv_rows_are_accounted_not_lightgbm_calls(self):
+        result=audit_matrices(self.root)
+        self.assertEqual(result["errors"],[])
+        self.assertTrue(result["actual_fit_predict_matrices_verified"])
+        self.assertEqual(result["predict_rows"],2)
+        self.assertEqual(result["exported_prediction_rows"],4)
+        self.assertEqual(result["unmodeled_neutral_rows"],2)
+        self.assertEqual(result["modeled_prediction_rows"],2)
+        self.assertEqual(result["modeled_accepted_rows"],1)
+
+    def test_unmodeled_accepted_forecast_is_never_exempted(self):
+        lines=self.predictions.read_text().splitlines()
+        lines[1]=lines[1].replace(",0,,",",1,0.123,")
+        self.predictions.write_text("\\n".join(lines)+"\\n")
+        report=json.loads(self.report.read_text())
+        report["prediction_capture_sha256"]=matrix_digest(self.predictions)
+        report["prediction_capture_accepted"]=2
+        self.report.write_text(json.dumps(report))
+        output=audit_matrices(self.root)
+        self.assertFalse(output["actual_fit_predict_matrices_verified"])
+        self.assertIn("PHASE13B_ACCEPTED_FORECAST_WITHOUT_MODEL_MATRIX",output["errors"])
+
+    def test_untraced_forecast_value_on_neutral_row_denied(self):
+        lines=self.predictions.read_text().splitlines()
+        lines[1]=lines[1].replace(",0,,",",0,0.123,")
+        self.predictions.write_text("\\n".join(lines)+"\\n")
+        report=json.loads(self.report.read_text())
+        report["prediction_capture_sha256"]=matrix_digest(self.predictions)
+        self.report.write_text(json.dumps(report))
+        output=audit_matrices(self.root)
+        self.assertFalse(output["actual_fit_predict_matrices_verified"])
+        self.assertIn("PHASE13B_NONMODEL_ROW_NOT_NEUTRAL",output["errors"])
+
+    def test_traced_prediction_flag_mismatch_denied(self):
+        lines=self.predictions.read_text().splitlines()
+        lines[3]=lines[3].replace(",1,0.025,",",0,,")
+        self.predictions.write_text("\\n".join(lines)+"\\n")
+        report=json.loads(self.report.read_text())
+        report["prediction_capture_sha256"]=matrix_digest(self.predictions)
+        report["prediction_capture_accepted"]=0
+        self.report.write_text(json.dumps(report))
+        output=audit_matrices(self.root)
+        self.assertFalse(output["actual_fit_predict_matrices_verified"])
+        self.assertIn("PHASE13B_EXPORTED_PREDICTION_MODEL_FLAG_MISMATCH",output["errors"])
 
     def test_candidate_must_be_same_latest_model_and_schema(self):
         meta_path=self.native/"phase13b-unsealed-model-candidate.json"
