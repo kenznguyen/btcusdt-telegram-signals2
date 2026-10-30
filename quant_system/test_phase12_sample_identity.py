@@ -35,6 +35,7 @@ class Frame:
         return Col(self.rows)
 
 class IdentityLabelPipeline:
+    steps=[('scaler',object())]
     def inverse_transform(self,frame):
         return (frame,None,None)
 
@@ -74,7 +75,8 @@ class FitRowIdentityTest(unittest.TestCase):
         self.assertEqual(train,list(range(100,108)))
         self.assertEqual(test,[108])
     def test_model_label_reorder_is_not_misrepresented_as_lineage(self):
-        dk,dd,raw=fixture(train_labels=(.02,.01,.03,.04,.05,.06,.07,.08))
+        dk,dd,raw=fixture()
+        dd['train_labels']=Frame([[.02],[.01],[.03],[.04],[.05],[.06],[.07],[.08]])
         with self.assertRaisesRegex(RowIdentityError,'PHASE12_FIT_LABEL_ORDER_MISMATCH'):
             resolve_fit_row_ids(dk,dd,raw,split_fraction=.2)
     def test_outlier_mask_mismatch_fails_closed(self):
