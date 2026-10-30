@@ -7,6 +7,7 @@ from pathlib import Path
 
 from quant_system.paper_backtest import (
     validated_native_predictions, replay_candles, write_paper_outputs,
+    verify_native_prediction_evidence,
 )
 
 M15 = 900_000
@@ -148,6 +149,28 @@ class PaperReplayTests(unittest.TestCase):
         result=self.run_mode([row(0),row(1)],'AI_ONLY',[])
         self.assertEqual(result['events'],[])
         self.assertEqual(result['report']['ai_prediction_count'],0)
+
+    def test_native_capture_must_match_successful_research_report(self):
+        import hashlib
+        import json
+        with tempfile.TemporaryDirectory() as d:
+            folder=Path(d)
+            prediction=folder/'freqai.csv'
+            manifest=folder/'native-report.json'
+            prediction.write_text('actual-model-output',encoding='utf8')
+            with self.assertRaisesRegex(ValueError,'MISSING_NATIVE'):
+                verify_native_prediction_evidence(prediction,manifest,HASH,DETAIL,MODEL)
+            expected='sha256:'+hashlib.sha256(prediction.read_bytes()).hexdigest()
+            verified=dict(exchange='okx',days=180,detail_timeframe='5m',
+                dataset_sha256=HASH,detail_sha256=DETAIL,
+                core_native_runtime_succeeded=True,freqai_native_runtime_succeeded=True,
+                prediction_capture_verified=True,prediction_model_identifier=MODEL,
+                prediction_capture_sha256=expected,prediction_capture_accepted=1)
+            manifest.write_text(json.dumps(verified))
+            self.assertEqual(verify_native_prediction_evidence(prediction,manifest,HASH,DETAIL,MODEL),expected)
+            prediction.write_text('tampered after training')
+            with self.assertRaisesRegex(ValueError,'INVALID_NATIVE'):
+                verify_native_prediction_evidence(prediction,manifest,HASH,DETAIL,MODEL)
 
     def test_manual_outputs_are_sidecar_research_only(self):
         result=self.run_mode([row(0),row(1)],'AI_ONLY',[pred(0,.006)])
