@@ -1,5 +1,35 @@
 # yaml-language-server: $schema=https://codemagic.io/codemagic-schema.json
 workflows:
+  kotlin-freqtrade-trace-gate:
+    name: Kotlin vs Freqtrade trace export and fail-closed audit
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      java: 17
+    # Manual only: provide genuine input files and both independent engine traces.
+    scripts:
+      - name: Export Kotlin trace from supplied canonical CSV if available
+        script: |
+          set -euo pipefail
+          mkdir -p artifacts/parity
+          if [ -s parity-input/m15.csv ] && [ -s parity-input/h1.csv ]; then
+            bash ci/setup-android.sh
+            export PARITY_M15_CSV="$CM_BUILD_DIR/parity-input/m15.csv"
+            export PARITY_H1_CSV="$CM_BUILD_DIR/parity-input/h1.csv"
+            export PARITY_KOTLIN_TRACE_OUTPUT="$CM_BUILD_DIR/artifacts/parity/kotlin-trace.json"
+            cd android-app
+            "$CHART_GRADLE_BIN" :app:testDebugUnitTest --tests "*StrategyCsvArtifactTest" --no-daemon
+          else
+            echo "Missing canonical parity-input CSV; parity will fail closed"
+          fi
+      - name: Enforce independent trace gate
+        script: |
+          set -euo pipefail
+          python3 ci/parity-artifact-gate.py artifacts/parity
+    artifacts:
+      - artifacts/parity/**
+      - android-app/app/build/test-results/testDebugUnitTest/*.xml
+
   freqtrade-strategy-parity:
     name: Freqtrade strategy rule parity - no live orders
     instance_type: mac_mini_m2
