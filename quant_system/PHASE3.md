@@ -72,6 +72,13 @@ The research workflow (with no exchange API credentials):
 5. Loads both guarded native strategies, then executes Freqtrade CORE and
    FreqAI LightGBM research backtests with `--timeframe-detail 5m` or
    `--timeframe-detail 1m`, passing the **same native data directory**.
+   **CORE runs with a generated `core-research-config-180.json` containing
+   `freqai.enabled=false`, while FreqAI uses the original OKX research
+   configuration with `freqai.enabled=true` plus
+   `--freqaimodel LightGBMRegressor`.** This fixes the Freqtrade 2026.9
+   error `No freqaimodel set` observed when CORE incorrectly received the
+   AI-enabled config. Both keep unchanged exchange, pair, timestamps,
+   leverage/ROI/SL rules, and research-only order guards.
    The CORE and FreqAI native order signals are **disabled**. Zero native
    trades cannot prove strategy performance, or entry/DCA/exit parity.
 6. Outputs JSON and logs with `full_core_parity_certified=false`.
