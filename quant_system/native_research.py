@@ -6,8 +6,10 @@ artifacts after an independent provenance and out-of-sample validation gate.
 """
 import argparse
 from collections import deque
+import csv
 import hashlib
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 import subprocess
@@ -162,6 +164,7 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
         "funding_mark_full_coverage_verified": False,
         "core_native_runtime_succeeded": False,
         "freqai_native_runtime_succeeded": False,
+        "prediction_capture_verified": False,
         "freqai_oos_verified": False,
         "core_trade_parity_verified": False,
         "native_trade_parity_verified": False,
@@ -178,13 +181,21 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
         report.update(dataset_sha256=verified["dataset_sha256"],
                       detail_sha256=verified["detail_sha256"],
                       ohlcv_verified=True)
+        prediction_path = target / "freqai-native-predictions.csv"
+        prediction_path.unlink(missing_ok=True)  # Reject cached forecasts from a prior model run.
         for label, command in commands:
-            # Only known executable and hardcoded args. Data paths are operator input.
+            # AI must originate in the real FreqAI backtesting dataframe; no
+            # fabricated predictions or entry flags from the offline simulator.
+            environment = os.environ.copy()
+            environment.pop("PHASE3_PREDICTIONS_CSV", None)
+            if label == "freqai" and days == 180 and exchange == "okx":
+                environment["PHASE3_PREDICTIONS_CSV"] = str(prediction_path.resolve())
             log = target / f"{label}-native-{days}.log"
             with log.open("w", encoding="utf-8") as handle:
                 completed = subprocess.run(
                     command, stdout=handle, stderr=subprocess.STDOUT,
                     cwd=Path(__file__).resolve().parents[1], check=False, timeout=3600,
+                    env=environment,
                 )
             report[f"{label}_native_runtime_succeeded"] = completed.returncode == 0
             report[f"{label}_native_exit_code"] = completed.returncode
@@ -204,6 +215,34 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
                 print(excerpt, flush=True)
                 print("--- End native failure log ---", flush=True)
                 raise RuntimeError(f"{label.upper()}_NATIVE_BACKTEST_FAILED")
+            if label == "freqai" and days == 180 and exchange == "okx":
+                if not prediction_path.is_file() or prediction_path.stat().st_size == 0:
+                    raise RuntimeError("NO_NATIVE_FREQAI_PREDICTIONS")
+                from quant_system.native_prediction_capture import FIELDS
+                with prediction_path.open(newline="", encoding="utf-8") as source:
+                    rows = csv.DictReader(source)
+                    if not set(FIELDS).issubset(rows.fieldnames or []):
+                        raise RuntimeError("INVALID_NATIVE_PREDICTION_COLUMNS")
+                    total = accepted = 0
+                    for row in rows:
+                        total += 1
+                        if row.get("source") != "freqai-native-backtest" or (
+                            row.get("pair") != "BTC/USDT:USDT"
+                        ):
+                            raise RuntimeError("WRONG_NATIVE_PREDICTION_SOURCE")
+                        if row.get("do_predict") == "1":
+                            accepted += 1
+                if not accepted:
+                    raise RuntimeError("NO_ACCEPTED_NATIVE_FREQAI_FORECASTS")
+                report["prediction_capture_sha256"] = (
+                    "sha256:" + hashlib.sha256(prediction_path.read_bytes()).hexdigest()
+                )
+                report["prediction_capture_path"] = str(prediction_path)
+                report["prediction_capture_rows"] = total
+                report["prediction_capture_accepted"] = accepted
+                native_config = json.loads(Path(config_path).read_text(encoding="utf-8"))
+                report["prediction_model_identifier"] = native_config["freqai"]["identifier"]
+                report["prediction_capture_verified"] = True
         report["reason"] = "NATIVE_RESEARCH_COMPLETED_TRADE_PARITY_NOT_VERIFIED"
     except (ValueError, OSError, RuntimeError, subprocess.TimeoutExpired) as error:
         report["reason"] = str(error)[:180]
@@ -230,7 +269,9 @@ def main():
         config_path=args.config_path, exchange=args.exchange,
     )
     print(json.dumps(report, sort_keys=True))
-    return 0 if report["core_native_runtime_succeeded"] and report["freqai_native_runtime_succeeded"] else 1
+    valid_capture = (report["prediction_capture_verified"] if args.days == 180 else True)
+    return 0 if (report["core_native_runtime_succeeded"] and
+                 report["freqai_native_runtime_succeeded"] and valid_capture) else 1
 
 
 if __name__ == "__main__":

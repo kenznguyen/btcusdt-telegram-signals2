@@ -1,6 +1,7 @@
 """FreqAI prediction-only strategy: this strategy never requests native orders."""
 
 import logging
+import os
 import time
 
 from freqtrade.strategy import IStrategy
@@ -48,9 +49,20 @@ class ChartProFreqaiResearch(IStrategy):
             raise ValueError("Chart Pro FreqAI is restricted to BTCUSDT research dry-run")
         self.freqai_info = self.config["freqai"]
         dataframe = self.freqai.start(dataframe, metadata, self)
-        mode = self.config.get("runmode")
-        if getattr(mode, "value", mode) == "dry_run":
+        mode = getattr(self.config.get("runmode"), "value", self.config.get("runmode"))
+        if mode == "dry_run":
             self._publish_prediction(dataframe)
+        if mode == "backtest":
+            destination = os.environ.get("PHASE3_PREDICTIONS_CSV")
+            if destination:
+                # Only serialize actual FreqAI dataframe predictions during a
+                # guarded OFFLINE native backtest. Do not enable native entries.
+                from quant_system.native_prediction_capture import capture_predictions
+                captured = capture_predictions(
+                    dataframe, destination,
+                    self.config["freqai"]["identifier"], pair=metadata["pair"],
+                )
+                logger.info("Phase 3 native FreqAI captured %d observed rows", captured)
         return dataframe
 
     def _publish_prediction(self, dataframe):
