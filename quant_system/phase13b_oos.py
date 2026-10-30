@@ -52,6 +52,9 @@ def verify_candidate(protocol_path,metadata_path,bundle_path):
                 matrix_digest(bundle)!=m.get("candidate_sha256")):
             raise ValueError("PHASE13B_CANDIDATE_SHA_MISMATCH")
         stamp=int(start.timestamp()*1000)
+        created=m.get("created_at_utc")
+        if not isinstance(created,str) or _time(created)>=start:
+            raise ValueError("PHASE13B_CANDIDATE_CREATED_AFTER_OOS_START")
         if (type(m.get("training_end_ms")) is not int or
             type(m.get("latest_observed_label_end_ms")) is not int or
             m["latest_observed_label_end_ms"]>=m["training_end_ms"] or
@@ -83,6 +86,9 @@ def prepare_seal(protocol_path,metadata_path,bundle_path):
     if not verified["candidate_sha_verified"]:
         raise ValueError("PHASE13B_CANNOT_PROPOSE_INVALID_CANDIDATE:"+",".join(verified["errors"]))
     metadata=_load(metadata_path)
+    # Even a proposal must exist before the first future holdout candle.
+    if datetime.now(timezone.utc)>=_time(verified["holdout_start_utc"]):
+        raise ValueError("PHASE13B_HOLDOUT_ALREADY_STARTED_RE_REGISTER_NEW_WINDOW")
     return dict(schemaVersion=1,
         seal_proposal_only=True,sealed_in_git=False,seal_git_commit=None,
         proposed_at_utc=datetime.now(timezone.utc).isoformat(),
