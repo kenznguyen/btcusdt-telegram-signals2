@@ -30,13 +30,13 @@ class SafeStrategy:
 
 class LookaheadStrategy(SafeStrategy):
     def feature_engineering_expand_basic(self, df, metadata, **kwargs):
-        df = super().feature_engineering_expand_basic(df, metadata, **kwargs)
+        df = SafeStrategy.feature_engineering_expand_basic(self, df, metadata, **kwargs)
         df["%-pct-change"] = df["close"].shift(-1).ffill()
         return df
 
 class AdditionalFeatureStrategy(SafeStrategy):
     def feature_engineering_expand_basic(self, df, metadata, **kwargs):
-        df = super().feature_engineering_expand_basic(df, metadata, **kwargs)
+        df = SafeStrategy.feature_engineering_expand_basic(self, df, metadata, **kwargs)
         df["%-future-hint"] = df["close"].shift(-2)
         return df
 
