@@ -452,6 +452,9 @@ workflows:
         - pattern: feature/dual-strategy-phase12-actual-fit-label-purge-20261031
           include: true
           source: true
+        - pattern: feature/dual-strategy-phase13-oos-feature-causality-20261031
+          include: true
+          source: true
       cancel_previous_builds: true
     scripts:
       - name: Record source commit
@@ -479,6 +482,7 @@ workflows:
             quant_system.test_phase12_fit_observer \
             quant_system.test_phase12_sample_identity \
             quant_system.test_phase12_purge \
+            quant_system.test_phase13_oos_stability \
             quant_system.test_dca_risk_gate \
             quant_system.test_native_prediction_capture \
             quant_system.test_native_research_failure \
@@ -545,6 +549,9 @@ workflows:
           # 220 days of venue data. Synthetic smoke is not historical certification.
           export PYTHONPATH="$CM_BUILD_DIR"
           "$CI_PYTHON" -m quant_system.phase12_native_purge_smoke 2>&1 | tee artifacts/phase3/native/phase12-purge-smoke.json
+          # Regression on configured feature hooks; synthetic data only.
+          "$CI_PYTHON" -m unittest quant_system.test_phase13_feature_causality -v \
+            2>&1 | tee artifacts/phase3/native/phase13-feature-tests.log
           # A fresh Codemagic checkout has NO default ./user_data. Freqtrade
           # requires a real userdir before it loads config for download-data.
           "$CI_PYTHON" -m freqtrade create-userdir --userdir "$CM_BUILD_DIR/.ci-tools/phase3-freqtrade-userdata"
@@ -721,6 +728,23 @@ workflows:
             --artifacts-root artifacts/phase3 \
             --out artifacts/phase3/paper/phase12-native-fit-label-audit.json \
             2>&1 | tee artifacts/phase3/paper/phase12-native-fit-label-audit.log
+      - name: Phase 13 independent prefix perturbation audit of strategy features
+        script: |
+          set -euo pipefail
+          export PYTHONPATH="$CM_BUILD_DIR"
+          "$CI_PYTHON" -m quant_system.phase13_feature_causality \
+            --canonical artifacts/phase3/canonical/15m.csv \
+            --config freqai_bridge/config.okx-research.json \
+            --out artifacts/phase3/paper/phase13-feature-causality.json \
+            2>&1 | tee artifacts/phase3/paper/phase13-feature-causality.log
+      - name: Phase 13 SHA-bound 30d risk-stability diagnostics (NOT an OOS certificate)
+        script: |
+          set -euo pipefail
+          export PYTHONPATH="$CM_BUILD_DIR"
+          "$CI_PYTHON" -m quant_system.phase13_oos_stability \
+            --artifacts-root artifacts/phase3 \
+            --out artifacts/phase3/paper/phase13-retrospective-stability.json \
+            2>&1 | tee artifacts/phase3/paper/phase13-retrospective-stability.log
     artifacts:
       - phase3-source-sha.txt
       - ci-source-sha.txt
