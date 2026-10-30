@@ -487,6 +487,19 @@ workflows:
           test -x "$CI_PYTHON"
           "$CI_PYTHON" -m freqtrade --version
           "$CI_PYTHON" -c 'import freqtrade, lightgbm; print("Pinned Freqtrade/FreqAI imports OK")'
+          # Validate the pinned CLI before the expensive historical download.
+          "$CI_PYTHON" -m freqtrade download-data --help > artifacts/phase3/download-cli-help.txt
+          "$CI_PYTHON" -m freqtrade backtesting --help > artifacts/phase3/backtest-cli-help.txt
+          for flag in --timeframes --days --data-format-ohlcv; do
+            grep -Fq -- "$flag" artifacts/phase3/download-cli-help.txt || {
+              echo "Freqtrade download CLI missing $flag"; exit 2;
+            }
+          done
+          for flag in --freqaimodel --timeframe-detail --dry-run-wallet --fee --cache --export; do
+            grep -Fq -- "$flag" artifacts/phase3/backtest-cli-help.txt || {
+              echo "Freqtrade backtesting CLI missing $flag"; exit 2;
+            }
+          done
       - name: Download genuine futures OHLCV plus exchange-managed funding and mark data
         script: |
           set -euo pipefail
@@ -533,3 +546,4 @@ workflows:
       - artifacts/phase3/native/*.json
       - artifacts/phase3/native/*.log
       - artifacts/phase3/native-download.log
+      - artifacts/phase3/*-cli-help.txt
