@@ -92,7 +92,7 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
                         self.assertEqual(command[command.index("--timeframe-detail")+1], "5m")
                         self.assertEqual(command[command.index("--datadir")+1], str((root/"data").resolve()))
                         self.assertRegex(command[command.index("--timerange")+1],
-                                         r"^\\d{8}T\\d{4}-\\d{8}T\\d{4}$")
+                                         r"^\d{8}T\d{4}-\d{8}T\d{4}$")
 
     def test_research_provider_is_explicit_okx_and_not_binance(self):
         import json
