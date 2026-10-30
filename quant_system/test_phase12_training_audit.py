@@ -46,6 +46,7 @@ def setup(root,train=(1,2),test=(7,8)):
         freqai_native_runtime_succeeded=True,freqai_oos_verified=False,
         full_core_parity_certified=False,
         phase12_training_samples_sha256=sha(samples),
+        phase12_observer_failure_count=0,
         phase8_model_lineage_sha256=sha(lineage),
         prediction_capture_sha256=sha(pred))))
     (root/'paper/phase8-native-model-evidence.json').write_text(json.dumps(dict(
@@ -102,6 +103,18 @@ class Phase12Test(unittest.TestCase):
             report.write_text(json.dumps(obj))
             self.assertIn('INVALID_FIT_SAMPLE_METADATA',
                 audit_training_samples(root)['errors'])
+    def test_observer_failures_keep_training_audit_fail_closed(self):
+        with tempfile.TemporaryDirectory() as d:
+            root,_=setup(d)
+            report=root/'native/native-research-180.json'
+            obj=json.loads(report.read_text())
+            obj['phase12_observer_failure_count']=2
+            report.write_text(json.dumps(obj))
+            actual=audit_training_samples(root)
+            self.assertFalse(actual['actual_fit_sample_lineage_verified'])
+            self.assertFalse(actual['train_test_label_purge_verified'])
+            self.assertIn('PHASE12_FIT_OBSERVER_REPORTED_ERROR',actual['errors'])
+
     def test_train_test_timestamp_overlap_fails_closed(self):
         with tempfile.TemporaryDirectory() as d:
             root,_=setup(d,train=(1,7),test=(7,8))
