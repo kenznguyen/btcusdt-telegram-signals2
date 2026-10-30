@@ -18,7 +18,7 @@ from freqtrade_parity.dataset_io import read_closed_csv
 from freqtrade_parity.indicators import indicator_series
 from freqtrade_parity.rules import StrategyRules
 from quant_system.dual_strategy import (
-    Origin, Side, Signal, RiskSnapshot, admit, core_signal, _select,
+    Origin, Side, Signal, RiskSnapshot, admit, admit_adjustment, core_signal, _select,
 )
 from quant_system.intrabar_audit import audit_history
 from quant_system.native_dataset import training_window
@@ -213,7 +213,7 @@ def replay_candles(m15, fine, predictions, *, mode, dataset_sha256,
     pos=None
     pending=None
     peak=cap
-    conflicts=denied=0
+    conflicts=denied=dca_denied=dca_requests=0
     used_ids=set()
     last_fill_ms=None
 
@@ -316,12 +316,34 @@ def replay_candles(m15, fine, predictions, *, mode, dataset_sha256,
                     if pos is None or pos.dca_count:
                         raise ValueError('PAPER_DCA_OUT_OF_SEQUENCE')
                     free=cap+account_realized-account_fees+_pnl(pos,bar['open'])-pos.margin
-                    if free+1e-9>=pending['margin']:
+                    candidate=Signal(Origin(pos.origin),Side(pos.side),
+                        pending['decision_ms'], f"paper-dca:{pos.trade_id}:{pending['decision_ms']}")
+                    snapshot=_snap(free,pending['margin'],1,candidate.origin)
+                    allowed=admit_adjustment(candidate,snapshot,
+                        position_side=Side(pos.side),dca_count=pos.dca_count)
+                    if allowed.accepted and free+1e-9>=pending['margin']:
                         execute_fill(pending,bar)
                     else:
                         denied+=1
+                        dca_denied+=1
                     pending=None
                 else:
+                    # A gap THROUGH Emergency SL at the first tradable open
+                    # overrides a previously confirmed TP/Soft SL. Otherwise
+                    # those confirmed orders fill at the next 5m open before
+                    # any unknown intrabar high/low movement.
+                    if (pending['kind'] in ('SOFT SL','TAKE PROFIT') and pos is not None):
+                        threshold=rules.threshold_price(pos.side,pos.average,
+                            abs(rules.p.emergency_sl_roe))
+                        gapped = (bar['open']<=threshold if pos.side=='LONG'
+                                  else bar['open']>=threshold)
+                        if gapped:
+                            emergency_now=stop_request()
+                            if emergency_now is None:
+                                raise ValueError('GAP_STOP_WITHOUT_TRIGGER')
+                            pending=None
+                            execute_fill(emergency_now,bar,emergency=True)
+                            continue
                     execute_fill(pending,bar)
                     pending=None
             emergency_now=stop_request()
@@ -366,10 +388,21 @@ def replay_candles(m15, fine, predictions, *, mode, dataset_sha256,
                 rules.dca(pos.side,roe,row['adx'],row['rsi'],row['previous_rsi'])):
                 stake=pos.margin*rules.p.dca_margin_ratio
                 if stake>0:
-                    pending=dict(kind='DCA',origin=pos.origin,side=pos.side,
-                        trade_id=pos.trade_id,margin=stake,expected=row['close'],
-                        candle_time=row['open_time'],decision_ms=close_ms,
-                        confirmed_ms=close_ms)
+                    dca_requests+=1
+                    free=equity-pos.margin
+                    request=Signal(Origin(pos.origin),Side(pos.side),close_ms,
+                        f"paper-dca:{pos.trade_id}:{close_ms}")
+                    allowance=admit_adjustment(request,
+                        _snap(free,stake,1,request.origin),
+                        position_side=Side(pos.side),dca_count=pos.dca_count)
+                    if allowance.accepted:
+                        pending=dict(kind='DCA',origin=pos.origin,side=pos.side,
+                            trade_id=pos.trade_id,margin=stake,expected=row['close'],
+                            candle_time=row['open_time'],decision_ms=close_ms,
+                            confirmed_ms=close_ms)
+                    else:
+                        denied+=1
+                        dca_denied+=1
                     pos.dca_disabled=True
             elif i-pos.dca_window_start==1:
                 pos.dca_disabled=True
@@ -408,6 +441,8 @@ def replay_candles(m15, fine, predictions, *, mode, dataset_sha256,
         'max_drawdown_ex_funding_usdt':max(x['drawdown_usdt'] for x in equity_curve),
         'trade_count_closed':len(trades),'trade_count_open':int(pos is not None),
         'source_conflicts':conflicts,'risk_denials':denied,
+        'dca_requests':dca_requests,'dca_risk_denials':dca_denied,
+        'dca_filled':sum(e['kind']=='DCA' for e in events),
         'ai_prediction_count':len(forecasts),
         'unfilled_pending_order_count':int(pending is not None),
         'funding_mark_full_coverage_verified':False,
@@ -486,7 +521,7 @@ def run_180(input_dir,predictions_path,outdir,*,detail_minutes=5,expected_model=
         outputs[mode]=write_paper_outputs(outdir,result,mode)
         report[mode]=result['report']
     report['paper_trade_bearing_verified']=all(
-        report[m]['trade_count_closed']+report[m]['trade_count_open']>0
+        report[m]['trade_count_closed']>0
         for m in ('CORE_ONLY','AI_ONLY'))
     dest=Path(outdir)/'paper-180-summary.json'
     dest.write_text(json.dumps(report,sort_keys=True,indent=2,allow_nan=False),encoding='utf-8')
