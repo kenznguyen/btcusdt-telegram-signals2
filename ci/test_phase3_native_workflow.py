@@ -195,6 +195,59 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
                         cmd[cmd.index("--config")+1],str(config.resolve()),
                     )
 
+    def test_core_research_disables_freqai_only_in_derived_config(self):
+        import json
+        import tempfile
+        from unittest.mock import patch
+        from quant_system.native_research import research_commands
+
+        original_path = ROOT / "freqai_bridge/config.okx-research.json"
+        original_bytes = original_path.read_bytes()
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            (base / "input").mkdir()
+            (base / "userdir" / "strategies").mkdir(parents=True)
+            (base / "input" / "native-export-report.json").write_text(
+                json.dumps(sample_venue_manifest("okx")), encoding="utf8"
+            )
+            stats = {
+                "ohlcv_verified": True, "start_ms": 1_700_000_040_000,
+                "end_ms": 1_700_000_940_000,
+                "dataset_sha256": "sha256:"+"b"*64,
+                "detail_sha256": "sha256:"+"c"*64,
+            }
+            with patch("quant_system.native_research.audit_history",return_value=stats), \\
+                 patch("quant_system.native_research.training_window",
+                       return_value=(stats["start_ms"], stats["end_ms"])):
+                audit, commands = research_commands(
+                    days=180, detail_minutes=5, dataset_dir=base/"input",
+                    native_datadir=base/"okx-native",out_dir=base/"results",
+                    userdir=base/"userdir",exchange="okx",
+                    config_path=original_path,
+                )
+            self.assertEqual([source for source, _cmd in commands],["core","freqai"])
+            core_cmd, ai_cmd = commands[0][1], commands[1][1]
+            core_cfg_path = Path(core_cmd[core_cmd.index("--config")+1])
+            ai_cfg_path = Path(ai_cmd[ai_cmd.index("--config")+1])
+            self.assertNotEqual(core_cfg_path.resolve(), ai_cfg_path.resolve())
+            self.assertEqual(ai_cfg_path.resolve(), original_path.resolve())
+            core_cfg = json.loads(core_cfg_path.read_text())
+            ai_cfg = json.loads(ai_cfg_path.read_text())
+            self.assertFalse(core_cfg["freqai"]["enabled"])
+            self.assertTrue(ai_cfg["freqai"]["enabled"])
+            self.assertTrue(core_cfg["dry_run"])
+            self.assertFalse(core_cfg["force_entry_enable"])
+            self.assertEqual(core_cfg["exchange"], ai_cfg["exchange"])
+            self.assertEqual(core_cfg["trading_mode"],"futures")
+            self.assertNotIn("--freqaimodel",core_cmd)
+            self.assertEqual(ai_cmd[ai_cmd.index("--freqaimodel")+1],"LightGBMRegressor")
+            for arg in ("--datadir","--userdir","--timeframe","--timeframe-detail","--timerange"):
+                self.assertEqual(core_cmd[core_cmd.index(arg)+1],
+                                 ai_cmd[ai_cmd.index(arg)+1])
+            self.assertEqual(original_path.read_bytes(),original_bytes)
+            self.assertEqual(core_cfg["freqai"]["feature_parameters"],
+                             ai_cfg["freqai"]["feature_parameters"])
+
     def test_installer_persists_python_for_following_steps(self):
         setup = (ROOT / "ci/setup-python.sh").read_text(encoding="utf-8")
         self.assertIn("printf 'CI_PYTHON=%s\\n' \"$ci_python\" >> \"$CM_ENV\"", setup)
