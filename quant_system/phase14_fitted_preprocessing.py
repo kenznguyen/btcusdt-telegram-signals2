@@ -20,6 +20,13 @@ from quant_system.phase13b_matrix import matrix_digest, read_matrix
 from quant_system.phase13_feature_causality import canonical_frame, feature_matrix
 
 M15_MS = 900000
+# Externally reviewed pre-holdout Git digest seal. No user-supplied manifest
+# may authorize a different pickle merely by rewriting its own SHA fields.
+REGISTERED_SEAL_COMMIT = "888efb11b613b42a2badb3bc8adfa19ff090f2bb"
+REGISTERED_SOURCE_COMMIT = "082edc082996425f61f48c952be41fb037564103"
+REGISTERED_MODEL_BUNDLE_SHA = "sha256:918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f"
+REGISTERED_METADATA_SHA = "sha256:07e9c1b65df7a477de8ee14c51d47325932e6bf9a0732f3ea64e3118abcac3e5"
+REGISTERED_PROTOCOL_SHA = "sha256:b10d63c952a40fa70a3d4dfed2d952d676a888a0f72832734d3ff8d8c14c5b6e"
 
 
 class PipelineCausalityError(ValueError):
@@ -31,7 +38,8 @@ def require(ok, code):
         raise PipelineCausalityError(code)
 
 
-def verify_model_bundle_seal(bundle, metadata, protocol, seal):
+def verify_model_bundle_seal(bundle, metadata, protocol, seal,
+                             *, require_registered=False):
     """Check exact candidate bytes against an already committed Git manifest.
 
     The caller separately verifies the Git commit timestamp and immutable
@@ -75,6 +83,16 @@ def verify_model_bundle_seal(bundle, metadata, protocol, seal):
                 candidate.get("training_end_ms") <
                 1793750400000,  # 2026-11-04T00:00:00Z
                 "PHASE14_SEAL_TIMEBOUND_MISMATCH")
+        if require_registered:
+            require(declaration.get("candidate_bundle_sha256") ==
+                    REGISTERED_MODEL_BUNDLE_SHA and
+                    declaration.get("candidate_metadata_sha256") ==
+                    REGISTERED_METADATA_SHA and
+                    declaration.get("protocol_sha256") ==
+                    REGISTERED_PROTOCOL_SHA and
+                    declaration.get("source_commit_sha") ==
+                    REGISTERED_SOURCE_COMMIT,
+                    "PHASE14_UNREGISTERED_PICKLE_FINGERPRINT")
         require(declaration.get("live_orders_enabled") is False and
                 declaration.get("independent_oos_verified") is False and
                 declaration.get("oos_certified") is False,
@@ -180,7 +198,9 @@ def inspect_frozen_candidate(artifacts_root, bundle, metadata,
             "VENUE_FUNDING_LIQUIDATION_AND_KOTLIN_PARITY_PENDING"])
     try:
         root = Path(artifacts_root)
-        require(verify_model_bundle_seal(bundle, metadata, protocol, seal),
+        require(verify_model_bundle_seal(
+                    bundle, metadata, protocol, seal,
+                    require_registered=True),
                 "PHASE14_SEAL_NOT_VERIFIED")
         meta = json.loads(Path(metadata).read_text(encoding="utf8"))
         phase13b = json.loads((root / "paper/phase13b-native-matrix-audit.json").read_text())
