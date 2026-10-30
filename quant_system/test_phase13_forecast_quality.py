@@ -41,6 +41,14 @@ def fixture(root):
         "actual_fit_sample_lineage_verified":True,
         "errors":[],
         "canonical_m15_sha256":sha(canonical)}))
+    (root/"paper/phase8-native-model-evidence.json").write_text(json.dumps({
+        "native_model_lineage_verified": True,
+        "errors": [],
+        "evidence_sha256": {
+            "predictions": sha(predictions),
+            "lineage": sha(models)
+        }
+    }))
     (root/"native/native-research-180.json").write_text(json.dumps({
         "prediction_capture_sha256":sha(predictions),
         "phase8_model_lineage_sha256":sha(models),
@@ -82,6 +90,10 @@ class ForecastQualityTest(unittest.TestCase):
         report=json.loads(p.read_text())
         report["phase8_model_lineage_sha256"]=sha(self.models)
         p.write_text(json.dumps(report))
+        phase8_path=self.root/"paper/phase8-native-model-evidence.json"
+        phase8=json.loads(phase8_path.read_text())
+        phase8["evidence_sha256"]["lineage"]=sha(self.models)
+        phase8_path.write_text(json.dumps(phase8))
         result=inspect_forecasts(self.root)
         self.assertIn("PHASE13_NONCAUSAL_MODEL_TRAINING_TIME",result["errors"])
 
