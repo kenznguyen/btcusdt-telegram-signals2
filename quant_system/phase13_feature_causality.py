@@ -37,14 +37,14 @@ def feature_matrix(frame, strategy):
     pair = {"pair": "BTC/USDT:USDT", "tf": "15m"}
     for period in PERIODS:
         generated = strategy.feature_engineering_expand_all(
-            frame.copy(), period=period, metadata=pair
+            None, frame.copy(), period=period, metadata=pair
         )
         names = [col for col in generated if col.startswith("%")]
         require(set(names) == {"%-relative-price", "%-relative-volume"},
                 "PHASE13_UNKNOWN_EXPANDED_FEATURE")
         for name in names:
             features[name + "_" + str(period)] = generated[name]
-    generic = strategy.feature_engineering_expand_basic(frame.copy(), metadata=pair)
+    generic = strategy.feature_engineering_expand_basic(None, frame.copy(), metadata=pair)
     names = [col for col in generic if col.startswith("%")]
     require(set(names) == {"%-pct-change", "%-raw-volume"},
             "PHASE13_UNKNOWN_GENERIC_FEATURE")
@@ -55,7 +55,7 @@ def feature_matrix(frame, strategy):
     for offset in SHIFTS:
         for name, series in base.items():
             features[name + "_shift-" + str(offset)] = series.shift(offset)
-    standard = strategy.feature_engineering_standard(frame.copy(), metadata=pair)
+    standard = strategy.feature_engineering_standard(None, frame.copy(), metadata=pair)
     names = [col for col in standard if col.startswith("%")]
     require(set(names) == {"%-day-of-week", "%-hour-of-day"},
             "PHASE13_UNKNOWN_STANDARD_FEATURE")
