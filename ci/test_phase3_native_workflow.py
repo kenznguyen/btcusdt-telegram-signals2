@@ -52,6 +52,7 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
         self.assertIn('userdir=args.userdir', source)
 
     def test_native_backtest_commands_share_initialized_directory(self):
+        import json
         import tempfile
         from unittest.mock import patch
         from quant_system.native_research import research_commands
@@ -59,9 +60,15 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as location:
             root = Path(location)
             userdir = root / "user-data"
+            (root / "native-export-report.json").write_text(json.dumps({
+                "exchange": "binance", "symbol": "BTC/USDT:USDT",
+                "marketType": "USDT_PERPETUAL", "ohlcv_verified": True,
+                "dataset_sha256": "sha256:" + "b" * 64,
+            }))
             with patch("quant_system.native_research.audit_history",
                        return_value={"ohlcv_verified": True, "start_ms": 1_700_000_000_000,
-                                     "end_ms": 1_700_000_900_000}), \
+                                     "end_ms": 1_700_000_900_000,
+                                     "dataset_sha256": "sha256:" + "b" * 64}), \
                  patch("quant_system.native_research.training_window",
                        return_value=(1_700_000_000_000, 1_700_000_900_000)):
                 with self.assertRaisesRegex(ValueError, "MISSING_INITIALIZED_FREQTRADE_USERDIR"):
@@ -84,6 +91,8 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
                         self.assertIn("--timeframe-detail", command)
                         self.assertEqual(command[command.index("--timeframe-detail")+1], "5m")
                         self.assertEqual(command[command.index("--datadir")+1], str((root/"data").resolve()))
+                        self.assertRegex(command[command.index("--timerange")+1],
+                                         r"^\\d{8}T\\d{4}-\\d{8}T\\d{4}$")
 
     def test_research_provider_is_explicit_okx_and_not_binance(self):
         import json
@@ -145,6 +154,7 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
             report = root / "dataset" / "native-export-report.json"
             report.write_text(json.dumps({
                 "exchange": "binance", "ohlcv_verified": True,
+                "symbol": "BTC/USDT:USDT", "marketType": "USDT_PERPETUAL",
                 "dataset_sha256": "sha256:"+"b"*64,
             }))
             config = ROOT / "freqai_bridge/config.okx-research.json"
@@ -167,6 +177,7 @@ class Phase3NativeWorkflowTest(unittest.TestCase):
                     research_commands(**kwargs)
                 report.write_text(json.dumps({
                     "exchange":"okx","ohlcv_verified":True,
+                    "symbol":"BTC/USDT:USDT","marketType":"USDT_PERPETUAL",
                     "dataset_sha256":"sha256:"+"b"*64,
                 }))
                 manifest, commands = research_commands(**kwargs)
