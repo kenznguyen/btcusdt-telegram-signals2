@@ -100,6 +100,7 @@ class ChartProAuditLightGBMRegressor(LightGBMRegressor):
             from lightgbm import LGBMRegressor
             from unittest.mock import patch
             original_fit=LGBMRegressor.fit
+            from copy import deepcopy
             def observe_lightgbm_fit(model,*args,**kw):
                 if observed:
                     raise EvidenceError('PHASE13B_MULTIPLE_FIT_INVOCATIONS')
@@ -111,14 +112,14 @@ class ChartProAuditLightGBMRegressor(LightGBMRegressor):
                     raise EvidenceError('PHASE13B_UNEXPECTED_NATIVE_FIT_SIGNATURE')
                 observed['model']=model
                 observed['train_x']=x.copy(deep=True)
-                observed['train_y']=y.copy(deep=True)
-                observed['train_weights']=kw.get('sample_weight')
+                observed['train_y']=deepcopy(y)
+                observed['train_weights']=deepcopy(kw.get('sample_weight'))
                 observed['test_x']=eval_set[0][0].copy(deep=True)
-                observed['test_y']=eval_set[0][1].copy(deep=True)
+                observed['test_y']=deepcopy(eval_set[0][1])
                 eval_weights=kw.get('eval_sample_weight')
                 if not isinstance(eval_weights,list) or len(eval_weights)!=1:
                     raise EvidenceError('PHASE13B_MISSING_TEST_WEIGHTS')
-                observed['test_weights']=eval_weights[0]
+                observed['test_weights']=deepcopy(eval_weights[0])
                 return original_fit(model,*args,**kw)
             # Scoped within this SINGLE paper research fit. FreqAI's
             # DataSieve transform and LightGBM algorithm are unchanged.
