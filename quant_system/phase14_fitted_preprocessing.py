@@ -196,6 +196,7 @@ def inspect_frozen_candidate(artifacts_root, bundle, metadata,
             "TRAINING_TIME_PIPELINE_FIT_PREFIX_CAUSALITY_NOT_CERTIFIED",
             "PROSPECTIVE_FROZEN_INFERENCE_NOT_EVALUATED",
             "VENUE_FUNDING_LIQUIDATION_AND_KOTLIN_PARITY_PENDING"])
+    failing_source_time = None
     try:
         root = Path(artifacts_root)
         require(verify_model_bundle_seal(
@@ -264,6 +265,7 @@ def inspect_frozen_candidate(artifacts_root, bundle, metadata,
         witnesses = []
         for cut in choose:
             time = stamps[cut]
+            failing_source_time = time
             require(time >= meta["training_end_ms"] and
                     time in positions and positions[time] + 3 < len(base),
                     "PHASE14_NONCAUSAL_OR_MISSING_SOURCE_CANDLE")
@@ -294,6 +296,8 @@ def inspect_frozen_candidate(artifacts_root, bundle, metadata,
             matrix_ledger_sha256=matrix_digest(events_path))
     except PipelineCausalityError as exc:
         report["errors"].append(str(exc))
+        if failing_source_time is not None:
+            report["failing_source_open_ms"] = failing_source_time
     except (OSError, KeyError, TypeError, ValueError, ImportError,
             AttributeError, OverflowError, json.JSONDecodeError) as exc:
         report["errors"].append("PHASE14_PREPROCESSING_AUDIT_FAILED")
