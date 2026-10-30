@@ -377,3 +377,37 @@ workflows:
     artifacts:
       - ci-source-sha.txt
       - freqai-smoke-tests.log
+
+  dual-strategy-phase2:
+    name: Dual-Strategy Phase 2 | CORE + FreqAI + risk ledger
+    instance_type: mac_mini_m2
+    max_build_duration: 15
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: feature/dual-strategy-phase2-20261030
+          include: true
+          source: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Record CI source commit
+        script: |
+          set -euo pipefail
+          git rev-parse HEAD | tee dual-strategy-source-sha.txt
+          python3 --version
+      - name: Test independent sources, conflict arbitration and crash-safe reservation
+        script: |
+          set -euo pipefail
+          python3 -m unittest \
+            quant_system.test_dual_strategy_phase2 \
+            freqtrade_parity.test_rules \
+            freqtrade_parity.test_context \
+            freqtrade_parity.test_callbacks \
+            freqtrade_parity.test_strategy_contract -v 2>&1 | tee dual-strategy-phase2-tests.log
+      - name: Syntax-check paper-only Freqtrade adapter
+        script: |
+          set -euo pipefail
+          python3 -m compileall -q quant_system freqtrade_parity freqai_bridge pipeline
+    artifacts:
+      - dual-strategy-source-sha.txt
+      - dual-strategy-phase2-tests.log
