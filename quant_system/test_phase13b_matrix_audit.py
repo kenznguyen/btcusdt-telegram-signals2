@@ -44,11 +44,13 @@ class MatrixAuditTests(unittest.TestCase):
         lineage=self.native/"freqai-native-model-lineage.csv"
         with lineage.open("w",newline="") as file:
             writer=csv.DictWriter(file,fieldnames=(
-                "fold_model_name","model_sha256","open_time","do_predict"))
+                "fold_model_name","model_sha256","open_time","do_predict",
+                "model_identifier"))
             writer.writeheader()
             for t,flag in ((13500000,1),(14400000,0)):
                 writer.writerow(dict(fold_model_name=self.fold,
-                    model_sha256=self.sha,open_time=t,do_predict=flag))
+                    model_sha256=self.sha,open_time=t,do_predict=flag,
+                    model_identifier="test-model"))
         (self.root/"paper/phase12-native-fit-label-audit.json").write_text(json.dumps({
             "actual_fit_sample_lineage_verified":True,
             "train_test_label_purge_verified":True,
@@ -91,6 +93,7 @@ class MatrixAuditTests(unittest.TestCase):
             "phase8_model_lineage_sha256":matrix_digest(lineage),
             "core_native_runtime_succeeded":True,
             "freqai_native_runtime_succeeded":True,
+            "prediction_model_identifier":"test-model",
             "prediction_capture_rows":4,
             "prediction_capture_accepted":1,
             "prediction_capture_sha256":matrix_digest(self.predictions)}))
@@ -121,7 +124,7 @@ class MatrixAuditTests(unittest.TestCase):
     def test_unmodeled_accepted_forecast_is_never_exempted(self):
         lines=self.predictions.read_text().splitlines()
         lines[1]=lines[1].replace(",0,,",",1,0.123,")
-        self.predictions.write_text("\\n".join(lines)+"\\n")
+        self.predictions.write_text("\n".join(lines)+"\n")
         report=json.loads(self.report.read_text())
         report["prediction_capture_sha256"]=matrix_digest(self.predictions)
         report["prediction_capture_accepted"]=2
@@ -133,7 +136,7 @@ class MatrixAuditTests(unittest.TestCase):
     def test_untraced_forecast_value_on_neutral_row_denied(self):
         lines=self.predictions.read_text().splitlines()
         lines[1]=lines[1].replace(",0,,",",0,0.123,")
-        self.predictions.write_text("\\n".join(lines)+"\\n")
+        self.predictions.write_text("\n".join(lines)+"\n")
         report=json.loads(self.report.read_text())
         report["prediction_capture_sha256"]=matrix_digest(self.predictions)
         self.report.write_text(json.dumps(report))
@@ -144,7 +147,7 @@ class MatrixAuditTests(unittest.TestCase):
     def test_traced_prediction_flag_mismatch_denied(self):
         lines=self.predictions.read_text().splitlines()
         lines[3]=lines[3].replace(",1,0.025,",",0,,")
-        self.predictions.write_text("\\n".join(lines)+"\\n")
+        self.predictions.write_text("\n".join(lines)+"\n")
         report=json.loads(self.report.read_text())
         report["prediction_capture_sha256"]=matrix_digest(self.predictions)
         report["prediction_capture_accepted"]=0
