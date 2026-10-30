@@ -95,6 +95,72 @@ class ChartProParityDryRun(IStrategy):
             return None
         return {"open_time":open_ms,**{col:float(row[col]) for col in columns}}
 
+    def _latest_closed_market_row(self, pair, current_time):
+        """Data-only bridge: AI does NOT depend on H1/RSI/ADX being available.
+
+        Native Freqtrade entry flags remain disabled. The caller must provide a
+        verified canonical M15 window and an explicit persisted risk snapshot.
+        """
+        if self.dp is None or getattr(current_time, "tzinfo", None) is None:
+            return None
+        dataframe, _ = self.dp.get_analyzed_dataframe(pair, self.timeframe)
+        if dataframe is None or dataframe.empty:
+            return None
+        row = dataframe.iloc[-1]
+        date = row.get("date")
+        if date is None or getattr(date, "tzinfo", None) is None:
+            return None
+        opened = int(date.timestamp() * 1000)
+        if opened + 900000 > int(current_time.timestamp() * 1000):
+            return None
+        import math
+        values = {}
+        for key in ("open", "high", "low", "close", "volume"):
+            if key not in row or row[key] is None:
+                return None
+            try:
+                values[key] = float(row[key])
+                if not math.isfinite(values[key]):
+                    return None
+            except (TypeError, ValueError, OverflowError):
+                return None
+        result = {"closed": True, "open_time": opened, **values}
+        for key in ("rsi", "previous_rsi", "h1_plus", "h1_minus", "h1_adx"):
+            try:
+                candidate = float(row[key])
+                if math.isfinite(candidate):
+                    result[key] = candidate
+            except (KeyError, TypeError, ValueError, OverflowError):
+                pass
+        try:
+            hour = float(row["h1_source_open_time"])
+            if math.isfinite(hour):
+                result["h1_source_open_time"] = int(hour)
+        except (KeyError, TypeError, ValueError, OverflowError):
+            pass
+        return result
+
+    def paper_dual_strategy_decision(self, pair, current_time, canonical_window,
+                                     freqai_prediction, risk_snapshot, reservation_ledger):
+        """Explicit paper-only CORE+FreqAI signal decision, not native order entry.
+
+        A broker/order adapter MUST NOT interpret PAPER_RESERVED as a trade.
+        Reservation binding and reconciliation are separate audited actions.
+        """
+        from quant_system.dual_strategy import PaperSignalCoordinator, RouteResult
+        row = self._latest_closed_market_row(pair, current_time)
+        if row is None:
+            return RouteResult("WAIT", "NO_CLOSED_FREQTRADE_CONTEXT")
+        if pair != "BTC/USDT:USDT":
+            return RouteResult("WAIT", "WRONG_MARKET")
+        if getattr(current_time, "tzinfo", None) is None:
+            return RouteResult("WAIT", "INVALID_DECISION_TIME")
+        now_ms = int(current_time.timestamp() * 1000)
+        return PaperSignalCoordinator().evaluate(
+            row, canonical_window, freqai_prediction, now_ms,
+            risk_snapshot, reservation_ledger,
+        )
+
     def adjust_trade_position(self,trade,current_time,current_rate,current_profit,
                               min_stake,max_stake,current_entry_rate,current_exit_rate,
                               current_entry_profit,current_exit_profit,**kwargs):
