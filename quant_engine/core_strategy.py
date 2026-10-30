@@ -36,6 +36,12 @@ def stop_fill(side,stop,opened,cfg):
     return fill(min(opened,stop) if side=="LONG" else max(opened,stop),
                 "SELL" if side=="LONG" else "BUY",cfg)
 
+def exit_fill(side, reason, candle, emergency_price, cfg):
+    if reason == 'EMERGENCY SL':
+        return stop_fill(side, emergency_price, candle['open'], cfg)
+    # PR67 Kotlin confirms Soft SL on candle close, never intrabar.
+    return fill(candle['close'], 'SELL' if side=='LONG' else 'BUY', cfg)
+
 def replay(m15,h1, state=None, cfg=None):
     cfg=cfg or Config(); state=state or State(); events=[]
     candles=sorted((c for c in m15 if c["closed"]),key=lambda c:c["open_time"])
@@ -71,7 +77,7 @@ def replay(m15,h1, state=None, cfg=None):
             tp=bool(current is not None and r>=cfg.tp_roe and (current>=cfg.long_rsi_tp if p.side=="LONG" else current<=cfg.short_rsi_tp))
             reason="EMERGENCY SL" if emergency else "SOFT SL" if soft else "TAKE PROFIT" if tp else None
             if reason:
-                price=stop_fill(p.side,emergency_price if emergency else soft_price,c["open"],cfg) if (emergency or soft) else fill(c["close"],"SELL" if p.side=="LONG" else "BUY",cfg)
+                price=exit_fill(p.side,reason,c,emergency_price,cfg)
                 gross=(price-p.avg_entry if p.side=="LONG" else p.avg_entry-price)*p.qty
                 fees=(p.entry_notional+price*p.qty)*cfg.fee_rate
                 state=replace(state,balance=state.balance+gross-fees,position=None)
