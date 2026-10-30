@@ -1,0 +1,172 @@
+# yaml-language-server: $schema=https://codemagic.io/codemagic-schema.json
+workflows:
+  quant-core-long-history-audit:
+    name: PR68 90-180 day historical CORE audit - manual paper only
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      java: 17
+      vars:
+        QUANT_HISTORY_DAYS: "180"
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: feature/quant-dual-strategy-foundation-20261030
+          include: true
+          source: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Collect genuine closed OHLCV from OKX
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          mkdir -p artifacts/history artifacts/test-logs
+          if ! python3 -m quant_engine.okx_ohlcv --days "$QUANT_HISTORY_DAYS" --output artifacts/history; then
+            printf '{"parity_verified":false,"full_core_parity_certified":false,"reason":"HISTORY_DOWNLOAD_FAILED"}\n' > artifacts/history/parity-report.json
+            exit 1
+          fi
+      - name: Run actual Kotlin engine and Python on identical 90-180 day candles
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          git fetch origin feature/freqtrade-strategy-parity-20261029
+          git worktree add /tmp/quant-kotlin-parity FETCH_HEAD
+          bash /tmp/quant-kotlin-parity/ci/setup-android.sh
+          source "$CM_ENV"
+          printf 'sdk.dir=%s\n' "$ANDROID_SDK_ROOT" > /tmp/quant-kotlin-parity/android-app/local.properties
+          export PARITY_M15_CSV="$CM_BUILD_DIR/artifacts/history/m15.csv"
+          export PARITY_H1_CSV="$CM_BUILD_DIR/artifacts/history/h1.csv"
+          export PARITY_KOTLIN_TRACE_OUTPUT="$CM_BUILD_DIR/artifacts/history/kotlin-trace.json"
+          ( cd /tmp/quant-kotlin-parity/android-app && "$CHART_GRADLE_BIN" :app:testDebugUnitTest --tests "*StrategyCsvArtifactTest" --no-daemon --rerun-tasks ) 2>&1 | tee artifacts/test-logs/history-kotlin.log
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -m quant_engine.replay_cli --m15 "$PARITY_M15_CSV" --h1 "$PARITY_H1_CSV" --output artifacts/history/python-trace.json
+          python3 -m quant_engine.trace_gate artifacts/history
+      - name: Stop-loss M1 M5 intrabar diagnostics and independent review
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -m quant_engine.intrabar_fetch --trace artifacts/history/kotlin-trace.json --output artifacts/history/intrabar
+          python3 -m quant_engine.independent_audit artifacts/history
+      - name: Mark independent audit pending
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          python3 -m quant_engine.history_finalize artifacts/history
+          python3 -m unittest quant_engine.tests.test_history_finalize -v
+          python3 -m json.tool artifacts/history/parity-report.json > /dev/null
+    artifacts:
+      - artifacts/history/**
+      - artifacts/test-logs/**
+
+  quant-core-parity-draft:
+    name: PR68 CORE Kotlin Python parity - fail closed
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      java: 17
+    scripts:
+      - name: Python tests and restart persistence tests
+        script: |
+          set -euo pipefail
+          export PYTHONPATH="$CM_BUILD_DIR"
+          mkdir -p artifacts/test-logs
+          python3 -m unittest discover -s quant_engine/tests -v 2>&1 | tee artifacts/test-logs/python-unit-tests.log
+      - name: Verify canonical inputs and export Kotlin trace
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          mkdir -p artifacts/parity
+          export PYTHONPATH="$CM_BUILD_DIR"
+          # Fetch genuine confirmed BTC-USDT-SWAP candles on the build machine.
+          # Preserve input CSV + provenance manifest as build artifacts.
+          if ! python3 -m quant_engine.okx_ohlcv --output parity-input --m15-count 1200 --h1-count 360; then
+            echo "ERROR OHLCV_DOWNLOAD_FAILED: cannot verify real market candles"
+            printf '{"parity_verified":false,"reason":"OHLCV_DOWNLOAD_FAILED"}\n' > artifacts/parity/parity-report.json
+            exit 1
+          fi
+          python3 -c 'from quant_engine.canonical_csv import read_csv,digest; m=read_csv("parity-input/m15.csv",900000); h=read_csv("parity-input/h1.csv",3600000); print("Verified canonical OHLCV:",len(m),len(h),digest(m,h))'
+          git fetch origin feature/freqtrade-strategy-parity-20261029
+          git worktree add /tmp/quant-kotlin-parity FETCH_HEAD
+          # setup-android writes local.properties into CM_BUILD_DIR/android-app.
+          # Use the same SDK in the independent Kotlin worktree.
+          bash /tmp/quant-kotlin-parity/ci/setup-android.sh
+          source "$CM_ENV"
+          test -x "$CHART_GRADLE_BIN"
+          printf 'sdk.dir=%s\n' "$ANDROID_SDK_ROOT" > /tmp/quant-kotlin-parity/android-app/local.properties
+          export PARITY_M15_CSV="$CM_BUILD_DIR/parity-input/m15.csv"
+          export PARITY_H1_CSV="$CM_BUILD_DIR/parity-input/h1.csv"
+          export PARITY_KOTLIN_TRACE_OUTPUT="$CM_BUILD_DIR/artifacts/parity/kotlin-trace.json"
+          cd /tmp/quant-kotlin-parity/android-app
+          "$CHART_GRADLE_BIN" :app:testDebugUnitTest --tests "*StrategyCsvArtifactTest" --no-daemon
+          test -s "$PARITY_KOTLIN_TRACE_OUTPUT"
+      - name: Python replay on the same closed candles
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -m quant_engine.replay_cli --m15 parity-input/m15.csv --h1 parity-input/h1.csv --output artifacts/parity/python-trace.json
+      - name: Compare both independent engine traces
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -m quant_engine.trace_gate artifacts/parity
+      - name: Controlled DCA Soft SL Emergency scenarios on real Kotlin and Python engines
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -m quant_engine.scenario_runner --output artifacts/core-scenarios
+          cp ci/kotlin/QuantControlledScenarioTest.kt /tmp/quant-kotlin-parity/android-app/app/src/test/java/com/kenznguyen/btclivealerts/
+          source "$CM_ENV"
+          for scenario in "SHORT ENTRY" DCA "SOFT SL" "EMERGENCY SL"; do
+            export QUANT_SCENARIO_DIR="$CM_BUILD_DIR/artifacts/core-scenarios/$scenario"
+            export QUANT_KOTLIN_TRACE_OUTPUT="$QUANT_SCENARIO_DIR/kotlin-trace.json"
+            ( cd /tmp/quant-kotlin-parity/android-app && "$CHART_GRADLE_BIN" :app:testDebugUnitTest --tests "*QuantControlledScenarioTest" --no-daemon --rerun-tasks )
+            test -s "$QUANT_KOTLIN_TRACE_OUTPUT"
+          done
+          python3 -m quant_engine.scenario_gate artifacts/core-scenarios
+      - name: Real PaperLedger DCA submit restart and fill reconciliation
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          export QUANT_PAPER_SOURCE=/tmp/quant-kotlin-parity
+          export QUANT_REQUIRE_PAPER_E2E=1
+          export QUANT_PAPER_EVIDENCE_OUTPUT="$CM_BUILD_DIR/artifacts/paper-dca-e2e-report.json"
+          mkdir -p artifacts/test-logs artifacts/crash-evidence
+          export QUANT_CRASH_EVIDENCE_DIR="$CM_BUILD_DIR/artifacts/crash-evidence"
+          python3 -m unittest quant_engine.tests.test_paper_dca_end_to_end quant_engine.tests.test_process_crash_recovery -v 2>&1 | tee artifacts/test-logs/paper-and-crash-tests.log
+      - name: Extended market-window parity and observed coverage
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -m quant_engine.market_windows --input parity-input --output artifacts/market-windows
+          source "$CM_ENV"
+          for window in window-1 window-2; do
+            export PARITY_M15_CSV="$CM_BUILD_DIR/artifacts/market-windows/$window/m15.csv"
+            export PARITY_H1_CSV="$CM_BUILD_DIR/artifacts/market-windows/$window/h1.csv"
+            export PARITY_KOTLIN_TRACE_OUTPUT="$CM_BUILD_DIR/artifacts/market-windows/$window/kotlin-trace.json"
+            ( cd /tmp/quant-kotlin-parity/android-app && "$CHART_GRADLE_BIN" :app:testDebugUnitTest --tests "*StrategyCsvArtifactTest" --no-daemon --rerun-tasks )
+            python3 -m quant_engine.replay_cli --m15 "$PARITY_M15_CSV" --h1 "$PARITY_H1_CSV" --output "$CM_BUILD_DIR/artifacts/market-windows/$window/python-trace.json"
+          done
+          python3 -m quant_engine.market_coverage artifacts/market-windows
+      - name: Export consolidated CORE evidence (fail closed)
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -m quant_engine.evidence_cli artifacts
+    artifacts:
+      - artifacts/core-evidence-report.json
+      - artifacts/paper-dca-e2e-report.json
+      - artifacts/parity/**
+      - artifacts/core-scenarios/**
+      - artifacts/market-windows/**
+      - artifacts/crash-evidence/**
+      - artifacts/test-logs/**
+      - parity-input/**
+      - android-app/app/build/test-results/testDebugUnitTest/*.xml
