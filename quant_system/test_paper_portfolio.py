@@ -116,6 +116,18 @@ class ThreeSlotPaperTests(unittest.TestCase):
         self.assertTrue(all(e['actual_fill_price']<e['expected_fill_price']
                             for e in exits))
 
+    def test_30_percent_total_margin_exact_boundary_is_valid(self):
+        # 3 * 0.1 evaluates as 0.30000000000000004 in binary float.
+        # A 30% margin cap is still exactly sufficient for 3 x 10%.
+        accepted=PortfolioConfig(max_positions=3,entry_margin_pct=.1,
+                                 max_total_margin_pct=.3,ai_slots_in_dual=2)
+        self.assertAlmostEqual(accepted.max_total_margin_pct,.3)
+        # Materially lower collateral caps must still be rejected.
+        for invalid in (.299,.2):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError,'UNAPPROVED_PAPER_PORTFOLIO_POLICY'):
+                    PortfolioConfig(max_total_margin_pct=invalid)
+
     def test_wrong_configuration_fails_closed(self):
         with self.assertRaises(ValueError):
             PortfolioConfig(max_positions=0)
