@@ -30,6 +30,7 @@ class Phase13BOOSGateTest(unittest.TestCase):
             "model_identifier":"chart-pro-okx-shadow-v1",
             "training_end_ms":1793000000000,
             "latest_observed_label_end_ms":1792999000000,
+            "created_at_utc":"2026-10-31T00:00:00Z",
             "freqai_config_sha256":"sha256:"+"c"*64,
             "ordered_feature_columns":["%-x"],"candidate_path":"frozen.joblib"
         }))
@@ -49,6 +50,14 @@ class Phase13BOOSGateTest(unittest.TestCase):
         self.assertEqual(seal["model_identifier"],"chart-pro-okx-shadow-v1")
         self.assertFalse(seal["sealed_in_git"])
         self.assertIsNone(seal["seal_git_commit"])
+
+    def test_candidate_produced_after_holdout_start_denied(self):
+        meta=json.loads(self.meta.read_text())
+        meta["created_at_utc"]="2026-11-05T00:00:00Z"
+        self.meta.write_text(json.dumps(meta))
+        result=verify_candidate(self.protocol,self.meta,self.bundle)
+        self.assertFalse(result["candidate_sha_verified"])
+        self.assertIn("PHASE13B_CANDIDATE_CREATED_AFTER_OOS_START",result["errors"])
 
     def test_tampered_bundle_cannot_be_frozen(self):
         self.bundle.write_bytes(b"not original")
