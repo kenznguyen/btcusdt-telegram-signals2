@@ -21,8 +21,8 @@ sealed_in_git=false faithfully describes the older pre-seal run.
 
 1. Upload phase14-frozen-original-evidence.zip to the Phase14 feature
    branch at research_evidence/phase14-frozen-original-evidence.zip.
-   SHA-256 MUST be 4758457154f8a23f92e0b48e0122cec0e4d5b92b813c9bed7fe4358c11008c7d.
-   It is a 945KB original-evidence subset with source SHA, original model,
+   SHA-256 MUST be b64f39bd70c27c8d6abed1795ee06504c108eed42ebdab98ce375a6449b5b035.
+   It is a 1.6MB original-evidence subset with source SHA, original model,
    matching metadata, native report, canonical M15, Phase13B audit,
    all matrix event references and frozen model PREDICT NPZ. It does not
    retrain or modify the candidate.
