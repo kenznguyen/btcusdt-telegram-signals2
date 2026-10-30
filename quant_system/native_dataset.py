@@ -19,7 +19,13 @@ def training_window(m15_path, h1_path, *, days=360, warmup_days=35):
         raise ValueError("Invalid native research window")
     m15 = read_closed_csv(m15_path, M15_MS)
     h1 = read_closed_csv(h1_path, 3_600_000)
-    end = m15[-1]["open_time"] + M15_MS
+    # Use the same last jointly closed M15/H1 hour boundary as the
+    # intrabar audit; do not start research from an incomplete H1 window.
+    common_end = min(
+        m15[-1]["open_time"] + M15_MS,
+        h1[-1]["open_time"] + 3_600_000,
+    )
+    end = common_end - common_end % 3_600_000
     start = end - days * DAY_MS
     beginning = start - warmup_days * DAY_MS
     if beginning < 0 or m15[0]["open_time"] > beginning or h1[0]["open_time"] > beginning:
