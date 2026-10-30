@@ -83,8 +83,11 @@ def _number(value):
 def admit(signal, risk):
     """Risk admission is required even when a caller bypasses the coordinator."""
     if not isinstance(signal, Signal) or type(signal.candle_close_ms) is not int or (
-        signal.candle_close_ms <= 0 or signal.candle_close_ms % CANDLE_MS != 0
-    ) or not signal.signal_id or signal.origin not in Origin or signal.side not in Side:
+        signal.candle_close_ms <= 0 or signal.candle_close_ms > (2**63 - 1) or
+        signal.candle_close_ms % CANDLE_MS != 0
+    ) or not isinstance(signal.signal_id, str) or not 1 <= len(signal.signal_id) <= 256 or (
+        not isinstance(signal.origin, Origin) or not isinstance(signal.side, Side)
+    ):
         return Decision(False, "INVALID_SIGNAL")
     if not isinstance(risk, RiskSnapshot) or not all(type(getattr(risk, field)) is bool for field in (
         "data_fresh", "state_reconciled", "has_unresolved_reservation", "ai_model_validated"
