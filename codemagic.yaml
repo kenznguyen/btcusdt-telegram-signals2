@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://codemagic.io/codemagic-schema.json
 workflows:
   quant-core-parity-draft:
-    name: PR68 CORE Kotlin Python trace + DCA recovery (manual, paper only)
+    name: PR68 CORE Kotlin Python parity - fail closed
     instance_type: mac_mini_m2
     max_build_duration: 30
     environment:
@@ -12,33 +12,44 @@ workflows:
           set -euo pipefail
           export PYTHONPATH="$CM_BUILD_DIR"
           python3 -m unittest discover -s quant_engine/tests -v
-      - name: Independent Kotlin replay from PR67 source
+      - name: Verify canonical inputs and export Kotlin trace
         script: |
           set -euo pipefail
+          cd "$CM_BUILD_DIR"
           mkdir -p artifacts/parity
-          # Distinct Kotlin runner; never generate a Kotlin trace from Python.
+          if [ ! -s parity-input/m15.csv ] || [ ! -s parity-input/h1.csv ]; then
+            echo "ERROR MISSING_OHLCV: parity-input/m15.csv and parity-input/h1.csv are required."
+            printf '{"parity_verified":false,"reason":"MISSING_OHLCV"}\n' > artifacts/parity/parity-report.json
+            exit 1
+          fi
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -c 'from quant_engine.canonical_csv import read_csv,digest; m=read_csv("parity-input/m15.csv",900000); h=read_csv("parity-input/h1.csv",3600000); print("Verified canonical OHLCV:",len(m),len(h),digest(m,h))'
           git fetch origin feature/freqtrade-strategy-parity-20261029
           git worktree add /tmp/quant-kotlin-parity FETCH_HEAD
-          test -s parity-input/m15.csv
-          test -s parity-input/h1.csv
+          # setup-android writes local.properties into CM_BUILD_DIR/android-app.
+          # Use the same SDK in the independent Kotlin worktree.
           bash /tmp/quant-kotlin-parity/ci/setup-android.sh
+          source "$CM_ENV"
+          test -x "$CHART_GRADLE_BIN"
+          printf 'sdk.dir=%s\n' "$ANDROID_SDK_ROOT" > /tmp/quant-kotlin-parity/android-app/local.properties
           export PARITY_M15_CSV="$CM_BUILD_DIR/parity-input/m15.csv"
           export PARITY_H1_CSV="$CM_BUILD_DIR/parity-input/h1.csv"
           export PARITY_KOTLIN_TRACE_OUTPUT="$CM_BUILD_DIR/artifacts/parity/kotlin-trace.json"
           cd /tmp/quant-kotlin-parity/android-app
           "$CHART_GRADLE_BIN" :app:testDebugUnitTest --tests "*StrategyCsvArtifactTest" --no-daemon
           test -s "$PARITY_KOTLIN_TRACE_OUTPUT"
-      - name: Python replay on exactly the same CSV
+      - name: Python replay on the same closed candles
         script: |
           set -euo pipefail
+          cd "$CM_BUILD_DIR"
           export PYTHONPATH="$CM_BUILD_DIR"
           python3 -m quant_engine.replay_cli --m15 parity-input/m15.csv --h1 parity-input/h1.csv --output artifacts/parity/python-trace.json
-          test -s artifacts/parity/python-trace.json
-      - name: Audit genuine traces (fail closed)
+      - name: Compare both independent engine traces
         script: |
           set -euo pipefail
+          cd "$CM_BUILD_DIR"
           export PYTHONPATH="$CM_BUILD_DIR"
           python3 -m quant_engine.trace_gate artifacts/parity
     artifacts:
       - artifacts/parity/**
-      - /tmp/quant-kotlin-parity/android-app/app/build/test-results/testDebugUnitTest/*.xml
+      - android-app/app/build/test-results/testDebugUnitTest/*.xml
