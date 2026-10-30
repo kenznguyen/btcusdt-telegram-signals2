@@ -25,7 +25,7 @@ class NativeResearchFailureTest(TestCase):
 
             def fake_run(args, stdout=None, **kwargs):
                 calls.append(args)
-                stdout.write("FREQTRADE_CORE_ERROR: strategy resolution failed\\n")
+                stdout.write("FREQTRADE_CORE_ERROR: strategy resolution failed\n")
                 return SimpleNamespace(returncode=2)
 
             buffer = StringIO()
@@ -65,9 +65,9 @@ class NativeResearchFailureTest(TestCase):
         from quant_system.native_research import native_failure_excerpt
         with TemporaryDirectory() as location:
             path = Path(location) / "native.log"
-            path.write_text("".join(f"line:{i}\\n" for i in range(200)))
+            path.write_text("".join(f"line:{i}\n" for i in range(200)))
             tail = native_failure_excerpt(path, max_lines=20)
-            self.assertNotIn("line:0\\n", tail)
+            self.assertNotIn("line:0\n", tail)
             self.assertIn("line:199", tail)
             self.assertLessEqual(len(tail.splitlines()), 20)
 
