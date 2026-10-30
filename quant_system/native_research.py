@@ -127,10 +127,16 @@ def research_commands(*, days, detail_minutes, dataset_dir, native_datadir, out_
         "--strategy-path", str(root / "freqtrade_parity"),
         "--strategy", "ChartProParityDryRun",
     ]
+    phase8 = os.environ.get("PHASE8_CAPTURE_MODEL_LINEAGE", "0")
+    if phase8 not in ("0", "1"):
+        raise ValueError("INVALID_PHASE8_CAPTURE_SWITCH")
+    if phase8 == "1" and (days != 180 or exchange != "okx"):
+        raise ValueError("PHASE8_REQUIRES_180D_OKX_RESEARCH")
     freqai = common + [
         "--strategy-path", str(root / "freqai_bridge"),
         "--strategy", "ChartProFreqaiResearch",
-        "--freqaimodel", "LightGBMRegressor",
+        "--freqaimodel",
+        "ChartProAuditLightGBMRegressor" if phase8 == "1" else "LightGBMRegressor",
     ]
     return verified, [("core", core), ("freqai", freqai)]
 
@@ -183,13 +189,21 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
                       ohlcv_verified=True)
         prediction_path = target / "freqai-native-predictions.csv"
         prediction_path.unlink(missing_ok=True)  # Reject cached forecasts from a prior model run.
+        phase8_enabled = os.environ.get("PHASE8_CAPTURE_MODEL_LINEAGE") == "1"
+        lineage_path = target / "freqai-native-model-lineage.csv"
+        lineage_path.unlink(missing_ok=True)
+        if phase8_enabled:
+            report["phase8_model_trace_requested"] = True
         for label, command in commands:
             # AI must originate in the real FreqAI backtesting dataframe; no
             # fabricated predictions or entry flags from the offline simulator.
             environment = os.environ.copy()
             environment.pop("PHASE3_PREDICTIONS_CSV", None)
+            environment.pop("PHASE8_LINEAGE_CSV", None)
             if label == "freqai" and days == 180 and exchange == "okx":
                 environment["PHASE3_PREDICTIONS_CSV"] = str(prediction_path.resolve())
+                if phase8_enabled:
+                    environment["PHASE8_LINEAGE_CSV"] = str(lineage_path.resolve())
             log = target / f"{label}-native-{days}.log"
             with log.open("w", encoding="utf-8") as handle:
                 completed = subprocess.run(
@@ -243,6 +257,13 @@ def run_research(*, days, detail_minutes, dataset_dir, native_datadir, out_dir, 
                 native_config = json.loads(Path(config_path).read_text(encoding="utf-8"))
                 report["prediction_model_identifier"] = native_config["freqai"]["identifier"]
                 report["prediction_capture_verified"] = True
+        if phase8_enabled:
+            if not lineage_path.is_file() or lineage_path.stat().st_size <= 0:
+                raise RuntimeError("MISSING_NATIVE_PHASE8_MODEL_FINGERPRINTS")
+            report["phase8_model_lineage_sha256"] = (
+                "sha256:" + hashlib.sha256(lineage_path.read_bytes()).hexdigest()
+            )
+            report["phase8_model_lineage_bytes"] = lineage_path.stat().st_size
         report["reason"] = "NATIVE_RESEARCH_COMPLETED_TRADE_PARITY_NOT_VERIFIED"
     except (ValueError, OSError, RuntimeError, subprocess.TimeoutExpired) as error:
         report["reason"] = str(error)[:180]
