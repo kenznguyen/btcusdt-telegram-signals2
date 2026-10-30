@@ -111,3 +111,53 @@ inspect `prediction_do_predict_distribution`,
 signals to force acceptance. If FreqAI restores real predictions but
 the postfit mapping fails, the Phase12 audit correctly blocks and the
 row-index linkage must be repaired using the native observed evidence.
+
+## Root cause found from native Codemagic ZIP (Phase12 26/26 observer failures)
+
+An uploaded 180-day OKX Codemagic research archive (source SHA
+`d6f176e436cc4ddd5aa8f3faff63a897e69ba6ce`) contained:
+- `phase12_observer_failure_count=26`, unique 26 folds, all
+  `PHASE12_FIT_INDEX_IDENTITY_UNVERIFIED`.
+- 17,103 real accepted forecasts (`do_predict=1`), 3,122 neutral;
+  successful native FreqAI/CORE and passed Phase8–11 audits.
+- An otherwise empty `freqai-native-training-samples.csv` did not exist.
+- Observer errors, prediction CSV and booster lineage all matched SHA-256
+  checksums inside the same native report.
+
+Confirmed mechanical cause: pinned FreqAI 2026.9 `dk.filter_features()`
+retains original source row indices in `dk.train_dates`. The DataSieve
+`Pipeline._convert_back_to_df()` reconstructs the transformed model X/y
+as fresh pandas DataFrames with `RangeIndex(0..N-1)`. The former Phase12
+observer incorrectly demanded that post-transform fit X/y indices matched
+the original `dk.train_dates` indices. They are not the same provenance
+domain. This is a **bug in research instrumentation**, not proof of
+label leakage, not a change in live order risk, and not grounds for
+manually promoting `ready_for_360`.
+
+Patch: `phase12_sample_identity.resolve_fit_row_ids` reconstructs the
+**approved, chronological** 20% test split from the filtered FreqAI
+`train_dates`; checks that actual post-fit TRAIN rows preserve full length;
+derives TEST selection from the real fitted DissimilarityIndex validation
+mask; rejects extra or missing rows and unknown feature pipelines. For
+every real TRAIN/TEST label delivered to LightGBM, it inverse-transforms
+the model's actual scaled y and checks 1:1 against the original raw label,
+in order. This allows DataSieve's reset index without ignoring lost,
+reordered, or unaccounted-for rows. Raw labels are independently
+reconstructed from canonical BTCUSDT OKX `close[t+4]/close[t]-1` in the
+separate Phase12 audit.
+
+Unit regressions cover reset-index mapping, genuine DI filtering,
+scaled-label inversion, shuffled fit labels, DI-mask tamper, changed
+feature preprocessing, sample-count mismatch and unapproved split.
+Full Codemagic unit/native validation remains pending. The native
+research input's OHLCV may differ between runs; compare exact dataset
+hashes in every artifact before claiming parity.
+
+### Next failure to assess independently
+
+Once each original fit row is correctly traced, Phase12 may reveal that
+the current FreqAI 20% validation split does **not** purge four M15 candles
+at the train/test boundary. If `TRAIN_TEST_LABEL_HORIZON_NOT_PURGED`
+occurs, keep that as a legitimate failed independent audit and implement
+a separate chronological label-horizon purge under new tests **without
+changing strategy thresholds, paper risk sizing or live enablement**.
