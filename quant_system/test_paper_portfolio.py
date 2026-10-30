@@ -53,6 +53,19 @@ class ThreeSlotPaperTests(unittest.TestCase):
         self.assertGreaterEqual(result['report']['position_limit_denials'],1)
         self.assertEqual(max(x['open_positions'] for x in result['equity_curve']),3)
 
+    def test_next_entry_uses_updated_equity_after_realized_profit(self):
+        candles=[candle(0),candle(1,close=110.,high=111.,rsi=78.),
+                 candle(2,close=110.,high=111.),candle(3),candle(4)]
+        detail=fine(5,{(2,0):dict(open=110.,high=111.,low=109.,close=110.)})
+        next_forecast=prediction(2)
+        next_forecast.update(close=110.,high=111.)
+        result=run(candles,[prediction(0),next_forecast],detail=detail)
+        entries=[event for event in result['events'] if event['kind']=='LONG ENTRY']
+        self.assertEqual(len(entries),2)
+        self.assertAlmostEqual(entries[0]['margin_usdt'],10.,places=5)
+        self.assertGreater(entries[1]['margin_usdt'],10.)
+        self.assertTrue(any(e['kind']=='TAKE PROFIT' for e in result['events']))
+
     def test_dual_reserves_one_core_slot_when_ai_occupies_two(self):
         candles=[candle(i) for i in range(6)]
         candles[2]=candle(2,previous_rsi=29.,rsi=31.)
@@ -70,9 +83,8 @@ class ThreeSlotPaperTests(unittest.TestCase):
             (2,0):dict(open=98.,high=99.,low=97.5,close=98.),
             (3,0):dict(open=98.,high=99.,low=97.5,close=98.)}))
         dca=[e for e in result['events'] if e['kind']=='DCA']
-        self.assertLessEqual(len(dca),1)
-        if dca:
-            self.assertAlmostEqual(dca[0]['margin_usdt'],10.,places=4)
+        self.assertEqual(len(dca),1)
+        self.assertAlmostEqual(dca[0]['margin_usdt'],10.,places=4)
         self.assertEqual(result['report']['max_positions'],3)
 
     def test_confirmed_tp_fills_at_next_open_before_later_intrabar_stop(self):
