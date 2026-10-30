@@ -477,6 +477,7 @@ workflows:
             quant_system.test_phase11_conflict_reconciliation \
             quant_system.test_phase12_training_audit \
             quant_system.test_phase12_fit_observer \
+            quant_system.test_phase12_sample_identity \
             quant_system.test_dca_risk_gate \
             quant_system.test_native_prediction_capture \
             quant_system.test_native_research_failure \
