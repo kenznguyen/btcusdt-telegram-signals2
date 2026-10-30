@@ -439,6 +439,7 @@ workflows:
             ci.test_phase3_native_workflow \
             ci.test_phase3_paper_workflow \
             quant_system.test_paper_backtest \
+            quant_system.test_dca_risk_gate \
             quant_system.test_native_prediction_capture \
             quant_system.test_native_research_failure \
             quant_system.test_phase3_paper_bridge \
@@ -574,6 +575,7 @@ workflows:
             --days 180 \
             --dataset-dir artifacts/phase3/canonical \
             --predictions artifacts/phase3/native/freqai-native-predictions.csv \
+            --native-report artifacts/phase3/native/native-research-180.json \
             --model-identifier chart-pro-okx-shadow-v1 \
             --out-dir artifacts/phase3/paper \
             2>&1 | tee artifacts/phase3/paper/paper-replay.log
