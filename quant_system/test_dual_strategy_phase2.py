@@ -183,9 +183,29 @@ class DualStrategyPhase2Test(unittest.TestCase):
         a = Signal(Origin.CORE, Side.LONG, self.opened + 900_000, "core-concurrent")
         b = Signal(Origin.AI, Side.LONG, self.opened + 900_000, "ai-concurrent")
         with ThreadPoolExecutor(max_workers=2) as pool:
-            outcomes = list(pool.map(lambda s: ReservationLedger(self.ledger.path).reserve(s, self.safe), (a, b)))
+            outcomes = list(pool.map(lambda s: self.ledger.reserve(s, self.safe), (a, b)))
         self.assertEqual(sum(x.accepted for x in outcomes), 1)
         self.assertEqual(len(self.ledger.entries()), 1)
+
+    def test_public_reservation_never_bypasses_risk(self):
+        signal = Signal(Origin.AI, Side.LONG, self.opened + 900_000, "direct-ai")
+        self.assertEqual(self.ledger.reserve(signal, None).reason, "INVALID_RISK_SNAPSHOT")
+        self.assertEqual(self.ledger.reserve(signal, replace(self.safe, ai_model_validated=False)).reason,
+                         "AI_NOT_VALIDATED")
+        self.assertEqual(self.ledger.entries(), [])
+
+    def test_missing_persistent_ledger_never_creates_a_paper_intent(self):
+        result = self.decide(ledger=object())
+        self.assertEqual((result.action, result.reason), ("WAIT", "MISSING_PERSISTENT_LEDGER"))
+
+    def test_native_freqtrade_entries_stay_disabled_by_default(self):
+        source = (Path(__file__).resolve().parents[1] /
+                  "freqtrade_parity" / "ChartProParityDryRun.py").read_text()
+        self.assertIn("def paper_dual_strategy_decision(", source)
+        self.assertIn("def _latest_closed_market_row(", source)
+        self.assertIn('dataframe["enter_long"]=0', source)
+        self.assertIn('dataframe["enter_short"]=0', source)
+        self.assertIn("return False", source)
 
     def test_emergency_dca_rules_are_not_mutated(self):
         r = StrategyRules()
