@@ -491,6 +491,7 @@ workflows:
           # requires a real userdir before it loads config for download-data.
           "$CI_PYTHON" -m freqtrade create-userdir --userdir "$CM_BUILD_DIR/.ci-tools/phase3-freqtrade-userdata"
           test -d "$CM_BUILD_DIR/.ci-tools/phase3-freqtrade-userdata"
+          test -d "$CM_BUILD_DIR/.ci-tools/phase3-freqtrade-userdata/strategies"
           "$CI_PYTHON" -m freqtrade create-userdir --help > artifacts/phase3/create-userdir-cli-help.txt
           # Validate the pinned CLI before the expensive historical download.
           "$CI_PYTHON" -m freqtrade download-data --help > artifacts/phase3/download-cli-help.txt
