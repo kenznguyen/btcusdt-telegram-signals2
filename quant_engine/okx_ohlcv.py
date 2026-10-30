@@ -32,6 +32,7 @@ def fetch_closed(bar,step_ms,count,fetch_page=None,now_ms=None):
     if fetch_page is None:fetch_page=lambda after:api_page(bar,after)
     candles={};after=None
     for _ in range((count+99)//100+8):
+        if fetch_page is not None and _ > 0 and count > 1200: time.sleep(0.25)
         payload=fetch_page(after)
         if not isinstance(payload,dict) or payload.get("code")!="0" or not isinstance(payload.get("data"),list):
             raise ValueError("OKX_API_FAILURE")
@@ -76,7 +77,11 @@ def main():
     p=argparse.ArgumentParser()
     p.add_argument("--output",default="parity-input");p.add_argument("--m15-count",type=int,default=600)
     p.add_argument("--h1-count",type=int,default=180)
+    p.add_argument("--days",type=int,choices=(90,180),default=None)
     a=p.parse_args();now=int(time.time()*1000)
+    if a.days:
+        a.m15_count=a.days*96
+        a.h1_count=a.days*24
     m=fetch_closed("15m",900000,a.m15_count,now_ms=now)
     h=fetch_closed("1H",3600000,a.h1_count,now_ms=now)
     print(json.dumps(write_dataset(a.output,m,h,now),sort_keys=True))
