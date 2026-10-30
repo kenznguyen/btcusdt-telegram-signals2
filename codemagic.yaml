@@ -20,7 +20,7 @@ workflows:
           export PYTHONPATH="$CM_BUILD_DIR"
           # Fetch genuine confirmed BTC-USDT-SWAP candles on the build machine.
           # Preserve input CSV + provenance manifest as build artifacts.
-          if ! python3 -m quant_engine.okx_ohlcv --output parity-input --m15-count 600 --h1-count 180; then
+          if ! python3 -m quant_engine.okx_ohlcv --output parity-input --m15-count 1200 --h1-count 360; then
             echo "ERROR OHLCV_DOWNLOAD_FAILED: cannot verify real market candles"
             printf '{"parity_verified":false,"reason":"OHLCV_DOWNLOAD_FAILED"}\n' > artifacts/parity/parity-report.json
             exit 1
@@ -75,7 +75,24 @@ workflows:
           export QUANT_PAPER_SOURCE=/tmp/quant-kotlin-parity
           export QUANT_REQUIRE_PAPER_E2E=1
           export QUANT_PAPER_EVIDENCE_OUTPUT="$CM_BUILD_DIR/artifacts/paper-dca-e2e-report.json"
-          python3 -m unittest quant_engine.tests.test_paper_dca_end_to_end -v
+          mkdir -p artifacts/test-logs artifacts/crash-evidence
+          export QUANT_CRASH_EVIDENCE_DIR="$CM_BUILD_DIR/artifacts/crash-evidence"
+          python3 -m unittest quant_engine.tests.test_paper_dca_end_to_end quant_engine.tests.test_process_crash_recovery -v 2>&1 | tee artifacts/test-logs/paper-and-crash-tests.log
+      - name: Extended market-window parity and observed coverage
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -m quant_engine.market_windows --input parity-input --output artifacts/market-windows
+          source "$CM_ENV"
+          for window in window-1 window-2; do
+            export PARITY_M15_CSV="$CM_BUILD_DIR/artifacts/market-windows/$window/m15.csv"
+            export PARITY_H1_CSV="$CM_BUILD_DIR/artifacts/market-windows/$window/h1.csv"
+            export PARITY_KOTLIN_TRACE_OUTPUT="$CM_BUILD_DIR/artifacts/market-windows/$window/kotlin-trace.json"
+            ( cd /tmp/quant-kotlin-parity/android-app && "$CHART_GRADLE_BIN" :app:testDebugUnitTest --tests "*StrategyCsvArtifactTest" --no-daemon --rerun-tasks )
+            python3 -m quant_engine.replay_cli --m15 "$PARITY_M15_CSV" --h1 "$PARITY_H1_CSV" --output "$CM_BUILD_DIR/artifacts/market-windows/$window/python-trace.json"
+          done
+          python3 -m quant_engine.market_coverage artifacts/market-windows
       - name: Export consolidated CORE evidence (fail closed)
         script: |
           set -euo pipefail
@@ -87,5 +104,8 @@ workflows:
       - artifacts/paper-dca-e2e-report.json
       - artifacts/parity/**
       - artifacts/core-scenarios/**
+      - artifacts/market-windows/**
+      - artifacts/crash-evidence/**
+      - artifacts/test-logs/**
       - parity-input/**
       - android-app/app/build/test-results/testDebugUnitTest/*.xml
