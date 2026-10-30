@@ -260,10 +260,27 @@ def replay_portfolio(m15, fine, predictions, *, mode, dataset_sha256,
                 for request in requests:
                     p=positions.get(request['trade_id'])
                     if p is not None:
-                        trigger=emergency_request(p,bar,row)
-                        if trigger is not None:
-                            closing(trigger,bar,emergency=True)
-                            continue
+                        # A previously CONFIRMED TP/Soft SL fills at this
+                        # detail bar OPEN before any unknown intrabar path.
+                        # Emergency overrides it only when the OPEN has
+                        # already gapped through the emergency threshold.
+                        if request['kind'] in ('TAKE PROFIT','SOFT SL'):
+                            emergency_price=rules.threshold_price(
+                                p.side,p.average,abs(rules.p.emergency_sl_roe))
+                            gap=(bar['open']<=emergency_price if p.side=='LONG'
+                                 else bar['open']>=emergency_price)
+                            if gap:
+                                trigger=emergency_request(p,bar,row)
+                                if trigger is not None:
+                                    closing(trigger,bar,emergency=True)
+                                    continue
+                        elif request['kind']=='DCA':
+                            # DCA is risk-increasing: conservative intrabar
+                            # emergency check always runs before its fill.
+                            trigger=emergency_request(p,bar,row)
+                            if trigger is not None:
+                                closing(trigger,bar,emergency=True)
+                                continue
                     if request['kind'] in ('LONG ENTRY','SHORT ENTRY'):
                         opening(request,bar)
                     elif request['kind']=='DCA':
