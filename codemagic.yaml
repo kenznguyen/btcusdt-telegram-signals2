@@ -434,6 +434,7 @@ workflows:
           set -euo pipefail
           python3 -m unittest \
             ci.test_phase3_native_workflow \
+            quant_system.test_native_research_failure \
             quant_system.test_phase3_paper_bridge \
             quant_system.test_intrabar_audit \
             quant_system.test_dual_strategy_phase2 \
