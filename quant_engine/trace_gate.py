@@ -13,6 +13,7 @@ def audit(k,p):
     # Both real runners may legitimately produce zero events. Compare datasets only
     # after runner exit status and independent provenance are checked by CI.
     if len(a)!=len(b):return False,"COUNT_MISMATCH"
+    if not a:return False,"NO_EVENTS_TO_VERIFY"
     for i,(left,right) in enumerate(zip(a,b)):
         if not isinstance(left,dict) or not isinstance(right,dict):return False,f"INVALID_EVENT:{i}"
         if any(key not in left or key not in right for key in KEYS):return False,f"MISSING_FIELDS:{i}"
