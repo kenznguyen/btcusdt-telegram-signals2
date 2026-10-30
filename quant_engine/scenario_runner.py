@@ -5,7 +5,7 @@ from pathlib import Path
 from .core_strategy import Position,State,replay
 from .canonical_csv import read_csv,digest
 
-NAMES=("DCA","SOFT SL","EMERGENCY SL")
+NAMES=("SHORT ENTRY","DCA","SOFT SL","EMERGENCY SL")
 def candles(step, count, fn):
     out=[]
     for i in range(count):
@@ -22,7 +22,13 @@ def write_scenarios(root):
     root=Path(root)
     for name in NAMES:
         folder=root/name;folder.mkdir(parents=True,exist_ok=True)
-        if name=="DCA":
+        if name=="SHORT ENTRY":
+            # A falling market followed by a modest rally and fresh RSI-70 cross-down,
+            # with confirmed falling H1 DI/ADX.
+            m=candles(900000,220,lambda i: 150.-.35*i if i<195 else 81.75+1.0*(i-195) if i<211 else 97.75-1.3*(i-211))
+            h=candles(3600000,65,lambda i: 160.-.4*i)
+            initial=State(100.,None,m[210]["open_time"])
+        elif name=="DCA":
             m=candles(900000,160,lambda i:110-.085*i if i<=154 else 110-.085*154+.22*(i-154))
             h=candles(3600000,45,lambda i:100.+.2*i)
             last=m[-1]["close"]
@@ -45,7 +51,7 @@ def write_scenarios(root):
         write_csv(folder/"m15.csv",m);write_csv(folder/"h1.csv",h)
         (folder/"initial-state.json").write_text(json.dumps({"balance":initial.balance,
             "lastProcessedOpenTime":initial.last_processed_open_time,
-            "position":{"side":initial.position.side,"qty":initial.position.qty,
+            "position":None if initial.position is None else {"side":initial.position.side,"qty":initial.position.qty,
                 "avgEntry":initial.position.avg_entry,"initialMargin":initial.position.initial_margin,
                 "dcaMargin":initial.position.dca_margin,"entryNotional":initial.position.entry_notional,
                 "entryTime":initial.position.entry_time,"dcaUsed":False}},indent=2)+"\n")
@@ -56,7 +62,7 @@ def replay_scenarios(root):
         folder=Path(root)/name
         m=read_csv(folder/"m15.csv",900000);h=read_csv(folder/"h1.csv",3600000)
         j=json.loads((folder/"initial-state.json").read_text());p=j["position"]
-        state=State(j["balance"],Position(p["side"],p["qty"],p["avgEntry"],p["initialMargin"],
+        state=State(j["balance"],None if p is None else Position(p["side"],p["qty"],p["avgEntry"],p["initialMargin"],
             p["dcaMargin"],p["entryNotional"],p["entryTime"],p["dcaUsed"]),j["lastProcessedOpenTime"])
         final,events=replay(m,h,state)
         rows=[dict(id=f'{e["side"]}:{e["candleTime"]}',kind=e["kind"],candleTime=e["candleTime"],
