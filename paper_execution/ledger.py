@@ -113,10 +113,13 @@ def read_snapshot(db_path):
 
 
 class PaperLedger:
-    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False):
+    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage="13"):
         self.path = Path(db_path)
         self.maximum, self.fee_rate, self.spread = number(max_position_base), number(fee_rate), number(max_spread_bps)
         self.risk_limits, self.require_risk_limits = risk_limits, bool(require_risk_limits)
+        self.leverage = number(leverage)
+        if self.leverage <= 0:
+            raise ValueError("Invalid strategy leverage")
         if self.maximum <= 0 or self.fee_rate > 1 or not 0 < self.spread <= 10_000:
             raise ValueError("Invalid paper risk configuration")
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -143,8 +146,14 @@ class PaperLedger:
                 initial_margin_quote TEXT NOT NULL)""")
             if not strategy_table:
                 legacy_position = Decimal(stored_state(connection)[0])
-                connection.execute("INSERT INTO paper_strategy_state VALUES (1,?,?,?)",
+                connection.execute("INSERT OR IGNORE INTO paper_strategy_state VALUES (1,?,?,?)",
                                    ("LEGACY" if legacy_position else None, 0, "0"))
+            else:
+                existing_strategy = connection.execute("SELECT 1 FROM paper_strategy_state WHERE id=1").fetchone()
+                if not existing_strategy:
+                    legacy_position = Decimal(stored_state(connection)[0])
+                    connection.execute("INSERT INTO paper_strategy_state VALUES (1,?,?,?)",
+                                       ("LEGACY" if legacy_position else None, 0, "0"))
             equity_history.ensure(connection)
 
     def connect(self):
@@ -243,7 +252,7 @@ class PaperLedger:
                     if owner is None and position != 0:
                         next_owner = strategy_id
                         next_dca_used = 0
-                        next_initial_margin = text(abs(Decimal(intent["targetPositionBase"])) * limit / Decimal("13"))
+                        next_initial_margin = text(abs(Decimal(intent["targetPositionBase"])) * limit / self.leverage)
                     if strategy_event == "DCA":
                         next_dca_used = 1
                     if position == 0:
