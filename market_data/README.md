@@ -1,6 +1,6 @@
 # Canonical market data — tầng 0
 
-Kho nến dùng chung cho các tầng phân tích. Bản đầu hỗ trợ **Binance USDⓈ-M perpetual BTCUSDT**, khung **15m/1h**, SQLite và API WSGI chỉ đọc. Bộ đồng bộ lấy OHLCV qua CCXT; không cần API key sàn. Chưa thay nguồn OKX của Python bot/backtest hay nguồn trực tiếp trong APK.
+Kho nến dùng chung cho các tầng phân tích. Bản đầu hỗ trợ **Binance USDⓈ-M perpetual BTCUSDT**, khung **15m/1h**, SQLite mặc định và adapter PostgreSQL/TimescaleDB tùy chọn. API WSGI vẫn chỉ đọc. Bộ đồng bộ lấy OHLCV qua CCXT; không cần API key sàn. Chưa thay nguồn OKX của Python bot/backtest hay nguồn trực tiếp trong APK.
 
 ## Chạy đồng bộ
 
@@ -23,13 +23,25 @@ Ví dụ lấy khoảng **2026-10-29 00:00–02:00 UTC**, đầu gồm/cuối lo
 
 Mỗi page tối đa 1.000 nến được ghi nguyên tử. Nếu page sau lỗi, các page trước vẫn còn; CLI thoát khác 0 và cho phép thử lại cửa sổ. Nến cùng khóa và OHLCV được bỏ qua; nến cùng khóa nhưng OHLCV khác khiến cả page bị rollback. Không âm thầm sửa lịch sử. Việc xử lý bản sửa từ sàn cần một thay đổi có kiểm soát riêng.
 
+SQLite tiếp tục là mặc định. Sau khi đã áp dụng schema TimescaleDB trong một database staging riêng, có thể đồng bộ trực tiếp bằng `--database-url` thay cho `--db`:
+
+```bash
+MARKET_DATA_DATABASE_URL='postgresql://...' python3 -m market_data.sync \\
+  --database-url "$MARKET_DATA_DATABASE_URL" --timeframe 15m \\
+  --start-ms 1793232000000 --end-ms 1793239200000
+```
+
+Không đưa DSN vào shell history hoặc commit. Repository PostgreSQL không tự tạo schema; schema được quản lý riêng qua `market_data/migrations/001_initial_timescale.sql`.
+
+
 ## API đọc
 
 Cấu hình trong môi trường chạy, không commit giá trị token:
 
 | Biến | Nội dung |
 | --- | --- |
-| `MARKET_DATA_DB` | Đường dẫn SQLite đã tạo bằng tác vụ sync |
+| `MARKET_DATA_DB` | Đường dẫn SQLite; vẫn là backend mặc định và là database paper ledger trong chế độ hỗn hợp |
+| `MARKET_DATA_DATABASE_URL` | Tùy chọn PostgreSQL/TimescaleDB DSN; chỉ chọn backend market data, không bao giờ dùng cho paper ledger |
 | `MARKET_DATA_TOKEN` | Token riêng chỉ đọc, dùng header Bearer |
 | `PORT` | Port phát triển, mặc định 8788 |
 
@@ -93,10 +105,10 @@ API không tạo database khi thiếu file, không gọi sàn trong request và 
 
 ## Kiểm chứng
 
-CI chạy trên Codemagic với workflow `canonical-market-data`, cấu hình tại `codemagic.yaml`. GitHub chỉ lưu source/PR; không chạy GitHub Actions. Xem [hướng dẫn Codemagic](../docs/CODEMAGIC_SETUP.md) để cài đặt tài khoản và tải log/artifact.
+Kiểm thử SQLite và contract chạy trên Codemagic với workflow `canonical-market-data`. Kiểm thử TimescaleDB thật chạy riêng, thủ công bằng workflow `market-data-postgres-integration`. Trước khi chạy, tạo variable group `market_data_postgres_test` trong Codemagic và thêm `MARKET_DATA_TEST_DATABASE_URL` (Secret) cùng `MARKET_DATA_TEST_DB_CONFIRMATION` (tên database test chính xác). Database phải là database kiểm thử riêng có extension TimescaleDB; test từ chối database không có tên chứa `test` hoặc confirmation không khớp. GitHub chỉ lưu source/PR; mọi action/test chạy trên Codemagic. Xem [hướng dẫn Codemagic](../docs/CODEMAGIC_SETUP.md) để cài đặt tài khoản và tải log/artifact.
 
 ```bash
-python3 -m unittest market_data.test_store market_data.test_sync market_data.test_api integrations.test_hummingbot_bridge -v
+python3 -m unittest market_data.test_store market_data.test_sync market_data.test_api market_data.test_repository integrations.test_hummingbot_bridge -v
 ```
 
 Các kiểm thử dùng SQLite thật, handler WSGI thật và giả lập duy nhất kết nối CCXT ngoài hệ thống. Có kiểm tra pagination, metadata thị trường, nến đang chạy, dữ liệu sai/trùng/xung đột, timestamp khả dụng, gaps, hash và xác thực. Không cần CCXT cho bộ kiểm thử offline; cài gói và kết nối Binance thật là kiểm chứng riêng, chưa được suy ra từ test giả lập.
