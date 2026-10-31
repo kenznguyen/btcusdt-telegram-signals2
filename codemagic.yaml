@@ -1080,3 +1080,53 @@ workflows:
           python3 -m compileall -q quant_system/phase17_oos_ohlcv.py
     artifacts:
       - artifacts/phase17/*.log
+
+  dual-strategy-phase18-historical-frozen-shadow:
+    name: Phase 18 | sealed PRE-OOS frozen FreqAI historical shadow (manual)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    # No automatic trigger. No holdout data, exchange requests, model fit or orders.
+    environment:
+      vars:
+        PHASE18_ORIGINAL_ZIP: "research_evidence/phase16-all-26-original-fit-evidence.zip"
+    scripts:
+      - name: Strict pre-holdout RED/GREEN regressions and verify original archive
+        script: |
+          set -euo pipefail
+          mkdir -p artifacts/phase18/original artifacts/phase18/seal artifacts/phase18/report
+          python3 -m unittest quant_system.test_phase18_historical_shadow -v \
+            2>&1 | tee artifacts/phase18/report/phase18-historical-shadow-tests.log
+          python3 -m compileall -q quant_system/phase18_historical_shadow.py
+          test -f "$PHASE18_ORIGINAL_ZIP" || { echo "PHASE18_ORIGINAL_EVIDENCE_MISSING"; exit 2; }
+          printf '%s  %s\n' "0e76c0851ba3ffeac2706d681efee4ea034998d70eb8e183ede11e01306e8bc7" "$PHASE18_ORIGINAL_ZIP" | shasum -a 256 -c -
+          unzip -t "$PHASE18_ORIGINAL_ZIP" >/dev/null
+          unzip -oq "$PHASE18_ORIGINAL_ZIP" -d artifacts/phase18/original
+          test "$(cat artifacts/phase18/original/phase3-source-sha.txt)" = "082edc082996425f61f48c952be41fb037564103" || { echo "PHASE18_WRONG_ORIGINAL_SOURCE"; exit 2; }
+          git fetch --no-tags origin refs/heads/freeze/phase13b-20261104-candidate-082edc0:refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0
+          git merge-base --is-ancestor 888efb11b613b42a2badb3bc8adfa19ff090f2bb refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0 || { echo "PHASE18_ORIGINAL_SEAL_MISSING"; exit 2; }
+          git merge-base --is-ancestor 409d446bb186a8e2ea0189df26057a9df7e839de refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0 || { echo "PHASE18_PREHOLDOUT_APPROVAL_MISSING"; exit 2; }
+          for path in seal-manifest.json phase13b-oos-protocol.json model-candidate-metadata.json; do
+            git show "888efb11b613b42a2badb3bc8adfa19ff090f2bb:research_seals/phase13b-20261104/$path" > "artifacts/phase18/seal/$path"
+          done
+          cmp artifacts/phase18/seal/model-candidate-metadata.json artifacts/phase18/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.json
+      - name: Read-only original historical fixed model inference, no train
+        script: |
+          set -euo pipefail
+          if ! brew list --versions libomp >/dev/null 2>&1; then brew install libomp; fi
+          bash ci/setup-python.sh requirements-freqai.txt requirements-market-data.txt
+          export CI_PYTHON="$CM_BUILD_DIR/.ci-tools/python-venv/bin/python"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          "$CI_PYTHON" -m unittest quant_system.test_phase18_historical_shadow -v \
+            2>&1 | tee artifacts/phase18/report/phase18-pinned-runtime-tests.log
+          "$CI_PYTHON" -m quant_system.phase18_historical_shadow \
+            --original-root artifacts/phase18/original \
+            --bundle artifacts/phase18/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib \
+            --metadata artifacts/phase18/seal/model-candidate-metadata.json \
+            --protocol artifacts/phase18/seal/phase13b-oos-protocol.json \
+            --seal artifacts/phase18/seal/seal-manifest.json \
+            --out artifacts/phase18/report/phase18-historical-shadow-audit.json \
+            2>&1 | tee artifacts/phase18/report/phase18-historical-shadow-run.log
+    artifacts:
+      - artifacts/phase18/report/*.json
+      - artifacts/phase18/report/*.log
+      - artifacts/phase18/seal/*.json
