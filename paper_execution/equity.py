@@ -130,10 +130,12 @@ def snapshot(connection, now_ms, limit=500):
         "exposureUsdt":latest["exposureUsdt"],"updatedAtMs":latest["observedAtMs"]}
 
 
-def block_reason(connection, *, target_position, limit_price, limits, require_limits=True):
+def block_reason(connection, *, target_position, limit_price, limits, require_limits=True, now_ms=None):
     if limits is None:
-        return "RISK_LIMITS_UNCONFIGURED", None
-    state = snapshot(connection, connection.execute("SELECT CAST(strftime('%s','now') AS INTEGER)*1000").fetchone()[0], limit=1)
+        return ("RISK_LIMITS_UNCONFIGURED" if require_limits else None), None
+    if now_ms is None:
+        return ("RISK_CLOCK_UNAVAILABLE" if require_limits else None), None
+    state = snapshot(connection, now_ms, limit=1)
     if not state["available"]:
         return ("RISK_EQUITY_UNAVAILABLE" if require_limits else None), None
     latest = state["latest"]
