@@ -151,6 +151,7 @@ internal fun FiveLayerPanel(context: Context) {
     var quality by remember(connection, refresh) { mutableStateOf(FiveLayerReading<QualityView>()) }
     var audit by remember(connection, refresh) { mutableStateOf(FiveLayerReading<AuditView>()) }
     var confirmKillReset by remember { mutableStateOf(false) }
+    var evaluationSource by remember { mutableStateOf("AI") }
     var writing by remember { mutableStateOf(false) }
     var mutationJob by remember { mutableStateOf<Job?>(null) }
     var actionMessage by remember { mutableStateOf("") }
@@ -430,13 +431,24 @@ internal fun FiveLayerPanel(context: Context) {
             }
             if (config?.controlToken.isNullOrEmpty())
                 Text("Kết nối với token điều khiển riêng để thao tác paper.", color = fiveMuted)
-            Button(enabled = canControl && currentPaper != null && !currentPaper.paused && !currentPaper.riskControl.killed, onClick = {
+            Text("Nguồn chiến lược dùng cho lần đánh giá tiếp theo:", color = fiveMuted,
+                style = MaterialTheme.typography.bodySmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (evaluationSource == "AI") Button(onClick = { evaluationSource = "AI" }) {
+                    Text("AI Strategy")
+                } else OutlinedButton(onClick = { evaluationSource = "AI" }) { Text("AI Strategy") }
+                if (evaluationSource == "CORE") Button(onClick = { evaluationSource = "CORE" }) {
+                    Text("Strategy Core")
+                } else OutlinedButton(onClick = { evaluationSource = "CORE" }) { Text("Strategy Core") }
+            }
+            Button(enabled = canControl, onClick = {
                 submit { target ->
-                    val result = FiveLayerClient.evaluate(target.url, target.controlToken)
+                    val result = FiveLayerClient.evaluate(target.url, target.controlToken, evaluationSource)
                     lastActionOrder = result.order
                     "Đánh giá: ${result.decision.action} · ${result.order?.status?.let(::fiveLayerStatusVi) ?: fiveLayerReasonVi(result.decision.reason)}"
                 }
-            }) { Text("Đánh giá và mô phỏng một lần") }
+            }) { Text("Đánh giá và mô phỏng một lần · $evaluationSource") }
+            Text("Có thể đánh giá khi Pause/Kill đang bật để xử lý tín hiệu giảm rủi ro; Shared Risk Engine trên máy chủ vẫn chặn mọi intent làm tăng rủi ro.", color = fiveMuted, style = MaterialTheme.typography.bodySmall)
             OutlinedButton(enabled = canControl && currentPaper?.riskControl?.killed == false, onClick = {
                 submit { target ->
                     val result = FiveLayerClient.setKilled(target.url, target.controlToken)
