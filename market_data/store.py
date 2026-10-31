@@ -116,7 +116,7 @@ class CandleStore:
         return inserted
 
 
-def read_window(db_path, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
+def validate_window(symbol, timeframe, start_ms, end_ms, as_of_ms=None):
     if symbol != SYMBOL or not isinstance(timeframe, str) or timeframe not in INTERVAL_MS:
         raise ValueError("Unsupported market or timeframe")
     start, end = _integer(start_ms), _integer(end_ms)
@@ -125,6 +125,35 @@ def read_window(db_path, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
         raise ValueError("Window must be aligned, nonempty and bounded")
     if as_of_ms is not None:
         _integer(as_of_ms)
+    return start, end, interval
+
+
+def build_window(symbol, timeframe, start_ms, end_ms, candles, as_of_ms=None):
+    """Build the canonical API document and hash from validated Candle values."""
+    start, end, interval = validate_window(symbol, timeframe, start_ms, end_ms, as_of_ms)
+    ordered = sorted(candles, key=lambda candle: candle.open_time_ms)
+    rows = [candle.as_dict() for candle in ordered]
+    gaps, cursor = [], start
+    for candle in rows:
+        if candle["openTimeMs"] > cursor:
+            gaps.append({"startMs": cursor, "endMs": candle["openTimeMs"]})
+        cursor = candle["closeTimeMs"]
+    if cursor < end:
+        gaps.append({"startMs": cursor, "endMs": end})
+    result = {
+        "exchange": EXCHANGE, "marketType": MARKET_TYPE, "symbol": symbol,
+        "timeframe": timeframe, "startMs": start, "endMs": end,
+        "asOfMs": as_of_ms, "candles": rows,
+    }
+    version = hashlib.sha256(json.dumps(result, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    result["datasetVersion"] = "sha256:" + version
+    result["coverage"] = {"expected": (end - start) // interval, "returned": len(rows),
+                          "complete": not gaps, "gaps": gaps}
+    return result
+
+
+def read_window(db_path, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
+    start, end, _ = validate_window(symbol, timeframe, start_ms, end_ms, as_of_ms)
     path = Path(db_path).resolve()
     if not path.is_file():
         raise FileNotFoundError("Candle database is unavailable")
@@ -137,21 +166,5 @@ def read_window(db_path, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
                 AND open_time_ms>=? AND open_time_ms<?
                 AND (? IS NULL OR available_at_ms<=?) ORDER BY open_time_ms""",
             (EXCHANGE, MARKET_TYPE, symbol, timeframe, start, end, as_of_ms, as_of_ms)).fetchall()
-        candles = [Candle(**dict(row)).as_dict() for row in rows]
-    gaps, cursor = [], start
-    for candle in candles:
-        if candle["openTimeMs"] > cursor:
-            gaps.append({"startMs": cursor, "endMs": candle["openTimeMs"]})
-        cursor = candle["closeTimeMs"]
-    if cursor < end:
-        gaps.append({"startMs": cursor, "endMs": end})
-    result = {
-        "exchange": EXCHANGE, "marketType": MARKET_TYPE, "symbol": symbol,
-        "timeframe": timeframe, "startMs": start, "endMs": end,
-        "asOfMs": as_of_ms, "candles": candles,
-    }
-    version = hashlib.sha256(json.dumps(result, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    result["datasetVersion"] = "sha256:" + version
-    result["coverage"] = {"expected": (end - start) // interval, "returned": len(candles),
-                          "complete": not gaps, "gaps": gaps}
-    return result
+        candles = [Candle(**dict(row)) for row in rows]
+    return build_window(symbol, timeframe, start, end, candles, as_of_ms)
