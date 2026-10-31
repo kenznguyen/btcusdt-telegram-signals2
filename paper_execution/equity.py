@@ -80,7 +80,7 @@ def record(connection, *, initial_capital, position, average, realized, fees,
             "INSERT INTO paper_daily_baselines VALUES (?,?,?,?)",
             (day_start, observed_at, str(equity), "FIRST_OBSERVED_UTC_DAY"),
         )
-    canonical = {"candleCloseMs":candle_at,"observedAtMs":observed_at,"markPrice":str(mark),
+    canonical = {"candleCloseMs":candle_at,"markPrice":str(mark),
         "positionBase":str(qty),"averageEntryPrice":str(avg),"realizedPnl":str(realized_pnl),
         "fees":str(fee),"unrealizedPnl":str(unrealized),"equity":str(equity),
         "datasetVersion":str(dataset_version)}
