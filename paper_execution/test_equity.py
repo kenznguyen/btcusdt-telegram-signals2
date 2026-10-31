@@ -53,6 +53,15 @@ class EquityHistoryTest(unittest.TestCase):
         self.record(at,"100")
         self.assertEqual(self.db.execute("SELECT COUNT(*) FROM paper_equity_history").fetchone()[0],1)
 
+    def test_initial_capital_is_persisted_and_cannot_silently_rebase_equity(self):
+        at=1_800_000_000_000
+        self.record(at,"100")
+        with self.assertRaisesRegex(ValueError,"PAPER_INITIAL_CAPITAL_CHANGED"):
+            with self.db:
+                equity.record(self.db,initial_capital="200",position="0",average="0",
+                    realized="0",fees="0",mark_price="100",candle_close_ms=at+900_000,
+                    observed_at_ms=at+900_000,dataset_version="sha256:"+"b"*64)
+
 
 if __name__=="__main__":
     unittest.main()
