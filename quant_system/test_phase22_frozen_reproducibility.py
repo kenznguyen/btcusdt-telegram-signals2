@@ -110,7 +110,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
             )
 
     def test_exact_preserved_bytes_and_provenance_are_verified(self):
-        report = self.verify()
+        report = self.verify_with_attestation()
         self.assertTrue(report["exact_original_bundle_bytes_verified"])
         self.assertEqual(report["candidate_bundle_sha256"], self.registered["bundle"])
         self.assertEqual(report["source_commit_sha"], self.registered["source"])
@@ -130,6 +130,9 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         })
         self.protocol.write_text(json.dumps(protocol), encoding="utf8")
         self.registered["protocol"] = "sha256:" + hashlib.sha256(self.protocol.read_bytes()).hexdigest()
+        seal = json.loads(self.seal.read_text(encoding="utf8"))
+        seal["protocol_sha256"] = self.registered["protocol"]
+        self.seal.write_text(json.dumps(seal), encoding="utf8")
         attestation = {
             "attestation_type": "PHASE13B_PRE_HOLDOUT_EXTERNAL_ATTESTATION",
             "source_commit_sha": self.registered["source"],
