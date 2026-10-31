@@ -142,8 +142,9 @@ def core_decide(timestamp, book=None):
                           end15-500*900_000, end15, as_of_ms=timestamp)
         h1 = read_window(os.environ.get("MARKET_DATA_DB", ""), "BTCUSDT", "1h",
                          end1h-500*3_600_000, end1h, as_of_ms=timestamp)
-        paper = ledger().snapshot()
-        state = ledger().strategy_state()
+        from paper_execution.ledger import read_snapshot
+        paper = read_snapshot(os.environ.get("MARKET_DATA_DB", ""))
+        state = paper["strategyState"]
         book = book_snapshot(timestamp) if book is None else book
         report = produce(m15, h1, paper, state, book, timestamp,
                          initial_capital=os.environ.get("PAPER_INITIAL_CAPITAL", "100"),
@@ -173,6 +174,8 @@ def equity_snapshot(timestamp):
                          end-900_000, end, as_of_ms=timestamp)
     if not window["candles"] or not window["coverage"]["complete"]:
         return {"available":False,"reason":"CLOSED_M15_MARK_UNAVAILABLE","points":[]}
+    from paper_execution.ledger import read_snapshot
+    read_snapshot(os.environ.get("MARKET_DATA_DB", ""))
     mark = window["candles"][-1]
     result = ledger().record_equity(mark["close"], mark["closeTimeMs"], timestamp,
         window["datasetVersion"], os.environ.get("PAPER_INITIAL_CAPITAL", "100"))
@@ -373,7 +376,8 @@ def application(environ, start_response):
                 raise ValueError("Invalid audit query")
             limit = int(query.get("limit",["50"])[0])
             before = int(query["beforeId"][0]) if "beforeId" in query else None
-            result = ledger().audit_snapshot(limit,before)
+            from paper_execution.ledger import read_audit
+            result = read_audit(os.environ.get("MARKET_DATA_DB", ""),limit=limit,before_id=before)
         elif path == "/v1/quality":
             result = quality_snapshot(timestamp)
         elif path == "/v1/order-book":
