@@ -219,6 +219,7 @@ class PaperLedger:
                     elif connection.execute("SELECT 1 FROM paper_books WHERE book_id=?", (book_id,)).fetchone():
                         reason = "SNAPSHOT_ALREADY_USED"
             if reason is None and quantity:
+                starting_position = position
                 for price, visible in (asks if delta > 0 else bids):
                     if (delta > 0 and price > limit) or (delta < 0 and price < limit):
                         break
@@ -250,8 +251,8 @@ class PaperLedger:
                     next_owner = owner
                     next_dca_used = dca_used
                     next_initial_margin = initial_margin
-                    opened_or_reversed = position != 0 and (owner is None or
-                        (position - signed_fill) * position < 0)
+                    opened_or_reversed = position != 0 and (
+                        owner is None or starting_position == 0 or starting_position * position < 0)
                     if position == 0:
                         next_owner, next_dca_used, next_initial_margin = None, 0, "0"
                     elif opened_or_reversed:
