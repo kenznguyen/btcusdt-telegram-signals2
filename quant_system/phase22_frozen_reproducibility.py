@@ -96,6 +96,9 @@ def verify_preserved_snapshot(bundle, original_bundle, metadata, protocol, seal)
     declaration = _json_object(seal, "PHASE22_INVALID_SEAL")
 
     _require(declaration.get("type") == "PHASE13B_PRE_HOLDOUT_SHA256_SEAL" and
+             candidate.get("schemaVersion") == 1 and
+             candidate.get("candidate_sha256") == bundle_sha and
+             candidate.get("model_sha256") == declaration.get("model_booster_sha256") and
              declaration.get("candidate_bundle_sha256") == bundle_sha and
              declaration.get("candidate_metadata_sha256") == metadata_sha and
              declaration.get("protocol_sha256") == protocol_sha,
