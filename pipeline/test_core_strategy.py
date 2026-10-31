@@ -36,14 +36,21 @@ class CoreStrategyTest(unittest.TestCase):
         self.assertEqual(result["action"],"WAIT")
         self.assertIsNone(result["intent"])
 
-    def test_producer_requires_book_for_executable_intents(self):
+    def test_valid_entry_signal_waits_when_execution_book_is_missing(self):
+        from unittest.mock import patch
         start=1_700_000_000_000
         m15rows=candles(120,900_000,start)
-        h1rows=candles(120,3_600_000,start)
         now=m15rows[-1]["closeTimeMs"]
-        result=produce(window(m15rows,"15m"),window(h1rows,"1h"),
-          {"positionBase":"0","averageEntryPrice":"0","realizedPnlQuote":"0","feesQuote":"0"},
-          {"owner":None,"dcaUsed":False},None,now)
+        h1_start=(now//3_600_000*3_600_000)-120*3_600_000
+        h1rows=candles(120,3_600_000,h1_start)
+        m15_values=[{"rsi":20.0,"adx":25.0} for _ in m15rows]
+        m15_values[-2]={"rsi":29.0,"adx":25.0}
+        m15_values[-1]={"rsi":35.0,"adx":30.0}
+        h1_values=[{"plus_di":40.0,"minus_di":10.0,"adx":30.0} for _ in h1rows]
+        with patch("pipeline.core_strategy.indicators", side_effect=[m15_values,h1_values]):
+            result=produce(window(m15rows,"15m"),window(h1rows,"1h"),
+              {"positionBase":"0","averageEntryPrice":"0","realizedPnlQuote":"0","feesQuote":"0"},
+              {"owner":None,"dcaUsed":False},None,now,initial_capital="0.01",max_position_base="0.01")
         self.assertEqual(result["action"],"WAIT")
         self.assertEqual(result["reason"],"CORE_ORDER_BOOK_UNAVAILABLE")
 
