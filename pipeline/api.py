@@ -285,6 +285,7 @@ def application(environ, start_response):
         start_response("200 OK", static_headers)
         return [data]
     routes = {"/v1/system", "/v1/candles", "/v1/order-book", "/v1/intelligence", "/v1/decision", "/v1/signals", "/v1/paper",
+              "/v1/equity", "/v1/audit", "/v1/quality",
               "/v1/paper/evaluate", "/v1/paper/pause", "/v1/paper/cancel", "/v1/paper/kill", "/v1/paper/reset-kill"}
     if path not in routes:
         return response("404 Not Found", {"error": "NOT_FOUND"})
@@ -342,6 +343,20 @@ def application(environ, start_response):
             if not os.environ.get("MARKET_DATA_DB"):
                 return response("503 Service Unavailable", {"error": "UNCONFIGURED"})
             result = read_snapshot(os.environ["MARKET_DATA_DB"])
+        elif path == "/v1/equity":
+            try:
+                result = equity_snapshot(timestamp)
+            except (ValueError, OSError, sqlite3.Error):
+                return response("503 Service Unavailable", {"error":"EQUITY_UNAVAILABLE"})
+        elif path == "/v1/audit":
+            query = parse_qs(environ.get("QUERY_STRING",""), max_num_fields=2)
+            if set(query)-{"limit","beforeId"} or any(len(v)!=1 for v in query.values()):
+                raise ValueError("Invalid audit query")
+            limit = int(query.get("limit",["50"])[0])
+            before = int(query["beforeId"][0]) if "beforeId" in query else None
+            result = ledger().audit_snapshot(limit,before)
+        elif path == "/v1/quality":
+            result = quality_snapshot(timestamp)
         elif path == "/v1/order-book":
             query = parse_qs(environ.get("QUERY_STRING", ""), max_num_fields=1)
             if query != {"symbol": ["BTCUSDT"]}:
