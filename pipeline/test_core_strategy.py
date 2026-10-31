@@ -133,6 +133,8 @@ class CoreStrategyTest(unittest.TestCase):
                                  50.0,h1_bear)
         self.assertEqual(emergency["reason"],"EMERGENCY_SL")
         self.assertEqual(emergency["action"],"CLOSE")
+        from pipeline.core_signal import validate
+        self.assertEqual(validate(emergency["intent"],now)["action"],"CLOSE")
         # Soft SL needs two bearish M15 candles and an H1 reversal above its ADX threshold.
         soft_average=close/0.96
         m15rows[-2].update(open=str(close+1),close=str(close))
