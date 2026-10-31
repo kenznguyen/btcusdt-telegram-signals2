@@ -5,7 +5,6 @@ import json
 import os
 import sqlite3
 import time
-from pathlib import Path
 from urllib.parse import parse_qs
 
 from market_data.store import INTERVAL_MS, MAX_CANDLES
