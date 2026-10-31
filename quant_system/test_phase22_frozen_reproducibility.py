@@ -280,9 +280,24 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         metadata["ordered_feature_columns"] = ["%-feature-a", "%-feature-a"]
         self.metadata.write_text(json.dumps(metadata), encoding="utf8")
         self.registered["metadata"] = "sha256:" + hashlib.sha256(self.metadata.read_bytes()).hexdigest()
+
+        # Keep the fixture's provenance chain internally consistent so this
+        # regression reaches feature-schema validation instead of failing early.
+        protocol = json.loads(self.protocol.read_text(encoding="utf8"))
+        protocol["frozen_model_metadata_sha256"] = self.registered["metadata"].removeprefix("sha256:")
+        self.protocol.write_text(json.dumps(protocol), encoding="utf8")
+        self.registered["protocol"] = "sha256:" + hashlib.sha256(self.protocol.read_bytes()).hexdigest()
+
         seal = json.loads(self.seal.read_text(encoding="utf8"))
         seal["candidate_metadata_sha256"] = self.registered["metadata"]
+        seal["protocol_sha256"] = self.registered["protocol"]
         self.seal.write_text(json.dumps(seal), encoding="utf8")
+
+        attestation = json.loads(self.attestation.read_text(encoding="utf8"))
+        attestation["model_metadata_sha256"] = self.registered["metadata"].removeprefix("sha256:")
+        attestation["protocol_sha256"] = self.registered["protocol"].removeprefix("sha256:")
+        self.attestation.write_text(json.dumps(attestation), encoding="utf8")
+
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_INVALID_FEATURE_SCHEMA"):
             self._verify_current_files()
 
