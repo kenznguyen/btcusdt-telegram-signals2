@@ -69,7 +69,10 @@ def verify_oos_schedule(protocol,now=None):
             protocol.get("holdout_start_utc")=="2026-11-04T00:00:00Z" and
             protocol.get("holdout_end_utc")=="2026-12-04T00:00:00Z" and
             protocol.get("holdout_days")==30 and
-            protocol.get("model_identifier")=="chart-pro-okx-shadow-v1",
+            protocol.get("model_identifier")=="chart-pro-okx-shadow-v1" and
+            protocol.get("holdout_data_already_used_for_model_selection") is False
+            and protocol.get("frozen_model_policy",{}).get(
+                "no_retraining_inside_holdout",True) is True,
             "OOS_PROTOCOL_CHANGED")
     require(verify_shared_risk_protocol(protocol),
             "OOS_SHARED_RISK_CHANGED")
@@ -215,6 +218,15 @@ def run(*,holdout_dir,prehistory_dir,config_path,
                 meta["source_commit_sha"]==SOURCE_SHA,
                 "OOS_CANDIDATE_NOT_FROZEN")
         cfg=json.loads(Path(config_path).read_text(encoding="utf8"))
+        from quant_system.phase13b_freeze import _canonical_sha
+        snapshot={"freqai":cfg["freqai"],
+                  "exchange":{"name":cfg["exchange"]["name"]},
+                  "timeframe":cfg["timeframe"],
+                  "dry_run":cfg["dry_run"],
+                  "force_entry_enable":cfg["force_entry_enable"]}
+        require(_canonical_sha(snapshot)==meta["config_sha256"] and
+                _canonical_sha(cfg["freqai"])==meta["freqai_config_sha256"],
+                "OOS_ORIGINAL_FREQAI_CONFIG_SHA_MISMATCH")
         require(cfg["dry_run"] is True and
                 cfg["force_entry_enable"] is False and
                 cfg["exchange"]["name"]=="okx" and
