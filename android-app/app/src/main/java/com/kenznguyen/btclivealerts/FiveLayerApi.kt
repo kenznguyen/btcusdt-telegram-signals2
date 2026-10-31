@@ -37,10 +37,18 @@ internal data class PaperOrderView(val orderId: String, val intentId: String, va
     val quantityBase: String, val filledBase: String, val remainingBase: String,
     val averagePrice: String?, val feeQuote: String, val createdAtMs: Long, val updatedAtMs: Long,
     val reason: String)
+internal data class RiskControlView(val paused: Boolean, val killed: Boolean, val reason: String?, val updatedAtMs: Long)
 internal data class PaperView(val paused: Boolean, val positionBase: String, val averageEntryPrice: String,
     val realizedPnlQuote: String, val feesQuote: String, val netRealizedPnlQuote: String,
-    val orders: List<PaperOrderView>)
+    val orders: List<PaperOrderView>, val riskControl: RiskControlView)
 internal data class PaperEvaluationView(val decision: DecisionView, val order: PaperOrderView?)
+internal data class StrategySignalView(val source: String, val action: String, val reason: String,
+    val intent: IntentView?, val indicators: Map<String, String?>)
+internal data class SignalsView(val strategyCore: StrategySignalView, val aiStrategy: StrategySignalView)
+internal data class QualityStreamView(val name: String, val status: String, val detail: String)
+internal data class QualityView(val checkedAtMs: Long, val overall: String, val streams: List<QualityStreamView>)
+internal data class AuditEventView(val id: Long, val atMs: Long, val kind: String, val summary: String)
+internal data class AuditView(val events: List<AuditEventView>, val nextBeforeId: Long?)
 internal data class EquityPointView(val observedAtMs: Long, val equity: String)
 internal data class EquityView(
     val available: Boolean, val reason: String? = null, val initialCapital: String? = null,
@@ -244,7 +252,15 @@ internal object FiveLayerJson {
         val realized = decimal(json, "realizedPnlQuote", signed = true)
         val fees = decimal(json, "feesQuote")
         val net = decimal(json, "netRealizedPnlQuote", signed = true)
-        return PaperView(bool(json, "paused"), position, average, realized, fees, net, orders)
+        val risk = json.getJSONObject("riskControl")
+        paper(risk); require(!bool(risk, "liveTradingSupported"))
+        val riskPaused = bool(risk, "paused")
+        val killed = bool(risk, "killed")
+        val reason = if (risk.isNull("reason")) null else text(risk, "reason")
+        val updated = stamp(risk, "updatedAtMs", nowMs)
+        require(riskPaused == bool(json, "paused"))
+        return PaperView(bool(json, "paused"), position, average, realized, fees, net, orders,
+            RiskControlView(riskPaused, killed, reason, updated))
     }
 
     fun equity(json: JSONObject, nowMs: Long): EquityView {
@@ -287,6 +303,103 @@ internal object FiveLayerJson {
             dailyLossUsdt = dailyLoss, dailyBaselineAtMs = baseline, exposureUsdt = exposure,
             riskLimitsConfigured = configured, maxDailyLossUsdt = maxDaily,
             maxExposureUsdt = maxExposure, points = points)
+    }
+
+
+    private fun signal(json: JSONObject, expectedSource: String, nowMs: Long): StrategySignalView {
+        require(text(json, "source") == expectedSource)
+        val action = text(json, "action")
+        require(action in setOf("WAIT", "BUY", "SELL", "CLOSE"))
+        val intent = if (!json.has("intent") || json.isNull("intent")) null else {
+            val row = json.getJSONObject("intent")
+            paper(row); market(row)
+            val created = stamp(row, "decisionAtMs", nowMs)
+            val expires = integer(row, "validUntilMs")
+            require(expires > created && expires - created <= 60_000L)
+            val target = decimal(row, "targetPositionBase", signed = true)
+            val targetValue = BigDecimal(target).signum()
+            require(when (action) {
+                "BUY" -> targetValue > 0
+                "SELL" -> targetValue < 0
+                "CLOSE" -> targetValue == 0
+                else -> false
+            })
+            val price = decimal(row, "limitPrice").also { require(BigDecimal(it).signum() > 0) }
+            IntentView(target, price, text(row, "modelVersion"), text(row, "strategyVersion"),
+                text(row, "datasetVersion"), created, expires)
+        }
+        require((action == "WAIT") == (intent == null))
+        val indicators = linkedMapOf<String, String?>()
+        if (json.has("indicators") && !json.isNull("indicators")) {
+            val values = json.getJSONObject("indicators")
+            for (key in listOf("rsiM15", "adxM15", "plusDiH1", "minusDiH1", "adxH1")) {
+                require(values.has(key))
+                val value = values.get(key)
+                indicators[key] = when (value) {
+                    JSONObject.NULL -> null
+                    is Number -> value.toString().also { require(value.toDouble().isFinite()) }
+                    is String -> decimal(values, key, signed = true)
+                    else -> throw IllegalArgumentException("Invalid indicator")
+                }
+            }
+        }
+        return StrategySignalView(expectedSource, action, text(json, "reason"), intent, indicators)
+    }
+
+    fun signals(json: JSONObject, nowMs: Long): SignalsView {
+        envelope(json)
+        require(text(json, "mode") == "PAPER")
+        return SignalsView(signal(json.getJSONObject("strategyCore"), "STRATEGY_CORE", nowMs),
+            signal(json.getJSONObject("aiStrategy"), "AI_FREQAI", nowMs))
+    }
+
+    fun quality(json: JSONObject, nowMs: Long): QualityView {
+        envelope(json)
+        val checked = stamp(json, "checkedAtMs", nowMs)
+        val overall = text(json, "overall")
+        require(overall in setOf("READY", "DEGRADED"))
+        val rows = json.getJSONArray("streams")
+        require(rows.length() in 1..32)
+        val streams = (0 until rows.length()).map { index ->
+            val row = rows.getJSONObject(index)
+            val name = text(row, "name")
+            val status = text(row, "status")
+            require(status in setOf("READY", "DEGRADED", "MISSING", "INVALID", "OBSERVED"))
+            val details = mutableListOf<String>()
+            if (row.has("rows") && !row.isNull("rows")) details += "${integer(row, "rows")} dòng"
+            if (row.has("reason") && !row.isNull("reason")) details += text(row, "reason")
+            if (row.has("action") && !row.isNull("action")) details += text(row, "action")
+            QualityStreamView(name, status, details.joinToString(" · ").ifBlank { "Không có chi tiết bổ sung" })
+        }
+        require(streams.map { it.name }.distinct().size == streams.size)
+        require((overall == "READY") == streams.all { it.status == "READY" })
+        return QualityView(checked, overall, streams)
+    }
+
+    fun audit(json: JSONObject, nowMs: Long): AuditView {
+        val rows = json.getJSONArray("events")
+        require(rows.length() <= 100)
+        val events = (0 until rows.length()).map { index ->
+            val row = rows.getJSONObject(index)
+            val id = integer(row, "id").also { require(it > 0) }
+            val at = stamp(row, "atMs", nowMs)
+            val kind = text(row, "kind")
+            require(kind in setOf("SUBMIT", "CANCEL", "PAUSE", "RESUME", "KILL_SWITCH",
+                "KILL_SWITCH_RESET", "RISK_LIMIT_BREACH"))
+            val document = row.getJSONObject("document")
+            val summary = when {
+                document.has("reason") && !document.isNull("reason") -> text(document, "reason")
+                document.has("orderId") && !document.isNull("orderId") -> "Lệnh ${text(document, "orderId", 200)}"
+                document.has("enabled") -> "Kill Switch ${if (bool(document, "enabled")) "bật" else "tắt"}"
+                document.has("paused") -> if (bool(document, "paused")) "Paper tạm dừng" else "Paper tiếp tục"
+                else -> "Sự kiện đã ghi nhận"
+            }
+            AuditEventView(id, at, kind, summary)
+        }
+        require(events.zipWithNext().all { (left, right) -> left.id > right.id })
+        val next = if (!json.has("nextBeforeId") || json.isNull("nextBeforeId")) null
+            else integer(json, "nextBeforeId").also { require(it > 0) }
+        return AuditView(events, next)
     }
 
     fun evaluation(json: JSONObject, nowMs: Long): PaperEvaluationView {
@@ -350,7 +463,7 @@ internal object FiveLayerJson {
 }
 
 internal fun fiveLayerEndpoint(baseUrl: String, path: String): HttpUrl {
-    require(path in setOf("system", "intelligence", "decision", "paper", "paper/evaluate", "paper/pause", "paper/cancel", "candles", "order-book", "equity"))
+    require(path in setOf("system", "intelligence", "decision", "paper", "paper/evaluate", "paper/pause", "paper/cancel", "candles", "order-book", "equity", "signals", "quality", "audit", "paper/kill", "paper/reset-kill"))
     val base = baseUrl.trim().toHttpUrl()
     require(base.isHttps && base.username.isEmpty() && base.password.isEmpty() &&
         base.query == null && base.fragment == null) { "Cần URL HTTPS không chứa mã truy cập" }
@@ -384,6 +497,12 @@ internal object FiveLayerClient {
         decode(request(baseUrl, token, "paper"), FiveLayerJson::ledger)
     suspend fun getEquity(baseUrl: String, token: String): EquityView =
         decode(request(baseUrl, token, "equity"), FiveLayerJson::equity)
+    suspend fun getSignals(baseUrl: String, token: String): SignalsView =
+        decode(request(baseUrl, token, "signals"), FiveLayerJson::signals)
+    suspend fun getQuality(baseUrl: String, token: String): QualityView =
+        decode(request(baseUrl, token, "quality"), FiveLayerJson::quality)
+    suspend fun getAudit(baseUrl: String, token: String): AuditView =
+        decode(request(baseUrl, token, "audit"), FiveLayerJson::audit)
     suspend fun getCandles(baseUrl: String, token: String, nowMs: Long = System.currentTimeMillis()): CandleWindowView {
         val endpoint = fiveLayerCandleEndpoint(baseUrl, nowMs)
         val end = nowMs / 900_000L * 900_000L
@@ -400,6 +519,10 @@ internal object FiveLayerClient {
         decode(request(baseUrl, token, "paper/evaluate", JSONObject()), FiveLayerJson::evaluation)
     suspend fun setPaused(baseUrl: String, token: String, paused: Boolean): PaperView =
         decode(request(baseUrl, token, "paper/pause", JSONObject().put("paused", paused)), FiveLayerJson::ledger)
+    suspend fun setKilled(baseUrl: String, token: String): PaperView =
+        decode(request(baseUrl, token, "paper/kill", JSONObject().put("enabled", true)), FiveLayerJson::ledger)
+    suspend fun resetKill(baseUrl: String, token: String): PaperView =
+        decode(request(baseUrl, token, "paper/reset-kill", JSONObject().put("acknowledge", true)), FiveLayerJson::ledger)
     suspend fun cancel(baseUrl: String, token: String, orderId: String): PaperOrderView {
         require(orderId.length in 1..100 && orderId.none { it.isISOControl() })
         return decode(request(baseUrl, token, "paper/cancel", JSONObject().put("orderId", orderId)), FiveLayerJson::order)
