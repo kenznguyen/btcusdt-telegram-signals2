@@ -4,27 +4,28 @@ Rules mirror the signal-only bot.py implementation. It consumes only validated,
 closed BTCUSDT candles and never accesses exchange trading endpoints.
 """
 import math
+import os
 from pipeline.values import identity, number, stamp
 
-LEVERAGE = float(__import__("os").environ.get("LEVERAGE", "13"))
-RSI_LEN = 14
-DMI_LEN = 14
-ADX_SMOOTH = 14
-H1_ADX_ENTRY = 20.0
-LONG_RSI_ENTRY = 30.0
-SHORT_RSI_ENTRY = 70.0
-LONG_RSI_TP = 76.0
-SHORT_RSI_TP = 24.0
-TP_ROE = 5.0
-DCA_ROE = -20.0
-DCA_ADX = 45.0
-SHORT_DCA_RSI = 80.0
-LONG_DCA_RSI = 20.0
-SOFT_SL_ROE = -35.0
-EMERGENCY_SL_ROE = -90.0
-SOFT_SL_ADX = 35.0
-ENTRY_MARGIN_PCT = 0.50
-DCA_MARGIN_RATIO = 1.00
+LEVERAGE = float(os.environ.get("LEVERAGE", "13"))
+RSI_LEN = int(os.environ.get("RSI_LENGTH", "14"))
+DMI_LEN = int(os.environ.get("DMI_LENGTH", "14"))
+ADX_SMOOTH = int(os.environ.get("ADX_SMOOTHING", "14"))
+H1_ADX_ENTRY = float(os.environ.get("H1_ADX_ENTRY", "20"))
+LONG_RSI_ENTRY = float(os.environ.get("LONG_RSI_ENTRY", "30"))
+SHORT_RSI_ENTRY = float(os.environ.get("SHORT_RSI_ENTRY", "70"))
+LONG_RSI_TP = float(os.environ.get("LONG_RSI_TP", "76"))
+SHORT_RSI_TP = float(os.environ.get("SHORT_RSI_TP", "24"))
+TP_ROE = float(os.environ.get("TP_ROE", "5"))
+DCA_ROE = float(os.environ.get("DCA_ROE", "-20"))
+DCA_ADX = float(os.environ.get("DCA_ADX", "45"))
+SHORT_DCA_RSI = float(os.environ.get("SHORT_DCA_RSI", "80"))
+LONG_DCA_RSI = float(os.environ.get("LONG_DCA_RSI", "20"))
+SOFT_SL_ROE = float(os.environ.get("SOFT_SL_ROE", "-35"))
+EMERGENCY_SL_ROE = float(os.environ.get("EMERGENCY_SL_ROE", "-90"))
+SOFT_SL_ADX = float(os.environ.get("SOFT_SL_ADX", "35"))
+ENTRY_MARGIN_PCT = float(os.environ.get("ENTRY_MARGIN_PCT", "0.50"))
+DCA_MARGIN_RATIO = float(os.environ.get("DCA_MARGIN_RATIO", "1.00"))
 
 
 def _rma(values, length):
@@ -103,7 +104,6 @@ def _valid_window(window, timeframe, now_ms):
         if stamp(row.get("availableAtMs")) > now_ms or stamp(row.get("closeTimeMs")) > now_ms:
             return False
     return now_ms - stamp(rows[-1]["closeTimeMs"]) <= interval
-    return True
 
 
 def _roe(side, average, close):
