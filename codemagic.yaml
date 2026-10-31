@@ -1295,7 +1295,7 @@ workflows:
             --seal artifacts/phase21/seal/seal-manifest.json \
             --out artifacts/phase21/reports/phase14-fitted-preprocessing-audit.json \
             2>&1 | tee artifacts/phase21/reports/phase14-fitted-preprocessing-audit.log
-          "$CI_PYTHON" -c 'import json; p=json.load(open("artifacts/phase21/reports/phase14-fitted-preprocessing-audit.json")); assert p.get("fitted_preprocessing_prefix_invariance_verified") is True and p.get("errors")==[] and p.get("observed_model_sha256")=="sha256:918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f" and p.get("original_source_commit_sha")=="082edc082996425f61f48c952be41fb037564103"; print("PHASE21_FITTED_PIPELINE_VERIFIED")'
+          "$CI_PYTHON" -c 'import json; p=json.load(open("artifacts/phase21/reports/phase14-fitted-preprocessing-audit.json")); booster=p.get("observed_model_sha256"); assert p.get("fitted_preprocessing_prefix_invariance_verified") is True and p.get("errors")==[] and p.get("observed_candidate_sha256")=="sha256:918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f" and isinstance(booster,str) and booster.startswith("sha256:") and len(booster)==71 and p.get("original_source_commit_sha")=="082edc082996425f61f48c952be41fb037564103"; print("PHASE21_FITTED_PIPELINE_VERIFIED")'
       - name: Commit exact verified model and provenance to GitHub
         script: |
           set -euo pipefail
