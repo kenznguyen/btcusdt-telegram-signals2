@@ -90,7 +90,8 @@ class FiveLayerApiTest(unittest.TestCase):
 
         with patch.dict(os.environ, {"MARKET_DATA_DATABASE_URL": "postgresql://test-only"}, clear=False):
             with patch.object(api, "get_market_data_repository", return_value=Repository()):
-                code, body = self.request("/v1/candles")
+                query = f"symbol=BTCUSDT&timeframe=15m&startMs={self.end-1_800_000}&endMs={self.end}"
+                code, body = self.request("/v1/candles", query=query)
         self.assertEqual(code, 200)
         self.assertEqual(body["backend"], "postgres")
         self.assertEqual(os.environ["MARKET_DATA_DB"], str(self.db))
