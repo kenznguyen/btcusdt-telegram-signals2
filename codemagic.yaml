@@ -2,6 +2,7 @@
 # Five-layer parity gate: a codemagic.yaml change intentionally fans out to Python/API, React and Android workflows.
 # Keep this trigger comment in the release-candidate commit so all three run against the same source SHA.
 # Android Paper native parity and API contract tests are included in the candidate build.
+# The quality API envelope contract is also covered in the Python/API candidate run.
 workflows:
   android-chart-pro-debug:
     name: BTC Chart Pro - tests, regular and parallel APKs
