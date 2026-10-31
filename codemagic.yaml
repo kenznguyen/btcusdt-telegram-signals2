@@ -20,6 +20,9 @@ workflows:
         - pattern: feature/five-layer-paper
           include: true
           source: true
+        - pattern: feature/android-five-layer-control
+          include: true
+          source: true
         - pattern: feature/canonical-market-data
           include: true
           source: true
@@ -38,6 +41,9 @@ workflows:
         includes:
           - android-app/
           - integrations/
+          - paper_execution/
+          - pipeline/
+          - control_dashboard/
           - ci/
           - codemagic.yaml
     scripts:
@@ -155,7 +161,7 @@ workflows:
       - name: Run five-layer paper integration tests
         script: |
           set -euo pipefail
-          "$CI_PYTHON" -m unittest futures_intelligence.test_import_collector pipeline.test_decision pipeline.test_api paper_execution.test_ledger freqai_bridge.test_exporter -v 2>&1 | tee paper-system-tests.log
+          "$CI_PYTHON" -m unittest futures_intelligence.test_import_collector pipeline.test_decision pipeline.test_api paper_execution.test_ledger paper_execution.test_risk_control freqai_bridge.test_exporter -v 2>&1 | tee paper-system-tests.log
       - name: Verify CLI and syntax
         script: |
           set -euo pipefail
@@ -249,6 +255,9 @@ workflows:
       events: [push]
       branch_patterns:
         - pattern: feature/five-layer-paper
+          include: true
+          source: true
+        - pattern: feature/android-five-layer-control
           include: true
           source: true
         - pattern: main
