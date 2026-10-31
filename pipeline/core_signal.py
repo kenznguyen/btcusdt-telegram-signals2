@@ -10,7 +10,7 @@ def validate(report, now_ms):
     if not isinstance(report, dict) or report.get("schemaVersion") != 1 or report.get("source") != "STRATEGY_CORE":
         return {"source": "STRATEGY_CORE", "action": "WAIT", "reason": "CORE_SIGNAL_INVALID", "intent": None}
     action = report.get("action")
-    if action not in ("LONG", "SHORT", "WAIT"):
+    if action not in ("LONG", "SHORT", "FLAT", "WAIT"):
         return {"source": "STRATEGY_CORE", "action": "WAIT", "reason": "CORE_ACTION_INVALID", "intent": None}
     if action == "WAIT":
         return {"source": "STRATEGY_CORE", "action": "WAIT",
@@ -29,7 +29,7 @@ def validate(report, now_ms):
             raise ValueError("CORE_SIGNAL_EXPIRED")
         target = number(report.get("targetPositionBase"), signed=True)
         price = number(report.get("limitPrice"))
-        if price <= 0 or (action == "LONG" and target <= 0) or (action == "SHORT" and target >= 0):
+        if price <= 0 or (action == "LONG" and target <= 0) or (action == "SHORT" and target >= 0) or (action == "FLAT" and target != 0):
             raise ValueError("CORE_INTENT_INVALID")
         intent = {
             "intentId": identity("core-intent:", {key: report[key] for key in (
@@ -41,7 +41,7 @@ def validate(report, now_ms):
             "limitPrice": str(price), "decisionAtMs": decided, "validUntilMs": expiry,
             "inputSnapshotId": snapshot, "mode": "PAPER",
         }
-        return {"source": "STRATEGY_CORE", "action": "BUY" if action == "LONG" else "SELL",
+        return {"source": "STRATEGY_CORE", "action": "BUY" if action == "LONG" else "SELL" if action == "SHORT" else "CLOSE",
                 "reason": str(report.get("reason") or "CORE_SIGNAL_VALIDATED")[:160], "intent": intent}
     except (KeyError, TypeError, ValueError, OverflowError):
         return {"source": "STRATEGY_CORE", "action": "WAIT", "reason": "CORE_SIGNAL_INVALID", "intent": None}
