@@ -1245,6 +1245,83 @@ workflows:
       - artifacts/phase19/report/*.log
       - artifacts/phase19/seal/*.json
 
+  dual-strategy-phase22-frozen-reproducibility:
+    name: Phase 22 | reproduce exact Git-preserved frozen model (manual)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    # Manual only. No training, tuning, holdout reads, or GitHub Actions.
+    environment:
+      vars:
+        PHASE14_ORIGINAL_ZIP: "research_evidence/phase14-frozen-original-evidence.zip"
+    scripts:
+      - name: Verify immutable source archive and registered pre-holdout seal
+        script: |
+          set -euo pipefail
+          EXPECTED_ZIP_SHA="b64f39bd70c27c8d6abed1795ee06504c108eed42ebdab98ce375a6449b5b035"
+          test -f "$PHASE14_ORIGINAL_ZIP"
+          printf '%s  %s\n' "$EXPECTED_ZIP_SHA" "$PHASE14_ORIGINAL_ZIP" | shasum -a 256 -c -
+          unzip -t "$PHASE14_ORIGINAL_ZIP" >/dev/null
+          mkdir -p artifacts/phase22/original artifacts/phase22/seal artifacts/phase22/reports
+          unzip -oq "$PHASE14_ORIGINAL_ZIP" -d artifacts/phase22/original
+          test "$(cat artifacts/phase22/original/phase3-source-sha.txt)" = "082edc082996425f61f48c952be41fb037564103"
+          ORIGINAL_BUNDLE="artifacts/phase22/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib"
+          test -s "$ORIGINAL_BUNDLE"
+          test "$(stat -f%z "$ORIGINAL_BUNDLE")" = "436330"
+          git fetch --no-tags origin refs/heads/freeze/phase13b-20261104-candidate-082edc0:refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0
+          git merge-base --is-ancestor 888efb11b613b42a2badb3bc8adfa19ff090f2bb refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0
+          git show "888efb11b613b42a2badb3bc8adfa19ff090f2bb:research_seals/phase13b-20261104/seal-manifest.json" > artifacts/phase22/seal/seal-manifest.json
+          git show "888efb11b613b42a2badb3bc8adfa19ff090f2bb:research_seals/phase13b-20261104/phase13b-oos-protocol.json" > artifacts/phase22/seal/phase13b-oos-protocol.json
+          git show "888efb11b613b42a2badb3bc8adfa19ff090f2bb:research_seals/phase13b-20261104/model-candidate-metadata.json" > artifacts/phase22/seal/model-candidate-metadata.json
+          PRESERVED="research_evidence/frozen-model/phase13b-20261104"
+          cmp "$ORIGINAL_BUNDLE" "$PRESERVED/original-frozen-model.joblib"
+          cmp artifacts/phase22/seal/model-candidate-metadata.json "$PRESERVED/model-candidate-metadata.json"
+          cmp artifacts/phase22/seal/phase13b-oos-protocol.json "$PRESERVED/phase13b-oos-protocol.json"
+          cmp artifacts/phase22/seal/seal-manifest.json "$PRESERVED/seal-manifest.json"
+          git rev-parse HEAD | tee artifacts/phase22/source-sha.txt
+      - name: Prepare frozen Python runtime
+        script: |
+          set -euo pipefail
+          if ! brew list --versions libomp >/dev/null 2>&1; then brew install libomp; fi
+          bash ci/setup-python.sh requirements-freqai.txt requirements-market-data.txt
+          export CI_PYTHON="$CM_BUILD_DIR/.ci-tools/python-venv/bin/python"
+          "$CI_PYTHON" --version
+      - name: TDD regression tests for Phase22 and Phase14
+        script: |
+          set -euo pipefail
+          export CI_PYTHON="$CM_BUILD_DIR/.ci-tools/python-venv/bin/python"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          "$CI_PYTHON" -m unittest quant_system.test_phase22_frozen_reproducibility -v 2>&1 | tee artifacts/phase22/reports/phase22-unit-tests.log
+          "$CI_PYTHON" -m unittest quant_system.test_phase14_fitted_preprocessing -v 2>&1 | tee artifacts/phase22/reports/phase14-regression-tests.log
+      - name: Reproduce preserved bundle and historical native inference
+        script: |
+          set -euo pipefail
+          export CI_PYTHON="$CM_BUILD_DIR/.ci-tools/python-venv/bin/python"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          PRESERVED="research_evidence/frozen-model/phase13b-20261104"
+          ORIGINAL="artifacts/phase22/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib"
+          "$CI_PYTHON" -m quant_system.phase22_frozen_reproducibility \
+            --bundle "$PRESERVED/original-frozen-model.joblib" \
+            --original-bundle "$ORIGINAL" \
+            --metadata "$PRESERVED/model-candidate-metadata.json" \
+            --protocol "$PRESERVED/phase13b-oos-protocol.json" \
+            --seal "$PRESERVED/seal-manifest.json" \
+            --out artifacts/phase22/reports/phase22-frozen-reproducibility.json \
+            2>&1 | tee artifacts/phase22/reports/phase22-frozen-reproducibility.log
+          "$CI_PYTHON" -m quant_system.phase14_fitted_preprocessing \
+            --artifacts-root artifacts/phase22/original/artifacts/phase3 \
+            --bundle "$PRESERVED/original-frozen-model.joblib" \
+            --candidate-metadata "$PRESERVED/model-candidate-metadata.json" \
+            --protocol "$PRESERVED/phase13b-oos-protocol.json" \
+            --seal "$PRESERVED/seal-manifest.json" \
+            --out artifacts/phase22/reports/phase14-fitted-preprocessing-audit.json \
+            2>&1 | tee artifacts/phase22/reports/phase14-fitted-preprocessing-audit.log
+          "$CI_PYTHON" -c 'import json; p=json.load(open("artifacts/phase22/reports/phase22-frozen-reproducibility.json")); a=json.load(open("artifacts/phase22/reports/phase14-fitted-preprocessing-audit.json")); assert p["exact_original_bundle_bytes_verified"] is True and p["retrained"] is False and p["holdout_rows_read"] is False and a["fitted_preprocessing_prefix_invariance_verified"] is True and a["errors"] == [] and a["observed_candidate_sha256"] == "sha256:918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f" and a["original_source_commit_sha"] == "082edc082996425f61f48c952be41fb037564103" and p["independent_oos_verified"] is False and p["oos_certified"] is False and p["ai_promotion_eligible"] is False and p["live_orders_enabled"] is False; print("PHASE22_FROZEN_REPRODUCIBILITY_AND_PHASE14_REPLAY_VERIFIED")'
+    artifacts:
+      - artifacts/phase22/reports/*.json
+      - artifacts/phase22/reports/*.log
+      - artifacts/phase22/seal/*.json
+      - artifacts/phase22/source-sha.txt
+
   dual-strategy-phase21-preserve-original-model:
     name: Phase 21 | verify and preserve exact original fitted model in GitHub (manual)
     instance_type: mac_mini_m2
