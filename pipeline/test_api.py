@@ -241,6 +241,7 @@ class FiveLayerApiTest(unittest.TestCase):
         code, quality = self.request("/v1/quality")
         self.assertEqual(code,200)
         self.assertEqual(quality["mode"],"PAPER")
+        self.assertIs(quality["liveTradingSupported"], False)
         streams={stream["name"]:stream for stream in quality["streams"]}
         self.assertEqual(streams["M15 candles"]["status"],"DEGRADED")
         self.assertEqual(streams["H1 candles"]["status"],"DEGRADED")
