@@ -44,7 +44,7 @@ def risk_block_reason(connection):
     if state["killed"]:
         return "KILL_SWITCH"
     if state["paused"]:
-        return "RISK_PAUSED"
+        return "PAUSED"
     return None
 
 
