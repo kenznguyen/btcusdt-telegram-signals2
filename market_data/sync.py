@@ -87,7 +87,9 @@ def sync_window(exchange, store, timeframe, start_ms, end_ms, now_ms=None):
 
 def main():
     parser = argparse.ArgumentParser(description="Sync closed BTCUSDT perpetual candles into the canonical store")
-    parser.add_argument("--db", required=True, help="SQLite database path")
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--db", help="SQLite database path (legacy/default backend)")
+    target.add_argument("--database-url", help="PostgreSQL/TimescaleDB URL; keep it in a secret environment variable")
     parser.add_argument("--timeframe", choices=tuple(INTERVAL_MS), required=True)
     parser.add_argument("--start-ms", type=int, required=True, help="Inclusive aligned UTC epoch milliseconds")
     parser.add_argument("--end-ms", type=int, required=True, help="Exclusive aligned UTC epoch milliseconds")
@@ -99,9 +101,13 @@ def main():
         parser.exit(1, "Install requirements-market-data.txt to fetch exchange data.\n")
     try:
         exchange = ccxt.binanceusdm({"enableRateLimit": True, "timeout": 15_000})
-        store = CandleStore(args.db)
+        if args.database_url:
+            from market_data.repository import PostgresRepository
+            store = PostgresRepository(args.database_url)
+        else:
+            store = CandleStore(args.db)
         count = sync_window(exchange, store, args.timeframe, args.start_ms, args.end_ms)
-        window = read_window(args.db, "BTCUSDT", args.timeframe, args.start_ms, args.end_ms)
+        window = store.read_window("BTCUSDT", args.timeframe, args.start_ms, args.end_ms) if args.database_url else read_window(args.db, "BTCUSDT", args.timeframe, args.start_ms, args.end_ms)
     except Exception as error:
         parser.exit(1, f"Sync failed ({type(error).__name__}); earlier successful pages remain stored.\n")
     print(json.dumps({"inserted": count, "datasetVersion": window["datasetVersion"],
