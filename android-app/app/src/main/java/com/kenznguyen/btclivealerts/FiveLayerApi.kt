@@ -201,7 +201,7 @@ internal object FiveLayerJson {
             IntentView(target, price, text(row, "modelVersion"), text(row, "strategyVersion"),
                 text(row, "datasetVersion"), created, expires)
         }
-        require(action != "WAIT" || intent == null)
+        require((action == "WAIT") == (intent == null))
         return DecisionView(action, text(json, "reason"), intent)
     }
 
@@ -328,7 +328,7 @@ internal object FiveLayerJson {
             IntentView(target, price, text(row, "modelVersion"), text(row, "strategyVersion"),
                 text(row, "datasetVersion"), created, expires)
         }
-        require((action == "WAIT") == (intent == null))
+        require(action != "WAIT" || intent == null)
         val indicators = linkedMapOf<String, String?>()
         if (json.has("indicators") && !json.isNull("indicators")) {
             val values = json.getJSONObject("indicators")
