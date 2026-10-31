@@ -11,6 +11,7 @@ from market_data.migrations import migrate
 from market_data.postgres import PostgresCandleStore, connection, read_window as read_postgres_window
 from market_data.store import Candle, CandleStore, INTERVAL_MS, read_window
 from market_data.sync import sync_window
+from market_data.storage import create_store
 
 
 DSN = os.environ.get("MARKET_DATA_TEST_DATABASE_URL", "")
@@ -39,7 +40,7 @@ class TimescaleParityTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.sqlite_path = Path(self.temp.name) / "market.sqlite3"
         self.sqlite_store = CandleStore(self.sqlite_path)
-        self.pg_store = PostgresCandleStore(DSN)
+        self.pg_store = create_store("postgres", postgres_dsn=DSN)
         self.step = INTERVAL_MS["15m"]
         # Integration database must be disposable; unique time slots avoid cross-run collisions.
         import time
