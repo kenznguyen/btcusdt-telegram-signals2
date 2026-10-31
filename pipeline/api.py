@@ -128,6 +128,23 @@ def decide(data, timestamp):
                     target_base=os.environ.get("PAPER_TARGET_BASE", "0.001"))
 
 
+def core_decide(timestamp):
+    from pipeline.core_signal import validate
+    try:
+        report = load_report("STRATEGY_CORE_REPORT_PATH")
+    except (ValueError, OSError):
+        report = None
+    return validate(report, timestamp)
+
+
+def signal_snapshot(timestamp):
+    data = context(timestamp)
+    ai = decide(data, timestamp)
+    ai["source"] = "AI_FREQAI"
+    return {"strategyCore": core_decide(timestamp), "aiStrategy": ai,
+            "mode": "PAPER", "liveTradingSupported": False}
+
+
 def _body(environ):
     try:
         length = int(environ.get("CONTENT_LENGTH", "0"))
@@ -182,7 +199,7 @@ def application(environ, start_response):
                                     ("Content-Security-Policy", "default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-ancestors 'none'")]
         start_response("200 OK", static_headers)
         return [data]
-    routes = {"/v1/system", "/v1/candles", "/v1/order-book", "/v1/intelligence", "/v1/decision", "/v1/paper",
+    routes = {"/v1/system", "/v1/candles", "/v1/order-book", "/v1/intelligence", "/v1/decision", "/v1/signals", "/v1/paper",
               "/v1/paper/evaluate", "/v1/paper/pause", "/v1/paper/cancel", "/v1/paper/kill", "/v1/paper/reset-kill"}
     if path not in routes:
         return response("404 Not Found", {"error": "NOT_FOUND"})
@@ -212,10 +229,16 @@ def application(environ, start_response):
                 result = ledger().set_killed(True, timestamp, "OPERATOR_KILL_SWITCH")
             elif path == "/v1/paper/reset-kill" and set(payload) == {"acknowledge", "ready"} and payload["acknowledge"] is True and payload["ready"] is True:
                 result = ledger().reset_kill(True, True, timestamp)
-            elif path == "/v1/paper/evaluate" and not payload:
-                data = context(timestamp)
+            elif path == "/v1/paper/evaluate" and (not payload or payload in ({"source": "AI"}, {"source": "CORE"})):
+                source = payload.get("source", "AI")
+                if source == "CORE":
+                    decision = core_decide(timestamp)
+                    data = {"book": book_snapshot(timestamp)}
+                else:
+                    data = context(timestamp)
+                    decision = decide(data, timestamp)
+                    decision["source"] = "AI_FREQAI"
                 timestamp = now_ms()
-                decision = decide(data, timestamp)
                 order = ledger().submit(decision["intent"], data["book"], timestamp) if decision.get("intent") else None
                 result = {"decision": decision, "order": order}
             else:
@@ -247,6 +270,8 @@ def application(environ, start_response):
         elif path == "/v1/decision":
             data = context(timestamp)
             result = decide(data, now_ms())
+        elif path == "/v1/signals":
+            result = signal_snapshot(timestamp)
         else:
             end = timestamp // 900_000 * 900_000
             try:
