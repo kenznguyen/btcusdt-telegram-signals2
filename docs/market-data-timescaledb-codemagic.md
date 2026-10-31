@@ -32,7 +32,7 @@ Run that command as a separately authorized maintenance action against the inten
 
 ## Codemagic validation
 
-The manual `market-data-timescaledb` workflow sets `MARKET_DATA_REQUIRE_TIMESCALE=1`, maps the test secret to the runtime DSN variable, and runs:
+The branch-triggered `market-data-timescaledb` workflow sets `MARKET_DATA_REQUIRE_TIMESCALE=1`, maps the test secret to the runtime DSN variable, and runs:
 
 - SQLite storage and API regression tests.
 - Factory selection, missing configuration, and fail-closed tests.
