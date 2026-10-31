@@ -15,6 +15,7 @@ class FrozenOOSContracts(unittest.TestCase):
             holdout_start_utc="2026-11-04T00:00:00Z",
             holdout_end_utc="2026-12-04T00:00:00Z",
             holdout_days=30,model_identifier="chart-pro-okx-shadow-v1",
+            holdout_data_already_used_for_model_selection=False,
             frozen_model_policy=dict(retrain_inside_holdout=False,
                 tune_parameters_using_holdout=False,
                 change_strategy_or_features_after_seal=False),
