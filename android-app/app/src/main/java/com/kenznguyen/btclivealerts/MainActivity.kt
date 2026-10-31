@@ -42,18 +42,25 @@ class MainActivity : ComponentActivity() {
     private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        createNotificationChannel()
-        if (Build.VERSION.SDK_INT >= 33 &&
+        if (!BuildConfig.PARALLEL_INSTALL) createNotificationChannel()
+        if (!BuildConfig.PARALLEL_INSTALL && Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
-        setContent { MaterialTheme(colorScheme = darkColorScheme()) { CompleteDashboard(this) } }
+        setContent {
+            MaterialTheme(colorScheme = darkColorScheme()) {
+                if (BuildConfig.PARALLEL_INSTALL) FiveLayerStandaloneDashboard(this)
+                else CompleteDashboard(this)
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
         // Returning to an existing Activity must also recover a monitor stopped by Android's timeout.
-        ContextCompat.startForegroundService(this, Intent(this, StrategyMonitorService::class.java))
+        if (!BuildConfig.PARALLEL_INSTALL) {
+            ContextCompat.startForegroundService(this, Intent(this, StrategyMonitorService::class.java))
+        }
     }
 
     private fun createNotificationChannel() {
