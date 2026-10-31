@@ -1,6 +1,7 @@
 package com.kenznguyen.btclivealerts
 
 import android.content.Context
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,6 +10,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
@@ -30,6 +33,28 @@ import java.util.Locale
 private val fiveMuted = Color(0xFF91A0B5)
 private val fiveGreen = Color(0xFF20C997)
 private val fiveAmber = Color(0xFFFFC857)
+
+@Composable
+private fun FiveLayerEquityCurve(points: List<EquityPointView>) {
+    val values = points.mapNotNull { it.equity.toDoubleOrNull()?.takeIf(Double::isFinite) }
+    if (values.size < 2) {
+        Text("Cần ít nhất hai snapshot Equity để vẽ đường cong.", color = fiveMuted,
+            style = MaterialTheme.typography.bodySmall)
+        return
+    }
+    Canvas(Modifier.fillMaxWidth().height(112.dp)) {
+        val low = values.minOrNull() ?: return@Canvas
+        val high = values.maxOrNull() ?: return@Canvas
+        val range = (high - low).takeIf { it > 0.0 } ?: 1.0
+        val path = Path()
+        values.forEachIndexed { index, value ->
+            val x = index.toFloat() / (values.size - 1).coerceAtLeast(1) * size.width
+            val y = size.height - ((value - low) / range).toFloat() * (size.height - 8.dp.toPx()) - 4.dp.toPx()
+            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        drawPath(path, color = fiveGreen, style = Stroke(width = 2.5.dp.toPx()))
+    }
+}
 
 private data class FiveLayerConnection(val url: String, val readToken: String, val controlToken: String)
 private data class FiveLayerReading<T>(val value: T? = null, val fetchedAtMs: Long = 0L, val errorMessage: String? = null) {
@@ -84,6 +109,7 @@ internal fun FiveLayerPanel(context: Context) {
     var paper by remember(connection, refresh) { mutableStateOf(FiveLayerReading<PaperView>()) }
     var book by remember(connection, refresh) { mutableStateOf(FiveLayerReading<HummingbotSnapshot>()) }
     var candles by remember(connection, refresh) { mutableStateOf(FiveLayerReading<CandleWindowView>()) }
+    var equity by remember(connection, refresh) { mutableStateOf(FiveLayerReading<EquityView>()) }
     var writing by remember { mutableStateOf(false) }
     var mutationJob by remember { mutableStateOf<Job?>(null) }
     var actionMessage by remember { mutableStateOf("") }
@@ -109,6 +135,7 @@ internal fun FiveLayerPanel(context: Context) {
         decision = FiveLayerReading(); paper = FiveLayerReading()
         book = FiveLayerReading()
         candles = FiveLayerReading()
+        equity = FiveLayerReading()
         val config = connection ?: return@LaunchedEffect
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             try {
@@ -120,6 +147,7 @@ internal fun FiveLayerPanel(context: Context) {
                         launch { paper = readFiveLayer { FiveLayerClient.getPaper(config.url, config.readToken) } }
                         launch { book = readFiveLayer { FiveLayerClient.getOrderBook(config.url, config.readToken) } }
                         launch { candles = readFiveLayer { FiveLayerClient.getCandles(config.url, config.readToken) } }
+                        launch { equity = readFiveLayer { FiveLayerClient.getEquity(config.url, config.readToken) } }
                     }
                     delay(5_000L)
                 }
@@ -128,6 +156,7 @@ internal fun FiveLayerPanel(context: Context) {
                 decision = FiveLayerReading(); paper = FiveLayerReading()
                 book = FiveLayerReading()
                 candles = FiveLayerReading()
+                equity = FiveLayerReading()
             }
         }
     }
@@ -135,6 +164,7 @@ internal fun FiveLayerPanel(context: Context) {
     val currentSystem = system.fresh(clock)
     val currentPaper = paper.fresh(clock)
     val config = connection
+    val currentEquity = equity.fresh(clock)
     val canControl = config != null && config.controlToken.isNotBlank() &&
         currentSystem != null && currentPaper != null && !writing &&
         lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
@@ -230,6 +260,29 @@ internal fun FiveLayerPanel(context: Context) {
                 CanonicalCandlesContent(window)
                 Text("Đọc API lúc ${fiveTime(candles.fetchedAtMs)} · Nến đóng từ kho tầng 0",
                     color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        FiveLayerCard("RISK MANAGEMENT · EQUITY HISTORY") {
+            if (currentEquity == null) {
+                Text(equity.unavailableMessage(connection != null), color = fiveMuted)
+            } else if (!currentEquity.available) {
+                Text(currentEquity.reason ?: "Chưa có Equity history hợp lệ.", color = fiveMuted)
+            } else {
+                Text("Vốn ban đầu ${currentEquity.initialCapital ?: "—"} USDT · Equity ${currentEquity.equity ?: "—"} USDT",
+                    color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text("Realized ${currentEquity.realizedPnl ?: "—"} · Unrealized ${currentEquity.unrealizedPnl ?: "—"} · Fees ${currentEquity.fees ?: "—"} USDT",
+                    color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+                Text("Max Drawdown ${currentEquity.maxDrawdownUsdt ?: "—"} USDT (${currentEquity.maxDrawdownPct ?: "—"}%) · Daily Loss UTC ${currentEquity.dailyLossUsdt ?: "N/A"} USDT",
+                    color = fiveAmber)
+                Text("Exposure ${currentEquity.exposureUsdt ?: "—"} USDT · Baseline ${fiveTime(currentEquity.dailyBaselineAtMs)}",
+                    color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+                FiveLayerEquityCurve(currentEquity.points)
+                Text(if (currentEquity.riskLimitsConfigured)
+                    "Risk limits đã cấu hình · Max Daily Loss ${currentEquity.maxDailyLossUsdt} USDT · Max Exposure ${currentEquity.maxExposureUsdt} USDT"
+                    else "RISK LIMITS CHƯA CẤU HÌNH · Backend sẽ từ chối Paper intent mới.",
+                    color = if (currentEquity.riskLimitsConfigured) fiveGreen else fiveAmber,
+                    style = MaterialTheme.typography.bodySmall)
             }
         }
 
