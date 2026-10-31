@@ -198,60 +198,105 @@ def verify_preserved_snapshot(bundle, original_bundle, metadata, protocol, seal,
     }
 
 
-def verify_oos_eligibility(bundle, original_bundle, metadata, protocol, seal,
-                           attestation, github_commit_proof):
-    """Apply external-seal checks separately from historical reproduction."""
+def _verify_github_server_proof(proof_path, expected_path, error_code):
+    proof = _json_object(Path(proof_path), error_code)
+    server = proof.get("server_evidence", {})
+    sha = proof.get("sha")
+    created_at = server.get("created_at") if isinstance(server, dict) else None
+    _require(
+        proof.get("proof_source") == "github_actions_run"
+        and isinstance(sha, str) and len(sha) == 40
+        and all(char in "0123456789abcdef" for char in sha.lower())
+        and isinstance(server, dict)
+        and server.get("provider") == "GitHub Actions"
+        and isinstance(server.get("run_id"), int) and server["run_id"] > 0
+        and server.get("head_sha") == sha
+        and isinstance(created_at, str)
+        and any(isinstance(item, dict) and item.get("filename") == expected_path
+                for item in proof.get("files", [])),
+        error_code,
+    )
+    try:
+        timestamp = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        _require(timestamp.tzinfo is not None, error_code)
+    except (TypeError, ValueError) as exc:
+        raise FrozenReproducibilityError(error_code) from exc
+    _require(
+        timestamp.astimezone(timezone.utc) <
+        datetime.fromisoformat(HOLDOUT_START_UTC.replace("Z", "+00:00")),
+        "PHASE22_ATTESTATION_NOT_PRE_HOLDOUT",
+    )
+    return proof, created_at
+
+
+def verify_oos_eligibility(bundle, original_bundle, metadata,
+                           historical_protocol, historical_seal,
+                           oos_protocol, attestation,
+                           attestation_commit_proof,
+                           oos_protocol_commit_proof):
+    """Check a separately sealed OOS protocol without rewriting history.
+
+    The historical protocol and historical seal are verified byte-for-byte by
+    verify_preserved_snapshot. The prospective OOS protocol has its own hash,
+    attestation, Git commit and GitHub Actions server-time evidence.
+    """
     historical = verify_preserved_snapshot(
-        bundle, original_bundle, metadata, protocol, seal
+        bundle, original_bundle, metadata, historical_protocol, historical_seal
     )
-    registered_protocol = _json_object(Path(protocol), "PHASE22_INVALID_PROTOCOL")
-    _require(registered_protocol.get("status") == "SEALED_BY_EXTERNAL_ATTESTATION",
+    oos_path = Path(oos_protocol)
+    oos = _json_object(oos_path, "PHASE22_INVALID_OOS_PROTOCOL")
+    oos_sha = _digest(oos_path)
+    _require(oos.get("protocol") == "PHASE13B_PROSPECTIVE_FROZEN_MODEL_OOS"
+             and oos.get("status") == "SEALED_BY_EXTERNAL_ATTESTATION",
              "PHASE22_PROTOCOL_NOT_SEALED")
-    protocol_hashes = (
-        registered_protocol.get("source_commit_sha"),
-        registered_protocol.get("frozen_model_bundle_sha256"),
-        registered_protocol.get("frozen_model_metadata_sha256"),
+    hashes = (
+        oos.get("source_commit_sha"),
+        oos.get("frozen_model_bundle_sha256"),
+        oos.get("frozen_model_metadata_sha256"),
     )
-    _require(all(isinstance(value, str) and value.strip() for value in protocol_hashes),
+    _require(all(isinstance(value, str) and value.strip() for value in hashes),
              "PHASE22_PROTOCOL_PROVENANCE_MISSING")
-    _require(protocol_hashes == (
+    _require(hashes == (
         REGISTERED_SOURCE_COMMIT,
         REGISTERED_BUNDLE_SHA.removeprefix("sha256:"),
         REGISTERED_METADATA_SHA.removeprefix("sha256:"),
     ), "PHASE22_PROTOCOL_PROVENANCE_MISMATCH")
-    _require(registered_protocol.get("sealed_in_git") is True,
+    _require(oos.get("sealed_in_git") is True
+             and isinstance(oos.get("seal_git_commit"), str)
+             and len(oos["seal_git_commit"]) == 40,
              "PHASE22_PROTOCOL_COMMIT_EVIDENCE_MISSING")
-    _require(attestation is not None and github_commit_proof is not None,
-             "PHASE22_GITHUB_COMMIT_PROOF_MISSING")
+    oos_commit_path = (
+        "research_evidence/frozen-model/phase13b-20261104/oos-protocol.json"
+    )
+    oos_proof, oos_created_at = _verify_github_server_proof(
+        oos_protocol_commit_proof, oos_commit_path,
+        "PHASE22_OOS_PROTOCOL_SERVER_PROOF_MISSING",
+    )
+    _require(oos_proof["sha"] == oos["seal_git_commit"],
+             "PHASE22_OOS_PROTOCOL_COMMIT_MISMATCH")
+
     attested = _json_object(Path(attestation), "PHASE22_INVALID_ATTESTATION")
-    proof = _json_object(Path(github_commit_proof), "PHASE22_GITHUB_COMMIT_PROOF_MISSING")
-    commit = proof.get("commit", {})
-    committer = commit.get("committer", {}) if isinstance(commit, dict) else {}
-    commit_date = committer.get("date") if isinstance(committer, dict) else None
-    filenames = proof.get("files", [])
-    expected_path = "research_evidence/frozen-model/phase13b-20261104/pre-holdout-attestation.json"
-    _require(
-        attested.get("attestation_type") == "PHASE13B_PRE_HOLDOUT_EXTERNAL_ATTESTATION"
-        and proof.get("sha") == REGISTERED_ATTESTATION_COMMIT
-        and isinstance(commit_date, str)
-        and isinstance(filenames, list)
-        and any(isinstance(item, dict) and item.get("filename") == expected_path
-                for item in filenames),
+    expected_attestation_path = (
+        "research_evidence/frozen-model/phase13b-20261104/pre-holdout-attestation.json"
+    )
+    attestation_proof, attestation_created_at = _verify_github_server_proof(
+        attestation_commit_proof, expected_attestation_path,
         "PHASE22_GITHUB_COMMIT_PROOF_MISSING",
     )
-    try:
-        committed_at = datetime.fromisoformat(commit_date.replace("Z", "+00:00"))
-        _require(committed_at.tzinfo is not None, "PHASE22_GITHUB_COMMIT_PROOF_MISSING")
-    except (TypeError, ValueError) as exc:
-        raise FrozenReproducibilityError("PHASE22_GITHUB_COMMIT_PROOF_MISSING") from exc
-    _require(committed_at.astimezone(timezone.utc) <
-             datetime.fromisoformat(HOLDOUT_START_UTC.replace("Z", "+00:00")),
-             "PHASE22_ATTESTATION_NOT_PRE_HOLDOUT")
+    _require(attestation_proof.get("sha") == REGISTERED_ATTESTATION_COMMIT,
+             "PHASE22_GITHUB_COMMIT_PROOF_MISSING")
     _require(
-        attested.get("source_commit_sha") == REGISTERED_SOURCE_COMMIT
-        and attested.get("model_bundle_sha256") == REGISTERED_BUNDLE_SHA.removeprefix("sha256:")
-        and attested.get("model_metadata_sha256") == REGISTERED_METADATA_SHA.removeprefix("sha256:")
-        and attested.get("protocol_sha256") == REGISTERED_PROTOCOL_SHA.removeprefix("sha256:")
+        attested.get("attestation_type") ==
+            "PHASE13B_PRE_HOLDOUT_EXTERNAL_ATTESTATION"
+        and attested.get("source_commit_sha") == REGISTERED_SOURCE_COMMIT
+        and attested.get("model_bundle_sha256") ==
+            REGISTERED_BUNDLE_SHA.removeprefix("sha256:")
+        and attested.get("model_metadata_sha256") ==
+            REGISTERED_METADATA_SHA.removeprefix("sha256:")
+        and attested.get("historical_protocol_sha256") ==
+            REGISTERED_PROTOCOL_SHA.removeprefix("sha256:")
+        and attested.get("oos_protocol_sha256") ==
+            oos_sha.removeprefix("sha256:")
         and attested.get("holdout_start_utc") == HOLDOUT_START_UTC
         and attested.get("holdout_end_utc") == HOLDOUT_END_UTC
         and attested.get("holdout_retraining_allowed") is False
@@ -264,10 +309,19 @@ def verify_oos_eligibility(bundle, original_bundle, metadata, protocol, seal,
     )
     result = dict(historical)
     result.update({
-        "audit": "PHASE22_PRE_HOLDOUT_OOS_ELIGIBILITY_GATE",
-        "github_attestation_commit_sha": proof["sha"],
-        "github_attestation_committer_timestamp_utc": commit_date,
+        "audit": "PHASE22_SEPARATE_OOS_PROTOCOL_ELIGIBILITY_GATE",
+        "historical_protocol_unchanged": True,
+        "historical_protocol_sha256": historical["protocol_sha256"],
+        "oos_protocol_sha256": oos_sha,
+        "oos_protocol_commit_sha": oos_proof["sha"],
+        "oos_protocol_server_created_at_utc": oos_created_at,
+        "attestation_commit_sha": attestation_proof["sha"],
+        "attestation_server_created_at_utc": attestation_created_at,
         "pre_holdout_attestation_verified": True,
+        "independent_oos_verified": False,
+        "oos_certified": False,
+        "ai_promotion_eligible": False,
+        "live_orders_enabled": False,
     })
     return result
 
