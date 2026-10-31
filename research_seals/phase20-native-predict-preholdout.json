@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "review_class": "PREHOLDOUT_HISTORICAL_ONLY",
+  "original_phase19_report_sha256": "sha256:f5fe8a4dcd5780088069373472dad2f3f87ecec6a7c21e0ff3897373bb5bd415",
+  "original_phase19_uploaded_artifacts_zip_sha256": "sha256:fb33f1490cd3c995fa2d325561138d1d7a4e32f1be4e63dee28d7f1fc457b2ce",
+  "original_frozen_model_bundle_sha256": "sha256:918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f",
+  "original_native_matrix_ledger_sha256": "sha256:382546af84244b97fc553eddc5ad02e3da7383e8384dd6e93196cf7f7f38edf7",
+  "original_native_prediction_trace_sha256": "sha256:973dd79862ce17c3b20791f849c627261e94cef896bd9b83b7068ec003019f52",
+  "original_source_commit_sha": "082edc082996425f61f48c952be41fb037564103",
+  "original_model_seal_commit_sha": "888efb11b613b42a2badb3bc8adfa19ff090f2bb",
+  "research_only_preholdout_approval_commit_sha": "409d446bb186a8e2ea0189df26057a9df7e839de",
+  "original_native_predict_rows": 480,
+  "original_native_accepted_rows": 471,
+  "original_native_rejected_rows": 9,
+  "first_native_predict_open_ms": 1792965600000,
+  "last_native_predict_open_ms": 1793396700000,
+  "holdout_start_utc": "2026-11-04T00:00:00Z",
+  "holdout_end_utc": "2026-12-04T00:00:00Z",
+  "independent_oos_verified": false,
+  "oos_certified": false,
+  "ai_promotion_eligible": false,
+  "live_orders_enabled": false
+}
