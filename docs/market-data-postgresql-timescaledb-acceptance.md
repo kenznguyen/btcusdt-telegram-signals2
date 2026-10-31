@@ -65,6 +65,7 @@ A mismatch in any candle, availability field, gap, or dataset hash blocks cutove
 
 - [ ] `MARKET_DATA_DB` retains its existing SQLite meaning during the compatibility period.
 - [ ] Market-data PostgreSQL configuration uses a separate variable, `MARKET_DATA_DATABASE_URL`.
+- [ ] In mixed mode, `MARKET_DATA_DATABASE_URL` is consumed only by market-data repository operations; `MARKET_DATA_DB` remains the SQLite path used by the paper ledger and SQLite fallback.
 - [ ] Paper-ledger reads/writes do not receive a PostgreSQL DSN through `sqlite3.connect()`.
 - [ ] Paper ledger remains on SQLite and its schema, transactions, idempotency, audit trail, risk latches, equity history, and persisted state are unchanged.
 - [ ] If/when a separate `PAPER_DB_PATH` is introduced, it is a separately reviewed compatibility change with explicit startup validation and regression tests.
