@@ -9,6 +9,7 @@ from unittest.mock import patch
 from quant_system.phase22_frozen_reproducibility import (
     FrozenReproducibilityError,
     verify_preserved_snapshot,
+    verify_oos_eligibility,
 )
 
 
@@ -38,6 +39,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         }), encoding="utf8")
         self.protocol.write_text(json.dumps({
             "protocol": "PHASE13B_PROSPECTIVE_FROZEN_MODEL_OOS",
+            "status": "PRE_REGISTERED_PROTOCOL_CANDIDATE_NOT_SEALED",
             "holdout_start_utc": "2026-11-04T00:00:00Z",
             "holdout_end_utc": "2026-12-04T00:00:00Z",
             "holdout_days": 30,
@@ -107,12 +109,24 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         ):
             return verify_preserved_snapshot(
                 self.bundle, self.original, self.metadata, self.protocol, self.seal,
-                self.attestation, self.github_proof,
             )
 
     def verify(self):
-        self._write_valid_attestation_and_github_proof()
         return self._verify_current_files()
+
+    def _verify_oos_current_files(self):
+        with patch.multiple(
+            "quant_system.phase22_frozen_reproducibility",
+            REGISTERED_BUNDLE_SHA=self.registered["bundle"],
+            REGISTERED_METADATA_SHA=self.registered["metadata"],
+            REGISTERED_PROTOCOL_SHA=self.registered["protocol"],
+            REGISTERED_SOURCE_COMMIT=self.registered["source"],
+            REGISTERED_FEATURE_COUNT=2,
+        ):
+            return verify_oos_eligibility(
+                self.bundle, self.original, self.metadata, self.protocol, self.seal,
+                self.attestation, self.github_proof,
+            )
 
     def test_exact_preserved_bytes_and_provenance_are_verified(self):
         report = self.verify()
@@ -123,7 +137,14 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         self.assertFalse(report["oos_certified"])
         self.assertFalse(report["ai_promotion_eligible"])
         self.assertFalse(report["live_orders_enabled"])
+        self.assertFalse(report["pre_holdout_attestation_verified"])
 
+    def test_unsealed_historical_bundle_reproduces_but_oos_gate_rejects(self):
+        report = self.verify()
+        self.assertTrue(report["exact_original_bundle_bytes_verified"])
+        self.assertFalse(report["independent_oos_verified"])
+        with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_PROTOCOL_NOT_SEALED"):
+            self._verify_oos_current_files()
 
     def _write_valid_attestation_and_github_proof(self):
         protocol = json.loads(self.protocol.read_text(encoding="utf8"))
@@ -192,7 +213,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         attestation["protocol_sha256"] = self.registered["protocol"].removeprefix("sha256:")
         self.attestation.write_text(json.dumps(attestation), encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_PROTOCOL_NOT_SEALED"):
-            self._verify_current_files()
+            self._verify_oos_current_files()
 
     def test_protocol_null_provenance_hashes_are_rejected(self):
         self._write_valid_attestation_and_github_proof()
@@ -207,24 +228,13 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         attestation["protocol_sha256"] = self.registered["protocol"].removeprefix("sha256:")
         self.attestation.write_text(json.dumps(attestation), encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_PROTOCOL_PROVENANCE_MISSING"):
-            self._verify_current_files()
+            self._verify_oos_current_files()
 
     def test_missing_github_commit_proof_is_rejected(self):
         self._write_valid_attestation_and_github_proof()
         self.github_proof.write_text("{}", encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_GITHUB_COMMIT_PROOF_MISSING"):
-            with patch.multiple(
-                "quant_system.phase22_frozen_reproducibility",
-                REGISTERED_BUNDLE_SHA=self.registered["bundle"],
-                REGISTERED_METADATA_SHA=self.registered["metadata"],
-                REGISTERED_PROTOCOL_SHA=self.registered["protocol"],
-                REGISTERED_SOURCE_COMMIT=self.registered["source"],
-                REGISTERED_FEATURE_COUNT=2,
-            ):
-                verify_preserved_snapshot(
-                    self.bundle, self.original, self.metadata, self.protocol, self.seal,
-                    self.attestation, self.github_proof,
-                )
+            self._verify_oos_current_files()
 
     def test_github_attestation_commit_must_precede_holdout(self):
         self._write_valid_attestation_and_github_proof()
@@ -232,7 +242,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         proof["commit"]["committer"]["date"] = "2026-11-04T00:00:00Z"
         self.github_proof.write_text(json.dumps(proof), encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_ATTESTATION_NOT_PRE_HOLDOUT"):
-            self._verify_current_files()
+            self._verify_oos_current_files()
 
     def test_github_proof_must_name_attestation_file(self):
         self._write_valid_attestation_and_github_proof()
@@ -240,7 +250,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         proof["files"] = [{"filename": "unrelated.txt"}]
         self.github_proof.write_text(json.dumps(proof), encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_GITHUB_COMMIT_PROOF_MISSING"):
-            self._verify_current_files()
+            self._verify_oos_current_files()
 
     def test_one_byte_bundle_tampering_is_rejected(self):
         self.verify()
