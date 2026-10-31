@@ -25,11 +25,15 @@ class All26Tests(unittest.TestCase):
             name="cb_btc_"+str(100+i)
             for stage in ("FIT_TRAIN","FIT_TEST","PREDICT"):
                 event=item(name,stage,8 if stage=="FIT_TRAIN" else 1)
-                event["training_end_ms"]=30*900000
+                event["training_end_ms"]=(30+i*10)*900000
                 events.append(event)
             for t in range(1,9):
-                rows.append(sample(name,"TRAIN",t))
-            rows.append(sample(name,"TEST",20))
+                row=sample(name,"TRAIN",t)
+                row["training_end_ms"]=str((30+i*10)*900000)
+                rows.append(row)
+            row=sample(name,"TEST",20)
+            row["training_end_ms"]=str((30+i*10)*900000)
+            rows.append(row)
         return events,rows
 
     def test_two_folds_explicit_size_fixture(self):
@@ -61,7 +65,7 @@ class All26Tests(unittest.TestCase):
 
     def test_test_label_after_cutoff_fails_closed(self):
         e,s=self.fixture()
-        s[-1]["label_end_ms"]=str(31*900000)
+        s[-1]["label_end_ms"]=str(41*900000)
         with self.assertRaisesRegex(FoldEvidenceError,"PHASE16_FOLD_TEMPORAL_PROVENANCE_FAILED"):
             index_folds(e,s,expected_fold_count=2)
 
