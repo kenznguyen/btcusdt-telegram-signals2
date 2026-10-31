@@ -9,7 +9,7 @@
 
 ## Existing contract to preserve
 
-The current canonical store is SQLite and serves Binance USDⓈ-M linear perpetual BTCUSDT candles at 15m and 1h. Its externally visible contract includes:
+The current canonical store is SQLite and serves Binance USDⓈ-M BTCUSDT linear perpetual candles at 15m and 1h. The exact persisted identity constants in `market_data/store.py` are `exchange='binance'`, `market_type='USDT_PERPETUAL'`, and `symbol='BTCUSDT'`; preserve these literal values. `linear perpetual` is the instrument description, not the stored `market_type` enum. Its externally visible contract includes:
 
 - Candle identity: `exchange`, `market_type`, `symbol`, `timeframe`, `open_time_ms`.
 - OHLCV values are persisted as decimal text, validated with Python `Decimal`; do not introduce binary-float persistence or silent rounding.
@@ -46,27 +46,34 @@ Tracks ordered, immutable migration identifiers, checksums, and application time
 
 ### `market_data.instruments`
 
-Stores canonical instrument metadata keyed by exchange, market type, and symbol. The initial supported instrument remains Binance USDⓈ-M linear perpetual BTCUSDT. Do not broaden supported instruments as part of this database migration.
+Stores canonical instrument metadata keyed by exchange, market type, and symbol. The initial row is exactly `('binance', 'USDT_PERPETUAL', 'BTCUSDT')`, representing Binance USDⓈ-M linear perpetual. Do not normalize or rename the existing `USDT_PERPETUAL` value to `linear_perpetual`, and do not broaden supported instruments as part of this database migration.
 
 ### `market_data.candles`
 
-Proposed columns:
+The SQLite table physically persists only the identity fields, OHLCV decimal text, and `available_at_ms`. The current `Candle.as_dict()` adds `closeTimeMs`, `isClosed`, `availabilityKind`, `quality`, and `source` as deterministic projection fields; these are not separate SQLite columns. The PostgreSQL adapter must preserve that distinction and emit the same API projection.
+
+Proposed physical columns:
 
 | Column | Type | Contract |
 | --- | --- | --- |
-| `exchange` | `TEXT` | Canonical exchange identifier |
-| `market_type` | `TEXT` | `linear_perpetual` for the current dataset |
-| `symbol` | `TEXT` | Canonical symbol, initially `BTCUSDT` |
+| `exchange` | `TEXT` | Exact current value: `binance` |
+| `market_type` | `TEXT` | Exact current value: `USDT_PERPETUAL` |
+| `symbol` | `TEXT` | Exact current value: `BTCUSDT` |
 | `timeframe` | `TEXT` | `15m` or `1h` |
 | `open_time_ms` | `BIGINT` | UTC Unix milliseconds; hypertable time dimension |
-| `close_time_ms` | `BIGINT` | Exclusive candle boundary |
 | `open/high/low/close/volume` | `NUMERIC` | Exact decimal values; validated in application |
-| `is_closed` | `BOOLEAN` | Must be true for canonical rows |
 | `available_at_ms` | `BIGINT` | First-observed system time; immutable on duplicate import |
-| `availability_kind` | `TEXT` | Existing availability classification |
-| `quality` | `TEXT` | Existing validation quality classification |
-| `source` | `TEXT` | Existing source identifier |
-| `ingestion_batch_id` | `UUID NULL` | Nullable for legacy rows with no batch provenance |
+| `ingestion_batch_id` | `UUID NULL` | New nullable provenance field; NULL for legacy rows |
+
+The API projection remains:
+
+- `closeTimeMs = openTimeMs + timeframe interval` (exclusive boundary).
+- `isClosed = true` (only validated closed candles enter the canonical store).
+- `availabilityKind = FIRST_OBSERVED`.
+- `quality = VALIDATED`.
+- `source = ccxt.binanceusdm`.
+
+These values must not be described as migrated source columns or independently editable facts. If they are ever materialized in PostgreSQL for operational reasons, they must be constrained to these current deterministic values and must not alter the public projection.
 
 Primary/unique identity is `(exchange, market_type, symbol, timeframe, open_time_ms)`. Since TimescaleDB requires unique indexes on a hypertable to include the partitioning dimension, `open_time_ms` remains part of the key.
 
@@ -74,6 +81,7 @@ Use `open_time_ms BIGINT` as the integer time dimension. The initial design prop
 
 Required database constraints should mirror existing application validation:
 
+- Exact identity vocabulary for this initial dataset: `exchange='binance'`, `market_type='USDT_PERPETUAL'`, `symbol='BTCUSDT'`.
 - Supported timeframe and timestamp alignment: 900,000 ms for 15m; 3,600,000 ms for 1h.
 - `is_closed = TRUE`.
 - Positive OHLC prices; non-negative volume.
@@ -82,6 +90,54 @@ Required database constraints should mirror existing application validation:
 - Required source/quality/availability fields are non-empty and from the supported vocabulary.
 
 Keep Decimal digit/exponent bounds in Python as well; SQL constraints are defense in depth, not a replacement. Avoid a fixed NUMERIC precision/scale that could round legacy values.
+
+### Normative initial DDL shape
+
+The following is the proposed first-version table contract, not an instruction to execute it in this PR. It intentionally stores only source-persisted fields plus nullable ingestion provenance:
+
+```sql
+CREATE SCHEMA IF NOT EXISTS market_data;
+
+CREATE TABLE market_data.candles (
+    exchange TEXT NOT NULL CHECK (exchange = 'binance'),
+    market_type TEXT NOT NULL CHECK (market_type = 'USDT_PERPETUAL'),
+    symbol TEXT NOT NULL CHECK (symbol = 'BTCUSDT'),
+    timeframe TEXT NOT NULL CHECK (timeframe IN ('15m', '1h')),
+    open_time_ms BIGINT NOT NULL CHECK (open_time_ms >= 0),
+    open NUMERIC NOT NULL CHECK (open > 0),
+    high NUMERIC NOT NULL CHECK (high > 0),
+    low NUMERIC NOT NULL CHECK (low > 0),
+    close NUMERIC NOT NULL CHECK (close > 0),
+    volume NUMERIC NOT NULL CHECK (volume >= 0),
+    available_at_ms BIGINT NOT NULL,
+    ingestion_batch_id UUID NULL,
+    PRIMARY KEY (exchange, market_type, symbol, timeframe, open_time_ms),
+    CHECK (
+        open_time_ms <= 9223372036854775807 -
+            CASE timeframe WHEN '15m' THEN 900000 ELSE 3600000 END
+    ),
+    CHECK (
+        open_time_ms % CASE timeframe
+            WHEN '15m' THEN 900000 ELSE 3600000
+        END = 0
+    ),
+    CHECK (
+        available_at_ms >= open_time_ms +
+            CASE timeframe WHEN '15m' THEN 900000 ELSE 3600000 END
+    ),
+    CHECK (high >= GREATEST(open, low, close)),
+    CHECK (low <= LEAST(open, high, close))
+);
+
+SELECT create_hypertable(
+    'market_data.candles',
+    'open_time_ms',
+    chunk_time_interval => 2592000000,
+    if_not_exists => TRUE
+);
+```
+
+The table definition must be applied by a versioned migration in a later implementation PR after checking the target TimescaleDB version and staging behavior. The primary key includes the integer time partition column. No additional unique constraint may omit `open_time_ms`. Do not add indexes speculatively; benchmark the actual bounded `read_window` and `as_of_ms` query before adding any secondary index (and any hypertable unique index must still include the partitioning column).
 
 ### Supporting tables (future-compatible, not required for the first cutover)
 
