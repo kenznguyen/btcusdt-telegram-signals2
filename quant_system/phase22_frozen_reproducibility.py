@@ -261,6 +261,30 @@ def verify_oos_eligibility(bundle, original_bundle, metadata,
         REGISTERED_BUNDLE_SHA.removeprefix("sha256:"),
         REGISTERED_METADATA_SHA.removeprefix("sha256:"),
     ), "PHASE22_PROTOCOL_PROVENANCE_MISMATCH")
+    policy = oos.get("frozen_model_policy", {})
+    data = oos.get("data", {})
+    evaluation = oos.get("evaluation", {})
+    certification = oos.get("certification", {})
+    _require(
+        oos.get("holdout_start_utc") == HOLDOUT_START_UTC
+        and oos.get("holdout_end_utc") == HOLDOUT_END_UTC
+        and oos.get("holdout_days") == 30
+        and policy.get("retrain_inside_holdout") is False
+        and policy.get("tune_parameters_using_holdout") is False
+        and policy.get("change_strategy_or_features_after_seal") is False
+        and policy.get("all_training_labels_end_before_holdout_start") is True
+        and policy.get("freeze_all_feature_scalers_and_outlier_transformers") is True
+        and data.get("only_closed_candles") is True
+        and data.get("exact_holdout_15m_rows") == 2880
+        and data.get("no_backfill_of_missing_holdout_candles") is True
+        and data.get("no_use_of_holdout_rows_for_training_or_scalers") is True
+        and evaluation.get("no_real_orders") is True
+        and evaluation.get("automatic_promotion_allowed") is False
+        and all(certification.get(flag) is False for flag in (
+            "independent_oos_verified", "oos_certified",
+            "ai_promotion_eligible", "ready_for_360", "live_orders_enabled")),
+        "PHASE22_OOS_PROTOCOL_POLICY_MISMATCH",
+    )
     _require(oos.get("sealed_in_git") is True
              and isinstance(oos.get("seal_git_commit"), str)
              and len(oos["seal_git_commit"]) == 40,
