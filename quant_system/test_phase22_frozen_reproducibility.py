@@ -119,6 +119,102 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         self.assertFalse(report["ai_promotion_eligible"])
         self.assertFalse(report["live_orders_enabled"])
 
+
+    def _write_valid_attestation_and_github_proof(self):
+        protocol = json.loads(self.protocol.read_text(encoding="utf8"))
+        protocol.update({
+            "status": "SEALED_BY_EXTERNAL_ATTESTATION",
+            "source_commit_sha": self.registered["source"],
+            "frozen_model_bundle_sha256": self.registered["bundle"].removeprefix("sha256:"),
+            "frozen_model_metadata_sha256": self.registered["metadata"].removeprefix("sha256:"),
+        })
+        self.protocol.write_text(json.dumps(protocol), encoding="utf8")
+        self.registered["protocol"] = "sha256:" + hashlib.sha256(self.protocol.read_bytes()).hexdigest()
+        attestation = {
+            "attestation_type": "PHASE13B_PRE_HOLDOUT_EXTERNAL_ATTESTATION",
+            "source_commit_sha": self.registered["source"],
+            "model_bundle_sha256": self.registered["bundle"].removeprefix("sha256:"),
+            "model_metadata_sha256": self.registered["metadata"].removeprefix("sha256:"),
+            "protocol_sha256": self.registered["protocol"].removeprefix("sha256:"),
+            "holdout_start_utc": "2026-11-04T00:00:00Z",
+            "holdout_end_utc": "2026-12-04T00:00:00Z",
+            "holdout_retraining_allowed": False,
+            "holdout_tuning_allowed": False,
+            "independent_oos_verified": False,
+            "oos_certified": False,
+            "ai_promotion_eligible": False,
+            "live_orders_enabled": False,
+        }
+        proof = {
+            "sha": "f" * 40,
+            "commit": {"committer": {"date": "2026-10-31T16:18:24Z"}},
+            "files": [{"filename": "research_evidence/frozen-model/phase13b-20261104/pre-holdout-attestation.json"}],
+        }
+        self.attestation = self.root / "attestation.json"
+        self.github_proof = self.root / "github-commit.json"
+        self.attestation.write_text(json.dumps(attestation), encoding="utf8")
+        self.github_proof.write_text(json.dumps(proof), encoding="utf8")
+
+    def verify_with_attestation(self):
+        self._write_valid_attestation_and_github_proof()
+        with patch.multiple(
+            "quant_system.phase22_frozen_reproducibility",
+            REGISTERED_BUNDLE_SHA=self.registered["bundle"],
+            REGISTERED_METADATA_SHA=self.registered["metadata"],
+            REGISTERED_PROTOCOL_SHA=self.registered["protocol"],
+            REGISTERED_SOURCE_COMMIT=self.registered["source"],
+            REGISTERED_FEATURE_COUNT=2,
+        ):
+            return verify_preserved_snapshot(
+                self.bundle, self.original, self.metadata, self.protocol, self.seal,
+                self.attestation, self.github_proof,
+            )
+
+    def test_unsealed_historical_protocol_is_rejected(self):
+        with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_PROTOCOL_NOT_SEALED"):
+            self.verify()
+
+    def test_protocol_null_provenance_hashes_are_rejected(self):
+        self._write_valid_attestation_and_github_proof()
+        protocol = json.loads(self.protocol.read_text(encoding="utf8"))
+        protocol["frozen_model_bundle_sha256"] = None
+        self.protocol.write_text(json.dumps(protocol), encoding="utf8")
+        with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_PROTOCOL_PROVENANCE_MISSING"):
+            self.verify_with_attestation()
+
+    def test_missing_github_commit_proof_is_rejected(self):
+        self._write_valid_attestation_and_github_proof()
+        self.github_proof.write_text("{}", encoding="utf8")
+        with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_GITHUB_COMMIT_PROOF_MISSING"):
+            with patch.multiple(
+                "quant_system.phase22_frozen_reproducibility",
+                REGISTERED_BUNDLE_SHA=self.registered["bundle"],
+                REGISTERED_METADATA_SHA=self.registered["metadata"],
+                REGISTERED_PROTOCOL_SHA=self.registered["protocol"],
+                REGISTERED_SOURCE_COMMIT=self.registered["source"],
+                REGISTERED_FEATURE_COUNT=2,
+            ):
+                verify_preserved_snapshot(
+                    self.bundle, self.original, self.metadata, self.protocol, self.seal,
+                    self.attestation, self.github_proof,
+                )
+
+    def test_github_attestation_commit_must_precede_holdout(self):
+        self._write_valid_attestation_and_github_proof()
+        proof = json.loads(self.github_proof.read_text(encoding="utf8"))
+        proof["commit"]["committer"]["date"] = "2026-11-04T00:00:00Z"
+        self.github_proof.write_text(json.dumps(proof), encoding="utf8")
+        with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_ATTESTATION_NOT_PRE_HOLDOUT"):
+            self.verify_with_attestation()
+
+    def test_github_proof_must_name_attestation_file(self):
+        self._write_valid_attestation_and_github_proof()
+        proof = json.loads(self.github_proof.read_text(encoding="utf8"))
+        proof["files"] = [{"filename": "unrelated.txt"}]
+        self.github_proof.write_text(json.dumps(proof), encoding="utf8")
+        with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_GITHUB_COMMIT_PROOF_MISSING"):
+            self.verify_with_attestation()
+
     def test_one_byte_bundle_tampering_is_rejected(self):
         self.bundle.write_bytes(self.bundle.read_bytes() + b"x")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_BUNDLE_SHA_MISMATCH"):
