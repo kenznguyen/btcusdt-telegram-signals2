@@ -97,66 +97,6 @@ def verify_preserved_snapshot(bundle, original_bundle, metadata, protocol, seal,
     registered_protocol = _json_object(protocol, "PHASE22_INVALID_PROTOCOL")
     declaration = _json_object(seal, "PHASE22_INVALID_SEAL")
 
-    _require(registered_protocol.get("status") == "SEALED_BY_EXTERNAL_ATTESTATION",
-             "PHASE22_PROTOCOL_NOT_SEALED")
-    protocol_hashes = (
-        registered_protocol.get("source_commit_sha"),
-        registered_protocol.get("frozen_model_bundle_sha256"),
-        registered_protocol.get("frozen_model_metadata_sha256"),
-    )
-    _require(all(isinstance(value, str) and value.strip() for value in protocol_hashes),
-             "PHASE22_PROTOCOL_PROVENANCE_MISSING")
-    _require(protocol_hashes == (
-        REGISTERED_SOURCE_COMMIT,
-        REGISTERED_BUNDLE_SHA.removeprefix("sha256:"),
-        REGISTERED_METADATA_SHA.removeprefix("sha256:"),
-    ), "PHASE22_PROTOCOL_PROVENANCE_MISMATCH")
-    _require(registered_protocol.get("sealed_in_git") is True,
-             "PHASE22_PROTOCOL_COMMIT_EVIDENCE_MISSING")
-
-    _require(attestation is not None and github_commit_proof is not None,
-             "PHASE22_GITHUB_COMMIT_PROOF_MISSING")
-    attested = _json_object(Path(attestation), "PHASE22_INVALID_ATTESTATION")
-    proof = _json_object(Path(github_commit_proof), "PHASE22_GITHUB_COMMIT_PROOF_MISSING")
-    commit = proof.get("commit", {})
-    committer = commit.get("committer", {}) if isinstance(commit, dict) else {}
-    commit_date = committer.get("date") if isinstance(committer, dict) else None
-    filenames = proof.get("files", [])
-    expected_attestation_path = (
-        "research_evidence/frozen-model/phase13b-20261104/pre-holdout-attestation.json"
-    )
-    _require(
-        attested.get("attestation_type") == "PHASE13B_PRE_HOLDOUT_EXTERNAL_ATTESTATION"
-        and proof.get("sha") == REGISTERED_ATTESTATION_COMMIT
-        and isinstance(commit_date, str)
-        and isinstance(filenames, list)
-        and any(isinstance(item, dict) and item.get("filename") == expected_attestation_path
-                for item in filenames),
-        "PHASE22_GITHUB_COMMIT_PROOF_MISSING",
-    )
-    try:
-        committed_at = datetime.fromisoformat(commit_date.replace("Z", "+00:00"))
-        _require(committed_at.tzinfo is not None,
-                 "PHASE22_GITHUB_COMMIT_PROOF_MISSING")
-    except (TypeError, ValueError) as exc:
-        raise FrozenReproducibilityError(
-            "PHASE22_GITHUB_COMMIT_PROOF_MISSING"
-        ) from exc
-    _require(committed_at.astimezone(timezone.utc) <
-             datetime.fromisoformat(HOLDOUT_START_UTC.replace("Z", "+00:00")),
-             "PHASE22_ATTESTATION_NOT_PRE_HOLDOUT")
-    _require(
-        attested.get("source_commit_sha") == REGISTERED_SOURCE_COMMIT
-        and attested.get("model_bundle_sha256") == REGISTERED_BUNDLE_SHA.removeprefix("sha256:")
-        and attested.get("model_metadata_sha256") == REGISTERED_METADATA_SHA.removeprefix("sha256:")
-        and attested.get("protocol_sha256") == REGISTERED_PROTOCOL_SHA.removeprefix("sha256:")
-        and attested.get("holdout_start_utc") == HOLDOUT_START_UTC
-        and attested.get("holdout_end_utc") == HOLDOUT_END_UTC
-        and attested.get("holdout_retraining_allowed") is False
-        and attested.get("holdout_tuning_allowed") is False,
-        "PHASE22_ATTESTATION_PROVENANCE_MISMATCH",
-    )
-
     _require(declaration.get("type") == "PHASE13B_PRE_HOLDOUT_SHA256_SEAL" and
              candidate.get("schemaVersion") == 1 and
              candidate.get("candidate_sha256") == bundle_sha and
@@ -240,9 +180,7 @@ def verify_preserved_snapshot(bundle, original_bundle, metadata, protocol, seal,
         "candidate_bundle_sha256": bundle_sha,
         "candidate_metadata_sha256": metadata_sha,
         "protocol_sha256": protocol_sha,
-        "github_attestation_commit_sha": proof["sha"],
-        "github_attestation_committer_timestamp_utc": commit_date,
-        "pre_holdout_attestation_verified": True,
+        "pre_holdout_attestation_verified": False,
         "source_commit_sha": source,
         "model_identifier": model_id,
         "training_end_ms": training_end,
@@ -260,6 +198,76 @@ def verify_preserved_snapshot(bundle, original_bundle, metadata, protocol, seal,
     }
 
 
+def verify_oos_eligibility(bundle, original_bundle, metadata, protocol, seal,
+                           attestation, github_commit_proof):
+    """Apply external-seal checks separately from historical reproduction."""
+    historical = verify_preserved_snapshot(
+        bundle, original_bundle, metadata, protocol, seal
+    )
+    registered_protocol = _json_object(Path(protocol), "PHASE22_INVALID_PROTOCOL")
+    _require(registered_protocol.get("status") == "SEALED_BY_EXTERNAL_ATTESTATION",
+             "PHASE22_PROTOCOL_NOT_SEALED")
+    protocol_hashes = (
+        registered_protocol.get("source_commit_sha"),
+        registered_protocol.get("frozen_model_bundle_sha256"),
+        registered_protocol.get("frozen_model_metadata_sha256"),
+    )
+    _require(all(isinstance(value, str) and value.strip() for value in protocol_hashes),
+             "PHASE22_PROTOCOL_PROVENANCE_MISSING")
+    _require(protocol_hashes == (
+        REGISTERED_SOURCE_COMMIT,
+        REGISTERED_BUNDLE_SHA.removeprefix("sha256:"),
+        REGISTERED_METADATA_SHA.removeprefix("sha256:"),
+    ), "PHASE22_PROTOCOL_PROVENANCE_MISMATCH")
+    _require(registered_protocol.get("sealed_in_git") is True,
+             "PHASE22_PROTOCOL_COMMIT_EVIDENCE_MISSING")
+    _require(attestation is not None and github_commit_proof is not None,
+             "PHASE22_GITHUB_COMMIT_PROOF_MISSING")
+    attested = _json_object(Path(attestation), "PHASE22_INVALID_ATTESTATION")
+    proof = _json_object(Path(github_commit_proof), "PHASE22_GITHUB_COMMIT_PROOF_MISSING")
+    commit = proof.get("commit", {})
+    committer = commit.get("committer", {}) if isinstance(commit, dict) else {}
+    commit_date = committer.get("date") if isinstance(committer, dict) else None
+    filenames = proof.get("files", [])
+    expected_path = "research_evidence/frozen-model/phase13b-20261104/pre-holdout-attestation.json"
+    _require(
+        attested.get("attestation_type") == "PHASE13B_PRE_HOLDOUT_EXTERNAL_ATTESTATION"
+        and proof.get("sha") == REGISTERED_ATTESTATION_COMMIT
+        and isinstance(commit_date, str)
+        and isinstance(filenames, list)
+        and any(isinstance(item, dict) and item.get("filename") == expected_path
+                for item in filenames),
+        "PHASE22_GITHUB_COMMIT_PROOF_MISSING",
+    )
+    try:
+        committed_at = datetime.fromisoformat(commit_date.replace("Z", "+00:00"))
+        _require(committed_at.tzinfo is not None, "PHASE22_GITHUB_COMMIT_PROOF_MISSING")
+    except (TypeError, ValueError) as exc:
+        raise FrozenReproducibilityError("PHASE22_GITHUB_COMMIT_PROOF_MISSING") from exc
+    _require(committed_at.astimezone(timezone.utc) <
+             datetime.fromisoformat(HOLDOUT_START_UTC.replace("Z", "+00:00")),
+             "PHASE22_ATTESTATION_NOT_PRE_HOLDOUT")
+    _require(
+        attested.get("source_commit_sha") == REGISTERED_SOURCE_COMMIT
+        and attested.get("model_bundle_sha256") == REGISTERED_BUNDLE_SHA.removeprefix("sha256:")
+        and attested.get("model_metadata_sha256") == REGISTERED_METADATA_SHA.removeprefix("sha256:")
+        and attested.get("protocol_sha256") == REGISTERED_PROTOCOL_SHA.removeprefix("sha256:")
+        and attested.get("holdout_start_utc") == HOLDOUT_START_UTC
+        and attested.get("holdout_end_utc") == HOLDOUT_END_UTC
+        and attested.get("holdout_retraining_allowed") is False
+        and attested.get("holdout_tuning_allowed") is False,
+        "PHASE22_ATTESTATION_PROVENANCE_MISMATCH",
+    )
+    result = dict(historical)
+    result.update({
+        "audit": "PHASE22_PRE_HOLDOUT_OOS_ELIGIBILITY_GATE",
+        "github_attestation_commit_sha": proof["sha"],
+        "github_attestation_committer_timestamp_utc": commit_date,
+        "pre_holdout_attestation_verified": True,
+    })
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--bundle", required=True)
@@ -267,13 +275,10 @@ def main():
     parser.add_argument("--metadata", required=True)
     parser.add_argument("--protocol", required=True)
     parser.add_argument("--seal", required=True)
-    parser.add_argument("--attestation", required=True)
-    parser.add_argument("--github-commit-proof", required=True)
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
     report = verify_preserved_snapshot(
-        args.bundle, args.original_bundle, args.metadata, args.protocol, args.seal,
-        args.attestation, args.github_commit_proof
+        args.bundle, args.original_bundle, args.metadata, args.protocol, args.seal
     )
     output = Path(args.out)
     output.parent.mkdir(parents=True, exist_ok=True)
