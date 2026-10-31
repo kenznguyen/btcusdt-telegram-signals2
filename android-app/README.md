@@ -71,3 +71,12 @@ Focused regression tests: `gradle :app:testDebugUnitTest --tests '*HummingbotOrd
 - Closed-trade PnL and open-position unrealized PnL are displayed separately. Equity/drawdown include estimated unrealized PnL and fees; intrabar extremes are estimates from OHLC, not tick-order reconstruction. Validate the same candle fixture and fill assumptions before comparing results with another engine.
 
 
+
+
+## Five-Layer Paper parallel APK
+
+The `parallel` build variant is a separate installable application with package
+`com.kenznguyen.btclivealerts.paper`. It starts directly in the dedicated Five-Layer
+Paper screen and does not mount BTC Chart Pro's chart/scanner tabs or start its
+background Strategy Monitor service. The regular `debug` variant remains BTC Chart Pro.
+Both variants are debug-signed for parallel installation; no release keystore is required.
