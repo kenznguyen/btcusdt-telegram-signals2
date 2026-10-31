@@ -179,10 +179,12 @@ def equity_snapshot(timestamp):
                          end-900_000, end, as_of_ms=timestamp)
     if not window["candles"] or not window["coverage"]["complete"]:
         return {"available":False,"reason":"CLOSED_M15_MARK_UNAVAILABLE","points":[]}
-    from paper_execution.ledger import read_snapshot
-    read_snapshot(os.environ.get("MARKET_DATA_DB", ""))
     mark = window["candles"][-1]
-    result = ledger().record_equity(mark["close"], mark["closeTimeMs"], timestamp,
+    # Constructing the ledger initializes a fresh Paper store before the first
+    # persistent equity observation; read_snapshot() is intentionally read-only
+    # and cannot be used as an initialization prerequisite here.
+    paper_ledger = ledger()
+    result = paper_ledger.record_equity(mark["close"], mark["closeTimeMs"], timestamp,
         window["datasetVersion"], os.environ.get("PAPER_INITIAL_CAPITAL", "100"))
     from paper_execution.equity import parse_limits
     limits = parse_limits(os.environ)
