@@ -175,7 +175,6 @@ class PaperLedger:
             context.prec = 80
             connection.execute("BEGIN IMMEDIATE")
             position, average, realized, fees, paused = stored_state(connection)
-            risk_reason = risk_control.risk_block_reason(connection)
             owner_row = connection.execute("SELECT owner,dca_used,initial_margin_quote FROM paper_strategy_state WHERE id=1").fetchone()
             owner, dca_used, initial_margin = owner_row
             previous = connection.execute("SELECT payload_hash,document FROM paper_orders WHERE intent_id=?", (intent["intentId"],)).fetchone()
@@ -188,22 +187,24 @@ class PaperLedger:
             side = "BUY" if delta > 0 else "SELL" if delta < 0 else "NONE"
             quantity, filled, quote, fee = abs(delta), ZERO, ZERO, ZERO
             pending = connection.execute("SELECT 1 FROM paper_orders WHERE status IN ('OPEN','PARTIALLY_FILLED') LIMIT 1").fetchone()
+            risk_reducing = position != 0 and target * position >= 0 and abs(target) < abs(position)
             risk_reason, auto_kill = equity_history.block_reason(connection, target_position=target,
-                limit_price=limit, limits=self.risk_limits, require_limits=self.require_risk_limits, now_ms=now)
+                current_position=position, limit_price=limit, limits=self.risk_limits,
+                require_limits=self.require_risk_limits, now_ms=now)
             if auto_kill:
                 risk_control.set_kill(connection, True, now, auto_kill)
                 self.audit(connection, now, "RISK_LIMIT_BREACH", {"reason": auto_kill})
             if risk_reason:
                 reason = risk_reason
-            elif owner not in (None, strategy_id) and position != 0:
+            elif not risk_reducing and owner not in (None, strategy_id) and position != 0:
                 reason = "POSITION_OWNED_BY_OTHER_STRATEGY"
-            elif risk_control.risk_block_reason(connection):
+            elif not risk_reducing and risk_control.risk_block_reason(connection):
                 reason = risk_control.risk_block_reason(connection)
-            elif paused:
+            elif paused and not risk_reducing:
                 reason = "PAUSED"
             elif not intent["decisionAtMs"] <= now <= intent["validUntilMs"]:
                 reason = "EXPIRED_INTENT"
-            elif abs(target) > self.maximum:
+            elif not risk_reducing and abs(target) > self.maximum:
                 reason = "POSITION_LIMIT"
             elif pending:
                 reason = "PENDING_ORDER"
