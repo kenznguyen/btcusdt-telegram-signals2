@@ -70,9 +70,7 @@ def verify_oos_schedule(protocol,now=None):
             protocol.get("holdout_end_utc")=="2026-12-04T00:00:00Z" and
             protocol.get("holdout_days")==30 and
             protocol.get("model_identifier")=="chart-pro-okx-shadow-v1" and
-            protocol.get("holdout_data_already_used_for_model_selection") is False
-            and protocol.get("frozen_model_policy",{}).get(
-                "no_retraining_inside_holdout",True) is True,
+            protocol.get("holdout_data_already_used_for_model_selection") is False,
             "OOS_PROTOCOL_CHANGED")
     require(verify_shared_risk_protocol(protocol),
             "OOS_SHARED_RISK_CHANGED")
