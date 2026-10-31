@@ -62,6 +62,38 @@ class EquityHistoryTest(unittest.TestCase):
                     realized="0",fees="0",mark_price="100",candle_close_ms=at+900_000,
                     observed_at_ms=at+900_000,dataset_version="sha256:"+"b"*64)
 
+    def test_max_drawdown_daily_loss_and_exposure_limits_are_enforced(self):
+        from decimal import Decimal
+        at=1_800_000_000_000
+        self.record(at,"100","0")
+        self.record(at+900_000,"110","0")
+        self.record(at+1_800_000,"80","0")
+        limits={"maxDrawdownPct":Decimal("20"),"maxDailyLossUsdt":Decimal("95"),
+                "maxExposureUsdt":Decimal("1000")}
+        with self.db:
+            reason, kill=equity.block_reason(self.db,target_position="0",limit_price="80",
+                limits=limits,require_limits=True,now_ms=at+1_800_000)
+        self.assertEqual(reason,"MAX_DRAWDOWN_LIMIT")
+        self.assertEqual(kill,"MAX_DRAWDOWN_LIMIT")
+
+    def test_daily_loss_limit_blocks_and_exposure_limit_rejects_without_killing(self):
+        from decimal import Decimal
+        at=1_800_000_000_000
+        self.record(at,"100","0")
+        self.record(at+900_000,"89","0",realized="-11")
+        limits={"maxDrawdownPct":Decimal("90"),"maxDailyLossUsdt":Decimal("10"),
+                "maxExposureUsdt":Decimal("10")}
+        with self.db:
+            reason, kill=equity.block_reason(self.db,target_position="0",limit_price="89",
+                limits=limits,require_limits=True,now_ms=at+900_000)
+        self.assertEqual(reason,"DAILY_LOSS_LIMIT")
+        self.assertEqual(kill,"DAILY_LOSS_LIMIT")
+        with self.db:
+            reason, kill=equity.block_reason(self.db,target_position="0.2",limit_price="89",
+                limits=limits,require_limits=True,now_ms=at+900_000)
+        self.assertEqual(reason,"MAX_EXPOSURE_LIMIT")
+        self.assertIsNone(kill)
+
 
 if __name__=="__main__":
     unittest.main()
