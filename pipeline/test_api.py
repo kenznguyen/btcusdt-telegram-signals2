@@ -61,7 +61,7 @@ class FiveLayerApiTest(unittest.TestCase):
                        "CONTROL_TOKEN": "paper-control-token", "INTELLIGENCE_REPORT_PATH": str(self.intel_path),
                        "FREQAI_REPORT_PATH": str(self.pred_path), "STRATEGY_CORE_REPORT_PATH": str(self.core_path),
                        "PAPER_MAX_DRAWDOWN_PCT":"95", "PAPER_MAX_DAILY_LOSS_USDT":"95",
-                       "PAPER_MAX_EXPOSURE_USDT":"1000"
+                       "PAPER_MAX_EXPOSURE_USDT":"1000"}
         self.env = patch.dict(os.environ, self.config, clear=True)
         self.env.start()
         self.addCleanup(self.env.stop)
