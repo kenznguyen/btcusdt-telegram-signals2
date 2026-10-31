@@ -10,7 +10,6 @@
   "phase20_gate_errors": [],
   "phase19_and_phase18_runtime_tests": 20,
   "phase20_receipt_tests": 10,
-  "total_observed_codemaqic_tests": 33,
   "original_native_predict_rows": 480,
   "original_native_accepted_rows": 471,
   "original_native_rejected_rows": 9,
