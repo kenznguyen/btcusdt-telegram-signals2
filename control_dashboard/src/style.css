@@ -155,3 +155,22 @@ label{min-width:100%}
 .control-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.5rem}.button.danger{background:#6b2632;border-color:#a94a5b;color:#fff}.button.danger:hover:not(:disabled){background:#853142}
 
 .signal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;padding:1rem}.signal-card{min-width:0;border:1px solid var(--edge);border-radius:7px;background:#101925;padding:1rem}.signal-card .decision{padding:.25rem 0 0}.signal-card .reason{padding:.5rem 0;min-height:52px}.signal-card .button{margin-top:.5rem}@media(max-width:780px){.signal-grid{grid-template-columns:1fr;padding:.75rem}}
+
+
+/* Five-layer risk center */
+.kill-badge,.pause-badge{font-size:.58rem;letter-spacing:.08em;padding:.35rem .55rem;border:1px solid #a94a5b;border-radius:4px;color:#ffb7c0}
+.pause-badge{border-color:#8a6b36;color:var(--amber)}
+.risk-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.risk-metric{display:grid;align-content:start;gap:.4rem;min-height:104px;padding:1rem 1.25rem;border-right:1px solid var(--edge);border-bottom:1px solid var(--edge);min-width:0}
+.risk-metric:nth-child(4n){border-right:0}
+.risk-metric>span{font-size:.68rem;color:var(--muted);line-height:1.4}
+.risk-metric>strong{font-size:1.15rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.risk-metric>small{font-size:.62rem;overflow-wrap:anywhere}
+.risk-footnote{display:flex;justify-content:space-between;gap:.75rem;flex-wrap:wrap;padding:.8rem 1.25rem;color:var(--muted);font-size:.65rem;line-height:1.5}
+.risk-warning{margin:0 1.25rem 1rem;padding:.7rem .85rem;border:1px solid #6d5730;border-radius:5px;background:#241f16;color:#f2d39b;font-size:.68rem;line-height:1.5}
+.signal-meta{display:grid;gap:.35rem;padding:.2rem 0 .65rem;font-size:.65rem}
+.signal-meta>div{display:flex;justify-content:space-between;gap:.5rem}
+.signal-meta dt{color:var(--muted);flex:0 0 auto}
+.signal-meta dd{min-width:0;max-width:68%;text-align:right;overflow-wrap:anywhere;color:#c8d7e8}
+@media(max-width:1100px){.risk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.risk-metric:nth-child(4n){border-right:1px solid var(--edge)}.risk-metric:nth-child(2n){border-right:0}}
+@media(max-width:420px){.risk-metric{padding:.8rem .9rem;min-height:95px}.risk-metric>strong{font-size:1rem}.risk-footnote{padding:.75rem 1rem}.risk-warning{margin:0 1rem 1rem}.kill-badge,.pause-badge{display:none}}
