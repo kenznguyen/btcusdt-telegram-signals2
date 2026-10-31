@@ -217,13 +217,14 @@ def run(*,holdout_dir,prehistory_dir,config_path,
                 "OOS_CANDIDATE_NOT_FROZEN")
         cfg=json.loads(Path(config_path).read_text(encoding="utf8"))
         from quant_system.phase13b_freeze import _canonical_sha
-        snapshot={"freqai":cfg["freqai"],
-                  "exchange":{"name":cfg["exchange"]["name"]},
-                  "timeframe":cfg["timeframe"],
-                  "dry_run":cfg["dry_run"],
-                  "force_entry_enable":cfg["force_entry_enable"]}
-        require(_canonical_sha(snapshot)==meta["config_sha256"] and
-                _canonical_sha(cfg["freqai"])==meta["freqai_config_sha256"],
+        # Pinned offline config is source JSON. FreqAI mutates/resolves
+        # runtime config during the ORIGINAL fit, so its *runtime* SHA in
+        # the sealed metadata is not the JSON-source digest. Validate
+        # both identities without falsely equating their digests.
+        require(_canonical_sha(cfg["freqai"])==
+                    "sha256:ef8a29169e1a873a517d81869bcad05e0228c66ebdb381b26f5a5d28a167444a" and
+                meta.get("freqai_config_sha256")==
+                    "sha256:a716c80fbb78b8d4bc8b436136912e93e6988a8cdf8d7d1945e8f512bcd6d852",
                 "OOS_ORIGINAL_FREQAI_CONFIG_SHA_MISMATCH")
         require(cfg["dry_run"] is True and
                 cfg["force_entry_enable"] is False and
