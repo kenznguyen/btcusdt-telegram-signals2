@@ -67,13 +67,14 @@ class CoreStrategyTest(unittest.TestCase):
         m15_values[-2]={"rsi":29.0,"adx":25.0}
         m15_values[-1]={"rsi":35.0,"adx":30.0}
         h1_values=[{"plus_di":40.0,"minus_di":10.0,"adx":30.0} for _ in h1rows]
+        close=float(m15rows[-1]["close"])
         book={"source":"hummingbot","connector":"binance_perpetual","symbol":"BTCUSDT",
-              "observedAtMs":now-1000,"bids":[{"price":"100","quantity":"1"}],
-              "asks":[{"price":"100.02","quantity":"1"}]}
+              "observedAtMs":now-1000,"bids":[{"price":str(close-0.01),"quantity":"1"}],
+              "asks":[{"price":str(close+0.01),"quantity":"1"}]}
         with patch("pipeline.core_strategy.indicators",side_effect=[m15_values,h1_values]):
             result=produce(window(m15rows,"15m"),window(h1rows,"1h"),
                 {"positionBase":"0","averageEntryPrice":"0","realizedPnlQuote":"0","feesQuote":"0"},
-                {"owner":None,"dcaUsed":False},book,now,initial_capital="100",max_position_base="0.01")
+                {"owner":None,"dcaUsed":False},book,now,initial_capital="100",max_position_base="10")
         self.assertEqual(result["action"],"BUY")
         self.assertEqual(result["reason"],"RSI_ADX_ENTRY")
         self.assertIsNotNone(result["intent"])
