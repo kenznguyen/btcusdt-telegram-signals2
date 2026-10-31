@@ -32,7 +32,7 @@ class HistoricalFrozenShadowTests(unittest.TestCase):
 
     def test_holdout_intrusion_rejected(self):
         t=times()
-        t[-1]=START
+        t.append(START)  # contiguous but the candle itself is in holdout
         with self.assertRaisesRegex(HistoricalShadowError,
                                     'SHADOW_HOLDOUT_DATA_FORBIDDEN'):
             select_historical_witnesses(t,t[420])
