@@ -19,7 +19,7 @@ The current canonical store is SQLite and serves Binance USDⓈ-M BTCUSDT linear
 - Gaps, duplicate idempotency, conflicting duplicate rejection, deterministic ordering, and `datasetVersion` SHA-256 semantics.
 - Read API remains read-only, authenticated, bounded, and must not create a missing database.
 
-The current `MARKET_DATA_DB` SQLite file is also used by the paper ledger. `paper_execution/ledger.py` owns paper state/order/book/audit/strategy-state and risk/equity history tables; `pipeline/api.py` reads both market data and paper state. Therefore, changing `MARKET_DATA_DB` to a PostgreSQL DSN is not backward-compatible and is explicitly out of scope.
+The current `MARKET_DATA_DB` SQLite file is also used by the paper ledger. `paper_execution/ledger.py` owns paper state/order/book/audit/strategy-state and risk/equity history tables; `pipeline/api.py` reads both market data and paper state. Therefore, changing `MARKET_DATA_DB` to a PostgreSQL DSN is not backward-compatible and is explicitly out of scope. In mixed mode, `MARKET_DATA_DATABASE_URL` selects PostgreSQL only for market-data repository operations while `MARKET_DATA_DB` remains the SQLite path for the paper ledger and the SQLite fallback. The adapter factory and API call sites must enforce this separation.
 
 ## Proposed architecture
 
@@ -29,9 +29,9 @@ Introduce a repository boundary without changing callers' domain contract:
 - `PostgresRepository`: a separate adapter for canonical market data only.
 - Shared domain types and validation: Candle, Decimal validation, query bounds, coverage/gaps, duplicate/conflict rules, and canonical serialization.
 - Configuration remains explicit:
-  - `MARKET_DATA_DB`: existing SQLite file path; retain its current meaning during transition.
-  - `MARKET_DATA_DATABASE_URL`: optional PostgreSQL/TimescaleDB connection for market data only.
-  - `PAPER_DB_PATH`: explicit future paper-ledger SQLite path after a separately reviewed configuration split.
+  - `MARKET_DATA_DB`: existing SQLite file path. During mixed mode it remains the legacy SQLite path and must continue to be supplied to the paper ledger, because `pipeline/api.py` currently uses it for paper state, orders, audit, equity, and risk state.
+  - `MARKET_DATA_DATABASE_URL`: optional PostgreSQL/TimescaleDB connection for market-data reads/writes only. When configured, only market-data repository calls may use it; no paper-ledger call may receive this DSN.
+  - `PAPER_DB_PATH`: not introduced by this design. It may replace the paper ledger's use of `MARKET_DATA_DB` only in a separate, explicitly reviewed configuration change.
   - `MARKET_DATA_TOKEN`: read API authentication; unchanged semantics.
 
 No dual-write to two independent databases is proposed as a correctness mechanism: there is no distributed atomic transaction. Any mirror/shadow stage must be replayable and reconcile from the SQLite source of truth.
@@ -104,12 +104,12 @@ CREATE TABLE market_data.candles (
     symbol TEXT NOT NULL CHECK (symbol = 'BTCUSDT'),
     timeframe TEXT NOT NULL CHECK (timeframe IN ('15m', '1h')),
     open_time_ms BIGINT NOT NULL CHECK (open_time_ms >= 0),
-    open NUMERIC NOT NULL CHECK (open > 0),
-    high NUMERIC NOT NULL CHECK (high > 0),
-    low NUMERIC NOT NULL CHECK (low > 0),
-    close NUMERIC NOT NULL CHECK (close > 0),
-    volume NUMERIC NOT NULL CHECK (volume >= 0),
-    available_at_ms BIGINT NOT NULL,
+    open NUMERIC NOT NULL CHECK (open > 0 AND open::text NOT IN ('NaN', 'Infinity', '-Infinity')),
+    high NUMERIC NOT NULL CHECK (high > 0 AND high::text NOT IN ('NaN', 'Infinity', '-Infinity')),
+    low NUMERIC NOT NULL CHECK (low > 0 AND low::text NOT IN ('NaN', 'Infinity', '-Infinity')),
+    close NUMERIC NOT NULL CHECK (close > 0 AND close::text NOT IN ('NaN', 'Infinity', '-Infinity')),
+    volume NUMERIC NOT NULL CHECK (volume >= 0 AND volume::text NOT IN ('NaN', 'Infinity', '-Infinity')),
+    available_at_ms BIGINT NOT NULL CHECK (available_at_ms >= 0),
     ingestion_batch_id UUID NULL,
     PRIMARY KEY (exchange, market_type, symbol, timeframe, open_time_ms),
     CHECK (
@@ -122,7 +122,7 @@ CREATE TABLE market_data.candles (
         END = 0
     ),
     CHECK (
-        available_at_ms >= open_time_ms +
+        available_at_ms::numeric >= open_time_ms::numeric +
             CASE timeframe WHEN '15m' THEN 900000 ELSE 3600000 END
     ),
     CHECK (high >= GREATEST(open, low, close)),
@@ -136,6 +136,8 @@ SELECT create_hypertable(
     if_not_exists => TRUE
 );
 ```
+
+The finite-value checks below are required because PostgreSQL `NUMERIC` supports special values such as `NaN` and infinities; Python Decimal validation alone is not a database constraint. Application Decimal digit/exponent limits remain stricter than the SQL type.
 
 The table definition must be applied by a versioned migration in a later implementation PR after checking the target TimescaleDB version and staging behavior. The primary key includes the integer time partition column. No additional unique constraint may omit `open_time_ms`. Do not add indexes speculatively; benchmark the actual bounded `read_window` and `as_of_ms` query before adding any secondary index (and any hypertable unique index must still include the partitioning column).
 
