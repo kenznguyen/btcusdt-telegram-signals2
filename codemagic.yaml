@@ -1278,7 +1278,7 @@ workflows:
               "proof_source": "Git commit object from the GitHub-fetched PR branch",
           }
           Path("artifacts/phase22/seal/github-attestation-commit.json").write_text(
-              json.dumps(proof, indent=2) + "\\n", encoding="utf-8"
+              json.dumps(proof, indent=2) + "\n", encoding="utf-8"
           )
           print("PHASE22_GITHUB_ATTESTATION_COMMIT_EVIDENCE_FROM_GIT_OBJECT")
           PY
