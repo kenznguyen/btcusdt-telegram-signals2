@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from quant_system.phase19_native_forecast_reconciliation import NativeForecastMismatch, verify_native_row
 from quant_system.phase22_frozen_reproducibility import (
     FrozenReproducibilityError,
     verify_preserved_snapshot,
@@ -127,6 +128,14 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
                 self.bundle, self.original, self.metadata, self.protocol, self.seal,
                 self.attestation, self.github_proof,
             )
+
+    def test_native_prediction_mismatch_fails(self):
+        rebuilt = {"x": [1.25, 4.0], "flag": 1, "prediction": 0.123}
+        captured = {"x": [1.25, 4.0], "flag": 1, "predicted_return": 0.124,
+                    "source": "freqai-native-backtest", "pair": "BTC/USDT:USDT",
+                    "model_identifier": "chart-pro-okx-shadow-v1"}
+        with self.assertRaisesRegex(NativeForecastMismatch, "PHASE19_NATIVE_FORECAST_MISMATCH"):
+            verify_native_row(rebuilt, captured)
 
     def test_exact_preserved_bytes_and_provenance_are_verified(self):
         report = self.verify()
