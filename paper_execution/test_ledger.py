@@ -221,6 +221,25 @@ class PaperLedgerTest(unittest.TestCase):
         with sqlite3.connect(path) as connection:
             self.assertEqual(connection.execute("SELECT * FROM candles").fetchall(), [(123,)])
 
+    def test_kill_switch_is_persistent_and_blocks_every_paper_intent(self):
+        self.ledger.set_killed(True, self.now, "OPERATOR_TEST")
+        reopened = PaperLedger(self.path, max_position_base="1")
+        self.assertTrue(reopened.snapshot()["riskControl"]["killed"])
+        rejected = reopened.submit(self.intent(), self.book(), self.now)
+        self.assertEqual(rejected["status"], "REJECTED")
+        self.assertEqual(rejected["reason"], "KILL_SWITCH")
+        with self.assertRaises(ValueError):
+            reopened.set_killed(False, self.now+1)
+        reopened.reset_kill(acknowledge=True, ready=True, now_ms=self.now+2)
+        accepted = reopened.submit(self.intent("after-reset"), self.book(time=self.now+2), self.now+2)
+        self.assertEqual(accepted["status"], "FILLED")
+
+    def test_resume_does_not_clear_kill_switch(self):
+        self.ledger.set_killed(True, self.now)
+        self.ledger.set_paused(False, self.now+1)
+        rejected = self.ledger.submit(self.intent(), self.book(), self.now+1)
+        self.assertEqual(rejected["reason"], "KILL_SWITCH")
+
 
 if __name__ == "__main__":
     unittest.main()
