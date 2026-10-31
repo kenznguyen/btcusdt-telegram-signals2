@@ -183,10 +183,10 @@ def application(environ, start_response):
         start_response("200 OK", static_headers)
         return [data]
     routes = {"/v1/system", "/v1/candles", "/v1/order-book", "/v1/intelligence", "/v1/decision", "/v1/paper",
-              "/v1/paper/evaluate", "/v1/paper/pause", "/v1/paper/cancel"}
+              "/v1/paper/evaluate", "/v1/paper/pause", "/v1/paper/cancel", "/v1/paper/kill", "/v1/paper/reset-kill"}
     if path not in routes:
         return response("404 Not Found", {"error": "NOT_FOUND"})
-    expected = "POST" if path in {"/v1/paper/evaluate", "/v1/paper/pause", "/v1/paper/cancel"} else "GET"
+    expected = "POST" if path in {"/v1/paper/evaluate", "/v1/paper/pause", "/v1/paper/cancel", "/v1/paper/kill", "/v1/paper/reset-kill"} else "GET"
     if method != expected:
         return response("405 Method Not Allowed", {"error": "METHOD_NOT_ALLOWED"})
     token = os.environ.get("CONTROL_TOKEN" if method == "POST" else "MARKET_DATA_TOKEN", "")
@@ -208,6 +208,10 @@ def application(environ, start_response):
                 result = ledger().set_paused(payload["paused"], timestamp)
             elif path == "/v1/paper/cancel" and set(payload) == {"orderId"} and isinstance(payload["orderId"], str) and 0 < len(payload["orderId"]) <= 100:
                 result = ledger().cancel(payload["orderId"], timestamp)
+            elif path == "/v1/paper/kill" and set(payload) == {"enabled"} and payload["enabled"] is True:
+                result = ledger().set_killed(True, timestamp, "OPERATOR_KILL_SWITCH")
+            elif path == "/v1/paper/reset-kill" and set(payload) == {"acknowledge", "ready"} and payload["acknowledge"] is True and payload["ready"] is True:
+                result = ledger().reset_kill(True, True, timestamp)
             elif path == "/v1/paper/evaluate" and not payload:
                 data = context(timestamp)
                 timestamp = now_ms()
