@@ -193,6 +193,27 @@ class FiveLayerApiTest(unittest.TestCase):
         query = f"symbol=BTCUSDT&timeframe=15m&startMs={self.end-1_800_000}&endMs={self.end}"
         self.assertEqual(self.request("/v1/candles", query=query)[0], 503)
 
+    def test_api_kill_switch_requires_control_token_and_blocks_paper_evaluation(self):
+        self.assertEqual(self.request("/v1/paper/kill", "POST", {"enabled": True}, token="read-token")[0], 401)
+        code, state = self.request("/v1/paper/kill", "POST", {"enabled": True})
+        self.assertEqual(code, 200)
+        self.assertTrue(state["riskControl"]["killed"])
+        _, result = self.request("/v1/paper/evaluate", "POST", {})
+        self.assertEqual(result["order"]["status"], "REJECTED")
+        self.assertEqual(result["order"]["reason"], "KILL_SWITCH")
+        self.assertEqual(self.request("/v1/paper/reset-kill", "POST",
+                                      {"acknowledge": True, "ready": True})[0], 200)
+        _, result = self.request("/v1/paper/evaluate", "POST", {})
+        self.assertEqual(result["order"]["status"], "FILLED")
+
+    def test_kill_switch_cannot_be_cleared_by_generic_resume_or_malformed_reset(self):
+        self.request("/v1/paper/kill", "POST", {"enabled": True})
+        self.request("/v1/paper/pause", "POST", {"paused": False})
+        _, result = self.request("/v1/paper/evaluate", "POST", {})
+        self.assertEqual(result["order"]["reason"], "KILL_SWITCH")
+        self.assertEqual(self.request("/v1/paper/reset-kill", "POST",
+                                      {"acknowledge": True, "ready": False})[0], 400)
+
 
 if __name__ == "__main__":
     unittest.main()
