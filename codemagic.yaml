@@ -1261,7 +1261,7 @@ workflows:
           EXPECTED_ZIP_SHA="b64f39bd70c27c8d6abed1795ee06504c108eed42ebdab98ce375a6449b5b035"
           EXPECTED_MODEL_SHA="918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f"
           test -f "$PHASE14_ORIGINAL_ZIP" || { echo "PHASE21_PHASE14_ARCHIVE_MISSING"; exit 2; }
-          printf '%s  %s\\n' "$EXPECTED_ZIP_SHA" "$PHASE14_ORIGINAL_ZIP" | shasum -a 256 -c -
+          printf '%s  %s\n' "$EXPECTED_ZIP_SHA" "$PHASE14_ORIGINAL_ZIP" | shasum -a 256 -c -
           unzip -t "$PHASE14_ORIGINAL_ZIP" >/dev/null
           mkdir -p artifacts/phase21/original artifacts/phase21/seal artifacts/phase21/reports
           unzip -oq "$PHASE14_ORIGINAL_ZIP" -d artifacts/phase21/original
@@ -1270,7 +1270,7 @@ workflows:
           META="artifacts/phase21/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.json"
           test -s "$MODEL" && test -s "$META"
           test "$(stat -f%z "$MODEL")" = "436330"
-          printf '%s  %s\\n' "$EXPECTED_MODEL_SHA" "$MODEL" | shasum -a 256 -c -
+          printf '%s  %s\n' "$EXPECTED_MODEL_SHA" "$MODEL" | shasum -a 256 -c -
           git fetch --no-tags origin refs/heads/freeze/phase13b-20261104-candidate-082edc0:refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0
           git merge-base --is-ancestor 888efb11b613b42a2badb3bc8adfa19ff090f2bb refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0
           for path in seal-manifest.json phase13b-oos-protocol.json model-candidate-metadata.json; do
@@ -1285,13 +1285,13 @@ workflows:
           export CI_PYTHON="$CM_BUILD_DIR/.ci-tools/python-venv/bin/python"
           export PYTHONPATH="$CM_BUILD_DIR"
           "$CI_PYTHON" -m unittest quant_system.test_phase14_fitted_preprocessing -v 2>&1 | tee artifacts/phase21/reports/phase14-unit-tests.log
-          "$CI_PYTHON" -m quant_system.phase14_fitted_preprocessing \\
-            --artifacts-root artifacts/phase21/original/artifacts/phase3 \\
-            --bundle artifacts/phase21/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib \\
-            --candidate-metadata artifacts/phase21/seal/model-candidate-metadata.json \\
-            --protocol artifacts/phase21/seal/phase13b-oos-protocol.json \\
-            --seal artifacts/phase21/seal/seal-manifest.json \\
-            --out artifacts/phase21/reports/phase14-fitted-preprocessing-audit.json \\
+          "$CI_PYTHON" -m quant_system.phase14_fitted_preprocessing \
+            --artifacts-root artifacts/phase21/original/artifacts/phase3 \
+            --bundle artifacts/phase21/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib \
+            --candidate-metadata artifacts/phase21/seal/model-candidate-metadata.json \
+            --protocol artifacts/phase21/seal/phase13b-oos-protocol.json \
+            --seal artifacts/phase21/seal/seal-manifest.json \
+            --out artifacts/phase21/reports/phase14-fitted-preprocessing-audit.json \
             2>&1 | tee artifacts/phase21/reports/phase14-fitted-preprocessing-audit.log
           "$CI_PYTHON" -c 'import json; p=json.load(open("artifacts/phase21/reports/phase14-fitted-preprocessing-audit.json")); assert p.get("fitted_preprocessing_prefix_invariance_verified") is True and p.get("errors")==[] and p.get("observed_model_sha256")=="sha256:918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f" and p.get("original_source_commit_sha")=="082edc082996425f61f48c952be41fb037564103"; print("PHASE21_FITTED_PIPELINE_VERIFIED")'
       - name: Commit exact verified model and provenance to GitHub
@@ -1299,7 +1299,7 @@ workflows:
           set -euo pipefail
           : "${GITHUB_PUSH_TOKEN:?Set a masked GITHUB_PUSH_TOKEN in Codemagic with repository Contents read/write permission}"
           BRANCH="feature/dual-strategy-phase21-original-model-preservation-20261031"
-          test "$(git branch --show-current)" = "$BRANCH"
+          test "${CM_BRANCH:-}" = "$BRANCH"
           DEST="research_evidence/frozen-model/phase13b-20261104"
           mkdir -p "$DEST"
           cp artifacts/phase21/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib "$DEST/original-frozen-model.joblib"
@@ -1316,7 +1316,7 @@ workflows:
           git config user.name "Codemagic Model Preservation"
           git config user.email "codemagic-model-preservation@users.noreply.github.com"
           git commit -m "audit(quant): preserve SHA-verified original frozen LightGBM bundle"
-          AUTH="$(printf 'x-access-token:%s' "$GITHUB_PUSH_TOKEN" | base64 | tr -d '\\n')"
+          AUTH="$(printf 'x-access-token:%s' "$GITHUB_PUSH_TOKEN" | base64 | tr -d '\n')"
           git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $AUTH" push origin "HEAD:refs/heads/$BRANCH"
           git show "HEAD:$DEST/original-frozen-model.joblib" | shasum -a 256
           git show "HEAD:$DEST/model-candidate-metadata.json" | shasum -a 256
