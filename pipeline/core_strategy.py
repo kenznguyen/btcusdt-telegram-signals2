@@ -141,10 +141,10 @@ def produce(m15_window, h1_window, paper, strategy_state, book, now_ms, *, initi
     close, high, low, candle_open = (float(m15[-1][key]) for key in ("close", "high", "low", "open"))
     rsi, prev_rsi, adx = current["rsi"], previous["rsi"], current["adx"]
     h1_plus, h1_minus, h1_adx = trend["plus_di"], trend["minus_di"], trend["adx"]
-    position = number(paper.get("positionBase", "0"), signed=True)
-    average = number(paper.get("averageEntryPrice", "0"))
-    realized = number(paper.get("realizedPnlQuote", "0"), signed=True)
-    fees = number(paper.get("feesQuote", "0"))
+    position = float(number(paper.get("positionBase", "0"), signed=True))
+    average = float(number(paper.get("averageEntryPrice", "0")))
+    realized = float(number(paper.get("realizedPnlQuote", "0"), signed=True))
+    fees = float(number(paper.get("feesQuote", "0")))
     owner = strategy_state.get("owner")
     dca_used = strategy_state.get("dcaUsed") is True
     side = "LONG" if position > 0 else "SHORT" if position < 0 else None
@@ -178,7 +178,7 @@ def produce(m15_window, h1_window, paper, strategy_state, book, now_ms, *, initi
             dca_ok = (rsi > LONG_DCA_RSI and rsi > prev_rsi if side == "LONG"
                       else rsi < SHORT_DCA_RSI and rsi < prev_rsi)
             if dca_ok:
-                margin = number(strategy_state.get("initialMarginQuote", "0"))
+                margin = float(number(strategy_state.get("initialMarginQuote", "0")))
                 if margin <= 0:
                     reason = "CORE_INITIAL_MARGIN_UNAVAILABLE"
                 else:
@@ -193,10 +193,10 @@ def produce(m15_window, h1_window, paper, strategy_state, book, now_ms, *, initi
         long_signal = h1_plus > h1_minus and h1_adx > H1_ADX_ENTRY and prev_rsi <= LONG_RSI_ENTRY and rsi > LONG_RSI_ENTRY
         short_signal = h1_minus > h1_plus and h1_adx > H1_ADX_ENTRY and prev_rsi >= SHORT_RSI_ENTRY and rsi < SHORT_RSI_ENTRY
         if long_signal or short_signal:
-            account_equity = number(initial_capital) + realized - fees
+            account_equity = float(number(str(initial_capital))) + realized - fees
             initial_margin = account_equity * ENTRY_MARGIN_PCT
             qty = initial_margin * LEVERAGE / close
-            if qty > number(max_position_base):
+            if qty > float(number(str(max_position_base))):
                 reason = "CORE_ENTRY_EXCEEDS_POSITION_LIMIT"
             else:
                 action = "LONG" if long_signal else "SHORT"
