@@ -174,3 +174,10 @@ label{min-width:100%}
 .signal-meta dd{min-width:0;max-width:68%;text-align:right;overflow-wrap:anywhere;color:#c8d7e8}
 @media(max-width:1100px){.risk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.risk-metric:nth-child(4n){border-right:1px solid var(--edge)}.risk-metric:nth-child(2n){border-right:0}}
 @media(max-width:420px){.risk-metric{padding:.8rem .9rem;min-height:95px}.risk-metric>strong{font-size:1rem}.risk-footnote{padding:.75rem 1rem}.risk-warning{margin:0 1rem 1rem}.kill-badge,.pause-badge{display:none}}
+
+
+.dashboard-nav{position:sticky;top:0;z-index:5;display:flex;gap:.35rem;overflow-x:auto;padding:.55rem .65rem;background:rgba(11,16,24,.96);border:1px solid var(--edge);border-radius:6px;backdrop-filter:blur(8px)}
+.dashboard-nav a{flex:0 0 auto;text-decoration:none;color:#b8c9dd;font-size:.68rem;padding:.45rem .65rem;border-radius:4px;white-space:nowrap}
+.dashboard-nav a:hover,.dashboard-nav a:focus-visible{background:#1a2a3d;color:#fff}
+#market-panel,#strategy-monitor,#risk-center,#intelligence-panel,#paper-ledger{scroll-margin-top:68px}
+.risk-chart-empty{margin:0 1.25rem 1rem;min-height:72px;display:grid;place-content:center;border:1px dashed #40516a;border-radius:5px;color:var(--muted);font-size:.68rem;text-align:center}
