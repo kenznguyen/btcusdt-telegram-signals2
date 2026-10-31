@@ -148,7 +148,15 @@ def snapshot(connection, now_ms, limit=500):
         "exposureUsdt":latest["exposureUsdt"],"updatedAtMs":latest["observedAtMs"]}
 
 
-def block_reason(connection, *, target_position, limit_price, limits, require_limits=True, now_ms=None):
+def block_reason(connection, *, target_position, limit_price, limits, require_limits=True, now_ms=None,
+                 current_position="0"):
+    target = number(str(target_position), signed=True)
+    current = number(str(current_position), signed=True)
+    # De-risking or flattening an existing position must remain possible after
+    # a drawdown/day-loss latch or operator pause/kill has stopped new exposure.
+    reducing = current != 0 and target * current >= 0 and abs(target) < abs(current)
+    if reducing:
+        return None, None
     if limits is None:
         return ("RISK_LIMITS_UNCONFIGURED" if require_limits else None), None
     if now_ms is None:
@@ -165,7 +173,7 @@ def block_reason(connection, *, target_position, limit_price, limits, require_li
         return "MAX_DRAWDOWN_LIMIT", "MAX_DRAWDOWN_LIMIT"
     if Decimal(daily_loss) >= limits["maxDailyLossUsdt"]:
         return "DAILY_LOSS_LIMIT", "DAILY_LOSS_LIMIT"
-    projected_exposure = abs(number(str(target_position), signed=True))*number(str(limit_price))
+    projected_exposure = abs(target)*number(str(limit_price))
     if projected_exposure > limits["maxExposureUsdt"]:
         return "MAX_EXPOSURE_LIMIT", None
     return None, None
