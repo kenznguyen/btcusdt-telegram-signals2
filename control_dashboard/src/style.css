@@ -151,3 +151,5 @@ label{min-width:100%}
 }
 
 .coverage-list{display:flex;flex-wrap:wrap;gap:.5rem 1.25rem;padding:.75rem 1.25rem;color:var(--muted);font-size:.65rem;border-bottom:1px solid var(--edge)}
+
+.control-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.5rem}.button.danger{background:#6b2632;border-color:#a94a5b;color:#fff}.button.danger:hover:not(:disabled){background:#853142}
