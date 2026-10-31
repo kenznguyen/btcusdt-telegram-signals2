@@ -321,14 +321,30 @@ def application(environ, start_response):
             elif path == "/v1/paper/evaluate" and (not payload or payload in ({"source": "AI"}, {"source": "CORE"})):
                 source = payload.get("source", "AI")
                 if source == "CORE":
-                    decision = core_decide(timestamp)
                     data = {"book": book_snapshot(timestamp)}
+                    decision = core_decide(timestamp, data["book"])
                 else:
                     data = context(timestamp)
                     decision = decide(data, timestamp)
                     decision["source"] = "AI_FREQAI"
                 timestamp = now_ms()
-                order = ledger().submit(decision["intent"], data["book"], timestamp) if decision.get("intent") else None
+                order = None
+                if decision.get("intent"):
+                    end = timestamp // 900_000 * 900_000
+                    mark_window = read_window(os.environ.get("MARKET_DATA_DB",""),"BTCUSDT","15m",
+                                              end-900_000,end,as_of_ms=timestamp)
+                    if mark_window["candles"] and mark_window["coverage"]["complete"]:
+                        mark = mark_window["candles"][-1]
+                        ledger().record_equity(mark["close"],mark["closeTimeMs"],timestamp,
+                            mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
+                    source_id = "STRATEGY_CORE" if source == "CORE" else "AI_FREQAI"
+                    reason = decision.get("reason")
+                    event = "ENTRY" if reason in ("RSI_ADX_ENTRY","ALIGNED_PAPER_SIGNAL") else "DCA" if reason == "DCA" else "EXIT" if reason in ("EMERGENCY_SL","SOFT_SL","TAKE_PROFIT","CLOSE") else None
+                    order = ledger().submit(decision["intent"], data["book"], timestamp,
+                        strategy_id=source_id, strategy_event=event)
+                    if mark_window["candles"] and mark_window["coverage"]["complete"]:
+                        ledger().record_equity(mark["close"],mark["closeTimeMs"],timestamp,
+                            mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
                 result = {"decision": decision, "order": order}
             else:
                 raise ValueError("Invalid control payload")
