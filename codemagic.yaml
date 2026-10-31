@@ -989,7 +989,7 @@ workflows:
     max_build_duration: 90
     environment:
       vars:
-        PHASE16_APPROVAL_COMMIT: "UNAPPROVED"
+        PHASE16_APPROVAL_COMMIT: "409d446bb186a8e2ea0189df26057a9df7e839de"
         PHASE16_ORIGINAL_ZIP: "research_evidence/phase16-all-26-original-fit-evidence.zip"
     # No automatic triggers. Requires separate 26-fold PASS and preholdout
     # explicit operator-accepted GitHub commit (not created by this workflow).
@@ -1002,6 +1002,9 @@ workflows:
           }
           [[ "$PHASE16_APPROVAL_COMMIT" =~ ^[0-9a-f]{40}$ ]] || {
             echo "OOS_ALL_26_FOLD_RELEASE_GATE_NOT_SIGNED"; exit 2;
+          }
+          [[ "$PHASE16_APPROVAL_COMMIT" == "409d446bb186a8e2ea0189df26057a9df7e839de" ]] || {
+            echo "OOS_APPROVAL_COMMIT_NOT_PRE_REGISTERED"; exit 2;
           }
           printf '%s  %s\n' "0e76c0851ba3ffeac2706d681efee4ea034998d70eb8e183ede11e01306e8bc7" "$PHASE16_ORIGINAL_ZIP" | shasum -a 256 -c -
           mkdir -p artifacts/frozen-oos/input artifacts/frozen-oos/seal artifacts/frozen-oos/report
