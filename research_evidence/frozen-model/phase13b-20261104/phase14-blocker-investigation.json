@@ -43,5 +43,15 @@
     "ready_for_360": false,
     "live_orders_enabled": false,
     "holdout_rows_read": false
+  },
+  "model_artifact_retrieval": {
+    "path": "research_evidence/frozen-model/phase13b-20261104/original-frozen-model.joblib",
+    "git_blob_sha": "91283dde513e24b9f87a936220a09e5f78612a49",
+    "observed_size_bytes": 436330,
+    "observed_sha256": "51c8474d0bdb93140523bd127cf89a9afb69d299e143518c8da90a4487ad3874",
+    "registered_sha256": "918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f",
+    "matches_registered_digest": false,
+    "status": "RESTORE_REQUIRED",
+    "note": "The GitHub binary blob was downloaded through the GitHub file API and independently decoded; its Git blob SHA-1 matches the API blob identifier. Its SHA-256 does not match the registered frozen-model digest. Do not load, overwrite the checksum manifest, or treat this copy as the original. Restore from the exact Phase14 source archive and verify before use."
   }
 }
