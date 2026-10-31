@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { candleWindow, requestJson } from './api.js';
 
-const empty = { system: null, intelligence: null, decision: null, paper: null, candles: null };
+const empty = { system: null, intelligence: null, decision: null, signals: null, paper: null, candles: null };
 export function useTerminal(connection) {
   const [data, setData] = useState(empty), [errors, setErrors] = useState([]);
   const [busy, setBusy] = useState(false), [updatedAt, setUpdatedAt] = useState(null), [version, setVersion] = useState(0);
@@ -12,7 +12,7 @@ export function useTerminal(connection) {
     const load = async () => {
       if (stopped || running || document.hidden) return;
       running = true; controller = new AbortController(); setBusy(true);
-      const endpoints = { system: '/v1/system', intelligence: '/v1/intelligence', decision: '/v1/decision', paper: '/v1/paper', candles: candleWindow(Date.now()) };
+      const endpoints = { system: '/v1/system', intelligence: '/v1/intelligence', decision: '/v1/decision', signals: '/v1/signals', paper: '/v1/paper', candles: candleWindow(Date.now()) };
       const entries = Object.entries(endpoints);
       try {
         const results = await Promise.allSettled(entries.map(([, path]) => requestJson(connection.base, path, connection.readToken, { signal: controller.signal })));
