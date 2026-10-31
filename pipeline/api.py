@@ -195,25 +195,37 @@ def equity_snapshot(timestamp):
 def quality_snapshot(timestamp):
     data = context(timestamp)
     streams = []
-    window = data.get("candles")
-    streams.append({"name":"M15 candles",
-        "status":"READY" if window and window.get("coverage",{}).get("complete") else "DEGRADED" if window else "MISSING",
-        "rows":len(window.get("candles",[])) if window else 0,
-        "datasetVersion":window.get("datasetVersion") if window else None})
     try:
-        end = timestamp // 3_600_000 * 3_600_000
+        end15 = timestamp // 900_000 * 900_000
+        m15 = read_window(os.environ.get("MARKET_DATA_DB",""),"BTCUSDT","15m",
+                          end15-500*900_000,end15,as_of_ms=timestamp)
+        m15_ready = m15["coverage"]["complete"] and len(m15["candles"]) == 500
+        streams.append({"name":"M15 candles","status":"READY" if m15_ready else "DEGRADED",
+                        "rows":len(m15["candles"]),"datasetVersion":m15["datasetVersion"]})
+    except (ValueError,OSError,sqlite3.Error):
+        streams.append({"name":"M15 candles","status":"MISSING","rows":0})
+    try:
+        end1h = timestamp // 3_600_000 * 3_600_000
         h1 = read_window(os.environ.get("MARKET_DATA_DB",""),"BTCUSDT","1h",
-                         end-100*3_600_000,end,as_of_ms=timestamp)
-        streams.append({"name":"H1 candles","status":"READY" if h1["coverage"]["complete"] else "DEGRADED",
+                         end1h-500*3_600_000,end1h,as_of_ms=timestamp)
+        h1_ready = h1["coverage"]["complete"] and len(h1["candles"]) == 500
+        streams.append({"name":"H1 candles","status":"READY" if h1_ready else "DEGRADED",
                         "rows":len(h1["candles"]),"datasetVersion":h1["datasetVersion"]})
     except (ValueError,OSError,sqlite3.Error):
         streams.append({"name":"H1 candles","status":"MISSING","rows":0})
     intel, book, prediction = data.get("intelligence"), data.get("book"), data.get("prediction")
     streams.append({"name":"Futures Intelligence","status":"READY" if intel else "MISSING",
                     "availableAtMs":intel.get("availableAtMs") if intel else None})
-    streams.append({"name":"Hummingbot Order Book","status":"READY" if book else "MISSING",
+    book_ready = bool(book and 0 <= timestamp-stamp(book.get("observedAtMs")) <= 30_000)
+    streams.append({"name":"Hummingbot Order Book","status":"READY" if book_ready else "MISSING",
                     "observedAtMs":book.get("observedAtMs") if book else None})
-    streams.append({"name":"FreqAI prediction","status":"READY" if prediction and prediction.get("doPredict")==1 else "MISSING",
+    try:
+        prediction_ready = bool(prediction and prediction.get("doPredict") == 1 and
+                                0 <= timestamp-stamp(prediction.get("availableAtMs")) <= 30_000 and
+                                prediction.get("symbol") == "BTCUSDT" and prediction.get("timeframe") == "15m")
+    except (ValueError,TypeError):
+        prediction_ready = False
+    streams.append({"name":"FreqAI prediction","status":"READY" if prediction_ready else "MISSING",
                     "availableAtMs":prediction.get("availableAtMs") if prediction else None})
     core = core_decide(timestamp, book)
     streams.append({"name":"Strategy Core producer","status":"READY" if core.get("intent") else "WAIT",
