@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from market_data.store import Candle, INTERVAL_MS
 from market_data.storage import (
     PostgresStore,
     SQLiteCandleStore,
@@ -39,6 +40,18 @@ class StorageFactoryTest(unittest.TestCase):
             with self.assertRaises(FileNotFoundError):
                 store.read_window("BTCUSDT", "15m", 0, 900_000)
             self.assertFalse(path.exists())
+
+
+    def test_sqlite_factory_ingestion_and_read_share_one_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = str(Path(directory) / "candles.sqlite3")
+            store = create_store("sqlite", sqlite_path=path)
+            step = INTERVAL_MS["15m"]
+            candle = Candle("15m", 0, "100", "102", "99", "101", "5", step + 1)
+            self.assertEqual(store.insert([candle]), 1)
+            result = store.read_window("BTCUSDT", "15m", 0, step)
+            self.assertEqual(result["candles"][0]["close"], "101")
+            self.assertTrue(result["coverage"]["complete"])
 
     def test_postgres_connection_failure_is_not_reinterpreted_as_sqlite(self):
         store = create_store("postgres", postgres_dsn="postgresql://invalid")
