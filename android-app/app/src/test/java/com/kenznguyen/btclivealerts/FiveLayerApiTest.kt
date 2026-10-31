@@ -12,6 +12,7 @@ class FiveLayerApiTest {
         "positionBase":"0.001000000000000000000001","averageEntryPrice":"100000.1234567890123456789",
         "realizedPnlQuote":"-0.000000000000000000000001","feesQuote":"0.000000000000000000000002",
         "netRealizedPnlQuote":"-0.000000000000000000000003",
+        "riskControl":{"paused":false,"killed":false,"reason":null,"updatedAtMs":$now,"mode":"PAPER","liveTradingSupported":false},
         "simulationModel":"VISIBLE_DEPTH_LIMIT_SNAPSHOT","orders":[]
     }""")
     private fun order() = JSONObject("""{
