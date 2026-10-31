@@ -36,7 +36,7 @@ private val fiveAmber = Color(0xFFFFC857)
 
 @Composable
 private fun FiveLayerEquityCurve(points: List<EquityPointView>) {
-    val values = points.mapNotNull { it.equity.toDoubleOrNull()?.takeIf(Double::isFinite) }
+    val values = points.mapNotNull { it.equity.toDoubleOrNull()?.takeIf { value -> value.isFinite() } }
     if (values.size < 2) {
         Text("Cần ít nhất hai snapshot Equity để vẽ đường cong.", color = fiveMuted,
             style = MaterialTheme.typography.bodySmall)
