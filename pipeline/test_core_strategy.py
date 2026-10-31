@@ -51,8 +51,9 @@ class CoreStrategyTest(unittest.TestCase):
             result=produce(window(m15rows,"15m"),window(h1rows,"1h"),
               {"positionBase":"0","averageEntryPrice":"0","realizedPnlQuote":"0","feesQuote":"0"},
               {"owner":None,"dcaUsed":False},None,now,initial_capital="0.01",max_position_base="0.01")
-        self.assertEqual(result["action"],"WAIT")
+        self.assertEqual(result["action"],"BUY")
         self.assertEqual(result["reason"],"CORE_ORDER_BOOK_UNAVAILABLE")
+        self.assertIsNone(result["intent"])
 
 
 if __name__ == "__main__":
