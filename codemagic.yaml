@@ -1262,6 +1262,8 @@ workflows:
           printf '%s  %s\n' "$EXPECTED_ZIP_SHA" "$PHASE14_ORIGINAL_ZIP" | shasum -a 256 -c -
           unzip -t "$PHASE14_ORIGINAL_ZIP" >/dev/null
           mkdir -p artifacts/phase22/original artifacts/phase22/seal artifacts/phase22/reports
+          curl --fail --silent --show-error --location -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/kenznguyen/btcusdt-telegram-signals2/commits/f9591bcda1b11f15a549f397aa211259346ed3f9" -o artifacts/phase22/seal/github-attestation-commit.json
+          python3 -c 'import json; p=json.load(open("artifacts/phase22/seal/github-attestation-commit.json")); assert p.get("sha") == "f9591bcda1b11f15a549f397aa211259346ed3f9" and any(x.get("filename") == "research_evidence/frozen-model/phase13b-20261104/pre-holdout-attestation.json" for x in p.get("files", [])); print("PHASE22_GITHUB_ATTESTATION_COMMIT_EVIDENCE_FETCHED")'
           unzip -oq "$PHASE14_ORIGINAL_ZIP" -d artifacts/phase22/original
           test "$(cat artifacts/phase22/original/phase3-source-sha.txt)" = "082edc082996425f61f48c952be41fb037564103"
           ORIGINAL_BUNDLE="artifacts/phase22/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib"
@@ -1305,6 +1307,8 @@ workflows:
             --metadata "$PRESERVED/model-candidate-metadata.json" \
             --protocol "$PRESERVED/phase13b-oos-protocol.json" \
             --seal "$PRESERVED/seal-manifest.json" \
+            --attestation "$PRESERVED/pre-holdout-attestation.json" \
+            --github-commit-proof artifacts/phase22/seal/github-attestation-commit.json \
             --out artifacts/phase22/reports/phase22-frozen-reproducibility.json \
             2>&1 | tee artifacts/phase22/reports/phase22-frozen-reproducibility.log
           "$CI_PYTHON" -m quant_system.phase14_fitted_preprocessing \
