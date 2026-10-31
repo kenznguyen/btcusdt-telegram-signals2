@@ -27,11 +27,12 @@ SQLite tiếp tục là mặc định. Sau khi đã áp dụng schema TimescaleD
 
 ```bash
 export MARKET_DATA_DATABASE_URL='postgresql://...'
+python3 -m market_data.migrations
 python3 -m market_data.sync --postgres --timeframe 15m \
   --start-ms 1793232000000 --end-ms 1793239200000
 ```
 
-Không đưa DSN vào shell history hoặc commit. Repository PostgreSQL không tự tạo schema; schema được quản lý riêng qua `market_data/migrations/001_initial_timescale.sql`.
+Không đưa DSN vào shell history hoặc commit. Lệnh `python3 -m market_data.migrations` áp dụng schema migration có checksum, fail-closed nếu nội dung migration đã áp dụng bị thay đổi. Repository không tự tạo schema khi khởi tạo hoặc đọc; chỉ lệnh migration tường minh mới tạo schema.
 
 
 ## API đọc
