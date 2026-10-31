@@ -250,7 +250,7 @@ class FiveLayerApiTest(unittest.TestCase):
         self.request("/v1/equity")
         with sqlite3.connect(self.db) as connection:
             connection.execute("UPDATE paper_state SET realized='-25' WHERE id=1")
-        with patch.dict(os.environ,{"PAPER_MAX_DRAWDOWN_PCT":"20","PAPER_MAX_DAILY_LOSS_USDT":"10"}):
+        with patch.dict(os.environ,{"PAPER_MAX_DRAWDOWN_PCT":"20","PAPER_MAX_DAILY_LOSS_USDT":"10","PAPER_MAX_EXPOSURE_USDT":"1000"}):
             code, result = self.request("/v1/paper/evaluate","POST",{})
         self.assertEqual(code,200)
         self.assertEqual(result["order"]["reason"],"MAX_DRAWDOWN_LIMIT")
