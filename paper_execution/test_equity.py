@@ -95,15 +95,17 @@ class EquityHistoryTest(unittest.TestCase):
         self.assertEqual(reason,"MAX_EXPOSURE_LIMIT")
         self.assertIsNone(kill)
 
-    def test_out_of_order_snapshots_keep_chronological_curve_and_global_high_water(self):
+    def test_out_of_order_snapshot_is_rejected_without_corrupting_equity_history(self):
         start=1_800_000_000_000
         self.record(start+900_000,"100")
-        result=self.record(start,"90")
-        self.assertEqual(result["points"][0]["observedAtMs"],start)
-        self.assertEqual(result["points"][-1]["observedAtMs"],start+900_000)
-        self.assertEqual(result["points"][0]["highWaterMark"],"100")
-        self.assertEqual(result["maxDrawdownUsdt"],"10")
-        self.assertEqual(result["dailyBaselineAtMs"],start)
+        with self.assertRaisesRegex(ValueError,"OUT_OF_ORDER_EQUITY_SNAPSHOT"):
+            with self.db:
+                equity.record(self.db,initial_capital="100",position="0",average="0",
+                    realized="0",fees="0",mark_price="90",candle_close_ms=start,
+                    observed_at_ms=start,dataset_version="sha256:"+"b"*64)
+        result=equity.snapshot(self.db,start+900_000)
+        self.assertEqual(len(result["points"]),1)
+        self.assertEqual(result["maxDrawdownUsdt"],"0")
 
 
 if __name__=="__main__":
