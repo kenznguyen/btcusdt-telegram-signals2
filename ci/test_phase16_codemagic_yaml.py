@@ -22,7 +22,7 @@ class Phase16CodemagicYamlTests(unittest.TestCase):
             r'(?m)^\s+PHASE16_APPROVAL_COMMIT:\s*(""|\x27\x27)?\s*$')
         self.assertRegex(
             self.frozen,
-            r'(?m)^\s+PHASE16_APPROVAL_COMMIT:\s*"UNAPPROVED"\s*$')
+            r'(?m)^\s+PHASE16_APPROVAL_COMMIT:\s*"409d446bb186a8e2ea0189df26057a9df7e839de"\s*$')
 
     def test_approval_is_a_40_character_git_sha_and_placeholder_is_denied(self):
         self.assertIn(
@@ -31,8 +31,12 @@ class Phase16CodemagicYamlTests(unittest.TestCase):
         self.assertIn(
             "OOS_ALL_26_FOLD_RELEASE_GATE_NOT_SIGNED",
             self.frozen)
-        self.assertFalse(
-            re.fullmatch(r"[0-9a-f]{40}", "UNAPPROVED"))
+        self.assertIn(
+            '[[ "$PHASE16_APPROVAL_COMMIT" == "409d446bb186a8e2ea0189df26057a9df7e839de" ]]',
+            self.frozen)
+        self.assertTrue(
+            re.fullmatch(r"[0-9a-f]{40}",
+                         "409d446bb186a8e2ea0189df26057a9df7e839de"))
 
     def test_oos_still_locked_until_december_4(self):
         self.assertIn("1796342400", self.frozen)
