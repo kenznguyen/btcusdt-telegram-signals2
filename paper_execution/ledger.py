@@ -250,14 +250,16 @@ class PaperLedger:
                     next_owner = owner
                     next_dca_used = dca_used
                     next_initial_margin = initial_margin
-                    if owner is None and position != 0:
-                        next_owner = strategy_id
-                        next_dca_used = 0
-                        next_initial_margin = text(abs(Decimal(intent["targetPositionBase"])) * limit / self.leverage)
-                    if strategy_event == "DCA":
-                        next_dca_used = 1
+                    opened_or_reversed = position != 0 and (owner is None or
+                        (position - signed_fill) * position < 0)
                     if position == 0:
                         next_owner, next_dca_used, next_initial_margin = None, 0, "0"
+                    elif opened_or_reversed:
+                        next_owner = strategy_id
+                        next_dca_used = 1 if strategy_event == "DCA" else 0
+                        next_initial_margin = text(abs(position) * average / self.leverage)
+                    elif strategy_event == "DCA":
+                        next_dca_used = 1
                     connection.execute("UPDATE paper_strategy_state SET owner=?,dca_used=?,initial_margin_quote=? WHERE id=1",
                                        (next_owner, next_dca_used, next_initial_margin))
             status = "REJECTED" if reason else "FILLED" if filled == quantity else "PARTIALLY_FILLED" if filled else "OPEN"
