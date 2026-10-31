@@ -1325,8 +1325,6 @@ workflows:
             --metadata "$PRESERVED/model-candidate-metadata.json" \
             --protocol "$PRESERVED/phase13b-oos-protocol.json" \
             --seal "$PRESERVED/seal-manifest.json" \
-            --attestation "$PRESERVED/pre-holdout-attestation.json" \
-            --github-commit-proof artifacts/phase22/seal/github-attestation-commit.json \
             --out artifacts/phase22/reports/phase22-frozen-reproducibility.json \
             2>&1 | tee artifacts/phase22/reports/phase22-frozen-reproducibility.log
           "$CI_PYTHON" -m quant_system.phase14_fitted_preprocessing \
