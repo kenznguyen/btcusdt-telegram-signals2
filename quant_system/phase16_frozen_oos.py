@@ -190,6 +190,36 @@ def _predict_frozen(history,holdout,model_bundle,meta):
     require(len(forecasts)==2880,"OOS_FROZEN_FORECAST_GAP")
     return forecasts
 
+def verify_registered_fold_gate(allfold, approval, report_sha):
+    """Require pre-holdout-approved exact native evidence and reviewed summary.
+
+    This is research permission only. Independent OOS remains false.
+    """
+    require(isinstance(allfold,dict) and isinstance(approval,dict) and
+            allfold.get("all_26_folds_fitting_time_verified") is True and
+            allfold.get("folds_verified")==26 and
+            allfold.get("total_reproduced_train_rows")==59696 and
+            allfold.get("total_reproduced_validation_rows")==14825 and
+            allfold.get("errors")==[] and
+            allfold.get("native_report_sha256")==
+                "sha256:0a414da0d4e8567c39ae1e2c066e4703f9fff5450933c8a0e011b911b5920e01" and
+            allfold.get("original_bundle_sha256")==MODEL_SHA and
+            allfold.get("source_commit_sha")==SOURCE_SHA and
+            approval.get("approved_phase16_report_sha256")==report_sha and
+            approval.get("reviewed_native_original_report_sha256")==
+                allfold.get("native_report_sha256") and
+            approval.get("approved_historical_fold_count")==26 and
+            approval.get("original_bundle_sha256")==MODEL_SHA and
+            approval.get("original_source_commit_sha")==SOURCE_SHA and
+            approval.get("original_seal_commit")==
+                "888efb11b613b42a2badb3bc8adfa19ff090f2bb" and
+            approval.get("oos_no_retraining") is True and
+            approval.get("no_real_orders") is True and
+            approval.get("research_only") is True,
+            "OOS_ALL_26_FOLD_RELEASE_GATE_NOT_SIGNED")
+    return True
+
+
 def run(*,holdout_dir,prehistory_dir,config_path,
         model_bundle,model_metadata,protocol_path,seal_path,
         fold_audit_path,release_gate_path,output_dir):
@@ -233,18 +263,8 @@ def run(*,holdout_dir,prehistory_dir,config_path,
                 "OOS_UNAPPROVED_RESEARCH_CONFIG")
         allfold=json.loads(Path(fold_audit_path).read_text(encoding="utf8"))
         approval=json.loads(Path(release_gate_path).read_text(encoding="utf8"))
-        require(allfold.get("all_26_folds_fitting_time_verified") is True and
-                allfold.get("folds_verified")==26 and
-                allfold.get("errors")==[] and
-                allfold.get("original_bundle_sha256")==MODEL_SHA and
-                allfold.get("source_commit_sha")==SOURCE_SHA and
-                approval.get("approved_phase16_report_sha256")==
-                    matrix_digest(fold_audit_path) and
-                approval.get("original_seal_commit")==
-                    "888efb11b613b42a2badb3bc8adfa19ff090f2bb" and
-                approval.get("oos_no_retraining") is True and
-                approval.get("no_real_orders") is True,
-                "OOS_ALL_26_FOLD_RELEASE_GATE_NOT_SIGNED")
+        verify_registered_fold_gate(
+            allfold,approval,matrix_digest(fold_audit_path))
         report["all_26_folds_fitting_time_verified"]=True
         history_m15,history_h1,m15,fine=_load_bars(holdout_dir,prehistory_dir)
         candles=closed_context(history_m15,history_h1)[-2880:]
