@@ -95,6 +95,16 @@ class EquityHistoryTest(unittest.TestCase):
         self.assertEqual(reason,"MAX_EXPOSURE_LIMIT")
         self.assertIsNone(kill)
 
+    def test_out_of_order_snapshots_keep_chronological_curve_and_global_high_water(self):
+        start=1_800_000_000_000
+        self.record(start+900_000,"100")
+        result=self.record(start,"90")
+        self.assertEqual(result["points"][0]["observedAtMs"],start)
+        self.assertEqual(result["points"][-1]["observedAtMs"],start+900_000)
+        self.assertEqual(result["points"][0]["highWaterMark"],"100")
+        self.assertEqual(result["maxDrawdownUsdt"],"10")
+        self.assertEqual(result["dailyBaselineAtMs"],start)
+
 
 if __name__=="__main__":
     unittest.main()
