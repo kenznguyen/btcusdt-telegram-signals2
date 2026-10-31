@@ -1,4 +1,5 @@
 # yaml-language-server: $schema=https://codemagic.io/codemagic-schema.json
+# Five-layer parity gate: a codemagic.yaml change intentionally fans out to Python/API, React and Android workflows.
 workflows:
   android-chart-pro-debug:
     name: BTC Chart Pro - tests, regular and parallel APKs
