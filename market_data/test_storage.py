@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from market_data.store import Candle, INTERVAL_MS
+from market_data.sync import sync_window
 from market_data.storage import (
     PostgresStore,
     SQLiteCandleStore,
@@ -52,6 +53,29 @@ class StorageFactoryTest(unittest.TestCase):
             result = store.read_window("BTCUSDT", "15m", 0, step)
             self.assertEqual(result["candles"][0]["close"], "101")
             self.assertTrue(result["coverage"]["complete"])
+
+
+    def test_sqlite_ingestion_pipeline_uses_the_factory_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = create_store("sqlite", sqlite_path=str(Path(directory) / "sync.sqlite3"))
+            step = INTERVAL_MS["15m"]
+
+            class Exchange:
+                id = "binanceusdm"
+
+                def load_markets(self):
+                    market = dict(symbol="BTC/USDT:USDT", id="BTCUSDT", base="BTC", quote="USDT",
+                                  settle="USDT", active=True, swap=True, linear=True, spot=False)
+                    return {market["symbol"]: market}
+
+                def fetch_time(self):
+                    return step
+
+                def fetch_ohlcv(self, *args, **kwargs):
+                    return [[0, 100, 102, 99, 101, 5]]
+
+            self.assertEqual(sync_window(Exchange(), store, "15m", 0, step, now_ms=lambda: step), 1)
+            self.assertEqual(store.read_window("BTCUSDT", "15m", 0, step)["coverage"]["returned"], 1)
 
     def test_postgres_connection_failure_is_not_reinterpreted_as_sqlite(self):
         store = create_store("postgres", postgres_dsn="postgresql://invalid")
