@@ -126,6 +126,9 @@ workflows:
         - pattern: feature/android-five-layer-control
           include: true
           source: true
+        - pattern: feature/timescaledb-market-data-repository
+          include: true
+          source: true
         - pattern: main
           include: true
           source: true
@@ -177,6 +180,22 @@ workflows:
       - gateway-tests.log
       - ci-policy-tests.log
       - paper-system-tests.log
+
+  market-data-timescaledb:
+    name: Market data - TimescaleDB migration and SQLite parity
+    instance_type: mac_mini_m2
+    max_build_duration: 15
+    environment:
+      groups:
+        - market_data_timescale_test
+    scripts:
+      - name: Prepare Python dependencies
+        script: bash ci/setup-python.sh requirements-market-data.txt requirements-ci.txt
+      - name: Run TimescaleDB integration and SQLite parity tests
+        script: bash ci/test-timescaledb.sh
+    artifacts:
+      - ci-source-sha.txt
+      - timescaledb-tests.log
 
   telegram-command:
     name: Telegram command
