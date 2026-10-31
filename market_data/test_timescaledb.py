@@ -40,7 +40,13 @@ class TimescaleParityTest(unittest.TestCase):
         self.step = INTERVAL_MS["15m"]
         # Integration database must be disposable; unique time slots avoid cross-run collisions.
         import time
-        self.start = (time.time_ns() // 1_000_000 // self.step - 20) * self.step
+        import uuid
+        self.start = ((time.time_ns() // 1_000_000 // self.step) + (uuid.uuid4().int % 1_000_000)) * self.step
+
+    def tearDown(self):
+        with connection(DSN) as database:
+            database.execute("DELETE FROM market_data.candles WHERE open_time_ms >= %s AND open_time_ms < %s",
+                             (self.start, self.start + 4*self.step))
 
     def candle(self, slot=0, **changes):
         values = dict(timeframe="15m", open_time_ms=self.start + slot*self.step,
