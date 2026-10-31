@@ -129,6 +129,9 @@ workflows:
         - pattern: feature/timescaledb-market-data-repository
           include: true
           source: true
+        - pattern: feature/timescaledb-storage-factory-api
+          include: true
+          source: true
         - pattern: main
           include: true
           source: true
@@ -162,7 +165,7 @@ workflows:
       - name: Run data tests and gateway regressions
         script: |
           set -euo pipefail
-          "$CI_PYTHON" -m unittest market_data.test_store market_data.test_sync market_data.test_api -v 2>&1 | tee market-data-tests.log
+          "$CI_PYTHON" -m unittest market_data.test_store market_data.test_storage market_data.test_sync market_data.test_api -v 2>&1 | tee market-data-tests.log
           "$CI_PYTHON" -m unittest discover -s integrations -p 'test_*.py' -v 2>&1 | tee gateway-tests.log
           "$CI_PYTHON" -m unittest discover -s ci -p 'test_*.py' -v 2>&1 | tee ci-policy-tests.log
       - name: Run five-layer paper integration tests
