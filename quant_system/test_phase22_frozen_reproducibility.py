@@ -324,11 +324,6 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         seal["protocol_sha256"] = self.registered["protocol"]
         self.seal.write_text(json.dumps(seal), encoding="utf8")
 
-        attestation = json.loads(self.attestation.read_text(encoding="utf8"))
-        attestation["model_metadata_sha256"] = self.registered["metadata"].removeprefix("sha256:")
-        attestation["protocol_sha256"] = self.registered["protocol"].removeprefix("sha256:")
-        self.attestation.write_text(json.dumps(attestation), encoding="utf8")
-
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_INVALID_FEATURE_SCHEMA"):
             self._verify_current_files()
 
