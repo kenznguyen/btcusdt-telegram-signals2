@@ -11,6 +11,7 @@ try:
 except ImportError:  # SQLite-only environments can still run the ordinary suite.
     psycopg = None
 
+from market_data.migrations import apply_schema_migrations
 from market_data.repository import PostgresRepository, SQLiteRepository
 from market_data.store import Candle, CandleStore, INTERVAL_MS
 
@@ -31,9 +32,7 @@ class PostgresRepositoryIntegrationTest(unittest.TestCase):
                     "Refusing destructive integration setup: database name must contain 'test' "
                     "and MARKET_DATA_TEST_DB_CONFIRMATION must exactly match it"
                 )
-            migration = Path(__file__).parent / "migrations" / "001_initial_timescale.sql"
-            with connection.cursor() as cursor:
-                cursor.execute(migration.read_text(encoding="utf-8"), prepare=False)
+        cls.applied_migrations = apply_schema_migrations(DATABASE_URL)
         cls.repository = PostgresRepository(DATABASE_URL)
 
     def setUp(self):
@@ -63,6 +62,21 @@ class PostgresRepositoryIntegrationTest(unittest.TestCase):
         )
         values.update(changes)
         return Candle(**values)
+
+    def test_schema_migrations_are_checksum_tracked_and_idempotent(self):
+        self.assertEqual(apply_schema_migrations(DATABASE_URL), [])
+        with psycopg.connect(DATABASE_URL) as connection:
+            rows = connection.execute(
+                "SELECT migration_id, checksum_sha256 FROM market_data.schema_migrations"
+            ).fetchall()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][0], "001_initial_timescale.sql")
+        migration = Path(__file__).parent / "migrations" / rows[0][0]
+        import hashlib
+        self.assertEqual(
+            rows[0][1],
+            hashlib.sha256(migration.read_bytes()).hexdigest(),
+        )
 
     def test_postgres_and_sqlite_return_identical_window_and_dataset_hash(self):
         candles = [self.candle(0), self.candle(2, open="101.25", high="103", close="102")]
