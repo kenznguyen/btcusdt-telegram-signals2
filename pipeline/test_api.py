@@ -230,9 +230,17 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(result["order"]["status"], "REJECTED")
         self.assertEqual(result["order"]["reason"], "KILL_SWITCH")
         self.assertEqual(self.request("/v1/paper/reset-kill", "POST",
-                                      {"acknowledge": True, "ready": True})[0], 200)
+                                      {"acknowledge": True})[0], 200)
         _, result = self.request("/v1/paper/evaluate", "POST", {})
         self.assertEqual(result["order"]["status"], "FILLED")
+
+    def test_kill_reset_requires_server_side_readiness(self):
+        self.request("/v1/paper/kill", "POST", {"enabled": True})
+        with patch.object(api, "book_snapshot", return_value=None):
+            code, result = self.request("/v1/paper/reset-kill", "POST", {"acknowledge": True})
+        self.assertEqual(code, 409)
+        self.assertEqual(result["error"], "SYSTEM_NOT_READY")
+        self.assertTrue(self.request("/v1/paper")[1]["riskControl"]["killed"])
 
     def test_kill_switch_cannot_be_cleared_by_generic_resume_or_malformed_reset(self):
         self.request("/v1/paper/kill", "POST", {"enabled": True})
