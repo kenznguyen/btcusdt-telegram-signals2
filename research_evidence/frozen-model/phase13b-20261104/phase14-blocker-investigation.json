@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "audit": "PHASE14_BLOCKER_EVIDENCE_INVESTIGATION",
+  "source_report": "artifacts/phase22/reports/phase14-fitted-preprocessing-audit.json",
+  "source_sha": "60845b967bbd20b0e77ec85d7c6fda146d331c7e",
+  "observed": {
+    "errors": [],
+    "fitted_preprocessing_prefix_invariance_verified": true,
+    "full_model_pipeline_causality_verified": false,
+    "native_predict_rows": 480,
+    "intervention_row_count": 5,
+    "native_accepted_forecast_replays": 5,
+    "feature_intervention_comparisons": 10,
+    "label_intervention_comparisons": 5
+  },
+  "blockers": [
+    {
+      "id": "TRAINING_TIME_PIPELINE_FIT_PREFIX_CAUSALITY_NOT_CERTIFIED",
+      "finding": "The Phase14 implementation loads already-fitted feature and label pipelines from the frozen joblib and tests transform/inverse_transform row invariance against an altered future suffix. It does not replay or independently attest the historical fit() inputs, fit cutoff, or fitted-parameter provenance.",
+      "evidence": "The audit report has fitted_preprocessing_prefix_invariance_verified=true but full_model_pipeline_causality_verified=false; the Phase14 source declares training-time fit causality outside the current audit scope.",
+      "required_next": "Recover the exact training-fold fit matrices and fit-event ledger for the frozen model; prove every feature scaler, outlier transformer, DataSieve stage, and label pipeline was fitted only on rows/labels available at each historical fit cutoff. Do not refit or replace the frozen model.",
+      "status": "NOT_CERTIFIED"
+    },
+    {
+      "id": "PROSPECTIVE_FROZEN_INFERENCE_NOT_EVALUATED",
+      "finding": "The 480 PREDICT rows and five interventions belong to the archived historical native run. They are not prospective observations from the registered 2026-11-04 through 2026-12-04 holdout.",
+      "evidence": "The Phase14 report records 480 native_predict_rows and five historical interventions while independent_oos_verified=false. The holdout is future-dated relative to this investigation and its rows must remain unread before its registered start.",
+      "required_next": "Before 2026-11-04T00:00:00Z, finish protocol and infrastructure preflight only. From the holdout start onward, collect only closed-candle frozen inference prospectively, preserve raw receipts, and evaluate after the window under the frozen protocol. No retraining, tuning, backfill, or early holdout reads.",
+      "status": "WAITING_FOR_PROSPECTIVE_WINDOW"
+    },
+    {
+      "id": "VENUE_FUNDING_LIQUIDATION_AND_KOTLIN_PARITY_PENDING",
+      "finding": "The present Phase14 audit verifies frozen model and preprocessing replay against native FreqAI prediction matrices. It does not certify the complete OKX futures execution path, funding/mark-price/liquidation behavior, or Kotlin implementation parity.",
+      "evidence": "The audit report explicitly retains this blocker and full_core_parity_certified=false. The supplied Phase22 ZIP contains summary reports and seal metadata, not venue funding/liquidation receipts or Kotlin parity fixtures/results.",
+      "required_next": "Add independently sourced OKX funding-rate, mark/index price, contract specification and liquidation-threshold evidence; test fee/funding accrual and liquidation scenarios against a deterministic reference; compare the same closed-candle inputs, feature values, model outputs and risk decisions against Kotlin fixtures. Keep all execution paper-only.",
+      "status": "PENDING_EVIDENCE_AND_PARITY_TESTS"
+    }
+  ],
+  "safety": {
+    "independent_oos_verified": false,
+    "oos_certified": false,
+    "ai_promotion_eligible": false,
+    "ready_for_360": false,
+    "live_orders_enabled": false,
+    "holdout_rows_read": false
+  }
+}
