@@ -143,6 +143,10 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         report = self.verify()
         self.assertTrue(report["exact_original_bundle_bytes_verified"])
         self.assertFalse(report["independent_oos_verified"])
+        self.attestation = self.root / "attestation.json"
+        self.github_proof = self.root / "github-commit.json"
+        self.attestation.write_text("{}", encoding="utf8")
+        self.github_proof.write_text("{}", encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_PROTOCOL_NOT_SEALED"):
             self._verify_oos_current_files()
 
