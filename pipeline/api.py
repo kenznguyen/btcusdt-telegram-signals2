@@ -71,12 +71,15 @@ def book_snapshot(timestamp):
 
 def ledger():
     from paper_execution.ledger import PaperLedger
+    from paper_execution.equity import parse_limits
     path = os.environ.get("MARKET_DATA_DB")
     if not path:
         raise ValueError("Unconfigured store")
+    limits = parse_limits(os.environ)
     return PaperLedger(path, max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"),
                        fee_rate=os.environ.get("PAPER_FEE_RATE", "0.0005"),
-                       max_spread_bps=os.environ.get("PAPER_MAX_SPREAD_BPS", "50"))
+                       max_spread_bps=os.environ.get("PAPER_MAX_SPREAD_BPS", "50"),
+                       risk_limits=limits, require_risk_limits=True)
 
 
 def control_permit(timestamp):
@@ -128,13 +131,30 @@ def decide(data, timestamp):
                     target_base=os.environ.get("PAPER_TARGET_BASE", "0.001"))
 
 
-def core_decide(timestamp):
+def core_decide(timestamp, book=None):
     from pipeline.core_signal import validate
+    from pipeline.core_strategy import produce
+    end15 = timestamp // 900_000 * 900_000
+    end1h = timestamp // 3_600_000 * 3_600_000
     try:
-        report = load_report("STRATEGY_CORE_REPORT_PATH")
-    except (ValueError, OSError):
-        report = None
-    return validate(report, timestamp)
+        m15 = read_window(os.environ.get("MARKET_DATA_DB", ""), "BTCUSDT", "15m",
+                          end15-500*900_000, end15, as_of_ms=timestamp)
+        h1 = read_window(os.environ.get("MARKET_DATA_DB", ""), "BTCUSDT", "1h",
+                         end1h-500*3_600_000, end1h, as_of_ms=timestamp)
+        paper = ledger().snapshot()
+        state = ledger().strategy_state()
+        book = book_snapshot(timestamp) if book is None else book
+        report = produce(m15, h1, paper, state, book, timestamp,
+                         initial_capital=os.environ.get("PAPER_INITIAL_CAPITAL", "100"),
+                         max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"))
+    except (ValueError, OSError, sqlite3.Error, TypeError, KeyError):
+        return {"source":"STRATEGY_CORE","action":"WAIT","reason":"CORE_INPUTS_UNAVAILABLE","intent":None}
+    if report.get("intent") is None:
+        return {"source":"STRATEGY_CORE","action":"WAIT","reason":report.get("reason","CORE_NO_SIGNAL"),
+                "intent":None,"indicators":report.get("indicators")}
+    result = validate(report["intent"], timestamp)
+    result["indicators"] = report.get("indicators")
+    return result
 
 
 def signal_snapshot(timestamp):
