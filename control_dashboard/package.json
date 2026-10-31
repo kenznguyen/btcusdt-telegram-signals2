@@ -1,5 +1,5 @@
 {
-  "name": "chart-pro-control",
+  "name": "five-layer-paper-control",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test --test-isolation=none src/api.test.js"
+    "test": "node --test --test-isolation=none src/api.test.js src/App.test.js"
   },
   "dependencies": {
     "react": "18.3.1",
