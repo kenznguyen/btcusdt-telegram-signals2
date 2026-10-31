@@ -96,7 +96,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
             "source": "082edc082996425f61f48c952be41fb037564103",
         }
 
-    def verify(self):
+    def _verify_current_files(self):
         with patch.multiple(
             "quant_system.phase22_frozen_reproducibility",
             REGISTERED_BUNDLE_SHA=self.registered["bundle"],
@@ -106,11 +106,16 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
             REGISTERED_FEATURE_COUNT=2,
         ):
             return verify_preserved_snapshot(
-                self.bundle, self.original, self.metadata, self.protocol, self.seal
+                self.bundle, self.original, self.metadata, self.protocol, self.seal,
+                self.attestation, self.github_proof,
             )
 
+    def verify(self):
+        self._write_valid_attestation_and_github_proof()
+        return self._verify_current_files()
+
     def test_exact_preserved_bytes_and_provenance_are_verified(self):
-        report = self.verify_with_attestation()
+        report = self.verify()
         self.assertTrue(report["exact_original_bundle_bytes_verified"])
         self.assertEqual(report["candidate_bundle_sha256"], self.registered["bundle"])
         self.assertEqual(report["source_commit_sha"], self.registered["source"])
