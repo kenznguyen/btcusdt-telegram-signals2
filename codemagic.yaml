@@ -1285,10 +1285,11 @@ workflows:
           unzip -oq "$PHASE14_ORIGINAL_ZIP" -d artifacts/phase22/original
           test "$(cat artifacts/phase22/original/phase3-source-sha.txt)" = "082edc082996425f61f48c952be41fb037564103"
           ORIGINAL_BUNDLE="artifacts/phase22/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib"
+          PRESERVED="research_evidence/frozen-model/phase13b-20261104"
+          PRESERVED_MODEL="$PRESERVED/original-frozen-model.joblib"
           test -s "$ORIGINAL_BUNDLE"
           test "$(stat -f%z "$ORIGINAL_BUNDLE")" = "436330"
-          PRESERVED_MODEL="$PRESERVED/original-frozen-model.joblib"
-          printf "%s  %s\\n" "918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f" "$PRESERVED_MODEL" | shasum -a 256 -c -
+          printf "%s  %s\\n" "918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f" "$ORIGINAL_BUNDLE" | shasum -a 256 -c -
           git fetch --no-tags origin refs/heads/freeze/phase13b-20261104-candidate-082edc0:refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0
           git merge-base --is-ancestor 888efb11b613b42a2badb3bc8adfa19ff090f2bb refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0
           git show "888efb11b613b42a2badb3bc8adfa19ff090f2bb:research_seals/phase13b-20261104/seal-manifest.json" > artifacts/phase22/seal/seal-manifest.json
