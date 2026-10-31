@@ -42,7 +42,7 @@ The repository has no Gradle wrapper. The regular application ID and release sig
 
 ### Hệ thống 5 tầng · BTCUSDT PAPER
 
-The **Hệ thống 5 tầng** tab connects to the common API described in [`pipeline/CONTRACTS.md`](../pipeline/CONTRACTS.md). Enter the server's HTTPS base URL and its `MARKET_DATA_TOKEN` as the read token. This panel always represents BTCUSDT, independently of the symbol selected for charts or the scanner. It shows layer status, observed futures flow, Hummingbot Order Book, the AI decision and server paper ledger; unavailable data remains unavailable rather than becoming zero.
+The **Hệ thống 5 tầng** tab connects to the common API described in [`pipeline/CONTRACTS.md`](../pipeline/CONTRACTS.md). Enter the server's HTTPS base URL and its `MARKET_DATA_TOKEN` as the read token. This panel always represents BTCUSDT, independently of the symbol selected for charts or the scanner. It shows layer status, observed futures flow, Hummingbot Order Book, independent Strategy Core and AI/FreqAI signals, Data Quality, Audit Log, shared Risk Management and the server Paper ledger; unavailable data remains unavailable rather than becoming zero.
 
 The canonical candle card requests the last 20 closed M15 slots from the layer-0 store. It displays actual OHLCV strings, coverage and missing slots, and leaves gaps in the chart instead of inventing candles. It validates the returned market/window, closure, availability times, OHLC bounds and coverage; the dataset identifier is server-supplied. This preview has its own 20-slot query and is separate from the two-candle input window used by the decision engine. Older common APIs without `generatedAtMs` remain supported; the app labels its own API-read time separately from candle close time.
 
@@ -90,7 +90,9 @@ UTC baseline remains explicitly unavailable.
 
 The native screen also reads `/v1/signals` and shows Strategy Core (RSI/ADX/Smart DCA)
 separately from the independent AI/FreqAI signal, including action, reason, intent
-expiry and available M15/H1 indicators. `/v1/quality` feeds a Data Quality Monitor;
+expiry and available M15/H1 indicators. The Paper control card lets the operator
+choose which strategy to evaluate; both choices still pass through the same server-side
+Shared Risk Engine and Paper Ledger. `/v1/quality` feeds a Data Quality Monitor;
 `/v1/audit` displays the latest server-persisted Paper events. Both remain read-only.
 
 The Paper control card reads the persistent shared `riskControl` latch. A dedicated
