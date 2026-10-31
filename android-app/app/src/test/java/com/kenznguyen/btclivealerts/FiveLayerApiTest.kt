@@ -174,6 +174,11 @@ class FiveLayerApiTest {
         assertEquals("SELL",parsed.aiStrategy.action)
         assertEquals("31.5",parsed.strategyCore.indicators["rsiM15"])
         assertEquals("-0.001",parsed.aiStrategy.intent?.targetPositionBase)
+        val coreWithoutExecutableIntent = JSONObject().put("source","STRATEGY_CORE")
+            .put("action","CLOSE").put("reason","CORE_ORDER_BOOK_UNAVAILABLE")
+            .put("intent",JSONObject.NULL).put("indicators",JSONObject())
+        val diagnosticOnly = JSONObject(payload.toString()).put("strategyCore",coreWithoutExecutableIntent)
+        assertEquals("CLOSE",FiveLayerJson.signals(diagnosticOnly,now).strategyCore.action)
         val invalid = JSONObject(payload.toString()).put("liveTradingSupported",true)
         assertThrows(IllegalArgumentException::class.java) { FiveLayerJson.signals(invalid,now) }
     }
