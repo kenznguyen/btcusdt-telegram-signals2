@@ -177,6 +177,7 @@ def equity_snapshot(timestamp):
         window["datasetVersion"], os.environ.get("PAPER_INITIAL_CAPITAL", "100"))
     from paper_execution.equity import parse_limits
     limits = parse_limits(os.environ)
+    result["initialCapital"] = os.environ.get("PAPER_INITIAL_CAPITAL", "100")
     result["riskLimits"] = {
         "configured": limits is not None,
         "maxDrawdownPct": str(limits["maxDrawdownPct"]) if limits else None,
@@ -414,7 +415,7 @@ def application(environ, start_response):
             result = {"mode": "PAPER", "liveTradingSupported": False, "layers": [
                 {"level": 0, "name": "Kho nến chuẩn", "status": "READY" if candle_ready else "WAIT", "detail": "Cửa sổ M15 · API kho cũng hỗ trợ H1"},
                 {"level": 1, "name": "Trinh sát futures", "status": "OBSERVED" if intel_ready else "WAIT", "detail": "Dữ liệu quan sát; từng feed có coverage riêng"},
-                {"level": 2, "name": "Freqtrade + FreqAI", "status": "ARTIFACT_AVAILABLE" if model_ready else "WAIT", "detail": "Dự báo phải qua kiểm tra provenance khi ra quyết định"},
+                {"level": 2, "name": "Strategy Core + AI Strategy", "status": "ARTIFACT_AVAILABLE" if model_ready else "WAIT", "detail": "Hai nguồn độc lập; cùng Shared Risk Engine và Paper Ledger"},
                 {"level": 3, "name": "Hummingbot / paper", "status": "CONFIGURED" if hb_ready else "WAIT", "detail": "Snapshot chỉ phục vụ mô phỏng, chưa xác nhận kết nối thật"},
                 {"level": 4, "name": "React + API", "status": "READY" if (control_root() / "index.html").is_file() else "API_ONLY", "detail": "Quyền đọc và điều khiển paper tách riêng; React cần build dist"}]}
         return response("200 OK", result)
