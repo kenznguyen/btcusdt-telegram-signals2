@@ -58,6 +58,22 @@ class FrozenOOSContracts(unittest.TestCase):
                                     "OOS_SHARED_RISK_CHANGED"):
             verify_shared_risk_protocol(p)
 
+    def test_frozen_forecast_provenance_requires_explicit_selector(self):
+        from quant_system.paper_backtest import validated_native_predictions
+        t=START
+        candle=dict(open_time=t,open=100.,high=101.,low=99.,
+                    close=100.,volume=1.,closed=True)
+        row=dict(candle,source="freqai-frozen-oos",
+                 pair="BTC/USDT:USDT",model_identifier="chart-pro-okx-shadow-v1",
+                 do_predict=1,predicted_return=.02)
+        self.assertEqual(validated_native_predictions(
+            [row],{t:candle},"chart-pro-okx-shadow-v1",
+            allowed_source="freqai-frozen-oos"),{t:.02})
+        with self.assertRaisesRegex(ValueError,
+                                    "WRONG_FREQAI_PREDICTION_ORIGIN"):
+            validated_native_predictions(
+                [row],{t:candle},"chart-pro-okx-shadow-v1")
+
     def test_forbidden_retraining_or_live_enabling(self):
         p=self.protocol()
         p["frozen_model_policy"]["retrain_inside_holdout"]=True
