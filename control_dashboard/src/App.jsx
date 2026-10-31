@@ -54,7 +54,7 @@ export default function App() {
     try {
       const result = await requestJson(activeConnection.base, path, activeConnection.controlToken, { body, signal: controller.signal });
       if (controller.signal.aborted) return;
-      if (path.endsWith('/evaluate') && ['WAIT', 'BUY', 'SELL'].includes(result.decision?.action)) setNotice(`${result.decision.action} · ${text(result.decision.reason)}${result.order ? ` · ${text(result.order.status)}` : ''}`);
+      if (path.endsWith('/evaluate') && ['WAIT', 'BUY', 'SELL', 'CLOSE'].includes(result.decision?.action)) setNotice(`${result.decision.action} · ${text(result.decision.reason)}${result.order ? ` · ${text(result.order.status)}` : ''}`);
       else if (path.endsWith('/pause') && typeof result.paused === 'boolean') setNotice(result.paused ? 'Máy chủ đã tạm dừng ý định paper mới.' : 'Máy chủ đã cho phép đánh giá paper trở lại.');
       else if (path.endsWith('/cancel') && typeof result.status === 'string') setNotice(`Máy chủ xác nhận: ${result.status}`);
       else if (path.endsWith('/kill') && result.riskControl?.killed === true) setNotice('KILL SWITCH đã được máy chủ khóa bền vững.');
