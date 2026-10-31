@@ -8,7 +8,6 @@
   "phase20_gate_passed": true,
   "native_historical_evidence_locked": true,
   "phase20_gate_errors": [],
-  "phase19_contract_tests": 23,
   "phase19_and_phase18_runtime_tests": 20,
   "phase20_receipt_tests": 10,
   "total_observed_codemaqic_tests": 33,
@@ -21,5 +20,9 @@
   "ai_promotion_eligible": false,
   "live_orders_enabled": false,
   "holdout_start_utc": "2026-11-04T00:00:00Z",
-  "holdout_end_utc": "2026-12-04T00:00:00Z"
+  "holdout_end_utc": "2026-12-04T00:00:00Z",
+  "codemagic_preflight_tests": 23,
+  "phase18_phase19_pinned_runtime_tests": 20,
+  "phase20_receipt_tests_are_subset_of_preflight": true,
+  "total_unique_observed_tests": 43
 }
