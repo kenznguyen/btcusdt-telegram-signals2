@@ -66,6 +66,9 @@ def record(connection, *, initial_capital, position, average, realized, fees,
     candle_at, observed_at = stamp(candle_close_ms), stamp(observed_at_ms)
     if capital <= 0 or mark <= 0 or candle_at > observed_at or observed_at-candle_at > 30*60_000:
         raise ValueError("Invalid or stale equity mark")
+    latest_time = connection.execute("SELECT observed_at_ms FROM paper_equity_history ORDER BY observed_at_ms DESC,id DESC LIMIT 1").fetchone()
+    if latest_time and observed_at < latest_time[0]:
+        raise ValueError("OUT_OF_ORDER_EQUITY_SNAPSHOT")
     configured = connection.execute("SELECT initial_capital FROM paper_account_config WHERE id=1").fetchone()
     if configured is None:
         connection.execute("INSERT INTO paper_account_config VALUES (1,?)", (str(capital),))
