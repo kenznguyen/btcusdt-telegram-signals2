@@ -195,11 +195,12 @@ class PaperLedger:
                 risk_control.set_kill(connection, True, now, auto_kill)
                 self.audit(connection, now, "RISK_LIMIT_BREACH", {"reason": auto_kill})
             if risk_reason:
-                reason = risk_reason
+                reason = "PAUSED" if risk_reason == "RISK_PAUSED" else risk_reason
             elif not risk_reducing and owner not in (None, strategy_id) and position != 0:
                 reason = "POSITION_OWNED_BY_OTHER_STRATEGY"
             elif not risk_reducing and risk_control.risk_block_reason(connection):
-                reason = risk_control.risk_block_reason(connection)
+                block_reason = risk_control.risk_block_reason(connection)
+                reason = "PAUSED" if block_reason == "RISK_PAUSED" else block_reason
             elif paused and not risk_reducing:
                 reason = "PAUSED"
             elif not intent["decisionAtMs"] <= now <= intent["validUntilMs"]:
