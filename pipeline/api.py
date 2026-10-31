@@ -79,7 +79,8 @@ def ledger():
     return PaperLedger(path, max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"),
                        fee_rate=os.environ.get("PAPER_FEE_RATE", "0.0005"),
                        max_spread_bps=os.environ.get("PAPER_MAX_SPREAD_BPS", "50"),
-                       risk_limits=limits, require_risk_limits=True)
+                       risk_limits=limits, require_risk_limits=True,
+                       leverage=os.environ.get("LEVERAGE", "13"))
 
 
 def control_permit(timestamp):
