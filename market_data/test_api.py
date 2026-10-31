@@ -63,6 +63,14 @@ class CandleApiTest(unittest.TestCase):
         self.assertFalse(missing.exists())
         self.assertNotIn(str(missing), json.dumps(body))
 
+
+    def test_explicit_postgres_without_dsn_fails_closed_instead_of_using_sqlite(self):
+        self.config["MARKET_DATA_BACKEND"] = "postgres"
+        code, body = self.request()
+        self.assertEqual(code, 503)
+        self.assertEqual(body, {"error": "STORE_UNAVAILABLE"})
+        self.assertTrue(self.db.is_file())
+
     def test_invalid_duplicate_unbounded_and_unknown_parameters(self):
         base = f"symbol=BTCUSDT&timeframe=15m&startMs={self.start}&endMs={self.start+self.interval}"
         for query in (base + "&symbol=ETHUSDT", base + "&token=secret", base.replace("BTCUSDT", "ETHUSDT"),
