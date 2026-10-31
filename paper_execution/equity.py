@@ -73,10 +73,8 @@ def record(connection, *, initial_capital, position, average, realized, fees,
         raise ValueError("PAPER_INITIAL_CAPITAL_CHANGED; explicit account migration required")
     unrealized = qty * (mark-avg) if qty else Decimal(0)
     equity = capital + realized_pnl - fee + unrealized
-    previous_hwm = connection.execute(
-        "SELECT high_water_mark FROM paper_equity_history ORDER BY id DESC LIMIT 1"
-    ).fetchone()
-    hwm = max(Decimal(previous_hwm[0]), equity) if previous_hwm else equity
+    historical_hwm = connection.execute("SELECT high_water_mark FROM paper_equity_history").fetchall()
+    hwm = max([equity, *(Decimal(row[0]) for row in historical_hwm)])
     drawdown = max(Decimal(0), hwm-equity)
     drawdown_pct = drawdown/hwm*100 if hwm > 0 else Decimal(0)
     exposure = abs(qty)*mark
@@ -89,6 +87,11 @@ def record(connection, *, initial_capital, position, average, realized, fees,
             "INSERT INTO paper_daily_baselines VALUES (?,?,?,?)",
             (day_start, observed_at, str(equity), "FIRST_OBSERVED_UTC_DAY"),
         )
+    else:
+        connection.execute("""UPDATE paper_daily_baselines
+            SET baseline_at_ms=?,baseline_equity=?,baseline_kind='FIRST_OBSERVED_UTC_DAY'
+            WHERE utc_day_ms=? AND ?<baseline_at_ms""",
+            (observed_at,str(equity),day_start,observed_at))
     audit_exists = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_audit'").fetchone()
     audit_cursor = connection.execute("SELECT COALESCE(MAX(id),0) FROM paper_audit").fetchone()[0] if audit_exists else 0
     canonical = {"candleCloseMs":candle_at,"auditCursor":audit_cursor,"markPrice":str(mark),
@@ -111,7 +114,7 @@ def snapshot(connection, now_ms, limit=500):
     rows = connection.execute("""SELECT id,candle_close_ms,observed_at_ms,mark_price,position_base,
         average_entry_price,realized_pnl,fees,unrealized_pnl,equity,high_water_mark,
         drawdown_usdt,drawdown_pct,exposure_usdt,dataset_version
-        FROM paper_equity_history ORDER BY id DESC LIMIT ?""", (limit,)).fetchall()
+        FROM paper_equity_history ORDER BY observed_at_ms DESC,id DESC LIMIT ?""", (limit,)).fetchall()
     if not rows:
         return {"available":False,"reason":"EQUITY_HISTORY_EMPTY","points":[],"maxDrawdownUsdt":None,
                 "maxDrawdownPct":None,"dailyPnlUsdt":None,"dailyLossUsdt":None,"exposureUsdt":None}
