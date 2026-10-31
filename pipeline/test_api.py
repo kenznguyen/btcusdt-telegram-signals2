@@ -244,7 +244,7 @@ class FiveLayerApiTest(unittest.TestCase):
         streams={stream["name"]:stream for stream in quality["streams"]}
         self.assertEqual(streams["M15 candles"]["status"],"DEGRADED")
         self.assertEqual(streams["H1 candles"]["status"],"DEGRADED")
-        self.assertEqual(streams["Strategy Core producer"]["status"],"WAIT")
+        self.assertEqual(streams["Strategy Core producer"]["status"],"DEGRADED")
 
     def test_risk_limit_breach_auto_kills_new_paper_intents(self):
         self.request("/v1/equity")
