@@ -155,7 +155,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
             "live_orders_enabled": False,
         }
         proof = {
-            "sha": "f" * 40,
+            "sha": "f9591bcda1b11f15a549f397aa211259346ed3f9",
             "commit": {"committer": {"date": "2026-10-31T16:18:24Z"}},
             "files": [{"filename": "research_evidence/frozen-model/phase13b-20261104/pre-holdout-attestation.json"}],
         }
