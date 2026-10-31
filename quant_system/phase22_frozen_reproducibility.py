@@ -209,9 +209,7 @@ def main():
     )
     output = Path(args.out)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\\n",
-                      encoding="utf8")
-    print("PHASE22_EXACT_FROZEN_BUNDLE_REPRODUCIBILITY_VERIFIED")
+    output.write_text(json.dumps(report, indent=2, sort_keys=True),\n                      encoding="utf8")\n    print("PHASE22_EXACT_FROZEN_BUNDLE_REPRODUCIBILITY_VERIFIED")
     return 0
 
 
