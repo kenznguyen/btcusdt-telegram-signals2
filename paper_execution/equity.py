@@ -80,7 +80,9 @@ def record(connection, *, initial_capital, position, average, realized, fees,
             "INSERT INTO paper_daily_baselines VALUES (?,?,?,?)",
             (day_start, observed_at, str(equity), "FIRST_OBSERVED_UTC_DAY"),
         )
-    canonical = {"candleCloseMs":candle_at,"markPrice":str(mark),
+    audit_exists = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_audit'").fetchone()
+    audit_cursor = connection.execute("SELECT COALESCE(MAX(id),0) FROM paper_audit").fetchone()[0] if audit_exists else 0
+    canonical = {"candleCloseMs":candle_at,"auditCursor":audit_cursor,"markPrice":str(mark),
         "positionBase":str(qty),"averageEntryPrice":str(avg),"realizedPnl":str(realized_pnl),
         "fees":str(fee),"unrealizedPnl":str(unrealized),"equity":str(equity),
         "datasetVersion":str(dataset_version)}
@@ -110,8 +112,9 @@ def snapshot(connection, now_ms, limit=500):
         "highWaterMark":r[10],"drawdownUsdt":r[11],"drawdownPct":r[12],"exposureUsdt":r[13],
         "datasetVersion":r[14]} for r in reversed(rows)]
     latest = points[-1]
-    maximum = connection.execute("""SELECT MAX(CAST(drawdown_usdt AS REAL)),
-        MAX(CAST(drawdown_pct AS REAL)) FROM paper_equity_history""").fetchone()
+    drawdowns = connection.execute("SELECT drawdown_usdt,drawdown_pct FROM paper_equity_history").fetchall()
+    maximum_usdt = max((Decimal(row[0]) for row in drawdowns), default=Decimal(0))
+    maximum_pct = max((Decimal(row[1]) for row in drawdowns), default=Decimal(0))
     day_start = now//DAY_MS*DAY_MS
     baseline = connection.execute(
         "SELECT baseline_at_ms,baseline_equity,baseline_kind FROM paper_daily_baselines WHERE utc_day_ms=?",
@@ -121,8 +124,8 @@ def snapshot(connection, now_ms, limit=500):
         daily_pnl = Decimal(latest["equity"])-Decimal(baseline[1])
         daily_loss = max(Decimal(0), -daily_pnl)
     return {"available":True,"points":points,"latest":latest,
-        "maxDrawdownUsdt":str(maximum[0]) if maximum[0] is not None else "0",
-        "maxDrawdownPct":str(maximum[1]) if maximum[1] is not None else "0",
+        "maxDrawdownUsdt":str(maximum_usdt),
+        "maxDrawdownPct":str(maximum_pct),
         "dailyBaselineAtMs":baseline[0] if baseline else None,
         "dailyBaselineKind":baseline[2] if baseline else None,
         "dailyPnlUsdt":str(daily_pnl) if daily_pnl is not None else None,
