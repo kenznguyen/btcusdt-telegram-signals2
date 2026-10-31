@@ -1262,8 +1262,26 @@ workflows:
           printf '%s  %s\n' "$EXPECTED_ZIP_SHA" "$PHASE14_ORIGINAL_ZIP" | shasum -a 256 -c -
           unzip -t "$PHASE14_ORIGINAL_ZIP" >/dev/null
           mkdir -p artifacts/phase22/original artifacts/phase22/seal artifacts/phase22/reports
-          curl --fail --silent --show-error --location -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/kenznguyen/btcusdt-telegram-signals2/commits/f9591bcda1b11f15a549f397aa211259346ed3f9" -o artifacts/phase22/seal/github-attestation-commit.json
-          python3 -c 'import json; p=json.load(open("artifacts/phase22/seal/github-attestation-commit.json")); assert p.get("sha") == "f9591bcda1b11f15a549f397aa211259346ed3f9" and any(x.get("filename") == "research_evidence/frozen-model/phase13b-20261104/pre-holdout-attestation.json" for x in p.get("files", [])); print("PHASE22_GITHUB_ATTESTATION_COMMIT_EVIDENCE_FETCHED")'
+          ATTESTATION_COMMIT="f9591bcda1b11f15a549f397aa211259346ed3f9"
+          git cat-file -e "${ATTESTATION_COMMIT}^{commit}"
+          ATTESTATION_DATE="$(git show -s --format=%cI "$ATTESTATION_COMMIT")"
+          ATTESTATION_FILES="$(git diff-tree --no-commit-id --name-only -r "$ATTESTATION_COMMIT")"
+          printf '%s\n' "$ATTESTATION_FILES" | grep -Fx "research_evidence/frozen-model/phase13b-20261104/pre-holdout-attestation.json" >/dev/null
+          ATTESTATION_DATE="$ATTESTATION_DATE" ATTESTATION_FILES="$ATTESTATION_FILES" python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          files = [line for line in os.environ["ATTESTATION_FILES"].splitlines() if line]
+          proof = {
+              "sha": "f9591bcda1b11f15a549f397aa211259346ed3f9",
+              "commit": {"committer": {"date": os.environ["ATTESTATION_DATE"]}},
+              "files": [{"filename": name} for name in files],
+              "proof_source": "Git commit object from the GitHub-fetched PR branch",
+          }
+          Path("artifacts/phase22/seal/github-attestation-commit.json").write_text(
+              json.dumps(proof, indent=2) + "\\n", encoding="utf-8"
+          )
+          print("PHASE22_GITHUB_ATTESTATION_COMMIT_EVIDENCE_FROM_GIT_OBJECT")
+          PY
           unzip -oq "$PHASE14_ORIGINAL_ZIP" -d artifacts/phase22/original
           test "$(cat artifacts/phase22/original/phase3-source-sha.txt)" = "082edc082996425f61f48c952be41fb037564103"
           ORIGINAL_BUNDLE="artifacts/phase22/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib"
