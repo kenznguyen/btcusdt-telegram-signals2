@@ -151,7 +151,14 @@ def produce(m15_window, h1_window, paper, strategy_state, book, now_ms, *, initi
     reason, action, target, initial_margin = "CORE_NO_ENTRY", "WAIT", position, None
 
     if side and owner != "STRATEGY_CORE":
-        reason = "CORE_POSITION_OWNED_BY_OTHER_STRATEGY"
+        long_signal = h1_plus > h1_minus and h1_adx > H1_ADX_ENTRY and prev_rsi <= LONG_RSI_ENTRY and rsi > LONG_RSI_ENTRY
+        short_signal = h1_minus > h1_plus and h1_adx > H1_ADX_ENTRY and prev_rsi >= SHORT_RSI_ENTRY and rsi < SHORT_RSI_ENTRY
+        action = "LONG" if long_signal else "SHORT" if short_signal else "WAIT"
+        reason = "CORE_SIGNAL_BLOCKED_SHARED_POSITION" if action != "WAIT" else "CORE_POSITION_OWNED_BY_OTHER_STRATEGY"
+        if action != "WAIT":
+            return {"action":"BUY" if action=="LONG" else "SELL","reason":reason,"intent":None,
+                    "indicators":{"rsiM15":rsi,"adxM15":adx,"plusDiH1":h1_plus,
+                                  "minusDiH1":h1_minus,"adxH1":h1_adx}}
     elif side:
         roe = _roe(side, average, close)
         emergency = (low <= _threshold(side, average, abs(EMERGENCY_SL_ROE)) if side == "LONG"
@@ -201,7 +208,8 @@ def produce(m15_window, h1_window, paper, strategy_state, book, now_ms, *, initi
     intent = None
     if action != "WAIT":
         if not isinstance(book, dict):
-            return {"action": "WAIT", "reason": "CORE_ORDER_BOOK_UNAVAILABLE", "intent": None,
+            return {"action": "BUY" if action=="LONG" else "SELL" if action=="SHORT" else "CLOSE",
+                    "reason": "CORE_ORDER_BOOK_UNAVAILABLE", "intent": None,
                     "indicators": {"rsiM15": rsi, "adxM15": adx, "adxH1": h1_adx}}
         try:
             bids = book["bids"]
