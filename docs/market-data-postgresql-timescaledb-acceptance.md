@@ -33,9 +33,11 @@ Any failed integrity or unexplained baseline mismatch blocks migration.
 - [ ] `open_time_ms BIGINT` is the hypertable time dimension.
 - [ ] Every primary/unique index on the hypertable includes `open_time_ms`.
 - [ ] Candle key remains `(exchange, market_type, symbol, timeframe, open_time_ms)`.
+- [ ] The current identity literals remain exactly `exchange='binance'`, `market_type='USDT_PERPETUAL'`, and `symbol='BTCUSDT'`; descriptive wording such as “linear perpetual” is not substituted for the stored enum.
+- [ ] The physical PostgreSQL columns match the documented source-persisted fields; `closeTimeMs`, `isClosed`, `availabilityKind`, `quality`, and `source` remain deterministic API projection fields unless separately justified and constrained.
 - [ ] OHLCV uses PostgreSQL `NUMERIC` without a fixed scale that can silently round existing values.
 - [ ] Application Decimal bounds and all current candle validation rules remain enforced.
-- [ ] Timeframe, alignment, closed-candle, availability, OHLC, volume, source, and quality constraints reject invalid rows.
+- [ ] Timeframe, alignment, closed-candle, availability, OHLC, and volume constraints reject invalid rows; projection-only source/quality/availability-kind values are emitted exactly as the current serializer does.
 - [ ] Legacy rows without ingestion-batch provenance remain NULL; no synthetic provenance is generated.
 - [ ] `SQLiteRepository` remains supported and is the default/rollback adapter until parity and cutover gates pass.
 - [ ] `PostgresRepository` implements the same logical interface, duplicate idempotency, conflicting duplicate rejection, query bounds, ordering, gaps, and `as_of_ms` semantics.
@@ -46,6 +48,7 @@ For the same source snapshot, query parameters, and availability cutoff:
 
 - [ ] SQLite and PostgreSQL return the same candle key set.
 - [ ] All OHLCV decimal values are identical after canonical decimal-string serialization.
+- [ ] The PostgreSQL adapter emits the same derived `closeTimeMs`, `isClosed`, `availabilityKind`, `quality`, and `source` fields as the SQLite serializer.
 - [ ] `available_at_ms`, source, quality, and availability classifications are identical.
 - [ ] Returned order and half-open `[start_ms, end_ms)` boundaries are identical.
 - [ ] Expected/returned counts, completeness, and every gap interval are identical.
@@ -66,6 +69,7 @@ A mismatch in any candle, availability field, gap, or dataset hash blocks cutove
 - [ ] Paper ledger remains on SQLite and its schema, transactions, idempotency, audit trail, risk latches, equity history, and persisted state are unchanged.
 - [ ] If/when a separate `PAPER_DB_PATH` is introduced, it is a separately reviewed compatibility change with explicit startup validation and regression tests.
 - [ ] Existing API endpoints that combine market-data reads and paper-ledger snapshots continue to work without changing their response contract.
+- [ ] No configuration change routes a PostgreSQL DSN into any `sqlite3.connect()` call.
 
 ## Gate 5 — migration and shadow-read execution
 
