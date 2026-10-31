@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime,timezone
 from quant_system.phase16_frozen_oos import (
     OOSContractError, verify_oos_schedule, verify_exact_closed_timebase,
-    verify_shared_risk_protocol,
+    verify_shared_risk_protocol, verify_registered_fold_gate,
 )
 
 START=1793750400000
@@ -74,6 +74,37 @@ class FrozenOOSContracts(unittest.TestCase):
                                     "WRONG_FREQAI_PREDICTION_ORIGIN"):
             validated_native_predictions(
                 [row],{t:candle},"chart-pro-okx-shadow-v1")
+
+    def test_preholdout_gate_requires_exact_native_evidence_sha(self):
+        original=dict(
+            all_26_folds_fitting_time_verified=True,folds_verified=26,
+            total_reproduced_train_rows=59696,
+            total_reproduced_validation_rows=14825,
+            native_report_sha256="sha256:0a414da0d4e8567c39ae1e2c066e4703f9fff5450933c8a0e011b911b5920e01",
+            original_bundle_sha256="sha256:918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f",
+            source_commit_sha="082edc082996425f61f48c952be41fb037564103",
+            errors=[])
+        approved=dict(
+            approved_phase16_report_sha256="sha256:"+"c"*64,
+            reviewed_native_original_report_sha256=original["native_report_sha256"],
+            approved_historical_fold_count=26,
+            original_seal_commit="888efb11b613b42a2badb3bc8adfa19ff090f2bb",
+            original_bundle_sha256=original["original_bundle_sha256"],
+            original_source_commit_sha=original["source_commit_sha"],
+            oos_no_retraining=True,no_real_orders=True,research_only=True)
+        self.assertTrue(verify_registered_fold_gate(
+            original,approved,"sha256:"+"c"*64))
+        changed=dict(original,native_report_sha256="sha256:"+"f"*64)
+        with self.assertRaisesRegex(
+                OOSContractError,"OOS_ALL_26_FOLD_RELEASE_GATE_NOT_SIGNED"):
+            verify_registered_fold_gate(changed,approved,"sha256:"+"c"*64)
+        wrong=dict(approved,approved_historical_fold_count=25)
+        with self.assertRaisesRegex(
+                OOSContractError,"OOS_ALL_26_FOLD_RELEASE_GATE_NOT_SIGNED"):
+            verify_registered_fold_gate(original,wrong,"sha256:"+"c"*64)
+        with self.assertRaisesRegex(
+                OOSContractError,"OOS_ALL_26_FOLD_RELEASE_GATE_NOT_SIGNED"):
+            verify_registered_fold_gate(original,approved,"sha256:"+"d"*64)
 
     def test_forbidden_retraining_or_live_enabling(self):
         p=self.protocol()
