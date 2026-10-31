@@ -165,6 +165,58 @@ def signal_snapshot(timestamp):
             "mode": "PAPER", "liveTradingSupported": False}
 
 
+def equity_snapshot(timestamp):
+    end = timestamp // 900_000 * 900_000
+    window = read_window(os.environ.get("MARKET_DATA_DB", ""), "BTCUSDT", "15m",
+                         end-900_000, end, as_of_ms=timestamp)
+    if not window["candles"] or not window["coverage"]["complete"]:
+        return {"available":False,"reason":"CLOSED_M15_MARK_UNAVAILABLE","points":[]}
+    mark = window["candles"][-1]
+    result = ledger().record_equity(mark["close"], mark["closeTimeMs"], timestamp,
+        window["datasetVersion"], os.environ.get("PAPER_INITIAL_CAPITAL", "100"))
+    from paper_execution.equity import parse_limits
+    limits = parse_limits(os.environ)
+    result["riskLimits"] = {
+        "configured": limits is not None,
+        "maxDrawdownPct": str(limits["maxDrawdownPct"]) if limits else None,
+        "maxDailyLossUsdt": str(limits["maxDailyLossUsdt"]) if limits else None,
+        "maxExposureUsdt": str(limits["maxExposureUsdt"]) if limits else None,
+        "enforcement": "ENFORCED" if limits else "BLOCK_NEW_INTENTS",
+    }
+    return result
+
+
+def quality_snapshot(timestamp):
+    data = context(timestamp)
+    streams = []
+    window = data.get("candles")
+    streams.append({"name":"M15 candles",
+        "status":"READY" if window and window.get("coverage",{}).get("complete") else "DEGRADED" if window else "MISSING",
+        "rows":len(window.get("candles",[])) if window else 0,
+        "datasetVersion":window.get("datasetVersion") if window else None})
+    try:
+        end = timestamp // 3_600_000 * 3_600_000
+        h1 = read_window(os.environ.get("MARKET_DATA_DB",""),"BTCUSDT","1h",
+                         end-100*3_600_000,end,as_of_ms=timestamp)
+        streams.append({"name":"H1 candles","status":"READY" if h1["coverage"]["complete"] else "DEGRADED",
+                        "rows":len(h1["candles"]),"datasetVersion":h1["datasetVersion"]})
+    except (ValueError,OSError,sqlite3.Error):
+        streams.append({"name":"H1 candles","status":"MISSING","rows":0})
+    intel, book, prediction = data.get("intelligence"), data.get("book"), data.get("prediction")
+    streams.append({"name":"Futures Intelligence","status":"READY" if intel else "MISSING",
+                    "availableAtMs":intel.get("availableAtMs") if intel else None})
+    streams.append({"name":"Hummingbot Order Book","status":"READY" if book else "MISSING",
+                    "observedAtMs":book.get("observedAtMs") if book else None})
+    streams.append({"name":"FreqAI prediction","status":"READY" if prediction and prediction.get("doPredict")==1 else "MISSING",
+                    "availableAtMs":prediction.get("availableAtMs") if prediction else None})
+    core = core_decide(timestamp, book)
+    streams.append({"name":"Strategy Core producer","status":"READY" if core.get("intent") else "WAIT",
+                    "reason":core.get("reason"),"indicators":core.get("indicators")})
+    return {"checkedAtMs":timestamp,"mode":"PAPER","streams":streams,
+            "overall":"READY" if all(row["status"]=="READY" for row in streams) else "DEGRADED",
+            "errors":data.get("errors",{})}
+
+
 def control_readiness(timestamp):
     data = context(timestamp)
     candles = data.get("candles")
