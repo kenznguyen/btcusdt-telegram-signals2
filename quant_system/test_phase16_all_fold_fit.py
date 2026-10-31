@@ -15,6 +15,7 @@ def sample(name,kind,t):
             "row_kind":kind,"feature_open_ms":str(t*900000),
             "label_end_ms":str((t+4)*900000),
             "training_end_ms":str(30*900000),
+            "horizon_candles":"4",
             "observed_raw_label":".01","expected_recomputed_label":".01"}
 
 class All26Tests(unittest.TestCase):
