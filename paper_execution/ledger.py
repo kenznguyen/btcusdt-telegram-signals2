@@ -7,6 +7,7 @@ from pathlib import Path
 import sqlite3
 
 from pipeline.values import identity, number, stamp
+from paper_execution import risk_control
 
 ZERO = Decimal(0)
 ACTIVE = {"OPEN", "PARTIALLY_FILLED"}
@@ -132,6 +133,7 @@ class PaperLedger:
             connection.execute("CREATE TABLE IF NOT EXISTS paper_books (book_id TEXT PRIMARY KEY, used_at_ms INTEGER NOT NULL)")
             connection.execute("""CREATE TABLE IF NOT EXISTS paper_audit (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, at_ms INTEGER NOT NULL, kind TEXT NOT NULL, document TEXT NOT NULL)""")
+            risk_control.ensure(connection)
 
     def connect(self):
         return sqlite3.connect(self.path, timeout=10)
@@ -148,6 +150,7 @@ class PaperLedger:
             context.prec = 80
             connection.execute("BEGIN IMMEDIATE")
             position, average, realized, fees, paused = stored_state(connection)
+            risk_reason = risk_control.risk_block_reason(connection)
             previous = connection.execute("SELECT payload_hash,document FROM paper_orders WHERE intent_id=?", (intent["intentId"],)).fetchone()
             if previous:
                 if previous[0] != digest:
@@ -158,7 +161,9 @@ class PaperLedger:
             side = "BUY" if delta > 0 else "SELL" if delta < 0 else "NONE"
             quantity, filled, quote, fee = abs(delta), ZERO, ZERO, ZERO
             pending = connection.execute("SELECT 1 FROM paper_orders WHERE status IN ('OPEN','PARTIALLY_FILLED') LIMIT 1").fetchone()
-            if paused:
+            if risk_reason:
+                reason = risk_reason
+            elif paused:
                 reason = "PAUSED"
             elif not intent["decisionAtMs"] <= now <= intent["validUntilMs"]:
                 reason = "EXPIRED_INTENT"
@@ -226,7 +231,24 @@ class PaperLedger:
         with closing(self.connect()) as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
             connection.execute("UPDATE paper_state SET paused=? WHERE id=1", (int(paused),))
+            risk_control.set_paused(connection, paused, now)
             self.audit(connection, now, "PAUSE" if paused else "RESUME", {"paused": paused})
+        return self.snapshot()
+
+    def set_killed(self, enabled, now_ms, reason="OPERATOR_KILL_SWITCH"):
+        now = stamp(now_ms)
+        with closing(self.connect()) as connection, connection:
+            connection.execute("BEGIN IMMEDIATE")
+            risk_control.set_kill(connection, enabled, now, reason)
+            self.audit(connection, now, "KILL_SWITCH", {"enabled": enabled, "reason": reason})
+        return self.snapshot()
+
+    def reset_kill(self, acknowledge, ready, now_ms):
+        now = stamp(now_ms)
+        with closing(self.connect()) as connection, connection:
+            connection.execute("BEGIN IMMEDIATE")
+            risk_control.reset_kill(connection, acknowledge, ready, now)
+            self.audit(connection, now, "KILL_SWITCH_RESET", {"acknowledge": acknowledge, "ready": ready})
         return self.snapshot()
 
     def cancel(self, order_id, now_ms):
