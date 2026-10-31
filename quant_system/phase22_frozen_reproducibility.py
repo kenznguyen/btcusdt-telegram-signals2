@@ -255,7 +255,11 @@ def verify_oos_eligibility(bundle, original_bundle, metadata, protocol, seal,
         and attested.get("holdout_start_utc") == HOLDOUT_START_UTC
         and attested.get("holdout_end_utc") == HOLDOUT_END_UTC
         and attested.get("holdout_retraining_allowed") is False
-        and attested.get("holdout_tuning_allowed") is False,
+        and attested.get("holdout_tuning_allowed") is False
+        and attested.get("independent_oos_verified") is False
+        and attested.get("oos_certified") is False
+        and attested.get("ai_promotion_eligible") is False
+        and attested.get("live_orders_enabled") is False,
         "PHASE22_ATTESTATION_PROVENANCE_MISMATCH",
     )
     result = dict(historical)
