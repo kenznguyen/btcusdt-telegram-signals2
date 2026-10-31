@@ -249,7 +249,7 @@ class PaperLedgerTest(unittest.TestCase):
         # Seed a position and persistent equity baseline, then breach both risk limits.
         self.ledger.submit(self.intent(target="0.1", limit="100.1"), self.book(), self.now)
         self.ledger.record_equity("100",1799999100000,self.now,"sha256:"+"a"*64,"100")
-        self.ledger.record_equity("70","1800000000000",self.now+1,"sha256:"+"b"*64,"100")
+        self.ledger.record_equity("70",1800000000000,self.now+1,"sha256:"+"b"*64,"100")
         limits={"maxDrawdownPct":Decimal("1"),"maxDailyLossUsdt":Decimal("1"),
                 "maxExposureUsdt":Decimal("1000")}
         guarded=PaperLedger(self.path,max_position_base="1",risk_limits=limits,require_risk_limits=True)
