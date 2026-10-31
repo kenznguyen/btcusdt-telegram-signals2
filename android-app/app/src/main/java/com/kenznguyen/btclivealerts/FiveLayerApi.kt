@@ -461,6 +461,11 @@ internal object FiveLayerJson {
     }
 }
 
+internal fun fiveLayerEvaluationPayload(source: String): JSONObject {
+    require(source in setOf("AI", "CORE"))
+    return JSONObject().put("source", source)
+}
+
 internal fun fiveLayerEndpoint(baseUrl: String, path: String): HttpUrl {
     require(path in setOf("system", "intelligence", "decision", "paper", "paper/evaluate", "paper/pause", "paper/cancel", "candles", "order-book", "equity", "signals", "quality", "audit", "paper/kill", "paper/reset-kill"))
     val base = baseUrl.trim().toHttpUrl()
@@ -514,8 +519,8 @@ internal object FiveLayerClient {
             .newBuilder().addQueryParameter("symbol", "BTCUSDT").build())) { json, now ->
             HummingbotSnapshot.parse(json, "BTCUSDT", now)
         }
-    suspend fun evaluate(baseUrl: String, token: String): PaperEvaluationView =
-        decode(request(baseUrl, token, "paper/evaluate", JSONObject()), FiveLayerJson::evaluation)
+    suspend fun evaluate(baseUrl: String, token: String, source: String = "AI"): PaperEvaluationView =
+        decode(request(baseUrl, token, "paper/evaluate", fiveLayerEvaluationPayload(source)), FiveLayerJson::evaluation)
     suspend fun setPaused(baseUrl: String, token: String, paused: Boolean): PaperView =
         decode(request(baseUrl, token, "paper/pause", JSONObject().put("paused", paused)), FiveLayerJson::ledger)
     suspend fun setKilled(baseUrl: String, token: String): PaperView =
