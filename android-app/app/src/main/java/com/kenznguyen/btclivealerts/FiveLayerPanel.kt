@@ -430,7 +430,7 @@ internal fun FiveLayerPanel(context: Context) {
             }
             if (config?.controlToken.isNullOrEmpty())
                 Text("Kết nối với token điều khiển riêng để thao tác paper.", color = fiveMuted)
-            Button(enabled = canControl && currentPaper?.paused == false, onClick = {
+            Button(enabled = canControl && currentPaper?.paused == false && currentPaper.riskControl.killed.not(), onClick = {
                 submit { target ->
                     val result = FiveLayerClient.evaluate(target.url, target.controlToken)
                     lastActionOrder = result.order
