@@ -63,12 +63,15 @@ def _same_price(a, b):
     return math.isclose(float(a), float(b), rel_tol=1e-10, abs_tol=1e-8)
 
 
-def validated_native_predictions(rows, candle_lookup, model_identifier):
+def validated_native_predictions(rows, candle_lookup, model_identifier, *,
+                                 allowed_source='freqai-native-backtest'):
     """Require real source-tagged FreqAI output matched to raw OKX M15 candles.
 
     This is **research provenance**, not an independent model OOS certificate.
     do_predict=0 is a rejection/abstention, never silently becomes a trade.
     """
+    if allowed_source not in ('freqai-native-backtest', 'freqai-frozen-oos'):
+        raise ValueError('UNAPPROVED_FREQAI_PREDICTION_SOURCE')
     if not isinstance(model_identifier, str) or not model_identifier.strip():
         raise ValueError('MISSING_FREQAI_MODEL_IDENTIFIER')
     accepted = {}
@@ -80,7 +83,7 @@ def validated_native_predictions(rows, candle_lookup, model_identifier):
             opened = int(record['open_time'])
             if str(record['open_time']) != str(opened) or opened % M15_MS:
                 raise ValueError('INVALID_FREQAI_TIME')
-            if record.get('source') != 'freqai-native-backtest' or record.get('pair') != 'BTC/USDT:USDT':
+            if record.get('source') != allowed_source or record.get('pair') != 'BTC/USDT:USDT':
                 raise ValueError('WRONG_FREQAI_PREDICTION_ORIGIN')
             if record.get('model_identifier') != model_identifier:
                 raise ValueError('WRONG_FREQAI_MODEL')
