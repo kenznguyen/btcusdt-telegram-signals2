@@ -22,18 +22,18 @@ class EquityHistoryTest(unittest.TestCase):
                 dataset_version="sha256:"+"a"*64)
 
     def test_persists_equity_and_calculates_high_water_drawdown(self):
-        self.record(1_800_000_000_000,"100")
-        self.record(1_800_000_900_000,"110")
-        result=self.record(1_800_001_800_000,"90")
-        self.assertEqual(result["latest"]["equity"],"100")
+        self.record(1_800_000_000_000,"100","1","100")
+        self.record(1_800_000_900_000,"110","1","100")
+        result=self.record(1_800_001_800_000,"90","1","100")
+        self.assertEqual(result["latest"]["equity"],"90")
         self.assertEqual(result["latest"]["highWaterMark"],"110")
-        self.assertEqual(result["latest"]["drawdownUsdt"],"10")
-        self.assertAlmostEqual(float(result["maxDrawdownPct"]),10/110*100)
+        self.assertEqual(result["latest"]["drawdownUsdt"],"20")
+        self.assertAlmostEqual(float(result["maxDrawdownPct"]),20/110*100)
 
     def test_daily_baseline_is_persisted_once_and_daily_loss_is_positive_loss(self):
         start=1_800_000_000_000
-        self.record(start,"100")
-        result=self.record(start+900_000,"94")
+        self.record(start,"100","1","100")
+        result=self.record(start+900_000,"94","1","100")
         self.assertEqual(result["dailyBaselineKind"],"FIRST_OBSERVED_UTC_DAY")
         self.assertEqual(result["dailyLossUsdt"],"6")
         self.assertEqual(result["dailyPnlUsdt"],"-6")
