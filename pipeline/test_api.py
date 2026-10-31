@@ -277,6 +277,10 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(result["order"]["reason"], "KILL_SWITCH")
         self.assertEqual(self.request("/v1/paper/reset-kill", "POST",
                                       {"acknowledge": True})[0], 200)
+        # A rejected intent remains idempotently rejected. A fresh prediction
+        # timestamp creates a new signal identity after the operator reset.
+        self.prediction["availableAtMs"] = self.now-500
+        self.pred_path.write_text(json.dumps(self.prediction))
         _, result = self.request("/v1/paper/evaluate", "POST", {})
         self.assertEqual(result["order"]["status"], "FILLED")
 
