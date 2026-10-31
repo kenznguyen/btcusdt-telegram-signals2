@@ -934,6 +934,7 @@ workflows:
       - name: Verify all-fold original evidence ZIP and pre-holdout Git seal
         script: |
           set -euo pipefail
+          python3 -m unittest ci.test_phase16_codemagic_yaml -v
           test -f "$PHASE16_ORIGINAL_ZIP" || {
             echo "PHASE16_ORIGINAL_ARCHIVE_MISSING"; exit 2;
           }
