@@ -13,7 +13,7 @@ except ImportError:  # SQLite-only environments can still run the ordinary suite
 
 from market_data.migrations import apply_schema_migrations
 from market_data.repository import PostgresRepository, SQLiteRepository
-from market_data.store import Candle, CandleStore, INTERVAL_MS
+from market_data.store import Candle, INTERVAL_MS
 
 
 DATABASE_URL = os.environ.get("MARKET_DATA_TEST_DATABASE_URL", "")
@@ -32,7 +32,7 @@ class PostgresRepositoryIntegrationTest(unittest.TestCase):
                     "Refusing destructive integration setup: database name must contain 'test' "
                     "and MARKET_DATA_TEST_DB_CONFIRMATION must exactly match it"
                 )
-        cls.applied_migrations = apply_schema_migrations(DATABASE_URL)
+        apply_schema_migrations(DATABASE_URL)
         cls.repository = PostgresRepository(DATABASE_URL)
 
     def setUp(self):
