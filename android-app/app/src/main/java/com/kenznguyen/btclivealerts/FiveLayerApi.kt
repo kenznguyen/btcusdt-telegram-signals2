@@ -41,6 +41,15 @@ internal data class PaperView(val paused: Boolean, val positionBase: String, val
     val realizedPnlQuote: String, val feesQuote: String, val netRealizedPnlQuote: String,
     val orders: List<PaperOrderView>)
 internal data class PaperEvaluationView(val decision: DecisionView, val order: PaperOrderView?)
+internal data class EquityPointView(val observedAtMs: Long, val equity: String)
+internal data class EquityView(
+    val available: Boolean, val reason: String? = null, val initialCapital: String? = null,
+    val equity: String? = null, val realizedPnl: String? = null, val unrealizedPnl: String? = null,
+    val fees: String? = null, val maxDrawdownUsdt: String? = null, val maxDrawdownPct: String? = null,
+    val dailyLossUsdt: String? = null, val dailyBaselineAtMs: Long? = null, val exposureUsdt: String? = null,
+    val riskLimitsConfigured: Boolean = false, val maxDailyLossUsdt: String? = null,
+    val maxExposureUsdt: String? = null, val points: List<EquityPointView> = emptyList()
+)
 internal data class CanonicalCandle(val openTimeMs: Long, val closeTimeMs: Long,
     val open: String, val high: String, val low: String, val close: String, val volume: String,
     val availableAtMs: Long)
@@ -238,6 +247,48 @@ internal object FiveLayerJson {
         return PaperView(bool(json, "paused"), position, average, realized, fees, net, orders)
     }
 
+    fun equity(json: JSONObject, nowMs: Long): EquityView {
+        val available = bool(json, "available")
+        val rows = json.getJSONArray("points")
+        require(rows.length() <= 500)
+        val points = (0 until rows.length()).map { index ->
+            val row = rows.getJSONObject(index)
+            EquityPointView(stamp(row, "observedAtMs", nowMs),
+                decimal(row, "equity", signed = true))
+        }
+        require(points.zipWithNext().all { (left, right) -> left.observedAtMs < right.observedAtMs })
+        if (!available) {
+            require(points.isEmpty())
+            return EquityView(false, text(json, "reason"), points = emptyList())
+        }
+        require(points.isNotEmpty() && json.has("latest") && json.has("riskLimits"))
+        val latest = json.getJSONObject("latest")
+        val initial = decimal(json, "initialCapital").also { require(BigDecimal(it).signum() > 0) }
+        val equity = decimal(latest, "equity", signed = true)
+        val realized = decimal(latest, "realizedPnl", signed = true)
+        val unrealized = decimal(latest, "unrealizedPnl", signed = true)
+        val fees = decimal(latest, "fees")
+        val maxDd = decimal(json, "maxDrawdownUsdt")
+        val maxDdPct = decimal(json, "maxDrawdownPct")
+        val dailyLoss = optionalDecimal(json, "dailyLossUsdt")
+        val baseline = if (json.isNull("dailyBaselineAtMs")) null else stamp(json, "dailyBaselineAtMs", nowMs)
+        val exposure = decimal(json, "exposureUsdt")
+        val limits = json.getJSONObject("riskLimits")
+        val configured = bool(limits, "configured")
+        val maxDaily = optionalDecimal(limits, "maxDailyLossUsdt")
+        val maxExposure = optionalDecimal(limits, "maxExposureUsdt")
+        if (configured) require(maxDaily != null && maxExposure != null &&
+            optionalDecimal(limits, "maxDrawdownPct") != null)
+        else require(maxDaily == null && maxExposure == null)
+        require(points.last().observedAtMs == stamp(latest, "observedAtMs", nowMs))
+        require(points.last().equity == equity)
+        return EquityView(true, initialCapital = initial, equity = equity, realizedPnl = realized,
+            unrealizedPnl = unrealized, fees = fees, maxDrawdownUsdt = maxDd, maxDrawdownPct = maxDdPct,
+            dailyLossUsdt = dailyLoss, dailyBaselineAtMs = baseline, exposureUsdt = exposure,
+            riskLimitsConfigured = configured, maxDailyLossUsdt = maxDaily,
+            maxExposureUsdt = maxExposure, points = points)
+    }
+
     fun evaluation(json: JSONObject, nowMs: Long): PaperEvaluationView {
         require(json.has("order"))
         return PaperEvaluationView(decision(json.getJSONObject("decision"), nowMs),
@@ -299,7 +350,7 @@ internal object FiveLayerJson {
 }
 
 internal fun fiveLayerEndpoint(baseUrl: String, path: String): HttpUrl {
-    require(path in setOf("system", "intelligence", "decision", "paper", "paper/evaluate", "paper/pause", "paper/cancel", "candles", "order-book"))
+    require(path in setOf("system", "intelligence", "decision", "paper", "paper/evaluate", "paper/pause", "paper/cancel", "candles", "order-book", "equity"))
     val base = baseUrl.trim().toHttpUrl()
     require(base.isHttps && base.username.isEmpty() && base.password.isEmpty() &&
         base.query == null && base.fragment == null) { "Cần URL HTTPS không chứa mã truy cập" }
@@ -331,6 +382,8 @@ internal object FiveLayerClient {
         decode(request(baseUrl, token, "decision"), FiveLayerJson::decision)
     suspend fun getPaper(baseUrl: String, token: String): PaperView =
         decode(request(baseUrl, token, "paper"), FiveLayerJson::ledger)
+    suspend fun getEquity(baseUrl: String, token: String): EquityView =
+        decode(request(baseUrl, token, "equity"), FiveLayerJson::equity)
     suspend fun getCandles(baseUrl: String, token: String, nowMs: Long = System.currentTimeMillis()): CandleWindowView {
         val endpoint = fiveLayerCandleEndpoint(baseUrl, nowMs)
         val end = nowMs / 900_000L * 900_000L
