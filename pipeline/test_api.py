@@ -223,6 +223,41 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(result["order"]["status"], "FILLED")
         self.assertEqual(self.request("/v1/paper/evaluate", "POST", {"source": "UNKNOWN"})[0], 400)
 
+    def test_equity_endpoint_persists_history_and_returns_drawdown_daily_metrics(self):
+        code, result = self.request("/v1/equity")
+        self.assertEqual(code,200)
+        self.assertTrue(result["available"])
+        self.assertEqual(result["initialCapital"],"100")
+        self.assertEqual(result["latest"]["equity"],"100")
+        self.assertEqual(result["dailyLossUsdt"],"0")
+        with sqlite3.connect(self.db) as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM paper_equity_history").fetchone()[0],1)
+
+    def test_audit_and_data_quality_endpoints_return_real_store_state(self):
+        self.request("/v1/paper/pause","POST",{"paused":True})
+        code, audit = self.request("/v1/audit",query="limit=10")
+        self.assertEqual(code,200)
+        self.assertEqual(audit["events"][0]["kind"],"PAUSE")
+        code, quality = self.request("/v1/quality")
+        self.assertEqual(code,200)
+        self.assertEqual(quality["mode"],"PAPER")
+        self.assertTrue(any(stream["name"]=="Strategy Core producer" for stream in quality["streams"]))
+
+    def test_risk_limit_breach_auto_kills_new_paper_intents(self):
+        self.request("/v1/equity")
+        with sqlite3.connect(self.db) as connection:
+            connection.execute("UPDATE paper_state SET realized='-25' WHERE id=1")
+        with patch.dict(os.environ,{"PAPER_MAX_DRAWDOWN_PCT":"20","PAPER_MAX_DAILY_LOSS_USDT":"10"}):
+            code, result = self.request("/v1/paper/evaluate","POST",{})
+        self.assertEqual(code,200)
+        self.assertEqual(result["order"]["reason"],"MAX_DRAWDOWN_LIMIT")
+        self.assertTrue(self.request("/v1/paper")[1]["riskControl"]["killed"])
+
+    def test_unconfigured_risk_limits_fail_closed(self):
+        with patch.dict(os.environ,{"PAPER_MAX_DRAWDOWN_PCT":"","PAPER_MAX_DAILY_LOSS_USDT":"","PAPER_MAX_EXPOSURE_USDT":""}):
+            _, result = self.request("/v1/paper/evaluate","POST",{})
+        self.assertEqual(result["order"]["reason"],"RISK_LIMITS_UNCONFIGURED")
+
     def test_core_producer_waits_on_incomplete_history_without_suppressing_ai(self):
         _, signals = self.request("/v1/signals")
         self.assertEqual(signals["strategyCore"]["action"], "WAIT")
