@@ -181,3 +181,19 @@ label{min-width:100%}
 .dashboard-nav a:hover,.dashboard-nav a:focus-visible{background:#1a2a3d;color:#fff}
 #market-panel,#strategy-monitor,#risk-center,#intelligence-panel,#paper-ledger{scroll-margin-top:68px}
 .risk-chart-empty{margin:0 1.25rem 1rem;min-height:72px;display:grid;place-content:center;border:1px dashed #40516a;border-radius:5px;color:var(--muted);font-size:.68rem;text-align:center}
+
+
+/* Persistent risk analytics and observability */
+.equity-chart{display:block;width:100%;height:auto;max-height:260px;overflow:visible}
+.equity-line{stroke:#5fb6ff;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+.equity-point{fill:#d5edff;stroke:#153b5b;stroke-width:1}
+.equity-chart text{fill:var(--muted);font-size:10px}
+.quality-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;padding:1rem}
+.quality-item{display:grid;gap:.45rem;min-width:0;padding:.8rem;border:1px solid var(--edge);border-radius:5px;background:#101925}
+.quality-item>div{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem}
+.quality-item strong{font-size:.72rem;line-height:1.4}
+.quality-item small{font-size:.62rem;color:var(--muted);overflow-wrap:anywhere}
+.warning-critical{border-color:#a94a5b;background:#27151b;color:#ffc1c8}
+#equity-curve,#data-quality,#audit-log{scroll-margin-top:68px}
+@media(max-width:900px){.quality-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.quality-grid{grid-template-columns:1fr}.quality-item{padding:.7rem}}
