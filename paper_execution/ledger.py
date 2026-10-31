@@ -103,8 +103,9 @@ def read_snapshot(db_path):
         context.prec = 80
         connection.execute("BEGIN")
         position, average, realized, fees, paused = stored_state(connection)
+        risk = risk_control.snapshot(connection)
         orders = [json.loads(row[0]) for row in connection.execute("SELECT document FROM paper_orders ORDER BY rowid DESC LIMIT 100")]
-        return {"mode": "PAPER", "liveTradingSupported": False, "paused": bool(paused), "positionBase": text(position),
+        return {"mode": "PAPER", "liveTradingSupported": False, "paused": bool(paused), "riskControl": risk, "positionBase": text(position),
                 "averageEntryPrice": text(average), "realizedPnlQuote": text(realized), "feesQuote": text(fees),
                 "netRealizedPnlQuote": text(realized-fees), "orders": orders,
                 "simulationModel": "VISIBLE_DEPTH_LIMIT_SNAPSHOT"}
