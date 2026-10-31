@@ -153,4 +153,64 @@ class FiveLayerApiTest {
         assertThrows(IllegalArgumentException::class.java) { fiveLayerEndpoint("https://example.com","live/order") }
     }
 
+
+    @Test fun independentSignalsPreserveCoreAndAiActionsAndIndicators() {
+        fun signal(source: String, action: String, target: String) = JSONObject()
+            .put("source", source).put("action", action).put("reason", "SIGNAL_READY")
+            .put("intent", JSONObject().put("mode","PAPER").put("symbol","BTCUSDT")
+                .put("exchange","binance").put("marketType","USDT_PERPETUAL")
+                .put("targetPositionBase",target).put("limitPrice","100000")
+                .put("modelVersion","model").put("strategyVersion","strategy")
+                .put("datasetVersion","sha256:123").put("decisionAtMs",now)
+                .put("validUntilMs",now+30_000))
+            .put("indicators", JSONObject().put("rsiM15",31.5).put("adxM15",27.0)
+                .put("plusDiH1",22.0).put("minusDiH1",14.0).put("adxH1",25.0))
+        val payload = JSONObject().put("mode","PAPER").put("liveTradingSupported",false)
+            .put("strategyCore",signal("STRATEGY_CORE","BUY","0.001"))
+            .put("aiStrategy",signal("AI_FREQAI","SELL","-0.001"))
+        val parsed = FiveLayerJson.signals(payload,now)
+        assertEquals("BUY",parsed.strategyCore.action)
+        assertEquals("SELL",parsed.aiStrategy.action)
+        assertEquals("31.5",parsed.strategyCore.indicators["rsiM15"])
+        assertEquals("-0.001",parsed.aiStrategy.intent?.targetPositionBase)
+        val invalid = JSONObject(payload.toString()).put("liveTradingSupported",true)
+        assertThrows(IllegalArgumentException::class.java) { FiveLayerJson.signals(invalid,now) }
+    }
+
+    @Test fun qualityAndAuditParsersRejectUnsafeOrMalformedRows() {
+        val quality = JSONObject().put("mode","PAPER").put("liveTradingSupported",false)
+            .put("checkedAtMs",now).put("overall","DEGRADED")
+            .put("streams",JSONArray().put(JSONObject().put("name","M15 candles")
+                .put("status","READY").put("rows",500)).put(JSONObject()
+                .put("name","Shared Risk Limits").put("status","DEGRADED")
+                .put("reason","RISK_LIMITS_UNCONFIGURED")))
+        val parsedQuality = FiveLayerJson.quality(quality,now)
+        assertEquals(2,parsedQuality.streams.size)
+        assertEquals("DEGRADED",parsedQuality.overall)
+        val audit = JSONObject().put("events",JSONArray().put(JSONObject().put("id",7)
+            .put("atMs",now).put("kind","KILL_SWITCH").put("document",
+                JSONObject().put("enabled",true).put("reason","OPERATOR_KILL_SWITCH"))))
+            .put("nextBeforeId",null)
+        val parsedAudit = FiveLayerJson.audit(audit,now)
+        assertEquals("KILL_SWITCH",parsedAudit.events.single().kind)
+        assertTrue(parsedAudit.events.single().summary.contains("OPERATOR_KILL_SWITCH"))
+        val invalid = JSONObject(audit.toString()).put("events",JSONArray().put(JSONObject()
+            .put("id",-1).put("atMs",now).put("kind","<script>").put("document",JSONObject())))
+        assertThrows(IllegalArgumentException::class.java) { FiveLayerJson.audit(invalid,now) }
+    }
+
+    @Test fun paperRiskControlAndKillEndpointsAreExplicitAndPaperOnly() {
+        val snapshot = ledger().put("riskControl",JSONObject().put("paused",false)
+            .put("killed",true).put("reason","OPERATOR_KILL_SWITCH").put("updatedAtMs",now)
+            .put("mode","PAPER").put("liveTradingSupported",false))
+        assertTrue(FiveLayerJson.ledger(snapshot,now).riskControl.killed)
+        assertEquals("https://example.com/v1/paper/kill",
+            fiveLayerEndpoint("https://example.com","paper/kill").toString())
+        assertEquals("https://example.com/v1/paper/reset-kill",
+            fiveLayerEndpoint("https://example.com","paper/reset-kill").toString())
+        assertThrows(IllegalArgumentException::class.java) {
+            fiveLayerEndpoint("https://example.com","paper/live-order")
+        }
+    }
+
 }
