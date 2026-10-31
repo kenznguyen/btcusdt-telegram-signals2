@@ -232,6 +232,18 @@ def quality_snapshot(timestamp):
         prediction_ready = False
     streams.append({"name":"FreqAI prediction","status":"READY" if prediction_ready else "MISSING",
                     "availableAtMs":prediction.get("availableAtMs") if prediction else None})
+    from paper_execution.equity import parse_limits
+    try:
+        risk_limits = parse_limits(os.environ)
+        risk_ready = risk_limits is not None
+        risk_stream = {"name":"Shared Risk Limits","status":"READY" if risk_ready else "DEGRADED",
+                       "maxDrawdownPct":str(risk_limits["maxDrawdownPct"]) if risk_ready else None,
+                       "maxDailyLossUsdt":str(risk_limits["maxDailyLossUsdt"]) if risk_ready else None,
+                       "maxExposureUsdt":str(risk_limits["maxExposureUsdt"]) if risk_ready else None,
+                       "reason":None if risk_ready else "RISK_LIMITS_UNCONFIGURED"}
+    except ValueError:
+        risk_stream = {"name":"Shared Risk Limits","status":"INVALID","reason":"RISK_LIMITS_INVALID"}
+    streams.append(risk_stream)
     core = core_decide(timestamp, book)
     core_values = core.get("indicators")
     core_ready = isinstance(core_values, dict) and all(
