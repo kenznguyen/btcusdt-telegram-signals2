@@ -232,7 +232,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         proof["commit"]["committer"]["date"] = "2026-11-04T00:00:00Z"
         self.github_proof.write_text(json.dumps(proof), encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_ATTESTATION_NOT_PRE_HOLDOUT"):
-            self.verify_with_attestation()
+            self._verify_current_files()
 
     def test_github_proof_must_name_attestation_file(self):
         self._write_valid_attestation_and_github_proof()
@@ -240,7 +240,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         proof["files"] = [{"filename": "unrelated.txt"}]
         self.github_proof.write_text(json.dumps(proof), encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_GITHUB_COMMIT_PROOF_MISSING"):
-            self.verify_with_attestation()
+            self._verify_current_files()
 
     def test_one_byte_bundle_tampering_is_rejected(self):
         self.verify()
