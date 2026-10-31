@@ -1312,14 +1312,22 @@ workflows:
             shasum -a 256 original-frozen-model.joblib model-candidate-metadata.json phase13b-oos-protocol.json seal-manifest.json phase14-fitted-preprocessing-audit.json > SHA256SUMS
           )
           git add "$DEST"
-          git diff --cached --quiet && { echo "PHASE21_ALREADY_PRESERVED_OR_NO_CHANGES"; exit 0; }
-          git config user.name "Codemagic Model Preservation"
-          git config user.email "codemagic-model-preservation@users.noreply.github.com"
-          git commit -m "audit(quant): preserve SHA-verified original frozen LightGBM bundle"
+          if ! git diff --cached --quiet; then
+            git config user.name "Codemagic Model Preservation"
+            git config user.email "codemagic-model-preservation@users.noreply.github.com"
+            git commit -m "audit(quant): preserve SHA-verified original frozen LightGBM bundle"
+          fi
+          EXPECTED_MODEL_SHA="918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f"
+          EXPECTED_METADATA_SHA="07e9c1b65df7a477de8ee14c51d47325932e6bf9a0732f3ea64e3118abcac3e5"
+          EXPECTED_PROTOCOL_SHA="b10d63c952a40fa70a3d4dfed2d952d676a888a0f72832734d3ff8d8c14c5b6e"
+          COMMITTED_MODEL_SHA="$(git show "HEAD:$DEST/original-frozen-model.joblib" | shasum -a 256 | awk '{print $1}')"
+          COMMITTED_METADATA_SHA="$(git show "HEAD:$DEST/model-candidate-metadata.json" | shasum -a 256 | awk '{print $1}')"
+          COMMITTED_PROTOCOL_SHA="$(git show "HEAD:$DEST/phase13b-oos-protocol.json" | shasum -a 256 | awk '{print $1}')"
+          test "$COMMITTED_MODEL_SHA" = "$EXPECTED_MODEL_SHA"
+          test "$COMMITTED_METADATA_SHA" = "$EXPECTED_METADATA_SHA"
+          test "$COMMITTED_PROTOCOL_SHA" = "$EXPECTED_PROTOCOL_SHA"
           AUTH="$(printf 'x-access-token:%s' "$GITHUB_PUSH_TOKEN" | base64 | tr -d '\n')"
           git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $AUTH" push origin "HEAD:refs/heads/$BRANCH"
-          git show "HEAD:$DEST/original-frozen-model.joblib" | shasum -a 256
-          git show "HEAD:$DEST/model-candidate-metadata.json" | shasum -a 256
           REMOTE_SHA="$(git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $AUTH" ls-remote origin "refs/heads/$BRANCH" | awk '{print $1}')"
           test "$REMOTE_SHA" = "$(git rev-parse HEAD)"
           echo "PHASE21_GITHUB_MODEL_PRESERVATION_VERIFIED"
