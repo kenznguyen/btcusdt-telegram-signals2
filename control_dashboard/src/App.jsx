@@ -83,6 +83,8 @@ export default function App() {
 <RiskMetric name="PnL đã thực hiện" value={money(risk?.realizedPnl)} tone={Number(risk?.realizedPnl) > 0 ? "positive" : Number(risk?.realizedPnl) < 0 ? "negative" : ""} />
 <RiskMetric name="Phí tích lũy" value={money(risk?.fees)} />
 <RiskMetric name="Exposure danh nghĩa" value={money(equity?.exposureUsdt)} />
+<RiskMetric name="Chiến lược sở hữu vị thế" value={text(paper?.strategyState?.owner)} />
+<RiskMetric name="Smart DCA" value={paper?.positionBase && Number(paper.positionBase) !== 0 ? (paper?.strategyState?.dcaUsed ? "ĐÃ DÙNG" : "CHƯA DÙNG") : "—"} />
 <RiskMetric name="Max Drawdown" value={money(equity?.maxDrawdownUsdt)} hint={equity?.maxDrawdownPct === undefined ? "N/A" : `${n(equity.maxDrawdownPct,2)}% từ High-water mark`} />
 <RiskMetric name="Daily Loss (UTC)" value={money(equity?.dailyLossUsdt)} hint={equity?.dailyBaselineAtMs ? `Baseline ${date(equity.dailyBaselineAtMs)} UTC` : "Chưa có baseline"} />
 </div>
