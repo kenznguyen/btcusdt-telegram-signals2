@@ -142,6 +142,11 @@ def core_decide(timestamp, book=None):
                           end15-500*900_000, end15, as_of_ms=timestamp)
         h1 = read_window(os.environ.get("MARKET_DATA_DB", ""), "BTCUSDT", "1h",
                          end1h-500*3_600_000, end1h, as_of_ms=timestamp)
+        if not m15.get("coverage", {}).get("complete") or not h1.get("coverage", {}).get("complete"):
+            return produce(m15, h1, {}, {"owner":None,"dcaUsed":False,"initialMarginQuote":"0"},
+                            book_snapshot(timestamp) if book is None else book, timestamp,
+                            initial_capital=os.environ.get("PAPER_INITIAL_CAPITAL", "100"),
+                            max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"))
         from paper_execution.ledger import read_snapshot
         paper = read_snapshot(os.environ.get("MARKET_DATA_DB", ""))
         state = paper["strategyState"]
