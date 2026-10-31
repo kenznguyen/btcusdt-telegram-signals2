@@ -56,6 +56,9 @@ class PaperLedgerTest(unittest.TestCase):
         self.assertEqual(order["status"], "PARTIALLY_FILLED")
         self.assertEqual(order["filledBase"], "0.05")
         self.assertEqual(order["remainingBase"], "0.15")
+        strategy = self.ledger.snapshot()["strategyState"]
+        self.assertEqual(strategy["owner"], "MANUAL")
+        self.assertEqual(strategy["initialMarginQuote"], "0.385")
         rejected = self.ledger.submit(self.intent("intent-2", "0.3"), self.book(), self.now)
         self.assertEqual(rejected["reason"], "PENDING_ORDER")
         self.assertEqual(self.ledger.cancel(order["orderId"], self.now+1)["status"], "CANCELED")
