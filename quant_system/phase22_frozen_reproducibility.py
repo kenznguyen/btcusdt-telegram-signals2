@@ -68,7 +68,8 @@ def _utc_ms(value: str) -> int:
         ) from exc
 
 
-def verify_preserved_snapshot(bundle, original_bundle, metadata, protocol, seal,\n                              attestation=None, github_commit_proof=None):
+def verify_preserved_snapshot(bundle, original_bundle, metadata, protocol, seal,
+                              attestation=None, github_commit_proof=None):
     """Verify byte identity with Phase14 source and immutable pre-holdout seal.
 
     All paths are read-only. No pickle/joblib loader is imported or called.
@@ -231,7 +232,10 @@ def verify_preserved_snapshot(bundle, original_bundle, metadata, protocol, seal,
         "exact_original_bundle_bytes_verified": True,
         "candidate_bundle_sha256": bundle_sha,
         "candidate_metadata_sha256": metadata_sha,
-        "protocol_sha256": protocol_sha,\n        "github_attestation_commit_sha": proof["sha"],\n        "github_attestation_committer_timestamp_utc": commit_date,\n        "pre_holdout_attestation_verified": True,
+        "protocol_sha256": protocol_sha,
+        "github_attestation_commit_sha": proof["sha"],
+        "github_attestation_committer_timestamp_utc": commit_date,
+        "pre_holdout_attestation_verified": True,
         "source_commit_sha": source,
         "model_identifier": model_id,
         "training_end_ms": training_end,
@@ -261,7 +265,9 @@ def main():
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
     report = verify_preserved_snapshot(
-        args.bundle, args.original_bundle, args.metadata, args.protocol, args.seal,\n        args.attestation, args.github_commit_proof\n    )
+        args.bundle, args.original_bundle, args.metadata, args.protocol, args.seal,
+        args.attestation, args.github_commit_proof
+    )
     output = Path(args.out)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2, sort_keys=True),
