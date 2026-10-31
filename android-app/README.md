@@ -87,3 +87,15 @@ It displays the account capital, mark-to-market Equity, realized/unrealized PnL,
 fees, Max Drawdown, UTC Daily Loss, exposure, configured risk-limit state and a
 native Equity Curve. It does not infer missing metrics: absent history or a missing
 UTC baseline remains explicitly unavailable.
+
+The native screen also reads `/v1/signals` and shows Strategy Core (RSI/ADX/Smart DCA)
+separately from the independent AI/FreqAI signal, including action, reason, intent
+expiry and available M15/H1 indicators. `/v1/quality` feeds a Data Quality Monitor;
+`/v1/audit` displays the latest server-persisted Paper events. Both remain read-only.
+
+The Paper control card reads the persistent shared `riskControl` latch. A dedicated
+Kill Switch command can stop new risk-increasing intents. Reset requires an explicit
+confirmation in Android and the API independently checks closed candles, Order Book
+availability and the absence of pending Paper orders. A rejected reset leaves the
+latch active. Risk-reducing/flattening behavior remains governed by the server-side
+Shared Risk Engine. These controls never submit exchange orders.
