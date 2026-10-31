@@ -23,6 +23,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         self.original = self.root / "original.joblib"
         self.metadata = self.root / "metadata.json"
         self.protocol = self.root / "protocol.json"
+        self.oos_protocol = self.root / "oos-protocol.json"
         self.seal = self.root / "seal.json"
         self.bundle.write_bytes(b"immutable synthetic model bytes")
         self.original.write_bytes(b"immutable synthetic model bytes")
@@ -71,6 +72,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
                 "live_orders_enabled": False,
             },
         }), encoding="utf8")
+        self.oos_protocol.write_text(self.protocol.read_text(encoding="utf8"), encoding="utf8")
         metadata_sha = "sha256:" + hashlib.sha256(self.metadata.read_bytes()).hexdigest()
         protocol_sha = "sha256:" + hashlib.sha256(self.protocol.read_bytes()).hexdigest()
         self.seal.write_text(json.dumps({
@@ -126,7 +128,8 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         ):
             return verify_oos_eligibility(
                 self.bundle, self.original, self.metadata, self.protocol, self.seal,
-                self.attestation, self.github_proof,
+                self.oos_protocol, self.attestation, self.github_proof,
+                self.oos_protocol_github_proof,
             )
 
     def test_native_prediction_mismatch_fails(self):
@@ -154,31 +157,37 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         self.assertFalse(report["independent_oos_verified"])
         self.attestation = self.root / "attestation.json"
         self.github_proof = self.root / "github-commit.json"
+        self.oos_protocol_github_proof = self.root / "oos-protocol-github-commit.json"
+        self.oos_protocol_github_proof.write_text(json.dumps({
+            "sha": "a" * 40,
+            "proof_source": "github_actions_run",
+            "server_evidence": {"provider": "GitHub Actions", "run_id": 5678, "head_sha": "a" * 40, "created_at": "2026-10-31T16:26:00Z"},
+            "files": [{"filename": "research_evidence/frozen-model/phase13b-20261104/oos-protocol.json"}],
+        }), encoding="utf8")
         self.attestation.write_text("{}", encoding="utf8")
         self.github_proof.write_text("{}", encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_PROTOCOL_NOT_SEALED"):
             self._verify_oos_current_files()
 
     def _write_valid_attestation_and_github_proof(self):
-        protocol = json.loads(self.protocol.read_text(encoding="utf8"))
+        protocol = json.loads(self.oos_protocol.read_text(encoding="utf8"))
         protocol.update({
             "status": "SEALED_BY_EXTERNAL_ATTESTATION",
             "sealed_in_git": True,
             "source_commit_sha": self.registered["source"],
             "frozen_model_bundle_sha256": self.registered["bundle"].removeprefix("sha256:"),
             "frozen_model_metadata_sha256": self.registered["metadata"].removeprefix("sha256:"),
+            "seal_git_commit": "a" * 40,
         })
-        self.protocol.write_text(json.dumps(protocol), encoding="utf8")
-        self.registered["protocol"] = "sha256:" + hashlib.sha256(self.protocol.read_bytes()).hexdigest()
-        seal = json.loads(self.seal.read_text(encoding="utf8"))
-        seal["protocol_sha256"] = self.registered["protocol"]
-        self.seal.write_text(json.dumps(seal), encoding="utf8")
+        self.oos_protocol.write_text(json.dumps(protocol), encoding="utf8")
+        oos_protocol_sha = "sha256:" + hashlib.sha256(self.oos_protocol.read_bytes()).hexdigest()
         attestation = {
             "attestation_type": "PHASE13B_PRE_HOLDOUT_EXTERNAL_ATTESTATION",
             "source_commit_sha": self.registered["source"],
             "model_bundle_sha256": self.registered["bundle"].removeprefix("sha256:"),
             "model_metadata_sha256": self.registered["metadata"].removeprefix("sha256:"),
-            "protocol_sha256": self.registered["protocol"].removeprefix("sha256:"),
+            "historical_protocol_sha256": self.registered["protocol"].removeprefix("sha256:"),
+            "oos_protocol_sha256": oos_protocol_sha.removeprefix("sha256:"),
             "holdout_start_utc": "2026-11-04T00:00:00Z",
             "holdout_end_utc": "2026-12-04T00:00:00Z",
             "holdout_retraining_allowed": False,
@@ -190,6 +199,8 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         }
         proof = {
             "sha": "f9591bcda1b11f15a549f397aa211259346ed3f9",
+            "proof_source": "github_actions_run",
+            "server_evidence": {"provider": "GitHub Actions", "run_id": 1234, "head_sha": "f9591bcda1b11f15a549f397aa211259346ed3f9", "created_at": "2026-10-31T16:25:00Z"},
             "commit": {"committer": {"date": "2026-10-31T16:18:24Z"}},
             "files": [{"filename": "research_evidence/frozen-model/phase13b-20261104/pre-holdout-attestation.json"}],
         }
@@ -213,7 +224,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
                 self.attestation, self.github_proof,
             )
 
-    def test_unsealed_historical_protocol_is_rejected(self):
+    def test_unsealed_oos_protocol_is_rejected_without_mutating_historical_protocol(self):
         self._write_valid_attestation_and_github_proof()
         protocol = json.loads(self.protocol.read_text(encoding="utf8"))
         protocol["status"] = "PRE_REGISTERED_PROTOCOL_CANDIDATE_NOT_SEALED"
@@ -223,23 +234,16 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         seal["protocol_sha256"] = self.registered["protocol"]
         self.seal.write_text(json.dumps(seal), encoding="utf8")
         attestation = json.loads(self.attestation.read_text(encoding="utf8"))
-        attestation["protocol_sha256"] = self.registered["protocol"].removeprefix("sha256:")
+        attestation["historical_protocol_sha256"] = self.registered["protocol"].removeprefix("sha256:")
         self.attestation.write_text(json.dumps(attestation), encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_PROTOCOL_NOT_SEALED"):
             self._verify_oos_current_files()
 
     def test_protocol_null_provenance_hashes_are_rejected(self):
         self._write_valid_attestation_and_github_proof()
-        protocol = json.loads(self.protocol.read_text(encoding="utf8"))
+        protocol = json.loads(self.oos_protocol.read_text(encoding="utf8"))
         protocol["frozen_model_bundle_sha256"] = None
-        self.protocol.write_text(json.dumps(protocol), encoding="utf8")
-        self.registered["protocol"] = "sha256:" + hashlib.sha256(self.protocol.read_bytes()).hexdigest()
-        seal = json.loads(self.seal.read_text(encoding="utf8"))
-        seal["protocol_sha256"] = self.registered["protocol"]
-        self.seal.write_text(json.dumps(seal), encoding="utf8")
-        attestation = json.loads(self.attestation.read_text(encoding="utf8"))
-        attestation["protocol_sha256"] = self.registered["protocol"].removeprefix("sha256:")
-        self.attestation.write_text(json.dumps(attestation), encoding="utf8")
+        self.oos_protocol.write_text(json.dumps(protocol), encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_PROTOCOL_PROVENANCE_MISSING"):
             self._verify_oos_current_files()
 
@@ -260,7 +264,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
     def test_github_attestation_commit_must_precede_holdout(self):
         self._write_valid_attestation_and_github_proof()
         proof = json.loads(self.github_proof.read_text(encoding="utf8"))
-        proof["commit"]["committer"]["date"] = "2026-11-04T00:00:00Z"
+        proof["server_evidence"]["created_at"] = "2026-11-04T00:00:00Z"
         self.github_proof.write_text(json.dumps(proof), encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_ATTESTATION_NOT_PRE_HOLDOUT"):
             self._verify_oos_current_files()
