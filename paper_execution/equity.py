@@ -52,6 +52,10 @@ def ensure(connection):
         baseline_equity TEXT NOT NULL,
         baseline_kind TEXT NOT NULL
     )""")
+    connection.execute("""CREATE TABLE IF NOT EXISTS paper_account_config (
+        id INTEGER PRIMARY KEY CHECK(id=1),
+        initial_capital TEXT NOT NULL
+    )""")
 
 
 def record(connection, *, initial_capital, position, average, realized, fees,
@@ -62,6 +66,11 @@ def record(connection, *, initial_capital, position, average, realized, fees,
     candle_at, observed_at = stamp(candle_close_ms), stamp(observed_at_ms)
     if capital <= 0 or mark <= 0 or candle_at > observed_at or observed_at-candle_at > 30*60_000:
         raise ValueError("Invalid or stale equity mark")
+    configured = connection.execute("SELECT initial_capital FROM paper_account_config WHERE id=1").fetchone()
+    if configured is None:
+        connection.execute("INSERT INTO paper_account_config VALUES (1,?)", (str(capital),))
+    elif Decimal(configured[0]) != capital:
+        raise ValueError("PAPER_INITIAL_CAPITAL_CHANGED; explicit account migration required")
     unrealized = qty * (mark-avg) if qty else Decimal(0)
     equity = capital + realized_pnl - fee + unrealized
     previous_hwm = connection.execute(
