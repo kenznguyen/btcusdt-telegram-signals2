@@ -1130,3 +1130,55 @@ workflows:
       - artifacts/phase18/report/*.json
       - artifacts/phase18/report/*.log
       - artifacts/phase18/seal/*.json
+
+  dual-strategy-phase19-native-forecast-reconciliation:
+    name: Phase 19 | last ORIGINAL native FreqAI PREDICT parity (manual)
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    # No automatic triggers, no future holdout, no FreqAI model fit.
+    environment:
+      vars:
+        PHASE19_PREDICT_ZIP: "research_evidence/phase14-frozen-original-evidence.zip"
+    scripts:
+      - name: Phase19 contract preflight and exact original Git source archive
+        script: |
+          set -euo pipefail
+          mkdir -p artifacts/phase19/original artifacts/phase19/seal artifacts/phase19/report
+          python3 -m unittest ci.test_phase19_codemagic_evidence quant_system.test_phase19_native_forecast_reconciliation -v \
+            2>&1 | tee artifacts/phase19/report/phase19-contract-tests.log
+          python3 -m compileall -q quant_system/phase19_native_forecast_reconciliation.py
+          test -f "$PHASE19_PREDICT_ZIP" || { echo "PHASE19_ORIGINAL_ARCHIVE_MISSING"; exit 2; }
+          printf '%s  %s\n' "b64f39bd70c27c8d6abed1795ee06504c108eed42ebdab98ce375a6449b5b035" "$PHASE19_PREDICT_ZIP" | shasum -a 256 -c -
+          unzip -t "$PHASE19_PREDICT_ZIP" >/dev/null
+          unzip -oq "$PHASE19_PREDICT_ZIP" -d artifacts/phase19/original
+          test "$(cat artifacts/phase19/original/phase3-source-sha.txt)" = "082edc082996425f61f48c952be41fb037564103" || { echo "PHASE19_ORIGINAL_SOURCE_MISMATCH"; exit 2; }
+          git fetch --no-tags origin refs/heads/freeze/phase13b-20261104-candidate-082edc0:refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0
+          git merge-base --is-ancestor 888efb11b613b42a2badb3bc8adfa19ff090f2bb refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0 || { echo "PHASE19_MODEL_SEAL_MISSING"; exit 2; }
+          git merge-base --is-ancestor 409d446bb186a8e2ea0189df26057a9df7e839de refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0 || { echo "PHASE19_PREHOLDOUT_APPROVAL_MISSING"; exit 2; }
+          for path in seal-manifest.json phase13b-oos-protocol.json model-candidate-metadata.json; do
+            git show "888efb11b613b42a2badb3bc8adfa19ff090f2bb:research_seals/phase13b-20261104/$path" > "artifacts/phase19/seal/$path"
+          done
+          cmp artifacts/phase19/seal/model-candidate-metadata.json artifacts/phase19/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.json
+      - name: Verify all actual native last-fold prediction rows against SHA-pinned frozen model
+        script: |
+          set -euo pipefail
+          if ! brew list --versions libomp >/dev/null 2>&1; then brew install libomp; fi
+          bash ci/setup-python.sh requirements-freqai.txt requirements-market-data.txt
+          export CI_PYTHON="$CM_BUILD_DIR/.ci-tools/python-venv/bin/python"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          "$CI_PYTHON" -m unittest \
+            quant_system.test_phase18_historical_shadow \
+            quant_system.test_phase19_native_forecast_reconciliation -v \
+            2>&1 | tee artifacts/phase19/report/phase19-pinned-runtime-tests.log
+          "$CI_PYTHON" -m quant_system.phase19_native_forecast_reconciliation \
+            --original-root artifacts/phase19/original \
+            --bundle artifacts/phase19/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib \
+            --metadata artifacts/phase19/seal/model-candidate-metadata.json \
+            --protocol artifacts/phase19/seal/phase13b-oos-protocol.json \
+            --seal artifacts/phase19/seal/seal-manifest.json \
+            --out artifacts/phase19/report/phase19-native-forecast-reconciliation.json \
+            2>&1 | tee artifacts/phase19/report/phase19-native-forecast-reconciliation.log
+    artifacts:
+      - artifacts/phase19/report/*.json
+      - artifacts/phase19/report/*.log
+      - artifacts/phase19/seal/*.json
