@@ -144,7 +144,7 @@ class CandleSyncTest(unittest.TestCase):
         result = subprocess.run([sys.executable, "-m", "market_data.sync", "--help"],
                                 capture_output=True, text=True, check=True)
         self.assertIn("--start-ms", result.stdout)
-        self.assertIn("--database-url", result.stdout)
+        self.assertIn("--postgres", result.stdout)
         self.assertEqual(exchange.calls, [])
 
 
