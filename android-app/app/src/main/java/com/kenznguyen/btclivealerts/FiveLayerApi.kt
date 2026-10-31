@@ -258,7 +258,6 @@ internal object FiveLayerJson {
         val killed = bool(risk, "killed")
         val reason = if (risk.isNull("reason")) null else text(risk, "reason")
         val updated = stamp(risk, "updatedAtMs", nowMs)
-        require(riskPaused == bool(json, "paused"))
         return PaperView(bool(json, "paused"), position, average, realized, fees, net, orders,
             RiskControlView(riskPaused, killed, reason, updated))
     }
@@ -333,7 +332,7 @@ internal object FiveLayerJson {
         if (json.has("indicators") && !json.isNull("indicators")) {
             val values = json.getJSONObject("indicators")
             for (key in listOf("rsiM15", "adxM15", "plusDiH1", "minusDiH1", "adxH1")) {
-                require(values.has(key))
+                if (!values.has(key)) { indicators[key] = null; continue }
                 val value = values.get(key)
                 indicators[key] = when (value) {
                     JSONObject.NULL -> null
