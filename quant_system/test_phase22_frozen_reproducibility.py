@@ -265,6 +265,14 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_GITHUB_COMMIT_PROOF_MISSING"):
             self._verify_oos_current_files()
 
+    def test_git_commit_object_timestamp_alone_is_not_server_time_evidence(self):
+        self._write_valid_attestation_and_github_proof()
+        proof = json.loads(self.github_proof.read_text(encoding="utf8"))
+        proof.pop("server_evidence")
+        self.github_proof.write_text(json.dumps(proof), encoding="utf8")
+        with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_GITHUB_COMMIT_PROOF_MISSING"):
+            self._verify_oos_current_files()
+
     def test_github_attestation_commit_must_precede_holdout(self):
         self._write_valid_attestation_and_github_proof()
         proof = json.loads(self.github_proof.read_text(encoding="utf8"))
