@@ -151,8 +151,9 @@ def core_decide(timestamp, book=None):
     except (ValueError, OSError, sqlite3.Error, TypeError, KeyError):
         return {"source":"STRATEGY_CORE","action":"WAIT","reason":"CORE_INPUTS_UNAVAILABLE","intent":None}
     if report.get("intent") is None:
-        return {"source":"STRATEGY_CORE","action":"WAIT","reason":report.get("reason","CORE_NO_SIGNAL"),
-                "intent":None,"indicators":report.get("indicators")}
+        return {"source":"STRATEGY_CORE","action":report.get("action","WAIT"),
+                "reason":report.get("reason","CORE_NO_SIGNAL"),"intent":None,
+                "indicators":report.get("indicators")}
     result = validate(report["intent"], timestamp)
     result["indicators"] = report.get("indicators")
     return result
