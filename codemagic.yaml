@@ -1043,6 +1043,7 @@ workflows:
           export PYTHONPATH="$CM_BUILD_DIR"
           "$CI_PYTHON" -m unittest \
             quant_system.test_phase16_frozen_oos \
+            quant_system.test_phase17_oos_ohlcv \
             quant_system.test_paper_portfolio -v \
             2>&1 | tee artifacts/frozen-oos/report/frozen-oos-contract-tests.log
           "$CI_PYTHON" -m quant_system.phase16_frozen_oos \
@@ -1062,3 +1063,20 @@ workflows:
       - artifacts/frozen-oos/report/*.json
       - artifacts/frozen-oos/report/*.log
       - artifacts/frozen-oos/seal/*.json
+
+  dual-strategy-phase17-preholdout-ohlcv:
+    name: Phase 17 | prospective OOS OHLCV integrity contract (manual, no data)
+    instance_type: mac_mini_m2
+    max_build_duration: 15
+    # Explicit manual preflight only; does not fetch the future holdout,
+    # run inference, fit any model, or place live exchange orders.
+    scripts:
+      - name: Phase 17 closed-timeframe aggregation and prehistory seam regressions
+        script: |
+          set -euo pipefail
+          mkdir -p artifacts/phase17
+          python3 -m unittest quant_system.test_phase17_oos_ohlcv -v \
+            2>&1 | tee artifacts/phase17/ohlcv-integrity-tests.log
+          python3 -m compileall -q quant_system/phase17_oos_ohlcv.py
+    artifacts:
+      - artifacts/phase17/*.log
