@@ -72,10 +72,20 @@ approval commit for the exact 26-fold report:
 `research_seals/phase13b-20261104/phase16-all26-original-fit-audit.json`
 and `research_seals/phase13b-20261104/phase16-oos-release-gate.json`.
 
-That future approval commit **does not yet exist**. The required manual
-environment variable `PHASE16_APPROVAL_COMMIT` defaults to empty,
-so the workflow fails closed even if somebody uploads holdout data.
-The approval commit's Git timestamp must predate the OOS start.
+The review was successfully recorded on 2026-10-31 UTC. The
+independent SHA summary of the original Codemagic 26/26 native report was
+committed as `0978727223c528d941bf3005362c4e494df89d2d`.
+The pre-holdout **research-only** approval gate was committed as
+`409d446bb186a8e2ea0189df26057a9df7e839de`.
+GitHub server timestamps are 2026-10-31T02:09:59Z and
+2026-10-31T02:10:30Z, both before OOS start.
+
+The workflow's `PHASE16_APPROVAL_COMMIT` is pinned to exactly
+`409d446bb186a8e2ea0189df26057a9df7e839de` and rejects any
+replacement. Approval is only for the **future manual frozen paper replay**.
+It is NOT OOS certification, AI promotion or authorization to place trades.
+The external SHA review and original ZIP stay frozen; do not change model
+hyperparameters, strategy or Shared Risk using holdout data.
 
 After the full 30 days have elapsed, populate in repository:
 `research_evidence/frozen-oos-20261104/holdout/{15m,1h,5m}.csv`,
