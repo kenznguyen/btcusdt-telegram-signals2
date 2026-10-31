@@ -413,7 +413,7 @@ internal fun FiveLayerPanel(context: Context) {
                 style = MaterialTheme.typography.bodySmall)
         }
 
-                FiveLayerCard("SỔ PAPER TRÊN MÁY CHỦ") {
+        FiveLayerCard("SỔ PAPER TRÊN MÁY CHỦ") {
             if (currentPaper == null) Text("${paper.unavailableMessage(connection != null)} Điều khiển đang khóa.", color = fiveMuted)
             else {
                 Text(when {
