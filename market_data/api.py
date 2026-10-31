@@ -9,7 +9,7 @@ from urllib.parse import parse_qs
 
 from market_data.store import INTERVAL_MS, MAX_CANDLES
 from market_data.postgres import StoreUnavailable
-from market_data.storage import StoreConfigurationError, create_store_from_env
+from market_data.storage import create_store_from_env
 
 
 def candle_query(query):
