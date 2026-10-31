@@ -1,4 +1,4 @@
-"""Phase22 RED tests: reproducibility of the exact Git-preserved frozen model."""
+"""Phase22 RED/GREEN tests for exact frozen-model provenance reproducibility."""
 import hashlib
 import json
 import tempfile
@@ -31,6 +31,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
             "model_identifier": "chart-pro-okx-shadow-v1",
             "source_commit_sha": "082edc082996425f61f48c952be41fb037564103",
             "training_end_ms": 1792965600000,
+            "latest_observed_label_end_ms": 1792964700000,
             "ordered_feature_columns": ["%-feature-a", "%-feature-b"],
             "sealed_in_git": False,
             "oos_certified": False,
@@ -39,11 +40,26 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
             "protocol": "PHASE13B_PROSPECTIVE_FROZEN_MODEL_OOS",
             "holdout_start_utc": "2026-11-04T00:00:00Z",
             "holdout_end_utc": "2026-12-04T00:00:00Z",
+            "holdout_days": 30,
             "model_identifier": "chart-pro-okx-shadow-v1",
             "sealed_in_git": False,
             "frozen_model_policy": {
                 "retrain_inside_holdout": False,
                 "tune_parameters_using_holdout": False,
+                "change_strategy_or_features_after_seal": False,
+                "reuse_existing_trained_model_with_fitted_datasieve_and_label_pipeline": True,
+                "all_training_labels_end_before_holdout_start": True,
+                "freeze_all_feature_scalers_and_outlier_transformers": True,
+            },
+            "data": {
+                "only_closed_candles": True,
+                "exact_holdout_15m_rows": 2880,
+                "no_backfill_of_missing_holdout_candles": True,
+                "no_use_of_holdout_rows_for_training_or_scalers": True,
+            },
+            "evaluation": {
+                "no_real_orders": True,
+                "automatic_promotion_allowed": False,
             },
             "certification": {
                 "independent_oos_verified": False,
@@ -87,6 +103,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
             REGISTERED_METADATA_SHA=self.registered["metadata"],
             REGISTERED_PROTOCOL_SHA=self.registered["protocol"],
             REGISTERED_SOURCE_COMMIT=self.registered["source"],
+            REGISTERED_FEATURE_COUNT=2,
         ):
             return verify_preserved_snapshot(
                 self.bundle, self.original, self.metadata, self.protocol, self.seal
