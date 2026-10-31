@@ -1252,6 +1252,8 @@ workflows:
     # Manual only. Codemagic runs the audit; GitHub stores the verified bytes.
     # Set GITHUB_PUSH_TOKEN as a masked Codemagic environment variable.
     environment:
+      groups:
+        - phase21_github_credentials
       vars:
         PHASE14_ORIGINAL_ZIP: "research_evidence/phase14-frozen-original-evidence.zip"
     scripts:
