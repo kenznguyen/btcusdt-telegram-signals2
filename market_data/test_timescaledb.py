@@ -88,6 +88,7 @@ class TimescaleParityTest(unittest.TestCase):
 
 
     def test_api_reads_from_postgres_and_maps_connection_failure_to_503(self):
+        self.pg_store.insert([self.candle()])
         query = (f"symbol=BTCUSDT&timeframe=15m&startMs={self.start}"
                  f"&endMs={self.start+self.step}")
         environ = {
