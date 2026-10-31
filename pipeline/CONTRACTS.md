@@ -75,11 +75,15 @@ Root-owned module `pipeline.api:application`:
 - GET `/v1/order-book?symbol=BTCUSDT` existing normalized Hummingbot contract;
   lets the APK use this common API with its read token.
 - GET `/v1/intelligence` -> snapshot or `{available:false,reason}`.
-- GET `/v1/decision` -> `{action,reason,intent}` (AI/FreqAI stream).\n- GET `/v1/signals` -> `{strategyCore,aiStrategy,mode:'PAPER',liveTradingSupported:false}`; streams are independent. Core consumes a versioned `STRATEGY_CORE_REPORT_PATH` artifact; missing or invalid artifact is WAIT.\n- POST `/v1/paper/evaluate` accepts `{}` (AI default), `{source:'AI'}`, or `{source:'CORE'}`. Both routes resolve server-side data and submit to the same ledger/risk gate.
+- GET `/v1/decision` -> `{action,reason,intent}` (AI/FreqAI stream).
+- GET `/v1/signals` -> `{strategyCore,aiStrategy,mode:'PAPER',liveTradingSupported:false}`; streams are independent. Core consumes a versioned `STRATEGY_CORE_REPORT_PATH` artifact; missing or invalid artifact is WAIT.
+- POST `/v1/paper/evaluate` accepts `{}` (AI default), `{source:'AI'}`, or `{source:'CORE'}`. Both routes resolve server-side data and submit to the same ledger/risk gate.
 - GET `/v1/paper` -> ledger snapshot.
 - POST `/v1/paper/evaluate` body `{}` -> `{decision,order:dict|null}`.
 - POST `/v1/paper/pause` body `{paused:bool}` -> snapshot.
-- POST `/v1/paper/cancel` body `{orderId:str}` -> order.\n- POST `/v1/paper/kill` body `{enabled:true}` -> paper snapshot with persistent kill latch.\n- POST `/v1/paper/reset-kill` body `{acknowledge:true,ready:true}` -> snapshot; generic Resume never clears the kill latch.
+- POST `/v1/paper/cancel` body `{orderId:str}` -> order.
+- POST `/v1/paper/kill` body `{enabled:true}` -> paper snapshot with persistent kill latch.
+- POST `/v1/paper/reset-kill` body `{acknowledge:true,ready:true}` -> snapshot; generic Resume never clears the kill latch.
 
 GET bearer uses MARKET_DATA_TOKEN. POST bearer uses separate CONTROL_TOKEN.
 Both tokens only kept in frontend memory. Server config MARKET_DATA_DB,
@@ -87,4 +91,9 @@ INTELLIGENCE_REPORT_PATH,FREQAI_REPORT_PATH; Hummingbot server creds unchanged.
 Missing layers/config => explicit unavailable/WAIT, not demo numbers. API never
 syncs exchange candles or starts training in a request. Static React dashboard
 served at `/control` (Vite base `/control/`) from built control_dashboard/dist.
-\n## Shared risk latch and independent signals\n\n`paper_execution.risk_control` stores the pause/kill latch in the same SQLite database as the paper ledger. `PaperLedger.submit` checks it after `BEGIN IMMEDIATE` and before creating a new order, so a kill action and an order submission serialize on the same database write lock. Kill is sticky: `set_paused(false)` cannot clear it. Reset requires both `acknowledge=true` and `ready=true`; this is an operator assertion, not an automated proof that all external systems are healthy. The current latch blocks new paper intents; it does not claim to cancel existing open paper orders or flatten positions.\n\nStrategy Core and AI/FreqAI are separate signal streams. Core's producer contract is a validated JSON artifact at `STRATEGY_CORE_REPORT_PATH` (schema v1, `source=STRATEGY_CORE`, BTCUSDT Binance USDT perpetual M15, direction, strategy/data provenance, timestamps, signed target and limit price). AI remains the existing FreqAI evaluation. Both selected sources submit through `PaperLedger`, including the shared kill/pause latch and existing position/spread/visible-depth constraints. The adapter does not yet compute RSI/ADX/Smart-DCA itself; the upstream Strategy Core producer must publish the artifact.\n
+
+## Shared risk latch and independent signals
+
+`paper_execution.risk_control` stores the pause/kill latch in the same SQLite database as the paper ledger. `PaperLedger.submit` checks it after `BEGIN IMMEDIATE` and before creating a new order, so a kill action and an order submission serialize on the same database write lock. Kill is sticky: `set_paused(false)` cannot clear it. Reset requires both `acknowledge=true` and `ready=true`; this is an operator assertion, not an automated proof that all external systems are healthy. The current latch blocks new paper intents; it does not claim to cancel existing open paper orders or flatten positions.
+
+Strategy Core and AI/FreqAI are separate signal streams. Core's producer contract is a validated JSON artifact at `STRATEGY_CORE_REPORT_PATH` (schema v1, `source=STRATEGY_CORE`, BTCUSDT Binance USDT perpetual M15, direction, strategy/data provenance, timestamps, signed target and limit price). AI remains the existing FreqAI evaluation. Both selected sources submit through `PaperLedger`, including the shared kill/pause latch and existing position/spread/visible-depth constraints. The adapter does not yet compute RSI/ADX/Smart-DCA itself; the upstream Strategy Core producer must publish the artifact.
