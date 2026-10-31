@@ -234,6 +234,14 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_PROTOCOL_PROVENANCE_MISSING"):
             self._verify_oos_current_files()
 
+    def test_attestation_cannot_enable_oos_or_ai_promotion(self):
+        self._write_valid_attestation_and_github_proof()
+        attestation = json.loads(self.attestation.read_text(encoding="utf8"))
+        attestation["ai_promotion_eligible"] = True
+        self.attestation.write_text(json.dumps(attestation), encoding="utf8")
+        with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_ATTESTATION_PROVENANCE_MISMATCH"):
+            self._verify_oos_current_files()
+
     def test_missing_github_commit_proof_is_rejected(self):
         self._write_valid_attestation_and_github_proof()
         self.github_proof.write_text("{}", encoding="utf8")
