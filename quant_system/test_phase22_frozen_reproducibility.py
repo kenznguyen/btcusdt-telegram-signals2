@@ -243,33 +243,39 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
             self.verify_with_attestation()
 
     def test_one_byte_bundle_tampering_is_rejected(self):
+        self.verify()
         self.bundle.write_bytes(self.bundle.read_bytes() + b"x")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_BUNDLE_SHA_MISMATCH"):
-            self.verify()
+            self._verify_current_files()
 
     def test_preserved_bundle_must_match_original_archive_bytes(self):
+        self.verify()
         self.original.write_bytes(b"different original bytes")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_ORIGINAL_BYTES_MISMATCH"):
-            self.verify()
+            self._verify_current_files()
 
     def test_metadata_tampering_is_rejected(self):
+        self.verify()
         self.metadata.write_text(self.metadata.read_text() + " ", encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_METADATA_SHA_MISMATCH"):
-            self.verify()
+            self._verify_current_files()
 
     def test_protocol_tampering_is_rejected(self):
+        self.verify()
         self.protocol.write_text(self.protocol.read_text().replace("2026-12-04", "2026-12-05"), encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_PROTOCOL_SHA_MISMATCH"):
-            self.verify()
+            self._verify_current_files()
 
     def test_holdout_policy_must_remain_frozen_and_paper_only(self):
+        self.verify()
         seal = json.loads(self.seal.read_text(encoding="utf8"))
         seal["live_orders_enabled"] = True
         self.seal.write_text(json.dumps(seal), encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_UNSAFE_SEAL"):
-            self.verify()
+            self._verify_current_files()
 
     def test_feature_schema_must_be_unique_and_match_seal_count(self):
+        self.verify()
         metadata = json.loads(self.metadata.read_text(encoding="utf8"))
         metadata["ordered_feature_columns"] = ["%-feature-a", "%-feature-a"]
         self.metadata.write_text(json.dumps(metadata), encoding="utf8")
@@ -278,7 +284,7 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
         seal["candidate_metadata_sha256"] = self.registered["metadata"]
         self.seal.write_text(json.dumps(seal), encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_INVALID_FEATURE_SCHEMA"):
-            self.verify()
+            self._verify_current_files()
 
 
 if __name__ == "__main__":
