@@ -145,6 +145,19 @@ def signal_snapshot(timestamp):
             "mode": "PAPER", "liveTradingSupported": False}
 
 
+def control_readiness(timestamp):
+    data = context(timestamp)
+    candles = data.get("candles")
+    candle_ready = bool(candles and candles.get("coverage", {}).get("complete") is True)
+    book_ready = data.get("book") is not None
+    paper = ledger().snapshot()
+    no_pending = not any(order.get("status") in ("OPEN", "PARTIALLY_FILLED")
+                         for order in paper.get("orders", []))
+    return {"ready": candle_ready and book_ready and no_pending,
+            "checks": {"closedCandles": candle_ready, "orderBook": book_ready,
+                       "noPendingPaperOrders": no_pending}}
+
+
 def _body(environ):
     try:
         length = int(environ.get("CONTENT_LENGTH", "0"))
@@ -227,7 +240,10 @@ def application(environ, start_response):
                 result = ledger().cancel(payload["orderId"], timestamp)
             elif path == "/v1/paper/kill" and set(payload) == {"enabled"} and payload["enabled"] is True:
                 result = ledger().set_killed(True, timestamp, "OPERATOR_KILL_SWITCH")
-            elif path == "/v1/paper/reset-kill" and set(payload) == {"acknowledge", "ready"} and payload["acknowledge"] is True and payload["ready"] is True:
+            elif path == "/v1/paper/reset-kill" and set(payload) == {"acknowledge"} and payload["acknowledge"] is True:
+                readiness = control_readiness(timestamp)
+                if not readiness["ready"]:
+                    return response("409 Conflict", {"error": "SYSTEM_NOT_READY", "checks": readiness["checks"]})
                 result = ledger().reset_kill(True, True, timestamp)
             elif path == "/v1/paper/evaluate" and (not payload or payload in ({"source": "AI"}, {"source": "CORE"})):
                 source = payload.get("source", "AI")
