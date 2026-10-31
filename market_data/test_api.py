@@ -72,6 +72,21 @@ class CandleApiTest(unittest.TestCase):
             with self.subTest(query=query[:100]):
                 self.assertEqual(self.request(query)[0], 400)
 
+    def test_configured_postgres_repository_is_selected_without_sqlite_path(self):
+        class Repository:
+            def read_window(self, **query):
+                return {"backend": "postgres", "query": query}
+
+        self.config = {
+            "MARKET_DATA_TOKEN": "read-only-token",
+            "MARKET_DATA_DATABASE_URL": "postgresql://configured-secret",
+        }
+        with patch("market_data.api.get_market_data_repository", return_value=Repository()):
+            code, body = self.request()
+        self.assertEqual(code, 200)
+        self.assertEqual(body["backend"], "postgres")
+        self.assertNotIn("configured-secret", json.dumps(body))
+
     def test_read_only_methods_and_process_health(self):
         self.assertEqual(self.request(method="POST")[0], 405)
         self.assertEqual(self.request(path="/v1/orders")[0], 404)
