@@ -123,4 +123,34 @@ class FiveLayerApiTest {
         assertEquals("BUY", submitted.decision.action)
         assertEquals("paper:123", submitted.order?.orderId)
     }
+
+    @Test fun equityParserPreservesPersistentRiskMetricsAndRejectsInvalidHistory() {
+        val point = JSONObject().put("id",1).put("observedAtMs",now).put("equity","101.25")
+        val latest = JSONObject().put("observedAtMs",now).put("equity","101.25").put("realizedPnl","2")
+            .put("unrealizedPnl","-0.25").put("fees","0.5")
+        val limits = JSONObject().put("configured",true).put("maxDrawdownPct","20")
+            .put("maxDailyLossUsdt","10").put("maxExposureUsdt","1000")
+        val payload = JSONObject().put("available",true).put("points",JSONArray().put(point))
+            .put("latest",latest).put("initialCapital","100").put("maxDrawdownUsdt","5")
+            .put("maxDrawdownPct","4.71").put("dailyLossUsdt","0.25")
+            .put("dailyBaselineAtMs",now-60_000).put("exposureUsdt","101.25")
+            .put("riskLimits",limits)
+        val parsed = FiveLayerJson.equity(payload,now)
+        assertEquals("100",parsed.initialCapital)
+        assertEquals("101.25",parsed.equity)
+        assertEquals("5",parsed.maxDrawdownUsdt)
+        assertEquals("0.25",parsed.dailyLossUsdt)
+        assertEquals(1,parsed.points.size)
+        assertTrue(parsed.riskLimitsConfigured)
+        assertEquals("1000",parsed.maxExposureUsdt)
+        val invalid = JSONObject(payload.toString()).put("points",
+            JSONArray().put(JSONObject(point.toString()).put("equity","NaN")))
+        assertThrows(IllegalArgumentException::class.java) { FiveLayerJson.equity(invalid,now) }
+    }
+
+    @Test fun equityEndpointIsReadOnlyAndFixed() {
+        assertEquals("https://example.com/v1/equity",fiveLayerEndpoint("https://example.com","equity").toString())
+        assertThrows(IllegalArgumentException::class.java) { fiveLayerEndpoint("https://example.com","live/order") }
+    }
+
 }
