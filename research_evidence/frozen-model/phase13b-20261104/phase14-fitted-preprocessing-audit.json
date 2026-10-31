@@ -1,0 +1,66 @@
+{
+  "ai_promotion_eligible": false,
+  "audit": "PHASE14_FROZEN_FITTED_DATASIEVE_INTERVENTIONS",
+  "blockers": [
+    "TRAINING_TIME_PIPELINE_FIT_PREFIX_CAUSALITY_NOT_CERTIFIED",
+    "PROSPECTIVE_FROZEN_INFERENCE_NOT_EVALUATED",
+    "VENUE_FUNDING_LIQUIDATION_AND_KOTLIN_PARITY_PENDING"
+  ],
+  "errors": [],
+  "feature_intervention_comparisons": 10,
+  "fitted_preprocessing_prefix_invariance_verified": true,
+  "full_core_parity_certified": false,
+  "full_model_pipeline_causality_verified": false,
+  "independent_oos_verified": false,
+  "intervention_row_count": 5,
+  "interventions": [
+    {
+      "feature_comparisons": 2,
+      "label_comparisons": 1,
+      "model_flag": 1,
+      "open_time_ms": 1792972800000,
+      "replayed_accepted_native_forecast": true
+    },
+    {
+      "feature_comparisons": 2,
+      "label_comparisons": 1,
+      "model_flag": 1,
+      "open_time_ms": 1793073600000,
+      "replayed_accepted_native_forecast": true
+    },
+    {
+      "feature_comparisons": 2,
+      "label_comparisons": 1,
+      "model_flag": 1,
+      "open_time_ms": 1793181600000,
+      "replayed_accepted_native_forecast": true
+    },
+    {
+      "feature_comparisons": 2,
+      "label_comparisons": 1,
+      "model_flag": 1,
+      "open_time_ms": 1793289600000,
+      "replayed_accepted_native_forecast": true
+    },
+    {
+      "feature_comparisons": 2,
+      "label_comparisons": 1,
+      "model_flag": 1,
+      "open_time_ms": 1793390400000,
+      "replayed_accepted_native_forecast": true
+    }
+  ],
+  "label_intervention_comparisons": 5,
+  "live_orders_enabled": false,
+  "matrix_ledger_sha256": "sha256:382546af84244b97fc553eddc5ad02e3da7383e8384dd6e93196cf7f7f38edf7",
+  "native_accepted_forecast_replays": 5,
+  "native_predict_rows": 480,
+  "observed_candidate_sha256": "sha256:918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f",
+  "observed_model_sha256": "sha256:39963da56ba2fc1ddcfb3928beb7c50e2ec03a5864e4ddf565029ea56ff1faed",
+  "oos_certified": false,
+  "original_prediction_trace_sha256": "sha256:973dd79862ce17c3b20791f849c627261e94cef896bd9b83b7068ec003019f52",
+  "original_source_commit_sha": "082edc082996425f61f48c952be41fb037564103",
+  "ready_for_360": false,
+  "schemaVersion": 1,
+  "source_canonical_sha256": "sha256:e9a8fd271594feb5984868a0f2187d4c3e9ee681aa18b6613b30984377ffd4a4"
+}
