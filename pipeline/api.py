@@ -250,7 +250,7 @@ def quality_snapshot(timestamp):
         core_values.get(key) is not None for key in ("rsiM15", "adxM15", "plusDiH1", "minusDiH1", "adxH1"))
     streams.append({"name":"Strategy Core producer","status":"READY" if core_ready else "DEGRADED",
                     "action":core.get("action","WAIT"),"reason":core.get("reason"),"indicators":core_values})
-    return {"checkedAtMs":timestamp,"mode":"PAPER","streams":streams,
+    return {"checkedAtMs":timestamp,"mode":"PAPER","liveTradingSupported":False,"streams":streams,
             "overall":"READY" if all(row["status"]=="READY" for row in streams) else "DEGRADED",
             "errors":data.get("errors",{})}
 
