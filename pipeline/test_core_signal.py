@@ -42,6 +42,12 @@ class StrategyCoreSignalTest(unittest.TestCase):
             self.assertEqual(result["action"], "WAIT")
             self.assertIsNone(result["intent"])
 
+    def test_flat_exit_is_normalized_to_close(self):
+        report = {**self.report, "action":"FLAT", "targetPositionBase":"0", "reason":"TAKE_PROFIT"}
+        result = validate(report, self.now)
+        self.assertEqual(result["action"],"CLOSE")
+        self.assertEqual(result["intent"]["targetPositionBase"],"0")
+
     def test_wait_is_a_valid_independent_core_result(self):
         result = validate({**self.report, "action": "WAIT", "reason": "NO_ENTRY"}, self.now)
         self.assertEqual(result["reason"], "NO_ENTRY")
