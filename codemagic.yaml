@@ -1266,6 +1266,9 @@ workflows:
           test "$(cat artifacts/phase22/original/phase3-source-sha.txt)" = "082edc082996425f61f48c952be41fb037564103"
           ORIGINAL_BUNDLE="artifacts/phase22/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib"
           test -s "$ORIGINAL_BUNDLE"
+          test "$(stat -f%z "$ORIGINAL_BUNDLE")" = "436330"
+          git fetch --no-tags origin refs/heads/freeze/phase13b-20261104-candidate-082edc0:refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0
+          git merge-base --is-ancestor 888efb11b613b42a2badb3bc8adfa19ff090f2bb refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0
           git show "888efb11b613b42a2badb3bc8adfa19ff090f2bb:research_seals/phase13b-20261104/seal-manifest.json" > artifacts/phase22/seal/seal-manifest.json
           git show "888efb11b613b42a2badb3bc8adfa19ff090f2bb:research_seals/phase13b-20261104/phase13b-oos-protocol.json" > artifacts/phase22/seal/phase13b-oos-protocol.json
           git show "888efb11b613b42a2badb3bc8adfa19ff090f2bb:research_seals/phase13b-20261104/model-candidate-metadata.json" > artifacts/phase22/seal/model-candidate-metadata.json
