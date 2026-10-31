@@ -23,10 +23,13 @@ class SQLiteCandleStore:
         if not db_path:
             raise StoreConfigurationError("MARKET_DATA_DB is required for SQLite")
         self.path = Path(db_path)
+        self._writer = None
 
     def insert(self, candles):
-        # The ingestion path retains the existing SQLite schema initialization.
-        return CandleStore(self.path).insert(candles)
+        # Initialize the existing SQLite schema lazily, never during API reads.
+        if self._writer is None:
+            self._writer = CandleStore(self.path)
+        return self._writer.insert(candles)
 
     def read_window(self, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
         return read_sqlite_window(self.path, symbol, timeframe, start_ms, end_ms, as_of_ms)
