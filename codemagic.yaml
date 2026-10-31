@@ -860,3 +860,64 @@ workflows:
       - artifacts/phase14/report/*.json
       - artifacts/phase14/report/*.log
       - artifacts/phase14/seal/*.json
+
+  dual-strategy-phase15-original-fit-causality:
+    name: Phase 15 | ORIGINAL frozen candidate train-only DataSieve re-fit audit (manual)
+    instance_type: mac_mini_m2
+    max_build_duration: 35
+    # Research-only, manual; never change the pre-registered candidate or OOS protocol.
+    environment:
+      vars:
+        PHASE15_ORIGINAL_ZIP: "research_evidence/phase15-original-fit-evidence.zip"
+    scripts:
+      - name: Verify exact original 180d fit evidence and immutable pre-holdout seal
+        script: |
+          set -euo pipefail
+          test -f "$PHASE15_ORIGINAL_ZIP" || {
+            echo "PHASE15_EVIDENCE_ZIP_MISSING: upload exact original archive"; exit 2;
+          }
+          printf '%s  %s\n' "68c9c8b9ff00a8173bc267a3ac8cd1adba89772cb2be8813c3d3e4819610b323" "$PHASE15_ORIGINAL_ZIP" | shasum -a 256 -c -
+          unzip -t "$PHASE15_ORIGINAL_ZIP" >/dev/null
+          mkdir -p artifacts/phase15/original artifacts/phase15/seal artifacts/phase15/reports
+          unzip -oq "$PHASE15_ORIGINAL_ZIP" -d artifacts/phase15/original
+          test "$(cat artifacts/phase15/original/phase3-source-sha.txt)" = "082edc082996425f61f48c952be41fb037564103" || {
+            echo "PHASE15_ORIGINAL_CANDIDATE_SOURCE_MISMATCH"; exit 2;
+          }
+          git fetch --no-tags origin \
+            refs/heads/freeze/phase13b-20261104-candidate-082edc0:refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0
+          git merge-base --is-ancestor 888efb11b613b42a2badb3bc8adfa19ff090f2bb \
+            refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0 || {
+            echo "PHASE15_ORIGINAL_PREHOLDOUT_GIT_SEAL_NOT_FOUND"; exit 2;
+          }
+          git show 888efb11b613b42a2badb3bc8adfa19ff090f2bb:research_seals/phase13b-20261104/seal-manifest.json \
+            > artifacts/phase15/seal/seal-manifest.json
+          git show 888efb11b613b42a2badb3bc8adfa19ff090f2bb:research_seals/phase13b-20261104/phase13b-oos-protocol.json \
+            > artifacts/phase15/seal/phase13b-oos-protocol.json
+          git show 888efb11b613b42a2badb3bc8adfa19ff090f2bb:research_seals/phase13b-20261104/model-candidate-metadata.json \
+            > artifacts/phase15/seal/model-candidate-metadata.json
+          cmp artifacts/phase15/seal/model-candidate-metadata.json \
+            artifacts/phase15/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.json || {
+            echo "PHASE15_METADATA_NOT_EXACT_GIT_SEAL"; exit 2;
+          }
+      - name: Re-FIT DataSieve ONLY on original historical TRAIN, compare actual native LightGBM X/y/w
+        script: |
+          set -euo pipefail
+          if ! brew list --versions libomp >/dev/null 2>&1; then brew install libomp; fi
+          bash ci/setup-python.sh requirements-freqai.txt requirements-market-data.txt
+          export CI_PYTHON="$CM_BUILD_DIR/.ci-tools/python-venv/bin/python"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          "$CI_PYTHON" -m freqtrade --version
+          "$CI_PYTHON" -m unittest quant_system.test_phase15_fit_time_audit -v \
+            2>&1 | tee artifacts/phase15/reports/phase15-fit-time-tests.log
+          "$CI_PYTHON" -m quant_system.phase15_fit_time_audit \
+            --artifacts-root artifacts/phase15/original \
+            --candidate-metadata artifacts/phase15/seal/model-candidate-metadata.json \
+            --protocol artifacts/phase15/seal/phase13b-oos-protocol.json \
+            --seal artifacts/phase15/seal/seal-manifest.json \
+            --config freqai_bridge/config.okx-research.json \
+            --out artifacts/phase15/reports/phase15-original-fit-causality-audit.json \
+            2>&1 | tee artifacts/phase15/reports/phase15-original-fit-causality-audit.log
+    artifacts:
+      - artifacts/phase15/reports/*.json
+      - artifacts/phase15/reports/*.log
+      - artifacts/phase15/seal/*.json
