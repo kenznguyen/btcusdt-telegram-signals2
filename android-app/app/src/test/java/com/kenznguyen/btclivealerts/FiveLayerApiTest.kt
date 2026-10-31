@@ -219,4 +219,11 @@ class FiveLayerApiTest {
         }
     }
 
+
+    @Test fun paperEvaluationCanSelectOnlyIndependentSignalSources() {
+        assertEquals("CORE",fiveLayerEvaluationPayload("CORE").getString("source"))
+        assertEquals("AI",fiveLayerEvaluationPayload("AI").getString("source"))
+        assertThrows(IllegalArgumentException::class.java) { fiveLayerEvaluationPayload("LIVE") }
+    }
+
 }
