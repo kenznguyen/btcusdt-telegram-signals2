@@ -5,10 +5,11 @@ import json
 import os
 import sqlite3
 import time
-from pathlib import Path
 from urllib.parse import parse_qs
 
-from market_data.store import INTERVAL_MS, MAX_CANDLES, read_window
+from market_data.store import INTERVAL_MS, MAX_CANDLES
+from market_data.postgres import StoreUnavailable
+from market_data.storage import StoreConfigurationError, create_store_from_env
 
 
 def candle_query(query):
@@ -56,8 +57,8 @@ def application(environ, start_response):
         return reply("200 OK", {"ok": True, "service": "canonical-market-data"})
     if path != "/v1/candles":
         return reply("404 Not Found", {"error": "NOT_FOUND"})
-    token, db_path = os.environ.get("MARKET_DATA_TOKEN", ""), os.environ.get("MARKET_DATA_DB", "")
-    if not token or not db_path:
+    token = os.environ.get("MARKET_DATA_TOKEN", "")
+    if not token:
         return reply("503 Service Unavailable", {"error": "UNCONFIGURED"})
     if not hmac.compare_digest(environ.get("HTTP_AUTHORIZATION", "").encode(), ("Bearer " + token).encode()):
         return reply("401 Unauthorized", {"error": "UNAUTHORIZED"})
@@ -66,11 +67,10 @@ def application(environ, start_response):
     except ValueError:
         return reply("400 Bad Request", {"error": "INVALID_QUERY"})
     try:
-        if not Path(db_path).is_file():
-            return reply("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
-        result = read_window(db_path, **query)
+        store = create_store_from_env()
+        result = store.read_window(**query)
         return reply("200 OK", {**result, "generatedAtMs": time.time_ns() // 1_000_000})
-    except (OSError, sqlite3.Error, ValueError):
+    except (OSError, sqlite3.Error, ValueError, StoreUnavailable):
         return reply("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
 
 
