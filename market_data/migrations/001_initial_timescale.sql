@@ -1,3 +1,4 @@
+CREATE EXTENSION IF NOT EXISTS timescaledb;
 CREATE SCHEMA IF NOT EXISTS market_data;
 
 CREATE TABLE IF NOT EXISTS market_data.instruments (
