@@ -22,6 +22,7 @@ REGISTERED_PROTOCOL_SHA = (
     "sha256:b10d63c952a40fa70a3d4dfed2d952d676a888a0f72832734d3ff8d8c14c5b6e"
 )
 REGISTERED_SOURCE_COMMIT = "082edc082996425f61f48c952be41fb037564103"
+REGISTERED_ATTESTATION_COMMIT = "f9591bcda1b11f15a549f397aa211259346ed3f9"
 REGISTERED_FEATURE_COUNT = 20
 HOLDOUT_START_UTC = "2026-11-04T00:00:00Z"
 HOLDOUT_END_UTC = "2026-12-04T00:00:00Z"
@@ -105,6 +106,11 @@ def verify_preserved_snapshot(bundle, original_bundle, metadata, protocol, seal,
     )
     _require(all(isinstance(value, str) and value.strip() for value in protocol_hashes),
              "PHASE22_PROTOCOL_PROVENANCE_MISSING")
+    _require(protocol_hashes == (
+        REGISTERED_SOURCE_COMMIT,
+        REGISTERED_BUNDLE_SHA.removeprefix("sha256:"),
+        REGISTERED_METADATA_SHA.removeprefix("sha256:"),
+    ), "PHASE22_PROTOCOL_PROVENANCE_MISMATCH")
     _require(registered_protocol.get("sealed_in_git") is True,
              "PHASE22_PROTOCOL_COMMIT_EVIDENCE_MISSING")
 
@@ -121,7 +127,8 @@ def verify_preserved_snapshot(bundle, original_bundle, metadata, protocol, seal,
     )
     _require(
         attested.get("attestation_type") == "PHASE13B_PRE_HOLDOUT_EXTERNAL_ATTESTATION"
-        and proof.get("sha") and isinstance(commit_date, str)
+        and proof.get("sha") == REGISTERED_ATTESTATION_COMMIT
+        and isinstance(commit_date, str)
         and isinstance(filenames, list)
         and any(isinstance(item, dict) and item.get("filename") == expected_attestation_path
                 for item in filenames),
