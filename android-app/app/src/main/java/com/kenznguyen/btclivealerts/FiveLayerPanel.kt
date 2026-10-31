@@ -142,7 +142,6 @@ internal fun FiveLayerPanel(context: Context) {
     var clock by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var system by remember(connection, refresh) { mutableStateOf(FiveLayerReading<SystemView>()) }
     var intelligence by remember(connection, refresh) { mutableStateOf(FiveLayerReading<IntelligenceView>()) }
-    var decision by remember(connection, refresh) { mutableStateOf(FiveLayerReading<DecisionView>()) }
     var paper by remember(connection, refresh) { mutableStateOf(FiveLayerReading<PaperView>()) }
     var book by remember(connection, refresh) { mutableStateOf(FiveLayerReading<HummingbotSnapshot>()) }
     var candles by remember(connection, refresh) { mutableStateOf(FiveLayerReading<CandleWindowView>()) }
@@ -174,7 +173,7 @@ internal fun FiveLayerPanel(context: Context) {
     }
     LaunchedEffect(connection, refresh) {
         system = FiveLayerReading(); intelligence = FiveLayerReading()
-        decision = FiveLayerReading(); paper = FiveLayerReading()
+        paper = FiveLayerReading()
         book = FiveLayerReading()
         candles = FiveLayerReading()
         equity = FiveLayerReading(); signals = FiveLayerReading()
@@ -186,7 +185,6 @@ internal fun FiveLayerPanel(context: Context) {
                     coroutineScope {
                         launch { system = readFiveLayer { FiveLayerClient.getSystem(config.url, config.readToken) } }
                         launch { intelligence = readFiveLayer { FiveLayerClient.getIntelligence(config.url, config.readToken) } }
-                        launch { decision = readFiveLayer { FiveLayerClient.getDecision(config.url, config.readToken) } }
                         launch { paper = readFiveLayer { FiveLayerClient.getPaper(config.url, config.readToken) } }
                         launch { book = readFiveLayer { FiveLayerClient.getOrderBook(config.url, config.readToken) } }
                         launch { candles = readFiveLayer { FiveLayerClient.getCandles(config.url, config.readToken) } }
@@ -199,7 +197,7 @@ internal fun FiveLayerPanel(context: Context) {
                 }
             } finally {
                 system = FiveLayerReading(); intelligence = FiveLayerReading()
-                decision = FiveLayerReading(); paper = FiveLayerReading()
+                paper = FiveLayerReading()
                 book = FiveLayerReading()
                 candles = FiveLayerReading()
                 equity = FiveLayerReading(); signals = FiveLayerReading()
@@ -223,7 +221,7 @@ internal fun FiveLayerPanel(context: Context) {
         if (writing || !canControl || !lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) ||
             system.fresh(now) == null || paper.fresh(now) == null) return
         writing = true
-        paper = FiveLayerReading(); decision = FiveLayerReading()
+        paper = FiveLayerReading()
         lastActionOrder = null
         lastActionAt = 0L
         actionMessage = "Đang gửi yêu cầu paper…"
@@ -434,16 +432,17 @@ internal fun FiveLayerPanel(context: Context) {
             Text("Nguồn chiến lược dùng cho lần đánh giá tiếp theo:", color = fiveMuted,
                 style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (evaluationSource == "AI") Button(onClick = { evaluationSource = "AI" }) {
+                if (evaluationSource == "AI") Button(enabled = !writing, onClick = { evaluationSource = "AI" }) {
                     Text("AI Strategy")
-                } else OutlinedButton(onClick = { evaluationSource = "AI" }) { Text("AI Strategy") }
-                if (evaluationSource == "CORE") Button(onClick = { evaluationSource = "CORE" }) {
+                } else OutlinedButton(enabled = !writing, onClick = { evaluationSource = "AI" }) { Text("AI Strategy") }
+                if (evaluationSource == "CORE") Button(enabled = !writing, onClick = { evaluationSource = "CORE" }) {
                     Text("Strategy Core")
-                } else OutlinedButton(onClick = { evaluationSource = "CORE" }) { Text("Strategy Core") }
+                } else OutlinedButton(enabled = !writing, onClick = { evaluationSource = "CORE" }) { Text("Strategy Core") }
             }
             Button(enabled = canControl, onClick = {
+                val source = evaluationSource
                 submit { target ->
-                    val result = FiveLayerClient.evaluate(target.url, target.controlToken, evaluationSource)
+                    val result = FiveLayerClient.evaluate(target.url, target.controlToken, source)
                     lastActionOrder = result.order
                     "Đánh giá: ${result.decision.action} · ${result.order?.status?.let(::fiveLayerStatusVi) ?: fiveLayerReasonVi(result.decision.reason)}"
                 }
