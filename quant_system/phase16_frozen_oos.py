@@ -20,6 +20,8 @@ import pandas as pd
 from quant_system.phase13b_matrix import matrix_digest
 from quant_system.phase14_fitted_preprocessing import verify_model_bundle_seal
 from quant_system.phase15_fit_time_audit import rebuilt_features
+from quant_system.phase17_oos_ohlcv import (
+    OOSMarketIntegrityError, verify_oos_ohlcv_integrity)
 from quant_system.paper_backtest import closed_context
 from quant_system.paper_portfolio import (
     PortfolioConfig,replay_portfolio,EVENT_FIELDS,TRADE_FIELDS)
@@ -130,6 +132,13 @@ def _load_bars(holdout,prehistory):
         start=START-100*H1,end=START,step=H1)
     verify_candle_aggregation(m15,fine,3)
     verify_candle_aggregation(h1,m15,4)
+    # The previous audit only checked OHLC on the HOLDOUT. Also reconcile
+    # volumes and the overlapping H1/M15 historical warmup, before either
+    # the frozen model or paper portfolio can observe the candles.
+    try:
+        verify_oos_ohlcv_integrity(warm1h,h1,warm15,m15,fine)
+    except OOSMarketIntegrityError as exc:
+        raise OOSContractError(str(exc)) from exc
     return warm15+m15,warm1h+h1,m15,fine
 
 def _predict_frozen(history,holdout,model_bundle,meta):
@@ -226,6 +235,8 @@ def run(*,holdout_dir,prehistory_dir,config_path,
     report=dict(schemaVersion=1,phase="PHASE16_FROZEN_OOS_PRE_REGISTERED",
         all_26_folds_fitting_time_verified=False,
         frozen_model_prospective_replay_verified=False,
+        market_timeframes_ohlcv_verified=False,
+        prehistory_overlap_verified=False,
         three_mode_shared_risk_paper_replayed=False,
         independent_oos_verified=False,oos_certified=False,
         ai_promotion_eligible=False,ready_for_360=False,
@@ -267,6 +278,8 @@ def run(*,holdout_dir,prehistory_dir,config_path,
             allfold,approval,matrix_digest(fold_audit_path))
         report["all_26_folds_fitting_time_verified"]=True
         history_m15,history_h1,m15,fine=_load_bars(holdout_dir,prehistory_dir)
+        report['market_timeframes_ohlcv_verified']=True
+        report['prehistory_overlap_verified']=True
         candles=closed_context(history_m15,history_h1)[-2880:]
         require(len(candles)==2880,"OOS_CORE_CONTEXT_INCOMPLETE")
         forecasts=_predict_frozen(history_m15,m15,model_bundle,meta)
