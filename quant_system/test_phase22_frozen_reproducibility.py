@@ -128,7 +128,8 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
     def _write_valid_attestation_and_github_proof(self):
         protocol = json.loads(self.protocol.read_text(encoding="utf8"))
         protocol.update({
-            "status": "SEALED_BY_EXTERNAL_ATTESTATION",\n            "sealed_in_git": True,
+            "status": "SEALED_BY_EXTERNAL_ATTESTATION",
+            "sealed_in_git": True,
             "source_commit_sha": self.registered["source"],
             "frozen_model_bundle_sha256": self.registered["bundle"].removeprefix("sha256:"),
             "frozen_model_metadata_sha256": self.registered["metadata"].removeprefix("sha256:"),
@@ -179,16 +180,34 @@ class Phase22FrozenReproducibilityTests(unittest.TestCase):
             )
 
     def test_unsealed_historical_protocol_is_rejected(self):
+        self._write_valid_attestation_and_github_proof()
+        protocol = json.loads(self.protocol.read_text(encoding="utf8"))
+        protocol["status"] = "PRE_REGISTERED_PROTOCOL_CANDIDATE_NOT_SEALED"
+        self.protocol.write_text(json.dumps(protocol), encoding="utf8")
+        self.registered["protocol"] = "sha256:" + hashlib.sha256(self.protocol.read_bytes()).hexdigest()
+        seal = json.loads(self.seal.read_text(encoding="utf8"))
+        seal["protocol_sha256"] = self.registered["protocol"]
+        self.seal.write_text(json.dumps(seal), encoding="utf8")
+        attestation = json.loads(self.attestation.read_text(encoding="utf8"))
+        attestation["protocol_sha256"] = self.registered["protocol"].removeprefix("sha256:")
+        self.attestation.write_text(json.dumps(attestation), encoding="utf8")
         with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_PROTOCOL_NOT_SEALED"):
-            self.verify()
+            self._verify_current_files()
 
     def test_protocol_null_provenance_hashes_are_rejected(self):
         self._write_valid_attestation_and_github_proof()
         protocol = json.loads(self.protocol.read_text(encoding="utf8"))
         protocol["frozen_model_bundle_sha256"] = None
         self.protocol.write_text(json.dumps(protocol), encoding="utf8")
-        self.registered["protocol"] = "sha256:" + hashlib.sha256(self.protocol.read_bytes()).hexdigest()\n        seal = json.loads(self.seal.read_text(encoding="utf8"))\n        seal["protocol_sha256"] = self.registered["protocol"]\n        self.seal.write_text(json.dumps(seal), encoding="utf8")\n        attestation = json.loads(self.attestation.read_text(encoding="utf8"))\n        attestation["protocol_sha256"] = self.registered["protocol"].removeprefix("sha256:")\n        self.attestation.write_text(json.dumps(attestation), encoding="utf8")\n        with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_PROTOCOL_PROVENANCE_MISSING"):
-            self.verify_with_attestation()
+        self.registered["protocol"] = "sha256:" + hashlib.sha256(self.protocol.read_bytes()).hexdigest()
+        seal = json.loads(self.seal.read_text(encoding="utf8"))
+        seal["protocol_sha256"] = self.registered["protocol"]
+        self.seal.write_text(json.dumps(seal), encoding="utf8")
+        attestation = json.loads(self.attestation.read_text(encoding="utf8"))
+        attestation["protocol_sha256"] = self.registered["protocol"].removeprefix("sha256:")
+        self.attestation.write_text(json.dumps(attestation), encoding="utf8")
+        with self.assertRaisesRegex(FrozenReproducibilityError, "PHASE22_PROTOCOL_PROVENANCE_MISSING"):
+            self._verify_current_files()
 
     def test_missing_github_commit_proof_is_rejected(self):
         self._write_valid_attestation_and_github_proof()
