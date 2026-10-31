@@ -65,9 +65,9 @@ class EquityHistoryTest(unittest.TestCase):
     def test_max_drawdown_daily_loss_and_exposure_limits_are_enforced(self):
         from decimal import Decimal
         at=1_800_000_000_000
-        self.record(at,"100","0")
-        self.record(at+900_000,"110","0")
-        self.record(at+1_800_000,"80","0")
+        self.record(at,"100","1","100")
+        self.record(at+900_000,"110","1","100")
+        self.record(at+1_800_000,"80","1","100")
         limits={"maxDrawdownPct":Decimal("20"),"maxDailyLossUsdt":Decimal("95"),
                 "maxExposureUsdt":Decimal("1000")}
         with self.db:
@@ -88,9 +88,10 @@ class EquityHistoryTest(unittest.TestCase):
                 limits=limits,require_limits=True,now_ms=at+900_000)
         self.assertEqual(reason,"DAILY_LOSS_LIMIT")
         self.assertEqual(kill,"DAILY_LOSS_LIMIT")
+        exposure_limits={**limits,"maxDailyLossUsdt":Decimal("100")}
         with self.db:
             reason, kill=equity.block_reason(self.db,target_position="0.2",limit_price="89",
-                limits=limits,require_limits=True,now_ms=at+900_000)
+                limits=exposure_limits,require_limits=True,now_ms=at+900_000)
         self.assertEqual(reason,"MAX_EXPOSURE_LIMIT")
         self.assertIsNone(kill)
 
