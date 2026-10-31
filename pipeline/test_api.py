@@ -83,6 +83,18 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertIn(("X-Content-Type-Options", "nosniff"), headers)
         return int(status.split()[0]), json.loads(data)
 
+    def test_candle_api_uses_postgres_repository_without_repointing_paper_sqlite(self):
+        class Repository:
+            def read_window(self, **query):
+                return {"backend": "postgres", "query": query}
+
+        with patch.dict(os.environ, {"MARKET_DATA_DATABASE_URL": "postgresql://test-only"}, clear=False):
+            with patch.object(api, "get_market_data_repository", return_value=Repository()):
+                code, body = self.request("/v1/candles")
+        self.assertEqual(code, 200)
+        self.assertEqual(body["backend"], "postgres")
+        self.assertEqual(os.environ["MARKET_DATA_DB"], str(self.db))
+
     def test_collector_to_canonical_prediction_to_paper_and_read_api(self):
         code, intelligence = self.request("/v1/intelligence")
         self.assertEqual(code, 200)
