@@ -23,11 +23,11 @@ Ví dụ lấy khoảng **2026-10-29 00:00–02:00 UTC**, đầu gồm/cuối lo
 
 Mỗi page tối đa 1.000 nến được ghi nguyên tử. Nếu page sau lỗi, các page trước vẫn còn; CLI thoát khác 0 và cho phép thử lại cửa sổ. Nến cùng khóa và OHLCV được bỏ qua; nến cùng khóa nhưng OHLCV khác khiến cả page bị rollback. Không âm thầm sửa lịch sử. Việc xử lý bản sửa từ sàn cần một thay đổi có kiểm soát riêng.
 
-SQLite tiếp tục là mặc định. Sau khi đã áp dụng schema TimescaleDB trong một database staging riêng, có thể đồng bộ trực tiếp bằng `--database-url` thay cho `--db`:
+SQLite tiếp tục là mặc định. Sau khi đã áp dụng schema TimescaleDB trong một database staging riêng, có thể đồng bộ trực tiếp bằng `--postgres` thay cho `--db`. DSN chỉ được đọc từ biến môi trường, không truyền trên command line:
 
 ```bash
-MARKET_DATA_DATABASE_URL='postgresql://...' python3 -m market_data.sync \\
-  --database-url "$MARKET_DATA_DATABASE_URL" --timeframe 15m \\
+export MARKET_DATA_DATABASE_URL='postgresql://...'
+python3 -m market_data.sync --postgres --timeframe 15m \
   --start-ms 1793232000000 --end-ms 1793239200000
 ```
 
