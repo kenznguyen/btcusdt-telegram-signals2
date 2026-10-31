@@ -80,3 +80,10 @@ The `parallel` build variant is a separate installable application with package
 Paper screen and does not mount BTC Chart Pro's chart/scanner tabs or start its
 background Strategy Monitor service. The regular `debug` variant remains BTC Chart Pro.
 Both variants are debug-signed for parallel installation; no release keystore is required.
+
+
+The dedicated parallel Paper screen also reads the persisted `/v1/equity` endpoint.
+It displays the account capital, mark-to-market Equity, realized/unrealized PnL,
+fees, Max Drawdown, UTC Daily Loss, exposure, configured risk-limit state and a
+native Equity Curve. It does not infer missing metrics: absent history or a missing
+UTC baseline remains explicitly unavailable.
