@@ -59,7 +59,9 @@ class FiveLayerApiTest(unittest.TestCase):
                      "asks": [{"price": "100.02", "quantity": "1"}]}
         self.config = {"MARKET_DATA_DB": str(self.db), "MARKET_DATA_TOKEN": "read-token",
                        "CONTROL_TOKEN": "paper-control-token", "INTELLIGENCE_REPORT_PATH": str(self.intel_path),
-                       "FREQAI_REPORT_PATH": str(self.pred_path), "STRATEGY_CORE_REPORT_PATH": str(self.core_path)}
+                       "FREQAI_REPORT_PATH": str(self.pred_path), "STRATEGY_CORE_REPORT_PATH": str(self.core_path),
+                       "PAPER_MAX_DRAWDOWN_PCT":"95", "PAPER_MAX_DAILY_LOSS_USDT":"95",
+                       "PAPER_MAX_EXPOSURE_USDT":"1000"
         self.env = patch.dict(os.environ, self.config, clear=True)
         self.env.start()
         self.addCleanup(self.env.stop)
@@ -201,24 +203,30 @@ class FiveLayerApiTest(unittest.TestCase):
         query = f"symbol=BTCUSDT&timeframe=15m&startMs={self.end-1_800_000}&endMs={self.end}"
         self.assertEqual(self.request("/v1/candles", query=query)[0], 503)
 
-    def test_core_and_ai_signals_are_independent_and_both_use_shared_paper_ledger(self):
-        code, signals = self.request("/v1/signals")
-        self.assertEqual(code, 200)
-        self.assertEqual(signals["strategyCore"]["action"], "BUY")
-        self.assertEqual(signals["aiStrategy"]["action"], "BUY")
-        self.assertEqual(signals["strategyCore"]["source"], "STRATEGY_CORE")
-        self.assertEqual(signals["aiStrategy"]["source"], "AI_FREQAI")
-        code, result = self.request("/v1/paper/evaluate", "POST", {"source": "CORE"})
+    def test_core_and_ai_signals_are_independent_and_share_the_risk_gate(self):
+        core_intent = {"intentId":"core-test-intent","symbol":"BTCUSDT","exchange":"binance",
+            "marketType":"USDT_PERPETUAL","strategyVersion":"rsi-adx-smart-dca-v1",
+            "modelVersion":"strategy-core","datasetVersion":"sha256:"+"c"*64,
+            "targetPositionBase":"0.001","limitPrice":"100.02","decisionAtMs":self.now-1000,
+            "validUntilMs":self.now+20_000,"inputSnapshotId":"sha256:"+"d"*64,"mode":"PAPER"}
+        core = {"source":"STRATEGY_CORE","action":"BUY","reason":"RSI_ADX_ENTRY","intent":core_intent}
+        with patch.object(api,"core_decide",return_value=core):
+            code, signals = self.request("/v1/signals")
+            self.assertEqual(code, 200)
+            self.assertEqual(signals["strategyCore"]["action"], "BUY")
+            self.assertEqual(signals["aiStrategy"]["action"], "BUY")
+            self.assertEqual(signals["strategyCore"]["source"], "STRATEGY_CORE")
+            self.assertEqual(signals["aiStrategy"]["source"], "AI_FREQAI")
+            code, result = self.request("/v1/paper/evaluate", "POST", {"source": "CORE"})
         self.assertEqual(code, 200)
         self.assertEqual(result["decision"]["source"], "STRATEGY_CORE")
         self.assertEqual(result["order"]["status"], "FILLED")
         self.assertEqual(self.request("/v1/paper/evaluate", "POST", {"source": "UNKNOWN"})[0], 400)
 
-    def test_core_signal_can_be_absent_without_suppressing_ai_signal(self):
-        self.core_path.unlink()
+    def test_core_producer_waits_on_incomplete_history_without_suppressing_ai(self):
         _, signals = self.request("/v1/signals")
         self.assertEqual(signals["strategyCore"]["action"], "WAIT")
-        self.assertEqual(signals["strategyCore"]["reason"], "CORE_SIGNAL_INVALID")
+        self.assertEqual(signals["strategyCore"]["reason"], "CORE_CANDLE_WINDOW_INCOMPLETE")
         self.assertEqual(signals["aiStrategy"]["action"], "BUY")
 
     def test_api_kill_switch_requires_control_token_and_blocks_paper_evaluation(self):
