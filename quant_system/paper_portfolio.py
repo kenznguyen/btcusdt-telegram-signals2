@@ -67,7 +67,8 @@ class PaperPosition:
 
 def replay_portfolio(m15, fine, predictions, *, mode, dataset_sha256,
                      detail_sha256, model_identifier,
-                     starting_balance=100., config=None):
+                     starting_balance=100., config=None,
+                     prediction_source='freqai-native-backtest'):
     """Run separate virtual positions through shared collateral/position risk.
 
     All decisions use closed M15 and previous-closed H1. Entries, TP, soft SL
@@ -92,7 +93,8 @@ def replay_portfolio(m15, fine, predictions, *, mode, dataset_sha256,
         for i,r in enumerate(fine)):
         raise ValueError('INCOMPLETE_5M_REPLAY')
     forecasts=validated_native_predictions(
-        predictions,{r['open_time']:r for r in m15},model_identifier)
+        predictions,{r['open_time']:r for r in m15},model_identifier,
+        allowed_source=prediction_source)
     rules=StrategyRules()
     positions={}
     pending={}

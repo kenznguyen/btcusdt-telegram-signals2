@@ -921,3 +921,144 @@ workflows:
       - artifacts/phase15/reports/*.json
       - artifacts/phase15/reports/*.log
       - artifacts/phase15/seal/*.json
+
+  dual-strategy-phase16-all-26-original-fit:
+    name: Phase 16 | all 26 ORIGINAL LightGBM fitted preprocessing audits (manual)
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    # NO push-trigger, no exchange, no LightGBM retrain, no real orders.
+    environment:
+      vars:
+        PHASE16_ORIGINAL_ZIP: "research_evidence/phase16-all-26-original-fit-evidence.zip"
+    scripts:
+      - name: Verify all-fold original evidence ZIP and pre-holdout Git seal
+        script: |
+          set -euo pipefail
+          python3 -m unittest ci.test_phase16_codemagic_yaml -v
+          test -f "$PHASE16_ORIGINAL_ZIP" || {
+            echo "PHASE16_ORIGINAL_ARCHIVE_MISSING"; exit 2;
+          }
+          printf '%s  %s\n' "0e76c0851ba3ffeac2706d681efee4ea034998d70eb8e183ede11e01306e8bc7" "$PHASE16_ORIGINAL_ZIP" | shasum -a 256 -c -
+          unzip -t "$PHASE16_ORIGINAL_ZIP" >/dev/null
+          mkdir -p artifacts/phase16/original artifacts/phase16/seal artifacts/phase16/reports
+          unzip -oq "$PHASE16_ORIGINAL_ZIP" -d artifacts/phase16/original
+          test "$(cat artifacts/phase16/original/phase3-source-sha.txt)" = "082edc082996425f61f48c952be41fb037564103" || {
+            echo "PHASE16_SOURCE_SHA_NOT_SEALED"; exit 2;
+          }
+          git fetch --no-tags origin \
+            refs/heads/freeze/phase13b-20261104-candidate-082edc0:refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0
+          git merge-base --is-ancestor 888efb11b613b42a2badb3bc8adfa19ff090f2bb \
+            refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0 || {
+            echo "PHASE16_ORIGINAL_GIT_SEAL_MISSING"; exit 2;
+          }
+          for path in seal-manifest.json phase13b-oos-protocol.json model-candidate-metadata.json; do
+            git show "888efb11b613b42a2badb3bc8adfa19ff090f2bb:research_seals/phase13b-20261104/$path" \
+              > "artifacts/phase16/seal/$path"
+          done
+          cmp artifacts/phase16/seal/model-candidate-metadata.json \
+            artifacts/phase16/original/artifacts/phase3/native/phase13b-unsealed-model-candidate.json || {
+            echo "PHASE16_ORIGINAL_CANDIDATE_METADATA_NOT_EXACT_GIT_SNAPSHOT"; exit 2;
+          }
+      - name: Original 26-fold strict unit regressions and pinned FreqAI re-fit replay
+        script: |
+          set -euo pipefail
+          if ! brew list --versions libomp >/dev/null 2>&1; then brew install libomp; fi
+          bash ci/setup-python.sh requirements-freqai.txt requirements-market-data.txt
+          export CI_PYTHON="$CM_BUILD_DIR/.ci-tools/python-venv/bin/python"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          "$CI_PYTHON" -m unittest \
+            quant_system.test_phase15_fit_time_audit \
+            quant_system.test_phase16_all_fold_fit -v \
+            2>&1 | tee artifacts/phase16/reports/phase16-original-fit-tests.log
+          "$CI_PYTHON" -m quant_system.phase16_all_fold_fit \
+            --artifacts-root artifacts/phase16/original \
+            --config freqai_bridge/config.okx-research.json \
+            --metadata artifacts/phase16/seal/model-candidate-metadata.json \
+            --protocol artifacts/phase16/seal/phase13b-oos-protocol.json \
+            --seal artifacts/phase16/seal/seal-manifest.json \
+            --out artifacts/phase16/reports/phase16-all26-original-fit-audit.json \
+            2>&1 | tee artifacts/phase16/reports/phase16-all26-original-fit-audit.log
+    artifacts:
+      - artifacts/phase16/reports/*.json
+      - artifacts/phase16/reports/*.log
+      - artifacts/phase16/seal/*.json
+
+  dual-strategy-frozen-30d-oos:
+    name: Prospective frozen 30d OOS | no retrain, no live (manual AFTER Dec 4 UTC)
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    environment:
+      vars:
+        PHASE16_APPROVAL_COMMIT: "409d446bb186a8e2ea0189df26057a9df7e839de"
+        PHASE16_ORIGINAL_ZIP: "research_evidence/phase16-all-26-original-fit-evidence.zip"
+    # No automatic triggers. Requires separate 26-fold PASS and preholdout
+    # explicit operator-accepted GitHub commit (not created by this workflow).
+    scripts:
+      - name: Enforce completed 30d prospective holdout and independent release attestation
+        script: |
+          set -euo pipefail
+          [ "$(date -u +%s)" -ge 1796342400 ] || {
+            echo "OOS_WINDOW_NOT_COMPLETE_UNTIL_2026_12_04_UTC"; exit 2;
+          }
+          [[ "$PHASE16_APPROVAL_COMMIT" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "OOS_ALL_26_FOLD_RELEASE_GATE_NOT_SIGNED"; exit 2;
+          }
+          [[ "$PHASE16_APPROVAL_COMMIT" == "409d446bb186a8e2ea0189df26057a9df7e839de" ]] || {
+            echo "OOS_APPROVAL_COMMIT_NOT_PRE_REGISTERED"; exit 2;
+          }
+          printf '%s  %s\n' "0e76c0851ba3ffeac2706d681efee4ea034998d70eb8e183ede11e01306e8bc7" "$PHASE16_ORIGINAL_ZIP" | shasum -a 256 -c -
+          mkdir -p artifacts/frozen-oos/input artifacts/frozen-oos/seal artifacts/frozen-oos/report
+          unzip -t "$PHASE16_ORIGINAL_ZIP" >/dev/null
+          unzip -oq "$PHASE16_ORIGINAL_ZIP" -d artifacts/frozen-oos/input
+          git fetch --no-tags origin \
+            refs/heads/freeze/phase13b-20261104-candidate-082edc0:refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0
+          git cat-file -e "$PHASE16_APPROVAL_COMMIT^{commit}" || {
+            echo "OOS_APPROVAL_COMMIT_NOT_FETCHED"; exit 2;
+          }
+          git merge-base --is-ancestor "$PHASE16_APPROVAL_COMMIT" \
+            refs/remotes/origin/freeze/phase13b-20261104-candidate-082edc0 || {
+            echo "OOS_APPROVAL_NOT_ON_ORIGINAL_SEAL_BRANCH"; exit 2;
+          }
+          test "$(git show -s --format=%ct "$PHASE16_APPROVAL_COMMIT")" -lt 1793750400 || {
+            echo "OOS_APPROVAL_NOT_REGISTERED_BEFORE_HOLDOUT"; exit 2;
+          }
+          for path in seal-manifest.json phase13b-oos-protocol.json model-candidate-metadata.json; do
+            git show "888efb11b613b42a2badb3bc8adfa19ff090f2bb:research_seals/phase13b-20261104/$path" \
+              > "artifacts/frozen-oos/seal/$path"
+          done
+          git show "$PHASE16_APPROVAL_COMMIT:research_seals/phase13b-20261104/phase16-oos-release-gate.json" \
+            > artifacts/frozen-oos/seal/phase16-oos-release-gate.json
+          git show "$PHASE16_APPROVAL_COMMIT:research_seals/phase13b-20261104/phase16-all26-original-fit-audit.json" \
+            > artifacts/frozen-oos/seal/phase16-all26-original-fit-audit.json
+          cmp artifacts/frozen-oos/input/artifacts/phase3/native/phase13b-unsealed-model-candidate.json \
+            artifacts/frozen-oos/seal/model-candidate-metadata.json || {
+            echo "OOS_ORIGINAL_CANDIDATE_NOT_GIT_SEALED"; exit 2;
+          }
+      - name: Run immutable exact 30d OOS with original fitted model and shared risk
+        script: |
+          set -euo pipefail
+          if ! brew list --versions libomp >/dev/null 2>&1; then brew install libomp; fi
+          bash ci/setup-python.sh requirements-freqai.txt requirements-market-data.txt
+          export CI_PYTHON="$CM_BUILD_DIR/.ci-tools/python-venv/bin/python"
+          export PYTHONPATH="$CM_BUILD_DIR"
+          "$CI_PYTHON" -m unittest \
+            quant_system.test_phase16_frozen_oos \
+            quant_system.test_paper_portfolio -v \
+            2>&1 | tee artifacts/frozen-oos/report/frozen-oos-contract-tests.log
+          "$CI_PYTHON" -m quant_system.phase16_frozen_oos \
+            --holdout-dir research_evidence/frozen-oos-20261104/holdout \
+            --prehistory-dir research_evidence/frozen-oos-20261104/prehistory \
+            --config freqai_bridge/config.okx-research.json \
+            --bundle artifacts/frozen-oos/input/artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib \
+            --metadata artifacts/frozen-oos/seal/model-candidate-metadata.json \
+            --protocol artifacts/frozen-oos/seal/phase13b-oos-protocol.json \
+            --seal artifacts/frozen-oos/seal/seal-manifest.json \
+            --fold-audit artifacts/frozen-oos/seal/phase16-all26-original-fit-audit.json \
+            --release-gate artifacts/frozen-oos/seal/phase16-oos-release-gate.json \
+            --out-dir artifacts/frozen-oos/report \
+            2>&1 | tee artifacts/frozen-oos/report/frozen-oos-paper-replay.log
+    artifacts:
+      - artifacts/frozen-oos/report/*.csv
+      - artifacts/frozen-oos/report/*.json
+      - artifacts/frozen-oos/report/*.log
+      - artifacts/frozen-oos/seal/*.json
