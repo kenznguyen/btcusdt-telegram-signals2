@@ -18,9 +18,9 @@ class SQLiteRepository:
     """Backward-compatible adapter over the existing SQLite store."""
 
     def __init__(self, db_path):
-        if not isinstance(db_path, str) or not db_path:
+        if not isinstance(db_path, (str, os.PathLike)) or not os.fspath(db_path):
             raise MarketDataUnavailable("SQLite market-data path is not configured")
-        self.db_path = db_path
+        self.db_path = os.fspath(db_path)
 
     def insert(self, candles):
         return CandleStore(self.db_path).insert(candles)
@@ -116,7 +116,7 @@ class PostgresRepository:
                            WHERE exchange='binance' AND market_type='USDT_PERPETUAL'
                              AND symbol=%s AND timeframe=%s
                              AND open_time_ms >= %s AND open_time_ms < %s
-                             AND (%s IS NULL OR available_at_ms <= %s)
+                             AND (%s::BIGINT IS NULL OR available_at_ms <= %s)
                            ORDER BY open_time_ms""",
                         (symbol, timeframe, start, end, as_of_ms, as_of_ms),
                     )
