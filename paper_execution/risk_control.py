@@ -4,7 +4,6 @@ All state lives in the same SQLite database as the paper ledger. Call
 risk_block_reason() inside the ledger write transaction so a concurrent kill
 cannot race an order submission.
 """
-import json
 import sqlite3
 
 from pipeline.values import stamp
@@ -24,10 +23,17 @@ def ensure(connection):
 
 
 def snapshot(connection):
-    ensure(connection)
+    exists = connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_risk_control'"
+    ).fetchone()
+    if not exists:
+        return {"paused": False, "killed": False, "reason": None, "updatedAtMs": 0,
+                "mode": "PAPER", "liveTradingSupported": False}
     row = connection.execute(
         "SELECT paused,killed,reason,updated_at_ms FROM paper_risk_control WHERE id=1"
     ).fetchone()
+    if row is None:
+        raise sqlite3.DatabaseError("Risk control state is missing")
     return {"paused": bool(row[0]), "killed": bool(row[1]),
             "reason": row[2], "updatedAtMs": row[3],
             "mode": "PAPER", "liveTradingSupported": False}
