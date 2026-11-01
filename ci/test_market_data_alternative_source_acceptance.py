@@ -60,7 +60,7 @@ class AlternativeSourceAcceptanceTest(unittest.TestCase):
     def test_fetch_filters_open_candle_and_keeps_only_closed_rows(self):
         exchange = FakeKraken([row(START), row(START + STEP)])
         candles = fetch_closed_window(exchange, "15m", START, START + 2 * STEP,
-                                      now_ms=START + 2 * STEP)
+                                      now_ms=START + STEP + 500)
         self.assertEqual([item["openTimeMs"] for item in candles], [START])
         self.assertEqual(candles[0]["availableAtMs"], START + 2 * STEP)
         self.assertEqual(exchange.assertions, (SYMBOL, "15m", START, 2))
