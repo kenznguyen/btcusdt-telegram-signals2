@@ -421,5 +421,76 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
         )
 
 
+    def test_recovery_lease_is_revalidated_before_scheduler_becomes_ready(self):
+        scheduler, leases, recovery, health = Mock(), Mock(), Mock(), Mock()
+        leases.acquire.return_value = Mock(generation=31)
+        leases.heartbeat.return_value = False
+        recovery.recover_all.return_value = True
+        runtime = FeederRuntime(
+            config=FeederConfig(), scheduler=scheduler, lease_store=leases,
+            recovery=recovery, health=health, owner_id="worker-after-recovery",
+            clock=lambda: NOW + 61_000,
+        )
+
+        self.assertFalse(runtime.start(now_ms=NOW))
+
+        self.assertEqual(runtime.state, "LEASE_LOST")
+        leases.heartbeat.assert_called_once_with(
+            "worker-after-recovery", 31, now_ms=NOW + 61_000, ttl_seconds=60
+        )
+        scheduler.start.assert_not_called()
+        health.mark_ready.assert_not_called()
+
+    def test_shutdown_after_lease_takeover_does_not_release_replacement_or_raise(self):
+        import tempfile
+        from pathlib import Path
+        from market_data.feeder import LeaseStore
+
+        with tempfile.TemporaryDirectory() as directory:
+            leases = LeaseStore(str(Path(directory) / "leases.sqlite3"))
+            old = leases.acquire("old-writer", now_ms=NOW, ttl_seconds=60)
+            replacement = leases.acquire("new-writer", now_ms=NOW + 60_001, ttl_seconds=60)
+            scheduler = Mock()
+            runtime = FeederRuntime(
+                config=FeederConfig(), scheduler=scheduler, lease_store=leases,
+                owner_id=old.owner,
+            )
+            runtime.lease_generation = old.generation
+            runtime.on_lease_lost()
+
+            self.assertTrue(runtime.stop())
+            self.assertEqual(runtime.state, "STOPPED")
+            self.assertTrue(leases.is_current(
+                replacement.owner, replacement.generation, NOW + 60_002
+            ))
+
+    def test_production_factory_rejects_postgres_before_constructing_runtime(self):
+        import sys
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from market_data.feeder_service import build_production_runtime
+
+        with patch.dict(sys.modules, {"ccxt": SimpleNamespace(binanceusdm=Mock())}):
+            with self.assertRaisesRegex(ValueError, "requires SQLite"):
+                build_production_runtime({
+                    "MARKET_DATA_BACKEND": "postgres",
+                    "MARKET_DATA_DB": "/tmp/canonical.sqlite3",
+                })
+
+    def test_production_factory_rejects_separate_lease_database(self):
+        import sys
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from market_data.feeder_service import build_production_runtime
+
+        with patch.dict(sys.modules, {"ccxt": SimpleNamespace(binanceusdm=Mock())}):
+            with self.assertRaisesRegex(ValueError, "same file"):
+                build_production_runtime({
+                    "MARKET_DATA_BACKEND": "sqlite",
+                    "MARKET_DATA_DB": "/tmp/canonical.sqlite3",
+                    "T0_FEEDER_LEASE_DB": "/tmp/leases.sqlite3",
+                })
+
+
 if __name__ == "__main__":
     unittest.main()
