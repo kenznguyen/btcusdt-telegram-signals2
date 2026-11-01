@@ -209,6 +209,13 @@ class KrakenSpotSQLiteStore:
                 raise ValueError(
                     "Kraken Spot read window contains multiple native market IDs"
                 )
+            if native_ids and (
+                not isinstance(native_ids[0]["native_market_id"], str)
+                or not native_ids[0]["native_market_id"].strip()
+            ):
+                raise ValueError(
+                    "Kraken Spot dataset has an invalid native market ID"
+                )
 
             rows = connection.execute(
                 """SELECT exchange, market_type, native_market_id, symbol, timeframe,
