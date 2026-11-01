@@ -365,7 +365,17 @@ workflows:
         script: |
           set -euo pipefail
           "$CI_PYTHON" -m unittest market_data.test_kraken_spot -v 2>&1 | tee kraken-adapter-tests.log
-          "$CI_PYTHON" -m compileall -q market_data/kraken_spot.py
+      - name: Compile Kraken adapter and report result
+        script: |
+          set -euo pipefail
+          if "$CI_PYTHON" -m compileall -q market_data/kraken_spot.py; then
+            echo "KRAKEN_ADAPTER_COMPILEALL=PASS" | tee kraken-adapter-compileall.log
+          else
+            status=$?
+            echo "KRAKEN_ADAPTER_COMPILEALL=FAIL (exit ${status})" | tee kraken-adapter-compileall.log
+            exit "$status"
+          fi
     artifacts:
       - ci-source-sha.txt
       - kraken-adapter-tests.log
+      - kraken-adapter-compileall.log
