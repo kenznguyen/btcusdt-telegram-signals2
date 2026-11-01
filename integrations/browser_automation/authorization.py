@@ -85,6 +85,11 @@ _WRITE_TASKS = frozenset({
     "BROWSER_FILE_UPLOAD",
 })
 _UPLOAD_TASKS = frozenset({"BROWSER_FILE_UPLOAD"})
+_WORKSPACE_TASKS = frozenset({
+    "GITHUB_FILE_COMMIT",
+    "BROWSER_FILE_UPLOAD",
+    "BROWSER_FILE_DOWNLOAD",
+})
 _BROWSER_TASKS = frozenset({
     "BROWSER_UI_READ",
     "BROWSER_UI_ACTION",
@@ -226,7 +231,7 @@ def authorize_task(request, context):
     elif "url" in target:
         _deny("URL_NOT_ALLOWED_FOR_API_PROVIDER")
 
-    if task_type in {"BROWSER_FILE_UPLOAD", "BROWSER_FILE_DOWNLOAD"}:
+    if task_type in _WORKSPACE_TASKS:
         _authorize_workspace_path(target, context)
     elif "workspace_path" in target:
         _deny("WORKSPACE_PATH_NOT_ALLOWED")
