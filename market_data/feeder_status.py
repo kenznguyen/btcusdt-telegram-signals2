@@ -99,9 +99,14 @@ class FeederRuntimeStatusStore:
         uri = path.as_uri() + "?mode=ro"
         with closing(sqlite3.connect(uri, uri=True, timeout=5)) as connection:
             connection.row_factory = sqlite3.Row
-            status = connection.execute("""SELECT owner,generation,state,
-                recovery_complete,updated_at_ms FROM feeder_runtime_status
-                WHERE lease_name=?""", (self.lease_name,)).fetchone()
+            try:
+                status = connection.execute("""SELECT owner,generation,state,
+                    recovery_complete,updated_at_ms FROM feeder_runtime_status
+                    WHERE lease_name=?""", (self.lease_name,)).fetchone()
+            except sqlite3.OperationalError as error:
+                if "no such table" in str(error).lower():
+                    return None
+                raise
             if status is None:
                 return None
             lease = connection.execute("""SELECT owner,generation,expires_at_ms
