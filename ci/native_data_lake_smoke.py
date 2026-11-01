@@ -16,7 +16,15 @@ from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_ope
 import psycopg
 from psycopg import sql
 
-from deploy.data_lake.runtime import bootstrap, database_uri
+import importlib.util
+
+_runtime_spec = importlib.util.spec_from_file_location(
+    "native_data_lake_runtime", ROOT / "deploy/data-lake/runtime.py"
+)
+_runtime = importlib.util.module_from_spec(_runtime_spec)
+_runtime_spec.loader.exec_module(_runtime)
+bootstrap = _runtime.bootstrap
+database_uri = _runtime.database_uri
 
 
 ROOT = Path(__file__).resolve().parents[1]
