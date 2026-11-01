@@ -522,18 +522,11 @@ workflows:
       - t0-feeder-health-verdict.txt
       - t0-feeder-health-compile.log
 
-  # P1.8 RED gate: lifecycle and graceful-shutdown contracts.
+  # P1.8 RED evidence: historical pre-implementation gate; manual reruns are not valid after FeederRuntime exists.
   t0-feeder-lifecycle-red:
-    name: T0 feeder - lifecycle and graceful shutdown (RED)
+    name: T0 feeder - lifecycle RED evidence (historical; do not rerun)
     instance_type: mac_mini_m2
     max_build_duration: 10
-    triggering:
-      events: [push]
-      branch_patterns:
-        - pattern: feature/t0-centralized-data-feeder-p1-20261101
-          include: true
-          source: true
-      cancel_previous_builds: true
     when:
       changeset:
         includes:
@@ -571,3 +564,47 @@ workflows:
       - t0-feeder-lifecycle-red-tests.log
       - t0-feeder-lifecycle-red-verdict.txt
       - t0-feeder-lifecycle-red-compile.log
+
+  # P1.8 GREEN gate: lifecycle implementation plus regression coverage for prior T0 contracts.
+  t0-feeder-lifecycle:
+    name: T0 feeder - lifecycle and graceful shutdown (GREEN)
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: feature/t0-centralized-data-feeder-p1-20261101
+          include: true
+          source: true
+      cancel_previous_builds: true
+    when:
+      changeset:
+        includes:
+          - market_data/feeder.py
+          - market_data/test_feeder_lifecycle.py
+          - market_data/test_feeder_scheduler.py
+          - market_data/test_feeder_retry.py
+          - market_data/test_feeder_recovery.py
+          - market_data/test_feeder_lease.py
+          - market_data/test_feeder_health.py
+          - market_data/test_feeder_health_api.py
+          - app.py
+          - codemagic.yaml
+    scripts:
+      - name: Prepare Python and record exact source SHA
+        script: bash ci/setup-python.sh requirements.txt
+      - name: Run lifecycle and all existing T0 contract regressions
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m unittest market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-lifecycle-tests.log
+          echo "T0_FEEDER_LIFECYCLE_TESTS=PASS" | tee t0-feeder-lifecycle-verdict.txt
+      - name: Compile lifecycle, feeder and health API modules
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m py_compile market_data/feeder.py market_data/test_feeder_lifecycle.py app.py
+          echo "T0_FEEDER_LIFECYCLE_COMPILE=PASS" | tee t0-feeder-lifecycle-compile.log
+    artifacts:
+      - ci-source-sha.txt
+      - t0-feeder-lifecycle-tests.log
+      - t0-feeder-lifecycle-verdict.txt
+      - t0-feeder-lifecycle-compile.log
