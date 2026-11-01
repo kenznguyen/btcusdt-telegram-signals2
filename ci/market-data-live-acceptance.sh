@@ -4,25 +4,15 @@ set -euo pipefail
 : "${CM_BUILD_DIR:?Codemagic checkout directory is required}"
 : "${CI_PYTHON:?Run ci/setup-python.sh first}"
 : "${MARKET_DATA_ACCEPTANCE_DATABASE_URL:?Configure the dedicated staging database in market_data_live_acceptance}"
+: "${MARKET_DATA_ACCEPTANCE_DATABASE_CONFIRMED:?Explicitly confirm the dedicated tsdb staging target}"
 
 cd "$CM_BUILD_DIR"
 export MARKET_DATA_BACKEND=postgres
 export MARKET_DATA_POSTGRES_DSN="$MARKET_DATA_ACCEPTANCE_DATABASE_URL"
 export MARKET_DATA_TOKEN=market-data-live-acceptance-read-only
 
-# Refuse databases whose name does not clearly identify an isolated test/staging target.
-"$CI_PYTHON" - <<'PY'
-import os
-from urllib.parse import unquote, urlparse
-
-dsn = os.environ["MARKET_DATA_ACCEPTANCE_DATABASE_URL"]
-parsed = urlparse(dsn)
-database = unquote(parsed.path.lstrip("/")).lower()
-if parsed.scheme not in {"postgres", "postgresql"}:
-    raise SystemExit("Acceptance DSN must use PostgreSQL")
-if not any(marker in database for marker in ("staging", "acceptance", "test")):
-    raise SystemExit("Refusing database name without staging/acceptance/test marker")
-PY
+# The database name is fixed to tsdb; a separate exact confirmation is required.
+"$CI_PYTHON" -m ci.market_data_acceptance_guard
 
 # End one full hour behind the current hour so all requested bars are closed.
 read -r START_MS END_MS < <("$CI_PYTHON" - <<'PY'
@@ -107,7 +97,6 @@ PY
 
 "$CI_PYTHON" - "$START_MS" "$END_MS" "$HASH_15M" "$HASH_1H" "$REPORT" <<'PY'
 import json
-import os
 import subprocess
 import sys
 start, end, hash_15m, hash_1h, report = sys.argv[1:]
