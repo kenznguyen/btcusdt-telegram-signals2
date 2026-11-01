@@ -442,7 +442,7 @@ workflows:
 
   # P1 scheduler slice: normal GREEN gate, intentionally limited to scheduler tests.
   t0-feeder-scheduler:
-    name: T0 feeder - scheduler contract
+    name: T0 feeder - scheduler and retry contracts
     instance_type: mac_mini_m2
     max_build_duration: 10
     triggering:
@@ -457,6 +457,7 @@ workflows:
         includes:
           - market_data/feeder.py
           - market_data/test_feeder_scheduler.py
+          - market_data/test_feeder_retry.py
           - codemagic.yaml
     scripts:
       - name: Verify Python and record exact source SHA
@@ -467,8 +468,8 @@ workflows:
       - name: Run scheduler and retry contract tests
         script: |
           set -euo pipefail
-          python3 -m unittest market_data.test_feeder_scheduler -v 2>&1 | tee t0-feeder-scheduler-tests.log
-          echo "T0_FEEDER_SCHEDULER_TESTS=PASS" | tee t0-feeder-scheduler-verdict.txt
+          python3 -m unittest market_data.test_feeder_scheduler market_data.test_feeder_retry -v 2>&1 | tee t0-feeder-scheduler-retry-tests.log
+          echo "T0_FEEDER_SCHEDULER_RETRY_TESTS=PASS" | tee t0-feeder-scheduler-retry-verdict.txt
       - name: Compile feeder scheduler and retry module
         script: |
           set -euo pipefail
@@ -476,6 +477,6 @@ workflows:
           echo "T0_FEEDER_SCHEDULER_COMPILE=PASS" | tee t0-feeder-scheduler-compile.log
     artifacts:
       - ci-source-sha.txt
-      - t0-feeder-scheduler-tests.log
-      - t0-feeder-scheduler-verdict.txt
+      - t0-feeder-scheduler-retry-tests.log
+      - t0-feeder-scheduler-retry-verdict.txt
       - t0-feeder-scheduler-compile.log
