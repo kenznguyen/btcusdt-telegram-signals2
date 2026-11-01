@@ -59,10 +59,16 @@ def bootstrap(owner_uri, reader_password, writer_password, *, reader_role=READER
         writer_uri = database_uri(writer_role, writer_password, owner_uri)
         open_store(writer_uri)
         init_archive(writer_uri)
-        owner.execute(sql.SQL("REVOKE ALL ON candles,intelligence_snapshots FROM {}").format(sql.Identifier(reader_role)))
-        owner.execute(sql.SQL("GRANT SELECT ON candles,intelligence_snapshots TO {}").format(sql.Identifier(reader_role)))
-        owner.execute(sql.SQL("ALTER DEFAULT PRIVILEGES FOR ROLE {} IN SCHEMA public GRANT SELECT ON TABLES TO {}").format(
-            sql.Identifier(writer_role), sql.Identifier(reader_role)))
+        # Tables are created by the collector role, so only that role owns
+        # them and can grant/revoke their privileges. Apply both current-table
+        # and future-table reader grants through the owning role.
+        with psycopg.connect(writer_uri, autocommit=True, connect_timeout=5) as writer:
+            writer.execute(sql.SQL("REVOKE ALL ON candles,intelligence_snapshots FROM {}").format(
+                sql.Identifier(reader_role)))
+            writer.execute(sql.SQL("GRANT SELECT ON candles,intelligence_snapshots TO {}").format(
+                sql.Identifier(reader_role)))
+            writer.execute(sql.SQL("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO {}").format(
+                sql.Identifier(reader_role)))
 
 
 class NoRedirect(HTTPRedirectHandler):
