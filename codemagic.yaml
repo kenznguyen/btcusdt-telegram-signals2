@@ -225,9 +225,33 @@ workflows:
       - data-lake-tests.log
       - postgres-server.log
 
+  local-data-lake-native-smoke:
+    name: Local data lake - native PostgreSQL and API runtime (manual)
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    # Native PostgreSQL runtime acceptance; no Docker and no exchange collection.
+    scripts:
+      - name: Prepare Python and record source
+        script: bash ci/setup-python.sh requirements-market-data.txt requirements-data-lake.txt requirements-ci.txt
+      - name: Install PostgreSQL 17 native runtime
+        script: |
+          set -euo pipefail
+          if ! brew list --versions postgresql@17 > /dev/null 2>&1; then
+            brew install postgresql@17
+          fi
+      - name: Verify native PostgreSQL bootstrap, roles and API readiness
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" ci/native_data_lake_smoke.py 2>&1 | tee native-runtime-tests.log
+    artifacts:
+      - ci-source-sha.txt
+      - native-runtime-tests.log
+      - native-postgres-server.log
+      - native-api-server.log
+
   local-data-lake-smoke:
-    name: Local data lake - Docker smoke test (manual)
-    # Docker Compose smoke test on macOS runner.
+    name: Local data lake - Docker Compose smoke test (manual)
+    # Requires a future runner with a local Linux Docker daemon and Compose v2.
     instance_type: mac_mini_m2
     max_build_duration: 30
     # No triggering section: this optional container-build job is started manually.
