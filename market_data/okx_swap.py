@@ -106,8 +106,7 @@ class OkxSwapAdapter:
         item = rows[0]
         expected = {
             "instId": SYMBOL, "instType": "SWAP", "ctType": "linear",
-            "state": "live", "baseCcy": "BTC", "quoteCcy": "USDT",
-            "settleCcy": "USDT",
+            "state": "live", "ctValCcy": "BTC", "settleCcy": "USDT",
         }
         if any(item.get(key) != value for key, value in expected.items()):
             raise ValueError("Instrument is not active BTC-USDT linear USDT-settled swap")
