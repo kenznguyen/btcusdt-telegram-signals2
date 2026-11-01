@@ -273,7 +273,13 @@ class FeederScheduler:
                 if remaining is not None and remaining <= 0:
                     return False
                 self._idle.wait(remaining)
-            return True
+            thread = self._thread
+        if thread is not None and thread is not threading.current_thread():
+            remaining = None if deadline is None else max(0.0, deadline - time.monotonic())
+            thread.join(timeout=remaining)
+            if thread.is_alive():
+                return False
+        return True
 
     def start(self):
         """Start one background polling thread; repeated starts are idempotent."""
@@ -748,11 +754,23 @@ class FeederRuntime:
     def _configure_retry(self):
         callback = getattr(self.scheduler, "sync_callback", None)
         if callable(callback):
-            self.scheduler.sync_callback = (
-                lambda *args, **kwargs: self.retry_policy.execute(
-                    lambda: callback(*args, **kwargs)
-                )
-            )
+            def execute(*args, **kwargs):
+                def guarded_sync():
+                    generation = self.lease_generation
+                    authorize = getattr(self.lease_store, "authorize_write", None)
+                    if (generation is None or not callable(authorize)
+                            or authorize(
+                                self.owner_id, generation, now_ms=self.clock()
+                            ) is not True):
+                        self.on_lease_lost()
+                        raise PermissionError(
+                            "Canonical sync blocked: feeder lease is not current"
+                        )
+                    return callback(*args, **kwargs)
+
+                return self.retry_policy.execute(guarded_sync)
+
+            self.scheduler.sync_callback = execute
 
     def start(self, now_ms=None):
         now = self.clock() if now_ms is None else now_ms
