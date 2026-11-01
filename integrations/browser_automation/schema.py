@@ -7,6 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema.exceptions import SchemaError
 
 
 class TaskValidationError(ValueError):
@@ -36,7 +37,7 @@ def _validator():
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         Draft202012Validator.check_schema(schema)
         return Draft202012Validator(schema, format_checker=FormatChecker())
-    except (OSError, UnicodeError, json.JSONDecodeError, ValueError, TypeError):
+    except (OSError, UnicodeError, json.JSONDecodeError, SchemaError, ValueError, TypeError):
         raise ControllerConfigurationError("Controller task schema is unavailable or invalid") from None
 
 
