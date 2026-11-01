@@ -10,7 +10,6 @@ import json
 import os
 import sqlite3
 from contextlib import closing
-from decimal import Decimal
 from pathlib import Path
 
 from market_data.kraken_spot import (
@@ -47,15 +46,18 @@ class KrakenSpotSQLiteStore:
     def __init__(self, db_path, *, canonical_db_path=None):
         self.path = _database_path(db_path, "Kraken Spot database path")
         canonical = canonical_db_path or os.environ.get("MARKET_DATA_DB")
-        if canonical:
-            canonical_path = _database_path(canonical, "Binance canonical database path")
-            same_path = self.path == canonical_path
-            if not same_path and self.path.exists() and canonical_path.exists():
-                same_path = os.path.samefile(self.path, canonical_path)
-            if same_path:
-                raise ValueError(
-                    "Kraken Spot database must be separate from the Binance canonical database"
-                )
+        if not canonical:
+            raise ValueError(
+                "Binance canonical database path is required to verify Kraken Spot isolation"
+            )
+        canonical_path = _database_path(canonical, "Binance canonical database path")
+        same_path = self.path == canonical_path
+        if not same_path and self.path.exists() and canonical_path.exists():
+            same_path = os.path.samefile(self.path, canonical_path)
+        if same_path:
+            raise ValueError(
+                "Kraken Spot database must be separate from the Binance canonical database"
+            )
 
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with closing(sqlite3.connect(self.path, timeout=5)) as connection, connection:
