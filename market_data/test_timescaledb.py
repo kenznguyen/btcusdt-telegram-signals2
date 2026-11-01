@@ -1,5 +1,6 @@
 """SQLite/TimescaleDB contract parity tests; DB is supplied by Codemagic."""
 
+import hashlib
 import os
 import tempfile
 import unittest
@@ -82,6 +83,51 @@ class TimescaleParityTest(unittest.TestCase):
             migrations = database.execute("SELECT migration_id, checksum_sha256 FROM market_data.schema_migrations").fetchall()
             self.assertTrue(migrations)
         self.assertEqual(migrate(DSN)[0], migrate(DSN)[1])
+
+    def test_successful_insert_before_conflict_is_rolled_back_with_batch(self):
+        # Seed a later candle so the first item in the attempted batch is new.
+        existing = self.candle(1)
+        self.assertEqual(self.pg_store.insert([existing]), 1)
+
+        with self.assertRaises(ValueError):
+            self.pg_store.insert([self.candle(0), self.candle(1, close="100.5")])
+
+        result = read_postgres_window(
+            DSN, "BTCUSDT", "15m", self.start, self.start + 2*self.step
+        )
+        self.assertEqual(
+            [candle["openTimeMs"] for candle in result["candles"]],
+            [self.start + self.step],
+            "the earlier successful insert must be rolled back when a later row conflicts",
+        )
+
+    def test_migration_rejects_a_changed_applied_checksum(self):
+        migration_id = "001_initial_timescale.sql"
+        with connection(DSN) as database:
+            row = database.execute(
+                "SELECT checksum_sha256 FROM market_data.schema_migrations WHERE migration_id=%s",
+                (migration_id,),
+            ).fetchone()
+        self.assertIsNotNone(row, "the initial migration must already be recorded")
+        original_checksum = row[0]
+
+        with connection(DSN) as database:
+            database.execute(
+                "UPDATE market_data.schema_migrations SET checksum_sha256=%s WHERE migration_id=%s",
+                ("0" * 64, migration_id),
+            )
+        try:
+            with self.assertRaisesRegex(RuntimeError, "Applied migration checksum mismatch"):
+                migrate(DSN)
+        finally:
+            with connection(DSN) as database:
+                database.execute(
+                    "UPDATE market_data.schema_migrations SET checksum_sha256=%s WHERE migration_id=%s",
+                    (original_checksum, migration_id),
+                )
+
+        applied, total = migrate(DSN)
+        self.assertEqual(applied, total)
 
     def test_adapter_constructor_does_not_create_or_mutate_schema(self):
         self.assertIsInstance(PostgresCandleStore(DSN), PostgresCandleStore)
