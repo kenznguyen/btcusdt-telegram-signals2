@@ -1,0 +1,79 @@
+name: Dashboard Backtest
+run-name: Dashboard backtest · ${{ inputs.backtest_days || '360' }} days
+
+on:
+  workflow_dispatch:
+    inputs:
+      backtest_days:
+        description: "Backtest period in days (1-365)"
+        required: false
+        default: "360"
+        type: string
+      initial_capital:
+        description: "Initial capital in USDT"
+        required: false
+        default: "100"
+        type: string
+      entry_margin_pct:
+        description: "Initial order margin as % of current balance"
+        required: false
+        default: "50"
+        type: string
+      dca_margin_ratio:
+        description: "DCA margin as % of initial order margin"
+        required: false
+        default: "100"
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: dashboard-backtest
+  cancel-in-progress: false
+
+jobs:
+  dashboard-backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests pandas numpy
+
+      - name: Run shared backtest engine for dashboard
+        env:
+          BACKTEST_DAYS: ${{ inputs.backtest_days || '360' }}
+          BACKTEST_INITIAL_CAPITAL: ${{ inputs.initial_capital || '100' }}
+          ENTRY_MARGIN_PCT: ${{ inputs.entry_margin_pct || '50' }}
+          DCA_MARGIN_RATIO: ${{ inputs.dca_margin_ratio || '100' }}
+          BACKTEST_RUN_ID: dashboard-${{ github.run_id }}-${{ github.run_attempt }}
+          BACKTEST_STATUS_FILE: dashboard_backtest_status.json
+          BACKTEST_RESULT_FILE: dashboard_backtest_last_result.json
+          BACKTEST_TRADES_FILE: dashboard_backtest_trades.csv
+          BACKTEST_EQUITY_FILE: dashboard_backtest_equity.csv
+          BACKTEST_CURVE_FILE: dashboard_backtest_equity_m15.csv
+        run: python backtest.py
+
+      - name: Upload dashboard backtest report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-backtest-report
+          path: |
+            dashboard_backtest_last_result.json
+            dashboard_backtest_status.json
+            dashboard_backtest_trades.csv
+            dashboard_backtest_equity.csv
+            dashboard_backtest_equity_m15.csv
+          if-no-files-found: warn
+          retention-days: 30
+

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://schema.freqtrade.io/schema.json",
+  "trading_mode": "futures",
+  "margin_mode": "isolated",
+  "max_open_trades": 1,
+  "stake_currency": "USDT",
+  "stake_amount": 10,
+  "tradable_balance_ratio": 0.9,
+  "dry_run": true,
+  "dry_run_wallet": 1000,
+  "timeframe": "15m",
+  "cancel_open_orders_on_exit": true,
+  "unfilledtimeout": {"entry": 10, "exit": 10},
+  "exchange": {
+    "name": "binance",
+    "ccxt_config": {},
+    "ccxt_async_config": {},
+    "pair_whitelist": ["BTC/USDT:USDT"],
+    "pair_blacklist": []
+  },
+  "entry_pricing": {"price_side": "same", "use_order_book": true, "order_book_top": 1},
+  "exit_pricing": {"price_side": "other", "use_order_book": true, "order_book_top": 1},
+  "pairlists": [{"method": "StaticPairList"}],
+  "freqai": {
+    "enabled": true,
+    "purge_old_models": 2,
+    "train_period_days": 30,
+    "backtest_period_days": 7,
+    "identifier": "chart-pro-shadow-v1",
+    "save_backtest_models": false,
+    "live_retrain_hours": 1,
+    "expired_hours": 2,
+    "feature_parameters": {
+      "include_timeframes": ["15m"],
+      "include_corr_pairlist": [],
+      "label_period_candles": 4,
+      "include_shifted_candles": 2,
+      "DI_threshold": 0.9,
+      "indicator_periods_candles": [14, 28]
+    },
+    "data_split_parameters": {"test_size": 0.2, "shuffle": false},
+    "model_training_parameters": {"n_estimators": 100, "learning_rate": 0.05}
+  },
+  "freqai_bridge": {
+    "canonical_db_path": ".data/market-data.sqlite3",
+    "candle_window_bars": 2,
+    "provenance_path": ".data/freqai-provenance.json",
+    "output_path": ".data/freqai-prediction.json"
+  },
+  "force_entry_enable": false,
+  "initial_state": "running",
+  "internals": {"process_throttle_secs": 5}
+}

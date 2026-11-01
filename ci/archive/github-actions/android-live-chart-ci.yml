@@ -1,0 +1,84 @@
+name: Android Live Chart CI
+
+on:
+  # Automatic Android builds run on Codemagic while GitHub Actions quota is exhausted.
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: "Branch to build and test (this does not merge it into main)"
+        required: true
+        type: string
+        default: main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-live-chart-ci-${{ github.event_name }}-${{ github.event.pull_request.number || inputs.source_branch || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-test-and-debug-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout tested source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.source_branch || github.sha }}
+
+      - name: Record actual source commit
+        run: |
+          git rev-parse HEAD > android-source-sha.txt
+          printf 'Built source commit: %s\n' "$(cat android-source-sha.txt)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Verify Gradle project files
+        working-directory: android-app
+        run: |
+          test -f settings.gradle.kts
+          test -f build.gradle.kts
+          test -f app/build.gradle.kts
+          gradle --version
+
+      - name: Run unit tests
+        working-directory: android-app
+        run: gradle :app:testDebugUnitTest --no-daemon
+
+      - name: Assemble debug APK
+        working-directory: android-app
+        run: gradle :app:assembleDebug --no-daemon
+
+      - name: Upload unit-test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-unit-test-reports
+          path: |
+            android-app/app/build/reports/tests/testDebugUnitTest/
+            android-app/app/build/test-results/testDebugUnitTest/
+            android-source-sha.txt
+          if-no-files-found: warn
+
+      - name: Upload debug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: btcusdt-live-chart-debug-apk
+          path: |
+            android-app/app/build/outputs/apk/debug/*.apk
+            android-source-sha.txt
+          if-no-files-found: error
+          retention-days: 14
+
+

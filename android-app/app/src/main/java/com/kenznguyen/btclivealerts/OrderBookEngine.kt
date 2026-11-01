@@ -1,0 +1,295 @@
+package com.kenznguyen.btclivealerts
+
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.Closeable
+import java.util.TreeMap
+import java.util.concurrent.TimeUnit
+
+/**
+ * Collects Binance USDⓈ-M Futures per-symbol diff-depth events and reconciles them
+ * with a REST snapshot before publishing metrics. Analysis only; no order endpoints.
+ */
+class OrderBookEngine(
+    private val onMetrics: (OrderBookMetrics) -> Unit,
+    private val onStatus: (String) -> Unit,
+    private val symbol: String = "BTCUSDT"
+) : Closeable {
+    private val client = OkHttpClient.Builder()
+        .callTimeout(10, TimeUnit.SECONDS)
+        .pingInterval(20, TimeUnit.SECONDS)
+        .build()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val lock = Any()
+    private val bids = TreeMap<Double, Double>(compareByDescending { it })
+    private val asks = TreeMap<Double, Double>()
+    private val buffered = ArrayDeque<JSONObject>()
+    private var socket: WebSocket? = null
+    private var lastUpdateId = 0L
+    private val snapshotRetry = SnapshotRetryGate()
+    private var snapshotRetryJob: Job? = null
+    private var synchronizedBook = false
+    private var closed = false
+
+    fun start() {
+        synchronized(lock) {
+            if (closed || socket != null) return
+            onStatus("Đang kết nối Order Book Binance Futures…")
+            socket = client.newWebSocket(
+                Request.Builder().url("wss://fstream.binance.com/ws/${symbol.lowercase()}@depth@100ms").build(),
+                object : WebSocketListener() {
+                    override fun onOpen(webSocket: WebSocket, response: Response) {
+                        synchronized(lock) {
+                            if (closed || socket !== webSocket) return
+                            onStatus("Order Book đã kết nối; đang đồng bộ snapshot…")
+                            requestSnapshot()
+                        }
+                    }
+
+                    override fun onMessage(webSocket: WebSocket, text: String) {
+                        try {
+                            val event = JSONObject(text)
+                            synchronized(lock) {
+                                if (closed || socket !== webSocket) return
+                                if (!synchronizedBook) {
+                                    buffered.addLast(event)
+                                    while (buffered.size > 2000) buffered.removeFirst()
+                                    requestSnapshot()
+                                } else if (applyEvent(event)) {
+                                    publish()
+                                } else {
+                                    synchronizedBook = false
+                                    buffered.clear()
+                                    buffered.addLast(event)
+                                    onStatus("Mất chuỗi cập nhật Order Book; đang đồng bộ lại…")
+                                    requestSnapshot()
+                                }
+                            }
+                        } catch (_: Exception) {
+                            onStatus("Order Book nhận dữ liệu không hợp lệ")
+                        }
+                    }
+
+                    override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                        synchronized(lock) {
+                            if (closed || socket !== webSocket) return
+                            socket = null
+                            synchronizedBook = false
+                            snapshotRetry.disconnect()
+                            buffered.clear()
+                        }
+                        onStatus("Order Book mất kết nối: ${t.message ?: "lỗi mạng"}")
+                        scheduleReconnect()
+                    }
+
+                    override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                        webSocket.close(code, reason)
+                    }
+
+                    override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                        synchronized(lock) {
+                            if (closed || socket !== webSocket) return
+                            socket = null
+                            synchronizedBook = false
+                            snapshotRetry.disconnect()
+                            buffered.clear()
+                        }
+                        if (!closed) scheduleReconnect()
+                    }
+                }
+            )
+        }
+    }
+
+    private fun scheduleReconnect() {
+        scope.launch {
+            delay(2_000L)
+            synchronized(lock) {
+                if (!closed && socket == null) start()
+            }
+        }
+    }
+
+    private fun requestSnapshot() {
+        val requestId = synchronized(lock) {
+            if (closed || socket == null) return
+            val waitMs = snapshotRetry.remainingDelay(monotonicMs())
+            if (waitMs > 0L) {
+                scheduleSnapshotRetry(waitMs)
+                return
+            }
+            snapshotRetry.tryStart(monotonicMs()) ?: return
+        }
+        scope.launch {
+            try {
+                BinanceRestGate.awaitPermit()
+                val request = Request.Builder()
+                    .url("https://fapi.binance.com/fapi/v1/depth?symbol=${symbol.uppercase()}&limit=1000")
+                    .build()
+                val snapshot = client.newCall(request).execute().use { response ->
+                    BinanceRestGate.observe(response)
+                    check(response.isSuccessful) { "Snapshot HTTP ${response.code}" }
+                    JSONObject(response.body?.string() ?: error("Snapshot rỗng"))
+                }
+                synchronized(lock) {
+                    if (!snapshotRetry.isCurrent(requestId)) return@synchronized
+                    bids.clear()
+                    asks.clear()
+                    loadSide(snapshot.optJSONArray("bids"), bids)
+                    loadSide(snapshot.optJSONArray("asks"), asks)
+                    val snapshotId = snapshot.getLong("lastUpdateId")
+                    lastUpdateId = snapshotId
+                    synchronizedBook = false
+
+                    val events = buffered.toList()
+                    buffered.clear()
+                    var bridged = false
+                    var valid = true
+                    for (event in events) {
+                        val first = event.optLong("U")
+                        val last = event.optLong("u")
+                        // Binance diff-depth events are ranges [U, u]. The first event
+                        // after a REST snapshot must bridge snapshotId + 1, not merely
+                        // contain snapshotId. Older events can be safely discarded.
+                        if (last <= lastUpdateId) continue
+                        if (!bridged) {
+                            if (OrderBookSequence.bridgesSnapshot(lastUpdateId, first, last)) {
+                                applyLevels(event)
+                                lastUpdateId = last
+                                bridged = true
+                            } else if (first > lastUpdateId + 1L) {
+                                valid = false
+                                break
+                            }
+                        } else {
+                            if (!OrderBookSequence.isContiguous(
+                                    previousUpdateId = lastUpdateId,
+                                    firstUpdateId = first,
+                                    finalUpdateId = last,
+                                    previousFinalUpdateId = event.optLong("pu").takeIf { event.has("pu") }
+                                )) {
+                                valid = false
+                                break
+                            }
+                            applyLevels(event)
+                            lastUpdateId = last
+                        }
+                    }
+                    if (!bridged || !valid) {
+                        synchronizedBook = false
+                        onStatus("Đang đồng bộ lại Order Book…")
+                        snapshotRetry.failed(requestId, monotonicMs())?.let { scheduleSnapshotRetry(it) }
+                    } else {
+                        synchronizedBook = true
+                        snapshotRetry.succeeded(requestId)
+                        snapshotRetryJob?.cancel()
+                        snapshotRetryJob = null
+                        onStatus("Order Book đã đồng bộ")
+                        publish()
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                synchronized(lock) {
+                    val waitMs = snapshotRetry.failed(requestId, monotonicMs()) ?: return@synchronized
+                    onStatus("Không tải được Order Book: ${e.message ?: "lỗi mạng"}")
+                    scheduleSnapshotRetry(waitMs)
+                }
+            }
+        }
+    }
+
+    // Called under lock. Incoming depth events keep buffering while this job waits.
+    private fun scheduleSnapshotRetry(waitMs: Long) {
+        if (closed || snapshotRetryJob?.isActive == true) return
+        snapshotRetryJob = scope.launch {
+            delay(waitMs)
+            synchronized(lock) {
+                snapshotRetryJob = null
+                if (!closed && socket != null && !synchronizedBook) requestSnapshot()
+            }
+        }
+    }
+
+    private fun monotonicMs(): Long = TimeUnit.NANOSECONDS.toMillis(System.nanoTime())
+
+    private fun applyEvent(event: JSONObject): Boolean {
+        val first = event.optLong("U")
+        val last = event.optLong("u")
+        if (last <= lastUpdateId) return true // stale/duplicate
+        if (!OrderBookSequence.isContiguous(
+                previousUpdateId = lastUpdateId,
+                firstUpdateId = first,
+                finalUpdateId = last,
+                previousFinalUpdateId = event.optLong("pu").takeIf { event.has("pu") }
+            )) return false
+        applyLevels(event)
+        lastUpdateId = last
+        return true
+    }
+
+    private fun applyLevels(event: JSONObject) {
+        loadSide(event.optJSONArray("b"), bids)
+        loadSide(event.optJSONArray("a"), asks)
+    }
+
+    private fun loadSide(rows: JSONArray?, side: TreeMap<Double, Double>) {
+        if (rows == null) return
+        for (i in 0 until rows.length()) {
+            val row = rows.getJSONArray(i)
+            val price = row.getString(0).toDouble()
+            val qty = row.getString(1).toDouble()
+            if (qty <= 0.0) side.remove(price) else side[price] = qty
+        }
+    }
+
+    private fun publish() {
+        if (!synchronizedBook) return
+        val bidLevels = bids.entries.map { OrderBookLevel(it.key, it.value) }
+        val askLevels = asks.entries.map { OrderBookLevel(it.key, it.value) }
+        val metrics = OrderBookAnalytics.calculate(
+            bids = bidLevels,
+            asks = askLevels,
+            updateId = lastUpdateId,
+            updatedAtMs = System.currentTimeMillis(),
+            synchronized = true
+        )
+        if (metrics == null) {
+            onStatus("Order Book spread/depth không hợp lệ")
+            return
+        }
+        onMetrics(metrics)
+    }
+
+    override fun close() {
+        synchronized(lock) {
+            closed = true
+            snapshotRetry.close()
+            snapshotRetryJob?.cancel()
+            snapshotRetryJob = null
+            socket?.close(1000, "monitor stopped")
+            socket = null
+            buffered.clear()
+            bids.clear()
+            asks.clear()
+        }
+        scope.cancel()
+        client.dispatcher.cancelAll()
+        client.connectionPool.evictAll()
+    }
+}
+

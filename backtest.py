@@ -49,33 +49,11 @@ def _status(value, **extra):
 
 
 def get_backtest_status():
-    # Prefer live GitHub Actions status so this command can see a backtest running in another job.
-    token = os.getenv("ACTIONS_GITHUB_TOKEN", "").strip()
-    repository = os.getenv("GITHUB_REPOSITORY", "").strip()
-    if token and repository:
-        try:
-            response = requests.get(
-                f"https://api.github.com/repos/{repository}/actions/workflows/telegram-command.yml/runs",
-                params={"status": "in_progress", "per_page": 100},
-                headers={"Accept": "application/vnd.github+json", "Authorization": f"Bearer {token}"},
-                timeout=10,
-            )
-            response.raise_for_status()
-            for run in response.json().get("workflow_runs", []):
-                title = str(run.get("display_title") or run.get("name") or "")
-                if title.strip().lower() == "telegram command: backtest":
-                    return "\n".join([
-                        "🧪 BACKTEST STATUS",
-                        "Trạng thái: RUNNING",
-                        f"Run ID: {run.get('id', 'N/A')}",
-                        f"Bắt đầu: {run.get('run_started_at', 'N/A')}",
-                        f"Chi tiết: {run.get('html_url', '')}",
-                    ])
-        except Exception as exc:
-            print(f"Could not query live GitHub Actions status: {exc}")
+    # Read the report restored from a previous Codemagic build by the runner.
+    # A saved report is not proof that another build is currently running.
     try:
         s = json.loads(STATUS.read_text(encoding="utf-8"))
-        return "\n".join(["🧪 BACKTEST STATUS", f"Trạng thái: {s.get('status')}",
+        return "\n".join(["🧪 BACKTEST STATUS", f"Trạng thái báo cáo đã lưu: {s.get('status')}",
                            f"Bắt đầu: {s.get('started_at', 'N/A')}",
                            f"Kết thúc: {s.get('finished_at', 'N/A')}",
                            f"Thông tin: {s.get('message', '')}"])
@@ -510,3 +488,4 @@ if __name__ == "__main__":
         "net_profit_usdt": result.get("net_profit_usdt"),
         "result_file": str(RESULT),
     }, ensure_ascii=False), flush=True)
+

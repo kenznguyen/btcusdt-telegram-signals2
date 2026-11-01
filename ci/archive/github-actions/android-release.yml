@@ -1,0 +1,110 @@
+
+name: Android Release APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: Branch to build
+        required: true
+        type: choice
+        options:
+          - feature/android-btcusdt-live-alerts
+          - integration/android-main-clean-20261024
+          - integration/android-scanner-orderbook-20261024
+          - integration/android-freqtrade-analytics-20261025
+          - main
+        default: main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-release-${{ inputs.source_branch }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_branch }}
+
+      - name: Record actual source commit
+        run: |
+          git rev-parse HEAD > android-source-sha.txt
+          printf 'Built source commit: %s\n' "$(cat android-source-sha.txt)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Restore signing keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
+          test -s "$ANDROID_KEYSTORE_PATH"
+          echo "Keystore file restored."
+
+      - name: Run unit tests
+        working-directory: android-app
+        run: gradle :app:testDebugUnitTest --no-daemon
+
+      - name: Build signed release APK
+        working-directory: android-app
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
+        run: gradle :app:assembleRelease --no-daemon
+
+      - name: Verify release signature
+        run: |
+          test "$ANDROID_KEY_ALIAS" = 'btc-chart-release'
+          keytool -list -v -keystore "$RUNNER_TEMP/release.keystore" -alias "$ANDROID_KEY_ALIAS" -storepass:env ANDROID_KEYSTORE_PASSWORD
+          apksigner_path=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)
+          test -n "$apksigner_path"
+          "$apksigner_path" verify --verbose --print-certs android-app/app/build/outputs/apk/release/app-release.apk
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: btcusdt-chart-pro-release-apk
+          path: |
+            android-app/app/build/outputs/apk/release/*.apk
+            android-source-sha.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload unit-test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-unit-test-reports
+          path: android-app/app/build/test-results/testDebugUnitTest/
+          if-no-files-found: ignore
+
+      - name: Remove signing keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.keystore"
+
+
