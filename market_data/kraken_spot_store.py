@@ -116,6 +116,22 @@ class KrakenSpotSQLiteStore:
                     candle.timeframe,
                     candle.open_time_ms,
                 )
+                existing_identity = connection.execute(
+                    """SELECT native_market_id FROM kraken_spot_candles
+                       WHERE exchange=? AND market_type=? AND symbol=?
+                         AND native_market_id<>? LIMIT 1""",
+                    (
+                        identity.exchange,
+                        identity.market_type,
+                        identity.canonical_symbol,
+                        identity.native_market_id,
+                    ),
+                ).fetchone()
+                if existing_identity is not None:
+                    raise ValueError(
+                        "Kraken Spot dataset already uses a different native market ID"
+                    )
+
                 values = tuple(getattr(candle, name) for name in PRICE_FIELDS)
                 existing = connection.execute(
                     """SELECT open, high, low, close, volume
@@ -161,6 +177,22 @@ class KrakenSpotSQLiteStore:
         ) as connection, connection:
             connection.row_factory = sqlite3.Row
             connection.execute("BEGIN")
+            native_ids = connection.execute(
+                """SELECT DISTINCT native_market_id FROM kraken_spot_candles
+                   WHERE exchange=? AND market_type=? AND symbol=? AND timeframe=?
+                     AND open_time_ms>=? AND open_time_ms<?
+                     AND (? IS NULL OR available_at_ms<=?)
+                   LIMIT 2""",
+                (
+                    EXCHANGE, MARKET_TYPE, SYMBOL, timeframe, start, end,
+                    as_of_ms, as_of_ms,
+                ),
+            ).fetchall()
+            if len(native_ids) > 1:
+                raise ValueError(
+                    "Kraken Spot read window contains multiple native market IDs"
+                )
+
             rows = connection.execute(
                 """SELECT exchange, market_type, native_market_id, symbol, timeframe,
                           open_time_ms, open, high, low, close, volume, available_at_ms
