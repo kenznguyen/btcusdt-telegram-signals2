@@ -531,6 +531,7 @@ workflows:
       changeset:
         includes:
           - market_data/feeder.py
+          - market_data/feeder_service.py
           - market_data/test_feeder_lifecycle.py
           - codemagic.yaml
     scripts:
@@ -601,7 +602,7 @@ workflows:
       - name: Compile lifecycle, feeder and health API modules
         script: |
           set -euo pipefail
-          "$CI_PYTHON" -m py_compile market_data/feeder.py market_data/test_feeder_lifecycle.py app.py
+          "$CI_PYTHON" -m py_compile market_data/feeder.py market_data/feeder_service.py market_data/test_feeder_lifecycle.py app.py
           echo "T0_FEEDER_LIFECYCLE_COMPILE=PASS" | tee t0-feeder-lifecycle-compile.log
     artifacts:
       - ci-source-sha.txt
