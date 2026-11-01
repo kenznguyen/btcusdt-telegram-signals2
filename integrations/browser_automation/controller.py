@@ -59,9 +59,17 @@ def _freeze(value):
     return value
 
 
+def _plain(value):
+    if isinstance(value, Mapping):
+        return {key: _plain(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_plain(item) for item in value]
+    return value
+
+
 def _request_digest(request):
     canonical = json.dumps(
-        request, sort_keys=True, separators=(",", ":"), ensure_ascii=True,
+        _plain(request), sort_keys=True, separators=(",", ":"), ensure_ascii=True,
         allow_nan=False,
     ).encode("utf-8")
     return hashlib.sha256(canonical).hexdigest()
