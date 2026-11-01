@@ -6,6 +6,7 @@ the Binance canonical store, provide failover, or place orders.
 
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
+import time
 
 INTERVAL_MS = {"15m": 900_000, "1h": 3_600_000}
 MAX_CANDLES = 2000
@@ -152,7 +153,7 @@ class KrakenSpotAdapter:
         observed_at = (
             _timestamp(now_ms, "Observation time")
             if now_ms is not None
-            else _timestamp(__import__("time").time_ns() // 1_000_000, "Observation time")
+            else _timestamp(time.time_ns() // 1_000_000, "Observation time")
         )
         closed_through = min(server_time, observed_at)
         if not isinstance(rows, (list, tuple)) or len(rows) > expected:
