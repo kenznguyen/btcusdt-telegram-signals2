@@ -458,6 +458,8 @@ workflows:
           - market_data/feeder.py
           - market_data/test_feeder_scheduler.py
           - market_data/test_feeder_retry.py
+          - market_data/test_feeder_recovery.py
+          - market_data/test_feeder_lease.py
           - codemagic.yaml
     scripts:
       - name: Verify Python and record exact source SHA
@@ -468,15 +470,15 @@ workflows:
       - name: Run scheduler and retry contract tests
         script: |
           set -euo pipefail
-          python3 -m unittest market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery -v 2>&1 | tee t0-feeder-scheduler-retry-tests.log
-          echo "T0_FEEDER_SCHEDULER_RETRY_RECOVERY_TESTS=PASS" | tee t0-feeder-scheduler-retry-verdict.txt
+          python3 -m unittest market_data.test_feeder_lease -v 2>&1 | tee t0-feeder-lease-tests.log
+          echo "T0_FEEDER_LEASE_TESTS=PASS" | tee t0-feeder-lease-verdict.txt
       - name: Compile feeder scheduler and retry module
         script: |
           set -euo pipefail
           python3 -m py_compile market_data/feeder.py
-          echo "T0_FEEDER_SCHEDULER_COMPILE=PASS" | tee t0-feeder-scheduler-compile.log
+          echo "T0_FEEDER_LEASE_COMPILE=PASS" | tee t0-feeder-lease-compile.log
     artifacts:
       - ci-source-sha.txt
-      - t0-feeder-scheduler-retry-tests.log
-      - t0-feeder-scheduler-retry-verdict.txt
-      - t0-feeder-scheduler-compile.log
+      - t0-feeder-lease-tests.log
+      - t0-feeder-lease-verdict.txt
+      - t0-feeder-lease-compile.log
