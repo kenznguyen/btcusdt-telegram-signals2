@@ -3,6 +3,13 @@ import json
 import os
 import time
 from pathlib import Path
+import sys
+
+# Direct script execution sets sys.path[0] to ci/, not the repository root.
+# Add the checkout root so the market_data package resolves in Codemagic and locally.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from market_data.bybit_linear import BybitLinearAdapter, INTERVAL_MS
 from market_data.bybit_linear_store import BybitLinearSQLiteStore
