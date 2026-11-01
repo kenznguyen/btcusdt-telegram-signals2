@@ -109,6 +109,29 @@ class BrowserAutomationSchemaTest(unittest.TestCase):
         with self.assertRaises(TaskValidationError):
             validate_task(request)
 
+
+    def test_rejects_browser_read_task_targeting_a_file_resource(self):
+        request = {
+            "contract_version": "1.0",
+            "idempotency_key": "browser-read-0005",
+            "task_type": "BROWSER_UI_READ",
+            "execution_mode": "PLAYWRIGHT_ONLY",
+            "target": {
+                "provider": "approved_web_app",
+                "resource": "file",
+                "url": "https://console.example.com/settings",
+            },
+            "permissions": {
+                "read": True,
+                "write": False,
+                "upload": False,
+                "delete": False,
+            },
+            "timeout_seconds": 60,
+        }
+        with self.assertRaises(TaskValidationError):
+            validate_task(request)
+
     def test_rejects_non_https_browser_targets(self):
         request = {
             "contract_version": "1.0",
