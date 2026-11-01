@@ -9,6 +9,7 @@ precision already lost by an upstream float parser.
 import argparse
 import json
 import os
+import re
 import time
 
 from market_data.store import Candle, INTERVAL_MS, MAX_CANDLES, MAX_TIMESTAMP
@@ -17,6 +18,23 @@ from market_data.storage import create_store
 
 EXCHANGE_SYMBOL = "BTC/USDT:USDT"
 
+
+def safe_exchange_error_message(error):
+    """Expose useful upstream diagnostics while redacting credential material."""
+    message = str(error)
+    message = re.sub(r"(?i)(https?://)[^/\s@]+@", r"\1[REDACTED]@", message)
+    message = re.sub(
+        r"(?i)([?&](?:api[-_]?key|secret|signature|token|access_token|authorization|password)=)[^&\s]+",
+        r"\1[REDACTED]",
+        message,
+    )
+    message = re.sub(
+        r"(?i)\b(authorization|x-mbx-apikey|api[-_]?key|secret|password)\b(\s*[:=]\s*)(?:bearer\s+)?[^\s,;&]+",
+        r"\1\2[REDACTED]",
+        message,
+    )
+    message = re.sub(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+", "Bearer [REDACTED]", message)
+    return message[:1000]
 
 def validate_market(exchange):
     if exchange.id != "binanceusdm":
@@ -113,7 +131,7 @@ def main():
         count = sync_window(exchange, store, args.timeframe, args.start_ms, args.end_ms)
         window = store.read_window("BTCUSDT", args.timeframe, args.start_ms, args.end_ms)
     except Exception as error:
-        parser.exit(1, f"Sync failed ({type(error).__name__}); earlier successful pages remain stored.\n")
+        parser.exit(1, f"Sync failed ({type(error).__name__}): {safe_exchange_error_message(error)}; earlier successful pages remain stored.\n")
     print(json.dumps({"inserted": count, "datasetVersion": window["datasetVersion"],
                       "coverage": window["coverage"]}, allow_nan=False))
 

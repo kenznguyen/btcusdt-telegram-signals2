@@ -225,6 +225,8 @@ workflows:
         script: bash -n ci/market-data-live-acceptance.sh
       - name: Test acceptance database safety guard
         script: "$CI_PYTHON -m unittest ci.test_market_data_acceptance_guard -v"
+      - name: Test market-data collector diagnostics
+        script: "$CI_PYTHON -m unittest market_data.test_sync -v"
       - name: Collect real Binance candles and verify persisted API reads
         script: bash ci/market-data-live-acceptance.sh
     artifacts:
