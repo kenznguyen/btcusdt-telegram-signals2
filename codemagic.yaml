@@ -800,6 +800,7 @@ workflows:
         includes:
           - ci/t0_operational_contract.py
           - ci/test_t0_operational_contract.py
+          - ci/T0_OPERATIONAL_CONTRACT_RELEASE_GATE.md
           - codemagic.yaml
     scripts:
       - name: Prepare Python and record exact source SHA
