@@ -493,5 +493,37 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
                 })
 
 
+    def test_production_factory_composes_sqlite_runtime_without_starting_it(self):
+        import sys
+        import tempfile
+        from pathlib import Path
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from market_data.feeder_service import build_production_runtime
+
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = str(Path(directory) / "canonical.sqlite3")
+            exchange = Mock()
+            store = Mock()
+            ccxt_module = SimpleNamespace(binanceusdm=Mock(return_value=exchange))
+            environment = {
+                "MARKET_DATA_BACKEND": "sqlite",
+                "MARKET_DATA_DB": db_path,
+                "T0_FEEDER_LEASE_DB": db_path,
+                "T0_FEEDER_OWNER_ID": "codemagic-test-worker",
+                "T0_FEEDER_RECOVERY_CANDLES": "25",
+            }
+            with patch.dict(sys.modules, {"ccxt": ccxt_module}), patch(
+                "market_data.feeder_service.create_store_from_env", return_value=store
+            ):
+                runtime = build_production_runtime(environment)
+
+            self.assertEqual(runtime.owner_id, "codemagic-test-worker")
+            self.assertEqual(runtime.config.timeframes, ("15m", "1h"))
+            self.assertIsNone(runtime.scheduler._thread)
+            store.insert.assert_called_once_with([])
+            ccxt_module.binanceusdm.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()
