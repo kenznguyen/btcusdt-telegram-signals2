@@ -505,16 +505,13 @@ workflows:
           - app.py
           - codemagic.yaml
     scripts:
-      - name: Verify Python and record exact source SHA
-        script: |
-          set -euo pipefail
-          python3 -c 'import sys; assert sys.version_info >= (3, 10), "Python 3.10+ required"'
-          git rev-parse HEAD | tee ci-source-sha.txt
+      - name: Prepare Python dependencies and record exact source SHA
+        script: bash ci/setup-python.sh requirements.txt
       - name: Capture expected RED health contract failure
         script: |
           set -uo pipefail
           set +e
-          python3 -m unittest market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-health-tests.log
+          "$CI_PYTHON" -m unittest market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-health-tests.log
           test_status=${PIPESTATUS[0]}
           set -e
           if [ "$test_status" -ne 0 ]; then
@@ -526,7 +523,7 @@ workflows:
       - name: Compile health contract test modules
         script: |
           set -euo pipefail
-          python3 -m py_compile market_data/test_feeder_health.py market_data/test_feeder_health_api.py
+          "$CI_PYTHON" -m py_compile market_data/test_feeder_health.py market_data/test_feeder_health_api.py
           echo "T0_FEEDER_HEALTH_TEST_COMPILE=PASS" | tee t0-feeder-health-compile.log
     artifacts:
       - ci-source-sha.txt
