@@ -43,7 +43,7 @@ class KrakenSpotApiTest(unittest.TestCase):
         ])
         self.config = {
             "KRAKEN_SPOT_DB": str(self.db),
-            "MARKET_DATA_DB": str(self.canonical),
+            "KRAKEN_SPOT_CANONICAL_DB": str(self.canonical),
             "KRAKEN_SPOT_API_TOKEN": TOKEN,
         }
 
