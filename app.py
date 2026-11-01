@@ -156,6 +156,7 @@ def health_data():
     data_healthy = (
         storage_available
         and bool(result.timeframes)
+        and result.state not in ("FAILED", "STOPPED")
         and all(item.state == "HEALTHY" for item in result.timeframes.values())
     )
     return jsonify(body), (200 if data_healthy else 503)
