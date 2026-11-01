@@ -217,11 +217,13 @@ class RuntimeLifecycleTest(unittest.TestCase):
                 raise TimeoutError("test did not release scheduler callback")
             return "committed"
 
+        clock_ms = [NOW]
         scheduler = FeederScheduler(
             FeederConfig(timeframes=("15m", "1h")),
-            clock=lambda: NOW + 60 * 60 * 1000 + 5_000,
+            clock=lambda: clock_ms[0],
             sync_callback=sync,
         )
+        clock_ms[0] = NOW + 60 * 60 * 1000 + 5_000
         errors = []
 
         def run():
@@ -265,11 +267,13 @@ class RuntimeLifecycleTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             store = LeaseStore(str(Path(directory) / "lease.sqlite3"))
+            clock_ms = [NOW]
             scheduler = FeederScheduler(
                 FeederConfig(timeframes=("15m", "1h")),
-                clock=lambda: NOW + 60 * 60 * 1000 + 5_000,
+                clock=lambda: clock_ms[0],
                 sync_callback=sync,
             )
+            clock_ms[0] = NOW + 60 * 60 * 1000 + 5_000
             runtime = FeederRuntime(
                 config=scheduler.config,
                 scheduler=scheduler,
