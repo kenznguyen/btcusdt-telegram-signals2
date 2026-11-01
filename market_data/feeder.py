@@ -6,6 +6,7 @@ callback is the only hand-off to the existing sync_window() ingestion path.
 from dataclasses import dataclass
 import math
 import random
+import sqlite3
 import threading
 import time
 
@@ -368,3 +369,135 @@ class RecoveryCoordinator:
                 f"Recovery left {len(remaining)} gap(s) for {timeframe}"
             )
         return RecoveryResult(True, tuple(windows), verified)
+
+
+@dataclass(frozen=True)
+class Lease:
+    """A fencing generation granted to one feeder process."""
+
+    owner: str
+    generation: int
+    expires_at_ms: int
+
+
+class LeaseStore:
+    """SQLite-backed singleton lease with monotonic fencing generations.
+
+    Every state transition uses BEGIN IMMEDIATE so concurrent processes cannot
+    both acquire or renew ownership. Storage errors propagate; callers must
+    treat them as loss of ownership (fail closed).
+    """
+
+    def __init__(self, db_path, lease_name="binance-btcusdt-canonical"):
+        if not isinstance(db_path, (str, bytes)) or not db_path:
+            raise ValueError("db_path must be a non-empty filesystem path")
+        if not isinstance(lease_name, str) or not lease_name.strip():
+            raise ValueError("lease_name must be a non-empty string")
+        self.db_path = str(db_path)
+        self.lease_name = lease_name
+
+    @staticmethod
+    def _validate(owner, generation=None, now_ms=None, ttl_seconds=None):
+        if not isinstance(owner, str) or not owner.strip():
+            raise ValueError("owner must be a non-empty string")
+        if generation is not None and (type(generation) is not int or generation < 1):
+            raise ValueError("generation must be a positive integer")
+        if now_ms is not None and (type(now_ms) is not int or now_ms < 0):
+            raise ValueError("now_ms must be a nonnegative integer")
+        if ttl_seconds is not None and (type(ttl_seconds) is not int or ttl_seconds <= 0):
+            raise ValueError("ttl_seconds must be a positive integer")
+
+    def _transaction(self, operation):
+        connection = sqlite3.connect(self.db_path, timeout=5, isolation_level=None)
+        try:
+            connection.execute("PRAGMA busy_timeout=5000")
+            connection.execute("""CREATE TABLE IF NOT EXISTS feeder_leases (
+                lease_name TEXT PRIMARY KEY,
+                owner TEXT,
+                generation INTEGER NOT NULL CHECK(generation >= 0),
+                expires_at_ms INTEGER NOT NULL CHECK(expires_at_ms >= 0)
+            )""")
+            connection.execute("BEGIN IMMEDIATE")
+            result = operation(connection)
+            connection.commit()
+            return result
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+    def acquire(self, owner, now_ms, ttl_seconds=60):
+        self._validate(owner, now_ms=now_ms, ttl_seconds=ttl_seconds)
+        expires = now_ms + ttl_seconds * 1000
+
+        def operation(connection):
+            row = connection.execute(
+                "SELECT owner, generation, expires_at_ms FROM feeder_leases WHERE lease_name=?",
+                (self.lease_name,),
+            ).fetchone()
+            if row is None:
+                generation = 1
+                connection.execute(
+                    "INSERT INTO feeder_leases VALUES (?, ?, ?, ?)",
+                    (self.lease_name, owner, generation, expires),
+                )
+                return Lease(owner, generation, expires)
+            current_owner, generation, current_expiry = row
+            if current_owner is not None and current_expiry > now_ms:
+                if current_owner == owner:
+                    return Lease(owner, generation, current_expiry)
+                return None
+            generation += 1
+            connection.execute(
+                "UPDATE feeder_leases SET owner=?, generation=?, expires_at_ms=? WHERE lease_name=?",
+                (owner, generation, expires, self.lease_name),
+            )
+            return Lease(owner, generation, expires)
+
+        return self._transaction(operation)
+
+    def heartbeat(self, owner, generation, now_ms, ttl_seconds=60):
+        self._validate(owner, generation, now_ms, ttl_seconds)
+        expires = now_ms + ttl_seconds * 1000
+
+        def operation(connection):
+            cursor = connection.execute(
+                """UPDATE feeder_leases SET expires_at_ms=?
+                   WHERE lease_name=? AND owner=? AND generation=? AND expires_at_ms>?""",
+                (expires, self.lease_name, owner, generation, now_ms),
+            )
+            return cursor.rowcount == 1
+
+        return self._transaction(operation)
+
+    def is_current(self, owner, generation, now_ms):
+        self._validate(owner, generation, now_ms)
+
+        def operation(connection):
+            row = connection.execute(
+                """SELECT 1 FROM feeder_leases
+                   WHERE lease_name=? AND owner=? AND generation=? AND expires_at_ms>?""",
+                (self.lease_name, owner, generation, now_ms),
+            ).fetchone()
+            return row is not None
+
+        return self._transaction(operation)
+
+    def authorize_write(self, owner, generation, now_ms):
+        # The check is an authoritative lease check. Writers must invoke it
+        # immediately before each canonical write; a stale generation fails.
+        return self.is_current(owner, generation, now_ms)
+
+    def release(self, owner, generation):
+        self._validate(owner, generation)
+
+        def operation(connection):
+            cursor = connection.execute(
+                """UPDATE feeder_leases SET owner=NULL, expires_at_ms=0
+                   WHERE lease_name=? AND owner=? AND generation=?""",
+                (self.lease_name, owner, generation),
+            )
+            return cursor.rowcount == 1
+
+        return self._transaction(operation)
