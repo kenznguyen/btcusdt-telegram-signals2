@@ -35,7 +35,7 @@ class KrakenSpotSQLiteStoreTest(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.kraken_path = self.root / "kraken-spot.sqlite3"
         self.binance_path = self.root / "binance-canonical.sqlite3"
-        self.store = KrakenSpotSQLiteStore(self.kraken_path)
+        self.store = KrakenSpotSQLiteStore(self.kraken_path, canonical_db_path=self.binance_path)
 
     def tearDown(self):
         self.temp.cleanup()
@@ -93,6 +93,11 @@ class KrakenSpotSQLiteStoreTest(unittest.TestCase):
             with self.subTest(identity=identity):
                 with self.assertRaises(ValueError):
                     self.store.insert([candle(START, instrument=identity)])
+
+    def test_requires_a_known_binance_path_before_opening_spot_storage(self):
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(ValueError, "path is required"):
+                KrakenSpotSQLiteStore(self.kraken_path)
 
     def test_refuses_to_share_the_binance_canonical_database_path(self):
         with patch.dict(os.environ, {"MARKET_DATA_DB": str(self.binance_path)}):
