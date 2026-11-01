@@ -227,8 +227,8 @@ workflows:
 
   local-data-lake-smoke:
     name: Local data lake - Docker smoke test (manual)
-    # Official Ubuntu runner includes Docker. Linux runners require billing enabled.
-    instance_type: linux_x2
+    # Docker Compose smoke test on macOS runner.
+    instance_type: mac_mini_m2
     max_build_duration: 30
     # No triggering section: this optional container-build job is started manually.
     scripts:
