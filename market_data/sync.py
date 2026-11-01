@@ -8,9 +8,11 @@ precision already lost by an upstream float parser.
 
 import argparse
 import json
+import os
 import time
 
-from market_data.store import Candle, CandleStore, INTERVAL_MS, MAX_CANDLES, MAX_TIMESTAMP, read_window
+from market_data.store import Candle, INTERVAL_MS, MAX_CANDLES, MAX_TIMESTAMP
+from market_data.storage import create_store
 
 
 EXCHANGE_SYMBOL = "BTC/USDT:USDT"
@@ -87,7 +89,11 @@ def sync_window(exchange, store, timeframe, start_ms, end_ms, now_ms=None):
 
 def main():
     parser = argparse.ArgumentParser(description="Sync closed BTCUSDT perpetual candles into the canonical store")
-    parser.add_argument("--db", required=True, help="SQLite database path")
+    parser.add_argument("--backend", choices=("sqlite", "postgres"),
+                        default=os.environ.get("MARKET_DATA_BACKEND", "sqlite"),
+                        help="Storage backend (default: sqlite or MARKET_DATA_BACKEND)")
+    parser.add_argument("--db", default=os.environ.get("MARKET_DATA_DB", ""),
+                        help="SQLite database path; required only for SQLite")
     parser.add_argument("--timeframe", choices=tuple(INTERVAL_MS), required=True)
     parser.add_argument("--start-ms", type=int, required=True, help="Inclusive aligned UTC epoch milliseconds")
     parser.add_argument("--end-ms", type=int, required=True, help="Exclusive aligned UTC epoch milliseconds")
@@ -99,9 +105,13 @@ def main():
         parser.exit(1, "Install requirements-market-data.txt to fetch exchange data.\n")
     try:
         exchange = ccxt.binanceusdm({"enableRateLimit": True, "timeout": 15_000})
-        store = CandleStore(args.db)
+        store = create_store(
+            args.backend,
+            sqlite_path=args.db,
+            postgres_dsn=os.environ.get("MARKET_DATA_POSTGRES_DSN", ""),
+        )
         count = sync_window(exchange, store, args.timeframe, args.start_ms, args.end_ms)
-        window = read_window(args.db, "BTCUSDT", args.timeframe, args.start_ms, args.end_ms)
+        window = store.read_window("BTCUSDT", args.timeframe, args.start_ms, args.end_ms)
     except Exception as error:
         parser.exit(1, f"Sync failed ({type(error).__name__}); earlier successful pages remain stored.\n")
     print(json.dumps({"inserted": count, "datasetVersion": window["datasetVersion"],

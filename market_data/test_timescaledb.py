@@ -3,11 +3,15 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
+from market_data.api import application
 from market_data.migrations import migrate
 from market_data.postgres import PostgresCandleStore, connection, read_window as read_postgres_window
 from market_data.store import Candle, CandleStore, INTERVAL_MS, read_window
+from market_data.sync import sync_window
+from market_data.storage import create_store
 
 
 DSN = os.environ.get("MARKET_DATA_TEST_DATABASE_URL", "")
@@ -36,7 +40,7 @@ class TimescaleParityTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.sqlite_path = Path(self.temp.name) / "market.sqlite3"
         self.sqlite_store = CandleStore(self.sqlite_path)
-        self.pg_store = PostgresCandleStore(DSN)
+        self.pg_store = create_store("postgres", postgres_dsn=DSN)
         self.step = INTERVAL_MS["15m"]
         # Integration database must be disposable; unique time slots avoid cross-run collisions.
         import time
@@ -82,6 +86,64 @@ class TimescaleParityTest(unittest.TestCase):
             migrations = database.execute("SELECT migration_id, checksum_sha256 FROM market_data.schema_migrations").fetchall()
             self.assertTrue(migrations)
         self.assertEqual(migrate(DSN)[0], migrate(DSN)[1])
+
+
+    def test_api_reads_from_postgres_and_maps_connection_failure_to_503(self):
+        self.pg_store.insert([self.candle()])
+        query = (f"symbol=BTCUSDT&timeframe=15m&startMs={self.start}"
+                 f"&endMs={self.start+self.step}")
+        environ = {
+            "REQUEST_METHOD": "GET", "PATH_INFO": "/v1/candles",
+            "QUERY_STRING": query, "HTTP_AUTHORIZATION": "Bearer test-token",
+        }
+        status = []
+        with patch.dict(os.environ, {
+            "MARKET_DATA_BACKEND": "postgres",
+            "MARKET_DATA_POSTGRES_DSN": DSN,
+            "MARKET_DATA_TOKEN": "test-token",
+        }, clear=True):
+            body = b"".join(application(environ, lambda value, headers: status.append(value)))
+        self.assertEqual(status[0].split()[0], "200")
+        import json
+        payload = json.loads(body)
+        self.assertEqual(payload["candles"][0]["openTimeMs"], self.start)
+        self.assertEqual(payload["candles"][0]["open"], "100.12345678901234567890123456789")
+
+        status.clear()
+        with patch.dict(os.environ, {
+            "MARKET_DATA_BACKEND": "postgres",
+            "MARKET_DATA_POSTGRES_DSN": "postgresql://invalid:invalid@127.0.0.1:1/invalid?connect_timeout=1",
+            "MARKET_DATA_TOKEN": "test-token",
+        }, clear=True):
+            body = b"".join(application(environ, lambda value, headers: status.append(value)))
+        self.assertEqual(status[0].split()[0], "503")
+        self.assertEqual(json.loads(body), {"error": "STORE_UNAVAILABLE"})
+
+    def test_ingestion_writes_closed_candles_through_postgres_factory(self):
+        start, step = self.start, self.step
+
+        class Exchange:
+            id = "binanceusdm"
+
+            def load_markets(self):
+                market = dict(symbol="BTC/USDT:USDT", id="BTCUSDT", base="BTC", quote="USDT",
+                              settle="USDT", active=True, swap=True, linear=True, spot=False)
+                return {market["symbol"]: market}
+
+            def fetch_time(self):
+                return start + step
+
+            def fetch_ohlcv(self, *args, **kwargs):
+                return [[start, 100, 102, 99, 101, 5]]
+
+        inserted = sync_window(
+            Exchange(), self.pg_store, "15m", start, start+step,
+            now_ms=lambda: start+step,
+        )
+        self.assertEqual(inserted, 1)
+        result = read_postgres_window(DSN, "BTCUSDT", "15m", start, start+step)
+        self.assertEqual(result["coverage"]["returned"], 1)
+        self.assertEqual(result["candles"][0]["close"], "101")
 
     def test_successful_insert_before_conflict_is_rolled_back_with_batch(self):
         # Seed a later candle so the first item in the attempted batch is new.
