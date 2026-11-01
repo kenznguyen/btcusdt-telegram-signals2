@@ -380,5 +380,41 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
         )
 
 
+    def test_startup_recovery_renews_lease_before_canonical_sync_attempt(self):
+        from unittest.mock import Mock, patch
+        from market_data.feeder import Lease
+        from market_data.store import INTERVAL_MS
+        exchange, store, leases = Mock(), Mock(), Mock()
+        leases.heartbeat.return_value = True
+        interval = INTERVAL_MS["15m"]
+        reads = {"count": 0}
+        def read_window(symbol, timeframe, start_ms, end_ms):
+            reads["count"] += 1
+            gaps = ([{"startMs": start_ms, "endMs": start_ms + interval}]
+                    if reads["count"] == 1 else [])
+            return {
+                "startMs": start_ms,
+                "endMs": end_ms,
+                "coverage": {"complete": not gaps, "gaps": gaps},
+            }
+        store.read_window.side_effect = read_window
+        runtime = build_runtime(
+            config=FeederConfig(timeframes=("15m",)),
+            owner_id="recovery-worker",
+            exchange=exchange,
+            store=store,
+            lease_store=leases,
+            clock=lambda: NOW + 7_200_000,
+        )
+        runtime.lease_generation = 21
+        with patch("market_data.feeder_service.sync_window", return_value=1):
+            self.assertTrue(runtime.recovery.recover_all())
+        leases.heartbeat.assert_called_once_with(
+            "recovery-worker", 21,
+            now_ms=NOW + 7_200_000,
+            ttl_seconds=60,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
