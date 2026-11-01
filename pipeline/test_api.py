@@ -87,6 +87,8 @@ class FiveLayerApiTest(unittest.TestCase):
         code, intelligence = self.request("/v1/intelligence")
         self.assertEqual(code, 200)
         self.assertEqual(intelligence["netTakerQuote"], "100")
+        self.assertEqual(intelligence["collectorCommit"], "bc4f0ef633fbeee4a49defd72827f17162693805")
+        self.assertEqual(len(intelligence["inputFiles"]["trades"][0]["sha256"]), 64)
         code, result = self.request("/v1/paper/evaluate", "POST", {})
         self.assertEqual(code, 200)
         self.assertEqual(result["decision"]["action"], "BUY")
@@ -248,6 +250,39 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(streams["Strategy Core producer"]["status"],"DEGRADED")
         self.assertEqual(streams["Shared Risk Limits"]["status"],"READY")
         self.assertEqual(streams["Shared Risk Limits"]["maxDrawdownPct"],"95")
+
+    def test_quality_reports_feed_level_freshness_provenance_and_unknown_continuity(self):
+        code, quality = self.request("/v1/quality")
+        self.assertEqual(code, 200)
+        intelligence = next(row for row in quality["streams"] if row["name"] == "Futures Intelligence")
+        feeds = {row["name"]: row for row in intelligence["feeds"]}
+        self.assertEqual(feeds["trades"]["freshness"], "FRESH")
+        self.assertEqual(feeds["trades"]["continuityStatus"], "UNVERIFIED")
+        self.assertEqual(feeds["trades"]["integrityStatus"], "OK")
+        self.assertEqual(feeds["trades"]["duplicateRows"], 0)
+        self.assertGreaterEqual(feeds["trades"]["ageMs"], 0)
+        self.assertEqual(feeds["funding"]["freshness"], "MISSING")
+        self.assertEqual(feeds["openInterest"]["freshness"], "MISSING")
+        self.assertEqual(feeds["liquidations"]["freshness"], "MISSING")
+        self.assertEqual(intelligence["collectorCommit"], "bc4f0ef633fbeee4a49defd72827f17162693805")
+        self.assertGreater(intelligence["inputFileCount"], 0)
+
+    def test_quality_marks_old_trade_capture_stale_without_refreshing_it(self):
+        trade_path = self.root / "old-trades.csv"
+        headers = "exchange,market,datatype,timestamp_ms,datetime_utc,symbol,trade_id,side,price,quantity,is_buyer_maker,first_update_id,last_update_id".split(",")
+        with trade_path.open("w", newline="") as output:
+            writer = csv.writer(output)
+            writer.writerow(headers)
+            instant = self.now-180_000
+            utc = datetime.fromtimestamp(instant/1000, timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+            writer.writerow(["binance", "futures", "trades", instant, utc, "btcusdt", 99, "buy", "100", "1", 0, 99, 99])
+        old = build_snapshot(self.now-300_000, self.now-120_000, self.now-100_000, trades=trade_path)
+        self.intel_path.write_text(json.dumps(old))
+        _, quality = self.request("/v1/quality")
+        intelligence = next(row for row in quality["streams"] if row["name"] == "Futures Intelligence")
+        trades = next(row for row in intelligence["feeds"] if row["name"] == "trades")
+        self.assertEqual(trades["freshness"], "STALE")
+        self.assertEqual(intelligence["status"], "DEGRADED")
 
     def test_risk_limit_breach_auto_kills_new_paper_intents(self):
         self.request("/v1/equity")

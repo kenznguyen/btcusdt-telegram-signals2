@@ -13,11 +13,21 @@ fundingRate` (decimal string or null), `fundingAtMs` (int or null),
 `takerBuyQuote`, `takerSellQuote`, `netTakerQuote` (strings or null),
 `largeTradeQuote` (string or null), `observedLiquidationBuyQuote`,
 `observedLiquidationSellQuote` (strings or null), `coverage` (object per stream),
+`collectorCommit`, `inputFiles` (per-file SHA-256 provenance on new snapshots),
 `snapshotId` (content hash).
 
 Missing/unverified feeds remain null with explicit coverage; no on-chain whale
 claims, zero-filling, or claims that observed liquidation messages are a full tape.
-Intelligence importer writes snapshots atomically; no credentials or trading calls.
+Every stream remains `complete:false`; continuity is `UNVERIFIED` unless aggregate
+trade ID gaps are detected. Trade IDs and sample timestamps are deduplicated and
+counted; liquidation rows have no event ID and are retained without claiming
+exact deduplication. CSV has no heartbeat/disconnect record, so connection
+continuity cannot be certified. The API reports per-feed freshness; trades use a
+60s maximum age, funding 630s, and open interest 1,230s. Sparse liquidations are
+`UNVERIFIABLE` for connection freshness. New snapshots pin collector commit and
+SHA-256/size/row counts for each input file; legacy v1 snapshots remain readable
+without file provenance. Intelligence importer writes snapshots atomically; no
+credentials or trading calls.
 
 ## FreqAI prediction artifact
 
@@ -74,7 +84,8 @@ Root-owned module `pipeline.api:application`:
 - GET `/v1/candles` existing canonical query contract.
 - GET `/v1/order-book?symbol=BTCUSDT` existing normalized Hummingbot contract;
   lets the APK use this common API with its read token.
-- GET `/v1/intelligence` -> snapshot or `{available:false,reason}`.
+- GET `/v1/intelligence` -> validated snapshot or `{available:false,reason}`; new snapshots include per-file capture SHA-256 provenance.
+- GET `/v1/quality` includes T1 per-feed `status`, `freshness`, `ageMs`, `maxAgeMs`, `continuityStatus`, row counts and collector provenance. AI decision validates the full snapshot and currently uses fresh, duplicate-free trade flow with no observed trade-ID gaps as its T1 input. Funding, OI and liquidation are published as observed context and quality telemetry, not yet directional decision features. Strategy Core remains unchanged and does not consume T1, preserving its RSI/ADX/Smart-DCA rules. Missing/old feeds are reported, never silently zero-filled.
 - GET `/v1/decision` -> `{action,reason,intent}` (AI/FreqAI stream).
 - GET `/v1/signals` -> `{strategyCore,aiStrategy,mode:'PAPER',liveTradingSupported:false}`; streams are independent. Core consumes a versioned `STRATEGY_CORE_REPORT_PATH` artifact; missing or invalid artifact is WAIT.
 - POST `/v1/paper/evaluate` accepts `{}` (AI default), `{source:'AI'}`, or `{source:'CORE'}`. Both routes resolve server-side data and submit to the same ledger/risk gate.

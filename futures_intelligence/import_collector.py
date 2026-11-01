@@ -2,6 +2,8 @@
 
 import argparse
 import csv
+import hashlib
+import re
 from datetime import datetime, timezone
 from decimal import Decimal, localcontext
 import json
@@ -31,6 +33,59 @@ METRICS = {
 SIGNED = {"fundingRate", "netTakerQuote", "openInterestChangeBase"}
 MAX_ROWS, MAX_FILES, MAX_FILE_BYTES = 100_000, 16, 64 * 1024 * 1024
 MAX_WINDOW_MS = 86_400_000
+FRESHNESS_MAX_AGE_MS = {
+    "trades": 60_000,
+    "funding": 630_000,
+    "openInterest": 1_230_000,
+    "liquidations": None,
+}
+
+
+def _file_sha256(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def feed_quality(snapshot, now_ms):
+    """Describe per-feed freshness without claiming unobserved connection health."""
+    stamp(now_ms)
+    result = []
+    for stream, item in snapshot["coverage"].items():
+        status = item["status"]
+        event_at = item["lastEventAtMs"]
+        age = now_ms - event_at if event_at is not None else None
+        maximum = FRESHNESS_MAX_AGE_MS[stream]
+        if status != "OBSERVED":
+            freshness = status
+        elif age is None or age < 0:
+            freshness = "FUTURE"
+        elif maximum is None:
+            freshness = "UNVERIFIABLE"
+        else:
+            freshness = "STALE" if age > maximum else "FRESH"
+        deduplication = item.get("deduplicationStatus", {
+            "trades": "BY_TRADE_ID", "funding": "BY_SAMPLE_TIMESTAMP",
+            "openInterest": "BY_SAMPLE_TIMESTAMP", "liquidations": "NO_EVENT_ID",
+        }[stream])
+        result.append({
+            "name": stream,
+            "status": status,
+            "freshness": freshness,
+            "ageMs": age,
+            "maxAgeMs": maximum,
+            "rows": item["rows"],
+            "duplicateRows": item["duplicateRows"],
+            "integrityStatus": ("DUPLICATES_PRESENT" if item["duplicateRows"] else
+                                "UNVERIFIABLE" if deduplication == "NO_EVENT_ID" else "OK"),
+            "deduplicationStatus": deduplication,
+            "tradeIdGaps": item.get("tradeIdGaps"),
+            "continuityStatus": item.get("continuityStatus", "UNVERIFIED"),
+            "complete": False,
+        })
+    return result
 
 
 def _text(value):
@@ -58,15 +113,21 @@ def _read(paths, stream, start, end, available, budget):
     if len({Path(path).resolve() for path in paths}) != len(paths):
         raise ValueError("A CSV file was supplied more than once")
     selected = []
+    provenance = []
     for path in paths:
         path = Path(path)
-        if path.stat().st_size > MAX_FILE_BYTES:
+        stat_before = path.stat()
+        size = stat_before.st_size
+        if size > MAX_FILE_BYTES:
             raise ValueError("CSV file too large")
+        rows_read = 0
+        selected_before = len(selected)
         with path.open(encoding="utf-8-sig", newline="") as source:
             reader = csv.DictReader(source)
             if reader.fieldnames != HEADERS[stream].split(","):
                 raise ValueError("Unexpected collector CSV header")
             for row in reader:
+                rows_read += 1
                 budget[0] += 1
                 if budget[0] > MAX_ROWS or None in row or any(v is None or len(v) > 128 for v in row.values()):
                     raise ValueError("CSV row or row count exceeds limits")
@@ -83,7 +144,19 @@ def _read(paths, stream, start, end, available, budget):
                     raise ValueError("CSV timestamps disagree or are in the future")
                 if start <= timestamp < end:
                     selected.append((timestamp, row))
-    return paths, selected
+        digest = _file_sha256(path)
+        stat_after = path.stat()
+        if (stat_before.st_size, stat_before.st_mtime_ns, stat_before.st_ino) != (
+                stat_after.st_size, stat_after.st_mtime_ns, stat_after.st_ino):
+            raise ValueError("CSV changed during import")
+        provenance.append({
+            "name": path.name,
+            "sha256": digest,
+            "sizeBytes": size,
+            "rowsRead": rows_read,
+            "selectedRows": len(selected) - selected_before,
+        })
+    return paths, selected, provenance
 
 
 def _positive(value):
@@ -143,12 +216,17 @@ def _summarize(stream, selected, supplied, threshold):
     values.sort(key=lambda row: row[0])
     coverage = {"status": "OBSERVED" if values else "NO_ROWS" if supplied else "MISSING",
                 "rows": len(values), "duplicateRows": duplicates, "complete": False,
+                "continuityStatus": "UNVERIFIED",
+                "deduplicationStatus": {"trades": "BY_TRADE_ID", "funding": "BY_SAMPLE_TIMESTAMP",
+                                        "openInterest": "BY_SAMPLE_TIMESTAMP", "liquidations": "NO_EVENT_ID"}[stream],
                 "firstEventAtMs": values[0][0] if values else None,
                 "lastEventAtMs": values[-1][0] if values else None}
     metrics = {key: None for key in METRICS[stream]}
     if stream == "trades":
         ids = sorted(seen)
         coverage["tradeIdGaps"] = sum(max(0, right-left-1) for left, right in zip(ids, ids[1:]))
+        if coverage["tradeIdGaps"]:
+            coverage["continuityStatus"] = "GAPS_DETECTED"
     if not values:
         return metrics, coverage
     if stream == "trades":
@@ -173,17 +251,19 @@ def build_snapshot(start_ms, end_ms, available_at_ms, *, trades=None, funding=No
     threshold = _positive(large_trade_threshold)
     result = {"schemaVersion": 1, "exchange": "binance", "marketType": "USDT_PERPETUAL", "symbol": "BTCUSDT",
               "windowStartMs": start_ms, "windowEndMs": end_ms, "availableAtMs": available_at_ms,
-              "source": SOURCE, "quality": "OBSERVED_ONLY", "fundingAtMs": None,
-              "largeTradeThresholdQuote": _text(threshold), "coverage": {}}
+              "source": SOURCE, "collectorCommit": SOURCE_COMMIT, "quality": "OBSERVED_ONLY",
+              "fundingAtMs": None, "largeTradeThresholdQuote": _text(threshold),
+              "coverage": {}, "inputFiles": {}}
     paths = {"trades": trades, "funding": funding, "openInterest": open_interest, "liquidations": liquidations}
     budget = [0]
     with localcontext() as context:
         context.prec = 100
         for stream, files in paths.items():
-            supplied, selected = _read(files, stream, start_ms, end_ms, available_at_ms, budget)
+            supplied, selected, provenance = _read(files, stream, start_ms, end_ms, available_at_ms, budget)
             metrics, coverage = _summarize(stream, selected, bool(supplied), threshold)
             result.update(metrics)
             result["coverage"][stream] = coverage
+            result["inputFiles"][stream] = provenance
     result["snapshotId"] = identity("intelligence:", result)
     return validate_snapshot(result, available_at_ms)
 
@@ -202,6 +282,37 @@ def validate_snapshot(snapshot, now_ms):
     coverage = snapshot.get("coverage")
     if not isinstance(coverage, dict) or set(coverage) != set(METRICS):
         raise ValueError("Invalid coverage metadata")
+    has_provenance = "collectorCommit" in snapshot or "inputFiles" in snapshot
+    if has_provenance:
+        if snapshot.get("collectorCommit") != SOURCE_COMMIT:
+            raise ValueError("Unsupported collector provenance")
+        files = snapshot.get("inputFiles")
+        if not isinstance(files, dict) or set(files) != set(METRICS):
+            raise ValueError("Invalid input file provenance")
+        total_rows_read = 0
+        for stream, entries in files.items():
+            if not isinstance(entries, list) or len(entries) > MAX_FILES:
+                raise ValueError("Invalid input file list")
+            selected_rows = 0
+            for entry in entries:
+                if not isinstance(entry, dict) or set(entry) != {"name", "sha256", "sizeBytes", "rowsRead", "selectedRows"}:
+                    raise ValueError("Invalid input file metadata")
+                if (not isinstance(entry["name"], str) or not entry["name"] or Path(entry["name"]).name != entry["name"] or
+                        not isinstance(entry["sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", entry["sha256"]) is None or
+                        type(entry["sizeBytes"]) is not int or not 0 <= entry["sizeBytes"] <= MAX_FILE_BYTES or
+                        type(entry["rowsRead"]) is not int or not 0 <= entry["rowsRead"] <= MAX_ROWS or
+                        type(entry["selectedRows"]) is not int or not 0 <= entry["selectedRows"] <= entry["rowsRead"]):
+                    raise ValueError("Invalid input file metadata")
+                selected_rows += entry["selectedRows"]
+                total_rows_read += entry["rowsRead"]
+            if total_rows_read > MAX_ROWS:
+                raise ValueError("Input file row count exceeds importer budget")
+            item = coverage[stream]
+            if not isinstance(item, dict):
+                raise ValueError("Invalid coverage metadata")
+            if (type(item.get("rows")) is not int or type(item.get("duplicateRows")) is not int or
+                    selected_rows != item["rows"] + item["duplicateRows"]):
+                raise ValueError("Input file rows disagree with coverage")
     for stream, fields in METRICS.items():
         item = coverage[stream]
         if not isinstance(item, dict) or not isinstance(item.get("status"), str) or item["status"] not in {"MISSING", "NO_ROWS", "OBSERVED"} or item.get("complete") is not False:
@@ -209,6 +320,16 @@ def validate_snapshot(snapshot, now_ms):
         for name in ("rows", "duplicateRows"):
             if type(item.get(name)) is not int or not 0 <= item[name] <= MAX_ROWS:
                 raise ValueError("Invalid coverage count")
+        continuity = item.get("continuityStatus", "UNVERIFIED")
+        if continuity not in {"UNVERIFIED", "GAPS_DETECTED"}:
+            raise ValueError("Invalid continuity status")
+        if stream != "trades" and continuity != "UNVERIFIED":
+            raise ValueError("Only trade IDs can expose sequence gaps")
+        deduplication = item.get("deduplicationStatus")
+        expected_deduplication = {"trades": "BY_TRADE_ID", "funding": "BY_SAMPLE_TIMESTAMP",
+                                  "openInterest": "BY_SAMPLE_TIMESTAMP", "liquidations": "NO_EVENT_ID"}[stream]
+        if deduplication is not None and deduplication != expected_deduplication:
+            raise ValueError("Invalid deduplication status")
         observed = item["status"] == "OBSERVED"
         if observed != (item["rows"] > 0):
             raise ValueError("Contradictory coverage")
@@ -239,6 +360,8 @@ def validate_snapshot(snapshot, now_ms):
                 raise ValueError("Invalid aggregate trade gap count")
             if not observed and item["tradeIdGaps"]:
                 raise ValueError("Missing trades cannot contain observed ID gaps")
+            if continuity != ("GAPS_DETECTED" if item["tradeIdGaps"] else "UNVERIFIED"):
+                raise ValueError("Trade continuity status disagrees with ID gaps")
     funding_at = snapshot.get("fundingAtMs")
     if coverage["funding"]["status"] == "OBSERVED":
         if stamp(funding_at) != coverage["funding"]["lastEventAtMs"] or abs(number(snapshot["fundingRate"], signed=True)) > 1:

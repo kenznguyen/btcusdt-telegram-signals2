@@ -70,9 +70,26 @@ tối đa `max(1e-8, abs(product) × 1e-9)` để phản ánh cách ghi của ng
 ## Coverage và tính toàn vẹn
 
 Mỗi feed có `status` (`MISSING`, `NO_ROWS`, `OBSERVED`), số row, số bản sao bỏ
-qua, thời điểm sự kiện đầu/cuối và `complete=false`. Có observations không chứng
-minh capture đầy đủ trước sự kiện đầu, sau sự kiện cuối hoặc trong khoảng mất
-kết nối. Một khoảng có trade ID gaps bằng 0 vẫn chưa chứng nhận toàn bộ tape.
+qua, thời điểm sự kiện đầu/cuối, `continuityStatus` và `complete=false`.
+Trade ID gaps được đánh dấu `GAPS_DETECTED`; không có gap quan sát được vẫn chỉ
+là `UNVERIFIED`, không phải bằng chứng kết nối liên tục. CSV không ghi heartbeat
+hoặc disconnect events, nên importer không được tự suy ra trạng thái kết nối.
+
+Snapshot mới ghi `collectorCommit` và `inputFiles` theo từng feed. Mỗi file có
+basename, SHA-256, kích thước byte, số dòng đọc và số dòng nằm trong cửa sổ.
+Đường dẫn máy chủ không được đưa vào artifact. `snapshotId` bao phủ cả provenance
+này; checksum file cho phép đối chiếu lại capture gốc nhưng không phải chữ ký
+xác thực từ collector. Snapshot v1 cũ không có trường provenance vẫn đọc được,
+nhưng không có bằng chứng checksum file.
+
+Freshness API được tính động từ thời điểm hiện tại và event/sample mới nhất:
+trades 60 giây; funding 630 giây (poll 300 giây + jitter và một chu kỳ bỏ lỡ);
+open interest 1.230 giây (poll 600 giây + jitter và một chu kỳ bỏ lỡ).
+Đây là ngưỡng theo các interval mặc định trong `config.example.toml` của collector
+đã pin; nếu vận hành thay interval, policy freshness phải được review đồng bộ.
+Liquidation là event stream thưa, không có heartbeat trong CSV nên hiển thị
+`UNVERIFIABLE` thay vì gọi một event cũ là disconnect. Các ngưỡng này chỉ dùng
+đánh giá chất lượng snapshot, không thay đổi chiến lược hoặc risk limits.
 
 Feed chưa có hoặc không có row trong cửa sổ trả chỉ số **null**, không gán giả
 bằng 0. Khi trade observations có thật, phía không có aggressor trade có thể có
@@ -91,8 +108,14 @@ from futures_intelligence.import_collector import validate_snapshot
 validated = validate_snapshot(snapshot, now_ms)
 ```
 
-Hàm kiểm tra market/schema/timestamp/coverage/numeric totals/hash. Nó cho phép
-history cũ để hiển thị; decision layer chịu trách nhiệm giới hạn tuổi dữ liệu.
+Hàm kiểm tra market/schema/timestamp/coverage/numeric totals/provenance/hash. Nó cho phép
+history cũ để hiển thị; API quality tính freshness từng feed và decision layer
+chỉ phát tín hiệu khi trade flow đang FRESH, không có trade ID gap hoặc duplicate
+và toàn bộ snapshot vượt qua validation.
+
+AI decision hiện chỉ dùng trade flow đã qua quality gate làm đầu vào T1. Funding,
+OI và liquidation được công bố cho Dashboard/downstream analysis nhưng chưa là
+điều kiện định hướng lệnh; Strategy Core RSI/ADX/Smart DCA không bị thay đổi.
 
 ## Kiểm chứng
 

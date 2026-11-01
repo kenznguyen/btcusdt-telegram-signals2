@@ -1,5 +1,6 @@
 import copy
 import csv
+import hashlib
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -7,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from futures_intelligence.import_collector import build_snapshot, validate_snapshot, write_snapshot
+from futures_intelligence.import_collector import build_snapshot, feed_quality, validate_snapshot, write_snapshot
 from pipeline.values import identity
 
 
@@ -91,12 +92,60 @@ class IntelligenceImportTest(unittest.TestCase):
         self.assertEqual(result["takerBuyQuote"], "400")
         self.assertEqual(result["coverage"]["trades"]["duplicateRows"], 1)
         self.assertEqual(result["coverage"]["trades"]["tradeIdGaps"], 2)
+        self.assertEqual(feed_quality(result, self.now)[0]["integrityStatus"], "DUPLICATES_PRESENT")
         conflicting = self.csv("trades", [first, {**first, "quantity": "3"}], "conflict.csv")
         with self.assertRaises(ValueError):
             self.build(trades=conflicting)
         same_notional = self.csv("trades", [first, {**first, "price": "200", "quantity": "1"}], "same-quote.csv")
         with self.assertRaises(ValueError):
             self.build(trades=same_notional)
+
+    def test_snapshot_pins_input_file_checksums_and_declares_unknown_continuity(self):
+        path = self.csv("trades", [self.trade()])
+        result = self.build(trades=path)
+        provenance = result["inputFiles"]["trades"][0]
+        self.assertEqual(provenance["name"], path.name)
+        self.assertEqual(provenance["sha256"], hashlib.sha256(path.read_bytes()).hexdigest())
+        self.assertEqual(provenance["sizeBytes"], path.stat().st_size)
+        self.assertEqual(provenance["rowsRead"], 1)
+        self.assertEqual(provenance["selectedRows"], 1)
+        self.assertEqual(result["collectorCommit"], "bc4f0ef633fbeee4a49defd72827f17162693805")
+        self.assertEqual(result["coverage"]["trades"]["continuityStatus"], "UNVERIFIED")
+
+    def test_rejects_capture_file_changed_while_its_snapshot_is_built(self):
+        path = self.csv("trades", [self.trade()])
+        from futures_intelligence import import_collector
+
+        original_hash = import_collector._file_sha256
+
+        def mutate_before_hash(source):
+            with Path(source).open("a", encoding="utf-8") as output:
+                output.write("\\n")
+            return original_hash(source)
+
+        with patch("futures_intelligence.import_collector._file_sha256", side_effect=mutate_before_hash):
+            with self.assertRaisesRegex(ValueError, "changed during import"):
+                self.build(trades=path)
+
+    def test_trade_id_gaps_are_explicitly_a_continuity_warning(self):
+        path = self.csv("trades", [self.trade(42), self.trade(45)])
+        result = self.build(trades=path)
+        self.assertEqual(result["coverage"]["trades"]["tradeIdGaps"], 2)
+        self.assertEqual(result["coverage"]["trades"]["continuityStatus"], "GAPS_DETECTED")
+
+    def test_freshness_uses_collector_cadence_and_never_infers_liquidation_disconnect(self):
+        funding = self.csv("funding_rates", [self.row("funding_rates", funding_rate="0.0001", next_funding_time=str(self.end+28_800_000))])
+        interest = self.csv("open_interest", [self.row("open_interest", mark_price="100", open_interest="10", oi_value="1000")])
+        liquidations = self.csv("liquidations", [self.row("liquidations", side="sell", price="100", quantity="1", value="100")])
+        snapshot = self.build(funding=funding, open_interest=interest, liquidations=liquidations)
+        feeds = {feed["name"]: feed for feed in feed_quality(snapshot, self.end+1_500_000)}
+        self.assertEqual(feeds["funding"]["freshness"], "STALE")
+        self.assertEqual(feeds["openInterest"]["freshness"], "STALE")
+        self.assertEqual(feeds["liquidations"]["freshness"], "UNVERIFIABLE")
+        self.assertEqual(feeds["liquidations"]["integrityStatus"], "UNVERIFIABLE")
+        self.assertEqual(feeds["liquidations"]["deduplicationStatus"], "NO_EVENT_ID")
+        self.assertGreater(feeds["liquidations"]["ageMs"], 0)
+        self.assertEqual(feeds["liquidations"]["continuityStatus"], "UNVERIFIED")
 
     def test_rejects_market_time_numeric_and_aggressor_inconsistencies(self):
         base = self.trade()

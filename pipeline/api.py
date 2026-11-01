@@ -231,8 +231,26 @@ def quality_snapshot(timestamp):
     except (ValueError,OSError,sqlite3.Error):
         streams.append({"name":"H1 candles","status":"MISSING","rows":0})
     intel, book, prediction = data.get("intelligence"), data.get("book"), data.get("prediction")
-    streams.append({"name":"Futures Intelligence","status":"READY" if intel else "MISSING",
-                    "availableAtMs":intel.get("availableAtMs") if intel else None})
+    if intel:
+        from futures_intelligence.import_collector import feed_quality
+        intel_feeds = feed_quality(intel, timestamp)
+        trade_feed = next(feed for feed in intel_feeds if feed["name"] == "trades")
+        intel_status = "READY" if all(feed["freshness"] == "FRESH" and feed["integrityStatus"] == "OK" for feed in intel_feeds) and trade_feed["tradeIdGaps"] == 0 else "DEGRADED"
+        input_files = intel.get("inputFiles", {})
+        input_file_count = sum(len(items) for items in input_files.values()) if isinstance(input_files, dict) else 0
+        intel_stream = {"name":"Futures Intelligence","status":intel_status,
+                        "availableAtMs":intel.get("availableAtMs"),"snapshotId":intel.get("snapshotId"),
+                        "collectorCommit":intel.get("collectorCommit", intel.get("source")),
+                        "inputFileCount":input_file_count,"feeds":intel_feeds}
+    else:
+        intel_stream = {"name":"Futures Intelligence","status":"MISSING","feeds":[
+            {"name":name,"status":"MISSING","freshness":"MISSING","ageMs":None,
+             "maxAgeMs":None,"rows":0,"duplicateRows":0,
+             "integrityStatus":"UNVERIFIABLE" if name == "liquidations" else "OK",
+             "deduplicationStatus":"NO_EVENT_ID" if name == "liquidations" else "UNVERIFIED",
+             "continuityStatus":"UNVERIFIED","complete":False}
+            for name in ("trades","funding","openInterest","liquidations")]}
+    streams.append(intel_stream)
     book_ready = bool(book and 0 <= timestamp-stamp(book.get("observedAtMs")) <= 30_000)
     streams.append({"name":"Hummingbot Order Book","status":"READY" if book_ready else "MISSING",
                     "observedAtMs":book.get("observedAtMs") if book else None})
@@ -451,8 +469,13 @@ def application(environ, start_response):
                 candle_ready = False
             try:
                 intelligence = intelligence_snapshot(timestamp)
-                intel_ready = intelligence is not None and 0 <= timestamp-intelligence["windowEndMs"] <= 60_000 and any(
-                    stream.get("status") == "OBSERVED" for stream in intelligence["coverage"].values())
+                if intelligence is not None:
+                    from futures_intelligence.import_collector import feed_quality
+                    feeds = feed_quality(intelligence, timestamp)
+                    trade_feed = next(feed for feed in feeds if feed["name"] == "trades")
+                    intel_ready = trade_feed["freshness"] == "FRESH" and trade_feed["tradeIdGaps"] == 0 and trade_feed["duplicateRows"] == 0
+                else:
+                    intel_ready = False
             except (ValueError, OSError, KeyError, TypeError):
                 intel_ready = False
             try:
