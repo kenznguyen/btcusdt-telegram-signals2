@@ -284,6 +284,70 @@ class BrowserAutomationAuthorizationTest(unittest.TestCase):
         with self.assertRaises(AuthorizationError):
             authorize_task(request, context)
 
+
+    def test_authorizes_github_file_commit_only_inside_an_allowed_workspace(self):
+        request = {
+            "contract_version": "1.0",
+            "idempotency_key": "github-file-commit-0001",
+            "task_type": "GITHUB_FILE_COMMIT",
+            "execution_mode": "API_ONLY",
+            "target": {
+                "provider": "github",
+                "resource": "repository",
+                "repository": REPOSITORY,
+                "branch": "feature/approved-change",
+                "workspace_path": "docs/architecture/decision.md",
+            },
+            "permissions": {
+                "read": True,
+                "write": True,
+                "upload": False,
+                "delete": False,
+            },
+            "timeout_seconds": 60,
+        }
+        with tempfile.TemporaryDirectory() as workspace:
+            context = read_context(
+                allowed_task_types=frozenset({"GITHUB_FILE_COMMIT"}),
+                allowed_permissions=frozenset({"read", "write"}),
+                allowed_branches=frozenset({"feature/approved-change"}),
+                allowed_workspace_roots=(Path(workspace),),
+            )
+            self.assertTrue(authorize_task(request, context).allowed)
+
+            request["target"]["workspace_path"] = "../outside/secret.txt"
+            with self.assertRaises(AuthorizationError):
+                authorize_task(request, context)
+
+    def test_denies_browser_urls_with_query_strings_that_could_carry_credentials(self):
+        request = {
+            "contract_version": "1.0",
+            "idempotency_key": "browser-read-0004",
+            "task_type": "BROWSER_UI_READ",
+            "execution_mode": "PLAYWRIGHT_ONLY",
+            "target": {
+                "provider": "approved_web_app",
+                "resource": "page",
+                "url": "https://console.example.com/settings?access_token=secret",
+            },
+            "permissions": {
+                "read": True,
+                "write": False,
+                "upload": False,
+                "delete": False,
+            },
+            "timeout_seconds": 60,
+        }
+        context = AuthorizationContext(
+            allowed_task_types=frozenset({"BROWSER_UI_READ"}),
+            allowed_providers=frozenset({"approved_web_app"}),
+            allowed_permissions=frozenset({"read"}),
+            allowed_web_origins=frozenset({"https://console.example.com"}),
+            allowed_url_prefixes=frozenset({"https://console.example.com/settings"}),
+        )
+        with self.assertRaises(AuthorizationError):
+            authorize_task(request, context)
+
     def test_denies_workspace_path_traversal(self):
         request = {
             "contract_version": "1.0",
