@@ -16,6 +16,22 @@ export MARKET_DATA_TOKEN=market-data-live-acceptance-read-only
 # The database name is fixed to tsdb; a separate exact confirmation is required.
 "$CI_PYTHON" -m ci.market_data_acceptance_guard
 
+# Verify the same runner can reach Binance USD-M directly before touching staging.
+# curl is explicitly told not to use any proxy; proxy environment variables were rejected above.
+echo "Checking direct Binance USD-M egress before staging migrations"
+RUNNER_EGRESS_IP=$(curl --noproxy '*' -sS --max-time 15 https://api.ipify.org)
+echo "runner_public_egress_ip=$RUNNER_EGRESS_IP"
+if ! BINANCE_HTTP_STATUS=$(curl --noproxy '*' -sS --max-time 20 -o /dev/null -w '%{http_code}' \
+  https://fapi.binance.com/fapi/v1/exchangeInfo); then
+  echo "Binance USD-M direct egress request failed"
+  exit 1
+fi
+echo "binance_usdm_exchange_info_http_status=$BINANCE_HTTP_STATUS"
+if [[ "$BINANCE_HTTP_STATUS" != "200" ]]; then
+  echo "Binance USD-M is not reachable from this runner without a proxy; stopping before staging migrations"
+  exit 1
+fi
+
 # End one full hour behind the current hour so all requested bars are closed.
 read -r START_MS END_MS < <("$CI_PYTHON" - <<'PY'
 import time
