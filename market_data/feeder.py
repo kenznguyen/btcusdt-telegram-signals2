@@ -792,7 +792,9 @@ class FeederRuntime:
             with self._lock:
                 self._state = "RUNNING"
             if self.health is not None:
-                self.health.mark_ready()
+                mark_ready = getattr(self.health, "mark_ready", None)
+                if callable(mark_ready):
+                    mark_ready()
             self._start_heartbeat()
             self._emit("ready")
             return True
@@ -925,7 +927,9 @@ class FeederRuntime:
                 with self._lock:
                     self._state = "STOPPED"
                 if self.health is not None:
-                    self.health.mark_stopped()
+                    mark_stopped = getattr(self.health, "mark_stopped", None)
+                    if callable(mark_stopped):
+                        mark_stopped()
                 self._emit("lease_release_failed")
                 raise RuntimeError("Feeder could not release its owner/generation lease")
             self._released = True
@@ -933,6 +937,8 @@ class FeederRuntime:
         with self._lock:
             self._state = "STOPPED"
         if self.health is not None:
-            self.health.mark_stopped()
+            mark_stopped = getattr(self.health, "mark_stopped", None)
+            if callable(mark_stopped):
+                mark_stopped()
         self._emit("stopped")
         return True
