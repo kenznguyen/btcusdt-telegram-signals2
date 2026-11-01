@@ -94,26 +94,78 @@ class CandleStore:
             )""")
             connection.commit()
 
-    def insert(self, candles):
+    @staticmethod
+    def _insert_batch(connection, batch):
+        inserted = 0
+        for candle in batch:
+            key = (EXCHANGE, MARKET_TYPE, candle.symbol, candle.timeframe, candle.open_time_ms)
+            prices = tuple(getattr(candle, name) for name in PRICE_FIELDS)
+            existing = connection.execute("""SELECT open, high, low, close, volume FROM candles
+                WHERE exchange=? AND market_type=? AND symbol=? AND timeframe=? AND open_time_ms=?""", key).fetchone()
+            if existing is not None:
+                if existing != prices:
+                    raise ValueError("Conflicting closed candle; history was not overwritten")
+                continue
+            connection.execute("INSERT INTO candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                               key + prices + (candle.available_at_ms,))
+            inserted += 1
+        return inserted
+
+    @staticmethod
+    def _validated_batch(candles):
         batch = list(candles)
         if any(not isinstance(candle, Candle) for candle in batch):
             raise ValueError("Expected validated Candle values")
-        inserted = 0
+        return batch
+
+    def insert(self, candles):
+        batch = self._validated_batch(candles)
         with closing(sqlite3.connect(self.path, timeout=5)) as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
-            for candle in batch:
-                key = (EXCHANGE, MARKET_TYPE, candle.symbol, candle.timeframe, candle.open_time_ms)
-                prices = tuple(getattr(candle, name) for name in PRICE_FIELDS)
-                existing = connection.execute("""SELECT open, high, low, close, volume FROM candles
-                    WHERE exchange=? AND market_type=? AND symbol=? AND timeframe=? AND open_time_ms=?""", key).fetchone()
-                if existing is not None:
-                    if existing != prices:
-                        raise ValueError("Conflicting closed candle; history was not overwritten")
-                    continue
-                connection.execute("INSERT INTO candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                                   key + prices + (candle.available_at_ms,))
-                inserted += 1
-        return inserted
+            return self._insert_batch(connection, batch)
+
+    def insert_fenced(self, candles, *, owner, generation, now_ms,
+                      lease_name="binance-btcusdt-canonical"):
+        """Atomically validate the current SQLite lease and commit a candle batch.
+
+        BEGIN IMMEDIATE serializes this transaction against lease takeover,
+        heartbeat and release transactions in LeaseStore. The lease check and
+        every candle insert therefore share one SQLite write transaction.
+        """
+        if not isinstance(owner, str) or not owner.strip():
+            raise ValueError("owner must be a non-empty string")
+        if type(generation) is not int or generation < 1:
+            raise ValueError("generation must be a positive integer")
+        if not callable(now_ms):
+            raise TypeError("now_ms must be callable")
+        if not isinstance(lease_name, str) or not lease_name.strip():
+            raise ValueError("lease_name must be a non-empty string")
+        timestamp = now_ms()
+        if type(timestamp) is not int or timestamp < 0:
+            raise ValueError("now_ms must return a nonnegative integer")
+        batch = self._validated_batch(candles)
+        with closing(sqlite3.connect(self.path, timeout=5, isolation_level=None)) as connection:
+            connection.execute("PRAGMA busy_timeout=5000")
+            connection.execute("BEGIN IMMEDIATE")
+            try:
+                try:
+                    lease = connection.execute(
+                        """SELECT 1 FROM feeder_leases
+                           WHERE lease_name=? AND owner=? AND generation=? AND expires_at_ms>?""",
+                        (lease_name, owner, generation, timestamp),
+                    ).fetchone()
+                except sqlite3.OperationalError as error:
+                    if "no such table" in str(error).lower():
+                        raise PermissionError("Canonical write blocked: lease record is missing") from error
+                    raise
+                if lease is None:
+                    raise PermissionError("Canonical write blocked: lease is stale, expired, or missing")
+                inserted = self._insert_batch(connection, batch)
+                connection.commit()
+                return inserted
+            except Exception:
+                connection.rollback()
+                raise
 
 
 def read_window(db_path, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
