@@ -742,48 +742,6 @@ workflows:
       - t0-health-runtime-api-tests.log
       - t0-health-runtime-api-verdict.txt
 
-  t0-health-runtime-api-red:
-    name: T0 health - runtime API integration RED contract
-    instance_type: mac_mini_m2
-    max_build_duration: 15
-    triggering:
-      events: [push]
-      branch_patterns:
-        - pattern: feature/t0-health-runtime-api-integration-20261102
-          include: true
-          source: true
-      cancel_previous_builds: true
-    when:
-      changeset:
-        includes:
-          - market_data/test_feeder_health_runtime_api.py
-          - codemagic.yaml
-    scripts:
-      - name: Prepare Python and record exact source SHA
-        script: |
-          set -euo pipefail
-          bash ci/setup-python.sh requirements.txt
-          git rev-parse HEAD | tee ci-source-sha.txt
-      - name: Prove runtime-to-API contract fails before implementation
-        script: |
-          set -euo pipefail
-          if "$CI_PYTHON" -m unittest market_data.test_feeder_health_runtime_api -v 2>&1 | tee t0-health-runtime-api-red-tests.log; then
-            echo "T0_HEALTH_RUNTIME_API_RED=INVALID (contract unexpectedly passed before implementation)" | tee t0-health-runtime-api-red-verdict.txt
-            exit 1
-          fi
-          grep -q "No module named 'market_data.feeder_status'" t0-health-runtime-api-red-tests.log
-          echo "T0_HEALTH_RUNTIME_API_RED=CONFIRMED (shared SQLite runtime status provider is not implemented)" | tee t0-health-runtime-api-red-verdict.txt
-      - name: Compile integration contract
-        script: |
-          set -euo pipefail
-          "$CI_PYTHON" -m py_compile market_data/test_feeder_health_runtime_api.py
-          echo "T0_HEALTH_RUNTIME_API_TEST_COMPILE=PASS" | tee t0-health-runtime-api-red-compile.log
-    artifacts:
-      - ci-source-sha.txt
-      - t0-health-runtime-api-red-tests.log
-      - t0-health-runtime-api-red-verdict.txt
-      - t0-health-runtime-api-red-compile.log
-
   t0-feeder-sigkill-recovery:
     name: T0 feeder - SQLite SIGKILL recovery (isolated)
     instance_type: mac_mini_m2
