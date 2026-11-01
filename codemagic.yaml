@@ -469,3 +469,33 @@ workflows:
       - bybit-shadow-capture.log
       - bybit-shadow-artifacts/bybit-shadow.sqlite3
       - bybit-shadow-artifacts/bybit-shadow-report.json
+
+  market-data-okx-shadow:
+    name: Market data - OKX BTC-USDT-SWAP shadow capture (manual)
+    instance_type: mac_mini_m2
+    max_build_duration: 15
+    # Manual only: no push trigger and no automatic scheduling.
+    scripts:
+      - name: Prepare Python and record source SHA
+        script: |
+          set -euo pipefail
+          bash ci/setup-python.sh requirements-market-data.txt requirements-ci.txt
+          git rev-parse HEAD | tee ci-source-sha.txt
+      - name: Run OKX adapter and isolated store contract tests
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m unittest market_data.test_okx_swap market_data.test_okx_swap_store -v 2>&1 | tee okx-shadow-tests.log
+      - name: Compile OKX shadow modules
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m compileall -q market_data/okx_swap.py market_data/okx_swap_store.py ci/okx-shadow-capture.py
+      - name: Capture public OKX BTC-USDT-SWAP M15/H1 shadow snapshot
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" ci/okx-shadow-capture.py 2>&1 | tee okx-shadow-capture.log
+    artifacts:
+      - ci-source-sha.txt
+      - okx-shadow-tests.log
+      - okx-shadow-capture.log
+      - okx-shadow-artifacts/okx-shadow.sqlite3
+      - okx-shadow-artifacts/okx-shadow-report.json
