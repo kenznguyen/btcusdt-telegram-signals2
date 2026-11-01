@@ -84,7 +84,7 @@ class SigkillRecoveryTest(unittest.TestCase):
             if audit_path:
                 target = Path(audit_path)
                 target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_text("\n".join(audit_lines + ["RESULT=PASS"]) + "\n")
+                target.write_text("\n".join(audit_lines + [f"RESULT={audit_result['value']}"]) + "\n")
 
         self.addCleanup(write_audit)
         with tempfile.TemporaryDirectory(prefix="t0-sigkill-") as directory:
