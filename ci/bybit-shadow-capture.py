@@ -7,12 +7,16 @@ from pathlib import Path
 from market_data.bybit_linear import BybitLinearAdapter, INTERVAL_MS
 from market_data.bybit_linear_store import BybitLinearSQLiteStore
 
-root = Path(os.environ.get("CM_BUILD_DIR", "."))
+root = Path(os.environ.get("CM_BUILD_DIR", ".")).resolve()
 artifact_dir = root / "bybit-shadow-artifacts"
 artifact_dir.mkdir(exist_ok=True)
 db_path = artifact_dir / "bybit-shadow.sqlite3"
-canonical_path = artifact_dir / "binance-canonical-placeholder.sqlite3"
-canonical_path.touch(exist_ok=True)
+canonical_path = Path(
+    os.environ.get("MARKET_DATA_DB", str(root / "market_data.sqlite3"))
+).expanduser().resolve()
+canonical_path.parent.mkdir(parents=True, exist_ok=True)
+if not canonical_path.exists():
+    canonical_path.touch()
 store = BybitLinearSQLiteStore(db_path, canonical_db_path=canonical_path)
 adapter = BybitLinearAdapter()
 now = time.time_ns() // 1_000_000
