@@ -12,6 +12,11 @@ Internal requests still use bounded windows and server concurrency limits.
 
 ## Server setup
 
+For a local computer trial with Docker Compose, private generated credentials,
+separate reader/writer roles and optional collection, use the
+[local quickstart](../deploy/data-lake/README.md). It binds only to loopback and
+keeps database state in a persistent Docker volume.
+
 Install into a server virtual environment with Python 3.10+:
 
 ```bash

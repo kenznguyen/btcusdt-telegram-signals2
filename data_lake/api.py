@@ -36,14 +36,31 @@ def create_app(database=None, token=None):
     def health():
         return {"ok": True, "service": "canonical-data-lake", "liveTradingSupported": False}
 
-    def read(request: Request):
+    def authorize(request: Request):
         location = database if database is not None else os.environ.get("DATA_LAKE_DATABASE_URL") or os.environ.get("MARKET_DATA_DB")
         access = token if token is not None else os.environ.get("MARKET_DATA_TOKEN", "")
         if not location or not isinstance(access, str) or not 1 <= len(access) <= 4096:
-            return JSONResponse({"error": "UNCONFIGURED"}, status_code=503)
+            return None, JSONResponse({"error": "UNCONFIGURED"}, status_code=503)
         auth = request.headers.getlist("authorization")
         if len(auth) != 1 or len(auth[0]) > 4103 or not hmac.compare_digest(auth[0].encode(), ("Bearer " + access).encode()):
-            return JSONResponse({"error": "UNAUTHORIZED"}, status_code=401)
+            return None, JSONResponse({"error": "UNAUTHORIZED"}, status_code=401)
+        return location, None
+
+    @app.get("/ready")
+    def ready(request: Request):
+        location, error = authorize(request)
+        if error is not None:
+            return error
+        if request.scope["query_string"]:
+            return JSONResponse({"error": "INVALID_QUERY"}, status_code=400)
+        from data_lake.readiness import check_readiness
+        result = check_readiness(location, now_ms())
+        return JSONResponse(result, status_code=200 if result["ready"] else 503)
+
+    def read(request: Request):
+        location, error = authorize(request)
+        if error is not None:
+            return error
         current = now_ms()
         try:
             raw_query = request.scope["query_string"]

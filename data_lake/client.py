@@ -7,7 +7,7 @@ import re
 import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit, urlunsplit
-from urllib.request import HTTPRedirectHandler, Request, build_opener
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 from market_data.store import (Candle, EXCHANGE, INTERVAL_MS, MARKET_TYPE,
                                MAX_CANDLES, MAX_TIMESTAMP, PRICE_FIELDS, SYMBOL)
@@ -127,7 +127,10 @@ class DataLakeClient:
         _require(isinstance(token, str) and 1 <= len(token) <= 4096
                  and all(33 <= ord(c) <= 126 for c in token), "INVALID_TOKEN")
         self._token = token
-        self._opener = build_opener(_NoRedirect())
+        handlers = [_NoRedirect()]
+        if urlsplit(self.base_url).hostname in ("127.0.0.1", "::1"):
+            handlers.append(ProxyHandler({}))
+        self._opener = build_opener(*handlers)
 
     def read_candles(self, timeframe, start_ms, end_ms, as_of_ms=None):
         start, end, _ = _window(timeframe, start_ms, end_ms)

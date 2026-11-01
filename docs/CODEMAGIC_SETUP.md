@@ -96,3 +96,8 @@ FastAPI/psycopg/pyarrow, khởi động PostgreSQL 17 tạm thời, chạy kiể
 thật và dọn server khi kết thúc. `DATA_LAKE_REQUIRE_POSTGRES=1` buộc lỗi nếu thiếu
 DB/driver, không coi kiểm thử bị bỏ qua là đạt. Xem
 [runbook data lake](../data_lake/README.md) để chạy dịch vụ thường trực ngoài CI.
+
+Nhánh `feature/local-data-lake` cũng chạy hai workflow Python hiện có. Workflow
+**`local-data-lake-smoke`** chỉ chạy thủ công trên `linux_x2` để build và thử Compose;
+không bật collector hoặc gọi sàn. Runner Linux yêu cầu billing trên Codemagic;
+có thể thử trực tiếp trên máy tính theo [hướng dẫn local](../deploy/data-lake/README.md).
