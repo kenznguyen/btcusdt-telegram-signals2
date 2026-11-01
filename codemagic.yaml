@@ -483,10 +483,9 @@ workflows:
       - t0-feeder-lease-verdict.txt
       - t0-feeder-lease-compile.log
   
-  # P1.7 RED-only contract capture. Replace this gate with the normal GREEN gate
-  # only after the missing health evaluator and HTTP endpoints are implemented.
+  # P1.7 GREEN gate: evaluator + HTTP health contracts.
   t0-feeder-health:
-    name: T0 feeder - health contracts (RED precondition)
+    name: T0 feeder - health, freshness and readiness (GREEN)
     instance_type: mac_mini_m2
     max_build_duration: 10
     triggering:
@@ -507,24 +506,16 @@ workflows:
     scripts:
       - name: Prepare Python dependencies and record exact source SHA
         script: bash ci/setup-python.sh requirements.txt
-      - name: Capture expected RED health contract failure
-        script: |
-          set -uo pipefail
-          set +e
-          "$CI_PYTHON" -m unittest market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-health-tests.log
-          test_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$test_status" -ne 0 ] && grep -q "cannot import name 'HealthEvaluator'" t0-feeder-health-tests.log; then
-            echo "T0_FEEDER_HEALTH_RED=CONFIRMED (HealthEvaluator missing as expected)" | tee t0-feeder-health-verdict.txt
-          else
-            echo "T0_FEEDER_HEALTH_RED=NOT_CONFIRMED (failure did not match expected missing HealthEvaluator)" | tee t0-feeder-health-verdict.txt
-            exit 1
-          fi
-      - name: Compile health contract test modules
+      - name: Run T0 health evaluator and HTTP contract tests
         script: |
           set -euo pipefail
-          "$CI_PYTHON" -m py_compile market_data/test_feeder_health.py market_data/test_feeder_health_api.py
-          echo "T0_FEEDER_HEALTH_TEST_COMPILE=PASS" | tee t0-feeder-health-compile.log
+          "$CI_PYTHON" -m unittest market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-health-tests.log
+          echo "T0_FEEDER_HEALTH_TESTS=PASS" | tee t0-feeder-health-verdict.txt
+      - name: Compile health implementation and contract tests
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m py_compile market_data/feeder.py app.py market_data/test_feeder_health.py market_data/test_feeder_health_api.py
+          echo "T0_FEEDER_HEALTH_COMPILE=PASS" | tee t0-feeder-health-compile.log
     artifacts:
       - ci-source-sha.txt
       - t0-feeder-health-tests.log
