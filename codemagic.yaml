@@ -482,3 +482,54 @@ workflows:
       - t0-feeder-lease-tests.log
       - t0-feeder-lease-verdict.txt
       - t0-feeder-lease-compile.log
+  
+  # P1.7 RED-only contract capture. Replace this gate with the normal GREEN gate
+  # only after the missing health evaluator and HTTP endpoints are implemented.
+  t0-feeder-health:
+    name: T0 feeder - health contracts (RED precondition)
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: feature/t0-centralized-data-feeder-p1-20261101
+          include: true
+          source: true
+      cancel_previous_builds: true
+    when:
+      changeset:
+        includes:
+          - market_data/feeder.py
+          - market_data/test_feeder_health.py
+          - market_data/test_feeder_health_api.py
+          - app.py
+          - codemagic.yaml
+    scripts:
+      - name: Verify Python and record exact source SHA
+        script: |
+          set -euo pipefail
+          python3 -c 'import sys; assert sys.version_info >= (3, 10), "Python 3.10+ required"'
+          git rev-parse HEAD | tee ci-source-sha.txt
+      - name: Capture expected RED health contract failure
+        script: |
+          set -uo pipefail
+          set +e
+          python3 -m unittest market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-health-tests.log
+          test_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$test_status" -ne 0 ]; then
+            echo "T0_FEEDER_HEALTH_RED=CONFIRMED (exit $test_status)" | tee t0-feeder-health-verdict.txt
+          else
+            echo "T0_FEEDER_HEALTH_RED=NOT_CONFIRMED (tests unexpectedly passed)" | tee t0-feeder-health-verdict.txt
+            exit 1
+          fi
+      - name: Compile health contract test modules
+        script: |
+          set -euo pipefail
+          python3 -m py_compile market_data/test_feeder_health.py market_data/test_feeder_health_api.py
+          echo "T0_FEEDER_HEALTH_TEST_COMPILE=PASS" | tee t0-feeder-health-compile.log
+    artifacts:
+      - ci-source-sha.txt
+      - t0-feeder-health-tests.log
+      - t0-feeder-health-verdict.txt
+      - t0-feeder-health-compile.log
