@@ -159,7 +159,7 @@ def audit_contract(root):
     static_only_ok = (
         all(token not in release_script for token in forbidden_runtime_modules)
         and "ci.test_t0_operational_contract" in release_script
-        and "python ci/t0_operational_contract.py" in release_script
+        and '"$CI_PYTHON" ci/t0_operational_contract.py' in release_script
     )
 
     feeder_service = (root / "market_data/feeder_service.py").read_text(encoding="utf-8")
