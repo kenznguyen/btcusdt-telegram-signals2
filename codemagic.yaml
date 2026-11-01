@@ -521,3 +521,53 @@ workflows:
       - t0-feeder-health-tests.log
       - t0-feeder-health-verdict.txt
       - t0-feeder-health-compile.log
+
+  # P1.8 RED gate: lifecycle and graceful-shutdown contracts.
+  t0-feeder-lifecycle-red:
+    name: T0 feeder - lifecycle and graceful shutdown (RED)
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: feature/t0-centralized-data-feeder-p1-20261101
+          include: true
+          source: true
+      cancel_previous_builds: true
+    when:
+      changeset:
+        includes:
+          - market_data/feeder.py
+          - market_data/test_feeder_lifecycle.py
+          - codemagic.yaml
+    scripts:
+      - name: Prepare Python and record exact source SHA
+        script: bash ci/setup-python.sh requirements.txt
+      - name: Confirm lifecycle contracts fail before implementation
+        script: |
+          set -euo pipefail
+          set +e
+          "$CI_PYTHON" -m unittest market_data.test_feeder_lifecycle -v 2>&1 | tee t0-feeder-lifecycle-red-tests.log
+          test_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$test_status" -eq 0 ]; then
+            echo "Unexpected PASS: lifecycle RED gate must fail before implementation" >&2
+            exit 1
+          fi
+          if grep -q "cannot import name 'FeederRuntime'" t0-feeder-lifecycle-red-tests.log; then
+            echo "T0_FEEDER_LIFECYCLE_RED=CONFIRMED (FeederRuntime missing as expected)" | tee t0-feeder-lifecycle-red-verdict.txt
+          else
+            cat t0-feeder-lifecycle-red-tests.log
+            echo "T0_FEEDER_LIFECYCLE_RED=INVALID (failure was not the expected missing lifecycle implementation)" | tee t0-feeder-lifecycle-red-verdict.txt
+            exit 1
+          fi
+      - name: Compile lifecycle contract tests
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m py_compile market_data/test_feeder_lifecycle.py
+          echo "T0_FEEDER_LIFECYCLE_TEST_COMPILE=PASS" | tee t0-feeder-lifecycle-red-compile.log
+    artifacts:
+      - ci-source-sha.txt
+      - t0-feeder-lifecycle-red-tests.log
+      - t0-feeder-lifecycle-red-verdict.txt
+      - t0-feeder-lifecycle-red-compile.log
