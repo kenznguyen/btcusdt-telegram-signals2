@@ -781,3 +781,41 @@ workflows:
       - t0-feeder-sigkill-recovery-verdict.txt
       - t0-feeder-sigkill-recovery-compile.log
       - t0-feeder-sigkill-recovery-sqlite-audit.log
+
+
+  # Static audit only: never starts the feeder or reruns historical T0 suites.
+  t0-operational-contract-release-gate:
+    name: T0 - Operational Contract & Release Gate (static)
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: feature/t0-operational-contract-release-gate-20261102
+          include: true
+          source: true
+      cancel_previous_builds: true
+    when:
+      changeset:
+        includes:
+          - ci/t0_operational_contract.py
+          - ci/test_t0_operational_contract.py
+          - codemagic.yaml
+    scripts:
+      - name: Prepare Python and record exact source SHA
+        script: |
+          set -euo pipefail
+          bash ci/setup-python.sh requirements-ci.txt
+          git rev-parse HEAD | tee ci-source-sha.txt
+      - name: Run static operational contract tests and audit
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m unittest ci.test_t0_operational_contract -v 2>&1 | tee t0-operational-contract-tests.log
+          "$CI_PYTHON" ci/t0_operational_contract.py 2>&1 | tee t0-operational-contract-audit.log
+          grep -q "T0_OPERATIONAL_CONTRACT_RELEASE_GATE=PASS" t0-operational-contract-audit.log
+    artifacts:
+      - ci-source-sha.txt
+      - t0-operational-contract-tests.log
+      - t0-operational-contract-audit.log
+      - t0-operational-contract-report.json
+      - t0-operational-contract-report.md
