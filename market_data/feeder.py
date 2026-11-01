@@ -615,6 +615,10 @@ class HealthEvaluator:
             states.append("DEGRADED")
 
         state = self._worst_state(states)
+        # An otherwise healthy process is still STARTING until initialization
+        # has completed. More severe data/dependency failures retain priority.
+        if snapshot.get("startup_complete") is not True and state == "HEALTHY":
+            state = "STARTING"
         ready = (
             snapshot.get("startup_complete") is True
             and snapshot.get("storage_readable") is True
