@@ -440,11 +440,9 @@ workflows:
       - kraken-spot-read-api-tests.log
       - kraken-spot-read-api-compileall.log
 
-  # Temporary P1 RED gate. It is expected to pass only when the contract suite
-  # fails specifically because market_data.feeder has not been implemented yet.
-  # Replace this workflow with a normal green P1 gate after RED evidence is reviewed.
-  t0-feeder-contract-red:
-    name: T0 feeder - expected RED contract verification
+  # P1 scheduler slice: normal GREEN gate, intentionally limited to scheduler tests.
+  t0-feeder-scheduler:
+    name: T0 feeder - scheduler contract
     instance_type: mac_mini_m2
     max_build_duration: 10
     triggering:
@@ -457,48 +455,27 @@ workflows:
     when:
       changeset:
         includes:
-          - market_data/test_feeder_*.py
-          - docs/T0_FEEDER_TEST_CONTRACT.md
+          - market_data/feeder.py
+          - market_data/test_feeder_scheduler.py
           - codemagic.yaml
     scripts:
-      - name: Prepare Python and record exact source SHA
+      - name: Verify Python and record exact source SHA
         script: |
           set -euo pipefail
-          bash ci/setup-python.sh requirements-market-data.txt
+          python3 -c 'import sys; assert sys.version_info >= (3, 10), "Python 3.10+ required"'
           git rev-parse HEAD | tee ci-source-sha.txt
-      - name: Verify feeder implementation is intentionally absent
+      - name: Run only the scheduler contract tests
         script: |
           set -euo pipefail
-          "$CI_PYTHON" -c 'import importlib.util, sys; sys.exit(0 if importlib.util.find_spec("market_data.feeder") is None else 1)'
-          echo "EXPECTED_RED_PRECONDITION=PASS (market_data.feeder is absent)" | tee t0-feeder-red-verdict.txt
-      - name: Run feeder contract suite and require the expected RED cause
+          python3 -m unittest market_data.test_feeder_scheduler -v 2>&1 | tee t0-feeder-scheduler-tests.log
+          echo "T0_FEEDER_SCHEDULER_TESTS=PASS" | tee t0-feeder-scheduler-verdict.txt
+      - name: Compile feeder scheduler module
         script: |
           set -euo pipefail
-          set +e
-          "$CI_PYTHON" -m unittest \
-            market_data.test_feeder_scheduler \
-            market_data.test_feeder_retry \
-            market_data.test_feeder_recovery \
-            market_data.test_feeder_lease \
-            market_data.test_feeder_health \
-            market_data.test_feeder_lifecycle \
-            -v 2>&1 | tee t0-feeder-contract-red-tests.log
-          test_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$test_status" -eq 0 ]; then
-            echo "UNEXPECTED_GREEN: feeder contract tests passed before implementation" | tee -a t0-feeder-red-verdict.txt
-            exit 1
-          fi
-          if ! grep -Fq "No module named 'market_data.feeder'" t0-feeder-contract-red-tests.log; then
-            echo "INVALID_RED: failure was not caused by the missing feeder implementation" | tee -a t0-feeder-red-verdict.txt
-            exit 1
-          fi
-          if grep -Eq "SyntaxError|IndentationError|No module named 'market_data.test_feeder" t0-feeder-contract-red-tests.log; then
-            echo "INVALID_RED: test collection or syntax failure detected" | tee -a t0-feeder-red-verdict.txt
-            exit 1
-          fi
-          echo "EXPECTED_RED_CONFIRMED: contract suite detects missing market_data.feeder" | tee -a t0-feeder-red-verdict.txt
+          python3 -m py_compile market_data/feeder.py
+          echo "T0_FEEDER_SCHEDULER_COMPILE=PASS" | tee t0-feeder-scheduler-compile.log
     artifacts:
       - ci-source-sha.txt
-      - t0-feeder-contract-red-tests.log
-      - t0-feeder-red-verdict.txt
+      - t0-feeder-scheduler-tests.log
+      - t0-feeder-scheduler-verdict.txt
+      - t0-feeder-scheduler-compile.log
