@@ -112,7 +112,12 @@ class FeederRuntimeStatusStore:
                 and lease["expires_at_ms"] > now_ms
             )
             state = status["state"]
-            if state == "RUNNING" and not lease_valid:
+            if (state in ("STARTING", "RUNNING") and lease is not None
+                    and lease["generation"] > status["generation"]):
+                # A replacement generation has acquired the singleton lease;
+                # its own STARTING publication may not have committed yet.
+                state = "STARTING"
+            elif state in ("STARTING", "RUNNING") and not lease_valid and lease is not None:
                 state = "LEASE_LOST"
             if state == "RUNNING" and not status["recovery_complete"]:
                 state = "STARTING"
