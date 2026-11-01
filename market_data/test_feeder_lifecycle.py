@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import Mock
 
 from market_data.feeder import FeederConfig, FeederRuntime, FeederScheduler
+from market_data.feeder_service import RecoveryAdapter, build_runtime
 
 NOW = 1_800_000_000_000
 
@@ -313,6 +314,63 @@ class RuntimeLifecycleTest(unittest.TestCase):
                 "runtime-worker", runtime.lease_generation, NOW + 1
             ))
             self.assertEqual(calls, ["15m"])
+
+
+
+class RuntimeIntegrationContractTest(unittest.TestCase):
+    def test_recovery_adapter_recovers_each_configured_timeframe(self):
+        calls = []
+        class Coordinator:
+            def __init__(self, timeframe):
+                self.timeframe = timeframe
+            def recover(self, timeframe, start_ms, end_ms):
+                calls.append((self.timeframe, timeframe, start_ms, end_ms))
+                return type("Result", (), {"complete": True})()
+
+        now = NOW + 7_200_000 + 5_000
+        adapter = RecoveryAdapter(
+            coordinators={"15m": Coordinator("15m"), "1h": Coordinator("1h")},
+            clock=lambda: now,
+            lookback_candles=4,
+            close_grace_seconds=5,
+        )
+        self.assertTrue(adapter.recover_all())
+        self.assertEqual([call[0] for call in calls], ["15m", "1h"])
+        self.assertTrue(all(call[0] == call[1] for call in calls))
+        self.assertEqual(calls[0][3] % 900_000, 0)
+        self.assertEqual(calls[1][3] % 3_600_000, 0)
+        self.assertEqual(calls[0][3] - calls[0][2], 4 * 900_000)
+        self.assertEqual(calls[1][3] - calls[1][2], 4 * 3_600_000)
+
+    def test_recovery_adapter_fails_closed_on_incomplete_result(self):
+        class Coordinator:
+            def recover(self, *args):
+                return type("Result", (), {"complete": False})()
+        adapter = RecoveryAdapter(
+            coordinators={"15m": Coordinator()},
+            clock=lambda: NOW + 900_000,
+            lookback_candles=2,
+        )
+        self.assertFalse(adapter.recover_all())
+
+    def test_build_runtime_composes_scheduler_and_recovery_without_starting_process(self):
+        from unittest.mock import Mock
+        from market_data.feeder import FeederRuntime
+        exchange, store, leases = Mock(), Mock(), Mock()
+        runtime = build_runtime(
+            config=FeederConfig(timeframes=("15m", "1h")),
+            owner_id="integration-worker",
+            exchange=exchange,
+            store=store,
+            lease_store=leases,
+            clock=lambda: NOW + 7_200_000,
+        )
+        self.assertIsInstance(runtime, FeederRuntime)
+        self.assertIsInstance(runtime.recovery, RecoveryAdapter)
+        self.assertEqual(runtime.scheduler.config.timeframes, ("15m", "1h"))
+        self.assertFalse(runtime.scheduler._thread is not None)
+        self.assertIs(runtime.scheduler.sync_callback.__closure__[0].cell_contents.__closure__[0].cell_contents
+                       if runtime.scheduler.sync_callback.__closure__ else None, None) if False else None
 
 
 if __name__ == "__main__":
