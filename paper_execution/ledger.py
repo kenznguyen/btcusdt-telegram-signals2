@@ -7,6 +7,7 @@ from pathlib import Path
 import sqlite3
 
 from pipeline.values import identity, number, stamp
+from paper_execution import risk_control, equity as equity_history
 
 ZERO = Decimal(0)
 ACTIVE = {"OPEN", "PARTIALLY_FILLED"}
@@ -102,17 +103,23 @@ def read_snapshot(db_path):
         context.prec = 80
         connection.execute("BEGIN")
         position, average, realized, fees, paused = stored_state(connection)
+        risk = risk_control.snapshot(connection)
+        strategy = connection.execute("SELECT owner,dca_used,initial_margin_quote FROM paper_strategy_state WHERE id=1").fetchone() if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_strategy_state'").fetchone() else (None, 0, "0")
         orders = [json.loads(row[0]) for row in connection.execute("SELECT document FROM paper_orders ORDER BY rowid DESC LIMIT 100")]
-        return {"mode": "PAPER", "liveTradingSupported": False, "paused": bool(paused), "positionBase": text(position),
+        return {"mode": "PAPER", "liveTradingSupported": False, "paused": bool(paused), "riskControl": risk, "strategyState": {"owner": strategy[0], "dcaUsed": bool(strategy[1]), "initialMarginQuote": strategy[2]}, "positionBase": text(position),
                 "averageEntryPrice": text(average), "realizedPnlQuote": text(realized), "feesQuote": text(fees),
                 "netRealizedPnlQuote": text(realized-fees), "orders": orders,
                 "simulationModel": "VISIBLE_DEPTH_LIMIT_SNAPSHOT"}
 
 
 class PaperLedger:
-    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50"):
+    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage="13"):
         self.path = Path(db_path)
         self.maximum, self.fee_rate, self.spread = number(max_position_base), number(fee_rate), number(max_spread_bps)
+        self.risk_limits, self.require_risk_limits = risk_limits, bool(require_risk_limits)
+        self.leverage = number(leverage)
+        if self.leverage <= 0:
+            raise ValueError("Invalid strategy leverage")
         if self.maximum <= 0 or self.fee_rate > 1 or not 0 < self.spread <= 10_000:
             raise ValueError("Invalid paper risk configuration")
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -132,6 +139,22 @@ class PaperLedger:
             connection.execute("CREATE TABLE IF NOT EXISTS paper_books (book_id TEXT PRIMARY KEY, used_at_ms INTEGER NOT NULL)")
             connection.execute("""CREATE TABLE IF NOT EXISTS paper_audit (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, at_ms INTEGER NOT NULL, kind TEXT NOT NULL, document TEXT NOT NULL)""")
+            risk_control.ensure(connection)
+            strategy_table = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_strategy_state'").fetchone()
+            connection.execute("""CREATE TABLE IF NOT EXISTS paper_strategy_state (
+                id INTEGER PRIMARY KEY CHECK(id=1), owner TEXT, dca_used INTEGER NOT NULL CHECK(dca_used IN (0,1)),
+                initial_margin_quote TEXT NOT NULL)""")
+            if not strategy_table:
+                legacy_position = Decimal(stored_state(connection)[0])
+                connection.execute("INSERT OR IGNORE INTO paper_strategy_state VALUES (1,?,?,?)",
+                                   ("LEGACY" if legacy_position else None, 0, "0"))
+            else:
+                existing_strategy = connection.execute("SELECT 1 FROM paper_strategy_state WHERE id=1").fetchone()
+                if not existing_strategy:
+                    legacy_position = Decimal(stored_state(connection)[0])
+                    connection.execute("INSERT INTO paper_strategy_state VALUES (1,?,?,?)",
+                                       ("LEGACY" if legacy_position else None, 0, "0"))
+            equity_history.ensure(connection)
 
     def connect(self):
         return sqlite3.connect(self.path, timeout=10)
@@ -141,13 +164,19 @@ class PaperLedger:
         connection.execute("INSERT INTO paper_audit(at_ms,kind,document) VALUES (?,?,?)",
                            (at_ms, kind, json.dumps(value, allow_nan=False)))
 
-    def submit(self, raw, book, now_ms):
+    def submit(self, raw, book, now_ms, *, strategy_id="MANUAL", strategy_event=None):
         intent, now = intent_value(raw), stamp(now_ms)
-        digest = identity("payload:", intent)
+        if strategy_id not in {"MANUAL", "STRATEGY_CORE", "AI_FREQAI"}:
+            raise ValueError("Invalid strategy owner")
+        if strategy_event not in (None, "ENTRY", "DCA", "EXIT"):
+            raise ValueError("Invalid strategy event")
+        digest = identity("payload:", {**intent, "strategyId": strategy_id})
         with closing(self.connect()) as connection, connection, localcontext() as context:
             context.prec = 80
             connection.execute("BEGIN IMMEDIATE")
             position, average, realized, fees, paused = stored_state(connection)
+            owner_row = connection.execute("SELECT owner,dca_used,initial_margin_quote FROM paper_strategy_state WHERE id=1").fetchone()
+            owner, dca_used, initial_margin = owner_row
             previous = connection.execute("SELECT payload_hash,document FROM paper_orders WHERE intent_id=?", (intent["intentId"],)).fetchone()
             if previous:
                 if previous[0] != digest:
@@ -158,11 +187,25 @@ class PaperLedger:
             side = "BUY" if delta > 0 else "SELL" if delta < 0 else "NONE"
             quantity, filled, quote, fee = abs(delta), ZERO, ZERO, ZERO
             pending = connection.execute("SELECT 1 FROM paper_orders WHERE status IN ('OPEN','PARTIALLY_FILLED') LIMIT 1").fetchone()
-            if paused:
+            risk_reducing = position != 0 and target * position >= 0 and abs(target) < abs(position)
+            risk_reason, auto_kill = equity_history.block_reason(connection, target_position=target,
+                current_position=position, limit_price=limit, limits=self.risk_limits,
+                require_limits=self.require_risk_limits, now_ms=now)
+            if auto_kill:
+                risk_control.set_kill(connection, True, now, auto_kill)
+                self.audit(connection, now, "RISK_LIMIT_BREACH", {"reason": auto_kill})
+            if risk_reason:
+                reason = "PAUSED" if risk_reason == "RISK_PAUSED" else risk_reason
+            elif not risk_reducing and owner not in (None, strategy_id) and position != 0:
+                reason = "POSITION_OWNED_BY_OTHER_STRATEGY"
+            elif not risk_reducing and risk_control.risk_block_reason(connection):
+                block_reason = risk_control.risk_block_reason(connection)
+                reason = "PAUSED" if block_reason == "RISK_PAUSED" else block_reason
+            elif paused and not risk_reducing:
                 reason = "PAUSED"
             elif not intent["decisionAtMs"] <= now <= intent["validUntilMs"]:
                 reason = "EXPIRED_INTENT"
-            elif abs(target) > self.maximum:
+            elif not risk_reducing and abs(target) > self.maximum:
                 reason = "POSITION_LIMIT"
             elif pending:
                 reason = "PENDING_ORDER"
@@ -177,6 +220,7 @@ class PaperLedger:
                     elif connection.execute("SELECT 1 FROM paper_books WHERE book_id=?", (book_id,)).fetchone():
                         reason = "SNAPSHOT_ALREADY_USED"
             if reason is None and quantity:
+                starting_position = position
                 for price, visible in (asks if delta > 0 else bids):
                     if (delta > 0 and price > limit) or (delta < 0 and price < limit):
                         break
@@ -205,6 +249,21 @@ class PaperLedger:
                     fees += fee
                     connection.execute("UPDATE paper_state SET position=?,average=?,realized=?,fees=? WHERE id=1",
                                        tuple(map(text, (position, average, realized, fees))))
+                    next_owner = owner
+                    next_dca_used = dca_used
+                    next_initial_margin = initial_margin
+                    opened_or_reversed = position != 0 and (
+                        owner is None or starting_position == 0 or starting_position * position < 0)
+                    if position == 0:
+                        next_owner, next_dca_used, next_initial_margin = None, 0, "0"
+                    elif opened_or_reversed:
+                        next_owner = strategy_id
+                        next_dca_used = 1 if strategy_event == "DCA" else 0
+                        next_initial_margin = text(abs(position) * average / self.leverage)
+                    elif strategy_event == "DCA":
+                        next_dca_used = 1
+                    connection.execute("UPDATE paper_strategy_state SET owner=?,dca_used=?,initial_margin_quote=? WHERE id=1",
+                                       (next_owner, next_dca_used, next_initial_margin))
             status = "REJECTED" if reason else "FILLED" if filled == quantity else "PARTIALLY_FILLED" if filled else "OPEN"
             order = {"orderId": identity("paper:", intent["intentId"]), "intentId": intent["intentId"],
                      "status": status, "side": side, "quantityBase": text(quantity), "filledBase": text(filled),
@@ -219,6 +278,26 @@ class PaperLedger:
     def snapshot(self):
         return read_snapshot(self.path)
 
+    def strategy_state(self):
+        return self.snapshot().get("strategyState", {"owner": None, "dcaUsed": False, "initialMarginQuote": "0"})
+
+    def record_equity(self, mark_price, candle_close_ms, observed_at_ms, dataset_version, initial_capital="100"):
+        with closing(self.connect()) as connection, connection:
+            connection.execute("BEGIN IMMEDIATE")
+            position, average, realized, fees, _ = stored_state(connection)
+            return equity_history.record(connection, initial_capital=initial_capital, position=position,
+                average=average, realized=realized, fees=fees, mark_price=mark_price,
+                candle_close_ms=candle_close_ms, observed_at_ms=observed_at_ms,
+                dataset_version=dataset_version)
+
+    def equity_snapshot(self, now_ms):
+        with closing(self.connect()) as connection:
+            connection.execute("BEGIN")
+            return equity_history.snapshot(connection, now_ms)
+
+    def audit_snapshot(self, limit=50, before_id=None):
+        return read_audit(self.path, limit=limit, before_id=before_id)
+
     def set_paused(self, paused, now_ms):
         if type(paused) is not bool:
             raise ValueError("Paused must be a boolean")
@@ -226,7 +305,24 @@ class PaperLedger:
         with closing(self.connect()) as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
             connection.execute("UPDATE paper_state SET paused=? WHERE id=1", (int(paused),))
+            risk_control.set_paused(connection, paused, now)
             self.audit(connection, now, "PAUSE" if paused else "RESUME", {"paused": paused})
+        return self.snapshot()
+
+    def set_killed(self, enabled, now_ms, reason="OPERATOR_KILL_SWITCH"):
+        now = stamp(now_ms)
+        with closing(self.connect()) as connection, connection:
+            connection.execute("BEGIN IMMEDIATE")
+            risk_control.set_kill(connection, enabled, now, reason)
+            self.audit(connection, now, "KILL_SWITCH", {"enabled": enabled, "reason": reason})
+        return self.snapshot()
+
+    def reset_kill(self, acknowledge, ready, now_ms):
+        now = stamp(now_ms)
+        with closing(self.connect()) as connection, connection:
+            connection.execute("BEGIN IMMEDIATE")
+            risk_control.reset_kill(connection, acknowledge, ready, now)
+            self.audit(connection, now, "KILL_SWITCH_RESET", {"acknowledge": acknowledge, "ready": ready})
         return self.snapshot()
 
     def cancel(self, order_id, now_ms):
@@ -246,3 +342,25 @@ class PaperLedger:
                 connection.execute("UPDATE paper_orders SET status=?,document=? WHERE order_id=?", (order["status"], json.dumps(order), order_id))
                 self.audit(connection, now, "CANCEL", {"orderId": order_id})
             return order
+
+
+def read_audit(db_path, *, limit=50, before_id=None):
+    if type(limit) is not int or not 1 <= limit <= 100:
+        raise ValueError("Invalid audit limit")
+    if before_id is not None and (type(before_id) is not int or before_id <= 0):
+        raise ValueError("Invalid audit cursor")
+    path = Path(db_path).resolve()
+    if not path.is_file():
+        raise FileNotFoundError("Paper ledger is unavailable")
+    with closing(sqlite3.connect(path.as_uri()+"?mode=ro", uri=True, timeout=10)) as connection:
+        exists = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_audit'").fetchone()
+        if not exists:
+            return {"events": [], "nextBeforeId": None}
+        if before_id is None:
+            rows = connection.execute("SELECT id,at_ms,kind,document FROM paper_audit ORDER BY id DESC LIMIT ?", (limit+1,)).fetchall()
+        else:
+            rows = connection.execute("SELECT id,at_ms,kind,document FROM paper_audit WHERE id<? ORDER BY id DESC LIMIT ?", (before_id,limit+1)).fetchall()
+        more = len(rows) > limit
+        rows = rows[:limit]
+        return {"events":[{"id":row[0],"atMs":row[1],"kind":row[2],"document":json.loads(row[3])} for row in rows],
+                "nextBeforeId": rows[-1][0] if more and rows else None}

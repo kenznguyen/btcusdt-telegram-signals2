@@ -5,7 +5,7 @@ GitHub chỉ lưu source/nhánh/PR. Không còn YAML thực thi trong `.github/w
 ## 1. Kết nối và chọn nhánh
 
 1. Mở application `btcusdt-telegram-signals2` đã thêm vào Codemagic, chọn cấu hình YAML từ repository.
-2. Dùng nhánh **`feature/canonical-market-data`** để thử cấu hình hiện tại. Chỉ chọn `main` sau khi đã merge đủ source và `codemagic.yaml` mới.
+2. Dùng nhánh **`feature/android-five-layer-control`** để build APK có tab 5 tầng. Nhánh `feature/five-layer-paper` chứa bản tích hợp backend/React trước đó. Chỉ chọn `main` sau khi đã merge đủ source và `codemagic.yaml` mới.
 3. Bật GitHub webhook của application để Codemagic nhận push. Các workflow tự động giới hạn nhánh/đường dẫn trong YAML, không tạo thêm runner GitHub Actions.
 4. Trong **Start new build**, chọn workflow ID bên dưới. Xem log và artifact gắn với source SHA thực tế, không suy ra build đạt chỉ từ việc đã thêm YAML.
 
@@ -26,7 +26,15 @@ Workflow này không cần API key sàn và không gọi Telegram hoặc phát l
 
 ## 3. APK debug và release
 
-**`android-chart-pro-debug`** dùng JDK 17, Gradle 8.9 có SHA-256 pin, SDK 35 và Build Tools 34.0.0. Chạy gateway tests, Android unit tests, rồi assemble debug. Artifact: APK debug, JUnit XML/HTML và `android-source-sha.txt`.
+**`android-chart-pro-debug`** dùng JDK 17, Gradle 8.9 có SHA-256 pin, SDK 35 và Build Tools 34.0.0. Chạy gateway/artifact tests, `testDebugUnitTest` và `testParallelUnitTest`, rồi `assembleDebug` và `assembleParallel`. Gate cuối dùng `aapt` kiểm tra package/label/launcher/version và `apksigner` xác minh chữ ký hai APK. Artifact: APK thường, **`BTC-5-Tang-Paper-<source SHA>.apk`**, JUnit XML/HTML, `android-source-sha.txt` và `android-apks.json` chứa SHA-256 APK/chứng chỉ.
+
+Để cài song song, tải **`BTC-5-Tang-Paper-<source SHA>.apk`**. Tên launcher **BTC 5 Tầng Paper**, biểu tượng màu hổ phách, ID **`com.kenznguyen.btclivealerts.paper`**; mở mặc định tab 5 tầng. Bản thường giữ nguyên ID **`com.kenznguyen.btclivealerts`**, không bị thay thế. Dữ liệu/thiết lập/quyền/thông báo Android của hai app độc lập; **sổ paper trên server vẫn dùng chung nếu cùng API**. Muốn sổ thử riêng cần server/database riêng.
+
+Bản parallel là APK debug để thử nghiệm. Cài cập nhật cần cùng chứng chỉ; debug keystore mới trên runner có thể khiến phải gỡ/cài lại riêng app Paper. Đối chiếu fingerprint trong `android-apks.json`; cấu hình ký release hiện có được giữ nguyên.
+
+Nhánh `feature/android-five-layer-control` được phép kích hoạt workflow debug khi push thay đổi Android/CI và webhook đã kết nối. Có thể chọn nhánh này trong **Start new build**; đối chiếu `android-source-sha.txt` trước khi tải/cài APK. Chưa có kết quả build thì chưa có APK mới được xác minh.
+
+Trong APK, mở **Hệ thống 5 tầng** và nhập HTTPS base URL của common API cùng read token `MARKET_DATA_TOKEN`. Tab này chỉ dùng BTCUSDT PAPER. `CONTROL_TOKEN` riêng là tùy chọn để đánh giá intent, tạm dừng/tiếp tục và hủy lệnh paper. App chỉ lưu base URL, giữ token trong bộ nhớ của màn hình; không nhập API key sàn. Server phải được triển khai riêng theo [runbook 5 tầng](FIVE_LAYER_PAPER_RUNBOOK.md), không chạy thường trực trong Codemagic.
 
 **`android-chart-pro-release`** chỉ chạy thủ công. Trong Codemagic, tạo nhóm biến bảo mật **`android_release`**, cho application sử dụng nhóm này và nhập lại chính các giá trị keystore hiện có:
 
@@ -49,7 +57,7 @@ Khớp alias không đủ chứng minh cập nhật được APK đã cài. Cầ
 | --- | --- |
 | `CODEMAGIC_API_TOKEN` | Token Codemagic chỉ giữ ở server |
 | `CODEMAGIC_APP_ID` | Application ID của repository này |
-| `CODEMAGIC_BRANCH` | Nhánh đã có đầy đủ workflow mới, hiện là `feature/canonical-market-data` |
+| `CODEMAGIC_BRANCH` | Nhánh đã có đầy đủ workflow mới; dùng `feature/android-five-layer-control` cho bản APK 5 tầng |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Bot/chat đã dùng trước đây |
 | `TELEGRAM_WEBHOOK_SECRET` | Secret của webhook hiện có |
 

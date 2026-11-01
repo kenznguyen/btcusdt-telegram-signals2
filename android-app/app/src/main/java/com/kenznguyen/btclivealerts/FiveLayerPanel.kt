@@ -1,0 +1,510 @@
+package com.kenznguyen.btclivealerts
+
+import android.content.Context
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+private val fiveMuted = Color(0xFF91A0B5)
+private val fiveGreen = Color(0xFF20C997)
+private val fiveAmber = Color(0xFFFFC857)
+
+@Composable
+private fun FiveLayerEquityCurve(points: List<EquityPointView>) {
+    val values = points.mapNotNull { it.equity.toDoubleOrNull()?.takeIf { value -> value.isFinite() } }
+    if (values.size < 2) {
+        Text("Cần ít nhất hai snapshot Equity để vẽ đường cong.", color = fiveMuted,
+            style = MaterialTheme.typography.bodySmall)
+        return
+    }
+    Canvas(Modifier.fillMaxWidth().height(112.dp)) {
+        val low = values.minOrNull() ?: return@Canvas
+        val high = values.maxOrNull() ?: return@Canvas
+        val range = (high - low).takeIf { it > 0.0 } ?: 1.0
+        val path = Path()
+        values.forEachIndexed { index, value ->
+            val x = index.toFloat() / (values.size - 1).coerceAtLeast(1) * size.width
+            val y = size.height - ((value - low) / range).toFloat() * (size.height - 8.dp.toPx()) - 4.dp.toPx()
+            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        drawPath(path, color = fiveGreen, style = Stroke(width = 2.5.dp.toPx()))
+    }
+}
+
+private data class FiveLayerConnection(val url: String, val readToken: String, val controlToken: String)
+private data class FiveLayerReading<T>(val value: T? = null, val fetchedAtMs: Long = 0L, val errorMessage: String? = null) {
+    fun fresh(nowMs: Long): T? = value?.takeIf { nowMs - fetchedAtMs in -5_000L..15_000L }
+    fun unavailableMessage(connected: Boolean): String = errorMessage ?: when {
+        !connected -> "Chưa kết nối API."
+        value != null -> "Lần đọc trước đã cũ. Đang chờ dữ liệu mới."
+        else -> "Đang đọc dữ liệu từ máy chủ…"
+    }
+}
+
+private suspend fun <T> readFiveLayer(block: suspend () -> T): FiveLayerReading<T> = try {
+    FiveLayerReading(block(), System.currentTimeMillis())
+} catch (e: CancellationException) {
+    throw e
+} catch (e: FiveLayerApiException) {
+    FiveLayerReading(errorMessage = e.message)
+} catch (_: Exception) {
+    FiveLayerReading(errorMessage = "Chưa đọc được dữ liệu hợp lệ từ máy chủ.")
+}
+
+private fun fiveTime(value: Long?): String = value?.let {
+    SimpleDateFormat("HH:mm:ss dd/MM", Locale.getDefault()).format(Date(it))
+} ?: "—"
+
+@Composable
+private fun FiveLayerCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().background(Color(0xFF151D29), RoundedCornerShape(16.dp)).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(title, color = Color.White, fontWeight = FontWeight.Bold)
+        content()
+    }
+}
+
+
+@Composable
+private fun FiveLayerSignalCard(title: String, reading: FiveLayerReading<StrategySignalView>,
+    connected: Boolean, nowMs: Long) {
+    FiveLayerCard(title) {
+        val signal = reading.fresh(nowMs)
+        if (signal == null) {
+            Text(reading.unavailableMessage(connected), color = fiveMuted)
+        } else {
+            val expired = signal.intent?.let { nowMs >= it.validUntilMs } == true
+            val action = if (expired) "WAIT" else signal.action
+            Text(action, color = when (action) {
+                "BUY" -> fiveGreen
+                "SELL", "CLOSE" -> fiveAmber
+                else -> Color.White
+            }, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(fiveLayerReasonVi(signal.reason), color = fiveMuted)
+            signal.intent?.takeIf { !expired }?.let {
+                Text("Vị thế mục tiêu ${it.targetPositionBase} BTC · Limit ${it.limitPrice} USDT", color = Color.White)
+                Text("Model ${it.modelVersion} · Strategy ${it.strategyVersion}", color = fiveMuted,
+                    style = MaterialTheme.typography.bodySmall)
+                Text("Hiệu lực đến ${fiveTime(it.validUntilMs)}", color = fiveMuted,
+                    style = MaterialTheme.typography.bodySmall)
+            }
+            if (signal.indicators.isNotEmpty()) {
+                val names = listOf("rsiM15" to "RSI M15", "adxM15" to "ADX M15",
+                    "plusDiH1" to "+DI H1", "minusDiH1" to "-DI H1", "adxH1" to "ADX H1")
+                names.forEach { (key, label) ->
+                    signal.indicators[key]?.let { Text("$label: $it", color = fiveMuted,
+                        style = MaterialTheme.typography.bodySmall) }
+                }
+            }
+            if (expired) Text("Tín hiệu đã hết hạn; không thể dùng để tạo Paper intent.", color = fiveAmber)
+        }
+    }
+}
+
+/** Common API controls are paper-only and never share state with the local chart simulation. */
+@Composable
+internal fun FiveLayerPanel(context: Context) {
+    val prefs = remember { context.getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE) }
+    var url by remember { mutableStateOf(prefs.getString("five_layer_api_url", "").orEmpty()) }
+    // Tokens deliberately use remember, never rememberSaveable or SharedPreferences.
+    var readToken by remember { mutableStateOf("") }
+    var controlToken by remember { mutableStateOf("") }
+    var connection by remember { mutableStateOf<FiveLayerConnection?>(null) }
+    var configError by remember { mutableStateOf("") }
+    var refresh by remember { mutableIntStateOf(0) }
+    var clock by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var system by remember(connection, refresh) { mutableStateOf(FiveLayerReading<SystemView>()) }
+    var intelligence by remember(connection, refresh) { mutableStateOf(FiveLayerReading<IntelligenceView>()) }
+    var paper by remember(connection, refresh) { mutableStateOf(FiveLayerReading<PaperView>()) }
+    var book by remember(connection, refresh) { mutableStateOf(FiveLayerReading<HummingbotSnapshot>()) }
+    var candles by remember(connection, refresh) { mutableStateOf(FiveLayerReading<CandleWindowView>()) }
+    var equity by remember(connection, refresh) { mutableStateOf(FiveLayerReading<EquityView>()) }
+    var signals by remember(connection, refresh) { mutableStateOf(FiveLayerReading<SignalsView>()) }
+    var quality by remember(connection, refresh) { mutableStateOf(FiveLayerReading<QualityView>()) }
+    var audit by remember(connection, refresh) { mutableStateOf(FiveLayerReading<AuditView>()) }
+    var confirmKillReset by remember { mutableStateOf(false) }
+    var evaluationSource by remember { mutableStateOf("AI") }
+    var writing by remember { mutableStateOf(false) }
+    var mutationJob by remember { mutableStateOf<Job?>(null) }
+    var actionMessage by remember { mutableStateOf("") }
+    var lastActionOrder by remember(connection) { mutableStateOf<PaperOrderView?>(null) }
+    var lastActionAt by remember(connection) { mutableLongStateOf(0L) }
+    val lifecycle = (context as LifecycleOwner).lifecycle
+    val scope = rememberCoroutineScope()
+
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) mutationJob?.cancel()
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer); mutationJob?.cancel() }
+    }
+    LaunchedEffect(Unit) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (isActive) { clock = System.currentTimeMillis(); delay(1_000L) }
+        }
+    }
+    LaunchedEffect(connection, refresh) {
+        system = FiveLayerReading(); intelligence = FiveLayerReading()
+        paper = FiveLayerReading()
+        book = FiveLayerReading()
+        candles = FiveLayerReading()
+        equity = FiveLayerReading(); signals = FiveLayerReading()
+        quality = FiveLayerReading(); audit = FiveLayerReading()
+        val config = connection ?: return@LaunchedEffect
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            try {
+                while (isActive) {
+                    coroutineScope {
+                        launch { system = readFiveLayer { FiveLayerClient.getSystem(config.url, config.readToken) } }
+                        launch { intelligence = readFiveLayer { FiveLayerClient.getIntelligence(config.url, config.readToken) } }
+                        launch { paper = readFiveLayer { FiveLayerClient.getPaper(config.url, config.readToken) } }
+                        launch { book = readFiveLayer { FiveLayerClient.getOrderBook(config.url, config.readToken) } }
+                        launch { candles = readFiveLayer { FiveLayerClient.getCandles(config.url, config.readToken) } }
+                        launch { equity = readFiveLayer { FiveLayerClient.getEquity(config.url, config.readToken) } }
+                        launch { signals = readFiveLayer { FiveLayerClient.getSignals(config.url, config.readToken) } }
+                        launch { quality = readFiveLayer { FiveLayerClient.getQuality(config.url, config.readToken) } }
+                        launch { audit = readFiveLayer { FiveLayerClient.getAudit(config.url, config.readToken) } }
+                    }
+                    delay(5_000L)
+                }
+            } finally {
+                system = FiveLayerReading(); intelligence = FiveLayerReading()
+                paper = FiveLayerReading()
+                book = FiveLayerReading()
+                candles = FiveLayerReading()
+                equity = FiveLayerReading(); signals = FiveLayerReading()
+                quality = FiveLayerReading(); audit = FiveLayerReading()
+            }
+        }
+    }
+
+    val currentSystem = system.fresh(clock)
+    val currentPaper = paper.fresh(clock)
+    val config = connection
+    val currentEquity = equity.fresh(clock)
+    val canControl = config != null && config.controlToken.isNotBlank() &&
+        currentSystem != null && currentPaper != null && !writing &&
+        lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+
+    fun submit(command: suspend (FiveLayerConnection) -> String) {
+        val target = connection ?: return
+        // Recheck wall time at the tap; a UI frame can lag the one-second clock.
+        val now = System.currentTimeMillis()
+        if (writing || !canControl || !lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) ||
+            system.fresh(now) == null || paper.fresh(now) == null) return
+        writing = true
+        paper = FiveLayerReading()
+        lastActionOrder = null
+        lastActionAt = 0L
+        actionMessage = "Đang gửi yêu cầu paper…"
+        mutationJob = scope.launch {
+            try {
+                actionMessage = command(target)
+                lastActionAt = System.currentTimeMillis()
+            } catch (e: CancellationException) {
+                actionMessage = "Chưa xác định kết quả. Kiểm tra sổ paper trước khi gửi lại."
+                throw e
+            } catch (e: FiveLayerApiException) {
+                actionMessage = "${e.message} Đang đọc lại sổ paper; kiểm tra kết quả trước khi gửi lại."
+            } catch (_: Exception) {
+                actionMessage = "Chưa xác định kết quả. Đang đọc lại sổ paper; kiểm tra trước khi gửi lại."
+            } finally {
+                writing = false
+                refresh++
+            }
+        }
+    }
+
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        FiveLayerCard("KẾT NỐI · BTCUSDT PAPER") {
+            Text("Binance USDⓈ-M · Sổ mô phỏng trên máy chủ", color = fiveMuted)
+            if (BuildConfig.PARALLEL_INSTALL) Text("Cùng địa chỉ API sẽ dùng chung sổ paper. Dùng máy chủ thử nghiệm riêng nếu cần sổ tách biệt.",
+                color = fiveAmber, style = MaterialTheme.typography.bodySmall)
+            OutlinedTextField(url, { if (it.length <= 2048) url = it }, Modifier.fillMaxWidth(),
+                enabled = connection == null, singleLine = true, label = { Text("API chung (HTTPS)") })
+            OutlinedTextField(readToken, { if (it.length <= 4096) readToken = it }, Modifier.fillMaxWidth(),
+                enabled = connection == null, singleLine = true, visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                label = { Text("Token đọc") })
+            OutlinedTextField(controlToken, { if (it.length <= 4096) controlToken = it }, Modifier.fillMaxWidth(),
+                enabled = connection == null, singleLine = true, visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                label = { Text("Token điều khiển paper (tùy chọn)") })
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (connection == null) Button(onClick = {
+                    configError = runCatching {
+                        fiveLayerEndpoint(url, "system")
+                        require(readToken.isNotBlank() && readToken.all { it.code in 33..126 })
+                        require(controlToken.isEmpty() ||
+                            (controlToken != readToken && controlToken.all { it.code in 33..126 }))
+                    }.exceptionOrNull()?.let { "Cần URL HTTPS, token đọc hợp lệ và token điều khiển riêng." }.orEmpty()
+                    if (configError.isEmpty()) {
+                        connection = FiveLayerConnection(url.trim(), readToken, controlToken)
+                        prefs.edit().putString("five_layer_api_url", url.trim()).apply()
+                        actionMessage = ""
+                    }
+                }) { Text("Kết nối") }
+                else {
+                    OutlinedButton(enabled = !writing, onClick = {
+                        connection = null; readToken = ""; controlToken = ""; actionMessage = ""
+                    }) { Text("Ngắt kết nối") }
+                    TextButton(enabled = !writing, onClick = { refresh++ }) { Text("Làm mới") }
+                }
+            }
+            if (configError.isNotEmpty()) Text(configError, color = fiveAmber)
+            Text("Chỉ lưu URL. Token giữ trong phiên màn hình; nhập lại sau khi rời tab.",
+                color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+            Text(if (connection == null) "Chưa kết nối" else if (currentSystem != null)
+                "Đã đọc API lúc ${fiveTime(system.fetchedAtMs)} · làm mới mỗi 5 giây"
+                else system.unavailableMessage(connection != null),
+                color = if (currentSystem != null) fiveGreen else fiveMuted,
+                style = MaterialTheme.typography.bodySmall)
+        }
+
+        FiveLayerCard("TRẠNG THÁI 5 TẦNG") {
+            if (currentSystem == null) Text(system.unavailableMessage(connection != null), color = fiveMuted)
+            currentSystem?.layers?.forEach { layer ->
+                Text("${layer.level} · ${layer.name} · ${fiveLayerStatusVi(layer.status)}", color = Color.White,
+                    style = MaterialTheme.typography.titleSmall)
+                Text(layer.detail, color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        FiveLayerCard("KHO NẾN CHUẨN · BTCUSDT M15") {
+            val window = candles.fresh(clock)
+            if (window == null) Text(candles.unavailableMessage(connection != null), color = fiveMuted)
+            else {
+                CanonicalCandlesContent(window)
+                Text("Đọc API lúc ${fiveTime(candles.fetchedAtMs)} · Nến đóng từ kho tầng 0",
+                    color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        FiveLayerCard("RISK MANAGEMENT · EQUITY HISTORY") {
+            if (currentEquity == null) {
+                Text(equity.unavailableMessage(connection != null), color = fiveMuted)
+            } else if (!currentEquity.available) {
+                Text(currentEquity.reason ?: "Chưa có Equity history hợp lệ.", color = fiveMuted)
+            } else {
+                Text("Vốn ban đầu ${currentEquity.initialCapital ?: "—"} USDT · Equity ${currentEquity.equity ?: "—"} USDT",
+                    color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text("Realized ${currentEquity.realizedPnl ?: "—"} · Unrealized ${currentEquity.unrealizedPnl ?: "—"} · Fees ${currentEquity.fees ?: "—"} USDT",
+                    color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+                Text("Max Drawdown ${currentEquity.maxDrawdownUsdt ?: "—"} USDT (${currentEquity.maxDrawdownPct ?: "—"}%) · Daily Loss UTC ${currentEquity.dailyLossUsdt ?: "N/A"} USDT",
+                    color = fiveAmber)
+                Text("Exposure ${currentEquity.exposureUsdt ?: "—"} USDT · Baseline ${fiveTime(currentEquity.dailyBaselineAtMs)}",
+                    color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+                FiveLayerEquityCurve(currentEquity.points)
+                Text(if (currentEquity.riskLimitsConfigured)
+                    "Risk limits đã cấu hình · Max Daily Loss ${currentEquity.maxDailyLossUsdt} USDT · Max Exposure ${currentEquity.maxExposureUsdt} USDT"
+                    else "RISK LIMITS CHƯA CẤU HÌNH · Backend sẽ từ chối Paper intent mới.",
+                    color = if (currentEquity.riskLimitsConfigured) fiveGreen else fiveAmber,
+                    style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        FiveLayerCard("DÒNG TIỀN FUTURES · NGUỒN QUAN SÁT") {
+            val intel = intelligence.fresh(clock)
+            if (intel == null || !intel.available) {
+                Text(intel?.reason?.let(::fiveLayerReasonVi) ?: intelligence.unavailableMessage(connection != null), color = fiveMuted)
+            } else {
+                val old = clock - requireNotNull(intel.availableAtMs) !in -5_000L..60_000L
+                Text("Snapshot nguồn: ${fiveTime(intel.availableAtMs)}${if (old) " · ĐÃ CŨ" else ""}",
+                    color = if (old) fiveAmber else fiveMuted, style = MaterialTheme.typography.bodySmall)
+                Text("Funding rate: ${intel.fundingRate ?: "—"} · lúc ${fiveTime(intel.fundingAtMs)}", color = Color.White)
+                Text("Open Interest: ${intel.openInterestBase ?: "—"} BTC", color = Color.White)
+                Text("Thay đổi OI: ${intel.openInterestChangeBase ?: "—"} BTC", color = fiveMuted)
+                Text("Taker mua / bán: ${intel.takerBuyQuote ?: "—"} / ${intel.takerSellQuote ?: "—"} USDT", color = Color.White)
+                Text("Taker ròng: ${intel.netTakerQuote ?: "—"} USDT", color = Color.White)
+                Text("Giao dịch lớn: ${intel.largeTradeQuote ?: "—"} USDT", color = fiveMuted)
+                Text("Thanh lý mua / bán ghi nhận: ${intel.observedLiquidationBuyQuote ?: "—"} / ${intel.observedLiquidationSellQuote ?: "—"} USDT", color = fiveMuted)
+                intel.coverage.forEach { feed ->
+                    Text("${fiveLayerFeedVi(feed.name)}: ${fiveLayerStatusVi(feed.status)} · ${feed.rows} dòng · sự kiện cuối ${fiveTime(feed.lastEventAtMs)}" +
+                        (feed.tradeIdGaps?.let { " · khoảng thiếu ID: $it" } ?: ""),
+                        color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+                }
+                Text("Thanh lý quan sát không đại diện toàn bộ thị trường. Dấu — là dữ liệu chưa có.",
+                    color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        FiveLayerCard("ORDER BOOK HUMMINGBOT · BTCUSDT") {
+            val snapshot = book.fresh(clock)?.takeIf { clock - it.observedAtMs in -5_000L..30_000L }
+            if (snapshot == null) {
+                Text(if (book.fresh(clock) != null) "Snapshot Order Book đã cũ. Đang chờ dữ liệu mới."
+                    else book.unavailableMessage(connection != null), color = fiveMuted)
+            } else {
+                val metrics = snapshot.metrics
+                fun number(value: Double) = "%,.4f".format(Locale.US, value)
+                Text("Bid ${number(metrics.bestBid)} · Ask ${number(metrics.bestAsk)} USDT", color = Color.White)
+                Text("Spread: ${number(metrics.spreadBps)} bps", color = fiveMuted)
+                Text("Độ sâu tối đa 20 mức · Mua ${number(metrics.bidDepth)} / Bán ${number(metrics.askDepth)} BTC", color = Color.White)
+                Text("Chênh lệch thanh khoản: ${"%.1f%%".format(Locale.US, metrics.imbalance * 100)}",
+                    color = if (metrics.imbalance >= 0) fiveGreen else fiveAmber)
+                Text("Có trọng số theo khoảng cách giá: ${"%.1f%%".format(Locale.US, metrics.weightedImbalance * 100)}", color = fiveMuted)
+                Text("Lấy snapshot lúc ${fiveTime(snapshot.observedAtMs)}", color = fiveMuted,
+                    style = MaterialTheme.typography.bodySmall)
+            }
+            Text("Thời điểm lấy snapshot không xác nhận lần cập nhật cuối của sàn hoặc đồng bộ chuỗi Order Book.",
+                color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+        }
+
+        val currentSignals = signals.fresh(clock)
+        FiveLayerSignalCard("STRATEGY CORE · RSI + ADX + SMART DCA",
+            currentSignals?.let { FiveLayerReading(it.strategyCore, signals.fetchedAtMs) }
+                ?: FiveLayerReading(errorMessage = signals.errorMessage), connection != null, clock)
+        FiveLayerSignalCard("AI STRATEGY · FREQAI ĐỘC LẬP",
+            currentSignals?.let { FiveLayerReading(it.aiStrategy, signals.fetchedAtMs) }
+                ?: FiveLayerReading(errorMessage = signals.errorMessage), connection != null, clock)
+
+        FiveLayerCard("DATA QUALITY MONITOR") {
+            val report = quality.fresh(clock)
+            if (report == null) Text(quality.unavailableMessage(connection != null), color = fiveMuted)
+            else {
+                Text("Tổng thể: ${fiveLayerStatusVi(report.overall)} · kiểm tra lúc ${fiveTime(report.checkedAtMs)}",
+                    color = if (report.overall == "READY") fiveGreen else fiveAmber)
+                report.streams.forEach { stream ->
+                    Text("${stream.name}: ${fiveLayerStatusVi(stream.status)}", color = Color.White,
+                        style = MaterialTheme.typography.bodySmall)
+                    Text(stream.detail, color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+
+        FiveLayerCard("AUDIT LOG · PAPER EVENTS") {
+            val events = audit.fresh(clock)
+            if (events == null) Text(audit.unavailableMessage(connection != null), color = fiveMuted)
+            else if (events.events.isEmpty()) Text("Chưa có sự kiện audit.", color = fiveMuted)
+            else events.events.forEach { event ->
+                Text("#${event.id} · ${event.kind}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text("${fiveTime(event.atMs)} · ${event.summary}", color = fiveMuted,
+                    style = MaterialTheme.typography.bodySmall)
+            }
+            Text("Audit chỉ đọc; bản ghi lấy từ SQLite trên máy chủ.", color = fiveMuted,
+                style = MaterialTheme.typography.bodySmall)
+        }
+
+        FiveLayerCard("SỔ PAPER TRÊN MÁY CHỦ") {
+            if (currentPaper == null) Text("${paper.unavailableMessage(connection != null)} Điều khiển đang khóa.", color = fiveMuted)
+            else {
+                Text(when {
+                    currentPaper.riskControl.killed -> "KILL SWITCH ĐANG BẬT"
+                    currentPaper.paused -> "ĐÃ TẠM DỪNG"
+                    else -> "PAPER SẴN SÀNG"
+                }, color = if (currentPaper.riskControl.killed) fiveAmber else Color.White)
+                if (currentPaper.riskControl.killed) Text(
+                    "Lý do: ${currentPaper.riskControl.reason ?: "KILL_SWITCH"} · ${fiveTime(currentPaper.riskControl.updatedAtMs)}",
+                    color = fiveAmber, style = MaterialTheme.typography.bodySmall)
+                Text("Vị thế: ${currentPaper.positionBase} BTC · Giá vốn ${currentPaper.averageEntryPrice} USDT", color = Color.White)
+                Text("PnL đã chốt: ${currentPaper.realizedPnlQuote} USDT", color = Color.White)
+                Text("Phí: ${currentPaper.feesQuote} · PnL ròng: ${currentPaper.netRealizedPnlQuote} USDT", color = fiveMuted)
+            }
+            if (config?.controlToken.isNullOrEmpty())
+                Text("Kết nối với token điều khiển riêng để thao tác paper.", color = fiveMuted)
+            Text("Nguồn chiến lược dùng cho lần đánh giá tiếp theo:", color = fiveMuted,
+                style = MaterialTheme.typography.bodySmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (evaluationSource == "AI") Button(enabled = !writing, onClick = { evaluationSource = "AI" }) {
+                    Text("AI Strategy")
+                } else OutlinedButton(enabled = !writing, onClick = { evaluationSource = "AI" }) { Text("AI Strategy") }
+                if (evaluationSource == "CORE") Button(enabled = !writing, onClick = { evaluationSource = "CORE" }) {
+                    Text("Strategy Core")
+                } else OutlinedButton(enabled = !writing, onClick = { evaluationSource = "CORE" }) { Text("Strategy Core") }
+            }
+            Button(enabled = canControl, onClick = {
+                val source = evaluationSource
+                submit { target ->
+                    val result = FiveLayerClient.evaluate(target.url, target.controlToken, source)
+                    lastActionOrder = result.order
+                    "Đánh giá: ${result.decision.action} · ${result.order?.status?.let(::fiveLayerStatusVi) ?: fiveLayerReasonVi(result.decision.reason)}"
+                }
+            }) { Text("Đánh giá và mô phỏng một lần · $evaluationSource") }
+            Text("Có thể đánh giá khi Pause/Kill đang bật để xử lý tín hiệu giảm rủi ro; Shared Risk Engine trên máy chủ vẫn chặn mọi intent làm tăng rủi ro.", color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+            OutlinedButton(enabled = canControl && currentPaper?.riskControl?.killed == false, onClick = {
+                submit { target ->
+                    val result = FiveLayerClient.setKilled(target.url, target.controlToken)
+                    if (result.riskControl.killed) "Đã bật Kill Switch. Mọi intent tăng rủi ro bị khóa." else "Máy chủ chưa xác nhận Kill Switch."
+                }
+            }) { Text("KÍCH HOẠT KILL SWITCH") }
+            OutlinedButton(enabled = canControl && currentPaper?.riskControl?.killed == true,
+                onClick = { confirmKillReset = true }) { Text("XÁC NHẬN RESET KILL SWITCH") }
+            OutlinedButton(enabled = canControl, onClick = {
+                val pause = currentPaper?.paused?.not() ?: return@OutlinedButton
+                submit { target ->
+                    val result = FiveLayerClient.setPaused(target.url, target.controlToken, pause)
+                    if (result.paused) "Đã tạm dừng paper." else "Đã cho phép đánh giá paper."
+                }
+            }) { Text(if (currentPaper?.paused == true) "Cho phép paper" else "Tạm dừng paper") }
+            if (actionMessage.isNotEmpty()) {
+                HorizontalDivider(color = Color(0xFF263448))
+                Text("KẾT QUẢ THAO TÁC GẦN NHẤT", color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text(actionMessage, color = fiveAmber)
+                if (lastActionAt > 0L) Text("Nhận phản hồi lúc ${fiveTime(lastActionAt)}",
+                    color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+                lastActionOrder?.let { order ->
+                    Text("${fiveLayerStatusVi(order.side)} · …${order.orderId.takeLast(12)}", color = Color.White)
+                    Text("Đã khớp ${order.filledBase}/${order.quantityBase} BTC · Chưa khớp ${order.remainingBase} BTC", color = fiveMuted)
+                    Text("Giá khớp trung bình ${order.averagePrice ?: "—"} USDT · Phí ${order.feeQuote} USDT", color = fiveMuted)
+                    Text(fiveLayerReasonVi(order.reason), color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            Text("Chỉ thao tác sổ mô phỏng. Khi mất phản hồi, ứng dụng đọc lại sổ và không tự gửi lại yêu cầu.",
+                color = fiveMuted, style = MaterialTheme.typography.bodySmall)
+            PaperOrderHistory(orders = currentPaper?.orders, canCancel = canControl, onCancel = { orderId ->
+                submit { target ->
+                    val result = FiveLayerClient.cancel(target.url, target.controlToken, orderId)
+                    lastActionOrder = result
+                    "Lệnh …${result.orderId.takeLast(12)}: ${fiveLayerStatusVi(result.status)}"
+                }
+            })
+        }
+    }
+
+    if (confirmKillReset) {
+        AlertDialog(
+            onDismissRequest = { confirmKillReset = false },
+            title = { Text("Reset Kill Switch?") },
+            text = { Text("Chỉ xác nhận nếu đã kiểm tra nguyên nhân kích hoạt. Máy chủ sẽ tự kiểm tra nến đóng, Order Book và không còn lệnh Paper chờ. Nếu chưa sẵn sàng, yêu cầu bị từ chối. Việc reset không tạo lệnh.") },
+            confirmButton = {
+                TextButton(enabled = canControl, onClick = {
+                    confirmKillReset = false
+                    submit { target ->
+                        val result = FiveLayerClient.resetKill(target.url, target.controlToken)
+                        if (!result.riskControl.killed) "Máy chủ đã xác nhận reset Kill Switch."
+                        else "Kill Switch vẫn đang bật."
+                    }
+                }) { Text("Tôi xác nhận reset") }
+            },
+            dismissButton = { TextButton(onClick = { confirmKillReset = false }) { Text("Hủy") } }
+        )
+    }
+
+}

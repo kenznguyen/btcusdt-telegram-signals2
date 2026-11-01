@@ -39,6 +39,14 @@ class FiveLayerApiTest(unittest.TestCase):
         self.intel_path = self.root / "intelligence.json"
         self.intel_path.write_text(json.dumps(intelligence))
         self.pred_path = self.root / "prediction.json"
+        self.core_path = self.root / "core-signal.json"
+        self.core_signal = {"schemaVersion": 1, "source": "STRATEGY_CORE", "exchange": "binance",
+            "marketType": "USDT_PERPETUAL", "symbol": "BTCUSDT", "timeframe": "15m", "action": "LONG",
+            "reason": "RSI_ADX_ENTRY", "strategyVersion": "rsi-adx-smart-dca-v1",
+            "datasetVersion": "sha256:"+"c"*64, "inputSnapshotId": "sha256:"+"d"*64,
+            "decisionAtMs": self.now-1000, "validUntilMs": self.now+20_000,
+            "targetPositionBase": "0.001", "limitPrice": "100.02"}
+        self.core_path.write_text(json.dumps(self.core_signal))
         self.prediction = {"schemaVersion": 1, "exchange": "binance", "marketType": "USDT_PERPETUAL",
             "symbol": "BTCUSDT", "timeframe": "15m", "candleOpenTimeMs": self.end-900_000,
             "candleCloseTimeMs": self.end, "availableAtMs": self.end+3000, "trainedThroughMs": self.end-900_000,
@@ -51,7 +59,9 @@ class FiveLayerApiTest(unittest.TestCase):
                      "asks": [{"price": "100.02", "quantity": "1"}]}
         self.config = {"MARKET_DATA_DB": str(self.db), "MARKET_DATA_TOKEN": "read-token",
                        "CONTROL_TOKEN": "paper-control-token", "INTELLIGENCE_REPORT_PATH": str(self.intel_path),
-                       "FREQAI_REPORT_PATH": str(self.pred_path)}
+                       "FREQAI_REPORT_PATH": str(self.pred_path), "STRATEGY_CORE_REPORT_PATH": str(self.core_path),
+                       "PAPER_MAX_DRAWDOWN_PCT":"95", "PAPER_MAX_DAILY_LOSS_USDT":"95",
+                       "PAPER_MAX_EXPOSURE_USDT":"1000"}
         self.env = patch.dict(os.environ, self.config, clear=True)
         self.env.start()
         self.addCleanup(self.env.stop)
@@ -77,6 +87,8 @@ class FiveLayerApiTest(unittest.TestCase):
         code, intelligence = self.request("/v1/intelligence")
         self.assertEqual(code, 200)
         self.assertEqual(intelligence["netTakerQuote"], "100")
+        self.assertEqual(intelligence["collectorCommit"], "bc4f0ef633fbeee4a49defd72827f17162693805")
+        self.assertEqual(len(intelligence["inputFiles"]["trades"][0]["sha256"]), 64)
         code, result = self.request("/v1/paper/evaluate", "POST", {})
         self.assertEqual(code, 200)
         self.assertEqual(result["decision"]["action"], "BUY")
@@ -192,6 +204,175 @@ class FiveLayerApiTest(unittest.TestCase):
             connection.execute("UPDATE candles SET high='0'")
         query = f"symbol=BTCUSDT&timeframe=15m&startMs={self.end-1_800_000}&endMs={self.end}"
         self.assertEqual(self.request("/v1/candles", query=query)[0], 503)
+
+    def test_core_and_ai_signals_are_independent_and_share_the_risk_gate(self):
+        core_intent = {"intentId":"core-test-intent","symbol":"BTCUSDT","exchange":"binance",
+            "marketType":"USDT_PERPETUAL","strategyVersion":"rsi-adx-smart-dca-v1",
+            "modelVersion":"strategy-core","datasetVersion":"sha256:"+"c"*64,
+            "targetPositionBase":"0.001","limitPrice":"100.02","decisionAtMs":self.now-1000,
+            "validUntilMs":self.now+20_000,"inputSnapshotId":"sha256:"+"d"*64,"mode":"PAPER"}
+        core = {"source":"STRATEGY_CORE","action":"BUY","reason":"RSI_ADX_ENTRY","intent":core_intent}
+        with patch.object(api,"core_decide",return_value=core):
+            code, signals = self.request("/v1/signals")
+            self.assertEqual(code, 200)
+            self.assertEqual(signals["strategyCore"]["action"], "BUY")
+            self.assertEqual(signals["aiStrategy"]["action"], "BUY")
+            self.assertEqual(signals["strategyCore"]["source"], "STRATEGY_CORE")
+            self.assertEqual(signals["aiStrategy"]["source"], "AI_FREQAI")
+            code, result = self.request("/v1/paper/evaluate", "POST", {"source": "CORE"})
+        self.assertEqual(code, 200)
+        self.assertEqual(result["decision"]["source"], "STRATEGY_CORE")
+        self.assertEqual(result["order"]["status"], "FILLED")
+        self.assertEqual(self.request("/v1/paper/evaluate", "POST", {"source": "UNKNOWN"})[0], 400)
+
+    def test_equity_endpoint_persists_history_and_returns_drawdown_daily_metrics(self):
+        code, result = self.request("/v1/equity")
+        self.assertEqual(code,200)
+        self.assertTrue(result["available"])
+        self.assertEqual(result["initialCapital"],"100")
+        self.assertEqual(result["latest"]["equity"],"100")
+        self.assertEqual(result["dailyLossUsdt"],"0")
+        with sqlite3.connect(self.db) as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM paper_equity_history").fetchone()[0],1)
+
+    def test_audit_and_data_quality_endpoints_return_real_store_state(self):
+        self.request("/v1/paper/pause","POST",{"paused":True})
+        code, audit = self.request("/v1/audit",query="limit=10")
+        self.assertEqual(code,200)
+        self.assertEqual(audit["events"][0]["kind"],"PAUSE")
+        code, quality = self.request("/v1/quality")
+        self.assertEqual(code,200)
+        self.assertEqual(quality["mode"],"PAPER")
+        self.assertIs(quality["liveTradingSupported"], False)
+        streams={stream["name"]:stream for stream in quality["streams"]}
+        self.assertEqual(streams["M15 candles"]["status"],"DEGRADED")
+        self.assertEqual(streams["H1 candles"]["status"],"DEGRADED")
+        self.assertEqual(streams["Strategy Core producer"]["status"],"DEGRADED")
+        self.assertEqual(streams["Shared Risk Limits"]["status"],"READY")
+        self.assertEqual(streams["Shared Risk Limits"]["maxDrawdownPct"],"95")
+
+    def test_quality_reports_feed_level_freshness_provenance_and_unknown_continuity(self):
+        code, quality = self.request("/v1/quality")
+        self.assertEqual(code, 200)
+        intelligence = next(row for row in quality["streams"] if row["name"] == "Futures Intelligence")
+        feeds = {row["name"]: row for row in intelligence["feeds"]}
+        self.assertEqual(feeds["trades"]["freshness"], "FRESH")
+        self.assertEqual(feeds["trades"]["continuityStatus"], "UNVERIFIED")
+        self.assertEqual(feeds["trades"]["connectionStatus"], "UNVERIFIABLE")
+        self.assertEqual(feeds["trades"]["integrityStatus"], "OK")
+        self.assertEqual(feeds["trades"]["duplicateRows"], 0)
+        self.assertGreaterEqual(feeds["trades"]["ageMs"], 0)
+        self.assertEqual(feeds["funding"]["freshness"], "MISSING")
+        self.assertEqual(feeds["openInterest"]["freshness"], "MISSING")
+        self.assertEqual(feeds["liquidations"]["freshness"], "MISSING")
+        self.assertEqual(intelligence["collectorCommit"], "bc4f0ef633fbeee4a49defd72827f17162693805")
+        self.assertGreater(intelligence["inputFileCount"], 0)
+
+    def test_quality_marks_old_trade_capture_stale_without_refreshing_it(self):
+        trade_path = self.root / "old-trades.csv"
+        headers = "exchange,market,datatype,timestamp_ms,datetime_utc,symbol,trade_id,side,price,quantity,is_buyer_maker,first_update_id,last_update_id".split(",")
+        with trade_path.open("w", newline="") as output:
+            writer = csv.writer(output)
+            writer.writerow(headers)
+            instant = self.now-180_000
+            utc = datetime.fromtimestamp(instant/1000, timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+            writer.writerow(["binance", "futures", "trades", instant, utc, "btcusdt", 99, "buy", "100", "1", 0, 99, 99])
+        old = build_snapshot(self.now-300_000, self.now-120_000, self.now-100_000, trades=trade_path)
+        self.intel_path.write_text(json.dumps(old))
+        _, quality = self.request("/v1/quality")
+        intelligence = next(row for row in quality["streams"] if row["name"] == "Futures Intelligence")
+        trades = next(row for row in intelligence["feeds"] if row["name"] == "trades")
+        self.assertEqual(trades["freshness"], "STALE")
+        self.assertEqual(intelligence["status"], "DEGRADED")
+
+    def test_risk_limit_breach_auto_kills_new_paper_intents(self):
+        self.request("/v1/equity")
+        with sqlite3.connect(self.db) as connection:
+            connection.execute("UPDATE paper_state SET realized='-25' WHERE id=1")
+        with patch.dict(os.environ,{"PAPER_MAX_DRAWDOWN_PCT":"20","PAPER_MAX_DAILY_LOSS_USDT":"10","PAPER_MAX_EXPOSURE_USDT":"1000"}):
+            code, result = self.request("/v1/paper/evaluate","POST",{})
+        self.assertEqual(code,200)
+        self.assertEqual(result["order"]["reason"],"MAX_DRAWDOWN_LIMIT")
+        self.assertTrue(self.request("/v1/paper")[1]["riskControl"]["killed"])
+
+    def test_unconfigured_risk_limits_fail_closed(self):
+        with patch.dict(os.environ,{"PAPER_MAX_DRAWDOWN_PCT":"","PAPER_MAX_DAILY_LOSS_USDT":"","PAPER_MAX_EXPOSURE_USDT":""}):
+            _, result = self.request("/v1/paper/evaluate","POST",{})
+        self.assertEqual(result["order"]["reason"],"RISK_LIMITS_UNCONFIGURED")
+
+    def test_core_producer_waits_on_incomplete_history_without_suppressing_ai(self):
+        _, signals = self.request("/v1/signals")
+        self.assertEqual(signals["strategyCore"]["action"], "WAIT")
+        self.assertEqual(signals["strategyCore"]["reason"], "CORE_CANDLE_WINDOW_INCOMPLETE")
+        self.assertEqual(signals["aiStrategy"]["action"], "BUY")
+
+    def test_api_kill_switch_requires_control_token_and_blocks_paper_evaluation(self):
+        self.assertEqual(self.request("/v1/paper/kill", "POST", {"enabled": True}, token="read-token")[0], 401)
+        code, state = self.request("/v1/paper/kill", "POST", {"enabled": True})
+        self.assertEqual(code, 200)
+        self.assertTrue(state["riskControl"]["killed"])
+        _, result = self.request("/v1/paper/evaluate", "POST", {})
+        self.assertEqual(result["order"]["status"], "REJECTED")
+        self.assertEqual(result["order"]["reason"], "KILL_SWITCH")
+        self.assertEqual(self.request("/v1/paper/reset-kill", "POST",
+                                      {"acknowledge": True})[0], 200)
+        # A rejected intent remains idempotently rejected. A fresh prediction
+        # timestamp creates a new signal identity after the operator reset.
+        self.prediction["availableAtMs"] = self.now-500
+        self.pred_path.write_text(json.dumps(self.prediction))
+        _, result = self.request("/v1/paper/evaluate", "POST", {})
+        self.assertEqual(result["order"]["status"], "FILLED")
+
+    def test_kill_reset_requires_server_side_readiness(self):
+        self.request("/v1/paper/kill", "POST", {"enabled": True})
+        with patch.object(api, "book_snapshot", return_value=None):
+            code, result = self.request("/v1/paper/reset-kill", "POST", {"acknowledge": True})
+        self.assertEqual(code, 409)
+        self.assertEqual(result["error"], "SYSTEM_NOT_READY")
+        self.assertTrue(self.request("/v1/paper")[1]["riskControl"]["killed"])
+
+    def test_kill_switch_cannot_be_cleared_by_generic_resume_or_malformed_reset(self):
+        self.request("/v1/paper/kill", "POST", {"enabled": True})
+        self.request("/v1/paper/pause", "POST", {"paused": False})
+        _, result = self.request("/v1/paper/evaluate", "POST", {})
+        self.assertEqual(result["order"]["reason"], "KILL_SWITCH")
+        self.assertEqual(self.request("/v1/paper/reset-kill", "POST",
+                                      {"acknowledge": True, "ready": False})[0], 400)
+
+
+    def test_market_data_reads_follow_factory_while_paper_ledger_stays_sqlite(self):
+        calls = []
+
+        class SelectedStore:
+            def read_window(self, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
+                calls.append((symbol, timeframe, start_ms, end_ms, as_of_ms))
+                return {
+                    "candles": [],
+                    "coverage": {"complete": False, "expected": 1, "returned": 0, "gaps": []},
+                    "datasetVersion": "sha256:" + "e" * 64,
+                }
+
+        selected_store = SelectedStore()
+        with patch.object(api, "create_store_from_env", return_value=selected_store):
+            query = (f"symbol=BTCUSDT&timeframe=15m&startMs={self.end-1_800_000}"
+                     f"&endMs={self.end}")
+            code, _ = self.request("/v1/candles", query=query)
+            self.assertEqual(code, 200)
+
+            code, quality = self.request("/v1/quality")
+            self.assertEqual(code, 200)
+            self.assertEqual(quality["mode"], "PAPER")
+
+            timeframes = {call[1] for call in calls}
+            self.assertIn("15m", timeframes)
+            self.assertIn("1h", timeframes)
+
+            api.ledger()
+            before_paper_read = len(calls)
+            code, paper = self.request("/v1/paper")
+            self.assertEqual(code, 200)
+            self.assertFalse(paper["liveTradingSupported"])
+            self.assertEqual(len(calls), before_paper_read)
 
 
 if __name__ == "__main__":

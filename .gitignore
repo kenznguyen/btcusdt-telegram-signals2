@@ -12,6 +12,8 @@ __pycache__/
 .venv-market-data/
 ci-source-sha.txt
 android-release-apk-signature.txt
+android-apks.json
+/artifacts/
 state-provenance.json
 *-tests.log
 control_dashboard/node_modules/

@@ -46,3 +46,27 @@ test('HTTP requests use memory bearer headers and bounded JSON error handling', 
     await assert.rejects(requestJson('https://trade.example', '/v1/paper', 'read-token'), /giới hạn/);
   } finally { global.fetch = original; }
 });
+
+
+test('risk snapshot marks long and short positions at the latest closed price', async () => {
+  const { deriveRiskSnapshot } = await import('./riskMetrics.js');
+  const long = deriveRiskSnapshot({ positionBase: '0.01', averageEntryPrice: '100',
+    realizedPnlQuote: '2', feesQuote: '0.1' }, '110');
+  assert.equal(long.unrealizedPnl, 0.1);
+  assert.equal(long.equity, 102);
+  assert.equal(long.exposure, 1.1);
+  const short = deriveRiskSnapshot({ positionBase: '-0.01', averageEntryPrice: '100',
+    realizedPnlQuote: '0', feesQuote: '0' }, '110');
+  assert.equal(short.unrealizedPnl, -0.1);
+  assert.equal(short.equity, 99.9);
+});
+
+test('risk snapshot refuses to invent equity when a required mark is missing', async () => {
+  const { deriveRiskSnapshot } = await import('./riskMetrics.js');
+  const result = deriveRiskSnapshot({ positionBase: '0.01', averageEntryPrice: '100',
+    realizedPnlQuote: '0', feesQuote: '0' }, null);
+  assert.equal(result.available, false);
+  assert.equal(result.equity, null);
+  assert.equal(result.maxDrawdown, null);
+  assert.equal(result.dailyLoss, null);
+});

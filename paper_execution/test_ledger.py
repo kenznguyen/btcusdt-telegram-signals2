@@ -56,6 +56,9 @@ class PaperLedgerTest(unittest.TestCase):
         self.assertEqual(order["status"], "PARTIALLY_FILLED")
         self.assertEqual(order["filledBase"], "0.05")
         self.assertEqual(order["remainingBase"], "0.15")
+        strategy = self.ledger.snapshot()["strategyState"]
+        self.assertEqual(strategy["owner"], "MANUAL")
+        self.assertEqual(strategy["initialMarginQuote"], "0.385")
         rejected = self.ledger.submit(self.intent("intent-2", "0.3"), self.book(), self.now)
         self.assertEqual(rejected["reason"], "PENDING_ORDER")
         self.assertEqual(self.ledger.cancel(order["orderId"], self.now+1)["status"], "CANCELED")
@@ -220,6 +223,47 @@ class PaperLedgerTest(unittest.TestCase):
         self.assertFalse(result["liveTradingSupported"])
         with sqlite3.connect(path) as connection:
             self.assertEqual(connection.execute("SELECT * FROM candles").fetchall(), [(123,)])
+
+    def test_kill_switch_is_persistent_and_blocks_every_paper_intent(self):
+        self.ledger.set_killed(True, self.now, "OPERATOR_TEST")
+        reopened = PaperLedger(self.path, max_position_base="1")
+        self.assertTrue(reopened.snapshot()["riskControl"]["killed"])
+        rejected = reopened.submit(self.intent(), self.book(), self.now)
+        self.assertEqual(rejected["status"], "REJECTED")
+        self.assertEqual(rejected["reason"], "KILL_SWITCH")
+        with self.assertRaises(ValueError):
+            reopened.set_killed(False, self.now+1)
+        reopened.reset_kill(acknowledge=True, ready=True, now_ms=self.now+2)
+        accepted = reopened.submit(self.intent("after-reset"), self.book(time=self.now+2), self.now+2)
+        self.assertEqual(accepted["status"], "FILLED")
+
+    def test_resume_does_not_clear_kill_switch(self):
+        self.ledger.set_killed(True, self.now)
+        self.ledger.set_paused(False, self.now+1)
+        rejected = self.ledger.submit(self.intent(), self.book(), self.now+1)
+        self.assertEqual(rejected["reason"], "KILL_SWITCH")
+
+    def test_risk_latch_and_risk_limits_allow_only_exposure_reductions(self):
+        from decimal import Decimal
+        from paper_execution.equity import record
+        # Seed a position and persistent equity baseline, then breach both risk limits.
+        self.ledger.submit(self.intent(target="0.1", limit="100.1"), self.book(), self.now)
+        self.ledger.record_equity("100",1799999100000,self.now,"sha256:"+"a"*64,"100")
+        self.ledger.record_equity("70",1800000000000,self.now+1,"sha256:"+"b"*64,"100")
+        limits={"maxDrawdownPct":Decimal("1"),"maxDailyLossUsdt":Decimal("1"),
+                "maxExposureUsdt":Decimal("1000")}
+        guarded=PaperLedger(self.path,max_position_base="1",risk_limits=limits,require_risk_limits=True)
+        guarded.set_killed(True,self.now+2,"TEST_RISK_LATCH")
+        book=self.book(time=self.now+3)
+        book["bids"]=[{"price":"70","quantity":"1"}]
+        book["asks"]=[{"price":"70.1","quantity":"1"}]
+        reduce=guarded.submit(self.intent("reduce-under-kill","0.05","70"),book,self.now+3,
+                              strategy_id="MANUAL")
+        self.assertEqual(reduce["status"],"FILLED")
+        self.assertEqual(guarded.snapshot()["positionBase"],"0.05")
+        blocked=guarded.submit(self.intent("increase-under-kill","0.08","70"),self.book(time=self.now+4),
+                               self.now+4,strategy_id="MANUAL")
+        self.assertEqual(blocked["reason"],"MAX_DRAWDOWN_LIMIT")
 
 
 if __name__ == "__main__":

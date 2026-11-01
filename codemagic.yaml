@@ -1,7 +1,11 @@
 # yaml-language-server: $schema=https://codemagic.io/codemagic-schema.json
+# Five-layer parity gate: a codemagic.yaml change intentionally fans out to Python/API, React and Android workflows.
+# Keep this trigger comment in the release-candidate commit so all three run against the same source SHA.
+# Android Paper native parity and API contract tests are included in the candidate build.
+# The quality API envelope contract is also covered in the Python/API candidate run.
 workflows:
   android-chart-pro-debug:
-    name: BTC Chart Pro - tests and debug APK
+    name: BTC Chart Pro - tests, regular and parallel APKs
     instance_type: mac_mini_m2
     max_build_duration: 30
     environment:
@@ -14,6 +18,9 @@ workflows:
       events:
         - push
       branch_patterns:
+        - pattern: feature/android-five-layer-control
+          include: true
+          source: true
         - pattern: feature/five-layer-paper
           include: true
           source: true
@@ -35,6 +42,9 @@ workflows:
         includes:
           - android-app/
           - integrations/
+          - paper_execution/
+          - pipeline/
+          - control_dashboard/
           - ci/
           - codemagic.yaml
     scripts:
@@ -42,24 +52,31 @@ workflows:
         script: |
           set -euo pipefail
           python3 -m unittest integrations.test_hummingbot_bridge -v
+          python3 -m unittest ci.test_android_apks -v
       - name: Prepare Android build tools and record source
         script: bash ci/setup-android.sh
       - name: Run Android unit tests
         working_directory: android-app
         script: |
           set -euo pipefail
-          "$CHART_GRADLE_BIN" :app:testDebugUnitTest --no-daemon --stacktrace
-        test_report: android-app/app/build/test-results/testDebugUnitTest/*.xml
-      - name: Build debug APK
+          "$CHART_GRADLE_BIN" :app:testDebugUnitTest :app:testParallelUnitTest --no-daemon --stacktrace
+        test_report: android-app/app/build/test-results/test*UnitTest/*.xml
+      - name: Build regular and parallel APKs
         working_directory: android-app
         script: |
           set -euo pipefail
-          "$CHART_GRADLE_BIN" :app:assembleDebug --no-daemon --stacktrace
+          "$CHART_GRADLE_BIN" :app:assembleDebug :app:assembleParallel --no-daemon --stacktrace
+      - name: Verify application identities and publish parallel APK
+        script: python3 ci/verify-android-apks.py
     artifacts:
       - android-app/app/build/outputs/apk/debug/*.apk
+      - artifacts/BTC-5-Tang-Paper-*.apk
       - android-app/app/build/test-results/testDebugUnitTest/*.xml
       - android-app/app/build/reports/tests/testDebugUnitTest/**
+      - android-app/app/build/test-results/testParallelUnitTest/*.xml
+      - android-app/app/build/reports/tests/testParallelUnitTest/**
       - android-source-sha.txt
+      - android-apks.json
 
   android-chart-pro-release:
     name: BTC Chart Pro - verified signed release APK
@@ -106,6 +123,18 @@ workflows:
         - pattern: feature/hummingbot-order-book
           include: true
           source: true
+        - pattern: feature/android-five-layer-control
+          include: true
+          source: true
+        - pattern: feature/t1-intelligence-provenance-quality-20261101
+          include: true
+          source: true
+        - pattern: feature/timescaledb-market-data-repository
+          include: true
+          source: true
+        - pattern: feature/timescaledb-storage-factory-api
+          include: true
+          source: true
         - pattern: main
           include: true
           source: true
@@ -139,13 +168,13 @@ workflows:
       - name: Run data tests and gateway regressions
         script: |
           set -euo pipefail
-          "$CI_PYTHON" -m unittest market_data.test_store market_data.test_sync market_data.test_api -v 2>&1 | tee market-data-tests.log
+          "$CI_PYTHON" -m unittest market_data.test_store market_data.test_storage market_data.test_sync market_data.test_api -v 2>&1 | tee market-data-tests.log
           "$CI_PYTHON" -m unittest discover -s integrations -p 'test_*.py' -v 2>&1 | tee gateway-tests.log
           "$CI_PYTHON" -m unittest discover -s ci -p 'test_*.py' -v 2>&1 | tee ci-policy-tests.log
       - name: Run five-layer paper integration tests
         script: |
           set -euo pipefail
-          "$CI_PYTHON" -m unittest futures_intelligence.test_import_collector pipeline.test_decision pipeline.test_api paper_execution.test_ledger freqai_bridge.test_exporter -v 2>&1 | tee paper-system-tests.log
+          "$CI_PYTHON" -m unittest futures_intelligence.test_import_collector pipeline.test_decision pipeline.test_api pipeline.test_core_signal pipeline.test_core_strategy paper_execution.test_ledger paper_execution.test_risk_control paper_execution.test_equity freqai_bridge.test_exporter -v 2>&1 | tee paper-system-tests.log
       - name: Verify CLI and syntax
         script: |
           set -euo pipefail
@@ -157,6 +186,29 @@ workflows:
       - gateway-tests.log
       - ci-policy-tests.log
       - paper-system-tests.log
+
+  market-data-timescaledb:
+    name: Market data - TimescaleDB migration and SQLite parity
+    instance_type: mac_mini_m2
+    max_build_duration: 15
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: feature/timescaledb-storage-factory-api
+          include: true
+          source: true
+      cancel_previous_builds: true
+    environment:
+      groups:
+        - market_data_timescale_test
+    scripts:
+      - name: Prepare Python dependencies
+        script: bash ci/setup-python.sh requirements-market-data.txt requirements-ci.txt
+      - name: Run TimescaleDB integration and SQLite parity tests
+        script: bash ci/test-timescaledb.sh
+    artifacts:
+      - ci-source-sha.txt
+      - timescaledb-tests.log
 
   telegram-command:
     name: Telegram command
@@ -241,6 +293,12 @@ workflows:
         - pattern: feature/five-layer-paper
           include: true
           source: true
+        - pattern: feature/android-five-layer-control
+          include: true
+          source: true
+        - pattern: feature/t1-intelligence-provenance-quality-20261101
+          include: true
+          source: true
         - pattern: main
           include: true
           source: true
@@ -257,7 +315,7 @@ workflows:
       - name: Frozen install with dependency scripts disabled
         working_directory: control_dashboard
         script: npm ci --ignore-scripts
-      - name: Test API boundaries
+      - name: Test React dashboard and API boundaries
         working_directory: control_dashboard
         script: npm test
       - name: Build control dashboard
@@ -290,3 +348,94 @@ workflows:
     artifacts:
       - ci-source-sha.txt
       - freqai-smoke-tests.log
+
+
+  market-data-kraken-adapter-tests:
+    name: Market data - isolated Kraken spot adapter tests (manual)
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    # Manual only. Unit tests use a fake exchange and never call external APIs.
+    scripts:
+      - name: Prepare Python and record source SHA
+        script: |
+          set -euo pipefail
+          bash ci/setup-python.sh requirements-market-data.txt requirements-ci.txt
+          git rev-parse HEAD | tee ci-source-sha.txt
+      - name: Run Kraken spot adapter contract tests
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m unittest market_data.test_kraken_spot -v 2>&1 | tee kraken-adapter-tests.log
+      - name: Compile Kraken adapter and report result
+        script: |
+          set -euo pipefail
+          if "$CI_PYTHON" -m compileall -q market_data/kraken_spot.py; then
+            echo "KRAKEN_ADAPTER_COMPILEALL=PASS" | tee kraken-adapter-compileall.log
+          else
+            status=$?
+            echo "KRAKEN_ADAPTER_COMPILEALL=FAIL (exit ${status})" | tee kraken-adapter-compileall.log
+            exit "$status"
+          fi
+    artifacts:
+      - ci-source-sha.txt
+      - kraken-adapter-tests.log
+      - kraken-adapter-compileall.log
+
+  market-data-kraken-spot-sqlite-tests:
+    name: Market data - isolated Kraken Spot SQLite persistence (manual)
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    # Manual only. Tests use temporary SQLite files; no live exchange or Binance database.
+    scripts:
+      - name: Prepare Python and record source SHA
+        script: |
+          set -euo pipefail
+          bash ci/setup-python.sh requirements-market-data.txt requirements-ci.txt
+          git rev-parse HEAD | tee ci-source-sha.txt
+      - name: Test Kraken Spot adapter and isolated SQLite store
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m unittest market_data.test_kraken_spot market_data.test_kraken_spot_store -v 2>&1 | tee kraken-spot-sqlite-tests.log
+      - name: Compile Kraken Spot persistence modules
+        script: |
+          set -euo pipefail
+          if "$CI_PYTHON" -m compileall -q market_data/kraken_spot.py market_data/kraken_spot_store.py; then
+            echo "KRAKEN_SPOT_SQLITE_COMPILEALL=PASS" | tee kraken-spot-sqlite-compileall.log
+          else
+            status=$?
+            echo "KRAKEN_SPOT_SQLITE_COMPILEALL=FAIL (exit ${status})" | tee kraken-spot-sqlite-compileall.log
+            exit "$status"
+          fi
+    artifacts:
+      - ci-source-sha.txt
+      - kraken-spot-sqlite-tests.log
+      - kraken-spot-sqlite-compileall.log
+
+  market-data-kraken-spot-read-api:
+    name: Market data - isolated Kraken Spot read-only API (manual)
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    # Manual only. Uses temporary SQLite files; no network, production DB, or Futures consumers.
+    scripts:
+      - name: Prepare Python and record source SHA
+        script: |
+          set -euo pipefail
+          bash ci/setup-python.sh requirements-market-data.txt requirements-ci.txt
+          git rev-parse HEAD | tee ci-source-sha.txt
+      - name: Test isolated Kraken Spot adapter, store and read API
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m unittest market_data.test_kraken_spot market_data.test_kraken_spot_store market_data.test_kraken_spot_api -v 2>&1 | tee kraken-spot-read-api-tests.log
+      - name: Compile Kraken Spot read API and persistence modules
+        script: |
+          set -euo pipefail
+          if "$CI_PYTHON" -m compileall -q market_data/kraken_spot.py market_data/kraken_spot_store.py market_data/kraken_spot_api.py; then
+            echo "KRAKEN_SPOT_READ_API_COMPILEALL=PASS" | tee kraken-spot-read-api-compileall.log
+          else
+            status=$?
+            echo "KRAKEN_SPOT_READ_API_COMPILEALL=FAIL (exit ${status})" | tee kraken-spot-read-api-compileall.log
+            exit "$status"
+          fi
+    artifacts:
+      - ci-source-sha.txt
+      - kraken-spot-read-api-tests.log
+      - kraken-spot-read-api-compileall.log

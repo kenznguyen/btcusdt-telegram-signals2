@@ -14,6 +14,7 @@ android {
         targetSdk = 35
         versionCode = 2
         versionName = "0.2.0"
+        buildConfigField("boolean", "PARALLEL_INSTALL", "false")
     }
 
     signingConfigs {
@@ -26,13 +27,23 @@ android {
     }
 
     buildTypes {
+        create("parallel") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".paper"
+            versionNameSuffix = "-paper"
+            matchingFallbacks += listOf("debug")
+            buildConfigField("boolean", "PARALLEL_INSTALL", "true")
+        }
         getByName("release") {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("release")
         }
     }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -55,4 +66,5 @@ dependencies {
     testImplementation("org.json:json:20240303")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 }
+
 

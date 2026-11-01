@@ -338,7 +338,7 @@ fun CompleteDashboard(context: Context) {
     var chartFullscreen by remember { mutableStateOf(false) }
     var socketStatus by remember { mutableStateOf("Đang đồng bộ REST…") }
     var multiSignal by remember { mutableStateOf(runCatching { JSONObject(prefs.getString("multi_stream_signal_json", "{}") ?: "{}") }.getOrDefault(JSONObject())) }
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(if (BuildConfig.PARALLEL_INSTALL) 3 else 0) }
     var scannerStatus by remember { mutableStateOf("Đang chờ dữ liệu scanner…") }
     var scannerRows by remember { mutableStateOf<List<ScannerUiRow>>(emptyList()) }
     var continuousScannerEnabled by remember { mutableStateOf(prefs.getBoolean("multi_symbol_scanner_enabled", true)) }
@@ -546,8 +546,9 @@ fun CompleteDashboard(context: Context) {
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("$selectedSymbol.P", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                        Text("USDⓈ-M Perpetual · Chỉ xem · Không đặt lệnh", color = NMuted)
+                        if (BuildConfig.PARALLEL_INSTALL) Text("BTC 5 Tầng Paper · ${BuildConfig.VERSION_NAME}", color = Color(0xFFFFC857), style = MaterialTheme.typography.labelMedium)
+                        Text(if (selectedTab == 3) "BTCUSDT · PAPER" else "$selectedSymbol.P", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(if (selectedTab == 3) "Hệ thống 5 tầng · Sổ mô phỏng trên máy chủ" else "USDⓈ-M Perpetual · Chỉ xem · Không đặt lệnh", color = NMuted)
                     }
                     TextButton(onClick = {
                         notificationHistory = readAlertHistory(prefs)
@@ -562,8 +563,10 @@ fun CompleteDashboard(context: Context) {
                     Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Biểu đồ") })
                     Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Multi Symbol Scanner") })
                     Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("Order Book") })
+                    Tab(selected = selectedTab == 3, onClick = { selectedTab = 3 }, text = { Text("Hệ thống 5 tầng") })
                 }
             }
+            if (selectedTab == 3) item { FiveLayerPanel(context) }
             if (selectedTab == 2) item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {

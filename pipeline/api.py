@@ -11,7 +11,8 @@ import time
 from urllib.parse import parse_qs, unquote
 
 from market_data.api import candle_query
-from market_data.store import read_window
+from market_data.postgres import StoreUnavailable
+from market_data.storage import create_store_from_env
 from pipeline.values import stamp
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -71,12 +72,16 @@ def book_snapshot(timestamp):
 
 def ledger():
     from paper_execution.ledger import PaperLedger
+    from paper_execution.equity import parse_limits
     path = os.environ.get("MARKET_DATA_DB")
     if not path:
         raise ValueError("Unconfigured store")
+    limits = parse_limits(os.environ)
     return PaperLedger(path, max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"),
                        fee_rate=os.environ.get("PAPER_FEE_RATE", "0.0005"),
-                       max_spread_bps=os.environ.get("PAPER_MAX_SPREAD_BPS", "50"))
+                       max_spread_bps=os.environ.get("PAPER_MAX_SPREAD_BPS", "50"),
+                       risk_limits=limits, require_risk_limits=True,
+                       leverage=os.environ.get("LEVERAGE", "13"))
 
 
 def control_permit(timestamp):
@@ -98,6 +103,15 @@ def control_permit(timestamp):
         return True
 
 
+
+def market_window(*args, **kwargs):
+    """Read canonical candles from the configured backend; paper state stays in SQLite."""
+    try:
+        return create_store_from_env().read_window(*args, **kwargs)
+    except StoreUnavailable:
+        raise OSError("Market data store unavailable") from None
+
+
 def context(timestamp):
     """Resolve inputs on the server; callers cannot substitute model/book data."""
     stamp(timestamp)
@@ -105,7 +119,7 @@ def context(timestamp):
     data = {}
     errors = {}
     try:
-        data["candles"] = read_window(os.environ.get("MARKET_DATA_DB", ""), "BTCUSDT", "15m",
+        data["candles"] = market_window("BTCUSDT", "15m",
                                       end - 1_800_000, end)
     except (ValueError, OSError, sqlite3.Error):
         data["candles"], errors["candles"] = None, "CANDLES_UNAVAILABLE"
@@ -126,6 +140,162 @@ def decide(data, timestamp):
     from pipeline.decision import evaluate
     return evaluate(data["candles"], data["intelligence"], data["prediction"], data["book"], timestamp,
                     target_base=os.environ.get("PAPER_TARGET_BASE", "0.001"))
+
+
+def core_decide(timestamp, book=None):
+    from pipeline.core_signal import validate
+    from pipeline.core_strategy import produce
+    end15 = timestamp // 900_000 * 900_000
+    end1h = timestamp // 3_600_000 * 3_600_000
+    try:
+        m15 = market_window("BTCUSDT", "15m",
+                          end15-500*900_000, end15, as_of_ms=timestamp)
+        h1 = market_window("BTCUSDT", "1h",
+                         end1h-500*3_600_000, end1h, as_of_ms=timestamp)
+        if not m15.get("coverage", {}).get("complete") or not h1.get("coverage", {}).get("complete"):
+            return produce(m15, h1, {}, {"owner":None,"dcaUsed":False,"initialMarginQuote":"0"},
+                            book, timestamp,
+                            initial_capital=os.environ.get("PAPER_INITIAL_CAPITAL", "100"),
+                            max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"))
+        from paper_execution.ledger import read_snapshot
+        paper = read_snapshot(os.environ.get("MARKET_DATA_DB", ""))
+        state = paper["strategyState"]
+        book = book_snapshot(timestamp) if book is None else book
+        report = produce(m15, h1, paper, state, book, timestamp,
+                         initial_capital=os.environ.get("PAPER_INITIAL_CAPITAL", "100"),
+                         max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"))
+    except (ValueError, OSError, sqlite3.Error, TypeError, KeyError):
+        return {"source":"STRATEGY_CORE","action":"WAIT","reason":"CORE_INPUTS_UNAVAILABLE","intent":None}
+    if report.get("intent") is None:
+        return {"source":"STRATEGY_CORE","action":report.get("action","WAIT"),
+                "reason":report.get("reason","CORE_NO_SIGNAL"),"intent":None,
+                "indicators":report.get("indicators")}
+    result = validate(report["intent"], timestamp)
+    result["indicators"] = report.get("indicators")
+    return result
+
+
+def signal_snapshot(timestamp):
+    data = context(timestamp)
+    ai = decide(data, timestamp)
+    ai["source"] = "AI_FREQAI"
+    return {"strategyCore": core_decide(timestamp), "aiStrategy": ai,
+            "mode": "PAPER", "liveTradingSupported": False}
+
+
+def equity_snapshot(timestamp):
+    end = timestamp // 900_000 * 900_000
+    window = market_window("BTCUSDT", "15m",
+                         end-900_000, end, as_of_ms=timestamp)
+    if not window["candles"] or not window["coverage"]["complete"]:
+        return {"available":False,"reason":"CLOSED_M15_MARK_UNAVAILABLE","points":[]}
+    mark = window["candles"][-1]
+    # Constructing the ledger initializes a fresh Paper store before the first
+    # persistent equity observation; read_snapshot() is intentionally read-only
+    # and cannot be used as an initialization prerequisite here.
+    paper_ledger = ledger()
+    result = paper_ledger.record_equity(mark["close"], mark["closeTimeMs"], timestamp,
+        window["datasetVersion"], os.environ.get("PAPER_INITIAL_CAPITAL", "100"))
+    from paper_execution.equity import parse_limits
+    limits = parse_limits(os.environ)
+    result["initialCapital"] = os.environ.get("PAPER_INITIAL_CAPITAL", "100")
+    result["riskLimits"] = {
+        "configured": limits is not None,
+        "maxDrawdownPct": str(limits["maxDrawdownPct"]) if limits else None,
+        "maxDailyLossUsdt": str(limits["maxDailyLossUsdt"]) if limits else None,
+        "maxExposureUsdt": str(limits["maxExposureUsdt"]) if limits else None,
+        "enforcement": "ENFORCED" if limits else "BLOCK_NEW_INTENTS",
+    }
+    return result
+
+
+def quality_snapshot(timestamp):
+    data = context(timestamp)
+    streams = []
+    try:
+        end15 = timestamp // 900_000 * 900_000
+        m15 = market_window("BTCUSDT","15m",
+                          end15-500*900_000,end15,as_of_ms=timestamp)
+        m15_ready = m15["coverage"]["complete"] and len(m15["candles"]) == 500
+        streams.append({"name":"M15 candles","status":"READY" if m15_ready else "DEGRADED",
+                        "rows":len(m15["candles"]),"datasetVersion":m15["datasetVersion"]})
+    except (ValueError,OSError,sqlite3.Error):
+        streams.append({"name":"M15 candles","status":"MISSING","rows":0})
+    try:
+        end1h = timestamp // 3_600_000 * 3_600_000
+        h1 = market_window("BTCUSDT","1h",
+                         end1h-500*3_600_000,end1h,as_of_ms=timestamp)
+        h1_ready = h1["coverage"]["complete"] and len(h1["candles"]) == 500
+        streams.append({"name":"H1 candles","status":"READY" if h1_ready else "DEGRADED",
+                        "rows":len(h1["candles"]),"datasetVersion":h1["datasetVersion"]})
+    except (ValueError,OSError,sqlite3.Error):
+        streams.append({"name":"H1 candles","status":"MISSING","rows":0})
+    intel, book, prediction = data.get("intelligence"), data.get("book"), data.get("prediction")
+    if intel:
+        from futures_intelligence.import_collector import feed_quality
+        intel_feeds = feed_quality(intel, timestamp)
+        trade_feed = next(feed for feed in intel_feeds if feed["name"] == "trades")
+        intel_status = "READY" if all(feed["freshness"] == "FRESH" and feed["integrityStatus"] == "OK" for feed in intel_feeds) and trade_feed["tradeIdGaps"] == 0 else "DEGRADED"
+        input_files = intel.get("inputFiles", {})
+        input_file_count = sum(len(items) for items in input_files.values()) if isinstance(input_files, dict) else 0
+        intel_stream = {"name":"Futures Intelligence","status":intel_status,
+                        "availableAtMs":intel.get("availableAtMs"),"snapshotId":intel.get("snapshotId"),
+                        "collectorCommit":intel.get("collectorCommit", intel.get("source")),
+                        "inputFileCount":input_file_count,"feeds":intel_feeds}
+    else:
+        intel_stream = {"name":"Futures Intelligence","status":"MISSING","feeds":[
+            {"name":name,"status":"MISSING","freshness":"MISSING","ageMs":None,
+             "maxAgeMs":None,"rows":0,"duplicateRows":0,
+             "integrityStatus":"UNVERIFIABLE" if name == "liquidations" else "OK",
+             "deduplicationStatus":"NO_EVENT_ID" if name == "liquidations" else "UNVERIFIED",
+             "continuityStatus":"UNVERIFIED","connectionStatus":"UNVERIFIABLE","complete":False}
+            for name in ("trades","funding","openInterest","liquidations")]}
+    streams.append(intel_stream)
+    book_ready = bool(book and 0 <= timestamp-stamp(book.get("observedAtMs")) <= 30_000)
+    streams.append({"name":"Hummingbot Order Book","status":"READY" if book_ready else "MISSING",
+                    "observedAtMs":book.get("observedAtMs") if book else None})
+    try:
+        prediction_ready = bool(prediction and prediction.get("doPredict") == 1 and
+                                0 <= timestamp-stamp(prediction.get("availableAtMs")) <= 30_000 and
+                                prediction.get("symbol") == "BTCUSDT" and prediction.get("timeframe") == "15m")
+    except (ValueError,TypeError):
+        prediction_ready = False
+    streams.append({"name":"FreqAI prediction","status":"READY" if prediction_ready else "MISSING",
+                    "availableAtMs":prediction.get("availableAtMs") if prediction else None})
+    from paper_execution.equity import parse_limits
+    try:
+        risk_limits = parse_limits(os.environ)
+        risk_ready = risk_limits is not None
+        risk_stream = {"name":"Shared Risk Limits","status":"READY" if risk_ready else "DEGRADED",
+                       "maxDrawdownPct":str(risk_limits["maxDrawdownPct"]) if risk_ready else None,
+                       "maxDailyLossUsdt":str(risk_limits["maxDailyLossUsdt"]) if risk_ready else None,
+                       "maxExposureUsdt":str(risk_limits["maxExposureUsdt"]) if risk_ready else None,
+                       "reason":None if risk_ready else "RISK_LIMITS_UNCONFIGURED"}
+    except ValueError:
+        risk_stream = {"name":"Shared Risk Limits","status":"INVALID","reason":"RISK_LIMITS_INVALID"}
+    streams.append(risk_stream)
+    core = core_decide(timestamp, book)
+    core_values = core.get("indicators")
+    core_ready = isinstance(core_values, dict) and all(
+        core_values.get(key) is not None for key in ("rsiM15", "adxM15", "plusDiH1", "minusDiH1", "adxH1"))
+    streams.append({"name":"Strategy Core producer","status":"READY" if core_ready else "DEGRADED",
+                    "action":core.get("action","WAIT"),"reason":core.get("reason"),"indicators":core_values})
+    return {"checkedAtMs":timestamp,"mode":"PAPER","liveTradingSupported":False,"streams":streams,
+            "overall":"READY" if all(row["status"]=="READY" for row in streams) else "DEGRADED",
+            "errors":data.get("errors",{})}
+
+
+def control_readiness(timestamp):
+    data = context(timestamp)
+    candles = data.get("candles")
+    candle_ready = bool(candles and candles.get("coverage", {}).get("complete") is True)
+    book_ready = data.get("book") is not None
+    paper = ledger().snapshot()
+    no_pending = not any(order.get("status") in ("OPEN", "PARTIALLY_FILLED")
+                         for order in paper.get("orders", []))
+    return {"ready": candle_ready and book_ready and no_pending,
+            "checks": {"closedCandles": candle_ready, "orderBook": book_ready,
+                       "noPendingPaperOrders": no_pending}}
 
 
 def _body(environ):
@@ -182,11 +352,12 @@ def application(environ, start_response):
                                     ("Content-Security-Policy", "default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-ancestors 'none'")]
         start_response("200 OK", static_headers)
         return [data]
-    routes = {"/v1/system", "/v1/candles", "/v1/order-book", "/v1/intelligence", "/v1/decision", "/v1/paper",
-              "/v1/paper/evaluate", "/v1/paper/pause", "/v1/paper/cancel"}
+    routes = {"/v1/system", "/v1/candles", "/v1/order-book", "/v1/intelligence", "/v1/decision", "/v1/signals", "/v1/paper",
+              "/v1/equity", "/v1/audit", "/v1/quality",
+              "/v1/paper/evaluate", "/v1/paper/pause", "/v1/paper/cancel", "/v1/paper/kill", "/v1/paper/reset-kill"}
     if path not in routes:
         return response("404 Not Found", {"error": "NOT_FOUND"})
-    expected = "POST" if path in {"/v1/paper/evaluate", "/v1/paper/pause", "/v1/paper/cancel"} else "GET"
+    expected = "POST" if path in {"/v1/paper/evaluate", "/v1/paper/pause", "/v1/paper/cancel", "/v1/paper/kill", "/v1/paper/reset-kill"} else "GET"
     if method != expected:
         return response("405 Method Not Allowed", {"error": "METHOD_NOT_ALLOWED"})
     token = os.environ.get("CONTROL_TOKEN" if method == "POST" else "MARKET_DATA_TOKEN", "")
@@ -208,18 +379,47 @@ def application(environ, start_response):
                 result = ledger().set_paused(payload["paused"], timestamp)
             elif path == "/v1/paper/cancel" and set(payload) == {"orderId"} and isinstance(payload["orderId"], str) and 0 < len(payload["orderId"]) <= 100:
                 result = ledger().cancel(payload["orderId"], timestamp)
-            elif path == "/v1/paper/evaluate" and not payload:
-                data = context(timestamp)
+            elif path == "/v1/paper/kill" and set(payload) == {"enabled"} and payload["enabled"] is True:
+                result = ledger().set_killed(True, timestamp, "OPERATOR_KILL_SWITCH")
+            elif path == "/v1/paper/reset-kill" and set(payload) == {"acknowledge"} and payload["acknowledge"] is True:
+                readiness = control_readiness(timestamp)
+                if not readiness["ready"]:
+                    return response("409 Conflict", {"error": "SYSTEM_NOT_READY", "checks": readiness["checks"]})
+                result = ledger().reset_kill(True, True, timestamp)
+            elif path == "/v1/paper/evaluate" and (not payload or payload in ({"source": "AI"}, {"source": "CORE"})):
+                source = payload.get("source", "AI")
+                if source == "CORE":
+                    data = {"book": book_snapshot(timestamp)}
+                    decision = core_decide(timestamp, data["book"])
+                else:
+                    data = context(timestamp)
+                    decision = decide(data, timestamp)
+                    decision["source"] = "AI_FREQAI"
                 timestamp = now_ms()
-                decision = decide(data, timestamp)
-                order = ledger().submit(decision["intent"], data["book"], timestamp) if decision.get("intent") else None
+                order = None
+                if decision.get("intent"):
+                    end = timestamp // 900_000 * 900_000
+                    mark_window = market_window("BTCUSDT","15m",
+                                              end-900_000,end,as_of_ms=timestamp)
+                    if mark_window["candles"] and mark_window["coverage"]["complete"]:
+                        mark = mark_window["candles"][-1]
+                        ledger().record_equity(mark["close"],mark["closeTimeMs"],timestamp,
+                            mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
+                    source_id = "STRATEGY_CORE" if source == "CORE" else "AI_FREQAI"
+                    reason = decision.get("reason")
+                    event = "ENTRY" if reason in ("RSI_ADX_ENTRY","ALIGNED_PAPER_SIGNAL") else "DCA" if reason == "DCA" else "EXIT" if reason in ("EMERGENCY_SL","SOFT_SL","TAKE_PROFIT","CLOSE") else None
+                    order = ledger().submit(decision["intent"], data["book"], timestamp,
+                        strategy_id=source_id, strategy_event=event)
+                    if mark_window["candles"] and mark_window["coverage"]["complete"]:
+                        ledger().record_equity(mark["close"],mark["closeTimeMs"],timestamp,
+                            mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
                 result = {"decision": decision, "order": order}
             else:
                 raise ValueError("Invalid control payload")
         elif path == "/v1/candles":
             query = candle_query(environ.get("QUERY_STRING", ""))
             try:
-                result = read_window(os.environ.get("MARKET_DATA_DB", ""), **query)
+                result = market_window(**query)
             except (ValueError, OSError, sqlite3.Error):
                 return response("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
         elif path == "/v1/paper":
@@ -227,6 +427,21 @@ def application(environ, start_response):
             if not os.environ.get("MARKET_DATA_DB"):
                 return response("503 Service Unavailable", {"error": "UNCONFIGURED"})
             result = read_snapshot(os.environ["MARKET_DATA_DB"])
+        elif path == "/v1/equity":
+            try:
+                result = equity_snapshot(timestamp)
+            except (ValueError, OSError, sqlite3.Error):
+                return response("503 Service Unavailable", {"error":"EQUITY_UNAVAILABLE"})
+        elif path == "/v1/audit":
+            query = parse_qs(environ.get("QUERY_STRING",""), max_num_fields=2)
+            if set(query)-{"limit","beforeId"} or any(len(v)!=1 for v in query.values()):
+                raise ValueError("Invalid audit query")
+            limit = int(query.get("limit",["50"])[0])
+            before = int(query["beforeId"][0]) if "beforeId" in query else None
+            from paper_execution.ledger import read_audit
+            result = read_audit(os.environ.get("MARKET_DATA_DB", ""),limit=limit,before_id=before)
+        elif path == "/v1/quality":
+            result = quality_snapshot(timestamp)
         elif path == "/v1/order-book":
             query = parse_qs(environ.get("QUERY_STRING", ""), max_num_fields=1)
             if query != {"symbol": ["BTCUSDT"]}:
@@ -243,17 +458,24 @@ def application(environ, start_response):
         elif path == "/v1/decision":
             data = context(timestamp)
             result = decide(data, now_ms())
+        elif path == "/v1/signals":
+            result = signal_snapshot(timestamp)
         else:
             end = timestamp // 900_000 * 900_000
             try:
-                candles = read_window(os.environ.get("MARKET_DATA_DB", ""), "BTCUSDT", "15m", end-1_800_000, end)
+                candles = market_window("BTCUSDT", "15m", end-1_800_000, end)
                 candle_ready = candles["coverage"]["complete"] and all(c["availableAtMs"] <= timestamp for c in candles["candles"])
             except (ValueError, OSError, sqlite3.Error):
                 candle_ready = False
             try:
                 intelligence = intelligence_snapshot(timestamp)
-                intel_ready = intelligence is not None and 0 <= timestamp-intelligence["windowEndMs"] <= 60_000 and any(
-                    stream.get("status") == "OBSERVED" for stream in intelligence["coverage"].values())
+                if intelligence is not None:
+                    from futures_intelligence.import_collector import feed_quality
+                    feeds = feed_quality(intelligence, timestamp)
+                    trade_feed = next(feed for feed in feeds if feed["name"] == "trades")
+                    intel_ready = trade_feed["freshness"] == "FRESH" and trade_feed["tradeIdGaps"] == 0 and trade_feed["duplicateRows"] == 0
+                else:
+                    intel_ready = False
             except (ValueError, OSError, KeyError, TypeError):
                 intel_ready = False
             try:
@@ -265,7 +487,7 @@ def application(environ, start_response):
             result = {"mode": "PAPER", "liveTradingSupported": False, "layers": [
                 {"level": 0, "name": "Kho nến chuẩn", "status": "READY" if candle_ready else "WAIT", "detail": "Cửa sổ M15 · API kho cũng hỗ trợ H1"},
                 {"level": 1, "name": "Trinh sát futures", "status": "OBSERVED" if intel_ready else "WAIT", "detail": "Dữ liệu quan sát; từng feed có coverage riêng"},
-                {"level": 2, "name": "Freqtrade + FreqAI", "status": "ARTIFACT_AVAILABLE" if model_ready else "WAIT", "detail": "Dự báo phải qua kiểm tra provenance khi ra quyết định"},
+                {"level": 2, "name": "Strategy Core + AI Strategy", "status": "ARTIFACT_AVAILABLE" if model_ready else "WAIT", "detail": "Hai nguồn độc lập; cùng Shared Risk Engine và Paper Ledger"},
                 {"level": 3, "name": "Hummingbot / paper", "status": "CONFIGURED" if hb_ready else "WAIT", "detail": "Snapshot chỉ phục vụ mô phỏng, chưa xác nhận kết nối thật"},
                 {"level": 4, "name": "React + API", "status": "READY" if (control_root() / "index.html").is_file() else "API_ONLY", "detail": "Quyền đọc và điều khiển paper tách riêng; React cần build dist"}]}
         return response("200 OK", result)
