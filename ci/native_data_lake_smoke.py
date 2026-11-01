@@ -109,8 +109,12 @@ def main():
                       NOT has_schema_privilege('lake_reader', 'public', 'CREATE'),
                       has_table_privilege('lake_reader', 'candles', 'SELECT'),
                       NOT has_table_privilege('lake_reader', 'candles', 'INSERT'),
+                      has_table_privilege('lake_reader', 'intelligence_snapshots', 'SELECT'),
+                      NOT has_table_privilege('lake_reader', 'intelligence_snapshots', 'INSERT'),
                       has_schema_privilege('lake_collector', 'public', 'CREATE'),
-                      has_table_privilege('lake_collector', 'candles', 'INSERT')
+                      has_table_privilege('lake_collector', 'candles', 'INSERT'),
+                      (SELECT pg_get_userbyid(relowner)='lake_collector' FROM pg_class WHERE relname='candles' AND relnamespace='public'::regnamespace),
+                      (SELECT pg_get_userbyid(relowner)='lake_collector' FROM pg_class WHERE relname='intelligence_snapshots' AND relnamespace='public'::regnamespace)
                 """).fetchone()
                 assert all(checks), f"Role/permission assertion failed: {checks}"
 
