@@ -258,6 +258,7 @@ class FiveLayerApiTest(unittest.TestCase):
         feeds = {row["name"]: row for row in intelligence["feeds"]}
         self.assertEqual(feeds["trades"]["freshness"], "FRESH")
         self.assertEqual(feeds["trades"]["continuityStatus"], "UNVERIFIED")
+        self.assertEqual(feeds["trades"]["connectionStatus"], "UNVERIFIABLE")
         self.assertEqual(feeds["trades"]["integrityStatus"], "OK")
         self.assertEqual(feeds["trades"]["duplicateRows"], 0)
         self.assertGreaterEqual(feeds["trades"]["ageMs"], 0)
