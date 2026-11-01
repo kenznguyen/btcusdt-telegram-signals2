@@ -41,10 +41,12 @@ class RetryContractTest(unittest.TestCase):
 
     def test_exponential_backoff_is_capped_at_five_minutes(self):
         delays = []
-        operation = Mock(side_effect=[TimeoutError()] * 5 + ["ok"])
+        # Five total attempts means four failures/retries before the success.
+        operation = Mock(side_effect=[TimeoutError()] * 4 + ["ok"])
         policy = self.policy(delays.append, base_delay_seconds=100)
         self.assertEqual(policy.execute(operation), "ok")
-        self.assertEqual(delays, [100, 200, 300, 300, 300])
+        self.assertEqual(delays, [100, 200, 300, 300])
+        self.assertEqual(operation.call_count, 5)
 
     def test_jitter_is_applied_within_the_configured_ratio(self):
         delays = []
@@ -126,3 +128,7 @@ class RetryContractTest(unittest.TestCase):
                              random_fn=lambda: 1.0)
         self.assertEqual(policy.execute(operation), "ok")
         self.assertEqual(delays, [300])
+
+
+if __name__ == "__main__":
+    unittest.main()
