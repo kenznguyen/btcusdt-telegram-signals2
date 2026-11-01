@@ -137,6 +137,17 @@ class AtomicWriteFencingTest(unittest.TestCase):
             )
         self.assertEqual(self.read(1)["candles"], [])
 
+    def test_lease_expiring_during_batch_rolls_back_all_candles(self):
+        clock_values = iter((NOW + 1, NOW + 60_000))
+        with self.assertRaises(PermissionError):
+            self.candles.insert_fenced(
+                [candle(0), candle(1)],
+                owner="writer-A",
+                generation=self.lease.generation,
+                now_ms=lambda: next(clock_values),
+            )
+        self.assertEqual(self.read(2)["candles"], [])
+
 
 if __name__ == "__main__":
     unittest.main()
