@@ -36,11 +36,11 @@ def bootstrap(owner_uri, reader_password, writer_password, *, reader_role=READER
     from market_data.archive import init_archive
     from market_data.store import open_store
 
-    # Only this credential-provisioning session suppresses SQL/error context.
-    # Password utility statements cannot use bind parameters in PostgreSQL.
-    options = ("-c statement_timeout=5000 -c lock_timeout=5000 -c log_statement=none "
-               "-c log_min_error_statement=panic -c log_error_verbosity=terse "
-               "-c log_parameter_max_length_on_error=0")
+    # The bootstrap role is deliberately not a superuser. Keep connection
+    # startup options to user-settable timeouts; PostgreSQL logging GUCs such
+    # as log_statement are privileged and cause FATAL during authentication.
+    # The server's own logging policy must be configured by its administrator.
+    options = "-c statement_timeout=5000 -c lock_timeout=5000"
     with psycopg.connect(owner_uri, autocommit=True, connect_timeout=5, options=options) as owner:
         owner.execute("SELECT pg_advisory_lock(6072027)")
         for role, password in ((reader_role, reader_password), (writer_role, writer_password)):
