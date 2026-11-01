@@ -696,3 +696,43 @@ workflows:
       - t0-feeder-atomic-fencing-tests.log
       - t0-feeder-atomic-fencing-verdict.txt
       - t0-feeder-atomic-fencing-compile.log
+
+  # T0 process-crash recovery: isolated SQLite SIGKILL integration contract.
+  t0-feeder-sigkill-recovery:
+    name: T0 feeder - SQLite SIGKILL recovery (isolated)
+    instance_type: mac_mini_m2
+    max_build_duration: 15
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: feature/t0-sigkill-recovery-20261102
+          include: true
+          source: true
+      cancel_previous_builds: true
+    when:
+      changeset:
+        includes:
+          - market_data/test_feeder_sigkill_recovery.py
+          - codemagic.yaml
+    scripts:
+      - name: Prepare Python and record exact source SHA
+        script: |
+          set -euo pipefail
+          bash ci/setup-python.sh requirements.txt
+          git rev-parse HEAD | tee ci-source-sha.txt
+      - name: Run SIGKILL recovery and all prior T0 regression contracts
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m unittest market_data.test_feeder_sigkill_recovery market_data.test_feeder_atomic_fencing market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-sigkill-recovery-tests.log
+          grep -q "Ran 100 tests" t0-feeder-sigkill-recovery-tests.log
+          echo "T0_SIGKILL_RECOVERY_TESTS=PASS (100 tests)" | tee t0-feeder-sigkill-recovery-verdict.txt
+      - name: Compile SIGKILL recovery contract
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m py_compile market_data/test_feeder_sigkill_recovery.py market_data/feeder.py market_data/feeder_service.py market_data/store.py market_data/sync.py
+          echo "T0_SIGKILL_RECOVERY_COMPILE=PASS" | tee t0-feeder-sigkill-recovery-compile.log
+    artifacts:
+      - ci-source-sha.txt
+      - t0-feeder-sigkill-recovery-tests.log
+      - t0-feeder-sigkill-recovery-verdict.txt
+      - t0-feeder-sigkill-recovery-compile.log
