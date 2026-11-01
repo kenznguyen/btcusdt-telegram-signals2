@@ -806,6 +806,24 @@ class FeederRuntime:
                     self._emit("recovery_incomplete")
                     return False
             self._emit("recovery_completed")
+            # Recovery may take long enough for the acquired lease to expire.
+            # Renew it immediately before the scheduler can become live/ready.
+            heartbeat = getattr(self.lease_store, "heartbeat", None)
+            try:
+                lease_current = (
+                    callable(heartbeat)
+                    and heartbeat(
+                        self.owner_id,
+                        self.lease_generation,
+                        now_ms=self.clock(),
+                        ttl_seconds=self.config.lease_ttl_seconds,
+                    ) is True
+                )
+            except Exception:
+                lease_current = False
+            if not lease_current:
+                self.on_lease_lost()
+                return False
             self.scheduler.start()
             with self._lock:
                 self._state = "RUNNING"
@@ -922,8 +940,9 @@ class FeederRuntime:
         with self._lock:
             if self._state == "STOPPED":
                 return True
+            lease_was_lost = self._state == "LEASE_LOST"
             self._stop_requested = True
-            if self._state != "LEASE_LOST":
+            if not lease_was_lost:
                 self._state = "STOPPING"
         self._heartbeat_stop.set()
         heartbeat = self._heartbeat_thread
@@ -942,15 +961,23 @@ class FeederRuntime:
         if self.lease_generation is not None and not self._released:
             released = self.lease_store.release(self.owner_id, self.lease_generation)
             if released is False:
-                with self._lock:
-                    self._state = "STOPPED"
-                if self.health is not None:
-                    mark_stopped = getattr(self.health, "mark_stopped", None)
-                    if callable(mark_stopped):
-                        mark_stopped()
-                self._emit("lease_release_failed")
-                raise RuntimeError("Feeder could not release its owner/generation lease")
-            self._released = True
+                if lease_was_lost:
+                    # A takeover owns a newer generation. Never release it and
+                    # do not turn an already-safe lease-loss shutdown into an
+                    # exception that masks the service's lease-lost exit code.
+                    self._released = True
+                    self._emit("lease_release_skipped_after_takeover")
+                else:
+                    with self._lock:
+                        self._state = "STOPPED"
+                    if self.health is not None:
+                        mark_stopped = getattr(self.health, "mark_stopped", None)
+                        if callable(mark_stopped):
+                            mark_stopped()
+                    self._emit("lease_release_failed")
+                    raise RuntimeError("Feeder could not release its owner/generation lease")
+            else:
+                self._released = True
 
         with self._lock:
             self._state = "STOPPED"
