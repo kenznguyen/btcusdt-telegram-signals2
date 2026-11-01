@@ -231,6 +231,15 @@ class KrakenSpotSQLiteStore:
                 ),
             ).fetchall()
 
+            seen_candle_identities = set()
+            for row in rows:
+                candle_identity = (row["timeframe"], row["open_time_ms"])
+                if candle_identity in seen_candle_identities:
+                    raise ValueError(
+                        "Kraken Spot dataset contains a duplicate candle identity"
+                    )
+                seen_candle_identities.add(candle_identity)
+
         candles = []
         for row in rows:
             identity = InstrumentIdentity(
