@@ -304,5 +304,40 @@ class FiveLayerApiTest(unittest.TestCase):
                                       {"acknowledge": True, "ready": False})[0], 400)
 
 
+    def test_market_data_reads_follow_factory_while_paper_ledger_stays_sqlite(self):
+        calls = []
+
+        class SelectedStore:
+            def read_window(self, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
+                calls.append((symbol, timeframe, start_ms, end_ms, as_of_ms))
+                return {
+                    "candles": [],
+                    "coverage": {"complete": False, "expected": 1, "returned": 0, "gaps": []},
+                    "datasetVersion": "sha256:" + "e" * 64,
+                }
+
+        selected_store = SelectedStore()
+        with patch.object(api, "create_store_from_env", return_value=selected_store):
+            query = (f"symbol=BTCUSDT&timeframe=15m&startMs={self.end-1_800_000}"
+                     f"&endMs={self.end}")
+            code, _ = self.request("/v1/candles", query=query)
+            self.assertEqual(code, 200)
+
+            code, quality = self.request("/v1/quality")
+            self.assertEqual(code, 200)
+            self.assertEqual(quality["mode"], "PAPER")
+
+            timeframes = {call[1] for call in calls}
+            self.assertIn("15m", timeframes)
+            self.assertIn("1h", timeframes)
+
+            api.ledger()
+            before_paper_read = len(calls)
+            code, paper = self.request("/v1/paper")
+            self.assertEqual(code, 200)
+            self.assertFalse(paper["liveTradingSupported"])
+            self.assertEqual(len(calls), before_paper_read)
+
+
 if __name__ == "__main__":
     unittest.main()
