@@ -1,7 +1,9 @@
 """Read-only Kraken BTC/USDT spot adapter.
 
 This adapter emits source-typed candles only. It does not persist data, mutate
-the Binance canonical store, provide failover, or place orders.
+the Binance canonical store, provide failover, or place orders. CCXT may parse
+upstream OHLCV numbers as floats; Decimal(str(value)) avoids further float
+arithmetic but cannot recover precision already lost in CCXT parsing.
 """
 
 from dataclasses import dataclass
