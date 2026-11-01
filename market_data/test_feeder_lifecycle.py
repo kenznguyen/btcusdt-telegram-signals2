@@ -46,6 +46,7 @@ class RuntimeLifecycleTest(unittest.TestCase):
         recovery.recover_all.side_effect = lambda: (
             events.append("recovery_completed") or True
         )
+        leases.heartbeat.return_value = True
         health.mark_ready.side_effect = lambda: events.append("ready")
         runtime = FeederRuntime(
             config=FeederConfig(), scheduler=scheduler, lease_store=leases,
