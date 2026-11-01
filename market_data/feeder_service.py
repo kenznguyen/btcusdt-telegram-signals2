@@ -5,6 +5,7 @@ This process only ingests closed BTCUSDT USD-M candles; it never places orders.
 """
 import os
 import signal
+from pathlib import Path
 import socket
 import threading
 import time
@@ -69,8 +70,28 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
     # Initialize the existing selected store without changing schema or backend.
     store.insert([])
 
+    runtime = None
+
     def canonical_sync(timeframe, start_ms, end_ms):
-        return sync_window(exchange, store, timeframe, start_ms, end_ms, now_ms=clock_fn)
+        generation = None if runtime is None else runtime.lease_generation
+        heartbeat = getattr(lease_store, "heartbeat", None)
+        if (generation is None or not callable(heartbeat)
+                or heartbeat(
+                    owner_id,
+                    generation,
+                    now_ms=clock_fn(),
+                    ttl_seconds=config.lease_ttl_seconds,
+                ) is not True):
+            raise PermissionError("Canonical sync blocked: feeder lease is not current")
+        return sync_window(
+            exchange, store, timeframe, start_ms, end_ms,
+            now_ms=clock_fn,
+            write_fence={
+                "owner": owner_id,
+                "generation": generation,
+                "now_ms": clock_fn,
+            },
+        )
 
     retry = RetryPolicy(
         max_attempts=config.retry_max_attempts,
@@ -110,27 +131,6 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
         clock=clock_fn,
         retry_policy=retry,
     )
-
-    # Startup recovery is also a canonical writer. Refresh and verify the
-    # runtime's lease before every recovery attempt; atomic write fencing is a
-    # separate storage-layer change and is intentionally not implied here.
-    def guarded_recovery_sync(timeframe, start_ms, end_ms):
-        def attempt():
-            generation = runtime.lease_generation
-            heartbeat = getattr(lease_store, "heartbeat", None)
-            if (generation is None or not callable(heartbeat)
-                    or heartbeat(
-                        owner_id,
-                        generation,
-                        now_ms=clock_fn(),
-                        ttl_seconds=config.lease_ttl_seconds,
-                    ) is not True):
-                raise PermissionError("Recovery blocked: feeder lease is not current")
-            return canonical_sync(timeframe, start_ms, end_ms)
-        return retry.execute(attempt)
-
-    for coordinator in coordinators.values():
-        coordinator.sync_callback = guarded_recovery_sync
     return runtime
 
 
@@ -143,14 +143,23 @@ def build_production_runtime(environ=None):
         raise RuntimeError("Install requirements-market-data.txt to run the T0 feeder") from exc
 
     backend = values.get("MARKET_DATA_BACKEND", "sqlite").strip().lower()
+    if backend != "sqlite":
+        raise ValueError(
+            "Production T0 feeder currently requires SQLite; PostgreSQL is blocked "
+            "until same-transaction lease fencing is implemented"
+        )
+    candle_path = values.get("MARKET_DATA_DB", "").strip()
+    if not candle_path:
+        raise ValueError("MARKET_DATA_DB is required for the SQLite T0 feeder")
+    lease_path = values.get("T0_FEEDER_LEASE_DB", "").strip() or candle_path
+    if Path(lease_path).expanduser().resolve() != Path(candle_path).expanduser().resolve():
+        raise ValueError(
+            "T0_FEEDER_LEASE_DB must resolve to the same file as MARKET_DATA_DB "
+            "for atomic write fencing"
+        )
     store = create_store_from_env(values)
-    lease_path = values.get("T0_FEEDER_LEASE_DB", "").strip()
-    if not lease_path:
-        if backend != "sqlite" or not values.get("MARKET_DATA_DB", "").strip():
-            raise ValueError(
-                "T0_FEEDER_LEASE_DB is required unless SQLite MARKET_DATA_DB is configured"
-            )
-        lease_path = values["MARKET_DATA_DB"]
+    if not callable(getattr(store, "insert_fenced", None)):
+        raise TypeError("Production T0 feeder requires an atomic fenced SQLite store")
     owner_id = values.get("T0_FEEDER_OWNER_ID", "").strip()
     if not owner_id:
         owner_id = f"{socket.gethostname()}:{os.getpid()}"
