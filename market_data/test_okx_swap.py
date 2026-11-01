@@ -35,7 +35,7 @@ class OkxSwapAdapterTests(unittest.TestCase):
         self.assertEqual(fake.calls[-1][1]["instId"],"BTC-USDT-SWAP")
 
     def test_requires_exchange_confirm_flag_and_server_clock(self):
-        fake=FakeOKX([row(START,"0"),row(START+STEP,"1")],server=START+STEP+100)
+        fake=FakeOKX([row(START,"1"),row(START+STEP,"1")],server=START+STEP+100)
         result=OkxSwapAdapter(fake).fetch_closed_window("15m",START,START+2*STEP,now_ms=START+2*STEP)
         self.assertEqual([c.open_time_ms for c in result],[START])
 
