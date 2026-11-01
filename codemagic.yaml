@@ -468,7 +468,7 @@ workflows:
       - name: Run scheduler and retry contract tests
         script: |
           set -euo pipefail
-          python3 -m unittest market_data.test_feeder_scheduler market_data.test_feeder_retry -v 2>&1 | tee t0-feeder-scheduler-retry-tests.log
+          python3 -m unittest market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery -v 2>&1 | tee t0-feeder-scheduler-retry-tests.log
           echo "T0_FEEDER_SCHEDULER_RETRY_TESTS=PASS" | tee t0-feeder-scheduler-retry-verdict.txt
       - name: Compile feeder scheduler and retry module
         script: |
