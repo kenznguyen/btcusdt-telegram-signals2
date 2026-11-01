@@ -140,14 +140,14 @@ class CandleStore:
             raise TypeError("now_ms must be callable")
         if not isinstance(lease_name, str) or not lease_name.strip():
             raise ValueError("lease_name must be a non-empty string")
-        timestamp = now_ms()
-        if type(timestamp) is not int or timestamp < 0:
-            raise ValueError("now_ms must return a nonnegative integer")
         batch = self._validated_batch(candles)
         with closing(sqlite3.connect(self.path, timeout=5, isolation_level=None)) as connection:
             connection.execute("PRAGMA busy_timeout=5000")
             connection.execute("BEGIN IMMEDIATE")
             try:
+                timestamp = now_ms()
+                if type(timestamp) is not int or timestamp < 0:
+                    raise ValueError("now_ms must return a nonnegative integer")
                 try:
                     lease = connection.execute(
                         """SELECT 1 FROM feeder_leases
@@ -161,6 +161,18 @@ class CandleStore:
                 if lease is None:
                     raise PermissionError("Canonical write blocked: lease is stale, expired, or missing")
                 inserted = self._insert_batch(connection, batch)
+                # Re-check at the end of the write batch so a lease that expires
+                # during a slow commit path cannot authorize the batch.
+                commit_time = now_ms()
+                if type(commit_time) is not int or commit_time < 0:
+                    raise ValueError("now_ms must return a nonnegative integer")
+                still_current = connection.execute(
+                    """SELECT 1 FROM feeder_leases
+                       WHERE lease_name=? AND owner=? AND generation=? AND expires_at_ms>?""",
+                    (lease_name, owner, generation, commit_time),
+                ).fetchone()
+                if still_current is None:
+                    raise PermissionError("Canonical write blocked: lease expired during batch")
                 connection.commit()
                 return inserted
             except Exception:
