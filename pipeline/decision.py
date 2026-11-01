@@ -44,6 +44,8 @@ def _canonical(window, now_ms):
 
 
 def _intelligence(snapshot, now_ms, max_age):
+    from futures_intelligence.import_collector import validate_snapshot
+    validate_snapshot(snapshot, now_ms)
     _market(snapshot)
     _require(type(snapshot.get("schemaVersion")) is int and snapshot["schemaVersion"] == 1 and
              snapshot.get("quality") == "OBSERVED_ONLY", "INVALID_INTELLIGENCE")
@@ -53,7 +55,9 @@ def _intelligence(snapshot, now_ms, max_age):
     _require(snapshot.get("snapshotId") == identity("intelligence:", payload), "INTELLIGENCE_HASH_MISMATCH")
     coverage = snapshot["coverage"]["trades"]
     _require(coverage.get("status") == "OBSERVED" and type(coverage.get("rows")) is int and coverage["rows"] > 0 and
-             type(coverage.get("tradeIdGaps")) is int and coverage["tradeIdGaps"] == 0, "TRADE_DATA_INCOMPLETE")
+             type(coverage.get("tradeIdGaps")) is int and coverage["tradeIdGaps"] == 0 and
+             type(coverage.get("duplicateRows")) is int and coverage["duplicateRows"] == 0,
+             "TRADE_DATA_INCOMPLETE")
     last_event = stamp(coverage["lastEventAtMs"])
     _require(start <= last_event < end and now_ms-last_event <= max_age, "STALE_TRADE_EVENTS")
     buy, sell, net = number(snapshot["takerBuyQuote"]), number(snapshot["takerSellQuote"]), number(snapshot["netTakerQuote"], signed=True)

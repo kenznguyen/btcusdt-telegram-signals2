@@ -126,6 +126,9 @@ workflows:
         - pattern: feature/android-five-layer-control
           include: true
           source: true
+        - pattern: feature/t1-intelligence-provenance-quality-20261101
+          include: true
+          source: true
         - pattern: feature/timescaledb-market-data-repository
           include: true
           source: true
@@ -291,6 +294,9 @@ workflows:
           include: true
           source: true
         - pattern: feature/android-five-layer-control
+          include: true
+          source: true
+        - pattern: feature/t1-intelligence-provenance-quality-20261101
           include: true
           source: true
         - pattern: main
