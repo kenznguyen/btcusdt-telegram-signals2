@@ -1,15 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Do not let CCXT inherit an HTTP(S)/ALL proxy. The live acceptance must use
-# the Codemagic runner's direct egress; if a proxy is configured, stop safely.
-for proxy_var in HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy; do
-  if [[ -n "${!proxy_var:-}" ]]; then
-    echo "Refusing Binance live acceptance: proxy environment variable $proxy_var is configured" >&2
-    exit 1
-  fi
-done
-
+# Do not let CCXT inherit an HTTP(S)/ALL proxy. The Python safety guard
+# rejects proxy environment variables before any database or exchange access.
 : "${CM_BUILD_DIR:?Codemagic checkout directory is required}"
 : "${CI_PYTHON:?Run ci/setup-python.sh first}"
 : "${MARKET_DATA_ACCEPTANCE_DATABASE_URL:?Configure the dedicated staging database in market_data_live_acceptance}"

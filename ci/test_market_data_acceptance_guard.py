@@ -1,9 +1,17 @@
 import unittest
 
-from ci.market_data_acceptance_guard import validate_acceptance_database
+from ci.market_data_acceptance_guard import validate_acceptance_database, validate_direct_egress
 
 
 class AcceptanceDatabaseGuardTests(unittest.TestCase):
+    def test_accepts_direct_environment_without_proxy_variables(self):
+        validate_direct_egress({"PATH": "/usr/bin"})
+
+    def test_rejects_proxy_environment_for_direct_binance_access(self):
+        for variable in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"):
+            with self.subTest(variable=variable), self.assertRaisesRegex(ValueError, "Proxy environment"):
+                validate_direct_egress({variable: "configured"})
+
     def test_accepts_confirmed_dedicated_tsdb_database(self):
         self.assertEqual(
             validate_acceptance_database(
