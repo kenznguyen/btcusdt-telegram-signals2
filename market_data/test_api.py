@@ -125,5 +125,12 @@ class CandleApiTest(unittest.TestCase):
         self.assertEqual(result["candles"][0]["availabilityKind"], "FIRST_OBSERVED")
 
 
+    def test_missing_sqlite_path_preserves_unconfigured_response(self):
+        self.config.pop("MARKET_DATA_DB")
+        code, body = self.request()
+        self.assertEqual(code, 503)
+        self.assertEqual(body, {"error": "UNCONFIGURED"})
+
+
 if __name__ == "__main__":
     unittest.main()

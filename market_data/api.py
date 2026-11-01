@@ -60,6 +60,9 @@ def application(environ, start_response):
     token = os.environ.get("MARKET_DATA_TOKEN", "")
     if not token:
         return reply("503 Service Unavailable", {"error": "UNCONFIGURED"})
+    backend = os.environ.get("MARKET_DATA_BACKEND", "sqlite").strip().lower()
+    if backend == "sqlite" and not os.environ.get("MARKET_DATA_DB"):
+        return reply("503 Service Unavailable", {"error": "UNCONFIGURED"})
     if not hmac.compare_digest(environ.get("HTTP_AUTHORIZATION", "").encode(), ("Bearer " + token).encode()):
         return reply("401 Unauthorized", {"error": "UNAUTHORIZED"})
     try:
