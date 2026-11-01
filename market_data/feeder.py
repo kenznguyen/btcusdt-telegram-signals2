@@ -810,9 +810,9 @@ class FeederRuntime:
             return False
         self.lease_generation = lease.generation
         self._emit("lease_acquired")
-        self._publish_runtime_status("STARTING", now_ms=now)
 
         try:
+            self._publish_runtime_status("STARTING", now_ms=now)
             if self.recovery is not None:
                 recover_all = getattr(self.recovery, "recover_all", None)
                 if not callable(recover_all):
