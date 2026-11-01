@@ -272,3 +272,99 @@ class FeederScheduler:
             self.run_due()
             if stop_event.wait(self.config.poll_interval_seconds):
                 break
+
+
+@dataclass(frozen=True)
+class RecoveryResult:
+    """Verified result of a bounded canonical-store recovery pass."""
+
+    complete: bool
+    recovered_windows: tuple
+    coverage: dict
+
+
+class RecoveryIncompleteError(RuntimeError):
+    """Raised when canonical storage still contains gaps after recovery."""
+
+
+class RecoveryPlanner:
+    """Validate store-reported gaps and return chronological half-open windows."""
+
+    def plan(self, timeframe, coverage):
+        if timeframe not in INTERVAL_MS:
+            raise ValueError(f"Unsupported recovery timeframe: {timeframe}")
+        if not isinstance(coverage, dict):
+            raise ValueError("coverage must be a mapping")
+        interval = INTERVAL_MS[timeframe]
+        start = coverage.get("startMs")
+        end = coverage.get("endMs")
+        if (type(start) is not int or type(end) is not int
+                or start < 0 or end <= start
+                or start % interval or end % interval):
+            raise ValueError("coverage bounds must be valid aligned UTC millisecond timestamps")
+        details = coverage.get("coverage")
+        if not isinstance(details, dict):
+            raise ValueError("coverage details are required")
+        gaps = details.get("gaps")
+        if not isinstance(gaps, list):
+            raise ValueError("coverage gaps must be a list")
+
+        windows = []
+        for gap in gaps:
+            if not isinstance(gap, dict):
+                raise ValueError("each coverage gap must be a mapping")
+            gap_start, gap_end = gap.get("startMs"), gap.get("endMs")
+            if (type(gap_start) is not int or type(gap_end) is not int
+                    or gap_start < start or gap_end > end
+                    or gap_start % interval or gap_end % interval
+                    or gap_end <= gap_start):
+                raise ValueError("gap must be nonempty, aligned, and within requested coverage")
+            windows.append((gap_start, gap_end))
+
+        windows.sort()
+        previous_end = None
+        for gap_start, gap_end in windows:
+            if previous_end is not None and gap_start < previous_end:
+                raise ValueError("coverage gaps must not overlap")
+            previous_end = gap_end
+        return windows
+
+
+class RecoveryCoordinator:
+    """Recover reported gaps only through the injected canonical sync callback."""
+
+    def __init__(self, sync_callback, coverage_reader):
+        if not callable(sync_callback):
+            raise TypeError("sync_callback must be callable")
+        if not callable(coverage_reader):
+            raise TypeError("coverage_reader must be callable")
+        self.sync_callback = sync_callback
+        self.coverage_reader = coverage_reader
+        self.planner = RecoveryPlanner()
+
+    def recover(self, timeframe, start_ms, end_ms):
+        if timeframe not in INTERVAL_MS:
+            raise ValueError(f"Unsupported recovery timeframe: {timeframe}")
+        interval = INTERVAL_MS[timeframe]
+        if (type(start_ms) is not int or type(end_ms) is not int
+                or start_ms < 0 or end_ms <= start_ms
+                or start_ms % interval or end_ms % interval):
+            raise ValueError("recovery bounds must be valid aligned UTC millisecond timestamps")
+
+        initial = self.coverage_reader(timeframe, start_ms, end_ms)
+        windows = self.planner.plan(timeframe, initial)
+        if not windows:
+            return RecoveryResult(True, (), initial)
+
+        for gap_start, gap_end in windows:
+            # This callback must be the existing sync_window() path; recovery
+            # does not introduce an exchange client or an alternate writer.
+            self.sync_callback(timeframe, gap_start, gap_end)
+
+        verified = self.coverage_reader(timeframe, start_ms, end_ms)
+        remaining = self.planner.plan(timeframe, verified)
+        if remaining:
+            raise RecoveryIncompleteError(
+                f"Recovery left {len(remaining)} gap(s) for {timeframe}"
+            )
+        return RecoveryResult(True, tuple(windows), verified)
