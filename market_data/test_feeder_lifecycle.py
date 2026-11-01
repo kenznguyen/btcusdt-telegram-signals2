@@ -1,4 +1,5 @@
 """P1.2 contract tests: graceful shutdown and restart recovery."""
+import threading
 import unittest
 from unittest.mock import Mock
 
