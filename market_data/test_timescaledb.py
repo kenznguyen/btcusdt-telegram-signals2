@@ -1,6 +1,5 @@
 """SQLite/TimescaleDB contract parity tests; DB is supplied by Codemagic."""
 
-import hashlib
 import os
 import tempfile
 import unittest
