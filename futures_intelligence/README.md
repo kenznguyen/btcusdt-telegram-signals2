@@ -72,8 +72,12 @@ tối đa `max(1e-8, abs(product) × 1e-9)` để phản ánh cách ghi của ng
 Mỗi feed có `status` (`MISSING`, `NO_ROWS`, `OBSERVED`), số row, số bản sao bỏ
 qua, thời điểm sự kiện đầu/cuối, `continuityStatus` và `complete=false`.
 Trade ID gaps được đánh dấu `GAPS_DETECTED`; không có gap quan sát được vẫn chỉ
-là `UNVERIFIED`, không phải bằng chứng kết nối liên tục. CSV không ghi heartbeat
-hoặc disconnect events, nên importer không được tự suy ra trạng thái kết nối.
+là `UNVERIFIED`, không phải bằng chứng kết nối liên tục. `connectionStatus` luôn
+là `UNVERIFIABLE`: schema CSV đã pin không ghi heartbeat hoặc disconnect events,
+nên importer không thể xác nhận lúc nào collector mất kết nối. Không được suy
+đoán `CONNECTED` chỉ từ việc có row hoặc `DISCONNECTED` chỉ từ việc không có row.
+Muốn phân biệt mất kết nối thực sự cần bổ sung heartbeat/reconnect event từ collector
+và pin schema/commit mới; hiện tại đây là giới hạn nguồn, không phải lỗi importer.
 
 Snapshot mới ghi `collectorCommit` và `inputFiles` theo từng feed. Mỗi file có
 basename, SHA-256, kích thước byte, số dòng đọc và số dòng nằm trong cửa sổ.
