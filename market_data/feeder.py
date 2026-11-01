@@ -163,6 +163,10 @@ class FeederScheduler:
             raise TypeError("clock must be callable")
         initial_now = self._now_ms()
         self._lock = threading.RLock()
+        self._idle = threading.Condition(self._lock)
+        self._stop_event = threading.Event()
+        self._thread = None
+        self._thread_error = None
         self._last_completed_end_ms = {
             frame: initial_now - (initial_now % INTERVAL_MS[frame])
             for frame in config.timeframes
@@ -241,19 +245,74 @@ class FeederScheduler:
                 raise ValueError("completion boundary is not a newly closed candle boundary")
             self._last_completed_end_ms[timeframe] = close_boundary_ms
             self._running.discard(timeframe)
+            self._idle.notify_all()
 
     def mark_failed(self, timeframe):
         self._validate_timeframe(timeframe)
         with self._lock:
             self._running.discard(timeframe)
+            self._idle.notify_all()
+
+    def stop(self):
+        """Reject future work and allow the currently running sync to finish."""
+        self._stop_event.set()
+        with self._idle:
+            self._idle.notify_all()
+
+    def wait_for_idle(self, timeout=None):
+        """Wait until every in-flight timeframe callback has finished."""
+        if timeout is not None and (
+            isinstance(timeout, bool) or not isinstance(timeout, (int, float))
+            or not math.isfinite(timeout) or timeout < 0
+        ):
+            raise ValueError("timeout must be a nonnegative finite number or None")
+        deadline = None if timeout is None else time.monotonic() + timeout
+        with self._idle:
+            while self._running:
+                remaining = None if deadline is None else deadline - time.monotonic()
+                if remaining is not None and remaining <= 0:
+                    return False
+                self._idle.wait(remaining)
+            return True
+
+    def start(self):
+        """Start one background polling thread; repeated starts are idempotent."""
+        with self._lock:
+            if self._thread is not None and self._thread.is_alive():
+                return False
+            if self._stop_event.is_set():
+                raise RuntimeError("A stopped scheduler cannot be restarted")
+            self._thread_error = None
+            self._thread = threading.Thread(
+                target=self._run_background,
+                name="t0-feeder-scheduler",
+                daemon=True,
+            )
+            self._thread.start()
+            return True
+
+    def _run_background(self):
+        try:
+            self.run_forever(self._stop_event)
+        except Exception as error:
+            with self._lock:
+                self._thread_error = error
+            self._stop_event.set()
 
     def run_due(self):
-        """Run due timeframes independently; a failure never suppresses another frame."""
+        """Run due timeframes independently; stop requests prevent new callbacks."""
         completed, failures = {}, {}
+        if self._stop_event.is_set():
+            return completed
         for timeframe in self.due_timeframes():
+            if self._stop_event.is_set():
+                break
             if not self.mark_running(timeframe):
                 continue
             try:
+                if self._stop_event.is_set():
+                    self.mark_failed(timeframe)
+                    break
                 start_ms, end_ms = self.window_for(timeframe)
                 result = self.sync_callback(timeframe, start_ms, end_ms)
                 self.mark_completed(timeframe, end_ms)
@@ -628,3 +687,225 @@ class HealthEvaluator:
             and all(item.state == "HEALTHY" for item in timeframes.values())
         )
         return HealthResult(state, live, ready, timeframes)
+
+
+
+class FeederRuntime:
+    """Compose scheduler, retry, recovery, lease and health into one safe lifecycle.
+
+    Shutdown first prevents new scheduler work, then drains the in-flight sync,
+    and only then releases this runtime's exact fencing generation. A drain
+    timeout deliberately retains the lease so another process cannot take over
+    while a writer may still be active.
+    """
+
+    def __init__(self, config, scheduler, lease_store, owner_id,
+                 recovery=None, health=None, event_sink=None, clock=None,
+                 retry_policy=None):
+        if not isinstance(config, FeederConfig):
+            raise TypeError("config must be FeederConfig")
+        if not isinstance(owner_id, str) or not owner_id.strip():
+            raise ValueError("owner_id must be a non-empty string")
+        if not callable(getattr(scheduler, "run_due", None)):
+            raise TypeError("scheduler must provide run_due()")
+        if not callable(getattr(lease_store, "acquire", None)):
+            raise TypeError("lease_store must provide acquire()")
+        self.config = config
+        self.scheduler = scheduler
+        self.lease_store = lease_store
+        self.owner_id = owner_id
+        self.recovery = recovery
+        self.health = health
+        self.event_sink = event_sink if event_sink is not None else (lambda event: None)
+        if not callable(self.event_sink):
+            raise TypeError("event_sink must be callable")
+        self.clock = clock if clock is not None else (lambda: time.time_ns() // 1_000_000)
+        if not callable(self.clock):
+            raise TypeError("clock must be callable")
+        self.retry_policy = retry_policy if retry_policy is not None else RetryPolicy(
+            max_attempts=config.retry_max_attempts,
+            base_delay_seconds=config.retry_base_delay_seconds,
+            max_delay_seconds=config.retry_max_delay_seconds,
+            jitter_ratio=config.retry_jitter_ratio,
+        )
+        self.lease_generation = None
+        self._state = "NEW"
+        self._lock = threading.RLock()
+        self._heartbeat_stop = threading.Event()
+        self._heartbeat_thread = None
+        self._stop_requested = False
+        self._released = False
+        self._configure_retry()
+
+    @property
+    def state(self):
+        with self._lock:
+            return self._state
+
+    def _emit(self, event):
+        self.event_sink(event)
+
+    def _configure_retry(self):
+        callback = getattr(self.scheduler, "sync_callback", None)
+        if callable(callback):
+            self.scheduler.sync_callback = (
+                lambda *args, **kwargs: self.retry_policy.execute(
+                    lambda: callback(*args, **kwargs)
+                )
+            )
+
+    def start(self, now_ms=None):
+        now = self.clock() if now_ms is None else now_ms
+        if type(now) is not int or now < 0:
+            raise ValueError("now_ms must be a nonnegative integer timestamp")
+        with self._lock:
+            if self._state == "RUNNING":
+                return True
+            if self._state not in ("NEW",):
+                raise RuntimeError("FeederRuntime cannot start after shutdown or failed startup")
+            self._state = "STARTING"
+
+        lease = self.lease_store.acquire(
+            self.owner_id, now_ms=now, ttl_seconds=self.config.lease_ttl_seconds
+        )
+        if lease is None:
+            with self._lock:
+                self._state = "FAILED"
+            self._emit("lease_unavailable")
+            return False
+        self.lease_generation = lease.generation
+        self._emit("lease_acquired")
+
+        try:
+            if self.recovery is not None:
+                recover_all = getattr(self.recovery, "recover_all", None)
+                if not callable(recover_all):
+                    raise TypeError("recovery must provide recover_all()")
+                if recover_all() is not True:
+                    self._release_startup_lease()
+                    with self._lock:
+                        self._state = "FAILED"
+                    self._emit("recovery_incomplete")
+                    return False
+            self._emit("recovery_completed")
+            self.scheduler.start()
+            with self._lock:
+                self._state = "RUNNING"
+            if self.health is not None:
+                self.health.mark_ready()
+            self._start_heartbeat()
+            self._emit("ready")
+            return True
+        except Exception:
+            try:
+                self.scheduler.stop()
+                self.scheduler.wait_for_idle()
+            except Exception:
+                # Do not release while a writer may still be active.
+                with self._lock:
+                    self._state = "STOPPING"
+                raise
+            self._release_startup_lease()
+            with self._lock:
+                self._state = "FAILED"
+            raise
+
+    def _release_startup_lease(self):
+        if self.lease_generation is None or self._released:
+            return
+        released = self.lease_store.release(self.owner_id, self.lease_generation)
+        if released is not True:
+            raise RuntimeError("Feeder startup could not release its lease generation")
+        self._released = True
+
+    def _start_heartbeat(self):
+        if not callable(getattr(self.lease_store, "heartbeat", None)):
+            return
+        self._heartbeat_stop.clear()
+        self._heartbeat_thread = threading.Thread(
+            target=self._heartbeat_loop,
+            name="t0-feeder-lease-heartbeat",
+            daemon=True,
+        )
+        self._heartbeat_thread.start()
+
+    def _heartbeat_loop(self):
+        while not self._heartbeat_stop.wait(self.config.lease_heartbeat_seconds):
+            try:
+                current = self.lease_store.heartbeat(
+                    self.owner_id,
+                    self.lease_generation,
+                    now_ms=self.clock(),
+                    ttl_seconds=self.config.lease_ttl_seconds,
+                )
+            except Exception:
+                current = False
+            if current is not True:
+                self.on_lease_lost()
+                return
+
+    def on_lease_lost(self):
+        with self._lock:
+            if self._state in ("STOPPED", "LEASE_LOST"):
+                return
+            self._state = "LEASE_LOST"
+            self._stop_requested = True
+        self._heartbeat_stop.set()
+        self.scheduler.stop()
+        if self.health is not None:
+            mark_not_ready = getattr(self.health, "mark_not_ready", None)
+            if callable(mark_not_ready):
+                mark_not_ready()
+        self._emit("lease_lost")
+
+    def run_once(self):
+        with self._lock:
+            if self._state != "RUNNING" or self._stop_requested:
+                return {}
+            generation = self.lease_generation
+        try:
+            if not self.lease_store.is_current(
+                self.owner_id, generation, now_ms=self.clock()
+            ):
+                self.on_lease_lost()
+                return {}
+        except Exception:
+            self.on_lease_lost()
+            raise
+        return self.scheduler.run_due()
+
+    def stop(self, timeout=None):
+        with self._lock:
+            if self._state == "STOPPED":
+                return True
+            self._stop_requested = True
+            if self._state != "LEASE_LOST":
+                self._state = "STOPPING"
+        self._heartbeat_stop.set()
+        heartbeat = self._heartbeat_thread
+        if heartbeat is not None and heartbeat is not threading.current_thread():
+            heartbeat.join(timeout=timeout)
+
+        self.scheduler.stop()
+        drained = self.scheduler.wait_for_idle(timeout=timeout)
+        if drained is False:
+            self._emit("shutdown_drain_timeout")
+            raise TimeoutError("Feeder shutdown timed out while waiting for active sync work")
+
+        if self.lease_generation is not None and not self._released:
+            released = self.lease_store.release(self.owner_id, self.lease_generation)
+            if released is not True:
+                with self._lock:
+                    self._state = "STOPPED"
+                if self.health is not None:
+                    self.health.mark_stopped()
+                self._emit("lease_release_failed")
+                raise RuntimeError("Feeder could not release its owner/generation lease")
+            self._released = True
+
+        with self._lock:
+            self._state = "STOPPED"
+        if self.health is not None:
+            self.health.mark_stopped()
+        self._emit("stopped")
+        return True
