@@ -368,9 +368,16 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
         self.assertIsInstance(runtime, FeederRuntime)
         self.assertIsInstance(runtime.recovery, RecoveryAdapter)
         self.assertEqual(runtime.scheduler.config.timeframes, ("15m", "1h"))
-        self.assertFalse(runtime.scheduler._thread is not None)
-        self.assertIs(runtime.scheduler.sync_callback.__closure__[0].cell_contents.__closure__[0].cell_contents
-                       if runtime.scheduler.sync_callback.__closure__ else None, None) if False else None
+        self.assertIsNone(runtime.scheduler._thread)
+        store.read_window.return_value = {
+            "startMs": 0, "endMs": 900_000,
+            "coverage": {"complete": True, "gaps": []},
+        }
+        self.assertTrue(runtime.recovery.recover_all())
+        self.assertEqual(
+            [call.args[1] for call in store.read_window.call_args_list],
+            ["15m", "1h"],
+        )
 
 
 if __name__ == "__main__":
