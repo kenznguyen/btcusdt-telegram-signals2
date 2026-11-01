@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 import json
 import time
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -97,10 +98,28 @@ class BybitLinearAdapter:
     def _request_json(self, path, params):
         url = self.base_url + path + "?" + urlencode(params)
         request = Request(url, headers={"User-Agent": "btc-shadow-market-data/1.0"})
-        with urlopen(request, timeout=15) as response:
-            if response.status != 200:
-                raise ValueError(f"Bybit HTTP status {response.status}")
-            payload = json.loads(response.read().decode("utf-8"))
+        try:
+            with urlopen(request, timeout=15) as response:
+                if response.status != 200:
+                    raise RuntimeError(f"Bybit HTTP status {response.status} for {path}")
+                payload = json.loads(response.read().decode("utf-8"))
+        except HTTPError as exc:
+            # Preserve a short, non-secret response hint for diagnosing regional
+            # denials, WAF responses and API-level HTTP failures in CI logs.
+            raw_detail = exc.read(512).decode("utf-8", errors="replace").strip()
+            detail = ""
+            if raw_detail:
+                try:
+                    body = json.loads(raw_detail)
+                    if isinstance(body, dict):
+                        code = body.get("retCode")
+                        message = body.get("retMsg")
+                        detail = f" retCode={code!r} retMsg={message!r}"
+                except (ValueError, TypeError):
+                    detail = " response=" + " ".join(raw_detail.split())[:240]
+            raise RuntimeError(
+                f"Bybit HTTP {exc.code} {exc.reason} for {path}.{detail}"
+            ) from exc
         if not isinstance(payload, dict) or payload.get("retCode") != 0:
             raise ValueError("Bybit API returned an unsuccessful response")
         return payload.get("result", {})
