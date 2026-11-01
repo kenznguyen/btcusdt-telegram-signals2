@@ -28,9 +28,6 @@ bootstrap = _runtime.bootstrap
 database_uri = _runtime.database_uri
 
 
-ROOT = Path(__file__).resolve().parents[1]
-
-
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, request, fp, code, message, headers, newurl):
         return None
