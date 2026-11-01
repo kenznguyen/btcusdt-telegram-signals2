@@ -199,5 +199,38 @@ class KrakenSpotSQLiteStoreTest(unittest.TestCase):
                     read_only_store.read_window("15m", START, START + STEP)
 
 
+    def test_read_only_open_rejects_duplicate_candle_identities_without_unique_constraint(self):
+        malformed_path = self.root / "malformed-duplicate-candles.sqlite3"
+        with sqlite3.connect(malformed_path) as connection:
+            connection.execute(
+                """CREATE TABLE kraken_spot_candles (
+                    exchange TEXT, market_type TEXT, native_market_id TEXT,
+                    symbol TEXT, timeframe TEXT, open_time_ms INTEGER,
+                    open TEXT, high TEXT, low TEXT, close TEXT,
+                    volume TEXT, available_at_ms INTEGER
+                )"""
+            )
+            row = (
+                "kraken", "SPOT", "XBTUSDT", "BTC/USDT", "15m",
+                START, "100", "105", "99", "102", "1.5", START + STEP,
+            )
+            connection.execute(
+                "INSERT INTO kraken_spot_candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                row,
+            )
+            connection.execute(
+                "INSERT INTO kraken_spot_candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                row,
+            )
+
+        read_only_store = KrakenSpotSQLiteStore(
+            malformed_path,
+            canonical_db_path=self.binance_path,
+            initialize=False,
+        )
+        with self.assertRaisesRegex(ValueError, "duplicate candle identity"):
+            read_only_store.read_window("15m", START, START + STEP)
+
+
 if __name__ == "__main__":
     unittest.main()
