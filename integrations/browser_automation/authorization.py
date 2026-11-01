@@ -77,6 +77,19 @@ _TASK_PROVIDERS = {
     "BROWSER_FILE_UPLOAD": "approved_web_app",
     "BROWSER_FILE_DOWNLOAD": "approved_web_app",
 }
+_TASK_RESOURCES = {
+    "CODEMAGIC_BUILD_VERIFY": "build",
+    "CODEMAGIC_BUILD_START": "build",
+    "CODEMAGIC_BUILD_STATUS": "build",
+    "CODEMAGIC_ARTIFACT_VERIFY": "artifact",
+    "GITHUB_READ": None,
+    "GITHUB_BRANCH_CREATE": "branch",
+    "GITHUB_FILE_COMMIT": "repository",
+    "BROWSER_UI_READ": "page",
+    "BROWSER_UI_ACTION": "page",
+    "BROWSER_FILE_UPLOAD": "file",
+    "BROWSER_FILE_DOWNLOAD": "file",
+}
 _WRITE_TASKS = frozenset({
     "CODEMAGIC_BUILD_START",
     "GITHUB_BRANCH_CREATE",
@@ -193,6 +206,9 @@ def authorize_task(request, context):
     expected_provider = _TASK_PROVIDERS.get(task_type)
     if expected_provider is None or provider != expected_provider:
         _deny("TASK_PROVIDER_MISMATCH")
+    expected_resource = _TASK_RESOURCES.get(task_type)
+    if expected_resource is not None and target["resource"] != expected_resource:
+        _deny("TASK_RESOURCE_MISMATCH")
     if task_type not in context.allowed_task_types or provider not in context.allowed_providers:
         _deny("TASK_OR_PROVIDER_NOT_ALLOWED")
 
