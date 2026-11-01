@@ -77,6 +77,7 @@ class RecoveryExchange:
 class SigkillRecoveryTest(unittest.TestCase):
     def test_sigkill_rolls_back_batch_then_generation_two_recovers_m15_and_h1(self):
         audit_lines = ["T0_SIGKILL_RECOVERY_AUDIT=START"]
+        audit_result = {"value": "FAIL"}
 
         def write_audit():
             audit_path = os.environ.get("T0_SIGKILL_AUDIT_PATH")
@@ -258,6 +259,7 @@ CandleStore(path).insert_fenced(
 
             # The only writes after takeover were made through RecoveryAdapter's
             # canonical sync_window -> insert_fenced path under generation 2.
+            audit_result["value"] = "PASS"
 
 
 if __name__ == "__main__":
