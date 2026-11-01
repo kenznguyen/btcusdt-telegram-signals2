@@ -29,6 +29,32 @@ class AuthorizationContext:
     allowed_url_prefixes: frozenset = field(default_factory=frozenset)
     allowed_workspace_roots: tuple = ()
 
+    def __post_init__(self):
+        grant_fields = (
+            "allowed_task_types",
+            "allowed_providers",
+            "allowed_repositories",
+            "allowed_branches",
+            "allowed_permissions",
+            "allowed_web_origins",
+            "allowed_url_prefixes",
+        )
+        for name in grant_fields:
+            value = getattr(self, name)
+            if not isinstance(value, (set, frozenset, tuple, list)) or any(
+                not isinstance(item, str) or not item for item in value
+            ):
+                raise ValueError("Authorization grants must be collections of non-empty strings")
+            object.__setattr__(self, name, frozenset(value))
+
+        roots = self.allowed_workspace_roots
+        if not isinstance(roots, (tuple, list)) or any(
+            not isinstance(root, (str, Path)) or not str(root) for root in roots
+        ):
+            raise ValueError("Workspace roots must be filesystem paths")
+        object.__setattr__(self, "allowed_workspace_roots", tuple(Path(root) for root in roots))
+
+
 
 @dataclass(frozen=True)
 class AuthorizationDecision:
