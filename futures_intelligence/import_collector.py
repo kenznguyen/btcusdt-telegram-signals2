@@ -83,6 +83,7 @@ def feed_quality(snapshot, now_ms):
             "deduplicationStatus": deduplication,
             "tradeIdGaps": item.get("tradeIdGaps"),
             "continuityStatus": item.get("continuityStatus", "UNVERIFIED"),
+            "connectionStatus": item.get("connectionStatus", "UNVERIFIABLE"),
             "complete": False,
         })
     return result
@@ -216,7 +217,7 @@ def _summarize(stream, selected, supplied, threshold):
     values.sort(key=lambda row: row[0])
     coverage = {"status": "OBSERVED" if values else "NO_ROWS" if supplied else "MISSING",
                 "rows": len(values), "duplicateRows": duplicates, "complete": False,
-                "continuityStatus": "UNVERIFIED",
+                "continuityStatus": "UNVERIFIED", "connectionStatus": "UNVERIFIABLE",
                 "deduplicationStatus": {"trades": "BY_TRADE_ID", "funding": "BY_SAMPLE_TIMESTAMP",
                                         "openInterest": "BY_SAMPLE_TIMESTAMP", "liquidations": "NO_EVENT_ID"}[stream],
                 "firstEventAtMs": values[0][0] if values else None,
@@ -323,6 +324,8 @@ def validate_snapshot(snapshot, now_ms):
         continuity = item.get("continuityStatus", "UNVERIFIED")
         if continuity not in {"UNVERIFIED", "GAPS_DETECTED"}:
             raise ValueError("Invalid continuity status")
+        if item.get("connectionStatus", "UNVERIFIABLE") != "UNVERIFIABLE":
+            raise ValueError("Collector connection state is not present in the pinned CSV schema")
         if stream != "trades" and continuity != "UNVERIFIED":
             raise ValueError("Only trade IDs can expose sequence gaps")
         deduplication = item.get("deduplicationStatus")
