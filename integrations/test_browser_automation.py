@@ -141,6 +141,8 @@ class BrowserAutomationAuthorizationTest(unittest.TestCase):
         original["target"]["repository"] = "attacker/changed"
         self.assertTrue(prepared.authorization.allowed)
         self.assertEqual(prepared.request["target"]["repository"], REPOSITORY)
+        with self.assertRaises(TypeError):
+            prepared.request["target"]["repository"] = "attacker/after-authorization"
 
     def test_controller_without_trusted_grants_fails_closed(self):
         controller = BrowserAutomationController()
