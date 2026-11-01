@@ -1,10 +1,11 @@
-"""Centralized T0 feeder scheduling primitives.
+"""Centralized T0 feeder scheduling and retry primitives.
 
 The scheduler never fetches exchange data or writes candles itself. Its injected
 callback is the only hand-off to the existing sync_window() ingestion path.
 """
 from dataclasses import dataclass
 import math
+import random
 import threading
 import time
 
@@ -50,6 +51,91 @@ class FeederConfig:
                 or len(set(self.timeframes)) != len(self.timeframes)
                 or any(frame not in INTERVAL_MS for frame in self.timeframes)):
             raise ValueError("timeframes must be a unique tuple of supported intervals")
+
+
+class RetryPolicy:
+    """Retry transient transport/rate-limit failures with bounded exponential delay."""
+
+    def __init__(self, max_attempts=5, base_delay_seconds=1.0,
+                 max_delay_seconds=300.0, jitter_ratio=0.2,
+                 random_fn=None, sleep=None):
+        if type(max_attempts) is not int or max_attempts < 1:
+            raise ValueError("max_attempts must be a positive integer")
+        if (not isinstance(base_delay_seconds, (int, float))
+                or not math.isfinite(base_delay_seconds) or base_delay_seconds <= 0):
+            raise ValueError("base_delay_seconds must be positive and finite")
+        if (not isinstance(max_delay_seconds, (int, float))
+                or not math.isfinite(max_delay_seconds)
+                or max_delay_seconds < base_delay_seconds):
+            raise ValueError("max_delay_seconds must be finite and at least the base delay")
+        if (not isinstance(jitter_ratio, (int, float))
+                or not math.isfinite(jitter_ratio) or not 0 <= jitter_ratio <= 1):
+            raise ValueError("jitter_ratio must be between zero and one")
+        self.max_attempts = max_attempts
+        self.base_delay_seconds = float(base_delay_seconds)
+        self.max_delay_seconds = float(max_delay_seconds)
+        self.jitter_ratio = float(jitter_ratio)
+        self.random_fn = random_fn if random_fn is not None else random.random
+        self.sleep = sleep if sleep is not None else time.sleep
+        if not callable(self.random_fn) or not callable(self.sleep):
+            raise TypeError("random_fn and sleep must be callable")
+
+    @staticmethod
+    def _retry_after(error):
+        value = getattr(error, "retry_after_seconds", None)
+        if value is None:
+            value = getattr(error, "retry_after", None)
+        if value is None:
+            headers = getattr(error, "headers", None)
+            if isinstance(headers, dict):
+                value = headers.get("Retry-After", headers.get("retry-after"))
+        if value is None:
+            return None
+        if isinstance(value, str):
+            try:
+                value = float(value.strip())
+            except ValueError as exc:
+                raise ValueError("Retry-After must be a numeric number of seconds") from exc
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+            raise ValueError("Retry-After must be a nonnegative finite number of seconds")
+        return float(value)
+
+    @classmethod
+    def _is_transient(cls, error):
+        if isinstance(error, (TimeoutError, ConnectionError)):
+            return True
+        status = getattr(error, "status_code", getattr(error, "status", None))
+        if type(status) is int and (status in (408, 425, 429) or 500 <= status <= 599):
+            return True
+        # CCXT and other adapters may expose a parsed Retry-After value.
+        return (getattr(error, "retry_after_seconds", None) is not None
+                or getattr(error, "retry_after", None) is not None)
+
+    def _delay(self, failed_attempt, retry_after):
+        exponential = min(
+            self.max_delay_seconds,
+            self.base_delay_seconds * (2 ** (failed_attempt - 1)),
+        )
+        sample = self.random_fn()
+        if isinstance(sample, bool) or not isinstance(sample, (int, float)) or not math.isfinite(sample) or not 0 <= sample <= 1:
+            raise ValueError("random_fn must return a finite value between zero and one")
+        jittered = exponential * (1 + ((2 * sample) - 1) * self.jitter_ratio)
+        local_delay = min(self.max_delay_seconds, max(0.0, jittered))
+        # Server Retry-After is authoritative even when it exceeds our local cap.
+        return max(local_delay, retry_after or 0.0)
+
+    def execute(self, operation):
+        if not callable(operation):
+            raise TypeError("operation must be callable")
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                return operation()
+            except Exception as error:
+                if not self._is_transient(error) or attempt >= self.max_attempts:
+                    raise
+                retry_after = self._retry_after(error)
+                self.sleep(self._delay(attempt, retry_after))
+        raise AssertionError("unreachable")
 
 
 class SchedulerExecutionError(RuntimeError):

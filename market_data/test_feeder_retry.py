@@ -83,3 +83,46 @@ class RetryContractTest(unittest.TestCase):
                 sleep = Mock()
                 with self.assertRaises(ValueError):
                     self.policy(sleep).execute(operation)
+
+    def test_http_429_and_5xx_are_transient(self):
+        class HttpError(Exception):
+            def __init__(self, status_code):
+                self.status_code = status_code
+
+        for status in (429, 500, 503):
+            with self.subTest(status=status):
+                delays = []
+                operation = Mock(side_effect=[HttpError(status), "ok"])
+                self.assertEqual(self.policy(delays.append).execute(operation), "ok")
+                self.assertEqual(operation.call_count, 2)
+                self.assertEqual(delays, [1])
+
+    def test_non_retryable_http_client_error_is_not_retried(self):
+        class HttpError(Exception):
+            status_code = 400
+
+        operation = Mock(side_effect=HttpError("bad request"))
+        sleep = Mock()
+        with self.assertRaises(HttpError):
+            self.policy(sleep).execute(operation)
+        self.assertEqual(operation.call_count, 1)
+        sleep.assert_not_called()
+
+    def test_retry_after_header_is_honored(self):
+        class HttpError(Exception):
+            status_code = 429
+            headers = {"Retry-After": "7.5"}
+
+        delays = []
+        operation = Mock(side_effect=[HttpError(), "ok"])
+        self.assertEqual(self.policy(delays.append).execute(operation), "ok")
+        self.assertEqual(delays, [7.5])
+
+    def test_local_jitter_never_exceeds_configured_backoff_cap(self):
+        delays = []
+        operation = Mock(side_effect=[TimeoutError(), "ok"])
+        policy = self.policy(delays.append, base_delay_seconds=290,
+                             max_delay_seconds=300, jitter_ratio=0.2,
+                             random_fn=lambda: 1.0)
+        self.assertEqual(policy.execute(operation), "ok")
+        self.assertEqual(delays, [300])

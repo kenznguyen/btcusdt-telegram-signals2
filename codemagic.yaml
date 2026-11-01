@@ -464,12 +464,12 @@ workflows:
           set -euo pipefail
           python3 -c 'import sys; assert sys.version_info >= (3, 10), "Python 3.10+ required"'
           git rev-parse HEAD | tee ci-source-sha.txt
-      - name: Run only the scheduler contract tests
+      - name: Run scheduler and retry contract tests
         script: |
           set -euo pipefail
           python3 -m unittest market_data.test_feeder_scheduler -v 2>&1 | tee t0-feeder-scheduler-tests.log
           echo "T0_FEEDER_SCHEDULER_TESTS=PASS" | tee t0-feeder-scheduler-verdict.txt
-      - name: Compile feeder scheduler module
+      - name: Compile feeder scheduler and retry module
         script: |
           set -euo pipefail
           python3 -m py_compile market_data/feeder.py
