@@ -764,7 +764,7 @@ class FeederRuntime:
             self.owner_id, self.lease_generation, state,
             now_ms=timestamp, recovery_complete=self._recovery_complete,
         )
-        if accepted is not True and state != "LEASE_LOST":
+        if accepted is not True and state not in ("LEASE_LOST", "STOPPED"):
             raise RuntimeError("Feeder runtime status update was rejected by fencing")
         return accepted is True
 
@@ -1007,9 +1007,7 @@ class FeederRuntime:
 
         with self._lock:
             self._state = "STOPPED"
-        if lease_was_lost:
-            self._publish_runtime_status("LEASE_LOST")
-        elif self.lease_generation is not None:
+        if self.lease_generation is not None:
             self._publish_runtime_status("STOPPED")
         if self.health is not None:
             mark_stopped = getattr(self.health, "mark_stopped", None)
