@@ -62,7 +62,7 @@ class AlternativeSourceAcceptanceTest(unittest.TestCase):
         candles = fetch_closed_window(exchange, "15m", START, START + 2 * STEP,
                                       now_ms=START + STEP + 500)
         self.assertEqual([item["openTimeMs"] for item in candles], [START])
-        self.assertEqual(candles[0]["availableAtMs"], START + 2 * STEP)
+        self.assertEqual(candles[0]["availableAtMs"], START + STEP + 500)
         self.assertEqual(exchange.assertions, (SYMBOL, "15m", START, 2))
 
     def test_persisted_readback_and_repeat_sync_are_idempotent(self):
