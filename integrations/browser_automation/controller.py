@@ -5,6 +5,8 @@ operation. Execution adapters are added in later delivery phases.
 """
 
 from dataclasses import dataclass
+from types import MappingProxyType
+from collections.abc import Mapping
 
 from .authorization import (
     AuthorizationContext,
@@ -14,10 +16,21 @@ from .authorization import (
 from .schema import validate_task
 
 
+def _freeze(value):
+    if isinstance(value, dict):
+        return MappingProxyType({key: _freeze(item) for key, item in value.items()})
+    if isinstance(value, list):
+        return tuple(_freeze(item) for item in value)
+    return value
+
+
 @dataclass(frozen=True)
 class PreparedTask:
-    request: dict
+    request: Mapping
     authorization: AuthorizationDecision
+
+    def __post_init__(self):
+        object.__setattr__(self, "request", _freeze(self.request))
 
 
 class BrowserAutomationController:
