@@ -439,3 +439,64 @@ workflows:
       - ci-source-sha.txt
       - kraken-spot-read-api-tests.log
       - kraken-spot-read-api-compileall.log
+
+  market-data-live-collector-acceptance:
+    name: Live Binance collector - PostgreSQL staging acceptance
+    instance_type: mac_mini_m2
+    max_build_duration: 20
+    environment:
+      groups:
+        - market_data_live_acceptance
+    # Manual only: never trigger live exchange ingestion on every push.
+    scripts:
+      - name: Prepare Python and record source
+        script: bash ci/setup-python.sh requirements-market-data.txt requirements-ci.txt
+      - name: Validate acceptance runner syntax
+        script: bash -n ci/market-data-live-acceptance.sh
+      - name: Test acceptance database safety guard
+        script: "$CI_PYTHON -m unittest ci.test_market_data_acceptance_guard -v"
+      - name: Test market-data collector diagnostics
+        script: "$CI_PYTHON -m unittest market_data.test_sync -v"
+      - name: Collect real Binance candles and verify persisted API reads
+        script: bash ci/market-data-live-acceptance.sh
+    artifacts:
+      - ci-source-sha.txt
+      - market-data-live-acceptance.log
+      - market-data-live-acceptance.json
+
+  codemagic-egress-diagnostic:
+    name: Codemagic runner - egress and Binance USD-M reachability
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    # Manual only. This diagnostic does not access credentials or the staging database.
+    scripts:
+      - name: Record diagnostic source SHA
+        script: git rev-parse HEAD > egress-diagnostic-source-sha.txt
+      - name: Check public egress IP and Binance USD-M response
+        script: |
+          set +e
+          for proxy_var in HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy; do
+            if [[ -n "${!proxy_var:-}" ]]; then
+              echo "proxy_environment=CONFIGURED variable=$proxy_var"
+              exit 1
+            fi
+          done
+          echo "proxy_environment=ABSENT"
+          echo "=== RUNNER EGRESS IP (direct, no proxy) ==="
+          curl --noproxy '*' -sS --max-time 15 https://api.ipify.org
+          ip_exit=$?
+          printf "\n"
+          echo "ip_check_exit_code=$ip_exit"
+
+          echo "=== BINANCE USD-M HTTP RESPONSE ==="
+          curl --noproxy '*' -sS --max-time 20 -D - -o /dev/null \
+            -w '\\nhttp_status=%{http_code}\\n' \
+            https://fapi.binance.com/fapi/v1/exchangeInfo
+          binance_exit=$?
+          echo "binance_check_exit_code=$binance_exit"
+
+          echo "=== DIAGNOSTIC COMPLETE ==="
+          # HTTP 451 is a diagnostic result, not a workflow-script failure.
+          exit 0
+    artifacts:
+      - egress-diagnostic-source-sha.txt

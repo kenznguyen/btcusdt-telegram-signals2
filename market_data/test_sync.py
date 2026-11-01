@@ -5,7 +5,8 @@ import tempfile
 import unittest
 
 from market_data.store import CandleStore, INTERVAL_MS, read_window
-from market_data.sync import sync_window
+from market_data.sync import safe_exchange_error_message, sync_window
+import ccxt
 
 
 SYMBOL = "BTC/USDT:USDT"
@@ -128,6 +129,28 @@ class CandleSyncTest(unittest.TestCase):
                                 now_ms=lambda: START + 3 * STEP)
                 self.assertEqual(read_window(self.path, "BTCUSDT", "15m", START,
                                              START + 2 * STEP)["candles"], [])
+
+    def test_exchange_not_available_reports_original_message_without_credentials(self):
+        message = (
+            "GET https://user:password@fapi.binance.com/fapi/v1/klines"
+            "?symbol=BTCUSDT&apiKey=query-secret&signature=signed-secret "
+            "X-MBX-APIKEY: header-secret Authorization: Bearer bearer-secret "
+            "connection timed out"
+        )
+        error = ccxt.ExchangeNotAvailable(message)
+        with self.assertRaises(ccxt.ExchangeNotAvailable) as raised:
+            sync_window(Exchange([error]), self.store, "15m", START, START + STEP)
+
+        diagnostic = safe_exchange_error_message(raised.exception)
+
+        self.assertIn("connection timed out", diagnostic)
+        self.assertIn("BTCUSDT", diagnostic)
+        for secret in ("password", "query-secret", "signed-secret", "header-secret", "bearer-secret"):
+            with self.subTest(secret=secret):
+                self.assertNotIn(secret, diagnostic)
+        self.assertIn("apiKey=[REDACTED]", diagnostic)
+        self.assertIn("signature=[REDACTED]", diagnostic)
+        self.assertIn("Authorization: [REDACTED]", diagnostic)
 
     def test_upstream_failure_propagates_and_empty_page_leaves_missing_data(self):
         with self.assertRaisesRegex(OSError, "offline"):
