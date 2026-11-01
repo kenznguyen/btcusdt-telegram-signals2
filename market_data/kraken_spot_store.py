@@ -43,7 +43,7 @@ def _database_path(value, label):
 class KrakenSpotSQLiteStore:
     """Persist Kraken Spot candles in a dedicated, source-isolated SQLite file."""
 
-    def __init__(self, db_path, *, canonical_db_path=None):
+    def __init__(self, db_path, *, canonical_db_path=None, initialize=True):
         self.path = _database_path(db_path, "Kraken Spot database path")
         canonical = canonical_db_path or os.environ.get("MARKET_DATA_DB")
         if not canonical:
@@ -59,29 +59,51 @@ class KrakenSpotSQLiteStore:
                 "Kraken Spot database must be separate from the Binance canonical database"
             )
 
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with closing(sqlite3.connect(self.path, timeout=5)) as connection, connection:
-            connection.execute("PRAGMA journal_mode=WAL")
-            connection.execute(
-                """CREATE TABLE IF NOT EXISTS kraken_spot_candles (
-                    exchange TEXT NOT NULL CHECK (exchange = 'kraken'),
-                    market_type TEXT NOT NULL CHECK (market_type = 'SPOT'),
-                    native_market_id TEXT NOT NULL CHECK (length(native_market_id) > 0),
-                    symbol TEXT NOT NULL CHECK (symbol = 'BTC/USDT'),
-                    timeframe TEXT NOT NULL CHECK (timeframe IN ('15m', '1h')),
-                    open_time_ms INTEGER NOT NULL,
-                    open TEXT NOT NULL,
-                    high TEXT NOT NULL,
-                    low TEXT NOT NULL,
-                    close TEXT NOT NULL,
-                    volume TEXT NOT NULL,
-                    available_at_ms INTEGER NOT NULL,
-                    PRIMARY KEY (
-                        exchange, market_type, native_market_id, symbol,
-                        timeframe, open_time_ms
+        if initialize:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            with closing(sqlite3.connect(self.path, timeout=5)) as connection, connection:
+                connection.execute("PRAGMA journal_mode=WAL")
+                connection.execute(
+                    """CREATE TABLE IF NOT EXISTS kraken_spot_candles (
+                        exchange TEXT NOT NULL CHECK (exchange = 'kraken'),
+                        market_type TEXT NOT NULL CHECK (market_type = 'SPOT'),
+                        native_market_id TEXT NOT NULL CHECK (length(native_market_id) > 0),
+                        symbol TEXT NOT NULL CHECK (symbol = 'BTC/USDT'),
+                        timeframe TEXT NOT NULL CHECK (timeframe IN ('15m', '1h')),
+                        open_time_ms INTEGER NOT NULL,
+                        open TEXT NOT NULL,
+                        high TEXT NOT NULL,
+                        low TEXT NOT NULL,
+                        close TEXT NOT NULL,
+                        volume TEXT NOT NULL,
+                        available_at_ms INTEGER NOT NULL,
+                        PRIMARY KEY (
+                            exchange, market_type, native_market_id, symbol,
+                            timeframe, open_time_ms
+                        )
+                    )"""
+                )
+        else:
+            if not self.path.is_file():
+                raise FileNotFoundError("Kraken Spot SQLite database does not exist")
+            with closing(
+                sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True, timeout=5)
+            ) as connection:
+                columns = {
+                    row[1]
+                    for row in connection.execute(
+                        "PRAGMA table_info(kraken_spot_candles)"
                     )
-                )"""
-            )
+                }
+                required_columns = {
+                    "exchange", "market_type", "native_market_id", "symbol",
+                    "timeframe", "open_time_ms", "open", "high", "low",
+                    "close", "volume", "available_at_ms",
+                }
+                if not required_columns <= columns:
+                    raise sqlite3.DatabaseError(
+                        "Kraken Spot SQLite schema is missing required columns"
+                    )
 
     @staticmethod
     def _validate_candle(candle):
