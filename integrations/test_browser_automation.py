@@ -2,6 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from integrations.browser_automation.controller import BrowserAutomationController
 from integrations.browser_automation.authorization import (
     AuthorizationContext,
     AuthorizationError,
@@ -58,6 +59,18 @@ class BrowserAutomationSchemaTest(unittest.TestCase):
         validated = validate_task(request)
         self.assertEqual(validated["task_type"], "GITHUB_READ")
         self.assertEqual(validated["target"]["repository"], REPOSITORY)
+
+
+    def test_rejects_non_json_python_values_and_non_string_object_keys(self):
+        request = github_read_request()
+        request["timeout_seconds"] = float("nan")
+        with self.assertRaises(TaskValidationError):
+            validate_task(request)
+
+        request = github_read_request()
+        request["target"][1] = "not-a-json-object-key"
+        with self.assertRaises(TaskValidationError):
+            validate_task(request)
 
     def test_rejects_unknown_top_level_fields_including_secret_material(self):
         request = github_read_request()
@@ -120,6 +133,20 @@ class BrowserAutomationSchemaTest(unittest.TestCase):
 
 
 class BrowserAutomationAuthorizationTest(unittest.TestCase):
+
+    def test_controller_prepares_only_validated_and_authorized_tasks(self):
+        controller = BrowserAutomationController(read_context())
+        original = github_read_request()
+        prepared = controller.prepare_task(original)
+        original["target"]["repository"] = "attacker/changed"
+        self.assertTrue(prepared.authorization.allowed)
+        self.assertEqual(prepared.request["target"]["repository"], REPOSITORY)
+
+    def test_controller_without_trusted_grants_fails_closed(self):
+        controller = BrowserAutomationController()
+        with self.assertRaises(AuthorizationError):
+            controller.prepare_task(github_read_request())
+
     def test_denies_every_task_when_no_trusted_authorization_context_is_supplied(self):
         with self.assertRaises(AuthorizationError):
             authorize_task(github_read_request(), AuthorizationContext())
