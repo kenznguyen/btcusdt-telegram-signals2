@@ -52,7 +52,6 @@ if applied != total:
     raise SystemExit("Migration set is incomplete")
 PY
 
-declare -A FIRST_HASH
 for timeframe in 15m 1h; do
   echo "Collecting real Binance USD-M $timeframe candles"
   first=$("$CI_PYTHON" -m market_data.sync --backend postgres --timeframe "$timeframe" --start-ms "$START_MS" --end-ms "$END_MS")
@@ -60,11 +59,12 @@ for timeframe in 15m 1h; do
   second=$("$CI_PYTHON" -m market_data.sync --backend postgres --timeframe "$timeframe" --start-ms "$START_MS" --end-ms "$END_MS")
   printf 'repeat_sync_%s=%s\n' "$timeframe" "$second"
 
-  FIRST_HASH["$timeframe"]=$(printf '%s' "$first" | "$CI_PYTHON" -c 'import json,sys; print(json.load(sys.stdin)["datasetVersion"])')
+  first_hash=$(printf '%s' "$first" | "$CI_PYTHON" -c 'import json,sys; print(json.load(sys.stdin)["datasetVersion"])')
+  if [[ "$timeframe" == "15m" ]]; then HASH_15M="$first_hash"; else HASH_1H="$first_hash"; fi
   "$CI_PYTHON" - "$first" "$second" "$timeframe" <<'PY'
 import json
 import sys
-first, second, timeframe = map(json.loads, sys.argv[1:]) if False else (json.loads(sys.argv[1]), json.loads(sys.argv[2]), sys.argv[3])
+first, second, timeframe = json.loads(sys.argv[1]), json.loads(sys.argv[2]), sys.argv[3]
 if not first["coverage"]["complete"]:
     raise SystemExit(f"{timeframe}: first sync has missing candles")
 if second["inserted"] != 0:
@@ -76,7 +76,7 @@ PY
 done
 
 # A new Python process exercises the read-only API against the persisted database.
-"$CI_PYTHON" - "$START_MS" "$END_MS" "${FIRST_HASH[15m]}" "${FIRST_HASH[1h]}" <<'PY'
+"$CI_PYTHON" - "$START_MS" "$END_MS" "$HASH_15M" "$HASH_1H" <<'PY'
 import json
 import os
 import sys
@@ -105,7 +105,7 @@ for timeframe, expected_hash in (("15m", hash_15m), ("1h", hash_1h)):
     print(f"{timeframe}_api_read=PASS returned={coverage['returned']} hash={result['datasetVersion']}")
 PY
 
-"$CI_PYTHON" - "$START_MS" "$END_MS" "${FIRST_HASH[15m]}" "${FIRST_HASH[1h]}" "$REPORT" <<'PY'
+"$CI_PYTHON" - "$START_MS" "$END_MS" "$HASH_15M" "$HASH_1H" "$REPORT" <<'PY'
 import json
 import os
 import subprocess
