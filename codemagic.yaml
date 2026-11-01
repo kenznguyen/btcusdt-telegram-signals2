@@ -609,3 +609,84 @@ workflows:
       - t0-feeder-lifecycle-tests.log
       - t0-feeder-lifecycle-verdict.txt
       - t0-feeder-lifecycle-compile.log
+
+
+  # T0 atomic write fencing: RED evidence before implementation.
+  t0-feeder-atomic-fencing-red:
+    name: T0 feeder - atomic write fencing RED evidence
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    scripts:
+      - name: Prepare Python and record exact source SHA
+        script: |
+          set -euo pipefail
+          bash ci/setup-python.sh requirements.txt
+          git rev-parse HEAD | tee ci-source-sha.txt
+      - name: Confirm atomic fencing contracts fail before implementation
+        script: |
+          set -euo pipefail
+          set +e
+          "$CI_PYTHON" -m unittest market_data.test_feeder_atomic_fencing -v 2>&1 | tee t0-feeder-atomic-fencing-red-tests.log
+          test_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$test_status" -eq 0 ]; then
+            echo "Unexpected PASS: atomic fencing RED gate must fail before implementation" >&2
+            exit 1
+          fi
+          if grep -Eq "AttributeError: 'CandleStore' object has no attribute 'insert_fenced'|unexpected keyword argument 'write_fence'" t0-feeder-atomic-fencing-red-tests.log; then
+            echo "T0_FEEDER_ATOMIC_FENCING_RED=CONFIRMED" | tee t0-feeder-atomic-fencing-red-verdict.txt
+          else
+            cat t0-feeder-atomic-fencing-red-tests.log
+            echo "T0_FEEDER_ATOMIC_FENCING_RED=INVALID" | tee t0-feeder-atomic-fencing-red-verdict.txt
+            exit 1
+          fi
+      - name: Compile atomic fencing contract tests
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m py_compile market_data/test_feeder_atomic_fencing.py
+          echo "T0_FEEDER_ATOMIC_FENCING_TEST_COMPILE=PASS" | tee t0-feeder-atomic-fencing-red-compile.log
+    artifacts:
+      - ci-source-sha.txt
+      - t0-feeder-atomic-fencing-red-tests.log
+      - t0-feeder-atomic-fencing-red-verdict.txt
+      - t0-feeder-atomic-fencing-red-compile.log
+
+  # T0 atomic write fencing: SQLite-only GREEN gate; PostgreSQL feeder runtime remains disabled.
+  t0-feeder-atomic-fencing:
+    name: T0 feeder - atomic SQLite write fencing (GREEN)
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: feature/t0-atomic-write-fencing-20261102
+          include: true
+          source: true
+      cancel_previous_builds: true
+    when:
+      changeset:
+        includes:
+          - market_data/store.py
+          - market_data/storage.py
+          - market_data/sync.py
+          - market_data/feeder_service.py
+          - market_data/test_feeder_atomic_fencing.py
+          - codemagic.yaml
+    scripts:
+      - name: Prepare Python and record exact source SHA
+        script: bash ci/setup-python.sh requirements.txt
+      - name: Run atomic fencing and all prior T0 contracts
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m unittest market_data.test_feeder_atomic_fencing market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-atomic-fencing-tests.log
+          echo "T0_FEEDER_ATOMIC_FENCING_TESTS=PASS" | tee t0-feeder-atomic-fencing-verdict.txt
+      - name: Compile fenced storage and runtime integration
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m py_compile market_data/store.py market_data/storage.py market_data/sync.py market_data/feeder_service.py market_data/test_feeder_atomic_fencing.py
+          echo "T0_FEEDER_ATOMIC_FENCING_COMPILE=PASS" | tee t0-feeder-atomic-fencing-compile.log
+    artifacts:
+      - ci-source-sha.txt
+      - t0-feeder-atomic-fencing-tests.log
+      - t0-feeder-atomic-fencing-verdict.txt
+      - t0-feeder-atomic-fencing-compile.log
