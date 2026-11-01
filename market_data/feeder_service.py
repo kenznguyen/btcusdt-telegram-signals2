@@ -21,6 +21,7 @@ from market_data.feeder import (
 from market_data.storage import create_store_from_env
 from market_data.sync import sync_window
 from market_data.store import INTERVAL_MS
+from market_data.feeder_status import FeederRuntimeStatusStore
 
 
 class RecoveryAdapter:
@@ -59,7 +60,8 @@ class RecoveryAdapter:
 
 
 def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
-                  health=None, event_sink=None, recovery_lookback_candles=2000):
+                  health=None, event_sink=None, recovery_lookback_candles=2000,
+                  status_store=None):
     """Compose the existing canonical sync path into the tested FeederRuntime."""
     if not isinstance(config, FeederConfig):
         raise TypeError("config must be FeederConfig")
@@ -130,6 +132,7 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
         event_sink=event_sink,
         clock=clock_fn,
         retry_policy=retry,
+        status_store=status_store,
     )
     return runtime
 
@@ -174,6 +177,7 @@ def build_production_runtime(environ=None):
     )
     exchange = ccxt.binanceusdm({"enableRateLimit": True, "timeout": 15_000})
     lease_store = LeaseStore(lease_path)
+    status_store = FeederRuntimeStatusStore(candle_path)
     return build_runtime(
         config=config,
         owner_id=owner_id,
@@ -181,6 +185,7 @@ def build_production_runtime(environ=None):
         store=store,
         lease_store=lease_store,
         recovery_lookback_candles=int(values.get("T0_FEEDER_RECOVERY_CANDLES", "2000")),
+        status_store=status_store,
     )
 
 
