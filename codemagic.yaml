@@ -97,8 +97,7 @@ workflows:
       - name: Test, build and verify the existing release signing identity
         script: bash ci/release-android.sh
         test_report: android-app/app/build/test-results/testDebugUnitTest/*.xml
-    artifacts:
-      - android-app/app/build/outputs/apk/release/*.apk
+    artifacts:      - android-app/app/build/outputs/apk/release/*.apk
       - android-app/app/build/test-results/testDebugUnitTest/*.xml
       - android-app/app/build/reports/tests/testDebugUnitTest/**
       - android-source-sha.txt
@@ -124,6 +123,9 @@ workflows:
           include: true
           source: true
         - pattern: feature/android-five-layer-control
+          include: true
+          source: true
+        - pattern: feature/browser-automation-controller
           include: true
           source: true
         - pattern: feature/timescaledb-market-data-repository
@@ -197,8 +199,7 @@ workflows:
       cancel_previous_builds: true
     environment:
       groups:
-        - market_data_timescale_test
-    scripts:
+        - market_data_timescale_test    scripts:
       - name: Prepare Python dependencies
         script: bash ci/setup-python.sh requirements-market-data.txt requirements-ci.txt
       - name: Run TimescaleDB integration and SQLite parity tests
@@ -297,8 +298,7 @@ workflows:
           include: true
           source: true
       cancel_previous_builds: true
-    when:
-      changeset:
+    when:      changeset:
         includes:
           - control_dashboard/
           - pipeline/
