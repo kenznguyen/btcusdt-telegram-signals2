@@ -83,6 +83,24 @@ class KrakenSpotSQLiteStoreTest(unittest.TestCase):
         result = self.store.read_window("15m", START, START + 2 * STEP)
         self.assertEqual([item["openTimeMs"] for item in result["candles"]], [START])
 
+    def test_rejects_a_second_native_market_id_in_the_same_dataset(self):
+        self.assertEqual(self.store.insert([candle(START)]), 1)
+        alternate_identity = InstrumentIdentity(
+            "kraken", "SPOT", "BTCUSDT", "BTC/USDT"
+        )
+
+        with self.assertRaisesRegex(ValueError, "native market ID"):
+            self.store.insert([candle(START, instrument=alternate_identity)])
+
+        result = self.store.read_window("15m", START, START + STEP)
+        self.assertEqual(result["coverage"]["expected"], 1)
+        self.assertEqual(result["coverage"]["returned"], 1)
+        self.assertTrue(result["coverage"]["complete"])
+        self.assertEqual(
+            [item["nativeMarketId"] for item in result["candles"]],
+            ["XBTUSDT"],
+        )
+
     def test_rejects_non_kraken_or_non_spot_source_candles(self):
         wrong_sources = (
             InstrumentIdentity("binance", "USDT_PERPETUAL", "BTCUSDT", "BTC/USDT"),
