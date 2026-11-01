@@ -1,4 +1,7 @@
+import io
 import unittest
+from urllib.error import HTTPError
+from unittest.mock import patch
 from market_data.bybit_linear import BybitLinearAdapter, BybitLinearCandle
 
 START = 1_800_000_000_000
@@ -28,6 +31,22 @@ def row(opened, close="102.00"):
 
 
 class BybitLinearAdapterTests(unittest.TestCase):
+
+    def test_http_error_includes_bounded_exchange_response_details(self):
+        error = HTTPError(
+            "https://api.bybit.com/v5/market/instruments-info",
+            403,
+            "Forbidden",
+            {},
+            io.BytesIO(b'{"retCode":10010,"retMsg":"access denied"}'),
+        )
+        with patch("market_data.bybit_linear.urlopen", side_effect=error):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                r"Bybit HTTP 403.*instruments-info.*retCode.*10010.*access denied",
+            ):
+                BybitLinearAdapter().validate_instrument()
+
     def test_fetches_reverse_order_rows_and_preserves_exact_decimal_strings(self):
         fake = FakeBybit([row(START+STEP), row(START)])
         adapter = BybitLinearAdapter(fake)
