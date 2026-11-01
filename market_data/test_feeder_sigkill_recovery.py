@@ -76,6 +76,16 @@ class RecoveryExchange:
 
 class SigkillRecoveryTest(unittest.TestCase):
     def test_sigkill_rolls_back_batch_then_generation_two_recovers_m15_and_h1(self):
+        audit_lines = ["T0_SIGKILL_RECOVERY_AUDIT=START"]
+
+        def write_audit():
+            audit_path = os.environ.get("T0_SIGKILL_AUDIT_PATH")
+            if audit_path:
+                target = Path(audit_path)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text("\\n".join(audit_lines + ["RESULT=PASS"]) + "\\n")
+
+        self.addCleanup(write_audit)
         with tempfile.TemporaryDirectory(prefix="t0-sigkill-") as directory:
             db_path = Path(directory) / "isolated-canonical.sqlite3"
             writer = CandleStore(db_path)
@@ -156,7 +166,9 @@ CandleStore(path).insert_fenced(
                 self.assertTrue(ready, "Process A did not reach the uncommitted insert")
                 self.assertEqual(process.stdout.readline().strip(), "UNCOMMITTED_ROW_INSERTED")
                 os.kill(process.pid, signal.SIGKILL)
-                self.assertEqual(process.wait(timeout=10), -signal.SIGKILL)
+                process_status = process.wait(timeout=10)
+                self.assertEqual(process_status, -signal.SIGKILL)
+                audit_lines.append("PROCESS_A_EXIT=SIGKILL")
             finally:
                 if process.poll() is None:
                     process.kill()
@@ -168,6 +180,7 @@ CandleStore(path).insert_fenced(
             with sqlite3.connect(db_path, timeout=5) as connection:
                 integrity = connection.execute("PRAGMA quick_check").fetchone()[0]
             self.assertEqual(integrity, "ok")
+            audit_lines.append("SQLITE_QUICK_CHECK=ok")
 
             # Neither the inserted prefix nor the remaining row of A's batch survived.
             before_recovery = read_window(
@@ -181,6 +194,7 @@ CandleStore(path).insert_fenced(
                     windows["15m"][0] + 3 * INTERVAL_MS["15m"],
                 },
             )
+            audit_lines.append("PROCESS_A_UNCOMMITTED_BATCH_ROWS=0")
 
             # Simulate the passage of the 60-second TTL without a wall-clock sleep.
             lease_b = leases.acquire(
@@ -188,6 +202,7 @@ CandleStore(path).insert_fenced(
             )
             self.assertIsNotNone(lease_b)
             self.assertEqual(lease_b.generation, 2)
+            audit_lines.extend(["LEASE_A_GENERATION=1", "LEASE_B_GENERATION=2"])
 
             # A stale generation must remain unable to write after takeover.
             with self.assertRaises(PermissionError):
@@ -226,10 +241,18 @@ CandleStore(path).insert_fenced(
                     self.assertEqual(coverage["coverage"]["returned"], LOOKBACK)
                     self.assertTrue(coverage["coverage"]["complete"])
                     self.assertEqual(coverage["coverage"]["gaps"], [])
+                    audit_lines.append(
+                        f"{timeframe.upper()}_COVERAGE={coverage['coverage']['returned']}/"
+                        f"{coverage['coverage']['expected']}"
+                    )
 
-                self.assertTrue(leases.is_current(
+                lease_valid_after_recovery = leases.is_current(
                     "process-B", 2, now_ms=CLOCK_AFTER_TTL
-                ))
+                )
+                self.assertTrue(lease_valid_after_recovery)
+                audit_lines.append(
+                    f"LEASE_GENERATION_2_VALID_AFTER_RECOVERY={lease_valid_after_recovery}"
+                )
             finally:
                 runtime.stop(timeout=5)
 
