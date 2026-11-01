@@ -226,7 +226,7 @@ class FeederScheduler:
     def mark_running(self, timeframe):
         self._validate_timeframe(timeframe)
         with self._lock:
-            if timeframe in self._running:
+            if self._stop_event.is_set() or timeframe in self._running:
                 return False
             self._running.add(timeframe)
             return True
@@ -814,7 +814,7 @@ class FeederRuntime:
         if self.lease_generation is None or self._released:
             return
         released = self.lease_store.release(self.owner_id, self.lease_generation)
-        if released is not True:
+        if released is False:
             raise RuntimeError("Feeder startup could not release its lease generation")
         self._released = True
 
@@ -874,6 +874,30 @@ class FeederRuntime:
             raise
         return self.scheduler.run_due()
 
+    def health_snapshot(self, snapshot):
+        """Overlay lifecycle truth onto the health evaluator's source snapshot."""
+        if not isinstance(snapshot, dict):
+            raise TypeError("snapshot must be a mapping")
+        result = dict(snapshot)
+        with self._lock:
+            state = self._state
+        if state == "STOPPED":
+            result["process_running"] = False
+        elif state == "RUNNING":
+            result["process_running"] = True
+            result["startup_complete"] = True
+            result["lease_valid"] = True
+        elif state == "LEASE_LOST":
+            result["process_running"] = True
+            result["lease_valid"] = False
+        elif state in ("NEW", "STARTING", "STOPPING"):
+            result["process_running"] = True
+            result["startup_complete"] = False
+        elif state == "FAILED":
+            result["process_running"] = True
+            result["fatal_error"] = True
+        return result
+
     def stop(self, timeout=None):
         with self._lock:
             if self._state == "STOPPED":
@@ -885,6 +909,9 @@ class FeederRuntime:
         heartbeat = self._heartbeat_thread
         if heartbeat is not None and heartbeat is not threading.current_thread():
             heartbeat.join(timeout=timeout)
+            if heartbeat.is_alive():
+                self._emit("shutdown_heartbeat_timeout")
+                raise TimeoutError("Feeder shutdown timed out waiting for lease heartbeat to stop")
 
         self.scheduler.stop()
         drained = self.scheduler.wait_for_idle(timeout=timeout)
@@ -894,7 +921,7 @@ class FeederRuntime:
 
         if self.lease_generation is not None and not self._released:
             released = self.lease_store.release(self.owner_id, self.lease_generation)
-            if released is not True:
+            if released is False:
                 with self._lock:
                     self._state = "STOPPED"
                 if self.health is not None:
