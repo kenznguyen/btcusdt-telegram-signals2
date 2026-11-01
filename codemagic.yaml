@@ -684,8 +684,8 @@ workflows:
         script: |
           set -euo pipefail
           "$CI_PYTHON" -m unittest market_data.test_feeder_atomic_fencing market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-atomic-fencing-tests.log
-          grep -q "Ran 98 tests" t0-feeder-atomic-fencing-tests.log
-          echo "T0_FEEDER_ATOMIC_FENCING_TESTS=PASS (98 tests)" | tee t0-feeder-atomic-fencing-verdict.txt
+          grep -q "Ran 99 tests" t0-feeder-atomic-fencing-tests.log
+          echo "T0_FEEDER_ATOMIC_FENCING_TESTS=PASS (99 tests)" | tee t0-feeder-atomic-fencing-verdict.txt
       - name: Compile fenced storage and runtime integration
         script: |
           set -euo pipefail
