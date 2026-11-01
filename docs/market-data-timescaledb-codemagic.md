@@ -51,7 +51,8 @@ The manual workflow `market-data-live-collector-acceptance` is separate from the
 
 Before running it, create the Codemagic environment variable group `market_data_live_acceptance` with:
 
-- `MARKET_DATA_ACCEPTANCE_DATABASE_URL`: PostgreSQL/TimescaleDB DSN for a dedicated staging database. The database name must contain `staging`, `acceptance`, or `test`; the runner refuses other database names.
+- `MARKET_DATA_ACCEPTANCE_DATABASE_URL`: PostgreSQL/TimescaleDB DSN for the dedicated staging database named exactly `tsdb`.
+- `MARKET_DATA_ACCEPTANCE_DATABASE_CONFIRMED`: set to the exact value `tsdb-is-dedicated-staging` only after verifying that `tsdb` is isolated staging/acceptance storage and contains no production data. The runner requires both the exact database name and this explicit confirmation; it rejects other database names or missing/incorrect confirmation.
 - The database must have TimescaleDB installed and grant the workflow role permission to create the `market_data` schema, tables, and hypertable.
 
 Do not reuse the `market_data_timescale_test` database, production credentials, or production data. This workflow explicitly applies the reviewed migrations to the dedicated acceptance database. It retains its uniquely timestamped acceptance candles for inspection; repeated runs use a new completed 24-hour window. No API keys or trading credentials are used, and no orders are submitted.
