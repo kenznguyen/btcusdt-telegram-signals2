@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import Mock
 
-from market_data.feeder import FeederConfig, FeederRuntime
+from market_data.feeder import FeederConfig, FeederRuntime, FeederScheduler
 
 NOW = 1_800_000_000_000
 
@@ -201,6 +201,113 @@ class RuntimeLifecycleTest(unittest.TestCase):
         runtime.run_once()
 
         scheduler.run_due.assert_not_called()
+
+
+
+
+    def test_real_scheduler_stop_blocks_next_timeframe_and_drains_current_sync(self):
+        entered = threading.Event()
+        finish = threading.Event()
+        calls = []
+
+        def sync(timeframe, start_ms, end_ms):
+            calls.append(timeframe)
+            entered.set()
+            if not finish.wait(2):
+                raise TimeoutError("test did not release scheduler callback")
+            return "committed"
+
+        scheduler = FeederScheduler(
+            FeederConfig(timeframes=("15m", "1h")),
+            clock=lambda: NOW + 60 * 60 * 1000 + 5_000,
+            sync_callback=sync,
+        )
+        errors = []
+
+        def run():
+            try:
+                scheduler.run_due()
+            except Exception as error:
+                errors.append(error)
+
+        runner = threading.Thread(target=run)
+        runner.start()
+        self.assertTrue(entered.wait(1))
+
+        scheduler.stop()
+        self.assertEqual(scheduler.run_due(), {})
+        self.assertFalse(scheduler.wait_for_idle(timeout=0.01))
+
+        finish.set()
+        runner.join(2)
+
+        self.assertFalse(runner.is_alive())
+        self.assertEqual(errors, [])
+        self.assertEqual(calls, ["15m"])
+        self.assertTrue(scheduler.wait_for_idle(timeout=1))
+        self.assertEqual(scheduler.running_timeframes, frozenset())
+
+    def test_runtime_shutdown_keeps_lease_until_real_scheduler_writer_finishes(self):
+        import tempfile
+        from pathlib import Path
+        from market_data.feeder import LeaseStore
+
+        entered = threading.Event()
+        finish = threading.Event()
+        calls = []
+
+        def sync(timeframe, start_ms, end_ms):
+            calls.append(timeframe)
+            entered.set()
+            if not finish.wait(3):
+                raise TimeoutError("test did not release runtime writer")
+            return "committed"
+
+        with tempfile.TemporaryDirectory() as directory:
+            store = LeaseStore(str(Path(directory) / "lease.sqlite3"))
+            scheduler = FeederScheduler(
+                FeederConfig(timeframes=("15m", "1h")),
+                clock=lambda: NOW + 60 * 60 * 1000 + 5_000,
+                sync_callback=sync,
+            )
+            runtime = FeederRuntime(
+                config=scheduler.config,
+                scheduler=scheduler,
+                lease_store=store,
+                owner_id="runtime-worker",
+                clock=lambda: NOW,
+            )
+            self.assertTrue(runtime.start(now_ms=NOW))
+            self.assertTrue(entered.wait(1))
+
+            shutdown_errors = []
+            shutdown_done = threading.Event()
+
+            def shutdown():
+                try:
+                    runtime.stop(timeout=2)
+                except Exception as error:
+                    shutdown_errors.append(error)
+                finally:
+                    shutdown_done.set()
+
+            stopper = threading.Thread(target=shutdown)
+            stopper.start()
+            self.assertFalse(shutdown_done.wait(0.05))
+            self.assertTrue(store.is_current(
+                "runtime-worker", runtime.lease_generation, NOW + 1
+            ))
+
+            finish.set()
+            stopper.join(2)
+
+            self.assertFalse(stopper.is_alive())
+            self.assertEqual(shutdown_errors, [])
+            self.assertEqual(runtime.state, "STOPPED")
+            self.assertFalse(store.is_current(
+                "runtime-worker", runtime.lease_generation, NOW + 1
+            ))
+            self.assertEqual(calls, ["15m"])
 
 
 if __name__ == "__main__":
