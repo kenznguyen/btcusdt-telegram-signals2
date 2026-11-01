@@ -662,6 +662,9 @@ workflows:
         - pattern: feature/t0-atomic-write-fencing-20261102
           include: true
           source: true
+        - pattern: feature/t0-atomic-fencing-hardening-20261102
+          include: true
+          source: true
       cancel_previous_builds: true
     when:
       changeset:
@@ -669,8 +672,10 @@ workflows:
           - market_data/store.py
           - market_data/storage.py
           - market_data/sync.py
+          - market_data/feeder.py
           - market_data/feeder_service.py
           - market_data/test_feeder_atomic_fencing.py
+          - market_data/test_feeder_lifecycle.py
           - codemagic.yaml
     scripts:
       - name: Prepare Python and record exact source SHA
@@ -679,11 +684,12 @@ workflows:
         script: |
           set -euo pipefail
           "$CI_PYTHON" -m unittest market_data.test_feeder_atomic_fencing market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-atomic-fencing-tests.log
-          echo "T0_FEEDER_ATOMIC_FENCING_TESTS=PASS" | tee t0-feeder-atomic-fencing-verdict.txt
+          grep -q "Ran 98 tests" t0-feeder-atomic-fencing-tests.log
+          echo "T0_FEEDER_ATOMIC_FENCING_TESTS=PASS (98 tests)" | tee t0-feeder-atomic-fencing-verdict.txt
       - name: Compile fenced storage and runtime integration
         script: |
           set -euo pipefail
-          "$CI_PYTHON" -m py_compile market_data/store.py market_data/storage.py market_data/sync.py market_data/feeder_service.py market_data/test_feeder_atomic_fencing.py
+          "$CI_PYTHON" -m py_compile market_data/store.py market_data/storage.py market_data/sync.py market_data/feeder.py market_data/feeder_service.py market_data/test_feeder_atomic_fencing.py market_data/test_feeder_lifecycle.py
           echo "T0_FEEDER_ATOMIC_FENCING_COMPILE=PASS" | tee t0-feeder-atomic-fencing-compile.log
     artifacts:
       - ci-source-sha.txt
