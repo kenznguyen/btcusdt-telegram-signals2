@@ -5,7 +5,7 @@ START = 1_800_000_000_000
 STEP = 900_000
 INSTRUMENT = {
     "instId":"BTC-USDT-SWAP","instType":"SWAP","ctType":"linear",
-    "state":"live","baseCcy":"BTC","quoteCcy":"USDT","settleCcy":"USDT",
+    "state":"live","ctValCcy":"BTC","settleCcy":"USDT",
 }
 
 def row(opened, confirm="1"):
