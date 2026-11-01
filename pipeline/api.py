@@ -119,7 +119,7 @@ def context(timestamp):
     data = {}
     errors = {}
     try:
-        data["candles"] = market_window(os.environ.get("MARKET_DATA_DB", ""), "BTCUSDT", "15m",
+        data["candles"] = market_window("BTCUSDT", "15m",
                                       end - 1_800_000, end)
     except (ValueError, OSError, sqlite3.Error):
         data["candles"], errors["candles"] = None, "CANDLES_UNAVAILABLE"
@@ -148,9 +148,9 @@ def core_decide(timestamp, book=None):
     end15 = timestamp // 900_000 * 900_000
     end1h = timestamp // 3_600_000 * 3_600_000
     try:
-        m15 = market_window(os.environ.get("MARKET_DATA_DB", ""), "BTCUSDT", "15m",
+        m15 = market_window("BTCUSDT", "15m",
                           end15-500*900_000, end15, as_of_ms=timestamp)
-        h1 = market_window(os.environ.get("MARKET_DATA_DB", ""), "BTCUSDT", "1h",
+        h1 = market_window("BTCUSDT", "1h",
                          end1h-500*3_600_000, end1h, as_of_ms=timestamp)
         if not m15.get("coverage", {}).get("complete") or not h1.get("coverage", {}).get("complete"):
             return produce(m15, h1, {}, {"owner":None,"dcaUsed":False,"initialMarginQuote":"0"},
@@ -185,7 +185,7 @@ def signal_snapshot(timestamp):
 
 def equity_snapshot(timestamp):
     end = timestamp // 900_000 * 900_000
-    window = market_window(os.environ.get("MARKET_DATA_DB", ""), "BTCUSDT", "15m",
+    window = market_window("BTCUSDT", "15m",
                          end-900_000, end, as_of_ms=timestamp)
     if not window["candles"] or not window["coverage"]["complete"]:
         return {"available":False,"reason":"CLOSED_M15_MARK_UNAVAILABLE","points":[]}
@@ -214,7 +214,7 @@ def quality_snapshot(timestamp):
     streams = []
     try:
         end15 = timestamp // 900_000 * 900_000
-        m15 = market_window(os.environ.get("MARKET_DATA_DB",""),"BTCUSDT","15m",
+        m15 = market_window("BTCUSDT","15m",
                           end15-500*900_000,end15,as_of_ms=timestamp)
         m15_ready = m15["coverage"]["complete"] and len(m15["candles"]) == 500
         streams.append({"name":"M15 candles","status":"READY" if m15_ready else "DEGRADED",
@@ -223,7 +223,7 @@ def quality_snapshot(timestamp):
         streams.append({"name":"M15 candles","status":"MISSING","rows":0})
     try:
         end1h = timestamp // 3_600_000 * 3_600_000
-        h1 = market_window(os.environ.get("MARKET_DATA_DB",""),"BTCUSDT","1h",
+        h1 = market_window("BTCUSDT","1h",
                          end1h-500*3_600_000,end1h,as_of_ms=timestamp)
         h1_ready = h1["coverage"]["complete"] and len(h1["candles"]) == 500
         streams.append({"name":"H1 candles","status":"READY" if h1_ready else "DEGRADED",
@@ -381,7 +381,7 @@ def application(environ, start_response):
                 order = None
                 if decision.get("intent"):
                     end = timestamp // 900_000 * 900_000
-                    mark_window = market_window(os.environ.get("MARKET_DATA_DB",""),"BTCUSDT","15m",
+                    mark_window = market_window("BTCUSDT","15m",
                                               end-900_000,end,as_of_ms=timestamp)
                     if mark_window["candles"] and mark_window["coverage"]["complete"]:
                         mark = mark_window["candles"][-1]
@@ -401,7 +401,7 @@ def application(environ, start_response):
         elif path == "/v1/candles":
             query = candle_query(environ.get("QUERY_STRING", ""))
             try:
-                result = market_window(os.environ.get("MARKET_DATA_DB", ""), **query)
+                result = market_window(**query)
             except (ValueError, OSError, sqlite3.Error):
                 return response("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
         elif path == "/v1/paper":
@@ -445,7 +445,7 @@ def application(environ, start_response):
         else:
             end = timestamp // 900_000 * 900_000
             try:
-                candles = market_window(os.environ.get("MARKET_DATA_DB", ""), "BTCUSDT", "15m", end-1_800_000, end)
+                candles = market_window("BTCUSDT", "15m", end-1_800_000, end)
                 candle_ready = candles["coverage"]["complete"] and all(c["availableAtMs"] <= timestamp for c in candles["candles"])
             except (ValueError, OSError, sqlite3.Error):
                 candle_ready = False
