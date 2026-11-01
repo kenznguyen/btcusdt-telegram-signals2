@@ -699,6 +699,49 @@ workflows:
 
   # T0 process-crash recovery: isolated SQLite SIGKILL integration contract.
 
+  t0-health-runtime-api:
+    name: T0 health - runtime API integration
+    instance_type: mac_mini_m2
+    max_build_duration: 20
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: feature/t0-health-runtime-api-integration-20261102
+          include: true
+          source: true
+      cancel_previous_builds: true
+    when:
+      changeset:
+        includes:
+          - app.py
+          - market_data/feeder.py
+          - market_data/feeder_service.py
+          - market_data/feeder_status.py
+          - market_data/test_feeder_health_runtime_api.py
+          - codemagic.yaml
+    scripts:
+      - name: Prepare Python and record exact source SHA
+        script: |
+          set -euo pipefail
+          bash ci/setup-python.sh requirements.txt
+          git rev-parse HEAD | tee ci-source-sha.txt
+      - name: Compile runtime status provider, feeder and API
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m py_compile app.py market_data/feeder.py market_data/feeder_service.py market_data/feeder_status.py market_data/test_feeder_health_runtime_api.py
+          echo "T0_HEALTH_RUNTIME_API_COMPILE=PASS" | tee t0-health-runtime-api-compile.log
+      - name: Run runtime/API integration and all T0 regression contracts
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m unittest market_data.test_feeder_health_runtime_api market_data.test_feeder_atomic_fencing market_data.test_feeder_sigkill_recovery market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-health-runtime-api-tests.log
+          grep -q "Ran 106 tests" t0-health-runtime-api-tests.log
+          echo "T0_HEALTH_RUNTIME_API_TESTS=PASS (106 tests)" | tee t0-health-runtime-api-verdict.txt
+    artifacts:
+      - ci-source-sha.txt
+      - t0-health-runtime-api-compile.log
+      - t0-health-runtime-api-tests.log
+      - t0-health-runtime-api-verdict.txt
+
   t0-health-runtime-api-red:
     name: T0 health - runtime API integration RED contract
     instance_type: mac_mini_m2
