@@ -210,6 +210,26 @@ workflows:
       - ci-source-sha.txt
       - timescaledb-tests.log
 
+  market-data-live-collector-acceptance:
+    name: Live Binance collector - PostgreSQL staging acceptance
+    instance_type: mac_mini_m2
+    max_build_duration: 20
+    environment:
+      groups:
+        - market_data_live_acceptance
+    # Manual only: never trigger live exchange ingestion on every push.
+    scripts:
+      - name: Prepare Python and record source
+        script: bash ci/setup-python.sh requirements-market-data.txt requirements-ci.txt
+      - name: Validate acceptance runner syntax
+        script: bash -n ci/market-data-live-acceptance.sh
+      - name: Collect real Binance candles and verify persisted API reads
+        script: bash ci/market-data-live-acceptance.sh
+    artifacts:
+      - ci-source-sha.txt
+      - market-data-live-acceptance.log
+      - market-data-live-acceptance.json
+
   telegram-command:
     name: Telegram command
     instance_type: mac_mini_m2
