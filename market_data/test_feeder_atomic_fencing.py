@@ -113,7 +113,7 @@ class AtomicWriteFencingTest(unittest.TestCase):
         fence = {
             "owner": "writer-A",
             "generation": self.lease.generation,
-            "now_ms": lambda: NOW + 2 * STEP,
+            "now_ms": lambda: NOW + 2,
         }
         inserted = sync_window(
             Exchange([row()]),
