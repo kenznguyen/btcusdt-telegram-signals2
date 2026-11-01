@@ -723,7 +723,7 @@ workflows:
       - name: Run SIGKILL recovery and all prior T0 regression contracts
         script: |
           set -euo pipefail
-          "$CI_PYTHON" -m unittest market_data.test_feeder_sigkill_recovery market_data.test_feeder_atomic_fencing market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-sigkill-recovery-tests.log
+          T0_SIGKILL_AUDIT_PATH="$CM_BUILD_DIR/t0-feeder-sigkill-recovery-sqlite-audit.log" "$CI_PYTHON" -m unittest market_data.test_feeder_sigkill_recovery market_data.test_feeder_atomic_fencing market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-sigkill-recovery-tests.log
           grep -q "Ran 100 tests" t0-feeder-sigkill-recovery-tests.log
           echo "T0_SIGKILL_RECOVERY_TESTS=PASS (100 tests)" | tee t0-feeder-sigkill-recovery-verdict.txt
       - name: Compile SIGKILL recovery contract
@@ -736,3 +736,4 @@ workflows:
       - t0-feeder-sigkill-recovery-tests.log
       - t0-feeder-sigkill-recovery-verdict.txt
       - t0-feeder-sigkill-recovery-compile.log
+      - t0-feeder-sigkill-recovery-sqlite-audit.log
