@@ -473,6 +473,13 @@
                 "const": false
               }
             }
+          },
+          "target": {
+            "properties": {
+              "resource": {
+                "const": "page"
+              }
+            }
           }
         }
       }
@@ -496,7 +503,12 @@
               "resource",
               "url",
               "workspace_path"
-            ]
+            ],
+            "properties": {
+              "resource": {
+                "const": "file"
+              }
+            }
           },
           "permissions": {
             "properties": {
@@ -536,7 +548,12 @@
               "resource",
               "url",
               "workspace_path"
-            ]
+            ],
+            "properties": {
+              "resource": {
+                "const": "file"
+              }
+            }
           },
           "permissions": {
             "properties": {
@@ -551,6 +568,29 @@
               },
               "delete": {
                 "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "task_type": {
+            "const": "BROWSER_UI_ACTION"
+          }
+        },
+        "required": [
+          "task_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "properties": {
+              "resource": {
+                "const": "page"
               }
             }
           }
