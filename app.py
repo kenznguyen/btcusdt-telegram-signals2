@@ -9,6 +9,7 @@ from flask import Flask, jsonify, request, send_from_directory
 
 from integrations import codemagic_client as codemagic
 from market_data.feeder import HealthEvaluator
+from market_data.feeder_status import FeederRuntimeStatusStore
 
 app = Flask(__name__)
 
@@ -79,45 +80,56 @@ def dashboard_page():
 
 
 def _feeder_health_result():
-    provider = app.config.get("T0_HEALTH_SNAPSHOT_PROVIDER")
-    if not callable(provider):
-        snapshot = {
-            "process_running": True,
-            "startup_complete": True,
-            "storage_readable": False,
-            "storage_writable": False,
-            "lease_valid": False,
-            "fatal_error": False,
-        }
-    else:
-        try:
-            snapshot = provider()
-        except Exception:
-            app.logger.exception("T0 health snapshot provider failed")
-            snapshot = {
-                "process_running": True,
-                "startup_complete": True,
-                "storage_readable": False,
-                "storage_writable": False,
-                "lease_valid": False,
-                "fatal_error": True,
-            }
-
     clock = app.config.get("T0_HEALTH_CLOCK")
     try:
         now_ms = clock() if callable(clock) else time.time_ns() // 1_000_000
+    except Exception:
+        now_ms = time.time_ns() // 1_000_000
+
+    provider = app.config.get("T0_HEALTH_SNAPSHOT_PROVIDER")
+    try:
+        if callable(provider):
+            snapshot = provider()
+        else:
+            db_path = (
+                app.config.get("T0_HEALTH_RUNTIME_STATUS_DB")
+                or os.getenv("MARKET_DATA_DB", "").strip()
+            )
+            if not db_path:
+                snapshot = {
+                    "process_running": True, "startup_complete": False,
+                    "storage_readable": False, "storage_writable": False,
+                    "lease_valid": False, "fatal_error": False,
+                }
+            else:
+                snapshot = FeederRuntimeStatusStore(db_path).snapshot(now_ms)
+                if snapshot is None:
+                    snapshot = {
+                        "process_running": True, "startup_complete": False,
+                        "storage_readable": True, "storage_writable": True,
+                        "lease_valid": False, "fatal_error": False,
+                        "runtime_state": "STARTING",
+                    }
+    except Exception:
+        app.logger.exception("T0 health runtime status read failed")
+        snapshot = {
+            "process_running": True, "startup_complete": False,
+            "storage_readable": False, "storage_writable": False,
+            "lease_valid": False, "fatal_error": True, "runtime_state": "FAILED",
+        }
+
+    try:
         result = HealthEvaluator().evaluate(snapshot, now_ms=now_ms)
     except Exception:
         app.logger.exception("T0 health evaluation failed")
         result = HealthEvaluator().evaluate({
-            "process_running": True,
-            "startup_complete": True,
-            "storage_readable": False,
-            "storage_writable": False,
-            "lease_valid": False,
-            "fatal_error": True,
+            "process_running": True, "startup_complete": False,
+            "storage_readable": False, "storage_writable": False,
+            "lease_valid": False, "fatal_error": True,
         }, now_ms=time.time_ns() // 1_000_000)
 
+    runtime_state = snapshot.get("runtime_state") if isinstance(snapshot, dict) else None
+    state = runtime_state if runtime_state in ("STARTING", "LEASE_LOST", "FAILED", "STOPPED") else result.state
     timeframes = {
         timeframe: {
             "state": item.state,
@@ -130,9 +142,8 @@ def _feeder_health_result():
         for timeframe, item in result.timeframes.items()
     }
     return result, {
-        "state": result.state,
-        "live": result.live,
-        "ready": result.ready,
+        "state": state, "live": result.live,
+        "ready": result.ready and state == "HEALTHY",
         "timeframes": timeframes,
     }
 
@@ -152,7 +163,10 @@ def health_ready():
 @app.get("/health/data")
 def health_data():
     result, body = _feeder_health_result()
-    storage_available = app.config.get("T0_HEALTH_SNAPSHOT_PROVIDER") is not None
+    storage_available = (
+        app.config.get("T0_HEALTH_SNAPSHOT_PROVIDER") is not None
+        or bool(app.config.get("T0_HEALTH_RUNTIME_STATUS_DB") or os.getenv("MARKET_DATA_DB", "").strip())
+    )
     data_healthy = (
         storage_available
         and bool(result.timeframes)
