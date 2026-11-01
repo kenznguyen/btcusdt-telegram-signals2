@@ -707,7 +707,7 @@ class FeederRuntime:
 
     def __init__(self, config, scheduler, lease_store, owner_id,
                  recovery=None, health=None, event_sink=None, clock=None,
-                 retry_policy=None):
+                 retry_policy=None, status_store=None):
         if not isinstance(config, FeederConfig):
             raise TypeError("config must be FeederConfig")
         if not isinstance(owner_id, str) or not owner_id.strip():
@@ -722,6 +722,8 @@ class FeederRuntime:
         self.owner_id = owner_id
         self.recovery = recovery
         self.health = health
+        self.status_store = status_store
+        self._recovery_complete = False
         self.event_sink = event_sink if event_sink is not None else (lambda event: None)
         if not callable(self.event_sink):
             raise TypeError("event_sink must be callable")
@@ -750,6 +752,21 @@ class FeederRuntime:
 
     def _emit(self, event):
         self.event_sink(event)
+
+    def _publish_runtime_status(self, state, now_ms=None):
+        if self.status_store is None or self.lease_generation is None:
+            return True
+        timestamp = self.clock() if now_ms is None else now_ms
+        publish = getattr(self.status_store, "publish", None)
+        if not callable(publish):
+            raise TypeError("status_store must provide publish()")
+        accepted = publish(
+            self.owner_id, self.lease_generation, state,
+            now_ms=timestamp, recovery_complete=self._recovery_complete,
+        )
+        if accepted is not True and state != "LEASE_LOST":
+            raise RuntimeError("Feeder runtime status update was rejected by fencing")
+        return accepted is True
 
     def _configure_retry(self):
         callback = getattr(self.scheduler, "sync_callback", None)
@@ -793,6 +810,7 @@ class FeederRuntime:
             return False
         self.lease_generation = lease.generation
         self._emit("lease_acquired")
+        self._publish_runtime_status("STARTING", now_ms=now)
 
         try:
             if self.recovery is not None:
@@ -800,11 +818,13 @@ class FeederRuntime:
                 if not callable(recover_all):
                     raise TypeError("recovery must provide recover_all()")
                 if recover_all() is not True:
-                    self._release_startup_lease()
                     with self._lock:
                         self._state = "FAILED"
+                    self._publish_runtime_status("FAILED")
+                    self._release_startup_lease()
                     self._emit("recovery_incomplete")
                     return False
+            self._recovery_complete = True
             self._emit("recovery_completed")
             # Recovery may take long enough for the acquired lease to expire.
             # Renew it immediately before the scheduler can become live/ready.
@@ -827,6 +847,7 @@ class FeederRuntime:
             self.scheduler.start()
             with self._lock:
                 self._state = "RUNNING"
+            self._publish_runtime_status("RUNNING")
             if self.health is not None:
                 mark_ready = getattr(self.health, "mark_ready", None)
                 if callable(mark_ready):
@@ -846,6 +867,10 @@ class FeederRuntime:
             self._release_startup_lease()
             with self._lock:
                 self._state = "FAILED"
+            try:
+                self._publish_runtime_status("FAILED")
+            except Exception:
+                pass
             raise
 
     def _release_startup_lease(self):
@@ -894,6 +919,7 @@ class FeederRuntime:
             mark_not_ready = getattr(self.health, "mark_not_ready", None)
             if callable(mark_not_ready):
                 mark_not_ready()
+        self._publish_runtime_status("LEASE_LOST")
         self._emit("lease_lost")
 
     def run_once(self):
@@ -981,6 +1007,10 @@ class FeederRuntime:
 
         with self._lock:
             self._state = "STOPPED"
+        if lease_was_lost:
+            self._publish_runtime_status("LEASE_LOST")
+        elif self.lease_generation is not None:
+            self._publish_runtime_status("STOPPED")
         if self.health is not None:
             mark_stopped = getattr(self.health, "mark_stopped", None)
             if callable(mark_stopped):
