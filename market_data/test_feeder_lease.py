@@ -4,7 +4,7 @@ import threading
 import unittest
 from pathlib import Path
 
-from market_data.feeder import LeaseStore
+from market_data.feeder import FeederConfig, LeaseStore
 
 NOW = 1_800_000_000_000
 
@@ -80,6 +80,27 @@ class LeaseContractTest(unittest.TestCase):
             "process-A", old.generation, now_ms=NOW + 60_002))
         self.assertTrue(self.store.authorize_write(
             "process-B", new.generation, now_ms=NOW + 60_002))
+
+
+    def test_default_lease_ttl_and_heartbeat_cadence_are_60_and_15_seconds(self):
+        config = FeederConfig()
+        self.assertEqual(config.lease_ttl_seconds, 60)
+        self.assertEqual(config.lease_heartbeat_seconds, 15)
+
+    def test_heartbeat_at_15_seconds_extends_lease_past_original_expiry(self):
+        lease = self.store.acquire("process-A", now_ms=NOW, ttl_seconds=60)
+        self.assertTrue(self.store.heartbeat(
+            "process-A", lease.generation, now_ms=NOW + 15_000, ttl_seconds=60))
+        self.assertTrue(self.store.is_current(
+            "process-A", lease.generation, now_ms=NOW + 60_001))
+
+    def test_lease_store_failure_never_grants_ownership(self):
+        broken_store = LeaseStore(self.temp.name, lease_name="binance-btcusdt-canonical")
+        try:
+            acquired = broken_store.acquire("process-A", now_ms=NOW, ttl_seconds=60)
+        except Exception:
+            acquired = None
+        self.assertIsNone(acquired)
 
 
 if __name__ == "__main__":
