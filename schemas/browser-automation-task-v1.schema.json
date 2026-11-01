@@ -1,0 +1,565 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kenznguyen/btcusdt-telegram-signals2/blob/feature/browser-automation-controller/schemas/browser-automation-task-v1.schema.json",
+  "title": "Browser Automation Controller Task Request v1",
+  "description": "Versioned, secret-free task request accepted by the ephemeral per-Codemagic-build controller.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "idempotency_key",
+    "task_type",
+    "execution_mode",
+    "target",
+    "permissions",
+    "timeout_seconds"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "1.0"
+    },
+    "task_id": {
+      "type": "string",
+      "const": "generated-by-controller",
+      "description": "Reserved controller-generated identifier. External callers should omit this field; if present in serialized internal requests it must carry the reserved marker."
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "task_type": {
+      "type": "string",
+      "enum": [
+        "CODEMAGIC_BUILD_VERIFY",
+        "CODEMAGIC_BUILD_START",
+        "CODEMAGIC_BUILD_STATUS",
+        "CODEMAGIC_ARTIFACT_VERIFY",
+        "GITHUB_READ",
+        "GITHUB_BRANCH_CREATE",
+        "GITHUB_FILE_COMMIT",
+        "BROWSER_UI_READ",
+        "BROWSER_UI_ACTION",
+        "BROWSER_FILE_UPLOAD",
+        "BROWSER_FILE_DOWNLOAD"
+      ]
+    },
+    "execution_mode": {
+      "type": "string",
+      "enum": [
+        "API_FIRST",
+        "API_ONLY",
+        "PLAYWRIGHT_ONLY"
+      ]
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "resource"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "codemagic",
+            "github",
+            "approved_web_app"
+          ]
+        },
+        "resource": {
+          "type": "string",
+          "enum": [
+            "build",
+            "artifact",
+            "repository",
+            "branch",
+            "commit",
+            "pull_request",
+            "page",
+            "file"
+          ]
+        },
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "expected_commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{40}$"
+        },
+        "build_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        "workspace_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "read",
+        "write",
+        "upload",
+        "delete"
+      ],
+      "properties": {
+        "read": {
+          "type": "boolean"
+        },
+        "write": {
+          "type": "boolean"
+        },
+        "upload": {
+          "type": "boolean"
+        },
+        "delete": {
+          "type": "boolean"
+        }
+      }
+    },
+    "timeout_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1800
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "task_type": {
+            "const": "CODEMAGIC_BUILD_VERIFY"
+          }
+        },
+        "required": [
+          "task_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "required": [
+              "provider",
+              "resource",
+              "repository",
+              "branch",
+              "expected_commit_sha"
+            ],
+            "properties": {
+              "provider": {
+                "const": "codemagic"
+              },
+              "resource": {
+                "const": "build"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "task_type": {
+            "const": "CODEMAGIC_BUILD_START"
+          }
+        },
+        "required": [
+          "task_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "required": [
+              "provider",
+              "resource",
+              "repository",
+              "branch"
+            ],
+            "properties": {
+              "provider": {
+                "const": "codemagic"
+              },
+              "resource": {
+                "const": "build"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "task_type": {
+            "const": "CODEMAGIC_BUILD_STATUS"
+          }
+        },
+        "required": [
+          "task_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "required": [
+              "provider",
+              "resource",
+              "build_id"
+            ],
+            "properties": {
+              "provider": {
+                "const": "codemagic"
+              },
+              "resource": {
+                "const": "build"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "task_type": {
+            "const": "CODEMAGIC_ARTIFACT_VERIFY"
+          }
+        },
+        "required": [
+          "task_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "required": [
+              "provider",
+              "resource",
+              "build_id",
+              "artifact_id"
+            ],
+            "properties": {
+              "provider": {
+                "const": "codemagic"
+              },
+              "resource": {
+                "const": "artifact"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "task_type": {
+            "const": "GITHUB_READ"
+          }
+        },
+        "required": [
+          "task_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "required": [
+              "provider",
+              "resource",
+              "repository"
+            ],
+            "properties": {
+              "provider": {
+                "const": "github"
+              },
+              "resource": {
+                "enum": [
+                  "repository",
+                  "branch",
+                  "commit",
+                  "pull_request"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "task_type": {
+            "const": "GITHUB_BRANCH_CREATE"
+          }
+        },
+        "required": [
+          "task_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "required": [
+              "provider",
+              "resource",
+              "repository",
+              "branch",
+              "expected_commit_sha"
+            ],
+            "properties": {
+              "provider": {
+                "const": "github"
+              },
+              "resource": {
+                "const": "branch"
+              }
+            }
+          },
+          "permissions": {
+            "properties": {
+              "read": {
+                "const": true
+              },
+              "write": {
+                "const": true
+              },
+              "upload": {
+                "const": false
+              },
+              "delete": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "task_type": {
+            "const": "GITHUB_FILE_COMMIT"
+          }
+        },
+        "required": [
+          "task_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "required": [
+              "provider",
+              "resource",
+              "repository",
+              "branch",
+              "workspace_path"
+            ],
+            "properties": {
+              "provider": {
+                "const": "github"
+              },
+              "resource": {
+                "const": "repository"
+              }
+            }
+          },
+          "permissions": {
+            "properties": {
+              "read": {
+                "const": true
+              },
+              "write": {
+                "const": true
+              },
+              "upload": {
+                "const": false
+              },
+              "delete": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "task_type": {
+            "enum": [
+              "BROWSER_UI_READ",
+              "BROWSER_UI_ACTION",
+              "BROWSER_FILE_UPLOAD",
+              "BROWSER_FILE_DOWNLOAD"
+            ]
+          }
+        },
+        "required": [
+          "task_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "required": [
+              "provider",
+              "resource",
+              "url"
+            ],
+            "properties": {
+              "provider": {
+                "const": "approved_web_app"
+              },
+              "resource": {
+                "enum": [
+                  "page",
+                  "file"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "task_type": {
+            "const": "BROWSER_UI_READ"
+          }
+        },
+        "required": [
+          "task_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "permissions": {
+            "properties": {
+              "read": {
+                "const": true
+              },
+              "write": {
+                "const": false
+              },
+              "upload": {
+                "const": false
+              },
+              "delete": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "task_type": {
+            "const": "BROWSER_FILE_UPLOAD"
+          }
+        },
+        "required": [
+          "task_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "required": [
+              "provider",
+              "resource",
+              "url",
+              "workspace_path"
+            ]
+          },
+          "permissions": {
+            "properties": {
+              "read": {
+                "const": true
+              },
+              "write": {
+                "const": true
+              },
+              "upload": {
+                "const": true
+              },
+              "delete": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "task_type": {
+            "const": "BROWSER_FILE_DOWNLOAD"
+          }
+        },
+        "required": [
+          "task_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "required": [
+              "provider",
+              "resource",
+              "url",
+              "workspace_path"
+            ]
+          },
+          "permissions": {
+            "properties": {
+              "read": {
+                "const": true
+              },
+              "write": {
+                "const": false
+              },
+              "upload": {
+                "const": false
+              },
+              "delete": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
