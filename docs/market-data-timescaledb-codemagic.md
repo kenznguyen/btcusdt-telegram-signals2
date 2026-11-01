@@ -44,3 +44,19 @@ The branch-triggered `market-data-timescaledb` workflow sets `MARKET_DATA_REQUIR
 The `canonical-market-data` workflow runs the SQLite/factory/API regression suite on pushes to the integration branch.
 
 GitHub stores source. Codemagic executes the workflows. Verify the Codemagic source SHA against the PR head SHA before accepting the validation result.
+
+## Manual live collector acceptance
+
+The manual workflow `market-data-live-collector-acceptance` is separate from the disposable migration/parity test workflow. It fetches real public BTCUSDT USD-M candles from Binance for a bounded 24-hour window on M15 and H1, writes them to a dedicated PostgreSQL staging database, repeats the exact same sync to prove idempotency, then reads the persisted rows through the read-only `/v1/candles` WSGI application in a fresh Python process.
+
+Before running it, create the Codemagic environment variable group `market_data_live_acceptance` with:
+
+- `MARKET_DATA_ACCEPTANCE_DATABASE_URL`: PostgreSQL/TimescaleDB DSN for a dedicated staging database. The database name must contain `staging`, `acceptance`, or `test`; the runner refuses other database names.
+- The database must have TimescaleDB installed and grant the workflow role permission to create the `market_data` schema, tables, and hypertable.
+
+Do not reuse the `market_data_timescale_test` database, production credentials, or production data. This workflow explicitly applies the reviewed migrations to the dedicated acceptance database. It retains its uniquely timestamped acceptance candles for inspection; repeated runs use a new completed 24-hour window. No API keys or trading credentials are used, and no orders are submitted.
+
+The workflow has no push trigger. Start it manually against the intended feature/integration branch after reviewing the source SHA. Acceptance requires complete coverage for both timeframes, zero inserts on the repeat sync, identical dataset hashes, and successful API reads whose hashes match the collector output. Artifacts are `ci-source-sha.txt`, `market-data-live-acceptance.log`, and `market-data-live-acceptance.json`.
+
+This proves live public exchange ingestion into the isolated staging database and process-restart read durability within the acceptance run. It does not certify production deployment, long-term uptime, backup/restore, or production cutover.
+
