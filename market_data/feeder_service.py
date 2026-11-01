@@ -99,7 +99,7 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
         clock=clock_fn,
         sync_callback=canonical_sync,
     )
-    return FeederRuntime(
+    runtime = FeederRuntime(
         config=config,
         scheduler=scheduler,
         lease_store=lease_store,
@@ -110,6 +110,28 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
         clock=clock_fn,
         retry_policy=retry,
     )
+
+    # Startup recovery is also a canonical writer. Refresh and verify the
+    # runtime's lease before every recovery attempt; atomic write fencing is a
+    # separate storage-layer change and is intentionally not implied here.
+    def guarded_recovery_sync(timeframe, start_ms, end_ms):
+        def attempt():
+            generation = runtime.lease_generation
+            heartbeat = getattr(lease_store, "heartbeat", None)
+            if (generation is None or not callable(heartbeat)
+                    or heartbeat(
+                        owner_id,
+                        generation,
+                        now_ms=clock_fn(),
+                        ttl_seconds=config.lease_ttl_seconds,
+                    ) is not True):
+                raise PermissionError("Recovery blocked: feeder lease is not current")
+            return canonical_sync(timeframe, start_ms, end_ms)
+        return retry.execute(attempt)
+
+    for coordinator in coordinators.values():
+        coordinator.sync_callback = guarded_recovery_sync
+    return runtime
 
 
 def build_production_runtime(environ=None):
