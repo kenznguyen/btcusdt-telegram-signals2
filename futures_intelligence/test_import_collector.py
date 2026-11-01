@@ -111,6 +111,7 @@ class IntelligenceImportTest(unittest.TestCase):
         self.assertEqual(provenance["selectedRows"], 1)
         self.assertEqual(result["collectorCommit"], "bc4f0ef633fbeee4a49defd72827f17162693805")
         self.assertEqual(result["coverage"]["trades"]["continuityStatus"], "UNVERIFIED")
+        self.assertEqual(feed_quality(result, self.now)[0]["connectionStatus"], "UNVERIFIABLE")
 
     def test_rejects_capture_file_changed_while_its_snapshot_is_built(self):
         path = self.csv("trades", [self.trade()])
