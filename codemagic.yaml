@@ -439,3 +439,33 @@ workflows:
       - ci-source-sha.txt
       - kraken-spot-read-api-tests.log
       - kraken-spot-read-api-compileall.log
+
+  market-data-bybit-shadow:
+    name: Market data - Bybit BTCUSDT linear shadow capture (manual)
+    instance_type: mac_mini_m2
+    max_build_duration: 15
+    # Manual only: no push trigger and no automatic scheduling.
+    scripts:
+      - name: Prepare Python and record source SHA
+        script: |
+          set -euo pipefail
+          bash ci/setup-python.sh requirements-market-data.txt requirements-ci.txt
+          git rev-parse HEAD | tee ci-source-sha.txt
+      - name: Run Bybit adapter and isolated store contract tests
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m unittest market_data.test_bybit_linear market_data.test_bybit_linear_store -v 2>&1 | tee bybit-shadow-tests.log
+      - name: Compile Bybit shadow modules
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m compileall -q market_data/bybit_linear.py market_data/bybit_linear_store.py ci/bybit-shadow-capture.py
+      - name: Capture public Bybit BTCUSDT linear M15/H1 shadow snapshot
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" ci/bybit-shadow-capture.py 2>&1 | tee bybit-shadow-capture.log
+    artifacts:
+      - ci-source-sha.txt
+      - bybit-shadow-tests.log
+      - bybit-shadow-capture.log
+      - bybit-shadow-artifacts/bybit-shadow.sqlite3
+      - bybit-shadow-artifacts/bybit-shadow-report.json

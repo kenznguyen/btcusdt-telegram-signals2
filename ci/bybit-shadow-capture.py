@@ -1,0 +1,36 @@
+"""Manual Bybit shadow snapshot; no canonical or strategy integration."""
+import json
+import os
+import time
+from pathlib import Path
+
+from market_data.bybit_linear import BybitLinearAdapter, INTERVAL_MS
+from market_data.bybit_linear_store import BybitLinearSQLiteStore
+
+root = Path(os.environ.get("CM_BUILD_DIR", "."))
+artifact_dir = root / "bybit-shadow-artifacts"
+artifact_dir.mkdir(exist_ok=True)
+db_path = artifact_dir / "bybit-shadow.sqlite3"
+canonical_path = artifact_dir / "binance-canonical-placeholder.sqlite3"
+canonical_path.touch(exist_ok=True)
+store = BybitLinearSQLiteStore(db_path, canonical_db_path=canonical_path)
+adapter = BybitLinearAdapter()
+now = time.time_ns() // 1_000_000
+report = {"source": "bybit.v5", "category": "linear", "symbol": "BTCUSDT",
+          "marketType": "LINEAR_PERPETUAL", "datasets": {}}
+for timeframe, interval in INTERVAL_MS.items():
+    end = (now // interval) * interval
+    start = end - 24 * 60 * 60 * 1000
+    candles = adapter.fetch_closed_window(timeframe, start, end, now_ms=now)
+    inserted = store.insert(candles)
+    dataset = store.read_window(timeframe, start, end)
+    report["datasets"][timeframe] = {
+        "inserted": inserted, "coverage": dataset["coverage"],
+        "datasetVersion": dataset["datasetVersion"],
+    }
+    if not candles:
+        raise SystemExit(f"No closed Bybit candles returned for {timeframe}")
+with (artifact_dir / "bybit-shadow-report.json").open("w", encoding="utf-8") as stream:
+    json.dump(report, stream, sort_keys=True, indent=2)
+    stream.write("\n")
+print(json.dumps(report, sort_keys=True))
