@@ -18,6 +18,7 @@ from psycopg import sql
 
 import importlib.util
 
+ROOT = Path(__file__).resolve().parents[1]
 _runtime_spec = importlib.util.spec_from_file_location(
     "native_data_lake_runtime", ROOT / "deploy/data-lake/runtime.py"
 )
