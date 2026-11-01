@@ -501,3 +501,126 @@ class LeaseStore:
             return cursor.rowcount == 1
 
         return self._transaction(operation)
+
+@dataclass(frozen=True)
+class TimeframeHealth:
+    """Freshness assessment for one canonical candle timeframe."""
+
+    state: str
+    latest_closed_candle_close_ms: int | None
+    last_successful_sync_ms: int | None
+    unresolved_gap_count: int
+    sync_error: str | None
+    age_ms: int | None
+
+
+@dataclass(frozen=True)
+class HealthResult:
+    """Combined process, dependency and market-data health assessment."""
+
+    state: str
+    live: bool
+    ready: bool
+    timeframes: dict
+
+
+class HealthEvaluator:
+    """Evaluate liveness, readiness and independent M15/H1 data freshness.
+
+    Candle close timestamps are compared against the supplied clock. One full
+    interval of lag is DEGRADED; two intervals is STALE. Missing or malformed
+    snapshot data fails closed and never produces readiness.
+    """
+
+    _PRIORITY = {
+        "STARTING": 0,
+        "HEALTHY": 1,
+        "DEGRADED": 2,
+        "STALE": 3,
+        "FAILED": 4,
+        "STOPPED": 5,
+    }
+
+    def __init__(self, config=None):
+        self.config = config if config is not None else FeederConfig()
+        if not isinstance(self.config, FeederConfig):
+            raise TypeError("config must be FeederConfig")
+
+    @classmethod
+    def _worst_state(cls, states):
+        return max(states, key=lambda state: cls._PRIORITY[state])
+
+    @staticmethod
+    def _valid_timestamp(value):
+        return type(value) is int and value >= 0
+
+    def _timeframe_health(self, snapshot, timeframe, now_ms):
+        interval = INTERVAL_MS[timeframe]
+        data = snapshot.get("m15" if timeframe == "15m" else "1h")
+        if not isinstance(data, dict):
+            return TimeframeHealth("FAILED", None, None, 0, "INVALID_SNAPSHOT", None)
+
+        latest = data.get("latest_closed_candle_close_ms")
+        last_sync = data.get("last_successful_sync_ms")
+        gaps = data.get("unresolved_gap_count", 0)
+        sync_error = data.get("sync_error")
+
+        if latest is None:
+            return TimeframeHealth("STARTING", None, last_sync, gaps if type(gaps) is int else 0,
+                                   sync_error, None)
+        if (not self._valid_timestamp(latest)
+                or not self._valid_timestamp(last_sync)
+                or type(gaps) is not int or gaps < 0
+                or latest > now_ms):
+            return TimeframeHealth("FAILED", None, None, 0, "INVALID_SNAPSHOT", None)
+
+        age_ms = now_ms - latest
+        if age_ms >= 2 * interval:
+            state = "STALE"
+        elif age_ms >= interval or gaps > 0 or sync_error:
+            state = "DEGRADED"
+        else:
+            state = "HEALTHY"
+        return TimeframeHealth(state, latest, last_sync, gaps, sync_error, age_ms)
+
+    def evaluate(self, snapshot, now_ms=None):
+        if now_ms is None:
+            now_ms = time.time_ns() // 1_000_000
+        if not self._valid_timestamp(now_ms):
+            raise ValueError("now_ms must be a nonnegative integer epoch timestamp")
+        if not isinstance(snapshot, dict):
+            snapshot = {}
+
+        process_running = snapshot.get("process_running") is True
+        live = process_running
+        if not process_running:
+            return HealthResult("STOPPED", False, False, {})
+
+        if (snapshot.get("fatal_error") is True
+                or snapshot.get("storage_readable") is not True
+                or snapshot.get("storage_writable") is not True):
+            return HealthResult("FAILED", live, False, {
+                frame: self._timeframe_health(snapshot, frame, now_ms)
+                for frame in self.config.timeframes
+            })
+
+        timeframes = {
+            frame: self._timeframe_health(snapshot, frame, now_ms)
+            for frame in self.config.timeframes
+        }
+        states = [item.state for item in timeframes.values()]
+        if snapshot.get("startup_complete") is not True:
+            states.append("STARTING")
+        if snapshot.get("lease_valid") is not True:
+            states.append("DEGRADED")
+
+        state = self._worst_state(states)
+        ready = (
+            snapshot.get("startup_complete") is True
+            and snapshot.get("storage_readable") is True
+            and snapshot.get("storage_writable") is True
+            and snapshot.get("lease_valid") is True
+            and snapshot.get("fatal_error") is not True
+            and all(item.state == "HEALTHY" for item in timeframes.values())
+        )
+        return HealthResult(state, live, ready, timeframes)
