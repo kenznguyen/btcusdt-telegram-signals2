@@ -514,10 +514,10 @@ workflows:
           "$CI_PYTHON" -m unittest market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-health-tests.log
           test_status=${PIPESTATUS[0]}
           set -e
-          if [ "$test_status" -ne 0 ]; then
-            echo "T0_FEEDER_HEALTH_RED=CONFIRMED (exit $test_status)" | tee t0-feeder-health-verdict.txt
+          if [ "$test_status" -ne 0 ] && grep -q "cannot import name 'HealthEvaluator'" t0-feeder-health-tests.log; then
+            echo "T0_FEEDER_HEALTH_RED=CONFIRMED (HealthEvaluator missing as expected)" | tee t0-feeder-health-verdict.txt
           else
-            echo "T0_FEEDER_HEALTH_RED=NOT_CONFIRMED (tests unexpectedly passed)" | tee t0-feeder-health-verdict.txt
+            echo "T0_FEEDER_HEALTH_RED=NOT_CONFIRMED (failure did not match expected missing HealthEvaluator)" | tee t0-feeder-health-verdict.txt
             exit 1
           fi
       - name: Compile health contract test modules
