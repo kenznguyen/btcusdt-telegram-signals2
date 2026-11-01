@@ -13,7 +13,7 @@ class RuntimeLifecycleTest(unittest.TestCase):
         events = []
         scheduler = Mock()
         scheduler.stop.side_effect = lambda: events.append("scheduler_stopped")
-        scheduler.wait_for_idle.side_effect = lambda: events.append("work_drained")
+        scheduler.wait_for_idle.side_effect = lambda timeout=None: events.append("work_drained")
         leases = Mock()
         leases.release.side_effect = lambda owner, generation: events.append("lease_released")
         runtime = FeederRuntime(
@@ -144,7 +144,7 @@ class RuntimeLifecycleTest(unittest.TestCase):
         events = []
         scheduler, leases, health = Mock(), Mock(), Mock()
         scheduler.stop.side_effect = lambda: events.append("stop_requested")
-        scheduler.wait_for_idle.side_effect = lambda: events.append("writer_drained")
+        scheduler.wait_for_idle.side_effect = lambda timeout=None: events.append("writer_drained")
         leases.release.side_effect = lambda owner, generation: (
             events.append(("lease_released", owner, generation)) or True
         )
