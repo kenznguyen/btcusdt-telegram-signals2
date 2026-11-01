@@ -36,8 +36,11 @@ echo "Applying explicit migrations to the dedicated acceptance database"
 "$CI_PYTHON" - <<'PY'
 import os
 from market_data.migrations import migrate
+# migrate() reports the number recorded before applying pending migrations.
+migrate(os.environ["MARKET_DATA_POSTGRES_DSN"])
+# A second idempotent pass verifies the persisted migration ledger and checksums.
 applied, total = migrate(os.environ["MARKET_DATA_POSTGRES_DSN"])
-print(f"migrations_applied={applied} migrations_total={total}")
+print(f"migrations_verified={applied} migrations_total={total}")
 if applied != total:
     raise SystemExit("Migration set is incomplete")
 PY
