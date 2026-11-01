@@ -179,14 +179,9 @@ class KrakenSpotSQLiteStore:
             connection.execute("BEGIN")
             native_ids = connection.execute(
                 """SELECT DISTINCT native_market_id FROM kraken_spot_candles
-                   WHERE exchange=? AND market_type=? AND symbol=? AND timeframe=?
-                     AND open_time_ms>=? AND open_time_ms<?
-                     AND (? IS NULL OR available_at_ms<=?)
+                   WHERE exchange=? AND market_type=? AND symbol=?
                    LIMIT 2""",
-                (
-                    EXCHANGE, MARKET_TYPE, SYMBOL, timeframe, start, end,
-                    as_of_ms, as_of_ms,
-                ),
+                (EXCHANGE, MARKET_TYPE, SYMBOL),
             ).fetchall()
             if len(native_ids) > 1:
                 raise ValueError(
