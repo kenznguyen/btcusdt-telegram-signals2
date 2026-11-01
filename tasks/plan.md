@@ -26,13 +26,15 @@ The approved contract and request schema are:
 - [x] Task 1: Approve and document the internal v1 contract.
 - [x] Task 2: Add the JSON Schema for normalized v1 task requests.
 - [x] Task 3: Record the implementation plan and ordered task checklist.
-- [ ] Checkpoint: inspect the documentation/schema diff and confirm no runtime files changed.
+- [x] Checkpoint: inspect the documentation/schema diff and confirm no runtime files changed.
 
 ### Phase 2 — Controller core
-- [ ] Task 4: Add schema loading and strict request validation.
-- [ ] Task 5: Add authorization policy, provider/action allowlists, and fail-closed behavior.
+
+**Current slice:** schema validation and authorization are implemented; lifecycle/status/idempotency remain open. Tests are committed and discovered by the existing `canonical-market-data` integration test step. The branch is now included in that workflow's push filter. Codemagic execution has not yet been observed or verified.
+- [x] Task 4: Add schema loading and strict request validation.
+- [x] Task 5: Add authorization policy, provider/action allowlists, and fail-closed behavior.
 - [ ] Task 6: Add task lifecycle/status model and idempotency handling.
-- [ ] Checkpoint: unit tests cover invalid payloads, forbidden permissions, duplicate intents, timeout, and unknown outcomes.
+- [ ] Checkpoint: Codemagic verifies invalid payloads, forbidden permissions, and fail-closed outcomes. Lifecycle/idempotency tests remain for Task 6.
 
 ### Phase 3 — API adapters and verification
 - [ ] Task 7: Define provider adapter protocol and retain/reuse the existing Codemagic API adapter.
