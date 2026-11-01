@@ -4,13 +4,16 @@
 - [x] Contract v1 documented in `docs/architecture/BROWSER_AUTOMATION_CONTROLLER_V1.md`.
 - [x] Request JSON Schema added at `schemas/browser-automation-task-v1.schema.json`.
 - [x] Implementation phases and acceptance criteria recorded in `tasks/plan.md`.
-- [ ] Review documentation/schema-only diff; confirm no runtime code or workflow changed.
+- [x] Review documentation/schema-only diff; confirm no runtime code or workflow changed.
 
 ## Phase 2 — Controller core
-- [ ] Add strict schema validation and normalized request model.
-- [ ] Add authorization policy and allowlist enforcement.
+
+**Implemented slice:** `integrations/browser_automation/` provides strict v1 schema validation, trusted authorization context, allowlist enforcement, and a no-side-effect `prepare_task` boundary. No execution adapters or server are started. Codemagic test execution is still pending verification.
+- [x] Add strict schema validation and normalized request model.
+- [x] Add authorization policy and allowlist enforcement.
 - [ ] Add task lifecycle/status model and idempotency/reconciliation behavior.
-- [ ] Add Codemagic tests for accepted/rejected requests and failure states.
+- [x] Author tests for accepted/rejected requests, permission escalation, URL/path allowlists, and fail-closed preparation.
+- [ ] Run and verify the controller tests on Codemagic; confirm the build source SHA.
 
 ## Phase 3 — Provider APIs and verification
 - [ ] Add adapter protocol and preserve the existing Codemagic API adapter.
