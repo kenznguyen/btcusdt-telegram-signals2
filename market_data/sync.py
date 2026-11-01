@@ -30,7 +30,7 @@ def validate_market(exchange):
         raise ValueError("BTCUSDT is not an active linear USDT perpetual market")
 
 
-def sync_window(exchange, store, timeframe, start_ms, end_ms, now_ms=None):
+def sync_window(exchange, store, timeframe, start_ms, end_ms, now_ms=None, write_fence=None):
     """Fetch an aligned [start_ms, end_ms) window and return the inserted count.
 
     Missing rows remain missing. availableAtMs is the local clock immediately
@@ -80,7 +80,22 @@ def sync_window(exchange, store, timeframe, start_ms, end_ms, now_ms=None):
         next_cursor = page[-1][0] + interval
         if next_cursor <= cursor:
             raise ValueError("OHLCV pagination made no progress")
-        inserted += store.insert(candles)
+        if write_fence is None:
+            inserted += store.insert(candles)
+        else:
+            if not isinstance(write_fence, dict) or set(write_fence) - {"owner", "generation", "now_ms", "lease_name"}:
+                raise ValueError("write_fence must contain owner, generation, now_ms and optional lease_name")
+            fenced_insert = getattr(store, "insert_fenced", None)
+            if not callable(fenced_insert):
+                raise TypeError("Fenced sync requires a store with atomic insert_fenced support")
+            fence_args = {
+                "owner": write_fence.get("owner"),
+                "generation": write_fence.get("generation"),
+                "now_ms": write_fence.get("now_ms"),
+            }
+            if "lease_name" in write_fence:
+                fence_args["lease_name"] = write_fence["lease_name"]
+            inserted += fenced_insert(candles, **fence_args)
         cursor = next_cursor
         if len(page) < limit or cursor > closed_through:
             break
