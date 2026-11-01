@@ -248,7 +248,7 @@ def quality_snapshot(timestamp):
              "maxAgeMs":None,"rows":0,"duplicateRows":0,
              "integrityStatus":"UNVERIFIABLE" if name == "liquidations" else "OK",
              "deduplicationStatus":"NO_EVENT_ID" if name == "liquidations" else "UNVERIFIED",
-             "continuityStatus":"UNVERIFIED","complete":False}
+             "continuityStatus":"UNVERIFIED","connectionStatus":"UNVERIFIABLE","complete":False}
             for name in ("trades","funding","openInterest","liquidations")]}
     streams.append(intel_stream)
     book_ready = bool(book and 0 <= timestamp-stamp(book.get("observedAtMs")) <= 30_000)
