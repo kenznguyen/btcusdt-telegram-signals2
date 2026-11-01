@@ -166,5 +166,38 @@ class KrakenSpotSQLiteStoreTest(unittest.TestCase):
                     self.store.read_window(timeframe, start, end)
 
 
+    def test_read_only_open_rejects_null_or_blank_native_market_ids(self):
+        for invalid_id in (None, ""):
+            with self.subTest(native_market_id=invalid_id):
+                malformed_path = self.root / (
+                    "malformed-null.sqlite3" if invalid_id is None
+                    else "malformed-blank.sqlite3"
+                )
+                with sqlite3.connect(malformed_path) as connection:
+                    connection.execute(
+                        """CREATE TABLE kraken_spot_candles (
+                            exchange TEXT, market_type TEXT, native_market_id TEXT,
+                            symbol TEXT, timeframe TEXT, open_time_ms INTEGER,
+                            open TEXT, high TEXT, low TEXT, close TEXT,
+                            volume TEXT, available_at_ms INTEGER
+                        )"""
+                    )
+                    connection.execute(
+                        """INSERT INTO kraken_spot_candles VALUES (
+                            'kraken', 'SPOT', ?, 'BTC/USDT', '15m', ?,
+                            '100', '105', '99', '102', '1.5', ?
+                        )""",
+                        (invalid_id, START, START + STEP),
+                    )
+
+                read_only_store = KrakenSpotSQLiteStore(
+                    malformed_path,
+                    canonical_db_path=self.binance_path,
+                    initialize=False,
+                )
+                with self.assertRaisesRegex(ValueError, "native market ID"):
+                    read_only_store.read_window("15m", START, START + STEP)
+
+
 if __name__ == "__main__":
     unittest.main()
