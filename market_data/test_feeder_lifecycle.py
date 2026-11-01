@@ -369,10 +369,16 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
         self.assertIsInstance(runtime.recovery, RecoveryAdapter)
         self.assertEqual(runtime.scheduler.config.timeframes, ("15m", "1h"))
         self.assertIsNone(runtime.scheduler._thread)
-        store.read_window.return_value = {
-            "startMs": 0, "endMs": 900_000,
-            "coverage": {"complete": True, "gaps": []},
-        }
+        # RecoveryCoordinator validates that coverage bounds echo the
+        # requested aligned window; a fixed 0..900000 fixture is invalid for
+        # the current bounded lookback window.
+        store.read_window.side_effect = (
+            lambda symbol, timeframe, start_ms, end_ms: {
+                "startMs": start_ms,
+                "endMs": end_ms,
+                "coverage": {"complete": True, "gaps": []},
+            }
+        )
         self.assertTrue(runtime.recovery.recover_all())
         self.assertEqual(
             [call.args[1] for call in store.read_window.call_args_list],
@@ -382,7 +388,6 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
 
     def test_startup_recovery_renews_lease_before_canonical_sync_attempt(self):
         from unittest.mock import Mock, patch
-        from market_data.feeder import Lease
         from market_data.store import INTERVAL_MS
         exchange, store, leases = Mock(), Mock(), Mock()
         leases.heartbeat.return_value = True
