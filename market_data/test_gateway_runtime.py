@@ -439,5 +439,17 @@ class T0GatewayG1RedTests(unittest.TestCase):
         gateway.close()
 
 
+    def test_g1_15_close_does_not_release_or_mutate_lease(self):
+        self.require_gateway()
+        gateway = self._gateway()
+        before = self._lease_row()
+
+        gateway.close()
+        gateway.close()
+
+        self.assertEqual(self._lease_row(), before)
+        self.assertEqual(self._rows(), [])
+
+
 if __name__ == "__main__":
     unittest.main()
