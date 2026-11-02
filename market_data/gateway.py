@@ -10,25 +10,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
-from urllib.parse import quote
 
 from market_data.store import Candle, EXCHANGE, MARKET_TYPE
 
 
 DEFAULT_LEASE_NAME = "binance-btcusdt-canonical"
-_CANDLE_COLUMNS = (
-    "exchange",
-    "market_type",
-    "symbol",
-    "timeframe",
-    "open_time_ms",
-    "open",
-    "high",
-    "low",
-    "close",
-    "volume",
-    "available_at_ms",
-)
 _PRICE_COLUMNS = ("open", "high", "low", "close", "volume")
 
 
@@ -75,15 +61,23 @@ class T0WriteGateway:
         # missing database and could turn a configuration error into a new DB.
         uri = Path(self._db_path).absolute().as_uri() + "?mode=rw"
         connection = sqlite3.connect(uri, uri=True, timeout=5, isolation_level=None)
-        connection.execute("PRAGMA busy_timeout=5000")
-        return connection
+        try:
+            connection.execute("PRAGMA busy_timeout=5000")
+            return connection
+        except Exception:
+            connection.close()
+            raise
 
     def _connect_ro(self):
         uri = Path(self._db_path).absolute().as_uri() + "?mode=ro"
         connection = sqlite3.connect(uri, uri=True, timeout=5)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA query_only=ON")
-        return connection
+        try:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA query_only=ON")
+            return connection
+        except Exception:
+            connection.close()
+            raise
 
     @staticmethod
     def _validate_batch(candles):
