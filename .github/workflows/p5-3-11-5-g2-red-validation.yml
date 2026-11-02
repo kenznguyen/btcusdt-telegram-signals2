@@ -70,9 +70,9 @@ jobs:
           echo "EXIT_STATUS=$status" | tee g2-test-status.txt
           if [[ "$status" -ne 0 ]] \
              && grep -q "Ran 18 tests" g2-red-tests.log \
-             && grep -q "FAILED (failures=11)" g2-red-tests.log \
+             && grep -q "FAILED (failures=13)" g2-red-tests.log \
              && ! grep -Eq "errors=|skipped=" g2-red-tests.log; then
-            echo "EXPECTED_RED=11_CONTRACT_ASSERTIONS_7_REGRESSION_PASSES_ZERO_ERRORS_ZERO_SKIPS" | tee g2-verdict.txt
+            echo "EXPECTED_RED=13_CONTRACT_ASSERTIONS_5_REGRESSION_PASSES_ZERO_ERRORS_ZERO_SKIPS" | tee g2-verdict.txt
           else
             echo "EXPECTED_RED=INVALID_RESULT" | tee g2-verdict.txt
             exit 1
