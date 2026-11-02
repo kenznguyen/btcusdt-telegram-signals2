@@ -98,7 +98,7 @@ def audit_database(db_path, *, as_of_ms=None):
             )
             unique_keys = []
             for index in connection.execute("PRAGMA index_list(candles)").fetchall():
-                if index["unique"]:
+                if index["unique"] and not index["partial"]:
                     index_columns = tuple(
                         item["name"] for item in connection.execute(
                             f'PRAGMA index_info("{index["name"]}")'
