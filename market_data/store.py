@@ -81,7 +81,11 @@ class Candle:
 
 class CandleStore:
     def __init__(self, db_path):
+        # Construction is configuration-only. Schema changes are explicit.
         self.path = Path(db_path)
+
+    def initialize_schema(self):
+        """Explicitly provision the candle table for a new disposable or canonical DB."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with closing(sqlite3.connect(self.path, timeout=5)) as connection:
             connection.execute("PRAGMA journal_mode=WAL")
