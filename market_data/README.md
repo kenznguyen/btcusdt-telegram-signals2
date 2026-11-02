@@ -2,26 +2,25 @@
 
 Kho nến dùng chung cho các tầng phân tích. Bản đầu hỗ trợ **Binance USDⓈ-M perpetual BTCUSDT**, khung **15m/1h**, SQLite và API WSGI chỉ đọc. Bộ đồng bộ lấy OHLCV qua CCXT; không cần API key sàn. Chưa thay nguồn OKX của Python bot/backtest hay nguồn trực tiếp trong APK.
 
-## Chạy đồng bộ
+## Đồng bộ qua Gateway có fencing
 
-Từ thư mục gốc repository, dùng Python 3.10+:
+`market_data.sync.sync_window()` chỉ nhận `T0WriteGateway`, `LeaseFence` và `lease_clock` bắt buộc. Không còn đường ghi legacy qua `CandleStore.insert()` hoặc `insert_fenced()` trong luồng đồng bộ. Mỗi page tối đa 1.000 nến được ghi nguyên tử; nếu page sau lỗi, các page trước vẫn còn. `available_at_ms` dùng observation clock; Gateway kiểm tra lease bằng lease clock riêng ngay tại transaction admission.
+
+CLI chỉ chạy khi database SQLite đã được provision và caller cung cấp lease owner/generation đang còn hiệu lực trong chính database đó. CLI không tự tạo database, không tự acquire lease và không fallback sang PostgreSQL:
 
 ```bash
 python3 -m venv .venv-market-data
 .venv-market-data/bin/pip install -r requirements-market-data.txt
+T0_FEEDER_OWNER_ID=<active-owner> \
+T0_FEEDER_LEASE_GENERATION=<active-generation> \
 .venv-market-data/bin/python -m market_data.sync \
-  --db .data/market-data.sqlite3 --timeframe 15m \
-  --start-ms 1793232000000 --end-ms 1793239200000
-.venv-market-data/bin/python -m market_data.sync \
-  --db .data/market-data.sqlite3 --timeframe 1h \
+  --db <existing-canonical.sqlite3> --timeframe 15m \
   --start-ms 1793232000000 --end-ms 1793239200000
 ```
 
-Ví dụ lấy khoảng **2026-10-29 00:00–02:00 UTC**, đầu gồm/cuối loại trừ. Chọn cửa sổ đã đóng phù hợp khi chạy. `start-ms`/`end-ms` phải thẳng biên khung giờ UTC và mỗi lần tối đa 2.000 nến (20,8 ngày M15 hoặc 83,3 ngày H1). Chia khoảng lớn thành nhiều cửa sổ kề nhau. CLI in số nến mới, `datasetVersion` và độ bao phủ; khoảng thiếu vẫn hiển thị, không được coi là tải thành công đầy đủ chỉ vì tiến trình thoát mã 0.
+Chỉ dùng CLI khi lease đã được cấp bởi runtime được quản lý. Không tự điền generation hoặc giả lập lease. `start-ms`/`end-ms` phải thẳng biên UTC và mỗi lần tối đa 2.000 nến. CCXT bật rate limiting/timeout và xác minh đúng thị trường Binance USD-M BTCUSDT perpetual. Nến chỉ được nhận khi đã đóng theo cả exchange clock và observation clock.
 
-Đây là tác vụ một lần; gọi lại để đồng bộ cửa sổ mới hoặc tải lại khoảng thiếu. CCXT bật rate limiting và timeout, kiểm tra metadata đúng `BTC/USDT:USDT`, linear/swap/USDT settlement, và lấy giờ công khai của sàn. Chỉ nhận nến đóng trước cả mốc giờ sàn ở đầu lượt đồng bộ và giờ máy chủ khi nhận phản hồi. Đồng hồ máy chủ phía trước sàn không được làm nến đang chạy trở thành nến đã đóng.
-
-Mỗi page tối đa 1.000 nến được ghi nguyên tử. Nếu page sau lỗi, các page trước vẫn còn; CLI thoát khác 0 và cho phép thử lại cửa sổ. Nến cùng khóa và OHLCV được bỏ qua; nến cùng khóa nhưng OHLCV khác khiến cả page bị rollback. Không âm thầm sửa lịch sử. Việc xử lý bản sửa từ sàn cần một thay đổi có kiểm soát riêng.
+Schema provisioning là thao tác riêng, tường minh qua `CandleStore.initialize_schema()` và `LeaseStore.initialize_schema()` trên một DB được chỉ định rõ. Constructor, read API, runtime lease transaction và Gateway không tự tạo schema hoặc file. Không gọi các hàm provisioning trên canonical DB nếu chưa được phê duyệt.
 
 ## API đọc
 
