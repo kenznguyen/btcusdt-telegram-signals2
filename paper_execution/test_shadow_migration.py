@@ -115,10 +115,16 @@ class ShadowMigrationContractTest(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_B04_each_paper_table_row_fingerprint_matches_source(self):
-        self.migrate()
+        result = self.migrate()
+        self.assertEqual(result["status"], "PASS", "migration must complete before fingerprint comparison")
+        self.assertTrue(set(PAPER_TABLES + ("paper_control_budget",)).issubset(
+            self.tables(self.paper)), "empty target must not produce a vacuous fingerprint PASS")
         manifest = json.loads((self.manifests / "migration_manifest.json").read_text())
-        self.assertEqual(manifest["paper_row_fingerprints"]["source"],
-                         manifest["paper_row_fingerprints"]["target"])
+        source_fp = manifest["paper_row_fingerprints"]["source"]
+        target_fp = manifest["paper_row_fingerprints"]["target"]
+        self.assertEqual(set(source_fp), set(PAPER_TABLES + ("paper_control_budget",)))
+        self.assertEqual(set(target_fp), set(PAPER_TABLES + ("paper_control_budget",)))
+        self.assertEqual(source_fp, target_fp)
 
     def test_B05_indexes_and_triggers_are_preserved_for_paper_objects(self):
         self.migrate()
@@ -133,7 +139,14 @@ class ShadowMigrationContractTest(unittest.TestCase):
         self.assertEqual(source, target)
 
     def test_B06_foreign_key_check_and_integrity_check_pass_on_both_targets(self):
-        self.migrate()
+        result = self.migrate()
+        self.assertEqual(result["status"], "PASS", "migration must complete before DB checks")
+        t0_tables = self.tables(self.t0)
+        paper_tables = self.tables(self.paper)
+        self.assertTrue({"candles", "feeder_leases", "feeder_runtime_status"}.issubset(t0_tables))
+        self.assertTrue(set(PAPER_TABLES + ("paper_control_budget",)).issubset(paper_tables))
+        self.assertTrue(t0_tables, "T0 target must not be an empty SQLite database")
+        self.assertTrue(paper_tables, "Paper target must not be an empty SQLite database")
         for path in (self.t0, self.paper):
             with sqlite3.connect(path) as db:
                 self.assertEqual(db.execute("PRAGMA integrity_check").fetchone()[0], "ok")
@@ -235,22 +248,35 @@ class ShadowMigrationContractTest(unittest.TestCase):
         with self.assertRaises((ValueError, RuntimeError)):
             self.verify()
         
+    def assert_successful_migration_precondition(self):
+        result = self.migrate()
+        self.assertEqual(result["status"], "PASS",
+                         "destructive negative test requires a completed baseline migration")
+        verification = self.verify()
+        self.assertEqual(verification["status"], "PASS",
+                         "baseline migration must verify before fault injection")
+        self.assertTrue(set(PAPER_TABLES + ("paper_control_budget",)).issubset(
+            self.tables(self.paper)))
+        self.assertTrue({"candles", "feeder_leases", "feeder_runtime_status"}.issubset(
+            self.tables(self.t0)))
+        return result
+
     def test_E02_missing_paper_table_fails_closed(self):
-        self.migrate()
+        self.assert_successful_migration_precondition()
         with sqlite3.connect(self.paper) as db:
             db.execute("DROP TABLE paper_books")
         with self.assertRaises((ValueError, RuntimeError)):
             self.verify()
 
     def test_E03_target_row_mutation_is_detected_by_fingerprint(self):
-        self.migrate()
+        self.assert_successful_migration_precondition()
         with sqlite3.connect(self.paper) as db:
             db.execute("UPDATE paper_state SET realized='999' WHERE id=1")
         with self.assertRaises((ValueError, RuntimeError)):
             self.verify()
 
     def test_E04_new_unresolved_candle_gap_is_detected_before_acceptance(self):
-        self.migrate()
+        self.assert_successful_migration_precondition()
         with sqlite3.connect(self.t0) as db:
             db.execute("DELETE FROM candles WHERE timeframe='15m' AND open_time_ms=("
                        "SELECT MIN(open_time_ms) FROM candles WHERE timeframe='15m')")
@@ -258,7 +284,7 @@ class ShadowMigrationContractTest(unittest.TestCase):
             self.verify()
 
     def test_E05_repeated_migration_id_is_idempotent_and_does_not_duplicate_rows(self):
-        first = self.migrate()
+        first = self.assert_successful_migration_precondition()
         before = self.counts(self.paper, PAPER_TABLES + ("paper_control_budget",))
         second = self.migrate()
         after = self.counts(self.paper, PAPER_TABLES + ("paper_control_budget",))
