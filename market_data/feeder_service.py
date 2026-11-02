@@ -69,7 +69,7 @@ def build_runtime(*, config, owner_id, exchange, store, gateway, lease_store, cl
     if not callable(clock) and clock is not None:
         raise TypeError("clock must be callable")
     clock_fn = clock if clock is not None else (lambda: time.time_ns() // 1_000_000)
-    lease_clock_fn = lease_clock if lease_clock is not None else (lambda: time.time_ns() // 1_000_000)
+    lease_clock_fn = lease_clock if lease_clock is not None else clock_fn
     if not callable(getattr(gateway, "insert_batch", None)):
         raise TypeError("gateway must provide insert_batch()")
 

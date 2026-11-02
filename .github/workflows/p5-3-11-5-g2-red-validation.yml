@@ -1,5 +1,5 @@
-name: P5.3.11.5 - G2 Writer Routing RED
-run-name: G2 RED validation (${{ github.ref_name }} @ ${{ github.sha }})
+name: P5.3.11.5 - G2 Writer Routing Validation
+run-name: G2 validation (${{ github.ref_name }} @ ${{ github.sha }})
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
       - feature/p5-3-11-5-g2-red-tests-20261103
     paths:
       - "market_data/test_g2_writer_routing.py"
+      - "market_data/test_*.py"
       - "market_data/**"
       - "ci/test_ci_policy.py"
       - ".github/workflows/p5-3-11-5-g2-red-validation.yml"
@@ -61,43 +62,29 @@ jobs:
       - name: Compile G2 RED test module
         run: python -m py_compile market_data/test_g2_writer_routing.py
 
-      - name: Execute and classify expected RED
+      - name: Execute G2 contract suite
         shell: bash
         run: |
           set +e
-          python -m unittest market_data.test_g2_writer_routing -v 2>&1 | tee g2-red-tests.log
+          python -m unittest market_data.test_g2_writer_routing -v 2>&1 | tee g2-contract-tests.log
           status=${PIPESTATUS[0]}
           set -e
           echo "EXIT_STATUS=$status" | tee g2-test-status.txt
-          expected_failures="$(printf '%s\n' \
-            test_g2_01_sync_window_requires_gateway_parameter \
-            test_g2_02_sync_window_requires_lease_fence_parameter \
-            test_g2_03_sync_window_requires_separate_lease_clock \
-            test_g2_04_sync_window_routes_through_gateway_insert_batch \
-            test_g2_05_feeder_passes_typed_lease_capability_to_gateway_path \
-            test_g2_08_recovery_builder_uses_gateway_backed_sync_callback \
-            test_g2_09_cli_sync_requires_explicit_lease_capability \
-            test_g2_10_legacy_unfenced_store_insert_is_not_called_by_sync \
-            test_g2_11_legacy_insert_fenced_is_not_an_alternate_sync_route \
-            test_g2_12_runtime_lease_and_writer_paths_do_not_create_schema \
-            test_g2_18_postgres_backend_is_not_available_to_canonical_sync_cli \
-            | sort)"
-          actual_failures="$(awk '/^FAIL: test_g2_/ {print $2}' g2-red-tests.log | sort)"
-          if [[ "$status" -ne 0 ]] \
-             && grep -q "Ran 18 tests" g2-red-tests.log \
-             && grep -q "FAILED (failures=11)" g2-red-tests.log \
-             && [[ "$actual_failures" == "$expected_failures" ]] \
-             && ! grep -Eq "errors=|skipped=" g2-red-tests.log; then
-            echo "EXPECTED_RED=11_NAMED_CONTRACT_FAILURES_7_BUSINESS_AND_REGRESSION_PASSES_ZERO_ERRORS_ZERO_SKIPS" | tee g2-verdict.txt
+          if [[ "$status" -eq 0 ]] \
+             && grep -q "Ran 18 tests" g2-contract-tests.log \
+             && grep -q '^OK$' g2-contract-tests.log \
+             && ! grep -Eq "errors=|skipped=|FAILED|ERROR:" g2-contract-tests.log; then
+            echo "G2_GREEN_CANDIDATE=18_CONTRACT_TESTS_PASS_ZERO_ERRORS_ZERO_SKIPS" | tee g2-verdict.txt
           else
-            echo "EXPECTED_RED=INVALID_RESULT" | tee g2-verdict.txt
-            echo "EXPECTED_FAILURES:" | tee -a g2-verdict.txt
-            printf '%s\n' "$expected_failures" | tee -a g2-verdict.txt
-            echo "ACTUAL_FAILURES:" | tee -a g2-verdict.txt
-            printf '%s\n' "$actual_failures" | tee -a g2-verdict.txt
+            echo "G2_VALIDATION=INVALID_RESULT" | tee g2-verdict.txt
             exit 1
           fi
 
+      - name: Run complete market_data regression suite
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest discover -s market_data -p 'test_*.py' -v 2>&1 | tee g2-regression-tests.log
       - name: Upload G2 RED evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -107,6 +94,7 @@ jobs:
           path: |
             g2-source-sha.txt
             g2-isolation-verdict.txt
-            g2-red-tests.log
+            g2-contract-tests.log
+            g2-regression-tests.log
             g2-test-status.txt
             g2-verdict.txt
