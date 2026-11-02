@@ -95,8 +95,10 @@ def sync_window(exchange, timeframe, start_ms, end_ms, *, gateway, lease_token,
 
 def main():
     parser = argparse.ArgumentParser(description="Sync closed BTCUSDT perpetual candles into the canonical store")
-    parser.add_argument("--backend", choices=("sqlite",),
-                        default=os.environ.get("MARKET_DATA_BACKEND", "sqlite").strip().lower(),
+    configured_backend = os.environ.get("MARKET_DATA_BACKEND", "sqlite").strip().lower()
+    if configured_backend != "sqlite":
+        parser.error("MARKET_DATA_BACKEND must be sqlite for canonical sync")
+    parser.add_argument("--backend", choices=("sqlite",), default=configured_backend,
                         help="Canonical sync currently permits SQLite only")
     parser.add_argument("--db", default=os.environ.get("MARKET_DATA_DB", ""),
                         help="SQLite database path; required only for SQLite")

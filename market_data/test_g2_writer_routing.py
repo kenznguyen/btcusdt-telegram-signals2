@@ -1,18 +1,19 @@
-"""P5.3.11.5 G2 RED contracts with independent failure causes.
-
-G2-16/17 business checks execute independently of the Gateway API contract.
+"""P5.3.11.5 G2 Gateway contract and isolated regression tests.
 
 All database tests use disposable SQLite files created inside TemporaryDirectory.
 No test resolves MARKET_DATA_DB, accesses a canonical DB, contacts an exchange,
-or starts FeederRuntime. Existing G1 Gateway behavior is tested as GREEN
-regression coverage while missing G2 routing contracts remain RED.
+or starts FeederRuntime. G2 pagination and clock checks exercise the concrete
+Gateway path; G1 fencing behavior remains GREEN regression coverage.
 """
 import ast
 import inspect
+import os
 import sqlite3
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from market_data import feeder, feeder_service, store, sync
 from market_data.gateway import (
@@ -308,6 +309,12 @@ class G2WriterRoutingRedTests(unittest.TestCase):
                 gateway=object(), lease_token=LEASE,
                 lease_clock=lambda: self.lease_now,
             )
+        with patch.dict(os.environ, {"MARKET_DATA_BACKEND": "postgres"}, clear=True), patch.object(
+            sys, "argv", ["sync.py"]
+        ):
+            with self.assertRaises(SystemExit) as exit_info:
+                sync.main()
+        self.assertEqual(exit_info.exception.code, 2)
 
 
 if __name__ == "__main__":
