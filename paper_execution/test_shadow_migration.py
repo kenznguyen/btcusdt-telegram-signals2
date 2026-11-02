@@ -167,7 +167,7 @@ class ShadowMigrationContractTest(unittest.TestCase):
         self.assertIn("paper_equity_time", source_names)
         self.assertTrue(any(name.startswith("sqlite_autoindex_paper_orders_")
                             for name in source_names))
-        self.assertTrue(any(name.startswith("sqlite_autoindex_paper_audit_")
+        self.assertTrue(any(name.startswith("sqlite_autoindex_paper_books_")
                             for name in source_names))
 
     def test_B06_foreign_key_check_and_integrity_check_pass_on_both_targets(self):
