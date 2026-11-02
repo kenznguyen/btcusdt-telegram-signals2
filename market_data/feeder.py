@@ -8,6 +8,7 @@ import math
 import random
 import sqlite3
 import threading
+from pathlib import Path
 import time
 
 from market_data.store import INTERVAL_MS, MAX_CANDLES
@@ -472,16 +473,27 @@ class LeaseStore:
         if ttl_seconds is not None and (type(ttl_seconds) is not int or ttl_seconds <= 0):
             raise ValueError("ttl_seconds must be a positive integer")
 
-    def _transaction(self, operation):
-        connection = sqlite3.connect(self.db_path, timeout=5, isolation_level=None)
+    def initialize_schema(self):
+        """Explicitly provision the lease table; runtime transitions never run DDL."""
+        path = Path(self.db_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        connection = sqlite3.connect(path, timeout=5)
         try:
-            connection.execute("PRAGMA busy_timeout=5000")
             connection.execute("""CREATE TABLE IF NOT EXISTS feeder_leases (
                 lease_name TEXT PRIMARY KEY,
                 owner TEXT,
                 generation INTEGER NOT NULL CHECK(generation >= 0),
                 expires_at_ms INTEGER NOT NULL CHECK(expires_at_ms >= 0)
             )""")
+            connection.commit()
+        finally:
+            connection.close()
+
+    def _transaction(self, operation):
+        uri = Path(self.db_path).absolute().as_uri() + "?mode=rw"
+        connection = sqlite3.connect(uri, uri=True, timeout=5, isolation_level=None)
+        try:
+            connection.execute("PRAGMA busy_timeout=5000")
             connection.execute("BEGIN IMMEDIATE")
             result = operation(connection)
             connection.commit()
