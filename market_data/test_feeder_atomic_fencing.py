@@ -58,7 +58,9 @@ class AtomicWriteFencingTest(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.path = Path(self.directory.name) / "canonical.sqlite3"
         self.candles = CandleStore(self.path)
+        self.candles.initialize_schema()
         self.leases = LeaseStore(str(self.path))
+        self.leases.initialize_schema()
         self.lease = self.leases.acquire("writer-A", now_ms=NOW, ttl_seconds=60)
         self.gateway = T0WriteGateway(self.path)
         self.lease_token = LeaseFence(self.leases.lease_name, "writer-A", self.lease.generation)

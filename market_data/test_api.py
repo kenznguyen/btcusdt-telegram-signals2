@@ -21,6 +21,7 @@ class CandleApiTest(unittest.TestCase):
         self.interval = INTERVAL_MS["15m"]
         self.start = 1_800_000_000_000 // self.interval * self.interval
         store = CandleStore(self.db)
+        store.initialize_schema()
         store.insert([Candle("15m", self.start, "100.01", "101", "99", "100.5", "2.50", self.start + self.interval + 7)])
         self.config = {"MARKET_DATA_DB": str(self.db), "MARKET_DATA_TOKEN": "read-only-token"}
 
@@ -115,8 +116,9 @@ class CandleApiTest(unittest.TestCase):
                         [start + step, 100, 102, 99, 101, 3]]
 
         path = Path(self.temp.name) / "pipeline.sqlite3"
-        CandleStore(path)
+        CandleStore(path).initialize_schema()
         leases = LeaseStore(path)
+        leases.initialize_schema()
         lease = leases.acquire("api-sync-test", now_ms=start, ttl_seconds=3600)
         gateway = T0WriteGateway(path)
         token = LeaseFence(leases.lease_name, "api-sync-test", lease.generation)

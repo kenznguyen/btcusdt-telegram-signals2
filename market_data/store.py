@@ -81,7 +81,11 @@ class Candle:
 
 class CandleStore:
     def __init__(self, db_path):
+        # Construction is inert. Schema changes require an explicit maintenance call.
         self.path = Path(db_path)
+
+    def initialize_schema(self):
+        """Explicitly create the SQLite candle table during controlled provisioning."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with closing(sqlite3.connect(self.path, timeout=5)) as connection:
             connection.execute("PRAGMA journal_mode=WAL")

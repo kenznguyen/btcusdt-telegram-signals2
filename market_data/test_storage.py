@@ -48,6 +48,7 @@ class StorageFactoryTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = str(Path(directory) / "candles.sqlite3")
             store = create_store("sqlite", sqlite_path=path)
+            CandleStore(path).initialize_schema()
             step = INTERVAL_MS["15m"]
             candle = Candle("15m", 0, "100", "102", "99", "101", "5", step + 1)
             self.assertEqual(store.insert([candle]), 1)
@@ -75,8 +76,9 @@ class StorageFactoryTest(unittest.TestCase):
                 def fetch_ohlcv(self, *args, **kwargs):
                     return [[0, 100, 102, 99, 101, 5]]
 
-            CandleStore(path)
+            CandleStore(path).initialize_schema()
             leases = LeaseStore(path)
+            leases.initialize_schema()
             lease = leases.acquire("storage-test", now_ms=0, ttl_seconds=3600)
             gateway = T0WriteGateway(path)
             token = LeaseFence(leases.lease_name, "storage-test", lease.generation)
