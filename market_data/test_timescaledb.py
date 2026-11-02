@@ -121,7 +121,7 @@ class TimescaleParityTest(unittest.TestCase):
         self.assertEqual(status[0].split()[0], "503")
         self.assertEqual(json.loads(body), {"error": "STORE_UNAVAILABLE"})
 
-    def test_ingestion_writes_closed_candles_through_postgres_factory(self):
+    def test_canonical_sync_rejects_unfenced_postgres_adapter(self):
         start, step = self.start, self.step
 
         class Exchange:

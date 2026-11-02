@@ -393,7 +393,8 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
     def test_startup_recovery_renews_lease_before_canonical_sync_attempt(self):
         from unittest.mock import Mock, patch
         from market_data.store import INTERVAL_MS
-        exchange, store, leases = Mock(), Mock(), Mock()
+        from market_data.gateway import LeaseFence
+        exchange, store, leases, gateway = Mock(), Mock(), Mock(), Mock()
         leases.heartbeat.return_value = True
         interval = INTERVAL_MS["15m"]
         reads = {"count": 0}
@@ -412,13 +413,17 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
             owner_id="recovery-worker",
             exchange=exchange,
             store=store,
-            gateway=Mock(),
+            gateway=gateway,
             lease_store=leases,
             clock=lambda: NOW + 7_200_000,
         )
         runtime.lease_generation = 21
-        with patch("market_data.feeder_service.sync_window", return_value=1):
+        with patch("market_data.feeder_service.sync_window", return_value=1) as sync_mock:
             self.assertTrue(runtime.recovery.recover_all())
+        self.assertIs(sync_mock.call_args.kwargs["gateway"], gateway)
+        self.assertIsInstance(sync_mock.call_args.kwargs["lease_token"], LeaseFence)
+        self.assertEqual(sync_mock.call_args.kwargs["lease_token"].generation, 21)
+        self.assertTrue(callable(sync_mock.call_args.kwargs["lease_clock"]))
         leases.heartbeat.assert_called_once_with(
             "recovery-worker", 21,
             now_ms=NOW + 7_200_000,

@@ -38,8 +38,8 @@ def sync_window(exchange, timeframe, start_ms, end_ms, *, gateway, lease_token,
     now_ms records local observation time. lease_clock is independently
     evaluated by the Gateway at its final write-admission point.
     """
-    if not callable(getattr(gateway, "insert_batch", None)):
-        raise TypeError("gateway must provide insert_batch()")
+    if not isinstance(gateway, T0WriteGateway) or not callable(getattr(gateway, "insert_batch", None)):
+        raise TypeError("gateway must provide insert_batch() through T0WriteGateway")
     if not isinstance(lease_token, LeaseFence):
         raise TypeError("lease_token must be a typed LeaseFence capability")
     if not callable(lease_clock):

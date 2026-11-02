@@ -206,6 +206,14 @@ class G2WriterRoutingRedTests(unittest.TestCase):
             self.assertNotIn("CREATE TABLE", normalized)
             self.assertNotIn("CREATE INDEX", normalized)
 
+        self.assertTrue(callable(getattr(store.CandleStore, "initialize_schema", None)))
+        self.assertTrue(callable(getattr(feeder.LeaseStore, "initialize_schema", None)))
+        with tempfile.TemporaryDirectory() as directory:
+            untouched = Path(directory) / "constructor-must-not-create.sqlite3"
+            store.CandleStore(untouched)
+            feeder.LeaseStore(str(untouched))
+            self.assertFalse(untouched.exists())
+
     def test_g2_13_gateway_conflict_rejection_propagates_without_overwrite(self):
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "conflict.sqlite3"

@@ -159,8 +159,6 @@ def build_production_runtime(environ=None):
             "for atomic write fencing"
         )
     store = create_store_from_env(values)
-    if not callable(getattr(store, "insert_fenced", None)):
-        raise TypeError("Production T0 feeder requires an atomic fenced SQLite store")
     owner_id = values.get("T0_FEEDER_OWNER_ID", "").strip()
     if not owner_id:
         owner_id = f"{socket.gethostname()}:{os.getpid()}"
@@ -177,6 +175,8 @@ def build_production_runtime(environ=None):
     lease_store = LeaseStore(lease_path)
     status_store = FeederRuntimeStatusStore(candle_path)
     gateway = T0WriteGateway(candle_path)
+    if not callable(getattr(gateway, "insert_batch", None)):
+        raise TypeError("Production T0 feeder requires T0WriteGateway.insert_batch")
     return build_runtime(
         config=config,
         owner_id=owner_id,
