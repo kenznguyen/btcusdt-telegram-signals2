@@ -98,7 +98,7 @@ def audit_runtime_config(environ=None, repo_root=None):
     checks["backend"] = backend == "sqlite"
     if not checks["backend"]:
         errors.append(
-            "Production T0 feeder currently requires MARKET_DATA_BACKEND=sqlite"
+            "Production T0 feeder currently requires SQLite (MARKET_DATA_BACKEND=sqlite)"
         )
 
     candle_path = _resolve_path(values.get("MARKET_DATA_DB", ""), "MARKET_DATA_DB", errors)
