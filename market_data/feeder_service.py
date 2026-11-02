@@ -22,6 +22,7 @@ from market_data.storage import create_store_from_env
 from market_data.sync import sync_window
 from market_data.store import INTERVAL_MS
 from market_data.feeder_status import FeederRuntimeStatusStore
+from market_data.gateway import LeaseFence, T0WriteGateway
 
 
 class RecoveryAdapter:
@@ -59,7 +60,7 @@ class RecoveryAdapter:
         return True
 
 
-def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
+def build_runtime(*, config, owner_id, exchange, store, gateway, lease_store, clock=None,
                   health=None, event_sink=None, recovery_lookback_candles=2000,
                   status_store=None):
     """Compose the existing canonical sync path into the tested FeederRuntime."""
@@ -69,8 +70,8 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
         raise TypeError("clock must be callable")
     clock_fn = clock if clock is not None else (lambda: time.time_ns() // 1_000_000)
 
-    # Initialize the existing selected store without changing schema or backend.
-    store.insert([])
+    if not callable(getattr(gateway, "insert_batch", None)):
+        raise TypeError("gateway must provide insert_batch()")
 
     runtime = None
 
@@ -85,14 +86,16 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
                     ttl_seconds=config.lease_ttl_seconds,
                 ) is not True):
             raise PermissionError("Canonical sync blocked: feeder lease is not current")
+        lease_token = LeaseFence(
+            lease_store.lease_name, owner_id, generation
+        )
+        observation_clock = lambda: clock_fn()
+        lease_clock = lambda: clock_fn()
         return sync_window(
-            exchange, store, timeframe, start_ms, end_ms,
-            now_ms=clock_fn,
-            write_fence={
-                "owner": owner_id,
-                "generation": generation,
-                "now_ms": clock_fn,
-            },
+            exchange, gateway, timeframe, start_ms, end_ms,
+            now_ms=observation_clock,
+            lease_token=lease_token,
+            lease_clock=lease_clock,
         )
 
     retry = RetryPolicy(
@@ -161,8 +164,7 @@ def build_production_runtime(environ=None):
             "for atomic write fencing"
         )
     store = create_store_from_env(values)
-    if not callable(getattr(store, "insert_fenced", None)):
-        raise TypeError("Production T0 feeder requires an atomic fenced SQLite store")
+    gateway = T0WriteGateway(candle_path)
     owner_id = values.get("T0_FEEDER_OWNER_ID", "").strip()
     if not owner_id:
         owner_id = f"{socket.gethostname()}:{os.getpid()}"
@@ -183,6 +185,7 @@ def build_production_runtime(environ=None):
         owner_id=owner_id,
         exchange=exchange,
         store=store,
+        gateway=gateway,
         lease_store=lease_store,
         recovery_lookback_candles=int(values.get("T0_FEEDER_RECOVERY_CANDLES", "2000")),
         status_store=status_store,
