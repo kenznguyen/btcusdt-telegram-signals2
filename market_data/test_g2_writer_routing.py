@@ -13,7 +13,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock
 
-from market_data import feeder, feeder_service, sync
+from market_data import feeder, feeder_service, storage, store, sync
 from market_data.feeder import RecoveryCoordinator
 from market_data.gateway import (
     CandleBatchRejected,
@@ -134,8 +134,8 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         self.assertIn("lease_generation", source)
         self.assertIn("sync_callback", source)
         runtime_builder = textwrap.dedent(inspect.getsource(feeder_service.build_runtime))
-        self.assertIn("T0WriteGateway", runtime_builder)
         self.assertIn("LeaseFence", runtime_builder)
+        self.assertIn("gateway", inspect.signature(feeder_service.build_runtime).parameters)
 
     def test_g2_06_stale_generation_rejection_is_not_bypassed(self):
         exchange = ExchangeDouble([[candle_row(START)]])
@@ -264,10 +264,18 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         self.assertEqual(legacy.calls, 0)
 
     def test_g2_12_runtime_lease_path_does_not_create_schema(self):
-        source = textwrap.dedent(inspect.getsource(feeder.LeaseStore._transaction))
-        normalized = " ".join(source.upper().split())
-        self.assertNotIn("CREATE TABLE", normalized)
-        self.assertNotIn("CREATE INDEX", normalized)
+        runtime_sources = (
+            inspect.getsource(feeder.LeaseStore._transaction),
+            inspect.getsource(store.CandleStore.__init__),
+            inspect.getsource(storage.SQLiteCandleStore.insert),
+            inspect.getsource(storage.SQLiteCandleStore.insert_fenced),
+        )
+        for source in runtime_sources:
+            normalized = " ".join(source.upper().split())
+            self.assertNotIn("CREATE TABLE", normalized)
+            self.assertNotIn("CREATE INDEX", normalized)
+        self.assertNotIn("CandleStore(self.path)", runtime_sources[2])
+        self.assertNotIn("CandleStore(self.path)", runtime_sources[3])
 
     def test_g2_13_gateway_conflict_rejection_propagates(self):
         exchange = ExchangeDouble([[candle_row(START)]])
@@ -288,25 +296,64 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         self.assertEqual(self._sync(exchange, gateway), 0)
         self.assertEqual(gateway.calls, [])
 
-    def test_g2_16_pagination_preserves_per_page_commit_boundary(self):
+    def test_g2_16_pagination_preserves_first_page_commit_on_second_page_failure(self):
         self._assert_routing_api()
         first = [candle_row(START + i * STEP) for i in range(1000)]
         second = [candle_row(START + 1000 * STEP)]
         exchange = ExchangeDouble([first, second])
         end = START + 1001 * STEP
-        gateway = GatewayDouble(
-            error=RuntimeError("second page rejected"), error_at_call=2
-        )
-        with self.assertRaisesRegex(RuntimeError, "second page rejected"):
-            sync_window(
-                exchange, gateway, "15m", START, end,
-                now_ms=lambda: START + 2000 * STEP,
-                lease_token=LEASE,
-                lease_clock=lambda: self.lease_now,
-            )
-        self.assertEqual(len(gateway.calls), 2)
-        self.assertEqual(len(gateway.calls[0][0]), 1000)
-        self.assertEqual(len(gateway.calls[1][0]), 1)
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "g2-pagination.sqlite3"
+            with sqlite3.connect(database) as connection:
+                connection.executescript(
+                    """
+                    CREATE TABLE candles (
+                        exchange TEXT NOT NULL, market_type TEXT NOT NULL,
+                        symbol TEXT NOT NULL, timeframe TEXT NOT NULL,
+                        open_time_ms INTEGER NOT NULL, open TEXT NOT NULL,
+                        high TEXT NOT NULL, low TEXT NOT NULL, close TEXT NOT NULL,
+                        volume TEXT NOT NULL, available_at_ms INTEGER NOT NULL,
+                        PRIMARY KEY (exchange, market_type, symbol, timeframe, open_time_ms)
+                    );
+                    CREATE TABLE feeder_leases (
+                        lease_name TEXT PRIMARY KEY, owner TEXT,
+                        generation INTEGER NOT NULL, expires_at_ms INTEGER NOT NULL
+                    );
+                    """
+                )
+                connection.execute(
+                    "INSERT INTO feeder_leases VALUES (?, ?, ?, ?)",
+                    (LEASE.lease_name, LEASE.owner_id, LEASE.generation,
+                     self.lease_now + 60_000),
+                )
+            real_gateway = T0WriteGateway(str(database))
+
+            class FailSecondPageGateway:
+                def __init__(self):
+                    self.calls = 0
+
+                def insert_batch(self, candles, *, lease_token, now_ms):
+                    self.calls += 1
+                    if self.calls == 2:
+                        raise RuntimeError("second page rejected")
+                    return real_gateway.insert_batch(
+                        candles, lease_token=lease_token, now_ms=now_ms
+                    )
+
+            gateway = FailSecondPageGateway()
+            with self.assertRaisesRegex(RuntimeError, "second page rejected"):
+                sync_window(
+                    exchange, gateway, "15m", START, end,
+                    now_ms=lambda: START + 2000 * STEP,
+                    lease_token=LEASE,
+                    lease_clock=lambda: self.lease_now,
+                )
+            self.assertEqual(gateway.calls, 2)
+            with sqlite3.connect(database) as connection:
+                self.assertEqual(
+                    connection.execute("SELECT COUNT(*) FROM candles").fetchone()[0],
+                    1000,
+                )
 
     def test_g2_17_available_at_uses_observation_clock_not_lease_clock(self):
         exchange = ExchangeDouble([[candle_row(START)]])
