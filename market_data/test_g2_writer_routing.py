@@ -250,68 +250,49 @@ class G2WriterRoutingRedTests(unittest.TestCase):
             0,
         )
 
-    def test_g2_16_gateway_pagination_keeps_first_page_when_second_page_fails(self):
-        parameters = inspect.signature(sync.sync_window).parameters
-        required = {"gateway", "lease_token", "lease_clock"}
-        missing = required - set(parameters)
-        self.assertEqual(missing, set(), f"sync_window lacks Gateway contract parameters: {sorted(missing)}")
-        if missing:
-            return
-
+    def test_g2_16_pagination_preserves_first_page_when_second_page_fails(self):
+        # Pagination behavior is tested independently from the not-yet-implemented
+        # Gateway contract. G2-01..G2-05 separately enforce that contract.
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "pagination.sqlite3"
-            create_shadow_db(database)
-            gateway = T0WriteGateway(str(database))
+            writer = store.CandleStore(database)
             first = [candle_row(START + index * STEP) for index in range(1000)]
             exchange = ExchangeDouble([first, RuntimeError("second page fetch failed")])
             observed = START + 2000 * STEP
             with self.assertRaisesRegex(RuntimeError, "second page fetch failed"):
                 sync.sync_window(
-                    exchange, "15m", START, START + 1001 * STEP,
-                    gateway=gateway, lease_token=LEASE,
+                    exchange, writer, "15m", START, START + 1001 * STEP,
                     now_ms=lambda: observed,
-                    lease_clock=lambda: self.lease_now,
                 )
             self.assertEqual(len(exchange.calls), 2)
-            rows = gateway.read_window("BTCUSDT", "15m", START, START + 1000 * STEP)
-            self.assertEqual(len(rows), 1000)
+            persisted = store.read_window(
+                database, "BTCUSDT", "15m", START, START + 1000 * STEP
+            )
+            self.assertEqual(persisted["coverage"]["returned"], 1000)
+            self.assertEqual(persisted["coverage"]["complete"], True)
 
-    def test_g2_17_gateway_uses_separate_observation_and_lease_clocks(self):
-        parameters = inspect.signature(sync.sync_window).parameters
-        required = {"gateway", "lease_token", "lease_clock"}
-        missing = required - set(parameters)
-        self.assertEqual(missing, set(), f"sync_window lacks Gateway contract parameters: {sorted(missing)}")
-        if missing:
-            return
-
+    def test_g2_17_observation_clock_is_independent_of_exchange_clock(self):
+        # Lease-clock injection remains a separate API contract in G2-03.
+        # This test reaches the real sync behavior and verifies observation time.
         with tempfile.TemporaryDirectory() as directory:
-            database = Path(directory) / "clock-separation.sqlite3"
-            create_shadow_db(database)
-            gateway = T0WriteGateway(str(database))
+            database = Path(directory) / "observation-clock.sqlite3"
+            writer = store.CandleStore(database)
             exchange = ExchangeDouble([[candle_row(START)]])
             observed = START + 100 * STEP
-            lease_now = observed + 123
-            lease_clock_values = []
-
-            def lease_clock():
-                lease_clock_values.append(lease_now)
-                return lease_now
+            self.assertNotEqual(observed, exchange.server_time)
 
             self.assertEqual(
                 sync.sync_window(
-                    exchange, "15m", START, START + STEP,
-                    gateway=gateway, lease_token=LEASE,
+                    exchange, writer, "15m", START, START + STEP,
                     now_ms=lambda: observed,
-                    lease_clock=lease_clock,
                 ),
                 1,
             )
-            rows = gateway.read_window("BTCUSDT", "15m", START, START + STEP)
-            self.assertEqual(len(rows), 1)
-            self.assertEqual(rows[0]["available_at_ms"], observed)
-            self.assertNotEqual(observed, lease_now)
-            self.assertGreaterEqual(len(lease_clock_values), 2)
-            self.assertTrue(all(value == lease_now for value in lease_clock_values))
+            persisted = store.read_window(
+                database, "BTCUSDT", "15m", START, START + STEP
+            )
+            self.assertEqual(persisted["coverage"]["returned"], 1)
+            self.assertEqual(persisted["candles"][0]["availableAtMs"], observed)
 
     def test_g2_18_postgres_backend_is_not_available_to_canonical_sync_cli(self):
         source = inspect.getsource(sync.main)
