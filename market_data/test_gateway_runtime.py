@@ -60,30 +60,34 @@ class T0WriteGatewayRuntimeTests(unittest.TestCase):
             "CONTRACT RED: market_data.gateway module/API is not implemented")
 
     @unittest.skipIf(T0WriteGateway is None, "Gateway contract module is absent; explicit RED assertion covers this")
+    @unittest.skipIf(T0WriteGateway is None, "Gateway module absent; explicit contract RED assertion covers this")
     def test_valid_lease_commits_batch_atomically(self):
         candles = [self.candle(1_799_998_200_000), self.candle(1_799_999_100_000)]
         self.assertEqual(self.write(candles), 2)
         self.assertEqual(self.count(), 2)
 
+    @unittest.skipIf(T0WriteGateway is None, "Gateway module absent; explicit contract RED assertion covers this")
     def test_missing_lease_is_rejected_without_mutation(self):
         with self.assertRaises(GatewayWriteError):
             self.gateway.insert_batch([self.candle(1_799_998_200_000)], lease_token=None, now_ms=self.now)
         self.assertEqual(self.count(), 0)
 
+    @unittest.skipIf(T0WriteGateway is None, "Gateway module absent; explicit contract RED assertion covers this")
     def test_expired_lease_is_rejected_without_mutation(self):
         with self.assertRaises(GatewayWriteError):
             self.write([self.candle(1_799_998_200_000)], now=self.now + 60_001)
         self.assertEqual(self.count(), 0)
 
+    @unittest.skipIf(T0WriteGateway is None, "Gateway module absent; explicit contract RED assertion covers this")
     def test_old_epoch_is_rejected_after_lease_takeover(self):
         old = self.lease_token
-        newer = self.lease.acquire(owner="new-writer",
-            lease_name="binance-btcusdt-canonical", now_ms=self.now + 60_001, ttl_ms=60_000)
+        newer = self.lease.acquire("new-writer", self.now + 60_001, ttl_seconds=60)
         with self.assertRaises(GatewayWriteError):
             self.write([self.candle(1_799_998_200_000)], token=old, now=self.now + 60_002)
         self.assertEqual(self.count(), 0)
         self.assertIsNotNone(newer)
 
+    @unittest.skipIf(T0WriteGateway is None, "Gateway module absent; explicit contract RED assertion covers this")
     def test_failure_in_later_row_rolls_back_the_entire_batch(self):
         good = self.candle(1_799_998_200_000)
         conflict = self.candle(1_799_999_100_000, close="100")
@@ -96,22 +100,26 @@ class T0WriteGatewayRuntimeTests(unittest.TestCase):
                 "SELECT open_time_ms FROM candles ORDER BY open_time_ms"
             ).fetchall(), [(1_799_999_100_000,)])
 
+    @unittest.skipIf(T0WriteGateway is None, "Gateway module absent; explicit contract RED assertion covers this")
     def test_replaying_identical_batch_is_idempotent(self):
         batch = [self.candle(1_799_998_200_000)]
         self.assertEqual(self.write(batch), 1)
         self.assertEqual(self.write(batch), 0)
         self.assertEqual(self.count(), 1)
 
+    @unittest.skipIf(T0WriteGateway is None, "Gateway module absent; explicit contract RED assertion covers this")
     def test_wrong_owner_or_generation_is_rejected(self):
         wrong = replace(self.lease_token, owner="forged-owner")
         with self.assertRaises(GatewayWriteError):
             self.write([self.candle(1_799_998_200_000)], token=wrong)
         self.assertEqual(self.count(), 0)
 
+    @unittest.skipIf(T0WriteGateway is None, "Gateway module absent; explicit contract RED assertion covers this")
     def test_postgres_canonical_writer_is_disabled_by_default(self):
         with self.assertRaises(GatewayWriteError):
             T0WriteGateway(backend="postgres", allow_unfenced_postgres=False)
 
+    @unittest.skipIf(T0WriteGateway is None, "Gateway module absent; explicit contract RED assertion covers this")
     def test_gateway_never_accepts_paper_writer_token(self):
         self.assertIsNotNone(PaperWriterGate, "Paper Writer Gate contract module is absent")
         paper_gate = PaperWriterGate(scope="paper_only")
