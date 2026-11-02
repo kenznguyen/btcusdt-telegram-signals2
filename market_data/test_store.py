@@ -11,6 +11,7 @@ class CandleStoreTest(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.path = Path(self.directory.name) / "candles.sqlite3"
         self.store = CandleStore(self.path)
+        self.store.initialize_schema()
         self.step = INTERVAL_MS["15m"]
 
     def candle(self, slot=0, **changes):
