@@ -886,3 +886,54 @@ workflows:
       - ci-source-sha.txt
       - t0-final-runtime-config-tests.log
       - t0-final-runtime-config-report.json
+
+  # P3: isolated T0 component contracts. Manual-only; no Feeder/runtime lifecycle.
+  t0-component-tests-p3:
+    name: T0 P3 - isolated component contract tests
+    instance_type: mac_mini_m2
+    max_build_duration: 15
+    scripts:
+      - name: Prepare isolated Python test environment and record source SHA
+        script: bash ci/setup-python.sh requirements.txt requirements-ci.txt
+      - name: Assert runtime and exchange access are not configured
+        script: |
+          set -euo pipefail
+          test -z "${MARKET_DATA_DB:-}"
+          test -z "${T0_FEEDER_LEASE_DB:-}"
+          test -z "${BINANCE_API_KEY:-}"
+          test -z "${BINANCE_API_SECRET:-}"
+          test -z "${OKX_API_KEY:-}"
+          test -z "${OKX_API_SECRET:-}"
+          echo "P3_ISOLATED_ENVIRONMENT=PASS"
+      - name: Run isolated T0 component contracts
+        script: |
+          set -euo pipefail
+          env -u MARKET_DATA_DB -u T0_FEEDER_LEASE_DB -u BINANCE_API_KEY -u BINANCE_API_SECRET -u OKX_API_KEY -u OKX_API_SECRET \
+            "$CI_PYTHON" -m unittest \
+              market_data.test_feeder_scheduler \
+              market_data.test_feeder_retry \
+              market_data.test_feeder_recovery \
+              market_data.test_feeder_lease \
+              market_data.test_feeder_health \
+              market_data.test_feeder_health_api \
+              -v 2>&1 | tee t0-component-tests-p3.log
+          echo "T0_COMPONENT_TESTS_P3=PASS" | tee t0-component-tests-p3-verdict.txt
+      - name: Compile tested component modules
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m py_compile \
+            market_data/feeder.py \
+            market_data/store.py \
+            market_data/test_feeder_scheduler.py \
+            market_data/test_feeder_retry.py \
+            market_data/test_feeder_recovery.py \
+            market_data/test_feeder_lease.py \
+            market_data/test_feeder_health.py \
+            market_data/test_feeder_health_api.py \
+            app.py
+          echo "T0_COMPONENT_COMPILE_P3=PASS" | tee t0-component-compile-p3-verdict.txt
+    artifacts:
+      - ci-source-sha.txt
+      - t0-component-tests-p3.log
+      - t0-component-tests-p3-verdict.txt
+      - t0-component-compile-p3-verdict.txt
