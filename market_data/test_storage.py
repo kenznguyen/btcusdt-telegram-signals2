@@ -59,7 +59,8 @@ class StorageFactoryTest(unittest.TestCase):
 
     def test_sqlite_ingestion_pipeline_uses_the_factory_contract(self):
         with tempfile.TemporaryDirectory() as directory:
-            store = create_store("sqlite", sqlite_path=str(Path(directory) / "sync.sqlite3"))
+            path = str(Path(directory) / "sync.sqlite3")
+            store = create_store("sqlite", sqlite_path=path)
             step = INTERVAL_MS["15m"]
 
             class Exchange:

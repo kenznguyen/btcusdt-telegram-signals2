@@ -117,7 +117,7 @@ class CandleApiTest(unittest.TestCase):
 
         path = Path(self.temp.name) / "pipeline.sqlite3"
         CandleStore(path).initialize_schema()
-        leases = LeaseStore(path)
+        leases = LeaseStore(str(path))
         leases.initialize_schema()
         lease = leases.acquire("api-sync-test", now_ms=start, ttl_seconds=3600)
         gateway = T0WriteGateway(path)

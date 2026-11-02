@@ -89,7 +89,9 @@ class CandleSyncTest(unittest.TestCase):
                 exchange = Exchange([])
                 exchange.server_time = server_time
                 with self.assertRaises(ValueError):
-                    sync_window(exchange, self.store, "15m", START, START + STEP)
+                    sync_window(exchange, "15m", START, START + STEP,
+                                gateway=self.gateway, lease_token=self.lease_token,
+                                lease_clock=lambda: START + 1)
                 self.assertEqual(exchange.calls, [])
 
     def test_paginates_bounded_requests_without_rewriting_first_observation(self):

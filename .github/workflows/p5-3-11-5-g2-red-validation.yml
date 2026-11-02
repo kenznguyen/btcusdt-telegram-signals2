@@ -45,6 +45,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements-market-data.txt -r requirements-ci.txt
+          python -m pip install "Flask>=3.0.0,<4"
 
       - name: Enforce isolated environment
         shell: bash
