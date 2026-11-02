@@ -851,8 +851,8 @@ workflows:
         script: |
           set -euo pipefail
           "$CI_PYTHON" -m unittest ci.test_t0_data_integrity -v 2>&1 | tee t0-data-integrity-tests.log
-          grep -q "Ran 10 tests" t0-data-integrity-tests.log
-          echo "T0_DATA_INTEGRITY_CANDLE_CONTINUITY_TESTS=PASS (10 tests)" | tee t0-data-integrity-verdict.txt
+          grep -q "Ran 11 tests" t0-data-integrity-tests.log
+          echo "T0_DATA_INTEGRITY_CANDLE_CONTINUITY_TESTS=PASS (11 tests)" | tee t0-data-integrity-verdict.txt
       - name: Compile read-only audit and tests
         script: |
           set -euo pipefail
