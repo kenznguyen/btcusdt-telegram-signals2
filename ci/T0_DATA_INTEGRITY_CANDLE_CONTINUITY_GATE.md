@@ -11,7 +11,7 @@ The audit is read-only. It opens the database with SQLite `mode=ro` and enables 
 - Composite candle identity is unique by `exchange, market_type, symbol, timeframe, open_time_ms`, both as a schema constraint and in stored rows.
 - Canonical market identity is `binance / USDT_PERPETUAL / BTCUSDT`; supported timeframes are M15 and H1.
 - Open timestamps are nonnegative integer UTC epoch milliseconds aligned to the timeframe interval.
-- Stored row order is strictly increasing within each timeframe.
+- Canonical reads are ordered by timeframe and open time; ingestion rejects duplicate or non-increasing timestamps within an exchange page. SQLite physical row insertion order is not treated as candle chronology, so legitimate historical gap backfills are not falsely rejected.
 - OHLCV values are bounded finite decimal strings; prices are positive, volume is nonnegative, and OHLC bounds are internally consistent.
 - `available_at_ms` is at or after candle close, and candle close is not later than the audit's `as_of_ms`.
 - Missing candle slots are counted independently for M15 and H1. Gaps are reported only between the first and last observed candle; leading/trailing gaps are not inferred without an explicit expected audit window.
