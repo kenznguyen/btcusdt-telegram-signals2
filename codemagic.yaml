@@ -975,3 +975,94 @@ workflows:
       - ci-source-sha.txt
       - p5-2-4-shadow-compile-verdict.txt
       - p5-2-4-shadow-red-tests.log
+
+  # P5.2.5 GREEN preparation: manual-only repository writer inventory + runtime RED validation.
+  p5-2-5-runtime-red-validation:
+    name: P5.2.5 - repository writer scan and runtime RED validation (manual)
+    instance_type: mac_mini_m2
+    max_build_duration: 15
+    # Manual only: isolated tests; never starts Feeder, connects to an exchange, or opens canonical databases.
+    scripts:
+      - name: Prepare isolated Python dependencies and record exact source SHA
+        script: |
+          set -euo pipefail
+          bash ci/setup-python.sh requirements.txt requirements-ci.txt
+          git rev-parse HEAD | tee ci-source-sha.txt
+          test -z "${MARKET_DATA_DB:-}"
+          test -z "${T0_FEEDER_LEASE_DB:-}"
+          test -z "${PAPER_DB:-}"
+          test -z "${BINANCE_API_KEY:-}"
+          test -z "${BINANCE_API_SECRET:-}"
+          test -z "${OKX_API_KEY:-}"
+          test -z "${OKX_API_SECRET:-}"
+          echo "P5_2_5_ISOLATED_ENVIRONMENT=PASS" | tee p5-2-5-isolation-verdict.txt
+      - name: Repository-wide Python writer and mutator inventory scan
+        script: |
+          set -euo pipefail
+          {
+            echo "P5.2.5 REPOSITORY-WIDE WRITER SCAN"
+            echo "SOURCE_SHA=$(git rev-parse HEAD)"
+            echo "SCAN_ROOTS=market_data paper_execution integrations futures_intelligence pipeline freqai_bridge"
+            grep -RInE --include='*.py' --exclude-dir='__pycache__' --exclude-dir='.venv' --exclude-dir='venv' \
+              'BEGIN IMMEDIATE|BEGIN EXCLUSIVE|INSERT[[:space:]]+INTO|UPDATE[[:space:]]+[^;]+SET|DELETE[[:space:]]+FROM|CREATE[[:space:]]+TABLE|DROP[[:space:]]+TABLE|ALTER[[:space:]]+TABLE|\.insert\(|\.execute\(|\.executemany\(' \
+              market_data paper_execution integrations futures_intelligence pipeline freqai_bridge || true
+          } 2>&1 | tee p5-2-5-writer-scan.log
+          grep -q "SOURCE_SHA=$(git rev-parse HEAD)" p5-2-5-writer-scan.log
+          echo "P5_2_5_WRITER_SCAN=COMPLETE_REQUIRES_MANUAL_CLASSIFICATION" | tee p5-2-5-writer-scan-verdict.txt
+      - name: Compile both runtime test modules
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m py_compile market_data/test_gateway_runtime.py paper_execution/test_writer_gate_runtime.py
+          echo "P5_2_5_RUNTIME_TEST_COMPILE=PASS" | tee p5-2-5-runtime-compile-verdict.txt
+      - name: Run T0 Gateway runtime RED tests and classify failures
+        script: |
+          set -uo pipefail
+          set +e
+          "$CI_PYTHON" -m unittest market_data.test_gateway_runtime -v 2>&1 | tee p5-2-5-gateway-runtime-red.log
+          test_status=${PIPESTATUS[0]}
+          set -e
+          echo "EXIT_STATUS=$test_status" | tee p5-2-5-gateway-runtime-status.txt
+          if grep -Eq 'ModuleNotFoundError|ImportError|SyntaxError|TypeError:|AttributeError:.*(fixture|setUp|tearDown)|FAILED \(errors=' p5-2-5-gateway-runtime-red.log; then
+            echo "P5_2_5_GATEWAY_RUNTIME_RED=INVALID_IMPORT_OR_FIXTURE_ERROR" | tee p5-2-5-gateway-runtime-verdict.txt
+            exit 1
+          elif [ "$test_status" -ne 0 ] && grep -Eq 'FAIL:|AssertionError|GatewayWriteError|NotImplementedError' p5-2-5-gateway-runtime-red.log; then
+            echo "P5_2_5_GATEWAY_RUNTIME_RED=CONTRACT_FAILURE_CANDIDATE_REVIEW_REQUIRED" | tee p5-2-5-gateway-runtime-verdict.txt
+          elif [ "$test_status" -eq 0 ]; then
+            echo "P5_2_5_GATEWAY_RUNTIME_RED=UNEXPECTED_PASS" | tee p5-2-5-gateway-runtime-verdict.txt
+            exit 1
+          else
+            echo "P5_2_5_GATEWAY_RUNTIME_RED=UNCLASSIFIED_FAILURE" | tee p5-2-5-gateway-runtime-verdict.txt
+            exit 1
+          fi
+      - name: Run Paper Writer Gate runtime RED tests and classify failures
+        script: |
+          set -uo pipefail
+          set +e
+          "$CI_PYTHON" -m unittest paper_execution.test_writer_gate_runtime -v 2>&1 | tee p5-2-5-paper-writer-runtime-red.log
+          test_status=${PIPESTATUS[0]}
+          set -e
+          echo "EXIT_STATUS=$test_status" | tee p5-2-5-paper-writer-runtime-status.txt
+          if grep -Eq 'ModuleNotFoundError|ImportError|SyntaxError|TypeError:|AttributeError:.*(fixture|setUp|tearDown)|FAILED \(errors=' p5-2-5-paper-writer-runtime-red.log; then
+            echo "P5_2_5_PAPER_WRITER_RUNTIME_RED=INVALID_IMPORT_OR_FIXTURE_ERROR" | tee p5-2-5-paper-writer-runtime-verdict.txt
+            exit 1
+          elif [ "$test_status" -ne 0 ] && grep -Eq 'FAIL:|AssertionError|WriterGateError|NotImplementedError' p5-2-5-paper-writer-runtime-red.log; then
+            echo "P5_2_5_PAPER_WRITER_RUNTIME_RED=CONTRACT_FAILURE_CANDIDATE_REVIEW_REQUIRED" | tee p5-2-5-paper-writer-runtime-verdict.txt
+          elif [ "$test_status" -eq 0 ]; then
+            echo "P5_2_5_PAPER_WRITER_RUNTIME_RED=UNEXPECTED_PASS" | tee p5-2-5-paper-writer-runtime-verdict.txt
+            exit 1
+          else
+            echo "P5_2_5_PAPER_WRITER_RUNTIME_RED=UNCLASSIFIED_FAILURE" | tee p5-2-5-paper-writer-runtime-verdict.txt
+            exit 1
+          fi
+    artifacts:
+      - ci-source-sha.txt
+      - p5-2-5-isolation-verdict.txt
+      - p5-2-5-writer-scan.log
+      - p5-2-5-writer-scan-verdict.txt
+      - p5-2-5-runtime-compile-verdict.txt
+      - p5-2-5-gateway-runtime-red.log
+      - p5-2-5-gateway-runtime-status.txt
+      - p5-2-5-gateway-runtime-verdict.txt
+      - p5-2-5-paper-writer-runtime-red.log
+      - p5-2-5-paper-writer-runtime-status.txt
+      - p5-2-5-paper-writer-runtime-verdict.txt
