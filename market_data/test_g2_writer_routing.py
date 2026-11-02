@@ -302,6 +302,12 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         source = inspect.getsource(sync.main)
         self.assertNotIn('"postgres"', source)
         self.assertNotIn('choices=("sqlite", "postgres")', source)
+        with self.assertRaisesRegex(TypeError, "T0WriteGateway"):
+            sync.sync_window(
+                None, "15m", START, START + STEP,
+                gateway=object(), lease_token=LEASE,
+                lease_clock=lambda: self.lease_now,
+            )
 
 
 if __name__ == "__main__":
