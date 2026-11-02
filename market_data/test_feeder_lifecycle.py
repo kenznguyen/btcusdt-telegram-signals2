@@ -173,6 +173,7 @@ class RuntimeLifecycleTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             store = LeaseStore(str(Path(directory) / "leases.sqlite3"))
+            store.initialize_schema()
             old = store.acquire("worker-old", now_ms=NOW, ttl_seconds=60)
             replacement = store.acquire(
                 "worker-new", now_ms=NOW + 60_001, ttl_seconds=60
@@ -270,6 +271,7 @@ class RuntimeLifecycleTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             store = LeaseStore(str(Path(directory) / "lease.sqlite3"))
+            store.initialize_schema()
             clock_ms = [NOW]
             scheduler = FeederScheduler(
                 FeederConfig(timeframes=("15m", "1h")),
