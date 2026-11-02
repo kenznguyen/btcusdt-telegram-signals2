@@ -10,12 +10,23 @@ import time
 import unittest
 from pathlib import Path
 
-from paper_execution.writer_gate import PaperWriterGate, WriterGateError
+try:
+    from paper_execution.writer_gate import PaperWriterGate, WriterGateError
+except ModuleNotFoundError as exc:
+    if exc.name != "paper_execution.writer_gate":
+        raise
+    PaperWriterGate = WriterGateError = None
 
 
 class PaperWriterGateRuntimeTests(unittest.TestCase):
     def setUp(self):
-        self.gate = PaperWriterGate(scope="paper_only")
+        self.gate = PaperWriterGate(scope="paper_only") if PaperWriterGate else None
+
+    def test_paper_writer_gate_contract_module_is_present(self):
+        self.assertIsNotNone(PaperWriterGate,
+            "CONTRACT RED: paper_execution.writer_gate module/API is not implemented")
+
+    @unittest.skipIf(PaperWriterGate is None, "Writer Gate contract module is absent; explicit RED assertion covers this")
 
     def test_admission_returns_opaque_generation_bound_token(self):
         token = self.gate.admit_writer()
