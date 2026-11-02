@@ -60,8 +60,9 @@ class CandleSyncTest(unittest.TestCase):
 
     def sync(self, exchange, timeframe, start_ms, end_ms, now_ms=None):
         return sync_window(
-            exchange, self.gateway, timeframe, start_ms, end_ms,
-            lease_token=self.lease_token, lease_clock=lambda: START + 1,
+            exchange, timeframe, start_ms, end_ms,
+            gateway=self.gateway, lease_token=self.lease_token,
+            lease_clock=lambda: START + 1,
             now_ms=now_ms,
         )
 
