@@ -12,6 +12,15 @@ CREATE_TABLE = """
 CREATE TABLE candles (
     exchange TEXT, market_type TEXT, symbol TEXT, timeframe TEXT,
     open_time_ms INTEGER, open TEXT, high TEXT, low TEXT, close TEXT,
+    volume TEXT, available_at_ms INTEGER,
+    PRIMARY KEY (exchange, market_type, symbol, timeframe, open_time_ms)
+)
+"""
+
+CREATE_TABLE_WITHOUT_IDENTITY_KEY = """
+CREATE TABLE candles (
+    exchange TEXT, market_type TEXT, symbol TEXT, timeframe TEXT,
+    open_time_ms INTEGER, open TEXT, high TEXT, low TEXT, close TEXT,
     volume TEXT, available_at_ms INTEGER
 )
 """
@@ -49,11 +58,20 @@ class T0DataIntegrityGateTest(unittest.TestCase):
         self.assertEqual(report["timeframes"]["1h"]["rows"], 1)
 
     def test_duplicate_composite_candle_identity_is_reported(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute("DROP TABLE candles")
+            connection.execute(CREATE_TABLE_WITHOUT_IDENTITY_KEY)
         self.insert("15m", 0)
         self.insert("15m", 0)
         report = self.audit()
-        self.assertEqual(report["result"], "FAIL")
-        self.assertIn("duplicate_candle_identity", {issue["code"] for issue in report["issues"]})
+        codes = {issue["code"] for issue in report["issues"]}
+        self.assertIn("duplicate_candle_identity", codes)
+        self.assertIn("identity_constraint_missing", codes)
+
+    def test_schema_enforces_unique_composite_candle_identity(self):
+        self.insert("15m", 0)
+        report = self.audit()
+        self.assertNotIn("identity_constraint_missing", {issue["code"] for issue in report["issues"]})
 
     def test_unaligned_and_non_monotonic_timestamps_are_reported(self):
         self.insert("15m", 900_000)
