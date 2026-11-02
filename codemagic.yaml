@@ -975,3 +975,55 @@ workflows:
       - ci-source-sha.txt
       - p5-2-4-shadow-compile-verdict.txt
       - p5-2-4-shadow-red-tests.log
+
+  # Single Writer Gateway RED contracts. Manual-only; no runtime or database startup.
+  t0-single-writer-gateway-red:
+    name: T0 - Single Writer Gateway contracts (RED, Shadow only)
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    scripts:
+      - name: Prepare isolated Python and record exact source SHA
+        script: |
+          set -euo pipefail
+          bash ci/setup-python.sh requirements-ci.txt
+          git rev-parse HEAD | tee t0-swg-source-sha.txt
+      - name: Enforce Shadow-only environment
+        script: |
+          set -euo pipefail
+          test -z "${MARKET_DATA_DB:-}"
+          test -z "${T0_FEEDER_LEASE_DB:-}"
+          test -z "${PAPER_DB:-}"
+          test -z "${BINANCE_API_KEY:-}"
+          test -z "${BINANCE_API_SECRET:-}"
+          test -z "${OKX_API_KEY:-}"
+          test -z "${OKX_API_SECRET:-}"
+          echo "T0_SWG_SHADOW_PREFLIGHT=PASS" | tee t0-swg-preflight.log
+      - name: Compile RED contract tests
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m py_compile market_data/test_single_writer_gateway_red.py
+          echo "T0_SWG_RED_COMPILE=PASS" | tee t0-swg-compile.log
+      - name: Run contracts and classify expected RED
+        script: |
+          set -euo pipefail
+          set +e
+          env -u MARKET_DATA_DB -u T0_FEEDER_LEASE_DB -u PAPER_DB -u BINANCE_API_KEY -u BINANCE_API_SECRET -u OKX_API_KEY -u OKX_API_SECRET \
+            "$CI_PYTHON" -m unittest market_data.test_single_writer_gateway_red -v 2>&1 | tee t0-swg-red-tests.log
+          test_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$test_status" -eq 0 ]; then
+            echo "T0_SWG_RED=UNEXPECTED_PASS" | tee t0-swg-red-verdict.log
+            exit 1
+          fi
+          if grep -q "AssertionError:" t0-swg-red-tests.log && ! grep -q "^ERROR:" t0-swg-red-tests.log; then
+            echo "T0_SWG_RED=CONFIRMED_CONTRACT_GAPS" | tee t0-swg-red-verdict.log
+          else
+            echo "T0_SWG_RED=INVALID_FAILURE_CLASS" | tee t0-swg-red-verdict.log
+            exit 1
+          fi
+    artifacts:
+      - t0-swg-source-sha.txt
+      - t0-swg-preflight.log
+      - t0-swg-compile.log
+      - t0-swg-red-tests.log
+      - t0-swg-red-verdict.log
