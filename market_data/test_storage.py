@@ -3,8 +3,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from market_data.store import Candle, INTERVAL_MS
+from market_data.store import Candle, CandleStore, INTERVAL_MS
 from market_data.sync import sync_window
+from market_data.gateway import LeaseFence, T0WriteGateway
+from market_data.feeder import LeaseStore
 from market_data.storage import (
     PostgresStore,
     SQLiteCandleStore,
@@ -46,6 +48,7 @@ class StorageFactoryTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = str(Path(directory) / "candles.sqlite3")
             store = create_store("sqlite", sqlite_path=path)
+            CandleStore(path).initialize_schema()
             step = INTERVAL_MS["15m"]
             candle = Candle("15m", 0, "100", "102", "99", "101", "5", step + 1)
             self.assertEqual(store.insert([candle]), 1)
@@ -56,7 +59,14 @@ class StorageFactoryTest(unittest.TestCase):
 
     def test_sqlite_ingestion_pipeline_uses_the_factory_contract(self):
         with tempfile.TemporaryDirectory() as directory:
-            store = create_store("sqlite", sqlite_path=str(Path(directory) / "sync.sqlite3"))
+            path = str(Path(directory) / "sync.sqlite3")
+            store = create_store("sqlite", sqlite_path=path)
+            CandleStore(path).initialize_schema()
+            leases = LeaseStore(path)
+            leases.initialize_schema()
+            lease = leases.acquire("storage-test", now_ms=0, ttl_seconds=60)
+            gateway = T0WriteGateway(path)
+            token = LeaseFence(leases.lease_name, "storage-test", lease.generation)
             step = INTERVAL_MS["15m"]
 
             class Exchange:
@@ -73,7 +83,10 @@ class StorageFactoryTest(unittest.TestCase):
                 def fetch_ohlcv(self, *args, **kwargs):
                     return [[0, 100, 102, 99, 101, 5]]
 
-            self.assertEqual(sync_window(Exchange(), store, "15m", 0, step, now_ms=lambda: step), 1)
+            self.assertEqual(sync_window(
+                Exchange(), gateway, "15m", 0, step, lease_token=token,
+                lease_clock=lambda: 1, now_ms=lambda: step,
+            ), 1)
             self.assertEqual(store.read_window("BTCUSDT", "15m", 0, step)["coverage"]["returned"], 1)
 
     def test_postgres_connection_failure_is_not_reinterpreted_as_sqlite(self):
