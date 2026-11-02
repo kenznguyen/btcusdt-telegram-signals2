@@ -59,7 +59,6 @@ class T0WriteGatewayRuntimeTests(unittest.TestCase):
         self.assertIsNotNone(T0WriteGateway,
             "CONTRACT RED: market_data.gateway module/API is not implemented")
 
-    @unittest.skipIf(T0WriteGateway is None, "Gateway contract module is absent; explicit RED assertion covers this")
     @unittest.skipIf(T0WriteGateway is None, "Gateway module absent; explicit contract RED assertion covers this")
     def test_valid_lease_commits_batch_atomically(self):
         candles = [self.candle(1_799_998_200_000), self.candle(1_799_999_100_000)]
