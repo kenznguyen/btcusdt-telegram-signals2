@@ -937,3 +937,41 @@ workflows:
       - t0-component-tests-p3.log
       - t0-component-tests-p3-verdict.txt
       - t0-component-compile-p3-verdict.txt
+
+  # P5.2.4: deterministic disposable Shadow fixture contract tests (RED phase).
+  # Manual only. This workflow creates only temporary CI files and never starts T0.
+  p5-2-4-shadow-migration-red:
+    name: P5.2.4 - Paper/T0 Shadow migration contracts (RED)
+    instance_type: mac_mini_m2
+    max_build_duration: 15
+    scripts:
+      - name: Prepare isolated Python and record exact source SHA
+        script: |
+          set -euo pipefail
+          bash ci/setup-python.sh requirements.txt requirements-ci.txt
+          git rev-parse HEAD | tee ci-source-sha.txt
+      - name: Assert no runtime, database or exchange configuration is present
+        script: |
+          set -euo pipefail
+          test -z "${MARKET_DATA_DB:-}"
+          test -z "${T0_FEEDER_LEASE_DB:-}"
+          test -z "${PAPER_DB:-}"
+          test -z "${BINANCE_API_KEY:-}"
+          test -z "${BINANCE_API_SECRET:-}"
+          test -z "${OKX_API_KEY:-}"
+          test -z "${OKX_API_SECRET:-}"
+          echo "P5_2_4_SHADOW_ISOLATION=PASS"
+      - name: Compile fixture and contract tests
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m py_compile paper_execution/shadow_migration_fixture.py paper_execution/test_shadow_migration.py
+          echo "P5_2_4_SHADOW_TEST_COMPILE=PASS" | tee p5-2-4-shadow-compile-verdict.txt
+      - name: Run P5.2.4 contract tests (expected RED until migration implementation)
+        script: |
+          set -euo pipefail
+          env -u MARKET_DATA_DB -u T0_FEEDER_LEASE_DB -u PAPER_DB -u BINANCE_API_KEY -u BINANCE_API_SECRET -u OKX_API_KEY -u OKX_API_SECRET \
+            "$CI_PYTHON" -m unittest paper_execution.test_shadow_migration -v 2>&1 | tee p5-2-4-shadow-red-tests.log
+    artifacts:
+      - ci-source-sha.txt
+      - p5-2-4-shadow-compile-verdict.txt
+      - p5-2-4-shadow-red-tests.log
