@@ -22,9 +22,11 @@ class CiPolicyTest(unittest.TestCase):
         approved = {
             "p5-3-10-4-g1-red-execution.yml",
             "p5-3-10-5-g1-green-validation.yml",
+            "p5-3-11-5-g2-red-validation.yml",
         }
 
         self.assertIn("p5-3-10-4-g1-red-execution.yml", actual)
+        self.assertIn("p5-3-11-5-g2-red-validation.yml", actual)
         self.assertLessEqual(actual, approved)
         self.assertTrue((ROOT / "ci/archive/github-actions/market-data-ci.yml").exists())
 
