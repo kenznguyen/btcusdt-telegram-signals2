@@ -257,7 +257,7 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "second page rejected"):
             sync_window(
                 exchange, gateway, "15m", START, end,
-                now_ms=lambda: self.observed_at,
+                now_ms=lambda: START + 2000 * STEP,
                 lease_token=LEASE,
                 lease_clock=lambda: self.lease_now,
             )
@@ -271,7 +271,7 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         self._sync(exchange, gateway)
         stored_candidate = gateway.calls[0][0][0]
         self.assertEqual(stored_candidate.available_at_ms, self.observed_at)
-        self.assertIs(gateway.calls[0][2], not None)
+        self.assertTrue(callable(gateway.calls[0][2]))
         self.assertNotEqual(stored_candidate.available_at_ms, self.lease_now)
 
     def test_g2_18_postgres_store_cannot_bypass_gateway_for_canonical_sync(self):
