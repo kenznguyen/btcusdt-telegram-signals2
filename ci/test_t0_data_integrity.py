@@ -68,6 +68,19 @@ class T0DataIntegrityGateTest(unittest.TestCase):
         self.assertIn("duplicate_candle_identity", codes)
         self.assertIn("identity_constraint_missing", codes)
 
+    def test_partial_unique_index_does_not_enforce_global_identity(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute("DROP TABLE candles")
+            connection.execute(CREATE_TABLE_WITHOUT_IDENTITY_KEY)
+            connection.execute(
+                "CREATE UNIQUE INDEX partial_candle_key ON candles "
+                "(exchange, market_type, symbol, timeframe, open_time_ms) "
+                "WHERE exchange = 'binance'"
+            )
+        self.insert("15m", 0)
+        report = self.audit()
+        self.assertIn("identity_constraint_missing", {issue["code"] for issue in report["issues"]})
+
     def test_schema_enforces_unique_composite_candle_identity(self):
         self.insert("15m", 0)
         report = self.audit()
