@@ -1,0 +1,112 @@
+name: P5.2.4-R1 CI Isolation Guard
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p5-2-4-r1-ci-isolation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  isolation-guard:
+    name: Verify CI isolation configuration (static only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+      AI_EXECUTION_ENABLED: "false"
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Record exact source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p r1-isolation-artifacts
+          git rev-parse HEAD | tee r1-isolation-artifacts/source-sha.txt
+          git status --short > r1-isolation-artifacts/git-status.txt
+
+      - name: Assert runtime and exchange configuration is absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "${MARKET_DATA_DB}"
+          test -z "${T0_FEEDER_LEASE_DB}"
+          test -z "${PAPER_DB}"
+          test -z "${BINANCE_API_KEY}"
+          test -z "${BINANCE_API_SECRET}"
+          test -z "${OKX_API_KEY}"
+          test -z "${OKX_API_SECRET}"
+          test "${AI_EXECUTION_ENABLED}" = "false"
+          echo "R1_ENV_ISOLATION=PASS" | tee r1-isolation-artifacts/env-isolation.txt
+
+      - name: Static workflow safety assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import os
+          import re
+
+          workflow = Path(".github/workflows/p5-2-4-r1-ci-isolation.yml")
+          text = workflow.read_text(encoding="utf-8")
+          required = [
+              "workflow_dispatch:",
+              "permissions:",
+              "contents: read",
+              "persist-credentials: false",
+              'AI_EXECUTION_ENABLED: "false"',
+          ]
+          missing = [item for item in required if item not in text]
+          if missing:
+              raise SystemExit(f"Missing isolation controls: {missing}")
+
+          forbidden = [
+              "MARKET_DATA_DB: /",
+              "T0_FEEDER_LEASE_DB: /",
+              "PAPER_DB: /",
+              "BINANCE_API_KEY: ${{",
+              "BINANCE_API_SECRET: ${{",
+              "OKX_API_KEY: ${{",
+              "OKX_API_SECRET: ${{",
+              "python -m paper_execution",
+              "pytest",
+              "unittest",
+              "sqlite3 ",
+              "curl ",
+              "wget ",
+          ]
+          found = [item for item in forbidden if item in text]
+          if found:
+              raise SystemExit(f"Forbidden runtime/network command pattern: {found}")
+
+          artifact_dir = Path("r1-isolation-artifacts")
+          artifact_dir.mkdir(exist_ok=True)
+          (artifact_dir / "static-guard.json").write_text(
+              '{"result":"PASS","scope":"workflow configuration static assertions only"}\n',
+              encoding="utf-8",
+          )
+          print("R1_STATIC_WORKFLOW_GUARD=PASS")
+          PY
+
+      - name: Upload isolation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p5-2-4-r1-ci-isolation-${{ github.sha }}
+          path: r1-isolation-artifacts/
+          if-no-files-found: error
+          retention-days: 30
