@@ -1159,9 +1159,9 @@ workflows:
           echo "EXIT_STATUS=$status" | tee p5-3-11-5-test-status.txt
           if [ "$status" -ne 0 ] \
              && grep -q "Ran 18 tests" p5-3-11-5-g2-red-tests.log \
-             && grep -q "FAILED (failures=18)" p5-3-11-5-g2-red-tests.log \
+             && grep -q "FAILED (failures=11)" p5-3-11-5-g2-red-tests.log \
              && ! grep -Eq "errors=|skipped=" p5-3-11-5-g2-red-tests.log; then
-            echo "P5_3_11_5_G2_RED=EXPECTED_CONTRACT_RED (18/18; zero harness errors)" | tee p5-3-11-5-verdict.txt
+            echo "P5_3_11_5_G2_RED=EXPECTED_CONTRACT_RED (11 failures, 7 regression passes; zero errors/skips)" | tee p5-3-11-5-verdict.txt
           else
             echo "P5_3_11_5_G2_RED=INVALID_OR_UNEXPECTED_RESULT" | tee p5-3-11-5-verdict.txt
             exit 1
