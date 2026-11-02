@@ -231,9 +231,10 @@ class T0WriteGateway:
                 """SELECT exchange, market_type, symbol, timeframe, open_time_ms,
                           open, high, low, close, volume, available_at_ms
                    FROM candles
-                   WHERE symbol=? AND timeframe=? AND open_time_ms>=? AND open_time_ms<?
+                   WHERE exchange=? AND market_type=? AND symbol=? AND timeframe=?
+                     AND open_time_ms>=? AND open_time_ms<?
                    ORDER BY open_time_ms ASC""",
-                (symbol, timeframe, start, end),
+                (EXCHANGE, MARKET_TYPE, symbol, timeframe, start, end),
             ).fetchall()
             return tuple(dict(row) for row in rows)
         except GatewayWriteError:
