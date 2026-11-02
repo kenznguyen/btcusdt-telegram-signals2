@@ -1,3 +1,4 @@
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -94,7 +95,7 @@ class CandleStoreTest(unittest.TestCase):
     def test_legacy_store_writer_does_not_create_a_missing_database(self):
         missing = self.path.parent / "missing-writer.sqlite3"
         writer = CandleStore(missing)
-        with self.assertRaises(Exception):
+        with self.assertRaises(sqlite3.OperationalError):
             writer.insert([self.candle()])
         self.assertFalse(missing.exists())
 
