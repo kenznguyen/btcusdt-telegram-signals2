@@ -11,6 +11,7 @@ from pathlib import Path
 from market_data.gateway import T0WriteGateway, GatewayWriteError
 from market_data.lease_store import LeaseStore
 from market_data.store import Candle
+from paper_execution.writer_gate import PaperWriterGate
 
 
 class T0WriteGatewayRuntimeTests(unittest.TestCase):
