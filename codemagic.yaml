@@ -171,6 +171,7 @@ workflows:
         script: |
           set -euo pipefail
           "$CI_PYTHON" -c 'import ccxt; import app; assert ccxt.binanceusdm().id == "binanceusdm"'
+      # P5.3.11.8: G2 Gateway-only sync and Feeder routing acceptance
       - name: Run data tests and gateway regressions
         script: |
           set -euo pipefail
@@ -192,6 +193,7 @@ workflows:
       - ci-source-sha.txt
       - market-data-tests.log
       - g1-gateway-tests.log
+      - g2-feeder-routing-tests.log
       - gateway-tests.log
       - ci-policy-tests.log
       - paper-system-tests.log
