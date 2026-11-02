@@ -6,6 +6,8 @@ import unittest
 
 from market_data.store import CandleStore, INTERVAL_MS, read_window
 from market_data.sync import sync_window
+from market_data.gateway import LeaseFence, T0WriteGateway
+from market_data.feeder import LeaseStore
 
 
 SYMBOL = "BTC/USDT:USDT"
@@ -49,11 +51,24 @@ class CandleSyncTest(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.path = str(Path(self.directory.name) / "candles.sqlite3")
         self.store = CandleStore(self.path)
+        self.store.initialize_schema()
+        self.lease_store = LeaseStore(self.path)
+        self.lease_store.initialize_schema()
+        lease = self.lease_store.acquire("sync-test", now_ms=START, ttl_seconds=100_000)
+        self.lease_token = LeaseFence(self.lease_store.lease_name, "sync-test", lease.generation)
+        self.gateway = T0WriteGateway(self.path)
+
+    def sync(self, exchange, timeframe, start_ms, end_ms, now_ms=None):
+        return sync_window(
+            exchange, self.gateway, timeframe, start_ms, end_ms,
+            lease_token=self.lease_token, lease_clock=lambda: START + 1,
+            now_ms=now_ms,
+        )
 
     def test_exact_futures_market_and_response_observation_time(self):
         received = START + 4 * STEP + 1234
         exchange = Exchange([[row(START), row(START + STEP)]])
-        self.assertEqual(sync_window(exchange, self.store, "15m", START, START + 2 * STEP,
+        self.assertEqual(self.sync(exchange, "15m", START, START + 2 * STEP,
                                      now_ms=lambda: received), 2)
         self.assertEqual(exchange.calls, [(SYMBOL, "15m", START, 2, {"endTime": START + 2 * STEP - 1})])
         data = read_window(self.path, "BTCUSDT", "15m", START, START + 2 * STEP)
@@ -66,7 +81,7 @@ class CandleSyncTest(unittest.TestCase):
         exchange = Exchange([[row(START), row(START + STEP)]])
         exchange.server_time = START + STEP + 1000
         observed_at = START + 3 * STEP
-        self.assertEqual(sync_window(exchange, self.store, "15m", START, START + 2 * STEP,
+        self.assertEqual(self.sync(exchange, "15m", START, START + 2 * STEP,
                                      now_ms=lambda: observed_at), 1)
         data = read_window(self.path, "BTCUSDT", "15m", START, START + 2 * STEP)
         self.assertEqual(data["candles"][0]["availableAtMs"], observed_at)
@@ -79,7 +94,7 @@ class CandleSyncTest(unittest.TestCase):
                 exchange = Exchange([])
                 exchange.server_time = server_time
                 with self.assertRaises(ValueError):
-                    sync_window(exchange, self.store, "15m", START, START + STEP)
+                    self.sync(exchange, "15m", START, START + STEP)
                 self.assertEqual(exchange.calls, [])
 
     def test_paginates_bounded_requests_without_rewriting_first_observation(self):
@@ -87,12 +102,12 @@ class CandleSyncTest(unittest.TestCase):
                              [row(START + 1000 * STEP)]])
         end = START + 1001 * STEP
         clock = iter([end + 1, end + 2])
-        self.assertEqual(sync_window(exchange, self.store, "15m", START, end,
+        self.assertEqual(self.sync(exchange, "15m", START, end,
                                      now_ms=lambda: next(clock)), 1001)
         self.assertEqual([call[3] for call in exchange.calls], [1000, 1])
         self.assertEqual(exchange.calls[1][2], START + 1000 * STEP)
         duplicate = Exchange([[row(START)]])
-        self.assertEqual(sync_window(duplicate, self.store, "15m", START, START + STEP,
+        self.assertEqual(self.sync(duplicate, "15m", START, START + STEP,
                                      now_ms=lambda: end + 999), 0)
         first = read_window(self.path, "BTCUSDT", "15m", START, START + STEP)
         self.assertEqual(first["candles"][0]["availableAtMs"], end + 1)
@@ -101,7 +116,7 @@ class CandleSyncTest(unittest.TestCase):
         exchange = Exchange([[row(START - STEP), row(START), row(START + 2 * STEP),
                               row(START + 3 * STEP)]])
         end = START + 4 * STEP
-        self.assertEqual(sync_window(exchange, self.store, "15m", START, end,
+        self.assertEqual(self.sync(exchange, "15m", START, end,
                                      now_ms=lambda: START + 2 * STEP + 1), 1)
         data = read_window(self.path, "BTCUSDT", "15m", START, end)
         self.assertFalse(data["coverage"]["complete"])
@@ -113,7 +128,7 @@ class CandleSyncTest(unittest.TestCase):
                 exchange = Exchange([])
                 exchange.market.update(override)
                 with self.assertRaises(ValueError):
-                    sync_window(exchange, self.store, "15m", START, START + STEP)
+                    self.sync(exchange, "15m", START, START + STEP)
                 self.assertEqual(exchange.calls, [])
 
     def test_bad_page_is_not_partially_committed_and_no_progress_fails(self):
@@ -124,15 +139,15 @@ class CandleSyncTest(unittest.TestCase):
         for page in invalid_pages:
             with self.subTest(page=page):
                 with self.assertRaises(ValueError):
-                    sync_window(Exchange([page]), self.store, "15m", START, START + 2 * STEP,
+                    self.sync(Exchange([page]), "15m", START, START + 2 * STEP,
                                 now_ms=lambda: START + 3 * STEP)
                 self.assertEqual(read_window(self.path, "BTCUSDT", "15m", START,
                                              START + 2 * STEP)["candles"], [])
 
     def test_upstream_failure_propagates_and_empty_page_leaves_missing_data(self):
         with self.assertRaisesRegex(OSError, "offline"):
-            sync_window(Exchange([OSError("offline")]), self.store, "15m", START, START + STEP)
-        self.assertEqual(sync_window(Exchange([[]]), self.store, "15m", START, START + STEP), 0)
+            self.sync(Exchange([OSError("offline")]), "15m", START, START + STEP)
+        self.assertEqual(self.sync(Exchange([[]]), "15m", START, START + STEP), 0)
         self.assertFalse(read_window(self.path, "BTCUSDT", "15m", START, START + STEP)["coverage"]["complete"])
 
     def test_invalid_range_fails_before_network_and_module_help_needs_no_ccxt(self):
@@ -140,7 +155,7 @@ class CandleSyncTest(unittest.TestCase):
         for timeframe, start, end in (("1m", START, START + STEP), ("15m", START + 1, START + STEP),
                                       ("15m", START, START), ("15m", START, START + 2001 * STEP)):
             with self.subTest(timeframe=timeframe, start=start, end=end), self.assertRaises(ValueError):
-                sync_window(exchange, self.store, timeframe, start, end)
+                self.sync(exchange, timeframe, start, end)
         result = subprocess.run([sys.executable, "-m", "market_data.sync", "--help"],
                                 capture_output=True, text=True, check=True)
         self.assertIn("--start-ms", result.stdout)
