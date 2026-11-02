@@ -363,6 +363,7 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
             owner_id="integration-worker",
             exchange=exchange,
             store=store,
+            gateway=Mock(),
             lease_store=leases,
             clock=lambda: NOW + 7_200_000,
         )
@@ -449,6 +450,7 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             leases = LeaseStore(str(Path(directory) / "leases.sqlite3"))
+            leases.initialize_schema()
             old = leases.acquire("old-writer", now_ms=NOW, ttl_seconds=60)
             replacement = leases.acquire("new-writer", now_ms=NOW + 60_001, ttl_seconds=60)
             scheduler = Mock()
@@ -521,7 +523,7 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
             self.assertEqual(runtime.owner_id, "codemagic-test-worker")
             self.assertEqual(runtime.config.timeframes, ("15m", "1h"))
             self.assertIsNone(runtime.scheduler._thread)
-            store.insert.assert_called_once_with([])
+            store.insert.assert_not_called()
             ccxt_module.binanceusdm.assert_called_once()
 
 
