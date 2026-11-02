@@ -91,6 +91,13 @@ class CandleStoreTest(unittest.TestCase):
             with self.subTest(changes=changes), self.assertRaises(ValueError):
                 self.candle(**changes)
 
+    def test_legacy_store_writer_does_not_create_a_missing_database(self):
+        missing = self.path.parent / "missing-writer.sqlite3"
+        writer = CandleStore(missing)
+        with self.assertRaises(Exception):
+            writer.insert([self.candle()])
+        self.assertFalse(missing.exists())
+
     def test_readonly_query_does_not_create_missing_database(self):
         missing = self.path.parent / "missing.sqlite3"
         with self.assertRaises(FileNotFoundError):
