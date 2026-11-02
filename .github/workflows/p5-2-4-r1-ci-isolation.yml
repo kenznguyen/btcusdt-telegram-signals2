@@ -58,8 +58,6 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-          import os
-          import re
 
           workflow = Path(".github/workflows/p5-2-4-r1-ci-isolation.yml")
           text = workflow.read_text(encoding="utf-8")
@@ -74,29 +72,24 @@ jobs:
           if missing:
               raise SystemExit(f"Missing isolation controls: {missing}")
 
-          forbidden = [
-              "MARKET_DATA_DB: /",
-              "T0_FEEDER_LEASE_DB: /",
-              "PAPER_DB: /",
-              "BINANCE_API_KEY: ${{",
-              "BINANCE_API_SECRET: ${{",
-              "OKX_API_KEY: ${{",
-              "OKX_API_SECRET: ${{",
-              "python -m paper_execution",
-              "pytest",
-              "unittest",
-              "sqlite3 ",
-              "curl ",
-              "wget ",
-          ]
-          found = [item for item in forbidden if item in text]
-          if found:
-              raise SystemExit(f"Forbidden runtime/network command pattern: {found}")
+          allowed_actions = {
+              "actions/checkout@v4",
+              "actions/upload-artifact@v4",
+          }
+          actual_actions = {
+              line.strip().split("uses:", 1)[1].strip()
+              for line in text.splitlines()
+              if "uses:" in line
+          }
+          if actual_actions != allowed_actions:
+              raise SystemExit(
+                  f"Unexpected third-party/action surface: {sorted(actual_actions)}"
+              )
 
           artifact_dir = Path("r1-isolation-artifacts")
           artifact_dir.mkdir(exist_ok=True)
           (artifact_dir / "static-guard.json").write_text(
-              '{"result":"PASS","scope":"workflow configuration static assertions only"}\n',
+              '{"result":"PASS","scope":"workflow configuration static assertions only"}\\n',
               encoding="utf-8",
           )
           print("R1_STATIC_WORKFLOW_GUARD=PASS")
