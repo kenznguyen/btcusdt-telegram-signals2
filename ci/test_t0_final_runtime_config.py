@@ -58,7 +58,7 @@ class FinalRuntimeConfigurationTests(unittest.TestCase):
         )
 
         self.assertFalse(report["ok"])
-        self.assertTrue(any("heartbeat" in error.lower() for error in report["errors"]))
+        self.assertFalse(report["checks"]["runtime_parameters"])\n        self.assertTrue(any("numeric settings" in error for error in report["errors"]))
 
     def test_existing_database_is_audited_read_only_and_requires_core_tables(self):
         with sqlite3.connect(self.db_path) as connection:
