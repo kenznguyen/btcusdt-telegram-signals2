@@ -128,7 +128,9 @@ class CandleSyncTest(unittest.TestCase):
                 exchange = Exchange([])
                 exchange.market.update(override)
                 with self.assertRaises(ValueError):
-                    sync_window(exchange, self.store, "15m", START, START + STEP)
+                    sync_window(exchange, "15m", START, START + STEP,
+                                    gateway=self.gateway, lease_token=self.lease_token,
+                                    lease_clock=lambda: START + 1)
                 self.assertEqual(exchange.calls, [])
 
     def test_bad_page_is_not_partially_committed_and_no_progress_fails(self):
