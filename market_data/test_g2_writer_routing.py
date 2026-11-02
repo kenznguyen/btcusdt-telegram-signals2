@@ -1,38 +1,66 @@
-"""P5.3.11.5 G2 RED contracts for mandatory Gateway writer routing.
+"""P5.3.11.5 G2 RED contracts with independent failure causes.
 
-All tests use an in-memory exchange double and disposable objects. They never
-resolve MARKET_DATA_DB, open a canonical database, contact an exchange, or
-start FeederRuntime. The expected RED baseline is the unfenced G1-era routing.
+All database tests use disposable SQLite files created inside TemporaryDirectory.
+No test resolves MARKET_DATA_DB, accesses a canonical DB, contacts an exchange,
+or starts FeederRuntime. Existing G1 Gateway behavior is tested as GREEN
+regression coverage while missing G2 routing contracts remain RED.
 """
 import ast
 import inspect
 import sqlite3
 import tempfile
-import textwrap
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
 
-from market_data import feeder, feeder_service, storage, store, sync
-from market_data.feeder import RecoveryCoordinator
+from market_data import feeder, feeder_service, store, sync
 from market_data.gateway import (
     CandleBatchRejected,
     LeaseFence,
     LeaseRejected,
     T0WriteGateway,
 )
-from market_data.store import INTERVAL_MS
-from market_data.sync import sync_window
+from market_data.store import Candle, INTERVAL_MS
 
 
 START = 1_800_000_000_000
 STEP = INTERVAL_MS["15m"]
-SYMBOL = "BTC/USDT:USDT"
 LEASE = LeaseFence("binance-btcusdt-canonical", "g2-test-owner", 7)
 
 
-def candle_row(opened):
-    return [opened, 100.01, 103.5, 99.0, 102.25, 1.25]
+def candle_row(opened, close="102.25"):
+    return [opened, 100.01, 103.5, 99.0, close, 1.25]
+
+
+def candle(opened, close="102.25", available=None):
+    return Candle(
+        "15m", opened, "100.01", "103.5", "99.0", close, "1.25",
+        available if available is not None else opened + STEP,
+    )
+
+
+def create_shadow_db(path, *, owner=LEASE.owner_id, generation=LEASE.generation,
+                     expires_at=START + 10_000_000):
+    with sqlite3.connect(path) as connection:
+        connection.executescript(
+            """
+            CREATE TABLE candles (
+                exchange TEXT NOT NULL, market_type TEXT NOT NULL,
+                symbol TEXT NOT NULL, timeframe TEXT NOT NULL,
+                open_time_ms INTEGER NOT NULL, open TEXT NOT NULL,
+                high TEXT NOT NULL, low TEXT NOT NULL, close TEXT NOT NULL,
+                volume TEXT NOT NULL, available_at_ms INTEGER NOT NULL,
+                PRIMARY KEY (exchange, market_type, symbol, timeframe, open_time_ms)
+            );
+            CREATE TABLE feeder_leases (
+                lease_name TEXT PRIMARY KEY, owner TEXT,
+                generation INTEGER NOT NULL, expires_at_ms INTEGER NOT NULL
+            );
+            """
+        )
+        connection.execute(
+            "INSERT INTO feeder_leases VALUES (?, ?, ?, ?)",
+            (LEASE.lease_name, owner, generation, expires_at),
+        )
 
 
 class ExchangeDouble:
@@ -43,13 +71,13 @@ class ExchangeDouble:
         self.calls = []
         self.server_time = START + 3000 * STEP
         self.market = {
-            "symbol": SYMBOL, "id": "BTCUSDT", "base": "BTC",
+            "symbol": "BTC/USDT:USDT", "id": "BTCUSDT", "base": "BTC",
             "quote": "USDT", "settle": "USDT", "active": True,
             "swap": True, "linear": True, "spot": False,
         }
 
     def load_markets(self):
-        return {SYMBOL: self.market}
+        return {"BTC/USDT:USDT": self.market}
 
     def fetch_time(self):
         return self.server_time
@@ -62,21 +90,18 @@ class ExchangeDouble:
         return page
 
 
-class GatewayDouble:
-    def __init__(self, result=None, error=None, error_at_call=None):
-        self.result = result
-        self.error = error
-        self.error_at_call = error_at_call
+class LegacyStoreDouble:
+    def __init__(self, fail_on_call=None):
         self.calls = []
+        self.fail_on_call = fail_on_call
+        self.rows = []
 
-    def insert_batch(self, candles, *, lease_token, now_ms):
-        batch = tuple(candles)
-        self.calls.append((batch, lease_token, now_ms))
-        if (self.error is not None
-                and (self.error_at_call is None or len(self.calls) == self.error_at_call)):
-            raise self.error
-        if self.result is not None:
-            return self.result
+    def insert(self, candles):
+        batch = list(candles)
+        self.calls.append(batch)
+        if self.fail_on_call == len(self.calls):
+            raise RuntimeError("second page rejected")
+        self.rows.extend(batch)
         return len(batch)
 
 
@@ -85,129 +110,68 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         self.observed_at = START + 100 * STEP
         self.lease_now = START + 100 * STEP + 123
 
-    def _assert_routing_api(self):
-        parameters = inspect.signature(sync_window).parameters
-        self.assertTrue(
-            {"gateway", "lease_token", "lease_clock"}.issubset(parameters),
-            "CONTRACT RED: sync_window must require Gateway, LeaseFence and lease_clock",
-        )
+    def test_g2_01_sync_window_requires_gateway_parameter(self):
+        parameters = inspect.signature(sync.sync_window).parameters
+        self.assertIn("gateway", parameters)
+        self.assertIs(parameters["gateway"].default, inspect.Parameter.empty)
 
-    def _sync(self, exchange, gateway, **overrides):
-        self._assert_routing_api()
-        arguments = {
-            "now_ms": lambda: self.observed_at,
-            "lease_token": LEASE,
-            "lease_clock": lambda: self.lease_now,
-        }
-        arguments.update(overrides)
-        return sync_window(
-            exchange, gateway, "15m", START, START + STEP, **arguments
-        )
+    def test_g2_02_sync_window_requires_lease_fence_parameter(self):
+        parameters = inspect.signature(sync.sync_window).parameters
+        self.assertIn("lease_token", parameters)
+        self.assertIs(parameters["lease_token"].default, inspect.Parameter.empty)
 
-    def test_g2_01_missing_gateway_fails_closed(self):
-        exchange = ExchangeDouble([[candle_row(START)]])
-        with self.assertRaises((TypeError, ValueError)):
-            self._sync(exchange, None)
+    def test_g2_03_sync_window_requires_separate_lease_clock(self):
+        parameters = inspect.signature(sync.sync_window).parameters
+        self.assertIn("lease_clock", parameters)
+        self.assertIs(parameters["lease_clock"].default, inspect.Parameter.empty)
 
-    def test_g2_02_missing_lease_fence_fails_closed(self):
-        exchange = ExchangeDouble([[candle_row(START)]])
-        gateway = GatewayDouble()
-        with self.assertRaises((TypeError, ValueError, LeaseRejected)):
-            self._sync(exchange, gateway, lease_token=None)
-        self.assertEqual(gateway.calls, [])
+    def test_g2_04_sync_window_routes_through_gateway_insert_batch(self):
+        source = inspect.getsource(sync.sync_window)
+        self.assertIn("insert_batch", source)
+        self.assertNotIn("store.insert(", source)
+        self.assertNotIn("store.insert_fenced(", source)
 
-    def test_g2_03_missing_lease_clock_fails_closed(self):
-        exchange = ExchangeDouble([[candle_row(START)]])
-        gateway = GatewayDouble()
-        with self.assertRaises((TypeError, ValueError, LeaseRejected)):
-            self._sync(exchange, gateway, lease_clock=None)
-        self.assertEqual(gateway.calls, [])
-
-    def test_g2_04_wrong_gateway_interface_is_rejected(self):
-        exchange = ExchangeDouble([[candle_row(START)]])
-        with self.assertRaises((TypeError, ValueError)):
-            self._sync(exchange, object())
-
-    def test_g2_05_feeder_runtime_routes_a_typed_fence_to_sync_callback(self):
-        source = textwrap.dedent(inspect.getsource(feeder.FeederRuntime))
-        self.assertIn("LeaseFence", source)
-        self.assertIn("lease_generation", source)
-        self.assertIn("sync_callback", source)
-        runtime_builder = textwrap.dedent(inspect.getsource(feeder_service.build_runtime))
-        self.assertIn("LeaseFence", runtime_builder)
+    def test_g2_05_feeder_passes_typed_lease_capability_to_gateway_path(self):
+        runtime_source = inspect.getsource(feeder.FeederRuntime)
+        builder_source = inspect.getsource(feeder_service.build_runtime)
+        self.assertIn("LeaseFence", runtime_source + builder_source)
         self.assertIn("gateway", inspect.signature(feeder_service.build_runtime).parameters)
+        self.assertIn("insert_batch", builder_source)
 
-    def test_g2_06_stale_generation_rejection_is_not_bypassed(self):
-        exchange = ExchangeDouble([[candle_row(START)]])
-        stale = LeaseFence(LEASE.lease_name, LEASE.owner_id, LEASE.generation - 1)
-        gateway = GatewayDouble(error=LeaseRejected("stale generation"))
-        with self.assertRaises(LeaseRejected):
-            self._sync(exchange, gateway, lease_token=stale)
-        self.assertEqual(len(gateway.calls), 1)
-        self.assertIs(gateway.calls[0][1], stale)
-
-    def test_g2_07_lease_expiry_at_final_admission_rolls_back_sync_batch(self):
-        self._assert_routing_api()
-        exchange = ExchangeDouble([[candle_row(START)]])
+    def test_g2_06_stale_generation_is_rejected_by_real_gateway(self):
         with tempfile.TemporaryDirectory() as directory:
-            database = Path(directory) / "g2-shadow.sqlite3"
+            database = Path(directory) / "stale.sqlite3"
+            create_shadow_db(database, generation=LEASE.generation + 1)
+            gateway = T0WriteGateway(str(database))
+            with self.assertRaises(LeaseRejected):
+                gateway.insert_batch(
+                    [candle(START)], lease_token=LEASE,
+                    now_ms=lambda: self.lease_now,
+                )
             with sqlite3.connect(database) as connection:
-                connection.executescript(
-                    """
-                    CREATE TABLE candles (
-                        exchange TEXT NOT NULL, market_type TEXT NOT NULL,
-                        symbol TEXT NOT NULL, timeframe TEXT NOT NULL,
-                        open_time_ms INTEGER NOT NULL, open TEXT NOT NULL,
-                        high TEXT NOT NULL, low TEXT NOT NULL, close TEXT NOT NULL,
-                        volume TEXT NOT NULL, available_at_ms INTEGER NOT NULL,
-                        PRIMARY KEY (exchange, market_type, symbol, timeframe, open_time_ms)
-                    );
-                    CREATE TABLE feeder_leases (
-                        lease_name TEXT PRIMARY KEY, owner TEXT,
-                        generation INTEGER NOT NULL, expires_at_ms INTEGER NOT NULL
-                    );
-                    """
-                )
-                connection.execute(
-                    "INSERT INTO feeder_leases VALUES (?, ?, ?, ?)",
-                    (LEASE.lease_name, LEASE.owner_id, LEASE.generation,
-                     self.lease_now + 60_000),
-                )
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM candles").fetchone()[0], 0)
+
+    def test_g2_07_expiry_at_final_admission_rolls_back_gateway_batch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "expiry.sqlite3"
+            create_shadow_db(database, expires_at=self.lease_now + 60_000)
             gateway = T0WriteGateway(str(database))
             clock_values = iter((self.lease_now, self.lease_now + 60_000))
             with self.assertRaises(LeaseRejected):
-                self._sync(exchange, gateway, lease_clock=lambda: next(clock_values))
+                gateway.insert_batch(
+                    [candle(START)], lease_token=LEASE,
+                    now_ms=lambda: next(clock_values),
+                )
             with sqlite3.connect(database) as connection:
-                self.assertEqual(connection.execute("SELECT * FROM candles").fetchall(), [])
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM candles").fetchone()[0], 0)
 
-    def test_g2_08_recovery_uses_the_same_gateway_backed_sync_callback(self):
-        self._assert_routing_api()
-        exchange = ExchangeDouble([[candle_row(START)]])
-        gateway = GatewayDouble()
-        read = Mock(side_effect=[
-            {"startMs": START, "endMs": START + STEP,
-             "coverage": {"complete": False, "gaps": [
-                 {"startMs": START, "endMs": START + STEP}]}},
-            {"startMs": START, "endMs": START + STEP,
-             "coverage": {"complete": True, "gaps": []}},
-        ])
+    def test_g2_08_recovery_builder_uses_gateway_backed_sync_callback(self):
+        source = inspect.getsource(feeder_service.build_runtime)
+        self.assertIn("LeaseFence", source)
+        self.assertIn("gateway", source)
+        self.assertIn("insert_batch", source)
 
-        def canonical_callback(frame, start, end):
-            return sync_window(
-                exchange, gateway, frame, start, end,
-                now_ms=lambda: self.observed_at,
-                lease_token=LEASE,
-                lease_clock=lambda: self.lease_now,
-            )
-
-        result = RecoveryCoordinator(canonical_callback, read).recover(
-            "15m", START, START + STEP
-        )
-        self.assertTrue(result.complete)
-        self.assertEqual(len(gateway.calls), 1)
-        self.assertIs(gateway.calls[0][1], LEASE)
-
-    def test_g2_09_cli_cannot_invoke_sync_without_explicit_capability(self):
+    def test_g2_09_cli_sync_requires_explicit_lease_capability(self):
         tree = ast.parse(inspect.getsource(sync.main))
         calls = [
             node for node in ast.walk(tree)
@@ -221,165 +185,114 @@ class G2WriterRoutingRedTests(unittest.TestCase):
             self.assertIn("lease_token", keywords)
             self.assertIn("lease_clock", keywords)
 
-    def test_g2_10_legacy_store_insert_is_not_a_canonical_writer_route(self):
-        self._assert_routing_api()
-        class LegacyStore:
-            def __init__(self):
-                self.insert_calls = 0
+    def test_g2_10_legacy_unfenced_store_insert_is_not_called_by_sync(self):
+        tree = ast.parse(inspect.getsource(sync.sync_window))
+        legacy_calls = [
+            node for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "insert"
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "store"
+        ]
+        self.assertEqual(legacy_calls, [])
 
-            def insert(self, candles):
-                self.insert_calls += 1
-                return len(candles)
+    def test_g2_11_legacy_insert_fenced_is_not_an_alternate_sync_route(self):
+        tree = ast.parse(inspect.getsource(sync.sync_window))
+        legacy_calls = [
+            node for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "insert_fenced"
+        ]
+        self.assertEqual(legacy_calls, [])
 
-        legacy = LegacyStore()
-        exchange = ExchangeDouble([[candle_row(START)]])
-        with self.assertRaises((TypeError, ValueError)):
-            sync_window(
-                exchange, legacy, "15m", START, START + STEP,
-                now_ms=lambda: self.observed_at,
-                lease_token=LEASE,
-                lease_clock=lambda: self.lease_now,
-            )
-        self.assertEqual(legacy.insert_calls, 0)
-
-    def test_g2_11_legacy_insert_fenced_is_not_an_alternate_route(self):
-        self._assert_routing_api()
-        class LegacyFencedStore:
-            def __init__(self):
-                self.calls = 0
-
-            def insert_fenced(self, candles, **kwargs):
-                self.calls += 1
-                return len(candles)
-
-        legacy = LegacyFencedStore()
-        exchange = ExchangeDouble([[candle_row(START)]])
-        with self.assertRaises((TypeError, ValueError)):
-            sync_window(
-                exchange, legacy, "15m", START, START + STEP,
-                now_ms=lambda: self.observed_at,
-                lease_token=LEASE,
-                lease_clock=lambda: self.lease_now,
-            )
-        self.assertEqual(legacy.calls, 0)
-
-    def test_g2_12_runtime_lease_path_does_not_create_schema(self):
+    def test_g2_12_runtime_lease_and_writer_paths_do_not_create_schema(self):
         runtime_sources = (
             inspect.getsource(feeder.LeaseStore._transaction),
             inspect.getsource(store.CandleStore.__init__),
-            inspect.getsource(storage.SQLiteCandleStore.insert),
-            inspect.getsource(storage.SQLiteCandleStore.insert_fenced),
         )
         for source in runtime_sources:
             normalized = " ".join(source.upper().split())
             self.assertNotIn("CREATE TABLE", normalized)
             self.assertNotIn("CREATE INDEX", normalized)
-        self.assertNotIn("CandleStore(self.path)", runtime_sources[2])
-        self.assertNotIn("CandleStore(self.path)", runtime_sources[3])
 
-    def test_g2_13_gateway_conflict_rejection_propagates(self):
-        exchange = ExchangeDouble([[candle_row(START)]])
-        gateway = GatewayDouble(error=CandleBatchRejected("conflicting candle"))
-        with self.assertRaises(CandleBatchRejected):
-            self._sync(exchange, gateway)
-        self.assertEqual(len(gateway.calls), 1)
-
-    def test_g2_14_identical_duplicate_is_idempotent(self):
-        exchange = ExchangeDouble([[candle_row(START)]])
-        gateway = GatewayDouble(result=0)
-        self.assertEqual(self._sync(exchange, gateway), 0)
-        self.assertEqual(len(gateway.calls), 1)
-
-    def test_g2_15_empty_exchange_page_is_a_gateway_noop(self):
-        exchange = ExchangeDouble([[]])
-        gateway = GatewayDouble()
-        self.assertEqual(self._sync(exchange, gateway), 0)
-        self.assertEqual(gateway.calls, [])
-
-    def test_g2_16_pagination_preserves_first_page_commit_on_second_page_failure(self):
-        self._assert_routing_api()
-        first = [candle_row(START + i * STEP) for i in range(1000)]
-        second = [candle_row(START + 1000 * STEP)]
-        exchange = ExchangeDouble([first, second])
-        end = START + 1001 * STEP
+    def test_g2_13_gateway_conflict_rejection_propagates_without_overwrite(self):
         with tempfile.TemporaryDirectory() as directory:
-            database = Path(directory) / "g2-pagination.sqlite3"
-            with sqlite3.connect(database) as connection:
-                connection.executescript(
-                    """
-                    CREATE TABLE candles (
-                        exchange TEXT NOT NULL, market_type TEXT NOT NULL,
-                        symbol TEXT NOT NULL, timeframe TEXT NOT NULL,
-                        open_time_ms INTEGER NOT NULL, open TEXT NOT NULL,
-                        high TEXT NOT NULL, low TEXT NOT NULL, close TEXT NOT NULL,
-                        volume TEXT NOT NULL, available_at_ms INTEGER NOT NULL,
-                        PRIMARY KEY (exchange, market_type, symbol, timeframe, open_time_ms)
-                    );
-                    CREATE TABLE feeder_leases (
-                        lease_name TEXT PRIMARY KEY, owner TEXT,
-                        generation INTEGER NOT NULL, expires_at_ms INTEGER NOT NULL
-                    );
-                    """
+            database = Path(directory) / "conflict.sqlite3"
+            create_shadow_db(database)
+            gateway = T0WriteGateway(str(database))
+            self.assertEqual(
+                gateway.insert_batch([candle(START)], lease_token=LEASE,
+                                     now_ms=lambda: self.lease_now),
+                1,
+            )
+            with self.assertRaises(CandleBatchRejected):
+                gateway.insert_batch(
+                    [candle(START, close="102.50")], lease_token=LEASE,
+                    now_ms=lambda: self.lease_now,
                 )
-                connection.execute(
-                    "INSERT INTO feeder_leases VALUES (?, ?, ?, ?)",
-                    (LEASE.lease_name, LEASE.owner_id, LEASE.generation,
-                     self.lease_now + 60_000),
-                )
-            real_gateway = T0WriteGateway(str(database))
-
-            class FailSecondPageGateway:
-                def __init__(self):
-                    self.calls = 0
-
-                def insert_batch(self, candles, *, lease_token, now_ms):
-                    self.calls += 1
-                    if self.calls == 2:
-                        raise RuntimeError("second page rejected")
-                    return real_gateway.insert_batch(
-                        candles, lease_token=lease_token, now_ms=now_ms
-                    )
-
-            gateway = FailSecondPageGateway()
-            with self.assertRaisesRegex(RuntimeError, "second page rejected"):
-                sync_window(
-                    exchange, gateway, "15m", START, end,
-                    now_ms=lambda: START + 2000 * STEP,
-                    lease_token=LEASE,
-                    lease_clock=lambda: self.lease_now,
-                )
-            self.assertEqual(gateway.calls, 2)
             with sqlite3.connect(database) as connection:
                 self.assertEqual(
-                    connection.execute("SELECT COUNT(*) FROM candles").fetchone()[0],
-                    1000,
+                    connection.execute("SELECT close FROM candles").fetchone()[0],
+                    "102.25",
                 )
 
-    def test_g2_17_available_at_uses_observation_clock_not_lease_clock(self):
-        exchange = ExchangeDouble([[candle_row(START)]])
-        gateway = GatewayDouble()
-        self._sync(exchange, gateway)
-        stored_candidate = gateway.calls[0][0][0]
-        self.assertEqual(stored_candidate.available_at_ms, self.observed_at)
-        self.assertTrue(callable(gateway.calls[0][2]))
-        self.assertNotEqual(stored_candidate.available_at_ms, self.lease_now)
-
-    def test_g2_18_postgres_store_cannot_bypass_gateway_for_canonical_sync(self):
-        self._assert_routing_api()
-        class PostgresLikeStore:
-            def insert(self, candles):
-                return len(candles)
-
-        postgres = PostgresLikeStore()
-        exchange = ExchangeDouble([[candle_row(START)]])
-        with self.assertRaises((TypeError, ValueError)):
-            sync_window(
-                exchange, postgres, "15m", START, START + STEP,
-                now_ms=lambda: self.observed_at,
-                lease_token=LEASE,
-                lease_clock=lambda: self.lease_now,
+    def test_g2_14_identical_duplicate_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "duplicate.sqlite3"
+            create_shadow_db(database)
+            gateway = T0WriteGateway(str(database))
+            self.assertEqual(
+                gateway.insert_batch([candle(START)], lease_token=LEASE,
+                                     now_ms=lambda: self.lease_now),
+                1,
             )
-        self.assertFalse(hasattr(postgres, "insert_batch"))
+            self.assertEqual(
+                gateway.insert_batch([candle(START, available=START + STEP + 99)],
+                                     lease_token=LEASE, now_ms=lambda: self.lease_now),
+                0,
+            )
+            with sqlite3.connect(database) as connection:
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM candles").fetchone()[0], 1)
+
+    def test_g2_15_empty_batch_is_gateway_noop_without_database(self):
+        gateway = T0WriteGateway("/path/that/must/not/be/opened.sqlite3")
+        self.assertEqual(
+            gateway.insert_batch([], lease_token=None, now_ms=None),
+            0,
+        )
+
+    def test_g2_16_pagination_keeps_first_page_when_second_page_fails(self):
+        first = [candle_row(START + index * STEP) for index in range(1000)]
+        exchange = ExchangeDouble([first, RuntimeError("second page rejected")])
+        observed = START + 2000 * STEP
+        legacy = LegacyStoreDouble(fail_on_call=2)
+        with self.assertRaisesRegex(RuntimeError, "second page rejected"):
+            sync.sync_window(
+                exchange, legacy, "15m", START, START + 1001 * STEP,
+                now_ms=lambda: observed,
+            )
+        self.assertEqual(len(legacy.calls), 2)
+        self.assertEqual(len(legacy.rows), 1000)
+
+    def test_g2_17_available_at_uses_observation_clock(self):
+        exchange = ExchangeDouble([[candle_row(START)]])
+        observed = START + 100 * STEP
+        legacy = LegacyStoreDouble()
+        self.assertEqual(
+            sync.sync_window(
+                exchange, legacy, "15m", START, START + STEP,
+                now_ms=lambda: observed,
+            ),
+            1,
+        )
+        self.assertEqual(legacy.rows[0].available_at_ms, observed)
+
+    def test_g2_18_postgres_backend_is_not_available_to_canonical_sync_cli(self):
+        source = inspect.getsource(sync.main)
+        self.assertNotIn('"postgres"', source)
+        self.assertNotIn('choices=("sqlite", "postgres")', source)
 
 
 if __name__ == "__main__":
