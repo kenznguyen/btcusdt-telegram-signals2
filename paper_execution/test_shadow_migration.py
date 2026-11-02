@@ -74,6 +74,27 @@ class ShadowMigrationContractTest(unittest.TestCase):
             "paper_daily_baselines", "paper_account_config",
         })
         self.assertTrue(set(PAPER_TABLES).issubset(self.tables(self.source)))
+        with sqlite3.connect(self.source) as db:
+            for timeframe, interval, expected_count in (("15m", 900_000, 12), ("1h", 3_600_000, 6)):
+                rows = db.execute(
+                    "SELECT open_time_ms FROM candles WHERE timeframe=? ORDER BY open_time_ms",
+                    (timeframe,),
+                ).fetchall()
+                self.assertEqual(len(rows), expected_count)
+                self.assertTrue(all(
+                    rows[index][0] - rows[index - 1][0] == interval
+                    for index in range(1, len(rows))
+                ), f"{timeframe} source candles must be contiguous")
+            lease_ddl = db.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name='feeder_leases'"
+            ).fetchone()[0]
+            self.assertIn("CHECK(generation >= 0)", lease_ddl)
+            self.assertIn("CHECK(expires_at_ms >= 0)", lease_ddl)
+            runtime_ddl = db.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name='feeder_runtime_status'"
+            ).fetchone()[0]
+            self.assertIn("CHECK(generation >= 1)", runtime_ddl)
+            self.assertIn("CHECK(recovery_complete IN (0,1))", runtime_ddl)
 
     def test_A02_inventory_includes_every_user_table_and_sqlite_sequence(self):
         result = self.migrate()
@@ -96,6 +117,12 @@ class ShadowMigrationContractTest(unittest.TestCase):
         self.migrate()
         manifest = json.loads((self.manifests / "migration_manifest.json").read_text())
         self.assertEqual(manifest["paper_config"], PAPER_CONFIG)
+        self.assertEqual(self.fixture["paper_config"], PAPER_CONFIG)
+        with sqlite3.connect(self.source) as db:
+            self.assertEqual(
+                db.execute("SELECT initial_capital FROM paper_account_config WHERE id=1").fetchone(),
+                (PAPER_CONFIG["initial_capital"],),
+            )
         self.assertTrue(manifest["paper_config_sha256"])
 
     def test_B01_all_nine_paper_tables_exist_only_in_paper_target(self):
@@ -130,13 +157,18 @@ class ShadowMigrationContractTest(unittest.TestCase):
         self.migrate()
         def objects(path):
             with sqlite3.connect(path) as db:
-                return set(db.execute("""SELECT type,name,sql FROM sqlite_master
-                    WHERE type IN ('index','trigger') AND sql IS NOT NULL"""))
-        source = {row for row in objects(self.source)
-                  if row[1].startswith(("paper_", "sqlite_autoindex"))}
-        target = {row for row in objects(self.paper)
-                  if row[1].startswith(("paper_", "sqlite_autoindex"))}
+                return set(db.execute("""SELECT type,name,tbl_name,sql FROM sqlite_master
+                    WHERE type IN ('index','trigger') AND tbl_name LIKE 'paper_%'"""))
+        source = objects(self.source)
+        target = objects(self.paper)
         self.assertEqual(source, target)
+        source_names = {row[1] for row in source}
+        self.assertIn("paper_order_status", source_names)
+        self.assertIn("paper_equity_time", source_names)
+        self.assertTrue(any(name.startswith("sqlite_autoindex_paper_orders_")
+                            for name in source_names))
+        self.assertTrue(any(name.startswith("sqlite_autoindex_paper_audit_")
+                            for name in source_names))
 
     def test_B06_foreign_key_check_and_integrity_check_pass_on_both_targets(self):
         result = self.migrate()
@@ -156,9 +188,27 @@ class ShadowMigrationContractTest(unittest.TestCase):
         self.migrate()
         with sqlite3.connect(self.source) as source, sqlite3.connect(self.paper) as target:
             for name in ("paper_audit", "paper_equity_history"):
-                self.assertEqual(
-                    source.execute("SELECT seq FROM sqlite_sequence WHERE name=?", (name,)).fetchone(),
-                    target.execute("SELECT seq FROM sqlite_sequence WHERE name=?", (name,)).fetchone())
+                source_ddl = source.execute(
+                    "SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (name,)
+                ).fetchone()[0]
+                target_ddl = target.execute(
+                    "SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (name,)
+                ).fetchone()[0]
+                self.assertIn("AUTOINCREMENT", source_ddl.upper())
+                self.assertIn("AUTOINCREMENT", target_ddl.upper())
+                source_max = source.execute(f"SELECT COALESCE(MAX(id),0) FROM {name}").fetchone()[0]
+                target_max = target.execute(f"SELECT COALESCE(MAX(id),0) FROM {name}").fetchone()[0]
+                source_seq = source.execute(
+                    "SELECT seq FROM sqlite_sequence WHERE name=?", (name,)
+                ).fetchone()
+                target_seq = target.execute(
+                    "SELECT seq FROM sqlite_sequence WHERE name=?", (name,)
+                ).fetchone()
+                self.assertIsNotNone(source_seq)
+                self.assertIsNotNone(target_seq)
+                self.assertGreaterEqual(source_seq[0], source_max)
+                self.assertGreaterEqual(target_seq[0], target_max)
+                self.assertEqual(target_seq, source_seq)
 
     def test_C01_open_position_cost_basis_fees_and_realized_pnl_are_preserved(self):
         self.migrate()
@@ -278,8 +328,10 @@ class ShadowMigrationContractTest(unittest.TestCase):
     def test_E04_new_unresolved_candle_gap_is_detected_before_acceptance(self):
         self.assert_successful_migration_precondition()
         with sqlite3.connect(self.t0) as db:
-            db.execute("DELETE FROM candles WHERE timeframe='15m' AND open_time_ms=("
-                       "SELECT MIN(open_time_ms) FROM candles WHERE timeframe='15m')")
+            db.execute(
+                "DELETE FROM candles WHERE timeframe='15m' AND open_time_ms=?",
+                (self.fixture["m15_gap_mutation_open_time_ms"],),
+            )
         with self.assertRaises((ValueError, RuntimeError)):
             self.verify()
 
