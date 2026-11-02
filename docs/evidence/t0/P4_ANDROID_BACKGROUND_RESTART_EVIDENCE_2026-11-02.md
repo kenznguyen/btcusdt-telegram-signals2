@@ -169,7 +169,7 @@ The following 17 hashes were supplied by the Android Termux evidence inventory. 
 | P4.3 process A script | `cc4c1adf62643e00c965ff551698ac9f9d4a229cd8b88b1d9933bc7c3cf1b8d5` |
 | P4.3 process B script | `06fb92b3b0b27b1179d0b52d57a55522a511a9c295dfa5989c46303482a53b62` |
 | P4.3 process A log | `82e02383775d883d708a2225feee34bb4b0ec4b00755f4475e28a1a0ac49d48d` |
-| P4.3 process B log | `077118969b80286102c93bfeb9fe23e21093fe99ce6d5f175965db2b5d0069` |
+| P4.3 process B log | `077118969bcb80286102c93bfeb9fe23e21093fe99ce6d5f175965db2b5d0069` |
 | P4.4 process A script | `926fc9f8a2413f9c752b004c62aaff842eb0194fc114f59f7d47d8c0124e597a` |
 | P4.4 process B script | `3f765ffccda8ab0011e6d6e7bd53fe700795309f4025befc78bcb56ca2336e1d` |
 | P4.4 process A log | `2e3d82b5f5be50c523861339047ca9a8623fed7fe4c25974539e82ef6712c790` |
