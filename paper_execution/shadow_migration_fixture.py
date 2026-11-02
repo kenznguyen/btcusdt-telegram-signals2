@@ -81,6 +81,7 @@ def build_legacy_fixture(path):
         # Both source time series are contiguous before any fault injection.
         _insert_candles(db, _candles("15m", 12, m15_start, 900_000))
         _insert_candles(db, _candles("1h", 6, h1_start, 3_600_000))
+        db.commit()
 
         # Use production LeaseStore to create the exact feeder_leases schema.
         lease_store = LeaseStore(path, lease_name=LEASE_NAME)
