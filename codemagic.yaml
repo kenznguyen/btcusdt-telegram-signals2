@@ -999,7 +999,7 @@ workflows:
           import ast
           from pathlib import Path
           roots = [Path(".")]
-          excluded = {".git", ".venv", "venv", "__pycache__", "node_modules", "android-app", "control_dashboard"}
+          excluded = {".git", ".venv", "venv", ".ci-tools", "__pycache__", "node_modules", "android-app", "control_dashboard"}
           patterns = ("execute","executemany","executescript","commit","connect","insert","update","delete","ensure","initialize","migrate","snapshot","read_snapshot","audit")
           print("P5.2.5 AST WRITER/MUTATOR SCAN")
           print("SOURCE_SHA=" + __import__("subprocess").check_output(["git","rev-parse","HEAD"], text=True).strip())
@@ -1030,7 +1030,7 @@ workflows:
           PY
           python /tmp/p5_writer_scan.py 2>&1 | tee p5-2-5-writer-scan.log
           grep -q "SOURCE_SHA=$(git rev-parse HEAD)" p5-2-5-writer-scan.log
-          grep -RInE --include='*.py' --exclude-dir='__pycache__' --exclude-dir='.venv' 'BEGIN IMMEDIATE|BEGIN EXCLUSIVE|INSERT[[:space:]]+INTO|UPDATE[[:space:]]+[^;]+SET|DELETE[[:space:]]+FROM|CREATE[[:space:]]+TABLE|DROP[[:space:]]+TABLE|ALTER[[:space:]]+TABLE|\.execute\(|\.executemany\(' market_data paper_execution integrations futures_intelligence pipeline freqai_bridge >> p5-2-5-writer-scan.log || true
+          grep -RInE --include='*.py' --exclude-dir='__pycache__' --exclude-dir='.venv' --exclude-dir='.ci-tools' 'BEGIN IMMEDIATE|BEGIN EXCLUSIVE|INSERT[[:space:]]+INTO|UPDATE[[:space:]]+[^;]+SET|DELETE[[:space:]]+FROM|CREATE[[:space:]]+TABLE|DROP[[:space:]]+TABLE|ALTER[[:space:]]+TABLE|\.execute\(|\.executemany\(' market_data paper_execution integrations futures_intelligence pipeline freqai_bridge >> p5-2-5-writer-scan.log || true
           echo "P5_2_5_WRITER_SCAN=AST_AND_SQL_CANDIDATES_REQUIRES_MANUAL_CLASSIFICATION" | tee p5-2-5-writer-scan-verdict.txt
       - name: Compile runtime test modules (record status; do not short-circuit other suite)
         script: |
