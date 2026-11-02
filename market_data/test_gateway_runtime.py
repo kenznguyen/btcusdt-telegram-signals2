@@ -32,11 +32,12 @@ class T0WriteGatewayRuntimeTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         self.db = self.root / "shadow.sqlite3"
-        self.lease = LeaseStore(self.db)
+        # LeaseStore validates string/bytes paths; Path objects are not accepted.
+        self.lease = LeaseStore(str(self.db))
         self.now = 1_800_000_000_000
         self.owner = "runtime-test-writer"
         self.lease_token = self.lease.acquire(self.owner, self.now, ttl_seconds=60)
-        self.gateway = T0WriteGateway(db_path=self.db, lease_store=self.lease) if T0WriteGateway else None
+        self.gateway = T0WriteGateway(db_path=str(self.db), lease_store=self.lease) if T0WriteGateway else None
 
     def tearDown(self):
         self.temp.cleanup()
@@ -52,7 +53,7 @@ class T0WriteGatewayRuntimeTests(unittest.TestCase):
         )
 
     def count(self):
-        with sqlite3.connect(self.db) as connection:
+        with sqlite3.connect(str(self.db)) as connection:
             return connection.execute("SELECT COUNT(*) FROM candles").fetchone()[0]
 
     def test_gateway_contract_module_is_present(self):
@@ -94,7 +95,7 @@ class T0WriteGatewayRuntimeTests(unittest.TestCase):
         with self.assertRaises((GatewayWriteError, ValueError)):
             self.write([good, self.candle(1_799_999_100_000, close="102")])
         self.assertEqual(self.count(), 1)
-        with sqlite3.connect(self.db) as connection:
+        with sqlite3.connect(str(self.db)) as connection:
             self.assertEqual(connection.execute(
                 "SELECT open_time_ms FROM candles ORDER BY open_time_ms"
             ).fetchall(), [(1_799_999_100_000,)])
