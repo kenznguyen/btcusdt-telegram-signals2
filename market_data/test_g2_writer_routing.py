@@ -59,15 +59,17 @@ class ExchangeDouble:
 
 
 class GatewayDouble:
-    def __init__(self, result=None, error=None):
+    def __init__(self, result=None, error=None, error_at_call=None):
         self.result = result
         self.error = error
+        self.error_at_call = error_at_call
         self.calls = []
 
     def insert_batch(self, candles, *, lease_token, now_ms):
         batch = tuple(candles)
         self.calls.append((batch, lease_token, now_ms))
-        if self.error is not None:
+        if (self.error is not None
+                and (self.error_at_call is None or len(self.calls) == self.error_at_call)):
             raise self.error
         if self.result is not None:
             return self.result
@@ -265,7 +267,9 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         second = [candle_row(START + 1000 * STEP)]
         exchange = ExchangeDouble([first, second])
         end = START + 1001 * STEP
-        gateway = GatewayDouble(error=RuntimeError("second page rejected"))
+        gateway = GatewayDouble(
+            error=RuntimeError("second page rejected"), error_at_call=2
+        )
         with self.assertRaisesRegex(RuntimeError, "second page rejected"):
             sync_window(
                 exchange, gateway, "15m", START, end,
