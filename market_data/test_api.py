@@ -9,6 +9,8 @@ from unittest.mock import patch
 from market_data.api import application
 from market_data.store import Candle, CandleStore, INTERVAL_MS
 from market_data.sync import sync_window
+from market_data.gateway import LeaseFence, T0WriteGateway
+from market_data.feeder import LeaseStore
 
 
 class CandleApiTest(unittest.TestCase):
@@ -19,6 +21,7 @@ class CandleApiTest(unittest.TestCase):
         self.interval = INTERVAL_MS["15m"]
         self.start = 1_800_000_000_000 // self.interval * self.interval
         store = CandleStore(self.db)
+        store.initialize_schema()
         store.insert([Candle("15m", self.start, "100.01", "101", "99", "100.5", "2.50", self.start + self.interval + 7)])
         self.config = {"MARKET_DATA_DB": str(self.db), "MARKET_DATA_TOKEN": "read-only-token"}
 
@@ -113,8 +116,18 @@ class CandleApiTest(unittest.TestCase):
                         [start + step, 100, 102, 99, 101, 3]]
 
         path = Path(self.temp.name) / "pipeline.sqlite3"
-        inserted = sync_window(Exchange(), CandleStore(path), "15m", start, start+2*step,
-                               now_ms=lambda: start+3*step)
+        CandleStore(path).initialize_schema()
+        leases = LeaseStore(path)
+        leases.initialize_schema()
+        lease = leases.acquire("api-sync-test", now_ms=start, ttl_seconds=60)
+        gateway = T0WriteGateway(path)
+        lease_token = LeaseFence(leases.lease_name, "api-sync-test", lease.generation)
+        inserted = sync_window(
+            Exchange(), "15m", start, start+2*step,
+            gateway=gateway, lease_token=lease_token,
+            lease_clock=lambda: start+1,
+            now_ms=lambda: start+3*step,
+        )
         self.assertEqual(inserted, 1)
         self.config["MARKET_DATA_DB"] = str(path)
         code, result = self.request()
