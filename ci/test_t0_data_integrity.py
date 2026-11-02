@@ -104,6 +104,16 @@ class T0DataIntegrityGateTest(unittest.TestCase):
         self.assertEqual(report["timeframes"]["1h"]["missing_candles"], 1)
         self.assertIn("candle_gap", {issue["code"] for issue in report["issues"]})
 
+    def test_invalid_candle_does_not_hide_a_missing_slot(self):
+        self.insert("15m", 0)
+        self.insert("15m", 900_000, open_="103", high="102")
+        self.insert("15m", 1_800_000)
+        report = self.audit()
+        self.assertEqual(report["timeframes"]["15m"]["missing_candles"], 1)
+        codes = {issue["code"] for issue in report["issues"]}
+        self.assertIn("invalid_ohlcv", codes)
+        self.assertIn("candle_gap", codes)
+
     def test_noncanonical_market_identity_is_reported(self):
         self.insert("15m", 0, symbol="ETHUSDT")
         report = self.audit()
