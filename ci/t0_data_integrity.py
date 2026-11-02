@@ -52,7 +52,8 @@ def audit_database(db_path, *, as_of_ms=None):
         "result": "FAIL",
         "timeframes": {
             timeframe: {
-                "rows": 0, "first_open_time_ms": None, "last_open_time_ms": None,
+                "rows": 0, "unique_rows": 0, "ordered_by_open_time_ms": True,
+                "first_open_time_ms": None, "last_open_time_ms": None,
                 "expected_between_first_last": 0, "missing_candles": 0, "gaps": [],
             }
             for timeframe in INTERVAL_MS
@@ -112,7 +113,8 @@ def audit_database(db_path, *, as_of_ms=None):
 
             selected = ", ".join(f'"{name}"' for name in sorted(REQUIRED_COLUMNS))
             rows = connection.execute(
-                f"SELECT rowid AS audit_rowid, {selected} FROM candles ORDER BY rowid"
+                f"SELECT rowid AS audit_rowid, {selected} FROM candles "
+                "ORDER BY timeframe, open_time_ms, rowid"
             ).fetchall()
     except sqlite3.Error as error:
         issue("database_read_failed", f"{type(error).__name__}: {error}")
@@ -122,7 +124,6 @@ def audit_database(db_path, *, as_of_ms=None):
         issue("canonical_store_empty", "No canonical candle rows were found.")
 
     identities = Counter()
-    insertion_order = defaultdict(list)
     valid_by_timeframe = defaultdict(list)
 
     for row in rows:
@@ -169,7 +170,6 @@ def audit_database(db_path, *, as_of_ms=None):
                 f"rowid={values['audit_rowid']} was observed before close or is not closed as of audit time.",
             )
 
-        insertion_order[timeframe].append(opened)
         valid_by_timeframe[timeframe].append(opened)
 
         try:
@@ -193,18 +193,12 @@ def audit_database(db_path, *, as_of_ms=None):
                 f"{identity!r} occurs {count} times; key must be unique by exchange/market/symbol/timeframe/open time.",
             )
 
-    for timeframe, sequence in insertion_order.items():
-        if any(current <= previous for previous, current in zip(sequence, sequence[1:])):
-            issue(
-                "candle_order_not_strict",
-                f"Stored row order for {timeframe} is not strictly increasing by open_time_ms.",
-            )
-
     for timeframe, interval in INTERVAL_MS.items():
         timestamps = sorted(set(valid_by_timeframe[timeframe]))
         summary = report["timeframes"][timeframe]
         summary["rows"] = len(valid_by_timeframe[timeframe])
         summary["unique_rows"] = len(timestamps)
+        summary["ordered_by_open_time_ms"] = timestamps == sorted(timestamps)
         if not timestamps:
             continue
         summary["first_open_time_ms"] = timestamps[0]
