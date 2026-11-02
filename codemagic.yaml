@@ -877,6 +877,7 @@ workflows:
         script: |
           set -euo pipefail
           "$CI_PYTHON" -m unittest ci.test_t0_final_runtime_config -v 2>&1 | tee t0-final-runtime-config-tests.log
+          "$CI_PYTHON" -m py_compile ci/t0_final_runtime_config.py ci/test_t0_final_runtime_config.py
       - name: Audit configured runtime settings and optional existing SQLite database
         script: |
           set -euo pipefail
