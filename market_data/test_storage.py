@@ -84,7 +84,7 @@ class StorageFactoryTest(unittest.TestCase):
                     return [[0, 100, 102, 99, 101, 5]]
 
             self.assertEqual(sync_window(
-                Exchange(), gateway, "15m", 0, step, lease_token=token,
+                Exchange(), "15m", 0, step, gateway=gateway, lease_token=token,
                 lease_clock=lambda: 1, now_ms=lambda: step,
             ), 1)
             self.assertEqual(store.read_window("BTCUSDT", "15m", 0, step)["coverage"]["returned"], 1)
