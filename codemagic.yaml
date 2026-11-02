@@ -998,14 +998,15 @@ workflows:
           cat > /tmp/p5_writer_scan.py <<'PY'
           import ast
           from pathlib import Path
-          roots = [Path(x) for x in ("market_data","paper_execution","integrations","futures_intelligence","pipeline","freqai_bridge")]
+          roots = [Path(".")]
+          excluded = {".git", ".venv", "venv", "__pycache__", "node_modules", "android-app", "control_dashboard"}
           patterns = ("execute","executemany","executescript","commit","connect","insert","update","delete","ensure","initialize","migrate","snapshot","read_snapshot","audit")
           print("P5.2.5 AST WRITER/MUTATOR SCAN")
           print("SOURCE_SHA=" + __import__("subprocess").check_output(["git","rev-parse","HEAD"], text=True).strip())
           for root in roots:
               if not root.exists(): continue
               for path in sorted(root.rglob("*.py")):
-                  if any(part in {".venv","venv","__pycache__"} for part in path.parts): continue
+                  if any(part in excluded for part in path.parts): continue
                   try: tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
                   except Exception as exc:
                       print(f"PARSE_ERROR {path}: {exc}"); continue
@@ -1034,7 +1035,7 @@ workflows:
       - name: Compile runtime test modules (record status; do not short-circuit other suite)
         script: |
           set +e
-          "$CI_PYTHON" -m py_compile market_data/test_gateway_runtime.py paper_execution/test_writer_gate_runtime.py > p5-2-5-runtime-compile.log 2>&1
+          "$CI_PYTHON" -m py_compile market_data/test_gateway_runtime.py paper_execution/test_writer_gate_runtime.py pipeline/test_paper_writer_isolation_runtime.py > p5-2-5-runtime-compile.log 2>&1
           status=$?
           set -e
           echo "EXIT_STATUS=$status" | tee p5-2-5-runtime-compile-status.txt
@@ -1071,13 +1072,30 @@ workflows:
           else
             echo "P5_2_5_PAPER_WRITER_RUNTIME=UNCLASSIFIED" | tee p5-2-5-paper-writer-runtime-verdict.txt
           fi
-      - name: Aggregate validation verdicts after both suites
+      - name: Run pipeline Paper writer isolation runtime tests independently
+        script: |
+          set +e
+          "$CI_PYTHON" -m unittest pipeline.test_paper_writer_isolation_runtime -v 2>&1 | tee p5-2-5-pipeline-paper-isolation-red.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "EXIT_STATUS=$status" | tee p5-2-5-pipeline-paper-isolation-status.txt
+          if grep -Eq 'ModuleNotFoundError|ImportError|SyntaxError|TypeError:|FAILED \(errors=' p5-2-5-pipeline-paper-isolation-red.log; then
+            echo "P5_2_5_PIPELINE_PAPER_ISOLATION=INVALID_HARNESS" | tee p5-2-5-pipeline-paper-isolation-verdict.txt
+          elif [ "$status" -ne 0 ] && grep -Eq 'CONTRACT RED:|FAIL:|AssertionError' p5-2-5-pipeline-paper-isolation-red.log; then
+            echo "P5_2_5_PIPELINE_PAPER_ISOLATION=CONTRACT_RED_CANDIDATE" | tee p5-2-5-pipeline-paper-isolation-verdict.txt
+          elif [ "$status" -eq 0 ]; then
+            echo "P5_2_5_PIPELINE_PAPER_ISOLATION=PASS_OR_UNEXPECTED_GREEN_REVIEW" | tee p5-2-5-pipeline-paper-isolation-verdict.txt
+          else
+            echo "P5_2_5_PIPELINE_PAPER_ISOLATION=UNCLASSIFIED" | tee p5-2-5-pipeline-paper-isolation-verdict.txt
+          fi
+      - name: Aggregate validation verdicts after all suites
         script: |
           set -euo pipefail
-          cat p5-2-5-runtime-compile-status.txt p5-2-5-gateway-runtime-verdict.txt p5-2-5-paper-writer-runtime-verdict.txt
+          cat p5-2-5-runtime-compile-status.txt p5-2-5-gateway-runtime-verdict.txt p5-2-5-paper-writer-runtime-verdict.txt p5-2-5-pipeline-paper-isolation-verdict.txt
           test "$(cat p5-2-5-runtime-compile-status.txt)" = "EXIT_STATUS=0"
           grep -q 'P5_2_5_GATEWAY_RUNTIME=CONTRACT_RED_CANDIDATE' p5-2-5-gateway-runtime-verdict.txt
           grep -q 'P5_2_5_PAPER_WRITER_RUNTIME=CONTRACT_RED_CANDIDATE' p5-2-5-paper-writer-runtime-verdict.txt
+          grep -q 'P5_2_5_PIPELINE_PAPER_ISOLATION=CONTRACT_RED_CANDIDATE' p5-2-5-pipeline-paper-isolation-verdict.txt
           echo "P5_2_5_G2=RED_CANDIDATES_REQUIRING_SOURCE_REVIEW" | tee p5-2-5-final-verdict.txt
     artifacts:
       - ci-source-sha.txt
@@ -1092,4 +1110,7 @@ workflows:
       - p5-2-5-paper-writer-runtime-red.log
       - p5-2-5-paper-writer-runtime-status.txt
       - p5-2-5-paper-writer-runtime-verdict.txt
+      - p5-2-5-pipeline-paper-isolation-red.log
+      - p5-2-5-pipeline-paper-isolation-status.txt
+      - p5-2-5-pipeline-paper-isolation-verdict.txt
       - p5-2-5-final-verdict.txt
