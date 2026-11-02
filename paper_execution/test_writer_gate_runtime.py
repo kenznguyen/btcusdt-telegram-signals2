@@ -28,6 +28,7 @@ class PaperWriterGateRuntimeTests(unittest.TestCase):
 
     @unittest.skipIf(PaperWriterGate is None, "Writer Gate contract module is absent; explicit RED assertion covers this")
 
+    @unittest.skipIf(PaperWriterGate is None, "Writer Gate module absent; explicit contract RED assertion covers this")
     def test_admission_returns_opaque_generation_bound_token(self):
         token = self.gate.admit_writer()
         self.assertIsNotNone(token)
@@ -36,6 +37,7 @@ class PaperWriterGateRuntimeTests(unittest.TestCase):
         self.gate.release_writer(token)
         self.assertEqual(self.gate.active_writers, 0)
 
+    @unittest.skipIf(PaperWriterGate is None, "Writer Gate module absent; explicit contract RED assertion covers this")
     def test_drain_closes_admission_before_waiting_for_existing_writer(self):
         token = self.gate.admit_writer()
         result = []
@@ -53,6 +55,7 @@ class PaperWriterGateRuntimeTests(unittest.TestCase):
         self.assertEqual(self.gate.state, "DRAINED")
         self.assertEqual(result, ["DRAINED"])
 
+    @unittest.skipIf(PaperWriterGate is None, "Writer Gate module absent; explicit contract RED assertion covers this")
     def test_drain_timeout_is_fail_closed_and_does_not_reopen(self):
         token = self.gate.admit_writer()
         with self.assertRaises(TimeoutError):
@@ -65,22 +68,26 @@ class PaperWriterGateRuntimeTests(unittest.TestCase):
         self.gate.reopen(authorized=True)
         self.assertEqual(self.gate.state, "OPEN")
 
+    @unittest.skipIf(PaperWriterGate is None, "Writer Gate module absent; explicit contract RED assertion covers this")
     def test_release_is_idempotent_and_cannot_underflow(self):
         token = self.gate.admit_writer()
         self.gate.release_writer(token)
         self.gate.release_writer(token)
         self.assertEqual(self.gate.active_writers, 0)
 
+    @unittest.skipIf(PaperWriterGate is None, "Writer Gate module absent; explicit contract RED assertion covers this")
     def test_token_from_another_gate_is_rejected(self):
         foreign = PaperWriterGate(scope="paper_only").admit_writer()
         with self.assertRaises(WriterGateError):
             self.gate.validate_writer(foreign)
     
+    @unittest.skipIf(PaperWriterGate is None, "Writer Gate module absent; explicit contract RED assertion covers this")
     def test_wrong_scope_cannot_authorize_t0(self):
         self.assertEqual(self.gate.scope, "paper_only")
         with self.assertRaises(WriterGateError):
             self.gate.authorize_scope("t0_canonical")
 
+    @unittest.skipIf(PaperWriterGate is None, "Writer Gate module absent; explicit contract RED assertion covers this")
     def test_stale_generation_token_cannot_validate_after_reopen(self):
         token = self.gate.admit_writer()
         self.gate.release_writer(token)
@@ -89,6 +96,7 @@ class PaperWriterGateRuntimeTests(unittest.TestCase):
         with self.assertRaises(WriterGateError):
             self.gate.validate_writer(token)
 
+    @unittest.skipIf(PaperWriterGate is None, "Writer Gate module absent; explicit contract RED assertion covers this")
     def test_reopen_requires_drained_state_and_explicit_authorization(self):
         with self.assertRaises(WriterGateError):
             self.gate.reopen(authorized=True)
