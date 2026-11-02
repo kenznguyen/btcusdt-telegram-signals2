@@ -8,10 +8,23 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from market_data.gateway import T0WriteGateway, GatewayWriteError
-from market_data.lease_store import LeaseStore
+from dataclasses import replace
+from market_data.feeder import LeaseStore
 from market_data.store import Candle
-from paper_execution.writer_gate import PaperWriterGate
+
+try:
+    from market_data.gateway import T0WriteGateway, GatewayWriteError
+except ModuleNotFoundError as exc:
+    if exc.name != "market_data.gateway":
+        raise
+    T0WriteGateway = GatewayWriteError = None
+
+try:
+    from paper_execution.writer_gate import PaperWriterGate
+except ModuleNotFoundError as exc:
+    if exc.name != "paper_execution.writer_gate":
+        raise
+    PaperWriterGate = None
 
 
 class T0WriteGatewayRuntimeTests(unittest.TestCase):
@@ -20,13 +33,10 @@ class T0WriteGatewayRuntimeTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.db = self.root / "shadow.sqlite3"
         self.lease = LeaseStore(self.db)
-        self.gateway = T0WriteGateway(db_path=self.db, lease_store=self.lease)
         self.now = 1_800_000_000_000
         self.owner = "runtime-test-writer"
-        self.lease_token = self.lease.acquire(
-            owner=self.owner, lease_name="binance-btcusdt-canonical",
-            now_ms=self.now, ttl_ms=60_000,
-        )
+        self.lease_token = self.lease.acquire(self.owner, self.now, ttl_seconds=60)
+        self.gateway = T0WriteGateway(db_path=self.db, lease_store=self.lease) if T0WriteGateway else None
 
     def tearDown(self):
         self.temp.cleanup()
@@ -45,6 +55,11 @@ class T0WriteGatewayRuntimeTests(unittest.TestCase):
         with sqlite3.connect(self.db) as connection:
             return connection.execute("SELECT COUNT(*) FROM candles").fetchone()[0]
 
+    def test_gateway_contract_module_is_present(self):
+        self.assertIsNotNone(T0WriteGateway,
+            "CONTRACT RED: market_data.gateway module/API is not implemented")
+
+    @unittest.skipIf(T0WriteGateway is None, "Gateway contract module is absent; explicit RED assertion covers this")
     def test_valid_lease_commits_batch_atomically(self):
         candles = [self.candle(1_799_998_200_000), self.candle(1_799_999_100_000)]
         self.assertEqual(self.write(candles), 2)
@@ -88,8 +103,7 @@ class T0WriteGatewayRuntimeTests(unittest.TestCase):
         self.assertEqual(self.count(), 1)
 
     def test_wrong_owner_or_generation_is_rejected(self):
-        wrong = dict(self.lease_token)
-        wrong["owner"] = "forged-owner"
+        wrong = replace(self.lease_token, owner="forged-owner")
         with self.assertRaises(GatewayWriteError):
             self.write([self.candle(1_799_998_200_000)], token=wrong)
         self.assertEqual(self.count(), 0)
@@ -99,6 +113,7 @@ class T0WriteGatewayRuntimeTests(unittest.TestCase):
             T0WriteGateway(backend="postgres", allow_unfenced_postgres=False)
 
     def test_gateway_never_accepts_paper_writer_token(self):
+        self.assertIsNotNone(PaperWriterGate, "Paper Writer Gate contract module is absent")
         paper_gate = PaperWriterGate(scope="paper_only")
         token = paper_gate.admit_writer()
         with self.assertRaises(GatewayWriteError):
