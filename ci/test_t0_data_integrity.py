@@ -80,7 +80,7 @@ class T0DataIntegrityGateTest(unittest.TestCase):
         report = self.audit()
         codes = {issue["code"] for issue in report["issues"]}
         self.assertIn("timestamp_not_aligned", codes)
-        self.assertIn("candle_order_not_strict", codes)
+        self.assertTrue(report["timeframes"]["15m"]["ordered_by_open_time_ms"])
 
     def test_invalid_ohlcv_bounds_and_negative_volume_are_reported(self):
         self.insert("15m", 0, open_="103", high="102")
@@ -108,6 +108,12 @@ class T0DataIntegrityGateTest(unittest.TestCase):
         self.insert("15m", 0, symbol="ETHUSDT")
         report = self.audit()
         self.assertIn("noncanonical_market_identity", {issue["code"] for issue in report["issues"]})
+
+    def test_ingestion_rejects_duplicate_or_out_of_order_exchange_pages(self):
+        sync_source = (Path(__file__).resolve().parents[1] / "market_data" / "sync.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("opened <= previous", sync_source)
 
     def test_audit_does_not_modify_database_bytes(self):
         self.insert("15m", 0)
