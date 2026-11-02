@@ -26,7 +26,6 @@ class PaperWriterGateRuntimeTests(unittest.TestCase):
         self.assertIsNotNone(PaperWriterGate,
             "CONTRACT RED: paper_execution.writer_gate module/API is not implemented")
 
-    @unittest.skipIf(PaperWriterGate is None, "Writer Gate contract module is absent; explicit RED assertion covers this")
 
     @unittest.skipIf(PaperWriterGate is None, "Writer Gate module absent; explicit contract RED assertion covers this")
     def test_admission_returns_opaque_generation_bound_token(self):
