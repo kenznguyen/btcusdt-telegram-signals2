@@ -414,21 +414,26 @@ class T0GatewayG1RedTests(unittest.TestCase):
     def test_g1_14b_expiry_after_final_admission_does_not_revoke_batch(self):
         self.require_gateway()
         gateway = self._gateway()
-        clock_state = {"calls": 0, "expired": False}
+        expires_at_ms = self.now + LEASE_TTL_MS
+        clock_state = {"calls": 0, "current_ms": self.now}
 
         def clock():
             clock_state["calls"] += 1
             if clock_state["calls"] == 1:
-                return self.now
+                return clock_state["current_ms"]
             if clock_state["calls"] == 2:
-                clock_state["expired"] = True
-                return self.now + LEASE_TTL_MS - 1
-            raise AssertionError("Gateway called the clock more than twice")
+                # Capture a still-valid final-admission timestamp, then advance
+                # the external clock state to expiry before returning control.
+                admitted_at_ms = expires_at_ms - 1
+                clock_state["current_ms"] = expires_at_ms
+                return admitted_at_ms
+            raise AssertionError("Gateway rechecked the clock after final admission")
 
         accepted = self._write(gateway, [self._candle(FIRST_OPEN_MS)], clock=clock)
 
         self.assertEqual(accepted, 1)
-        self.assertTrue(clock_state["expired"])
+        self.assertEqual(clock_state["current_ms"], expires_at_ms)
+        self.assertGreaterEqual(clock_state["current_ms"], expires_at_ms)
         self.assertEqual(clock_state["calls"], 2)
         self.assertEqual(len(self._rows()), 1)
         gateway.close()
