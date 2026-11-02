@@ -39,7 +39,7 @@ def candle(opened, close="102.25", available=None):
 
 
 def create_shadow_db(path, *, owner=LEASE.owner_id, generation=LEASE.generation,
-                     expires_at=START + 10_000_000):
+                     expires_at=START + 10_000_000_000):
     with sqlite3.connect(path) as connection:
         connection.executescript(
             """
@@ -199,6 +199,7 @@ class G2WriterRoutingRedTests(unittest.TestCase):
 
     def test_g2_11_legacy_insert_fenced_is_not_an_alternate_sync_route(self):
         tree = ast.parse(inspect.getsource(sync.sync_window))
+        source = inspect.getsource(sync.sync_window)
         legacy_calls = [
             node for node in ast.walk(tree)
             if isinstance(node, ast.Call)
@@ -206,6 +207,7 @@ class G2WriterRoutingRedTests(unittest.TestCase):
             and node.func.attr == "insert_fenced"
         ]
         self.assertEqual(legacy_calls, [])
+        self.assertNotIn('getattr(store, "insert_fenced"', source)
 
     def test_g2_12_runtime_lease_and_writer_paths_do_not_create_schema(self):
         runtime_sources = (
