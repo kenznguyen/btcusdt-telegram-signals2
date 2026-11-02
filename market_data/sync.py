@@ -33,11 +33,11 @@ def validate_market(exchange):
 
 def sync_window(
     exchange,
-    gateway,
     timeframe,
     start_ms,
     end_ms,
     *,
+    gateway,
     lease_token,
     lease_clock,
     now_ms=None,
@@ -142,8 +142,8 @@ def main():
         observation_clock = lambda: time.time_ns() // 1_000_000
         lease_clock = lambda: time.time_ns() // 1_000_000
         count = sync_window(
-            exchange, gateway, args.timeframe, args.start_ms, args.end_ms,
-            lease_token=lease_token, lease_clock=lease_clock,
+            exchange, args.timeframe, args.start_ms, args.end_ms,
+            gateway=gateway, lease_token=lease_token, lease_clock=lease_clock,
             now_ms=observation_clock,
         )
         window = reader.read_window("BTCUSDT", args.timeframe, args.start_ms, args.end_ms)
