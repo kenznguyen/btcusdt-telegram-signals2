@@ -3,7 +3,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from market_data.store import Candle, INTERVAL_MS
+from market_data.store import Candle, CandleStore, INTERVAL_MS
+from market_data.gateway import LeaseFence, T0WriteGateway
+from market_data.feeder import LeaseStore
 from market_data.sync import sync_window
 from market_data.storage import (
     PostgresStore,
@@ -73,7 +75,15 @@ class StorageFactoryTest(unittest.TestCase):
                 def fetch_ohlcv(self, *args, **kwargs):
                     return [[0, 100, 102, 99, 101, 5]]
 
-            self.assertEqual(sync_window(Exchange(), store, "15m", 0, step, now_ms=lambda: step), 1)
+            CandleStore(path)
+            leases = LeaseStore(path)
+            lease = leases.acquire("storage-test", now_ms=0, ttl_seconds=3600)
+            gateway = T0WriteGateway(path)
+            token = LeaseFence(leases.lease_name, "storage-test", lease.generation)
+            self.assertEqual(sync_window(
+                Exchange(), "15m", 0, step, gateway=gateway, lease_token=token,
+                now_ms=lambda: step, lease_clock=lambda: 1,
+            ), 1)
             self.assertEqual(store.read_window("BTCUSDT", "15m", 0, step)["coverage"]["returned"], 1)
 
     def test_postgres_connection_failure_is_not_reinterpreted_as_sqlite(self):

@@ -5,6 +5,8 @@ import tempfile
 import unittest
 
 from market_data.store import CandleStore, INTERVAL_MS, read_window
+from market_data.gateway import LeaseFence, T0WriteGateway
+from market_data.feeder import LeaseStore
 from market_data.sync import sync_window
 
 
@@ -49,12 +51,17 @@ class CandleSyncTest(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.path = str(Path(self.directory.name) / "candles.sqlite3")
         self.store = CandleStore(self.path)
+        self.lease_store = LeaseStore(self.path)
+        self.lease = self.lease_store.acquire("sync-test", now_ms=START, ttl_seconds=86_400)
+        self.gateway = T0WriteGateway(self.path)
+        self.lease_token = LeaseFence(self.lease_store.lease_name, "sync-test", self.lease.generation)
 
     def test_exact_futures_market_and_response_observation_time(self):
         received = START + 4 * STEP + 1234
         exchange = Exchange([[row(START), row(START + STEP)]])
-        self.assertEqual(sync_window(exchange, self.store, "15m", START, START + 2 * STEP,
-                                     now_ms=lambda: received), 2)
+        self.assertEqual(sync_window(exchange, "15m", START, START + 2 * STEP,
+                                     gateway=self.gateway, lease_token=self.lease_token,
+                                     now_ms=lambda: received, lease_clock=lambda: START + 1), 2)
         self.assertEqual(exchange.calls, [(SYMBOL, "15m", START, 2, {"endTime": START + 2 * STEP - 1})])
         data = read_window(self.path, "BTCUSDT", "15m", START, START + 2 * STEP)
         self.assertTrue(data["coverage"]["complete"])
@@ -66,8 +73,9 @@ class CandleSyncTest(unittest.TestCase):
         exchange = Exchange([[row(START), row(START + STEP)]])
         exchange.server_time = START + STEP + 1000
         observed_at = START + 3 * STEP
-        self.assertEqual(sync_window(exchange, self.store, "15m", START, START + 2 * STEP,
-                                     now_ms=lambda: observed_at), 1)
+        self.assertEqual(sync_window(exchange, "15m", START, START + 2 * STEP,
+                                     gateway=self.gateway, lease_token=self.lease_token,
+                                     now_ms=lambda: observed_at, lease_clock=lambda: START + 1), 1)
         data = read_window(self.path, "BTCUSDT", "15m", START, START + 2 * STEP)
         self.assertEqual(data["candles"][0]["availableAtMs"], observed_at)
         self.assertEqual(data["coverage"]["returned"], 1)
@@ -87,13 +95,15 @@ class CandleSyncTest(unittest.TestCase):
                              [row(START + 1000 * STEP)]])
         end = START + 1001 * STEP
         clock = iter([end + 1, end + 2])
-        self.assertEqual(sync_window(exchange, self.store, "15m", START, end,
-                                     now_ms=lambda: next(clock)), 1001)
+        self.assertEqual(sync_window(exchange, "15m", START, end,
+                                     gateway=self.gateway, lease_token=self.lease_token,
+                                     now_ms=lambda: next(clock), lease_clock=lambda: START + 1), 1001)
         self.assertEqual([call[3] for call in exchange.calls], [1000, 1])
         self.assertEqual(exchange.calls[1][2], START + 1000 * STEP)
         duplicate = Exchange([[row(START)]])
-        self.assertEqual(sync_window(duplicate, self.store, "15m", START, START + STEP,
-                                     now_ms=lambda: end + 999), 0)
+        self.assertEqual(sync_window(duplicate, "15m", START, START + STEP,
+                                     gateway=self.gateway, lease_token=self.lease_token,
+                                     now_ms=lambda: end + 999, lease_clock=lambda: START + 1), 0)
         first = read_window(self.path, "BTCUSDT", "15m", START, START + STEP)
         self.assertEqual(first["candles"][0]["availableAtMs"], end + 1)
 
@@ -101,8 +111,9 @@ class CandleSyncTest(unittest.TestCase):
         exchange = Exchange([[row(START - STEP), row(START), row(START + 2 * STEP),
                               row(START + 3 * STEP)]])
         end = START + 4 * STEP
-        self.assertEqual(sync_window(exchange, self.store, "15m", START, end,
-                                     now_ms=lambda: START + 2 * STEP + 1), 1)
+        self.assertEqual(sync_window(exchange, "15m", START, end,
+                                     gateway=self.gateway, lease_token=self.lease_token,
+                                     now_ms=lambda: START + 2 * STEP + 1, lease_clock=lambda: START + 1), 1)
         data = read_window(self.path, "BTCUSDT", "15m", START, end)
         self.assertFalse(data["coverage"]["complete"])
         self.assertEqual(data["coverage"]["returned"], 1)
@@ -124,15 +135,20 @@ class CandleSyncTest(unittest.TestCase):
         for page in invalid_pages:
             with self.subTest(page=page):
                 with self.assertRaises(ValueError):
-                    sync_window(Exchange([page]), self.store, "15m", START, START + 2 * STEP,
-                                now_ms=lambda: START + 3 * STEP)
+                    sync_window(Exchange([page]), "15m", START, START + 2 * STEP,
+                                gateway=self.gateway, lease_token=self.lease_token,
+                                now_ms=lambda: START + 3 * STEP, lease_clock=lambda: START + 1)
                 self.assertEqual(read_window(self.path, "BTCUSDT", "15m", START,
                                              START + 2 * STEP)["candles"], [])
 
     def test_upstream_failure_propagates_and_empty_page_leaves_missing_data(self):
         with self.assertRaisesRegex(OSError, "offline"):
-            sync_window(Exchange([OSError("offline")]), self.store, "15m", START, START + STEP)
-        self.assertEqual(sync_window(Exchange([[]]), self.store, "15m", START, START + STEP), 0)
+            sync_window(Exchange([OSError("offline")]), "15m", START, START + STEP,
+                        gateway=self.gateway, lease_token=self.lease_token,
+                        lease_clock=lambda: START + 1)
+        self.assertEqual(sync_window(Exchange([[]]), "15m", START, START + STEP,
+                                     gateway=self.gateway, lease_token=self.lease_token,
+                                     lease_clock=lambda: START + 1), 0)
         self.assertFalse(read_window(self.path, "BTCUSDT", "15m", START, START + STEP)["coverage"]["complete"])
 
     def test_invalid_range_fails_before_network_and_module_help_needs_no_ccxt(self):
@@ -140,7 +156,9 @@ class CandleSyncTest(unittest.TestCase):
         for timeframe, start, end in (("1m", START, START + STEP), ("15m", START + 1, START + STEP),
                                       ("15m", START, START), ("15m", START, START + 2001 * STEP)):
             with self.subTest(timeframe=timeframe, start=start, end=end), self.assertRaises(ValueError):
-                sync_window(exchange, self.store, timeframe, start, end)
+                sync_window(exchange, timeframe, start, end,
+                                gateway=self.gateway, lease_token=self.lease_token,
+                                lease_clock=lambda: START + 1)
         result = subprocess.run([sys.executable, "-m", "market_data.sync", "--help"],
                                 capture_output=True, text=True, check=True)
         self.assertIn("--start-ms", result.stdout)

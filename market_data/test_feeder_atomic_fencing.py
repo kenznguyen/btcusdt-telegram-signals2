@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from market_data.feeder import LeaseStore
+from market_data.gateway import LeaseFence, T0WriteGateway
 from market_data.store import Candle, CandleStore, INTERVAL_MS, read_window
 from market_data.sync import sync_window
 
@@ -59,6 +60,8 @@ class AtomicWriteFencingTest(unittest.TestCase):
         self.candles = CandleStore(self.path)
         self.leases = LeaseStore(str(self.path))
         self.lease = self.leases.acquire("writer-A", now_ms=NOW, ttl_seconds=60)
+        self.gateway = T0WriteGateway(self.path)
+        self.lease_token = LeaseFence(self.leases.lease_name, "writer-A", self.lease.generation)
 
     def read(self, count=2):
         return read_window(self.path, "BTCUSDT", "15m", NOW, NOW + count * STEP)
@@ -117,12 +120,13 @@ class AtomicWriteFencingTest(unittest.TestCase):
         }
         inserted = sync_window(
             Exchange([row()]),
-            self.candles,
             "15m",
             NOW,
             NOW + STEP,
+            gateway=self.gateway,
+            lease_token=self.lease_token,
             now_ms=lambda: NOW + 2 * STEP,
-            write_fence=fence,
+            lease_clock=lambda: NOW + 2,
         )
         self.assertEqual(inserted, 1)
         self.assertEqual(self.read(1)["coverage"]["returned"], 1)
@@ -224,8 +228,9 @@ class AtomicWriteFencingTest(unittest.TestCase):
         }
         coordinator = RecoveryCoordinator(
             sync_callback=lambda timeframe, start_ms, end_ms: sync_window(
-                exchange, self.candles, timeframe, start_ms, end_ms,
-                now_ms=lambda: NOW + 10 * STEP, write_fence=fence,
+                exchange, timeframe, start_ms, end_ms,
+                gateway=self.gateway, lease_token=self.lease_token,
+                now_ms=lambda: NOW + 10 * STEP, lease_clock=lambda: NOW + 2,
             ),
             coverage_reader=lambda timeframe, start_ms, end_ms: read_window(
                 self.path, "BTCUSDT", timeframe, start_ms, end_ms

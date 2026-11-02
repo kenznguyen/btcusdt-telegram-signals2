@@ -8,6 +8,8 @@ from unittest.mock import patch
 
 from market_data.api import application
 from market_data.store import Candle, CandleStore, INTERVAL_MS
+from market_data.gateway import LeaseFence, T0WriteGateway
+from market_data.feeder import LeaseStore
 from market_data.sync import sync_window
 
 
@@ -113,8 +115,16 @@ class CandleApiTest(unittest.TestCase):
                         [start + step, 100, 102, 99, 101, 3]]
 
         path = Path(self.temp.name) / "pipeline.sqlite3"
-        inserted = sync_window(Exchange(), CandleStore(path), "15m", start, start+2*step,
-                               now_ms=lambda: start+3*step)
+        CandleStore(path)
+        leases = LeaseStore(path)
+        lease = leases.acquire("api-sync-test", now_ms=start, ttl_seconds=3600)
+        gateway = T0WriteGateway(path)
+        token = LeaseFence(leases.lease_name, "api-sync-test", lease.generation)
+        inserted = sync_window(
+            Exchange(), "15m", start, start+2*step,
+            gateway=gateway, lease_token=token,
+            now_ms=lambda: start+3*step, lease_clock=lambda: start+1,
+        )
         self.assertEqual(inserted, 1)
         self.config["MARKET_DATA_DB"] = str(path)
         code, result = self.request()

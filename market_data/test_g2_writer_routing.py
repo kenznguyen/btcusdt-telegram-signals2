@@ -253,49 +253,43 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         )
 
     def test_g2_16_pagination_preserves_first_page_when_second_page_fails(self):
-        # Pagination behavior is tested independently from the not-yet-implemented
-        # Gateway contract. G2-01..G2-05 separately enforce that contract.
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "pagination.sqlite3"
-            writer = store.CandleStore(database)
+            create_shadow_db(database)
+            gateway = T0WriteGateway(str(database))
             first = [candle_row(START + index * STEP) for index in range(1000)]
             exchange = ExchangeDouble([first, RuntimeError("second page fetch failed")])
             observed = START + 2000 * STEP
             with self.assertRaisesRegex(RuntimeError, "second page fetch failed"):
                 sync.sync_window(
-                    exchange, writer, "15m", START, START + 1001 * STEP,
-                    now_ms=lambda: observed,
+                    exchange, "15m", START, START + 1001 * STEP,
+                    gateway=gateway, lease_token=LEASE,
+                    now_ms=lambda: observed, lease_clock=lambda: self.lease_now,
                 )
             self.assertEqual(len(exchange.calls), 2)
-            persisted = store.read_window(
-                database, "BTCUSDT", "15m", START, START + 1000 * STEP
-            )
-            self.assertEqual(persisted["coverage"]["returned"], 1000)
-            self.assertEqual(persisted["coverage"]["complete"], True)
+            rows = gateway.read_window("BTCUSDT", "15m", START, START + 1000 * STEP)
+            self.assertEqual(len(rows), 1000)
 
     def test_g2_17_observation_clock_is_independent_of_exchange_clock(self):
-        # Lease-clock injection remains a separate API contract in G2-03.
-        # This test reaches the real sync behavior and verifies observation time.
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "observation-clock.sqlite3"
-            writer = store.CandleStore(database)
+            create_shadow_db(database)
+            gateway = T0WriteGateway(str(database))
             exchange = ExchangeDouble([[candle_row(START)]])
             observed = START + 100 * STEP
             self.assertNotEqual(observed, exchange.server_time)
 
             self.assertEqual(
                 sync.sync_window(
-                    exchange, writer, "15m", START, START + STEP,
-                    now_ms=lambda: observed,
+                    exchange, "15m", START, START + STEP,
+                    gateway=gateway, lease_token=LEASE,
+                    now_ms=lambda: observed, lease_clock=lambda: self.lease_now,
                 ),
                 1,
             )
-            persisted = store.read_window(
-                database, "BTCUSDT", "15m", START, START + STEP
-            )
-            self.assertEqual(persisted["coverage"]["returned"], 1)
-            self.assertEqual(persisted["candles"][0]["availableAtMs"], observed)
-
+            rows = gateway.read_window("BTCUSDT", "15m", START, START + STEP)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["available_at_ms"], observed)
     def test_g2_18_postgres_backend_is_not_available_to_canonical_sync_cli(self):
         source = inspect.getsource(sync.main)
         self.assertNotIn('"postgres"', source)

@@ -363,6 +363,7 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
             owner_id="integration-worker",
             exchange=exchange,
             store=store,
+            gateway=Mock(),
             lease_store=leases,
             clock=lambda: NOW + 7_200_000,
         )
