@@ -116,7 +116,7 @@ class AtomicWriteFencingTest(unittest.TestCase):
 
     def test_sync_window_requires_fenced_store_write_when_fence_is_supplied(self):
         inserted = sync_window(
-            Exchange([row()]), self.gateway, "15m", NOW, NOW + STEP,
+            Exchange([row()]), "15m", NOW, NOW + STEP, gateway=self.gateway,
             now_ms=lambda: NOW + 2 * STEP,
             lease_token=self.lease_token, lease_clock=lambda: NOW + 2,
         )
@@ -215,7 +215,7 @@ class AtomicWriteFencingTest(unittest.TestCase):
         exchange = GapExchange([])
         coordinator = RecoveryCoordinator(
             sync_callback=lambda timeframe, start_ms, end_ms: sync_window(
-                exchange, self.gateway, timeframe, start_ms, end_ms,
+                exchange, timeframe, start_ms, end_ms, gateway=self.gateway,
                 now_ms=lambda: NOW + 10 * STEP,
                 lease_token=self.lease_token, lease_clock=lambda: NOW + 1,
             ),
