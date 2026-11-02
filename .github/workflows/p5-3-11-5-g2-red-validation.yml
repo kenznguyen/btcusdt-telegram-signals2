@@ -17,12 +17,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: p5-3-11-5-g2-red-${{ github.ref }}
+  group: p5-3-11-5-g2-validation-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  g2-red:
-    name: G2 RED contracts (isolated shadow-only)
+  g2-validation:
+    name: G2 contract validation (isolated shadow-only)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -60,7 +60,7 @@ jobs:
           echo "ISOLATED_SHADOW_ONLY=PASS" | tee g2-isolation-verdict.txt
           git rev-parse HEAD | tee g2-source-sha.txt
 
-      - name: Compile G2 RED test module
+      - name: Compile G2 contract test module
         run: python -m py_compile market_data/test_g2_writer_routing.py
 
       - name: Execute G2 contract suite
@@ -86,7 +86,7 @@ jobs:
         run: |
           set -o pipefail
           python -m unittest discover -s market_data -p 'test_*.py' -v 2>&1 | tee g2-regression-tests.log
-      - name: Upload G2 RED evidence
+      - name: Upload G2 validation evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
