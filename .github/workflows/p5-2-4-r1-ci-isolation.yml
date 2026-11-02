@@ -89,7 +89,7 @@ jobs:
           artifact_dir = Path("r1-isolation-artifacts")
           artifact_dir.mkdir(exist_ok=True)
           (artifact_dir / "static-guard.json").write_text(
-              '{"result":"PASS","scope":"workflow configuration static assertions only"}\\n',
+              '{"result":"PASS","scope":"workflow configuration static assertions only"}' + chr(10),
               encoding="utf-8",
           )
           print("R1_STATIC_WORKFLOW_GUARD=PASS")
