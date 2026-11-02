@@ -126,9 +126,11 @@ def audit_database(db_path, *, as_of_ms=None):
     identities = Counter()
     valid_by_timeframe = defaultdict(list)
     read_order_by_timeframe = defaultdict(list)
+    candidate_rows = []
 
     for row in rows:
         values = dict(row)
+        row_valid = True
         timeframe = values["timeframe"]
         symbol = values["symbol"]
         opened = values["open_time_ms"]
@@ -138,6 +140,7 @@ def audit_database(db_path, *, as_of_ms=None):
         identities[identity] += 1
 
         if (values["exchange"], values["market_type"], symbol) != CANONICAL:
+            row_valid = False
             issue(
                 "noncanonical_market_identity",
                 f"rowid={values['audit_rowid']} has market identity "
@@ -163,16 +166,15 @@ def audit_database(db_path, *, as_of_ms=None):
             continue
 
         available = values["available_at_ms"]
-        if type(available) is not int or available < 0:
+        if type(available) is not int or available < 0 or available > now:
+            row_valid = False
             issue("invalid_available_timestamp", f"rowid={values['audit_rowid']} has invalid available_at_ms.")
         elif available < opened + interval or opened + interval > now:
+            row_valid = False
             issue(
                 "candle_not_closed",
                 f"rowid={values['audit_rowid']} was observed before close or is not closed as of audit time.",
             )
-
-        valid_by_timeframe[timeframe].append(opened)
-        read_order_by_timeframe[timeframe].append(opened)
 
         try:
             numbers = {
@@ -186,7 +188,10 @@ def audit_database(db_path, *, as_of_ms=None):
             ):
                 raise ValueError("OHLC values violate low <= open/close <= high")
         except (ValueError, TypeError) as error:
+            row_valid = False
             issue("invalid_ohlcv", f"rowid={values['audit_rowid']}: {error}")
+
+        candidate_rows.append((identity, timeframe, opened, row_valid))
 
     for identity, count in identities.items():
         if count > 1:
@@ -194,6 +199,11 @@ def audit_database(db_path, *, as_of_ms=None):
                 "duplicate_candle_identity",
                 f"{identity!r} occurs {count} times; key must be unique by exchange/market/symbol/timeframe/open time.",
             )
+
+    for identity, timeframe, opened, row_valid in candidate_rows:
+        if row_valid and identities[identity] == 1:
+            valid_by_timeframe[timeframe].append(opened)
+            read_order_by_timeframe[timeframe].append(opened)
 
     for timeframe, interval in INTERVAL_MS.items():
         timestamps = sorted(set(valid_by_timeframe[timeframe]))
