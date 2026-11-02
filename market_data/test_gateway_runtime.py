@@ -247,8 +247,13 @@ class T0GatewayG1RedTests(unittest.TestCase):
             )
             with sqlite3.connect(str(self.db), timeout=0, isolation_level=None) as takeover:
                 takeover.execute("PRAGMA busy_timeout=0")
-                with self.assertRaises(sqlite3.OperationalError):
+                with self.assertRaises(sqlite3.OperationalError) as raised:
                     takeover.execute("BEGIN IMMEDIATE")
+                self.assertEqual(
+                    raised.exception.sqlite_errorcode,
+                    sqlite3.SQLITE_BUSY,
+                    "takeover must fail specifically because the writer holds the SQLite lock",
+                )
         finally:
             release_writer.set()
             thread.join(timeout=5)
