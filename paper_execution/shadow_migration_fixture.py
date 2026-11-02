@@ -71,7 +71,7 @@ def build_legacy_fixture(path):
                  c["openTimeMs"], c["open"], c["high"], c["low"], c["close"],
                  c["volume"], c["availableAtMs"]))
         # Separate symbol/timeframe sample records a real missing interval.
-        gap_rows = _candles("15m", 3, FIXED_NOW_MS - 10 * 900_000,
+        gap_rows = _candles("15m", 3, FIXED_NOW_MS + 5 * 900_000,
                             900_000, gap_at=1)
         for candle in gap_rows:
             c = candle.as_dict()
