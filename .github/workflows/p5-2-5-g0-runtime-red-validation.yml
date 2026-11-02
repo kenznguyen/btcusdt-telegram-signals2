@@ -1,0 +1,191 @@
+name: P5.2.5 G0 Runtime RED Validation
+
+on:
+  push:
+    branches:
+      - feature/p5-2-5-g0-contract-test-harness-20261102
+    paths:
+      - ".github/workflows/p5-2-5-g0-runtime-red-validation.yml"
+      - "market_data/**"
+      - "paper_execution/**"
+      - "pipeline/**"
+      - "requirements.txt"
+      - "requirements-ci.txt"
+      - "ci/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p5-2-5-g0-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  g0-runtime-red-validation:
+    name: G0 isolated runtime contract validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      PAPER_TRADING_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+      ai_execution_enabled: "false"
+
+    steps:
+      - name: Checkout exact pushed source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-ci.txt
+
+      - name: Record source identity and assert isolated environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD | tee g0-source-sha.txt
+          test -z "${MARKET_DATA_DB}"
+          test -z "${T0_FEEDER_LEASE_DB}"
+          test -z "${PAPER_DB}"
+          test -z "${PAPER_TRADING_DB}"
+          test -z "${BINANCE_API_KEY}"
+          test -z "${BINANCE_API_SECRET}"
+          test -z "${OKX_API_KEY}"
+          test -z "${OKX_API_SECRET}"
+          test "${ai_execution_enabled}" = "false"
+          echo "G0_ISOLATED_ENVIRONMENT=PASS" | tee g0-isolation-verdict.txt
+
+      - name: Install repository test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-ci.txt
+
+      - name: Compile relevant runtime and contract modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            market_data/feeder.py \
+            market_data/store.py \
+            market_data/test_gateway_runtime.py \
+            paper_execution/test_writer_gate_runtime.py \
+            pipeline/api.py \
+            pipeline/test_paper_writer_isolation_runtime.py
+          echo "G0_COMPILE=PASS" | tee g0-compile-verdict.txt
+
+      - name: Run T0 Gateway contract suite and classify expected RED
+        shell: bash
+        run: |
+          set -uo pipefail
+          set +e
+          env -u MARKET_DATA_DB -u T0_FEEDER_LEASE_DB -u PAPER_DB \
+            -u PAPER_TRADING_DB -u BINANCE_API_KEY -u BINANCE_API_SECRET \
+            -u OKX_API_KEY -u OKX_API_SECRET \
+            python -m unittest market_data.test_gateway_runtime -v \
+            2>&1 | tee g0-gateway.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "EXIT_STATUS=${status}" | tee g0-gateway-status.txt
+          if grep -Eq 'ModuleNotFoundError|ImportError|SyntaxError|TypeError:|FAILED \(errors=' g0-gateway.log; then
+            echo "G0_GATEWAY=INVALID_HARNESS" | tee g0-gateway-verdict.txt
+          elif [ "${status}" -ne 0 ] && grep -q 'CONTRACT RED:' g0-gateway.log; then
+            echo "G0_GATEWAY=EXPECTED_CONTRACT_RED" | tee g0-gateway-verdict.txt
+          elif [ "${status}" -eq 0 ]; then
+            echo "G0_GATEWAY=UNEXPECTED_GREEN_OR_NO_RED_ASSERTION" | tee g0-gateway-verdict.txt
+          else
+            echo "G0_GATEWAY=UNCLASSIFIED_FAILURE" | tee g0-gateway-verdict.txt
+          fi
+
+      - name: Run Paper Writer Gate contract suite and classify expected RED
+        shell: bash
+        run: |
+          set -uo pipefail
+          set +e
+          env -u MARKET_DATA_DB -u T0_FEEDER_LEASE_DB -u PAPER_DB \
+            -u PAPER_TRADING_DB -u BINANCE_API_KEY -u BINANCE_API_SECRET \
+            -u OKX_API_KEY -u OKX_API_SECRET \
+            python -m unittest paper_execution.test_writer_gate_runtime -v \
+            2>&1 | tee g0-paper-gate.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "EXIT_STATUS=${status}" | tee g0-paper-gate-status.txt
+          if grep -Eq 'ModuleNotFoundError|ImportError|SyntaxError|TypeError:|FAILED \(errors=' g0-paper-gate.log; then
+            echo "G0_PAPER_GATE=INVALID_HARNESS" | tee g0-paper-gate-verdict.txt
+          elif [ "${status}" -ne 0 ] && grep -q 'CONTRACT RED:' g0-paper-gate.log; then
+            echo "G0_PAPER_GATE=EXPECTED_CONTRACT_RED" | tee g0-paper-gate-verdict.txt
+          elif [ "${status}" -eq 0 ]; then
+            echo "G0_PAPER_GATE=UNEXPECTED_GREEN_OR_NO_RED_ASSERTION" | tee g0-paper-gate-verdict.txt
+          else
+            echo "G0_PAPER_GATE=UNCLASSIFIED_FAILURE" | tee g0-paper-gate-verdict.txt
+          fi
+
+      - name: Run Pipeline Paper isolation contract suite and classify expected RED
+        shell: bash
+        run: |
+          set -uo pipefail
+          set +e
+          env -u MARKET_DATA_DB -u T0_FEEDER_LEASE_DB -u PAPER_DB \
+            -u PAPER_TRADING_DB -u BINANCE_API_KEY -u BINANCE_API_SECRET \
+            -u OKX_API_KEY -u OKX_API_SECRET \
+            python -m unittest pipeline.test_paper_writer_isolation_runtime -v \
+            2>&1 | tee g0-pipeline-isolation.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "EXIT_STATUS=${status}" | tee g0-pipeline-isolation-status.txt
+          if grep -Eq 'ModuleNotFoundError|ImportError|SyntaxError|TypeError:|FAILED \(errors=' g0-pipeline-isolation.log; then
+            echo "G0_PIPELINE_ISOLATION=INVALID_HARNESS" | tee g0-pipeline-isolation-verdict.txt
+          elif [ "${status}" -ne 0 ] && grep -q 'CONTRACT RED:' g0-pipeline-isolation.log; then
+            echo "G0_PIPELINE_ISOLATION=EXPECTED_CONTRACT_RED" | tee g0-pipeline-isolation-verdict.txt
+          elif [ "${status}" -eq 0 ]; then
+            echo "G0_PIPELINE_ISOLATION=UNEXPECTED_GREEN_OR_NO_RED_ASSERTION" | tee g0-pipeline-isolation-verdict.txt
+          else
+            echo "G0_PIPELINE_ISOLATION=UNCLASSIFIED_FAILURE" | tee g0-pipeline-isolation-verdict.txt
+          fi
+
+      - name: Aggregate G0 harness verdict
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat g0-source-sha.txt g0-isolation-verdict.txt g0-compile-verdict.txt \
+            g0-gateway-verdict.txt g0-paper-gate-verdict.txt \
+            g0-pipeline-isolation-verdict.txt
+          grep -qx 'G0_ISOLATED_ENVIRONMENT=PASS' g0-isolation-verdict.txt
+          grep -qx 'G0_COMPILE=PASS' g0-compile-verdict.txt
+          grep -qx 'G0_GATEWAY=EXPECTED_CONTRACT_RED' g0-gateway-verdict.txt
+          grep -qx 'G0_PAPER_GATE=EXPECTED_CONTRACT_RED' g0-paper-gate-verdict.txt
+          grep -qx 'G0_PIPELINE_ISOLATION=EXPECTED_CONTRACT_RED' g0-pipeline-isolation-verdict.txt
+          echo "P5_2_5_G0_HARNESS=PASS_EXPECTED_RED" | tee g0-final-verdict.txt
+
+      - name: Upload G0 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p5-2-5-g0-evidence-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            g0-source-sha.txt
+            g0-isolation-verdict.txt
+            g0-compile-verdict.txt
+            g0-gateway.log
+            g0-gateway-status.txt
+            g0-gateway-verdict.txt
+            g0-paper-gate.log
+            g0-paper-gate-status.txt
+            g0-paper-gate-verdict.txt
+            g0-pipeline-isolation.log
+            g0-pipeline-isolation-status.txt
+            g0-pipeline-isolation-verdict.txt
+            g0-final-verdict.txt
