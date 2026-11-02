@@ -820,3 +820,46 @@ workflows:
       - t0-operational-contract-audit.log
       - t0-operational-contract-report.json
       - t0-operational-contract-report.md
+
+
+  # Read-only T0 candle integrity and continuity contract; no feeder/runtime execution.
+  t0-data-integrity-candle-continuity-gate:
+    name: T0 - Data Integrity & Candle Continuity Gate (read-only)
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: feature/t0-data-integrity-candle-continuity-gate-20261102
+          include: true
+          source: true
+      cancel_previous_builds: true
+    when:
+      changeset:
+        includes:
+          - ci/t0_data_integrity.py
+          - ci/test_t0_data_integrity.py
+          - ci/T0_DATA_INTEGRITY_CANDLE_CONTINUITY_GATE.md
+          - codemagic.yaml
+    scripts:
+      - name: Prepare Python and record exact source SHA
+        script: |
+          set -euo pipefail
+          bash ci/setup-python.sh requirements-ci.txt
+          git rev-parse HEAD | tee ci-source-sha.txt
+      - name: Run read-only candle integrity and continuity tests
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m unittest ci.test_t0_data_integrity -v 2>&1 | tee t0-data-integrity-tests.log
+          grep -q "Ran 9 tests" t0-data-integrity-tests.log
+          echo "T0_DATA_INTEGRITY_CANDLE_CONTINUITY_TESTS=PASS (9 tests)" | tee t0-data-integrity-verdict.txt
+      - name: Compile read-only audit and tests
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m py_compile ci/t0_data_integrity.py ci/test_t0_data_integrity.py
+          echo "T0_DATA_INTEGRITY_CANDLE_CONTINUITY_COMPILE=PASS" | tee t0-data-integrity-compile.log
+    artifacts:
+      - ci-source-sha.txt
+      - t0-data-integrity-tests.log
+      - t0-data-integrity-verdict.txt
+      - t0-data-integrity-compile.log
