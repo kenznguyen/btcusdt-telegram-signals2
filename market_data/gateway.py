@@ -14,7 +14,6 @@ from typing import Callable
 from market_data.store import Candle, EXCHANGE, MARKET_TYPE
 
 
-DEFAULT_LEASE_NAME = "binance-btcusdt-canonical"
 _PRICE_COLUMNS = ("open", "high", "low", "close", "volume")
 
 
@@ -217,7 +216,7 @@ class T0WriteGateway:
                 connection.close()
 
     def read_window(self, symbol: str, timeframe: str, start, end):
-        """Return matching candle rows as immutable mappings, without writes."""
+        """Return matching candle rows without performing writes."""
         if not isinstance(symbol, str) or not symbol.strip():
             raise CandleBatchRejected("symbol must be a non-empty string")
         if not isinstance(timeframe, str) or not timeframe.strip():
