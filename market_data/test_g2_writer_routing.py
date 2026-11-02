@@ -267,7 +267,7 @@ class G2WriterRoutingRedTests(unittest.TestCase):
 
     def test_g2_16_pagination_keeps_first_page_when_second_page_fails(self):
         first = [candle_row(START + index * STEP) for index in range(1000)]
-        exchange = ExchangeDouble([first, RuntimeError("second page rejected")])
+        exchange = ExchangeDouble([first, [candle_row(START + 1000 * STEP)]])
         observed = START + 2000 * STEP
         legacy = LegacyStoreDouble(fail_on_call=2)
         with self.assertRaisesRegex(RuntimeError, "second page rejected"):
