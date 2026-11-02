@@ -863,3 +863,25 @@ workflows:
       - t0-data-integrity-tests.log
       - t0-data-integrity-verdict.txt
       - t0-data-integrity-compile.log
+
+  # Independent manual gate: validates actual T0 runtime settings without starting the feeder.
+  t0-final-runtime-configuration-check:
+    name: T0 - Final Runtime Configuration Check (manual, read-only)
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    # Intentionally no triggering section: this gate must be started manually.
+    scripts:
+      - name: Prepare Python dependencies and record exact source SHA
+        script: bash ci/setup-python.sh requirements-market-data.txt requirements-ci.txt
+      - name: Run final runtime configuration contract tests
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m unittest ci.test_t0_final_runtime_config -v 2>&1 | tee t0-final-runtime-config-tests.log
+      - name: Audit configured runtime settings and optional existing SQLite database
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m ci.t0_final_runtime_config | tee t0-final-runtime-config-report.json
+    artifacts:
+      - ci-source-sha.txt
+      - t0-final-runtime-config-tests.log
+      - t0-final-runtime-config-report.json
