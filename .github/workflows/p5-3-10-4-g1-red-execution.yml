@@ -1,0 +1,87 @@
+name: P5.3.10.4 G1 Gateway RED execution
+
+on:
+  push:
+    branches:
+      - feature/p5-3-10-4-g1-red-tests-20261103
+    paths:
+      - market_data/test_gateway_runtime.py
+      - .github/workflows/p5-3-10-4-g1-red-execution.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p5-3-10-4-g1-red-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  isolated-g1-red:
+    name: Isolated SQLite G1 RED contract verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      PAPER_TRADING_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+      AI_EXECUTION_ENABLED: "false"
+    steps:
+      - name: Checkout exact test commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compile test module
+        run: python -m py_compile market_data/test_gateway_runtime.py
+
+      - name: Execute focused G1 RED suite
+        shell: bash
+        run: |
+          set +e
+          python -m unittest market_data.test_gateway_runtime -v 2>&1 | tee g1-red-test.log
+          test_exit=${PIPESTATUS[0]}
+          set -e
+          echo "TEST_EXIT_CODE=${test_exit}" | tee -a g1-red-summary.txt
+
+          red_count=$(grep -c "CONTRACT RED: market_data.gateway.T0WriteGateway is not implemented" g1-red-test.log || true)
+          echo "EXPECTED_CONTRACT_RED_COUNT=${red_count}" | tee -a g1-red-summary.txt
+
+          if [ "${test_exit}" -ne 1 ]; then
+            echo "RESULT=UNEXPECTED_TEST_EXIT" | tee -a g1-red-summary.txt
+            exit 1
+          fi
+          if [ "${red_count}" -ne 15 ]; then
+            echo "RESULT=UNEXPECTED_FAILURE_SHAPE" | tee -a g1-red-summary.txt
+            exit 1
+          fi
+          if ! grep -Eq "FAILED \(failures=15\)" g1-red-test.log; then
+            echo "RESULT=UNEXPECTED_TEST_SUMMARY" | tee -a g1-red-summary.txt
+            exit 1
+          fi
+
+          echo "RESULT=PASS_EXPECTED_RED" | tee -a g1-red-summary.txt
+
+      - name: Upload G1 RED evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p5-3-10-4-g1-red-evidence-${{ github.sha }}
+          path: |
+            g1-red-test.log
+            g1-red-summary.txt
+          if-no-files-found: warn
+          retention-days: 30
