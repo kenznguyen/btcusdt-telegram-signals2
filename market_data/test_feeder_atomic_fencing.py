@@ -6,6 +6,7 @@ from pathlib import Path
 from market_data.feeder import LeaseStore
 from market_data.store import Candle, CandleStore, INTERVAL_MS, read_window
 from market_data.sync import sync_window
+from market_data.gateway import LeaseFence, T0WriteGateway
 
 
 NOW = 1_800_000_000_000
@@ -57,8 +58,12 @@ class AtomicWriteFencingTest(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.path = Path(self.directory.name) / "canonical.sqlite3"
         self.candles = CandleStore(self.path)
+        self.candles.initialize_schema()
         self.leases = LeaseStore(str(self.path))
+        self.leases.initialize_schema()
         self.lease = self.leases.acquire("writer-A", now_ms=NOW, ttl_seconds=60)
+        self.gateway = T0WriteGateway(self.path)
+        self.lease_token = LeaseFence(self.leases.lease_name, "writer-A", self.lease.generation)
 
     def read(self, count=2):
         return read_window(self.path, "BTCUSDT", "15m", NOW, NOW + count * STEP)
@@ -110,19 +115,10 @@ class AtomicWriteFencingTest(unittest.TestCase):
         self.assertEqual(self.read(2)["candles"], [])
 
     def test_sync_window_requires_fenced_store_write_when_fence_is_supplied(self):
-        fence = {
-            "owner": "writer-A",
-            "generation": self.lease.generation,
-            "now_ms": lambda: NOW + 2,
-        }
         inserted = sync_window(
-            Exchange([row()]),
-            self.candles,
-            "15m",
-            NOW,
-            NOW + STEP,
+            Exchange([row()]), self.gateway, "15m", NOW, NOW + STEP,
             now_ms=lambda: NOW + 2 * STEP,
-            write_fence=fence,
+            lease_token=self.lease_token, lease_clock=lambda: NOW + 2,
         )
         self.assertEqual(inserted, 1)
         self.assertEqual(self.read(1)["coverage"]["returned"], 1)
@@ -217,15 +213,11 @@ class AtomicWriteFencingTest(unittest.TestCase):
                 return [row(slot)] if slot in (1, 3) else []
 
         exchange = GapExchange([])
-        fence = {
-            "owner": "writer-A",
-            "generation": self.lease.generation,
-            "now_ms": lambda: NOW + 1,
-        }
         coordinator = RecoveryCoordinator(
             sync_callback=lambda timeframe, start_ms, end_ms: sync_window(
-                exchange, self.candles, timeframe, start_ms, end_ms,
-                now_ms=lambda: NOW + 10 * STEP, write_fence=fence,
+                exchange, self.gateway, timeframe, start_ms, end_ms,
+                now_ms=lambda: NOW + 10 * STEP,
+                lease_token=self.lease_token, lease_clock=lambda: NOW + 1,
             ),
             coverage_reader=lambda timeframe, start_ms, end_ms: read_window(
                 self.path, "BTCUSDT", timeframe, start_ms, end_ms
