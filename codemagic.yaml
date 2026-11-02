@@ -138,6 +138,9 @@ workflows:
         - pattern: feature/p5-3-10-5-g1-gateway-green-20261103
           include: true
           source: true
+        - pattern: feature/p5-3-11-8-g2-gateway-routing-20261103
+          include: true
+          source: true
         - pattern: main
           include: true
           source: true
@@ -173,6 +176,7 @@ workflows:
           set -euo pipefail
           "$CI_PYTHON" -m unittest market_data.test_store market_data.test_storage market_data.test_sync market_data.test_api -v 2>&1 | tee market-data-tests.log
           "$CI_PYTHON" -m unittest market_data.test_gateway_runtime -v 2>&1 | tee g1-gateway-tests.log
+          "$CI_PYTHON" -m unittest market_data.test_g2_writer_routing market_data.test_feeder_lease market_data.test_feeder_atomic_fencing market_data.test_feeder_lifecycle -v 2>&1 | tee g2-feeder-routing-tests.log
           "$CI_PYTHON" -m unittest discover -s integrations -p 'test_*.py' -v 2>&1 | tee gateway-tests.log
           "$CI_PYTHON" -m unittest discover -s ci -p 'test_*.py' -v 2>&1 | tee ci-policy-tests.log
       - name: Run five-layer paper integration tests
