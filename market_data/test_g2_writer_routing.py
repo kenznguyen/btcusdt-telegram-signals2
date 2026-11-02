@@ -79,7 +79,15 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         self.observed_at = START + 100 * STEP
         self.lease_now = START + 100 * STEP + 123
 
+    def _assert_routing_api(self):
+        parameters = inspect.signature(sync_window).parameters
+        self.assertTrue(
+            {"gateway", "lease_token", "lease_clock"}.issubset(parameters),
+            "CONTRACT RED: sync_window must require Gateway, LeaseFence and lease_clock",
+        )
+
     def _sync(self, exchange, gateway, **overrides):
+        self._assert_routing_api()
         arguments = {
             "now_ms": lambda: self.observed_at,
             "lease_token": LEASE,
@@ -144,6 +152,7 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         legacy.insert_fenced.assert_not_called()
 
     def test_g2_08_recovery_uses_the_same_gateway_backed_sync_callback(self):
+        self._assert_routing_api()
         exchange = ExchangeDouble([[candle_row(START)]])
         gateway = GatewayDouble()
         read = Mock(side_effect=[
@@ -184,6 +193,7 @@ class G2WriterRoutingRedTests(unittest.TestCase):
             self.assertIn("lease_clock", keywords)
 
     def test_g2_10_legacy_store_insert_is_not_a_canonical_writer_route(self):
+        self._assert_routing_api()
         class LegacyStore:
             def __init__(self):
                 self.insert_calls = 0
@@ -204,6 +214,7 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         self.assertEqual(legacy.insert_calls, 0)
 
     def test_g2_11_legacy_insert_fenced_is_not_an_alternate_route(self):
+        self._assert_routing_api()
         class LegacyFencedStore:
             def __init__(self):
                 self.calls = 0
@@ -249,6 +260,7 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         self.assertEqual(gateway.calls, [])
 
     def test_g2_16_pagination_preserves_per_page_commit_boundary(self):
+        self._assert_routing_api()
         first = [candle_row(START + i * STEP) for i in range(1000)]
         second = [candle_row(START + 1000 * STEP)]
         exchange = ExchangeDouble([first, second])
@@ -275,6 +287,7 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         self.assertNotEqual(stored_candidate.available_at_ms, self.lease_now)
 
     def test_g2_18_postgres_store_cannot_bypass_gateway_for_canonical_sync(self):
+        self._assert_routing_api()
         class PostgresLikeStore:
             def insert(self, candles):
                 return len(candles)
