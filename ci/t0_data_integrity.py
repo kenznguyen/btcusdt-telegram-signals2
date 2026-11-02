@@ -125,6 +125,7 @@ def audit_database(db_path, *, as_of_ms=None):
 
     identities = Counter()
     valid_by_timeframe = defaultdict(list)
+    read_order_by_timeframe = defaultdict(list)
 
     for row in rows:
         values = dict(row)
@@ -171,6 +172,7 @@ def audit_database(db_path, *, as_of_ms=None):
             )
 
         valid_by_timeframe[timeframe].append(opened)
+        read_order_by_timeframe[timeframe].append(opened)
 
         try:
             numbers = {
@@ -198,7 +200,10 @@ def audit_database(db_path, *, as_of_ms=None):
         summary = report["timeframes"][timeframe]
         summary["rows"] = len(valid_by_timeframe[timeframe])
         summary["unique_rows"] = len(timestamps)
-        summary["ordered_by_open_time_ms"] = timestamps == sorted(timestamps)
+        summary["ordered_by_open_time_ms"] = (
+            read_order_by_timeframe[timeframe]
+            == sorted(read_order_by_timeframe[timeframe])
+        )
         if not timestamps:
             continue
         summary["first_open_time_ms"] = timestamps[0]
