@@ -90,21 +90,6 @@ class ExchangeDouble:
         return page
 
 
-class LegacyStoreDouble:
-    def __init__(self, fail_on_call=None):
-        self.calls = []
-        self.fail_on_call = fail_on_call
-        self.rows = []
-
-    def insert(self, candles):
-        batch = list(candles)
-        self.calls.append(batch)
-        if self.fail_on_call == len(self.calls):
-            raise RuntimeError("second page rejected")
-        self.rows.extend(batch)
-        return len(batch)
-
-
 class G2WriterRoutingRedTests(unittest.TestCase):
     def setUp(self):
         self.observed_at = START + 100 * STEP
@@ -265,31 +250,68 @@ class G2WriterRoutingRedTests(unittest.TestCase):
             0,
         )
 
-    def test_g2_16_pagination_keeps_first_page_when_second_page_fails(self):
-        first = [candle_row(START + index * STEP) for index in range(1000)]
-        exchange = ExchangeDouble([first, [candle_row(START + 1000 * STEP)]])
-        observed = START + 2000 * STEP
-        legacy = LegacyStoreDouble(fail_on_call=2)
-        with self.assertRaisesRegex(RuntimeError, "second page rejected"):
-            sync.sync_window(
-                exchange, legacy, "15m", START, START + 1001 * STEP,
-                now_ms=lambda: observed,
-            )
-        self.assertEqual(len(legacy.calls), 2)
-        self.assertEqual(len(legacy.rows), 1000)
+    def test_g2_16_gateway_pagination_keeps_first_page_when_second_page_fails(self):
+        parameters = inspect.signature(sync.sync_window).parameters
+        required = {"gateway", "lease_token", "lease_clock"}
+        missing = required - set(parameters)
+        self.assertEqual(missing, set(), f"sync_window lacks Gateway contract parameters: {sorted(missing)}")
+        if missing:
+            return
 
-    def test_g2_17_available_at_uses_observation_clock(self):
-        exchange = ExchangeDouble([[candle_row(START)]])
-        observed = START + 100 * STEP
-        legacy = LegacyStoreDouble()
-        self.assertEqual(
-            sync.sync_window(
-                exchange, legacy, "15m", START, START + STEP,
-                now_ms=lambda: observed,
-            ),
-            1,
-        )
-        self.assertEqual(legacy.rows[0].available_at_ms, observed)
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "pagination.sqlite3"
+            create_shadow_db(database)
+            gateway = T0WriteGateway(str(database))
+            first = [candle_row(START + index * STEP) for index in range(1000)]
+            exchange = ExchangeDouble([first, RuntimeError("second page fetch failed")])
+            observed = START + 2000 * STEP
+            with self.assertRaisesRegex(RuntimeError, "second page fetch failed"):
+                sync.sync_window(
+                    exchange, "15m", START, START + 1001 * STEP,
+                    gateway=gateway, lease_token=LEASE,
+                    now_ms=lambda: observed,
+                    lease_clock=lambda: self.lease_now,
+                )
+            self.assertEqual(len(exchange.calls), 2)
+            rows = gateway.read_window("BTCUSDT", "15m", START, START + 1000 * STEP)
+            self.assertEqual(len(rows), 1000)
+
+    def test_g2_17_gateway_uses_separate_observation_and_lease_clocks(self):
+        parameters = inspect.signature(sync.sync_window).parameters
+        required = {"gateway", "lease_token", "lease_clock"}
+        missing = required - set(parameters)
+        self.assertEqual(missing, set(), f"sync_window lacks Gateway contract parameters: {sorted(missing)}")
+        if missing:
+            return
+
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "clock-separation.sqlite3"
+            create_shadow_db(database)
+            gateway = T0WriteGateway(str(database))
+            exchange = ExchangeDouble([[candle_row(START)]])
+            observed = START + 100 * STEP
+            lease_now = observed + 123
+            lease_clock_values = []
+
+            def lease_clock():
+                lease_clock_values.append(lease_now)
+                return lease_now
+
+            self.assertEqual(
+                sync.sync_window(
+                    exchange, "15m", START, START + STEP,
+                    gateway=gateway, lease_token=LEASE,
+                    now_ms=lambda: observed,
+                    lease_clock=lease_clock,
+                ),
+                1,
+            )
+            rows = gateway.read_window("BTCUSDT", "15m", START, START + STEP)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["available_at_ms"], observed)
+            self.assertNotEqual(observed, lease_now)
+            self.assertGreaterEqual(len(lease_clock_values), 2)
+            self.assertTrue(all(value == lease_now for value in lease_clock_values))
 
     def test_g2_18_postgres_backend_is_not_available_to_canonical_sync_cli(self):
         source = inspect.getsource(sync.main)
