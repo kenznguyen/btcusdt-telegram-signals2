@@ -84,13 +84,31 @@ def audit_database(db_path, *, as_of_ms=None):
                 issue("canonical_table_missing", "SQLite table 'candles' does not exist.")
                 return report
 
-            columns = {
-                row["name"] for row in connection.execute("PRAGMA table_info(candles)")
-            }
+            table_info = connection.execute("PRAGMA table_info(candles)").fetchall()
+            columns = {row["name"] for row in table_info}
             missing_columns = sorted(REQUIRED_COLUMNS - columns)
             if missing_columns:
                 issue("canonical_schema_invalid", "Missing columns: " + ", ".join(missing_columns))
                 return report
+
+            identity_columns = ("exchange", "market_type", "symbol", "timeframe", "open_time_ms")
+            primary_key = tuple(
+                row["name"] for row in sorted(table_info, key=lambda item: item["pk"]) if row["pk"]
+            )
+            unique_keys = []
+            for index in connection.execute("PRAGMA index_list(candles)").fetchall():
+                if index["unique"]:
+                    index_columns = tuple(
+                        item["name"] for item in connection.execute(
+                            f'PRAGMA index_info("{index["name"]}")'
+                        ).fetchall()
+                    )
+                    unique_keys.append(index_columns)
+            if primary_key != identity_columns and identity_columns not in unique_keys:
+                issue(
+                    "identity_constraint_missing",
+                    "Canonical schema must enforce uniqueness on exchange/market_type/symbol/timeframe/open_time_ms.",
+                )
 
             selected = ", ".join(f'"{name}"' for name in sorted(REQUIRED_COLUMNS))
             rows = connection.execute(
@@ -183,9 +201,10 @@ def audit_database(db_path, *, as_of_ms=None):
             )
 
     for timeframe, interval in INTERVAL_MS.items():
-        timestamps = sorted(valid_by_timeframe[timeframe])
+        timestamps = sorted(set(valid_by_timeframe[timeframe]))
         summary = report["timeframes"][timeframe]
-        summary["rows"] = len(timestamps)
+        summary["rows"] = len(valid_by_timeframe[timeframe])
+        summary["unique_rows"] = len(timestamps)
         if not timestamps:
             continue
         summary["first_open_time_ms"] = timestamps[0]
