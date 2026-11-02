@@ -82,7 +82,7 @@ jobs:
             test_g2_12_runtime_lease_and_writer_paths_do_not_create_schema \
             test_g2_18_postgres_backend_is_not_available_to_canonical_sync_cli \
             | sort)"
-          actual_failures="$(sed -n 's/^FAIL: \(test_g2_[^(]*\).*/\1/p' g2-red-tests.log | sort)"
+          actual_failures="$(awk '/^FAIL: test_g2_/ {print $2}' g2-red-tests.log | sort)"
           if [[ "$status" -ne 0 ]] \
              && grep -q "Ran 18 tests" g2-red-tests.log \
              && grep -q "FAILED (failures=11)" g2-red-tests.log \
