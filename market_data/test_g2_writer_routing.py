@@ -6,8 +6,11 @@ start FeederRuntime. The expected RED baseline is the unfenced G1-era routing.
 """
 import ast
 import inspect
+import sqlite3
+import tempfile
 import textwrap
 import unittest
+from pathlib import Path
 from unittest.mock import Mock
 
 from market_data import feeder, feeder_service, sync
@@ -16,6 +19,7 @@ from market_data.gateway import (
     CandleBatchRejected,
     LeaseFence,
     LeaseRejected,
+    T0WriteGateway,
 )
 from market_data.store import INTERVAL_MS
 from market_data.sync import sync_window
@@ -142,16 +146,39 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         self.assertEqual(len(gateway.calls), 1)
         self.assertIs(gateway.calls[0][1], stale)
 
-    def test_g2_07_lease_expiry_error_propagates_without_legacy_fallback(self):
+    def test_g2_07_lease_expiry_at_final_admission_rolls_back_sync_batch(self):
+        self._assert_routing_api()
         exchange = ExchangeDouble([[candle_row(START)]])
-        gateway = GatewayDouble(error=LeaseRejected("expired at admission"))
-        legacy = Mock()
-        legacy.insert.return_value = 1
-        legacy.insert_fenced.return_value = 1
-        with self.assertRaises(LeaseRejected):
-            self._sync(exchange, gateway)
-        legacy.insert.assert_not_called()
-        legacy.insert_fenced.assert_not_called()
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "g2-shadow.sqlite3"
+            with sqlite3.connect(database) as connection:
+                connection.executescript(
+                    """
+                    CREATE TABLE candles (
+                        exchange TEXT NOT NULL, market_type TEXT NOT NULL,
+                        symbol TEXT NOT NULL, timeframe TEXT NOT NULL,
+                        open_time_ms INTEGER NOT NULL, open TEXT NOT NULL,
+                        high TEXT NOT NULL, low TEXT NOT NULL, close TEXT NOT NULL,
+                        volume TEXT NOT NULL, available_at_ms INTEGER NOT NULL,
+                        PRIMARY KEY (exchange, market_type, symbol, timeframe, open_time_ms)
+                    );
+                    CREATE TABLE feeder_leases (
+                        lease_name TEXT PRIMARY KEY, owner TEXT,
+                        generation INTEGER NOT NULL, expires_at_ms INTEGER NOT NULL
+                    );
+                    """
+                )
+                connection.execute(
+                    "INSERT INTO feeder_leases VALUES (?, ?, ?, ?)",
+                    (LEASE.lease_name, LEASE.owner_id, LEASE.generation,
+                     self.lease_now + 60_000),
+                )
+            gateway = T0WriteGateway(str(database))
+            clock_values = iter((self.lease_now, self.lease_now + 60_000))
+            with self.assertRaises(LeaseRejected):
+                self._sync(exchange, gateway, lease_clock=lambda: next(clock_values))
+            with sqlite3.connect(database) as connection:
+                self.assertEqual(connection.execute("SELECT * FROM candles").fetchall(), [])
 
     def test_g2_08_recovery_uses_the_same_gateway_backed_sync_callback(self):
         self._assert_routing_api()
