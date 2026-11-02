@@ -92,7 +92,8 @@ def build_runtime(*, config, owner_id, exchange, store, gateway, lease_store, cl
         observation_clock = lambda: clock_fn()
         lease_clock = lambda: clock_fn()
         return sync_window(
-            exchange, gateway, timeframe, start_ms, end_ms,
+            exchange, timeframe, start_ms, end_ms,
+            gateway=gateway,
             now_ms=observation_clock,
             lease_token=lease_token,
             lease_clock=lease_clock,
