@@ -83,8 +83,9 @@ def build_legacy_fixture(path):
         _insert_candles(db, _candles("1h", 6, h1_start, 3_600_000))
         db.commit()
 
-        # Use production LeaseStore to create the exact feeder_leases schema.
-        lease_store = LeaseStore(path, lease_name=LEASE_NAME)
+        # LeaseStore's public constructor deliberately accepts str/bytes paths,
+        # unlike the other schema helpers which normalize PathLike values.
+        lease_store = LeaseStore(str(path), lease_name=LEASE_NAME)
         lease = lease_store.acquire("fixture-owner-A", now_ms=FIXED_NOW_MS, ttl_seconds=60)
         if lease is None:
             raise RuntimeError("Unable to acquire disposable fixture lease")
