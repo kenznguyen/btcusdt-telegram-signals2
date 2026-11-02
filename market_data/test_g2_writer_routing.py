@@ -1,5 +1,7 @@
 """P5.3.11.5 G2 RED contracts with independent failure causes.
 
+G2-16/17 business checks execute independently of the Gateway API contract.
+
 All database tests use disposable SQLite files created inside TemporaryDirectory.
 No test resolves MARKET_DATA_DB, accesses a canonical DB, contacts an exchange,
 or starts FeederRuntime. Existing G1 Gateway behavior is tested as GREEN
