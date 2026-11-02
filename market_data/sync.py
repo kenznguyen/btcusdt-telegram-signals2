@@ -13,6 +13,7 @@ import time
 
 from market_data.store import Candle, INTERVAL_MS, MAX_CANDLES, MAX_TIMESTAMP
 from market_data.storage import create_store
+from market_data.gateway import LeaseFence, T0WriteGateway
 
 
 EXCHANGE_SYMBOL = "BTC/USDT:USDT"
@@ -30,15 +31,30 @@ def validate_market(exchange):
         raise ValueError("BTCUSDT is not an active linear USDT perpetual market")
 
 
-def sync_window(exchange, store, timeframe, start_ms, end_ms, now_ms=None, write_fence=None):
-    """Fetch an aligned [start_ms, end_ms) window and return the inserted count.
+def sync_window(
+    exchange,
+    gateway,
+    timeframe,
+    start_ms,
+    end_ms,
+    *,
+    lease_token,
+    lease_clock,
+    now_ms=None,
+):
+    """Fetch closed candles and write each page only through the fenced Gateway.
 
-    Missing rows remain missing. availableAtMs is the local clock immediately
-    after the page response, not a reconstructed historical availability time.
-    Closing is checked against both the exchange clock at sync start and the
-    local observation clock; newly closed bars can wait until the next sync.
-    Upstream exceptions propagate; this function never substitutes demo data.
+    Each page commits atomically. Earlier pages survive a later fetch error.
+    Observation time is persisted as available_at_ms; lease_clock is evaluated
+    independently by the Gateway at transaction admission.
     """
+    if not callable(getattr(gateway, "insert_batch", None)):
+        raise TypeError("gateway must provide insert_batch()")
+    if not isinstance(lease_token, LeaseFence):
+        raise TypeError("lease_token must be a LeaseFence")
+    if not callable(lease_clock):
+        raise TypeError("lease_clock must be a zero-argument callable")
+
     interval = INTERVAL_MS.get(timeframe) if isinstance(timeframe, str) else None
     if interval is None or any(type(value) is not int or not 0 <= value <= MAX_TIMESTAMP or value % interval
                                for value in (start_ms, end_ms)):
@@ -49,13 +65,15 @@ def sync_window(exchange, store, timeframe, start_ms, end_ms, now_ms=None, write
     server_time = exchange.fetch_time()
     if type(server_time) is not int or not 0 <= server_time <= MAX_TIMESTAMP:
         raise ValueError("Invalid exchange clock")
-    clock = now_ms if now_ms is not None else lambda: time.time_ns() // 1_000_000
+    observation_clock = now_ms if now_ms is not None else lambda: time.time_ns() // 1_000_000
     cursor, inserted = start_ms, 0
     while cursor < end_ms:
         limit = min(1000, (end_ms - cursor) // interval)
-        page = exchange.fetch_ohlcv(EXCHANGE_SYMBOL, timeframe=timeframe, since=cursor,
-                                    limit=limit, params={"endTime": end_ms - 1})
-        observed_at = clock()
+        page = exchange.fetch_ohlcv(
+            EXCHANGE_SYMBOL, timeframe=timeframe, since=cursor,
+            limit=limit, params={"endTime": end_ms - 1},
+        )
+        observed_at = observation_clock()
         if type(observed_at) is not int or not 0 <= observed_at <= MAX_TIMESTAMP:
             raise ValueError("Invalid observation clock")
         closed_through = min(server_time, observed_at)
@@ -75,63 +93,64 @@ def sync_window(exchange, store, timeframe, start_ms, end_ms, now_ms=None, write
             previous = opened
             if not cursor <= opened < end_ms or opened + interval > closed_through:
                 continue
-            candles.append(Candle(timeframe, opened, *(str(value) for value in row[1:]),
-                                  available_at_ms=observed_at))
+            candles.append(Candle(
+                timeframe, opened, *(str(value) for value in row[1:]),
+                available_at_ms=observed_at,
+            ))
         next_cursor = page[-1][0] + interval
         if next_cursor <= cursor:
             raise ValueError("OHLCV pagination made no progress")
-        if write_fence is None:
-            inserted += store.insert(candles)
-        else:
-            if not isinstance(write_fence, dict) or set(write_fence) - {"owner", "generation", "now_ms", "lease_name"}:
-                raise ValueError("write_fence must contain owner, generation, now_ms and optional lease_name")
-            fenced_insert = getattr(store, "insert_fenced", None)
-            if not callable(fenced_insert):
-                raise TypeError("Fenced sync requires a store with atomic insert_fenced support")
-            fence_args = {
-                "owner": write_fence.get("owner"),
-                "generation": write_fence.get("generation"),
-                "now_ms": write_fence.get("now_ms"),
-            }
-            if "lease_name" in write_fence:
-                fence_args["lease_name"] = write_fence["lease_name"]
-            inserted += fenced_insert(candles, **fence_args)
+        inserted += gateway.insert_batch(
+            candles,
+            lease_token=lease_token,
+            now_ms=lease_clock,
+        )
         cursor = next_cursor
         if len(page) < limit or cursor > closed_through:
             break
     return inserted
 
-
 def main():
-    parser = argparse.ArgumentParser(description="Sync closed BTCUSDT perpetual candles into the canonical store")
-    parser.add_argument("--backend", choices=("sqlite", "postgres"),
-                        default=os.environ.get("MARKET_DATA_BACKEND", "sqlite"),
-                        help="Storage backend (default: sqlite or MARKET_DATA_BACKEND)")
+    parser = argparse.ArgumentParser(
+        description="Sync closed BTCUSDT perpetual candles through the fenced SQLite Gateway"
+    )
     parser.add_argument("--db", default=os.environ.get("MARKET_DATA_DB", ""),
-                        help="SQLite database path; required only for SQLite")
+                        help="Existing SQLite canonical database path")
+    parser.add_argument("--lease-name", default=os.environ.get(
+        "T0_FEEDER_LEASE_NAME", "binance-btcusdt-canonical"))
+    parser.add_argument("--lease-owner", default=os.environ.get("T0_FEEDER_OWNER_ID", ""))
+    parser.add_argument("--lease-generation", type=int,
+                        default=os.environ.get("T0_FEEDER_LEASE_GENERATION"))
     parser.add_argument("--timeframe", choices=tuple(INTERVAL_MS), required=True)
-    parser.add_argument("--start-ms", type=int, required=True, help="Inclusive aligned UTC epoch milliseconds")
-    parser.add_argument("--end-ms", type=int, required=True, help="Exclusive aligned UTC epoch milliseconds")
+    parser.add_argument("--start-ms", type=int, required=True,
+                        help="Inclusive aligned UTC epoch milliseconds")
+    parser.add_argument("--end-ms", type=int, required=True,
+                        help="Exclusive aligned UTC epoch milliseconds")
     args = parser.parse_args()
+    if not args.lease_owner or args.lease_generation is None or args.lease_generation < 1:
+        parser.error("an active lease requires T0_FEEDER_OWNER_ID and T0_FEEDER_LEASE_GENERATION")
+
     try:
-        # Optional dependency: offline API/store/tests can run without installing CCXT.
         import ccxt
     except ImportError:
-        parser.exit(1, "Install requirements-market-data.txt to fetch exchange data.\n")
+        parser.exit(1, "Install requirements-market-data.txt to fetch exchange data.\\n")
     try:
         exchange = ccxt.binanceusdm({"enableRateLimit": True, "timeout": 15_000})
-        store = create_store(
-            args.backend,
-            sqlite_path=args.db,
-            postgres_dsn=os.environ.get("MARKET_DATA_POSTGRES_DSN", ""),
+        gateway = T0WriteGateway(args.db)
+        reader = create_store("sqlite", sqlite_path=args.db)
+        lease_token = LeaseFence(args.lease_name, args.lease_owner, args.lease_generation)
+        observation_clock = lambda: time.time_ns() // 1_000_000
+        lease_clock = lambda: time.time_ns() // 1_000_000
+        count = sync_window(
+            exchange, gateway, args.timeframe, args.start_ms, args.end_ms,
+            lease_token=lease_token, lease_clock=lease_clock,
+            now_ms=observation_clock,
         )
-        count = sync_window(exchange, store, args.timeframe, args.start_ms, args.end_ms)
-        window = store.read_window("BTCUSDT", args.timeframe, args.start_ms, args.end_ms)
+        window = reader.read_window("BTCUSDT", args.timeframe, args.start_ms, args.end_ms)
     except Exception as error:
-        parser.exit(1, f"Sync failed ({type(error).__name__}); earlier successful pages remain stored.\n")
+        parser.exit(1, f"Sync failed ({type(error).__name__}); earlier successful pages remain stored.\\n")
     print(json.dumps({"inserted": count, "datasetVersion": window["datasetVersion"],
                       "coverage": window["coverage"]}, allow_nan=False))
-
 
 if __name__ == "__main__":
     main()
