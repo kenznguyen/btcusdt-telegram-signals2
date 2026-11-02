@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 
 from paper_execution.shadow_migration_fixture import (
-    PAPER_CONFIG, PAPER_TABLES, build_legacy_fixture,
+    FIXED_NOW_MS, LEASE_NAME, PAPER_CONFIG, PAPER_TABLES, build_legacy_fixture,
 )
 
 # Implemented in the GREEN phase after these contract tests exist.
@@ -278,7 +278,9 @@ class ShadowMigrationContractTest(unittest.TestCase):
                 "SELECT id,at_ms,kind,document FROM paper_audit ORDER BY id").fetchall())
 
     def test_D01_runtime_status_remains_in_t0_target(self):
-        self.migrate()
+        self.assert_migration_completed_precondition(
+            required_t0=("feeder_runtime_status",),
+        )
         self.assertIn("feeder_runtime_status", self.tables(self.t0))
         self.assertNotIn("feeder_runtime_status", self.tables(self.paper))
 
@@ -298,14 +300,17 @@ class ShadowMigrationContractTest(unittest.TestCase):
                          manifest["t0_candle_fingerprint"]["target"])
 
     def test_D04_paper_and_t0_targets_are_independent_files_and_domains(self):
-        self.migrate()
+        self.assert_migration_completed_precondition(
+            required_t0=("candles", "feeder_leases", "feeder_runtime_status"),
+            required_paper=PAPER_TABLES + ("paper_control_budget",),
+        )
         self.assertNotEqual(self.t0.resolve(), self.paper.resolve())
         self.assertTrue(set(PAPER_TABLES).isdisjoint(self.tables(self.t0)))
         self.assertIn("candles", self.tables(self.t0))
         self.assertNotIn("candles", self.tables(self.paper))
 
     def test_E01_source_sha_mismatch_fails_closed_without_valid_verdict(self):
-        self.migrate()
+        self.assert_successful_migration_precondition()
         with sqlite3.connect(self.source) as db:
             db.execute("UPDATE paper_state SET realized='999' WHERE id=1")
         with self.assertRaises((ValueError, RuntimeError)):
@@ -357,23 +362,37 @@ class ShadowMigrationContractTest(unittest.TestCase):
         self.assertEqual(first["migration_id"], second["migration_id"])
 
     def test_E06_injected_mid_copy_failure_rolls_back_staging_targets(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises((OSError, RuntimeError, sqlite3.Error)):
             self.migrate(failpoint="after_paper_copy_before_commit")
-        for path in (self.t0, self.paper):
-            if path.exists():
-                with sqlite3.connect(path) as db:
-                    self.assertEqual(db.execute("PRAGMA integrity_check").fetchone()[0], "ok")
-                    self.assertEqual(db.execute(
-                        "SELECT COUNT(*) FROM sqlite_master WHERE type='table'"
-                    ).fetchone()[0], 0)
+        # Atomic publication contract: neither target nor either manifest may
+        # survive a failure between the two domain copies.
+        self.assertFalse(self.t0.exists(), "T0 target must not be published after rollback")
+        self.assertFalse(self.paper.exists(), "Paper target must not be published after rollback")
+        self.assertFalse((self.manifests / "source_manifest.json").exists())
+        self.assertFalse((self.manifests / "migration_manifest.json").exists())
 
     def test_E07_active_feeder_lease_blocks_migration(self):
+        with sqlite3.connect(self.source) as db:
+            lease = db.execute(
+                "SELECT owner,generation,expires_at_ms FROM feeder_leases WHERE lease_name=?",
+                (LEASE_NAME,),
+            ).fetchone()
+        self.assertIsNotNone(lease, "fixture must contain an acquired feeder lease")
+        self.assertEqual(lease[:2], ("fixture-owner-A", 7))
+        self.assertGreater(lease[2], FIXED_NOW_MS,
+                           "fixture lease must still be active at the migration clock")
         with self.assertRaises((PermissionError, RuntimeError)):
-            self.migrate(require_released_lease=True)
+            self.migrate(require_released_lease=True, now_ms=FIXED_NOW_MS)
+        self.assertFalse(self.t0.exists(), "active Lease must block T0 publication")
+        self.assertFalse(self.paper.exists(), "active Lease must block Paper publication")
 
     def test_E08_undrained_paper_writer_blocks_migration(self):
+        # The caller explicitly reports that the Paper writer has not drained;
+        # migration must reject before publishing either domain target.
         with self.assertRaises((PermissionError, RuntimeError)):
             self.migrate(paper_writer_drained=False)
+        self.assertFalse(self.t0.exists(), "undrained writer must block T0 publication")
+        self.assertFalse(self.paper.exists(), "undrained writer must block Paper publication")
 
 
 if __name__ == "__main__":
