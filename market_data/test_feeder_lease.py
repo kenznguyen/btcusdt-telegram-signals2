@@ -15,6 +15,7 @@ class LeaseContractTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.path = str(Path(self.temp.name) / "lease.sqlite3")
         self.store = LeaseStore(self.path, lease_name="binance-btcusdt-canonical")
+        self.store.initialize_schema()
 
     def test_only_one_process_can_hold_an_unexpired_lease(self):
         first = self.store.acquire("process-A", now_ms=NOW, ttl_seconds=60)
