@@ -67,6 +67,19 @@ class ShadowMigrationContractTest(unittest.TestCase):
             return {name: db.execute(f'SELECT COUNT(*) FROM "{name}"').fetchone()[0]
                     for name in names}
 
+    def assert_migration_completed_precondition(self, *, required_t0=(), required_paper=()):
+        """Stop dependent assertions cleanly while the RED migration stub is active."""
+        result = self.migrate()
+        self.assertEqual(result.get("status"), "PASS",
+                         "PRECONDITION: migration must PASS before target-content assertions")
+        missing_t0 = set(required_t0) - self.tables(self.t0)
+        missing_paper = set(required_paper) - self.tables(self.paper)
+        self.assertFalse(missing_t0,
+                         f"PRECONDITION: T0 target missing tables: {sorted(missing_t0)}")
+        self.assertFalse(missing_paper,
+                         f"PRECONDITION: Paper target missing tables: {sorted(missing_paper)}")
+        return result
+
     def test_A01_fixture_uses_real_schema_and_expected_paper_table_set(self):
         self.assertEqual(set(PAPER_TABLES), {
             "paper_state", "paper_orders", "paper_books", "paper_audit",
@@ -136,7 +149,7 @@ class ShadowMigrationContractTest(unittest.TestCase):
         self.assertNotIn("paper_control_budget", self.tables(self.t0))
 
     def test_B03_each_paper_table_row_count_matches_source(self):
-        self.migrate()
+        self.assert_migration_completed_precondition(required_paper=PAPER_TABLES + ("paper_control_budget",))
         expected = self.counts(self.source, PAPER_TABLES + ("paper_control_budget",))
         actual = self.counts(self.paper, PAPER_TABLES + ("paper_control_budget",))
         self.assertEqual(actual, expected)
@@ -185,7 +198,7 @@ class ShadowMigrationContractTest(unittest.TestCase):
                 self.assertEqual(db.execute("PRAGMA foreign_key_check").fetchall(), [])
 
     def test_B07_autoincrement_sequence_is_preserved_for_paper_audit_and_equity(self):
-        self.migrate()
+        self.assert_migration_completed_precondition(required_paper=("paper_audit", "paper_equity_history"))
         with sqlite3.connect(self.source) as source, sqlite3.connect(self.paper) as target:
             for name in ("paper_audit", "paper_equity_history"):
                 source_ddl = source.execute(
@@ -211,21 +224,21 @@ class ShadowMigrationContractTest(unittest.TestCase):
                 self.assertEqual(target_seq, source_seq)
 
     def test_C01_open_position_cost_basis_fees_and_realized_pnl_are_preserved(self):
-        self.migrate()
+        self.assert_migration_completed_precondition(required_paper=("paper_state",))
         with sqlite3.connect(self.paper) as db:
             self.assertEqual(db.execute(
                 "SELECT position,average,realized,fees FROM paper_state WHERE id=1"
             ).fetchone(), ("0.001", "60000", "1.25", "0.03"))
 
     def test_C02_strategy_owner_and_dca_used_flag_remain_set(self):
-        self.migrate()
+        self.assert_migration_completed_precondition(required_paper=("paper_strategy_state",))
         with sqlite3.connect(self.paper) as db:
             self.assertEqual(db.execute(
                 "SELECT owner,dca_used FROM paper_strategy_state WHERE id=1"
             ).fetchone(), ("STRATEGY_CORE", 1))
 
     def test_C03_open_order_identity_payload_and_document_are_preserved(self):
-        self.migrate()
+        self.assert_migration_completed_precondition(required_paper=("paper_orders",))
         with sqlite3.connect(self.paper) as db:
             row = db.execute("SELECT intent_id,payload_hash,order_id,status,document "
                              "FROM paper_orders WHERE intent_id='fixture-open'").fetchone()
@@ -234,7 +247,7 @@ class ShadowMigrationContractTest(unittest.TestCase):
         self.assertEqual(json.loads(row[4])["orderId"], "fixture-open")
 
     def test_C04_filled_order_and_fee_relationships_are_preserved(self):
-        self.migrate()
+        self.assert_migration_completed_precondition(required_paper=("paper_orders",))
         with sqlite3.connect(self.paper) as db:
             row = db.execute("SELECT status,document FROM paper_orders "
                              "WHERE intent_id='fixture-filled'").fetchone()
@@ -242,14 +255,14 @@ class ShadowMigrationContractTest(unittest.TestCase):
         self.assertEqual(json.loads(row[1])["feeQuote"], "0.03")
 
     def test_C05_kill_switch_latch_remains_active_without_automatic_resume(self):
-        self.migrate()
+        self.assert_migration_completed_precondition(required_paper=("paper_risk_control",))
         with sqlite3.connect(self.paper) as db:
             self.assertEqual(db.execute(
                 "SELECT killed,reason FROM paper_risk_control WHERE id=1"
             ).fetchone(), (1, "FIXTURE_KILL_SWITCH"))
 
     def test_C06_equity_high_water_mark_and_daily_baselines_are_preserved(self):
-        self.migrate()
+        self.assert_migration_completed_precondition(required_paper=("paper_equity_history",))
         with sqlite3.connect(self.paper) as db:
             self.assertEqual(db.execute(
                 "SELECT equity,high_water_mark,drawdown_usdt FROM paper_equity_history"
@@ -257,7 +270,7 @@ class ShadowMigrationContractTest(unittest.TestCase):
             self.assertEqual(db.execute("SELECT COUNT(*) FROM paper_daily_baselines").fetchone()[0], 2)
 
     def test_C07_audit_event_order_and_ids_are_preserved(self):
-        self.migrate()
+        self.assert_migration_completed_precondition(required_paper=("paper_audit",))
         with sqlite3.connect(self.source) as source, sqlite3.connect(self.paper) as target:
             self.assertEqual(source.execute(
                 "SELECT id,at_ms,kind,document FROM paper_audit ORDER BY id").fetchall(),
@@ -270,14 +283,14 @@ class ShadowMigrationContractTest(unittest.TestCase):
         self.assertNotIn("feeder_runtime_status", self.tables(self.paper))
 
     def test_D02_feeder_lease_owner_and_generation_remain_in_t0_target(self):
-        self.migrate()
+        self.assert_migration_completed_precondition(required_t0=("feeder_leases",))
         with sqlite3.connect(self.t0) as db:
             self.assertEqual(db.execute(
                 "SELECT owner,generation FROM feeder_leases WHERE lease_name=?",
                 ("binance-btcusdt-canonical",)).fetchone(), ("fixture-owner-A", 7))
 
     def test_D03_candle_rows_and_logical_fingerprints_remain_unchanged(self):
-        self.migrate()
+        self.assert_migration_completed_precondition(required_t0=("candles",))
         self.assertEqual(self.counts(self.t0, ("candles",))["candles"],
                          self.counts(self.source, ("candles",))["candles"])
         manifest = json.loads((self.manifests / "migration_manifest.json").read_text())
