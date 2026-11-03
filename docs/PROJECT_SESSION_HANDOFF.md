@@ -770,3 +770,17 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Documentation-only. No tests/workflows, code/dependency/package changes, IPC components, DB/path/device, Feeder, exchange, sync, backup/restore or execution touched. `AI_EXECUTION_ENABLED=false`.
 - Next: P5.4.40 design-only IPC threat model and typed contract specification. No runtime implementation until separately authorized.
 
+
+
+## P5.4.40 — Android IPC Threat Model and Typed Contract Specification (updated 2026-11-03)
+
+- Evidence: docs/evidence/P5.4.40-ANDROID-IPC-THREAT-MODEL-TYPED-CONTRACT.md.
+- Evidence commit: eccd71c131f47ff20023c3ba68655516a205bf7c.
+- Baseline source HEAD: b7db2c7e475b603cfab8fa273096778ec9795705.
+- Scope: documentation-only threat model and typed IPC contract for ADR-002's dedicated canonical host plus authenticated .paper client.
+- Defined trust zones and threat actors; verified Binder UID/package/signing identity; signer allowlist, rotation and revocation; signature-level permission and exported-component constraints; forbidden capabilities; bounded read-only projections; typed Paper intent/cancel commands; host-side readiness, fencing/recovery, Kill Switch, risk and audit sequence; versioned envelopes; timeout/idempotency/transaction-unknown reconciliation; process death/reconnect/upgrade; privacy and abuse safeguards.
+- Added fixture-only GitHub Actions acceptance matrix using synthetic identities and isolated fixtures. It is a proposed plan only; no workflow was run.
+- Explicitly retained OPEN decisions: host application ID/variant, IPC primitive, permission/manifest details, signing rotation policy, DTO/serialization schema, idempotency persistence/retention, transaction boundary, quotas/timeouts, lifecycle/process model, compatibility and audit policy.
+- Status: **PASS** for design specification; **NOT VERIFIED** for implementation, Android Binder/signing/device behavior; **NOT RUN** for tests/workflows; implementation and runtime activation **NOT AUTHORIZED**.
+- No code, dependencies, package IDs, exported components, database/path, device, Feeder, exchange, market-data sync, backup/restore or writer activation touched. Paper-only; AI_EXECUTION_ENABLED=false.
+- Next: P5.4.41 design review and resolution of minimum owner decisions only. No runtime implementation without separate explicit authorization.
