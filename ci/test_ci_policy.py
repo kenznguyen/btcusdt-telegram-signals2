@@ -23,6 +23,8 @@ class CiPolicyTest(unittest.TestCase):
             "p5-3-10-4-g1-red-execution.yml",
             "p5-3-10-5-g1-green-validation.yml",
             "p5-3-11-5-g2-red-validation.yml",
+            "t0-validation.yml",
+            "t0-manual-validation.yml",
             "p5-3-11-g2-integration-red.yml",
             "p5-3-11-g2-integration-green.yml",
         }
@@ -35,6 +37,7 @@ class CiPolicyTest(unittest.TestCase):
     def test_g2_red_contract_is_not_configured_in_codemagic(self):
         self.assertNotIn("p5-3-11-5-g2-red-tests", self.workflows)
 
+
     def test_g2_acceptance_is_github_actions_only_and_historical_red_is_manual(self):
         green = (ROOT / ".github/workflows/p5-3-11-g2-integration-green.yml").read_text()
         red = (ROOT / ".github/workflows/p5-3-11-g2-integration-red.yml").read_text()
@@ -42,6 +45,10 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("ref: ${{ github.event.pull_request.head.sha || github.sha }}", green)
         self.assertIn("persist-credentials: false", green)
         self.assertIn("integration/p5-3-11-g2-gateway-green-20261103", green)
+        self.assertIn(
+            "branches:\n      - feature/p5-3-11-5-g2-red-tests-20261103\n      - integration/p5-3-11-g2-gateway-green-20261103",
+            green,
+        )
         self.assertIn("workflow_dispatch:", green)
         self.assertIn("market_data.test_g2_writer_routing", green)
         self.assertIn("market_data.test_feeder_lease", green)
@@ -53,7 +60,7 @@ class CiPolicyTest(unittest.TestCase):
         data = self.workflows["canonical-market-data"]
         branch_patterns = {item["pattern"] for item in data["triggering"]["branch_patterns"]}
         self.assertNotIn("integration/p5-3-11-g2-gateway-green-20261103", branch_patterns)
-        commands = "\\n".join(item["script"] for item in data["scripts"])
+        commands = "\n".join(item["script"] for item in data["scripts"])
         self.assertNotIn("market_data.test_g2_writer_routing", commands)
         self.assertNotIn("g2-feeder-routing-tests.log", commands)
         self.assertNotIn("g2-feeder-routing-tests.log", data["artifacts"])
@@ -65,6 +72,98 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("workflow_dispatch:", red)
         self.assertNotIn("  push:", red)
 
+
+
+    def test_t0_ci_is_migrated_to_github_actions(self):
+        workflow_path = ROOT / ".github/workflows/t0-validation.yml"
+        manual_path = ROOT / ".github/workflows/t0-manual-validation.yml"
+        self.assertTrue(workflow_path.is_file())
+        self.assertTrue(manual_path.is_file())
+        workflow = yaml.safe_load(workflow_path.read_text())
+        manual = yaml.safe_load(manual_path.read_text())
+        self.assertEqual(set(workflow["jobs"]), {"t0-validation"})
+        self.assertIn("push", workflow["on"])
+        self.assertIn("pull_request", workflow["on"])
+        self.assertIn("integration/p5-3-11-g2-gateway-green-20261103",
+                      workflow["on"]["pull_request"]["branches"])
+        atomic_step = next(
+            step for step in workflow["jobs"]["t0-validation"]["steps"]
+            if step.get("name") == "Run atomic fencing and prior T0 contracts"
+        )
+        self.assertIn('grep -q "Ran 100 tests"', atomic_step.get("run", ""))
+        self.assertNotIn('grep -q "Ran 99 tests"', atomic_step.get("run", ""))
+        audit_source = (ROOT / "ci/t0_operational_contract.py").read_text()
+        health_step = next(
+            step for step in workflow["jobs"]["t0-validation"]["steps"]
+            if step.get("name") == "Run runtime health API and T0 regression contracts"
+        )
+        self.assertIn('grep -q "Ran 107 tests"', health_step.get("run", ""))
+        self.assertNotIn('grep -q "Ran 106 tests"', health_step.get("run", ""))
+        self.assertIn('health_runtime_api_count": \'grep -q "Ran 107 tests"\'', audit_source)
+        sigkill_step = next(
+            step for step in workflow["jobs"]["t0-validation"]["steps"]
+            if step.get("name") == "Run isolated SQLite SIGKILL recovery contracts"
+        )
+        self.assertIn('grep -q "Ran 101 tests"', sigkill_step.get("run", ""))
+        self.assertNotIn('grep -q "Ran 100 tests"', sigkill_step.get("run", ""))
+        self.assertIn('sigkill_recovery_count": \'grep -q "Ran 101 tests"\'', audit_source)
+        audit_source = (ROOT / "ci/t0_operational_contract.py").read_text()
+        self.assertIn('atomic_fencing_count": \'grep -q "Ran 100 tests"\'', audit_source)
+        self.assertIn("workflow_dispatch", manual["on"])
+        self.assertEqual(manual["permissions"]["contents"], "read")
+        self.assertNotIn("MARKET_DATA_TEST_DATABASE_URL", manual["jobs"]["manual-gate"].get("env", {}))
+        timescale_step = next(
+            step for step in manual["jobs"]["manual-gate"]["steps"]
+            if step.get("name") == "Run disposable TimescaleDB integration tests"
+        )
+        self.assertIn("MARKET_DATA_TEST_DATABASE_URL", timescale_step.get("env", {}))
+        self.assertIn("github.event.pull_request.head.sha || github.sha",
+                      workflow["jobs"]["t0-validation"]["steps"][0]["with"]["ref"])
+        isolated_env = workflow["jobs"]["t0-validation"]["env"]
+        for key in ("MARKET_DATA_DB", "T0_FEEDER_LEASE_DB", "PAPER_DB",
+                    "BINANCE_API_KEY", "BINANCE_API_SECRET", "OKX_API_KEY", "OKX_API_SECRET"):
+            with self.subTest(environment_key=key):
+                self.assertEqual(isolated_env[key], "")
+        commands = "\n".join(step.get("run", "") for step in workflow["jobs"]["t0-validation"]["steps"])
+        required = ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
+                    "market_data.test_api", "market_data.test_gateway_runtime", "market_data.test_feeder_lease",
+                    "market_data.test_feeder_health", "market_data.test_feeder_lifecycle",
+                    "market_data.test_feeder_atomic_fencing", "market_data.test_feeder_health_runtime_api",
+                    "market_data.test_feeder_sigkill_recovery", "ci.test_t0_operational_contract",
+                    "ci.test_t0_data_integrity")
+        for module in required:
+            with self.subTest(module=module):
+                self.assertIn(module, commands)
+        options = manual["on"]["workflow_dispatch"]["inputs"]["gate"]["options"]
+        for gate in ("final-runtime-config", "component-tests-p3", "kraken-adapter",
+                     "kraken-spot-sqlite", "kraken-spot-read-api", "timescaledb-integration"):
+            with self.subTest(gate=gate):
+                self.assertIn(gate, options)
+
+    def test_timescaledb_runner_is_provider_neutral(self):
+        script = (ROOT / "ci/test-timescaledb.sh").read_text()
+        self.assertIn("MARKET_DATA_TEST_DATABASE_URL", script)
+        self.assertIn("CI_PYTHON", script)
+        self.assertNotIn("CM_BUILD_DIR", script)
+        self.assertNotIn("CODEMAGIC", script)
+
+    def test_t0_executable_workflows_are_removed_from_codemagic(self):
+        retired = {
+            "market-data-timescaledb", "market-data-kraken-adapter-tests",
+            "market-data-kraken-spot-sqlite-tests", "market-data-kraken-spot-read-api",
+            "t0-feeder-scheduler", "t0-feeder-health", "t0-feeder-lifecycle",
+            "t0-feeder-atomic-fencing", "t0-health-runtime-api", "t0-feeder-sigkill-recovery",
+            "t0-operational-contract-release-gate", "t0-data-integrity-candle-continuity-gate",
+            "t0-final-runtime-configuration-check", "t0-component-tests-p3",
+            "t0-feeder-lifecycle-red", "t0-feeder-atomic-fencing-red",
+            "p5-2-4-shadow-migration-red", "p5-2-5-runtime-red-validation", "p5-3-11-5-g2-red-tests",
+        }
+        self.assertTrue(retired.isdisjoint(set(self.workflows)))
+        commands = "\n".join(item["script"] for item in self.workflows["canonical-market-data"]["scripts"])
+        for module in ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
+                       "market_data.test_api", "market_data.test_gateway_runtime"):
+            self.assertNotIn(module, commands)
+
     def test_manual_stateful_and_release_tasks_never_start_on_push(self):
         for name in ("android-chart-pro-release", "signal-scan", "telegram-command", "dashboard-backtest"):
             with self.subTest(name=name):
@@ -73,12 +172,20 @@ class CiPolicyTest(unittest.TestCase):
     def test_data_checks_keep_dependency_import_tests_and_cli_gates(self):
         data = self.workflows["canonical-market-data"]
         self.assertIn("push", data["triggering"]["events"])
-        commands = "\\n".join(item["script"] for item in data["scripts"])
+        commands = "\n".join(item["script"] for item in data["scripts"])
         for gate in ("requirements-market-data.txt", "requirements-web.txt", "requirements-ci.txt",
-                     "import ccxt", "import app", "market_data.test_store", "market_data.test_sync",
-                     "market_data.test_api", "-s integrations", "-s ci", "market_data.sync --help"):
+                     "-s integrations", "ci.test_legacy_runner"):
             with self.subTest(gate=gate):
                 self.assertIn(gate, commands)
+        for t0_only in ("import ccxt", "import app", "market_data.sync --help", "compileall -q market_data"):
+            self.assertNotIn(t0_only, commands)
+        t0_workflow = yaml.safe_load((ROOT / ".github/workflows/t0-validation.yml").read_text())
+        t0_commands = "\n".join(step.get("run", "") for step in t0_workflow["jobs"]["t0-validation"]["steps"])
+        for module in ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
+                       "market_data.test_api", "market_data.test_gateway_runtime"):
+            self.assertIn(module, t0_commands)
+        for t0_command in ("import ccxt", "import app", "market_data.sync --help", "compileall -q market_data"):
+            self.assertIn(t0_command, t0_commands)
 
     def test_android_debug_keeps_unit_tests_and_apk_gate(self):
         workflow = self.workflows["android-chart-pro-debug"]
@@ -88,7 +195,7 @@ class CiPolicyTest(unittest.TestCase):
             workflow["triggering"]["branch_patterns"],
         )
         self.assertIn("android-app/", workflow["when"]["changeset"]["includes"])
-        commands = "\\n".join(item["script"] for item in workflow["scripts"])
+        commands = "\n".join(item["script"] for item in workflow["scripts"])
         self.assertIn(":app:testDebugUnitTest", commands)
         self.assertIn(":app:assembleDebug", commands)
         self.assertIn(":app:testParallelUnitTest", commands)

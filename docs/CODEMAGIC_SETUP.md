@@ -1,28 +1,37 @@
-# Codemagic là nơi chạy tác vụ
+# Codemagic legacy workflows và GitHub Actions
 
-GitHub chỉ lưu source/nhánh/PR. Không còn YAML thực thi trong `.github/workflows` ở nhánh này; các bản cũ nằm tại `ci/archive/github-actions`. Artifact mới và log được giữ ở Codemagic. Việc đổi source không tự thay cài đặt trên các nhánh chưa merge hoặc triển khai Render đang chạy phiên bản cũ.
+GitHub lưu source/nhánh/PR và chạy toàn bộ gate T0 qua `.github/workflows/t0-validation.yml` (tự động) cùng `.github/workflows/t0-manual-validation.yml` (manual). Các workflow Codemagic còn lại chỉ dành cho tác vụ ngoài phạm vi T0 như Android, dashboard và một số kiểm thử tích hợp. T0-specific Codemagic workflows đã được retire khỏi `codemagic.yaml`. Artifact T0 được lưu ở GitHub Actions; artifact của workflow Codemagic còn lại tiếp tục lưu ở Codemagic. Việc đổi source không tự thay cài đặt trên các nhánh chưa merge hoặc triển khai Render đang chạy phiên bản cũ.
 
 ## 1. Kết nối và chọn nhánh
 
 1. Mở application `btcusdt-telegram-signals2` đã thêm vào Codemagic, chọn cấu hình YAML từ repository.
 2. Dùng nhánh **`feature/android-five-layer-control`** để build APK có tab 5 tầng. Nhánh `feature/five-layer-paper` chứa bản tích hợp backend/React trước đó. Chỉ chọn `main` sau khi đã merge đủ source và `codemagic.yaml` mới.
-3. Bật GitHub webhook của application để Codemagic nhận push. Các workflow tự động giới hạn nhánh/đường dẫn trong YAML, không tạo thêm runner GitHub Actions.
+3. Bật GitHub webhook của application để Codemagic nhận push cho các workflow ngoài T0. T0 được kích hoạt độc lập bởi GitHub Actions theo branch/path filters; không cần Codemagic chạy lại các gate T0.
 4. Trong **Start new build**, chọn workflow ID bên dưới. Xem log và artifact gắn với source SHA thực tế, không suy ra build đạt chỉ từ việc đã thêm YAML.
 
 Không có công cụ Codemagic hoặc credential được cấu hình trong phiên làm việc này. Các thay đổi là source/configuration để review; chưa xác nhận build hay cài đặt bên ngoài đã thành công.
 
-## 2. Kiểm thử dữ liệu và gateway
+## 2. Kiểm thử T0 và các workflow tích hợp còn lại
 
-Nhánh `feature/five-layer-paper` bổ sung kiểm thử toàn luồng paper và workflow React `five-layer-dashboard`. Workflow thủ công `freqai-strategy-smoke` cài Freqtrade/FreqAI 2026.9 để kiểm tra load strategy, không chạy train/trade. Xem [runbook 5 tầng](FIVE_LAYER_PAPER_RUNBOOK.md) để thiết lập runtime.
+### T0 – GitHub Actions
 
-Workflow **`canonical-market-data`**:
+- Workflow tự động: `.github/workflows/t0-validation.yml`. Chạy market-data core/Gateway, feeder lease/scheduler, health, lifecycle, atomic fencing, health runtime API, SIGKILL recovery, operational contract và data integrity.
+- Workflow thủ công: `.github/workflows/t0-manual-validation.yml`. Chọn riêng Final Runtime Configuration, P3 component tests, Kraken Spot adapter/SQLite/read API hoặc TimescaleDB integration.
+- Mỗi workflow checkout exact commit SHA, ghi `ci-source-sha.txt`, chạy trong runner cô lập và upload log/artifact.
+- Không truyền `MARKET_DATA_DB`, `T0_FEEDER_LEASE_DB`, `PAPER_DB` hoặc exchange credentials. Không khởi động Feeder, không sync dữ liệu và không mở canonical DB.
+- TimescaleDB chỉ chạy khi GitHub Secret `MARKET_DATA_TEST_DATABASE_URL` được cấu hình cho database disposable riêng. Chưa có secret thì TimescaleDB integration chưa được nghiệm thu.
 
-- Tạo Python venv riêng; cài `requirements-market-data.txt`, `requirements-web.txt`, `requirements-ci.txt`.
-- Kiểm tra import CCXT và Flask app.
-- Chạy toàn bộ kiểm thử kho nến/sync/API, gateway Hummingbot, client Codemagic và chính sách CI; kiểm tra CLI/syntax.
-- Thu `ci-source-sha.txt` và các file `*-tests.log`. Log unittest là log chữ, không gắn nhãn nhầm thành báo cáo JUnit.
+### Codemagic – cross-layer và non-T0
 
-Workflow này không cần API key sàn và không gọi Telegram hoặc phát lệnh giao dịch. Kiểm thử giả lập biên HTTP không chứng minh kết nối Codemagic/Binance thật.
+Workflow `canonical-market-data` trong `codemagic.yaml` hiện giữ các kiểm thử tích hợp ngoài T0 core:
+
+- Cài các dependency cho CCXT/Flask và kiểm tra import.
+- Chạy gateway Hummingbot, legacy-runner checks và paper-system integration tests.
+- Kiểm tra CLI/syntax và thu source SHA cùng test logs.
+
+Các test kho nến/sync/API và Gateway runtime T0 đã được chuyển sang GitHub Actions, không còn chạy từ workflow Codemagic này. Workflow thủ công `freqai-strategy-smoke` cài Freqtrade/FreqAI 2026.9 để kiểm tra load strategy, không chạy train/trade. Xem [runbook 5 tầng](FIVE_LAYER_PAPER_RUNBOOK.md) để thiết lập runtime.
+
+Các workflow trên không cần API key giao dịch, không gọi Telegram và không phát lệnh giao dịch. Kiểm thử giả lập không chứng minh kết nối sàn hoặc vận hành production.
 
 ## 3. APK debug và release
 
