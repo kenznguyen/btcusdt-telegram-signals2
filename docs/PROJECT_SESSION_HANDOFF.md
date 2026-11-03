@@ -1008,3 +1008,44 @@ Next:
 2. Review test XML/report files to obtain exact unit-test case counts and identify skipped/ignored tests, without rerunning the suite unless an evidence gap requires it.
 3. Do not install or distribute APKs or begin device/IPC testing without separate explicit authorization.
 
+
+
+## P5.4.50 — Independent paired-release artifact inspection (updated 2026-11-04)
+
+Scope: download the exact GitHub Actions artifact from run `41735402129` / artifact `13278029439`, inspect archive integrity, extract test XML totals, compare APK digests to the embedded manifest, and independently extract v2 signing certificates. No APK installation or runtime execution.
+
+Source/artifact identity:
+- Repository: `kenznguyen/btcusdt-telegram-signals2`
+- Build source SHA: `621857b4568af67fcf571968f1b732558e16ccbc`
+- Artifact ID: `13278029439`
+- Downloaded file: `android-release-pair-621857b4568af67fcf571968f1b732558e16ccbc.zip`
+- Actual size: 16,209,168 bytes.
+- Independently computed ZIP SHA-256: `7ab1372b0b0fd36d50f03a572b86a22fb8aa6c0ba81a230774f8221c2aba07bb`, exactly matching GitHub artifact metadata.
+- `unzip -t`: all 44 entries passed; no compressed-data errors.
+- Embedded `android-source-sha.txt` equals the build source SHA above.
+- Embedded `android-release-pair.json` sourceSha also equals the build source SHA.
+
+Unit-test evidence from archived JUnit XML:
+- 16 XML test suites.
+- 96 tests total; 96 passed; 0 failures; 0 errors; 0 skipped.
+- This provides the exact test count absent from the initial job-log summary.
+
+APK payload evidence:
+- Release APK: `android-app/app/build/outputs/apk/release/app-release.apk`; 7,206,843 bytes; SHA-256 `87039344c8f5d122644be648f7be8d7388f2eaca470576aeec023da4c81697c3`.
+- Parallel APK: `android-app/app/build/outputs/apk/parallel/app-parallel.apk`; 9,766,090 bytes; SHA-256 `a9c13cfb8224dc8daa05669c4e93214a482b94b77398d31d266bdded5be6d467`.
+- Both computed APK SHA-256 values match their respective entries in `android-release-pair.json`.
+- Embedded metadata identifies release package `com.kenznguyen.btclivealerts`, version `0.2.0`; parallel package `com.kenznguyen.btclivealerts.paper`, version `0.2.0-paper`.
+- Independently parsed the APK Signing Block v2 certificate sequence from both APKs and extracted the DER certificate. Both certificates have SHA-256 fingerprint `e65a490a75786c5b76e886be1aa11e66acaea23e5e875560a94b37fb4a9942e8`, matching the embedded metadata and the workflow verifier's reported signer parity. Certificate subject: `CN=BTCUSDT Chart ProKey alias: btc-chart-release, O=Personal, C=VN`.
+- Limitation: `apksigner` is not installed in the inspection environment. This inspection independently extracts and fingerprints the v2 certificates but does not independently perform full APK v2/v3 cryptographic signature verification. Do not describe that as independently verified signature validity.
+
+Verdict:
+- Artifact download, exact ZIP digest match, archive integrity, source SHA identity, 96/96 JUnit result, APK payload digests, and matching extracted v2 certificate fingerprints: **PASS**.
+- Independent full APK signature cryptographic verification using Android `apksigner verify`: **NOT VERIFIED** (tool unavailable). Workflow verifier's own signer-parity check remains PASS.
+- Device installation, launch/runtime behavior, app update compatibility, and inter-app/host-paper IPC: **NOT RUN / NOT VERIFIED**.
+- No APK installation, distribution, live execution, exchange connection, DB/Feeder activation, or market-data sync was performed.
+
+Next:
+1. Preserve the inspected artifact and its checksums in the evidence record.
+2. If independent signature validity is required, run Android SDK Build Tools `apksigner verify --verbose --print-certs` on both exact APK payloads in a trusted environment.
+3. Await separate explicit authorization before device installation or runtime/IPC tests. Keep `AI_EXECUTION_ENABLED=false`.
+
