@@ -35,8 +35,6 @@ jobs:
       PAPER_DB: ""
       PAPER_TRADING_DB: ""
       T0_TEST_MODE: "1"
-      T0_TEST_ROOT: ${{ runner.temp }}/t0-test-root
-      T0_TEST_DB: ${{ runner.temp }}/t0-test-root/t0-shadow.sqlite3
       BINANCE_API_KEY: ""
       BINANCE_API_SECRET: ""
       OKX_API_KEY: ""
@@ -63,6 +61,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          export T0_TEST_ROOT="$RUNNER_TEMP/t0-test-root"
+          export T0_TEST_DB="$T0_TEST_ROOT/t0-shadow.sqlite3"
+          echo "T0_TEST_ROOT=$T0_TEST_ROOT" >> "$GITHUB_ENV"
+          echo "T0_TEST_DB=$T0_TEST_DB" >> "$GITHUB_ENV"
           mkdir -p "$T0_TEST_ROOT"
           test -d "$T0_TEST_ROOT"
           case "$T0_TEST_DB" in "$T0_TEST_ROOT"/*) ;; *) echo "T0_TEST_DB escapes T0_TEST_ROOT"; exit 1 ;; esac
