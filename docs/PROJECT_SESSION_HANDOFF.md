@@ -523,3 +523,21 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS** for locating and documenting lease implementation; **NOT VERIFIED** for runtime heartbeat, supervisor, write-call-site enforcement, shared Android file wiring, external restore epoch and runtime readiness; production Backup/Restore remains **BLOCKED**.
 - No source/schema/workflow/runtime changes; no tests/workflows run; no Android filesystem/DB access; no Feeder/API, exchange or sync; no production backup/restore or writer activation. `ai_execution_enabled=false`; Natural Doze remains `INTERRUPTED / DEFERRED`.
 - Next: read-only trace all LeaseStore construction and canonical candle write call sites to establish whether fencing generation is transactionally coupled to writes. Do not access device/runtime without separate explicit authorization.
+
+
+## P5.4.25 — Feeder Runtime to Canonical Candle Write-Path Trace (2026-11-03)
+
+- Report: `docs/evidence/P5.4.25-FEEDER-CANONICAL-WRITE-PATH-TRACE-2026-11-03.md`.
+- Report commit: `95501f32c25f65c7c9136606de02aab3a90ba915`.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Inspected source blob identities:
+  - `market_data/feeder.py`: `70bba25f1fbf8b3edd3e28756984eed584037cc1`.
+  - `market_data/store.py`: `b28601aed70097afcb7a4eea2dd93ed163ae1cec`.
+  - `market_data/storage.py`: `99b66a4d183b8664f28d6638d8d87416d32847c9`.
+  - `market_data/feeder_status.py`: `f35309a7429cb73213018fb51ce3fc30419de20d`.
+- Exact branch HEAD SHA was not independently verified.
+- Findings: FeederRuntime.start acquires lease, runs recovery, renews lease, starts scheduler and heartbeat. Heartbeat thread exists with default 15s cadence and stops scheduler on lease loss. Scheduler callback is wrapped by LeaseStore.authorize_write before callback execution.
+- Critical gaps: preflight authorization uses a separate transaction from the eventual candle write; the actual sync_window upsert transaction was not established. RecoveryCoordinator has an independently injected sync callback; inspected code does not prove it is wrapped by the scheduler guard or fenced inside the canonical mutation transaction. LeaseStore, CandleStore, status store and Paper Ledger each accept paths independently; no production composition root enforcing one physical Android DB path was found in inspected source.
+- Status: **PASS** for source trace of heartbeat supervisor implementation and scheduler preflight guard; **NOT VERIFIED** for atomic candle-write fencing, recovery callback fencing, actual sync_window implementation, production construction and shared DB path. Production writer activation and Backup/Restore remain **BLOCKED**.
+- No source/schema/workflow/runtime changes; no tests/workflows run; no Android filesystem/DB access; no Feeder/API, exchange or sync; no production backup/restore or writer activation. `ai_execution_enabled=false`; Natural Doze remains `INTERRUPTED / DEFERRED`.
+- Next: read-only trace actual `sync_window()`, candle upsert transaction and application composition root. Do not infer missing runtime wiring or access device/runtime without separate explicit authorization.
