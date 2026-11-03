@@ -72,7 +72,7 @@ def build_legacy_fixture(path):
         require_risk_limits=PAPER_CONFIG["require_risk_limits"],
         leverage=PAPER_CONFIG["leverage"],
     )
-    CandleStore(path)
+    CandleStore(path).initialize_schema()
 
     m15_start = FIXED_NOW_MS - 12 * 900_000
     h1_start = FIXED_NOW_MS - 6 * 3_600_000
