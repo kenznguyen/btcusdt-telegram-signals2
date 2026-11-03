@@ -452,7 +452,8 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 
 - Owner-confirmed correction (2026-11-03): **T0 runs on Android; Android-hosted SQLite is the canonical T0 storage target.** This supersedes the older PC-hosted T0 wording.
 - PC is a separate compute/backtest environment; it is not the T0 canonical writer under the current decision.
-- Still unresolved: exact canonical Android path; whether Market Data and Paper Ledger share one SQLite file or use separate SQLite files; Feeder lease placement; backup destination, cadence, encryption and retention.
+- Owner decision (2026-11-03): **Market Data and Paper Ledger share one physical SQLite database file on Android.** This supersedes the unaccepted two-file proposal.
+- Still unresolved: exact canonical Android path; schema/domain boundaries and transaction semantics inside the shared file; Feeder lease placement/fencing; backup destination, cadence, encryption and retention.
 - The earlier PC + same-store lease + daily-backup statement is superseded where it conflicts with Android-first and must not be reused as an approved Android configuration.
 - PostgreSQL remains an optional/experimental adapter, not the selected T0 canonical backend.
 - ADR Android-host correction commit: `55adf229ed4fa6a8cb4626c38562252cf629b1cf`.
@@ -470,3 +471,18 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - `ai_execution_enabled=false`; paper-only; Natural Doze remains `INTERRUPTED / DEFERRED`.
 - Status: **PASS** for recording the owner-confirmed Android-first host direction in documentation; **NOT VERIFIED** for Android runtime readiness, canonical path, physical file topology and production recovery.
 - Next: resolve whether Market Data and Paper Ledger use one SQLite file or two, then separately resolve the exact Android canonical path and lease placement. Production implementation remains BLOCKED pending D1–D7 approvals.
+
+
+## P5.4.22 — Shared Android SQLite Topology Decision (2026-11-03)
+
+- Owner decision: T0 runs on Android; Market Data and Paper Ledger share **one physical SQLite database file** on Android.
+- This supersedes the unaccepted proposal for two SQLite files. PC remains a separate compute/backtest environment, not the T0 canonical writer.
+- ADR: `docs/decisions/ADR-001-PRODUCTION-BACKUP-MANIFEST-CONTRACT.md`; topology decision commit: `cb078005696810830f02401978cdbc98494bf06e`.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Scope: documentation only. No code, schema, dependency, workflow, runtime configuration or database changed. No tests/workflows were run.
+- Remaining open: exact Android canonical path; schema/domain ownership and transaction boundaries; Feeder lease placement/fencing; stable store identity; backup destination/cadence/encryption/retention; D2–D7 manifest and recovery decisions.
+- One-file topology enables a single SQLite Online Backup API snapshot for DB-resident Market Data and Paper Ledger state, but does not prove writer quiescence, WAL handling, external control-plane consistency or production restore safety.
+- No Android filesystem access, canonical DB access/creation, Feeder/API startup, exchange connection, data sync, production backup/restore or writer activation was performed or authorized.
+- `ai_execution_enabled=false`; paper-only; Natural Doze remains `INTERRUPTED / DEFERRED`.
+- Status: **PASS** for recording owner-approved Android/shared-file topology; **NOT VERIFIED** for runtime readiness, canonical path, WAL/backup integration and recovery correctness. Production backup/restore remains **BLOCKED**.
+- Next: resolve the exact Android canonical path and Feeder lease/fencing ownership, then review D2–D7 before production implementation.
