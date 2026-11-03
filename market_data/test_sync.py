@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import subprocess
 import sys
 import tempfile
@@ -165,8 +166,10 @@ class CandleSyncTest(unittest.TestCase):
                 sync_window(exchange, timeframe, start, end,
                                 gateway=self.gateway, lease_token=self.lease_token,
                                 lease_clock=lambda: START + 1)
+        help_env = os.environ.copy()
+        help_env["MARKET_DATA_BACKEND"] = "postgres"
         result = subprocess.run([sys.executable, "-m", "market_data.sync", "--help"],
-                                capture_output=True, text=True, check=True)
+                                capture_output=True, text=True, check=True, env=help_env)
         self.assertIn("--start-ms", result.stdout)
         self.assertEqual(exchange.calls, [])
 

@@ -96,9 +96,7 @@ def sync_window(exchange, timeframe, start_ms, end_ms, *, gateway, lease_token,
 def main():
     parser = argparse.ArgumentParser(description="Sync closed BTCUSDT perpetual candles into the canonical store")
     configured_backend = os.environ.get("MARKET_DATA_BACKEND", "sqlite").strip().lower()
-    if configured_backend != "sqlite":
-        parser.error("MARKET_DATA_BACKEND must be sqlite for canonical sync")
-    parser.add_argument("--backend", choices=("sqlite",), default=configured_backend,
+    parser.add_argument("--backend", choices=("sqlite",), default="sqlite",
                         help="Canonical sync currently permits SQLite only")
     parser.add_argument("--db", default=os.environ.get("MARKET_DATA_DB", ""),
                         help="SQLite database path; required only for SQLite")
@@ -109,6 +107,9 @@ def main():
     parser.add_argument("--lease-owner", required=True)
     parser.add_argument("--lease-generation", type=int, required=True)
     args = parser.parse_args()
+    # Let argparse handle --help before enforcing runtime-only backend restrictions.
+    if configured_backend != "sqlite":
+        parser.error("MARKET_DATA_BACKEND must be sqlite for canonical sync")
     try:
         # Optional dependency: offline API/store/tests can run without installing CCXT.
         import ccxt
