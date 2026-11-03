@@ -38,6 +38,22 @@ by each run.
 | Kraken Spot adapter/store/read API | manual T0 validation | no fixed count |
 | TimescaleDB/SQLite parity | manual T0 validation | external DB required |
 
+## Retired historical RED-only gates
+
+The following Codemagic workflows were intentionally retired rather than
+ported as executable GitHub Actions gates:
+
+- `t0-feeder-lifecycle-red`
+- `t0-feeder-atomic-fencing-red`
+- `p5-2-4-shadow-migration-red`
+- `p5-2-5-runtime-red-validation`
+
+These were historical RED-phase contracts and are no longer valid as current
+acceptance gates after the corresponding implementation/GREEN work. Their
+historical results are not rerun or reclassified by this migration. Current
+Gateway and writer-routing acceptance remains covered by the dedicated G1/G2
+GitHub Actions workflows.
+
 ## Operational invariants checked from source
 
 1. Production feeder selects Binance USD-M through CCXT `binanceusdm`.
