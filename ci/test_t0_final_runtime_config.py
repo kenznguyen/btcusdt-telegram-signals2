@@ -20,6 +20,12 @@ class FinalRuntimeConfigurationTests(unittest.TestCase):
             "MARKET_DATA_BACKEND": "sqlite",
             "MARKET_DATA_DB": str(self.db_path),
             "T0_FEEDER_LEASE_DB": str(self.db_path),
+            "CI": "true",
+            "T0_TEST_MODE": "1",
+            "T0_TEST_ROOT": str(self.root),
+            "T0_TEST_DB": str(self.db_path),
+            "PAPER_DB": "",
+            "PAPER_TRADING_DB": "",
         }
 
     def tearDown(self):
