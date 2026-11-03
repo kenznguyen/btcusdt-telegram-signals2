@@ -502,3 +502,24 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS** for recording source-level findings; **NOT VERIFIED** for application shared-path wiring, lease implementation elsewhere, exact branch HEAD, cross-domain atomicity and production WAL backup.
 - No code/schema/workflow/runtime changes; no tests/workflows run; no Android filesystem or database access; no Feeder/API, exchange or sync; no production backup/restore or writer activation.
 - Next: continue repository source review to locate lease/fencing implementation and wiring. Exact Android canonical path discovery requires separate explicit device/filesystem inspection authorization. Production implementation remains **BLOCKED** pending D1 details and D2–D7. Keep `ai_execution_enabled=false`; Natural Doze remains `INTERRUPTED / DEFERRED`.
+
+
+## P5.4.24 — Feeder Lease and Fencing Source Review (2026-11-03)
+
+- Report: `docs/evidence/P5.4.24-FEEDER-LEASE-FENCING-SOURCE-REVIEW-2026-11-03.md`.
+- Report commit: `77f284cac4697ae6850556afb93244a422d03d37`.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Inspected source blob identities:
+  - `market_data/feeder.py`: `70bba25f1fbf8b3edd3e28756984eed584037cc1`.
+  - `market_data/test_feeder_lease.py`: `0512fefc046a48fc8bf46341a1cd936883bcb7b7`.
+  - `market_data/feeder_status.py`: `f35309a7429cb73213018fb51ce3fc30419de20d`.
+  - `app.py`: `90df28c5409463c524b1d286d5fe502d3b39f59d`.
+  - `.github/workflows/t0-manual-validation.yml`: `35fbc75055390ddd5e31258c6d88075b418d2688`.
+- Exact branch HEAD SHA was not independently verified.
+- Source findings: LeaseStore implements SQLite singleton ownership, generation fencing, TTL 60s and configured heartbeat cadence 15s; lease transitions use `BEGIN IMMEDIATE`; runtime transactions use `mode=rw` and fail closed on storage errors. Contract tests cover concurrent acquisition, takeover generation, stale-owner rejection, heartbeat and missing DB behavior; tests were not run in this review.
+- Important gaps: heartbeat cadence configuration does not prove a runtime heartbeat supervisor; LeaseStore accepts an independent DB path and no shared canonical path invariant was found; FeederRuntimeStatusStore reads lease/status from its supplied DB path, while app health fallback uses `MARKET_DATA_DB`; no runtime construction/writer integration was established in inspected files.
+- Fencing concern: `authorize_write()` performs lease verification in its own transaction. A separate candle write transaction leaves a TOCTOU window unless the generation is revalidated/serialized inside the canonical write transaction.
+- Restore concern: lease generation is stored in the restored SQLite file and can roll back with an old snapshot; external restore epoch/re-fencing authority and a writer-start gate remain required.
+- Status: **PASS** for locating and documenting lease implementation; **NOT VERIFIED** for runtime heartbeat, supervisor, write-call-site enforcement, shared Android file wiring, external restore epoch and runtime readiness; production Backup/Restore remains **BLOCKED**.
+- No source/schema/workflow/runtime changes; no tests/workflows run; no Android filesystem/DB access; no Feeder/API, exchange or sync; no production backup/restore or writer activation. `ai_execution_enabled=false`; Natural Doze remains `INTERRUPTED / DEFERRED`.
+- Next: read-only trace all LeaseStore construction and canonical candle write call sites to establish whether fencing generation is transactionally coupled to writes. Do not access device/runtime without separate explicit authorization.
