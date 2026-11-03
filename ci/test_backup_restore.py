@@ -548,6 +548,44 @@ class BackupRestoreFixtureTest(unittest.TestCase):
         self.assertEqual(list(self.backups.iterdir()), [])
         self.assertFalse(any(self.backups.glob(".split-stage-*")))
 
+    def test_split_store_backup_set_publishes_both_stores_and_manifest_together(self):
+        second_source = self.root / "source" / "second-fixture.sqlite3"
+        create_online_backup(
+            self.source, second_source, root=self.root,
+            required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
+        )
+        target = self.backups / "split-set"
+        result = publish_split_store_backup_set(
+            {"market_data": self.source, "paper_ledger": second_source},
+            target, root=self.root,
+            snapshot_barrier_id="barrier-fixture-003",
+            restore_epoch=6,
+            snapshot_metadata={
+                "market_data": {
+                    "barrier_id": "barrier-fixture-003",
+                    "snapshot_id": "market-snapshot-003",
+                    "high_water_mark": 122,
+                    "schema_version": 3,
+                },
+                "paper_ledger": {
+                    "barrier_id": "barrier-fixture-003",
+                    "snapshot_id": "paper-snapshot-003",
+                    "high_water_mark": 46,
+                    "schema_version": 5,
+                },
+            },
+            required_tables=REQUIRED_TABLES,
+            required_rows=REQUIRED_ROWS,
+        )
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(
+            {path.name for path in target.iterdir()},
+            {"market_data.sqlite3", "paper_ledger.sqlite3", "backup-manifest.json"},
+        )
+        manifest = json.loads((target / "backup-manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(validate_split_store_manifest(manifest)["status"], "PASS")
+
     def test_split_store_manifest_requires_shared_barrier_and_epoch(self):
         valid = self._valid_split_store_manifest()
         self.assertEqual(validate_split_store_manifest(valid)["status"], "PASS")
