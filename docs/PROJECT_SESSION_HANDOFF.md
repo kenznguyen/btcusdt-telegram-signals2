@@ -1249,3 +1249,54 @@ Safety/next:
 2. Audit each remaining candidate GET call graph for indirect DB writes and external side effects before any probe.
 3. Verify the deployed host/TLS identity out of band before an authenticated read-only request; do not treat `/health` alone as identity proof.
 4. Keep `AI_EXECUTION_ENABLED=false`; do not enable exchange credentials or live execution.
+
+
+## P5.4.56 — GET endpoint call-graph side-effect audit (2026-11-04)
+
+Scope:
+- Static call-graph review of every GET route in `pipeline/api.py`, plus SQLite/PostgreSQL candle readers, PaperLedger read helpers and Hummingbot snapshot bridge. No endpoint was called; no server, DB, Hummingbot process or external network request was started.
+
+Source SHA: `4c5a1ad8b61ce1a17c254c3a989b5ad0665779fc`.
+Inspected source blobs:
+- `pipeline/api.py`: `0540540462b3710a25788e4ff47a88272b7ee9c3`
+- `market_data/storage.py`: `99b66a4d183b8664f28d6638d8d87416d32847c9`
+- `market_data/store.py`: `b28601aed70097afcb7a4eea2dd93ed163ae1cec`
+- `market_data/postgres.py`: `92d336caa7b8e64dc6c1798aeabb750b7a469dfd`
+- `paper_execution/ledger.py`: `68209ce48a6e5e9a995f93167684133e41cc7f55`
+- `futures_intelligence/import_collector.py`: `5effe6540b86edcb190456c95b6bb11456aec099`
+- `integrations/hummingbot_bridge.py`: `aa9db7522ffb7ce911c7fbbdc73a7f9b47401331`
+
+Call-graph findings and classification:
+1. `GET /health`: returns a constant service identity/status document. No DB or Hummingbot call. **No-write / local-only**, but unauthenticated and not proof of deployed host identity, source SHA, TLS identity or backend configuration.
+2. `GET /v1/system`: falls through to the system/layer summary branch. Reads candle window, report files and environment/configuration; checks whether dashboard index exists. Candle read path uses SQLite URI `mode=ro` or PostgreSQL `SET TRANSACTION ... READ ONLY`; no Hummingbot fetch and no PaperLedger constructor in this branch. **Static no-persistent-write candidate**, but does read configured stores/files and therefore still touches the selected runtime dependencies.
+3. `GET /v1/candles`: validates query and calls `market_window()`. SQLite `read_window` requires an existing DB and connects with `mode=ro`; PostgreSQL reader explicitly opens a read-only transaction. Storage factory constructors are inert and do not migrate/create schema. **Read-only candidate**; must point to the intended data store and may perform DB/network reads.
+4. `GET /v1/paper`: calls `read_snapshot()`, which requires an existing file and opens SQLite with `mode=ro`, starts a read transaction, and SELECTs state/orders/risk/strategy. **Read-only candidate**; missing/corrupt state returns an error rather than initializing a ledger.
+5. `GET /v1/audit`: calls `read_audit()`, which requires an existing file and opens SQLite with `mode=ro`; it checks table existence and SELECTs audit rows. **Read-only candidate**.
+6. `GET /v1/intelligence`: reads `INTELLIGENCE_REPORT_PATH` and validates the loaded JSON snapshot. No DB write or Hummingbot call identified. **File-read-only candidate**; may read a configured local file and is not an identity check.
+7. `GET /v1/order-book`: calls `book_snapshot()`; may issue authenticated upstream Hummingbot `POST /market-data/order-book` to obtain a market-data snapshot and updates an in-process cache. The upstream resource is read-only market data, not order placement/cancel, but this is an external network call and memory-state mutation. **Not suitable for offline/no-external-call probe**; no live-order path in inspected bridge.
+8. `GET /v1/decision`: calls `context()` then AI decision evaluation. Context reads candle/report inputs and may fetch/cache Hummingbot order-book snapshot. **No persistent write identified, but may call external Hummingbot**; not a no-network probe.
+9. `GET /v1/signals`: evaluates AI and Core signal snapshots; Core uses `read_snapshot()` (SQLite read-only) and candle reads, while context/Core may fetch/cache Hummingbot snapshot. **No persistent write identified, but may call external Hummingbot**; not a no-network probe.
+10. `GET /v1/quality`: builds quality streams from context, candle/report reads, Core evaluation and PaperLedger read snapshot. It can fetch/cache Hummingbot snapshot. **No persistent write identified, but may call external Hummingbot**; not a no-network probe.
+11. `GET /v1/equity`: previously classified P5.4.55. Calls `equity_snapshot()`, constructs `PaperLedger` (creates directories/tables/initial state and enables WAL as needed) and calls `record_equity()`. **Persistent write / ledger initialization**; explicitly excluded from all no-write checks.
+
+Important boundary:
+- The Hummingbot bridge uses HTTP POST to the `/market-data/order-book` resource. Its body selects connector, pair and depth; inspected bridge has no order placement/cancel route. The HTTP verb alone is not proof of a trade mutation. However, it is an external request and cannot be described as an offline/no-side-effect check.
+- `GET /health` only reports a service label; it does not attest deployment provenance or prove that the target is the intended isolated paper backend.
+- Static review cannot prove environment variables, actual DB path, remote PostgreSQL permissions, mounted report files, Hummingbot target identity or deployed code match the reviewed SHA.
+
+Provisional no-write policy:
+- Lowest-side-effect candidates for a future carefully scoped identity/read test: `/v1/system`, `/v1/intelligence`, `/v1/candles`, `/v1/paper`, `/v1/audit`. This is a source-level classification only, not permission to call them against an unknown or canonical production host.
+- Require the actual host/TLS/source identity and configured storage target to be confirmed out of band first. Prefer an isolated disposable read-only replica/copy for validation. Do not expose bearer tokens in logs.
+- Exclude `/v1/equity` from no-write tests. Exclude `/v1/order-book`, `/v1/decision`, `/v1/signals`, and `/v1/quality` from offline/no-network checks because they may fetch Hummingbot market data.
+- Do not call any POST paper control during endpoint identity verification.
+
+Results:
+- Static route/call-graph classification: **PASS** within inspected source scope.
+- Candidate read-only routes: **PROVISIONAL / NOT RUNTIME VERIFIED**.
+- Endpoint identity, deployed source SHA, TLS, environment and runtime DB permissions: **NOT VERIFIED**.
+- No tests/workflow/artifact, API request, external network call, DB access or mutation occurred.
+
+Next:
+1. Prepare P5.4.57 minimal endpoint identity evidence contract (what must be independently confirmed before even a GET probe).
+2. Keep API probes blocked until the exact host and storage target are confirmed and the user explicitly authorizes the probe.
+3. Keep `AI_EXECUTION_ENABLED=false`; no exchange trading credentials, live execution or APK installation.
