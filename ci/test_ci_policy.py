@@ -32,22 +32,30 @@ class CiPolicyTest(unittest.TestCase):
         self.assertLessEqual(actual, approved)
         self.assertTrue((ROOT / "ci/archive/github-actions/market-data-ci.yml").exists())
 
-
     def test_g2_green_workflow_isolated_and_historical_red_is_manual_only(self):
         green = (ROOT / ".github/workflows/p5-3-11-g2-integration-green.yml").read_text()
         red = (ROOT / ".github/workflows/p5-3-11-g2-integration-red.yml").read_text()
-        self.assertIn("permissions:\n  contents: read", green)
+        self.assertIn("permissions:\\n  contents: read", green)
         self.assertIn("ref: ${{ github.sha }}", green)
         self.assertIn("persist-credentials: false", green)
         self.assertIn("integration/p5-3-11-g2-gateway-green-20261103", green)
         self.assertNotIn('      - "codemagic.yaml"', green)
         self.assertNotIn("p5-3-11-g2-gateway-green-acceptance", self.workflows)
+
+        data = self.workflows["canonical-market-data"]
+        branch_patterns = {item["pattern"] for item in data["triggering"]["branch_patterns"]}
+        self.assertIn("integration/p5-3-11-g2-gateway-green-20261103", branch_patterns)
+        commands = "\\n".join(item["script"] for item in data["scripts"])
+        self.assertIn("market_data.test_g2_writer_routing", commands)
+        self.assertIn("g2-feeder-routing-tests.log", commands)
+        self.assertIn("g2-feeder-routing-tests.log", data["artifacts"])
+
         readme = (ROOT / "market_data/README.md").read_text()
-        self.assertIn("GitHub Actions là cổng CI/acceptance duy nhất", readme)
-        self.assertNotIn("Codemagic là gate", readme)
+        self.assertIn("Codemagic là gate CI/acceptance mặc định", readme)
+        self.assertIn("GitHub Actions", readme)
+        self.assertNotIn("GitHub Actions là cổng CI/acceptance duy nhất", readme)
         self.assertIn("workflow_dispatch:", red)
         self.assertNotIn("  push:", red)
-
 
     def test_manual_stateful_and_release_tasks_never_start_on_push(self):
         for name in ("android-chart-pro-release", "signal-scan", "telegram-command", "dashboard-backtest"):
@@ -57,7 +65,7 @@ class CiPolicyTest(unittest.TestCase):
     def test_data_checks_keep_dependency_import_tests_and_cli_gates(self):
         data = self.workflows["canonical-market-data"]
         self.assertIn("push", data["triggering"]["events"])
-        commands = "\n".join(item["script"] for item in data["scripts"])
+        commands = "\\n".join(item["script"] for item in data["scripts"])
         for gate in ("requirements-market-data.txt", "requirements-web.txt", "requirements-ci.txt",
                      "import ccxt", "import app", "market_data.test_store", "market_data.test_sync",
                      "market_data.test_api", "-s integrations", "-s ci", "market_data.sync --help"):
@@ -72,7 +80,7 @@ class CiPolicyTest(unittest.TestCase):
             workflow["triggering"]["branch_patterns"],
         )
         self.assertIn("android-app/", workflow["when"]["changeset"]["includes"])
-        commands = "\n".join(item["script"] for item in workflow["scripts"])
+        commands = "\\n".join(item["script"] for item in workflow["scripts"])
         self.assertIn(":app:testDebugUnitTest", commands)
         self.assertIn(":app:assembleDebug", commands)
         self.assertIn(":app:testParallelUnitTest", commands)
