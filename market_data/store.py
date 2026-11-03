@@ -124,7 +124,8 @@ class CandleStore:
 
     def insert(self, candles):
         batch = self._validated_batch(candles)
-        with closing(sqlite3.connect(self.path, timeout=5)) as connection, connection:
+        uri = self.path.absolute().as_uri() + "?mode=rw"
+        with closing(sqlite3.connect(uri, uri=True, timeout=5)) as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
             return self._insert_batch(connection, batch)
 
