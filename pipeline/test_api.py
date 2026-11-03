@@ -11,6 +11,8 @@ from unittest.mock import patch
 
 from futures_intelligence.import_collector import build_snapshot
 from market_data.store import Candle, CandleStore, read_window
+from market_data.gateway import LeaseFence, T0WriteGateway
+from market_data.feeder import LeaseStore
 from pipeline import api
 
 
@@ -24,9 +26,17 @@ class FiveLayerApiTest(unittest.TestCase):
         self.db = self.root / "system.sqlite3"
         candle_store = CandleStore(self.db)
         candle_store.initialize_schema()
-        candle_store.insert([
-            Candle("15m", self.end-1_800_000, "100", "102", "99", "101", "3", self.end-899_000),
-            Candle("15m", self.end-900_000, "101", "102", "99", "100", "2", self.end+1000)])
+        leases = LeaseStore(str(self.db))
+        leases.initialize_schema()
+        lease = leases.acquire("pipeline-api-test", now_ms=self.end-1_800_000, ttl_seconds=3600)
+        T0WriteGateway(self.db).insert_batch(
+            [
+                Candle("15m", self.end-1_800_000, "100", "102", "99", "101", "3", self.end-899_000),
+                Candle("15m", self.end-900_000, "101", "102", "99", "100", "2", self.end+1000),
+            ],
+            lease_token=LeaseFence(leases.lease_name, "pipeline-api-test", lease.generation),
+            now_ms=lambda: self.end-1_800_000+1,
+        )
         self.window = read_window(self.db, "BTCUSDT", "15m", self.end-1_800_000, self.end)
         trade_path = self.root / "trades.csv"
         headers = "exchange,market,datatype,timestamp_ms,datetime_utc,symbol,trade_id,side,price,quantity,is_buyer_maker,first_update_id,last_update_id".split(",")
