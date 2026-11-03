@@ -23,6 +23,8 @@ class SchedulerGatewayContractTest(unittest.TestCase):
         gateway = T0WriteGateway("/fixture-only/not-created/canonical.sqlite3")
         exchange, store, lease_store = Mock(), Mock(), Mock()
         lease_store.heartbeat.return_value = heartbeat
+        lease_store.is_current.return_value = True
+        lease_store.lease_name = "binance-btcusdt-canonical"
 
         def lease_clock():
             return lease_now[0]
