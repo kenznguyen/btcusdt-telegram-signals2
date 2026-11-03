@@ -19,7 +19,9 @@ class FreqaiExporterTest(unittest.TestCase):
         self.opened = 1_800_000_000_000
         self.now = self.opened+900_000+3000
         database = self.path / "candles.sqlite3"
-        CandleStore(database).insert([Candle("15m", self.opened, "100", "102", "99", "101", "3", self.now-1000)])
+        candle_store = CandleStore(database)
+        candle_store.initialize_schema()
+        candle_store.insert([Candle("15m", self.opened, "100", "102", "99", "101", "3", self.now-1000)])
         self.window = read_window(database, "BTCUSDT", "15m", self.opened, self.opened+900_000)
         self.frame = pd.DataFrame({"date": [pd.Timestamp(self.opened, unit="ms", tz="UTC")],
             "open": [100.0], "high": [102.0], "low": [99.0], "close": [101.0], "volume": [3.0],
