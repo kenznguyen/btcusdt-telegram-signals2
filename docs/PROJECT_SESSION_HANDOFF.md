@@ -692,14 +692,17 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Documentation-only; no tests/workflows or runtime actions. No Android filesystem, canonical DB, Feeder startup, exchange or backup/restore access. `AI_EXECUTION_ENABLED=false`.
 - Next: identify the Android composition root and authoritative path provider, then specify a fixture-only cross-component identity contract. No production activation.
 
-## P5.4.34 — PC Canonical vs Android Shadow Persistence Boundary Review
+## P5.4.34 — Android-First Canonical Ownership Correction (updated 2026-11-03)
 
-- Evidence: `docs/evidence/P5.4.34-PC-CANONICAL-ANDROID-SHADOW-BOUNDARY.md`; evidence commit `5926fbf9e8e0bcfa2c6acbdc21cd73b812ec6ffd`.
-- Review source ref: `c7412c4c24c4b54803903c913d1d48ad045828ba`.
-- Reconfirmed owner architecture: Windows PC hosts canonical T0 SQLite and sole canonical Feeder writer; Android runs separately as `android_shadow`; GitHub stores source/evidence and CI uses isolated fixtures.
-- Android `MainActivity` launches `StrategyMonitorService`; inspected service stores runtime/strategy/alert/scanner/order-book state in `SharedPreferences("strategy_state_v1")`. Inspected Android Gradle dependencies do not declare Room/SQLite wrapper. Code search for `SQLiteOpenHelper` and `RoomDatabase` found no indexed matches; complete Android persistence inventory remains NOT VERIFIED.
-- Python T0 Feeder is composed in `market_data/feeder_service.py`; Python Paper Ledger is a separate SQLite module accepting its own `db_path`. No Android-to-Python shared SQLite file or Android canonical path provider is demonstrated.
-- Correction: P5.4.33's title/target of a “shared Android canonical SQLite” was based on a wrong host assumption. Its observation that PaperLedger accepts an independent path remains valid; its implication that Android should own the canonical DB is superseded.
-- Status: **PASS** for ownership-boundary source review; **NOT VERIFIED** for complete Android persistence inventory and device shadow runtime; **BLOCKED** for making Android canonical or sharing Android local storage with Python Paper Ledger absent a new architecture decision.
-- Documentation-only; no tests/workflows or runtime actions. No Android/PC DB access, Feeder startup, exchange, sync, backup/restore or instrumentation. `AI_EXECUTION_ENABLED=false`.
-- Next: optionally complete source-only inventory of Android persistence callsites, classifying each as shadow-only. Do not change canonical ownership or activate runtime.
+- Evidence: `docs/evidence/P5.4.34-PC-CANONICAL-ANDROID-SHADOW-BOUNDARY.md`.
+- Correction commit: `e5caefd36429209cc4b24f92879a25ef52ce1d5a`.
+- Original review source ref: `c7412c4c24c4b54803903c913d1d48ad045828ba`.
+- The previous PC-canonical / Android-shadow conclusion is withdrawn as inconsistent with the user's confirmed architecture.
+- Confirmed owner direction: Android is the primary data/monitoring environment; T0 canonical SQLite is intended on Android after validation and explicit activation approval; Android is the initial sole T0 writer once activated. Windows PC is for AI training, FreqAI, backtesting and analysis, not current canonical ownership. GitHub stores source/evidence and GitHub Actions runs isolated CI.
+- Any future transfer of canonical write ownership to PC requires an explicit architecture decision and controlled handover with fencing, identity verification and rollback.
+- Source observations retained: inspected Android service uses `SharedPreferences("strategy_state_v1")`; inspected source did not establish Android canonical SQLite/Feeder/Paper Ledger composition. Python Feeder and Paper Ledger modules do not establish PC canonical ownership.
+- Android canonical DB path/schema, Feeder runtime composition, Paper Ledger Android persistence, and whether Paper Ledger shares one physical SQLite file with T0 remain **NOT VERIFIED**. Android-first does not automatically decide the shared-file question.
+- Status: **PASS** for documentation correction; **NOT VERIFIED** for implementation; production canonical DB/Feeder activation **NOT ACTIVATED / NOT AUTHORIZED**.
+- Documentation-only. No tests/workflows, Android device/DB, PC canonical DB, Feeder, exchange, sync, backup/restore or execution touched. `AI_EXECUTION_ENABLED=false`.
+- Next: source-only inventory and gap assessment against Android-first; no production activation.
+
