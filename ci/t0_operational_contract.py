@@ -82,7 +82,7 @@ def audit_contract(root):
     count_contracts = {
         "atomic_fencing_count": 'grep -q "Ran 100 tests"',
         "sigkill_recovery_count": 'grep -q "Ran 100 tests"',
-        "health_runtime_api_count": 'grep -q "Ran 106 tests"',
+        "health_runtime_api_count": 'grep -q "Ran 107 tests"',
     }
     missing_counts = sorted(name for name, token in count_contracts.items() if token not in commands)
     inventory_ok = "t0-validation" in jobs and not missing_modules and not missing_counts
