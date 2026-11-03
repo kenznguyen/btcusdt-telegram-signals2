@@ -816,7 +816,7 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Next permitted step: read-only source inventory of regular/.paper package IDs, signing declarations and manifest/exported-component baseline. Do not inspect private keys or canonical storage. Implementation requires separate explicit authorization.
 - ADR update commit: `d104aae6bbfaf14f3d8c09fdd0410d2c2e23e5be`.
 - P5.4.42 evidence commit: `ee8be590dc93d058028f35ebab27940a06f34c54`.
-- Handoff update commit: pending.
+- Handoff update commit (initial P5.4.44 handoff append): `254e6285af28b25fa2810a8003a3f9b9481fd4c7`.
 
 
 ## P5.4.43 — Android read-only package/signing/manifest inventory (updated 2026-11-04)
