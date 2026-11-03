@@ -973,3 +973,38 @@ Next:
 - Re-dispatch the same workflow on this same branch and enter the exact current branch HEAD as `source_sha=2366a02869a957624f4ae8ec3c3188d8c896849f`. This commit contains the fixture fix as an ancestor and satisfies the workflow's exact SHA equality gate.
 - Re-read branch HEAD immediately before dispatch. If it has advanced, use that newly verified exact HEAD instead.
 - Inspect the new run before making any APK readiness claim. Do not install APKs or enable live execution.
+
+
+## P5.4.49 — Android paired-release workflow successful (updated 2026-11-04)
+
+Run evidence:
+- Workflow run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41735402129
+- Job: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41735402129/job/126263199091
+- Event: `workflow_dispatch`; branch: `feature/p5-4-1-post-merge-validation-20261103`; attempt 1.
+- Exact run/source SHA: `621857b4568af67fcf571968f1b732558e16ccbc`; workflow input `source_sha` matched `GITHUB_SHA` and checked-out HEAD.
+- Run conclusion: **SUCCESS**; job conclusion: **SUCCESS**; all relevant steps completed successfully.
+- Paper-only preflight passed; `AI_EXECUTION_ENABLED=false`; DB/Feeder and exchange credential environment variables were empty. No live execution or exchange/data operation occurred.
+- Temporary signing keystore restore and cleanup passed; secret values were not printed.
+- Android unit-test step `gradle :app:testDebugUnitTest --no-daemon --stacktrace` completed; Gradle reported `BUILD SUCCESSFUL`. The available job log does not provide a trustworthy explicit test-case count, so record **PASS (count not independently extracted)**.
+- Both `assembleRelease` and `assembleParallel` completed; Gradle reported `BUILD SUCCESSFUL`.
+- `ci/verify-android-release-pair.py` passed and logged: regular release host and parallel/.paper APK identities verified, matching release signer, and source SHA verified.
+- Artifact: `android-release-pair-621857b4568af67fcf571968f1b732558e16ccbc`; ID `13278029439`; size 16,209,168 bytes; ZIP digest `sha256:7ab1372b0b0fd36d50f03a572b86a22fb8aa6c0ba81a230774f8221c2aba07bb`; expires 2026-11-10T22:59:00Z.
+- Artifact URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41735402129/artifacts/13278029439
+- GitHub artifact metadata associates the artifact with run `41735402129`, branch `feature/p5-4-1-post-merge-validation-20261103`, and source SHA `621857b4568af67fcf571968f1b732558e16ccbc`.
+- The ZIP digest is the digest reported by the GitHub upload action and artifact metadata; payload download, independent ZIP/APK SHA-256 recomputation, and independent APK certificate inspection have **NOT YET BEEN PERFORMED**.
+
+Verdict:
+- Manual workflow, source-SHA gate, Android unit-test task, paired release builds, workflow verifier checks, signer parity as checked by the verifier, and artifact publication: **PASS**.
+- Independent artifact payload integrity and independent APK signer inspection: **NOT VERIFIED**.
+- Device installation, runtime behavior, host/.paper IPC, and upgrade/install compatibility: **NOT RUN / NOT VERIFIED**.
+- This is a successful build-and-verification workflow, not approval to install or distribute either APK.
+
+Safety and boundaries:
+- `AI_EXECUTION_ENABLED=false`; no live orders, DB/Feeder activation, exchange connection, market-data sync, production backup/restore, or strategy/risk parameter changes.
+- APK installation/distribution and device/IPC testing remain outside this run and require separate approval.
+
+Next:
+1. Preserve the artifact before expiry and, if supported, download both APKs and evidence bundle for independent ZIP/APK checksum and certificate inspection.
+2. Review test XML/report files to obtain exact unit-test case counts and identify skipped/ignored tests, without rerunning the suite unless an evidence gap requires it.
+3. Do not install or distribute APKs or begin device/IPC testing without separate explicit authorization.
+
