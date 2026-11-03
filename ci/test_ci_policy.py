@@ -100,6 +100,13 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn('grep -q "Ran 107 tests"', health_step.get("run", ""))
         self.assertNotIn('grep -q "Ran 106 tests"', health_step.get("run", ""))
         self.assertIn('health_runtime_api_count": \'grep -q "Ran 107 tests"\'', audit_source)
+        sigkill_step = next(
+            step for step in workflow["jobs"]["t0-validation"]["steps"]
+            if step.get("name") == "Run isolated SQLite SIGKILL recovery contracts"
+        )
+        self.assertIn('grep -q "Ran 101 tests"', sigkill_step.get("run", ""))
+        self.assertNotIn('grep -q "Ran 100 tests"', sigkill_step.get("run", ""))
+        self.assertIn('sigkill_recovery_count": \'grep -q "Ran 101 tests"\'', audit_source)
         audit_source = (ROOT / "ci/t0_operational_contract.py").read_text()
         self.assertIn('atomic_fencing_count": \'grep -q "Ran 100 tests"\'', audit_source)
         self.assertIn("workflow_dispatch", manual["on"])
