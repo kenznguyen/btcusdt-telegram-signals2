@@ -275,15 +275,15 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 ## P5.4.10 — Backup/Restore Fixture Test Implementation (updated 2026-11-03)
 
 - Report: `docs/evidence/P5.4.10-BACKUP-RESTORE-FIXTURE-TEST-IMPLEMENTATION-2026-11-03.md`.
-- Report commit: `bc7af3cc5fab1cb58782883eb33d983ea92bb4d0`.
-- Implementation source SHA before this report/handoff update: `eb197caced1f5f43975e8ca27bc061297bc5f3e1`.
+- Report commit: `5d2f84bac293603cc79cacc4650cefbb6157d8a6`.
+- Implementation source SHA before this report/handoff update: `0e4d6d646484aef68fcbc9954e7c444a6162ebd2`.
 - Branch: `feature/p5-4-1-post-merge-validation-20261103`.
 - Owner authorization: **"cho phép các quyền cần thiết Backup/Restore Test"** (2026-11-03). Applied to fixture-only implementation and execution on Codemagic; GitHub remains source/evidence storage.
 - Implemented test files:
   - `ci/test_backup_restore.py` — 12 fixture-only tests; blob `1d805c399e53b17276a175081586cbe1870fedb3`.
   - `ci/backup_restore_test_support.py` — safe root, SQLite Online Backup API, read-only verifier, logical fingerprint, atomic publish and split-store metadata checks; blob `f1cbcb4d58dc2abe2a683f4f4f9374c12146e20b`.
   - `ci/run_backup_restore_tests.py` — machine-readable evidence generator; blob `102b84f535c5896f2855e5e747a6a49372b96a4a`.
-  - `codemagic.yaml` — dedicated `backup-restore-test` workflow scoped to this branch and fixture paths; blob `61e1d08234bf27444afadabe231e0c53795cf4fb`.
+  - `codemagic.yaml` — dedicated `backup-restore-test` workflow scoped to this branch and fixture paths; blob `b035bfc3b9ba4ffdbaa5298e0ac62d8b9d6ae5fb`.
 - Coverage in this increment: fixture domain inventory; Online Backup API round-trip; WAL committed/uncommitted boundary; read-only verification; missing table/required row; tamper/corruption; atomic publication; path escape/symlink rejection; split-store barrier/epoch metadata.
 - Implementation status: **PRESENT**. Workflow definition: **PRESENT**. Codemagic Build ID/run result/test totals: **NOT VERIFIED** in this session. Artifact retrieval and independent payload SHA-256 recomputation: **NOT VERIFIED**. Do not claim test PASS based on workflow configuration or push.
 - P5.4.8's earlier GitHub Actions runner assignment is superseded for this task by the owner's Codemagic execution instruction.
