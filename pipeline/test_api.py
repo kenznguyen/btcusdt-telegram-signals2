@@ -22,7 +22,9 @@ class FiveLayerApiTest(unittest.TestCase):
         self.end = 1_800_001_800_000
         self.now = self.end + 5000
         self.db = self.root / "system.sqlite3"
-        CandleStore(self.db).insert([
+        candle_store = CandleStore(self.db)
+        candle_store.initialize_schema()
+        candle_store.insert([
             Candle("15m", self.end-1_800_000, "100", "102", "99", "101", "3", self.end-899_000),
             Candle("15m", self.end-900_000, "101", "102", "99", "100", "2", self.end+1000)])
         self.window = read_window(self.db, "BTCUSDT", "15m", self.end-1_800_000, self.end)
