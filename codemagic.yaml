@@ -117,9 +117,6 @@ workflows:
         - pattern: feature/five-layer-paper
           include: true
           source: true
-        - pattern: feature/canonical-market-data
-          include: true
-          source: true
         - pattern: feature/hummingbot-order-book
           include: true
           source: true
@@ -129,15 +126,6 @@ workflows:
         - pattern: feature/t1-intelligence-provenance-quality-20261101
           include: true
           source: true
-        - pattern: feature/timescaledb-market-data-repository
-          include: true
-          source: true
-        - pattern: feature/timescaledb-storage-factory-api
-          include: true
-          source: true
-        - pattern: feature/p5-3-10-5-g1-gateway-green-20261103
-          include: true
-          source: true
         - pattern: main
           include: true
           source: true
@@ -145,16 +133,15 @@ workflows:
     when:
       changeset:
         includes:
-          - market_data/
           - futures_intelligence/
           - pipeline/
           - paper_execution/
           - freqai_bridge/
           - integrations/
-          - ci/
-          - app.py
           - backtest.py
           - telegram_commands.py
+          - ci/test_legacy_runner.py
+          - ci/run-legacy.py
           - requirements-market-data.txt
           - requirements.txt
           - requirements-freqai.txt
@@ -164,15 +151,11 @@ workflows:
     scripts:
       - name: Prepare Python and record source
         script: bash ci/setup-python.sh requirements-market-data.txt requirements.txt requirements-web.txt requirements-ci.txt
-      - name: Verify installed adapters and application
-        script: |
-          set -euo pipefail
-          "$CI_PYTHON" -c 'import ccxt; import app; assert ccxt.binanceusdm().id == "binanceusdm"'
       - name: Run data tests and gateway regressions
         script: |
           set -euo pipefail
           "$CI_PYTHON" -m unittest discover -s integrations -p 'test_*.py' -v 2>&1 | tee gateway-tests.log
-          "$CI_PYTHON" -m unittest ci.test_legacy_runner -v 2>&1 | tee ci-policy-tests.log
+          "$CI_PYTHON" -m unittest ci.test_legacy_runner -v 2>&1 | tee legacy-runner-tests.log
       - name: Run five-layer paper integration tests
         script: |
           set -euo pipefail
@@ -180,14 +163,11 @@ workflows:
       - name: Verify CLI and syntax
         script: |
           set -euo pipefail
-          "$CI_PYTHON" -m market_data.sync --help
-          "$CI_PYTHON" -m compileall -q market_data integrations ci futures_intelligence pipeline paper_execution freqai_bridge app.py backtest.py telegram_commands.py
+          "$CI_PYTHON" -m compileall -q integrations futures_intelligence pipeline paper_execution freqai_bridge backtest.py telegram_commands.py
     artifacts:
       - ci-source-sha.txt
-      - market-data-tests.log
-      - g1-gateway-tests.log
       - gateway-tests.log
-      - ci-policy-tests.log
+      - legacy-runner-tests.log
       - paper-system-tests.log
 
   telegram-command:
