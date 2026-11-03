@@ -157,7 +157,23 @@ def audit_contract(root):
         "market_data.test_gateway_runtime",
     )
     retired_ok = retired_ok and all(module not in canonical_commands for module in t0_core_modules)
-    retired_ok = retired_ok and all(module not in canonical_commands for module in ("ci.test_t0_operational_contract", "ci.test_t0_data_integrity", "ci.test_t0_final_runtime_config"))
+    retired_ok = retired_ok and all(
+        token not in canonical_commands
+        for token in ("ci.test_t0_operational_contract", "ci.test_t0_data_integrity",
+                      "ci.test_t0_final_runtime_config", "import ccxt", "import app",
+                      "market_data.sync --help", "compileall -q market_data")
+    )
+    canonical_trigger = canonical.get("triggering", {})
+    canonical_branches = {
+        item.get("pattern") for item in canonical_trigger.get("branch_patterns", [])
+        if isinstance(item, dict)
+    }
+    canonical_changes = set(canonical.get("when", {}).get("changeset", {}).get("includes", []))
+    retired_ok = retired_ok and not {
+        "feature/canonical-market-data", "feature/timescaledb-market-data-repository",
+        "feature/timescaledb-storage-factory-api", "feature/p5-3-10-5-g1-gateway-green-20261103",
+    }.intersection(canonical_branches)
+    retired_ok = retired_ok and not {"market_data/", "app.py", "ci/"}.intersection(canonical_changes)
 
     feeder_service = (root / "market_data/feeder_service.py").read_text(encoding="utf-8")
     sync_source = (root / "market_data/sync.py").read_text(encoding="utf-8")
