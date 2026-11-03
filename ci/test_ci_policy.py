@@ -77,6 +77,13 @@ class CiPolicyTest(unittest.TestCase):
             with self.subTest(gate=gate):
                 self.assertIn(gate, options)
 
+    def test_timescaledb_runner_is_provider_neutral(self):
+        script = (ROOT / "ci/test-timescaledb.sh").read_text()
+        self.assertIn("MARKET_DATA_TEST_DATABASE_URL", script)
+        self.assertIn("CI_PYTHON", script)
+        self.assertNotIn("CM_BUILD_DIR", script)
+        self.assertNotIn("CODEMAGIC", script)
+
     def test_t0_executable_workflows_are_removed_from_codemagic(self):
         retired = {
             "market-data-timescaledb", "market-data-kraken-adapter-tests",
