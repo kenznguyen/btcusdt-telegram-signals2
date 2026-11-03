@@ -682,3 +682,12 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS — fixture-only DB identity contract verified on exact SHA**. Production source/workflow unchanged.
 - Limits: tests validate production factory SQLite path composition with disposable/nonexistent paths and stub CCXT only. Lower-level injected `build_runtime()` arbitrary path identity remains NOT CERTIFIED. No canonical DB/Paper Ledger access, Feeder startup, exchange, sync, Android instrumentation, Timescale, backup/restore or live execution. This is not production runtime certification.
 - Next: wait for a separately scoped task/approval. No automatic production activation or phase advance.
+
+## P5.4.33 — Shared Android SQLite Boundary Review
+
+- Evidence: `docs/evidence/P5.4.33-SHARED-ANDROID-SQLITE-BOUNDARY-REVIEW.md`; evidence commit `3766f8f6d310036623f71535f8602db4380daee2`.
+- Reviewed source ref: `ed0177709fe5e8a20b72b2e9c9bda24e4cddf6a2`.
+- T0 factory aligns its SQLite roles to one resolved path. PaperLedger accepts an independent `db_path` and initializes its own SQLite tables. The inspected app entrypoint does not compose PaperLedger with Feeder.
+- Status: **PASS** for bounded source review; **NOT VERIFIED / BLOCKED** for shared physical Android DB identity and canonical path authority.
+- Documentation-only; no tests/workflows or runtime actions. No Android filesystem, canonical DB, Feeder startup, exchange or backup/restore access. `AI_EXECUTION_ENABLED=false`.
+- Next: identify the Android composition root and authoritative path provider, then specify a fixture-only cross-component identity contract. No production activation.
