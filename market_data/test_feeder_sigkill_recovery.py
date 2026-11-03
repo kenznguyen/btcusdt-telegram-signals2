@@ -13,7 +13,7 @@ from market_data.feeder import FeederConfig, LeaseStore
 from market_data.feeder_service import build_runtime
 from market_data.storage import SQLiteCandleStore
 from market_data.store import Candle, CandleStore, INTERVAL_MS, read_window
-from market_data.gateway import T0WriteGateway
+from market_data.gateway import LeaseFence, LeaseRejected, T0WriteGateway
 
 
 NOW = 1_800_000_000_000
@@ -90,10 +90,16 @@ class SigkillRecoveryTest(unittest.TestCase):
         self.addCleanup(write_audit)
         with tempfile.TemporaryDirectory(prefix="t0-sigkill-") as directory:
             db_path = Path(directory) / "isolated-canonical.sqlite3"
-            writer = CandleStore(db_path)
-            writer.initialize_schema()
+            schema_store = CandleStore(db_path)
+            schema_store.initialize_schema()
             leases = LeaseStore(str(db_path))
             leases.initialize_schema()
+            # Process A owns generation 1 while seeding the existing closed candles.
+            lease_a = leases.acquire("process-A", now_ms=NOW, ttl_seconds=60)
+            self.assertIsNotNone(lease_a)
+            self.assertEqual(lease_a.generation, 1)
+            lease_fence_a = LeaseFence(leases.lease_name, "process-A", lease_a.generation)
+            writer = T0WriteGateway(db_path)
 
             # RecoveryAdapter will inspect exactly four closed candles per TF.
             windows = {}
@@ -107,12 +113,13 @@ class SigkillRecoveryTest(unittest.TestCase):
                     opened = start + index * interval
                     expected_rows[(timeframe, opened)] = ohlcv_row(timeframe, opened)
                     if index not in missing_indices:
-                        writer.insert([make_candle(timeframe, opened)])
+                        writer.insert_batch(
+                            [make_candle(timeframe, opened)],
+                            lease_token=lease_fence_a,
+                            now_ms=lambda: NOW + 1,
+                        )
 
             # Process A owns generation 1 and dies after its first uncommitted row.
-            lease_a = leases.acquire("process-A", now_ms=NOW, ttl_seconds=60)
-            self.assertIsNotNone(lease_a)
-            self.assertEqual(lease_a.generation, 1)
 
             m15_start, _ = windows["15m"]
             uncommitted_batch = [
@@ -123,7 +130,8 @@ class SigkillRecoveryTest(unittest.TestCase):
             child_source = r'''
 import os
 import time
-from market_data.store import Candle, CandleStore, INTERVAL_MS
+from market_data.gateway import LeaseFence, T0WriteGateway
+from market_data.store import Candle, INTERVAL_MS
 
 path = os.environ["T0_SIGKILL_DB"]
 now = int(os.environ["T0_SIGKILL_NOW"])
@@ -135,19 +143,18 @@ batch = [
     Candle("15m", start + 2 * step, "100", "102", "99", "101", "5",
            start + 3 * step + 100),
 ]
-original = CandleStore._insert_batch
+original = T0WriteGateway._insert_one
 
-def insert_one_then_pause(connection, candles):
-    inserted = original(connection, candles[:1])
+def insert_one_then_pause(connection, candle):
+    inserted = original(connection, candle)
     print("UNCOMMITTED_ROW_INSERTED", flush=True)
     while True:
         time.sleep(1)
 
-CandleStore._insert_batch = staticmethod(insert_one_then_pause)
-CandleStore(path).insert_fenced(
+T0WriteGateway._insert_one = staticmethod(insert_one_then_pause)
+T0WriteGateway(path).insert_batch(
     batch,
-    owner="process-A",
-    generation=1,
+    lease_token=LeaseFence("binance-btcusdt-canonical", "process-A", 1),
     now_ms=lambda: now + 1,
 )
 '''
@@ -209,11 +216,10 @@ CandleStore(path).insert_fenced(
             audit_lines.extend(["LEASE_A_GENERATION=1", "LEASE_B_GENERATION=2"])
 
             # A stale generation must remain unable to write after takeover.
-            with self.assertRaises(PermissionError):
-                writer.insert_fenced(
+            with self.assertRaises(LeaseRejected):
+                writer.insert_batch(
                     uncommitted_batch,
-                    owner="process-A",
-                    generation=lease_a.generation,
+                    lease_token=lease_fence_a,
                     now_ms=lambda: CLOCK_AFTER_TTL,
                 )
 
@@ -262,7 +268,7 @@ CandleStore(path).insert_fenced(
                 runtime.stop(timeout=5)
 
             # The only writes after takeover were made through RecoveryAdapter's
-            # canonical sync_window -> insert_fenced path under generation 2.
+            # canonical sync_window -> T0WriteGateway.insert_batch path under generation 2.
             audit_result["value"] = "PASS"
 
 
