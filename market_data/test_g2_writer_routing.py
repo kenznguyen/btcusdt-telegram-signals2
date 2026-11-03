@@ -391,6 +391,34 @@ class G2WriterRoutingRedTests(unittest.TestCase):
             self.assertEqual(runtime.recovery.clock(), lease_now)
             self.assertEqual(runtime.clock(), lease_now)
 
+    def test_g2_23_no_legacy_direct_writer_surface_or_production_calls(self):
+        self.assertFalse(hasattr(store.CandleStore, "insert"))
+        self.assertFalse(hasattr(store.CandleStore, "insert_fenced"))
+
+        package_dir = Path(store.__file__).parent
+        receiver_names = {"store", "writer", "candle_store", "sqlite_store",
+                          "postgres_store", "candles"}
+        violations = []
+        for source_path in package_dir.glob("*.py"):
+            if source_path.name.startswith("test_"):
+                continue
+            tree = ast.parse(source_path.read_text(encoding="utf-8"))
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                    continue
+                method = node.func.attr
+                receiver = node.func.value
+                if method == "insert_fenced":
+                    violations.append(f"{source_path.name}:{node.lineno}:insert_fenced")
+                elif method == "insert" and (
+                    isinstance(receiver, ast.Name) and receiver.id in receiver_names
+                    or isinstance(receiver, ast.Call)
+                    and isinstance(receiver.func, ast.Name)
+                    and receiver.func.id == "CandleStore"
+                ):
+                    violations.append(f"{source_path.name}:{node.lineno}:insert")
+        self.assertEqual(violations, [], "production code bypasses T0WriteGateway")
+
     def test_g2_22_gateway_write_does_not_create_missing_database(self):
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "must-remain-absent.sqlite3"
