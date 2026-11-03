@@ -758,3 +758,15 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Documentation-only. No tests/workflows, package changes, dependencies, device/filesystem/DB, Feeder, exchange, sync, backup/restore or execution touched. `AI_EXECUTION_ENABLED=false`.
 - Next: P5.4.39 resolve package ownership choice and record owner decision. No implementation before that choice.
 
+## P5.4.39 — Android Canonical Host + Authenticated IPC Owner Decision (updated 2026-11-03)
+
+- Owner explicitly selected **Option B — Dedicated canonical host package plus authenticated IPC client**.
+- Accepted ADR: `docs/decisions/ADR-002-ANDROID-CANONICAL-HOST-IPC-OWNERSHIP.md`; ADR commit `1245d0a638350ece0ef405f0c2a821183d620645`.
+- Decision evidence: `docs/evidence/P5.4.39-ANDROID-CANONICAL-HOST-IPC-OWNER-DECISION.md`; evidence commit `997b6b4097c75cfbc1a65dfa6bbfe02a3d011aaa`.
+- P5.4.38 reconciliation commit: `3a36288440001720e3d4be7b83a329c8d1941fc2`; its former open option selection is superseded by ADR-002.
+- Binding invariants: one designated host package/process owns the one physical Android canonical SQLite file and sole writer capability; the separately installed `.paper` package is a typed authenticated IPC client, receives no raw DB path/handle/file descriptor/SQL/lease/writer credential, and cannot create a shadow DB. Host revalidates caller, readiness, fencing/recovery, idempotency and Kill Switch. All Core/AI paper intents use the same host-side Shared Risk/Paper Ledger boundary. PC remains read-only.
+- Still OPEN: exact host application ID/variant, IPC primitive (bound service vs ContentProvider), signature permission/caller allowlist, API schema/versioning/retry/idempotency details, process lifecycle, DB path/driver/migrations and threat-model review.
+- Status: **PASS** owner decision recorded; **NOT VERIFIED** implementation/device behavior; runtime implementation and activation **NOT AUTHORIZED**.
+- Documentation-only. No tests/workflows, code/dependency/package changes, IPC components, DB/path/device, Feeder, exchange, sync, backup/restore or execution touched. `AI_EXECUTION_ENABLED=false`.
+- Next: P5.4.40 design-only IPC threat model and typed contract specification. No runtime implementation until separately authorized.
+
