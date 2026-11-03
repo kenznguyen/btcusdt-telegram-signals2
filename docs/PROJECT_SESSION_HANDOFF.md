@@ -910,3 +910,43 @@ Next action:
 1. Dispatch the workflow on `feature/p5-4-1-post-merge-validation-20261103` using the exact branch HEAD fetched immediately before dispatch as `source_sha` (do not reuse a SHA recorded earlier in this handoff, because each handoff update advances the branch). The connected GitHub toolset has no workflow-dispatch operation, so this must be initiated from the Actions UI.
 2. Inspect the new run's job steps, logs and artifacts. Do not claim release readiness until unit tests, both APK builds, package identity checks, signer parity and artifact integrity are evidenced.
 3. Do not install/distribute APKs or enable live execution. Paper-only boundary remains unchanged.
+
+
+## P5.4.47 — Android unit-test fixture JSON null compile fix (updated 2026-11-04)
+
+Scope:
+- Resolve the Kotlin overload ambiguity in the existing `FiveLayerApiTest.kt` fixture only.
+- Preserve fixture semantics by representing JSON null explicitly as `JSONObject.NULL`.
+- Existing branch only; no PR, no new branch, no main-branch update.
+
+Change:
+- File: `android-app/app/src/test/java/com/kenznguyen/btclivealerts/FiveLayerApiTest.kt`
+- Replaced `.put("nextBeforeId",null)` with `.put("nextBeforeId",JSONObject.NULL)`.
+- Source commit: `9d674a38c8e051ed68c9143a616364e2834d045a`.
+- Test file blob SHA: `5526a9475287b098d7ef10856ac63a68c69634b0`.
+- Commit diff independently read back and confirms exactly this one-line change.
+- Branch HEAD after commit: `9d674a38c8e051ed68c9143a616364e2834d045a`.
+
+Validation:
+- Pre-fix compiler evidence: workflow run `41733660820`, job `126257158157`; main Kotlin compile passed, unit-test Kotlin compilation failed at the null fixture due to overload ambiguity.
+- Post-fix local/CI test execution: NOT RUN.
+- Android unit-test compilation/execution: NOT VERIFIED.
+- Paired APK builds, signing, signer parity and artifact integrity: NOT RUN / NOT VERIFIED.
+- No workflow run or artifact is claimed for this source SHA yet.
+
+Safety and boundaries:
+- Paper-only remains enforced; `AI_EXECUTION_ENABLED=false`.
+- No canonical DB, Feeder, exchange connection, market-data sync, production backup/restore, APK installation or live execution.
+- No signing secret values were accessed or changed.
+
+Status:
+- Source fixture correction: PASS (commit and file content read back).
+- Test result after correction: NOT VERIFIED.
+- APK/release readiness: NOT VERIFIED.
+
+Next:
+1. Manually dispatch `.github/workflows/android-release-pair.yml` from GitHub Actions on branch `feature/p5-4-1-post-merge-validation-20261103`, using exact `source_sha=9d674a38c8e051ed68c9143a616364e2834d045a`.
+2. Inspect the resulting run's job steps, logs and artifacts. If unit tests fail, stop and diagnose before APK release conclusions.
+3. Do not install or distribute APKs without separate authorization.
+
+Handoff update commit: pending verification.
