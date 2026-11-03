@@ -1454,3 +1454,12 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Updated overlapping T0 regression count gates: atomic fencing 107, runtime health API 114, SIGKILL recovery 108. Counts overlap and are not unique totals.
 - T0 and integrated P5.4.1 GitHub Actions results are pending exact-SHA execution; do not mark PASS until both complete.
 - Production Feeder, canonical PC DB, exchange connection and data sync remain NOT VERIFIED / NOT RUN. No PC access or runtime activation; keep AI_EXECUTION_ENABLED=false.
+
+## P5.4.59-R3 — CI status reconciliation (2026-11-04)
+
+- Tested source SHA: cee77b38181c2fa06a585714b9269b9a9c398e40.
+- T0 automated validation run 41743273231: SUCCESS; all 19 substantive steps succeeded. Atomic fencing 107, runtime health API 114, SIGKILL recovery 108, and static operational contract all passed on the exact SHA.
+- T0 artifact ID 13282236958; GitHub metadata digest sha256:50b70f750bbcf128d2baec625f7961629c5af255dc96e6788aaf29b04cdd3452. Payload byte-level checksum recomputation NOT VERIFIED.
+- Integrated P5.4.1 run 41743273286: IN PROGRESS; preflight, G1 and G2 completed successfully; integrated T0 job was still running at this update.
+- Current verdict: T0 fixture-only CI PASS; integrated workflow PENDING. Do not promote the overall integrated result until the run reaches SUCCESS.
+- No PC/canonical DB/Feeder/exchange/data-sync/order execution.
