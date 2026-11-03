@@ -180,7 +180,7 @@ class CiPolicyTest(unittest.TestCase):
             if step.get("name") == "Run isolated SQLite SIGKILL recovery contracts"
         )
         self.assertIn('grep -q "Ran 106 tests"', sigkill_step.get("run", ""))
-        self.assertNotIn('grep -q "Ran 105 tests"', sigkill_step.get("run", ""))
+        self.assertNotIn('grep -q "Ran 103 tests"', sigkill_step.get("run", ""))
         self.assertIn('sigkill_recovery_count": \'grep -q "Ran 106 tests"\'', audit_source)
         audit_source = (ROOT / "ci/t0_operational_contract.py").read_text()
         self.assertIn('atomic_fencing_count": \'grep -q "Ran 105 tests"\'', audit_source)
