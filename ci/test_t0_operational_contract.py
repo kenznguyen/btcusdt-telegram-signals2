@@ -39,8 +39,11 @@ class T0OperationalContractReleaseGateTest(unittest.TestCase):
     def test_canonical_source_is_binance_usdm_closed_candles(self):
         self.assert_check_passes("canonical_market_contract")
 
-    def test_production_feeder_requires_sqlite_atomic_fencing(self):
+    def test_production_feeder_routes_shared_sqlite_lease_through_gateway(self):
         self.assert_check_passes("sqlite_atomic_fencing_contract")
+
+    def test_gateway_enforces_lease_and_candle_batch_in_one_transaction(self):
+        self.assert_check_passes("gateway_atomic_transaction_contract")
 
 
 if __name__ == "__main__":
