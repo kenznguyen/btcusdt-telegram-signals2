@@ -851,3 +851,25 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Next: obtain explicit owner approval for a manual-only paired-APK GitHub Actions signing workflow and the parallel/.paper release-signing policy. Until then, do not change Gradle/manifest/workflows or build/install APKs.
 - Handoff update commit: `254e6285af28b25fa2810a8003a3f9b9481fd4c7`.
 
+
+
+## P5.4.45 — Paired Android release signing implementation (updated 2026-11-04)
+
+- Evidence: `docs/evidence/P5.4.45-ANDROID-PAIRED-RELEASE-SIGNING-IMPLEMENTATION.md`.
+- Evidence commit: `c05cac998bd516631502e19341f9856b5035dfda`.
+- Final implementation source SHA tested by GitHub Actions: `8c9cbdb66cab58c457c85e140462da4dab156ca9`.
+- Gradle: `parallel` build type now explicitly uses the existing environment-backed `release` signing config; regular release remains unchanged. Application IDs are unchanged.
+- Added `.github/workflows/android-release-pair.yml`, trigger is only `workflow_dispatch`, exact SHA required and bound to `GITHUB_SHA`, branch restricted to this existing branch, read-only repository permission, secret presence checks for four existing Android signing secret names, expected alias `btc-chart-release`, runner-temp keystore restoration/cleanup, Android unit tests, `assembleRelease` + `assembleParallel`, paired APK identity/signer/hash verifier and 14-day artifact publication. No push/PR trigger.
+- Added `ci/verify-android-release-pair.py`; checks exact source SHA, package ID, label, launcher activity, versionCode/versionName, valid signatures, same signer certificate SHA-256, APK SHA-256 and size.
+- Added `ci/test_android_release_pair.py`: **5/5 PASS** (synthetic fixtures; no real APK signing evidence).
+- Updated `ci/test_ci_policy.py`: **25/25 PASS** in G2; verifies manual-only workflow, exact SHA, secret gates, release signer config and allowlist.
+- P5.4.1 integrated workflow: run [41731773366](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41731773366), exact SHA `8c9cbdb66cab58c457c85e140462da4dab156ca9`, **SUCCESS 5/5 jobs** (preflight, G1, G2, T0, combined publication).
+- Artifacts from run 41731773366: combined P5.4.1 ID `13277745786`, G2 ID `13277431031`, T0 ID `13276353143`, G1 ID `13276343000`. GitHub ZIP digest metadata is recorded in the P5.4.45 evidence. Payloads were not downloaded/re-hashed; none are Android APK artifacts.
+- Default branch is `main`; `.github/workflows/android-release-pair.yml` is not yet present on `main`. The Actions UI's Run workflow control requires the workflow file to be present on the default branch. No open PR exists for this post-merge branch; no new PR and no direct main update were made. Manual APK workflow dispatch remains **BLOCKED** pending owner approval to promote only the workflow file (or another explicitly approved promotion path).
+- Android signing secrets were not read; secret existence/validity is **NOT VERIFIED**. Workflow checks presence and alias at dispatch.
+- Actual Android unit tests/build/signing, real signer fingerprint parity, APK artifact and APK payload checksum remain **NOT RUN / NOT VERIFIED**. No device/installation/IPC testing.
+- Early workflow-file validation records on prior commits (run IDs `41731548513`, `41731588091`, `41731601202`, `41731670605`) failed with no jobs; no signing/build job executed. Final P5.4.1 integrated run 41731773366 passed on the corrected final source SHA.
+- No canonical DB, Feeder, exchange, market-data sync, production backup/restore, writer or live execution. No strategy/risk parameters changed. `AI_EXECUTION_ENABLED=false`; Codemagic remains retired.
+- Next: obtain owner approval to publish the manual workflow file on default branch `main` without merging unrelated branch work. Then dispatch with exact SHA `8c9cbdb66cab58c457c85e140462da4dab156ca9`; stop if any signing secret is missing/invalid and report names only. Do not install APKs or test IPC without separate authorization.
+- Handoff update commit: pending.
+
