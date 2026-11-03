@@ -624,3 +624,18 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS** G2 source composition (Scheduler and Recovery same Gateway-backed callback); **PASS** production Feeder path alignment at source level; **NOT VERIFIED** scheduler callback integration test, Paper Ledger unified DB authority, actual Android canonical path/runtime, current-branch exact-head CI. PostgreSQL/Timescale canonical writer NOT CERTIFIED.
 - No source/test/workflow/runtime changes; no tests/workflows run. No canonical/Paper DB or Android filesystem access, no Feeder/API, exchange, sync, production backup/restore or writer activation. `ai_execution_enabled=false`; Natural Doze remains `INTERRUPTED / DEFERRED`.
 - Next P5.4.29: add a fixture-only test contract for Scheduler callback invocation and Gateway/LeaseFence identity; consider fail-closed mismatched path test if identity can be exposed safely. Execute only on GitHub Actions with disposable fixtures after explicit test authorization. No Codemagic; no PR merge or new PR.
+
+
+## P5.4.31 — Shared Gateway Lifecycle Contract (updated 2026-11-03)
+
+- Evidence report: `docs/evidence/P5.4.31-SHARED-GATEWAY-LIFECYCLE.md`.
+- Test implementation commit: `d8833d0b3a0aa768ddc7d8079e09a7c00e95697f`.
+- Evidence report commit: `56163c92d25f82962ff581950094a5e8e98f9f30`.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Added fixture-only test: `SchedulerGatewayContractTest.test_scheduler_and_recovery_share_injected_gateway_and_current_fence` in `market_data/test_feeder_gateway_contract.py`.
+- Contract asserts Scheduler and Recovery use the exact injected `T0WriteGateway` instance, the same owner/generation `LeaseFence`, and accepted heartbeat validation for both callbacks.
+- Production code unchanged. Test uses mocks and deterministic in-memory recovery coverage fixtures.
+- GitHub read-back of the test source: PASS. Local test execution: NOT RUN. Exact-SHA GitHub Actions acceptance: PENDING.
+- Next: run the existing manual `G2 integration GREEN` workflow on this branch after the handoff commit; verify exact HEAD SHA, new test, all required regression groups and artifact metadata, then update the report with run/job/artifact/checksum.
+- Explicit exclusions remain: no Feeder startup/service, canonical DB or Paper Ledger access, exchange connectivity, data sync, Android instrumentation, SIGKILL, PC multiprocess, Timescale integration or production backup/restore. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Status: **IMPLEMENTED / NOT VERIFIED**. Do not mark P5.4.31 PASS or advance beyond it until exact-SHA CI evidence is recorded.
