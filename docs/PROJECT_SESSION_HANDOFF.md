@@ -486,3 +486,19 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - `ai_execution_enabled=false`; paper-only; Natural Doze remains `INTERRUPTED / DEFERRED`.
 - Status: **PASS** for recording owner-approved Android/shared-file topology; **NOT VERIFIED** for runtime readiness, canonical path, WAL/backup integration and recovery correctness. Production backup/restore remains **BLOCKED**.
 - Next: resolve the exact Android canonical path and Feeder lease/fencing ownership, then review D2–D7 before production implementation.
+
+
+## P5.4.23 — Shared Android SQLite Source-Level Integration Review (2026-11-03)
+
+- Report: `docs/evidence/P5.4.23-SHARED-ANDROID-SQLITE-SOURCE-INTEGRATION-REVIEW-2026-11-03.md`.
+- Report commit: `b39cd52e916e8b02afc23c0685a7579ac0cbd2d1`.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Read-only source files and blob SHAs:
+  - `market_data/store.py`: `b28601aed70097afcb7a4eea2dd93ed163ae1cec`.
+  - `market_data/storage.py`: `99b66a4d183b8664f28d6638d8d87416d32847c9`.
+  - `paper_execution/ledger.py`: `68209ce48a6e5e9a995f93167684133e41cc7f55`.
+- Exact branch HEAD SHA was not independently returned by the file-fetch operation: **NOT VERIFIED**.
+- Findings: Market Data and PaperLedger accept independent DB paths; no shared canonical path authority/invariant is demonstrated by the inspected files. CandleStore schema initialization is explicit; PaperLedger construction creates/ensures tables and state. PaperLedger writes use `BEGIN IMMEDIATE`; cross-domain transaction coordination is not demonstrated. Both initialization paths request WAL, but production backup coordination is not proven. The inspected source set does not establish Feeder lease/fencing ownership; this is not a claim that no such implementation exists elsewhere.
+- Status: **PASS** for recording source-level findings; **NOT VERIFIED** for application shared-path wiring, lease implementation elsewhere, exact branch HEAD, cross-domain atomicity and production WAL backup.
+- No code/schema/workflow/runtime changes; no tests/workflows run; no Android filesystem or database access; no Feeder/API, exchange or sync; no production backup/restore or writer activation.
+- Next: continue repository source review to locate lease/fencing implementation and wiring. Exact Android canonical path discovery requires separate explicit device/filesystem inspection authorization. Production implementation remains **BLOCKED** pending D1 details and D2–D7. Keep `ai_execution_enabled=false`; Natural Doze remains `INTERRUPTED / DEFERRED`.
