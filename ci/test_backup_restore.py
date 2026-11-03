@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from market_data.feeder_status import FeederRuntimeStatusStore
 from paper_execution.shadow_migration_fixture import (
     FIXED_NOW_MS, PAPER_TABLES, build_legacy_fixture,
 )
@@ -183,6 +184,89 @@ class BackupRestoreFixtureTest(unittest.TestCase):
         with self.assertRaises(BackupVerificationError):
             create_online_backup(self.source, link, root=self.root)
         self.assertEqual(outside.read_bytes(), b"do-not-touch")
+
+    def test_round_trip_preserves_all_domain_cursors_and_lease_generation(self):
+        destination = self.backup("domain-cursors.sqlite3")
+        with sqlite3.connect(self.source) as source_db, sqlite3.connect(destination) as backup_db:
+            queries = {
+                "candles": "SELECT timeframe,MAX(open_time_ms),COUNT(*) FROM candles GROUP BY timeframe ORDER BY timeframe",
+                "paper_orders": "SELECT status,COUNT(*) FROM paper_orders GROUP BY status ORDER BY status",
+                "paper_audit": "SELECT MAX(at_ms),COUNT(*) FROM paper_audit",
+                "paper_equity_history": "SELECT MAX(observed_at_ms),COUNT(*) FROM paper_equity_history",
+                "feeder_leases": "SELECT owner,generation,expires_at_ms FROM feeder_leases ORDER BY lease_name",
+            }
+            for name, query in queries.items():
+                self.assertEqual(
+                    source_db.execute(query).fetchall(),
+                    backup_db.execute(query).fetchall(),
+                    msg=f"logical domain cursor mismatch: {name}",
+                )
+            lease = backup_db.execute(
+                "SELECT owner,generation FROM feeder_leases WHERE lease_name=?",
+                ("binance-btcusdt-canonical",),
+            ).fetchone()
+        self.assertEqual(lease, ("fixture-owner-A", 7))
+
+    def test_kill_latch_and_pause_state_survive_restore_independently(self):
+        with sqlite3.connect(self.source) as db:
+            db.execute("UPDATE paper_state SET paused=1 WHERE id=1")
+            db.execute(
+                "UPDATE paper_risk_control SET paused=0,killed=1,reason='FIXTURE_KILL_SWITCH' WHERE id=1"
+            )
+        destination = self.backup("kill-pause.sqlite3")
+        with sqlite3.connect(destination) as restored:
+            paper_paused = restored.execute(
+                "SELECT paused FROM paper_state WHERE id=1"
+            ).fetchone()[0]
+            risk_paused, killed, reason = restored.execute(
+                "SELECT paused,killed,reason FROM paper_risk_control WHERE id=1"
+            ).fetchone()
+        self.assertEqual(paper_paused, 1)
+        self.assertEqual(risk_paused, 0)
+        self.assertEqual(killed, 1)
+        self.assertEqual(reason, "FIXTURE_KILL_SWITCH")
+
+    def test_stale_lease_generation_cannot_publish_runtime_status(self):
+        status = FeederRuntimeStatusStore(self.source)
+        self.assertFalse(status.publish(
+            "fixture-owner-A", 6, "RUNNING",
+            now_ms=FIXED_NOW_MS + 6 * 60_001, recovery_complete=True,
+        ))
+        with sqlite3.connect(self.source) as db:
+            row = db.execute(
+                "SELECT generation FROM feeder_runtime_status WHERE lease_name=?",
+                ("binance-btcusdt-canonical",),
+            ).fetchone()
+        self.assertEqual(row, (7,))
+
+    def test_current_lease_generation_can_publish_only_after_recovery_complete(self):
+        status = FeederRuntimeStatusStore(self.source)
+        now = FIXED_NOW_MS + 7 * 60_001
+        self.assertTrue(status.publish(
+            "fixture-owner-A", 7, "STARTING",
+            now_ms=now, recovery_complete=False,
+        ))
+        starting = status.snapshot(now)
+        self.assertFalse(starting["startup_complete"])
+        self.assertTrue(status.publish(
+            "fixture-owner-A", 7, "RUNNING",
+            now_ms=now + 1, recovery_complete=True,
+        ))
+        running = status.snapshot(now + 1)
+        self.assertTrue(running["startup_complete"])
+        self.assertTrue(running["lease_valid"])
+
+    def test_backup_verifier_detects_kill_latch_rollback(self):
+        destination = self.backup("kill-latch-tampered.sqlite3")
+        with sqlite3.connect(destination) as db:
+            db.execute(
+                "UPDATE paper_risk_control SET killed=0,reason=NULL WHERE id=1"
+            )
+        with self.assertRaises(BackupVerificationError):
+            verify_backup(
+                self.source, destination, root=self.root,
+                required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
+            )
 
     def test_split_store_manifest_requires_shared_barrier_and_epoch(self):
         valid = {
