@@ -17,6 +17,16 @@ class LeaseContractTest(unittest.TestCase):
         self.store = LeaseStore(self.path, lease_name="binance-btcusdt-canonical")
         self.store.initialize_schema()
 
+    def test_accepts_pathlike_without_creating_database(self):
+        path = Path(self.temp.name) / "not-created.sqlite3"
+        store = LeaseStore(path, lease_name="pathlike-contract")
+        self.assertEqual(store.db_path, str(path))
+        self.assertFalse(path.exists())
+
+    def test_rejects_empty_database_path(self):
+        with self.assertRaises(ValueError):
+            LeaseStore("")
+
     def test_only_one_process_can_hold_an_unexpired_lease(self):
         first = self.store.acquire("process-A", now_ms=NOW, ttl_seconds=60)
         second = self.store.acquire("process-B", now_ms=NOW + 1_000, ttl_seconds=60)
