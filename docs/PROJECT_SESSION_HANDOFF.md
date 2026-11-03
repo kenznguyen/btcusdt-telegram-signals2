@@ -641,3 +641,23 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS — fixture-only Shared Gateway Lifecycle contract verified on exact SHA**. Production code unchanged.
 - Limits: no Feeder startup/service, canonical DB or Paper Ledger access, exchange connectivity, data sync, Android instrumentation, SIGKILL, PC multiprocess, Timescale integration or production backup/restore. `AI_EXECUTION_ENABLED=false`; no live orders. This CI result does not certify production runtime readiness.
 - Next: preserve these boundaries; do not initiate runtime/production operations. Define and authorize the next bounded phase separately.
+
+
+## P5.4.32 — Production SQLite DB Identity Contract (updated 2026-11-03)
+
+- Evidence report: `docs/evidence/P5.4.32-PRODUCTION-DB-IDENTITY-CONTRACT.md`.
+- Baseline HEAD after P5.4.31 evidence: `e0397a179602ecf0e03c5dc98583dd7f8e155a10`.
+- Fixture-only test commit: `4976d25485f99dbe2707714a9afd04ef54ed9409`.
+- Evidence report commit: `fb56db6e9dea3ff8e96377bb6f28323216514c75`.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Added three tests to `market_data/test_feeder_gateway_contract.py`:
+  - Distinct lease DB path is rejected before exchange construction/runtime composition; neither file is created.
+  - Store, T0 Gateway, LeaseStore and runtime status store resolve to the same file when configured paths are lexically different but equivalent.
+  - Omitted lease DB path defaults to canonical `MARKET_DATA_DB`.
+- Existing G2 integration GREEN workflow already runs the containing test module; no workflow change.
+- Production source unchanged. Only temporary nonexistent paths and stub CCXT are used; no DB open/create, network or runtime startup.
+- Source read-back: PASS; all three test names are present. Local execution: NOT RUN. Exact-SHA GitHub Actions: PENDING.
+- Status: **IMPLEMENTED / NOT VERIFIED**; await manual G2 integration GREEN workflow on final branch HEAD, then record exact SHA, job/test results, artifact ID and checksum.
+- Scope limitation: this verifies the production factory's SQLite path invariant. Lower-level dependency-injected `build_runtime()` still accepts independently supplied components; identity of arbitrary injected paths is NOT CERTIFIED here.
+- Prohibited: Feeder startup/service, canonical DB/Paper Ledger access, exchange connectivity, data sync, Android instrumentation, PC multiprocess, Timescale integration, backup/restore or live execution. `AI_EXECUTION_ENABLED=false`.
+- Next: run existing G2 integration GREEN workflow on this branch and verify the three new contracts plus all required regressions. No production activation or phase advance before evidence review.
