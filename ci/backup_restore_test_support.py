@@ -254,33 +254,49 @@ def atomic_backup(source, destination, *, root, required_tables=(), required_row
 
 
 def validate_split_store_manifest(manifest):
-    """Validate coordination metadata without claiming cross-database atomicity."""
-    if not isinstance(manifest, dict) or manifest.get("topology") != "split_store":
+    """Validate a versioned coordination manifest without claiming atomicity."""
+    required_manifest_keys = {
+        "manifest_version", "topology", "snapshot_barrier_id", "restore_epoch", "stores",
+    }
+    if not isinstance(manifest, dict) or set(manifest) != required_manifest_keys:
+        raise BackupVerificationError("Split-store manifest is incomplete or has unknown fields")
+    if type(manifest["manifest_version"]) is not int or manifest["manifest_version"] != 1:
+        raise BackupVerificationError("Unsupported split-store manifest version")
+    if manifest["topology"] != "split_store":
         raise BackupVerificationError("A split_store manifest is required")
-    barrier = manifest.get("snapshot_barrier_id")
-    epoch = manifest.get("restore_epoch")
-    stores = manifest.get("stores")
+
+    barrier = manifest["snapshot_barrier_id"]
+    epoch = manifest["restore_epoch"]
+    stores = manifest["stores"]
     if not isinstance(barrier, str) or not barrier.strip():
         raise BackupVerificationError("A shared snapshot barrier ID is required")
     if type(epoch) is not int or epoch < 1:
         raise BackupVerificationError("A positive monotonic restore epoch is required")
     if not isinstance(stores, dict) or set(stores) != {"market_data", "paper_ledger"}:
         raise BackupVerificationError("Both split-store snapshots are required")
+
+    required_store_keys = {"barrier_id", "snapshot_id", "high_water_mark", "schema_version"}
     for name, snapshot in stores.items():
-        if not isinstance(snapshot, dict):
-            raise BackupVerificationError(f"Invalid {name} snapshot metadata")
-        if snapshot.get("barrier_id") != barrier:
+        if not isinstance(snapshot, dict) or set(snapshot) != required_store_keys:
+            raise BackupVerificationError(f"{name} snapshot metadata is incomplete or has unknown fields")
+        if snapshot["barrier_id"] != barrier:
             raise BackupVerificationError("Split-store snapshots do not share the same barrier")
-        snapshot_id = snapshot.get("snapshot_id")
-        high_water = snapshot.get("high_water_mark")
+        snapshot_id = snapshot["snapshot_id"]
+        high_water = snapshot["high_water_mark"]
+        schema_version = snapshot["schema_version"]
         if not isinstance(snapshot_id, str) or not snapshot_id.strip():
             raise BackupVerificationError(f"{name} snapshot ID is missing")
         if type(high_water) is not int or high_water < 0:
             raise BackupVerificationError(f"{name} high-water mark is invalid")
+        if type(schema_version) is not int or schema_version < 1:
+            raise BackupVerificationError(f"{name} schema version is invalid")
+
     return {
         "status": "PASS",
+        "manifest_version": manifest["manifest_version"],
         "restore_epoch": epoch,
         "snapshot_barrier_id": barrier,
         "stores": sorted(stores),
+        "schema_versions": {name: stores[name]["schema_version"] for name in sorted(stores)},
         "atomicity_claim": "NOT_ESTABLISHED_BY_MANIFEST",
     }
