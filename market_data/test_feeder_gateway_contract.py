@@ -89,6 +89,68 @@ class SchedulerGatewayContractTest(unittest.TestCase):
             initial_boundary + interval,
         )
 
+
+    def test_scheduler_and_recovery_share_injected_gateway_and_current_fence(self):
+        (
+            runtime, gateway, _exchange, store, lease_store,
+            lease_clock, _observation_clock, _initial_boundary, _interval,
+        ) = self._build_runtime()
+
+        coverage_reads = {"count": 0}
+
+        def read_window(_symbol, _timeframe, start_ms, end_ms):
+            coverage_reads["count"] += 1
+            if coverage_reads["count"] == 1:
+                return {
+                    "startMs": start_ms,
+                    "endMs": end_ms,
+                    "coverage": {
+                        "complete": False,
+                        "gaps": [{"startMs": start_ms, "endMs": start_ms + INTERVAL_MS["15m"]}],
+                    },
+                }
+            return {
+                "startMs": start_ms,
+                "endMs": end_ms,
+                "coverage": {"complete": True, "gaps": []},
+            }
+
+        store.read_window.side_effect = read_window
+        expected_fence = LeaseFence(
+            "binance-btcusdt-canonical",
+            "p5-4-30-scheduler-fixture",
+            42,
+        )
+
+        with patch(
+            "market_data.feeder_service.sync_window", side_effect=[7, 1]
+        ) as sync_window:
+            self.assertEqual(runtime.scheduler.run_due(), {"15m": 7})
+            self.assertTrue(runtime.recovery.recover_all())
+
+        self.assertEqual(sync_window.call_count, 2)
+        for invocation in sync_window.call_args_list:
+            self.assertIs(invocation.kwargs["gateway"], gateway)
+            self.assertEqual(invocation.kwargs["lease_token"], expected_fence)
+            self.assertIs(invocation.kwargs["lease_clock"], lease_clock)
+
+        self.assertEqual(coverage_reads["count"], 2)
+        self.assertEqual(lease_store.heartbeat.call_count, 2)
+        lease_store.heartbeat.assert_has_calls([
+            unittest.mock.call(
+                "p5-4-30-scheduler-fixture",
+                42,
+                now_ms=lease_clock(),
+                ttl_seconds=60,
+            ),
+            unittest.mock.call(
+                "p5-4-30-scheduler-fixture",
+                42,
+                now_ms=lease_clock(),
+                ttl_seconds=60,
+            ),
+        ])
+
     def test_scheduler_callback_fails_closed_when_lease_heartbeat_is_rejected(self):
         (
             runtime, _gateway, _exchange, _store, lease_store,
