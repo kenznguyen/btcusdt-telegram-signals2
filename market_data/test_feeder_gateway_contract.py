@@ -3,6 +3,7 @@
 These tests compose build_runtime without starting FeederRuntime, touching a
 database, connecting to an exchange, or enabling any production writer.
 """
+import sys
 import unittest
 from unittest.mock import Mock, patch
 
@@ -181,3 +182,104 @@ class SchedulerGatewayContractTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class ProductionRuntimeDbIdentityContractTest(unittest.TestCase):
+    """P5.4.32: production composition keeps all T0 SQLite roles on one file.
+
+    These tests use only nonexistent temporary paths and a stub CCXT module.
+    They never initialize/open a database or contact an exchange.
+    """
+
+    def test_production_factory_rejects_distinct_lease_database_before_composition(self):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import Mock, patch
+        from market_data.feeder_service import build_production_runtime
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            candle_path = root / "canonical.sqlite3"
+            lease_path = root / "separate-lease.sqlite3"
+            ccxt_stub = Mock()
+
+            with patch.dict(sys.modules, {"ccxt": ccxt_stub}):
+                with patch(
+                    "market_data.feeder_service.build_runtime"
+                ) as compose_runtime:
+                    with self.assertRaisesRegex(
+                        ValueError, "must resolve to the same file"
+                    ):
+                        build_production_runtime({
+                            "MARKET_DATA_BACKEND": "sqlite",
+                            "MARKET_DATA_DB": str(candle_path),
+                            "T0_FEEDER_LEASE_DB": str(lease_path),
+                        })
+
+            ccxt_stub.binanceusdm.assert_not_called()
+            compose_runtime.assert_not_called()
+            self.assertFalse(candle_path.exists())
+            self.assertFalse(lease_path.exists())
+
+    def test_production_factory_composes_all_sqlite_roles_on_same_resolved_path(self):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import Mock, patch
+        from market_data.feeder_service import build_production_runtime
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            canonical_path = root / "canonical.sqlite3"
+            equivalent_lease_path = root / "unused" / ".." / "canonical.sqlite3"
+            ccxt_stub = Mock()
+            runtime_sentinel = object()
+
+            with patch.dict(sys.modules, {"ccxt": ccxt_stub}):
+                with patch(
+                    "market_data.feeder_service.build_runtime",
+                    return_value=runtime_sentinel,
+                ) as compose_runtime:
+                    result = build_production_runtime({
+                        "MARKET_DATA_BACKEND": "sqlite",
+                        "MARKET_DATA_DB": str(canonical_path),
+                        "T0_FEEDER_LEASE_DB": str(equivalent_lease_path),
+                        "T0_FEEDER_OWNER_ID": "p5-4-32-fixture-owner",
+                    })
+
+            self.assertIs(result, runtime_sentinel)
+            ccxt_stub.binanceusdm.assert_called_once()
+            kwargs = compose_runtime.call_args.kwargs
+            resolved = canonical_path.resolve()
+            self.assertEqual(Path(kwargs["store"].path).resolve(), resolved)
+            self.assertEqual(Path(kwargs["gateway"]._db_path).resolve(), resolved)
+            self.assertEqual(Path(kwargs["lease_store"].db_path).resolve(), resolved)
+            self.assertEqual(Path(kwargs["status_store"].db_path).resolve(), resolved)
+            self.assertFalse(canonical_path.exists())
+
+    def test_production_factory_defaults_lease_database_to_canonical_database(self):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import Mock, patch
+        from market_data.feeder_service import build_production_runtime
+
+        with tempfile.TemporaryDirectory() as directory:
+            canonical_path = Path(directory) / "canonical.sqlite3"
+            ccxt_stub = Mock()
+            with patch.dict(sys.modules, {"ccxt": ccxt_stub}):
+                with patch(
+                    "market_data.feeder_service.build_runtime",
+                    return_value=object(),
+                ) as compose_runtime:
+                    build_production_runtime({
+                        "MARKET_DATA_BACKEND": "sqlite",
+                        "MARKET_DATA_DB": str(canonical_path),
+                        "T0_FEEDER_OWNER_ID": "p5-4-32-default-lease-fixture",
+                    })
+
+            kwargs = compose_runtime.call_args.kwargs
+            self.assertEqual(
+                Path(kwargs["lease_store"].db_path).resolve(),
+                canonical_path.resolve(),
+            )
+            self.assertFalse(canonical_path.exists())
