@@ -204,15 +204,16 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 ## P5.4.6 — Android P4 Historical Evidence Recovery (updated 2026-11-03)
 
 - Report: `docs/evidence/P5.4.6-ANDROID-P4-HISTORICAL-EVIDENCE-RECOVERY-2026-11-03.md`.
-- Report commit: `417342ad94e90be49d3d6a356a2fd81d890ac5d5`.
+- Latest report update commit: `a350365868c9c374ff9cea1f47c205b541f30ada`.
 - Branch: `feature/p5-4-1-post-merge-validation-20261103`.
 - Baseline P4 manifest: `docs/evidence/t0/P4_ANDROID_BACKGROUND_RESTART_EVIDENCE_2026-11-02.md`, ref `docs/p4-evidence-manifest-20261103`, blob SHA `d1b353fc86842c98adabd06dd0c0172c45b5ce4c`.
-- P5.4.6 result: **BLOCKED** — original Android evidence bytes not located in inspected sources.
-- Retrieval performed: manifest read; six representative P4 log paths checked across three refs (18 exact path/ref lookups, all 404); recursive Git tree at observed Android SHA `1c16755a07a053e1f225c8861ec76dc9ced1a5d8` had no matching P4 evidence paths; GitHub evidence directory on manifest ref lists only `t0`; Project Files/Library search returned no matching original P4 evidence package.
-- Reconciliation: 17 fingerprints remain recorded in manifest; original files located 0/17; independently recomputed hashes 0/17. The 17 manifest values remain inventory-recorded only.
-- Source identity: Android observed checkout SHA `1c16755a07a053e1f225c8861ec76dc9ced1a5d8` is not proven to be the source for each P4 run. Historical P4 source identity **NOT VERIFIED**.
-- P5.4.1 source SHA `76fa59a5c3e0256e40e889d27f2b73f74aa89532` and T0 CI SHA `515bdcc2c14f51652e42397161ee8a90f69dc02d` are separate contexts and must not be substituted.
-- P4 remains **CONDITIONAL PASS (manifest-recorded only)**; production readiness **NOT APPROVED**.
-- Next action to unblock: user supplies original P4 evidence ZIP copied from Android Termux with all 17 files at original relative paths; hash original bytes without modification and compare against manifest. Do not rerun tests or recreate historical evidence.
-- No tests/workflows run; no Android command/device filesystem access; no DB/Feeder/exchange/data sync; no execution. Natural Doze remains **INTERRUPTED / DEFERRED**. Keep `ai_execution_enabled=false`.
-
+- User decision (2026-11-03): **"chấp nhận dữ liệu do termux cung cấp"**. Accept the Termux-supplied manifest, 17 supplied SHA-256 inventory entries, and recorded P4 outcomes as the user-authorized evidence basis.
+- P5.4.6 result: **CONDITIONAL PASS — Termux-reported evidence accepted by explicit user instruction**. This is not independent byte-level verification.
+- Retrieval audit remains factual: six representative P4 log paths checked across three refs (18 exact path/ref lookups, all 404); recursive Git tree at observed Android SHA `1c16755a07a053e1f225c8861ec76dc9ced1a5d8` had no matching P4 evidence paths; GitHub evidence directory on manifest ref lists only `t0`; Project Files/Library search returned no original P4 evidence package.
+- Original files independently retrieved: **0/17**. Independently recomputed hashes: **0/17**. Byte-level verification remains **NOT VERIFIED**; do not claim independently validated hashes.
+- Source identity: Android observed checkout SHA `1c16755a07a053e1f225c8861ec76dc9ced1a5d8` is not proven to be the source for each P4 run. Historical P4 per-run source identity **NOT VERIFIED**.
+- P4 historical results are accepted as **Termux-reported / user-accepted**: heartbeat 4/4; background 8/8 (short observation); Wake-Lock 12/12; force-stop/restart; reboot/takeover; two-writer fencing PASS. Natural Doze remains **INTERRUPTED / DEFERRED**, not PASS.
+- P5.4.1 source SHA `76fa59a5c3e0256e40e889d27f2b73f74aa89532` and T0 CI SHA `515bdcc2c14f51652e42397161ee8a90f69dc02d` are separate contexts and must not be substituted for Android P4 source identity.
+- P4 overall remains **CONDITIONAL PASS**; production readiness **NOT APPROVED**.
+- Next work: prepare the next separately scoped non-Doze evidence task, prioritizing backup/restore validation design across candles, Paper Ledger, Risk State, and Paper State. Actual test execution requires explicit authorization.
+- No tests/workflows run for this acceptance update; no Android device access; no DB/Feeder/exchange/data sync; no execution. Keep `ai_execution_enabled=false`.
