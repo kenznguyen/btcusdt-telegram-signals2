@@ -496,15 +496,21 @@ class BackupRestoreFixtureTest(unittest.TestCase):
             "stores": {
                 "market_data": {
                     "barrier_id": "barrier-fixture-001",
-                    "snapshot_id": "market-snapshot-001",
+                    "snapshot_id": "a" * 64,
+                    "logical_sha256": "a" * 64,
+                    "content_sha256": "b" * 64,
                     "high_water_mark": 120,
                     "schema_version": 3,
+                    "table_counts": {"candles": 100, "feeder_leases": 20},
                 },
                 "paper_ledger": {
                     "barrier_id": "barrier-fixture-001",
-                    "snapshot_id": "paper-snapshot-001",
+                    "snapshot_id": "c" * 64,
+                    "logical_sha256": "c" * 64,
+                    "content_sha256": "d" * 64,
                     "high_water_mark": 44,
                     "schema_version": 5,
+                    "table_counts": {"paper_orders": 44},
                 },
             },
         }
