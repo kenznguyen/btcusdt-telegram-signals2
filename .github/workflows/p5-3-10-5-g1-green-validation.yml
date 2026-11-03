@@ -48,10 +48,12 @@ jobs:
 
       - name: Verify exact caller source SHA
         shell: bash
+        env:
+          EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           git rev-parse HEAD | tee g1-green-source-sha.txt
-          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
 
       - name: Compile Gateway and acceptance tests
         run: python -m py_compile market_data/gateway.py market_data/test_gateway_runtime.py
