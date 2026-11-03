@@ -4,6 +4,9 @@ set -euo pipefail
 CI_PYTHON="${CI_PYTHON:-python3}"
 : "${MARKET_DATA_TEST_DATABASE_URL:?Configure the dedicated disposable TimescaleDB test database as GitHub Actions secret MARKET_DATA_TEST_DATABASE_URL}"
 
+# Require an exact, separately configured SHA-256 fingerprint before any DB connection.
+"$CI_PYTHON" -m ci.t0_test_database_url --check-environment
+
 export MARKET_DATA_REQUIRE_TIMESCALE=1
 export MARKET_DATA_BACKEND=postgres
 export MARKET_DATA_POSTGRES_DSN="$MARKET_DATA_TEST_DATABASE_URL"
