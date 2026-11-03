@@ -350,7 +350,7 @@ def publish_split_store_backup_set(
 
         manifest_path = staging_path / "backup-manifest.json"
         manifest_path.write_text(
-            json.dumps(manifest, sort_keys=True, indent=2) + "\\n",
+            json.dumps(manifest, sort_keys=True, indent=2) + "\n",
             encoding="utf-8",
         )
         os.replace(staging_path, destination_path)
