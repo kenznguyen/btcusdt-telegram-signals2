@@ -204,11 +204,14 @@ def audit_contract(root):
         "lease_clock=runtime_clock_fn" in feeder_service,
         "clock=runtime_clock_fn" in feeder_service,
     ))
+    gateway_source = (root / "market_data/gateway.py").read_text(encoding="utf-8")
     runtime_storage_fail_closed_ok = all((
-        "?mode=rw" in store_source,
+        "?mode=rw" in gateway_source,
         "?mode=rw" in feeder_source,
         "def initialize_schema(self)" in store_source,
         "def initialize_schema(self)" in feeder_source,
+        "def insert(self" not in store_source,
+        "def insert_fenced(" not in store_source,
     ))
 
     return [
