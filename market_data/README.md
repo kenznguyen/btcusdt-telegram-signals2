@@ -105,7 +105,7 @@ API không tạo database khi thiếu file, không gọi sàn trong request và 
 
 ## Kiểm chứng
 
-GitHub lưu source/PR. Với P5.3.11 G2, GitHub Actions là cổng CI/acceptance duy nhất: RED reproduction và GREEN acceptance chạy trong môi trường disposable, quyền read-only, không có canonical/Paper DB hoặc exchange credentials. Không sử dụng Codemagic làm gate, không yêu cầu Codemagic Build ID và không đối chiếu Codemagic SHA cho hạng mục này. Bằng chứng nghiệm thu phải gắn với đúng source SHA, kết luận workflow, job steps và artifact của GitHub Actions. Không được suy diễn kết quả unit/integration tests thành bằng chứng Feeder production, Android instrumentation, PC multiprocess hoặc Timescale.
+GitHub lưu source/PR. Với P5.3.11 G2 và PR #125, GitHub Actions là cổng CI/acceptance duy nhất: RED reproduction và GREEN acceptance chạy trong môi trường disposable, quyền read-only, không có canonical/Paper DB hoặc exchange credentials. Codemagic không được dùng để chạy, chạy lại hoặc nghiệm thu PR #125/G2; không yêu cầu Codemagic Build ID và không đối chiếu Codemagic SHA cho hạng mục này. Nhóm G2 feeder routing, lease, fencing và lifecycle có log riêng `g2-feeder-routing-tests.log`. Bằng chứng nghiệm thu phải gắn với đúng source SHA, kết luận workflow, job steps và artifact của GitHub Actions. Không được suy diễn kết quả unit/integration tests thành bằng chứng Feeder production, Android instrumentation, PC multiprocess hoặc Timescale.
 
 ```bash
 python3 -m unittest market_data.test_store market_data.test_sync market_data.test_api integrations.test_hummingbot_bridge -v
