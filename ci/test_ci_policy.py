@@ -46,7 +46,7 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("persist-credentials: false", green)
         self.assertIn("integration/p5-3-11-g2-gateway-green-20261103", green)
         self.assertIn(
-            "branches:\\n      - feature/p5-3-11-5-g2-red-tests-20261103\\n      - integration/p5-3-11-g2-gateway-green-20261103",
+            "branches:\n      - feature/p5-3-11-5-g2-red-tests-20261103\\n      - integration/p5-3-11-g2-gateway-green-20261103",
             green,
         )
         self.assertIn("workflow_dispatch:", green)
