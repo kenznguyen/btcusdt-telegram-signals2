@@ -950,3 +950,26 @@ Next:
 3. Do not install or distribute APKs without separate authorization.
 
 Handoff update commit: `b8d8c41f29407444bdb466890a5a7a5887072f89` (verified as branch HEAD; handoff blob SHA `264dcc6363788630345ca122c68bc343dcfac29d`).
+
+
+## P5.4.48 — Android paired-release workflow dispatch SHA mismatch (updated 2026-11-04)
+
+Run evidence:
+- Workflow run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41734951363
+- Job: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41734951363/job/126261621390
+- Event: `workflow_dispatch`; branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Workflow checked out `GITHUB_SHA=2366a02869a957624f4ae8ec3c3188d8c896849f`.
+- Supplied `source_sha=9d674a38c8e051ed68c9143a616364e2834d045a`.
+- Preflight failed at `test "$INPUT_SOURCE_SHA" = "$GITHUB_SHA"`; this is an input/checkout SHA mismatch, not a Kotlin or Android build failure.
+- Run conclusion: FAILURE. All setup/build/test/signing/verification/upload steps were skipped. Temporary keystore cleanup passed. No artifact was produced.
+- `AI_EXECUTION_ENABLED=false`; DB/Feeder and exchange credential environment variables were empty. No live execution or market-data operations occurred.
+
+Current verdict:
+- Fixture source correction remains committed at `9d674a38c8e051ed68c9143a616364e2834d045a`.
+- The workflow dispatch itself selected current branch HEAD `2366a02869a957624f4ae8ec3c3188d8c896849f`; the supplied older SHA caused preflight rejection.
+- Android unit tests/build/signing/signer parity/artifacts: NOT RUN / NOT VERIFIED.
+
+Next:
+- Re-dispatch the same workflow on this same branch and enter the exact current branch HEAD as `source_sha=2366a02869a957624f4ae8ec3c3188d8c896849f`. This commit contains the fixture fix as an ancestor and satisfies the workflow's exact SHA equality gate.
+- Re-read branch HEAD immediately before dispatch. If it has advanced, use that newly verified exact HEAD instead.
+- Inspect the new run before making any APK readiness claim. Do not install APKs or enable live execution.
