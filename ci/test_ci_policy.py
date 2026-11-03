@@ -30,6 +30,9 @@ class CiPolicyTest(unittest.TestCase):
         self.assertLessEqual(actual, approved)
         self.assertTrue((ROOT / "ci/archive/github-actions/market-data-ci.yml").exists())
 
+    def test_g2_red_contract_is_not_configured_in_codemagic(self):
+        self.assertNotIn("p5-3-11-5-g2-red-tests", self.workflows)
+
     def test_manual_stateful_and_release_tasks_never_start_on_push(self):
         for name in ("android-chart-pro-release", "signal-scan", "telegram-command", "dashboard-backtest"):
             with self.subTest(name=name):
