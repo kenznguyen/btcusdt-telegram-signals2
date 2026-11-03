@@ -26,7 +26,7 @@ Không có công cụ Codemagic hoặc credential được cấu hình trong phi
 Workflow `canonical-market-data` trong `codemagic.yaml` hiện giữ các kiểm thử tích hợp ngoài T0 core:
 
 - Cài các dependency cho CCXT/Flask và kiểm tra import.
-- Chạy gateway Hummingbot, CI policy và paper-system integration tests.
+- Chạy gateway Hummingbot, legacy-runner checks và paper-system integration tests.
 - Kiểm tra CLI/syntax và thu source SHA cùng test logs.
 
 Các test kho nến/sync/API và Gateway runtime T0 đã được chuyển sang GitHub Actions, không còn chạy từ workflow Codemagic này. Workflow thủ công `freqai-strategy-smoke` cài Freqtrade/FreqAI 2026.9 để kiểm tra load strategy, không chạy train/trade. Xem [runbook 5 tầng](FIVE_LAYER_PAPER_RUNBOOK.md) để thiết lập runtime.
