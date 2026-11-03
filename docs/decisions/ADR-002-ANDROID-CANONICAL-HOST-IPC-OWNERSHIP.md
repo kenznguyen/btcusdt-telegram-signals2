@@ -99,3 +99,16 @@ No tests or GitHub Actions workflows were run. Documentation-only. `AI_EXECUTION
 ## Follow-up
 
 P5.4.40 should produce an implementation-ready IPC threat model and contract specification: caller identity, signature trust, permission boundary, typed read/command surface, versioning, idempotency, host death/reconnect and fail-closed behavior. It must not implement runtime components until a separate explicit authorization.
+
+
+## Owner decision addendum — P5.4.41 (2026-11-04)
+
+The owner explicitly approved the following implementation-design decisions:
+
+1. **IPC primitive:** Android Bound Service using explicit component binding and a narrow typed Binder/AIDL contract. Require a custom signature-level bind permission and host-side caller UID/package/installed-signer verification on every call.
+2. **Canonical host variant:** the existing Android `regular` variant is the canonical host. The `.paper` variant is the separately installed IPC client and must not own/open a second canonical database.
+3. **Signing relationship:** host and `.paper` client use the same controlled installed signing identity. The host must still pin the exact expected client package and approved signer/lineage; same-signer permission is not a substitute for package/operation authorization.
+
+These decisions resolve the corresponding owner gates from P5.4.41. They do **not** establish the exact application IDs, installed certificate digest, key custody/rotation details, or prove the existing build variants actually use the approved installed signer. Those require source/release evidence before implementation.
+
+The P5.4.42 design must retain one-host/one-writer ownership, no raw DB capability across IPC, host-side idempotency/risk/fencing enforcement, fail-closed behavior, and paper-only operation. Runtime implementation and activation remain separately unauthorized.
