@@ -1316,3 +1316,19 @@ Next:
 - No tests/workflows/artifacts, API requests, network calls, DB access, service startup, exchange access, APK install or paper mutations.
 - Next: obtain seven sanitized evidence items out-of-band, reconcile deployed SHA and isolated storage identity, then request separate authorization for one exact GET route. Checklist completion does not itself authorize a probe.
 - Safety: keep `AI_EXECUTION_ENABLED=false`; no live execution, canonical DB/Feeder activation, exchange credentials, market-data sync or POST controls.
+
+
+## T0 Re-check — 2026-11-04
+
+- Report: `docs/evidence/T0-RECHECK-2026-11-04.md`.
+- Repository/branch: `kenznguyen/btcusdt-telegram-signals2` / `feature/p5-4-1-post-merge-validation-20261103`.
+- Reviewed HEAD: `e9271a52a13f5213b387aa8f474a4e9b85b0d7f1`.
+- Static findings: scheduler callback still hands ingestion to `sync_window()` + T0 Gateway; M15/H1, 5s poll, 5s close grace, retry max 5, lease TTL 60s and heartbeat 15s; production SQLite candle/Gateway/lease/status paths are required to align.
+- Retry/recovery/lease/fencing: PASS (static source review). Health state machine explicitly keeps STARTING not-ready until recovery, storage and lease gates pass; runtime API integration test definitions cover startup-in-progress, healthy-after-recovery, lease loss, incomplete recovery, stopped state and stale-generation fencing. The prior `test_startup_in_progress_is_not_ready` expectation matches current source, but no fresh test run was executed.
+- Current source test inventory: scheduler 15, retry 12, recovery 10, lease 11, health 11, health API 9, runtime health API 6, lifecycle 23, atomic fencing 9, SIGKILL recovery 1 = 107 test methods. Workflow source asserts groups 100/107/101 and separate data-integrity 12; manual final runtime config module has 7 test methods.
+- CI routing issue: `.github/workflows/t0-validation.yml` push trigger only names `feature/t0-operational-contract-release-gate-20261102`, not the current branch `feature/p5-4-1-post-merge-validation-20261103`. It has `workflow_call`; no current-branch caller or current-HEAD workflow evidence was established. `t0-manual-validation.yml` is workflow_dispatch but no run/artifact for reviewed HEAD was retrieved.
+- Final runtime config audit is source-level read-only; GitHub runner intentionally has no canonical DB path or exchange credentials. Actual Windows PC canonical path/DB integrity, runtime feeder, exchange connectivity, sync and M15/H1 freshness remain NOT VERIFIED.
+- Result: source-level T0 contracts **PASS**; workflow auto-trigger on active branch **BLOCKED / CONFIG GAP**; fresh current-HEAD tests **NOT VERIFIED**; PC/runtime acceptance **NOT VERIFIED**.
+- No tests/workflows/artifacts, DB access, feeder start, exchange/network request, market-data sync or production mutation occurred.
+- Next: correct/confirm T0 CI routing and obtain fresh isolated exact-SHA test evidence; then separately verify Windows canonical path and integrity before any runtime smoke test.
+- Safety: keep `AI_EXECUTION_ENABLED=false`; no live trading, exchange trading credentials, canonical DB writes, feeder startup or market-data sync.
