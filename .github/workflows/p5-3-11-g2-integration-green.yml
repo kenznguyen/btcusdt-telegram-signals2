@@ -81,6 +81,7 @@ jobs:
             market_data.test_feeder_lease \
             market_data.test_feeder_atomic_fencing \
             market_data.test_feeder_lifecycle \
+            market_data.test_feeder_gateway_contract \
             -v 2>&1 | tee g2-feeder-routing-tests.log
 
       - name: Run T0 scheduler, recovery, health and storage regressions
