@@ -9,6 +9,7 @@ on:
       - "market_data/**"
       - "ci/t0_operational_contract.py"
       - "ci/test_t0_operational_contract.py"
+      - "ci/test_ci_policy.py"
       - "pipeline/**"
       - "freqai_bridge/**"
       - "market_data/README.md"
