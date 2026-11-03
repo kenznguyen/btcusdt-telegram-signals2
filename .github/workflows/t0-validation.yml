@@ -29,6 +29,7 @@ run-name: T0 automated validation (${{ github.ref_name }} @ ${{ github.sha }})
       - "codemagic.yaml"
       - ".github/workflows/t0-validation.yml"
       - ".github/workflows/t0-manual-validation.yml"
+      - "docs/CODEMAGIC_SETUP.md"
   pull_request:
     branches:
       - main
