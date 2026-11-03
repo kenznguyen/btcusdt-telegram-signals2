@@ -33,6 +33,10 @@ jobs:
       MARKET_DATA_DB: ""
       T0_FEEDER_LEASE_DB: ""
       PAPER_DB: ""
+      PAPER_TRADING_DB: ""
+      T0_TEST_MODE: "1"
+      T0_TEST_ROOT: ${{ runner.temp }}/t0-test-root
+      T0_TEST_DB: ${{ runner.temp }}/t0-test-root/t0-shadow.sqlite3
       BINANCE_API_KEY: ""
       BINANCE_API_SECRET: ""
       OKX_API_KEY: ""
@@ -55,15 +59,26 @@ jobs:
             requirements-ci.txt
       - name: Install isolated dependencies
         run: python -m pip install -r requirements-market-data.txt -r requirements.txt -r requirements-web.txt -r requirements-ci.txt
+      - name: Prepare disposable T0 test root
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$T0_TEST_ROOT"
+          test -d "$T0_TEST_ROOT"
+          case "$T0_TEST_DB" in "$T0_TEST_ROOT"/*) ;; *) echo "T0_TEST_DB escapes T0_TEST_ROOT"; exit 1 ;; esac
       - name: Enforce isolated environment and record source SHA
         shell: bash
         run: |
           set -euo pipefail
-          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB PAPER_TRADING_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
             if [[ -n "${!key:-}" ]]; then echo "Unsafe environment variable present: $key"; exit 1; fi
           done
           git rev-parse HEAD | tee ci-source-sha.txt
           echo "T0_MANUAL_ISOLATED=PASS" | tee t0-manual-isolation-verdict.txt
+      - name: Run T0 test isolation guard contracts
+        run: |
+          python -m unittest ci.test_t0_test_isolation ci.test_t0_data_integrity ci.test_t0_final_runtime_config -v 2>&1 | tee t0-test-isolation-tests.log
+          python -m py_compile ci/t0_test_isolation.py ci/test_t0_test_isolation.py ci/t0_data_integrity.py ci/test_t0_data_integrity.py ci/t0_final_runtime_config.py ci/test_t0_final_runtime_config.py
       - name: Run final runtime configuration check
         if: ${{ inputs.gate == 'final-runtime-config' }}
         run: |
@@ -112,6 +127,7 @@ jobs:
           if-no-files-found: warn
           path: |
             ci-source-sha.txt
+            t0-test-isolation-tests.log
             t0-manual-isolation-verdict.txt
             t0-final-runtime-config-tests.log
             t0-final-runtime-config-report.json
