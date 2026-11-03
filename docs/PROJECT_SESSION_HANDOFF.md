@@ -275,8 +275,8 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 ## P5.4.10 — Backup/Restore Fixture Test Implementation (updated 2026-11-03)
 
 - Report: `docs/evidence/P5.4.10-BACKUP-RESTORE-FIXTURE-TEST-IMPLEMENTATION-2026-11-03.md`.
-- Report commit: `5d2f84bac293603cc79cacc4650cefbb6157d8a6`.
-- Implementation source SHA before this report/handoff update: `0e4d6d646484aef68fcbc9954e7c444a6162ebd2`.
+- Report commit: `fc0827ee634d1074439bd8c0e916bb6f14442107` (corrected Codemagic trigger/source identity).
+- Implementation source SHA / Codemagic trigger commit: `0e4d6d646484aef68fcbc9954e7c444a6162ebd2` (this commit changed `codemagic.yaml`; subsequent documentation-only commits are not assumed to trigger the changeset-filtered workflow).
 - Branch: `feature/p5-4-1-post-merge-validation-20261103`.
 - Owner authorization: **"cho phép các quyền cần thiết Backup/Restore Test"** (2026-11-03). Applied to fixture-only implementation and execution on Codemagic; GitHub remains source/evidence storage.
 - Implemented test files:
