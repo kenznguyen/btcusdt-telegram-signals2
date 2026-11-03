@@ -109,10 +109,12 @@ class StorageFactoryTest(unittest.TestCase):
             store = create_store("sqlite", sqlite_path=str(Path(directory) / "candles.sqlite3"))
             self.assertFalse(hasattr(store, "insert"))
             self.assertFalse(hasattr(store, "insert_fenced"))
+            self.assertFalse(hasattr(store, "_writer"))
 
     def test_runtime_postgres_factory_exposes_no_legacy_write_methods(self):
         store = create_store("postgres", postgres_dsn="postgresql://user:pass@127.0.0.1:5432/test")
         self.assertFalse(hasattr(store, "insert"))
+        self.assertFalse(hasattr(store, "_store"))
 
     def test_candle_store_has_no_direct_data_mutation_methods(self):
         self.assertFalse(hasattr(CandleStore, "insert"))
