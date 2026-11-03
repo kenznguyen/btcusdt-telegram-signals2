@@ -746,3 +746,15 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Documentation-only; no tests/workflows, device/filesystem/DB, Feeder, exchange, sync, backup/restore or execution touched. `AI_EXECUTION_ENABLED=false`.
 - Next: P5.4.38 design-only Android composition-root interface/dependency wiring contract, including regular/parallel variant database identity and duplicate-writer prevention. No implementation or activation.
 
+## P5.4.38 — Android Composition Root & Dependency Wiring Contract (updated 2026-11-03)
+
+- Evidence: `docs/evidence/P5.4.38-ANDROID-COMPOSITION-ROOT-WIRING-CONTRACT.md`.
+- Evidence commit: `6797f69d1fda1292c5607e0b7d11dbd1d1cc2b02`.
+- Design-only contract defines one application-scoped CanonicalRuntime owner, one opaque DB identity/transaction coordinator injected into T0, lease/fencing, Paper Ledger, Shared Risk/Kill Switch, equity, audit and read-only projections.
+- Lifecycle is fail-closed: process start does not create schema/start Feeder/connect exchange; read-only preflight precedes explicitly authorized migration; readiness is separate from writer activation; restart revalidates fencing/recovery/Kill Switch.
+- Critical Android sandbox constraint: regular and `.paper` variants have distinct application IDs. Their app-private DB files are not the same physical file. One package/process must own the canonical SQLite file and writer capability. A second package must be a typed authenticated IPC client or remote-only API client; no raw path/DB handle/lease authority, no shadow DB.
+- Packaging choice remains OPEN: (A) same application ID for local variants; (B) dedicated canonical host plus authenticated IPC; (C) separate `.paper` app remains remote API-only. This document does not select among them.
+- Status: **PASS** design contract; **NOT VERIFIED** implementation/runtime; **BLOCKED / OWNER DECISION REQUIRED** for package ownership choice; implementation and production activation **NOT AUTHORIZED**.
+- Documentation-only. No tests/workflows, package changes, dependencies, device/filesystem/DB, Feeder, exchange, sync, backup/restore or execution touched. `AI_EXECUTION_ENABLED=false`.
+- Next: P5.4.39 resolve package ownership choice and record owner decision. No implementation before that choice.
+
