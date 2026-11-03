@@ -24,7 +24,8 @@ class T0TestIsolationTests(unittest.TestCase):
         }
 
     def check(self, path=None, env=None):
-        return validate_test_database_path(path or self.db, env or self.env)
+        selected = self.db if path is None else path
+        return validate_test_database_path(selected, self.env if env is None else env)
 
     def test_iso_01_missing_test_mode_fails(self):
         env = dict(self.env, T0_TEST_MODE="")
