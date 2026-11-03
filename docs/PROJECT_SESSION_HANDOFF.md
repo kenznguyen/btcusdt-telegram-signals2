@@ -377,3 +377,21 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS** for the exact 25 fixture cases and integrated gate. **NOT VERIFIED**: split-store partial-backup failure injection, filesystem crash/power interruption, production manifest publisher/consumer integration, restore-epoch enforcement, external re-fencing and combined writer-start gate.
 - Isolation: disposable TemporaryDirectory fixtures only. No canonical DB, PC/Android filesystem, Feeder/API, exchange, network sync, production restore or order execution. GitHub Actions only; no Codemagic. `ai_execution_enabled=false`.
 - Next: fixture-only split-store partial-failure injection and binding per-store manifest metadata to verifiable fixture snapshot content/high-water marks. Production restore and runtime activation remain prohibited without separate approval. Natural Doze remains `INTERRUPTED / DEFERRED`.
+
+
+## P5.4.17 — Split-Store Partial Backup Failure Injection (2026-11-03)
+
+- Report: `docs/evidence/P5.4.17-SPLIT-STORE-PARTIAL-BACKUP-FAILURE-INJECTION-2026-11-03.md`.
+- Report commit: `9627290c6958c3f066df55bf770804b1f0bd24a8`.
+- Exact tested source SHA: `24208ebb43e34db4d68b686e0bbeb32cbe349228`.
+- Test file blob SHA: `5068d925fd28b127de88c79f5d1e1c88493f1a64`.
+- Fixture support blob SHA: `370817e66aa78e3051267a7e340a764dd76a4aff`.
+- Fixture run [41647310614](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41647310614): **SUCCESS, 27/27 tests, 0 failures, 0 errors, 0 skipped**.
+- Diagnostic RED run [41647082163](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41647082163): expected import failure before helper implementation. First implementation run [41647234831](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41647234831): 26/27; success path exposed invalid JSON newline escaping, corrected before final run.
+- Artifact ID `13234929605`, 5,704 bytes; GitHub digest and independently downloaded ZIP SHA-256 match: `37bf873c63f419484ebedac6461a05776f1098892ebc326620c293e1c9a4b522`. ZIP integrity PASS, 12 files, 8/8 internal checksums independently matched.
+- Integrated P5.4.1 gate [41647311051](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41647311051): **SUCCESS, 5/5 jobs**, same source SHA.
+- Added fixture-only partial-failure injection: after first store backup, no final directory or manifest is published and staging is removed. Added success-path check that both stores and manifest appear together in one completed fixture directory.
+- Important limitation: this proves only the tested Linux fixture directory-publication behavior. It does not prove true cross-database snapshot consistency, production atomicity, Windows behavior or crash/power-loss recovery.
+- Status: **PASS** for the exact 27 fixture cases and integrated gate. **NOT VERIFIED**: manifest-to-backup content binding, production publisher/consumer integration, true cross-store consistency, filesystem crash recovery and production restore.
+- Isolation: disposable TemporaryDirectory DBs only; no canonical DB, PC/Android filesystem, Feeder/API, exchange, network sync, production restore or order execution. GitHub Actions only; no Codemagic. `ai_execution_enabled=false`.
+- Next: bind each store's manifest snapshot ID, schema version and high-water mark to independently inspected backup contents; reject missing, swapped or mismatched stores before restore validation. Natural Doze remains `INTERRUPTED / DEFERRED`.
