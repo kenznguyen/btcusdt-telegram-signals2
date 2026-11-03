@@ -691,3 +691,15 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS** for bounded source review; **NOT VERIFIED / BLOCKED** for shared physical Android DB identity and canonical path authority.
 - Documentation-only; no tests/workflows or runtime actions. No Android filesystem, canonical DB, Feeder startup, exchange or backup/restore access. `AI_EXECUTION_ENABLED=false`.
 - Next: identify the Android composition root and authoritative path provider, then specify a fixture-only cross-component identity contract. No production activation.
+
+## P5.4.34 — PC Canonical vs Android Shadow Persistence Boundary Review
+
+- Evidence: `docs/evidence/P5.4.34-PC-CANONICAL-ANDROID-SHADOW-BOUNDARY.md`; evidence commit `5926fbf9e8e0bcfa2c6acbdc21cd73b812ec6ffd`.
+- Review source ref: `c7412c4c24c4b54803903c913d1d48ad045828ba`.
+- Reconfirmed owner architecture: Windows PC hosts canonical T0 SQLite and sole canonical Feeder writer; Android runs separately as `android_shadow`; GitHub stores source/evidence and CI uses isolated fixtures.
+- Android `MainActivity` launches `StrategyMonitorService`; inspected service stores runtime/strategy/alert/scanner/order-book state in `SharedPreferences("strategy_state_v1")`. Inspected Android Gradle dependencies do not declare Room/SQLite wrapper. Code search for `SQLiteOpenHelper` and `RoomDatabase` found no indexed matches; complete Android persistence inventory remains NOT VERIFIED.
+- Python T0 Feeder is composed in `market_data/feeder_service.py`; Python Paper Ledger is a separate SQLite module accepting its own `db_path`. No Android-to-Python shared SQLite file or Android canonical path provider is demonstrated.
+- Correction: P5.4.33's title/target of a “shared Android canonical SQLite” was based on a wrong host assumption. Its observation that PaperLedger accepts an independent path remains valid; its implication that Android should own the canonical DB is superseded.
+- Status: **PASS** for ownership-boundary source review; **NOT VERIFIED** for complete Android persistence inventory and device shadow runtime; **BLOCKED** for making Android canonical or sharing Android local storage with Python Paper Ledger absent a new architecture decision.
+- Documentation-only; no tests/workflows or runtime actions. No Android/PC DB access, Feeder startup, exchange, sync, backup/restore or instrumentation. `AI_EXECUTION_ENABLED=false`.
+- Next: optionally complete source-only inventory of Android persistence callsites, classifying each as shadow-only. Do not change canonical ownership or activate runtime.
