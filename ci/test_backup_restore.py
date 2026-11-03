@@ -274,6 +274,7 @@ class BackupRestoreFixtureTest(unittest.TestCase):
         with sqlite3.connect(self.source) as db:
             db.execute("DELETE FROM paper_orders")
             db.execute("DELETE FROM paper_books")
+            db.execute("DELETE FROM paper_audit")
             db.execute(
                 "UPDATE paper_state SET position='0',average='0',realized='0',fees='0',paused=0 WHERE id=1"
             )
