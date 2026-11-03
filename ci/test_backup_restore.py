@@ -453,9 +453,17 @@ class BackupRestoreFixtureTest(unittest.TestCase):
             )
 
     def test_split_store_manifest_requires_versioned_schema_metadata(self):
-        manifest = self._valid_split_store_manifest()
+        missing_manifest_version = self._valid_split_store_manifest()
+        del missing_manifest_version["manifest_version"]
         with self.assertRaises(BackupVerificationError):
-            validate_split_store_manifest(manifest)
+            validate_split_store_manifest(missing_manifest_version)
+
+        for store in ("market_data", "paper_ledger"):
+            with self.subTest(store=store):
+                missing_schema_version = self._valid_split_store_manifest()
+                del missing_schema_version["stores"][store]["schema_version"]
+                with self.assertRaises(BackupVerificationError):
+                    validate_split_store_manifest(missing_schema_version)
 
     def test_split_store_manifest_rejects_invalid_domain_values(self):
         mutations = (
