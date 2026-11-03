@@ -1,4 +1,4 @@
-"""SQLite/TimescaleDB contract parity tests; DB is supplied by Codemagic."""
+"""SQLite/TimescaleDB parity tests; require an explicitly supplied disposable integration DB."""
 
 import os
 import tempfile
@@ -24,7 +24,7 @@ class TimescaleParityTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         if not DSN:
-            raise RuntimeError("Codemagic requires MARKET_DATA_TEST_DATABASE_URL")
+            raise RuntimeError("Timescale integration requires an explicitly supplied MARKET_DATA_TEST_DATABASE_URL")
         try:
             import psycopg  # noqa: F401
         except ImportError:
