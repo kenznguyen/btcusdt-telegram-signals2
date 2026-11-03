@@ -79,8 +79,8 @@ jobs:
           echo "T0_MANUAL_ISOLATED=PASS" | tee t0-manual-isolation-verdict.txt
       - name: Run T0 test isolation guard contracts
         run: |
-          python -m unittest ci.test_t0_test_isolation ci.test_t0_data_integrity ci.test_t0_final_runtime_config -v 2>&1 | tee t0-test-isolation-tests.log
-          python -m py_compile ci/t0_test_isolation.py ci/test_t0_test_isolation.py ci/t0_data_integrity.py ci/test_t0_data_integrity.py ci/t0_final_runtime_config.py ci/test_t0_final_runtime_config.py
+          python -m unittest ci.test_t0_test_isolation ci.test_t0_test_database_url ci.test_t0_data_integrity ci.test_t0_final_runtime_config -v 2>&1 | tee t0-test-isolation-tests.log
+          python -m py_compile ci/t0_test_isolation.py ci/test_t0_test_isolation.py ci/t0_test_database_url.py ci/test_t0_test_database_url.py ci/t0_data_integrity.py ci/test_t0_data_integrity.py ci/t0_final_runtime_config.py ci/test_t0_final_runtime_config.py
       - name: Run final runtime configuration check
         if: ${{ inputs.gate == 'final-runtime-config' }}
         run: |
@@ -113,6 +113,7 @@ jobs:
         env:
           CI_PYTHON: python
           MARKET_DATA_TEST_DATABASE_URL: ${{ secrets.MARKET_DATA_TEST_DATABASE_URL }}
+          MARKET_DATA_TEST_DATABASE_URL_SHA256: ${{ secrets.MARKET_DATA_TEST_DATABASE_URL_SHA256 }}
         run: |
           set -euo pipefail
           if [[ -z "$MARKET_DATA_TEST_DATABASE_URL" ]]; then
