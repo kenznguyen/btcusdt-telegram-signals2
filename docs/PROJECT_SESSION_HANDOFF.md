@@ -565,3 +565,28 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS** for source-level atomic Gateway fence, sync_window Gateway use and fixture shared-path construction; **NOT VERIFIED** for production scheduler/recovery callback wiring, canonical Android DB identity and dedicated gateway race coverage. Production writer activation and Backup/Restore remain **BLOCKED**.
 - No source/schema/workflow/runtime changes; no tests/workflows run; no Android filesystem/DB access; no Feeder/API, exchange or sync; no production backup/restore or writer activation. `ai_execution_enabled=false`; Natural Doze remains `INTERRUPTED / DEFERRED`.
 - Next: P5.4.27 read-only trace all Gateway construction and scheduler/recovery callback composition references. Do not infer missing production wiring or access device/runtime without separate explicit authorization.
+
+
+## P5.4.27 — Gateway Construction and Feeder Callback Composition Review (2026-11-03)
+
+- Report: `docs/evidence/P5.4.27-GATEWAY-FEEDER-CALLBACK-COMPOSITION-REVIEW-2026-11-03.md`.
+- Report commit: `f266e71349a21091eda913a48c34f8954046afdb`.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Source blob identities:
+  - `market_data/gateway.py`: `e7fc9cb913f499fe9c4c9e92b7b9e1322a1ccc04`.
+  - `market_data/sync.py`: `98e18e327d871809750cbc7e9e59203a03c17320`.
+  - `market_data/feeder.py`: `70bba25f1fbf8b3edd3e28756984eed584037cc1`.
+  - `market_data/test_sync.py`: `2d74a47e52e7017ffd5c71a56ae24fba44218b8f`.
+  - `market_data/test_store.py`: `6a3f2e6c6714926720155eb28484dd21cf977cd5`.
+  - `market_data/storage.py`: `99b66a4d183b8664f28d6638d8d87416d32847c9`.
+  - `market_data/feeder_status.py`: `f35309a7429cb73213018fb51ce3fc30419de20d`.
+  - `app.py`: `90df28c5409463c524b1d286d5fe502d3b39f59d`.
+  - `.github/workflows/t0-manual-validation.yml`: `35fbc75055390ddd5e31258c6d88075b418d2688`.
+- Exact branch HEAD SHA not independently verified.
+- Critical finding: gateway.py header explicitly states G1 only implements the Gateway primitive and existing writer paths are not routed through it until G2. The explicit sync CLI constructs Gateway and sync_window calls it, but that does not establish FeederRuntime wiring.
+- FeederRuntime receives arbitrary scheduler callback and LeaseStore; it adds only a preflight authorize_write wrapper and does not construct Gateway/LeaseFence or a Gateway-backed sync adapter. RecoveryCoordinator accepts a separate arbitrary sync callback and invokes it directly. No reviewed composition root proves either production callback uses Gateway.
+- Tests in test_sync.py and test_store.py directly construct Gateway with a temporary DB; they do not prove FeederRuntime scheduler/recovery integration. app.py health path does not construct FeederRuntime/Gateway. T0 manual CI workflow keeps DB path variables empty as an isolation guard.
+- Correction to P5.4.26: its primitive-level atomic fencing finding remains valid, but its broad claim that the canonical Feeder writer path uses Gateway was overgeneralized. Production scheduler/recovery migration is BLOCKED / NOT INTEGRATED per G1 scope statement.
+- Status: **PASS** for Gateway primitive and explicit CLI/sync source path; **BLOCKED / NOT INTEGRATED** for FeederRuntime scheduler and recovery callback migration; **NOT VERIFIED** for production composition root, canonical Android DB path authority and G2 implementation. Production writer activation and Backup/Restore remain **BLOCKED**.
+- No source/schema/workflow/runtime changes; no tests/workflows run; no Android filesystem/DB access; no Feeder/API, exchange or sync; no production backup/restore or writer activation. `ai_execution_enabled=false`; Natural Doze remains `INTERRUPTED / DEFERRED`.
+- Next: P5.4.28 inspect repository history and branch source for G2 integration scope/implementation. If G2 is absent, produce a bounded implementation plan and fixture-only test contract; do not change source without explicit authorization.
