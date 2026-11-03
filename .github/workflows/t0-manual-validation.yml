@@ -1,0 +1,122 @@
+name: T0 Manual Validation
+run-name: T0 manual gate - ${{ inputs.gate }} (${{ github.sha }})
+
+'on':
+  workflow_dispatch:
+    inputs:
+      gate:
+        description: "Select one manual T0 gate"
+        required: true
+        default: final-runtime-config
+        type: choice
+        options:
+          - final-runtime-config
+          - component-tests-p3
+          - kraken-adapter
+          - kraken-spot-sqlite
+          - kraken-spot-read-api
+          - timescaledb-integration
+
+permissions:
+  contents: read
+
+concurrency:
+  group: t0-manual-${{ github.ref }}-${{ inputs.gate }}
+  cancel-in-progress: false
+
+jobs:
+  manual-gate:
+    name: T0 manual isolated acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+      MARKET_DATA_TEST_DATABASE_URL: ${{ secrets.MARKET_DATA_TEST_DATABASE_URL }}
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements-market-data.txt
+            requirements.txt
+            requirements-web.txt
+            requirements-ci.txt
+      - name: Install isolated dependencies
+        run: python -m pip install -r requirements-market-data.txt -r requirements.txt -r requirements-web.txt -r requirements-ci.txt
+      - name: Enforce isolated environment and record source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+            if [[ -n "${!key:-}" ]]; then echo "Unsafe environment variable present: $key"; exit 1; fi
+          done
+          git rev-parse HEAD | tee ci-source-sha.txt
+          echo "T0_MANUAL_ISOLATED=PASS" | tee t0-manual-isolation-verdict.txt
+      - name: Run final runtime configuration check
+        if: ${{ inputs.gate == 'final-runtime-config' }}
+        run: |
+          python -m unittest ci.test_t0_final_runtime_config -v 2>&1 | tee t0-final-runtime-config-tests.log
+          python -m py_compile ci/t0_final_runtime_config.py ci/test_t0_final_runtime_config.py
+          python -m ci.t0_final_runtime_config | tee t0-final-runtime-config-report.json
+      - name: Run P3 isolated component contracts
+        if: ${{ inputs.gate == 'component-tests-p3' }}
+        run: |
+          python -m unittest market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-component-tests-p3.log
+          python -m py_compile market_data/feeder.py market_data/store.py app.py
+      - name: Run Kraken Spot adapter tests
+        if: ${{ inputs.gate == 'kraken-adapter' }}
+        run: |
+          python -m unittest market_data.test_kraken_spot -v 2>&1 | tee kraken-adapter-tests.log
+          python -m compileall -q market_data/kraken_spot.py
+      - name: Run Kraken Spot SQLite persistence tests
+        if: ${{ inputs.gate == 'kraken-spot-sqlite' }}
+        run: |
+          python -m unittest market_data.test_kraken_spot market_data.test_kraken_spot_store -v 2>&1 | tee kraken-spot-sqlite-tests.log
+          python -m compileall -q market_data/kraken_spot.py market_data/kraken_spot_store.py
+      - name: Run Kraken Spot read API tests
+        if: ${{ inputs.gate == 'kraken-spot-read-api' }}
+        run: |
+          python -m unittest market_data.test_kraken_spot market_data.test_kraken_spot_store market_data.test_kraken_spot_api -v 2>&1 | tee kraken-spot-read-api-tests.log
+          python -m compileall -q market_data/kraken_spot.py market_data/kraken_spot_store.py market_data/kraken_spot_api.py
+      - name: Run disposable TimescaleDB integration tests
+        if: ${{ inputs.gate == 'timescaledb-integration' }}
+        env:
+          CI_PYTHON: python
+        run: |
+          set -euo pipefail
+          if [[ -z "$MARKET_DATA_TEST_DATABASE_URL" ]]; then
+            echo "TIMESCALEDB_INTEGRATION=NOT_RUN_MISSING_MARKET_DATA_TEST_DATABASE_URL" | tee timescaledb-verdict.txt
+            exit 1
+          fi
+          bash ci/test-timescaledb.sh
+          echo "TIMESCALEDB_INTEGRATION=PASS" | tee timescaledb-verdict.txt
+      - name: Upload manual T0 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-manual-${{ inputs.gate }}-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            ci-source-sha.txt
+            t0-manual-isolation-verdict.txt
+            t0-final-runtime-config-tests.log
+            t0-final-runtime-config-report.json
+            t0-component-tests-p3.log
+            kraken-adapter-tests.log
+            kraken-spot-sqlite-tests.log
+            kraken-spot-read-api-tests.log
+            timescaledb-tests.log
+            timescaledb-verdict.txt
