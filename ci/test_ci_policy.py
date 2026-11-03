@@ -153,7 +153,10 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("push", workflow["on"])
         self.assertEqual(
             workflow["on"]["push"]["branches"],
-            ["feature/t0-operational-contract-release-gate-20261102"],
+            [
+                "feature/t0-operational-contract-release-gate-20261102",
+                "feature/p5-4-1-post-merge-validation-20261103",
+            ],
         )
         self.assertNotIn("pull_request", workflow["on"])
         self.assertIn("ci/**", workflow["on"]["push"]["paths"])

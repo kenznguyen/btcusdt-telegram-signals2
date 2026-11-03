@@ -65,7 +65,10 @@ jobs:
           git rev-parse HEAD | tee ci-source-sha.txt
           echo "T0_ISOLATED_SHADOW_ONLY=PASS" | tee t0-isolation-verdict.txt
       - name: Run CI policy and T0 migration contracts
-        run: python -m unittest ci.test_ci_policy -v 2>&1 | tee t0-ci-policy-tests.log
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest ci.test_ci_policy -v 2>&1 | tee t0-ci-policy-tests.log
       - name: Verify canonical CCXT adapter and application imports
         run: python -c 'import ccxt; import app; assert ccxt.binanceusdm().id == "binanceusdm"'
       - name: Verify canonical sync CLI
