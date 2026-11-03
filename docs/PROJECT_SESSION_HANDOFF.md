@@ -301,3 +301,20 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS for the 12-test fixture-only CI increment; production backup/restore readiness NOT APPROVED**.
 - Next action: implement the next separately scoped fixture-only P5.4.8 test slice. Resolve all operational prerequisites before any canonical, PC/Android or production recovery testing.
 - Independent fresh-context/cross-model review: **NOT RUN**.
+
+## P5.4.11 — CI Workflow Automation Cleanup (updated 2026-11-03)
+
+- Report: `docs/evidence/P5.4.11-CI-WORKFLOW-AUTOMATION-CLEANUP-2026-11-03.md`.
+- Report commit: `4ef841e390bd33ef61428d97f093f9deefadb0b4`.
+- Active branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Final validated source SHA: `2f5429b90c738fecdbffedb4dedfed930f63ce86`.
+- Validation run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41640796456 — **SUCCESS, 5/5 jobs**, exact source SHA matched.
+- Workflow cleanup: G1 RED and G2 RED automatic triggers removed (manual only); G1 GREEN retained as reusable only; G2 GREEN retained as reusable + manual; T0 Validation push narrowed to its dedicated release branch/path and reusable call retained; P5.4.1 push narrowed to active branch and code/CI paths; PR trigger removed; P5.4.10 fixture push/manual triggers retained; T0 Manual and G2 historical RED remain manual only.
+- Reusable P5.4.1 dependencies T0, G1 GREEN and G2 GREEN are preserved. No workflow file deleted. Codemagic remains retired.
+- Updated CI policy tests assert the new trigger contract. Final test summaries are recorded in the P5.4.11 report.
+- Artifacts from run `41640796456`: combined `13232317905`; T0 `13232926956`; G1 `13232826692`; G2 `13232831706`. GitHub artifact digests are recorded in the report; payloads were not independently downloaded/re-hashed for this increment.
+- Intermediate runs `41640490924` and `41640673926` failed because static policy assertions still encoded the old triggers. The tests/config were reconciled; final run passed without restoring unnecessary automatic triggers.
+- No canonical/shadow DB, PC/Android filesystem, Feeder/API or exchange accessed; no sync or orders. Keep `ai_execution_enabled=false`; Natural Doze remains **INTERRUPTED / DEFERRED**.
+- Status: **PASS for trigger cleanup and integrated CI verification**.
+- Next action: continue fixture-only P5.4.8 Backup/Restore test expansion on this branch. Production restore and all canonical/PC/Android operational tests remain blocked pending separate approvals.
+- Independent fresh-context/cross-model review: **NOT RUN**.
