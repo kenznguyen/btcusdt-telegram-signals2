@@ -395,3 +395,21 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS** for the exact 27 fixture cases and integrated gate. **NOT VERIFIED**: manifest-to-backup content binding, production publisher/consumer integration, true cross-store consistency, filesystem crash recovery and production restore.
 - Isolation: disposable TemporaryDirectory DBs only; no canonical DB, PC/Android filesystem, Feeder/API, exchange, network sync, production restore or order execution. GitHub Actions only; no Codemagic. `ai_execution_enabled=false`.
 - Next: bind each store's manifest snapshot ID, schema version and high-water mark to independently inspected backup contents; reject missing, swapped or mismatched stores before restore validation. Natural Doze remains `INTERRUPTED / DEFERRED`.
+
+
+## P5.4.18 — Split-Store Manifest-to-Backup Content Binding (2026-11-03)
+
+- Report: `docs/evidence/P5.4.18-SPLIT-STORE-MANIFEST-CONTENT-BINDING-2026-11-03.md`.
+- Report commit: `b3f15ee9d5399e97162f5b7011536e172c89e99a`.
+- Exact tested source SHA: `faddcffe9fd6d7a44d4070adebbabc2ce101addf`.
+- Test file blob SHA: `c6924c594f3304c47e2b5dccc8471f4ab404a3a9`.
+- Test-support blob SHA: `03834de94ec8f901a10cf533f07593556faec76b`.
+- Fixture run [41648301945](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41648301945): **SUCCESS, 31/31 tests, 0 failures, 0 errors, 0 skipped**.
+- Diagnostic run [41647957594](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41647957594): expected RED import failure before helper implementation. Run [41648171548](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41648171548): 29/31; exposed directory path handling and outdated positive manifest fixture, both corrected.
+- Artifact ID `13237180708`, 5,784 bytes; GitHub digest and independently downloaded ZIP SHA-256 match: `d405999b885df972a15eaf87833da3f17e95422be3f8433f5c0dc41683f23eca`. ZIP integrity PASS, 12 files, 8/8 internal checksums independently matched.
+- Integrated P5.4.1 gate [41648301789](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41648301789): **SUCCESS, 5/5 jobs**, same source SHA.
+- Added fixture identity derivation: logical SHA-256, physical backup SHA-256, per-table row counts, fixture high-water mark (sum of row counts) and SQLite `PRAGMA user_version`. Publisher compares supplied identity fields against staged backup contents; read-only verifier rejects tampered hash, swapped DB images and missing DB.
+- Important limitation: fixture row-count high-water is not a production event cursor. The checks do not establish distributed cross-database atomicity or a production publisher/consumer contract.
+- Status: **PASS** for exact 31 fixture cases, artifact and integrated gate. **NOT VERIFIED**: domain cursor semantics, production manifest integration, true cross-store consistency, filesystem crash recovery, Windows behavior and production restore.
+- Isolation: disposable TemporaryDirectory DBs only; no canonical DB, PC/Android filesystem, Feeder/API, exchange, network sync, production restore or order execution. GitHub Actions only; no Codemagic. `ai_execution_enabled=false`.
+- Next: adversarial tests for validly re-hashed semantic mismatch, table-count/high-water/schema-version tampering; then determine whether production manifest design decisions are needed before production implementation. Natural Doze remains `INTERRUPTED / DEFERRED`.
