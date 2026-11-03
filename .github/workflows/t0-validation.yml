@@ -435,7 +435,7 @@ jobs:
       BINANCE_API_SECRET: ""
       OKX_API_KEY: ""
       OKX_API_SECRET: ""
-      T0_SIGKILL_AUDIT_PATH: ${{ runner.temp }}/t0-feeder-sigkill-recovery-sqlite-audit.log
+      T0_SIGKILL_AUDIT_PATH: t0-feeder-sigkill-recovery-sqlite-audit.log
     steps:
       - uses: actions/checkout@v4
         with:
@@ -469,7 +469,7 @@ jobs:
             t0-feeder-sigkill-recovery-tests.log
             t0-feeder-sigkill-recovery-verdict.txt
             t0-feeder-sigkill-recovery-compile.log
-            ${{ runner.temp }}/t0-feeder-sigkill-recovery-sqlite-audit.log
+            t0-feeder-sigkill-recovery-sqlite-audit.log
 
   operational-contract:
     name: T0 static operational contract and release gate
