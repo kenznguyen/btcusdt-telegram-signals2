@@ -156,7 +156,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest ci.test_t0_data_integrity -v 2>&1 | tee t0-data-integrity-tests.log
-          grep -q "Ran 12 tests" t0-data-integrity-tests.log
+          grep -q "Ran 13 tests" t0-data-integrity-tests.log
           echo "T0_DATA_INTEGRITY_CANDLE_CONTINUITY_TESTS=PASS (12 tests)" | tee t0-data-integrity-verdict.txt
       - name: Compile T0 source and contract modules
         run: |
