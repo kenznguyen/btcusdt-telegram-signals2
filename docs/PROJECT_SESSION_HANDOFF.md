@@ -429,3 +429,20 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS** for 35 fixture tests, fixture artifact and integrated gate. **NOT VERIFIED**: production cursor semantics, distributed snapshot consistency, production manifest integration, filesystem crash recovery, Windows behavior and production restore.
 - Isolation: disposable TemporaryDirectory DBs only; no canonical DB, PC/Android filesystem, Feeder/API, exchange, network sync, production restore or order execution. GitHub Actions only; no Codemagic. `ai_execution_enabled=false`.
 - Next: document unresolved production manifest decisions before any production implementation: store identity, domain cursor/high-water semantics, global barrier, schema-version authority, canonicalization and restore epoch/fencing ownership. Natural Doze remains `INTERRUPTED / DEFERRED`.
+
+
+## P5.4.20 — Proposed Production Backup Manifest Contract (2026-11-03)
+
+- Decision record: `docs/decisions/ADR-001-PRODUCTION-BACKUP-MANIFEST-CONTRACT.md`.
+- ADR commit: `588931420e411c024011a0a8841be173b810bb4c`.
+- Status: **PROPOSED — NOT ACCEPTED; production implementation BLOCKED**.
+- Source-grounded findings:
+  - SQLite candle schema creation is explicit through `CandleStore.initialize_schema()`; inspected SQLite candle source does not define a production schema-version registry.
+  - PostgreSQL migration code records migration ID and checksum in `market_data.schema_migrations`.
+  - PaperLedger construction creates/ensures its SQLite tables; inspected code does not define a formal ledger migration registry and therefore must not be used by a read-only restore verifier.
+  - Fixture `PRAGMA user_version` values are test metadata, not proof of a production migration authority.
+  - Row-count sum is not a production cursor; shared barrier ID alone does not prove cross-store atomicity.
+- ADR captures seven unresolved decision groups: canonical store topology/identity; per-domain high-water/cursors; global barrier and consistency model; schema authority; canonicalization; external restore epoch/lease/Kill Switch recovery; backup destination/security/RPO/RTO.
+- No topology, canonical host/path, cursor, migration scheme, backup destination or operational value was selected or approved.
+- No code, schema, dependency, workflow, runtime or database changed. No tests were run for this documentation-only decision record.
+- Next: obtain explicit decisions/approval for D1–D7 before production implementation. Fixture-only testing may continue, but no canonical DB, PC/Android shadow, Feeder/API, exchange, production restore or writer activation. Natural Doze remains `INTERRUPTED / DEFERRED`; `ai_execution_enabled=false`.
