@@ -165,7 +165,7 @@ class CiPolicyTest(unittest.TestCase):
             step for step in workflow["jobs"]["t0-validation"]["steps"]
             if step.get("name") == "Run atomic fencing and prior T0 contracts"
         )
-        self.assertIn('grep -q "Ran 100 tests"', atomic_step.get("run", ""))
+        self.assertIn('grep -q "Ran 102 tests"', atomic_step.get("run", ""))
         self.assertNotIn('grep -q "Ran 99 tests"', atomic_step.get("run", ""))
         audit_source = (ROOT / "ci/t0_operational_contract.py").read_text()
         health_step = next(
@@ -180,10 +180,10 @@ class CiPolicyTest(unittest.TestCase):
             if step.get("name") == "Run isolated SQLite SIGKILL recovery contracts"
         )
         self.assertIn('grep -q "Ran 101 tests"', sigkill_step.get("run", ""))
-        self.assertNotIn('grep -q "Ran 100 tests"', sigkill_step.get("run", ""))
+        self.assertNotIn('grep -q "Ran 102 tests"', sigkill_step.get("run", ""))
         self.assertIn('sigkill_recovery_count": \'grep -q "Ran 101 tests"\'', audit_source)
         audit_source = (ROOT / "ci/t0_operational_contract.py").read_text()
-        self.assertIn('atomic_fencing_count": \'grep -q "Ran 100 tests"\'', audit_source)
+        self.assertIn('atomic_fencing_count": \'grep -q "Ran 102 tests"\'', audit_source)
         self.assertIn("workflow_dispatch", manual["on"])
         self.assertEqual(manual["permissions"]["contents"], "read")
         self.assertNotIn("MARKET_DATA_TEST_DATABASE_URL", manual["jobs"]["manual-gate"].get("env", {}))
