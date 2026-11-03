@@ -28,6 +28,7 @@ class CiPolicyTest(unittest.TestCase):
             "p5-3-11-g2-integration-red.yml",
             "p5-3-11-g2-integration-green.yml",
             "p5-4-1-post-merge-validation.yml",
+            "p5-4-10-backup-restore-fixture.yml",
         }
 
         self.assertIn("p5-3-10-4-g1-red-execution.yml", actual)
@@ -62,6 +63,37 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("G1_RESULT", publish_run)
         self.assertIn("G2_RESULT", publish_run)
         self.assertIn("test \"$actual\" = \"$EXPECTED_SHA\"", publish_run)
+
+
+    def test_p5_4_10_backup_restore_workflow_is_allowlisted_and_fixture_only(self):
+        path = ROOT / ".github/workflows/p5-4-10-backup-restore-fixture.yml"
+        self.assertTrue(path.is_file())
+        workflow = yaml.safe_load(path.read_text())
+        self.assertIn("push", workflow["on"])
+        self.assertIn("workflow_dispatch", workflow["on"])
+        self.assertEqual(workflow["permissions"]["contents"], "read")
+        self.assertEqual(set(workflow["jobs"]), {"fixture-only"})
+        job = workflow["jobs"]["fixture-only"]
+        env = job["env"]
+        self.assertEqual(env["AI_EXECUTION_ENABLED"], "false")
+        for key in ("MARKET_DATA_DB", "T0_FEEDER_LEASE_DB", "PAPER_DB",
+                    "PAPER_TRADING_DB", "BINANCE_API_KEY", "BINANCE_API_SECRET",
+                    "OKX_API_KEY", "OKX_API_SECRET", "MARKET_DATA_POSTGRES_DSN",
+                    "MARKET_DATA_TOKEN", "MARKET_DATA_BACKEND"):
+            with self.subTest(environment_key=key):
+                self.assertEqual(env[key], "")
+        steps = job["steps"]
+        checkout = next(step for step in steps if step.get("name") == "Checkout exact event commit")
+        self.assertEqual(checkout["with"]["ref"], "${{ github.sha }}")
+        self.assertFalse(checkout["with"]["persist-credentials"])
+        guard = next(step for step in steps if step.get("name") == "Verify source identity and execution boundary")
+        self.assertIn('test "$actual" = "$GITHUB_SHA"', guard["run"])
+        self.assertIn("AI_EXECUTION_ENABLED", guard["run"])
+        runner = next(step for step in steps if step.get("name") == "Run fixture-only Backup and Restore tests")
+        self.assertIn("ci/run_backup_restore_tests.py", runner["run"])
+        upload = next(step for step in steps if step.get("name") == "Upload test logs and machine-readable evidence")
+        self.assertTrue(upload["if"].startswith("always()"))
+        self.assertIn("backup-restore-evidence/**", upload["with"]["path"])
 
     def test_g2_red_contract_is_not_configured_in_codemagic(self):
         self.assertNotIn("p5-3-11-5-g2-red-tests", self.workflows)
