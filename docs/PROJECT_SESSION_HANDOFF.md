@@ -817,3 +817,18 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - ADR update commit: `d104aae6bbfaf14f3d8c09fdd0410d2c2e23e5be`.
 - P5.4.42 evidence commit: `ee8be590dc93d058028f35ebab27940a06f34c54`.
 - Handoff update commit: pending.
+
+
+## P5.4.43 — Android read-only package/signing/manifest inventory (updated 2026-11-04)
+
+- Evidence: `docs/evidence/P5.4.43-ANDROID-READONLY-PACKAGE-SIGNING-MANIFEST-INVENTORY.md`.
+- Evidence commit: `80ffe91abc67163d2acf948d2cffec7b75923e4e`.
+- Exact inspected source/tree SHA: `c6e48c80140f06d528fade286e5267093ec302e1` (recursive tree complete; 296 entries; not truncated).
+- Source-derived package IDs: regular unsuffixed `com.kenznguyen.btclivealerts`; parallel/Paper `com.kenznguyen.btclivealerts.paper` via `applicationIdSuffix=".paper"`.
+- Terminology correction: Paper is currently a `parallel` build type using `initWith(debug)`, not a product flavor. Owner-approved regular host maps to unsuffixed application ID; debug vs release host deployment remains open.
+- Signing source: regular release explicitly uses environment-driven `release` signing config; parallel inherits debug build type and does not explicitly use regular release signing. Therefore matching signer for regular release + parallel is **NOT VERIFIED** and not demonstrated by source. No keystore/private key or secret was accessed.
+- Main manifest: MainActivity exported=true launcher; StrategyMonitorService exported=false; no custom signature permission, exported IPC service, AIDL or ContentProvider declaration. Merged manifests/APKs/install state not inspected.
+- README contains historical Codemagic instructions inconsistent with current GitHub Actions-only handoff; left unchanged.
+- Status: **PASS** for static source inventory at exact SHA; **NOT RUN** tests/build/workflow; installed signer, merged manifest and runtime **NOT VERIFIED**; code/build/signing/runtime changes **NOT AUTHORIZED**.
+- No code/config/manifest/signing/dependency/device/database/Feeder/exchange/sync/backup/restore/writer or execution changes. Keep `AI_EXECUTION_ENABLED=false`.
+- Next: P5.4.44 bounded signing/variant compatibility design; determine whether existing artifacts already prove matching installed signer. If not, document the needed build policy and obtain explicit approval before any Gradle/manifest change.
