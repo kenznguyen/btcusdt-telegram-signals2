@@ -720,3 +720,16 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Documentation-only. No tests/workflows, device/filesystem/DB, Feeder, exchange, sync, backup/restore or execution touched. `AI_EXECUTION_ENABLED=false`.
 - Next: P5.4.36 design-only Android canonical storage contract: path authority, schema, Paper Ledger/Risk State boundary, single-writer fencing, PC read interface and backup/restore invariants. No implementation or activation.
 
+## P5.4.36 — Android Canonical Storage Architecture Contract (updated 2026-11-03)
+
+- Evidence: `docs/evidence/P5.4.36-ANDROID-CANONICAL-STORAGE-DESIGN.md`.
+- Design evidence commit: `f2bee33f8df5af0177df709249bf9ee5cf4c22e5`.
+- P5.4.35 reconciliation commit: `bf0a035fbdbaf7ec6502fa5262296748f98b4dd5`.
+- P5.4.34 subsequent-decision note commit: `29943922671f6aa015151908c85485bb45f1cdfe`.
+- Reconciled the evidence chronology: ADR-001 records the explicit owner selection of **one shared physical Android SQLite file for T0 Market Data + Paper Ledger**. P5.4.34's earlier open status was correct when written but is superseded for topology only; P5.4.35's earlier undecided wording is stale and corrected. The topology decision is not proof of implementation.
+- Design contract: one Android canonical path authority and single DB identity; explicit domain ownership; controlled schema migration; coordinated transaction boundaries; Android sole canonical writer; PC read-only consumer; shared risk/ledger boundary; fencing and external post-restore epoch; WAL-aware backup/restore; fixture-only acceptance gates.
+- Still OPEN/NOT VERIFIED: exact Android path, Android composition root, migration authority, exact cross-domain transaction set, lease placement/Android fencing integration, external recovery epoch authority, Paper Ledger/Risk persistence integration, backup policy and runtime readiness.
+- Status: **PASS** for design-only contract and evidence reconciliation; **NOT VERIFIED** for implementation; production activation **BLOCKED / NOT AUTHORIZED**.
+- Documentation-only. No tests/workflows, device/filesystem/DB, Feeder, exchange, sync, backup/restore or execution touched. `AI_EXECUTION_ENABLED=false`.
+- Next: P5.4.37 bounded source-only composition-root/path-authority trace. No device path probing, DB creation/opening or runtime activation.
+
