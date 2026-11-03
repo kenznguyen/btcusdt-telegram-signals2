@@ -25,6 +25,8 @@ from backup_restore_test_support import (
     verify_backup,
     validate_split_store_manifest,
     publish_split_store_backup_set,
+    derive_snapshot_identity,
+    verify_split_store_backup_set,
 )
 
 REQUIRED_TABLES = (
@@ -585,6 +587,88 @@ class BackupRestoreFixtureTest(unittest.TestCase):
         )
         manifest = json.loads((target / "backup-manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(validate_split_store_manifest(manifest)["status"], "PASS")
+
+    def _split_store_sources_and_metadata(self, barrier):
+        second_source = self.root / "source" / "second-fixture.sqlite3"
+        create_online_backup(
+            self.source, second_source, root=self.root,
+            required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
+        )
+        with sqlite3.connect(self.source) as db:
+            db.execute("PRAGMA user_version=3")
+        with sqlite3.connect(second_source) as db:
+            db.execute("PRAGMA user_version=5")
+        sources = {"market_data": self.source, "paper_ledger": second_source}
+        metadata = {}
+        for name, source in sources.items():
+            identity = derive_snapshot_identity(source, root=self.root)
+            metadata[name] = {
+                "barrier_id": barrier,
+                "snapshot_id": identity["logical_sha256"],
+                "high_water_mark": identity["high_water_mark"],
+                "schema_version": identity["schema_version"],
+            }
+        return sources, metadata
+
+    def test_split_store_manifest_binds_each_backup_content_and_schema(self):
+        sources, metadata = self._split_store_sources_and_metadata("barrier-bound-001")
+        target = self.backups / "bound-set"
+        publish_split_store_backup_set(
+            sources, target, root=self.root,
+            snapshot_barrier_id="barrier-bound-001",
+            restore_epoch=7, snapshot_metadata=metadata,
+            required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
+        )
+        result = verify_split_store_backup_set(target, root=self.root)
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["stores"]["market_data"]["schema_version"], 3)
+        self.assertEqual(result["stores"]["paper_ledger"]["schema_version"], 5)
+
+    def test_split_store_verifier_rejects_manifest_content_hash_tampering(self):
+        sources, metadata = self._split_store_sources_and_metadata("barrier-bound-002")
+        target = self.backups / "tampered-set"
+        publish_split_store_backup_set(
+            sources, target, root=self.root,
+            snapshot_barrier_id="barrier-bound-002",
+            restore_epoch=8, snapshot_metadata=metadata,
+            required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
+        )
+        manifest_path = target / "backup-manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["stores"]["market_data"]["content_sha256"] = "0" * 64
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        with self.assertRaises(BackupVerificationError):
+            verify_split_store_backup_set(target, root=self.root)
+
+    def test_split_store_verifier_rejects_swapped_store_databases(self):
+        sources, metadata = self._split_store_sources_and_metadata("barrier-bound-003")
+        target = self.backups / "swapped-set"
+        publish_split_store_backup_set(
+            sources, target, root=self.root,
+            snapshot_barrier_id="barrier-bound-003",
+            restore_epoch=9, snapshot_metadata=metadata,
+            required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
+        )
+        market = target / "market_data.sqlite3"
+        paper = target / "paper_ledger.sqlite3"
+        market_bytes, paper_bytes = market.read_bytes(), paper.read_bytes()
+        market.write_bytes(paper_bytes)
+        paper.write_bytes(market_bytes)
+        with self.assertRaises(BackupVerificationError):
+            verify_split_store_backup_set(target, root=self.root)
+
+    def test_split_store_verifier_rejects_missing_database(self):
+        sources, metadata = self._split_store_sources_and_metadata("barrier-bound-004")
+        target = self.backups / "missing-set"
+        publish_split_store_backup_set(
+            sources, target, root=self.root,
+            snapshot_barrier_id="barrier-bound-004",
+            restore_epoch=10, snapshot_metadata=metadata,
+            required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
+        )
+        (target / "paper_ledger.sqlite3").unlink()
+        with self.assertRaises(BackupVerificationError):
+            verify_split_store_backup_set(target, root=self.root)
 
     def test_split_store_manifest_requires_shared_barrier_and_epoch(self):
         valid = self._valid_split_store_manifest()
