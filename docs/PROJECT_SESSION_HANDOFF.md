@@ -1049,3 +1049,41 @@ Next:
 2. If independent signature validity is required, run Android SDK Build Tools `apksigner verify --verbose --print-certs` on both exact APK payloads in a trusted environment.
 3. Await separate explicit authorization before device installation or runtime/IPC tests. Keep `AI_EXECUTION_ENABLED=false`.
 
+
+
+## P5.4.51 — Pre-install Android manifest and lifecycle review (updated 2026-11-04)
+
+Scope:
+- Static review only of the paired APK's Android manifest, Gradle build variants, MainActivity lifecycle, and StrategyMonitorService lifecycle before any device installation.
+- No source-code behavior changes, no workflow dispatch, no APK install, no app launch, no device/runtime/IPC test, and no network request initiated by this review.
+
+Source identity reviewed:
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`
+- Review source SHA: `762e5fc50f1c86e74e9ade0ad3617b1a3a58125b`
+- `android-app/app/src/main/AndroidManifest.xml` blob: `e505a1829899f32c211f5390b5ae7753048ae15b`
+- `android-app/app/build.gradle.kts` blob: `419f30ca44e0ead9f7a595e5baa9dd11c0eb6623`
+- `MainActivity.kt` blob: `c03c87993a1d696cdb9cab629114ff5ef8420ec2`
+- `StrategyMonitorService.kt` blob: `2d494af5e47d51d5111af2bc466e6aaf48a0e75b`
+
+Static findings:
+- Manifest declares INTERNET, POST_NOTIFICATIONS, VIBRATE, FOREGROUND_SERVICE and FOREGROUND_SERVICE_DATA_SYNC. Backup is disabled and cleartext traffic is disabled.
+- StrategyMonitorService is non-exported; MainActivity is the exported launcher activity. No other exported component is declared in the reviewed manifest.
+- The release host uses application ID `com.kenznguyen.btclivealerts`; parallel uses suffix `.paper` and `BuildConfig.PARALLEL_INSTALL=true`. MainActivity gates notification-channel setup, notification permission prompt, and foreground-service start to the non-parallel host.
+- The regular host starts StrategyMonitorService from Activity.onResume. The service starts a dataSync foreground service, initializes OrderBookEngine and scanner state, fetches M15/H1 market candles, processes closed-candle signals and writes monitoring state to SharedPreferences. This is read-only market-data monitoring in the reviewed path; no order-placement call was identified in the inspected service path.
+- Parallel/.paper Activity does not start StrategyMonitorService via onResume and renders FiveLayerStandaloneDashboard.
+- Android 15 dataSync foreground-service timeout handling is explicitly present: onTimeout records the stop reason, cancels monitor work, posts a user-visible restart notification, and stops the service. This behavior still requires device validation.
+
+Review verdict:
+- Manifest/exported-component and variant separation static review: **PASS** for the inspected files.
+- No live-order path identified in the inspected Activity/Service code: **PASS (limited static scope; not a repository-wide proof)**.
+- Runtime behavior, Android-version-specific foreground-service behavior, notification permission flow, market-data network behavior, and installation/update compatibility: **NOT RUN / NOT VERIFIED**.
+- Potential operational consideration: opening/resuming the regular host automatically starts background market monitoring and the service's scanner according to persisted preferences. This is expected by the current code but must be disclosed before device testing; no such automatic service start occurs in the inspected parallel Activity branch.
+
+Safety:
+- No APK installation/distribution, device interaction, live order, exchange credential, canonical DB, Feeder, market-data sync from this review, or production backup/restore.
+- Preserve `AI_EXECUTION_ENABLED=false`; no runtime or IPC authorization is implied.
+
+Next:
+1. Obtain explicit approval before installing either APK and running device lifecycle/notification/IPC tests.
+2. When approved, test regular host and parallel app separately, including co-install, launch, force-stop/reopen, notification permission, service timeout/recovery, and no-order boundary.
+3. Do not enable live execution or connect exchange trading credentials.
