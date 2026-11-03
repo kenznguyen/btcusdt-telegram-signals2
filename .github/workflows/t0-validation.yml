@@ -93,6 +93,10 @@ jobs:
           echo "T0_ISOLATED_SHADOW_ONLY=PASS" | tee t0-isolation-verdict.txt
       - name: Run CI policy and T0 migration contracts
         run: python -m unittest ci.test_ci_policy -v 2>&1 | tee t0-ci-policy-tests.log
+      - name: Verify canonical CCXT adapter and application imports
+        run: python -c 'import ccxt; import app; assert ccxt.binanceusdm().id == "binanceusdm"'
+      - name: Verify canonical sync CLI
+        run: python -m market_data.sync --help
       - name: Run canonical market-data and Gateway regressions
         run: python -m unittest market_data.test_store market_data.test_storage market_data.test_sync market_data.test_api market_data.test_gateway_runtime -v 2>&1 | tee t0-market-data-core-tests.log
       - name: Run feeder scheduler and lease contracts
