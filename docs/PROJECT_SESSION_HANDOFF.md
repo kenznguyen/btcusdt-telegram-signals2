@@ -706,3 +706,17 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Documentation-only. No tests/workflows, Android device/DB, PC canonical DB, Feeder, exchange, sync, backup/restore or execution touched. `AI_EXECUTION_ENABLED=false`.
 - Next: source-only inventory and gap assessment against Android-first; no production activation.
 
+## P5.4.35 — Android Persistence Source Inventory (updated 2026-11-03)
+
+- Evidence: `docs/evidence/P5.4.35-ANDROID-PERSISTENCE-SOURCE-INVENTORY.md`.
+- Evidence commit: `14cbea5d57a02d916b5ccf4033ebcae545e93db8`.
+- Review baseline: `80f98123e3365b02a482352f8d829ef61a90758b` (Android-first handoff correction).
+- Bounded Android source review inspected MainActivity, StrategyMonitorService, CompleteDashboard, AlertHistoryStore, PaperOrderHistory, app Gradle dependencies and AndroidManifest.
+- Durable Android monitor/dashboard state is currently stored in `SharedPreferences("strategy_state_v1")`: strategy state/cursor, monitor health, alert dedupe/history, scanner state, order-book snapshots and UI preferences. Alert history is a JSON array capped at 100.
+- PaperOrderHistory is a read/display component for a bounded server snapshot, not local persistence.
+- Inspected app dependencies do not declare Room, SQLite wrapper or AndroidX DataStore. No canonical Android SQLite path provider, T0 schema owner, Android T0WriteGateway/LeaseStore/Feeder composition, or Android Paper Ledger persistence integration was established by the reviewed files.
+- Python `paper_execution/ledger.py` owns an injected SQLite `db_path`; Python `market_data/feeder_service.py` composes T0 storage/Gateway/lease/status from environment paths. These do not establish PC canonical ownership and are not shown composed into Android.
+- Status: **PASS** for bounded source inventory; **NOT VERIFIED** for complete Android source-set inventory, Android canonical DB/path/schema, Feeder composition, Paper Ledger/Risk/Paper State persistence and runtime behavior; production activation **BLOCKED / NOT AUTHORIZED**.
+- Documentation-only. No tests/workflows, device/filesystem/DB, Feeder, exchange, sync, backup/restore or execution touched. `AI_EXECUTION_ENABLED=false`.
+- Next: P5.4.36 design-only Android canonical storage contract: path authority, schema, Paper Ledger/Risk State boundary, single-writer fencing, PC read interface and backup/restore invariants. No implementation or activation.
+
