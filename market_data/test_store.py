@@ -1,3 +1,4 @@
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -110,6 +111,14 @@ class CandleStoreTest(unittest.TestCase):
         ]:
             with self.subTest(args=args), self.assertRaises(ValueError):
                 read_window(self.path, *args)
+
+
+    def test_runtime_insert_does_not_create_missing_database(self):
+        missing = self.path.parent / "must-not-be-created.sqlite3"
+        writer = CandleStore(missing)
+        with self.assertRaises(sqlite3.OperationalError):
+            writer.insert([self.candle()])
+        self.assertFalse(missing.exists())
 
 
 if __name__ == "__main__":
