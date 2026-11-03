@@ -342,12 +342,14 @@ workflows:
           done
           git rev-parse HEAD | tee backup-restore-source-sha.txt
           python3 --version | tee backup-restore-python-version.txt
-      - name: Run fixture-only Backup/Restore contract tests
+      - name: Run fixture-only Backup/Restore tests and emit evidence
         script: |
           set -euo pipefail
-          export PYTHONPATH="$CM_BUILD_DIR"
-          python3 -m unittest discover -s ci -p 'test_backup_restore.py' -v 2>&1 | tee backup-restore-tests.log
+          export AI_EXECUTION_ENABLED=false
+          export PYTHONPATH="$CM_BUILD_DIR:$CM_BUILD_DIR/ci"
+          python3 ci/run_backup_restore_tests.py 2>&1 | tee backup-restore-tests.log
     artifacts:
       - backup-restore-source-sha.txt
       - backup-restore-python-version.txt
       - backup-restore-tests.log
+      - backup-restore-evidence/**
