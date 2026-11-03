@@ -110,8 +110,8 @@ jobs:
           echo "T0_ISOLATED_SHADOW_ONLY=PASS" | tee t0-isolation-verdict.txt
       - name: Run T0 test isolation guard contracts
         run: |
-          python -m unittest ci.test_t0_test_isolation ci.test_t0_data_integrity ci.test_t0_final_runtime_config -v 2>&1 | tee t0-test-isolation-tests.log
-          python -m py_compile ci/t0_test_isolation.py ci/test_t0_test_isolation.py ci/t0_data_integrity.py ci/test_t0_data_integrity.py ci/t0_final_runtime_config.py ci/test_t0_final_runtime_config.py
+          python -m unittest ci.test_t0_test_isolation ci.test_t0_test_database_url ci.test_t0_data_integrity ci.test_t0_final_runtime_config -v 2>&1 | tee t0-test-isolation-tests.log
+          python -m py_compile ci/t0_test_isolation.py ci/test_t0_test_isolation.py ci/t0_test_database_url.py ci/test_t0_test_database_url.py ci/t0_data_integrity.py ci/test_t0_data_integrity.py ci/t0_final_runtime_config.py ci/test_t0_final_runtime_config.py
       - name: Run CI policy and T0 migration contracts
         run: python -m unittest ci.test_ci_policy -v 2>&1 | tee t0-ci-policy-tests.log
       - name: Verify canonical CCXT adapter and application imports
