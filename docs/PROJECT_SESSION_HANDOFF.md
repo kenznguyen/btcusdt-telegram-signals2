@@ -832,3 +832,22 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS** for static source inventory at exact SHA; **NOT RUN** tests/build/workflow; installed signer, merged manifest and runtime **NOT VERIFIED**; code/build/signing/runtime changes **NOT AUTHORIZED**.
 - No code/config/manifest/signing/dependency/device/database/Feeder/exchange/sync/backup/restore/writer or execution changes. Keep `AI_EXECUTION_ENABLED=false`.
 - Next: P5.4.44 bounded signing/variant compatibility design; determine whether existing artifacts already prove matching installed signer. If not, document the needed build policy and obtain explicit approval before any Gradle/manifest change.
+
+
+## P5.4.44 — Android signing and variant compatibility design (updated 2026-11-04)
+
+- Evidence: `docs/evidence/P5.4.44-ANDROID-SIGNING-VARIANT-COMPATIBILITY-DESIGN.md`.
+- Evidence commit: `ab2a6f40b7ab874b82a96ce5064f4b94579ecf85`.
+- Baseline branch HEAD before evidence: `4966479befdb33b9e724e0d3a82dc1410862f2e9`.
+- Android source inventory SHA remains `c6e48c80140f06d528fade286e5267093ec302e1`.
+- Bounded GitHub metadata check: Releases API returned no releases; no Android/APK build appeared in the latest 100 Actions run metadata entries. This is not proof that no expired/older Actions artifact ever existed.
+- P5.4.12 retirement evidence confirms there was no active GitHub Actions APK build/publish workflow at that time and no APK was built/signed/installed/published in that increment. Android workflow definitions currently visible in repository are archived under `ci/archive/github-actions/`.
+- Archived verifier `ci/verify-android-apks.py` compares the DEBUG and parallel certificate fingerprints and explicitly labels signing as DEBUG. Its fixture tests use synthetic inputs; neither proves regular-release/.paper release signer parity.
+- No GitHub Release or verified regular-host + .paper APK pair was located. No APK payload or signer certificate was inspected.
+- Verdict: **CONDITIONAL PASS** for bounded source/metadata review and design recommendation; **BLOCKED / NOT VERIFIED** for actual signing compatibility. Regular release uses environment-driven release signing; parallel inherits debug and does not explicitly use regular release signing.
+- Proposed next acceptance contract: separately approved manual-only GitHub Actions workflow, pinned source SHA, build both regular host and parallel/.paper from the same SHA, explicitly use the approved controlled signer for both, verify package/version/signature/lineage independently, publish source/run/artifact/checksum evidence, then download and independently inspect payloads. No automatic push-triggered APK build; Codemagic remains retired.
+- Owner approval still required before any Gradle signing change, workflow creation/reactivation, secret use, APK build or install. No approval inferred.
+- No tests or workflows run for this documentation-only increment. No code, Gradle, manifest, signing, dependency, package ID, workflow, device, DB, Feeder, exchange, market-data sync, backup/restore, writer or execution state changed. `AI_EXECUTION_ENABLED=false`.
+- Next: obtain explicit owner approval for a manual-only paired-APK GitHub Actions signing workflow and the parallel/.paper release-signing policy. Until then, do not change Gradle/manifest/workflows or build/install APKs.
+- Handoff update commit: pending.
+
