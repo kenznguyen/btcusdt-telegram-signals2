@@ -11,6 +11,7 @@ on:
       - "market_data/**"
       - "ci/test_ci_policy.py"
       - ".github/workflows/p5-3-11-5-g2-red-validation.yml"
+      - "codemagic.yaml"
   workflow_dispatch:
 
 permissions:
