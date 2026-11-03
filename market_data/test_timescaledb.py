@@ -10,6 +10,7 @@ from market_data.api import application
 from market_data.migrations import migrate
 from market_data.postgres import PostgresCandleStore, connection, read_window as read_postgres_window
 from market_data.store import Candle, CandleStore, INTERVAL_MS, read_window
+from market_data.gateway import LeaseFence
 from market_data.sync import sync_window
 from market_data.storage import create_store
 
@@ -40,6 +41,7 @@ class TimescaleParityTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.sqlite_path = Path(self.temp.name) / "market.sqlite3"
         self.sqlite_store = CandleStore(self.sqlite_path)
+        self.sqlite_store.initialize_schema()
         self.pg_store = create_store("postgres", postgres_dsn=DSN)
         self.step = INTERVAL_MS["15m"]
         # Integration database must be disposable; unique time slots avoid cross-run collisions.
@@ -119,7 +121,7 @@ class TimescaleParityTest(unittest.TestCase):
         self.assertEqual(status[0].split()[0], "503")
         self.assertEqual(json.loads(body), {"error": "STORE_UNAVAILABLE"})
 
-    def test_ingestion_writes_closed_candles_through_postgres_factory(self):
+    def test_canonical_sync_rejects_unfenced_postgres_adapter(self):
         start, step = self.start, self.step
 
         class Exchange:
@@ -136,14 +138,18 @@ class TimescaleParityTest(unittest.TestCase):
             def fetch_ohlcv(self, *args, **kwargs):
                 return [[start, 100, 102, 99, 101, 5]]
 
-        inserted = sync_window(
-            Exchange(), self.pg_store, "15m", start, start+step,
-            now_ms=lambda: start+step,
+        with self.assertRaisesRegex(TypeError, "gateway must provide insert_batch"):
+            sync_window(
+                Exchange(), "15m", start, start+step,
+                gateway=self.pg_store,
+                lease_token=LeaseFence("test-lease", "test-owner", 1),
+                now_ms=lambda: start+step,
+                lease_clock=lambda: start+1,
+            )
+        self.assertEqual(
+            read_postgres_window(DSN, "BTCUSDT", "15m", start, start+step)["coverage"]["returned"],
+            0,
         )
-        self.assertEqual(inserted, 1)
-        result = read_postgres_window(DSN, "BTCUSDT", "15m", start, start+step)
-        self.assertEqual(result["coverage"]["returned"], 1)
-        self.assertEqual(result["candles"][0]["close"], "101")
 
     def test_successful_insert_before_conflict_is_rolled_back_with_batch(self):
         # Seed a later candle so the first item in the attempted batch is new.

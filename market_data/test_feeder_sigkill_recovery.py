@@ -13,6 +13,7 @@ from market_data.feeder import FeederConfig, LeaseStore
 from market_data.feeder_service import build_runtime
 from market_data.storage import SQLiteCandleStore
 from market_data.store import Candle, CandleStore, INTERVAL_MS, read_window
+from market_data.gateway import T0WriteGateway
 
 
 NOW = 1_800_000_000_000
@@ -90,7 +91,9 @@ class SigkillRecoveryTest(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="t0-sigkill-") as directory:
             db_path = Path(directory) / "isolated-canonical.sqlite3"
             writer = CandleStore(db_path)
+            writer.initialize_schema()
             leases = LeaseStore(str(db_path))
+            leases.initialize_schema()
 
             # RecoveryAdapter will inspect exactly four closed candles per TF.
             windows = {}
@@ -226,6 +229,7 @@ CandleStore(path).insert_fenced(
                 owner_id="process-B",
                 exchange=exchange,
                 store=store,
+                gateway=T0WriteGateway(db_path),
                 lease_store=leases,
                 clock=lambda: CLOCK_AFTER_TTL,
                 recovery_lookback_candles=LOOKBACK,

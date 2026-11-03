@@ -22,11 +22,16 @@ class CiPolicyTest(unittest.TestCase):
         approved = {
             "p5-3-10-4-g1-red-execution.yml",
             "p5-3-10-5-g1-green-validation.yml",
+            "p5-3-11-5-g2-red-validation.yml",
         }
 
         self.assertIn("p5-3-10-4-g1-red-execution.yml", actual)
+        self.assertIn("p5-3-11-5-g2-red-validation.yml", actual)
         self.assertLessEqual(actual, approved)
         self.assertTrue((ROOT / "ci/archive/github-actions/market-data-ci.yml").exists())
+
+    def test_g2_red_contract_is_not_configured_in_codemagic(self):
+        self.assertNotIn("p5-3-11-5-g2-red-tests", self.workflows)
 
     def test_manual_stateful_and_release_tasks_never_start_on_push(self):
         for name in ("android-chart-pro-release", "signal-scan", "telegram-command", "dashboard-backtest"):

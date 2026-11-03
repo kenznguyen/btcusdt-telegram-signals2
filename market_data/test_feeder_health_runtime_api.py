@@ -35,6 +35,7 @@ class FeederHealthRuntimeApiIntegrationTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.db_path = str(Path(self.temp.name) / "t0.sqlite3")
         self.leases = LeaseStore(self.db_path)
+        self.leases.initialize_schema()
         self.status = FeederRuntimeStatusStore(self.db_path)
         self._seed_closed_candles()
         self.previous_db = app.config.get("T0_HEALTH_RUNTIME_STATUS_DB")
@@ -62,6 +63,7 @@ class FeederHealthRuntimeApiIntegrationTest(unittest.TestCase):
 
     def _seed_closed_candles(self):
         store = CandleStore(self.db_path)
+        store.initialize_schema()
         candles = []
         for timeframe in ("15m", "1h"):
             interval = INTERVAL_MS[timeframe]

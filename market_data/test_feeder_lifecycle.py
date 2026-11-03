@@ -173,6 +173,7 @@ class RuntimeLifecycleTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             store = LeaseStore(str(Path(directory) / "leases.sqlite3"))
+            store.initialize_schema()
             old = store.acquire("worker-old", now_ms=NOW, ttl_seconds=60)
             replacement = store.acquire(
                 "worker-new", now_ms=NOW + 60_001, ttl_seconds=60
@@ -270,6 +271,7 @@ class RuntimeLifecycleTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             store = LeaseStore(str(Path(directory) / "lease.sqlite3"))
+            store.initialize_schema()
             clock_ms = [NOW]
             scheduler = FeederScheduler(
                 FeederConfig(timeframes=("15m", "1h")),
@@ -363,6 +365,7 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
             owner_id="integration-worker",
             exchange=exchange,
             store=store,
+            gateway=Mock(),
             lease_store=leases,
             clock=lambda: NOW + 7_200_000,
         )
@@ -390,7 +393,8 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
     def test_startup_recovery_renews_lease_before_canonical_sync_attempt(self):
         from unittest.mock import Mock, patch
         from market_data.store import INTERVAL_MS
-        exchange, store, leases = Mock(), Mock(), Mock()
+        from market_data.gateway import LeaseFence
+        exchange, store, leases, gateway = Mock(), Mock(), Mock(), Mock()
         leases.heartbeat.return_value = True
         interval = INTERVAL_MS["15m"]
         reads = {"count": 0}
@@ -409,12 +413,17 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
             owner_id="recovery-worker",
             exchange=exchange,
             store=store,
+            gateway=gateway,
             lease_store=leases,
             clock=lambda: NOW + 7_200_000,
         )
         runtime.lease_generation = 21
-        with patch("market_data.feeder_service.sync_window", return_value=1):
+        with patch("market_data.feeder_service.sync_window", return_value=1) as sync_mock:
             self.assertTrue(runtime.recovery.recover_all())
+        self.assertIs(sync_mock.call_args.kwargs["gateway"], gateway)
+        self.assertIsInstance(sync_mock.call_args.kwargs["lease_token"], LeaseFence)
+        self.assertEqual(sync_mock.call_args.kwargs["lease_token"].generation, 21)
+        self.assertTrue(callable(sync_mock.call_args.kwargs["lease_clock"]))
         leases.heartbeat.assert_called_once_with(
             "recovery-worker", 21,
             now_ms=NOW + 7_200_000,
@@ -449,6 +458,7 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             leases = LeaseStore(str(Path(directory) / "leases.sqlite3"))
+            leases.initialize_schema()
             old = leases.acquire("old-writer", now_ms=NOW, ttl_seconds=60)
             replacement = leases.acquire("new-writer", now_ms=NOW + 60_001, ttl_seconds=60)
             scheduler = Mock()
@@ -521,7 +531,7 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
             self.assertEqual(runtime.owner_id, "codemagic-test-worker")
             self.assertEqual(runtime.config.timeframes, ("15m", "1h"))
             self.assertIsNone(runtime.scheduler._thread)
-            store.insert.assert_called_once_with([])
+            store.insert.assert_not_called()
             ccxt_module.binanceusdm.assert_called_once()
 
 

@@ -472,9 +472,12 @@ class LeaseStore:
         if ttl_seconds is not None and (type(ttl_seconds) is not int or ttl_seconds <= 0):
             raise ValueError("ttl_seconds must be a positive integer")
 
-    def _transaction(self, operation):
-        connection = sqlite3.connect(self.db_path, timeout=5, isolation_level=None)
-        try:
+    def initialize_schema(self):
+        """Explicitly create the lease table during controlled T0 provisioning."""
+        from pathlib import Path
+
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(self.db_path, timeout=5) as connection:
             connection.execute("PRAGMA busy_timeout=5000")
             connection.execute("""CREATE TABLE IF NOT EXISTS feeder_leases (
                 lease_name TEXT PRIMARY KEY,
@@ -482,6 +485,12 @@ class LeaseStore:
                 generation INTEGER NOT NULL CHECK(generation >= 0),
                 expires_at_ms INTEGER NOT NULL CHECK(expires_at_ms >= 0)
             )""")
+            connection.commit()
+
+    def _transaction(self, operation):
+        connection = sqlite3.connect(self.db_path, timeout=5, isolation_level=None)
+        try:
+            connection.execute("PRAGMA busy_timeout=5000")
             connection.execute("BEGIN IMMEDIATE")
             result = operation(connection)
             connection.commit()
