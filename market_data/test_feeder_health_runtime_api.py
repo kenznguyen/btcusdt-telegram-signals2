@@ -12,6 +12,7 @@ from app import app
 from market_data.feeder import FeederConfig, FeederRuntime, FeederScheduler, LeaseStore
 from market_data.store import Candle, CandleStore, INTERVAL_MS
 from market_data.feeder_status import FeederRuntimeStatusStore
+from market_data.gateway import LeaseFence, T0WriteGateway
 
 NOW = 1_800_000_000_000
 
@@ -73,7 +74,14 @@ class FeederHealthRuntimeApiIntegrationTest(unittest.TestCase):
                 open="100", high="101", low="99", close="100.5",
                 volume="10", available_at_ms=NOW,
             ))
-        store.insert(candles)
+        lease = self.leases.acquire("health-api-seed", now_ms=NOW, ttl_seconds=60)
+        self.assertIsNotNone(lease)
+        T0WriteGateway(self.db_path).insert_batch(
+            candles,
+            lease_token=LeaseFence(self.leases.lease_name, "health-api-seed", lease.generation),
+            now_ms=lambda: NOW + 1,
+        )
+        self.assertTrue(self.leases.release("health-api-seed", lease.generation))
 
     def _runtime(self, recovery=None, owner="health-api-worker"):
         config = FeederConfig(

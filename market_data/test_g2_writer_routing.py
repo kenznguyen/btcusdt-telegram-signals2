@@ -13,11 +13,12 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from market_data import feeder, feeder_service, store, sync
 from market_data.gateway import (
     CandleBatchRejected,
+    GatewayStorageError,
     LeaseFence,
     LeaseRejected,
     T0WriteGateway,
@@ -124,7 +125,8 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         builder_source = inspect.getsource(feeder_service.build_runtime)
         self.assertIn("LeaseFence", runtime_source + builder_source)
         self.assertIn("gateway", inspect.signature(feeder_service.build_runtime).parameters)
-        self.assertIn("insert_batch", builder_source)
+        self.assertIn("gateway=gateway", builder_source)
+        self.assertIn("sync_window(", builder_source)
 
     def test_g2_06_stale_generation_is_rejected_by_real_gateway(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -156,8 +158,8 @@ class G2WriterRoutingRedTests(unittest.TestCase):
     def test_g2_08_recovery_builder_uses_gateway_backed_sync_callback(self):
         source = inspect.getsource(feeder_service.build_runtime)
         self.assertIn("LeaseFence", source)
-        self.assertIn("gateway", source)
-        self.assertIn("insert_batch", source)
+        self.assertIn("gateway=gateway", source)
+        self.assertIn("sync_window(", source)
 
     def test_g2_09_cli_sync_requires_explicit_lease_capability(self):
         tree = ast.parse(inspect.getsource(sync.main))
@@ -315,6 +317,136 @@ class G2WriterRoutingRedTests(unittest.TestCase):
             with self.assertRaises(SystemExit) as exit_info:
                 sync.main()
         self.assertEqual(exit_info.exception.code, 2)
+
+
+    def test_g2_19_sync_window_rejects_duck_typed_gateway(self):
+        class DuckGateway:
+            def insert_batch(self, candles, *, lease_token, now_ms):
+                return len(candles)
+
+        with self.assertRaisesRegex(TypeError, "T0WriteGateway"):
+            sync.sync_window(
+                None, "15m", START, START + STEP,
+                gateway=DuckGateway(), lease_token=LEASE,
+                lease_clock=lambda: self.lease_now,
+            )
+
+    def test_g2_20_build_runtime_rejects_duck_typed_gateway(self):
+        class DuckGateway:
+            def insert_batch(self, candles, *, lease_token, now_ms):
+                return len(candles)
+
+        with self.assertRaisesRegex(TypeError, "T0WriteGateway"):
+            feeder_service.build_runtime(
+                config=feeder.FeederConfig(timeframes=("15m",)),
+                owner_id=LEASE.owner_id,
+                exchange=ExchangeDouble([]),
+                store=Mock(),
+                gateway=DuckGateway(),
+                lease_store=Mock(),
+            )
+
+    def test_g2_21_runtime_uses_independent_observation_and_lease_clocks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "runtime-clocks.sqlite3"
+            create_shadow_db(database)
+            gateway = T0WriteGateway(str(database))
+            exchange = ExchangeDouble([[candle_row(START)]])
+            lease_store = Mock()
+            lease_store.lease_name = LEASE.lease_name
+            lease_store.heartbeat.return_value = True
+            lease_store.authorize_write.return_value = True
+            observed_at = START + 100 * STEP
+            lease_now = START + 100 * STEP + 321
+            lease_clock_calls = []
+
+            def lease_clock():
+                lease_clock_calls.append(lease_now)
+                return lease_now
+
+            config = feeder.FeederConfig(timeframes=("15m",))
+            runtime = feeder_service.build_runtime(
+                config=config,
+                owner_id=LEASE.owner_id,
+                exchange=exchange,
+                store=Mock(),
+                gateway=gateway,
+                lease_store=lease_store,
+                observation_clock=lambda: observed_at,
+                lease_clock=lease_clock,
+            )
+            runtime.lease_generation = LEASE.generation
+
+            runtime.scheduler.sync_callback("15m", START, START + STEP)
+
+            lease_store.heartbeat.assert_called_once_with(
+                LEASE.owner_id, LEASE.generation,
+                now_ms=lease_now, ttl_seconds=config.lease_ttl_seconds,
+            )
+            rows = gateway.read_window("BTCUSDT", "15m", START, START + STEP)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["available_at_ms"], observed_at)
+            self.assertGreaterEqual(len(lease_clock_calls), 3)
+            self.assertEqual(runtime.scheduler.clock(), lease_now)
+            self.assertEqual(runtime.recovery.clock(), lease_now)
+            self.assertEqual(runtime.clock(), lease_now)
+
+    def test_g2_23_no_legacy_direct_writer_surface_or_production_calls(self):
+        self.assertFalse(hasattr(store.CandleStore, "insert"))
+        self.assertFalse(hasattr(store.CandleStore, "insert_fenced"))
+
+        repository_root = Path(__file__).resolve().parents[1]
+        ignored_directories = {".git", ".venv", "venv", "build", "dist",
+                                "__pycache__", ".pytest_cache"}
+        receiver_names = {"store", "writer", "candle_store", "sqlite_store",
+                          "postgres_store", "candles"}
+        violations = []
+        for source_path in repository_root.rglob("*.py"):
+            if (source_path.name.startswith("test_")
+                    or any(part in ignored_directories for part in source_path.parts)):
+                continue
+            source = source_path.read_text(encoding="utf-8")
+            try:
+                tree = ast.parse(source)
+            except SyntaxError:
+                # Legacy files may use syntax newer than the CI Python; still
+                # scan their source text for explicit legacy writer call forms.
+                compact_source = "".join(source.split())
+                legacy_calls = (
+                    ".insert_fenced(",
+                    "store.insert(", "writer.insert(", "candle_store.insert(",
+                    "sqlite_store.insert(", "postgres_store.insert(", "candles.insert(",
+                    ").insert(",
+                )
+                if any(token in compact_source for token in legacy_calls):
+                    violations.append(f"{source_path}:unparsed legacy writer call")
+                continue
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                    continue
+                method = node.func.attr
+                receiver = node.func.value
+                if method == "insert_fenced":
+                    violations.append(f"{source_path.name}:{node.lineno}:insert_fenced")
+                elif method == "insert" and (
+                    isinstance(receiver, ast.Name) and receiver.id in receiver_names
+                    or isinstance(receiver, ast.Call)
+                    and isinstance(receiver.func, ast.Name)
+                    and receiver.func.id == "CandleStore"
+                ):
+                    violations.append(f"{source_path.name}:{node.lineno}:insert")
+        self.assertEqual(violations, [], "production code bypasses T0WriteGateway")
+
+    def test_g2_22_gateway_write_does_not_create_missing_database(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "must-remain-absent.sqlite3"
+            gateway = T0WriteGateway(database)
+            with self.assertRaises(GatewayStorageError):
+                gateway.insert_batch(
+                    [candle(START)], lease_token=LEASE,
+                    now_ms=lambda: self.lease_now,
+                )
+            self.assertFalse(database.exists())
 
 
 if __name__ == "__main__":

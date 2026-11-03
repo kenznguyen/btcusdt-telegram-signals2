@@ -60,18 +60,33 @@ class RecoveryAdapter:
         return True
 
 
-def build_runtime(*, config, owner_id, exchange, store, gateway, lease_store, clock=None,
-                  lease_clock=None, health=None, event_sink=None,
-                  recovery_lookback_candles=2000, status_store=None):
-    """Compose the existing canonical sync path into the tested FeederRuntime."""
+def build_runtime(*, config, owner_id, exchange, store, gateway, lease_store,
+                  clock=None, observation_clock=None, lease_clock=None,
+                  health=None, event_sink=None, recovery_lookback_candles=2000,
+                  status_store=None):
+    """Compose the canonical Gateway sync path with independently injectable clocks.
+
+    clock remains a compatibility alias for the lease/runtime clock.
+    An explicit lease_clock takes precedence over clock.
+    """
     if not isinstance(config, FeederConfig):
         raise TypeError("config must be FeederConfig")
     if not callable(clock) and clock is not None:
         raise TypeError("clock must be callable")
-    clock_fn = clock if clock is not None else (lambda: time.time_ns() // 1_000_000)
-    lease_clock_fn = lease_clock if lease_clock is not None else clock_fn
-    if not callable(getattr(gateway, "insert_batch", None)):
-        raise TypeError("gateway must provide insert_batch()")
+    if not callable(observation_clock) and observation_clock is not None:
+        raise TypeError("observation_clock must be callable")
+    if not callable(lease_clock) and lease_clock is not None:
+        raise TypeError("lease_clock must be callable")
+    runtime_clock_fn = (
+        lease_clock if lease_clock is not None
+        else clock if clock is not None
+        else (lambda: time.time_ns() // 1_000_000)
+    )
+    observation_clock_fn = (
+        observation_clock if observation_clock is not None else runtime_clock_fn
+    )
+    if not isinstance(gateway, T0WriteGateway):
+        raise TypeError("gateway must be a T0WriteGateway")
 
     runtime = None
 
@@ -82,7 +97,7 @@ def build_runtime(*, config, owner_id, exchange, store, gateway, lease_store, cl
                 or heartbeat(
                     owner_id,
                     generation,
-                    now_ms=lease_clock_fn(),
+                    now_ms=runtime_clock_fn(),
                     ttl_seconds=config.lease_ttl_seconds,
                 ) is not True):
             raise PermissionError("Canonical sync blocked: feeder lease is not current")
@@ -90,7 +105,7 @@ def build_runtime(*, config, owner_id, exchange, store, gateway, lease_store, cl
         return sync_window(
             exchange, timeframe, start_ms, end_ms,
             gateway=gateway, lease_token=lease_token,
-            now_ms=clock_fn, lease_clock=lease_clock_fn,
+            now_ms=observation_clock_fn, lease_clock=runtime_clock_fn,
         )
 
     retry = RetryPolicy(
@@ -111,13 +126,13 @@ def build_runtime(*, config, owner_id, exchange, store, gateway, lease_store, cl
         )
     recovery = RecoveryAdapter(
         coordinators=coordinators,
-        clock=clock_fn,
+        clock=runtime_clock_fn,
         lookback_candles=recovery_lookback_candles,
         close_grace_seconds=config.close_grace_seconds,
     )
     scheduler = FeederScheduler(
         config=config,
-        clock=clock_fn,
+        clock=runtime_clock_fn,
         sync_callback=canonical_sync,
     )
     runtime = FeederRuntime(
@@ -128,7 +143,7 @@ def build_runtime(*, config, owner_id, exchange, store, gateway, lease_store, cl
         recovery=recovery,
         health=health,
         event_sink=event_sink,
-        clock=lease_clock_fn,
+        clock=runtime_clock_fn,
         retry_policy=retry,
         status_store=status_store,
     )
@@ -175,8 +190,8 @@ def build_production_runtime(environ=None):
     lease_store = LeaseStore(lease_path)
     status_store = FeederRuntimeStatusStore(candle_path)
     gateway = T0WriteGateway(candle_path)
-    if not callable(getattr(gateway, "insert_batch", None)):
-        raise TypeError("Production T0 feeder requires T0WriteGateway.insert_batch")
+    if not isinstance(gateway, T0WriteGateway):
+        raise TypeError("Production T0 feeder requires a T0WriteGateway")
     return build_runtime(
         config=config,
         owner_id=owner_id,

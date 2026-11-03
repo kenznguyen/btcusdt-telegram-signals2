@@ -11,17 +11,29 @@ python3 -m venv .venv-market-data
 .venv-market-data/bin/pip install -r requirements-market-data.txt
 .venv-market-data/bin/python -m market_data.sync \
   --db .data/market-data.sqlite3 --timeframe 15m \
-  --start-ms 1793232000000 --end-ms 1793239200000
+  --start-ms 1793232000000 --end-ms 1793239200000 \
+  --lease-owner "$T0_FEEDER_OWNER_ID" --lease-generation "$T0_FEEDER_LEASE_GENERATION"
 .venv-market-data/bin/python -m market_data.sync \
   --db .data/market-data.sqlite3 --timeframe 1h \
-  --start-ms 1793232000000 --end-ms 1793239200000
+  --start-ms 1793232000000 --end-ms 1793239200000 \
+  --lease-owner "$T0_FEEDER_OWNER_ID" --lease-generation "$T0_FEEDER_LEASE_GENERATION"
 ```
 
-Ví dụ lấy khoảng **2026-10-29 00:00–02:00 UTC**, đầu gồm/cuối loại trừ. Chọn cửa sổ đã đóng phù hợp khi chạy. `start-ms`/`end-ms` phải thẳng biên khung giờ UTC và mỗi lần tối đa 2.000 nến (20,8 ngày M15 hoặc 83,3 ngày H1). Chia khoảng lớn thành nhiều cửa sổ kề nhau. CLI in số nến mới, `datasetVersion` và độ bao phủ; khoảng thiếu vẫn hiển thị, không được coi là tải thành công đầy đủ chỉ vì tiến trình thoát mã 0.
+Ví dụ cú pháp lấy khoảng **2026-10-29 00:00–02:00 UTC**, đầu gồm/cuối loại trừ. Đây chỉ là ví dụ hợp đồng CLI, **không phải lệnh cho phép kích hoạt canonical runtime**. Trước khi dùng phải có SQLite DB đã được provision schema có kiểm soát, lease record đang hiệu lực và đúng owner/generation; CLI không tự tạo DB, không tự acquire lease và không tự provision schema. `T0_FEEDER_OWNER_ID`/`T0_FEEDER_LEASE_GENERATION` phải phản ánh lease hiện hành. `start-ms`/`end-ms` phải thẳng biên khung giờ UTC và mỗi lần tối đa 2.000 nến (20,8 ngày M15 hoặc 83,3 ngày H1). Chia khoảng lớn thành nhiều cửa sổ kề nhau. CLI in số nến mới, `datasetVersion` và độ bao phủ; khoảng thiếu vẫn hiển thị, không được coi là tải thành công đầy đủ chỉ vì tiến trình thoát mã 0.
 
-Đây là tác vụ một lần; gọi lại để đồng bộ cửa sổ mới hoặc tải lại khoảng thiếu. CCXT bật rate limiting và timeout, kiểm tra metadata đúng `BTC/USDT:USDT`, linear/swap/USDT settlement, và lấy giờ công khai của sàn. Chỉ nhận nến đóng trước cả mốc giờ sàn ở đầu lượt đồng bộ và giờ máy chủ khi nhận phản hồi. Đồng hồ máy chủ phía trước sàn không được làm nến đang chạy trở thành nến đã đóng.
+Đây là tác vụ một lần; gọi lại để đồng bộ cửa sổ mới hoặc tải lại khoảng thiếu. CCXT bật rate limiting và timeout, kiểm tra metadata đúng `BTC/USDT:USDT`, linear/swap/USDT settlement, và lấy giờ công khai của sàn. Chỉ nhận nến đóng trước cả mốc giờ công khai của sàn ở đầu lượt đồng bộ và thời điểm quan sát local khi nhận page. Đồng hồ máy chủ phía trước sàn không được làm nến đang chạy trở thành nến đã đóng.
 
 Mỗi page tối đa 1.000 nến được ghi nguyên tử. Nếu page sau lỗi, các page trước vẫn còn; CLI thoát khác 0 và cho phép thử lại cửa sổ. Nến cùng khóa và OHLCV được bỏ qua; nến cùng khóa nhưng OHLCV khác khiến cả page bị rollback. Không âm thầm sửa lịch sử. Việc xử lý bản sửa từ sàn cần một thay đổi có kiểm soát riêng.
+
+
+## Gateway, lease và runtime fail-closed
+
+- `sync_window()` bắt buộc nhận `T0WriteGateway` cụ thể, `LeaseFence` typed capability và `lease_clock`; không chấp nhận writer duck-typed chỉ có `insert_batch()`.
+- Mọi page ghi qua `T0WriteGateway.insert_batch()`. Gateway kiểm tra owner/generation/expiry trong cùng transaction `BEGIN IMMEDIATE`, trước và tại điểm admission cuối; stale lease hoặc lỗi batch phải rollback.
+- `availableAtMs` lấy từ observation clock độc lập. Lease heartbeat, Gateway admission, Scheduler, Recovery và FeederRuntime dùng runtime/lease clock. `build_runtime(clock=...)` vẫn được giữ làm alias tương thích; `lease_clock` tường minh có ưu tiên cao hơn.
+- Constructor `CandleStore`, `LeaseStore` và `T0WriteGateway` không tạo DB/schema. Runtime writes mở SQLite bằng `mode=rw`; DB không tồn tại phải fail closed. Chỉ `initialize_schema()` trong bước provisioning/maintenance được kiểm soát mới được tạo schema.
+- CLI không acquire lease, không chạy DDL, không có PostgreSQL fallback. Không chạy Feeder, không tạo canonical DB, không kết nối sàn cho tới khi có phê duyệt runtime riêng.
+
 
 ## API đọc
 
@@ -93,7 +105,7 @@ API không tạo database khi thiếu file, không gọi sàn trong request và 
 
 ## Kiểm chứng
 
-CI chạy trên Codemagic với workflow `canonical-market-data`, cấu hình tại `codemagic.yaml`. GitHub chỉ lưu source/PR; không chạy GitHub Actions. Xem [hướng dẫn Codemagic](../docs/CODEMAGIC_SETUP.md) để cài đặt tài khoản và tải log/artifact.
+GitHub lưu source/PR. Với P5.3.11 G2 và PR #125, GitHub Actions là cổng CI/acceptance duy nhất: RED reproduction và GREEN acceptance chạy trong môi trường disposable, quyền read-only, không có canonical/Paper DB hoặc exchange credentials. Codemagic không được dùng để chạy, chạy lại hoặc nghiệm thu PR #125/G2; không yêu cầu Codemagic Build ID và không đối chiếu Codemagic SHA cho hạng mục này. Nhóm G2 feeder routing, lease, fencing và lifecycle có log riêng `g2-feeder-routing-tests.log`. Bằng chứng nghiệm thu phải gắn với đúng source SHA, kết luận workflow, job steps và artifact của GitHub Actions. Không được suy diễn kết quả unit/integration tests thành bằng chứng Feeder production, Android instrumentation, PC multiprocess hoặc Timescale.
 
 ```bash
 python3 -m unittest market_data.test_store market_data.test_sync market_data.test_api integrations.test_hummingbot_bridge -v

@@ -1,4 +1,5 @@
 """P1.2 contract tests: durable singleton lease and fencing."""
+import sqlite3
 import tempfile
 import threading
 import unittest
@@ -102,6 +103,14 @@ class LeaseContractTest(unittest.TestCase):
         except Exception:
             acquired = None
         self.assertIsNone(acquired)
+
+
+    def test_runtime_lease_transaction_does_not_create_missing_database(self):
+        missing = Path(self.temp.name) / "must-not-be-created.sqlite3"
+        writer = LeaseStore(str(missing))
+        with self.assertRaises(sqlite3.OperationalError):
+            writer.heartbeat("owner", 1, now_ms=NOW, ttl_seconds=60)
+        self.assertFalse(missing.exists())
 
 
 if __name__ == "__main__":
