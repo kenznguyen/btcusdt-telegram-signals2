@@ -93,7 +93,7 @@ API không tạo database khi thiếu file, không gọi sàn trong request và 
 
 ## Kiểm chứng
 
-CI chạy trên Codemagic với workflow `canonical-market-data`, cấu hình tại `codemagic.yaml`. GitHub chỉ lưu source/PR; không chạy GitHub Actions. Xem [hướng dẫn Codemagic](../docs/CODEMAGIC_SETUP.md) để cài đặt tài khoản và tải log/artifact.
+T0 automated CI chạy trên GitHub Actions tại `.github/workflows/t0-validation.yml`; các gate chỉ chạy thủ công (Final Runtime Configuration, P3 component, Kraken Spot và TimescaleDB) nằm tại `.github/workflows/t0-manual-validation.yml`. Workflow ghi lại source SHA và tải test logs/artifacts. TimescaleDB chỉ chạy khi secret riêng `MARKET_DATA_TEST_DATABASE_URL` trỏ tới database tích hợp dùng một lần được cấu hình; thiếu secret thì không có kết quả nghiệm thu TimescaleDB.
 
 ```bash
 python3 -m unittest market_data.test_store market_data.test_sync market_data.test_api integrations.test_hummingbot_bridge -v
