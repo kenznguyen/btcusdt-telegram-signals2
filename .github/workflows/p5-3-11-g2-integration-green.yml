@@ -3,31 +3,6 @@ run-name: G2 integration GREEN (${{ github.ref_name }} @ ${{ github.event.pull_r
 
 on:
   workflow_call:
-  push:
-    branches:
-      - integration/p5-3-11-g2-gateway-green-20261103
-    paths:
-      - "market_data/**"
-      - "ci/t0_operational_contract.py"
-      - "ci/test_t0_operational_contract.py"
-      - "ci/test_ci_policy.py"
-      - "pipeline/**"
-      - "freqai_bridge/**"
-      - "market_data/README.md"
-      - ".github/workflows/p5-3-11-g2-integration-green.yml"
-  pull_request:
-    branches:
-      - feature/p5-3-11-5-g2-red-tests-20261103
-      - integration/p5-3-11-g2-gateway-green-20261103
-    paths:
-      - "market_data/**"
-      - "ci/t0_operational_contract.py"
-      - "ci/test_t0_operational_contract.py"
-      - "ci/test_ci_policy.py"
-      - "pipeline/**"
-      - "freqai_bridge/**"
-      - "market_data/README.md"
-      - ".github/workflows/p5-3-11-g2-integration-green.yml"
   workflow_dispatch:
 
 permissions:

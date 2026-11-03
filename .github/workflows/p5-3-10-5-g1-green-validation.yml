@@ -2,13 +2,6 @@ name: P5.3.10.5 G1 Gateway GREEN verification
 
 on:
   workflow_call:
-  pull_request:
-    branches:
-      - feature/p5-3-10-4-g1-red-tests-20261103
-    paths:
-      - market_data/gateway.py
-      - market_data/test_gateway_runtime.py
-      - .github/workflows/p5-3-10-5-g1-green-validation.yml
 
 permissions:
   contents: read

@@ -1,12 +1,6 @@
 name: P5.3.10.4 G1 Gateway RED execution
 
 on:
-  pull_request:
-    branches:
-      - docs/p5-3-10-3-g1-red-test-plan-20261103
-    paths:
-      - market_data/test_gateway_runtime.py
-      - .github/workflows/p5-3-10-4-g1-red-execution.yml
   workflow_dispatch:
 
 permissions:

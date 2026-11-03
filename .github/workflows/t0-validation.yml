@@ -3,47 +3,6 @@ run-name: T0 automated validation (${{ github.ref_name }} @ ${{ github.sha }})
 
 'on':
   workflow_call:
-  push:
-    branches:
-      - main
-      - feature/five-layer-paper
-      - feature/canonical-market-data
-      - feature/hummingbot-order-book
-      - feature/android-five-layer-control
-      - feature/t1-intelligence-provenance-quality-20261101
-      - feature/timescaledb-market-data-repository
-      - feature/timescaledb-storage-factory-api
-      - feature/p5-3-10-5-g1-gateway-green-20261103
-      - feature/t0-centralized-data-feeder-p1-20261101
-      - feature/t0-atomic-write-fencing-20261102
-      - feature/t0-atomic-fencing-hardening-20261102
-      - feature/t0-health-runtime-api-integration-20261102
-      - feature/t0-sigkill-recovery-20261102
-      - feature/t0-operational-contract-release-gate-20261102
-      - feature/t0-data-integrity-candle-continuity-gate-20261102
-      - ci/t0-codemagic-to-github-actions-20261103
-    paths:
-      - "market_data/**"
-      - "ci/**"
-      - "app.py"
-      - "requirements*.txt"
-      - "codemagic.yaml"
-      - ".github/workflows/t0-validation.yml"
-      - ".github/workflows/t0-manual-validation.yml"
-      - "docs/CODEMAGIC_SETUP.md"
-  pull_request:
-    branches:
-      - main
-      - feature/p5-3-11-5-g2-red-tests-20261103
-      - integration/p5-3-11-g2-gateway-green-20261103
-    paths:
-      - "market_data/**"
-      - "ci/**"
-      - "app.py"
-      - "requirements*.txt"
-      - "codemagic.yaml"
-      - ".github/workflows/t0-validation.yml"
-      - ".github/workflows/t0-manual-validation.yml"
 
 permissions:
   contents: read
