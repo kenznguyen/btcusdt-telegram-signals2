@@ -12,6 +12,8 @@ import sqlite3
 import sys
 import time
 
+from ci.t0_test_isolation import TestIsolationError, validate_test_database_path
+
 
 INTERVAL_MS = {"15m": 900_000, "1h": 3_600_000}
 CANONICAL = ("binance", "USDT_PERPETUAL", "BTCUSDT")
@@ -38,9 +40,9 @@ def _decimal(value, *, allow_zero=False):
     return number
 
 
-def audit_database(db_path, *, as_of_ms=None):
+def audit_database(db_path, *, as_of_ms=None, environ=None):
     """Return a deterministic integrity report without mutating the database."""
-    path = Path(db_path).expanduser().resolve()
+    path = Path(db_path).expanduser().resolve(strict=False)
     now = time.time_ns() // 1_000_000 if as_of_ms is None else as_of_ms
     if type(now) is not int or now < 0:
         raise ValueError("as_of_ms must be a nonnegative integer")
@@ -64,6 +66,13 @@ def audit_database(db_path, *, as_of_ms=None):
 
     def issue(code, detail):
         report["issues"].append({"code": code, "detail": detail})
+
+    try:
+        path = validate_test_database_path(db_path, environ=environ)
+        report["database"] = str(path)
+    except (TestIsolationError, OSError, RuntimeError, ValueError) as error:
+        issue("test_isolation_failed", f"{type(error).__name__}: {error}")
+        return report
 
     if not path.is_file():
         issue("database_unavailable", "Canonical SQLite database file does not exist.")
