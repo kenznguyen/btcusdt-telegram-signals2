@@ -25,21 +25,6 @@ class SQLiteCandleStore:
         self.path = Path(db_path)
         self._writer = None
 
-    def insert(self, candles):
-        # Initialize the existing SQLite schema lazily, never during API reads.
-        if self._writer is None:
-            self._writer = CandleStore(self.path)
-        return self._writer.insert(candles)
-
-    def insert_fenced(self, candles, *, owner, generation, now_ms,
-                      lease_name="binance-btcusdt-canonical"):
-        if self._writer is None:
-            self._writer = CandleStore(self.path)
-        return self._writer.insert_fenced(
-            candles, owner=owner, generation=generation, now_ms=now_ms,
-            lease_name=lease_name,
-        )
-
     def read_window(self, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
         return read_sqlite_window(self.path, symbol, timeframe, start_ms, end_ms, as_of_ms)
 
@@ -52,9 +37,6 @@ class PostgresStore:
             raise StoreConfigurationError("MARKET_DATA_POSTGRES_DSN is required for PostgreSQL")
         self._store = PostgresCandleStore(dsn)
         self.dsn = dsn
-
-    def insert(self, candles):
-        return self._store.insert(candles)
 
     def read_window(self, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
         return read_postgres_window(self.dsn, symbol, timeframe, start_ms, end_ms, as_of_ms)
