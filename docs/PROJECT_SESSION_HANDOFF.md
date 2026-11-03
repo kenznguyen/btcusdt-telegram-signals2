@@ -849,5 +849,5 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Owner approval still required before any Gradle signing change, workflow creation/reactivation, secret use, APK build or install. No approval inferred.
 - No tests or workflows run for this documentation-only increment. No code, Gradle, manifest, signing, dependency, package ID, workflow, device, DB, Feeder, exchange, market-data sync, backup/restore, writer or execution state changed. `AI_EXECUTION_ENABLED=false`.
 - Next: obtain explicit owner approval for a manual-only paired-APK GitHub Actions signing workflow and the parallel/.paper release-signing policy. Until then, do not change Gradle/manifest/workflows or build/install APKs.
-- Handoff update commit: pending.
+- Handoff update commit: `254e6285af28b25fa2810a8003a3f9b9481fd4c7`.
 
