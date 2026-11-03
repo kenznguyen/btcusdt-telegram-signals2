@@ -590,3 +590,37 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS** for Gateway primitive and explicit CLI/sync source path; **BLOCKED / NOT INTEGRATED** for FeederRuntime scheduler and recovery callback migration; **NOT VERIFIED** for production composition root, canonical Android DB path authority and G2 implementation. Production writer activation and Backup/Restore remain **BLOCKED**.
 - No source/schema/workflow/runtime changes; no tests/workflows run; no Android filesystem/DB access; no Feeder/API, exchange or sync; no production backup/restore or writer activation. `ai_execution_enabled=false`; Natural Doze remains `INTERRUPTED / DEFERRED`.
 - Next: P5.4.28 inspect repository history and branch source for G2 integration scope/implementation. If G2 is absent, produce a bounded implementation plan and fixture-only test contract; do not change source without explicit authorization.
+
+
+## P5.4.28 — G2 History, Runtime Composition and Integration Status Review (2026-11-03)
+
+- Report: `docs/evidence/P5.4.28-G2-HISTORY-RUNTIME-COMPOSITION-REVIEW-2026-11-03.md`.
+- Report commit: `fb726a0b36f1af4ee42a6a8735a7b53e73a92282`.
+- Review branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Observed pre-report review branch HEAD from GitHub compare metadata: `acbe25b8f4c4e7d47e6114ead61469a845042d81`.
+- Important correction to P5.4.27: it omitted `market_data/feeder_service.py`, which is the actual composition root. Current branch has `build_runtime()` creating one `canonical_sync` closure and injecting it into FeederScheduler and RecoveryCoordinator (through retry wrapper). Therefore scheduler and recovery Gateway routing are **PASS at source level**; the prior P5.4.27 “NOT INTEGRATED” conclusion is superseded.
+- Current source blob SHAs:
+  - `market_data/feeder_service.py`: `a160715b66b085afe8a9650dcf8c1e6ea3a3285e`.
+  - `market_data/feeder.py`: `70bba25f1fbf8b3edd3e28756984eed584037cc1`.
+  - `market_data/sync.py`: `98e18e327d871809750cbc7e9e59203a03c17320`.
+  - `market_data/gateway.py`: `e7fc9cb913f499fe9c4c9e92b7b9e1322a1ccc04`.
+  - `market_data/store.py`: `b28601aed70097afcb7a4eea2dd93ed163ae1cec`.
+  - `market_data/storage.py`: `99b66a4d183b8664f28d6638d8d87416d32847c9`.
+  - `market_data/test_feeder_lifecycle.py`: `d48e0171813cedc1d82672c51836bd713035791c`.
+  - `market_data/test_feeder_atomic_fencing.py`: `db66d6577f16d9b057e4dd77f5cb75a78660d05f`.
+  - `market_data/test_sync.py`: `2d74a47e52e7017ffd5c71a56ae24fba44218b8f`.
+  - `market_data/test_store.py`: `6a3f2e6c6714926720155eb28484dd21cf977cd5`.
+- G2 branches found:
+  - RED contracts: `feature/p5-3-11-5-g2-red-tests-20261103`, head `8c33a23a95a246a21654a56e7829be86b4856cdb`.
+  - Routing: `feature/p5-3-11-8-g2-gateway-routing-20261103`, head `cc81721821670cef499ca4a8adee1e2e10769d4d`.
+  - GREEN integration: `integration/p5-3-11-g2-gateway-green-20261103`, head `b271efae590528a278f44c4e7c8e67290cc81429`, ancestor of current review branch.
+- Historical PR #123 G2 RED evidence: GitHub Actions run `41572948926`, exact SHA `c68b9515862ae1a5815c1e9d9064453da58e444f`, 18/18 G2 contracts; 210 market_data regression tests, zero failures/errors, 8 Timescale tests skipped; artifact `13202670154`, SHA-256 `4aa0b32a727bd7ad6d56889f90f877efc11509daba61873d6fdd44652116e8d3`.
+- Historical PR #125 G2 GREEN evidence: PR branch head/tested SHA `b271efae590528a278f44c4e7c8e67290cc81429`; GitHub Actions run `41591818246`; artifact `13209729706`, SHA-256 `1953b91e21578c8f5d9e60829a40f76a9d4d5f135097dd52b496339450df8e77`. Reported groups: G1 16/16, G2 routing/lease/fencing/lifecycle 66/66, T0 regressions 96/96, operational/CI policy 16/16, pipeline/FreqAI 56/56; compile and shadow-only isolation PASS. PR #125 description says Draft/unmerged. Historical evidence does not validate current branch SHA.
+- PR #124 routing body records a stale Codemagic Build #132 and merge conflict/dirty state; it is not accepted as current validation. No Codemagic use is authorized; GitHub Actions remains the only runner.
+- Production Feeder factory source aligns `MARKET_DATA_DB`, LeaseStore, Gateway, read facade and status store to the same SQLite path and rejects a distinct lease DB. This does not prove the actual Android canonical path or physical runtime file.
+- Current `CandleStore` no longer exposes legacy `insert()` / `insert_fenced()` writer APIs in inspected source. Repository-wide mutation-path audit not repeated.
+- Test gap: lifecycle tests assert Recovery calls sync_window with the supplied Gateway and typed LeaseFence, but do not directly invoke the Scheduler callback and assert the Gateway/token. Add fixture-only scheduler callback assertion in P5.4.29.
+- Path gap: lower-level `build_runtime()` accepts independently supplied store/Gateway/LeaseStore without enforcing same DB identity. Production factory enforces it. Paper Ledger still has independent path acceptance per P5.4.23; canonical Android path authority across Feeder + Paper Ledger remains NOT VERIFIED.
+- Status: **PASS** G2 source composition (Scheduler and Recovery same Gateway-backed callback); **PASS** production Feeder path alignment at source level; **NOT VERIFIED** scheduler callback integration test, Paper Ledger unified DB authority, actual Android canonical path/runtime, current-branch exact-head CI. PostgreSQL/Timescale canonical writer NOT CERTIFIED.
+- No source/test/workflow/runtime changes; no tests/workflows run. No canonical/Paper DB or Android filesystem access, no Feeder/API, exchange, sync, production backup/restore or writer activation. `ai_execution_enabled=false`; Natural Doze remains `INTERRUPTED / DEFERRED`.
+- Next P5.4.29: add a fixture-only test contract for Scheduler callback invocation and Gateway/LeaseFence identity; consider fail-closed mismatched path test if identity can be exposed safely. Execute only on GitHub Actions with disposable fixtures after explicit test authorization. No Codemagic; no PR merge or new PR.
