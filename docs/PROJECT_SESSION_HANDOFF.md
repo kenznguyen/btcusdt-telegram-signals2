@@ -541,3 +541,27 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS** for source trace of heartbeat supervisor implementation and scheduler preflight guard; **NOT VERIFIED** for atomic candle-write fencing, recovery callback fencing, actual sync_window implementation, production construction and shared DB path. Production writer activation and Backup/Restore remain **BLOCKED**.
 - No source/schema/workflow/runtime changes; no tests/workflows run; no Android filesystem/DB access; no Feeder/API, exchange or sync; no production backup/restore or writer activation. `ai_execution_enabled=false`; Natural Doze remains `INTERRUPTED / DEFERRED`.
 - Next: read-only trace actual `sync_window()`, candle upsert transaction and application composition root. Do not infer missing runtime wiring or access device/runtime without separate explicit authorization.
+
+
+## P5.4.26 — sync_window and Atomic T0 Write Gateway Trace (2026-11-03)
+
+- Report: `docs/evidence/P5.4.26-SYNC-WINDOW-ATOMIC-GATEWAY-TRACE-2026-11-03.md`.
+- Report commit: `b79f2ef91b539698263281c3fe88a391f11015cf`.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Inspected source blob identities:
+  - `market_data/sync.py`: `98e18e327d871809750cbc7e9e59203a03c17320`.
+  - `market_data/gateway.py`: `e7fc9cb913f499fe9c4c9e92b7b9e1322a1ccc04`.
+  - `market_data/feeder.py`: `70bba25f1fbf8b3edd3e28756984eed584037cc1`.
+  - `market_data/store.py`: `b28601aed70097afcb7a4eea2dd93ed163ae1cec`.
+  - `market_data/storage.py`: `99b66a4d183b8664f28d6638d8d87416d32847c9`.
+  - `market_data/test_sync.py`: `2d74a47e52e7017ffd5c71a56ae24fba44218b8f`.
+  - `market_data/test_store.py`: `6a3f2e6c6714926720155eb28484dd21cf977cd5`.
+  - `market_data/test_feeder_lease.py`: `0512fefc046a48fc8bf46341a1cd936883bcb7b7`.
+  - `app.py`: `90df28c5409463c524b1d286d5fe502d3b39f59d`.
+- Exact branch HEAD SHA was not independently verified.
+- Correction to P5.4.25: `T0WriteGateway.insert_batch()` uses one SQLite connection and `BEGIN IMMEDIATE`, validates lease owner/generation/expiry before and after the candle batch, then commits; this is atomic fencing for writes routed through Gateway on the same physical DB file. `sync_window()` calls Gateway for each fetched page. CandleStore has no legacy insert methods.
+- Fixture tests construct CandleStore, LeaseStore and Gateway with one TemporaryDirectory DB path. This is fixture-only evidence, not proof of production Android wiring.
+- Remaining gaps: no production composition root found proving FeederRuntime scheduler and recovery callbacks both route through Gateway; no single canonical Android DB-path authority/invariant found across Gateway, LeaseStore, status store and Paper Ledger; dedicated deterministic Gateway concurrency/final-check test coverage not established.
+- Status: **PASS** for source-level atomic Gateway fence, sync_window Gateway use and fixture shared-path construction; **NOT VERIFIED** for production scheduler/recovery callback wiring, canonical Android DB identity and dedicated gateway race coverage. Production writer activation and Backup/Restore remain **BLOCKED**.
+- No source/schema/workflow/runtime changes; no tests/workflows run; no Android filesystem/DB access; no Feeder/API, exchange or sync; no production backup/restore or writer activation. `ai_execution_enabled=false`; Natural Doze remains `INTERRUPTED / DEFERRED`.
+- Next: P5.4.27 read-only trace all Gateway construction and scheduler/recovery callback composition references. Do not infer missing production wiring or access device/runtime without separate explicit authorization.
