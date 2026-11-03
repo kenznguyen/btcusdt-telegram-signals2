@@ -1121,3 +1121,47 @@ Current result:
 
 Next:
 - Await explicit approval for installation and device runtime testing. If approval is not granted, remain at static-review boundary. Preserve `AI_EXECUTION_ENABLED=false`.
+
+
+## P5.4.53 — Expanded static security review: paper API mutation boundary (2026-11-04)
+
+Scope:
+- Extended static review of the Android application sources at source SHA `3071737221b4afb8af6ad9b7b00c3ba5732975c0`; no install, launch, network calls, or runtime actions.
+
+Files and source blobs:
+- `AndroidManifest.xml`: `e505a1829899f32c211f5390b5ae7753048ae15b`
+- `MainActivity.kt`: `c03c87993a1d696cdb9cab629114ff5ef8420ec2`
+- `FiveLayerApi.kt`: `91c9ce61a14dc54a2e2bf1b47285d5645b3f119e`
+- `StrategyMonitorService.kt`: `2d494af5e47d51d5111af2bc466e6aaf48a0e75b`
+- `MarketEngine.kt`: `ed921c7278ce3397c85c49c9706c2b5550fc5012`
+- `FiveLayerStandaloneDashboard.kt`: `0a98affe08a52c2721baac4f31419945dd67a56d`
+
+Findings:
+1. The manifest declares only the launcher Activity exported; StrategyMonitorService is non-exported. No ContentProvider or BroadcastReceiver is declared in this manifest. Static manifest result: PASS within this module manifest scope.
+2. MainActivity calls notification-channel creation, POST_NOTIFICATIONS permission request (Android 13+), and starts StrategyMonitorService only when `BuildConfig.PARALLEL_INSTALL == false`. The parallel Activity renders FiveLayerStandaloneDashboard instead.
+3. StrategyMonitorService creates OrderBookEngine, MultiSymbolScanner and MarketEngine work; the inspected MarketEngine URLs are Binance USD-M public market-data REST/WebSocket endpoints (klines, exchangeInfo, ticker24hr, premiumIndex, mark price and kline streams). No exchange order endpoint or trading credential use was found in these inspected files.
+4. Important correction to the prior broad description of the .paper app: `FiveLayerApi.kt` exposes POST methods for `paper/evaluate`, `paper/pause`, `paper/kill`, `paper/reset-kill`, and `paper/cancel`. These are paper-service state/control mutations, not evidence of real exchange order placement. The same client also reads system, intelligence, decision, paper ledger, equity, signals, quality, audit, candles and order-book endpoints.
+5. FiveLayerApi requires HTTPS base URLs, a non-empty printable bearer token, disables automatic retry for POST controls, disables redirects, and restricts endpoint path segments to a fixed allowlist. These safeguards are statically present, but the actual configured URL, backend identity and backend behavior are NOT VERIFIED in this review.
+6. `MainActivity.onResume()` starts the regular host's foreground service. The service has START_STICKY and uses public Binance market data; Android OS lifecycle/timeout behavior requires device testing.
+
+Risk interpretation:
+- Static evidence supports that the inspected regular monitor uses public market-data endpoints and does not itself submit exchange orders.
+- Static evidence also shows that the parallel paper dashboard can issue state-changing requests to a configured paper API. Before any device test, confirm that the configured HTTPS host is the intended paper backend and that all paper endpoints are isolated from exchange execution. Do not enter exchange trading credentials.
+- A repository-wide proof that no other code can create real orders was not established; scope was the manifest, Activity, FiveLayerApi, monitor service and MarketEngine files above.
+
+Results:
+- Manifest component/export boundary: **PASS (scoped)**.
+- Public market-data-only behavior in inspected MarketEngine/StrategyMonitorService path: **PASS (scoped)**.
+- Paper API mutation boundary identified and documented: **PASS**.
+- Actual paper backend identity/configuration and server-side execution boundary: **NOT VERIFIED**.
+- Device installation/runtime/IPC/network test: **BLOCKED pending explicit approval**.
+
+Safety constraints:
+- Do not install or launch either APK without explicit authorization.
+- Do not configure exchange trading credentials, call exchange trading endpoints, or perform live/paper backend mutations as part of static review.
+- Keep `AI_EXECUTION_ENABLED=false`; no live execution is authorized.
+
+Next:
+1. If device testing is approved, verify the configured FiveLayer API HTTPS origin against the intended paper service before using any POST control; test GET endpoints first, then only explicitly approved paper controls in a disposable test environment.
+2. Keep regular-host public market-data lifecycle tests separate from parallel paper API tests.
+3. Capture sanitized logcat and HTTP method/path/status evidence; never record bearer tokens or secrets.
