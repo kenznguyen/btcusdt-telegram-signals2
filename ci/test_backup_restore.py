@@ -241,7 +241,7 @@ class BackupRestoreFixtureTest(unittest.TestCase):
 
     def test_current_lease_generation_can_publish_only_after_recovery_complete(self):
         status = FeederRuntimeStatusStore(self.source)
-        now = FIXED_NOW_MS + 7 * 60_001
+        now = FIXED_NOW_MS + 6 * 60_001 + 1_000
         self.assertTrue(status.publish(
             "fixture-owner-A", 7, "STARTING",
             now_ms=now, recovery_complete=False,
