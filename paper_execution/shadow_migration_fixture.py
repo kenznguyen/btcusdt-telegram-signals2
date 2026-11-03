@@ -86,6 +86,7 @@ def build_legacy_fixture(path):
         # LeaseStore's public constructor deliberately accepts str/bytes paths,
         # unlike the other schema helpers which normalize PathLike values.
         lease_store = LeaseStore(str(path), lease_name=LEASE_NAME)
+        lease_store.initialize_schema()
         lease = lease_store.acquire("fixture-owner-A", now_ms=FIXED_NOW_MS, ttl_seconds=60)
         if lease is None:
             raise RuntimeError("Unable to acquire disposable fixture lease")
