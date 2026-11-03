@@ -35,7 +35,7 @@ class CiPolicyTest(unittest.TestCase):
     def test_g2_acceptance_is_github_actions_only_and_historical_red_is_manual(self):
         green = (ROOT / ".github/workflows/p5-3-11-g2-integration-green.yml").read_text()
         red = (ROOT / ".github/workflows/p5-3-11-g2-integration-red.yml").read_text()
-        self.assertIn("permissions:\\n  contents: read", green)
+        self.assertIn("permissions:\n  contents: read", green)
         self.assertIn("ref: ${{ github.sha }}", green)
         self.assertIn("persist-credentials: false", green)
         self.assertIn("integration/p5-3-11-g2-gateway-green-20261103", green)
