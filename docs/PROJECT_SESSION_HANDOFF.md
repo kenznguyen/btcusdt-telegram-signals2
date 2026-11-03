@@ -784,3 +784,20 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS** for design specification; **NOT VERIFIED** for implementation, Android Binder/signing/device behavior; **NOT RUN** for tests/workflows; implementation and runtime activation **NOT AUTHORIZED**.
 - No code, dependencies, package IDs, exported components, database/path, device, Feeder, exchange, market-data sync, backup/restore or writer activation touched. Paper-only; AI_EXECUTION_ENABLED=false.
 - Next: P5.4.41 design review and resolution of minimum owner decisions only. No runtime implementation without separate explicit authorization.
+
+
+## P5.4.41 — Android IPC Security Contract Review (updated 2026-11-03)
+
+- Evidence: docs/evidence/P5.4.41-ANDROID-IPC-SECURITY-CONTRACT-REVIEW.md.
+- Evidence commit: 070053af2366607827deee38c377c0f0f63eb8d2.
+- Evidence blob: 0b0e113b00d8bb741e27337c43c999a12acf1af0.
+- Review baseline HEAD: 9709c3d8a853b6a1ffb8fe839c8cae796a78e052.
+- Scope: documentation-only review of ADR-002 and P5.4.40. No code, manifest, package, signing, dependency, device or runtime changes.
+- Verdict: **CONDITIONAL PASS** for design review only.
+- Finding F-01: correct mutation ordering so a retry with an already committed idempotency key returns the durable recorded result even if current Kill Switch/risk state has changed. Authenticate/authorize and validate first; resolve existing idempotency key before dynamic readiness/risk checks; only new commands pass current readiness/fencing/Kill Switch/risk gates and enter atomic command+ledger+audit commit. Conflicting payload for same key is rejected.
+- Recommendation F-02: prefer an explicit Android bound Service with narrow Binder/AIDL typed methods and a custom signature-level bind permission over ContentProvider's URI/CRUD surface. This is a recommendation only, NOT an owner-approved primitive.
+- Signing recommendation: common controlled installed signing identity where feasible, plus host-side expected package and signer/lineage allowlist; staged rotation and explicit revocation. Exact certificate identities and release-key policy remain owner decisions.
+- Host package ID/variant remains OPEN; no ID was inferred or changed. .paper client identity requires confirmation. DTO schemas, serialization, transaction boundaries, idempotency retention, limits, compatibility and audit policies remain to be specified.
+- Status: **CONDITIONAL PASS** design review; **OWNER DECISION REQUIRED** for IPC primitive, canonical host package/variant, .paper package identity and signing policy; **NOT VERIFIED** implementation/device behavior; **NOT RUN** tests/workflows; runtime implementation **NOT AUTHORIZED**.
+- No GitHub Actions workflow or tests were run. Paper-only; AI_EXECUTION_ENABLED=false. No DB, Feeder, exchange, sync, backup/restore or writer activation.
+- Next: obtain owner decisions, then P5.4.42 detailed implementation design. Do not implement runtime components without separate authorization.
