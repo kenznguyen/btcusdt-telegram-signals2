@@ -413,3 +413,19 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **PASS** for exact 31 fixture cases, artifact and integrated gate. **NOT VERIFIED**: domain cursor semantics, production manifest integration, true cross-store consistency, filesystem crash recovery, Windows behavior and production restore.
 - Isolation: disposable TemporaryDirectory DBs only; no canonical DB, PC/Android filesystem, Feeder/API, exchange, network sync, production restore or order execution. GitHub Actions only; no Codemagic. `ai_execution_enabled=false`.
 - Next: adversarial tests for validly re-hashed semantic mismatch, table-count/high-water/schema-version tampering; then determine whether production manifest design decisions are needed before production implementation. Natural Doze remains `INTERRUPTED / DEFERRED`.
+
+
+## P5.4.19 — Split-Store Adversarial Manifest Tampering Tests (2026-11-03)
+
+- Report: `docs/evidence/P5.4.19-SPLIT-STORE-ADVERSARIAL-MANIFEST-TAMPERING-2026-11-03.md`.
+- Report commit: `5abecc82b3561279f579e710d828abcd50ce70e3`.
+- Exact tested source SHA: `b91243778164d1f4f8222bcd3a1705cd1fbe7e7e`.
+- Test file blob SHA: `be6eb3f7f35e38027df1affe668c5a4955167384`.
+- Fixture run [41649479146](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41649479146): **SUCCESS, 35/35 tests, 0 failures, 0 errors, 0 skipped**.
+- Added adversarial cases: mutate candle data then update physical file hash (logical identity must still reject); tamper table count while adjusting high-water to preserve manifest sum; tamper high-water; tamper schema version. All four rejected by read-only verifier.
+- Artifact ID `13236338248`, 5,853 bytes; GitHub digest and independently downloaded ZIP SHA-256 match: `74a10b17d10e91dc0491d4a68c629e51c04b3d4ba6e84dc0963773372c331ee5`. ZIP integrity PASS, 12 files, 8/8 internal checksums independently matched.
+- Integrated P5.4.1 gate [41649479110](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41649479110): **SUCCESS, 5/5 jobs**, same source SHA.
+- No production/runtime code changed in this increment; only fixture tests and `hashlib` import.
+- Status: **PASS** for 35 fixture tests, fixture artifact and integrated gate. **NOT VERIFIED**: production cursor semantics, distributed snapshot consistency, production manifest integration, filesystem crash recovery, Windows behavior and production restore.
+- Isolation: disposable TemporaryDirectory DBs only; no canonical DB, PC/Android filesystem, Feeder/API, exchange, network sync, production restore or order execution. GitHub Actions only; no Codemagic. `ai_execution_enabled=false`.
+- Next: document unresolved production manifest decisions before any production implementation: store identity, domain cursor/high-water semantics, global barrier, schema-version authority, canonicalization and restore epoch/fencing ownership. Natural Doze remains `INTERRUPTED / DEFERRED`.
