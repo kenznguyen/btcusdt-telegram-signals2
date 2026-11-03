@@ -873,3 +873,41 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Next: obtain owner approval to publish the manual workflow file on default branch `main` without merging unrelated branch work. Then dispatch with exact SHA `8c9cbdb66cab58c457c85e140462da4dab156ca9`; stop if any signing secret is missing/invalid and report names only. Do not install APKs or test IPC without separate authorization.
 - Handoff update commit: `63e3d613440b6d206dab77928e1e4968fde5ea53`.
 
+
+
+## P5.4.46 — Android paired-release workflow SDK setup fix (updated 2026-11-04)
+
+Scope:
+- Fix only the Android SDK setup input in the existing manual paired-release workflow.
+- Preserve the exact branch restriction, source-SHA equality check, signing-secret checks, keystore cleanup, package identities, signer-parity verifier, artifact paths, and paper-only environment.
+- No PR or new branch created.
+
+Failure evidence:
+- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41732942790
+- Job: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41732942790/job/126254693104
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`
+- Source SHA tested: `6dc3e2c6949d2a16d4f8d39ca68b99115a6d1d42`
+- Result: FAILURE at `Set up Android SDK`; setup-android@v3 attempted `sdkmanager tools`, but the package repository returned `Failed to find package 'tools'`.
+- Java/Gradle setup, source/branch/paper-only checks, signing-secret presence check, temporary keystore restore and cleanup passed.
+- Android platform install, unit tests, APK build/signing, APK verification and artifact upload were skipped. No artifact was produced.
+
+Remediation:
+- In `.github/workflows/android-release-pair.yml`, set `packages: platform-tools` for `android-actions/setup-android@v3`, avoiding the obsolete default `tools` package.
+- Main commit: `7dc66b9c53f63b73f6e14975d5f44c172e6f654c`.
+- Feature commit: `c035cad68dbead8e5e0268f05725ae0d19ffe69f`.
+- The two workflow files were updated independently on their existing branches; no other file was changed by either workflow commit.
+- The feature workflow commit is a configuration fix only; no Android test/build was run locally.
+
+Current verdict:
+- Root cause identified: PASS.
+- Workflow config updated on main and feature: PASS, pending read-back verification.
+- New manual dispatch: NOT RUN (must use GitHub Actions UI; no dispatch action is available in this session).
+- Android unit tests / paired APK build / signer parity / APK artifacts: NOT RUN / NOT VERIFIED.
+- Signing secret values were not read or exposed.
+- `AI_EXECUTION_ENABLED=false`; all exchange credentials and DB/Feeder environment variables remain empty in this workflow.
+
+Next action:
+1. Read back both branch copies and confirm they contain `packages: platform-tools` with identical blob SHA.
+2. Dispatch the workflow on `feature/p5-4-1-post-merge-validation-20261103` using the exact current feature branch HEAD as `source_sha`.
+3. Inspect the new run's job steps, logs and artifacts. Do not claim release readiness until unit tests, both APK builds, package identity checks, signer parity and artifact integrity are evidenced.
+4. Do not install/distribute APKs or enable live execution. Paper-only boundary remains unchanged.
