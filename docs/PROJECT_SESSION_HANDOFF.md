@@ -949,4 +949,4 @@ Next:
 2. Inspect the resulting run's job steps, logs and artifacts. If unit tests fail, stop and diagnose before APK release conclusions.
 3. Do not install or distribute APKs without separate authorization.
 
-Handoff update commit: pending verification.
+Handoff update commit: `b8d8c41f29407444bdb466890a5a7a5887072f89` (verified as branch HEAD; handoff blob SHA `264dcc6363788630345ca122c68bc343dcfac29d`).
