@@ -1,6 +1,11 @@
 name: P5.4.1 Post-Merge Validation Gate
 
 on:
+  push:
+    branches:
+      - feature/p5-4-1-post-merge-validation-20261103
+    paths:
+      - ".github/workflows/**"
   pull_request:
     branches:
       - feature/p5-2-5-green-contracts-20261102
@@ -44,7 +49,7 @@ jobs:
       - name: Enforce exact SHA and no-runtime boundary
         shell: bash
         env:
-          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || inputs.expected_sha }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || inputs.expected_sha || github.sha }}
         run: |
           set -euo pipefail
           actual="$(git rev-parse HEAD)"
@@ -111,7 +116,7 @@ jobs:
         if: always()
         shell: bash
         env:
-          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || inputs.expected_sha }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || inputs.expected_sha || github.sha }}
           PREFLIGHT_RESULT: ${{ needs.preflight.result }}
           T0_RESULT: ${{ needs.t0.result }}
           G1_RESULT: ${{ needs.g1.result }}
