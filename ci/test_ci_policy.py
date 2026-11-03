@@ -24,6 +24,7 @@ class CiPolicyTest(unittest.TestCase):
             "p5-3-10-5-g1-green-validation.yml",
             "p5-3-11-5-g2-red-validation.yml",
             "t0-validation.yml",
+            "t0-manual-validation.yml",
         }
 
         self.assertIn("p5-3-10-4-g1-red-execution.yml", actual)
@@ -37,60 +38,47 @@ class CiPolicyTest(unittest.TestCase):
 
     def test_t0_ci_is_migrated_to_github_actions(self):
         workflow_path = ROOT / ".github/workflows/t0-validation.yml"
+        manual_path = ROOT / ".github/workflows/t0-manual-validation.yml"
         self.assertTrue(workflow_path.is_file())
+        self.assertTrue(manual_path.is_file())
         workflow = yaml.safe_load(workflow_path.read_text())
-        jobs = workflow["jobs"]
-        required_jobs = {
-            "market-data-core",
-            "feeder-scheduler",
-            "feeder-health",
-            "feeder-lifecycle",
-            "atomic-fencing",
-            "health-runtime-api",
-            "sigkill-recovery",
-            "operational-contract",
-            "data-integrity",
-            "final-runtime-config",
-            "component-tests-p3",
-            "kraken-adapter",
-            "kraken-spot-sqlite",
-            "kraken-spot-read-api",
-            "timescaledb-integration",
-        }
-        self.assertLessEqual(required_jobs, set(jobs))
-        self.assertIn("workflow_dispatch", workflow["on"])
+        manual = yaml.safe_load(manual_path.read_text())
+        self.assertEqual(set(workflow["jobs"]), {"t0-validation"})
         self.assertIn("push", workflow["on"])
-        self.assertTrue(workflow.get("permissions", {}).get("contents") == "read")
+        self.assertIn("pull_request", workflow["on"])
+        self.assertIn("workflow_dispatch", manual["on"])
+        self.assertEqual(manual["permissions"]["contents"], "read")
+        commands = "\\n".join(step.get("run", "") for step in workflow["jobs"]["t0-validation"]["steps"])
+        required = ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
+                    "market_data.test_api", "market_data.test_gateway_runtime", "market_data.test_feeder_lease",
+                    "market_data.test_feeder_health", "market_data.test_feeder_lifecycle",
+                    "market_data.test_feeder_atomic_fencing", "market_data.test_feeder_health_runtime_api",
+                    "market_data.test_feeder_sigkill_recovery", "ci.test_t0_operational_contract",
+                    "ci.test_t0_data_integrity")
+        for module in required:
+            with self.subTest(module=module):
+                self.assertIn(module, commands)
+        options = manual["on"]["workflow_dispatch"]["inputs"]["gate"]["options"]
+        for gate in ("final-runtime-config", "component-tests-p3", "kraken-adapter",
+                     "kraken-spot-sqlite", "kraken-spot-read-api", "timescaledb-integration"):
+            with self.subTest(gate=gate):
+                self.assertIn(gate, options)
 
     def test_t0_executable_workflows_are_removed_from_codemagic(self):
         retired = {
-            "market-data-timescaledb",
-            "market-data-kraken-adapter-tests",
-            "market-data-kraken-spot-sqlite-tests",
-            "market-data-kraken-spot-read-api",
-            "t0-feeder-scheduler",
-            "t0-feeder-health",
-            "t0-feeder-lifecycle",
-            "t0-feeder-atomic-fencing",
-            "t0-health-runtime-api",
-            "t0-feeder-sigkill-recovery",
-            "t0-operational-contract-release-gate",
-            "t0-data-integrity-candle-continuity-gate",
-            "t0-final-runtime-configuration-check",
-            "t0-component-tests-p3",
-            "t0-feeder-lifecycle-red",
-            "t0-feeder-atomic-fencing-red",
+            "market-data-timescaledb", "market-data-kraken-adapter-tests",
+            "market-data-kraken-spot-sqlite-tests", "market-data-kraken-spot-read-api",
+            "t0-feeder-scheduler", "t0-feeder-health", "t0-feeder-lifecycle",
+            "t0-feeder-atomic-fencing", "t0-health-runtime-api", "t0-feeder-sigkill-recovery",
+            "t0-operational-contract-release-gate", "t0-data-integrity-candle-continuity-gate",
+            "t0-final-runtime-configuration-check", "t0-component-tests-p3",
+            "t0-feeder-lifecycle-red", "t0-feeder-atomic-fencing-red",
+            "p5-2-4-shadow-migration-red", "p5-2-5-runtime-red-validation",
         }
         self.assertTrue(retired.isdisjoint(set(self.workflows)))
-        canonical = self.workflows["canonical-market-data"]
-        commands = "\\n".join(item["script"] for item in canonical["scripts"])
-        for module in (
-            "market_data.test_store",
-            "market_data.test_storage",
-            "market_data.test_sync",
-            "market_data.test_api",
-            "market_data.test_gateway_runtime",
-        ):
+        commands = "\\n".join(item["script"] for item in self.workflows["canonical-market-data"]["scripts"])
+        for module in ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
+                       "market_data.test_api", "market_data.test_gateway_runtime"):
             self.assertNotIn(module, commands)
 
     def test_manual_stateful_and_release_tasks_never_start_on_push(self):
