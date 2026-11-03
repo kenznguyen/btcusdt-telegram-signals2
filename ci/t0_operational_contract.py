@@ -176,11 +176,17 @@ def audit_contract(root):
     ))
 
     fencing_ok = all((
-        "insert_fenced" in feeder_service,
-        "write_fence={" in feeder_service,
+        "gateway = T0WriteGateway(candle_path)" in feeder_service,
+        "lease_store = LeaseStore(lease_path)" in feeder_service,
+        "LeaseFence(" in feeder_service,
+        "gateway=gateway" in feeder_service,
+        "lease_token=lease_token" in feeder_service,
+        "lease_clock=runtime_clock_fn" in feeder_service,
         "sync_callback=canonical_sync" in feeder_service,
         "T0_FEEDER_LEASE_DB must resolve to the same file as MARKET_DATA_DB" in feeder_service,
-        "Fenced sync requires a store with atomic insert_fenced support" in sync_source,
+        "gateway.insert_batch(" in sync_source,
+        "lease_token=lease_token" in sync_source,
+        "now_ms=lease_clock" in sync_source,
     ))
 
 
