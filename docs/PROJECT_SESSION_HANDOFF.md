@@ -1165,3 +1165,50 @@ Next:
 1. If device testing is approved, verify the configured FiveLayer API HTTPS origin against the intended paper service before using any POST control; test GET endpoints first, then only explicitly approved paper controls in a disposable test environment.
 2. Keep regular-host public market-data lifecycle tests separate from parallel paper API tests.
 3. Capture sanitized logcat and HTTP method/path/status evidence; never record bearer tokens or secrets.
+
+
+## P5.4.54 — Paper API/backend contract verification (2026-11-04)
+
+Scope:
+- Read-only static trace of Android client → shared API → paper ledger → Hummingbot market-data bridge. No HTTP request, API call, app install/launch, backend start, or paper mutation was performed.
+
+Source SHA: `7d7199686ed48393398444d2bc1e18904c0a3769`.
+Files inspected:
+- `android-app/app/src/main/java/com/kenznguyen/btclivealerts/FiveLayerPanel.kt`: `de1c6c1e11663a0c6f9330160665bf4c67e6af2f`
+- `android-app/app/src/main/java/com/kenznguyen/btclivealerts/FiveLayerApi.kt`: `91c9ce61a14dc54a2e2bf1b47285d5645b3f119e`
+- `pipeline/api.py`: `0540540462b3710a25788e4ff47a88272b7ee9c3`
+- `pipeline/test_api.py`: `2c021f14c5326ec7defa2b9c6606ac60ae9df558`
+- `paper_execution/ledger.py`: `68209ce48a6e5e9a995f93167684133e41cc7f55`
+- `paper_execution/README.md`: `f93dc79de167cb96ea5924465e35fd641985dc16`
+- `integrations/hummingbot_bridge.py`: `aa9db7522ffb7ce911c7fbbdc73a7f9b47401331`
+- `integrations/README.md`: `8df3ffcf3d1f5222ba40a0f032e7eb6f5b7f92ab`
+- `android-app/app/src/test/java/com/kenznguyen/btclivealerts/FiveLayerApiTest.kt`: `5526a9475287b098d7ef10856ac63a68c69634b0`
+- `docs/FIVE_LAYER_PAPER_RUNBOOK.md`: `184ffa7e8df9d4f4f81a4902d9b6bc84783d7d07`
+
+Verified source-level contract:
+1. Android stores only the API URL in SharedPreferences. Read and control tokens are held in screen-session state, not persisted; control token must differ from read token. GET requests use read token; POST requests use control token.
+2. Android client accepts HTTPS only, rejects URL userinfo/query/fragment, restricts path segments to a fixed allowlist, disables redirects and automatic retry for POST controls, and uses a 10-second call timeout.
+3. Backend `pipeline/api.py` maps GET routes to `MARKET_DATA_TOKEN` and POST paper controls to a distinct `CONTROL_TOKEN`; reusing the read token for POST is rejected. Routes are limited to the defined `/v1/*` allowlist. POSTs have a shared SQLite rate budget.
+4. POST `/v1/paper/evaluate` evaluates either AI or CORE input and, if an intent exists, submits it only to `PaperLedger.submit()`. Pause, cancel, kill and reset-kill mutate paper ledger state only. Kill reset checks server-side readiness. API responses identify mode PAPER and `liveTradingSupported=false`.
+5. `paper_execution/ledger.py` explicitly documents no network client. Its submit path simulates fills against a supplied order-book snapshot and persists paper orders/fills/audit in SQLite. It does not call exchange order endpoints.
+6. Hummingbot bridge is read-only with respect to trading: it calls Hummingbot `POST /market-data/order-book` to retrieve a depth snapshot (the HTTP method is POST, but the resource is market data); no order placement/cancel endpoint is called. Hummingbot Basic credentials remain server-side. This is not proof that the configured Hummingbot server is safe or that any other server-side process cannot trade.
+7. Existing test source covers distinct-token enforcement, unknown route rejection, paper evaluate/pause/kill/reset behavior, rate limiting and no-prediction WAIT behavior. Android API tests cover HTTPS/path allowlisting. These test definitions were inspected but NOT executed in this task.
+
+Important operational distinction:
+- The Android Paper app's POST controls are real state changes to the configured paper backend and may create simulated paper fills. They are not live exchange orders in the inspected implementation. Do not press Evaluate, Pause/Resume, Cancel, Kill or Reset during a connection check unless that exact paper mutation has been explicitly authorized and a disposable paper ledger is confirmed.
+- The backend runbook describes a source-level deployment contract, but this review did not identify or verify a currently deployed backend URL, DNS/TLS identity, environment variables, database path, Hummingbot target or server process. The UI accepts a user-entered URL, so actual host identity remains **NOT VERIFIED**.
+
+Results:
+- Android client/backend auth and route contract: **PASS (static source review)**.
+- Paper mutation isolation to SQLite ledger in inspected backend path: **PASS (scoped)**.
+- Hummingbot integration method/resource is market-data snapshot only in inspected bridge: **PASS (scoped)**.
+- Actual deployed backend identity, environment, Hummingbot server identity and runtime behavior: **NOT VERIFIED**.
+- Existing test cases inspected, not executed in this task; device tests: **BLOCKED pending explicit approval**.
+
+Safety limits:
+- Do not connect the app to any endpoint until the operator independently confirms the HTTPS origin belongs to the intended isolated paper server.
+- Do not use exchange API keys or trading-enabled Hummingbot credentials. Keep `AI_EXECUTION_ENABLED=false` and no live trading.
+- No API calls or POST controls were made. No workflow/artifact was generated.
+
+Next step:
+- Prepare a no-write endpoint identity checklist (origin, TLS certificate/hostname, server build SHA, `MARKET_DATA_TOKEN` vs `CONTROL_TOKEN` separation, DB canonical path and paper-only Hummingbot account/connector config). Then request explicit approval before any connection test; first test should be authenticated GET-only against a confirmed paper host.
