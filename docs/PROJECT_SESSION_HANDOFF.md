@@ -446,3 +446,11 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - No topology, canonical host/path, cursor, migration scheme, backup destination or operational value was selected or approved.
 - No code, schema, dependency, workflow, runtime or database changed. No tests were run for this documentation-only decision record.
 - Next: obtain explicit decisions/approval for D1–D7 before production implementation. Fixture-only testing may continue, but no canonical DB, PC/Android shadow, Feeder/API, exchange, production restore or writer activation. Natural Doze remains `INTERRUPTED / DEFERRED`; `ai_execution_enabled=false`.
+
+
+### P5.4.20 clarification — existing T0 storage decision
+
+- Existing user-approved T0 direction is **PC-hosted SQLite, feeder lease in the same store, daily backup**. ADR-001 has been corrected to preserve this decision.
+- Still unresolved: exact canonical Windows path and whether the Paper Ledger is in the exact same SQLite file as T0 market data or a separate file.
+- PostgreSQL remains an optional/experimental adapter, not the selected T0 canonical backend.
+- ADR correction commit: `7201f9d37e02e171ee2e75bf349c03ac42e60af2`.
