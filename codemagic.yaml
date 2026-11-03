@@ -309,3 +309,45 @@ workflows:
       - ci-source-sha.txt
       - freqai-smoke-tests.log
 
+  backup-restore-test:
+    name: P5.4.9 Backup and Restore - fixture-only validation
+    instance_type: mac_mini_m2
+    max_build_duration: 15
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: feature/p5-4-1-post-merge-validation-20261103
+          include: true
+          source: true
+      cancel_previous_builds: false
+    when:
+      changeset:
+        includes:
+          - ci/backup_restore_test_support.py
+          - ci/test_backup_restore.py
+          - ci/run_backup_restore_tests.py
+          - paper_execution/shadow_migration_fixture.py
+          - codemagic.yaml
+    scripts:
+      - name: Verify fixture-only execution boundary and record source
+        script: |
+          set -euo pipefail
+          export AI_EXECUTION_ENABLED=false
+          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB PAPER_TRADING_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+            if [[ -n "${!key:-}" ]]; then
+              echo "Unsafe environment variable present: $key"
+              exit 1
+            fi
+          done
+          git rev-parse HEAD | tee backup-restore-source-sha.txt
+          python3 --version | tee backup-restore-python-version.txt
+      - name: Run fixture-only Backup/Restore contract tests
+        script: |
+          set -euo pipefail
+          export PYTHONPATH="$CM_BUILD_DIR"
+          python3 -m unittest discover -s ci -p 'test_backup_restore.py' -v 2>&1 | tee backup-restore-tests.log
+    artifacts:
+      - backup-restore-source-sha.txt
+      - backup-restore-python-version.txt
+      - backup-restore-tests.log
