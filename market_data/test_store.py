@@ -48,25 +48,25 @@ class CandleStoreTest(unittest.TestCase):
         self.assertEqual(row["availabilityKind"], "FIRST_OBSERVED")
 
     def test_duplicate_reimport_preserves_first_observation_and_dataset_version(self):
-        self.store.insert([self.candle()])
+        self.write([self.candle()])
         before = self.window(1)
-        self.assertEqual(self.store.insert([self.candle(available_at_ms=self.step + 500)]), 0)
+        self.assertEqual(self.write([self.candle(available_at_ms=self.step + 500)]), 0)
         self.assertEqual(self.window(1)["datasetVersion"], before["datasetVersion"])
         self.assertEqual(self.window(1)["candles"][0]["availableAtMs"], self.step + 100)
 
     def test_conflicting_candle_rolls_back_the_whole_batch(self):
-        self.store.insert([self.candle()])
+        self.write([self.candle()])
         with self.assertRaises(ValueError):
-            self.store.insert([self.candle(1), self.candle(close="100.5")])
+            self.write([self.candle(1), self.candle(close="100.5")])
         self.assertEqual(self.window(2)["coverage"]["returned"], 1)
 
     def test_conflicting_duplicate_in_one_batch_is_atomic(self):
         with self.assertRaises(ValueError):
-            self.store.insert([self.candle(), self.candle(close="100.5")])
+            self.write([self.candle(), self.candle(close="100.5")])
         self.assertEqual(self.window(1)["candles"], [])
 
     def test_reports_leading_internal_trailing_gaps_without_filling(self):
-        self.store.insert([self.candle(1), self.candle(3)])
+        self.write([self.candle(1), self.candle(3)])
         result = self.window(5)
         self.assertEqual([c["openTimeMs"] for c in result["candles"]], [self.step, 3 * self.step])
         self.assertEqual(result["coverage"], {
@@ -76,7 +76,7 @@ class CandleStoreTest(unittest.TestCase):
                      {"startMs": 4 * self.step, "endMs": 5 * self.step}]})
 
     def test_as_of_filters_by_first_seen_time_without_backdating_history(self):
-        self.store.insert([self.candle(available_at_ms=10 * self.step)])
+        self.write([self.candle(available_at_ms=10 * self.step)])
         hidden = self.window(1, as_of_ms=9 * self.step)
         visible = self.window(1, as_of_ms=10 * self.step)
         self.assertEqual(hidden["candles"], [])
@@ -84,10 +84,10 @@ class CandleStoreTest(unittest.TestCase):
 
     def test_dataset_version_changes_only_with_selected_content_or_query(self):
         empty = self.window(1)["datasetVersion"]
-        self.store.insert([self.candle()])
+        self.write([self.candle()])
         populated = self.window(1)["datasetVersion"]
         self.assertNotEqual(empty, populated)
-        self.store.insert([self.candle(2)])
+        self.write([self.candle(2)])
         self.assertEqual(populated, self.window(1)["datasetVersion"])
 
     def test_rejects_nonfinite_inconsistent_unclosed_and_oversized_values(self):
