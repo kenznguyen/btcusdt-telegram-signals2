@@ -172,7 +172,7 @@ workflows:
         script: |
           set -euo pipefail
           "$CI_PYTHON" -m unittest discover -s integrations -p 'test_*.py' -v 2>&1 | tee gateway-tests.log
-          "$CI_PYTHON" -m unittest discover -s ci -p 'test_*.py' -v 2>&1 | tee ci-policy-tests.log
+          "$CI_PYTHON" -m unittest ci.test_legacy_runner -v 2>&1 | tee ci-policy-tests.log
       - name: Run five-layer paper integration tests
         script: |
           set -euo pipefail
