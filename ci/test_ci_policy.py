@@ -27,12 +27,39 @@ class CiPolicyTest(unittest.TestCase):
             "t0-manual-validation.yml",
             "p5-3-11-g2-integration-red.yml",
             "p5-3-11-g2-integration-green.yml",
+            "p5-4-1-post-merge-validation.yml",
         }
 
         self.assertIn("p5-3-10-4-g1-red-execution.yml", actual)
         self.assertIn("p5-3-11-5-g2-red-validation.yml", actual)
         self.assertLessEqual(actual, approved)
         self.assertTrue((ROOT / "ci/archive/github-actions/market-data-ci.yml").exists())
+
+    def test_p5_4_1_orchestrator_is_allowlisted_and_fail_closed(self):
+        path = ROOT / ".github/workflows/p5-4-1-post-merge-validation.yml"
+        self.assertTrue(path.is_file())
+        workflow = yaml.safe_load(path.read_text())
+        self.assertIn("workflow_dispatch", workflow["on"])
+        self.assertIn("pull_request", workflow["on"])
+        self.assertIn("push", workflow["on"])
+        self.assertEqual(workflow["permissions"]["contents"], "read")
+        jobs = workflow["jobs"]
+        self.assertEqual(set(jobs), {"preflight", "t0", "g1", "g2", "publish"})
+        self.assertEqual(jobs["t0"]["uses"], "./.github/workflows/t0-validation.yml")
+        self.assertEqual(jobs["g1"]["uses"], "./.github/workflows/p5-3-10-5-g1-green-validation.yml")
+        self.assertEqual(jobs["g2"]["uses"], "./.github/workflows/p5-3-11-g2-integration-green.yml")
+        preflight = jobs["preflight"]["steps"]
+        source_guard = next(step for step in preflight if step.get("name") == "Enforce exact SHA and no-runtime boundary")
+        self.assertIn("EXPECTED_SHA", source_guard["env"])
+        self.assertIn("AI_EXECUTION_ENABLED", source_guard["run"])
+        self.assertIn("test \"$AI_EXECUTION_ENABLED\" = \"false\"", source_guard["run"])
+        publish = jobs["publish"]
+        self.assertEqual(set(publish["needs"]), {"preflight", "t0", "g1", "g2"})
+        publish_run = next(step["run"] for step in publish["steps"] if step.get("name") == "Verify all suites and source identities")
+        self.assertIn("T0_RESULT", publish_run)
+        self.assertIn("G1_RESULT", publish_run)
+        self.assertIn("G2_RESULT", publish_run)
+        self.assertIn("test \"$actual\" = \"$EXPECTED_SHA\"", publish_run)
 
     def test_g2_red_contract_is_not_configured_in_codemagic(self):
         self.assertNotIn("p5-3-11-5-g2-red-tests", self.workflows)
