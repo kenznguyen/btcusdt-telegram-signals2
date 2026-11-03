@@ -34,6 +34,7 @@ run-name: T0 automated validation (${{ github.ref_name }} @ ${{ github.sha }})
     branches:
       - main
       - feature/p5-3-11-5-g2-red-tests-20261103
+      - integration/p5-3-11-g2-gateway-green-20261103
     paths:
       - "market_data/**"
       - "ci/**"

@@ -6,6 +6,8 @@ import tempfile
 import unittest
 
 from market_data.store import Candle, CandleStore, read_window
+from market_data.gateway import LeaseFence, T0WriteGateway
+from market_data.feeder import LeaseStore
 from pipeline.decision import evaluate
 from pipeline.values import identity
 from futures_intelligence.import_collector import HEADERS, build_snapshot
@@ -18,7 +20,16 @@ class DecisionTest(unittest.TestCase):
         opening, interval = 1_800_000_000_000, 900_000
         self.now = opening + interval + 5_000
         path = Path(self.temp.name) / "data.sqlite3"
-        CandleStore(path).insert([Candle("15m", opening, "100", "102", "99", "101", "3", opening+interval+1000)])
+        candle_store = CandleStore(path)
+        candle_store.initialize_schema()
+        leases = LeaseStore(str(path))
+        leases.initialize_schema()
+        lease = leases.acquire("decision-test", now_ms=opening, ttl_seconds=3600)
+        T0WriteGateway(path).insert_batch(
+            [Candle("15m", opening, "100", "102", "99", "101", "3", opening+interval+1000)],
+            lease_token=LeaseFence(leases.lease_name, "decision-test", lease.generation),
+            now_ms=lambda: opening + 1,
+        )
         self.window = read_window(path, "BTCUSDT", "15m", opening, opening+interval)
         self.prediction = {"schemaVersion": 1, "exchange": "binance", "marketType": "USDT_PERPETUAL",
             "symbol": "BTCUSDT", "timeframe": "15m", "candleOpenTimeMs": opening,

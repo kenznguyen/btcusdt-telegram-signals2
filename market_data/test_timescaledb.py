@@ -1,4 +1,4 @@
-"""SQLite/TimescaleDB contract parity tests; DB is supplied by Codemagic."""
+"""SQLite/TimescaleDB parity tests; require an explicitly supplied disposable integration DB."""
 
 import os
 import tempfile
@@ -10,9 +10,9 @@ from market_data.api import application
 from market_data.migrations import migrate
 from market_data.postgres import PostgresCandleStore, connection, read_window as read_postgres_window
 from market_data.store import Candle, CandleStore, INTERVAL_MS, read_window
-from market_data.gateway import LeaseFence
+from market_data.gateway import LeaseFence, T0WriteGateway
+from market_data.feeder import LeaseStore
 from market_data.sync import sync_window
-from market_data.storage import create_store
 
 
 DSN = os.environ.get("MARKET_DATA_TEST_DATABASE_URL", "")
@@ -24,7 +24,7 @@ class TimescaleParityTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         if not DSN:
-            raise RuntimeError("Codemagic requires MARKET_DATA_TEST_DATABASE_URL")
+            raise RuntimeError("Timescale integration requires an explicitly supplied MARKET_DATA_TEST_DATABASE_URL")
         try:
             import psycopg  # noqa: F401
         except ImportError:
@@ -42,12 +42,19 @@ class TimescaleParityTest(unittest.TestCase):
         self.sqlite_path = Path(self.temp.name) / "market.sqlite3"
         self.sqlite_store = CandleStore(self.sqlite_path)
         self.sqlite_store.initialize_schema()
-        self.pg_store = create_store("postgres", postgres_dsn=DSN)
+        self.pg_store = PostgresCandleStore(DSN)
         self.step = INTERVAL_MS["15m"]
         # Integration database must be disposable; unique time slots avoid cross-run collisions.
         import time
         import uuid
         self.start = ((time.time_ns() // 1_000_000 // self.step) + (uuid.uuid4().int % 1_000_000)) * self.step
+        self.sqlite_leases = LeaseStore(str(self.sqlite_path))
+        self.sqlite_leases.initialize_schema()
+        lease = self.sqlite_leases.acquire("timescale-parity-test", now_ms=self.start, ttl_seconds=3600)
+        self.sqlite_gateway = T0WriteGateway(self.sqlite_path)
+        self.sqlite_lease_token = LeaseFence(
+            self.sqlite_leases.lease_name, "timescale-parity-test", lease.generation
+        )
 
     def tearDown(self):
         with connection(DSN) as database:
@@ -63,7 +70,9 @@ class TimescaleParityTest(unittest.TestCase):
     def test_exact_decimal_hash_gap_and_asof_parity(self):
         candles = [self.candle(), self.candle(2)]
         self.assertEqual(self.pg_store.insert(candles), 2)
-        self.sqlite_store.insert(candles)
+        self.sqlite_gateway.insert_batch(
+            candles, lease_token=self.sqlite_lease_token, now_ms=lambda: self.start + 1
+        )
         args = ("BTCUSDT", "15m", self.start, self.start+3*self.step)
         self.assertEqual(read_postgres_window(DSN, *args), read_window(self.sqlite_path, *args))
         cutoff = self.start + 2*self.step

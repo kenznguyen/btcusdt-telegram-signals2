@@ -357,15 +357,21 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
         self.assertFalse(adapter.recover_all())
 
     def test_build_runtime_composes_scheduler_and_recovery_without_starting_process(self):
+        import tempfile
+        from pathlib import Path
         from unittest.mock import Mock
         from market_data.feeder import FeederRuntime
+        from market_data.gateway import T0WriteGateway
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        gateway = T0WriteGateway(Path(temporary.name) / "unused.sqlite3")
         exchange, store, leases = Mock(), Mock(), Mock()
         runtime = build_runtime(
             config=FeederConfig(timeframes=("15m", "1h")),
             owner_id="integration-worker",
             exchange=exchange,
             store=store,
-            gateway=Mock(),
+            gateway=gateway,
             lease_store=leases,
             clock=lambda: NOW + 7_200_000,
         )
@@ -391,10 +397,15 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
 
 
     def test_startup_recovery_renews_lease_before_canonical_sync_attempt(self):
+        import tempfile
+        from pathlib import Path
         from unittest.mock import Mock, patch
         from market_data.store import INTERVAL_MS
-        from market_data.gateway import LeaseFence
-        exchange, store, leases, gateway = Mock(), Mock(), Mock(), Mock()
+        from market_data.gateway import LeaseFence, T0WriteGateway
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        gateway = T0WriteGateway(Path(temporary.name) / "unused.sqlite3")
+        exchange, store, leases = Mock(), Mock(), Mock()
         leases.heartbeat.return_value = True
         interval = INTERVAL_MS["15m"]
         reads = {"count": 0}

@@ -25,6 +25,8 @@ class CiPolicyTest(unittest.TestCase):
             "p5-3-11-5-g2-red-validation.yml",
             "t0-validation.yml",
             "t0-manual-validation.yml",
+            "p5-3-11-g2-integration-red.yml",
+            "p5-3-11-g2-integration-green.yml",
         }
 
         self.assertIn("p5-3-10-4-g1-red-execution.yml", actual)
@@ -34,6 +36,42 @@ class CiPolicyTest(unittest.TestCase):
 
     def test_g2_red_contract_is_not_configured_in_codemagic(self):
         self.assertNotIn("p5-3-11-5-g2-red-tests", self.workflows)
+
+
+    def test_g2_acceptance_is_github_actions_only_and_historical_red_is_manual(self):
+        green = (ROOT / ".github/workflows/p5-3-11-g2-integration-green.yml").read_text()
+        red = (ROOT / ".github/workflows/p5-3-11-g2-integration-red.yml").read_text()
+        self.assertIn("permissions:\n  contents: read", green)
+        self.assertIn("ref: ${{ github.event.pull_request.head.sha || github.sha }}", green)
+        self.assertIn("persist-credentials: false", green)
+        self.assertIn("integration/p5-3-11-g2-gateway-green-20261103", green)
+        self.assertIn(
+            "branches:\\n      - feature/p5-3-11-5-g2-red-tests-20261103\\n      - integration/p5-3-11-g2-gateway-green-20261103",
+            green,
+        )
+        self.assertIn("workflow_dispatch:", green)
+        self.assertIn("market_data.test_g2_writer_routing", green)
+        self.assertIn("market_data.test_feeder_lease", green)
+        self.assertIn("market_data.test_feeder_atomic_fencing", green)
+        self.assertIn("market_data.test_feeder_lifecycle", green)
+        self.assertIn("g2-feeder-routing-tests.log", green)
+        self.assertNotIn("p5-3-11-g2-gateway-green-acceptance", self.workflows)
+
+        data = self.workflows["canonical-market-data"]
+        branch_patterns = {item["pattern"] for item in data["triggering"]["branch_patterns"]}
+        self.assertNotIn("integration/p5-3-11-g2-gateway-green-20261103", branch_patterns)
+        commands = "\n".join(item["script"] for item in data["scripts"])
+        self.assertNotIn("market_data.test_g2_writer_routing", commands)
+        self.assertNotIn("g2-feeder-routing-tests.log", commands)
+        self.assertNotIn("g2-feeder-routing-tests.log", data["artifacts"])
+
+        readme = (ROOT / "market_data/README.md").read_text()
+        self.assertIn("GitHub Actions là cổng CI/acceptance duy nhất", readme)
+        self.assertIn("Codemagic không được dùng để chạy, chạy lại hoặc nghiệm thu PR #125/G2", readme)
+        self.assertNotIn("Codemagic là gate CI/acceptance mặc định", readme)
+        self.assertIn("workflow_dispatch:", red)
+        self.assertNotIn("  push:", red)
+
 
 
     def test_t0_ci_is_migrated_to_github_actions(self):
@@ -46,6 +84,8 @@ class CiPolicyTest(unittest.TestCase):
         self.assertEqual(set(workflow["jobs"]), {"t0-validation"})
         self.assertIn("push", workflow["on"])
         self.assertIn("pull_request", workflow["on"])
+        self.assertIn("integration/p5-3-11-g2-gateway-green-20261103",
+                      workflow["on"]["pull_request"]["branches"])
         self.assertIn("workflow_dispatch", manual["on"])
         self.assertEqual(manual["permissions"]["contents"], "read")
         self.assertNotIn("MARKET_DATA_TEST_DATABASE_URL", manual["jobs"]["manual-gate"].get("env", {}))
@@ -93,7 +133,7 @@ class CiPolicyTest(unittest.TestCase):
             "t0-operational-contract-release-gate", "t0-data-integrity-candle-continuity-gate",
             "t0-final-runtime-configuration-check", "t0-component-tests-p3",
             "t0-feeder-lifecycle-red", "t0-feeder-atomic-fencing-red",
-            "p5-2-4-shadow-migration-red", "p5-2-5-runtime-red-validation",
+            "p5-2-4-shadow-migration-red", "p5-2-5-runtime-red-validation", "p5-3-11-5-g2-red-tests",
         }
         self.assertTrue(retired.isdisjoint(set(self.workflows)))
         commands = "\n".join(item["script"] for item in self.workflows["canonical-market-data"]["scripts"])
@@ -109,7 +149,7 @@ class CiPolicyTest(unittest.TestCase):
     def test_data_checks_keep_dependency_import_tests_and_cli_gates(self):
         data = self.workflows["canonical-market-data"]
         self.assertIn("push", data["triggering"]["events"])
-        commands = "\\n".join(item["script"] for item in data["scripts"])
+        commands = "\n".join(item["script"] for item in data["scripts"])
         for gate in ("requirements-market-data.txt", "requirements-web.txt", "requirements-ci.txt",
                      "-s integrations", "ci.test_legacy_runner"):
             with self.subTest(gate=gate):
@@ -117,7 +157,7 @@ class CiPolicyTest(unittest.TestCase):
         for t0_only in ("import ccxt", "import app", "market_data.sync --help", "compileall -q market_data"):
             self.assertNotIn(t0_only, commands)
         t0_workflow = yaml.safe_load((ROOT / ".github/workflows/t0-validation.yml").read_text())
-        t0_commands = "\\n".join(step.get("run", "") for step in t0_workflow["jobs"]["t0-validation"]["steps"])
+        t0_commands = "\n".join(step.get("run", "") for step in t0_workflow["jobs"]["t0-validation"]["steps"])
         for module in ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
                        "market_data.test_api", "market_data.test_gateway_runtime"):
             self.assertIn(module, t0_commands)

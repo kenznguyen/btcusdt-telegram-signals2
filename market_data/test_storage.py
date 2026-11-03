@@ -51,7 +51,15 @@ class StorageFactoryTest(unittest.TestCase):
             CandleStore(path).initialize_schema()
             step = INTERVAL_MS["15m"]
             candle = Candle("15m", 0, "100", "102", "99", "101", "5", step + 1)
-            self.assertEqual(store.insert([candle]), 1)
+            leases = LeaseStore(path)
+            leases.initialize_schema()
+            lease = leases.acquire("factory-test", now_ms=0, ttl_seconds=3600)
+            gateway = T0WriteGateway(path)
+            self.assertEqual(gateway.insert_batch(
+                [candle],
+                lease_token=LeaseFence(leases.lease_name, "factory-test", lease.generation),
+                now_ms=lambda: 1,
+            ), 1)
             result = store.read_window("BTCUSDT", "15m", 0, step)
             self.assertEqual(result["candles"][0]["close"], "101")
             self.assertTrue(result["coverage"]["complete"])
@@ -94,6 +102,23 @@ class StorageFactoryTest(unittest.TestCase):
         with patch("market_data.storage.read_postgres_window", side_effect=RuntimeError("unavailable")):
             with self.assertRaisesRegex(RuntimeError, "unavailable"):
                 store.read_window("BTCUSDT", "15m", 0, 900_000)
+
+
+    def test_runtime_sqlite_factory_exposes_no_legacy_write_methods(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = create_store("sqlite", sqlite_path=str(Path(directory) / "candles.sqlite3"))
+            self.assertFalse(hasattr(store, "insert"))
+            self.assertFalse(hasattr(store, "insert_fenced"))
+            self.assertFalse(hasattr(store, "_writer"))
+
+    def test_runtime_postgres_factory_exposes_no_legacy_write_methods(self):
+        store = create_store("postgres", postgres_dsn="postgresql://user:pass@127.0.0.1:5432/test")
+        self.assertFalse(hasattr(store, "insert"))
+        self.assertFalse(hasattr(store, "_store"))
+
+    def test_candle_store_has_no_direct_data_mutation_methods(self):
+        self.assertFalse(hasattr(CandleStore, "insert"))
+        self.assertFalse(hasattr(CandleStore, "insert_fenced"))
 
 
 if __name__ == "__main__":

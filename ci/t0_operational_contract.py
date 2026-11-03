@@ -46,6 +46,7 @@ RETIRED_CODEMAGIC_WORKFLOWS = {
     "t0-feeder-atomic-fencing-red",
     "p5-2-4-shadow-migration-red",
     "p5-2-5-runtime-red-validation",
+    "p5-3-11-5-g2-red-tests",
 }
 
 
@@ -189,12 +190,40 @@ def audit_contract(root):
     ))
 
     fencing_ok = all((
-        "T0WriteGateway" in feeder_service,
-        "LeaseFence" in feeder_service,
-        "T0WriteGateway(candle_path)" in feeder_service,
+        "gateway = T0WriteGateway(candle_path)" in feeder_service,
+        "lease_store = LeaseStore(lease_path)" in feeder_service,
+        "LeaseFence(" in feeder_service,
         "gateway=gateway" in feeder_service,
+        "lease_token=lease_token" in feeder_service,
+        "lease_clock=runtime_clock_fn" in feeder_service,
+        "sync_callback=canonical_sync" in feeder_service,
+        "T0_FEEDER_LEASE_DB must resolve to the same file as MARKET_DATA_DB" in feeder_service,
+        "gateway.insert_batch(" in sync_source,
+        "lease_token=lease_token" in sync_source,
+        "now_ms=lease_clock" in sync_source,
+    ))
+    feeder_source = (root / "market_data/feeder.py").read_text(encoding="utf-8")
+    gateway_source = (root / "market_data/gateway.py").read_text(encoding="utf-8")
+    gateway_boundary_ok = all((
         "isinstance(gateway, T0WriteGateway)" in sync_source,
-        "gateway.insert_batch(candles, lease_token=lease_token, now_ms=lease_clock)" in sync_source,
+        "isinstance(gateway, T0WriteGateway)" in feeder_service,
+        "gateway.insert_batch(" in sync_source,
+    ))
+    clock_separation_ok = all((
+        "observation_clock=None" in feeder_service,
+        "observation_clock_fn" in feeder_service,
+        "lease_clock if lease_clock is not None" in feeder_service,
+        "now_ms=observation_clock_fn" in feeder_service,
+        "lease_clock=runtime_clock_fn" in feeder_service,
+        "clock=runtime_clock_fn" in feeder_service,
+    ))
+    runtime_storage_fail_closed_ok = all((
+        "?mode=rw" in gateway_source,
+        "?mode=rw" in feeder_source,
+        "def initialize_schema(self)" in store_source,
+        "def initialize_schema(self)" in feeder_source,
+        "def insert(self" not in store_source,
+        "def insert_fenced(" not in store_source,
     ))
 
     return [
@@ -246,6 +275,24 @@ def audit_contract(root):
             fencing_ok,
             "Production feeder and sync use T0WriteGateway with typed LeaseFence for SQLite atomic write admission."
             if fencing_ok else "One or more T0WriteGateway / LeaseFence source invariants changed.",
+        ),
+        _check(
+            "concrete_gateway_boundary",
+            gateway_boundary_ok,
+            "sync_window and build_runtime accept only the concrete T0WriteGateway boundary."
+            if gateway_boundary_ok else "A duck-typed writer can bypass the concrete Gateway boundary.",
+        ),
+        _check(
+            "observation_and_lease_clock_separation",
+            clock_separation_ok,
+            "Observation timestamps and lease/runtime admission clocks are independently injectable."
+            if clock_separation_ok else "Observation and lease/runtime clocks are not independently wired.",
+        ),
+        _check(
+            "runtime_storage_fail_closed",
+            runtime_storage_fail_closed_ok,
+            "CandleStore and LeaseStore runtime writes use SQLite mode=rw; schema creation remains explicit."
+            if runtime_storage_fail_closed_ok else "A runtime writer may create an absent database or initialize schema implicitly.",
         ),
     ]
 

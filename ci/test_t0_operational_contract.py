@@ -49,5 +49,15 @@ class T0OperationalContractReleaseGateTest(unittest.TestCase):
         self.assert_check_passes("sqlite_gateway_fencing_contract")
 
 
+    def test_sync_and_runtime_require_concrete_gateway(self):
+        self.assert_check_passes("concrete_gateway_boundary")
+
+    def test_observation_and_lease_runtime_clocks_are_independent(self):
+        self.assert_check_passes("observation_and_lease_clock_separation")
+
+    def test_runtime_storage_fails_closed_without_implicit_schema_creation(self):
+        self.assert_check_passes("runtime_storage_fail_closed")
+
+
 if __name__ == "__main__":
     unittest.main()
