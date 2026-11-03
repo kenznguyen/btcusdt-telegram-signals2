@@ -1,13 +1,7 @@
-name: P5.3.11 - G2 Integration RED
-run-name: G2 integration RED (${{ github.ref_name }} @ ${{ github.sha }})
+name: P5.3.11 - G2 Integration RED (historical, manual only)
+run-name: Historical G2 RED reproduction (${{ github.ref_name }} @ ${{ github.sha }})
 
 on:
-  push:
-    branches:
-      - integration/p5-3-11-g2-gateway-green-20261103
-    paths:
-      - "market_data/**"
-      - ".github/workflows/p5-3-11-g2-integration-red.yml"
   workflow_dispatch:
 
 permissions:
