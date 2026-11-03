@@ -1212,3 +1212,40 @@ Safety limits:
 
 Next step:
 - Prepare a no-write endpoint identity checklist (origin, TLS certificate/hostname, server build SHA, `MARKET_DATA_TOKEN` vs `CONTROL_TOKEN` separation, DB canonical path and paper-only Hummingbot account/connector config). Then request explicit approval before any connection test; first test should be authenticated GET-only against a confirmed paper host.
+
+
+## P5.4.55 — HTTP method vs data-side-effect classification (2026-11-04)
+
+Scope:
+- Read-only review of API route dispatch and existing equity persistence test. No API call, DB access, server start, endpoint probe, or paper mutation was performed.
+
+Source SHA: `4c5a1ad8b61ce1a17c254c3a989b5ad0665779fc`.
+Evidence:
+- `pipeline/api.py` blob: `0540540462b3710a25788e4ff47a88272b7ee9c3`
+- `pipeline/test_api.py` blob: `2c021f14c5326ec7defa2b9c6606ac60ae9df558`
+- `docs/FIVE_LAYER_PAPER_RUNBOOK.md` blob: `184ffa7e8df9d4f4f81a4902d9b6bc84783d7d07`
+
+Finding — GET is not synonymous with read-only:
+1. `GET /v1/equity` dispatches to `equity_snapshot()`. When a complete closed M15 candle is available, that function constructs `PaperLedger` and calls `record_equity(...)`, which persists an equity observation in SQLite. The source comment explicitly notes that constructing the ledger initializes a fresh Paper store before the first persistent equity observation.
+2. Existing test `test_equity_endpoint_persists_history_and_returns_drawdown_daily_metrics` asserts that calling this GET endpoint causes `paper_equity_history` row count to become 1. This is direct test-source evidence of a persistent write, not merely an inferred possibility.
+3. Therefore a GET-only smoke test that calls every GET route can still mutate canonical Paper DB state. `GET /v1/equity` is **READ + WRITE / SIDE-EFFECTING** and must be excluded from a no-write connection check.
+4. `GET /v1/paper` uses `read_snapshot()`; `GET /v1/audit` uses `read_audit()`; `GET /v1/candles` reads the configured market-data store. Other GET routes may fetch/compute snapshots (including Hummingbot market data) but should still be individually checked for indirect persistence before being called against a production/canonical store.
+5. Hummingbot bridge's upstream `POST /market-data/order-book` remains a market-data retrieval resource. HTTP verb alone does not identify whether the operation changes trading or persistent state; resource semantics and implementation must be checked.
+
+Endpoint test policy update:
+- A future no-write smoke test may consider only routes whose full call graph is confirmed read-only and which are safe for the selected environment. Do not call `/v1/equity`.
+- Avoid `/health` as proof of backend identity; it is unauthenticated and only reports process identity string.
+- Do not call any POST control route (`evaluate`, `pause`, `cancel`, `kill`, `reset-kill`) during identity verification.
+- Do not run tests against canonical production DB. Any later persistence test must use a disposable isolated SQLite copy/store with known path and verified backup/hash, separately authorized.
+
+Results:
+- Side-effecting GET discovery: **PASS** (source and existing test source agree).
+- Endpoint-level no-write allowlist: **NOT YET CERTIFIED**; complete call-graph audit and environment-specific review remain required.
+- Runtime endpoint identity/connectivity: **NOT VERIFIED**.
+- No test execution, workflow, artifact, device installation, API call, or DB mutation occurred.
+
+Safety/next:
+1. Amend the future endpoint checklist to explicitly blacklist `GET /v1/equity` and all POST controls for no-write checks.
+2. Audit each remaining candidate GET call graph for indirect DB writes and external side effects before any probe.
+3. Verify the deployed host/TLS identity out of band before an authenticated read-only request; do not treat `/health` alone as identity proof.
+4. Keep `AI_EXECUTION_ENABLED=false`; do not enable exchange credentials or live execution.
