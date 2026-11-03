@@ -174,7 +174,7 @@ def audit_contract(root):
     fencing_ok = all((
         "T0WriteGateway" in feeder_service,
         "LeaseFence" in feeder_service,
-        "gateway.insert_batch" in feeder_service,
+        "T0WriteGateway(candle_path)" in feeder_service,
         "gateway=gateway" in feeder_service,
         "isinstance(gateway, T0WriteGateway)" in sync_source,
         "gateway.insert_batch(candles, lease_token=lease_token, now_ms=lease_clock)" in sync_source,
