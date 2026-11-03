@@ -18,7 +18,7 @@ The repository currently has multiple storage patterns:
 - PostgreSQL market-data migrations: `market_data/migrations.py` records `migration_id`, `checksum_sha256` and `applied_at` in `market_data.schema_migrations`. This is a concrete version authority for that PostgreSQL migration path.
 - Paper ledger: `paper_execution/ledger.py` creates/ensures `paper_state`, `paper_orders`, `paper_books`, `paper_audit`, `paper_strategy_state` and shared risk/equity tables during `PaperLedger` construction. The inspected source does not establish a formal ledger migration registry.
 - The fixture helper uses SQLite `PRAGMA user_version` as a controlled test field. That does not prove production code currently assigns or governs this value.
-- `market_data/storage.py` supports SQLite by default and PostgreSQL by explicit configuration. The production canonical topology and whether market data and paper ledger share one physical database remain unresolved.
+- `market_data/storage.py` supports SQLite by default and PostgreSQL by explicit configuration. The owner has clarified that T0 runs on Android and Android-hosted SQLite is the canonical T0 storage target. The exact Android filesystem path and whether market data and Paper Ledger share one physical SQLite file remain unresolved.
 - The paper risk latch is persisted in the paper ledger database. Restoring that database can roll back its state unless a separate recovery control prevents writers from starting prematurely.
 
 Therefore, a production manifest cannot safely treat a single integer called `schema_version`, a generic row count, or a shared barrier string as sufficient proof of a recoverable cross-store snapshot.
@@ -37,13 +37,13 @@ Therefore, a production manifest cannot safely treat a single integer called `sc
 
 ### D1 — Canonical store topology and identity
 
-**Existing user decision:** T0 storage is PC-hosted SQLite, with the feeder lease in the same store and a daily backup cadence. This is the selected T0 direction; it must not be silently replaced by PostgreSQL.
+**Owner-confirmed direction:** T0 runs on **Android**, with **SQLite on Android as the canonical T0 storage target**. Do not use the older PC-hosted T0 wording as the current decision. PC remains a separate compute/backtest environment and is not the T0 canonical writer by this decision.
 
-**Still open:** the canonical Windows filesystem path remains unresolved, and this record does not establish whether the Paper Ledger shares the exact same SQLite file as T0 market data or uses a separate database. PostgreSQL remains an opt-in/experimental adapter, not the selected T0 canonical backend.
+**Still open:** the exact canonical Android filesystem path; whether Market Data and Paper Ledger share one physical SQLite file or use separate SQLite files; the exact location/ownership of the Feeder lease; and the backup destination/cadence/security policy. The earlier PC + same-store lease + daily-backup note is superseded where it conflicts with Android-first; do not carry its unresolved operational details forward as approved Android settings. PostgreSQL remains an opt-in/experimental adapter, not the selected T0 canonical backend.
 
 Candidate manifest identity should name a logical role (for example, `market_data` or `paper_ledger`), backend type, stable opaque store ID and schema authority. It must not expose credentials or raw DSNs/absolute paths.
 
-**Not decided:** canonical path, exact market-data/paper-ledger file topology, store IDs, backup destination and encryption/retention policy. Preserve the already selected T0 PC + SQLite + same-store lease + daily-backup direction.
+**Not decided:** canonical Android path, exact Market Data/Paper Ledger file topology, lease placement, store IDs, backup destination/cadence, encryption and retention policy.
 
 ### D2 — Per-store high-water semantics
 
@@ -115,13 +115,13 @@ Still required: destination and ownership, encryption at rest/in transit, key ma
 
 - **Potential benefit:** one SQLite Online Backup API snapshot can capture market data and paper state from a single database file.
 - **Limitations:** this only applies if all relevant state is truly in that database; external configs, lease owners, exchange inputs and control-plane latches remain outside it. WAL and writer-barrier handling still need proof.
-- **Status:** not selected.
+- **Status:** not selected. This remains a viable candidate for Android-hosted SQLite, but has not been approved.
 
 ### Split SQLite/PostgreSQL stores
 
 - **Potential benefit:** independently scalable market-data storage and paper ledger.
 - **Limitations:** requires a global barrier, per-store cursor contract, failure protocol and explicit statement of cross-store consistency. Separate snapshots are not automatically atomic.
-- **Status:** not selected.
+- **Status:** not selected. No cross-backend or split-file topology is approved.
 
 ### Manifest-only shared barrier
 
@@ -134,7 +134,7 @@ Still required: destination and ownership, encryption at rest/in transit, key ma
 - Production manifest schema and publisher/consumer must not be implemented by copying the fixture manifest and relabeling its row-count sum as a production cursor.
 - The next engineering gate is a reviewed, approved decision for D1–D7. Any unresolved item remains a production blocker.
 - Fixture-only CI may continue with additional negative tests, but must not imply operational readiness.
-- No production DB, canonical path, PC/Android filesystem, Feeder, exchange, restore or writer activation is authorized by this ADR.
+- No production DB access, canonical path probing, Android filesystem access, Feeder startup, exchange connection, restore or writer activation is authorized by this ADR.
 
 ## Acceptance gate for a future production design
 
@@ -148,3 +148,8 @@ Before implementation, obtain explicit approval for:
 - [ ] destination, encryption, retention, RPO/RTO and restore approver.
 
 Until all are resolved, production implementation status is **BLOCKED**.
+
+
+## Clarification — T0 host decision (2026-11-03)
+
+The owner corrected the prior PC-hosted wording: **T0 uses Android; Android-hosted SQLite is the canonical target.** This supersedes the earlier PC-hosted T0 statement. This clarification does not decide whether Market Data and Paper Ledger share one SQLite file, does not establish an exact Android path or lease location, and does not approve production backup/restore or runtime activation.
