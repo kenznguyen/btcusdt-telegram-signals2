@@ -42,6 +42,8 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("workflow_dispatch", workflow["on"])
         self.assertIn("pull_request", workflow["on"])
         self.assertIn("push", workflow["on"])
+        self.assertIn("feature/p5-2-5-green-contracts-20261102", workflow["on"]["push"]["branches"])
+        self.assertIn("ci/test_ci_policy.py", workflow["on"]["pull_request"]["paths"])
         self.assertEqual(workflow["permissions"]["contents"], "read")
         jobs = workflow["jobs"]
         self.assertEqual(set(jobs), {"preflight", "t0", "g1", "g2", "publish"})
