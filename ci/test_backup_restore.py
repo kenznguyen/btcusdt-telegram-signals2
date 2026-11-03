@@ -111,7 +111,7 @@ class BackupRestoreFixtureTest(unittest.TestCase):
             self.source, root=self.root,
             required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
         )
-        self.assertEqual(before["source_logical_sha256"], after["source_logical_sha256"])
+        self.assertEqual(before["logical_sha256"], after["logical_sha256"])
 
     def test_missing_required_table_fails_closed(self):
         damaged = self.backups / "missing-table.sqlite3"

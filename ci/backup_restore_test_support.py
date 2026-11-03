@@ -225,6 +225,23 @@ def atomic_backup(source, destination, *, root, required_tables=(), required_row
             source, temporary_path, root=root,
             required_tables=required_tables, required_rows=required_rows,
         )
+        # The backup image can inherit WAL mode from its source. Before
+        # atomically renaming the staged file, checkpoint and switch it to
+        # DELETE mode so no temporary-name -wal/-shm files are orphaned.
+        with closing(sqlite3.connect(temporary_path, timeout=10)) as publication_db:
+            checkpoint = publication_db.execute(
+                "PRAGMA wal_checkpoint(TRUNCATE)"
+            ).fetchone()
+            if checkpoint is not None and checkpoint[0] != 0:
+                raise BackupVerificationError("Staged backup WAL checkpoint is busy")
+            journal_mode = publication_db.execute(
+                "PRAGMA journal_mode=DELETE"
+            ).fetchone()
+            if journal_mode is None or journal_mode[0].lower() != "delete":
+                raise BackupVerificationError("Staged backup could not leave WAL mode")
+        for suffix in ("-wal", "-shm"):
+            Path(str(temporary_path) + suffix).unlink(missing_ok=True)
+
         result = verify_backup(
             source, temporary_path, root=root,
             required_tables=required_tables, required_rows=required_rows,
