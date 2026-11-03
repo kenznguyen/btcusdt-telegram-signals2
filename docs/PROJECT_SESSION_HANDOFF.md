@@ -907,6 +907,6 @@ Current verdict:
 - `AI_EXECUTION_ENABLED=false`; all exchange credentials and DB/Feeder environment variables remain empty in this workflow.
 
 Next action:
-1. Dispatch the workflow on `feature/p5-4-1-post-merge-validation-20261103` using current feature branch HEAD `4170a1bfcd3f7c03c04eca3eb2a43f977c4bad9a` as `source_sha`. The connected GitHub toolset has no workflow-dispatch operation, so this must be initiated from the Actions UI.
+1. Dispatch the workflow on `feature/p5-4-1-post-merge-validation-20261103` using the exact branch HEAD fetched immediately before dispatch as `source_sha` (do not reuse a SHA recorded earlier in this handoff, because each handoff update advances the branch). The connected GitHub toolset has no workflow-dispatch operation, so this must be initiated from the Actions UI.
 2. Inspect the new run's job steps, logs and artifacts. Do not claim release readiness until unit tests, both APK builds, package identity checks, signer parity and artifact integrity are evidenced.
 3. Do not install/distribute APKs or enable live execution. Paper-only boundary remains unchanged.
