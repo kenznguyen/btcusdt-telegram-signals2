@@ -81,18 +81,25 @@ jobs:
           python -m py_compile market_data/*.py ci/*.py pipeline/*.py freqai_bridge/*.py
           echo "PY_COMPILE=PASS" | tee g2-green-compile-verdict.txt
 
-      - name: Run G2 Gateway routing and G1 Gateway transaction contracts
+      - name: Run G1 Gateway transaction contracts
         run: |
           set -euo pipefail
-          python -m unittest market_data.test_g2_writer_routing market_data.test_gateway_runtime -v 2>&1 | tee g2-green-gateway-tests.log
+          python -m unittest market_data.test_gateway_runtime -v 2>&1 | tee g2-green-gateway-tests.log
 
-      - name: Run T0 lease, fencing, lifecycle and storage regressions
+      - name: Run G2 feeder routing, lease, fencing and lifecycle contracts
         run: |
           set -euo pipefail
           python -m unittest \
+            market_data.test_g2_writer_routing \
             market_data.test_feeder_lease \
             market_data.test_feeder_atomic_fencing \
             market_data.test_feeder_lifecycle \
+            -v 2>&1 | tee g2-feeder-routing-tests.log
+
+      - name: Run T0 scheduler, recovery, health and storage regressions
+        run: |
+          set -euo pipefail
+          python -m unittest \
             market_data.test_feeder_scheduler \
             market_data.test_feeder_retry \
             market_data.test_feeder_recovery \
@@ -142,6 +149,7 @@ jobs:
             g2-green-isolation.txt
             g2-green-compile-verdict.txt
             g2-green-gateway-tests.log
+            g2-feeder-routing-tests.log
             g2-green-t0-regression.log
             g2-green-ci-contracts.log
             g2-green-consumer-regressions.log
