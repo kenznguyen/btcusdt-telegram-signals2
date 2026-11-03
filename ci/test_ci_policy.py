@@ -235,8 +235,8 @@ class CiPolicyTest(unittest.TestCase):
                        "market_data.test_api", "market_data.test_gateway_runtime"):
             self.assertNotIn(module, commands)
 
-    def test_manual_stateful_and_release_tasks_never_start_on_push(self):
-        for name in ("android-chart-pro-release", "signal-scan", "telegram-command", "dashboard-backtest"):
+    def test_manual_stateful_tasks_never_start_on_push(self):
+        for name in ("signal-scan", "telegram-command", "dashboard-backtest"):
             with self.subTest(name=name):
                 self.assertNotIn("triggering", self.workflows[name])
 
@@ -258,25 +258,14 @@ class CiPolicyTest(unittest.TestCase):
         for t0_command in ("import ccxt", "import app", "market_data.sync --help", "compileall -q market_data"):
             self.assertIn(t0_command, t0_commands)
 
-    def test_android_debug_keeps_unit_tests_and_apk_gate(self):
-        workflow = self.workflows["android-chart-pro-debug"]
-        self.assertIn("push", workflow["triggering"]["events"])
-        self.assertIn(
-            {"pattern": "feature/android-five-layer-control", "include": True, "source": True},
-            workflow["triggering"]["branch_patterns"],
-        )
-        self.assertIn("android-app/", workflow["when"]["changeset"]["includes"])
-        commands = "\n".join(item["script"] for item in workflow["scripts"])
-        self.assertIn(":app:testDebugUnitTest", commands)
-        self.assertIn(":app:assembleDebug", commands)
-        self.assertIn(":app:testParallelUnitTest", commands)
-        self.assertIn(":app:assembleParallel", commands)
-        self.assertIn("ci.test_android_apks", commands)
-        self.assertIn("ci/verify-android-apks.py", commands)
-        self.assertIn("ci/setup-android.sh", commands)
-        self.assertIn("android-source-sha.txt", workflow["artifacts"])
-        self.assertIn("android-apks.json", workflow["artifacts"])
-        self.assertIn("artifacts/BTC-5-Tang-Paper-*.apk", workflow["artifacts"])
+    def test_obsolete_android_apk_build_workflows_are_retired(self):
+        self.assertNotIn("android-chart-pro-debug", self.workflows)
+        self.assertNotIn("android-chart-pro-release", self.workflows)
+        serialized = (ROOT / "codemagic.yaml").read_text()
+        for retired in ("android-chart-pro-debug:", "android-chart-pro-release:",
+                        ":app:assembleDebug", ":app:assembleParallel", "ci/release-android.sh"):
+            with self.subTest(retired=retired):
+                self.assertNotIn(retired, serialized)
 
     def test_shell_scripts_parse_and_no_unsupported_python_version_key(self):
         for path in (ROOT / "ci").glob("*.sh"):
