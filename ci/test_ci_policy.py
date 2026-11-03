@@ -29,6 +29,7 @@ class CiPolicyTest(unittest.TestCase):
             "p5-3-11-g2-integration-green.yml",
             "p5-4-1-post-merge-validation.yml",
             "p5-4-10-backup-restore-fixture.yml",
+            "android-release-pair.yml",
         }
 
         self.assertIn("p5-3-10-4-g1-red-execution.yml", actual)
@@ -279,10 +280,47 @@ class CiPolicyTest(unittest.TestCase):
             "artifacts/BTC-5-Tang-Paper-*.apk",
         )
         for path in sorted((*workflows.glob("*.yml"), *workflows.glob("*.yaml"))):
+            if path.name == "android-release-pair.yml":
+                continue
             content = path.read_text()
             for token in forbidden:
                 with self.subTest(workflow=path.name, token=token):
                     self.assertNotIn(token, content)
+
+    def test_android_release_pair_is_manual_pinned_and_release_signed(self):
+        workflow_path = ROOT / ".github/workflows/android-release-pair.yml"
+        self.assertTrue(workflow_path.is_file())
+        workflow = yaml.safe_load(workflow_path.read_text())
+        triggers = workflow.get("on", workflow.get(True, {}))
+        self.assertEqual(set(triggers), {"workflow_dispatch"})
+        source_input = triggers["workflow_dispatch"]["inputs"]["source_sha"]
+        self.assertTrue(source_input["required"])
+        self.assertEqual(source_input["type"], "string")
+        self.assertEqual(workflow["permissions"]["contents"], "read")
+        self.assertEqual(set(workflow["jobs"]), {"release-pair"})
+        job = workflow["jobs"]["release-pair"]
+        self.assertEqual(job["env"]["AI_EXECUTION_ENABLED"], "false")
+        checkout = next(step for step in job["steps"] if step.get("name") == "Checkout exact selected commit")
+        self.assertEqual(checkout["with"]["ref"], "${{ github.sha }}")
+        self.assertFalse(checkout["with"]["persist-credentials"])
+        guard = next(step for step in job["steps"] if step.get("name", "").startswith("Enforce branch"))
+        self.assertIn('test "$INPUT_SOURCE_SHA" = "$GITHUB_SHA"', guard["run"])
+        self.assertIn('test "$ANDROID_KEY_ALIAS" = "btc-chart-release"', guard["run"])
+        for secret in ("ANDROID_KEYSTORE_BASE64", "ANDROID_KEYSTORE_PASSWORD", "ANDROID_KEY_ALIAS", "ANDROID_KEY_PASSWORD"):
+            self.assertIn(secret, job["env"])
+            self.assertIn(secret, guard["run"])
+        build = next(step for step in job["steps"] if step.get("name", "").startswith("Build regular release"))
+        self.assertIn(":app:assembleRelease", build["run"])
+        self.assertIn(":app:assembleParallel", build["run"])
+        verify = next(step for step in job["steps"] if step.get("name", "").startswith("Verify both APK"))
+        self.assertIn("ci/verify-android-release-pair.py", verify["run"])
+        upload = next(step for step in job["steps"] if step.get("name", "").startswith("Upload paired"))
+        self.assertIn("app-release.apk", upload["with"]["path"])
+        self.assertIn("app-parallel.apk", upload["with"]["path"])
+        self.assertIn("android-release-pair.json", upload["with"]["path"])
+        gradle = (ROOT / "android-app/app/build.gradle.kts").read_text()
+        parallel = gradle.split('create("parallel") {', 1)[1].split("\n        }", 1)[0]
+        self.assertIn('signingConfig = signingConfigs.getByName("release")', parallel)
 
     def test_shell_scripts_parse_and_no_unsupported_python_version_key(self):
         for path in (ROOT / "ci").glob("*.sh"):
