@@ -32,6 +32,9 @@ class CiPolicyTest(unittest.TestCase):
         self.assertLessEqual(actual, approved)
         self.assertTrue((ROOT / "ci/archive/github-actions/market-data-ci.yml").exists())
 
+    def test_g2_red_contract_is_not_configured_in_codemagic(self):
+        self.assertNotIn("p5-3-11-5-g2-red-tests", self.workflows)
+
     def test_g2_acceptance_is_github_actions_only_and_historical_red_is_manual(self):
         green = (ROOT / ".github/workflows/p5-3-11-g2-integration-green.yml").read_text()
         red = (ROOT / ".github/workflows/p5-3-11-g2-integration-red.yml").read_text()
