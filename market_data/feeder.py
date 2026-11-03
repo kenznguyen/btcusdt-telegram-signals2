@@ -376,6 +376,9 @@ class RecoveryPlanner:
         gaps = details.get("gaps")
         if not isinstance(gaps, list):
             raise ValueError("coverage gaps must be a list")
+        complete = details.get("complete")
+        if type(complete) is not bool or complete != (len(gaps) == 0):
+            raise ValueError("coverage completeness contradicts reported gaps")
 
         windows = []
         for gap in gaps:
