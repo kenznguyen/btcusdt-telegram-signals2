@@ -89,12 +89,16 @@ class CiPolicyTest(unittest.TestCase):
     def test_data_checks_keep_dependency_import_tests_and_cli_gates(self):
         data = self.workflows["canonical-market-data"]
         self.assertIn("push", data["triggering"]["events"])
-        commands = "\n".join(item["script"] for item in data["scripts"])
+        commands = "\\n".join(item["script"] for item in data["scripts"])
         for gate in ("requirements-market-data.txt", "requirements-web.txt", "requirements-ci.txt",
-                     "import ccxt", "import app", "market_data.test_store", "market_data.test_sync",
-                     "market_data.test_api", "-s integrations", "-s ci", "market_data.sync --help"):
+                     "import ccxt", "import app", "-s integrations", "-s ci", "market_data.sync --help"):
             with self.subTest(gate=gate):
                 self.assertIn(gate, commands)
+        t0_workflow = yaml.safe_load((ROOT / ".github/workflows/t0-validation.yml").read_text())
+        t0_commands = "\\n".join(step.get("run", "") for step in t0_workflow["jobs"]["t0-validation"]["steps"])
+        for module in ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
+                       "market_data.test_api", "market_data.test_gateway_runtime"):
+            self.assertIn(module, t0_commands)
 
     def test_android_debug_keeps_unit_tests_and_apk_gate(self):
         workflow = self.workflows["android-chart-pro-debug"]
