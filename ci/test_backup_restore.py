@@ -24,6 +24,7 @@ from backup_restore_test_support import (
     atomic_backup,
     verify_backup,
     validate_split_store_manifest,
+    publish_split_store_backup_set,
 )
 
 REQUIRED_TABLES = (
@@ -505,6 +506,47 @@ class BackupRestoreFixtureTest(unittest.TestCase):
                 },
             },
         }
+
+    def test_split_store_partial_backup_failure_publishes_no_snapshot_set(self):
+        second_source = self.root / "source" / "second-fixture.sqlite3"
+        create_online_backup(
+            self.source, second_source, root=self.root,
+            required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
+        )
+        target = self.backups / "split-set"
+        sources = {
+            "market_data": self.source,
+            "paper_ledger": second_source,
+        }
+        snapshot_metadata = {
+            "market_data": {
+                "barrier_id": "barrier-fixture-002",
+                "snapshot_id": "market-snapshot-002",
+                "high_water_mark": 121,
+                "schema_version": 3,
+            },
+            "paper_ledger": {
+                "barrier_id": "barrier-fixture-002",
+                "snapshot_id": "paper-snapshot-002",
+                "high_water_mark": 45,
+                "schema_version": 5,
+            },
+        }
+
+        with self.assertRaisesRegex(RuntimeError, "injected partial split-store failure"):
+            publish_split_store_backup_set(
+                sources, target, root=self.root,
+                snapshot_barrier_id="barrier-fixture-002",
+                restore_epoch=5,
+                snapshot_metadata=snapshot_metadata,
+                required_tables=REQUIRED_TABLES,
+                required_rows=REQUIRED_ROWS,
+                fail_after_store="market_data",
+            )
+
+        self.assertFalse(target.exists())
+        self.assertEqual(list(self.backups.iterdir()), [])
+        self.assertFalse(any(self.backups.glob(".split-stage-*")))
 
     def test_split_store_manifest_requires_shared_barrier_and_epoch(self):
         valid = self._valid_split_store_manifest()
