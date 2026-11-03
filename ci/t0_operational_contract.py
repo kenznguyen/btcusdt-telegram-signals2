@@ -175,12 +175,27 @@ def audit_contract(root):
         'EXCHANGE, MARKET_TYPE, SYMBOL = "binance", "USDT_PERPETUAL", "BTCUSDT"' in store_source,
     ))
 
+    gateway_source = (root / "market_data/gateway.py").read_text(encoding="utf-8")
     fencing_ok = all((
-        "insert_fenced" in feeder_service,
-        "write_fence={" in feeder_service,
+        "gateway = T0WriteGateway(candle_path)" in feeder_service,
+        "lease_store = LeaseStore(lease_path)" in feeder_service,
+        "LeaseFence(" in feeder_service,
+        "gateway=gateway" in feeder_service,
+        "lease_token=lease_token" in feeder_service,
+        "lease_clock=lease_clock" in feeder_service,
         "sync_callback=canonical_sync" in feeder_service,
         "T0_FEEDER_LEASE_DB must resolve to the same file as MARKET_DATA_DB" in feeder_service,
-        "Fenced sync requires a store with atomic insert_fenced support" in sync_source,
+        "gateway.insert_batch(" in sync_source,
+        "lease_token=LeaseFence" in sync_source,
+        "lease_clock" in sync_source,
+    ))
+
+    gateway_transaction_ok = all((
+        "def insert_batch(" in gateway_source,
+        "connection.execute(\"BEGIN IMMEDIATE\")" in gateway_source,
+        "self._assert_current_lease(" in gateway_source,
+        "connection.commit()" in gateway_source,
+        "connection.rollback()" in gateway_source,
     ))
 
     return [
@@ -218,6 +233,13 @@ def audit_contract(root):
             "Production feeder requires SQLite, a shared candle/lease database, "
             "and the fenced canonical sync path for scheduler and recovery."
             if fencing_ok else "One or more SQLite / atomic-fencing source invariants changed.",
+        ),
+        _check(
+            "gateway_atomic_transaction_contract",
+            gateway_transaction_ok,
+            "T0WriteGateway serializes writers, validates the lease fence and commits "
+            "or rolls back the candle batch atomically."
+            if gateway_transaction_ok else "Gateway transaction no longer enforces atomic lease-fenced batch writes.",
         ),
     ]
 
