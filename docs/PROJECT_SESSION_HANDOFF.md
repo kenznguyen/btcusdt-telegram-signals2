@@ -661,3 +661,24 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Scope limitation: this verifies the production factory's SQLite path invariant. Lower-level dependency-injected `build_runtime()` still accepts independently supplied components; identity of arbitrary injected paths is NOT CERTIFIED here.
 - Prohibited: Feeder startup/service, canonical DB/Paper Ledger access, exchange connectivity, data sync, Android instrumentation, PC multiprocess, Timescale integration, backup/restore or live execution. `AI_EXECUTION_ENABLED=false`.
 - Next: run existing G2 integration GREEN workflow on this branch and verify the three new contracts plus all required regressions. No production activation or phase advance before evidence review.
+
+## P5.4.32 — Production SQLite DB Identity Contract (CI verified, updated 2026-11-03)
+
+- Evidence report: `docs/evidence/P5.4.32-PRODUCTION-DB-IDENTITY-CONTRACT.md`.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Test implementation commit: `4976d25485f99dbe2707714a9afd04ef54ed9409`.
+- Evidence report PASS update commit: `8e6c1a50cd95b8ac077bdd352a24e4a1ce381f93`.
+- Exact tested source SHA: `cddea2e65c4123e2478766b55124c14b36e85671`.
+- Workflow: [G2 integration GREEN #41662758250](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41662758250), event `workflow_dispatch`, attempt 1, run #76, conclusion SUCCESS.
+- Job: `G2 and T0 isolated regression acceptance`, ID `126009991274`, SUCCESS.
+- Three P5.4.32 contracts PASS:
+  - `test_production_factory_rejects_distinct_lease_database_before_composition`.
+  - `test_production_factory_composes_all_sqlite_roles_on_same_resolved_path`.
+  - `test_production_factory_defaults_lease_database_to_canonical_database`.
+- Regression groups: G1 16/16; G2 72/72; T0 96/96; CI contracts 24/24; consumer regressions 56/56. Separate invocations; 264 passing test invocations, not asserted unique.
+- Python compile PASS; `ISOLATED_SHADOW_ONLY=PASS`; `AI_EXECUTION_ENABLED=false`.
+- Artifact: `p5-3-11-g2-integration-green-41662758250`, ID `13243775760`, 9,581 bytes, expires `2026-11-10T15:19:54Z`; [artifact](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41662758250/artifacts/13243775760).
+- Artifact SHA-256: `8b92b04499e09c6c0fbb430e79056b0486b8d20b9711a8699b469624a36d2476`. Downloaded ZIP integrity test passed and locally computed SHA-256 matched GitHub digest.
+- Status: **PASS — fixture-only DB identity contract verified on exact SHA**. Production source/workflow unchanged.
+- Limits: tests validate production factory SQLite path composition with disposable/nonexistent paths and stub CCXT only. Lower-level injected `build_runtime()` arbitrary path identity remains NOT CERTIFIED. No canonical DB/Paper Ledger access, Feeder startup, exchange, sync, Android instrumentation, Timescale, backup/restore or live execution. This is not production runtime certification.
+- Next: wait for a separately scoped task/approval. No automatic production activation or phase advance.
