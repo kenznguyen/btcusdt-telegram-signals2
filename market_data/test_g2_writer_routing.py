@@ -13,11 +13,12 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from market_data import feeder, feeder_service, store, sync
 from market_data.gateway import (
     CandleBatchRejected,
+    GatewayStorageError,
     LeaseFence,
     LeaseRejected,
     T0WriteGateway,
@@ -315,6 +316,89 @@ class G2WriterRoutingRedTests(unittest.TestCase):
             with self.assertRaises(SystemExit) as exit_info:
                 sync.main()
         self.assertEqual(exit_info.exception.code, 2)
+
+
+    def test_g2_19_sync_window_rejects_duck_typed_gateway(self):
+        class DuckGateway:
+            def insert_batch(self, candles, *, lease_token, now_ms):
+                return len(candles)
+
+        with self.assertRaisesRegex(TypeError, "T0WriteGateway"):
+            sync.sync_window(
+                None, "15m", START, START + STEP,
+                gateway=DuckGateway(), lease_token=LEASE,
+                lease_clock=lambda: self.lease_now,
+            )
+
+    def test_g2_20_build_runtime_rejects_duck_typed_gateway(self):
+        class DuckGateway:
+            def insert_batch(self, candles, *, lease_token, now_ms):
+                return len(candles)
+
+        with self.assertRaisesRegex(TypeError, "T0WriteGateway"):
+            feeder_service.build_runtime(
+                config=feeder.FeederConfig(timeframes=("15m",)),
+                owner_id=LEASE.owner_id,
+                exchange=ExchangeDouble([]),
+                store=Mock(),
+                gateway=DuckGateway(),
+                lease_store=Mock(),
+            )
+
+    def test_g2_21_runtime_uses_independent_observation_and_lease_clocks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "runtime-clocks.sqlite3"
+            create_shadow_db(database)
+            gateway = T0WriteGateway(str(database))
+            exchange = ExchangeDouble([[candle_row(START)]])
+            lease_store = Mock()
+            lease_store.lease_name = LEASE.lease_name
+            lease_store.heartbeat.return_value = True
+            observed_at = START + 100 * STEP
+            lease_now = START + 100 * STEP + 321
+            lease_clock_calls = []
+
+            def lease_clock():
+                lease_clock_calls.append(lease_now)
+                return lease_now
+
+            config = feeder.FeederConfig(timeframes=("15m",))
+            runtime = feeder_service.build_runtime(
+                config=config,
+                owner_id=LEASE.owner_id,
+                exchange=exchange,
+                store=Mock(),
+                gateway=gateway,
+                lease_store=lease_store,
+                observation_clock=lambda: observed_at,
+                lease_clock=lease_clock,
+            )
+            runtime.lease_generation = LEASE.generation
+
+            runtime.scheduler.sync_callback("15m", START, START + STEP)
+
+            lease_store.heartbeat.assert_called_once_with(
+                LEASE.owner_id, LEASE.generation,
+                now_ms=lease_now, ttl_seconds=config.lease_ttl_seconds,
+            )
+            rows = gateway.read_window("BTCUSDT", "15m", START, START + STEP)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["available_at_ms"], observed_at)
+            self.assertGreaterEqual(len(lease_clock_calls), 3)
+            self.assertEqual(runtime.scheduler.clock(), lease_now)
+            self.assertEqual(runtime.recovery.clock(), lease_now)
+            self.assertEqual(runtime.clock(), lease_now)
+
+    def test_g2_22_gateway_write_does_not_create_missing_database(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "must-remain-absent.sqlite3"
+            gateway = T0WriteGateway(database)
+            with self.assertRaises(GatewayStorageError):
+                gateway.insert_batch(
+                    [candle(START)], lease_token=LEASE,
+                    now_ms=lambda: self.lease_now,
+                )
+            self.assertFalse(database.exists())
 
 
 if __name__ == "__main__":
