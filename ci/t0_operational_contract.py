@@ -157,6 +157,7 @@ def audit_contract(root):
         "market_data.test_gateway_runtime",
     )
     retired_ok = retired_ok and all(module not in canonical_commands for module in t0_core_modules)
+    retired_ok = retired_ok and all(module not in canonical_commands for module in ("ci.test_t0_operational_contract", "ci.test_t0_data_integrity", "ci.test_t0_final_runtime_config"))
 
     feeder_service = (root / "market_data/feeder_service.py").read_text(encoding="utf-8")
     sync_source = (root / "market_data/sync.py").read_text(encoding="utf-8")
