@@ -6,6 +6,7 @@ on:
       - feature/p5-4-1-post-merge-validation-20261103
     paths:
       - ".github/workflows/**"
+      - "ci/test_ci_policy.py"
   pull_request:
     branches:
       - feature/p5-2-5-green-contracts-20261102
