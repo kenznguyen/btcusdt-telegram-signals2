@@ -13,6 +13,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from market_data.feeder import FeederConfig
+from ci.t0_test_isolation import TestIsolationError, validate_test_database_path
 
 
 def _resolve_path(value, label, errors):
@@ -26,8 +27,14 @@ def _resolve_path(value, label, errors):
         return None
 
 
-def _inspect_existing_database(path, errors):
+def _inspect_existing_database(path, errors, environ=None):
     result = {"state": "NOT_INITIALIZED", "integrity": "NOT_RUN"}
+    try:
+        path = validate_test_database_path(path, environ=environ)
+    except (TestIsolationError, OSError, RuntimeError, ValueError):
+        errors.append("MARKET_DATA_DB failed the disposable CI database isolation guard")
+        result["state"] = "INVALID"
+        return result
     if not path.exists():
         return result
     if not path.is_file():
@@ -156,7 +163,7 @@ def audit_runtime_config(environ=None, repo_root=None):
                 "MARKET_DATA_DB parent directory must already exist and be writable; "
                 "the audit will not create it"
             )
-        database = _inspect_existing_database(candle_path, errors)
+        database = _inspect_existing_database(candle_path, errors, environ=values)
 
     root = Path(repo_root).resolve() if repo_root is not None else Path.cwd().resolve()
     return {
