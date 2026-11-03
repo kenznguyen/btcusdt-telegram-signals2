@@ -69,12 +69,7 @@ class AtomicWriteFencingTest(unittest.TestCase):
         return read_window(self.path, "BTCUSDT", "15m", NOW, NOW + count * STEP)
 
     def test_current_generation_can_commit_candles_with_lease_check(self):
-        inserted = self.candles.insert_fenced(
-            [candle()],
-            owner="writer-A",
-            generation=self.lease.generation,
-            now_ms=lambda: NOW + 1,
-        )
+        inserted = self.gateway.insert_batch([candle()], lease_token=self.lease_token, now_ms=lambda: NOW + 1)
         self.assertEqual(inserted, 1)
         self.assertEqual(self.read(1)["coverage"]["returned"], 1)
 
@@ -83,12 +78,7 @@ class AtomicWriteFencingTest(unittest.TestCase):
             "writer-B", now_ms=NOW + 60_001, ttl_seconds=60
         )
         with self.assertRaises(PermissionError):
-            self.candles.insert_fenced(
-                [candle()],
-                owner="writer-A",
-                generation=self.lease.generation,
-                now_ms=lambda: NOW + 60_002,
-            )
+            self.gateway.insert_batch([candle()], lease_token=self.lease_token, now_ms=lambda: NOW + 60_002)
         self.assertEqual(self.read(1)["candles"], [])
         self.assertTrue(self.leases.is_current(
             replacement.owner, replacement.generation, NOW + 60_002
@@ -96,20 +86,14 @@ class AtomicWriteFencingTest(unittest.TestCase):
 
     def test_expired_lease_is_rejected_even_when_generation_matches(self):
         with self.assertRaises(PermissionError):
-            self.candles.insert_fenced(
-                [candle()],
-                owner="writer-A",
-                generation=self.lease.generation,
-                now_ms=lambda: NOW + 60_000,
-            )
+            self.gateway.insert_batch([candle()], lease_token=self.lease_token, now_ms=lambda: NOW + 60_000)
         self.assertEqual(self.read(1)["candles"], [])
 
     def test_lease_validation_and_batch_insert_share_one_atomic_transaction(self):
         with self.assertRaises(PermissionError):
-            self.candles.insert_fenced(
+            self.gateway.insert_batch(
                 [candle(0), candle(1)],
-                owner="writer-A",
-                generation=self.lease.generation + 1,
+                lease_token=LeaseFence(self.leases.lease_name, "writer-A", self.lease.generation + 1),
                 now_ms=lambda: NOW + 1,
             )
         self.assertEqual(self.read(2)["candles"], [])
@@ -135,10 +119,8 @@ class AtomicWriteFencingTest(unittest.TestCase):
 
     def test_missing_lease_record_fails_closed(self):
         with self.assertRaises(PermissionError):
-            self.candles.insert_fenced(
-                [candle()],
-                owner="unknown-writer",
-                generation=1,
+            self.gateway.insert_batch(
+                [candle()], lease_token=LeaseFence(self.leases.lease_name, "unknown-writer", 1),
                 now_ms=lambda: NOW + 1,
             )
         self.assertEqual(self.read(1)["candles"], [])
@@ -146,12 +128,7 @@ class AtomicWriteFencingTest(unittest.TestCase):
     def test_lease_expiring_during_batch_rolls_back_all_candles(self):
         clock_values = iter((NOW + 1, NOW + 60_000))
         with self.assertRaises(PermissionError):
-            self.candles.insert_fenced(
-                [candle(0), candle(1)],
-                owner="writer-A",
-                generation=self.lease.generation,
-                now_ms=lambda: next(clock_values),
-            )
+            self.gateway.insert_batch([candle(0), candle(1)], lease_token=self.lease_token, now_ms=lambda: next(clock_values))
         self.assertEqual(self.read(2)["candles"], [])
 
 
@@ -164,21 +141,18 @@ class AtomicWriteFencingTest(unittest.TestCase):
         takeover_started = threading.Event()
         takeover_finished = threading.Event()
         errors = []
-        original_insert_batch = CandleStore._insert_batch
+        original_insert_batch = T0WriteGateway._insert_one
 
         def paused_insert_batch(connection, batch):
             writer_entered.set()
             if not allow_writer_commit.wait(2):
                 raise TimeoutError("test did not release canonical writer")
-            return original_insert_batch(connection, batch)
+            return original_insert_batch(connection, batch[0])
 
         def write_batch():
             try:
-                with patch.object(CandleStore, "_insert_batch", side_effect=paused_insert_batch):
-                    self.candles.insert_fenced(
-                        [candle()], owner="writer-A", generation=self.lease.generation,
-                        now_ms=lambda: NOW + 1,
-                    )
+                with patch.object(T0WriteGateway, "_insert_one", side_effect=lambda connection, item: paused_insert_batch(connection, [item])):
+                    self.gateway.insert_batch([candle()], lease_token=self.lease_token, now_ms=lambda: NOW + 1)
             except Exception as error:
                 errors.append(error)
 
@@ -215,7 +189,7 @@ class AtomicWriteFencingTest(unittest.TestCase):
     def test_recovery_fills_multiple_gaps_through_fenced_canonical_sync(self):
         from market_data.feeder import RecoveryCoordinator
 
-        self.candles.insert([candle(0), candle(2), candle(4)])
+        self.gateway.insert_batch([candle(0), candle(2), candle(4)], lease_token=self.lease_token, now_ms=lambda: NOW + 1)
 
         class GapExchange(Exchange):
             def fetch_ohlcv(self, symbol, timeframe, since, limit, params):
