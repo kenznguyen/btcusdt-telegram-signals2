@@ -1,6 +1,11 @@
 name: P5.4.1 Post-Merge Validation Gate
 
 on:
+  pull_request:
+    branches:
+      - feature/p5-2-5-green-contracts-20261102
+    paths:
+      - ".github/workflows/**"
   workflow_dispatch:
     inputs:
       expected_sha:
@@ -34,12 +39,12 @@ jobs:
       - name: Checkout selected branch commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - name: Enforce exact SHA and no-runtime boundary
         shell: bash
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || inputs.expected_sha }}
         run: |
           set -euo pipefail
           actual="$(git rev-parse HEAD)"
@@ -106,7 +111,7 @@ jobs:
         if: always()
         shell: bash
         env:
-          EXPECTED_SHA: ${{ github.sha }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || inputs.expected_sha }}
           PREFLIGHT_RESULT: ${{ needs.preflight.result }}
           T0_RESULT: ${{ needs.t0.result }}
           G1_RESULT: ${{ needs.g1.result }}
