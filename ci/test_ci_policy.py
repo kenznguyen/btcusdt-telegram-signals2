@@ -91,7 +91,7 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("push", data["triggering"]["events"])
         commands = "\n".join(item["script"] for item in data["scripts"])
         for gate in ("requirements-market-data.txt", "requirements-web.txt", "requirements-ci.txt",
-                     "import ccxt", "import app", "-s integrations", "-s ci", "market_data.sync --help"):
+                     "import ccxt", "import app", "-s integrations", "ci.test_legacy_runner", "market_data.sync --help"):
             with self.subTest(gate=gate):
                 self.assertIn(gate, commands)
         t0_workflow = yaml.safe_load((ROOT / ".github/workflows/t0-validation.yml").read_text())
