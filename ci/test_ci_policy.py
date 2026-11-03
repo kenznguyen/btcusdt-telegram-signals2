@@ -48,6 +48,19 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("pull_request", workflow["on"])
         self.assertIn("workflow_dispatch", manual["on"])
         self.assertEqual(manual["permissions"]["contents"], "read")
+        self.assertNotIn("MARKET_DATA_TEST_DATABASE_URL", manual["jobs"]["manual-gate"].get("env", {}))
+        timescale_step = next(
+            step for step in manual["jobs"]["manual-gate"]["steps"]
+            if step.get("name") == "Run disposable TimescaleDB integration tests"
+        )
+        self.assertIn("MARKET_DATA_TEST_DATABASE_URL", timescale_step.get("env", {}))
+        self.assertIn("github.event.pull_request.head.sha || github.sha",
+                      workflow["jobs"]["t0-validation"]["steps"][0]["with"]["ref"])
+        isolated_env = workflow["jobs"]["t0-validation"]["env"]
+        for key in ("MARKET_DATA_DB", "T0_FEEDER_LEASE_DB", "PAPER_DB",
+                    "BINANCE_API_KEY", "BINANCE_API_SECRET", "OKX_API_KEY", "OKX_API_SECRET"):
+            with self.subTest(environment_key=key):
+                self.assertEqual(isolated_env[key], "")
         commands = "\n".join(step.get("run", "") for step in workflow["jobs"]["t0-validation"]["steps"])
         required = ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
                     "market_data.test_api", "market_data.test_gateway_runtime", "market_data.test_feeder_lease",
