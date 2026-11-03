@@ -22,6 +22,7 @@ run-name: T0 automated validation (${{ github.ref_name }} @ ${{ github.sha }})
       - feature/t0-operational-contract-release-gate-20261102
       - feature/t0-data-integrity-candle-continuity-gate-20261102
       - ci/t0-codemagic-to-github-actions-20261103
+      - feature/p5-2-5-green-contracts-20261102
     paths:
       - "market_data/**"
       - "ci/**"
@@ -62,6 +63,9 @@ jobs:
       T0_FEEDER_LEASE_DB: ""
       PAPER_DB: ""
       PAPER_TRADING_DB: ""
+      T0_TEST_MODE: "1"
+      T0_TEST_ROOT: ${{ runner.temp }}/t0-test-root
+      T0_TEST_DB: ${{ runner.temp }}/t0-test-root/t0-shadow.sqlite3
       AI_EXECUTION_ENABLED: "false"
       BINANCE_API_KEY: ""
       BINANCE_API_SECRET: ""
@@ -86,15 +90,26 @@ jobs:
             requirements-ci.txt
       - name: Install isolated T0 test dependencies
         run: python -m pip install -r requirements-market-data.txt -r requirements.txt -r requirements-web.txt -r requirements-ci.txt
+      - name: Prepare disposable T0 test root
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$T0_TEST_ROOT"
+          test -d "$T0_TEST_ROOT"
+          case "$T0_TEST_DB" in "$T0_TEST_ROOT"/*) ;; *) echo "T0_TEST_DB escapes T0_TEST_ROOT"; exit 1 ;; esac
       - name: Enforce shadow-only environment and record source SHA
         shell: bash
         run: |
           set -euo pipefail
-          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB PAPER_TRADING_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
             if [[ -n "${!key:-}" ]]; then echo "Unsafe environment variable present: $key"; exit 1; fi
           done
           git rev-parse HEAD | tee ci-source-sha.txt
           echo "T0_ISOLATED_SHADOW_ONLY=PASS" | tee t0-isolation-verdict.txt
+      - name: Run T0 test isolation guard contracts
+        run: |
+          python -m unittest ci.test_t0_test_isolation ci.test_t0_data_integrity ci.test_t0_final_runtime_config -v 2>&1 | tee t0-test-isolation-tests.log
+          python -m py_compile ci/t0_test_isolation.py ci/test_t0_test_isolation.py ci/t0_data_integrity.py ci/test_t0_data_integrity.py ci/t0_final_runtime_config.py ci/test_t0_final_runtime_config.py
       - name: Run CI policy and T0 migration contracts
         run: python -m unittest ci.test_ci_policy -v 2>&1 | tee t0-ci-policy-tests.log
       - name: Verify canonical CCXT adapter and application imports
@@ -155,6 +170,7 @@ jobs:
           if-no-files-found: warn
           path: |
             ci-source-sha.txt
+            t0-test-isolation-tests.log
             t0-isolation-verdict.txt
             t0-ci-policy-tests.log
             t0-market-data-core-tests.log
