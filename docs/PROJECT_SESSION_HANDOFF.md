@@ -1406,3 +1406,23 @@ These are overlapping test-suite invocations; **do not sum them as unique test c
 
 ## Next step
 Proceed with the separately scoped Windows PC canonical-path and SQLite integrity verification only when that environment is available and the user explicitly authorizes access. Do not start the Feeder or connect an exchange as part of that check.
+
+
+## P5.4.59-R1 — Feeder Runner Architecture & Fixture-Only Test Review (2026-11-04)
+
+- Report: `docs/evidence/P5.4.59-R1-FEEDER-FIXTURE-REVIEW-2026-11-04.md`.
+- Report commit: `1c6a76b950883ab0865c3e6e6236eb7f469fe3aa`.
+- Active branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Tested source SHA: `7629aa0d8328394e9caff1eeffaf1402930d68a7`.
+- T0 workflow: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41741878732 — **SUCCESS**, all 19 substantive steps.
+- Integrated P5.4.1 workflow: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41741878993 — **SUCCESS**, 5/5 jobs on the same source SHA.
+- Finding: `RecoveryPlanner.plan()` did not validate consistency between `coverage.complete` and `coverage.gaps`. Two fixture regressions now require `complete=false` iff gaps are reported, and `complete=true` iff no gaps are reported. Contradictory snapshots fail closed.
+- Final invocation counts: atomic fencing/lifecycle group 102 OK; runtime health API group 109 OK; SIGKILL group 103 OK; CI policy 14 OK; operational contract 11 OK; data integrity/candle continuity 12 OK. These commands overlap and must not be summed as unique tests.
+- Workflow count assertions, CI policy and static operational audit were synchronized to the expanded fixture suite.
+- Source blobs: recovery test `69a39ed972f597be44daf980944317b91b471045`; `market_data/feeder.py` `4ac05efc2cd402fc2eddf1612953b106b976c03d`; T0 workflow `4abecd4cf95c35adb19da73e89cf0f5c9c8bc6e5`; CI policy `db302c46cb6b5f123e07200af389d01bd0ebcf5f`; static audit `139812700e6b72fe376e5784129b042187e06bfd`.
+- T0 artifact ID `13281626301`, GitHub metadata digest `sha256:daf79d75db5f7e312b283d19e00994c095eb6cacdea5b70972a1bc89acdf24c2`.
+- Integrated combined artifact ID `13282650628`, metadata digest `sha256:17b54b9f3690229d2c11aa384e3a5def7cd58470363522e2e65f9240496a3597`. Artifact payload byte-level checksum recomputation remains **NOT VERIFIED**.
+- Verdict: fixture-only T0 validation **PASS**; integrated CI **PASS**; continuous production Feeder, PC canonical DB, exchange connectivity and production recovery **NOT VERIFIED / NOT RUN**.
+- Runner architecture: GitHub-hosted runner is ephemeral CI only, not a continuous production Feeder host. Continuous host selection remains deferred; PC pause remains in force.
+- No PC access, canonical DB creation/open, production Feeder startup, exchange connection, market-data sync, or execution. Keep `AI_EXECUTION_ENABLED=false`.
+- Next: continue fixture-only malformed recovery snapshot and failure/restart lifecycle coverage on GitHub Actions. No production/runtime step is implied or authorized.
