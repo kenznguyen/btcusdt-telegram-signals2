@@ -96,5 +96,20 @@ class StorageFactoryTest(unittest.TestCase):
                 store.read_window("BTCUSDT", "15m", 0, 900_000)
 
 
+    def test_runtime_sqlite_factory_exposes_no_legacy_write_methods(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = create_store("sqlite", sqlite_path=str(Path(directory) / "candles.sqlite3"))
+            self.assertFalse(hasattr(store, "insert"))
+            self.assertFalse(hasattr(store, "insert_fenced"))
+
+    def test_runtime_postgres_factory_exposes_no_legacy_write_methods(self):
+        store = create_store("postgres", postgres_dsn="postgresql://user:pass@127.0.0.1:5432/test")
+        self.assertFalse(hasattr(store, "insert"))
+
+    def test_candle_store_has_no_direct_data_mutation_methods(self):
+        self.assertFalse(hasattr(CandleStore, "insert"))
+        self.assertFalse(hasattr(CandleStore, "insert_fenced"))
+
+
 if __name__ == "__main__":
     unittest.main()
