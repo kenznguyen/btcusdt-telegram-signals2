@@ -23,12 +23,26 @@ class CiPolicyTest(unittest.TestCase):
             "p5-3-10-4-g1-red-execution.yml",
             "p5-3-10-5-g1-green-validation.yml",
             "p5-3-11-5-g2-red-validation.yml",
+            "p5-3-11-g2-integration-red.yml",
+            "p5-3-11-g2-integration-green.yml",
         }
 
         self.assertIn("p5-3-10-4-g1-red-execution.yml", actual)
         self.assertIn("p5-3-11-5-g2-red-validation.yml", actual)
         self.assertLessEqual(actual, approved)
         self.assertTrue((ROOT / "ci/archive/github-actions/market-data-ci.yml").exists())
+
+
+    def test_g2_green_workflow_isolated_and_historical_red_is_manual_only(self):
+        green = (ROOT / ".github/workflows/p5-3-11-g2-integration-green.yml").read_text()
+        red = (ROOT / ".github/workflows/p5-3-11-g2-integration-red.yml").read_text()
+        self.assertIn("permissions:\n  contents: read", green)
+        self.assertIn("ref: ${{ github.sha }}", green)
+        self.assertIn("persist-credentials: false", green)
+        self.assertIn("integration/p5-3-11-g2-gateway-green-20261103", green)
+        self.assertIn("workflow_dispatch:", red)
+        self.assertNotIn("  push:", red)
+
 
     def test_manual_stateful_and_release_tasks_never_start_on_push(self):
         for name in ("android-chart-pro-release", "signal-scan", "telegram-command", "dashboard-backtest"):
