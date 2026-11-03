@@ -4,6 +4,8 @@ import unittest
 from pathlib import Path
 
 from market_data.store import Candle, CandleStore, INTERVAL_MS, MAX_CANDLES, read_window
+from market_data.gateway import LeaseFence, T0WriteGateway
+from market_data.feeder import LeaseStore
 
 
 class CandleStoreTest(unittest.TestCase):
@@ -13,6 +15,11 @@ class CandleStoreTest(unittest.TestCase):
         self.path = Path(self.directory.name) / "candles.sqlite3"
         self.store = CandleStore(self.path)
         self.store.initialize_schema()
+        self.leases = LeaseStore(str(self.path))
+        self.leases.initialize_schema()
+        lease = self.leases.acquire("store-test", now_ms=0, ttl_seconds=10**9)
+        self.gateway = T0WriteGateway(self.path)
+        self.lease_token = LeaseFence(self.leases.lease_name, "store-test", lease.generation)
         self.step = INTERVAL_MS["15m"]
 
     def candle(self, slot=0, **changes):
@@ -24,9 +31,12 @@ class CandleStoreTest(unittest.TestCase):
     def window(self, count=4, **changes):
         return read_window(self.path, "BTCUSDT", "15m", 0, count * self.step, **changes)
 
+    def write(self, candles):
+        return self.gateway.insert_batch(candles, lease_token=self.lease_token, now_ms=lambda: 1)
+
     def test_persists_exact_decimals_and_closed_candle_identity(self):
         candle = self.candle(open="100.12345678901234567890123456789")
-        self.assertEqual(self.store.insert([candle]), 1)
+        self.assertEqual(self.write([candle]), 1)
         CandleStore(self.path)
         row = self.window(1)["candles"][0]
         self.assertEqual(row["open"], "100.12345678901234567890123456789")
@@ -113,12 +123,9 @@ class CandleStoreTest(unittest.TestCase):
                 read_window(self.path, *args)
 
 
-    def test_runtime_insert_does_not_create_missing_database(self):
-        missing = self.path.parent / "must-not-be-created.sqlite3"
-        writer = CandleStore(missing)
-        with self.assertRaises(sqlite3.OperationalError):
-            writer.insert([self.candle()])
-        self.assertFalse(missing.exists())
+    def test_candle_store_has_no_legacy_write_methods(self):
+        self.assertFalse(hasattr(CandleStore, "insert"))
+        self.assertFalse(hasattr(CandleStore, "insert_fenced"))
 
 
 if __name__ == "__main__":
