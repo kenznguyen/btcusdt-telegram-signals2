@@ -801,3 +801,19 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Status: **CONDITIONAL PASS** design review; **OWNER DECISION REQUIRED** for IPC primitive, canonical host package/variant, .paper package identity and signing policy; **NOT VERIFIED** implementation/device behavior; **NOT RUN** tests/workflows; runtime implementation **NOT AUTHORIZED**.
 - No GitHub Actions workflow or tests were run. Paper-only; AI_EXECUTION_ENABLED=false. No DB, Feeder, exchange, sync, backup/restore or writer activation.
 - Next: obtain owner decisions, then P5.4.42 detailed implementation design. Do not implement runtime components without separate authorization.
+
+
+## P5.4.41 owner decisions and P5.4.42 design (updated 2026-11-04)
+
+- Active branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- P5.4.41 owner decisions explicitly confirmed 2026-11-04: **IPC = Bound Service** (explicit binding + typed Binder/AIDL + signature-level permission); **canonical host = existing regular variant**; **signing = same controlled installed signing identity for regular host and .paper client**.
+- ADR-002 updated to record these owner decisions. The .paper variant remains an IPC client only; regular is the single canonical host and sole SQLite/writer/risk authority. No client DB access, raw path/FD/SQL, shadow DB or fallback writer.
+- P5.4.42 design report: `docs/evidence/P5.4.42-ANDROID-CANONICAL-HOST-IPC-IMPLEMENTATION-DESIGN.md`.
+- P5.4.42 defines service boundary, two-layer caller authorization, proposed typed read/query and paper-only mutation contract, bounded DTO envelope, corrected durable idempotency ordering, atomic command+ledger+audit transaction, Shared Risk Engine parity, lifecycle/version-skew rules and future fixture-only acceptance plan.
+- Owner decision policy is recorded, but exact regular/.paper application IDs, installed signer digest/lineage, service/permission names, DTO bounds, idempotency retention, transaction/schema mapping and compatibility matrix remain OPEN or NOT VERIFIED.
+- Status: **PASS** for recording owner decisions and producing documentation design baseline; **NOT RUN** (no tests/workflow); implementation/device/runtime **NOT VERIFIED / NOT AUTHORIZED**.
+- No code, Gradle, manifest, package ID, signing configuration, dependencies, DB, device or runtime changed. No canonical DB access, Feeder, exchange, market-data sync, backup/restore or execution. Keep `AI_EXECUTION_ENABLED=false`.
+- Next permitted step: read-only source inventory of regular/.paper package IDs, signing declarations and manifest/exported-component baseline. Do not inspect private keys or canonical storage. Implementation requires separate explicit authorization.
+- ADR update commit: `d104aae6bbfaf14f3d8c09fdd0410d2c2e23e5be`.
+- P5.4.42 evidence commit: `ee8be590dc93d058028f35ebab27940a06f34c54`.
+- Handoff update commit: pending.
