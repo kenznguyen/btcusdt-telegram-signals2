@@ -414,8 +414,6 @@ def publish_split_store_backup_set(
         "restore_epoch": restore_epoch,
         "stores": snapshot_metadata,
     }
-    validate_split_store_manifest(manifest)
-
     staging_path = Path(tempfile.mkdtemp(
         prefix=".split-stage-", dir=destination_path.parent,
     ))
@@ -449,6 +447,7 @@ def publish_split_store_backup_set(
                 raise RuntimeError("injected partial split-store failure")
 
         manifest["stores"] = bound_stores
+        validate_split_store_manifest(manifest)
         manifest_path = staging_path / "backup-manifest.json"
         manifest_path.write_text(
             json.dumps(manifest, sort_keys=True, indent=2) + "\n",
