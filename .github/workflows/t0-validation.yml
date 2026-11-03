@@ -6,6 +6,7 @@ run-name: T0 automated validation (${{ github.ref_name }} @ ${{ github.sha }})
   push:
     branches:
       - feature/t0-operational-contract-release-gate-20261102
+      - feature/p5-4-1-post-merge-validation-20261103
     paths:
       - "market_data/**"
       - "ci/**"
