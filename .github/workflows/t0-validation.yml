@@ -118,8 +118,8 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest market_data.test_feeder_health_runtime_api market_data.test_feeder_atomic_fencing market_data.test_feeder_sigkill_recovery market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-health-runtime-api-tests.log
-          grep -q "Ran 106 tests" t0-health-runtime-api-tests.log
-          echo "T0_HEALTH_RUNTIME_API_TESTS=PASS (106 tests)" | tee t0-health-runtime-api-verdict.txt
+          grep -q "Ran 107 tests" t0-health-runtime-api-tests.log
+          echo "T0_HEALTH_RUNTIME_API_TESTS=PASS (107 tests)" | tee t0-health-runtime-api-verdict.txt
       - name: Run isolated SQLite SIGKILL recovery contracts
         shell: bash
         run: |
