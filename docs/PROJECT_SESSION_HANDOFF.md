@@ -1300,3 +1300,19 @@ Next:
 1. Prepare P5.4.57 minimal endpoint identity evidence contract (what must be independently confirmed before even a GET probe).
 2. Keep API probes blocked until the exact host and storage target are confirmed and the user explicitly authorizes the probe.
 3. Keep `AI_EXECUTION_ENABLED=false`; no exchange trading credentials, live execution or APK installation.
+
+
+## P5.4.57 — Minimal Endpoint Identity Evidence Contract (2026-11-04)
+
+- Report: `docs/evidence/P5.4.57-MINIMAL-ENDPOINT-IDENTITY-EVIDENCE-CONTRACT-2026-11-04.md`.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Source baseline: `ddd0a40faa893d87f9dae320dfcbf435d9e4540c` (P5.4.56 reviewed source baseline).
+- Objective: define all evidence gates required before any authenticated Paper backend endpoint probe.
+- Seven mandatory gates: exact intended HTTPS origin; valid TLS certificate/SAN identity; deployed immutable source/build SHA; distinct non-empty `MARKET_DATA_TOKEN` and `CONTROL_TOKEN` without exposing values; exact isolated/disposable Paper DB or verified read-only replica identity; Hummingbot server/connector identity with no trading credentials/order permissions; effective deployed `AI_EXECUTION_ENABLED=false`.
+- `/health` is explicitly not identity/provenance evidence. Successful DNS, process status, Android-entered URL or repository defaults are insufficient.
+- Provisional candidates remain only `/v1/system`, `/v1/intelligence`, `/v1/candles`, `/v1/paper`, `/v1/audit`, each subject to a separate explicit authorization and exact isolated-target confirmation.
+- Explicit denylist: `GET /v1/equity` (persistent ledger write/initialization); `GET /v1/order-book` (Hummingbot request/cache); `GET /v1/decision`, `/v1/signals`, `/v1/quality` (may fetch Hummingbot); all POST paper controls; `GET /health` cannot be used as identity proof.
+- Result: identity contract definition **PASS (documentation only)**. Actual origin/TLS/build, credentials, storage, Hummingbot and deployed execution flag **NOT VERIFIED**. Endpoint probe **BLOCKED / NOT AUTHORIZED**.
+- No tests/workflows/artifacts, API requests, network calls, DB access, service startup, exchange access, APK install or paper mutations.
+- Next: obtain seven sanitized evidence items out-of-band, reconcile deployed SHA and isolated storage identity, then request separate authorization for one exact GET route. Checklist completion does not itself authorize a probe.
+- Safety: keep `AI_EXECUTION_ENABLED=false`; no live execution, canonical DB/Feeder activation, exchange credentials, market-data sync or POST controls.
