@@ -8,6 +8,7 @@ Gateway path; G1 fencing behavior remains GREEN regression coverage.
 import ast
 import inspect
 import os
+import re
 import sqlite3
 import sys
 import tempfile
@@ -405,7 +406,20 @@ class G2WriterRoutingRedTests(unittest.TestCase):
             if (source_path.name.startswith("test_")
                     or any(part in ignored_directories for part in source_path.parts)):
                 continue
-            tree = ast.parse(source_path.read_text(encoding="utf-8"))
+            source = source_path.read_text(encoding="utf-8")
+            try:
+                tree = ast.parse(source)
+            except SyntaxError:
+                # Legacy files may use syntax newer than the CI Python; still
+                # scan their source text for explicit legacy writer call forms.
+                if (re.search(r"\\.\\s*insert_fenced\\s*\\(", source)
+                        or re.search(
+                            r"\\b(?:store|writer|candle_store|sqlite_store|postgres_store|candles)"
+                            r"\\s*\\.\\s*insert\\s*\\(", source
+                        )
+                        or re.search(r"CandleStore\\s*\\([^)]*\\)\\s*\\.\\s*insert\\s*\\(", source)):
+                    violations.append(f"{source_path}:unparsed legacy writer call")
+                continue
             for node in ast.walk(tree):
                 if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
                     continue
