@@ -21,6 +21,8 @@ class TestIsolationError(RuntimeError):
 
 
 def _plain_path(value):
+    if isinstance(value, os.PathLike):
+        value = os.fspath(value)
     if not isinstance(value, str) or not value.strip():
         raise TestIsolationError("database path is required")
     raw = value.strip()
