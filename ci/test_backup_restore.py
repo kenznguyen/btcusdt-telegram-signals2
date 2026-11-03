@@ -3,6 +3,7 @@
 Every database is created under a per-test TemporaryDirectory. The suite must
 never read a runtime-selected DB path, connect to an exchange, or start a worker.
 """
+import hashlib
 import json
 import sqlite3
 import tempfile
@@ -634,6 +635,81 @@ class BackupRestoreFixtureTest(unittest.TestCase):
             required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
         )
         (target / "paper_ledger.sqlite3").unlink()
+        with self.assertRaises(BackupVerificationError):
+            verify_split_store_backup_set(target, root=self.root)
+
+    def test_split_store_verifier_rejects_rehashed_semantic_database_mutation(self):
+        sources, metadata = self._split_store_sources_and_metadata("barrier-bound-005")
+        target = self.backups / "semantic-mismatch-set"
+        publish_split_store_backup_set(
+            sources, target, root=self.root,
+            snapshot_barrier_id="barrier-bound-005",
+            restore_epoch=11, snapshot_metadata=metadata,
+            required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
+        )
+        database = target / "market_data.sqlite3"
+        with sqlite3.connect(database) as db:
+            db.execute(
+                "UPDATE candles SET close='61000' "
+                "WHERE rowid=(SELECT MIN(rowid) FROM candles)"
+            )
+        manifest_path = target / "backup-manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["stores"]["market_data"]["content_sha256"] = hashlib.sha256(
+            database.read_bytes()
+        ).hexdigest()
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        with self.assertRaises(BackupVerificationError):
+            verify_split_store_backup_set(target, root=self.root)
+
+    def test_split_store_verifier_rejects_table_count_tampering(self):
+        sources, metadata = self._split_store_sources_and_metadata("barrier-bound-006")
+        target = self.backups / "table-count-mismatch-set"
+        publish_split_store_backup_set(
+            sources, target, root=self.root,
+            snapshot_barrier_id="barrier-bound-006",
+            restore_epoch=12, snapshot_metadata=metadata,
+            required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
+        )
+        manifest_path = target / "backup-manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        counts = manifest["stores"]["market_data"]["table_counts"]
+        first_table = sorted(counts)[0]
+        counts[first_table] += 1
+        manifest["stores"]["market_data"]["high_water_mark"] += 1
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        with self.assertRaises(BackupVerificationError):
+            verify_split_store_backup_set(target, root=self.root)
+
+    def test_split_store_verifier_rejects_high_water_mark_tampering(self):
+        sources, metadata = self._split_store_sources_and_metadata("barrier-bound-007")
+        target = self.backups / "high-water-mismatch-set"
+        publish_split_store_backup_set(
+            sources, target, root=self.root,
+            snapshot_barrier_id="barrier-bound-007",
+            restore_epoch=13, snapshot_metadata=metadata,
+            required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
+        )
+        manifest_path = target / "backup-manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["stores"]["paper_ledger"]["high_water_mark"] += 1
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        with self.assertRaises(BackupVerificationError):
+            verify_split_store_backup_set(target, root=self.root)
+
+    def test_split_store_verifier_rejects_schema_version_tampering(self):
+        sources, metadata = self._split_store_sources_and_metadata("barrier-bound-008")
+        target = self.backups / "schema-version-mismatch-set"
+        publish_split_store_backup_set(
+            sources, target, root=self.root,
+            snapshot_barrier_id="barrier-bound-008",
+            restore_epoch=14, snapshot_metadata=metadata,
+            required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
+        )
+        manifest_path = target / "backup-manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["stores"]["paper_ledger"]["schema_version"] += 1
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
         with self.assertRaises(BackupVerificationError):
             verify_split_store_backup_set(target, root=self.root)
 
