@@ -339,8 +339,8 @@ def derive_snapshot_identity(path, *, root):
 def verify_split_store_backup_set(destination, *, root):
     """Read-only verification binding manifest fields to both actual DB images."""
     root_path = _fixture_root(root)
-    directory = _safe_path(destination, root_path, must_exist=True)
-    if not directory.is_dir():
+    directory = _safe_path(destination, root_path, must_exist=False)
+    if not directory.exists() or not directory.is_dir():
         raise BackupVerificationError("Split-store backup set must be a directory")
     expected_files = {"market_data.sqlite3", "paper_ledger.sqlite3", "backup-manifest.json"}
     actual_files = {item.name for item in directory.iterdir()}
