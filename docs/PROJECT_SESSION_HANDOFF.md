@@ -1426,3 +1426,20 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Runner architecture: GitHub-hosted runner is ephemeral CI only, not a continuous production Feeder host. Continuous host selection remains deferred; PC pause remains in force.
 - No PC access, canonical DB creation/open, production Feeder startup, exchange connection, market-data sync, or execution. Keep `AI_EXECUTION_ENABLED=false`.
 - Next: continue fixture-only malformed recovery snapshot and failure/restart lifecycle coverage on GitHub Actions. No production/runtime step is implied or authorized.
+
+
+## P5.4.59-R2 — Malformed Recovery Snapshot Fixtures (2026-11-04)
+
+- Report: `docs/evidence/P5.4.59-R2-MALFORMED-RECOVERY-FIXTURES-2026-11-04.md`.
+- Report commit: `caca2a1490a888df1c97c050f0f30156a4798c1a`.
+- Tested source SHA: `1757ffc0770c3dd7ca0406d4691dcd61ddac82a5`; active branch remains `feature/p5-4-1-post-merge-validation-20261103`.
+- Added three fixture test methods for missing `coverage.complete`, null completeness and non-boolean completeness values (0, 1, "false", "true"). Existing strict RecoveryPlanner validation already rejects these; no production behavior change was needed.
+- Regression invocation thresholds updated: atomic fencing 105; runtime health API 112; SIGKILL recovery 106. These command groups overlap; do not sum as unique tests.
+- T0 workflow: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41742626536 — **SUCCESS**, all 19 substantive steps on exact SHA.
+- Integrated P5.4.1: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41742626689 — **SUCCESS**, 5/5 jobs on exact same SHA.
+- T0 artifact ID `13281393329`, metadata digest `sha256:44d95eb87e3fa16b5d7983caccedbcaf2fca193311c9b5bb74cdb766fd2e76f6`.
+- Combined artifact ID `13281457705`, metadata digest `sha256:d31a03ea71d9cce87a2663cb8303241b6e7019de3663d9e768a85580018818f8`. Artifact payload byte-level checksum recomputation is **NOT VERIFIED**.
+- Source blobs: recovery test `066452fc4aff8e3292bc0cc5b6cb0b430d842657`; feeder source unchanged `4ac05efc2cd402fc2eddf1612953b106b976c03d`; workflow `2635916fa18ad43191c84a47fe6edd01fe2a9a7a`; CI policy `a1adf1d1d1b0bcbb1d117cd9148e91f3903ceeec`; static audit `8d18fc807fb8c46feff75035fa9150174b0073dd`.
+- Verdict: malformed snapshot fixtures **PASS**; T0 exact-SHA CI **PASS**; integrated workflow **PASS**; production Feeder, canonical PC DB and continuous runtime **NOT VERIFIED / NOT RUN**.
+- Next: fixture-only recovery coordinator partial-sync/recheck tests; no PC/runtime or exchange action.
+- Safety remains unchanged: no PC access, no canonical DB open/create, no production Feeder start, no exchange connection or data sync; keep `AI_EXECUTION_ENABLED=false`.
