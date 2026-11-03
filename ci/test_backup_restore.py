@@ -6,7 +6,9 @@ never read a runtime-selected DB path, connect to an exchange, or start a worker
 import json
 import sqlite3
 import tempfile
+import threading
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from market_data.feeder_status import FeederRuntimeStatusStore
@@ -14,6 +16,7 @@ from paper_execution.ledger import PaperLedger
 from paper_execution.shadow_migration_fixture import (
     FIXED_NOW_MS, PAPER_TABLES, build_legacy_fixture,
 )
+import backup_restore_test_support as backup_support
 from backup_restore_test_support import (
     BackupVerificationError,
     create_online_backup,
@@ -100,6 +103,84 @@ class BackupRestoreFixtureTest(unittest.TestCase):
                 "SELECT COUNT(*) FROM paper_audit WHERE kind='UNCOMMITTED_SENTINEL'"
             ).fetchone()[0]
         self.assertEqual(count, 1)
+
+    def test_wal_snapshot_respects_committed_writer_barrier(self):
+        committed_before = threading.Event()
+        post_epoch_transaction_ready = threading.Event()
+        allow_post_epoch_commit = threading.Event()
+        writer_errors = []
+
+        def writer():
+            connection = sqlite3.connect(self.source, timeout=5)
+            try:
+                connection.execute(
+                    "INSERT INTO paper_audit(at_ms,kind,document) VALUES (?,?,?)",
+                    (FIXED_NOW_MS + 201, "BARRIER_PRE_EPOCH", json.dumps({"epoch": 1})),
+                )
+                connection.commit()
+                committed_before.set()
+
+                connection.execute("BEGIN IMMEDIATE")
+                connection.execute(
+                    "INSERT INTO paper_audit(at_ms,kind,document) VALUES (?,?,?)",
+                    (FIXED_NOW_MS + 202, "BARRIER_POST_EPOCH", json.dumps({"epoch": 2})),
+                )
+                post_epoch_transaction_ready.set()
+                if not allow_post_epoch_commit.wait(timeout=5):
+                    raise TimeoutError("snapshot barrier did not release writer")
+                connection.commit()
+            except BaseException as exc:
+                writer_errors.append(exc)
+                committed_before.set()
+                post_epoch_transaction_ready.set()
+            finally:
+                connection.close()
+
+        thread = threading.Thread(target=writer, name="fixture-wal-barrier-writer")
+        thread.start()
+        try:
+            self.assertTrue(committed_before.wait(timeout=5))
+            self.assertTrue(post_epoch_transaction_ready.wait(timeout=5))
+            before_epoch = self.backup("barrier-before-post-commit.sqlite3")
+            with sqlite3.connect(before_epoch) as db:
+                pre_count = db.execute(
+                    "SELECT COUNT(*) FROM paper_audit WHERE kind='BARRIER_PRE_EPOCH'"
+                ).fetchone()[0]
+                post_count = db.execute(
+                    "SELECT COUNT(*) FROM paper_audit WHERE kind='BARRIER_POST_EPOCH'"
+                ).fetchone()[0]
+            self.assertEqual((pre_count, post_count), (1, 0))
+        finally:
+            allow_post_epoch_commit.set()
+            thread.join(timeout=5)
+        self.assertFalse(thread.is_alive(), "fixture writer did not stop")
+        self.assertEqual(writer_errors, [])
+
+        after_epoch = self.backup("barrier-after-post-commit.sqlite3")
+        with sqlite3.connect(after_epoch) as db:
+            pre_count = db.execute(
+                "SELECT COUNT(*) FROM paper_audit WHERE kind='BARRIER_PRE_EPOCH'"
+            ).fetchone()[0]
+            post_count = db.execute(
+                "SELECT COUNT(*) FROM paper_audit WHERE kind='BARRIER_POST_EPOCH'"
+            ).fetchone()[0]
+        self.assertEqual((pre_count, post_count), (1, 1))
+
+    def test_atomic_publication_interruption_never_exposes_final_backup(self):
+        destination = self.backups / "interrupted-publication.sqlite3"
+        with patch.object(
+            backup_support, "verify_backup",
+            side_effect=BackupVerificationError("fixture injected verification interruption"),
+        ):
+            with self.assertRaises(BackupVerificationError):
+                atomic_backup(
+                    self.source, destination, root=self.root,
+                    required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
+                )
+        self.assertFalse(destination.exists())
+        self.assertEqual(list(self.backups.glob(".backup-stage-*")), [])
+        self.assertEqual(list(self.backups.glob("*.sqlite3-wal")), [])
+        self.assertEqual(list(self.backups.glob("*.sqlite3-shm")), [])
 
     def test_read_only_verifier_does_not_mutate_source(self):
         before = inspect_database(
