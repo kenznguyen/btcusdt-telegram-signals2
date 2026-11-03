@@ -395,12 +395,15 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         self.assertFalse(hasattr(store.CandleStore, "insert"))
         self.assertFalse(hasattr(store.CandleStore, "insert_fenced"))
 
-        package_dir = Path(store.__file__).parent
+        repository_root = Path(__file__).resolve().parents[1]
+        ignored_directories = {".git", ".venv", "venv", "build", "dist",
+                                "__pycache__", ".pytest_cache"}
         receiver_names = {"store", "writer", "candle_store", "sqlite_store",
                           "postgres_store", "candles"}
         violations = []
-        for source_path in package_dir.glob("*.py"):
-            if source_path.name.startswith("test_"):
+        for source_path in repository_root.rglob("*.py"):
+            if (source_path.name.startswith("test_")
+                    or any(part in ignored_directories for part in source_path.parts)):
                 continue
             tree = ast.parse(source_path.read_text(encoding="utf-8"))
             for node in ast.walk(tree):
