@@ -36,7 +36,7 @@ class CiPolicyTest(unittest.TestCase):
         green = (ROOT / ".github/workflows/p5-3-11-g2-integration-green.yml").read_text()
         red = (ROOT / ".github/workflows/p5-3-11-g2-integration-red.yml").read_text()
         self.assertIn("permissions:\n  contents: read", green)
-        self.assertIn("ref: ${{ github.sha }}", green)
+        self.assertIn("ref: ${{ github.event.pull_request.head.sha || github.sha }}", green)
         self.assertIn("persist-credentials: false", green)
         self.assertIn("integration/p5-3-11-g2-gateway-green-20261103", green)
         self.assertIn("workflow_dispatch:", green)
