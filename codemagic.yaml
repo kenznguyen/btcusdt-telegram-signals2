@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=https://codemagic.io/codemagic-schema.json
 # Android APK build workflows have been retired from this repository configuration.
+workflows:
 # GitHub Actions is the sole CI runner; APK packaging requires a separately approved workflow.
   canonical-market-data:
     name: Cross-layer integration - non-T0 runtime suites
