@@ -3,6 +3,7 @@ import hashlib
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from ci.t0_data_integrity import audit_database
@@ -147,6 +148,22 @@ class T0DataIntegrityGateTest(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("opened <= previous", sync_source)
+
+    def test_isolation_rejection_happens_before_sqlite_connect(self):
+        unsafe_env = {
+            "CI": "true",
+            "T0_TEST_MODE": "1",
+            "T0_TEST_ROOT": str(self.path.parent),
+            "T0_TEST_DB": str(self.path.parent / "other.sqlite3"),
+            "MARKET_DATA_DB": "",
+            "T0_FEEDER_LEASE_DB": "",
+            "PAPER_DB": "",
+            "PAPER_TRADING_DB": "",
+        }
+        with patch("ci.t0_data_integrity.sqlite3.connect") as connect:
+            report = audit_database(self.path, environ=unsafe_env)
+        self.assertIn("test_isolation_failed", {item["code"] for item in report["issues"]})
+        connect.assert_not_called()
 
     def test_audit_does_not_modify_database_bytes(self):
         self.insert("15m", 0)
