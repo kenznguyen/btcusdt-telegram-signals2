@@ -200,3 +200,19 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Natural Doze remains **INTERRUPTED / DEFERRED**, explicitly excluded: no investigation, design, or rerun.
 - No tests/workflows were run; no DB opened/created/modified; no Feeder/exchange/data sync; no execution. Keep `ai_execution_enabled=false`.
 - Next permitted action: retrieve the original P4 log/script bytes from their actual source and independently recompute all 17 hashes; do not regenerate historical evidence. Future backup/restore, WAL, extended runtime, and abrupt-failure tests require separate scope and approval.
+
+## P5.4.6 — Android P4 Historical Evidence Recovery (updated 2026-11-03)
+
+- Report: `docs/evidence/P5.4.6-ANDROID-P4-HISTORICAL-EVIDENCE-RECOVERY-2026-11-03.md`.
+- Report commit: `417342ad94e90be49d3d6a356a2fd81d890ac5d5`.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Baseline P4 manifest: `docs/evidence/t0/P4_ANDROID_BACKGROUND_RESTART_EVIDENCE_2026-11-02.md`, ref `docs/p4-evidence-manifest-20261103`, blob SHA `d1b353fc86842c98adabd06dd0c0172c45b5ce4c`.
+- P5.4.6 result: **BLOCKED** — original Android evidence bytes not located in inspected sources.
+- Retrieval performed: manifest read; six representative P4 log paths checked across three refs (18 exact path/ref lookups, all 404); recursive Git tree at observed Android SHA `1c16755a07a053e1f225c8861ec76dc9ced1a5d8` had no matching P4 evidence paths; GitHub evidence directory on manifest ref lists only `t0`; Project Files/Library search returned no matching original P4 evidence package.
+- Reconciliation: 17 fingerprints remain recorded in manifest; original files located 0/17; independently recomputed hashes 0/17. The 17 manifest values remain inventory-recorded only.
+- Source identity: Android observed checkout SHA `1c16755a07a053e1f225c8861ec76dc9ced1a5d8` is not proven to be the source for each P4 run. Historical P4 source identity **NOT VERIFIED**.
+- P5.4.1 source SHA `76fa59a5c3e0256e40e889d27f2b73f74aa89532` and T0 CI SHA `515bdcc2c14f51652e42397161ee8a90f69dc02d` are separate contexts and must not be substituted.
+- P4 remains **CONDITIONAL PASS (manifest-recorded only)**; production readiness **NOT APPROVED**.
+- Next action to unblock: user supplies original P4 evidence ZIP copied from Android Termux with all 17 files at original relative paths; hash original bytes without modification and compare against manifest. Do not rerun tests or recreate historical evidence.
+- No tests/workflows run; no Android command/device filesystem access; no DB/Feeder/exchange/data sync; no execution. Natural Doze remains **INTERRUPTED / DEFERRED**. Keep `ai_execution_enabled=false`.
+
