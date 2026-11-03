@@ -57,7 +57,7 @@ class CiPolicyTest(unittest.TestCase):
 
         readme = (ROOT / "market_data/README.md").read_text()
         self.assertIn("GitHub Actions là cổng CI/acceptance duy nhất", readme)
-        self.assertIn("không sử dụng Codemagic làm gate", readme)
+        self.assertIn("Không sử dụng Codemagic làm gate", readme)
         self.assertNotIn("Codemagic là gate CI/acceptance mặc định", readme)
         self.assertIn("workflow_dispatch:", red)
         self.assertNotIn("  push:", red)
