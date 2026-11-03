@@ -105,7 +105,7 @@ API không tạo database khi thiếu file, không gọi sàn trong request và 
 
 ## Kiểm chứng
 
-GitHub lưu source/PR. GitHub Actions chỉ chạy G2 RED reproduction và GREEN acceptance trong môi trường disposable, quyền read-only, không có canonical/Paper DB hoặc exchange credentials. Codemagic là gate tích hợp thủ công qua workflow `p5-3-11-g2-gateway-green-acceptance` trong `codemagic.yaml`; phải chạy trên **đúng SHA cuối cùng** đã qua GitHub Actions. Không được suy diễn kết quả unit/integration tests thành bằng chứng Feeder production, Android instrumentation, PC multiprocess hoặc Timescale. Xem [hướng dẫn Codemagic](../docs/CODEMAGIC_SETUP.md) để cài đặt tài khoản và tải log/artifact.
+GitHub lưu source/PR. Với P5.3.11 G2, GitHub Actions là cổng CI/acceptance duy nhất: RED reproduction và GREEN acceptance chạy trong môi trường disposable, quyền read-only, không có canonical/Paper DB hoặc exchange credentials. Không sử dụng Codemagic làm gate, không yêu cầu Codemagic Build ID và không đối chiếu Codemagic SHA cho hạng mục này. Bằng chứng nghiệm thu phải gắn với đúng source SHA, kết luận workflow, job steps và artifact của GitHub Actions. Không được suy diễn kết quả unit/integration tests thành bằng chứng Feeder production, Android instrumentation, PC multiprocess hoặc Timescale.
 
 ```bash
 python3 -m unittest market_data.test_store market_data.test_sync market_data.test_api integrations.test_hummingbot_bridge -v
