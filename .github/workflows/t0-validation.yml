@@ -86,22 +86,22 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest market_data.test_feeder_atomic_fencing market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-atomic-fencing-tests.log
-          grep -q "Ran 102 tests" t0-feeder-atomic-fencing-tests.log
-          echo "T0_FEEDER_ATOMIC_FENCING_TESTS=PASS (102 tests)" | tee t0-feeder-atomic-fencing-verdict.txt
+          grep -q "Ran 105 tests" t0-feeder-atomic-fencing-tests.log
+          echo "T0_FEEDER_ATOMIC_FENCING_TESTS=PASS (105 tests)" | tee t0-feeder-atomic-fencing-verdict.txt
       - name: Run runtime health API and T0 regression contracts
         shell: bash
         run: |
           set -euo pipefail
           python -m unittest market_data.test_feeder_health_runtime_api market_data.test_feeder_atomic_fencing market_data.test_feeder_sigkill_recovery market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-health-runtime-api-tests.log
-          grep -q "Ran 109 tests" t0-health-runtime-api-tests.log
-          echo "T0_HEALTH_RUNTIME_API_TESTS=PASS (109 tests)" | tee t0-health-runtime-api-verdict.txt
+          grep -q "Ran 112 tests" t0-health-runtime-api-tests.log
+          echo "T0_HEALTH_RUNTIME_API_TESTS=PASS (112 tests)" | tee t0-health-runtime-api-verdict.txt
       - name: Run isolated SQLite SIGKILL recovery contracts
         shell: bash
         run: |
           set -euo pipefail
           python -m unittest market_data.test_feeder_sigkill_recovery market_data.test_feeder_atomic_fencing market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-sigkill-recovery-tests.log
-          grep -q "Ran 103 tests" t0-feeder-sigkill-recovery-tests.log
-          echo "T0_SIGKILL_RECOVERY_TESTS=PASS (103 tests)" | tee t0-feeder-sigkill-recovery-verdict.txt
+          grep -q "Ran 106 tests" t0-feeder-sigkill-recovery-tests.log
+          echo "T0_SIGKILL_RECOVERY_TESTS=PASS (106 tests)" | tee t0-feeder-sigkill-recovery-verdict.txt
       - name: Run static operational contract and source audit
         run: |
           set -euo pipefail
