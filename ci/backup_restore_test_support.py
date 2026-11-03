@@ -10,6 +10,7 @@ import json
 import os
 import sqlite3
 import tempfile
+from contextlib import closing
 from pathlib import Path
 
 
@@ -89,7 +90,7 @@ def inspect_database(path, *, root, required_tables=(), required_rows=None):
     database = _safe_path(path, root, must_exist=True)
     required_rows = {} if required_rows is None else dict(required_rows)
     try:
-        with _readonly_connection(database) as connection:
+        with closing(_readonly_connection(database)) as connection:
             connection.execute("PRAGMA query_only=ON")
             integrity = connection.execute("PRAGMA integrity_check").fetchone()
             if integrity is None or integrity[0] != "ok":
@@ -169,8 +170,8 @@ def create_online_backup(source, destination, *, root, required_tables=(), requi
     if not destination_path.parent.is_dir():
         raise BackupVerificationError("Backup destination parent must already exist")
     try:
-        with _readonly_connection(source_path) as source_db:
-            with sqlite3.connect(destination_path, timeout=10) as destination_db:
+        with closing(_readonly_connection(source_path)) as source_db:
+            with closing(sqlite3.connect(destination_path, timeout=10)) as destination_db:
                 source_db.backup(destination_db, pages=128, sleep=0.01)
                 destination_db.commit()
         # A successful API return is not enough; validate the completed image.
