@@ -46,7 +46,17 @@ class T0DataIntegrityGateTest(unittest.TestCase):
             )
 
     def audit(self):
-        return audit_database(self.path)
+        isolated_env = {
+            "CI": "true",
+            "T0_TEST_MODE": "1",
+            "T0_TEST_ROOT": str(self.path.parent),
+            "T0_TEST_DB": str(self.path),
+            "MARKET_DATA_DB": "",
+            "T0_FEEDER_LEASE_DB": "",
+            "PAPER_DB": "",
+            "PAPER_TRADING_DB": "",
+        }
+        return audit_database(self.path, environ=isolated_env)
 
     def test_valid_closed_m15_and_h1_rows_pass(self):
         self.insert("15m", 0)
