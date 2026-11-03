@@ -107,9 +107,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$sdk_root"
           python3 ci/verify-android-release-pair.py \
             --root "$GITHUB_WORKSPACE" \
-            --sdk "$ANDROID_SDK_ROOT" \
+            --sdk "$sdk_root" \
             --source-sha "$INPUT_SOURCE_SHA" \
             --output android-release-pair.json
         env:
