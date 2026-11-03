@@ -114,3 +114,55 @@ The following runs used branch `feature/p5-2-5-green-contracts-20261102` and exa
 - T0 CI source SHA: `515bdcc2c14f51652e42397161ee8a90f69dc02d`.
 
 They identify different source/evidence contexts and must never be substituted for one another.
+
+## P5.3.10 → P5.4.2 integrated Gateway evidence (updated 2026-11-03)
+
+Latest documentation/evidence work:
+- P5.4.2 report: `docs/evidence/P5.4.2-INTEGRATED-EVIDENCE-RECONCILIATION-2026-11-03.md`
+- Report branch: `feature/p5-4-1-post-merge-validation-20261103`
+- Report correction commit: `dfd67d7a36a73f8ce836a160b9e333614acd7d3c`
+- Report URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/blob/feature/p5-4-1-post-merge-validation-20261103/docs/evidence/P5.4.2-INTEGRATED-EVIDENCE-RECONCILIATION-2026-11-03.md
+- P5.4.2 verdict: **PASS WITH LIMITATIONS** for CI workflow/job status, integrated source identity, artifact metadata association, and documentation only.
+
+Integrated P5.4.1 run:
+- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41601215631
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`
+- Exact source SHA: `76fa59a5c3e0256e40e889d27f2b73f74aa89532`
+- Jobs: 5/5 SUCCESS (IDs: 125800380322, 125800436843, 125800436969, 125800437004, 125800645635).
+- Artifacts: 4 present/unexpired (IDs: 13214895177, 13214685271, 13214084859, 13213209943).
+- Recorded SHA-256 fingerprints are listed in the P5.4.2 report.
+
+Important verification boundary:
+- Workflow/job conclusions, source SHA in logs, artifact IDs/names, artifact-to-run branch/SHA association, and unexpired status were checked against GitHub metadata.
+- Artifact payload bytes were **not downloaded and independently re-hashed** in P5.4.2. Their SHA-256 values are recorded fingerprints, not independently recomputed hashes. Keep payload checksum verification **NOT VERIFIED**.
+- G1 integrated acceptance: 16 tests PASS.
+- G2 routing/consumer regression: 66 test invocation PASS; additional consumer regression: 56 test invocation PASS.
+- T0 logged suites include atomic fencing 100, health runtime API 107, SIGKILL recovery 101, candle integrity/continuity 12, and operational contract gate PASS. Do not sum these as unique tests because overlap is not excluded.
+- Earlier G2 run 41572948926: CI policy 6/6 PASS; G2 contract 18/18 PASS; market_data 210 tests, 8 TimescaleDB integration tests skipped due missing dedicated DSN. PostgreSQL/TimescaleDB canonical writer remains **NOT CERTIFIED**.
+- P5.3.11.8 standalone exact-HEAD workflow evidence was not independently established; integrated coverage is only what P5.4.1 run proves.
+
+P5.4.2 report correction commit:
+- Commit: `dfd67d7a36a73f8ce836a160b9e333614acd7d3c`
+- This explicitly distinguishes artifact metadata verification from payload byte/hash verification.
+
+P5.4.3 documentation consistency review:
+- This handoff update records the P5.4.2 results and correct verification boundary.
+- No tests were rerun; no code/runtime config changed; no canonical DB/Feeder/exchange/data sync was touched.
+- Natural Doze remains **INTERRUPTED / DEFERRED**; no Doze investigation or rerun.
+- `ai_execution_enabled=false`; no paper/live execution authorized.
+
+Current workstream status:
+| Item | Status |
+|---|---|
+| P5.3.10 G1 | PASS (RED expected + GREEN 16/16) |
+| P5.3.11 G2 | PASS at source-level; 8 TimescaleDB tests skipped |
+| P5.3.11.8 standalone exact-HEAD run | NOT VERIFIED |
+| P5.4.1 integrated CI | PASS, 5/5 jobs |
+| P5.4.2 evidence reconciliation | PASS WITH LIMITATIONS |
+| Artifact payload checksum recomputation | NOT VERIFIED |
+| Canonical DB / production Feeder | NOT RUN / NOT APPROVED |
+| Full multi-ledger backup/restore | NOT VERIFIED |
+| Android Natural Doze | INTERRUPTED / DEFERRED |
+
+Next permitted work: documentation-only closeout or separately scoped non-Doze evidence gap review. Do not rerun passing tests, activate runtime, create canonical storage, connect exchange, or sync market data without explicit authorization.
+
