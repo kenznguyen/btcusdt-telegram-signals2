@@ -5,6 +5,7 @@ callback is the only hand-off to the existing sync_window() ingestion path.
 """
 from dataclasses import dataclass
 import math
+import os
 import random
 import sqlite3
 import threading
@@ -455,11 +456,15 @@ class LeaseStore:
     """
 
     def __init__(self, db_path, lease_name="binance-btcusdt-canonical"):
-        if not isinstance(db_path, (str, bytes)) or not db_path:
+        try:
+            filesystem_path = os.fspath(db_path)
+        except TypeError as exc:
+            raise ValueError("db_path must be a non-empty filesystem path") from exc
+        if not filesystem_path:
             raise ValueError("db_path must be a non-empty filesystem path")
         if not isinstance(lease_name, str) or not lease_name.strip():
             raise ValueError("lease_name must be a non-empty string")
-        self.db_path = str(db_path)
+        self.db_path = os.fsdecode(filesystem_path)
         self.lease_name = lease_name
 
     @staticmethod
