@@ -172,16 +172,16 @@ class CiPolicyTest(unittest.TestCase):
             step for step in workflow["jobs"]["t0-validation"]["steps"]
             if step.get("name") == "Run runtime health API and T0 regression contracts"
         )
-        self.assertIn('grep -q "Ran 107 tests"', health_step.get("run", ""))
-        self.assertNotIn('grep -q "Ran 106 tests"', health_step.get("run", ""))
-        self.assertIn('health_runtime_api_count": \'grep -q "Ran 107 tests"\'', audit_source)
+        self.assertIn('grep -q "Ran 109 tests"', health_step.get("run", ""))
+        self.assertNotIn('grep -q "Ran 108 tests"', health_step.get("run", ""))
+        self.assertIn('health_runtime_api_count": \'grep -q "Ran 109 tests"\'', audit_source)
         sigkill_step = next(
             step for step in workflow["jobs"]["t0-validation"]["steps"]
             if step.get("name") == "Run isolated SQLite SIGKILL recovery contracts"
         )
-        self.assertIn('grep -q "Ran 101 tests"', sigkill_step.get("run", ""))
+        self.assertIn('grep -q "Ran 103 tests"', sigkill_step.get("run", ""))
         self.assertNotIn('grep -q "Ran 102 tests"', sigkill_step.get("run", ""))
-        self.assertIn('sigkill_recovery_count": \'grep -q "Ran 101 tests"\'', audit_source)
+        self.assertIn('sigkill_recovery_count": \'grep -q "Ran 103 tests"\'', audit_source)
         audit_source = (ROOT / "ci/t0_operational_contract.py").read_text()
         self.assertIn('atomic_fencing_count": \'grep -q "Ran 102 tests"\'', audit_source)
         self.assertIn("workflow_dispatch", manual["on"])
