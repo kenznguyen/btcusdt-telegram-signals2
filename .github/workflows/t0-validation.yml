@@ -3,6 +3,15 @@ run-name: T0 automated validation (${{ github.ref_name }} @ ${{ github.sha }})
 
 'on':
   workflow_call:
+  push:
+    branches:
+      - feature/t0-operational-contract-release-gate-20261102
+    paths:
+      - "market_data/**"
+      - "ci/**"
+      - "app.py"
+      - "requirements*.txt"
+      - ".github/workflows/t0-validation.yml"
 
 permissions:
   contents: read
