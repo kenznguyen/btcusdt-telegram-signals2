@@ -86,6 +86,14 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("pull_request", workflow["on"])
         self.assertIn("integration/p5-3-11-g2-gateway-green-20261103",
                       workflow["on"]["pull_request"]["branches"])
+        atomic_step = next(
+            step for step in workflow["jobs"]["t0-validation"]["steps"]
+            if step.get("name") == "Run atomic fencing and prior T0 contracts"
+        )
+        self.assertIn('grep -q "Ran 100 tests"', atomic_step.get("run", ""))
+        self.assertNotIn('grep -q "Ran 99 tests"', atomic_step.get("run", ""))
+        audit_source = (ROOT / "ci/t0_operational_contract.py").read_text()
+        self.assertIn('atomic_fencing_count": \'grep -q "Ran 100 tests"\'', audit_source)
         self.assertIn("workflow_dispatch", manual["on"])
         self.assertEqual(manual["permissions"]["contents"], "read")
         self.assertNotIn("MARKET_DATA_TEST_DATABASE_URL", manual["jobs"]["manual-gate"].get("env", {}))
