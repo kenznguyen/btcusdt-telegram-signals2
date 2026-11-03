@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from market_data.store import Candle, CandleStore, INTERVAL_MS, MAX_CANDLES, read_window
-from market_data.gateway import LeaseFence, T0WriteGateway
+from market_data.gateway import CandleBatchRejected, LeaseFence, T0WriteGateway
 from market_data.feeder import LeaseStore
 
 
@@ -56,12 +56,12 @@ class CandleStoreTest(unittest.TestCase):
 
     def test_conflicting_candle_rolls_back_the_whole_batch(self):
         self.write([self.candle()])
-        with self.assertRaises(ValueError):
+        with self.assertRaises(CandleBatchRejected):
             self.write([self.candle(1), self.candle(close="100.5")])
         self.assertEqual(self.window(2)["coverage"]["returned"], 1)
 
     def test_conflicting_duplicate_in_one_batch_is_atomic(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(CandleBatchRejected):
             self.write([self.candle(), self.candle(close="100.5")])
         self.assertEqual(self.window(1)["candles"], [])
 
