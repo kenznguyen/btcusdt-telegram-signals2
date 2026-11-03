@@ -1,8 +1,7 @@
 """Static audit for the T0 Operational Contract & Release Gate.
 
-This module validates Codemagic registration and the canonical feeder's
-source-level invariants. It does not start the feeder and does not run any
-market_data.test_feeder_* suite.
+The audit verifies the GitHub Actions T0 workflow inventory and source-level
+invariants. It never starts the feeder or connects to an exchange/database.
 """
 import json
 from pathlib import Path
@@ -12,155 +11,152 @@ import yaml
 
 
 RELEASE_BRANCH = "feature/t0-operational-contract-release-gate-20261102"
+T0_WORKFLOW = ".github/workflows/t0-validation.yml"
+MANUAL_WORKFLOW = ".github/workflows/t0-manual-validation.yml"
 
-GREEN_WORKFLOW_MODULES = {
-    "t0-feeder-lifecycle": {
-        "market_data.test_feeder_lifecycle",
-        "market_data.test_feeder_scheduler",
-        "market_data.test_feeder_retry",
-        "market_data.test_feeder_recovery",
-        "market_data.test_feeder_lease",
-        "market_data.test_feeder_health",
-        "market_data.test_feeder_health_api",
-    },
-    "t0-feeder-atomic-fencing": {
-        "market_data.test_feeder_atomic_fencing",
-        "market_data.test_feeder_lifecycle",
-        "market_data.test_feeder_scheduler",
-        "market_data.test_feeder_retry",
-        "market_data.test_feeder_recovery",
-        "market_data.test_feeder_lease",
-        "market_data.test_feeder_health",
-        "market_data.test_feeder_health_api",
-    },
-    "t0-feeder-sigkill-recovery": {
-        "market_data.test_feeder_sigkill_recovery",
-        "market_data.test_feeder_atomic_fencing",
-        "market_data.test_feeder_lifecycle",
-        "market_data.test_feeder_scheduler",
-        "market_data.test_feeder_retry",
-        "market_data.test_feeder_recovery",
-        "market_data.test_feeder_lease",
-        "market_data.test_feeder_health",
-        "market_data.test_feeder_health_api",
-    },
-    "t0-health-runtime-api": {
-        "market_data.test_feeder_health_runtime_api",
-        "market_data.test_feeder_atomic_fencing",
-        "market_data.test_feeder_sigkill_recovery",
-        "market_data.test_feeder_lifecycle",
-        "market_data.test_feeder_scheduler",
-        "market_data.test_feeder_retry",
-        "market_data.test_feeder_recovery",
-        "market_data.test_feeder_lease",
-        "market_data.test_feeder_health",
-        "market_data.test_feeder_health_api",
-    },
+GREEN_TEST_MODULES = {
+    "market_data.test_feeder_lease",
+    "market_data.test_feeder_health",
+    "market_data.test_feeder_health_api",
+    "market_data.test_feeder_lifecycle",
+    "market_data.test_feeder_scheduler",
+    "market_data.test_feeder_retry",
+    "market_data.test_feeder_recovery",
+    "market_data.test_feeder_atomic_fencing",
+    "market_data.test_feeder_health_runtime_api",
+    "market_data.test_feeder_sigkill_recovery",
 }
 
-SHA_WORKFLOWS = (
+RETIRED_CODEMAGIC_WORKFLOWS = {
+    "market-data-timescaledb",
+    "market-data-kraken-adapter-tests",
+    "market-data-kraken-spot-sqlite-tests",
+    "market-data-kraken-spot-read-api",
     "t0-feeder-scheduler",
     "t0-feeder-health",
     "t0-feeder-lifecycle",
     "t0-feeder-atomic-fencing",
-    "t0-feeder-sigkill-recovery",
     "t0-health-runtime-api",
-)
-
-
-def _script_text(workflow):
-    return "\n".join(
-        item.get("script", "")
-        for item in workflow.get("scripts", [])
-        if isinstance(item, dict)
-    )
+    "t0-feeder-sigkill-recovery",
+    "t0-operational-contract-release-gate",
+    "t0-data-integrity-candle-continuity-gate",
+    "t0-final-runtime-configuration-check",
+    "t0-component-tests-p3",
+    "t0-feeder-lifecycle-red",
+    "t0-feeder-atomic-fencing-red",
+    "p5-2-4-shadow-migration-red",
+    "p5-2-5-runtime-red-validation",
+}
 
 
 def _check(check_id, passed, detail):
     return {"id": check_id, "status": "PASS" if passed else "FAIL", "detail": detail}
 
 
+def _workflow(root):
+    path = Path(root) / T0_WORKFLOW
+    with path.open(encoding="utf-8") as source:
+        return yaml.safe_load(source)
+
+
+def _run_text(workflow):
+    jobs = workflow.get("jobs", {})
+    return "\n".join(
+        step.get("run", "")
+        for job in jobs.values()
+        for step in job.get("steps", [])
+        if isinstance(step, dict)
+    )
+
+
 def audit_contract(root):
     root = Path(root)
-    with (root / "codemagic.yaml").open(encoding="utf-8") as source:
-        config = yaml.safe_load(source)
-    workflows = config.get("workflows", {})
+    workflow = _workflow(root)
+    manual_path = root / MANUAL_WORKFLOW
+    manual = yaml.safe_load(manual_path.read_text(encoding="utf-8")) if manual_path.exists() else {}
+    jobs = workflow.get("jobs", {})
+    commands = _run_text(workflow)
 
-    inventory_errors = []
-    for workflow_name, expected_modules in GREEN_WORKFLOW_MODULES.items():
-        workflow = workflows.get(workflow_name)
-        if not isinstance(workflow, dict):
-            inventory_errors.append(f"missing workflow: {workflow_name}")
-            continue
-        script = _script_text(workflow)
-        missing = sorted(module for module in expected_modules if module not in script)
-        if missing:
-            inventory_errors.append(f"{workflow_name} missing: {', '.join(missing)}")
-
+    missing_modules = sorted(module for module in GREEN_TEST_MODULES if module not in commands)
     count_contracts = {
-        "t0-feeder-atomic-fencing": 'grep -q "Ran 99 tests"',
-        "t0-feeder-sigkill-recovery": 'grep -q "Ran 100 tests"',
-        "t0-health-runtime-api": 'grep -q "Ran 106 tests"',
+        "atomic_fencing_count": 'grep -q "Ran 99 tests"',
+        "sigkill_recovery_count": 'grep -q "Ran 100 tests"',
+        "health_runtime_api_count": 'grep -q "Ran 106 tests"',
     }
-    for workflow_name, expected in count_contracts.items():
-        if expected not in _script_text(workflows.get(workflow_name, {})):
-            inventory_errors.append(f"{workflow_name} missing count assertion {expected}")
+    missing_counts = sorted(name for name, token in count_contracts.items() if token not in commands)
+    inventory_ok = "t0-validation" in jobs and not missing_modules and not missing_counts
 
-    inventory_ok = not inventory_errors
-    inventory_detail = (
-        "All six original contract groups plus lifecycle, atomic fencing, SIGKILL "
-        "recovery and runtime/API integration are registered with their expected "
-        "test modules and historical count assertions."
-        if inventory_ok else "; ".join(inventory_errors)
+    artifact_step = any(
+        step.get("uses", "").startswith("actions/upload-artifact@")
+        and "ci-source-sha.txt" in step.get("with", {}).get("path", "")
+        for job in jobs.values()
+        for step in job.get("steps", [])
+        if isinstance(step, dict)
     )
+    sha_ok = "git rev-parse HEAD" in commands and artifact_step
 
-    sha_errors = []
-    for workflow_name in SHA_WORKFLOWS:
-        workflow = workflows.get(workflow_name, {})
-        script = _script_text(workflow)
-        artifacts = workflow.get("artifacts", [])
-        if "ci-source-sha.txt" not in artifacts:
-            sha_errors.append(f"{workflow_name} does not publish ci-source-sha.txt")
-        if "git rev-parse HEAD" not in script and "ci/setup-python.sh" not in script:
-            sha_errors.append(f"{workflow_name} does not record the checked-out source SHA")
-    sha_ok = not sha_errors
-
-    release = workflows.get("t0-operational-contract-release-gate", {})
-    release_script = _script_text(release)
-    patterns = (
-        release.get("triggering", {}).get("branch_patterns", [])
-        if isinstance(release, dict) else []
-    )
-    release_branches = {
-        item.get("pattern") for item in patterns if isinstance(item, dict)
-    }
-    changes = set(
-        release.get("when", {}).get("changeset", {}).get("includes", [])
-        if isinstance(release, dict) else []
-    )
-    expected_changes = {
-        "ci/t0_operational_contract.py",
-        "ci/test_t0_operational_contract.py",
-        "codemagic.yaml",
-    }
+    on_config = workflow.get("on", workflow.get(True, {}))
+    push = on_config.get("push", {}) if isinstance(on_config, dict) else {}
+    push_branches = set(push.get("branches", []))
+    push_paths = set(push.get("paths", []))
     scope_ok = (
-        RELEASE_BRANCH in release_branches
-        and expected_changes.issubset(changes)
-        and "git rev-parse HEAD" in release_script
-        and "ci-source-sha.txt" in release.get("artifacts", [])
-        and "ci.test_t0_operational_contract" in release_script
+        RELEASE_BRANCH in push_branches
+        and "ci/**" in push_paths
+        and T0_WORKFLOW in push_paths
     )
 
+    static_step = next(
+        (
+            step for step in jobs.get("t0-validation", {}).get("steps", [])
+            if step.get("name") == "Run static operational contract and source audit"
+        ),
+        {},
+    )
+    static_script = static_step.get("run", "")
     forbidden_runtime_modules = (
         "market_data.test_feeder_",
         "market_data.feeder_service",
         "market_data.sync",
     )
     static_only_ok = (
-        all(token not in release_script for token in forbidden_runtime_modules)
-        and "ci.test_t0_operational_contract" in release_script
-        and '"$CI_PYTHON" ci/t0_operational_contract.py' in release_script
+        "ci.test_t0_operational_contract" in static_script
+        and "ci/t0_operational_contract.py" in static_script
+        and all(token not in static_script for token in forbidden_runtime_modules)
     )
+
+    manual_options = (
+        manual.get("on", manual.get(True, {}))
+        .get("workflow_dispatch", {})
+        .get("inputs", {})
+        .get("gate", {})
+        .get("options", [])
+    )
+    manual_ok = {
+        "final-runtime-config",
+        "component-tests-p3",
+        "kraken-adapter",
+        "kraken-spot-sqlite",
+        "kraken-spot-read-api",
+        "timescaledb-integration",
+    }.issubset(set(manual_options))
+
+    with (root / "codemagic.yaml").open(encoding="utf-8") as source:
+        codemagic = yaml.safe_load(source)
+    codemagic_workflows = codemagic.get("workflows", {})
+    retired_ok = RETIRED_CODEMAGIC_WORKFLOWS.isdisjoint(codemagic_workflows)
+    canonical = codemagic_workflows.get("canonical-market-data", {})
+    canonical_commands = "\n".join(
+        item.get("script", "") for item in canonical.get("scripts", [])
+        if isinstance(item, dict)
+    )
+    t0_core_modules = (
+        "market_data.test_store",
+        "market_data.test_storage",
+        "market_data.test_sync",
+        "market_data.test_api",
+        "market_data.test_gateway_runtime",
+    )
+    retired_ok = retired_ok and all(module not in canonical_commands for module in t0_core_modules)
 
     feeder_service = (root / "market_data/feeder_service.py").read_text(encoding="utf-8")
     sync_source = (root / "market_data/sync.py").read_text(encoding="utf-8")
@@ -176,60 +172,73 @@ def audit_contract(root):
     ))
 
     fencing_ok = all((
-        "insert_fenced" in feeder_service,
-        "write_fence={" in feeder_service,
-        "sync_callback=canonical_sync" in feeder_service,
-        "T0_FEEDER_LEASE_DB must resolve to the same file as MARKET_DATA_DB" in feeder_service,
-        "Fenced sync requires a store with atomic insert_fenced support" in sync_source,
+        "T0WriteGateway" in feeder_service,
+        "LeaseFence" in feeder_service,
+        "gateway.insert_batch" in feeder_service,
+        "gateway=gateway" in feeder_service,
+        "isinstance(gateway, T0WriteGateway)" in sync_source,
+        "gateway.insert_batch(candles, lease_token=lease_token, now_ms=lease_clock)" in sync_source,
     ))
 
     return [
-        _check("green_test_inventory", inventory_ok, inventory_detail),
+        _check(
+            "github_actions_green_test_inventory",
+            inventory_ok,
+            "T0 feeder lease, health, lifecycle, atomic fencing, runtime/API and SIGKILL suites "
+            "are registered in the GitHub Actions workflow with historical count assertions."
+            if inventory_ok else f"Missing modules: {missing_modules}; missing count assertions: {missing_counts}",
+        ),
         _check(
             "source_sha_provenance",
             sha_ok,
-            "All six T0 Codemagic workflows publish ci-source-sha.txt and record "
-            "the checked-out commit SHA." if sha_ok else "; ".join(sha_errors),
+            "The GitHub Actions workflow records git rev-parse HEAD and uploads ci-source-sha.txt."
+            if sha_ok else "Exact source SHA recording or artifact upload is missing.",
         ),
         _check(
             "release_gate_scope",
             scope_ok,
-            "Release Gate is bound to its dedicated branch, scoped changeset, "
-            "self-test command and source-SHA artifact."
-            if scope_ok else "Release Gate branch, changeset, test command or SHA artifact is incomplete.",
+            "The static release gate is scoped to its dedicated branch and T0 CI/workflow paths."
+            if scope_ok else "Release gate branch or path filters are incomplete.",
         ),
         _check(
             "release_gate_is_static_only",
             static_only_ok,
-            "The Release Gate runs only its static contract tests and report; it "
-            "does not start the feeder or invoke T0 runtime/SIGKILL suites."
-            if static_only_ok else "Release Gate script contains a runtime or T0 suite invocation.",
+            "The operational release audit runs only static tests/reporting and does not invoke feeder/runtime suites."
+            if static_only_ok else "The static audit step includes a runtime/feeder invocation or is missing.",
+        ),
+        _check(
+            "manual_gates_preserved",
+            manual_ok,
+            "Final runtime config, P3 components, Kraken isolated tests and TimescaleDB integration remain manual GitHub Actions gates."
+            if manual_ok else "One or more manual T0 gate choices are missing.",
+        ),
+        _check(
+            "codemagic_t0_retirement",
+            retired_ok,
+            "T0-specific Codemagic workflows and T0 core test commands in the mixed workflow are retired."
+            if retired_ok else "T0-specific Codemagic workflow entries or core test commands remain.",
         ),
         _check(
             "canonical_market_contract",
             canonical_ok,
-            "Production composition selects Binance USD-M BTCUSDT; sync validates "
-            "the market and stores only closed candles under the canonical identity."
+            "Production composition selects Binance USD-M BTCUSDT and accepts only closed candles in canonical SQLite."
             if canonical_ok else "One or more Binance USD-M / closed-candle source invariants changed.",
         ),
         _check(
-            "sqlite_atomic_fencing_contract",
+            "sqlite_gateway_fencing_contract",
             fencing_ok,
-            "Production feeder requires SQLite, a shared candle/lease database, "
-            "and the fenced canonical sync path for scheduler and recovery."
-            if fencing_ok else "One or more SQLite / atomic-fencing source invariants changed.",
+            "Production feeder and sync use T0WriteGateway with typed LeaseFence for SQLite atomic write admission."
+            if fencing_ok else "One or more T0WriteGateway / LeaseFence source invariants changed.",
         ),
     ]
 
 
 def write_report(root, checks):
     root = Path(root)
-    sha = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], cwd=root, text=True
-    ).strip()
+    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
     failed = [item for item in checks if item["status"] != "PASS"]
     report = {
-        "schema_version": 1,
+        "schema_version": 2,
         "source_sha": sha,
         "release_branch": RELEASE_BRANCH,
         "result": "FAIL" if failed else "PASS",
@@ -237,31 +246,30 @@ def write_report(root, checks):
         "not_verified": [
             "Controlled Runtime Health Smoke is intentionally not performed by this gate.",
             "Continuous production runtime operation is not established by static checks.",
+            "External TimescaleDB integration is not run unless the dedicated GitHub secret is configured and the manual gate is selected.",
             "T1-T4 read-only enforcement is outside this T0-only gate and is not certified here.",
-            "No Codemagic build/test evidence is created for historical GREEN commits by this report.",
+            "No canonical database, feeder process, or exchange connection is used by CI.",
         ],
     }
-    json_path = root / "t0-operational-contract-report.json"
-    markdown_path = root / "t0-operational-contract-report.md"
-    json_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    (root / "t0-operational-contract-report.json").write_text(
+        json.dumps(report, indent=2) + "\n", encoding="utf-8"
+    )
     lines = [
         "# T0 Operational Contract & Release Gate",
         "",
         f"- Result: **{report['result']}**",
         f"- Source SHA: {sha}",
-        f"- Branch: {RELEASE_BRANCH}",
-        "- Execution scope: static source/configuration audit only; no feeder startup or T0 runtime suite.",
+        f"- Branch contract: {RELEASE_BRANCH}",
+        "- CI provider: GitHub Actions",
+        "- Execution scope: static source/configuration audit only; no feeder startup or exchange connection.",
         "",
         "## Checks",
         "",
     ]
-    lines.extend(
-        f"- [{item['status']}] {item['id']} — {item['detail']}"
-        for item in checks
-    )
+    lines.extend(f"- [{item['status']}] {item['id']} — {item['detail']}" for item in checks)
     lines.extend(["", "## Explicitly not verified", ""])
     lines.extend(f"- {item}" for item in report["not_verified"])
-    markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (root / "t0-operational-contract-report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return report
 
 
