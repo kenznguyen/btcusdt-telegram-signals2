@@ -60,6 +60,9 @@ jobs:
           echo "ISOLATED_SHADOW_ONLY=PASS" | tee g2-isolation-verdict.txt
           git rev-parse HEAD | tee g2-source-sha.txt
 
+      - name: Run CI policy contracts
+        run: python -m unittest ci.test_ci_policy -v
+
       - name: Compile G2 contract test module
         run: python -m py_compile market_data/test_g2_writer_routing.py
 
