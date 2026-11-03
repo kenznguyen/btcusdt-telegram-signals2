@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from market_data.feeder import LeaseStore
-from market_data.gateway import LeaseFence, T0WriteGateway
+from market_data.gateway import LeaseFence, LeaseRejected, T0WriteGateway
 from market_data.store import Candle, CandleStore, INTERVAL_MS, read_window
 from market_data.sync import sync_window
 
@@ -77,7 +77,7 @@ class AtomicWriteFencingTest(unittest.TestCase):
         replacement = self.leases.acquire(
             "writer-B", now_ms=NOW + 60_001, ttl_seconds=60
         )
-        with self.assertRaises(PermissionError):
+        with self.assertRaises(LeaseRejected):
             self.gateway.insert_batch([candle()], lease_token=self.lease_token, now_ms=lambda: NOW + 60_002)
         self.assertEqual(self.read(1)["candles"], [])
         self.assertTrue(self.leases.is_current(
@@ -85,12 +85,12 @@ class AtomicWriteFencingTest(unittest.TestCase):
         ))
 
     def test_expired_lease_is_rejected_even_when_generation_matches(self):
-        with self.assertRaises(PermissionError):
+        with self.assertRaises(LeaseRejected):
             self.gateway.insert_batch([candle()], lease_token=self.lease_token, now_ms=lambda: NOW + 60_000)
         self.assertEqual(self.read(1)["candles"], [])
 
     def test_lease_validation_and_batch_insert_share_one_atomic_transaction(self):
-        with self.assertRaises(PermissionError):
+        with self.assertRaises(LeaseRejected):
             self.gateway.insert_batch(
                 [candle(0), candle(1)],
                 lease_token=LeaseFence(self.leases.lease_name, "writer-A", self.lease.generation + 1),
@@ -118,7 +118,7 @@ class AtomicWriteFencingTest(unittest.TestCase):
         self.assertEqual(self.read(1)["coverage"]["returned"], 1)
 
     def test_missing_lease_record_fails_closed(self):
-        with self.assertRaises(PermissionError):
+        with self.assertRaises(LeaseRejected):
             self.gateway.insert_batch(
                 [candle()], lease_token=LeaseFence(self.leases.lease_name, "unknown-writer", 1),
                 now_ms=lambda: NOW + 1,
@@ -127,7 +127,7 @@ class AtomicWriteFencingTest(unittest.TestCase):
 
     def test_lease_expiring_during_batch_rolls_back_all_candles(self):
         clock_values = iter((NOW + 1, NOW + 60_000))
-        with self.assertRaises(PermissionError):
+        with self.assertRaises(LeaseRejected):
             self.gateway.insert_batch([candle(0), candle(1)], lease_token=self.lease_token, now_ms=lambda: next(clock_values))
         self.assertEqual(self.read(2)["candles"], [])
 
