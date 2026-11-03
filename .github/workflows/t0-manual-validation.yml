@@ -71,6 +71,7 @@ jobs:
           python -m unittest ci.test_t0_final_runtime_config -v 2>&1 | tee t0-final-runtime-config-tests.log
           python -m py_compile ci/t0_final_runtime_config.py ci/test_t0_final_runtime_config.py
           python -m ci.t0_final_runtime_config | tee t0-final-runtime-config-report.json
+          printf '%s\\n' 'PC_CANONICAL_PATH=NOT_VERIFIED' 'CANONICAL_DB_INTEGRITY=NOT_RUN' 'FEEDER_RUNTIME=NOT_RUN' | tee t0-final-runtime-config-scope.txt
       - name: Run P3 isolated component contracts
         if: ${{ inputs.gate == 'component-tests-p3' }}
         run: |
@@ -114,6 +115,7 @@ jobs:
             t0-manual-isolation-verdict.txt
             t0-final-runtime-config-tests.log
             t0-final-runtime-config-report.json
+            t0-final-runtime-config-scope.txt
             t0-component-tests-p3.log
             kraken-adapter-tests.log
             kraken-spot-sqlite-tests.log
