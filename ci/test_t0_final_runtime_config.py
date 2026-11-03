@@ -4,6 +4,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from ci.t0_final_runtime_config import audit_runtime_config, render_report
@@ -66,6 +67,19 @@ class FinalRuntimeConfigurationTests(unittest.TestCase):
         self.assertFalse(report["ok"])
         self.assertFalse(report["checks"]["runtime_parameters"])
         self.assertTrue(any("numeric settings" in error for error in report["errors"]))
+
+    def test_rejects_outside_root_before_sqlite_connect(self):
+        outside = self.root.parent / "canonical.sqlite3"
+        env = dict(
+            self.env,
+            MARKET_DATA_DB=str(outside),
+            T0_FEEDER_LEASE_DB=str(outside),
+        )
+        with patch("ci.t0_final_runtime_config.sqlite3.connect") as connect:
+            report = audit_runtime_config(env, repo_root=self.root)
+        self.assertFalse(report["ok"])
+        self.assertTrue(any("isolation guard" in error for error in report["errors"]))
+        connect.assert_not_called()
 
     def test_existing_database_is_audited_read_only_and_requires_core_tables(self):
         with sqlite3.connect(self.db_path) as connection:
