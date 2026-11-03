@@ -1,42 +1,167 @@
 name: T0 Validation
+run-name: T0 automated validation (${{ github.ref_name }} @ ${{ github.sha }})
+
 'on':
   push:
     branches:
+      - main
+      - feature/five-layer-paper
+      - feature/canonical-market-data
+      - feature/hummingbot-order-book
+      - feature/android-five-layer-control
+      - feature/t1-intelligence-provenance-quality-20261101
+      - feature/timescaledb-market-data-repository
+      - feature/timescaledb-storage-factory-api
+      - feature/p5-3-10-5-g1-gateway-green-20261103
+      - feature/t0-centralized-data-feeder-p1-20261101
+      - feature/t0-atomic-write-fencing-20261102
+      - feature/t0-atomic-fencing-hardening-20261102
+      - feature/t0-health-runtime-api-integration-20261102
+      - feature/t0-sigkill-recovery-20261102
+      - feature/t0-operational-contract-release-gate-20261102
+      - feature/t0-data-integrity-candle-continuity-gate-20261102
       - ci/t0-codemagic-to-github-actions-20261103
     paths:
-      - "ci/**"
       - "market_data/**"
+      - "ci/**"
+      - "app.py"
+      - "requirements*.txt"
       - "codemagic.yaml"
       - ".github/workflows/t0-validation.yml"
-  workflow_dispatch:
+      - ".github/workflows/t0-manual-validation.yml"
+  pull_request:
+    branches:
+      - main
+      - feature/p5-3-11-5-g2-red-tests-20261103
+    paths:
+      - "market_data/**"
+      - "ci/**"
+      - "app.py"
+      - "requirements*.txt"
+      - "codemagic.yaml"
+      - ".github/workflows/t0-validation.yml"
+      - ".github/workflows/t0-manual-validation.yml"
 
 permissions:
   contents: read
 
+concurrency:
+  group: t0-automated-validation-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  policy-contracts:
+  t0-validation:
+    name: T0 isolated automated contracts
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 35
+    env:
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+      T0_SIGKILL_AUDIT_PATH: t0-feeder-sigkill-recovery-sqlite-audit.log
     steps:
-      - name: Checkout exact commit
+      - name: Checkout exact source commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install CI dependencies
-        run: python -m pip install -r requirements-ci.txt
-      - name: Record exact source SHA
-        run: git rev-parse HEAD | tee ci-source-sha.txt
-      - name: Run T0 migration policy tests
-        run: python -m unittest ci.test_ci_policy -v
-      - name: Upload policy evidence
+          cache: pip
+          cache-dependency-path: |
+            requirements-market-data.txt
+            requirements.txt
+            requirements-web.txt
+            requirements-ci.txt
+      - name: Install isolated T0 test dependencies
+        run: python -m pip install -r requirements-market-data.txt -r requirements.txt -r requirements-web.txt -r requirements-ci.txt
+      - name: Enforce shadow-only environment and record source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+            if [[ -n "${!key:-}" ]]; then echo "Unsafe environment variable present: $key"; exit 1; fi
+          done
+          git rev-parse HEAD | tee ci-source-sha.txt
+          echo "T0_ISOLATED_SHADOW_ONLY=PASS" | tee t0-isolation-verdict.txt
+      - name: Run CI policy and T0 migration contracts
+        run: python -m unittest ci.test_ci_policy -v 2>&1 | tee t0-ci-policy-tests.log
+      - name: Run canonical market-data and Gateway regressions
+        run: python -m unittest market_data.test_store market_data.test_storage market_data.test_sync market_data.test_api market_data.test_gateway_runtime -v 2>&1 | tee t0-market-data-core-tests.log
+      - name: Run feeder scheduler and lease contracts
+        run: python -m unittest market_data.test_feeder_lease -v 2>&1 | tee t0-feeder-lease-tests.log
+      - name: Run feeder health and readiness contracts
+        run: python -m unittest market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-health-tests.log
+      - name: Run feeder lifecycle and regression contracts
+        run: python -m unittest market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-lifecycle-tests.log
+      - name: Run atomic fencing and prior T0 contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest market_data.test_feeder_atomic_fencing market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-atomic-fencing-tests.log
+          grep -q "Ran 99 tests" t0-feeder-atomic-fencing-tests.log
+          echo "T0_FEEDER_ATOMIC_FENCING_TESTS=PASS (99 tests)" | tee t0-feeder-atomic-fencing-verdict.txt
+      - name: Run runtime health API and T0 regression contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest market_data.test_feeder_health_runtime_api market_data.test_feeder_atomic_fencing market_data.test_feeder_sigkill_recovery market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-health-runtime-api-tests.log
+          grep -q "Ran 106 tests" t0-health-runtime-api-tests.log
+          echo "T0_HEALTH_RUNTIME_API_TESTS=PASS (106 tests)" | tee t0-health-runtime-api-verdict.txt
+      - name: Run isolated SQLite SIGKILL recovery contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest market_data.test_feeder_sigkill_recovery market_data.test_feeder_atomic_fencing market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-sigkill-recovery-tests.log
+          grep -q "Ran 100 tests" t0-feeder-sigkill-recovery-tests.log
+          echo "T0_SIGKILL_RECOVERY_TESTS=PASS (100 tests)" | tee t0-feeder-sigkill-recovery-verdict.txt
+      - name: Run static operational contract and source audit
+        run: |
+          set -euo pipefail
+          python -m unittest ci.test_t0_operational_contract -v 2>&1 | tee t0-operational-contract-tests.log
+          python ci/t0_operational_contract.py 2>&1 | tee t0-operational-contract-audit.log
+          grep -q "T0_OPERATIONAL_CONTRACT_RELEASE_GATE=PASS" t0-operational-contract-audit.log
+      - name: Run read-only data integrity and candle continuity contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest ci.test_t0_data_integrity -v 2>&1 | tee t0-data-integrity-tests.log
+          grep -q "Ran 12 tests" t0-data-integrity-tests.log
+          echo "T0_DATA_INTEGRITY_CANDLE_CONTINUITY_TESTS=PASS (12 tests)" | tee t0-data-integrity-verdict.txt
+      - name: Compile T0 source and contract modules
+        run: |
+          python -m compileall -q market_data
+          python -m py_compile ci/t0_operational_contract.py ci/test_t0_operational_contract.py ci/t0_data_integrity.py ci/test_t0_data_integrity.py
+      - name: Upload T0 automated evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: t0-policy-evidence-${{ github.run_id }}
+          name: t0-automated-evidence-${{ github.run_id }}
           if-no-files-found: warn
-          path: ci-source-sha.txt
+          path: |
+            ci-source-sha.txt
+            t0-isolation-verdict.txt
+            t0-ci-policy-tests.log
+            t0-market-data-core-tests.log
+            t0-feeder-lease-tests.log
+            t0-feeder-health-tests.log
+            t0-feeder-lifecycle-tests.log
+            t0-feeder-atomic-fencing-tests.log
+            t0-feeder-atomic-fencing-verdict.txt
+            t0-health-runtime-api-tests.log
+            t0-health-runtime-api-verdict.txt
+            t0-feeder-sigkill-recovery-tests.log
+            t0-feeder-sigkill-recovery-verdict.txt
+            t0-operational-contract-tests.log
+            t0-operational-contract-audit.log
+            t0-operational-contract-report.json
+            t0-operational-contract-report.md
+            t0-data-integrity-tests.log
+            t0-data-integrity-verdict.txt
+            t0-feeder-sigkill-recovery-sqlite-audit.log
