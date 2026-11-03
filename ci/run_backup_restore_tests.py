@@ -81,7 +81,16 @@ def main():
 
     _write_json("run-metadata.json", {
         "source_sha": source_sha,
-        "branch": os.environ.get("CM_BRANCH", ""),
+        "runner_provider": (
+            "github_actions" if os.environ.get("GITHUB_ACTIONS", "").lower() == "true"
+            else "codemagic" if os.environ.get("CM_BUILD_ID")
+            else "unknown"
+        ),
+        "branch": os.environ.get("GITHUB_REF_NAME") or os.environ.get("CM_BRANCH", ""),
+        "github_run_id": os.environ.get("GITHUB_RUN_ID", ""),
+        "github_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", ""),
+        "github_workflow": os.environ.get("GITHUB_WORKFLOW", ""),
+        "github_repository": os.environ.get("GITHUB_REPOSITORY", ""),
         "codemagic_build_id": os.environ.get("CM_BUILD_ID", ""),
         "codemagic_workflow_id": os.environ.get("CM_WORKFLOW_ID", ""),
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
