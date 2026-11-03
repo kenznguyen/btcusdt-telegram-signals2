@@ -40,11 +40,16 @@ class CiPolicyTest(unittest.TestCase):
         path = ROOT / ".github/workflows/p5-4-1-post-merge-validation.yml"
         self.assertTrue(path.is_file())
         workflow = yaml.safe_load(path.read_text())
-        self.assertIn("workflow_dispatch", workflow["on"])
-        self.assertIn("pull_request", workflow["on"])
-        self.assertIn("push", workflow["on"])
-        self.assertIn("feature/p5-2-5-green-contracts-20261102", workflow["on"]["push"]["branches"])
-        self.assertIn("ci/test_ci_policy.py", workflow["on"]["pull_request"]["paths"])
+        self.assertEqual(set(workflow["on"]), {"push", "workflow_dispatch"})
+        self.assertEqual(
+            workflow["on"]["push"]["branches"],
+            ["feature/p5-4-1-post-merge-validation-20261103"],
+        )
+        self.assertTrue({
+            "market_data/**", "ci/**", "pipeline/**", "freqai_bridge/**",
+            "app.py", "requirements*.txt", ".github/workflows/**",
+        }.issubset(set(workflow["on"]["push"]["paths"])))
+        self.assertNotIn("pull_request", workflow["on"])
         self.assertEqual(workflow["permissions"]["contents"], "read")
         jobs = workflow["jobs"]
         self.assertEqual(set(jobs), {"preflight", "t0", "g1", "g2", "publish"})
@@ -105,12 +110,12 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("permissions:\n  contents: read", green)
         self.assertIn("ref: ${{ github.event.pull_request.head.sha || github.sha }}", green)
         self.assertIn("persist-credentials: false", green)
-        self.assertIn("integration/p5-3-11-g2-gateway-green-20261103", green)
-        self.assertIn(
-            "branches:\n      - feature/p5-3-11-5-g2-red-tests-20261103\n      - integration/p5-3-11-g2-gateway-green-20261103",
-            green,
-        )
-        self.assertIn("workflow_dispatch:", green)
+        green_workflow = yaml.safe_load(green)
+        green_triggers = green_workflow.get("on", green_workflow.get(True, {}))
+        self.assertIn("workflow_call", green_triggers)
+        self.assertIn("workflow_dispatch", green_triggers)
+        self.assertNotIn("push", green_triggers)
+        self.assertNotIn("pull_request", green_triggers)
         self.assertIn("market_data.test_g2_writer_routing", green)
         self.assertIn("market_data.test_feeder_lease", green)
         self.assertIn("market_data.test_feeder_atomic_fencing", green)
@@ -143,10 +148,15 @@ class CiPolicyTest(unittest.TestCase):
         workflow = yaml.safe_load(workflow_path.read_text())
         manual = yaml.safe_load(manual_path.read_text())
         self.assertEqual(set(workflow["jobs"]), {"t0-validation"})
+        self.assertIn("workflow_call", workflow["on"])
         self.assertIn("push", workflow["on"])
-        self.assertIn("pull_request", workflow["on"])
-        self.assertIn("integration/p5-3-11-g2-gateway-green-20261103",
-                      workflow["on"]["pull_request"]["branches"])
+        self.assertEqual(
+            workflow["on"]["push"]["branches"],
+            ["feature/t0-operational-contract-release-gate-20261102"],
+        )
+        self.assertNotIn("pull_request", workflow["on"])
+        self.assertIn("ci/**", workflow["on"]["push"]["paths"])
+        self.assertIn(".github/workflows/t0-validation.yml", workflow["on"]["push"]["paths"])
         atomic_step = next(
             step for step in workflow["jobs"]["t0-validation"]["steps"]
             if step.get("name") == "Run atomic fencing and prior T0 contracts"
