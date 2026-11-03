@@ -51,7 +51,15 @@ class StorageFactoryTest(unittest.TestCase):
             CandleStore(path).initialize_schema()
             step = INTERVAL_MS["15m"]
             candle = Candle("15m", 0, "100", "102", "99", "101", "5", step + 1)
-            self.assertEqual(store.insert([candle]), 1)
+            leases = LeaseStore(path)
+            leases.initialize_schema()
+            lease = leases.acquire("factory-test", now_ms=0, ttl_seconds=3600)
+            gateway = T0WriteGateway(path)
+            self.assertEqual(gateway.insert_batch(
+                [candle],
+                lease_token=LeaseFence(leases.lease_name, "factory-test", lease.generation),
+                now_ms=lambda: 1,
+            ), 1)
             result = store.read_window("BTCUSDT", "15m", 0, step)
             self.assertEqual(result["candles"][0]["close"], "101")
             self.assertTrue(result["coverage"]["complete"])
