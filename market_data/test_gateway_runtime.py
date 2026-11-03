@@ -247,8 +247,13 @@ class T0GatewayG1RedTests(unittest.TestCase):
             )
             with sqlite3.connect(str(self.db), timeout=0, isolation_level=None) as takeover:
                 takeover.execute("PRAGMA busy_timeout=0")
-                with self.assertRaises(sqlite3.OperationalError):
+                with self.assertRaises(sqlite3.OperationalError) as raised:
                     takeover.execute("BEGIN IMMEDIATE")
+                self.assertEqual(
+                    raised.exception.sqlite_errorcode,
+                    sqlite3.SQLITE_BUSY,
+                    "takeover must fail specifically because the writer holds the SQLite lock",
+                )
         finally:
             release_writer.set()
             thread.join(timeout=5)
@@ -346,10 +351,14 @@ class T0GatewayG1RedTests(unittest.TestCase):
         missing_gateway.close()
 
         with sqlite3.connect(str(self.db)) as connection:
-            connection.execute(
+            connection.executemany(
                 "INSERT INTO candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                ("binance", "USDT_PERPETUAL", "BTCUSDT", "15m", FIRST_OPEN_MS,
-                 "99", "101", "98", "100", "1", FIRST_OPEN_MS + 900_000),
+                [
+                    ("binance", "USDT_PERPETUAL", "BTCUSDT", "15m", FIRST_OPEN_MS,
+                     "99", "101", "98", "100", "1", FIRST_OPEN_MS + 900_000),
+                    ("kraken", "SPOT", "BTCUSDT", "15m", FIRST_OPEN_MS,
+                     "199", "201", "198", "200", "2", FIRST_OPEN_MS + 900_000),
+                ],
             )
             before_schema = connection.execute(
                 "SELECT type, name, sql FROM sqlite_master ORDER BY type, name"
@@ -357,7 +366,23 @@ class T0GatewayG1RedTests(unittest.TestCase):
             before_rows = connection.execute("SELECT * FROM candles").fetchall()
 
         gateway = self._gateway()
-        gateway.read_window("BTCUSDT", "15m", 0, self.now)
+        read_rows = gateway.read_window("BTCUSDT", "15m", 0, self.now)
+        self.assertEqual(
+            read_rows,
+            ({
+                "exchange": "binance",
+                "market_type": "USDT_PERPETUAL",
+                "symbol": "BTCUSDT",
+                "timeframe": "15m",
+                "open_time_ms": FIRST_OPEN_MS,
+                "open": "99",
+                "high": "101",
+                "low": "98",
+                "close": "100",
+                "volume": "1",
+                "available_at_ms": FIRST_OPEN_MS + 900_000,
+            },),
+        )
         with sqlite3.connect(str(self.db)) as connection:
             after_schema = connection.execute(
                 "SELECT type, name, sql FROM sqlite_master ORDER BY type, name"
@@ -437,6 +462,18 @@ class T0GatewayG1RedTests(unittest.TestCase):
         self.assertEqual(clock_state["calls"], 2)
         self.assertEqual(len(self._rows()), 1)
         gateway.close()
+
+
+    def test_g1_15_close_does_not_release_or_mutate_lease(self):
+        self.require_gateway()
+        gateway = self._gateway()
+        before = self._lease_row()
+
+        gateway.close()
+        gateway.close()
+
+        self.assertEqual(self._lease_row(), before)
+        self.assertEqual(self._rows(), [])
 
 
 if __name__ == "__main__":

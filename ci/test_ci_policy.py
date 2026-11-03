@@ -12,9 +12,20 @@ class CiPolicyTest(unittest.TestCase):
     def setUp(self):
         self.workflows = yaml.safe_load((ROOT / "codemagic.yaml").read_text())["workflows"]
 
-    def test_github_has_no_active_actions_workflows(self):
+    def test_github_actions_workflows_are_explicitly_allowlisted(self):
         workflows = ROOT / ".github/workflows"
-        self.assertFalse(list(workflows.glob("*.yml")) + list(workflows.glob("*.yaml")))
+        actual = {
+            path.name
+            for pattern in ("*.yml", "*.yaml")
+            for path in workflows.glob(pattern)
+        }
+        approved = {
+            "p5-3-10-4-g1-red-execution.yml",
+            "p5-3-10-5-g1-green-validation.yml",
+        }
+
+        self.assertIn("p5-3-10-4-g1-red-execution.yml", actual)
+        self.assertLessEqual(actual, approved)
         self.assertTrue((ROOT / "ci/archive/github-actions/market-data-ci.yml").exists())
 
     def test_manual_stateful_and_release_tasks_never_start_on_push(self):
