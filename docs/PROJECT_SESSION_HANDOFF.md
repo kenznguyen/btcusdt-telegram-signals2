@@ -733,3 +733,16 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Documentation-only. No tests/workflows, device/filesystem/DB, Feeder, exchange, sync, backup/restore or execution touched. `AI_EXECUTION_ENABLED=false`.
 - Next: P5.4.37 bounded source-only composition-root/path-authority trace. No device path probing, DB creation/opening or runtime activation.
 
+## P5.4.37 — Android Composition Root & Canonical Path Authority Source Trace (updated 2026-11-03)
+
+- Evidence: `docs/evidence/P5.4.37-ANDROID-COMPOSITION-ROOT-PATH-AUTHORITY-SOURCE-TRACE.md`.
+- Evidence commit: `3fad8b26d3533abde02ed5761b6f9fb9a73f7b28`.
+- Reviewed MainActivity, AndroidManifest, app Gradle dependencies, StrategyMonitorService, FiveLayerStandaloneDashboard, FiveLayerPanel, FiveLayerApi and Android README.
+- No custom Android Application composition root, canonical DB path provider, Room/SQLite/DataStore dependency, migration coordinator or shared DB transaction boundary is visible in the reviewed entrypoints.
+- Normal app starts StrategyMonitorService on Activity resume; service directly constructs MarketEngine/StrategyEngine/OrderBookEngine/Scanner and persists monitor/strategy/scanner/order-book state in SharedPreferences `strategy_state_v1`.
+- Parallel `.paper` variant mounts FiveLayerStandaloneDashboard only and skips StrategyMonitorService. FiveLayerPanel persists API URL locally, keeps tokens and fetched state in Compose memory, and reads/writes the remote Paper API over HTTPS. README states variants may share the same server-side paper ledger when using the same API; that is not Android-local canonical SQLite.
+- Source trace finds no Android T0 CandleStore, write Gateway, LeaseStore, Feeder composition, PaperLedger/Risk repository or shared SQLite path injection.
+- Status: **PASS** for bounded source trace; **NOT VERIFIED** for complete source-set storage inventory and all Android canonical persistence/composition; production implementation/activation **BLOCKED / NOT AUTHORIZED**.
+- Documentation-only; no tests/workflows, device/filesystem/DB, Feeder, exchange, sync, backup/restore or execution touched. `AI_EXECUTION_ENABLED=false`.
+- Next: P5.4.38 design-only Android composition-root interface/dependency wiring contract, including regular/parallel variant database identity and duplicate-writer prevention. No implementation or activation.
+
