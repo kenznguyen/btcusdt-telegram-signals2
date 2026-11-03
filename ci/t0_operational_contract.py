@@ -81,7 +81,7 @@ def audit_contract(root):
     missing_modules = sorted(module for module in GREEN_TEST_MODULES if module not in commands)
     count_contracts = {
         "atomic_fencing_count": 'grep -q "Ran 100 tests"',
-        "sigkill_recovery_count": 'grep -q "Ran 100 tests"',
+        "sigkill_recovery_count": 'grep -q "Ran 101 tests"',
         "health_runtime_api_count": 'grep -q "Ran 107 tests"',
     }
     missing_counts = sorted(name for name, token in count_contracts.items() if token not in commands)
