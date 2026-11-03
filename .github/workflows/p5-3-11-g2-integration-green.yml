@@ -11,6 +11,8 @@ on:
       - "ci/test_t0_operational_contract.py"
       - "pipeline/**"
       - "freqai_bridge/**"
+      - "market_data/README.md"
+      - "codemagic.yaml"
       - ".github/workflows/p5-3-11-g2-integration-green.yml"
   workflow_dispatch:
 
