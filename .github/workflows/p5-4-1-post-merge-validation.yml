@@ -1,0 +1,145 @@
+name: P5.4.1 Post-Merge Validation Gate
+
+'on':
+  push:
+    branches:
+      - feature/p5-4-1-post-merge-validation-20261103
+      - feature/p5-2-5-green-contracts-20261102
+  pull_request:
+    branches:
+      - feature/p5-2-5-green-contracts-20261102
+    paths:
+      - ".github/workflows/**"
+      - "ci/test_ci_policy.py"
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact commit SHA to validate (must equal the selected branch HEAD)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p5-4-1-post-merge-validation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Verify exact source and isolated environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      PAPER_TRADING_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+      AI_EXECUTION_ENABLED: "false"
+    steps:
+      - name: Checkout selected branch commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Enforce exact SHA and no-runtime boundary
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || inputs.expected_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$EXPECTED_SHA"
+          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB PAPER_TRADING_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+            if [[ -n "${!key:-}" ]]; then
+              echo "Unsafe environment variable present: $key"
+              exit 1
+            fi
+          done
+          test "$AI_EXECUTION_ENABLED" = "false"
+          printf '%s\n' "$actual" > p5-4-1-source-sha.txt
+          echo "P5_4_1_ISOLATION=PASS" > p5-4-1-isolation.txt
+
+  t0:
+    name: T0 full automated regression
+    needs: preflight
+    uses: ./.github/workflows/t0-validation.yml
+
+  g1:
+    name: G1 Gateway transaction acceptance
+    needs: preflight
+    uses: ./.github/workflows/p5-3-10-5-g1-green-validation.yml
+
+  g2:
+    name: G2 writer routing and consumer regression
+    needs: preflight
+    uses: ./.github/workflows/p5-3-11-g2-integration-green.yml
+
+  publish:
+    name: Verify common SHA and publish combined evidence
+    if: always()
+    needs: [preflight, t0, g1, g2]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact selected commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Download T0 evidence
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: t0-automated-evidence-${{ github.run_id }}
+          path: evidence/t0
+      - name: Download G1 evidence
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: p5-3-10-5-g1-green-evidence-${{ github.run_id }}
+          path: evidence/g1
+      - name: Download G2 evidence
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: p5-3-11-g2-integration-green-${{ github.run_id }}
+          path: evidence/g2
+      - name: Verify all suites and source identities
+        if: always()
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || inputs.expected_sha || github.sha }}
+          PREFLIGHT_RESULT: ${{ needs.preflight.result }}
+          T0_RESULT: ${{ needs.t0.result }}
+          G1_RESULT: ${{ needs.g1.result }}
+          G2_RESULT: ${{ needs.g2.result }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          printf 'EXPECTED_SHA=%s\nPREFLIGHT=%s\nT0=%s\nG1=%s\nG2=%s\n' "$EXPECTED_SHA" "$PREFLIGHT_RESULT" "$T0_RESULT" "$G1_RESULT" "$G2_RESULT" | tee evidence/p5-4-1-manifest.txt
+          test "$PREFLIGHT_RESULT" = success
+          test "$T0_RESULT" = success
+          test "$G1_RESULT" = success
+          test "$G2_RESULT" = success
+          for file in evidence/t0/ci-source-sha.txt evidence/g1/g1-green-source-sha.txt evidence/g2/g2-green-source-sha.txt; do
+            test -s "$file"
+            actual="$(tr -d '\r\n' < "$file")"
+            test "$actual" = "$EXPECTED_SHA"
+          done
+          echo "P5_4_1_POST_MERGE_VALIDATION=PASS" | tee -a evidence/p5-4-1-manifest.txt
+      - name: Upload combined P5.4.1 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p5-4-1-post-merge-evidence-${{ github.run_id }}
+          if-no-files-found: warn
+          path: evidence/
+          retention-days: 30
