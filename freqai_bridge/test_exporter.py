@@ -9,6 +9,8 @@ import pandas as pd
 from freqai_bridge.exporter import TARGET, make_prediction, read_context, write_artifact
 from freqai_bridge.context import canonical_context
 from market_data.store import Candle, CandleStore, read_window
+from market_data.gateway import LeaseFence, T0WriteGateway
+from market_data.feeder import LeaseStore
 
 
 class FreqaiExporterTest(unittest.TestCase):
@@ -21,7 +23,14 @@ class FreqaiExporterTest(unittest.TestCase):
         database = self.path / "candles.sqlite3"
         candle_store = CandleStore(database)
         candle_store.initialize_schema()
-        candle_store.insert([Candle("15m", self.opened, "100", "102", "99", "101", "3", self.now-1000)])
+        leases = LeaseStore(str(database))
+        leases.initialize_schema()
+        lease = leases.acquire("freqai-test", now_ms=self.opened, ttl_seconds=3600)
+        T0WriteGateway(database).insert_batch(
+            [Candle("15m", self.opened, "100", "102", "99", "101", "3", self.now-1000)],
+            lease_token=LeaseFence(leases.lease_name, "freqai-test", lease.generation),
+            now_ms=lambda: self.opened + 1,
+        )
         self.window = read_window(database, "BTCUSDT", "15m", self.opened, self.opened+900_000)
         self.frame = pd.DataFrame({"date": [pd.Timestamp(self.opened, unit="ms", tz="UTC")],
             "open": [100.0], "high": [102.0], "low": [99.0], "close": [101.0], "volume": [3.0],
