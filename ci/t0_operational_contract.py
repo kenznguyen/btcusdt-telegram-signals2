@@ -186,8 +186,8 @@ def audit_contract(root):
         "sync_callback=canonical_sync" in feeder_service,
         "T0_FEEDER_LEASE_DB must resolve to the same file as MARKET_DATA_DB" in feeder_service,
         "gateway.insert_batch(" in sync_source,
-        "lease_token=LeaseFence" in sync_source,
-        "lease_clock" in sync_source,
+        "lease_token=lease_token" in sync_source,
+        "now_ms=lease_clock" in sync_source,
     ))
 
     gateway_transaction_ok = all((
