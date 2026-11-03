@@ -61,6 +61,8 @@ jobs:
       MARKET_DATA_DB: ""
       T0_FEEDER_LEASE_DB: ""
       PAPER_DB: ""
+      PAPER_TRADING_DB: ""
+      AI_EXECUTION_ENABLED: "false"
       BINANCE_API_KEY: ""
       BINANCE_API_SECRET: ""
       OKX_API_KEY: ""
