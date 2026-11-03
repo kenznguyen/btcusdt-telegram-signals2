@@ -48,7 +48,7 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("pull_request", workflow["on"])
         self.assertIn("workflow_dispatch", manual["on"])
         self.assertEqual(manual["permissions"]["contents"], "read")
-        commands = "\\n".join(step.get("run", "") for step in workflow["jobs"]["t0-validation"]["steps"])
+        commands = "\n".join(step.get("run", "") for step in workflow["jobs"]["t0-validation"]["steps"])
         required = ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
                     "market_data.test_api", "market_data.test_gateway_runtime", "market_data.test_feeder_lease",
                     "market_data.test_feeder_health", "market_data.test_feeder_lifecycle",
@@ -76,7 +76,7 @@ class CiPolicyTest(unittest.TestCase):
             "p5-2-4-shadow-migration-red", "p5-2-5-runtime-red-validation",
         }
         self.assertTrue(retired.isdisjoint(set(self.workflows)))
-        commands = "\\n".join(item["script"] for item in self.workflows["canonical-market-data"]["scripts"])
+        commands = "\n".join(item["script"] for item in self.workflows["canonical-market-data"]["scripts"])
         for module in ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
                        "market_data.test_api", "market_data.test_gateway_runtime"):
             self.assertNotIn(module, commands)
@@ -89,13 +89,13 @@ class CiPolicyTest(unittest.TestCase):
     def test_data_checks_keep_dependency_import_tests_and_cli_gates(self):
         data = self.workflows["canonical-market-data"]
         self.assertIn("push", data["triggering"]["events"])
-        commands = "\\n".join(item["script"] for item in data["scripts"])
+        commands = "\n".join(item["script"] for item in data["scripts"])
         for gate in ("requirements-market-data.txt", "requirements-web.txt", "requirements-ci.txt",
                      "import ccxt", "import app", "-s integrations", "-s ci", "market_data.sync --help"):
             with self.subTest(gate=gate):
                 self.assertIn(gate, commands)
         t0_workflow = yaml.safe_load((ROOT / ".github/workflows/t0-validation.yml").read_text())
-        t0_commands = "\\n".join(step.get("run", "") for step in t0_workflow["jobs"]["t0-validation"]["steps"])
+        t0_commands = "\n".join(step.get("run", "") for step in t0_workflow["jobs"]["t0-validation"]["steps"])
         for module in ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
                        "market_data.test_api", "market_data.test_gateway_runtime"):
             self.assertIn(module, t0_commands)
