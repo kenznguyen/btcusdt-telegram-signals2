@@ -183,6 +183,28 @@ def audit_contract(root):
         "Fenced sync requires a store with atomic insert_fenced support" in sync_source,
     ))
 
+
+    feeder_source = (root / "market_data/feeder.py").read_text(encoding="utf-8")
+    gateway_boundary_ok = all((
+        "isinstance(gateway, T0WriteGateway)" in sync_source,
+        "isinstance(gateway, T0WriteGateway)" in feeder_service,
+        "gateway.insert_batch(" in sync_source,
+    ))
+    clock_separation_ok = all((
+        "observation_clock=None" in feeder_service,
+        "observation_clock_fn" in feeder_service,
+        "lease_clock if lease_clock is not None" in feeder_service,
+        "now_ms=observation_clock_fn" in feeder_service,
+        "lease_clock=runtime_clock_fn" in feeder_service,
+        "clock=runtime_clock_fn" in feeder_service,
+    ))
+    runtime_storage_fail_closed_ok = all((
+        "?mode=rw" in store_source,
+        "?mode=rw" in feeder_source,
+        "def initialize_schema(self)" in store_source,
+        "def initialize_schema(self)" in feeder_source,
+    ))
+
     return [
         _check("green_test_inventory", inventory_ok, inventory_detail),
         _check(
@@ -218,6 +240,24 @@ def audit_contract(root):
             "Production feeder requires SQLite, a shared candle/lease database, "
             "and the fenced canonical sync path for scheduler and recovery."
             if fencing_ok else "One or more SQLite / atomic-fencing source invariants changed.",
+        ),
+        _check(
+            "concrete_gateway_boundary",
+            gateway_boundary_ok,
+            "sync_window and build_runtime accept only the concrete T0WriteGateway boundary."
+            if gateway_boundary_ok else "A duck-typed writer can bypass the concrete Gateway boundary.",
+        ),
+        _check(
+            "observation_and_lease_clock_separation",
+            clock_separation_ok,
+            "Observation timestamps and lease/runtime admission clocks are independently injectable."
+            if clock_separation_ok else "Observation and lease/runtime clocks are not independently wired.",
+        ),
+        _check(
+            "runtime_storage_fail_closed",
+            runtime_storage_fail_closed_ok,
+            "CandleStore and LeaseStore runtime writes use SQLite mode=rw; schema creation remains explicit."
+            if runtime_storage_fail_closed_ok else "A runtime writer may create an absent database or initialize schema implicitly.",
         ),
     ]
 
