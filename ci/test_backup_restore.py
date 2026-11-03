@@ -510,30 +510,8 @@ class BackupRestoreFixtureTest(unittest.TestCase):
         }
 
     def test_split_store_partial_backup_failure_publishes_no_snapshot_set(self):
-        second_source = self.root / "source" / "second-fixture.sqlite3"
-        create_online_backup(
-            self.source, second_source, root=self.root,
-            required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
-        )
+        sources, snapshot_metadata = self._split_store_sources_and_metadata("barrier-fixture-002")
         target = self.backups / "split-set"
-        sources = {
-            "market_data": self.source,
-            "paper_ledger": second_source,
-        }
-        snapshot_metadata = {
-            "market_data": {
-                "barrier_id": "barrier-fixture-002",
-                "snapshot_id": "market-snapshot-002",
-                "high_water_mark": 121,
-                "schema_version": 3,
-            },
-            "paper_ledger": {
-                "barrier_id": "barrier-fixture-002",
-                "snapshot_id": "paper-snapshot-002",
-                "high_water_mark": 45,
-                "schema_version": 5,
-            },
-        }
 
         with self.assertRaisesRegex(RuntimeError, "injected partial split-store failure"):
             publish_split_store_backup_set(
@@ -551,31 +529,14 @@ class BackupRestoreFixtureTest(unittest.TestCase):
         self.assertFalse(any(self.backups.glob(".split-stage-*")))
 
     def test_split_store_backup_set_publishes_both_stores_and_manifest_together(self):
-        second_source = self.root / "source" / "second-fixture.sqlite3"
-        create_online_backup(
-            self.source, second_source, root=self.root,
-            required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
-        )
+        sources, snapshot_metadata = self._split_store_sources_and_metadata("barrier-fixture-003")
         target = self.backups / "split-set"
         result = publish_split_store_backup_set(
-            {"market_data": self.source, "paper_ledger": second_source},
+            sources,
             target, root=self.root,
             snapshot_barrier_id="barrier-fixture-003",
             restore_epoch=6,
-            snapshot_metadata={
-                "market_data": {
-                    "barrier_id": "barrier-fixture-003",
-                    "snapshot_id": "market-snapshot-003",
-                    "high_water_mark": 122,
-                    "schema_version": 3,
-                },
-                "paper_ledger": {
-                    "barrier_id": "barrier-fixture-003",
-                    "snapshot_id": "paper-snapshot-003",
-                    "high_water_mark": 46,
-                    "schema_version": 5,
-                },
-            },
+            snapshot_metadata=snapshot_metadata,
             required_tables=REQUIRED_TABLES,
             required_rows=REQUIRED_ROWS,
         )
