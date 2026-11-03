@@ -63,7 +63,12 @@ def _render_window(symbol, timeframe, start, end, as_of_ms, candles):
 
 
 class PostgresCandleStore:
-    """Same insert contract as SQLite; constructor performs no DDL or migration."""
+    """Unfenced experimental PostgreSQL adapter for integration tests only.
+
+    This adapter is not canonical and is deliberately not exposed by the runtime
+    storage factory. Canonical production writes must use T0WriteGateway; no
+    PostgreSQL Gateway fencing implementation is currently certified.
+    """
 
     def __init__(self, location):
         self.location = location
