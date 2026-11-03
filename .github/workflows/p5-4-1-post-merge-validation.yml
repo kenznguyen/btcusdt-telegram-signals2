@@ -4,14 +4,13 @@ name: P5.4.1 Post-Merge Validation Gate
   push:
     branches:
       - feature/p5-4-1-post-merge-validation-20261103
-    paths:
-      - ".github/workflows/**"
-      - "ci/test_ci_policy.py"
+      - feature/p5-2-5-green-contracts-20261102
   pull_request:
     branches:
       - feature/p5-2-5-green-contracts-20261102
     paths:
       - ".github/workflows/**"
+      - "ci/test_ci_policy.py"
   workflow_dispatch:
     inputs:
       expected_sha:
