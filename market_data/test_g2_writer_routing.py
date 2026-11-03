@@ -116,7 +116,8 @@ class G2WriterRoutingRedTests(unittest.TestCase):
 
     def test_g2_04_sync_window_routes_through_gateway_insert_batch(self):
         source = inspect.getsource(sync.sync_window)
-        self.assertIn("insert_batch", source)
+        self.assertIn("gateway=gateway", source)
+        self.assertIn("sync_window(", source)
         self.assertNotIn("store.insert(", source)
         self.assertNotIn("store.insert_fenced(", source)
 
@@ -125,7 +126,8 @@ class G2WriterRoutingRedTests(unittest.TestCase):
         builder_source = inspect.getsource(feeder_service.build_runtime)
         self.assertIn("LeaseFence", runtime_source + builder_source)
         self.assertIn("gateway", inspect.signature(feeder_service.build_runtime).parameters)
-        self.assertIn("insert_batch", builder_source)
+        self.assertIn("gateway=gateway", builder_source)
+        self.assertIn("sync_window(", builder_source)
 
     def test_g2_06_stale_generation_is_rejected_by_real_gateway(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -354,6 +356,7 @@ class G2WriterRoutingRedTests(unittest.TestCase):
             lease_store = Mock()
             lease_store.lease_name = LEASE.lease_name
             lease_store.heartbeat.return_value = True
+            lease_store.is_current.return_value = True
             observed_at = START + 100 * STEP
             lease_now = START + 100 * STEP + 321
             lease_clock_calls = []
