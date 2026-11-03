@@ -1,5 +1,5 @@
 name: P5.3.11 - G2 Integration GREEN
-run-name: G2 integration GREEN (${{ github.ref_name }} @ ${{ github.sha }})
+run-name: G2 integration GREEN (${{ github.ref_name }} @ ${{ github.event.pull_request.head.sha || github.sha }})
 
 on:
   push:
@@ -44,7 +44,7 @@ jobs:
       - name: Checkout exact triggering SHA
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - name: Set up Python
