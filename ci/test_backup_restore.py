@@ -442,8 +442,43 @@ class BackupRestoreFixtureTest(unittest.TestCase):
         with sqlite3.connect(destination) as db:
             self.assertEqual(db.execute("SELECT COUNT(*) FROM paper_books").fetchone()[0], 0)
 
-    def test_split_store_manifest_requires_shared_barrier_and_epoch(self):
-        valid = {
+    def test_backup_verifier_detects_schema_drift(self):
+        destination = self.backup("schema-drift.sqlite3")
+        with sqlite3.connect(destination) as db:
+            db.execute("ALTER TABLE candles ADD COLUMN fixture_schema_drift TEXT")
+        with self.assertRaises(BackupVerificationError):
+            verify_backup(
+                self.source, destination, root=self.root,
+                required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
+            )
+
+    def test_split_store_manifest_requires_versioned_schema_metadata(self):
+        manifest = self._valid_split_store_manifest()
+        with self.assertRaises(BackupVerificationError):
+            validate_split_store_manifest(manifest)
+
+    def test_split_store_manifest_rejects_invalid_domain_values(self):
+        mutations = (
+            ("boolean restore epoch", lambda value: value.update(restore_epoch=True)),
+            ("floating restore epoch", lambda value: value.update(restore_epoch=4.0)),
+            ("negative high water", lambda value: value["stores"]["market_data"].update(high_water_mark=-1)),
+            ("boolean high water", lambda value: value["stores"]["paper_ledger"].update(high_water_mark=True)),
+            ("blank snapshot id", lambda value: value["stores"]["market_data"].update(snapshot_id=" ")),
+            ("blank barrier id", lambda value: value.update(snapshot_barrier_id=" ")),
+            ("extra store", lambda value: value["stores"].update(unapproved_store={"snapshot_id": "x"})),
+            ("zero schema version", lambda value: value["stores"]["market_data"].update(schema_version=0)),
+        )
+        for label, mutate in mutations:
+            with self.subTest(case=label):
+                candidate = self._valid_split_store_manifest()
+                mutate(candidate)
+                with self.assertRaises(BackupVerificationError):
+                    validate_split_store_manifest(candidate)
+
+    @staticmethod
+    def _valid_split_store_manifest():
+        return {
+            "manifest_version": 1,
             "topology": "split_store",
             "snapshot_barrier_id": "barrier-fixture-001",
             "restore_epoch": 4,
@@ -452,14 +487,19 @@ class BackupRestoreFixtureTest(unittest.TestCase):
                     "barrier_id": "barrier-fixture-001",
                     "snapshot_id": "market-snapshot-001",
                     "high_water_mark": 120,
+                    "schema_version": 3,
                 },
                 "paper_ledger": {
                     "barrier_id": "barrier-fixture-001",
                     "snapshot_id": "paper-snapshot-001",
                     "high_water_mark": 44,
+                    "schema_version": 5,
                 },
             },
         }
+
+    def test_split_store_manifest_requires_shared_barrier_and_epoch(self):
+        valid = self._valid_split_store_manifest()
         self.assertEqual(validate_split_store_manifest(valid)["status"], "PASS")
         invalid = json.loads(json.dumps(valid))
         invalid["stores"]["paper_ledger"]["barrier_id"] = "different-barrier"
