@@ -900,14 +900,13 @@ Remediation:
 
 Current verdict:
 - Root cause identified: PASS.
-- Workflow config updated on main and feature: PASS, pending read-back verification.
+- Workflow config updated and read back on main and feature: PASS; both copies have identical blob SHA `b6f6b3deccc01f27fb3c00b0bb5657033508be5c`.
 - New manual dispatch: NOT RUN (must use GitHub Actions UI; no dispatch action is available in this session).
 - Android unit tests / paired APK build / signer parity / APK artifacts: NOT RUN / NOT VERIFIED.
 - Signing secret values were not read or exposed.
 - `AI_EXECUTION_ENABLED=false`; all exchange credentials and DB/Feeder environment variables remain empty in this workflow.
 
 Next action:
-1. Read back both branch copies and confirm they contain `packages: platform-tools` with identical blob SHA.
-2. Dispatch the workflow on `feature/p5-4-1-post-merge-validation-20261103` using the exact current feature branch HEAD as `source_sha`.
-3. Inspect the new run's job steps, logs and artifacts. Do not claim release readiness until unit tests, both APK builds, package identity checks, signer parity and artifact integrity are evidenced.
-4. Do not install/distribute APKs or enable live execution. Paper-only boundary remains unchanged.
+1. Dispatch the workflow on `feature/p5-4-1-post-merge-validation-20261103` using current feature branch HEAD `4170a1bfcd3f7c03c04eca3eb2a43f977c4bad9a` as `source_sha`. The connected GitHub toolset has no workflow-dispatch operation, so this must be initiated from the Actions UI.
+2. Inspect the new run's job steps, logs and artifacts. Do not claim release readiness until unit tests, both APK builds, package identity checks, signer parity and artifact integrity are evidenced.
+3. Do not install/distribute APKs or enable live execution. Paper-only boundary remains unchanged.
