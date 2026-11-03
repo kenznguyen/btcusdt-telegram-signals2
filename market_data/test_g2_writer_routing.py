@@ -116,8 +116,7 @@ class G2WriterRoutingRedTests(unittest.TestCase):
 
     def test_g2_04_sync_window_routes_through_gateway_insert_batch(self):
         source = inspect.getsource(sync.sync_window)
-        self.assertIn("gateway=gateway", source)
-        self.assertIn("sync_window(", source)
+        self.assertIn("insert_batch", source)
         self.assertNotIn("store.insert(", source)
         self.assertNotIn("store.insert_fenced(", source)
 
@@ -159,8 +158,8 @@ class G2WriterRoutingRedTests(unittest.TestCase):
     def test_g2_08_recovery_builder_uses_gateway_backed_sync_callback(self):
         source = inspect.getsource(feeder_service.build_runtime)
         self.assertIn("LeaseFence", source)
-        self.assertIn("gateway", source)
-        self.assertIn("insert_batch", source)
+        self.assertIn("gateway=gateway", source)
+        self.assertIn("sync_window(", source)
 
     def test_g2_09_cli_sync_requires_explicit_lease_capability(self):
         tree = ast.parse(inspect.getsource(sync.main))
@@ -356,7 +355,7 @@ class G2WriterRoutingRedTests(unittest.TestCase):
             lease_store = Mock()
             lease_store.lease_name = LEASE.lease_name
             lease_store.heartbeat.return_value = True
-            lease_store.is_current.return_value = True
+            lease_store.authorize_write.return_value = True
             observed_at = START + 100 * STEP
             lease_now = START + 100 * STEP + 321
             lease_clock_calls = []
