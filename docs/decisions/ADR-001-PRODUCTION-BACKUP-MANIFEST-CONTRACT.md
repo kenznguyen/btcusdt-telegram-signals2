@@ -37,11 +37,13 @@ Therefore, a production manifest cannot safely treat a single integer called `sc
 
 ### D1 — Canonical store topology and identity
 
-**Open question:** Is production market data SQLite or PostgreSQL, and is the paper ledger in the same SQLite database or a separate store?
+**Existing user decision:** T0 storage is PC-hosted SQLite, with the feeder lease in the same store and a daily backup cadence. This is the selected T0 direction; it must not be silently replaced by PostgreSQL.
+
+**Still open:** the canonical Windows filesystem path remains unresolved, and this record does not establish whether the Paper Ledger shares the exact same SQLite file as T0 market data or uses a separate database. PostgreSQL remains an opt-in/experimental adapter, not the selected T0 canonical backend.
 
 Candidate manifest identity should name a logical role (for example, `market_data` or `paper_ledger`), backend type, stable opaque store ID and schema authority. It must not expose credentials or raw DSNs/absolute paths.
 
-**Not decided:** canonical host/path, backend topology, store IDs or destination.
+**Not decided:** canonical path, exact market-data/paper-ledger file topology, store IDs, backup destination and encryption/retention policy. Preserve the already selected T0 PC + SQLite + same-store lease + daily-backup direction.
 
 ### D2 — Per-store high-water semantics
 
