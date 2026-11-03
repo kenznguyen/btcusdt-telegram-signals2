@@ -92,6 +92,7 @@ class CiPolicyTest(unittest.TestCase):
         )
         self.assertIn('grep -q "Ran 100 tests"', atomic_step.get("run", ""))
         self.assertNotIn('grep -q "Ran 99 tests"', atomic_step.get("run", ""))
+        audit_source = (ROOT / "ci/t0_operational_contract.py").read_text()
         health_step = next(
             step for step in workflow["jobs"]["t0-validation"]["steps"]
             if step.get("name") == "Run runtime health API and T0 regression contracts"
