@@ -10,7 +10,7 @@ This file is the durable restart point for future ChatGPT sessions. GitHub is th
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - GitHub stores source, plans, evidence manifests, and session handoffs.
-- GitHub Actions is the default CI. Use Codemagic only when GitHub Actions cannot run or is blocked by its limits.
+- GitHub stores source, plans, reports and artifacts. Codemagic is the default runner for project actions/builds/tests. Do not add GitHub Actions for new work unless the owner explicitly changes the runner choice; retain historical GitHub Actions evidence as historical evidence only.
 - Do not create parallel branches or PRs for the same work. Continue on the existing relevant branch/PR; avoid PR divergence.
 - Do not claim PASS without a traceable artifact, exact source SHA, and test result.
 - Use explicit states: PASS, CONDITIONAL PASS, BLOCKED, INTERRUPTED, NOT RUN, NOT VERIFIED, DEFERRED.
@@ -271,4 +271,24 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - No tests/workflows/builds run; no fixture/canonical/shadow DB accessed or created; no code/dependency/workflow/runtime changes; no PC/Android filesystem; no Feeder/API/exchange/data sync; no Doze work; no execution. Keep `ai_execution_enabled=false`.
 - Independent fresh-context/cross-model review: **NOT RUN**.
 - Next step: **P5.4.10 — Owner Decision Record & Fixture-Only Implementation Authorization**. Record unresolved decisions and obtain explicit scope authorization. If only CI fixture tests are authorized, they can be implemented without canonical path selection; operational restore and PC/Android remain blocked. Test execution requires separate approval.
+
+## P5.4.10 — Backup/Restore Fixture Test Implementation (updated 2026-11-03)
+
+- Report: `docs/evidence/P5.4.10-BACKUP-RESTORE-FIXTURE-TEST-IMPLEMENTATION-2026-11-03.md`.
+- Report commit: `bc7af3cc5fab1cb58782883eb33d983ea92bb4d0`.
+- Implementation source SHA before this report/handoff update: `eb197caced1f5f43975e8ca27bc061297bc5f3e1`.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Owner authorization: **"cho phép các quyền cần thiết Backup/Restore Test"** (2026-11-03). Applied to fixture-only implementation and execution on Codemagic; GitHub remains source/evidence storage.
+- Implemented test files:
+  - `ci/test_backup_restore.py` — 12 fixture-only tests; blob `1d805c399e53b17276a175081586cbe1870fedb3`.
+  - `ci/backup_restore_test_support.py` — safe root, SQLite Online Backup API, read-only verifier, logical fingerprint, atomic publish and split-store metadata checks; blob `f1cbcb4d58dc2abe2a683f4f4f9374c12146e20b`.
+  - `ci/run_backup_restore_tests.py` — machine-readable evidence generator; blob `102b84f535c5896f2855e5e747a6a49372b96a4a`.
+  - `codemagic.yaml` — dedicated `backup-restore-test` workflow scoped to this branch and fixture paths; blob `61e1d08234bf27444afadabe231e0c53795cf4fb`.
+- Coverage in this increment: fixture domain inventory; Online Backup API round-trip; WAL committed/uncommitted boundary; read-only verification; missing table/required row; tamper/corruption; atomic publication; path escape/symlink rejection; split-store barrier/epoch metadata.
+- Implementation status: **PRESENT**. Workflow definition: **PRESENT**. Codemagic Build ID/run result/test totals: **NOT VERIFIED** in this session. Artifact retrieval and independent payload SHA-256 recomputation: **NOT VERIFIED**. Do not claim test PASS based on workflow configuration or push.
+- P5.4.8's earlier GitHub Actions runner assignment is superseded for this task by the owner's Codemagic execution instruction.
+- This increment does not complete all 48 planned cases. Split-store manifest validation does not establish real cross-store atomicity.
+- Still blocked: canonical DB/host/path, topology, backup destination/encryption/retention/RPO/RTO, monotonic restore epoch authority, Kill Switch recovery latch/approver, production restore/promotion, Windows PC and Android shadow drills.
+- No canonical DB, PC/Android DB, Feeder, API runtime, exchange or market-data sync was accessed/started. No runtime config/dependencies changed. No live/paper order execution. Natural Doze remains **INTERRUPTED / DEFERRED**. Keep `ai_execution_enabled=false`.
+- Next action: retrieve the Codemagic build and artifact, verify exact source SHA `eb197caced1f5f43975e8ca27bc061297bc5f3e1`, inspect logs/results and independently recompute artifact checksum. Then continue remaining test cases.
 
