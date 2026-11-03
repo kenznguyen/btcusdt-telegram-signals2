@@ -32,6 +32,7 @@ android {
             applicationIdSuffix = ".paper"
             versionNameSuffix = "-paper"
             matchingFallbacks += listOf("debug")
+            signingConfig = signingConfigs.getByName("release")
             buildConfigField("boolean", "PARALLEL_INSTALL", "true")
         }
         getByName("release") {
