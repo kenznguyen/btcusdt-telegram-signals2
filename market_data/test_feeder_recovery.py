@@ -71,6 +71,26 @@ class RecoveryPlannerContractTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "coverage completeness contradicts reported gaps"):
             self.planner.plan("15m", snapshot)
 
+    def test_missing_coverage_completeness_flag_fails_closed(self):
+        snapshot = coverage(BASE, BASE + 2 * STEP)
+        del snapshot["coverage"]["complete"]
+        with self.assertRaisesRegex(ValueError, "coverage completeness contradicts reported gaps"):
+            self.planner.plan("15m", snapshot)
+
+    def test_null_coverage_completeness_flag_fails_closed(self):
+        snapshot = coverage(BASE, BASE + 2 * STEP)
+        snapshot["coverage"]["complete"] = None
+        with self.assertRaisesRegex(ValueError, "coverage completeness contradicts reported gaps"):
+            self.planner.plan("15m", snapshot)
+
+    def test_non_boolean_coverage_completeness_flag_fails_closed(self):
+        for invalid in (0, 1, "false", "true"):
+            with self.subTest(invalid=invalid):
+                snapshot = coverage(BASE, BASE + 2 * STEP)
+                snapshot["coverage"]["complete"] = invalid
+                with self.assertRaisesRegex(ValueError, "coverage completeness contradicts reported gaps"):
+                    self.planner.plan("15m", snapshot)
+
 
 class RecoveryCoordinatorContractTest(unittest.TestCase):
     def test_complete_store_coverage_does_not_call_sync(self):
