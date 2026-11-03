@@ -275,7 +275,10 @@ def validate_split_store_manifest(manifest):
     if not isinstance(stores, dict) or set(stores) != {"market_data", "paper_ledger"}:
         raise BackupVerificationError("Both split-store snapshots are required")
 
-    required_store_keys = {"barrier_id", "snapshot_id", "high_water_mark", "schema_version"}
+    required_store_keys = {
+        "barrier_id", "snapshot_id", "high_water_mark", "schema_version",
+        "content_sha256", "logical_sha256", "table_counts",
+    }
     for name, snapshot in stores.items():
         if not isinstance(snapshot, dict) or set(snapshot) != required_store_keys:
             raise BackupVerificationError(f"{name} snapshot metadata is incomplete or has unknown fields")
@@ -284,10 +287,24 @@ def validate_split_store_manifest(manifest):
         snapshot_id = snapshot["snapshot_id"]
         high_water = snapshot["high_water_mark"]
         schema_version = snapshot["schema_version"]
-        if not isinstance(snapshot_id, str) or not snapshot_id.strip():
-            raise BackupVerificationError(f"{name} snapshot ID is missing")
-        if type(high_water) is not int or high_water < 0:
-            raise BackupVerificationError(f"{name} high-water mark is invalid")
+        content_hash = snapshot["content_sha256"]
+        logical_hash = snapshot["logical_sha256"]
+        table_counts = snapshot["table_counts"]
+        if not isinstance(snapshot_id, str) or len(snapshot_id) != 64:
+            raise BackupVerificationError(f"{name} snapshot ID must be a logical SHA-256")
+        if not isinstance(content_hash, str) or len(content_hash) != 64:
+            raise BackupVerificationError(f"{name} content SHA-256 is invalid")
+        if not isinstance(logical_hash, str) or len(logical_hash) != 64 or snapshot_id != logical_hash:
+            raise BackupVerificationError(f"{name} logical snapshot identity is invalid")
+        if any(ch not in "0123456789abcdef" for ch in snapshot_id + content_hash):
+            raise BackupVerificationError(f"{name} snapshot digest is not lowercase hexadecimal")
+        if not isinstance(table_counts, dict) or not table_counts:
+            raise BackupVerificationError(f"{name} table counts are missing")
+        if any(not isinstance(table, str) or type(count) is not int or count < 0
+               for table, count in table_counts.items()):
+            raise BackupVerificationError(f"{name} table counts contain invalid values")
+        if type(high_water) is not int or high_water < 0 or high_water != sum(table_counts.values()):
+            raise BackupVerificationError(f"{name} high-water mark does not match table counts")
         if type(schema_version) is not int or schema_version < 1:
             raise BackupVerificationError(f"{name} schema version is invalid")
 
@@ -299,6 +316,70 @@ def validate_split_store_manifest(manifest):
         "stores": sorted(stores),
         "schema_versions": {name: stores[name]["schema_version"] for name in sorted(stores)},
         "atomicity_claim": "NOT_ESTABLISHED_BY_MANIFEST",
+    }
+
+
+def derive_snapshot_identity(path, *, root):
+    """Derive fixture identity, schema version and row-count high-water mark."""
+    report = inspect_database(path, root=root)
+    database = _safe_path(path, root, must_exist=True)
+    with closing(_readonly_connection(database)) as connection:
+        schema_version = connection.execute("PRAGMA user_version").fetchone()[0]
+    if type(schema_version) is not int or schema_version < 1:
+        raise BackupVerificationError("Fixture database PRAGMA user_version must be positive")
+    table_counts = report["table_counts"]
+    return {
+        "logical_sha256": report["logical_sha256"],
+        "table_counts": table_counts,
+        "high_water_mark": sum(table_counts.values()),
+        "schema_version": schema_version,
+    }
+
+
+def verify_split_store_backup_set(destination, *, root):
+    """Read-only verification binding manifest fields to both actual DB images."""
+    root_path = _fixture_root(root)
+    directory = _safe_path(destination, root_path, must_exist=True)
+    if not directory.is_dir():
+        raise BackupVerificationError("Split-store backup set must be a directory")
+    expected_files = {"market_data.sqlite3", "paper_ledger.sqlite3", "backup-manifest.json"}
+    actual_files = {item.name for item in directory.iterdir()}
+    if actual_files != expected_files:
+        raise BackupVerificationError("Split-store backup set has missing or unexpected files")
+    try:
+        manifest = json.loads((directory / "backup-manifest.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError) as exc:
+        raise BackupVerificationError("Split-store manifest cannot be read") from exc
+    manifest_report = validate_split_store_manifest(manifest)
+    verified = {}
+    for name in ("market_data", "paper_ledger"):
+        database = directory / f"{name}.sqlite3"
+        metadata = manifest["stores"][name]
+        identity = derive_snapshot_identity(database, root=root_path)
+        content_hash = hashlib.sha256(database.read_bytes()).hexdigest()
+        if metadata["snapshot_id"] != identity["logical_sha256"]:
+            raise BackupVerificationError(f"{name} snapshot ID does not match database contents")
+        if metadata["logical_sha256"] != identity["logical_sha256"]:
+            raise BackupVerificationError(f"{name} logical hash does not match database contents")
+        if metadata["content_sha256"] != content_hash:
+            raise BackupVerificationError(f"{name} content hash does not match database image")
+        if metadata["high_water_mark"] != identity["high_water_mark"]:
+            raise BackupVerificationError(f"{name} high-water mark does not match database rows")
+        if metadata["schema_version"] != identity["schema_version"]:
+            raise BackupVerificationError(f"{name} schema version does not match PRAGMA user_version")
+        if metadata["table_counts"] != identity["table_counts"]:
+            raise BackupVerificationError(f"{name} table counts do not match database contents")
+        verified[name] = {
+            "logical_sha256": identity["logical_sha256"],
+            "content_sha256": content_hash,
+            "high_water_mark": identity["high_water_mark"],
+            "schema_version": identity["schema_version"],
+            "table_counts": identity["table_counts"],
+        }
+    return {
+        "status": "PASS",
+        "manifest": manifest_report,
+        "stores": verified,
     }
 
 
@@ -339,15 +420,35 @@ def publish_split_store_backup_set(
         prefix=".split-stage-", dir=destination_path.parent,
     ))
     try:
+        bound_stores = {}
         for name in ("market_data", "paper_ledger"):
             staged_backup = staging_path / f"{name}.sqlite3"
             atomic_backup(
                 sources[name], staged_backup, root=fixture_root,
                 required_tables=required_tables, required_rows=required_rows,
             )
+            identity = derive_snapshot_identity(staged_backup, root=fixture_root)
+            expected = snapshot_metadata[name]
+            if expected["barrier_id"] != snapshot_barrier_id:
+                raise BackupVerificationError(f"{name} snapshot barrier metadata mismatch")
+            for field in ("snapshot_id", "high_water_mark", "schema_version"):
+                if expected[field] != identity[
+                    "logical_sha256" if field == "snapshot_id" else field
+                ]:
+                    raise BackupVerificationError(f"{name} {field} does not match backup contents")
+            bound_stores[name] = {
+                "barrier_id": snapshot_barrier_id,
+                "snapshot_id": identity["logical_sha256"],
+                "logical_sha256": identity["logical_sha256"],
+                "content_sha256": hashlib.sha256(staged_backup.read_bytes()).hexdigest(),
+                "high_water_mark": identity["high_water_mark"],
+                "schema_version": identity["schema_version"],
+                "table_counts": identity["table_counts"],
+            }
             if fail_after_store == name:
                 raise RuntimeError("injected partial split-store failure")
 
+        manifest["stores"] = bound_stores
         manifest_path = staging_path / "backup-manifest.json"
         manifest_path.write_text(
             json.dumps(manifest, sort_keys=True, indent=2) + "\n",
