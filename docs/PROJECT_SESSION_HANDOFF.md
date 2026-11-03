@@ -630,12 +630,14 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 
 - Evidence report: `docs/evidence/P5.4.31-SHARED-GATEWAY-LIFECYCLE.md`.
 - Test implementation commit: `d8833d0b3a0aa768ddc7d8079e09a7c00e95697f`.
-- Evidence report commit: `56163c92d25f82962ff581950094a5e8e98f9f30`.
+- Evidence report PASS update commit: `292d56bbd8f92c587b413a100e46638c03ceb5b1`.
 - Branch: `feature/p5-4-1-post-merge-validation-20261103`.
-- Added fixture-only test: `SchedulerGatewayContractTest.test_scheduler_and_recovery_share_injected_gateway_and_current_fence` in `market_data/test_feeder_gateway_contract.py`.
-- Contract asserts Scheduler and Recovery use the exact injected `T0WriteGateway` instance, the same owner/generation `LeaseFence`, and accepted heartbeat validation for both callbacks.
-- Production code unchanged. Test uses mocks and deterministic in-memory recovery coverage fixtures.
-- GitHub read-back of the test source: PASS. Local test execution: NOT RUN. Exact-SHA GitHub Actions acceptance: PENDING.
-- Next: run the existing manual `G2 integration GREEN` workflow on this branch after the handoff commit; verify exact HEAD SHA, new test, all required regression groups and artifact metadata, then update the report with run/job/artifact/checksum.
-- Explicit exclusions remain: no Feeder startup/service, canonical DB or Paper Ledger access, exchange connectivity, data sync, Android instrumentation, SIGKILL, PC multiprocess, Timescale integration or production backup/restore. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
-- Status: **IMPLEMENTED / NOT VERIFIED**. Do not mark P5.4.31 PASS or advance beyond it until exact-SHA CI evidence is recorded.
+- Exact tested source SHA: `32f7e729de9f1a85e25bfb745e12b81c1e85060d`.
+- Workflow: [G2 integration GREEN #41661665771](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41661665771), event `workflow_dispatch`, attempt 1, conclusion `success`.
+- Job: `G2 and T0 isolated regression acceptance`, ID `126006148696`, conclusion `success`.
+- New test `test_scheduler_and_recovery_share_injected_gateway_and_current_fence`: PASS.
+- Test totals: G1 16, G2 69, T0 96, CI contracts 24, consumer regressions 56; **261 total PASS**. Python compile and shadow-only isolation PASS.
+- Artifact: `p5-3-11-g2-integration-green-41661665771`, ID `13242762087`, 9,494 bytes, SHA-256 `23fbc2f8198773098062522a4bde67bd3589c2178ceeeb6d6e8f9aea4051bc4a`, expires `2026-11-10T15:13:38Z`. [Artifact URL](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41661665771/artifacts/13242762087).
+- Status: **PASS — fixture-only Shared Gateway Lifecycle contract verified on exact SHA**. Production code unchanged.
+- Limits: no Feeder startup/service, canonical DB or Paper Ledger access, exchange connectivity, data sync, Android instrumentation, SIGKILL, PC multiprocess, Timescale integration or production backup/restore. `AI_EXECUTION_ENABLED=false`; no live orders. This CI result does not certify production runtime readiness.
+- Next: preserve these boundaries; do not initiate runtime/production operations. Define and authorize the next bounded phase separately.
