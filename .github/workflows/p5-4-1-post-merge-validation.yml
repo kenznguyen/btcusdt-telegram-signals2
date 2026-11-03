@@ -65,6 +65,9 @@ jobs:
           printf '%s\n' "$actual" > p5-4-1-source-sha.txt
           echo "P5_4_1_ISOLATION=PASS" > p5-4-1-isolation.txt
 
+      - name: Run fixture-only Android release-pair verifier tests
+        run: python3 -m unittest ci.test_android_release_pair -v
+
   t0:
     name: T0 full automated regression
     needs: preflight
