@@ -41,6 +41,7 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("persist-credentials: false", green)
         self.assertIn("integration/p5-3-11-g2-gateway-green-20261103", green)
         self.assertNotIn('      - "codemagic.yaml"', green)
+        self.assertNotIn("p5-3-11-g2-gateway-green-acceptance", self.workflows)
         readme = (ROOT / "market_data/README.md").read_text()
         self.assertIn("GitHub Actions là cổng CI/acceptance duy nhất", readme)
         self.assertNotIn("Codemagic là gate", readme)
