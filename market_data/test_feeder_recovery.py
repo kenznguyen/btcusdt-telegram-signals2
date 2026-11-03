@@ -131,6 +131,58 @@ class RecoveryCoordinatorContractTest(unittest.TestCase):
         with self.assertRaises(RecoveryIncompleteError):
             coordinator.recover("15m", BASE, BASE + 2 * STEP)
 
+    def test_partial_multi_gap_recovery_never_reports_complete(self):
+        gaps = [
+            {"startMs": BASE, "endMs": BASE + STEP},
+            {"startMs": BASE + 2 * STEP, "endMs": BASE + 3 * STEP},
+        ]
+        remaining = [gaps[1]]
+        sync_calls = []
+
+        def sync_one_gap(timeframe, start_ms, end_ms):
+            sync_calls.append((timeframe, start_ms, end_ms))
+            # The first gap is repaired; the second remains in authoritative recheck.
+            return None
+
+        read = Mock(side_effect=[
+            coverage(BASE, BASE + 3 * STEP, gaps),
+            coverage(BASE, BASE + 3 * STEP, remaining),
+        ])
+        coordinator = RecoveryCoordinator(
+            sync_callback=sync_one_gap, coverage_reader=read)
+
+        with self.assertRaises(RecoveryIncompleteError):
+            coordinator.recover("15m", BASE, BASE + 3 * STEP)
+
+        self.assertEqual(sync_calls, [
+            ("15m", BASE, BASE + STEP),
+            ("15m", BASE + 2 * STEP, BASE + 3 * STEP),
+        ])
+        self.assertEqual(read.call_count, 2)
+
+    def test_malformed_second_coverage_snapshot_fails_closed(self):
+        gaps = [{"startMs": BASE, "endMs": BASE + STEP}]
+        malformed_second_snapshot = {
+            "startMs": BASE,
+            "endMs": BASE + STEP,
+            "coverage": {"gaps": []},  # missing strict completeness flag
+        }
+        read = Mock(side_effect=[
+            coverage(BASE, BASE + STEP, gaps),
+            malformed_second_snapshot,
+        ])
+        sync = Mock()
+        coordinator = RecoveryCoordinator(
+            sync_callback=sync, coverage_reader=read)
+
+        with self.assertRaisesRegex(
+            ValueError, "coverage completeness contradicts reported gaps"
+        ):
+            coordinator.recover("15m", BASE, BASE + STEP)
+
+        self.assertEqual(sync.call_count, 1)
+        self.assertEqual(read.call_count, 2)
+
     def test_sync_failure_propagates_and_never_marks_recovery_complete(self):
         gaps = [{"startMs": BASE, "endMs": BASE + STEP}]
         sync = Mock(side_effect=TimeoutError("upstream unavailable"))

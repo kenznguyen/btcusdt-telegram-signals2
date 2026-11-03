@@ -1443,3 +1443,14 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Verdict: malformed snapshot fixtures **PASS**; T0 exact-SHA CI **PASS**; integrated workflow **PASS**; production Feeder, canonical PC DB and continuous runtime **NOT VERIFIED / NOT RUN**.
 - Next: fixture-only recovery coordinator partial-sync/recheck tests; no PC/runtime or exchange action.
 - Safety remains unchanged: no PC access, no canonical DB open/create, no production Feeder start, no exchange connection or data sync; keep `AI_EXECUTION_ENABLED=false`.
+
+## P5.4.59-R3 — Recovery Coordinator Partial-Sync and Recheck Fixtures (2026-11-04)
+
+- Report: docs/evidence/P5.4.59-R3-RECOVERY-COORDINATOR-PARTIAL-SYNC-2026-11-04.md.
+- Work continues on the existing branch feature/p5-4-1-post-merge-validation-20261103; base documentation HEAD was 180282231eb1b88e8761ba0f5f30ffc2b921b142.
+- Added two fixture-only RecoveryCoordinator tests: a multi-gap partial recovery where one gap remains after the second coverage read, and a malformed second snapshot missing coverage.complete.
+- Both cases fail closed: remaining gaps raise RecoveryIncompleteError; malformed recheck snapshots raise ValueError. Neither path can return complete=true.
+- No production runtime source changes. Existing tests continue to verify the injected sync callback as the only sync path.
+- Updated overlapping T0 regression count gates: atomic fencing 107, runtime health API 114, SIGKILL recovery 108. Counts overlap and are not unique totals.
+- T0 and integrated P5.4.1 GitHub Actions results are pending exact-SHA execution; do not mark PASS until both complete.
+- Production Feeder, canonical PC DB, exchange connection and data sync remain NOT VERIFIED / NOT RUN. No PC access or runtime activation; keep AI_EXECUTION_ENABLED=false.
