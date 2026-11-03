@@ -267,6 +267,23 @@ class CiPolicyTest(unittest.TestCase):
             with self.subTest(retired=retired):
                 self.assertNotIn(retired, serialized)
 
+    def test_github_actions_never_build_or_publish_android_apks(self):
+        workflows = ROOT / ".github/workflows"
+        forbidden = (
+            ":app:assembleDebug",
+            ":app:assembleRelease",
+            ":app:assembleParallel",
+            "ci/setup-android.sh",
+            "ci/release-android.sh",
+            "android-app/app/build/outputs/apk",
+            "artifacts/BTC-5-Tang-Paper-*.apk",
+        )
+        for path in sorted((*workflows.glob("*.yml"), *workflows.glob("*.yaml"))):
+            content = path.read_text()
+            for token in forbidden:
+                with self.subTest(workflow=path.name, token=token):
+                    self.assertNotIn(token, content)
+
     def test_shell_scripts_parse_and_no_unsupported_python_version_key(self):
         for path in (ROOT / "ci").glob("*.sh"):
             subprocess.run(["bash", "-n", str(path)], check=True)
