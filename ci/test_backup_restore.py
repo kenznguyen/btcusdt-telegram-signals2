@@ -10,6 +10,7 @@ import unittest
 from pathlib import Path
 
 from market_data.feeder_status import FeederRuntimeStatusStore
+from paper_execution.ledger import PaperLedger
 from paper_execution.shadow_migration_fixture import (
     FIXED_NOW_MS, PAPER_TABLES, build_legacy_fixture,
 )
@@ -267,6 +268,97 @@ class BackupRestoreFixtureTest(unittest.TestCase):
                 self.source, destination, root=self.root,
                 required_tables=REQUIRED_TABLES, required_rows=REQUIRED_ROWS,
             )
+
+    def _reset_paper_fixture_for_replay(self):
+        ledger = PaperLedger(self.source, max_position_base="1")
+        with sqlite3.connect(self.source) as db:
+            db.execute("DELETE FROM paper_orders")
+            db.execute("DELETE FROM paper_books")
+            db.execute(
+                "UPDATE paper_state SET position='0',average='0',realized='0',fees='0',paused=0 WHERE id=1"
+            )
+            db.execute(
+                "UPDATE paper_strategy_state SET owner=NULL,dca_used=0,initial_margin_quote='0' WHERE id=1"
+            )
+            db.execute(
+                "UPDATE paper_risk_control SET paused=0,killed=0,reason=NULL,updated_at_ms=0 WHERE id=1"
+            )
+        return ledger
+
+    @staticmethod
+    def _replay_intent(identifier, now_ms, target="0.1"):
+        return {
+            "intentId": identifier, "symbol": "BTCUSDT", "exchange": "binance",
+            "marketType": "USDT_PERPETUAL", "strategyVersion": "fixture-strategy-v1",
+            "modelVersion": "fixture-model-v1", "datasetVersion": "sha256:fixture-dataset",
+            "targetPositionBase": target, "limitPrice": "100.1",
+            "decisionAtMs": now_ms - 100, "validUntilMs": now_ms + 30_000,
+            "inputSnapshotId": "fixture-input-snapshot", "mode": "PAPER",
+        }
+
+    @staticmethod
+    def _replay_book(now_ms):
+        return {
+            "source": "hummingbot", "connector": "binance_perpetual",
+            "symbol": "BTCUSDT", "observedAtMs": now_ms,
+            "bids": [{"price": "100", "quantity": "1"}],
+            "asks": [{"price": "100.1", "quantity": "1"}],
+        }
+
+    def test_duplicate_intent_retry_after_backup_does_not_duplicate_order_or_fill(self):
+        ledger = self._reset_paper_fixture_for_replay()
+        now = FIXED_NOW_MS + 5_000
+        intent, book = self._replay_intent("restore-replay-intent", now), self._replay_book(now)
+        original = ledger.submit(intent, book, now)
+        destination = self.backup("intent-replay.sqlite3")
+        restored = PaperLedger(destination, max_position_base="1")
+
+        replayed = restored.submit(intent, None, now + 90_000)
+        self.assertEqual(replayed, original)
+        self.assertEqual(restored.snapshot()["positionBase"], "0.1")
+        with sqlite3.connect(destination) as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM paper_orders").fetchone()[0], 1)
+            self.assertEqual(
+                db.execute("SELECT COUNT(*) FROM paper_audit WHERE kind='SUBMIT'").fetchone()[0], 1
+            )
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM paper_books").fetchone()[0], 1)
+
+    def test_consumed_book_snapshot_cannot_be_reused_after_backup_restore(self):
+        ledger = self._reset_paper_fixture_for_replay()
+        now = FIXED_NOW_MS + 5_000
+        book = self._replay_book(now)
+        first = ledger.submit(self._replay_intent("book-consumer-one", now), book, now)
+        self.assertEqual(first["status"], "FILLED")
+        destination = self.backup("consumed-book.sqlite3")
+        restored = PaperLedger(destination, max_position_base="1")
+
+        replay = restored.submit(
+            self._replay_intent("book-consumer-two", now + 1, target="0.2"),
+            book, now + 1,
+        )
+        self.assertEqual(replay["status"], "REJECTED")
+        self.assertEqual(replay["reason"], "SNAPSHOT_ALREADY_USED")
+        self.assertEqual(restored.snapshot()["positionBase"], "0.1")
+        with sqlite3.connect(destination) as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM paper_books").fetchone()[0], 1)
+
+    def test_restored_kill_latch_rejects_new_paper_entry(self):
+        ledger = self._reset_paper_fixture_for_replay()
+        now = FIXED_NOW_MS + 5_000
+        ledger.set_killed(True, now, reason="FIXTURE_RESTORE_KILL_LATCH")
+        destination = self.backup("kill-latch-recovery.sqlite3")
+        restored = PaperLedger(destination, max_position_base="1")
+
+        rejected = restored.submit(
+            self._replay_intent("entry-blocked-by-restored-kill", now + 1),
+            self._replay_book(now + 1), now + 1,
+        )
+        self.assertEqual(rejected["status"], "REJECTED")
+        self.assertEqual(rejected["reason"], "KILL_SWITCH")
+        self.assertEqual(restored.snapshot()["positionBase"], "0")
+        self.assertTrue(restored.snapshot()["riskControl"]["killed"])
+        with sqlite3.connect(destination) as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM paper_books").fetchone()[0], 0)
 
     def test_split_store_manifest_requires_shared_barrier_and_epoch(self):
         valid = {
