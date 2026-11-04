@@ -30,6 +30,7 @@ class CiPolicyTest(unittest.TestCase):
             "p5-4-1-post-merge-validation.yml",
             "p5-4-10-backup-restore-fixture.yml",
             "android-release-pair.yml",
+            "android-t0-foundation.yml",
         }
 
         self.assertIn("p5-3-10-4-g1-red-execution.yml", actual)

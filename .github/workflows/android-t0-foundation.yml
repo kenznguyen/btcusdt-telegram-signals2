@@ -6,7 +6,7 @@ name: Android T0 Foundation Tests
       - feature/p5-4-1-post-merge-validation-20261103
     paths:
       - "android-app/**"
-      - "ci/check_android_t0_foundation.py"
+      - "ci/**"
       - ".github/workflows/android-t0-foundation.yml"
   workflow_dispatch:
 
