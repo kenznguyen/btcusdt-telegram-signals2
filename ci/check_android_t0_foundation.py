@@ -17,6 +17,8 @@ for forbidden in ("SQLiteDatabase","openOrCreateDatabase","getDatabasePath(",".m
 native_path=APP/"src/main/cpp/native_sqlite_readonly.cpp"
 native=native_path.read_text().replace(" ","")
 cmake=(APP/"src/main/cpp/CMakeLists.txt").read_text()
+preparer=(ROOT/"ci/prepare_pinned_sqlite.py").read_text()
+workflow=(ROOT/".github/workflows/android-t0-foundation.yml").read_text()
 jni=(APP/"src/main/java/com/kenznguyen/btclivealerts/NativeSqliteReadOnlySession.kt").read_text()
 for required in ("SQLITE_OPEN_READONLY|SQLITE_OPEN_FULLMUTEX",'sqlite3_db_readonly(db,"main")!=1','"BEGINDEFERRED"',"sqlite3_stmt_readonly(anchor)!=1",'"SELECTcount(*)FROMsqlite_schema"','"ROLLBACK"',"WAL_SIDECARS_UNAVAILABLE","sqlite3_sourceid()","CANONICAL_SQLITE_EXPECTED_SOURCE_ID"):
  assert required.replace(" ","") in native,f"Native contract missing: {required}"
@@ -26,4 +28,18 @@ assert native.index("readable_file(path+\"-wal\")") < native.index("sqlite3_open
 for required in ("SQLITE_EXPECTED_VERSION_NUMBER","SQLITE_EXPECTED_SOURCE_ID","SQLITE_EXPECTED_C_SHA256","SQLITE_EXPECTED_H_SHA256","file(SHA256","no system/framework fallback"):
  assert required in cmake,f"SQLite pinning requirement missing: {required}"
 assert "external fun nativeOpenPinnedSnapshot" in jni and "fun executeSql" not in jni
+assert 'ndkVersion = "27.2.12479018"' in gradle
+assert 'version = "3.22.1"' in gradle
+assert 'abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")' in gradle
+assert "-DSQLITE_AMALGAMATION_DIR=" in gradle and "-DSQLITE_PIN_FILE=" in gradle
+assert 'SQLITE_VERSION = "3.54.1"' in preparer
+assert 'SQLITE_VERSION_NUMBER = "3054001"' in preparer
+assert "92281c86e2957f9b9305890f9ac04204caa7b677cc868dc326d942689df28e30" in preparer
+assert "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76" in preparer
+assert "verify_archive_digest(payload)" in preparer
+assert "gradle :app:externalNativeBuildDebug" in workflow
+assert "ndk;27.2.12479018" in workflow and "cmake;3.22.1" in workflow
+assert "sqlite-amalgamation-3540100.zip" in workflow
+assert "assembleRelease" not in workflow and "assembleDebug" not in workflow
+print("ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS")
 print("ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS")
