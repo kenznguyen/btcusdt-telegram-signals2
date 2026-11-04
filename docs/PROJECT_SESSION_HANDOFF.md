@@ -1640,3 +1640,17 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Tests/workflows **NOT RUN** (documentation-only). No code, Gradle, manifest, IPC, schema, runtime, device, DB, Feeder, exchange, sync, backup/restore or writer activation. `AI_EXECUTION_ENABLED=false`.
 - Status: ADR-002 documentation **PASS**; D2–D7 decision register **PASS as traceability record**, decisions themselves **BLOCKED / NOT DECIDED**; T0-B **BLOCKED**, T0-C **NOT RUN / NOT AUTHORIZED**, T0-D **NOT RUN / NOT VERIFIED**, T0-E **BLOCKED**.
 - Next permitted increment: owner decision review of D2–D7, without implementation or operational access.
+
+## P5.4.68 — D2 High-Water Cursor Decision Proposal (2026-11-04)
+
+- Proposal: `docs/evidence/P5.4.68-D2-HIGH-WATER-CURSOR-PROPOSAL-2026-11-04.md`.
+- Proposal commit: `493ce8167b8443ee98b8aced570a096e3b9f324a`.
+- Baseline handoff blob: `8bb6785efad731128bcf89af5a9c99d786bdaec7`.
+- Scope: documentation-only technical proposal; no owner decision inferred or applied.
+- Proposed model: Market Data per-partition contiguous closed-candle coverage cursor with explicit gaps; Paper Ledger dedicated monotonic commit sequence with idempotency and same-transaction state/audit advancement; Risk State version bound to the ledger sequence for same-transaction changes; Feeder Lease generation kept separate as a host-checked fencing token.
+- Proposed manifest evidence is a vector of domain cursors, not a synthetic global integer. It does not prove snapshot atomicity; D3 remains required.
+- Five owner decisions are listed in the proposal. D2 remains **PROPOSED / NOT DECIDED**; D3–D7 unchanged.
+- Fixture-only acceptance tests specified but not implemented. GitHub Actions **NOT RUN**.
+- No code/schema/migration/IPC/runtime/device/DB/Feeder/exchange/sync/backup/restore/writer activation. `AI_EXECUTION_ENABLED=false`.
+- Status: proposal documentation **PASS**; D2 owner decision **NOT DECIDED**; T0-B **BLOCKED**, T0-C **NOT RUN / NOT AUTHORIZED**, T0-D **NOT RUN / NOT VERIFIED**, T0-E **BLOCKED**.
+- Next: owner decision on the five D2 questions; if approved, record D2 in ADR-001 and proceed to D3 proposal. No implementation before approval.
