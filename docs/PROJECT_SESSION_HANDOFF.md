@@ -2895,3 +2895,21 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Recommended next proposal: **T0.10 Trusted Read-only Evidence Assembly — SOURCE-ONLY / IN-MEMORY FIXTURE**. Extend native wire reads to include identity + migration registry on the same pinned handle; decode typed evidence; add a pure assembler that accepts an injected parsed pin and recomputes D5 digest from the decoded envelope; exercise malformed/missing/mismatch/uncertain cases through host CTest/JNI ABI and regular + `.paper` JVM fixtures.
 - T0.10 proposal excludes pin file IO, canonical/path-backed DB, DDL/migration/bootstrap, Android device/ART instrumentation, Feeder, lease, IPC, exchange, backup/restore, APK and writer admission. It requires explicit owner approval before implementation.
 - Owner decision: Android ART/JNI instrumentation remains **PAUSED**; do not rerun T0.9/T0.9.1 or start T0.10 runtime/device acceptance without new explicit approval. `AI_EXECUTION_ENABLED=false`; paper-only.
+
+
+## P5.4.103 — T0.10 Trusted Read-only Evidence Assembly implementation (2026-11-04)
+
+- Owner approved T0.10: SOURCE-ONLY / IN-MEMORY FIXTURE.
+- Baseline source HEAD: `cead6777ec03f5afa088d3908111d27eed1f5ac9`.
+- Implementation source HEAD before evidence docs: `1cd8045bcde48ec1c8a6143d85bcf1a44221ab8e`.
+- Report: `docs/evidence/P5.4.103-T0.10-TRUSTED-READONLY-EVIDENCE-ASSEMBLY-IMPLEMENTATION-2026-11-04.md`; report commit `7b6f011d0e72cf4680856453a8d5ba4bab856637`.
+- Native D5 wire v2 now includes canonical identity rows and applied migration rows read via fixed SQL on the same registered handle/DEFERRED transaction as D5 schema introspection.
+- Debug JNI and host C++ in-memory fixtures include identity + bootstrap migration records.
+- Kotlin decoder returns typed identity/migration rows and handle-derived transaction token.
+- Added pure `CanonicalReadSnapshotAssembler`: ACTIVE pin required; exactly one valid DB identity row; pin/DB identity match; migration owner-domain alignment; migration chain verification; observed D5 digest recomputed from decoded envelope. Snapshot is returned only on VERIFIED; failure returns no partial snapshot.
+- Added JVM tests for successful assembly, PENDING pin, duplicate identity, pin mismatch, migration checksum mismatch, digest mismatch and failed native reply; updated v2 wire and native fixture parity tests.
+- Source/fixture tests have **NOT YET BEEN VERIFIED**. No confirmed GitHub Actions run ID, job results, JUnit XML or artifact hashes were available when this entry was written. Do not report PASS.
+- Exact implementation source SHA for CI inspection: `1cd8045bcde48ec1c8a6143d85bcf1a44221ab8e`. Workflow expected to be triggered by `.github/workflows/android-t0-foundation.yml` on `android-app/**` changes; verify actual run before verdict.
+- T0.10 current status: **SOURCE PRESENT / BLOCKED-NOT VERIFIED** pending native CTest, debug JNI compile/link, regular JVM, `.paper` JVM and static audit evidence.
+- Boundaries unchanged: no canonical/path-backed DB, pin filesystem IO, DDL/bootstrap/migration execution, Android device/ART instrumentation, Feeder, lease, IPC, exchange, backup/restore, APK or writer activation. T0.9 instrumentation remains PAUSED; `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next: inspect exact-SHA GitHub Actions result; fix only evidenced source/fixture defects. T0.11 pin persistence and all runtime work require separate approval.
