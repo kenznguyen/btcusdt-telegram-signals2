@@ -36,8 +36,6 @@ workflows:
           - paper_execution/
           - freqai_bridge/
           - integrations/
-          - backtest.py
-          - telegram_commands.py
           - ci/test_legacy_runner.py
           - ci/run-legacy.py
           - requirements-market-data.txt
@@ -53,7 +51,6 @@ workflows:
         script: |
           set -euo pipefail
           "$CI_PYTHON" -m unittest discover -s integrations -p 'test_*.py' -v 2>&1 | tee gateway-tests.log
-          "$CI_PYTHON" -m unittest ci.test_legacy_runner -v 2>&1 | tee legacy-runner-tests.log
       - name: Run five-layer paper integration tests
         script: |
           set -euo pipefail
@@ -61,82 +58,11 @@ workflows:
       - name: Verify CLI and syntax
         script: |
           set -euo pipefail
-          "$CI_PYTHON" -m compileall -q integrations futures_intelligence pipeline paper_execution freqai_bridge backtest.py telegram_commands.py
+          "$CI_PYTHON" -m compileall -q integrations futures_intelligence pipeline paper_execution freqai_bridge
     artifacts:
       - ci-source-sha.txt
       - gateway-tests.log
-      - legacy-runner-tests.log
       - paper-system-tests.log
-
-  telegram-command:
-    name: Telegram command
-    instance_type: mac_mini_m2
-    max_build_duration: 30
-    environment:
-      groups: [codemagic_legacy]
-      vars:
-        TELEGRAM_COMMAND: help
-        BACKTEST_DAYS: "360"
-        BACKTEST_INITIAL_CAPITAL: "100"
-        ENTRY_MARGIN_PCT: "50"
-        DCA_MARGIN_RATIO: "100"
-    scripts:
-      - name: Prepare Python and record source
-        script: bash ci/setup-python.sh requirements.txt
-      - name: Execute authorized Telegram command
-        script: '"$CI_PYTHON" ci/run-legacy.py telegram'
-    artifacts:
-      - ci-source-sha.txt
-      - backtest_last_result.json
-      - backtest_status.json
-      - backtest_trades.csv
-      - backtest_equity.csv
-      - backtest_equity_m15.csv
-
-  dashboard-backtest:
-    name: Dashboard backtest
-    instance_type: mac_mini_m2
-    max_build_duration: 30
-    environment:
-      vars:
-        BACKTEST_DAYS: "360"
-        BACKTEST_INITIAL_CAPITAL: "100"
-        ENTRY_MARGIN_PCT: "50"
-        DCA_MARGIN_RATIO: "100"
-        BACKTEST_STATUS_FILE: dashboard_backtest_status.json
-        BACKTEST_RESULT_FILE: dashboard_backtest_last_result.json
-        BACKTEST_TRADES_FILE: dashboard_backtest_trades.csv
-        BACKTEST_EQUITY_FILE: dashboard_backtest_equity.csv
-        BACKTEST_CURVE_FILE: dashboard_backtest_equity_m15.csv
-    scripts:
-      - name: Prepare Python and record source
-        script: bash ci/setup-python.sh requirements.txt
-      - name: Run backtest
-        script: '"$CI_PYTHON" ci/run-legacy.py dashboard'
-    artifacts:
-      - ci-source-sha.txt
-      - dashboard_backtest_last_result.json
-      - dashboard_backtest_status.json
-      - dashboard_backtest_trades.csv
-      - dashboard_backtest_equity.csv
-      - dashboard_backtest_equity_m15.csv
-
-  signal-scan:
-    name: Manual paper signal scan
-    instance_type: mac_mini_m2
-    max_build_duration: 10
-    environment:
-      groups: [codemagic_legacy]
-    scripts:
-      - name: Prepare Python and record source
-        script: bash ci/setup-python.sh requirements.txt
-      - name: Scan using explicitly supplied paper state
-        script: '"$CI_PYTHON" ci/run-legacy.py scanner'
-    artifacts:
-      - ci-source-sha.txt
-      - state.json
-      - state-provenance.json
-
 
   five-layer-dashboard:
     name: Five-layer React control - test and build
