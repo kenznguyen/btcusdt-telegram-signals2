@@ -303,3 +303,12 @@ P5.4.81 proposes AES-256-GCM envelope encryption with a unique random 256-bit DE
 **Status: ACCEPTED (cryptographic architecture/profile only).** The owner approved P5.4.81.1–.5 without amendments. The accepted profile is AES-256-GCM envelope encryption with a unique random 256-bit DEK per Backup ID, 96-bit nonce, full 128-bit authentication tag and versioned AAD; Ed25519 signatures over canonical P5.4.80 manifest bytes using a signing key separate from the payload KEK; separate KEK, DEK and signing-key roles; explicit trusted public-key set; lifecycle, rotation, revocation, destruction and identity-separation safeguards; fail-closed behavior; and 20 additional fixture-only acceptance cases (96 total specified).
 
 **Decision boundary:** KMS/HSM vendor, storage provider, custody jurisdiction, escrow/recovery method, concrete manifest serialization implementation, operational roles and audit integration remain unselected. This approval does not authorize key generation/provisioning, production KMS/HSM or storage access, fixture execution, canonical DB access, backup/restore or runtime changes. Keep CI on fake keys/fake storage only; keep AI_EXECUTION_ENABLED=false and paper-only.
+
+
+## P5.4.82 — Provider-neutral key custody and recovery (2026-11-04)
+
+**Status: PROPOSED / NOT APPROVED.** See `docs/evidence/P5.4.82-PROVIDER-NEUTRAL-KEY-CUSTODY-AND-RECOVERY-ARCHITECTURE-PROPOSAL-2026-11-04.md`.
+
+The proposal defines logical KMS/HSM adapter boundaries, key inventory metadata, workload identity separation, per-backup DEK lifecycle, KEK/signing-key rotation, break-glass recovery case controls, two-person approval as a proposed default, append-only audit evidence, fail-closed handling and CI fake-provider isolation. It does not select a recovery model, provider, jurisdiction, quorum/roles, audit sink or federation mechanism.
+
+This proposal does not amend approved P5.4.81 and does not authorize implementation, fixture execution, provider selection/provisioning, key generation, production access, canonical DB access, backup/restore or runtime changes. The approved fixture inventory remains 96 specified / NOT IMPLEMENTED / NOT RUN. Keep AI_EXECUTION_ENABLED=false; paper-only.
