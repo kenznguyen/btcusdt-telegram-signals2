@@ -2745,3 +2745,16 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 
 - Latest check: all three jobs in run #41826476055 have passed SDK setup and pinned SQLite preparation and are now executing `Run instrumentation on Android ART`: API 33 #126562367706, API 35 #126562367978, API 26 #126562368184. No conclusions/XML yet. T0.9 remains **NOT VERIFIED**.
 - Evidence report update commit: `8d81d5fe32f69905ad322bd2f1118f02361dd6ab`.
+
+
+## T0.9 — Android ART/JNI runtime verification update (2026-11-04)
+
+- Evidence report: `docs/evidence/T0.9-ANDROID-ART-JNI-RUNTIME-INVOCATION-VERIFICATION-2026-11-04.md`.
+- Workflow/test source SHA: `d74a656394a5d275533393954a274efb033b7f33`; run #41826476055: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41826476055.
+- First attempt API 26 job #126562368184 **PASS**. Instrumentation XML inspected: 1 test, 0 failures, 0 errors, 0 skipped; `artLoadsNativeLibraryAndInvokesOpenReadCloseExports` passed. Gradle `BUILD SUCCESSFUL`.
+- API 26 artifact #13322360294 downloaded and inspected. ZIP local SHA-256 independently computed and matched GitHub digest: `6443e6701f71a71bb79c01edbfa648978543c3bfda75ea0f162021e43a61c190`.
+- API 33 job #126562367706 **BLOCKED** by emulator boot timeout before Gradle; API 35 job #126562367978 **BLOCKED** by ADB/emulator startup errors before Gradle. Neither produced instrumentation XML.
+- Targeted retry of failed jobs is running: API 33 #126574052863 and API 35 #126574053294 are **IN PROGRESS**. API 26 is not rerun.
+- Overall T0.9: **BLOCKED / NOT VERIFIED** until API 33 and API 35 pass with inspectable XML reports. API 26 is a confirmed partial pass only.
+- Scope remains SQLite `:memory:` and debug-only hook. `AI_EXECUTION_ENABLED=false`; no canonical DB, Feeder, lease, exchange, live order, APK release/sign/install, or physical-device test.
+- Next action: inspect retry jobs and artifact payloads, then update the evidence report/handoff. Do not alter JNI code in response to emulator infrastructure failures.
