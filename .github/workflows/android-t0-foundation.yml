@@ -43,13 +43,13 @@ jobs:
       - name: Checkout exact source commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - name: Verify and record source provenance
         shell: bash
         env:
-          SOURCE_SHA: ${{ github.sha }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           ACTUAL_SOURCE_SHA="$(git rev-parse HEAD)"
@@ -122,7 +122,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: android-native-sqlite-debug-${{ github.sha }}
+          name: android-native-sqlite-debug-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             android-app/app/.cxx/**/obj/**/*.so
             android-app/app/build/intermediates/cxx/**/obj/**/*.so
@@ -135,7 +135,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: android-t0-foundation-${{ github.sha }}
+          name: android-t0-foundation-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             android-app/app/build/test-results/testDebugUnitTest/**
             android-app/app/build/reports/tests/testDebugUnitTest/**
