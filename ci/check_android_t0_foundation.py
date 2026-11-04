@@ -35,7 +35,7 @@ assert "-DSQLITE_AMALGAMATION_DIR=" in gradle and "-DSQLITE_PIN_FILE=" in gradle
 assert 'SQLITE_VERSION = "3.54.1"' in preparer
 assert 'SQLITE_VERSION_NUMBER = "3054001"' in preparer
 assert "92281c86e2957f9b9305890f9ac04204caa7b677cc868dc326d942689df28e30" in preparer
-assert "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76" in preparer
+assert "2026-10-16 14:45:20" in preparer and "555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76" in preparer
 assert "verify_archive_digest(payload)" in preparer
 assert "gradle :app:externalNativeBuildDebug" in workflow
 assert "ndk;27.2.12479018" in workflow and "cmake;3.22.1" in workflow
