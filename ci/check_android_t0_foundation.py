@@ -65,5 +65,4 @@ for required in ("D5WT","readBooleanStrict","MAX_ROWS_PER_SECTION","MAX_STRING_B
  assert required in d5_wire,f"D5 wire validation missing: {required}"
 for required in ("decodesAllD5Sections","rejectsTruncatedAndTrailingTransportBytes","rejectsWrongMagicAndUnsupportedWireVersion","rejectsVirtualOrShadowObjectsBeforeReturningAnEnvelope","rejectsCatalogAndTableListDisagreement"):
  assert required in session_tests,f"D5 decoder test missing: {required}"
-\nprint("ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS")
 print("ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS")
