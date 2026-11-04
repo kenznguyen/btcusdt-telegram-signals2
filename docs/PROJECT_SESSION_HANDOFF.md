@@ -2736,3 +2736,8 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Evidence report update commit: `8f2428aaddab2361d7ebf7d3dc0405f8bb757d91`.
 - Latest docs-only branch HEAD after this update will differ from the workflow-triggering source SHA; the test-triggering SHA remains `d74a656394a5d275533393954a274efb033b7f33`.
 - T0.9 remains **NOT VERIFIED**; corrected in-memory D5 fixture is not yet proven on Android ART.
+
+
+- Replacement run #41826476055 on source SHA `d74a656394a5d275533393954a274efb033b7f33` is now **IN PROGRESS**. Old runs #41825231563 and #41825022008 have completed **CANCELLED** after concurrency supersession.
+- Matrix jobs API 33 #126562367706, API 35 #126562367978, API 26 #126562368184 all completed checkout + Java 17 + Gradle 8.9 and were at Android SDK setup at last inspection. Instrumentation has not started yet.
+- Evidence report update commit: `fec2e5f7d4e8d5ff0faae4a9f48c70f6f802d0dd`.
