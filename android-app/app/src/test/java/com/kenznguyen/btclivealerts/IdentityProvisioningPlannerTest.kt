@@ -43,7 +43,7 @@ class IdentityProvisioningPlannerTest {
     @Test
     fun startWithLegacyDataIsBlocked() {
         assertEquals(
-            IdentityProvisioningPlan.BLOCKED_PRECONDITIONS,
+            IdentityProvisioningPlan.BLOCKED_EVIDENCE,
             IdentityProvisioningPlanner.plan(
                 ProvisioningPinState.MISSING,
                 ProvisioningDatabaseEvidence.LEGACY,
