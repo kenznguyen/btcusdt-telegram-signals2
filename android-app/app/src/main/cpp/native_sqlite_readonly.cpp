@@ -623,7 +623,7 @@ extern "C" JNIEXPORT jbyteArray JNICALL
 Java_com_kenznguyen_btclivealerts_NativeSqliteReadOnlyJni_nativeReadD5Snapshot(
     JNIEnv* env, jobject /* thiz */, jlong handle) {
     std::vector<uint8_t> body;
-    const D5Status status = read_registered_d5_snapshot(handle, body);
+    D5Status status = read_registered_d5_snapshot(handle, body);
 
     const size_t total = 4 + (status == D5_VERIFIED ? body.size() : 0);
     if (total > kMaxPayloadBytes || total > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
