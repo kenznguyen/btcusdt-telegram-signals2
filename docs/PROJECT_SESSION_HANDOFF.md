@@ -1524,3 +1524,17 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - This closeout changes documentation only; the verified test source remains `4384c33955011ad7a33e6957b26f97a7d89f42f5`.
 - No PC, canonical DB, production Feeder, exchange connectivity, market-data sync or order execution. Keep `AI_EXECUTION_ENABLED=false`.
 - Next permitted scope: continue fixture-only RecoveryPlanner/Coordinator boundary tests; runtime activation remains prohibited.
+
+
+## P5.4.62 — Recovery Coordinator Boundary & Invalid Snapshot Lifecycle Tests (2026-11-04)
+
+- Report: docs/evidence/P5.4.62-RECOVERY-COORDINATOR-INVALID-SNAPSHOT-BOUNDARY-2026-11-04.md.
+- Tested source SHA: `1d83517e808f0fdeb7da2f6eb3162273546c09f4`.
+- Added one fixture-only test method with eight malformed initial snapshot shapes. Each must raise ValueError, read once, and never call the injected sync callback.
+- No production runtime source changes. CI thresholds: atomic fencing 111; runtime health API 118; SIGKILL recovery 112. These invocations overlap.
+- T0 run 41744990176: **SUCCESS**, exact tested SHA; regression markers 111/118/112 and static operational audit PASS.
+- Integrated P5.4.1 run 41744990552: **SUCCESS**, 5/5 jobs on the same exact SHA. Jobs: 126295624205, 126295675661, 126295675695, 126295676210, 126296028338.
+- Artifacts: standalone T0 13282703680 (`sha256:efe690c4931ce633dcb844d66ccc0d796f0464a24aae8ab2db007dc4ec7e7cb2`); integrated G2 13283775052 (`sha256:beba9284abd88612b9b5378f4e6eea9dfe4e59602c93be31f9e5ae8548c104fa`); combined 13283555803 (`sha256:8501ab7cc7ab419a7f5821cf24032db04a530df43a6bef43b5c4c55db8fa0b39`); G1 13282913241 (`sha256:e5d3f6655c582cbe26b8cdc4ed83cbdf58a70c7d739f9627f6129339dd36b329`); integrated T0 13281744271 (`sha256:9780ad3a32dcc6028eda6b3a7701f9e9fba6bfb9a35d8e937514cfb538d51c0d`).
+- Artifact payload bytes were not independently downloaded/re-hashed; payload checksum remains **NOT VERIFIED**.
+- No PC, canonical DB, production Feeder, exchange, data sync or order execution. Keep `AI_EXECUTION_ENABLED=false`.
+- Next: continue fixture-only RecoveryCoordinator retry/recheck malformed-window and callback failure boundary coverage; no runtime activation.
