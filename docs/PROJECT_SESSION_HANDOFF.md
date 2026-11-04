@@ -2338,3 +2338,19 @@ Next bounded step: continue design-only resolution of the remaining Android read
 No SQLite database was opened; no SQL/PRAGMA was executed against a database; no filesystem/device access, adapter/dependency, APK build/sign/publish, Feeder, writer, backup/restore, exchange or trading operation occurred. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 
 **Next bounded step:** design and review the still-open D5 requirements (runtime feature matrix, shadow-table policy, virtual-module provenance, canonical envelope) before proposing another source delta. Do not proceed to SQLite adapter or runtime work without separate authorization.
+
+
+## P5.4.96 — D5 runtime feature, shadow-table and canonical-envelope design review (2026-11-04)
+
+- Evidence report: `docs/evidence/P5.4.96-D5-RUNTIME-FEATURE-SHADOW-TABLE-AND-CANONICAL-ENVELOPE-REVIEW-2026-11-04.md`.
+- Baseline HEAD reviewed: `b93e417c91d87da6b14f4f86f2e99eec9685560c`.
+- Documentation/API review only; no source code, tests, dependency, SQL execution, SQLite connection, DB, filesystem, Android device or instrumentation changed/accessed.
+- Official SQLite docs establish: unknown PRAGMAs are silently ignored; `PRAGMA table_list` first appeared in SQLite 3.37.0 and classifies table/view/shadow/virtual; its output can gain columns; shadow classification depends on a virtual-table module's `xShadowName` callback; `module_list` only reports registered module names and is not implementation provenance.
+- Recommended runtime floor: SQLite >= 3.37.0; positively probe table-list capability via table-valued `pragma_table_list`, validate exact result columns, fail closed on missing/unknown shape, and cross-check against `sqlite_schema`. Runtime source ID is recorded; exact source-ID allowlist remains an owner decision.
+- Recommended current-release policy: reject both `shadow` and `virtual` objects. Do not infer parent/module by naming convention or regex. Future virtual-table support requires a versioned implementation/provenance allowlist and complete module-specific fixtures.
+- Proposed D5 canonical envelope field inventory documented: runtime identity/feature set; deterministic catalog objects with exact SQL UTF-8; full `table_xinfo`, `index_list`, `index_xinfo`, `foreign_key_list` fields; view/trigger SQL; unsupported-object and result-shape fail-closed rules. This is not yet a frozen byte serialization/digest.
+- Status: P5.4.96 design review PASS; D5 source unchanged; canonical envelope/digest NOT IMPLEMENTED; recommendations require owner decision before source delta. Tests/workflow/artifact NOT RUN / NOT APPLICABLE (docs-only).
+- Still blocked/open: minSdk 26 read-only consistent transaction API; exact bootstrap migration bytes/ID/sequence/owner; missing-path read-only no-create proof; runtime SQLite feature/source-ID allowlist; adapter/runtime/device NOT IMPLEMENTED / NOT AUTHORIZED.
+- No DB, SQL/PRAGMA execution, filesystem/device, APK, Feeder, writer, backup/restore, exchange or trading action. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+
+Next bounded step: obtain owner decisions on the five items in P5.4.96 section 7. Do not implement the canonical-envelope source delta or SQLite adapter until the relevant approval; no runtime authorization is implied.
