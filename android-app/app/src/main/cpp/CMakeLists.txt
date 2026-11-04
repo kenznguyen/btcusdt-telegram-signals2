@@ -51,5 +51,6 @@ target_compile_definitions(canonical_sqlite PRIVATE
     SQLITE_OMIT_LOAD_EXTENSION=1
     SQLITE_DQS=0
     CANONICAL_SQLITE_EXPECTED_SOURCE_ID="${SQLITE_EXPECTED_SOURCE_ID}"
+    $<$<CONFIG:Debug>:CANONICAL_SQLITE_TEST_HOOKS=1>
 )
 target_compile_features(canonical_sqlite PRIVATE cxx_std_17)
