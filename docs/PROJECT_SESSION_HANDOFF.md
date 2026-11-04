@@ -1463,3 +1463,14 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Integrated P5.4.1 run 41743273286: IN PROGRESS; preflight, G1 and G2 completed successfully; integrated T0 job was still running at this update.
 - Current verdict: T0 fixture-only CI PASS; integrated workflow PENDING. Do not promote the overall integrated result until the run reaches SUCCESS.
 - No PC/canonical DB/Feeder/exchange/data-sync/order execution.
+
+
+## Final CI result (2026-11-04)
+
+- Tested source SHA: cee77b38181c2fa06a585714b9269b9a9c398e40.
+- T0 automated validation run 41743273231: SUCCESS; all substantive steps passed, including regression invocations 107 / 114 / 108 and static operational audit. Artifact 13282236958; metadata digest sha256:50b70f750bbcf128d2baec625f7961629c5af255dc96e6788aaf29b04cdd3452.
+- Integrated P5.4.1 run 41743273286: SUCCESS; preflight, G1, G2, T0 and common-SHA evidence publication all succeeded against the same tested source SHA.
+- Integrated artifacts: T0 13282466753 (sha256:95a30caeafc6efaec92dcb241013dc183cf9c1e728deac60c9727330b97f9d94); G1 13282857005 (sha256:07775fcb4035d308008eb5390e5fa83e958ae6440519a4386cc742fae72bfd33); G2 13282906319 (sha256:1beca3dbd79f31321e41b4c054f26e4847229dcdfffb36e37d0c96c3be1f0a98); combined 13282726794 (sha256:56bb4c233dd3cfe5237909ff3c18945287918724dab80e99e6a77101941e901f).
+- GitHub artifact metadata digests are recorded; artifact payload bytes were not independently downloaded and re-hashed in this increment. Payload checksum verification remains NOT VERIFIED.
+- Final fixture-only R3 CI verdict: PASS. Production Feeder, canonical PC DB, continuous runtime, exchange connectivity and production recovery remain NOT VERIFIED / NOT RUN.
+- No PC access, DB open/create, Feeder startup, exchange connection, market-data sync or order execution.
