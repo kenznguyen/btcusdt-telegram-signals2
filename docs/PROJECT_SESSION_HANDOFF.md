@@ -2620,3 +2620,20 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Verdict: **T0.6 PASS — SOURCE-ONLY**.
 - Limits: direct in-memory native D5 function tested; no production JNI open/handle registry lifecycle, Android device/runtime/instrumentation, WAL snapshot concurrency, canonical/user DB, CanonicalRuntime, Feeder/lease/writer/migration/backup/restore, APK, exchange or trading. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next proposal requires separate approval: T0.7 isolated JNI handle-registry/lifecycle harness. No device/runtime or production DB integration is authorized.
+
+
+## T0.7 — Isolated JNI Handle-Registry Lifecycle Harness (2026-11-04)
+
+- Owner approval: `APPROVE T0.7 ISOLATED JNI HANDLE-REGISTRY LIFECYCLE HARNESS SOURCE-ONLY`.
+- Evidence report: `docs/evidence/T0.7-ISOLATED-JNI-HANDLE-REGISTRY-LIFECYCLE-HARNESS-SOURCE-ONLY-2026-11-04.md`.
+- Final tested source/test SHA: `b9f5245a1311af10957812d30402200c62feb3d4`.
+- TDD RED test commit: `5021111a1be395368871dd62537f95952ea91f03`; CI #41804832189 failed as expected because the registry seams did not yet exist.
+- Implementation commit: `be5b5201e5097001642e8f6e37e7076eff5bb34f`; follow-up compile correction: `b9f5245a1311af10957812d30402200c62feb3d4`.
+- Extracted `register_snapshot_handle`, `read_registered_d5_snapshot`, and `close_registered_snapshot` in the native translation unit; JNI open/read/close entrypoints delegate to these functions. Read clears prior output bytes before lookup. The registry mutex serializes read and close; monotonically increasing handles are not reused.
+- Native CTest run #41805310419: **SUCCESS**, exact SHA above. CTest 2/2 PASS: existing T0.6 D5 memory test plus T0.7 lifecycle harness. T0.7 scenarios cover register/read/close/re-read, zero/unknown handles, independent handles, and concurrent read/close.
+- Android NDK debug compile/link PASS for arm64-v8a, armeabi-v7a, x86, x86_64. Regular and `.paper` JVM test tasks SUCCESS; pinned SQLite preparation 4/4; static audit PASS.
+- Native artifact #13310360078 (6,763,963 bytes), GitHub SHA-256 `16bfd6e3ae01b85862afede5789a7bb8deaa8968cd985e863dfe55612c5d6ff1`.
+- Test artifact #13310275243 (147,738 bytes), GitHub SHA-256 `cddf879cee26b8e4ba129d7ce6d4cbf60ebcb6caf06f7ddfe1d3bd13a5752e82`. These are GitHub artifact metadata digests; no independent ZIP download/re-hash was performed for T0.7.
+- Verdict: **T0.7 PASS — SOURCE-ONLY**.
+- Limits: host harness invokes the same internal registry functions used by JNI, but does not construct a real `JNIEnv` or call native methods through ART. No Android device/emulator/runtime, API 26/33/35, Kotlin-to-JNI runtime invocation, path-backed DB, WAL/sidecars, process-death, canonical DB, CanonicalRuntime, writer, Feeder, lease, migration, backup/restore, APK, exchange or trading action. Preserve `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next separately approved proposal: T0.8 host-side JNI ABI invocation shim with mock `JNIEnv`, still no ART/device/path-backed DB. Android runtime or actual WAL-backed DB tests require separate approval.
