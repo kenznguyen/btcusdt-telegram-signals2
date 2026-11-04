@@ -2038,3 +2038,18 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Verdict: bounded source review **PASS**; ADR-002 implementation **NOT IMPLEMENTED**; T0-B **BLOCKED / NOT RUN**; T0-C **NOT RUN / NOT AUTHORIZED**; T0-D **NOT RUN / NOT VERIFIED**; T0-E **BLOCKED**.
 - No Kotlin/Gradle/manifest/dependency/schema changes, tests, workflows, APK build/install, device/filesystem, DB, Feeder, exchange, market sync, backup/restore or writer activation. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next step: prepare a bounded implementation slice plan and acceptance-test contract for regular-host CanonicalRuntime/path authority. Code implementation remains separately gated and is not inferred from “tiếp tục”.
+
+
+## P5.4.85 — Android T0 CanonicalRuntime and Path Authority Slice Plan (2026-11-04)
+
+- Plan: `docs/evidence/P5.4.85-ANDROID-T0-CANONICAL-RUNTIME-AND-PATH-AUTHORITY-SLICE-PLAN-2026-11-04.md`.
+- Status: **DESIGN / ACCEPTANCE PLAN ONLY — NOT APPROVED FOR IMPLEMENTATION**.
+- Product context recorded: personal, non-commercial, single-owner use; no SaaS, multi-tenant, subscription or billing scope. This does not waive security, integrity, encryption, recovery, audit, provider terms or legal requirements.
+- Android remains the primary operating/canonical-storage platform; PC optional compute/read-only consumer; GitHub Actions only CI; Codemagic retired.
+- Bounded first candidate: regular-host application-scoped CanonicalRuntime and host-owned metadata-only canonical path authority. Runtime construction/path resolution must not open/create SQLite, start Feeder, acquire lease, connect exchange or sync data.
+- Client exclusion: `.paper` has no CanonicalRuntime, DB resolver, shadow DB, lease/fencing or fallback writer.
+- Acceptance contract CR-01–CR-08 is fixture/static CI only, using fakes/temp/in-memory state. No Android device or canonical DB access.
+- Authorization: documentation/planning only. Code implementation, dependency changes, device/DB/runtime/Feeder/IPC/exchange, APK build/install, backup/restore and key/storage provisioning remain NOT AUTHORIZED.
+- T0-A remains PASS on prior exact-SHA evidence; T0-B BLOCKED / NOT RUN; T0-C NOT RUN / NOT AUTHORIZED; T0-D NOT RUN / NOT VERIFIED; T0-E BLOCKED.
+- No tests/workflows/builds/artifacts were run or created in this increment. No Android device, PC runtime, canonical DB, Feeder, exchange, backup/restore or writer touched. `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next step: request explicit owner approval for Slice 1 + Slice 2 source implementation only, then fixture/static CI on GitHub Actions. Device T0-B remains separately gated.
