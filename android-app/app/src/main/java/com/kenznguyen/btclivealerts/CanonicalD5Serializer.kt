@@ -115,7 +115,7 @@ object CanonicalD5Serializer {
                     listOf(b.schema, b.type, b.name, b.tableName),
                 )
             }
-            out.writeSection("catalog", catalog.size) { row ->
+            out.writeSection("catalog", catalog) { row ->
                 writeString(row.schema)
                 writeString(row.type)
                 writeString(row.name)
@@ -129,7 +129,7 @@ object CanonicalD5Serializer {
                     listOf(b.schema, b.tableName),
                 ).takeIf { it != 0 } ?: a.cid.compareTo(b.cid)
             }
-            out.writeSection("table_xinfo", columns.size) { row ->
+            out.writeSection("table_xinfo", columns) { row ->
                 writeString(row.schema)
                 writeString(row.tableName)
                 writeInt(row.cid)
@@ -149,7 +149,7 @@ object CanonicalD5Serializer {
                     ?: a.sequence.compareTo(b.sequence).takeIf { it != 0 }
                     ?: compareUtf8(a.name, b.name)
             }
-            out.writeSection("index_list", indexes.size) { row ->
+            out.writeSection("index_list", indexes) { row ->
                 writeString(row.schema)
                 writeString(row.tableName)
                 writeInt(row.sequence)
@@ -165,7 +165,7 @@ object CanonicalD5Serializer {
                     listOf(b.schema, b.tableName, b.indexName),
                 ).takeIf { it != 0 } ?: a.sequence.compareTo(b.sequence)
             }
-            out.writeSection("index_xinfo", indexColumns.size) { row ->
+            out.writeSection("index_xinfo", indexColumns) { row ->
                 writeString(row.schema)
                 writeString(row.tableName)
                 writeString(row.indexName)
@@ -185,7 +185,7 @@ object CanonicalD5Serializer {
                     ?: a.id.compareTo(b.id).takeIf { it != 0 }
                     ?: a.sequence.compareTo(b.sequence)
             }
-            out.writeSection("foreign_key_list", foreignKeys.size) { row ->
+            out.writeSection("foreign_key_list", foreignKeys) { row ->
                 writeString(row.schema)
                 writeString(row.tableName)
                 writeInt(row.id)
@@ -281,18 +281,13 @@ object CanonicalD5Serializer {
 
     private inline fun <T> DataOutputStream.writeSection(
         name: String,
-        count: Int,
+        rows: List<T>,
         writeRow: DataOutputStream.(T) -> Unit,
     ) {
         writeString(name)
-        writeInt(count)
-        // The caller provides the already sorted, validated collection.
-        @Suppress("UNCHECKED_CAST")
-        val rows = SECTION_ROWS.get() as? List<T>
-        rows?.forEach { writeRow(it) }
+        writeInt(rows.size)
+        rows.forEach { writeRow(it) }
     }
-
-    private val SECTION_ROWS = ThreadLocal<List<*>>()
 
     private fun DataOutputStream.writeString(value: String) {
         val bytes = value.toByteArray(Charsets.UTF_8)
