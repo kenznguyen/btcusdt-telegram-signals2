@@ -497,8 +497,7 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 
 - Report: `docs/evidence/P5.4.23-SHARED-ANDROID-SQLITE-SOURCE-INTEGRATION-REVIEW-2026-11-03.md`.
 - Report commit: `b39cd52e916e8b02afc23c0685a7579ac0cbd2d1`.
-- Branch: `feature/p5-4-1-post-merge-validation-20261103`.
-- Read-only source files and blob SHAs:
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`.- Read-only source files and blob SHAs:
   - `market_data/store.py`: `b28601aed70097afcb7a4eea2dd93ed163ae1cec`.
   - `market_data/storage.py`: `99b66a4d183b8664f28d6638d8d87416d32847c9`.
   - `paper_execution/ledger.py`: `68209ce48a6e5e9a995f93167684133e41cc7f55`.
@@ -997,7 +996,6 @@ Run evidence:
 - Artifact URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41735402129/artifacts/13278029439
 - GitHub artifact metadata associates the artifact with run `41735402129`, branch `feature/p5-4-1-post-merge-validation-20261103`, and source SHA `621857b4568af67fcf571968f1b732558e16ccbc`.
 - The ZIP digest is the digest reported by the GitHub upload action and artifact metadata; payload download, independent ZIP/APK SHA-256 recomputation, and independent APK certificate inspection have **NOT YET BEEN PERFORMED**.
-
 Verdict:
 - Manual workflow, source-SHA gate, Android unit-test task, paired release builds, workflow verifier checks, signer parity as checked by the verifier, and artifact publication: **PASS**.
 - Independent artifact payload integrity and independent APK signer inspection: **NOT VERIFIED**.
@@ -1497,8 +1495,7 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Workflow: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41743708652 — **SUCCESS**, 5/5 jobs completed successfully.
 - Jobs: preflight 126291314007; G2 + T0 isolated regression 126291358415; G1 126291358503; T0 full regression 126291358771; combined evidence 126291806967.
 - T0/G2 job completed all test, operational contract, policy, compile and evidence-publication steps successfully. G1 and combined evidence publication also succeeded.
-- Artifacts (GitHub metadata digests; payload bytes not downloaded/re-hashed in this increment):
-  - Combined: 13283080513, `sha256:7d3a00224b727bc66d4c793ea9a6e08300bf8f0aef0d5c5418bcabe653926900`.
+- Artifacts (GitHub metadata digests; payload bytes not downloaded/re-hashed in this increment):  - Combined: 13283080513, `sha256:7d3a00224b727bc66d4c793ea9a6e08300bf8f0aef0d5c5418bcabe653926900`.
   - G1: 13282846847, `sha256:237f162722b44de0437c5bffd3936d56571383f0d037d9cd02b1428a182f95de`.
   - T0: 13282667248, `sha256:052463d7171fc221c351362fb2d81d7f627df56c39f6d2465b4818433da3e97c`.
   - G2: 13281434349, `sha256:cce960daf6eb8f274e97638a9234d8ddab4d430b3fda44204cebba9f23f4dd3e`.
@@ -1997,8 +1994,7 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Owner decisions required: ownership model/defer; legal data owner; primary KMS/HSM account owner; escrow custodian/account owner; permitted jurisdictions/regions by data class; independence standard across legal entities/provider organizations/identity providers; qualified legal/compliance review gate.
 - Fail-closed: unknown ownership/jurisdiction/data location => `BLOCKED_D82C_UNRESOLVED`; unproven primary/escrow admin separation => `BLOCKED_TRUST_BOUNDARY`.
 - Updated P5.4.82A matrix and P5.4.82 proposal. No source code or runtime changes.
-- No legal incorporation, contracting, provider/account selection or provisioning, identity enrollment, key generation, storage/data upload, fixture execution, production/DB/device/PC access, backup/restore, Feeder/exchange, D6 gate mutation or writer activation authorized.
-- Existing 96 fixtures: **SPECIFIED / NOT IMPLEMENTED / NOT RUN**. GitHub Actions NOT RUN; no workflow/artifact.
+- No legal incorporation, contracting, provider/account selection or provisioning, identity enrollment, key generation, storage/data upload, fixture execution, production/DB/device/PC access, backup/restore, Feeder/exchange, D6 gate mutation or writer activation authorized.- Existing 96 fixtures: **SPECIFIED / NOT IMPLEMENTED / NOT RUN**. GitHub Actions NOT RUN; no workflow/artifact.
 - Branch: `feature/p5-4-1-post-merge-validation-20261103`. No PR or new branch. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next step: obtain explicit owner decision on D82-C; if ownership/jurisdiction facts are unknown, keep unresolved and defer provider selection. D82-B operational details also remain design-only.
 
@@ -2497,8 +2493,7 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Artifact #13298318658, 130,486 bytes: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41779591097/artifacts/13298318658
 - Artifact ZIP passed `unzip -t`; independently computed SHA-256 `e0f6535c707ce14b62d82cc65c514ec4b94debe53d1800faf24f3d0aa7740ae3` matches GitHub artifact digest.
 - Predecessor run #41779467032 on empty-vector SHA `861aa8c594f1017178a9b9fc2f829e9fefc62069` also SUCCESS; job #126407454734; artifact #13299030383.
-- Verdict: **P5.4.100 PASS — SOURCE-ONLY**. Tests and evidence only; no production behavior/runtime wiring changed.
-- Active branch: `feature/p5-4-1-post-merge-validation-20261103`. Evidence and handoff updates are documentation-only commits; no PR or branch split.
+- Verdict: **P5.4.100 PASS — SOURCE-ONLY**. Tests and evidence only; no production behavior/runtime wiring changed.- Active branch: `feature/p5-4-1-post-merge-validation-20261103`. Evidence and handoff updates are documentation-only commits; no PR or branch split.
 - Safety boundary unchanged: no SQLite/SQL/PRAGMA, DB, Android device/runtime/instrumentation, adapter, Feeder, lease, writer, migration, backup/restore, APK, exchange or trading operation. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next: propose a separately bounded source-only step and obtain explicit approval. Runtime/device/DB work remains separately unauthorized.
 
@@ -2549,3 +2544,21 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Status: **DESIGN PROPOSED / TECHNICALLY SELECTED; IMPLEMENTATION NOT AUTHORIZED; RUNTIME NOT VERIFIED**. T0-B/T0-E remain BLOCKED.
 - No source code, dependency, NDK/build config, DB, device, Feeder, exchange, backup/restore or trading behavior changed. Preserve `AI_EXECUTION_ENABLED=false`.
 - Next: owner may approve a separately scoped T0.3 source implementation of the JNI adapter contract and test harness; Android device/runtime verification remains a separate authorization gate.
+
+## T0.3 — Native SQLite Read-only Snapshot Adapter (2026-11-04)
+
+- Owner approval: `APPROVE T0.3 NATIVE SQLITE READ-ONLY ADAPTER SOURCE-ONLY`.
+- Evidence report: `docs/evidence/T0.3-NATIVE-SQLITE-READONLY-ADAPTER-SOURCE-ONLY-2026-11-04.md`.
+- Active branch: `feature/p5-4-1-post-merge-validation-20261103`; no PR/branch split.
+- Final source SHA: `b12632cde48bb25b6628d548beaf7d9437ca457a`.
+- Added a narrow Kotlin/JNI session lifecycle boundary and native C++ source for existing-file read-only open, WAL sidecar preflight, SQLite 3.37.0 floor, exact source-ID comparison, `sqlite3_db_readonly`, `BEGIN DEFERRED`, database-backed `sqlite_schema` snapshot anchor, and rollback/close. No arbitrary SQL API is exposed.
+- CMake requires explicit exact amalgamation version, source ID and SHA-256 pins for sqlite3.c/sqlite3.h; no system/framework SQLite fallback. These pin values are not yet supplied and CMake is not wired into Gradle.
+- Test-first history: RED test-only commit `b6db3f64d803d95c85b8ec90b3e350481b07baf2`, run #41789576027 failed as expected; initial candidate `6510f7f43b796881236bfa4316f9d8233a53b3fa` exposed a Kotlin visibility error; corrected intermediate `aeeee572cc61bef3e7752f0193e648a49bc9ba6c` passed its Android workflow.
+- Final Android T0 Foundation run #41790477706: **SUCCESS** on exact SHA above; regular and `.paper` each 28 suites / 191 tests / 0 failures / 0 errors / 0 skipped; new native-session JVM tests 7/7 in each; static audit PASS.
+- Android artifact #13303565613 (138,501 bytes), GitHub digest and independently recomputed ZIP SHA-256: `6566b595c4d10b75833ca7c5ce159e82b9d56f94a4ea093f904081535d4e036c`.
+- T0 automated validation run #41790477709: SUCCESS on the same SHA; artifact #13303555601 (22,355 bytes), independently recomputed ZIP SHA-256 `cae47fc751f6bac1349b34d62b7750aa2beba61f4202873af04d5c9966d0b1a7`.
+- P5.4.1 Post-Merge Validation Gate #41790477701: SUCCESS, 5/5 jobs, same SHA.
+- Verdict: **PASS — SOURCE-ONLY for Kotlin lifecycle boundary, native source guards, JVM tests, static audit and CI evidence**.
+- Limits: native C++/JNI not compiled or linked; exact amalgamation/NDK/ABI pins not supplied; no API 26/33/35 runtime, WAL concurrency, sidecar no-create, process-death or device tests; fixed D5 queries not yet exposed through this connection; canonical writer remains unchanged and uses existing engine. Adapter is not wired into CanonicalRuntime.
+- No DB/device/runtime/Feeder/lease/writer/migration/backup/restore/APK/exchange/trading operation. Preserve `AI_EXECUTION_ENABLED=false`.
+- T0-B/T0-E remain BLOCKED. Next separately approved source-only increment: pin/vendor amalgamation and NDK/ABI build inputs, wire native build into a non-release Android target, then implement fixed-query execution on the same native connection. Runtime/device/database access requires separate approval.
