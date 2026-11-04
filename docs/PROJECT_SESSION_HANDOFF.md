@@ -1861,3 +1861,17 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - GitHub Actions: **NOT RUN**; no workflow run/artifact. Docs-only changes; no code/schema/runtime changed.
 - No canonical DB, Android device, PC, production storage, key material, Feeder, exchange, backup/restore or writer touched. Keep Android-first, no PC, paper-only and `AI_EXECUTION_ENABLED=false`.
 - Next step: await explicit owner decision on P5.4.80. Do not implement fixtures or runtime changes until separately authorized.
+
+
+## P5.4.80 — Owner approval recorded (2026-11-04)
+
+- Owner decision: **APPROVE P5.4.80 D1–D5 WITHOUT AMENDMENTS**.
+- Proposal: `docs/evidence/P5.4.80-DIGEST-DOMAINS-AND-AUTHENTICATED-BACKUP-MANIFEST-PROPOSAL-2026-11-04.md`.
+- Approved: separate `snapshot_image_sha256` for exact verified SQLite image bytes before encryption; separate `encrypted_object_sha256` for exact encrypted payload bytes independently checked by full destination read-back; authenticated manifest binding both digests/lengths, Backup ID, immutable payload object ID/version and D2–D5 evidence; separate immutable payload and manifest publication; fail-closed state model; restore verification order; 16 added fixture cases.
+- Fixture plan now contains **76 specified cases** (60 from P5.4.79 + 16 from P5.4.80). All are **NOT IMPLEMENTED / NOT RUN**.
+- Approval is architecture/contract only. Cryptographic suite, signature/MAC mechanism and canonical encoding, key custody/escrow/rotation, storage provider, publication atomicity implementation, retention values and numerical RPO/RTO remain unresolved.
+- GitHub Actions: **NOT RUN**; no workflow run/artifact. No source/runtime/schema/test implementation changed in this approval-recording increment.
+- No canonical DB, Android device, PC, production storage, key material, Feeder, exchange, backup/restore, latch/Kill Switch or writer touched.
+- Status: P5.4.80 **OWNER-APPROVED / ARCHITECTURE ONLY**; fixture implementation/execution **NOT AUTHORIZED / NOT RUN**; production implementation **BLOCKED** on remaining design closures and separate authorization.
+- Safety: Android-first; no PC; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
+- Next step: continue resolving unselected cryptographic/key custody/storage/retention/RPO-RTO contracts in bounded documentation proposals. Do not implement fixtures or runtime until separately authorized.
