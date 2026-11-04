@@ -2925,3 +2925,12 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Evidence report updated at `docs/evidence/P5.4.103-T0.10-TRUSTED-READONLY-EVIDENCE-ASSEMBLY-IMPLEMENTATION-2026-11-04.md`; report update commit `d4d19611050d21bb6521be351bdea5250dfd5231`.
 - Current verdict: **T0.10 BLOCKED / NOT VERIFIED** pending run #41869701593. Recheck native CTest, debug JNI compile/link, regular JVM, `.paper` JVM, pinned SQLite preparation tests, static audit and artifact reports.
 - T0.9 remains PAUSED. No canonical/path-backed DB, filesystem pin IO, Feeder, lease, production, APK/release or trading activation.
+
+
+## T0.9 pause safeguard (2026-11-04)
+
+- Owner approved disabling automatic activation while T0.9 remains paused.
+- Commit `6ebd6ef02ad3113b59e25db3cb40178f0f73335a` removes the `push` trigger from `.github/workflows/t0-9-art-jni-runtime.yml`; `workflow_dispatch` is retained. Verified from the updated workflow blob: no `push` trigger; manual dispatch present.
+- Run #41869701798 on source `7546d6cbf83f0cb2fc86f1a6d435e7869035369c` is now `completed / cancelled`, with no artifacts. Earlier run #41869138052 was also cancelled. Neither is acceptance evidence.
+- Evidence note: `docs/evidence/P5.4.103-T0.10-TRUSTED-READONLY-EVIDENCE-ASSEMBLY-IMPLEMENTATION-2026-11-04.md`, commit `a6f116835cc8dc80b90d79560eca23d0b750b1ff`.
+- T0.9 remains **PAUSED / DEFERRED / NOT VERIFIED**. Manual dispatch does not authorize resumption; separate owner approval is required. No instrumentation/device/emulator test was performed.
