@@ -2828,3 +2828,14 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - T0.9 remains **BLOCKED / NOT VERIFIED**: API 33 partial PASS only; API 26/35 do not satisfy the required runtime verification matrix. Stop blind retries after three attempts. No JNI/Kotlin/C++/SQLite source changes based on infrastructure-only failures. Any future retry requires an approved, evidence-based emulator/UTP reliability correction.
 - Next: pause T0.9 matrix pending scoped infrastructure mitigation and approval. Do not proceed to T0.10 without scope approval.
 - Boundaries remain unchanged: in-memory SQLite only, debug-only hook, `AI_EXECUTION_ENABLED=false`; no canonical DB, Feeder, lease, exchange, live orders, APK release/sign/install or physical-device activity.
+
+
+## T0.9 — Controlled emulator image mitigation (2026-11-04)
+
+- Current branch: `feature/p5-4-1-post-merge-validation-20261103`; workflow/config source SHA: `76123ceeaf4552c966e60a35b3014e8e1ce0e80b`.
+- Attempt 3 of run #41841729095 remains **BLOCKED / NOT VERIFIED**. API 26 failed during UTP APK install commit with `ShellCommandUnresponsiveException` (0 tests). API 35 produced broad system/Google-process startup ANRs, system_server monitor contention around instrumentation startup, app-process ANR and runner process crash (0 tests). These observations do not prove a JNI/SQLite defect.
+- Workflow-only mitigation: API 26 and API 35 now select AOSP `default` image; API 33 retains `google_apis` as a known-good control. Reason: the ART/JNI + SQLite in-memory test does not require Google APIs, while prior diagnostics show Google/system background startup pressure. This is a hypothesis test, not a verified fix. Upstream input documentation: https://github.com/ReactiveCircus/android-emulator-runner/blob/main/README.md
+- T0.9 matrix run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41855983768 (SHA `76123ceeaf4552c966e60a35b3014e8e1ce0e80b`); API 26 job #126664603035, API 33 #126664603121, API 35 #126664603286. At handoff update time API 26/API 35 were in progress and API 33 queued. Inspect all final XML and artifacts; independently hash each ZIP. Do not mark PASS from job conclusion alone.
+- Related P5.4.1 regression gate triggered by same push: run #41855983834; inspect independently.
+- No JNI/Kotlin/C++/SQLite implementation change. Keep `:memory:` only, debug hook only, `AI_EXECUTION_ENABLED=false`. No canonical DB, Feeder, lease, exchange, live orders, APK release/sign/install or physical device. T0.10 remains blocked pending separate scope approval.
+- Next: poll run #41855983768 and #41855983834; inspect logs/XML/artifacts; update this report and handoff with exact job IDs, artifact IDs, local SHA-256 and verdict.
