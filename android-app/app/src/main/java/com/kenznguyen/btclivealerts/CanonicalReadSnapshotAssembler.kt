@@ -73,6 +73,13 @@ object CanonicalReadSnapshotAssembler {
             }
         ) return rejected(ReadSnapshotVerificationStatus.INCOMPLETE_EVIDENCE)
 
+        val catalogById = migrationCatalog.associateBy { it.migrationId }
+        if (catalogById.size != migrationCatalog.size ||
+            appliedRows.any { catalogById[it.migrationId]?.ownerDomain != it.ownerDomain }
+        ) return rejected(
+            ReadSnapshotVerificationStatus.SCHEMA_REJECTED,
+            SchemaVerificationStatus.UNKNOWN_MIGRATION,
+        )
         val applied = appliedRows.map {
             AppliedMigration(it.migrationId, it.sequence, it.checksumSha256)
         }
