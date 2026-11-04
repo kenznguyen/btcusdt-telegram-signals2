@@ -1555,3 +1555,38 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - T0-B PC/SQLite canonical path and integrity: **BLOCKED / DEFERRED** (PC use not reopened; path undecided). T0-C production Feeder runtime: **NOT RUN**. T0-D production backup/restore: **NOT RUN / NOT VERIFIED**. T0-E overall T0 acceptance: **BLOCKED**.
 - No PC, canonical DB, production Feeder, exchange, market-data sync or order execution. Keep `AI_EXECUTION_ENABLED=false`.
 - Next permitted step: when PC use is explicitly reopened, resolve canonical path and perform read-only storage identity/integrity preflight before any separately authorized runtime action.
+
+
+## P5.4.64 — Android-First T0 Roadmap Reconciliation (2026-11-04)
+
+- Scope: documentation reconciliation only. This section supersedes stale forward-looking statements in earlier handoff sections that describe Windows PC as the required T0 canonical host or direct T0-B runtime target. Earlier entries remain historical records of the decisions and assumptions at the time they were written.
+- Owner-confirmed architecture, grounded in ADR-001 and the recorded P5.4.21/P5.4.22/P5.4.34/P5.4.35 decisions: Android-hosted SQLite is the canonical T0 store; Market Data and Paper Ledger share one physical SQLite file; Android is the initial sole canonical writer once separately activated; PC is a separate compute/backtest/AI consumer and read-only consumer of canonical data in the initial model.
+- ADR-001 status corrected from blanket “PROPOSED — NOT ACCEPTED” to **PARTIALLY ACCEPTED — D1 host and physical topology only**. D2–D7 remain unresolved/proposed. This correction does not approve production implementation or activation.
+
+### Corrected T0 gates
+
+| Gate | Correct target and scope | Status |
+|---|---|---|
+| T0-A | Fixture contracts, static audit and GitHub Actions exact-SHA evidence | **PASS** |
+| T0-B | Android canonical-storage preflight: resolve exact app-owned path and store identity; inspect existing state read-only; validate schema/migration authority and SQLite/WAL identity without creating or modifying the canonical DB | **BLOCKED / NOT RUN** — device/path evidence not yet collected; Android filesystem access requires explicit scope approval |
+| T0-C | Controlled Android Feeder runtime acceptance against the approved Android canonical store, including C1–C8 runtime checks | **NOT RUN / NOT AUTHORIZED** — requires T0-B evidence, explicit permission to open/use the canonical DB and start the controlled Feeder, and separately scoped exchange/data-source permission if those are required |
+| T0-D | Android-hosted shared-file backup/restore, WAL consistency, cross-domain Market Data + Paper Ledger recovery, external restore epoch and fencing | **NOT RUN / NOT VERIFIED** — requires approved D2–D7 recovery contract and separate explicit backup/restore test authorization |
+| T0-E | Overall T0/P1 acceptance | **BLOCKED** until T0-B, T0-C and T0-D have acceptable evidence |
+
+### Execution boundary and responsibilities
+
+- GitHub Actions remains the CI runner for fixture-only tests, static audits and source/evidence checks. A GitHub-hosted runner is not a persistent Android Feeder host.
+- Android/Termux or the approved Android application host owns platform-specific shadow/runtime validation and, after explicit approval, canonical T0 runtime. Do not infer that GitHub Actions can validate Android filesystem semantics or continuous device lifecycle.
+- PC is optional compute infrastructure for AI training, FreqAI, backtesting and analysis. It is not a prerequisite for T0-B/T0-C and is not the canonical T0 writer.
+- Android-first architecture does not itself authorize Android filesystem inspection, canonical DB creation/open/write, Feeder startup, exchange connection, market-data synchronization, production backup/restore or writer activation.
+- Keep AI_EXECUTION_ENABLED=false; no live orders or exchange execution.
+- Android Natural Doze remains **INTERRUPTED / DEFERRED** and outside this reconciliation. Do not investigate or rerun it unless the owner explicitly reopens that scope.
+
+### Next permitted step
+
+1. Reconcile ADR-002/host packaging and current source composition with the Android canonical-host decision; do source-only review first.
+2. Prepare a read-only Android T0-B checklist that identifies the exact app-owned path through the approved host configuration without probing or opening the canonical DB.
+3. Request explicit, narrowly scoped Android device access before any filesystem inspection. Request separate permission before opening the canonical DB, creating it, starting Feeder, connecting a source or syncing data.
+4. Do not resume Windows PC T0-B or describe PC access as a prerequisite.
+
+- This update is documentation-only. No tests/workflows, Android device access, database access, Feeder startup, exchange connection, market-data sync, backup/restore or order execution are performed by this update.
