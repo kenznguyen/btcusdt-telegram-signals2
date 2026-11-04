@@ -4,7 +4,6 @@ import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 import java.security.MessageDigest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -260,7 +259,7 @@ class CanonicalD5GoldenVectorIndependentDecoderTest {
             .joinToString("") { "%02x".format(it) }
 
     private fun String.hexToBytes(): ByteArray {
-        assertFalse("hex string must have even length", length % 2 != 1)
+        assertTrue("hex string must have even length", length % 2 == 0)
         return chunked(2).map { it.toInt(16).toByte() }.toByteArray()
     }
 }
