@@ -1,10 +1,5 @@
-# Archived GitHub Actions definitions
+# Archived workflow definitions
 
-These YAML files are historical references, outside `.github/workflows` and not
-executed by GitHub. Active build/test and manual task definitions now live in
-[`codemagic.yaml`](../../../codemagic.yaml). See
-[`docs/CODEMAGIC_SETUP.md`](../../../docs/CODEMAGIC_SETUP.md) before deployment.
+These YAML files are historical references outside `.github/workflows/`; GitHub Actions does not execute them. Active CI, acceptance and manual workflows live only in [`.github/workflows/`](../../../.github/workflows/).
 
-GitHub stores source, branches and PRs. Codemagic runs the jobs and retains build
-artifacts. Moving these files does not configure the Codemagic account, transfer
-secrets, recover scanner state or deploy the Render bridge automatically.
+The archived definitions are not deployment instructions and must not be copied back into the active workflow directory without a separate review. Telegram and legacy backtest workflows have been retired; current T0 health, market-data, paper-system and dashboard contracts are maintained by the active GitHub Actions workflows.

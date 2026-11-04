@@ -36,7 +36,7 @@ Chi tiết: [market_data/README.md](market_data/README.md).
 
 - GitHub lưu source, branch và pull requests.
 - GitHub Actions chạy các gate T0/P5 exact-SHA và Android foundation đã được allowlist.
-- `codemagic.yaml` được giữ lại như cấu hình lịch sử trong quá trình chuyển đổi; không sử dụng Codemagic để chạy, chạy lại hoặc nghiệm thu CI/acceptance. GitHub Actions là nền tảng CI/workflow đang sử dụng.
+- GitHub Actions là nền tảng CI/workflow duy nhất. Các workflow được allowlist trong `.github/workflows/`; cấu hình runner cũ đã được loại khỏi source.
 - Mỗi acceptance phải được đối chiếu với đúng source SHA, workflow/job conclusion và artifact. Không suy diễn PASS từ cấu hình workflow.
 
 Các lệnh kiểm thử chính:

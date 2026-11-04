@@ -48,5 +48,5 @@ The execution sandbox blocks the npm registry and the package tarballs are not
 cached, so a clean dependency installation, Vite build, npm audit and full browser
 render were **not verified here**. The node:test checks exercise URL/token
 handling, closed-candle query windows, JSON/error contracts and response limits
-without requiring dependencies. Codemagic must complete the frozen install,
-build and audit before the dashboard can be considered verified.
+without requiring dependencies. the GitHub Actions `Control Dashboard` workflow must complete the frozen install,
+tests, build and audit before the dashboard can be considered verified.

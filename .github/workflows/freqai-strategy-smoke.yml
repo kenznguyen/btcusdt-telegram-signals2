@@ -1,0 +1,44 @@
+name: FreqAI Strategy Smoke
+run-name: FreqAI strategy smoke (${{ github.ref_name }} @ ${{ github.sha }})
+
+'on':
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  strategy-load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AI_EXECUTION_ENABLED: "false"
+    steps:
+      - name: Checkout selected commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install native runtime dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libomp-dev
+      - name: Install pinned Freqtrade/FreqAI dependencies
+        run: python -m pip install -r requirements-freqai.txt -r requirements-market-data.txt
+      - name: Verify paper-only strategy load
+        run: |
+          set -euo pipefail
+          test "$AI_EXECUTION_ENABLED" = "false"
+          python ci/freqai-smoke.py 2>&1 | tee freqai-strategy-smoke.log
+      - name: Upload source and smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: freqai-strategy-smoke-${{ github.run_id }}
+          if-no-files-found: warn
+          path: freqai-strategy-smoke.log
+          retention-days: 14

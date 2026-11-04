@@ -1,0 +1,67 @@
+name: Control Dashboard
+run-name: Control Dashboard (${{ github.ref_name }} @ ${{ github.event.pull_request.head.sha || github.sha }})
+
+'on':
+  pull_request:
+    branches:
+      - feature/p5-4-1-post-merge-validation-20261103
+    paths:
+      - "control_dashboard/**"
+      - "pipeline/**"
+      - ".github/workflows/control-dashboard.yml"
+  push:
+    branches:
+      - feature/p5-4-1-post-merge-validation-20261103
+    paths:
+      - "control_dashboard/**"
+      - "pipeline/**"
+      - ".github/workflows/control-dashboard.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: control-dashboard-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Pin npm version
+        run: npm install --global npm@11.9.0
+      - name: Record source SHA
+        run: git rev-parse HEAD | tee control-dashboard-source-sha.txt
+      - name: Install locked dependencies without lifecycle scripts
+        working-directory: control_dashboard
+        run: npm ci --ignore-scripts
+      - name: Run dashboard tests
+        working-directory: control_dashboard
+        run: npm test
+      - name: Build dashboard
+        working-directory: control_dashboard
+        run: npm run build
+      - name: Audit dependencies
+        working-directory: control_dashboard
+        run: npm audit --audit-level=high
+      - name: Upload dashboard build and source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-dashboard-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            control-dashboard-source-sha.txt
+            control_dashboard/dist/**
+          retention-days: 14
