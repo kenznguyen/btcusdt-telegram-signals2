@@ -32,6 +32,7 @@ class CiPolicyTest(unittest.TestCase):
             "android-release-pair.yml",
             "android-t0-foundation.yml",
             "android-t0-foundation-github-actions.yml",
+            "t0-health-api-boundary.yml",
             "t0-9-art-jni-runtime.yml",
         }
 
@@ -39,6 +40,28 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("p5-3-11-5-g2-red-validation.yml", actual)
         self.assertLessEqual(actual, approved)
         self.assertTrue((ROOT / "ci/archive/github-actions/market-data-ci.yml").exists())
+
+    def test_t0_health_api_boundary_workflow_is_pr_scoped_and_exact_sha(self):
+        path = ROOT / ".github/workflows/t0-health-api-boundary.yml"
+        self.assertTrue(path.is_file())
+        workflow = yaml.safe_load(path.read_text())
+        self.assertEqual(set(workflow["on"]), {"pull_request"})
+        self.assertEqual(
+            workflow["on"]["pull_request"]["branches"],
+            ["feature/p5-4-1-post-merge-validation-20261103"],
+        )
+        self.assertIn("app.py", workflow["on"]["pull_request"]["paths"])
+        self.assertIn("market_data/**", workflow["on"]["pull_request"]["paths"])
+        self.assertEqual(workflow["permissions"]["contents"], "read")
+        job = workflow["jobs"]["health-api-contract"]
+        self.assertEqual(job["env"]["AI_EXECUTION_ENABLED"], "false")
+        checkout = next(step for step in job["steps"] if step.get("name") == "Checkout exact PR source SHA")
+        self.assertEqual(checkout["with"]["ref"], "${{ github.event.pull_request.head.sha }}")
+        self.assertFalse(checkout["with"]["persist-credentials"])
+        test_step = next(step for step in job["steps"] if step.get("name") == "Run T0 health API and app-surface contracts")
+        self.assertIn("market_data.test_app_surface", test_step["run"])
+        self.assertIn("market_data.test_feeder_health_api", test_step["run"])
+        self.assertIn("market_data.test_feeder_health_runtime_api", test_step["run"])
 
     def test_p5_4_1_orchestrator_is_allowlisted_and_fail_closed(self):
         path = ROOT / ".github/workflows/p5-4-1-post-merge-validation.yml"
