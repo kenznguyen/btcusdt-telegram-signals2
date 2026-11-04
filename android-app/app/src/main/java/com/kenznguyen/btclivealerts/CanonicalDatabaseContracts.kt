@@ -224,14 +224,18 @@ object CanonicalIdentityPinCodec {
             return IdentityPinParseResult.Malformed
         }
 
+        // Dispatch on the version header before validating this version's payload shape.
+        // Unknown versions must remain distinguishable from malformed version-1 records.
         val lines = serialized.dropLast(1).split('\n')
-        if (lines.size != 4 || !lines[0].startsWith("format_version=")) {
+        val header = lines.firstOrNull() ?: return IdentityPinParseResult.Malformed
+        if (!header.startsWith("format_version=")) {
             return IdentityPinParseResult.Malformed
         }
-        val version = lines[0].removePrefix("format_version=").toIntOrNull()
+        val version = header.removePrefix("format_version=").toIntOrNull()
             ?: return IdentityPinParseResult.Malformed
         if (version != FORMAT_VERSION) return IdentityPinParseResult.UnsupportedVersion(version)
 
+        if (lines.size != 4) return IdentityPinParseResult.Malformed
         if (!lines[1].startsWith("role_id=") ||
             !lines[2].startsWith("instance_id=") ||
             !lines[3].startsWith("state=")
