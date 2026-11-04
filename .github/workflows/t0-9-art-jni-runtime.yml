@@ -1,13 +1,6 @@
 name: T0.9.1 Android ART JNI Emulator Reliability Isolation
 
 'on':
-  push:
-    branches:
-      - feature/p5-4-1-post-merge-validation-20261103
-    paths:
-      - "android-app/**"
-      - "ci/**"
-      - ".github/workflows/t0-9-art-jni-runtime.yml"
   workflow_dispatch:
 
 permissions:
