@@ -2281,3 +2281,14 @@ Next: define and test the fixed read-only SQLite query contract against the appr
 - No APK build/sign/publish, DB/SQLite/SQL/filesystem/device/runtime/Feeder/backup/restore/writer/exchange/trading action occurred. `AI_EXECUTION_ENABLED=false`; paper-only.
 
 Next bounded step: continue design-only resolution of the remaining Android read-only SQLite adapter prerequisites (minSdk 26 read-only transaction API, complete D5 introspection coverage, immutable bootstrap migration bytes/ID/sequence/owner, and proof that read-only open of a missing path cannot create a DB). No adapter or runtime work until separately authorized.
+
+## Read-only SQLite transaction API review — minSdk 26 BLOCKED (2026-11-04)
+
+- Design note: `docs/evidence/P5.4.89-ANDROID-T0-PERSISTED-IDENTITY-LIFECYCLE-AND-READONLY-SQLITE-ADAPTER-DESIGN-2026-11-04.md`, section 10.
+- App config confirms `minSdk=26`; current app dependencies do not include AndroidX SQLite/Room.
+- Platform `SQLiteDatabase.beginTransactionReadOnly()` is API 35, so it is not directly available throughout minSdk 26 support. Platform `beginTransaction()` is EXCLUSIVE and `beginTransactionNonExclusive()` is IMMEDIATE; neither is accepted as equivalent to a DEFERRED read-only transaction.
+- AndroidX `SupportSQLiteDatabase.beginTransactionReadOnly()` is documented since 2.5.0, but the interface default can delegate to ordinary `beginTransactionWithListener()` when the implementation does not support read-only transactions. A method name alone is not sufficient evidence. No dependency was added.
+- Official references: https://developer.android.com/reference/android/database/sqlite/SQLiteDatabase and https://developer.android.com/reference/androidx/sqlite/db/SupportSQLiteDatabase .
+- Decision: **BLOCKED** — no transaction primitive approved. No adapter, SQL, DB, filesystem, device or instrumentation operation was performed.
+- Remaining prerequisites: (1) minSdk 26 read-only consistent-snapshot transaction API; (2) complete D5 schema-introspection coverage; (3) exact immutable bootstrap migration bytes/ID/sequence/owner; (4) proof that read-only open of a missing path cannot create a DB.
+- Next: continue source/API design review only. Any device, filesystem or SQLite runtime conformance test requires separate explicit authorization. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
