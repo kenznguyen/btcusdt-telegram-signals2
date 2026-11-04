@@ -2758,3 +2758,13 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Overall T0.9: **BLOCKED / NOT VERIFIED** until API 33 and API 35 pass with inspectable XML reports. API 26 is a confirmed partial pass only.
 - Scope remains SQLite `:memory:` and debug-only hook. `AI_EXECUTION_ENABLED=false`; no canonical DB, Feeder, lease, exchange, live order, APK release/sign/install, or physical-device test.
 - Next action: inspect retry jobs and artifact payloads, then update the evidence report/handoff. Do not alter JNI code in response to emulator infrastructure failures.
+
+
+### T0.9 retry attempt 2 status (2026-11-04 12:36 UTC)
+
+- Run #41826476055 is on attempt 2, still using source SHA `d74a656394a5d275533393954a274efb033b7f33`.
+- API 33 job #126574052863 and API 35 job #126574053294 are both **IN PROGRESS** at Android ART instrumentation. SDK setup and pinned SQLite preparation passed for both.
+- API 26 job #126574054193 is **SUCCESS** in the latest attempt job listing; retain the independently inspected API 26 XML/artifact evidence #13322360294.
+- No API 33/35 XML or artifact is available yet. Active job logs currently return BlobNotFound; no pass/fail conclusion inferred.
+- Overall T0.9 remains **BLOCKED / NOT VERIFIED** until API 33 and API 35 produce successful instrumentation reports that are inspected.
+- Evidence report updated with the attempt 2 job state. Next: poll run #41826476055 and inspect resulting XML/artifacts; no JNI source change warranted while jobs are executing.
