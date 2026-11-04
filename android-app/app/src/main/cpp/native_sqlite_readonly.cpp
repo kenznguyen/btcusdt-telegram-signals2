@@ -55,7 +55,7 @@ constexpr size_t kMaxStringBytes = 4 * 1024 * 1024;
 #define CANONICAL_D5_MAX_PAYLOAD_BYTES (32u * 1024u * 1024u)
 #endif
 constexpr size_t kMaxPayloadBytes = CANONICAL_D5_MAX_PAYLOAD_BYTES;
-constexpr int32_t kWireVersion = 1;
+constexpr int32_t kWireVersion = 2;
 
 std::mutex registry_mutex;
 std::unordered_map<jlong, sqlite3*> connections;
@@ -305,6 +305,59 @@ D5Status read_d5_snapshot(sqlite3* db, std::vector<uint8_t>& payload) {
         return D5_INCOMPLETE_EVIDENCE;
     }
     if (!out.write_string(sqlite_version) || !out.write_string(source_id)) return D5_PAYLOAD_TOO_LARGE;
+
+    // Canonical identity and the complete applied migration chain are read on this
+    // same connection after the DEFERRED transaction anchor.
+    size_t section_offset = 0, section_count = 0;
+    if (!write_section_count(out, section_offset)) return D5_PAYLOAD_TOO_LARGE;
+    const char* identity_sql =
+        "SELECT singleton_key, role_id, instance_id, identity_format_version, "
+        "provenance, parent_instance_id, created_at_utc "
+        "FROM canonical_database_identity ORDER BY singleton_key";
+    if (!run_fixed(db, identity_sql,
+        {"singleton_key", "role_id", "instance_id", "identity_format_version",
+         "provenance", "parent_instance_id", "created_at_utc"}, nullptr,
+        [&](sqlite3_stmt* stmt) {
+            int32_t singleton = 0, format_version = 0;
+            std::string role, instance, provenance, created_at;
+            std::optional<std::string> parent;
+            if (!column_int(stmt, 0, singleton) || !column_text(stmt, 1, role) ||
+                !column_text(stmt, 2, instance) || !column_int(stmt, 3, format_version) ||
+                !column_text(stmt, 4, provenance) || !column_nullable_text(stmt, 5, parent) ||
+                !column_text(stmt, 6, created_at)) {
+                failure = D5_INCOMPLETE_EVIDENCE; return false;
+            }
+            if (!out.write_int(singleton) || !out.write_string(role) ||
+                !out.write_string(instance) || !out.write_int(format_version) ||
+                !out.write_string(provenance) || !out.write_nullable(parent) ||
+                !out.write_string(created_at)) {
+                failure = D5_PAYLOAD_TOO_LARGE; return false;
+            }
+            return increment_section(out, section_offset, section_count);
+        }, failure, rows)) return failure;
+
+    section_count = 0;
+    if (!write_section_count(out, section_offset)) return D5_PAYLOAD_TOO_LARGE;
+    const char* migrations_sql =
+        "SELECT migration_id, sequence, owner_domain, checksum_sha256, applied_at_utc "
+        "FROM schema_migrations ORDER BY sequence";
+    if (!run_fixed(db, migrations_sql,
+        {"migration_id", "sequence", "owner_domain", "checksum_sha256", "applied_at_utc"}, nullptr,
+        [&](sqlite3_stmt* stmt) {
+            std::string migration_id, owner, checksum, applied_at;
+            int32_t sequence = 0;
+            if (!column_text(stmt, 0, migration_id) || !column_int(stmt, 1, sequence) ||
+                !column_text(stmt, 2, owner) || !column_text(stmt, 3, checksum) ||
+                !column_text(stmt, 4, applied_at)) {
+                failure = D5_INCOMPLETE_EVIDENCE; return false;
+            }
+            if (!out.write_string(migration_id) || !out.write_int(sequence) ||
+                !out.write_string(owner) || !out.write_string(checksum) ||
+                !out.write_string(applied_at)) {
+                failure = D5_PAYLOAD_TOO_LARGE; return false;
+            }
+            return increment_section(out, section_offset, section_count);
+        }, failure, rows)) return failure;
 
     std::vector<TableRow> tables;
     size_t section_offset = 0, section_count = 0;
