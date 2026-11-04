@@ -10,9 +10,18 @@ class NativeSqliteD5WireDecoderTest {
         val body = ByteArrayOutputStream()
         DataOutputStream(body).use { out ->
             out.write(byteArrayOf(0x44, 0x35, 0x57, 0x54)) // D5WT
-            out.writeInt(1)
+            out.writeInt(2)
             out.string("3.54.1")
-            out.string("2026-10-16 14:45:20 pinned-source-id")
+            out.string("2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76")
+            out.writeInt(1) // canonical identity rows
+            out.writeInt(1); out.string("t0-canonical-sqlite-v1")
+            out.string("550e8400-e29b-41d4-a716-446655440000")
+            out.writeInt(1); out.string("INITIAL_PROVISIONING"); out.nullable(null)
+            out.string("2026-11-04T00:00:00Z")
+            out.writeInt(1) // applied migration rows
+            out.string("t0.bootstrap.v1"); out.writeInt(1); out.string("T0")
+            out.string("0000000000000000000000000000000000000000000000000000000000000000")
+            out.string("2026-11-04T00:00:00Z")
 
             out.writeInt(1)
             out.string("main"); out.string(tableListName); out.string(tableType)
@@ -64,6 +73,8 @@ class NativeSqliteD5WireDecoderTest {
         assertEquals(NativeSqliteD5ReadStatus.VERIFIED, reply.status)
         val envelope = requireNotNull(reply.envelope)
         assertEquals("3.54.1", envelope.runtime.sqliteVersion)
+        assertEquals("t0-canonical-sqlite-v1", reply.identityRows.single().roleId)
+        assertEquals("t0.bootstrap.v1", reply.appliedMigrationRows.single().migrationId)
         assertEquals("positions", envelope.catalog.first { it.type == "table" }.name)
         assertEquals(3, envelope.tableColumns.size)
         assertEquals(null, envelope.tableColumns.first().defaultValue)
@@ -102,7 +113,7 @@ class NativeSqliteD5WireDecoderTest {
         val wrongMagic = valid.copyOf().also { it[4] = 0 }
         assertEquals(NativeSqliteD5ReadStatus.INCOMPLETE_EVIDENCE, NativeSqliteD5WireDecoder.decode(wrongMagic).status)
 
-        val wrongVersion = valid.copyOf().also { it[8] = 0; it[9] = 0; it[10] = 0; it[11] = 2 }
+        val wrongVersion = valid.copyOf().also { it[8] = 0; it[9] = 0; it[10] = 0; it[11] = 3 }
         assertEquals(NativeSqliteD5ReadStatus.INCOMPLETE_EVIDENCE, NativeSqliteD5WireDecoder.decode(wrongVersion).status)
     }
 
