@@ -2219,3 +2219,13 @@ Next: define and test the fixed read-only SQLite query contract against the appr
 - Added a documentation-only proposal for exact canonical_database_identity and schema_migrations DDL, append-only immutability triggers, and a fixed read-only query family for SQLite runtime identity, canonical identity row, migration chain, sqlite_schema, and structured PRAGMA introspection.
 - The proposal requires one read transaction for all evidence; incomplete/uncertain reads fail closed. The transaction API/mode compatible with Android OPEN_READONLY, D5 schema-introspection coverage, and exact migration bytes/IDs remain unresolved.
 - No SQL was executed; no DB or filesystem was opened or created. Owner approval is requested for the proposed DDL and query families only. This is not runtime authorization.
+
+
+## P5.4.92 — Owner approval and next boundary (2026-11-04)
+
+- Owner decision: **APPROVE P5.4.92**, no amendments. Approval covers only the proposed `canonical_database_identity` DDL, `schema_migrations` append-only DDL/triggers, and fixed read-only query families documented in `docs/evidence/P5.4.89-ANDROID-T0-PERSISTED-IDENTITY-LIFECYCLE-AND-READONLY-SQLITE-ADAPTER-DESIGN-2026-11-04.md`.
+- The query contract requires one SQLite read transaction for all evidence; any query, cursor, transaction, or connection uncertainty fails closed as `READ_UNCERTAIN`; partial evidence is never COMPLETE.
+- Design-only approval. No Android filesystem access, DB open/create/read/write, DDL execution, migration/adoption, device runtime, Feeder, backup/restore, writer admission, APK work, exchange connectivity or trading is authorized. `AI_EXECUTION_ENABLED=false`; paper-only.
+- Before an Android adapter: resolve the read-only transaction API on minSdk 26, freeze D5 schema-introspection coverage, define exact immutable bootstrap migration bytes/ID/sequence/owner, and prove missing-path read-only open cannot create a DB.
+- Next bounded increment: pure source-level DDL/query contract and fixture tests only; no SQLite connection or SQL execution.
+- At approval recording time, branch `feature/p5-4-1-post-merge-validation-20261103` was verified at source HEAD `2d55ae36bdc603beffdb1c8c2e84e24252c836a1`. Approval documentation is being committed directly to this branch; no PR or parallel branch.
