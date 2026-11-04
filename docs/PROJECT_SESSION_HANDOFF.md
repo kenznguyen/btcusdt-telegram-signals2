@@ -2934,3 +2934,15 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Run #41869701798 on source `7546d6cbf83f0cb2fc86f1a6d435e7869035369c` is now `completed / cancelled`, with no artifacts. Earlier run #41869138052 was also cancelled. Neither is acceptance evidence.
 - Evidence note: `docs/evidence/P5.4.103-T0.10-TRUSTED-READONLY-EVIDENCE-ASSEMBLY-IMPLEMENTATION-2026-11-04.md`, commit `a6f116835cc8dc80b90d79560eca23d0b750b1ff`.
 - T0.9 remains **PAUSED / DEFERRED / NOT VERIFIED**. Manual dispatch does not authorize resumption; separate owner approval is required. No instrumentation/device/emulator test was performed.
+
+
+## T0.10.1.1 — Native lifecycle fixture correction (updated 2026-11-04)
+
+- T0 Foundation run #41869701593, source SHA `7546d6cbf83f0cb2fc86f1a6d435e7869035369c`, completed **FAILURE**. Native CTest: T0.6 D5 memory **PASS**; T0.7 handle lifecycle **FAIL (4 assertions)**; T0.8 host JNI ABI **PASS**. JNI compile/link, regular JVM, `.paper` JVM, pinned SQLite tests and static audit were skipped. No artifacts.
+- Root cause from exact job log: T0.7 `make_memory_database()` created only `lifecycle_probe`, while T0.10 D5 wire v2 fixed reader requires `canonical_database_identity` and `schema_migrations`. This was fixture/schema drift; no evidence established a production handle registry defect.
+- Corrected only the in-memory lifecycle fixture with the canonical identity and bootstrap migration rows matching the D5 memory fixture. No production native code changed; assertions remain intact.
+- Fix commit: `79cfde6f32047a3c9d497f34ad505e278a187d56`.
+- Evidence report update commit: `0f9afa5ed3779e7b86f0aba619033b7ae3c855ea`.
+- Exact-SHA CI after fixture correction is pending. Keep T0.10.1 **BLOCKED / NOT VERIFIED** until full exact-SHA CI, test reports and artifact evidence are inspected.
+- T0.9 remains **PAUSED / DEFERRED / NOT VERIFIED**; ART workflow is manual-dispatch-only and has not been resumed. No device/runtime, canonical DB, pin filesystem, Feeder, lease, IPC, exchange, APK or trading action.
+- Next: inspect the Android T0 Foundation workflow triggered by the fixture correction; fix only evidenced source/fixture defects; update this handoff/report with exact run/job/artifact/hash results. No T0.11 until separately approved.
