@@ -2442,3 +2442,16 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Latest run `41777394890`, branch SHA `7809118c7e8408e893bfa0643601a9caff77133f`, was `in_progress` at latest check; regular host tests running; `.paper` and static audit pending.
 - Latest source commit for serializer: `2b4e29b1b13ac03f2c634d24d69fc95352297a93`; latest test commit: `7809118c7e8408e893bfa0643601a9caff77133f`.
 - Final P5.4.99 verdict remains **NOT VERIFIED** until run `41777394890` completes and its artifact (if uploaded) is inspected.
+
+
+## P5.4.99 CI correction — predecessor SHA completed (2026-11-04)
+
+- Workflow #41777054564 completed **SUCCESS** on exact SHA `9ef29733e20fa35b10e340846294749e93168405`: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41777054564 .
+- Job #126400273914: regular host 26 suites / 179 tests / 0 failures / 0 errors / 0 skipped; `.paper` 26 suites / 179 tests / 0 failures / 0 errors / 0 skipped; static audit `ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS`.
+- Artifact #13297493024, 129,600 bytes; downloaded ZIP passed `unzip -t`; recomputed SHA-256 `acf0f20b63cb8942f980605b5e55bad0abaf1b44dd182eaa8e727d4456d73307` matches GitHub digest.
+- The artifact's `CanonicalD5SerializerTest` XML reports 8/8 in each variant. At tested SHA `9ef29733...`, order-independence fixture still had one row per section.
+- Latest source/test HEAD before this documentation update: `7809118c7e8408e893bfa0643601a9caff77133f`; later test delta adds multi-row collections for all five serialized sections and malformed UTF-16 rejection. It is not covered by workflow #41777054564.
+- Verdict: predecessor source SHA and predecessor tests **PASS**; latest HEAD test delta **NOT VERIFIED**. P5.4.99 latest-HEAD overall **NOT VERIFIED** pending exact-SHA CI.
+- Evidence report correction commit: `766126e3bf91fc36e7fa36126a60245634cd2f8a`.
+- No runtime/DB/device/adapter/Feeder/writer/migration/backup/restore/APK/exchange/trading action. `AI_EXECUTION_ENABLED=false`.
+- Next: exact-HEAD GitHub Actions verification for `7809118c7e8408e893bfa0643601a9caff77133f`; otherwise retain NOT VERIFIED.
