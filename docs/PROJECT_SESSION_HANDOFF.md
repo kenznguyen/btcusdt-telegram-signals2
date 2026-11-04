@@ -1654,3 +1654,20 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - No code/schema/migration/IPC/runtime/device/DB/Feeder/exchange/sync/backup/restore/writer activation. `AI_EXECUTION_ENABLED=false`.
 - Status: proposal documentation **PASS**; D2 owner decision **NOT DECIDED**; T0-B **BLOCKED**, T0-C **NOT RUN / NOT AUTHORIZED**, T0-D **NOT RUN / NOT VERIFIED**, T0-E **BLOCKED**.
 - Next: owner decision on the five D2 questions; if approved, record D2 in ADR-001 and proceed to D3 proposal. No implementation before approval.
+
+## P5.4.69 — D2 Owner Decision Recorded (2026-11-04)
+
+- Owner explicitly approved all five D2 decisions, with no additional notes:
+  - **D2.1 APPROVED:** Market Data per-partition contiguous closed-candle cursor; gaps/backfill recorded separately.
+  - **D2.2 APPROVED:** dedicated monotonic Paper Ledger commit sequence, stable idempotency key, and same-transaction advancement of affected state plus audit; `paper_audit.id` alone is insufficient.
+  - **D2.3 APPROVED:** same-transaction Risk State changes bind to the Ledger sequence; independently committed risk-only transitions require a separate monotonic risk version committed with risk mutation and audit.
+  - **D2.4 APPROVED:** Feeder Lease generation remains separate from data cursors; host-side fencing is validated at every canonical write boundary.
+  - **D2.5 APPROVED:** manifest uses a domain-cursor evidence vector; it is descriptive and does not prove atomic snapshot consistency. D3 remains required.
+- No additional owner notes.
+- ADR-001 updated to **PARTIALLY ACCEPTED — D1 host/physical topology and D2 high-water semantics**. D3–D7 remain **NOT DECIDED / BLOCKING**. D1 residual path/store/transaction/lease/WAL/backup details remain open.
+- P5.4.68 proposal updated to an owner decision record: D2 **ACCEPTED**; fixture tests remain **SPECIFIED / NOT IMPLEMENTED**.
+- Scope: documentation-only. No code, schema, migration, IPC, tests or workflow execution. No Android device access, canonical DB open/create/write, Feeder, exchange connection, data sync, backup/restore, writer activation or orders.
+- Verification: pending post-write fetch of ADR-001, P5.4.68 and this handoff. No new GitHub Actions run; workflow status **NOT RUN**. Commit SHA will be recorded after the documentation writes complete.
+- Gate status: T0-A **PASS** (prior fixture-only closeout); T0-B **BLOCKED / NOT RUN**; T0-C **NOT RUN / NOT AUTHORIZED**; T0-D **NOT RUN / NOT VERIFIED**; T0-E **BLOCKED**.
+- Safety: `AI_EXECUTION_ENABLED=false`; paper-only; Android Natural Doze remains **INTERRUPTED / DEFERRED**.
+- Next permitted work: prepare D3 snapshot-barrier/cross-domain consistency proposal, explicitly **PROPOSED / NOT DECIDED**, without assuming D2 approval decides D3. No runtime implementation until separately authorized.
