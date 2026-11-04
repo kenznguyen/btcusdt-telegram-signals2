@@ -37,6 +37,9 @@ class CiPolicyTest(unittest.TestCase):
             "android-t0-foundation-github-actions.yml",
             "t0-health-api-boundary.yml",
             "t0-9-art-jni-runtime.yml",
+            "control-dashboard.yml",
+            "cross-layer-integration.yml",
+            "freqai-strategy-smoke.yml",
         }
 
         self.assertIn("p5-3-10-4-g1-red-execution.yml", actual)
@@ -137,7 +140,7 @@ class CiPolicyTest(unittest.TestCase):
     def test_g2_acceptance_is_github_actions_only_and_historical_red_is_manual(self):
         green = (ROOT / ".github/workflows/p5-3-11-g2-integration-green.yml").read_text()
         red = (ROOT / ".github/workflows/p5-3-11-g2-integration-red.yml").read_text()
-        self.assertIn("permissions:\\n  contents: read", green)
+        self.assertIn("permissions:\n  contents: read", green)
         self.assertIn("ref: ${{ github.event.pull_request.head.sha || github.sha }}", green)
         self.assertIn("persist-credentials: false", green)
         green_workflow = yaml.safe_load(green)
@@ -249,7 +252,7 @@ class CiPolicyTest(unittest.TestCase):
         triggers = workflow.get("on", workflow.get(True, {}))
         self.assertIn("workflow_call", triggers)
         self.assertIn("push", triggers)
-        commands = "\\n".join(step.get("run", "") for step in workflow["jobs"]["t0-validation"]["steps"])
+        commands = "\n".join(step.get("run", "") for step in workflow["jobs"]["t0-validation"]["steps"])
         for module in ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
                        "market_data.test_api", "market_data.test_gateway_runtime"):
             self.assertIn(module, commands)
@@ -283,7 +286,7 @@ class CiPolicyTest(unittest.TestCase):
         self.assertNotIn("backtest.py", cross_layer)
         self.assertNotIn("telegram_commands.py", cross_layer)
         t0_workflow = yaml.safe_load((ROOT / ".github/workflows/t0-validation.yml").read_text())
-        t0_commands = "\\n".join(step.get("run", "") for step in t0_workflow["jobs"]["t0-validation"]["steps"])
+        t0_commands = "\n".join(step.get("run", "") for step in t0_workflow["jobs"]["t0-validation"]["steps"])
         for t0_command in ("import ccxt", "import app", "market_data.sync --help", "compileall -q market_data"):
             self.assertIn(t0_command, t0_commands)
 

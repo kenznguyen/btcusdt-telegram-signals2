@@ -29,6 +29,8 @@ jobs:
           sudo apt-get install --yes libomp-dev
       - name: Install pinned Freqtrade/FreqAI dependencies
         run: python -m pip install -r requirements-freqai.txt -r requirements-market-data.txt
+      - name: Record exact source SHA
+        run: git rev-parse HEAD | tee freqai-source-sha.txt
       - name: Verify paper-only strategy load
         run: |
           set -euo pipefail
@@ -40,5 +42,7 @@ jobs:
         with:
           name: freqai-strategy-smoke-${{ github.run_id }}
           if-no-files-found: warn
-          path: freqai-strategy-smoke.log
+          path: |
+            freqai-source-sha.txt
+            freqai-strategy-smoke.log
           retention-days: 14
