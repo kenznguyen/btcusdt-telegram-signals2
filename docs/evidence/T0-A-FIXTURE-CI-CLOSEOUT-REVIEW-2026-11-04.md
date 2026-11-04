@@ -32,7 +32,7 @@ The ten feeder regression modules contain 119 test methods. The three CI regress
 - Runtime health/readiness tests keep startup, incomplete recovery, storage failure, lost lease and stale generation from becoming ready.
 - RecoveryPlanner/RecoveryCoordinator tests reject malformed/contradictory/overlapping snapshots and do not report complete while gaps remain.
 - Static operational audit checks GitHub Actions registration, source-SHA provenance, release-gate boundaries, manual-only gates, Codemagic retirement, canonical closed-candle source, concrete Gateway boundary, separated observation/lease clocks and fail-closed SQLite runtime storage.
-- These are source and fixture CI proofs. They do not prove production process wiring or actual writes to the future canonical PC database.
+- These are source and fixture CI proofs. They do not prove Android production process wiring, installed host identity, Android filesystem semantics or actual writes to the future canonical Android database.
 
 ## CI isolation and provenance
 - T0 runner has canonical DB, lease DB, paper DB and exchange credential environment variables empty; `AI_EXECUTION_ENABLED=false`.
@@ -50,16 +50,16 @@ The ten feeder regression modules contain 119 test methods. The three CI regress
 | Gate | Status | Why |
 |---|---|---|
 | T0-A — fixture contracts, static audit and GitHub Actions evidence | **PASS** | Exact-SHA T0 + integrated workflow succeeded |
-| T0-B — Windows PC canonical path and SQLite integrity | **BLOCKED / DEFERRED** | PC use is currently deferred; canonical path is not selected |
-| T0-C — controlled Feeder runtime acceptance | **NOT RUN** | No PC deployment, production composition, lease/runtime start, M15/H1 ingestion or restart test |
-| T0-D — production backup/restore and continuity | **NOT RUN / NOT VERIFIED** | No canonical database or production backup/restore exercise |
+| T0-B — Android canonical path/identity preflight | **BLOCKED / NOT RUN** | Android host/path authority is not implemented or verified; device access not authorized |
+| T0-C — controlled Android Feeder runtime acceptance | **NOT RUN / NOT AUTHORIZED** | No Android CanonicalRuntime/Feeder composition, canonical DB use, lease/runtime start, M15/H1 ingestion or restart test |
+| T0-D — Android shared-file backup/restore and continuity | **NOT RUN / NOT VERIFIED** | No canonical Android database or production backup/restore exercise |
 | T0-E — overall T0 acceptance / P1 close | **BLOCKED** | Requires T0-B through T0-D evidence |
 
 ## Approved storage target and current constraint
-The recorded target is Windows PC + SQLite, with the Lease in the same physical database and daily backup. The canonical filesystem path remains undecided. The user has deferred PC use for now; this review therefore does not inspect or create any PC database.
+The owner-selected target is Android-hosted SQLite. Market Data and Paper Ledger share one physical file; ADR-002 assigns the regular variant as sole canonical host and `.paper` as IPC client. PC is optional compute/read-only research, not canonical writer. The exact Android path, stable DB identity and host implementation remain NOT VERIFIED. P5.4.65 found no Android canonical path authority, SQLite persistence, Feeder composition or authenticated IPC service in the reviewed source. No Android device or DB was accessed.
 
 ## Next permitted action
-When PC use is explicitly reopened, resolve the canonical path and perform a read-only storage identity/integrity preflight before any Feeder startup. Do not start the Feeder, connect an exchange, sync market data, or create/modify the canonical DB as part of that preflight without separate authorization.
+Complete source implementation/readiness prerequisites for the Android regular host and its path authority, then perform source-only conformance review. Only after the path authority exists and separate Android access is explicitly approved may T0-B record app-private path and DB/WAL/SHM metadata read-only. Do not open SQLite, start Feeder, connect an exchange, sync market data or create/modify the canonical DB as part of that preflight.
 
 ## Safety boundary
-Paper/signals only. No live orders or exchange execution. Keep `AI_EXECUTION_ENABLED=false`. No PC, canonical DB, production Feeder, exchange or market-data sync was used for this review.
+Paper/signals only. No live orders or exchange execution. Keep `AI_EXECUTION_ENABLED=false`. No Android device/filesystem, PC, canonical DB, production Feeder, exchange or market-data sync was used for this review.
