@@ -188,7 +188,7 @@ Before implementation, obtain explicit approval for:
 - [x] D3 global barrier and shared-file consistency model (owner-approved 2026-11-04);
 - [x] D4 database-wide SQLite schema-version authority and migration ownership (D4.1–D4.7 owner-approved 2026-11-04; implementation details remain open);
 - [x] canonicalization and digest-layer contract (D5.1–D5.4 owner-approved 2026-11-04; exact serialization/runtime specification and fixture proof remain open);
-- [ ] external restore epoch, lease re-fencing and Kill Switch gate;
+- [ ] external restore epoch, lease re-fencing and Kill Switch gate (P5.4.75 proposal; owner decision pending);
 - [ ] destination, encryption, retention, RPO/RTO and restore approver.
 
 Until all are resolved, production implementation status is **BLOCKED**.
@@ -234,3 +234,8 @@ P5.4.73 proposes the canonicalization and digest layers for owner review: physic
 The owner explicitly approved D5.1–D5.4 as specified in `docs/evidence/P5.4.73-D5-CANONICALIZATION-AND-DIGEST-RULES-PROPOSAL-2026-11-04.md`, without amendments. Accepted layers: exact-byte physical snapshot SHA-256; ordered D4 migration-chain digest; versioned logical SQLite schema digest using conservative schema SQL bytes plus structured introspection and recorded runtime identity; and optional logical row/data digest excluded from initial mandatory scope. The accepted contract also prohibits initial SQLite/PostgreSQL equivalence claims, requires explicit algorithm/canonicalization identity, and fails closed on unknown or ambiguous inputs.
 
 **Decision boundary:** D5 architecture is ACCEPTED. Exact canonical envelope grammar/framing, canonicalization identifier/version value, runtime pinning, introspection schema, virtual-table inventory and digest composition remain to be specified and covered by disposable fixture tests. No code implementation, canonical DB access, migration execution, Android device access, Feeder startup, exchange connectivity, synchronization, backup/restore, writer activation or live execution is authorized. D5 fixture tests remain NOT IMPLEMENTED / NOT RUN. D6–D7 remain unresolved. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+
+
+## D6 proposal reference (2026-11-04)
+
+P5.4.75 proposes an external monotonic Restore Epoch Authority, external Recovery Latch, positive proof that prior owners stopped/fenced, isolated staging and verified publication, lease-generation re-fencing above restored/external floors, invalidation of stale intents/capabilities/market assumptions, and Kill Switch retention through readiness checks and separate authenticated acknowledgement. D6 is **PROPOSED / NOT APPROVED**; no restore or writer operation is authorized.
