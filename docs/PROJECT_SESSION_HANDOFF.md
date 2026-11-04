@@ -2584,3 +2584,23 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - T0.3 historical limitation “C++/JNI not compiled, NDK/ABI pins missing, CMake not wired to Gradle” is superseded by T0.4. Runtime/device limitations remain.
 - Not verified/not authorized: API 26/33/35 runtime, device/emulator/instrumentation, WAL concurrency, process death, real DB open/read/close, native D5 query execution, CanonicalRuntime integration, shared-engine canonical writer/reader operation. No DB, Feeder, lease, writer, migration, backup/restore, APK, exchange or trading operation. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next bounded source-only proposal: fixed read-only D5 query families on the same native DEFERRED snapshot connection plus native/source tests; requires separate owner approval. Device/runtime/database integration remains a separate authorization gate.
+
+
+## T0.5 — Fixed D5 Read-only Query Execution (2026-11-04)
+
+- Owner approval: `APPROVE T0.5 FIXED D5 READ-ONLY QUERY EXECUTION SOURCE-ONLY`.
+- Evidence report: `docs/evidence/T0.5-FIXED-D5-READONLY-QUERY-EXECUTION-SOURCE-ONLY-2026-11-04.md`.
+- Active branch: `feature/p5-4-1-post-merge-validation-20261103`; direct commits only, no PR/branch split.
+- Final implementation/test SHA: `56a98bec4d9828caa90e0c7c26384534945cb374`.
+- Added fixed D5 query execution on the already-open native snapshot handle; no second connection/transaction and no arbitrary SQL API. Every prepared statement checks `sqlite3_stmt_readonly()==1` and exact result-column shape. Table/index identifiers are bound values.
+- Fixed query families: runtime SQLite version/source ID; main-schema `pragma_table_list`; main `sqlite_schema` catalog; `pragma_table_xinfo`; `pragma_index_list`; `pragma_index_xinfo`; `pragma_foreign_key_list`.
+- Native code rejects virtual/shadow/unknown schema objects, unsupported result shapes, missing catalog SQL, and incomplete/oversized evidence. Scope is main schema only.
+- Added private D5WT v1 transport and strict Kotlin decoder. Decoder validates bounds, UTF-8, booleans, section counts, table-list/catalog parity, table_xinfo coverage, index catalog/list/xinfo parity, foreign-key table ownership, then runs the pure canonical serializer as envelope validation.
+- Android T0 Foundation run #41797632317: **SUCCESS** on exact source SHA above; job #126465591460 SUCCESS. Native debug compile/link PASS for all four ABIs; regular 29 suites / 200 tests / 0 failures / 0 errors / 0 skipped; `.paper` 29 suites / 200 tests / 0 failures / 0 errors / 0 skipped; SQLite preparation tests 4/4; static audit PASS.
+- Run URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41797632317
+- Test artifact #13306820128, 143,136 bytes, SHA-256 `df9a3293343aae1477dbaf866c47eab4fbab445e62dd59d605b4a2ae5e3ef8dc`; downloaded ZIP passed `unzip -t` and independent SHA-256 matched.
+- Native artifact #13306371032, 6,758,375 bytes, SHA-256 `88f4d52c4fbaaff30ed8bd16dcde40d4d7bfe8923b636d22170cc7b2983d1408`; downloaded ZIP passed `unzip -t` and independent SHA-256 matched. Per-ABI .so hashes and ELF architecture are in the evidence report.
+- Verdict: **T0.5 PASS — SOURCE-ONLY / FIXED D5 QUERY IMPLEMENTATION AND CI BUILD VERIFIED**.
+- T0.5 does not prove runtime query execution: no JNI D5 call was invoked; no SQLite memory/temp/user/canonical database was opened and no SQL/PRAGMA was executed. Unit tests cover Kotlin transport decoding and fake bridge behavior only.
+- Not verified/not authorized: API 26/33/35 runtime/device/instrumentation, WAL concurrency/snapshot visibility, process death, sidecar no-create runtime proof, CanonicalRuntime/CanonicalDatabaseReadSnapshot integration, canonical writer integration, Feeder/lease/migration/backup/restore, APK build/sign/install. No exchange/trading action. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next bounded proposal: separately approve T0.6 isolated in-memory native SQLite query fixture tests; no canonical/user DB or Android device. Runtime/device/database integration remains a separate gate.
