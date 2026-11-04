@@ -10,6 +10,7 @@ data class NativeSqliteOpenReply(val status:NativeSqliteStatus,val handle:Long)
 internal interface NativeSqliteReadOnlyBridge {
  fun openPinnedSnapshot(path:String):NativeSqliteOpenReply
  fun closeSnapshot(handle:Long):NativeSqliteStatus
+ fun readD5Snapshot(handle:Long):NativeSqliteD5SnapshotReply = NativeSqliteD5SnapshotReply(NativeSqliteD5ReadStatus.QUERY_FAILED)
 }
 internal sealed interface NativeSqliteSessionOpenResult {
  data class Opened(val session:NativeSqliteReadOnlySession):NativeSqliteSessionOpenResult
@@ -24,6 +25,10 @@ internal class NativeSqliteReadOnlySession private constructor(private val handl
   val status=try{bridge.closeSnapshot(handle)}catch(_:Exception){NativeSqliteStatus.CLOSE_FAILED}
   if(status==NativeSqliteStatus.VERIFIED||status==NativeSqliteStatus.ALREADY_CLOSED)isClosed=true
   return status
+ }
+ fun readD5Snapshot():NativeSqliteD5SnapshotReply {
+  if(isClosed)return NativeSqliteD5SnapshotReply(NativeSqliteD5ReadStatus.INVALID_HANDLE)
+  return try{bridge.readD5Snapshot(handle)}catch(_:Exception){NativeSqliteD5SnapshotReply(NativeSqliteD5ReadStatus.QUERY_FAILED)}
  }
  override fun close(){closeAndGetStatus()}
  companion object {
@@ -46,10 +51,13 @@ internal object NativeSqliteReadOnlyJni {
   return NativeSqliteOpenReply(NativeSqliteStatus.fromNativeCode(result[0].toInt()),result[1])
  }
  fun closeSnapshot(handle:Long):NativeSqliteStatus {libraryLoaded;return NativeSqliteStatus.fromNativeCode(nativeCloseSnapshot(handle))}
+ fun readD5Snapshot(handle:Long):NativeSqliteD5SnapshotReply {libraryLoaded;return NativeSqliteD5WireDecoder.decode(nativeReadD5Snapshot(handle))}
  private external fun nativeOpenPinnedSnapshot(path:String):LongArray
  private external fun nativeCloseSnapshot(handle:Long):Int
+ private external fun nativeReadD5Snapshot(handle:Long):ByteArray
 }
 internal object JniNativeSqliteReadOnlyBridge:NativeSqliteReadOnlyBridge {
  override fun openPinnedSnapshot(path:String)=NativeSqliteReadOnlyJni.openPinnedSnapshot(path)
  override fun closeSnapshot(handle:Long)=NativeSqliteReadOnlyJni.closeSnapshot(handle)
+ override fun readD5Snapshot(handle:Long)=NativeSqliteReadOnlyJni.readD5Snapshot(handle)
 }
