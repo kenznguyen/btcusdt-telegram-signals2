@@ -1624,3 +1624,19 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - No Android access, APK build/install, canonical DB path probing/open/create/write, Feeder, exchange, market-data sync, backup/restore, writer activation or orders. Keep `AI_EXECUTION_ENABLED=false`; Natural Doze remains INTERRUPTED / DEFERRED.
 - Next permitted increment: P5.4.67 — resolve ADR-002 documentation conflict and produce a D2–D7 decision register by tracing existing ADR/handoff evidence, distinguishing owner-approved decisions from unresolved owner choices. No code or runtime implementation.
 
+
+
+## P5.4.67 — ADR-002 Reconciliation and D2–D7 Decision Register (2026-11-04)
+
+- Evidence: `docs/evidence/P5.4.67-ADR-002-D2-D7-DECISION-REGISTER-2026-11-04.md`.
+- ADR-002 reconciliation commit: `0e17e277d75ecfaa2d77adef335915ce6b46d948`; new ADR-002 blob: `cc5b0c392906bf4bd4c95abddded4c8c76ec9231`.
+- Decision-register commit: `a3491128d4e9153ee6ae3dc9585a8120b06e87aa`.
+- Baseline handoff blob: `fac4272a5a0a05bea88252a4b10ca9f207879616`; ADR-001 baseline blob: `dd17f3cf92cb54c448ed69ce76a4823f0b35bc58`.
+- Corrected ADR-002's stale “Open implementation decisions” wording. P5.4.41 owner addendum remains authoritative: regular host, .paper IPC client, explicit Bound Service + typed Binder/AIDL, signature-level permission, per-call UID/package/signer verification and same controlled signing identity direction.
+- Exact application IDs as security allowlist values, installed certificate digest/key custody/rotation, final manifest names, Binder DTO/version/retry contract and runtime conformance remain OPEN or NOT VERIFIED.
+- Traced ADR-001 D2–D7 verbatim: D2 per-store high-water semantics; D3 global snapshot barrier/cross-store consistency; D4 schema-version authority; D5 canonicalization/logical identity; D6 restore epoch/lease re-fencing/Kill Switch recovery; D7 backup destination/security/service objectives. All six explicitly remain **NOT DECIDED / BLOCKING**. No candidate requirement was promoted to an owner-approved decision.
+- D1 remains **PARTIALLY ACCEPTED** only for Android canonical host, Android SQLite and one shared physical file for Market Data + Paper Ledger. Exact path, stable store ID, domain/transaction ownership, lease placement and backup details remain open.
+- P5.4.65 source review and P5.4.49 historical paired-build facts are recorded with limits; neither proves current installed signer or implemented IPC/canonical DB runtime.
+- Tests/workflows **NOT RUN** (documentation-only). No code, Gradle, manifest, IPC, schema, runtime, device, DB, Feeder, exchange, sync, backup/restore or writer activation. `AI_EXECUTION_ENABLED=false`.
+- Status: ADR-002 documentation **PASS**; D2–D7 decision register **PASS as traceability record**, decisions themselves **BLOCKED / NOT DECIDED**; T0-B **BLOCKED**, T0-C **NOT RUN / NOT AUTHORIZED**, T0-D **NOT RUN / NOT VERIFIED**, T0-E **BLOCKED**.
+- Next permitted increment: owner decision review of D2–D7, without implementation or operational access.
