@@ -39,7 +39,7 @@ class T0OperationalContractReleaseGateTest(unittest.TestCase):
     def test_manual_t0_acceptance_gates_are_preserved(self):
         self.assert_check_passes("manual_gates_preserved")
 
-    def test_t0_codemagic_workflows_are_retired(self):
+    def test_codemagic_configuration_is_retired_without_legacy_file_dependency(self):
         self.assert_check_passes("codemagic_t0_retirement")
 
     def test_canonical_source_is_binance_usdm_closed_candles(self):
