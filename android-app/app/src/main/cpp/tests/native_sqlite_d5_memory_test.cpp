@@ -54,7 +54,11 @@ void test_populated_memory_schema(const std::string& fixture_path) {
         " generated TEXT GENERATED ALWAYS AS (value || '-g') STORED"
         ") STRICT;"
         "CREATE INDEX idx_child_value ON child(value DESC) WHERE value IS NOT NULL;"
-        "CREATE VIEW child_view AS SELECT id,parent_id FROM child;");
+        "CREATE VIEW child_view AS SELECT id,parent_id FROM child;"
+        "CREATE TABLE canonical_database_identity(singleton_key INTEGER PRIMARY KEY, role_id TEXT NOT NULL, instance_id TEXT NOT NULL, identity_format_version INTEGER NOT NULL, provenance TEXT NOT NULL, parent_instance_id TEXT, created_at_utc TEXT NOT NULL);"
+        "INSERT INTO canonical_database_identity VALUES(1, 't0-canonical-sqlite-v1', '550e8400-e29b-41d4-a716-446655440000', 1, 'INITIAL_PROVISIONING', NULL, '2026-11-04T00:00:00Z');"
+        "CREATE TABLE schema_migrations(migration_id TEXT PRIMARY KEY, sequence INTEGER NOT NULL, owner_domain TEXT NOT NULL, checksum_sha256 TEXT NOT NULL, applied_at_utc TEXT NOT NULL);"
+        "INSERT INTO schema_migrations VALUES('t0.bootstrap.v1', 1, 'T0', '0000000000000000000000000000000000000000000000000000000000000000', '2026-11-04T00:00:00Z');");
     expect(schema_ok, "create strict tables, generated column, partial descending index, view and foreign key");
     if (schema_ok) {
         std::vector<uint8_t> payload;
