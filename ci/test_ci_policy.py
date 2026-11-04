@@ -265,19 +265,28 @@ class CiPolicyTest(unittest.TestCase):
                        "market_data.test_api", "market_data.test_gateway_runtime"):
             self.assertNotIn(module, commands)
 
-    def test_manual_stateful_tasks_never_start_on_push(self):
+    def test_legacy_telegram_workflows_are_retired(self):
         for name in ("signal-scan", "telegram-command", "dashboard-backtest"):
             with self.subTest(name=name):
-                self.assertNotIn("triggering", self.workflows[name])
+                self.assertNotIn(name, self.workflows)
+        for path in ("app.py", "bot.py", "backtest.py", "backtest_rsi_percent_b_h1_adx.py",
+                     "telegram_commands.py", "dashboard/index.html", "ci/run-legacy.py",
+                     "ci/test_legacy_runner.py", "integrations/codemagic_client.py",
+                     "integrations/test_codemagic_client.py"):
+            with self.subTest(path=path):
+                self.assertFalse((ROOT / path).exists())
 
     def test_data_checks_keep_dependency_import_tests_and_cli_gates(self):
         data = self.workflows["canonical-market-data"]
         self.assertIn("push", data["triggering"]["events"])
         commands = "\n".join(item["script"] for item in data["scripts"])
         for gate in ("requirements-market-data.txt", "requirements-web.txt", "requirements-ci.txt",
-                     "-s integrations", "ci.test_legacy_runner"):
+                     "-s integrations"):
             with self.subTest(gate=gate):
                 self.assertIn(gate, commands)
+        self.assertNotIn("ci.test_legacy_runner", commands)
+        self.assertNotIn("backtest.py", commands)
+        self.assertNotIn("telegram_commands.py", commands)
         for t0_only in ("import ccxt", "import app", "market_data.sync --help", "compileall -q market_data"):
             self.assertNotIn(t0_only, commands)
         t0_workflow = yaml.safe_load((ROOT / ".github/workflows/t0-validation.yml").read_text())
