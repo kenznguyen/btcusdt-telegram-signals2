@@ -1775,3 +1775,18 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Status: D4 **APPROVED (architecture only)**; D5 **APPROVED (architecture only)**. D4/D5 implementation **NOT IMPLEMENTED / NOT VERIFIED**. D5 fixture acceptance tests **NOT IMPLEMENTED / NOT RUN**. D6–D7 **NOT DECIDED**.
 - Safety: keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
 - Next step: prepare D6 restore epoch, lease re-fencing and Kill Switch recovery proposal. D5 approval does not authorize restore design execution, canonical DB access or writer activation.
+
+
+## P5.4.75 — D6 restore/recovery fencing proposal (2026-11-04)
+
+- Proposal: `docs/evidence/P5.4.75-D6-RESTORE-EPOCH-LEASE-REFENCING-KILL-SWITCH-PROPOSAL-2026-11-04.md`.
+- Proposal commit: `150c8a3576e280a0c198352da74df0eb51f77f06`.
+- D6 status: **PROPOSED / NOT APPROVED**; owner decision required for D6.1–D6.7.
+- Proposal establishes external monotonic Restore Epoch Authority and Recovery Latch; positive prior-owner stop/fence proof; idempotent irreversible epoch allocation; isolated staging and verified publication; lease-generation re-fencing above restored and external floors; stale intent/capability/order-book/risk provenance invalidation; Kill Switch held through readiness and separate authenticated acknowledgement; latch release, Kill Switch clearing and writer admission remain separate decisions.
+- ADR-001 updated: D5.1–D5.4 marked owner-approved; D6 proposal linked as pending.
+- Scope: documentation only. No code, schema, migration, restore implementation, tests, IPC, app configuration or runtime changed.
+- Tests / GitHub Actions: **NOT RUN**; no workflow run or artifact for this proposal.
+- Canonical DB/device/Feeder/exchange/synchronization/production backup/restore/writer: **NOT TOUCHED**.
+- Status: D4 **APPROVED (architecture only)**; D5 **APPROVED (architecture only)**; D6 **PROPOSED / NOT APPROVED**; D7 **NOT DECIDED**. D4/D5 implementation NOT IMPLEMENTED / NOT VERIFIED; D5 fixtures NOT IMPLEMENTED / NOT RUN.
+- Safety: keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
+- Next step: owner review of D6.1–D6.7. No restore, epoch allocation, lease mutation, Kill Switch clearing or writer activation is authorized.
