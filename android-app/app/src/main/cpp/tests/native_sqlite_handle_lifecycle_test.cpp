@@ -227,6 +227,6 @@ int main() {
                   << failures << " failure(s)\n";
         return 1;
     }
-    std::cout << "T0.7 JNI handle-registry lifecycle tests: PASS (4 scenarios)\n";
+    std::cout << "T0.7 JNI handle-registry lifecycle tests: PASS (5 scenarios)\n";
     return 0;
 }
