@@ -578,6 +578,31 @@ Status pin_deferred_snapshot(sqlite3* db) {
 
 }  // namespace
 
+#ifdef CANONICAL_SQLITE_TEST_HOOKS
+extern "C" JNIEXPORT jlongArray JNICALL
+Java_com_kenznguyen_btclivealerts_NativeSqliteReadOnlyJni_nativeTestOpenInMemory(
+    JNIEnv* env, jobject /* thiz */) {
+    sqlite3* db = nullptr;
+    if (sqlite3_open(":memory:", &db) != SQLITE_OK || db == nullptr) {
+        if (db != nullptr) sqlite3_close_v2(db);
+        return open_result(env, OPEN_FAILED, 0);
+    }
+    constexpr const char* fixture_sql =
+        "CREATE TABLE lifecycle_probe(id INTEGER PRIMARY KEY, value TEXT NOT NULL);"
+        "INSERT INTO lifecycle_probe(value) VALUES('isolated');";
+    if (sqlite3_exec(db, fixture_sql, nullptr, nullptr, nullptr) != SQLITE_OK) {
+        sqlite3_close_v2(db);
+        return open_result(env, OPEN_FAILED, 0);
+    }
+    const jlong handle = register_snapshot_handle(db);
+    if (handle <= 0) {
+        sqlite3_close_v2(db);
+        return open_result(env, INCOMPLETE_EVIDENCE, 0);
+    }
+    return open_result(env, VERIFIED, handle);
+}
+#endif
+
 extern "C" JNIEXPORT jlongArray JNICALL
 Java_com_kenznguyen_btclivealerts_NativeSqliteReadOnlyJni_nativeOpenPinnedSnapshot(
     JNIEnv* env, jobject /* thiz */, jstring java_path) {
