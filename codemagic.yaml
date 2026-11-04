@@ -25,6 +25,7 @@ workflows:
           mkdir -p "$CM_BUILD_DIR/codemagic-android-evidence"
           SOURCE_SHA="$(git rev-parse HEAD)"
           SOURCE_BRANCH="${CM_BRANCH:-unknown}"
+          if [ -n "${CM_COMMIT:-}" ]; then test "$SOURCE_SHA" = "$CM_COMMIT"; fi
           test "$AI_EXECUTION_ENABLED" = "false"
           for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
             test -z "${!key:-}"
