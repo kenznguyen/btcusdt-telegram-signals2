@@ -1482,5 +1482,22 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Added two fixture-only tests: repeated recovery after coverage becomes complete is idempotent and does not re-call sync; a mid-batch callback failure followed by retry re-reads coverage and syncs only the remaining gap.
 - Tests use mutable in-memory fixture state and injected callbacks only. No runtime source change.
 - Updated overlapping T0 regression invocation thresholds: atomic fencing 109, runtime health API 116, SIGKILL recovery 110. Counts overlap and are not unique totals.
-- GitHub Actions exact-SHA T0 and integrated validation are pending; do not claim PASS before both complete.
+- Exact-SHA workflow run 41743708652: SUCCESS (completed), head SHA 57330081ae601493ddb3c64a98a3ead5914181b6. All five jobs succeeded: exact-source/preflight, G1, G2+T0 isolated regression, T0 full regression, and common-SHA evidence publication.
 - PC, canonical DB, production Feeder, exchange, market-data sync and order execution remain NOT RUN. Keep AI_EXECUTION_ENABLED=false.
+
+
+### P5.4.60 CI reconciliation — 2026-11-04
+
+- Exact source SHA: `57330081ae601493ddb3c64a98a3ead5914181b6`; branch head verified unchanged before documentation update.
+- Workflow: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41743708652 — **SUCCESS**, 5/5 jobs completed successfully.
+- Jobs: preflight 126291314007; G2 + T0 isolated regression 126291358415; G1 126291358503; T0 full regression 126291358771; combined evidence 126291806967.
+- T0/G2 job completed all test, operational contract, policy, compile and evidence-publication steps successfully. G1 and combined evidence publication also succeeded.
+- Artifacts (GitHub metadata digests; payload bytes not downloaded/re-hashed in this increment):
+  - Combined: 13283080513, `sha256:7d3a00224b727bc66d4c793ea9a6e08300bf8f0aef0d5c5418bcabe653926900`.
+  - G1: 13282846847, `sha256:237f162722b44de0437c5bffd3936d56571383f0d037d9cd02b1428a182f95de`.
+  - T0: 13282667248, `sha256:052463d7171fc221c351362fb2d81d7f627df56c39f6d2465b4818433da3e97c`.
+  - G2: 13281434349, `sha256:cce960daf6eb8f274e97638a9234d8ddab4d430b3fda44204cebba9f23f4dd3e`.
+- Verdict: P5.4.60 fixture-only source tests and integrated exact-SHA CI **PASS**. Artifact payload byte-level checksum verification **NOT VERIFIED**.
+- Documentation closeout commit follows this tested source; it changes only this handoff and the P5.4.60 report. The test source SHA remains `57330081ae601493ddb3c64a98a3ead5914181b6`.
+- No runtime code, PC, canonical DB, production Feeder, exchange, market-data sync or order execution. `AI_EXECUTION_ENABLED=false`.
+- Next permitted step: continue fixture-only RecoveryCoordinator lifecycle edge-case review on this same branch; do not activate runtime.
