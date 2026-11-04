@@ -2408,3 +2408,17 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Verdict: **PASS** for source-level unit tests, static audit and artifact ZIP integrity on the exact source SHA. This does not prove Android runtime/device behavior or minSdk 26 DEFERRED transaction behavior.
 - Still blocked/not implemented: minSdk 26 read-only consistent transaction adapter; canonical byte serializer/schema digest. No Android device, instrumentation, SQLite DB, filesystem, Feeder, writer, migration, backup/restore, APK, exchange or trading operation was performed or authorized. Keep `AI_EXECUTION_ENABLED=false`.
 - Next step: owner approval is required for any further bounded source increment; runtime/device/DB authorization remains separate.
+
+
+## P5.4.99 — Canonical D5 serializer + SHA-256 source-only (2026-11-04)
+
+- Owner approval: `APPROVE P5.4.99 CANONICAL SERIALIZER + SHA256 SOURCE-ONLY`.
+- Evidence: `docs/evidence/P5.4.99-CANONICAL-D5-SERIALIZER-SHA256-2026-11-04.md`.
+- Active branch: `feature/p5-4-1-post-merge-validation-20261103`; no PR or branch split.
+- Added `CanonicalD5Serializer.kt` with D5 envelope record models, deterministic binary format v1 and SHA-256 / lowercase hex API.
+- Added `CanonicalD5SerializerTest.kt`: collection order, SHA-256, schema mutation, exact SQL, null-vs-empty, duplicate identities and invalid version/id.
+- Source commits: test `a741a9b59c1b24b05e4ce25fed2398009e02912a`; implementation `3c468187b8231731530f818ab24e0cc3c9cb8ec8`; section writer fix `a819f6430d4674fa0274d383013c4ce8d6e9e5a6`; latest source SHA `9ef29733e20fa35b10e340846294749e93168405`.
+- Test-first workflow `41776983523` is still `in_progress` on test-only SHA `a741a9b59c1b24b05e4ce25fed2398009e02912a`; regular host tests running. Intermediate source runs `41777018431` and `41777032283` were cancelled by subsequent pushes. Latest source run `41777054564` is `pending` for exact source SHA `9ef29733e20fa35b10e340846294749e93168405`.
+- CI, artifact and digest verification for P5.4.99: **NOT VERIFIED**. Do not claim pass or artifact.
+- Scope remains source-only. No SQLite, SQL/PRAGMA, filesystem, Android device/runtime, instrumentation, adapter, Feeder, writer, migration, backup/restore, APK, exchange or trading action. Keep `AI_EXECUTION_ENABLED=false`.
+- Next: reconcile workflow; strengthen test fixture with multiple records per section so order-independence is actually exercised; fix any failures; then update evidence/handoff with exact final result. Runtime authorization remains separate.
