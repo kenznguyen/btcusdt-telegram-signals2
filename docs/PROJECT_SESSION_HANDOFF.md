@@ -1731,3 +1731,16 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - T0 gates unchanged: T0-A prior fixture-only PASS (not rerun); T0-B BLOCKED / NOT RUN; T0-C NOT RUN / NOT AUTHORIZED; T0-D NOT RUN / NOT VERIFIED; T0-E BLOCKED.
 - No canonical DB opened/created/modified/inspected; no Android device access; no Feeder, exchange connection or market-data sync; no backup/restore; no writer activation. Keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
 - Next step: owner review of D4.1–D4.7. If approved, record decision in ADR/evidence/handoff; only then prepare D5 proposal. No runtime implementation is authorized by this proposal.
+
+
+## P5.4.72 — D4 owner approval recorded (2026-11-04)
+
+- Decision: **APPROVE D4.1–D4.7** exactly as specified in `docs/evidence/P5.4.71-D4-SQLITE-SCHEMA-VERSION-AUTHORITY-PROPOSAL-2026-11-04.md`; no amendments requested.
+- Approved contract: one database-wide SQLite migration authority for the shared file; immutable migration IDs/sequence/domain/exact-byte SHA-256; DDL and registry row in one transaction through explicit maintenance only; registry is authoritative and `PRAGMA user_version` is optional mirror/diagnostic; legacy DB remains `LEGACY / UNVERSIONED` until separately approved baseline adoption; read-only fail-closed verifier; D3 manifest includes migration authority and applied chain from the same read snapshot.
+- Documentation records updated: P5.4.71 proposal, ADR-001, this handoff.
+- Scope: documentation/decision recording only. No code, schema, migration runner, tests, IPC or app configuration changed.
+- Tests / GitHub Actions: **NOT RUN**; no workflow run or artifact for this docs-only decision record.
+- Canonical DB: **NOT OPENED / NOT CREATED / NOT MODIFIED**. Android device not accessed. Feeder not started; no exchange connectivity or market-data sync; no backup/restore; no writer activation.
+- Status: D4 **APPROVED (architecture only)**. D4 implementation **NOT IMPLEMENTED / NOT VERIFIED**. D4 fixture acceptance tests **NOT IMPLEMENTED / NOT RUN**. D5–D7 **NOT DECIDED**.
+- Safety: keep `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next step: prepare D5 canonicalization and digest-rules proposal. D5 must define deterministic schema representation and canonicalization version before any implementation. No implementation or canonical DB operation is authorized by D4 approval.
