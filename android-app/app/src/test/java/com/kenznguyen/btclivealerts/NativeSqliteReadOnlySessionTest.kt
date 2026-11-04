@@ -3,9 +3,9 @@ import org.junit.Assert.*
 import org.junit.Test
 class NativeSqliteReadOnlySessionTest {
  private class FakeBridge(var openReply:NativeSqliteOpenReply=NativeSqliteOpenReply(NativeSqliteStatus.VERIFIED,41L),var closeStatus:NativeSqliteStatus=NativeSqliteStatus.VERIFIED):NativeSqliteReadOnlyBridge {
-  var openCalls=0;var closeCalls=0;var openedPath:String?=null;var closedHandle:Long?=null
+  var openCalls=0;var closeCalls=0;var d5Calls=0;var openedPath:String?=null;var closedHandle:Long?=null;var readHandle:Long?=null;var d5Reply=NativeSqliteD5SnapshotReply(NativeSqliteD5ReadStatus.QUERY_FAILED)
   override fun openPinnedSnapshot(path:String):NativeSqliteOpenReply{openCalls++;openedPath=path;return openReply}
-  override fun closeSnapshot(handle:Long):NativeSqliteStatus{closeCalls++;closedHandle=handle;return closeStatus}
+  override fun closeSnapshot(handle:Long):NativeSqliteStatus{closeCalls++;closedHandle=handle;return closeStatus}\n  override fun readD5Snapshot(handle:Long):NativeSqliteD5SnapshotReply{d5Calls++;readHandle=handle;return d5Reply}
  }
  @Test fun opensAbsolutePathThroughPinnedSnapshotBridge(){val b=FakeBridge();val r=NativeSqliteReadOnlySession.open("/data/t0.sqlite",b);assertTrue(r is NativeSqliteSessionOpenResult.Opened);assertEquals(1,b.openCalls);assertEquals("/data/t0.sqlite",b.openedPath)}
  @Test fun rejectsBlankRelativeAndNulPathsBeforeNativeCode(){val b=FakeBridge();listOf(" ","files/t0.sqlite","/data/t0\u0000.sqlite").forEach{p->assertEquals(NativeSqliteStatus.INVALID_PATH,(NativeSqliteReadOnlySession.open(p,b) as NativeSqliteSessionOpenResult.Rejected).status)};assertEquals(0,b.openCalls)}
