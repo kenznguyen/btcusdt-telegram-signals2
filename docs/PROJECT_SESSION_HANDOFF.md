@@ -2637,3 +2637,16 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Verdict: **T0.7 PASS — SOURCE-ONLY**.
 - Limits: host harness invokes the same internal registry functions used by JNI, but does not construct a real `JNIEnv` or call native methods through ART. No Android device/emulator/runtime, API 26/33/35, Kotlin-to-JNI runtime invocation, path-backed DB, WAL/sidecars, process-death, canonical DB, CanonicalRuntime, writer, Feeder, lease, migration, backup/restore, APK, exchange or trading action. Preserve `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next separately approved proposal: T0.8 host-side JNI ABI invocation shim with mock `JNIEnv`, still no ART/device/path-backed DB. Android runtime or actual WAL-backed DB tests require separate approval.
+
+## T0.8 — Host-side JNI ABI Invocation Shim (2026-11-04)
+
+- Owner approval: `APPROVE T0.8 HOST-SIDE JNI ABI INVOCATION SHIM SOURCE-ONLY`.
+- Active branch: `feature/p5-4-1-post-merge-validation-20261103`; direct commit, no PR/branch split.
+- Initial implementation/test commit: `5a5e8cca437a70fc6d8d1db0649b8b024352172b`.
+- Added a separate host CMake/CTest target, `native_sqlite_jni_abi_test`, which includes the production JNI translation unit and invokes the exported JNI entrypoints through a mock `JNIEnv` function table.
+- Four scenarios added: null path -> two-long open status frame; invalid-handle read -> four-byte big-endian status prefix; Java array allocation failure propagates null without attempting array writes; test-only in-memory JNI open/read/close ABI round trip including D5WT magic and repeated-close status.
+- This is an ABI/host shim using the existing test-only `:memory:` opener. No ART, Android device, path-backed DB, canonical DB, or production JNI behavior change is included.
+- Android T0 Foundation workflow #41806514189 was triggered on exact source SHA `5a5e8cca437a70fc6d8d1db0649b8b024352172b`; at this handoff update it is **IN PROGRESS**. CTest, NDK compile/link, regular/.paper JVM tests, static audit and artifact publication are **NOT VERIFIED / PENDING**.
+- Current verdict: **T0.8 IN PROGRESS — NOT VERIFIED**. Do not claim PASS until workflow completes successfully and the T0.8 CTest result is confirmed.
+- Limits remain: mock `JNIEnv` is not ART; no JNI_OnLoad registration/ART invocation, real Android runtime/device/API 26/33/35, path-backed DB, WAL/sidecars, process death, CanonicalRuntime, canonical DB, Feeder, lease, migration, backup/restore, APK, exchange or trading. Keep `AI_EXECUTION_ENABLED=false`.
+- Next: inspect workflow #41806514189 and its CTest logs; fix any failure on this same branch, then record exact final source SHA, run, artifact IDs/checksums, test outcomes and verdict.
