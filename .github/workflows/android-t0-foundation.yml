@@ -61,6 +61,9 @@ jobs:
         working-directory: android-app
         run: gradle :app:testParallelUnitTest --no-daemon --stacktrace
 
+      - name: Run pinned SQLite preparation unit tests
+        run: python3 -m unittest ci.tests.test_prepare_pinned_sqlite -v
+
       - name: Run Android T0 foundation static audit
         run: python3 ci/check_android_t0_foundation.py
 
