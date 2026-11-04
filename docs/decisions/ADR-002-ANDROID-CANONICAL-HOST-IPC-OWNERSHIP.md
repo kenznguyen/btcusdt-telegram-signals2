@@ -61,17 +61,29 @@ Rejected because the selected architecture needs a defined local access path to 
 
 Rejected. They are separate physical files and would create competing state, ambiguous ownership and unsafe reconciliation.
 
-## Open implementation decisions
+## Decision status and remaining implementation decisions
 
-This ADR does not select:
-- the exact canonical host package/application ID or which current variant will become the host;
-- whether IPC is implemented as a bound service, ContentProvider or another Android-supported mechanism;
-- exact signature permission declaration, exported component configuration and caller allowlist representation;
-- Kotlin interface names, serialization format, API version negotiation or timeout/retry policy;
-- database path, filename, SQLite driver, schema/migration implementation or process model;
-- backup/restore, recovery epoch, retention or production activation procedure.
+The earlier open-decision list below is superseded where it conflicts with the **Owner decision addendum — P5.4.41**. The addendum is authoritative for the owner-approved architecture choices; this section preserves the genuinely unresolved implementation details.
 
-These must be resolved in implementation design and security review without weakening the accepted one-host/one-writer boundary.
+### Resolved by owner decision (architecture direction)
+
+- **Canonical host variant:** the existing `regular` variant is the sole canonical host; the separately installed `.paper` variant is the IPC client.
+- **IPC primitive:** explicit Android Bound Service using a narrow typed Binder/AIDL contract.
+- **Permission and caller authentication:** custom signature-level bind permission; the host verifies caller UID, UID-to-package identity, approved package and installed signer/lineage on every call.
+- **Signing relationship:** host and `.paper` client are intended to use the same controlled installed signing identity. Same-signer permission does not replace exact package allowlisting or per-operation authorization.
+- **Ownership boundary:** the regular host alone owns canonical SQLite, migrations, transaction coordination, lease/fencing, recovery/readiness, Market Data, Paper Ledger, audit, Shared Risk Engine and Kill Switch. The client receives no raw DB path/handle/FD/SQL, lease token or writer credential and has no shadow/fallback writer.
+- **Signal/risk boundary:** Strategy Core and independent AI remain separate signal sources; both must pass through the same host-side Shared Risk Engine and Kill Switch. Paper-only; `AI_EXECUTION_ENABLED=false`.
+
+### Still open or not verified
+
+- Exact regular and `.paper` application IDs as an approved security allowlist; exact permission/component names and final manifest attributes.
+- Installed certificate digest, signer lineage, key custody, rotation/revocation/recovery policy, and proof of the signer on currently installed APKs. Historical paired-build evidence is not installed-device evidence.
+- Binder/AIDL method and DTO names, serialization, API/capability negotiation, bounds, timeout/cancellation/retry semantics and compatibility/rollback matrix.
+- Canonical Android path and filename, SQLite driver/version, process model, schema/migration implementation and transaction boundaries. These are governed separately by ADR-001 D1–D7; no D2–D7 decision is approved by this ADR.
+- Backup/restore destination, recovery epoch authority, retention, operational approval and production activation.
+- Runtime implementation, device behavior and all operational activation gates.
+
+Do not treat an owner-approved architecture direction as proof that source, build artifacts, installed packages or runtime already conform. Implementation and activation remain separately gated.
 
 ## Security and lifecycle invariants
 
