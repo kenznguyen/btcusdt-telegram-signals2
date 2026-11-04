@@ -186,8 +186,8 @@ Before implementation, obtain explicit approval for:
 - [ ] canonical store topology and stable store identities;
 - [x] D2 domain-specific high-water/cursor semantics (owner-approved 2026-11-04);
 - [x] D3 global barrier and shared-file consistency model (owner-approved 2026-11-04);
-- [ ] D4 database-wide SQLite schema-version authority and migration ownership (P5.4.71 proposal; owner decision pending);
-- [ ] canonicalization version and digest rules;
+- [x] D4 database-wide SQLite schema-version authority and migration ownership (D4.1–D4.7 owner-approved 2026-11-04; implementation details remain open);
+- [ ] canonicalization version and digest rules (P5.4.73 proposal; owner decision pending);
 - [ ] external restore epoch, lease re-fencing and Kill Switch gate;
 - [ ] destination, encryption, retention, RPO/RTO and restore approver.
 
@@ -222,3 +222,8 @@ The owner explicitly approved all five D2 decisions in the project conversation 
 The owner explicitly approved D4.1–D4.7 as specified in `docs/evidence/P5.4.71-D4-SQLITE-SCHEMA-VERSION-AUTHORITY-PROPOSAL-2026-11-04.md`, without amendments. The approved contract establishes one database-wide SQLite `schema_migrations` authority; immutable migration IDs, ordered sequence, owner domain and exact-byte SHA-256; atomic DDL and registry advancement; registry authority with `PRAGMA user_version` optional mirror/diagnostic only; explicit read-only legacy inventory and separately approved baseline adoption; read-only fail-closed verification; and D3 same-snapshot migration-chain evidence.
 
 **Decision boundary:** D4 architecture is ACCEPTED. Exact DDL, packaging, SQLite runtime/transaction/lock contract, schema canonicalization, reader compatibility, timeout and interruption recovery remain implementation/design work. This approval does not authorize code or schema implementation, migration execution, canonical DB access, Android device access, Feeder startup, exchange connectivity, data synchronization, backup/restore, writer activation or live execution. Fixture tests remain NOT IMPLEMENTED / NOT RUN. D5–D7 remain unresolved. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+
+
+## D5 proposal reference (2026-11-04)
+
+P5.4.73 proposes the canonicalization and digest layers for owner review: physical snapshot digest, D4 migration-chain digest, logical schema digest, and a separately optional logical row/data digest. It proposes SHA-256, a versioned deterministic envelope, conservative SQLite schema SQL byte identity plus structured introspection, runtime identity recording, no initial cross-backend equivalence claim, and fail-closed handling. This is **PROPOSED / NOT APPROVED**; it does not alter the accepted D4 contract or authorize implementation.
