@@ -1,0 +1,116 @@
+package com.kenznguyen.btclivealerts
+
+import java.security.MessageDigest
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class CanonicalD5SerializerTest {
+    private fun envelope(
+        catalogName: String = "positions",
+        sql: String? = "CREATE TABLE positions(id INTEGER PRIMARY KEY)",
+        catalog: List<D5CatalogRecord> = listOf(
+            D5CatalogRecord("main", "table", catalogName, catalogName, sql),
+        ),
+    ) = D5SchemaEnvelope(
+        runtime = D5RuntimeIdentity("sqlite-d5-envelope", 1, "3.45.1", "source-abc", "table_list_v1"),
+        catalog = catalog,
+        tableColumns = listOf(
+            D5TableColumnRecord("main", "positions", 0, "id", "INTEGER", 0, null, 1, 0),
+        ),
+        indexes = listOf(
+            D5IndexRecord("main", "positions", 0, "idx_positions_created", true, "c", false),
+        ),
+        indexColumns = listOf(
+            D5IndexColumnRecord("main", "positions", "idx_positions_created", 0, 1, "created_at", false, "BINARY", true),
+        ),
+        foreignKeys = listOf(
+            D5ForeignKeyRecord("main", "positions", 0, 0, "accounts", "account_id", "id", "NO ACTION", "CASCADE", "NONE"),
+        ),
+    )
+
+    @Test
+    fun canonicalBytesAreIndependentOfInputCollectionOrder() {
+        val first = envelope()
+        val reordered = first.copy(
+            catalog = first.catalog.reversed(),
+            tableColumns = first.tableColumns.reversed(),
+            indexes = first.indexes.reversed(),
+            indexColumns = first.indexColumns.reversed(),
+            foreignKeys = first.foreignKeys.reversed(),
+        )
+        assertArrayEquals(
+            CanonicalD5Serializer.serialize(first),
+            CanonicalD5Serializer.serialize(reordered),
+        )
+    }
+
+    @Test
+    fun sha256IsLowercaseHexOfCanonicalBytes() {
+        val bytes = CanonicalD5Serializer.serialize(envelope())
+        val expected = MessageDigest.getInstance("SHA-256").digest(bytes)
+            .joinToString("") { "%02x".format(it) }
+        assertEquals(expected, CanonicalD5Serializer.sha256Hex(envelope()))
+        assertTrue(CanonicalD5Serializer.sha256Hex(envelope()).matches(Regex("^[0-9a-f]{64}$")))
+    }
+
+    @Test
+    fun logicalSchemaChangesChangeDigest() {
+        assertNotEquals(
+            CanonicalD5Serializer.sha256Hex(envelope()),
+            CanonicalD5Serializer.sha256Hex(envelope(catalogName = "orders")),
+        )
+    }
+
+    @Test
+    fun exactCatalogSqlIsNotTrimmedOrNormalized() {
+        assertNotEquals(
+            CanonicalD5Serializer.sha256Hex(envelope(sql = "CREATE TABLE positions(id INTEGER PRIMARY KEY)")),
+            CanonicalD5Serializer.sha256Hex(envelope(sql = "CREATE TABLE positions (id INTEGER PRIMARY KEY)")),
+        )
+    }
+
+    @Test
+    fun nullAndEmptyTextHaveDifferentCanonicalEncodings() {
+        assertNotEquals(
+            CanonicalD5Serializer.sha256Hex(envelope(sql = null)),
+            CanonicalD5Serializer.sha256Hex(envelope(sql = "")),
+        )
+    }
+
+    @Test
+    fun duplicateCatalogIdentityIsRejected() {
+        val row = D5CatalogRecord("main", "table", "positions", "positions", "CREATE TABLE positions(id)")
+        val invalid = envelope(catalog = listOf(row, row))
+        assertEquals(
+            "duplicate catalog identity",
+            runCatching { CanonicalD5Serializer.serialize(invalid) }.exceptionOrNull()?.message,
+        )
+    }
+
+    @Test
+    fun duplicateTableColumnOrdinalIsRejected() {
+        val valid = envelope()
+        val invalid = valid.copy(tableColumns = valid.tableColumns + valid.tableColumns)
+        assertEquals(
+            "duplicate table column identity",
+            runCatching { CanonicalD5Serializer.serialize(invalid) }.exceptionOrNull()?.message,
+        )
+    }
+
+    @Test
+    fun invalidRuntimeIdentityIsRejected() {
+        assertTrue(runCatching {
+            CanonicalD5Serializer.serialize(envelope().copy(
+                runtime = D5RuntimeIdentity("", 1, "3.45.1", "source-abc", "table_list_v1"),
+            ))
+        }.isFailure)
+        assertTrue(runCatching {
+            CanonicalD5Serializer.serialize(envelope().copy(
+                runtime = D5RuntimeIdentity("sqlite-d5-envelope", 2, "3.45.1", "source-abc", "table_list_v1"),
+            ))
+        }.isFailure)
+    }
+}
