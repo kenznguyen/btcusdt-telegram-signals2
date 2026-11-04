@@ -1,4 +1,4 @@
-name: T0.9 Android ART JNI Runtime Verification
+name: T0.9.1 Android ART JNI Emulator Reliability Isolation
 
 'on':
   push:
@@ -17,7 +17,7 @@ jobs:
   art-jni-runtime:
     name: ART JNI runtime API ${{ matrix.api-level }}
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     concurrency:
       group: t0-9-art-jni-runtime-${{ github.ref }}-${{ matrix.api-level }}
       cancel-in-progress: true
@@ -65,28 +65,77 @@ jobs:
       - name: Verify and materialize pinned SQLite sources
         run: python3 ci/prepare_pinned_sqlite.py --archive /tmp/sqlite-amalgamation-3540100.zip
 
-      - name: Run instrumentation on Android ART
+      - name: Assemble debug APKs before emulator startup
+        working-directory: android-app
+        run: gradle :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon --stacktrace
+
+      - name: Boot, preflight, install APKs, then invoke ART instrumentation
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
-          # Keep API 33 on the known-good Google APIs image as a control.
-          # API 26/35 use the lean AOSP image: prior logs show PackageManager
-          # install stalls (26) and system/Google-process startup ANRs (35).
+          # API 33 remains the Google APIs control; API 26/35 use lean AOSP.
           target: ${{ matrix.api-level == 33 && 'google_apis' || 'default' }}
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: cd android-app && trap 'adb logcat -b all -d -v threadtime > ../t0-9-art-jni-api-${{ matrix.api-level }}-logcat.txt 2>&1 || true; adb shell getprop > ../t0-9-art-jni-api-${{ matrix.api-level }}-getprop.txt 2>&1 || true' EXIT; gradle :app:connectedDebugAndroidTest --no-daemon --stacktrace
+          script: |
+            set -Eeuo pipefail
+            cd android-app
+            prefix="../t0-9-art-jni-api-${{ matrix.api-level }}"
+            mkdir -p "$prefix"
+            capture_diagnostics() {
+              adb logcat -b all -d -v threadtime > "$prefix-logcat.txt" 2>&1 || true
+              adb shell getprop > "$prefix-getprop.txt" 2>&1 || true
+              adb shell cat /proc/meminfo > "$prefix-meminfo.txt" 2>&1 || true
+              adb shell df -h /data > "$prefix-data-disk.txt" 2>&1 || true
+              adb get-state > "$prefix-adb-state.txt" 2>&1 || true
+              date -u +'%Y-%m-%dT%H:%M:%SZ' > "$prefix-diagnostics-captured-at.txt"
+            }
+            trap capture_diagnostics EXIT
 
-      - name: Upload ART instrumentation reports and crash diagnostics
+            echo "stage=emulator_preflight_started"
+            date -u +'%Y-%m-%dT%H:%M:%SZ' | tee "$prefix-boot-started.txt"
+            booted=false
+            for attempt in $(seq 1 60); do
+              boot_completed="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
+              adb_state="$(adb get-state 2>/dev/null || true)"
+              if [ "$boot_completed" = "1" ] && [ "$adb_state" = "device" ]; then
+                booted=true
+                break
+              fi
+              sleep 5
+            done
+            {
+              echo "boot_completed=$boot_completed"
+              echo "adb_state=$adb_state"
+              echo "preflight_attempts=$attempt"
+            } | tee "$prefix-preflight.txt"
+            if [ "$booted" != "true" ]; then
+              echo "stage=emulator_preflight_failed" | tee -a "$prefix-preflight.txt"
+              exit 20
+            fi
+            adb shell cat /proc/meminfo > "$prefix-preinstall-meminfo.txt"
+            adb shell df -h /data > "$prefix-preinstall-data-disk.txt"
+            adb logcat -b all -d -v threadtime > "$prefix-preinstall-logcat.txt" 2>&1 || true
+            echo "stage=apk_install_started"
+            date -u +'%Y-%m-%dT%H:%M:%SZ' | tee "$prefix-install-started.txt"
+            gradle :app:installDebug :app:installDebugAndroidTest --no-daemon --stacktrace 2>&1 | tee "$prefix-install.log"
+            date -u +'%Y-%m-%dT%H:%M:%SZ' | tee "$prefix-install-finished.txt"
+            echo "stage=apk_install_completed"
+            echo "stage=art_instrumentation_started"
+            date -u +'%Y-%m-%dT%H:%M:%SZ' | tee "$prefix-instrumentation-started.txt"
+            gradle :app:connectedDebugAndroidTest --no-daemon --stacktrace 2>&1 | tee "$prefix-instrumentation.log"
+            date -u +'%Y-%m-%dT%H:%M:%SZ' | tee "$prefix-instrumentation-finished.txt"
+            echo "stage=art_instrumentation_completed"
+
+      - name: Upload boot, install, ART reports and emulator diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: t0-9-art-jni-api-${{ matrix.api-level }}-${{ github.sha }}
+          name: t0-9-1-art-jni-api-${{ matrix.api-level }}-${{ github.sha }}
           path: |
             android-app/app/build/outputs/androidTest-results/**
             android-app/app/build/reports/androidTests/**
-            t0-9-art-jni-api-${{ matrix.api-level }}-logcat.txt
-            t0-9-art-jni-api-${{ matrix.api-level }}-getprop.txt
+            t0-9-art-jni-api-${{ matrix.api-level }}-*
           if-no-files-found: warn
           retention-days: 14
