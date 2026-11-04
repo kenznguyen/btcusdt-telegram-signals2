@@ -1919,3 +1919,18 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - No backup/restore, Feeder, exchange, Kill Switch/Recovery Latch mutation or writer activation.
 - Safety: Android-first, no PC, paper-only, AI_EXECUTION_ENABLED=false.
 - Next step: owner review/decision on P5.4.82 and its ten open design decisions. Implementation, fixtures and provider integration remain unauthorized.
+
+
+## P5.4.82A — Key custody open-decision matrix (2026-11-04)
+
+- Added: `docs/evidence/P5.4.82A-KEY-CUSTODY-OPEN-DECISION-MATRIX-2026-11-04.md`.
+- Status: **DECISION SUPPORT ONLY / NOT AN APPROVAL**. “tiếp tục” was not treated as approval or selection of any policy.
+- Frames ten owner decisions: recovery model; approval quorum/roles; jurisdiction/account ownership; audit sink/tamper evidence; KEK rotation; signing-key revocation; workload identity; RPO/RTO; Android/JVM crypto qualification; wrapped-DEK metadata/canonical encoding.
+- Provides options, trade-offs, non-binding discussion defaults and evidence required before provider comparison. No option/provider/jurisdiction/role/quorum selected.
+- P5.4.82 remains **PROPOSED / NOT APPROVED**; P5.4.81 remains owner-approved and unchanged.
+- Fixture plan: **96 specified / NOT IMPLEMENTED / NOT RUN**. P5.4.82A adds no approved or counted tests.
+- GitHub Actions: **NOT RUN**; no workflow run/artifact. Documentation-only changes.
+- No code/schema/runtime, key material, provider account, storage, canonical DB, Android device or PC accessed/changed.
+- No backup/restore, Feeder, exchange, Kill Switch/Recovery Latch mutation or writer activation.
+- Safety: Android-first, no PC, paper-only, AI_EXECUTION_ENABLED=false.
+- Next step: owner decision on P5.4.82 and explicit selections for D82-A through D82-J. No implementation, fixture execution, provider selection or provisioning is authorized.
