@@ -1689,3 +1689,25 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - T0-A **PASS** from prior fixture-only closeout (not rerun); T0-B **BLOCKED / NOT RUN**; T0-C **NOT RUN / NOT AUTHORIZED**; T0-D **NOT RUN / NOT VERIFIED**; T0-E **BLOCKED**.
 - No code, schema, migration, IPC, Android device access, canonical DB open/create/write, Feeder startup, exchange connection, market-data sync, backup/restore execution, writer activation or orders. Keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
 - Next step: obtain owner decisions on the six D3 questions. If accepted, record D3 and proceed to D4 proposal. No implementation or production operation until separately authorized.
+
+
+## P5.4.70 — D3 Owner Decision Recorded (2026-11-04)
+
+- Owner decision: **APPROVE D3.1–D3.6 and all supplemental conditions A–E**, with note "Không có". This is an explicit owner approval; no additional conditions were inferred.
+- D3.1: one Android Canonical Host-owned write barrier covers every included canonical mutation domain; close new-write admission and drain in-flight transactions; timeout/unknown outcome aborts barrier establishment.
+- D3.2: one SQLite read snapshot plus SQLite Online Backup API (or documented supported equivalent); raw main-file-only copy and independent DB/WAL/SHM copy are not accepted.
+- D3.3: full D2 vector and manifest metadata are read from the same SQLite read transaction; timestamps are diagnostic only.
+- D3.4: staging → integrity/domain verification → atomic publication; no accepted manifest for partial/unverified output.
+- D3.5: stale fencing, uncertain transaction outcome, process death while held, backup/verification/publication failure and uncertain barrier release fail closed; writers remain blocked until safe ownership and recovery reconciliation.
+- D3.6: consistency boundary is the shared SQLite file only. External lease authority, restore epoch, Kill Switch/recovery latch, app configuration and exchange state are not claimed as included.
+- Supplemental A: minimize and measure write-pause/admission/capture duration; never automatically reopen writers after timeout or uncertain state.
+- Supplemental B: immutable backup identity includes unique Backup ID, Barrier ID, source DB identity, D2 vector, physical SHA-256, verification result and completion status; filename/timestamp alone is not identity.
+- Supplemental C: preserve the last known-good backup until the replacement is fully verified and published.
+- Supplemental D: SQLite integrity check is necessary but insufficient; additionally verify foreign-key/domain invariants, Ledger sequence/audit consistency, Risk State↔Ledger sequence, Market Data cursor↔gap/backfill and isolated-copy openability. No repair/constructor paths during verification.
+- Supplemental E: D3 approves snapshot validity only, not successful restore. Restore proof remains D6/D7 and separately authorized.
+- D3 is **ACCEPTED as an architecture contract only**. Implementation details remain open; D4–D7 remain NOT DECIDED.
+- Proposal decision-record commit: `e1e04e1db78a8057ce05f25a88fae960d897b5f1`; proposal blob: `bff7db5f6027bf4ba11ebe4cf26611e78cd18221`.
+- ADR-001 decision update commit: `f6ac7261ae10141348716e061808d70db95f6195`; ADR blob: `17bc208e6c129c226b952a5a5715da3b6491d613`.
+- This handoff update records owner decision and evidence pointers. GitHub Actions: **NOT RUN**; tests: **NOT RUN**; fixture plan remains specified/not implemented; no workflow run or artifact exists for this increment.
+- No code, schema, migration, IPC, device access, canonical DB open/create/write, Feeder startup, exchange connection, market-data sync, backup/restore execution, writer activation or orders. Keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
+- Next step: prepare D4 Schema Version Authority proposal as documentation-only work. No implementation or production operation until separately approved.
