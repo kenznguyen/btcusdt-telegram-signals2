@@ -11,19 +11,13 @@ android {
     compileSdk = 35
     ndkVersion = "27.2.12479018"
 
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
-        }
-    }
-
     defaultConfig {
         applicationId = "com.kenznguyen.btclivealerts"
         minSdk = 26
         targetSdk = 35
         versionCode = 2
         versionName = "0.2.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("boolean", "PARALLEL_INSTALL", "false")
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
@@ -35,6 +29,13 @@ android {
                     "-DSQLITE_PIN_FILE=${project.layout.buildDirectory.file("generated/sqlite/sqlite3-pins.cmake").get().asFile.absolutePath}"
                 )
             }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
         }
     }
 
@@ -87,12 +88,11 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test:rules:1.6.1")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
 }
 
-
-
-
-// CI may supply a D5 wire fixture emitted by the isolated native :memory: harness.
 tasks.withType<Test>().configureEach {
     val fixture = providers.gradleProperty("d5NativeFixture").orNull
     systemProperty("d5.native.fixture.path", fixture.orEmpty())
