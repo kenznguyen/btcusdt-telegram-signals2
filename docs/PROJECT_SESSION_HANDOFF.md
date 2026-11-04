@@ -2682,3 +2682,17 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Evidence report: `docs/evidence/T0.9-ANDROID-ART-JNI-RUNTIME-INVOCATION-VERIFICATION-2026-11-04.md`.
 - Limits: hosted x86_64 emulators only; no physical device, path-backed DB, WAL/SHM, canonical DB, Feeder, lease, migration, backup/restore, APK release/sign/install, exchange or trading. Preserve `AI_EXECUTION_ENABLED=false`.
 - Next: inspect T0.9 workflow run, all three matrix jobs, and instrumentation reports; fix failures on this branch and record exact tested source SHA, run/job/artifact IDs and checksums. No broader runtime or DB scope without separate approval.
+
+
+### T0.9 CI triage update — 2026-11-04
+
+- T0.9 initial run #41823459543, source SHA `e6be3b747f9a7c436616334e8d616bff979cda34`: API 26 job #126552115016 failed before Gradle/instrumentation because the emulator runner executes each script line in a separate shell. The separate `cd android-app` did not persist into the Gradle command; Gradle ran at repository root. API 33 #126552115265 and API 35 #126552114602 were still in progress at last inspection.
+- Fix commit `ca904b4f5cbbffbb3c5c3b3a60f8fdfd65df4239`: use one shell command, `cd android-app && gradle :app:connectedDebugAndroidTest --no-daemon --stacktrace`.
+- Follow-up workflow cleanup commit `3359bb8f584e993e2326d8e0a8ea6270b4a8964f`: remove APK output directory from artifact upload; only instrumentation reports are uploaded.
+- Automatic P5.4.1 run #41823459667 on SHA `e6be3b747f9a7c436616334e8d616bff979cda34` exposed two CI policy failures: T0.9 workflow missing from the explicit workflow allowlist, and forbidden APK output path in workflow artifact configuration. The allowlist was corrected in commit `bae7eb0749008e7fb0081106363391653b0febdf`.
+- Current branch source SHA at this update: `bae7eb0749008e7fb0081106363391653b0febdf`; evidence report update commit: `4fd41b4bce0eac97895d19494cd9fdd59e4e6d5a`.
+- Latest T0.9 run #41825231563: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41825231563 — **PENDING** at last inspection. Jobs: API 26 #126558155316, API 33 #126558155805, API 35 #126558156045, all pending at that inspection.
+- Follow-up P5.4.1 run #41825231705: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41825231705 — **PENDING** at last inspection.
+- T0.9 verdict remains **NOT VERIFIED**. Do not infer ART/JNI success from emulator boot or Gradle command correction. Inspect all three final matrix jobs, instrumentation XML, and artifact metadata/payload before promoting status.
+- No canonical/path-backed DB, WAL/SHM, Feeder, lease, exchange, live order, APK release/sign/install or trading action. Keep `AI_EXECUTION_ENABLED=false`.
+- Next: inspect run #41825231563 and P5.4.1 run #41825231705; fix only failures within T0.9 scope on this same branch, then record exact final tested SHA, run/job/artifact IDs, test results and checksums.
