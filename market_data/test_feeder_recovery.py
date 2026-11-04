@@ -236,9 +236,6 @@ class RecoveryCoordinatorContractTest(unittest.TestCase):
         ])
 
     def test_retry_rechecks_partial_progress_inside_failed_window(self):
-        initial_gaps = [
-            {"startMs": BASE, "endMs": BASE + 2 * STEP},
-        ]
         remaining = [
             {"startMs": BASE, "endMs": BASE + 2 * STEP},
         ]
