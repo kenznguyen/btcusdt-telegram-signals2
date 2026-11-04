@@ -70,9 +70,14 @@ workflows:
       - name: Build and run isolated native SQLite D5 memory tests
         script: |
           set -euo pipefail
-          cmake -S android-app/app/src/main/cpp/tests -B "$CM_BUILD_DIR/.ci-build/t0.6-native-d5-tests" -DSQLITE_AMALGAMATION_DIR="$CM_BUILD_DIR/android-app/app/build/generated/sqlite/vendor"
-          cmake --build "$CM_BUILD_DIR/.ci-build/t0.6-native-d5-tests" --parallel 2
-          ctest --test-dir "$CM_BUILD_DIR/.ci-build/t0.6-native-d5-tests" --output-on-failure 2>&1 | tee "$CM_BUILD_DIR/codemagic-android-evidence/native-ctest.log"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          CMAKE="$SDK_ROOT/cmake/3.22.1/bin/cmake"
+          CTEST="$SDK_ROOT/cmake/3.22.1/bin/ctest"
+          test -x "$CMAKE"
+          test -x "$CTEST"
+          "$CMAKE" -S android-app/app/src/main/cpp/tests -B "$CM_BUILD_DIR/.ci-build/t0.6-native-d5-tests" -DSQLITE_AMALGAMATION_DIR="$CM_BUILD_DIR/android-app/app/build/generated/sqlite/vendor"
+          "$CMAKE" --build "$CM_BUILD_DIR/.ci-build/t0.6-native-d5-tests" --parallel 2
+          "$CTEST" --test-dir "$CM_BUILD_DIR/.ci-build/t0.6-native-d5-tests" --output-on-failure 2>&1 | tee "$CM_BUILD_DIR/codemagic-android-evidence/native-ctest.log"
           mkdir -p android-app/app/build/t0.6
           cp "$CM_BUILD_DIR/.ci-build/t0.6-native-d5-tests/d5-native-memory-fixture.bin" android-app/app/build/t0.6/
       - name: Compile and link native SQLite JNI library
