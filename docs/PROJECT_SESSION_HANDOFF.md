@@ -2855,3 +2855,17 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Tested workflow SHA remains `76123ceeaf4552c966e60a35b3014e8e1ce0e80b`; documentation commits are not test-source changes. Existing branch HEAD before this handoff update was `2241d0250158dd5038ceea156ff49fda925312f3`.
 - Next: pause T0.9 pending a new, explicitly approved infrastructure strategy. Do not start T0.10 without separate scope approval.
 - Boundaries unchanged: SQLite `:memory:` only, debug-only test hook, `AI_EXECUTION_ENABLED=false`; no canonical/path-backed DB, Feeder, lease, exchange, live orders, APK release/sign/install or physical-device testing.
+
+
+## T0.9.1 — Emulator Reliability Isolation (2026-11-04)
+
+- Explicit user approval received for workflow-only T0.9.1.
+- Scope: retain API 26/33/35; keep the existing JNI test, SQLite `:memory:`, debug-only hook, and all implementation sources unchanged. No T0.10 or production/runtime activation.
+- Workflow commit/source SHA: `5ba8894e6aa4a97434bdcb33734cb05e7bd82265`.
+- Workflow path: `.github/workflows/t0-9-art-jni-runtime.yml`; blob SHA: `ad36639d64555b786025313f7339a0d657f6ff24`.
+- Changes: assemble debug APKs before emulator startup; add explicit emulator boot/ADB preflight (up to 5 minutes); record boot completion, ADB state, memory, /data disk, pre-install logcat; split APK installation and ART instrumentation into separately timed/logged Gradle stages; collect post-run logcat/getprop/memory/disk/ADB diagnostics; upload stage logs and instrumentation reports.
+- Existing image matrix retained: API 33 `google_apis` control; API 26/35 AOSP `default`.
+- GitHub Actions run #41862203838: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41862203838. Triggered by push on branch `feature/p5-4-1-post-merge-validation-20261103`, exact workflow source SHA `5ba8894e6aa4a97434bdcb33734cb05e7bd82265`. Initial observed status: **QUEUED**; jobs/artifacts/results not yet available.
+- Implementation scope is committed; runtime verification remains **NOT VERIFIED / IN PROGRESS** until all matrix jobs, stage logs, XML and artifacts are inspected. Do not infer a pass from workflow dispatch or job startup.
+- Next: inspect run #41862203838 jobs and logs; classify each API by preflight, APK install, and instrumentation stage; independently download/hash artifacts; then publish a T0.9.1 evidence report and update this handoff.
+- Boundaries: `AI_EXECUTION_ENABLED=false`; SQLite `:memory:` only; no canonical/path-backed DB, Feeder, lease, exchange, market-data sync, live orders, APK release/sign/install outside ephemeral CI, or physical-device testing. T0.10 remains out of scope.
