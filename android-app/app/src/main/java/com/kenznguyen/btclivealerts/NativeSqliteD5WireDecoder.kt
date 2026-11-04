@@ -161,6 +161,20 @@ internal object NativeSqliteD5WireDecoder {
             catalogIdentities,
         )
         require(schemaValidation.status == D5SchemaStatus.ACCEPTED) { "SQLite table list and catalog disagree" }
+        require(tableList.all { table ->
+            tableColumns.count { it.schema == table.schema && it.tableName == table.name } == table.columnCount
+        }) { "table_xinfo row count does not match table_list" }
+
+        val catalogIndexKeys = catalog.filter { it.type == "index" }
+            .map { Triple(it.schema, it.tableName, it.name) }.toSet()
+        val indexListKeys = indexes.map { Triple(it.schema, it.tableName, it.name) }.toSet()
+        require(catalogIndexKeys == indexListKeys) { "index_list and catalog disagree" }
+        require(indexColumns.map { Triple(it.schema, it.tableName, it.indexName) }.toSet() == indexListKeys) {
+            "index_xinfo coverage is incomplete"
+        }
+        require(foreignKeys.all { fk ->
+            tableList.any { it.schema == fk.schema && it.name == fk.tableName && it.type == "table" }
+        }) { "foreign_key_list references an unknown table" }
 
         // Reuse the reviewed pure contract to reject unknown types, virtual tables
         // and catalog rows without exact SQL metadata. Native queries remain fixed
