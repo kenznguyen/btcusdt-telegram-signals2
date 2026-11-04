@@ -292,9 +292,8 @@ D5Status read_d5_snapshot(sqlite3* db, std::vector<uint8_t>& payload) {
     const char* runtime_sql = "SELECT sqlite_version(), sqlite_source_id()";
     if (!run_fixed(db, runtime_sql, {"sqlite_version()", "sqlite_source_id()"}, nullptr,
         [&](sqlite3_stmt* stmt) {
-            if (rows != 0 || !column_text(stmt, 0, sqlite_version) ||
+            if (!column_text(stmt, 0, sqlite_version) ||
                 !column_text(stmt, 1, source_id)) return false;
-            ++rows;
             return true;
         }, failure, rows) || rows != 1) {
         return failure == D5_VERIFIED ? D5_INCOMPLETE_EVIDENCE : failure;
