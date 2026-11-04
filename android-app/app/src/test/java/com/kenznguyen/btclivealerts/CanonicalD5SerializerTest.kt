@@ -31,6 +31,37 @@ class CanonicalD5SerializerTest {
         ),
     )
 
+    private fun emptyEnvelope() = D5SchemaEnvelope(
+        runtime = D5RuntimeIdentity("sqlite-d5-envelope", 1, "3.45.1", "source-abc", "table_list_v1"),
+        catalog = emptyList(),
+        tableColumns = emptyList(),
+        indexes = emptyList(),
+        indexColumns = emptyList(),
+        foreignKeys = emptyList(),
+    )
+
+    @Test
+    fun emptyEnvelopeMatchesFrozenCanonicalV1GoldenVector() {
+        val expectedBytesHex = (
+            "44355343000000010000001273716c6974652d64352d656e76656c6f7065" +
+            "0000000100000006332e34352e310000000a736f757263652d616263" +
+            "0000000d7461626c655f6c6973745f763100000007636174616c6f67" +
+            "000000000000000b7461626c655f78696e666f000000000000000a" +
+            "696e6465785f6c697374000000000000000b696e6465785f78696e666f" +
+            "0000000000000010666f726569676e5f6b65795f6c69737400000000"
+        )
+        val envelope = emptyEnvelope()
+        val bytes = CanonicalD5Serializer.serialize(envelope)
+        val actualBytesHex = bytes.joinToString("") { "%02x".format(it) }
+
+        assertEquals(170, bytes.size)
+        assertEquals(expectedBytesHex, actualBytesHex)
+        assertEquals(
+            "98f5c30f439b552ab7b04f7ae0f783abae13c2a6141cc5b1348da016a867b600",
+            CanonicalD5Serializer.sha256Hex(envelope),
+        )
+    }
+
     @Test
     fun canonicalBytesAreIndependentOfInputCollectionOrder() {
         val first = envelope(
