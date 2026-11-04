@@ -14,19 +14,17 @@ Không có endpoint đặt lệnh thật. Thiếu dữ liệu/model hợp lệ t
 
 ## 1. Runtime và CI
 
-**GitHub chỉ lưu source/PR. Codemagic chạy kiểm thử/build** theo `codemagic.yaml`:
+**GitHub Actions là nền tảng CI duy nhất**. Workflow đang hoạt động được quản lý trong [`.github/workflows/`](../.github/workflows/) và hướng dẫn tại [GitHub Actions runbook](GITHUB_ACTIONS.md):
 
-- `canonical-market-data`: kiểm thử Python cũ và toàn luồng paper mới.
-- `five-layer-dashboard`: npm frozen install không chạy dependency scripts, Node tests, build React và npm audit. Artifact `control_dashboard/dist/**`.
-- `freqai-strategy-smoke`: chạy thủ công, cài Freqtrade/FreqAI 2026.9 và kiểm tra load strategy; không train, không kết nối exchange/trade.
-- Các workflow Android và legacy vẫn giữ theo [CODEMAGIC_SETUP.md](CODEMAGIC_SETUP.md).
+- `Cross-layer Integration`: kiểm thử integrations, futures intelligence, paper ledger và FreqAI bridge.
+- `Control Dashboard`: npm frozen install không chạy dependency scripts, Node tests, build React và npm audit. Artifact `control_dashboard/dist/**`.
+- `FreqAI Strategy Smoke`: chạy thủ công, cài Freqtrade/FreqAI 2026.9 và kiểm tra load strategy; không train, không kết nối exchange/trade.
+- Android foundation, ART/JNI và release-pair có workflow GitHub Actions riêng theo trigger/approval đã định nghĩa.
 
-Nhánh tích hợp mới: `feature/five-layer-paper`. Chọn nhánh có YAML mới khi Start
-new build. Không coi YAML hay kiểm thử giả lập là chứng cứ build/install/model
-training đã thành công.
+Mọi workflow được kích hoạt theo trigger/branch/path đã khai báo trong GitHub Actions. Với workflow thủ công, chọn đúng branch/commit cần kiểm tra và đối chiếu source SHA trong artifact. Không coi YAML hay kiểm thử giả lập là chứng cứ deploy, cài APK hoặc model training đã thành công.
 
 API, collector và FreqAI shadow cần chạy ở server/process có ổ đĩa bền vững;
-Codemagic là runner tác vụ hữu hạn, không dùng làm host scanner/API liên tục.
+GitHub Actions chỉ là CI runner hữu hạn, không dùng làm host scanner/API liên tục.
 Mã v1 cung cấp các lệnh ingestion theo cửa sổ; lịch đồng bộ liên tục, retention,
 giám sát vận hành và HA chưa được triển khai.
 
@@ -147,7 +145,7 @@ proxy. Các quyền điều khiển có ngân sách chung SQLite 30 request/phú
 mỗi store. GET có bearer riêng; không mở CORS wildcard. Không đặt API key sàn ở UI.
 
 Build React bằng [control_dashboard/README.md](../control_dashboard/README.md)
-hoặc tải `dist` artifact từ Codemagic, rồi mở `/control/`. Token chỉ giữ trong
+hoặc tải `dist` artifact từ workflow GitHub Actions `Control Dashboard`, rồi mở `/control/`. Token chỉ giữ trong
 bộ nhớ tab. Nếu dist chưa build, server trả DASHBOARD_NOT_BUILT; không phục vụ UI giả.
 Vite dev có proxy `/v1` về `127.0.0.1:8789` nên không cần đổi CORS.
 
@@ -176,8 +174,7 @@ fixture ở biên ngoài. Có kiểm thử replay idempotent, trạng thái thi�
 at-rest corruption, quyền đọc/ghi, rate budget, multiple-price reversal và restart.
 Không coi fixture là dữ liệu model/exchange đã chạy thật.
 
-Chưa xác minh: cài/chạy Freqtrade/FreqAI, train model/provenance, connector
-Hummingbot/Binance thật, frozen npm install/build/audit/browser render, hosting
-và vận hành liên tục. Môi trường hiện không tải được npm registry. Codemagic đã
-được cấu hình cho kiểm thử backend, install/build/audit React và kiểm tra nạp
-strategy; train model, kiểm tra browser và triển khai server là các bước riêng.
+Chưa xác minh: train model/provenance, connector Hummingbot/Binance thật, frozen
+npm install/build/audit/browser render, hosting và vận hành liên tục. Workflow CI
+chỉ kiểm chứng các bước đã chạy thành công trên đúng source SHA; train model,
+kiểm tra browser thực tế và triển khai server là các bước riêng.

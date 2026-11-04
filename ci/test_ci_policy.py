@@ -10,7 +10,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class CiPolicyTest(unittest.TestCase):
     def setUp(self):
-        self.workflows = yaml.safe_load((ROOT / "codemagic.yaml").read_text())["workflows"]
+        self.workflows = {
+            path.stem: yaml.safe_load(path.read_text())
+            for path in (ROOT / ".github/workflows").glob("*.y*ml")
+        }
 
     def test_github_actions_workflows_are_explicitly_allowlisted(self):
         workflows = ROOT / ".github/workflows"
@@ -34,6 +37,9 @@ class CiPolicyTest(unittest.TestCase):
             "android-t0-foundation-github-actions.yml",
             "t0-health-api-boundary.yml",
             "t0-9-art-jni-runtime.yml",
+            "control-dashboard.yml",
+            "cross-layer-integration.yml",
+            "freqai-strategy-smoke.yml",
         }
 
         self.assertIn("p5-3-10-4-g1-red-execution.yml", actual)
@@ -127,9 +133,9 @@ class CiPolicyTest(unittest.TestCase):
         self.assertTrue(upload["if"].startswith("always()"))
         self.assertIn("backup-restore-evidence/**", upload["with"]["path"])
 
-    def test_g2_red_contract_is_not_configured_in_codemagic(self):
-        self.assertNotIn("p5-3-11-5-g2-red-tests", self.workflows)
-
+    def test_legacy_runner_configuration_is_removed(self):
+        self.assertFalse((ROOT / "codemagic.yaml").exists())
+        self.assertFalse((ROOT / "docs/CODEMAGIC_SETUP.md").exists())
 
     def test_g2_acceptance_is_github_actions_only_and_historical_red_is_manual(self):
         green = (ROOT / ".github/workflows/p5-3-11-g2-integration-green.yml").read_text()
@@ -148,24 +154,16 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("market_data.test_feeder_atomic_fencing", green)
         self.assertIn("market_data.test_feeder_lifecycle", green)
         self.assertIn("g2-feeder-routing-tests.log", green)
-        self.assertNotIn("p5-3-11-g2-gateway-green-acceptance", self.workflows)
 
-        data = self.workflows["canonical-market-data"]
-        branch_patterns = {item["pattern"] for item in data["triggering"]["branch_patterns"]}
-        self.assertNotIn("integration/p5-3-11-g2-gateway-green-20261103", branch_patterns)
-        commands = "\n".join(item["script"] for item in data["scripts"])
-        self.assertNotIn("market_data.test_g2_writer_routing", commands)
-        self.assertNotIn("g2-feeder-routing-tests.log", commands)
-        self.assertNotIn("g2-feeder-routing-tests.log", data["artifacts"])
-
+        cross_layer = (ROOT / ".github/workflows/cross-layer-integration.yml").read_text()
+        for gate in ("discover -s integrations", "futures_intelligence.test_import_collector",
+                     "pipeline.test_decision", "paper_execution.test_ledger", "freqai_bridge.test_exporter"):
+            self.assertIn(gate, cross_layer)
         readme = (ROOT / "market_data/README.md").read_text()
         self.assertIn("GitHub Actions là cổng CI/acceptance duy nhất", readme)
-        self.assertIn("Codemagic không được dùng để chạy, chạy lại hoặc nghiệm thu PR #125/G2", readme)
-        self.assertNotIn("Codemagic là gate CI/acceptance mặc định", readme)
+        self.assertNotIn("Codemagic", readme)
         self.assertIn("workflow_dispatch:", red)
         self.assertNotIn("  push:", red)
-
-
 
     def test_t0_ci_is_migrated_to_github_actions(self):
         workflow_path = ROOT / ".github/workflows/t0-validation.yml"
@@ -248,27 +246,23 @@ class CiPolicyTest(unittest.TestCase):
         self.assertNotIn("CM_BUILD_DIR", script)
         self.assertNotIn("CODEMAGIC", script)
 
-    def test_t0_executable_workflows_are_removed_from_codemagic(self):
-        retired = {
-            "market-data-timescaledb", "market-data-kraken-adapter-tests",
-            "market-data-kraken-spot-sqlite-tests", "market-data-kraken-spot-read-api",
-            "t0-feeder-scheduler", "t0-feeder-health", "t0-feeder-lifecycle",
-            "t0-feeder-atomic-fencing", "t0-health-runtime-api", "t0-feeder-sigkill-recovery",
-            "t0-operational-contract-release-gate", "t0-data-integrity-candle-continuity-gate",
-            "t0-final-runtime-configuration-check", "t0-component-tests-p3",
-            "t0-feeder-lifecycle-red", "t0-feeder-atomic-fencing-red",
-            "p5-2-4-shadow-migration-red", "p5-2-5-runtime-red-validation", "p5-3-11-5-g2-red-tests",
-        }
-        self.assertTrue(retired.isdisjoint(set(self.workflows)))
-        commands = "\n".join(item["script"] for item in self.workflows["canonical-market-data"]["scripts"])
+    def test_t0_executable_workflows_are_github_actions_only(self):
+        self.assertFalse((ROOT / "codemagic.yaml").exists())
+        workflow = yaml.safe_load((ROOT / ".github/workflows/t0-validation.yml").read_text())
+        triggers = workflow.get("on", workflow.get(True, {}))
+        self.assertIn("workflow_call", triggers)
+        self.assertIn("push", triggers)
+        commands = "\n".join(step.get("run", "") for step in workflow["jobs"]["t0-validation"]["steps"])
         for module in ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
                        "market_data.test_api", "market_data.test_gateway_runtime"):
-            self.assertNotIn(module, commands)
+            self.assertIn(module, commands)
 
     def test_legacy_telegram_workflows_are_retired(self):
-        for name in ("signal-scan", "telegram-command", "dashboard-backtest"):
-            with self.subTest(name=name):
-                self.assertNotIn(name, self.workflows)
+        self.assertFalse((ROOT / "codemagic.yaml").exists())
+        for path in ("ci/archive/github-actions/telegram-command.yml",
+                     "ci/archive/github-actions/dashboard-backtest.yml"):
+            with self.subTest(path=path):
+                self.assertFalse((ROOT / path).exists())
         for path in ("bot.py", "backtest.py", "backtest_rsi_percent_b_h1_adx.py",
                      "telegram_commands.py", "dashboard/index.html", "ci/run-legacy.py",
                      "ci/test_legacy_runner.py", "integrations/codemagic_client.py",
@@ -283,34 +277,25 @@ class CiPolicyTest(unittest.TestCase):
                 self.assertNotIn(legacy_marker, app_source)
 
     def test_data_checks_keep_dependency_import_tests_and_cli_gates(self):
-        data = self.workflows["canonical-market-data"]
-        self.assertIn("push", data["triggering"]["events"])
-        commands = "\n".join(item["script"] for item in data["scripts"])
+        cross_layer = (ROOT / ".github/workflows/cross-layer-integration.yml").read_text()
         for gate in ("requirements-market-data.txt", "requirements-web.txt", "requirements-ci.txt",
-                     "-s integrations"):
+                     "discover -s integrations"):
             with self.subTest(gate=gate):
-                self.assertIn(gate, commands)
-        self.assertNotIn("ci.test_legacy_runner", commands)
-        self.assertNotIn("backtest.py", commands)
-        self.assertNotIn("telegram_commands.py", commands)
-        for t0_only in ("import ccxt", "import app", "market_data.sync --help", "compileall -q market_data"):
-            self.assertNotIn(t0_only, commands)
+                self.assertIn(gate, cross_layer)
+        self.assertNotIn("ci.test_legacy_runner", cross_layer)
+        self.assertNotIn("backtest.py", cross_layer)
+        self.assertNotIn("telegram_commands.py", cross_layer)
         t0_workflow = yaml.safe_load((ROOT / ".github/workflows/t0-validation.yml").read_text())
         t0_commands = "\n".join(step.get("run", "") for step in t0_workflow["jobs"]["t0-validation"]["steps"])
-        for module in ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
-                       "market_data.test_api", "market_data.test_gateway_runtime"):
-            self.assertIn(module, t0_commands)
         for t0_command in ("import ccxt", "import app", "market_data.sync --help", "compileall -q market_data"):
             self.assertIn(t0_command, t0_commands)
 
     def test_obsolete_android_apk_build_workflows_are_retired(self):
-        self.assertNotIn("android-chart-pro-debug", self.workflows)
-        self.assertNotIn("android-chart-pro-release", self.workflows)
-        serialized = (ROOT / "codemagic.yaml").read_text()
-        for retired in ("android-chart-pro-debug:", "android-chart-pro-release:",
-                        ":app:assembleDebug", ":app:assembleParallel", "ci/release-android.sh"):
-            with self.subTest(retired=retired):
-                self.assertNotIn(retired, serialized)
+        self.assertFalse((ROOT / "codemagic.yaml").exists())
+        self.assertFalse((ROOT / "docs/CODEMAGIC_SETUP.md").exists())
+        for path in (ROOT / ".github/workflows").glob("*.y*ml"):
+            content = path.read_text()
+            self.assertNotIn("codemagic.yaml", content.lower())
 
     def test_github_actions_only_build_debug_apks_for_manual_art_instrumentation(self):
         path = ROOT / ".github/workflows/t0-9-art-jni-runtime.yml"
@@ -399,9 +384,9 @@ class CiPolicyTest(unittest.TestCase):
     def test_shell_scripts_parse_and_no_unsupported_python_version_key(self):
         for path in (ROOT / "ci").glob("*.sh"):
             subprocess.run(["bash", "-n", str(path)], check=True)
-        for name, workflow in self.workflows.items():
-            with self.subTest(name=name):
-                self.assertNotIn("python", workflow.get("environment", {}))
+        for path in (ROOT / ".github/workflows").glob("*.y*ml"):
+            workflow = yaml.safe_load(path.read_text())
+            self.assertNotIn("python", workflow.get("environment", {}))
 
 
 if __name__ == "__main__":
