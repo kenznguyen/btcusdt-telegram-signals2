@@ -60,10 +60,14 @@ internal object NativeSqliteD5WireDecoder {
             val envelope = decodeEnvelope(input)
             if (input.available() != 0) return incomplete()
             NativeSqliteD5SnapshotReply(NativeSqliteD5ReadStatus.VERIFIED, envelope)
+        } catch (rejected: D5WireRejected) {
+            NativeSqliteD5SnapshotReply(rejected.status)
         } catch (_: Exception) {
             incomplete()
         }
     }
+
+    private class D5WireRejected(val status: NativeSqliteD5ReadStatus) : Exception()
 
     private fun decodeEnvelope(input: DataInputStream): D5SchemaEnvelope {
         val magic = ByteArray(4).also(input::readFully)
@@ -149,7 +153,14 @@ internal object NativeSqliteD5WireDecoder {
             sqliteSourceId = sqliteSourceId,
             tableListResultColumns = CanonicalD5SchemaContract.TABLE_LIST_COLUMNS,
         )
-        require(runtime.status == D5RuntimeStatus.ACCEPTED) { "SQLite runtime feature contract rejected" }
+        when (runtime.status) {
+            D5RuntimeStatus.ACCEPTED -> Unit
+            D5RuntimeStatus.RESULT_SHAPE_MISMATCH ->
+                throw D5WireRejected(NativeSqliteD5ReadStatus.RESULT_SHAPE_MISMATCH)
+            D5RuntimeStatus.TABLE_LIST_UNAVAILABLE, D5RuntimeStatus.BELOW_MINIMUM ->
+                throw D5WireRejected(NativeSqliteD5ReadStatus.UNSUPPORTED_SCHEMA)
+            else -> throw D5WireRejected(NativeSqliteD5ReadStatus.INCOMPLETE_EVIDENCE)
+        }
 
         val catalogIdentities = catalog.map {
             D5CatalogObjectIdentity(it.schema, it.type, it.name, it.tableName)
@@ -160,7 +171,12 @@ internal object NativeSqliteD5WireDecoder {
             },
             catalogIdentities,
         )
-        require(schemaValidation.status == D5SchemaStatus.ACCEPTED) { "SQLite table list and catalog disagree" }
+        when (schemaValidation.status) {
+            D5SchemaStatus.ACCEPTED -> Unit
+            D5SchemaStatus.UNSUPPORTED_OBJECT_TYPE ->
+                throw D5WireRejected(NativeSqliteD5ReadStatus.UNSUPPORTED_SCHEMA)
+            else -> throw D5WireRejected(NativeSqliteD5ReadStatus.INCOMPLETE_EVIDENCE)
+        }
         require(tableList.all { table ->
             tableColumns.count { it.schema == table.schema && it.tableName == table.name } == table.columnCount
         }) { "table_xinfo row count does not match table_list" }
@@ -179,9 +195,13 @@ internal object NativeSqliteD5WireDecoder {
         // Reuse the reviewed pure contract to reject unknown types, virtual tables
         // and catalog rows without exact SQL metadata. Native queries remain fixed
         // and bind every table/index identifier as a value.
-        CanonicalSqliteReadContract.schemaIntrospectionQueries(
-            catalog.map { SqliteSchemaCatalogEntry(it.type, it.name, it.tableName, it.sqlUtf8Exact) },
-        )
+        try {
+            CanonicalSqliteReadContract.schemaIntrospectionQueries(
+                catalog.map { SqliteSchemaCatalogEntry(it.type, it.name, it.tableName, it.sqlUtf8Exact) },
+            )
+        } catch (_: IllegalArgumentException) {
+            throw D5WireRejected(NativeSqliteD5ReadStatus.UNSUPPORTED_SCHEMA)
+        }
 
         return D5SchemaEnvelope(
             runtime = D5RuntimeIdentity(
