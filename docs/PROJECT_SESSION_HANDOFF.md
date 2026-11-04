@@ -2292,3 +2292,18 @@ Next bounded step: continue design-only resolution of the remaining Android read
 - Decision: **BLOCKED** — no transaction primitive approved. No adapter, SQL, DB, filesystem, device or instrumentation operation was performed.
 - Remaining prerequisites: (1) minSdk 26 read-only consistent-snapshot transaction API; (2) complete D5 schema-introspection coverage; (3) exact immutable bootstrap migration bytes/ID/sequence/owner; (4) proof that read-only open of a missing path cannot create a DB.
 - Next: continue source/API design review only. Any device, filesystem or SQLite runtime conformance test requires separate explicit authorization. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+
+## P5.4.95 — D5 SQLite schema introspection coverage review (2026-11-04)
+
+**Status: REVIEW COMPLETE; current source query contract PARTIAL/INCOMPLETE; implementation delta awaits owner approval.**
+
+- Review report: `docs/evidence/P5.4.95-D5-SQLITE-SCHEMA-INTROSPECTION-COVERAGE-REVIEW-2026-11-04.md`.
+- Report commit: `19c17f13ea66ff45baef99aa9d1230677a2d7620`.
+- Baseline inspected: `1c54ceaf894f179542d089f998b3140bf34c17de`.
+- Source file `CanonicalSqliteReadContract.kt` blob SHA: `b480745b00cd7eeeb64ffcb05b3f2850be9b1122`.
+- Findings: current `table_info` misses generated/hidden columns and views are not introspected; `index_info` omits auxiliary index columns and richer index metadata; virtual-table declarations/module identity/provenance and shadow-table classification are not covered.
+- Official SQLite docs reviewed: `table_xinfo` for generated/hidden columns; `index_xinfo` for auxiliary and detailed index columns; `module_list` for modules registered on the current connection; SQLite unknown PRAGMAs are silently ignored, so unsupported capability cannot be mistaken for an empty result. See the P5.4.95 report for exact URLs and proposed contract delta.
+- Proposal only: add view + table `table_xinfo`; use `index_xinfo` alongside `index_list`; keep `foreign_key_list` for tables; parse virtual-table declarations conservatively; verify module inventory and implementation provenance; define shadow-table policy; fail closed on unsupported/unexpected metadata.
+- No source code, dependency, SQL/PRAGMA execution, DB, filesystem, Android device, workflow, test, artifact, APK, Feeder, writer or exchange/trading behavior changed or ran.
+- Remaining blockers unchanged: minSdk 26 read-only transaction primitive BLOCKED; D5 coverage proposal awaits owner approval; exact bootstrap migration bytes/ID/sequence/owner OPEN; missing-path read-only no-create proof OPEN. SQLite adapter/runtime NOT AUTHORIZED.
+- Next action: owner decision on the P5.4.95 D5 coverage delta. If approved, source-level fixed-query contract and pure fixtures may proceed with TDD on this branch; no SQLite/runtime adapter authorization is implied. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
