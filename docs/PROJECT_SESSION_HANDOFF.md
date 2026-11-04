@@ -1996,3 +1996,14 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Existing 96 fixtures: **SPECIFIED / NOT IMPLEMENTED / NOT RUN**. GitHub Actions NOT RUN; no workflow/artifact.
 - Branch: `feature/p5-4-1-post-merge-validation-20261103`. No PR or new branch. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next step: obtain explicit owner decision on D82-C; if ownership/jurisdiction facts are unknown, keep unresolved and defer provider selection. D82-B operational details also remain design-only.
+
+
+## D82-C — Owner direction to defer model selection (2026-11-04)
+
+- Owner direction: **keep model choice A/B/C on hold until legal ownership and applicable legal conditions are established**.
+- Status: `DEFERRED — LEGAL/OWNERSHIP FACTS REQUIRED`; this is a deferral only, not approval of A, B or C.
+- Legal data owner, contracting authority, primary KMS/HSM account owner, escrow custodian/account owner, permitted jurisdictions/regions, independence standard and qualified legal/compliance review gate remain unresolved.
+- Do not infer user's country, corporate status, legal entity, jurisdiction or eligible contracting authority.
+- No provider/account selection, legal incorporation, contracting, identity enrollment, key generation, KMS/HSM/escrow provisioning, storage setup or data upload authorized.
+- D82-B 2-of-3 quorum and all D6 recovery gates remain unchanged. Existing 96 fixtures remain SPECIFIED / NOT IMPLEMENTED / NOT RUN. GitHub Actions NOT RUN; no artifact.
+- Next step: prepare a neutral evidence checklist for ownership, contracting authority and legal conditions; reopen A/B/C selection only after facts are supplied and reviewed. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
