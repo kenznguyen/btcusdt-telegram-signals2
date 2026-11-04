@@ -1949,3 +1949,19 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Branch: `feature/p5-4-1-post-merge-validation-20261103`. Pre-update HEAD: `8f314ae10a67794daca356d65b6e5492a6147758`. Documentation commits before handoff update ended at: `15769c75bd08100eb0e20ca32792430addbf117b`.
 - Next step: continue D82-B quorum/role design only; no implementation without separate authorization.
 - Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+
+
+## P5.4.82B — D82-B quorum decision support prepared (2026-11-04)
+
+- Added `docs/evidence/P5.4.82B-APPROVAL-QUORUM-AND-ROLE-SEPARATION-OPTIONS-2026-11-04.md`.
+- Status: **RECOMMENDATION ONLY / NOT APPROVED**. “tiếp tục” was treated as authorization to prepare bounded decision support, not as owner approval.
+- Compares A: fixed 2-of-2; B: role-based 2-of-3; C: 3-of-5.
+- Recommended candidate: **2-of-3** across three pre-enrolled functional trust domains: system-owner delegate, independent escrow custodian delegate, and independent security/recovery delegate. Two distinct people from distinct trust domains must approve. Requester and executor are excluded from the quorum.
+- Recommends pre-designated alternates governed before an incident, no ad hoc enrollment during recovery, and no single-person emergency bypass. If two eligible approvers cannot be assembled, remain `BLOCKED_QUORUM_UNAVAILABLE`.
+- Owner decisions still required: select A/B/C; accept role/trust-domain model; alternate governance; emergency no-bypass policy; additional independence requirements.
+- Updated P5.4.82A matrix and P5.4.82 proposal to link this decision support. D82-B remains OPEN until explicit owner approval.
+- No code, tests, fixture execution, identity enrollment, key generation, provider/KMS/HSM/escrow provisioning, DB/device/PC access, backup/restore, Feeder/exchange, D6 gate mutation or writer activation.
+- Existing 96 fixtures: **SPECIFIED / NOT IMPLEMENTED / NOT RUN**. GitHub Actions NOT RUN; no workflow/artifact.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`. No PR or new branch created. Latest documentation commit at this handoff update follows prior D82-B document commit `c6dd9e8ea4d02c527aaa23c764784b6833bacf36`.
+- Next step: obtain explicit owner decision on D82-B recommendation; do not implement or provision.
+- Keep `AI_EXECUTION_ENABLED=false`; paper-only.
