@@ -10,6 +10,11 @@ class CanonicalDatabaseContractsTest {
     private val instance = CanonicalDatabaseInstanceId.fromPersisted("opaque-instance-001")
 
     @Test
+    fun generatedVariantFlagMatchesParallelApplicationId() {
+        assertEquals(BuildConfig.APPLICATION_ID.endsWith(".paper"), BuildConfig.PARALLEL_INSTALL)
+    }
+
+    @Test
     fun logicalRoleIdIsIndependentFromPhysicalInstanceId() {
         assertEquals("t0-canonical-sqlite-v1", role.value)
         assertEquals("opaque-instance-001", instance.value)
