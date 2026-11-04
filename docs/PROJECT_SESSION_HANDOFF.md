@@ -2741,3 +2741,7 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Replacement run #41826476055 on source SHA `d74a656394a5d275533393954a274efb033b7f33` is now **IN PROGRESS**. Old runs #41825231563 and #41825022008 have completed **CANCELLED** after concurrency supersession.
 - Matrix jobs API 33 #126562367706, API 35 #126562367978, API 26 #126562368184 all completed checkout + Java 17 + Gradle 8.9 and were at Android SDK setup at last inspection. Instrumentation has not started yet.
 - Evidence report update commit: `fec2e5f7d4e8d5ff0faae4a9f48c70f6f802d0dd`.
+
+
+- Latest check: all three jobs in run #41826476055 have passed SDK setup and pinned SQLite preparation and are now executing `Run instrumentation on Android ART`: API 33 #126562367706, API 35 #126562367978, API 26 #126562368184. No conclusions/XML yet. T0.9 remains **NOT VERIFIED**.
+- Evidence report update commit: `8d81d5fe32f69905ad322bd2f1118f02361dd6ab`.
