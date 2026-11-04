@@ -2729,3 +2729,10 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Workflow concurrency correction commit: `d74a656394a5d275533393954a274efb033b7f33`; per-API emulator concurrency now uses `cancel-in-progress: true` so a newer candidate cancels stale runs rather than waiting behind old emulator jobs. This is a scheduling correction only, not test evidence.
 - Evidence report update commit: `54462b4b08fd392450e19a937bfcc8625be57f59`.
 - Verify the replacement workflow run on the exact SHA containing the concurrency change; T0.9 remains **NOT VERIFIED** until all 3 API instrumentation jobs pass and reports are inspected.
+
+
+- Replacement matrix run #41826476055 targets workflow/test source SHA `d74a656394a5d275533393954a274efb033b7f33`: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41826476055. API 33 #126562367706, API 35 #126562367978 and API 26 #126562368184 were all pending at last inspection.
+- Old runs #41825231563 and #41825022008 still showed emulator jobs in progress, so the replacement matrix had not started despite the per-API `cancel-in-progress: true` setting. Do not infer any test result from queued jobs. Workflow job timeout is 35 minutes; wait for GitHub to resolve stale emulator jobs and inspect replacement matrix logs.
+- Evidence report update commit: `8f2428aaddab2361d7ebf7d3dc0405f8bb757d91`.
+- Latest docs-only branch HEAD after this update will differ from the workflow-triggering source SHA; the test-triggering SHA remains `d74a656394a5d275533393954a274efb033b7f33`.
+- T0.9 remains **NOT VERIFIED**; corrected in-memory D5 fixture is not yet proven on Android ART.
