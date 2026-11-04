@@ -52,7 +52,7 @@ jobs:
       - name: Checkout exact source commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.REQUESTED_SOURCE_SHA }}
+          ref: ${{ inputs.source_sha || github.sha }}
           persist-credentials: false
 
       - name: Record source provenance
@@ -139,7 +139,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: android-t0-foundation-${{ env.REQUESTED_SOURCE_SHA }}
+          name: android-t0-foundation-${{ inputs.source_sha || github.sha }}
           path: |
             ci-evidence/**
             android-app/app/.cxx/**/obj/**/*.so
