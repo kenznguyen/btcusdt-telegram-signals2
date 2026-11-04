@@ -2815,3 +2815,16 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - A targeted retry was accepted: attempt 3 API 26 #126646297749 and API 35 #126646297491 were **QUEUED** at last inspection; API 33 #126646301336 was **SUCCESS** and not rerun.
 - Verdict remains **T0.9 BLOCKED / NOT VERIFIED**. Do not change JNI/Kotlin/C++/SQLite source based on these pre-test emulator failures. If attempt 3 repeats the same infrastructure failures, stop blind retries and assess a narrowly scoped workflow/emulator reliability change.
 - Boundaries remain unchanged: SQLite `:memory:`, debug-only hook, `AI_EXECUTION_ENABLED=false`; no canonical DB, Feeder, lease, exchange, live orders, release/sign/install or physical-device testing.
+
+
+### T0.9 diagnostic run #41841729095 — attempt 3 final status (2026-11-04)
+
+- Evidence report: `docs/evidence/T0.9-ANDROID-ART-JNI-RUNTIME-INVOCATION-VERIFICATION-2026-11-04.md`; report update commit `49727fbf9def924059e115390005b81c153a9ce1`.
+- Workflow #41841729095 completed **FAILURE**, attempt 3, workflow SHA `753564c7725b93368cd5d434489777be3a26d0da`: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41841729095
+  - API 33 #126646301336 **PASS**; previously inspected artifact #13330877984 has XML 1 test, 0 failures/errors/skips.
+  - API 26 #126646297749 **BLOCKED before test**; UTP APK installation failed with `ShellCommandUnresponsiveException`; XML tests=0. Artifact #13336905539, local SHA-256 `57501a882baf77e0f79cc953337efd83b1ca34d9905370b7dd25b29b19386d66`, matching GitHub metadata.
+  - API 35 #126646297491 **BLOCKED / NOT VERIFIED**; XML tests=0 and `INSTRUMENTATION_FAILED` / `Process crashed`. No definitive JNI/SQLite crash cause found. Artifact #13336479922, local SHA-256 `c7b63a6761a81a1ef8b4fec3483f0424c1a94c8932f4c748e20539c15512cb43`, matching GitHub metadata.
+- Attempt-3 artifacts #13336905539 and #13336479922 were downloaded and locally hashed; both hashes match GitHub metadata. API 26 failure is before instrumentation; API 35 process crash has unknown root cause.
+- T0.9 remains **BLOCKED / NOT VERIFIED**: API 33 partial PASS only; API 26/35 do not satisfy the required runtime verification matrix. Stop blind retries after three attempts. No JNI/Kotlin/C++/SQLite source changes based on infrastructure-only failures. Any future retry requires an approved, evidence-based emulator/UTP reliability correction.
+- Next: pause T0.9 matrix pending scoped infrastructure mitigation and approval. Do not proceed to T0.10 without scope approval.
+- Boundaries remain unchanged: in-memory SQLite only, debug-only hook, `AI_EXECUTION_ENABLED=false`; no canonical DB, Feeder, lease, exchange, live orders, APK release/sign/install or physical-device activity.
