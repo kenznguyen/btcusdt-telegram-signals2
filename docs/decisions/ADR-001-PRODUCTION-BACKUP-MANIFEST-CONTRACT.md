@@ -214,7 +214,7 @@ The owner explicitly approved all five D2 decisions in the project conversation 
 - **D2.4 APPROVED:** Lease generation is independent from data cursors; host-side fencing is checked on every canonical write.
 - **D2.5 APPROVED:** Manifest carries a domain-cursor evidence vector. It is not proof of atomic snapshot consistency; D3 must define the barrier/consistency contract.
 
-**Decision boundary:** D2 semantics are ACCEPTED. D3 is ACCEPTED; D4 is PROPOSED / NOT APPROVED; D5–D7 remain NOT DECIDED. Exact implementation fields, schemas, migrations, transaction boundaries, lease authority and operational policy remain open where stated above. This approval does not authorize code/runtime implementation, canonical DB access, Feeder activation, exchange connectivity, synchronization, backup/restore, writer activation or live execution. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+**Decision boundary (historical D2/D3 record, reconciled 2026-11-04):** D2 and D3 are ACCEPTED. D4.1–D4.7 are now ACCEPTED by explicit owner decision recorded below. D5–D7 remain NOT DECIDED. Exact implementation fields, schemas, migration runner details, transaction boundaries, lease authority and operational policy remain open where stated above. D2/D3/D4 architecture approval does not authorize code/runtime implementation, canonical DB access, Feeder activation, exchange connectivity, synchronization, backup/restore, writer activation or live execution. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 
 
 ## Owner decision — D4 SQLite schema-version authority (2026-11-04)
