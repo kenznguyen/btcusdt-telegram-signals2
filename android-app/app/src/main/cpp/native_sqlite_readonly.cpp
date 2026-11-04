@@ -51,7 +51,10 @@ enum D5Status : int32_t {
 
 constexpr size_t kMaxRows = 100000;
 constexpr size_t kMaxStringBytes = 4 * 1024 * 1024;
-constexpr size_t kMaxPayloadBytes = 32 * 1024 * 1024;
+#ifndef CANONICAL_D5_MAX_PAYLOAD_BYTES
+#define CANONICAL_D5_MAX_PAYLOAD_BYTES (32u * 1024u * 1024u)
+#endif
+constexpr size_t kMaxPayloadBytes = CANONICAL_D5_MAX_PAYLOAD_BYTES;
 constexpr int32_t kWireVersion = 1;
 
 std::mutex registry_mutex;

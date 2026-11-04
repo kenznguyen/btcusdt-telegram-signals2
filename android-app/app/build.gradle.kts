@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.Test
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -88,3 +90,11 @@ dependencies {
 }
 
 
+
+
+// CI may supply a D5 wire fixture emitted by the isolated native :memory: harness.
+tasks.withType<Test>().configureEach {
+    val fixture = providers.gradleProperty("d5NativeFixture").orNull
+    systemProperty("d5.native.fixture.path", fixture.orEmpty())
+    systemProperty("d5.native.fixture.required", (fixture != null).toString())
+}

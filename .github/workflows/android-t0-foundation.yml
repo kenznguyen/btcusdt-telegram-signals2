@@ -62,17 +62,27 @@ jobs:
       - name: Verify and materialize pinned SQLite sources
         run: python3 ci/prepare_pinned_sqlite.py --archive /tmp/sqlite-amalgamation-3540100.zip
 
+      - name: Build and run isolated native SQLite D5 :memory: tests
+        run: |
+          cmake -S android-app/app/src/main/cpp/tests -B /tmp/t0.6-native-d5-tests \
+            -DSQLITE_AMALGAMATION_DIR="$GITHUB_WORKSPACE/android-app/app/build/generated/sqlite/vendor"
+          cmake --build /tmp/t0.6-native-d5-tests --parallel 2
+          ctest --test-dir /tmp/t0.6-native-d5-tests --output-on-failure
+          mkdir -p android-app/app/build/t0.6
+          cp /tmp/t0.6-native-d5-tests/d5-native-memory-fixture.bin android-app/app/build/t0.6/
+
+
       - name: Compile and link native SQLite JNI library (debug only)
         working-directory: android-app
         run: gradle :app:externalNativeBuildDebug --no-daemon --stacktrace
 
       - name: Run regular host unit tests (no APK assembly or signing)
         working-directory: android-app
-        run: gradle :app:testDebugUnitTest --no-daemon --stacktrace
+        run: gradle :app:testDebugUnitTest -Pd5NativeFixture=build/t0.6/d5-native-memory-fixture.bin --no-daemon --stacktrace
 
       - name: Run parallel .paper client unit tests (no APK assembly or signing)
         working-directory: android-app
-        run: gradle :app:testParallelUnitTest --no-daemon --stacktrace
+        run: gradle :app:testParallelUnitTest -Pd5NativeFixture=build/t0.6/d5-native-memory-fixture.bin --no-daemon --stacktrace
 
       - name: Run pinned SQLite preparation unit tests
         run: python3 -m unittest ci.tests.test_prepare_pinned_sqlite -v
@@ -103,5 +113,6 @@ jobs:
             android-app/app/build/reports/tests/testDebugUnitTest/**
             android-app/app/build/test-results/testParallelUnitTest/**
             android-app/app/build/reports/tests/testParallelUnitTest/**
+            android-app/app/build/t0.6/d5-native-memory-fixture.bin
           if-no-files-found: warn
           retention-days: 14
