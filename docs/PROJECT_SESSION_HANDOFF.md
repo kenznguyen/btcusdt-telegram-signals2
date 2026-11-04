@@ -1819,3 +1819,16 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Status: D4 **APPROVED (architecture only)**; D5 **APPROVED (architecture only)**; D6 **APPROVED (architecture only)**; D7 **PROPOSED / NOT APPROVED**. D6 implementation NOT IMPLEMENTED / NOT VERIFIED; D6 fixtures NOT IMPLEMENTED / NOT RUN. D7 fixtures NOT IMPLEMENTED / NOT RUN. Numerical RPO/RTO NOT SET / NOT VERIFIED.
 - Safety: keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
 - Next step: owner review of D7.1–D7.6. No destination selection, key provisioning, backup scheduling, restore, Kill Switch clearing or writer activation is authorized.
+
+
+## P5.4.78 — D7 owner approval recorded (2026-11-04)
+
+- Decision: **APPROVE D7.1–D7.6** exactly as specified in `docs/evidence/P5.4.77-D7-BACKUP-SECURITY-RETENTION-RPO-RTO-RESTORE-AUTHORIZATION-PROPOSAL-2026-11-04.md`; no amendments requested.
+- Accepted policy: independent canonical/staging/published-backup/recovery-audit trust boundaries; independent immutable destination, authenticated manifest and read-back verification; encryption before leaving trusted capture boundary with separate auditable key custody; protected last-known-good retention/deletion safeguards; explicit measurable owner-approved RPO/RTO; authenticated restore approval with separate backup/restore/readiness/latch/Kill Switch/writer gates; CI credentials never substitute for restore authorization.
+- Still unresolved: destination/provider/failure domain, encryption suite and key custody/escrow/rotation, retention schedule/capacity, numerical RPO/RTO, approver roles/emergency exception, data residency/export and operational cost. No PC/VPS requirement introduced.
+- Scope: documentation/decision recording only. No code, schema, backup/restore implementation, key material, tests, IPC, app configuration or runtime changed.
+- Tests / GitHub Actions: **NOT RUN**; no workflow run or artifact for this docs-only decision.
+- Canonical DB/device/PC/production storage/key material/Feeder/exchange/synchronization/backup/restore/writer: **NOT TOUCHED**.
+- Status: D2 **APPROVED**; D3 **APPROVED**; D4 **APPROVED**; D5 **APPROVED**; D6 **APPROVED**; D7 **APPROVED** (architecture/policy only). Implementation and fixture acceptance remain NOT IMPLEMENTED / NOT VERIFIED / NOT RUN as applicable.
+- Safety: keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
+- Next step: perform documentation/source-only cross-contract consistency review for D2–D7 and prepare a bounded fixture-only acceptance-test plan. Do not select a live destination, provision keys, access canonical DB, execute backup/restore, clear Kill Switch or activate writers without separate explicit authorization.
