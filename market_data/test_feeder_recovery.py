@@ -240,6 +240,7 @@ class RecoveryCoordinatorContractTest(unittest.TestCase):
             {"startMs": BASE, "endMs": BASE + 2 * STEP},
         ]
         calls = []
+        reads = []
         fail_after_first_half_once = {"pending": True}
 
         def sync_partial_window(timeframe, start_ms, end_ms):
@@ -253,6 +254,7 @@ class RecoveryCoordinatorContractTest(unittest.TestCase):
             remaining.clear()
 
         def read_snapshot(timeframe, start_ms, end_ms):
+            reads.append((timeframe, start_ms, end_ms))
             return coverage(start_ms, end_ms, list(remaining))
 
         coordinator = RecoveryCoordinator(
@@ -280,6 +282,11 @@ class RecoveryCoordinatorContractTest(unittest.TestCase):
         self.assertEqual(calls, [
             ("15m", BASE, BASE + 2 * STEP),
             ("15m", BASE + STEP, BASE + 2 * STEP),
+        ])
+        self.assertEqual(reads, [
+            ("15m", BASE, BASE + 2 * STEP),
+            ("15m", BASE, BASE + 2 * STEP),
+            ("15m", BASE, BASE + 2 * STEP),
         ])
 
     def test_invalid_initial_snapshot_shapes_fail_before_sync(self):
