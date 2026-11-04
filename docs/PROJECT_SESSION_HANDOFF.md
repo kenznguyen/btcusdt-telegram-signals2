@@ -2111,3 +2111,16 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Status: authorized domain/fixture scope PASS; SQLite schema/migration and read-only adapter NOT IMPLEMENTED; identity persistence/lifecycle NOT IMPLEMENTED; Android device NOT VERIFIED; T0-B NOT RUN / NOT AUTHORIZED; T0-C NOT RUN / NOT AUTHORIZED; T0-D NOT RUN / NOT VERIFIED; T0-E BLOCKED.
 - No SQLite/device/Feeder/lease/exchange/IPC/backup/restore/key provisioning/APK/writer action. `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next step: design-only proposal for persisted physical DB identity lifecycle, read-only SQLite adapter, D4 DDL + D5 schema digest + D3 manifest integration. Any runtime/database operation remains separately gated.
+
+
+## P5.4.89 — Persisted identity lifecycle and read-only SQLite adapter design (2026-11-04)
+
+- Proposal: `docs/evidence/P5.4.89-ANDROID-T0-PERSISTED-IDENTITY-LIFECYCLE-AND-READONLY-SQLITE-ADAPTER-DESIGN-2026-11-04.md`.
+- Status: DESIGN PROPOSAL — owner decisions required; no source implementation.
+- Recommended UUIDv4 random identity; immutable identity row inside canonical DB plus separate host-side expected-identity pin; explicit provisioning/adoption transaction; no automatic legacy stamping; restore preserves lineage; clone/fork gets new ID; read-only adapter returns one immutable evidence snapshot from one SQLite read transaction.
+- Host pin storage options A Android Keystore, B app-private noBackupFilesDir local consistency pin, C external authenticated authority remain owner decision. No provider/Keystore choice or access made.
+- Design distinguishes DB identity from BackupId, RestoreEpoch, LeaseGeneration and requires D3/D4/D5 evidence to remain separate. D6 gates unchanged.
+- Reviewed P5.4.88 limits: current pure verifier lacks explicit missing/legacy/unconfirmed/unsupported/uncertain read states; it does not implement D5 digest calculation or prove same-snapshot acquisition; no DB ID persistence, SQLite adapter or D4 DDL exists.
+- Permissions used: repository read/write, documentation commit on existing branch. No SQLite, Android device, secrets, Feeder, exchange, backup/restore, APK or writer access.
+- Next step: owner decision ID-1 through ID-7 in the proposal. After approval, implement pure interface/fixture contracts first; real SQLite read-only access and writes require separate explicit authorization.
+- `AI_EXECUTION_ENABLED=false`; paper-only.
