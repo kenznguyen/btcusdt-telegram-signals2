@@ -312,3 +312,8 @@ P5.4.81 proposes AES-256-GCM envelope encryption with a unique random 256-bit DE
 The proposal defines logical KMS/HSM adapter boundaries, key inventory metadata, workload identity separation, per-backup DEK lifecycle, KEK/signing-key rotation, break-glass recovery case controls, two-person approval as a proposed default, append-only audit evidence, fail-closed handling and CI fake-provider isolation. It does not select a recovery model, provider, jurisdiction, quorum/roles, audit sink or federation mechanism.
 
 This proposal does not amend approved P5.4.81 and does not authorize implementation, fixture execution, provider selection/provisioning, key generation, production access, canonical DB access, backup/restore or runtime changes. The approved fixture inventory remains 96 specified / NOT IMPLEMENTED / NOT RUN. Keep AI_EXECUTION_ENABLED=false; paper-only.
+
+
+## P5.4.82A — Key custody open-decision matrix (2026-11-04)
+
+**Status: DECISION SUPPORT ONLY / NOT AN APPROVAL.** See `docs/evidence/P5.4.82A-KEY-CUSTODY-OPEN-DECISION-MATRIX-2026-11-04.md`. The matrix frames ten unresolved decisions (recovery model, quorum/roles, jurisdiction/account ownership, audit sink, KEK rotation, signing-key revocation, workload identity, RPO/RTO, Android/JVM crypto qualification and wrapped-DEK metadata) with options, trade-offs and non-binding discussion defaults. It does not select any option, provider, jurisdiction, policy or implementation. P5.4.82 remains PROPOSED / NOT APPROVED; P5.4.81 remains approved and unchanged. No implementation, fixture execution, provider selection/provisioning or production access authorized.
