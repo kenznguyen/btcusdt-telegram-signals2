@@ -1,24 +1,29 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(canonical_sqlite LANGUAGES C CXX)
-
-# The exact upstream SQLite amalgamation must be supplied and checksum-pinned
-# by the build owner before this target is wired into Gradle. Never fall back
-# to the Android framework SQLite engine or an unpinned system library.
 set(SQLITE_AMALGAMATION_DIR "" CACHE PATH "Directory containing pinned sqlite3.c and sqlite3.h")
-if(NOT EXISTS "${SQLITE_AMALGAMATION_DIR}/sqlite3.c" OR
-   NOT EXISTS "${SQLITE_AMALGAMATION_DIR}/sqlite3.h")
-    message(FATAL_ERROR "Pinned SQLite amalgamation is required; no system/framework fallback is allowed")
+set(SQLITE_EXPECTED_VERSION_NUMBER "" CACHE STRING "Exact SQLITE_VERSION_NUMBER from pinned sqlite3.h")
+set(SQLITE_EXPECTED_SOURCE_ID "" CACHE STRING "Exact sqlite3_sourceid() string")
+set(SQLITE_EXPECTED_C_SHA256 "" CACHE STRING "SHA-256 of sqlite3.c")
+set(SQLITE_EXPECTED_H_SHA256 "" CACHE STRING "SHA-256 of sqlite3.h")
+if(NOT EXISTS "${SQLITE_AMALGAMATION_DIR}/sqlite3.c" OR NOT EXISTS "${SQLITE_AMALGAMATION_DIR}/sqlite3.h")
+ message(FATAL_ERROR "Pinned SQLite amalgamation is required; no system/framework fallback is allowed")
 endif()
-
-add_library(canonical_sqlite SHARED
-    native_sqlite_readonly.cpp
-    "${SQLITE_AMALGAMATION_DIR}/sqlite3.c"
-)
-
+foreach(required SQLITE_EXPECTED_VERSION_NUMBER SQLITE_EXPECTED_SOURCE_ID SQLITE_EXPECTED_C_SHA256 SQLITE_EXPECTED_H_SHA256)
+ if("${${required}}" STREQUAL "")
+  message(FATAL_ERROR "${required} must be explicitly pinned before native build")
+ endif()
+endforeach()
+file(SHA256 "${SQLITE_AMALGAMATION_DIR}/sqlite3.c" ACTUAL_SQLITE_C_SHA256)
+file(SHA256 "${SQLITE_AMALGAMATION_DIR}/sqlite3.h" ACTUAL_SQLITE_H_SHA256)
+if(NOT ACTUAL_SQLITE_C_SHA256 STREQUAL SQLITE_EXPECTED_C_SHA256 OR NOT ACTUAL_SQLITE_H_SHA256 STREQUAL SQLITE_EXPECTED_H_SHA256)
+ message(FATAL_ERROR "SQLite amalgamation checksum mismatch")
+endif()
+file(STRINGS "${SQLITE_AMALGAMATION_DIR}/sqlite3.h" SQLITE_VERSION_LINE REGEX "^#define SQLITE_VERSION_NUMBER[ \t]+[0-9]+")
+string(REGEX REPLACE ".*SQLITE_VERSION_NUMBER[ \t]+([0-9]+).*" "\\1" ACTUAL_SQLITE_VERSION_NUMBER "${SQLITE_VERSION_LINE}")
+if(NOT ACTUAL_SQLITE_VERSION_NUMBER STREQUAL SQLITE_EXPECTED_VERSION_NUMBER OR ACTUAL_SQLITE_VERSION_NUMBER LESS 3037000)
+ message(FATAL_ERROR "SQLite version mismatch or version below the D5 feature floor")
+endif()
+add_library(canonical_sqlite SHARED native_sqlite_readonly.cpp "${SQLITE_AMALGAMATION_DIR}/sqlite3.c")
 target_include_directories(canonical_sqlite PRIVATE "${SQLITE_AMALGAMATION_DIR}")
-target_compile_definitions(canonical_sqlite PRIVATE
-    SQLITE_THREADSAFE=1
-    SQLITE_OMIT_LOAD_EXTENSION=1
-    SQLITE_DQS=0
-)
+target_compile_definitions(canonical_sqlite PRIVATE SQLITE_THREADSAFE=1 SQLITE_OMIT_LOAD_EXTENSION=1 SQLITE_DQS=0 CANONICAL_SQLITE_EXPECTED_SOURCE_ID="${SQLITE_EXPECTED_SOURCE_ID}")
 target_compile_features(canonical_sqlite PRIVATE cxx_std_17)
