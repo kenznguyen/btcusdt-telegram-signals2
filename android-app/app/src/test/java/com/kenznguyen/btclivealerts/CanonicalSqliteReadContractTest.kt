@@ -69,6 +69,44 @@ class CanonicalSqliteReadContractTest {
     }
 
     @Test
+    fun schemaIntrospectionIncludesViewColumnsAndFullIndexMetadata() {
+        val catalog = listOf(
+            SqliteSchemaCatalogEntry("view", "v_positions", "v_positions", "CREATE VIEW v_positions AS SELECT id FROM positions"),
+            SqliteSchemaCatalogEntry("index", "idx_positions_expr", "positions", "CREATE INDEX idx_positions_expr ON positions(lower(symbol))"),
+        )
+
+        assertEquals(
+            listOf("PRAGMA table_xinfo(\"v_positions\")", "PRAGMA index_xinfo(\"idx_positions_expr\")"),
+            CanonicalSqliteReadContract.schemaIntrospectionQueries(catalog).map { it.sql },
+        )
+    }
+
+    @Test
+    fun schemaIntrospectionRejectsUnknownCatalogObjectTypesInsteadOfSilentlyDroppingThem() {
+        val catalog = listOf(SqliteSchemaCatalogEntry("unknown_future_type", "future_obj", "future_obj", null))
+        try {
+            CanonicalSqliteReadContract.schemaIntrospectionQueries(catalog)
+            throw AssertionError("unknown schema object type must fail closed")
+        } catch (expected: IllegalArgumentException) {
+            assertTrue(expected.message.orEmpty().contains("unknown_future_type"))
+        }
+    }
+
+    @Test
+    fun virtualTableDeclarationsFailClosedUntilModuleProvenanceIsVerified() {
+        val catalog = listOf(
+            SqliteSchemaCatalogEntry("table", "external_content", "external_content",
+                "CREATE VIRTUAL TABLE external_content USING fts5(body)"),
+        )
+        try {
+            CanonicalSqliteReadContract.schemaIntrospectionQueries(catalog)
+            throw AssertionError("virtual tables must not be accepted without module provenance")
+        } catch (expected: IllegalArgumentException) {
+            assertTrue(expected.message.orEmpty().contains("virtual"))
+        }
+    }
+
+    @Test
     fun identifierQuotingEscapesEmbeddedQuotesWithoutRewritingTheIdentifier() {
         assertEquals("\"table\"\"name\"", CanonicalSqliteReadContract.quoteIdentifier("table\"name"))
     }
