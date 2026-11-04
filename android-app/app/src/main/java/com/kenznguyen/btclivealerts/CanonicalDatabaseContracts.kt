@@ -6,13 +6,15 @@ import java.security.MessageDigest
 @JvmInline
 value class CanonicalDatabaseInstanceId private constructor(val value: String) {
     companion object {
+        private val CANONICAL_UUID_V4 = Regex(
+            "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+        )
+
         fun fromPersisted(value: String): CanonicalDatabaseInstanceId =
             tryFromPersisted(value) ?: throw IllegalArgumentException("Invalid database instance ID")
 
         fun tryFromPersisted(value: String?): CanonicalDatabaseInstanceId? {
-            if (value == null || value.isBlank() || value.length > 128 || value.any(Char::isISOControl)) {
-                return null
-            }
+            if (value == null || !CANONICAL_UUID_V4.matches(value)) return null
             return CanonicalDatabaseInstanceId(value)
         }
     }
@@ -180,3 +182,159 @@ private fun sha256(bytes: ByteArray): String =
     MessageDigest.getInstance("SHA-256")
         .digest(bytes)
         .joinToString(separator = "") { byte -> "%02x".format(byte) }
+
+
+/** The pin is a local consistency anchor, not a cryptographic authenticity mechanism. */
+enum class IdentityPinLifecycleState {
+    PENDING,
+    ACTIVE,
+}
+
+data class CanonicalDatabaseIdentityPin(
+    val roleId: CanonicalDatabaseRoleId,
+    val instanceId: CanonicalDatabaseInstanceId,
+    val state: IdentityPinLifecycleState,
+)
+
+sealed class IdentityPinParseResult {
+    object Missing : IdentityPinParseResult()
+    object Malformed : IdentityPinParseResult()
+    data class UnsupportedVersion(val version: Int) : IdentityPinParseResult()
+    data class Valid(val pin: CanonicalDatabaseIdentityPin) : IdentityPinParseResult()
+}
+
+/**
+ * Pure codec for the canonical pin record. It has no filesystem access and never creates
+ * or repairs a missing/malformed record.
+ */
+object CanonicalIdentityPinCodec {
+    private const val FORMAT_VERSION = 1
+
+    fun encode(pin: CanonicalDatabaseIdentityPin): String =
+        "format_version=$FORMAT_VERSION\\n" +
+            "role_id=${pin.roleId.value}\\n" +
+            "instance_id=${pin.instanceId.value}\\n" +
+            "state=${pin.state.name}\\n"
+
+    fun parse(serialized: String?): IdentityPinParseResult {
+        if (serialized == null) return IdentityPinParseResult.Missing
+        if (!serialized.endsWith("\\n") || serialized.contains('\\r') ||
+            serialized.any { it == '\\u0000' || it.isISOControl() && it != '\\n' }
+        ) {
+            return IdentityPinParseResult.Malformed
+        }
+
+        val lines = serialized.dropLast(1).split('\\n')
+        if (lines.size != 4 || !lines[0].startsWith("format_version=")) {
+            return IdentityPinParseResult.Malformed
+        }
+        val version = lines[0].removePrefix("format_version=").toIntOrNull()
+            ?: return IdentityPinParseResult.Malformed
+        if (version != FORMAT_VERSION) return IdentityPinParseResult.UnsupportedVersion(version)
+
+        if (!lines[1].startsWith("role_id=") ||
+            !lines[2].startsWith("instance_id=") ||
+            !lines[3].startsWith("state=")
+        ) {
+            return IdentityPinParseResult.Malformed
+        }
+
+        val roleValue = lines[1].removePrefix("role_id=")
+        val instanceValue = lines[2].removePrefix("instance_id=")
+        val stateValue = lines[3].removePrefix("state=")
+        if (roleValue.isBlank() || roleValue.length > 128 ||
+            roleValue.any(Char::isISOControl)
+        ) {
+            return IdentityPinParseResult.Malformed
+        }
+        val role = try {
+            CanonicalDatabaseRoleId.fromPersisted(roleValue)
+        } catch (_: IllegalArgumentException) {
+            return IdentityPinParseResult.Malformed
+        }
+        val instance = CanonicalDatabaseInstanceId.tryFromPersisted(instanceValue)
+            ?: return IdentityPinParseResult.Malformed
+        val state = IdentityPinLifecycleState.values().firstOrNull { it.name == stateValue }
+            ?: return IdentityPinParseResult.Malformed
+        val pin = CanonicalDatabaseIdentityPin(role, instance, state)
+        return if (encode(pin) == serialized) {
+            IdentityPinParseResult.Valid(pin)
+        } else {
+            IdentityPinParseResult.Malformed
+        }
+    }
+}
+
+enum class CanonicalIdentityDatabaseState {
+    MISSING,
+    LEGACY_UNVERSIONED,
+    IDENTITY_MISSING,
+    IDENTITY_PRESENT,
+}
+
+enum class CanonicalIdentityStatus {
+    IDENTITY_MATCH,
+    MISSING_DATABASE,
+    LEGACY_UNVERSIONED,
+    IDENTITY_UNKNOWN,
+    IDENTITY_UNCONFIRMED,
+    PIN_INVALID,
+    UNSUPPORTED_PIN_VERSION,
+    ROLE_MISMATCH,
+    INSTANCE_MISMATCH,
+    PROVISIONING_INTERRUPTED,
+    PROVISIONING_FINALIZATION_REQUIRED,
+    PROVISIONING_CONFLICT,
+}
+
+/** Pure classifier. IDENTITY_MATCH is not database-schema verification or writer readiness. */
+object CanonicalIdentityStateClassifier {
+    fun classify(
+        databaseState: CanonicalIdentityDatabaseState,
+        observedRoleId: CanonicalDatabaseRoleId?,
+        observedInstanceId: CanonicalDatabaseInstanceId?,
+        pinResult: IdentityPinParseResult,
+    ): CanonicalIdentityStatus {
+        when (databaseState) {
+            CanonicalIdentityDatabaseState.MISSING -> return CanonicalIdentityStatus.MISSING_DATABASE
+            CanonicalIdentityDatabaseState.LEGACY_UNVERSIONED ->
+                return CanonicalIdentityStatus.LEGACY_UNVERSIONED
+            CanonicalIdentityDatabaseState.IDENTITY_MISSING -> {
+                return if (pinResult is IdentityPinParseResult.Valid &&
+                    pinResult.pin.state == IdentityPinLifecycleState.PENDING
+                ) {
+                    CanonicalIdentityStatus.PROVISIONING_INTERRUPTED
+                } else {
+                    CanonicalIdentityStatus.IDENTITY_UNKNOWN
+                }
+            }
+            CanonicalIdentityDatabaseState.IDENTITY_PRESENT -> Unit
+        }
+
+        if (observedRoleId == null || observedInstanceId == null) {
+            return CanonicalIdentityStatus.IDENTITY_UNKNOWN
+        }
+        return when (pinResult) {
+            IdentityPinParseResult.Missing -> CanonicalIdentityStatus.IDENTITY_UNCONFIRMED
+            IdentityPinParseResult.Malformed -> CanonicalIdentityStatus.PIN_INVALID
+            is IdentityPinParseResult.UnsupportedVersion ->
+                CanonicalIdentityStatus.UNSUPPORTED_PIN_VERSION
+            is IdentityPinParseResult.Valid -> {
+                val pin = pinResult.pin
+                if (pin.state == IdentityPinLifecycleState.PENDING) {
+                    if (pin.roleId == observedRoleId && pin.instanceId == observedInstanceId) {
+                        CanonicalIdentityStatus.PROVISIONING_FINALIZATION_REQUIRED
+                    } else {
+                        CanonicalIdentityStatus.PROVISIONING_CONFLICT
+                    }
+                } else if (pin.roleId != observedRoleId) {
+                    CanonicalIdentityStatus.ROLE_MISMATCH
+                } else if (pin.instanceId != observedInstanceId) {
+                    CanonicalIdentityStatus.INSTANCE_MISMATCH
+                } else {
+                    CanonicalIdentityStatus.IDENTITY_MATCH
+                }
+            }
+        }
+    }
+}

@@ -17,7 +17,7 @@ class CanonicalDatabaseContractsTest {
     @Test
     fun logicalRoleIdIsIndependentFromPhysicalInstanceId() {
         assertEquals("t0-canonical-sqlite-v1", role.value)
-        assertEquals("opaque-instance-001", instance.value)
+        assertEquals("550e8400-e29b-41d4-a716-446655440000", instance.value)
         assertFalse(role.value == instance.value)
     }
 
