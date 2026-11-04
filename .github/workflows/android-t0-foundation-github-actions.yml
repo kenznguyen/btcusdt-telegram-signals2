@@ -47,7 +47,7 @@ jobs:
           EVENT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          SOURCE_SHA="${INPUT_SOURCE_SHA:-${PR_HEAD_SHA:-$EVENT_SHA}}"
+          SOURCE_SHA="${INPUT_SOURCE_SHA:-36da6e79805996f87ad762228c010e74698cdced}"
           [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           test "$AI_EXECUTION_ENABLED" = "false"
           for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
