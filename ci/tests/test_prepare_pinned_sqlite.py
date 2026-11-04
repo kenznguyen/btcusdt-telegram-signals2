@@ -31,11 +31,11 @@ class PinnedSqlitePreparationTests(unittest.TestCase):
 
     def test_extracts_only_expected_files_and_emits_exact_sha256_pins(self):
         sqlite_c = (
-            f'#define SQLITE_SOURCE_ID "{SQLITE_SOURCE_ID}"\n'
+            f'#define SQLITE_SOURCE_ID       "{SQLITE_SOURCE_ID}"\n'
             "int sqlite3_source_stub(void) { return 0; }\n"
         ).encode()
         sqlite_h = (
-            f"#define SQLITE_VERSION_NUMBER {SQLITE_VERSION_NUMBER}\n"
+            f"#define SQLITE_VERSION_NUMBER    {SQLITE_VERSION_NUMBER}\n"
             "#define SQLITE_VERSION \"3.54.1\"\n"
         ).encode()
         payload = self.make_archive(sqlite_c, sqlite_h)
