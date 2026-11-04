@@ -2094,3 +2094,20 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Explicitly no Kotlin changes, DB open/create/inspection, migration, dependency addition, Android device, APK, Feeder, IPC, exchange, backup/restore, key provisioning or writer activation.
 - Status: Slice 1+2 PASS on prior evidence; detailed physical DB identity lifecycle PROPOSED / OWNER DECISION REQUIRED; D4 architecture APPROVED but implementation NOT APPROVED; .paper actual variant CI NOT VERIFIED; T0-B BLOCKED / NOT RUN / NOT AUTHORIZED; T0-C NOT RUN / NOT AUTHORIZED; T0-D NOT RUN / NOT VERIFIED; T0-E BLOCKED.
 - Next step: owner review/decision on identity model and verifier contract. Any implementation requires separate explicit approval. Keep AI_EXECUTION_ENABLED=false; paper-only.
+
+
+## P5.4.88 — Android T0 database identity and read-only schema contract implementation closeout (2026-11-04)
+
+- Closeout: `docs/evidence/P5.4.88-ANDROID-T0-DATABASE-IDENTITY-AND-READONLY-SCHEMA-CONTRACT-IMPLEMENTATION-CLOSEOUT-2026-11-04.md`.
+- Owner approved implementation of pure Kotlin domain contracts + fixture tests and GitHub Actions execution for regular and `.paper` variants. No DB/device/runtime permission was granted.
+- Commits: test-first RED `4ab28faf86f78b6e5f77064a2405743c44fe0b53`; domain implementation/workflow `d2bb81b316379ebce2fdb31e2841bcdbace49d42`; generated variant identity assertion `b5dcd0d0700d19b9ea3092593566385c48d6d635`.
+- Exact Android Foundation validated SHA: `b5dcd0d0700d19b9ea3092593566385c48d6d635`.
+- Android Foundation run #41758947843: PASS; regular `:app:testDebugUnitTest` and parallel `:app:testParallelUnitTest` BUILD SUCCESSFUL; static audit PASS. Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41758947843 .
+- Artifact ID `13289358031`, name `android-t0-foundation-b5dcd0d0700d19b9ea3092593566385c48d6d635`, size 92,064 bytes; downloaded ZIP SHA-256 `29ef7cf76fdf188bf18fc8813d63680f7ce112b1d6f68606dbf3c0994b2824d0`. Artifact: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41758947843/artifacts/13289358031 .
+- JUnit artifact verified: 115 tests / 18 suites for regular; 115 tests / 18 suites for `.paper`; 0 failures, 0 errors, 0 skipped in each. `CanonicalDatabaseContractsTest` has 15 passing tests per variant, including generated BuildConfig/application ID suffix assertion.
+- T0 automated validation run #41758416364 and P5.4.1 aggregate run #41758416565 both PASS on preceding exact SHA `d2bb81b316379ebce2fdb31e2841bcdbace49d42`, not the later test-only follow-up SHA. Aggregate preflight/T0/G1/G2/common-SHA checks passed; artifact IDs `13289721104` (aggregate) and `13290000113` (T0).
+- Implemented: distinct logical role and physical instance ID types; restore lineage preservation model; clone/fork with distinct child ID; distinct BackupId/RestoreEpoch/LeaseGeneration types; immutable migration descriptor checksum; pure read-only evidence verifier with fail-closed role/instance/catalog/checksum/sequence/incomplete/schema-drift outcomes.
+- The verifier is a pure in-memory domain verifier, not a SQLite adapter. No instance ID generator, DB persistence, schema_migrations DDL, migration runner, schema introspection, D3 manifest integration or legacy adoption is implemented.
+- Status: authorized domain/fixture scope PASS; SQLite schema/migration and read-only adapter NOT IMPLEMENTED; identity persistence/lifecycle NOT IMPLEMENTED; Android device NOT VERIFIED; T0-B NOT RUN / NOT AUTHORIZED; T0-C NOT RUN / NOT AUTHORIZED; T0-D NOT RUN / NOT VERIFIED; T0-E BLOCKED.
+- No SQLite/device/Feeder/lease/exchange/IPC/backup/restore/key provisioning/APK/writer action. `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next step: design-only proposal for persisted physical DB identity lifecycle, read-only SQLite adapter, D4 DDL + D5 schema digest + D3 manifest integration. Any runtime/database operation remains separately gated.
