@@ -2650,3 +2650,20 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Current verdict: **T0.8 IN PROGRESS — NOT VERIFIED**. Do not claim PASS until workflow completes successfully and the T0.8 CTest result is confirmed.
 - Limits remain: mock `JNIEnv` is not ART; no JNI_OnLoad registration/ART invocation, real Android runtime/device/API 26/33/35, path-backed DB, WAL/sidecars, process death, CanonicalRuntime, canonical DB, Feeder, lease, migration, backup/restore, APK, exchange or trading. Keep `AI_EXECUTION_ENABLED=false`.
 - Next: inspect workflow #41806514189 and its CTest logs; fix any failure on this same branch, then record exact final source SHA, run, artifact IDs/checksums, test outcomes and verdict.
+
+## T0.8 — Host-side JNI ABI Invocation Shim (closed 2026-11-04)
+
+- Owner approval: `APPROVE T0.8 HOST-SIDE JNI ABI INVOCATION SHIM SOURCE-ONLY`.
+- Evidence report: `docs/evidence/T0.8-HOST-SIDE-JNI-ABI-INVOCATION-SHIM-SOURCE-ONLY-2026-11-04.md`.
+- Evidence report commit: `7e985958e1444485dec3331c1122c602466e8e9e`.
+- Active branch: `feature/p5-4-1-post-merge-validation-20261103`; no PR/branch split.
+- Final tested source SHA: `5a5e8cca437a70fc6d8d1db0649b8b024352172b`.
+- Android T0 Foundation workflow #41806514189: **SUCCESS**; job #126494839475 SUCCESS on exact source SHA.
+- Native CTest **3/3 PASS**: T0.6 D5 memory, T0.7 handle lifecycle, and T0.8 host JNI ABI invocation. Log explicitly reports `100% tests passed, 0 tests failed out of 3`.
+- NDK debug compile/link **SUCCESS** for `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64`. Regular and `.paper` JVM unit-test tasks SUCCESS. Pinned SQLite preparation 4/4 PASS. Static audit `ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS`.
+- Native artifact #13309784277 (6,764,127 bytes), GitHub metadata SHA-256 `53197c2c2079ec9665723103e40126582f4db91da682005295a6cb9bb2fc60ee`.
+- Test/report artifact #13311010414 (147,996 bytes), GitHub metadata SHA-256 `70234a8d7376518548fedf5d35933cb5a32cee95de6acb8ced5b8eca6030fb07`.
+- Artifact payload ZIPs were not downloaded/re-hashed independently; payload checksum verification **NOT VERIFIED**.
+- Verdict: **T0.8 PASS — SOURCE-ONLY** for host mock-JNIEnv ABI invocation and the listed CI checks.
+- Limits: no ART/JNI_OnLoad/runtime/device/API 26/33/35/instrumentation; no path-backed DB/WAL/sidecars/process-death/canonical DB/CanonicalRuntime/writer/Feeder/lease/migration/backup/restore/APK/exchange/trading. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next action: any ART/device or path-backed/WAL runtime validation requires a separate bounded approval. T0.8 approval does not authorize those operations.
