@@ -28,9 +28,14 @@ This file is the durable restart point for future ChatGPT sessions. GitHub is th
 
 ## Current workstream
 
-### P5.2.6.2-R1 — Evidence Reconciliation
+### P1 — T0 Centralized Data Feeder, Android-first
 
-Objective: reconcile Android P4 evidence from the recorded manifest against source identity, artifact files, logs, scripts, and SHA-256 inventory. Do not start runtime or repeat tests.
+- Canonical target: Android-hosted SQLite; Market Data and Paper Ledger share one physical file. ADR-002 assigns the existing `regular` variant as sole canonical host and `.paper` as authenticated IPC client only. PC is optional AI/research/backtest compute and read-only consumer, not T0 canonical writer.
+- T0-A fixture/static CI: **PASS** on its recorded exact SHA and GitHub Actions evidence; this is not Android device/runtime acceptance.
+- T0-B Android path/identity metadata preflight: **BLOCKED / NOT RUN**. The reviewed Android source did not establish a CanonicalRuntime, app-private canonical path authority, SQLite persistence, Android Feeder composition or approved IPC service. No device/path access has been authorized or performed.
+- T0-C Android Feeder runtime: **NOT RUN / NOT AUTHORIZED**. T0-D Android shared-file backup/restore: **NOT RUN / NOT VERIFIED**. T0-E overall T0/P1: **BLOCKED**.
+- P5.4.83 checklist: `docs/evidence/P5.4.83-ANDROID-T0-B-READ-ONLY-PREFLIGHT-CHECKLIST-2026-11-04.md`. It is documentation only; no device, DB or runtime access.
+- Current next step: source-only implementation gap inventory for the regular Android host (CanonicalRuntime/path authority, shared SQLite/migrations, same-file lease/fencing, Feeder composition, authenticated `.paper` IPC and shared risk/ledger boundary). No code implementation until separately authorized.
 
 ### Android P4 evidence baseline
 
@@ -2007,3 +2012,17 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - No provider/account selection, legal incorporation, contracting, identity enrollment, key generation, KMS/HSM/escrow provisioning, storage setup or data upload authorized.
 - D82-B 2-of-3 quorum and all D6 recovery gates remain unchanged. Existing 96 fixtures remain SPECIFIED / NOT IMPLEMENTED / NOT RUN. GitHub Actions NOT RUN; no artifact.
 - Next step: prepare a neutral evidence checklist for ownership, contracting authority and legal conditions; reopen A/B/C selection only after facts are supplied and reviewed. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+
+
+## P5.4.83 — Android T0-B Read-Only Preflight Checklist (2026-11-04)
+
+- Added `docs/evidence/P5.4.83-ANDROID-T0-B-READ-ONLY-PREFLIGHT-CHECKLIST-2026-11-04.md`.
+- Reconciled `docs/T0_FEEDER_TEST_CONTRACT.md` and `docs/evidence/T0-A-FIXTURE-CI-CLOSEOUT-REVIEW-2026-11-04.md` from stale Windows-PC canonical wording to the owner-selected Android-first topology.
+- Annotated `docs/evidence/T0-RECHECK-2026-11-04.md` as historical; its PC follow-up recommendation is superseded by P5.4.64/P5.4.65.
+- Android architecture retained: regular variant is intended sole canonical host; `.paper` is authenticated IPC client; one shared physical SQLite file for Market Data + Paper Ledger; PC optional compute/read-only consumer.
+- Current gate state: T0-A **PASS** on prior exact-SHA GitHub Actions evidence; T0-B **BLOCKED / NOT RUN** because Android CanonicalRuntime/path authority and DB identity are not implemented/verified and device access has not been authorized; T0-C **NOT RUN / NOT AUTHORIZED**; T0-D **NOT RUN / NOT VERIFIED**; T0-E **BLOCKED**.
+- Checklist distinguishes source prerequisites from later device metadata preflight. It prohibits guessed paths, SQLite open/PRAGMA/integrity checks without separate authorization, DB creation, Feeder startup, exchange connectivity and market sync.
+- Commits on existing branch: checklist `2311635bf554bad06e73761b36e561e8ff1dcc67`; T0 contract `732993bdee4b4a8788faeb561b732deabb23fbb6`; closeout correction `f454061e87befd942ffb181e4f43185d84eebbe0`; historical re-check annotation `df783cbcbe087e628c03d36597504abef6849b58`.
+- This increment is documentation-only. No tests/workflows/builds/artifacts, Android device/filesystem, PC, canonical DB, Feeder, exchange, sync, backup/restore or writer activation. Branch HEAD before handoff update: `df783cbcbe087e628c03d36597504abef6849b58`.
+- Safety: `AI_EXECUTION_ENABLED=false`; paper-only; no live orders. Android Natural Doze remains INTERRUPTED / DEFERRED.
+- Next step: perform source-only current-HEAD gap inventory for the regular Android canonical host; no code changes until separately authorized.
