@@ -22,8 +22,8 @@ This index is authoritative for the current owner-decision status. Earlier secti
 | D6.1–D6.7 — restore epoch/fencing/Kill Switch | APPROVED | External authority and runtime protocol details open |
 | D7.1–D7.6 — backup security/retention/RPO/RTO/authorization | APPROVED | Provider, key custody, retention values, numerical RPO/RTO and approver roles unselected |
 
-**Cross-contract review:** `docs/evidence/P5.4.79-D2-D7-CROSS-CONTRACT-CONSISTENCY-AND-FIXTURE-PLAN-2026-11-04.md`.
-Architecture is coherent with explicit open design blockers. In particular, before implementation, distinguish the SHA-256 of the verified pre-encryption SQLite snapshot image from the SHA-256 of the encrypted destination object; do not overload a single physical-digest field. The review proposes these as separate digest domains and requires explicit manifest-field reconciliation; it does not amend D5/D7 owner decisions.
+**Cross-contract review:** `docs/evidence/P5.4.79-D2-D7-CROSS-CONTRACT-CONSISTENCY-AND-FIXTURE-PLAN-2026-11-04.md`. Digest-domain clarification proposal: `docs/evidence/P5.4.80-DIGEST-DOMAINS-AND-AUTHENTICATED-BACKUP-MANIFEST-PROPOSAL-2026-11-04.md` (**PROPOSED / NOT APPROVED**).
+Architecture is coherent with explicit open design blockers. P5.4.80 proposes separate SHA-256 domains for the verified pre-encryption SQLite snapshot image and the encrypted destination object, with an authenticated manifest binding both; this clarification is pending owner approval and does not amend D5/D7 decisions.
 
 **Current verification state:** fixture acceptance tests are specified in P5.4.79 (60 cases) but NOT IMPLEMENTED / NOT RUN. GitHub Actions NOT RUN for P5.4.79. Production implementation remains BLOCKED. No canonical DB/device/PC/production storage/key material/Feeder/exchange/backup/restore/writer was accessed. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 
@@ -275,3 +275,10 @@ P5.4.77 proposes separate canonical/staging/published-backup/recovery-audit trus
 ## D7 owner decision record — P5.4.78 (2026-11-04)
 
 **Status: ACCEPTED (architecture/policy only).** The owner approved D7.1–D7.6 exactly as proposed in `docs/evidence/P5.4.77-D7-BACKUP-SECURITY-RETENTION-RPO-RTO-RESTORE-AUTHORIZATION-PROPOSAL-2026-11-04.md`, without amendments. The accepted contract requires independent backup trust boundaries, authenticated immutable backup publication with read-back verification, encryption and separate auditable key custody, protected last-known-good retention, explicit measurable RPO/RTO targets, and authenticated restore approval with independent readiness/latch/Kill Switch/writer gates. Destination/provider, cryptographic suite/key custody, retention values, numerical RPO/RTO, approver roles and cost remain unselected. This decision does not authorize production backup/restore or runtime changes.
+
+
+## P5.4.80 — Digest domains and authenticated manifest proposal (2026-11-04)
+
+P5.4.80 proposes distinct `snapshot_image_sha256` (exact SQLite backup image bytes before encryption) and `encrypted_object_sha256` (exact encrypted payload bytes independently verified by full destination read-back). An authenticated versioned manifest binds both digests, lengths, Backup ID, immutable object ID/version and D2–D5 evidence. Payload and manifest are separate logical immutable objects; only their fully verified pair becomes AVAILABLE. Restore order: authenticate manifest → verify encrypted object → decrypt → verify snapshot image → D2/D3/D4/D5/domain checks → D6 restore staging/gates. Sixteen additional fixture cases are proposed.
+
+**Status: PROPOSED / NOT APPROVED.** Cryptographic suite, manifest authentication mechanism/encoding, key custody and storage provider remain unselected. No implementation, key provisioning, storage provisioning or backup/restore is authorized.
