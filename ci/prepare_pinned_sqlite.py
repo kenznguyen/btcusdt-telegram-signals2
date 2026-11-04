@@ -40,8 +40,8 @@ def extract_and_pin(payload: bytes, vendor_dir: Path, pin_file: Path) -> dict[st
         sqlite_c = archive.read(ARCHIVE_MEMBERS[0])
         sqlite_h = archive.read(ARCHIVE_MEMBERS[1])
 
-    version_match = re.search(rb'^#define SQLITE_VERSION_NUMBER[ \\t]+([0-9]+)', sqlite_h, re.MULTILINE)
-    source_match = re.search(rb'^#define SQLITE_SOURCE_ID "([^"]+)"', sqlite_c, re.MULTILINE)
+    version_match = re.search(rb'^#define SQLITE_VERSION_NUMBER\s+([0-9]+)', sqlite_h, re.MULTILINE)
+    source_match = re.search(rb'^#define SQLITE_SOURCE_ID\s+"([^"]+)"', sqlite_c, re.MULTILINE)
     if version_match is None or version_match.group(1).decode() != SQLITE_VERSION_NUMBER:
         raise ValueError("SQLite amalgamation version number does not match the approved pin")
     if source_match is None or source_match.group(1).decode() != SQLITE_SOURCE_ID:
