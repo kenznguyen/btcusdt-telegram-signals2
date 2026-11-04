@@ -51,3 +51,23 @@ add_test(
     NAME t0_7_native_sqlite_handle_lifecycle
     COMMAND native_sqlite_handle_lifecycle_test
 )
+
+add_executable(native_sqlite_jni_abi_test
+    native_sqlite_jni_abi_test.cpp
+    "${SQLITE_AMALGAMATION_DIR}/sqlite3.c"
+)
+target_include_directories(native_sqlite_jni_abi_test PRIVATE ${T0_NATIVE_SQLITE_TEST_INCLUDE_DIRS})
+target_compile_definitions(native_sqlite_jni_abi_test PRIVATE
+    ${T0_NATIVE_SQLITE_TEST_DEFINITIONS}
+    CANONICAL_SQLITE_TEST_HOOKS=1
+)
+target_compile_features(native_sqlite_jni_abi_test PRIVATE cxx_std_17)
+
+if(UNIX)
+    target_link_libraries(native_sqlite_jni_abi_test PRIVATE pthread dl m)
+endif()
+
+add_test(
+    NAME t0_8_host_jni_abi_invocation
+    COMMAND native_sqlite_jni_abi_test
+)
