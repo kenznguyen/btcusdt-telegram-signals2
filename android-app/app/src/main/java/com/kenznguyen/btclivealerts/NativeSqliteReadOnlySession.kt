@@ -51,7 +51,7 @@ internal object NativeSqliteReadOnlyJni {
   return NativeSqliteOpenReply(NativeSqliteStatus.fromNativeCode(result[0].toInt()),result[1])
  }
  fun closeSnapshot(handle:Long):NativeSqliteStatus {libraryLoaded;return NativeSqliteStatus.fromNativeCode(nativeCloseSnapshot(handle))}
- fun readD5Snapshot(handle:Long):NativeSqliteD5SnapshotReply {libraryLoaded;return NativeSqliteD5WireDecoder.decode(nativeReadD5Snapshot(handle))}
+ fun readD5Snapshot(handle:Long):NativeSqliteD5SnapshotReply {libraryLoaded;return NativeSqliteD5WireDecoder.decode(nativeReadD5Snapshot(handle), "native-handle:$handle")}
  internal fun openInMemoryForRuntimeTest():NativeSqliteOpenReply {
   libraryLoaded
   val result=nativeTestOpenInMemory()
