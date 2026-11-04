@@ -2,7 +2,7 @@
 
 ## Status
 
-**PARTIALLY ACCEPTED — D1 host/physical topology; D2 and D3 semantics ACCEPTED.** The owner has accepted Android-hosted SQLite as the canonical T0 store, one shared physical SQLite file for Market Data plus Paper Ledger, all five D2 high-water decisions, and D3.1–D3.6 plus supplemental conditions A–E. D4–D7 remain proposed/unresolved. This ADR does not authorize production backup/restore, canonical database creation/opening, Feeder activation, exchange connectivity or writer activation.
+**PARTIALLY ACCEPTED — D1 host/physical topology; D2–D7 architecture contracts ACCEPTED.** The owner has accepted Android-hosted SQLite as canonical T0 storage, one shared physical SQLite file for Market Data plus Paper Ledger, all D2 decisions, D3.1–D3.6 and supplements A–E, D4.1–D4.7, D5.1–D5.4, D6.1–D6.7 and D7.1–D7.6. Implementation and operational authorization remain separate. This ADR does not authorize production backup/restore, canonical database creation/opening, Feeder activation, exchange connectivity or writer activation.
 
 ## Date
 
@@ -251,3 +251,8 @@ The owner explicitly approved D6.1–D6.7 as specified in `docs/evidence/P5.4.75
 ## D7 proposal reference (2026-11-04)
 
 P5.4.77 proposes separate canonical/staging/published-backup/recovery-audit trust boundaries; independent immutable destination with authenticated manifest and read-back verification; authenticated encryption and separate auditable key custody; protected last-known-good retention and deletion controls; explicit measurable RPO/RTO values; and authenticated restore authorization with separate readiness, latch, Kill Switch and writer gates. D7 remains **PROPOSED / NOT APPROVED**. Destination/provider, key custody, retention schedule, numerical RPO/RTO and approver roles remain unselected. No backup or restore operation is authorized.
+
+
+## D7 owner decision record — P5.4.78 (2026-11-04)
+
+**Status: ACCEPTED (architecture/policy only).** The owner approved D7.1–D7.6 exactly as proposed in `docs/evidence/P5.4.77-D7-BACKUP-SECURITY-RETENTION-RPO-RT0-RESTORE-AUTHORIZATION-PROPOSAL-2026-11-04.md`, without amendments. The accepted contract requires independent backup trust boundaries, authenticated immutable backup publication with read-back verification, encryption and separate auditable key custody, protected last-known-good retention, explicit measurable RPO/RTO targets, and authenticated restore approval with independent readiness/latch/Kill Switch/writer gates. Destination/provider, cryptographic suite/key custody, retention values, numerical RPO/RTO, approver roles and cost remain unselected. This decision does not authorize production backup/restore or runtime changes.
