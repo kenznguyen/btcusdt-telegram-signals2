@@ -2393,3 +2393,18 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - CI/test status for new code: **NOT VERIFIED** until run 41775378163 completes. The RED failure is the expected test-first checkpoint, not evidence against the implementation. No artifact is claimed.
 - No Android device, instrumentation, filesystem, SQLite database, SQL/PRAGMA execution, Feeder, lease, writer, backup/restore, APK, exchange or trading action. Keep `AI_EXECUTION_ENABLED=false`.
 - Next step: reconcile run 41775378163 and its jobs/artifact. Fix source-level failures if present, then update this handoff/report with exact outcome. Runtime/device/DB authorization remains separate.
+
+
+## P5.4.98 — GitHub Actions source verification closeout (2026-11-04)
+
+- Active branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Source SHA tested: `d34b6ef2652b964294a3b815ba7e93343f1cfa11`.
+- Workflow run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41775378163 — **SUCCESS**.
+- Job `126394868314`: regular host unit tests PASS; `.paper` unit tests PASS; Android T0 foundation static audit PASS.
+- Test XML totals: regular host 25 suites / 171 tests / 0 failures / 0 errors / 0 skipped; `.paper` 25 suites / 171 tests / 0 failures / 0 errors / 0 skipped. D5-focused tests: schema contract 6/6 and read-only transaction evidence gate 2/2 in each variant.
+- Artifact: ID `13296473759`, name `android-t0-foundation-d34b6ef2652b964294a3b815ba7e93343f1cfa11`, [workflow run/artifact](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41775378163).
+- GitHub artifact digest: `sha256:a90ac9c89498adf8291cb34458ff072df78f1828dec32ffafb8ff2ec4db58a8c`. Downloaded ZIP passed `unzip -t`; independently computed SHA-256 matched exactly: `a90ac9c89498adf8291cb34458ff072df78f1828dec32ffafb8ff2ec4db58a8c`.
+- Evidence report updated: `docs/evidence/P5.4.98-MINSDK26-READONLY-SQLITE-SOURCE-SPIKE-2026-11-04.md`.
+- Verdict: **PASS** for source-level unit tests, static audit and artifact ZIP integrity on the exact source SHA. This does not prove Android runtime/device behavior or minSdk 26 DEFERRED transaction behavior.
+- Still blocked/not implemented: minSdk 26 read-only consistent transaction adapter; canonical byte serializer/schema digest. No Android device, instrumentation, SQLite DB, filesystem, Feeder, writer, migration, backup/restore, APK, exchange or trading operation was performed or authorized. Keep `AI_EXECUTION_ENABLED=false`.
+- Next step: owner approval is required for any further bounded source increment; runtime/device/DB authorization remains separate.
