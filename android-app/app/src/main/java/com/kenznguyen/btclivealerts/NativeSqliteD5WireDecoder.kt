@@ -203,7 +203,7 @@ internal object NativeSqliteD5WireDecoder {
             throw D5WireRejected(NativeSqliteD5ReadStatus.UNSUPPORTED_SCHEMA)
         }
 
-        return D5SchemaEnvelope(
+        val envelope = D5SchemaEnvelope(
             runtime = D5RuntimeIdentity(
                 canonicalizationId = CanonicalD5SchemaContract.CANONICALIZATION_ID,
                 canonicalizationVersion = CanonicalD5SchemaContract.CANONICALIZATION_VERSION,
@@ -217,6 +217,10 @@ internal object NativeSqliteD5WireDecoder {
             indexColumns = indexColumns,
             foreignKeys = foreignKeys,
         )
+        // Run the frozen v1 serializer as a pure completeness/identity validator.
+        // The caller can reuse the returned envelope to compute the canonical digest.
+        CanonicalD5Serializer.serialize(envelope)
+        return envelope
     }
 
     private fun DataInputStream.readCount(): Int =
