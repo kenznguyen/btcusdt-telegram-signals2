@@ -1846,3 +1846,18 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Status: architecture consistency **PASS WITH OPEN BLOCKERS**; documentation chronology reconciled in ADR-001; production implementation **BLOCKED**; fixture tests **NOT IMPLEMENTED / NOT RUN**.
 - No canonical DB, Android device, PC, production storage, key material, Feeder, exchange, backup/restore or writer was accessed. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next step: resolve digest-domain/manifest field semantics and the remaining detailed contracts, then separately authorize fixture-only implementation on GitHub Actions. No production/runtime operation is authorized.
+
+
+## P5.4.80 — Digest domains and authenticated manifest proposal (2026-11-04)
+
+- Proposal: `docs/evidence/P5.4.80-DIGEST-DOMAINS-AND-AUTHENTICATED-BACKUP-MANIFEST-PROPOSAL-2026-11-04.md`.
+- Status: **PROPOSED / NOT APPROVED**; owner decision required for P5.4.80 D1–D5.
+- Separates `snapshot_image_sha256` over exact verified SQLite backup image bytes before encryption from `encrypted_object_sha256` over exact encrypted payload bytes verified by complete destination read-back.
+- Proposes authenticated manifest binding both digest domains and lengths, Backup ID, immutable payload object ID/version and D2–D5 evidence. Manifest authentication is distinct from payload digest; secret key material never enters manifest/logs/artifacts.
+- Proposes separate immutable payload and manifest objects, AVAILABLE only after both are durable/authenticated/verified; uncertain outcomes remain STAGING/UNKNOWN and cannot replace last-known-good.
+- Restore order: authenticate manifest → verify ciphertext digest/length/object version → decrypt through approved key authority → verify snapshot-image digest → D2/D3/D4/D5/domain checks → D6 isolated restore staging and separate authorization/fencing gates.
+- Adds 16 proposed fixture cases to P5.4.79's 60-case plan; total 76 specified, all **NOT IMPLEMENTED / NOT RUN**.
+- Cryptographic suite, manifest authentication mechanism/encoding, key custody/escrow/rotation, storage provider and object publication atomicity remain unselected and require separate review.
+- GitHub Actions: **NOT RUN**; no workflow run/artifact. Docs-only changes; no code/schema/runtime changed.
+- No canonical DB, Android device, PC, production storage, key material, Feeder, exchange, backup/restore or writer touched. Keep Android-first, no PC, paper-only and `AI_EXECUTION_ENABLED=false`.
+- Next step: await explicit owner decision on P5.4.80. Do not implement fixtures or runtime changes until separately authorized.
