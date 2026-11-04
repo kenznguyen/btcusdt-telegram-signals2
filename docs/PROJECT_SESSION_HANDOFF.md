@@ -1711,3 +1711,23 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - This handoff update records owner decision and evidence pointers. GitHub Actions: **NOT RUN**; tests: **NOT RUN**; fixture plan remains specified/not implemented; no workflow run or artifact exists for this increment.
 - No code, schema, migration, IPC, device access, canonical DB open/create/write, Feeder startup, exchange connection, market-data sync, backup/restore execution, writer activation or orders. Keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
 - Next step: prepare D4 Schema Version Authority proposal as documentation-only work. No implementation or production operation until separately approved.
+
+
+## P5.4.71 — D4 SQLite Schema Version Authority Proposal (2026-11-04)
+
+- Proposal: `docs/evidence/P5.4.71-D4-SQLITE-SCHEMA-VERSION-AUTHORITY-PROPOSAL-2026-11-04.md`.
+- Proposal commit: `7d6da0a1c42606490c95762c3290b565d520524c`.
+- ADR-001 reference update commit: `d1a7d2ffa46657c2dadfd999edf5908657bddeab`; ADR blob: `910dc19f0728d3c69109c50f86a04902f982432f`.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`.
+- Scope: documentation-only D4 proposal and read-only source review. No implementation, schema, migration, test or runtime change.
+- Source reviewed:
+  - `market_data/store.py` blob `b28601aed70097afcb7a4eea2dd93ed163ae1cec`: explicit SQLite candle schema initialization; no SQLite migration registry in this file.
+  - `paper_execution/ledger.py` blob `68209ce48a6e5e9a995f93167684133e41cc7f55`: constructor creates/ensures ledger/risk/equity schema and seeds legacy state; not a formal versioned migration authority.
+  - `market_data/migrations.py` blob `5ff71e3ffa9e7c14d26d09f3881313bbbdc3bef0`: migration ID + checksum registry is for PostgreSQL only, not canonical Android SQLite.
+  - `market_data/storage.py` blob `99b66a4d183b8664f28d6638d8d87416d32847c9`: SQLite default/PostgreSQL opt-in adapter; does not establish a shared SQLite migration registry.
+- Proposal: one database-wide SQLite `schema_migrations` authority; immutable migration IDs, ordered sequence and exact-byte SHA-256; DDL and registry row in one transaction; explicit maintenance-only migration runner; registry authoritative and `PRAGMA user_version` optional same-transaction mirror only; explicit read-only legacy inventory/adoption; read-only verifier and fail-closed on missing/unknown/mismatched chain or schema drift; include migration-chain evidence in D3 same-snapshot manifest.
+- D4 status: **PROPOSED / NOT APPROVED**. Owner decision has not been received. D5–D7 remain NOT DECIDED.
+- Fixture acceptance: 20 cases specified, **NOT IMPLEMENTED / NOT RUN**. GitHub Actions **NOT RUN**; no workflow run/artifact exists for this increment.
+- T0 gates unchanged: T0-A prior fixture-only PASS (not rerun); T0-B BLOCKED / NOT RUN; T0-C NOT RUN / NOT AUTHORIZED; T0-D NOT RUN / NOT VERIFIED; T0-E BLOCKED.
+- No canonical DB opened/created/modified/inspected; no Android device access; no Feeder, exchange connection or market-data sync; no backup/restore; no writer activation. Keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
+- Next step: owner review of D4.1–D4.7. If approved, record decision in ADR/evidence/handoff; only then prepare D5 proposal. No runtime implementation is authorized by this proposal.
