@@ -2072,3 +2072,11 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Limits: no SQLite open/create/PRAGMA/schema/migration; no Feeder, lease, exchange, sync, IPC/Binder, Paper Ledger/Risk activation, Android device/install/instrumentation, PC/VPS, APK build/sign/publish or writer activation. `AI_EXECUTION_ENABLED=false`; paper-only.
 - Status: Slice 1 **PASS — source/JVM CI**; Slice 2 **PASS — source/JVM CI/static audit**. Device runtime conformance **NOT VERIFIED**; T0-B **NOT RUN / NOT AUTHORIZED**; T0-C **NOT RUN / NOT AUTHORIZED**; T0-D **NOT RUN / NOT VERIFIED**; T0-E **BLOCKED**.
 - Next step: source-only review of Slice 1 + 2 and prepare Slice 3 design/tests for canonical DB identity and schema-migration verifier boundary. No SQLite access or DB implementation without separate approval.
+
+
+### P5.4.86 source-review addendum
+
+- Post-implementation five-axis source review: **PASS FOR AUTHORIZED FOUNDATION SCOPE WITH LIMITS**; no critical issue found in side-effect-free runtime/path-authority boundary.
+- Identity caveat: t0-canonical-sqlite-v1 is a shared logical role/version token, not a unique physical DB or installation identity. It must not be used as snapshot/restore/clone identity until Slice 3 defines identity semantics.
+- Variant caveat: Android CI ran :app:testDebugUnitTest; `.paper` registry exclusion fixture and Gradle BuildConfig static check passed, but the actual parallel Android build variant was not compiled/executed. `.paper` Android variant conformance remains NOT VERIFIED.
+- Next step before Slice 3 implementation: define logical-vs-instance identity semantics and add CI coverage for the parallel variant build/test task. No DB access, Android device, APK build/install or runtime operation is authorized by this review.
