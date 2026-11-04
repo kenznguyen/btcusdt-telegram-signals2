@@ -2803,3 +2803,15 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Targeted rerun of only failed API 26/API 35 jobs was accepted. Run #41841729095 attempt 2: API 26 #126631895090 and API 35 #126631893853 were **QUEUED** at last inspection; API 33 was not rerun because its test passed.
 - Verdict remains **T0.9 BLOCKED / NOT VERIFIED**. Do not modify JNI/Kotlin/C++ code based on pre-test emulator/install failures. Continue by inspecting attempt-2 API 26/API 35 logs and XML/artifacts.
 - Boundaries unchanged: SQLite `:memory:` only, debug-only hook, `AI_EXECUTION_ENABLED=false`; no canonical DB, Feeder, lease, exchange, live orders, APK release/sign/install or physical-device testing.
+
+
+### T0.9 diagnostic run #41841729095 — attempt 2 and attempt 3 queued (2026-11-04)
+
+- Evidence report update commit: `d3d41ecc97b9cb96814b3f093accabcc31719b31`.
+- Run #41841729095 attempt 2 completed **FAILURE** on workflow SHA `753564c7725b93368cd5d434489777be3a26d0da`.
+- API 33 job #126631991490: **PASS**, retaining inspected XML/artifact #13330877984 (1 test, 0 failures/errors/skips).
+- API 26 job #126631895090: **BLOCKED before instrumentation**. UTP APK install failed with `ShellCommandUnresponsiveException`; XML tests=0. Logcat contains repeated `com.google.android.gms.persistent` ANRs and PackageManager/system-server stalls. Artifact #13331579555; independently computed ZIP SHA-256 `d298fcd312e42813a29107b941d9a397ba4ab23e71cefa333ef888a5002a423b` matches GitHub metadata.
+- API 35 job #126631893853: **BLOCKED before instrumentation**. Emulator runner timed out polling `sys.boot_completed`; no instrumentation XML or diagnostics artifact was uploaded.
+- A targeted retry was accepted: attempt 3 API 26 #126646297749 and API 35 #126646297491 were **QUEUED** at last inspection; API 33 #126646301336 was **SUCCESS** and not rerun.
+- Verdict remains **T0.9 BLOCKED / NOT VERIFIED**. Do not change JNI/Kotlin/C++/SQLite source based on these pre-test emulator failures. If attempt 3 repeats the same infrastructure failures, stop blind retries and assess a narrowly scoped workflow/emulator reliability change.
+- Boundaries remain unchanged: SQLite `:memory:`, debug-only hook, `AI_EXECUTION_ENABLED=false`; no canonical DB, Feeder, lease, exchange, live orders, release/sign/install or physical-device testing.
