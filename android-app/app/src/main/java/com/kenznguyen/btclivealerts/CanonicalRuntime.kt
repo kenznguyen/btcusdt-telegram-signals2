@@ -2,13 +2,26 @@ package com.kenznguyen.btclivealerts
 
 import java.io.File
 
-/** A stable identifier for the canonical database; deliberately not a path or SQL capability. */
+/** Stable logical role; it is not a physical database or installation identity. */
 @JvmInline
-value class CanonicalDatabaseIdentity internal constructor(internal val token: String)
+value class CanonicalDatabaseRoleId internal constructor(val value: String) {
+    companion object {
+        private const val CANONICAL_T0 = "t0-canonical-sqlite-v1"
+
+        fun canonicalT0(): CanonicalDatabaseRoleId = CanonicalDatabaseRoleId(CANONICAL_T0)
+
+        fun fromPersisted(value: String): CanonicalDatabaseRoleId {
+            require(value.isNotBlank() && value.length <= 128 && value.none(Char::isISOControl)) {
+                "Invalid canonical database role ID"
+            }
+            return CanonicalDatabaseRoleId(value)
+        }
+    }
+}
 
 data class CanonicalDatabaseLocation internal constructor(
     val candidateFile: File,
-    val identity: CanonicalDatabaseIdentity,
+    val roleId: CanonicalDatabaseRoleId,
 )
 
 fun interface CanonicalPathAuthority {
@@ -22,12 +35,11 @@ class AppPrivateCanonicalPathAuthority(
 ) : CanonicalPathAuthority {
     override fun resolve(): CanonicalDatabaseLocation = CanonicalDatabaseLocation(
         candidateFile = File(appDataDirectory, CANONICAL_DATABASE_RELATIVE_PATH),
-        identity = CANONICAL_DATABASE_IDENTITY,
+        roleId = CanonicalDatabaseRoleId.canonicalT0(),
     )
 
     private companion object {
         const val CANONICAL_DATABASE_RELATIVE_PATH = "files/canonical/t0.sqlite"
-        val CANONICAL_DATABASE_IDENTITY = CanonicalDatabaseIdentity("t0-canonical-sqlite-v1")
     }
 }
 

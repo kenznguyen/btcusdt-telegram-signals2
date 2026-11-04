@@ -15,13 +15,12 @@ class CanonicalRuntimeTest {
         try {
             val appData = File(tempRoot, "not-created-app-data")
             val authority = AppPrivateCanonicalPathAuthority(appData)
-
             assertFalse(appData.exists())
             val first = authority.resolve()
             val second = authority.resolve()
-
             assertEquals(File(appData, "files/canonical/t0.sqlite"), first.candidateFile)
-            assertEquals(first.identity, second.identity)
+            assertEquals(first.roleId, second.roleId)
+            assertEquals(CanonicalDatabaseRoleId.canonicalT0(), first.roleId)
             assertFalse(appData.exists())
             assertFalse(first.candidateFile.exists())
         } finally {
@@ -37,7 +36,6 @@ class CanonicalRuntimeTest {
             factoryCalls += 1
             expected
         }
-
         assertSame(expected, registry.runtime)
         assertSame(expected, registry.runtime)
         assertEquals(1, factoryCalls)
@@ -50,7 +48,6 @@ class CanonicalRuntimeTest {
             factoryCalls += 1
             CanonicalRuntime(AppPrivateCanonicalPathAuthority(File("/unused")))
         }
-
         assertNull(registry.runtime)
         assertNull(registry.runtime)
         assertEquals(0, factoryCalls)
@@ -63,7 +60,6 @@ class CanonicalRuntimeTest {
             resolveCalls += 1
             throw AssertionError("Runtime construction must not resolve the path")
         }
-
         CanonicalRuntime(authority)
         assertEquals(0, resolveCalls)
     }
