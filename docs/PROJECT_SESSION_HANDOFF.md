@@ -2713,3 +2713,14 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - First T0.9 matrix run #41823459543 is now **COMPLETED / FAILURE** on SHA `e6be3b747f9a7c436616334e8d616bff979cda34`, with no artifacts. API 26 #126552115016 and API 35 #126552114602 booted but ran Gradle from repository root because the emulator action executed the multiline `cd` and Gradle lines in separate shells; API 35 boot took ~931 seconds. API 33 #126552115265 failed before Gradle after ~780-second boot due ADB settings/input `Broken pipe (32)`, exit code 224. None of the first-run jobs executed the instrumentation test.
 - The corrected source candidate is SHA `bae7eb0749008e7fb0081106363391653b0febdf`; latest T0.9 run #41825231563 remains the authoritative corrected attempt to inspect. T0.9 remains **NOT VERIFIED**.
 - T0.9 report update commit: `e84822ac74424b95752a3875e31e8c476fe056c9`.
+
+
+### T0.9 ART D5 fixture correction — 2026-11-04
+
+- Source review identified that the original debug-only JNI hook created only `lifecycle_probe`, but the ART test immediately called the canonical D5 reader and expected a VERIFIED envelope. That fixture could not satisfy the D5 query contract.
+- Corrected hook to mirror the already-tested T0.6 isolated host fixture: in-memory strict parent/child tables, generated stored column, cascading FK, partial descending index and view; foreign keys enabled. Instrumentation now asserts all these decoded D5 properties. No path-backed DB is used.
+- Commits: `b2aff5dfeca3c07f04f54b33ffcc218a4d3cf9ba` (fixture); `cf3a84d279d14d3867f1ba8cd9b2c922f8043a93` (stronger ART assertions).
+- Latest source HEAD: `cf3a84d279d14d3867f1ba8cd9b2c922f8043a93`. T0.9 run #41826316428 on this exact SHA is **PENDING**: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41826316428. Jobs API 26 #126561836573, API 33 #126561836912, API 35 #126561837225 all pending at last inspection.
+- Older corrected run #41825231563 still has API 33 #126558155805 and API 35 #126558156045 in progress; API 26 #126558155316 cancelled. Earlier run #41825022008 still has API 26 #126557433974 in progress. These older jobs occupy per-API concurrency groups and delay the latest matrix; no current XML/test logs are available from those in-progress jobs.
+- Evidence report update commit: `b593362cb9564feda1713945b840f9bfbcac6ad7`.
+- Verdict remains **NOT VERIFIED**. Do not treat earlier SHA runs as verification of the corrected fixture. Next: inspect run #41826316428 and require API 26/33/35 instrumentation success plus report inspection.
