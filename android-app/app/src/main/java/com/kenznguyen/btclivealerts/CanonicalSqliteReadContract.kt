@@ -138,7 +138,7 @@ object CanonicalSqliteReadContract {
                 }
                 if (entry.type.equals("table", ignoreCase = true)) {
                     require(!isVirtualTableDeclaration(entry.sql.orEmpty())) {
-                        "Virtual table module provenance is not verified for ${entry.name}"
+                        "virtual table module provenance is not verified for ${entry.name}"
                     }
                 }
             }
