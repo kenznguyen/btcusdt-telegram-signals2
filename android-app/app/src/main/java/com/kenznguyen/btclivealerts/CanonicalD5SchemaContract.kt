@@ -170,3 +170,47 @@ object CanonicalD5SchemaContract {
         return 0
     }
 }
+
+/** Transaction evidence is supplied by a future adapter; this gate does not inspect SQLite. */
+enum class D5ObservedTransactionMode {
+    DEFERRED,
+    IMMEDIATE,
+    EXCLUSIVE,
+    UNKNOWN,
+}
+
+enum class D5TransactionGateStatus {
+    ACCEPTED,
+    API_BELOW_MINIMUM,
+    MISSING_IMPLEMENTATION,
+    MODE_NOT_DEFERRED,
+    READ_ONLY_NOT_ENFORCED,
+    FALLBACK_USED,
+}
+
+data class D5TransactionEvidence(
+    val apiLevel: Int,
+    val implementationClass: String,
+    val observedMode: D5ObservedTransactionMode,
+    val readOnlyEnforced: Boolean,
+    val fallbackUsed: Boolean,
+)
+
+object D5ReadOnlyTransactionGate {
+    const val MINIMUM_API_LEVEL = 26
+
+    /**
+     * A future adapter may claim acceptance only when its evidence identifies a concrete
+     * implementation, proves DEFERRED mode and read-only enforcement, and records no fallback.
+     * A PASS here validates supplied evidence only; it is not runtime proof.
+     */
+    fun validate(evidence: D5TransactionEvidence): D5TransactionGateStatus = when {
+        evidence.apiLevel < MINIMUM_API_LEVEL -> D5TransactionGateStatus.API_BELOW_MINIMUM
+        evidence.implementationClass.isBlank() -> D5TransactionGateStatus.MISSING_IMPLEMENTATION
+        evidence.fallbackUsed -> D5TransactionGateStatus.FALLBACK_USED
+        evidence.observedMode != D5ObservedTransactionMode.DEFERRED ->
+            D5TransactionGateStatus.MODE_NOT_DEFERRED
+        !evidence.readOnlyEnforced -> D5TransactionGateStatus.READ_ONLY_NOT_ENFORCED
+        else -> D5TransactionGateStatus.ACCEPTED
+    }
+}
