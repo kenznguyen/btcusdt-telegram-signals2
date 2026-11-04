@@ -63,8 +63,7 @@ void test_populated_memory_schema(const std::string& fixture_path) {
         " generated TEXT GENERATED ALWAYS AS (value || '-g') STORED"
         ") STRICT;"
         "CREATE INDEX idx_child_value ON child(value DESC) WHERE value IS NOT NULL;"
-        "CREATE VIEW child_view AS SELECT id,parent_id FROM child;"
-");
+        "CREATE VIEW child_view AS SELECT id,parent_id FROM child;");
     expect(schema_ok, "create strict tables, generated column, partial descending index, view and foreign key");
     if (schema_ok) {
         std::vector<uint8_t> payload;
