@@ -2702,3 +2702,9 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - P5.4.1 artifacts present/unexpired by GitHub metadata: G1 #13319755014 (metadata SHA-256 `641fb32f42012188c34c215ea704ab92f9fd5209f6899e080d235fa0c6101276`); T0 #13318732693 (`583e0627d3281b9b75b0e69fa6825ec2c4daff84961028cde2f22ff23de9c4a3`); combined #13318483268 (`67ec5dafc63338b487c0a008bb6b48869f78d891649f5ce24d0c7e5f0f45e1c0`); G2 #13318387669 (`a4818fcc3de1f78b3fc5933db9bdfc13621285417ecb69d478bb6a62d7555786`). These are metadata digests; payload ZIPs were not independently re-hashed.
 - P5.4.1 success validates the allowlist/policy correction and the existing T0/G1/G2 regression gate on candidate SHA; it does not prove T0.9 ART/JNI instrumentation.
 - Evidence report update commit: `96b83c0c250882d23fdbdc63454dccabffc0b381`.
+
+
+- Additional first-run API 33 evidence: job #126552115265 failed before Gradle/instrumentation. Emulator boot completed after ~780 seconds, then ADB settings/input calls failed with `Broken pipe (32)`; runner exited code 224 and logged `stop: Not implemented`. This is an emulator/ADB startup failure; no JNI assertion or instrumentation report is available for that job.
+- Corrected T0.9 run #41825231563: API 33 job #126558155805 was in progress at last inspection; API 26 #126558155316 and API 35 #126558156045 were pending behind earlier jobs in the same per-API concurrency groups. Earlier API 26 retry #126557433974 and first API 35 job #126552114602 were still in the emulator-runner step. Do not infer success or failure until those jobs finish.
+- No speculative emulator configuration change has been made. Continue inspecting actual runner logs; keep T0.9 **NOT VERIFIED** until all three corrected API jobs pass and instrumentation reports are inspected.
+- T0.9 report update commit: `ee1ed37a154d2b54b651329de4c2d1e4609edda3`.
