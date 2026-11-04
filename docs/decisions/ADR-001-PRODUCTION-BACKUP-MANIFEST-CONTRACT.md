@@ -21,6 +21,9 @@ This index is authoritative for the current owner-decision status. Earlier secti
 | D5.1–D5.4 — digest layers | APPROVED | Canonical envelope/runtime/introspection details open |
 | D6.1–D6.7 — restore epoch/fencing/Kill Switch | APPROVED | External authority and runtime protocol details open |
 | D7.1–D7.6 — backup security/retention/RPO/RTO/authorization | APPROVED | Provider, key custody, retention values, numerical RPO/RTO and approver roles unselected |
+| D82-A — recovery model and loss-of-recovery risk | APPROVED | Independent escrow + primary KMS/HSM for routine operations; low loss-of-recovery tolerance; no provider/custodian selected |
+| D82-B — approval quorum and role separation | PARTIALLY CONSTRAINED | At least two independent approvers; requester/executor excluded; roster, exact quorum, succession and emergency exception open |
+| D82-C–D82-J — key custody details | OPEN | Jurisdiction, audit, rotation/revocation, identity, RPO/RTO, Android/JVM qualification and metadata remain undecided |
 
 **Cross-contract review:** `docs/evidence/P5.4.79-D2-D7-CROSS-CONTRACT-CONSISTENCY-AND-FIXTURE-PLAN-2026-11-04.md`. Digest-domain clarification proposal: `docs/evidence/P5.4.80-DIGEST-DOMAINS-AND-AUTHENTICATED-BACKUP-MANIFEST-PROPOSAL-2026-11-04.md` (**PROPOSED / NOT APPROVED**).
 Architecture is coherent with explicit open design blockers. P5.4.80 proposes separate SHA-256 domains for the verified pre-encryption SQLite snapshot image and the encrypted destination object, with an authenticated manifest binding both; this clarification is pending owner approval and does not amend D5/D7 decisions.
@@ -307,7 +310,11 @@ P5.4.81 proposes AES-256-GCM envelope encryption with a unique random 256-bit DE
 
 ## P5.4.82 — Provider-neutral key custody and recovery (2026-11-04)
 
-**Status: PROPOSED / NOT APPROVED.** See `docs/evidence/P5.4.82-PROVIDER-NEUTRAL-KEY-CUSTODY-AND-RECOVERY-ARCHITECTURE-PROPOSAL-2026-11-04.md`.
+**Status: PARTIALLY APPROVED — D82-A ACCEPTED; D82-B–D82-J OPEN.** See `docs/evidence/P5.4.82-PROVIDER-NEUTRAL-KEY-CUSTODY-AND-RECOVERY-ARCHITECTURE-PROPOSAL-2026-11-04.md`.
+
+Owner decision D82-A (2026-11-04): **Independent escrow authority** is selected as the recovery model, combined with the primary KMS/HSM for routine operations. The accepted loss-of-recovery risk is **LOW**. At least two independent approvers are required, and requester and executor are excluded from approving their own recovery request/execution. Exact roster, two-of-N quorum, succession, unavailability handling and emergency exception remain open under D82-B. No vendor, custodian, jurisdiction, account or implementation is selected.
+
+This is an architecture/policy decision only. It does not authorize adapter or fixture implementation/execution, key generation, provider/storage selection or provisioning, production access, canonical DB access, backup/restore, D6 gate mutation or writer activation. Keep AI_EXECUTION_ENABLED=false; paper-only.
 
 The proposal defines logical KMS/HSM adapter boundaries, key inventory metadata, workload identity separation, per-backup DEK lifecycle, KEK/signing-key rotation, break-glass recovery case controls, two-person approval as a proposed default, append-only audit evidence, fail-closed handling and CI fake-provider isolation. It does not select a recovery model, provider, jurisdiction, quorum/roles, audit sink or federation mechanism.
 
@@ -316,4 +323,4 @@ This proposal does not amend approved P5.4.81 and does not authorize implementat
 
 ## P5.4.82A — Key custody open-decision matrix (2026-11-04)
 
-**Status: DECISION SUPPORT ONLY / NOT AN APPROVAL.** See `docs/evidence/P5.4.82A-KEY-CUSTODY-OPEN-DECISION-MATRIX-2026-11-04.md`. The matrix frames ten unresolved decisions (recovery model, quorum/roles, jurisdiction/account ownership, audit sink, KEK rotation, signing-key revocation, workload identity, RPO/RTO, Android/JVM crypto qualification and wrapped-DEK metadata) with options, trade-offs and non-binding discussion defaults. It does not select any option, provider, jurisdiction, policy or implementation. P5.4.82 remains PROPOSED / NOT APPROVED; P5.4.81 remains approved and unchanged. No implementation, fixture execution, provider selection/provisioning or production access authorized.
+**Status: DECISION SUPPORT MATRIX — D82-A OWNER-APPROVED; D82-B–D82-J OPEN.** See `docs/evidence/P5.4.82A-KEY-CUSTODY-OPEN-DECISION-MATRIX-2026-11-04.md`. The matrix frames ten unresolved decisions (recovery model, quorum/roles, jurisdiction/account ownership, audit sink, KEK rotation, signing-key revocation, workload identity, RPO/RTO, Android/JVM crypto qualification and wrapped-DEK metadata) with options, trade-offs and non-binding discussion defaults. It does not select any option, provider, jurisdiction, policy or implementation. P5.4.82 remains PROPOSED / NOT APPROVED; P5.4.81 remains approved and unchanged. No implementation, fixture execution, provider selection/provisioning or production access authorized.
