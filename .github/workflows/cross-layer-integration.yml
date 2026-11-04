@@ -74,7 +74,7 @@ jobs:
           done
           git rev-parse HEAD | tee cross-layer-source-sha.txt
       - name: Compile cross-layer modules
-        run: python -m compileall -q integrations futures_intelligence pipeline paper_execution freqai_bridge
+        run: python -m compileall -q integrations futures_intelligence pipeline paper_execution freqai_bridge ci
       - name: Run integrations tests
         run: python -m unittest discover -s integrations -p 'test_*.py' -v 2>&1 | tee cross-layer-integrations-tests.log
       - name: Run futures intelligence and paper system tests
@@ -84,6 +84,8 @@ jobs:
             pipeline.test_decision pipeline.test_api pipeline.test_core_signal pipeline.test_core_strategy \
             paper_execution.test_ledger paper_execution.test_risk_control paper_execution.test_equity \
             freqai_bridge.test_exporter -v 2>&1 | tee cross-layer-paper-tests.log
+      - name: Run CI workflow policy regressions
+        run: python -m unittest ci.test_ci_policy -v 2>&1 | tee ci-policy-tests.log
       - name: Upload exact-SHA integration evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -94,4 +96,5 @@ jobs:
             cross-layer-source-sha.txt
             cross-layer-integrations-tests.log
             cross-layer-paper-tests.log
+            ci-policy-tests.log
           retention-days: 30

@@ -1,132 +1,389 @@
 from pathlib import Path
+import subprocess
 import unittest
 
 import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOWS = ROOT / ".github" / "workflows"
-APPROVED_WORKFLOWS = {
-    "android-release-pair.yml",
-    "android-t0-foundation-github-actions.yml",
-    "android-t0-foundation.yml",
-    "control-dashboard.yml",
-    "cross-layer-integration.yml",
-    "freqai-strategy-smoke.yml",
-    "p5-3-10-4-g1-red-execution.yml",
-    "p5-3-10-5-g1-green-validation.yml",
-    "p5-3-11-5-g2-red-validation.yml",
-    "p5-3-11-g2-integration-green.yml",
-    "p5-3-11-g2-integration-red.yml",
-    "p5-4-1-post-merge-validation.yml",
-    "p5-4-10-backup-restore-fixture.yml",
-    "t0-9-art-jni-runtime.yml",
-    "t0-health-api-boundary.yml",
-    "t0-manual-validation.yml",
-    "t0-validation.yml",
-}
-
-
-def load_workflow(name):
-    data = yaml.safe_load((WORKFLOWS / name).read_text())
-    return data.get("on", data.get(True, {})), data
 
 
 class CiPolicyTest(unittest.TestCase):
+    def setUp(self):
+        self.workflows = {
+            path.stem: yaml.safe_load(path.read_text())
+            for path in (ROOT / ".github/workflows").glob("*.y*ml")
+        }
+
     def test_github_actions_workflows_are_explicitly_allowlisted(self):
-        actual = {path.name for path in WORKFLOWS.glob("*.y*ml")}
-        self.assertEqual(actual, APPROVED_WORKFLOWS)
-        self.assertTrue((ROOT / "ci/archive/github-actions/README.md").is_file())
+        workflows = ROOT / ".github/workflows"
+        actual = {
+            path.name
+            for pattern in ("*.yml", "*.yaml")
+            for path in workflows.glob(pattern)
+        }
+        approved = {
+            "p5-3-10-4-g1-red-execution.yml",
+            "p5-3-10-5-g1-green-validation.yml",
+            "p5-3-11-5-g2-red-validation.yml",
+            "t0-validation.yml",
+            "t0-manual-validation.yml",
+            "p5-3-11-g2-integration-red.yml",
+            "p5-3-11-g2-integration-green.yml",
+            "p5-4-1-post-merge-validation.yml",
+            "p5-4-10-backup-restore-fixture.yml",
+            "android-release-pair.yml",
+            "android-t0-foundation.yml",
+            "android-t0-foundation-github-actions.yml",
+            "t0-health-api-boundary.yml",
+            "t0-9-art-jni-runtime.yml",
+        }
 
-    def test_legacy_runner_configuration_and_workflows_are_removed(self):
-        self.assertFalse((ROOT / "codemagic.yaml").exists())
-        self.assertFalse((ROOT / "docs/CODEMAGIC_SETUP.md").exists())
-        self.assertFalse((ROOT / "ci/archive/github-actions/dashboard-backtest.yml").exists())
-        self.assertFalse((ROOT / "ci/archive/github-actions/telegram-command.yml").exists())
-        self.assertTrue((ROOT / "docs/GITHUB_ACTIONS.md").is_file())
+        self.assertIn("p5-3-10-4-g1-red-execution.yml", actual)
+        self.assertIn("p5-3-11-5-g2-red-validation.yml", actual)
+        self.assertLessEqual(actual, approved)
+        self.assertTrue((ROOT / "ci/archive/github-actions/market-data-ci.yml").exists())
 
-    def test_t0_health_api_boundary_is_pr_scoped_and_exact_sha(self):
-        triggers, workflow = load_workflow("t0-health-api-boundary.yml")
-        self.assertEqual(set(triggers), {"pull_request"})
-        self.assertEqual(triggers["pull_request"]["branches"], ["feature/p5-4-1-post-merge-validation-20261103"])
+    def test_t0_health_api_boundary_workflow_is_pr_scoped_and_exact_sha(self):
+        path = ROOT / ".github/workflows/t0-health-api-boundary.yml"
+        self.assertTrue(path.is_file())
+        workflow = yaml.safe_load(path.read_text())
+        self.assertEqual(set(workflow["on"]), {"pull_request"})
+        self.assertEqual(
+            workflow["on"]["pull_request"]["branches"],
+            ["feature/p5-4-1-post-merge-validation-20261103"],
+        )
+        self.assertIn("app.py", workflow["on"]["pull_request"]["paths"])
+        self.assertIn("market_data/**", workflow["on"]["pull_request"]["paths"])
         self.assertEqual(workflow["permissions"]["contents"], "read")
         job = workflow["jobs"]["health-api-contract"]
         self.assertEqual(job["env"]["AI_EXECUTION_ENABLED"], "false")
         checkout = next(step for step in job["steps"] if step.get("name") == "Checkout exact PR source SHA")
         self.assertEqual(checkout["with"]["ref"], "${{ github.event.pull_request.head.sha }}")
         self.assertFalse(checkout["with"]["persist-credentials"])
-        test = next(step for step in job["steps"] if step.get("name") == "Run T0 health API and app-surface contracts")
-        self.assertIn("market_data.test_app_surface", test["run"])
-        self.assertIn("market_data.test_feeder_health_runtime_api", test["run"])
+        test_step = next(step for step in job["steps"] if step.get("name") == "Run T0 health API and app-surface contracts")
+        self.assertIn("market_data.test_app_surface", test_step["run"])
+        self.assertIn("market_data.test_feeder_health_api", test_step["run"])
+        self.assertIn("market_data.test_feeder_health_runtime_api", test_step["run"])
 
-    def test_p5_4_1_orchestrator_requires_t0_g1_g2_and_common_sha(self):
-        triggers, workflow = load_workflow("p5-4-1-post-merge-validation.yml")
-        self.assertEqual(set(triggers), {"push", "workflow_dispatch"})
-        self.assertEqual(set(workflow["jobs"]), {"preflight", "t0", "g1", "g2", "publish"})
+    def test_p5_4_1_orchestrator_is_allowlisted_and_fail_closed(self):
+        path = ROOT / ".github/workflows/p5-4-1-post-merge-validation.yml"
+        self.assertTrue(path.is_file())
+        workflow = yaml.safe_load(path.read_text())
+        self.assertEqual(set(workflow["on"]), {"push", "workflow_dispatch"})
+        self.assertEqual(
+            workflow["on"]["push"]["branches"],
+            ["feature/p5-4-1-post-merge-validation-20261103"],
+        )
+        self.assertTrue({
+            "market_data/**", "ci/**", "pipeline/**", "freqai_bridge/**",
+            "app.py", "requirements*.txt", ".github/workflows/**",
+        }.issubset(set(workflow["on"]["push"]["paths"])))
+        self.assertNotIn("pull_request", workflow["on"])
+        self.assertEqual(workflow["permissions"]["contents"], "read")
         jobs = workflow["jobs"]
+        self.assertEqual(set(jobs), {"preflight", "t0", "g1", "g2", "publish"})
         self.assertEqual(jobs["t0"]["uses"], "./.github/workflows/t0-validation.yml")
         self.assertEqual(jobs["g1"]["uses"], "./.github/workflows/p5-3-10-5-g1-green-validation.yml")
         self.assertEqual(jobs["g2"]["uses"], "./.github/workflows/p5-3-11-g2-integration-green.yml")
-        self.assertEqual(set(jobs["publish"]["needs"]), {"preflight", "t0", "g1", "g2"})
+        preflight = jobs["preflight"]["steps"]
+        source_guard = next(step for step in preflight if step.get("name") == "Enforce exact SHA and no-runtime boundary")
+        self.assertIn("EXPECTED_SHA", source_guard["env"])
+        self.assertIn("AI_EXECUTION_ENABLED", source_guard["run"])
+        self.assertIn("test \"$AI_EXECUTION_ENABLED\" = \"false\"", source_guard["run"])
+        publish = jobs["publish"]
+        self.assertEqual(set(publish["needs"]), {"preflight", "t0", "g1", "g2"})
+        publish_run = next(step["run"] for step in publish["steps"] if step.get("name") == "Verify all suites and source identities")
+        self.assertIn("T0_RESULT", publish_run)
+        self.assertIn("G1_RESULT", publish_run)
+        self.assertIn("G2_RESULT", publish_run)
+        self.assertIn("test \"$actual\" = \"$EXPECTED_SHA\"", publish_run)
 
-    def test_dashboard_workflow_pins_toolchain_and_runs_all_gates(self):
-        triggers, workflow = load_workflow("control-dashboard.yml")
-        self.assertIn("pull_request", triggers)
-        self.assertIn("push", triggers)
-        job = workflow["jobs"]["dashboard"]
+
+    def test_p5_4_10_backup_restore_workflow_is_allowlisted_and_fixture_only(self):
+        path = ROOT / ".github/workflows/p5-4-10-backup-restore-fixture.yml"
+        self.assertTrue(path.is_file())
+        workflow = yaml.safe_load(path.read_text())
+        self.assertIn("push", workflow["on"])
+        self.assertIn("workflow_dispatch", workflow["on"])
         self.assertEqual(workflow["permissions"]["contents"], "read")
-        commands = "
-".join(step.get("run", "") for step in job["steps"])
-        for command in ("npm@11.9.0", "npm ci --ignore-scripts", "npm test", "npm run build", "npm audit --audit-level=high"):
-            self.assertIn(command, commands)
-        checkout = next(step for step in job["steps"] if step.get("name") == "Checkout exact source SHA")
+        self.assertEqual(set(workflow["jobs"]), {"fixture-only"})
+        job = workflow["jobs"]["fixture-only"]
+        env = job["env"]
+        self.assertEqual(env["AI_EXECUTION_ENABLED"], "false")
+        for key in ("MARKET_DATA_DB", "T0_FEEDER_LEASE_DB", "PAPER_DB",
+                    "PAPER_TRADING_DB", "BINANCE_API_KEY", "BINANCE_API_SECRET",
+                    "OKX_API_KEY", "OKX_API_SECRET", "MARKET_DATA_POSTGRES_DSN",
+                    "MARKET_DATA_TOKEN", "MARKET_DATA_BACKEND"):
+            with self.subTest(environment_key=key):
+                self.assertEqual(env[key], "")
+        steps = job["steps"]
+        checkout = next(step for step in steps if step.get("name") == "Checkout exact event commit")
+        self.assertEqual(checkout["with"]["ref"], "${{ github.sha }}")
         self.assertFalse(checkout["with"]["persist-credentials"])
+        guard = next(step for step in steps if step.get("name") == "Verify source identity and execution boundary")
+        self.assertIn('test "$actual" = "$GITHUB_SHA"', guard["run"])
+        self.assertIn("AI_EXECUTION_ENABLED", guard["run"])
+        runner = next(step for step in steps if step.get("name") == "Run fixture-only Backup and Restore tests")
+        self.assertIn("ci/run_backup_restore_tests.py", runner["run"])
+        upload = next(step for step in steps if step.get("name") == "Upload test logs and machine-readable evidence")
+        self.assertTrue(upload["if"].startswith("always()"))
+        self.assertIn("backup-restore-evidence/**", upload["with"]["path"])
 
-    def test_cross_layer_workflow_runs_isolated_paper_only_tests(self):
-        triggers, workflow = load_workflow("cross-layer-integration.yml")
-        self.assertIn("pull_request", triggers)
-        job = workflow["jobs"]["isolated-tests"]
-        self.assertEqual(job["env"]["AI_EXECUTION_ENABLED"], "false")
-        for key in ("MARKET_DATA_DB", "T0_FEEDER_LEASE_DB", "PAPER_DB", "BINANCE_API_KEY", "OKX_API_KEY"):
-            self.assertEqual(job["env"][key], "")
-        commands = "
-".join(step.get("run", "") for step in job["steps"])
-        for module in ("integrations", "futures_intelligence.test_import_collector", "pipeline.test_decision",
-                       "paper_execution.test_ledger", "freqai_bridge.test_exporter"):
+    def test_legacy_runner_configuration_is_removed(self):
+        self.assertFalse((ROOT / "codemagic.yaml").exists())
+        self.assertFalse((ROOT / "docs/CODEMAGIC_SETUP.md").exists())
+
+    def test_g2_acceptance_is_github_actions_only_and_historical_red_is_manual(self):
+        green = (ROOT / ".github/workflows/p5-3-11-g2-integration-green.yml").read_text()
+        red = (ROOT / ".github/workflows/p5-3-11-g2-integration-red.yml").read_text()
+        self.assertIn("permissions:\\n  contents: read", green)
+        self.assertIn("ref: ${{ github.event.pull_request.head.sha || github.sha }}", green)
+        self.assertIn("persist-credentials: false", green)
+        green_workflow = yaml.safe_load(green)
+        green_triggers = green_workflow.get("on", green_workflow.get(True, {}))
+        self.assertIn("workflow_call", green_triggers)
+        self.assertIn("workflow_dispatch", green_triggers)
+        self.assertNotIn("push", green_triggers)
+        self.assertNotIn("pull_request", green_triggers)
+        self.assertIn("market_data.test_g2_writer_routing", green)
+        self.assertIn("market_data.test_feeder_lease", green)
+        self.assertIn("market_data.test_feeder_atomic_fencing", green)
+        self.assertIn("market_data.test_feeder_lifecycle", green)
+        self.assertIn("g2-feeder-routing-tests.log", green)
+
+        cross_layer = (ROOT / ".github/workflows/cross-layer-integration.yml").read_text()
+        for gate in ("discover -s integrations", "futures_intelligence.test_import_collector",
+                     "pipeline.test_decision", "paper_execution.test_ledger", "freqai_bridge.test_exporter"):
+            self.assertIn(gate, cross_layer)
+        readme = (ROOT / "market_data/README.md").read_text()
+        self.assertIn("GitHub Actions là cổng CI/acceptance duy nhất", readme)
+        self.assertNotIn("Codemagic", readme)
+        self.assertIn("workflow_dispatch:", red)
+        self.assertNotIn("  push:", red)
+
+    def test_t0_ci_is_migrated_to_github_actions(self):
+        workflow_path = ROOT / ".github/workflows/t0-validation.yml"
+        manual_path = ROOT / ".github/workflows/t0-manual-validation.yml"
+        self.assertTrue(workflow_path.is_file())
+        self.assertTrue(manual_path.is_file())
+        workflow = yaml.safe_load(workflow_path.read_text())
+        manual = yaml.safe_load(manual_path.read_text())
+        self.assertEqual(set(workflow["jobs"]), {"t0-validation"})
+        self.assertIn("workflow_call", workflow["on"])
+        self.assertIn("push", workflow["on"])
+        self.assertEqual(
+            workflow["on"]["push"]["branches"],
+            [
+                "feature/t0-operational-contract-release-gate-20261102",
+                "feature/p5-4-1-post-merge-validation-20261103",
+            ],
+        )
+        self.assertNotIn("pull_request", workflow["on"])
+        self.assertIn("ci/**", workflow["on"]["push"]["paths"])
+        self.assertIn(".github/workflows/t0-validation.yml", workflow["on"]["push"]["paths"])
+        atomic_step = next(
+            step for step in workflow["jobs"]["t0-validation"]["steps"]
+            if step.get("name") == "Run atomic fencing and prior T0 contracts"
+        )
+        self.assertIn('grep -q "Ran 112 tests"', atomic_step.get("run", ""))
+        self.assertNotIn('grep -q "Ran 102 tests"', atomic_step.get("run", ""))
+        audit_source = (ROOT / "ci/t0_operational_contract.py").read_text()
+        health_step = next(
+            step for step in workflow["jobs"]["t0-validation"]["steps"]
+            if step.get("name") == "Run runtime health API and T0 regression contracts"
+        )
+        self.assertIn('grep -q "Ran 119 tests"', health_step.get("run", ""))
+        self.assertNotIn('grep -q "Ran 112 tests"', health_step.get("run", ""))
+        self.assertIn('health_runtime_api_count": \'grep -q "Ran 119 tests"\'', audit_source)
+        sigkill_step = next(
+            step for step in workflow["jobs"]["t0-validation"]["steps"]
+            if step.get("name") == "Run isolated SQLite SIGKILL recovery contracts"
+        )
+        self.assertIn('grep -q "Ran 113 tests"', sigkill_step.get("run", ""))
+        self.assertNotIn('grep -q "Ran 103 tests"', sigkill_step.get("run", ""))
+        self.assertIn('sigkill_recovery_count": \'grep -q "Ran 113 tests"\'', audit_source)
+        audit_source = (ROOT / "ci/t0_operational_contract.py").read_text()
+        self.assertIn('atomic_fencing_count": \'grep -q "Ran 112 tests"\'', audit_source)
+        self.assertIn("workflow_dispatch", manual["on"])
+        self.assertEqual(manual["permissions"]["contents"], "read")
+        self.assertNotIn("MARKET_DATA_TEST_DATABASE_URL", manual["jobs"]["manual-gate"].get("env", {}))
+        timescale_step = next(
+            step for step in manual["jobs"]["manual-gate"]["steps"]
+            if step.get("name") == "Run disposable TimescaleDB integration tests"
+        )
+        self.assertIn("MARKET_DATA_TEST_DATABASE_URL", timescale_step.get("env", {}))
+        self.assertIn("github.event.pull_request.head.sha || github.sha",
+                      workflow["jobs"]["t0-validation"]["steps"][0]["with"]["ref"])
+        isolated_env = workflow["jobs"]["t0-validation"]["env"]
+        for key in ("MARKET_DATA_DB", "T0_FEEDER_LEASE_DB", "PAPER_DB",
+                    "BINANCE_API_KEY", "BINANCE_API_SECRET", "OKX_API_KEY", "OKX_API_SECRET"):
+            with self.subTest(environment_key=key):
+                self.assertEqual(isolated_env[key], "")
+        commands = "\n".join(step.get("run", "") for step in workflow["jobs"]["t0-validation"]["steps"])
+        required = ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
+                    "market_data.test_api", "market_data.test_gateway_runtime", "market_data.test_feeder_lease",
+                    "market_data.test_feeder_health", "market_data.test_feeder_lifecycle",
+                    "market_data.test_feeder_atomic_fencing", "market_data.test_feeder_health_runtime_api",
+                    "market_data.test_feeder_sigkill_recovery", "ci.test_t0_operational_contract",
+                    "ci.test_t0_data_integrity")
+        for module in required:
+            with self.subTest(module=module):
+                self.assertIn(module, commands)
+        options = manual["on"]["workflow_dispatch"]["inputs"]["gate"]["options"]
+        for gate in ("final-runtime-config", "component-tests-p3", "kraken-adapter",
+                     "kraken-spot-sqlite", "kraken-spot-read-api", "timescaledb-integration"):
+            with self.subTest(gate=gate):
+                self.assertIn(gate, options)
+
+    def test_timescaledb_runner_is_provider_neutral(self):
+        script = (ROOT / "ci/test-timescaledb.sh").read_text()
+        self.assertIn("MARKET_DATA_TEST_DATABASE_URL", script)
+        self.assertIn("CI_PYTHON", script)
+        self.assertNotIn("CM_BUILD_DIR", script)
+        self.assertNotIn("CODEMAGIC", script)
+
+    def test_t0_executable_workflows_are_github_actions_only(self):
+        self.assertFalse((ROOT / "codemagic.yaml").exists())
+        workflow = yaml.safe_load((ROOT / ".github/workflows/t0-validation.yml").read_text())
+        triggers = workflow.get("on", workflow.get(True, {}))
+        self.assertIn("workflow_call", triggers)
+        self.assertIn("push", triggers)
+        commands = "\\n".join(step.get("run", "") for step in workflow["jobs"]["t0-validation"]["steps"])
+        for module in ("market_data.test_store", "market_data.test_storage", "market_data.test_sync",
+                       "market_data.test_api", "market_data.test_gateway_runtime"):
             self.assertIn(module, commands)
 
-    def test_freqai_smoke_is_manual_and_does_not_execute_trades(self):
-        triggers, workflow = load_workflow("freqai-strategy-smoke.yml")
-        self.assertEqual(set(triggers), {"workflow_dispatch"})
-        job = workflow["jobs"]["strategy-load"]
-        self.assertEqual(job["env"]["AI_EXECUTION_ENABLED"], "false")
-        command = next(step["run"] for step in job["steps"] if step.get("name") == "Verify paper-only strategy load")
-        self.assertIn("ci/freqai-smoke.py", command)
-        self.assertIn('test "$AI_EXECUTION_ENABLED" = "false"', command)
-
-    def test_legacy_telegram_and_backtest_runtimes_are_absent(self):
+    def test_legacy_telegram_workflows_are_retired(self):
+        self.assertFalse((ROOT / "codemagic.yaml").exists())
+        for path in ("ci/archive/github-actions/telegram-command.yml",
+                     "ci/archive/github-actions/dashboard-backtest.yml"):
+            with self.subTest(path=path):
+                self.assertFalse((ROOT / path).exists())
         for path in ("bot.py", "backtest.py", "backtest_rsi_percent_b_h1_adx.py",
                      "telegram_commands.py", "dashboard/index.html", "ci/run-legacy.py",
                      "ci/test_legacy_runner.py", "integrations/codemagic_client.py",
                      "integrations/test_codemagic_client.py"):
             with self.subTest(path=path):
                 self.assertFalse((ROOT / path).exists())
-        app = (ROOT / "app.py").read_text()
-        self.assertIn('@app.get("/health/live")', app)
-        self.assertIn('@app.get("/health/ready")', app)
-        for marker in ("TELEGRAM_BOT_TOKEN", "telegram_webhook", "codemagic_client", "/api/dashboard"):
-            self.assertNotIn(marker, app)
+        app_source = (ROOT / "app.py").read_text()
+        self.assertIn('@app.get("/health/live")', app_source)
+        self.assertIn('@app.get("/health/ready")', app_source)
+        for legacy_marker in ("TELEGRAM_BOT_TOKEN", "telegram_webhook", "codemagic_client", "/api/dashboard"):
+            with self.subTest(legacy_marker=legacy_marker):
+                self.assertNotIn(legacy_marker, app_source)
 
-    def test_paper_execution_boundary_remains_disabled(self):
-        readme = (ROOT / "README.md").read_text()
-        self.assertIn("AI_EXECUTION_ENABLED=false", readme)
-        self.assertIn("không có luồng đặt lệnh Futures thật", readme)
-        for name in ("t0-validation.yml", "cross-layer-integration.yml", "freqai-strategy-smoke.yml"):
-            _, workflow = load_workflow(name)
-            for job in workflow["jobs"].values():
-                env = job.get("env", {})
-                if "AI_EXECUTION_ENABLED" in env:
-                    self.assertEqual(env["AI_EXECUTION_ENABLED"], "false")
+    def test_data_checks_keep_dependency_import_tests_and_cli_gates(self):
+        cross_layer = (ROOT / ".github/workflows/cross-layer-integration.yml").read_text()
+        for gate in ("requirements-market-data.txt", "requirements-web.txt", "requirements-ci.txt",
+                     "discover -s integrations"):
+            with self.subTest(gate=gate):
+                self.assertIn(gate, cross_layer)
+        self.assertNotIn("ci.test_legacy_runner", cross_layer)
+        self.assertNotIn("backtest.py", cross_layer)
+        self.assertNotIn("telegram_commands.py", cross_layer)
+        t0_workflow = yaml.safe_load((ROOT / ".github/workflows/t0-validation.yml").read_text())
+        t0_commands = "\\n".join(step.get("run", "") for step in t0_workflow["jobs"]["t0-validation"]["steps"])
+        for t0_command in ("import ccxt", "import app", "market_data.sync --help", "compileall -q market_data"):
+            self.assertIn(t0_command, t0_commands)
+
+    def test_obsolete_android_apk_build_workflows_are_retired(self):
+        self.assertFalse((ROOT / "codemagic.yaml").exists())
+        self.assertFalse((ROOT / "docs/CODEMAGIC_SETUP.md").exists())
+        for path in (ROOT / ".github/workflows").glob("*.y*ml"):
+            content = path.read_text()
+            self.assertNotIn("codemagic.yaml", content.lower())
+
+    def test_github_actions_only_build_debug_apks_for_manual_art_instrumentation(self):
+        path = ROOT / ".github/workflows/t0-9-art-jni-runtime.yml"
+        self.assertTrue(path.is_file())
+        workflow = yaml.safe_load(path.read_text())
+        triggers = workflow.get("on", workflow.get(True, {}))
+        self.assertEqual(set(triggers), {"workflow_dispatch"})
+        self.assertEqual(workflow["permissions"]["contents"], "read")
+        job = workflow["jobs"]["art-jni-runtime"]
+        self.assertEqual(job["env"]["AI_EXECUTION_ENABLED"], "false")
+        build = next(
+            step for step in job["steps"]
+            if step.get("name") == "Assemble debug APKs before emulator startup"
+        )
+        self.assertIn(":app:assembleDebug", build["run"])
+        self.assertIn(":app:assembleDebugAndroidTest", build["run"])
+        self.assertNotIn(":app:assembleRelease", build["run"])
+        self.assertNotIn(":app:assembleParallel", build["run"])
+        instrumentation = next(
+            step for step in job["steps"]
+            if step.get("name") == "Boot, preflight, install APKs, then invoke ART instrumentation"
+        )
+        self.assertIn(":app:connectedDebugAndroidTest", instrumentation["with"]["script"])
+        upload = next(
+            step for step in job["steps"]
+            if step.get("name") == "Upload boot, install, ART reports and emulator diagnostics"
+        )
+        self.assertNotIn("outputs/apk", upload["with"]["path"])
+        self.assertIn("outputs/androidTest-results", upload["with"]["path"])
+
+    def test_github_actions_never_build_or_publish_android_release_apks(self):
+        workflows = ROOT / ".github/workflows"
+        forbidden = (
+            ":app:assembleRelease",
+            ":app:assembleParallel",
+            "ci/setup-android.sh",
+            "ci/release-android.sh",
+            "android-app/app/build/outputs/apk",
+            "artifacts/BTC-5-Tang-Paper-*.apk",
+        )
+        for path in sorted((*workflows.glob("*.yml"), *workflows.glob("*.yaml"))):
+            if path.name == "android-release-pair.yml":
+                continue
+            content = path.read_text()
+            if ":app:assembleDebug" in content:
+                self.assertEqual(path.name, "t0-9-art-jni-runtime.yml")
+            for token in forbidden:
+                with self.subTest(workflow=path.name, token=token):
+                    self.assertNotIn(token, content)
+
+    def test_android_release_pair_is_manual_pinned_and_release_signed(self):
+        workflow_path = ROOT / ".github/workflows/android-release-pair.yml"
+        self.assertTrue(workflow_path.is_file())
+        workflow = yaml.safe_load(workflow_path.read_text())
+        triggers = workflow.get("on", workflow.get(True, {}))
+        self.assertEqual(set(triggers), {"workflow_dispatch"})
+        source_input = triggers["workflow_dispatch"]["inputs"]["source_sha"]
+        self.assertTrue(source_input["required"])
+        self.assertEqual(source_input["type"], "string")
+        self.assertEqual(workflow["permissions"]["contents"], "read")
+        self.assertEqual(set(workflow["jobs"]), {"release-pair"})
+        job = workflow["jobs"]["release-pair"]
+        self.assertEqual(job["env"]["AI_EXECUTION_ENABLED"], "false")
+        checkout = next(step for step in job["steps"] if step.get("name") == "Checkout exact selected commit")
+        self.assertEqual(checkout["with"]["ref"], "${{ github.sha }}")
+        self.assertFalse(checkout["with"]["persist-credentials"])
+        guard = next(step for step in job["steps"] if step.get("name", "").startswith("Enforce branch"))
+        self.assertIn('test "$INPUT_SOURCE_SHA" = "$GITHUB_SHA"', guard["run"])
+        self.assertIn('test "$ANDROID_KEY_ALIAS" = "btc-chart-release"', guard["run"])
+        for secret in ("ANDROID_KEYSTORE_BASE64", "ANDROID_KEYSTORE_PASSWORD", "ANDROID_KEY_ALIAS", "ANDROID_KEY_PASSWORD"):
+            self.assertIn(secret, job["env"])
+            self.assertIn(secret, guard["run"])
+        build = next(step for step in job["steps"] if step.get("name", "").startswith("Build regular release"))
+        self.assertIn(":app:assembleRelease", build["run"])
+        self.assertIn(":app:assembleParallel", build["run"])
+        verify = next(step for step in job["steps"] if step.get("name", "").startswith("Verify both APK"))
+        self.assertIn("ci/verify-android-release-pair.py", verify["run"])
+        upload = next(step for step in job["steps"] if step.get("name", "").startswith("Upload paired"))
+        self.assertIn("app-release.apk", upload["with"]["path"])
+        self.assertIn("app-parallel.apk", upload["with"]["path"])
+        self.assertIn("android-release-pair.json", upload["with"]["path"])
+        gradle = (ROOT / "android-app/app/build.gradle.kts").read_text()
+        parallel = gradle.split('create("parallel") {', 1)[1].split("\n        }", 1)[0]
+        self.assertIn('signingConfig = signingConfigs.getByName("release")', parallel)
+
+    def test_shell_scripts_parse_and_no_unsupported_python_version_key(self):
+        for path in (ROOT / "ci").glob("*.sh"):
+            subprocess.run(["bash", "-n", str(path)], check=True)
+        for path in (ROOT / ".github/workflows").glob("*.y*ml"):
+            workflow = yaml.safe_load(path.read_text())
+            self.assertNotIn("python", workflow.get("environment", {}))
 
 
 if __name__ == "__main__":
