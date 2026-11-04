@@ -2229,3 +2229,18 @@ Next: define and test the fixed read-only SQLite query contract against the appr
 - Before an Android adapter: resolve the read-only transaction API on minSdk 26, freeze D5 schema-introspection coverage, define exact immutable bootstrap migration bytes/ID/sequence/owner, and prove missing-path read-only open cannot create a DB.
 - Next bounded increment: pure source-level DDL/query contract and fixture tests only; no SQLite connection or SQL execution.
 - At approval recording time, branch `feature/p5-4-1-post-merge-validation-20261103` was verified at source HEAD `2d55ae36bdc603beffdb1c8c2e84e24252c836a1`. Approval documentation is being committed directly to this branch; no PR or parallel branch.
+
+
+## P5.4.93 — Pure fixed SQLite DDL/query contract (2026-11-04)
+
+- Scope: source-level Kotlin contract and fixture tests only. No SQLite connection, SQL execution, filesystem access, Android device access, or DB creation/open/read/write.
+- Added `CanonicalSqliteReadContract.kt`: six bootstrap DDL statements (two tables + four immutability triggers), four fixed read-query families (runtime identity, full identity rows, full migration chain, deterministic `sqlite_schema` catalog), and catalog-derived quoted PRAGMA templates for table_info/index_list/foreign_key_list/index_info.
+- Added `CanonicalSqliteReadContractTest.kt` covering DDL shape, immutability triggers, unbounded deterministic queries, stable PRAGMA ordering, identifier escaping, and exclusion of internal/unsupported schema objects.
+- TDD RED: test-only SHA `7eb1b07b738db8e6518035610ef5523b0c962e33`; Android T0 Foundation run #41765133608 failed in regular JVM compile due expected unresolved references to the not-yet-added contract types. This confirms RED; the .paper/static-audit steps were skipped by fail-fast.
+- Implementation commit: `3a49568d6beaafea863faa6dc4792e074b6bb70b`.
+- Test assertion correction commit: `cf16ad1c39fa9e015c11fd39cfaafe61c8f41d15` (corrected a false-positive check that treated a semicolon inside a safely quoted identifier as an unquoted SQL statement separator).
+- Current exact source/test SHA: `cf16ad1c39fa9e015c11fd39cfaafe61c8f41d15`. Android T0 Foundation run #41765316296 is IN_PROGRESS at this handoff update: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41765316296 . Do not claim PASS until regular, .paper and static audit all complete on this exact SHA.
+- No artifact is confirmed yet. If CI succeeds, record its artifact ID, size and SHA-256; if no artifact is produced, state that explicitly.
+- Known remaining design limits: this is a query/DDL source contract, not a transaction executor. The future adapter must guarantee one read transaction and return READ_UNCERTAIN without partial evidence. The minSdk 26 OPEN_READONLY transaction API, complete D5 introspection coverage, exact immutable bootstrap migration bytes/ID/sequence/owner, and missing-path no-create behavior remain unresolved.
+- Next: reconcile exact-SHA CI result; fix any failures and rerun both variants/static audit. Then review DDL edge cases (especially controlled clone-fork lineage under immutable triggers) before any future adapter design. No adapter/runtime authorization is implied.
+- All limits remain: `AI_EXECUTION_ENABLED=false`; paper-only; no Feeder, exchange connectivity, backup/restore, writer admission, APK build/sign/publish or live trading.
