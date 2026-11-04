@@ -2869,3 +2869,14 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Implementation scope is committed; runtime verification remains **NOT VERIFIED / IN PROGRESS** until all matrix jobs, stage logs, XML and artifacts are inspected. Do not infer a pass from workflow dispatch or job startup.
 - Next: inspect run #41862203838 jobs and logs; classify each API by preflight, APK install, and instrumentation stage; independently download/hash artifacts; then publish a T0.9.1 evidence report and update this handoff.
 - Boundaries: `AI_EXECUTION_ENABLED=false`; SQLite `:memory:` only; no canonical/path-backed DB, Feeder, lease, exchange, market-data sync, live orders, APK release/sign/install outside ephemeral CI, or physical-device testing. T0.10 remains out of scope.
+
+
+### T0.9.1 — queue recheck and GitHub service status (2026-11-04)
+
+- Rechecked run #41862203838: still **QUEUED**, run attempt 1, exact workflow SHA `5ba8894e6aa4a97434bdcb33734cb05e7bd82265`; branch `feature/p5-4-1-post-merge-validation-20261103`.
+- Jobs remain queued with no runner assignment: API 26 #126686783618; API 33 #126686784318; API 35 #126686784035. Artifact list remains empty; no job logs or instrumentation XML are available.
+- Account collaborator permission lookup confirms `kenznguyen` has repository **admin** permission. Workflow declares `contents: read`; this is sufficient for checkout/build/test and does not explain a queued runner. No permission expansion was made.
+- Official GitHub Status page currently reports **All Systems Operational**, including Actions, and no incident reported for Nov 4, 2026: https://www.githubstatus.com/ . Therefore a currently declared platform-wide Actions incident is not established. This does not rule out repository-specific runner quota, policy, concurrency, or scheduling constraints.
+- No source/workflow change and no retry were made. T0.9.1 runtime remains **BLOCKED / NOT VERIFIED**; no API matrix result or artifact exists.
+- Next: owner should inspect repository/org Actions policies, GitHub-hosted runner availability/usage limits, and billing/concurrency restrictions. Once a concrete restriction is identified and corrected, inspect the existing run before considering a new dispatch. Do not broaden workflow token permissions, migrate to Codemagic, or perform blind retries.
+- Boundaries unchanged: `AI_EXECUTION_ENABLED=false`; SQLite `:memory:` only; no canonical DB, Feeder, lease, exchange, live orders, APK release/sign/install or physical-device testing; T0.10 remains out of scope.
