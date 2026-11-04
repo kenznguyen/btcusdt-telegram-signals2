@@ -13,15 +13,14 @@ name: T0.9 Android ART JNI Runtime Verification
 permissions:
   contents: read
 
-concurrency:
-  group: t0-9-art-jni-runtime-${{ github.ref }}-${{ matrix.api-level }}
-  cancel-in-progress: false
-
 jobs:
   art-jni-runtime:
     name: ART JNI runtime API ${{ matrix.api-level }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    concurrency:
+      group: t0-9-art-jni-runtime-${{ github.ref }}-${{ matrix.api-level }}
+      cancel-in-progress: false
     strategy:
       fail-fast: false
       matrix:
