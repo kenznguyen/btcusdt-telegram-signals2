@@ -64,11 +64,12 @@ class NativeSqliteD5WireDecoderTest {
         assertEquals(NativeSqliteD5ReadStatus.VERIFIED, reply.status)
         val envelope = requireNotNull(reply.envelope)
         assertEquals("3.54.1", envelope.runtime.sqliteVersion)
-        assertEquals("positions", envelope.catalog.single().name)
-        assertEquals(3, envelope.tableColumns.size)\n        assertEquals(null, envelope.tableColumns.first().defaultValue)
-        assertTrue(envelope.indexes.isEmpty())
-        assertTrue(envelope.indexColumns.isEmpty())
-        assertTrue(envelope.foreignKeys.isEmpty())
+        assertEquals("positions", envelope.catalog.first { it.type == "table" }.name)
+        assertEquals(3, envelope.tableColumns.size)
+        assertEquals(null, envelope.tableColumns.first().defaultValue)
+        assertEquals("idx_positions_created", envelope.indexes.single().name)
+        assertEquals("created_at", envelope.indexColumns.single().name)
+        assertEquals("accounts", envelope.foreignKeys.single().referencedTable)
     }
 
     @Test fun rejectsUnexpectedNativeStatusWithoutPayload() {
