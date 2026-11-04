@@ -2293,17 +2293,45 @@ Next bounded step: continue design-only resolution of the remaining Android read
 - Remaining prerequisites: (1) minSdk 26 read-only consistent-snapshot transaction API; (2) complete D5 schema-introspection coverage; (3) exact immutable bootstrap migration bytes/ID/sequence/owner; (4) proof that read-only open of a missing path cannot create a DB.
 - Next: continue source/API design review only. Any device, filesystem or SQLite runtime conformance test requires separate explicit authorization. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 
-## P5.4.95 — D5 SQLite schema introspection coverage review (2026-11-04)
+## P5.4.95 — D5 SQLite schema introspection coverage (2026-11-04)
 
-**Status: REVIEW COMPLETE; current source query contract PARTIAL/INCOMPLETE; implementation delta awaits owner approval.**
+**Status: SOURCE-LEVEL DELTA IMPLEMENTED; CURRENT-SHA CI PENDING; FULL D5 CANONICALIZATION NOT VERIFIED.**
 
-- Review report: `docs/evidence/P5.4.95-D5-SQLITE-SCHEMA-INTROSPECTION-COVERAGE-REVIEW-2026-11-04.md`.
-- Report commit: `19c17f13ea66ff45baef99aa9d1230677a2d7620`.
-- Baseline inspected: `1c54ceaf894f179542d089f998b3140bf34c17de`.
-- Source file `CanonicalSqliteReadContract.kt` blob SHA: `b480745b00cd7eeeb64ffcb05b3f2850be9b1122`.
-- Findings: current `table_info` misses generated/hidden columns and views are not introspected; `index_info` omits auxiliary index columns and richer index metadata; virtual-table declarations/module identity/provenance and shadow-table classification are not covered.
-- Official SQLite docs reviewed: `table_xinfo` for generated/hidden columns; `index_xinfo` for auxiliary and detailed index columns; `module_list` for modules registered on the current connection; SQLite unknown PRAGMAs are silently ignored, so unsupported capability cannot be mistaken for an empty result. See the P5.4.95 report for exact URLs and proposed contract delta.
-- Proposal only: add view + table `table_xinfo`; use `index_xinfo` alongside `index_list`; keep `foreign_key_list` for tables; parse virtual-table declarations conservatively; verify module inventory and implementation provenance; define shadow-table policy; fail closed on unsupported/unexpected metadata.
-- No source code, dependency, SQL/PRAGMA execution, DB, filesystem, Android device, workflow, test, artifact, APK, Feeder, writer or exchange/trading behavior changed or ran.
-- Remaining blockers unchanged: minSdk 26 read-only transaction primitive BLOCKED; D5 coverage proposal awaits owner approval; exact bootstrap migration bytes/ID/sequence/owner OPEN; missing-path read-only no-create proof OPEN. SQLite adapter/runtime NOT AUTHORIZED.
-- Next action: owner decision on the P5.4.95 D5 coverage delta. If approved, source-level fixed-query contract and pure fixtures may proceed with TDD on this branch; no SQLite/runtime adapter authorization is implied. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+- Evidence report: `docs/evidence/P5.4.95-D5-SQLITE-SCHEMA-INTROSPECTION-COVERAGE-REVIEW-2026-11-04.md`.
+- Evidence update commit: `117c8b6f95727f2f037cc9da089ed39fbbeb61d5`.
+- Existing branch: `feature/p5-4-1-post-merge-validation-20261103`; no branch or PR created.
+- Latest Android source/test code SHA at validation trigger: `41c129c6cacee9cde96ae195fe5c3ab419bdd88f`.
+- Source file blob: `9d8195e4f50b8c5a34bfca906ccee3eb75b55aed`.
+- Test file blob: `6d2eb3c6f64a28d38c49f43a85c95dba12b68161`.
+
+### Implemented source contract
+
+- `table_xinfo` for catalog tables and views.
+- `index_xinfo` for catalog indexes.
+- Retain `index_list` and `foreign_key_list` for tables only.
+- Recognize known catalog object types; reject unknown types instead of silently omitting them.
+- Reject missing SQL metadata for user schema objects.
+- Reject virtual-table declarations until module inventory and implementation provenance are verified; declaration parser handles leading SQL comments.
+- Trigger SQL remains in catalog evidence; no trigger PRAGMA is generated.
+
+### Test / CI evidence
+
+- RED confirmed: [GitHub Actions run #41771886754](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41771886754), exact SHA `7fb5a054354ed834afa74ee357ebbf495f51532d`; 162 tests completed, 4 D5 assertions failed as expected.
+- RED artifact #13295890393, 62,531 bytes, SHA-256 `2998b364ed93e4a752a17791e466c26e9265d17c9d55adc74573c3a4e775a7c1`.
+- Latest validation: [GitHub Actions run #41772828832](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41772828832), exact SHA `41c129c6cacee9cde96ae195fe5c3ab419bdd88f`; **PENDING** at handoff update. No GREEN result or final artifact is claimed.
+- Intermediate pre-implementation run #41772478852 on SHA `35b1fdb43e7ed1857e53598f6859722d51945381` failed against the old source; do not use it as implementation verification.
+
+### Remaining blockers / limits
+
+- Shadow-table classification and inclusion/association policy remain OPEN. Current query contract cannot identify every shadow table; complete D5 schema coverage and schema digest are NOT VERIFIED.
+- SQLite runtime feature matrix and `module_list` capability detection remain OPEN. Source-level PRAGMA selection does not prove runtime support.
+- Virtual module implementation provenance/allowlist remains OPEN; current policy rejects all virtual tables.
+- Canonical envelope grammar, canonicalization ID/version, full introspection field schema and digest composition remain OPEN.
+- minSdk 26 read-only consistent-snapshot transaction primitive remains BLOCKED (see P5.4.89 section 10).
+- Exact immutable bootstrap migration bytes/ID/sequence/owner remain OPEN.
+- Missing-path read-only open no-create proof remains OPEN.
+- SQLite adapter/runtime/device remains NOT IMPLEMENTED / NOT AUTHORIZED.
+
+No SQLite database was opened; no SQL/PRAGMA was executed against a database; no filesystem/device access, adapter/dependency, APK build/sign/publish, Feeder, writer, backup/restore, exchange or trading operation occurred. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+
+**Next bounded step:** wait for run #41772828832 to complete, inspect host tests, `.paper` tests, static audit and artifact on the exact SHA. If GREEN, record exact evidence; then resolve runtime feature matrix, shadow-table policy and virtual-module provenance before any digest or adapter work.
