@@ -1590,3 +1590,20 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 4. Do not resume Windows PC T0-B or describe PC access as a prerequisite.
 
 - This update is documentation-only. No tests/workflows, Android device access, database access, Feeder startup, exchange connection, market-data sync, backup/restore or order execution are performed by this update.
+
+
+## P5.4.65 — ADR-002 and Android Canonical Host Source Review (2026-11-04)
+
+- Evidence report: `docs/evidence/P5.4.65-ADR-002-ANDROID-CANONICAL-HOST-SOURCE-REVIEW-2026-11-04.md`.
+- Report commit: `cab36e66884b849589f5cb0488cc9a876fd6eb9e`.
+- Review baseline branch HEAD: `36f5b00dbccf63ec0ba4e7bc1ca8877483878acd`; active branch remains `feature/p5-4-1-post-merge-validation-20261103`.
+- Reviewed ADR-002 blob `91f78f1be2d16d24585d7ebbd2b649abea91a0b7`, Gradle blob `419f30ca44e0ead9f7a595e5baa9dd11c0eb6623`, main manifest blob `e505a1829899f32c211f5390b5ae7753048ae15b`, MainActivity `c03c87993a1d696cdb9cab629114ff5ef8420ec2`, StrategyMonitorService `2d494af5e47d51d5111af2bc466e6aaf48a0e75b`, FiveLayerPanel `de1c6c1e11663a0c6f9330160665bf4c67e6af2f`, and FiveLayerApi `91c9ce61a14dc54a2e2bf1b47285d5645b3f119e`.
+- Corrected P5.4.43 historical signing finding: current parallel build type explicitly uses the same environment-backed release signing config as regular release. The current Gradle blob is identical to the Gradle file at P5.4.49 successful paired-build source SHA `621857b4568af67fcf571968f1b732558e16ccbc`. Historical GitHub Actions run 41735402129 succeeded; verifier reported package identities and matching signer for the two APKs. This does not prove installed-device signer identity; artifact payload bytes were not independently re-hashed.
+- Major implementation gap: current Android manifest has no custom signature permission or exported canonical-host IPC service; no AIDL/Binder contract or caller UID/package/signer verification was found. Existing StrategyMonitorService is non-exported and `onBind()` returns null, so it is not the approved ADR-002 Bound Service.
+- Regular MainActivity starts the existing StrategyMonitorService, which constructs MarketEngine/StrategyEngine/OrderBookEngine/MultiSymbolScanner and persists state in SharedPreferences. This is not the Android T0 canonical SQLite Feeder/composition root.
+- Parallel/.paper currently uses FiveLayerPanel and HTTPS FiveLayerApi endpoints for remote paper evaluation/control; it is not yet the ADR-002 local authenticated IPC client. Existing preferences, Compose state and remote server-side Paper API do not implement the approved shared Android SQLite file.
+- No Android SQLite/Room/DataStore canonical persistence, canonical path authority, migration coordinator, shared transaction coordinator, Android LeaseStore, Paper Ledger/Risk repository or CanonicalRuntime composition root was found in the reviewed source.
+- Verdict: **PASS** for source-only review and signing declaration reconciliation; **BLOCKED** for ADR-002 implementation; **NOT RUN** for tests/workflows; runtime/device/storage **NOT VERIFIED**. Report lists ordered implementation gaps and future fixture contracts.
+- No code/Gradle/manifest/dependency/package changes, APK build/install, device access, DB path probing/open/create/write, Feeder, exchange, market-data sync, backup/restore, writer activation or order execution. Keep `AI_EXECUTION_ENABLED=false`. Natural Doze remains INTERRUPTED / DEFERRED.
+- Next permitted step: P5.4.66 implementation-readiness gap specification — source-only plan and fixture acceptance contracts, including the boundary between remote Paper API and future host IPC. No code implementation until separately authorized.
+
