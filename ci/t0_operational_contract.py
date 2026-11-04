@@ -210,7 +210,7 @@ def audit_contract(root):
             "codemagic_t0_retirement",
             retired_ok,
             "Codemagic configuration and workflow entrypoints are absent; GitHub Actions policy is checked separately."
-            if retired_ok else "T0-specific Codemagic workflow entries or core test commands remain.",
+            if retired_ok else "Codemagic configuration or workflow entrypoints remain.",
         ),
         _check(
             "canonical_market_contract",
