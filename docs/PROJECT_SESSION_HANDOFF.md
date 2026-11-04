@@ -1803,3 +1803,19 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Status: D4 **APPROVED (architecture only)**; D5 **APPROVED (architecture only)**; D6 **APPROVED (architecture only)**; D7 **NOT DECIDED**. D6 implementation NOT IMPLEMENTED / NOT VERIFIED; D6 fixtures NOT IMPLEMENTED / NOT RUN.
 - Safety: keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
 - Next step: prepare D7 proposal for backup destination, encryption/key custody, retention, RPO/RTO and restore authorization. No restore or writer operation is authorized.
+
+
+## P5.4.77 — D7 backup security and recovery policy proposal (2026-11-04)
+
+- Proposal: `docs/evidence/P5.4.77-D7-BACKUP-SECURITY-RETENTION-RPO-RTO-RESTORE-AUTHORIZATION-PROPOSAL-2026-11-04.md`.
+- Proposal commit: `6a6a04139837b95ed70b6719dbe0a083ce855cb5`.
+- D7 status: **PROPOSED / NOT APPROVED**; owner decision required for D7.1–D7.6.
+- Proposal covers separate canonical/staging/published-backup/recovery-audit trust boundaries; independent immutable destination, authenticated manifest and read-back verification; encryption and separate auditable key custody; last-known-good retention and deletion safeguards; explicit RPO/RTO; authenticated restore approval and separation of backup, restore, readiness, latch, Kill Switch and writer gates.
+- Explicitly unresolved: destination/provider/failure domain, encryption suite and key custody/escrow/rotation, retention schedule/capacity, numerical RPO/RTO, restore approver roles/emergency exception, data residency/export and cost. No PC or VPS is selected or required by this proposal.
+- ADR-001 updated to link P5.4.77 as pending D7.
+- Scope: documentation only. No code, schema, backup/restore implementation, keys, tests, IPC, app configuration or runtime changed.
+- Tests / GitHub Actions: **NOT RUN**; no workflow run or artifact for this proposal.
+- Canonical DB/device/PC/production storage/key material/Feeder/exchange/synchronization/backup/restore/writer: **NOT TOUCHED**.
+- Status: D4 **APPROVED (architecture only)**; D5 **APPROVED (architecture only)**; D6 **APPROVED (architecture only)**; D7 **PROPOSED / NOT APPROVED**. D6 implementation NOT IMPLEMENTED / NOT VERIFIED; D6 fixtures NOT IMPLEMENTED / NOT RUN. D7 fixtures NOT IMPLEMENTED / NOT RUN. Numerical RPO/RTO NOT SET / NOT VERIFIED.
+- Safety: keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
+- Next step: owner review of D7.1–D7.6. No destination selection, key provisioning, backup scheduling, restore, Kill Switch clearing or writer activation is authorized.
