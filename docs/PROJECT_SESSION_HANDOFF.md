@@ -2790,3 +2790,16 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - No API 35 attempt-3 report exists yet. T0.9 remains **BLOCKED / NOT VERIFIED** until API 35 instrumentation completes and its XML is inspected.
 - Evidence report commit: `3145a2cd9c094da46539d4371764a29744b32e0d`.
 - Keep source SHA `d74a656394a5d275533393954a274efb033b7f33` distinct from documentation-only branch HEAD.
+
+
+## T0.9 — latest ART emulator diagnostic status (2026-11-04)
+
+- Evidence report updated: `docs/evidence/T0.9-ANDROID-ART-JNI-RUNTIME-INVOCATION-VERIFICATION-2026-11-04.md`; commit `420e597d02b54841881539a7447806086e588cd4`.
+- Diagnostic workflow run #41841729095 on workflow SHA `753564c7725b93368cd5d434489777be3a26d0da`: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41841729095
+  - API 33 #126614777693 **PASS**; artifact #13330877984; XML 1 test, 0 failures/errors/skips; test method passed; ZIP SHA-256 independently verified against GitHub metadata: `2a85184f64dbf5abd14d7df014286fd8533e1458d88ceebff22760b71f009492`.
+  - API 26 #126614777617 **BLOCKED** before test execution: APK install failed with `ShellCommandUnresponsiveException`; XML tests=0; artifact #13329444221; local ZIP SHA-256 `2983f6d59a552a2235e59c3e910c16bcceafd877e1a1e423e5aaa4dff162878b` matches GitHub metadata.
+  - API 35 #126614777290 **BLOCKED** before test execution: XML tests=0 / `INSTRUMENTATION_FAILED`. Logcat shows repeated Android process startup ANRs, Bluetooth SIGABRTs and app process ANR (`failed to complete startup`) before ActivityManager reports instrumentation process crash. No evidence identifies JNI/SQLite as root cause. Artifact #13330168478; local ZIP SHA-256 `16addb67d9180f22a1ac58f9ad43bdafa363aa0b084c698f520a9ef30d6a218b` matches GitHub metadata.
+- All three artifact ZIPs were downloaded and locally hashed; each hash matched GitHub's artifact digest.
+- Targeted rerun of only failed API 26/API 35 jobs was accepted. Run #41841729095 attempt 2: API 26 #126631895090 and API 35 #126631893853 were **QUEUED** at last inspection; API 33 was not rerun because its test passed.
+- Verdict remains **T0.9 BLOCKED / NOT VERIFIED**. Do not modify JNI/Kotlin/C++ code based on pre-test emulator/install failures. Continue by inspecting attempt-2 API 26/API 35 logs and XML/artifacts.
+- Boundaries unchanged: SQLite `:memory:` only, debug-only hook, `AI_EXECUTION_ENABLED=false`; no canonical DB, Feeder, lease, exchange, live orders, APK release/sign/install or physical-device testing.
