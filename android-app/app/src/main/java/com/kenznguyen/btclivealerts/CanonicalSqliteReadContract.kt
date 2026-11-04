@@ -117,45 +117,73 @@ object CanonicalSqliteReadContract {
     fun schemaIntrospectionQueries(
         catalog: List<SqliteSchemaCatalogEntry>,
     ): List<FixedSqliteReadQuery> {
-        val tables = catalog.asSequence()
-            .filter { it.type.equals("table", ignoreCase = true) }
-            .map { it.name }
-            .filterNot(::isInternalSqliteObject)
-            .distinct()
-            .sorted()
+        val supportedTypes = setOf("table", "index", "view", "trigger")
+        catalog.forEach { entry ->
+            require(entry.type.lowercase() in supportedTypes) {
+                "Unsupported SQLite schema object type: \${entry.type}"
+            }
+        }
+
+        val visibleObjects = catalog.filterNot { isInternalSqliteObject(it.name) }
+        val tablesAndViews = visibleObjects.asSequence()
+            .filter { it.type.equals("table", ignoreCase = true) || it.type.equals("view", ignoreCase = true) }
+            .onEach { entry ->
+                require(!entry.sql.isNullOrBlank()) {
+                    "Missing SQLite schema SQL for \${entry.type} \${entry.name}"
+                }
+                if (entry.type.equals("table", ignoreCase = true)) {
+                    require(!isVirtualTableDeclaration(entry.sql.orEmpty())) {
+                        "Virtual table module provenance is not verified for \${entry.name}"
+                    }
+                }
+            }
+            .sortedBy { it.name }
             .toList()
 
-        val indexes = catalog.asSequence()
+        val indexes = visibleObjects.asSequence()
             .filter { it.type.equals("index", ignoreCase = true) }
-            .map { it.name }
-            .filterNot(::isInternalSqliteObject)
-            .distinct()
-            .sorted()
+            .onEach { entry ->
+                require(!entry.sql.isNullOrBlank()) {
+                    "Missing SQLite schema SQL for index \${entry.name}"
+                }
+            }
+            .sortedBy { it.name }
             .toList()
 
         return buildList {
-            tables.forEach { table ->
-                val identifier = quoteIdentifier(table)
+            tablesAndViews.forEach { entry ->
+                val identifier = quoteIdentifier(entry.name)
                 add(FixedSqliteReadQuery(
                     SqliteReadQueryId.SCHEMA_INTROSPECTION,
-                    "PRAGMA table_info($identifier)",
+                    "PRAGMA table_xinfo($identifier)",
                 ))
-                add(FixedSqliteReadQuery(
-                    SqliteReadQueryId.SCHEMA_INTROSPECTION,
-                    "PRAGMA index_list($identifier)",
-                ))
-                add(FixedSqliteReadQuery(
-                    SqliteReadQueryId.SCHEMA_INTROSPECTION,
-                    "PRAGMA foreign_key_list($identifier)",
-                ))
+                if (entry.type.equals("table", ignoreCase = true)) {
+                    add(FixedSqliteReadQuery(
+                        SqliteReadQueryId.SCHEMA_INTROSPECTION,
+                        "PRAGMA index_list($identifier)",
+                    ))
+                    add(FixedSqliteReadQuery(
+                        SqliteReadQueryId.SCHEMA_INTROSPECTION,
+                        "PRAGMA foreign_key_list($identifier)",
+                    ))
+                }
             }
-            indexes.forEach { index ->
+            indexes.forEach { entry ->
                 add(FixedSqliteReadQuery(
                     SqliteReadQueryId.SCHEMA_INTROSPECTION,
-                    "PRAGMA index_info(${quoteIdentifier(index)})",
+                    "PRAGMA index_xinfo(\${quoteIdentifier(entry.name)})",
                 ))
             }
         }
+    }
+
+    private fun isVirtualTableDeclaration(sql: String): Boolean {
+        val withoutLeadingComments = sql.replace(
+            Regex("""(?s)^\\s*(?:(?:--[^\\r\\n]*(?:\\r?\\n|$))|(?:/\\*.*?\\*/\\s*))*"""),
+            "",
+        )
+        return Regex("""(?is)^CREATE\\s+VIRTUAL\\s+TABLE\\b""")
+            .containsMatchIn(withoutLeadingComments.trimStart())
     }
 
     /**
