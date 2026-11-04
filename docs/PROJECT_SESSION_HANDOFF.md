@@ -1761,3 +1761,17 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - D4: **APPROVED (architecture only)**; implementation NOT IMPLEMENTED / NOT VERIFIED. D5: **PROPOSED / NOT APPROVED**. D6–D7: **NOT DECIDED**.
 - Safety: keep `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next step: owner review of D5.1–D5.4; do not implement or run canonicalization against the canonical database before explicit approval and separate implementation/test scope.
+
+
+## P5.4.74 — D5 owner approval recorded (2026-11-04)
+
+- Decision: **APPROVE D5.1–D5.4** exactly as specified in `docs/evidence/P5.4.73-D5-CANONICALIZATION-AND-DIGEST-RULES-PROPOSAL-2026-11-04.md`; no amendments requested.
+- Accepted contract: distinct exact-byte physical snapshot SHA-256; ordered D4 migration-chain digest; versioned logical SQLite schema digest using conservative SQL bytes plus structured introspection and runtime identity; optional logical row/data digest excluded from initial mandatory scope; no initial SQLite/PostgreSQL equivalence claim; explicit algorithm/canonicalization identity; fail-closed unknown/ambiguous inputs.
+- Remaining design details: exact canonical envelope grammar/framing, canonicalization identifier/version value, SQLite runtime pinning policy, introspection field schema, virtual-table module inventory and digest composition. Must be specified and fixture-tested before implementation.
+- Decision/evidence updated: P5.4.73 proposal and ADR-001. This handoff records the owner decision.
+- Scope: documentation/decision recording only. No code, schema, migration runner, canonicalizer, tests, IPC or app configuration changed.
+- Tests / GitHub Actions: **NOT RUN**; no workflow run or artifact for this docs-only decision record.
+- Canonical DB: **NOT OPENED / NOT CREATED / NOT MODIFIED / NOT INSPECTED**. Android device not accessed. Feeder not started; no exchange connectivity or market-data sync; no backup/restore; no writer activation.
+- Status: D4 **APPROVED (architecture only)**; D5 **APPROVED (architecture only)**. D4/D5 implementation **NOT IMPLEMENTED / NOT VERIFIED**. D5 fixture acceptance tests **NOT IMPLEMENTED / NOT RUN**. D6–D7 **NOT DECIDED**.
+- Safety: keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
+- Next step: prepare D6 restore epoch, lease re-fencing and Kill Switch recovery proposal. D5 approval does not authorize restore design execution, canonical DB access or writer activation.
