@@ -2193,3 +2193,21 @@ Next: complete exact-SHA CI verification on `9a6242924c6dfdcc9d66b67ae0c11e5be17
 Scope remains pure decision planning only. No actual `noBackupFilesDir` file read/write, SQLite open/read/write, DB bootstrap/migration/adoption, Android device test, backup/restore, Keystore, Feeder, lease, IPC, exchange sync, writer admission, APK build/sign/publish or live trading was performed. `AI_EXECUTION_ENABLED=false`; paper-only.
 
 Next bounded increment: add pure immutable read-snapshot evidence contracts and fixture tests, then design the Android read-only SQLite adapter. Do not open SQLite or access Android filesystem/device until a separate runtime authorization is granted.
+
+
+## P5.4.91 — Immutable read-snapshot evidence contract (2026-11-04)
+
+**Status: PASS — pure Kotlin contract and fixture validation.**
+
+- Added `CanonicalDatabaseReadSnapshot.kt` and `CanonicalDatabaseReadSnapshotTest.kt`.
+- Snapshot DTO captures database state, transaction-consistency claim, observed role/instance identity, migration catalog and applied chain, expected/observed schema digest, SQLite runtime version and source ID, plus a nonblank read-transaction token.
+- Catalog and applied-migration lists are defensively copied and wrapped as unmodifiable lists.
+- Verifier rejects missing DB, legacy/unversioned DB, missing identity, uncertain reads, unproven/multiple-transaction evidence and incomplete evidence. For complete evidence it delegates role/instance, migration-chain, checksum and schema-digest checks to the existing pure `ReadOnlySchemaVerifier`.
+- The consistency enum is an adapter-supplied claim, not cryptographic proof. This contract does not itself open SQLite or prove that a future adapter really sourced all fields from one SQLite read transaction.
+- TDD RED test-only commit: `86fdf6eb0cebf70ad849263df534e10534409dc8`; Android T0 Foundation run #41763344817 failed as expected with unresolved references to the new snapshot contract types: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41763344817 .
+- Implementation SHA: `10b1029fa0427372898f02d4723565109d0e0304`.
+- Exact-SHA Android T0 Foundation run #41763401473: **PASS**: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41763401473 . Regular suite 147 tests / 0 failures / 0 errors / 0 skipped; `.paper` suite 147 / 0 / 0 / 0. New snapshot tests 10/10 pass in both variants. Static audit PASS.
+- Artifact ID `13291688186`, size 107,251 bytes, SHA-256 `031fd69e596d672140e8ebb873376ec82226388edc5638ce9a3e6cd5f689d451`; downloaded ZIP integrity check passed. Artifact: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41763401473/artifacts/13291688186 .
+- No Android filesystem or SQLite adapter implementation/execution, no DB open/create/read/write, no device test, no DDL/migration/adoption, no backup/restore, no APK, no Feeder/lease/IPC/exchange/writer action. `AI_EXECUTION_ENABLED=false`; paper-only.
+
+Next: define and test the fixed read-only SQLite query contract against the approved D4 schema details, then implement an isolated Android adapter that can only open an existing DB with read-only flags. Do not invoke it against a real DB/device until separate runtime authorization; do not wire it into startup or writer paths.
