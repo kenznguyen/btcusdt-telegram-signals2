@@ -2562,3 +2562,25 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Limits: native C++/JNI not compiled or linked; exact amalgamation/NDK/ABI pins not supplied; no API 26/33/35 runtime, WAL concurrency, sidecar no-create, process-death or device tests; fixed D5 queries not yet exposed through this connection; canonical writer remains unchanged and uses existing engine. Adapter is not wired into CanonicalRuntime.
 - No DB/device/runtime/Feeder/lease/writer/migration/backup/restore/APK/exchange/trading operation. Preserve `AI_EXECUTION_ENABLED=false`.
 - T0-B/T0-E remain BLOCKED. Next separately approved source-only increment: pin/vendor amalgamation and NDK/ABI build inputs, wire native build into a non-release Android target, then implement fixed-query execution on the same native connection. Runtime/device/database access requires separate approval.
+
+
+## T0.4 — Pinned SQLite Amalgamation + Android NDK Build (2026-11-04)
+
+- Owner approval: `APPROVE T0.4 PINNED SQLITE AMALGAMATION + ANDROID NDK BUILD SOURCE-ONLY`.
+- Evidence report: `docs/evidence/T0.4-PINNED-SQLITE-NDK-BUILD-SOURCE-ONLY-2026-11-04.md`.
+- Active branch: `feature/p5-4-1-post-merge-validation-20261103`; direct commits only, no PR/branch split.
+- Final implementation/test source SHA: `c18edb5ae42aed4607d2baa9308ee563652fee7b`.
+- SQLite pinned: version 3.54.1 / `SQLITE_VERSION_NUMBER=3054001`; source ID `2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76`.
+- Official archive SHA3-256: `92281c86e2957f9b9305890f9ac04204caa7b677cc868dc326d942689df28e30`.
+- Amalgamation SHA-256: `sqlite3.c=0c657666d819f261cc4007526ad57e1669de9949df7a8ea847aa284a2bf0ee52`; `sqlite3.h=d6c84557261893439b341d2e6c35187ae3ea24fbfd843ad94616f72d89242b8c`.
+- Android NDK `27.2.12479018`; CMake `3.22.1`; configured ABIs: `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64`.
+- SQLite archive is downloaded by CI and materialized under ignored `android-app/app/build/generated/sqlite/`; C/H source files are not committed as vendored files. Archive/source/version/hash pins are enforced. Offline builds would need a separately approved source-vendoring increment.
+- Android T0 Foundation run #41793762608: **SUCCESS** on exact source SHA above; native debug compile/link PASS; regular 28 suites / 191 tests / 0 failures / 0 errors / 0 skipped; `.paper` 28 suites / 191 tests / 0 failures / 0 errors / 0 skipped; SQLite preparation 4/4; static audit PASS.
+- Run URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41793762608
+- T0 automated validation #41793762662: SUCCESS on same SHA. P5.4.1 Post-Merge Validation Gate #41793762818: SUCCESS on same SHA.
+- Native artifact #13305246305, 5,725,656 bytes, ZIP SHA-256 `7ba86debea0d0134a7e1210b145dd515f7238363be7f7a942775f647dee8ac66`; ZIP passed `unzip -t`. Native .so hashes and ELF architecture for all four ABIs are recorded in the evidence report.
+- Test artifact #13304298428, 138,603 bytes, SHA-256 `eb2ecf88caf65fff677f55b5267b4a9fd95c8f24839566b1d1a1787cf2f1eaf7`.
+- Verdict: **T0.4 PASS — SOURCE-ONLY / NATIVE BUILD VERIFIED ON CI**.
+- T0.3 historical limitation “C++/JNI not compiled, NDK/ABI pins missing, CMake not wired to Gradle” is superseded by T0.4. Runtime/device limitations remain.
+- Not verified/not authorized: API 26/33/35 runtime, device/emulator/instrumentation, WAL concurrency, process death, real DB open/read/close, native D5 query execution, CanonicalRuntime integration, shared-engine canonical writer/reader operation. No DB, Feeder, lease, writer, migration, backup/restore, APK, exchange or trading operation. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next bounded source-only proposal: fixed read-only D5 query families on the same native DEFERRED snapshot connection plus native/source tests; requires separate owner approval. Device/runtime/database integration remains a separate authorization gate.
