@@ -2534,3 +2534,18 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - T0-A: historical PASS; current full-stack exact-SHA status PARTIAL. T0-B: BLOCKED / NOT RUN. T0-C: BLOCKED / NOT AUTHORIZED. T0-D: BLOCKED / NOT VERIFIED. T0-E: BLOCKED.
 - This was a documentation-only audit. No source, strategy, configuration, tests, workflows, DB, device, Feeder, exchange, backup/restore, APK or trading operation changed or ran. Preserve `AI_EXECUTION_ENABLED=false`; paper-only.
 - No blanket implementation permission is granted. Any next source-only increment or runtime/device/DB operation requires its own bounded owner approval. Continue on this branch; no PR/branch split.
+
+
+## T0.2 — minSdk 26 SQLite Read-only Consistent Snapshot Design (2026-11-04)
+
+- Decision document: `docs/decisions/ADR-003-ANDROID-NATIVE-SQLITE-READONLY-SNAPSHOT-API26.md`.
+- Decision commit: `db4edc6f0e2597e4fa2f93536b85af6a4a0f20a6`.
+- Selected design: one pinned SQLite amalgamation built with Android NDK/JNI is the single engine for all canonical DB connections (writer and read-only reader) on API 26+. Do not mix framework SQLite writer with bundled SQLite reader.
+- Read-only contract: open existing file with `SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX`, verify `sqlite3_db_readonly(main)==1`, start `BEGIN DEFERRED`, execute a database-backed snapshot anchor, perform every introspection query on the same native connection/transaction, require `sqlite3_stmt_readonly(stmt)==1`, end with ROLLBACK and close. No CREATE flag, no arbitrary SQL API, no immutable URI mode.
+- WAL: reader may attach only when the required existing sidecars are available/readable; do not create/delete WAL/SHM in the reader. Missing/unreadable sidecars fail closed. Transient SHM lock coordination is normal; byte-for-byte SHM immutability during an active reader is not a valid acceptance criterion.
+- Rejected: framework `beginTransactionReadOnly()` (API 35+ only); AndroidX reflection/fallback; NonExclusive/IMMEDIATE; EXCLUSIVE; raw framework `execSQL("BEGIN DEFERRED")`; `query_only` alone; `immutable=1`; mixed canonical SQLite engines.
+- SQLite runtime floor remains 3.37.0 for D5 table-list contract. Exact amalgamation version/source hash, compile options, NDK, ABIs and native library hashes must be pinned during implementation.
+- Verification plan requires native/JVM tests, WAL reader/writer snapshot concurrency, missing-sidecar no-create, API 26, recorded API 33 device, API 35+, and every supported ABI.
+- Status: **DESIGN PROPOSED / TECHNICALLY SELECTED; IMPLEMENTATION NOT AUTHORIZED; RUNTIME NOT VERIFIED**. T0-B/T0-E remain BLOCKED.
+- No source code, dependency, NDK/build config, DB, device, Feeder, exchange, backup/restore or trading behavior changed. Preserve `AI_EXECUTION_ENABLED=false`.
+- Next: owner may approve a separately scoped T0.3 source implementation of the JNI adapter contract and test harness; Android device/runtime verification remains a separate authorization gate.
