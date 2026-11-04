@@ -2257,3 +2257,12 @@ Next: define and test the fixed read-only SQLite query contract against the appr
 - Scope is pure Kotlin contract + JVM tests + static audit only. No SQLite open/create/read/write, SQL execution, filesystem/device access, DDL/migration/adoption, backup/restore, Feeder, lease, IPC, exchange, writer admission, APK build/sign/publish, or live trading.
 - Remaining adapter prerequisites are unchanged: minSdk 26 read-only transaction API, complete D5 introspection coverage, immutable bootstrap migration bytes/ID/sequence/owner, missing-path no-create proof, and safe clone-fork procedure under immutable triggers. Separate authorization is required before adapter/runtime work.
 - Next: resolve adapter prerequisites and review clone-fork procedure as design-only work. Do not implement or execute an adapter/DDL without separate authorization.
+
+
+## P5.4.94 — Clone/fork immutability review (2026-11-04)
+
+- Evidence: `docs/evidence/P5.4.94-ANDROID-T0-CLONE-FORK-IMMUTABILITY-REVIEW-2026-11-04.md`.
+- Source/design review PASS: P5.4.93 immutable identity UPDATE/DELETE triggers conflict with changing a byte-for-byte cloned DB's parent identity. Dropping triggers to rewrite identity is rejected. A physical copy alone is not a clone protocol.
+- Safe executable fork procedure: BLOCKED pending owner decision. Option A is a fresh child DB + new UUIDv4/parent lineage + fully specified allowlisted logical data import from a D3-consistent parent snapshot. Option B is to keep fork unsupported and fail closed until a later approved protocol. Recommendation recorded: Option B for current release until Option A has complete data inventory and fixture contract.
+- No code/runtime/DB/device/filesystem/DDL/backup/restore/Feeder/writer/APK/exchange work was performed. `AI_EXECUTION_ENABLED=false`; paper-only.
+- Owner decision required before any fork implementation. If Option A, next design the complete logical data-transfer contract and fixture failure matrix; if Option B, separately approve a source-only fail-closed unsupported-capability contract.
