@@ -2604,3 +2604,19 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - T0.5 does not prove runtime query execution: no JNI D5 call was invoked; no SQLite memory/temp/user/canonical database was opened and no SQL/PRAGMA was executed. Unit tests cover Kotlin transport decoding and fake bridge behavior only.
 - Not verified/not authorized: API 26/33/35 runtime/device/instrumentation, WAL concurrency/snapshot visibility, process death, sidecar no-create runtime proof, CanonicalRuntime/CanonicalDatabaseReadSnapshot integration, canonical writer integration, Feeder/lease/migration/backup/restore, APK build/sign/install. No exchange/trading action. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next bounded proposal: separately approve T0.6 isolated in-memory native SQLite query fixture tests; no canonical/user DB or Android device. Runtime/device/database integration remains a separate gate.
+
+
+## T0.6 — Isolated In-Memory Native SQLite D5 Query Tests (2026-11-04)
+
+- Approval: `APPROVE T0.6 ISOLATED IN-MEMORY NATIVE SQLITE D5 QUERY TESTS SOURCE-ONLY`.
+- Evidence: `docs/evidence/T0.6-ISOLATED-IN-MEMORY-NATIVE-SQLITE-D5-QUERY-TESTS-SOURCE-ONLY-2026-11-04.md`.
+- Final tested source/test SHA: `3ced06a55faf88f344b74beab8944d381c030964`.
+- Native CMake/CTest harness executes the fixed D5 query function against SQLite `:memory:`. Four scenarios PASS: populated schema; FTS5 virtual-table rejection; SELECT authorizer denial -> `D5_QUERY_FAILED`; payload ceiling -> `D5_PAYLOAD_TOO_LARGE`.
+- Native output fixture is 1,526 bytes. Kotlin decoder + canonical serializer fixture parity test PASS 1/1 in regular and `.paper`.
+- Android T0 Foundation run #41803432870: SUCCESS, job #126484527980. Native CTest 1/1; NDK compile/link PASS across four ABIs; regular and `.paper` each 30 suites / 201 tests / 0 failures / 0 errors / 0 skipped; SQLite preparation 4/4; static audit PASS.
+- P5.4.1 integrated gate #41803432862: SUCCESS, 5/5 jobs on the same exact SHA.
+- Test artifact #13309240837 (147,757 bytes), SHA-256 `0a228ace17c6e2102d0c856b3176f8efeec6e9b97a4e3e89593946eada96deda`; downloaded ZIP integrity and SHA-256 independently verified.
+- Native artifact #13309056400 (6,760,505 bytes), SHA-256 `0ec2d8b6968cf21f30569f60731188206c62a0d824ddf27d1b41d2caf8914883`; downloaded ZIP integrity and SHA-256 independently verified.
+- Verdict: **T0.6 PASS — SOURCE-ONLY**.
+- Limits: direct in-memory native D5 function tested; no production JNI open/handle registry lifecycle, Android device/runtime/instrumentation, WAL snapshot concurrency, canonical/user DB, CanonicalRuntime, Feeder/lease/writer/migration/backup/restore, APK, exchange or trading. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next proposal requires separate approval: T0.7 isolated JNI handle-registry/lifecycle harness. No device/runtime or production DB integration is authorized.
