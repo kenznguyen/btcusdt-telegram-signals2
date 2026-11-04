@@ -2,7 +2,7 @@
 
 ## Status
 
-**PARTIALLY ACCEPTED — D1 host and physical topology only.** The owner has accepted Android-hosted SQLite as the canonical T0 store and one shared physical SQLite file for Market Data plus Paper Ledger. D2–D7 remain proposed/unresolved. This ADR does not authorize production backup/restore, canonical database creation/opening, Feeder activation, exchange connectivity or writer activation.
+**PARTIALLY ACCEPTED — D1 host/physical topology and D2 high-water semantics.** The owner has accepted Android-hosted SQLite as the canonical T0 store, one shared physical SQLite file for Market Data plus Paper Ledger, and all five D2 high-water decisions recorded below. D3–D7 remain proposed/unresolved. This ADR does not authorize production backup/restore, canonical database creation/opening, Feeder activation, exchange connectivity or writer activation.
 
 ## Date
 
@@ -58,7 +58,14 @@ Candidate requirements:
 - **Feeder lease:** record lease name, generation and ownership/fencing evidence separately from market-data cursor state. A restored generation must not authorize an old owner.
 - **Risk and paper state:** bind state rows to the same database snapshot and recovery epoch; do not derive a cursor from table row counts.
 
-**Not decided:** exact cursor fields, partition keys, monotonicity source, retention behavior or proof that every mutation is represented.
+**OWNER-APPROVED (2026-11-04):** All five D2 decisions are approved:
+1. Market Data uses a per-partition contiguous closed-candle cursor; gap/backfill coverage is recorded separately.
+2. Paper Ledger uses a dedicated monotonic commit sequence with a stable idempotency key and same-transaction advancement of affected state and audit. `paper_audit.id` alone is not accepted as the cursor.
+3. Risk State changes in the same transaction are bound to the corresponding Ledger sequence; independently committed risk-only transitions require their own monotonic risk version committed with the risk mutation and audit.
+4. Feeder Lease generation remains separate from data cursors; the canonical host validates fencing generation at every canonical write boundary.
+5. The D2 manifest evidence is a vector of domain cursors/evidence. It is descriptive only and does not prove atomic snapshot consistency; D3 remains required.
+
+**Still to specify before implementation:** exact partition enum/canonical identity fields, cursor schema and retention, sequence allocation/storage details, full mutation-coverage proof, independent risk-only transition contract, lease authority/location and generation persistence. Approval of D2 semantics does not approve schema/migration/runtime implementation or operational activation.
 
 ### D3 — Global snapshot barrier and cross-store consistency
 
@@ -144,7 +151,7 @@ Still required: destination and ownership, encryption at rest/in transit, key ma
 
 Before implementation, obtain explicit approval for:
 - [ ] canonical store topology and stable store identities;
-- [ ] domain-specific monotonic high-water/cursor definitions;
+- [x] D2 domain-specific high-water/cursor semantics (owner-approved 2026-11-04);
 - [ ] global barrier and cross-store consistency model;
 - [ ] schema-version authorities and migration ownership;
 - [ ] canonicalization version and digest rules;
@@ -162,3 +169,16 @@ The owner confirmed: **T0 uses Android-hosted SQLite, with Market Data and Paper
 ## Clarification — shared SQLite topology decision (2026-11-03)
 
 The owner explicitly selected **one shared SQLite database file on Android** for both T0 Market Data and Paper Ledger. This is now the accepted D1 physical-file topology. The exact canonical Android path, schema/domain boundaries, lease placement/fencing, backup destination/security/retention and production recovery controls remain unresolved. Production implementation remains blocked pending the remaining D1 details and D2–D7 approvals.
+
+
+## Owner decision — D2 high-water semantics (2026-11-04)
+
+The owner explicitly approved all five D2 decisions in the project conversation on 2026-11-04 (Asia/Ho_Chi_Minh), with no additional notes:
+
+- **D2.1 APPROVED:** Market Data cursor is contiguous, closed-candle and partition-scoped; gaps/backfill are represented separately.
+- **D2.2 APPROVED:** Paper Ledger has a dedicated monotonic commit sequence, stable idempotency and atomic state/audit advancement. `paper_audit.id` alone is insufficient.
+- **D2.3 APPROVED:** Same-transaction Risk State changes bind to the Ledger sequence; independent risk-only commits require a separate monotonic risk version and audit.
+- **D2.4 APPROVED:** Lease generation is independent from data cursors; host-side fencing is checked on every canonical write.
+- **D2.5 APPROVED:** Manifest carries a domain-cursor evidence vector. It is not proof of atomic snapshot consistency; D3 must define the barrier/consistency contract.
+
+**Decision boundary:** D2 semantics are ACCEPTED. D3–D7 remain NOT DECIDED. Exact implementation fields, schemas, migrations, transaction boundaries, lease authority and operational policy remain open where stated above. This approval does not authorize code/runtime implementation, canonical DB access, Feeder activation, exchange connectivity, synchronization, backup/restore, writer activation or live execution. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
