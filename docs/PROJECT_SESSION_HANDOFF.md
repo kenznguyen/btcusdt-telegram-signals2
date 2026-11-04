@@ -1889,3 +1889,18 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - No canonical DB, Android device, PC, production storage/KMS/HSM, key material, Feeder, exchange, backup/restore or writer touched.
 - Safety: Android-first, no PC, paper-only, AI_EXECUTION_ENABLED=false.
 - Next step: obtain explicit owner decision on P5.4.81.1–.5. If approved, continue a separate proposal for KMS/HSM custody/provider-neutral interfaces and restore-key recovery controls; do not provision keys or implement fixtures without separate authorization.
+
+
+## P5.4.81 — Owner approval recorded (2026-11-04)
+
+- Owner decision: **APPROVE P5.4.81.1–.5 WITHOUT AMENDMENTS**.
+- Proposal: docs/evidence/P5.4.81-CRYPTOGRAPHIC-PROFILE-AND-KEY-LIFECYCLE-PROPOSAL-2026-11-04.md.
+- Approved profile: AES-256-GCM envelope encryption; unique random 256-bit DEK per Backup ID; 96-bit nonce; full 128-bit tag; versioned AAD; Ed25519 signatures over canonical P5.4.80 manifest bytes with signing key separate from payload KEK; explicit trusted public-key set; separate KEK/DEK/signing-key roles; lifecycle/rotation/revocation/destruction safeguards; identity separation and fail-closed handling.
+- Fixture plan: **96 cases specified** (76 previously approved + 20 P5.4.81 additions), **NOT IMPLEMENTED / NOT RUN**.
+- Status: P5.4.81 **OWNER-APPROVED / CRYPTOGRAPHIC ARCHITECTURE ONLY**.
+- Still unselected: KMS/HSM vendor, storage provider, custody jurisdiction, escrow/recovery method, concrete canonical-manifest serialization implementation, operational roles and audit integration.
+- Approval does not authorize key generation/provisioning, production KMS/HSM or storage access, fixture execution, canonical DB access, backup/restore or runtime changes.
+- GitHub Actions: **NOT RUN**; no workflow run/artifact. Documentation-only decision record; no code/schema/runtime/key/storage changed.
+- No canonical DB, Android device, PC, production KMS/HSM, production storage, key material, Feeder, exchange, backup/restore or writer touched.
+- Safety: Android-first, no PC, paper-only, AI_EXECUTION_ENABLED=false.
+- Next step: propose provider-neutral KMS/HSM custody and recovery-key control requirements, without selecting a vendor or provisioning keys. Fixture and runtime implementation remain blocked pending separate authorization and unresolved design closure.
