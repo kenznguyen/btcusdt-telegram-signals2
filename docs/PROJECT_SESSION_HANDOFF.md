@@ -2026,3 +2026,15 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - This increment is documentation-only. No tests/workflows/builds/artifacts, Android device/filesystem, PC, canonical DB, Feeder, exchange, sync, backup/restore or writer activation. Branch HEAD before handoff update: `df783cbcbe087e628c03d36597504abef6849b58`.
 - Safety: `AI_EXECUTION_ENABLED=false`; paper-only; no live orders. Android Natural Doze remains INTERRUPTED / DEFERRED.
 - Next step: perform source-only current-HEAD gap inventory for the regular Android canonical host; no code changes until separately authorized.
+
+
+## P5.4.84 — Android T0 Current-HEAD Source Gap Inventory (2026-11-04)
+
+- Report: `docs/evidence/P5.4.84-ANDROID-T0-CURRENT-HEAD-SOURCE-GAP-INVENTORY-2026-11-04.md`.
+- Report commit: `9a5501ea69730e431b0d195f522146373eb3e4ea`.
+- Reviewed branch HEAD before report: `771c2778a84e5389603c7fa4121d3cb301018139`; report is source/tree/Gradle/manifest review only.
+- Current source confirms: regular application ID `com.kenznguyen.btclivealerts`; parallel source-derived ID `com.kenznguyen.btclivealerts.paper`; main manifest only declares the existing non-exported StrategyMonitorService; its `onBind()` returns null; regular MainActivity starts that monitor; monitor uses SharedPreferences; .paper dashboard still uses remote HTTPS FiveLayerApi.
+- No Android CanonicalRuntime, canonical SQLite path authority, migration registry, T0 Gateway/Feeder composition, same-file LeaseStore/fencing, Paper Ledger/Risk repository, signature-bound IPC service, AIDL or Android instrumentation-test source tree was found in the bounded current tree/source review. Gradle does not declare Room, AndroidX DataStore or a SQLite wrapper.
+- Verdict: bounded source review **PASS**; ADR-002 implementation **NOT IMPLEMENTED**; T0-B **BLOCKED / NOT RUN**; T0-C **NOT RUN / NOT AUTHORIZED**; T0-D **NOT RUN / NOT VERIFIED**; T0-E **BLOCKED**.
+- No Kotlin/Gradle/manifest/dependency/schema changes, tests, workflows, APK build/install, device/filesystem, DB, Feeder, exchange, market sync, backup/restore or writer activation. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next step: prepare a bounded implementation slice plan and acceptance-test contract for regular-host CanonicalRuntime/path authority. Code implementation remains separately gated and is not inferred from “tiếp tục”.
