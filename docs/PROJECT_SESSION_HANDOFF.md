@@ -1980,3 +1980,19 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Existing 96 fixtures: **SPECIFIED / NOT IMPLEMENTED / NOT RUN**. GitHub Actions NOT RUN; no workflow/artifact.
 - Branch: `feature/p5-4-1-post-merge-validation-20261103`. No PR or new branch. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next step: continue bounded D82-B operational design details and D82-C custody jurisdiction/account ownership; obtain explicit owner decisions for D82-C–D82-J. No implementation without separate authorization.
+
+
+## P5.4.82C — Custody jurisdiction and account ownership proposal prepared (2026-11-04)
+
+- Added `docs/evidence/P5.4.82C-CUSTODY-JURISDICTION-AND-ACCOUNT-OWNERSHIP-PROPOSAL-2026-11-04.md`.
+- Status: **DECISION SUPPORT / RECOMMENDATION ONLY — NOT APPROVED**. D82-C remains OPEN.
+- Compares A: one legal owner/provider organization with separated accounts; B: one legal owner with primary KMS/HSM and escrow in separate provider organizations; C: separate legal entities and provider organizations.
+- Recommendation: defer A/B/C selection until legal owner, contracting authority, applicable jurisdictions, residency/export/retention constraints and account-admin boundaries are evidenced. Do not infer user's country, corporate status or eligible contracting entity.
+- Minimum design boundary: escrow must not share primary KMS/HSM privileged account/admin group; separate privileged identities and authentication roots; document ownership/recovery rights; inventory residency separately for payload, manifest, audit, replicas and processing; establish provider exit/recovery.
+- Owner decisions required: ownership model/defer; legal data owner; primary KMS/HSM account owner; escrow custodian/account owner; permitted jurisdictions/regions by data class; independence standard across legal entities/provider organizations/identity providers; qualified legal/compliance review gate.
+- Fail-closed: unknown ownership/jurisdiction/data location => `BLOCKED_D82C_UNRESOLVED`; unproven primary/escrow admin separation => `BLOCKED_TRUST_BOUNDARY`.
+- Updated P5.4.82A matrix and P5.4.82 proposal. No source code or runtime changes.
+- No legal incorporation, contracting, provider/account selection or provisioning, identity enrollment, key generation, storage/data upload, fixture execution, production/DB/device/PC access, backup/restore, Feeder/exchange, D6 gate mutation or writer activation authorized.
+- Existing 96 fixtures: **SPECIFIED / NOT IMPLEMENTED / NOT RUN**. GitHub Actions NOT RUN; no workflow/artifact.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`. No PR or new branch. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next step: obtain explicit owner decision on D82-C; if ownership/jurisdiction facts are unknown, keep unresolved and defer provider selection. D82-B operational details also remain design-only.
