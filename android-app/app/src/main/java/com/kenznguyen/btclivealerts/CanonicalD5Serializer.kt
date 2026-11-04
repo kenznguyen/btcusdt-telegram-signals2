@@ -279,7 +279,7 @@ object CanonicalD5Serializer {
         return a.size.compareTo(b.size)
     }
 
-    private inline fun <T> DataOutputStream.writeSection(
+    private fun <T> DataOutputStream.writeSection(
         name: String,
         rows: List<T>,
         writeRow: DataOutputStream.(T) -> Unit,
