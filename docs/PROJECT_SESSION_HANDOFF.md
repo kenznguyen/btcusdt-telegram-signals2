@@ -2780,3 +2780,13 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Overall T0.9 remains **BLOCKED / NOT VERIFIED**: API 26 and API 33 partial PASS; API 35 pending. No JNI source change is justified by emulator boot failure.
 - Evidence report updated in commit `a47263326d12ca23647c251f79838f2e1859236f`: `docs/evidence/T0.9-ANDROID-ART-JNI-RUNTIME-INVOCATION-VERIFICATION-2026-11-04.md`.
 - Keep test source SHA distinct from docs commits: `d74a656394a5d275533393954a274efb033b7f33`. Scope remains in-memory SQLite/debug hook only; `AI_EXECUTION_ENABLED=false`; no production DB, Feeder, lease, exchange, live order, release/sign/install or physical-device activity.
+
+
+### T0.9 targeted API 35 retry — attempt 3 in progress
+
+- Workflow #41826476055 attempt 3 targets the same tested source SHA `d74a656394a5d275533393954a274efb033b7f33`.
+- API 35 job #126593970774 is **IN PROGRESS** at Android ART instrumentation. Checkout, Java/Gradle, Android SDK and pinned SQLite setup have passed. Active logs are not yet available.
+- API 26 #126593972806 and API 33 #126594020588 are **SUCCESS** in attempt 3. Their XML/artifacts from attempt 2 were already inspected and independently hashed.
+- No API 35 attempt-3 report exists yet. T0.9 remains **BLOCKED / NOT VERIFIED** until API 35 instrumentation completes and its XML is inspected.
+- Evidence report commit: `3145a2cd9c094da46539d4371764a29744b32e0d`.
+- Keep source SHA `d74a656394a5d275533393954a274efb033b7f33` distinct from documentation-only branch HEAD.
