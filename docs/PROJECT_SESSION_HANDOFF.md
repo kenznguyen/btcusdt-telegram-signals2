@@ -2354,3 +2354,19 @@ No SQLite database was opened; no SQL/PRAGMA was executed against a database; no
 - No DB, SQL/PRAGMA execution, filesystem/device, APK, Feeder, writer, backup/restore, exchange or trading action. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 
 Next bounded step: obtain owner decisions on the five items in P5.4.96 section 7. Do not implement the canonical-envelope source delta or SQLite adapter until the relevant approval; no runtime authorization is implied.
+
+
+## P5.4.97 — Android minSdk 26 read-only transaction API review (2026-11-04)
+
+- Evidence report: `docs/evidence/P5.4.97-ANDROID-MINSDK26-READONLY-TRANSACTION-API-REVIEW-2026-11-04.md`.
+- Baseline HEAD reviewed: `5a47879d3483e826d63a95d5449970613810d1c6`.
+- Documentation/AOSP source review only; no source/dependency, DB, filesystem, Android device, SQL, instrumentation or workflow changed/used.
+- Framework facts: `OPEN_READONLY` API 1; `beginTransaction()` is EXCLUSIVE; `beginTransactionNonExclusive()` is IMMEDIATE; framework `beginTransactionReadOnly()` only API 35 and DEFERRED/read-only.
+- AndroidX SupportSQLiteDatabase adds `beginTransactionReadOnly()` in the 2.5.0 line. Interface default delegates to `beginTransaction()`, so interface presence alone is not proof.
+- Reviewed AndroidX FrameworkSQLiteDatabase implementation attempts reflective `SQLiteSession.beginTransaction(TRANSACTION_MODE_DEFERRED,...)`; if reflection is unavailable, fallback is `beginTransaction()` (EXCLUSIVE). Reflection/hidden-API behavior must be proven for app target SDK and each supported runtime. Candidate is not certified.
+- Decision: minSdk 26 read-only consistent transaction remains **BLOCKED / NOT RUNTIME VERIFIED**. AndroidX framework driver is a candidate only if concrete override and DEFERRED reflection path are verified; EXCLUSIVE fallback is unacceptable.
+- Required future proof is documented: API 26+ device/runtime matrix; exact app target SDK and pinned dependency; read-only open/no-create test; actual DEFERRED path proof; concurrent writer snapshot stability across WAL/rollback-journal if supported; write rejection; no DB/WAL/SHM mutation; injected failure cleanup and READ_UNCERTAIN behavior.
+- Source/dependency change: NOT MADE. Adapter: NOT IMPLEMENTED / NOT AUTHORIZED. DB/device/instrumentation tests: NOT RUN / NOT AUTHORIZED. Workflow/artifact: NOT RUN / NOT APPLICABLE.
+- No DB, SQL, filesystem/device, Feeder, writer, backup/restore, APK, exchange or trading operation. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+
+Next bounded step: owner review/authorization for a source-level dependency/API spike and test design only. This is separate from any DB/device/instrumentation authorization.
