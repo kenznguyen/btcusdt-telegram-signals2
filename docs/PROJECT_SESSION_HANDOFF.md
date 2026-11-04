@@ -1511,3 +1511,16 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Updated overlapping CI invocation thresholds: atomic fencing 110, runtime health API 117, SIGKILL recovery 111. Counts overlap.
 - Exact-SHA GitHub Actions pending; do not claim PASS until all required jobs complete.
 - No PC/canonical DB/production Feeder/exchange/data sync/order execution. Keep AI_EXECUTION_ENABLED=false.
+
+
+## P5.4.61 result — 2026-11-04
+
+- Final tested source SHA: `4384c33955011ad7a33e6957b26f97a7d89f42f5`.
+- P5.4.61 fixture-only RecoveryPlanner overlap/duplicate-gap regression: **PASS**.
+- T0 workflow run 41744435926: **SUCCESS**.
+- Integrated P5.4.1 workflow run 41744436065: **SUCCESS**, 5/5 jobs (preflight, G2+T0, G1, T0 full regression, combined evidence).
+- Combined artifact ID 13283042285, GitHub metadata digest `sha256:6bc351302876c7843d980e3a6742c3937798833b2a2f8d625a8a8c1506622b61`. G1/G2/T0 artifact details are in the P5.4.61 report.
+- Artifact payload checksum recomputation remains **NOT VERIFIED**.
+- This closeout changes documentation only; the verified test source remains `4384c33955011ad7a33e6957b26f97a7d89f42f5`.
+- No PC, canonical DB, production Feeder, exchange connectivity, market-data sync or order execution. Keep `AI_EXECUTION_ENABLED=false`.
+- Next permitted scope: continue fixture-only RecoveryPlanner/Coordinator boundary tests; runtime activation remains prohibited.
