@@ -52,9 +52,16 @@ internal object NativeSqliteReadOnlyJni {
  }
  fun closeSnapshot(handle:Long):NativeSqliteStatus {libraryLoaded;return NativeSqliteStatus.fromNativeCode(nativeCloseSnapshot(handle))}
  fun readD5Snapshot(handle:Long):NativeSqliteD5SnapshotReply {libraryLoaded;return NativeSqliteD5WireDecoder.decode(nativeReadD5Snapshot(handle))}
+ internal fun openInMemoryForRuntimeTest():NativeSqliteOpenReply {
+  libraryLoaded
+  val result=nativeTestOpenInMemory()
+  if(result.size!=2)return NativeSqliteOpenReply(NativeSqliteStatus.INCOMPLETE_EVIDENCE,0L)
+  return NativeSqliteOpenReply(NativeSqliteStatus.fromNativeCode(result[0].toInt()),result[1])
+ }
  private external fun nativeOpenPinnedSnapshot(path:String):LongArray
  private external fun nativeCloseSnapshot(handle:Long):Int
  private external fun nativeReadD5Snapshot(handle:Long):ByteArray
+ private external fun nativeTestOpenInMemory():LongArray
 }
 internal object JniNativeSqliteReadOnlyBridge:NativeSqliteReadOnlyBridge {
  override fun openPinnedSnapshot(path:String)=NativeSqliteReadOnlyJni.openPinnedSnapshot(path)
