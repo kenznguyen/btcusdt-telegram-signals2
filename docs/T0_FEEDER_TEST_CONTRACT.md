@@ -36,13 +36,12 @@
 
 ## Storage target and boundary
 
-- Owner-selected target: Windows PC.
-- Database: SQLite.
-- Lease: same physical database as canonical market data.
-- Backup cadence: daily.
-- Canonical filesystem path: **NOT DECIDED**.
-- PC use is currently deferred. No PC path or database was inspected in P5.4.63/T0-A.
-- GitHub Actions fixture tests use temporary/in-memory test state only. They must not create, open or write the future canonical DB.
+- Owner-selected target: **Android-hosted SQLite**; Market Data and Paper Ledger share one physical canonical DB file.
+- ADR-002 assigns the existing `regular` variant as the sole canonical host and `.paper` as an authenticated IPC client only.
+- Canonical Android filesystem path and stable DB identity: **NOT IMPLEMENTED / NOT VERIFIED**. P5.4.65 source review found no Android canonical path authority, SQLite persistence, Feeder composition or approved IPC service.
+- PC is optional AI/research/backtest compute and a read-only consumer; it is not the T0 canonical writer or a prerequisite for T0-B/T0-C.
+- Android device/filesystem access requires separate explicit approval. No Android path or database was inspected in P5.4.63/T0-A.
+- GitHub Actions fixture tests use temporary/in-memory state only. They must not create, open or write the future canonical Android DB.
 
 ## Fixture test inventory
 
@@ -77,15 +76,16 @@ Additional T0 CI coverage includes 16 Gateway runtime tests, market-data/store/s
 ## Ordered gates
 
 1. **T0-A — Fixture contracts and static CI closeout: PASS.** Scheduler, retry, recovery, lease, health, lifecycle, Gateway, fencing, CI policy and operational static audit are green on GitHub Actions.
-2. **T0-B — PC storage identity and SQLite integrity: BLOCKED / DEFERRED.** Resolve canonical path on Windows PC and verify database identity/integrity read-only. Requires PC use to be reopened.
-3. **T0-C — Controlled Feeder runtime acceptance: NOT RUN.** Verify production composition, same-DB lease, readiness, lease loss, M15/H1 closed-candle ingestion, retry/recovery, stop and restart. Requires separate approval.
-4. **T0-D — Production backup/restore and continuity: NOT RUN / NOT VERIFIED.** Validate daily backup, WAL-consistent capture, restore, lease generation and continuity across required ledgers. Requires separate approval.
+2. **T0-B — Android canonical-storage preflight: BLOCKED / NOT RUN.** Requires an implemented host-owned path/identity authority and separate explicit Android device access. First record app-private path and DB/WAL/SHM metadata without opening SQLite; SQLite inspection is a separate authorization gate.
+3. **T0-C — Controlled Android Feeder runtime acceptance: NOT RUN / NOT AUTHORIZED.** Requires T0-B evidence, implemented regular-host CanonicalRuntime, same-file lease/fencing, authenticated IPC/client isolation, explicit permission to open/use the canonical DB and start Feeder, and separately scoped source/exchange permission if needed.
+4. **T0-D — Android shared-file backup/restore and continuity: NOT RUN / NOT VERIFIED.** Requires implemented D2–D7 contracts, WAL-consistent capture, cross-domain Market Data + Paper Ledger recovery, D6 external epoch/fencing, and separate explicit backup/restore authorization.
 5. **T0-E — Overall T0/P1 acceptance: BLOCKED.** Do not close P1 or advance to P2 until T0-B, T0-C and T0-D have evidence.
 
 ## Prohibited without separate explicit approval
 
-- Do not create, open or modify the canonical PC database.
-- Do not start the production Feeder.
-- Do not connect to Binance or another exchange or sync market data.
-- Do not run production backup/restore.
-- Do not enable live orders or exchange execution.
+- Do not probe Android storage or resolve a live canonical path without separate explicit device-access approval.
+- Do not create, open or modify the canonical Android database; do not run SQLite PRAGMA/integrity/migration inspection without separate approval.
+- Do not start the Android canonical Feeder or acquire its production lease.
+- Do not connect to Binance or another exchange or synchronize market data.
+- Do not run production backup/restore, manipulate WAL/SHM, or activate a writer.
+- Do not use PC/VPS as a substitute canonical writer. Do not enable live orders or exchange execution.
