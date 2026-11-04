@@ -125,6 +125,11 @@ object CanonicalSqliteReadContract {
         }
 
         val visibleObjects = catalog.filterNot { isInternalSqliteObject(it.name) }
+        visibleObjects.forEach { entry ->
+            require(!entry.sql.isNullOrBlank()) {
+                "Missing SQLite schema SQL for ${entry.type} ${entry.name}"
+            }
+        }
         val tablesAndViews = visibleObjects.asSequence()
             .filter { it.type.equals("table", ignoreCase = true) || it.type.equals("view", ignoreCase = true) }
             .onEach { entry ->
