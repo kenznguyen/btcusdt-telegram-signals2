@@ -14,13 +14,15 @@ assert "CanonicalDatabaseRoleId" in runtime and "CanonicalDatabaseInstanceId" in
 assert "object ReadOnlySchemaVerifier" in contracts
 for forbidden in ("SQLiteDatabase","openOrCreateDatabase","getDatabasePath(",".mkdir()",".mkdirs()","startService(","startForegroundService(","CREATE TABLE","ALTER TABLE","INSERT INTO","UPDATE ","DELETE FROM"):
  assert forbidden not in application+runtime+contracts,f"Forbidden side effect: {forbidden}"
-native=(APP/"src/main/cpp/native_sqlite_readonly.cpp").read_text().replace(" ","")
+native_path=APP/"src/main/cpp/native_sqlite_readonly.cpp"
+native=native_path.read_text().replace(" ","")
 cmake=(APP/"src/main/cpp/CMakeLists.txt").read_text()
 jni=(APP/"src/main/java/com/kenznguyen/btclivealerts/NativeSqliteReadOnlySession.kt").read_text()
 for required in ("SQLITE_OPEN_READONLY|SQLITE_OPEN_FULLMUTEX",'sqlite3_db_readonly(db,"main")!=1','"BEGINDEFERRED"',"sqlite3_stmt_readonly(anchor)!=1",'"SELECTcount(*)FROMsqlite_schema"','"ROLLBACK"',"WAL_SIDECARS_UNAVAILABLE","sqlite3_sourceid()","CANONICAL_SQLITE_EXPECTED_SOURCE_ID"):
  assert required.replace(" ","") in native,f"Native contract missing: {required}"
 for forbidden in ("SQLITE_OPEN_CREATE","SQLITE_OPEN_READWRITE","immutable=1","sqlite3_exec(db,sql"):
  assert forbidden not in native,f"Forbidden native capability: {forbidden}"
+assert native.index("readable_file(path+\"-wal\")") < native.index("sqlite3_open_v2("), "WAL sidecars must be preflighted before SQLite opens the file"
 for required in ("SQLITE_EXPECTED_VERSION_NUMBER","SQLITE_EXPECTED_SOURCE_ID","SQLITE_EXPECTED_C_SHA256","SQLITE_EXPECTED_H_SHA256","file(SHA256","no system/framework fallback"):
  assert required in cmake,f"SQLite pinning requirement missing: {required}"
 assert "external fun nativeOpenPinnedSnapshot" in jni and "fun executeSql" not in jni
