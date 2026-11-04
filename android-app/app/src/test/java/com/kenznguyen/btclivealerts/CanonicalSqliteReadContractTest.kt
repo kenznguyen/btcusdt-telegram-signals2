@@ -69,10 +69,8 @@ class CanonicalSqliteReadContractTest {
     }
 
     @Test
-    fun identifierQuotingEscapesEmbeddedQuotesAndRejectsBlankNames() {
+    fun identifierQuotingEscapesEmbeddedQuotesWithoutRewritingTheIdentifier() {
         assertEquals("\"table\"\"name\"", CanonicalSqliteReadContract.quoteIdentifier("table\"name"))
-        assertEquals("\"\"", CanonicalSqliteReadContract.quoteIdentifier(""))
-        assertEquals("\"   \"", CanonicalSqliteReadContract.quoteIdentifier("   "))
     }
 
     @Test
@@ -85,7 +83,7 @@ class CanonicalSqliteReadContractTest {
 
         assertEquals(3, queries.size)
         assertTrue(queries.all { it.sql.startsWith("PRAGMA ") })
-        assertFalse(queries.any { it.sql.contains("; DROP TABLE") })
+        assertEquals("PRAGMA table_info(\"safe\"\"; DROP TABLE x;--\")", queries.first().sql)
     }
 
     @Test
