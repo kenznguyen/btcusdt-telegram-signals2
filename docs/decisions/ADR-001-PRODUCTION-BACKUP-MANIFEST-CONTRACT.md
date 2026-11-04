@@ -2,7 +2,7 @@
 
 ## Status
 
-**PROPOSED — NOT ACCEPTED.** This record captures source-grounded facts, required decisions and candidate constraints. It does not select a canonical database topology, authorize production backup/restore, or change runtime behavior.
+**PARTIALLY ACCEPTED — D1 host and physical topology only.** The owner has accepted Android-hosted SQLite as the canonical T0 store and one shared physical SQLite file for Market Data plus Paper Ledger. D2–D7 remain proposed/unresolved. This ADR does not authorize production backup/restore, canonical database creation/opening, Feeder activation, exchange connectivity or writer activation.
 
 ## Date
 
