@@ -62,7 +62,7 @@ jobs:
       - name: Verify and materialize pinned SQLite sources
         run: python3 ci/prepare_pinned_sqlite.py --archive /tmp/sqlite-amalgamation-3540100.zip
 
-      - name: Build and run isolated native SQLite D5 :memory: tests
+      - name: "Build and run isolated native SQLite D5 :memory: tests"
         run: |
           cmake -S android-app/app/src/main/cpp/tests -B /tmp/t0.6-native-d5-tests \
             -DSQLITE_AMALGAMATION_DIR="$GITHUB_WORKSPACE/android-app/app/build/generated/sqlite/vendor"
