@@ -31,6 +31,7 @@ class CiPolicyTest(unittest.TestCase):
             "p5-4-10-backup-restore-fixture.yml",
             "android-release-pair.yml",
             "android-t0-foundation.yml",
+            "android-t0-foundation-github-actions.yml",
             "t0-9-art-jni-runtime.yml",
         }
 
