@@ -33,7 +33,27 @@ class CanonicalD5SerializerTest {
 
     @Test
     fun canonicalBytesAreIndependentOfInputCollectionOrder() {
-        val first = envelope()
+        val first = envelope(
+            catalog = listOf(
+                D5CatalogRecord("main", "table", "positions", "positions", "CREATE TABLE positions(id)"),
+                D5CatalogRecord("main", "view", "v_positions", "v_positions", "CREATE VIEW v_positions AS SELECT id FROM positions"),
+            ),
+        ).let { base ->
+            base.copy(
+                tableColumns = base.tableColumns + D5TableColumnRecord(
+                    "main", "positions", 1, "created_at", "TEXT", 0, null, 0, 0,
+                ),
+                indexes = base.indexes + D5IndexRecord(
+                    "main", "positions", 1, "idx_positions_id", false, "c", false,
+                ),
+                indexColumns = base.indexColumns + D5IndexColumnRecord(
+                    "main", "positions", "idx_positions_created", 1, -1, null, true, "BINARY", false,
+                ),
+                foreignKeys = base.foreignKeys + D5ForeignKeyRecord(
+                    "main", "positions", 1, 0, "users", "user_id", "id", "RESTRICT", "SET NULL", "NONE",
+                ),
+            )
+        }
         val reordered = first.copy(
             catalog = first.catalog.reversed(),
             tableColumns = first.tableColumns.reversed(),
@@ -98,6 +118,13 @@ class CanonicalD5SerializerTest {
             "duplicate table column identity",
             runCatching { CanonicalD5Serializer.serialize(invalid) }.exceptionOrNull()?.message,
         )
+    }
+
+    @Test
+    fun malformedUtf16IsRejectedInsteadOfSilentlyReplaced() {
+        assertTrue(runCatching {
+            CanonicalD5Serializer.serialize(envelope(catalogName = "invalid-\\uD800-name"))
+        }.isFailure)
     }
 
     @Test
