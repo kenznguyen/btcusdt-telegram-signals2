@@ -190,7 +190,7 @@ class IdentityProvisioningPlannerTest {
             ),
         )
         assertEquals(
-            IdentityProvisioningPlan.BLOCKED_EVIDENCE,
+            IdentityProvisioningPlan.REQUIRE_READ_ONLY_RECONCILIATION,
             IdentityProvisioningPlanner.plan(
                 ProvisioningPinState.ACTIVE,
                 ProvisioningDatabaseEvidence.IDENTITY_MATCHES_PIN,
