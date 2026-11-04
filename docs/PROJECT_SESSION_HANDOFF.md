@@ -1965,3 +1965,18 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Branch: `feature/p5-4-1-post-merge-validation-20261103`. No PR or new branch created. Latest documentation commit at this handoff update follows prior D82-B document commit `c6dd9e8ea4d02c527aaa23c764784b6833bacf36`.
 - Next step: obtain explicit owner decision on D82-B recommendation; do not implement or provision.
 - Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+
+
+## P5.4.82B — D82-B owner approval recorded (2026-11-04)
+
+- Owner decision: **APPROVE D82-B** — role-based **2-of-3** quorum across three independent trust-domain roles: system-owner delegate, independent escrow custodian delegate, independent security/recovery delegate.
+- Two distinct people from distinct trust domains must approve the exact recovery case. Requester and executor are excluded from the counted quorum.
+- Pre-designated alternates are permitted only if designated/governed before an incident. No ad hoc enrollment or role transfer during an active case.
+- No emergency bypass below quorum. If two eligible independent approvers cannot be assembled, case remains `BLOCKED_QUORUM_UNAVAILABLE`. Chat/verbal approval, GitHub review and executor assertion do not substitute for authenticated case-bound approval.
+- Decision support: `docs/evidence/P5.4.82B-APPROVAL-QUORUM-AND-ROLE-SEPARATION-OPTIONS-2026-11-04.md`; status **OWNER-APPROVED — ARCHITECTURE/POLICY ONLY**.
+- D82-B operational details remain open before implementation: actual roster/identity proofing; alternate mapping/activation authority; trust-domain independence evidence; credential lifecycle/revocation; case-bound approval/audit protocol; conflict-of-interest handling; quorum availability monitoring. D82-C–D82-J remain open.
+- Updated P5.4.82A, P5.4.82 and ADR-001. Historical status text retained only as audit chronology; latest decision addendum is authoritative.
+- No implementation, identity enrollment, fixture creation/execution, key generation, provider/KMS/HSM/escrow selection or provisioning, production access, DB/device/PC, backup/restore, Feeder/exchange, D6 gate mutation or writer activation authorized.
+- Existing 96 fixtures: **SPECIFIED / NOT IMPLEMENTED / NOT RUN**. GitHub Actions NOT RUN; no workflow/artifact.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`. No PR or new branch. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next step: continue bounded D82-B operational design details and D82-C custody jurisdiction/account ownership; obtain explicit owner decisions for D82-C–D82-J. No implementation without separate authorization.
