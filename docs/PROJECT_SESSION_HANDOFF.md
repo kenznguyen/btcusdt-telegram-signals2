@@ -2375,11 +2375,11 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 
 - Owner approvals: P5.4.96 recommendations and P5.4.98 source-level spike explicitly approved.
 - Evidence report: `docs/evidence/P5.4.98-MINSDK26-READONLY-SQLITE-SOURCE-SPIKE-2026-11-04.md`.
-- Report commit: `96898405b9438752cbe847c311fa9ac1970a6d14`.
+- Report latest evidence update commit: `619b73016a497a846b524e1d117e20762e0ea299`.
 - Active branch: `feature/p5-4-1-post-merge-validation-20261103`.
 - Source implementation commit: `25bb4a16fba0651cbcffb473f0ad8b1b7e75d750`.
 - Transaction evidence gate + tests commit: `d34b6ef2652b964294a3b815ba7e93343f1cfa11`.
-- Current HEAD at this handoff update: `96898405b9438752cbe847c311fa9ac1970a6d14`.
+- Current HEAD before this handoff update: `619b73016a497a846b524e1d117e20762e0ea299`.
 - Added `CanonicalD5SchemaContract.kt`: SQLite >=3.37.0; positive exact table-list feature probe; exact output-shape validation; reject virtual/shadow/unknown objects; compare table-list against sqlite_schema after sqlite_* exclusion; D5 envelope v1 logical field inventory; rootpage excluded; exact source ID recorded without imposing an unapproved allowlist.
 - Added JVM tests: `CanonicalD5SchemaContractTest.kt` and `D5ReadOnlyTransactionGateTest.kt`.
 - Added a pure source gate requiring concrete implementation identity, DEFERRED mode, read-only enforcement and no fallback. This validates adapter-supplied evidence only; it is not runtime proof.
@@ -2387,9 +2387,9 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - minSdk 26 consistent read-only transaction: **BLOCKED / NOT RUNTIME VERIFIED**.
 - Canonical envelope v1 field inventory: implemented. Canonical byte serialization and schema digest: **NOT IMPLEMENTED**.
 - GitHub Actions Android T0 Foundation:
-  - Test-spec RED run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41775292767 (run 41775292767; observed in progress when recorded).
-  - Source implementation run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41775320141 (run 41775320141; cancelled by subsequent push before final verification).
-  - Latest source test run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41775378163 (run 41775378163; exact source SHA `d34b6ef2652b964294a3b815ba7e93343f1cfa11`; pending at handoff time).
-- CI/test status for new code: **NOT VERIFIED** until run 41775378163 completes. No artifact is claimed.
+  - Test-spec RED run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41775292767 (run 41775292767; completed FAILURE as expected: test-only commit preceded implementation, so unresolved contract references; `.paper` and static audit skipped; no artifact produced).
+  - Source implementation run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41775320141 (run 41775320141; cancelled by subsequent source push before final verification).
+  - Latest source test run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41775378163 (run 41775378163; exact source SHA `d34b6ef2652b964294a3b815ba7e93343f1cfa11`; `in_progress` at last check, regular host unit tests in progress; `.paper` and static audit pending).
+- CI/test status for new code: **NOT VERIFIED** until run 41775378163 completes. The RED failure is the expected test-first checkpoint, not evidence against the implementation. No artifact is claimed.
 - No Android device, instrumentation, filesystem, SQLite database, SQL/PRAGMA execution, Feeder, lease, writer, backup/restore, APK, exchange or trading action. Keep `AI_EXECUTION_ENABLED=false`.
 - Next step: reconcile run 41775378163 and its jobs/artifact. Fix source-level failures if present, then update this handoff/report with exact outcome. Runtime/device/DB authorization remains separate.
