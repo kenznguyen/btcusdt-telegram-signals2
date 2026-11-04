@@ -2053,3 +2053,22 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - T0-A remains PASS on prior exact-SHA evidence; T0-B BLOCKED / NOT RUN; T0-C NOT RUN / NOT AUTHORIZED; T0-D NOT RUN / NOT VERIFIED; T0-E BLOCKED.
 - No tests/workflows/builds/artifacts were run or created in this increment. No Android device, PC runtime, canonical DB, Feeder, exchange, backup/restore or writer touched. `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next step: request explicit owner approval for Slice 1 + Slice 2 source implementation only, then fixture/static CI on GitHub Actions. Device T0-B remains separately gated.
+
+
+## P5.4.86 — Android T0 Slice 1 + Slice 2 implementation and CI closeout (2026-11-04)
+
+- Owner explicitly approved source implementation of Slice 1 + Slice 2 only.
+- Added `CanonicalRuntime.kt`: stable DB identity/location metadata, metadata-only `CanonicalPathAuthority`, app-private candidate path `files/canonical/t0.sqlite`, side-effect-free `CanonicalRuntime`, synchronized lazy `CanonicalRuntimeRegistry`; non-host variant gets no runtime.
+- Added `CanonicalApplication.kt`; updated main manifest to use it. Runtime is lazy and does not open/create SQLite or start services/workers.
+- Added four JVM fixture tests for metadata-only resolution/no file creation, one runtime per host registry, non-host exclusion and no resolution during construction.
+- Added static audit and Android T0 Foundation GitHub Actions workflow. Workflow executes `:app:testDebugUnitTest` and static audit only; no APK build/sign/publish.
+- Implementation commit: `10bf761cb323b3e19d8c48d7b447e373c5cf9e83`; CI allowlist correction commit: `a9c43ef2e0273716220d479ea6fa7df64a0809fa`.
+- Exact validated SHA: `a9c43ef2e0273716220d479ea6fa7df64a0809fa`.
+- Android Foundation run #41757183862: **PASS**; Gradle unit test task BUILD SUCCESSFUL; static audit PASS. Artifact ID `13288214753`; run https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41757183862 ; artifact https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41757183862/artifacts/13288214753 .
+- T0 automated validation run #41757183811: **PASS** on the same SHA: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41757183811 .
+- P5.4.1 aggregate run #41757183822: **PASS** on the same SHA; preflight, T0, G1, G2 and common-SHA verification passed. Combined evidence artifact ID `13288682358`; run https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41757183822 ; artifact https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41757183822/artifacts/13288682358 .
+- Closeout report: `docs/evidence/P5.4.86-ANDROID-T0-CANONICAL-RUNTIME-PATH-AUTHORITY-IMPLEMENTATION-CLOSEOUT-2026-11-04.md`.
+- Historical CI failures were isolated and corrected: first SDK setup used removed `tools` package; next aggregate gate exposed missing explicit workflow allowlist entry. Later exact-SHA runs above all passed.
+- Limits: no SQLite open/create/PRAGMA/schema/migration; no Feeder, lease, exchange, sync, IPC/Binder, Paper Ledger/Risk activation, Android device/install/instrumentation, PC/VPS, APK build/sign/publish or writer activation. `AI_EXECUTION_ENABLED=false`; paper-only.
+- Status: Slice 1 **PASS — source/JVM CI**; Slice 2 **PASS — source/JVM CI/static audit**. Device runtime conformance **NOT VERIFIED**; T0-B **NOT RUN / NOT AUTHORIZED**; T0-C **NOT RUN / NOT AUTHORIZED**; T0-D **NOT RUN / NOT VERIFIED**; T0-E **BLOCKED**.
+- Next step: source-only review of Slice 1 + 2 and prepare Slice 3 design/tests for canonical DB identity and schema-migration verifier boundary. No SQLite access or DB implementation without separate approval.
