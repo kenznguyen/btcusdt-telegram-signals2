@@ -274,10 +274,38 @@ class CiPolicyTest(unittest.TestCase):
             with self.subTest(retired=retired):
                 self.assertNotIn(retired, serialized)
 
-    def test_github_actions_never_build_or_publish_android_apks(self):
+    def test_github_actions_only_build_debug_apks_for_manual_art_instrumentation(self):
+        path = ROOT / ".github/workflows/t0-9-art-jni-runtime.yml"
+        self.assertTrue(path.is_file())
+        workflow = yaml.safe_load(path.read_text())
+        triggers = workflow.get("on", workflow.get(True, {}))
+        self.assertEqual(set(triggers), {"workflow_dispatch"})
+        self.assertEqual(workflow["permissions"]["contents"], "read")
+        job = workflow["jobs"]["art-jni-runtime"]
+        self.assertEqual(job["env"]["AI_EXECUTION_ENABLED"], "false")
+        build = next(
+            step for step in job["steps"]
+            if step.get("name") == "Assemble debug APKs before emulator startup"
+        )
+        self.assertIn(":app:assembleDebug", build["run"])
+        self.assertIn(":app:assembleDebugAndroidTest", build["run"])
+        self.assertNotIn(":app:assembleRelease", build["run"])
+        self.assertNotIn(":app:assembleParallel", build["run"])
+        instrumentation = next(
+            step for step in job["steps"]
+            if step.get("name") == "Boot, preflight, install APKs, then invoke ART instrumentation"
+        )
+        self.assertIn(":app:connectedDebugAndroidTest", instrumentation["with"]["script"])
+        upload = next(
+            step for step in job["steps"]
+            if step.get("name") == "Upload boot, install, ART reports and emulator diagnostics"
+        )
+        self.assertNotIn("outputs/apk", upload["with"]["path"])
+        self.assertIn("outputs/androidTest-results", upload["with"]["path"])
+
+    def test_github_actions_never_build_or_publish_android_release_apks(self):
         workflows = ROOT / ".github/workflows"
         forbidden = (
-            ":app:assembleDebug",
             ":app:assembleRelease",
             ":app:assembleParallel",
             "ci/setup-android.sh",
@@ -289,6 +317,8 @@ class CiPolicyTest(unittest.TestCase):
             if path.name == "android-release-pair.yml":
                 continue
             content = path.read_text()
+            if ":app:assembleDebug" in content:
+                self.assertEqual(path.name, "t0-9-art-jni-runtime.yml")
             for token in forbidden:
                 with self.subTest(workflow=path.name, token=token):
                     self.assertNotIn(token, content)
