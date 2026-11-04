@@ -2469,3 +2469,18 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - P5.4.99 final: **PASS — SOURCE-ONLY**. Docs-only commits after the tested SHA do not change tested source/test code.
 - Still separately blocked/not verified: minSdk 26 read-only consistent transaction runtime proof and SQLite adapter selection. No DB/device/runtime/instrumentation/Feeder/writer/migration/backup/restore/APK/exchange/trading action. `AI_EXECUTION_ENABLED=false`.
 - Next permitted increment requires separate source-scope approval; no implicit runtime authorization.
+
+
+## P5.4.100 — Canonical D5 Golden Vectors (2026-11-04)
+
+- User approval: `APPROVE P5.4.100 GOLDEN VECTORS SOURCE-ONLY`.
+- Scope: freeze exact canonical bytes and SHA-256 for D5 canonical v1; tests/documentation only. No production behavior/runtime wiring changed.
+- Evidence report: `docs/evidence/P5.4.100-CANONICAL-D5-GOLDEN-VECTORS-2026-11-04.md`.
+- Empty-envelope vector: 170 bytes; SHA-256 `98f5c30f439b552ab7b04f7ae0f783abae13c2a6141cc5b1348da016a867b600`.
+- Populated-envelope vector: 551 bytes; SHA-256 `b57bd29e67c869039d2ff5aa2f365d4f588c9a154054e5b6dc56837c491b0354`.
+- Test commits: empty vector `861aa8c594f1017178a9b9fc2f829e9fefc62069`; populated vector latest source/test SHA `a8986dde1a1e63c376c0ddb13362f923ce680df1`.
+- Run #41779467032 / job #126407454734 tests the empty-vector commit and was **IN PROGRESS** at last inspection (regular host tests running; .paper/static audit/artifact pending).
+- Run #41779591097 tests latest SHA `a8986dde1a1e63c376c0ddb13362f923ce680df1` and was **PENDING** at last inspection.
+- Overall P5.4.100: **NOT VERIFIED** until the latest exact-SHA workflow completes, both variants and static audit pass, and artifact payload/checksum are verified.
+- No SQLite/SQL/PRAGMA, DB, Android device/runtime/instrumentation, adapter, Feeder, lease, writer, migration, backup/restore, APK, exchange or trading operation. `AI_EXECUTION_ENABLED=false`.
+- Next: reconcile run #41779591097 (and predecessor #41779467032 if useful), inspect regular/.paper test reports and static audit, verify artifact ZIP and SHA-256, then update this handoff and evidence report with final exact SHA/run/artifact details.
