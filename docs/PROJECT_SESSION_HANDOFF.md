@@ -2768,3 +2768,15 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - No API 33/35 XML or artifact is available yet. Active job logs currently return BlobNotFound; no pass/fail conclusion inferred.
 - Overall T0.9 remains **BLOCKED / NOT VERIFIED** until API 33 and API 35 produce successful instrumentation reports that are inspected.
 - Evidence report updated with the attempt 2 job state. Next: poll run #41826476055 and inspect resulting XML/artifacts; no JNI source change warranted while jobs are executing.
+
+
+### T0.9 retry attempt 2 — API 33 pass / API 35 emulator blocked (2026-11-04)
+
+- Workflow #41826476055, test source SHA `d74a656394a5d275533393954a274efb033b7f33`, completed overall **FAILURE**.
+- API 26 #126574054193: **SUCCESS**; inspected XML 1/0/0/0 and artifact #13322360294. Independently computed ZIP SHA-256 matches metadata: `6443e6701f71a71bb79c01edbfa648978543c3bfda75ea0f162021e43a61c190`.
+- API 33 #126574052863: **SUCCESS**; artifact #13322889567 inspected. XML: tests=1, failures=0, errors=0, skipped=0; test `artLoadsNativeLibraryAndInvokesOpenReadCloseExports` passed and instrumentation log says `OK (1 test)`. ZIP size 21,578 bytes; independently computed SHA-256 matches GitHub metadata: `32899e5c4e814921ee172e516d9d249d00568d04d6837bdb9a0a483b28c48bc7`.
+- API 35 #126574053294: **BLOCKED / NOT VERIFIED** due hosted emulator startup. Logs show repeated `adb: device 'emulator-5554' not found`, then `Timeout waiting for emulator to boot` and TCP 5554 connection refused. Gradle instrumentation never ran; no XML/report artifact exists. This is infrastructure failure, not evidence of JNI test failure.
+- A targeted rerun of only failed API 35 job #126574053294 was submitted successfully. New job/run-attempt ID must be retrieved and its XML inspected.
+- Overall T0.9 remains **BLOCKED / NOT VERIFIED**: API 26 and API 33 partial PASS; API 35 pending. No JNI source change is justified by emulator boot failure.
+- Evidence report updated in commit `a47263326d12ca23647c251f79838f2e1859236f`: `docs/evidence/T0.9-ANDROID-ART-JNI-RUNTIME-INVOCATION-VERIFICATION-2026-11-04.md`.
+- Keep test source SHA distinct from docs commits: `d74a656394a5d275533393954a274efb033b7f33`. Scope remains in-memory SQLite/debug hook only; `AI_EXECUTION_ENABLED=false`; no production DB, Feeder, lease, exchange, live order, release/sign/install or physical-device activity.
