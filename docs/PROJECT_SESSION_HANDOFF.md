@@ -2501,3 +2501,19 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Active branch: `feature/p5-4-1-post-merge-validation-20261103`. Evidence and handoff updates are documentation-only commits; no PR or branch split.
 - Safety boundary unchanged: no SQLite/SQL/PRAGMA, DB, Android device/runtime/instrumentation, adapter, Feeder, lease, writer, migration, backup/restore, APK, exchange or trading operation. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next: propose a separately bounded source-only step and obtain explicit approval. Runtime/device/DB work remains separately unauthorized.
+
+## P5.4.101 — D5 Golden Vector Cross-Implementation Verification (2026-11-04)
+
+- Approval: `APPROVE P5.4.101 D5 GOLDEN VECTOR CROSS-IMPLEMENTATION SOURCE-ONLY`.
+- Evidence report: `docs/evidence/P5.4.101-D5-GOLDEN-VECTOR-CROSS-IMPLEMENTATION-2026-11-04.md`; report commit `837775c68120b1cc079bd50c015953ea1c921b51`.
+- Active branch: `feature/p5-4-1-post-merge-validation-20261103`; direct commits only, no PR or branch split.
+- Final source/test SHA: `a2a0d87b7128b3b7b773ffcdea9144770b8b4e1c`.
+- Added test-only independent decoder `CanonicalD5GoldenVectorIndependentDecoderTest.kt` using `DataInputStream`; production serializer and frozen vector bytes/digests unchanged.
+- GitHub Actions run #41784494206: **SUCCESS** — https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41784494206 . Job #126423393214 SUCCESS on exact source SHA above.
+- Regular host XML: 27 suites / 184 tests / 0 failures / 0 errors / 0 skipped. `.paper` XML: 27 suites / 184 tests / 0 failures / 0 errors / 0 skipped. Independent decoder: 2/2 in each variant. Android T0 foundation static audit: `ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS`.
+- Artifact #13300483441, 134,163 bytes, name `android-t0-foundation-a2a0d87b7128b3b7b773ffcdea9144770b8b4e1c`. Downloaded ZIP passed `unzip -t`; independently computed SHA-256 `065787cce9be2ea1eccfa5cf9fa31294f666f066f6b7c95eb794e59732a684ae` matches GitHub metadata digest.
+- Frozen vectors unchanged: empty 170 bytes / SHA-256 `98f5c30f439b552ab7b04f7ae0f783abae13c2a6141cc5b1348da016a867b600`; populated 551 bytes / SHA-256 `b57bd29e67c869039d2ff5aa2f365d4f588c9a154054e5b6dc56837c491b0354`.
+- Verdict: **P5.4.101 PASS — SOURCE-ONLY**. Independent decoder, regular/.paper tests, static audit, exact source identity and artifact payload integrity verified.
+- No Android device/runtime/instrumentation, SQLite/SQL/PRAGMA, DB, Feeder, lease, writer, migration, backup/restore, APK, exchange or trading operation. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+- Still blocked/not verified: minSdk 26 consistent read-only transaction runtime behavior, SQLite adapter/runtime integration, canonical DB and Feeder readiness, Android device behavior, and backup/restore. This increment does not change those statuses.
+- Next step: obtain separate owner approval for another bounded source-only increment. Runtime/device/DB work remains separately unauthorized.
