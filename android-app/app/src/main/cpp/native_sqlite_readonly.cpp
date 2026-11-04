@@ -360,7 +360,7 @@ D5Status read_d5_snapshot(sqlite3* db, std::vector<uint8_t>& payload) {
         }, failure, rows)) return failure;
 
     std::vector<TableRow> tables;
-    size_t section_offset = 0, section_count = 0;
+    section_count = 0;
     if (!write_section_count(out, section_offset)) return D5_PAYLOAD_TOO_LARGE;
     const char* table_list_sql =
         "SELECT * FROM pragma_table_list WHERE schema = 'main' AND lower(substr(name,1,7)) <> 'sqlite_' ORDER BY name";
