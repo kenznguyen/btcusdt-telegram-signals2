@@ -2667,3 +2667,18 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Verdict: **T0.8 PASS — SOURCE-ONLY** for host mock-JNIEnv ABI invocation and the listed CI checks.
 - Limits: no ART/JNI_OnLoad/runtime/device/API 26/33/35/instrumentation; no path-backed DB/WAL/sidecars/process-death/canonical DB/CanonicalRuntime/writer/Feeder/lease/migration/backup/restore/APK/exchange/trading. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next action: any ART/device or path-backed/WAL runtime validation requires a separate bounded approval. T0.8 approval does not authorize those operations.
+
+
+## T0.9 — Android ART/JNI Runtime Invocation Verification (2026-11-04)
+
+- Owner approval: `APPROVE T0.9 ANDROID ART/JNI RUNTIME INVOCATION VERIFICATION`.
+- Scope: Android ART instrumentation through hosted Android emulators API 26, 33 and 35; native test hook is compiled only in CMake Debug and opens SQLite `:memory:`.
+- Instrumentation test: `android-app/app/src/androidTest/java/com/kenznguyen/btclivealerts/NativeSqliteArtJniRuntimeTest.kt`; invokes Kotlin JNI bridge for test-only open, fixed D5 read/decode, close and repeated close.
+- Added AndroidX instrumentation runner/rules/JUnit dependencies and `.github/workflows/t0-9-art-jni-runtime.yml`.
+- Test hook `nativeTestOpenInMemory` already exists in native translation unit under `CANONICAL_SQLITE_TEST_HOOKS`; T0.9 does not add a production database API.
+- Commits: Gradle setup `bc516b01c79a9fc7398880aa04d01aa669776847`; Kotlin bridge hook `1eed299ec8666233ebd000eefbed0177af4d7fd4`; instrumentation test `c2713d55ab982c8189d1e56f359d52fd14a8cadd`; workflow `59c1ff82e3376dc94d5cd7ba5faf7d375bf800fd`; Debug-only native compile definition `ce77dad963d0a4729623df19579ce1e93c311bb8`; workflow concurrency correction `e6be3b747f9a7c436616334e8d616bff979cda34`; evidence report `d2604b5f84315edd49546f20bfdc60938de9d651`.
+- Current branch HEAD: `d2604b5f84315edd49546f20bfdc60938de9d651` (documentation-only evidence commit after workflow commit `e6be3b747f9a7c436616334e8d616bff979cda34`).
+- Workflow run ID/job IDs and emulator results have not been retrieved in this update. **T0.9 NOT VERIFIED**; do not claim PASS until API 26/33/35 jobs and instrumentation XML are inspected.
+- Evidence report: `docs/evidence/T0.9-ANDROID-ART-JNI-RUNTIME-INVOCATION-VERIFICATION-2026-11-04.md`.
+- Limits: hosted x86_64 emulators only; no physical device, path-backed DB, WAL/SHM, canonical DB, Feeder, lease, migration, backup/restore, APK release/sign/install, exchange or trading. Preserve `AI_EXECUTION_ENABLED=false`.
+- Next: inspect T0.9 workflow run, all three matrix jobs, and instrumentation reports; fix failures on this branch and record exact tested source SHA, run/job/artifact IDs and checksums. No broader runtime or DB scope without separate approval.
