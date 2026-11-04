@@ -93,10 +93,21 @@ class CanonicalSqliteReadContractTest {
     }
 
     @Test
+    fun schemaIntrospectionRejectsMissingCatalogSqlInsteadOfReturningPartialQueries() {
+        val catalog = listOf(SqliteSchemaCatalogEntry("table", "incomplete_table", "incomplete_table", null))
+        try {
+            CanonicalSqliteReadContract.schemaIntrospectionQueries(catalog)
+            throw AssertionError("missing schema SQL must fail closed")
+        } catch (expected: IllegalArgumentException) {
+            assertTrue(expected.message.orEmpty().contains("Missing SQLite schema SQL"))
+        }
+    }
+
+    @Test
     fun virtualTableDeclarationsFailClosedUntilModuleProvenanceIsVerified() {
         val catalog = listOf(
             SqliteSchemaCatalogEntry("table", "external_content", "external_content",
-                "CREATE VIRTUAL TABLE external_content USING fts5(body)"),
+                "-- virtual table declaration\nCREATE VIRTUAL TABLE external_content USING fts5(body)"),
         )
         try {
             CanonicalSqliteReadContract.schemaIntrospectionQueries(catalog)
