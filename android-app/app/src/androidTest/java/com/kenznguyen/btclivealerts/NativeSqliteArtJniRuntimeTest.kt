@@ -2,6 +2,7 @@ package com.kenznguyen.btclivealerts
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,8 +22,8 @@ class NativeSqliteArtJniRuntimeTest {
         try {
             val reply = NativeSqliteReadOnlyJni.readD5Snapshot(opened.handle)
             assertEquals(NativeSqliteD5ReadStatus.VERIFIED, reply.status)
-            assertTrue("D5 envelope must be decoded", reply.envelope != null)
-            assertEquals("3.54.1", reply.envelope?.sqliteVersion)
+            assertNotNull("D5 envelope must be decoded", reply.envelope)
+            assertEquals("3.54.1", reply.envelope?.runtime?.sqliteVersion)
         } finally {
             assertEquals(
                 NativeSqliteStatus.VERIFIED,
