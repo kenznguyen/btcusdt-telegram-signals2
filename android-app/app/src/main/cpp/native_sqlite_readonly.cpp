@@ -587,9 +587,17 @@ Java_com_kenznguyen_btclivealerts_NativeSqliteReadOnlyJni_nativeTestOpenInMemory
         if (db != nullptr) sqlite3_close_v2(db);
         return open_result(env, OPEN_FAILED, 0);
     }
-    constexpr const char* fixture_sql =
-        "CREATE TABLE lifecycle_probe(id INTEGER PRIMARY KEY, value TEXT NOT NULL);"
-        "INSERT INTO lifecycle_probe(value) VALUES('isolated');";
+    const char* fixture_sql =
+        "PRAGMA foreign_keys=ON;"
+        "CREATE TABLE parent(id INTEGER PRIMARY KEY, code TEXT NOT NULL UNIQUE) STRICT;"
+        "CREATE TABLE child("
+        " id INTEGER PRIMARY KEY,"
+        " parent_id INTEGER NOT NULL REFERENCES parent(id) ON DELETE CASCADE,"
+        " value TEXT,"
+        " generated TEXT GENERATED ALWAYS AS (value || '-g') STORED"
+        ") STRICT;"
+        "CREATE INDEX idx_child_value ON child(value DESC) WHERE value IS NOT NULL;"
+        "CREATE VIEW child_view AS SELECT id,parent_id FROM child;";
     if (sqlite3_exec(db, fixture_sql, nullptr, nullptr, nullptr) != SQLITE_OK) {
         sqlite3_close_v2(db);
         return open_result(env, OPEN_FAILED, 0);
