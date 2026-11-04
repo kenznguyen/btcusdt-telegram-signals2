@@ -2244,3 +2244,16 @@ Next: define and test the fixed read-only SQLite query contract against the appr
 - Known remaining design limits: this is a query/DDL source contract, not a transaction executor. The future adapter must guarantee one read transaction and return READ_UNCERTAIN without partial evidence. The minSdk 26 OPEN_READONLY transaction API, complete D5 introspection coverage, exact immutable bootstrap migration bytes/ID/sequence/owner, and missing-path no-create behavior remain unresolved.
 - Next: reconcile exact-SHA CI result; fix any failures and rerun both variants/static audit. Then review DDL edge cases (especially controlled clone-fork lineage under immutable triggers) before any future adapter design. No adapter/runtime authorization is implied.
 - All limits remain: `AI_EXECUTION_ENABLED=false`; paper-only; no Feeder, exchange connectivity, backup/restore, writer admission, APK build/sign/publish or live trading.
+
+
+## P5.4.93 CI closure — 2026-11-04
+
+- Status: PASS. Exact source SHA: `cf16ad1c39fa9e015c11fd39cfaafe61c8f41d15`.
+- Android T0 Foundation workflow #41765316296: success; exact head SHA verified. Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41765316296
+- Regular host JVM suite: 154 tests, 0 failures, 0 errors, 0 skipped. `.paper` JVM suite: 154 tests, 0 failures, 0 errors, 0 skipped. `CanonicalSqliteReadContractTest`: 7/7 in each variant.
+- Static audit: `ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS`.
+- Artifact #13292826118, `android-t0-foundation-cf16ad1c39fa9e015c11fd39cfaafe61c8f41d15`, 112,305 bytes; ZIP integrity verified. SHA-256: `143c15b8cc7d017dfbeec25f1b3c096ca4f2cdda88d790fa4557894be393d365`. Artifact URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41765316296/artifacts/13292826118
+- Current branch HEAD at documentation update start: `f2c4da47e7e8f8f68503266eac3a84d9b14c73eb` (branch `feature/p5-4-1-post-merge-validation-20261103`).
+- Scope is pure Kotlin contract + JVM tests + static audit only. No SQLite open/create/read/write, SQL execution, filesystem/device access, DDL/migration/adoption, backup/restore, Feeder, lease, IPC, exchange, writer admission, APK build/sign/publish, or live trading.
+- Remaining adapter prerequisites are unchanged: minSdk 26 read-only transaction API, complete D5 introspection coverage, immutable bootstrap migration bytes/ID/sequence/owner, missing-path no-create proof, and safe clone-fork procedure under immutable triggers. Separate authorization is required before adapter/runtime work.
+- Next: resolve adapter prerequisites and review clone-fork procedure as design-only work. Do not implement or execute an adapter/DDL without separate authorization.
