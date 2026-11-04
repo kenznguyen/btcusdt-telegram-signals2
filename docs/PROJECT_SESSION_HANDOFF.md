@@ -1934,3 +1934,18 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - No backup/restore, Feeder, exchange, Kill Switch/Recovery Latch mutation or writer activation.
 - Safety: Android-first, no PC, paper-only, AI_EXECUTION_ENABLED=false.
 - Next step: owner decision on P5.4.82 and explicit selections for D82-A through D82-J. No implementation, fixture execution, provider selection or provisioning is authorized.
+
+
+## P5.4.82 — D82-A owner approval recorded (2026-11-04)
+
+- Owner decision: **APPROVE D82-A** — select **Independent escrow authority** for recovery, combined with the primary KMS/HSM for routine operations.
+- Accepted loss-of-recovery risk: **LOW**; prioritize recoverability while accepting additional operational controls/cost.
+- Approval control constraint: at least **two independent approvers**; requester and executor are excluded from approving the same recovery request/execution.
+- D82-B remains open for authorized roster, exact two-of-N quorum, succession/unavailability handling and emergency exception. D82-C–D82-J remain open.
+- D6 remains unchanged: key recovery cannot allocate Restore Epoch, prove prior writers stopped, re-fence leases, publish restored DB, release Recovery Latch, clear Kill Switch or admit writers. Those remain separate authenticated gates.
+- No vendor/custodian/jurisdiction/account selected. No implementation, fixtures, key generation, provider selection/provisioning, KMS/HSM/storage access, canonical DB, backup/restore, device/PC, Feeder/exchange or writer activation authorized.
+- P5.4.82 status: **PARTIALLY APPROVED — D82-A ACCEPTED; D82-B–D82-J OPEN**. P5.4.82A remains a decision-support matrix with D82-A recorded as approved.
+- Existing 96 fixture cases: **SPECIFIED / NOT IMPLEMENTED / NOT RUN**. GitHub Actions NOT RUN; no workflow/artifact for this docs-only decision record.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`. Pre-update HEAD: `8f314ae10a67794daca356d65b6e5492a6147758`. Documentation commits before handoff update ended at: `15769c75bd08100eb0e20ca32792430addbf117b`.
+- Next step: continue D82-B quorum/role design only; no implementation without separate authorization.
+- Keep `AI_EXECUTION_ENABLED=false`; paper-only.
