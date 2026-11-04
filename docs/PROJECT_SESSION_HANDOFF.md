@@ -1832,3 +1832,17 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Status: D2 **APPROVED**; D3 **APPROVED**; D4 **APPROVED**; D5 **APPROVED**; D6 **APPROVED**; D7 **APPROVED** (architecture/policy only). Implementation and fixture acceptance remain NOT IMPLEMENTED / NOT VERIFIED / NOT RUN as applicable.
 - Safety: keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
 - Next step: perform documentation/source-only cross-contract consistency review for D2–D7 and prepare a bounded fixture-only acceptance-test plan. Do not select a live destination, provision keys, access canonical DB, execute backup/restore, clear Kill Switch or activate writers without separate explicit authorization.
+
+
+## P5.4.79 — D2–D7 cross-contract consistency review (2026-11-04)
+
+- Review: `docs/evidence/P5.4.79-D2-D7-CROSS-CONTRACT-CONSISTENCY-AND-FIXTURE-PLAN-2026-11-04.md`.
+- Reviewed ADR-001, current handoff and D2–D7 decision/evidence documents. D2–D7 are all **OWNER-APPROVED at architecture/policy level only**; D1 remains partially accepted with exact Android DB path/stable identity open.
+- Result: cross-contract architecture **PASS WITH EXPLICIT OPEN DESIGN BLOCKERS**. D2 vector and D3 same-read-snapshot barrier align; D4 migration chain and D5 schema digest align; D6 external epoch/latch and re-fencing remain outside rollback-prone SQLite state; D7 RPO evidence uses Ledger sequence and contiguous Market Data cursor vector.
+- Blocking clarification before digest/publication implementation: distinguish pre-encryption SQLite snapshot-image SHA-256 from encrypted destination-object SHA-256 and bind both in the authenticated manifest. This is a design clarification proposal, not an amendment to D5/D7 approval.
+- Other open details: D3 barrier/runtime/publication contract; D4 DDL/transaction/lock/reconciliation; D5 canonical envelope/runtime/introspection; D6 external authority/stop-proof/epoch API; D7 destination, key custody, retention, numerical RPO/RTO and approver roles.
+- Fixture plan: **60 cases SPECIFIED / NOT IMPLEMENTED / NOT RUN**, grouped F1–F7 across D2 vector, D3 barrier, D4 migration, D5 digest, D7 encrypted publication/retention, D6 restore fencing/authorization and negative safety.
+- GitHub Actions: **NOT RUN**; no workflow run or artifact for this docs-only review. Source SHA is the branch commit recorded below; no source/runtime code changed.
+- Status: architecture consistency **PASS WITH OPEN BLOCKERS**; documentation chronology reconciled in ADR-001; production implementation **BLOCKED**; fixture tests **NOT IMPLEMENTED / NOT RUN**.
+- No canonical DB, Android device, PC, production storage, key material, Feeder, exchange, backup/restore or writer was accessed. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next step: resolve digest-domain/manifest field semantics and the remaining detailed contracts, then separately authorize fixture-only implementation on GitHub Actions. No production/runtime operation is authorized.
