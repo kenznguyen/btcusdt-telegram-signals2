@@ -121,7 +121,7 @@ class CanonicalSqliteReadContractTest {
 
         assertEquals(3, queries.size)
         assertTrue(queries.all { it.sql.startsWith("PRAGMA ") })
-        assertEquals("PRAGMA table_info(\"safe\"\"; DROP TABLE x;--\")", queries.first().sql)
+        assertEquals("PRAGMA table_xinfo(\"safe\"\"; DROP TABLE x;--\")", queries.first().sql)
     }
 
     @Test
