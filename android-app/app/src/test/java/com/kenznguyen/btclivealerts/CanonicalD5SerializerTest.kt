@@ -123,7 +123,7 @@ class CanonicalD5SerializerTest {
     @Test
     fun malformedUtf16IsRejectedInsteadOfSilentlyReplaced() {
         assertTrue(runCatching {
-            CanonicalD5Serializer.serialize(envelope(catalogName = "invalid-\\uD800-name"))
+            CanonicalD5Serializer.serialize(envelope(catalogName = "invalid-\uD800-name"))
         }.isFailure)
     }
 
