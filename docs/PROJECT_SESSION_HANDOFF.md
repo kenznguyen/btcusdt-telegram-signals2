@@ -2211,3 +2211,11 @@ Next bounded increment: add pure immutable read-snapshot evidence contracts and 
 - No Android filesystem or SQLite adapter implementation/execution, no DB open/create/read/write, no device test, no DDL/migration/adoption, no backup/restore, no APK, no Feeder/lease/IPC/exchange/writer action. `AI_EXECUTION_ENABLED=false`; paper-only.
 
 Next: define and test the fixed read-only SQLite query contract against the approved D4 schema details, then implement an isolated Android adapter that can only open an existing DB with read-only flags. Do not invoke it against a real DB/device until separate runtime authorization; do not wire it into startup or writer paths.
+
+
+
+## P5.4.92 pending owner decision — 2026-11-04
+
+- Added a documentation-only proposal for exact canonical_database_identity and schema_migrations DDL, append-only immutability triggers, and a fixed read-only query family for SQLite runtime identity, canonical identity row, migration chain, sqlite_schema, and structured PRAGMA introspection.
+- The proposal requires one read transaction for all evidence; incomplete/uncertain reads fail closed. The transaction API/mode compatible with Android OPEN_READONLY, D5 schema-introspection coverage, and exact migration bytes/IDs remain unresolved.
+- No SQL was executed; no DB or filesystem was opened or created. Owner approval is requested for the proposed DDL and query families only. This is not runtime authorization.
