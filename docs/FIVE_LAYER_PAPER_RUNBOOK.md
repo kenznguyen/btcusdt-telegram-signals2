@@ -21,9 +21,7 @@ Không có endpoint đặt lệnh thật. Thiếu dữ liệu/model hợp lệ t
 - `FreqAI Strategy Smoke`: chạy thủ công, cài Freqtrade/FreqAI 2026.9 và kiểm tra load strategy; không train, không kết nối exchange/trade.
 - Android foundation, ART/JNI và release-pair có workflow GitHub Actions riêng theo trigger/approval đã định nghĩa.
 
-Nhánh tích hợp mới: `feature/five-layer-paper`. Chọn nhánh có YAML mới khi Start
-new build. Không coi YAML hay kiểm thử giả lập là chứng cứ build/install/model
-training đã thành công.
+Mọi workflow được kích hoạt theo trigger/branch/path đã khai báo trong GitHub Actions. Với workflow thủ công, chọn đúng branch/commit cần kiểm tra và đối chiếu source SHA trong artifact. Không coi YAML hay kiểm thử giả lập là chứng cứ deploy, cài APK hoặc model training đã thành công.
 
 API, collector và FreqAI shadow cần chạy ở server/process có ổ đĩa bền vững;
 GitHub Actions chỉ là CI runner hữu hạn, không dùng làm host scanner/API liên tục.
