@@ -1,6 +1,14 @@
 name: Android T0 Foundation Tests
 
 'on':
+  pull_request:
+    branches:
+      - feature/p5-4-1-post-merge-validation-20261103
+    paths:
+      - "android-app/**"
+      - "ci/**"
+      - ".github/workflows/android-t0-foundation.yml"
+      - ".github/workflows/android-t0-foundation-github-actions.yml"
   push:
     branches:
       - feature/p5-4-1-post-merge-validation-20261103
