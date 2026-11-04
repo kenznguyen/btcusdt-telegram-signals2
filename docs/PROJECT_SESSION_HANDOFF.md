@@ -1875,3 +1875,17 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Status: P5.4.80 **OWNER-APPROVED / ARCHITECTURE ONLY**; fixture implementation/execution **NOT AUTHORIZED / NOT RUN**; production implementation **BLOCKED** on remaining design closures and separate authorization.
 - Safety: Android-first; no PC; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
 - Next step: continue resolving unselected cryptographic/key custody/storage/retention/RPO-RTO contracts in bounded documentation proposals. Do not implement fixtures or runtime until separately authorized.
+
+
+## P5.4.81 — Cryptographic profile and key lifecycle proposal (2026-11-04)
+
+- Proposal: docs/evidence/P5.4.81-CRYPTOGRAPHIC-PROFILE-AND-KEY-LIFECYCLE-PROPOSAL-2026-11-04.md.
+- Status: **PROPOSED / NOT APPROVED**; explicit owner decision required for P5.4.81.1–.5.
+- Recommends AES-256-GCM envelope encryption; unique random 256-bit DEK per Backup ID; 96-bit nonce; full 128-bit tag; versioned AAD.
+- Recommends Ed25519 signature over canonical P5.4.80 manifest bytes with separate signing key; separate external KMS/HSM-managed KEK, DEK and manifest signing roles; lifecycle, rotation, revocation and destruction safeguards; strict identity separation and fail-closed handling.
+- Adds 20 proposed fixture cases to the approved 76-case plan: **96 specified if approved; NOT IMPLEMENTED / NOT RUN**.
+- Provider, KMS/HSM vendor, Android/JVM library compatibility, compliance requirements, key custody jurisdiction, escrow/recovery method, operational roles and audit integration remain unresolved.
+- GitHub Actions: **NOT RUN**; no workflow run/artifact. Documentation only; no code/schema/runtime/key/storage changed.
+- No canonical DB, Android device, PC, production storage/KMS/HSM, key material, Feeder, exchange, backup/restore or writer touched.
+- Safety: Android-first, no PC, paper-only, AI_EXECUTION_ENABLED=false.
+- Next step: obtain explicit owner decision on P5.4.81.1–.5. If approved, continue a separate proposal for KMS/HSM custody/provider-neutral interfaces and restore-key recovery controls; do not provision keys or implement fixtures without separate authorization.
