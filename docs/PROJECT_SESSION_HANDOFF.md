@@ -1,6 +1,6 @@
 # Five-Layer System — Session Handoff
 
-Last updated: 2026-11-03 (Asia/Ho_Chi_Minh)
+Last updated: 2026-11-04 (Asia/Ho_Chi_Minh)
 
 ## Purpose
 
@@ -1671,3 +1671,21 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Gate status: T0-A **PASS** (prior fixture-only closeout); T0-B **BLOCKED / NOT RUN**; T0-C **NOT RUN / NOT AUTHORIZED**; T0-D **NOT RUN / NOT VERIFIED**; T0-E **BLOCKED**.
 - Safety: `AI_EXECUTION_ENABLED=false`; paper-only; Android Natural Doze remains **INTERRUPTED / DEFERRED**.
 - Next permitted work: prepare D3 snapshot-barrier/cross-domain consistency proposal, explicitly **PROPOSED / NOT DECIDED**, without assuming D2 approval decides D3. No runtime implementation until separately authorized.
+
+
+## P5.4.70 — D3 Snapshot Barrier & Cross-Domain Consistency Proposal (2026-11-04)
+
+- Proposal: `docs/evidence/P5.4.70-D3-SNAPSHOT-BARRIER-CROSS-DOMAIN-CONSISTENCY-PROPOSAL-2026-11-04.md`.
+- Proposal creation commit: `a120498e3e635bde017efe3322c23c71e27c926c`; verified current proposal blob: `b5482ca02ccaff5c1de5418c3cf12caf3d1c072d`.
+- ADR-001 update commit: `d9e86da838e50ebe641fe16e766289a34e5d3552`; verified current ADR blob: `f81a6022b4c0d1f53caf04b6f07969264241ec55`.
+- Branch: `feature/p5-4-1-post-merge-validation-20261103`; source baseline before P5.4.70: `bee4d539962211c3672f6c0ad433d834f00d890b`.
+- Scope: documentation-only D3 proposal for the owner-approved Android-hosted single shared SQLite file. D2 remains ACCEPTED; D3 is **PROPOSED / NOT DECIDED**; D4–D7 remain **NOT DECIDED / BLOCKING**.
+- Recommended protocol: one regular-host-owned write barrier for all included canonical mutation domains; close new-write admission and drain in-flight transactions; revalidate host/lease fencing; capture the full D2 vector and metadata from one SQLite read transaction; use SQLite Online Backup API into staging; verify integrity/domain invariants and physical digest; atomically publish only after verification; fail closed on stale fencing, unknown transaction outcomes, process interruption, failed publication or uncertain barrier release.
+- WAL boundary: do not copy only the main DB file or independently copy DB/WAL/SHM. Use the supported SQLite backup mechanism to include committed WAL-backed state. Checkpoint is not a substitute for the backup API.
+- Consistency boundary: proposed point-in-time snapshot covers the shared SQLite file only. External lease authority, restore epoch, Kill Switch/recovery latch, app configuration and exchange state are not claimed as captured; D6/D7 remain required.
+- Fixture acceptance: 20 scenarios specified (barrier/drain, vector coherence, WAL inclusion, fencing, partial failure, publication, process interruption and release ownership). Tests are **SPECIFIED / NOT IMPLEMENTED**; no test evidence is claimed.
+- GitHub Actions: **NOT RUN** for P5.4.70; no workflow run or artifact exists for this increment. No tests were executed.
+- D3 owner approval: **NOT RECEIVED**. Six decision questions are in the proposal. No owner decision is inferred.
+- T0-A **PASS** from prior fixture-only closeout (not rerun); T0-B **BLOCKED / NOT RUN**; T0-C **NOT RUN / NOT AUTHORIZED**; T0-D **NOT RUN / NOT VERIFIED**; T0-E **BLOCKED**.
+- No code, schema, migration, IPC, Android device access, canonical DB open/create/write, Feeder startup, exchange connection, market-data sync, backup/restore execution, writer activation or orders. Keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
+- Next step: obtain owner decisions on the six D3 questions. If accepted, record D3 and proceed to D4 proposal. No implementation or production operation until separately authorized.
