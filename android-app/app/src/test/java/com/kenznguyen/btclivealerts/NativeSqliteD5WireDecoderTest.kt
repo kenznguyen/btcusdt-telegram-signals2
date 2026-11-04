@@ -6,7 +6,7 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class NativeSqliteD5WireDecoderTest {
-    private fun validPayload(): ByteArray {
+    private fun validPayload(tableListName: String = "positions", tableType: String = "table"): ByteArray {
         val body = ByteArrayOutputStream()
         DataOutputStream(body).use { out ->
             out.write(byteArrayOf(0x44, 0x35, 0x57, 0x54)) // D5WT
@@ -15,7 +15,7 @@ class NativeSqliteD5WireDecoderTest {
             out.string("2026-10-16 14:45:20 pinned-source-id")
 
             out.writeInt(1)
-            out.string("main"); out.string("positions"); out.string("table")
+            out.string("main"); out.string(tableListName); out.string(tableType)
             out.writeInt(1); out.writeBoolean(false); out.writeBoolean(false)
 
             out.writeInt(1)
@@ -86,24 +86,13 @@ class NativeSqliteD5WireDecoderTest {
     }
 
     @Test fun rejectsVirtualOrShadowObjectsBeforeReturningAnEnvelope() {
-        val bytes = validPayload().copyOf()
-        // Change the table-list type from "table" to "virtual" while preserving the wire length.
-        val marker = "table".toByteArray()
-        val index = bytes.indexOfSubsequence(marker)
-        assertTrue(index >= 0)
-        "virtual".toByteArray().copyInto(bytes, index)
-        val reply = NativeSqliteD5WireDecoder.decode(bytes)
+        val reply = NativeSqliteD5WireDecoder.decode(validPayload(tableType = "virtual"))
         assertEquals(NativeSqliteD5ReadStatus.UNSUPPORTED_SCHEMA, reply.status)
         assertNull(reply.envelope)
     }
 
     @Test fun rejectsCatalogAndTableListDisagreement() {
-        val bytes = validPayload().copyOf()
-        val marker = "positions".toByteArray()
-        val first = bytes.indexOfSubsequence(marker)
-        assertTrue(first >= 0)
-        "accounts".toByteArray().copyInto(bytes, first)
-        val reply = NativeSqliteD5WireDecoder.decode(bytes)
+        val reply = NativeSqliteD5WireDecoder.decode(validPayload(tableListName = "accounts"))
         assertEquals(NativeSqliteD5ReadStatus.INCOMPLETE_EVIDENCE, reply.status)
         assertNull(reply.envelope)
     }
@@ -115,13 +104,5 @@ class NativeSqliteD5WireDecoderTest {
 
     private fun DataOutputStream.nullable(value: String?) {
         if (value == null) writeInt(-1) else string(value)
-    }
-
-    private fun ByteArray.indexOfSubsequence(target: ByteArray): Int {
-        if (target.isEmpty() || target.size > size) return -1
-        for (start in 0..size - target.size) {
-            if (target.indices.all { this[start + it] == target[it] }) return start
-        }
-        return -1
     }
 }
