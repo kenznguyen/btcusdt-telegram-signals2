@@ -215,3 +215,10 @@ The owner explicitly approved all five D2 decisions in the project conversation 
 - **D2.5 APPROVED:** Manifest carries a domain-cursor evidence vector. It is not proof of atomic snapshot consistency; D3 must define the barrier/consistency contract.
 
 **Decision boundary:** D2 semantics are ACCEPTED. D3 is ACCEPTED; D4 is PROPOSED / NOT APPROVED; D5–D7 remain NOT DECIDED. Exact implementation fields, schemas, migrations, transaction boundaries, lease authority and operational policy remain open where stated above. This approval does not authorize code/runtime implementation, canonical DB access, Feeder activation, exchange connectivity, synchronization, backup/restore, writer activation or live execution. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+
+
+## Owner decision — D4 SQLite schema-version authority (2026-11-04)
+
+The owner explicitly approved D4.1–D4.7 as specified in `docs/evidence/P5.4.71-D4-SQLITE-SCHEMA-VERSION-AUTHORITY-PROPOSAL-2026-11-04.md`, without amendments. The approved contract establishes one database-wide SQLite `schema_migrations` authority; immutable migration IDs, ordered sequence, owner domain and exact-byte SHA-256; atomic DDL and registry advancement; registry authority with `PRAGMA user_version` optional mirror/diagnostic only; explicit read-only legacy inventory and separately approved baseline adoption; read-only fail-closed verification; and D3 same-snapshot migration-chain evidence.
+
+**Decision boundary:** D4 architecture is ACCEPTED. Exact DDL, packaging, SQLite runtime/transaction/lock contract, schema canonicalization, reader compatibility, timeout and interruption recovery remain implementation/design work. This approval does not authorize code or schema implementation, migration execution, canonical DB access, Android device access, Feeder startup, exchange connectivity, data synchronization, backup/restore, writer activation or live execution. Fixture tests remain NOT IMPLEMENTED / NOT RUN. D5–D7 remain unresolved. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
