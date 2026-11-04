@@ -235,6 +235,56 @@ class RecoveryCoordinatorContractTest(unittest.TestCase):
             ("15m", BASE + STEP, BASE + 2 * STEP),
         ])
 
+    def test_retry_rechecks_partial_progress_inside_failed_window(self):
+        initial_gaps = [
+            {"startMs": BASE, "endMs": BASE + 2 * STEP},
+        ]
+        remaining = [
+            {"startMs": BASE, "endMs": BASE + 2 * STEP},
+        ]
+        calls = []
+        fail_after_first_half_once = {"pending": True}
+
+        def sync_partial_window(timeframe, start_ms, end_ms):
+            calls.append((timeframe, start_ms, end_ms))
+            if fail_after_first_half_once["pending"]:
+                fail_after_first_half_once["pending"] = False
+                remaining[:] = [
+                    {"startMs": BASE + STEP, "endMs": BASE + 2 * STEP},
+                ]
+                raise TimeoutError("injected failure after partial window progress")
+            remaining.clear()
+
+        def read_snapshot(timeframe, start_ms, end_ms):
+            return coverage(start_ms, end_ms, list(remaining))
+
+        coordinator = RecoveryCoordinator(
+            sync_callback=sync_partial_window,
+            coverage_reader=read_snapshot,
+        )
+
+        with self.assertRaisesRegex(TimeoutError, "partial window progress"):
+            coordinator.recover("15m", BASE, BASE + 2 * STEP)
+
+        # The failed call is not treated as complete and the coordinator does
+        # not trust its callback result; the next attempt starts from coverage.
+        self.assertEqual(remaining, [
+            {"startMs": BASE + STEP, "endMs": BASE + 2 * STEP},
+        ])
+
+        retried = coordinator.recover("15m", BASE, BASE + 2 * STEP)
+
+        self.assertTrue(retried.complete)
+        self.assertEqual(
+            retried.recovered_windows,
+            ((BASE + STEP, BASE + 2 * STEP),),
+        )
+        self.assertEqual(remaining, [])
+        self.assertEqual(calls, [
+            ("15m", BASE, BASE + 2 * STEP),
+            ("15m", BASE + STEP, BASE + 2 * STEP),
+        ])
+
     def test_invalid_initial_snapshot_shapes_fail_before_sync(self):
         invalid_snapshots = (
             None,
