@@ -27,28 +27,6 @@ GREEN_TEST_MODULES = {
     "market_data.test_feeder_sigkill_recovery",
 }
 
-RETIRED_CODEMAGIC_WORKFLOWS = {
-    "market-data-timescaledb",
-    "market-data-kraken-adapter-tests",
-    "market-data-kraken-spot-sqlite-tests",
-    "market-data-kraken-spot-read-api",
-    "t0-feeder-scheduler",
-    "t0-feeder-health",
-    "t0-feeder-lifecycle",
-    "t0-feeder-atomic-fencing",
-    "t0-health-runtime-api",
-    "t0-feeder-sigkill-recovery",
-    "t0-operational-contract-release-gate",
-    "t0-data-integrity-candle-continuity-gate",
-    "t0-final-runtime-configuration-check",
-    "t0-component-tests-p3",
-    "t0-feeder-lifecycle-red",
-    "t0-feeder-atomic-fencing-red",
-    "p5-2-4-shadow-migration-red",
-    "p5-2-5-runtime-red-validation",
-    "p5-3-11-5-g2-red-tests",
-}
-
 
 def _check(check_id, passed, detail):
     return {"id": check_id, "status": "PASS" if passed else "FAIL", "detail": detail}
