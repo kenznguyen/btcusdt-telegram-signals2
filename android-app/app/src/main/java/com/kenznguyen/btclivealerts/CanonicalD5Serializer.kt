@@ -2,6 +2,9 @@ package com.kenznguyen.btclivealerts
 
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
+import java.nio.CharBuffer
+import java.nio.charset.CodingErrorAction
+import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 
 /** Runtime identity fields captured by the D5 read-only introspection adapter. */
@@ -243,6 +246,9 @@ object CanonicalD5Serializer {
         require(envelope.indexes.map { Triple(it.schema, it.tableName, it.sequence) }.toSet().size == envelope.indexes.size) {
             "duplicate index sequence"
         }
+        require(envelope.indexes.map { it.schema to it.name }.toSet().size == envelope.indexes.size) {
+            "duplicate index name"
+        }
 
         require(envelope.indexColumns.all {
             it.schema.isNotBlank() && it.tableName.isNotBlank() && it.indexName.isNotBlank()
@@ -269,8 +275,8 @@ object CanonicalD5Serializer {
 
     /** Unsigned lexicographic comparison of UTF-8 bytes, independent of locale. */
     private fun compareUtf8(left: String, right: String): Int {
-        val a = left.toByteArray(Charsets.UTF_8)
-        val b = right.toByteArray(Charsets.UTF_8)
+        val a = encodeUtf8(left)
+        val b = encodeUtf8(right)
         val limit = minOf(a.size, b.size)
         for (index in 0 until limit) {
             val difference = (a[index].toInt() and 0xff) - (b[index].toInt() and 0xff)
@@ -289,8 +295,16 @@ object CanonicalD5Serializer {
         rows.forEach { writeRow(it) }
     }
 
+    private fun encodeUtf8(value: String): ByteArray {
+        val encoded = StandardCharsets.UTF_8.newEncoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .encode(CharBuffer.wrap(value))
+        return ByteArray(encoded.remaining()).also { encoded.get(it) }
+    }
+
     private fun DataOutputStream.writeString(value: String) {
-        val bytes = value.toByteArray(Charsets.UTF_8)
+        val bytes = encodeUtf8(value)
         writeInt(bytes.size)
         write(bytes)
     }
