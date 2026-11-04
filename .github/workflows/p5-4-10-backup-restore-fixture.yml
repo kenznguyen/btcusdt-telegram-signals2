@@ -10,7 +10,6 @@ name: P5.4.10 Backup Restore Fixture Tests
       - "ci/test_backup_restore.py"
       - "ci/run_backup_restore_tests.py"
       - "paper_execution/shadow_migration_fixture.py"
-      - "codemagic.yaml"
       - "requirements-ci.txt"
   workflow_dispatch:
     inputs:
