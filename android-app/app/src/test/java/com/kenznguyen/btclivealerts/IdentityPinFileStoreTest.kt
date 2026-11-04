@@ -37,9 +37,9 @@ class IdentityPinFileStoreTest {
     fun malformedOrUnsupportedPinIsPreservedAndNeverRepaired() {
         val directory = temporaryFolder.newFolder().toPath()
         val target = directory.resolve(IdentityPinFileStore.FILE_NAME)
-        Files.write(target, "format_version=2\\n".toByteArray(Charsets.UTF_8))
+        Files.write(target, "format_version=2\n".toByteArray(Charsets.UTF_8))
         assertEquals(IdentityPinParseResult.UnsupportedVersion(2), IdentityPinFileStore(directory).read())
-        assertEquals("format_version=2\\n", String(Files.readAllBytes(target), Charsets.UTF_8))
+        assertEquals("format_version=2\n", String(Files.readAllBytes(target), Charsets.UTF_8))
     }
 
     @Test
