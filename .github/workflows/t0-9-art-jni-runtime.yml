@@ -73,9 +73,7 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: |
-            cd android-app
-            gradle :app:connectedDebugAndroidTest --no-daemon --stacktrace
+          script: cd android-app && gradle :app:connectedDebugAndroidTest --no-daemon --stacktrace
 
       - name: Upload ART instrumentation reports
         if: always()
