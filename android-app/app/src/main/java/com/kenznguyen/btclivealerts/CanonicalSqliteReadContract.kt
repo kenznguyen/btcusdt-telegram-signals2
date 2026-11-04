@@ -120,7 +120,7 @@ object CanonicalSqliteReadContract {
         val supportedTypes = setOf("table", "index", "view", "trigger")
         catalog.forEach { entry ->
             require(entry.type.lowercase() in supportedTypes) {
-                "Unsupported SQLite schema object type: \${entry.type}"
+                "Unsupported SQLite schema object type: ${entry.type}"
             }
         }
 
@@ -129,11 +129,11 @@ object CanonicalSqliteReadContract {
             .filter { it.type.equals("table", ignoreCase = true) || it.type.equals("view", ignoreCase = true) }
             .onEach { entry ->
                 require(!entry.sql.isNullOrBlank()) {
-                    "Missing SQLite schema SQL for \${entry.type} \${entry.name}"
+                    "Missing SQLite schema SQL for ${entry.type} ${entry.name}"
                 }
                 if (entry.type.equals("table", ignoreCase = true)) {
                     require(!isVirtualTableDeclaration(entry.sql.orEmpty())) {
-                        "Virtual table module provenance is not verified for \${entry.name}"
+                        "Virtual table module provenance is not verified for ${entry.name}"
                     }
                 }
             }
@@ -144,7 +144,7 @@ object CanonicalSqliteReadContract {
             .filter { it.type.equals("index", ignoreCase = true) }
             .onEach { entry ->
                 require(!entry.sql.isNullOrBlank()) {
-                    "Missing SQLite schema SQL for index \${entry.name}"
+                    "Missing SQLite schema SQL for index ${entry.name}"
                 }
             }
             .sortedBy { it.name }
@@ -171,7 +171,7 @@ object CanonicalSqliteReadContract {
             indexes.forEach { entry ->
                 add(FixedSqliteReadQuery(
                     SqliteReadQueryId.SCHEMA_INTROSPECTION,
-                    "PRAGMA index_xinfo(\${quoteIdentifier(entry.name)})",
+                    "PRAGMA index_xinfo(${quoteIdentifier(entry.name)})",
                 ))
             }
         }
