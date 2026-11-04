@@ -2913,3 +2913,15 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - T0.10 current status: **SOURCE PRESENT / BLOCKED-NOT VERIFIED** pending native CTest, debug JNI compile/link, regular JVM, `.paper` JVM and static audit evidence.
 - Boundaries unchanged: no canonical/path-backed DB, pin filesystem IO, DDL/bootstrap/migration execution, Android device/ART instrumentation, Feeder, lease, IPC, exchange, backup/restore, APK or writer activation. T0.9 instrumentation remains PAUSED; `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next: inspect exact-SHA GitHub Actions result; fix only evidenced source/fixture defects. T0.11 pin persistence and all runtime work require separate approval.
+
+
+## T0.10.1 — Exact-SHA CI failure and source correction (2026-11-04)
+
+- T0.10 source candidate SHA: `1cd8045bcde48ec1c8a6143d85bcf1a44221ab8e`.
+- Android T0 Foundation run #41869137724 / job #126711346579: **FAILURE**. Native C++ compile error in `native_sqlite_readonly.cpp`: redeclaration of `section_offset` and `section_count` at line 363, previously declared at line 311. JNI compile, regular JVM, `.paper` JVM, pinned SQLite tests and static audit were skipped. No artifacts.
+- Fix committed directly to existing branch: `7546d6cbf83f0cb2fc86f1a6d435e7869035369c`; reuses the existing section offset/count variables and resets count before table section.
+- T0 Foundation rerun #41869701593 / job #126713093559 on exact fix SHA was **IN_PROGRESS** at Android SDK setup at last inspection; artifacts count 0 at that time. Recheck before status change.
+- T0.9.1 ART workflow auto-triggered despite instrumentation being paused: run #41869138052 on implementation SHA and run #41869701798 on fix SHA (pending at last inspection). These are not T0.10 acceptance evidence and do not authorize resuming ART. Avoid using their results for T0.10.
+- Evidence report updated at `docs/evidence/P5.4.103-T0.10-TRUSTED-READONLY-EVIDENCE-ASSEMBLY-IMPLEMENTATION-2026-11-04.md`; report update commit `d4d19611050d21bb6521be351bdea5250dfd5231`.
+- Current verdict: **T0.10 BLOCKED / NOT VERIFIED** pending run #41869701593. Recheck native CTest, debug JNI compile/link, regular JVM, `.paper` JVM, pinned SQLite preparation tests, static audit and artifact reports.
+- T0.9 remains PAUSED. No canonical/path-backed DB, filesystem pin IO, Feeder, lease, production, APK/release or trading activation.
