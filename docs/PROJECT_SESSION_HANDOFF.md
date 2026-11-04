@@ -2880,3 +2880,18 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - No source/workflow change and no retry were made. T0.9.1 runtime remains **BLOCKED / NOT VERIFIED**; no API matrix result or artifact exists.
 - Next: owner should inspect repository/org Actions policies, GitHub-hosted runner availability/usage limits, and billing/concurrency restrictions. Once a concrete restriction is identified and corrected, inspect the existing run before considering a new dispatch. Do not broaden workflow token permissions, migrate to Codemagic, or perform blind retries.
 - Boundaries unchanged: `AI_EXECUTION_ENABLED=false`; SQLite `:memory:` only; no canonical DB, Feeder, lease, exchange, live orders, APK release/sign/install or physical-device testing; T0.10 remains out of scope.
+
+
+## P5.4.102 — Deep Identity Pin / Native SQLite / D5 Snapshot audit (2026-11-04)
+
+- Review source HEAD: `426ae305b428c79e4874bcd7e7c8c4e3d38dc69e`; review report: `docs/evidence/P5.4.102-IDENTITY-PIN-NATIVE-SQLITE-D5-SNAPSHOT-DEEP-AUDIT-2026-11-04.md`.
+- Report commit: `445e3721dbf6d0a3e6f568777723716d4d50d1f6`; this is documentation-only, no implementation source changed.
+- Identity Pin: pure codec/classifier/provisioning planner exist; no `noBackupFilesDir` persistence adapter, atomic durable file operations, UUID generator, or executable two-resource provisioning.
+- Native SQLite: source contains read-only open, `sqlite3_db_readonly`, pinned SQLite source/version checks, WAL sidecar preflight, `BEGIN DEFERRED` plus DB-backed anchor, fixed read-only D5 queries and mutex-protected same-handle registry. It remains unbound to CanonicalPathAuthority and is not composed into CanonicalRuntime.
+- Native D5 query currently returns runtime identity and schema introspection; it does not yet return `canonical_database_identity` or `schema_migrations` rows. The Kotlin read contract lists these query families, but the concrete native wire path does not yet complete them.
+- D5 serializer/golden vectors/decoder and immutable snapshot DTO/verifier exist as pure source/test contracts. No trusted assembler binds persisted pin + DB identity + migration chain + recomputed D5 digest + adapter-owned transaction evidence. Snapshot consistency remains caller-supplied claim.
+- P5.4.101 exact-SHA CI PASS was on `a2a0d87b7128b3b7b773ffcdea9144770b8b4e1c`; branch HEAD at review was 120 commits ahead. Do not treat that PASS as exact-current-HEAD integration proof.
+- Current status: Identity Pin domain **PASS / persistence MISSING**; native read-only/D5 **SOURCE IMPLEMENTED / integration NOT VERIFIED**; D5 serializer/vectors **PASS / live assembly MISSING**; combined end-to-end **BLOCKED / NOT IMPLEMENTED**.
+- Recommended next proposal: **T0.10 Trusted Read-only Evidence Assembly — SOURCE-ONLY / IN-MEMORY FIXTURE**. Extend native wire reads to include identity + migration registry on the same pinned handle; decode typed evidence; add a pure assembler that accepts an injected parsed pin and recomputes D5 digest from the decoded envelope; exercise malformed/missing/mismatch/uncertain cases through host CTest/JNI ABI and regular + `.paper` JVM fixtures.
+- T0.10 proposal excludes pin file IO, canonical/path-backed DB, DDL/migration/bootstrap, Android device/ART instrumentation, Feeder, lease, IPC, exchange, backup/restore, APK and writer admission. It requires explicit owner approval before implementation.
+- Owner decision: Android ART/JNI instrumentation remains **PAUSED**; do not rerun T0.9/T0.9.1 or start T0.10 runtime/device acceptance without new explicit approval. `AI_EXECUTION_ENABLED=false`; paper-only.
