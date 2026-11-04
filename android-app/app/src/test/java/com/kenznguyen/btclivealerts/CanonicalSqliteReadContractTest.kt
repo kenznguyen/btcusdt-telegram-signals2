@@ -125,7 +125,7 @@ class CanonicalSqliteReadContractTest {
     @Test
     fun schemaIntrospectionNeverAcceptsSqlFragmentsAsCatalogNames() {
         val catalog = listOf(
-            SqliteSchemaCatalogEntry("table", "safe\"; DROP TABLE x;--", "t", null),
+            SqliteSchemaCatalogEntry("table", "safe\"; DROP TABLE x;--", "t", "CREATE TABLE t(id INTEGER)"),
         )
 
         val queries = CanonicalSqliteReadContract.schemaIntrospectionQueries(catalog)
