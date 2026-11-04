@@ -1,7 +1,114 @@
 # yaml-language-server: $schema=https://codemagic.io/codemagic-schema.json
-# Android APK build workflows have been retired from this repository configuration.
+# Android verification is test-only: no release APK packaging, signing, or live execution.
 workflows:
-# GitHub Actions is the sole CI runner; APK packaging requires a separately approved workflow.
+# Codemagic executes CI workflows; existing workflows below are retained unchanged.
+  android-t0-foundation:
+    name: Android T0 Foundation - SQLite, JNI and JVM verification
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    environment:
+      java: 17
+      ndk: r27
+      vars:
+        AI_EXECUTION_ENABLED: "false"
+        MARKET_DATA_DB: ""
+        T0_FEEDER_LEASE_DB: ""
+        PAPER_DB: ""
+        BINANCE_API_KEY: ""
+        BINANCE_API_SECRET: ""
+        OKX_API_KEY: ""
+        OKX_API_SECRET: ""
+    scripts:
+      - name: Record and validate exact source provenance
+        script: |
+          set -euo pipefail
+          mkdir -p "$CM_BUILD_DIR/codemagic-android-evidence"
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          SOURCE_BRANCH="${CM_BRANCH:-unknown}"
+          test "$AI_EXECUTION_ENABLED" = "false"
+          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+            test -z "${!key:-}"
+          done
+          {
+            echo "source_sha=$SOURCE_SHA"
+            echo "source_branch=$SOURCE_BRANCH"
+            echo "codemagic_build_id=${CM_BUILD_ID:-unknown}"
+            echo "ai_execution_enabled=$AI_EXECUTION_ENABLED"
+            echo "java_version=$(java -version 2>&1 | head -n 1)"
+            echo "os=$(sw_vers -productVersion)"
+          } | tee "$CM_BUILD_DIR/codemagic-android-evidence/provenance.txt"
+      - name: Install pinned Android SDK, NDK and CMake packages
+        script: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$SDK_ROOT"
+          SDKMANAGER="$(command -v sdkmanager || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            for candidate in "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "$SDK_ROOT/tools/bin/sdkmanager"; do
+              if [ -x "$candidate" ]; then SDKMANAGER="$candidate"; break; fi
+            done
+          fi
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null
+          "$SDKMANAGER" --install "platform-tools" "platforms;android-35" "build-tools;34.0.0" "ndk;27.2.12479018" "cmake;3.22.1"
+          echo "android_sdk_root=$SDK_ROOT" | tee -a "$CM_BUILD_DIR/codemagic-android-evidence/provenance.txt"
+          echo "sdkmanager=$SDKMANAGER" | tee -a "$CM_BUILD_DIR/codemagic-android-evidence/provenance.txt"
+      - name: Download and verify pinned Gradle 8.9 distribution
+        script: |
+          set -euo pipefail
+          TOOLS_DIR="$CM_BUILD_DIR/.ci-tools"
+          mkdir -p "$TOOLS_DIR"
+          curl --fail --location --retry 3 --retry-delay 2 https://services.gradle.org/distributions/gradle-8.9-bin.zip --output "$TOOLS_DIR/gradle-8.9-bin.zip"
+          echo "d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab  $TOOLS_DIR/gradle-8.9-bin.zip" | shasum -a 256 -c -
+          unzip -q "$TOOLS_DIR/gradle-8.9-bin.zip" -d "$TOOLS_DIR"
+          "$TOOLS_DIR/gradle-8.9/bin/gradle" --version | tee "$CM_BUILD_DIR/codemagic-android-evidence/gradle-version.txt"
+      - name: Download and verify official SQLite 3.54.1 amalgamation
+        script: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --retry-delay 2 https://www.sqlite.org/2026/sqlite-amalgamation-3540100.zip --output "$CM_BUILD_DIR/sqlite-amalgamation-3540100.zip"
+          python3 ci/prepare_pinned_sqlite.py --archive "$CM_BUILD_DIR/sqlite-amalgamation-3540100.zip" 2>&1 | tee "$CM_BUILD_DIR/codemagic-android-evidence/sqlite-pinning.log"
+      - name: Build and run isolated native SQLite D5 memory tests
+        script: |
+          set -euo pipefail
+          cmake -S android-app/app/src/main/cpp/tests -B "$CM_BUILD_DIR/.ci-build/t0.6-native-d5-tests" -DSQLITE_AMALGAMATION_DIR="$CM_BUILD_DIR/android-app/app/build/generated/sqlite/vendor"
+          cmake --build "$CM_BUILD_DIR/.ci-build/t0.6-native-d5-tests" --parallel 2
+          ctest --test-dir "$CM_BUILD_DIR/.ci-build/t0.6-native-d5-tests" --output-on-failure 2>&1 | tee "$CM_BUILD_DIR/codemagic-android-evidence/native-ctest.log"
+          mkdir -p android-app/app/build/t0.6
+          cp "$CM_BUILD_DIR/.ci-build/t0.6-native-d5-tests/d5-native-memory-fixture.bin" android-app/app/build/t0.6/
+      - name: Compile and link native SQLite JNI library
+        script: |
+          set -euo pipefail
+          "$CM_BUILD_DIR/.ci-tools/gradle-8.9/bin/gradle" -p android-app :app:externalNativeBuildDebug --no-daemon --stacktrace 2>&1 | tee "$CM_BUILD_DIR/codemagic-android-evidence/jni-build.log"
+      - name: Run regular Android host JVM tests
+        script: |
+          set -euo pipefail
+          "$CM_BUILD_DIR/.ci-tools/gradle-8.9/bin/gradle" -p android-app :app:testDebugUnitTest -Pd5NativeFixture=build/t0.6/d5-native-memory-fixture.bin --no-daemon --stacktrace 2>&1 | tee "$CM_BUILD_DIR/codemagic-android-evidence/jvm-regular.log"
+      - name: Run parallel .paper client JVM tests
+        script: |
+          set -euo pipefail
+          "$CM_BUILD_DIR/.ci-tools/gradle-8.9/bin/gradle" -p android-app :app:testParallelUnitTest -Pd5NativeFixture=build/t0.6/d5-native-memory-fixture.bin --no-daemon --stacktrace 2>&1 | tee "$CM_BUILD_DIR/codemagic-android-evidence/jvm-paper.log"
+      - name: Run SQLite pinning preparation unit tests
+        script: |
+          set -euo pipefail
+          python3 -m unittest ci.tests.test_prepare_pinned_sqlite -v 2>&1 | tee "$CM_BUILD_DIR/codemagic-android-evidence/sqlite-preparation-tests.log"
+      - name: Run Android T0 foundation static audit
+        script: |
+          set -euo pipefail
+          python3 ci/check_android_t0_foundation.py 2>&1 | tee "$CM_BUILD_DIR/codemagic-android-evidence/android-t0-static-audit.log"
+      - name: Collect test reports and source evidence
+        script: |
+          set -euo pipefail
+          find android-app/app/build/test-results -type f -name '*.xml' -print 2>/dev/null | sort > "$CM_BUILD_DIR/codemagic-android-evidence/junit-xml-index.txt" || true
+          git rev-parse HEAD > "$CM_BUILD_DIR/codemagic-android-evidence/final-source-sha.txt"
+          git status --short > "$CM_BUILD_DIR/codemagic-android-evidence/worktree-status.txt"
+    artifacts:
+      - codemagic-android-evidence/**
+      - android-app/app/build/test-results/testDebugUnitTest/**
+      - android-app/app/build/test-results/testParallelUnitTest/**
+      - android-app/app/build/reports/tests/testDebugUnitTest/**
+      - android-app/app/build/reports/tests/testParallelUnitTest/**
+      - android-app/app/build/t0.6/**
+      - android-app/app/build/generated/sqlite/sqlite3-pins.cmake
   canonical-market-data:
     name: Cross-layer integration - non-T0 runtime suites
     instance_type: mac_mini_m2
