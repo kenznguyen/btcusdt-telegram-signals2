@@ -80,6 +80,18 @@ jobs:
             echo "ai_execution_enabled=$AI_EXECUTION_ENABLED"
           } | tee ci-evidence/source-provenance.txt
 
+      - name: Set up Python for CI policy tests
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run CI policy regression tests on exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check "PyYAML==6.0.2"
+          python -m unittest ci.test_ci_policy -v 2>&1 | tee ci-evidence/ci-policy-tests.log
+
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
