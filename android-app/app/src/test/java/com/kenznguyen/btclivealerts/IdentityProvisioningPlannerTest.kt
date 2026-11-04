@@ -124,6 +124,21 @@ class IdentityProvisioningPlannerTest {
         )
     }
 
+
+    @Test
+    fun finalizationDoesNotRequireDatabasePathToRemainAbsent() {
+        assertEquals(
+            IdentityProvisioningPlan.PROMOTE_EXACT_PENDING_PIN_TO_ACTIVE,
+            IdentityProvisioningPlanner.plan(
+                ProvisioningPinState.PENDING,
+                ProvisioningDatabaseEvidence.IDENTITY_MATCHES_PIN,
+                true,
+                allPreconditions.copy(databasePathConfirmedAbsentOrApprovedEmpty = false),
+                ProvisioningMaintenanceAction.FINALIZE_PENDING,
+            ),
+        )
+    }
+
     @Test
     fun mismatchedDatabaseIdentityIsAlwaysBlocked() {
         assertEquals(

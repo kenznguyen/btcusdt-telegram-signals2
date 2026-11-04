@@ -14,9 +14,15 @@ data class IdentityProvisioningPreconditions(
     val noAcceptedIdentity: Boolean,
     val noLegacyData: Boolean,
 ) {
-    fun areSatisfied(): Boolean =
+    fun areSatisfiedForBootstrap(): Boolean =
         explicitMaintenanceAuthorization &&
             databasePathConfirmedAbsentOrApprovedEmpty &&
+            noActiveWriterOrLease &&
+            noAcceptedIdentity &&
+            noLegacyData
+
+    fun areSatisfiedForFinalize(): Boolean =
+        explicitMaintenanceAuthorization &&
             noActiveWriterOrLease &&
             noAcceptedIdentity &&
             noLegacyData
@@ -108,7 +114,13 @@ object IdentityProvisioningPlanner {
             return IdentityProvisioningPlan.REQUIRE_READ_ONLY_RECONCILIATION
         }
 
-        if (!preconditions.areSatisfied()) {
+        val preconditionsSatisfied = when (action) {
+            ProvisioningMaintenanceAction.NONE -> true
+            ProvisioningMaintenanceAction.START,
+            ProvisioningMaintenanceAction.RESUME_SAME_ID -> preconditions.areSatisfiedForBootstrap()
+            ProvisioningMaintenanceAction.FINALIZE_PENDING -> preconditions.areSatisfiedForFinalize()
+        }
+        if (!preconditionsSatisfied) {
             return if (action == ProvisioningMaintenanceAction.NONE) {
                 IdentityProvisioningPlan.NO_AUTOMATIC_ACTION
             } else {
