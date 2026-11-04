@@ -41,5 +41,29 @@ assert "gradle :app:externalNativeBuildDebug" in workflow
 assert "ndk;27.2.12479018" in workflow and "cmake;3.22.1" in workflow
 assert "sqlite-amalgamation-3540100.zip" in workflow
 assert "assembleRelease" not in workflow and "assembleDebug" not in workflow
-print("ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS")
+
+d5_wire=(APP/"src/main/java/com/kenznguyen/btclivealerts/NativeSqliteD5WireDecoder.kt").read_text()
+session_tests=(ROOT/"android-app/app/src/test/java/com/kenznguyen/btclivealerts/NativeSqliteD5WireDecoderTest.kt").read_text()
+for required in (
+ "sqlite3_stmt_readonly(*stmt)!=1",
+ "sqlite3_bind_text(stmt,1,bound_name->c_str()",
+ "SELECTsqlite_version(),sqlite_source_id()",
+ "pragma_table_list",
+ "pragma_table_xinfo(?1,'main')",
+ "pragma_index_list(?1,'main')",
+ "pragma_index_xinfo(?1,'main')",
+ "pragma_foreign_key_list(?1,'main')",
+ "D5_PAYLOAD_TOO_LARGE",
+ "D5_UNSUPPORTED_SCHEMA",
+):
+ assert required.replace(" ","") in native,f"Fixed D5 native query guard missing: {required}"
+assert "SQLITE_OPEN_CREATE" not in native and "SQLITE_OPEN_READWRITE" not in native
+assert "sqlite3_exec(db,sql" not in native
+assert "nativeReadD5Snapshot" in jni and "fun readD5Snapshot()" in jni
+assert "fun executeSql" not in jni and "nativeExecuteSql" not in jni
+for required in ("D5WT","readBooleanStrict","MAX_ROWS_PER_SECTION","MAX_STRING_BYTES","validateTableList","schemaIntrospectionQueries"):
+ assert required in d5_wire,f"D5 wire validation missing: {required}"
+for required in ("decodesAllD5Sections","rejectsTruncatedAndTrailingTransportBytes","rejectsWrongMagicAndUnsupportedWireVersion","rejectsVirtualOrShadowObjectsBeforeReturningAnEnvelope","rejectsCatalogAndTableListDisagreement"):
+ assert required in session_tests,f"D5 decoder test missing: {required}"
+\nprint("ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS")
 print("ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS")
