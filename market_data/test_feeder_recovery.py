@@ -52,6 +52,21 @@ class RecoveryPlannerContractTest(unittest.TestCase):
             with self.subTest(gap=gap), self.assertRaises(ValueError):
                 self.planner.plan("15m", coverage(BASE, BASE + 2 * STEP, [gap]))
 
+    def test_overlapping_or_duplicate_gap_windows_are_rejected(self):
+        overlapping = [
+            {"startMs": BASE, "endMs": BASE + 2 * STEP},
+            {"startMs": BASE + STEP, "endMs": BASE + 3 * STEP},
+        ]
+        duplicate = [
+            {"startMs": BASE, "endMs": BASE + STEP},
+            {"startMs": BASE, "endMs": BASE + STEP},
+        ]
+        for gaps in (overlapping, duplicate):
+            with self.subTest(gaps=gaps), self.assertRaisesRegex(
+                ValueError, "coverage gaps must not overlap"
+            ):
+                self.planner.plan("15m", coverage(BASE, BASE + 3 * STEP, gaps))
+
     def test_unsupported_timeframe_fails_closed(self):
         with self.assertRaises(ValueError):
             self.planner.plan("5m", coverage(BASE, BASE + STEP))

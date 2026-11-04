@@ -1501,3 +1501,13 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Documentation closeout commit follows this tested source; it changes only this handoff and the P5.4.60 report. The test source SHA remains `57330081ae601493ddb3c64a98a3ead5914181b6`.
 - No runtime code, PC, canonical DB, production Feeder, exchange, market-data sync or order execution. `AI_EXECUTION_ENABLED=false`.
 - Next permitted step: continue fixture-only RecoveryCoordinator lifecycle edge-case review on this same branch; do not activate runtime.
+
+
+## P5.4.61 — Recovery Planner Overlap and Duplicate Gap Contracts (2026-11-04)
+
+- Report: `docs/evidence/P5.4.61-RECOVERY-PLANNER-OVERLAP-DUPLICATE-GAPS-2026-11-04.md`.
+- Added fixture-only coverage for partially overlapping and exact-duplicate gap windows; both must be rejected with ValueError.
+- No runtime source change; this formalizes the existing planner overlap rejection as a regression contract.
+- Updated overlapping CI invocation thresholds: atomic fencing 110, runtime health API 117, SIGKILL recovery 111. Counts overlap.
+- Exact-SHA GitHub Actions pending; do not claim PASS until all required jobs complete.
+- No PC/canonical DB/production Feeder/exchange/data sync/order execution. Keep AI_EXECUTION_ENABLED=false.
