@@ -1744,3 +1744,20 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Status: D4 **APPROVED (architecture only)**. D4 implementation **NOT IMPLEMENTED / NOT VERIFIED**. D4 fixture acceptance tests **NOT IMPLEMENTED / NOT RUN**. D5–D7 **NOT DECIDED**.
 - Safety: keep `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next step: prepare D5 canonicalization and digest-rules proposal. D5 must define deterministic schema representation and canonicalization version before any implementation. No implementation or canonical DB operation is authorized by D4 approval.
+
+
+## P5.4.73 — D5 canonicalization and digest rules proposal (2026-11-04)
+
+- Proposal: `docs/evidence/P5.4.73-D5-CANONICALIZATION-AND-DIGEST-RULES-PROPOSAL-2026-11-04.md`.
+- Proposal commit: `2effbb6c5fa7203bb0d743ed71b950d5aabf1ad7`.
+- D5 status: **PROPOSED / NOT APPROVED**; owner decision required for D5.1–D5.4.
+- Proposed layers: exact physical snapshot SHA-256; D4 migration-chain digest; logical schema digest based on versioned canonical envelope and SQLite schema/introspection; optional row/data digest excluded from initial mandatory scope.
+- Proposed safeguards: record canonicalization/runtime identity; no initial SQLite/PostgreSQL equivalence claim; unsupported or ambiguous inputs fail closed; digests do not override D3 barrier, D4 chain or integrity/domain checks.
+- ADR-001 updated to mark D4 approved and reference P5.4.73 as the pending D5 proposal.
+- D4 decision recording is complete; latest branch head at this handoff update will be recorded by the resulting commit SHA.
+- Scope: documentation only. No source code, schema, migration, test, IPC, app configuration or runtime changed.
+- Tests / GitHub Actions: **NOT RUN**; no workflow run/artifact for this proposal.
+- Canonical DB/device/Feeder/exchange/synchronization/backup/restore/writer: **NOT TOUCHED**.
+- D4: **APPROVED (architecture only)**; implementation NOT IMPLEMENTED / NOT VERIFIED. D5: **PROPOSED / NOT APPROVED**. D6–D7: **NOT DECIDED**.
+- Safety: keep `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next step: owner review of D5.1–D5.4; do not implement or run canonicalization against the canonical database before explicit approval and separate implementation/test scope.
