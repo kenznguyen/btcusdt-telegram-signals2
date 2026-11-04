@@ -13,6 +13,15 @@ run-name: T0 automated validation (${{ github.ref_name }} @ ${{ github.sha }})
       - "app.py"
       - "requirements*.txt"
       - ".github/workflows/t0-validation.yml"
+  pull_request:
+    branches:
+      - feature/p5-4-1-post-merge-validation-20261103
+    paths:
+      - "market_data/**"
+      - "ci/**"
+      - "app.py"
+      - "requirements*.txt"
+      - ".github/workflows/t0-validation.yml"
 
 permissions:
   contents: read
