@@ -2839,3 +2839,19 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Related P5.4.1 regression gate triggered by same push: run #41855983834; inspect independently.
 - No JNI/Kotlin/C++/SQLite implementation change. Keep `:memory:` only, debug hook only, `AI_EXECUTION_ENABLED=false`. No canonical DB, Feeder, lease, exchange, live orders, APK release/sign/install or physical device. T0.10 remains blocked pending separate scope approval.
 - Next: poll run #41855983768 and #41855983834; inspect logs/XML/artifacts; update this report and handoff with exact job IDs, artifact IDs, local SHA-256 and verdict.
+
+
+
+## T0.9 — Controlled image mitigation run #41855983768 final results (2026-11-04)
+
+- Evidence report updated in commit `2241d0250158dd5038ceea156ff49fda925312f3`; evidence blob SHA `04bf266df0cf80b96818c160647c1d87fa7e1222`.
+- T0.9 workflow #41855983768 completed **FAILURE** on tested workflow/config SHA `76123ceeaf4552c966e60a35b3014e8e1ce0e80b`: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41855983768
+  - API 26 AOSP `default`, job #126664603035: **PASS**. XML 1 test, 0 failures/errors/skips; `artLoadsNativeLibraryAndInvokesOpenReadCloseExports` passed. Artifact #13337592818, 203,954 bytes; independently downloaded ZIP SHA-256 `5387328c5d57da63a0e85e16738687a296efa5b2788bbadfec5d612a2a158e22`, matches GitHub metadata.
+  - API 33 `google_apis`, job #126664603121: **BLOCKED before instrumentation**. Repeated ADB calls exit 1; no test XML/artifact. Not a JNI assertion failure.
+  - API 35 AOSP `default`, job #126664603286: **BLOCKED / NOT VERIFIED**. XML tests=0, `INSTRUMENTATION_FAILED` / `Process crashed`. Logcat shows repeated startup ANRs in Android system processes and app process `com.kenznguyen.btclivealerts`, Bluetooth SIGABRTs and system_server monitor contention. No JNI assertion or definitive native crash cause identified. Artifact #13339120563, 766,515 bytes; independently downloaded ZIP SHA-256 `01ba0122b44882b023ce2ab12a68c54cbdb76e90b99ac2e5642174b06dabe582`, matches GitHub metadata.
+- AOSP mitigation hypothesis is not validated as a full solution: API 26 passed, API 35 remained unstable on AOSP, API 33 control failed at ADB startup. Do not claim the system-image change resolved emulator instability.
+- P5.4.1 regression run #41855983834 completed **SUCCESS** on the same SHA. All five jobs passed: exact source/environment #126664602142, T0 regression #126664681225, G2 regression #126664681396, G1 acceptance #126664681658, combined evidence #126665111046. This regression gate does not replace T0.9 ART matrix.
+- Current status: **T0.9 BLOCKED / NOT VERIFIED**. Only API 26 has confirmed runtime PASS; API 33 never started instrumentation; API 35 runner process crashed with broad emulator startup ANRs. Stop blind retries. Any further emulator strategy requires separately scoped evidence-based proposal and approval. No JNI/Kotlin/C++/SQLite code change is justified by current evidence.
+- Tested workflow SHA remains `76123ceeaf4552c966e60a35b3014e8e1ce0e80b`; documentation commits are not test-source changes. Existing branch HEAD before this handoff update was `2241d0250158dd5038ceea156ff49fda925312f3`.
+- Next: pause T0.9 pending a new, explicitly approved infrastructure strategy. Do not start T0.10 without separate scope approval.
+- Boundaries unchanged: SQLite `:memory:` only, debug-only test hook, `AI_EXECUTION_ENABLED=false`; no canonical/path-backed DB, Feeder, lease, exchange, live orders, APK release/sign/install or physical-device testing.
