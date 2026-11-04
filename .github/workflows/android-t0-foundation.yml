@@ -51,7 +51,20 @@ jobs:
       - name: Set up Android SDK and required packages
         uses: android-actions/setup-android@v3
         with:
-          packages: "platform-tools platforms;android-35 build-tools;34.0.0"
+          packages: "platform-tools platforms;android-35 build-tools;34.0.0 ndk;27.2.12479018 cmake;3.22.1"
+
+      - name: Download official SQLite 3.54.1 amalgamation
+        run: |
+          curl --fail --location --retry 3 --retry-delay 2 \
+            https://www.sqlite.org/2026/sqlite-amalgamation-3540100.zip \
+            --output /tmp/sqlite-amalgamation-3540100.zip
+
+      - name: Verify and materialize pinned SQLite sources
+        run: python3 ci/prepare_pinned_sqlite.py --archive /tmp/sqlite-amalgamation-3540100.zip
+
+      - name: Compile and link native SQLite JNI library (debug only)
+        working-directory: android-app
+        run: gradle :app:externalNativeBuildDebug --no-daemon --stacktrace
 
       - name: Run regular host unit tests (no APK assembly or signing)
         working-directory: android-app
@@ -66,6 +79,19 @@ jobs:
 
       - name: Run Android T0 foundation static audit
         run: python3 ci/check_android_t0_foundation.py
+
+      - name: Upload native build outputs and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-native-sqlite-debug-${{ github.sha }}
+          path: |
+            android-app/app/.cxx/**/obj/**/*.so
+            android-app/app/build/intermediates/cxx/**/obj/**/*.so
+            android-app/app/build/test-results/testDebugUnitTest/**
+            android-app/app/build/test-results/testParallelUnitTest/**
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Upload fixture test reports
         if: always()
