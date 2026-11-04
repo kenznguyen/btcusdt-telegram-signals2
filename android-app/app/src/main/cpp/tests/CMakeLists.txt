@@ -34,6 +34,7 @@ add_executable(native_sqlite_handle_lifecycle_test
 )
 target_include_directories(native_sqlite_handle_lifecycle_test PRIVATE ${T0_NATIVE_SQLITE_TEST_INCLUDE_DIRS})
 target_compile_definitions(native_sqlite_handle_lifecycle_test PRIVATE ${T0_NATIVE_SQLITE_TEST_DEFINITIONS})
+target_compile_definitions(native_sqlite_handle_lifecycle_test PRIVATE CANONICAL_SQLITE_TEST_HOOKS=1)
 target_compile_features(native_sqlite_handle_lifecycle_test PRIVATE cxx_std_17)
 
 if(UNIX)
