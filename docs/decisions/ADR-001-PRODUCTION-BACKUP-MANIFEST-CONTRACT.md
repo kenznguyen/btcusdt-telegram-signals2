@@ -2,7 +2,7 @@
 
 ## Status
 
-**PARTIALLY ACCEPTED — D1 host/physical topology and D2 high-water semantics.** The owner has accepted Android-hosted SQLite as the canonical T0 store, one shared physical SQLite file for Market Data plus Paper Ledger, and all five D2 high-water decisions recorded below. D3–D7 remain proposed/unresolved. This ADR does not authorize production backup/restore, canonical database creation/opening, Feeder activation, exchange connectivity or writer activation.
+**PARTIALLY ACCEPTED — D1 host/physical topology; D2 and D3 semantics ACCEPTED.** The owner has accepted Android-hosted SQLite as the canonical T0 store, one shared physical SQLite file for Market Data plus Paper Ledger, all five D2 high-water decisions, and D3.1–D3.6 plus supplemental conditions A–E. D4–D7 remain proposed/unresolved. This ADR does not authorize production backup/restore, canonical database creation/opening, Feeder activation, exchange connectivity or writer activation.
 
 ## Date
 
@@ -69,28 +69,31 @@ Candidate requirements:
 
 ### D3 — Global snapshot barrier and cross-domain consistency
 
-**PROPOSED — NOT DECIDED (P5.4.70, 2026-11-04).** See `docs/evidence/P5.4.70-D3-SNAPSHOT-BARRIER-CROSS-DOMAIN-CONSISTENCY-PROPOSAL-2026-11-04.md`. No owner approval is inferred.
+**OWNER-APPROVED (2026-11-04):** The owner explicitly approved D3.1–D3.6 and all supplemental conditions A–E, with no additional notes. The full decision record and fixture-only acceptance plan are in `docs/evidence/P5.4.70-D3-SNAPSHOT-BARRIER-CROSS-DOMAIN-CONSISTENCY-PROPOSAL-2026-11-04.md`.
 
-Recommended design for the owner-approved single Android SQLite file:
-1. One regular-host-owned snapshot coordinator and write gate cover every canonical mutation domain represented in the snapshot.
-2. Close admission to new writes, drain all admitted transactions, and abort on timeout or uncertain transaction outcome.
-3. Revalidate host ownership and D2 lease fencing generation before establishing the barrier.
-4. Allocate a unique barrier ID/generation. The identifier is evidence, not proof of atomicity; a barrier marker must not advance the business Paper Ledger sequence unless it is a genuine ledger mutation.
-5. Capture the complete D2 cursor/evidence vector and manifest metadata from one SQLite read transaction.
-6. Use SQLite Online Backup API (or a documented platform-supported equivalent) into a staging destination. Do not copy the main DB file alone or independently copy DB/WAL/SHM.
-7. Verify the staged image (SQLite integrity, domain invariants, D2 vector consistency and physical digest) before atomically publishing the immutable image and manifest.
-8. Fail closed on stale fencing, undrained/uncertain transactions, backup or verification failure, process death during a held barrier, publication failure or uncertain barrier release. A partial image must never have an accepted manifest.
-9. Reopen writes only when the current host authority proves safe ownership and releases the barrier.
+Approved contract:
 
-**Proposed consistency boundary:** one point-in-time snapshot of the shared SQLite file containing all included Market Data, Paper Ledger, Risk State and audit state. WAL-backed committed data must be included through the supported SQLite backup mechanism. Timestamps are diagnostic only, not ordering authority.
+1. **D3.1 — Host-owned barrier and drain:** One regular Android Canonical Host-owned write barrier covers every included canonical mutation domain. Close admission to new writes and drain all admitted transactions. Timeout or uncertain transaction outcome aborts snapshot establishment.
+2. **D3.2 — SQLite capture method:** Use one SQLite read snapshot plus SQLite Online Backup API (or documented platform-supported equivalent). Do not copy only the main DB file or independently copy DB/WAL/SHM.
+3. **D3.3 — Same-snapshot evidence:** Capture the complete D2 evidence vector and manifest metadata from the same SQLite read transaction. Timestamps are diagnostic only, not ordering authority.
+4. **D3.4 — Staging and publication:** Capture into staging, verify integrity and domain invariants, then atomically publish the immutable backup and manifest. No manifest may reference partial or unverified output.
+5. **D3.5 — Fail-closed recovery:** Stale fencing, unknown transaction outcome, process death while barrier is held, backup/verification/publication failure or uncertain barrier release fail closed. Writers remain blocked until safe ownership and recovery reconciliation are proven.
+6. **D3.6 — Consistency boundary:** D3 covers the shared SQLite file only. External lease authority, restore epoch, Kill Switch/recovery latch, app configuration and exchange state are not claimed as part of this snapshot.
 
-**Explicit exclusions:** external lease authority, restore epoch, Kill Switch/recovery latch, app configuration and exchange state are not claimed as captured by this database snapshot. Their recovery/backup treatment remains subject to D6/D7 and separate decisions.
+Approved supplemental conditions:
+- **A — Barrier duration:** Minimize write-pause duration and measure admission wait/capture duration. Never reopen writers automatically after timeout or uncertain state.
+- **B — Immutable backup identity:** Record unique Backup ID, Barrier ID, source database identity, D2 vector, physical SHA-256, verification result and completion state. Filename/timestamp alone is not identity.
+- **C — Preserve last known-good backup:** Do not replace/delete the selected verified backup until the new backup is fully verified and published.
+- **D — Layered verification:** SQLite integrity check is necessary but insufficient. Also verify foreign-key/domain invariants, Ledger sequence/audit consistency, Risk State↔Ledger sequence, Market Data cursor↔gap/backfill and isolated-copy openability. Verification must not invoke repair/constructor paths.
+- **E — Snapshot is not restore proof:** D3 establishes snapshot validity only. Successful restore is not claimed; restore/recovery proof remains under D6/D7 and separate authorization.
 
-**Fixture-only acceptance plan (specified, not implemented):** barrier admission/drain; uncertain transaction abort; write rejection while held; coherent D2 vector from one read snapshot; stale fencing rejection; WAL-backed committed-row inclusion; injected backup/verification/publication failures; no manifest for partial output; interrupted-process recovery; current-owner-only release; no accidental Ledger sequence advancement; rejection of vectors assembled from independent reads.
+**Consistency guarantee:** the intended contract is one point-in-time snapshot of the shared SQLite file, including all included Market Data, Paper Ledger, Risk State and audit state. WAL-backed committed state must be captured through the supported SQLite backup mechanism. The D2 vector must be read from the same read snapshot.
 
-**Owner decision requested:** approve or revise the six choices in the P5.4.70 proposal: host-owned all-domain write barrier and drain; one SQLite read snapshot plus Online Backup API; same-snapshot D2 vector; staging/verification/atomic publication; fail-closed fencing and uncertain outcomes; and the stated shared-file-only consistency boundary.
+**Not decided / implementation details remain open:** exact SQLite API and runtime version; Android wrapper and connection lifecycle; barrier marker/control-record storage; maximum pause duration and availability objectives; staging/publication mechanism; interrupted-process reconciliation implementation. D4 schema authority, D5 canonicalization, D6 external restore epoch/lease re-fencing/Kill Switch gate and D7 backup destination/security/retention/RPO/RTO remain separate unresolved decisions.
 
-**Not decided:** coordinator implementation and ownership details; barrier marker storage; SQLite API/runtime version and connection lifecycle; maximum pause duration/availability objectives; staging/publication mechanism; interruption recovery behavior; external control-plane capture. D3 remains a production blocker until explicitly approved. This proposal does not authorize implementation, canonical DB access, backup/restore execution or writer activation.
+**Fixture-only acceptance plan:** 20 scenarios are specified in P5.4.70. They are not implemented or executed by this owner-decision update. No workflow or test result is claimed.
+
+**Decision boundary:** D3 is ACCEPTED as an architecture contract only. It does not authorize code, schema, migration, IPC or runtime implementation; canonical DB access; Feeder startup; exchange connectivity; market-data synchronization; backup/restore execution; writer activation or live execution. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 
 ### D4 — Schema-version authority
 
@@ -164,7 +167,7 @@ Still required: destination and ownership, encryption at rest/in transit, key ma
 Before implementation, obtain explicit approval for:
 - [ ] canonical store topology and stable store identities;
 - [x] D2 domain-specific high-water/cursor semantics (owner-approved 2026-11-04);
-- [ ] global barrier and cross-store consistency model;
+- [x] D3 global barrier and shared-file consistency model (owner-approved 2026-11-04);
 - [ ] schema-version authorities and migration ownership;
 - [ ] canonicalization version and digest rules;
 - [ ] external restore epoch, lease re-fencing and Kill Switch gate;
@@ -193,4 +196,4 @@ The owner explicitly approved all five D2 decisions in the project conversation 
 - **D2.4 APPROVED:** Lease generation is independent from data cursors; host-side fencing is checked on every canonical write.
 - **D2.5 APPROVED:** Manifest carries a domain-cursor evidence vector. It is not proof of atomic snapshot consistency; D3 must define the barrier/consistency contract.
 
-**Decision boundary:** D2 semantics are ACCEPTED. D3–D7 remain NOT DECIDED. Exact implementation fields, schemas, migrations, transaction boundaries, lease authority and operational policy remain open where stated above. This approval does not authorize code/runtime implementation, canonical DB access, Feeder activation, exchange connectivity, synchronization, backup/restore, writer activation or live execution. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+**Decision boundary:** D2 semantics are ACCEPTED. D3 is ACCEPTED; D4–D7 remain NOT DECIDED. Exact implementation fields, schemas, migrations, transaction boundaries, lease authority and operational policy remain open where stated above. This approval does not authorize code/runtime implementation, canonical DB access, Feeder activation, exchange connectivity, synchronization, backup/restore, writer activation or live execution. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
