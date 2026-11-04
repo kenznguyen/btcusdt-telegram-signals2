@@ -2422,3 +2422,14 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - CI, artifact and digest verification for P5.4.99: **NOT VERIFIED**. Do not claim pass or artifact.
 - Scope remains source-only. No SQLite, SQL/PRAGMA, filesystem, Android device/runtime, instrumentation, adapter, Feeder, writer, migration, backup/restore, APK, exchange or trading action. Keep `AI_EXECUTION_ENABLED=false`.
 - Next: reconcile workflow; strengthen test fixture with multiple records per section so order-independence is actually exercised; fix any failures; then update evidence/handoff with exact final result. Runtime authorization remains separate.
+
+
+## P5.4.99 follow-up — multi-row fixture reconciliation (2026-11-04)
+
+- Evidence report: `docs/evidence/P5.4.99-CANONICAL-D5-SERIALIZER-SHA256-2026-11-04.md`; report update commit: `4d3128e21c860354aefe3cc153e8b17cc6a35f4f`.
+- Latest source/test HEAD before documentation commits: `7809118c7e8408e893bfa0643601a9caff77133f`.
+- The order-independence fixture now uses multiple records in every serialized section (catalog, table_xinfo, index_list, index_xinfo, foreign_key_list) and reverses each collection. Added malformed UTF-16 rejection coverage. Test blob: `8a8c99d6c5b48d12230f8dd2453a74e9b454ad79`; serializer source blob: `fc525ee4481e906a364de2d6cb901db2e9a4ccd8`.
+- Workflow #41777054564 only tests earlier SHA `9ef29733e20fa35b10e340846294749e93168405`; job #126400273914 was last observed in progress at regular host tests; later stages pending; no artifact listed. Job log endpoint returned 404. Available workflow/status lookup did not return a run/check for HEAD `7809118c7e8408e893bfa0643601a9caff77133f`.
+- Verdict: **NOT VERIFIED**. No exact-HEAD CI result, regular/.paper completion, static audit or artifact integrity evidence. Do not claim P5.4.99 PASS.
+- No source implementation changes or local test execution in this follow-up. No DB/SQLite/SQL/PRAGMA, filesystem/device/runtime, adapter, Feeder, writer, migration, backup/restore, APK, exchange or trading action. `AI_EXECUTION_ENABLED=false`.
+- Next: complete Android T0 Foundation workflow on exact source/test HEAD `7809118c7e8408e893bfa0643601a9caff77133f`, then reconcile XML, static audit and artifact checksum before closeout. Runtime remains separately unauthorized.
