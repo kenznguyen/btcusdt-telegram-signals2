@@ -24,6 +24,10 @@ class NativeSqliteD5MemoryFixtureParityTest {
 
         assertEquals("3.54.1", envelope.runtime.sqliteVersion)
         assertTrue(envelope.runtime.sqliteSourceId.isNotBlank())
+        assertEquals("t0-canonical-sqlite-v1", reply.identityRows.single().roleId)
+        assertEquals("550e8400-e29b-41d4-a716-446655440000", reply.identityRows.single().instanceId)
+        assertEquals("t0.bootstrap.v1", reply.appliedMigrationRows.single().migrationId)
+        assertEquals(1, reply.appliedMigrationRows.single().sequence)
         assertTrue(envelope.catalog.any { it.type == "table" && it.name == "parent" })
         assertTrue(envelope.catalog.any { it.type == "table" && it.name == "child" })
         assertTrue(envelope.catalog.any { it.type == "view" && it.name == "child_view" })
