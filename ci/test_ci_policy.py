@@ -269,12 +269,18 @@ class CiPolicyTest(unittest.TestCase):
         for name in ("signal-scan", "telegram-command", "dashboard-backtest"):
             with self.subTest(name=name):
                 self.assertNotIn(name, self.workflows)
-        for path in ("app.py", "bot.py", "backtest.py", "backtest_rsi_percent_b_h1_adx.py",
+        for path in ("bot.py", "backtest.py", "backtest_rsi_percent_b_h1_adx.py",
                      "telegram_commands.py", "dashboard/index.html", "ci/run-legacy.py",
                      "ci/test_legacy_runner.py", "integrations/codemagic_client.py",
                      "integrations/test_codemagic_client.py"):
             with self.subTest(path=path):
                 self.assertFalse((ROOT / path).exists())
+        app_source = (ROOT / "app.py").read_text()
+        self.assertIn('@app.get("/health/live")', app_source)
+        self.assertIn('@app.get("/health/ready")', app_source)
+        for legacy_marker in ("TELEGRAM_BOT_TOKEN", "telegram_webhook", "codemagic_client", "/api/dashboard"):
+            with self.subTest(legacy_marker=legacy_marker):
+                self.assertNotIn(legacy_marker, app_source)
 
     def test_data_checks_keep_dependency_import_tests_and_cli_gates(self):
         data = self.workflows["canonical-market-data"]
