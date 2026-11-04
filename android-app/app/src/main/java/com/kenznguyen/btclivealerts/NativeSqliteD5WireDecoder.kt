@@ -24,6 +24,9 @@ enum class NativeSqliteD5ReadStatus(val nativeCode: Int) {
 data class NativeSqliteD5SnapshotReply(
     val status: NativeSqliteD5ReadStatus,
     val envelope: D5SchemaEnvelope? = null,
+    val identityRows: List<NativeCanonicalIdentityRow> = emptyList(),
+    val appliedMigrationRows: List<NativeAppliedMigrationRow> = emptyList(),
+    val transactionToken: String = "",
 )
 
 private data class D5WireTableListEntry(
@@ -40,13 +43,13 @@ private data class D5WireTableListEntry(
  * canonical D5 digest format; the decoded rows are passed to CanonicalD5Serializer.
  */
 internal object NativeSqliteD5WireDecoder {
-    private const val WIRE_VERSION = 1
+    private const val WIRE_VERSION = 2
     private const val MAX_PAYLOAD_BYTES = 32 * 1024 * 1024
     private const val MAX_ROWS_PER_SECTION = 100_000
     private const val MAX_STRING_BYTES = 4 * 1024 * 1024
     private val MAGIC = byteArrayOf(0x44, 0x35, 0x57, 0x54) // D5WT
 
-    fun decode(nativeBytes: ByteArray): NativeSqliteD5SnapshotReply {
+    fun decode(nativeBytes: ByteArray, transactionToken: String = ""): NativeSqliteD5SnapshotReply {
         if (nativeBytes.size < 4 || nativeBytes.size > MAX_PAYLOAD_BYTES) {
             return NativeSqliteD5SnapshotReply(NativeSqliteD5ReadStatus.INCOMPLETE_EVIDENCE)
         }
@@ -57,9 +60,9 @@ internal object NativeSqliteD5WireDecoder {
                 if (input.available() != 0) return incomplete()
                 return NativeSqliteD5SnapshotReply(status)
             }
-            val envelope = decodeEnvelope(input)
+            val decoded = decodeEnvelope(input, transactionToken)
             if (input.available() != 0) return incomplete()
-            NativeSqliteD5SnapshotReply(NativeSqliteD5ReadStatus.VERIFIED, envelope)
+            decoded
         } catch (rejected: D5WireRejected) {
             NativeSqliteD5SnapshotReply(rejected.status)
         } catch (_: Exception) {
@@ -69,13 +72,19 @@ internal object NativeSqliteD5WireDecoder {
 
     private class D5WireRejected(val status: NativeSqliteD5ReadStatus) : Exception()
 
-    private fun decodeEnvelope(input: DataInputStream): D5SchemaEnvelope {
+    private fun decodeEnvelope(input: DataInputStream, transactionToken: String): NativeSqliteD5SnapshotReply {
         val magic = ByteArray(4).also(input::readFully)
         require(magic.contentEquals(MAGIC)) { "Invalid D5 wire magic" }
         require(input.readInt() == WIRE_VERSION) { "Unsupported D5 wire version" }
 
         val sqliteVersion = input.readString()
         val sqliteSourceId = input.readString()
+        val identityRows = List(input.readCount()) {
+            NativeCanonicalIdentityRow(input.readInt(), input.readString(), input.readString(), input.readInt(), input.readString(), input.readNullableString(), input.readString())
+        }
+        val appliedMigrationRows = List(input.readCount()) {
+            NativeAppliedMigrationRow(input.readString(), input.readInt(), input.readString(), input.readString(), input.readString())
+        }
         val tableList = List(input.readCount()) {
             D5WireTableListEntry(
                 schema = input.readString(),
@@ -220,7 +229,7 @@ internal object NativeSqliteD5WireDecoder {
         // Run the frozen v1 serializer as a pure completeness/identity validator.
         // The caller can reuse the returned envelope to compute the canonical digest.
         CanonicalD5Serializer.serialize(envelope)
-        return envelope
+        return NativeSqliteD5SnapshotReply(NativeSqliteD5ReadStatus.VERIFIED, envelope, identityRows, appliedMigrationRows, transactionToken)
     }
 
     private fun DataInputStream.readCount(): Int =
