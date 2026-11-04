@@ -1474,3 +1474,13 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - GitHub artifact metadata digests are recorded; artifact payload bytes were not independently downloaded and re-hashed in this increment. Payload checksum verification remains NOT VERIFIED.
 - Final fixture-only R3 CI verdict: PASS. Production Feeder, canonical PC DB, continuous runtime, exchange connectivity and production recovery remain NOT VERIFIED / NOT RUN.
 - No PC access, DB open/create, Feeder startup, exchange connection, market-data sync or order execution.
+
+## P5.4.60 — Recovery Coordinator Idempotency & Failure Lifecycle (2026-11-04)
+
+- Report: docs/evidence/P5.4.60-RECOVERY-IDEMPOTENCY-FAILURE-LIFECYCLE-2026-11-04.md
+- Base SHA: 3ab933035fa721d645463f6ef7ff5741d9b12972; branch remains feature/p5-4-1-post-merge-validation-20261103.
+- Added two fixture-only tests: repeated recovery after coverage becomes complete is idempotent and does not re-call sync; a mid-batch callback failure followed by retry re-reads coverage and syncs only the remaining gap.
+- Tests use mutable in-memory fixture state and injected callbacks only. No runtime source change.
+- Updated overlapping T0 regression invocation thresholds: atomic fencing 109, runtime health API 116, SIGKILL recovery 110. Counts overlap and are not unique totals.
+- GitHub Actions exact-SHA T0 and integrated validation are pending; do not claim PASS before both complete.
+- PC, canonical DB, production Feeder, exchange, market-data sync and order execution remain NOT RUN. Keep AI_EXECUTION_ENABLED=false.

@@ -160,6 +160,66 @@ class RecoveryCoordinatorContractTest(unittest.TestCase):
         ])
         self.assertEqual(read.call_count, 2)
 
+    def test_repeated_recovery_is_idempotent_after_snapshot_becomes_complete(self):
+        gaps = [{"startMs": BASE, "endMs": BASE + STEP}]
+        remaining = list(gaps)
+        sync = Mock(side_effect=lambda timeframe, start_ms, end_ms: remaining.clear())
+
+        def read_snapshot(timeframe, start_ms, end_ms):
+            return coverage(start_ms, end_ms, list(remaining))
+
+        coordinator = RecoveryCoordinator(
+            sync_callback=sync, coverage_reader=read_snapshot)
+
+        first = coordinator.recover("15m", BASE, BASE + STEP)
+        second = coordinator.recover("15m", BASE, BASE + STEP)
+
+        self.assertTrue(first.complete)
+        self.assertEqual(first.recovered_windows, ((BASE, BASE + STEP),))
+        self.assertTrue(second.complete)
+        self.assertEqual(second.recovered_windows, ())
+        sync.assert_called_once_with("15m", BASE, BASE + STEP)
+
+    def test_retry_after_mid_batch_callback_failure_syncs_only_remaining_gap(self):
+        gaps = [
+            {"startMs": BASE, "endMs": BASE + STEP},
+            {"startMs": BASE + STEP, "endMs": BASE + 2 * STEP},
+        ]
+        remaining = list(gaps)
+        calls = []
+        fail_second_gap_once = {"pending": True}
+
+        def sync_one_gap(timeframe, start_ms, end_ms):
+            window = (start_ms, end_ms)
+            calls.append((timeframe, start_ms, end_ms))
+            if window == (BASE + STEP, BASE + 2 * STEP) and fail_second_gap_once["pending"]:
+                fail_second_gap_once["pending"] = False
+                raise TimeoutError("injected failure after first gap was repaired")
+            remaining.remove({"startMs": start_ms, "endMs": end_ms})
+
+        def read_snapshot(timeframe, start_ms, end_ms):
+            return coverage(start_ms, end_ms, list(remaining))
+
+        coordinator = RecoveryCoordinator(
+            sync_callback=sync_one_gap, coverage_reader=read_snapshot)
+
+        with self.assertRaisesRegex(TimeoutError, "injected failure"):
+            coordinator.recover("15m", BASE, BASE + 2 * STEP)
+
+        # The first callback committed its fixture-side effect; the second gap remains.
+        self.assertEqual(remaining, [gaps[1]])
+
+        retried = coordinator.recover("15m", BASE, BASE + 2 * STEP)
+
+        self.assertTrue(retried.complete)
+        self.assertEqual(retried.recovered_windows, ((BASE + STEP, BASE + 2 * STEP),))
+        self.assertEqual(remaining, [])
+        self.assertEqual(calls, [
+            ("15m", BASE, BASE + STEP),
+            ("15m", BASE + STEP, BASE + 2 * STEP),
+            ("15m", BASE + STEP, BASE + 2 * STEP),
+        ])
+
     def test_malformed_second_coverage_snapshot_fails_closed(self):
         gaps = [{"startMs": BASE, "endMs": BASE + STEP}]
         malformed_second_snapshot = {
