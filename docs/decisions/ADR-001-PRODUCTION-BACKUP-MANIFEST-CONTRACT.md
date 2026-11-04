@@ -8,6 +8,25 @@
 
 2026-11-03
 
+## Current consolidated decision index — P5.4.79 (2026-11-04)
+
+This index is authoritative for the current owner-decision status. Earlier sections below preserve the status as it was recorded at their original dates; any older "PROPOSED", "NOT DECIDED" or "pending" statements are historical snapshots and are superseded by the later decision records listed here. Do not interpret those historical statements as current status.
+
+| Contract | Current owner status | Boundary |
+|---|---|---|
+| D1 — Android canonical host/shared SQLite topology | PARTIALLY ACCEPTED | Exact Android DB path, stable identity and writer composition remain open |
+| D2.1–D2.5 — cursor/ledger/risk/lease vector | APPROVED | Architecture only |
+| D3.1–D3.6 + supplements A–E — snapshot barrier | APPROVED | Architecture only |
+| D4.1–D4.7 — schema migration authority | APPROVED | DDL/runtime/lock/reconciliation details open |
+| D5.1–D5.4 — digest layers | APPROVED | Canonical envelope/runtime/introspection details open |
+| D6.1–D6.7 — restore epoch/fencing/Kill Switch | APPROVED | External authority and runtime protocol details open |
+| D7.1–D7.6 — backup security/retention/RPO/RTO/authorization | APPROVED | Provider, key custody, retention values, numerical RPO/RTO and approver roles unselected |
+
+**Cross-contract review:** `docs/evidence/P5.4.79-D2-D7-CROSS-CONTRACT-CONSISTENCY-AND-FIXTURE-PLAN-2026-11-04.md`.
+Architecture is coherent with explicit open design blockers. In particular, before implementation, distinguish the SHA-256 of the verified pre-encryption SQLite snapshot image from the SHA-256 of the encrypted destination object; do not overload a single physical-digest field. The review proposes these as separate digest domains and requires explicit manifest-field reconciliation; it does not amend D5/D7 owner decisions.
+
+**Current verification state:** fixture acceptance tests are specified in P5.4.79 (60 cases) but NOT IMPLEMENTED / NOT RUN. GitHub Actions NOT RUN for P5.4.79. Production implementation remains BLOCKED. No canonical DB/device/PC/production storage/key material/Feeder/exchange/backup/restore/writer was accessed. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+
 ## Context
 
 P5.4.7 through P5.4.19 implemented and validated fixture-only backup behavior. The fixture suite now binds per-store manifest metadata to physical and logical database content. That evidence is not sufficient to define a production recovery contract.
@@ -176,7 +195,7 @@ Still required: destination and ownership, encryption at rest/in transit, key ma
 
 - P5.4.18/P5.4.19 fixture results remain valid only for the exact tested fixture behavior.
 - Production manifest schema and publisher/consumer must not be implemented by copying the fixture manifest and relabeling its row-count sum as a production cursor.
-- The next engineering gate is a reviewed, approved decision for D1–D7. Any unresolved item remains a production blocker.
+- D2–D7 architecture decisions are owner-approved; unresolved implementation and operational details remain production blockers. Use the current consolidated decision index above, not historical pending-status text below.
 - Fixture-only CI may continue with additional negative tests, but must not imply operational readiness.
 - No production DB access, canonical path probing, Android filesystem access, Feeder startup, exchange connection, restore or writer activation is authorized by this ADR.
 
@@ -189,7 +208,7 @@ Before implementation, obtain explicit approval for:
 - [x] D4 database-wide SQLite schema-version authority and migration ownership (D4.1–D4.7 owner-approved 2026-11-04; implementation details remain open);
 - [x] canonicalization and digest-layer contract (D5.1–D5.4 owner-approved 2026-11-04; exact serialization/runtime specification and fixture proof remain open);
 - [x] external restore epoch, lease re-fencing and Kill Switch recovery gate (D6.1–D6.7 owner-approved 2026-11-04; concrete authority and runtime protocols remain open);
-- [ ] destination, encryption, retention, RPO/RTO and restore approver (P5.4.77 D7 proposal; owner decision pending).
+- [x] D7 backup destination/security/retention/RPO/RTO/restore-authorization policy (D7.1–D7.6 owner-approved 2026-11-04; operational values and provider remain unselected).
 
 Until all are resolved, production implementation status is **BLOCKED**.
 
