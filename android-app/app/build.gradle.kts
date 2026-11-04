@@ -7,6 +7,14 @@ plugins {
 android {
     namespace = "com.kenznguyen.btclivealerts"
     compileSdk = 35
+    ndkVersion = "27.2.12479018"
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
 
     defaultConfig {
         applicationId = "com.kenznguyen.btclivealerts"
@@ -15,6 +23,17 @@ android {
         versionCode = 2
         versionName = "0.2.0"
         buildConfigField("boolean", "PARALLEL_INSTALL", "false")
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+        }
+        externalNativeBuild {
+            cmake {
+                arguments += listOf(
+                    "-DSQLITE_AMALGAMATION_DIR=${layout.buildDirectory.dir("generated/sqlite/vendor").get().asFile.absolutePath}",
+                    "-DSQLITE_PIN_FILE=${layout.buildDirectory.file("generated/sqlite/sqlite3-pins.cmake").get().asFile.absolutePath}"
+                )
+            }
+        }
     }
 
     signingConfigs {
