@@ -324,3 +324,15 @@ This proposal does not amend approved P5.4.81 and does not authorize implementat
 ## P5.4.82A — Key custody open-decision matrix (2026-11-04)
 
 **Status: DECISION SUPPORT MATRIX — D82-A OWNER-APPROVED; D82-B–D82-J OPEN.** See `docs/evidence/P5.4.82A-KEY-CUSTODY-OPEN-DECISION-MATRIX-2026-11-04.md`. The matrix frames ten unresolved decisions (recovery model, quorum/roles, jurisdiction/account ownership, audit sink, KEK rotation, signing-key revocation, workload identity, RPO/RTO, Android/JVM crypto qualification and wrapped-DEK metadata) with options, trade-offs and non-binding discussion defaults. It does not select any option, provider, jurisdiction, policy or implementation. P5.4.82 remains PROPOSED / NOT APPROVED; P5.4.81 remains approved and unchanged. No implementation, fixture execution, provider selection/provisioning or production access authorized.
+
+## P5.4.82 — Owner decision addendum (2026-11-04)
+
+This addendum supersedes any earlier P5.4.82/P5.4.82A status wording in this ADR that described D82-A or D82-B as undecided. Historical entries are retained for audit chronology; the latest owner decisions are:
+
+- **D82-A APPROVED:** Independent escrow authority for recovery, primary KMS/HSM for routine operations; low tolerance for loss of recovery capability; at least two independent approvers; requester/executor excluded.
+- **D82-B APPROVED — ARCHITECTURE/POLICY ONLY:** role-based **2-of-3** quorum across three independent trust-domain roles: system-owner delegate, independent escrow custodian delegate, and independent security/recovery delegate. Two distinct people from distinct trust domains must approve the exact case. Requester and executor are excluded from quorum.
+- **Alternates:** pre-designated alternates are permitted only when designated and governed before an incident; no ad hoc enrollment/role transfer during an active case.
+- **Emergency:** no bypass below quorum. If quorum cannot be assembled, status remains `BLOCKED_QUORUM_UNAVAILABLE`. Chat/verbal approval, GitHub review or executor assertion is not an authenticated recovery approval.
+- **Still open:** actual roster and identity proofing; alternate mapping and activation authority; trust-domain evidence; credential lifecycle/revocation; case-bound approval protocol/audit; conflict-of-interest handling and quorum availability monitoring. D82-C–D82-J remain open.
+
+Both approvals are architecture/policy only. They do not authorize identity enrollment, implementation, fixture execution, key generation, provider/KMS/HSM/escrow selection or provisioning, production access, canonical DB access, backup/restore or runtime actions. D6 gates remain separate and mandatory; key recovery cannot release Recovery Latch, clear Kill Switch or admit writers. Existing 96 fixtures remain **SPECIFIED / NOT IMPLEMENTED / NOT RUN**. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
