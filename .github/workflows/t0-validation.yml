@@ -86,21 +86,21 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest market_data.test_feeder_atomic_fencing market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-atomic-fencing-tests.log
-          grep -q "Ran 110 tests" t0-feeder-atomic-fencing-tests.log
+          grep -q "Ran 111 tests" t0-feeder-atomic-fencing-tests.log
           echo "T0_FEEDER_ATOMIC_FENCING_TESTS=PASS (110 tests)" | tee t0-feeder-atomic-fencing-verdict.txt
       - name: Run runtime health API and T0 regression contracts
         shell: bash
         run: |
           set -euo pipefail
           python -m unittest market_data.test_feeder_health_runtime_api market_data.test_feeder_atomic_fencing market_data.test_feeder_sigkill_recovery market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-health-runtime-api-tests.log
-          grep -q "Ran 117 tests" t0-health-runtime-api-tests.log
+          grep -q "Ran 118 tests" t0-health-runtime-api-tests.log
           echo "T0_HEALTH_RUNTIME_API_TESTS=PASS (117 tests)" | tee t0-health-runtime-api-verdict.txt
       - name: Run isolated SQLite SIGKILL recovery contracts
         shell: bash
         run: |
           set -euo pipefail
           python -m unittest market_data.test_feeder_sigkill_recovery market_data.test_feeder_atomic_fencing market_data.test_feeder_lifecycle market_data.test_feeder_scheduler market_data.test_feeder_retry market_data.test_feeder_recovery market_data.test_feeder_lease market_data.test_feeder_health market_data.test_feeder_health_api -v 2>&1 | tee t0-feeder-sigkill-recovery-tests.log
-          grep -q "Ran 111 tests" t0-feeder-sigkill-recovery-tests.log
+          grep -q "Ran 112 tests" t0-feeder-sigkill-recovery-tests.log
           echo "T0_SIGKILL_RECOVERY_TESTS=PASS (111 tests)" | tee t0-feeder-sigkill-recovery-verdict.txt
       - name: Run static operational contract and source audit
         run: |

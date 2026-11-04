@@ -165,25 +165,25 @@ class CiPolicyTest(unittest.TestCase):
             step for step in workflow["jobs"]["t0-validation"]["steps"]
             if step.get("name") == "Run atomic fencing and prior T0 contracts"
         )
-        self.assertIn('grep -q "Ran 110 tests"', atomic_step.get("run", ""))
+        self.assertIn('grep -q "Ran 111 tests"', atomic_step.get("run", ""))
         self.assertNotIn('grep -q "Ran 102 tests"', atomic_step.get("run", ""))
         audit_source = (ROOT / "ci/t0_operational_contract.py").read_text()
         health_step = next(
             step for step in workflow["jobs"]["t0-validation"]["steps"]
             if step.get("name") == "Run runtime health API and T0 regression contracts"
         )
-        self.assertIn('grep -q "Ran 117 tests"', health_step.get("run", ""))
-        self.assertNotIn('grep -q "Ran 110 tests"', health_step.get("run", ""))
-        self.assertIn('health_runtime_api_count": \'grep -q "Ran 117 tests"\'', audit_source)
+        self.assertIn('grep -q "Ran 118 tests"', health_step.get("run", ""))
+        self.assertNotIn('grep -q "Ran 111 tests"', health_step.get("run", ""))
+        self.assertIn('health_runtime_api_count": \'grep -q "Ran 118 tests"\'', audit_source)
         sigkill_step = next(
             step for step in workflow["jobs"]["t0-validation"]["steps"]
             if step.get("name") == "Run isolated SQLite SIGKILL recovery contracts"
         )
-        self.assertIn('grep -q "Ran 111 tests"', sigkill_step.get("run", ""))
+        self.assertIn('grep -q "Ran 112 tests"', sigkill_step.get("run", ""))
         self.assertNotIn('grep -q "Ran 103 tests"', sigkill_step.get("run", ""))
-        self.assertIn('sigkill_recovery_count": \'grep -q "Ran 111 tests"\'', audit_source)
+        self.assertIn('sigkill_recovery_count": \'grep -q "Ran 112 tests"\'', audit_source)
         audit_source = (ROOT / "ci/t0_operational_contract.py").read_text()
-        self.assertIn('atomic_fencing_count": \'grep -q "Ran 110 tests"\'', audit_source)
+        self.assertIn('atomic_fencing_count": \'grep -q "Ran 111 tests"\'', audit_source)
         self.assertIn("workflow_dispatch", manual["on"])
         self.assertEqual(manual["permissions"]["contents"], "read")
         self.assertNotIn("MARKET_DATA_TEST_DATABASE_URL", manual["jobs"]["manual-gate"].get("env", {}))

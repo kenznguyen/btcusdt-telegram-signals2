@@ -235,6 +235,30 @@ class RecoveryCoordinatorContractTest(unittest.TestCase):
             ("15m", BASE + STEP, BASE + 2 * STEP),
         ])
 
+    def test_invalid_initial_snapshot_shapes_fail_before_sync(self):
+        invalid_snapshots = (
+            None,
+            [],
+            {"startMs": BASE, "endMs": BASE + STEP},
+            {"startMs": BASE, "endMs": BASE + STEP, "coverage": {"complete": True, "gaps": None}},
+            {"startMs": BASE, "endMs": BASE + STEP, "coverage": {"complete": False, "gaps": "not-a-list"}},
+            {"startMs": BASE, "endMs": BASE + STEP, "coverage": {"complete": False, "gaps": [None]}},
+            {"startMs": BASE, "endMs": BASE + STEP, "coverage": {"complete": False, "gaps": [{}]}},
+            {"startMs": BASE, "endMs": BASE + STEP, "coverage": {"complete": False, "gaps": [
+                {"startMs": str(BASE), "endMs": BASE + STEP}
+            ]}},
+        )
+        for snapshot in invalid_snapshots:
+            with self.subTest(snapshot=snapshot):
+                read = Mock(return_value=snapshot)
+                sync = Mock()
+                coordinator = RecoveryCoordinator(
+                    sync_callback=sync, coverage_reader=read)
+                with self.assertRaises(ValueError):
+                    coordinator.recover("15m", BASE, BASE + STEP)
+                read.assert_called_once_with("15m", BASE, BASE + STEP)
+                sync.assert_not_called()
+
     def test_malformed_second_coverage_snapshot_fails_closed(self):
         gaps = [{"startMs": BASE, "endMs": BASE + STEP}]
         malformed_second_snapshot = {
