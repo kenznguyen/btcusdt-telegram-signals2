@@ -1607,3 +1607,20 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - No code/Gradle/manifest/dependency/package changes, APK build/install, device access, DB path probing/open/create/write, Feeder, exchange, market-data sync, backup/restore, writer activation or order execution. Keep `AI_EXECUTION_ENABLED=false`. Natural Doze remains INTERRUPTED / DEFERRED.
 - Next permitted step: P5.4.66 implementation-readiness gap specification — source-only plan and fixture acceptance contracts, including the boundary between remote Paper API and future host IPC. No code implementation until separately authorized.
 
+
+
+## P5.4.66 — Android Canonical Host Implementation-Readiness Specification (2026-11-04)
+
+- Evidence/specification: `docs/evidence/P5.4.66-ANDROID-CANONICAL-HOST-IMPLEMENTATION-READINESS-2026-11-04.md`.
+- Specification commit: `2c16cb785d6f6aa164e31b63142a534d55c24bef`.
+- Baseline handoff blob: `1a67b3c1925576af1f20e197f5d6086cba9713c3`; baseline ADR-002 blob: `91f78f1be2d16d24585d7ebbd2b649abea91a0b7`; input P5.4.65 report blob: `8682500ccc61cb6da82d90f97fb122dd292dd134`.
+- Scope: documentation-only implementation-readiness plan; no Kotlin, Gradle, manifest, dependency, schema or runtime changes.
+- Reaffirmed already-approved ADR-002 decisions: regular variant is sole canonical host; .paper is IPC-only client; explicit Bound Service + typed Binder/AIDL; signature-level permission plus host verification of UID/package/signer; one host-owned SQLite/transaction/lease/risk/ledger/audit authority; no DB capabilities or fallback writer to client; Core and independent AI intents pass through the same host-side Shared Risk Engine and Kill Switch.
+- Identified ADR-002 documentation inconsistency: earlier “Open implementation decisions” still describes IPC primitive and package roles as undecided, despite P5.4.41 owner addendum resolving them. P5.4.41 addendum is authoritative; proposed follow-up is documentation-only reconciliation.
+- Specified current remote FiveLayer Paper API disposition: canonical Paper evaluate/mutations and canonical ledger/risk/audit reads must move behind host IPC; remote health/research/FreqAI analytics and explicitly noncanonical read-only telemetry may remain separate. No dual-write, HTTP mutation fallback or remote acceptance as local canonical success.
+- Ordered slices: (0) contract/ADR reconciliation; (1) host composition and capability boundary; (2) authenticated Bound Service contract; (3) canonical storage/transaction/lease/recovery contracts; (4) shared Risk Engine + separate Core/AI intent provenance; (5) .paper client migration and remote API containment; (6) GitHub Actions fixture/static acceptance; (7) separately authorized Android device acceptance.
+- Enumerated D2–D7/schema/SQLite/WAL/transaction/lease/fencing/recovery/version-skew/signer-rotation decisions that must be resolved before storage implementation. No assumptions were converted into accepted decisions.
+- Status: **PASS** for readiness specification; source implementation **BLOCKED**; D2–D7 storage/transaction/lease contract **BLOCKED**; fixture tests **SPECIFIED / NOT IMPLEMENTED**; GitHub Actions **NOT RUN**; Android device/runtime **NOT AUTHORIZED / NOT RUN**. T0-B remains BLOCKED, T0-C NOT RUN/NOT AUTHORIZED, T0-D NOT RUN/NOT VERIFIED, T0-E BLOCKED.
+- No Android access, APK build/install, canonical DB path probing/open/create/write, Feeder, exchange, market-data sync, backup/restore, writer activation or orders. Keep `AI_EXECUTION_ENABLED=false`; Natural Doze remains INTERRUPTED / DEFERRED.
+- Next permitted increment: P5.4.67 — resolve ADR-002 documentation conflict and produce a D2–D7 decision register by tracing existing ADR/handoff evidence, distinguishing owner-approved decisions from unresolved owner choices. No code or runtime implementation.
+
