@@ -128,7 +128,7 @@ class CanonicalSqliteReadContractTest {
     fun internalSqliteObjectsAndTriggersAreExcludedWhileViewsAreIncluded() {
         val catalog = listOf(
             SqliteSchemaCatalogEntry("table", "sqlite_sequence", "sqlite_sequence", null),
-            SqliteSchemaCatalogEntry("trigger", "trg", "t", null),
+            SqliteSchemaCatalogEntry("trigger", "trg", "t", "CREATE TRIGGER trg AFTER INSERT ON t BEGIN SELECT 1; END"),
             SqliteSchemaCatalogEntry("view", "v", "v", null),
         )
 
