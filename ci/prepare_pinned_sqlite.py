@@ -76,7 +76,7 @@ def main() -> None:
     if len(payload) > 5 * 1024 * 1024:
         raise ValueError("SQLite archive exceeded the 5 MiB safety limit")
     verify_archive_digest(payload)
-    vendor = args.root / "android-app/app/src/main/cpp/vendor/sqlite-3.54.1"
+    vendor = args.root / "android-app/app/build/generated/sqlite/vendor"
     pins = args.root / "android-app/app/build/generated/sqlite/sqlite3-pins.cmake"
     hashes = extract_and_pin(payload, vendor, pins)
     print(f"SQLITE_VERSION={SQLITE_VERSION}")
