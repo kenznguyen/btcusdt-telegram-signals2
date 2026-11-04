@@ -2724,3 +2724,8 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Older corrected run #41825231563 still has API 33 #126558155805 and API 35 #126558156045 in progress; API 26 #126558155316 cancelled. Earlier run #41825022008 still has API 26 #126557433974 in progress. These older jobs occupy per-API concurrency groups and delay the latest matrix; no current XML/test logs are available from those in-progress jobs.
 - Evidence report update commit: `b593362cb9564feda1713945b840f9bfbcac6ad7`.
 - Verdict remains **NOT VERIFIED**. Do not treat earlier SHA runs as verification of the corrected fixture. Next: inspect run #41826316428 and require API 26/33/35 instrumentation success plus report inspection.
+
+
+- Workflow concurrency correction commit: `d74a656394a5d275533393954a274efb033b7f33`; per-API emulator concurrency now uses `cancel-in-progress: true` so a newer candidate cancels stale runs rather than waiting behind old emulator jobs. This is a scheduling correction only, not test evidence.
+- Evidence report update commit: `54462b4b08fd392450e19a937bfcc8625be57f59`.
+- Verify the replacement workflow run on the exact SHA containing the concurrency change; T0.9 remains **NOT VERIFIED** until all 3 API instrumentation jobs pass and reports are inspected.
