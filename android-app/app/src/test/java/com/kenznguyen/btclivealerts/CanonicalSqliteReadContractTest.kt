@@ -59,10 +59,10 @@ class CanonicalSqliteReadContractTest {
         val queries = CanonicalSqliteReadContract.schemaIntrospectionQueries(catalog)
 
         assertEquals(
-            listOf("PRAGMA table_info(\"a_table\")", "PRAGMA index_list(\"a_table\")",
-                "PRAGMA foreign_key_list(\"a_table\")", "PRAGMA table_info(\"z_table\")",
+            listOf("PRAGMA table_xinfo(\"a_table\")", "PRAGMA index_list(\"a_table\")",
+                "PRAGMA foreign_key_list(\"a_table\")", "PRAGMA table_xinfo(\"z_table\")",
                 "PRAGMA index_list(\"z_table\")", "PRAGMA foreign_key_list(\"z_table\")",
-                "PRAGMA index_info(\"idx_z\")"),
+                "PRAGMA index_xinfo(\"idx_z\")"),
             queries.map { it.sql },
         )
         assertTrue(queries.all { it.id == SqliteReadQueryId.SCHEMA_INTROSPECTION })
