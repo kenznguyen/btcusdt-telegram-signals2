@@ -2517,3 +2517,20 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - No Android device/runtime/instrumentation, SQLite/SQL/PRAGMA, DB, Feeder, lease, writer, migration, backup/restore, APK, exchange or trading operation. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 - Still blocked/not verified: minSdk 26 consistent read-only transaction runtime behavior, SQLite adapter/runtime integration, canonical DB and Feeder readiness, Android device behavior, and backup/restore. This increment does not change those statuses.
 - Next step: obtain separate owner approval for another bounded source-only increment. Runtime/device/DB work remains separately unauthorized.
+
+
+## T0.1 — Full Source-Level Audit (2026-11-04)
+
+- Audit report: `docs/evidence/T0.1-FULL-SOURCE-LEVEL-AUDIT-2026-11-04.md`.
+- Audit report commit: `6141214b94dc83819221a66fda5e0fcf66130457`.
+- Audited active branch HEAD before report commit: `e8b2b9e4ea616fff2c32827383a2f9cb680bf1ac`.
+- Latest implementation/test source SHA: `a2a0d87b7128b3b7b773ffcdea9144770b8b4e1c`; the intervening HEAD commit was handoff-only documentation.
+- Android T0 Foundation run #41784494206: PASS on exact source SHA `a2a0d87b7128b3b7b773ffcdea9144770b8b4e1c`; regular and `.paper` each 27 suites / 184 tests, zero failures/errors/skips; artifact #13300483441; ZIP SHA-256 `065787cce9be2ea1eccfa5cf9fa31294f666f066f6b7c95eb794e59732a684ae`.
+- Python T0 automated run #41739693635: PASS on historical SHA `bb9a032705bc100311d91b1d3f6506173e0784ef`; artifact #13280772186; SHA-256 `8cf99e8c301e124d414c17d0ab63ab1ff92e03bf1f55e1489e4c699ecb99c910`. No current-source Python T0 regression run was established for `a2a0d87`.
+- Audit verdict: **T0.1 COMPLETE — SOURCE-LEVEL; OVERALL T0/P1 BLOCKED**.
+- Python feeder scheduler/retry/recovery/lease/Gateway contracts exist and have historical fixture evidence. However Python production composition remains a Python-side SQLite writer and is not connected to the approved Android canonical host; do not start it on PC as a canonical writer.
+- Android CanonicalApplication/path candidate, logical/physical identity contracts, pure DDL/schema verifier, D5 serializer and golden-vector fixtures exist. Android SQLite adapter/migration executor, Android Feeder/lease composition, authenticated Binder/AIDL IPC, shared Paper Ledger/Risk/Kill Switch host, and integrated backup/restore remain missing or blocked.
+- minSdk 26 DEFERRED read-only consistent-snapshot behavior remains BLOCKED / NOT RUNTIME VERIFIED; no adapter/runtime selection is approved.
+- T0-A: historical PASS; current full-stack exact-SHA status PARTIAL. T0-B: BLOCKED / NOT RUN. T0-C: BLOCKED / NOT AUTHORIZED. T0-D: BLOCKED / NOT VERIFIED. T0-E: BLOCKED.
+- This was a documentation-only audit. No source, strategy, configuration, tests, workflows, DB, device, Feeder, exchange, backup/restore, APK or trading operation changed or ran. Preserve `AI_EXECUTION_ENABLED=false`; paper-only.
+- No blanket implementation permission is granted. Any next source-only increment or runtime/device/DB operation requires its own bounded owner approval. Continue on this branch; no PR/branch split.
