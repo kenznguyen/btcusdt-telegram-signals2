@@ -22,8 +22,21 @@ class NativeSqliteArtJniRuntimeTest {
         try {
             val reply = NativeSqliteReadOnlyJni.readD5Snapshot(opened.handle)
             assertEquals(NativeSqliteD5ReadStatus.VERIFIED, reply.status)
-            assertNotNull("D5 envelope must be decoded", reply.envelope)
-            assertEquals("3.54.1", reply.envelope?.runtime?.sqliteVersion)
+            val envelope = requireNotNull(reply.envelope) { "D5 envelope must be decoded" }
+            assertEquals("3.54.1", envelope.runtime.sqliteVersion)
+            assertTrue(envelope.catalog.any { it.type == "table" && it.name == "parent" })
+            assertTrue(envelope.catalog.any { it.type == "table" && it.name == "child" })
+            assertTrue(envelope.catalog.any { it.type == "view" && it.name == "child_view" })
+            assertTrue(envelope.tableColumns.any {
+                it.tableName == "child" && it.name == "generated" && it.hidden == 3
+            })
+            assertTrue(envelope.indexes.any { it.name == "idx_child_value" && it.partial })
+            assertTrue(envelope.indexColumns.any {
+                it.indexName == "idx_child_value" && it.descending && it.isKey
+            })
+            assertTrue(envelope.foreignKeys.any {
+                it.tableName == "child" && it.referencedTable == "parent" && it.onDelete == "CASCADE"
+            })
         } finally {
             assertEquals(
                 NativeSqliteStatus.VERIFIED,
