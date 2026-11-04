@@ -1790,3 +1790,16 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Status: D4 **APPROVED (architecture only)**; D5 **APPROVED (architecture only)**; D6 **PROPOSED / NOT APPROVED**; D7 **NOT DECIDED**. D4/D5 implementation NOT IMPLEMENTED / NOT VERIFIED; D5 fixtures NOT IMPLEMENTED / NOT RUN.
 - Safety: keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
 - Next step: owner review of D6.1–D6.7. No restore, epoch allocation, lease mutation, Kill Switch clearing or writer activation is authorized.
+
+
+## P5.4.76 — D6 owner approval recorded (2026-11-04)
+
+- Decision: **APPROVE D6.1–D6.7** exactly as specified in `docs/evidence/P5.4.75-D6-RESTORE-EPOCH-LEASE-REFENCING-KILL-SWITCH-PROPOSAL-2026-11-04.md`; no amendments requested.
+- Accepted contract: external monotonic Restore Epoch Authority and Recovery Latch; positive prior-owner stop/fence proof; idempotent irreversible epoch allocation; isolated staging and verified publication; lease-generation re-fencing above restored/external floors; stale intent/capability/market-assumption invalidation; Kill Switch held through readiness and separate authenticated acknowledgement; latch release, Kill Switch clearing and writer admission remain separate decisions; fail-closed recovery.
+- Decision records updated: P5.4.75 proposal and ADR-001.
+- Scope: documentation/decision recording only. No code, schema, migration, restore implementation, epoch/lease mutation, tests, IPC, app configuration or runtime changed.
+- Tests / GitHub Actions: **NOT RUN**; no workflow run or artifact for this docs-only decision record.
+- Canonical DB/device/Feeder/exchange/synchronization/production backup/restore/writer: **NOT TOUCHED**.
+- Status: D4 **APPROVED (architecture only)**; D5 **APPROVED (architecture only)**; D6 **APPROVED (architecture only)**; D7 **NOT DECIDED**. D6 implementation NOT IMPLEMENTED / NOT VERIFIED; D6 fixtures NOT IMPLEMENTED / NOT RUN.
+- Safety: keep `AI_EXECUTION_ENABLED=false`; paper-only. Android Natural Doze remains **INTERRUPTED / DEFERRED**.
+- Next step: prepare D7 proposal for backup destination, encryption/key custody, retention, RPO/RTO and restore authorization. No restore or writer operation is authorized.
