@@ -2125,3 +2125,17 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Permissions used in this increment: repository read/write and documentation-only commit on existing branch. No tests/workflows run because no executable source changed.
 - Not authorized: actual filesystem/SQLite open/read/write/create; Android device/install/instrumentation; backup/restore execution; D6 authority/provider/Keystore; Feeder/lease/writer/IPC/exchange/data sync; APK build/sign/publish; paper/live execution. `AI_EXECUTION_ENABLED=false`.
 - Next step: implement pure pin parser/value and fail-closed lifecycle classifier with fixture tests using TDD; run the existing GitHub Actions JVM/static workflow only. Request separate authorization before real Android filesystem or SQLite adapter work.
+
+
+## P5.4.89 pure identity-pin contract implementation — 2026-11-04
+
+- Owner approval: ID-1–ID-7 approved; ID-3 selects B (noBackupFilesDir) as a local consistency pin only.
+- Approved design/protocol is recorded in docs/evidence/P5.4.89-ANDROID-T0-PERSISTED-IDENTITY-LIFECYCLE-AND-READONLY-SQLITE-ADAPTER-DESIGN-2026-11-04.md.
+- Test-first RED commit: fdaa31db7359ff1a94847b17b5fea87c989ed1ca; Android T0 Foundation run #41760416208 failed as expected with unresolved references to the new contract types: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41760416208 .
+- Pure implementation: canonical lowercase UUIDv4 validation; pin value + PENDING/ACTIVE state; strict version-1 parser/serializer; pure fail-closed lifecycle classifier. No UUID generation, filesystem access, DB access, or automatic repair.
+- Added 10 new fixture tests; existing persisted-ID fixtures updated to UUIDv4.
+- Intermediate implementation SHA ae4580490dcea78240800a6d5434d42e60ebc29d failed compile due escaped newline literals. Corrected source SHA: e841bea2c9b29a7fd813c43bb34d88ead46cbb86.
+- Corrected SHA Android T0 Foundation run #41760783949: IN PROGRESS at handoff update. Regular JVM test step running; parallel JVM variant/static audit not yet reported. PASS NOT CLAIMED; test/artifact NOT VERIFIED. Run URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41760783949 .
+- Permissions used: source/test/documentation changes on existing branch and GitHub Actions fixture test workflow. No APK build/sign/publish.
+- No actual noBackupFilesDir access, SQLite open/create/read/write, DDL/migration/adoption, Android device/install/instrumentation, backup/restore, D6 authority, Keystore, Feeder, lease, IPC, exchange/data sync or writer admission. AI_EXECUTION_ENABLED=false; paper-only.
+- Next step: reconcile exact-SHA run #41760783949 and artifact; only mark PASS if both regular and .paper tests plus static audit pass. After pure contracts closeout, obtain separate authorization before Android filesystem or SQLite adapter work.
