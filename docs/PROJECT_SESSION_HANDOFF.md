@@ -2295,12 +2295,12 @@ Next bounded step: continue design-only resolution of the remaining Android read
 
 ## P5.4.95 — D5 SQLite schema introspection coverage (2026-11-04)
 
-**Status: SOURCE-LEVEL DELTA IMPLEMENTED; CURRENT-SHA CI PENDING; FULL D5 CANONICALIZATION NOT VERIFIED.**
+**Status: PASS — approved source-level query contract and pure fixture CI scope. Full D5 canonicalization and runtime readiness remain NOT VERIFIED.**
 
 - Evidence report: `docs/evidence/P5.4.95-D5-SQLITE-SCHEMA-INTROSPECTION-COVERAGE-REVIEW-2026-11-04.md`.
-- Latest evidence report update commit: `0d4270dddbe8cc03d85ed95c302ab63b53395316`.
-- Existing branch only: `feature/p5-4-1-post-merge-validation-20261103`; no branch or PR created.
-- Android source/test code SHA submitted to the latest validation workflow: `df4f8815d87684691ae24fa6080bf944012ba2ba`.
+- Evidence report commit: `cc2ca423087d22cbbeaf2098c3ac829634427cc9`.
+- Existing branch only: `feature/p5-4-1-post-merge-validation-20261103`; no new branch or PR.
+- Exact Android source/test code SHA validated: `df4f8815d87684691ae24fa6080bf944012ba2ba`.
 - Source file blob: `4cb50f780900bf8d7dda58e949c987cc7d89df3b`.
 - Test file blob: `cf527f5c622275a77552795e514643f76dcd6799`.
 
@@ -2309,18 +2309,20 @@ Next bounded step: continue design-only resolution of the remaining Android read
 - `table_xinfo` for catalog tables and views.
 - `index_xinfo` for catalog indexes.
 - Retain `index_list` and `foreign_key_list` for tables only.
-- Recognize known catalog object types; reject unknown types instead of silently omitting them.
-- Reject missing SQL metadata for user schema objects.
-- Reject virtual-table declarations until module inventory and implementation provenance are verified; declaration detection handles leading SQL comments.
+- Reject unknown catalog object types and missing SQL metadata.
+- Fail-closed on virtual-table declarations until module inventory and implementation provenance are verified; leading SQL comments are handled.
 - Trigger SQL remains in catalog evidence; no trigger PRAGMA is generated.
 
-### Test / CI evidence
+### Test / CI evidence — PASS
 
-- RED confirmed: [GitHub Actions run #41771886754](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41771886754), exact SHA `7fb5a054354ed834afa74ee357ebbf495f51532d`; 162 tests completed, 4 D5 assertions failed as expected.
-- RED artifact #13295890393, 62,531 bytes, SHA-256 `2998b364ed93e4a752a17791e466c26e9265d17c9d55adc74573c3a4e775a7c1`.
-- Latest validation: [GitHub Actions run #41773126210](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41773126210), exact SHA `df4f8815d87684691ae24fa6080bf944012ba2ba`; **PENDING** at handoff update. No GREEN result or final artifact is claimed.
-- Intermediate pre-final source run #41772675396 on SHA `e40e85b44ae7cd3464c959d8c99ac914e6292754` compiled and ran 162 host tests but had 3 fixture failures: case-sensitive diagnostic assertion and incomplete test catalog SQL. These were corrected in later commits; this run is not GREEN evidence.
-- Earlier pre-implementation run #41772478852 on SHA `35b1fdb43e7ed1857e53598f6859722d51945381` failed against the old source; do not use it as implementation verification.
+- RED confirmed: [run #41771886754](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41771886754), SHA `7fb5a054354ed834afa74ee357ebbf495f51532d`; 162 tests, 4 D5 assertions failed as expected.
+- GREEN: [run #41773126210](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41773126210), exact SHA `df4f8815d87684691ae24fa6080bf944012ba2ba); workflow SUCCESS.
+- Regular host variant: **163/163 PASS**, 23 test classes, 0 failures/errors/skips.
+- `.paper` variant: **163/163 PASS**, 23 test classes, 0 failures/errors/skips.
+- `CanonicalSqliteReadContractTest`: **11/11 PASS** in each variant.
+- Static audit: `ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS`.
+- Artifact #13295911777, 116,938 bytes; SHA-256 `d0560be824c6f8eb1b094bf72b9bd57909fba6cb3f52cee3657a04c70f8052c0`. Artifact ZIP downloaded and XML reports inspected for both variants.
+- Branch HEAD after evidence commits: `cc2ca423087d22cbbeaf2098c3ac829634427cc9`; code under test remains exactly the workflow SHA above. Handoff update follows this report commit.
 
 ### Remaining blockers / limits
 
@@ -2329,10 +2331,10 @@ Next bounded step: continue design-only resolution of the remaining Android read
 - Virtual module implementation provenance/allowlist remains OPEN; current policy rejects all virtual tables.
 - Canonical envelope grammar, canonicalization ID/version, full introspection field schema and digest composition remain OPEN.
 - minSdk 26 read-only consistent-snapshot transaction primitive remains BLOCKED (see P5.4.89 section 10).
-- Exact immutable bootstrap migration bytes/ID/sequence/owner remain OPEN.
+- Exact bootstrap migration bytes/ID/sequence/owner remain OPEN.
 - Missing-path read-only open no-create proof remains OPEN.
 - SQLite adapter/runtime/device remains NOT IMPLEMENTED / NOT AUTHORIZED.
 
 No SQLite database was opened; no SQL/PRAGMA was executed against a database; no filesystem/device access, adapter/dependency, APK build/sign/publish, Feeder, writer, backup/restore, exchange or trading operation occurred. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 
-**Next bounded step:** wait for run #41773126210 to complete, inspect host tests, `.paper` tests, static audit and artifact on the exact SHA. If GREEN, record exact evidence; then resolve runtime feature matrix, shadow-table policy and virtual-module provenance before any digest or adapter work.
+**Next bounded step:** design and review the still-open D5 requirements (runtime feature matrix, shadow-table policy, virtual-module provenance, canonical envelope) before proposing another source delta. Do not proceed to SQLite adapter or runtime work without separate authorization.
