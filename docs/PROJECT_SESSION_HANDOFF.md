@@ -2708,3 +2708,8 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Corrected T0.9 run #41825231563: API 33 job #126558155805 was in progress at last inspection; API 26 #126558155316 and API 35 #126558156045 were pending behind earlier jobs in the same per-API concurrency groups. Earlier API 26 retry #126557433974 and first API 35 job #126552114602 were still in the emulator-runner step. Do not infer success or failure until those jobs finish.
 - No speculative emulator configuration change has been made. Continue inspecting actual runner logs; keep T0.9 **NOT VERIFIED** until all three corrected API jobs pass and instrumentation reports are inspected.
 - T0.9 report update commit: `ee1ed37a154d2b54b651329de4c2d1e4609edda3`.
+
+
+- First T0.9 matrix run #41823459543 is now **COMPLETED / FAILURE** on SHA `e6be3b747f9a7c436616334e8d616bff979cda34`, with no artifacts. API 26 #126552115016 and API 35 #126552114602 booted but ran Gradle from repository root because the emulator action executed the multiline `cd` and Gradle lines in separate shells; API 35 boot took ~931 seconds. API 33 #126552115265 failed before Gradle after ~780-second boot due ADB settings/input `Broken pipe (32)`, exit code 224. None of the first-run jobs executed the instrumentation test.
+- The corrected source candidate is SHA `bae7eb0749008e7fb0081106363391653b0febdf`; latest T0.9 run #41825231563 remains the authoritative corrected attempt to inspect. T0.9 remains **NOT VERIFIED**.
+- T0.9 report update commit: `e84822ac74424b95752a3875e31e8c476fe056c9`.
