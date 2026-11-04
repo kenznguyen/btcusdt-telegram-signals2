@@ -1904,3 +1904,18 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - No canonical DB, Android device, PC, production KMS/HSM, production storage, key material, Feeder, exchange, backup/restore or writer touched.
 - Safety: Android-first, no PC, paper-only, AI_EXECUTION_ENABLED=false.
 - Next step: propose provider-neutral KMS/HSM custody and recovery-key control requirements, without selecting a vendor or provisioning keys. Fixture and runtime implementation remain blocked pending separate authorization and unresolved design closure.
+
+
+## P5.4.82 — Provider-neutral key custody and recovery proposal (2026-11-04)
+
+- Proposal: `docs/evidence/P5.4.82-PROVIDER-NEUTRAL-KEY-CUSTODY-AND-RECOVERY-ARCHITECTURE-PROPOSAL-2026-11-04.md`.
+- Status: **PROPOSED / NOT APPROVED**; no owner decision inferred from “tiếp tục”.
+- Scope: provider-neutral KMS/HSM adapter boundaries, key inventory, workload identity separation, DEK/KEK/signing-key lifecycle, break-glass recovery case, proposed two-person approval, append-only audit contract, fail-closed matrix and CI fake-provider isolation.
+- No KMS/HSM/storage vendor, recovery model, custody jurisdiction, quorum/roles, audit sink or federation mechanism selected.
+- P5.4.81 remains owner-approved; P5.4.82 does not amend it.
+- Fixture plan: **96 approved cases specified / NOT IMPLEMENTED / NOT RUN**. P5.4.82 test ideas are candidates only, not counted or authorized.
+- GitHub Actions: **NOT RUN**; no workflow run/artifact. Documentation-only change.
+- No code/schema/runtime, key material, provider account, storage, canonical DB, Android device or PC accessed/changed.
+- No backup/restore, Feeder, exchange, Kill Switch/Recovery Latch mutation or writer activation.
+- Safety: Android-first, no PC, paper-only, AI_EXECUTION_ENABLED=false.
+- Next step: owner review/decision on P5.4.82 and its ten open design decisions. Implementation, fixtures and provider integration remain unauthorized.
