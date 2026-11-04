@@ -2455,3 +2455,17 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Evidence report correction commit: `766126e3bf91fc36e7fa36126a60245634cd2f8a`.
 - No runtime/DB/device/adapter/Feeder/writer/migration/backup/restore/APK/exchange/trading action. `AI_EXECUTION_ENABLED=false`.
 - Next: exact-HEAD GitHub Actions verification for `7809118c7e8408e893bfa0643601a9caff77133f`; otherwise retain NOT VERIFIED.
+
+
+## P5.4.99 final latest-source CI — PASS (2026-11-04)
+
+- Exact serializer/test SHA: `7809118c7e8408e893bfa0643601a9caff77133f`.
+- Workflow #41777394890: **SUCCESS** — https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41777394890
+- Job #126401180363: regular host **26 suites / 180 tests PASS**, `.paper` **26 suites / 180 tests PASS**, zero failures/errors/skips in both; static audit `ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS`.
+- `CanonicalD5SerializerTest`: 9/9 pass in regular and `.paper`, including multi-row order independence and malformed UTF-16 rejection.
+- Artifact #13297054618, 130,041 bytes: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41777394890/artifacts/13297054618
+- Artifact ZIP verified with `unzip -t`; independent SHA-256 `2fca46e39144fbb705f6c793c27f8b110f4b3855f996a822a68a55617959fb8c` matches GitHub artifact digest.
+- Evidence report: `docs/evidence/P5.4.99-CANONICAL-D5-SERIALIZER-SHA256-2026-11-04.md`.
+- P5.4.99 final: **PASS — SOURCE-ONLY**. Docs-only commits after the tested SHA do not change tested source/test code.
+- Still separately blocked/not verified: minSdk 26 read-only consistent transaction runtime proof and SQLite adapter selection. No DB/device/runtime/instrumentation/Feeder/writer/migration/backup/restore/APK/exchange/trading action. `AI_EXECUTION_ENABLED=false`.
+- Next permitted increment requires separate source-scope approval; no implicit runtime authorization.
