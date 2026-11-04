@@ -73,9 +73,9 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: cd android-app && gradle :app:connectedDebugAndroidTest --no-daemon --stacktrace
+          script: cd android-app && trap 'adb logcat -b all -d -v threadtime > ../t0-9-art-jni-api-${{ matrix.api-level }}-logcat.txt 2>&1 || true; adb shell getprop > ../t0-9-art-jni-api-${{ matrix.api-level }}-getprop.txt 2>&1 || true' EXIT; gradle :app:connectedDebugAndroidTest --no-daemon --stacktrace
 
-      - name: Upload ART instrumentation reports
+      - name: Upload ART instrumentation reports and crash diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -83,5 +83,7 @@ jobs:
           path: |
             android-app/app/build/outputs/androidTest-results/**
             android-app/app/build/reports/androidTests/**
+            t0-9-art-jni-api-${{ matrix.api-level }}-logcat.txt
+            t0-9-art-jni-api-${{ matrix.api-level }}-getprop.txt
           if-no-files-found: warn
           retention-days: 14
