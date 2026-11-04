@@ -2142,3 +2142,19 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Permissions used: source/test/documentation changes on existing branch and GitHub Actions fixture test workflow. No APK build/sign/publish.
 - No actual noBackupFilesDir access, SQLite open/create/read/write, DDL/migration/adoption, Android device/install/instrumentation, backup/restore, D6 authority, Keystore, Feeder, lease, IPC, exchange/data sync or writer admission. AI_EXECUTION_ENABLED=false; paper-only.
 - Status: **PASS** for pure Kotlin UUIDv4/pin codec/lifecycle classifier source + fixture tests + static audit + verified workflow artifact on exact SHA e841bea2c9b29a7fd813c43bb34d88ead46cbb86. Physical filesystem/SQLite/device behavior remains NOT IMPLEMENTED / NOT VERIFIED. Next: separately scope Android filesystem adapter and SQLite read-only adapter, and obtain separate explicit authorization before actual runtime access.
+
+
+## P5.4.90 — Pure identity provisioning recovery planner (2026-11-04)
+
+Scope: implement the approved P5.4.89 pending/active cross-resource provisioning protocol as a pure decision planner. This is not an Android filesystem adapter or SQLite adapter.
+
+- Added `IdentityProvisioningPlanner.kt`: pure state-to-plan mapping only. It does not generate UUIDs, touch files, open SQLite, execute transactions, write/promote pins, retry uncertain transactions or admit writers.
+- Preconditions are phase-specific: START/RESUME require explicit maintenance authorization, confirmed absent/approved-empty DB path, no active writer/lease, no accepted identity and no legacy data. FINALIZE requires explicit maintenance authorization, no active writer/lease, no accepted identity and no legacy data; it does not incorrectly require the now-created DB path to remain absent.
+- Fail-closed outcomes include blocked evidence/preconditions, explicit same-pending-ID resume, read-only reconciliation for uncertain evidence, and explicit promotion only after matching DB evidence is read-only verified.
+- Added 11 JUnit tests covering start, blocked preconditions, legacy data, explicit resume, no automatic retry, uncertain commit reconciliation, explicit finalization, no auto-promotion, mismatch, unreadable/unsupported pin, active verified identity and finalization precondition scoping.
+- Test-first test-only commit: `9ff24c5376f4fc4b85fcdf1b64de2cec101dca5d`; Android T0 Foundation run #41762010142 is IN PROGRESS at this update (test-only RED expected because planner types were not yet implemented): https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41762010142 .
+- Implementation + phase-specific precondition correction SHA: `9a6242924c6dfdcc9d66b67ae0c11e5be171bb77`. Exact-SHA Android T0 Foundation run #41762155551 is PENDING at this update: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41762155551 . No PASS is claimed until regular + .paper tests and static audit complete.
+- Intermediate implementation SHA `5351791bb4ae5888e5376fef12d5f8e985babf91` had its queued workflow run cancelled when the follow-up phase-specific precondition correction was pushed; it is superseded by `9a6242924c6dfdcc9d66b67ae0c11e5be171bb77`.
+- No filesystem/SQLite/device/APK/Feeder/lease/IPC/exchange/backup/restore/writer action. `AI_EXECUTION_ENABLED=false`; paper-only.
+
+Next: complete exact-SHA CI verification on `9a6242924c6dfdcc9d66b67ae0c11e5be171bb77`; fix any failures. After that, the next implementation boundary is Android filesystem/SQLite adapter work, which still requires separate explicit authorization.
