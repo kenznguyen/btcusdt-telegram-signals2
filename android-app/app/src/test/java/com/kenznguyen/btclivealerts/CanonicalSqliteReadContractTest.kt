@@ -60,9 +60,9 @@ class CanonicalSqliteReadContractTest {
 
         assertEquals(
             listOf("PRAGMA table_xinfo(\"a_table\")", "PRAGMA index_list(\"a_table\")",
-                "PRAGMA foreign_key_list(\"a_table\")", "PRAGMA table_xinfo(\"z_table\")",
-                "PRAGMA index_list(\"z_table\")", "PRAGMA foreign_key_list(\"z_table\")",
-                "PRAGMA index_xinfo(\"idx_z\")"),
+                "PRAGMA foreign_key_list(\"a_table\")", "PRAGMA table_xinfo(\"v_secret\")",
+                "PRAGMA table_xinfo(\"z_table\")", "PRAGMA index_list(\"z_table\")",
+                "PRAGMA foreign_key_list(\"z_table\")", "PRAGMA index_xinfo(\"idx_z\")"),
             queries.map { it.sql },
         )
         assertTrue(queries.all { it.id == SqliteReadQueryId.SCHEMA_INTROSPECTION })
@@ -125,13 +125,13 @@ class CanonicalSqliteReadContractTest {
     }
 
     @Test
-    fun internalSqliteObjectsAndUnsupportedCatalogTypesAreExcluded() {
+    fun internalSqliteObjectsAndTriggersAreExcludedWhileViewsAreIncluded() {
         val catalog = listOf(
             SqliteSchemaCatalogEntry("table", "sqlite_sequence", "sqlite_sequence", null),
             SqliteSchemaCatalogEntry("trigger", "trg", "t", null),
             SqliteSchemaCatalogEntry("view", "v", "v", null),
         )
 
-        assertTrue(CanonicalSqliteReadContract.schemaIntrospectionQueries(catalog).isEmpty())
+        assertEquals(listOf("PRAGMA table_xinfo(\"v\")"), CanonicalSqliteReadContract.schemaIntrospectionQueries(catalog).map { it.sql })
     }
 }
