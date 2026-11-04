@@ -97,11 +97,29 @@ Approved supplemental conditions:
 
 ### D4 — Schema-version authority
 
-Candidate direction:
-- PostgreSQL: use the existing migration ID plus checksum registry, with a stable ordered set of applied migrations.
-- SQLite market data and paper ledger: first introduce an explicit, owned migration/version authority or prove that `PRAGMA user_version` is maintained transactionally by every supported migration. Do not infer production version from fixture values.
+**PROPOSED — OWNER DECISION REQUIRED (P5.4.71, 2026-11-04).** Full design and source-grounded review: `docs/evidence/P5.4.71-D4-SQLITE-SCHEMA-VERSION-AUTHORITY-PROPOSAL-2026-11-04.md`. No D4 approval is inferred.
 
-**Not decided:** migration mechanism for SQLite, ownership, compatibility policy or upgrade/downgrade guarantees.
+Proposed contract for the owner-selected single shared Android SQLite file:
+
+1. **One database-wide migration authority:** one `schema_migrations` registry governs all schema changes across Market Data, Paper Ledger, Risk State and shared tables. No independent module registries may define competing global schema versions.
+2. **Immutable migration identity:** each migration has a unique immutable ID, strictly increasing sequence, owner domain and SHA-256 of exact migration bytes. Applied IDs/checksums/order are append-only; a correction is a new forward migration.
+3. **Atomic application:** schema DDL and its registry row commit in the same SQLite transaction through an explicit canonical-host maintenance operation. No constructor, read, ordinary write or startup health check migrates implicitly.
+4. **Authority over `PRAGMA user_version`:** the registry is authoritative. `user_version` may be a same-transaction compatibility mirror only; otherwise it is diagnostic and cannot establish schema version. A mismatch is never silently repaired.
+5. **Legacy adoption:** an existing database without accepted registry evidence is `LEGACY / UNVERSIONED`. Adoption requires read-only schema/data inventory and a separately approved baseline; no inferred version, auto-stamping or repair.
+6. **Read-only verification:** inspect an existing database without constructors/ensure helpers or writes. Missing registry, unknown migration, checksum/sequence mismatch, schema drift or uncertain migration outcome fails closed and blocks dependent writers/snapshot acceptance.
+7. **D3 integration:** the same-read-transaction snapshot manifest records the migration authority identity and exact applied migration-chain evidence. Physical digest and migration-chain evidence are complementary, not interchangeable.
+
+**Source observations (reviewed, not runtime-tested):**
+- `market_data/store.py` blob `b28601aed70097afcb7a4eea2dd93ed163ae1cec`: explicit SQLite candle table creation, no SQLite migration registry in that file.
+- `paper_execution/ledger.py` blob `68209ce48a6e5e9a995f93167684133e41cc7f55`: constructor creates/ensures Paper Ledger tables/indexes and seeds legacy state; this is not a formal versioned migration authority.
+- `market_data/migrations.py` blob `5ff71e3ffa9e7c14d26d09f3881313bbbdc3bef0`: migration ID/checksum registry exists for PostgreSQL only; it does not govern Android SQLite.
+- `market_data/storage.py` blob `99b66a4d183b8664f28d6638d8d87416d32847c9`: SQLite adapter is the default for that module and PostgreSQL is opt-in; no shared SQLite schema registry is established by this facade.
+
+**Still open even if the proposal is approved:** exact registry DDL and migration naming/packaging; SQLite runtime/API version and transactional DDL proof; lock/busy/timeout behavior; legacy baseline adoption procedure; reader/app compatibility metadata; schema-drift canonicalization shared with D5; interruption and ambiguous-commit reconciliation.
+
+**Fixture-only acceptance plan:** 20 cases are specified in P5.4.71 and are NOT IMPLEMENTED / NOT RUN. No GitHub Actions run or artifact is claimed.
+
+**Decision boundary:** D4 remains PROPOSED / NOT APPROVED. This proposal does not authorize code/schema/migration implementation, canonical DB access, Android device access, Feeder activation, exchange connectivity, synchronization, backup/restore or writer activation. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
 
 ### D5 — Canonicalization and logical identity
 
@@ -168,7 +186,7 @@ Before implementation, obtain explicit approval for:
 - [ ] canonical store topology and stable store identities;
 - [x] D2 domain-specific high-water/cursor semantics (owner-approved 2026-11-04);
 - [x] D3 global barrier and shared-file consistency model (owner-approved 2026-11-04);
-- [ ] schema-version authorities and migration ownership;
+- [ ] D4 database-wide SQLite schema-version authority and migration ownership (P5.4.71 proposal; owner decision pending);
 - [ ] canonicalization version and digest rules;
 - [ ] external restore epoch, lease re-fencing and Kill Switch gate;
 - [ ] destination, encryption, retention, RPO/RTO and restore approver.
@@ -196,4 +214,4 @@ The owner explicitly approved all five D2 decisions in the project conversation 
 - **D2.4 APPROVED:** Lease generation is independent from data cursors; host-side fencing is checked on every canonical write.
 - **D2.5 APPROVED:** Manifest carries a domain-cursor evidence vector. It is not proof of atomic snapshot consistency; D3 must define the barrier/consistency contract.
 
-**Decision boundary:** D2 semantics are ACCEPTED. D3 is ACCEPTED; D4–D7 remain NOT DECIDED. Exact implementation fields, schemas, migrations, transaction boundaries, lease authority and operational policy remain open where stated above. This approval does not authorize code/runtime implementation, canonical DB access, Feeder activation, exchange connectivity, synchronization, backup/restore, writer activation or live execution. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+**Decision boundary:** D2 semantics are ACCEPTED. D3 is ACCEPTED; D4 is PROPOSED / NOT APPROVED; D5–D7 remain NOT DECIDED. Exact implementation fields, schemas, migrations, transaction boundaries, lease authority and operational policy remain open where stated above. This approval does not authorize code/runtime implementation, canonical DB access, Feeder activation, exchange connectivity, synchronization, backup/restore, writer activation or live execution. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
