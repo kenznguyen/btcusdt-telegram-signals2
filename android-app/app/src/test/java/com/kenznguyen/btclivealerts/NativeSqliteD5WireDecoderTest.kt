@@ -16,20 +16,40 @@ class NativeSqliteD5WireDecoderTest {
 
             out.writeInt(1)
             out.string("main"); out.string(tableListName); out.string(tableType)
-            out.writeInt(1); out.writeBoolean(false); out.writeBoolean(false)
+            out.writeInt(3); out.writeBoolean(false); out.writeBoolean(false)
 
-            out.writeInt(1)
+            out.writeInt(2) // catalog: table and explicit index
             out.string("main"); out.string("table"); out.string("positions")
-            out.string("positions"); out.nullable("CREATE TABLE positions(id INTEGER PRIMARY KEY)")
+            out.string("positions")
+            out.nullable("CREATE TABLE positions(id INTEGER PRIMARY KEY, created_at TEXT, account_id INTEGER, FOREIGN KEY(account_id) REFERENCES accounts(id))")
+            out.string("main"); out.string("index"); out.string("idx_positions_created")
+            out.string("positions"); out.nullable("CREATE INDEX idx_positions_created ON positions(created_at)")
 
-            out.writeInt(1)
+            out.writeInt(3) // table_xinfo
             out.string("main"); out.string("positions"); out.writeInt(0)
             out.string("id"); out.nullable("INTEGER"); out.writeInt(0)
             out.nullable(null); out.writeInt(1); out.writeInt(0)
+            out.string("main"); out.string("positions"); out.writeInt(1)
+            out.string("created_at"); out.nullable("TEXT"); out.writeInt(0)
+            out.nullable(null); out.writeInt(0); out.writeInt(0)
+            out.string("main"); out.string("positions"); out.writeInt(2)
+            out.string("account_id"); out.nullable("INTEGER"); out.writeInt(0)
+            out.nullable(null); out.writeInt(0); out.writeInt(0)
 
-            out.writeInt(0) // indexes
-            out.writeInt(0) // index columns
-            out.writeInt(0) // foreign keys
+            out.writeInt(1) // index_list
+            out.string("main"); out.string("positions"); out.writeInt(0)
+            out.string("idx_positions_created"); out.writeBoolean(true)
+            out.string("c"); out.writeBoolean(false)
+
+            out.writeInt(1) // index_xinfo
+            out.string("main"); out.string("positions"); out.string("idx_positions_created")
+            out.writeInt(0); out.writeInt(1); out.nullable("created_at")
+            out.writeBoolean(false); out.nullable("BINARY"); out.writeBoolean(true)
+
+            out.writeInt(1) // foreign_key_list
+            out.string("main"); out.string("positions"); out.writeInt(0); out.writeInt(0)
+            out.string("accounts"); out.nullable("account_id"); out.nullable("id")
+            out.string("NO ACTION"); out.string("CASCADE"); out.string("NONE")
         }
         return ByteArrayOutputStream().also { result ->
             DataOutputStream(result).use { out ->
@@ -45,7 +65,7 @@ class NativeSqliteD5WireDecoderTest {
         val envelope = requireNotNull(reply.envelope)
         assertEquals("3.54.1", envelope.runtime.sqliteVersion)
         assertEquals("positions", envelope.catalog.single().name)
-        assertEquals(null, envelope.tableColumns.single().defaultValue)
+        assertEquals(3, envelope.tableColumns.size)\n        assertEquals(null, envelope.tableColumns.first().defaultValue)
         assertTrue(envelope.indexes.isEmpty())
         assertTrue(envelope.indexColumns.isEmpty())
         assertTrue(envelope.foreignKeys.isEmpty())
