@@ -32,6 +32,7 @@ class CiPolicyTest(unittest.TestCase):
             "android-release-pair.yml",
             "android-t0-foundation.yml",
             "android-t0-foundation-github-actions.yml",
+            "t0-health-api-boundary.yml",
             "t0-9-art-jni-runtime.yml",
         }
 
@@ -39,6 +40,28 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("p5-3-11-5-g2-red-validation.yml", actual)
         self.assertLessEqual(actual, approved)
         self.assertTrue((ROOT / "ci/archive/github-actions/market-data-ci.yml").exists())
+
+    def test_t0_health_api_boundary_workflow_is_pr_scoped_and_exact_sha(self):
+        path = ROOT / ".github/workflows/t0-health-api-boundary.yml"
+        self.assertTrue(path.is_file())
+        workflow = yaml.safe_load(path.read_text())
+        self.assertEqual(set(workflow["on"]), {"pull_request"})
+        self.assertEqual(
+            workflow["on"]["pull_request"]["branches"],
+            ["feature/p5-4-1-post-merge-validation-20261103"],
+        )
+        self.assertIn("app.py", workflow["on"]["pull_request"]["paths"])
+        self.assertIn("market_data/**", workflow["on"]["pull_request"]["paths"])
+        self.assertEqual(workflow["permissions"]["contents"], "read")
+        job = workflow["jobs"]["health-api-contract"]
+        self.assertEqual(job["env"]["AI_EXECUTION_ENABLED"], "false")
+        checkout = next(step for step in job["steps"] if step.get("name") == "Checkout exact PR source SHA")
+        self.assertEqual(checkout["with"]["ref"], "${{ github.event.pull_request.head.sha }}")
+        self.assertFalse(checkout["with"]["persist-credentials"])
+        test_step = next(step for step in job["steps"] if step.get("name") == "Run T0 health API and app-surface contracts")
+        self.assertIn("market_data.test_app_surface", test_step["run"])
+        self.assertIn("market_data.test_feeder_health_api", test_step["run"])
+        self.assertIn("market_data.test_feeder_health_runtime_api", test_step["run"])
 
     def test_p5_4_1_orchestrator_is_allowlisted_and_fail_closed(self):
         path = ROOT / ".github/workflows/p5-4-1-post-merge-validation.yml"
@@ -242,19 +265,34 @@ class CiPolicyTest(unittest.TestCase):
                        "market_data.test_api", "market_data.test_gateway_runtime"):
             self.assertNotIn(module, commands)
 
-    def test_manual_stateful_tasks_never_start_on_push(self):
+    def test_legacy_telegram_workflows_are_retired(self):
         for name in ("signal-scan", "telegram-command", "dashboard-backtest"):
             with self.subTest(name=name):
-                self.assertNotIn("triggering", self.workflows[name])
+                self.assertNotIn(name, self.workflows)
+        for path in ("bot.py", "backtest.py", "backtest_rsi_percent_b_h1_adx.py",
+                     "telegram_commands.py", "dashboard/index.html", "ci/run-legacy.py",
+                     "ci/test_legacy_runner.py", "integrations/codemagic_client.py",
+                     "integrations/test_codemagic_client.py"):
+            with self.subTest(path=path):
+                self.assertFalse((ROOT / path).exists())
+        app_source = (ROOT / "app.py").read_text()
+        self.assertIn('@app.get("/health/live")', app_source)
+        self.assertIn('@app.get("/health/ready")', app_source)
+        for legacy_marker in ("TELEGRAM_BOT_TOKEN", "telegram_webhook", "codemagic_client", "/api/dashboard"):
+            with self.subTest(legacy_marker=legacy_marker):
+                self.assertNotIn(legacy_marker, app_source)
 
     def test_data_checks_keep_dependency_import_tests_and_cli_gates(self):
         data = self.workflows["canonical-market-data"]
         self.assertIn("push", data["triggering"]["events"])
         commands = "\n".join(item["script"] for item in data["scripts"])
         for gate in ("requirements-market-data.txt", "requirements-web.txt", "requirements-ci.txt",
-                     "-s integrations", "ci.test_legacy_runner"):
+                     "-s integrations"):
             with self.subTest(gate=gate):
                 self.assertIn(gate, commands)
+        self.assertNotIn("ci.test_legacy_runner", commands)
+        self.assertNotIn("backtest.py", commands)
+        self.assertNotIn("telegram_commands.py", commands)
         for t0_only in ("import ccxt", "import app", "market_data.sync --help", "compileall -q market_data"):
             self.assertNotIn(t0_only, commands)
         t0_workflow = yaml.safe_load((ROOT / ".github/workflows/t0-validation.yml").read_text())

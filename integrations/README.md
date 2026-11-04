@@ -5,8 +5,8 @@ See [the five-layer architecture](../docs/FIVE_LAYER_ARCHITECTURE.md) for the pr
 The first canonical BTCUSDT candle store, CCXT importer and read-only API are documented in [market_data/README.md](../market_data/README.md).
 
 This optional server adapter exposes Hummingbot's public-market order book to
-BTCUSDT Chart Pro. It uses Python's standard library and does not alter the
-Telegram webhook. Exchange credentials are not required for public market data;
+BTCUSDT Chart Pro. It uses Python's standard library and is independent of the
+T0 health API. Exchange credentials are not required for public market data;
 Hummingbot API login credentials stay on the server.
 
 ## Contract

@@ -1,64 +1,59 @@
-# BTCUSDT Chart Pro và hệ thống phân tích futures
+# BTCUSDT Quant System — kiến trúc 5 tầng
 
-**GitHub lưu mã nguồn, nhánh và PR. Codemagic chạy toàn bộ kiểm thử, build APK và các tác vụ thủ công.** Cấu hình thực thi nằm ở [codemagic.yaml](codemagic.yaml); YAML GitHub Actions cũ đã chuyển sang [ci/archive/github-actions](ci/archive/github-actions/README.md) để lưu lịch sử.
+Repository này lưu source của hệ thống phân tích BTCUSDT và paper trading. Phạm vi hiện tại không bật giao dịch thật: `AI_EXECUTION_ENABLED=false`; không có luồng đặt lệnh Futures thật.
 
-## Thành phần
+## Kiến trúc
 
-- [Android BTCUSDT Chart Pro](android-app/README.md): biểu đồ M15/H1, chỉ báo, scanner và thông báo; vị thế được mô phỏng.
-- [Kho dữ liệu chuẩn](market_data/README.md): CCXT, SQLite và API chỉ đọc cho nến BTCUSDT perpetual.
-- [Hummingbot bridge](integrations/README.md): snapshot sổ lệnh; credentials Hummingbot nằm ở server.
-- [Kiến trúc 5 tầng](docs/FIVE_LAYER_ARCHITECTURE.md): phân chia dữ liệu, trinh sát, FreqAI, thực thi và giao diện. Đây là thiết kế đích; chưa triển khai toàn bộ.
-- [Luồng paper 5 tầng](docs/FIVE_LAYER_PAPER_RUNBOOK.md): CSV collector → dự báo FreqAI đã xác minh đầu vào → paper ledger → API/React. Mã và kiểm thử đã có; runtime/model/frontend build thực tế còn cần xác minh.
-- `app.py`: webhook Telegram và dashboard backend trên Render; gửi yêu cầu tới Codemagic.
-- `bot.py`, `telegram_commands.py`, `backtest.py`: logic tín hiệu, báo cáo và backtest hiện có, dữ liệu OKX. Không đặt lệnh sàn.
-- `dashboard/index.html`: xem báo cáo backtest, đồng bộ artifact Codemagic hoặc nạp JSON/CSV thủ công.
+| Tầng | Thành phần | Trách nhiệm |
+|---|---|---|
+| T0 — Data Foundation | `market_data/`, `app.py` | Nến BTCUSDT Futures, SQLite, đồng bộ CCXT, API đọc dữ liệu và health/readiness của Feeder |
+| T1 — Futures Intelligence | `futures_intelligence/` | Import và kiểm tra funding, OI, taker flow, liquidation quan sát được; giữ provenance và coverage |
+| T2 — Strategy / AI | `pipeline/`, `freqai_bridge/` | Strategy Core, AI signal research, xác minh dữ liệu/model và tạo decision/intent |
+| T3 — Paper execution | `paper_execution/`, `integrations/` | Shared risk controls, paper ledger, mô phỏng trạng thái lệnh; Hummingbot bridge chỉ đọc order book |
+| T4 — Control plane | `control_dashboard/`, `android-app/` | React dashboard và Android client dùng API chung |
 
-## Chạy trên Codemagic
+Năm tầng là các ranh giới trách nhiệm logic; không đồng nghĩa tất cả runtime đã được triển khai hoặc chứng nhận production. Xem [kiến trúc 5 tầng](docs/FIVE_LAYER_ARCHITECTURE.md) và [paper runbook](docs/FIVE_LAYER_PAPER_RUNBOOK.md) để biết trạng thái, giới hạn và các bước cần xác minh.
 
-Xem [hướng dẫn cấu hình Codemagic](docs/CODEMAGIC_SETUP.md) để chọn nhánh, cấu hình webhook/nhóm biến bảo mật và tải artifact.
+## T0 Data Foundation
 
-| Workflow ID | Công việc | Kích hoạt |
-| --- | --- | --- |
-| `canonical-market-data` | Cài CCXT/Flask, chạy kiểm thử Python và kiểm tra CLI | Push đúng nhánh/đường dẫn hoặc thủ công |
-| `android-chart-pro-debug` | Unit test Android và APK debug | Push đúng nhánh/đường dẫn hoặc thủ công |
-| `android-chart-pro-release` | Unit test, APK release và kiểm tra chứng chỉ ký | Chỉ thủ công |
-| `telegram-command` | Xử lý lệnh Telegram và backtest | API Codemagic hoặc thủ công |
-| `dashboard-backtest` | Backtest theo tham số từ dashboard | API Codemagic hoặc thủ công |
-| `signal-scan` | Một lượt quét mô phỏng với state cung cấp rõ ràng | Chỉ thủ công; không có lịch tự động |
+- Canonical market data hiện dùng Binance USDⓈ-M perpetual BTCUSDT và SQLite.
+- CCXT sync/API dùng M15 và H1; dữ liệu thiếu được biểu diễn bằng coverage/gaps, không tự forward-fill.
+- T0 Feeder health API trong `app.py` chỉ cung cấp `/health`, `/health/live`, `/health/ready`, `/health/data`.
+- API nến đọc riêng nằm trong `market_data/api.py`; API paper/control chung nằm trong `pipeline/api.py`.
+- Kraken Spot, OKX và Bybit shadow sources phải giữ cách ly theo adapter/acceptance riêng; không trộn vào canonical Binance Futures.
 
-Không cần GitHub Actions quota hoặc GitHub token có quyền Actions. GitHub webhook dùng để Codemagic nhận thay đổi mã nguồn; việc thêm YAML không tự cấu hình tài khoản, secrets hoặc chứng minh build đã chạy.
+Chi tiết: [market_data/README.md](market_data/README.md).
 
-## Webhook Telegram / Render
+## Paper-only boundary
 
-Cài `requirements-web.txt`, chạy:
+- Tín hiệu Core và AI không trực tiếp đặt lệnh.
+- Mọi intent phải qua Shared Risk Engine / Kill Switch và paper execution.
+- Hummingbot bridge chỉ lấy snapshot order book; không gọi endpoint đặt/hủy lệnh.
+- PnL, fill, vị thế và backtest là dữ liệu mô phỏng, không phải xác nhận giao dịch trên sàn.
+- Không thêm exchange trading credentials vào CI hoặc Android app.
 
-```bash
-gunicorn --workers 1 --threads 4 --timeout 30 app:app
-```
+## CI và kiểm thử
 
-Health check: `/health`. Đăng ký đúng một webhook Telegram tại `/webhook` hoặc `/telegram-webhook`; giữ header xác thực `X-Telegram-Bot-Api-Secret-Token`.
+- GitHub lưu source, branch và pull requests.
+- GitHub Actions chạy các gate T0/P5 exact-SHA và Android foundation đã được allowlist.
+- `codemagic.yaml` được giữ lại như cấu hình lịch sử trong quá trình chuyển đổi; không sử dụng Codemagic để chạy, chạy lại hoặc nghiệm thu CI/acceptance. GitHub Actions là nền tảng CI/workflow đang sử dụng.
+- Mỗi acceptance phải được đối chiếu với đúng source SHA, workflow/job conclusion và artifact. Không suy diễn PASS từ cấu hình workflow.
 
-Các biến cấu hình: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_WEBHOOK_SECRET`, `CODEMAGIC_API_TOKEN`, `CODEMAGIC_APP_ID`, `CODEMAGIC_BRANCH`. Token Codemagic chỉ nằm ở server/nhóm biến bảo mật; không đưa vào trình duyệt hoặc APK.
-
-Các lệnh: `/help`, `/status`, `/position`, `/signal`, `/backtest`, `/btstatus`, `/btresult`. Lệnh được dispatch sang `telegram-command` trên nhánh có cấu hình mới. Cần deploy phiên bản bridge này cùng biến môi trường mới khi chuyển runner.
-
-## Dữ liệu và trạng thái
-
-- Python bot/backtest dùng OKX; APK và kho chuẩn mới dùng Binance Futures. Chưa chứng nhận ngang bằng dữ liệu/chiến lược.
-- CI là runner tạm thời, không phải kho trạng thái vị thế. Không dùng cache để tuyên bố state mô phỏng là hiện hành.
-- Scanner thủ công cần `LEGACY_STATE_JSON` từ state đã xác minh; tải `state.json` và `state-provenance.json` sau lượt chạy. Chưa có điều phối state dùng chung; không chạy scanner chồng lấn hoặc coi đây là dịch vụ giám sát bền vững.
-- `/status` và `/position` yêu cầu state được cung cấp; thiếu/hỏng state báo không khả dụng, không tự tạo vị thế FLAT.
-- Lịch sử/artifact Codemagic qua adapter có kiểm tra schema, giới hạn kích thước và lỗi rõ ràng. Hợp đồng lịch sử REST được giữ từ tài liệu chính thức cũ, cần kiểm chứng với tài khoản thực tế; giao diện vẫn hỗ trợ tải artifact và nạp thủ công.
-- PnL, vị thế và giá khớp trong backtest là mô phỏng. Phạm vi hiện tại không bật live execution.
-
-## Kiểm thử local
+Các lệnh kiểm thử chính:
 
 ```bash
-python3 -m unittest market_data.test_store market_data.test_sync market_data.test_api -v
+python3 -m unittest market_data.test_store market_data.test_sync market_data.test_api market_data.test_gateway_runtime -v
+python3 -m unittest market_data.test_feeder_health_api market_data.test_feeder_health_runtime_api -v
 python3 -m unittest discover -s integrations -p 'test_*.py' -v
 python3 -m unittest discover -s ci -p 'test_*.py' -v
+python3 -m unittest futures_intelligence.test_import_collector pipeline.test_decision pipeline.test_api paper_execution.test_ledger paper_execution.test_risk_control freqai_bridge.test_exporter -v
 ```
 
-Kiểm thử cấu hình CI cần `requirements-ci.txt`. Build Android cần JDK 17, Gradle 8.9 và Android SDK 35; Codemagic chuẩn bị các công cụ này theo cấu hình đã lưu.
+React dashboard tests/build được mô tả trong [control_dashboard/README.md](control_dashboard/README.md). Android acceptance dùng workflow được allowlist trong `.github/workflows/`.
 
+## Quy tắc thay đổi
 
+1. Không thay đổi tham số chiến lược để làm đẹp kết quả backtest.
+2. Không đánh dấu parity/OOS/production-ready nếu thiếu evidence tương ứng.
+3. Test sau mỗi thay đổi; acceptance phải ghi đúng source SHA.
+4. Không merge PR khi chưa có phê duyệt rõ ràng.
