@@ -29,8 +29,8 @@ android {
         externalNativeBuild {
             cmake {
                 arguments += listOf(
-                    "-DSQLITE_AMALGAMATION_DIR=${layout.buildDirectory.dir("generated/sqlite/vendor").get().asFile.absolutePath}",
-                    "-DSQLITE_PIN_FILE=${layout.buildDirectory.file("generated/sqlite/sqlite3-pins.cmake").get().asFile.absolutePath}"
+                    "-DSQLITE_AMALGAMATION_DIR=${project.layout.buildDirectory.dir("generated/sqlite/vendor").get().asFile.absolutePath}",
+                    "-DSQLITE_PIN_FILE=${project.layout.buildDirectory.file("generated/sqlite/sqlite3-pins.cmake").get().asFile.absolutePath}"
                 )
             }
         }
