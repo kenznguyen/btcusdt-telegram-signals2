@@ -2275,7 +2275,7 @@ Next: define and test the fixed read-only SQLite query contract against the appr
 - Capability implementation SHA tested: `c0d6d57ac3794663b10a8e9ab3015630f4f2faad`.
 - Test-only RED commit `072af4fc09865fc31e90d9fe08e069281cabc2e0`; run #41767853060 failed as expected at compile time because implementation types were not yet present: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41767853060 .
 - Exact-SHA implementation workflow #41767868429: **SUCCESS** on `c0d6d57ac3794663b10a8e9ab3015630f4f2faad`: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41767868429 .
-- Regular host JVM suite: **159/159 PASS**; parallel `.paper` JVM suite: **159/159 PASS**; `CloneForkCapabilityTest`: **5/5 PASS` in each variant; Android T0 static audit: `ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS`.
+- Regular host JVM suite: **159/159 PASS**; parallel `.paper` JVM suite: **159/159 PASS**; `CloneForkCapabilityTest`: **5/5 PASS** in each variant; Android T0 static audit: `ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS`.
 - Artifact ID `13293821069`, size 116,176 bytes, GitHub SHA-256 digest `2ae0b7c331845c53a5d401541a85f5795cbdfda1a091925c83850c1ad2dd7033`; ZIP downloaded and 108 report/XML entries inspected. Artifact: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41767868429/artifacts/13293821069 .
 - Evidence report updated in commit `08b49231812b7d06e3e213a2b6c61030cdd27fd3`: `docs/evidence/P5.4.94-ANDROID-T0-CLONE-FORK-IMMUTABILITY-REVIEW-2026-11-04.md`.
 - No APK build/sign/publish, DB/SQLite/SQL/filesystem/device/runtime/Feeder/backup/restore/writer/exchange/trading action occurred. `AI_EXECUTION_ENABLED=false`; paper-only.
