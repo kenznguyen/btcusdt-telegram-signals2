@@ -179,10 +179,10 @@ object CanonicalSqliteReadContract {
 
     private fun isVirtualTableDeclaration(sql: String): Boolean {
         val withoutLeadingComments = sql.replace(
-            Regex("""(?s)^\\s*(?:(?:--[^\\r\\n]*(?:\\r?\\n|$))|(?:/\\*.*?\\*/\\s*))*"""),
+            Regex("""(?s)^\s*(?:(?:--[^\r\n]*(?:\r?\n|$))|(?:/\*.*?\*/\s*))*"""),
             "",
         )
-        return Regex("""(?is)^CREATE\\s+VIRTUAL\\s+TABLE\\b""")
+        return Regex("""(?is)^CREATE\s+VIRTUAL\s+TABLE\b""")
             .containsMatchIn(withoutLeadingComments.trimStart())
     }
 
