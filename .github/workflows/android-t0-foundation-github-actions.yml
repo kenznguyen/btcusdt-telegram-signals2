@@ -7,7 +7,7 @@ name: Android T0 Foundation — GitHub Actions
     paths:
       - "android-app/**"
       - "ci/**"
-      - ".github/workflows/android-t0-foundation-github-actions.yml"
+      - ".github/workflows/**"
   workflow_dispatch:
     inputs:
       source_sha:
