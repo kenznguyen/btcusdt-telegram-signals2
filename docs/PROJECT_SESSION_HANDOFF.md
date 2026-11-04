@@ -2484,3 +2484,20 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Overall P5.4.100: **NOT VERIFIED** until the latest exact-SHA workflow completes, both variants and static audit pass, and artifact payload/checksum are verified.
 - No SQLite/SQL/PRAGMA, DB, Android device/runtime/instrumentation, adapter, Feeder, lease, writer, migration, backup/restore, APK, exchange or trading operation. `AI_EXECUTION_ENABLED=false`.
 - Next: reconcile run #41779591097 (and predecessor #41779467032 if useful), inspect regular/.paper test reports and static audit, verify artifact ZIP and SHA-256, then update this handoff and evidence report with final exact SHA/run/artifact details.
+
+
+## P5.4.100 — Golden vectors final CI closeout (2026-11-04)
+
+- Approval: `APPROVE P5.4.100 GOLDEN VECTORS SOURCE-ONLY`.
+- Evidence report: `docs/evidence/P5.4.100-CANONICAL-D5-GOLDEN-VECTORS-2026-11-04.md`.
+- Frozen vectors: empty envelope 170 bytes, SHA-256 `98f5c30f439b552ab7b04f7ae0f783abae13c2a6141cc5b1348da016a867b600`; populated envelope 551 bytes, SHA-256 `b57bd29e67c869039d2ff5aa2f365d4f588c9a154054e5b6dc56837c491b0354`.
+- Latest source/test SHA: `a8986dde1a1e63c376c0ddb13362f923ce680df1`.
+- Run #41779591097: **SUCCESS**, job #126408615963. Regular host and `.paper` each 26 suites / 182 tests / 0 failures / 0 errors / 0 skipped. `CanonicalD5SerializerTest` 11/11 in each variant. Android T0 foundation static audit PASS.
+- Run URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41779591097
+- Artifact #13298318658, 130,486 bytes: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41779591097/artifacts/13298318658
+- Artifact ZIP passed `unzip -t`; independently computed SHA-256 `e0f6535c707ce14b62d82cc65c514ec4b94debe53d1800faf24f3d0aa7740ae3` matches GitHub artifact digest.
+- Predecessor run #41779467032 on empty-vector SHA `861aa8c594f1017178a9b9fc2f829e9fefc62069` also SUCCESS; job #126407454734; artifact #13299030383.
+- Verdict: **P5.4.100 PASS — SOURCE-ONLY**. Tests and evidence only; no production behavior/runtime wiring changed.
+- Active branch: `feature/p5-4-1-post-merge-validation-20261103`. Evidence and handoff updates are documentation-only commits; no PR or branch split.
+- Safety boundary unchanged: no SQLite/SQL/PRAGMA, DB, Android device/runtime/instrumentation, adapter, Feeder, lease, writer, migration, backup/restore, APK, exchange or trading operation. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next: propose a separately bounded source-only step and obtain explicit approval. Runtime/device/DB work remains separately unauthorized.
