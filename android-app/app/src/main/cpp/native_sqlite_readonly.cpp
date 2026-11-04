@@ -491,6 +491,40 @@ D5Status read_d5_snapshot(sqlite3* db, std::vector<uint8_t>& payload) {
     return D5_VERIFIED;
 }
 
+jlong register_snapshot_handle(sqlite3* db) {
+    if (db == nullptr) return 0;
+    std::lock_guard<std::mutex> guard(registry_mutex);
+    if (next_handle <= 0 || next_handle == std::numeric_limits<jlong>::max()) return 0;
+    const jlong handle = next_handle;
+    const auto inserted = connections.emplace(handle, db);
+    if (!inserted.second) return 0;
+    ++next_handle;
+    return handle;
+}
+
+D5Status read_registered_d5_snapshot(jlong handle, std::vector<uint8_t>& payload) {
+    std::lock_guard<std::mutex> guard(registry_mutex);
+    const auto found = connections.find(handle);
+    if (found == connections.end()) {
+        payload.clear();
+        return D5_INVALID_HANDLE;
+    }
+    return read_d5_snapshot(found->second, payload);
+}
+
+Status close_registered_snapshot(jlong handle) {
+    std::lock_guard<std::mutex> guard(registry_mutex);
+    const auto found = connections.find(handle);
+    if (found == connections.end()) return ALREADY_CLOSED;
+    sqlite3* db = found->second;
+    const int rollback_rc = sqlite3_exec(db, "ROLLBACK", nullptr, nullptr, nullptr);
+    if (rollback_rc != SQLITE_OK && rollback_rc != SQLITE_ERROR) return CLOSE_FAILED;
+    const int close_rc = sqlite3_close_v2(db);
+    if (close_rc != SQLITE_OK) return CLOSE_FAILED;
+    connections.erase(found);
+    return VERIFIED;
+}
+
 Status pin_deferred_snapshot(sqlite3* db) {
     if (sqlite3_libversion_number() < 3037000) return ENGINE_VERSION_UNSUPPORTED;
     const char* source_id = sqlite3_sourceid();
@@ -576,14 +610,12 @@ Java_com_kenznguyen_btclivealerts_NativeSqliteReadOnlyJni_nativeOpenPinnedSnapsh
         return open_result(env, status, 0);
     }
 
-    std::lock_guard<std::mutex> guard(registry_mutex);
-    if (next_handle <= 0 || next_handle == std::numeric_limits<jlong>::max()) {
+    const jlong handle = register_snapshot_handle(db);
+    if (handle <= 0) {
         sqlite3_exec(db, "ROLLBACK", nullptr, nullptr, nullptr);
         sqlite3_close_v2(db);
         return open_result(env, INCOMPLETE_EVIDENCE, 0);
     }
-    const jlong handle = next_handle++;
-    connections.emplace(handle, db);
     return open_result(env, VERIFIED, handle);
 }
 
@@ -591,12 +623,7 @@ extern "C" JNIEXPORT jbyteArray JNICALL
 Java_com_kenznguyen_btclivealerts_NativeSqliteReadOnlyJni_nativeReadD5Snapshot(
     JNIEnv* env, jobject /* thiz */, jlong handle) {
     std::vector<uint8_t> body;
-    D5Status status = D5_INVALID_HANDLE;
-    {
-        std::lock_guard<std::mutex> guard(registry_mutex);
-        const auto found = connections.find(handle);
-        if (found != connections.end()) status = read_d5_snapshot(found->second, body);
-    }
+    const D5Status status = read_registered_d5_snapshot(handle, body);
 
     const size_t total = 4 + (status == D5_VERIFIED ? body.size() : 0);
     if (total > kMaxPayloadBytes || total > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
@@ -624,15 +651,5 @@ Java_com_kenznguyen_btclivealerts_NativeSqliteReadOnlyJni_nativeReadD5Snapshot(
 extern "C" JNIEXPORT jint JNICALL
 Java_com_kenznguyen_btclivealerts_NativeSqliteReadOnlyJni_nativeCloseSnapshot(
     JNIEnv* /* env */, jobject /* thiz */, jlong handle) {
-    std::lock_guard<std::mutex> guard(registry_mutex);
-    const auto found = connections.find(handle);
-    if (found == connections.end()) return ALREADY_CLOSED;
-
-    sqlite3* db = found->second;
-    const int rollback_rc = sqlite3_exec(db, "ROLLBACK", nullptr, nullptr, nullptr);
-    if (rollback_rc != SQLITE_OK && rollback_rc != SQLITE_ERROR) return CLOSE_FAILED;
-    const int close_rc = sqlite3_close_v2(db);
-    if (close_rc != SQLITE_OK) return CLOSE_FAILED;
-    connections.erase(found);
-    return VERIFIED;
+    return close_registered_snapshot(handle);
 }
