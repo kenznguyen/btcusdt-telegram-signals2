@@ -188,7 +188,7 @@ Before implementation, obtain explicit approval for:
 - [x] D3 global barrier and shared-file consistency model (owner-approved 2026-11-04);
 - [x] D4 database-wide SQLite schema-version authority and migration ownership (D4.1–D4.7 owner-approved 2026-11-04; implementation details remain open);
 - [x] canonicalization and digest-layer contract (D5.1–D5.4 owner-approved 2026-11-04; exact serialization/runtime specification and fixture proof remain open);
-- [ ] external restore epoch, lease re-fencing and Kill Switch gate (P5.4.75 proposal; owner decision pending);
+- [x] external restore epoch, lease re-fencing and Kill Switch recovery gate (D6.1–D6.7 owner-approved 2026-11-04; concrete authority and runtime protocols remain open);
 - [ ] destination, encryption, retention, RPO/RTO and restore approver.
 
 Until all are resolved, production implementation status is **BLOCKED**.
@@ -239,3 +239,10 @@ The owner explicitly approved D5.1–D5.4 as specified in `docs/evidence/P5.4.73
 ## D6 proposal reference (2026-11-04)
 
 P5.4.75 proposes an external monotonic Restore Epoch Authority, external Recovery Latch, positive proof that prior owners stopped/fenced, isolated staging and verified publication, lease-generation re-fencing above restored/external floors, invalidation of stale intents/capabilities/market assumptions, and Kill Switch retention through readiness checks and separate authenticated acknowledgement. D6 is **PROPOSED / NOT APPROVED**; no restore or writer operation is authorized.
+
+
+## Owner decision — D6 restore epoch and recovery fencing (2026-11-04)
+
+The owner explicitly approved D6.1–D6.7 as specified in `docs/evidence/P5.4.75-D6-RESTORE-EPOCH-LEASE-REFENCING-KILL-SWITCH-PROPOSAL-2026-11-04.md`, without amendments. The accepted architecture requires external monotonic restore-epoch and recovery-latch authorities; proof that prior owners are stopped/fenced; idempotent irreversible epoch allocation; isolated staging and verified publication; lease re-fencing above restored and externally issued generations; invalidation of stale intents/capabilities/market assumptions; Kill Switch retention through readiness and separate authenticated acknowledgement; separate latch release, Kill Switch clearing and writer admission decisions; and fail-closed recovery.
+
+**Decision boundary:** D6 architecture is ACCEPTED. Concrete authority implementation, stop-proof protocol, epoch API, publication mechanism, lease encoding, invalidation inventory, acknowledgement role/credentials, audit store and retry state machine remain open. This approval does not authorize restore, epoch allocation, lease mutation, Kill Switch clearing, canonical DB access, device access, Feeder/exchange/sync operations or writer activation. D6 fixture tests remain NOT IMPLEMENTED / NOT RUN. D7 remains unresolved. Keep `AI_EXECUTION_ENABLED=false`; paper-only.
