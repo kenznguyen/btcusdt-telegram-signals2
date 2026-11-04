@@ -1538,3 +1538,20 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Artifact payload bytes were not independently downloaded/re-hashed; payload checksum remains **NOT VERIFIED**.
 - No PC, canonical DB, production Feeder, exchange, data sync or order execution. Keep `AI_EXECUTION_ENABLED=false`.
 - Next: continue fixture-only RecoveryCoordinator retry/recheck malformed-window and callback failure boundary coverage; no runtime activation.
+
+
+## P5.4.63 + T0-A Closeout Review (2026-11-04)
+
+- P5.4.63 report: `docs/evidence/P5.4.63-RECOVERY-COORDINATOR-PARTIAL-WINDOW-RETRY-2026-11-04.md`.
+- T0-A closeout review: `docs/evidence/T0-A-FIXTURE-CI-CLOSEOUT-REVIEW-2026-11-04.md`.
+- T0 feeder test contract refreshed: `docs/T0_FEEDER_TEST_CONTRACT.md`; stale Codemagic staged-verification instructions removed and replaced with current GitHub Actions evidence and T0 gate states.
+- Tested source SHA: `81252f3e954216d638d3655623d765c38b6f960b`.
+- Source commit: https://github.com/kenznguyen/btcusdt-telegram-signals2/commit/81252f3e954216d638d3655623d765c38b6f960b.
+- T0 standalone run 41747057849: **SUCCESS**, job 126302650681, all 19 substantive steps. Invocation markers 112 / 119 / 113; static operational audit PASS. Artifact 13283633166, metadata digest `sha256:eb1989f7fbb8c07cf575de81739920782612beafc728e009a0742226aac90924`.
+- Integrated P5.4.1 run 41747057869: **SUCCESS**, 5/5 jobs: preflight 126302840094; G1 126302883297; G2+T0 126302883357; T0 full regression 126302883452; combined publication 126303133516.
+- Integrated artifacts: G1 13284077569 (`sha256:69cd1c70bc31abf7852e62c92b892d4d9d79258e67fcf331914670effaa93cad`); G2 13284546036 (`sha256:aacb79ce1928b62d2955311478e1998dbce9039ca5aa09eb804476dc3045cb47`); T0 13283524018 (`sha256:2e68c20b98f101be50c5552f52618eb10d884e42c327dc07b34688bfae2c29ae`); combined 13283049864 (`sha256:c8009e0c534c06ac7d2898aaffbfd19d72032c0878fca72a17714fc6f5f358eb`). These are GitHub metadata digests; payload bytes were not independently re-hashed.
+- Added P5.4.63 fixture contract for partial progress inside one failed recovery window; retry reads authoritative coverage again, requests only the remaining sub-window, then performs a final coverage recheck. No production runtime changes.
+- T0-A fixture CI/static-contract closeout: **PASS**. Overall P1/T0 remains **OPEN**.
+- T0-B PC/SQLite canonical path and integrity: **BLOCKED / DEFERRED** (PC use not reopened; path undecided). T0-C production Feeder runtime: **NOT RUN**. T0-D production backup/restore: **NOT RUN / NOT VERIFIED**. T0-E overall T0 acceptance: **BLOCKED**.
+- No PC, canonical DB, production Feeder, exchange, market-data sync or order execution. Keep `AI_EXECUTION_ENABLED=false`.
+- Next permitted step: when PC use is explicitly reopened, resolve canonical path and perform read-only storage identity/integrity preflight before any separately authorized runtime action.
