@@ -7,7 +7,7 @@ import org.junit.Test
 
 class CanonicalDatabaseContractsTest {
     private val role = CanonicalDatabaseRoleId.canonicalT0()
-    private val instance = CanonicalDatabaseInstanceId.fromPersisted("opaque-instance-001")
+    private val instance = CanonicalDatabaseInstanceId.fromPersisted("550e8400-e29b-41d4-a716-446655440000")
 
     @Test
     fun generatedVariantFlagMatchesParallelApplicationId() {
@@ -37,8 +37,8 @@ class CanonicalDatabaseContractsTest {
 
     @Test
     fun explicitCloneUsesNewInstanceAndRecordsParent() {
-        val original = CanonicalDatabaseInstanceId.fromPersisted("db-original")
-        val clone = CanonicalDatabaseInstanceId.fromPersisted("db-clone")
+        val original = CanonicalDatabaseInstanceId.fromPersisted("550e8400-e29b-41d4-a716-446655440001")
+        val clone = CanonicalDatabaseInstanceId.fromPersisted("550e8400-e29b-41d4-a716-446655440002")
         val forked = CanonicalDatabaseLineage.fork(clone, original)
         assertEquals(clone, forked.instanceId)
         assertEquals(original, forked.parentInstanceId)
@@ -87,7 +87,7 @@ class CanonicalDatabaseContractsTest {
             catalog, applied, "schema-v1", "schema-v1",
         )
         val instanceMismatch = ReadOnlySchemaVerifier.verify(
-            role, role, instance, CanonicalDatabaseInstanceId.fromPersisted("observed"),
+            role, role, instance, CanonicalDatabaseInstanceId.fromPersisted("550e8400-e29b-41d4-a716-446655440003"),
             catalog, applied, "schema-v1", "schema-v1",
         )
         assertEquals(SchemaVerificationStatus.ROLE_MISMATCH, roleMismatch.status)
