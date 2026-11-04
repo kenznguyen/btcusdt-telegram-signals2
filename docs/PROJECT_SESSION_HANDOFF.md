@@ -2080,3 +2080,17 @@ Proceed with the separately scoped Windows PC canonical-path and SQLite integrit
 - Identity caveat: t0-canonical-sqlite-v1 is a shared logical role/version token, not a unique physical DB or installation identity. It must not be used as snapshot/restore/clone identity until Slice 3 defines identity semantics.
 - Variant caveat: Android CI ran :app:testDebugUnitTest; `.paper` registry exclusion fixture and Gradle BuildConfig static check passed, but the actual parallel Android build variant was not compiled/executed. `.paper` Android variant conformance remains NOT VERIFIED.
 - Next step before Slice 3 implementation: define logical-vs-instance identity semantics and add CI coverage for the parallel variant build/test task. No DB access, Android device, APK build/install or runtime operation is authorized by this review.
+
+
+## P5.4.87 — Android T0 database identity and read-only schema verifier plan (2026-11-04)
+
+- Plan: docs/evidence/P5.4.87-ANDROID-T0-DATABASE-IDENTITY-AND-READONLY-SCHEMA-VERIFIER-SLICE-PLAN-2026-11-04.md.
+- Status: DESIGN / ACCEPTANCE CONTRACT ONLY — NOT APPROVED FOR IMPLEMENTATION.
+- Prepared against source HEAD bae182cef3b906c3083e440245c20ab07aa53dee; P5.4.86 exact validated SHA remains a9c43ef2e0273716220d479ea6fa7df64a0809fa.
+- Separates CanonicalDatabaseRoleId (stable logical role) from CanonicalDatabaseInstanceId (physical DB lineage); BackupId, RestoreEpoch and LeaseGeneration remain distinct. No instance ID format, allocation, storage or clone/adoption lifecycle selected or provisioned.
+- Translates already-approved D4.1–D4.7 into a proposed Android read-only verifier boundary; no writable connection, migration runner, schema initialization, PRAGMA mutation, baseline stamping or repair permitted.
+- D3 same-snapshot manifest and D5 logical schema digest remain separate evidence domains; verifier PASS does not release D6 gates or admit writers.
+- Specifies 26 pure domain/fixture/static CI acceptance cases, including actual regular and .paper parallel unit-test variant execution. All 26 are NOT IMPLEMENTED / NOT RUN.
+- Explicitly no Kotlin changes, DB open/create/inspection, migration, dependency addition, Android device, APK, Feeder, IPC, exchange, backup/restore, key provisioning or writer activation.
+- Status: Slice 1+2 PASS on prior evidence; detailed physical DB identity lifecycle PROPOSED / OWNER DECISION REQUIRED; D4 architecture APPROVED but implementation NOT APPROVED; .paper actual variant CI NOT VERIFIED; T0-B BLOCKED / NOT RUN / NOT AUTHORIZED; T0-C NOT RUN / NOT AUTHORIZED; T0-D NOT RUN / NOT VERIFIED; T0-E BLOCKED.
+- Next step: owner review/decision on identity model and verifier contract. Any implementation requires separate explicit approval. Keep AI_EXECUTION_ENABLED=false; paper-only.
