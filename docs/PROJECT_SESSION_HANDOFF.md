@@ -2266,3 +2266,18 @@ Next: define and test the fixed read-only SQLite query contract against the appr
 - Safe executable fork procedure: BLOCKED pending owner decision. Option A is a fresh child DB + new UUIDv4/parent lineage + fully specified allowlisted logical data import from a D3-consistent parent snapshot. Option B is to keep fork unsupported and fail closed until a later approved protocol. Recommendation recorded: Option B for current release until Option A has complete data inventory and fixture contract.
 - No code/runtime/DB/device/filesystem/DDL/backup/restore/Feeder/writer/APK/exchange work was performed. `AI_EXECUTION_ENABLED=false`; paper-only.
 - Owner decision required before any fork implementation. If Option A, next design the complete logical data-transfer contract and fixture failure matrix; if Option B, separately approve a source-only fail-closed unsupported-capability contract.
+
+## P5.4.94 — Option B source-only fail-closed validation CLOSED (2026-11-04)
+
+**Status: PASS for the approved source-only fail-closed capability, fixture tests, exact-SHA CI and artifact evidence. Runtime remains NOT AUTHORIZED.**
+
+- Owner approval: `APPROVE P5.4.94 OPTION B`; current release rejects all clone/fork requests. Option A logical child provisioning/import is not approved.
+- Capability implementation SHA tested: `c0d6d57ac3794663b10a8e9ab3015630f4f2faad`.
+- Test-only RED commit `072af4fc09865fc31e90d9fe08e069281cabc2e0`; run #41767853060 failed as expected at compile time because implementation types were not yet present: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41767853060 .
+- Exact-SHA implementation workflow #41767868429: **SUCCESS** on `c0d6d57ac3794663b10a8e9ab3015630f4f2faad`: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41767868429 .
+- Regular host JVM suite: **159/159 PASS**; parallel `.paper` JVM suite: **159/159 PASS**; `CloneForkCapabilityTest`: **5/5 PASS` in each variant; Android T0 static audit: `ANDROID_T0_FOUNDATION_STATIC_AUDIT=PASS`.
+- Artifact ID `13293821069`, size 116,176 bytes, GitHub SHA-256 digest `2ae0b7c331845c53a5d401541a85f5795cbdfda1a091925c83850c1ad2dd7033`; ZIP downloaded and 108 report/XML entries inspected. Artifact: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41767868429/artifacts/13293821069 .
+- Evidence report updated in commit `08b49231812b7d06e3e213a2b6c61030cdd27fd3`: `docs/evidence/P5.4.94-ANDROID-T0-CLONE-FORK-IMMUTABILITY-REVIEW-2026-11-04.md`.
+- No APK build/sign/publish, DB/SQLite/SQL/filesystem/device/runtime/Feeder/backup/restore/writer/exchange/trading action occurred. `AI_EXECUTION_ENABLED=false`; paper-only.
+
+Next bounded step: continue design-only resolution of the remaining Android read-only SQLite adapter prerequisites (minSdk 26 read-only transaction API, complete D5 introspection coverage, immutable bootstrap migration bytes/ID/sequence/owner, and proof that read-only open of a missing path cannot create a DB). No adapter or runtime work until separately authorized.
