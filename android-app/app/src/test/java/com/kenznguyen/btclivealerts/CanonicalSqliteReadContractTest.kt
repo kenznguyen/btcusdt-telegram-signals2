@@ -140,7 +140,7 @@ class CanonicalSqliteReadContractTest {
         val catalog = listOf(
             SqliteSchemaCatalogEntry("table", "sqlite_sequence", "sqlite_sequence", null),
             SqliteSchemaCatalogEntry("trigger", "trg", "t", "CREATE TRIGGER trg AFTER INSERT ON t BEGIN SELECT 1; END"),
-            SqliteSchemaCatalogEntry("view", "v", "v", null),
+            SqliteSchemaCatalogEntry("view", "v", "v", "CREATE VIEW v AS SELECT 1"),
         )
 
         assertEquals(listOf("PRAGMA table_xinfo(\"v\")"), CanonicalSqliteReadContract.schemaIntrospectionQueries(catalog).map { it.sql })
