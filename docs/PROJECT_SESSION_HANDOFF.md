@@ -2946,3 +2946,17 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - Exact-SHA CI after fixture correction is pending. Keep T0.10.1 **BLOCKED / NOT VERIFIED** until full exact-SHA CI, test reports and artifact evidence are inspected.
 - T0.9 remains **PAUSED / DEFERRED / NOT VERIFIED**; ART workflow is manual-dispatch-only and has not been resumed. No device/runtime, canonical DB, pin filesystem, Feeder, lease, IPC, exchange, APK or trading action.
 - Next: inspect the Android T0 Foundation workflow triggered by the fixture correction; fix only evidenced source/fixture defects; update this handoff/report with exact run/job/artifact/hash results. No T0.11 until separately approved.
+
+
+## T0.9 — Single-device target recorded; direct USB instrumentation deferred (2026-11-04)
+
+- Owner identified the intended physical target from the supplied device information: Redmi K40 Gaming, model `M2012K10C`, Android 13 / API 33, OS version `1.0.4.0.TKJCNXM`, RAM 12 GB, kernel `4.14.186-g844fd19c6`.
+- Device identity and OS/API are grounded in the owner's screenshot. ABI is not established by that screenshot; `arm64-v8a` remains a hypothesis until queried on the device or otherwise verified.
+- Owner approved continuing T0.9, then explicitly deferred connecting the Redmi K40 Gaming to a PC over USB and enabling USB debugging for direct physical-device instrumentation.
+- Physical-device ART/JNI instrumentation is therefore **DEFERRED / NOT RUN / NOT VERIFIED**, pending the owner's decision to resume USB connection and debugging.
+- Do not ask the owner to enable USB debugging or connect the device while this deferral remains active. Do not perform any device connection or direct instrumentation.
+- The existing `.github/workflows/t0-9-art-jni-runtime.yml` remains manual-dispatch-only and currently contains the previous API 26/33/35 emulator matrix. Do not dispatch it as a substitute for the approved single-device acceptance target; emulator results cannot establish Redmi K40 Gaming runtime acceptance.
+- No source or workflow changes, no workflow dispatch, no APK install, and no runtime/device action were performed for this deferral update.
+- T0.10.1.2 remains **PASS** on exact source SHA `79cfde6f32047a3c9d497f34ad505e278a187d56`, run #41870973165. This host-side result does not establish Android ART/JNI runtime acceptance.
+- Current T0.9 status: **RESUMED FOR SCOPE PLANNING; PHYSICAL DEVICE EXECUTION DEFERRED / NOT VERIFIED**. Next action is to preserve the single-device test plan and wait for explicit owner direction on whether to pursue a separately scoped emulator-only interim test or later resume direct USB instrumentation.
+- Boundaries unchanged: `AI_EXECUTION_ENABLED=false`; SQLite `:memory:` fixtures only; no canonical/path-backed DB, Identity Pin filesystem persistence, DDL/migration/bootstrap execution, Feeder, lease, IPC, exchange, market-data sync, live orders, APK release/sign/install or trading action.
