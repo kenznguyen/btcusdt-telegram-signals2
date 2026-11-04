@@ -69,7 +69,10 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
-          target: google_apis
+          # Keep API 33 on the known-good Google APIs image as a control.
+          # API 26/35 use the lean AOSP image: prior logs show PackageManager
+          # install stalls (26) and system/Google-process startup ANRs (35).
+          target: ${{ matrix.api-level == 33 && 'google_apis' || 'default' }}
           arch: x86_64
           profile: pixel_2
           disable-animations: true
