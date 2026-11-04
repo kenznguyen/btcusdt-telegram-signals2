@@ -211,20 +211,20 @@ object CanonicalIdentityPinCodec {
     private const val FORMAT_VERSION = 1
 
     fun encode(pin: CanonicalDatabaseIdentityPin): String =
-        "format_version=$FORMAT_VERSION\\n" +
-            "role_id=${pin.roleId.value}\\n" +
-            "instance_id=${pin.instanceId.value}\\n" +
-            "state=${pin.state.name}\\n"
+        "format_version=$FORMAT_VERSION\n" +
+            "role_id=${pin.roleId.value}\n" +
+            "instance_id=${pin.instanceId.value}\n" +
+            "state=${pin.state.name}\n"
 
     fun parse(serialized: String?): IdentityPinParseResult {
         if (serialized == null) return IdentityPinParseResult.Missing
-        if (!serialized.endsWith("\\n") || serialized.contains('\\r') ||
-            serialized.any { it == '\\u0000' || it.isISOControl() && it != '\\n' }
+        if (!serialized.endsWith("\n") || serialized.contains('\r') ||
+            serialized.any { it == '\u0000' || it.isISOControl() && it != '\n' }
         ) {
             return IdentityPinParseResult.Malformed
         }
 
-        val lines = serialized.dropLast(1).split('\\n')
+        val lines = serialized.dropLast(1).split('\n')
         if (lines.size != 4 || !lines[0].startsWith("format_version=")) {
             return IdentityPinParseResult.Malformed
         }
