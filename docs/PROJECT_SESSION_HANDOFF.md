@@ -2696,3 +2696,9 @@ Next bounded step: owner review/authorization for a source-level dependency/API 
 - T0.9 verdict remains **NOT VERIFIED**. Do not infer ART/JNI success from emulator boot or Gradle command correction. Inspect all three final matrix jobs, instrumentation XML, and artifact metadata/payload before promoting status.
 - No canonical/path-backed DB, WAL/SHM, Feeder, lease, exchange, live order, APK release/sign/install or trading action. Keep `AI_EXECUTION_ENABLED=false`.
 - Next: inspect run #41825231563 and P5.4.1 run #41825231705; fix only failures within T0.9 scope on this same branch, then record exact final tested SHA, run/job/artifact IDs, test results and checksums.
+
+
+- Cross-gate result after the policy fixes: P5.4.1 run #41825231705 on candidate SHA `bae7eb0749008e7fb0081106363391653b0febdf` **SUCCESS**, 5/5 jobs (preflight #126558668152, T0 #126558719918, G2 #126558720176, G1 #126558720177, publish #126559023724). Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41825231705
+- P5.4.1 artifacts present/unexpired by GitHub metadata: G1 #13319755014 (metadata SHA-256 `641fb32f42012188c34c215ea704ab92f9fd5209f6899e080d235fa0c6101276`); T0 #13318732693 (`583e0627d3281b9b75b0e69fa6825ec2c4daff84961028cde2f22ff23de9c4a3`); combined #13318483268 (`67ec5dafc63338b487c0a008bb6b48869f78d891649f5ce24d0c7e5f0f45e1c0`); G2 #13318387669 (`a4818fcc3de1f78b3fc5933db9bdfc13621285417ecb69d478bb6a62d7555786`). These are metadata digests; payload ZIPs were not independently re-hashed.
+- P5.4.1 success validates the allowlist/policy correction and the existing T0/G1/G2 regression gate on candidate SHA; it does not prove T0.9 ART/JNI instrumentation.
+- Evidence report update commit: `96b83c0c250882d23fdbdc63454dccabffc0b381`.
