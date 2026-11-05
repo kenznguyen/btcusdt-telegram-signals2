@@ -365,7 +365,11 @@ def application(environ, start_response):
             payload = _body(environ)
             if not os.environ.get("MARKET_DATA_DB") or not Path(os.environ["MARKET_DATA_DB"]).is_file():
                 return response("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
-            if not control_permit(timestamp):
+            try:
+                writer = ledger()
+            except (ValueError, OSError, sqlite3.Error):
+                return response("503 Service Unavailable", {"error": "PAPER_STORE_UNAVAILABLE"})
+            if not control_permit(timestamp, writer):
                 return response("429 Too Many Requests", {"error": "CONTROL_RATE_LIMIT"})
             if path == "/v1/paper/pause" and set(payload) == {"paused"} and type(payload["paused"]) is bool:
                 result = ledger().set_paused(payload["paused"], timestamp)
