@@ -120,3 +120,6 @@ def main():
         "shadowCandidates": candidates,
     }, allow_nan=False))
 
+
+if __name__ == "__main__":
+    main()
