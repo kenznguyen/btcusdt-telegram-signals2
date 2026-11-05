@@ -1,4 +1,5 @@
 """Behavioral tests for the canonical T0 write gateways."""
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -76,6 +77,29 @@ class SQLiteWriteGatewayTest(unittest.TestCase):
                 owner_id="worker-A", generation_provider=lambda: 1,
                 clock=lambda: NOW,
             )
+
+
+    def test_gateway_rejects_existing_database_without_canonical_schema(self):
+        empty = Path(self.temp.name) / "empty.sqlite3"
+        sqlite3.connect(empty).close()
+        fake_store = type("StoreRef", (), {"path": empty})()
+        fake_lease = type("LeaseRef", (), {
+            "db_path": str(empty),
+            "lease_name": "binance-btcusdt-canonical",
+        })()
+
+        with self.assertRaisesRegex(ValueError, "canonical SQLite schema"):
+            SQLiteWriteGateway(
+                store=fake_store, lease_store=fake_lease,
+                owner_id="worker-A", generation_provider=lambda: 1,
+                clock=lambda: NOW,
+            )
+
+        with sqlite3.connect(empty) as connection:
+            tables = connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        self.assertEqual(tables, [])
 
     def test_gateway_rejects_missing_database_without_creating_it(self):
         missing = Path(self.temp.name) / "missing.sqlite3"
