@@ -209,10 +209,10 @@ BEGIN
           JOIN pg_roles granted_role ON granted_role.oid = membership.roleid
           JOIN pg_roles member_role ON member_role.oid = membership.member
          WHERE member_role.rolname = 't0_migrator'
-           AND granted_role.rolname IN ('t0_candle_writer_owner', 't0_lease_manager_owner')
+           AND granted_role.rolname IN ('t0_db_owner', 't0_candle_writer_owner', 't0_lease_manager_owner')
            AND membership.admin_option
     ) THEN
-        RAISE EXCEPTION 't0_migrator must not have ADMIN OPTION on SECURITY DEFINER owner roles'
+        RAISE EXCEPTION 't0_migrator must not have ADMIN OPTION on database or SECURITY DEFINER owner roles'
             USING ERRCODE = '42501';
     END IF;
 END;
