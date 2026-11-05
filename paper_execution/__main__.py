@@ -14,7 +14,7 @@ def main():
     parser.add_argument("--max-spread-bps", default="50")
     args = parser.parse_args()
     ledger = PaperLedger(args.db, max_position_base=args.max_position_base,
-                         fee_rate=args.fee_rate, max_spread_bps=args.max_spread_bps)
+                         fee_rate=args.fee_rate, max_spread_bps=args.max_spread_bps).initialize()
     print(json.dumps(ledger.snapshot(), allow_nan=False))
 
 
