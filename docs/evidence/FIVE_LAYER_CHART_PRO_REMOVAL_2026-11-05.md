@@ -133,3 +133,25 @@ The project decision is GitHub Actions as the default and official CI runner. Co
 - Earlier cancelled run #42044164991 showed Dashboard npm install, React tests, production build and npm audit steps completed successfully on the prior source SHA `c6de7e06acfef4d6f8e7d20cec145c5a2697afdf`; this is historical partial evidence only and does not certify the latest SHA.
 - Android boundary/APK tests, Gradle unit tests/build, backend regression suites and latest Dashboard gates remain NOT VERIFIED until the current exact-head run completes. No artifact is accepted yet.
 - T0 source paths remain unchanged by this PR. Core Strategy/Paper protected file blob hashes remain identical to PR base. No canonical DB, exchange, Feeder, live execution, PR #65 or PR #134 changed.
+
+
+## Final GitHub Actions exact-head acceptance — 2026-11-05
+
+- Source SHA: `5aedfe7c6f55163b3bbb5a3b6c82677da0272eb1`.
+- PR workflow run #42046383582: **SUCCESS**. URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42046383582.
+- Job IDs and conclusions:
+  - Android Paper boundary, unit tests and APK verification: job `127310345192` — **SUCCESS**.
+  - T0–T3, Core Strategy and Paper isolation regressions: job `127310345756` — **SUCCESS**.
+  - T4 React tests, production build and dependency audit: job `127310345761` — **SUCCESS**.
+- Android: 16 source-boundary/APK-verifier contract tests PASS; `:app:testDebugUnitTest` BUILD SUCCESSFUL; `:app:assembleDebug` BUILD SUCCESSFUL; verifier output: `Verified five-layer-only APK for source 5aedfe7c6f55163b3bbb5a3b6c82677da0272eb1`.
+- Backend: T0 available branch storage/sync/read API tests 35 PASS; T1 futures intelligence 10 PASS; T2 Core Strategy/signal/FreqAI 56 PASS; T3 Paper risk/ledger/Hummingbot 42 PASS; GitHub Actions policy 5 PASS. Total 148 Python backend/policy tests PASS.
+- Dashboard: npm install PASS; React tests PASS (6 tests); production build PASS; `npm audit --audit-level=high` reports 0 vulnerabilities.
+- Artifacts, all attached to exact source SHA `5aedfe7c6f55163b3bbb5a3b6c82677da0272eb1`:
+  - Android APK/report bundle ID `13424328512`, size 9,759,372 bytes, digest `sha256:22f46b3a7c193ebed72d79b98dd9a55cc429ac359eb56403ade89f7d6a70264a`.
+  - Backend logs/source SHA ID `13424133997`, digest `sha256:aebf9cdd2a03de068023dabec3e6c5774d686ce88be4af4fec2473b3d528e674`.
+  - Dashboard build ID `13425595458`, digest `sha256:e3887e7db1047e99e60ceab30216e5ba6b31ffbc634458cb9b735f685801d6e2`.
+- The Android verifier checked the built APK's single-app identity, package/label, manifest/permissions, DEX payload and signature presence. Existing-install signing-certificate continuity with any previously installed APK remains **NOT VERIFIED**; the artifact is a CI debug APK, not a release-signed APK.
+- The PR branch's T0 test scope is limited to the T0 modules available on its declared base branch. Current-main feeder scheduler/recovery acceptance is a separate workstream and is not claimed by this run.
+- No T0 source/data/Feeder/lease/fencing/recovery path, canonical DB, exchange access, live execution, PR #65 or PR #134 was changed or activated.
+- Status on tested SHA: GitHub Actions migration **PASS**; Chart Pro removal boundary **PASS**; Android Paper debug build and verifier **PASS**; T0–T3/Core and T4 regression jobs **PASS**; existing-install signer continuity **NOT VERIFIED**.
+- PR #135 remains OPEN / DRAFT / NOT MERGED. Do not merge without explicit approval.
