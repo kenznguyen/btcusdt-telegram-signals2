@@ -1,7 +1,7 @@
 """PostgreSQL/TimescaleDB adapter ported from PR #63's PostgresCandleStore."""
 
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 import hashlib
@@ -88,7 +88,7 @@ def read_window(location, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
 
 @dataclass(frozen=True)
 class PostgresLease:
-    owner: str
+    owner: str = field(repr=False)
     generation: int
     expires_at: datetime
 
