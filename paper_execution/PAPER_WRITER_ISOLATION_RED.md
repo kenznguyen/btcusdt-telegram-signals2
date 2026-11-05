@@ -2,7 +2,7 @@
 
 Baseline: `a58b6163a78861ecf5bb7d2c8fc11aa420142837`
 
-Phase: RED specification only. No production Paper Ledger or T0 code is modified.
+Phase: SWG-F RED contracts frozen; P1 GREEN gate primitive implemented. PaperLedger integration (P2/P3) and all T0 code remain unchanged.
 
 ## Required lifecycle
 
@@ -70,7 +70,7 @@ Required named runtime tests:
 - `test_denied_admission_does_not_create_or_open_paper_db`
 - `test_platform_lock_adapters_fail_closed_when_unsupported`
 
-All ten named runtime test cases now exist in `paper_execution/test_writer_gate_runtime.py`. The production `paper_execution.writer_gate` module is intentionally absent, so each test currently stops at an explicit module-availability assertion. This produces assertion failures rather than import/test errors, but it does NOT execute the multiprocess, crash-recovery, SQLite transaction, or platform-lock behavior yet. Those behavioral assertions remain NOT RUN until a separately authorized GREEN implementation exists. Do not add a runtime implementation in this RED-only PR.
+All ten named runtime test cases now exist in `paper_execution/test_writer_gate_runtime.py`. The production `paper_execution.writer_gate` module is now implemented for P1. The ten process-level tests execute the gate on Linux using disposable TemporaryDirectory paths and synthetic SQLite data. P1 does not integrate PaperLedger constructors/mutators, Equity, Risk Control, pipeline API, PAPER_DB/T0 path isolation, Android runtime, or Windows runtime; those remain NOT RUN / NOT VERIFIED and require their own implementation slices and evidence.
 
 
 ## Test isolation
@@ -78,3 +78,14 @@ All ten named runtime test cases now exist in `paper_execution/test_writer_gate_
 The original ten RED contracts inspect source statically. The ten process-level test cases are present, but currently stop at the missing-module assertion before spawning processes or opening their temporary SQLite fixtures. GitHub Actions runs both suites with all database paths and exchange credentials unset. Once the gate module exists under separate approval, the process-level tests must remain restricted to unique temporary databases and synthetic fixtures; no canonical DB, Feeder, or exchange is permitted.
 
 A valid RED is a set of assertion failures proving missing contracts. Syntax/import/infrastructure errors are invalid RED evidence. No GREEN implementation, canonical DB, Feeder, exchange, sync, or live order is authorized by this PR.
+
+
+## P1 GREEN implementation record
+
+- Implementation: `paper_execution/writer_gate.py`
+- Scope: durable Paper-only coordinator SQLite sidecar, platform lock adapter (POSIX shared/exclusive; Windows exclusive serialization), generation-bound non-serializable token, admission/release, drain timeout/wait, explicit settled reopen, and admitted existing-file writer transaction.
+- The coordinator and lock files are separate from the Paper DB. Gate initialization/admission do not create or open the Paper data DB.
+- P1 runtime acceptance runs on GitHub Actions/Linux. This does not certify Windows or Android runtime lock behavior.
+- PaperLedger and other Paper mutation paths are intentionally not integrated in P1; no P2/P3 behavior is claimed.
+- No canonical T0 DB, Feeder, exchange, market-data sync, migration, deployment, or live order was accessed.
+- `ai_execution_enabled=false`; PR remains unmerged.
