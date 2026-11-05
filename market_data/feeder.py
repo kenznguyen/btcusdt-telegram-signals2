@@ -828,7 +828,14 @@ class FeederRuntime:
                 with self._lock:
                     self._state = "STOPPING"
                 raise
-            self._release_startup_lease()
+            try:
+                self._release_startup_lease()
+            except RuntimeError:
+                # The exact generation could no longer be released. This
+                # means ownership changed while startup was failing; never
+                # report a generic startup failure or touch the replacement.
+                self.on_lease_lost()
+                raise
             with self._lock:
                 self._state = "FAILED"
             raise
