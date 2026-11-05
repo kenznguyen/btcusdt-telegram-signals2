@@ -6,6 +6,7 @@ All databases are disposable temporary SQLite files; no external services.
 """
 import os
 import gc
+from contextlib import contextmanager
 from pathlib import Path
 import sqlite3
 import sys
@@ -50,6 +51,16 @@ if not Path(paper_writer_gate_module.__file__).resolve().is_relative_to(PAPER_SO
 NOW = 1_800_000_000_000
 
 
+@contextmanager
+def _sqlite_connection(path):
+    connection = sqlite3.connect(path)
+    try:
+        with connection:
+            yield connection
+    finally:
+        connection.close()
+
+
 def _candle(open_time_ms):
     return Candle(
         timeframe="15m",
@@ -71,7 +82,7 @@ class CrossDomainWriterIsolationTests(unittest.TestCase):
         self.paper_db = root / "paper" / "paper.sqlite3"
         self.market_db = root / "market" / "market.sqlite3"
         self.paper_db.parent.mkdir(parents=True)
-        with sqlite3.connect(self.paper_db) as connection:
+        with _sqlite_connection(self.paper_db) as connection:
             connection.execute(
                 "CREATE TABLE paper_probe (value TEXT NOT NULL)"
             )
@@ -97,7 +108,7 @@ class CrossDomainWriterIsolationTests(unittest.TestCase):
         self.temp.cleanup()
 
     def _paper_probe_rows(self):
-        with sqlite3.connect(self.paper_db) as connection:
+        with _sqlite_connection(self.paper_db) as connection:
             return connection.execute(
                 "SELECT value FROM paper_probe ORDER BY rowid"
             ).fetchall()
