@@ -43,6 +43,19 @@ class FencedCandleStoreTest(unittest.TestCase):
             )
         self.assertEqual(read_window(self.path, "BTCUSDT", "15m", NOW, NOW + INTERVAL_MS["15m"])["candles"], [])
 
+    def test_lease_expiring_during_batch_is_rechecked_before_commit(self):
+        lease = self.leases.acquire("worker-A", NOW, 60)
+        clock_values = iter((NOW + 1, NOW + 60_001))
+        with self.assertRaisesRegex(PermissionError, "expired before commit"):
+            self.store.insert_fenced(
+                [candle()], owner="worker-A", generation=lease.generation,
+                now_ms=lambda: next(clock_values),
+            )
+        self.assertEqual(
+            read_window(self.path, "BTCUSDT", "15m", NOW, NOW + INTERVAL_MS["15m"])["candles"],
+            [],
+        )
+
     def test_stale_generation_cannot_write_after_takeover(self):
         old = self.leases.acquire("worker-A", NOW, 60)
         new = self.leases.acquire("worker-B", NOW + 60_001, 60)
