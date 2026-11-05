@@ -144,6 +144,7 @@ BEGIN
         SELECT 1
           FROM pg_auth_members membership
           JOIN pg_roles granted_role ON granted_role.oid = membership.roleid
+          JOIN pg_roles member_role ON member_role.oid = membership.member
          WHERE granted_role.rolname = 't0_candle_writer_owner'
            AND member_role.rolname <> 't0_migrator'
     ) THEN
