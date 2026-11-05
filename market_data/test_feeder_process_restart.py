@@ -139,12 +139,14 @@ class FeederProcessRestartTest(unittest.TestCase):
                 self.assertEqual(crash_state["uncommitted_rows"], 1)
 
                 process.kill()
-                return_code = process.wait(timeout=5)
-                self.assertEqual(return_code, -signal.SIGKILL)
+                _, child_stderr = process.communicate(timeout=5)
+                self.assertEqual(
+                    process.returncode, -signal.SIGKILL, child_stderr
+                )
             finally:
                 if process.poll() is None:
                     process.kill()
-                    process.wait(timeout=5)
+                process.communicate(timeout=5)
 
             before_restart = read_window(
                 db_path, "BTCUSDT", "15m", OPEN_TIME, OPEN_TIME + 2 * STEP
