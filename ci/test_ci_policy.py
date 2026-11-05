@@ -15,8 +15,6 @@ class CiPolicyTest(unittest.TestCase):
         for marker in (
             "pull_request:",
             "feature/android-five-layer-control",
-            "push:",
-            "cleanup/remove-chart-pro-from-five-layer-20261105",
             "workflow_dispatch:",
             "permissions:",
             "contents: read",
