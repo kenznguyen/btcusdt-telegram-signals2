@@ -26,7 +26,7 @@ class CiPolicyTest(unittest.TestCase):
 
     def test_jobs_checkout_exact_pr_head_and_have_separate_boundaries(self):
         self.assertEqual(3, self.workflow.count("ref: ${{ github.event.pull_request.head.sha || github.sha }}"))
-        for job in ("android-paper:", "backend-regression:", "dashboard:"):
+        for job in ("android-paper:", "backend-regression:", "dashboard-boundary:"):
             with self.subTest(job=job):
                 self.assertIn(job, self.workflow)
 
@@ -58,10 +58,15 @@ class CiPolicyTest(unittest.TestCase):
             with self.subTest(gate=gate):
                 self.assertIn(gate, self.workflow)
 
-    def test_dashboard_job_runs_tests_build_and_dependency_audit(self):
-        for gate in ("npm ci --ignore-scripts", "npm test", "npm run build", "npm audit --audit-level=high"):
-            with self.subTest(gate=gate):
-                self.assertIn(gate, self.workflow)
+    def test_dashboard_is_nonblocking_and_only_checks_its_local_manifest_boundary(self):
+        dashboard = self.workflow.split("  dashboard-boundary:", 1)[1]
+        self.assertIn("continue-on-error: true", dashboard)
+        self.assertIn("test -f control_dashboard/package.json", dashboard)
+        self.assertIn("test -f control_dashboard/package-lock.json", dashboard)
+        self.assertIn("JSON.parse", dashboard)
+        for intensive_gate in ("npm ci", "npm test", "npm run build", "npm audit"):
+            with self.subTest(gate=intensive_gate):
+                self.assertNotIn(intensive_gate, dashboard)
 
 
 if __name__ == "__main__":
