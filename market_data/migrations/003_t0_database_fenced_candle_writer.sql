@@ -53,6 +53,16 @@ BEGIN
     RETURNING open_time_ms INTO inserted_open_time;
 
     IF FOUND THEN
+        PERFORM 1
+          FROM market_data.feeder_leases
+         WHERE lease_name = p_lease_name
+           AND owner_id = p_owner_id
+           AND generation = p_generation
+           AND expires_at > clock_timestamp();
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'canonical candle write rejected: lease expired before commit'
+                USING ERRCODE = '42501';
+        END IF;
         RETURN TRUE;
     END IF;
 
@@ -72,6 +82,17 @@ BEGIN
           ROW(p_open, p_high, p_low, p_close, p_volume) THEN
         RAISE EXCEPTION 'conflicting closed candle; canonical history was not overwritten'
             USING ERRCODE = 'P0001';
+    END IF;
+
+    PERFORM 1
+      FROM market_data.feeder_leases
+     WHERE lease_name = p_lease_name
+       AND owner_id = p_owner_id
+       AND generation = p_generation
+       AND expires_at > clock_timestamp();
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'canonical candle write rejected: lease expired before commit'
+            USING ERRCODE = '42501';
     END IF;
 
     RETURN FALSE;
