@@ -167,6 +167,19 @@ class CandleStore:
                         key + prices + (candle.available_at_ms,),
                     )
                     inserted += 1
+
+                # Recheck immediately before commit. The write lock prevents a
+                # replacement owner from taking over while this transaction runs.
+                commit_now = now_ms()
+                if type(commit_now) is not int or commit_now < 0:
+                    raise ValueError("now_ms clock must return a nonnegative integer")
+                still_current = connection.execute(
+                    """SELECT 1 FROM feeder_leases
+                       WHERE lease_name=? AND owner=? AND generation=? AND expires_at_ms>?""",
+                    (lease_name, owner, generation, commit_now),
+                ).fetchone()
+                if still_current is None:
+                    raise PermissionError("Feeder lease expired before commit; canonical write rejected")
                 connection.commit()
                 return inserted
             except Exception:
