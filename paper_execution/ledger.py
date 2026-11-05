@@ -193,6 +193,7 @@ class PaperLedger:
                     connection.execute("INSERT INTO paper_strategy_state VALUES (1,?,?,?)",
                                        ("LEGACY" if legacy_position else None, 0, "0"))
             equity_history.ensure(connection)
+            connection.execute("CREATE TABLE IF NOT EXISTS paper_control_budget (minute INTEGER PRIMARY KEY, used INTEGER NOT NULL CHECK(used >= 0))")
 
             gate.validate_writer_token(token)
             connection.commit()
