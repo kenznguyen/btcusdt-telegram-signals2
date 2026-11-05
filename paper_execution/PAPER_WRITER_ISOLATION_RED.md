@@ -123,3 +123,29 @@ The legacy static RED contract module remains historical evidence and is intenti
 - Linux runtime only. Windows and Android file-lock semantics remain NOT VERIFIED.
 - No canonical T0 DB, Feeder, exchange, market-data sync, migration, deployment or live order was accessed. `ai_execution_enabled=false`; PR #112 remains OPEN / DRAFT / NOT MERGED.
 - P4 next boundary: perform a read-only inventory of any remaining non-API Paper writer consumers and define their admission/initialization contract before implementation. No consumer changes are authorized by this record.
+
+## P4 Read-only consumer inventory — audit result
+
+Audit source: `2c95dae2b5aad066787d671c26ce34c1f22a0d68`. Scope was source inspection only; no database, migration, startup process, exchange, or runtime service was executed.
+
+- **PaperLedger initialization:** `PaperLedger.initialize()` obtains a PaperWriterGate admission token before touching/creating PAPER_DB, performs schema initialization in a transaction, validates the token before commit, and releases it in `finally`.
+- **CLI:** `python -m paper_execution --db ...` is an explicit initialization entrypoint. It constructs PaperLedger and calls `.initialize()`; it does not implement a separate raw-SQL mutation path.
+- **HTTP API:** `pipeline.api.ledger()` explicitly initializes the PaperLedger. POST control/evaluation routes obtain that writer and use PaperLedger mutators; API budget consumption also uses the admitted writer transaction. The inspected GET paths use read-only connections.
+- **Android client/UI:** `FiveLayerApi.kt` exposes HTTP GET/POST calls to the server API only. The FiveLayer panel invokes those client methods; no Android SQLite/PAPER_DB file access was found in the inspected client path. Android is therefore not a local Paper DB writer in this architecture.
+- **Dashboard:** `control_dashboard/src/api.js` sends GET/POST requests under `/v1/`; it has no local SQLite connection or Paper DB file writer.
+- **Recovery/startup:** no independent background Paper writer or automatic Paper DB initialization path was identified in the inspected runtime entrypoints. The explicit CLI and API initialization paths both call `PaperLedger.initialize()`. This is a source-level inventory, not a runtime certification of deployment startup ordering.
+
+### Test-only direct SQLite paths (not production consumers)
+
+- `paper_execution/shadow_migration_fixture.py` creates a disposable legacy fixture and then uses raw SQL to seed synthetic Paper rows. It is explicitly fixture construction, not a runtime Paper writer.
+- `paper_execution/shadow_migration.py` is a RED-only stub restricted to disposable P5.2.4 unittest fixture paths and a fixed fixture migration ID. It creates empty fixture targets and placeholder manifests; it is not an implemented production migration. Its direct SQLite target creation is outside the production Paper writer path but must not be promoted into a real migration without a separately approved gate/drain/settlement contract.
+- Unit/integration tests may construct disposable databases and issue direct SQL as fixtures/assertions; these are not application runtime writer consumers.
+
+### P4 conclusion
+
+- **PASS — source inventory:** all identified production Paper write entrypoints are the explicit CLI initialization and HTTP API path, both routed through `PaperLedger.initialize()` / `PaperWriterGate` or admitted PaperLedger mutators. Android and React dashboard act as API clients, not direct DB writers.
+- **NOT VERIFIED:** Windows/Android OS lock behavior, real deployment process topology, concurrent multi-worker startup, and runtime recovery under process termination. Existing P1-P3 Linux tests do not certify these.
+- **BLOCKED / OUT OF SCOPE:** converting the RED-only shadow migration stub into a real migration, changing fixture construction, or adding any new writer consumer. These require a separately scoped and approved implementation.
+- No application code, strategy logic, T0 data path, market-data DB, Feeder, exchange, deployment, or live-order behavior was changed or accessed. `ai_execution_enabled=false`; paper-only boundary unchanged.
+- P4 was an audit only. No P4 implementation is authorized by this record.
+
