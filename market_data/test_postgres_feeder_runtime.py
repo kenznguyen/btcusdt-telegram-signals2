@@ -273,10 +273,9 @@ class PostgresFeederRuntimeIntegrationTest(unittest.TestCase):
             with connection(self.dsn, read_only=True) as database:
                 rows = database.execute(
                     """SELECT count(*) FROM market_data.candles
-                       WHERE exchange='binance' AND market_type='usd_m'
-                         AND symbol='BTCUSDT' AND timeframe=%s
-                         AND open_time_ms=%s""",
-                    (timeframe, recovery_start),
+                       WHERE exchange=%s AND market_type=%s AND symbol='BTCUSDT'
+                         AND timeframe=%s AND open_time_ms=%s""",
+                    (EXCHANGE, MARKET_TYPE, timeframe, recovery_start),
                 ).fetchone()[0]
             self.assertEqual(rows, 1)
         finally:
