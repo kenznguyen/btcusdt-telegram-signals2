@@ -202,6 +202,15 @@ def equity_snapshot(timestamp):
     return result
 
 
+def record_equity_from_market(timestamp):
+    end = timestamp // 900_000 * 900_000
+    window = market_window("BTCUSDT", "15m", end-900_000, end, as_of_ms=timestamp)
+    if not window["candles"] or not window["coverage"]["complete"]:
+        return None
+    mark = window["candles"][-1]
+    return ledger().record_equity(mark["close"], mark["closeTimeMs"], timestamp,
+                                 window["datasetVersion"], os.environ.get("PAPER_INITIAL_CAPITAL", "100"))
+
 def quality_snapshot(timestamp):
     data = context(timestamp)
     streams = []
