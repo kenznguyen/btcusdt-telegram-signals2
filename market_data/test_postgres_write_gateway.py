@@ -54,7 +54,7 @@ class PostgresWriteGatewayIntegrationTest(unittest.TestCase):
     def setUp(self):
         from market_data.postgres import PostgresLeaseStore
 
-        self.lease_name = "pg-integration-" + uuid.uuid4().hex
+        self.lease_name = "binance-btcusdt-canonical"
         self.leases = PostgresLeaseStore(DSN, lease_name=self.lease_name)
         self.owner = "writer-a"
         self.lease = self.leases.acquire(self.owner, ttl_seconds=30)
