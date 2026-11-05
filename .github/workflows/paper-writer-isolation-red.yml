@@ -63,14 +63,34 @@ jobs:
           python -m unittest paper_execution.test_writer_isolation_red -v > paper-writer-red.log 2>&1
           status=$?
           cat paper-writer-red.log
-          failures=$(grep -c '^FAIL:' paper-writer-red.log || true)
-          errors=$(grep -c '^ERROR:' paper-writer-red.log || true)
-          ran=$(sed -n 's/^Ran \([0-9][0-9]*\) tests.*/\1/p' paper-writer-red.log | tail -1)
-          if [ "$status" -eq 0 ] || [ "$failures" -ne 10 ] || [ "$errors" -ne 0 ] || [ "$ran" -ne 10 ]; then
-            echo "PAPER_WRITER_RED=INVALID"
-            exit 1
-          fi
-          echo "PAPER_WRITER_RED=CONFIRMED_CONTRACT_GAPS"
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          output = Path("paper-writer-red.log").read_text(encoding="utf-8")
+          ran = re.search(r"^Ran (\\d+) tests? in ", output, re.MULTILINE)
+          failures = re.findall(r"^FAIL: test_[^\\s(]+", output, re.MULTILINE)
+          errors = re.findall(r"^ERROR: test_[^\\s(]+", output, re.MULTILINE)
+          summary = re.search(r"^FAILED \\(failures=(\\d+)\\)$", output, re.MULTILINE)
+
+          valid = (
+              ran is not None
+              and int(ran.group(1)) == 10
+              and len(failures) == 10
+              and len(errors) == 0
+              and summary is not None
+              and int(summary.group(1)) == 10
+          )
+          print(
+              f"SWG_F_RED_CLASSIFIER ran={ran.group(1) if ran else 'MISSING'} "
+              f"assertion_failures={len(failures)} test_errors={len(errors)} "
+              f"summary_failures={summary.group(1) if summary else 'MISSING'}"
+          )
+          if status == 0 or not valid:
+              print("PAPER_WRITER_RED=INVALID")
+              raise SystemExit(1)
+          print("PAPER_WRITER_RED=CONFIRMED_CONTRACT_GAPS")
+          PY
       - name: Upload RED evidence
         if: always()
         uses: actions/upload-artifact@v4
