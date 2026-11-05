@@ -378,6 +378,7 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                     "WHERE p.proname IN ('write_canonical_candle', 'acquire_feeder_lease') ORDER BY p.proname"
                 ).fetchall()
             self.assertEqual(owners, [("acquire_feeder_lease", "t0_lease_manager_owner"), ("write_canonical_candle", "t0_candle_writer_owner")])
+        with self.psycopg.connect(admin_dsn, autocommit=True) as admin:
             durable_owners = admin.execute(
                 "SELECT 'schema', r.rolname FROM pg_namespace n "
                 "JOIN pg_roles r ON r.oid=n.nspowner WHERE n.nspname='market_data' "
@@ -528,6 +529,8 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
 
         with self.psycopg.connect(DSN, autocommit=True) as admin:
             admin.execute("CREATE ROLE t0_migrator NOLOGIN")
+            admin.execute("CREATE ROLE t0_migrator_login LOGIN")
+            admin.execute("GRANT t0_migrator TO t0_migrator_login")
             admin.execute("GRANT t0_candle_writer_owner TO t0_migrator WITH ADMIN OPTION")
             admin.execute("GRANT t0_lease_manager_owner TO t0_migrator WITH ADMIN OPTION")
             try:
@@ -538,6 +541,8 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
             finally:
                 admin.execute("REVOKE t0_candle_writer_owner FROM t0_migrator")
                 admin.execute("REVOKE t0_lease_manager_owner FROM t0_migrator")
+                admin.execute("REVOKE t0_migrator FROM t0_migrator_login")
+                admin.execute("DROP ROLE t0_migrator_login")
                 admin.execute("DROP ROLE t0_migrator")
 
 if __name__ == "__main__":
