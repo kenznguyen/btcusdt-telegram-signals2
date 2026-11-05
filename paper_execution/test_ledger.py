@@ -149,7 +149,7 @@ class PaperLedgerTest(unittest.TestCase):
         book = self.book()
         intents = [self.intent("concurrent-1", "0.1"), self.intent("concurrent-2", "0.2")]
         def submit(intent):
-            return PaperLedger(self.path, max_position_base="1").submit(intent, book, self.now)
+            return PaperLedger(self.path, max_position_base="1").initialize().submit(intent, book, self.now)
         with ThreadPoolExecutor(max_workers=2) as pool:
             orders = list(pool.map(submit, intents))
         self.assertCountEqual([order["status"] for order in orders], ["FILLED", "REJECTED"])
