@@ -6,8 +6,6 @@ ROOT = Path(__file__).resolve().parents[1]
 
 RETIRED_PATHS = (
     "app.py",
-    "bot.py",
-    "backtest.py",
     "telegram_commands.py",
     "integrations/codemagic_client.py",
     "integrations/test_codemagic_client.py",
@@ -16,6 +14,7 @@ RETIRED_PATHS = (
     "ci/archive/github-actions/signal-scan.yml",
     "ci/archive/github-actions/telegram-command.yml",
     "ci/archive/github-actions/dashboard-backtest.yml",
+    "docs/market-data-timescaledb-codemagic.md",
 )
 
 
@@ -23,6 +22,16 @@ class LegacyBridgeRetirementTest(unittest.TestCase):
     def test_legacy_runtime_and_dispatch_files_are_removed(self):
         present = [path for path in RETIRED_PATHS if (ROOT / path).exists()]
         self.assertEqual([], present, f"Retired legacy files remain: {present}")
+
+    def test_strategy_research_library_is_preserved_without_messaging(self):
+        strategy = (ROOT / "bot.py").read_text()
+        backtest = (ROOT / "backtest.py").read_text()
+        for symbol in ("def add_indicators(", "def entry_signals(", "def dca_signal(", "def roe_for("):
+            self.assertIn(symbol, strategy)
+        self.assertNotIn("telegram", strategy.lower())
+        self.assertNotIn("telegram", backtest.lower())
+        self.assertNotIn("codemagic", backtest.lower())
+        self.assertNotIn("dashboard", backtest.lower())
 
     def test_five_layer_api_and_t4_rebuild_target_are_preserved(self):
         for path in (
