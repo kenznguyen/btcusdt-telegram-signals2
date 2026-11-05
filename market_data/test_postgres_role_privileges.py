@@ -403,6 +403,19 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                     finally:
                         admin.execute(f'ALTER ROLE "{role}" NOSUPERUSER NOLOGIN')
 
+    def test_migration_runner_rejects_login_enabled_migrator_group_role(self):
+        from market_data.migrations import migrate
+
+        with self.psycopg.connect(DSN, autocommit=True) as admin:
+            admin.execute("CREATE ROLE t0_migrator NOLOGIN")
+            admin.execute("ALTER ROLE t0_migrator LOGIN")
+            try:
+                with self.assertRaisesRegex(RuntimeError, "t0_migrator must remain a restricted NOLOGIN role"):
+                    migrate(DSN)
+            finally:
+                admin.execute("ALTER ROLE t0_migrator NOLOGIN")
+                admin.execute("DROP ROLE t0_migrator")
+
     def test_migration_runner_rejects_unapproved_t0_migrator_member(self):
         from market_data.migrations import migrate
 
