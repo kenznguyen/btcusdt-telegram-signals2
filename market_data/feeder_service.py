@@ -70,11 +70,10 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
 
     # Atomic fencing is currently supported only when lease and candles share
     # one SQLite database. Separate databases cannot provide this transaction.
-    fenced_insert = getattr(store, "insert_fenced", None)
     store_path = getattr(store, "path", None)
     lease_path = getattr(lease_store, "db_path", None)
-    if not callable(fenced_insert) or store_path is None or lease_path is None:
-        raise ValueError("Feeder requires a store with same-database atomic lease fencing")
+    if store_path is None or lease_path is None:
+        raise ValueError("Feeder requires a same-database SQLite store and lease")
     if Path(store_path).resolve() != Path(lease_path).resolve():
         raise ValueError("Candle store and feeder lease must share the same SQLite database")
     initialize_store = getattr(store, "initialize", None)
@@ -82,14 +81,16 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
         initialize_store()
 
     runtime = None
-    fenced_writer = FencedCandleWriter(
-        store, lease_store, owner_id,
+    write_gateway = SQLiteWriteGateway(
+        store=store,
+        lease_store=lease_store,
+        owner_id=owner_id,
         generation_provider=lambda: runtime.lease_generation,
         clock=clock_fn,
     )
 
     def canonical_sync(timeframe, start_ms, end_ms):
-        return sync_window(exchange, fenced_writer, timeframe, start_ms, end_ms, now_ms=clock_fn)
+        return sync_window(exchange, write_gateway, timeframe, start_ms, end_ms, now_ms=clock_fn)
 
     retry = RetryPolicy(
         max_attempts=config.retry_max_attempts,
