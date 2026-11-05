@@ -6,6 +6,8 @@ on:
       - feature/t0-paper-writer-isolation-red-20261102
     paths:
       - "paper_execution/**"
+      - "pipeline/**"
+      - "pipeline/**"
       - ".github/workflows/paper-writer-isolation-red.yml"
   pull_request:
     branches:
@@ -88,6 +90,11 @@ jobs:
               raise SystemExit("P2 PaperLedger GREEN acceptance failed")
           print("PAPER_LEDGER_P2_GREEN=PASS")
           PY
+      - name: Verify P3 API integration acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest pipeline.test_api -v 2>&1 | tee paper-pipeline-p3-green.log
       - name: Verify full Paper execution test suite
         shell: bash
         run: |
@@ -130,5 +137,6 @@ jobs:
             paper-writer-runtime-green.log
             paper-ledger-p2-green.log
             paper-execution-regression.log
+            paper-pipeline-p3-green.log
           if-no-files-found: warn
           retention-days: 7
