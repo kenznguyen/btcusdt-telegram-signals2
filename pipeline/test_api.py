@@ -231,13 +231,13 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(self.request("/v1/paper/evaluate", "POST", {"source": "UNKNOWN"})[0], 400)
 
     def test_equity_endpoint_reads_history_written_by_explicit_paper_evaluation(self):
-        self.request("/v1/equity/record", "POST", {})
+        self.request("/v1/paper/evaluate", "POST", {})
         code, result = self.request("/v1/equity")
         self.assertEqual(code,200)
         self.assertTrue(result["available"])
         self.assertEqual(result["initialCapital"],"100")
         self.assertLess(float(result["latest"]["equity"]),100)
-        self.assertEqual(result["dailyLossUsdt"],"0")
+        self.assertGreater(float(result["dailyLossUsdt"]),0)
         with sqlite3.connect(self.paper_db) as connection:
             self.assertEqual(connection.execute("SELECT COUNT(*) FROM paper_equity_history").fetchone()[0],1)
 
