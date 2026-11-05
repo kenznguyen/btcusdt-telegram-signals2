@@ -209,11 +209,18 @@ class PostgresWriteGatewayREDTest(unittest.TestCase):
             self.assertTrue(leases.release(self.owner, self.lease.generation))
             short = leases.acquire(self.owner, ttl_seconds=1)
             gateway = self.gateway(generation=short.generation)
-            with self.assertRaises(PermissionError):
-                gateway.write_batch([self.candle()])
-            replacement = PostgresLeaseStore(DSN, lease_name=self.lease_name).acquire(
-                "writer-b", ttl_seconds=30
-            )
+            import concurrent.futures
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                write_future = pool.submit(gateway.write_batch, [self.candle()])
+                time.sleep(0.2)
+                # This call must block on the lease row until the writer's
+                # expired transaction rolls back, then increment generation.
+                replacement = PostgresLeaseStore(
+                    DSN, lease_name=self.lease_name
+                ).acquire("writer-b", ttl_seconds=30)
+                with self.assertRaises(PermissionError):
+                    write_future.result(timeout=5)
             self.assertIsNotNone(replacement)
             self.assertGreater(replacement.generation, short.generation)
             stale = self.gateway(generation=short.generation)
