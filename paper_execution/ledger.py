@@ -116,17 +116,8 @@ def read_snapshot(db_path):
 class PaperLedger:
     def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage="13", market_data_db_path=None):
         self.path = Path(db_path).expanduser().resolve()
-        configured_market_path = market_data_db_path or os.environ.get("MARKET_DATA_DB")
-        if configured_market_path:
-            market_path = Path(configured_market_path).expanduser().resolve()
-            same_file = self.path == market_path
-            if not same_file and self.path.exists() and market_path.exists():
-                try:
-                    same_file = os.path.samefile(self.path, market_path)
-                except OSError:
-                    same_file = False
-            if same_file:
-                raise ValueError("PAPER_DB must be physically distinct from MARKET_DATA_DB")
+        self._market_data_db_path = market_data_db_path
+        self._validate_path_isolation()
         self.maximum, self.fee_rate, self.spread = number(max_position_base), number(fee_rate), number(max_spread_bps)
         self.risk_limits, self.require_risk_limits = risk_limits, bool(require_risk_limits)
         self.leverage = number(leverage)
@@ -136,10 +127,31 @@ class PaperLedger:
             raise ValueError("Invalid paper risk configuration")
         self.gate = None
 
+    def _validate_path_isolation(self):
+        configured_market_path = (
+            self._market_data_db_path
+            if self._market_data_db_path is not None
+            else os.environ.get("MARKET_DATA_DB")
+        )
+        if configured_market_path is None:
+            return
+        if not str(configured_market_path).strip():
+            raise ValueError("MARKET_DATA_DB path must not be empty")
+        market_path = Path(configured_market_path).expanduser().resolve()
+        same_file = self.path == market_path
+        if not same_file and self.path.exists() and market_path.exists():
+            try:
+                same_file = os.path.samefile(self.path, market_path)
+            except OSError:
+                same_file = False
+        if same_file:
+            raise ValueError("PAPER_DB must be physically distinct from MARKET_DATA_DB")
+
     def initialize(self):
         """Explicitly create the Paper DB schema under writer admission."""
         from paper_execution.writer_gate import PaperWriterGate
 
+        self._validate_path_isolation()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         gate = PaperWriterGate.initialize(paper_db_path=str(self.path))
         self.path.touch(exist_ok=True)
