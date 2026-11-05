@@ -32,7 +32,7 @@ NOW = 1_800_000_000_000
 STEP = INTERVAL_MS["15m"]
 OPEN_TIME = NOW - (NOW % STEP)
 
-CRASH_WORKER = textwrap.dedent("""
+CRASH_WORKER = textwrap.dedent('''
     import json
     import sqlite3
     import sys
@@ -83,7 +83,7 @@ CRASH_WORKER = textwrap.dedent("""
         "uncommitted_rows": 1,
     }), flush=True)
     time.sleep(120)
-""").strip()
+''').strip()
 
 
 def candle(open_time_ms):
