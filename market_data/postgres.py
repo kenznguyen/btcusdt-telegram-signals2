@@ -27,8 +27,8 @@ def connection(location, *, read_only=False):
                 if read_only:
                     database.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
                 yield database
-    except psycopg.Error:
-        raise StoreUnavailable("PostgreSQL storage is unavailable") from None
+    except psycopg.Error as exc:
+        raise StoreUnavailable("PostgreSQL storage is unavailable") from exc
 
 
 def _validate_window(symbol, timeframe, start_ms, end_ms, as_of_ms):
