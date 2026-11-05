@@ -99,6 +99,19 @@ Observed results:
 
 This does not change the 17/17 payload hash result or promote historical test labels to independently verified outcomes.
 
+
+
+### 5.2 Standalone script and local Git metadata scan (2026-11-05)
+
+The user ran the requested read-only checks against `$HOME/p4_*.py` and the local source checkout:
+
+- Standalone script metadata grep: **NO MATCHES** for 40-character hexadecimal values, source/commit SHA labels, `GITHUB_SHA`, workflow/run identifiers, Git revision commands, or the P4 test date.
+- Local checkout HEAD: `1c16755a07a053e1f225c8861ec76dc9ced1a5d8`.
+- Local checkout status: clean (`git status --short` returned no output).
+- Local Git history includes commits on 2026-11-01 and 2026-11-02, with the latest listed commit `1c16755a07a053e1f225c8861ec76dc9ced1a5d8` timestamped `2026-11-02T04:30:32-05:00` (commit subject: `ci: add isolated manual T0 P3 component test workflow`). Earlier listed commits include SQLite audit, runtime configuration, and data-integrity changes.
+
+The local history establishes that the checkout contains commits dated around the P4 test date, but it does not link any individual P4 log/script to a specific commit or prove that this checkout was active during the recorded test sessions. The observed HEAD must therefore remain contextual metadata only, not a run-specific source SHA. The standalone scan found no embedded provenance to close this gap.
+
 ## 6. Limits and next action
 
 - All 17 payload files were recovered on Android/Termux and their SHA-256 values match the manifest: **17/17 MATCH**.
@@ -108,4 +121,4 @@ This does not change the 17/17 payload hash result or promote historical test la
 - This reconciliation does not authorize canonical T0 DB creation, Feeder activation, exchange connectivity, market-data sync, or live execution.
 - `ai_execution_enabled=false`; paper-only boundary remains unchanged.
 
-Next action: inspect the standalone P4 preparation/test scripts in `$HOME` read-only for embedded source-SHA or workflow metadata, and inspect repository Git metadata if it can tie the test scripts to a specific checkout. Do not execute scripts or rerun P4 tests. If run-specific provenance is absent, retain that limitation explicitly.
+Next action: no further provenance-bearing metadata was found in the standalone scripts or local Git history. Retain run-specific source identity as UNVERIFIED unless contemporaneous external records (for example, an archived test session transcript or SHA-bound CI artifact) are recovered. Do not execute scripts or rerun P4 tests.
