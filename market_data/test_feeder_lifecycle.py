@@ -782,14 +782,21 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
                      100.0, 101.0, 99.0, 100.0, 1.0, middle_open + interval),
                 )
 
+            initial_coverage = read_window(
+                db_path, "BTCUSDT", "15m", recovery_start, recovery_end
+            )
+            self.assertEqual(len(initial_coverage["coverage"]["gaps"]), 2)
+
             config = FeederConfig(
                 timeframes=("15m",), close_grace_seconds=5,
                 lease_ttl_seconds=60, lease_heartbeat_seconds=15,
             )
+            events = []
             runtime = build_runtime(
                 config=config, owner_id="recovery-owner",
                 exchange=SyntheticExchange(), store=store,
                 lease_store=leases, clock=lambda: aligned_now,
+                event_sink=events.append,
                 recovery_lookback_candles=3,
             )
             evaluator = HealthEvaluator(config)
@@ -818,6 +825,7 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
             self.assertEqual(len(recovery_pages), 1)
             self.assertEqual(len(exchange_calls), 1)
             self.assertEqual(runtime.state, "LEASE_LOST")
+            self.assertIn("lease_lost", events)
             self.assertIsNotNone(replacement_leases[0])
             replacement = replacement_leases[0]
             self.assertTrue(leases.is_current(
