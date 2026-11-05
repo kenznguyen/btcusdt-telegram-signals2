@@ -70,7 +70,7 @@ Required named runtime tests:
 - `test_denied_admission_does_not_create_or_open_paper_db`
 - `test_platform_lock_adapters_fail_closed_when_unsupported`
 
-The ten process-level runtime tests execute P1 gate behavior on Linux using disposable TemporaryDirectory paths and synthetic SQLite data. P2 adds ten PaperLedger tests for side-effect-free construction, explicit schema initialization, same-path/symlink/hardlink protection, environment path revalidation, and mutation admission. P2 routes submit, record_equity, pause/kill/reset and cancel through the gate; read APIs use read-only connections. Android and Windows runtime lock semantics remain NOT VERIFIED. Equity/Risk Control calculations are unchanged; P3 pipeline and broader application integration remain outside scope.
+The ten process-level runtime tests execute P1 gate behavior on Linux using disposable TemporaryDirectory paths and synthetic SQLite data. P2 adds ten PaperLedger tests for side-effect-free construction, explicit schema initialization, same-path/symlink/hardlink protection, environment path revalidation before initialization and every mutation, and mutation admission. P2 routes submit, record_equity, pause/kill/reset and cancel through the gate; read APIs use read-only connections. Android and Windows runtime lock semantics remain NOT VERIFIED. Equity/Risk Control calculations are unchanged; P3 pipeline and broader application integration remain outside scope.
 
 
 ## Test isolation
@@ -101,7 +101,7 @@ The legacy static RED contract module remains historical evidence and is intenti
 - submit(), record_equity(), set_paused(), set_killed(), reset_kill() and cancel() use PaperWriterGate.writer_transaction().
 - Read paths use read-only SQLite connections and do not reopen the gate or mutate schema.
 - Existing PaperLedger unit tests, explicit local CLI and disposable shadow-migration fixture setup now call initialize() explicitly.
-- P2 acceptance: 11/11 tests PASS, 0 failures, 0 errors, 0 skipped on Ubuntu 24.04 / Python 3.12.
+- P2 acceptance: 12/12 tests PASS, 0 failures, 0 errors, 0 skipped on Ubuntu 24.04 / Python 3.12.
 - Paper execution regression selection: 58 tests PASS. Intentionally RED SWG-F source contracts and the separate shadow-migration certification suite are excluded and remain separate.
 - No canonical T0 DB, Feeder, exchange, migration, deployment, or live order was accessed.
 - ai_execution_enabled=false; PR remains unmerged.
