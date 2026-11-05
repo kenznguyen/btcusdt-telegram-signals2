@@ -155,7 +155,7 @@ def core_decide(timestamp, book=None):
                             initial_capital=os.environ.get("PAPER_INITIAL_CAPITAL", "100"),
                             max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"))
         from paper_execution.ledger import read_snapshot
-        paper = read_snapshot(os.environ.get("MARKET_DATA_DB", ""))
+        paper = read_snapshot(paper_db_path())
         state = paper["strategyState"]
         book = book_snapshot(timestamp) if book is None else book
         report = produce(m15, h1, paper, state, book, timestamp,
@@ -181,18 +181,13 @@ def signal_snapshot(timestamp):
 
 
 def equity_snapshot(timestamp):
-    end = timestamp // 900_000 * 900_000
-    window = market_window("BTCUSDT", "15m",
-                         end-900_000, end, as_of_ms=timestamp)
-    if not window["candles"] or not window["coverage"]["complete"]:
-        return {"available":False,"reason":"CLOSED_M15_MARK_UNAVAILABLE","points":[]}
-    mark = window["candles"][-1]
-    # Constructing the ledger initializes a fresh Paper store before the first
-    # persistent equity observation; read_snapshot() is intentionally read-only
-    # and cannot be used as an initialization prerequisite here.
-    paper_ledger = ledger()
-    result = paper_ledger.record_equity(mark["close"], mark["closeTimeMs"], timestamp,
-        window["datasetVersion"], os.environ.get("PAPER_INITIAL_CAPITAL", "100"))
+    from contextlib import closing
+    from paper_execution import equity as equity_history
+    path = paper_db_path()
+    if not path.is_file():
+        raise FileNotFoundError("Paper ledger is unavailable")
+    with closing(sqlite3.connect(path.as_uri()+"?mode=ro", uri=True, timeout=10)) as connection:
+        result = equity_history.snapshot(connection, timestamp)
     from paper_execution.equity import parse_limits
     limits = parse_limits(os.environ)
     result["initialCapital"] = os.environ.get("PAPER_INITIAL_CAPITAL", "100")
@@ -423,7 +418,7 @@ def application(environ, start_response):
             from paper_execution.ledger import read_snapshot
             if not os.environ.get("MARKET_DATA_DB"):
                 return response("503 Service Unavailable", {"error": "UNCONFIGURED"})
-            result = read_snapshot(os.environ["MARKET_DATA_DB"])
+            result = read_snapshot(paper_db_path())
         elif path == "/v1/equity":
             try:
                 result = equity_snapshot(timestamp)
@@ -436,7 +431,7 @@ def application(environ, start_response):
             limit = int(query.get("limit",["50"])[0])
             before = int(query["beforeId"][0]) if "beforeId" in query else None
             from paper_execution.ledger import read_audit
-            result = read_audit(os.environ.get("MARKET_DATA_DB", ""),limit=limit,before_id=before)
+            result = read_audit(paper_db_path(),limit=limit,before_id=before)
         elif path == "/v1/quality":
             result = quality_snapshot(timestamp)
         elif path == "/v1/order-book":
