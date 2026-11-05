@@ -504,6 +504,7 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="t0-build-runtime-") as directory:
             db_path = Path(directory) / "isolated-build-runtime.sqlite3"
             store = SQLiteCandleStore(db_path)
+            store.initialize()  # Explicitly provision this disposable test database.
             leases = LeaseStore(str(db_path))
             config = FeederConfig(
                 timeframes=("15m",),
@@ -684,6 +685,7 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="t0-recovery-incomplete-") as directory:
             db_path = Path(directory) / "isolated-incomplete.sqlite3"
             store = SQLiteCandleStore(db_path)
+            store.initialize()  # Explicitly provision this disposable test database.
             leases = LeaseStore(str(db_path))
             config = FeederConfig(
                 timeframes=("15m",), close_grace_seconds=5,
