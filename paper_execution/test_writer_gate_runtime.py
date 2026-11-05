@@ -5,6 +5,7 @@ All tests use disposable temporary paths and synthetic SQLite data only.
 """
 import importlib
 import importlib.util
+import gc
 import multiprocessing
 import os
 from pathlib import Path
@@ -87,8 +88,12 @@ def _child_commit_then_crash(paper_db_path, ready):
 class PaperWriterGateRuntimeContracts(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="swgf-runtime-")
-        self.addCleanup(self.temp.cleanup)
+        self.addCleanup(self._cleanup_temporary_database)
         self.root = Path(self.temp.name)
+
+    def _cleanup_temporary_database(self):
+        gc.collect()
+        self.temp.cleanup()
         self.paper_db = self.root / "paper.sqlite3"
         self.ctx = multiprocessing.get_context("spawn")
 
