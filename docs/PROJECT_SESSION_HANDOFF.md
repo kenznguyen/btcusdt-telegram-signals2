@@ -10,7 +10,7 @@ This file is the durable restart point for future ChatGPT sessions. GitHub is th
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - GitHub stores source, plans, evidence manifests, and session handoffs.
-- GitHub Actions is the default CI. Use Codemagic only when GitHub Actions cannot run or is blocked by its limits.
+- Codemagic is the action/workflow runner. Do not introduce GitHub Actions as an active runner; historical workflow source may be retained under `ci/archive/github-actions/`.
 - Do not create parallel branches or PRs for the same work. Continue on the existing relevant branch/PR; avoid PR divergence.
 - Do not claim PASS without a traceable artifact, exact source SHA, and test result.
 - Use explicit states: PASS, CONDITIONAL PASS, BLOCKED, INTERRUPTED, NOT RUN, NOT VERIFIED, DEFERRED.
@@ -197,3 +197,19 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Keep `ai_execution_enabled=false`; paper-only.
 - Android Natural Doze remains `INTERRUPTED / DEFERRED`.
 - Next cleanup action: resolve the PR #134 CI-provider policy discrepancy, then determine whether PR #111 can be closed as superseded while preserving its RED evidence trail. Do not close #112 or bulk-close #113–#117.
+
+
+## CI provider alignment — 2026-11-05 (PR #134)
+
+- Repository operating rule corrected to the user's current direction: GitHub stores source and Codemagic runs actions.
+- On existing branch `feature/t0-atomic-write-fencing-20261105` (PR #134), added the `t0-single-writer-gateway` workflow to `codemagic.yaml`.
+- Preserved the former active GitHub Actions workflow at `ci/archive/github-actions/t0-single-writer-gateway-red.yml`; removed its active `.github/workflows/` copy.
+- Relevant commits, in order:
+  - Archive legacy workflow: `e6a1dfe7faef0e8779866e5cb78a18af9732678d`
+  - Add Codemagic workflow: `8070c366e00c583e587fff27714d5545fe32eac3`
+  - Remove active GitHub Actions workflow: `c81a268075b24778c81d0b1071d0a5e581d20d21`
+- Static file checks: Codemagic workflow key present; archived workflow blob matches original blob `9f03dc9bc0c6df62942bf6d384bb1ff294e6d5b2`; former active workflow path absent.
+- Codemagic execution: NOT RUN / NOT VERIFIED. No workflow run ID or artifact exists for this increment. No tests executed.
+- PR #111 remains open pending a real Codemagic run and confirmation of source SHA, test results, and artifacts. PR #112 remains paused.
+- No merge, branch deletion, canonical DB, Feeder activation, exchange access, market-data sync, or live execution.
+- Next: run the new workflow in Codemagic against the exact PR #134 head; inspect logs/artifacts and record PASS/BLOCKED/NOT VERIFIED. Only then decide whether #111 is superseded and may be closed.
