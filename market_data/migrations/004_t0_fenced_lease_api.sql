@@ -29,6 +29,16 @@ BEGIN
         RAISE EXCEPTION 'T0 lease capability roles must not inherit privileges from other roles'
             USING ERRCODE = '42501';
     END IF;
+
+    IF EXISTS (
+        SELECT 1
+          FROM pg_auth_members membership
+          JOIN pg_roles granted_role ON granted_role.oid = membership.roleid
+         WHERE granted_role.rolname = 't0_lease_manager_owner'
+    ) THEN
+        RAISE EXCEPTION 'T0 SECURITY DEFINER owner role must not be granted to runtime or login roles'
+            USING ERRCODE = '42501';
+    END IF;
 END;
 $role$;
 
@@ -48,6 +58,10 @@ DECLARE
     v_expires_at TIMESTAMPTZ;
     v_active BOOLEAN;
 BEGIN
+    IF p_lease_name IS DISTINCT FROM 'binance-btcusdt-canonical' THEN
+        RAISE EXCEPTION 'invalid canonical feeder lease identity'
+            USING ERRCODE = '42501';
+    END IF;
     IF p_lease_name IS NULL OR length(btrim(p_lease_name)) = 0
        OR p_owner_id IS NULL OR length(btrim(p_owner_id)) = 0
        OR p_ttl_seconds IS NULL OR p_ttl_seconds <= 0 THEN
@@ -133,14 +147,17 @@ LANGUAGE SQL
 SECURITY DEFINER
 SET search_path = pg_catalog, market_data
 AS $function$
-    SELECT EXISTS (
+    SELECT CASE
+      WHEN p_lease_name IS DISTINCT FROM 'binance-btcusdt-canonical' THEN FALSE
+      ELSE EXISTS (
         SELECT 1
           FROM market_data.feeder_leases AS lease
          WHERE lease.lease_name = p_lease_name
            AND lease.owner_id = p_owner_id
            AND lease.generation = p_generation
            AND lease.expires_at > clock_timestamp()
-    );
+      )
+    END;
 $function$;
 
 CREATE OR REPLACE FUNCTION market_data.release_feeder_lease(
