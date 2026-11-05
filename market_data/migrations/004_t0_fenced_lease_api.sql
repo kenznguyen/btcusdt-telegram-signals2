@@ -12,7 +12,7 @@ BEGIN
 
     IF EXISTS (
         SELECT 1 FROM pg_roles
-         WHERE rolname IN ('t0_feeder_lease_manager', 't0_lease_manager_owner')
+         WHERE rolname IN ('t0_feeder_lease_manager', 't0_lease_manager_owner', 't0_migrator')
            AND (rolsuper OR rolcanlogin OR rolcreatedb OR rolcreaterole
                 OR rolreplication OR rolbypassrls)
     ) THEN
