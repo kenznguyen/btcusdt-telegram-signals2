@@ -490,7 +490,7 @@ def application(environ, start_response):
         return response("200 OK", result)
     except (ValueError, TypeError, KeyError, json.JSONDecodeError):
         return response("400 Bad Request", {"error": "INVALID_INPUT"})
-    except (OSError, sqlite3.Error):
+    except (OSError, sqlite3.Error, WriterAdmissionDenied):
         return response("503 Service Unavailable", {"error": "DATA_UNAVAILABLE"})
 
 
