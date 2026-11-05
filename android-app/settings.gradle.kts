@@ -1,5 +1,9 @@
 pluginManagement {
     repositories {
+        maven {
+            name = "GoogleCloudMavenCentralMirror"
+            url = uri("https://maven-central.storage-download.googleapis.com/maven2/")
+        }
         google()
         mavenCentral()
         gradlePluginPortal()
@@ -8,6 +12,10 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        maven {
+            name = "GoogleCloudMavenCentralMirror"
+            url = uri("https://maven-central.storage-download.googleapis.com/maven2/")
+        }
         google()
         mavenCentral()
     }
