@@ -1015,3 +1015,29 @@ Current status:
 - Review scope: SQLite fail-closed runtime composition, SQLite/PostgreSQL lease fencing and atomicity, PostgreSQL runtime composition/least privilege, T0 data integrity, and Feeder recovery. Reviewer was asked not to modify files or merge.
 - Review result: **PENDING / NOT VERIFIED** at this handoff update. Do not send duplicate review requests while this request is pending.
 - PR #134 remains DRAFT / OPEN / NOT MERGED. No merge or production activation authorized.
+
+
+## 2026-11-05 — PR #135 post-merge Codex findings and follow-up
+
+### PR #135
+- PR #135 is merged into `feature/android-five-layer-control`.
+- Merged base SHA confirmed by PR #136 creation: `96244d6f0b44c7621b4782abaa9d08596646349c`.
+- Merged source head: `f200251c8cc13160913155180f019291793bf640`.
+- Exact-head CI before merge: run #42056221905, SUCCESS, 3/3 jobs; this evidence applies to PR #135 source head only.
+- Codex review receipt for `f200251c8c` subsequently surfaced two additional findings:
+  1. `ci/run-legacy.py` still exposed scanner/Telegram/dashboard modes after their targets and Codemagic adapter had been retired; scanner could exit successfully without producing a scan.
+  2. Root README overstated T0 Gateway/Feeder regression coverage. The active workflow runs T0 Store, Sync, Storage and read API tests; it does not run a dedicated Gateway/Feeder suite.
+
+### Follow-up PR #136
+- PR: https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/136
+- Branch: `cleanup/pr135-codex-followup-20261105`.
+- Base: `feature/android-five-layer-control`, base SHA `96244d6f0b44c7621b4782abaa9d08596646349c`.
+- Current head SHA: `032fc304345f32756c6730f85c39c916f0d2adef`.
+- Changes: delete `ci/run-legacy.py`; add it to `RETIRED_PATHS` in `ci/test_legacy_bridge_retirement.py`; correct README's T0 coverage description.
+- Commits:
+  - README correction: `d61850c9630529c900c4d1f160cd1f9946180386`.
+  - Retirement regression: `75ecff06c000b0ef397713eb9e009aa3a56291bb`.
+  - Legacy runner deletion: `032fc304345f32756c6730f85c39c916f0d2adef`.
+- PR #136 remains DRAFT / OPEN. No GitHub Actions workflow run or status check is present yet for head SHA `032fc304345f32756c6730f85c39c916f0d2adef`; verification is **NOT RUN / NOT VERIFIED**. Do not treat PR #135 CI as evidence for this new source.
+- No T0 source/runtime changes; no canonical DB, Feeder, exchange, market-data sync, or live execution.
+- Next: obtain exact-head GitHub Actions run for PR #136; inspect logs and artifacts; self-review the diff; update PR and handoff. Only mark ready after verification and review. Merge requires explicit user approval.
