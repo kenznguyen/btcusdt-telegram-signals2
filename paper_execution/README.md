@@ -19,7 +19,7 @@ state = ledger.snapshot()
 Khởi tạo local là thao tác riêng, không thực hiện trong HTTP GET:
 
 ```bash
-python3 -m paper_execution --db .data/market-data.sqlite3
+MARKET_DATA_DB=.data/market-data.sqlite3 python3 -m paper_execution --db .data/paper.sqlite3
 ```
 
 CLI có tham số `--max-position-base`, `--fee-rate`, `--max-spread-bps`; cấu hình risk
