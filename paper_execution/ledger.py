@@ -215,7 +215,14 @@ class PaperLedger:
         return self.gate.writer_transaction(paper_db_path=str(self.path))
 
     def consume_api_budget(self, timestamp):
-        return False
+        minute = stamp(timestamp) // 60_000
+        with self._writer_transaction() as connection:
+            row = connection.execute(
+                "INSERT INTO paper_control_budget(minute,used) VALUES (?,1) "
+                "ON CONFLICT(minute) DO UPDATE SET used=used+1 WHERE used<30 RETURNING used",
+                (minute,),
+            ).fetchone()
+            return row is not None
 
     def connect(self):
         path = self.path.resolve()
