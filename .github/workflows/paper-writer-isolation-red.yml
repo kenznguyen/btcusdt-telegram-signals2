@@ -1,0 +1,90 @@
+name: Paper Writer Isolation RED Contracts
+
+on:
+  push:
+    branches:
+      - feature/t0-paper-writer-isolation-red-20261102
+    paths:
+      - "paper_execution/**"
+      - ".github/workflows/paper-writer-isolation-red.yml"
+  pull_request:
+    branches:
+      - feature/p5-2-4-shadow-migration-tests-20261102
+    paths:
+      - "paper_execution/**"
+      - ".github/workflows/paper-writer-isolation-red.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paper-writer-isolation-red:
+    name: Static SWG-F contract verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DATABASE_URL: ""
+      DATABASE_PATH: ""
+      SQLITE_PATH: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+      EXCHANGE_API_KEY: ""
+      EXCHANGE_API_SECRET: ""
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Enforce source-only preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "${DATABASE_URL}"
+          test -z "${DATABASE_PATH}"
+          test -z "${SQLITE_PATH}"
+          test -z "${BINANCE_API_KEY}"
+          test -z "${BINANCE_API_SECRET}"
+          test -z "${OKX_API_KEY}"
+          test -z "${OKX_API_SECRET}"
+          test -z "${EXCHANGE_API_KEY}"
+          test -z "${EXCHANGE_API_SECRET}"
+          echo "PAPER_WRITER_RED_PREFLIGHT=PASS"
+      - name: Compile static contracts
+        run: python -m py_compile paper_execution/test_writer_isolation_red.py
+      - name: Verify expected RED contract gaps
+        shell: bash
+        run: |
+          set +e
+          python -m unittest paper_execution.test_writer_isolation_red -v > paper-writer-red.log 2>&1
+          status=$?
+          set -e
+          cat paper-writer-red.log
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path("paper-writer-red.log").read_text(encoding="utf-8")
+          failures = len(re.findall(r"^FAIL: test_", text, re.MULTILINE))
+          errors = len(re.findall(r"^ERROR: test_", text, re.MULTILINE))
+          ran = re.findall(r"^Ran (\\d+) tests?", text, re.MULTILINE)
+          summary = re.search(r"^FAILED \\(failures=(\\d+)\\)$", text, re.MULTILINE)
+          print(f"SWG_F_TESTS_RAN={ran[-1] if ran else 'UNKNOWN'}")
+          print(f"SWG_F_ASSERTION_FAILURES={failures}")
+          print(f"SWG_F_TEST_ERRORS={errors}")
+          if len(ran) != 1 or ran[-1] != "10" or failures != 10 or errors != 0 or not summary:
+              print("PAPER_WRITER_RED=INVALID")
+              raise SystemExit(1)
+          print("PAPER_WRITER_RED=CONFIRMED_CONTRACT_GAPS")
+          PY
+      - name: Upload RED evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-writer-isolation-red-${{ github.sha }}
+          path: paper-writer-red.log
+          if-no-files-found: warn
+          retention-days: 7
