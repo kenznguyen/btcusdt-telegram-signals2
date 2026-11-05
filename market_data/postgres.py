@@ -123,14 +123,20 @@ class PostgresLeaseStore:
                 (self.lease_name,),
             )
             current = database.execute(
-                """SELECT owner_id, generation, expires_at,
-                          expires_at > clock_timestamp() AS is_active
+                """SELECT owner_id, generation, expires_at
                    FROM market_data.feeder_leases
                    WHERE lease_name=%s
                    FOR UPDATE""",
                 (self.lease_name,),
             ).fetchone()
-            current_owner, generation, expires_at, active = current
+            current_owner, generation, expires_at = current
+            # Evaluate expiry only after FOR UPDATE has acquired the row lock.
+            # A projection evaluated before a lock wait can otherwise be stale.
+            active = database.execute(
+                """SELECT expires_at > clock_timestamp()
+                   FROM market_data.feeder_leases WHERE lease_name=%s""",
+                (self.lease_name,),
+            ).fetchone()[0]
             if active:
                 if current_owner == owner:
                     return PostgresLease(owner, generation, expires_at)
@@ -227,7 +233,7 @@ class PostgresWriteGateway:
         inserted = 0
         with connection(self.location) as database:
             lease = database.execute(
-                """SELECT owner_id, generation, expires_at > clock_timestamp()
+                """SELECT owner_id, generation
                    FROM market_data.feeder_leases
                    WHERE lease_name=%s
                    FOR UPDATE""",
@@ -235,8 +241,17 @@ class PostgresWriteGateway:
             ).fetchone()
             if (
                 lease is None or lease[0] != self.owner_id
-                or lease[1] != generation or not lease[2]
+                or lease[1] != generation
             ):
+                raise PermissionError("Feeder lease is not current; canonical write rejected")
+            # Recheck using the database wall clock after the row lock is held.
+            active = database.execute(
+                """SELECT expires_at > clock_timestamp()
+                   FROM market_data.feeder_leases
+                   WHERE lease_name=%s AND owner_id=%s AND generation=%s""",
+                (self.lease_name, self.owner_id, generation),
+            ).fetchone()
+            if active is None or not active[0]:
                 raise PermissionError("Feeder lease is not current; canonical write rejected")
 
             for candle in batch:
