@@ -568,13 +568,11 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                     migrate(DSN)
             finally:
                 admin.execute("REVOKE t0_db_owner FROM t0_migrator")
-                admin.execute("REVOKE t0_db_owner FROM t0_migrator")
                 admin.execute("REVOKE t0_candle_writer_owner FROM t0_migrator")
                 admin.execute("REVOKE t0_lease_manager_owner FROM t0_migrator")
                 admin.execute("REVOKE t0_migrator FROM t0_migrator_login")
                 admin.execute("DROP ROLE t0_migrator_login")
                 admin.execute("DROP ROLE t0_migrator")
-                admin.execute("DROP ROLE t0_db_owner")
                 admin.execute("DROP ROLE t0_db_owner")
 
     def test_sql_migrations_reject_admin_option_on_migrator_owner_roles(self):
@@ -603,11 +601,13 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                     ):
                         admin.execute(source[start:end])
             finally:
+                admin.execute("REVOKE t0_db_owner FROM t0_migrator")
                 admin.execute("REVOKE t0_candle_writer_owner FROM t0_migrator")
                 admin.execute("REVOKE t0_lease_manager_owner FROM t0_migrator")
                 admin.execute("REVOKE t0_migrator FROM t0_migrator_login")
                 admin.execute("DROP ROLE t0_migrator_login")
                 admin.execute("DROP ROLE t0_migrator")
+                admin.execute("DROP ROLE t0_db_owner")
 
 if __name__ == "__main__":
     unittest.main()
