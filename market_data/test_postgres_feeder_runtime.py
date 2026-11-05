@@ -200,7 +200,7 @@ class PostgresFeederRuntimeIntegrationTest(unittest.TestCase):
         from market_data.feeder_service import build_runtime
         from market_data.postgres import PostgresLeaseStore, PostgresWriteGateway, connection
         from market_data.storage import PostgresStore
-        from market_data.store import INTERVAL_MS
+        from market_data.store import EXCHANGE, INTERVAL_MS, MARKET_TYPE
 
         timeframe = "15m"
         interval = INTERVAL_MS[timeframe]
