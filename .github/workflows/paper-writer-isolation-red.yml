@@ -1,4 +1,4 @@
-name: Paper Writer Isolation P1 GREEN Acceptance
+name: Paper Writer Isolation P1-P3 GREEN Acceptance
 
 on:
   push:
@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   paper-writer-isolation-red:
-    name: SWG-F P1 + P2 PaperLedger runtime GREEN
+    name: SWG-F P1 + P2 + P3 API integration GREEN
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
