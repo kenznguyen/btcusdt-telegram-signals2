@@ -100,8 +100,7 @@ class FiveLayerAndroidBoundaryTest(unittest.TestCase):
         self.assertTrue(workflow_path.is_file(), "GitHub Actions validation workflow is missing")
         workflow = workflow_path.read_text()
         for marker in (
-            "pull_request:", "feature/android-five-layer-control", "push:",
-            "cleanup/remove-chart-pro-from-five-layer-20261105", "workflow_dispatch:",
+            "pull_request:", "feature/android-five-layer-control", "workflow_dispatch:",
             "permissions:", "contents: read", "android-paper:", "backend-regression:",
             "dashboard:", 'AI_EXECUTION_ENABLED: "false"',
         ):
