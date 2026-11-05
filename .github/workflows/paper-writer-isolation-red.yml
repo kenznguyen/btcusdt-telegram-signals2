@@ -141,6 +141,7 @@ jobs:
           errors = re.findall(r"^ERROR: test_[^\s(]+", output, re.MULTILINE)
           summary = re.search(r"^OK(?: \(skipped=(\d+)\))?$", output, re.MULTILINE)
           import os
+          failures = re.findall(r"^FAIL: test_[^\\s(]+", output, re.MULTILINE)
           expected_skipped = 1 if os.name == "nt" else 2
           skipped_count = int(summary.group(1) or 0) if summary else -1
           valid = (
