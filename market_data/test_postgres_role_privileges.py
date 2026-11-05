@@ -585,6 +585,41 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                 admin.execute("DROP ROLE t0_migrator")
                 admin.execute("DROP ROLE t0_db_owner")
 
+    def test_migration_rejects_admin_option_on_security_definer_owner_memberships(self):
+        from market_data.migrations import _assert_writer_roles_safe
+
+        with self.psycopg.connect(DSN, autocommit=True) as admin:
+            admin.execute("CREATE ROLE t0_db_owner NOLOGIN")
+            admin.execute("CREATE ROLE t0_migrator NOLOGIN")
+            admin.execute("CREATE ROLE t0_migrator_login LOGIN")
+            admin.execute("GRANT t0_db_owner TO t0_migrator")
+            admin.execute("GRANT t0_migrator TO t0_migrator_login")
+            try:
+                for owner_role in ("t0_candle_writer_owner", "t0_lease_manager_owner"):
+                    with self.subTest(owner_role=owner_role):
+                        admin.execute(
+                            f'GRANT "{owner_role}" TO t0_migrator WITH ADMIN OPTION'
+                        )
+                        try:
+                            with self.assertRaisesRegex(
+                                RuntimeError,
+                                "t0_migrator must not have ADMIN OPTION on database or SECURITY DEFINER owner roles",
+                            ):
+                                _assert_writer_roles_safe(admin)
+                        finally:
+                            admin.execute(
+                                f'REVOKE ADMIN OPTION FOR "{owner_role}" FROM t0_migrator'
+                            )
+                            admin.execute(
+                                f'REVOKE "{owner_role}" FROM t0_migrator'
+                            )
+            finally:
+                admin.execute("REVOKE t0_db_owner FROM t0_migrator")
+                admin.execute("REVOKE t0_migrator FROM t0_migrator_login")
+                admin.execute("DROP ROLE t0_migrator_login")
+                admin.execute("DROP ROLE t0_migrator")
+                admin.execute("DROP ROLE t0_db_owner")
+
     def test_sql_migrations_reject_admin_option_on_migrator_owner_roles(self):
         from pathlib import Path
 
