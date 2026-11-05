@@ -48,6 +48,18 @@ jobs:
           actual="$(git rev-parse HEAD)"
           test "$actual" = "$expected"
           echo "SWG_F_SOURCE_SHA=$actual"
+      - name: Checkout exact T0 fencing source for isolated boundary tests
+        uses: actions/checkout@v4
+        with:
+          ref: a569eb6248cd53252fcf32065482921fc4c8ffcd
+          path: t0-source
+      - name: Verify exact T0 source revision
+        shell: bash
+        run: |
+          expected="a569eb6248cd53252fcf32065482921fc4c8ffcd"
+          actual="$(git -C t0-source rev-parse HEAD)"
+          test "$actual" = "$expected"
+          echo "T0_BOUNDARY_SOURCE_SHA=$actual"
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -67,7 +79,7 @@ jobs:
           test -z "${EXCHANGE_API_SECRET}"
           echo "PAPER_WRITER_RED_PREFLIGHT=PASS"
       - name: Compile Paper writer contracts
-        run: python -m py_compile paper_execution/test_writer_isolation_red.py paper_execution/test_writer_gate_runtime.py paper_execution/test_ledger_writer_isolation.py
+        run: python -m py_compile paper_execution/test_writer_isolation_red.py paper_execution/test_writer_gate_runtime.py paper_execution/test_ledger_writer_isolation.py paper_execution/test_cross_domain_writer_isolation.py
       - name: Verify P2 PaperLedger GREEN acceptance
         shell: bash
         run: |
@@ -91,6 +103,20 @@ jobs:
               raise SystemExit("P2 PaperLedger GREEN acceptance failed")
           print("PAPER_LEDGER_P2_GREEN=PASS")
           PY
+      - name: Verify T0 and Paper writer authority isolation
+        shell: bash
+        env:
+          T0_SOURCE_ROOT: ${{ github.workspace }}/t0-source
+        run: |
+          set -euo pipefail
+          python -m unittest paper_execution.test_cross_domain_writer_isolation -v 2>&1 | tee cross-domain-writer-isolation.log
+      - name: Verify T0 Gateway fencing regression
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/t0-source
+        run: |
+          set -euo pipefail
+          python -m unittest market_data.test_write_gateway market_data.test_fenced_store -v 2>&1 | tee t0-gateway-fencing-regression.log
       - name: Verify P3 API integration acceptance
         shell: bash
         run: |
@@ -139,5 +165,7 @@ jobs:
             paper-ledger-p2-green.log
             paper-execution-regression.log
             paper-pipeline-p3-green.log
+            cross-domain-writer-isolation.log
+            t0-gateway-fencing-regression.log
           if-no-files-found: warn
           retention-days: 7
