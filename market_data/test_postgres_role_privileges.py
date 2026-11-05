@@ -342,7 +342,7 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         self.assertFalse(public_lease_execute)
 
     def test_fresh_migrations_run_as_restricted_temporary_migrator(self):
-        from urllib.parse import quote, urlsplit, urlunsplit
+        from psycopg.conninfo import make_conninfo
         from market_data.migrations import migrate
         from psycopg import sql
 
@@ -361,17 +361,16 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                 admin.execute("GRANT t0_lease_manager_owner TO t0_migrator")
                 admin.execute("GRANT t0_migrator TO t0_migrator_login")
                 admin.execute(sql.SQL("CREATE DATABASE {} OWNER t0_db_owner").format(sql.Identifier(database_name)))
-            with self.psycopg.connect(DSN.replace("/t0_test", "/" + database_name), autocommit=True) as admin:
+            admin_dsn = make_conninfo(DSN, dbname=database_name)
+            with self.psycopg.connect(admin_dsn, autocommit=True) as admin:
                 admin.execute("CREATE EXTENSION IF NOT EXISTS timescaledb")
 
-            parsed = urlsplit(DSN)
-            migrator_dsn = urlunsplit((
-                parsed.scheme,
-                f"t0_migrator_login:{quote(password)}@{parsed.hostname}:{parsed.port}",
-                "/" + database_name, parsed.query, parsed.fragment,
-            ))
+            migrator_dsn = make_conninfo(
+                DSN, user="t0_migrator_login", password=password,
+                dbname=database_name,
+            )
             migrate(migrator_dsn)
-            with self.psycopg.connect(DSN.replace("/t0_test", "/" + database_name), autocommit=True) as admin:
+            with self.psycopg.connect(admin_dsn, autocommit=True) as admin:
                 owners = admin.execute(
                     "SELECT p.proname, r.rolname FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner "
                     "WHERE p.proname IN ('write_canonical_candle', 'acquire_feeder_lease') ORDER BY p.proname"
