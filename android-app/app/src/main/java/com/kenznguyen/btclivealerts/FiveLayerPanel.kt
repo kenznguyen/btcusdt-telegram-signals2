@@ -128,10 +128,10 @@ private fun FiveLayerSignalCard(title: String, reading: FiveLayerReading<Strateg
     }
 }
 
-/** Common API controls are paper-only and never share state with the local chart simulation. */
+/** Common API controls are paper-only and use server-owned state. */
 @Composable
 internal fun FiveLayerPanel(context: Context) {
-    val prefs = remember { context.getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE) }
+    val prefs = remember { context.getSharedPreferences("five_layer_state_v1", Context.MODE_PRIVATE) }
     var url by remember { mutableStateOf(prefs.getString("five_layer_api_url", "").orEmpty()) }
     // Tokens deliberately use remember, never rememberSaveable or SharedPreferences.
     var readToken by remember { mutableStateOf("") }
