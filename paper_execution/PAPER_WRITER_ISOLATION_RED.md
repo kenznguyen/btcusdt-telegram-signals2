@@ -70,7 +70,7 @@ Required named runtime tests:
 - `test_denied_admission_does_not_create_or_open_paper_db`
 - `test_platform_lock_adapters_fail_closed_when_unsupported`
 
-All ten named runtime test cases now exist in `paper_execution/test_writer_gate_runtime.py`. The production `paper_execution.writer_gate` module is now implemented for P1. The ten process-level tests execute the gate on Linux using disposable TemporaryDirectory paths and synthetic SQLite data. P1 does not integrate PaperLedger constructors/mutators, Equity, Risk Control, pipeline API, PAPER_DB/T0 path isolation, Android runtime, or Windows runtime; those remain NOT RUN / NOT VERIFIED and require their own implementation slices and evidence.
+The original ten named runtime test cases now exist in `paper_execution/test_writer_gate_runtime.py`. The production `paper_execution.writer_gate` module is now implemented for P1. The ten process-level tests execute the gate on Linux using disposable TemporaryDirectory paths and synthetic SQLite data. P1 does not integrate PaperLedger constructors/mutators, Equity, Risk Control, pipeline API, PAPER_DB/T0 path isolation, Android runtime, or Windows runtime; those remain NOT RUN / NOT VERIFIED and require their own implementation slices and evidence.
 
 
 ## Test isolation
@@ -89,3 +89,7 @@ A valid RED is a set of assertion failures proving missing contracts. Syntax/imp
 - PaperLedger and other Paper mutation paths are intentionally not integrated in P1; no P2/P3 behavior is claimed.
 - No canonical T0 DB, Feeder, exchange, market-data sync, migration, deployment, or live order was accessed.
 - `ai_execution_enabled=false`; PR remains unmerged.
+
+- P1 runtime suite expanded to 12 named tests, including successful commit and exception rollback through `writer_transaction()`.
+- P1 Linux acceptance: 12/12 PASS, 0 failures, 0 errors, 0 skipped on Ubuntu 24.04 / Python 3.12.
+- Windows and Android lock-adapter runtime tests remain NOT VERIFIED.
