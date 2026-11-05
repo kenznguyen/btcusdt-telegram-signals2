@@ -38,10 +38,11 @@ class CiPolicyTest(unittest.TestCase):
             ":app:assembleDebug",
             "ci/verify-five-layer-android-apk.py",
             "android-apk.json",
-            "artifacts/*.apk",
         ):
             with self.subTest(gate=gate):
                 self.assertIn(gate, self.workflow)
+        self.assertNotIn("artifacts/*.apk", self.workflow)
+        self.assertIn("Upload Android test reports and verification metadata", self.workflow)
 
     def test_backend_job_is_paper_only_and_runs_core_and_risk_regressions(self):
         self.assertIn('AI_EXECUTION_ENABLED: "false"', self.workflow)
