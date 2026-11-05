@@ -1350,3 +1350,13 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Remaining verification limitations: direct-head push run is **NOT VERIFIED** (available workflow-run lookup only surfaced PR-triggered merge-context run); valid TDD RED execution evidence for the ADMIN OPTION guard remains **NOT VERIFIED**. Do not label either as PASS.
 - Review threads: no unresolved inline threads at time of check.
 - PR remains DRAFT / NOT MERGED. No merge approval inferred. No production/canonical DB migration, VPS deployment, Feeder activation, exchange sync or live execution.
+
+
+## 2026-11-06 — PR #134 Codex review and self-review
+
+- Current PR head: `4c28fff542f767c094e725dabc8a2698df2f39fd`; PR remains OPEN / DRAFT / NOT MERGED.
+- Codex receipt [#6671327441](https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/134#issuecomment-6671327441) reports no major issues and reviewed commit prefix `4c28fff542`, matching current head. Codex review: PASS (no major issues reported).
+- Self-review covered `market_data/migrations.py`, SQL migrations 003/004 and PostgreSQL role tests. No additional actionable defect identified. Role checks passed in disposable TimescaleDB CI.
+- PR workflow [#42122195912](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42122195912) is SUCCESS but checked out synthetic merge SHA `10f35e4fd8a30e715dd02ed8ab16e0281e468e53`, not direct branch head.
+- Direct-head push CI: NOT VERIFIED. Valid TDD RED execution evidence: NOT VERIFIED. Do not claim either as PASS.
+- No unresolved inline review threads at check. No merge approval, production migration, canonical DB, VPS deployment, Feeder activation, exchange sync or live execution.
