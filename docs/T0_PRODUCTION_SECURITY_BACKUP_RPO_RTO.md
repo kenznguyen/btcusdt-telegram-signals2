@@ -28,6 +28,7 @@ Use separate PostgreSQL roles. Do not reuse one login for migrations, ingestion,
 - `t0_feeder` must not be a member of `t0_db_owner`, `t0_migrator`, `pg_write_all_data`, or any superuser role.
 - Grant privileges explicitly. The Feeder login receives no direct privilege on `feeder_leases`; it uses narrowly scoped SECURITY DEFINER acquire/heartbeat/release/current-check functions through `t0_feeder_lease_manager`. It also uses `t0_feeder_writer` for the fenced candle-write function. It must not receive direct SELECT/INSERT/UPDATE/DELETE/TRUNCATE on `feeder_leases` or direct candle write privileges. It must not receive direct INSERT/UPDATE/DELETE/TRUNCATE on `market_data.candles` or schema CREATE. The SECURITY DEFINER owner role—not the Feeder login—holds the narrowly scoped candle SELECT/INSERT privileges.
 - `t0_reader` receives SELECT only on approved read surfaces; it must not read or mutate lease ownership.
+- `T0_FEEDER_OWNER_ID`, when configured, must be a high-entropy per-process token; otherwise the runtime generates a fresh token. Do not reuse it across processes or include it in logs. The Feeder login has no direct lease-table SELECT.
 - Fix each login's `search_path` to a trusted schema and fully qualify security-sensitive SQL. Revoke CREATE on shared schemas from application roles.
 - Apply default privileges for future tables so new objects do not silently become accessible to PUBLIC or application logins.
 
