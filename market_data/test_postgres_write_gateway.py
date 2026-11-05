@@ -1,8 +1,7 @@
 """Integration contracts for the PostgreSQL lease-fenced canonical writer.
 
-These tests intentionally define the required public contract before the
-PostgreSQL writer exists. They must run only against the disposable local
-TimescaleDB service configured by the dedicated GitHub Actions job.
+These contracts verify the PostgreSQL lease-fenced writer against a disposable
+local TimescaleDB service configured by the dedicated GitHub Actions job.
 """
 
 import os
@@ -39,7 +38,7 @@ def _assert_disposable_target():
 
 @unittest.skipUnless(DSN, "Set the disposable local TimescaleDB test service")
 class PostgresWriteGatewayIntegrationTest(unittest.TestCase):
-    """Required behavior; current implementation is expected to fail these tests."""
+    """Required PostgreSQL writer and lease lifecycle behavior."""
 
     @classmethod
     def setUpClass(cls):
@@ -55,7 +54,7 @@ class PostgresWriteGatewayIntegrationTest(unittest.TestCase):
     def setUp(self):
         from market_data.postgres import PostgresLeaseStore
 
-        self.lease_name = "pg-red-" + uuid.uuid4().hex
+        self.lease_name = "pg-integration-" + uuid.uuid4().hex
         self.leases = PostgresLeaseStore(DSN, lease_name=self.lease_name)
         self.owner = "writer-a"
         self.lease = self.leases.acquire(self.owner, ttl_seconds=30)
@@ -162,11 +161,11 @@ class PostgresWriteGatewayIntegrationTest(unittest.TestCase):
         self.assertEqual(rows[0][0], self.open_time)
         self.assertEqual(str(rows[0][1]), "101")
         
-    def test_invalid_middle_candle_rolls_back_entire_batch(self):
+    def test_invalid_middle_candle_is_rejected_before_any_write(self):
         from market_data.postgres import connection
 
-        # Bypass the value-object constructor to exercise PostgreSQL CHECK constraints
-        # after the first valid row has been inserted in the same batch.
+        # Bypass the value-object constructor to prove the Gateway revalidates
+        # every candle before opening a transaction or writing any row.
         invalid = object.__new__(Candle)
         for name, value in {
             "timeframe": "15m", "open_time_ms": self.open_time + self.step,
