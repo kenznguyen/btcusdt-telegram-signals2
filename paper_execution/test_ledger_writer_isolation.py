@@ -91,5 +91,38 @@ class PaperLedgerWriterIsolationTests(unittest.TestCase):
         self.assertEqual(self.paper_db.stat().st_mtime_ns, before)
 
 
+    def test_submit_and_cancel_are_denied_without_writer_admission(self):
+        ledger = PaperLedger(self.paper_db).initialize()
+        ledger.gate.begin_drain(timeout_seconds=1)
+        now = 1_800_000_000_000
+        intent = {
+            "intentId": "p2-denied-submit",
+            "symbol": "BTCUSDT",
+            "exchange": "binance",
+            "marketType": "USDT_PERPETUAL",
+            "strategyVersion": "test",
+            "modelVersion": "test",
+            "datasetVersion": "test",
+            "targetPositionBase": "0.1",
+            "limitPrice": "100",
+            "decisionAtMs": now,
+            "validUntilMs": now + 30_000,
+            "inputSnapshotId": "p2-book",
+            "mode": "PAPER",
+        }
+        book = {
+            "source": "hummingbot",
+            "connector": "binance_perpetual",
+            "symbol": "BTCUSDT",
+            "observedAtMs": now,
+            "bids": [{"price": "99", "quantity": "1"}],
+            "asks": [{"price": "100", "quantity": "1"}],
+        }
+        with self.assertRaises(WriterAdmissionDenied):
+            ledger.submit(intent, book, now)
+        with self.assertRaises(WriterAdmissionDenied):
+            ledger.cancel("paper-order-that-does-not-exist", now)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
