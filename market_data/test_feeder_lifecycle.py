@@ -431,5 +431,43 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
                 now_ms=NOW + 7_200_000, ttl_seconds=60,
             )
 
+    def test_scheduler_and_recovery_share_the_same_gateway(self):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import Mock, patch
+        from market_data.write_gateway import SQLiteWriteGateway
+
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "canonical.sqlite3"
+            store, leases = Mock(), Mock()
+            store.path = db_path
+            store.initialize = Mock()
+            leases.db_path = str(db_path)
+            leases.lease_name = "binance-btcusdt-canonical"
+            leases.authorize_write.return_value = True
+            leases.heartbeat.return_value = True
+            runtime = build_runtime(
+                config=FeederConfig(timeframes=("15m",)),
+                owner_id="gateway-composition-worker",
+                exchange=Mock(), store=store, lease_store=leases,
+                clock=lambda: NOW + 900_100,
+            )
+            runtime.lease_generation = 9
+            with patch("market_data.feeder_service.sync_window", return_value=1) as sync:
+                self.assertEqual(runtime.scheduler.sync_callback("15m", 0, 900_000), 1)
+                self.assertEqual(
+                    runtime.recovery.coordinators["15m"].sync_callback("15m", 0, 900_000),
+                    1,
+                )
+            self.assertEqual(sync.call_count, 2)
+            scheduler_gateway = sync.call_args_list[0].args[1]
+            recovery_gateway = sync.call_args_list[1].args[1]
+            self.assertIsInstance(scheduler_gateway, SQLiteWriteGateway)
+            self.assertIs(scheduler_gateway, recovery_gateway)
+            self.assertEqual(scheduler_gateway.db_path, str(db_path))
+            leases.authorize_write.assert_called_once()
+            leases.heartbeat.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()
