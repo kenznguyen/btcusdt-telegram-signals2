@@ -26,7 +26,7 @@ Android Paper Client: [android-app](android-app/README.md). Ứng dụng chỉ k
 
 ## GitHub Actions
 
-Workflow `.github/workflows/five-layer-pr-validation.yml` chạy tự động cho PR vào branch `feature/android-five-layer-control` và push lên branch cleanup. Ba job độc lập:
+Workflow `.github/workflows/five-layer-pr-validation.yml` chạy tự động cho PR vào branch `feature/android-five-layer-control` và có thể chạy thủ công bằng `workflow_dispatch`. Ba job độc lập:
 
 - `android-paper`: boundary tests, Android unit tests, debug APK build, kiểm tra package/manifest/DEX/chữ ký.
 - `backend-regression`: T0 Gateway/Feeder, T1 futures intelligence, T2 Core Strategy/FreqAI, T3 Paper Risk/Ledger/Hummingbot.
