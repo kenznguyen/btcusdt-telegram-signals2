@@ -14,7 +14,7 @@ def _assert_writer_roles_safe(database):
     unsafe = database.execute(
         """SELECT rolname FROM pg_roles
            WHERE rolname IN ('t0_feeder_writer', 't0_candle_writer_owner',
-                             't0_feeder_lease_manager', 't0_lease_manager_owner')
+                             't0_feeder_lease_manager', 't0_lease_manager_owner', 't0_migrator')
              AND (rolsuper OR rolcanlogin OR rolcreatedb OR rolcreaterole
                   OR rolreplication OR rolbypassrls)
            ORDER BY rolname"""
