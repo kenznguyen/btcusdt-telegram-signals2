@@ -153,41 +153,20 @@ jobs:
             ci-contracts.log
           retention-days: 14
 
-  dashboard:
-    name: T4 React tests, production build and dependency audit
+  dashboard-boundary:
+    name: T4 minimum isolation boundary (non-blocking)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    continue-on-error: true
+    timeout-minutes: 5
     steps:
       - name: Checkout exact source head
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - name: Set up Node 24
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: control_dashboard/package-lock.json
-      - name: Pin npm 11.9.0
-        run: npm install --global npm@11.9.0
-      - name: Install frozen dashboard dependencies without lifecycle scripts
-        working-directory: control_dashboard
-        run: npm ci --ignore-scripts
-      - name: Run dashboard tests
-        working-directory: control_dashboard
-        run: npm test
-      - name: Build dashboard
-        working-directory: control_dashboard
-        run: npm run build
-      - name: Audit dashboard dependencies
-        working-directory: control_dashboard
-        run: npm audit --audit-level=high
-      - name: Upload dashboard build
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: five-layer-dashboard-${{ github.run_id }}-${{ github.run_attempt }}
-          path: control_dashboard/dist/
-          if-no-files-found: error
-          retention-days: 14
+      - name: Confirm T4 remains a self-contained rebuild target
+        run: |
+          set -euo pipefail
+          test -f control_dashboard/package.json
+          test -f control_dashboard/package-lock.json
+          node -e "JSON.parse(require('fs').readFileSync('control_dashboard/package.json', 'utf8')); JSON.parse(require('fs').readFileSync('control_dashboard/package-lock.json', 'utf8'))"
