@@ -67,6 +67,7 @@ class TimescaleReadOnlyIntegrationTest(unittest.TestCase):
         except ImportError:
             raise RuntimeError("psycopg is required for TimescaleDB integration tests") from None
 
+        migrate(DSN)
         with connection(DSN, read_only=True) as database:
             extension = database.execute(
                 "SELECT extversion FROM pg_extension WHERE extname='timescaledb'"
@@ -75,7 +76,6 @@ class TimescaleReadOnlyIntegrationTest(unittest.TestCase):
                 raise RuntimeError("The disposable test database lacks TimescaleDB")
             cls.extension_version = extension[0]
 
-        migrate(DSN)
         applied, total = migrate(DSN)
         if applied != total:
             raise RuntimeError("TimescaleDB migrations did not reach the expected version")
