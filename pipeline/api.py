@@ -350,7 +350,7 @@ def application(environ, start_response):
               "/v1/paper/evaluate", "/v1/paper/pause", "/v1/paper/cancel", "/v1/paper/kill", "/v1/paper/reset-kill", "/v1/equity/record"}
     if path not in routes:
         return response("404 Not Found", {"error": "NOT_FOUND"})
-    expected = "POST" if path in {"/v1/paper/evaluate", "/v1/paper/pause", "/v1/paper/cancel", "/v1/paper/kill", "/v1/paper/reset-kill"} else "GET"
+    expected = "POST" if path in {"/v1/paper/evaluate", "/v1/paper/pause", "/v1/paper/cancel", "/v1/paper/kill", "/v1/paper/reset-kill"} or path.endswith("/record") else "GET"
     if method != expected:
         return response("405 Method Not Allowed", {"error": "METHOD_NOT_ALLOWED"})
     token = os.environ.get("CONTROL_TOKEN" if method == "POST" else "MARKET_DATA_TOKEN", "")
