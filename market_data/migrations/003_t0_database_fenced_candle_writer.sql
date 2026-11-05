@@ -82,3 +82,19 @@ REVOKE ALL ON FUNCTION market_data.write_canonical_candle(
     TEXT, TEXT, BIGINT, TEXT, TEXT, TEXT, TEXT, BIGINT,
     NUMERIC, NUMERIC, NUMERIC, NUMERIC, NUMERIC, BIGINT
 ) FROM PUBLIC;
+
+-- Stable NOLOGIN capability role: provisioned Feeder login roles must be
+-- members of this role and must not receive direct candle-table write grants.
+DO $role$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 't0_feeder_writer') THEN
+        CREATE ROLE t0_feeder_writer NOLOGIN;
+    END IF;
+END;
+$role$;
+
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON market_data.candles FROM t0_feeder_writer;
+GRANT EXECUTE ON FUNCTION market_data.write_canonical_candle(
+    TEXT, TEXT, BIGINT, TEXT, TEXT, TEXT, TEXT, BIGINT,
+    NUMERIC, NUMERIC, NUMERIC, NUMERIC, NUMERIC, BIGINT
+) TO t0_feeder_writer;
