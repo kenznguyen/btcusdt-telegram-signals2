@@ -7,7 +7,6 @@ on:
     paths:
       - "market_data/**"
       - ".github/workflows/t0-single-writer-gateway-red.yml"
-      - "docs/evidence/T0_SINGLE_WRITER_GATEWAY_RED_2026-11-05.md"
   pull_request:
     branches:
       - feature/t0-centralized-data-feeder-p1-20261101
