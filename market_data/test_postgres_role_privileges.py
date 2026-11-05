@@ -218,6 +218,22 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         self.assertFalse(feeder_insert)
         self.assertFalse(public_execute)
 
+    def test_migration_runner_rejects_preexisting_privileged_writer_roles(self):
+        from market_data.migrations import migrate
+
+        for role in ("t0_candle_writer_owner", "t0_feeder_writer"):
+            with self.subTest(role=role):
+                with self.psycopg.connect(DSN, autocommit=True) as admin:
+                    admin.execute(f'ALTER ROLE "{role}" SUPERUSER LOGIN')
+                    try:
+                        with self.assertRaisesRegex(
+                            RuntimeError,
+                            f"{role} must remain a restricted NOLOGIN role",
+                        ):
+                            migrate(DSN)
+                    finally:
+                        admin.execute(f'ALTER ROLE "{role}" NOSUPERUSER NOLOGIN')
+
     def test_runtime_roles_have_no_schema_create_or_role_admin_privilege(self):
         with self.psycopg.connect(DSN, autocommit=True) as admin:
             feeder = admin.execute(
