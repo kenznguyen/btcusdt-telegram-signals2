@@ -296,5 +296,33 @@ class PaperWriterGateRuntimeContracts(unittest.TestCase):
         self.assertFalse(self.paper_db.exists())
 
 
+    def test_writer_transaction_commits_and_releases_admission(self):
+        module = self.require_gate()
+        gate = self.gate(module)
+        with sqlite3.connect(self.paper_db) as connection:
+            connection.execute("CREATE TABLE writer_probe(value TEXT NOT NULL)")
+        with gate.writer_transaction(paper_db_path=str(self.paper_db)) as connection:
+            connection.execute("INSERT INTO writer_probe(value) VALUES ('committed')")
+        with sqlite3.connect(self.paper_db) as connection:
+            rows = connection.execute("SELECT value FROM writer_probe").fetchall()
+        self.assertEqual(rows, [("committed",)])
+        self.assert_drain_state(gate.begin_drain(timeout_seconds=1), "DRAINED")
+
+    def test_writer_transaction_rolls_back_and_releases_admission(self):
+        module = self.require_gate()
+        gate = self.gate(module)
+        with sqlite3.connect(self.paper_db) as connection:
+            connection.execute("CREATE TABLE writer_probe(value TEXT NOT NULL)")
+        with self.assertRaisesRegex(RuntimeError, "fixture rollback"):
+            with gate.writer_transaction(paper_db_path=str(self.paper_db)) as connection:
+                connection.execute("INSERT INTO writer_probe(value) VALUES ('must-rollback')")
+                raise RuntimeError("fixture rollback")
+        with sqlite3.connect(self.paper_db) as connection:
+            rows = connection.execute("SELECT value FROM writer_probe").fetchall()
+        self.assertEqual(rows, [])
+        token = gate.admit_writer()
+        self.assertTrue(gate.release_writer(token))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
