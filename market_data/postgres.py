@@ -134,13 +134,10 @@ class PostgresLeaseStore:
     def is_current(self, owner, generation):
         self._validate(owner, generation)
         with connection(self.location, read_only=True) as database:
-            row = database.execute(
-                """SELECT 1 FROM market_data.feeder_leases
-                   WHERE lease_name=%s AND owner_id=%s AND generation=%s
-                     AND expires_at > clock_timestamp()""",
+            return database.execute(
+                """SELECT market_data.is_current_feeder_lease(%s, %s, %s)""",
                 (self.lease_name, owner, generation),
-            ).fetchone()
-            return row is not None
+            ).fetchone()[0]
 
     def release(self, owner, generation):
         self._validate(owner, generation)
@@ -224,11 +221,9 @@ class PostgresWriteGateway:
                 inserted += int(created)
 
             still_current = database.execute(
-                """SELECT expires_at > clock_timestamp()
-                   FROM market_data.feeder_leases
-                   WHERE lease_name=%s AND owner_id=%s AND generation=%s""",
+                """SELECT market_data.is_current_feeder_lease(%s, %s, %s)""",
                 (self.lease_name, self.owner_id, generation),
-            ).fetchone()
-            if still_current is None or not still_current[0]:
+            ).fetchone()[0]
+            if not still_current:
                 raise PermissionError("Feeder lease expired before commit; canonical write rejected")
         return inserted
