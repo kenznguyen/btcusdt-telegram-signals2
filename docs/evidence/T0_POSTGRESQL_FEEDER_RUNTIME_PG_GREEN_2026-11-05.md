@@ -10,7 +10,7 @@ No production database, VPS, real Binance API, or live Feeder activation is used
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`
 - Branch: `feature/t0-atomic-write-fencing-20261105`
-- Exact source head submitted to CI: `61813f3d74162d82b0bee505a05f8181da82566d`
+- Exact source head submitted to CI: `3a3e81396ec1c9d03039e0139fab260e83efedd1`
 - PR: [#134](https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/134), OPEN / DRAFT / NOT MERGED.
 - Base branch remains `feature/t0-centralized-data-feeder-p1-20261101`.
 
@@ -37,10 +37,15 @@ No production database, VPS, real Binance API, or live Feeder activation is used
 
 ## GitHub Actions evidence
 
-- Exact-head push run [#42026587449](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42026587449): Static Gateway contract job **SUCCESS**; TimescaleDB integration job was **IN PROGRESS** when this report was prepared.
-- Exact-head pull-request run [#42026596306](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42026596306): Static Gateway contract job **SUCCESS**; TimescaleDB integration job was **IN PROGRESS** when this report was prepared.
-- Exact source SHA for both runs: `61813f3d74162d82b0bee505a05f8181da82566d`.
-- Artifact IDs and final job conclusions: pending; update this report after workflow completion.
+- Exact-head push run [#42027052569](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42027052569): **SUCCESS** on source SHA `3a3e81396ec1c9d03039e0139fab260e83efedd1`. Static job `127243768694` SUCCESS; TimescaleDB job `127243882931` SUCCESS.
+- Push static suite: 197 tests, 14 skipped. The complete market_data unittest discovery step completed successfully.
+- Push disposable TimescaleDB: PostgreSQL writer/lease contracts 7/7 PASS; PostgreSQL FeederRuntime adapter/composition/runtime integration 10/10 PASS; read-only TimescaleDB integration 6/6 PASS.
+- Push artifacts: static ID `13414222523`, SHA-256 `ebb61daf23e225223ab4efcca8eb481d1e52cffbc93ca3c042a313f1b3de4e2b`; TimescaleDB ID `13414162575`, SHA-256 `77fc8ffd7a1b21ad62491c3ea353327c3ca602f820729aadba06512c8c635d23`.
+- PR merge-context run [#42027061402](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42027061402): **SUCCESS**. PR source head `3a3e81396ec1c9d03039e0139fab260e83efedd1`; base `8b196d2720eab804728df7c0227c606c094b16ad`; synthetic merge checkout SHA `a0179e13a83db4a18aa03e1518647e1f32379b0a`. Static job `127243954898` SUCCESS; TimescaleDB job `127244083814` SUCCESS.
+- PR merge-context static suite: 197 tests, 14 skipped. Disposable TimescaleDB: writer/lease 7/7 PASS; FeederRuntime adapter/composition/runtime integration 10/10 PASS; read-only integration 6/6 PASS.
+- PR artifacts: static ID `13414885785`, SHA-256 `a01a42aba6db339b9aa082d021d0694d8e7a17756e616f4d6521883b0bd2e58d`; TimescaleDB ID `13413668679`, SHA-256 `4e2d5289f4550c026e42c2f2752fd4fec7b9e30430aadd88511baea0b92654da`.
+- Earlier exact-head runs #42026587449 and #42026596306 failed in the newly added integration test due to a missing import of `EXCHANGE` and `MARKET_TYPE`. Commit `3a3e81396ec1c9d03039e0139fab260e83efedd1` corrected the test import; both exact-head push and PR workflows above then passed.
+- The branch head after this evidence-only update may advance; implementation source tested by both successful workflows remains `3a3e81396ec1c9d03039e0139fab260e83efedd1`.
 
 ## Audit note
 
@@ -52,11 +57,11 @@ An intermediate commit `a7646361447fd9e1d386197dece76f0134a84dba` briefly wrote 
 - Runtime composition and single shared Gateway unit contracts: **PASS**.
 - Production environment selection and cross-backend/DSN fail-closed contracts: **PASS**.
 - Existing SQLite lifecycle/health regression: **PASS**.
-- Disposable TimescaleDB FeederRuntime integration: **PENDING CI**.
+- Disposable TimescaleDB FeederRuntime integration: **PASS** (push + PR merge-context).
 - Full local `market_data` suite: **NOT VERIFIED** due to local dependency/startup environment limitations noted above.
 - VPS, production role separation/grants, backup/restore, RPO/RTO, canonical database creation, real Binance connectivity, and production Feeder activation: **NOT STARTED / NOT AUTHORIZED IN THIS INCREMENT**.
 - `ai_execution_enabled=false`; no order execution.
 
 ## Next step
 
-Wait for exact-head push and PR workflow completion. If both PostgreSQL runtime integration jobs pass, update this evidence and `docs/PROJECT_SESSION_HANDOFF.md` with exact run/job/artifact IDs and hashes. If either fails, fix the failing contract before proceeding to VPS production architecture.
+Both exact-head push and PR merge-context workflows passed. Next: update the main handoff and continue P0 production architecture with database role separation/grants and backup/restore acceptance design. Do not create a production canonical DB or activate the Feeder in this increment.
