@@ -147,9 +147,9 @@ class PaperLedger:
         connection = None
         try:
             connection = sqlite3.connect(self.path, timeout=10)
+            connection.execute("PRAGMA journal_mode=WAL")
             connection.execute("BEGIN IMMEDIATE")
             gate.validate_writer_token(token)
-        connection.execute("PRAGMA journal_mode=WAL")
         initialized = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_state'").fetchone()
         connection.execute("""CREATE TABLE IF NOT EXISTS paper_state (
             id INTEGER PRIMARY KEY CHECK(id=1), position TEXT NOT NULL, average TEXT NOT NULL,
@@ -200,7 +200,10 @@ class PaperLedger:
         return self.gate.writer_transaction(paper_db_path=str(self.path))
 
     def connect(self):
-        return sqlite3.connect(self.path, timeout=10)
+        path = self.path.resolve()
+        if not path.is_file():
+            raise FileNotFoundError("Paper ledger is unavailable")
+        return sqlite3.connect(path.as_uri()+"?mode=ro", uri=True, timeout=10)
 
     @staticmethod
     def audit(connection, at_ms, kind, value):
@@ -216,7 +219,6 @@ class PaperLedger:
         digest = identity("payload:", {**intent, "strategyId": strategy_id})
         with self._writer_transaction() as connection, localcontext() as context:
             context.prec = 80
-            connection.execute("BEGIN IMMEDIATE")
             position, average, realized, fees, paused = stored_state(connection)
             owner_row = connection.execute("SELECT owner,dca_used,initial_margin_quote FROM paper_strategy_state WHERE id=1").fetchone()
             owner, dca_used, initial_margin = owner_row
