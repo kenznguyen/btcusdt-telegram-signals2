@@ -19,20 +19,20 @@ Android Paper Client: [android-app](android-app/README.md). Ứng dụng chỉ k
 ## Chế độ an toàn
 
 - Paper-only; không thực hiện lệnh thật.
-- Không bật live execution; \`ai_execution_enabled=false\`.
+- Không bật live execution; `ai_execution_enabled=false`.
 - Mọi tín hiệu phải qua shared risk controls và paper admission.
 - Dữ liệu thiếu, cũ, không đồng bộ hoặc thiếu provenance không được thay bằng giá trị giả.
 - Không tuyên bố lợi nhuận hoặc readiness nếu chưa có bằng chứng đúng source SHA.
 
 ## GitHub Actions
 
-Workflow \`.github/workflows/five-layer-pr-validation.yml\` chạy tự động cho PR vào branch \`feature/android-five-layer-control\` và push lên branch cleanup. Ba job độc lập:
+Workflow `.github/workflows/five-layer-pr-validation.yml` chạy tự động cho PR vào branch `feature/android-five-layer-control` và push lên branch cleanup. Ba job độc lập:
 
-- \`android-paper\`: boundary tests, Android unit tests, debug APK build, kiểm tra package/manifest/DEX/chữ ký.
-- \`backend-regression\`: T0 Gateway/Feeder, T1 futures intelligence, T2 Core Strategy/FreqAI, T3 Paper Risk/Ledger/Hummingbot.
-- \`dashboard\`: React tests, production build và dependency audit.
+- `android-paper`: boundary tests, Android unit tests, debug APK build, kiểm tra package/manifest/DEX/chữ ký.
+- `backend-regression`: T0 Gateway/Feeder, T1 futures intelligence, T2 Core Strategy/FreqAI, T3 Paper Risk/Ledger/Hummingbot.
+- `dashboard`: React tests, production build và dependency audit.
 
-Mọi job checkout đúng PR head SHA, dùng quyền \`contents: read\`, không nhận secrets sản xuất, không kết nối sàn, canonical DB hay Paper DB. \`AI_EXECUTION_ENABLED=false\`. Artifact và test logs được gắn với GitHub Actions run.
+Mọi job checkout đúng PR head SHA, dùng quyền `contents: read`, không nhận secrets sản xuất, không kết nối sàn, canonical DB hay Paper DB. `AI_EXECUTION_ENABLED=false`. Artifact và test logs được gắn với GitHub Actions run.
 
 ## Tài liệu vận hành
 
