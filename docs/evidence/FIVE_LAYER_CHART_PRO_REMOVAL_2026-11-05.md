@@ -213,3 +213,16 @@ The user confirmed that T4 Dashboard will be rebuilt, so the existing dashboard 
 - `android-apk.json` reports debug / PAPER_ONLY, package `com.kenznguyen.btclivealerts.paper`, version `0.2.0`, no Chart Pro DEX markers, manifest service isolation PASS, and permissions isolation PASS. The APK SHA recorded there is for the temporary CI-built APK used by the verifier; the APK itself is not uploaded.
 - Status: exact-head CI **PASS**; APK not included in downloadable artifact **PASS**; T0/Core/Risk protected source scope **PASS** per prior blob/diff review; existing-install signing-certificate continuity **NOT VERIFIED**; device installation **NOT VERIFIED**.
 - PR #135 remains OPEN / DRAFT / NOT MERGED pending transition to Ready for review. No merge, T0 deployment, canonical DB creation, Feeder activation, exchange access, or live execution is authorized.
+
+
+## Self-review follow-up: GitHub Actions documentation alignment — 2026-11-05
+
+- Self-review found stale Codemagic instructions and outdated T4 React build/audit expectations in repository documentation after the CI transition.
+- Updated `README.md`, `android-app/README.md`, `docs/FIVE_LAYER_ARCHITECTURE.md`, and `docs/FIVE_LAYER_PAPER_RUNBOOK.md` to describe GitHub Actions as CI, the reduced non-blocking T4 manifest boundary, temporary CI-only APK build/verification, and the no-APK-upload policy.
+- Removed the remaining Codemagic references from the Paper Runbook. T4 npm install/test/build/audit and browser rendering remain outside this cleanup acceptance scope because T4 is scheduled for rebuild.
+- Documentation commits on the PR branch include `fadfae81977713e0e95a3d472e410e40cdd65e43`, `bf5d97cbc0c82335b8b8689820a61145f54b6df7`, `1090573f854b9aa181efa1a56b372d1db9ff92be`, `7a00cdfbc89f7efb797851276de9ef11cead70ca`, `0650a389fca254b1d96336812bc62afb166381df`, and final runbook cleanup `f0def8c459e4d3fe8ae6dd7820ed365c92d88e27`.
+- Exact current PR head: `f0def8c459e4d3fe8ae6dd7820ed365c92d88e27`.
+- Exact-head GitHub Actions run #42052444864: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42052444864 — queued/in progress at the time this section was prepared. Do not reuse prior SHA CI results as acceptance for this head.
+- The preceding run #42051674601 on `7a00cdfbc89f7efb797851276de9ef11cead70ca` completed all three jobs successfully, including Android unit tests, temporary debug APK build and identity/signer/manifest/DEX verification. This is useful regression evidence but does not certify the newer head.
+- Review status: source-scope/T0/Core/Risk isolation review PASS; documentation consistency fix applied; exact-head CI for `f0def8c459e4d3fe8ae6dd7820ed365c92d88e27` PENDING / NOT VERIFIED; physical device installation and signer continuity remain NOT VERIFIED.
+- PR #135 remains OPEN / READY FOR REVIEW / NOT MERGED. Do not merge until exact-head CI succeeds and any remaining review comments are resolved. No production T0 activation, exchange access, or live execution is authorized.
