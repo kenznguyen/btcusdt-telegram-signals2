@@ -63,6 +63,9 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                 "GRANT t0_feeder_writer TO " + '"' + cls.feeder_role + '"'
             )
             admin.execute(
+                "GRANT t0_feeder_lease_manager TO " + '"' + cls.feeder_role + '"'
+            )
+            admin.execute(
                 "GRANT SELECT ON market_data.candles TO " + '"' + cls.reader_role + '"'
             )
 
@@ -228,14 +231,37 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                 "text,text,bigint,text,text,text,text,bigint,numeric,numeric,numeric,numeric,numeric,bigint)'::regprocedure "
                 "AND a.grantee=0 AND a.privilege_type='EXECUTE')"
             ).fetchone()[0]
+            feeder_lease_insert = admin.execute(
+                "SELECT has_table_privilege(%s, 'market_data.feeder_leases', 'INSERT')",
+                (self.feeder_role,),
+            ).fetchone()[0]
+            feeder_lease_update = admin.execute(
+                "SELECT has_table_privilege(%s, 'market_data.feeder_leases', 'UPDATE')",
+                (self.feeder_role,),
+            ).fetchone()[0]
+            lease_manager_member = admin.execute(
+                "SELECT pg_has_role(%s, 't0_feeder_lease_manager', 'MEMBER')",
+                (self.feeder_role,),
+            ).fetchone()[0]
+            public_lease_execute = admin.execute(
+                "SELECT EXISTS ("
+                "SELECT 1 FROM pg_proc p "
+                "CROSS JOIN LATERAL aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a "
+                "WHERE p.proname IN ('acquire_feeder_lease', 'heartbeat_feeder_lease', 'release_feeder_lease') "
+                "AND a.grantee=0 AND a.privilege_type='EXECUTE')"
+            ).fetchone()[0]
         self.assertEqual(owner, (False, False, False, True, False, True))
         self.assertFalse(feeder_insert)
+        self.assertFalse(feeder_lease_insert)
+        self.assertFalse(feeder_lease_update)
+        self.assertTrue(lease_manager_member)
         self.assertFalse(public_execute)
+        self.assertFalse(public_lease_execute)
 
     def test_migration_runner_rejects_preexisting_privileged_writer_roles(self):
         from market_data.migrations import migrate
 
-        for role in ("t0_candle_writer_owner", "t0_feeder_writer"):
+        for role in ("t0_candle_writer_owner", "t0_feeder_writer",\n                     "t0_lease_manager_owner", "t0_feeder_lease_manager"):
             with self.subTest(role=role):
                 with self.psycopg.connect(DSN, autocommit=True) as admin:
                     admin.execute(f'ALTER ROLE "{role}" SUPERUSER LOGIN')
