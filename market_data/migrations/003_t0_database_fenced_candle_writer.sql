@@ -114,6 +114,26 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 't0_candle_writer_owner') THEN
         CREATE ROLE t0_candle_writer_owner NOLOGIN;
     END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM pg_roles
+         WHERE rolname IN ('t0_feeder_writer', 't0_candle_writer_owner')
+           AND (rolsuper OR rolcanlogin OR rolcreatedb OR rolcreaterole
+                OR rolreplication OR rolbypassrls)
+    ) THEN
+        RAISE EXCEPTION 'T0 writer capability roles must remain restricted NOLOGIN roles'
+            USING ERRCODE = '42501';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+          FROM pg_auth_members membership
+          JOIN pg_roles member_role ON member_role.oid = membership.member
+         WHERE member_role.rolname IN ('t0_feeder_writer', 't0_candle_writer_owner')
+    ) THEN
+        RAISE EXCEPTION 'T0 writer capability roles must not inherit privileges from other roles'
+            USING ERRCODE = '42501';
+    END IF;
 END;
 $role$;
 
