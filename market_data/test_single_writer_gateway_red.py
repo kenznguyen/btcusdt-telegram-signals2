@@ -63,7 +63,7 @@ class SingleWriterGatewayRedContracts(unittest.TestCase):
         )
         text = gateway.read_text(encoding="utf-8")
         self.assertIn("write_batch", text)
-        self.assertIn("ROLLBACK", text)
+        self.assertIn("rollback", text)
 
     def test_swg_d01_consumer_has_read_only_connection_contract(self):
         text = source("market_data/store.py")
