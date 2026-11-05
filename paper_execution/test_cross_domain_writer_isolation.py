@@ -142,8 +142,12 @@ class CrossDomainWriterIsolationTests(unittest.TestCase):
             self.t0_lease.owner, self.t0_lease.generation, NOW + 1
         ))
 
-        # Positive control: a Paper-owned token is accepted and can write PAPER_DB.
-        self.paper_gate.validate_writer_token(self.paper_token)
+        # Release the setup token before writer_transaction acquires its own
+        # token. Windows byte-range locks serialize same-process admissions too.
+        self.paper_gate.release_writer(self.paper_token)
+        self.paper_token = None
+
+        # Positive control: the Paper writer transaction can write PAPER_DB.
         with self.paper_gate.writer_transaction(
             paper_db_path=str(self.paper_db)
         ) as connection:
