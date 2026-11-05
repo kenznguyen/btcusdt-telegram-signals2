@@ -59,7 +59,7 @@ class SharedRiskLimitTest(unittest.TestCase):
         self.assertFalse(ledger.snapshot()["riskControl"]["killed"])
 
     def test_missing_limits_fail_closed(self):
-        ledger=PaperLedger(self.path,max_position_base="1",require_risk_limits=True)
+        ledger=PaperLedger(self.path,max_position_base="1",require_risk_limits=True).initialize()
         ledger.record_equity("100",self.now,self.now,"sha256:"+"c"*64)
         result=ledger.submit(self.intent("unconfigured"),self.book(self.now),self.now)
         self.assertEqual(result["reason"],"RISK_LIMITS_UNCONFIGURED")
