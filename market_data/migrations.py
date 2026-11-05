@@ -23,6 +23,20 @@ def _assert_writer_roles_safe(database):
         role = unsafe[0][0]
         raise RuntimeError(f"{role} must remain a restricted NOLOGIN role")
 
+    migrator_members = database.execute(
+        """SELECT member_role.rolname
+           FROM pg_auth_members membership
+           JOIN pg_roles granted_role ON granted_role.oid = membership.roleid
+           JOIN pg_roles member_role ON member_role.oid = membership.member
+           WHERE granted_role.rolname = 't0_migrator'
+             AND member_role.rolname <> 't0_migrator_login'
+           ORDER BY member_role.rolname"""
+    ).fetchall()
+    if migrator_members:
+        raise RuntimeError(
+            "t0_migrator may only be granted to the ephemeral t0_migrator_login role"
+        )
+
     owner_grants = database.execute(
         """SELECT granted_role.rolname, member_role.rolname
            FROM pg_auth_members membership
