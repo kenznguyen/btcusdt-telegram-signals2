@@ -367,7 +367,7 @@ def application(environ, start_response):
                 return response("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
             try:
                 writer = ledger()
-            except (ValueError, OSError, sqlite3.Error):
+            except (ValueError, OSError, sqlite3.Error, RuntimeError):
                 return response("503 Service Unavailable", {"error": "PAPER_STORE_UNAVAILABLE"})
             if not control_permit(timestamp, writer):
                 return response("429 Too Many Requests", {"error": "CONTROL_RATE_LIMIT"})
@@ -420,7 +420,7 @@ def application(environ, start_response):
                 return response("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
         elif path == "/v1/paper":
             from paper_execution.ledger import read_snapshot
-            if not os.environ.get("MARKET_DATA_DB"):
+            if not os.environ.get("PAPER_DB"):
                 return response("503 Service Unavailable", {"error": "UNCONFIGURED"})
             result = read_snapshot(paper_db_path())
         elif path == "/v1/equity":
