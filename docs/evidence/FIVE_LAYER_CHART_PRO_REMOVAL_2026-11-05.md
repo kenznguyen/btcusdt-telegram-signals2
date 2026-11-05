@@ -171,3 +171,14 @@ The user confirmed that T4 Dashboard will be rebuilt, so the existing dashboard 
 - Current PR head at this update: `03275ec43487b14e417ed94c67106d1f7c98d21f`.
 - Exact-head GitHub Actions validation for this policy update: **PENDING / NOT VERIFIED**. The prior successful run `42046383582` applies to source SHA `5aedfe7c6f55163b3bbb5a3b6c82677da0272eb1`, before this T4 policy change; do not carry that result forward.
 - PR #135 remains OPEN / DRAFT / NOT MERGED. No merge or runtime activation is authorized.
+
+
+### T4 policy CI follow-up — boundary contract correction
+
+- First workflow run after the T4 policy change: run #42047835005, source checkout SHA `e4bdff8b44a2ba453fb2755c437327d2e4d430e4`.
+- T4 minimum boundary job: PASS; its `continue-on-error` configuration worked as intended.
+- Backend T0–T3/Core/Paper job: PASS.
+- Android job: failed in the source-boundary contract suite because `ci/test_five_layer_android_boundary.py` still asserted the retired job identifier `dashboard:`. No Android production test or build was reached.
+- Corrected the stale assertion to `dashboard-boundary:` in commit `f8209f1b2449d865ab916fd64359d443f45ef883`.
+- The failure is a CI contract mismatch caused by renaming the T4 job; it is not evidence of an Android app regression. Exact-head rerun on the corrected commit remains **PENDING / NOT VERIFIED**.
+- PR remains OPEN / DRAFT / NOT MERGED.
