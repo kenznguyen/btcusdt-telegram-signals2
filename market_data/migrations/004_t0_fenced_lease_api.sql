@@ -123,6 +123,26 @@ BEGIN
 END;
 $function$;
 
+CREATE OR REPLACE FUNCTION market_data.is_current_feeder_lease(
+    p_lease_name TEXT,
+    p_owner_id TEXT,
+    p_generation BIGINT
+)
+RETURNS BOOLEAN
+LANGUAGE SQL
+SECURITY DEFINER
+SET search_path = pg_catalog, market_data
+AS $function$
+    SELECT EXISTS (
+        SELECT 1
+          FROM market_data.feeder_leases AS lease
+         WHERE lease.lease_name = p_lease_name
+           AND lease.owner_id = p_owner_id
+           AND lease.generation = p_generation
+           AND lease.expires_at > clock_timestamp()
+    );
+$function$;
+
 CREATE OR REPLACE FUNCTION market_data.release_feeder_lease(
     p_lease_name TEXT,
     p_owner_id TEXT,
@@ -159,6 +179,7 @@ $function$;
 REVOKE ALL ON FUNCTION market_data.acquire_feeder_lease(TEXT, TEXT, INTEGER) FROM PUBLIC;
 REVOKE ALL ON FUNCTION market_data.heartbeat_feeder_lease(TEXT, TEXT, BIGINT, INTEGER) FROM PUBLIC;
 REVOKE ALL ON FUNCTION market_data.release_feeder_lease(TEXT, TEXT, BIGINT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION market_data.is_current_feeder_lease(TEXT, TEXT, BIGINT) FROM PUBLIC;
 
 GRANT USAGE ON SCHEMA market_data TO t0_lease_manager_owner;
 GRANT SELECT, INSERT, UPDATE ON market_data.feeder_leases TO t0_lease_manager_owner;
@@ -170,6 +191,8 @@ ALTER FUNCTION market_data.heartbeat_feeder_lease(TEXT, TEXT, BIGINT, INTEGER)
     OWNER TO t0_lease_manager_owner;
 ALTER FUNCTION market_data.release_feeder_lease(TEXT, TEXT, BIGINT)
     OWNER TO t0_lease_manager_owner;
+ALTER FUNCTION market_data.is_current_feeder_lease(TEXT, TEXT, BIGINT)
+    OWNER TO t0_lease_manager_owner;
 
 REVOKE CREATE ON SCHEMA market_data FROM t0_lease_manager_owner;
 
@@ -179,4 +202,6 @@ GRANT EXECUTE ON FUNCTION market_data.acquire_feeder_lease(TEXT, TEXT, INTEGER)
 GRANT EXECUTE ON FUNCTION market_data.heartbeat_feeder_lease(TEXT, TEXT, BIGINT, INTEGER)
     TO t0_feeder_lease_manager;
 GRANT EXECUTE ON FUNCTION market_data.release_feeder_lease(TEXT, TEXT, BIGINT)
+    TO t0_feeder_lease_manager;
+GRANT EXECUTE ON FUNCTION market_data.is_current_feeder_lease(TEXT, TEXT, BIGINT)
     TO t0_feeder_lease_manager;
