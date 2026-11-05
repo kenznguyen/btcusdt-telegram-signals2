@@ -563,20 +563,20 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
 
 
     def test_migration_rejects_admin_option_on_database_owner_membership(self):
-        from market_data.migrations import migrate
+        from market_data.migrations import _assert_writer_roles_safe
 
         with self.psycopg.connect(DSN, autocommit=True) as admin:
             admin.execute("CREATE ROLE t0_db_owner NOLOGIN")
             admin.execute("CREATE ROLE t0_migrator NOLOGIN")
             admin.execute("CREATE ROLE t0_migrator_login LOGIN")
-            admin.execute("GRANT t0_migrator TO t0_migrator_login")
             admin.execute("GRANT t0_db_owner TO t0_migrator WITH ADMIN OPTION")
+            admin.execute("GRANT t0_migrator TO t0_migrator_login")
             try:
                 with self.assertRaisesRegex(
                     RuntimeError,
                     "t0_migrator must not have ADMIN OPTION on database or SECURITY DEFINER owner roles",
                 ):
-                    migrate(DSN)
+                    _assert_writer_roles_safe(admin)
             finally:
                 admin.execute("REVOKE ADMIN OPTION FOR t0_db_owner FROM t0_migrator")
                 admin.execute("REVOKE t0_db_owner FROM t0_migrator")
