@@ -104,12 +104,25 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         )
 
     def test_feeder_cannot_acquire_or_use_an_alternate_lease_identity(self):
+        from market_data.postgres import PostgresLeaseStore
+
+        canonical = PostgresLeaseStore(self.feeder_dsn, lease_name=self.lease_name)
+        lease = canonical.acquire("alternate-name-probe", ttl_seconds=30)
+        self.assertIsNotNone(lease)
         with self.psycopg.connect(self.feeder_dsn, autocommit=True) as feeder:
             with self.assertRaises(self.psycopg.errors.InsufficientPrivilege):
                 feeder.execute(
                     "SELECT * FROM market_data.acquire_feeder_lease(%s, %s, %s)",
                     ("attacker-created-lease", "alternate-worker", 30),
                 )
+            with self.assertRaises(self.psycopg.errors.InsufficientPrivilege):
+                feeder.execute(
+                    "SELECT market_data.write_canonical_candle(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    ("attacker-created-lease", "alternate-name-probe", lease.generation,
+                     "binance", "USDT_PERPETUAL", "BTCUSDT", "15m", self.open_time,
+                     100, 102, 99, 101, 1, self.open_time + self.step + 1),
+                )
+        self.assertTrue(canonical.release("alternate-name-probe", lease.generation))
 
     def test_migration_rejects_login_granted_a_security_definer_owner_role(self):
         from market_data.migrations import migrate
