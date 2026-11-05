@@ -278,12 +278,12 @@ def quality_snapshot(timestamp):
             "errors":data.get("errors",{})}
 
 
-def control_readiness(timestamp):
+def control_readiness(timestamp, writer=None):
     data = context(timestamp)
     candles = data.get("candles")
     candle_ready = bool(candles and candles.get("coverage", {}).get("complete") is True)
     book_ready = data.get("book") is not None
-    paper = ledger().snapshot()
+    paper = (writer or ledger()).snapshot()
     no_pending = not any(order.get("status") in ("OPEN", "PARTIALLY_FILLED")
                          for order in paper.get("orders", []))
     return {"ready": candle_ready and book_ready and no_pending,
@@ -383,7 +383,7 @@ def application(environ, start_response):
             elif path == "/v1/paper/kill" and set(payload) == {"enabled"} and payload["enabled"] is True:
                 result = writer.set_killed(True, timestamp, "OPERATOR_KILL_SWITCH")
             elif path == "/v1/paper/reset-kill" and set(payload) == {"acknowledge"} and payload["acknowledge"] is True:
-                readiness = control_readiness(timestamp)
+                readiness = control_readiness(timestamp, writer)
                 if not readiness["ready"]:
                     return response("409 Conflict", {"error": "SYSTEM_NOT_READY", "checks": readiness["checks"]})
                 result = writer.reset_kill(True, True, timestamp)
@@ -412,7 +412,7 @@ def application(environ, start_response):
                     order = writer.submit(decision["intent"], data["book"], timestamp,
                         strategy_id=source_id, strategy_event=event)
                     if mark_window["candles"] and mark_window["coverage"]["complete"]:
-                        ledger().record_equity(mark["close"],mark["closeTimeMs"],timestamp,
+                        writer.record_equity(mark["close"],mark["closeTimeMs"],timestamp,
                             mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
                 result = {"decision": decision, "order": order}
             else:
