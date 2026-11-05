@@ -265,8 +265,7 @@ class PostgresWriteGateway:
                     """SELECT open, high, low, close, volume
                        FROM market_data.candles
                        WHERE exchange=%s AND market_type=%s AND symbol=%s
-                         AND timeframe=%s AND open_time_ms=%s
-                       FOR UPDATE""",
+                         AND timeframe=%s AND open_time_ms=%s""",
                     key,
                 ).fetchone()
                 if existing is not None:
