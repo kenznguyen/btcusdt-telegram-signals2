@@ -8,7 +8,7 @@ Implemented the SQLite canonical write Gateway on the existing PR #134 branch. T
 
 - Branch: `feature/t0-atomic-write-fencing-20261105`
 - PR: https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/134
-- Exact source SHA validated by push workflow: `5d0bd30653fb1835fa05e9987823261660a65e8e`
+- Exact source SHA validated by push workflow: `10f6b80be41af9bedda9e5e7c81502187e37cea3`
 - Gateway: `market_data/write_gateway.py`
 - Workflow: `.github/workflows/t0-single-writer-gateway-red.yml`
 
@@ -21,26 +21,27 @@ Implemented the SQLite canonical write Gateway on the existing PR #134 branch. T
 5. Removed `CandleStore.insert()`, `CandleStore.insert_fenced()`, and write methods from the canonical storage facades.
 6. Disabled PostgreSQL canonical writes. PostgreSQL remains a read-only adapter until same-transaction lease fencing is independently implemented and accepted.
 7. Made the standalone sync CLI require explicit `--shadow-only`; it reports candidates and never persists them.
-8. Updated canonical store, sync, gateway, and Feeder regression tests to use the Gateway. Kraken Spot's isolated store remains separate and unchanged.
+8. Updated canonical store, API, sync, storage, Gateway, and Feeder regression fixtures to use the Gateway. Kraken Spot's isolated store remains separate and unchanged.
 
 ## GitHub Actions evidence
 
-- Run ID: `41976315516`
-- URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41976315516
+- Run ID: `41976614489`
+- URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41976614489
 - Event: `push`
-- Exact branch source and checkout SHA: `5d0bd30653fb1835fa05e9987823261660a65e8e`
+- Exact branch source and checkout SHA: `10f6b80be41af9bedda9e5e7c81502187e37cea3`
 - Conclusion: `success`
-- Job ID: `127075880677`; all steps completed successfully.
-- Environment preflight: PASS; Python compile: PASS.
+- Job ID: `127076845564`; all steps completed successfully.
+- Shadow-only environment preflight: PASS; Python compile: PASS.
 - Static Gateway contracts: 10 tests, PASS.
 - Gateway + canonical store + sync + storage + Feeder lifecycle regression: 51 tests, PASS.
-- Final test output: `Ran 51 tests ... OK`.
+- Complete `market_data` suite: 172 tests, PASS; 8 skipped.
+- Final full-suite output: `Ran 172 tests ... OK (skipped=8)`.
 
 Artifact:
-- ID: `13392290941`
-- URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41976315516/artifacts/13392290941
-- Size: 2,781 bytes
-- GitHub digest: `sha256:2d7377e379932089c845ea8e197db6518ab2dd7c76c8029ec35b594cbf0acddd`
+- ID: `13392126852`
+- URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41976614489/artifacts/13392126852
+- Size: 7,559 bytes
+- GitHub digest: `sha256:8ea5c2f940228862c18094be1ca9e9b5d38bce9c04f7fa7cb9e3876b67b9364e`
 - Artifact payload checksum has not been independently recomputed.
 
 ## Status
@@ -48,18 +49,18 @@ Artifact:
 - Gateway static acceptance contracts: PASS.
 - Atomic SQLite lease fencing and batch rollback tests: PASS.
 - Takeover serialization test: PASS.
-- Sync and Feeder lifecycle focused regression: PASS.
-- PostgreSQL canonical write API: DISABLED.
+- Sync, API, storage and Feeder lifecycle regression: PASS.
+- Complete `market_data` suite: PASS with 8 skipped TimescaleDB integration tests.
+- PostgreSQL canonical write API: DISABLED; TimescaleDB integration remains NOT VERIFIED.
 - Kraken Spot isolated storage: unchanged and not part of this Gateway.
-- Full repository test suite: NOT VERIFIED by this workflow.
 - Full process-level crash/restart and independent Paper Writer Gate acceptance: NOT VERIFIED.
 - T0 production readiness / canonical ingestion authorization: NOT GRANTED.
 - PR #134: OPEN / DRAFT / NOT MERGED.
 
 ## Safety boundary
 
-GitHub Actions ran local SQLite temporary-directory unit tests only. No production database, configured exchange credentials, live Feeder process, exchange write endpoint, market-data collector, migration, or order execution was used. No strategy, AI signal, Shared Risk Engine, or live-trading behavior changed. `ai_execution_enabled=false` remains unchanged.
+GitHub Actions ran temporary-directory SQLite unit tests and local API/Feeder tests only. No production database, configured exchange credentials, live Feeder process, exchange write endpoint, market-data collector, migration, or order execution was used. No strategy, AI signal, Shared Risk Engine, or live-trading behavior changed. `ai_execution_enabled=false` remains unchanged.
 
 ## Next step
 
-Run the complete `market_data` regression suite on the same source lineage, then add concrete Feeder composition tests that prove scheduler and startup recovery use the Gateway with the same lease database. Keep PostgreSQL writes disabled. Separately verify the Paper Writer Gate and process crash/restart semantics before considering P1 isolation complete. Do not merge without explicit user approval.
+Add concrete Feeder composition tests that prove scheduler and startup recovery use the Gateway with the same lease database, then separately verify Paper Writer Gate and process crash/restart semantics. Keep PostgreSQL writes disabled until a separately approved, equivalent same-transaction fencing implementation and integration evidence exist. Do not merge without explicit user approval.
