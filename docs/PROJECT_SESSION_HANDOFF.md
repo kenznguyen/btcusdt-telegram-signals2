@@ -171,3 +171,29 @@ Current workstream status:
 
 Next permitted work: documentation-only closeout or separately scoped non-Doze evidence gap review. Do not rerun passing tests, activate runtime, create canonical storage, connect exchange, or sync market data without explicit authorization.
 
+
+
+## Repository cleanup increment — 2026-11-05
+
+### Consolidated Android / five-layer PR chain
+
+- PRs #58–#62 were reviewed by comparing base/head refs, changed-file inventories, and the cumulative diff against PR #92.
+- PR #92 targets `main` from the exact same head branch and SHA as PR #62: `feature/android-five-layer-control` / `2a4b914f5e1f133544494278f3bf5117ff815418`.
+- PR #92 contains the cumulative source changes from #58–#62. The three legacy Android GitHub workflow files are retained under `ci/archive/github-actions/` in the consolidated diff.
+- PRs #58, #59, #60, #61 and #62 were closed as superseded by #92. Closure comments were added to each PR. No branch was deleted and no PR was merged.
+- PR #92 remains OPEN / DRAFT / NOT MERGED; current head SHA `2a4b914f5e1f133544494278f3bf5117ff815418`. It is the single retained review path for that cumulative feature stack.
+
+### P5.2.5 PR chain disposition
+
+- PR #112 remains OPEN / DRAFT / NOT MERGED and PAUSED per user instruction. Do not resume its implementation without explicit instruction.
+- PRs #113–#117 remain OPEN / DRAFT / NOT MERGED. They represent distinct historical RED evidence, source-review closure, GREEN plan, G0 contract freeze, and G1/P1 contract review. No evidence currently justifies bulk closure.
+- PR #111 remains OPEN / DRAFT / NOT MERGED. Its RED contract evidence is historical and overlaps the later T0 Gateway implementation in PR #134. Do not close it yet: the #134 branch has a GitHub Actions workflow, while the user's current execution preference is Codemagic. Resolve the CI-provider alignment and decide whether the Codemagic RED workflow/evidence must be retained before closing #111.
+- PR #134 remains OPEN / DRAFT / NOT MERGED. Its exact-head implementation evidence is recorded in its PR body; current head `76e6bb9e91ee3fa02cb7d97d2058fca1b5261582`, tested source SHA `5b678a0419aa283cd54703a2a7c0e20df385e41c`. The tested source and current head differ by a documentation-only commit per the PR body. The GitHub Actions workflow choice must be reconciled with the user's current Codemagic execution preference before treating CI policy as aligned.
+- PR #119 remains OPEN / DRAFT / NOT MERGED; latest head after this handoff update must be recorded in its PR body.
+
+### Cleanup boundaries
+
+- No merges, branch deletions, source-code changes, deployments, canonical DB creation, Feeder startup, exchange connection, market-data synchronization, or live execution were performed.
+- Keep `ai_execution_enabled=false`; paper-only.
+- Android Natural Doze remains `INTERRUPTED / DEFERRED`.
+- Next cleanup action: resolve the PR #134 CI-provider policy discrepancy, then determine whether PR #111 can be closed as superseded while preserving its RED evidence trail. Do not close #112 or bulk-close #113–#117.
