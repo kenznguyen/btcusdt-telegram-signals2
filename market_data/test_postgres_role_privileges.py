@@ -476,7 +476,9 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
 
         member = "t0_login_member_" + uuid.uuid4().hex[:12]
         with self.psycopg.connect(DSN, autocommit=True) as admin:
+            admin.execute("CREATE ROLE t0_db_owner NOLOGIN")
             admin.execute("CREATE ROLE t0_migrator NOLOGIN")
+            admin.execute("GRANT t0_db_owner TO t0_migrator")
             admin.execute("CREATE ROLE t0_migrator_login LOGIN")
             admin.execute(f'CREATE ROLE "{member}" LOGIN')
             admin.execute("GRANT t0_migrator TO t0_migrator_login")
@@ -491,14 +493,18 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                 admin.execute("REVOKE t0_migrator FROM t0_migrator_login")
                 admin.execute(f'DROP ROLE "{member}"')
                 admin.execute("DROP ROLE t0_migrator_login")
+                admin.execute("REVOKE t0_db_owner FROM t0_migrator")
                 admin.execute("DROP ROLE t0_migrator")
+                admin.execute("DROP ROLE t0_db_owner")
 
     def test_migration_rejects_additional_membership_on_ephemeral_login(self):
         from market_data.migrations import migrate
 
         extra_role = "t0_login_extra_" + uuid.uuid4().hex[:12]
         with self.psycopg.connect(DSN, autocommit=True) as admin:
+            admin.execute("CREATE ROLE t0_db_owner NOLOGIN")
             admin.execute("CREATE ROLE t0_migrator NOLOGIN")
+            admin.execute("GRANT t0_db_owner TO t0_migrator")
             admin.execute("CREATE ROLE t0_migrator_login LOGIN")
             admin.execute(f'CREATE ROLE "{extra_role}" NOLOGIN')
             admin.execute("GRANT t0_migrator TO t0_migrator_login")
@@ -513,13 +519,17 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                 admin.execute("REVOKE t0_migrator FROM t0_migrator_login")
                 admin.execute(f'DROP ROLE "{extra_role}"')
                 admin.execute("DROP ROLE t0_migrator_login")
+                admin.execute("REVOKE t0_db_owner FROM t0_migrator")
                 admin.execute("DROP ROLE t0_migrator")
+                admin.execute("DROP ROLE t0_db_owner")
 
     def test_migration_rejects_admin_option_on_ephemeral_migrator_membership(self):
         from market_data.migrations import migrate
 
         with self.psycopg.connect(DSN, autocommit=True) as admin:
+            admin.execute("CREATE ROLE t0_db_owner NOLOGIN")
             admin.execute("CREATE ROLE t0_migrator NOLOGIN")
+            admin.execute("GRANT t0_db_owner TO t0_migrator")
             admin.execute("CREATE ROLE t0_migrator_login LOGIN")
             admin.execute("GRANT t0_migrator TO t0_migrator_login WITH ADMIN OPTION")
             try:
@@ -531,7 +541,9 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                 admin.execute("REVOKE ADMIN OPTION FOR t0_migrator FROM t0_migrator_login")
                 admin.execute("REVOKE t0_migrator FROM t0_migrator_login")
                 admin.execute("DROP ROLE t0_migrator_login")
+                admin.execute("REVOKE t0_db_owner FROM t0_migrator")
                 admin.execute("DROP ROLE t0_migrator")
+                admin.execute("DROP ROLE t0_db_owner")
 
     def test_runtime_roles_have_no_schema_create_or_role_admin_privilege(self):
         with self.psycopg.connect(DSN, autocommit=True) as admin:
