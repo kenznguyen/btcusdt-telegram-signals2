@@ -676,7 +676,10 @@ class HealthEvaluator:
         states = [item.state for item in timeframes.values()]
         if snapshot.get("startup_complete") is not True:
             states.append("STARTING")
-        if snapshot.get("lease_valid") is not True:
+        # Missing lease is expected while startup/recovery is still in
+        # progress. Once startup has completed, lease loss degrades readiness.
+        if (snapshot.get("startup_complete") is True
+                and snapshot.get("lease_valid") is not True):
             states.append("DEGRADED")
 
         state = self._worst_state(states)
