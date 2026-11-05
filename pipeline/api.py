@@ -14,6 +14,7 @@ from market_data.api import candle_query
 from market_data.postgres import StoreUnavailable
 from market_data.storage import create_store_from_env
 from pipeline.values import stamp
+from paper_execution.writer_gate import WriterAdmissionDenied
 
 ROOT = Path(__file__).resolve().parents[1]
 _book_lock = threading.Lock()
@@ -367,7 +368,7 @@ def application(environ, start_response):
                 return response("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
             try:
                 writer = ledger()
-            except (ValueError, OSError, sqlite3.Error, RuntimeError):
+            except (ValueError, OSError, sqlite3.Error, RuntimeError, WriterAdmissionDenied):
                 return response("503 Service Unavailable", {"error": "PAPER_STORE_UNAVAILABLE"})
             if not control_permit(timestamp, writer):
                 return response("429 Too Many Requests", {"error": "CONTROL_RATE_LIMIT"})
