@@ -1081,3 +1081,21 @@ Current status:
 - PR #136 remains OPEN / NOT MERGED. Merge requires explicit user approval.
 - No T0 source/runtime, DB, Feeder, exchange, market-data sync, or execution changes. `AI_EXECUTION_ENABLED=false`.
 - Next: inspect exact-head Actions run, verify test collection and full configured gates, self-review changed files and stale references, then request Codex review on the final SHA. Do not merge automatically.
+
+
+## 2026-11-06 — PR #136 exact-head CI and independent review complete
+
+- PR #136 current head: `e5eb944c253bbe2ba441ee2f7b77ae861ed68ea4`; branch `cleanup/pr135-codex-followup-20261105`; base SHA `96244d6f0b44c7621b4782abaa9d08596646349c`.
+- Exact-head GitHub Actions run #42071311091: **SUCCESS 3/3**. URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42071311091.
+- Backend job `127399668850`: PASS — legacy retirement 5/5; T0 Store/Sync/Storage/read API 35/35; T1 10/10; T2 56/56; T3 42/42; CI policy 5/5; compile PASS.
+- Android job `127399668153`: PASS — boundary/APK verifier 16/16; Android unit tests PASS; debug APK build PASS; verifier confirms five-layer-only identity, signer, manifest and DEX for exact source SHA.
+- T4 job `127399669080`: PASS (non-blocking).
+- Backend artifact ID `13436041657`, name `five-layer-backend-42071311091-1`, digest `sha256:ec871aa95e29920749e40fe6ef33d3acbfd266c7de8de69935d11d52b24eb0c5`.
+- Android artifact ID `13435587810`, name `five-layer-android-42071311091-1`, digest `sha256:3d05b83e646e288c9966ab49604fd8e20429a335ec148be4718c4f0ef0cb5179`.
+- Artifact digests are GitHub upload metadata; payload bytes were not independently downloaded/re-hashed.
+- Codex review completed on exact head `e5eb944c253bbe2ba441ee2f7b77ae861ed68ea4`: no findings and no unresolved findings (summary comment #6663865157).
+- P2 review thread #4483417138 was addressed by deleting obsolete `ci/test_legacy_runner.py` and has been resolved on GitHub.
+- Self-review confirms README accurately limits T0 CI coverage; the obsolete test module is absent on the PR branch; retirement regression continues asserting `ci/run-legacy.py` absence.
+- PR #136 remains OPEN / NOT MERGED; merge requires explicit user approval.
+- No T0 source/runtime, DB, Feeder, exchange, market-data sync, or live execution changes. `AI_EXECUTION_ENABLED=false`.
+- Next: await user decision on PR #136; do not merge without explicit approval. After approval/merge, record merge SHA and re-check base branch CI.
