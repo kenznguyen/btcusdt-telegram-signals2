@@ -152,9 +152,9 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
         retry_policy=retry,
     )
 
-    # Startup recovery is also a canonical writer. Refresh and verify the
-    # runtime's lease before every recovery attempt; atomic write fencing is a
-    # separate storage-layer change and is intentionally not implied here.
+    # Startup recovery is also a canonical writer. Refresh the lease before
+    # recovery; every resulting page is independently fenced inside the same
+    # SQLite transaction that commits its candles.
     def guarded_recovery_sync(timeframe, start_ms, end_ms):
         def attempt():
             generation = runtime.lease_generation
