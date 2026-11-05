@@ -14,7 +14,7 @@ class SharedRiskLimitTest(unittest.TestCase):
         self.now=1_800_000_000_000
         self.limits={"maxDrawdownPct":20,"maxDailyLossUsdt":10,"maxExposureUsdt":1000}
         self.ledger=PaperLedger(self.path,max_position_base="1",risk_limits=self.limits,
-                                require_risk_limits=True)
+                                require_risk_limits=True).initialize()
 
     def intent(self,name="risk-order",target="0.1"):
         return {"intentId":name,"symbol":"BTCUSDT","exchange":"binance","marketType":"USDT_PERPETUAL",
