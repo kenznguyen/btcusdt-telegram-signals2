@@ -68,7 +68,7 @@ class FiveLayerFreqaiResearch(IStrategy):
         except (KeyError, ValueError, TypeError, OSError, OverflowError):
             artifact = {"available": False, "source": "freqai", "availableAtMs": observed,
                         "reason": "PREDICTION_OR_PROVENANCE_UNAVAILABLE"}
-            logger.warning("Chart Pro prediction unavailable; native order signals remain disabled")
+            logger.warning("Five-layer prediction unavailable; native order signals remain disabled")
         write_artifact(paths[2], artifact)
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict):
