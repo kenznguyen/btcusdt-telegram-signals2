@@ -63,15 +63,17 @@ jobs:
           python -m unittest paper_execution.test_writer_isolation_red -v > paper-writer-red.log 2>&1
           status=$?
           cat paper-writer-red.log
-          python - <<'PY'
+          TEST_STATUS="$status" python - <<'PY'
+          import os
           import re
           from pathlib import Path
 
           output = Path("paper-writer-red.log").read_text(encoding="utf-8")
-          ran = re.search(r"^Ran (\\d+) tests? in ", output, re.MULTILINE)
-          failures = re.findall(r"^FAIL: test_[^\\s(]+", output, re.MULTILINE)
-          errors = re.findall(r"^ERROR: test_[^\\s(]+", output, re.MULTILINE)
-          summary = re.search(r"^FAILED \\(failures=(\\d+)\\)$", output, re.MULTILINE)
+          test_status = int(os.environ["TEST_STATUS"])
+          ran = re.search(r"^Ran (\d+) tests? in ", output, re.MULTILINE)
+          failures = re.findall(r"^FAIL: test_[^\s(]+", output, re.MULTILINE)
+          errors = re.findall(r"^ERROR: test_[^\s(]+", output, re.MULTILINE)
+          summary = re.search(r"^FAILED \(failures=(\d+)\)$", output, re.MULTILINE)
 
           valid = (
               ran is not None
@@ -86,7 +88,7 @@ jobs:
               f"assertion_failures={len(failures)} test_errors={len(errors)} "
               f"summary_failures={summary.group(1) if summary else 'MISSING'}"
           )
-          if status == 0 or not valid:
+          if test_status == 0 or not valid:
               print("PAPER_WRITER_RED=INVALID")
               raise SystemExit(1)
           print("PAPER_WRITER_RED=CONFIRMED_CONTRACT_GAPS")
