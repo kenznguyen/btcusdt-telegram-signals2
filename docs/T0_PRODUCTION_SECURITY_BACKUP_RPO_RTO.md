@@ -16,7 +16,7 @@ Use separate PostgreSQL roles. Do not reuse one login for migrations, ingestion,
 | Principal | Login policy | Allowed scope | Explicitly denied |
 |---|---|---|---|
 | `t0_db_owner` | NOLOGIN | Owns `market_data` schema, tables, migration history | Application login; routine Feeder use |
-| `t0_migrator` | Ephemeral LOGIN or short-lived provider identity; membership only in owner role for a controlled migration window | Apply approved, checksum-verified migrations | Feeder runtime; public API; persistent credentials on VPS |
+| `t0_migrator` | Ephemeral LOGIN or short-lived provider identity; temporary membership in `t0_db_owner`, `t0_candle_writer_owner`, and `t0_lease_manager_owner` only during a controlled migration window | Apply approved, checksum-verified migrations | Feeder runtime; public API; persistent credentials on VPS |
 | `t0_feeder` | LOGIN, dedicated secret | Connect to the one T0 database; schema USAGE; membership in `t0_feeder_writer` and `t0_feeder_lease_manager` for EXECUTE on fenced candle-write and lease-transition/lease-validity functions; no direct lease-table access | Direct INSERT/UPDATE/DELETE/TRUNCATE on `feeder_leases` or `candles`, DDL, DROP, role grants, extension management, other schemas, Paper DB |
 | `t0_reader` | LOGIN, separate secret per consumer where practical | Connect; schema USAGE; SELECT on explicitly approved canonical read tables/views | Any write, lease access, DDL, migration |
 | Backup identity | Prefer provider-managed backup/PITR identity outside SQL login; if logical export is required, dedicated read-only identity | Read required T0 objects and migration metadata | Feeder lease mutation, DDL, application write, Paper DB |
@@ -24,11 +24,16 @@ Use separate PostgreSQL roles. Do not reuse one login for migrations, ingestion,
 
 ### Required grant posture
 
+### Controlled migration identity
+
+Before applying migrations, a separate bootstrap/break-glass identity provisions the NOLOGIN roles `t0_db_owner`, `t0_feeder_writer`, `t0_candle_writer_owner`, `t0_feeder_lease_manager`, and `t0_lease_manager_owner`. The bootstrap identity also creates the target database owned by `t0_db_owner` and installs the approved TimescaleDB extension. The ephemeral `t0_migrator` login is then granted membership in `t0_db_owner` and the two SECURITY DEFINER owner roles only for the migration window. This explicit, named migration identity is the sole exception to the rule that owner roles have no members; the migration runner and SQL migrations reject every other member of either owner role. After migrations and checksum verification, revoke all three memberships and expire/drop the ephemeral login. The Feeder login must never be a member of either function-owner role. The migration runner does not need persistent CREATEROLE or superuser privileges when all roles and the extension have been pre-provisioned.
+
+
 - Revoke unnecessary privileges from `PUBLIC`; do not grant database-wide write privileges to application roles.
 - `t0_feeder` must not be a member of `t0_db_owner`, `t0_migrator`, `pg_write_all_data`, or any superuser role.
 - Grant privileges explicitly. The Feeder login receives no direct privilege on `feeder_leases`; it uses narrowly scoped SECURITY DEFINER acquire/heartbeat/release/current-check functions through `t0_feeder_lease_manager`. It also uses `t0_feeder_writer` for the fenced candle-write function. It must not receive direct SELECT/INSERT/UPDATE/DELETE/TRUNCATE on `feeder_leases` or direct candle write privileges. It must not receive direct INSERT/UPDATE/DELETE/TRUNCATE on `market_data.candles` or schema CREATE. The SECURITY DEFINER owner role—not the Feeder login—holds the narrowly scoped candle SELECT/INSERT privileges.
 - `t0_reader` receives SELECT only on approved read surfaces; it must not read or mutate lease ownership.
-- `T0_FEEDER_OWNER_ID`, when configured, must be a high-entropy per-process token; otherwise the runtime generates a fresh token. Do not reuse it across processes or include it in logs. The Feeder login has no direct lease-table SELECT.
+- The runtime always generates a fresh high-entropy owner capability per process. `T0_FEEDER_OWNER_ID` is rejected; do not configure a shared owner token or include generated capabilities in logs. The Feeder login has no direct lease-table SELECT.
 - Fix each login's `search_path` to a trusted schema and fully qualify security-sensitive SQL. Revoke CREATE on shared schemas from application roles.
 - Apply default privileges for future tables so new objects do not silently become accessible to PUBLIC or application logins.
 
@@ -122,10 +127,11 @@ All tests use a disposable PostgreSQL/TimescaleDB staging database, synthetic ca
 
 ### Role/grant tests
 - Migration identity can apply an approved migration; Feeder and reader cannot.
-- Feeder can acquire/heartbeat/release its lease and write through the fenced gateway.
+- Feeder can acquire/heartbeat/release only the fixed `binance-btcusdt-canonical` lease and write through the fenced gateway; direct function calls using any alternate lease identity fail closed.
 - Feeder cannot CREATE/DROP/ALTER objects, TRUNCATE/DELETE candles, grant roles, access unrelated schemas, or write Paper DB.
 - Reader can execute approved reads but cannot SELECT/UPDATE lease state or write any canonical table.
 - PUBLIC has no unintended access; default privileges remain least-privilege after a new test table is created.
+- No login/runtime role other than the temporary `t0_migrator` identity is a member of either SECURITY DEFINER owner role; a fresh database migration succeeds as `t0_migrator` after bootstrap provisioning.
 - Credential rotation works; old credential fails after revocation.
 - Remote TLS hostname/certificate verification succeeds; invalid certificate and unapproved source network fail closed.
 
