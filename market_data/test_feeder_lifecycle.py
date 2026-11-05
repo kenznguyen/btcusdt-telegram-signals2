@@ -358,10 +358,11 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
         from pathlib import Path
         from unittest.mock import Mock
         from market_data.feeder import FeederRuntime
+        from market_data.storage import SQLiteCandleStore
 
         with tempfile.TemporaryDirectory() as directory:
             db_path = Path(directory) / "canonical.sqlite3"
-            db_path.touch()
+            SQLiteCandleStore(db_path).initialize()
             exchange, store, leases = Mock(), Mock(), Mock()
             store.path = db_path
             store.insert_fenced = Mock()
@@ -395,10 +396,11 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
         from pathlib import Path
         from unittest.mock import Mock, patch
         from market_data.store import INTERVAL_MS
+        from market_data.storage import SQLiteCandleStore
 
         with tempfile.TemporaryDirectory() as directory:
             db_path = Path(directory) / "canonical.sqlite3"
-            db_path.touch()
+            SQLiteCandleStore(db_path).initialize()
             exchange, store, leases = Mock(), Mock(), Mock()
             store.path = db_path
             store.insert_fenced = Mock()
@@ -615,10 +617,11 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
         from pathlib import Path
         from unittest.mock import Mock, patch
         from market_data.write_gateway import SQLiteWriteGateway
+        from market_data.storage import SQLiteCandleStore
 
         with tempfile.TemporaryDirectory() as directory:
             db_path = Path(directory) / "canonical.sqlite3"
-            db_path.touch()
+            SQLiteCandleStore(db_path).initialize()
             store, leases = Mock(), Mock()
             store.path = db_path
             store.initialize = Mock()
