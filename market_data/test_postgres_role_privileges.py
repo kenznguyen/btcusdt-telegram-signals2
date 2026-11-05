@@ -56,10 +56,6 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
             admin.execute("GRANT USAGE ON SCHEMA market_data TO " + '"' + cls.feeder_role + '"')
             admin.execute("GRANT USAGE ON SCHEMA market_data TO " + '"' + cls.reader_role + '"')
             admin.execute(
-                "GRANT SELECT ON market_data.feeder_leases TO "
-                + '"' + cls.feeder_role + '"'
-            )
-            admin.execute(
                 "GRANT t0_feeder_writer TO " + '"' + cls.feeder_role + '"'
             )
             admin.execute(
@@ -115,6 +111,8 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         self.assertIsNotNone(lease)
         candle = self._candle()
         with self.psycopg.connect(self.feeder_dsn, autocommit=True) as feeder:
+            with self.assertRaises(self.psycopg.errors.InsufficientPrivilege):
+                feeder.execute("SELECT * FROM market_data.feeder_leases")
             with self.assertRaises(self.psycopg.errors.InsufficientPrivilege):
                 feeder.execute(
                     "INSERT INTO market_data.feeder_leases "
@@ -252,6 +250,10 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                 "text,text,bigint,text,text,text,text,bigint,numeric,numeric,numeric,numeric,numeric,bigint)'::regprocedure "
                 "AND a.grantee=0 AND a.privilege_type='EXECUTE')"
             ).fetchone()[0]
+            feeder_lease_select = admin.execute(
+                "SELECT has_table_privilege(%s, 'market_data.feeder_leases', 'SELECT')",
+                (self.feeder_role,),
+            ).fetchone()[0]
             feeder_lease_insert = admin.execute(
                 "SELECT has_table_privilege(%s, 'market_data.feeder_leases', 'INSERT')",
                 (self.feeder_role,),
@@ -282,6 +284,7 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
             ).fetchone()[0]
         self.assertEqual(owner, (False, False, False, True, False, True))
         self.assertFalse(feeder_insert)
+        self.assertFalse(feeder_lease_select)
         self.assertFalse(feeder_lease_insert)
         self.assertFalse(feeder_lease_update)
         self.assertEqual(lease_owner, (False, False, False, True, True, True, False))
