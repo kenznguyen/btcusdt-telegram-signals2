@@ -86,6 +86,63 @@ CRASH_WORKER = textwrap.dedent('''
 ''').strip()
 
 
+RUNTIME_WORKER = textwrap.dedent('''
+    import json
+    import sys
+    import time
+
+    from market_data.feeder import FeederConfig, FeederRuntime, FeederScheduler, HealthEvaluator, LeaseStore
+
+    db_path, now_ms = sys.argv[1], int(sys.argv[2])
+    config = FeederConfig()
+    scheduler = FeederScheduler(
+        config,
+        clock=lambda: now_ms,
+        sync_callback=lambda timeframe, start_ms, end_ms: 0,
+    )
+    runtime = FeederRuntime(
+        config=config,
+        scheduler=scheduler,
+        lease_store=LeaseStore(db_path),
+        owner_id="crashed-feeder",
+        clock=lambda: now_ms,
+    )
+    snapshot = {
+        "storage_readable": True,
+        "storage_writable": True,
+        "fatal_error": False,
+        "m15": {
+            "latest_closed_candle_close_ms": now_ms,
+            "last_successful_sync_ms": now_ms,
+            "unresolved_gap_count": 0,
+            "sync_error": None,
+        },
+        "1h": {
+            "latest_closed_candle_close_ms": now_ms,
+            "last_successful_sync_ms": now_ms,
+            "unresolved_gap_count": 0,
+            "sync_error": None,
+        },
+    }
+    evaluator = HealthEvaluator(config)
+    before = evaluator.evaluate(runtime.health_snapshot(snapshot), now_ms=now_ms + 5_000)
+    started = runtime.start(now_ms=now_ms)
+    after = evaluator.evaluate(runtime.health_snapshot(snapshot), now_ms=now_ms + 5_000)
+    print(json.dumps({
+        "started": started,
+        "generation": runtime.lease_generation,
+        "before_state": before.state,
+        "before_live": before.live,
+        "before_ready": before.ready,
+        "after_state": after.state,
+        "after_live": after.live,
+        "after_ready": after.ready,
+        "runtime_state": runtime.state,
+    }), flush=True)
+    time.sleep(120)
+''').strip()
+
+
 def candle(open_time_ms):
     return Candle(
         "15m", open_time_ms, "100", "101", "99", "100.5", "1",
@@ -195,6 +252,123 @@ class FeederProcessRestartTest(unittest.TestCase):
             self.assertEqual(after_restart["coverage"]["returned"], 2)
             self.assertTrue(after_restart["coverage"]["complete"])
             self.assertEqual(after_restart["coverage"]["gaps"], [])
+
+
+    def test_real_feeder_runtime_recovers_after_sigkill_and_reopens_readiness(self):
+        with tempfile.TemporaryDirectory(prefix="t0-runtime-restart-") as directory:
+            db_path = str(Path(directory) / "isolated-runtime.sqlite3")
+            Path(db_path).touch()
+            process_env = os.environ.copy()
+            for name in (
+                "MARKET_DATA_DB", "MARKET_DATA_POSTGRES_DSN",
+                "T0_FEEDER_LEASE_DB", "PAPER_DB",
+                "BINANCE_API_KEY", "BINANCE_API_SECRET",
+                "OKX_API_KEY", "OKX_API_SECRET",
+            ):
+                process_env.pop(name, None)
+            repo_root = str(Path(__file__).resolve().parents[1])
+            existing_pythonpath = process_env.get("PYTHONPATH", "")
+            process_env["PYTHONPATH"] = os.pathsep.join(
+                value for value in (repo_root, existing_pythonpath) if value
+            )
+            process = subprocess.Popen(
+                [sys.executable, "-c", RUNTIME_WORKER, db_path, str(NOW)],
+                cwd=repo_root,
+                env=process_env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            try:
+                with selectors.DefaultSelector() as selector:
+                    selector.register(process.stdout, selectors.EVENT_READ)
+                    ready = selector.select(timeout=10)
+                self.assertTrue(ready, "FeederRuntime child did not reach RUNNING")
+                line = process.stdout.readline()
+                if not line:
+                    _, child_stderr = process.communicate(timeout=5)
+                    self.fail(f"FeederRuntime child exited before readiness evidence: {child_stderr}")
+                child_state = json.loads(line)
+                self.assertTrue(child_state["started"])
+                self.assertEqual(child_state["generation"], 1)
+                self.assertEqual(child_state["before_state"], "STARTING")
+                self.assertTrue(child_state["before_live"])
+                self.assertFalse(child_state["before_ready"])
+                self.assertEqual(child_state["after_state"], "HEALTHY")
+                self.assertTrue(child_state["after_live"])
+                self.assertTrue(child_state["after_ready"])
+                self.assertEqual(child_state["runtime_state"], "RUNNING")
+
+                process.kill()
+                _, child_stderr = process.communicate(timeout=5)
+                self.assertEqual(
+                    process.returncode, -signal.SIGKILL, child_stderr
+                )
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                process.communicate(timeout=5)
+
+            config = __import__("market_data.feeder", fromlist=["FeederConfig"]).FeederConfig()
+            restart_now = NOW + 60_001
+            leases = LeaseStore(db_path)
+            scheduler = __import__(
+                "market_data.feeder", fromlist=["FeederScheduler"]
+            ).FeederScheduler(
+                config,
+                clock=lambda: restart_now,
+                sync_callback=lambda timeframe, start_ms, end_ms: 0,
+            )
+            restarted = __import__(
+                "market_data.feeder", fromlist=["FeederRuntime"]
+            ).FeederRuntime(
+                config=config,
+                scheduler=scheduler,
+                lease_store=leases,
+                owner_id="restarted-feeder",
+                clock=lambda: restart_now,
+            )
+            self.assertTrue(restarted.start(now_ms=restart_now))
+            self.assertEqual(restarted.lease_generation, child_state["generation"] + 1)
+
+            evaluator = __import__(
+                "market_data.feeder", fromlist=["HealthEvaluator"]
+            ).HealthEvaluator(config)
+            snapshot = {
+                "storage_readable": True,
+                "storage_writable": True,
+                "fatal_error": False,
+                "m15": {
+                    "latest_closed_candle_close_ms": restart_now,
+                    "last_successful_sync_ms": restart_now,
+                    "unresolved_gap_count": 0,
+                    "sync_error": None,
+                },
+                "1h": {
+                    "latest_closed_candle_close_ms": restart_now,
+                    "last_successful_sync_ms": restart_now,
+                    "unresolved_gap_count": 0,
+                    "sync_error": None,
+                },
+            }
+            ready = evaluator.evaluate(
+                restarted.health_snapshot(snapshot), now_ms=restart_now + 5_000
+            )
+            self.assertEqual(ready.state, "HEALTHY")
+            self.assertTrue(ready.live)
+            self.assertTrue(ready.ready)
+
+            self.assertTrue(restarted.stop(timeout=2))
+            stopped = evaluator.evaluate(
+                restarted.health_snapshot(snapshot), now_ms=restart_now + 5_000
+            )
+            self.assertEqual(stopped.state, "STOPPED")
+            self.assertFalse(stopped.live)
+            self.assertFalse(stopped.ready)
+            self.assertFalse(leases.is_current(
+                "restarted-feeder", restarted.lease_generation, restart_now + 5_001
+            ))
+            self.assertFalse(leases.release("crashed-feeder", child_state["generation"]))
 
 
 if __name__ == "__main__":
