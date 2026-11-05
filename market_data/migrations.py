@@ -23,6 +23,20 @@ def _assert_writer_roles_safe(database):
         role = unsafe[0][0]
         raise RuntimeError(f"{role} must remain a restricted NOLOGIN role")
 
+    owner_grants = database.execute(
+        """SELECT granted_role.rolname, member_role.rolname
+           FROM pg_auth_members membership
+           JOIN pg_roles granted_role ON granted_role.oid = membership.roleid
+           JOIN pg_roles member_role ON member_role.oid = membership.member
+           WHERE granted_role.rolname IN ('t0_candle_writer_owner', 't0_lease_manager_owner')
+           ORDER BY granted_role.rolname, member_role.rolname"""
+    ).fetchall()
+    if owner_grants:
+        owner, member = owner_grants[0]
+        raise RuntimeError(
+            f"{owner} must not be granted to runtime or login roles (found {member})"
+        )
+
     inherited = database.execute(
         """SELECT member_role.rolname
            FROM pg_auth_members membership
