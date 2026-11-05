@@ -599,3 +599,53 @@ This section records the latest user direction and takes precedence over older c
 - PR #134 remains OPEN / DRAFT / NOT MERGED. T0 branch/source was not changed by this increment.
 - Status: Windows SWG-F lock contention, bounded timeout, DRAINING fail-closed, process termination lock release, orphan-token reconciliation and generation invalidation PASS on GitHub Windows runner. Linux regression PASS. Android lock semantics remain NOT VERIFIED; production runtime/deployment remains NOT VERIFIED.
 - Limits retained: temporary SQLite + synthetic data only; no canonical DB, exchange, production feeder, PC/VPS deployment, migration or live execution.
+
+
+## 2026-11-05 — T0 VPS deployment authorization and canonical source decision
+
+User explicitly expanded the T0 deployment scope:
+- T0 is no longer Android-first. PC/VPS is the primary operating environment; Android is not the central runtime.
+- User authorized the conditional end-to-end T0 VPS rollout, including canonical database creation, production Feeder activation, and synchronization of real market data **only after the required safety gates pass**.
+- This authorization is a phase-gated deployment authorization, not permission to bypass acceptance criteria or claim production readiness prematurely.
+- Canonical source decision: **temporarily retain Binance USD-M (BTCUSDT USDT perpetual) as the canonical source**. This is a temporary source selection and must be revisited if Binance access, data quality, reliability, or policy constraints fail acceptance.
+- Kraken Spot remains isolated and must not be promoted to the Futures canonical dataset. OKX Shadow remains non-canonical.
+- Keep `ai_execution_enabled=false`; no live orders or exchange trading endpoints. Market-data access only.
+
+### Deployment authorization boundaries
+
+Authorized in principle, subject to gates:
+1. Prepare PC/VPS deployment architecture and operational runbook.
+2. Implement and verify the production storage/write path, including atomic lease fencing and recovery.
+3. Provision the canonical T0 database only after storage, backup/restore, access-control, and rollback gates pass.
+4. Start the production Feeder and synchronize Binance USD-M market data only after staging acceptance and explicit pre-production checklist completion.
+5. Monitor data continuity, closed-candle semantics, duplicate/gap handling, provenance, restart recovery, and operational health.
+
+Not yet verified / not to be treated as complete:
+- VPS provider/account, region, OS, resource sizing, firewall and access policy.
+- Canonical database backend. Current SQLite Gateway has same-database atomic lease fencing; current PostgreSQL/Timescale adapter is read-only and is **not** a valid canonical writer. Do not enable PostgreSQL writes until an equivalent same-transaction lease-fenced writer and disposable integration tests are implemented and accepted.
+- Backup/restore procedure and measured recovery behavior on the selected VPS/database.
+- Production service supervision, secrets handling, alerting, disk/retention limits, and recovery from host/process failure.
+- Live Binance public market-data connectivity, rate-limit behavior, data correctness, and real Feeder stability.
+- No canonical DB has been created and no production Feeder or real exchange synchronization has been started by this authorization record.
+
+### Immediate next phase: P0 production architecture and safety design
+
+Produce a concrete decision record covering:
+- VPS provider/region/OS and least-privilege network/access model.
+- Canonical storage choice and the required writer/lease transaction boundary.
+- Binance USD-M public market-data endpoints and credential policy (no trading permissions or order endpoints).
+- DB initialization/migration ownership, backup cadence, restore test, retention and disk monitoring.
+- Feeder service lifecycle, readiness gates, restart policy, health/alerting, and shutdown behavior.
+- Staging acceptance tests, production cutover checklist, rollback/stop conditions, and cost ceiling.
+
+Acceptance rule: no production database creation, real exchange connection, or Feeder start until the design is recorded and the corresponding staging safety gates are evidenced. Preserve existing PR #134 as OPEN / DRAFT / NOT MERGED; do not merge it automatically. GitHub Actions remains the default CI; Codemagic is fallback-only under the existing policy.
+
+Current status:
+- VPS rollout authorization: **APPROVED CONDITIONALLY**.
+- Binance USD-M canonical source: **TEMPORARILY SELECTED**.
+- Production canonical DB: **NOT CREATED**.
+- PostgreSQL canonical writer: **BLOCKED / NOT IMPLEMENTED**.
+- Production Feeder: **NOT STARTED**.
+- Real market-data synchronization: **NOT STARTED**.
+- VPS deployment and 24/7 operation: **NOT VERIFIED**.
+- Live trading / order execution: **NOT AUTHORIZED**; `ai_execution_enabled=false`.
