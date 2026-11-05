@@ -85,6 +85,18 @@ jobs:
             market_data.test_sync \
             market_data.test_storage \
             market_data.test_feeder_lifecycle -v 2>&1 | tee t0-swg-behavior-tests.log
+      - name: Run Health and Readiness contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest \
+            market_data.test_feeder_health \
+            market_data.test_feeder_health_api -v 2>&1 | tee t0-health-readiness-tests.log
+      - name: Run process-level SIGKILL restart and fencing acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest market_data.test_feeder_process_restart -v 2>&1 | tee t0-process-restart-tests.log
       - name: Run complete market_data regression suite
         shell: bash
         run: |
