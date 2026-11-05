@@ -5,8 +5,8 @@ CREATE TABLE IF NOT EXISTS market_data.feeder_leases (
     expires_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     CHECK (
-        (owner_id IS NULL AND expires_at = '-infinity'::timestamptz)
+        (owner_id IS NULL AND expires_at = '1970-01-01 00:00:00+00'::timestamptz)
         OR
-        (owner_id IS NOT NULL AND expires_at > '-infinity'::timestamptz)
+        (owner_id IS NOT NULL AND expires_at > '1970-01-01 00:00:00+00'::timestamptz)
     )
 );
