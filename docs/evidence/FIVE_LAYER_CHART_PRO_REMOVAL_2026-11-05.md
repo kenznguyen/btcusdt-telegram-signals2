@@ -71,3 +71,15 @@ Removed the obsolete parallel-install resource set and legacy Chart Pro CI tooli
 4. Review the diff and update handoff with exact workflow run/artifact. Keep PR draft/unmerged until explicit approval.
 
 No claim of a successful APK build or device installation is made by this report.
+
+
+## Follow-up: preserve the existing five-layer Android installation
+
+After reviewing upgrade compatibility, the initial package/settings rename was corrected:
+- The single APK now retains the previous five-layer parallel variant application ID `com.kenznguyen.btclivealerts.paper`; removing the parallel build type does not change the installed five-layer package identity.
+- `FiveLayerPanel` retains the original `strategy_state_v1` SharedPreferences namespace, preserving the previously saved API URL.
+- Boundary tests now assert both compatibility contracts; the APK verifier expects the preserved package ID.
+- This avoids the known package-ID and preference-key migration break. APK signer continuity still requires verification against the previously installed APK certificate.
+
+Latest source checkpoint for this follow-up: `907c5d254d3f832f7d5062ac22b3c529305a6c20`.
+Build/tests and Codemagic artifact remain NOT VERIFIED.
