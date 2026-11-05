@@ -35,8 +35,9 @@ Removed the obsolete parallel-install resource set and legacy Chart Pro CI tooli
 ## Five-layer Android identity and runtime
 
 - MainActivity now mounts only FiveLayerStandaloneDashboard.
-- Gradle now builds one application variant, with applicationId `com.kenznguyen.fivelayerpaper`; the parallel variant and Chart Pro release signing configuration are removed.
+- Gradle now builds one application variant, retaining the former five-layer parallel applicationId `com.kenznguyen.btclivealerts.paper` so Android can update the existing five-layer install; the parallel build type and Chart Pro release signing configuration are removed.
 - AndroidManifest retains INTERNET permission and launcher Activity only. StrategyMonitorService and foreground-service, notification and vibration permissions are removed.
+- The five-layer SharedPreferences namespace `strategy_state_v1` is retained so the previously saved API URL remains available after upgrade.
 - Default app label/icon are now the five-layer Paper identity.
 - Android README and Codemagic setup describe a single five-layer Paper APK, no Chart Pro tabs and no Chart Pro release workflow.
 - Codemagic Android workflow renamed to `five-layer-android`; it runs boundary tests, APK verifier tests, Android unit tests, one debug build and APK identity/payload verification.
