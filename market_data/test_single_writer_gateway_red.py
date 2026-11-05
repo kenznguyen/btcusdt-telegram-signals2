@@ -82,7 +82,7 @@ class SingleWriterGatewayRedContracts(unittest.TestCase):
         )
 
     def test_swg_e02_recovery_is_gateway_only(self):
-        text = source("market_data/feeder.py")
+        text = source("market_data/feeder_service.py")
         self.assertIn(
             "write_gateway",
             text,
