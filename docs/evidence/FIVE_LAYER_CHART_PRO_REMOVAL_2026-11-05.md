@@ -120,3 +120,16 @@ The project decision is GitHub Actions as the default and official CI runner. Co
 - Static workflow and source-boundary checks are recorded in the PR; GitHub Actions execution, APK output, signer continuity with an existing installation, and all runtime deployment properties remain NOT VERIFIED until the exact new head run completes.
 - No T0 runtime/data source, Strategy Core, Paper Risk/Ledger, PR #65, PR #134, canonical DB, exchange connection, Feeder activation or live execution was changed or enabled.
 - PR remains OPEN / DRAFT / NOT MERGED pending exact-SHA GitHub Actions results and review.
+
+
+## GitHub Actions first execution and syntax repair — 2026-11-05
+
+- The first active GitHub Actions workflow was triggered after the Codemagic migration. Run #42044164991 (push) was cancelled by a newer push; run #42044180900 (PR) completed with failure on source SHA `c6de7e06acfef4d6f8e7d20cec145c5a2697afdf`.
+- Android boundary test and backend compile both exposed a malformed test-file edit: `ci/test_five_layer_android_boundary.py` had a duplicated method appended after `unittest.main()`, producing a Python SyntaxError. This is a real failed CI attempt, not a pass.
+- Rewrote the complete boundary test file with a single correctly ordered test class and `unittest.main()` at EOF. Corrective commit/source SHA: `d7cce0172cb7b25a8a7cd0feb0a4ce4a521f1b99`.
+- Replaced obsolete Codemagic CI policy tests that asserted GitHub Actions must be absent. New `ci/test_ci_policy.py` asserts the GitHub Actions trigger, exact PR-head checkout, three job boundaries, Android tests/build/APK verification, paper-only backend regression boundary, and Dashboard test/build/audit gates.
+- Adjusted backend T0 command list to modules that actually exist on this PR's declared base: `market_data.test_store`, `market_data.test_sync`, `market_data.test_storage`, and `market_data.test_api`. This PR branch does not contain the newer feeder scheduler/recovery test modules; those modern T0 acceptance suites remain outside this PR's exact branch and are not claimed as run here.
+- Current exact-head GitHub Actions runs on `d7cce0172cb7b25a8a7cd0feb0a4ce4a521f1b99`: PR run #42044440154 was IN_PROGRESS at evidence update; push run #42044431785 was QUEUED. These are not PASS.
+- Earlier cancelled run #42044164991 showed Dashboard npm install, React tests, production build and npm audit steps completed successfully on the prior source SHA `c6de7e06acfef4d6f8e7d20cec145c5a2697afdf`; this is historical partial evidence only and does not certify the latest SHA.
+- Android boundary/APK tests, Gradle unit tests/build, backend regression suites and latest Dashboard gates remain NOT VERIFIED until the current exact-head run completes. No artifact is accepted yet.
+- T0 source paths remain unchanged by this PR. Core Strategy/Paper protected file blob hashes remain identical to PR base. No canonical DB, exchange, Feeder, live execution, PR #65 or PR #134 changed.
