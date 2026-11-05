@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from market_data.feeder import LeaseStore
-from market_data.store import Candle, CandleStore, INTERVAL_MS
+from market_data.store import Candle, CandleStore, INTERVAL_MS, read_window
 from market_data.write_gateway import SQLiteWriteGateway
 
 NOW = 1_800_000_000_000
