@@ -16,7 +16,7 @@ Use separate PostgreSQL roles. Do not reuse one login for migrations, ingestion,
 | Principal | Login policy | Allowed scope | Explicitly denied |
 |---|---|---|---|
 | `t0_db_owner` | NOLOGIN | Owns `market_data` schema, tables, migration history | Application login; routine Feeder use |
-| `t0_migrator` | Ephemeral LOGIN or short-lived provider identity; temporary membership in `t0_db_owner`, `t0_candle_writer_owner`, and `t0_lease_manager_owner` only during a controlled migration window | Apply approved, checksum-verified migrations | Feeder runtime; public API; persistent credentials on VPS |
+| `t0_migrator` | NOLOGIN group role; a separate ephemeral LOGIN is temporarily granted membership in this role for a controlled migration window | Apply approved, checksum-verified migrations | Feeder runtime; public API; persistent credentials on VPS |
 | `t0_feeder` | LOGIN, dedicated secret | Connect to the one T0 database; schema USAGE; membership in `t0_feeder_writer` and `t0_feeder_lease_manager` for EXECUTE on fenced candle-write and lease-transition/lease-validity functions; no direct lease-table access | Direct INSERT/UPDATE/DELETE/TRUNCATE on `feeder_leases` or `candles`, DDL, DROP, role grants, extension management, other schemas, Paper DB |
 | `t0_reader` | LOGIN, separate secret per consumer where practical | Connect; schema USAGE; SELECT on explicitly approved canonical read tables/views | Any write, lease access, DDL, migration |
 | Backup identity | Prefer provider-managed backup/PITR identity outside SQL login; if logical export is required, dedicated read-only identity | Read required T0 objects and migration metadata | Feeder lease mutation, DDL, application write, Paper DB |
