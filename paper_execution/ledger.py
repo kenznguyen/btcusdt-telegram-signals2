@@ -150,36 +150,36 @@ class PaperLedger:
             connection.execute("PRAGMA journal_mode=WAL")
             connection.execute("BEGIN IMMEDIATE")
             gate.validate_writer_token(token)
-        initialized = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_state'").fetchone()
-        connection.execute("""CREATE TABLE IF NOT EXISTS paper_state (
-            id INTEGER PRIMARY KEY CHECK(id=1), position TEXT NOT NULL, average TEXT NOT NULL,
-            realized TEXT NOT NULL, fees TEXT NOT NULL, paused INTEGER NOT NULL)""")
-        if not initialized:
-            connection.execute("INSERT INTO paper_state VALUES (1,'0','0','0','0',0)")
-        stored_state(connection)
-        connection.execute("""CREATE TABLE IF NOT EXISTS paper_orders (
-            intent_id TEXT PRIMARY KEY, payload_hash TEXT NOT NULL, order_id TEXT NOT NULL UNIQUE,
-            status TEXT NOT NULL, document TEXT NOT NULL)""")
-        connection.execute("CREATE INDEX IF NOT EXISTS paper_order_status ON paper_orders(status)")
-        connection.execute("CREATE TABLE IF NOT EXISTS paper_books (book_id TEXT PRIMARY KEY, used_at_ms INTEGER NOT NULL)")
-        connection.execute("""CREATE TABLE IF NOT EXISTS paper_audit (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, at_ms INTEGER NOT NULL, kind TEXT NOT NULL, document TEXT NOT NULL)""")
-        risk_control.ensure(connection)
-        strategy_table = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_strategy_state'").fetchone()
-        connection.execute("""CREATE TABLE IF NOT EXISTS paper_strategy_state (
-            id INTEGER PRIMARY KEY CHECK(id=1), owner TEXT, dca_used INTEGER NOT NULL CHECK(dca_used IN (0,1)),
-            initial_margin_quote TEXT NOT NULL)""")
-        if not strategy_table:
-            legacy_position = Decimal(stored_state(connection)[0])
-            connection.execute("INSERT OR IGNORE INTO paper_strategy_state VALUES (1,?,?,?)",
-                               ("LEGACY" if legacy_position else None, 0, "0"))
-        else:
-            existing_strategy = connection.execute("SELECT 1 FROM paper_strategy_state WHERE id=1").fetchone()
-            if not existing_strategy:
+            initialized = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_state'").fetchone()
+            connection.execute("""CREATE TABLE IF NOT EXISTS paper_state (
+                id INTEGER PRIMARY KEY CHECK(id=1), position TEXT NOT NULL, average TEXT NOT NULL,
+                realized TEXT NOT NULL, fees TEXT NOT NULL, paused INTEGER NOT NULL)""")
+            if not initialized:
+                connection.execute("INSERT INTO paper_state VALUES (1,'0','0','0','0',0)")
+            stored_state(connection)
+            connection.execute("""CREATE TABLE IF NOT EXISTS paper_orders (
+                intent_id TEXT PRIMARY KEY, payload_hash TEXT NOT NULL, order_id TEXT NOT NULL UNIQUE,
+                status TEXT NOT NULL, document TEXT NOT NULL)""")
+            connection.execute("CREATE INDEX IF NOT EXISTS paper_order_status ON paper_orders(status)")
+            connection.execute("CREATE TABLE IF NOT EXISTS paper_books (book_id TEXT PRIMARY KEY, used_at_ms INTEGER NOT NULL)")
+            connection.execute("""CREATE TABLE IF NOT EXISTS paper_audit (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, at_ms INTEGER NOT NULL, kind TEXT NOT NULL, document TEXT NOT NULL)""")
+            risk_control.ensure(connection)
+            strategy_table = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_strategy_state'").fetchone()
+            connection.execute("""CREATE TABLE IF NOT EXISTS paper_strategy_state (
+                id INTEGER PRIMARY KEY CHECK(id=1), owner TEXT, dca_used INTEGER NOT NULL CHECK(dca_used IN (0,1)),
+                initial_margin_quote TEXT NOT NULL)""")
+            if not strategy_table:
                 legacy_position = Decimal(stored_state(connection)[0])
-                connection.execute("INSERT INTO paper_strategy_state VALUES (1,?,?,?)",
+                connection.execute("INSERT OR IGNORE INTO paper_strategy_state VALUES (1,?,?,?)",
                                    ("LEGACY" if legacy_position else None, 0, "0"))
-        equity_history.ensure(connection)
+            else:
+                existing_strategy = connection.execute("SELECT 1 FROM paper_strategy_state WHERE id=1").fetchone()
+                if not existing_strategy:
+                    legacy_position = Decimal(stored_state(connection)[0])
+                    connection.execute("INSERT INTO paper_strategy_state VALUES (1,?,?,?)",
+                                       ("LEGACY" if legacy_position else None, 0, "0"))
+            equity_history.ensure(connection)
 
             gate.validate_writer_token(token)
             connection.commit()
