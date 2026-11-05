@@ -13,7 +13,8 @@ def _assert_writer_roles_safe(database):
     """Fail closed if reserved SECURITY DEFINER roles gain login/admin powers."""
     unsafe = database.execute(
         """SELECT rolname FROM pg_roles
-           WHERE rolname IN ('t0_feeder_writer', 't0_candle_writer_owner')
+           WHERE rolname IN ('t0_feeder_writer', 't0_candle_writer_owner',
+                             't0_feeder_lease_manager', 't0_lease_manager_owner')
              AND (rolsuper OR rolcanlogin OR rolcreatedb OR rolcreaterole
                   OR rolreplication OR rolbypassrls)
            ORDER BY rolname"""
@@ -26,7 +27,8 @@ def _assert_writer_roles_safe(database):
         """SELECT member_role.rolname
            FROM pg_auth_members membership
            JOIN pg_roles member_role ON member_role.oid = membership.member
-           WHERE member_role.rolname IN ('t0_feeder_writer', 't0_candle_writer_owner')
+           WHERE member_role.rolname IN ('t0_feeder_writer', 't0_candle_writer_owner',
+                                       't0_feeder_lease_manager', 't0_lease_manager_owner')
            ORDER BY member_role.rolname"""
     ).fetchall()
     if inherited:
