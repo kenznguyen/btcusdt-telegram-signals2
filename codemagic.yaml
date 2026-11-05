@@ -4,8 +4,8 @@
 # Android Paper native parity and API contract tests are included in the candidate build.
 # The quality API envelope contract is also covered in the Python/API candidate run.
 workflows:
-  android-chart-pro-debug:
-    name: BTC Chart Pro - tests, regular and parallel APKs
+  five-layer-android:
+    name: BTCUSDT Quant System - five-layer Paper APK
     instance_type: mac_mini_m2
     max_build_duration: 30
     environment:
@@ -13,11 +13,14 @@ workflows:
     cache:
       cache_paths:
         - $HOME/.gradle/caches
-        - $HOME/.cache/btc-chart-pro
+        - $HOME/.cache/five-layer-android
     triggering:
       events:
         - push
       branch_patterns:
+        - pattern: cleanup/remove-chart-pro-from-five-layer-20261105
+          include: true
+          source: true
         - pattern: feature/android-five-layer-control
           include: true
           source: true
@@ -28,9 +31,6 @@ workflows:
           include: true
           source: true
         - pattern: feature/hummingbot-order-book
-          include: true
-          source: true
-        - pattern: fix/chart-pro-reliability-20261027
           include: true
           source: true
         - pattern: main
@@ -48,61 +48,32 @@ workflows:
           - ci/
           - codemagic.yaml
     scripts:
-      - name: Test Hummingbot read-only bridge
+      - name: Test five-layer source boundary and APK verifier
         script: |
           set -euo pipefail
-          python3 -m unittest integrations.test_hummingbot_bridge -v
-          python3 -m unittest ci.test_android_apks -v
+          python3 -m unittest ci.test_five_layer_android_boundary ci.test_five_layer_android_apk -v
       - name: Prepare Android build tools and record source
         script: bash ci/setup-android.sh
-      - name: Run Android unit tests
+      - name: Run five-layer Android unit tests
         working_directory: android-app
         script: |
           set -euo pipefail
-          "$CHART_GRADLE_BIN" :app:testDebugUnitTest :app:testParallelUnitTest --no-daemon --stacktrace
-        test_report: android-app/app/build/test-results/test*UnitTest/*.xml
-      - name: Build regular and parallel APKs
+          "$GRADLE_BIN" :app:testDebugUnitTest --no-daemon --stacktrace
+        test_report: android-app/app/build/test-results/testDebugUnitTest/*.xml
+      - name: Build five-layer Paper APK
         working_directory: android-app
         script: |
           set -euo pipefail
-          "$CHART_GRADLE_BIN" :app:assembleDebug :app:assembleParallel --no-daemon --stacktrace
-      - name: Verify application identities and publish parallel APK
-        script: python3 ci/verify-android-apks.py
+          "$GRADLE_BIN" :app:assembleDebug --no-daemon --stacktrace
+      - name: Verify APK identity and absence of Chart Pro payload
+        script: python3 ci/verify-five-layer-android-apk.py
     artifacts:
       - android-app/app/build/outputs/apk/debug/*.apk
-      - artifacts/BTC-5-Tang-Paper-*.apk
-      - android-app/app/build/test-results/testDebugUnitTest/*.xml
-      - android-app/app/build/reports/tests/testDebugUnitTest/**
-      - android-app/app/build/test-results/testParallelUnitTest/*.xml
-      - android-app/app/build/reports/tests/testParallelUnitTest/**
-      - android-source-sha.txt
-      - android-apks.json
-
-  android-chart-pro-release:
-    name: BTC Chart Pro - verified signed release APK
-    instance_type: mac_mini_m2
-    max_build_duration: 30
-    environment:
-      java: 17
-      groups:
-        - android_release
-    cache:
-      cache_paths:
-        - $HOME/.gradle/caches
-        - $HOME/.cache/btc-chart-pro
-    # No triggering section: start this workflow manually on the intended source branch.
-    scripts:
-      - name: Prepare Android build tools and record source
-        script: bash ci/setup-android.sh
-      - name: Test, build and verify the existing release signing identity
-        script: bash ci/release-android.sh
-        test_report: android-app/app/build/test-results/testDebugUnitTest/*.xml
-    artifacts:
-      - android-app/app/build/outputs/apk/release/*.apk
+      - artifacts/BTCUSDT-Quant-System-Paper-*.apk
       - android-app/app/build/test-results/testDebugUnitTest/*.xml
       - android-app/app/build/reports/tests/testDebugUnitTest/**
       - android-source-sha.txt
-      - android-release-apk-signature.txt
+      - android-apk.json
 
   canonical-market-data:
     name: Canonical market data - Python checks
