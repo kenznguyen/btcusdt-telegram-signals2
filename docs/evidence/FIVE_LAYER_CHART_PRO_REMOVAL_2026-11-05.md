@@ -155,3 +155,19 @@ The project decision is GitHub Actions as the default and official CI runner. Co
 - No T0 source/data/Feeder/lease/fencing/recovery path, canonical DB, exchange access, live execution, PR #65 or PR #134 was changed or activated.
 - Status on tested SHA: GitHub Actions migration **PASS**; Chart Pro removal boundary **PASS**; Android Paper debug build and verifier **PASS**; T0–T3/Core and T4 regression jobs **PASS**; existing-install signer continuity **NOT VERIFIED**.
 - PR #135 remains OPEN / DRAFT / NOT MERGED. Do not merge without explicit approval.
+
+
+## User-directed T4 validation policy adjustment — 2026-11-05
+
+The user confirmed that T4 Dashboard will be rebuilt, so the existing dashboard implementation does not need a strict test/build/dependency-audit gate during this cleanup.
+
+- T4 is retained as source/data for later rebuild; this cleanup does not delete its code or assets.
+- Replaced the former T4 React test + production build + npm audit job with a minimal local manifest-boundary check (`package.json` and `package-lock.json` parse successfully).
+- The T4 job is marked `continue-on-error: true`; a T4-only failure cannot fail the overall PR workflow or block Android/T0–T3 validation.
+- T0–T3/Core Strategy/Paper Risk/Ledger regression coverage remains strict and blocking. Android boundary, unit tests, APK build and APK verification remain strict.
+- The CI policy test now asserts the non-blocking T4 behavior and absence of npm install/test/build/audit gates.
+- This is a policy/configuration change only. No T4 source/data was deleted or rewritten; no T0–T3 production logic or Shared Risk Engine code was changed.
+- Source commits: CI policy test `e12370382a7402afbc4aa784ab23358c20e5d617`; workflow `03275ec43487b14e417ed94c67106d1f7c98d21f`.
+- Current PR head at this update: `03275ec43487b14e417ed94c67106d1f7c98d21f`.
+- Exact-head GitHub Actions validation for this policy update: **PENDING / NOT VERIFIED**. The prior successful run `42046383582` applies to source SHA `5aedfe7c6f55163b3bbb5a3b6c82677da0272eb1`, before this T4 policy change; do not carry that result forward.
+- PR #135 remains OPEN / DRAFT / NOT MERGED. No merge or runtime activation is authorized.
