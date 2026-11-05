@@ -117,6 +117,8 @@ jobs:
           git rev-parse HEAD | tee backend-source-sha.txt
       - name: Compile Python source
         run: python -m py_compile market_data/*.py ci/*.py pipeline/*.py futures_intelligence/*.py paper_execution/*.py integrations/*.py freqai_bridge/*.py
+      - name: Run legacy bridge retirement boundary tests
+        run: python -m unittest ci.test_legacy_bridge_retirement -v
       - name: Run T0 storage, synchronization and read API regressions
         run: |
           python -m unittest \
