@@ -14,7 +14,7 @@ class SharedRiskLimitTest(unittest.TestCase):
         self.now=1_800_000_000_000
         self.limits={"maxDrawdownPct":20,"maxDailyLossUsdt":10,"maxExposureUsdt":1000}
         self.ledger=PaperLedger(self.path,max_position_base="1",risk_limits=self.limits,
-                                require_risk_limits=True)
+                                require_risk_limits=True).initialize()
 
     def intent(self,name="risk-order",target="0.1"):
         return {"intentId":name,"symbol":"BTCUSDT","exchange":"binance","marketType":"USDT_PERPETUAL",
@@ -41,7 +41,7 @@ class SharedRiskLimitTest(unittest.TestCase):
 
     def test_daily_loss_breach_latches_kill(self):
         limits={**self.limits,"maxDrawdownPct":90}
-        ledger=PaperLedger(self.path,max_position_base="1",risk_limits=limits,require_risk_limits=True)
+        ledger=PaperLedger(self.path,max_position_base="1",risk_limits=limits,require_risk_limits=True).initialize()
         ledger.record_equity("100",self.now,self.now,"sha256:"+"c"*64)
         with sqlite3.connect(self.path) as db:
             db.execute("UPDATE paper_state SET realized='-12' WHERE id=1")
@@ -52,14 +52,14 @@ class SharedRiskLimitTest(unittest.TestCase):
 
     def test_exposure_limit_rejects_without_latching_global_kill(self):
         limits={**self.limits,"maxExposureUsdt":5}
-        ledger=PaperLedger(self.path,max_position_base="1",risk_limits=limits,require_risk_limits=True)
+        ledger=PaperLedger(self.path,max_position_base="1",risk_limits=limits,require_risk_limits=True).initialize()
         ledger.record_equity("100",self.now,self.now,"sha256:"+"c"*64)
         result=ledger.submit(self.intent("exposure"),self.book(self.now),self.now)
         self.assertEqual(result["reason"],"MAX_EXPOSURE_LIMIT")
         self.assertFalse(ledger.snapshot()["riskControl"]["killed"])
 
     def test_missing_limits_fail_closed(self):
-        ledger=PaperLedger(self.path,max_position_base="1",require_risk_limits=True)
+        ledger=PaperLedger(self.path,max_position_base="1",require_risk_limits=True).initialize()
         ledger.record_equity("100",self.now,self.now,"sha256:"+"c"*64)
         result=ledger.submit(self.intent("unconfigured"),self.book(self.now),self.now)
         self.assertEqual(result["reason"],"RISK_LIMITS_UNCONFIGURED")

@@ -7,8 +7,11 @@ hoặc hàm gửi lệnh thật**. `liveTradingSupported` luôn là `false`.
 ```python
 from paper_execution.ledger import PaperLedger
 
-ledger = PaperLedger(".data/market-data.sqlite3",
-                     max_position_base="0.01", fee_rate="0.0005")
+ledger = PaperLedger(
+    ".data/paper.sqlite3",
+    market_data_db_path=".data/market-data.sqlite3",
+    max_position_base="0.01", fee_rate="0.0005",
+).initialize()
 result = ledger.submit(validated_paper_intent, hummingbot_snapshot, now_ms)
 state = ledger.snapshot()
 ```
@@ -16,14 +19,18 @@ state = ledger.snapshot()
 Khởi tạo local là thao tác riêng, không thực hiện trong HTTP GET:
 
 ```bash
-python3 -m paper_execution --db .data/market-data.sqlite3
+MARKET_DATA_DB=.data/market-data.sqlite3 python3 -m paper_execution --db .data/paper.sqlite3
 ```
 
 CLI có tham số `--max-position-base`, `--fee-rate`, `--max-spread-bps`; cấu hình risk
 là tham số của từng instance `PaperLedger`, không phải một chính sách được CLI lưu
 vĩnh viễn. Backend phải truyền đúng cấu hình đã chọn khi tạo writer. Client chỉ đọc
 dùng `read_snapshot(db_path)` (SQLite `mode=ro`), không gọi constructor để tự tạo
-state. Đọc khi thiếu database/tables/state báo lỗi, không tạo ledger rỗng.
+state. API yêu cầu `PAPER_DB` riêng với `MARKET_DATA_DB`; kiểm tra cả đường dẫn
+chuẩn hóa và alias filesystem. Chỉ Paper writer được initialize database sau khi
+WriterGate cấp quyền. Đọc khi thiếu database/tables/state báo lỗi, không tạo ledger rỗng.
+Các GET `/v1/paper`, `/v1/equity` và `/v1/audit` chỉ đọc; equity history được ghi
+bởi thao tác Paper evaluate rõ ràng, không ghi ngầm trong GET.
 
 Intent và snapshot theo [`pipeline/CONTRACTS.md`](../pipeline/CONTRACTS.md).
 Tham số `targetPositionBase` là vị thế ròng mục tiêu có dấu, không phải khối lượng

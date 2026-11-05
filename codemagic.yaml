@@ -975,3 +975,55 @@ workflows:
       - ci-source-sha.txt
       - p5-2-4-shadow-compile-verdict.txt
       - p5-2-4-shadow-red-tests.log
+
+  # SWG-F Paper writer isolation RED contracts. Manual-only, static source tests.
+  p5-2-5-paper-writer-isolation-red:
+    name: P5.2.5 - Paper writer isolation contracts (RED, Shadow only)
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    scripts:
+      - name: Prepare isolated Python and record exact source SHA
+        script: |
+          set -euo pipefail
+          bash ci/setup-python.sh requirements-ci.txt
+          git rev-parse HEAD | tee p5-2-5-paper-writer-source-sha.txt
+      - name: Enforce no runtime, DB or exchange configuration
+        script: |
+          set -euo pipefail
+          test -z "${MARKET_DATA_DB:-}"
+          test -z "${T0_FEEDER_LEASE_DB:-}"
+          test -z "${PAPER_DB:-}"
+          test -z "${BINANCE_API_KEY:-}"
+          test -z "${BINANCE_API_SECRET:-}"
+          test -z "${OKX_API_KEY:-}"
+          test -z "${OKX_API_SECRET:-}"
+          echo "PAPER_WRITER_SHADOW_PREFLIGHT=PASS" | tee p5-2-5-paper-writer-preflight.log
+      - name: Compile static RED contract tests
+        script: |
+          set -euo pipefail
+          "$CI_PYTHON" -m py_compile paper_execution/test_writer_isolation_red.py
+          echo "PAPER_WRITER_RED_COMPILE=PASS" | tee p5-2-5-paper-writer-compile.log
+      - name: Run SWG-F contracts and classify expected RED
+        script: |
+          set -euo pipefail
+          set +e
+          env -u MARKET_DATA_DB -u T0_FEEDER_LEASE_DB -u PAPER_DB -u BINANCE_API_KEY -u BINANCE_API_SECRET -u OKX_API_KEY -u OKX_API_SECRET \
+            "$CI_PYTHON" -m unittest paper_execution.test_writer_isolation_red -v 2>&1 | tee p5-2-5-paper-writer-red-tests.log
+          test_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$test_status" -eq 0 ]; then
+            echo "PAPER_WRITER_RED=UNEXPECTED_PASS" | tee p5-2-5-paper-writer-verdict.log
+            exit 1
+          fi
+          if grep -q "^FAIL:" p5-2-5-paper-writer-red-tests.log && ! grep -q "^ERROR:" p5-2-5-paper-writer-red-tests.log; then
+            echo "PAPER_WRITER_RED=CONFIRMED_CONTRACT_GAPS" | tee p5-2-5-paper-writer-verdict.log
+          else
+            echo "PAPER_WRITER_RED=INVALID_FAILURE_CLASS" | tee p5-2-5-paper-writer-verdict.log
+            exit 1
+          fi
+    artifacts:
+      - p5-2-5-paper-writer-source-sha.txt
+      - p5-2-5-paper-writer-preflight.log
+      - p5-2-5-paper-writer-compile.log
+      - p5-2-5-paper-writer-red-tests.log
+      - p5-2-5-paper-writer-verdict.log

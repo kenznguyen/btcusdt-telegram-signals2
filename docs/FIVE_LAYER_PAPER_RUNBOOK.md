@@ -47,12 +47,15 @@ chối thay vì sửa lịch sử.
 Khởi tạo paper account **rõ ràng bằng CLI**, không thông qua GET:
 
 ```bash
-.venv-market-data/bin/python -m paper_execution --db .data/market-data.sqlite3
+MARKET_DATA_DB=.data/market-data.sqlite3 .venv-market-data/bin/python -m paper_execution --db .data/paper.sqlite3
 ```
 
-GET `/v1/paper` chỉ đọc database/ledger đã khởi tạo. Thiếu/hỏng state báo 503,
-không tạo lại tài khoản zero hoặc làm mất vị thế cũ. Các lệnh điều khiển chỉ
-thực thi khi có store và control token hợp lệ.
+`MARKET_DATA_DB` chỉ chứa dữ liệu thị trường canonical; `PAPER_DB` là SQLite riêng
+cho vị thế/lệnh/equity/audit/rate-limit của Paper. Không dùng chung file, symlink
+hoặc hardlink giữa hai DB. API chỉ initialize PAPER_DB qua PaperWriterGate khi có
+POST được xác thực; GET `/v1/paper`, `/v1/audit`, `/v1/equity` chỉ đọc và không tạo
+schema hoặc ghi equity snapshot. Thiếu/hỏng state báo 503, không tạo lại tài khoản
+zero hoặc làm mất vị thế cũ.
 
 ## 3. Tầng 1: dữ liệu quan sát thật
 
@@ -122,7 +125,8 @@ lấy snapshot, không phải chứng cứ sequence đã đồng bộ.
 
 | Biến | Nội dung |
 | --- | --- |
-| `MARKET_DATA_DB` | SQLite đã có canonical data/paper ledger |
+| `MARKET_DATA_DB` | SQLite canonical chỉ chứa dữ liệu thị trường |
+| `PAPER_DB` | SQLite riêng cho Paper state, orders, equity, audit và write budget |
 | `MARKET_DATA_TOKEN` | Quyền đọc API |
 | `CONTROL_TOKEN` | Token **khác** token đọc; chỉ điều khiển paper |
 | `INTELLIGENCE_REPORT_PATH` | File JSON tầng 1 đã publish |
@@ -143,8 +147,8 @@ gunicorn --bind 127.0.0.1:8789 --workers 1 --threads 4 --timeout 30 pipeline.api
 ```
 
 Đặt sau HTTPS reverse proxy; dùng disk volume bền vững và giới hạn request tại
-proxy. Các quyền điều khiển có ngân sách chung SQLite 30 request/phút UTC cho
-mỗi store. GET có bearer riêng; không mở CORS wildcard. Không đặt API key sàn ở UI.
+proxy. Các quyền điều khiển có ngân sách chung SQLite 30 request/phút UTC trong
+`PAPER_DB`, được WriterGate bảo vệ. Không ghi Paper control data vào `MARKET_DATA_DB`. GET có bearer riêng; không mở CORS wildcard. Không đặt API key sàn ở UI.
 
 Build React bằng [control_dashboard/README.md](../control_dashboard/README.md)
 hoặc tải `dist` artifact từ Codemagic, rồi mở `/control/`. Token chỉ giữ trong

@@ -14,6 +14,7 @@ from market_data.api import candle_query
 from market_data.postgres import StoreUnavailable
 from market_data.storage import create_store_from_env
 from pipeline.values import stamp
+from paper_execution.writer_gate import WriterAdmissionDenied
 
 ROOT = Path(__file__).resolve().parents[1]
 _book_lock = threading.Lock()
@@ -70,38 +71,35 @@ def book_snapshot(timestamp):
         return result
 
 
+def paper_db_path():
+    paper = os.environ.get("PAPER_DB")
+    market = os.environ.get("MARKET_DATA_DB")
+    if not paper or not market or not Path(market).is_file():
+        raise ValueError("PAPER_DB and an existing MARKET_DATA_DB are required")
+    paper_path, market_path = Path(paper).expanduser().resolve(), Path(market).expanduser().resolve()
+    if paper_path == market_path or (paper_path.exists() and os.path.samefile(paper_path, market_path)):
+        raise ValueError("PAPER_DB must be physically separate from MARKET_DATA_DB")
+    return paper_path
+
+
 def ledger():
     from paper_execution.ledger import PaperLedger
     from paper_execution.equity import parse_limits
-    path = os.environ.get("MARKET_DATA_DB")
-    if not path:
-        raise ValueError("Unconfigured store")
+    market = os.environ.get("MARKET_DATA_DB")
+    paper = paper_db_path()
     limits = parse_limits(os.environ)
-    return PaperLedger(path, max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"),
+    return PaperLedger(str(paper), max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"),
                        fee_rate=os.environ.get("PAPER_FEE_RATE", "0.0005"),
                        max_spread_bps=os.environ.get("PAPER_MAX_SPREAD_BPS", "50"),
                        risk_limits=limits, require_risk_limits=True,
-                       leverage=os.environ.get("LEVERAGE", "13"))
+                       leverage=os.environ.get("LEVERAGE", "13"),
+                       market_data_db_path=market).initialize()
 
 
-def control_permit(timestamp):
-    """A small shared SQLite budget for paper writes across API workers."""
-    from contextlib import closing
-    path = os.environ.get("MARKET_DATA_DB")
-    if not path or not Path(path).is_file():
-        return False
-    with closing(sqlite3.connect(path, timeout=5)) as connection, connection:
-        connection.execute("BEGIN IMMEDIATE")
-        connection.execute("CREATE TABLE IF NOT EXISTS paper_control_budget (minute INTEGER PRIMARY KEY, used INTEGER NOT NULL)")
-        minute = timestamp // 60_000
-        connection.execute("DELETE FROM paper_control_budget WHERE minute<?", (minute-1,))
-        connection.execute("INSERT OR IGNORE INTO paper_control_budget VALUES (?,0)", (minute,))
-        used = connection.execute("SELECT used FROM paper_control_budget WHERE minute=?", (minute,)).fetchone()[0]
-        if used >= 30:
-            return False
-        connection.execute("UPDATE paper_control_budget SET used=used+1 WHERE minute=?", (minute,))
-        return True
-
+def control_permit(timestamp, writer=None):
+    """Consume the shared API write budget through the admitted Paper writer."""
+    writer = writer or ledger()
+    return writer.consume_api_budget(timestamp)
 
 
 def market_window(*args, **kwargs):
@@ -158,7 +156,7 @@ def core_decide(timestamp, book=None):
                             initial_capital=os.environ.get("PAPER_INITIAL_CAPITAL", "100"),
                             max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"))
         from paper_execution.ledger import read_snapshot
-        paper = read_snapshot(os.environ.get("MARKET_DATA_DB", ""))
+        paper = read_snapshot(paper_db_path())
         state = paper["strategyState"]
         book = book_snapshot(timestamp) if book is None else book
         report = produce(m15, h1, paper, state, book, timestamp,
@@ -184,18 +182,13 @@ def signal_snapshot(timestamp):
 
 
 def equity_snapshot(timestamp):
-    end = timestamp // 900_000 * 900_000
-    window = market_window("BTCUSDT", "15m",
-                         end-900_000, end, as_of_ms=timestamp)
-    if not window["candles"] or not window["coverage"]["complete"]:
-        return {"available":False,"reason":"CLOSED_M15_MARK_UNAVAILABLE","points":[]}
-    mark = window["candles"][-1]
-    # Constructing the ledger initializes a fresh Paper store before the first
-    # persistent equity observation; read_snapshot() is intentionally read-only
-    # and cannot be used as an initialization prerequisite here.
-    paper_ledger = ledger()
-    result = paper_ledger.record_equity(mark["close"], mark["closeTimeMs"], timestamp,
-        window["datasetVersion"], os.environ.get("PAPER_INITIAL_CAPITAL", "100"))
+    from contextlib import closing
+    from paper_execution import equity as equity_history
+    path = paper_db_path()
+    if not path.is_file():
+        raise FileNotFoundError("Paper ledger is unavailable")
+    with closing(sqlite3.connect(path.as_uri()+"?mode=ro", uri=True, timeout=10)) as connection:
+        result = equity_history.snapshot(connection, timestamp)
     from paper_execution.equity import parse_limits
     limits = parse_limits(os.environ)
     result["initialCapital"] = os.environ.get("PAPER_INITIAL_CAPITAL", "100")
@@ -285,12 +278,12 @@ def quality_snapshot(timestamp):
             "errors":data.get("errors",{})}
 
 
-def control_readiness(timestamp):
+def control_readiness(timestamp, writer=None):
     data = context(timestamp)
     candles = data.get("candles")
     candle_ready = bool(candles and candles.get("coverage", {}).get("complete") is True)
     book_ready = data.get("book") is not None
-    paper = ledger().snapshot()
+    paper = (writer or ledger()).snapshot()
     no_pending = not any(order.get("status") in ("OPEN", "PARTIALLY_FILLED")
                          for order in paper.get("orders", []))
     return {"ready": candle_ready and book_ready and no_pending,
@@ -373,19 +366,27 @@ def application(environ, start_response):
             payload = _body(environ)
             if not os.environ.get("MARKET_DATA_DB") or not Path(os.environ["MARKET_DATA_DB"]).is_file():
                 return response("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
-            if not control_permit(timestamp):
+            try:
+                writer = ledger()
+            except (ValueError, OSError, sqlite3.Error, RuntimeError, WriterAdmissionDenied):
+                return response("503 Service Unavailable", {"error": "PAPER_STORE_UNAVAILABLE"})
+            try:
+                permitted = control_permit(timestamp, writer)
+            except (OSError, sqlite3.Error, RuntimeError, WriterAdmissionDenied):
+                return response("503 Service Unavailable", {"error": "DATA_UNAVAILABLE"})
+            if not permitted:
                 return response("429 Too Many Requests", {"error": "CONTROL_RATE_LIMIT"})
             if path == "/v1/paper/pause" and set(payload) == {"paused"} and type(payload["paused"]) is bool:
-                result = ledger().set_paused(payload["paused"], timestamp)
+                result = writer.set_paused(payload["paused"], timestamp)
             elif path == "/v1/paper/cancel" and set(payload) == {"orderId"} and isinstance(payload["orderId"], str) and 0 < len(payload["orderId"]) <= 100:
-                result = ledger().cancel(payload["orderId"], timestamp)
+                result = writer.cancel(payload["orderId"], timestamp)
             elif path == "/v1/paper/kill" and set(payload) == {"enabled"} and payload["enabled"] is True:
-                result = ledger().set_killed(True, timestamp, "OPERATOR_KILL_SWITCH")
+                result = writer.set_killed(True, timestamp, "OPERATOR_KILL_SWITCH")
             elif path == "/v1/paper/reset-kill" and set(payload) == {"acknowledge"} and payload["acknowledge"] is True:
-                readiness = control_readiness(timestamp)
+                readiness = control_readiness(timestamp, writer)
                 if not readiness["ready"]:
                     return response("409 Conflict", {"error": "SYSTEM_NOT_READY", "checks": readiness["checks"]})
-                result = ledger().reset_kill(True, True, timestamp)
+                result = writer.reset_kill(True, True, timestamp)
             elif path == "/v1/paper/evaluate" and (not payload or payload in ({"source": "AI"}, {"source": "CORE"})):
                 source = payload.get("source", "AI")
                 if source == "CORE":
@@ -403,15 +404,15 @@ def application(environ, start_response):
                                               end-900_000,end,as_of_ms=timestamp)
                     if mark_window["candles"] and mark_window["coverage"]["complete"]:
                         mark = mark_window["candles"][-1]
-                        ledger().record_equity(mark["close"],mark["closeTimeMs"],timestamp,
+                        writer.record_equity(mark["close"],mark["closeTimeMs"],timestamp,
                             mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
                     source_id = "STRATEGY_CORE" if source == "CORE" else "AI_FREQAI"
                     reason = decision.get("reason")
                     event = "ENTRY" if reason in ("RSI_ADX_ENTRY","ALIGNED_PAPER_SIGNAL") else "DCA" if reason == "DCA" else "EXIT" if reason in ("EMERGENCY_SL","SOFT_SL","TAKE_PROFIT","CLOSE") else None
-                    order = ledger().submit(decision["intent"], data["book"], timestamp,
+                    order = writer.submit(decision["intent"], data["book"], timestamp,
                         strategy_id=source_id, strategy_event=event)
                     if mark_window["candles"] and mark_window["coverage"]["complete"]:
-                        ledger().record_equity(mark["close"],mark["closeTimeMs"],timestamp,
+                        writer.record_equity(mark["close"],mark["closeTimeMs"],timestamp,
                             mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
                 result = {"decision": decision, "order": order}
             else:
@@ -424,9 +425,9 @@ def application(environ, start_response):
                 return response("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
         elif path == "/v1/paper":
             from paper_execution.ledger import read_snapshot
-            if not os.environ.get("MARKET_DATA_DB"):
+            if not os.environ.get("PAPER_DB"):
                 return response("503 Service Unavailable", {"error": "UNCONFIGURED"})
-            result = read_snapshot(os.environ["MARKET_DATA_DB"])
+            result = read_snapshot(paper_db_path())
         elif path == "/v1/equity":
             try:
                 result = equity_snapshot(timestamp)
@@ -439,7 +440,7 @@ def application(environ, start_response):
             limit = int(query.get("limit",["50"])[0])
             before = int(query["beforeId"][0]) if "beforeId" in query else None
             from paper_execution.ledger import read_audit
-            result = read_audit(os.environ.get("MARKET_DATA_DB", ""),limit=limit,before_id=before)
+            result = read_audit(paper_db_path(),limit=limit,before_id=before)
         elif path == "/v1/quality":
             result = quality_snapshot(timestamp)
         elif path == "/v1/order-book":
@@ -493,7 +494,7 @@ def application(environ, start_response):
         return response("200 OK", result)
     except (ValueError, TypeError, KeyError, json.JSONDecodeError):
         return response("400 Bad Request", {"error": "INVALID_INPUT"})
-    except (OSError, sqlite3.Error):
+    except (OSError, sqlite3.Error, WriterAdmissionDenied):
         return response("503 Service Unavailable", {"error": "DATA_UNAVAILABLE"})
 
 

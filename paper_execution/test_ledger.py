@@ -15,7 +15,7 @@ class PaperLedgerTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.path = Path(self.temp.name) / "shared.sqlite3"
-        self.ledger = PaperLedger(self.path, max_position_base="1", fee_rate="0.001")
+        self.ledger = PaperLedger(self.path, max_position_base="1", fee_rate="0.001").initialize()
         self.now = 1_800_000_000_000
 
     def intent(self, identifier="intent-1", target="0.1", limit="100.1"):
@@ -126,7 +126,7 @@ class PaperLedgerTest(unittest.TestCase):
     def test_atomic_duplicate_concurrent_submissions_only_fill_once(self):
         intent, book = self.intent(), self.book()
         def submit(_):
-            return PaperLedger(self.path, max_position_base="1").submit(intent, book, self.now)
+            return PaperLedger(self.path, max_position_base="1").initialize().submit(intent, book, self.now)
         with ThreadPoolExecutor(max_workers=2) as pool:
             orders = list(pool.map(submit, range(2)))
         self.assertEqual(orders[0], orders[1])
@@ -149,7 +149,7 @@ class PaperLedgerTest(unittest.TestCase):
         book = self.book()
         intents = [self.intent("concurrent-1", "0.1"), self.intent("concurrent-2", "0.2")]
         def submit(intent):
-            return PaperLedger(self.path, max_position_base="1").submit(intent, book, self.now)
+            return PaperLedger(self.path, max_position_base="1").initialize().submit(intent, book, self.now)
         with ThreadPoolExecutor(max_workers=2) as pool:
             orders = list(pool.map(submit, intents))
         self.assertCountEqual([order["status"] for order in orders], ["FILLED", "REJECTED"])
@@ -207,7 +207,7 @@ class PaperLedgerTest(unittest.TestCase):
         with self.assertRaises(sqlite3.DatabaseError):
             self.ledger.submit(self.intent(), self.book(), self.now)
         with self.assertRaises(sqlite3.DatabaseError):
-            PaperLedger(self.path)
+            PaperLedger(self.path).initialize()
         with sqlite3.connect(self.path) as connection:
             self.assertEqual(connection.execute("SELECT COUNT(*) FROM paper_state").fetchone()[0], 0)
 
@@ -226,7 +226,7 @@ class PaperLedgerTest(unittest.TestCase):
 
     def test_kill_switch_is_persistent_and_blocks_every_paper_intent(self):
         self.ledger.set_killed(True, self.now, "OPERATOR_TEST")
-        reopened = PaperLedger(self.path, max_position_base="1")
+        reopened = PaperLedger(self.path, max_position_base="1").initialize()
         self.assertTrue(reopened.snapshot()["riskControl"]["killed"])
         rejected = reopened.submit(self.intent(), self.book(), self.now)
         self.assertEqual(rejected["status"], "REJECTED")
@@ -252,7 +252,7 @@ class PaperLedgerTest(unittest.TestCase):
         self.ledger.record_equity("70",1800000000000,self.now+1,"sha256:"+"b"*64,"100")
         limits={"maxDrawdownPct":Decimal("1"),"maxDailyLossUsdt":Decimal("1"),
                 "maxExposureUsdt":Decimal("1000")}
-        guarded=PaperLedger(self.path,max_position_base="1",risk_limits=limits,require_risk_limits=True)
+        guarded=PaperLedger(self.path,max_position_base="1",risk_limits=limits,require_risk_limits=True).initialize()
         guarded.set_killed(True,self.now+2,"TEST_RISK_LATCH")
         book=self.book(time=self.now+3)
         book["bids"]=[{"price":"70","quantity":"1"}]
