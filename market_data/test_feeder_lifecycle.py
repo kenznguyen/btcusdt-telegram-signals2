@@ -864,5 +864,33 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
             self.assertIsNone(runtime.scheduler._thread)
 
 
+class RuntimeDatabaseProvisioningBoundaryTest(unittest.TestCase):
+    def test_build_runtime_does_not_create_a_missing_canonical_sqlite_database(self):
+        import tempfile
+        from pathlib import Path
+
+        from market_data.feeder import LeaseStore
+        from market_data.storage import SQLiteCandleStore
+
+        with tempfile.TemporaryDirectory(prefix="t0-missing-canonical-db-") as directory:
+            database_path = Path(directory) / "not-provisioned" / "canonical.sqlite3"
+            store = SQLiteCandleStore(str(database_path))
+            lease_store = LeaseStore(str(database_path))
+
+            with self.assertRaisesRegex(FileNotFoundError, "must already exist"):
+                build_runtime(
+                    config=FeederConfig(timeframes=("15m",)),
+                    owner_id="unprovisioned-test-worker",
+                    exchange=object(),
+                    store=store,
+                    lease_store=lease_store,
+                    clock=lambda: NOW,
+                    recovery_lookback_candles=1,
+                )
+
+            self.assertFalse(database_path.exists())
+            self.assertFalse(database_path.parent.exists())
+
+
 if __name__ == "__main__":
     unittest.main()
