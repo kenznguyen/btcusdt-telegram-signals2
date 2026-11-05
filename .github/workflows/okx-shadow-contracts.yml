@@ -11,6 +11,8 @@ on:
       - "market_data/test_okx_swap_store.py"
       - "ci/okx-shadow-capture.py"
       - ".github/workflows/okx-shadow-contracts.yml"
+      - "docs/market-data-okx-shadow.md"
+      - "codemagic.yaml"
   push:
     branches:
       - feature/okx-shadow-phase1-20261101
