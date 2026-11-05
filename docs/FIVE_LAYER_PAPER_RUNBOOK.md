@@ -87,7 +87,7 @@ còn mới; dữ liệu thiếu/cũ không được điền 0. CSV nhập tối 
 
 Làm theo [freqai_bridge/README.md](../freqai_bridge/README.md): cài đúng
 Freqtrade/FreqAI **2026.9**, chuẩn bị lịch sử, chạy nghiên cứu và model shadow.
-Strategy `ChartProFreqaiResearch` gọi FreqAI thật và tắt native entry/exit;
+Strategy `FiveLayerFreqaiResearch` gọi FreqAI thật và tắt native entry/exit;
 không biến Freqtrade thành executor thứ hai.
 
 Producer đọc cùng SQLite, chọn hai nến M15 vừa đóng và so OHLCV với DataFrame
