@@ -554,22 +554,28 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         from market_data.migrations import migrate
 
         with self.psycopg.connect(DSN, autocommit=True) as admin:
+            admin.execute("CREATE ROLE t0_db_owner NOLOGIN")
             admin.execute("CREATE ROLE t0_migrator NOLOGIN")
             admin.execute("CREATE ROLE t0_migrator_login LOGIN")
             admin.execute("GRANT t0_migrator TO t0_migrator_login")
+            admin.execute("GRANT t0_db_owner TO t0_migrator WITH ADMIN OPTION")
             admin.execute("GRANT t0_candle_writer_owner TO t0_migrator WITH ADMIN OPTION")
             admin.execute("GRANT t0_lease_manager_owner TO t0_migrator WITH ADMIN OPTION")
             try:
                 with self.assertRaisesRegex(
-                    RuntimeError, "t0_migrator must not have ADMIN OPTION on SECURITY DEFINER owner roles"
+                    RuntimeError, "t0_migrator must not have ADMIN OPTION on database or SECURITY DEFINER owner roles"
                 ):
                     migrate(DSN)
             finally:
+                admin.execute("REVOKE t0_db_owner FROM t0_migrator")
+                admin.execute("REVOKE t0_db_owner FROM t0_migrator")
                 admin.execute("REVOKE t0_candle_writer_owner FROM t0_migrator")
                 admin.execute("REVOKE t0_lease_manager_owner FROM t0_migrator")
                 admin.execute("REVOKE t0_migrator FROM t0_migrator_login")
                 admin.execute("DROP ROLE t0_migrator_login")
                 admin.execute("DROP ROLE t0_migrator")
+                admin.execute("DROP ROLE t0_db_owner")
+                admin.execute("DROP ROLE t0_db_owner")
 
     def test_sql_migrations_reject_admin_option_on_migrator_owner_roles(self):
         from pathlib import Path
@@ -580,9 +586,11 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
             "004_t0_fenced_lease_api.sql",
         )
         with self.psycopg.connect(DSN, autocommit=True) as admin:
+            admin.execute("CREATE ROLE t0_db_owner NOLOGIN")
             admin.execute("CREATE ROLE t0_migrator NOLOGIN")
             admin.execute("CREATE ROLE t0_migrator_login LOGIN")
             admin.execute("GRANT t0_migrator TO t0_migrator_login")
+            admin.execute("GRANT t0_db_owner TO t0_migrator WITH ADMIN OPTION")
             admin.execute("GRANT t0_candle_writer_owner TO t0_migrator WITH ADMIN OPTION")
             admin.execute("GRANT t0_lease_manager_owner TO t0_migrator WITH ADMIN OPTION")
             try:
