@@ -128,17 +128,19 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         from market_data.migrations import migrate
 
         login = "t0_owner_role_probe_" + uuid.uuid4().hex[:12]
-        with self.psycopg.connect(DSN, autocommit=True) as admin:
-            admin.execute(f'CREATE ROLE "{login}" LOGIN')
-            admin.execute(f'GRANT t0_candle_writer_owner TO "{login}"')
-            try:
-                with self.assertRaisesRegex(
-                    RuntimeError, "must not be granted to runtime or login roles"
-                ):
-                    migrate(DSN)
-            finally:
-                admin.execute(f'REVOKE t0_candle_writer_owner FROM "{login}"')
-                admin.execute(f'DROP ROLE "{login}"')
+        for owner_role in ("t0_candle_writer_owner", "t0_lease_manager_owner"):
+            with self.subTest(owner_role=owner_role):
+                with self.psycopg.connect(DSN, autocommit=True) as admin:
+                    admin.execute(f'CREATE ROLE "{login}" LOGIN')
+                    admin.execute(f'GRANT {owner_role} TO "{login}"')
+                    try:
+                        with self.assertRaisesRegex(
+                            RuntimeError, "must not be granted to runtime or login roles"
+                        ):
+                            migrate(DSN)
+                    finally:
+                        admin.execute(f'REVOKE {owner_role} FROM "{login}"')
+                        admin.execute(f'DROP ROLE "{login}"')
 
     def test_feeder_role_can_manage_lease_and_write_only_through_gateway(self):
         from market_data.postgres import PostgresLeaseStore, PostgresWriteGateway
