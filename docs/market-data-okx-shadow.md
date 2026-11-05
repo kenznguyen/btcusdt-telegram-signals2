@@ -27,24 +27,23 @@ back the batch. This store is not registered with Binance canonical storage,
 Strategy Core, AI strategy, Shared Risk Engine, paper execution or Binance
 backtest. No fallback, merging, source migration or cutover is implemented.
 
-## Manual Codemagic capture
+## CI and capture boundary
 
-Run `market-data-okx-shadow` manually. The workflow runs adapter/store
-contract tests, compiles the modules, then requests a bounded last-24-hour
-M15/H1 snapshot from official public OKX endpoints. It publishes a dedicated
-SQLite database and JSON coverage/hash report. The workflow has no push
-trigger or automatic schedule.
+GitHub Actions runs the offline adapter/store contract tests and compilation
+on pull requests and pushes to the feature branch. The workflow does not
+contact OKX, open the Binance canonical database, create a canonical file,
+start the Feeder, or enable execution. It runs with database paths and
+exchange credentials unset and `ai_execution_enabled=false`.
 
-Artifacts:
-- `ci-source-sha.txt`
-- `okx-shadow-tests.log`
-- `okx-shadow-capture.log`
-- `okx-shadow-artifacts/okx-shadow.sqlite3`
-- `okx-shadow-artifacts/okx-shadow-report.json`
+The optional public OKX snapshot capture remains a separate, not-yet-authorized
+acceptance step. It must write only to the dedicated shadow artifact directory;
+it must never create, open, or modify the Binance canonical database. No live
+capture was performed as part of this PR validation.
 
-A successful build alone is not source acceptance. Inspect exact source SHA,
-test logs, instrument metadata, returned candles, coverage, gaps and hashes.
-This phase is not a production source migration.
+A successful CI run alone is not source acceptance. Inspect exact source SHA,
+test logs, instrument metadata, returned candles, coverage, gaps and hashes
+before considering a separately approved shadow capture. This phase is not a
+production source migration.
 
 ## Official API contract
 
