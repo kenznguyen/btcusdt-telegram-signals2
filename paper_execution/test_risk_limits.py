@@ -52,7 +52,7 @@ class SharedRiskLimitTest(unittest.TestCase):
 
     def test_exposure_limit_rejects_without_latching_global_kill(self):
         limits={**self.limits,"maxExposureUsdt":5}
-        ledger=PaperLedger(self.path,max_position_base="1",risk_limits=limits,require_risk_limits=True)
+        ledger=PaperLedger(self.path,max_position_base="1",risk_limits=limits,require_risk_limits=True).initialize()
         ledger.record_equity("100",self.now,self.now,"sha256:"+"c"*64)
         result=ledger.submit(self.intent("exposure"),self.book(self.now),self.now)
         self.assertEqual(result["reason"],"MAX_EXPOSURE_LIMIT")
