@@ -1,0 +1,75 @@
+name: Paper Writer Isolation RED Contracts
+
+on:
+  pull_request:
+    branches:
+      - feature/p5-2-4-shadow-migration-tests-20261102
+    paths:
+      - "paper_execution/**"
+      - ".github/workflows/paper-writer-isolation-red.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paper-writer-isolation-red:
+    name: Static SWG-F contract verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DATABASE_URL: ""
+      DATABASE_PATH: ""
+      SQLITE_PATH: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+      EXCHANGE_API_KEY: ""
+      EXCHANGE_API_SECRET: ""
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Enforce source-only preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "${DATABASE_URL}"
+          test -z "${DATABASE_PATH}"
+          test -z "${SQLITE_PATH}"
+          test -z "${BINANCE_API_KEY}"
+          test -z "${BINANCE_API_SECRET}"
+          test -z "${OKX_API_KEY}"
+          test -z "${OKX_API_SECRET}"
+          test -z "${EXCHANGE_API_KEY}"
+          test -z "${EXCHANGE_API_SECRET}"
+          echo "PAPER_WRITER_RED_PREFLIGHT=PASS"
+      - name: Compile static contracts
+        run: python -m py_compile paper_execution/test_writer_isolation_red.py
+      - name: Verify expected RED contract gaps
+        shell: bash
+        run: |
+          set -uo pipefail
+          python -m unittest paper_execution.test_writer_isolation_red -v > paper-writer-red.log 2>&1
+          status=$?
+          cat paper-writer-red.log
+          failures=$(grep -c '^FAIL:' paper-writer-red.log || true)
+          errors=$(grep -c '^ERROR:' paper-writer-red.log || true)
+          ran=$(sed -n 's/^Ran \([0-9][0-9]*\) tests.*/\1/p' paper-writer-red.log | tail -1)
+          if [ "$status" -eq 0 ] || [ "$failures" -ne 10 ] || [ "$errors" -ne 0 ] || [ "$ran" -ne 10 ]; then
+            echo "PAPER_WRITER_RED=INVALID"
+            exit 1
+          fi
+          echo "PAPER_WRITER_RED=CONFIRMED_CONTRACT_GAPS"
+      - name: Upload RED evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-writer-isolation-red-${{ github.sha }}
+          path: paper-writer-red.log
+          if-no-files-found: warn
+          retention-days: 7
