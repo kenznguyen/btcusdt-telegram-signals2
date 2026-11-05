@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 from market_data.store import Candle, CandleStore, read_window
+from market_data.test_support import seed_candles
 from pipeline.decision import evaluate
 from pipeline.values import identity
 from futures_intelligence.import_collector import HEADERS, build_snapshot
@@ -18,7 +19,8 @@ class DecisionTest(unittest.TestCase):
         opening, interval = 1_800_000_000_000, 900_000
         self.now = opening + interval + 5_000
         path = Path(self.temp.name) / "data.sqlite3"
-        CandleStore(path).insert([Candle("15m", opening, "100", "102", "99", "101", "3", opening+interval+1000)])
+        CandleStore(path)
+        seed_candles(path, [Candle("15m", opening, "100", "102", "99", "101", "3", opening+interval+1000)])
         self.window = read_window(path, "BTCUSDT", "15m", opening, opening+interval)
         self.prediction = {"schemaVersion": 1, "exchange": "binance", "marketType": "USDT_PERPETUAL",
             "symbol": "BTCUSDT", "timeframe": "15m", "candleOpenTimeMs": opening,
