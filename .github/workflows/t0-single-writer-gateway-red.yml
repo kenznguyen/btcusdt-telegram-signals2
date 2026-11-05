@@ -190,6 +190,13 @@ jobs:
             echo "T0_TIMESCALE_PORT=5432"
             echo "T0_TIMESCALE_SOURCE_SHA=$(git rev-parse HEAD)"
           } | tee t0-timescale-preflight.log
+      - name: Run PostgreSQL atomic writer RED contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile market_data/test_postgres_write_gateway.py
+          python -m unittest market_data.test_postgres_write_gateway -v 2>&1 | tee t0-postgres-writer-red-tests.log
+          echo "T0_POSTGRES_WRITER_RED_CONTRACTS=PASS" | tee t0-postgres-writer-red-verdict.log
       - name: Run read-only TimescaleDB integration contracts
         shell: bash
         run: |
@@ -204,5 +211,7 @@ jobs:
           if-no-files-found: warn
           path: |
             t0-timescale-preflight.log
+            t0-postgres-writer-red-tests.log
+            t0-postgres-writer-red-verdict.log
             t0-timescale-tests.log
             t0-timescale-verdict.log
