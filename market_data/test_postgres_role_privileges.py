@@ -382,19 +382,39 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                     [("acquire_feeder_lease", "t0_lease_manager_owner"),
                      ("write_canonical_candle", "t0_candle_writer_owner")],
                 )
-                durable_owners = admin.execute(
-                    "SELECT 'schema', r.rolname FROM pg_namespace n "
-                    "JOIN pg_roles r ON r.oid=n.nspowner WHERE n.nspname='market_data' "
-                    "UNION ALL "
-                    "SELECT 'ledger', r.rolname FROM pg_class c "
+                schema_owner = admin.execute(
+                    "SELECT r.rolname FROM pg_namespace n "
+                    "JOIN pg_roles r ON r.oid=n.nspowner WHERE n.nspname='market_data'"
+                ).fetchone()[0]
+                ledger_owner = admin.execute(
+                    "SELECT r.rolname FROM pg_class c "
                     "JOIN pg_roles r ON r.oid=c.relowner "
-                    "WHERE c.oid='market_data.schema_migrations'::regclass "
-                    "ORDER BY 1"
+                    "WHERE c.oid='market_data.schema_migrations'::regclass"
+                ).fetchone()[0]
+                table_owners = admin.execute(
+                    "SELECT DISTINCT tableowner FROM pg_tables "
+                    "WHERE schemaname='market_data' ORDER BY tableowner"
                 ).fetchall()
-                self.assertEqual(
-                    durable_owners,
-                    [("ledger", "t0_migrator"), ("schema", "t0_migrator")],
+                self.assertEqual(schema_owner, "t0_db_owner")
+                self.assertEqual(ledger_owner, "t0_db_owner")
+                self.assertEqual(table_owners, [("t0_db_owner",)])
+
+            replacement_password = uuid.uuid4().hex
+            with self.psycopg.connect(DSN, autocommit=True) as admin:
+                admin.execute("REVOKE t0_migrator FROM t0_migrator_login")
+                admin.execute("DROP ROLE t0_migrator_login")
+                admin.execute(
+                    sql.SQL("CREATE ROLE t0_migrator_login LOGIN PASSWORD {}").format(
+                        sql.Literal(replacement_password)
+                    )
                 )
+                admin.execute("GRANT t0_migrator TO t0_migrator_login")
+            replacement_dsn = make_conninfo(
+                DSN, user="t0_migrator_login", password=replacement_password,
+                dbname=database_name,
+            )
+            applied_count, total_count = migrate(replacement_dsn)
+            self.assertEqual(applied_count, total_count)
         finally:
             with self.psycopg.connect(DSN, autocommit=True) as admin:
                 admin.execute(sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(sql.Identifier(database_name)))
