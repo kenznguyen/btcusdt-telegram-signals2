@@ -148,5 +148,21 @@ class PaperLedgerWriterIsolationTests(unittest.TestCase):
         self.assertFalse(self.paper_db.exists())
 
 
+    def test_market_data_alias_is_rejected_before_each_mutation(self):
+        ledger = PaperLedger(self.paper_db).initialize()
+        before = self.paper_db.stat().st_mtime_ns
+        previous = os.environ.get("MARKET_DATA_DB")
+        os.environ["MARKET_DATA_DB"] = str(self.paper_db)
+        try:
+            with self.assertRaises(ValueError):
+                ledger.set_paused(True, 1_800_000_000_000)
+            self.assertEqual(self.paper_db.stat().st_mtime_ns, before)
+        finally:
+            if previous is None:
+                os.environ.pop("MARKET_DATA_DB", None)
+            else:
+                os.environ["MARKET_DATA_DB"] = previous
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
