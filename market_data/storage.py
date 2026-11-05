@@ -30,13 +30,6 @@ class SQLiteCandleStore:
         if self._writer is None:
             self._writer = CandleStore(self.path)
 
-    def insert_fenced(self, candles, *, owner, generation, now_ms, lease_name):
-        self.initialize()
-        return self._writer.insert_fenced(
-            candles, owner=owner, generation=generation,
-            now_ms=now_ms, lease_name=lease_name,
-        )
-
     def read_window(self, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
         return read_sqlite_window(self.path, symbol, timeframe, start_ms, end_ms, as_of_ms)
 
