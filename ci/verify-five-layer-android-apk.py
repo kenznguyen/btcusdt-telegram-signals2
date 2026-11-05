@@ -11,7 +11,7 @@ import subprocess
 import zipfile
 
 
-EXPECTED_PACKAGE = "com.kenznguyen.fivelayerpaper"
+EXPECTED_PACKAGE = "com.kenznguyen.btclivealerts.paper"
 EXPECTED_LABEL = "BTCUSDT Quant System · 5 Tầng"
 EXPECTED_ACTIVITY = "com.kenznguyen.btclivealerts.MainActivity"
 FORBIDDEN_DEX_MARKERS = (
