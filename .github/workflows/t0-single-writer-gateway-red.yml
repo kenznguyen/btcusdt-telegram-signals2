@@ -114,6 +114,8 @@ jobs:
             t0-swg-contract-tests.log
             t0-swg-contract-verdict.log
             t0-swg-behavior-tests.log
+            t0-health-readiness-tests.log
+            t0-process-restart-tests.log
             t0-market-data-full-suite.log
 
   timescaledb-read-only-integration:
