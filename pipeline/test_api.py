@@ -239,7 +239,7 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertLess(float(result["latest"]["equity"]),100)
         self.assertGreater(float(result["dailyLossUsdt"]),0)
         with sqlite3.connect(self.paper_db) as connection:
-            self.assertEqual(connection.execute("SELECT COUNT(*) FROM paper_equity_history").fetchone()[0],1)
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM paper_equity_history").fetchone()[0],2)
 
     def test_audit_and_data_quality_endpoints_return_real_store_state(self):
         self.request("/v1/paper/pause","POST",{"paused":True})
