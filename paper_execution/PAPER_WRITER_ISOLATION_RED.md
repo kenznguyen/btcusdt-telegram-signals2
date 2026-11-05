@@ -2,7 +2,7 @@
 
 Baseline: `a58b6163a78861ecf5bb7d2c8fc11aa420142837`
 
-Phase: SWG-F RED contracts frozen; P1 gate primitive and P2 PaperLedger writer integration implemented. P3/P4 and all T0 code remain outside this scope.
+Phase: SWG-F RED contracts frozen; P1 gate primitive, P2 PaperLedger integration, and P3 pipeline/API WriterGate integration are implemented. P4 broader application consumers remain outside this completed scope; all T0 code remains outside scope.
 
 ## Required lifecycle
 
@@ -85,7 +85,7 @@ The legacy static RED contract module remains historical evidence and is intenti
 - Scope: durable Paper-only coordinator SQLite sidecar, platform lock adapter (POSIX shared/exclusive; Windows exclusive serialization), generation-bound non-serializable token, admission/release, drain timeout/wait, explicit settled reopen, and admitted existing-file writer transaction.
 - The coordinator and lock files are separate from the Paper DB. Gate initialization/admission do not create or open the Paper data DB.
 - P1 runtime acceptance runs on GitHub Actions/Linux. This does not certify Windows or Android runtime lock behavior.
-- P2 integrates PaperLedger schema initialization and the known mutator entrypoints with the gate. This does not certify unreviewed external consumers or P3 pipeline integration.
+- P2 integrates PaperLedger schema initialization and the known mutator entrypoints with the gate. This does not certify broader application consumers outside the P3 API integration.
 - No canonical T0 DB, Feeder, exchange, market-data sync, migration, deployment, or live order was accessed.
 - `ai_execution_enabled=false`; PR remains unmerged.
 
@@ -109,3 +109,17 @@ The legacy static RED contract module remains historical evidence and is intenti
 - P2 GREEN evidence at the pre-evidence-doc source revision: SHA `0e2e3f161709191e570dadac4dbb3f830ed8ae33`, run #41984165143; 11 P2 tests, 58 selected Paper execution regression tests, and 12 P1 process tests passed.
 - Artifact ID `13394508830`, SHA-256 `00bc10e7021309d295c7461be508f8aa0baa15ef768125475e67355d7d994aa4`.
 - Final P2 verification after the additional mutation-time path recheck: source SHA `c1c968fc806f7eed6b1bf9299a50f2e51985cdaa`, run #41984540602; 12 P2 tests, 59 regression tests, and 12 P1 process tests passed.
+
+## P3 GREEN Pipeline/API integration record
+
+- API requires a distinct `PAPER_DB` and an existing `MARKET_DATA_DB`; canonical T0 storage is not used for Paper state or control writes.
+- Path identity rejects normalized same-path, symlink and hardlink aliases. The PaperLedger repeats identity validation before initialization and each mutation.
+- Paper API reads (`/v1/paper`, `/v1/audit`, `/v1/equity`, and Strategy Core state) read from PAPER_DB using read-only paths.
+- The shared API rate budget is stored in PAPER_DB and consumed through PaperWriterGate. No API control-budget writes remain on MARKET_DATA_DB.
+- GET `/v1/equity` is read-only; it neither creates schema nor records a new observation. Explicit Paper evaluation records equity history through the admitted writer.
+- All API mutation paths use the initialized admitted Paper writer; a DRAINING gate or denied admission fails closed with HTTP 503.
+- P3 API integration acceptance: 31/31 PASS. Selected Paper execution regression: 59/59 PASS. P2 acceptance: 12/12 PASS. P1 process runtime: 12/12 PASS.
+- Exact combined P1-P3 verification: source SHA `3b07f6d63051b54f422fd0212b6c263f7c074d03`, GitHub Actions run #41988205671; artifact ID `13396397882`, SHA-256 `aa515988c370858bf47220a39f4d252fddb2952b4ceef63e2db66b0df5f9a3f3`.
+- Linux runtime only. Windows and Android file-lock semantics remain NOT VERIFIED.
+- No canonical T0 DB, Feeder, exchange, market-data sync, migration, deployment or live order was accessed. `ai_execution_enabled=false`; PR #112 remains OPEN / DRAFT / NOT MERGED.
+- P4 next boundary: perform a read-only inventory of any remaining non-API Paper writer consumers and define their admission/initialization contract before implementation. No consumer changes are authorized by this record.
