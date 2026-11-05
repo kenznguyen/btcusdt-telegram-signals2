@@ -182,7 +182,14 @@ class CiPolicyTest(unittest.TestCase):
                 "feature/p5-4-1-post-merge-validation-20261103",
             ],
         )
-        self.assertNotIn("pull_request", workflow["on"])
+        self.assertEqual(
+            workflow["on"]["pull_request"]["branches"],
+            ["feature/p5-4-1-post-merge-validation-20261103"],
+        )
+        self.assertEqual(
+            workflow["on"]["pull_request"]["paths"],
+            workflow["on"]["push"]["paths"],
+        )
         self.assertIn("ci/**", workflow["on"]["push"]["paths"])
         self.assertIn(".github/workflows/t0-validation.yml", workflow["on"]["push"]["paths"])
         atomic_step = next(
