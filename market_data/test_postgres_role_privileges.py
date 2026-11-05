@@ -56,7 +56,7 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
             admin.execute("GRANT USAGE ON SCHEMA market_data TO " + '"' + cls.feeder_role + '"')
             admin.execute("GRANT USAGE ON SCHEMA market_data TO " + '"' + cls.reader_role + '"')
             admin.execute(
-                "GRANT SELECT, INSERT, UPDATE ON market_data.feeder_leases TO "
+                "GRANT SELECT ON market_data.feeder_leases TO "
                 + '"' + cls.feeder_role + '"'
             )
             admin.execute(
@@ -112,6 +112,20 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         self.assertIsNotNone(lease)
         candle = self._candle()
         with self.psycopg.connect(self.feeder_dsn, autocommit=True) as feeder:
+            with self.assertRaises(self.psycopg.errors.InsufficientPrivilege):
+                feeder.execute(
+                    "INSERT INTO market_data.feeder_leases "
+                    "(lease_name, owner_id, generation, expires_at) "
+                    "VALUES ('forged-lease', 'attacker', 99, clock_timestamp() + interval '1 hour')"
+                )
+            with self.assertRaises(self.psycopg.errors.InsufficientPrivilege):
+                feeder.execute(
+                    "UPDATE market_data.feeder_leases "
+                    "SET owner_id='attacker', generation=generation+99, "
+                    "expires_at=clock_timestamp() + interval '1 hour' "
+                    "WHERE lease_name=%s",
+                    (self.lease_name,),
+                )
             with self.assertRaises(self.psycopg.errors.InsufficientPrivilege):
                 feeder.execute(
                     "INSERT INTO market_data.candles "
