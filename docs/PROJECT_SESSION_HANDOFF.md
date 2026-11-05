@@ -1114,3 +1114,16 @@ Current status:
 - T0 source/runtime unchanged; no DB/Feeder/exchange/market-data operations; `AI_EXECUTION_ENABLED=false`.
 - T4 remains a non-blocking boundary check, not functionally certified.
 - Next: check base branch workflow status and verify `feature/android-five-layer-control` points to the merge commit; do not activate T0/Feeder or live execution.
+
+
+## 2026-11-06 — PR #136 post-merge branch reconciliation and next T0 work
+
+- Compared `feature/android-five-layer-control` with merge commit `0edd0032597ce11c9896b7182d358284e47edb85`: GitHub compare status **identical**, ahead 0 / behind 0. Base branch therefore points exactly at PR #136 merge commit.
+- PR #136 remains CLOSED / MERGED. PR-head CI #42071311091 is PASS 3/3 on source SHA `e5eb944c253bbe2ba441ee2f7b77ae861ed68ea4`; this is not a fresh base-branch workflow run. Available GitHub workflow-run lookup only exposes PR-triggered runs, and no post-merge run on the merge SHA was found through available lookup. Post-merge Actions execution remains **NOT VERIFIED**.
+- Next active work is the existing T0 PR #134, not a new cleanup PR. Current PR #134: OPEN / DRAFT / mergeable; branch `feature/t0-atomic-write-fencing-20261105`; head `c09fe85fab7de3ec799cfed37087718dfa6b87c4`; base `8b196d2720eab804728df7c0227c606c094b16ad`.
+- Codex review on PR #134 head `c09fe85...` reports findings and unresolved findings. Three P2 review comments:
+  1. Pin PostgreSQL canonical lease identity so separate `T0_FEEDER_LEASE_NAME` values cannot create independent lease rows for the same canonical candle table (comment #4482929078, `market_data/feeder_service.py`).
+  2. Validate the existing SQLite canonical schema before runtime/lease startup; an empty existing DB currently passes the file-exists check and can be mutated by lease-table creation before recovery fails (comment #4482929091, `market_data/write_gateway.py`).
+  3. Prevent feeder-role direct `INSERT` into `market_data.candles` from bypassing Gateway lease fencing; current grants allow raw INSERT (comment #4482929107, `market_data/test_postgres_role_privileges.py`).
+- PR #134 remains BLOCKED for merge until all findings are assessed and either fixed with test-first evidence or explicitly shown inapplicable. Existing CI success does not clear these source-level findings.
+- No source changes made in this step. Next: inspect migrations, PostgreSQL Gateway SQL and role grants; add RED tests for fixed canonical lease identity, SQLite schema fail-closed startup and direct SQL insert denial; implement the smallest safe DB-side design; run focused suites and exact-source GitHub Actions. Keep all DB tests disposable; no canonical DB/Feeder/exchange/sync/deployment/live execution. `ai_execution_enabled=false`.
