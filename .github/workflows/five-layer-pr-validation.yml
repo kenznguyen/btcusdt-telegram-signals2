@@ -24,6 +24,7 @@ jobs:
     timeout-minutes: 35
     env:
       CM_BUILD_DIR: ${{ github.workspace }}
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - name: Checkout exact source head
         uses: actions/checkout@v4
@@ -42,10 +43,13 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-      - name: Install pinned Android SDK packages
-        run: sdkmanager "platforms;android-35" "build-tools;34.0.0"
+      - name: Install pinned Android SDK packages from the hosted runner SDK
+        run: |
+          set -euo pipefail
+          sdkmanager="$(find "$ANDROID_SDK_ROOT/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          test -x "$sdkmanager"
+          yes | "$sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null
+          "$sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --install "platforms;android-35" "build-tools;34.0.0"
       - name: Set up Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -59,7 +63,7 @@ jobs:
         working-directory: android-app
         run: gradle :app:assembleDebug --no-daemon
       - name: Verify APK identity, signer, manifest and DEX
-        run: ANDROID_SDK_ROOT="$ANDROID_HOME" python ci/verify-five-layer-android-apk.py
+        run: python ci/verify-five-layer-android-apk.py
       - name: Upload Android reports and verified APK
         if: always()
         uses: actions/upload-artifact@v4
