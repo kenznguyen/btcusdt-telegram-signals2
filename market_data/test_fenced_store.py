@@ -1,5 +1,6 @@
 """Atomic SQLite fencing tests for canonical candle writes."""
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 
@@ -42,6 +43,39 @@ class FencedCandleStoreTest(unittest.TestCase):
                 now_ms=lambda: NOW + 60_001,
             )
         self.assertEqual(read_window(self.path, "BTCUSDT", "15m", NOW, NOW + INTERVAL_MS["15m"])["candles"], [])
+
+    def test_lease_takeover_waits_until_fenced_batch_commits(self):
+        lease = self.leases.acquire("worker-A", NOW, 60)
+        takeover_started = threading.Event()
+        takeover_done = threading.Event()
+        takeover_result = []
+
+        def takeover():
+            takeover_started.set()
+            takeover_result.append(
+                self.leases.acquire("worker-B", NOW + 60_001, 60)
+            )
+            takeover_done.set()
+
+        takeover_thread = None
+
+        def clock_during_write():
+            nonlocal takeover_thread
+            takeover_thread = threading.Thread(target=takeover)
+            takeover_thread.start()
+            self.assertTrue(takeover_started.wait(1))
+            self.assertFalse(takeover_done.wait(0.05))
+            return NOW + 1
+
+        inserted = self.store.insert_fenced(
+            [candle()], owner="worker-A", generation=lease.generation,
+            now_ms=clock_during_write,
+        )
+        self.assertEqual(inserted, 1)
+        self.assertTrue(takeover_done.wait(1))
+        takeover_thread.join(1)
+        self.assertFalse(takeover_thread.is_alive())
+        self.assertGreater(takeover_result[0].generation, lease.generation)
 
     def test_lease_expiring_during_batch_is_rechecked_before_commit(self):
         lease = self.leases.acquire("worker-A", NOW, 60)
