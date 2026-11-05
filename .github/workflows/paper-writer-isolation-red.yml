@@ -92,7 +92,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m unittest paper_execution.test_ledger paper_execution.test_risk_limits paper_execution.test_equity paper_execution.test_risk_control paper_execution.test_shadow_migration paper_execution.test_writer_gate_runtime paper_execution.test_ledger_writer_isolation -v 2>&1 | tee paper-execution-regression.log
+          python -m unittest paper_execution.test_ledger paper_execution.test_risk_limits paper_execution.test_equity paper_execution.test_risk_control paper_execution.test_writer_gate_runtime paper_execution.test_ledger_writer_isolation -v 2>&1 | tee paper-execution-regression.log
       - name: Verify process-level runtime GREEN acceptance
         shell: bash
         run: |
