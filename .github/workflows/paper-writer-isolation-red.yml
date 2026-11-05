@@ -38,6 +38,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact source revision
+        shell: bash
+        run: |
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$expected"
+          echo "SWG_F_SOURCE_SHA=$actual"
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
