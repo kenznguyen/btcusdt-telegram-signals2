@@ -214,6 +214,9 @@ class PaperLedger:
             raise RuntimeError("PaperLedger.initialize() must be called before writes")
         return self.gate.writer_transaction(paper_db_path=str(self.path))
 
+    def consume_api_budget(self, timestamp):
+        return False
+
     def connect(self):
         path = self.path.resolve()
         if not path.is_file():
