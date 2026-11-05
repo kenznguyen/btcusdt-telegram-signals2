@@ -160,6 +160,27 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         self.assertTrue(leases.heartbeat("least-privilege-worker", lease.generation, 30))
         self.assertTrue(leases.release("least-privilege-worker", lease.generation))
 
+    def test_feeder_lease_api_enforces_contention_and_exact_generation(self):
+        from market_data.postgres import PostgresLeaseStore
+
+        first_store = PostgresLeaseStore(self.feeder_dsn, lease_name=self.lease_name)
+        second_store = PostgresLeaseStore(self.feeder_dsn, lease_name=self.lease_name)
+        first = first_store.acquire("worker-a", ttl_seconds=30)
+        self.assertIsNotNone(first)
+        self.assertIsNone(second_store.acquire("worker-b", ttl_seconds=30))
+        self.assertFalse(second_store.heartbeat("worker-b", first.generation, 30))
+        self.assertFalse(second_store.release("worker-b", first.generation))
+        self.assertTrue(first_store.is_current("worker-a", first.generation))
+        self.assertTrue(first_store.release("worker-a", first.generation))
+
+        replacement = second_store.acquire("worker-b", ttl_seconds=30)
+        self.assertIsNotNone(replacement)
+        self.assertGreater(replacement.generation, first.generation)
+        self.assertFalse(first_store.heartbeat("worker-a", first.generation, 30))
+        self.assertFalse(first_store.release("worker-a", first.generation))
+        self.assertTrue(second_store.is_current("worker-b", replacement.generation))
+        self.assertTrue(second_store.release("worker-b", replacement.generation))
+
     def test_feeder_role_cannot_ddl_delete_or_truncate(self):
         with self.psycopg.connect(self.feeder_dsn, autocommit=True) as feeder:
             with self.assertRaises(self.psycopg.errors.InsufficientPrivilege):
