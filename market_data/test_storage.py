@@ -83,7 +83,7 @@ class StorageFactoryTest(unittest.TestCase):
                     return [[0, 100, 102, 99, 101, 5]]
 
             store.initialize()
-            leases = LeaseStore(store.path)
+            leases = LeaseStore(str(store.path))
             lease = leases.acquire("storage-sync-test", 0, ttl_seconds=10_000)
             gateway = SQLiteWriteGateway(
                 store=store, lease_store=leases, owner_id="storage-sync-test",
