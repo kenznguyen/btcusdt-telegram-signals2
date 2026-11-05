@@ -10,7 +10,7 @@ This file is the durable restart point for future ChatGPT sessions. GitHub is th
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - GitHub stores source, plans, evidence manifests, and session handoffs.
-- Codemagic is the action/workflow runner. Do not introduce GitHub Actions as an active runner; historical workflow source may be retained under `ci/archive/github-actions/`.
+- GitHub Actions is the default CI. Use Codemagic only when GitHub Actions cannot run or is blocked by its limits.
 - Do not create parallel branches or PRs for the same work. Continue on the existing relevant branch/PR; avoid PR divergence.
 - Do not claim PASS without a traceable artifact, exact source SHA, and test result.
 - Use explicit states: PASS, CONDITIONAL PASS, BLOCKED, INTERRUPTED, NOT RUN, NOT VERIFIED, DEFERRED.
@@ -187,8 +187,8 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 
 - PR #112 remains OPEN / DRAFT / NOT MERGED and PAUSED per user instruction. Do not resume its implementation without explicit instruction.
 - PRs #113–#117 remain OPEN / DRAFT / NOT MERGED. They represent distinct historical RED evidence, source-review closure, GREEN plan, G0 contract freeze, and G1/P1 contract review. No evidence currently justifies bulk closure.
-- PR #111 remains OPEN / DRAFT / NOT MERGED. Its RED contract evidence is historical and overlaps the later T0 Gateway implementation in PR #134. Do not close it yet: the #134 branch has a GitHub Actions workflow, while the user's current execution preference is Codemagic. Resolve the CI-provider alignment and decide whether the Codemagic RED workflow/evidence must be retained before closing #111.
-- PR #134 remains OPEN / DRAFT / NOT MERGED. Its exact-head implementation evidence is recorded in its PR body; current head `76e6bb9e91ee3fa02cb7d97d2058fca1b5261582`, tested source SHA `5b678a0419aa283cd54703a2a7c0e20df385e41c`. The tested source and current head differ by a documentation-only commit per the PR body. The GitHub Actions workflow choice must be reconciled with the user's current Codemagic execution preference before treating CI policy as aligned.
+- PR #111 remains OPEN / DRAFT / NOT MERGED. Its RED contract evidence is historical and overlaps the later T0 Gateway implementation in PR #134. Do not close it until confirming the GitHub Actions workflow and required evidence on #134; compare coverage before deciding whether #111 is superseded.
+- PR #134 remains OPEN / DRAFT / NOT MERGED. Its exact-head implementation evidence is recorded in its PR body. GitHub Actions is the default CI; Codemagic is fallback only when GitHub Actions cannot run or is blocked by its limits.
 - PR #119 remains OPEN / DRAFT / NOT MERGED; latest head after this handoff update must be recorded in its PR body.
 
 ### Cleanup boundaries
@@ -223,3 +223,17 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - Latest `codemagic.yaml` blob: `7dade638d74542513ed881763fc233261ec52ea9`.
 - Static verification: all Gateway test commands use `CI_PYTHON`; no system `python -m unittest/py_compile` remains in the workflow block; archived legacy workflow blob still matches original; active GitHub Actions workflow path remains absent.
 - Codemagic runtime remains NOT RUN / NOT VERIFIED. No test results, workflow run ID, or artifacts are available yet.
+
+
+## CI policy correction — 2026-11-05 (latest user instruction)
+
+- Confirmed the authoritative `main` handoff blob `93f79779431b9d3ff9d68a66710ee693f9551bc1` states: GitHub Actions is the default CI; use Codemagic only when GitHub Actions cannot run or is blocked by its limits.
+- The previous session's temporary Codemagic migration was based on an incorrect interpretation and has been reversed on the existing PR #134 branch.
+- Restored `.github/workflows/t0-single-writer-gateway-red.yml` from the preserved archived workflow.
+- Removed the temporary `t0-single-writer-gateway` block from `codemagic.yaml`; other Codemagic workflows remain unchanged.
+- Restoration commits on PR #134 branch:
+  - Restore GitHub Actions workflow: `acb64d39a02cfad74191e1c1ef6f3b58458e47a0`
+  - Remove temporary Codemagic Gateway workflow: `ee291c4d4a179f91b93a9d3f378d4c7a1e2df741`
+- The archive copy `ci/archive/github-actions/t0-single-writer-gateway-red.yml` is retained as an exact historical copy; it is not an active runner.
+- No tests or workflows have been run in this correction. Runtime evidence remains NOT VERIFIED. PR #111 remains open pending normal GitHub Actions evidence and comparison with its historical RED coverage.
+- No merge, branch deletion, T0 runtime activation, Feeder activation, canonical ingestion, exchange access, or live execution.
