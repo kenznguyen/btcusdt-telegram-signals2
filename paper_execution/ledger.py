@@ -157,6 +157,7 @@ class PaperLedger:
         token = gate.admit_writer()
         connection = None
         try:
+            self._validate_path_isolation()
             self.path.touch(exist_ok=True)
             connection = sqlite3.connect(self.path, timeout=10)
             connection.execute("PRAGMA journal_mode=WAL")
@@ -207,6 +208,7 @@ class PaperLedger:
         return self
 
     def _writer_transaction(self):
+        self._validate_path_isolation()
         if self.gate is None:
             raise RuntimeError("PaperLedger.initialize() must be called before writes")
         return self.gate.writer_transaction(paper_db_path=str(self.path))
