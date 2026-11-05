@@ -60,3 +60,61 @@ Remove BTCUSDT Chart Pro product code and product-specific operational configura
 ## Immediate next action
 
 Trace the five-layer parallel variant dependency graph and package inputs, then establish a standalone five-layer Android module/build identity before deleting or moving any Chart Pro source. Keep PR #134 scoped to T0 and unmerged; do not mix this cleanup into its 34-file T0 change set.
+
+
+## Android source dependency map — PR #65 source line
+
+A second read-only pass inspected the Android source at PR #65 head SHA 51f4edf5776b06b927db980faac4ca0ca91c44ce. PR #65 is OPEN / DRAFT / NOT MERGED, based on feature/android-five-layer-control at f317809948464391ad09f91f34f85d3f46b3c708; its seven changed files are exclusively FiveLayer API/panel/canonical-candle/presentation and their tests. This is the current focused five-layer Android workstream and should not be broadened silently.
+
+### Build and entrypoint proof
+
+- MainActivity.kt branches at runtime: regular variant mounts CompleteDashboard and starts StrategyMonitorService; parallel variant mounts FiveLayerStandaloneDashboard.
+- app/build.gradle.kts defines the parallel build type by inheriting debug and changing applicationId suffix / BuildConfig.PARALLEL_INSTALL. It does not define source-set exclusions for Chart Pro classes. Both variants therefore compile the common src/main source set.
+- AndroidManifest.xml unconditionally declares StrategyMonitorService and Chart Pro foreground-service permissions. The parallel runtime branch does not start the service, but the service declaration remains in the merged app manifest.
+- FiveLayerStandaloneDashboard.kt mounts FiveLayerPanel only. Source inspection of FiveLayerPanel/FiveLayerApi/FiveLayerCandlesCard/FiveLayerPresentation shows no direct references to CompleteDashboard, MarketEngine, MultiSymbolScanner, StrategyMonitorService, or the direct Binance OrderBookEngine path.
+- Therefore the parallel APK is runtime-separated at the Activity branch, but source/DEX and manifest isolation are NOT established. APK class/package contents have not yet been inspected from a built artifact.
+
+### File-level disposition (source-reference review)
+
+| File/group | Proposed ownership | Reason / guard |
+|---|---|---|
+| MainActivity.kt | REWRITE as five-layer-only | Current file contains both Chart Pro Dashboard and five-layer entrypoint. |
+| CompleteDashboard.kt | MOVE to Chart Pro | Chart, scanner, alerts, local strategy monitor and direct order-book UI; not referenced by FiveLayerPanel. |
+| MarketEngine.kt | MOVE to Chart Pro; extract Candle model only if strategy core needs it | Binance chart market/WebSocket engine and chart Candle/Indicators types. |
+| ChartAnalytics.kt, ChartMarketSession.kt, BacktestPanel.kt | MOVE to Chart Pro | Chart indicators/session and in-app backtest UI. |
+| AlertDelivery.kt, AlertHistoryStore.kt, AlertPolicy.kt | MOVE to Chart Pro | Chart alert/notification policy and local alert history. |
+| BinanceRestGate.kt, MultiStreamSignalEngine.kt, MultiSymbolScanner.kt, ScannerMarketFeed.kt, SnapshotRetryGate.kt | MOVE to Chart Pro | Multi-symbol chart scanner, Binance REST gating and scanner signal pipeline. Not the T1 futures-intelligence collector. |
+| OrderBookEngine.kt, OrderBookPanel.kt, OrderBookSequence.kt | MOVE to Chart Pro | Direct Binance live-book stream/UI; FiveLayerPanel consumes Hummingbot snapshot instead. |
+| StrategyMonitorService.kt | MOVE to Chart Pro | Started only by regular Chart Pro Activity path; remove its manifest declaration and foreground-service permissions from five-layer app after verification. |
+| StrategyEngine.kt + StrategyEngineTest.kt | KEEP / SHARED STRATEGY CORE pending owner decision | Not referenced by FiveLayerPanel, but it contains the Kotlin RSI/ADX/Smart DCA/TP/SL implementation. Do not delete or alter thresholds during product separation. If it remains outside the APK, preserve it in a dedicated strategy-core module or server parity package. |
+| FiveLayerStandaloneDashboard.kt, FiveLayerPanel.kt, FiveLayerApi.kt, FiveLayerCandlesCard.kt, FiveLayerPresentation.kt, PaperOrderHistory.kt | KEEP in five-layer app | Direct five-layer paper/control-plane client. |
+| HummingbotOrderBook.kt, OrderBookAnalytics.kt | KEEP in five-layer app | Five-layer Hummingbot snapshot parser/metrics; Hummingbot parser uses OrderBookAnalytics/OrderBookLevel. |
+| FiveLayer API/candles/presentation tests, PaperOrderValidationTest, HummingbotOrderBookTest, OrderBookAnalyticsTest | KEEP | Five-layer API, data-quality, paper and order-book contracts. |
+| Alert/chart/scanner/Binance gate/sequence tests | MOVE with Chart Pro | Tests for Chart Pro-only components. |
+| Five-layer and Chart Pro app icons/strings | KEEP five-layer resource set; replace main defaults | Current main resources are Chart Pro identity; parallel resources are Five Layer Paper identity. Promote five-layer resources only after app identity is switched. |
+| AndroidManifest.xml / app/build.gradle.kts | REWRITE | Remove Chart Pro service and signing/build variant; set a five-layer-owned package/application identity and no Chart Pro source set. |
+
+### Separate Chart Pro repository parity check
+
+The separate Chart Pro repository exists, but the following corresponding file blob SHAs differ from the five-layer PR #65 source. This means the separate repository is not a byte-identical preservation copy of the current combined source. Do not delete the five-layer branch copies or overwrite Chart Pro files blindly; reconcile meaningful differences first.
+
+| File | Five-layer PR #65 blob | Chart Pro main blob |
+|---|---|---|
+| MainActivity.kt | 1277569a520f4db3d451f2bcb0e15136f60db14f | b375f84e25ae15ab7a323da17c04b32d5dc3d062 |
+| CompleteDashboard.kt | a1c253cf66e5b41870c2017a71500e8b24c93c1a | 6c16d898a234b5dca2a1e71b1cfa652e5048c35b |
+| MarketEngine.kt | ed921c7278ce3397c85c49c9706c2b5550fc5012 | cec595ef543484d90c090a17a43273c34764bfcf |
+| StrategyEngine.kt | 306adcf0434b03c23affb6ba5d496fbe176dc277 | e77902cae14870ecff937d5dbb4c099dd1cd3b09 |
+| MultiSymbolScanner.kt | 0273a5c689ed1cb3398deed1fe2ef077e8597287 | 5eaa81ba8ff2641780e6135f8c737b9056e0ea7b |
+| BinanceRestGate.kt | bdf2cb26be56d2c73e6af8918f99c817d13b502a | 266d6099a453fa69118378dc686898b26ed9c00d |
+| ChartAnalytics.kt | 477000dd290e5d9a5f25abbbd4f4e42a78b89c9f | 2f7edb33218b244280a7272e8f5577b1be268d79 |
+
+Blob differences do not by themselves prove which copy is newer or better; line-level reconciliation is still required before migration.
+
+### Updated status and next gate
+
+- Five-layer runtime entrypoint isolated: PASS at Activity selection level.
+- Five-layer source-set / DEX isolation: NOT VERIFIED; current Gradle configuration compiles shared src/main.
+- Five-layer manifest isolation: FAIL at source level; Chart Pro service declaration and foreground-service permissions remain.
+- Five-layer UI dependency boundary: PASS at inspected source-reference level for the FiveLayerPanel subtree.
+- Separate Chart Pro repository exists: PASS; source parity with combined branch: NOT VERIFIED (seven checked files differ).
+- Next: create a complete source/test/resource migration manifest; compare changed Chart Pro file bodies; add a failing APK-content/manifest contract before source movement; then isolate the five-layer app. Keep PR #65's seven-file PnL/freshness scope unchanged and do not merge it without approval.
