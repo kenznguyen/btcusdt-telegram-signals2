@@ -77,6 +77,21 @@ class SQLiteWriteGatewayTest(unittest.TestCase):
                 clock=lambda: NOW,
             )
 
+    def test_gateway_rejects_missing_database_without_creating_it(self):
+        missing = Path(self.temp.name) / "missing.sqlite3"
+        fake_store = type("StoreRef", (), {"path": missing})()
+        fake_lease = type("LeaseRef", (), {
+            "db_path": str(missing),
+            "lease_name": "binance-btcusdt-canonical",
+        })()
+        with self.assertRaisesRegex(FileNotFoundError, "must already exist"):
+            SQLiteWriteGateway(
+                store=fake_store, lease_store=fake_lease,
+                owner_id="worker-A", generation_provider=lambda: 1,
+                clock=lambda: NOW,
+            )
+        self.assertFalse(missing.exists())
+
 
 class ShadowWriteGatewayTest(unittest.TestCase):
     def test_shadow_gateway_counts_without_creating_a_database(self):
