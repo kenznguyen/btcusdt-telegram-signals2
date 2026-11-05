@@ -1,6 +1,6 @@
 # Five-Layer System — Session Handoff
 
-Last updated: 2026-11-03 (Asia/Ho_Chi_Minh)
+Last updated: 2026-11-05 (Asia/Ho_Chi_Minh)
 
 ## Purpose
 
@@ -32,6 +32,17 @@ This file is the durable restart point for future ChatGPT sessions. GitHub is th
 
 Objective: reconcile Android P4 evidence from the recorded manifest against source identity, artifact files, logs, scripts, and SHA-256 inventory. Do not start runtime or repeat tests.
 
+R1 closeout status (2026-11-05): **PARTIAL / NOT VERIFIED**.
+- Reconciliation report: `docs/evidence/t0/P5_2_6_2_R1_ANDROID_P4_EVIDENCE_RECONCILIATION_2026-11-05.md`.
+- Latest report commit: `d37b89cf766dff574f25b8878e67d2b56e903843`.
+- Latest report blob SHA: `ad3bd98d791cc9d4372e0606883d3519b758d9ef`.
+- All 17 original P4 payload hashes recomputed on Android/Termux: **17/17 MATCH** (user-provided command output); payload bytes remain on device, not uploaded to GitHub.
+- Read-only scans of six P4 shadow directories and standalone `$HOME/p4_*.py` scripts found no source SHA, `GITHUB_SHA`, workflow run ID, or explicit provenance metadata.
+- Local checkout HEAD is `1c16755a07a053e1f225c8861ec76dc9ced1a5d8`, clean. Local Git history contains commits dated 2026-11-01/02 but cannot bind any individual P4 run to a commit. Do not substitute this observed HEAD for historical run-specific source SHA.
+- No tests rerun; Natural Doze remains `INTERRUPTED / DEFERRED`.
+- PR #119: https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/119 — OPEN / DRAFT / NOT MERGED; head `d37b89cf766dff574f25b8878e67d2b56e903843`. Combined commit status returned no status checks; no CI run/artifact created by these docs-only changes.
+- Documentation branch: `docs/p4-evidence-manifest-20261103`.
+
 ### Android P4 evidence baseline
 
 Manifest:
@@ -61,7 +72,7 @@ Recorded P4 verdicts:
 | P4.5 two-writer fencing | PASS | Do not rerun absent a specific gap |
 | Overall P4 | CONDITIONAL PASS | Not production certification |
 
-The manifest contains 17 SHA-256 entries. They are user-supplied Android inventory fingerprints recorded in the manifest; the hashes alone do not prove semantic correctness. The actual referenced logs/scripts have not yet been independently retrieved and re-hashed from GitHub in this reconciliation. Do not describe the 17 checksums as independently verified until the corresponding files are accessible and checked.
+The manifest contains 17 SHA-256 entries. They are user-supplied Android inventory fingerprints recorded in the manifest; the hashes alone do not prove semantic correctness. The original referenced logs/scripts were recovered on the user's Android/Termux device. The user supplied read-only `sha256sum` output showing **17/17 exact matches** against the manifest. This verifies payload integrity relative to the recorded manifest values, but the payload bytes have not been uploaded to GitHub or attached to this repository. Run-specific historical source provenance remains UNVERIFIED.
 
 Known manifest limitation:
 - P4.5 process A stdout and process A log have the same recorded SHA-256. This is a recorded duplicate, not evidence of an error by itself.
@@ -94,18 +105,12 @@ The following runs used branch `feature/p5-2-5-green-contracts-20261102` and exa
 
 ## Next actions — execute in order
 
-1. Inspect the current GitHub branch/PR state and the existing manifest commit before writing. Continue on the existing documentation branch; do not create a new PR or branch.
-2. Locate the actual Android P4 logs/scripts in repository history, commits, artifacts, or previously uploaded project files. Do not ask the user to repeat environment commands already recorded.
-3. Build a reconciliation matrix: test → referenced file → file availability/location → recorded SHA-256 → independently computed SHA-256 (if bytes available) → source SHA evidence → result.
-4. Separate:
-   - manifest-recorded results;
-   - artifacts independently retrieved and hash-verified;
-   - source identity verified vs. unverified;
-   - missing evidence.
-5. Preserve P4 PASS results as historical recorded PASS; do not silently promote them to independently verified if the underlying artifacts are absent.
-6. Keep Natural Doze `INTERRUPTED / DEFERRED` and outside current work.
-7. Update this handoff and the evidence reconciliation report after each meaningful increment. Commit progress on the same branch and record the resulting commit SHA.
-8. Only after reconciliation, identify the next non-Doze evidence gap. No runtime activation is implied.
+1. R1 evidence reconciliation completed to the extent possible; do not repeat repository/device searches already recorded.
+2. Keep the 17/17 device SHA-256 result distinct from source provenance: payload integrity VERIFIED relative to manifest; run-specific source SHA NOT VERIFIED.
+3. Preserve historical P4 labels as RECORDED PASS / INTERRUPTED; no promotion to independent test verification.
+4. Keep Natural Doze `INTERRUPTED / DEFERRED` and outside current work.
+5. Next permitted work: documentation-only review of the non-Doze multi-ledger backup/restore evidence gap (candles, Paper Ledger, Risk State, Paper State), without running tests or activating runtime. First define the evidence already present and the minimum missing proof; request explicit approval before any new runtime/test activity.
+6. Continue on the existing documentation branch/PR; no new branch/PR and no merge without explicit approval.
 
 ## Do not confuse these identities
 
