@@ -197,6 +197,8 @@ ALTER FUNCTION market_data.is_current_feeder_lease(TEXT, TEXT, BIGINT)
 REVOKE CREATE ON SCHEMA market_data FROM t0_lease_manager_owner;
 
 REVOKE ALL ON market_data.feeder_leases FROM t0_feeder_lease_manager;
+REVOKE ALL ON market_data.feeder_leases FROM t0_feeder_writer;
+REVOKE ALL ON market_data.candles FROM t0_feeder_lease_manager;
 GRANT EXECUTE ON FUNCTION market_data.acquire_feeder_lease(TEXT, TEXT, INTEGER)
     TO t0_feeder_lease_manager;
 GRANT EXECUTE ON FUNCTION market_data.heartbeat_feeder_lease(TEXT, TEXT, BIGINT, INTEGER)
