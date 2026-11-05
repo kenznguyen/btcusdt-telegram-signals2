@@ -2,6 +2,7 @@
 
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 import hashlib
 import json
@@ -89,7 +90,7 @@ def read_window(location, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
 class PostgresLease:
     owner: str
     generation: int
-    expires_at: object
+    expires_at: datetime
 
 
 class PostgresLeaseStore:
