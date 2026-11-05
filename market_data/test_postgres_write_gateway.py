@@ -68,8 +68,8 @@ class PostgresWriteGatewayREDTest(unittest.TestCase):
 
         with connection(DSN) as database:
             database.execute(
-                "DELETE FROM market_data.candles WHERE open_time_ms=%s",
-                (self.open_time,),
+                "DELETE FROM market_data.candles WHERE open_time_ms >= %s AND open_time_ms < %s",
+                (self.open_time, self.open_time + 4 * self.step),
             )
             database.execute(
                 "DELETE FROM market_data.feeder_leases WHERE lease_name=%s",
@@ -129,6 +129,7 @@ class PostgresWriteGatewayREDTest(unittest.TestCase):
         from market_data.postgres import PostgresLeaseStore, connection
 
         expired = PostgresLeaseStore(DSN, lease_name=self.lease_name)
+        self.assertTrue(expired.release(self.owner, self.lease.generation))
         short = expired.acquire("short-owner", ttl_seconds=1)
         self.assertIsNotNone(short)
         time.sleep(1.2)
@@ -157,15 +158,23 @@ class PostgresWriteGatewayREDTest(unittest.TestCase):
                 "SELECT open_time_ms, close FROM market_data.candles WHERE open_time_ms IN (%s, %s) ORDER BY open_time_ms",
                 (self.open_time, second_open),
             ).fetchall()
-        self.assertEqual(rows, [(self.open_time, 101)])
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][0], self.open_time)
+        self.assertEqual(str(rows[0][1]), "101")
         
     def test_invalid_middle_candle_rolls_back_entire_batch(self):
         from market_data.postgres import connection
 
-        invalid = Candle(
-            "15m", self.open_time + self.step, "100", "99", "101", "100",
-            "1", self.open_time + 2 * self.step + 1,
-        )
+        # Bypass the value-object constructor to exercise PostgreSQL CHECK constraints
+        # after the first valid row has been inserted in the same batch.
+        invalid = object.__new__(Candle)
+        for name, value in {
+            "timeframe": "15m", "open_time_ms": self.open_time + self.step,
+            "open": "100", "high": "99", "low": "101", "close": "100",
+            "volume": "1", "available_at_ms": self.open_time + 2 * self.step + 1,
+            "symbol": "BTCUSDT",
+        }.items():
+            object.__setattr__(invalid, name, value)
         with self.assertRaises(ValueError):
             self.gateway().write_batch([self.candle(), invalid])
         with connection(DSN, read_only=True) as database:
@@ -196,9 +205,9 @@ class PostgresWriteGatewayREDTest(unittest.TestCase):
                 FOR EACH ROW EXECUTE FUNCTION market_data.pg_red_delay_insert()
             """)
         try:
-            short = PostgresLeaseStore(DSN, lease_name=self.lease_name).acquire(
-                self.owner, ttl_seconds=1
-            )
+            leases = PostgresLeaseStore(DSN, lease_name=self.lease_name)
+            self.assertTrue(leases.release(self.owner, self.lease.generation))
+            short = leases.acquire(self.owner, ttl_seconds=1)
             gateway = self.gateway(generation=short.generation)
             with self.assertRaises(PermissionError):
                 gateway.write_batch([self.candle()])
