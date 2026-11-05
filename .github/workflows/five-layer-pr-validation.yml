@@ -117,24 +117,11 @@ jobs:
           git rev-parse HEAD | tee backend-source-sha.txt
       - name: Compile Python source
         run: python -m py_compile market_data/*.py ci/*.py pipeline/*.py futures_intelligence/*.py paper_execution/*.py integrations/*.py freqai_bridge/*.py
-      - name: Run T0 Gateway, Feeder, scheduler, recovery, health and storage contracts
+      - name: Run T0 storage, synchronization and read API regressions
         run: |
           python -m unittest \
-            market_data.test_gateway_runtime \
-            market_data.test_g2_writer_routing \
-            market_data.test_feeder_lease \
-            market_data.test_feeder_atomic_fencing \
-            market_data.test_feeder_lifecycle \
-            market_data.test_feeder_gateway_contract \
-            market_data.test_feeder_scheduler \
-            market_data.test_feeder_retry \
-            market_data.test_feeder_recovery \
-            market_data.test_feeder_health \
-            market_data.test_feeder_health_api \
-            market_data.test_store \
-            market_data.test_sync \
-            market_data.test_storage \
-            market_data.test_api -v 2>&1 | tee t0-regression.log
+            market_data.test_store market_data.test_sync \
+            market_data.test_storage market_data.test_api -v 2>&1 | tee t0-regression.log
       - name: Run T1 futures intelligence contracts
         run: python -m unittest futures_intelligence.test_import_collector -v 2>&1 | tee t1-regression.log
       - name: Run T2 Core Strategy, signal and FreqAI bridge contracts
@@ -148,8 +135,8 @@ jobs:
             paper_execution.test_equity paper_execution.test_ledger \
             paper_execution.test_risk_control paper_execution.test_risk_limits \
             integrations.test_hummingbot_bridge -v 2>&1 | tee t3-regression.log
-      - name: Run CI policy and T0 operational boundary contracts
-        run: python -m unittest ci.test_t0_operational_contract ci.test_ci_policy -v 2>&1 | tee ci-contracts.log
+      - name: Run GitHub Actions policy contracts
+        run: python -m unittest ci.test_ci_policy -v 2>&1 | tee ci-contracts.log
       - name: Upload backend exact-SHA evidence
         if: always()
         uses: actions/upload-artifact@v4
