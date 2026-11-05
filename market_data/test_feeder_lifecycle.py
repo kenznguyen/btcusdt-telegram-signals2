@@ -778,8 +778,8 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
                        (exchange, market_type, symbol, timeframe, open_time_ms,
                         open, high, low, close, volume, available_at_ms)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    ("binance", "usdm", "BTCUSDT", "15m", middle_open,
-                     100.0, 101.0, 99.0, 100.0, 1.0, middle_open + interval),
+                    ("binance", "USDT_PERPETUAL", "BTCUSDT", "15m", middle_open,
+                     "100", "101", "99", "100", "1", middle_open + interval),
                 )
 
             initial_coverage = read_window(
