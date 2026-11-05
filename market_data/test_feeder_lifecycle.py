@@ -354,72 +354,82 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
         self.assertFalse(adapter.recover_all())
 
     def test_build_runtime_composes_scheduler_and_recovery_without_starting_process(self):
+        import tempfile
+        from pathlib import Path
         from unittest.mock import Mock
         from market_data.feeder import FeederRuntime
-        exchange, store, leases = Mock(), Mock(), Mock()
-        runtime = build_runtime(
-            config=FeederConfig(timeframes=("15m", "1h")),
-            owner_id="integration-worker",
-            exchange=exchange,
-            store=store,
-            lease_store=leases,
-            clock=lambda: NOW + 7_200_000,
-        )
-        self.assertIsInstance(runtime, FeederRuntime)
-        self.assertIsInstance(runtime.recovery, RecoveryAdapter)
-        self.assertEqual(runtime.scheduler.config.timeframes, ("15m", "1h"))
-        self.assertIsNone(runtime.scheduler._thread)
-        # RecoveryCoordinator validates that coverage bounds echo the
-        # requested aligned window; a fixed 0..900000 fixture is invalid for
-        # the current bounded lookback window.
-        store.read_window.side_effect = (
-            lambda symbol, timeframe, start_ms, end_ms: {
-                "startMs": start_ms,
-                "endMs": end_ms,
-                "coverage": {"complete": True, "gaps": []},
-            }
-        )
-        self.assertTrue(runtime.recovery.recover_all())
-        self.assertEqual(
-            [call.args[1] for call in store.read_window.call_args_list],
-            ["15m", "1h"],
-        )
 
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "canonical.sqlite3"
+            exchange, store, leases = Mock(), Mock(), Mock()
+            store.path = db_path
+            store.insert_fenced = Mock()
+            store.initialize = Mock()
+            leases.db_path = str(db_path)
+            leases.lease_name = "binance-btcusdt-canonical"
+            runtime = build_runtime(
+                config=FeederConfig(timeframes=("15m", "1h")),
+                owner_id="integration-worker", exchange=exchange,
+                store=store, lease_store=leases,
+                clock=lambda: NOW + 7_200_000,
+            )
+            self.assertIsInstance(runtime, FeederRuntime)
+            self.assertIsInstance(runtime.recovery, RecoveryAdapter)
+            self.assertEqual(runtime.scheduler.config.timeframes, ("15m", "1h"))
+            self.assertIsNone(runtime.scheduler._thread)
+            store.read_window.side_effect = (
+                lambda symbol, timeframe, start_ms, end_ms: {
+                    "startMs": start_ms, "endMs": end_ms,
+                    "coverage": {"complete": True, "gaps": []},
+                }
+            )
+            self.assertTrue(runtime.recovery.recover_all())
+            self.assertEqual(
+                [call.args[1] for call in store.read_window.call_args_list],
+                ["15m", "1h"],
+            )
 
     def test_startup_recovery_renews_lease_before_canonical_sync_attempt(self):
+        import tempfile
+        from pathlib import Path
         from unittest.mock import Mock, patch
         from market_data.store import INTERVAL_MS
-        exchange, store, leases = Mock(), Mock(), Mock()
-        leases.heartbeat.return_value = True
-        interval = INTERVAL_MS["15m"]
-        reads = {"count": 0}
-        def read_window(symbol, timeframe, start_ms, end_ms):
-            reads["count"] += 1
-            gaps = ([{"startMs": start_ms, "endMs": start_ms + interval}]
-                    if reads["count"] == 1 else [])
-            return {
-                "startMs": start_ms,
-                "endMs": end_ms,
-                "coverage": {"complete": not gaps, "gaps": gaps},
-            }
-        store.read_window.side_effect = read_window
-        runtime = build_runtime(
-            config=FeederConfig(timeframes=("15m",)),
-            owner_id="recovery-worker",
-            exchange=exchange,
-            store=store,
-            lease_store=leases,
-            clock=lambda: NOW + 7_200_000,
-        )
-        runtime.lease_generation = 21
-        with patch("market_data.feeder_service.sync_window", return_value=1):
-            self.assertTrue(runtime.recovery.recover_all())
-        leases.heartbeat.assert_called_once_with(
-            "recovery-worker", 21,
-            now_ms=NOW + 7_200_000,
-            ttl_seconds=60,
-        )
 
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "canonical.sqlite3"
+            exchange, store, leases = Mock(), Mock(), Mock()
+            store.path = db_path
+            store.insert_fenced = Mock()
+            store.initialize = Mock()
+            leases.db_path = str(db_path)
+            leases.lease_name = "binance-btcusdt-canonical"
+            leases.heartbeat.return_value = True
+            interval = INTERVAL_MS["15m"]
+            reads = {"count": 0}
+
+            def read_window(symbol, timeframe, start_ms, end_ms):
+                reads["count"] += 1
+                gaps = ([{"startMs": start_ms, "endMs": start_ms + interval}]
+                        if reads["count"] == 1 else [])
+                return {
+                    "startMs": start_ms, "endMs": end_ms,
+                    "coverage": {"complete": not gaps, "gaps": gaps},
+                }
+
+            store.read_window.side_effect = read_window
+            runtime = build_runtime(
+                config=FeederConfig(timeframes=("15m",)),
+                owner_id="recovery-worker", exchange=exchange,
+                store=store, lease_store=leases,
+                clock=lambda: NOW + 7_200_000,
+            )
+            runtime.lease_generation = 21
+            with patch("market_data.feeder_service.sync_window", return_value=1):
+                self.assertTrue(runtime.recovery.recover_all())
+            leases.heartbeat.assert_called_once_with(
+                "recovery-worker", 21,
+                now_ms=NOW + 7_200_000, ttl_seconds=60,
+            )
 
 if __name__ == "__main__":
     unittest.main()
