@@ -230,7 +230,8 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(result["order"]["status"], "FILLED")
         self.assertEqual(self.request("/v1/paper/evaluate", "POST", {"source": "UNKNOWN"})[0], 400)
 
-    def test_equity_endpoint_persists_history_and_returns_drawdown_daily_metrics(self):
+    def test_equity_endpoint_reads_history_written_by_explicit_paper_evaluation(self):
+        self.request("/v1/paper/evaluate", "POST", {})
         code, result = self.request("/v1/equity")
         self.assertEqual(code,200)
         self.assertTrue(result["available"])
@@ -291,7 +292,7 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(intelligence["status"], "DEGRADED")
 
     def test_risk_limit_breach_auto_kills_new_paper_intents(self):
-        self.request("/v1/equity")
+        self.request("/v1/paper/evaluate", "POST", {})
         with sqlite3.connect(self.paper_db) as connection:
             connection.execute("UPDATE paper_state SET realized='-25' WHERE id=1")
         with patch.dict(os.environ,{"PAPER_MAX_DRAWDOWN_PCT":"20","PAPER_MAX_DAILY_LOSS_USDT":"10","PAPER_MAX_EXPOSURE_USDT":"1000"}):
@@ -397,6 +398,7 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertFalse(self.paper_db.exists())
 
     def test_get_equity_is_read_only_and_returns_existing_history_only(self):
+        api.ledger()
         code, result = self.request("/v1/equity")
         self.assertEqual(code, 200)
         self.assertFalse(result["available"])
