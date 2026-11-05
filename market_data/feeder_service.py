@@ -138,13 +138,24 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
         def attempt():
             generation = runtime.lease_generation
             heartbeat = getattr(lease_store, "heartbeat", None)
-            if (generation is None or not callable(heartbeat)
-                    or heartbeat(
+            try:
+                lease_current = (
+                    generation is not None
+                    and callable(heartbeat)
+                    and heartbeat(
                         owner_id,
                         generation,
                         now_ms=clock_fn(),
                         ttl_seconds=config.lease_ttl_seconds,
-                    ) is not True):
+                    ) is True
+                )
+            except Exception:
+                lease_current = False
+            if not lease_current:
+                # A failed renewal is authoritative lease loss. Stop admission
+                # immediately; the startup exception path drains before it
+                # attempts an exact owner/generation release.
+                runtime.on_lease_lost()
                 raise PermissionError("Recovery blocked: feeder lease is not current")
             return canonical_sync(timeframe, start_ms, end_ms)
         return retry.execute(attempt)
