@@ -439,4 +439,3 @@ workflows:
       - ci-source-sha.txt
       - kraken-spot-read-api-tests.log
       - kraken-spot-read-api-compileall.log
-
