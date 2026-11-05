@@ -279,7 +279,7 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                 "SELECT EXISTS ("
                 "SELECT 1 FROM pg_proc p "
                 "CROSS JOIN LATERAL aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a "
-                "WHERE p.proname IN ('acquire_feeder_lease', 'heartbeat_feeder_lease', 'release_feeder_lease') "
+                "WHERE p.proname IN ('acquire_feeder_lease', 'heartbeat_feeder_lease', 'release_feeder_lease', 'is_current_feeder_lease') "
                 "AND a.grantee=0 AND a.privilege_type='EXECUTE')"
             ).fetchone()[0]
         self.assertEqual(owner, (False, False, False, True, False, True))
@@ -313,15 +313,16 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         with self.psycopg.connect(DSN, autocommit=True) as admin:
             feeder = admin.execute(
                 "SELECT has_schema_privilege(%s, 'market_data', 'CREATE'), "
-                "pg_has_role(%s, 't0_test', 'MEMBER')",
-                (self.feeder_role, self.feeder_role),
+                "pg_has_role(%s, 't0_test', 'MEMBER'), "
+                "has_table_privilege(%s, 'market_data.feeder_leases', 'SELECT')",
+                (self.feeder_role, self.feeder_role, self.feeder_role),
             ).fetchone()
             reader = admin.execute(
                 "SELECT has_schema_privilege(%s, 'market_data', 'CREATE'), "
                 "has_table_privilege(%s, 'market_data.feeder_leases', 'SELECT')",
                 (self.reader_role, self.reader_role),
             ).fetchone()
-        self.assertEqual(feeder, (False, False))
+        self.assertEqual(feeder, (False, False, False))
         self.assertEqual(reader, (False, False))
 
 
