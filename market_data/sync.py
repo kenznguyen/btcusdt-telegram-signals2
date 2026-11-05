@@ -107,8 +107,9 @@ def main():
         parser.exit(1, "Install requirements-market-data.txt to fetch exchange data.\\n")
     try:
         exchange = ccxt.binanceusdm({"enableRateLimit": True, "timeout": 15_000})
+        shadow_only = ShadowWriteGateway()
         candidates = sync_window(
-            exchange, ShadowWriteGateway(), args.timeframe,
+            exchange, shadow_only, args.timeframe,
             args.start_ms, args.end_ms,
         )
     except Exception as error:
