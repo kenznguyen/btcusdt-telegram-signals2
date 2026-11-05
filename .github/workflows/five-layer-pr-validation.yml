@@ -61,7 +61,7 @@ jobs:
         run: gradle :app:assembleDebug --no-daemon
       - name: Verify APK identity, signer, manifest and DEX
         run: python ci/verify-five-layer-android-apk.py
-      - name: Upload Android reports and verified APK
+      - name: Upload Android test reports and verification metadata
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -71,7 +71,6 @@ jobs:
             android-source-sha.txt
             android-app/app/build/reports/tests/testDebugUnitTest/
             android-apk.json
-            artifacts/*.apk
           retention-days: 14
 
   backend-regression:
