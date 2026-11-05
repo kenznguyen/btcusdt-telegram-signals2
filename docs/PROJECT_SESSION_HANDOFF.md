@@ -1372,3 +1372,15 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Independent Codex review requested in PR comment `6671399291` for exact SHA `bcecd88e2a71b1c1bd5d3eb7577a095ebb55bc86`; receipt PENDING.
 - Test execution result for the new isolated subtests is NOT VERIFIED until CI logs are available. This does not establish TDD RED evidence.
 - No production/canonical DB migration, VPS deployment, Feeder activation, exchange sync or live execution.
+
+
+## 2026-11-06 — PR #134 SQL 004 ADMIN OPTION guard defect
+
+- Source SHA: `9e5d99b16b1316549eacbd6091ef670d4035ac0a`; PR #134 remains OPEN / DRAFT / NOT MERGED.
+- Workflow #42123326572 failed in the disposable TimescaleDB role-privilege suite: 17/18 passed; isolated case `migration=004_t0_fenced_lease_api.sql`, `owner_role=t0_candle_writer_owner` failed because `InsufficientPrivilege` was not raised.
+- Root cause confirmed by comparing SQL 003, SQL 004 and Python preflight: migration 004 omitted `t0_candle_writer_owner` from its ADMIN OPTION role allowlist. Migration 003 and Python preflight already included all three owner roles.
+- Fixed only the SQL 004 allowlist to include `t0_candle_writer_owner`. This is a security correctness fix, not merely a test adjustment.
+- The failure above is valid RED evidence for the isolated SQL role test on prior source SHA `bcecd88e2a71b1c1bd5d3eb7577a095ebb55bc86`; GREEN on fixed SHA `9e5d99b16b1316549eacbd6091ef670d4035ac0a` is PENDING CI.
+- Previous workflow run #42123326572 synthetic merge SHA `c983c189282db183755e0a73b8e0ebf7391a595a`: static contracts PASS, paper consumers PASS, TimescaleDB role suite FAIL. Artifact `13458993438` digest `sha256:7de79b5df5cd418693fd6f1eafce5b8591b8765c054e70e593306e865ced3c4e` contains the Timescale evidence. This artifact is failure evidence, not a passing release artifact.
+- Direct-head push CI and new-head merge-context CI for `9e5d99b16b1316549eacbd6091ef670d4035ac0a`: NOT VERIFIED / pending run visibility. Codex review of prior test-only SHA is not sufficient for this production SQL change; new exact-SHA review requested separately.
+- No production/canonical DB migration, VPS deployment, Feeder activation, exchange sync or live execution.
