@@ -378,6 +378,16 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                     "WHERE p.proname IN ('write_canonical_candle', 'acquire_feeder_lease') ORDER BY p.proname"
                 ).fetchall()
             self.assertEqual(owners, [("acquire_feeder_lease", "t0_lease_manager_owner"), ("write_canonical_candle", "t0_candle_writer_owner")])
+            durable_owners = admin.execute(
+                "SELECT 'schema', r.rolname FROM pg_namespace n "
+                "JOIN pg_roles r ON r.oid=n.nspowner WHERE n.nspname='market_data' "
+                "UNION ALL "
+                "SELECT 'ledger', r.rolname FROM pg_class c "
+                "JOIN pg_roles r ON r.oid=c.relowner "
+                "WHERE c.oid='market_data.schema_migrations'::regclass "
+                "ORDER BY 1"
+            ).fetchall()
+            self.assertEqual(durable_owners, [("ledger", "t0_migrator"), ("schema", "t0_migrator")])
         finally:
             with self.psycopg.connect(DSN, autocommit=True) as admin:
                 admin.execute(sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(sql.Identifier(database_name)))
@@ -512,6 +522,23 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         self.assertEqual(feeder, (False, False, False))
         self.assertEqual(reader, (False, False))
 
+
+    def test_migration_rejects_admin_option_on_migrator_owner_role_memberships(self):
+        from market_data.migrations import migrate
+
+        with self.psycopg.connect(DSN, autocommit=True) as admin:
+            admin.execute("CREATE ROLE t0_migrator NOLOGIN")
+            admin.execute("GRANT t0_candle_writer_owner TO t0_migrator WITH ADMIN OPTION")
+            admin.execute("GRANT t0_lease_manager_owner TO t0_migrator WITH ADMIN OPTION")
+            try:
+                with self.assertRaisesRegex(
+                    RuntimeError, "t0_migrator must not have ADMIN OPTION on SECURITY DEFINER owner roles"
+                ):
+                    migrate(DSN)
+            finally:
+                admin.execute("REVOKE t0_candle_writer_owner FROM t0_migrator")
+                admin.execute("REVOKE t0_lease_manager_owner FROM t0_migrator")
+                admin.execute("DROP ROLE t0_migrator")
 
 if __name__ == "__main__":
     unittest.main()
