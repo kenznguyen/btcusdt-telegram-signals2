@@ -194,3 +194,22 @@ The user confirmed that T4 Dashboard will be rebuilt, so the existing dashboard 
 - Latest source head at this evidence update: eac8c22b0cba710226a413d4b788df5f5197beab. Exact-head GitHub Actions rerun is required; prior run #42048061499 on SHA 3467021e12d7c564cc807755dddabffab020cd34 passed all jobs but predates this artifact-policy-only change.
 - Status: source-scope review PASS; T0/Core/Risk protection review PASS; Android APK publication removed PASS (configuration); exact-head CI on the new SHA PENDING / NOT VERIFIED; signer continuity with any previously installed APK NOT VERIFIED.
 - PR #135 remains OPEN / DRAFT / NOT MERGED. No merge authorization is implied by this review.
+
+## Exact-head CI acceptance and artifact inspection — 2026-11-05 (final)
+
+- Exact PR head SHA: `849af0614e4c6f1b0d9419cb6b8a463d6cb9a2ee`.
+- GitHub Actions run #42049228828: **SUCCESS** — https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42049228828.
+- All three jobs completed successfully:
+  - T0–T3, Core Strategy and Paper isolation regressions: job 127320494121 — SUCCESS.
+  - T4 minimum isolation boundary (non-blocking): job 127320494634 — SUCCESS.
+  - Android Paper boundary, unit tests and APK verification: job 127320495187 — SUCCESS.
+- Android job completed source-boundary/APK verifier contract tests, JDK 17 + Android SDK + Gradle 8.9 setup, `:app:testDebugUnitTest`, `:app:assembleDebug`, APK identity/signer/manifest/DEX verification, and artifact upload.
+- Backend job completed Python compilation, T0 storage/synchronization/read API regressions, T1 futures intelligence, T2 Core Strategy/signal/FreqAI bridge, T3 risk/ledger/equity/Hummingbot, and CI policy contracts. Job conclusion SUCCESS.
+- T4 manifest-boundary check completed successfully. Its job remains intentionally non-blocking; no T4 application code/data was rebuilt or deleted.
+- Exact-run artifacts:
+  - Android reports/metadata: ID `13424859409`, digest `sha256:ec4bea98b465c3377e259e0b2a1e8ff52d5a195e29e626b558f14f6f94c9e0a9`.
+  - Backend evidence: ID `13425896747`, digest `sha256:98bbfb1bfe10751f011d48732bc17f8fc9fc3649573c32e9e30297ff402123d4`.
+- Downloaded and inspected the Android artifact ZIP. It contains `android-source-sha.txt`, Android unit-test HTML reports, and `android-apk.json`; **no .apk file is present**. The source SHA inside the artifact matches `849af0614e4c6f1b0d9419cb6b8a463d6cb9a2ee`.
+- `android-apk.json` reports debug / PAPER_ONLY, package `com.kenznguyen.btclivealerts.paper`, version `0.2.0`, no Chart Pro DEX markers, manifest service isolation PASS, and permissions isolation PASS. The APK SHA recorded there is for the temporary CI-built APK used by the verifier; the APK itself is not uploaded.
+- Status: exact-head CI **PASS**; APK not included in downloadable artifact **PASS**; T0/Core/Risk protected source scope **PASS** per prior blob/diff review; existing-install signing-certificate continuity **NOT VERIFIED**; device installation **NOT VERIFIED**.
+- PR #135 remains OPEN / DRAFT / NOT MERGED pending transition to Ready for review. No merge, T0 deployment, canonical DB creation, Feeder activation, exchange access, or live execution is authorized.
