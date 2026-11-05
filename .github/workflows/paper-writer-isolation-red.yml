@@ -128,11 +128,11 @@ jobs:
               raise SystemExit(1)
           print("PAPER_WRITER_RUNTIME_GREEN=PASS")
           PY
-      - name: Upload P1/P2 GREEN evidence
+      - name: Upload P1-P3 GREEN evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: paper-writer-isolation-p1-p2-green-${{ github.sha }}
+          name: paper-writer-isolation-p1-p3-green-${{ github.sha }}
           path: |
             paper-writer-runtime-green.log
             paper-ledger-p2-green.log
