@@ -103,3 +103,92 @@ jobs:
             t0-swg-contract-verdict.log
             t0-swg-behavior-tests.log
             t0-market-data-full-suite.log
+
+  timescaledb-read-only-integration:
+    name: Isolated TimescaleDB read-only integration
+    needs: shadow-contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      MARKET_DATA_TEST_DATABASE_URL: postgresql://t0_test:t0_test@127.0.0.1:5432/t0_test
+      MARKET_DATA_TEST_DISPOSABLE: "1"
+      MARKET_DATA_REQUIRE_TIMESCALE: "1"
+      MARKET_DATA_DB: ""
+      MARKET_DATA_POSTGRES_DSN: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    services:
+      timescaledb:
+        image: timescale/timescaledb:2.17.2-pg16
+        env:
+          POSTGRES_USER: t0_test
+          POSTGRES_PASSWORD: t0_test
+          POSTGRES_DB: t0_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U t0_test -d t0_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Checkout workflow source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install isolated market-data dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r requirements-market-data.txt
+      - name: Enforce disposable TimescaleDB target
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from urllib.parse import urlparse
+
+          assert os.environ.get("MARKET_DATA_TEST_DISPOSABLE") == "1"
+          assert os.environ.get("MARKET_DATA_REQUIRE_TIMESCALE") == "1"
+          dsn = urlparse(os.environ["MARKET_DATA_TEST_DATABASE_URL"])
+          assert dsn.scheme in {"postgres", "postgresql"}
+          assert dsn.hostname == "127.0.0.1" and dsn.port == 5432
+          assert dsn.username == "t0_test" and dsn.path == "/t0_test"
+          for name in (
+              "MARKET_DATA_DB", "MARKET_DATA_POSTGRES_DSN", "T0_FEEDER_LEASE_DB",
+              "PAPER_DB", "BINANCE_API_KEY", "BINANCE_API_SECRET",
+              "OKX_API_KEY", "OKX_API_SECRET",
+          ):
+              assert not os.environ.get(name), f"Forbidden environment variable: {name}"
+          print("T0_TIMESCALE_DISPOSABLE_PREFLIGHT=PASS")
+          PY
+          {
+            echo "T0_TIMESCALE_IMAGE=timescale/timescaledb:2.17.2-pg16"
+            echo "T0_TIMESCALE_DATABASE=t0_test"
+            echo "T0_TIMESCALE_HOST=127.0.0.1"
+            echo "T0_TIMESCALE_PORT=5432"
+            echo "T0_TIMESCALE_SOURCE_SHA=$(git rev-parse HEAD)"
+          } | tee t0-timescale-preflight.log
+      - name: Run read-only TimescaleDB integration contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest market_data.test_timescaledb -v 2>&1 | tee t0-timescale-tests.log
+          echo "T0_TIMESCALE_READ_ONLY_INTEGRATION=PASS" | tee t0-timescale-verdict.log
+      - name: Upload TimescaleDB integration evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-timescale-read-only-evidence-${{ github.sha }}
+          if-no-files-found: warn
+          path: |
+            t0-timescale-preflight.log
+            t0-timescale-tests.log
+            t0-timescale-verdict.log
