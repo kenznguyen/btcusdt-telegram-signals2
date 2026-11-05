@@ -2,9 +2,10 @@
 
 Ứng dụng Android độc lập cho hệ thống 5 tầng. APK chỉ kết nối API chung để đọc trạng thái T0–T4, dữ liệu futures intelligence, quyết định chiến lược, chất lượng dữ liệu, equity, audit log, Hummingbot Order Book và paper ledger.
 
-- Application ID: `com.kenznguyen.fivelayerpaper`
+- Application ID: `com.kenznguyen.btclivealerts.paper`
 - Launcher: `BTCUSDT Quant System · 5 Tầng`
 - Build: một APK duy nhất; không còn build type parallel.
+- Giữ nguyên application ID của bản 5 tầng parallel cũ để cài đè/nâng cấp và giữ dữ liệu ứng dụng hiện có.
 - Chế độ: PAPER ONLY. Không có exchange order endpoint, API key sàn hoặc live execution.
 - Không còn chart UI, scanner đa symbol, Binance chart engine, chart alerts, in-app backtest hoặc Strategy Monitor service trong ứng dụng này.
 
