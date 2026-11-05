@@ -93,3 +93,15 @@ Static review found that the cleanup branch was included in the Android workflow
 - Fixed the boundary test's workflow-block extraction to match top-level YAML sections rather than indentation prefixes.
 
 Source checkpoint before this evidence update: `ed9fc45248b25669a849f98a5844977ed2deccb0`.
+
+## Follow-up: compare protected strategy and paper-risk files by blob SHA
+
+Compared the PR base branch `feature/android-five-layer-control` with the cleanup branch. All six protected files have identical Git blob SHA values:
+- `pipeline/core_strategy.py`: `b4266fc05ea41355ba9dcf6f15cb7b5a6d3800b0`
+- `pipeline/test_core_strategy.py`: `bff8e2c0a21abce99ae4e6f46c911fe88a4925b5`
+- `pipeline/core_signal.py`: `df5fbb59611bdd4fbb8224665f79655dd4433455`
+- `pipeline/test_core_signal.py`: `a946716604e2e1a74b0e32f0aae5d07b820f2cbf`
+- `paper_execution/risk_control.py`: `3c76e462b0b4d924c2418842d95ed74285e2315d`
+- `paper_execution/ledger.py`: `68209ce48a6e5e9a995f93167684133e41cc7f55`
+
+This proves these exact source/test files are byte-identical to the PR base; it does not replace executing their regression suites. T0 source path inventory remains outside the PR diff.
