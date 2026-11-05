@@ -1172,3 +1172,12 @@ Current status:
 - The migration creates the two NOLOGIN capability/owner roles and therefore requires elevated migration permissions; this is consistent with the existing TimescaleDB extension migration, but must be explicitly verified in disposable CI.
 - The Feeder login role must be granted membership in `t0_feeder_writer`; it must not receive separate direct candle-table write grants. The capability role's REVOKE does not erase unrelated direct grants on arbitrary login roles. Production role provisioning is not present/verified in this repository yet.
 - No database migration was executed from this session outside GitHub source edits. No canonical DB, Feeder, exchange, sync, deployment, or live execution was used.
+
+
+### PR #134 exact-head review boundary — 2026-11-06
+
+- Added an additional disposable role assertion in commit `26fd82fd8fd9ca5f1e7f765ccdd474833465ab52`: the dedicated function owner is NOLOGIN/non-superuser, has no schema CREATE or candle DELETE, retains only required candle INSERT and lease UPDATE; Feeder has no direct candle INSERT; PUBLIC has no function EXECUTE.
+- Latest PR #134 head is `26fd82fd8fd9ca5f1e7f765ccdd474833465ab52`; base branch is `feature/t0-centralized-data-feeder-p1-20261101`; PR remains OPEN / DRAFT / NOT MERGED.
+- The Gateway workflow is present on the PR head but is absent from the base branch. Its push trigger targets the PR source branch; its pull_request filter now names the exact PR base, but GitHub pull_request workflows require the workflow definition on the base branch to run. Therefore the push workflow may run, but available GitHub run lookup filters to PR events and cannot verify push-run completion. Combined commit status returned no status entries. Exact-head CI is **NOT VERIFIED**; do not claim tests passed.
+- No migration was executed against any database in this session. Function SQL, owner role creation, group membership, error mapping, duplicate/conflict handling, and role integration tests remain **NOT VERIFIED** pending disposable TimescaleDB execution.
+- Next: obtain exact push-run evidence through an Actions run listing capable of including push events (or arrange a base-branch workflow definition through a separately reviewed change); then inspect logs/artifacts, run fresh Codex review on the verified head, and update PR description. Keep PR draft and do not merge.
