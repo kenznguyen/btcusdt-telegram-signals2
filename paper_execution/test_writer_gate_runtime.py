@@ -230,8 +230,15 @@ class PaperWriterGateRuntimeContracts(unittest.TestCase):
         self.assert_drain_state(
             gate.begin_drain(timeout_seconds=0.1), "DRAIN_TIMEOUT"
         )
-        with self.assertRaises(Exception):
-            gate.admit_writer()
+        if os.name == "nt":
+            # Windows serializes shared/exclusive byte-range locks. Bound the
+            # admission attempt so DRAINING still fails closed without waiting
+            # for the existing writer to release its lock.
+            with self.assertRaises(module.WriterLockTimeout):
+                gate.admit_writer(timeout_seconds=0.1)
+        else:
+            with self.assertRaises(Exception):
+                gate.admit_writer()
         release.set()
         self.assertEqual(ready.get(timeout=5)[0], "RELEASED")
         writer.join(timeout=5)
@@ -280,8 +287,8 @@ class PaperWriterGateRuntimeContracts(unittest.TestCase):
         self.assert_drain_state(
             gate.begin_drain(timeout_seconds=0.1), "DRAIN_TIMEOUT"
         )
-        with self.assertRaises(Exception):
-            gate.admit_writer()
+        with self.assertRaises(module.WriterLockTimeout):
+            gate.admit_writer(timeout_seconds=0.1)
 
         # Process.terminate uses the Windows process termination mechanism;
         # the OS must release the child's lock handle without Python cleanup.
