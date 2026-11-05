@@ -29,6 +29,7 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         from market_data.test_postgres_write_gateway import _assert_disposable_target
         _assert_disposable_target()
         import psycopg
+        from psycopg import sql
         from market_data.migrations import migrate
 
         migrate(DSN)
@@ -42,14 +43,12 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         cls.reader_dsn = _disposable_dsn_for_role(cls.reader_role, cls.reader_password)
 
         with psycopg.connect(DSN, autocommit=True) as admin:
-            admin.execute(
-                f'CREATE ROLE "{cls.feeder_role}" LOGIN PASSWORD %s',
-                (cls.feeder_password,),
-            )
-            admin.execute(
-                f'CREATE ROLE "{cls.reader_role}" LOGIN PASSWORD %s',
-                (cls.reader_password,),
-            )
+            admin.execute(sql.SQL("CREATE ROLE {} LOGIN PASSWORD {}").format(
+                sql.Identifier(cls.feeder_role), sql.Literal(cls.feeder_password)
+            ))
+            admin.execute(sql.SQL("CREATE ROLE {} LOGIN PASSWORD {}").format(
+                sql.Identifier(cls.reader_role), sql.Literal(cls.reader_password)
+            ))
             admin.execute("REVOKE ALL ON SCHEMA market_data FROM PUBLIC")
             admin.execute("REVOKE ALL ON ALL TABLES IN SCHEMA market_data FROM PUBLIC")
             admin.execute("GRANT CONNECT ON DATABASE t0_test TO " + '"' + cls.feeder_role + '"')
