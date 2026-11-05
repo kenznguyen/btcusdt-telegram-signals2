@@ -182,3 +182,15 @@ The user confirmed that T4 Dashboard will be rebuilt, so the existing dashboard 
 - Corrected the stale assertion to `dashboard-boundary:` in commit `f8209f1b2449d865ab916fd64359d443f45ef883`.
 - The failure is a CI contract mismatch caused by renaming the T4 job; it is not evidence of an Android app regression. Exact-head rerun on the corrected commit remains **PENDING / NOT VERIFIED**.
 - PR remains OPEN / DRAFT / NOT MERGED.
+
+## Final review and APK artifact policy — 2026-11-05
+
+- User approved continuing PR completion review and requested that the APK may be removed from the deliverable artifacts.
+- Kept Android :app:testDebugUnitTest, :app:assembleDebug, and ci/verify-five-layer-android-apk.py as blocking checks. These verify Android source compatibility, package/manifest/DEX identity and APK construction; they are not a release or distribution requirement.
+- Removed only artifacts/*.apk from the Android artifact upload. CI continues to retain the exact-source SHA, unit-test reports and android-apk.json verification metadata. Renamed the upload step to clarify that no APK is published.
+- Updated ci/test_ci_policy.py to assert that debug APKs are not included in uploaded artifacts while build and verification gates remain required.
+- Review against base feature/android-five-layer-control (2a4b914f5e1f133544494278f3bf5117ff815418): PR contains no T0 source paths and no changes to the six protected Core Strategy/signal/Risk/Ledger source and test files. The comparison reports 97 commits ahead and 0 behind; the PR branch is based directly on the current base SHA.
+- Latest changes: workflow commit 660668ef68423229b21babbf0cff47c2dd67a813; CI policy test commit eac8c22b0cba710226a413d4b788df5f5197beab.
+- Latest source head at this evidence update: eac8c22b0cba710226a413d4b788df5f5197beab. Exact-head GitHub Actions rerun is required; prior run #42048061499 on SHA 3467021e12d7c564cc807755dddabffab020cd34 passed all jobs but predates this artifact-policy-only change.
+- Status: source-scope review PASS; T0/Core/Risk protection review PASS; Android APK publication removed PASS (configuration); exact-head CI on the new SHA PENDING / NOT VERIFIED; signer continuity with any previously installed APK NOT VERIFIED.
+- PR #135 remains OPEN / DRAFT / NOT MERGED. No merge authorization is implied by this review.
