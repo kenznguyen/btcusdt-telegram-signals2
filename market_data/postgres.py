@@ -27,8 +27,8 @@ def connection(location, *, read_only=False):
                 if read_only:
                     database.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
                 yield database
-    except psycopg.Error as exc:
-        raise StoreUnavailable("PostgreSQL storage is unavailable") from exc
+    except psycopg.Error:
+        raise StoreUnavailable("PostgreSQL storage is unavailable") from None
 
 
 def _validate_window(symbol, timeframe, start_ms, end_ms, as_of_ms):
@@ -118,7 +118,7 @@ class PostgresLeaseStore:
             database.execute(
                 """INSERT INTO market_data.feeder_leases
                    (lease_name, owner_id, generation, expires_at)
-                   VALUES (%s, NULL, 0, '-infinity'::timestamptz)
+                   VALUES (%s, NULL, 0, '1970-01-01 00:00:00+00'::timestamptz)
                    ON CONFLICT (lease_name) DO NOTHING""",
                 (self.lease_name,),
             )
@@ -176,7 +176,7 @@ class PostgresLeaseStore:
         with connection(self.location) as database:
             row = database.execute(
                 """UPDATE market_data.feeder_leases
-                   SET owner_id=NULL, expires_at='-infinity'::timestamptz,
+                   SET owner_id=NULL, expires_at='1970-01-01 00:00:00+00'::timestamptz,
                        updated_at=clock_timestamp()
                    WHERE lease_name=%s AND owner_id=%s AND generation=%s
                    RETURNING generation""",
