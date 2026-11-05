@@ -1305,3 +1305,17 @@ Current status:
 - Current exact-head PR run [#42121787389](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42121787389) on `undefined`: static job PASS; paper-consumer job PASS; disposable TimescaleDB job still IN PROGRESS at this handoff update. Final exact-head acceptance remains **PENDING** until that job completes and its logs are inspected.
 - Codex independent review was requested against SHA `undefined` in PR comment `6671204172`; response is **NOT VERIFIED / PENDING**.
 - No production DB, canonical migration, Feeder activation, VPS deployment, exchange connection/sync or live execution was performed. PR remains DRAFT / NOT MERGED; no merge or production activation is authorized.
+
+
+## 2026-11-06 — PR #134 exact-head CI acceptance after migration ADMIN OPTION correction
+
+- Exact PR source/head SHA: `af09483e11ed236f92c35b075983d4ac98424cfe`; branch `feature/t0-atomic-write-fencing-20261105`; base `feature/t0-centralized-data-feeder-p1-20261101`.
+- Python `_assert_writer_roles_safe()` now checks ADMIN OPTION for `t0_db_owner`, `t0_candle_writer_owner` and `t0_lease_manager_owner`. The isolated regression grants ADMIN OPTION only on `t0_db_owner` and directly calls the preflight helper, avoiding migration-path side effects.
+- Exact-head PR workflow [#42121787389](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42121787389): **SUCCESS**, all three jobs completed successfully.
+  - Static job `127575802970`: Gateway contracts 10/10; Gateway/Feeder behavioral regressions 60/60; Health/Readiness 21/21; process restart/fencing 2/2; complete `market_data` suite 220 tests run / 31 skipped. Skips include integration cases run separately in the disposable TimescaleDB job.
+  - Paper consumer job `127575802692`: 44/44 PASS.
+  - Disposable TimescaleDB job `127575924316`: PostgreSQL writer 7/7; FeederRuntime 14/14; least-privilege role contracts 17/17; read-only TimescaleDB 6/6. All PASS; disposable DB stopped after job.
+- Exact-head artifacts: static ID `13460080868`, digest `sha256:666cce4caa2362d777de5bf49e2325cd8bad9d2bcbfa0824f118cf3c5371dbcf`; paper ID `13459800711`, digest `sha256:0bc91c26741f137b3037a8f05736c7f101a4d523ae6c938e2dac041276212b09`; TimescaleDB ID `13459471243`, digest `sha256:251ac663a82d3646cc37aa305cf1d0961bad74b41dc94f2f3b845939b98ab7b9`. GitHub upload digests only; payload bytes were not independently downloaded/re-hashed.
+- A prior attempt to test this preflight by invoking `migrate(DSN)` failed with `StoreUnavailable` due migration-path side effects. The test was isolated to call `_assert_writer_roles_safe` directly. **Valid TDD RED execution evidence remains NOT VERIFIED**; do not claim the guard was reproduced failing before the implementation fix.
+- Codex independent review requested for exact SHA `af09483e11ed236f92c35b075983d4ac98424cfe` in PR comment `6671204172`; response remains **PENDING / NOT VERIFIED**. Prior Codex receipts refer to older SHAs only.
+- PR remains OPEN / DRAFT / NOT MERGED. Exact-head CI PASS does not authorize merge. No production/canonical DB migration, VPS deployment, production Feeder activation, exchange connection/sync or live execution was performed or authorized.
