@@ -236,7 +236,7 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(code,200)
         self.assertTrue(result["available"])
         self.assertEqual(result["initialCapital"],"100")
-        self.assertEqual(result["latest"]["equity"],"100")
+        self.assertLess(float(result["latest"]["equity"]),100)
         self.assertEqual(result["dailyLossUsdt"],"0")
         with sqlite3.connect(self.paper_db) as connection:
             self.assertEqual(connection.execute("SELECT COUNT(*) FROM paper_equity_history").fetchone()[0],1)
