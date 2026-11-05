@@ -20,8 +20,8 @@
 - GitHub stores source, branches, PRs and evidence.
 - GitHub Actions is the active CI runner. Workflows must test the exact PR head
   SHA and use least-privilege permissions.
-- No legacy Telegram command service, Flask dashboard bridge, Codemagic adapter
-  or Codemagic workflow is part of this repository runtime.
+- No legacy notification command service, Flask dashboard bridge or external
+  CI dispatch adapter is part of this repository runtime.
 - The Hummingbot adapter is a separate read-only market-data integration. It
   does not place orders or depend on a dashboard or notification bridge.
 
