@@ -20,13 +20,31 @@ if not Path(T0_SOURCE_ROOT, "market_data", "write_gateway.py").is_file():
     raise RuntimeError("T0_SOURCE_ROOT does not contain the T0 write gateway")
 sys.path.insert(0, T0_SOURCE_ROOT)
 
+import market_data.feeder as t0_feeder_module
+import market_data.store as t0_store_module
+import market_data.write_gateway as t0_gateway_module
 from market_data.feeder import LeaseStore
 from market_data.store import Candle, CandleStore, INTERVAL_MS, read_window
 from market_data.write_gateway import SQLiteWriteGateway
+import paper_execution.writer_gate as paper_writer_gate_module
 from paper_execution.writer_gate import (
     PaperWriterGate,
     WriterTokenInvalid,
 )
+
+# Prove imports came from the exact two source roots, not a same-named package
+# already present elsewhere on the runner's Python path.
+for module in (
+    t0_feeder_module,
+    t0_store_module,
+    t0_gateway_module,
+):
+    if not Path(module.__file__).resolve().is_relative_to(Path(T0_SOURCE_ROOT)):
+        raise RuntimeError(f"T0 module imported outside pinned source: {module.__file__}")
+
+PAPER_SOURCE_ROOT = Path(__file__).resolve().parents[1]
+if not Path(paper_writer_gate_module.__file__).resolve().is_relative_to(PAPER_SOURCE_ROOT):
+    raise RuntimeError("Paper writer gate was not imported from the SWG-F source checkout")
 
 NOW = 1_800_000_000_000
 
