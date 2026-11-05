@@ -341,6 +341,47 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         self.assertFalse(public_execute)
         self.assertFalse(public_lease_execute)
 
+    def test_fresh_migrations_run_as_restricted_temporary_migrator(self):
+        from urllib.parse import quote, urlsplit, urlunsplit
+        from market_data.migrations import migrate
+        from psycopg import sql
+
+        suffix = uuid.uuid4().hex[:10]
+        database_name = "t0_migrator_" + suffix
+        password = uuid.uuid4().hex
+        created_roles = False
+        try:
+            with self.psycopg.connect(DSN, autocommit=True) as admin:
+                admin.execute("CREATE ROLE t0_db_owner NOLOGIN")
+                admin.execute(sql.SQL("CREATE ROLE t0_migrator LOGIN PASSWORD {}").format(sql.Literal(password)))
+                created_roles = True
+                admin.execute("GRANT t0_db_owner TO t0_migrator")
+                admin.execute("GRANT t0_candle_writer_owner TO t0_migrator")
+                admin.execute("GRANT t0_lease_manager_owner TO t0_migrator")
+                admin.execute(sql.SQL("CREATE DATABASE {} OWNER t0_db_owner").format(sql.Identifier(database_name)))
+            with self.psycopg.connect(DSN.replace("/t0_test", "/" + database_name), autocommit=True) as admin:
+                admin.execute("CREATE EXTENSION IF NOT EXISTS timescaledb")
+
+            parsed = urlsplit(DSN)
+            migrator_dsn = urlunsplit((
+                parsed.scheme,
+                f"t0_migrator:{quote(password)}@{parsed.hostname}:{parsed.port}",
+                "/" + database_name, parsed.query, parsed.fragment,
+            ))
+            migrate(migrator_dsn)
+            with self.psycopg.connect(DSN.replace("/t0_test", "/" + database_name), autocommit=True) as admin:
+                owners = admin.execute(
+                    "SELECT p.proname, r.rolname FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner "
+                    "WHERE p.proname IN ('write_canonical_candle', 'acquire_feeder_lease') ORDER BY p.proname"
+                ).fetchall()
+            self.assertEqual(owners, [("acquire_feeder_lease", "t0_lease_manager_owner"), ("write_canonical_candle", "t0_candle_writer_owner")])
+        finally:
+            with self.psycopg.connect(DSN, autocommit=True) as admin:
+                admin.execute(sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(sql.Identifier(database_name)))
+                if created_roles:
+                    admin.execute("DROP ROLE IF EXISTS t0_migrator")
+                    admin.execute("DROP ROLE IF EXISTS t0_db_owner")
+
     def test_migration_runner_rejects_preexisting_privileged_writer_roles(self):
         from market_data.migrations import migrate
 
