@@ -1319,3 +1319,18 @@ Current status:
 - A prior attempt to test this preflight by invoking `migrate(DSN)` failed with `StoreUnavailable` due migration-path side effects. The test was isolated to call `_assert_writer_roles_safe` directly. **Valid TDD RED execution evidence remains NOT VERIFIED**; do not claim the guard was reproduced failing before the implementation fix.
 - Codex independent review requested for exact SHA `af09483e11ed236f92c35b075983d4ac98424cfe` in PR comment `6671204172`; response remains **PENDING / NOT VERIFIED**. Prior Codex receipts refer to older SHAs only.
 - PR remains OPEN / DRAFT / NOT MERGED. Exact-head CI PASS does not authorize merge. No production/canonical DB migration, VPS deployment, production Feeder activation, exchange connection/sync or live execution was performed or authorized.
+
+
+## 2026-11-06 — PR #134 final exact-head role-guard test coverage
+
+- Exact PR source/head SHA: `4c28fff542f767c094e725dabc8a2698df2f39fd`; PR #134 remains OPEN / DRAFT / NOT MERGED.
+- Added independent Python preflight regression coverage for ADMIN OPTION on each SECURITY DEFINER owner role (`t0_candle_writer_owner`, `t0_lease_manager_owner`) in addition to the isolated `t0_db_owner` test.
+- Exact-head PR workflow [#42122195912](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42122195912): **SUCCESS**, all 3 jobs completed successfully.
+  - Static job `127577155629`: Gateway contracts 10/10; Gateway/Feeder behavior 60/60; Health/Readiness 21/21; process restart/fencing 2/2; full `market_data` suite 221 tests run / 32 skipped.
+  - Paper consumer job `127577155087`: 44/44 PASS.
+  - Disposable TimescaleDB job `127577275886`: PostgreSQL writer 7/7; FeederRuntime 14/14; least-privilege roles 18/18; read-only TimescaleDB 6/6. All PASS.
+- Artifacts: paper `13459336497`, digest `sha256:2972f95b257f0e9d455f56833c7b22b1d9ef303f202d6cfc4f39bf70c256c303`; static `13458977120`, digest `sha256:6fb889a6eda00b680c908f477c8ab981ca1468b14c2878f0c3d62a2d539b4f92`; TimescaleDB `13457983934`, digest `sha256:bb833eb962a901a45fc68ab2bb31bfe750efece533ec51c79f2201f6ab856e47`. GitHub upload digests only; payload bytes were not independently downloaded/re-hashed.
+- Three older Codex inline threads were replied to and resolved: migrator owner-role ADMIN OPTION guard, stable migration object ownership, and paper-consumer fixtures.
+- Independent Codex review of exact SHA `4c28fff542f767c094e725dabc8a2698df2f39fd` was requested in PR comment `6671253268`; no Codex review receipt for this SHA is present yet. **Independent review: NOT VERIFIED / PENDING.**
+- Valid TDD RED execution evidence for the ADMIN OPTION guard remains **NOT VERIFIED**. The earlier full-migration test attempt failed through migration-path side effects and is not accepted as RED proof.
+- No canonical T0 DB, production migration, VPS deployment, production Feeder activation, exchange connection/sync or live execution. CI PASS does not authorize merge or production activation.
