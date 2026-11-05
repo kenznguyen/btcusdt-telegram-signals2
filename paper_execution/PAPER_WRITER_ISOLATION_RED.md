@@ -102,9 +102,10 @@ The legacy static RED contract module remains historical evidence and is intenti
 - Read paths use read-only SQLite connections and do not reopen the gate or mutate schema.
 - Existing PaperLedger unit tests, explicit local CLI and disposable shadow-migration fixture setup now call initialize() explicitly.
 - P2 acceptance: 12/12 tests PASS, 0 failures, 0 errors, 0 skipped on Ubuntu 24.04 / Python 3.12.
-- Paper execution regression selection: 58 tests PASS. Intentionally RED SWG-F source contracts and the separate shadow-migration certification suite are excluded and remain separate.
+- Paper execution regression selection: 59 tests PASS. Intentionally RED SWG-F source contracts and the separate shadow-migration certification suite are excluded and remain separate.
 - No canonical T0 DB, Feeder, exchange, migration, deployment, or live order was accessed.
 - ai_execution_enabled=false; PR remains unmerged.
 - P2 RED baseline: run #41983295537 on source SHA `3116052df0cbe159547a7bfb02a668b8c4a1c76e`; the classifier confirmed the expected pre-implementation failures/errors for all eight initial P2 tests.
 - P2 GREEN evidence at the pre-evidence-doc source revision: SHA `0e2e3f161709191e570dadac4dbb3f830ed8ae33`, run #41984165143; 11 P2 tests, 58 selected Paper execution regression tests, and 12 P1 process tests passed.
 - Artifact ID `13394508830`, SHA-256 `00bc10e7021309d295c7461be508f8aa0baa15ef768125475e67355d7d994aa4`.
+- Final P2 verification after the additional mutation-time path recheck: source SHA `c1c968fc806f7eed6b1bf9299a50f2e51985cdaa`, run #41984540602; 12 P2 tests, 59 regression tests, and 12 P1 process tests passed.
