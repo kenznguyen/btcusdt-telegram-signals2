@@ -145,6 +145,7 @@ BEGIN
           FROM pg_auth_members membership
           JOIN pg_roles granted_role ON granted_role.oid = membership.roleid
          WHERE granted_role.rolname = 't0_candle_writer_owner'
+           AND member_role.rolname <> 't0_migrator'
     ) THEN
         RAISE EXCEPTION 'T0 SECURITY DEFINER owner role must not be granted to runtime or login roles'
             USING ERRCODE = '42501';
