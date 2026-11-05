@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 from paper_execution.ledger import PaperLedger
-from paper_execution.writer_gate import WriterAdmissionDenied
+from paper_execution.writer_gate import PaperWriterGate, WriterAdmissionDenied
 
 
 class PaperLedgerWriterIsolationTests(unittest.TestCase):
@@ -137,6 +137,15 @@ class PaperLedgerWriterIsolationTests(unittest.TestCase):
                 os.environ.pop("MARKET_DATA_DB", None)
             else:
                 os.environ["MARKET_DATA_DB"] = previous
+
+
+    def test_initialize_does_not_create_paper_db_when_admission_is_denied(self):
+        gate = PaperWriterGate.initialize(paper_db_path=str(self.paper_db))
+        self.assertEqual(gate.begin_drain(timeout_seconds=1).state, "DRAINED")
+        ledger = PaperLedger(self.paper_db)
+        with self.assertRaises(WriterAdmissionDenied):
+            ledger.initialize()
+        self.assertFalse(self.paper_db.exists())
 
 
 if __name__ == "__main__":
