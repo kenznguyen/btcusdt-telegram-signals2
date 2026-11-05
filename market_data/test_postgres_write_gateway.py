@@ -1,4 +1,4 @@
-"""PG-RED contracts for the PostgreSQL lease-fenced canonical writer.
+"""Integration contracts for the PostgreSQL lease-fenced canonical writer.
 
 These tests intentionally define the required public contract before the
 PostgreSQL writer exists. They must run only against the disposable local
@@ -38,7 +38,7 @@ def _assert_disposable_target():
 
 
 @unittest.skipUnless(DSN, "Set the disposable local TimescaleDB test service")
-class PostgresWriteGatewayREDTest(unittest.TestCase):
+class PostgresWriteGatewayIntegrationTest(unittest.TestCase):
     """Required behavior; current implementation is expected to fail these tests."""
 
     @classmethod
