@@ -1065,5 +1065,5 @@ Current status:
 - Android artifact ID `13433879418`, name `five-layer-android-42068647963-1`, digest `sha256:5c7f0633a90ecfe460143ae7198bb12390f1a83956e19ac634ba4ffb689b444f`.
 - Artifact metadata associates both artifacts with branch `cleanup/pr135-codex-followup-20261105` and exact head SHA above. These digests are GitHub upload digests; payload bytes have not been independently downloaded and re-hashed here.
 - Overall PR #136 CI: **PASS 3/3**. This validates the follow-up source SHA only. It does not add Gateway/Feeder test coverage; README now explicitly states that limitation.
-- Independent Codex review requested in PR comment #666391xxxx; pending at handoff update.
+- Independent Codex review requested in PR comment #6663897791; pending at handoff update.
 - PR #136 remains OPEN / READY FOR REVIEW / NOT MERGED. Do not merge without explicit user approval.
