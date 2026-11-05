@@ -77,7 +77,7 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         import time
         from market_data.store import INTERVAL_MS
 
-        self.lease_name = "role-test-" + uuid.uuid4().hex
+        self.lease_name = "binance-btcusdt-canonical"
         step = INTERVAL_MS["15m"]
         self.open_time = (int(time.time() * 1000) // step) * step - step
         self.step = step
@@ -102,6 +102,30 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
             "15m", self.open_time, "100", "102", "99", "101", "1",
             self.open_time + self.step + 1,
         )
+
+    def test_feeder_cannot_acquire_or_use_an_alternate_lease_identity(self):
+        with self.psycopg.connect(self.feeder_dsn, autocommit=True) as feeder:
+            with self.assertRaises(self.psycopg.errors.InsufficientPrivilege):
+                feeder.execute(
+                    "SELECT * FROM market_data.acquire_feeder_lease(%s, %s, %s)",
+                    ("attacker-created-lease", "alternate-worker", 30),
+                )
+
+    def test_migration_rejects_login_granted_a_security_definer_owner_role(self):
+        from market_data.migrations import migrate
+
+        login = "t0_owner_role_probe_" + uuid.uuid4().hex[:12]
+        with self.psycopg.connect(DSN, autocommit=True) as admin:
+            admin.execute(f'CREATE ROLE "{login}" LOGIN')
+            admin.execute(f'GRANT t0_candle_writer_owner TO "{login}"')
+            try:
+                with self.assertRaisesRegex(
+                    RuntimeError, "must not be granted to runtime or login roles"
+                ):
+                    migrate(DSN)
+            finally:
+                admin.execute(f'REVOKE t0_candle_writer_owner FROM "{login}"')
+                admin.execute(f'DROP ROLE "{login}"')
 
     def test_feeder_role_can_manage_lease_and_write_only_through_gateway(self):
         from market_data.postgres import PostgresLeaseStore, PostgresWriteGateway
