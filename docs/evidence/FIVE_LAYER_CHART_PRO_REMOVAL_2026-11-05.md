@@ -110,13 +110,13 @@ This proves these exact source/test files are byte-identical to the PR base; it 
 
 The project decision is GitHub Actions as the default and official CI runner. Codemagic is no longer the runner for this repository's normal workflows. This section supersedes the earlier Codemagic branch-coverage and execution instructions above; those entries remain as historical records of the previous configuration.
 
-- Added \`.github/workflows/five-layer-pr-validation.yml\` with separate Android Paper, backend T0–T3/Core, and T4 Dashboard jobs.
-- Triggers: pull requests targeting \`feature/android-five-layer-control\`, pushes to \`cleanup/remove-chart-pro-from-five-layer-20261105\`, and manual dispatch.
-- Every job checks out the exact PR head SHA (not the synthetic merge ref), runs with \`contents: read\`, and does not receive production secrets or external DB/exchange credentials. \`AI_EXECUTION_ENABLED=false\`.
-- Android job runs source boundary and APK verifier contract tests, Android unit tests, debug APK build, and APK package/label/manifest/DEX/signature verification. The APK verifier receives \`CM_BUILD_DIR\` only as its existing repository-root parameter; this is not a Codemagic runtime.
+- Added `.github/workflows/five-layer-pr-validation.yml` with separate Android Paper, backend T0–T3/Core, and T4 Dashboard jobs.
+- Triggers: pull requests targeting `feature/android-five-layer-control`, pushes to `cleanup/remove-chart-pro-from-five-layer-20261105`, and manual dispatch.
+- Every job checks out the exact PR head SHA (not the synthetic merge ref), runs with `contents: read`, and does not receive production secrets or external DB/exchange credentials. `AI_EXECUTION_ENABLED=false`.
+- Android job runs source boundary and APK verifier contract tests, Android unit tests, debug APK build, and APK package/label/manifest/DEX/signature verification. The APK verifier receives `CM_BUILD_DIR` only as its existing repository-root parameter; this is not a Codemagic runtime.
 - Backend job runs isolated T0 Gateway/Feeder/scheduler/recovery/health/storage tests, T1 futures intelligence, T2 Core Strategy/FreqAI, T3 Paper Risk/Ledger/Hummingbot, and CI/T0 policy tests.
 - Dashboard job runs frozen npm install, React tests, build and high-severity dependency audit.
-- Retired \`codemagic.yaml\`, \`docs/CODEMAGIC_SETUP.md\`, and the Codemagic-only \`ci/setup-android.sh\`.
+- Retired `codemagic.yaml`, `docs/CODEMAGIC_SETUP.md`, and the Codemagic-only `ci/setup-android.sh`.
 - Static workflow and source-boundary checks are recorded in the PR; GitHub Actions execution, APK output, signer continuity with an existing installation, and all runtime deployment properties remain NOT VERIFIED until the exact new head run completes.
 - No T0 runtime/data source, Strategy Core, Paper Risk/Ledger, PR #65, PR #134, canonical DB, exchange connection, Feeder activation or live execution was changed or enabled.
 - PR remains OPEN / DRAFT / NOT MERGED pending exact-SHA GitHub Actions results and review.
