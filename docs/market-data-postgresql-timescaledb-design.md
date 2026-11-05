@@ -19,7 +19,7 @@ The current canonical store is SQLite and serves Binance USDⓈ-M BTCUSDT linear
 - Gaps, duplicate idempotency, conflicting duplicate rejection, deterministic ordering, and `datasetVersion` SHA-256 semantics.
 - Read API remains read-only, authenticated, bounded, and must not create a missing database.
 
-The current `MARKET_DATA_DB` SQLite file is also used by the paper ledger. `paper_execution/ledger.py` owns paper state/order/book/audit/strategy-state and risk/equity history tables; `pipeline/api.py` reads both market data and paper state. Therefore, changing `MARKET_DATA_DB` to a PostgreSQL DSN is not backward-compatible and is explicitly out of scope. In mixed mode, `MARKET_DATA_DATABASE_URL` selects PostgreSQL only for market-data repository operations while `MARKET_DATA_DB` remains the SQLite path for the paper ledger and the SQLite fallback. The adapter factory and API call sites must enforce this separation.
+The current `MARKET_DATA_DB` SQLite file is also used by the paper ledger. `paper_execution/ledger.py` owns paper state/order/book/audit/strategy-state and risk/equity history tables; `pipeline/api.py` reads both market data and paper state. Therefore, changing `MARKET_DATA_DB` to a PostgreSQL DSN is not backward-compatible and is explicitly out of scope. In mixed mode, `MARKET_DATA_POSTGRES_DSN` selects PostgreSQL only for market-data repository operations while `MARKET_DATA_DB` remains the SQLite path for the paper ledger and the SQLite fallback. The adapter factory and API call sites must enforce this separation.
 
 ## Proposed architecture
 
@@ -30,7 +30,7 @@ Introduce a repository boundary without changing callers' domain contract:
 - Shared domain types and validation: Candle, Decimal validation, query bounds, coverage/gaps, duplicate/conflict rules, and canonical serialization.
 - Configuration remains explicit:
   - `MARKET_DATA_DB`: existing SQLite file path. During mixed mode it remains the legacy SQLite path and must continue to be supplied to the paper ledger, because `pipeline/api.py` currently uses it for paper state, orders, audit, equity, and risk state.
-  - `MARKET_DATA_DATABASE_URL`: optional PostgreSQL/TimescaleDB connection for market-data reads/writes only. When configured, only market-data repository calls may use it; no paper-ledger call may receive this DSN.
+  - `MARKET_DATA_POSTGRES_DSN`: optional PostgreSQL/TimescaleDB connection for market-data reads/writes only. When configured, only market-data repository calls may use it; no paper-ledger call may receive this DSN.
   - `PAPER_DB_PATH`: not introduced by this design. It may replace the paper ledger's use of `MARKET_DATA_DB` only in a separate, explicitly reviewed configuration change.
   - `MARKET_DATA_TOKEN`: read API authentication; unchanged semantics.
 
