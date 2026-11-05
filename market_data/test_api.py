@@ -8,6 +8,8 @@ from unittest.mock import patch
 
 from market_data.api import application
 from market_data.store import Candle, CandleStore, INTERVAL_MS
+from market_data.feeder import LeaseStore
+from market_data.write_gateway import SQLiteWriteGateway
 from market_data.sync import sync_window
 
 
@@ -19,7 +21,16 @@ class CandleApiTest(unittest.TestCase):
         self.interval = INTERVAL_MS["15m"]
         self.start = 1_800_000_000_000 // self.interval * self.interval
         store = CandleStore(self.db)
-        store.insert([Candle("15m", self.start, "100.01", "101", "99", "100.5", "2.50", self.start + self.interval + 7)])
+        leases = LeaseStore(str(self.db))
+        lease = leases.acquire("api-test", self.start, ttl_seconds=60)
+        gateway = SQLiteWriteGateway(
+            store=store, lease_store=leases, owner_id="api-test",
+            generation_provider=lambda: lease.generation, clock=lambda: self.start + 1,
+        )
+        gateway.write_batch([
+            Candle("15m", self.start, "100.01", "101", "99", "100.5", "2.50",
+                   self.start + self.interval + 7)
+        ])
         self.config = {"MARKET_DATA_DB": str(self.db), "MARKET_DATA_TOKEN": "read-only-token"}
 
     def request(self, query=None, token="read-only-token", method="GET", path="/v1/candles"):
@@ -113,7 +124,14 @@ class CandleApiTest(unittest.TestCase):
                         [start + step, 100, 102, 99, 101, 3]]
 
         path = Path(self.temp.name) / "pipeline.sqlite3"
-        inserted = sync_window(Exchange(), CandleStore(path), "15m", start, start+2*step,
+        store = CandleStore(path)
+        leases = LeaseStore(str(path))
+        lease = leases.acquire("api-pipeline-test", start, ttl_seconds=60)
+        gateway = SQLiteWriteGateway(
+            store=store, lease_store=leases, owner_id="api-pipeline-test",
+            generation_provider=lambda: lease.generation, clock=lambda: start + 1,
+        )
+        inserted = sync_window(Exchange(), gateway, "15m", start, start+2*step,
                                now_ms=lambda: start+3*step)
         self.assertEqual(inserted, 1)
         self.config["MARKET_DATA_DB"] = str(path)
