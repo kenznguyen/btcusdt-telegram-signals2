@@ -9,8 +9,7 @@ on:
       - ".github/workflows/t0-single-writer-gateway-red.yml"
   pull_request:
     branches:
-      - feature/t0-centralized-data-feeder-p1
-      - feature/t0-centralized-data-feeder-p1-20261101-20261101
+      - feature/t0-centralized-data-feeder-p1-20261101
     paths:
       - "market_data/**"
       - ".github/workflows/t0-single-writer-gateway-red.yml"
