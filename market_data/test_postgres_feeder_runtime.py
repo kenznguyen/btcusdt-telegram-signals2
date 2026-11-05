@@ -10,6 +10,16 @@ from unittest.mock import Mock
 from market_data.feeder_service import PostgresRuntimeLeaseAdapter
 
 
+class PostgresLeaseTokenSafetyTest(unittest.TestCase):
+    def test_owner_capability_is_not_exposed_by_lease_repr(self):
+        from datetime import datetime, timezone
+        from market_data.postgres import PostgresLease
+
+        token = "opaque-owner-capability-do-not-log"
+        lease = PostgresLease(token, 7, datetime.now(timezone.utc))
+        self.assertNotIn(token, repr(lease))
+
+
 class PostgresRuntimeLeaseAdapterContractTest(unittest.TestCase):
     def setUp(self):
         self.backend = Mock()
