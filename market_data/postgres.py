@@ -116,56 +116,20 @@ class PostgresLeaseStore:
     def acquire(self, owner, ttl_seconds=60):
         self._validate(owner, ttl_seconds=ttl_seconds)
         with connection(self.location) as database:
-            database.execute(
-                """INSERT INTO market_data.feeder_leases
-                   (lease_name, owner_id, generation, expires_at)
-                   VALUES (%s, NULL, 0, '1970-01-01 00:00:00+00'::timestamptz)
-                   ON CONFLICT (lease_name) DO NOTHING""",
-                (self.lease_name,),
-            )
-            current = database.execute(
-                """SELECT owner_id, generation, expires_at
-                   FROM market_data.feeder_leases
-                   WHERE lease_name=%s
-                   FOR UPDATE""",
-                (self.lease_name,),
-            ).fetchone()
-            current_owner, generation, expires_at = current
-            # Evaluate expiry only after FOR UPDATE has acquired the row lock.
-            # A projection evaluated before a lock wait can otherwise be stale.
-            active = database.execute(
-                """SELECT expires_at > clock_timestamp()
-                   FROM market_data.feeder_leases WHERE lease_name=%s""",
-                (self.lease_name,),
-            ).fetchone()[0]
-            if active:
-                if current_owner == owner:
-                    return PostgresLease(owner, generation, expires_at)
-                return None
             row = database.execute(
-                """UPDATE market_data.feeder_leases
-                   SET owner_id=%s, generation=generation+1,
-                       expires_at=clock_timestamp() + (%s * interval '1 second'),
-                       updated_at=clock_timestamp()
-                   WHERE lease_name=%s
-                   RETURNING generation, expires_at""",
-                (owner, ttl_seconds, self.lease_name),
+                """SELECT generation, expires_at
+                   FROM market_data.acquire_feeder_lease(%s, %s, %s)""",
+                (self.lease_name, owner, ttl_seconds),
             ).fetchone()
-            return PostgresLease(owner, row[0], row[1])
+            return None if row is None else PostgresLease(owner, row[0], row[1])
 
     def heartbeat(self, owner, generation, ttl_seconds=60):
         self._validate(owner, generation, ttl_seconds)
         with connection(self.location) as database:
-            row = database.execute(
-                """UPDATE market_data.feeder_leases
-                   SET expires_at=clock_timestamp() + (%s * interval '1 second'),
-                       updated_at=clock_timestamp()
-                   WHERE lease_name=%s AND owner_id=%s AND generation=%s
-                     AND expires_at > clock_timestamp()
-                   RETURNING generation""",
-                (ttl_seconds, self.lease_name, owner, generation),
-            ).fetchone()
-            return row is not None
+            return database.execute(
+                """SELECT market_data.heartbeat_feeder_lease(%s, %s, %s, %s)""",
+                (self.lease_name, owner, generation, ttl_seconds),
+            ).fetchone()[0]
 
     def is_current(self, owner, generation):
         self._validate(owner, generation)
@@ -181,15 +145,10 @@ class PostgresLeaseStore:
     def release(self, owner, generation):
         self._validate(owner, generation)
         with connection(self.location) as database:
-            row = database.execute(
-                """UPDATE market_data.feeder_leases
-                   SET owner_id=NULL, expires_at='1970-01-01 00:00:00+00'::timestamptz,
-                       updated_at=clock_timestamp()
-                   WHERE lease_name=%s AND owner_id=%s AND generation=%s
-                   RETURNING generation""",
+            return database.execute(
+                """SELECT market_data.release_feeder_lease(%s, %s, %s)""",
                 (self.lease_name, owner, generation),
-            ).fetchone()
-            return row is not None
+            ).fetchone()[0]
 
 
 class PostgresWriteGateway:
