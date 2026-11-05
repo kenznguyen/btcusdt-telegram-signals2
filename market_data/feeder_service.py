@@ -59,29 +59,6 @@ class RecoveryAdapter:
         return True
 
 
-class FencedCandleWriter:  # Deprecated compatibility shim; runtime uses SQLiteWriteGateway.
-    """Route every sync_window page through the active lease's atomic writer."""
-
-    def __init__(self, store, lease_store, owner_id, generation_provider, clock):
-        self.store = store
-        self.lease_store = lease_store
-        self.owner_id = owner_id
-        self.generation_provider = generation_provider
-        self.clock = clock
-
-    def insert(self, candles):
-        generation = self.generation_provider()
-        if generation is None:
-            raise PermissionError("Feeder lease is unavailable; canonical write rejected")
-        return self.store.insert_fenced(
-            candles,
-            owner=self.owner_id,
-            generation=generation,
-            now_ms=self.clock,
-            lease_name=self.lease_store.lease_name,
-        )
-
-
 def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
                   health=None, event_sink=None, recovery_lookback_candles=2000):
     """Compose the existing canonical sync path into the tested FeederRuntime."""
