@@ -85,7 +85,21 @@ Preserve the manifest's historical labels without promoting them to independentl
 | P4.5 two-writer fencing | PASS | RECORDED PASS; payload/source identity NOT VERIFIED |
 | Overall Android P4 | CONDITIONAL PASS | Remains CONDITIONAL PASS; not production certification |
 
-## 5. Limits and next action
+
+
+### 5.1 Read-only log metadata scan (2026-11-05)
+
+The user ran a recursive, read-only `grep` over the six P4 shadow directories, restricted to `*.py`, `*.log`, and `*.stdout`, searching for 40-character hexadecimal strings and source/commit/workflow/run identifiers plus the test date.
+
+Observed results:
+- The returned matches are timestamped test events from 2026-11-02 and test-status lines (heartbeat, lease acquisition/release, fencing/takeover assertions).
+- No 40-character Git commit SHA, `GITHUB_SHA`, workflow run ID, or explicit source-SHA metadata appeared in the returned output.
+- The logs therefore corroborate the recorded sequence/timing and historical test assertions, but do not establish the exact source revision used for each test.
+- Scope limitation: the command searched the shadow directories only. Standalone preparation/test scripts in `$HOME` (for example `p4_1_runtime_heartbeat.py`, `p4_1_background_test.py`, `p4_2_natural_doze.py`, and `p4_2_wakelock_test.py`) were not included in that scan and remain to be checked read-only.
+
+This does not change the 17/17 payload hash result or promote historical test labels to independently verified outcomes.
+
+## 6. Limits and next action
 
 - All 17 payload files were recovered on Android/Termux and their SHA-256 values match the manifest: **17/17 MATCH**.
 - The observed Android checkout HEAD matches the manifest's observed HEAD (`1c16755a07a053e1f225c8861ec76dc9ced1a5d8`); `git status --short` returned no changes.
@@ -94,4 +108,4 @@ Preserve the manifest's historical labels without promoting them to independentl
 - This reconciliation does not authorize canonical T0 DB creation, Feeder activation, exchange connectivity, market-data sync, or live execution.
 - `ai_execution_enabled=false`; paper-only boundary remains unchanged.
 
-Next action: inspect the recovered scripts/logs read-only for embedded run metadata and any source-SHA references, without executing them. If historical run-specific SHA evidence is absent, retain that limitation explicitly. Do not rerun P4 tests as a substitute for historical provenance.
+Next action: inspect the standalone P4 preparation/test scripts in `$HOME` read-only for embedded source-SHA or workflow metadata, and inspect repository Git metadata if it can tie the test scripts to a specific checkout. Do not execute scripts or rerun P4 tests. If run-specific provenance is absent, retain that limitation explicitly.
