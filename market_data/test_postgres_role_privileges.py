@@ -192,6 +192,32 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
 
         self.assertTrue(leases.release("reader-boundary-worker", lease.generation))
 
+    def test_writer_function_has_least_privilege_owner_and_no_public_execute(self):
+        with self.psycopg.connect(DSN, autocommit=True) as admin:
+            owner = admin.execute(
+                "SELECT r.rolsuper, r.rolcanlogin, "
+                "has_schema_privilege(r.rolname, 'market_data', 'CREATE'), "
+                "has_table_privilege(r.rolname, 'market_data.candles', 'INSERT'), "
+                "has_table_privilege(r.rolname, 'market_data.candles', 'DELETE'), "
+                "has_table_privilege(r.rolname, 'market_data.feeder_leases', 'UPDATE') "
+                "FROM pg_roles r WHERE r.rolname='t0_candle_writer_owner'"
+            ).fetchone()
+            feeder_insert = admin.execute(
+                "SELECT has_table_privilege(%s, 'market_data.candles', 'INSERT')",
+                (self.feeder_role,),
+            ).fetchone()[0]
+            public_execute = admin.execute(
+                "SELECT EXISTS ("
+                "SELECT 1 FROM pg_proc p "
+                "CROSS JOIN LATERAL aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a "
+                "WHERE p.oid='market_data.write_canonical_candle("
+                "text,text,bigint,text,text,text,text,bigint,numeric,numeric,numeric,numeric,numeric,bigint)'::regprocedure "
+                "AND a.grantee=0 AND a.privilege_type='EXECUTE')"
+            ).fetchone()[0]
+        self.assertEqual(owner, (False, False, False, True, False, True))
+        self.assertFalse(feeder_insert)
+        self.assertFalse(public_execute)
+
     def test_runtime_roles_have_no_schema_create_or_role_admin_privilege(self):
         with self.psycopg.connect(DSN, autocommit=True) as admin:
             feeder = admin.execute(
