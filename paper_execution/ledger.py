@@ -154,10 +154,10 @@ class PaperLedger:
         self._validate_path_isolation()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         gate = PaperWriterGate.initialize(paper_db_path=str(self.path))
-        self.path.touch(exist_ok=True)
         token = gate.admit_writer()
         connection = None
         try:
+            self.path.touch(exist_ok=True)
             connection = sqlite3.connect(self.path, timeout=10)
             connection.execute("PRAGMA journal_mode=WAL")
             connection.execute("BEGIN IMMEDIATE")
