@@ -192,28 +192,9 @@ class PostgresWriteGateway:
 
         inserted = 0
         with connection(self.location) as database:
-            lease = database.execute(
-                """SELECT owner_id, generation
-                   FROM market_data.feeder_leases
-                   WHERE lease_name=%s
-                   FOR UPDATE""",
-                (self.lease_name,),
-            ).fetchone()
-            if (
-                lease is None or lease[0] != self.owner_id
-                or lease[1] != generation
-            ):
-                raise PermissionError("Feeder lease is not current; canonical write rejected")
-            # Recheck using the database wall clock after the row lock is held.
-            active = database.execute(
-                """SELECT expires_at > clock_timestamp()
-                   FROM market_data.feeder_leases
-                   WHERE lease_name=%s AND owner_id=%s AND generation=%s""",
-                (self.lease_name, self.owner_id, generation),
-            ).fetchone()
-            if active is None or not active[0]:
-                raise PermissionError("Feeder lease is not current; canonical write rejected")
-
+            # The SECURITY DEFINER candle function locks and validates the
+            # lease row. Its lock remains held until this outer batch commits,
+            # so the Feeder login needs SELECT but no direct lease UPDATE grant.
             for candle in batch:
                 values = tuple(Decimal(getattr(candle, name)) for name in PRICE_FIELDS)
                 parameters = (
