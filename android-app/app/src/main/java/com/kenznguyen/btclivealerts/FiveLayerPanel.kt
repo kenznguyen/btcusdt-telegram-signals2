@@ -246,8 +246,6 @@ internal fun FiveLayerPanel(context: Context) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         FiveLayerCard("KẾT NỐI · BTCUSDT PAPER") {
             Text("Binance USDⓈ-M · Sổ mô phỏng trên máy chủ", color = fiveMuted)
-            if (BuildConfig.PARALLEL_INSTALL) Text("Cùng địa chỉ API sẽ dùng chung sổ paper. Dùng máy chủ thử nghiệm riêng nếu cần sổ tách biệt.",
-                color = fiveAmber, style = MaterialTheme.typography.bodySmall)
             OutlinedTextField(url, { if (it.length <= 2048) url = it }, Modifier.fillMaxWidth(),
                 enabled = connection == null, singleLine = true, label = { Text("API chung (HTTPS)") })
             OutlinedTextField(readToken, { if (it.length <= 4096) readToken = it }, Modifier.fillMaxWidth(),
