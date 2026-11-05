@@ -256,6 +256,15 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                 "SELECT has_table_privilege(%s, 'market_data.feeder_leases', 'INSERT')",
                 (self.feeder_role,),
             ).fetchone()[0]
+            lease_owner = admin.execute(
+                "SELECT r.rolsuper, r.rolcanlogin, "
+                "has_schema_privilege(r.rolname, 'market_data', 'CREATE'), "
+                "has_table_privilege(r.rolname, 'market_data.feeder_leases', 'SELECT'), "
+                "has_table_privilege(r.rolname, 'market_data.feeder_leases', 'INSERT'), "
+                "has_table_privilege(r.rolname, 'market_data.feeder_leases', 'UPDATE'), "
+                "has_table_privilege(r.rolname, 'market_data.feeder_leases', 'DELETE') "
+                "FROM pg_roles r WHERE r.rolname='t0_lease_manager_owner'"
+            ).fetchone()
             feeder_lease_update = admin.execute(
                 "SELECT has_table_privilege(%s, 'market_data.feeder_leases', 'UPDATE')",
                 (self.feeder_role,),
@@ -275,6 +284,7 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         self.assertFalse(feeder_insert)
         self.assertFalse(feeder_lease_insert)
         self.assertFalse(feeder_lease_update)
+        self.assertEqual(lease_owner, (False, False, False, True, True, True, False))
         self.assertTrue(lease_manager_member)
         self.assertFalse(public_execute)
         self.assertFalse(public_lease_execute)
