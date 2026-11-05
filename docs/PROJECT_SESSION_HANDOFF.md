@@ -1143,3 +1143,21 @@ Current status:
 - Codex P2 #3 remains unresolved: PostgreSQL feeder role has direct INSERT on `market_data.candles`, allowing bypass of the fenced Gateway. Do not mark PR ready or merge.
 - Next: design a DB-enforced writer boundary (likely a tightly scoped SECURITY DEFINER function with fixed search_path, explicit EXECUTE grant, and no direct INSERT privilege), add disposable TimescaleDB integration tests proving direct INSERT is denied while Gateway writes still work, then run exact-source CI and obtain a fresh Codex review. Keep tests confined to the disposable local TimescaleDB service.
 - No canonical DB, production Feeder, exchange, sync, deployment, or live execution was started. T0 source changes are limited to the two mitigations above. `ai_execution_enabled=false`.
+
+
+## 2026-11-06 — PR #134 PostgreSQL DB-enforced writer boundary (verification pending)
+
+- Continued existing PR #134 on branch `feature/t0-atomic-write-fencing-20261105`; no new PR and no merge.
+- Added role-boundary regression first in commit `af35fdb5208fca0948a2b5c9f409fc547fb64774`: Feeder login role is expected to have no direct candle INSERT and must write through the database function capability. The intended RED run was not captured; do not claim a demonstrated failing test.
+- Added immutable migration `market_data/migrations/003_t0_database_fenced_candle_writer.sql` in commit `d68fd288329b946e410e29160640c4fdf3d9663a`, subsequently strengthened in `3b46ef3d56df6c379b5f61de26beabdb81116f02`:
+  - Defines `market_data.write_canonical_candle(...)` as `SECURITY DEFINER` with fixed `search_path`, fully-qualified table references, DB-side lease row lock, owner/generation/expiry validation, idempotent duplicate handling and conflict rejection.
+  - Revokes function EXECUTE from PUBLIC.
+  - Creates stable NOLOGIN capability role `t0_feeder_writer`, revokes candle-table INSERT/UPDATE/DELETE/TRUNCATE from that capability role, and grants it EXECUTE on the fenced function.
+- Changed `PostgresWriteGateway` in commit `63a1a59d806902a8c38f77765e3d3426deee0da7` to call the database function rather than directly SELECT/INSERT candle rows; maps DB lease denial and conflict SQLSTATEs to PermissionError/ValueError while retaining transaction rollback and final lease-expiry check.
+- Updated `market_data/test_postgres_role_privileges.py` in commits `49efce78506f70fef84c527f8091db777c99579a` and `5a0c13c696cb80580d40563d0522f5c9d8b2ccf8`: dynamic Feeder login role receives membership in `t0_feeder_writer`; direct INSERT is asserted denied; Gateway write is exercised; direct function invocation with stale generation is asserted denied. Reader role remains read-only.
+- Updated `market_data/README.md` in commit `bec2710dface0bce679e0bfda49d57faba62df4c` to document separate read adapter and fenced writer capability.
+- Updated workflow PR base filters in commit `85a37f1fe2b715c855b95778277e16bc60082dbc` to include `feature/android-five-layer-control`, the actual PR #134 base, so the Gateway/TimescaleDB workflow can run as a PR check.
+- Current branch tip after these sequential commits: `85a37f1fe2b715c855b95778277e16bc60082dbc`. PR-head metadata and workflow run status were not independently returned by the available lookup; CI is **NOT VERIFIED**. No claim that tests passed.
+- Self-review limits: capability-role revocation does not erase any separately granted direct table privilege on an already-existing login role. Production role provisioning must grant Feeder membership in `t0_feeder_writer` and must not separately grant table INSERT/UPDATE/DELETE/TRUNCATE. The disposable role test creates a fresh role and verifies the intended least-privilege setup; production role provisioning remains **NOT VERIFIED**. Migration creates a cluster role and therefore requires a migration identity with CREATEROLE (the existing initial TimescaleDB migration already requires elevated extension privileges).
+- P2 #3 is **implementation drafted / verification pending**, not yet cleared. Require exact-head GitHub Actions with disposable TimescaleDB, review SQL function owner/privileges and role provisioning, then fresh Codex review on the exact final SHA.
+- No canonical DB, production Feeder, exchange, sync, deployment, or live execution was used. T0 source/runtime remains inactive; `ai_execution_enabled=false`.
