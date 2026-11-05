@@ -11,9 +11,9 @@
 
 ## Build và kiểm thử
 
-Codemagic workflow: `five-layer-android`.
+GitHub Actions workflow: `.github/workflows/five-layer-pr-validation.yml` (job `android-paper`).
 
-Workflow chạy:
+GitHub Actions chạy:
 1. Static boundary tests: `ci.test_five_layer_android_boundary`.
 2. APK verifier contracts: `ci.test_five_layer_android_apk`.
 3. Android unit tests: ` :app:testDebugUnitTest `.
@@ -26,13 +26,7 @@ Máy local cần JDK 17, Gradle 8.9 và Android SDK 35 / Build Tools 34.0.0:
 gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
 ```
 
-Repository chưa có Gradle wrapper. Artifact CI dự kiến:
-- `BTCUSDT-Quant-System-Paper-<source SHA>.apk`
-- `android-source-sha.txt`
-- `android-apk.json`
-- JUnit XML/HTML.
-
-Chỉ cài APK sau khi Codemagic build và artifact gate thành công trên đúng source SHA. Build cấu hình không phải bằng chứng APK đã được tạo hoặc chạy trên thiết bị.
+Repository chưa có Gradle wrapper. CI build APK debug tạm thời để kiểm thử và xác minh package, manifest, DEX, chữ ký và source SHA. APK không được upload thành artifact. Artifact CI chỉ gồm `android-source-sha.txt`, `android-apk.json` và báo cáo unit test. Đây không phải release APK; cài đặt trên thiết bị và signer continuity với bản cài cũ vẫn cần xác minh riêng.
 
 ## Kết nối API
 
@@ -47,5 +41,5 @@ Mở ứng dụng, nhập HTTPS base URL của common API và read token `MARKET
 - Thiếu/cũ/sai provenance hoặc dữ liệu không hợp lệ phải hiển thị unavailable/WAIT, không thay bằng 0.
 - Equity, PnL, trạng thái vị thế và lịch sử được đọc từ server paper ledger; APK không tự tạo sổ trạng thái riêng.
 - Không tự gửi lại paper command khi timeout chưa xác định kết quả.
-- Codemagic là runner hữu hạn; API, T0 Feeder, Hummingbot và model runtime phải được triển khai riêng.
+- GitHub Actions chỉ là runner CI hữu hạn; API, T0 Feeder, Hummingbot và model runtime phải được triển khai riêng.
 - Không có release signing identity hoặc phát hành Play Store trong phạm vi hiện tại.
