@@ -63,36 +63,12 @@ def _render_window(symbol, timeframe, start, end, as_of_ms, candles):
 
 
 class PostgresCandleStore:
-    """Same insert contract as SQLite; constructor performs no DDL or migration."""
+    """Read-only adapter; canonical writes are deliberately disabled."""
+
+    canonical_writes_disabled = True
 
     def __init__(self, location):
         self.location = location
-
-    def insert(self, candles):
-        batch = list(candles)
-        if any(not isinstance(candle, Candle) for candle in batch):
-            raise ValueError("Expected validated Candle values")
-        batch.sort(key=lambda candle: (candle.symbol, candle.timeframe, candle.open_time_ms))
-        inserted = 0
-        with connection(self.location) as database:
-            for candle in batch:
-                key = (EXCHANGE, MARKET_TYPE, candle.symbol, candle.timeframe, candle.open_time_ms)
-                prices = tuple(Decimal(getattr(candle, name)) for name in PRICE_FIELDS)
-                result = database.execute("""INSERT INTO market_data.candles
-                    (exchange,market_type,symbol,timeframe,open_time_ms,open,high,low,close,volume,available_at_ms)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                    ON CONFLICT (exchange,market_type,symbol,timeframe,open_time_ms) DO NOTHING
-                    RETURNING open_time_ms""", key + prices + (candle.available_at_ms,)).fetchone()
-                if result is not None:
-                    inserted += 1
-                    continue
-                existing = database.execute("""SELECT open,high,low,close,volume FROM market_data.candles
-                    WHERE exchange=%s AND market_type=%s AND symbol=%s AND timeframe=%s AND open_time_ms=%s""",
-                    key).fetchone()
-                if existing != prices:
-                    raise ValueError("Conflicting closed candle; history was not overwritten")
-        return inserted
-
 
 def read_window(location, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
     start, end, _ = _validate_window(symbol, timeframe, start_ms, end_ms, as_of_ms)
