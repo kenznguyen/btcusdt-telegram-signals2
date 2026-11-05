@@ -27,6 +27,7 @@ CHART_PRO_SOURCES = (
     "ScannerMarketFeed.kt",
     "SnapshotRetryGate.kt",
     "StrategyMonitorService.kt",
+    "StrategyEngine.kt",
 )
 
 CHART_PRO_TESTS = (
@@ -39,6 +40,7 @@ CHART_PRO_TESTS = (
     "MultiSymbolScannerTest.kt",
     "OrderBookSequenceTest.kt",
     "SnapshotRetryGateTest.kt",
+    "StrategyEngineTest.kt",
 )
 
 
