@@ -17,7 +17,13 @@ import tempfile
 import textwrap
 import unittest
 
-from market_data.feeder import LeaseStore
+from market_data.feeder import (
+    FeederConfig,
+    FeederRuntime,
+    FeederScheduler,
+    HealthEvaluator,
+    LeaseStore,
+)
 from market_data.store import (
     Candle,
     CandleStore,
@@ -309,19 +315,15 @@ class FeederProcessRestartTest(unittest.TestCase):
                     process.kill()
                 process.communicate(timeout=5)
 
-            config = __import__("market_data.feeder", fromlist=["FeederConfig"]).FeederConfig()
+            config = FeederConfig()
             restart_now = NOW + 60_001
             leases = LeaseStore(db_path)
-            scheduler = __import__(
-                "market_data.feeder", fromlist=["FeederScheduler"]
-            ).FeederScheduler(
+            scheduler = FeederScheduler(
                 config,
                 clock=lambda: restart_now,
                 sync_callback=lambda timeframe, start_ms, end_ms: 0,
             )
-            restarted = __import__(
-                "market_data.feeder", fromlist=["FeederRuntime"]
-            ).FeederRuntime(
+            restarted = FeederRuntime(
                 config=config,
                 scheduler=scheduler,
                 lease_store=leases,
@@ -331,9 +333,7 @@ class FeederProcessRestartTest(unittest.TestCase):
             self.assertTrue(restarted.start(now_ms=restart_now))
             self.assertEqual(restarted.lease_generation, child_state["generation"] + 1)
 
-            evaluator = __import__(
-                "market_data.feeder", fromlist=["HealthEvaluator"]
-            ).HealthEvaluator(config)
+            evaluator = HealthEvaluator(config)
             snapshot = {
                 "storage_readable": True,
                 "storage_writable": True,
