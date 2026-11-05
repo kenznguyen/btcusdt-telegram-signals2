@@ -102,6 +102,12 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest discover -s market_data -p 'test_*.py' -v 2>&1 | tee t0-market-data-full-suite.log
+      - name: Run paper consumer fixture regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install "pandas>=2.2,<3"
+          python -m unittest pipeline.test_decision pipeline.test_api freqai_bridge.test_exporter -v 2>&1 | tee t0-paper-consumer-tests.log
       - name: Upload source identity and RED evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -117,6 +123,7 @@ jobs:
             t0-health-readiness-tests.log
             t0-process-restart-tests.log
             t0-market-data-full-suite.log
+            t0-paper-consumer-tests.log
 
   timescaledb-read-only-integration:
     name: Isolated TimescaleDB read-only integration
