@@ -244,11 +244,13 @@ def build_production_runtime(environ=None):
                 )
             lease_path = values["MARKET_DATA_DB"]
         lease_store = LeaseStore(lease_path)
-    # The owner ID is an opaque fencing capability. Generate a fresh,
-    # high-entropy value per process unless an operator supplies a secret.
-    owner_id = values.get("T0_FEEDER_OWNER_ID", "").strip()
-    if not owner_id:
-        owner_id = secrets.token_urlsafe(32)
+    # The owner ID is a per-process fencing capability. Never accept a
+    # configured value: two processes sharing it could adopt the same lease.
+    if values.get("T0_FEEDER_OWNER_ID", "").strip():
+        raise ValueError(
+            "T0_FEEDER_OWNER_ID is not supported; owner identity is generated per process"
+        )
+    owner_id = secrets.token_urlsafe(32)
 
     config = FeederConfig(
         poll_interval_seconds=int(values.get("T0_FEEDER_POLL_SECONDS", "5")),
