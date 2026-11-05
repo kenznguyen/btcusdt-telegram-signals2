@@ -161,6 +161,27 @@ class PostgresRuntimeCompositionContractTest(unittest.TestCase):
         self.assertEqual(runtime.canonical_write_gateway.location, dsn)
 
 
+    def test_production_runtime_generates_fresh_opaque_owner_token(self):
+        import sys
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from market_data.feeder_service import build_production_runtime
+
+        dsn = "postgresql://test:test@127.0.0.1:5432/t0_test"
+        fake_ccxt = SimpleNamespace(binanceusdm=lambda options: SimpleNamespace(options=options))
+        environment = {
+            "MARKET_DATA_BACKEND": "postgres",
+            "MARKET_DATA_POSTGRES_DSN": dsn,
+            "T0_FEEDER_LEASE_NAME": "binance-btcusdt-canonical",
+        }
+        with patch.dict(sys.modules, {"ccxt": fake_ccxt}):
+            first = build_production_runtime(environment)
+            second = build_production_runtime(environment)
+
+        self.assertNotEqual(first.owner_id, second.owner_id)
+        self.assertGreaterEqual(len(first.owner_id), 32)
+        self.assertEqual(first.canonical_write_gateway.owner_id, first.owner_id)
+
     def test_production_runtime_rejects_noncanonical_postgres_lease_name(self):
         import sys
         from types import SimpleNamespace
