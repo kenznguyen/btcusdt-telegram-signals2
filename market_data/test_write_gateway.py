@@ -48,7 +48,8 @@ class SQLiteWriteGatewayTest(unittest.TestCase):
         self.assertEqual(result["candles"], [])
 
     def test_lease_expiry_before_commit_rolls_back_batch(self):
-        self.gateway.clock = lambda: next(iter((NOW + 1, NOW + 60_001)))
+        clock_values = iter((NOW + 1, NOW + 60_001))
+        self.gateway.clock = lambda: next(clock_values)
         with self.assertRaisesRegex(PermissionError, "expired before commit"):
             self.gateway.write_batch([candle()])
         result = read_window(self.path, "BTCUSDT", "15m", NOW, NOW + INTERVAL_MS["15m"])
