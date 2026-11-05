@@ -6,7 +6,7 @@ This process only ingests closed BTCUSDT USD-M candles; it never places orders.
 import os
 import signal
 from pathlib import Path
-import socket
+import secrets
 import threading
 import time
 
@@ -244,9 +244,11 @@ def build_production_runtime(environ=None):
                 )
             lease_path = values["MARKET_DATA_DB"]
         lease_store = LeaseStore(lease_path)
+    # The owner ID is an opaque fencing capability. Generate a fresh,
+    # high-entropy value per process unless an operator supplies a secret.
     owner_id = values.get("T0_FEEDER_OWNER_ID", "").strip()
     if not owner_id:
-        owner_id = f"{socket.gethostname()}:{os.getpid()}"
+        owner_id = secrets.token_urlsafe(32)
 
     config = FeederConfig(
         poll_interval_seconds=int(values.get("T0_FEEDER_POLL_SECONDS", "5")),
