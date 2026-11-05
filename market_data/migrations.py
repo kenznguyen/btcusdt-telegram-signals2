@@ -9,9 +9,35 @@ from market_data.postgres import connection
 MIGRATIONS = Path(__file__).with_name("migrations")
 
 
+def _assert_writer_roles_safe(database):
+    """Fail closed if reserved SECURITY DEFINER roles gain login/admin powers."""
+    unsafe = database.execute(
+        """SELECT rolname FROM pg_roles
+           WHERE rolname IN ('t0_feeder_writer', 't0_candle_writer_owner')
+             AND (rolsuper OR rolcanlogin OR rolcreatedb OR rolcreaterole
+                  OR rolreplication OR rolbypassrls)
+           ORDER BY rolname"""
+    ).fetchall()
+    if unsafe:
+        role = unsafe[0][0]
+        raise RuntimeError(f"{role} must remain a restricted NOLOGIN role")
+
+    inherited = database.execute(
+        """SELECT member_role.rolname
+           FROM pg_auth_members membership
+           JOIN pg_roles member_role ON member_role.oid = membership.member
+           WHERE member_role.rolname IN ('t0_feeder_writer', 't0_candle_writer_owner')
+           ORDER BY member_role.rolname"""
+    ).fetchall()
+    if inherited:
+        role = inherited[0][0]
+        raise RuntimeError(f"{role} must not inherit privileges from another role")
+
+
 def migrate(location):
     """Apply pending SQL migrations. Never called implicitly by a read or write."""
     with connection(location) as database:
+        _assert_writer_roles_safe(database)
         database.execute("SELECT pg_advisory_xact_lock(hashtext('market_data.schema_migrations'))")
         database.execute("CREATE SCHEMA IF NOT EXISTS market_data")
         database.execute("""CREATE TABLE IF NOT EXISTS market_data.schema_migrations (
@@ -35,4 +61,5 @@ def migrate(location):
                 "INSERT INTO market_data.schema_migrations (migration_id, checksum_sha256) VALUES (%s, %s)",
                 (path.name, checksum),
             )
+        _assert_writer_roles_safe(database)
     return len(applied), len(list(MIGRATIONS.glob("[0-9][0-9][0-9]_*.sql")))
