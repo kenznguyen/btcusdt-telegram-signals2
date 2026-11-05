@@ -5,6 +5,7 @@ from the separately checked-out, exact source revision identified below.
 All databases are disposable temporary SQLite files; no external services.
 """
 import os
+import gc
 from pathlib import Path
 import sqlite3
 import sys
@@ -65,7 +66,7 @@ def _candle(open_time_ms):
 class CrossDomainWriterIsolationTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
+        self.addCleanup(self._cleanup_temporary_databases)
         root = Path(self.temp.name)
         self.paper_db = root / "paper" / "paper.sqlite3"
         self.market_db = root / "market" / "market.sqlite3"
@@ -90,6 +91,10 @@ class CrossDomainWriterIsolationTests(unittest.TestCase):
             self.paper_db.resolve(), self.market_db.resolve()
         )
         self.assertFalse(os.path.samefile(self.paper_db, self.market_db))
+
+    def _cleanup_temporary_databases(self):
+        gc.collect()
+        self.temp.cleanup()
 
     def _paper_probe_rows(self):
         with sqlite3.connect(self.paper_db) as connection:
