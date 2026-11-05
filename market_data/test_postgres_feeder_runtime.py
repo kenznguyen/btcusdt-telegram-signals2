@@ -148,7 +148,7 @@ class PostgresRuntimeCompositionContractTest(unittest.TestCase):
         environment = {
             "MARKET_DATA_BACKEND": "postgres",
             "MARKET_DATA_POSTGRES_DSN": dsn,
-            "T0_FEEDER_LEASE_NAME": "production-canonical-test",
+            "T0_FEEDER_LEASE_NAME": "binance-btcusdt-canonical",
             "T0_FEEDER_OWNER_ID": "test-worker",
         }
         with patch.dict(sys.modules, {"ccxt": fake_ccxt}):
@@ -156,9 +156,26 @@ class PostgresRuntimeCompositionContractTest(unittest.TestCase):
 
         self.assertIsInstance(runtime.lease_store.backend, PostgresLeaseStore)
         self.assertEqual(runtime.lease_store.backend.location, dsn)
-        self.assertEqual(runtime.lease_store.backend.lease_name, "production-canonical-test")
+        self.assertEqual(runtime.lease_store.backend.lease_name, "binance-btcusdt-canonical")
         self.assertIsInstance(runtime.canonical_write_gateway, PostgresWriteGateway)
         self.assertEqual(runtime.canonical_write_gateway.location, dsn)
+
+
+    def test_production_runtime_rejects_noncanonical_postgres_lease_name(self):
+        import sys
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from market_data.feeder_service import build_production_runtime
+
+        fake_ccxt = SimpleNamespace(binanceusdm=lambda options: SimpleNamespace(options=options))
+        environment = {
+            "MARKET_DATA_BACKEND": "postgres",
+            "MARKET_DATA_POSTGRES_DSN": "postgresql://test:test@127.0.0.1:5432/t0_test",
+            "T0_FEEDER_LEASE_NAME": "second-writer-lease",
+        }
+        with patch.dict(sys.modules, {"ccxt": fake_ccxt}):
+            with self.assertRaisesRegex(ValueError, "fixed canonical lease identity"):
+                build_production_runtime(environment)
 
     def test_production_runtime_rejects_sqlite_lease_path_for_postgres(self):
         import sys
