@@ -5,7 +5,7 @@
 - Status: **Proposed — documentation only; not an implementation approval**.
 - Scope: define a backward-compatible target for the existing `market_data/` SQLite store.
 - This document does not authorize schema creation, dependency changes, repository refactors, data movement, database cutover, or production deployment.
-- GitHub stores source and pull requests. Codemagic is the execution environment for future validation and migration workflows.
+- GitHub stores source, pull requests, evidence, and is the default CI/workflow execution platform. Codemagic is an explicit fallback only when GitHub Actions is unavailable or materially constrained.
 
 ## Existing contract to preserve
 
@@ -168,7 +168,7 @@ SQLite remains the rollback source until PostgreSQL parity is demonstrated. The 
 6. **Controlled cutover:** pause ingestion, apply a final delta, rerun parity checks, then switch only the market-data repository configuration. Keep the SQLite backup and rollback route intact.
 7. **Post-cutover observation:** retain SQLite until an explicit retention/retirement review. Do not enable automatic retention, compression, or columnstore in the initial migration.
 
-Each executable stage requires its own implementation PR and Codemagic run. This design PR does not run migration or provision infrastructure.
+Each executable stage requires its own implementation PR and exact-SHA GitHub Actions evidence by default. Codemagic may be used only as an explicitly justified fallback. This design PR does not run migration or provision infrastructure.
 
 ## Explicit non-goals
 
