@@ -111,6 +111,12 @@ class FiveLayerAndroidBoundaryTest(unittest.TestCase):
         self.assertTrue((ROOT / "pipeline/test_core_strategy.py").is_file())
         self.assertTrue((ROOT / "pipeline/test_core_signal.py").is_file())
 
+    def test_freqai_strategy_is_owned_by_five_layer(self):
+        self.assertFalse((ROOT / "freqai_bridge/ChartProFreqaiResearch.py").exists())
+        strategy = ROOT / "freqai_bridge/FiveLayerFreqaiResearch.py"
+        self.assertTrue(strategy.is_file())
+        self.assertIn("class FiveLayerFreqaiResearch", strategy.read_text())
+
 
 if __name__ == "__main__":
     unittest.main()
