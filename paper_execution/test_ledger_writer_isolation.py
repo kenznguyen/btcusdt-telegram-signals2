@@ -125,11 +125,9 @@ class PaperLedgerWriterIsolationTests(unittest.TestCase):
 
 
     def test_market_data_path_is_revalidated_at_explicit_initialization(self):
-        self.market_db.parent.mkdir(parents=True)
-        self.market_db.touch()
         ledger = PaperLedger(self.paper_db)
         previous = os.environ.get("MARKET_DATA_DB")
-        os.environ["MARKET_DATA_DB"] = str(self.market_db)
+        os.environ["MARKET_DATA_DB"] = str(self.paper_db)
         try:
             with self.assertRaises(ValueError):
                 ledger.initialize()
