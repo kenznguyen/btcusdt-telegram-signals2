@@ -76,6 +76,7 @@ jobs:
           python -m unittest \
             market_data.test_write_gateway \
             market_data.test_fenced_store \
+            market_data.test_store \
             market_data.test_sync \
             market_data.test_storage \
             market_data.test_feeder_lifecycle -v 2>&1 | tee t0-swg-behavior-tests.log
