@@ -128,6 +128,18 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
             generation_provider=lambda: lease.generation,
         )
         self.assertEqual(gateway.write_batch([candle]), 1)
+        with self.psycopg.connect(self.feeder_dsn, autocommit=True) as feeder:
+            with self.assertRaises(self.psycopg.errors.InsufficientPrivilege):
+                feeder.execute(
+                    "SELECT market_data.write_canonical_candle("
+                    "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    (
+                        self.lease_name, "least-privilege-worker",
+                        lease.generation + 1, "binance", "USDT_PERPETUAL",
+                        "BTCUSDT", "15m", self.open_time,
+                        100, 102, 99, 101, 1, self.open_time + self.step + 1,
+                    ),
+                )
         self.assertTrue(leases.heartbeat("least-privilege-worker", lease.generation, 30))
         self.assertTrue(leases.release("least-privilege-worker", lease.generation))
 
