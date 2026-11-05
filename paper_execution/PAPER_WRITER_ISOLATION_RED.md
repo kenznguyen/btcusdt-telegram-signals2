@@ -70,11 +70,11 @@ Required named runtime tests:
 - `test_denied_admission_does_not_create_or_open_paper_db`
 - `test_platform_lock_adapters_fail_closed_when_unsupported`
 
-These runtime tests do not exist in the current RED branch yet. Their names are acceptance requirements, not a claim that they have run. Do not add a runtime implementation in this RED-only PR.
+All ten named runtime test cases now exist in `paper_execution/test_writer_gate_runtime.py`. The production `paper_execution.writer_gate` module is intentionally absent, so each test currently stops at an explicit module-availability assertion. This produces assertion failures rather than import/test errors, but it does NOT execute the multiprocess, crash-recovery, SQLite transaction, or platform-lock behavior yet. Those behavioral assertions remain NOT RUN until a separately authorized GREEN implementation exists. Do not add a runtime implementation in this RED-only PR.
 
 
 ## Test isolation
 
-The frozen RED tests inspect the source contract statically. They do not import or instantiate runtime services, open SQLite databases, access environment-configured paths, start Feeder, or contact exchanges. GitHub Actions runs the static contract workflow with all database paths and exchange credentials unset. Process-level runtime acceptance is a separate future test suite and must use temporary databases and synthetic fixtures only.
+The original ten RED contracts inspect source statically. The ten process-level test cases are present, but currently stop at the missing-module assertion before spawning processes or opening their temporary SQLite fixtures. GitHub Actions runs both suites with all database paths and exchange credentials unset. Once the gate module exists under separate approval, the process-level tests must remain restricted to unique temporary databases and synthetic fixtures; no canonical DB, Feeder, or exchange is permitted.
 
 A valid RED is a set of assertion failures proving missing contracts. Syntax/import/infrastructure errors are invalid RED evidence. No GREEN implementation, canonical DB, Feeder, exchange, sync, or live order is authorized by this PR.
