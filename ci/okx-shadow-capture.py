@@ -14,9 +14,8 @@ from market_data.okx_swap_store import OkxSwapSQLiteStore
 root=Path(os.environ.get("CM_BUILD_DIR",".")).resolve()
 artifact_dir=root/"okx-shadow-artifacts"; artifact_dir.mkdir(exist_ok=True)
 db_path=artifact_dir/"okx-shadow.sqlite3"
+# Resolve the canonical path only for isolation checks. Never create or open it.
 canonical_path=Path(os.environ.get("MARKET_DATA_DB",str(root/"market_data.sqlite3"))).expanduser().resolve()
-canonical_path.parent.mkdir(parents=True,exist_ok=True)
-if not canonical_path.exists(): canonical_path.touch()
 store=OkxSwapSQLiteStore(db_path,canonical_db_path=canonical_path)
 adapter=OkxSwapAdapter()
 now=time.time_ns()//1_000_000
