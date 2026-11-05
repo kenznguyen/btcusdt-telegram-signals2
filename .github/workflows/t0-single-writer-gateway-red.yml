@@ -83,6 +83,16 @@ jobs:
             echo "T0_SWG_RED=INVALID_FAILURE_CLASS" | tee t0-swg-red-verdict.log
             exit 1
           fi
+      - name: Run Gateway behavioral and feeder regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest \
+            market_data.test_write_gateway \
+            market_data.test_fenced_store \
+            market_data.test_sync \
+            market_data.test_storage \
+            market_data.test_feeder_lifecycle -v 2>&1 | tee t0-swg-behavior-tests.log
       - name: Upload source identity and RED evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -94,3 +104,4 @@ jobs:
             t0-swg-compile.log
             t0-swg-red-tests.log
             t0-swg-red-verdict.log
+            t0-swg-behavior-tests.log
