@@ -1360,3 +1360,15 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - PR workflow [#42122195912](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42122195912) is SUCCESS but checked out synthetic merge SHA `10f35e4fd8a30e715dd02ed8ab16e0281e468e53`, not direct branch head.
 - Direct-head push CI: NOT VERIFIED. Valid TDD RED execution evidence: NOT VERIFIED. Do not claim either as PASS.
 - No unresolved inline review threads at check. No merge approval, production migration, canonical DB, VPS deployment, Feeder activation, exchange sync or live execution.
+
+
+## 2026-11-06 — PR #134 isolated SQL ADMIN OPTION test cases
+
+- PR head: `bcecd88e2a71b1c1bd5d3eb7577a095ebb55bc86`; PR remains OPEN / DRAFT / NOT MERGED.
+- Self-review found a test coverage weakness: the SQL migration test previously granted ADMIN OPTION on all three owner roles at once, so the first guard failure could mask missing checks on the other roles.
+- Replaced it with isolated subtests. For each of migrations 003 and 004, exactly one of `t0_db_owner`, `t0_candle_writer_owner`, or `t0_lease_manager_owner` receives ADMIN OPTION at a time; each case must raise `InsufficientPrivilege` mentioning ADMIN OPTION. Normal memberships remain in place for the other roles.
+- Change is test-only; production Python and SQL migration logic unchanged.
+- The update touched `market_data/test_postgres_role_privileges.py`, which matches the workflow push path filter. Commit-specific workflow lookup currently returns no associated run; direct-head push CI for `bcecd88e2a71b1c1bd5d3eb7577a095ebb55bc86` is PENDING / NOT VERIFIED (the available GitHub Actions connector lookup only returns PR-triggered runs).
+- Independent Codex review requested in PR comment `6671399291` for exact SHA `bcecd88e2a71b1c1bd5d3eb7577a095ebb55bc86`; receipt PENDING.
+- Test execution result for the new isolated subtests is NOT VERIFIED until CI logs are available. This does not establish TDD RED evidence.
+- No production/canonical DB migration, VPS deployment, Feeder activation, exchange sync or live execution.
