@@ -9,12 +9,10 @@ import multiprocessing
 import os
 from pathlib import Path
 import platform
-import queue
 import signal
 import sqlite3
 import sys
 import tempfile
-import time
 import unittest
 from unittest import mock
 
@@ -32,7 +30,8 @@ def _load_gate_module():
 
 
 def _result_state(result):
-    return getattr(result, "state", result)
+    value = getattr(result, "state", result)
+    return getattr(value, "value", value)
 
 
 def _child_hold_writer(paper_db_path, ready, release):
@@ -78,7 +77,7 @@ def _child_commit_then_crash(paper_db_path, ready):
         )
         gate.validate_writer_token(token)
         connection.commit()
-        ready.put("COMMITTED")
+        ready.send("COMMITTED")
         # Simulate process death after the DB commit but before token cleanup.
         os._exit(73)
     finally:
@@ -197,13 +196,15 @@ class PaperWriterGateRuntimeContracts(unittest.TestCase):
             connection.execute(
                 "CREATE TABLE crash_probe(commit_id TEXT PRIMARY KEY, value TEXT NOT NULL)"
             )
-        ready = self.ctx.Queue()
+        ready, child_ready = self.ctx.Pipe(duplex=False)
         writer = self.ctx.Process(
             target=_child_commit_then_crash,
-            args=(str(self.paper_db), ready),
+            args=(str(self.paper_db), child_ready),
         )
         writer.start()
-        self.assertEqual(ready.get(timeout=5), "COMMITTED")
+        self.assertEqual(ready.recv(), "COMMITTED")
+        ready.close()
+        child_ready.close()
         writer.join(timeout=5)
         self.assertFalse(writer.is_alive())
         self.assertEqual(writer.exitcode, 73)
