@@ -4,6 +4,7 @@ from contextlib import closing
 from decimal import Decimal, DecimalException, localcontext
 import json
 from pathlib import Path
+import os
 import sqlite3
 
 from pipeline.values import identity, number, stamp
@@ -113,8 +114,19 @@ def read_snapshot(db_path):
 
 
 class PaperLedger:
-    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage="13"):
-        self.path = Path(db_path)
+    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage="13", market_data_db_path=None):
+        self.path = Path(db_path).expanduser().resolve()
+        configured_market_path = market_data_db_path or os.environ.get("MARKET_DATA_DB")
+        if configured_market_path:
+            market_path = Path(configured_market_path).expanduser().resolve()
+            same_file = self.path == market_path
+            if not same_file and self.path.exists() and market_path.exists():
+                try:
+                    same_file = os.path.samefile(self.path, market_path)
+                except OSError:
+                    same_file = False
+            if same_file:
+                raise ValueError("PAPER_DB must be physically distinct from MARKET_DATA_DB")
         self.maximum, self.fee_rate, self.spread = number(max_position_base), number(fee_rate), number(max_spread_bps)
         self.risk_limits, self.require_risk_limits = risk_limits, bool(require_risk_limits)
         self.leverage = number(leverage)
@@ -122,39 +134,70 @@ class PaperLedger:
             raise ValueError("Invalid strategy leverage")
         if self.maximum <= 0 or self.fee_rate > 1 or not 0 < self.spread <= 10_000:
             raise ValueError("Invalid paper risk configuration")
+        self.gate = None
+
+    def initialize(self):
+        """Explicitly create the Paper DB schema under writer admission."""
+        from paper_execution.writer_gate import PaperWriterGate
+
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        with closing(self.connect()) as connection, connection:
-            connection.execute("PRAGMA journal_mode=WAL")
-            initialized = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_state'").fetchone()
-            connection.execute("""CREATE TABLE IF NOT EXISTS paper_state (
-                id INTEGER PRIMARY KEY CHECK(id=1), position TEXT NOT NULL, average TEXT NOT NULL,
-                realized TEXT NOT NULL, fees TEXT NOT NULL, paused INTEGER NOT NULL)""")
-            if not initialized:
-                connection.execute("INSERT INTO paper_state VALUES (1,'0','0','0','0',0)")
-            stored_state(connection)
-            connection.execute("""CREATE TABLE IF NOT EXISTS paper_orders (
-                intent_id TEXT PRIMARY KEY, payload_hash TEXT NOT NULL, order_id TEXT NOT NULL UNIQUE,
-                status TEXT NOT NULL, document TEXT NOT NULL)""")
-            connection.execute("CREATE INDEX IF NOT EXISTS paper_order_status ON paper_orders(status)")
-            connection.execute("CREATE TABLE IF NOT EXISTS paper_books (book_id TEXT PRIMARY KEY, used_at_ms INTEGER NOT NULL)")
-            connection.execute("""CREATE TABLE IF NOT EXISTS paper_audit (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, at_ms INTEGER NOT NULL, kind TEXT NOT NULL, document TEXT NOT NULL)""")
-            risk_control.ensure(connection)
-            strategy_table = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_strategy_state'").fetchone()
-            connection.execute("""CREATE TABLE IF NOT EXISTS paper_strategy_state (
-                id INTEGER PRIMARY KEY CHECK(id=1), owner TEXT, dca_used INTEGER NOT NULL CHECK(dca_used IN (0,1)),
-                initial_margin_quote TEXT NOT NULL)""")
-            if not strategy_table:
+        gate = PaperWriterGate.initialize(paper_db_path=str(self.path))
+        self.path.touch(exist_ok=True)
+        token = gate.admit_writer()
+        connection = None
+        try:
+            connection = sqlite3.connect(self.path, timeout=10)
+            connection.execute("BEGIN IMMEDIATE")
+            gate.validate_writer_token(token)
+        connection.execute("PRAGMA journal_mode=WAL")
+        initialized = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_state'").fetchone()
+        connection.execute("""CREATE TABLE IF NOT EXISTS paper_state (
+            id INTEGER PRIMARY KEY CHECK(id=1), position TEXT NOT NULL, average TEXT NOT NULL,
+            realized TEXT NOT NULL, fees TEXT NOT NULL, paused INTEGER NOT NULL)""")
+        if not initialized:
+            connection.execute("INSERT INTO paper_state VALUES (1,'0','0','0','0',0)")
+        stored_state(connection)
+        connection.execute("""CREATE TABLE IF NOT EXISTS paper_orders (
+            intent_id TEXT PRIMARY KEY, payload_hash TEXT NOT NULL, order_id TEXT NOT NULL UNIQUE,
+            status TEXT NOT NULL, document TEXT NOT NULL)""")
+        connection.execute("CREATE INDEX IF NOT EXISTS paper_order_status ON paper_orders(status)")
+        connection.execute("CREATE TABLE IF NOT EXISTS paper_books (book_id TEXT PRIMARY KEY, used_at_ms INTEGER NOT NULL)")
+        connection.execute("""CREATE TABLE IF NOT EXISTS paper_audit (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, at_ms INTEGER NOT NULL, kind TEXT NOT NULL, document TEXT NOT NULL)""")
+        risk_control.ensure(connection)
+        strategy_table = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_strategy_state'").fetchone()
+        connection.execute("""CREATE TABLE IF NOT EXISTS paper_strategy_state (
+            id INTEGER PRIMARY KEY CHECK(id=1), owner TEXT, dca_used INTEGER NOT NULL CHECK(dca_used IN (0,1)),
+            initial_margin_quote TEXT NOT NULL)""")
+        if not strategy_table:
+            legacy_position = Decimal(stored_state(connection)[0])
+            connection.execute("INSERT OR IGNORE INTO paper_strategy_state VALUES (1,?,?,?)",
+                               ("LEGACY" if legacy_position else None, 0, "0"))
+        else:
+            existing_strategy = connection.execute("SELECT 1 FROM paper_strategy_state WHERE id=1").fetchone()
+            if not existing_strategy:
                 legacy_position = Decimal(stored_state(connection)[0])
-                connection.execute("INSERT OR IGNORE INTO paper_strategy_state VALUES (1,?,?,?)",
+                connection.execute("INSERT INTO paper_strategy_state VALUES (1,?,?,?)",
                                    ("LEGACY" if legacy_position else None, 0, "0"))
-            else:
-                existing_strategy = connection.execute("SELECT 1 FROM paper_strategy_state WHERE id=1").fetchone()
-                if not existing_strategy:
-                    legacy_position = Decimal(stored_state(connection)[0])
-                    connection.execute("INSERT INTO paper_strategy_state VALUES (1,?,?,?)",
-                                       ("LEGACY" if legacy_position else None, 0, "0"))
-            equity_history.ensure(connection)
+        equity_history.ensure(connection)
+
+            gate.validate_writer_token(token)
+            connection.commit()
+        except BaseException:
+            if connection is not None:
+                connection.rollback()
+            raise
+        finally:
+            if connection is not None:
+                connection.close()
+            gate.release_writer(token)
+        self.gate = gate
+        return self
+
+    def _writer_transaction(self):
+        if self.gate is None:
+            raise RuntimeError("PaperLedger.initialize() must be called before writes")
+        return self.gate.writer_transaction(paper_db_path=str(self.path))
 
     def connect(self):
         return sqlite3.connect(self.path, timeout=10)
@@ -171,7 +214,7 @@ class PaperLedger:
         if strategy_event not in (None, "ENTRY", "DCA", "EXIT"):
             raise ValueError("Invalid strategy event")
         digest = identity("payload:", {**intent, "strategyId": strategy_id})
-        with closing(self.connect()) as connection, connection, localcontext() as context:
+        with self._writer_transaction() as connection, localcontext() as context:
             context.prec = 80
             connection.execute("BEGIN IMMEDIATE")
             position, average, realized, fees, paused = stored_state(connection)
@@ -282,8 +325,7 @@ class PaperLedger:
         return self.snapshot().get("strategyState", {"owner": None, "dcaUsed": False, "initialMarginQuote": "0"})
 
     def record_equity(self, mark_price, candle_close_ms, observed_at_ms, dataset_version, initial_capital="100"):
-        with closing(self.connect()) as connection, connection:
-            connection.execute("BEGIN IMMEDIATE")
+        with self._writer_transaction() as connection:
             position, average, realized, fees, _ = stored_state(connection)
             return equity_history.record(connection, initial_capital=initial_capital, position=position,
                 average=average, realized=realized, fees=fees, mark_price=mark_price,
@@ -291,7 +333,10 @@ class PaperLedger:
                 dataset_version=dataset_version)
 
     def equity_snapshot(self, now_ms):
-        with closing(self.connect()) as connection:
+        path = self.path.resolve()
+        if not path.is_file():
+            raise FileNotFoundError("Paper ledger is unavailable")
+        with closing(sqlite3.connect(path.as_uri()+"?mode=ro", uri=True, timeout=10)) as connection:
             connection.execute("BEGIN")
             return equity_history.snapshot(connection, now_ms)
 
@@ -302,8 +347,7 @@ class PaperLedger:
         if type(paused) is not bool:
             raise ValueError("Paused must be a boolean")
         now = stamp(now_ms)
-        with closing(self.connect()) as connection, connection:
-            connection.execute("BEGIN IMMEDIATE")
+        with self._writer_transaction() as connection:
             connection.execute("UPDATE paper_state SET paused=? WHERE id=1", (int(paused),))
             risk_control.set_paused(connection, paused, now)
             self.audit(connection, now, "PAUSE" if paused else "RESUME", {"paused": paused})
@@ -311,16 +355,14 @@ class PaperLedger:
 
     def set_killed(self, enabled, now_ms, reason="OPERATOR_KILL_SWITCH"):
         now = stamp(now_ms)
-        with closing(self.connect()) as connection, connection:
-            connection.execute("BEGIN IMMEDIATE")
+        with self._writer_transaction() as connection:
             risk_control.set_kill(connection, enabled, now, reason)
             self.audit(connection, now, "KILL_SWITCH", {"enabled": enabled, "reason": reason})
         return self.snapshot()
 
     def reset_kill(self, acknowledge, ready, now_ms):
         now = stamp(now_ms)
-        with closing(self.connect()) as connection, connection:
-            connection.execute("BEGIN IMMEDIATE")
+        with self._writer_transaction() as connection:
             risk_control.reset_kill(connection, acknowledge, ready, now)
             self.audit(connection, now, "KILL_SWITCH_RESET", {"acknowledge": acknowledge, "ready": ready})
         return self.snapshot()
@@ -329,8 +371,7 @@ class PaperLedger:
         now = stamp(now_ms)
         if not isinstance(order_id, str) or not 1 <= len(order_id) <= 200:
             raise ValueError("Invalid order identifier")
-        with closing(self.connect()) as connection, connection:
-            connection.execute("BEGIN IMMEDIATE")
+        with self._writer_transaction() as connection:
             row = connection.execute("SELECT document FROM paper_orders WHERE order_id=?", (order_id,)).fetchone()
             if row is None:
                 raise ValueError("Unknown paper order")
