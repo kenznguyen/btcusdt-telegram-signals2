@@ -191,7 +191,7 @@ class PostgresWriteGateway:
         with connection(self.location) as database:
             # The SECURITY DEFINER candle function locks and validates the
             # lease row. Its lock remains held until this outer batch commits,
-            # so the Feeder login needs SELECT but no direct lease UPDATE grant.
+            # so the Feeder login needs no direct lease-table privileges.
             for candle in batch:
                 values = tuple(Decimal(getattr(candle, name)) for name in PRICE_FIELDS)
                 parameters = (
