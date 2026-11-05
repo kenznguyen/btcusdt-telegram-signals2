@@ -988,3 +988,14 @@ Current status:
 - No canonical T0 database creation, production Feeder activation, exchange connection, market-data synchronization, deployment, or live execution was performed or authorized.
 - Keep `ai_execution_enabled=false`.
 - Next permitted work: continue the scoped PR #134 source/review assessment, keep PR #134 unmerged pending independent review and explicit user approval. Do not equate synthetic merge-context CI with direct-head verification or production readiness.
+
+
+## 2026-11-05 — PR #134 scoped source review: SQLite provisioning blocker
+
+- Reviewed the PR #134 Gateway/Feeder runtime composition after reconciling workflow #42030968449. Review found a blocking safety/correctness issue in `market_data/feeder_service.py`.
+- In the SQLite branch of `build_runtime()`, `initialize_store()` is called before `SQLiteWriteGateway` construction. The changed `SQLiteStore.initialize()` constructs `CandleStore(self.path)`; `CandleStore.__init__` creates parent directories, opens SQLite, and creates the candles table. Thus a missing canonical DB is created before the Gateway's `is_file()` fail-closed check.
+- The existing direct-Gateway missing-DB test does not cover this runtime composition path. Required fix: remove implicit initialization from production/runtime composition; keep DB provisioning explicit and separately authorized; add a regression that exercises `build_runtime()` with a missing path and proves no directory/DB is created and startup fails closed.
+- Finding recorded in PR #134 comment [#6662614013](https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/134#issuecomment-6662614013). A formal REQUEST_CHANGES review could not be submitted because the authenticated user is the PR author; the finding is documented as a self-review blocker instead.
+- PR #134 status remains OPEN / DRAFT / NOT MERGED. No source fix has been applied yet. Current PR head remains `d0f503ee3ba987784daa36e904588829c44e93b6`; current CI remains merge-context PASS only (synthetic checkout `510ca182aea15cfbc10694601d85c1aefb6c0f04`).
+- Next action: correct the implicit DB creation path on the existing PR branch, add the missing-path runtime regression, run relevant tests and exact-provenance GitHub Actions, then self-review again. Do not merge PR #134 until resolved.
+- No canonical DB was created/opened, no Feeder started, no exchange contacted, no market data synchronized, and no live execution. `ai_execution_enabled=false`.
