@@ -9,7 +9,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.kenznguyen.fivelayerpaper"
+        applicationId = "com.kenznguyen.btclivealerts.paper"
         minSdk = 26
         targetSdk = 35
         versionCode = 2
