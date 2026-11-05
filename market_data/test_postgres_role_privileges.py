@@ -130,6 +130,8 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
             with self.assertRaises(self.psycopg.errors.InsufficientPrivilege):
                 feeder.execute("TRUNCATE market_data.candles")
             with self.assertRaises(self.psycopg.errors.InsufficientPrivilege):
+                feeder.execute("UPDATE market_data.candles SET close=close")
+            with self.assertRaises(self.psycopg.errors.InsufficientPrivilege):
                 feeder.execute("CREATE TABLE public.forbidden_public_ddl(id integer)")
 
     def test_reader_role_can_read_candles_but_cannot_write_or_read_lease(self):
