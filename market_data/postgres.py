@@ -256,45 +256,32 @@ class PostgresWriteGateway:
                 raise PermissionError("Feeder lease is not current; canonical write rejected")
 
             for candle in batch:
-                key = (
-                    EXCHANGE, MARKET_TYPE, candle.symbol,
-                    candle.timeframe, candle.open_time_ms,
-                )
                 values = tuple(Decimal(getattr(candle, name)) for name in PRICE_FIELDS)
-                existing = database.execute(
-                    """SELECT open, high, low, close, volume
-                       FROM market_data.candles
-                       WHERE exchange=%s AND market_type=%s AND symbol=%s
-                         AND timeframe=%s AND open_time_ms=%s""",
-                    key,
-                ).fetchone()
-                if existing is not None:
-                    if tuple(existing) != values:
-                        raise ValueError("Conflicting closed candle; canonical history was not overwritten")
-                    continue
-
-                created = database.execute(
-                    """INSERT INTO market_data.candles
-                       (exchange, market_type, symbol, timeframe, open_time_ms,
-                        open, high, low, close, volume, available_at_ms)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                       ON CONFLICT (exchange, market_type, symbol, timeframe, open_time_ms)
-                       DO NOTHING
-                       RETURNING open_time_ms""",
-                    key + values + (candle.available_at_ms,),
-                ).fetchone()
-                if created is None:
-                    existing = database.execute(
-                        """SELECT open, high, low, close, volume
-                           FROM market_data.candles
-                           WHERE exchange=%s AND market_type=%s AND symbol=%s
-                             AND timeframe=%s AND open_time_ms=%s""",
-                        key,
-                    ).fetchone()
-                    if existing is None or tuple(existing) != values:
-                        raise ValueError("Conflicting closed candle; canonical history was not overwritten")
-                else:
-                    inserted += 1
+                parameters = (
+                    self.lease_name, self.owner_id, generation,
+                    EXCHANGE, MARKET_TYPE, candle.symbol, candle.timeframe,
+                    candle.open_time_ms, *values, candle.available_at_ms,
+                )
+                try:
+                    created = database.execute(
+                        """SELECT market_data.write_canonical_candle(
+                               %s, %s, %s, %s, %s, %s, %s, %s,
+                               %s, %s, %s, %s, %s, %s
+                           )""",
+                        parameters,
+                    ).fetchone()[0]
+                except Exception as error:
+                    sqlstate = getattr(error, "sqlstate", None)
+                    if sqlstate == "42501":
+                        raise PermissionError(
+                            "Feeder lease is not current; canonical write rejected"
+                        ) from None
+                    if sqlstate == "P0001":
+                        raise ValueError(
+                            "Conflicting closed candle; canonical history was not overwritten"
+                        ) from None
+                    raise
+                inserted += int(created)
 
             still_current = database.execute(
                 """SELECT expires_at > clock_timestamp()
