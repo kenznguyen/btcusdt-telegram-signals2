@@ -378,40 +378,40 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                     "WHERE p.proname IN ('write_canonical_candle', 'acquire_feeder_lease') ORDER BY p.proname"
                 ).fetchall()
             self.assertEqual(owners, [("acquire_feeder_lease", "t0_lease_manager_owner"), ("write_canonical_candle", "t0_candle_writer_owner")])
-        with self.psycopg.connect(admin_dsn, autocommit=True) as admin:
-            durable_owners = admin.execute(
-                "SELECT 'schema', r.rolname FROM pg_namespace n "
-                "JOIN pg_roles r ON r.oid=n.nspowner WHERE n.nspname='market_data' "
-                "UNION ALL "
-                "SELECT 'ledger', r.rolname FROM pg_class c "
-                "JOIN pg_roles r ON r.oid=c.relowner "
-                "WHERE c.oid='market_data.schema_migrations'::regclass "
-                "ORDER BY 1"
-            ).fetchall()
-            self.assertEqual(durable_owners, [("ledger", "t0_migrator"), ("schema", "t0_migrator")])
-        finally:
-            with self.psycopg.connect(DSN, autocommit=True) as admin:
-                admin.execute(sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(sql.Identifier(database_name)))
-                if created_roles:
-                    admin.execute("DROP ROLE IF EXISTS t0_migrator_login")
-                    admin.execute("DROP ROLE IF EXISTS t0_migrator")
-                    admin.execute("DROP ROLE IF EXISTS t0_db_owner")
-
-    def test_migration_runner_rejects_preexisting_privileged_writer_roles(self):
-        from market_data.migrations import migrate
-
-        for role in ("t0_candle_writer_owner", "t0_feeder_writer",
-                     "t0_lease_manager_owner", "t0_feeder_lease_manager"):
-            with self.subTest(role=role):
+            with self.psycopg.connect(admin_dsn, autocommit=True) as admin:
+                durable_owners = admin.execute(
+                    "SELECT 'schema', r.rolname FROM pg_namespace n "
+                    "JOIN pg_roles r ON r.oid=n.nspowner WHERE n.nspname='market_data' "
+                    "UNION ALL "
+                    "SELECT 'ledger', r.rolname FROM pg_class c "
+                    "JOIN pg_roles r ON r.oid=c.relowner "
+                    "WHERE c.oid='market_data.schema_migrations'::regclass "
+                    "ORDER BY 1"
+                ).fetchall()
+                self.assertEqual(durable_owners, [("ledger", "t0_migrator"), ("schema", "t0_migrator")])
+            finally:
                 with self.psycopg.connect(DSN, autocommit=True) as admin:
-                    admin.execute(f'ALTER ROLE "{role}" SUPERUSER LOGIN')
-                    try:
-                        with self.assertRaisesRegex(
-                            RuntimeError,
-                            f"{role} must remain a restricted NOLOGIN role",
-                        ):
-                            migrate(DSN)
-                    finally:
+                    admin.execute(sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(sql.Identifier(database_name)))
+                    if created_roles:
+                        admin.execute("DROP ROLE IF EXISTS t0_migrator_login")
+                        admin.execute("DROP ROLE IF EXISTS t0_migrator")
+                        admin.execute("DROP ROLE IF EXISTS t0_db_owner")
+    
+        def test_migration_runner_rejects_preexisting_privileged_writer_roles(self):
+            from market_data.migrations import migrate
+    
+            for role in ("t0_candle_writer_owner", "t0_feeder_writer",
+                         "t0_lease_manager_owner", "t0_feeder_lease_manager"):
+                with self.subTest(role=role):
+                    with self.psycopg.connect(DSN, autocommit=True) as admin:
+                        admin.execute(f'ALTER ROLE "{role}" SUPERUSER LOGIN')
+                        try:
+                            with self.assertRaisesRegex(
+                                RuntimeError,
+                                f"{role} must remain a restricted NOLOGIN role",
+                            ):
+                                migrate(DSN)
+                        finally:
                         admin.execute(f'ALTER ROLE "{role}" NOSUPERUSER NOLOGIN')
 
     def test_migration_runner_rejects_login_enabled_migrator_group_role(self):
