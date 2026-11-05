@@ -7,13 +7,13 @@ on:
     paths:
       - "paper_execution/**"
       - "pipeline/**"
-      - "pipeline/**"
       - ".github/workflows/paper-writer-isolation-red.yml"
   pull_request:
     branches:
       - feature/p5-2-4-shadow-migration-tests-20261102
     paths:
       - "paper_execution/**"
+      - "pipeline/**"
       - ".github/workflows/paper-writer-isolation-red.yml"
   workflow_dispatch:
 
