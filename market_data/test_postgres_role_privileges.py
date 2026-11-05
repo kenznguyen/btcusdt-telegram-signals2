@@ -60,7 +60,9 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                 + '"' + cls.feeder_role + '"'
             )
             admin.execute(
-                "GRANT SELECT, INSERT ON market_data.candles TO "
+                "GRANT EXECUTE ON FUNCTION market_data.write_canonical_candle("
+                "text, text, bigint, text, text, text, text, bigint, "
+                "numeric, numeric, numeric, numeric, numeric, bigint) TO "
                 + '"' + cls.feeder_role + '"'
             )
             admin.execute(
@@ -111,13 +113,24 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         leases = PostgresLeaseStore(self.feeder_dsn, lease_name=self.lease_name)
         lease = leases.acquire("least-privilege-worker", ttl_seconds=30)
         self.assertIsNotNone(lease)
+        candle = self._candle()
+        with self.psycopg.connect(self.feeder_dsn, autocommit=True) as feeder:
+            with self.assertRaises(self.psycopg.errors.InsufficientPrivilege):
+                feeder.execute(
+                    "INSERT INTO market_data.candles "
+                    "(exchange,market_type,symbol,timeframe,open_time_ms,"
+                    "open,high,low,close,volume,available_at_ms) "
+                    "VALUES ('binance','USDT_PERPETUAL','BTCUSDT','15m',"
+                    "%s,100,102,99,101,1,%s)",
+                    (self.open_time, self.open_time + self.step + 1),
+                )
         gateway = PostgresWriteGateway(
             self.feeder_dsn,
             lease_name=self.lease_name,
             owner_id="least-privilege-worker",
             generation_provider=lambda: lease.generation,
         )
-        self.assertEqual(gateway.write_batch([self._candle()]), 1)
+        self.assertEqual(gateway.write_batch([candle]), 1)
         self.assertTrue(leases.heartbeat("least-privilege-worker", lease.generation, 30))
         self.assertTrue(leases.release("least-privilege-worker", lease.generation))
 
