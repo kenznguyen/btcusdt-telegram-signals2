@@ -67,7 +67,7 @@ class FiveLayerAndroidBoundaryTest(unittest.TestCase):
 
     def test_gradle_defines_one_five_layer_application_identity(self):
         gradle = (ANDROID / "app/build.gradle.kts").read_text()
-        self.assertIn('applicationId = "com.kenznguyen.fivelayerpaper"', gradle)
+        self.assertIn('applicationId = "com.kenznguyen.btclivealerts.paper"', gradle)
         self.assertNotIn('create("parallel")', gradle)
         self.assertNotIn("ANDROID_KEYSTORE", gradle)
         self.assertNotIn("btc-chart-release", gradle)
@@ -84,6 +84,13 @@ class FiveLayerAndroidBoundaryTest(unittest.TestCase):
             "OrderBookAnalytics.kt",
         ):
             self.assertTrue((JAVA / name).is_file(), f"Missing five-layer component: {name}")
+
+    def test_existing_five_layer_package_and_saved_api_url_are_preserved(self):
+        gradle = (ANDROID / "app/build.gradle.kts").read_text()
+        panel = (JAVA / "FiveLayerPanel.kt").read_text()
+        self.assertIn('applicationId = "com.kenznguyen.btclivealerts.paper"', gradle)
+        self.assertIn('getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE)', panel)
+        self.assertNotIn('getSharedPreferences("five_layer_state_v1", Context.MODE_PRIVATE)', panel)
 
     def test_app_label_is_five_layer_only(self):
         strings = (ANDROID / "app/src/main/res/values/strings.xml").read_text()
