@@ -1279,3 +1279,16 @@ Current status:
 - A separate `pull_request` merge-context run for this exact head remains **NOT VERIFIED**.
 - Production role provisioning, applying migrations to canonical T0, backup/restore, VPS deployment, production Feeder activation, Binance connectivity/sync and 24/7 reliability remain **NOT VERIFIED / NOT AUTHORIZED**. No canonical DB, production Feeder, exchange or live execution was used.
 - Next: wait for Codex review of SHA `ade2c3393260d5627e1a3879776be83b2a45375e`; fix any actionable finding with TDD and rerun exact-head CI. Keep PR DRAFT and unmerged until review is clean and user explicitly approves merge.
+
+
+## 2026-11-06 — Isolate ephemeral migrator LOGIN from indirect membership
+
+- Self-review P1: previous guards restricted direct membership in `t0_migrator`, but did not prevent another role from being granted membership in `t0_migrator_login`, nor prevent the ephemeral login from receiving additional role memberships.
+- Added three disposable TimescaleDB negative integration tests in `market_data/test_postgres_role_privileges.py`: reject a second LOGIN granted membership in `t0_migrator_login`, an additional role granted to `t0_migrator_login`, and ADMIN OPTION on its sole `t0_migrator` membership.
+- `market_data/migrations.py` requires the ephemeral login to exist as LOGIN with no SUPERUSER/CREATEDB/CREATEROLE/REPLICATION/BYPASSRLS attributes, no members of its own, and exactly one membership: `t0_migrator` without ADMIN OPTION.
+- SQL migrations 003 and 004 independently enforce the same login attributes, incoming-membership prohibition, exact single membership and no ADMIN OPTION.
+- TDD order: tests first at `033cd32b6b8de7a4bc297515c8af4fac635cf029`; implementation followed; final source SHA `14647b3f9fd35edb8667eab03885dd98b339be0d`.
+- Corrected workflow `pull_request.branches` filter to actual PR base `feature/t0-centralized-data-feeder-p1-20261101`. CI remains source-only plus disposable TimescaleDB.
+- **RED execution evidence: NOT VERIFIED.** Tests preceded implementation, but the available GitHub run lookup exposes pull_request runs only, not the push-triggered run. Do not claim a reproduced RED failure without logs.
+- **Final exact-head CI: NOT VERIFIED** on `14647b3f9fd35edb8667eab03885dd98b339be0d`; new TimescaleDB tests and SQL guards await GitHub Actions execution. PR remains OPEN / DRAFT / NOT MERGED.
+- No production/canonical DB, production roles, migration, Feeder, exchange, sync, VPS deployment or live execution was touched. Next: verify exact-head push CI and disposable TimescaleDB logs, then obtain independent Codex review of this SHA. Keep production activation and merge blocked.
