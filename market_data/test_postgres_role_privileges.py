@@ -292,7 +292,8 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
     def test_migration_runner_rejects_preexisting_privileged_writer_roles(self):
         from market_data.migrations import migrate
 
-        for role in ("t0_candle_writer_owner", "t0_feeder_writer",\n                     "t0_lease_manager_owner", "t0_feeder_lease_manager"):
+        for role in ("t0_candle_writer_owner", "t0_feeder_writer",
+                     "t0_lease_manager_owner", "t0_feeder_lease_manager"):
             with self.subTest(role=role):
                 with self.psycopg.connect(DSN, autocommit=True) as admin:
                     admin.execute(f'ALTER ROLE "{role}" SUPERUSER LOGIN')
