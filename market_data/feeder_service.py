@@ -25,6 +25,9 @@ from market_data.store import INTERVAL_MS
 from market_data.write_gateway import SQLiteWriteGateway
 
 
+POSTGRES_CANONICAL_LEASE_NAME = "binance-btcusdt-canonical"
+
+
 class PostgresRuntimeLeaseAdapter:
     """Adapt DB-clock PostgreSQL leases to FeederRuntime's legacy clock API."""
 
@@ -222,12 +225,16 @@ def build_production_runtime(environ=None):
     if backend == "postgres":
         if values.get("T0_FEEDER_LEASE_DB", "").strip():
             raise ValueError("T0_FEEDER_LEASE_DB is not allowed with PostgreSQL backend")
-        lease_name = values.get(
-            "T0_FEEDER_LEASE_NAME", "binance-btcusdt-canonical"
+        requested_lease_name = values.get(
+            "T0_FEEDER_LEASE_NAME", POSTGRES_CANONICAL_LEASE_NAME
         ).strip()
-        if not lease_name:
-            raise ValueError("T0_FEEDER_LEASE_NAME must be non-empty")
-        lease_store = PostgresLeaseStore(store.dsn, lease_name=lease_name)
+        if requested_lease_name != POSTGRES_CANONICAL_LEASE_NAME:
+            raise ValueError(
+                "PostgreSQL canonical candles require the fixed canonical lease identity"
+            )
+        lease_store = PostgresLeaseStore(
+            store.dsn, lease_name=POSTGRES_CANONICAL_LEASE_NAME
+        )
     else:
         lease_path = values.get("T0_FEEDER_LEASE_DB", "").strip()
         if not lease_path:
