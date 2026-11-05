@@ -204,6 +204,13 @@ jobs:
           python -m py_compile market_data/test_postgres_feeder_runtime.py
           python -m unittest market_data.test_postgres_feeder_runtime -v 2>&1 | tee t0-postgres-feeder-runtime-tests.log
           echo "T0_POSTGRES_FEEDER_RUNTIME_INTEGRATION=PASS" | tee t0-postgres-feeder-runtime-verdict.log
+      - name: Run PostgreSQL least-privilege role integration contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile market_data/test_postgres_role_privileges.py
+          python -m unittest market_data.test_postgres_role_privileges -v 2>&1 | tee t0-postgres-role-privileges-tests.log
+          echo "T0_POSTGRES_ROLE_PRIVILEGES=PASS" | tee t0-postgres-role-privileges-verdict.log
       - name: Run read-only TimescaleDB integration contracts
         shell: bash
         run: |
