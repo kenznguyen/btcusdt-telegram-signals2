@@ -402,6 +402,24 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                     finally:
                         admin.execute(f'ALTER ROLE "{role}" NOSUPERUSER NOLOGIN')
 
+    def test_migration_runner_rejects_unapproved_t0_migrator_member(self):
+        from market_data.migrations import migrate
+
+        login = "t0_migrator_probe_" + uuid.uuid4().hex[:12]
+        with self.psycopg.connect(DSN, autocommit=True) as admin:
+            admin.execute("CREATE ROLE t0_migrator NOLOGIN")
+            admin.execute(f'CREATE ROLE "{login}" LOGIN')
+            admin.execute(f'GRANT t0_migrator TO "{login}"')
+            try:
+                with self.assertRaisesRegex(
+                    RuntimeError, "only be granted to the ephemeral t0_migrator_login"
+                ):
+                    migrate(DSN)
+            finally:
+                admin.execute(f'REVOKE t0_migrator FROM "{login}"')
+                admin.execute(f'DROP ROLE "{login}"')
+                admin.execute("DROP ROLE t0_migrator")
+
     def test_runtime_roles_have_no_schema_create_or_role_admin_privilege(self):
         with self.psycopg.connect(DSN, autocommit=True) as admin:
             feeder = admin.execute(
