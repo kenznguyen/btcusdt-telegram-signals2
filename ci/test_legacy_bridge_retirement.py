@@ -11,6 +11,7 @@ RETIRED_PATHS = (
     "integrations/test_codemagic_client.py",
     "dashboard/index.html",
     ".github/backtest-trigger.txt",
+    "ci/run-legacy.py",
     "ci/archive/github-actions/signal-scan.yml",
     "ci/archive/github-actions/telegram-command.yml",
     "ci/archive/github-actions/dashboard-backtest.yml",
