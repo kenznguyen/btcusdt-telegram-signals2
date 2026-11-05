@@ -353,11 +353,13 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
         try:
             with self.psycopg.connect(DSN, autocommit=True) as admin:
                 admin.execute("CREATE ROLE t0_db_owner NOLOGIN")
-                admin.execute(sql.SQL("CREATE ROLE t0_migrator LOGIN PASSWORD {}").format(sql.Literal(password)))
+                admin.execute("CREATE ROLE t0_migrator NOLOGIN")
+                admin.execute(sql.SQL("CREATE ROLE t0_migrator_login LOGIN PASSWORD {}").format(sql.Literal(password)))
                 created_roles = True
                 admin.execute("GRANT t0_db_owner TO t0_migrator")
                 admin.execute("GRANT t0_candle_writer_owner TO t0_migrator")
                 admin.execute("GRANT t0_lease_manager_owner TO t0_migrator")
+                admin.execute("GRANT t0_migrator TO t0_migrator_login")
                 admin.execute(sql.SQL("CREATE DATABASE {} OWNER t0_db_owner").format(sql.Identifier(database_name)))
             with self.psycopg.connect(DSN.replace("/t0_test", "/" + database_name), autocommit=True) as admin:
                 admin.execute("CREATE EXTENSION IF NOT EXISTS timescaledb")
@@ -365,7 +367,7 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
             parsed = urlsplit(DSN)
             migrator_dsn = urlunsplit((
                 parsed.scheme,
-                f"t0_migrator:{quote(password)}@{parsed.hostname}:{parsed.port}",
+                f"t0_migrator_login:{quote(password)}@{parsed.hostname}:{parsed.port}",
                 "/" + database_name, parsed.query, parsed.fragment,
             ))
             migrate(migrator_dsn)
@@ -379,6 +381,7 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
             with self.psycopg.connect(DSN, autocommit=True) as admin:
                 admin.execute(sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(sql.Identifier(database_name)))
                 if created_roles:
+                    admin.execute("DROP ROLE IF EXISTS t0_migrator_login")
                     admin.execute("DROP ROLE IF EXISTS t0_migrator")
                     admin.execute("DROP ROLE IF EXISTS t0_db_owner")
 
