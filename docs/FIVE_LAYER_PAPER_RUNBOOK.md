@@ -125,7 +125,8 @@ lấy snapshot, không phải chứng cứ sequence đã đồng bộ.
 
 | Biến | Nội dung |
 | --- | --- |
-| `MARKET_DATA_DB` | SQLite canonical chỉ chứa dữ liệu thị trường |\n| `PAPER_DB` | SQLite riêng cho Paper state, orders, equity, audit và write budget |
+| `MARKET_DATA_DB` | SQLite canonical chỉ chứa dữ liệu thị trường |
+| `PAPER_DB` | SQLite riêng cho Paper state, orders, equity, audit và write budget |
 | `MARKET_DATA_TOKEN` | Quyền đọc API |
 | `CONTROL_TOKEN` | Token **khác** token đọc; chỉ điều khiển paper |
 | `INTELLIGENCE_REPORT_PATH` | File JSON tầng 1 đã publish |
