@@ -1,6 +1,12 @@
 name: Paper Writer Isolation RED Contracts
 
 on:
+  push:
+    branches:
+      - feature/t0-paper-writer-isolation-red-20261102
+    paths:
+      - "paper_execution/**"
+      - ".github/workflows/paper-writer-isolation-red.yml"
   pull_request:
     branches:
       - feature/p5-2-4-shadow-migration-tests-20261102
