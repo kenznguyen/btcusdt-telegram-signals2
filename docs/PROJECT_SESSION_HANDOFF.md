@@ -1041,3 +1041,14 @@ Current status:
 - PR #136 remains DRAFT / OPEN. No GitHub Actions workflow run or status check is present yet for head SHA `032fc304345f32756c6730f85c39c916f0d2adef`; verification is **NOT RUN / NOT VERIFIED**. Do not treat PR #135 CI as evidence for this new source.
 - No T0 source/runtime changes; no canonical DB, Feeder, exchange, market-data sync, or live execution.
 - Next: obtain exact-head GitHub Actions run for PR #136; inspect logs and artifacts; self-review the diff; update PR and handoff. Only mark ready after verification and review. Merge requires explicit user approval.
+
+
+### PR #136 CI progress — run #42068647963 (updated 2026-11-05)
+
+- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42068647963
+- PR head SHA: `032fc304345f32756c6730f85c39c916f0d2adef`; workflow checked out the exact PR head per the active workflow's checkout configuration.
+- T0–T3/Core/Risk/Ledger backend job ID `127389933031`: **SUCCESS**. Compile, legacy bridge retirement regression (including the new retired-runner path), T0 Store/Sync/Storage/API tests, T1, T2, T3 and CI policy tests all completed. This run does not include a dedicated Gateway/Feeder suite.
+- Backend artifact ID `13435410626`, name `five-layer-backend-42068647963-1`, size 6,030 bytes, digest `sha256:fe515ffb4c53d2a59c2c871c3f0529b6116172f37fcec83de74a79aba3b5baca`; unexpired at metadata check.
+- T4 minimum boundary job ID `127389932371`: SUCCESS (non-blocking).
+- Android job ID `127389932589`: **IN PROGRESS** at last check; unit tests passed and debug APK build was still running. APK verification and artifact upload had not completed.
+- Overall PR #136 CI: **IN PROGRESS / NOT YET PASS**. Do not mark the PR complete or merge until Android job and exact-head evidence finish and the diff receives final review.
