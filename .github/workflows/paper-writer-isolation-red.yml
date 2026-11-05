@@ -79,7 +79,7 @@ jobs:
           errors = re.findall(r"^ERROR: test_[^\s(]+", output, re.MULTILINE)
           skipped = re.findall(r"^test_[^\s(]+ \(.*skipped=", output, re.MULTILINE)
           valid = (
-              ran is not None and int(ran.group(1)) == 8
+              ran is not None and int(ran.group(1)) == 9
               and not failures and not errors and not skipped
               and re.search(r"^OK$", output, re.MULTILINE) is not None
           )
@@ -88,6 +88,11 @@ jobs:
               raise SystemExit("P2 PaperLedger GREEN acceptance failed")
           print("PAPER_LEDGER_P2_GREEN=PASS")
           PY
+      - name: Verify full Paper execution test suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s paper_execution -p 'test*.py' -v 2>&1 | tee paper-execution-full-suite.log
       - name: Verify process-level runtime GREEN acceptance
         shell: bash
         run: |
@@ -124,5 +129,6 @@ jobs:
           path: |
             paper-writer-runtime-green.log
             paper-ledger-p2-green.log
+            paper-execution-full-suite.log
           if-no-files-found: warn
           retention-days: 7
