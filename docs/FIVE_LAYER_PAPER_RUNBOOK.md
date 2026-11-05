@@ -26,7 +26,7 @@ new build. Không coi YAML hay kiểm thử giả lập là chứng cứ build/i
 training đã thành công.
 
 API, collector và FreqAI shadow cần chạy ở server/process có ổ đĩa bền vững;
-Codemagic là runner tác vụ hữu hạn, không dùng làm host scanner/API liên tục.
+GitHub Actions là runner CI hữu hạn, không dùng làm host scanner/API liên tục.
 Mã v1 cung cấp các lệnh ingestion theo cửa sổ; lịch đồng bộ liên tục, retention,
 giám sát vận hành và HA chưa được triển khai.
 
