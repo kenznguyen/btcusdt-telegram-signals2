@@ -53,4 +53,9 @@ class OkxSwapStoreTests(unittest.TestCase):
         with sqlite3.connect(self.canonical) as db:
             self.assertEqual(db.execute("SELECT value FROM sentinel").fetchall(),[("binance",)])
 
+    def test_shadow_store_does_not_create_missing_canonical_database(self):
+        self.assertFalse(self.canonical.exists())
+        self.store.insert([candle(START)])
+        self.assertFalse(self.canonical.exists())
+
 if __name__=="__main__": unittest.main()
