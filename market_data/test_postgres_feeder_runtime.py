@@ -159,20 +159,33 @@ class PostgresRuntimeCompositionContractTest(unittest.TestCase):
             "MARKET_DATA_BACKEND": "postgres",
             "MARKET_DATA_POSTGRES_DSN": dsn,
             "T0_FEEDER_LEASE_NAME": "binance-btcusdt-canonical",
-            "T0_FEEDER_OWNER_ID": "same-configured-seed",
         }
         with patch.dict(sys.modules, {"ccxt": fake_ccxt}):
             runtime = build_production_runtime(environment)
-            second_runtime = build_production_runtime(environment)
 
-        self.assertNotEqual(runtime.owner_id, second_runtime.owner_id)
-        self.assertNotEqual(runtime.owner_id, "same-configured-seed")
+        self.assertGreaterEqual(len(runtime.owner_id), 32)
         self.assertIsInstance(runtime.lease_store.backend, PostgresLeaseStore)
         self.assertEqual(runtime.lease_store.backend.location, dsn)
         self.assertEqual(runtime.lease_store.backend.lease_name, "binance-btcusdt-canonical")
         self.assertIsInstance(runtime.canonical_write_gateway, PostgresWriteGateway)
         self.assertEqual(runtime.canonical_write_gateway.location, dsn)
 
+
+    def test_production_runtime_rejects_configured_shared_owner_id(self):
+        import sys
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from market_data.feeder_service import build_production_runtime
+
+        fake_ccxt = SimpleNamespace(binanceusdm=lambda options: SimpleNamespace(options=options))
+        environment = {
+            "MARKET_DATA_BACKEND": "postgres",
+            "MARKET_DATA_POSTGRES_DSN": "postgresql://test:test@127.0.0.1:5432/t0_test",
+            "T0_FEEDER_OWNER_ID": "shared-seed",
+        }
+        with patch.dict(sys.modules, {"ccxt": fake_ccxt}):
+            with self.assertRaisesRegex(ValueError, "generated per process"):
+                build_production_runtime(environment)
 
     def test_production_runtime_generates_fresh_opaque_owner_token(self):
         import sys
