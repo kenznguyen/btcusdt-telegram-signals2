@@ -120,9 +120,8 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
             raise ValueError("Feeder requires a same-database SQLite store and lease")
         if Path(store_path).resolve() != Path(lease_path).resolve():
             raise ValueError("Candle store and feeder lease must share the same SQLite database")
-        initialize_store = getattr(store, "initialize", None)
-        if callable(initialize_store):
-            initialize_store()
+        # Runtime composition must never provision canonical storage.
+        # The SQLite database and schema must already exist before startup.
         runtime = None
         runtime_lease_store = lease_store
         write_gateway = SQLiteWriteGateway(
