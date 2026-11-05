@@ -85,6 +85,9 @@ workflows:
     triggering:
       events: [push]
       branch_patterns:
+        - pattern: cleanup/remove-chart-pro-from-five-layer-20261105
+          include: true
+          source: true
         - pattern: feature/five-layer-paper
           include: true
           source: true
@@ -261,6 +264,9 @@ workflows:
     triggering:
       events: [push]
       branch_patterns:
+        - pattern: cleanup/remove-chart-pro-from-five-layer-20261105
+          include: true
+          source: true
         - pattern: feature/five-layer-paper
           include: true
           source: true
