@@ -238,6 +238,68 @@ class PaperWriterGateRuntimeContracts(unittest.TestCase):
         self.assertEqual(writer.exitcode, 0)
         self.assert_drain_state(gate.wait_for_drain(timeout_seconds=5), "DRAINED")
 
+    @unittest.skipUnless(os.name == "nt", "Windows byte-range lock acceptance")
+    def test_windows_lock_contention_times_out_and_releases_cleanly(self):
+        module = self.require_gate()
+        gate = self.gate(module)
+        ready, release = self.ctx.Queue(), self.ctx.Event()
+        writer = self.ctx.Process(
+            target=_child_hold_writer,
+            args=(str(self.paper_db), ready, release),
+        )
+        writer.start()
+        self.assertEqual(ready.get(timeout=10)[0], "ADMITTED")
+        try:
+            with self.assertRaises(module.WriterLockTimeout):
+                gate._lock(exclusive=True, timeout_seconds=0.1)
+        finally:
+            release.set()
+            self.assertEqual(ready.get(timeout=10)[0], "RELEASED")
+            writer.join(timeout=10)
+        self.assertFalse(writer.is_alive(), "Windows lock holder did not exit")
+        self.assertEqual(writer.exitcode, 0)
+
+        # The byte-range lock must be available after the child closes its handle.
+        lock = gate._lock(exclusive=True, timeout_seconds=2)
+        lock.close()
+        self.assert_drain_state(gate.begin_drain(timeout_seconds=2), "DRAINED")
+
+    @unittest.skipUnless(os.name == "nt", "Windows process termination acceptance")
+    def test_windows_terminate_releases_lock_and_reconciles_orphan_token(self):
+        module = self.require_gate()
+        gate = self.gate(module)
+        ready, release = self.ctx.Queue(), self.ctx.Event()
+        writer = self.ctx.Process(
+            target=_child_hold_writer,
+            args=(str(self.paper_db), ready, release),
+        )
+        writer.start()
+        self.assertEqual(ready.get(timeout=10)[0], "ADMITTED")
+
+        # Persist DRAINING while the child still owns the byte-range lock.
+        self.assert_drain_state(
+            gate.begin_drain(timeout_seconds=0.1), "DRAIN_TIMEOUT"
+        )
+        with self.assertRaises(Exception):
+            gate.admit_writer()
+
+        # Process.terminate uses the Windows process termination mechanism;
+        # the OS must release the child's lock handle without Python cleanup.
+        writer.terminate()
+        writer.join(timeout=10)
+        self.assertFalse(writer.is_alive(), "terminated Windows writer is still alive")
+        self.assertIsNotNone(writer.exitcode)
+        self.assertNotEqual(writer.exitcode, 0)
+
+        self.assert_drain_state(gate.wait_for_drain(timeout_seconds=5), "DRAINED")
+        with gate._connect() as connection:
+            active_tokens = connection.execute(
+                "SELECT COUNT(*) FROM paper_writer_gate_tokens"
+            ).fetchone()[0]
+        self.assertEqual(active_tokens, 0)
+        with self.assertRaises(Exception):
+            gate.admit_writer()
+
     def test_reopen_requires_settled_outcome_and_advances_generation(self):
         module = self.require_gate()
         gate = self.gate(module)
