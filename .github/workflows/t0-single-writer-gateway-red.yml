@@ -80,6 +80,11 @@ jobs:
             market_data.test_sync \
             market_data.test_storage \
             market_data.test_feeder_lifecycle -v 2>&1 | tee t0-swg-behavior-tests.log
+      - name: Run complete market_data regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s market_data -p 'test_*.py' -v 2>&1 | tee t0-market-data-full-suite.log
       - name: Upload source identity and RED evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -92,3 +97,4 @@ jobs:
             t0-swg-contract-tests.log
             t0-swg-contract-verdict.log
             t0-swg-behavior-tests.log
+            t0-market-data-full-suite.log
