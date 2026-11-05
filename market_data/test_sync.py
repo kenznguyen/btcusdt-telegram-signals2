@@ -156,6 +156,20 @@ class CandleSyncTest(unittest.TestCase):
         self.assertIn("--start-ms", result.stdout)
         self.assertEqual(exchange.calls, [])
 
+    def test_manual_cli_requires_shadow_only_before_any_exchange_access(self):
+        result = subprocess.run(
+            [
+                sys.executable, "-m", "market_data.sync",
+                "--timeframe", "15m",
+                "--start-ms", str(START),
+                "--end-ms", str(START + STEP),
+            ],
+            capture_output=True, text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--shadow-only", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
