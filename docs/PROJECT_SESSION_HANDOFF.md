@@ -1052,3 +1052,18 @@ Current status:
 - T4 minimum boundary job ID `127389932371`: SUCCESS (non-blocking).
 - Android job ID `127389932589`: **IN PROGRESS** at last check; unit tests passed and debug APK build was still running. APK verification and artifact upload had not completed.
 - Overall PR #136 CI: **IN PROGRESS / NOT YET PASS**. Do not mark the PR complete or merge until Android job and exact-head evidence finish and the diff receives final review.
+
+
+### PR #136 exact-head CI completion — 2026-11-05
+
+- GitHub Actions run #42068647963 completed with **SUCCESS, 3/3 jobs** on PR head `032fc304345f32756c6730f85c39c916f0d2adef`.
+- Run URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42068647963
+- Backend job `127389933031`: PASS. Regression summaries: legacy retirement 5/5; T0 Store/Sync/Storage/API 35/35; T1 10/10; T2 56/56; T3 42/42; CI policy 5/5; Python compile PASS.
+- Android job `127389932589`: PASS. Boundary/APK verifier tests 16/16; Android unit tests PASS; debug APK build SUCCESS; verifier reported `Verified five-layer-only APK for source 032fc304345f32756c6730f85c39c916f0d2adef`.
+- T4 minimum boundary job `127389932371`: SUCCESS, non-blocking.
+- Backend artifact ID `13435410626`, name `five-layer-backend-42068647963-1`, digest `sha256:fe515ffb4c53d2a59c2c871c3f0529b6116172f37fcec83de74a79aba3b5baca`.
+- Android artifact ID `13433879418`, name `five-layer-android-42068647963-1`, digest `sha256:5c7f0633a90ecfe460143ae7198bb12390f1a83956e19ac634ba4ffb689b444f`.
+- Artifact metadata associates both artifacts with branch `cleanup/pr135-codex-followup-20261105` and exact head SHA above. These digests are GitHub upload digests; payload bytes have not been independently downloaded and re-hashed here.
+- Overall PR #136 CI: **PASS 3/3**. This validates the follow-up source SHA only. It does not add Gateway/Feeder test coverage; README now explicitly states that limitation.
+- Independent Codex review requested in PR comment #666391xxxx; pending at handoff update.
+- PR #136 remains OPEN / READY FOR REVIEW / NOT MERGED. Do not merge without explicit user approval.
