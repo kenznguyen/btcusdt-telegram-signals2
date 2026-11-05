@@ -33,6 +33,11 @@ Recorded Android checkout:
 | Current conversation uploads | Files inventory | No uploaded files |
 | Available personal Library | Search for the P4 directory names and representative log names | No matching P4 evidence files returned |
 
+| GitHub Actions artifact candidate | Downloaded and inspected artifact from run `41512015687`, artifact `13172784987` (`p5-2-5-g0-evidence-66088d879628141688065eb80cffe0eda55b7343`) | Ruled out: archive contains only P5.2.5 G0 contract RED evidence; no Android P4 logs/scripts |
+| GitHub code search | Exact search for three representative P4 SHA-256 values and `p4_3_force_stop_shadow_20261102` | 0 results for each query |
+
+The candidate G0 archive was downloaded and opened locally. Its archive digest from GitHub metadata is `sha256:7b704a65de33204b69a822e4311eddf5934539c4f3a045ac1ee3811f5bddb353`; its contents are G0 contract-test logs/verdicts for source SHA `66088d879628141688065eb80cffe0eda55b7343`, not P4 Android evidence. It is therefore explicitly excluded from the P4 evidence set.
+
 These checks establish that the payloads were not located in the inspected sources. They do not prove that no copy exists elsewhere (for example, on the Android device or in an unindexed external archive).
 
 ## 3. Per-artifact reconciliation
