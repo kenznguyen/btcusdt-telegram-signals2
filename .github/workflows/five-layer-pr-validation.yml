@@ -1,5 +1,5 @@
 name: Five-layer PR validation
-run-name: Five-layer validation (\${{ github.event.pull_request.head.sha || github.sha }})
+run-name: Five-layer validation (${{ github.event.pull_request.head.sha || github.sha }})
 
 'on':
   pull_request:
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: five-layer-validation-\${{ github.event.pull_request.head.sha || github.sha }}
+  group: five-layer-validation-${{ github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -23,12 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      CM_BUILD_DIR: \${{ github.workspace }}
+      CM_BUILD_DIR: ${{ github.workspace }}
     steps:
       - name: Checkout exact source head
         uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - name: Set up Python for boundary and APK contract tests
         uses: actions/setup-python@v5
@@ -59,14 +59,12 @@ jobs:
         working-directory: android-app
         run: gradle :app:assembleDebug --no-daemon
       - name: Verify APK identity, signer, manifest and DEX
-        env:
-          ANDROID_SDK_ROOT: \${{ env.ANDROID_HOME }}
-        run: python ci/verify-five-layer-android-apk.py
+        run: ANDROID_SDK_ROOT="$ANDROID_HOME" python ci/verify-five-layer-android-apk.py
       - name: Upload Android reports and verified APK
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: five-layer-android-\${{ github.run_id }}-\${{ github.run_attempt }}
+          name: five-layer-android-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: warn
           path: |
             android-source-sha.txt
@@ -93,7 +91,7 @@ jobs:
       - name: Checkout exact source head
         uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -113,7 +111,7 @@ jobs:
         run: |
           set -euo pipefail
           for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB PAPER_TRADING_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
-            if [[ -n "\${!key:-}" ]]; then echo "Unsafe environment variable present: $key"; exit 1; fi
+            if [[ -n "${!key:-}" ]]; then echo "Unsafe environment variable present: $key"; exit 1; fi
           done
           test "$AI_EXECUTION_ENABLED" = "false"
           git rev-parse HEAD | tee backend-source-sha.txt
@@ -156,7 +154,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: five-layer-backend-\${{ github.run_id }}-\${{ github.run_attempt }}
+          name: five-layer-backend-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: warn
           path: |
             backend-source-sha.txt
@@ -175,7 +173,7 @@ jobs:
       - name: Checkout exact source head
         uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - name: Set up Node 24
         uses: actions/setup-node@v4
@@ -201,7 +199,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: five-layer-dashboard-\${{ github.run_id }}-\${{ github.run_attempt }}
+          name: five-layer-dashboard-${{ github.run_id }}-${{ github.run_attempt }}
           path: control_dashboard/dist/
           if-no-files-found: error
           retention-days: 14
