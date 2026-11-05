@@ -197,6 +197,13 @@ jobs:
           python -m py_compile market_data/test_postgres_write_gateway.py
           python -m unittest market_data.test_postgres_write_gateway -v 2>&1 | tee t0-postgres-writer-tests.log
           echo "T0_POSTGRES_WRITER_INTEGRATION=PASS" | tee t0-postgres-writer-red-verdict.log
+      - name: Run PostgreSQL FeederRuntime integration contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile market_data/test_postgres_feeder_runtime.py
+          python -m unittest market_data.test_postgres_feeder_runtime -v 2>&1 | tee t0-postgres-feeder-runtime-tests.log
+          echo "T0_POSTGRES_FEEDER_RUNTIME_INTEGRATION=PASS" | tee t0-postgres-feeder-runtime-verdict.log
       - name: Run read-only TimescaleDB integration contracts
         shell: bash
         run: |
@@ -211,7 +218,9 @@ jobs:
           if-no-files-found: warn
           path: |
             t0-timescale-preflight.log
-            t0-postgres-writer-red-tests.log
+            t0-postgres-writer-tests.log
             t0-postgres-writer-red-verdict.log
+            t0-postgres-feeder-runtime-tests.log
+            t0-postgres-feeder-runtime-verdict.log
             t0-timescale-tests.log
             t0-timescale-verdict.log
