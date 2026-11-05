@@ -14,12 +14,12 @@ Không có endpoint đặt lệnh thật. Thiếu dữ liệu/model hợp lệ t
 
 ## 1. Runtime và CI
 
-**GitHub chỉ lưu source/PR. Codemagic chạy kiểm thử/build** theo `codemagic.yaml`:
+**GitHub lưu source/PR/evidence; GitHub Actions chạy CI/test/build** theo `.github/workflows/five-layer-pr-validation.yml`:
 
-- `canonical-market-data`: kiểm thử Python cũ và toàn luồng paper mới.
-- `five-layer-dashboard`: npm frozen install không chạy dependency scripts, Node tests, build React và npm audit. Artifact `control_dashboard/dist/**`.
-- `freqai-strategy-smoke`: chạy thủ công, cài Freqtrade/FreqAI 2026.9 và kiểm tra load strategy; không train, không kết nối exchange/trade.
-- Các workflow Android và legacy vẫn giữ theo [CODEMAGIC_SETUP.md](CODEMAGIC_SETUP.md).
+- `android-paper`: boundary tests, Android unit tests, debug APK build và APK verifier; APK chỉ dùng nội bộ CI, không upload.
+- `backend-regression`: T0 storage/sync/read API, T1 intelligence, T2 Core/FreqAI, T3 risk/ledger/Hummingbot và CI policy contracts.
+- `dashboard-boundary`: kiểm tra hai manifest T4; non-blocking theo quyết định rebuild T4. Không chạy npm install/test/build/audit.
+- FreqAI strategy smoke/train và triển khai runtime là công việc riêng, không được chứng minh bởi PR cleanup.
 
 Nhánh tích hợp mới: `feature/five-layer-paper`. Chọn nhánh có YAML mới khi Start
 new build. Không coi YAML hay kiểm thử giả lập là chứng cứ build/install/model
