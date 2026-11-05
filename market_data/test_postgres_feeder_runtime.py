@@ -159,11 +159,14 @@ class PostgresRuntimeCompositionContractTest(unittest.TestCase):
             "MARKET_DATA_BACKEND": "postgres",
             "MARKET_DATA_POSTGRES_DSN": dsn,
             "T0_FEEDER_LEASE_NAME": "binance-btcusdt-canonical",
-            "T0_FEEDER_OWNER_ID": "test-worker",
+            "T0_FEEDER_OWNER_ID": "same-configured-seed",
         }
         with patch.dict(sys.modules, {"ccxt": fake_ccxt}):
             runtime = build_production_runtime(environment)
+            second_runtime = build_production_runtime(environment)
 
+        self.assertNotEqual(runtime.owner_id, second_runtime.owner_id)
+        self.assertNotEqual(runtime.owner_id, "same-configured-seed")
         self.assertIsInstance(runtime.lease_store.backend, PostgresLeaseStore)
         self.assertEqual(runtime.lease_store.backend.location, dsn)
         self.assertEqual(runtime.lease_store.backend.lease_name, "binance-btcusdt-canonical")
@@ -255,7 +258,7 @@ class PostgresFeederRuntimeIntegrationTest(unittest.TestCase):
         now_ms = (int(time.time() * 1000) // interval) * interval + 5_000
         recovery_end = now_ms - 5_000
         recovery_start = recovery_end - interval
-        lease_name = "pg-runtime-" + uuid.uuid4().hex
+        lease_name = "binance-btcusdt-canonical"
         owner = "runtime-integration-worker"
         store = PostgresStore(self.dsn)
         leases = PostgresLeaseStore(self.dsn, lease_name=lease_name)
