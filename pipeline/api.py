@@ -70,38 +70,35 @@ def book_snapshot(timestamp):
         return result
 
 
+def paper_db_path():
+    paper = os.environ.get("PAPER_DB")
+    market = os.environ.get("MARKET_DATA_DB")
+    if not paper or not market or not Path(market).is_file():
+        raise ValueError("PAPER_DB and an existing MARKET_DATA_DB are required")
+    paper_path, market_path = Path(paper).expanduser().resolve(), Path(market).expanduser().resolve()
+    if paper_path == market_path or (paper_path.exists() and os.path.samefile(paper_path, market_path)):
+        raise ValueError("PAPER_DB must be physically separate from MARKET_DATA_DB")
+    return paper_path
+
+
 def ledger():
     from paper_execution.ledger import PaperLedger
     from paper_execution.equity import parse_limits
-    path = os.environ.get("MARKET_DATA_DB")
-    if not path:
-        raise ValueError("Unconfigured store")
+    market = os.environ.get("MARKET_DATA_DB")
+    paper = paper_db_path()
     limits = parse_limits(os.environ)
-    return PaperLedger(path, max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"),
+    return PaperLedger(str(paper), max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"),
                        fee_rate=os.environ.get("PAPER_FEE_RATE", "0.0005"),
                        max_spread_bps=os.environ.get("PAPER_MAX_SPREAD_BPS", "50"),
                        risk_limits=limits, require_risk_limits=True,
-                       leverage=os.environ.get("LEVERAGE", "13"))
+                       leverage=os.environ.get("LEVERAGE", "13"),
+                       market_data_db_path=market).initialize()
 
 
-def control_permit(timestamp):
-    """A small shared SQLite budget for paper writes across API workers."""
-    from contextlib import closing
-    path = os.environ.get("MARKET_DATA_DB")
-    if not path or not Path(path).is_file():
-        return False
-    with closing(sqlite3.connect(path, timeout=5)) as connection, connection:
-        connection.execute("BEGIN IMMEDIATE")
-        connection.execute("CREATE TABLE IF NOT EXISTS paper_control_budget (minute INTEGER PRIMARY KEY, used INTEGER NOT NULL)")
-        minute = timestamp // 60_000
-        connection.execute("DELETE FROM paper_control_budget WHERE minute<?", (minute-1,))
-        connection.execute("INSERT OR IGNORE INTO paper_control_budget VALUES (?,0)", (minute,))
-        used = connection.execute("SELECT used FROM paper_control_budget WHERE minute=?", (minute,)).fetchone()[0]
-        if used >= 30:
-            return False
-        connection.execute("UPDATE paper_control_budget SET used=used+1 WHERE minute=?", (minute,))
-        return True
-
+def control_permit(timestamp, writer=None):
+    """Consume the shared API write budget through the admitted Paper writer."""
+    writer = writer or ledger()
+    return writer.consume_api_budget(timestamp)
 
 
 def market_window(*args, **kwargs):
