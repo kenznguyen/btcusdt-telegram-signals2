@@ -12,7 +12,7 @@ from freqai_bridge.context import canonical_context
 logger = logging.getLogger(__name__)
 
 
-class ChartProFreqaiResearch(IStrategy):
+class FiveLayerFreqaiResearch(IStrategy):
     INTERFACE_VERSION = 3
     timeframe = "15m"
     can_short = True
@@ -45,7 +45,7 @@ class ChartProFreqaiResearch(IStrategy):
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict):
         if self.config.get("dry_run") is not True or metadata.get("pair") != "BTC/USDT:USDT":
-            raise ValueError("Chart Pro FreqAI is restricted to BTCUSDT research dry-run")
+            raise ValueError("Five-layer FreqAI is restricted to BTCUSDT research dry-run")
         self.freqai_info = self.config["freqai"]
         dataframe = self.freqai.start(dataframe, metadata, self)
         mode = self.config.get("runmode")
@@ -68,7 +68,7 @@ class ChartProFreqaiResearch(IStrategy):
         except (KeyError, ValueError, TypeError, OSError, OverflowError):
             artifact = {"available": False, "source": "freqai", "availableAtMs": observed,
                         "reason": "PREDICTION_OR_PROVENANCE_UNAVAILABLE"}
-            logger.warning("Chart Pro prediction unavailable; native order signals remain disabled")
+            logger.warning("Five-layer prediction unavailable; native order signals remain disabled")
         write_artifact(paths[2], artifact)
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict):

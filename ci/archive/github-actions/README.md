@@ -1,10 +1,13 @@
 # Archived GitHub Actions definitions
 
-These YAML files are historical references, outside `.github/workflows` and not
-executed by GitHub. Active build/test and manual task definitions now live in
-[`codemagic.yaml`](../../../codemagic.yaml). See
-[`docs/CODEMAGIC_SETUP.md`](../../../docs/CODEMAGIC_SETUP.md) before deployment.
+YAML files in this directory are historical references only. GitHub does not
+execute workflows outside `.github/workflows`.
 
-GitHub stores source, branches and PRs. Codemagic runs the jobs and retains build
-artifacts. Moving these files does not configure the Codemagic account, transfer
-secrets, recover scanner state or deploy the Render bridge automatically.
+The active Five-layer validation workflow is
+[`.github/workflows/five-layer-pr-validation.yml`](../../../.github/workflows/five-layer-pr-validation.yml).
+It checks the Android Paper client, backend T0–T3/Core/Risk/Ledger contracts,
+and the intentionally minimal non-blocking T4 boundary.
+
+Archived files are not deployment configuration. Do not restore legacy
+notification, bot-command or dashboard-dispatch workflows as part of routine
+maintenance.

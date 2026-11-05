@@ -10,8 +10,7 @@ import pandas as pd
 import requests
 import bot
 
-# Output paths are configurable so dashboard and Telegram workflows can share this engine
-# without overwriting each other's reports. Defaults preserve Telegram's existing filenames.
+# Output paths are configurable for isolated CLI/research runs; defaults preserve historical report filenames.
 STATUS = Path(os.getenv("BACKTEST_STATUS_FILE", "backtest_status.json"))
 RESULT = Path(os.getenv("BACKTEST_RESULT_FILE", "backtest_last_result.json"))
 TRADES_CSV = Path(os.getenv("BACKTEST_TRADES_FILE", "backtest_trades.csv"))
@@ -19,7 +18,7 @@ EQUITY_CSV = Path(os.getenv("BACKTEST_EQUITY_FILE", "backtest_equity.csv"))
 CURVE_CSV = Path(os.getenv("BACKTEST_CURVE_FILE", "backtest_equity_m15.csv"))
 FEE = float(os.getenv("TAKER_FEE_RATE", "0.0005"))
 INITIAL_CAPITAL = float(os.getenv("BACKTEST_INITIAL_CAPITAL", "100"))
-# Workflow/dashboard inputs use percentages (50, 100); legacy env values may use fractions (0.50, 1.00).
+# Accept either percentage inputs (50, 100) or fractional values (0.50, 1.00).
 _entry_margin_raw = float(os.getenv("ENTRY_MARGIN_PCT", "0.50"))
 ENTRY_MARGIN_PCT = _entry_margin_raw / 100.0 if _entry_margin_raw > 1.0 else _entry_margin_raw
 _dca_margin_raw = float(os.getenv("DCA_MARGIN_RATIO", "1.00"))
@@ -49,8 +48,7 @@ def _status(value, **extra):
 
 
 def get_backtest_status():
-    # Read the report restored from a previous Codemagic build by the runner.
-    # A saved report is not proof that another build is currently running.
+    # A saved report is historical state, not proof that another run is active.
     try:
         s = json.loads(STATUS.read_text(encoding="utf-8"))
         return "\n".join(["🧪 BACKTEST STATUS", f"Trạng thái báo cáo đã lưu: {s.get('status')}",

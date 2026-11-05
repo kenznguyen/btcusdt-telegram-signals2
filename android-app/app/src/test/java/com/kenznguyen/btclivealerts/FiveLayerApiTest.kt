@@ -196,7 +196,7 @@ class FiveLayerApiTest {
         val audit = JSONObject().put("events",JSONArray().put(JSONObject().put("id",7)
             .put("atMs",now).put("kind","KILL_SWITCH").put("document",
                 JSONObject().put("enabled",true).put("reason","OPERATOR_KILL_SWITCH"))))
-            .put("nextBeforeId",null)
+            .put("nextBeforeId",JSONObject.NULL)
         val parsedAudit = FiveLayerJson.audit(audit,now)
         assertEquals("KILL_SWITCH",parsedAudit.events.single().kind)
         assertTrue(parsedAudit.events.single().summary.contains("OPERATOR_KILL_SWITCH"))

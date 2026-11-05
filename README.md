@@ -1,64 +1,43 @@
-# BTCUSDT Chart Pro và hệ thống phân tích futures
+# BTCUSDT Quant System — hệ thống 5 tầng
 
-**GitHub lưu mã nguồn, nhánh và PR. Codemagic chạy toàn bộ kiểm thử, build APK và các tác vụ thủ công.** Cấu hình thực thi nằm ở [codemagic.yaml](codemagic.yaml); YAML GitHub Actions cũ đã chuyển sang [ci/archive/github-actions](ci/archive/github-actions/README.md) để lưu lịch sử.
+Repository này chứa hệ thống phân tích futures BTCUSDT độc lập, ưu tiên độ tin cậy dữ liệu và kiểm soát rủi ro. Android là Paper Client duy nhất của repository; React là giao diện điều khiển web.
 
-## Thành phần
+**GitHub lưu source, branch, PR và evidence; GitHub Actions thực hiện CI/test/build.** Không coi cấu hình workflow là bằng chứng job hoặc artifact đã thành công.
 
-- [Android BTCUSDT Chart Pro](android-app/README.md): biểu đồ M15/H1, chỉ báo, scanner và thông báo; vị thế được mô phỏng.
-- [Kho dữ liệu chuẩn](market_data/README.md): CCXT, SQLite và API chỉ đọc cho nến BTCUSDT perpetual.
-- [Hummingbot bridge](integrations/README.md): snapshot sổ lệnh; credentials Hummingbot nằm ở server.
-- [Kiến trúc 5 tầng](docs/FIVE_LAYER_ARCHITECTURE.md): phân chia dữ liệu, trinh sát, FreqAI, thực thi và giao diện. Đây là thiết kế đích; chưa triển khai toàn bộ.
-- [Luồng paper 5 tầng](docs/FIVE_LAYER_PAPER_RUNBOOK.md): CSV collector → dự báo FreqAI đã xác minh đầu vào → paper ledger → API/React. Mã và kiểm thử đã có; runtime/model/frontend build thực tế còn cần xác minh.
-- `app.py`: webhook Telegram và dashboard backend trên Render; gửi yêu cầu tới Codemagic.
-- `bot.py`, `telegram_commands.py`, `backtest.py`: logic tín hiệu, báo cáo và backtest hiện có, dữ liệu OKX. Không đặt lệnh sàn.
-- `dashboard/index.html`: xem báo cáo backtest, đồng bộ artifact Codemagic hoặc nạp JSON/CSV thủ công.
+## Kiến trúc
 
-## Chạy trên Codemagic
+| Tầng | Thành phần | Trách nhiệm |
+|---|---|---|
+| T0 | [market_data](market_data/README.md) | Canonical market data, write gateway, Feeder, scheduler, recovery, lease/fencing, health/readiness |
+| T1 | [futures_intelligence](futures_intelligence/README.md) | Funding, OI, trades/taker flow, liquidations, provenance và coverage |
+| T2 | [freqai_bridge](freqai_bridge/README.md), [pipeline](pipeline/CONTRACTS.md) | Freqtrade/FreqAI research, Core + AI signals, provenance/freshness, decision contracts |
+| T3 | [paper_execution](paper_execution/README.md), [integrations](integrations/README.md) | Shared Risk Engine, Kill Switch, Hummingbot snapshots, paper ledger và audit |
+| T4 | [control_dashboard](control_dashboard/README.md), [pipeline API](pipeline/CONTRACTS.md) | React control dashboard và API chung |
 
-Xem [hướng dẫn cấu hình Codemagic](docs/CODEMAGIC_SETUP.md) để chọn nhánh, cấu hình webhook/nhóm biến bảo mật và tải artifact.
+Android Paper Client: [android-app](android-app/README.md). Ứng dụng chỉ kết nối API chung; không chứa chart/scanner/monitor của sản phẩm khác.
 
-| Workflow ID | Công việc | Kích hoạt |
-| --- | --- | --- |
-| `canonical-market-data` | Cài CCXT/Flask, chạy kiểm thử Python và kiểm tra CLI | Push đúng nhánh/đường dẫn hoặc thủ công |
-| `android-chart-pro-debug` | Unit test Android và APK debug | Push đúng nhánh/đường dẫn hoặc thủ công |
-| `android-chart-pro-release` | Unit test, APK release và kiểm tra chứng chỉ ký | Chỉ thủ công |
-| `telegram-command` | Xử lý lệnh Telegram và backtest | API Codemagic hoặc thủ công |
-| `dashboard-backtest` | Backtest theo tham số từ dashboard | API Codemagic hoặc thủ công |
-| `signal-scan` | Một lượt quét mô phỏng với state cung cấp rõ ràng | Chỉ thủ công; không có lịch tự động |
+## Chế độ an toàn
 
-Không cần GitHub Actions quota hoặc GitHub token có quyền Actions. GitHub webhook dùng để Codemagic nhận thay đổi mã nguồn; việc thêm YAML không tự cấu hình tài khoản, secrets hoặc chứng minh build đã chạy.
+- Paper-only; không thực hiện lệnh thật.
+- Không bật live execution; `ai_execution_enabled=false`.
+- Mọi tín hiệu phải qua shared risk controls và paper admission.
+- Dữ liệu thiếu, cũ, không đồng bộ hoặc thiếu provenance không được thay bằng giá trị giả.
+- Không tuyên bố lợi nhuận hoặc readiness nếu chưa có bằng chứng đúng source SHA.
 
-## Webhook Telegram / Render
+## GitHub Actions
 
-Cài `requirements-web.txt`, chạy:
+Workflow `.github/workflows/five-layer-pr-validation.yml` chạy tự động cho PR vào branch `feature/android-five-layer-control` và có thể chạy thủ công bằng `workflow_dispatch`. Ba job độc lập:
 
-```bash
-gunicorn --workers 1 --threads 4 --timeout 30 app:app
-```
+- `android-paper`: boundary tests, Android unit tests, debug APK build, kiểm tra package/manifest/DEX/chữ ký.
+- `backend-regression`: T0 Gateway/Feeder, T1 futures intelligence, T2 Core Strategy/FreqAI, T3 Paper Risk/Ledger/Hummingbot.
+- `dashboard-boundary`: kiểm tra `package.json` và `package-lock.json` của T4; job không blocking vì T4 sẽ được xây dựng lại. Không chạy npm install/test/build/audit trong PR cleanup.
 
-Health check: `/health`. Đăng ký đúng một webhook Telegram tại `/webhook` hoặc `/telegram-webhook`; giữ header xác thực `X-Telegram-Bot-Api-Secret-Token`.
+Mọi job checkout đúng PR head SHA, dùng quyền `contents: read`, không nhận secrets sản xuất, không kết nối sàn, canonical DB hay Paper DB. `AI_EXECUTION_ENABLED=false`. Artifact và test logs được gắn với GitHub Actions run.
 
-Các biến cấu hình: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_WEBHOOK_SECRET`, `CODEMAGIC_API_TOKEN`, `CODEMAGIC_APP_ID`, `CODEMAGIC_BRANCH`. Token Codemagic chỉ nằm ở server/nhóm biến bảo mật; không đưa vào trình duyệt hoặc APK.
+## Tài liệu vận hành
 
-Các lệnh: `/help`, `/status`, `/position`, `/signal`, `/backtest`, `/btstatus`, `/btresult`. Lệnh được dispatch sang `telegram-command` trên nhánh có cấu hình mới. Cần deploy phiên bản bridge này cùng biến môi trường mới khi chuyển runner.
+- [Kiến trúc 5 tầng](docs/FIVE_LAYER_ARCHITECTURE.md)
+- [Paper runbook](docs/FIVE_LAYER_PAPER_RUNBOOK.md)
+- [Project handoff](docs/PROJECT_SESSION_HANDOFF.md)
 
-## Dữ liệu và trạng thái
-
-- Python bot/backtest dùng OKX; APK và kho chuẩn mới dùng Binance Futures. Chưa chứng nhận ngang bằng dữ liệu/chiến lược.
-- CI là runner tạm thời, không phải kho trạng thái vị thế. Không dùng cache để tuyên bố state mô phỏng là hiện hành.
-- Scanner thủ công cần `LEGACY_STATE_JSON` từ state đã xác minh; tải `state.json` và `state-provenance.json` sau lượt chạy. Chưa có điều phối state dùng chung; không chạy scanner chồng lấn hoặc coi đây là dịch vụ giám sát bền vững.
-- `/status` và `/position` yêu cầu state được cung cấp; thiếu/hỏng state báo không khả dụng, không tự tạo vị thế FLAT.
-- Lịch sử/artifact Codemagic qua adapter có kiểm tra schema, giới hạn kích thước và lỗi rõ ràng. Hợp đồng lịch sử REST được giữ từ tài liệu chính thức cũ, cần kiểm chứng với tài khoản thực tế; giao diện vẫn hỗ trợ tải artifact và nạp thủ công.
-- PnL, vị thế và giá khớp trong backtest là mô phỏng. Phạm vi hiện tại không bật live execution.
-
-## Kiểm thử local
-
-```bash
-python3 -m unittest market_data.test_store market_data.test_sync market_data.test_api -v
-python3 -m unittest discover -s integrations -p 'test_*.py' -v
-python3 -m unittest discover -s ci -p 'test_*.py' -v
-```
-
-Kiểm thử cấu hình CI cần `requirements-ci.txt`. Build Android cần JDK 17, Gradle 8.9 và Android SDK 35; Codemagic chuẩn bị các công cụ này theo cấu hình đã lưu.
-
-
+Mỗi thay đổi phải ghi phạm vi, test/evidence, exact source SHA, workflow run/artifact nếu có, trạng thái PASS/BLOCKED/NOT VERIFIED và bước tiếp theo. Không merge PR khi chưa có phê duyệt rõ ràng.

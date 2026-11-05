@@ -14,19 +14,19 @@ Không có endpoint đặt lệnh thật. Thiếu dữ liệu/model hợp lệ t
 
 ## 1. Runtime và CI
 
-**GitHub chỉ lưu source/PR. Codemagic chạy kiểm thử/build** theo `codemagic.yaml`:
+**GitHub lưu source/PR/evidence; GitHub Actions chạy CI/test/build** theo `.github/workflows/five-layer-pr-validation.yml`:
 
-- `canonical-market-data`: kiểm thử Python cũ và toàn luồng paper mới.
-- `five-layer-dashboard`: npm frozen install không chạy dependency scripts, Node tests, build React và npm audit. Artifact `control_dashboard/dist/**`.
-- `freqai-strategy-smoke`: chạy thủ công, cài Freqtrade/FreqAI 2026.9 và kiểm tra load strategy; không train, không kết nối exchange/trade.
-- Các workflow Android và legacy vẫn giữ theo [CODEMAGIC_SETUP.md](CODEMAGIC_SETUP.md).
+- `android-paper`: boundary tests, Android unit tests, debug APK build và APK verifier; APK chỉ dùng nội bộ CI, không upload.
+- `backend-regression`: T0 storage/sync/read API, T1 intelligence, T2 Core/FreqAI, T3 risk/ledger/Hummingbot và CI policy contracts.
+- `dashboard-boundary`: kiểm tra hai manifest T4; non-blocking theo quyết định rebuild T4. Không chạy npm install/test/build/audit.
+- FreqAI strategy smoke/train và triển khai runtime là công việc riêng, không được chứng minh bởi PR cleanup.
 
 Nhánh tích hợp mới: `feature/five-layer-paper`. Chọn nhánh có YAML mới khi Start
 new build. Không coi YAML hay kiểm thử giả lập là chứng cứ build/install/model
 training đã thành công.
 
 API, collector và FreqAI shadow cần chạy ở server/process có ổ đĩa bền vững;
-Codemagic là runner tác vụ hữu hạn, không dùng làm host scanner/API liên tục.
+GitHub Actions là runner CI hữu hạn, không dùng làm host scanner/API liên tục.
 Mã v1 cung cấp các lệnh ingestion theo cửa sổ; lịch đồng bộ liên tục, retention,
 giám sát vận hành và HA chưa được triển khai.
 
@@ -87,7 +87,7 @@ còn mới; dữ liệu thiếu/cũ không được điền 0. CSV nhập tối 
 
 Làm theo [freqai_bridge/README.md](../freqai_bridge/README.md): cài đúng
 Freqtrade/FreqAI **2026.9**, chuẩn bị lịch sử, chạy nghiên cứu và model shadow.
-Strategy `ChartProFreqaiResearch` gọi FreqAI thật và tắt native entry/exit;
+Strategy `FiveLayerFreqaiResearch` gọi FreqAI thật và tắt native entry/exit;
 không biến Freqtrade thành executor thứ hai.
 
 Producer đọc cùng SQLite, chọn hai nến M15 vừa đóng và so OHLCV với DataFrame
@@ -146,9 +146,7 @@ gunicorn --bind 127.0.0.1:8789 --workers 1 --threads 4 --timeout 30 pipeline.api
 proxy. Các quyền điều khiển có ngân sách chung SQLite 30 request/phút UTC cho
 mỗi store. GET có bearer riêng; không mở CORS wildcard. Không đặt API key sàn ở UI.
 
-Build React bằng [control_dashboard/README.md](../control_dashboard/README.md)
-hoặc tải `dist` artifact từ Codemagic, rồi mở `/control/`. Token chỉ giữ trong
-bộ nhớ tab. Nếu dist chưa build, server trả DASHBOARD_NOT_BUILT; không phục vụ UI giả.
+Đối với lần rebuild T4, build React theo [control_dashboard/README.md](../control_dashboard/README.md), sau đó triển khai `dist` qua quy trình riêng đã được review; PR cleanup không build hoặc phát hành `dist`. Token chỉ giữ trong bộ nhớ tab. Nếu dist chưa build, server trả DASHBOARD_NOT_BUILT; không phục vụ UI giả.
 Vite dev có proxy `/v1` về `127.0.0.1:8789` nên không cần đổi CORS.
 
 Các endpoint nằm trong [pipeline/CONTRACTS.md](../pipeline/CONTRACTS.md).
@@ -156,9 +154,7 @@ Nút Evaluate chỉ dùng dữ liệu server đã kiểm tra. Pause ngăn intent
 cancel hủy phần paper còn pending, không xóa fill/position. Không có nút flatten
 tự động hoặc live order. Readiness phân biệt CONFIGURED/OBSERVED/WAIT với READY.
 
-APK hiện có thể trỏ nguồn Hummingbot vào base URL API chung và dùng token đọc
-với `/v1/order-book?symbol=BTCUSDT`. Giao diện native chưa được chuyển toàn bộ
-sang dashboard này; chưa tạo hoặc xác minh APK mới trong thay đổi này.
+APK Paper của hệ thống 5 tầng được build và kiểm tra tạm thời trong GitHub Actions trên đúng source SHA; APK không được upload thành artifact/release. Cài đặt trên thiết bị và signer continuity với bản cài trước vẫn chưa xác minh. Nguồn Hummingbot có thể trỏ vào base URL API chung và dùng token đọc với `/v1/order-book?symbol=BTCUSDT`.
 
 ## 7. Kiểm chứng và phần còn cần chạy thật
 
@@ -177,7 +173,8 @@ at-rest corruption, quyền đọc/ghi, rate budget, multiple-price reversal và
 Không coi fixture là dữ liệu model/exchange đã chạy thật.
 
 Chưa xác minh: cài/chạy Freqtrade/FreqAI, train model/provenance, connector
-Hummingbot/Binance thật, frozen npm install/build/audit/browser render, hosting
-và vận hành liên tục. Môi trường hiện không tải được npm registry. Codemagic đã
-được cấu hình cho kiểm thử backend, install/build/audit React và kiểm tra nạp
-strategy; train model, kiểm tra browser và triển khai server là các bước riêng.
+Hummingbot/Binance thật, T4 npm install/build/audit/browser render, hosting và
+vận hành liên tục. PR cleanup chỉ kiểm tra T4 boundary; không chạy npm install,
+test, build hoặc audit vì T4 sẽ được rebuild. GitHub Actions kiểm thử backend,
+Android Paper và các contract đã mô tả ở trên; train model, kiểm tra browser và
+triển khai server là các bước riêng.

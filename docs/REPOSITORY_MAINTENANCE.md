@@ -1,36 +1,46 @@
-# Repository maintenance and release safety
+# Five-layer repository maintenance
 
-## Protected product surfaces
-- Telegram webhook and commands, Python backtest and dashboard.
-- Android BTCUSDT Chart Pro: M15/H1, H1 overlay, Multi-Symbol Scanner and chart symbol switching, MFI & %B, DMI/ADX, Order Book, alerts and Strategy Monitor.
-- Paper trading only; do not introduce live order placement.
-- Release APK must use the existing signing keystore and alias, and must update the installed app without uninstalling.
+## Protected scope
 
-## Branches
-- `main`: stable release and Telegram production; do not merge experimental work without tests.
-- `feature/android-btcusdt-live-alerts`: current Android integration branch until a verified migration is completed.
-- `feature/*`, `fix/*`: temporary development branches; close/merge reviewed PRs before cleanup.
-- `backup/*`, `restore/*`: recovery branches; do not delete without verified archived tags and a tested restore procedure.
-- `feature/driver-hotspot-android`: separate Android product; keep isolated, consider separate repository later.
+- T0 is an independent canonical data asset. Do not alter production storage,
+  feeder activation, lease/fencing, migrations or exchange access without
+  explicit authorization and recorded acceptance evidence.
+- T1 futures intelligence remains read-only market-data analytics.
+- T2 preserves RSI + ADX + Smart DCA Strategy Core and the independent AI
+  signal path. Do not bypass Shared Risk Engine / Kill Switch.
+- T3 remains paper-only. `AI_EXECUTION_ENABLED=false`; no live order placement.
+- T4 is a rebuild target. Preserve its current source/data until a separately
+  approved rebuild scope; current PR cleanup uses only a non-blocking boundary
+  check.
+- Android is the single Five-layer Paper Client. BTC Chart Pro is maintained
+  separately.
 
-## Release gate
-1. Review changed files and feature parity; verify scanner, symbol switcher, M15/H1, indicator charts and notifications.
-2. Run `gradle :app:testDebugUnitTest --no-daemon` and `gradle :app:assembleDebug --no-daemon` on the selected Android source branch.
-3. Run Codemagic `android-chart-pro-release` manually on the reviewed source branch, using the existing release keystore from the `android_release` secret group.
-4. Confirm `assembleRelease`, signature alias, applicationId/versionCode compatibility, artifact and successful install-over-existing-app.
-5. Only then promote the tested source into `main`.
+## Source and CI
 
-## Cleanup candidates — review only, not approved for deletion
-- `feature/android-btcusdt-5m-forecast` and `feature/dmi-adx-5m-backtest`: deprecated UP/DOWN 5-minute experiments. Preserve history and close related PRs after confirming no shared code dependencies.
-- `fix/mfib-highlight-alerts-20261024`: merged PR #49; verify branch has no unique unmerged changes before deletion.
-- Older chart/scanner branches and stacked PRs (#42, #43, #44, #47): do not delete before verifying their feature code is present in the integrated Android branch.
+- GitHub stores source, branches, PRs and evidence.
+- GitHub Actions is the active CI runner. Workflows must test the exact PR head
+  SHA and use least-privilege permissions.
+- No legacy notification command service, Flask dashboard bridge or external
+  CI dispatch adapter is part of this repository runtime.
+- The Hummingbot adapter is a separate read-only market-data integration. It
+  does not place orders or depend on a dashboard or notification bridge.
 
-## Documentation parity
-GitHub stores source and PRs only. All runner workflows are defined in `codemagic.yaml`; old GitHub Actions YAML is archived under `ci/archive/github-actions`. The Codemagic scanner remains manual-only, requires an explicit state snapshot, and has no automatic schedule. Follow `docs/CODEMAGIC_SETUP.md` when switching the Render bridge and secret groups.
+## Change acceptance
 
-## Do not do
-- Never delete backup/restore branches or keystore/secrets during routine cleanup.
-- Never build a release from `main` by default if it lacks current Android features.
-- Never claim tests, builds or APK signatures are verified without CI results.
+For each meaningful change, record:
+1. Scope and protected boundaries.
+2. Tests, checks and evidence.
+3. Exact source SHA, workflow run and artifact identifiers/digests when present.
+4. PASS / BLOCKED / NOT VERIFIED status.
+5. Next step and remaining restrictions.
 
+Commit to the existing task branch where practical. Avoid unnecessary branch
+or PR divergence. Do not merge without explicit user approval.
 
+## Recovery and safety
+
+- Preserve backup/restore branches and data until a verified restore procedure
+  and archive evidence exist.
+- Do not weaken CI gates to obtain a passing result.
+- Do not claim production readiness, signer continuity, device installation,
+  data freshness or strategy profitability without matching evidence.

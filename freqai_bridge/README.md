@@ -22,7 +22,7 @@ PYTHONPATH="$PWD" freqtrade download-data \
 
 PYTHONPATH="$PWD" freqtrade backtesting \
   --config freqai_bridge/config.research.json \
-  --strategy-path freqai_bridge --strategy ChartProFreqaiResearch \
+  --strategy-path freqai_bridge --strategy FiveLayerFreqaiResearch \
   --freqaimodel LightGBMRegressor --timerange 20260901-20261001
 ```
 
@@ -37,7 +37,7 @@ For prediction collection after research and data/provenance preparation:
 ```bash
 PYTHONPATH="$PWD" freqtrade trade \
   --config freqai_bridge/config.research.json \
-  --strategy-path freqai_bridge --strategy ChartProFreqaiResearch \
+  --strategy-path freqai_bridge --strategy FiveLayerFreqaiResearch \
   --freqaimodel LightGBMRegressor
 ```
 

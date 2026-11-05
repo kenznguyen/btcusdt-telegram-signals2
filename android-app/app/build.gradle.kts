@@ -9,40 +9,15 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.kenznguyen.btclivealerts"
+        applicationId = "com.kenznguyen.btclivealerts.paper"
         minSdk = 26
         targetSdk = 35
         versionCode = 2
         versionName = "0.2.0"
-        buildConfigField("boolean", "PARALLEL_INSTALL", "false")
-    }
-
-    signingConfigs {
-        create("release") {
-            storeFile = file(System.getenv("ANDROID_KEYSTORE_PATH") ?: "missing-release.keystore")
-            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("ANDROID_KEY_ALIAS")
-            keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
-        }
-    }
-
-    buildTypes {
-        create("parallel") {
-            initWith(getByName("debug"))
-            applicationIdSuffix = ".paper"
-            versionNameSuffix = "-paper"
-            matchingFallbacks += listOf("debug")
-            buildConfigField("boolean", "PARALLEL_INSTALL", "true")
-        }
-        getByName("release") {
-            isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
-        }
     }
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -66,5 +41,3 @@ dependencies {
     testImplementation("org.json:json:20240303")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 }
-
-

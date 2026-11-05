@@ -1,6 +1,6 @@
 # Kiến trúc hệ thống 5 tầng
 
-Ngày rà soát: 2026-10-29. Trạng thái: **thiết kế đích và lựa chọn nguồn**, chưa phải hệ thống đã triển khai. Giữ APK Chart Pro làm một client; React Dashboard là client thứ hai của cùng backend. Giai đoạn đầu dùng Binance USDⓈ-M, BTCUSDT và paper trading, theo phạm vi hiện tại của dự án.
+Ngày rà soát: 2026-10-29. Trạng thái: **thiết kế đích và lựa chọn nguồn**, chưa phải hệ thống đã triển khai. Dùng ứng dụng Android BTCUSDT Quant System Paper làm native client; React Dashboard là client web thứ hai của cùng backend. Không tích hợp mã Chart Pro vào repository này. Giai đoạn đầu dùng Binance USDⓈ-M, BTCUSDT và paper trading, theo phạm vi hiện tại của dự án.
 
 ## 1. Chọn thành phần theo nhiệm vụ
 
@@ -42,7 +42,7 @@ flowchart TD
     T2 --> API
     S --> API
     API <--> T4["T4: React Dashboard"]
-    API <--> APK["APK Chart Pro"]
+    API <--> APK["APK 5 tầng Paper"]
 ```
 
 FreqAI là thành phần học máy trong Freqtrade, không phải bộ thực thi độc lập. Freqtrade thông thường tự quản lý lệnh/vị thế. Nếu chọn Hummingbot làm executor, cần adapter xuất ý định chiến lược và đưa kết quả khớp/vị thế trở lại vòng đánh giá; không chạy hai bộ máy cùng gửi lệnh cho cùng chiến lược/tài khoản.
@@ -98,11 +98,11 @@ Khóa sàn và Hummingbot Basic credentials nằm ở server. Browser/APK chỉ 
 ## 6. Hiện trạng của repository
 
 - Đã có bản tích hợp paper nối mã cả năm tầng: `futures_intelligence`, `freqai_bridge`, `pipeline`, `paper_execution`, `control_dashboard`. Xem [runbook](FIVE_LAYER_PAPER_RUNBOOK.md). Các kiểm thử fixture không chứng minh đã train AI, kết nối exchange hoặc build UI thành công; live execution vẫn không được hỗ trợ.
-- GitHub chỉ lưu mã nguồn/PR; Codemagic thực hiện CI/build và các tác vụ thủ công theo [CODEMAGIC_SETUP.md](CODEMAGIC_SETUP.md). Mã webhook/dashboard đã chuyển provider; cấu hình tài khoản, secrets và chạy live vẫn cần được xác minh.
+- GitHub lưu mã nguồn/PR/evidence; GitHub Actions chạy CI/test/build theo `.github/workflows/five-layer-pr-validation.yml`. Job Android và backend T0–T3/Core là blocking; T4 chỉ kiểm tra manifest boundary và không blocking trong giai đoạn chuẩn bị rebuild. Không dùng CI runner làm host API/Feeder liên tục. Runtime, credentials và live execution vẫn cần xác minh riêng; live execution hiện bị tắt.
 
-- Bước 1 đã có mã nguồn tại [market_data](../market_data/README.md): kho SQLite, đồng bộ CCXT đúng BTCUSDT perpetual, nến đóng M15/H1, API chỉ đọc có gaps/as-of/content hash. Kiểm thử offline dùng kho và WSGI thật; chưa xác minh cài CCXT/kết nối Binance thật hoặc triển khai server. Chưa tự chuyển APK/Freqtrade sang API này.
+- Bước 1 đã có mã nguồn tại [market_data](../market_data/README.md): kho SQLite, đồng bộ CCXT đúng BTCUSDT perpetual, nến đóng M15/H1, API chỉ đọc có gaps/as-of/content hash. Kiểm thử offline dùng kho và WSGI thật; chưa xác minh cài CCXT/kết nối Binance thật hoặc triển khai server. Android Five-layer Paper Client đọc canonical candles và các trạng thái từ API chung; FreqAI producer dùng cùng canonical store.
 - [PR #59](https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/59): mã gateway Hummingbot chỉ đọc và tab Order Book cho APK. Bảy kiểm thử gateway đạt; Android build và kết nối Hummingbot thật chưa được xác minh. Timestamp API là thời điểm lấy snapshot; `sequenceVerified` chưa có, không dùng snapshot này làm bằng chứng đồng bộ để giao dịch.
-- Python bot/backtest hiện dùng OKX, APK dùng Binance Futures. Chưa có dataset chung hoặc chứng nhận ngang bằng; không tự đổi nguồn của phần Telegram/backtest đang có.
+- Các tiện ích Python legacy/backtest có thể dùng OKX; Android 5 tầng chỉ đọc common API và không tự kết nối Binance chart feed. Chưa có chứng nhận ngang bằng dataset với các tiện ích legacy.
 - Nhánh `integration/android-freqtrade-analytics-20261025` có nghiên cứu và báo cáo Freqtrade/FreqAI riêng; không suy ra đã có AI live hoặc executor Hummingbot. Tích hợp có chọn lọc và giữ nhãn nghiên cứu.
 - `dashboard/index.html` hiện là giao diện JavaScript cho backtest; chưa phải Capture Desk/React hoặc control plane trực tiếp.
 

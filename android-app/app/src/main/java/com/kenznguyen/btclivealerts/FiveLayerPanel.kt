@@ -128,7 +128,7 @@ private fun FiveLayerSignalCard(title: String, reading: FiveLayerReading<Strateg
     }
 }
 
-/** Common API controls are paper-only and never share state with the local chart simulation. */
+/** Common API controls are paper-only and use server-owned state. */
 @Composable
 internal fun FiveLayerPanel(context: Context) {
     val prefs = remember { context.getSharedPreferences("strategy_state_v1", Context.MODE_PRIVATE) }
@@ -246,8 +246,6 @@ internal fun FiveLayerPanel(context: Context) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         FiveLayerCard("KẾT NỐI · BTCUSDT PAPER") {
             Text("Binance USDⓈ-M · Sổ mô phỏng trên máy chủ", color = fiveMuted)
-            if (BuildConfig.PARALLEL_INSTALL) Text("Cùng địa chỉ API sẽ dùng chung sổ paper. Dùng máy chủ thử nghiệm riêng nếu cần sổ tách biệt.",
-                color = fiveAmber, style = MaterialTheme.typography.bodySmall)
             OutlinedTextField(url, { if (it.length <= 2048) url = it }, Modifier.fillMaxWidth(),
                 enabled = connection == null, singleLine = true, label = { Text("API chung (HTTPS)") })
             OutlinedTextField(readToken, { if (it.length <= 4096) readToken = it }, Modifier.fillMaxWidth(),
