@@ -65,14 +65,14 @@ def _assert_writer_roles_safe(database):
             )
 
         login_grants = database.execute(
-            """SELECT granted_role.rolname
+            """SELECT granted_role.rolname, membership.admin_option
                FROM pg_auth_members membership
                JOIN pg_roles granted_role ON granted_role.oid = membership.roleid
                JOIN pg_roles member_role ON member_role.oid = membership.member
                WHERE member_role.rolname = 't0_migrator_login'
                ORDER BY granted_role.rolname"""
         ).fetchall()
-        if [row[0] for row in login_grants] != ["t0_migrator"]:
+        if login_grants != [("t0_migrator", False)]:
             raise RuntimeError(
                 "t0_migrator_login may only be a member of t0_migrator"
             )
