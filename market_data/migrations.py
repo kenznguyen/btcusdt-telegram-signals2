@@ -14,7 +14,7 @@ def _assert_writer_roles_safe(database):
     unsafe = database.execute(
         """SELECT rolname FROM pg_roles
            WHERE rolname IN ('t0_feeder_writer', 't0_candle_writer_owner',
-                             't0_feeder_lease_manager', 't0_lease_manager_owner', 't0_migrator')
+                             't0_feeder_lease_manager', 't0_lease_manager_owner', 't0_migrator', 't0_db_owner')
              AND (rolsuper OR rolcanlogin OR rolcreatedb OR rolcreaterole
                   OR rolreplication OR rolbypassrls)
            ORDER BY rolname"""
@@ -92,6 +92,21 @@ def _assert_writer_roles_safe(database):
             f"{owner} must not be granted to runtime or login roles (found {member})"
         )
 
+    migrator_owner_admin_options = database.execute(
+        """SELECT granted_role.rolname
+           FROM pg_auth_members membership
+           JOIN pg_roles granted_role ON granted_role.oid = membership.roleid
+           JOIN pg_roles member_role ON member_role.oid = membership.member
+           WHERE member_role.rolname = 't0_migrator'
+             AND granted_role.rolname IN ('t0_candle_writer_owner', 't0_lease_manager_owner')
+             AND membership.admin_option
+           ORDER BY granted_role.rolname"""
+    ).fetchall()
+    if migrator_owner_admin_options:
+        raise RuntimeError(
+            "t0_migrator must not have ADMIN OPTION on SECURITY DEFINER owner roles"
+        )
+
     inherited = database.execute(
         """SELECT member_role.rolname
            FROM pg_auth_members membership
@@ -109,13 +124,22 @@ def migrate(location):
     """Apply pending SQL migrations. Never called implicitly by a read or write."""
     with connection(location) as database:
         _assert_writer_roles_safe(database)
+        restricted_migrator = database.execute(
+            "SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 't0_migrator')"
+        ).fetchone()[0]
+        if restricted_migrator:
+            database.execute("SET ROLE t0_migrator")
         database.execute("SELECT pg_advisory_xact_lock(hashtext('market_data.schema_migrations'))")
         database.execute("CREATE SCHEMA IF NOT EXISTS market_data")
+        if restricted_migrator:
+            database.execute("ALTER SCHEMA market_data OWNER TO t0_db_owner")
         database.execute("""CREATE TABLE IF NOT EXISTS market_data.schema_migrations (
             migration_id TEXT PRIMARY KEY,
             checksum_sha256 TEXT NOT NULL,
             applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )""")
+        if restricted_migrator:
+            database.execute("ALTER TABLE market_data.schema_migrations OWNER TO t0_db_owner")
         applied = dict(database.execute(
             "SELECT migration_id, checksum_sha256 FROM market_data.schema_migrations"
         ).fetchall())
@@ -128,6 +152,20 @@ def migrate(location):
                     raise RuntimeError("Applied migration checksum mismatch")
                 continue
             database.execute(content)
+            if restricted_migrator:
+                database.execute("""DO $ownership$
+                DECLARE item RECORD;
+                BEGIN
+                    FOR item IN
+                        SELECT tablename
+                          FROM pg_tables
+                         WHERE schemaname = 'market_data'
+                           AND tableowner <> 't0_db_owner'
+                    LOOP
+                        EXECUTE format('ALTER TABLE market_data.%I OWNER TO t0_db_owner', item.tablename);
+                    END LOOP;
+                END;
+                $ownership$;""")
             database.execute(
                 "INSERT INTO market_data.schema_migrations (migration_id, checksum_sha256) VALUES (%s, %s)",
                 (path.name, checksum),
