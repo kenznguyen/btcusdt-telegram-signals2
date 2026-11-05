@@ -41,6 +41,23 @@ def _assert_writer_roles_safe(database):
         "SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 't0_migrator')"
     ).fetchone()[0]
     if migrator_group_exists:
+        database_owner_exists = database.execute(
+            "SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 't0_db_owner')"
+        ).fetchone()[0]
+        if not database_owner_exists:
+            raise RuntimeError("t0_db_owner must exist when restricted migrations are enabled")
+        database_owner_membership = database.execute(
+            """SELECT EXISTS (
+                SELECT 1 FROM pg_auth_members membership
+                JOIN pg_roles granted_role ON granted_role.oid = membership.roleid
+                JOIN pg_roles member_role ON member_role.oid = membership.member
+                WHERE granted_role.rolname = 't0_db_owner'
+                  AND member_role.rolname = 't0_migrator'
+            )"""
+        ).fetchone()[0]
+        if not database_owner_membership:
+            raise RuntimeError("t0_migrator must be a member of t0_db_owner")
+
         ephemeral_login = database.execute(
             """SELECT rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
                       rolreplication, rolbypassrls
@@ -82,7 +99,7 @@ def _assert_writer_roles_safe(database):
            FROM pg_auth_members membership
            JOIN pg_roles granted_role ON granted_role.oid = membership.roleid
            JOIN pg_roles member_role ON member_role.oid = membership.member
-           WHERE granted_role.rolname IN ('t0_candle_writer_owner', 't0_lease_manager_owner')
+           WHERE granted_role.rolname IN ('t0_db_owner', 't0_candle_writer_owner', 't0_lease_manager_owner')
              AND member_role.rolname <> 't0_migrator'
            ORDER BY granted_role.rolname, member_role.rolname"""
     ).fetchall()
@@ -104,7 +121,7 @@ def _assert_writer_roles_safe(database):
     ).fetchall()
     if migrator_owner_admin_options:
         raise RuntimeError(
-            "t0_migrator must not have ADMIN OPTION on SECURITY DEFINER owner roles"
+            "t0_migrator must not have ADMIN OPTION on database or SECURITY DEFINER owner roles"
         )
 
     inherited = database.execute(
