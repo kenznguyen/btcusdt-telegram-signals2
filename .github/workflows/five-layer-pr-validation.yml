@@ -5,16 +5,13 @@ run-name: Five-layer validation (${{ github.event.pull_request.head.sha || githu
   pull_request:
     branches:
       - feature/android-five-layer-control
-  push:
-    branches:
-      - cleanup/remove-chart-pro-from-five-layer-20261105
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: five-layer-validation-${{ github.event.pull_request.head.sha || github.sha }}
+  group: five-layer-validation-${{ github.event_name }}-${{ github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: true
 
 jobs:
