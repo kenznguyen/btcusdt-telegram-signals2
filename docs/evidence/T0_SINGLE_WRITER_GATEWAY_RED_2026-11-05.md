@@ -8,7 +8,7 @@ Implemented the SQLite canonical write Gateway on the existing PR #134 branch. T
 
 - Branch: `feature/t0-atomic-write-fencing-20261105`
 - PR: https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/134
-- Exact source SHA validated by push workflow: `dbfc402fe41772952d9a7ad718eace124af388ab`
+- Exact source SHA validated by push workflow: `5b678a0419aa283cd54703a2a7c0e20df385e41c`
 - Gateway: `market_data/write_gateway.py`
 - Workflow: `.github/workflows/t0-single-writer-gateway-red.yml`
 
@@ -25,23 +25,23 @@ Implemented the SQLite canonical write Gateway on the existing PR #134 branch. T
 
 ## GitHub Actions evidence
 
-- Run ID: `41976841830`
-- URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41976841830
+- Run ID: `41977057660`
+- URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41977057660
 - Event: `push`
-- Exact branch source and checkout SHA: `dbfc402fe41772952d9a7ad718eace124af388ab`
+- Exact branch source and checkout SHA: `5b678a0419aa283cd54703a2a7c0e20df385e41c`
 - Conclusion: `success`
-- Job ID: `127077555829`; all steps completed successfully.
+- Job ID: `127078243042`; all steps completed successfully.
 - Shadow-only environment preflight: PASS; Python compile: PASS.
 - Static Gateway contracts: 10 tests, PASS.
-- Gateway + canonical store + sync + storage + Feeder lifecycle regression: 52 tests, PASS.
-- Complete `market_data` suite: 173 tests, PASS; 8 skipped.
-- Final full-suite output: `Ran 173 tests ... OK (skipped=8)`.
+- Gateway + canonical store + sync + storage + Feeder lifecycle regression: 54 tests, PASS.
+- Complete `market_data` suite: 175 tests, PASS; 8 skipped.
+- Final full-suite output: `Ran 175 tests ... OK (skipped=8)`.
 
 Artifact:
 - ID: `13392126852`
-- URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41976841830/artifacts/13392331551
-- Size: 7,596 bytes
-- GitHub digest: `sha256:42d85c6bd30520a22ddaff8eeb3a03089d78d29fcc5e5245eec4cc9d50f34707`
+- URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/41977057660/artifacts/13391204525
+- Size: 7,676 bytes
+- GitHub digest: `sha256:63c01a52edeba5b146ee71d2445a1d25b98e71569cc140746f097151116142b2`
 - Artifact payload checksum has not been independently recomputed.
 
 ## Status
@@ -51,6 +51,8 @@ Artifact:
 - Takeover serialization test: PASS.
 - Sync, API, storage and Feeder lifecycle regression: PASS.
 - Concrete composition test: scheduler and recovery use the same Gateway instance and lease database; PASS.
+- Missing canonical database fail-closed test: PASS; Gateway does not create a missing database.
+- Manual sync CLI explicit Shadow-only acknowledgement test: PASS.
 - Complete `market_data` suite: PASS with 8 skipped TimescaleDB integration tests.
 - PostgreSQL canonical write API: DISABLED; TimescaleDB integration remains NOT VERIFIED.
 - Kraken Spot isolated storage: unchanged and not part of this Gateway.
