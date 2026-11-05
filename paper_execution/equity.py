@@ -112,8 +112,10 @@ def record(connection, *, initial_capital, position, average, realized, fees,
 
 
 def snapshot(connection, now_ms, limit=500):
-    ensure(connection)
     now = stamp(now_ms)
+    exists = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_equity_history'").fetchone()
+    if not exists:
+        return {"available":False,"reason":"EQUITY_HISTORY_EMPTY","points":[],"maxDrawdownUsdt":None,"maxDrawdownPct":None,"dailyPnlUsdt":None,"dailyLossUsdt":None,"exposureUsdt":None}
     rows = connection.execute("""SELECT id,candle_close_ms,observed_at_ms,mark_price,position_base,
         average_entry_price,realized_pnl,fees,unrealized_pnl,equity,high_water_mark,
         drawdown_usdt,drawdown_pct,exposure_usdt,dataset_version
