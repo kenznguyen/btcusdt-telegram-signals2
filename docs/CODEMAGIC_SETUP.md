@@ -10,7 +10,7 @@ Workflow duy nhất: **`five-layer-android`**.
 - Chạy `ci.test_five_layer_android_boundary` và `ci.test_five_layer_android_apk`.
 - Chạy `:app:testDebugUnitTest`.
 - Build duy nhất `:app:assembleDebug`.
-- Kiểm tra package `com.kenznguyen.fivelayerpaper`, launcher `MainActivity`, app label, DEX không chứa lớp Chart Pro, manifest không có StrategyMonitorService/foreground service và chữ ký APK.
+- Kiểm tra package `com.kenznguyen.btclivealerts.paper`, launcher `MainActivity`, app label, DEX không chứa lớp Chart Pro, manifest không có StrategyMonitorService/foreground service và chữ ký APK.
 - Artifact: `BTCUSDT-Quant-System-Paper-<source SHA>.apk`, JUnit XML/HTML, `android-source-sha.txt`, `android-apk.json`.
 
 Không còn workflow `android-chart-pro-debug`, `android-chart-pro-release`, parallel-install APK hoặc release signing group `android_release`. Ứng dụng 5 tầng hiện chỉ build debug-signed APK; chưa cấu hình release distribution.
