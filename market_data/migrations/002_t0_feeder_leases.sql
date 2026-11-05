@@ -10,6 +10,3 @@ CREATE TABLE IF NOT EXISTS market_data.feeder_leases (
         (owner_id IS NOT NULL AND expires_at > '-infinity'::timestamptz)
     )
 );
-
-CREATE INDEX IF NOT EXISTS feeder_leases_expiry_idx
-    ON market_data.feeder_leases (expires_at);
