@@ -653,11 +653,10 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
         import tempfile
         from pathlib import Path
 
-        from market_data.feeder import HealthEvaluator, LeaseStore
+        from market_data.feeder import HealthEvaluator, LeaseStore, RecoveryIncompleteError
         from market_data.feeder_service import build_runtime
         from market_data.storage import SQLiteCandleStore
         from market_data.store import INTERVAL_MS, read_window
-        from market_data.recovery import RecoveryIncompleteError
 
         interval = INTERVAL_MS["15m"]
         aligned_now = (NOW // interval) * interval + 5_000
