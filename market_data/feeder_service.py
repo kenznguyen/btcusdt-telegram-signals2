@@ -5,6 +5,7 @@ This process only ingests closed BTCUSDT USD-M candles; it never places orders.
 """
 import os
 import signal
+from pathlib import Path
 import socket
 import threading
 import time
@@ -57,6 +58,29 @@ class RecoveryAdapter:
         return True
 
 
+class FencedCandleWriter:
+    """Route every sync_window page through the active lease's atomic writer."""
+
+    def __init__(self, store, lease_store, owner_id, generation_provider, clock):
+        self.store = store
+        self.lease_store = lease_store
+        self.owner_id = owner_id
+        self.generation_provider = generation_provider
+        self.clock = clock
+
+    def insert(self, candles):
+        generation = self.generation_provider()
+        if generation is None:
+            raise PermissionError("Feeder lease is unavailable; canonical write rejected")
+        return self.store.insert_fenced(
+            candles,
+            owner=self.owner_id,
+            generation=generation,
+            now_ms=self.clock,
+            lease_name=self.lease_store.lease_name,
+        )
+
+
 def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
                   health=None, event_sink=None, recovery_lookback_candles=2000):
     """Compose the existing canonical sync path into the tested FeederRuntime."""
@@ -66,11 +90,28 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
         raise TypeError("clock must be callable")
     clock_fn = clock if clock is not None else (lambda: time.time_ns() // 1_000_000)
 
-    # Initialize the existing selected store without changing schema or backend.
-    store.insert([])
+    # Atomic fencing is currently supported only when lease and candles share
+    # one SQLite database. Separate databases cannot provide this transaction.
+    fenced_insert = getattr(store, "insert_fenced", None)
+    store_path = getattr(store, "path", None)
+    lease_path = getattr(lease_store, "db_path", None)
+    if not callable(fenced_insert) or store_path is None or lease_path is None:
+        raise ValueError("Feeder requires a store with same-database atomic lease fencing")
+    if Path(store_path).resolve() != Path(lease_path).resolve():
+        raise ValueError("Candle store and feeder lease must share the same SQLite database")
+    initialize_store = getattr(store, "initialize", None)
+    if callable(initialize_store):
+        initialize_store()
+
+    runtime = None
+    fenced_writer = FencedCandleWriter(
+        store, lease_store, owner_id,
+        generation_provider=lambda: runtime.lease_generation,
+        clock=clock_fn,
+    )
 
     def canonical_sync(timeframe, start_ms, end_ms):
-        return sync_window(exchange, store, timeframe, start_ms, end_ms, now_ms=clock_fn)
+        return sync_window(exchange, fenced_writer, timeframe, start_ms, end_ms, now_ms=clock_fn)
 
     retry = RetryPolicy(
         max_attempts=config.retry_max_attempts,
