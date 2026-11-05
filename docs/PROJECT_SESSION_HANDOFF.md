@@ -213,3 +213,13 @@ Next permitted work: documentation-only closeout or separately scoped non-Doze e
 - PR #111 remains open pending a real Codemagic run and confirmation of source SHA, test results, and artifacts. PR #112 remains paused.
 - No merge, branch deletion, canonical DB, Feeder activation, exchange access, market-data sync, or live execution.
 - Next: run the new workflow in Codemagic against the exact PR #134 head; inspect logs/artifacts and record PASS/BLOCKED/NOT VERIFIED. Only then decide whether #111 is superseded and may be closed.
+
+
+### Codemagic workflow follow-up correction — 2026-11-05
+
+- Static review found the new Gateway workflow initially invoked system `python` although `ci/setup-python.sh` provisions the isolated interpreter and exports `CI_PYTHON` through Codemagic's `CM_ENV`.
+- Corrected every compile/test invocation in the Gateway workflow to use `"$CI_PYTHON"`.
+- Latest PR #134 branch commit after correction: `fda26f48eb9a3f2242d098ae546bfda8cc671d41`.
+- Latest `codemagic.yaml` blob: `7dade638d74542513ed881763fc233261ec52ea9`.
+- Static verification: all Gateway test commands use `CI_PYTHON`; no system `python -m unittest/py_compile` remains in the workflow block; archived legacy workflow blob still matches original; active GitHub Actions workflow path remains absent.
+- Codemagic runtime remains NOT RUN / NOT VERIFIED. No test results, workflow run ID, or artifacts are available yet.
