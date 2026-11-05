@@ -3,6 +3,8 @@ import unittest
 from pathlib import Path
 
 from market_data.store import Candle, CandleStore, INTERVAL_MS, MAX_CANDLES, read_window
+from market_data.feeder import LeaseStore
+from market_data.write_gateway import SQLiteWriteGateway
 
 
 class CandleStoreTest(unittest.TestCase):
@@ -11,6 +13,12 @@ class CandleStoreTest(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.path = Path(self.directory.name) / "candles.sqlite3"
         self.store = CandleStore(self.path)
+        self.leases = LeaseStore(str(self.path))
+        self.lease = self.leases.acquire("store-test", 0, ttl_seconds=1_000_000_000)
+        self.gateway = SQLiteWriteGateway(
+            store=self.store, lease_store=self.leases, owner_id="store-test",
+            generation_provider=lambda: self.lease.generation, clock=lambda: 1,
+        )
         self.step = INTERVAL_MS["15m"]
 
     def candle(self, slot=0, **changes):
@@ -24,7 +32,7 @@ class CandleStoreTest(unittest.TestCase):
 
     def test_persists_exact_decimals_and_closed_candle_identity(self):
         candle = self.candle(open="100.12345678901234567890123456789")
-        self.assertEqual(self.store.insert([candle]), 1)
+        self.assertEqual(self.gateway.write_batch([candle]), 1)
         CandleStore(self.path)
         row = self.window(1)["candles"][0]
         self.assertEqual(row["open"], "100.12345678901234567890123456789")
