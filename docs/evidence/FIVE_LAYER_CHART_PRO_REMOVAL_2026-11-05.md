@@ -83,3 +83,13 @@ After reviewing upgrade compatibility, the initial package/settings rename was c
 
 Latest source checkpoint for this follow-up: `907c5d254d3f832f7d5062ac22b3c529305a6c20`.
 Build/tests and Codemagic artifact remain NOT VERIFIED.
+
+## Follow-up: ensure cleanup branch runs the full five-layer CI gates
+
+Static review found that the cleanup branch was included in the Android workflow but omitted from the Codemagic branch filters for `canonical-market-data` and `five-layer-dashboard`. This would have left T0/T1/Core Strategy/paper integration and React dashboard regression gates untriggered on this branch.
+- Added `cleanup/remove-chart-pro-from-five-layer-20261105` to the branch patterns of `canonical-market-data` and `five-layer-dashboard`.
+- Added a boundary test asserting the cleanup branch is configured for all three workflows: `five-layer-android`, `canonical-market-data`, and `five-layer-dashboard`.
+- Verified by reading the exact Codemagic YAML on the branch: all three workflows contain the cleanup branch pattern and a changeset gate. This is static configuration verification only; Codemagic execution is NOT VERIFIED.
+- Fixed the boundary test's workflow-block extraction to match top-level YAML sections rather than indentation prefixes.
+
+Source checkpoint before this evidence update: `ed9fc45248b25669a849f98a5844977ed2deccb0`.
