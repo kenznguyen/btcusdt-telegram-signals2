@@ -1127,3 +1127,19 @@ Current status:
   3. Prevent feeder-role direct `INSERT` into `market_data.candles` from bypassing Gateway lease fencing; current grants allow raw INSERT (comment #4482929107, `market_data/test_postgres_role_privileges.py`).
 - PR #134 remains BLOCKED for merge until all findings are assessed and either fixed with test-first evidence or explicitly shown inapplicable. Existing CI success does not clear these source-level findings.
 - No source changes made in this step. Next: inspect migrations, PostgreSQL Gateway SQL and role grants; add RED tests for fixed canonical lease identity, SQLite schema fail-closed startup and direct SQL insert denial; implement the smallest safe DB-side design; run focused suites and exact-source GitHub Actions. Keep all DB tests disposable; no canonical DB/Feeder/exchange/sync/deployment/live execution. `ai_execution_enabled=false`.
+
+
+## 2026-11-06 — PR #134 first two Codex P2 mitigations (verification pending)
+
+- Continued existing PR #134 on branch `feature/t0-atomic-write-fencing-20261105`; no new PR and no merge.
+- Added regression contracts before implementation:
+  - `market_data/test_postgres_feeder_runtime.py`: production PostgreSQL runtime rejects any `T0_FEEDER_LEASE_NAME` other than the single canonical identity `binance-btcusdt-canonical`. Test commit `d1d5aa610d9c62c4db8f6b8630d2175f2fdc698f`.
+  - `market_data/test_write_gateway.py`: an existing empty SQLite file is rejected by Gateway construction and remains without tables. Test commit `180e0ee62d9187b0b9cf38b2e25d09b50870a7eb`.
+- Implemented the corresponding mitigations:
+  - `market_data/feeder_service.py`: production PostgreSQL runtime now rejects custom lease names and always uses `binance-btcusdt-canonical`. Commit `f6a214dc1b0e149f761d29327bee7286295df7cf`.
+  - `market_data/write_gateway.py`: SQLite Gateway opens the existing DB read-only and validates the canonical candles columns/primary key before allowing runtime lease acquisition; if a lease table already exists, its columns/primary key are validated too. A missing lease table is allowed because `LeaseStore.acquire()` creates it after the canonical candles schema has passed validation. Commit `9688d176c4b0e9151111e11c33d27eca5d825059`.
+- Current branch tip expected from sequential commits: `9688d176c4b0e9151111e11c33d27eca5d825059`. Exact PR-head metadata was not independently retrieved in this step; verify before any further writes.
+- CI status: **NOT VERIFIED**. The available commit-workflow lookup returned no runs for the latest commit and only exposes PR-triggered runs; do not infer test pass or fail from that empty result. RED failure of the new tests was not captured as workflow evidence before implementation.
+- Codex P2 #3 remains unresolved: PostgreSQL feeder role has direct INSERT on `market_data.candles`, allowing bypass of the fenced Gateway. Do not mark PR ready or merge.
+- Next: design a DB-enforced writer boundary (likely a tightly scoped SECURITY DEFINER function with fixed search_path, explicit EXECUTE grant, and no direct INSERT privilege), add disposable TimescaleDB integration tests proving direct INSERT is denied while Gateway writes still work, then run exact-source CI and obtain a fresh Codex review. Keep tests confined to the disposable local TimescaleDB service.
+- No canonical DB, production Feeder, exchange, sync, deployment, or live execution was started. T0 source changes are limited to the two mitigations above. `ai_execution_enabled=false`.
