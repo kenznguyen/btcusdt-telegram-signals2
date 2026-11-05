@@ -1067,3 +1067,17 @@ Current status:
 - Overall PR #136 CI: **PASS 3/3**. This validates the follow-up source SHA only. It does not add Gateway/Feeder test coverage; README now explicitly states that limitation.
 - Independent Codex review requested in PR comment #6663897791; pending at handoff update.
 - PR #136 remains OPEN / READY FOR REVIEW / NOT MERGED. Do not merge without explicit user approval.
+
+
+## 2026-11-06 — PR #136 Codex P2 follow-up
+
+- Independent Codex review completed on prior head `032fc304345f32756c6730f85c39c916f0d2adef` and reported P2: `ci/test_legacy_runner.py` still imported the deleted `ci/run-legacy.py`, causing `FileNotFoundError` during test discovery. Review thread: https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/136#discussion_r4483417138.
+- Fixed on the existing PR #136 branch `cleanup/pr135-codex-followup-20261105`: deleted obsolete `ci/test_legacy_runner.py`.
+- Commit / current PR head: `e5eb944c253bbe2ba441ee2f7b77ae861ed68ea4`.
+- Existing `ci.test_legacy_bridge_retirement` still asserts `ci/run-legacy.py` is absent. No supported legacy-runner behavior is retained.
+- PR #136 body and discussion updated to identify the finding and fix.
+- Prior CI run #42068647963 validates only the previous SHA `032fc304345f32756c6730f85c39c916f0d2adef`; it is not evidence for the new head. Exact-head CI for `e5eb944c253bbe2ba441ee2f7b77ae861ed68ea4` is **PENDING / NOT VERIFIED** at this update.
+- Fresh independent Codex review of the new head has not yet been requested; request after exact-head CI and self-review.
+- PR #136 remains OPEN / NOT MERGED. Merge requires explicit user approval.
+- No T0 source/runtime, DB, Feeder, exchange, market-data sync, or execution changes. `AI_EXECUTION_ENABLED=false`.
+- Next: inspect exact-head Actions run, verify test collection and full configured gates, self-review changed files and stale references, then request Codex review on the final SHA. Do not merge automatically.
