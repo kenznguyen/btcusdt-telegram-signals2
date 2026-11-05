@@ -292,7 +292,7 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(intelligence["status"], "DEGRADED")
 
     def test_risk_limit_breach_auto_kills_new_paper_intents(self):
-        self.request("/v1/equity/record", "POST", {})
+        self.request("/v1/paper/evaluate", "POST", {})
         with sqlite3.connect(self.paper_db) as connection:
             connection.execute("UPDATE paper_state SET realized='-25' WHERE id=1")
         with patch.dict(os.environ,{"PAPER_MAX_DRAWDOWN_PCT":"20","PAPER_MAX_DAILY_LOSS_USDT":"10","PAPER_MAX_EXPOSURE_USDT":"1000"}):
