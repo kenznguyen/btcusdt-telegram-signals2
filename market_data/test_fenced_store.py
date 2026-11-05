@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from market_data.feeder import LeaseStore
-from market_data.store import Candle, CandleStore, INTERVAL_MS
+from market_data.store import Candle, CandleStore, INTERVAL_MS, read_window
 
 NOW = 1_800_000_000_000
 
@@ -41,9 +41,7 @@ class FencedCandleStoreTest(unittest.TestCase):
                 [candle()], owner="worker-A", generation=lease.generation,
                 now_ms=lambda: NOW + 60_001,
             )
-        self.assertEqual(self.store.read_window(
-            "BTCUSDT", "15m", NOW, NOW + INTERVAL_MS["15m"]
-        )["candles"], [])
+        self.assertEqual(read_window(self.path, "BTCUSDT", "15m", NOW, NOW + INTERVAL_MS["15m"])["candles"], [])
 
     def test_stale_generation_cannot_write_after_takeover(self):
         old = self.leases.acquire("worker-A", NOW, 60)
@@ -77,9 +75,7 @@ class FencedCandleStoreTest(unittest.TestCase):
                 owner="worker-A", generation=lease.generation,
                 now_ms=lambda: NOW + 2,
             )
-        self.assertEqual(self.store.read_window(
-            "BTCUSDT", "15m", NOW, NOW + 2 * INTERVAL_MS["15m"]
-        )["coverage"]["returned"], 1)
+        self.assertEqual(read_window(self.path, "BTCUSDT", "15m", NOW, NOW + 2 * INTERVAL_MS["15m"])["coverage"]["returned"], 1)
 
 
 if __name__ == "__main__":
