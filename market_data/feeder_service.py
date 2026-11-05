@@ -21,6 +21,7 @@ from market_data.feeder import (
 from market_data.storage import create_store_from_env
 from market_data.sync import sync_window
 from market_data.store import INTERVAL_MS
+from market_data.write_gateway import SQLiteWriteGateway
 
 
 class RecoveryAdapter:
@@ -58,7 +59,7 @@ class RecoveryAdapter:
         return True
 
 
-class FencedCandleWriter:
+class FencedCandleWriter:  # Deprecated compatibility shim; runtime uses SQLiteWriteGateway.
     """Route every sync_window page through the active lease's atomic writer."""
 
     def __init__(self, store, lease_store, owner_id, generation_provider, clock):
