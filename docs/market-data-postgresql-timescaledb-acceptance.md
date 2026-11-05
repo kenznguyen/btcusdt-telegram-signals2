@@ -86,16 +86,16 @@ A mismatch in any candle, availability field, gap, or dataset hash blocks cutove
 
 ## Gate 6 — Codemagic evidence
 
-All executable validation belongs in Codemagic, not GitHub Actions.
+GitHub Actions is the default executable validation and evidence platform. Codemagic is a fallback only when GitHub Actions is unavailable or materially constrained.
 
-- [ ] A dedicated manual Codemagic workflow targets a disposable PostgreSQL/TimescaleDB staging service.
+- [ ] A dedicated manually triggered GitHub Actions workflow targets a disposable PostgreSQL/TimescaleDB staging service. If GitHub Actions cannot run for a documented reason, an equivalent Codemagic fallback may be used.
 - [ ] The workflow records exact source commit SHA, database engine/extension versions, migration IDs/checksums, and test artifact hashes.
 - [ ] Unit/contract tests cover both adapters and all compatibility cases above.
 - [ ] PostgreSQL integration tests cover transaction rollback, uniqueness, duplicate/conflict behavior, numeric precision, and hypertable query behavior.
 - [ ] Migration tests cover clean install, upgrade, interrupted/retried batches, and checksum mismatch fail-closed behavior.
 - [ ] Parity tests compare identical SQLite and PostgreSQL datasets and verify identical `datasetVersion`.
 - [ ] Artifacts include machine-readable test results and a parity report; logs do not expose database credentials or tokens.
-- [ ] A successful Codemagic run is tied to the exact PR head SHA. YAML presence or a locally inferred result is not evidence of a successful run.
+- [ ] A successful workflow run is tied to the exact PR head SHA. Record whether GitHub Actions or an explicitly approved Codemagic fallback ran. YAML presence or a locally inferred result is not evidence of a successful run.
 
 ## Cutover approval checklist
 
