@@ -1099,3 +1099,18 @@ Current status:
 - PR #136 remains OPEN / NOT MERGED; merge requires explicit user approval.
 - No T0 source/runtime, DB, Feeder, exchange, market-data sync, or live execution changes. `AI_EXECUTION_ENABLED=false`.
 - Next: await user decision on PR #136; do not merge without explicit approval. After approval/merge, record merge SHA and re-check base branch CI.
+
+
+## 2026-11-06 — PR #136 merged
+
+- User explicitly approved merge; PR #136 merged successfully.
+- PR: https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/136
+- Final PR source SHA: `e5eb944c253bbe2ba441ee2f7b77ae861ed68ea4`.
+- Merge commit SHA: `0edd0032597ce11c9896b7182d358284e47edb85`.
+- Verified GitHub PR state after merge: CLOSED / MERGED; `merged=true`; `merged_at=2026-11-05T17:14:30Z`.
+- PR-head CI remains exact-head run #42071311091, SUCCESS 3/3, and Codex review on exact head reported no findings. These validate the PR source SHA, not a separately built artifact from the merge commit.
+- Querying workflow runs for merge commit SHA returned no runs at the time of verification. Base-branch post-merge CI: **NOT VERIFIED / no run found**. Do not imply a fresh run on merge SHA.
+- Changes merged: retire `ci/run-legacy.py`, protect its absence in retirement regression, remove stale `ci/test_legacy_runner.py`, correct README T0 CI coverage.
+- T0 source/runtime unchanged; no DB/Feeder/exchange/market-data operations; `AI_EXECUTION_ENABLED=false`.
+- T4 remains a non-blocking boundary check, not functionally certified.
+- Next: check base branch workflow status and verify `feature/android-five-layer-control` points to the merge commit; do not activate T0/Feeder or live execution.
