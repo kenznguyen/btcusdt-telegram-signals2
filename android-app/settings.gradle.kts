@@ -12,6 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "BTCUSDTLiveAlerts"
+rootProject.name = "BTCUSDTQuantSystem"
 include(":app")
-
