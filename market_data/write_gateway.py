@@ -36,12 +36,40 @@ class SQLiteWriteGateway:
         resolved_path = Path(store_path).resolve()
         if not resolved_path.is_file():
             raise FileNotFoundError("Canonical SQLite database must already exist before Gateway construction")
+        self._validate_existing_schema(resolved_path)
         self.db_path = str(resolved_path)
         self.db_uri = resolved_path.as_uri() + "?mode=rw"
         self.lease_name = lease_name
         self.owner_id = owner_id
         self.generation_provider = generation_provider
         self.clock = clock
+
+
+    @staticmethod
+    def _validate_existing_schema(path):
+        """Reject an empty or incompatible existing DB before lease acquisition."""
+        uri = Path(path).resolve().as_uri() + "?mode=ro"
+        expected_candles = [
+            "exchange", "market_type", "symbol", "timeframe", "open_time_ms",
+            "open", "high", "low", "close", "volume", "available_at_ms",
+        ]
+        expected_lease = ["lease_name", "owner", "generation", "expires_at_ms"]
+        candle_pk = ["exchange", "market_type", "symbol", "timeframe", "open_time_ms"]
+        with closing(sqlite3.connect(uri, uri=True, timeout=5)) as connection:
+            def columns(table):
+                rows = connection.execute(f"PRAGMA table_info({table})").fetchall()
+                return [row[1] for row in rows], [row[1] for row in sorted(rows, key=lambda row: row[5]) if row[5]]
+
+            names, primary_key = columns("candles")
+            if names != expected_candles or primary_key != candle_pk:
+                raise ValueError("Incompatible canonical SQLite schema: candles table is missing or invalid")
+
+            lease_rows = connection.execute("PRAGMA table_info(feeder_leases)").fetchall()
+            if lease_rows:
+                lease_names = [row[1] for row in lease_rows]
+                lease_pk = [row[1] for row in sorted(lease_rows, key=lambda row: row[5]) if row[5]]
+                if lease_names != expected_lease or lease_pk != ["lease_name"]:
+                    raise ValueError("Incompatible canonical SQLite schema: feeder_leases table is invalid")
 
     @staticmethod
     def _now(clock):
