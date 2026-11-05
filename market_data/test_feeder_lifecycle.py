@@ -648,5 +648,214 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
             leases.heartbeat.assert_called_once()
 
 
+    def test_build_runtime_incomplete_recovery_never_opens_ready_and_releases_idle_lease(self):
+        import sqlite3
+        import tempfile
+        from pathlib import Path
+
+        from market_data.feeder import HealthEvaluator, LeaseStore
+        from market_data.feeder_service import build_runtime
+        from market_data.storage import SQLiteCandleStore
+        from market_data.store import INTERVAL_MS, read_window
+        from market_data.recovery import RecoveryIncompleteError
+
+        interval = INTERVAL_MS["15m"]
+        aligned_now = (NOW // interval) * interval + 5_000
+        recovery_end = aligned_now - 5_000
+        recovery_start = recovery_end - interval
+
+        class EmptySyntheticExchange:
+            id = "binanceusdm"
+
+            def load_markets(self):
+                return {
+                    "BTC/USDT:USDT": {
+                        "symbol": "BTC/USDT:USDT", "id": "BTCUSDT",
+                        "base": "BTC", "quote": "USDT", "settle": "USDT",
+                        "active": True, "swap": True, "linear": True, "spot": False,
+                    }
+                }
+
+            def fetch_time(self):
+                return aligned_now + 1_000
+
+            def fetch_ohlcv(self, symbol, timeframe, since, limit, params):
+                return []
+
+        with tempfile.TemporaryDirectory(prefix="t0-recovery-incomplete-") as directory:
+            db_path = Path(directory) / "isolated-incomplete.sqlite3"
+            store = SQLiteCandleStore(db_path)
+            leases = LeaseStore(str(db_path))
+            config = FeederConfig(
+                timeframes=("15m",), close_grace_seconds=5,
+                lease_ttl_seconds=60, lease_heartbeat_seconds=15,
+            )
+            runtime = build_runtime(
+                config=config, owner_id="incomplete-recovery-worker",
+                exchange=EmptySyntheticExchange(), store=store,
+                lease_store=leases, clock=lambda: aligned_now,
+                recovery_lookback_candles=1,
+            )
+            evaluator = HealthEvaluator(config)
+
+            with self.assertRaises(RecoveryIncompleteError):
+                runtime.start(now_ms=aligned_now)
+
+            self.assertEqual(runtime.state, "FAILED")
+            self.assertIsNone(runtime.scheduler._thread)
+            self.assertFalse(leases.is_current(
+                "incomplete-recovery-worker", runtime.lease_generation,
+                aligned_now + 1,
+            ))
+            result = read_window(
+                db_path, "BTCUSDT", "15m", recovery_start, recovery_end
+            )
+            self.assertFalse(result["coverage"]["complete"])
+            health = evaluator.evaluate(
+                runtime.health_snapshot({
+                    "storage_readable": True,
+                    "storage_writable": True,
+                    "fatal_error": False,
+                    "m15": {
+                        "latest_closed_candle_close_ms": None,
+                        "last_successful_sync_ms": None,
+                        "unresolved_gap_count": len(result["coverage"]["gaps"]),
+                        "sync_error": None,
+                    },
+                }),
+                now_ms=aligned_now + 5_000,
+            )
+            self.assertFalse(health.ready)
+            self.assertEqual(health.state, "FAILED")
+
+    def test_build_runtime_lease_takeover_between_recovery_pages_blocks_next_write_and_ready(self):
+        import sqlite3
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+
+        from market_data.feeder import HealthEvaluator, LeaseStore
+        from market_data.feeder_service import build_runtime
+        from market_data.storage import SQLiteCandleStore
+        from market_data.store import INTERVAL_MS, read_window
+        from market_data.sync import sync_window
+
+        interval = INTERVAL_MS["15m"]
+        aligned_now = (NOW // interval) * interval + 5_000
+        recovery_end = aligned_now - 5_000
+        recovery_start = recovery_end - 3 * interval
+        middle_open = recovery_start + interval
+        exchange_calls = []
+        recovery_pages = []
+        replacement_leases = []
+
+        class SyntheticExchange:
+            id = "binanceusdm"
+
+            def load_markets(self):
+                return {
+                    "BTC/USDT:USDT": {
+                        "symbol": "BTC/USDT:USDT", "id": "BTCUSDT",
+                        "base": "BTC", "quote": "USDT", "settle": "USDT",
+                        "active": True, "swap": True, "linear": True, "spot": False,
+                    }
+                }
+
+            def fetch_time(self):
+                return aligned_now + 1_000
+
+            def fetch_ohlcv(self, symbol, timeframe, since, limit, params):
+                exchange_calls.append((timeframe, since))
+                return [[since, 100.0, 101.0, 99.0, 100.5, 1.0]]
+
+        with tempfile.TemporaryDirectory(prefix="t0-recovery-lease-loss-") as directory:
+            db_path = Path(directory) / "isolated-lease-loss.sqlite3"
+            store = SQLiteCandleStore(db_path)
+            store.initialize()
+            leases = LeaseStore(str(db_path))
+            with sqlite3.connect(db_path) as connection:
+                connection.execute(
+                    """INSERT INTO candles
+                       (exchange, market_type, symbol, timeframe, open_time_ms,
+                        open, high, low, close, volume, available_at_ms)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    ("binance", "usdm", "BTCUSDT", "15m", middle_open,
+                     100.0, 101.0, 99.0, 100.0, 1.0, middle_open + interval),
+                )
+
+            config = FeederConfig(
+                timeframes=("15m",), close_grace_seconds=5,
+                lease_ttl_seconds=60, lease_heartbeat_seconds=15,
+            )
+            runtime = build_runtime(
+                config=config, owner_id="recovery-owner",
+                exchange=SyntheticExchange(), store=store,
+                lease_store=leases, clock=lambda: aligned_now,
+                recovery_lookback_candles=3,
+            )
+            evaluator = HealthEvaluator(config)
+            original_sync = sync_window
+
+            def sync_then_transfer_lease(exchange, gateway, timeframe, start_ms, end_ms, now_ms=None):
+                result = original_sync(
+                    exchange, gateway, timeframe, start_ms, end_ms, now_ms=now_ms
+                )
+                recovery_pages.append((start_ms, end_ms, result))
+                if len(recovery_pages) == 1:
+                    replacement = leases.acquire(
+                        "replacement-owner", now_ms=aligned_now + 60_001,
+                        ttl_seconds=60,
+                    )
+                    replacement_leases.append(replacement)
+                return result
+
+            with patch(
+                "market_data.feeder_service.sync_window",
+                side_effect=sync_then_transfer_lease,
+            ):
+                with self.assertRaises(RuntimeError):
+                    runtime.start(now_ms=aligned_now)
+
+            self.assertEqual(len(recovery_pages), 1)
+            self.assertEqual(len(exchange_calls), 1)
+            self.assertEqual(runtime.state, "LEASE_LOST")
+            self.assertIsNotNone(replacement_leases[0])
+            replacement = replacement_leases[0]
+            self.assertTrue(leases.is_current(
+                "replacement-owner", replacement.generation, aligned_now + 60_002
+            ))
+            self.assertFalse(leases.is_current(
+                "recovery-owner", runtime.lease_generation, aligned_now + 60_002
+            ))
+
+            stored = read_window(
+                db_path, "BTCUSDT", "15m", recovery_start, recovery_end
+            )
+            self.assertEqual(stored["coverage"]["returned"], 2)
+            self.assertEqual(
+                [candle["openTimeMs"] for candle in stored["candles"]],
+                [recovery_start, middle_open],
+            )
+            health = evaluator.evaluate(
+                runtime.health_snapshot({
+                    "storage_readable": True,
+                    "storage_writable": True,
+                    "fatal_error": False,
+                    "m15": {
+                        "latest_closed_candle_close_ms": (
+                            stored["candles"][-1]["closeTimeMs"]
+                        ),
+                        "last_successful_sync_ms": aligned_now,
+                        "unresolved_gap_count": len(stored["coverage"]["gaps"]),
+                        "sync_error": None,
+                    },
+                }),
+                now_ms=aligned_now + 5_000,
+            )
+            self.assertFalse(health.ready)
+            self.assertNotEqual(health.state, "HEALTHY")
+            self.assertIsNone(runtime.scheduler._thread)
+
+
 if __name__ == "__main__":
     unittest.main()
