@@ -478,6 +478,24 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                 admin.execute("DROP ROLE t0_migrator_login")
                 admin.execute("DROP ROLE t0_migrator")
 
+    def test_migration_rejects_admin_option_on_ephemeral_migrator_membership(self):
+        from market_data.migrations import migrate
+
+        with self.psycopg.connect(DSN, autocommit=True) as admin:
+            admin.execute("CREATE ROLE t0_migrator NOLOGIN")
+            admin.execute("CREATE ROLE t0_migrator_login LOGIN")
+            admin.execute("GRANT t0_migrator TO t0_migrator_login WITH ADMIN OPTION")
+            try:
+                with self.assertRaisesRegex(
+                    RuntimeError, "t0_migrator_login may only be a member of t0_migrator"
+                ):
+                    migrate(DSN)
+            finally:
+                admin.execute("REVOKE ADMIN OPTION FOR t0_migrator FROM t0_migrator_login")
+                admin.execute("REVOKE t0_migrator FROM t0_migrator_login")
+                admin.execute("DROP ROLE t0_migrator_login")
+                admin.execute("DROP ROLE t0_migrator")
+
     def test_runtime_roles_have_no_schema_create_or_role_admin_privilege(self):
         with self.psycopg.connect(DSN, autocommit=True) as admin:
             feeder = admin.execute(
