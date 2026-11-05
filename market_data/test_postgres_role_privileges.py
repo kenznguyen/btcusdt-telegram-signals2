@@ -60,10 +60,7 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                 + '"' + cls.feeder_role + '"'
             )
             admin.execute(
-                "GRANT EXECUTE ON FUNCTION market_data.write_canonical_candle("
-                "text, text, bigint, text, text, text, text, bigint, "
-                "numeric, numeric, numeric, numeric, numeric, bigint) TO "
-                + '"' + cls.feeder_role + '"'
+                "GRANT t0_feeder_writer TO " + '"' + cls.feeder_role + '"'
             )
             admin.execute(
                 "GRANT SELECT ON market_data.candles TO " + '"' + cls.reader_role + '"'
