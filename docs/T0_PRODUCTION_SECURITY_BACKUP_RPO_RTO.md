@@ -30,6 +30,19 @@ Use separate PostgreSQL roles. Do not reuse one login for migrations, ingestion,
 - `t0_reader` receives SELECT only on approved read surfaces; it must not read or mutate lease ownership.
 - Fix each login's `search_path` to a trusted schema and fully qualify security-sensitive SQL. Revoke CREATE on shared schemas from application roles.
 - Apply default privileges for future tables so new objects do not silently become accessible to PUBLIC or application logins.
+
+### Privileges derived from the current runtime SQL
+
+Reviewed against `market_data/postgres.py`, `market_data/feeder_service.py`, `market_data/storage.py`, and migration `002_t0_feeder_leases.sql` at the PG-RUNTIME-ADAPTER implementation SHA `3a3e81396ec1c9d03039e0139fab260e83efedd1`:
+
+- Database: `CONNECT` for Feeder and reader identities; no `CREATE` or `TEMPORARY` needed by the current application path.
+- Schema `market_data`: `USAGE` only for Feeder and reader. No `CREATE`.
+- `market_data.feeder_leases`: Feeder needs `SELECT, INSERT, UPDATE`. `INSERT` is required because `PostgresLeaseStore.acquire()` seeds a missing lease row with `INSERT ... ON CONFLICT DO NOTHING`; `SELECT ... FOR UPDATE` and lease state reads require SELECT; heartbeat/release/takeover require UPDATE. Reader receives no lease-table privileges.
+- `market_data.candles`: Feeder needs `SELECT, INSERT`. The writer reads existing keys/values (including `SELECT ... FOR UPDATE`) to preserve idempotency and reject conflicts, then inserts missing rows. Reader receives `SELECT` only.
+- Migration metadata/schema DDL is not used by the runtime. `PostgresStore.initialize()` is read-only/no-op and migrations are explicitly applied through the migration command. Therefore Feeder must not own schema/tables and must not receive CREATE/ALTER/DROP or extension privileges.
+- Current code selects PostgreSQL DSN from `MARKET_DATA_POSTGRES_DSN`. The older design document names `MARKET_DATA_DATABASE_URL`; that naming mismatch is a deployment blocker until docs/config are reconciled in a separately reviewed change. Do not set both or silently introduce an alias.
+- These grants are a source-derived minimum hypothesis, not yet database acceptance. Verify them with role-based integration tests, including negative tests and the exact provider/extension version, before production.
+
 - Verify actual effective privileges using `has_database_privilege`, `has_schema_privilege`, `has_table_privilege`, role membership queries, and negative integration tests. A written grant list alone is not acceptance evidence.
 - Keep migration ownership separate from runtime ownership. Runtime must fail closed if a required migration is missing or has a checksum mismatch.
 
