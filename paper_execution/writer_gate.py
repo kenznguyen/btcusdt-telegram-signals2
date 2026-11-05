@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import os
 import platform
 import sqlite3
+from contextlib import closing
 import time
 from pathlib import Path
 import secrets
@@ -155,7 +156,7 @@ class PaperWriterGate:
             raise WriterGateError("No verified writer-lock adapter for this platform")
         gate = cls(str(paper_db_path))
         gate.coordinator_path.parent.mkdir(parents=True, exist_ok=True)
-        with gate._connect() as connection:
+        with closing(gate._connect()) as connection:
             connection.execute("BEGIN IMMEDIATE")
             connection.execute(
                 """CREATE TABLE IF NOT EXISTS paper_writer_gate_state (
@@ -214,7 +215,7 @@ class PaperWriterGate:
     def admit_writer(self, *, timeout_seconds: float = 10.0) -> WriterToken:
         lock = self._lock(exclusive=False, timeout_seconds=timeout_seconds)
         try:
-            with self._connect() as connection:
+            with closing(self._connect()) as connection:
                 connection.execute("BEGIN IMMEDIATE")
                 state, generation = self._state(connection)
                 if state != "OPEN":
