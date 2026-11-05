@@ -102,7 +102,7 @@ class FiveLayerAndroidBoundaryTest(unittest.TestCase):
         for marker in (
             "pull_request:", "feature/android-five-layer-control", "workflow_dispatch:",
             "permissions:", "contents: read", "android-paper:", "backend-regression:",
-            "dashboard:", 'AI_EXECUTION_ENABLED: "false"',
+            "dashboard-boundary:", 'AI_EXECUTION_ENABLED: "false"',
         ):
             self.assertIn(marker, workflow)
         self.assertFalse((ROOT / "codemagic.yaml").exists(), "Codemagic config must be retired")
