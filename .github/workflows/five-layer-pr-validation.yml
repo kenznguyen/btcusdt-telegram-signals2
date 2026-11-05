@@ -45,7 +45,7 @@ jobs:
           set -euo pipefail
           sdkmanager="$(find "$ANDROID_SDK_ROOT/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
           test -x "$sdkmanager"
-          yes | "$sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null
+          printf "y\ny\ny\ny\ny\ny\ny\ny\ny\ny\n" | "$sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null
           "$sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --install "platforms;android-35" "build-tools;34.0.0"
       - name: Set up Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
