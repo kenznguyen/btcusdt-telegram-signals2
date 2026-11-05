@@ -115,6 +115,64 @@ class CandleStore:
                 inserted += 1
         return inserted
 
+    def insert_fenced(self, candles, *, owner, generation, now_ms,
+                      lease_name="binance-btcusdt-canonical"):
+        """Authorize and persist a batch under one SQLite write transaction.
+
+        BEGIN IMMEDIATE serializes this transaction with lease takeover and
+        heartbeat updates when the lease table shares this database.
+        """
+        if not isinstance(owner, str) or not owner.strip():
+            raise ValueError("owner must be a non-empty string")
+        if type(generation) is not int or generation < 1:
+            raise ValueError("generation must be a positive integer")
+        if not callable(now_ms):
+            raise TypeError("now_ms must be a callable clock")
+        if not isinstance(lease_name, str) or not lease_name.strip():
+            raise ValueError("lease_name must be a non-empty string")
+        batch = list(candles)
+        if any(not isinstance(candle, Candle) for candle in batch):
+            raise ValueError("Expected validated Candle values")
+
+        inserted = 0
+        with closing(sqlite3.connect(self.path, timeout=5, isolation_level=None)) as connection:
+            connection.execute("PRAGMA busy_timeout=5000")
+            try:
+                connection.execute("BEGIN IMMEDIATE")
+                observed_now = now_ms()
+                if type(observed_now) is not int or observed_now < 0:
+                    raise ValueError("now_ms clock must return a nonnegative integer")
+                lease = connection.execute(
+                    """SELECT 1 FROM feeder_leases
+                       WHERE lease_name=? AND owner=? AND generation=? AND expires_at_ms>?""",
+                    (lease_name, owner, generation, observed_now),
+                ).fetchone()
+                if lease is None:
+                    raise PermissionError("Feeder lease is not current; canonical write rejected")
+
+                for candle in batch:
+                    key = (EXCHANGE, MARKET_TYPE, candle.symbol, candle.timeframe, candle.open_time_ms)
+                    prices = tuple(getattr(candle, name) for name in PRICE_FIELDS)
+                    existing = connection.execute(
+                        """SELECT open, high, low, close, volume FROM candles
+                           WHERE exchange=? AND market_type=? AND symbol=? AND timeframe=? AND open_time_ms=?""",
+                        key,
+                    ).fetchone()
+                    if existing is not None:
+                        if existing != prices:
+                            raise ValueError("Conflicting closed candle; history was not overwritten")
+                        continue
+                    connection.execute(
+                        "INSERT INTO candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        key + prices + (candle.available_at_ms,),
+                    )
+                    inserted += 1
+                connection.commit()
+                return inserted
+            except Exception:
+                connection.rollback()
+                raise
+
 
 def read_window(db_path, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
     if symbol != SYMBOL or not isinstance(timeframe, str) or timeframe not in INTERVAL_MS:
