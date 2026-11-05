@@ -1,0 +1,155 @@
+# T0 production security, backup and recovery architecture
+
+## Status
+
+- Status: **P0 proposal — design only; not production authorization**.
+- Applies to the independent T0 canonical market-data database and its VPS Feeder.
+- Canonical source remains Binance USD-M BTCUSDT, stored identity `binance / USDT_PERPETUAL / BTCUSDT`, timeframes M15/H1.
+- T0 database ownership is independent from the Paper DB and SWG-F writer admission state.
+- No database, VPS, credential, network rule, migration, backup job, or Feeder service is created or changed by this document.
+- PostgreSQL runtime adapter and atomic writer are implemented and pass disposable TimescaleDB CI; production role grants and recovery remain unverified.
+
+## 1. Security principals and privilege boundaries
+
+Use separate PostgreSQL roles. Do not reuse one login for migrations, ingestion, read APIs, backup, and administration.
+
+| Principal | Login policy | Allowed scope | Explicitly denied |
+|---|---|---|---|
+| `t0_db_owner` | NOLOGIN | Owns `market_data` schema, tables, migration history | Application login; routine Feeder use |
+| `t0_migrator` | Ephemeral LOGIN or short-lived provider identity; membership only in owner role for a controlled migration window | Apply approved, checksum-verified migrations | Feeder runtime; public API; persistent credentials on VPS |
+| `t0_feeder` | LOGIN, dedicated secret | Connect to the one T0 database; schema USAGE; only required SELECT/INSERT/UPDATE on canonical candles and lease table | DDL, DROP, TRUNCATE, DELETE, role grants, extension management, other schemas, Paper DB |
+| `t0_reader` | LOGIN, separate secret per consumer where practical | Connect; schema USAGE; SELECT on explicitly approved canonical read tables/views | Any write, lease access, DDL, migration |
+| Backup identity | Prefer provider-managed backup/PITR identity outside SQL login; if logical export is required, dedicated read-only identity | Read required T0 objects and migration metadata | Feeder lease mutation, DDL, application write, Paper DB |
+| `t0_admin` | Human/provider break-glass, MFA, audited, time-limited | Emergency maintenance only | Routine application configuration |
+
+### Required grant posture
+
+- Revoke unnecessary privileges from `PUBLIC`; do not grant database-wide write privileges to application roles.
+- `t0_feeder` must not be a member of `t0_db_owner`, `t0_migrator`, `pg_write_all_data`, or any superuser role.
+- Grant table privileges explicitly. For the current atomic writer, the Feeder requires the minimum operations actually used by `PostgresLeaseStore` and `PostgresWriteGateway`: SELECT/INSERT/UPDATE on the dedicated lease table and SELECT/INSERT on candles (plus any narrowly required conflict-check privilege established by integration tests). It must not receive DELETE/TRUNCATE or schema CREATE.
+- `t0_reader` receives SELECT only on approved read surfaces; it must not read or mutate lease ownership.
+- Fix each login's `search_path` to a trusted schema and fully qualify security-sensitive SQL. Revoke CREATE on shared schemas from application roles.
+- Apply default privileges for future tables so new objects do not silently become accessible to PUBLIC or application logins.
+- Verify actual effective privileges using `has_database_privilege`, `has_schema_privilege`, `has_table_privilege`, role membership queries, and negative integration tests. A written grant list alone is not acceptance evidence.
+- Keep migration ownership separate from runtime ownership. Runtime must fail closed if a required migration is missing or has a checksum mismatch.
+
+The exact grants must be derived from SQL statements executed by the current runtime and tested against the selected PostgreSQL/TimescaleDB version before they are frozen. Do not guess grants from role names.
+
+## 2. Credential and network controls
+
+- Store DSNs/passwords in the selected VPS/provider secret manager or protected service environment; never commit them to GitHub, workflow YAML, artifacts, logs, shell history, or evidence documents.
+- Use distinct credentials for Feeder, readers, migration, and break-glass. No shared admin DSN in `.env` for routine runtime.
+- Require TLS with certificate and hostname verification (`sslmode=verify-full` where supported); reject plaintext remote database connections.
+- Restrict database ingress to the VPS private network or fixed, explicitly approved source addresses. Do not expose PostgreSQL publicly to the internet.
+- Restrict outbound Feeder access to required Binance USD-M market-data endpoints and the database endpoint. No exchange order endpoint or trading credential is required for T0 ingestion.
+- Use OS service identity with least privilege; protect environment files (owner-only read), disable core dumps where they could contain secrets, and ensure logs redact DSNs/tokens.
+- Rotation must be testable without an unbounded ingestion outage: provision replacement credential, validate it, switch service, verify health, then revoke old credential. Record rotation time and result.
+- GitHub Actions is the default CI/evidence system. Codemagic may be used only as an explicit fallback when GitHub Actions is unavailable or materially constrained; it is not the assumed deployment or execution platform.
+
+## 3. Backup design
+
+Production backup must be independent of the VPS failure domain and the primary database failure domain.
+
+Required capabilities:
+- Provider-managed automated base backups plus continuous WAL/PITR, or an equivalently proven mechanism for the selected provider.
+- Encrypted backup at rest and encrypted transport; keys managed separately from the database host.
+- At least 7 days of point-in-time recovery history for the initial operating profile. Longer retention is a separate cost/retention decision.
+- A periodic logical export of the T0 schema and migration metadata for portability, in addition to physical/PITR backup. Logical export is not a substitute for PITR.
+- Backup destination/account/project must not be writable by the Feeder identity and must not share the VPS disk as its only copy.
+- Backup completion, age, WAL/archive health, retention, and last successful restore must be observable. Missing or stale backup state is a readiness/operations warning and blocks production go-live.
+- Do not back up secrets into the database backup. Preserve configuration templates and version identifiers separately, with secret values held in the secret manager.
+
+### Backup schedule proposal
+
+- Continuous WAL archiving/PITR when supported by the chosen provider.
+- Daily automated recovery point/base backup.
+- Weekly encrypted logical export of `market_data` schema and migration history.
+- Monthly restore drill in an isolated database, and an additional restore drill after a major schema migration or provider change.
+- Alert if the last verified recovery point is older than the approved RPO or if the last restore drill exceeds the approved interval.
+
+These are target controls, not claims about any provider plan. The chosen provider must demonstrate the capabilities and actual retention before approval.
+
+## 4. Restore and failover safety
+
+A restore is not complete merely because PostgreSQL accepts connections.
+
+1. Declare incident and stop the Feeder service. Prevent automated restart.
+2. Fence the old primary and all old Feeder instances: revoke/rotate old credentials or enforce network isolation; confirm no old writer can reach either the old or restored database.
+3. Restore into an isolated target endpoint from the selected recovery point. Do not point the live service at it yet.
+4. Verify engine/extension compatibility and migration checksums. Run database integrity checks and canonical row/key-range/count checks.
+5. In a controlled transaction, invalidate restored lease ownership before any Feeder can start: clear owner, set an expired finite timestamp, and advance the lease generation/epoch using the supported lease schema. Confirm no restored lease is considered current.
+6. Rotate the Feeder credential before reconnecting. Use a new service identity/secret where practical.
+7. Run read-only verification: M15/H1 coverage, gaps, duplicate/conflict checks, timestamp bounds, Decimal values, and representative canonical dataset hashes.
+8. Start one Feeder instance only. Verify it acquires a new lease generation, performs a bounded recovery window, and becomes healthy only after recovery coverage is complete.
+9. Verify consumers read from the intended endpoint and record recovery point, restore duration, data-loss window, migration version, new lease generation, and exact application SHA.
+10. Keep the former primary isolated until an explicit disposition decision. Never allow two writable canonical primaries.
+
+If the provider cannot prove old-primary fencing, the restore/failover is BLOCKED. Do not use lease generation alone as a split-brain defense across two independent database endpoints.
+
+## 5. Proposed RPO/RTO service objectives
+
+Initial proposed targets for operator review:
+
+| Measure | Proposed target | Measurement |
+|---|---:|---|
+| RPO | <= 5 minutes | Difference between incident time and newest recoverable committed canonical write |
+| RTO | <= 60 minutes | From declared incident to verified read service and one healthy Feeder on restored primary |
+| Backup restore drill | At least monthly | Timed isolated restore with integrity/parity evidence |
+| Backup recovery-point age | <= 5 minutes where continuous WAL/PITR is available | Provider backup/WAL telemetry |
+| Feeder recovery after restore | Bounded and observable | Closed-candle coverage check before readiness |
+
+These are proposed service objectives, not proven guarantees. A provider without continuous WAL/PITR may not meet the RPO. If staging cannot demonstrate both targets, production approval must either remain blocked or the operator must explicitly approve revised objectives and their data-loss/availability trade-off. Do not silently weaken targets to fit a low-cost plan.
+
+RPO excludes candles not yet observed/committed by T0. It does not authorize fabricating historical `available_at_ms` values after recovery.
+
+## 6. Staging acceptance matrix
+
+All tests use a disposable PostgreSQL/TimescaleDB staging database, synthetic candles, and non-production credentials.
+
+### Role/grant tests
+- Migration identity can apply an approved migration; Feeder and reader cannot.
+- Feeder can acquire/heartbeat/release its lease and write through the fenced gateway.
+- Feeder cannot CREATE/DROP/ALTER objects, TRUNCATE/DELETE candles, grant roles, access unrelated schemas, or write Paper DB.
+- Reader can execute approved reads but cannot SELECT/UPDATE lease state or write any canonical table.
+- PUBLIC has no unintended access; default privileges remain least-privilege after a new test table is created.
+- Credential rotation works; old credential fails after revocation.
+- Remote TLS hostname/certificate verification succeeds; invalid certificate and unapproved source network fail closed.
+
+### Backup/restore tests
+- Create a known synthetic dataset and record row counts, key ranges, gaps, decimal samples, and canonical hashes.
+- Produce a recovery point; restore into a separate isolated database.
+- Verify all recorded data and hashes match exactly.
+- Demonstrate restored lease invalidation and generation advance.
+- Demonstrate old Feeder credentials and old primary endpoint are fenced before new writer starts.
+- Measure restore time and recoverable data-loss window; record actual RTO/RPO.
+- Verify backup retention and that Feeder cannot delete or alter backup objects.
+- Repeat after a schema migration to prove migration checksums and restore compatibility.
+
+### Operational tests
+- Restart service with valid credentials and verify single-writer lease.
+- Simulate DB loss/connection failure; readiness fails closed and no alternate unfenced writer is selected.
+- Simulate backup telemetry missing/stale; operations status reports degraded and blocks go-live.
+- Confirm no secrets appear in logs, CI artifacts, process arguments, or Git history.
+- Confirm no order endpoint, order credential, live trading, Paper DB mutation, or strategy parameter change is involved.
+
+## 7. Production go-live blockers
+
+Production canonical DB creation, real Binance ingestion, and Feeder activation remain blocked until all are true:
+
+- Provider and VPS are selected with explicit cost ceiling and region.
+- Staging role/grant negative tests pass on the exact provider engine/extension version.
+- TLS, ingress allowlist, secret storage, and credential rotation pass.
+- Backup/PITR and isolated restore pass with measured RPO <= 5m and RTO <= 60m, or revised objectives are explicitly approved.
+- Old-primary fencing and restored-lease invalidation pass.
+- Existing PG writer/runtime CI remains green on the exact candidate SHA.
+- Binance market-data-only connectivity is validated without order permissions.
+- Operator approves the exact database target, VPS, cost, deployment window, and activation step.
+
+No individual item in this document is production authorization. PR merge, database creation, exchange connectivity, and Feeder activation are separate approvals.
+
+## 8. Rollback
+
+- Before production data ingestion: remove staging resources only after preserving evidence; no canonical data rollback is needed.
+- After any future production ingestion: stop Feeder, fence writer credentials, preserve the PostgreSQL database and logs, and route reads back only to a verified SQLite snapshot if the parity/consistency contract allows it. Do not silently dual-write or copy partial state back.
+- Do not delete PostgreSQL or SQLite source data during incident response.
+- Strategy execution remains paper-only; `ai_execution_enabled=false`.
