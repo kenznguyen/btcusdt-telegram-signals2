@@ -33,7 +33,11 @@ class SQLiteWriteGateway:
         lease_name = getattr(lease_store, "lease_name", None)
         if not isinstance(lease_name, str) or not lease_name.strip():
             raise ValueError("lease store must expose a valid lease_name")
-        self.db_path = str(Path(store_path))
+        resolved_path = Path(store_path).resolve()
+        if not resolved_path.is_file():
+            raise FileNotFoundError("Canonical SQLite database must already exist before Gateway construction")
+        self.db_path = str(resolved_path)
+        self.db_uri = resolved_path.as_uri() + "?mode=rw"
         self.lease_name = lease_name
         self.owner_id = owner_id
         self.generation_provider = generation_provider
@@ -55,7 +59,7 @@ class SQLiteWriteGateway:
             raise PermissionError("Feeder lease is unavailable; canonical write rejected")
 
         inserted = 0
-        with closing(sqlite3.connect(self.db_path, timeout=5, isolation_level=None)) as connection:
+        with closing(sqlite3.connect(self.db_uri, uri=True, timeout=5, isolation_level=None)) as connection:
             connection.execute("PRAGMA busy_timeout=5000")
             try:
                 connection.execute("BEGIN IMMEDIATE")
