@@ -434,6 +434,50 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                 admin.execute(f'DROP ROLE "{login}"')
                 admin.execute("DROP ROLE t0_migrator")
 
+    def test_migration_rejects_membership_granted_to_ephemeral_login(self):
+        from market_data.migrations import migrate
+
+        member = "t0_login_member_" + uuid.uuid4().hex[:12]
+        with self.psycopg.connect(DSN, autocommit=True) as admin:
+            admin.execute("CREATE ROLE t0_migrator NOLOGIN")
+            admin.execute("CREATE ROLE t0_migrator_login LOGIN")
+            admin.execute(f'CREATE ROLE "{member}" LOGIN')
+            admin.execute("GRANT t0_migrator TO t0_migrator_login")
+            admin.execute(f'GRANT t0_migrator_login TO "{member}"')
+            try:
+                with self.assertRaisesRegex(
+                    RuntimeError, "t0_migrator_login must not be granted to other roles"
+                ):
+                    migrate(DSN)
+            finally:
+                admin.execute(f'REVOKE t0_migrator_login FROM "{member}"')
+                admin.execute("REVOKE t0_migrator FROM t0_migrator_login")
+                admin.execute(f'DROP ROLE "{member}"')
+                admin.execute("DROP ROLE t0_migrator_login")
+                admin.execute("DROP ROLE t0_migrator")
+
+    def test_migration_rejects_additional_membership_on_ephemeral_login(self):
+        from market_data.migrations import migrate
+
+        extra_role = "t0_login_extra_" + uuid.uuid4().hex[:12]
+        with self.psycopg.connect(DSN, autocommit=True) as admin:
+            admin.execute("CREATE ROLE t0_migrator NOLOGIN")
+            admin.execute("CREATE ROLE t0_migrator_login LOGIN")
+            admin.execute(f'CREATE ROLE "{extra_role}" NOLOGIN')
+            admin.execute("GRANT t0_migrator TO t0_migrator_login")
+            admin.execute(f'GRANT "{extra_role}" TO t0_migrator_login')
+            try:
+                with self.assertRaisesRegex(
+                    RuntimeError, "t0_migrator_login may only be a member of t0_migrator"
+                ):
+                    migrate(DSN)
+            finally:
+                admin.execute(f'REVOKE "{extra_role}" FROM t0_migrator_login')
+                admin.execute("REVOKE t0_migrator FROM t0_migrator_login")
+                admin.execute(f'DROP ROLE "{extra_role}"')
+                admin.execute("DROP ROLE t0_migrator_login")
+                admin.execute("DROP ROLE t0_migrator")
+
     def test_runtime_roles_have_no_schema_create_or_role_admin_privilege(self):
         with self.psycopg.connect(DSN, autocommit=True) as admin:
             feeder = admin.execute(
