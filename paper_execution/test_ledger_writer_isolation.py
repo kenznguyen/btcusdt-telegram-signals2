@@ -124,5 +124,22 @@ class PaperLedgerWriterIsolationTests(unittest.TestCase):
             ledger.cancel("paper-order-that-does-not-exist", now)
 
 
+    def test_market_data_path_is_revalidated_at_explicit_initialization(self):
+        self.market_db.parent.mkdir(parents=True)
+        self.market_db.touch()
+        ledger = PaperLedger(self.paper_db)
+        previous = os.environ.get("MARKET_DATA_DB")
+        os.environ["MARKET_DATA_DB"] = str(self.market_db)
+        try:
+            with self.assertRaises(ValueError):
+                ledger.initialize()
+            self.assertFalse(self.paper_db.exists())
+        finally:
+            if previous is None:
+                os.environ.pop("MARKET_DATA_DB", None)
+            else:
+                os.environ["MARKET_DATA_DB"] = previous
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
