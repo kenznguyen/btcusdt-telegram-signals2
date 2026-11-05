@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   paper-writer-isolation-red:
-    name: SWG-F P1 process-level runtime GREEN
+    name: SWG-F P1 + P2 PaperLedger runtime GREEN
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -65,26 +65,28 @@ jobs:
           echo "PAPER_WRITER_RED_PREFLIGHT=PASS"
       - name: Compile Paper writer contracts
         run: python -m py_compile paper_execution/test_writer_isolation_red.py paper_execution/test_writer_gate_runtime.py paper_execution/test_ledger_writer_isolation.py
-      - name: Verify P2 PaperLedger RED baseline
+      - name: Verify P2 PaperLedger GREEN acceptance
         shell: bash
         run: |
           set -euo pipefail
-          set +e
-          python -m unittest paper_execution.test_ledger_writer_isolation -v > paper-ledger-p2-red.log 2>&1
-          test_status=$?
-          set -e
+          python -m unittest paper_execution.test_ledger_writer_isolation -v 2>&1 | tee paper-ledger-p2-green.log
           python - <<'PY'
           import re
           from pathlib import Path
-          output = Path("paper-ledger-p2-red.log").read_text(encoding="utf-8")
+          output = Path("paper-ledger-p2-green.log").read_text(encoding="utf-8")
           ran = re.search(r"^Ran (\d+) tests? in ", output, re.MULTILINE)
           failures = re.findall(r"^FAIL: test_[^\s(]+", output, re.MULTILINE)
           errors = re.findall(r"^ERROR: test_[^\s(]+", output, re.MULTILINE)
-          valid = ran is not None and int(ran.group(1)) == 8 and len(failures)+len(errors) > 0
-          print(f"PAPER_LEDGER_P2_RED ran={ran.group(1) if ran else 'MISSING'} failures={len(failures)} errors={len(errors)}")
+          skipped = re.findall(r"^test_[^\s(]+ \(.*skipped=", output, re.MULTILINE)
+          valid = (
+              ran is not None and int(ran.group(1)) == 8
+              and not failures and not errors and not skipped
+              and re.search(r"^OK$", output, re.MULTILINE) is not None
+          )
+          print(f"PAPER_LEDGER_P2_GREEN ran={ran.group(1) if ran else 'MISSING'} failures={len(failures)} errors={len(errors)} skipped={len(skipped)}")
           if not valid:
-              raise SystemExit("P2 RED baseline was not reproduced")
-          print("PAPER_LEDGER_P2_RED=CONFIRMED")
+              raise SystemExit("P2 PaperLedger GREEN acceptance failed")
+          print("PAPER_LEDGER_P2_GREEN=PASS")
           PY
       - name: Verify process-level runtime GREEN acceptance
         shell: bash
@@ -114,13 +116,13 @@ jobs:
               raise SystemExit(1)
           print("PAPER_WRITER_RUNTIME_GREEN=PASS")
           PY
-      - name: Upload P1 GREEN evidence
+      - name: Upload P1/P2 GREEN evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: paper-writer-isolation-p1-green-${{ github.sha }}
+          name: paper-writer-isolation-p1-p2-green-${{ github.sha }}
           path: |
             paper-writer-runtime-green.log
-            paper-ledger-p2-red.log
+            paper-ledger-p2-green.log
           if-no-files-found: warn
           retention-days: 7
