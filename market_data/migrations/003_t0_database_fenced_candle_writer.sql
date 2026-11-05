@@ -27,6 +27,11 @@ DECLARE
     inserted_open_time BIGINT;
     existing_candle RECORD;
 BEGIN
+    IF p_lease_name IS DISTINCT FROM 'binance-btcusdt-canonical' THEN
+        RAISE EXCEPTION 'canonical candle write rejected: invalid lease identity'
+            USING ERRCODE = '42501';
+    END IF;
+
     SELECT owner_id, generation, expires_at
       INTO current_lease
       FROM market_data.feeder_leases
@@ -132,6 +137,16 @@ BEGIN
          WHERE member_role.rolname IN ('t0_feeder_writer', 't0_candle_writer_owner')
     ) THEN
         RAISE EXCEPTION 'T0 writer capability roles must not inherit privileges from other roles'
+            USING ERRCODE = '42501';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+          FROM pg_auth_members membership
+          JOIN pg_roles granted_role ON granted_role.oid = membership.roleid
+         WHERE granted_role.rolname = 't0_candle_writer_owner'
+    ) THEN
+        RAISE EXCEPTION 'T0 SECURITY DEFINER owner role must not be granted to runtime or login roles'
             USING ERRCODE = '42501';
     END IF;
 END;
