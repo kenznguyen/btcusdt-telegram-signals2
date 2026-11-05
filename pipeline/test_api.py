@@ -296,7 +296,7 @@ class FiveLayerApiTest(unittest.TestCase):
         writer.record_equity("100", self.end, self.now, self.window["datasetVersion"])
         with sqlite3.connect(self.paper_db) as connection:
             connection.execute("UPDATE paper_state SET realized='-25' WHERE id=1")
-        writer.record_equity("100", self.end, self.now+1, self.window["datasetVersion"])
+        writer.record_equity("100", self.end, self.now, self.window["datasetVersion"])
         self.prediction["availableAtMs"] += 1
         self.pred_path.write_text(json.dumps(self.prediction))
         with patch.dict(os.environ,{"PAPER_MAX_DRAWDOWN_PCT":"20","PAPER_MAX_DAILY_LOSS_USDT":"10","PAPER_MAX_EXPOSURE_USDT":"1000"}):
