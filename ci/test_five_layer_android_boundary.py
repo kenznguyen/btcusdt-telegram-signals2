@@ -90,6 +90,27 @@ class FiveLayerAndroidBoundaryTest(unittest.TestCase):
         self.assertIn("BTCUSDT Quant System", strings)
         self.assertNotIn("Chart Pro", strings)
 
+    def test_server_strategy_core_and_regressions_are_preserved(self):
+        core = (ROOT / "pipeline/core_strategy.py").read_text()
+        for contract in (
+            'RSI_LEN = int(os.environ.get("RSI_LENGTH", "14"))',
+            'DMI_LEN = int(os.environ.get("DMI_LENGTH", "14"))',
+            'ADX_SMOOTH = int(os.environ.get("ADX_SMOOTHING", "14"))',
+            'H1_ADX_ENTRY = float(os.environ.get("H1_ADX_ENTRY", "20"))',
+            'LONG_RSI_ENTRY = float(os.environ.get("LONG_RSI_ENTRY", "30"))',
+            'SHORT_RSI_ENTRY = float(os.environ.get("SHORT_RSI_ENTRY", "70"))',
+            'LONG_RSI_TP = float(os.environ.get("LONG_RSI_TP", "76"))',
+            'SHORT_RSI_TP = float(os.environ.get("SHORT_RSI_TP", "24"))',
+            'TP_ROE = float(os.environ.get("TP_ROE", "5"))',
+            'DCA_ROE = float(os.environ.get("DCA_ROE", "-20"))',
+            'DCA_ADX = float(os.environ.get("DCA_ADX", "45"))',
+            'SOFT_SL_ROE = float(os.environ.get("SOFT_SL_ROE", "-35"))',
+            'EMERGENCY_SL_ROE = float(os.environ.get("EMERGENCY_SL_ROE", "-90"))',
+        ):
+            self.assertIn(contract, core)
+        self.assertTrue((ROOT / "pipeline/test_core_strategy.py").is_file())
+        self.assertTrue((ROOT / "pipeline/test_core_signal.py").is_file())
+
 
 if __name__ == "__main__":
     unittest.main()
