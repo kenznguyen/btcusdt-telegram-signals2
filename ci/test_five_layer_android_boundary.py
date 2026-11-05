@@ -121,11 +121,14 @@ class FiveLayerAndroidBoundaryTest(unittest.TestCase):
     def test_cleanup_branch_runs_android_data_and_dashboard_gates(self):
         workflow = (ROOT / "codemagic.yaml").read_text()
         branch = "cleanup/remove-chart-pro-from-five-layer-20261105"
-        for workflow_name in ("five-layer-android:", "canonical-market-data:", "five-layer-dashboard:"):
-            start = workflow.index(workflow_name)
-            next_workflow = workflow.find("\n  ", start + len(workflow_name))
-            block = workflow[start:] if next_workflow < 0 else workflow[start:next_workflow]
-            self.assertIn(f"pattern: {branch}", block, f"{workflow_name} does not run on cleanup branch")
+        import re
+        for workflow_name in ("five-layer-android", "canonical-market-data", "five-layer-dashboard"):
+            match = re.search(
+                r"(?ms)^  " + re.escape(workflow_name) + r":\n(.*?)(?=^  [a-z][a-z0-9-]*:\n|\Z)",
+                workflow,
+            )
+            self.assertIsNotNone(match, f"Missing {workflow_name} workflow")
+            self.assertIn(f"pattern: {branch}", match.group(1), f"{workflow_name} does not run on cleanup branch")
 
     def test_freqai_strategy_is_owned_by_five_layer(self):
         self.assertFalse((ROOT / "freqai_bridge/ChartProFreqaiResearch.py").exists())
