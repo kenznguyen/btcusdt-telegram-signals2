@@ -60,8 +60,11 @@ jobs:
         shell: bash
         run: |
           set -uo pipefail
-          python -m unittest paper_execution.test_writer_isolation_red -v > paper-writer-red.log 2>&1
-          status=$?
+          if python -m unittest paper_execution.test_writer_isolation_red -v > paper-writer-red.log 2>&1; then
+            status=0
+          else
+            status=$?
+          fi
           cat paper-writer-red.log
           TEST_STATUS="$status" python - <<'PY'
           import os
