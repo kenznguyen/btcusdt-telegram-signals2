@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   paper-writer-isolation-red:
-    name: SWG-F static RED plus P1 runtime GREEN
+    name: SWG-F P1 process-level runtime GREEN
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -80,7 +80,7 @@ jobs:
           failures = re.findall(r"^FAIL: test_[^\s(]+", output, re.MULTILINE)
           skipped = re.findall(r"^test_[^\s(]+ \(.*skipped=", output, re.MULTILINE)
           valid = (
-              ran is not None and int(ran.group(1)) == 10
+              ran is not None and int(ran.group(1)) == 12
               and not errors and not failures and not skipped
               and re.search(r"^OK$", output, re.MULTILINE) is not None
           )
