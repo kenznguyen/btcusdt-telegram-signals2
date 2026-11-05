@@ -116,6 +116,10 @@ AS $function$
 DECLARE
     v_updated BOOLEAN;
 BEGIN
+    IF p_lease_name IS DISTINCT FROM 'binance-btcusdt-canonical' THEN
+        RAISE EXCEPTION 'invalid canonical feeder lease identity'
+            USING ERRCODE = '42501';
+    END IF;
     IF p_lease_name IS NULL OR length(btrim(p_lease_name)) = 0
        OR p_owner_id IS NULL OR length(btrim(p_owner_id)) = 0
        OR p_generation IS NULL OR p_generation < 1
@@ -173,6 +177,10 @@ AS $function$
 DECLARE
     v_updated BOOLEAN;
 BEGIN
+    IF p_lease_name IS DISTINCT FROM 'binance-btcusdt-canonical' THEN
+        RAISE EXCEPTION 'invalid canonical feeder lease identity'
+            USING ERRCODE = '42501';
+    END IF;
     IF p_lease_name IS NULL OR length(btrim(p_lease_name)) = 0
        OR p_owner_id IS NULL OR length(btrim(p_owner_id)) = 0
        OR p_generation IS NULL OR p_generation < 1 THEN
