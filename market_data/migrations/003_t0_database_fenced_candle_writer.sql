@@ -152,6 +152,46 @@ BEGIN
             USING ERRCODE = '42501';
     END IF;
 
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 't0_migrator')
+       AND (
+           NOT EXISTS (
+               SELECT 1 FROM pg_roles
+                WHERE rolname = 't0_migrator_login'
+                  AND rolcanlogin
+                  AND NOT rolsuper
+                  AND NOT rolcreatedb
+                  AND NOT rolcreaterole
+                  AND NOT rolreplication
+                  AND NOT rolbypassrls
+           )
+           OR EXISTS (
+               SELECT 1
+                 FROM pg_auth_members membership
+                 JOIN pg_roles granted_role ON granted_role.oid = membership.roleid
+                 JOIN pg_roles member_role ON member_role.oid = membership.member
+                WHERE granted_role.rolname = 't0_migrator_login'
+           )
+           OR (
+               SELECT count(*)
+                 FROM pg_auth_members membership
+                 JOIN pg_roles granted_role ON granted_role.oid = membership.roleid
+                 JOIN pg_roles member_role ON member_role.oid = membership.member
+                WHERE member_role.rolname = 't0_migrator_login'
+                  AND granted_role.rolname = 't0_migrator'
+           ) <> 1
+           OR EXISTS (
+               SELECT 1
+                 FROM pg_auth_members membership
+                 JOIN pg_roles granted_role ON granted_role.oid = membership.roleid
+                 JOIN pg_roles member_role ON member_role.oid = membership.member
+                WHERE member_role.rolname = 't0_migrator_login'
+                  AND granted_role.rolname <> 't0_migrator'
+           )
+       ) THEN
+        RAISE EXCEPTION 't0_migrator_login must be an isolated restricted LOGIN member only of t0_migrator'
+            USING ERRCODE = '42501';
+    END IF;
+
     IF EXISTS (
         SELECT 1
           FROM pg_auth_members membership
