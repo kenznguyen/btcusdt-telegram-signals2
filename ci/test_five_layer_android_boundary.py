@@ -117,26 +117,4 @@ class FiveLayerAndroidBoundaryTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()    def test_cleanup_branch_uses_github_actions_for_all_layers(self):
-        workflow_path = ROOT / ".github/workflows/five-layer-pr-validation.yml"
-        self.assertTrue(workflow_path.is_file(), "GitHub Actions validation workflow is missing")
-        workflow = workflow_path.read_text()
-        for marker in (
-            "pull_request:", "feature/android-five-layer-control", "push:",
-            "cleanup/remove-chart-pro-from-five-layer-20261105", "workflow_dispatch:",
-            "permissions:", "contents: read", "android-paper:", "backend-regression:",
-            "dashboard:", 'AI_EXECUTION_ENABLED: "false"',
-        ):
-            self.assertIn(marker, workflow)
-        self.assertFalse((ROOT / "codemagic.yaml").exists(), "Codemagic config must be retired")
-        self.assertFalse((ROOT / "docs/CODEMAGIC_SETUP.md").exists(), "Codemagic setup doc must be retired")
-
-    def test_freqai_strategy_is_owned_by_five_layer(self):
-        self.assertFalse((ROOT / "freqai_bridge/ChartProFreqaiResearch.py").exists())
-        strategy = ROOT / "freqai_bridge/FiveLayerFreqaiResearch.py"
-        self.assertTrue(strategy.is_file())
-        self.assertIn("class FiveLayerFreqaiResearch", strategy.read_text())
-
-
-if __name__ == "__main__":
     unittest.main()
