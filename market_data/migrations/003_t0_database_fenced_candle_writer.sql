@@ -111,8 +111,23 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 't0_feeder_writer') THEN
         CREATE ROLE t0_feeder_writer NOLOGIN;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 't0_candle_writer_owner') THEN
+        CREATE ROLE t0_candle_writer_owner NOLOGIN;
+    END IF;
 END;
 $role$;
+
+-- The SECURITY DEFINER owner is deliberately non-login and has only the
+-- privileges needed to lock/inspect leases and insert/compare candle rows.
+GRANT USAGE ON SCHEMA market_data TO t0_candle_writer_owner;
+GRANT SELECT, UPDATE ON market_data.feeder_leases TO t0_candle_writer_owner;
+GRANT SELECT, INSERT ON market_data.candles TO t0_candle_writer_owner;
+GRANT CREATE ON SCHEMA market_data TO t0_candle_writer_owner;
+ALTER FUNCTION market_data.write_canonical_candle(
+    TEXT, TEXT, BIGINT, TEXT, TEXT, TEXT, TEXT, BIGINT,
+    NUMERIC, NUMERIC, NUMERIC, NUMERIC, NUMERIC, BIGINT
+) OWNER TO t0_candle_writer_owner;
+REVOKE CREATE ON SCHEMA market_data FROM t0_candle_writer_owner;
 
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON market_data.candles FROM t0_feeder_writer;
 GRANT EXECUTE ON FUNCTION market_data.write_canonical_candle(
