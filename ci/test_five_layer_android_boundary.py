@@ -10,37 +10,19 @@ TESTS = ANDROID / "app/src/test/java" / PACKAGE
 
 
 CHART_PRO_SOURCES = (
-    "AlertDelivery.kt",
-    "AlertHistoryStore.kt",
-    "AlertPolicy.kt",
-    "BacktestPanel.kt",
-    "BinanceRestGate.kt",
-    "ChartAnalytics.kt",
-    "ChartMarketSession.kt",
-    "CompleteDashboard.kt",
-    "MarketEngine.kt",
-    "MultiStreamSignalEngine.kt",
-    "MultiSymbolScanner.kt",
-    "OrderBookEngine.kt",
-    "OrderBookPanel.kt",
-    "OrderBookSequence.kt",
-    "ScannerMarketFeed.kt",
-    "SnapshotRetryGate.kt",
-    "StrategyMonitorService.kt",
-    "StrategyEngine.kt",
+    "AlertDelivery.kt", "AlertHistoryStore.kt", "AlertPolicy.kt",
+    "BacktestPanel.kt", "BinanceRestGate.kt", "ChartAnalytics.kt",
+    "ChartMarketSession.kt", "CompleteDashboard.kt", "MarketEngine.kt",
+    "MultiStreamSignalEngine.kt", "MultiSymbolScanner.kt", "OrderBookEngine.kt",
+    "OrderBookPanel.kt", "OrderBookSequence.kt", "ScannerMarketFeed.kt",
+    "SnapshotRetryGate.kt", "StrategyMonitorService.kt", "StrategyEngine.kt",
 )
 
 CHART_PRO_TESTS = (
-    "AlertHistoryCodecTest.kt",
-    "AlertPolicyTest.kt",
-    "BinanceRestGateTest.kt",
-    "ChartAnalyticsTest.kt",
-    "ChartMarketSessionTest.kt",
-    "MultiStreamSignalEngineTest.kt",
-    "MultiSymbolScannerTest.kt",
-    "OrderBookSequenceTest.kt",
-    "SnapshotRetryGateTest.kt",
-    "StrategyEngineTest.kt",
+    "AlertHistoryCodecTest.kt", "AlertPolicyTest.kt", "BinanceRestGateTest.kt",
+    "ChartAnalyticsTest.kt", "ChartMarketSessionTest.kt",
+    "MultiStreamSignalEngineTest.kt", "MultiSymbolScannerTest.kt",
+    "OrderBookSequenceTest.kt", "SnapshotRetryGateTest.kt", "StrategyEngineTest.kt",
 )
 
 
@@ -74,14 +56,9 @@ class FiveLayerAndroidBoundaryTest(unittest.TestCase):
 
     def test_five_layer_client_and_shared_paper_contracts_are_preserved(self):
         for name in (
-            "FiveLayerStandaloneDashboard.kt",
-            "FiveLayerPanel.kt",
-            "FiveLayerApi.kt",
-            "FiveLayerCandlesCard.kt",
-            "FiveLayerPresentation.kt",
-            "PaperOrderHistory.kt",
-            "HummingbotOrderBook.kt",
-            "OrderBookAnalytics.kt",
+            "FiveLayerStandaloneDashboard.kt", "FiveLayerPanel.kt", "FiveLayerApi.kt",
+            "FiveLayerCandlesCard.kt", "FiveLayerPresentation.kt", "PaperOrderHistory.kt",
+            "HummingbotOrderBook.kt", "OrderBookAnalytics.kt",
         ):
             self.assertTrue((JAVA / name).is_file(), f"Missing five-layer component: {name}")
 
@@ -118,17 +95,19 @@ class FiveLayerAndroidBoundaryTest(unittest.TestCase):
         self.assertTrue((ROOT / "pipeline/test_core_strategy.py").is_file())
         self.assertTrue((ROOT / "pipeline/test_core_signal.py").is_file())
 
-    def test_cleanup_branch_runs_android_data_and_dashboard_gates(self):
-        workflow = (ROOT / "codemagic.yaml").read_text()
-        branch = "cleanup/remove-chart-pro-from-five-layer-20261105"
-        import re
-        for workflow_name in ("five-layer-android", "canonical-market-data", "five-layer-dashboard"):
-            match = re.search(
-                r"(?ms)^  " + re.escape(workflow_name) + r":\n(.*?)(?=^  [a-z][a-z0-9-]*:\n|\Z)",
-                workflow,
-            )
-            self.assertIsNotNone(match, f"Missing {workflow_name} workflow")
-            self.assertIn(f"pattern: {branch}", match.group(1), f"{workflow_name} does not run on cleanup branch")
+    def test_cleanup_branch_uses_github_actions_for_all_layers(self):
+        workflow_path = ROOT / ".github/workflows/five-layer-pr-validation.yml"
+        self.assertTrue(workflow_path.is_file(), "GitHub Actions validation workflow is missing")
+        workflow = workflow_path.read_text()
+        for marker in (
+            "pull_request:", "feature/android-five-layer-control", "push:",
+            "cleanup/remove-chart-pro-from-five-layer-20261105", "workflow_dispatch:",
+            "permissions:", "contents: read", "android-paper:", "backend-regression:",
+            "dashboard:", 'AI_EXECUTION_ENABLED: "false"',
+        ):
+            self.assertIn(marker, workflow)
+        self.assertFalse((ROOT / "codemagic.yaml").exists(), "Codemagic config must be retired")
+        self.assertFalse((ROOT / "docs/CODEMAGIC_SETUP.md").exists(), "Codemagic setup doc must be retired")
 
     def test_freqai_strategy_is_owned_by_five_layer(self):
         self.assertFalse((ROOT / "freqai_bridge/ChartProFreqaiResearch.py").exists())

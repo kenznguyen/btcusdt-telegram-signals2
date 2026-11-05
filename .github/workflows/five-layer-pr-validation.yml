@@ -1,0 +1,207 @@
+name: Five-layer PR validation
+run-name: Five-layer validation (\${{ github.event.pull_request.head.sha || github.sha }})
+
+'on':
+  pull_request:
+    branches:
+      - feature/android-five-layer-control
+  push:
+    branches:
+      - cleanup/remove-chart-pro-from-five-layer-20261105
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: five-layer-validation-\${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  android-paper:
+    name: Android Paper boundary, unit tests and APK verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CM_BUILD_DIR: \${{ github.workspace }}
+    steps:
+      - name: Checkout exact source head
+        uses: actions/checkout@v4
+        with:
+          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Python for boundary and APK contract tests
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run five-layer source-boundary and APK verifier tests
+        run: |
+          python -m unittest ci.test_five_layer_android_boundary ci.test_five_layer_android_apk -v
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install pinned Android SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;34.0.0"
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Record exact source SHA
+        run: git rev-parse HEAD | tee android-source-sha.txt
+      - name: Run Android unit tests
+        working-directory: android-app
+        run: gradle :app:testDebugUnitTest --no-daemon
+      - name: Build single Five-layer Paper APK
+        working-directory: android-app
+        run: gradle :app:assembleDebug --no-daemon
+      - name: Verify APK identity, signer, manifest and DEX
+        env:
+          ANDROID_SDK_ROOT: \${{ env.ANDROID_HOME }}
+        run: python ci/verify-five-layer-android-apk.py
+      - name: Upload Android reports and verified APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: five-layer-android-\${{ github.run_id }}-\${{ github.run_attempt }}
+          if-no-files-found: warn
+          path: |
+            android-source-sha.txt
+            android-app/app/build/reports/tests/testDebugUnitTest/
+            android-apk.json
+            artifacts/*.apk
+          retention-days: 14
+
+  backend-regression:
+    name: T0-T3, Core Strategy and Paper isolation regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      PAPER_TRADING_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+      AI_EXECUTION_ENABLED: "false"
+    steps:
+      - name: Checkout exact source head
+        uses: actions/checkout@v4
+        with:
+          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements-market-data.txt
+            requirements-ci.txt
+            requirements.txt
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-market-data.txt -r requirements-ci.txt -r requirements.txt
+      - name: Enforce isolated paper-only environment and record SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB PAPER_TRADING_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+            if [[ -n "\${!key:-}" ]]; then echo "Unsafe environment variable present: $key"; exit 1; fi
+          done
+          test "$AI_EXECUTION_ENABLED" = "false"
+          git rev-parse HEAD | tee backend-source-sha.txt
+      - name: Compile Python source
+        run: python -m py_compile market_data/*.py ci/*.py pipeline/*.py futures_intelligence/*.py paper_execution/*.py integrations/*.py freqai_bridge/*.py
+      - name: Run T0 Gateway, Feeder, scheduler, recovery, health and storage contracts
+        run: |
+          python -m unittest \
+            market_data.test_gateway_runtime \
+            market_data.test_g2_writer_routing \
+            market_data.test_feeder_lease \
+            market_data.test_feeder_atomic_fencing \
+            market_data.test_feeder_lifecycle \
+            market_data.test_feeder_gateway_contract \
+            market_data.test_feeder_scheduler \
+            market_data.test_feeder_retry \
+            market_data.test_feeder_recovery \
+            market_data.test_feeder_health \
+            market_data.test_feeder_health_api \
+            market_data.test_store \
+            market_data.test_sync \
+            market_data.test_storage \
+            market_data.test_api -v 2>&1 | tee t0-regression.log
+      - name: Run T1 futures intelligence contracts
+        run: python -m unittest futures_intelligence.test_import_collector -v 2>&1 | tee t1-regression.log
+      - name: Run T2 Core Strategy, signal and FreqAI bridge contracts
+        run: |
+          python -m unittest \
+            pipeline.test_api pipeline.test_decision pipeline.test_core_signal \
+            pipeline.test_core_strategy freqai_bridge.test_exporter -v 2>&1 | tee t2-regression.log
+      - name: Run T3 risk, ledger, equity and Hummingbot contracts
+        run: |
+          python -m unittest \
+            paper_execution.test_equity paper_execution.test_ledger \
+            paper_execution.test_risk_control paper_execution.test_risk_limits \
+            integrations.test_hummingbot_bridge -v 2>&1 | tee t3-regression.log
+      - name: Run CI policy and T0 operational boundary contracts
+        run: python -m unittest ci.test_t0_operational_contract ci.test_ci_policy -v 2>&1 | tee ci-contracts.log
+      - name: Upload backend exact-SHA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: five-layer-backend-\${{ github.run_id }}-\${{ github.run_attempt }}
+          if-no-files-found: warn
+          path: |
+            backend-source-sha.txt
+            t0-regression.log
+            t1-regression.log
+            t2-regression.log
+            t3-regression.log
+            ci-contracts.log
+          retention-days: 14
+
+  dashboard:
+    name: T4 React tests, production build and dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact source head
+        uses: actions/checkout@v4
+        with:
+          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: control_dashboard/package-lock.json
+      - name: Pin npm 11.9.0
+        run: npm install --global npm@11.9.0
+      - name: Install frozen dashboard dependencies without lifecycle scripts
+        working-directory: control_dashboard
+        run: npm ci --ignore-scripts
+      - name: Run dashboard tests
+        working-directory: control_dashboard
+        run: npm test
+      - name: Build dashboard
+        working-directory: control_dashboard
+        run: npm run build
+      - name: Audit dashboard dependencies
+        working-directory: control_dashboard
+        run: npm audit --audit-level=high
+      - name: Upload dashboard build
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: five-layer-dashboard-\${{ github.run_id }}-\${{ github.run_attempt }}
+          path: control_dashboard/dist/
+          if-no-files-found: error
+          retention-days: 14

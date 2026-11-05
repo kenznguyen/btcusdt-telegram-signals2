@@ -2,7 +2,7 @@
 
 Repository này chứa hệ thống phân tích futures BTCUSDT độc lập, ưu tiên độ tin cậy dữ liệu và kiểm soát rủi ro. Android là Paper Client duy nhất của repository; React là giao diện điều khiển web.
 
-**GitHub lưu source, branch, PR và evidence. Codemagic chạy các action kiểm thử/build theo `codemagic.yaml`.** Không coi cấu hình workflow là bằng chứng job hoặc artifact đã thành công.
+**GitHub lưu source, branch, PR và evidence; GitHub Actions thực hiện CI/test/build.** Không coi cấu hình workflow là bằng chứng job hoặc artifact đã thành công.
 
 ## Kiến trúc
 
@@ -19,29 +19,25 @@ Android Paper Client: [android-app](android-app/README.md). Ứng dụng chỉ k
 ## Chế độ an toàn
 
 - Paper-only; không thực hiện lệnh thật.
-- Không bật live execution; `ai_execution_enabled=false`.
+- Không bật live execution; \`ai_execution_enabled=false\`.
 - Mọi tín hiệu phải qua shared risk controls và paper admission.
 - Dữ liệu thiếu, cũ, không đồng bộ hoặc thiếu provenance không được thay bằng giá trị giả.
 - Không tuyên bố lợi nhuận hoặc readiness nếu chưa có bằng chứng đúng source SHA.
 
-## Codemagic workflows
+## GitHub Actions
 
-| Workflow | Công việc |
-|---|---|
-| `five-layer-android` | Android boundary tests, unit tests, build và APK payload verification |
-| `canonical-market-data` | T0/T1, API, gateway và paper backend tests |
-| `five-layer-dashboard` | React tests, build và dependency audit |
-| `freqai-strategy-smoke` | Load Freqtrade/FreqAI strategy ở dry-run; không train hoặc trade |
-| `market-data-timescaledb` | Disposable TimescaleDB integration |
-| `market-data-kraken-*` | Kiểm thử adapter Spot cô lập, không đưa vào canonical Futures |
+Workflow \`.github/workflows/five-layer-pr-validation.yml\` chạy tự động cho PR vào branch \`feature/android-five-layer-control\` và push lên branch cleanup. Ba job độc lập:
 
-Các workflow legacy Telegram/backtest trong repository không thuộc runtime T0–T4 và không được dùng làm nguồn trạng thái của hệ thống 5 tầng. Chúng chưa bị xóa trong đợt tách Android này.
+- \`android-paper\`: boundary tests, Android unit tests, debug APK build, kiểm tra package/manifest/DEX/chữ ký.
+- \`backend-regression\`: T0 Gateway/Feeder, T1 futures intelligence, T2 Core Strategy/FreqAI, T3 Paper Risk/Ledger/Hummingbot.
+- \`dashboard\`: React tests, production build và dependency audit.
+
+Mọi job checkout đúng PR head SHA, dùng quyền \`contents: read\`, không nhận secrets sản xuất, không kết nối sàn, canonical DB hay Paper DB. \`AI_EXECUTION_ENABLED=false\`. Artifact và test logs được gắn với GitHub Actions run.
 
 ## Tài liệu vận hành
 
 - [Kiến trúc 5 tầng](docs/FIVE_LAYER_ARCHITECTURE.md)
 - [Paper runbook](docs/FIVE_LAYER_PAPER_RUNBOOK.md)
-- [Codemagic setup](docs/CODEMAGIC_SETUP.md)
 - [Project handoff](docs/PROJECT_SESSION_HANDOFF.md)
 
 Mỗi thay đổi phải ghi phạm vi, test/evidence, exact source SHA, workflow run/artifact nếu có, trạng thái PASS/BLOCKED/NOT VERIFIED và bước tiếp theo. Không merge PR khi chưa có phê duyệt rõ ràng.
