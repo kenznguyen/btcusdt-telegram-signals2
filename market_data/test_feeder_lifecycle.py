@@ -361,6 +361,7 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             db_path = Path(directory) / "canonical.sqlite3"
+            db_path.touch()
             exchange, store, leases = Mock(), Mock(), Mock()
             store.path = db_path
             store.insert_fenced = Mock()
@@ -397,6 +398,7 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             db_path = Path(directory) / "canonical.sqlite3"
+            db_path.touch()
             exchange, store, leases = Mock(), Mock(), Mock()
             store.path = db_path
             store.insert_fenced = Mock()
@@ -439,6 +441,7 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             db_path = Path(directory) / "canonical.sqlite3"
+            db_path.touch()
             store, leases = Mock(), Mock()
             store.path = db_path
             store.initialize = Mock()
