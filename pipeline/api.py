@@ -370,19 +370,23 @@ def application(environ, start_response):
                 writer = ledger()
             except (ValueError, OSError, sqlite3.Error, RuntimeError, WriterAdmissionDenied):
                 return response("503 Service Unavailable", {"error": "PAPER_STORE_UNAVAILABLE"})
-            if not control_permit(timestamp, writer):
+            try:
+                permitted = control_permit(timestamp, writer)
+            except (OSError, sqlite3.Error, RuntimeError, WriterAdmissionDenied):
+                return response("503 Service Unavailable", {"error": "DATA_UNAVAILABLE"})
+            if not permitted:
                 return response("429 Too Many Requests", {"error": "CONTROL_RATE_LIMIT"})
             if path == "/v1/paper/pause" and set(payload) == {"paused"} and type(payload["paused"]) is bool:
-                result = ledger().set_paused(payload["paused"], timestamp)
+                result = writer.set_paused(payload["paused"], timestamp)
             elif path == "/v1/paper/cancel" and set(payload) == {"orderId"} and isinstance(payload["orderId"], str) and 0 < len(payload["orderId"]) <= 100:
-                result = ledger().cancel(payload["orderId"], timestamp)
+                result = writer.cancel(payload["orderId"], timestamp)
             elif path == "/v1/paper/kill" and set(payload) == {"enabled"} and payload["enabled"] is True:
-                result = ledger().set_killed(True, timestamp, "OPERATOR_KILL_SWITCH")
+                result = writer.set_killed(True, timestamp, "OPERATOR_KILL_SWITCH")
             elif path == "/v1/paper/reset-kill" and set(payload) == {"acknowledge"} and payload["acknowledge"] is True:
                 readiness = control_readiness(timestamp)
                 if not readiness["ready"]:
                     return response("409 Conflict", {"error": "SYSTEM_NOT_READY", "checks": readiness["checks"]})
-                result = ledger().reset_kill(True, True, timestamp)
+                result = writer.reset_kill(True, True, timestamp)
             elif path == "/v1/paper/evaluate" and (not payload or payload in ({"source": "AI"}, {"source": "CORE"})):
                 source = payload.get("source", "AI")
                 if source == "CORE":
@@ -400,12 +404,12 @@ def application(environ, start_response):
                                               end-900_000,end,as_of_ms=timestamp)
                     if mark_window["candles"] and mark_window["coverage"]["complete"]:
                         mark = mark_window["candles"][-1]
-                        ledger().record_equity(mark["close"],mark["closeTimeMs"],timestamp,
+                        writer.record_equity(mark["close"],mark["closeTimeMs"],timestamp,
                             mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
                     source_id = "STRATEGY_CORE" if source == "CORE" else "AI_FREQAI"
                     reason = decision.get("reason")
                     event = "ENTRY" if reason in ("RSI_ADX_ENTRY","ALIGNED_PAPER_SIGNAL") else "DCA" if reason == "DCA" else "EXIT" if reason in ("EMERGENCY_SL","SOFT_SL","TAKE_PROFIT","CLOSE") else None
-                    order = ledger().submit(decision["intent"], data["book"], timestamp,
+                    order = writer.submit(decision["intent"], data["book"], timestamp,
                         strategy_id=source_id, strategy_event=event)
                     if mark_window["candles"] and mark_window["coverage"]["complete"]:
                         ledger().record_equity(mark["close"],mark["closeTimeMs"],timestamp,
