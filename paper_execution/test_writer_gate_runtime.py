@@ -90,12 +90,13 @@ class PaperWriterGateRuntimeContracts(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="swgf-runtime-")
         self.addCleanup(self._cleanup_temporary_database)
         self.root = Path(self.temp.name)
+        self.paper_db = self.root / "paper.sqlite3"
+        self.ctx = multiprocessing.get_context("spawn")
 
     def _cleanup_temporary_database(self):
         gc.collect()
         self.temp.cleanup()
-        self.paper_db = self.root / "paper.sqlite3"
-        self.ctx = multiprocessing.get_context("spawn")
+
 
     def require_gate(self):
         return _load_gate_module()
