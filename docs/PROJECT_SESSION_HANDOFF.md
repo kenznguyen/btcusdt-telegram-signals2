@@ -2716,3 +2716,15 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No implementation or migration v6 source added yet. The tests are expected to fail against current code until the API/schema is implemented; the exact failure output remains NOT VERIFIED.
 - Next: obtain a real GitHub Actions run of the RED test SHA and retain the expected failing evidence; then implement v6 minimally and atomically with per-fill journal writes inside existing ledger transactions, followed by GREEN and full `paper_execution` regression.
 - Restrictions: no persistent DB migration/backfill, no production DB access, no backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; `ai_execution_enabled=false`.
+
+### RED evidence — Account History v6 (2026-11-06)
+
+- Exact test source SHA: `9e595b19984787d14f45f9109c0d41148adcb69a`.
+- GitHub Actions run [#42201320105](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42201320105): **FAIL expected at RED stage**; exact checked-out SHA confirmed.
+- Job ID: `127837017662`.
+- Environment preflight: PASS (PAPER-only, no DB/network credentials).
+- Python compile of RED contract: PASS.
+- Focused RED contract: 58 tests executed; **1 assertion failure + 4 expected AttributeErrors** corresponding to missing v6 tables and not-yet-implemented event/coverage/mark/reconstruction APIs. Existing tests in the same focused modules passed. This establishes the expected RED state.
+- Full `paper_execution` regression: SKIPPED by workflow after focused RED failed; no full-suite result for this SHA.
+- Artifact ID: `13493653671`, name `dual-ledger-red-evidence-9e595b19984787d14f45f9109c0d41148adcb69a`, digest `sha256:5fc757343798756536e75e212b3d998463987d544234068860d911cbb2ec6778`, expires 2026-11-13.
+- This RED run is test evidence only; it does not establish migration safety or reconstruction correctness. Next implementation must make these five tests GREEN and add broader replay/boundary/rollback tests before any full regression claim.
