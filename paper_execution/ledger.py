@@ -841,9 +841,10 @@ class PaperLedger:
             raise ValueError("PAPER_LEDGER_STRATEGY_SCOPE_MISMATCH")
         if self.strategy_id in DUAL_STRATEGIES:
             return self._submit_scoped(intent, book, now, strategy_event)
-        migrated = self.connect().execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_schema_migrations'"
-        ).fetchone()
+        with closing(self.connect()) as check_connection:
+            migrated = check_connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_schema_migrations'"
+            ).fetchone()
         if migrated:
             raise ValueError("DUAL_LEDGER_MIGRATION_ACTIVE_MANUAL_WRITE_BLOCKED")
         if strategy_id not in {"MANUAL", "STRATEGY_CORE", "AI_FREQAI"}:
