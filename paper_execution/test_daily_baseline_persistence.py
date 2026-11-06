@@ -118,6 +118,63 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
         intent["validUntilMs"] = now_ms + 30_000
         return intent
 
+    def test_sequential_days_require_verified_predecessor_and_old_retry_stays_idempotent(self):
+        first = self.persist()
+        next_boundary = self.boundary + account_history.DAY_MS
+        next_recorded = next_boundary + 60_000
+        for strategy_id in sorted(account_history.STRATEGIES):
+            account_history.record_account_history_coverage(
+                self.path, coverage_id=f"exec-next:{strategy_id}",
+                stream_type="EXECUTION", strategy_id=strategy_id,
+                start_at_ms=self.boundary + 1, end_at_ms=next_boundary + 1,
+                status="VERIFIED", source="FIXTURE_EXECUTION_HISTORY",
+                source_snapshot_id=f"fixture:execution-next:{strategy_id}",
+                payload_hash="sha256:" + "1" * 64, recorded_at_ms=next_recorded,
+            )
+        account_history.record_account_history_coverage(
+            self.path, coverage_id="market:next",
+            stream_type="MARKET_MARK", strategy_id=None,
+            start_at_ms=self.boundary + 1, end_at_ms=next_boundary + 1,
+            status="VERIFIED", source="FIXTURE_MARK_HISTORY",
+            source_snapshot_id="fixture:market-next",
+            payload_hash="sha256:" + "2" * 64, recorded_at_ms=next_recorded,
+        )
+        from paper_execution import ledger
+        ledger.record_funding_coverage(
+            self.path, coverage_id="fixture-funding-next",
+            start_at_ms=self.recorded, end_at_ms=next_recorded,
+            status="VERIFIED", source="FIXTURE_FUNDING_HISTORY",
+            source_snapshot_id="fixture:funding-next",
+            payload_hash="sha256:" + "3" * 64,
+            config_version="fixture-funding-v2", recorded_at_ms=next_recorded,
+        )
+        account_history.record_market_mark_history(
+            self.path, mark_id="fixture-boundary-mark-next",
+            effective_at_ms=next_boundary, observed_at_ms=next_recorded,
+            mark_price="100", candle_close_ms=next_boundary,
+            source="FIXTURE_MARK_HISTORY", source_snapshot_id="fixture:market-next",
+            dataset_version="sha256:dual-ledger-seed",
+            payload_hash="sha256:" + "4" * 64, quality_status="VERIFIED",
+            recorded_at_ms=next_recorded,
+        )
+        second = self.persist_at(next_boundary, next_recorded)
+        self.assertFalse(first["idempotent"])
+        self.assertFalse(second["idempotent"])
+        self.assertEqual(second["baseline_equity_quote"], "100")
+        self.assertTrue(self.persist_at(self.boundary, self.recorded)["idempotent"])
+        with self._connection() as db:
+            self.assertEqual(db.execute(
+                "SELECT COUNT(*) FROM paper_daily_equity_baselines"
+            ).fetchone()[0], 2)
+            self.assertEqual(db.execute(
+                "SELECT COUNT(*) FROM paper_daily_equity_baseline_audit"
+            ).fetchone()[0], 2)
+            state = db.execute(
+                "SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote "
+                "FROM paper_account_risk_state WHERE account_id=1"
+            ).fetchone()
+        self.assertEqual(state, (next_boundary, "100"))
+
     def test_writer_rejects_skipping_an_unverified_utc_day(self):
         next_boundary = self.boundary + account_history.DAY_MS
         next_now = self.recorded + account_history.DAY_MS

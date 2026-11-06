@@ -166,7 +166,7 @@ def _validate_persisted_baseline(connection, *, utc_day_ms, expected_equity,
             or audit_digest != digest or audit_recorded != recorded_at_ms
             or canonical_payload != payload_json or payload_digest != digest
             or payload.get("utcDayMs") != utc_day_ms
-            or payload.get("cutover_id") != cutover_id
+            or payload.get("inputs", {}).get("cutover_id") != cutover_id
             or payload.get("algorithmVersion") != algorithm):
         raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED")
     return baseline
