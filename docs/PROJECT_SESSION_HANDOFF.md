@@ -3064,3 +3064,24 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **PASS — OS-process termination before/after commit recovers atomically on temporary SQLite; fresh-process reopen, risk snapshot and retry verified. NOT VERIFIED — crash/power-loss behavior on production storage/filesystem and persistent account DB.**
 - Next: review baseline persistence and migration v9 implementation for security/consistency edge cases, especially migration upgrade safety, audit/baseline row cross-integrity, replay digest canonicalization and risk-state reconciliation. Add regression tests for any findings. Persistent account DB migration remains prohibited.
 - Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 daily baseline persistence integrity review
+
+- Scope: five-axis review of migration v9 and atomic baseline persistence, focused on schema tampering, idempotent row reconciliation and malformed risk-state inputs.
+- Review findings addressed:
+  - Writer previously trusted the migration marker without independently verifying immutable baseline/audit triggers. It now checks both tables, required columns, all four UPDATE/DELETE immutability triggers, and the unique account/day constraints before loading replay inputs or writing.
+  - Idempotent replay now validates stored baseline source SHA and recorded timestamp, and requires the audit record timestamp to match the baseline row as well as the exact canonical payload/digest.
+  - Risk-state parsing now rejects missing/non-string/oversized/non-finite/non-positive HWM and invalid version/readiness shape before writes; failures remain inside the transaction and roll back.
+- Added tests prove missing audit trigger, missing baseline trigger and invalid HWM all fail closed without partial baseline/audit writes.
+- Exact GREEN source SHA: `b4ae4f0d065386fd88ac2eb8473e88b1ff7f8120`.
+- GitHub Actions [#42275056694](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42275056694): SUCCESS on exact SHA.
+  - PAPER-only preflight: PASS.
+  - Python compile: PASS.
+  - Focused contracts: 164/164 PASS.
+  - Full `paper_execution` regression: 263/263 PASS.
+  - Job ID: `128089132770`.
+  - Artifact ID: `13532802332`, name `dual-ledger-red-evidence-b4ae4f0d065386fd88ac2eb8473e88b1ff7f8120`, GitHub upload digest `sha256:1682fe45ffcdb00b11ee568ed423656ab1f0e0b40d5dc0d0310356e5afb40317`, expires 2026-11-13. Digest is GitHub artifact metadata; payload bytes were not separately downloaded and re-hashed.
+- Status: **PASS — runtime schema-integrity checks, immutable row guards, canonical replay/audit reconciliation and malformed HWM fail-closed behavior verified on temporary SQLite. NOT VERIFIED — persistent database upgrade, external source payload authenticity, or production filesystem durability.**
+- Next: review daily baseline recovery semantics across UTC-day sequencing and repeated/missed days. Confirm the writer cannot skip an unverified prior UTC day, overwrite an existing day, or advance the daily risk baseline from incomplete coverage. Add tests for gaps/multi-day recovery; do not backfill historical baselines without explicit approval.
+- Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
