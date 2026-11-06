@@ -2270,7 +2270,7 @@ os._exit(0)
             stream_type="MARKET_MARK",
             strategy_id=None,
             start_at_ms=self.now,
-            end_at_ms=boundary,
+            end_at_ms=boundary + 1,
             status="VERIFIED",
             source="RECONCILED_MARK_HISTORY",
             source_snapshot_id="market-mark:coverage-snapshot",

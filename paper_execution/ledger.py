@@ -13,6 +13,7 @@ from paper_execution.account_history import (
     MIGRATION_VERSION as ACCOUNT_HISTORY_MIGRATION_VERSION,
     MIGRATION_CHECKSUM as ACCOUNT_HISTORY_MIGRATION_CHECKSUM,
     migrate_account_history, record_account_history_event,
+    load_daily_equity_replay_inputs,
     record_account_history_coverage, record_market_mark_history,
     reconstruct_daily_equity_baseline, migrate_cutover_ledger_snapshots,
     migrate_fee_currency_provenance,
