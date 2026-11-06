@@ -411,5 +411,45 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(before, after, "Account risk snapshot must not write to SQLite")
 
 
+    def test_snapshot_reports_unready_risk_state_without_promoting_it_to_ready(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """UPDATE paper_account_risk_state
+                   SET risk_ready=0,unavailable_reason='CUTOVER_NOT_RECONCILED'
+                   WHERE account_id=1"""
+            )
+        snapshot = ledger.read_account_risk_snapshot(self.path, now_ms=self.now)
+        self.assertTrue(snapshot["available"])
+        self.assertFalse(snapshot["riskReady"])
+        self.assertEqual(snapshot["unavailableReason"], "CUTOVER_NOT_RECONCILED")
+
+    def test_snapshot_fails_closed_when_mark_is_stale(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """UPDATE paper_account_risk_state
+                   SET mark_observed_at_ms=?,mark_candle_close_ms=?
+                   WHERE account_id=1""",
+                (self.now - 31 * 60_000, self.now - 32 * 60_000),
+            )
+        with self.assertRaisesRegex(sqlite3.DatabaseError, "ACCOUNT_RISK_MARK_STALE_OR_INVALID"):
+            ledger.read_account_risk_snapshot(self.path, now_ms=self.now)
+
+    def test_snapshot_fails_closed_when_mark_is_non_finite(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                "UPDATE paper_account_risk_state SET last_mark_price='NaN' WHERE account_id=1"
+            )
+        with self.assertRaisesRegex(sqlite3.DatabaseError, "ACCOUNT_RISK_MARK_PRICE_INVALID"):
+            ledger.read_account_risk_snapshot(self.path, now_ms=self.now)
+
+    def test_snapshot_fails_closed_when_equity_does_not_reconcile(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                "UPDATE paper_account_risk_state SET last_equity_quote='99' WHERE account_id=1"
+            )
+        with self.assertRaisesRegex(sqlite3.DatabaseError, "ACCOUNT_EQUITY_RECONCILIATION_MISMATCH"):
+            ledger.read_account_risk_snapshot(self.path, now_ms=self.now)
+
+
 if __name__ == "__main__":
     unittest.main()
