@@ -63,12 +63,29 @@ def load_daily_equity_replay_inputs(connection, *, utc_day_ms, now_ms):
             raise sqlite3.DatabaseError(error)
 
     cutovers = connection.execute(
-        """SELECT cutover_id,mark_observed_at_ms,funding_coverage_start_at_ms
+        """SELECT cutover_id,mark_observed_at_ms,funding_coverage_start_at_ms,
+                  initial_capital_quote,account_equity_quote,mark_price,
+                  mark_candle_close_ms,reconciled_realized_pnl_quote,
+                  reconciled_fees_quote,reconciled_funding_quote,
+                  expected_account_equity_quote
            FROM paper_account_equity_cutovers WHERE account_id=1"""
     ).fetchall()
     if len(cutovers) != 1:
         raise ValueError("ACCOUNT_EQUITY_CUTOVER_REQUIRED")
-    cutover_id, snapshot_at, funding_start = cutovers[0]
+    (cutover_id, snapshot_at, funding_start, initial_capital, account_equity,
+     cutover_mark, cutover_candle, reconciled_realized, reconciled_fees,
+     reconciled_funding, expected_equity) = cutovers[0]
+    cutover = {
+        "initial_capital_quote": initial_capital,
+        "account_equity_quote": account_equity,
+        "mark_price": cutover_mark,
+        "mark_candle_close_ms": cutover_candle,
+        "mark_observed_at_ms": snapshot_at,
+        "reconciled_realized_pnl_quote": reconciled_realized,
+        "reconciled_fees_quote": reconciled_fees,
+        "reconciled_funding_quote": reconciled_funding,
+        "expected_account_equity_quote": expected_equity,
+    }
     snapshot_at = _stamp(snapshot_at, "ACCOUNT_HISTORY_CUTOVER_SNAPSHOT_INVALID")
     funding_start = _stamp(funding_start, "FUNDING_COVERAGE_START_INVALID")
     if not snapshot_at < boundary or funding_start > snapshot_at or snapshot_at > now:
@@ -357,6 +374,7 @@ def load_daily_equity_replay_inputs(connection, *, utc_day_ms, now_ms):
         "utc_day_ms": boundary,
         "cutover_id": cutover_id,
         "cutover_snapshot_at_ms": snapshot_at,
+        "cutover": cutover,
         "ledgers": ledgers,
         "funding_events": funding_events,
         "funding_coverage": funding_proofs,
