@@ -431,3 +431,70 @@ Migration v3 adds persisted expiry semantics without changing v1 or v2 checksums
   SHA-256 90554188c1dcc02b9fc932a45ee4375208679b0c0a8915f3dfc8d3ade141e879.
 - Isolated temporary SQLite only; no persistent account DB migration. T0 unchanged.
 
+
+
+## 12. Funding provenance v4 and account equity cutover v5 (2026-11-06)
+
+### v4 — immutable funding provenance
+
+- Version/name: 4 / funding_provenance_v4.
+- Preserves v1-v3 checksums. Adds source and recorded_at_ms to paper_funding_events.
+  Existing rows receive LEGACY_UNVERIFIED / zero recorded timestamp and force
+  account risk readiness false until reconciled.
+- Creates paper_funding_coverage with immutable interval evidence:
+  VERIFIED, UNKNOWN or DISABLED; source; source snapshot ID; payload SHA-256;
+  config version; recorded timestamp.
+- Both funding event and coverage tables have UPDATE/DELETE rejection triggers.
+- Funding amount convention: positive = funding cost deducted from equity; negative
+  = funding credit added to equity. Event ID is idempotent; same ID with changed
+  economic/provenance payload fails. Duplicate payload digest fails.
+- Known funding with unknown strategy ownership belongs to LEGACY_UNATTRIBUTED.
+  It is excluded from Core/AI ledger totals. Unknown amount/coverage is not zero and
+  blocks risk readiness. DISABLED is permitted only with explicit
+  PAPER_TEST_CONFIGURATION evidence and config version.
+- The local ledger stores a source snapshot reference and SHA-256 digest. It does not
+  fetch or independently re-hash external source bytes; evidence authenticity remains
+  an external reconciliation responsibility.
+
+### v5 — immutable account-equity cutover
+
+- Version/name: 5 / account_equity_cutover_v5.
+- Creates one append-only paper_account_equity_cutovers record per account, with
+  source/snapshot/hash/config identity, mark/candle timestamps, dataset identity,
+  coverage interval, statement totals, calculated equity, HWM and UTC daily baseline.
+- Cutover requires contiguous coverage for the declared interval. UNKNOWN or a gap
+  blocks cutover; DISABLED is accepted only when the persisted source is
+  PAPER_TEST_CONFIGURATION.
+- Requires fresh mark and closed candle (maximum 30-minute age), non-future
+  timestamps, non-empty dataset identity, and exact initial-capital reconciliation.
+- Reconciles expected statement totals against aggregate realized PnL (including
+  known Legacy account-level adjustment), fees (including Legacy fees), and
+  funding event totals for each ledger. It then computes:
+  equity = capital + realized PnL + unrealized PnL - fees - funding.
+  Calculated equity must equal the independently supplied statement equity.
+- On success, initializes HWM and current UTC daily baseline from that verified
+  equity snapshot, persists cutover evidence and sets risk_ready=1. It does not
+  clear or alter Kill Switch state.
+- Cutover is one-time and immutable. Same ID and same complete payload replays;
+  changed payload conflicts; a different second cutover is blocked pending a
+  separately reviewed reconciliation/reset design.
+- Account snapshot and exposure admission require applied v4/v5 plus a cutover.
+  UNKNOWN coverage overlapping the cutover interval blocks readiness and new
+  exposure even if the persisted readiness bit is inconsistent. Valid reductions
+  remain subject to the existing reduce-only behavior.
+
+### v4/v5 verification
+
+- Exact source SHA: 8dadd35b7e9e0174efab70c425eab53bca99fa34.
+- GitHub Actions run: 42194525276
+  (https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42194525276).
+- Exact checked-out SHA: 8dadd35b7e9e0174efab70c425eab53bca99fa34.
+- Compile PASS; focused Dual Ledger + migration tests: 34/34 PASS;
+  full paper_execution regression: 69/69 PASS.
+- Artifact ID: 13491067898; name
+  dual-ledger-red-evidence-8dadd35b7e9e0174efab70c425eab53bca99fa34;
+  SHA-256 3f48255660a6a6094a07d2f749d571e069ba01096f72bb5085d704c33f5d58b3.
+- All tests use isolated temporary SQLite. No persistent account DB migration,
+  backtest, merge, deployment, exchange connection or live execution occurred.
+- T0 source/tests/workflows/provider policy remain unchanged; Option C remains the
+  default provider policy; ai_execution_enabled=false.
