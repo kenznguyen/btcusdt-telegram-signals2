@@ -96,14 +96,17 @@ def _risk_state(connection):
     if risk_day is None:
         if risk_equity is not None:
             raise sqlite3.DatabaseError("DAILY_BASELINE_RISK_STATE_INVALID")
-    elif type(risk_day) is not int or not isinstance(risk_equity, str):
+    elif (type(risk_day) is not int or risk_day < 0 or risk_day % DAY_MS
+          or not isinstance(risk_equity, str) or not 1 <= len(risk_equity) <= 256):
         raise sqlite3.DatabaseError("DAILY_BASELINE_RISK_STATE_INVALID")
     else:
         try:
             previous_equity = Decimal(risk_equity)
         except (DecimalException, TypeError, ValueError):
             raise sqlite3.DatabaseError("DAILY_BASELINE_RISK_STATE_INVALID") from None
-        if not previous_equity.is_finite() or previous_equity <= 0:
+        if (not previous_equity.is_finite() or previous_equity <= 0
+                or not -200 <= previous_equity.as_tuple().exponent <= 200
+                or previous_equity.adjusted() > 200):
             raise sqlite3.DatabaseError("DAILY_BASELINE_RISK_STATE_INVALID")
     if not isinstance(raw_hwm, str) or not 1 <= len(raw_hwm) <= 256:
         raise sqlite3.DatabaseError("DAILY_BASELINE_RISK_STATE_INVALID")
@@ -116,6 +119,80 @@ def _risk_state(connection):
             or hwm.adjusted() > 200):
         raise sqlite3.DatabaseError("DAILY_BASELINE_RISK_STATE_INVALID")
     return risk_day, risk_equity, risk_ready, version, hwm
+
+
+def _validate_persisted_baseline(connection, *, utc_day_ms, expected_equity,
+                                 cutover_id, now_ms):
+    baseline = connection.execute(
+        """SELECT baseline_id,baseline_equity_quote,mark_id,starting_cutover_id,
+                  replay_digest,algorithm_version,source_sha,recorded_at_ms
+           FROM paper_daily_equity_baselines WHERE account_id=1 AND utc_day_ms=?""",
+        (utc_day_ms,),
+    ).fetchone()
+    if baseline is None:
+        raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED")
+    (baseline_id, equity, mark_id, baseline_cutover, digest, algorithm,
+     source_sha, recorded_at_ms) = baseline
+    expected_id = f"daily-equity-baseline:1:{utc_day_ms}"
+    try:
+        _source_sha(source_sha)
+    except ValueError:
+        raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED") from None
+    if (baseline_id != expected_id or equity != expected_equity or not mark_id
+            or baseline_cutover != cutover_id or not isinstance(algorithm, str)
+            or not algorithm or not isinstance(digest, str) or len(digest) != 71
+            or not digest.startswith("sha256:")
+            or any(char not in "0123456789abcdef" for char in digest[7:])
+            or type(recorded_at_ms) is not int
+            or not utc_day_ms <= recorded_at_ms <= now_ms):
+        raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED")
+    audit = connection.execute(
+        """SELECT audit_id,baseline_id,event_type,replay_digest,payload_json,recorded_at_ms
+           FROM paper_daily_equity_baseline_audit
+           WHERE account_id=1 AND utc_day_ms=?""",
+        (utc_day_ms,),
+    ).fetchone()
+    if audit is None:
+        raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED")
+    audit_id, audit_baseline, event_type, audit_digest, payload_json, audit_recorded = audit
+    try:
+        payload = json.loads(payload_json)
+        canonical_payload = _canonical(payload)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED") from None
+    payload_digest = "sha256:" + hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
+    if (audit_id != f"daily-equity-baseline-audit:1:{utc_day_ms}"
+            or audit_baseline != baseline_id or event_type != "DAILY_BASELINE_CREATED"
+            or audit_digest != digest or audit_recorded != recorded_at_ms
+            or canonical_payload != payload_json or payload_digest != digest
+            or payload.get("utcDayMs") != utc_day_ms
+            or payload.get("cutover_id") != cutover_id
+            or payload.get("algorithmVersion") != algorithm):
+        raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED")
+    return baseline
+
+
+def _validate_rollover_predecessor(connection, *, boundary, now, risk_day,
+                                   risk_equity, cutover_id, cutover_mark_at_ms,
+                                   cutover_equity):
+    expected_previous_day = boundary - DAY_MS
+    if risk_day != expected_previous_day:
+        raise ValueError("DAILY_BASELINE_DAY_GAP_REQUIRES_RECONCILIATION")
+    cutover_day = cutover_mark_at_ms // DAY_MS * DAY_MS
+    if risk_day < cutover_day:
+        raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED")
+    prior = connection.execute(
+        "SELECT 1 FROM paper_daily_equity_baselines WHERE account_id=1 AND utc_day_ms=?",
+        (risk_day,),
+    ).fetchone()
+    if risk_day == cutover_day and prior is None:
+        if risk_equity != cutover_equity:
+            raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED")
+        return
+    _validate_persisted_baseline(
+        connection, utc_day_ms=risk_day, expected_equity=risk_equity,
+        cutover_id=cutover_id, now_ms=now,
+    )
 
 def persist_daily_equity_baseline(connection, *, utc_day_ms, now_ms, source_sha):
     """Revalidate, replay, and persist one UTC baseline plus audit atomically."""
@@ -142,6 +219,26 @@ def persist_daily_equity_baseline(connection, *, utc_day_ms, now_ms, source_sha)
         if migration != (DAILY_BASELINE_AUDIT_MIGRATION_CHECKSUM, "APPLIED"):
             raise sqlite3.DatabaseError("DAILY_BASELINE_AUDIT_MIGRATION_NOT_APPLIED")
         _require_immutable_schema(connection)
+        risk_day, risk_equity, risk_ready, _, hwm = _risk_state(connection)
+        existing_target = connection.execute(
+            "SELECT 1 FROM paper_daily_equity_baselines WHERE account_id=1 AND utc_day_ms=?",
+            (boundary,),
+        ).fetchone()
+        if existing_target is None:
+            cutovers = connection.execute(
+                """SELECT cutover_id,mark_observed_at_ms,account_equity_quote
+                   FROM paper_account_equity_cutovers WHERE account_id=1"""
+            ).fetchall()
+            if len(cutovers) != 1:
+                raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED")
+            cutover_id, cutover_mark_at_ms, cutover_equity = cutovers[0]
+            if type(cutover_mark_at_ms) is not int or not isinstance(cutover_equity, str):
+                raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED")
+            _validate_rollover_predecessor(
+                connection, boundary=boundary, now=now, risk_day=risk_day,
+                risk_equity=risk_equity, cutover_id=cutover_id,
+                cutover_mark_at_ms=cutover_mark_at_ms, cutover_equity=cutover_equity,
+            )
         inputs = load_daily_equity_replay_inputs(
             connection, utc_day_ms=boundary, now_ms=now, _transaction_owned=True
         )
@@ -187,8 +284,22 @@ def persist_daily_equity_baseline(connection, *, utc_day_ms, now_ms, source_sha)
             if audit != (audit_id, baseline_id, "DAILY_BASELINE_CREATED",
                          replay_digest, payload_json, baseline_recorded):
                 raise sqlite3.DatabaseError("DAILY_BASELINE_AUDIT_RECONCILIATION_FAILED")
-            if risk_day != boundary or risk_equity != replay["equity_quote"]:
+            if (risk_day is None or risk_day < boundary
+                    or risk_day > now // DAY_MS * DAY_MS):
                 raise sqlite3.DatabaseError("DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED")
+            if risk_day == boundary and risk_equity != replay["equity_quote"]:
+                raise sqlite3.DatabaseError("DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED")
+            if risk_day > boundary:
+                cutover_row = connection.execute(
+                    """SELECT cutover_id FROM paper_account_equity_cutovers
+                       WHERE account_id=1"""
+                ).fetchone()
+                if cutover_row is None:
+                    raise sqlite3.DatabaseError("DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED")
+                _validate_persisted_baseline(
+                    connection, utc_day_ms=risk_day, expected_equity=risk_equity,
+                    cutover_id=cutover_row[0], now_ms=now,
+                )
             connection.commit()
             return {"baseline_id": baseline_id, "utc_day_ms": boundary,
                     "baseline_equity_quote": replay["equity_quote"],
