@@ -420,7 +420,9 @@ class SyntheticFaultInjectionTests(unittest.TestCase):
         self.assertEqual(uninterrupted["filled_quantity"], "10")
         self.assertEqual(uninterrupted["remaining_quantity"], "0")
         self.assertEqual(uninterrupted["status"], "FILLED")
-        self.assertEqual(uninterrupted["active_order_id"], "O2")
+        self.assertIsNone(uninterrupted["active_order_id"])
+        self.assertEqual(uninterrupted["orders"]["O2"]["status"], "FILLED")
+        self.assertEqual(uninterrupted["orders"]["O2"]["filled_quantity"], "7")
 
     def test_recovery_duplicate_delivery_is_idempotent_and_changed_bytes_rejected(self):
         from synthetic_evidence.fault_injection import replay_order_lifecycle
