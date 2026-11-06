@@ -270,3 +270,110 @@ class SharedRiskAdmission:
         decision = {"intent_id": intent_id, **result}
         self._seen[intent_id] = (encoded, decision)
         return dict(decision)
+
+
+class FileBackedSharedRiskAdmission:
+    """Synthetic POSIX multi-process gate using flock + durable atomic replace.
+
+    This is a local-filesystem reference implementation for CI only. It is not
+    a distributed lock, network-filesystem guarantee, or production database.
+    """
+
+    STATE_NAME = "risk-state.json"
+    LOCK_NAME = "risk-state.lock"
+
+    def __init__(self, directory: str, policy: RiskPolicy, portfolio: PortfolioSnapshot) -> None:
+        import os
+        from pathlib import Path
+
+        self._directory = Path(directory)
+        self._policy = policy
+        self._portfolio = portfolio
+        self._directory.mkdir(parents=True, exist_ok=True)
+        self._state_path = self._directory / self.STATE_NAME
+        self._lock_path = self._directory / self.LOCK_NAME
+
+    def _locked(self):
+        import fcntl
+        handle = self._lock_path.open("a+b")
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        return handle
+
+    def initialize(self) -> None:
+        import fcntl
+        with self._locked() as handle:
+            try:
+                self._load()
+            except FileNotFoundError:
+                model = SharedRiskAdmission(self._policy, self._portfolio)
+                self._write(model.export_state())
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+    def admit(self, intent: dict[str, Any], *, fault_at: str | None = None) -> dict[str, Any]:
+        import fcntl
+        with self._locked() as handle:
+            try:
+                model = SharedRiskAdmission.restore_state(self._load())
+                decision = model.admit(intent)
+                self._write(model.export_state(), fault_at=fault_at)
+                return decision
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+    def inspect(self) -> dict[str, Any]:
+        import fcntl
+        with self._locked() as handle:
+            try:
+                model = SharedRiskAdmission.restore_state(self._load())
+                return {
+                    "reserved_exposure": model.reserved_exposure,
+                    "open_reservation_count": model.open_reservation_count,
+                    "reservation_count": model.reservation_count,
+                }
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+    def _load(self) -> dict[str, Any]:
+        import json
+        try:
+            raw = self._state_path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            raise FileNotFoundError("state missing: explicit initialize required")
+        try:
+            state = json.loads(raw)
+            # Validate checksum and schema before returning untrusted disk data.
+            SharedRiskAdmission.restore_state(state)
+            return state
+        except (json.JSONDecodeError, UnicodeDecodeError, ValueError, TypeError) as exc:
+            raise ValueError("state integrity validation failed") from exc
+
+    def _write(self, state: dict[str, Any], *, fault_at: str | None = None) -> None:
+        import json
+        import os
+        import tempfile
+
+        if fault_at not in (None, "before_replace", "after_replace"):
+            raise ValueError("unsupported synthetic fault point")
+        payload = json.dumps(state, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+        fd, temp_name = tempfile.mkstemp(prefix=".risk-state-", suffix=".tmp", dir=self._directory)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+            if fault_at == "before_replace":
+                os._exit(91)
+            os.replace(temp_name, self._state_path)
+            if fault_at == "after_replace":
+                os._exit(92)
+            directory_fd = os.open(self._directory, os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        finally:
+            try:
+                os.unlink(temp_name)
+            except FileNotFoundError:
+                pass
