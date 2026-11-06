@@ -481,6 +481,33 @@ def record_account_equity_cutover(
              format(reconciled_fees, "f"), format(funding_total, "f"),
              _decimal_text(expected_equity), recorded),
         )
+        ledger_rows = db.execute(
+            """SELECT strategy_id,position_base,average_entry_price,realized_pnl_quote,
+                      fees_quote,funding_quote
+               FROM paper_strategy_ledgers WHERE account_id=1 ORDER BY strategy_id"""
+        ).fetchall()
+        if {row[0] for row in ledger_rows} != STRATEGIES:
+            raise ValueError("ACCOUNT_EQUITY_LEDGER_SET_INVALID")
+        for strategy_id, position, average, pnl, fee, fund in ledger_rows:
+            snapshot_payload = {
+                "cutoverId": cutover_id, "strategyId": strategy_id,
+                "snapshotAtMs": observed, "positionBase": position,
+                "averageEntryPrice": average, "realizedPnlQuote": pnl,
+                "feesQuote": fee, "fundingQuote": fund,
+                "sourceSnapshotId": snapshot, "payloadHash": digest,
+            }
+            canonical_snapshot = json.dumps(
+                snapshot_payload, sort_keys=True, separators=(",", ":"), allow_nan=False
+            )
+            db.execute(
+                """INSERT INTO paper_account_cutover_ledger_snapshots
+                   (cutover_id,strategy_id,snapshot_at_ms,position_base,
+                    average_entry_price,realized_pnl_quote,fees_quote,funding_quote,
+                    source_snapshot_id,payload_hash,canonical_payload,created_at_ms)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (cutover_id, strategy_id, observed, position, average, pnl, fee, fund,
+                 snapshot, digest, canonical_snapshot, recorded),
+            )
         db.execute(
             """UPDATE paper_account_risk_state SET high_water_mark_quote=?,
                daily_baseline_utc_day_ms=?,daily_baseline_equity_quote=?,
