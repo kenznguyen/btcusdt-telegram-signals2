@@ -1115,5 +1115,57 @@ class DualLedgerRedTest(unittest.TestCase):
             )
 
 
+    def test_account_equity_cutover_rejects_statement_total_mismatch(self):
+        path = self.fresh_account_db("cutover-statement-mismatch.sqlite3", establish_cutover=False)
+        ledger.record_funding_coverage(
+            path,
+            coverage_id="statement-mismatch-funding-coverage",
+            start_at_ms=self.now - 86_400_000,
+            end_at_ms=self.now,
+            status="VERIFIED",
+            source="RECONCILED_FUNDING_STATEMENT",
+            source_snapshot_id="funding-statement:mismatch-window",
+            payload_hash="sha256:" + "d" * 64,
+            config_version="funding-policy-v1",
+            recorded_at_ms=self.now,
+        )
+        with sqlite3.connect(path) as connection:
+            connection.execute(
+                """UPDATE paper_strategy_ledgers SET realized_pnl_quote='2'
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            )
+
+        with self.assertRaisesRegex(ValueError, "ACCOUNT_EQUITY_STATEMENT_TOTALS_MISMATCH"):
+            ledger.record_account_equity_cutover(
+                path,
+                cutover_id="statement-total-mismatch-cutover",
+                expected_initial_capital_quote="100",
+                expected_realized_pnl_quote="0",
+                expected_fees_quote="0",
+                expected_funding_quote="0",
+                expected_account_equity_quote="100",
+                mark_price="100",
+                mark_candle_close_ms=self.now - 60_000,
+                mark_observed_at_ms=self.now,
+                dataset_version="sha256:dual-ledger-seed",
+                funding_coverage_start_at_ms=self.now - 86_400_000,
+                source="RECONCILED_ACCOUNT_STATEMENT",
+                source_snapshot_id="account-cutover:statement-mismatch",
+                payload_hash="sha256:" + "e" * 64,
+                config_version="account-cutover-v1",
+                recorded_at_ms=self.now,
+            )
+
+        with sqlite3.connect(path) as connection:
+            count = connection.execute(
+                "SELECT COUNT(*) FROM paper_account_equity_cutovers"
+            ).fetchone()[0]
+            risk = connection.execute(
+                "SELECT risk_ready FROM paper_account_risk_state WHERE account_id=1"
+            ).fetchone()[0]
+        self.assertEqual(count, 0)
+        self.assertEqual(risk, 1, "Rejected cutover must not mutate the pre-existing readiness state")
+
+
 if __name__ == "__main__":
     unittest.main()
