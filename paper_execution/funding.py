@@ -35,6 +35,10 @@ def _amount(value):
     return result
 
 
+def _decimal_text(value):
+    return format(value.normalize(), "f") if value else "0"
+
+
 def _hash(value):
     if (not isinstance(value, str) or len(value) != 71
             or not value.startswith("sha256:")
@@ -189,7 +193,7 @@ def _refresh_equity(connection, now):
             """UPDATE paper_account_risk_state
                SET last_equity_quote=?,high_water_mark_quote=?,updated_at_ms=?,
                    version=version+1 WHERE account_id=1""",
-            (format(equity, "f"), format(max(hwm, equity), "f"), now),
+            (_decimal_text(equity), format(max(hwm, equity), "f"), now),
         )
     except (DecimalException, TypeError, ValueError, IndexError):
         connection.execute(
