@@ -357,3 +357,14 @@ Approved scope: synthetic-only local generator/test harness. No account DB, T0/T
 - 13 negative-vector descriptions are catalogued; not every fault path is executed.
 - Root B remains LOCAL_REPLAY_SIMULATION only. Provider qualification, retention, cost, independent restore and persistent capture NOT AUTHORIZED.
 - Source changes are confined to `synthetic_evidence/`; one isolated GitHub Actions workflow added. No T0/T1 runtime/schema/database/risk changes. PAPER-only; `ai_execution_enabled=false`.
+
+
+### P1.8.1 environment descriptor hardening
+
+- Generator source commit: `b55c851a5db3eb698d3ac68b073a825abcf55026`.
+- Test commit: `bd558f0041302ef521ea6837e87923c17e3fceaa`.
+- Implementation report update: `280437fcf73b7a34d0f0322dd0f09c1a1f73a8a2`.
+- P1.6 specification environment provenance amendment: `4f46b31bbfbfe3bac15b3fb904df01158f96f208`.
+- Acceptance Plan amendment: `015172e0bb8050272962d03626f0290555d4faf5`.
+
+Run descriptor now records CPU, memory where available, OS, architecture, runtime/tool versions, explicit storage-medium NOT_MEASURED and unsigned local hash/signature profile. Re-ran local tests 19/19 PASS, py_compile PASS, two 1k fixtures byte-identical and SHA-256 manifest PASS. Latest source SHA eligible for GitHub Actions push trigger is `bd558f0041302ef521ea6837e87923c17e3fceaa`; exact workflow run and artifact remain NOT VERIFIED.
