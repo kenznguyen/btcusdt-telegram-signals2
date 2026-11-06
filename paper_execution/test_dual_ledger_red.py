@@ -2040,6 +2040,7 @@ os._exit(0)
 
     def test_account_history_event_requires_explicit_fee_amount_and_currency(self):
         common = {
+            "fee_currency": "USDT",
             "event_id": "history-fee-required", "strategy_id": "STRATEGY_CORE",
             "event_type": "FILL", "event_at_ms": self.now + 1_000,
             "quantity_delta_base": "0.1", "fill_price": "101",
@@ -2050,10 +2051,10 @@ os._exit(0)
         }
         with self.assertRaises(TypeError):
             ledger.record_account_history_event(self.path, **common)
+        missing_currency = {**common, "fee_quote": "0.01"}
+        missing_currency.pop("fee_currency")
         with self.assertRaises(TypeError):
-            ledger.record_account_history_event(
-                self.path, **common, fee_quote="0.01"
-            )
+            ledger.record_account_history_event(self.path, **missing_currency)
 
     def test_account_history_event_rejects_non_quote_fee_currency(self):
         with self.assertRaisesRegex(ValueError, "ACCOUNT_HISTORY_FEE_CURRENCY_INVALID"):
@@ -2072,6 +2073,21 @@ os._exit(0)
                 source_snapshot_id="history-invalid-fee-currency-snapshot",
                 payload_hash="sha256:" + "8" * 64,
             )
+
+    def test_account_history_sql_insert_rejects_missing_fee_currency(self):
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "ACCOUNT_HISTORY_FEE_CURRENCY_REQUIRED"):
+            with sqlite3.connect(self.path) as connection:
+                connection.execute(
+                    """INSERT INTO paper_account_event_journal
+                       (event_id,account_id,strategy_id,event_type,event_at_ms,recorded_at_ms,
+                        quantity_delta_base,fill_price,fee_quote,fee_currency,source,
+                        source_snapshot_id,payload_hash,canonical_payload,created_at_ms)
+                       VALUES ('missing-fee-currency',1,'STRATEGY_CORE','FILL',
+                               ?,?,'0.1','100','0.01',NULL,'PAPER_TEST',
+                               'missing-fee-currency-snapshot',?,'{}',?)""",
+                    (self.now + 1_000, self.now + 1_100,
+                     "sha256:" + "6" * 64, self.now + 1_100),
+                )
 
     def test_account_history_event_persists_explicit_usdt_fee_currency(self):
         result = ledger.record_account_history_event(

@@ -321,6 +321,7 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
             (5, "account_equity_cutover_v5", "APPLIED"),
             (6, "account_history_journal_v6", "APPLIED"),
             (7, "account_cutover_ledger_snapshots_v7", "APPLIED"),
+            (8, "account_history_fee_provenance_v8", "APPLIED"),
         ])
         self.assertIn("expires_at_ms", columns)
         self.assertIn("paper_risk_reservations_expiry", indexes)
@@ -346,7 +347,7 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
             counts = connection.execute(
                 "SELECT version,COUNT(*) FROM paper_schema_migrations GROUP BY version ORDER BY version"
             ).fetchall()
-        self.assertEqual(counts, [(1, 1), (2, 1), (3, 1), (4, 1), (5, 1), (6, 1), (7, 1)])
+        self.assertEqual(counts, [(1, 1), (2, 1), (3, 1), (4, 1), (5, 1), (6, 1), (7, 1), (8, 1)])
 
 
 if __name__ == "__main__":

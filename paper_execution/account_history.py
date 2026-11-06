@@ -330,6 +330,12 @@ def _require_migration(db):
     ).fetchone()
     if row != (MIGRATION_CHECKSUM, "APPLIED"):
         raise sqlite3.DatabaseError("ACCOUNT_HISTORY_MIGRATION_NOT_APPLIED")
+    fee_row = db.execute(
+        "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
+        (FEE_PROVENANCE_MIGRATION_VERSION,),
+    ).fetchone()
+    if fee_row != (FEE_PROVENANCE_MIGRATION_CHECKSUM, "APPLIED"):
+        raise sqlite3.DatabaseError("ACCOUNT_HISTORY_FEE_PROVENANCE_MIGRATION_NOT_APPLIED")
 
 
 def record_account_history_event(
