@@ -307,8 +307,7 @@ class FileBackedSharedRiskAdmission:
                 self._write(model.export_state())
             else:
                 self._load()
-            finally:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
     def admit(self, intent: dict[str, Any], *, fault_at: str | None = None) -> dict[str, Any]:
         import fcntl
