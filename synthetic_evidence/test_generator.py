@@ -337,3 +337,100 @@ class StrictInputAndReplayFaultVectors(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SyntheticFaultInjectionTests(unittest.TestCase):
+    """Fault contracts for an isolated synthetic reference model, not T0/T1 runtime."""
+
+    def test_unknown_fee_or_funding_never_becomes_zero_equity_input(self):
+        from synthetic_evidence.fault_injection import IncompleteEquityError, calculate_equity
+        from decimal import Decimal
+
+        with self.assertRaises(IncompleteEquityError):
+            calculate_equity(Decimal("12.50"), fee=Decimal("0"), funding=None)
+        with self.assertRaises(IncompleteEquityError):
+            calculate_equity(Decimal("12.50"), fee=None, funding=Decimal("0"))
+        self.assertEqual(
+            calculate_equity(Decimal("12.50"), fee=Decimal("0.25"), funding=Decimal("-0.10")),
+            Decimal("12.15"),
+        )
+
+    def test_missing_stale_future_and_uncertain_mark_are_not_valuation_ready(self):
+        from datetime import datetime, timedelta, timezone
+        from decimal import Decimal
+        from synthetic_evidence.fault_injection import MarkNotReadyError, validate_mark
+
+        now = datetime(2026, 11, 7, 0, 0, tzinfo=timezone.utc)
+        with self.assertRaises(MarkNotReadyError):
+            validate_mark(None, None, now, timedelta(seconds=5))
+        with self.assertRaisesRegex(MarkNotReadyError, "stale"):
+            validate_mark(Decimal("100"), now - timedelta(seconds=6), now, timedelta(seconds=5))
+        with self.assertRaisesRegex(MarkNotReadyError, "future"):
+            validate_mark(Decimal("100"), now + timedelta(seconds=2), now, timedelta(seconds=5))
+        with self.assertRaisesRegex(MarkNotReadyError, "clock uncertainty"):
+            validate_mark(Decimal("100"), now, now, timedelta(seconds=5),
+                          clock_uncertainty=timedelta(seconds=6))
+        self.assertEqual(
+            validate_mark(Decimal("100"), now - timedelta(seconds=4), now, timedelta(seconds=5)),
+            Decimal("100"),
+        )
+
+    def test_late_pre_boundary_event_invalidates_checkpoint(self):
+        from datetime import datetime, timezone
+        from synthetic_evidence.fault_injection import checkpoint_is_valid
+
+        boundary = datetime(2026, 11, 7, 0, 0, tzinfo=timezone.utc)
+        sealed = datetime(2026, 11, 7, 0, 1, tzinfo=timezone.utc)
+        on_time = {"event_id": "e1", "occurred_at": boundary, "committed_at": sealed}
+        late = {"event_id": "e2", "occurred_at": boundary, "committed_at":
+                datetime(2026, 11, 7, 0, 2, tzinfo=timezone.utc)}
+        self.assertTrue(checkpoint_is_valid([on_time], boundary, sealed))
+        self.assertFalse(checkpoint_is_valid([on_time, late], boundary, sealed))
+        post_boundary = {"event_id": "e3", "occurred_at":
+                         datetime(2026, 11, 7, 0, 3, tzinfo=timezone.utc),
+                         "committed_at": sealed}
+        self.assertTrue(checkpoint_is_valid([on_time, post_boundary], boundary, sealed))
+
+    def test_recovery_after_crash_matches_uninterrupted_partial_fill_cancel_replace(self):
+        from synthetic_evidence.fault_injection import replay_order_lifecycle
+
+        events = [
+            {"event_id": "1", "type": "ORDER_ACCEPTED", "order_id": "O1", "quantity": "10"},
+            {"event_id": "2", "type": "ORDER_PARTIAL_FILL", "order_id": "O1", "quantity": "3"},
+            {"event_id": "3", "type": "ORDER_CANCELLED", "order_id": "O1"},
+            {"event_id": "4", "type": "ORDER_REPLACED", "order_id": "O2", "replaces": "O1", "quantity": "7"},
+            {"event_id": "5", "type": "ORDER_PARTIAL_FILL", "order_id": "O2", "quantity": "2"},
+            {"event_id": "6", "type": "ORDER_FILLED", "order_id": "O2", "quantity": "5"},
+        ]
+        uninterrupted = replay_order_lifecycle(events)
+        after_crash = replay_order_lifecycle(events[:4])
+        self.assertEqual(after_crash["remaining_quantity"], "7")
+        restarted = replay_order_lifecycle(events[:4] + events[4:])
+        self.assertEqual(restarted, uninterrupted)
+        self.assertEqual(uninterrupted["filled_quantity"], "10")
+        self.assertEqual(uninterrupted["remaining_quantity"], "0")
+        self.assertEqual(uninterrupted["status"], "FILLED")
+        self.assertEqual(uninterrupted["active_order_id"], "O2")
+
+    def test_recovery_duplicate_delivery_is_idempotent_and_changed_bytes_rejected(self):
+        from synthetic_evidence.fault_injection import replay_order_lifecycle
+
+        accepted = {"event_id": "1", "type": "ORDER_ACCEPTED", "order_id": "O1", "quantity": "4"}
+        partial = {"event_id": "2", "type": "ORDER_PARTIAL_FILL", "order_id": "O1", "quantity": "1"}
+        replayed = replay_order_lifecycle([accepted, partial, partial])
+        self.assertEqual(replayed["filled_quantity"], "1")
+        changed = dict(partial, quantity="2")
+        with self.assertRaisesRegex(ValueError, "changed bytes"):
+            replay_order_lifecycle([accepted, partial, changed])
+
+    def test_cancelled_order_cannot_receive_late_fill_after_replacement(self):
+        from synthetic_evidence.fault_injection import replay_order_lifecycle
+
+        events = [
+            {"event_id": "1", "type": "ORDER_ACCEPTED", "order_id": "O1", "quantity": "5"},
+            {"event_id": "2", "type": "ORDER_CANCELLED", "order_id": "O1"},
+            {"event_id": "3", "type": "ORDER_REPLACED", "order_id": "O2", "replaces": "O1", "quantity": "5"},
+            {"event_id": "4", "type": "ORDER_PARTIAL_FILL", "order_id": "O1", "quantity": "1"},
+        ]
+        with self.assertRaisesRegex(ValueError, "inactive order"):
+            replay_order_lifecycle(events)
