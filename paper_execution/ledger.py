@@ -172,7 +172,7 @@ MIGRATION_CHECKSUM = hashlib.sha256(
 ).hexdigest()
 LEGACY_BOOK_MIGRATION_VERSION = 2
 LEGACY_BOOK_MIGRATION_CHECKSUM = hashlib.sha256(
-    b"dual-ledger-v2:legacy-book-depth-consumption-reconciliation-evidence"
+    b"dual-ledger-v2.1:legacy-book-depth-immutable-sha256-evidence"
 ).hexdigest()
 
 
@@ -584,11 +584,29 @@ def migrate_legacy_book_depth(connection, source_sha):
         if (applied[0] != LEGACY_BOOK_MIGRATION_CHECKSUM
                 or applied[1] != "APPLIED"):
             raise sqlite3.DatabaseError("LEGACY_BOOK_MIGRATION_CHECKSUM_MISMATCH")
-        table = connection.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_legacy_book_consumptions'"
-        ).fetchone()
-        if not table:
+        required_objects = {
+            ("table", "paper_legacy_book_consumptions"),
+            ("index", "paper_legacy_book_depth_active"),
+            ("trigger", "paper_legacy_book_consumptions_immutable_update"),
+            ("trigger", "paper_legacy_book_consumptions_immutable_delete"),
+        }
+        existing_objects = set(connection.execute(
+            "SELECT type,name FROM sqlite_master"
+        ).fetchall())
+        if not required_objects.issubset(existing_objects):
             raise sqlite3.DatabaseError("LEGACY_BOOK_MIGRATION_SCHEMA_MISSING")
+        required_columns = {
+            "consumption_id", "account_id", "intent_id", "book_id", "side",
+            "price", "consumed_quantity", "reconciliation_id", "evidence_hash",
+            "created_at_ms",
+        }
+        actual_columns = {
+            row[1] for row in connection.execute(
+                "PRAGMA table_info(paper_legacy_book_consumptions)"
+            )
+        }
+        if not required_columns.issubset(actual_columns):
+            raise sqlite3.DatabaseError("LEGACY_BOOK_MIGRATION_SCHEMA_INCOMPLETE")
         return
 
     existing_table = connection.execute(
@@ -608,6 +626,7 @@ def migrate_legacy_book_depth(connection, source_sha):
         reconciliation_id TEXT NOT NULL CHECK(length(trim(reconciliation_id))>0),
         evidence_hash TEXT NOT NULL CHECK(
             length(evidence_hash)=71 AND substr(evidence_hash,1,7)='sha256:'
+            AND substr(evidence_hash,8) NOT GLOB '*[^0-9a-f]*'
         ),
         created_at_ms INTEGER NOT NULL,
         UNIQUE(intent_id,book_id,side,price)
@@ -616,6 +635,16 @@ def migrate_legacy_book_depth(connection, source_sha):
         "CREATE INDEX paper_legacy_book_depth_active "
         "ON paper_legacy_book_consumptions(book_id,side,price)"
     )
+    connection.execute("""CREATE TRIGGER paper_legacy_book_consumptions_immutable_update
+        BEFORE UPDATE ON paper_legacy_book_consumptions
+        BEGIN
+            SELECT RAISE(ABORT,'LEGACY_BOOK_CONSUMPTION_IMMUTABLE');
+        END""")
+    connection.execute("""CREATE TRIGGER paper_legacy_book_consumptions_immutable_delete
+        BEFORE DELETE ON paper_legacy_book_consumptions
+        BEGIN
+            SELECT RAISE(ABORT,'LEGACY_BOOK_CONSUMPTION_IMMUTABLE');
+        END""")
     applied_at_row = connection.execute(
         "SELECT updated_at_ms FROM paper_account_risk_state WHERE account_id=1"
     ).fetchone()
@@ -631,7 +660,7 @@ def migrate_legacy_book_depth(connection, source_sha):
 
 def reduce_legacy_unattributed(
     db_path, raw, book, now_ms, *, reconciliation_id, evidence_hash,
-    fee_rate="0.001", max_spread_bps="50",
+    fee_rate="0.0005", max_spread_bps="50",
 ):
     """PAPER-only close/flatten path for unattributed legacy exposure; never opens risk."""
     path = Path(db_path).resolve()
