@@ -3000,3 +3000,24 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **PASS — persisted UTC baseline is consumed by the shared read-only risk snapshot at the exact boundary mark. NOT VERIFIED — direct exposure-admission behavior after rollover.**
 - Next: add tests around the actual Core/AI `submit` path: verified current-day baseline + fresh boundary mark permits only normal risk evaluation; missing/wrong-day baseline, stale mark, funding gap, Kill Switch and limit breaches block exposure increases; reductions remain permitted. No bypass of shared Risk Engine. Temporary SQLite only.
 - Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 daily baseline shared-risk exposure admission verification
+
+- Scope: verify actual Core and AI `PaperLedger.submit` admission paths after daily UTC baseline persistence; no risk-engine bypass or execution logic changes.
+- Added temporary-SQLite integration tests:
+  - With verified current-day baseline and fresh boundary mark, Core LONG and AI SHORT both pass the normal shared risk checks and fill independently.
+  - Wrong UTC baseline day blocks a new Core exposure with `RISK_INPUTS_STALE_OR_CORRUPT`.
+  - Stale boundary mark blocks a new AI exposure with `RISK_INPUTS_STALE_OR_CORRUPT`.
+  - Existing Core position can EXIT/reduce when daily baseline becomes unavailable; exposure reduction is not blocked by the baseline gate.
+- Exact tested source SHA: `ca8a658db81d343345855b790f71787ba6e130d2`.
+- GitHub Actions [#42273745481](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42273745481): SUCCESS on exact SHA.
+  - PAPER-only preflight: PASS.
+  - Python compile: PASS.
+  - Focused contracts: 154/154 PASS.
+  - Full `paper_execution` regression: 253/253 PASS.
+  - Job ID: `128084644700`.
+  - Artifact ID: `13532671086`, name `dual-ledger-red-evidence-ca8a658db81d343345855b790f71787ba6e130d2`, GitHub upload digest `sha256:22d3a3cf0cb26e251867e3eee51dbd0e10ff540c0311f71b9cf93eecdbf29bf6`, expires 2026-11-13. Digest is GitHub artifact metadata; payload bytes were not separately downloaded and re-hashed.
+- Status: **PASS — Core/AI exposure admission consumes the verified current UTC baseline; wrong-day/stale mark gates block increases, and valid reductions remain permitted. NOT VERIFIED — all post-rollover kill-switch/funding-gap/limit combinations in the same integrated fixture and OS-process crash recovery.**
+- Next: add post-rollover regression cases for missing baseline, funding coverage ending before the boundary mark's observation, Kill Switch, and max exposure/daily loss limits; verify no path bypasses shared risk checks. Then perform process-kill/reopen recovery testing against temporary SQLite. Do not use persistent account DB.
+- Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
