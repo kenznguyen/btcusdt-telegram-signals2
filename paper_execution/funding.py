@@ -397,8 +397,6 @@ def record_account_equity_cutover(
                 raise ValueError("FUNDING_PROVENANCE_INCOMPLETE")
             previous_end = end
             cursor = max(cursor, end)
-            if cursor >= observed:
-                break
         if cursor < observed:
             raise ValueError("FUNDING_PROVENANCE_INCOMPLETE")
 
