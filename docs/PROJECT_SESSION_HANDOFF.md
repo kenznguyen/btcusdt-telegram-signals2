@@ -3287,3 +3287,16 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **PASS — verification contract documented. NOT VERIFIED — availability/authenticity of two independent evidence roots, numeric behavior in code, and any actual anchor reconciliation. No Epoch policy, source, schema, or activation approval is implied.**
 - Next: identify whether independently retained event archive and checkpoint evidence actually exist, using repository/project artifacts and metadata only. Do not open the persistent account DB or import external account data. If no genuinely independent second root exists, classify dual reconstruction as unavailable and preserve Option A.
 - Restrictions unchanged: no source/test implementation, schema migration, persistent account DB opening, backfill, external account import, exchange connection, production backtest, deployment, merge, Epoch activation, HWM reset, or live order. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — Independent event archive/checkpoint inventory
+
+- Scope: read-only recursive Git tree inventory after the Dual Reconstruction contract. No persistent account DB, GitHub Actions artifact payload, private Project attachment, or external/local archive was opened or downloaded.
+- Inspected recursive tree at commit `2eb17051dd93a9c36b1e9be45333168793546702`: 279 paths, not truncated.
+- No tracked database/SQLite, JSONL/NDJSON, CSV, Parquet/Arrow, archive, binary event payload, checksum manifest, or equivalent raw event/checkpoint data file was found. The evidence directory contains documentation reports/manifests, not a retained event archive or independent account checkpoint.
+- Existing event-journal, funding, ledger, and baseline source code describes schema capabilities; source code is not a second evidence root. Persistent DB rows and byte-level source authenticity remain NOT VERIFIED.
+- Inventory update: `docs/evidence/DAILY_BASELINE_V1_RECOVERY_EVIDENCE_INVENTORY_2026-11-07.md`, commit `b69ff744654feb6d5154c2af666cee699372dd94`.
+- Result: **INDEPENDENT_SECOND_ROOT_NOT_FOUND_IN_TRACKED_GIT_TREE**. This is scoped to tracked Git files only; GitHub Actions artifact payloads, Project attachments, PC/Android files, and external archives were not inspected. Do not claim that no external evidence exists.
+- Consequence: Dual Reconstruction cannot currently be independently verified from tracked repository evidence. Two calculations over the same mutable account DB remain INTERNAL_CONSISTENCY_ONLY and cannot qualify an Epoch anchor.
+- Next: if proceeding without external evidence, preserve Option A and keep v1 unresolved/risk increases blocked. To continue the evidence path, identify a separately retained external checkpoint/archive by its storage/source identity first; do not open the persistent account DB, download arbitrary artifacts, import account data, or implement source/schema changes without separate authorization.
+- Restrictions unchanged: no source/test implementation, schema migration, persistent account DB opening, backfill, external account import, exchange connection, production backtest, deployment, merge, Epoch activation, HWM reset, or live order. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
