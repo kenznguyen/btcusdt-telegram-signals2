@@ -204,6 +204,27 @@ def verify_snapshot_chain(chain):
     return True
 
 
+
+def ensure_baseline_snapshot(chain, baseline_snapshot):
+    """Anchor a new history to the P1.8.15 root without erasing real rotations."""
+    _verify_snapshot(baseline_snapshot)
+    if chain is None:
+        return build_snapshot_chain([baseline_snapshot])
+    verify_snapshot_chain(chain)
+    snapshots = chain["snapshots"]
+    if not snapshots:
+        return build_snapshot_chain([baseline_snapshot])
+    first = snapshots[0]
+    same_root = first["trusted_root_sha256"] == baseline_snapshot["trusted_root_sha256"]
+    if same_root and first["sequence"] == 1 and first["previous_snapshot_sha256"] is None:
+        first_time = _parse_utc(first["captured_at"])
+        baseline_time = _parse_utc(baseline_snapshot["captured_at"])
+        if first_time > baseline_time:
+            return build_snapshot_chain([baseline_snapshot])
+        if first_time < baseline_time:
+            raise ValueError("snapshot history predates the declared baseline")
+    return chain
+
 def append_trust_snapshot(chain, snapshot):
     current = build_snapshot_chain() if chain is None else chain
     verify_snapshot_chain(current)
