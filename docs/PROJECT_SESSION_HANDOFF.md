@@ -1463,3 +1463,58 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Next: execute the new test on exact branch head in disposable TimescaleDB. If lease-loss shutdown fails, add a regression-backed fix that treats an already-lost generation as non-owned after drain, without releasing or mutating the replacement lease. Then run full regression and update evidence with exact SHA/run/artifact.
 
 - CI visibility note: the GitHub connector's commit-run lookup for `e181f2a779419c6930f043be47e43d89eb0b685f` returned no PR-triggered runs; this lookup does not expose direct push runs. Direct push workflow result remains **NOT VERIFIED** until a run ID/log is obtained.
+
+
+## 2026-11-06 — P0 PostgreSQL FeederRuntime lifecycle acceptance
+
+### Scope and implementation
+
+- Continued on `feature/t0-centralized-data-feeder-p1-20261101`; no parallel branch or PR created.
+- Added PostgreSQL-backed lifecycle acceptance against the disposable TimescaleDB CI service:
+  - DB-clock heartbeat renewal while runtime is RUNNING.
+  - Expired lease takeover advances fencing generation, marks old runtime LEASE_LOST, stops scheduler admission, and closes readiness.
+  - Old runtime shutdown after takeover must complete without releasing or mutating the replacement generation.
+  - Drain timeout retains the lease; successful drain releases it.
+  - Restart acquires a strictly higher generation.
+- RED exposed a real runtime defect: after takeover, `FeederRuntime.stop()` treated the expected failure to release the old generation as a fatal shutdown error. Fixed it so an already-lost generation is not released again; if ownership is lost during the release race, it is treated as an expected fenced shutdown. The replacement lease remains untouched. Emits `lease_release_skipped_after_loss`.
+- Corrected the test fixture to use the database's fixed canonical lease identity, `binance-btcusdt-canonical`; arbitrary lease names are rejected by the database contract.
+- Updated the GitHub Actions artifact manifest so the lifecycle test log and verdict are retained in the TimescaleDB artifact.
+
+### Test-driven evidence
+
+1. Initial CI run `42156450016`, source SHA `e181f2a779419c6930f043be47e43d89eb0b685f`: static Gateway and Paper jobs passed; TimescaleDB lifecycle tests failed because the fixture used a noncanonical lease name. This run did not verify lifecycle behavior.
+2. RED reproduction after canonical lease fixture correction, run `42156715010`, source SHA `708d815473ec653e1a4b4fa6f8616d2ac9d5079d`: lifecycle suite ran 4 tests; takeover/readiness test failed exactly at shutdown with `RuntimeError: Feeder could not release its owner/generation lease`. The other 3 lifecycle tests passed. This confirmed the runtime defect.
+3. GREEN run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42156876274
+   - Event: push; branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+   - Exact checked-out source SHA: `75856f73da569a6a33e0b8b9c11340d518ad7794` (confirmed by the TimescaleDB job's `git rev-parse HEAD` output).
+   - Jobs: 3/3 SUCCESS (Static Gateway contract verification, Paper consumer fixture regressions, Isolated TimescaleDB integration).
+   - Static Gateway RED contracts: 10/10 PASS.
+   - Existing Gateway/Feeder regression invocation: 60 tests PASS.
+   - Health/readiness invocation: 21 tests PASS.
+   - Process-level SIGKILL restart/fencing invocation: 2 tests PASS.
+   - Full `market_data` suite: 225 tests, 36 skipped (the DB integration cases are exercised in the dedicated disposable TimescaleDB job).
+   - Paper consumer regression: 44/44 PASS.
+   - Dedicated disposable TimescaleDB integration:
+     - PostgreSQL atomic writer: 7/7 PASS.
+     - PostgreSQL FeederRuntime: 14/14 PASS.
+     - PostgreSQL FeederRuntime lifecycle: 4/4 PASS.
+     - PostgreSQL least-privilege roles: 18/18 PASS.
+     - Read-only TimescaleDB: 6/6 PASS.
+     - Disposable target preflight PASS; no exchange credentials, production DB, or external exchange access.
+   - Artifacts:
+     - Static Gateway: ID `13475192285`, SHA-256 digest `231bf597c7596e0a20193b5b14295470692f701559513c65d13fc31e5726b1ec`.
+     - Paper consumer: ID `13475515590`, SHA-256 digest `2fd4cbb46bd8ec4a535e8c3da6b62f0dd1c5e87033e92cee2efa05860a47e7b3`.
+     - TimescaleDB including lifecycle logs: ID `13474439132`, SHA-256 digest `e4ba19f50cbfb1ccfb9da716ec38f3ab0cb5743b2194a20a4c9e950dc3a4151a`.
+   - Artifact digests are GitHub upload digests; payload bytes have not been independently downloaded and re-hashed in this increment.
+
+### Verdict and boundaries
+
+- P0 PostgreSQL FeederRuntime lifecycle acceptance: **PASS** on exact source SHA `75856f73da569a6a33e0b8b9c11340d518ad7794`.
+- PG Gateway + runtime adapter + lifecycle + least-privilege + read-only integration CI: **PASS** for the tested disposable TimescaleDB environment.
+- Production certification: **NOT GRANTED**. These tests do not authorize provisioning or migration of a production canonical database, creating credentials, changing TLS/network/VPS settings, starting the production Feeder, connecting Binance, or syncing market data.
+- `ai_execution_enabled=false`; paper-only boundary unchanged.
+- No merge performed.
+
+### Next step
+
+- Perform a focused self-review of the shutdown state transition and the complete P0 security/recovery design against the tested source SHA; then define the next explicitly gated production-readiness increment. Keep production provisioning and Feeder activation blocked until that review and its approval gates are complete.
