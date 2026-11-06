@@ -118,8 +118,8 @@ def build_trust_snapshot(
     tuf_verified,
     previous_snapshot_sha256=None,
 ):
-    _parse_root(trusted_root_bytes)
     captured = _parse_utc(captured_at)
+    _parse_root(trusted_root_bytes)
     if not isinstance(sequence, int) or isinstance(sequence, bool) or sequence < 1:
         raise ValueError("sequence must be a positive integer")
     if sequence == 1 and previous_snapshot_sha256 is not None:
@@ -331,8 +331,10 @@ def verify_retention_manifest(manifest, files):
         payload = files[path]
         if not isinstance(entry.get("sha256"), str) or not _SHA256.fullmatch(entry["sha256"]):
             raise ValueError(f"invalid retained file digest: {path}")
-        if not isinstance(payload, bytes) or len(payload) != entry.get("size_bytes"):
-            raise ValueError(f"retained file size mismatch: {path}")
+        if not isinstance(payload, bytes):
+            raise ValueError(f"retained file payload is not bytes: {path}")
         if hashlib.sha256(payload).hexdigest() != entry.get("sha256"):
             raise ValueError(f"retained file digest mismatch: {path}")
+        if len(payload) != entry.get("size_bytes"):
+            raise ValueError(f"retained file size mismatch: {path}")
     return True
