@@ -47,9 +47,9 @@ class DeterministicLedgerReplayContractTest(unittest.TestCase):
 
     def test_funding_event_exactly_at_utc_boundary_belongs_to_new_day(self):
         funding = [
-            {"funding_event_id": "before-boundary", "event_at_ms": 99,
+            {"funding_event_id": "before-boundary", "event_at_ms": 86_399_999,
              "amount_quote": "0.25"},
-            {"funding_event_id": "at-boundary", "event_at_ms": 100,
+            {"funding_event_id": "at-boundary", "event_at_ms": 86_400_000,
              "amount_quote": "9.00"},
         ]
         result = replay_ledger_events(
@@ -70,7 +70,7 @@ class DeterministicLedgerReplayContractTest(unittest.TestCase):
             self.event("a-buy", 10, "1", "110", "0"),
         ]
         result = replay_ledger_events(
-            self.snapshot, events, [], boundary_ms=20
+            self.snapshot, events, [], boundary_ms=86_400_000
         )
         self.assertEqual(result["included_event_ids"], ["a-buy", "z-buy"])
         self.assertEqual(result["average_entry_price"], "105")
