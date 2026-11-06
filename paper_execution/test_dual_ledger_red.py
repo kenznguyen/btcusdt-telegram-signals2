@@ -1754,6 +1754,18 @@ os._exit(0)
             "funding-refresh-risk-unready.sqlite3",
             establish_cutover=False,
         )
+        ledger.record_funding_coverage(
+            path,
+            coverage_id="risk-unready-funding-coverage",
+            start_at_ms=self.now - 86_400_000,
+            end_at_ms=self.now,
+            status="VERIFIED",
+            source="RECONCILED_FUNDING_STATEMENT",
+            source_snapshot_id="risk-unready:coverage",
+            payload_hash="sha256:" + "e" * 64,
+            config_version="funding-policy-v1",
+            recorded_at_ms=self.now,
+        )
         with sqlite3.connect(path) as connection:
             connection.execute(
                 """UPDATE paper_account_risk_state
@@ -1853,6 +1865,44 @@ os._exit(0)
         self.assertTrue(snapshot["available"], snapshot)
         self.assertFalse(snapshot["riskReady"], snapshot)
         self.assertEqual(snapshot["unavailableReason"], "FUNDING_PROVENANCE_INCOMPLETE")
+
+
+
+    def test_funding_event_rejects_missing_coverage_without_ledger_mutation(self):
+        path = self.fresh_account_db(
+            "funding-event-without-coverage.sqlite3",
+            establish_cutover=False,
+        )
+        with sqlite3.connect(path) as connection:
+            before = connection.execute(
+                """SELECT funding_quote FROM paper_strategy_ledgers
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            ).fetchone()[0]
+
+        with self.assertRaisesRegex(ValueError, "FUNDING_PROVENANCE_INCOMPLETE"):
+            ledger.record_funding_event(
+                path,
+                funding_event_id="funding-event-without-coverage",
+                strategy_id="STRATEGY_CORE",
+                amount_quote="0.5",
+                event_at_ms=self.now - 1_000,
+                source="OKX_FUNDING_HISTORY",
+                source_snapshot_id="missing-coverage:funding",
+                payload_hash="sha256:" + "f" * 64,
+                recorded_at_ms=self.now,
+            )
+
+        with sqlite3.connect(path) as connection:
+            after = connection.execute(
+                """SELECT funding_quote FROM paper_strategy_ledgers
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            ).fetchone()[0]
+            count = connection.execute(
+                "SELECT COUNT(*) FROM paper_funding_events WHERE funding_event_id=?",
+                ("funding-event-without-coverage",),
+            ).fetchone()[0]
+        self.assertEqual(after, before)
+        self.assertEqual(count, 0)
 
 
 if __name__ == "__main__":
