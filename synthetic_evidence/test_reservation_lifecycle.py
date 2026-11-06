@@ -1,7 +1,7 @@
 import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from synthetic_evidence.shared_risk import (
     SharedRiskAdmission, RiskPolicy, PortfolioSnapshot,
@@ -88,9 +88,9 @@ class ReservationLifecycleTests(unittest.TestCase):
         first = gate.admit(intent("expires-first"), now_utc=start, reservation_ttl_seconds=60)
         second = gate.admit(intent("expires-later"), now_utc=start, reservation_ttl_seconds=120)
 
-        expired = gate.expire_reservations(start.replace(second=59))
+        expired = gate.expire_reservations(start + timedelta(seconds=59))
         self.assertEqual(expired, [])
-        expired = gate.expire_reservations(start.replace(second=60))
+        expired = gate.expire_reservations(start + timedelta(seconds=60))
         self.assertEqual(expired, [first["reservation_id"]])
         self.assertEqual(gate.open_reservation_count, 1)
         self.assertEqual(gate.reserved_exposure, "10")
