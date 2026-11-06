@@ -118,6 +118,20 @@ class TrustLifecycleTests(unittest.TestCase):
         self.assertTrue(verify_snapshot_chain(chain))
         self.assertEqual(len(chain["snapshots"]), 2)
 
+
+    def test_snapshot_chain_anchors_p1_8_15_baseline_without_losing_rotation_history(self):
+        from synthetic_evidence.trust_lifecycle import ensure_baseline_snapshot, build_snapshot_chain
+        baseline = build_trust_snapshot(self.root_a, captured_at="2026-11-06T22:32:03Z", sequence=1, tuf_verified=True)
+        unanchored = build_trust_snapshot(self.root_a, captured_at="2026-11-06T23:00:00Z", sequence=1, tuf_verified=True)
+        migrated = ensure_baseline_snapshot(build_snapshot_chain([unanchored]), baseline)
+        self.assertEqual(migrated["snapshots"][0]["snapshot_sha256"], baseline["snapshot_sha256"])
+        rotated = build_trust_snapshot(
+            self.root_b, captured_at="2026-11-07T12:00:00Z", sequence=2,
+            previous_snapshot_sha256=baseline["snapshot_sha256"], tuf_verified=True
+        )
+        valid_history = build_snapshot_chain([baseline, rotated])
+        self.assertEqual(ensure_baseline_snapshot(valid_history, baseline), valid_history)
+
     def test_snapshot_chain_detects_chain_manifest_tampering(self):
         from synthetic_evidence.trust_lifecycle import build_snapshot_chain
         first = build_trust_snapshot(self.root_a, captured_at="2026-11-01T00:00:00Z", sequence=1, tuf_verified=True)
