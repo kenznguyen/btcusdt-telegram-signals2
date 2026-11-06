@@ -389,3 +389,45 @@ This covers the v2 schema implementation and close-only API described above. It 
 not authorize applying migration v2 to a persistent account DB, enabling production
 readiness, running backtests, merging, deploying, connecting to an exchange or live
 execution. ai_execution_enabled=false remains mandatory.
+
+
+## 11. Implementation addendum — Reservation expiry v3 (2026-11-06)
+
+Migration v3 adds persisted expiry semantics without changing v1 or v2 checksums.
+
+- Migration version/name: 3 / reservation_expiry_v3.
+- Add nullable INTEGER column expires_at_ms to paper_risk_reservations and index
+  (status, expires_at_ms).
+- Requires applied v1 and v2 checksums. Reopen validates v3 checksum, column and
+  index; partial/inconsistent schema fails closed.
+- New scoped Core/AI order documents persist validUntilMs. Their risk reservations
+  persist the same admission-time deadline in expires_at_ms.
+- Existing active reservations are backfilled only when their existing order
+  document contains a valid integer validUntilMs. If expiry provenance is absent,
+  expires_at_ms stays NULL; the reservation remains active, counts toward aggregate
+  reserved exposure, and blocks same-ledger replacement. Do not infer a deadline.
+- A scoped writer sweeps ACTIVE/PARTIAL reservations with expires_at_ms strictly
+  earlier than now_ms, inside BEGIN IMMEDIATE. It validates the linked pending order,
+  changes the order to EXPIRED, changes reservation status to EXPIRED, sets only
+  remaining margin/notional to zero, and appends an expiry audit event.
+- Filled position, realized PnL, fees and consumed book levels are preserved. Partial
+  fill remainder is released; no position or fill is reversed.
+- Sweep runs before scoped submit and cancel, including after process restart.
+  Same-intent retry replays the persisted EXPIRED result. Read-only snapshots do not
+  sweep or mutate.
+- Historical rows with unknown expiry remain fail-closed and require explicit
+  cancellation/reconciliation; they are not auto-expired.
+
+### Verification evidence
+
+- Exact implementation/test source SHA: b1a9478178479a87043002a6915a56c068fcb78a.
+- GitHub Actions run: 42189203483
+  (https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42189203483).
+- Exact checked-out SHA: b1a9478178479a87043002a6915a56c068fcb78a.
+- Compile PASS; focused Dual Ledger/migration tests: 28/28 PASS;
+  full paper_execution regression: 63/63 PASS.
+- Artifact ID: 13489605142; name
+  dual-ledger-red-evidence-b1a9478178479a87043002a6915a56c068fcb78a;
+  SHA-256 90554188c1dcc02b9fc932a45ee4375208679b0c0a8915f3dfc8d3ade141e879.
+- Isolated temporary SQLite only; no persistent account DB migration. T0 unchanged.
+
