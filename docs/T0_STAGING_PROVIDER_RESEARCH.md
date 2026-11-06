@@ -256,3 +256,43 @@ This is not Timescale Cloud, but its official Standard Edition supported-extensi
 - Backup/PITR restore, RPO/RTO and fencing after recovery: **NOT VERIFIED**.
 - Provider selection, VPS selection and provisioning: **NOT DECIDED / NOT AUTHORIZED**.
 - No code, migration, role, runtime, CI workflow or provider resource was changed or created in this review.
+
+## 10. PostgreSQL 16 CREATEROLE implicit ADMIN membership — verified compatibility blocker (2026-11-06)
+
+**Verdict: RESTRICTED BOOTSTRAP BLOCKED under the current T0 role-isolation guard. No guard change approved.**
+
+### Exact CI evidence
+
+- Tested source SHA: `7c41ac990a7a0842b773a2d07b8db2f1d769a855`.
+- Workflow #42166319563: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42166319563
+- Dedicated fresh-cluster PostgreSQL 16 / TimescaleDB 2.17.2 bootstrap job failed at the existing `_assert_writer_roles_safe()` guard.
+- The test emitted the catalog state immediately before migrations. For the roles created by the non-superuser bootstrap login, PostgreSQL recorded automatic membership rows with:
+  - member = temporary bootstrap login;
+  - grantor = `t0_test` (the CI bootstrap superuser);
+  - `ADMIN=true`, `SET=false`, `INHERIT=false`.
+- This applied to `t0_migrator`, `t0_db_owner`, `t0_candle_writer_owner`, `t0_lease_manager_owner`, and `t0_migrator_login`.
+- The existing T0 guard correctly rejects the bootstrap login as an extra member of `t0_migrator`. The CREATEROLE login cannot revoke this implicit membership because PostgreSQL records the bootstrap superuser as grantor.
+- This is not a flaky test, SQL typo, or insufficient grant. It is documented PostgreSQL 16 behavior: when a non-superuser with CREATEROLE creates a role, the created role is automatically granted back to the creator with ADMIN true, SET false, INHERIT false; the grant is made by the bootstrap superuser and cannot be revoked or changed by the CREATEROLE user. See PostgreSQL 16 Role Attributes: https://www.postgresql.org/docs/16/role-attributes.html and CREATE ROLE: https://www.postgresql.org/docs/16/sql-createrole.html.
+
+### Impact on managed-provider candidates
+
+- The proposed sequence “use a non-superuser provider admin with CREATEROLE to create all T0 reserved roles, then run restricted migrations” is incompatible with the current strict membership guard unless the provider supplies a separate privileged role-provisioning mechanism or another explicitly approved architecture.
+- DigitalOcean `doadmin` is documented as non-superuser with CREATEROLE. The current source-only candidate assessment must therefore be downgraded: role bootstrap is **BLOCKED**, not merely untested.
+- The same PostgreSQL 16 semantics apply to any provider's non-superuser CREATEROLE role. Do not assume Tiger Cloud's role behavior without a provider-specific test; its admin model still requires independent verification.
+- Do not loosen `_assert_writer_roles_safe()`, allow arbitrary ADMIN memberships, or grant persistent role-administration privileges to Feeder/Reader. Any proposal to allow a named trusted provider-admin principal must be a separate security design review and explicit user approval.
+
+### Permitted next paths
+
+1. Ask/verify whether the provider has a supported control-plane or support-assisted way to pre-provision the reserved T0 roles without creating these unrevocable memberships.
+2. Keep the current strict role guard and mark the provider candidate BLOCKED if no such mechanism exists.
+3. If the user wants to consider a trusted provider-admin exception, prepare a threat model and exact membership invariant for review first; do not implement it without approval.
+
+### Exact-source verification
+
+- Static Gateway contract verification: PASS, including complete `market_data` regression suite.
+- Paper consumer regressions: PASS.
+- Isolated TimescaleDB atomic writer 7/7, FeederRuntime 18/18, lifecycle 4/4, least privilege 18/18, read-only 6/6: PASS.
+- Fresh-cluster non-superuser CREATEROLE bootstrap: BLOCKED by the documented PostgreSQL role-creation behavior.
+- Provider endpoint, TLS CA/SAN, backup/PITR restore, RPO/RTO and failover fencing: NOT VERIFIED.
+- No provider/VPS provisioned, no production credentials or DB, no Feeder activation, no exchange connection or market-data sync.
+
