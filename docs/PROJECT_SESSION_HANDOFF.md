@@ -1882,3 +1882,12 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Scope limits: a passing CI result will cover only PG16 + TimescaleDB 2.17.2 under this test fixture. It will not certify DigitalOcean/Tiger Cloud semantics, extension provisioning permissions, provider TLS CA/SAN, PITR/restore, RPO/RTO or failover fencing.
 - No VPS/provider provisioning, external DB, credential, canonical T0 DB, Feeder activation, exchange connection, market-data sync, or live execution. VPS/provider remains **NOT DECIDED**; PC + existing CI only. T0 remains independent; `ai_execution_enabled=false`; paper-only.
 - Next: retrieve the direct-push workflow run for this exact branch tip; verify checkout SHA, new bootstrap job result, complete `market_data` suite and artifact digest. If the job fails, preserve logs and diagnose the exact managed-role permission requirement without weakening security guards.
+
+
+### Bootstrap fixture self-review follow-up — 2026-11-06
+
+- Tightened the fresh-cluster test after review: it now asserts ownership of all four migration tables (`candles`, `feeder_leases`, `instruments`, `schema_migrations`) and all five SECURITY DEFINER functions (one candle writer plus four lease API functions).
+- Hardened teardown ordering: drop the disposable database first, drop the temporary bootstrap login next (so any ADMIN memberships left by a partial setup are removed), then drop the reserved roles. This covers failure paths before the normal bootstrap-membership revocation point.
+- PostgreSQL 16 official role docs confirm that non-superuser CREATEROLE users receive ADMIN OPTION membership on roles they create, with SET/INHERIT disabled by default; the test explicitly revokes these temporary memberships before invoking migration safety checks. This is only the PostgreSQL 16 baseline, not a managed-provider compatibility guarantee: https://www.postgresql.org/docs/16/role-attributes.html
+- Latest source commit: `b85b6cc5f99511b11aa2eacbabeb20a87595d78e`; test blob: `4874c64101cd86929b3317d722ac462dfb7cafbf`; evidence doc blob: `800090fb7d14abefeea63127c908cdc354d9ea7c`.
+- Verification remains **NOT VERIFIED** pending the exact direct-push Actions job result. Do not infer a test PASS from source review or workflow definition.
