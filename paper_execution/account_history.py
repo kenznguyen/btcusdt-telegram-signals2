@@ -733,3 +733,74 @@ def reconstruct_daily_equity_baseline(db_path, *, utc_day_ms, now_ms, source_sha
         if mark is None:
             raise ValueError("ACCOUNT_HISTORY_BOUNDARY_MARK_MISSING")
         raise ValueError("ACCOUNT_HISTORY_REPLAY_NOT_IMPLEMENTED")
+
+
+DAILY_BASELINE_AUDIT_MIGRATION_VERSION = 9
+DAILY_BASELINE_AUDIT_MIGRATION_CHECKSUM = hashlib.sha256(
+    b"dual-ledger-v9:immutable-daily-equity-baseline-audit"
+).hexdigest()
+
+
+def migrate_daily_baseline_audit(connection, source_sha):
+    """Add immutable audit evidence for atomically persisted daily baselines."""
+    if (not isinstance(source_sha, str) or len(source_sha) != 40
+            or any(char not in "0123456789abcdef" for char in source_sha.lower())):
+        raise ValueError("DUAL_LEDGER_SOURCE_SHA_REQUIRED")
+    applied = connection.execute(
+        "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
+        (DAILY_BASELINE_AUDIT_MIGRATION_VERSION,),
+    ).fetchone()
+    table = connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' "
+        "AND name='paper_daily_equity_baseline_audit'"
+    ).fetchone()
+    triggers = {row[0] for row in connection.execute(
+        "SELECT name FROM sqlite_master WHERE type='trigger'"
+    )}
+    required_triggers = {
+        "paper_daily_equity_baseline_audit_immutable_update",
+        "paper_daily_equity_baseline_audit_immutable_delete",
+    }
+    if applied:
+        if applied != (DAILY_BASELINE_AUDIT_MIGRATION_CHECKSUM, "APPLIED"):
+            raise sqlite3.DatabaseError("DAILY_BASELINE_AUDIT_MIGRATION_CHECKSUM_MISMATCH")
+        columns = {row[1] for row in connection.execute(
+            "PRAGMA table_info(paper_daily_equity_baseline_audit)"
+        )}
+        if not table or not required_triggers.issubset(triggers) or not {
+            "audit_id", "account_id", "utc_day_ms", "baseline_id", "event_type",
+            "replay_digest", "payload_json", "recorded_at_ms",
+        }.issubset(columns):
+            raise sqlite3.DatabaseError("DAILY_BASELINE_AUDIT_SCHEMA_INCOMPLETE")
+        return
+    if table or required_triggers.intersection(triggers):
+        raise sqlite3.DatabaseError("DAILY_BASELINE_AUDIT_SCHEMA_WITHOUT_MIGRATION_RECORD")
+    connection.execute("""CREATE TABLE paper_daily_equity_baseline_audit (
+        audit_id TEXT PRIMARY KEY,
+        account_id INTEGER NOT NULL REFERENCES paper_accounts(account_id),
+        utc_day_ms INTEGER NOT NULL,
+        baseline_id TEXT NOT NULL REFERENCES paper_daily_equity_baselines(baseline_id),
+        event_type TEXT NOT NULL CHECK(event_type='DAILY_BASELINE_CREATED'),
+        replay_digest TEXT NOT NULL CHECK(length(replay_digest)=71
+            AND substr(replay_digest,1,7)='sha256:'
+            AND substr(replay_digest,8) NOT GLOB '*[^0-9a-f]*'),
+        payload_json TEXT NOT NULL,
+        recorded_at_ms INTEGER NOT NULL,
+        UNIQUE(account_id,utc_day_ms,event_type),
+        CHECK(utc_day_ms % 86400000 = 0)
+    )""")
+    connection.execute("""CREATE TRIGGER paper_daily_equity_baseline_audit_immutable_update
+        BEFORE UPDATE ON paper_daily_equity_baseline_audit
+        BEGIN SELECT RAISE(ABORT,'DAILY_BASELINE_AUDIT_IMMUTABLE'); END""")
+    connection.execute("""CREATE TRIGGER paper_daily_equity_baseline_audit_immutable_delete
+        BEFORE DELETE ON paper_daily_equity_baseline_audit
+        BEGIN SELECT RAISE(ABORT,'DAILY_BASELINE_AUDIT_IMMUTABLE'); END""")
+    applied_at = connection.execute(
+        "SELECT updated_at_ms FROM paper_account_risk_state WHERE account_id=1"
+    ).fetchone()[0]
+    connection.execute(
+        """INSERT INTO paper_schema_migrations
+           (version,name,checksum,applied_at_ms,source_sha,status)
+           VALUES (9,'daily_equity_baseline_audit_v9',?,?,?,'APPLIED')""",
+        (DAILY_BASELINE_AUDIT_MIGRATION_CHECKSUM, applied_at, source_sha.lower()),
+    )

@@ -21,7 +21,7 @@ from paper_execution.account_history import (
 )
 
 
-def load_daily_equity_replay_inputs(connection, *, utc_day_ms, now_ms):
+def load_daily_equity_replay_inputs(connection, *, utc_day_ms, now_ms, _transaction_owned=False):
     """Load and validate one day's replay inputs using a read-only SQLite snapshot."""
     if not isinstance(connection, sqlite3.Connection):
         raise ValueError("ACCOUNT_HISTORY_READ_ONLY_CONNECTION_REQUIRED")
@@ -30,12 +30,18 @@ def load_daily_equity_replay_inputs(connection, *, utc_day_ms, now_ms):
     if boundary % DAY_MS or now < boundary:
         raise ValueError("ACCOUNT_HISTORY_UTC_DAY_INVALID")
 
-    # Require a clean transaction boundary so caller-owned uncommitted writes
-    # cannot leak into the replay snapshot.
-    if connection.in_transaction:
-        raise ValueError("ACCOUNT_HISTORY_READ_ONLY_TRANSACTION_REQUIRED")
-    connection.execute("PRAGMA query_only=ON")
-    connection.execute("BEGIN")
+    # Public reads establish a query-only snapshot. The atomic writer calls
+    # this inside its own BEGIN IMMEDIATE transaction after taking the lock.
+    if _transaction_owned:
+        if not connection.in_transaction:
+            raise ValueError("ACCOUNT_HISTORY_WRITER_TRANSACTION_REQUIRED")
+        if connection.execute("PRAGMA query_only").fetchone()[0] != 0:
+            raise ValueError("ACCOUNT_HISTORY_WRITER_CONNECTION_READ_ONLY")
+    else:
+        if connection.in_transaction:
+            raise ValueError("ACCOUNT_HISTORY_READ_ONLY_TRANSACTION_REQUIRED")
+        connection.execute("PRAGMA query_only=ON")
+        connection.execute("BEGIN")
 
     from paper_execution.funding import (
         MIGRATION_VERSION as FUNDING_VERSION,

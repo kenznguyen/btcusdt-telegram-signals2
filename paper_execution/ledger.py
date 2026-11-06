@@ -15,7 +15,7 @@ from paper_execution.account_history import (
     migrate_account_history, record_account_history_event,
     record_account_history_coverage, record_market_mark_history,
     reconstruct_daily_equity_baseline, migrate_cutover_ledger_snapshots,
-    migrate_fee_currency_provenance,
+    migrate_fee_currency_provenance, migrate_daily_baseline_audit,
 )
 from paper_execution.replay_inputs import load_daily_equity_replay_inputs
 from paper_execution.funding import (
@@ -1271,6 +1271,7 @@ class PaperLedger:
                 migrate_account_history(connection, self.source_sha)
                 migrate_cutover_ledger_snapshots(connection, self.source_sha)
                 migrate_fee_currency_provenance(connection, self.source_sha)
+                migrate_daily_baseline_audit(connection, self.source_sha)
 
     def connect(self):
         connection = sqlite3.connect(self.path, timeout=10)
