@@ -3836,6 +3836,7 @@ Test expectation corrected in commit `101b4be4d868d64aca5c7d49c7758a52b888a83a`:
 - Model blob SHA: `2fe6a09ba0658535997ca4989fc097ef6bd37599`.
 - Seven new test contracts; expected suite count 43 including the 36-test baseline.
 - GitHub Actions exact-SHA compile/test/reproducibility/artifact evidence: **NOT VERIFIED**.
+- The report commit `7feb357afacf0a7c602204e1a092dad3a639594b` changed the workflow-watched evidence-report path and is the expected triggering checkout SHA for the pending CI run; verify the actual checkout SHA from its logs.
 - Status: **IMPLEMENTED / CI NOT VERIFIED**. Do not mark PASS until exact source checkout, all tests, deterministic fixtures/replay and artifact checksum are verified.
 - Strict boundaries: synthetic-only. No T0/T1 runtime, Strategy Core, Shared Risk Engine, database, exchange, provider, VPS, credentials, persistent capture, execution adapter or live execution. `AI_EXECUTION_ENABLED=false`; T0 remains PAUSED.
 - Next: inspect GitHub Actions evidence for exact SHA and reconcile artifact provenance. Preserve this branch; no merge without explicit approval.
