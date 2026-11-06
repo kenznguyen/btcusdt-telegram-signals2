@@ -293,5 +293,48 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
         self.assertEqual(row, ("0.01", "sha256:" + "a" * 64))
 
 
+    def test_v3_reservation_expiry_migration_is_additive_and_idempotent(self):
+        self.make_legacy_database()
+        PaperLedger(
+            self.path, max_position_base="1", strategy_id="STRATEGY_CORE",
+            source_sha="e" * 40,
+        )
+        with sqlite3.connect(self.path) as connection:
+            migrations = connection.execute(
+                "SELECT version,name,status FROM paper_schema_migrations ORDER BY version"
+            ).fetchall()
+            columns = {
+                row[1] for row in connection.execute(
+                    "PRAGMA table_info(paper_risk_reservations)"
+                )
+            }
+            indexes = {
+                row[1] for row in connection.execute(
+                    "PRAGMA index_list(paper_risk_reservations)"
+                )
+            }
+        self.assertEqual(migrations, [
+            (1, "dual_ledger_v1", "APPLIED"),
+            (2, "legacy_book_depth_v2", "APPLIED"),
+            (3, "reservation_expiry_v3", "APPLIED"),
+        ])
+        self.assertIn("expires_at_ms", columns)
+        self.assertIn("paper_risk_reservations_expiry", indexes)
+
+        PaperLedger(
+            self.path, max_position_base="1", strategy_id="AI_FREQAI",
+            source_sha="e" * 40,
+        )
+        PaperLedger(
+            self.path, max_position_base="1", strategy_id="STRATEGY_CORE",
+            source_sha="e" * 40,
+        )
+        with sqlite3.connect(self.path) as connection:
+            counts = connection.execute(
+                "SELECT version,COUNT(*) FROM paper_schema_migrations GROUP BY version ORDER BY version"
+            ).fetchall()
+        self.assertEqual(counts, [(1, 1), (2, 1), (3, 1)])
+
+
 if __name__ == "__main__":
     unittest.main()
