@@ -172,6 +172,156 @@ MIGRATION_CHECKSUM = hashlib.sha256(
 ).hexdigest()
 
 
+def read_account_risk_snapshot(db_path, *, now_ms):
+    """Read a reconciled account-wide PAPER risk snapshot without writing state."""
+    path = Path(db_path).resolve()
+    if not path.is_file():
+        raise FileNotFoundError("Paper ledger is unavailable")
+    now = stamp(now_ms)
+
+    def dec(raw, field, nonnegative=False):
+        if not isinstance(raw, str) or not 1 <= len(raw) <= 256:
+            raise sqlite3.DatabaseError(f"ACCOUNT_RISK_{field}_INVALID")
+        try:
+            value = Decimal(raw)
+        except (DecimalException, TypeError, ValueError):
+            raise sqlite3.DatabaseError(f"ACCOUNT_RISK_{field}_INVALID") from None
+        if (not value.is_finite() or not -200 <= value.as_tuple().exponent <= 200
+                or value.adjusted() > 200 or (nonnegative and value < 0)):
+            raise sqlite3.DatabaseError(f"ACCOUNT_RISK_{field}_INVALID")
+        return value
+
+    uri = path.as_uri() + "?mode=ro"
+    with closing(sqlite3.connect(uri, uri=True, timeout=10)) as db:
+        db.row_factory = sqlite3.Row
+        db.execute("PRAGMA query_only=ON")
+        db.execute("BEGIN")
+        migration = db.execute(
+            "SELECT checksum FROM paper_schema_migrations WHERE version=? AND status='APPLIED'",
+            (MIGRATION_VERSION,),
+        ).fetchone()
+        if migration is None or migration["checksum"] != MIGRATION_CHECKSUM:
+            raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_APPLIED")
+
+        account = db.execute(
+            "SELECT initial_capital FROM paper_accounts WHERE account_id=1"
+        ).fetchone()
+        risk = db.execute(
+            """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
+                      daily_baseline_equity_quote,last_equity_quote,last_mark_price,
+                      mark_observed_at_ms,mark_candle_close_ms,dataset_version,
+                      risk_ready,unavailable_reason
+               FROM paper_account_risk_state WHERE account_id=1"""
+        ).fetchone()
+        if account is None or risk is None or type(risk["risk_ready"]) is not int or risk["risk_ready"] not in (0, 1):
+            raise sqlite3.DatabaseError("ACCOUNT_RISK_STATE_MISSING_OR_CORRUPT")
+
+        capital = dec(account["initial_capital"], "INITIAL_CAPITAL", True)
+        mark = dec(risk["last_mark_price"], "MARK_PRICE", True)
+        hwm = dec(risk["high_water_mark_quote"], "HIGH_WATER_MARK", True)
+        baseline = dec(risk["daily_baseline_equity_quote"], "DAILY_BASELINE", True)
+        recorded_equity = dec(risk["last_equity_quote"], "LAST_EQUITY")
+        observed, candle = stamp(risk["mark_observed_at_ms"]), stamp(risk["mark_candle_close_ms"])
+        if capital <= 0 or mark <= 0 or hwm <= 0 or baseline <= 0:
+            raise sqlite3.DatabaseError("ACCOUNT_RISK_REQUIRED_AMOUNT_INVALID")
+        if observed > now or now - observed > 30 * 60_000 or candle > observed or observed - candle > 30 * 60_000:
+            raise sqlite3.DatabaseError("ACCOUNT_RISK_MARK_STALE_OR_INVALID")
+        if not isinstance(risk["dataset_version"], str) or not risk["dataset_version"].strip():
+            raise sqlite3.DatabaseError("ACCOUNT_RISK_DATASET_VERSION_MISSING")
+
+        rows = db.execute(
+            """SELECT strategy_id,position_base,average_entry_price,realized_pnl_quote,
+                      fees_quote,funding_quote,initial_margin_quote
+               FROM paper_strategy_ledgers WHERE account_id=1"""
+        ).fetchall()
+        ledgers = {r["strategy_id"]: r for r in rows}
+        required = {"STRATEGY_CORE", "AI_FREQAI", "LEGACY_UNATTRIBUTED"}
+        if set(ledgers) != required:
+            raise sqlite3.DatabaseError("ACCOUNT_RISK_LEDGER_SET_INVALID")
+
+        realized = fees = funding = unrealized = filled = Decimal(0)
+        positions = {}
+        for sid, row in ledgers.items():
+            qty = dec(row["position_base"], sid + "_POSITION")
+            avg = dec(row["average_entry_price"], sid + "_AVERAGE", True)
+            rpnl = dec(row["realized_pnl_quote"], sid + "_REALIZED")
+            fee = dec(row["fees_quote"], sid + "_FEES", True)
+            fund = dec(row["funding_quote"], sid + "_FUNDING")
+            margin = dec(row["initial_margin_quote"], sid + "_MARGIN", True)
+            if (qty == 0 and avg != 0) or (qty != 0 and avg <= 0):
+                raise sqlite3.DatabaseError("ACCOUNT_RISK_POSITION_INCONSISTENT")
+            upnl = qty * (mark - avg) if qty else Decimal(0)
+            realized += rpnl
+            fees += fee
+            funding += fund
+            unrealized += upnl
+            filled += abs(qty) * mark
+            positions[sid] = {
+                "positionBase": text(qty), "averageEntryPrice": text(avg),
+                "realizedPnlQuote": text(rpnl), "feesQuote": text(fee),
+                "fundingQuote": text(fund), "initialMarginQuote": text(margin),
+                "unrealizedPnlQuote": text(upnl),
+            }
+
+        legacy_pnl = legacy_fees = Decimal(0)
+        adjustments = db.execute(
+            """SELECT adjustment_type,amount_quote FROM paper_account_adjustments
+               WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
+        )
+        for row in adjustments:
+            value = dec(row["amount_quote"], "LEGACY_ADJUSTMENT")
+            if row["adjustment_type"] == "LEGACY_REALIZED_PNL":
+                legacy_pnl += value
+            elif row["adjustment_type"] == "LEGACY_FEES" and value >= 0:
+                legacy_fees += value
+            else:
+                raise sqlite3.DatabaseError("ACCOUNT_RISK_LEGACY_ADJUSTMENT_INVALID")
+
+        equity = capital + realized + legacy_pnl - fees - legacy_fees - funding + unrealized
+        if equity <= 0 or equity != recorded_equity:
+            raise sqlite3.DatabaseError("ACCOUNT_EQUITY_RECONCILIATION_MISMATCH")
+
+        reserved_notional = reserved_margin = Decimal(0)
+        reservations = db.execute(
+            """SELECT status,remaining_notional_quote,remaining_margin_quote,
+                      reserved_notional_quote,reserved_margin_quote
+               FROM paper_risk_reservations WHERE account_id=1"""
+        )
+        for row in reservations:
+            rn = dec(row["remaining_notional_quote"], "RESERVATION_NOTIONAL", True)
+            rm = dec(row["remaining_margin_quote"], "RESERVATION_MARGIN", True)
+            on = dec(row["reserved_notional_quote"], "RESERVATION_ORIGINAL_NOTIONAL", True)
+            om = dec(row["reserved_margin_quote"], "RESERVATION_ORIGINAL_MARGIN", True)
+            if rn > on or rm > om:
+                raise sqlite3.DatabaseError("ACCOUNT_RISK_RESERVATION_EXCEEDS_ORIGINAL")
+            if row["status"] in ("ACTIVE", "PARTIAL"):
+                reserved_notional += rn
+                reserved_margin += rm
+            elif row["status"] not in ("RELEASED", "CONSUMED", "EXPIRED"):
+                raise sqlite3.DatabaseError("ACCOUNT_RISK_RESERVATION_STATUS_INVALID")
+
+        day = now // 86_400_000 * 86_400_000
+        if risk["daily_baseline_utc_day_ms"] != day:
+            raise sqlite3.DatabaseError("ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE")
+        daily_pnl = equity - baseline
+        drawdown = max(Decimal(0), hwm - equity)
+        return {
+            "mode": "PAPER", "liveTradingSupported": False, "available": True,
+            "riskReady": bool(risk["risk_ready"]), "unavailableReason": risk["unavailable_reason"],
+            "accountEquityQuote": text(equity),
+            "grossExposureQuote": text(filled + reserved_notional),
+            "filledExposureQuote": text(filled), "reservedNotionalQuote": text(reserved_notional),
+            "reservedMarginQuote": text(reserved_margin),
+            "maxDrawdownUsdt": text(drawdown), "maxDrawdownPct": text(drawdown / hwm * 100),
+            "dailyPnlUsdt": text(daily_pnl), "dailyLossUsdt": text(max(Decimal(0), -daily_pnl)),
+            "highWaterMarkQuote": text(hwm), "dailyBaselineUtcDayMs": day,
+            "markPrice": text(mark), "markObservedAtMs": observed,
+            "datasetVersion": risk["dataset_version"],
+            "killSwitch": risk_control.snapshot(db), "positions": positions,
+            "updatedAtMs": observed,
+        }
+
+
 def migrate_dual_ledger(connection, source_sha):
     """Atomically add the first dual-ledger schema without rewriting legacy tables."""
     if not isinstance(source_sha, str) or len(source_sha) != 40 or any(
