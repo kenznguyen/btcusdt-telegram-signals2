@@ -3750,3 +3750,48 @@ T0 remains PAUSED; PAPER-only; `ai_execution_enabled=false`. No persistent captu
 ### Next step and approval boundary
 
 P1.8.2 is complete for the bounded approved scope. Any expansion to full RFC 8785 floating-point support, signing/key custody, additional high-volume/recovery tests, provider qualification or runtime integration requires separate review and approval. Preserve current branch and evidence; do not merge without explicit approval.
+
+
+## 2026-11-07 — P1.8.3 Synthetic-only Fault Injection (implementation in progress)
+
+### Approval and scope
+
+User explicitly approved: `APPROVE P1.8.3 — SYNTHETIC-ONLY FAULT INJECTION`.
+
+Scope is limited to synthetic local reference models and the existing GitHub Actions workflow. No T0/T1 runtime, database, strategy, exchange, provider, VPS, credentials, persistent capture, signing/key management, or execution adapter is accessed or changed. Keep `ai_execution_enabled=false`; T0 remains PAUSED.
+
+### Implementation commits and source
+
+- RED test-first commit: `1a47718d28038f45d9adf0626c4d7d308262a27a` adds the fault contracts to the existing focused test module.
+- Initial isolated harness commit: `d7b7f9603a7f5188aea7223d43c778c6ab95c24b`.
+- Harness terminal-state correction: `d16419290a8a8e232f2e47c8218d4d0af32215a4`.
+- Fault catalog naming commit: `07b4a136c5361ef4bb6b436069995a3a0e29ce95`.
+- Latest test/catalog coverage commit: `16ccd8a3747ce9bf98e795d522d52a5adeca8155`.
+- Evidence report update: `e4efd5c09b03b0dbca3085a5f3414b2e5df78e71`.
+
+Files changed for the implementation:
+- `synthetic_evidence/fault_injection.py`
+- `synthetic_evidence/generator.py` (fault catalog identifiers only)
+- `synthetic_evidence/test_generator.py`
+
+The focused suite contains 36 tests total: 29 prior tests plus 7 new synthetic fault contracts.
+
+### Fault contracts
+
+- `UNKNOWN_FEE_FUNDING`: unknown fee/funding is rejected as incomplete input, not coerced to zero.
+- `STALE_MARK`: missing/stale mark, unsafe future timestamp and excessive clock uncertainty are rejected.
+- `CHECKPOINT_BOUNDARY`: late commit for an event at/before the checkpoint event-time boundary invalidates the checkpoint.
+- `RECOVERY`: synthetic partial-fill/cancel/replace/final-fill replay, crash/restart equivalence, duplicate idempotency, changed-byte rejection and inactive-order late-fill rejection.
+
+These tests exercise a separate synthetic reference model; they do not establish production T0/T1 ledger or recovery behavior.
+
+### Verification state
+
+- Latest implementation/test source SHA: `16ccd8a3747ce9bf98e795d522d52a5adeca8155`.
+- Generator blob SHA: `ba179aebe14aabb177d05f36236a75d0cdfd6d88`.
+- Test blob SHA: `fdb3369f916672173b681870c9f310b1872d5982`.
+- Fault harness blob SHA: `0af64d3625e88e8e1334182364094b1227faec58`.
+- GitHub Actions run/job/artifact identity and digest: **NOT VERIFIED**.
+- Compile and 36/36 test result: **NOT VERIFIED** pending exact-source workflow evidence.
+
+**P1.8.3 status: IMPLEMENTATION IN PROGRESS / CI NOT VERIFIED.** Do not mark PASS until the workflow checks out the exact source SHA, compilation and all tests pass, and artifact provenance is reconciled. Preserve this branch; no PR/branch split and no merge without explicit approval.
