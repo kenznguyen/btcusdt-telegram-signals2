@@ -1981,3 +1981,37 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Current status: core T0 PostgreSQL runtime/read-only integration PASS on exact source SHA; fresh-cluster non-superuser provider bootstrap BLOCKED; managed-provider compatibility NOT VERIFIED.
 - Next: improve the disposable fixture's diagnostic capture to record `pg_auth_members` (roleid/member/grantor/admin_option/set_option/inherit_option where supported) and effective role membership immediately before migrations, while keeping secrets redacted. Then make a test-only correction based on that evidence; teardown must connect as the temporary bootstrap grantor to revoke its own test-created membership edges before dropping it. Re-run exact-source CI. No migration guard weakening, no provider/VPS provisioning, no production database, no Feeder activation, no exchange connectivity or canonical ingestion.
 
+## T0 provider bootstrap — PostgreSQL 16 implicit ADMIN membership confirmed (2026-11-06)
+
+- Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Diagnostic source SHA: `7c41ac990a7a0842b773a2d07b8db2f1d769a855`.
+- Test file blob at that SHA: `9f87e583e8d889323996aa4d507d6c50300a9f49`.
+- Workflow #42166319563 completed with overall FAILURE:
+  - Static Gateway contract verification job #127723514991: SUCCESS; includes Gateway contracts, feeder regressions, Health/Readiness, SIGKILL restart/fencing and complete `market_data` regression suite.
+  - Paper consumer job #127723514816: SUCCESS.
+  - Isolated TimescaleDB integration job #127723614595: SUCCESS:
+    - PostgreSQL atomic writer 7/7.
+    - FeederRuntime/composition 18/18.
+    - Lifecycle 4/4.
+    - Least-privilege role integration 18/18.
+    - Read-only TimescaleDB 6/6.
+  - Fresh-cluster restricted provider bootstrap job #127723515188: FAILURE at existing `_assert_writer_roles_safe()` guard.
+- Downloaded diagnostic artifact #13478428940, SHA-256 `6e99f27f09949cf05c7cae43521d770a6ed9aeca8c562f6d490f6aa52e43c63c`. Its pre-migration catalog query records:
+  - `t0_migrator` granted to bootstrap login by `t0_test`, ADMIN=true, SET=false, INHERIT=false.
+  - `t0_db_owner`, `t0_candle_writer_owner`, `t0_lease_manager_owner`, and `t0_migrator_login` also have automatic bootstrap membership rows with grantor `t0_test`, ADMIN=true, SET=false, INHERIT=false.
+  - Explicit intended grants from bootstrap login to `t0_migrator` (owner roles) and `t0_migrator_login` (migrator) have grantor bootstrap login and ADMIN=false, SET=true, INHERIT=true.
+- Root cause is documented PostgreSQL 16 behavior, not a fixture bug: when a non-superuser CREATEROLE role creates another role, PostgreSQL automatically grants the created role back to the creator with ADMIN true, SET false, INHERIT false. The grantor is the bootstrap superuser; the CREATEROLE user cannot revoke/change this automatic membership. Official PostgreSQL 16 docs:
+  - https://www.postgresql.org/docs/16/role-attributes.html
+  - https://www.postgresql.org/docs/16/sql-createrole.html
+- The T0 migration guard correctly rejects the extra bootstrap membership of `t0_migrator`. Do not weaken the guard or permit arbitrary ADMIN membership.
+- Run #42166319563 artifacts:
+  - Static evidence #13479136579, SHA-256 `b7676699ec4a497a2ae1b4d054a141b76e48606e2502a753fef01a0950585a69`.
+  - Paper consumer #13478883570, SHA-256 `1e0945f9344b20a5ba7299971245fab87e63ba08d0ebe046703533d72e50ecc7`.
+  - TimescaleDB integration #13479106179, SHA-256 `b0ddf990becfabd4a63d60dc7dd8c286fb7ad55ab2dafde5fdc54466ade82678`.
+  - Bootstrap diagnostic #13478428940, SHA-256 `6e99f27f09949cf05c7cae43521d770a6ed9aeca8c562f6d490f6aa52e43c63c`.
+- Provider compatibility consequence: using a non-superuser CREATEROLE admin (e.g. DigitalOcean `doadmin`) to create the T0 reserved roles conflicts with the current strict membership guard. Candidate status downgraded to BLOCKED unless provider offers a supported privileged pre-provisioning operation that avoids these memberships. Tiger Cloud behavior remains provider-specific and NOT VERIFIED.
+- Updated `docs/T0_STAGING_PROVIDER_RESEARCH.md` section 10 with evidence and permitted paths. Research commit: `421bcc8c3d3cbc14c097ac0dc572d5703b0bf6e4`; research blob: `f511b259daf576f44037399555045a1c45a00f1f`.
+- Current status: core T0 PostgreSQL runtime/read-only integration PASS; non-superuser CREATEROLE provider bootstrap BLOCKED; provider endpoint/TLS/backup/PITR/RPO/RTO/failover NOT VERIFIED.
+- Next: keep the role guard unchanged. Determine from official provider documentation/support whether reserved T0 roles can be provisioned by a provider control-plane path without implicit CREATEROLE membership, or retain the provider candidate as BLOCKED. If considering an explicit trusted-admin membership exception, prepare a threat model and request user approval before any code change.
+- Safety unchanged: no VPS/provider selection, no provisioning/payment, no production DB/credentials, no Feeder activation, no Binance/OKX connection, no canonical market-data sync, no Paper DB mutation and no live execution.
+
