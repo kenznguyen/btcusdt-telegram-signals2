@@ -152,6 +152,8 @@ def _refresh_equity(connection, now):
     if not risk:
         return
     try:
+        if type(risk[5]) is not int or risk[5] not in (0, 1):
+            raise ValueError
         mark = Decimal(risk[1])
         observed, candle = _stamp(risk[2]), _stamp(risk[3])
         if (not mark.is_finite() or mark <= 0 or observed > now
@@ -194,11 +196,12 @@ def _refresh_equity(connection, now):
         hwm = Decimal(risk[0])
         if not equity.is_finite() or equity <= 0 or not hwm.is_finite() or hwm <= 0:
             raise ValueError
+        next_hwm = max(hwm, equity) if risk[5] == 1 else hwm
         connection.execute(
             """UPDATE paper_account_risk_state
                SET last_equity_quote=?,high_water_mark_quote=?,updated_at_ms=?,
                    version=version+1 WHERE account_id=1""",
-            (_decimal_text(equity), format(max(hwm, equity), "f"), now),
+            (_decimal_text(equity), format(next_hwm, "f"), now),
         )
     except (DecimalException, TypeError, ValueError, IndexError):
         connection.execute(
@@ -609,6 +612,12 @@ def record_funding_coverage(
             return {"coverageId": coverage_id, "startAtMs": start, "endAtMs": end,
                     "status": status, "source": source, "sourceSnapshotId": snapshot,
                     "payloadHash": digest, "configVersion": config, "recordedAtMs": old[7]}
+        if db.execute(
+            """SELECT 1 FROM paper_funding_coverage
+               WHERE account_id=1 AND start_at_ms < ? AND end_at_ms > ? LIMIT 1""",
+            (end, start),
+        ).fetchone():
+            raise ValueError("FUNDING_COVERAGE_INTERVAL_OVERLAP")
         if db.execute("SELECT 1 FROM paper_funding_coverage WHERE payload_hash=?", (digest,)).fetchone():
             raise ValueError("FUNDING_COVERAGE_PAYLOAD_DUPLICATE")
         db.execute(
