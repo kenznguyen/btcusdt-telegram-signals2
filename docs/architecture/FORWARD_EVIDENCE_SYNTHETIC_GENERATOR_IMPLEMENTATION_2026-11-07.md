@@ -122,3 +122,20 @@ The P1.6 §3.2 event-class weights add to **94**, not 100 as the original headin
 - Persistent capture, T0/T1 runtime integration or any account DB access.
 
 Next bounded step: verify the exact GitHub Actions run and artifact on the resulting source SHA, then update the handoff/evidence inventory. No provider or runtime step is implied.
+
+
+## 8. P1.8.1 run-descriptor environment completeness
+
+Follow-up hardening:
+- Generator source commit: `b55c851a5db3eb698d3ac68b073a825abcf55026`.
+- Environment descriptor test commit: `bd558f0041302ef521ea6837e87923c17e3fceaa`.
+
+The run descriptor now records OS, architecture, CPU model/count, sysconf-reported total memory where available, storage medium as `NOT_MEASURED`, and Python/runtime tool versions. It also explicitly records `hash_signature_profile=SHA256_EVENT_AND_MANIFEST_UNSIGNED_LOCAL/1`, so unsigned local hash-only evidence is not confused with signed production evidence.
+
+Re-verification after this change:
+- Focused tests: 19/19 PASS.
+- Python compile: PASS.
+- Two 1,000-event fixtures: byte-identical.
+- SHA-256 manifest: all listed files PASS.
+
+The workflow push path filter includes `synthetic_evidence/**`; exact GitHub Actions run metadata for this latest source SHA remains NOT VERIFIED until its run and artifact can be inspected.
