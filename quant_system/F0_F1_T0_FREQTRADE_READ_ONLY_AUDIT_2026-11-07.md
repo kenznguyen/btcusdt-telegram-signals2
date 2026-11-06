@@ -99,7 +99,7 @@ Branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`
 - F1 GitHub Actions workflow: `c33bb8f89e830ad09dac2edaa1b769363e2882d6`.
 - Adapter implementation: `468569f49120db87223e78e7723bcd857b5f7979`.
 - Adapter create-race safety fix: `a316a7f7b86dc81d19d82a826ab4e2b816d92227`.
-- Current branch head when this report was updated: `fe3cbdb6104350d66b5ce279d65585213e758e90`.
+- Current branch head when this report was updated: `4ed5209a723029b59bd2f6593991fbf1a379009e`.
 
 No GitHub Actions run ID or artifact is claimed. Upstream format references: [Freqtrade 2026.9 IDataHandler](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/data/history/datahandlers/idatahandler.py), [JsonDataHandler](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/data/history/datahandlers/jsondatahandler.py), and [pair_to_filename](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/misc.py). The source is not ready for acceptance until exact-head Actions evidence is retrieved and the adapter is tested against a real, user-authorized T0 export.
 
