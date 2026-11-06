@@ -532,3 +532,13 @@ class SyntheticExecutionInvariantTests(unittest.TestCase):
         restarted = replay_position_transitions(events[:3] + events[3:])
         self.assertEqual(restarted, uninterrupted)
         self.assertEqual(restarted["active_position_id"], "P2")
+
+
+    def test_reversal_fault_vector_is_declared_as_synthetic_only(self):
+        fixture = generate_fixture(
+            seed_hex=SEED, namespace=NAMESPACE, base_time_utc=BASE_TIME,
+            event_count=3, source_sha=SOURCE_SHA,
+        )
+        vector = next(item for item in fixture["negative_vectors"] if item["name"] == "REDUCE_CLOSE_REVERSAL")
+        self.assertFalse(vector["clean_volume_denominator"])
+        self.assertEqual(vector["expected_disposition"], "REDUCE_THEN_ADMIT_REVERSE")
