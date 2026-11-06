@@ -223,3 +223,22 @@ Before generator implementation or provider-specific tests, require:
 11. Provider qualification remains blocked until synthetic fixture determinism, size/volume and restore inputs are measured and independently reproduced, and provider/account/region/budget are separately approved.
 
 No generator or benchmark is implemented/executed by this amendment. No price is calculated without measured workload and sourced exact SKU quote. No provider, region, retention, budget, account, credential, provisioning, source implementation, persistent capture or runtime change is authorized.
+
+
+## 13. P1.7 deterministic fixture readiness gates (2026-11-07)
+
+Reference: `docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_FIXTURE_READINESS_REVIEW_2026-11-07.md` and amended P1.6 specification §13.
+
+Before accepting any synthetic generator implementation:
+- Verify exact HMAC-SHA-256 message framing, unsigned big-endian length/counter encoding, 32-byte seed, multi-block output and known-answer vectors.
+- Verify synthetic stream ID grammar and UUIDv5 name bytes.
+- Verify scenario/state-machine generation produces only legal causal transitions in clean fixtures; fault-injected derivatives are isolated and labeled.
+- Verify per-stream nondecreasing commit timestamps, contiguous sequence and one-stream-per-segment framing.
+- Verify exact segment byte accounting and cap behavior with boundary vectors (exact cap, one byte below, one byte above, oversized event).
+- Verify immutable pre-upload manifest and separate post-upload storage receipt; local fixture must not invent provider object versions, retention metadata or durability receipts.
+- Verify manifest JCS/hash/signature golden vectors independently from event vectors.
+- Verify no private/test signing seed appears in fixture descriptor, output bundle, logs or repository artifacts.
+- Verify arithmetic mean and nearest-rank quantile calculations against fixed small test arrays; report all raw samples.
+- Verify local Root B replay output is labeled `LOCAL_REPLAY_SIMULATION` and is never counted as evidence of provider/admin/process independence.
+
+These gates are specification checks only. No generator, crypto harness, benchmark or provider test is created or run by this amendment.
