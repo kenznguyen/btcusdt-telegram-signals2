@@ -1579,3 +1579,58 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No TLS credentials/certificates, production DB, VPS, network rules, Feeder, Binance connectivity, or market-data sync were configured or activated.
 - No merge. ai_execution_enabled=false; paper-only boundary unchanged.
 - Next: continue focused P0 security/recovery review, especially shutdown deadline/admission ordering and production provider-specific TLS/backup acceptance. Do not provision production resources or activate Feeder.
+
+## 2026-11-06 — P0 Feeder shutdown admission and deadline hardening
+
+### Review finding and implementation
+
+- Focused review of FeederRuntime.stop() found two shutdown-order defects:
+  1. It waited for the heartbeat thread before stopping scheduler admission. If heartbeat shutdown blocked, new scheduled work could still be admitted during the wait.
+  2. It passed the full timeout independently to heartbeat join and scheduler drain, allowing total shutdown duration to exceed the caller's timeout budget.
+- Added regression tests in market_data/test_feeder_lifecycle.py for both behaviors.
+- Updated FeederRuntime.stop() in market_data/feeder.py:
+  - Validate timeout as a finite, nonnegative number (or None).
+  - Compute one monotonic deadline and pass only the remaining budget to each wait.
+  - Stop scheduler admission immediately after requesting heartbeat stop, before waiting on heartbeat.
+  - Preserve fail-closed behavior: on heartbeat/drain timeout, do not release the current lease; release only after successful drain.
+  - Existing LEASE_LOST generation handling remains unchanged.
+- Commits:
+  - 79674e823aff2cf6eb4415a677f0674bdb819a10 — RED regression tests.
+  - 8cf727450efb34723da649a0e123851d7c002aae — shutdown ordering/deadline fix.
+
+### TDD and CI evidence
+
+1. RED run https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42158480308, source SHA 79674e823aff2cf6eb4415a677f0674bdb819a10:
+   - Two new lifecycle tests failed for the intended reasons:
+     - scheduler.stop() had not run before heartbeat.join();
+     - scheduler drain received the full timeout (0.1s) rather than the remaining budget (0.02s).
+   - Static job failed on those two tests; Paper consumer job passed; disposable TimescaleDB job skipped after static failure.
+2. GREEN run https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42158536250:
+   - Event: push; branch: feature/t0-centralized-data-feeder-p1-20261101.
+   - Exact checked-out source SHA: 8cf727450efb34723da649a0e123851d7c002aae, confirmed by disposable TimescaleDB job log T0_TIMESCALE_SOURCE_SHA.
+   - Jobs: 3/3 SUCCESS (Static Gateway contract verification, Paper consumer fixture regressions, Isolated TimescaleDB read-only integration).
+   - Static Gateway / complete market_data suite: 229 tests PASS, 36 skipped.
+   - New shutdown ordering/deadline tests: 2/2 PASS; existing Feeder lifecycle regression invocation: 62/62 PASS.
+   - Health/readiness: 21/21 PASS.
+   - Process-level SIGKILL restart/fencing: 2/2 PASS.
+   - Paper consumer regressions: 44/44 PASS.
+   - Disposable TimescaleDB:
+     - PostgreSQL atomic writer: 7/7 PASS.
+     - PostgreSQL FeederRuntime: 16/16 PASS.
+     - PostgreSQL FeederRuntime lifecycle: 4/4 PASS.
+     - PostgreSQL least-privilege roles: 18/18 PASS.
+     - Read-only TimescaleDB: 6/6 PASS.
+     - Disposable target preflight PASS; no production DB, credentials, exchange connection, or external market-data sync.
+   - Artifacts (GitHub upload metadata; payload bytes not independently downloaded/re-hashed):
+     - TimescaleDB ID 13475901336, digest sha256:e30bed48efc8e3fdb14645d41b0c2032004cb883d94a2a527611c32a3a8cf8f3.
+     - Static Gateway ID 13475622662, digest sha256:96a2d9f2e1d996a75a017d12909265c6d642d20043dd81f3d8d66d3f56a8ea54.
+     - Paper consumer ID 13474689428, digest sha256:4b85a27809b99b11d58bb885da576e6a40aeb90db17878878820cf42b7546b3d.
+
+### Verdict and boundaries
+
+- Feeder shutdown admission ordering and single-deadline behavior: PASS on exact source SHA 8cf727450efb34723da649a0e123851d7c002aae.
+- PostgreSQL writer/runtime/lifecycle/role/read-only regression suites: PASS on the same exact source SHA.
+- This does not certify production provider TLS, backups/PITR, restore/failover, VPS/network configuration, or production runtime.
+- No production DB, credentials, TLS certificates, VPS/network rules, Feeder activation, Binance connection, or market-data sync.
+- No merge. ai_execution_enabled=false; paper-only boundary unchanged.
+- Next: complete P0 security/recovery design self-review and enumerate exact staging acceptance gates. Production provisioning remains blocked until provider, region, cost ceiling, TLS/rotation, backup/restore, and fencing evidence are selected and approved.
