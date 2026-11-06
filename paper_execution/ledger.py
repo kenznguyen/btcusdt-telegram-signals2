@@ -174,6 +174,10 @@ LEGACY_BOOK_MIGRATION_VERSION = 2
 LEGACY_BOOK_MIGRATION_CHECKSUM = hashlib.sha256(
     b"dual-ledger-v2.1:legacy-book-depth-immutable-sha256-evidence"
 ).hexdigest()
+RESERVATION_EXPIRY_MIGRATION_VERSION = 3
+RESERVATION_EXPIRY_MIGRATION_CHECKSUM = hashlib.sha256(
+    b"dual-ledger-v3:admission-time-intent-expiry-and-restart-release"
+).hexdigest()
 
 
 def read_account_risk_snapshot(db_path, *, now_ms):
@@ -200,12 +204,18 @@ def read_account_risk_snapshot(db_path, *, now_ms):
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA query_only=ON")
         db.execute("BEGIN")
-        migration = db.execute(
-            "SELECT checksum FROM paper_schema_migrations WHERE version=? AND status='APPLIED'",
-            (MIGRATION_VERSION,),
-        ).fetchone()
-        if migration is None or migration["checksum"] != MIGRATION_CHECKSUM:
-            raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_APPLIED")
+        required_migrations = (
+            (MIGRATION_VERSION, MIGRATION_CHECKSUM),
+            (LEGACY_BOOK_MIGRATION_VERSION, LEGACY_BOOK_MIGRATION_CHECKSUM),
+            (RESERVATION_EXPIRY_MIGRATION_VERSION, RESERVATION_EXPIRY_MIGRATION_CHECKSUM),
+        )
+        for version, checksum in required_migrations:
+            migration = db.execute(
+                "SELECT checksum FROM paper_schema_migrations WHERE version=? AND status='APPLIED'",
+                (version,),
+            ).fetchone()
+            if migration is None or migration["checksum"] != checksum:
+                raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_APPLIED")
 
         account = db.execute(
             "SELECT initial_capital FROM paper_accounts WHERE account_id=1"
@@ -658,6 +668,95 @@ def migrate_legacy_book_depth(connection, source_sha):
     )
 
 
+def migrate_reservation_expiry(connection, source_sha):
+    """Add persisted expiry timestamps to shared risk reservations."""
+    if not isinstance(source_sha, str) or len(source_sha) != 40 or any(
+        character not in "0123456789abcdef" for character in source_sha.lower()
+    ):
+        raise ValueError("DUAL_LEDGER_SOURCE_SHA_REQUIRED")
+    required_migrations = (
+        (MIGRATION_VERSION, MIGRATION_CHECKSUM),
+        (LEGACY_BOOK_MIGRATION_VERSION, LEGACY_BOOK_MIGRATION_CHECKSUM),
+    )
+    for version, checksum in required_migrations:
+        row = connection.execute(
+            "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
+            (version,),
+        ).fetchone()
+        if row is None or row[0] != checksum or row[1] != "APPLIED":
+            raise sqlite3.DatabaseError("RESERVATION_EXPIRY_PREREQUISITE_MISSING")
+
+    applied = connection.execute(
+        "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
+        (RESERVATION_EXPIRY_MIGRATION_VERSION,),
+    ).fetchone()
+    if applied:
+        if (applied[0] != RESERVATION_EXPIRY_MIGRATION_CHECKSUM
+                or applied[1] != "APPLIED"):
+            raise sqlite3.DatabaseError("RESERVATION_EXPIRY_MIGRATION_CHECKSUM_MISMATCH")
+        columns = {
+            row[1] for row in connection.execute(
+                "PRAGMA table_info(paper_risk_reservations)"
+            )
+        }
+        index = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='index' AND name='paper_risk_reservations_expiry'"
+        ).fetchone()
+        if "expires_at_ms" not in columns or not index:
+            raise sqlite3.DatabaseError("RESERVATION_EXPIRY_SCHEMA_MISSING")
+        return
+
+    columns = {
+        row[1] for row in connection.execute(
+            "PRAGMA table_info(paper_risk_reservations)"
+        )
+    }
+    if "expires_at_ms" in columns:
+        raise sqlite3.DatabaseError("RESERVATION_EXPIRY_SCHEMA_WITHOUT_MIGRATION_RECORD")
+
+    connection.execute(
+        "ALTER TABLE paper_risk_reservations ADD COLUMN expires_at_ms INTEGER"
+    )
+    connection.execute(
+        "CREATE INDEX paper_risk_reservations_expiry "
+        "ON paper_risk_reservations(status,expires_at_ms)"
+    )
+
+    # Backfill only expiry evidence already persisted in an order document.
+    # Older pending reservations without that evidence remain active and block
+    # same-ledger replacement until explicitly cancelled/reconciled.
+    pending_orders = connection.execute(
+        """SELECT intent_id,document FROM paper_orders
+           WHERE status IN ('OPEN','PARTIALLY_FILLED')"""
+    ).fetchall()
+    for intent_id, document in pending_orders:
+        try:
+            order = json.loads(document)
+            expires_at = order.get("validUntilMs")
+            if type(expires_at) is int and expires_at > 0:
+                connection.execute(
+                    """UPDATE paper_risk_reservations SET expires_at_ms=?
+                       WHERE intent_id=? AND status IN ('ACTIVE','PARTIAL')""",
+                    (expires_at, intent_id),
+                )
+        except (TypeError, ValueError, json.JSONDecodeError):
+            # Preserve the pending row with unknown expiry; the runtime gate
+            # will continue to block a same-ledger replacement.
+            continue
+
+    applied_at_row = connection.execute(
+        "SELECT updated_at_ms FROM paper_account_risk_state WHERE account_id=1"
+    ).fetchone()
+    applied_at = applied_at_row[0] if applied_at_row else 0
+    connection.execute(
+        """INSERT INTO paper_schema_migrations
+           (version,name,checksum,applied_at_ms,source_sha,status)
+           VALUES (?,?,?,?,?,'APPLIED')""",
+        (RESERVATION_EXPIRY_MIGRATION_VERSION, "reservation_expiry_v3",
+         RESERVATION_EXPIRY_MIGRATION_CHECKSUM, applied_at, source_sha.lower()),
+    )
+
+
 def reduce_legacy_unattributed(
     db_path, raw, book, now_ms, *, reconciliation_id, evidence_hash,
     fee_rate="0.0005", max_spread_bps="50",
@@ -1000,6 +1099,7 @@ class PaperLedger:
             if self.strategy_id in DUAL_STRATEGIES:
                 migrate_dual_ledger(connection, self.source_sha)
                 migrate_legacy_book_depth(connection, self.source_sha)
+                migrate_reservation_expiry(connection, self.source_sha)
 
     def connect(self):
         connection = sqlite3.connect(self.path, timeout=10)
@@ -1012,6 +1112,49 @@ class PaperLedger:
                            (at_ms, kind, json.dumps(value, allow_nan=False)))
 
 
+
+    def _expire_scoped_reservations(self, connection, now):
+        rows = connection.execute(
+            """SELECT reservation_id,intent_id,expires_at_ms
+               FROM paper_risk_reservations
+               WHERE status IN ('ACTIVE','PARTIAL')"""
+        ).fetchall()
+        for reservation_id, intent_id, expires_at in rows:
+            if expires_at is None:
+                continue
+            if type(expires_at) is not int or expires_at <= 0:
+                raise sqlite3.DatabaseError("RISK_RESERVATION_EXPIRY_CORRUPT")
+            if expires_at >= now:
+                continue
+            order_row = connection.execute(
+                "SELECT order_id,status,document FROM paper_orders WHERE intent_id=?",
+                (intent_id,),
+            ).fetchone()
+            if order_row is None or order_row[1] not in ACTIVE:
+                raise sqlite3.DatabaseError("RISK_RESERVATION_ORDER_STATE_MISMATCH")
+            try:
+                order = json.loads(order_row[2])
+                if order.get("intentId") != intent_id or order.get("status") not in ACTIVE:
+                    raise ValueError
+            except (TypeError, ValueError, json.JSONDecodeError):
+                raise sqlite3.DatabaseError("RISK_RESERVATION_ORDER_DOCUMENT_CORRUPT") from None
+            order.update(status="EXPIRED", updatedAtMs=now, reason="INTENT_EXPIRED")
+            connection.execute(
+                "UPDATE paper_orders SET status='EXPIRED',document=? WHERE intent_id=?",
+                (json.dumps(order, allow_nan=False), intent_id),
+            )
+            connection.execute(
+                """UPDATE paper_risk_reservations
+                   SET status='EXPIRED',remaining_margin_quote='0',
+                       remaining_notional_quote='0',updated_at_ms=?
+                   WHERE reservation_id=?""",
+                (now, reservation_id),
+            )
+            self.audit(connection, now, "EXPIRE", {
+                "orderId": order_row[0], "intentId": intent_id,
+                "reservationId": reservation_id, "expiresAtMs": expires_at,
+            })
+
     def _submit_scoped(self, intent, book, now, strategy_event):
         strategy_id = self.strategy_id
         if strategy_event not in (None, "ENTRY", "DCA", "EXIT"):
@@ -1019,6 +1162,7 @@ class PaperLedger:
         with closing(self.connect()) as connection, connection, localcontext() as context:
             context.prec = 80
             connection.execute("BEGIN IMMEDIATE")
+            self._expire_scoped_reservations(connection, now)
             row = connection.execute(
                 """SELECT position_base,average_entry_price,realized_pnl_quote,fees_quote,
                           funding_quote,dca_used,initial_margin_quote
@@ -1331,12 +1475,13 @@ class PaperLedger:
                        (reservation_id,account_id,intent_id,strategy_id,reservation_kind,status,
                         reserved_margin_quote,remaining_margin_quote,reserved_notional_quote,
                         remaining_notional_quote,leverage,equity_basis_quote,risk_config_version,
-                        created_at_ms,updated_at_ms)
-                       VALUES (?,1,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                        created_at_ms,updated_at_ms,expires_at_ms)
+                       VALUES (?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (reservation_id, intent["intentId"], strategy_id, reservation_kind,
                      reservation_status, text(reserved_margin), text(remaining_margin),
                      text(reserved_notional), text(remaining_notional), text(self.leverage),
-                     text(equity) if equity is not None else "0", config_version, now, now),
+                     text(equity) if equity is not None else "0", config_version, now, now,
+                     intent["validUntilMs"]),
                 )
                 for level_side, price_text, quantity_text in used_levels:
                     connection.execute(
@@ -1579,6 +1724,7 @@ class PaperLedger:
         with closing(self.connect()) as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
             if self.strategy_id in DUAL_STRATEGIES:
+                self._expire_scoped_reservations(connection, now)
                 row = connection.execute(
                     "SELECT document,strategy_id FROM paper_orders WHERE order_id=?",
                     (order_id,),
