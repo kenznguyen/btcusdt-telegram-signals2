@@ -1,5 +1,5 @@
 name: P1.8 Synthetic Evidence Generator
-run-name: P1.8 synthetic-only validation (${ github.ref_name } @ ${ github.sha })
+run-name: P1.8 synthetic-only validation (${{ github.ref_name }} @ ${{ github.sha }})
 
 on:
   push:
@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: p1-8-synthetic-evidence-${ github.ref }
+  group: p1-8-synthetic-evidence-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -42,7 +42,7 @@ jobs:
       - name: Checkout exact triggering source
         uses: actions/checkout@v4
         with:
-          ref: ${ github.sha }
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Set up Python
@@ -117,7 +117,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: p1-8-synthetic-evidence-${ github.sha }
+          name: p1-8-synthetic-evidence-${{ github.sha }}
           path: |
             synthetic-evidence-tests.log
             synthetic-evidence-source-sha.txt
