@@ -2250,7 +2250,7 @@ os._exit(0)
     def test_read_only_daily_replay_loader_returns_verified_inputs_for_all_ledgers(self):
         boundary = (self.now // 86_400_000 + 1) * 86_400_000
         watermark = boundary + 2_000
-        for strategy_id in sorted(ledger.DUAL_STRATEGIES):
+        for strategy_id in ("AI_FREQAI", "LEGACY_UNATTRIBUTED", "STRATEGY_CORE"):
             ledger.record_account_history_coverage(
                 self.path,
                 coverage_id=f"replay-execution-{strategy_id.lower()}",
