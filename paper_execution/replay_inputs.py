@@ -30,10 +30,12 @@ def load_daily_equity_replay_inputs(connection, *, utc_day_ms, now_ms):
     if boundary % DAY_MS or now < boundary:
         raise ValueError("ACCOUNT_HISTORY_UTC_DAY_INVALID")
 
-    # query_only is connection-local; no schema or account data is changed.
+    # Require a clean transaction boundary so caller-owned uncommitted writes
+    # cannot leak into the replay snapshot.
+    if connection.in_transaction:
+        raise ValueError("ACCOUNT_HISTORY_READ_ONLY_TRANSACTION_REQUIRED")
     connection.execute("PRAGMA query_only=ON")
-    if not connection.in_transaction:
-        connection.execute("BEGIN")
+    connection.execute("BEGIN")
 
     from paper_execution.funding import (
         MIGRATION_VERSION as FUNDING_VERSION,
