@@ -188,6 +188,86 @@ RESERVATION_EXPIRY_MIGRATION_CHECKSUM = hashlib.sha256(
 ).hexdigest()
 
 
+def _funding_provenance_ready(connection, coverage_start_at_ms, coverage_end_at_ms,
+                                observed_at_ms, now_ms):
+    try:
+        coverage_start = stamp(coverage_start_at_ms)
+        coverage_end = stamp(coverage_end_at_ms)
+        observed = stamp(observed_at_ms)
+        now = stamp(now_ms)
+        if not coverage_start < coverage_end <= observed <= now:
+            return False
+
+        coverage_rows = connection.execute(
+            """SELECT start_at_ms,end_at_ms,status,source FROM paper_funding_coverage
+               WHERE account_id=1 ORDER BY start_at_ms,end_at_ms"""
+        ).fetchall()
+        previous_end = None
+        for row in coverage_rows:
+            start, end, status, source = row[0], row[1], row[2], row[3]
+            if start >= end or (previous_end is not None and start < previous_end):
+                return False
+            if status not in {"VERIFIED", "UNKNOWN", "DISABLED"}:
+                return False
+            if status == "DISABLED" and source != "PAPER_TEST_CONFIGURATION":
+                return False
+            previous_end = end
+
+        cursor = coverage_start
+        for row in coverage_rows:
+            start, end, status, source = row[0], row[1], row[2], row[3]
+            if end <= coverage_start or start > observed:
+                continue
+            if start > cursor or status == "UNKNOWN":
+                return False
+            cursor = max(cursor, end)
+        if cursor < observed:
+            return False
+
+        ledger_funding = {}
+        for strategy_id, raw_funding in connection.execute(
+            """SELECT strategy_id,funding_quote FROM paper_strategy_ledgers
+               WHERE account_id=1"""
+        ):
+            amount = Decimal(raw_funding)
+            if not amount.is_finite():
+                return False
+            ledger_funding[strategy_id] = amount
+
+        event_totals = {strategy_id: Decimal(0) for strategy_id in ledger_funding}
+        for event in connection.execute(
+            """SELECT strategy_id,amount_quote,event_at_ms,source,source_snapshot_id,
+                      payload_hash,recorded_at_ms
+               FROM paper_funding_events WHERE account_id=1"""
+        ):
+            strategy_id, raw_amount, event_at, source, snapshot_id, digest, recorded_at = event
+            amount = Decimal(raw_amount)
+            event_at = stamp(event_at)
+            recorded_at = stamp(recorded_at)
+            digest_valid = (
+                isinstance(digest, str) and len(digest) == 71
+                and digest.startswith("sha256:")
+                and all(character in "0123456789abcdef" for character in digest[7:])
+            )
+            covered = any(
+                start <= event_at < end and status in {"VERIFIED", "DISABLED"}
+                and (status != "DISABLED" or coverage_source == "PAPER_TEST_CONFIGURATION")
+                for start, end, status, coverage_source in coverage_rows
+            )
+            if (not amount.is_finite() or strategy_id not in event_totals
+                    or not isinstance(source, str) or not source.strip()
+                    or source == "LEGACY_UNVERIFIED"
+                    or not isinstance(snapshot_id, str) or not snapshot_id.strip()
+                    or not digest_valid or event_at > recorded_at or recorded_at > now
+                    or not covered):
+                return False
+            event_totals[strategy_id] += amount
+
+        return event_totals == ledger_funding
+    except (DecimalException, TypeError, ValueError, IndexError, sqlite3.DatabaseError):
+        return False
+
+
 def read_account_risk_snapshot(db_path, *, now_ms):
     """Read a reconciled account-wide PAPER risk snapshot without writing state."""
     path = Path(db_path).resolve()
@@ -241,10 +321,6 @@ def read_account_risk_snapshot(db_path, *, now_ms):
             "SELECT funding_coverage_start_at_ms,funding_coverage_end_at_ms,initial_capital_quote "
             "FROM paper_account_equity_cutovers WHERE account_id=1 LIMIT 1"
         ).fetchone()
-        coverage_rows = db.execute(
-            """SELECT start_at_ms,end_at_ms,status,source FROM paper_funding_coverage
-               WHERE account_id=1 ORDER BY start_at_ms,end_at_ms"""
-        ).fetchall()
         funding_gap = False
         if account is None or risk is None or type(risk["risk_ready"]) is not int or risk["risk_ready"] not in (0, 1):
             raise sqlite3.DatabaseError("ACCOUNT_RISK_STATE_MISSING_OR_CORRUPT")
@@ -265,28 +341,13 @@ def read_account_risk_snapshot(db_path, *, now_ms):
             raise sqlite3.DatabaseError("ACCOUNT_RISK_DATASET_VERSION_MISSING")
 
         if cutover:
-            coverage_start = cutover["funding_coverage_start_at_ms"]
-            coverage_end = cutover["funding_coverage_end_at_ms"]
-            if coverage_start >= observed or coverage_end > observed:
-                funding_gap = True
-            cursor = coverage_start
-            previous_end = None
-            for coverage in coverage_rows:
-                start, end, status, source = coverage
-                if end <= coverage_start or start > observed:
-                    continue
-                if previous_end is not None and start < previous_end:
-                    funding_gap = True
-                if start > cursor or status == "UNKNOWN":
-                    funding_gap = True
-                if status not in {"VERIFIED", "UNKNOWN", "DISABLED"}:
-                    funding_gap = True
-                if status == "DISABLED" and source != "PAPER_TEST_CONFIGURATION":
-                    funding_gap = True
-                previous_end = end
-                cursor = max(cursor, end)
-            if cursor < observed:
-                funding_gap = True
+            funding_gap = not _funding_provenance_ready(
+                db,
+                cutover["funding_coverage_start_at_ms"],
+                cutover["funding_coverage_end_at_ms"],
+                observed,
+                now,
+            )
 
         rows = db.execute(
             """SELECT strategy_id,position_base,average_entry_price,realized_pnl_quote,
@@ -297,44 +358,6 @@ def read_account_risk_snapshot(db_path, *, now_ms):
         required = {"STRATEGY_CORE", "AI_FREQAI", "LEGACY_UNATTRIBUTED"}
         if set(ledgers) != required:
             raise sqlite3.DatabaseError("ACCOUNT_RISK_LEDGER_SET_INVALID")
-
-        funding_event_totals = {strategy_id: Decimal(0) for strategy_id in ledgers}
-        funding_events = db.execute(
-            """SELECT strategy_id,amount_quote,event_at_ms,source,source_snapshot_id,
-                      payload_hash,recorded_at_ms
-               FROM paper_funding_events WHERE account_id=1"""
-        ).fetchall()
-        for event in funding_events:
-            strategy_id = event["strategy_id"]
-            amount = dec(event["amount_quote"], "FUNDING_EVENT_AMOUNT")
-            event_at = stamp(event["event_at_ms"])
-            recorded_at = stamp(event["recorded_at_ms"])
-            source = event["source"]
-            snapshot_id = event["source_snapshot_id"]
-            digest = event["payload_hash"]
-            digest_valid = (
-                isinstance(digest, str) and len(digest) == 71
-                and digest.startswith("sha256:")
-                and all(character in "0123456789abcdef" for character in digest[7:])
-            )
-            covered = any(
-                start <= event_at < end and status in {"VERIFIED", "DISABLED"}
-                and (status != "DISABLED" or coverage_source == "PAPER_TEST_CONFIGURATION")
-                for start, end, status, coverage_source in coverage_rows
-            )
-            if (strategy_id not in funding_event_totals or not isinstance(source, str)
-                    or not source.strip() or source == "LEGACY_UNVERIFIED"
-                    or not isinstance(snapshot_id, str) or not snapshot_id.strip()
-                    or not digest_valid or event_at > recorded_at or recorded_at > now
-                    or not covered):
-                funding_gap = True
-            if strategy_id in funding_event_totals:
-                funding_event_totals[strategy_id] += amount
-        for strategy_id, row in ledgers.items():
-            if funding_event_totals[strategy_id] != dec(
-                row["funding_quote"], strategy_id + "_FUNDING"
-            ):
-                funding_gap = True
 
         realized = fees = funding = unrealized = filled = Decimal(0)
         positions = {}
@@ -1336,13 +1359,12 @@ class PaperLedger:
                 """SELECT funding_coverage_start_at_ms,funding_coverage_end_at_ms
                    FROM paper_account_equity_cutovers WHERE account_id=1 LIMIT 1"""
             ).fetchone()
-            funding_gap = False
-            if cutover_row:
-                funding_gap = connection.execute(
-                    """SELECT 1 FROM paper_funding_coverage
-                       WHERE status='UNKNOWN' AND start_at_ms < ? AND end_at_ms > ? LIMIT 1""",
-                    (cutover_row[1], cutover_row[0]),
-                ).fetchone() is not None
+            funding_gap = not (
+                risk_row is not None and cutover_row is not None
+                and _funding_provenance_ready(
+                    connection, cutover_row[0], cutover_row[1], risk_row[5], now
+                )
+            )
             account = connection.execute(
                 "SELECT initial_capital FROM paper_accounts WHERE account_id=1"
             ).fetchone()
