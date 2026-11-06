@@ -266,6 +266,8 @@ jobs:
             t0-postgres-writer-red-verdict.log
             t0-postgres-feeder-runtime-tests.log
             t0-postgres-feeder-runtime-verdict.log
+            t0-postgres-feeder-runtime-lifecycle-tests.log
+            t0-postgres-feeder-runtime-lifecycle-verdict.log
             t0-postgres-role-privileges-tests.log
             t0-postgres-role-privileges-verdict.log
             t0-timescale-tests.log
