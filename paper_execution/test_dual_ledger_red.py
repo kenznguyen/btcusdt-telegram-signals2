@@ -18,12 +18,12 @@ class DualLedgerRedTest(unittest.TestCase):
             "100", self.now - 60_000, self.now, "sha256:dual-ledger-seed", "100"
         )
         limits = {"maxDrawdownPct": "50", "maxDailyLossUsdt": "50", "maxExposureUsdt": "1000"}
-        PaperLedger(
+        core = PaperLedger(
             path, max_position_base="1", fee_rate="0.001",
             strategy_id="STRATEGY_CORE", source_sha="a" * 40,
             risk_limits=limits, require_risk_limits=True,
         )
-        PaperLedger(
+        ai = PaperLedger(
             path, max_position_base="1", fee_rate="0.001",
             strategy_id="AI_FREQAI", source_sha="a" * 40,
             risk_limits=limits, require_risk_limits=True,
@@ -39,6 +39,7 @@ class DualLedgerRedTest(unittest.TestCase):
                 (day, self.now, self.now-60_000, self.now),
             )
         if establish_cutover:
+            self.core, self.ai = core, ai
             ledger.record_funding_coverage(
                 path, coverage_id="fixture-funding-coverage",
                 start_at_ms=self.now - 86_400_000, end_at_ms=self.now,
@@ -59,6 +60,8 @@ class DualLedgerRedTest(unittest.TestCase):
                 payload_hash="sha256:" + "b" * 64,
                 config_version="fixture-cutover-v1", recorded_at_ms=self.now,
             )
+        if not establish_cutover:
+            self.core, self.ai = core, ai
         return path
 
     def setUp(self):
