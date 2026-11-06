@@ -3994,3 +3994,22 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Detailed report: `docs/architecture/P1.8.12_SYNTHETIC_EVIDENCE_PROVENANCE_SOURCE_BINDING_ACCEPTANCE_2026-11-07.md`.
 - **P1.8.12: PASS — synthetic evidence source/run/workflow/dual-fixture provenance binding and independent artifact payload verification.** No signature, trusted timestamp, Root B/provider independence, production correctness/durability or runtime certification is implied.
 - Restrictions unchanged: T0 PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`; no DB, exchange, VPS/provider, persistent capture, runtime integration, paper/live execution, or merge.
+
+
+## 2026-11-07 — P1.8.13 Synthetic Provenance Tamper & Substitution Resistance
+
+- User approval: `APPROVE P1.8.13 — SYNTHETIC PROVENANCE TAMPER & SUBSTITUTION RESISTANCE`.
+- Scope: synthetic-only hardening of provenance and artifact verification. No Strategy Core, AI Strategy, Shared Risk Engine behavior, T0/T1 runtime, DB/exchange, VPS/provider, persistent capture, paper/live execution, branch creation, PR, or merge.
+- Final exact passing source SHA: `02f5857885378de1e9a385b810f7a5d2f9ccbaaf`.
+- GitHub Actions run [42303757076](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42303757076), job `128187817102`, SUCCESS; checked-out SHA exactly matches final source SHA.
+- Python 3.11.18 compile PASS; **88/88 tests PASS**; synthetic-only preflight PASS; DB/exchange credential env vars empty; `AI_EXECUTION_ENABLED=false`.
+- Provenance schema advanced to `p1.8.synthetic-provenance.v2`. Both fixture descriptors bind exact `generator_source_sha` and SHA-256 of raw descriptor bytes. Verification rejects missing/invalid descriptor, descriptor swap, changed descriptor bytes, altered recorded digest, source mismatch, malformed provenance, run mismatch, and workflow digest mismatch.
+- `verify_artifact_archive()` verifies externally anchored artifact SHA-256 and ZIP CRC/integrity; tests reject a substituted valid ZIP and corrupt ZIP.
+- Workflow generates two deterministic 1,000-event fixtures, checks A/B byte equality, then verifies provenance against exact descriptor files. Provenance step marker: `PROVENANCE_SOURCE_RUN_WORKFLOW_FIXTURE_BYTES_BINDING=PASS`.
+- Artifact ID `13545625743`; name `p1-8-synthetic-evidence-02f5857885378de1e9a385b810f7a5d2f9ccbaaf`; size 597,690 bytes; GitHub digest `sha256:106d4d961ebd8aecb02848a957f45cdfadae14be05681dc8134fd5db3dd87dba`. Independently downloaded ZIP SHA-256 MATCH; ZIP integrity PASS; 43 members.
+- Independent payload verification: fixture A/B each 18 files; inventory 17/17 SHA checks for each; path sets identical; 18/18 file pairs byte-identical; both descriptor SHA-256 values independently recomputed and match provenance; both fixture source SHAs match exact source SHA.
+- Intermediate RED/failing runs were retained as audit history; only run `42303757076` on exact source SHA above is the acceptance PASS.
+- Detailed report: `docs/architecture/P1.8.13_SYNTHETIC_PROVENANCE_TAMPER_SUBSTITUTION_RESISTANCE_2026-11-07.md`; report commit `ae407475f965cb67fb0aa8291b677bbf1d474fd1`.
+- **P1.8.13: PASS — synthetic provenance descriptor tamper/substitution resistance and artifact digest/ZIP integrity checks.**
+- Limits: SHA-256 is integrity hashing, not a digital signature or trusted timestamp. Authenticity still depends on a trusted external expected artifact digest. Deterministic A/B fixture payloads are equal by design; distinct A/B descriptors are used in negative unit tests to prove label swapping is rejected. No Root B/provider independence or production certification is claimed.
+- Restrictions unchanged: T0 PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`; no DB/exchange, VPS/provider, persistent capture, runtime integration, paper/live execution, or merge.
