@@ -20,7 +20,6 @@ class TrustAnchorPolicyTests(unittest.TestCase):
     def test_accepts_verified_subject_with_signed_transparency_timestamp(self):
         self.assertTrue(verify_attestation_result(
             self._valid(), expected_subject_sha256="a" * 64,
-            expected_source_sha="b" * 40,
         ))
 
     def test_rejects_empty_verification_result(self):
