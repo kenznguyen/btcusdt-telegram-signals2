@@ -43,7 +43,7 @@ class TrustAnchorPolicyTests(unittest.TestCase):
             verify_attestation_result(result, expected_subject_sha256="a" * 64)
 
     def test_rejects_malformed_verification_shape(self):
-        with self.assertRaisesRegex(ValueError, "verification result"):
+        with self.assertRaisesRegex(ValueError, "no verified attestations"):
             verify_attestation_result({"not": "an array"}, expected_subject_sha256="a" * 64)
 
 
