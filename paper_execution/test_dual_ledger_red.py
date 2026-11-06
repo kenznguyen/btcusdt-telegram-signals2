@@ -1831,5 +1831,29 @@ os._exit(0)
         self.assertEqual(snapshot["unavailableReason"], "FUNDING_PROVENANCE_INCOMPLETE")
 
 
+
+    def test_read_only_snapshot_fails_closed_on_overlapping_funding_coverage(self):
+        path = self.path
+        with sqlite3.connect(path) as connection:
+            connection.execute(
+                """INSERT INTO paper_funding_coverage
+                   (coverage_id,account_id,start_at_ms,end_at_ms,status,source,
+                    source_snapshot_id,payload_hash,config_version,recorded_at_ms)
+                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    "snapshot-overlapping-coverage", 1,
+                    self.now - 10 * 60_000, self.now - 5 * 60_000,
+                    "VERIFIED", "RECONCILED_FUNDING_STATEMENT",
+                    "snapshot-overlap:funding", "sha256:" + "d" * 64,
+                    "funding-policy-v1", self.now,
+                ),
+            )
+
+        snapshot = ledger.read_account_risk_snapshot(path, now_ms=self.now)
+        self.assertTrue(snapshot["available"], snapshot)
+        self.assertFalse(snapshot["riskReady"], snapshot)
+        self.assertEqual(snapshot["unavailableReason"], "FUNDING_PROVENANCE_INCOMPLETE")
+
+
 if __name__ == "__main__":
     unittest.main()
