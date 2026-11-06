@@ -213,3 +213,46 @@ This is not Timescale Cloud, but its official Standard Edition supported-extensi
 - Self-managed VPS: **NOT QUOTED**.
 - Provisioning/trial/payment: **NOT AUTHORIZED**.
 - No database, account, secret, endpoint, backup, DNS, network rule or Feeder was created.
+
+
+## 9. DigitalOcean Standard compatibility review — source-level only (2026-11-06)
+
+**Verdict: CONDITIONAL / NOT VERIFIED. No provider selection or provisioning.**
+
+### Findings from current official documentation
+
+- DigitalOcean Standard Edition's supported-extension matrix lists `timescaledb` for PostgreSQL 16 and 17. The current CI baseline is PostgreSQL 16 / TimescaleDB 2.17.2, so the major-version family is a plausible match; the exact provider extension version and runtime behavior remain unknown until queried on a real cluster.
+- Do not select PostgreSQL 18 for this candidate while TimescaleDB is absent from the Standard PG18 list in the current official matrix.
+- Standard Edition's documented admin account `doadmin` has CREATEROLE but is not a PostgreSQL superuser. This is not equivalent to unrestricted bootstrap privileges.
+- T0 migrations 003/004 create reserved capability and SECURITY DEFINER owner roles when absent, transfer SECURITY DEFINER function ownership, and enforce strict role-membership constraints. `market_data/migrations.py` switches to `SET ROLE t0_migrator` whenever that role exists. The restricted migrator cannot be assumed to have CREATEROLE.
+- Therefore a fresh, unprepared cluster cannot be declared migration-compatible from the public extension list alone. A controlled bootstrap sequence may be required: use the provider admin capability to create the exact reserved roles and narrowly grant `t0_migrator` membership in `t0_db_owner`, `t0_candle_writer_owner`, and `t0_lease_manager_owner` without ADMIN OPTION; then run the normal checksum-managed migrations as the restricted migrator. This sequence is a hypothesis to validate, not an approved workaround or proven provider behavior.
+- The documented DigitalOcean `doadmin` account has CREATEROLE and can manage grants, but the exact ability to satisfy this repository's role-owner transfer and membership invariants has not been tested. Do not weaken the role guards or grant persistent broad privileges to Feeder to make the migration pass.
+- DigitalOcean Standard supports `sslmode=verify-full` when the cluster CA certificate is supplied. Current T0 runtime enforces verify-full and a remote hostname, but provider-specific CA/SAN verification remains untested.
+- Pricing/topology remain unchanged: SGP1 single-node Standard is only a published cost-fit candidate; it is not HA. No provider account or endpoint exists for testing.
+
+### Required compatibility acceptance before any provider decision
+
+1. Record exact engine version, `timescaledb` version, `pg_available_extensions`, region, plan and current price from the provider control plane.
+2. Test a disposable, empty Standard PG16 cluster; do not use canonical or real market data.
+3. Prove the bootstrap and restricted migration sequence from an empty cluster, including function ownership, schema/table ownership, role membership and no ADMIN OPTION.
+4. Run existing T0 writer, lease, least-privilege, read-only and FeederRuntime integration suites using the provider endpoint and provider CA with `sslmode=verify-full`.
+5. Prove Feeder cannot direct-write candles or mutate lease rows; Reader cannot inspect leases or mutate candles; stale generation is rejected; restore/failover does not permit an old writer.
+6. Verify backup/PITR restore and measure actual RPO/RTO. A single-node plan must not be represented as HA.
+
+### Official references
+
+- DigitalOcean supported extensions: https://docs.digitalocean.com/products/databases/postgresql/details/supported-extensions/
+- DigitalOcean limits and no-superuser boundary: https://docs.digitalocean.com/products/databases/postgresql/details/limits/
+- DigitalOcean user privilege model and `doadmin` role attributes: https://docs.digitalocean.com/products/databases/postgresql/how-to/modify-user-privileges/
+- DigitalOcean user/database administration: https://docs.digitalocean.com/products/databases/postgresql/how-to/manage-users-and-databases/
+- DigitalOcean TLS guidance: https://docs.digitalocean.com/products/databases/postgresql/how-to/modify-user-privileges/
+
+### Scope and status
+
+- Source-level review: **PARTIAL PASS**.
+- Provider migration compatibility: **NOT VERIFIED**.
+- Exact TimescaleDB version on provider: **NOT VERIFIED**.
+- TLS handshake/CA/SAN: **NOT VERIFIED**.
+- Backup/PITR restore, RPO/RTO and fencing after recovery: **NOT VERIFIED**.
+- Provider selection, VPS selection and provisioning: **NOT DECIDED / NOT AUTHORIZED**.
+- No code, migration, role, runtime, CI workflow or provider resource was changed or created in this review.
