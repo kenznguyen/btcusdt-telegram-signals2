@@ -19,7 +19,7 @@ Repository: `kenznguyen/btcusdt-telegram-signals2`
 
 Relevant source line:
 - Phase22 frozen-model PR #94: `feature/dual-strategy-phase22-frozen-reproducibility-20261031`, head `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
-- Phase22 attestation PR #95: `feature/dual-strategy-phase22-preholdout-attestation-20261031`, current head at this report update `1a5e5ca4da77dc704f7f856c16ae52b85aa060be`, base `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
+- Phase22 attestation PR #95: `feature/dual-strategy-phase22-preholdout-attestation-20261031`, current head at this report update `bf244e34137321adc98ae510e4a6d298d4eabcb3`, base `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
 - Both PRs remain Draft; neither is merged.
 
 Observed pinned runtime and model provenance:
@@ -103,8 +103,9 @@ Branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`
 - F1 strict source/output validation: `debdc05d9085e59697bc4671b3bad6e0b3c0b5ce`.
 - F1 symlink-output regression: `4ed5209a723029b59bd2f6593991fbf1a379009e`.
 - F1 exact-head verification source: `d43b34348225629eb6b783f7c4c655301e108a72` (run `42310673116`).
+- F0/F1 audit report commit: `bf244e34137321adc98ae510e4a6d298d4eabcb3` (documentation-only after the tested source).
 
-Earlier run `42310599932` tested the synthetic merge SHA `18a31f6bfd0d7703995334cb0e20fd6fc26c2470` and is not treated as direct-head evidence. The later run `42310673116` explicitly checked out the PR head SHA. Its artifact ZIP was downloaded and independently hashed; local SHA-256 matched the GitHub artifact digest. No live T0 data or Freqtrade runtime was involved. Upstream format references: [Freqtrade 2026.9 IDataHandler](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/data/history/datahandlers/idatahandler.py), [JsonDataHandler](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/data/history/datahandlers/jsondatahandler.py), and [pair_to_filename](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/misc.py). The source is not ready for acceptance until exact-head Actions evidence is retrieved and the adapter is tested against a real, user-authorized T0 export and Freqtrade's installed 2026.9 JSON loader.
+Earlier run `42310599932` tested the synthetic merge SHA `18a31f6bfd0d7703995334cb0e20fd6fc26c2470` and is not treated as direct-head evidence. The later run `42310673116` explicitly checked out the PR head SHA. Its artifact ZIP was downloaded and independently hashed; local SHA-256 matched the GitHub artifact digest. No live T0 data or Freqtrade runtime was involved. Upstream format references: [Freqtrade 2026.9 IDataHandler](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/data/history/datahandlers/idatahandler.py), [JsonDataHandler](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/data/history/datahandlers/jsondatahandler.py), and [pair_to_filename](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/misc.py). The source has exact-head Actions contract evidence. Data acceptance remains blocked until the adapter is tested against a real, user-authorized T0 export and Freqtrade's installed 2026.9 JSON loader.
 
 ## Next permitted steps
 
