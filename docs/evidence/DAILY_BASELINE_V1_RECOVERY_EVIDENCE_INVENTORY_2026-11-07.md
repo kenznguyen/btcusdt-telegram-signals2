@@ -88,3 +88,25 @@ A second read-only inventory was performed against the recursive Git tree at bra
 **Result:** INDEPENDENT_SECOND_ROOT_NOT_FOUND_IN_TRACKED_GIT_TREE. The repository alone currently provides no discoverable separately retained event archive/checkpoint suitable for Reconstruction B. This does not prove that no such evidence exists outside the tracked Git tree. Do not treat a pair of computations over the mutable account DB as independent verification. Keep the candidate BLOCKED unless an external retained evidence root is identified and byte-verified.
 
 No account DB was opened; no artifacts were downloaded; no source, schema, tests, workflow, migration, or data were changed.
+
+
+## 2026-11-07 — GitHub Actions artifact metadata review
+
+Read-only artifact metadata was checked for five prior T1 verification runs. No artifact ZIP was downloaded or extracted.
+
+| Run ID | Source SHA | Artifact ID | Name | Size | ZIP SHA-256 digest | Expires |
+|---|---|---:|---|---:|---|---|
+| 42277853667 | 7cddb5eacfd70f5bc886bc03f672177cdf3f8f2a | 13533807345 | dual-ledger-red-evidence-7cddb5eacfd70f5bc886bc03f672177cdf3f8f2a | 8,452 B | fb41913d0826f836adf7b6c460efc6bd3d41f6af41f5e976764cc099c00376c9 | 2026-11-13 19:14:23 UTC |
+| 42279162334 | fbf74c5d72ee977651b8075f13dadf9763b4b272 | 13534541826 | dual-ledger-red-evidence-fbf74c5d72ee977651b8075f13dadf9763b4b272 | 8,919 B | ac769ba03c657a4361d72eef3f794ac005cada4108395fc85e4719d6f1ea1ff0 | 2026-11-13 19:23:14 UTC |
+| 42279706472 | 4eac10b704882c7f14901400be9d76465b0ffc44 | 13534577603 | dual-ledger-red-evidence-4eac10b704882c7f14901400be9d76465b0ffc44 | 8,971 B | f098522daedc72098025bf1cdd43efb4315e68f8613cfe0a10ce3865fe09955e | 2026-11-13 19:26:57 UTC |
+| 42280083080 | f7df95c2ff2008aa88923b3242b1486c096d9342 | 13533829670 | dual-ledger-red-evidence-f7df95c2ff2008aa88923b3242b1486c096d9342 | 9,017 B | 518596b09e16712d2c5ed157baa85168fd6c960ffbf5a7414ee9d6d547195275 | 2026-11-13 19:29:36 UTC |
+| 42276535949 | e06b28b740590b99c4c930004bf547c8fccbaf99 | 13533163461 | dual-ledger-red-evidence-e06b28b740590b99c4c930004bf547c8fccbaf99 | 8,189 B | 62557812142e7aa84aa238c4c6a4dd99a851c9116beeeca2dd1a1893abc0f88e | 2026-11-13 19:05:23 UTC |
+
+Assessment:
+- All five artifacts are named as CI RED evidence and are tied to specific test source SHAs. Their small sizes and names identify them as test evidence packages, not as retained account event archives/checkpoints.
+- The artifact digest is the SHA-256 of the GitHub Actions artifact archive. It does not establish that the archive contains original account event bytes or a separately retained account checkpoint.
+- Artifact payloads were not downloaded or inspected; content-level classification is therefore NOT VERIFIED.
+- These artifacts are useful for source/test provenance and historical CI audit only. They are not eligible as Replay A or Reconstruction B evidence roots based on metadata alone.
+- They remain unexpired at the time of inspection; retention ends on 2026-11-13 UTC as listed above.
+
+**Result unchanged:** no independent account event archive/checkpoint has been identified. The five CI artifacts do not clear the Dual Reconstruction evidence gate.
