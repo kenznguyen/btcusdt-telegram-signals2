@@ -558,6 +558,9 @@ class PaperLedger:
             account = connection.execute(
                 "SELECT initial_capital FROM paper_accounts WHERE account_id=1"
             ).fetchone()
+            adjustment_rows = connection.execute(
+                "SELECT adjustment_type,amount_quote FROM paper_account_adjustments WHERE account_id=1"
+            ).fetchall()
             mark = mark_observed = mark_candle = None
             equity = None
             if increase_quantity > 0 and reason is None:
@@ -590,9 +593,6 @@ class PaperLedger:
                             """SELECT position_base,average_entry_price,realized_pnl_quote,
                                       fees_quote,funding_quote
                                FROM paper_strategy_ledgers WHERE account_id=1"""
-                        ).fetchall()
-                        adjustment_rows = connection.execute(
-                            "SELECT adjustment_type,amount_quote FROM paper_account_adjustments WHERE account_id=1"
                         ).fetchall()
                         adjustment_realized = sum(
                             (Decimal(amount) for kind, amount in adjustment_rows
@@ -814,11 +814,11 @@ class PaperLedger:
                     adjustment_realized_after = sum(
                         (Decimal(amount) for kind, amount in adjustment_rows
                          if kind == "LEGACY_REALIZED_PNL"), ZERO
-                    ) if increase_quantity > 0 and equity is not None else ZERO
+                    )
                     adjustment_fees_after = sum(
                         (Decimal(amount) for kind, amount in adjustment_rows
                          if kind == "LEGACY_FEES"), ZERO
-                    ) if increase_quantity > 0 and equity is not None else ZERO
+                    )
                     capital_after = Decimal(account[0]) if account else ZERO
                     equity_after = (
                         capital_after+adjustment_realized_after+realized_after+
