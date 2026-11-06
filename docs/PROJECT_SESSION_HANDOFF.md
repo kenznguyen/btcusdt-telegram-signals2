@@ -2032,3 +2032,14 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - CI evidence: NOT RUN. No workflow run or artifact exists for this documentation-only change.
 - T0 provider bootstrap remains BLOCKED under PostgreSQL 16 non-superuser CREATEROLE semantics; keep migration guard unchanged. VPS/provider remains NOT DECIDED.
 - Next safe step: read-only PC capability inventory (OS, Python, available resources, disk/filesystem and time sync) and review the exact proposed offline test scope. Before any DB creation or Feeder process startup, obtain explicit approval for that isolated test scope.
+
+
+## 2026-11-06 — PC inventory deferred
+
+- User confirmed the intended temporary PC operating system is **Windows**.
+- User explicitly requested to postpone the PC capability inventory. Do not ask for or run the PowerShell inventory until the user resumes this task.
+- PC Temporary Runtime remains **PLAN ONLY / NOT AUTHORIZED TO START**. No PC inventory evidence has been collected; Windows version/build, CPU, RAM, disk/filesystem, Python installation and time synchronization are all **NOT VERIFIED**.
+- No package installation, Windows configuration change, database creation/opening, Feeder startup, exchange connection or market-data synchronization is authorized by this update.
+- Keep the existing PC plan and all safety boundaries unchanged: PC is a proposed isolated validation host only, not yet a canonical writer; no concurrent PC/VPS writers; no provider/VPS provisioning; no weakening of lease/fencing or PostgreSQL role guards.
+- No tests were run and no workflow was triggered for this update.
+- Next step is **PAUSED**. Resume with read-only Windows PC inventory only when the user asks to continue.
