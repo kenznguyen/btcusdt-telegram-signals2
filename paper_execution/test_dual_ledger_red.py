@@ -1,0 +1,79 @@
+import tempfile
+import unittest
+from pathlib import Path
+
+from paper_execution.ledger import PaperLedger
+
+
+class DualLedgerRedTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.path = Path(self.temp.name) / "shared-account.sqlite3"
+        self.core = PaperLedger(self.path, max_position_base="1", fee_rate="0.001")
+        self.ai = PaperLedger(self.path, max_position_base="1", fee_rate="0.001")
+        self.now = 1_800_000_000_000
+
+    def intent(self, intent_id, target, limit, snapshot_id):
+        return {
+            "intentId": intent_id,
+            "symbol": "BTCUSDT",
+            "exchange": "binance",
+            "marketType": "USDT_PERPETUAL",
+            "strategyVersion": "dual-ledger-red",
+            "modelVersion": "red-test",
+            "datasetVersion": "sha256:dual-ledger-fixture",
+            "targetPositionBase": target,
+            "limitPrice": limit,
+            "decisionAtMs": self.now - 100,
+            "validUntilMs": self.now + 30_000,
+            "inputSnapshotId": snapshot_id,
+            "mode": "PAPER",
+        }
+
+    def book(self, observed_at, bid="100", ask="100.1"):
+        return {
+            "source": "hummingbot",
+            "connector": "binance_perpetual",
+            "symbol": "BTCUSDT",
+            "observedAtMs": observed_at,
+            "bids": [{"price": bid, "quantity": "1"}],
+            "asks": [{"price": ask, "quantity": "1"}],
+        }
+
+    def test_core_and_ai_hold_independent_positions_in_one_account_database(self):
+        core_order = self.core.submit(
+            self.intent("core-long", "0.1", "100.1", "core-book"),
+            self.book(self.now),
+            self.now,
+            strategy_id="STRATEGY_CORE",
+        )
+        ai_order = self.ai.submit(
+            self.intent("ai-short", "-0.2", "100", "ai-book"),
+            self.book(self.now + 1),
+            self.now + 1,
+            strategy_id="AI_FREQAI",
+        )
+
+        self.assertEqual(core_order["status"], "FILLED")
+        self.assertEqual(ai_order["status"], "FILLED")
+
+        self.assertEqual(
+            self.core.snapshot(strategy_id="STRATEGY_CORE")["positionBase"], "0.1"
+        )
+        self.assertEqual(
+            self.ai.snapshot(strategy_id="AI_FREQAI")["positionBase"], "-0.2"
+        )
+
+        reopened_core = PaperLedger(self.path, max_position_base="1")
+        reopened_ai = PaperLedger(self.path, max_position_base="1")
+        self.assertEqual(
+            reopened_core.snapshot(strategy_id="STRATEGY_CORE")["positionBase"], "0.1"
+        )
+        self.assertEqual(
+            reopened_ai.snapshot(strategy_id="AI_FREQAI")["positionBase"], "-0.2"
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
