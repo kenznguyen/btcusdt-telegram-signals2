@@ -159,7 +159,7 @@ def _verify_snapshot(snapshot):
     return True
 
 
-def verify_snapshot_chain(snapshots):
+def _verify_snapshot_list(snapshots):
     if not isinstance(snapshots, list) or not snapshots:
         raise ValueError("snapshot chain is empty")
     previous = None
@@ -176,6 +176,48 @@ def verify_snapshot_chain(snapshots):
         previous = snapshot["snapshot_sha256"]
         previous_time = captured
     return True
+
+
+def build_snapshot_chain(snapshots=None):
+    values = [] if snapshots is None else list(snapshots)
+    if values:
+        _verify_snapshot_list(values)
+    body = {"schema": "p1.8.trust-snapshot-chain.v1", "snapshots": values}
+    body["chain_sha256"] = hashlib.sha256(_canonical_bytes(body)).hexdigest()
+    return body
+
+
+def verify_snapshot_chain(chain):
+    if isinstance(chain, list):
+        return _verify_snapshot_list(chain)
+    if not isinstance(chain, dict) or chain.get("schema") != "p1.8.trust-snapshot-chain.v1":
+        raise ValueError("invalid snapshot chain schema")
+    expected = chain.get("chain_sha256")
+    body = {key: value for key, value in chain.items() if key != "chain_sha256"}
+    if not isinstance(expected, str) or hashlib.sha256(_canonical_bytes(body)).hexdigest() != expected:
+        raise ValueError("snapshot chain digest mismatch")
+    snapshots = chain.get("snapshots")
+    if not isinstance(snapshots, list):
+        raise ValueError("snapshot chain entries are invalid")
+    if snapshots:
+        return _verify_snapshot_list(snapshots)
+    return True
+
+
+def append_trust_snapshot(chain, snapshot):
+    current = build_snapshot_chain() if chain is None else chain
+    verify_snapshot_chain(current)
+    _verify_snapshot(snapshot)
+    existing = current["snapshots"]
+    expected_sequence = len(existing) + 1
+    previous = existing[-1]["snapshot_sha256"] if existing else None
+    if snapshot.get("sequence") != expected_sequence:
+        raise ValueError("snapshot sequence gap or reorder")
+    if snapshot.get("previous_snapshot_sha256") != previous:
+        raise ValueError("snapshot predecessor mismatch")
+    if existing and _parse_utc(snapshot["captured_at"]) <= _parse_utc(existing[-1]["captured_at"]):
+        raise ValueError("snapshot timestamps must increase")
+    return build_snapshot_chain(existing + [snapshot])
 
 
 def compare_trusted_roots(previous_bytes, current_bytes):
