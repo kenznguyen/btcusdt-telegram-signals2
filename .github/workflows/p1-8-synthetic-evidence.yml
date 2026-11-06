@@ -9,8 +9,6 @@ on:
       - "synthetic_evidence/**"
       - ".github/workflows/p1-8-synthetic-evidence.yml"
       - "docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_GENERATOR_IMPLEMENTATION_2026-11-07.md"
-      - "docs/architecture/P1.8.13_SYNTHETIC_PROVENANCE_TAMPER_SUBSTITUTION_RESISTANCE_2026-11-07.md"
-      - "docs/PROJECT_SESSION_HANDOFF.md"
   workflow_dispatch:
 
 permissions:
