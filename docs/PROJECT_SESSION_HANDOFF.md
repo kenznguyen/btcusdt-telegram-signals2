@@ -1450,14 +1450,16 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
   2. Expired lease takeover advances generation; old runtime observes LEASE_LOST, stops scheduler admission, and HealthEvaluator must report not-ready.
   3. Shutdown drain timeout retains the current lease; successful drain then releases it.
   4. Restart after release acquires a strictly higher fencing generation.
-- Added the lifecycle test module to the disposable TimescaleDB job in `.github/workflows/t0-single-writer-gateway-red.yml`.
+- Added the lifecycle test module to the disposable TimescaleDB job in `.github/workflows/t0-single-writer-gateway-red.yml`; enabled push trigger on the active integration branch so this suite can run on direct branch updates.
 - Commits on `feature/t0-centralized-data-feeder-p1-20261101`:
   - `b203ed1db37eee0451a8c2dfaf4d3d1ba3d91a08` — initial lifecycle acceptance tests.
   - `8a6c848ca80c8cc53729e9b8b99d4800ce882ba5` — workflow invocation.
   - `84f7aba002d2f6ff6e8335585f59a42ee0e0e25e` — readiness closure and clean shutdown assertion after lease loss.
-- Current branch head after these commits: `84f7aba002d2f6ff6e8335585f59a42ee0e0e25e`.
+- Current branch head after lifecycle tests, handoff and workflow trigger update: `e181f2a779419c6930f043be47e43d89eb0b685f`.
 - Test execution: **NOT VERIFIED**. No workflow run or disposable TimescaleDB execution has been obtained for this increment. Do not treat these tests as PASS or valid RED evidence.
 - Source implementation unchanged. The new test checks whether `FeederRuntime.stop()` can complete cleanly after lease loss without affecting the replacement generation; current implementation may raise when exact-generation release returns false. This is a suspected behavior gap, not yet confirmed by execution.
 - Static compile, lifecycle suite, full market_data suite, TimescaleDB job, exact-SHA CI and artifact evidence: **PENDING / NOT VERIFIED**.
 - No production migration, credentials, VPS changes, Binance access/sync, or Feeder activation. `ai_execution_enabled=false` remains unchanged.
 - Next: execute the new test on exact branch head in disposable TimescaleDB. If lease-loss shutdown fails, add a regression-backed fix that treats an already-lost generation as non-owned after drain, without releasing or mutating the replacement lease. Then run full regression and update evidence with exact SHA/run/artifact.
+
+- CI visibility note: the GitHub connector's commit-run lookup for `e181f2a779419c6930f043be47e43d89eb0b685f` returned no PR-triggered runs; this lookup does not expose direct push runs. Direct push workflow result remains **NOT VERIFIED** until a run ID/log is obtained.
