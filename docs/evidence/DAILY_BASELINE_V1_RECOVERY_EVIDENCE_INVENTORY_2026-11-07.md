@@ -126,3 +126,24 @@ The workflow establishes:
 This workflow-level inspection independently confirms that artifacts named `dual-ledger-red-evidence-<SHA>` are test/provenance logs by design, not an account event archive or account checkpoint. Payload download is unnecessary for this classification. It does not establish whether other workflows, private artifacts, or external storage contain a separate evidence root.
 
 **Result:** `DUAL_LEDGER_RED_ARTIFACTS_ARE_TEST_LOGS`. They are not eligible for Replay A or Reconstruction B. No artifact payload was downloaded; no database was opened.
+
+
+## 2026-11-07 — Remaining workflow artifact allowlist review
+
+Inspected every workflow file under `.github/workflows/` at branch HEAD `88a0235df85ba15eeb194e4f013d7ecab444543d`. Relevant artifact upload allowlists classify as follows:
+
+| Workflow | Uploaded artifact content | Account event/checkpoint evidence? |
+|---|---|---|
+| `dual-ledger-red.yml` | Preflight, compile, focused test, full regression logs | No |
+| `p5-3-11-g2-integration-green.yml` | Source SHA, isolation, compile, gateway/feeder/T0/consumer test logs, verdict | No |
+| `paper-writer-isolation-red.yml` | Static contract test log | No |
+| `t0-manual-validation.yml` | Source SHA, isolation/runtime/config reports, component/provider/SQLite/Timescale test logs | No |
+| `t0-postgres16-grantor-repro.yml` | PostgreSQL grantor reproduction log | No |
+| `t0-single-writer-gateway-red.yml` | T0 preflight, compile, contract/behavior/health/restart/market-data tests; disposable Timescale integration logs; paper consumer test log | No |
+| `android-release-pair.yml` | Signed APKs, source identity manifest, release-pair manifest, Android test results/reports | No |
+
+The T0 PostgreSQL/Timescale workflows use disposable test databases and upload test logs, not account trading history. The Android release artifact contains application binaries and test reports, not a historical account archive/checkpoint. No workflow upload allowlist identifies raw Core/AI/Legacy events, fills, positions, funding/fee records, or an independently retained account snapshot.
+
+**Repository CI artifact search conclusion:** no currently tracked workflow is configured to publish a qualifying Replay A event archive or Reconstruction B account checkpoint. This is based on workflow source allowlists, not on inspection of every historical artifact payload. It does not rule out private Project files, local PC/Android exports, or external archival storage.
+
+Result: `NO_QUALIFYING_ACCOUNT_EVIDENCE_ARTIFACT_IN_TRACKED_WORKFLOWS`. Keep the independent reconstruction gate BLOCKED; do not use CI logs, APKs, or disposable T0 test database evidence as account history.
