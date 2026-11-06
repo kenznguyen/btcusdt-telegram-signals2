@@ -63,7 +63,7 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
         legacy_state, legacy_owner, _ = self.make_legacy_database()
 
         PaperLedger(
-            self.path, max_position_base="1", strategy_id="STRATEGY_CORE"
+            self.path, max_position_base="1", strategy_id="STRATEGY_CORE", source_sha="b" * 40
         )
 
         with sqlite3.connect(self.path) as connection:
@@ -112,7 +112,7 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
 
         PaperLedger(self.path, max_position_base="1", strategy_id="STRATEGY_CORE", source_sha="b" * 40)
         PaperLedger(self.path, max_position_base="1", strategy_id="AI_FREQAI", source_sha="b" * 40)
-        PaperLedger(self.path, max_position_base="1", strategy_id="STRATEGY_CORE")
+        PaperLedger(self.path, max_position_base="1", strategy_id="STRATEGY_CORE", source_sha="b" * 40)
 
         with sqlite3.connect(self.path) as connection:
             migration_count = connection.execute(
