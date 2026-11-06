@@ -203,3 +203,23 @@ Policy notes:
 - Candidate observation bands of 1/5/15 minutes are planning comparisons only. The previously documented 5-minute warning/15-minute block remains unapproved and must not be silently adopted.
 - Candidate retention horizons 1/3/7 years and indefinite are comparison inputs only. No legal retention rule or jurisdiction is assumed.
 - No provider, region, budget, account, credential, source implementation, schema migration, runtime capture or provider test is authorized by these test-plan amendments.
+
+
+## 12. P1.6 deterministic synthetic fixture and measurement gates (2026-11-07)
+
+Reference: `docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_FIXTURE_MEASUREMENT_SPEC_2026-11-07.md`.
+
+Before generator implementation or provider-specific tests, require:
+1. Immutable run descriptor with fixture spec version, generator source/build SHA, fixed 256-bit seed, fixed UUID namespace, fixed UTC base time, event mix, payload profile, canonicalization/hash profile and segment policy.
+2. Pure deterministic generation: HMAC-SHA-256 counter stream with domain-separated labels; UUIDv5 event IDs; fixed timestamps; stable stream sequencing and tie-break order; exact decimal strings. No wall clock, platform PRNG, filesystem order or runtime scheduling dependence.
+3. Clean event distribution covering all P1.5 event classes plus separate negative vectors. Negative/invalid records must not contaminate clean baseline size/volume statistics.
+4. Payload cohorts SMALL/MEDIAN/LARGE and separate STRESS cases; scale profiles 1k/10k/100k events plus burst and recovery fixtures. These are proposed test inputs, not measured workload.
+5. JCS canonical event bytes, transport envelope bytes, segment bytes and signed manifest bytes measured separately. Report min/median/p90/p95/p99/max with sample counts and class/cohort identity.
+6. Segment batching matrix B1 100/1 MiB, B2 500/4 MiB, B3 1,000/8 MiB, B4 5,000/32 MiB. These are comparison candidates only, not runtime settings.
+7. Synthetic daily volume calculation from measured event mix and byte sizes; report Root A and Root B separately, include manifests/checkpoints/audit/version copies, retry/read-back and restore/egress inputs.
+8. Cost worksheet must specify exact provider/account boundary, region/jurisdiction, SKU/storage class, WORM scope, versioning, requests, retrieval, egress, KMS, audit, restore, taxes/FX, quote date and confidence. Singapore is not a default region.
+9. Throughput and recovery measurements include canonicalization, hash/sign/verify, segment sealing, Root B replay, clean-room restore, spool growth and backlog catch-up; retain all runs, failures and environment details.
+10. Result bundle must include generator/build SHA, seed, fixture digest, machine-readable raw samples, summary, failure report and SHA-256 manifest.
+11. Provider qualification remains blocked until synthetic fixture determinism, size/volume and restore inputs are measured and independently reproduced, and provider/account/region/budget are separately approved.
+
+No generator or benchmark is implemented/executed by this amendment. No price is calculated without measured workload and sourced exact SKU quote. No provider, region, retention, budget, account, credential, provisioning, source implementation, persistent capture or runtime change is authorized.
