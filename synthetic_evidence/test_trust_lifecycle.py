@@ -33,6 +33,23 @@ class TrustLifecycleTests(unittest.TestCase):
         self.root_a = root_bytes()
         self.root_b = root_bytes(rekor_key="rekor-key-b", fulcio_key="fulcio-root-b")
 
+
+    def test_decodes_historical_compressed_root_only_when_digest_matches(self):
+        import base64
+        import gzip
+        from synthetic_evidence.trust_lifecycle import decode_pinned_root_snapshot
+        encoded = base64.b64encode(gzip.compress(self.root_a, mtime=0))
+        digest = hashlib.sha256(self.root_a).hexdigest()
+        self.assertEqual(decode_pinned_root_snapshot(encoded, digest), self.root_a)
+        with self.assertRaisesRegex(ValueError, "digest mismatch"):
+            decode_pinned_root_snapshot(encoded, "0" * 64)
+
+    def test_rejects_corrupt_historical_compressed_root(self):
+        import base64
+        from synthetic_evidence.trust_lifecycle import decode_pinned_root_snapshot
+        with self.assertRaisesRegex(ValueError, "compressed root snapshot"):
+            decode_pinned_root_snapshot(base64.b64encode(b"not-gzip"), "0" * 64)
+
     def test_builds_a_source_bound_snapshot_with_root_digest(self):
         snapshot = build_trust_snapshot(
             self.root_a,
