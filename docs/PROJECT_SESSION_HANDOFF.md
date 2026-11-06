@@ -3251,3 +3251,20 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Recommendation remains Option A operationally: unresolved v1 stays blocked; no HWM reset or new epoch activation until complete independent account/position/order/fee/funding/mark evidence and explicit policy approval exist.
 - Next: await explicit approval of Option B and identification of authoritative evidence source before source implementation. Persistent DB access and epoch activation remain separately gated.
 - Restrictions unchanged: no persistent account DB opening/migration, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+## 2026-11-07 — Epoch migration auto-trigger and SQLite runtime safety review
+
+- Scope: read-only source review of `PaperLedger.__init__`, migration calls, SQLite transaction setup and CI runtime selection. No source, tests, workflow, or database changed/opened.
+- Critical finding: `PaperLedger.__init__` automatically opens/creates the ledger DB, enables WAL, and invokes existing v2-v9 migrations for Core/AI ledgers. Adding epoch migrations to this sequence would make normal ledger construction mutate the persistent DB without a separate operator approval boundary.
+- Daily baseline writer uses `BEGIN IMMEDIATE`; its connection requires writable mode, foreign keys ON, and a clean transaction. Existing SQLite connections use a 10-second timeout; ledger constructor enables WAL.
+- CI selects Python 3.12 but does not log/assert the linked `sqlite3.sqlite_version`. Exact production SQLite version, journal/synchronous settings, filesystem durability and production DB compatibility remain NOT VERIFIED.
+- Updated design document: `docs/architecture/DAILY_BASELINE_EPOCH_SCHEMA_COMPATIBILITY_REVIEW_2026-11-07.md`, source design commit `b63e95d2bf50ff3f75ef215701c74abe872eca7e`.
+- New mandatory design constraints:
+  - Never add v10-v12 epoch migrations to `PaperLedger.__init__`.
+  - Use a separate explicit migration entry point; normal runtime only detects missing/incomplete epoch schema and fails closed.
+  - Schema installation must not activate an epoch or alter risk state.
+  - CI must pin/qualify and record SQLite runtime version.
+  - Before persistent DB work, require target identity, verified backup, schema/FK preflight and no-write plan; test two-writer contention, timeout, WAL recovery, process-kill/reopen and rollback.
+- Status: **PASS — migration auto-trigger risk identified and documented. NOT VERIFIED — SQLite runtime qualification, concurrency/crash tests, migration implementation, and persistent DB compatibility.**
+- Next: no code until explicit approval of Option B, authoritative anchor evidence source, schema strategy, and separate persistent DB/migration permissions. Operational default remains strict predecessor chain and blocked exposure.
+- Restrictions unchanged: no persistent account DB opening/migration, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
