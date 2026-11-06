@@ -225,5 +225,42 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertLessEqual(gross, Decimal("15"))
 
 
+    def test_strategy_cannot_cancel_another_ledgers_pending_order(self):
+        partial = self.core.submit(
+            self.intent("core-pending", "0.2", "100.1", "core-pending"),
+            self.book(self.now), self.now,
+        )
+        self.assertEqual(partial["status"], "PARTIALLY_FILLED", partial)
+        with self.assertRaisesRegex(ValueError, "PAPER_ORDER_STRATEGY_SCOPE_MISMATCH"):
+            self.ai.cancel(partial["orderId"], self.now+1)
+        with sqlite3.connect(self.path) as connection:
+            state = connection.execute(
+                "SELECT status FROM paper_orders WHERE order_id=?", (partial["orderId"],)
+            ).fetchone()
+            reservation = connection.execute(
+                """SELECT status,remaining_notional_quote FROM paper_risk_reservations
+                   WHERE reservation_id=?""", (partial["reservationId"],)
+            ).fetchone()
+        self.assertEqual(state, ("PARTIALLY_FILLED",))
+        self.assertEqual(reservation[0], "PARTIAL")
+        self.assertGreater(Decimal(reservation[1]), Decimal("0"))
+
+    def test_strategy_can_cancel_its_own_partial_order_and_release_remaining_reservation(self):
+        partial = self.core.submit(
+            self.intent("core-cancel-own", "0.2", "100.1", "core-cancel-own"),
+            self.book(self.now), self.now,
+        )
+        self.assertEqual(partial["status"], "PARTIALLY_FILLED", partial)
+        canceled = self.core.cancel(partial["orderId"], self.now+1)
+        self.assertEqual(canceled["status"], "CANCELED")
+        with sqlite3.connect(self.path) as connection:
+            reservation = connection.execute(
+                """SELECT status,remaining_margin_quote,remaining_notional_quote
+                   FROM paper_risk_reservations WHERE reservation_id=?""",
+                (partial["reservationId"],),
+            ).fetchone()
+        self.assertEqual(reservation, ("CONSUMED", "0", "0"))
+
+
 if __name__ == "__main__":
     unittest.main()
