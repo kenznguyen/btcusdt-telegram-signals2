@@ -15,24 +15,24 @@ from quant_system.t0_freqtrade_adapter import (
 INTERVAL_MS = {"15m": 900_000, "1h": 3_600_000}
 
 
-def make_snapshot():
+def make_snapshot(timeframe="15m"):
     candles = []
     for index in range(2):
-        opened = 1_800_000_000_000 + index * INTERVAL_MS["15m"]
+        opened = 1_800_000_000_000 + index * INTERVAL_MS[timeframe]
         candles.append({
             "exchange": "binance",
             "marketType": "USDT_PERPETUAL",
             "symbol": "BTCUSDT",
-            "timeframe": "15m",
+            "timeframe": timeframe,
             "openTimeMs": opened,
-            "closeTimeMs": opened + INTERVAL_MS["15m"],
+            "closeTimeMs": opened + INTERVAL_MS[timeframe],
             "open": "65000.10",
             "high": "65100.20",
             "low": "64900.05",
             "close": "65050.25",
             "volume": "12.345",
             "isClosed": True,
-            "availableAtMs": opened + INTERVAL_MS["15m"] + 1000,
+            "availableAtMs": opened + INTERVAL_MS[timeframe] + 1000,
             "availabilityKind": "FIRST_OBSERVED",
             "quality": "VALIDATED",
             "source": "ccxt.binanceusdm",
@@ -41,7 +41,7 @@ def make_snapshot():
         "exchange": "binance",
         "marketType": "USDT_PERPETUAL",
         "symbol": "BTCUSDT",
-        "timeframe": "15m",
+        "timeframe": timeframe,
         "startMs": candles[0]["openTimeMs"],
         "endMs": candles[-1]["closeTimeMs"],
         "asOfMs": None,
@@ -109,8 +109,8 @@ class T0FreqtradeAdapterTests(unittest.TestCase):
             export_t0_snapshot(self.snapshot, self.output)
 
     def test_rejects_non_contiguous_candles(self):
-        self.payload["candles"][1]["openTimeMs"] += INTERVAL_MS["15m"]
-        self.payload["candles"][1]["closeTimeMs"] += INTERVAL_MS["15m"]
+        self.payload["candles"][1]["openTimeMs"] += INTERVAL_MS[timeframe]
+        self.payload["candles"][1]["closeTimeMs"] += INTERVAL_MS[timeframe]
         self.payload["datasetVersion"] = "sha256:" + hashlib.sha256(
             json.dumps(
                 {key: self.payload[key] for key in (
@@ -128,6 +128,31 @@ class T0FreqtradeAdapterTests(unittest.TestCase):
         self.payload["candles"][0]["isClosed"] = False
         self.write_snapshot()
         with self.assertRaisesRegex(T0FreqtradeAdapterError, "CANDLE_NOT_CLOSED_AND_VALIDATED"):
+            export_t0_snapshot(self.snapshot, self.output)
+
+
+    def test_exports_h1_without_changing_the_requested_timeframe(self):
+        self.payload = make_snapshot("1h")
+        self.write_snapshot()
+        result = export_t0_snapshot(self.snapshot, self.output)
+        manifest = json.loads(
+            Path(result["manifest_file"]).read_text(encoding="utf-8")
+        )
+        self.assertEqual(manifest["timeframe"], "1h")
+        self.assertEqual(manifest["row_count"], 2)
+        self.assertIn("1h-futures.json", manifest["freqtrade_data_file"])
+
+    def test_rejects_candle_observed_after_as_of_cutoff(self):
+        self.payload["asOfMs"] = self.payload["candles"][0]["availableAtMs"]
+        identity = {key: self.payload[key] for key in (
+            "exchange", "marketType", "symbol", "timeframe",
+            "startMs", "endMs", "asOfMs", "candles"
+        )}
+        self.payload["datasetVersion"] = "sha256:" + hashlib.sha256(
+            json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        self.write_snapshot()
+        with self.assertRaisesRegex(T0FreqtradeAdapterError, "CANDLE_AFTER_AS_OF_CUTOFF"):
             export_t0_snapshot(self.snapshot, self.output)
 
     def test_refuses_to_overwrite_an_existing_dataset_export(self):
