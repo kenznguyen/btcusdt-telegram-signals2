@@ -8,7 +8,7 @@ from paper_execution.daily_baseline_v1_recovery import (
 
 
 def complete_manifest():
-    boundary = 1_800_000_000_000
+    boundary = (1_800_000_000_000 // 86_400_000 + 1) * 86_400_000
     cutover = boundary - 86_400_000
     digest = "sha256:" + "a" * 64
     source_digest = "sha256:" + "b" * 64
