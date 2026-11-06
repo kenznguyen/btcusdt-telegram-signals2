@@ -271,3 +271,23 @@ References reviewed: RFC 8785 (JCS), RFC 8032 (EdDSA) and RFC 3339 (timestamps).
 Acceptance Test Plan amendment committed: `61204f2531bffa7a210945fc7951a7479d42811f`.
 
 **Status:** PASS — P1.5 documentation contract and acceptance-test requirements recorded. NOT IMPLEMENTED / NOT TESTED — canonicalizer, hash/signature, key custody, journal/outbox, Root B observer, RPO/RTO, retention and recovery behavior. NOT SELECTED — provider, region, budget and retention. NOT AUTHORIZED — account, credential, provisioning, provider tests or persistent capture. No source/schema/workflow/database/runtime changes; no CI run (documentation-only). Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged; T0 paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — P1.6 Deterministic Synthetic Evidence Fixture & Measurement Specification
+
+Created `docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_FIXTURE_MEASUREMENT_SPEC_2026-11-07.md`, commit `83e787730cf7a35b99aad4c92e16e4d91e0089dd`.
+
+Specification covers:
+- Reproducibility identity: fixture spec version, future generator source/build SHA, fixed 256-bit seed, UUID namespace, fixed UTC base time, event-mix/payload/canonicalization/hash/segment profiles and environment.
+- Deterministic generation: HMAC-SHA-256 counter stream with domain-separated labels, UUIDv5 event identities, fixed timestamps, deterministic stream sequence/inter-stream ordering and exact decimal strings. No wall clock, runtime scheduling, filesystem ordering or platform PRNG dependence.
+- All P1.5 event classes with explicit duplicate/tamper/gap/late-event/partial-fill/fee-funding-UNKNOWN/stale-mark/observer-crash negative vectors kept separate from clean workload statistics.
+- SMALL/MEDIAN/LARGE payload cohorts, separate STRESS cohort, 1k/10k/100k scale profiles plus burst and recovery cases.
+- Separate measurements for canonical event bytes, transport envelope, segments, manifests, compression, JCS/hash/signature throughput and Root B replay/clean-room restore.
+- Candidate segment matrix: 100 events/1 MiB, 500/4 MiB, 1,000/8 MiB and 5,000/32 MiB. These are test inputs, not runtime limits.
+- Parameterized daily volume/retention formulas and a provider/region-neutral cost worksheet requiring exact account boundary, SKU, region, retention, requests, retrieval, egress, KMS, audit, restore, tax/FX and quote provenance.
+- Explicit statement that Singapore is not a default region; compare Viet Nam proximity only after durability, admin separation, residency, recovery and cost criteria.
+- Required result bundle with exact generator/build SHA, seed, fixture digest, raw measurement samples, failure evidence and SHA-256 manifest.
+
+Acceptance Test Plan amended with 11 P1.6 gates; commit `913760fabd14f7f99d4f632bf6ff0b5bff663c80`.
+
+**Status:** PASS — fixture/measurement specification and acceptance gates documented. NOT IMPLEMENTED — generator/harness. NOT RUN — synthetic generation, size/throughput/restore/spool benchmark and provider tests. NOT MEASURED — event size, daily volume, object counts, storage cost or restore duration. NOT SELECTED — provider, region, retention, budget, credentials and account boundary. NOT AUTHORIZED — generator implementation, cloud account, purchase, credentials, provisioning, provider tests or persistent capture. No source/schema/workflow/database/runtime changes; no CI run (documentation-only). Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged; T0 paused; PAPER-only; `ai_execution_enabled=false`.
