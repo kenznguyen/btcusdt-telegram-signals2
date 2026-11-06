@@ -161,7 +161,7 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
         self.assertFalse(first["idempotent"])
         self.assertFalse(second["idempotent"])
         self.assertEqual(second["baseline_equity_quote"], "100")
-        self.assertTrue(self.persist_at(self.boundary, self.recorded)["idempotent"])
+        self.assertTrue(self.persist_at(self.boundary, next_recorded)["idempotent"])
         with self._connection() as db:
             self.assertEqual(db.execute(
                 "SELECT COUNT(*) FROM paper_daily_equity_baselines"
