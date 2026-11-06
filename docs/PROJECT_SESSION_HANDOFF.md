@@ -3795,3 +3795,14 @@ These tests exercise a separate synthetic reference model; they do not establish
 - Compile and 36/36 test result: **NOT VERIFIED** pending exact-source workflow evidence.
 
 **P1.8.3 status: IMPLEMENTATION IN PROGRESS / CI NOT VERIFIED.** Do not mark PASS until the workflow checks out the exact source SHA, compilation and all tests pass, and artifact provenance is reconciled. Preserve this branch; no PR/branch split and no merge without explicit approval.
+
+
+### CI failure and correction — 2026-11-07
+
+Workflow run `42291124242` (job `128144496660`) checked out exact SHA `311e6810ab5c7388daefb34373e58b1271dcb592`. Preflight and compile passed. Of 36 tests, 35 passed and one failed: the recovery test expected order O2 to remain active after it had been fully filled. Replay correctly returned `active_order_id=None` for a terminal filled order.
+
+Artifact `13540216092` (`p1-8-synthetic-evidence-311e6810ab5c7388daefb34373e58b1271dcb592`) was uploaded despite failure; size 2,529 bytes; SHA-256 `07ad0fa8301f16522cc671d7304f7986b0e0c65bdf9974660f5b8c4161a21674`. Reproducibility step was skipped, so this is not a successful evidence bundle. Logs confirm database/exchange credential variables empty and `AI_EXECUTION_ENABLED=false`.
+
+Test expectation corrected in commit `101b4be4d868d64aca5c7d49c7758a52b888a83a`: terminal active ID must be null, with O2 separately asserted FILLED and quantity 7. No harness/runtime behavior changed. Awaiting push-triggered rerun.
+
+**P1.8.3 remains BLOCKED pending exact-SHA rerun.** Do not mark PASS until the corrected source passes compile, all 36 tests, deterministic fixture/replay checks and artifact checksum reconciliation.
