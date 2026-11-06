@@ -3546,3 +3546,49 @@ Documentation-only continuation on `feature/t0-centralized-data-feeder-p1-202611
 
 Review P1.6 assumptions. If explicitly approved, the next bounded implementation could be a standalone deterministic synthetic fixture generator and local-only test harness, with no account DB, exchange, provider, persistent capture or runtime integration. Such approval must be separate and limited to the generator/test harness; it does not authorize provider qualification or T0/T1 runtime changes.
 
+
+
+## 2026-11-07 — P1.7 Synthetic Fixture Readiness Review & Specification Hardening
+
+### Scope and artifacts
+
+Documentation-only continuation on `feature/t0-centralized-data-feeder-p1-20261101`.
+
+- Readiness review: `docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_FIXTURE_READINESS_REVIEW_2026-11-07.md`
+  - Commit: `f364b178ce163898b4fd7cde6619d5a5b0283c1f`
+- P1.6 specification hardened (§13): `docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_FIXTURE_MEASUREMENT_SPEC_2026-11-07.md`
+  - Commit: `6b5d643ea4b22f066877cdbf221dd3f01ca726d5`
+- Acceptance Test Plan P1.7 gates: `docs/architecture/FORWARD_EVIDENCE_STORAGE_ACCEPTANCE_TEST_PLAN_2026-11-07.md`
+  - Commit: `296518594fd192b0468c7a600657d3ca04d69f06`
+- Evidence Inventory P1.7 entry: `docs/evidence/DAILY_BASELINE_V1_RECOVERY_EVIDENCE_INVENTORY_2026-11-07.md`
+  - Commit: `a3238f4ca1a9452aecddad94a07d13e8ae96bc49`
+- This handoff update is the final P1.7 documentation commit; exact SHA is recorded in GitHub history after read-back.
+
+### Review findings resolved in documentation
+
+- Exact HMAC-SHA-256 PRF byte framing, 32-byte seed, big-endian length/counter fields and multi-block output.
+- Restricted synthetic stream ID grammar and exact UUIDv5 name bytes.
+- Deterministic scenario/state-machine templates preserve causal/economic validity; event-mix percentages are targets, not permission to generate impossible transitions.
+- Per-stream monotonic commit timestamps and sequence authority; isolated late-event fault vectors.
+- One stream per segment, contiguous sequences and exact byte-cap definition.
+- Immutable pre-upload manifest separated from post-upload storage receipt.
+- Manifest canonicalization/hash/signature domain separated from event protocol.
+- Test keys limited to published RFC vectors or ephemeral process memory; no private seed in artifacts.
+- Arithmetic mean and nearest-rank quantile definitions with all raw samples retained.
+- Local Root B replay explicitly labeled `LOCAL_REPLAY_SIMULATION`; cannot prove provider/admin/process independence.
+
+### Verification and status
+
+- P1.7 readiness review and P1.6 §13 hardening: **PASS — documentation recorded**.
+- Acceptance Plan and Evidence Inventory: **PASS — updated**.
+- Generator: NOT IMPLEMENTED / NOT AUTHORIZED.
+- Crypto vectors, fixture generation, throughput, storage size, replay, restore and provider tests: NOT RUN.
+- Provider, region, retention, budget and key custody: NOT SELECTED.
+- Source/schema/workflow/database/runtime: UNCHANGED. CI: NOT RUN (documentation-only; no run ID/artifact).
+- No account DB, external artifact, exchange, cloud provider or persistent capture accessed.
+- Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged. No Epoch activation, HWM/Daily Loss reset or exposure increase from unverified history.
+- T0 remains PAUSED; PAPER-only; `ai_execution_enabled=false`.
+
+### Next step and approval boundary
+
+P1.8 should be a bounded approval decision for a standalone synthetic-only generator and local test harness. The current continuation request did not explicitly approve source implementation, so no generator was created. If approved later, scope must exclude T0/T1 production code, account DB, exchange connectivity, provider accounts, credentials, provisioning, persistent capture and risk-policy changes. Provider qualification requires a separate approval.
