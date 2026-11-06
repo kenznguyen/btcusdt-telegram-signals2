@@ -1478,7 +1478,13 @@ original_connect = funding.sqlite3.connect
 
 class CrashConnection:
     def __init__(self, connection):
-        self.connection = connection
+        object.__setattr__(self, "connection", connection)
+
+    def __setattr__(self, name, value):
+        if name == "connection":
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self.connection, name, value)
 
     def __getattr__(self, name):
         return getattr(self.connection, name)
@@ -1623,7 +1629,13 @@ original_connect = funding.sqlite3.connect
 
 class ExitAfterCommitConnection:
     def __init__(self, connection):
-        self.connection = connection
+        object.__setattr__(self, "connection", connection)
+
+    def __setattr__(self, name, value):
+        if name == "connection":
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self.connection, name, value)
 
     def __getattr__(self, name):
         return getattr(self.connection, name)
