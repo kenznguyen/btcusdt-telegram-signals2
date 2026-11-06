@@ -3346,3 +3346,14 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Result: **PASS — tracked CI artifact producer inventory completed. BLOCKED — no qualifying independent account evidence root found in tracked workflows.** This does not rule out private Project files, PC/Android exports, or external archive storage; historical payloads were not inspected.
 - Next: stop searching tracked CI workflows for account history. The only useful next evidence step requires identifying a specific independent archive/checkpoint location outside the repository (Project file, PC/Android export, or external archive) and its owner/source identity. Do not open persistent account DB, import data, or download unspecified artifacts.
 - Restrictions unchanged: no source/test implementation, schema migration, persistent account DB opening, backfill, external account import, exchange connection, production backtest, deployment, merge, Epoch activation, HWM reset, or live order. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — User confirms no independent account archive/checkpoint
+
+- User explicitly confirmed that no independent event archive or account checkpoint is currently available.
+- Therefore historical Dual Reconstruction is **UNAVAILABLE / BLOCKED**. This is no longer an open repository-search task. Do not export the same mutable account DB and call it an independent root; do not use CI fixtures/logs as account history.
+- Preserve Option A (strict predecessor chain). No new Epoch activation, HWM/daily-baseline reset, or exposure increase based on an unverified anchor.
+- Future evidence capture can establish independently retained evidence only prospectively; it cannot retroactively prove missing history.
+- Inventory updated: `docs/evidence/DAILY_BASELINE_V1_RECOVERY_EVIDENCE_INVENTORY_2026-11-07.md`, commit `bbf44704521b3f1bb913039b729fc30040d6de00`.
+- Next safe work: documentation-only design of a forward evidence capture/retention protocol, if requested. No source/schema/database writer or persistent storage changes are authorized.
+- Restrictions unchanged: no source/test implementation, schema migration, persistent account DB opening, backfill, external account import, exchange connection, production backtest, deployment, merge, Epoch activation, HWM reset, or live order. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
