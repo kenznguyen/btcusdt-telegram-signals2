@@ -11,7 +11,7 @@ The replacement is a dedicated, fresh TimescaleDB service job. A temporary boots
 - Repository: `kenznguyen/btcusdt-telegram-signals2`
 - Branch: `feature/t0-centralized-data-feeder-p1-20261101`
 - Test: `market_data/test_postgres_provider_bootstrap.py`
-- Current source commit: `b85b6cc5f99511b11aa2eacbabeb20a87595d78e`\n- Test blob: `4874c64101cd86929b3317d722ac462dfb7cafbf`
+- Current source commit: `7d194d29ae011330b22f74d65401e68654b995f3`\n- Test blob: `6e2f59b4b8725f15156e98e8f7360c9639be7986`
 - Workflow: `.github/workflows/t0-single-writer-gateway-red.yml`
 - Workflow blob: `47e8312469db0772eba52053005324314fe0baf6`
 - Removed the invalid shared-cluster probe from `market_data/test_postgres_role_privileges.py`; current blob: `f26f8ec7a782fd1ca0d339a1d8eb5ef613cda13f`
@@ -19,7 +19,7 @@ The replacement is a dedicated, fresh TimescaleDB service job. A temporary boots
   - New isolated test: `edc3d653c0929768dead89301622dc0e14ab75b6`
   - Removed shared-cluster test: `34efd769266472826b36bc13d9ab4a4b10eae4c2`
   - Dedicated CI job: `b2394dc97e80d7f87b5ff2e1f2138a310d02b256`
-  - Additional ownership assertions: `3eb21368eaa4b0d46d69a1ba1a97ae5f80e226d3`, `7e6ec2dab44c954bc48ded7eda14b93a1c1c7b13`\n- Safe partial-setup teardown: `b85b6cc5f99511b11aa2eacbabeb20a87595d78e`
+  - Additional ownership assertions: `3eb21368eaa4b0d46d69a1ba1a97ae5f80e226d3`, `7e6ec2dab44c954bc48ded7eda14b93a1c1c7b13`\n- Safe partial-setup teardown: `b85b6cc5f99511b11aa2eacbabeb20a87595d78e`\n- Teardown now drops only roles recorded as created by this test, preventing cleanup from touching pre-existing roles when the pristine-cluster assertion fails: `7d194d29ae011330b22f74d65401e68654b995f3`
 
 ## Acceptance checks
 
