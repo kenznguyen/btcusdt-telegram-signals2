@@ -68,6 +68,7 @@ def _validate_snapshot(snapshot: dict) -> tuple[list[list[float]], dict]:
         snapshot["exchange"] == "binance"
         and snapshot["marketType"] == "USDT_PERPETUAL"
         and snapshot["symbol"] == "BTCUSDT"
+        and isinstance(snapshot["timeframe"], str)
         and snapshot["timeframe"] in INTERVAL_MS,
         "UNSUPPORTED_SOURCE_IDENTITY",
     )
@@ -92,7 +93,9 @@ def _validate_snapshot(snapshot: dict) -> tuple[list[list[float]], dict]:
     _require(
         isinstance(coverage, dict)
         and coverage.get("complete") is True
+        and type(coverage.get("expected")) is int
         and coverage.get("expected") == expected
+        and type(coverage.get("returned")) is int
         and coverage.get("returned") == expected
         and coverage.get("gaps") == [],
         "INCOMPLETE_T0_WINDOW",
@@ -176,7 +179,9 @@ def export_t0_snapshot(snapshot_path, output_root) -> dict:
     output_sha = hashlib.sha256(data_bytes).hexdigest()
     source_sha = hashlib.sha256(raw).hexdigest()
     dataset_id = metadata["source_dataset_version"].split(":", 1)[1][:16]
-    dataset_dir = Path(output_root) / (
+    output_root = Path(output_root)
+    _require(not output_root.is_symlink(), "OUTPUT_ROOT_SYMLINK")
+    dataset_dir = output_root / (
         f"binance-BTCUSDT-{metadata['timeframe']}-{dataset_id}"
     )
     _require(not dataset_dir.exists() and not dataset_dir.is_symlink(),
@@ -215,7 +220,10 @@ def export_t0_snapshot(snapshot_path, output_root) -> dict:
         json.dumps(manifest, sort_keys=True, indent=2) + "\n"
     ).encode("utf-8")
 
-    dataset_dir.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        dataset_dir.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise T0FreqtradeAdapterError("EXPORT_ROOT_UNAVAILABLE") from exc
     created = False
     try:
         dataset_dir.mkdir(exist_ok=False)
