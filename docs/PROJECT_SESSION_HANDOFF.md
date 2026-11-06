@@ -1720,3 +1720,40 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No production database, staging resource, VPS, credential, TLS certificate, network rule, backup job, Binance connection, market-data sync, or Feeder activation was created.
 - No merge. T0 remains separate from Paper DB and SWG-F. `ai_execution_enabled=false`; paper-only boundary unchanged.
 - Next: once provider/region/plan and cost ceiling are chosen, convert Gates A–G into a provider-specific staging execution plan. Until then, do not provision resources or run real-market ingestion.
+
+## 2026-11-06 — T0 staging provider research (no selection)
+
+### Work completed
+
+- Researched two provider/topology candidates against the approved provider-neutral T0 staging gates:
+  1. Hetzner Cloud Singapore with self-managed PostgreSQL/TimescaleDB and a separate off-host backup failure domain.
+  2. DigitalOcean Managed PostgreSQL in Singapore (SGP1) with a separate Feeder VPS.
+- Added `docs/T0_STAGING_PROVIDER_RESEARCH.md` with source links, known facts, costs published by providers, operational trade-offs, unknowns, provider-specific acceptance gates, and decisions still required.
+- Research date: 2026-11-06. Public price/availability pages are snapshots, not checkout quotes.
+- Evidence gathered:
+  - Hetzner Singapore Cloud location and current product availability are documented; June 2026 pricing lists CCX13 at USD 63.49/month excluding IPv4, with 2 cores / 8 GB / 80 GB on the Singapore product page.
+  - DigitalOcean lists Managed PostgreSQL availability in Singapore SGP1.
+  - DigitalOcean Standard Edition supported-extension documentation lists TimescaleDB for PG16 and PG17; exact extension version and role/function-owner compatibility must be proven on an actual staging cluster.
+  - DigitalOcean documents daily full backups and WAL/PITR over the previous seven days; this does not prove measured RPO/RTO.
+  - DigitalOcean published entry prices: single-node $15/month (1 GiB); HA starts at $30/month per node with a matching standby, baseline $60/month before extras.
+- No vendor feature statement is accepted as proof of T0's actual TLS, least privilege, restore, failover, fencing, RPO, or RTO requirements.
+
+### Git and validation
+
+- Provider research doc commit: `f0bc9867faf8bd5253017e5a662b7e2000b77817`.
+- Handoff update follows.
+- Documentation-only change; no runtime/test code changed and no new CI run is claimed.
+- Public references are embedded in the provider research document.
+- No merge and no PR creation.
+
+### Verdict and constraints
+
+- Provider research: **PASS — preliminary candidates documented**.
+- Provider selection: **NOT DECIDED**.
+- Region selection: **NOT DECIDED** (Singapore is a researched candidate only).
+- Monthly/temporary budget ceiling: **NOT PROVIDED**.
+- Staging provisioning: **BLOCKED / NOT AUTHORIZED**.
+- Production provisioning and canonical ingestion: **NOT AUTHORIZED**.
+- No account, trial, VPS, managed database, DNS, network rule, credential, TLS certificate, or backup job was created.
+- No Binance connection or real market-data sync. No Feeder activation. `ai_execution_enabled=false`; paper-only.
+- Next: obtain the user's provider/topology choice and explicit temporary + monthly budget ceiling. Then perform a provider-specific cost/contract review and update the staging execution plan before any provisioning.
