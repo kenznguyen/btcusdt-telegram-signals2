@@ -1273,8 +1273,16 @@ class PaperLedger:
                    FROM paper_account_risk_state WHERE account_id=1"""
             ).fetchone()
             cutover_row = connection.execute(
-                "SELECT 1 FROM paper_account_equity_cutovers WHERE account_id=1 LIMIT 1"
+                """SELECT funding_coverage_start_at_ms,funding_coverage_end_at_ms
+                   FROM paper_account_equity_cutovers WHERE account_id=1 LIMIT 1"""
             ).fetchone()
+            funding_gap = False
+            if cutover_row:
+                funding_gap = connection.execute(
+                    """SELECT 1 FROM paper_funding_coverage
+                       WHERE status='UNKNOWN' AND start_at_ms < ? AND end_at_ms > ? LIMIT 1""",
+                    (cutover_row[1], cutover_row[0]),
+                ).fetchone() is not None
             account = connection.execute(
                 "SELECT initial_capital FROM paper_accounts WHERE account_id=1"
             ).fetchone()
@@ -1302,7 +1310,8 @@ class PaperLedger:
                 )):
                     reason = "RISK_LIMITS_UNCONFIGURED"
                 if reason is None and (
-                    risk_row is None or account is None or not risk_row[8] or not cutover_row
+                    risk_row is None or account is None or not risk_row[8]
+                    or not cutover_row or funding_gap
                 ):
                     reason = "RISK_INPUTS_UNAVAILABLE"
                 elif reason is None:
