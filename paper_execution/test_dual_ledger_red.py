@@ -2367,22 +2367,6 @@ os._exit(0)
 
         ledger.record_account_history_event(
             self.path,
-            event_id="replay-late-core-fill",
-            strategy_id="STRATEGY_CORE",
-            event_type="FILL",
-            event_at_ms=self.now + 900,
-            recorded_at_ms=watermark + 1,
-            quantity_delta_base="0.01",
-            fill_price="102",
-            fee_quote="0.001",
-            fee_currency="USDT",
-            source="LATE_PAPER_EXECUTION_FILL",
-            source_snapshot_id="execution:core:late-event",
-            payload_hash="sha256:" + "9" * 64,
-        )
-        with sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True) as connection:
-            with self.assertRaisesRegex(ValueError, "ACCOUNT_HISTORY_LATE_EVENT"):
-                ledger.load_daily_equity_replay_inputs(connection, utc_day_ms=boundary, now_ms=boundary + 60_000)
 
             event_id="replay-late-core-fill",
             strategy_id="STRATEGY_CORE",
@@ -2422,9 +2406,6 @@ os._exit(0)
             with self.assertRaisesRegex(ValueError, "ACCOUNT_HISTORY_COVERAGE_INCOMPLETE"):
                 ledger.load_daily_equity_replay_inputs(connection, utc_day_ms=boundary, now_ms=boundary + 60_000)
 
-
-if __name__ == "__main__":
-    unittest.main()
 
 if __name__ == "__main__":
     unittest.main()
