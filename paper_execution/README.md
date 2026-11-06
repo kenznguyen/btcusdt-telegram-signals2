@@ -123,3 +123,42 @@ Kiểm thử bao gồm persistence/restart, fill/partial fill, lệnh limit khô
 retry cùng ID, payload xung đột, pause/cancel, input sai/hết hạn, chống dùng lại
 snapshot, phí/PnL khi giảm và đảo chiều vị thế, submit đồng thời. Các kiểm thử chỉ
 dùng SQLite thật và dữ liệu fixture; chưa chứng nhận tính đúng với fill của sàn.
+
+
+## Funding provenance v4 and verified account cutover v5
+
+Migration v4 adds source and recorded timestamps to funding events and creates
+append-only funding-coverage evidence. The API record_funding_event(...) is
+idempotent by event ID, rejects payload conflicts, stores source/snapshot identity
+and a lowercase SHA-256 digest, and prevents update/delete. Positive funding amounts
+are costs; negative amounts are credits. If a historical funding amount is known
+but its strategy owner is not, record it under LEGACY_UNATTRIBUTED, never Core or AI.
+An existing funding row without source provenance is marked LEGACY_UNVERIFIED and
+keeps account risk readiness blocked.
+
+The API record_funding_coverage(...) records VERIFIED, UNKNOWN or DISABLED intervals.
+UNKNOWN coverage is not interpreted as zero and demotes account risk readiness.
+DISABLED is accepted only with PAPER_TEST_CONFIGURATION and a persisted
+configuration version, snapshot identity and payload digest. Coverage metadata and
+event hashes are provenance references; the ledger does not fetch or independently
+re-hash external statement bytes.
+
+Migration v5 adds one immutable paper_account_equity_cutovers record per account.
+The API record_account_equity_cutover(...) requires contiguous funding coverage for
+the declared reconciliation interval, fresh mark and closed-candle timestamps,
+dataset identity, source/snapshot/hash/config provenance, and explicit expected
+statement totals for capital, realized PnL, fees, funding and account equity. It
+reconciles Core + AI + Legacy ledgers and legacy account adjustments, verifies
+funding event totals against each ledger, and computes mark-to-market equity. Only
+a successful cutover establishes HWM and the UTC daily baseline and sets risk
+readiness.
+
+Account snapshots and new exposure admissions require v4/v5 and a persisted
+cutover. Any UNKNOWN funding interval overlapping the cutover window keeps
+readiness false and blocks exposure increases, even if a stale readiness flag was
+manually set. Valid reductions remain available under the existing shared-risk
+policy. A cutover is one-time and immutable; a different second cutover requires a
+separately reviewed reconciliation/reset procedure.
+
+Both migrations are additive and execute only when a scoped Core/AI writer opens
+an isolated test database. No persistent account database migration is implied.
