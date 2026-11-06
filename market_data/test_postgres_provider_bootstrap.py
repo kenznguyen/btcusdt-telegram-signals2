@@ -137,6 +137,38 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
                 ).fetchone()
                 self.assertEqual(schema_owner, ("t0_db_owner",))
 
+                table_owners = service_admin.execute(
+                    "SELECT tablename, tableowner FROM pg_tables "
+                    "WHERE schemaname='market_data' "
+                    "AND tablename IN ('candles','feeder_leases','schema_migrations') "
+                    "ORDER BY tablename"
+                ).fetchall()
+                self.assertEqual(
+                    table_owners,
+                    [
+                        ("candles", "t0_db_owner"),
+                        ("feeder_leases", "t0_db_owner"),
+                        ("schema_migrations", "t0_db_owner"),
+                    ],
+                )
+
+                role_flags = service_admin.execute(
+                    "SELECT rolname, rolsuper, rolcanlogin, rolcreatedb, rolcreaterole, "
+                    "rolreplication, rolbypassrls FROM pg_roles "
+                    "WHERE rolname IN "
+                    "('t0_db_owner','t0_migrator','t0_candle_writer_owner','t0_lease_manager_owner') "
+                    "ORDER BY rolname"
+                ).fetchall()
+                self.assertEqual(
+                    role_flags,
+                    [
+                        ("t0_candle_writer_owner", False, False, False, False, False, False),
+                        ("t0_db_owner", False, False, False, False, False, False),
+                        ("t0_lease_manager_owner", False, False, False, False, False, False),
+                        ("t0_migrator", False, False, False, False, False, False),
+                    ],
+                )
+
                 function_owners = service_admin.execute(
                     "SELECT p.proname, owner.rolname FROM pg_proc p "
                     "JOIN pg_roles owner ON owner.oid=p.proowner "
