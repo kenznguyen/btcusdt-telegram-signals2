@@ -2245,3 +2245,15 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **POSTGRESQL 16.6 GRANTOR ROOT CAUSE REPRODUCED — PASS; T0 PROVIDER BOOTSTRAP REMAINS BLOCKED; CORRECTIVE CHANGE NOT AUTHORIZED/NOT MADE.** The broader T0 baseline remains CONDITIONAL PASS as previously recorded.
 - Branch HEAD before this handoff update: `95abdf542d27967d0c7b0c9b16d534591722d5f9`.
 - Next: prepare a provider-capability/security decision note comparing the three candidate paths, then request explicit approval before changing `market_data/test_postgres_provider_bootstrap.py`, migrations, or provider provisioning policy.
+
+
+## 2026-11-06 — T0 PostgreSQL 16 provider capability decision note
+
+- Added design-only decision note: `docs/architecture/T0_PG16_ROLE_PROVISIONING_PROVIDER_CAPABILITY_DECISION.md`.
+- Decision note blob SHA: `f6f8fffcc05214e2fc285cf5920a413da526a9b9`; commit: `9de18543ee52ed38172bbaddf7980a68de75a772`.
+- Compares three provider paths: (A) provider-authorized control-plane role provisioning; (B) provider-documented privileged cleanup of automatic PostgreSQL 16 memberships; (C) mark the provider/bootstrap path unsupported and fail closed.
+- Recommendation: default to Option C until an actual provider/tier is selected and qualified; evaluate A first; evaluate B only with explicit provider documentation and disposable-instance evidence. The CI reproduction does not certify Timescale Cloud or another managed provider.
+- Includes provider qualification gates and explicitly rejects weakening `_assert_writer_roles_safe`, relying on `CREATEROLE` creator REVOKE, using superuser for app migrations/runtime, or assuming `createrole_self_grant` removes the automatic membership.
+- No source, test, migration, runtime, provider, database or workflow changes in this increment; architecture decision document only. No tests run because this is documentation-only.
+- Status: **PROVIDER CAPABILITY DECISION NOTE RECORDED — DESIGN ONLY; NO PROVIDER QUALIFIED; NO IMPLEMENTATION AUTHORIZED.**
+- Next: user chooses whether to keep Option C as the current provider policy or nominate a specific provider/tier for a documented capability review. Separate explicit approval remains required before source/test or provider provisioning changes.
