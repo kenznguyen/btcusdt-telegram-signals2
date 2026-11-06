@@ -4013,3 +4013,28 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - **P1.8.13: PASS — synthetic provenance descriptor tamper/substitution resistance and artifact digest/ZIP integrity checks.**
 - Limits: SHA-256 is integrity hashing, not a digital signature or trusted timestamp. Authenticity still depends on a trusted external expected artifact digest. Deterministic A/B fixture payloads are equal by design; distinct A/B descriptors are used in negative unit tests to prove label swapping is rejected. No Root B/provider independence or production certification is claimed.
 - Restrictions unchanged: T0 PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`; no DB/exchange, VPS/provider, persistent capture, runtime integration, paper/live execution, or merge.
+
+
+## 2026-11-07 — P1.8.14 External Trust Anchor & Provenance Authenticity
+
+- User approval: `APPROVE P1.8.14 — EXTERNAL TRUST ANCHOR & PROVENANCE AUTHENTICITY`.
+- Scope: synthetic-only evidence archive signing and verification. No Strategy Core, AI Strategy, Shared Risk Engine behavior, T0/T1 runtime, DB/exchange access, VPS/provider, persistent capture, paper/live execution, branch creation, PR, or merge.
+- Final exact passing source SHA: `19a6629212f2f98aaa08c4ebe6ceb68801881732`.
+- GitHub Actions run [42304505004](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42304505004):
+  - Build job `128190309262`: SUCCESS.
+  - Independent verification job `128190419216`: SUCCESS.
+  - Python 3.11 compile PASS; **94/94 tests PASS**; synthetic-only preflight PASS.
+  - Dual 1,000-event fixture generation and byte equality PASS; source/run/workflow/fixture provenance binding PASS.
+  - Database/exchange credential environment variables empty; `AI_EXECUTION_ENABLED=false`.
+- GitHub `actions/attest@v4` created SLSA Build Provenance for `synthetic-evidence-bundle.zip`; signing certificate issued by Public Good Sigstore instance; signature uploaded to Rekor transparency log.
+- Attestation ID `64691916`: https://github.com/kenznguyen/btcusdt-telegram-signals2/attestations/64691916
+- Rekor log index `3725692138`: https://search.sigstore.dev?logIndex=3725692138
+- Attested subject SHA-256: `b787505e8cb1949ce8294312a5a33050cc33a082412424e32cd87787344c16e6`.
+- CLI verification constrains repository, exact signer workflow, source commit, source ref, GitHub OIDC issuer, and denies self-hosted runners. A separate GitHub-hosted job downloaded the artifact, verified its archive digest, then independently verified the Sigstore bundle and subject digest.
+- Primary artifact ID `13546255148`, size 1,208,828 bytes, GitHub wrapper ZIP digest `sha256:14e157cd8a393a743e01e12a915ab69636cf7cb4765f8a331953daeef1987b6f`.
+- Independent verification artifact ID `13545287609`, size 9,065 bytes, GitHub wrapper ZIP digest `sha256:418fff2ffa874003527db5d83d8717bf8946b489c4e3a62b023f4c5e5e6feedd`.
+- Intermediate run `42304353210` failed only in independent verification because source package was not checked out; run `42304365377` failed because workspace was missing from PYTHONPATH after changing directory. Both defects were corrected. Only run `42304505004` on exact source SHA above is the final two-job acceptance PASS.
+- Detailed report: `docs/architecture/P1.8.14_EXTERNAL_TRUST_ANCHOR_PROVENANCE_AUTHENTICITY_2026-11-07.md`; report commit `5d9bd56a72afd3398c2886f9a1ceb7b38bf0fea5`.
+- **P1.8.14: PASS — Sigstore external trust anchor, Rekor transparency evidence, exact subject digest, signer/source identity constraints, and independent-runner verification.**
+- Limits: the attestation binds the archive to the authenticated GitHub workflow identity; it does not certify correctness/safety of source or data. Workflow maintainers can still alter the workflow and what it attests. Offline verification requires a separately obtained and trusted Sigstore trusted-root bundle. No Root B/provider independence or production certification is claimed.
+- Restrictions unchanged: T0 PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`; no DB/exchange, VPS/provider, persistent capture, runtime integration, paper/live execution, or merge.
