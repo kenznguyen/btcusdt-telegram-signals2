@@ -219,29 +219,38 @@ def _require_verified_postgres_tls(dsn):
     from urllib.parse import parse_qs, urlsplit
 
     sslmode = None
+    remote_host = None
     try:
         if "://" in dsn:
-            query = parse_qs(urlsplit(dsn).query, keep_blank_values=True)
-            values = query.get("sslmode", [])
-            if len(values) == 1:
-                sslmode = values[0]
+            parsed = urlsplit(dsn)
+            query = parse_qs(parsed.query, keep_blank_values=True)
+            ssl_values = query.get("sslmode", [])
+            if len(ssl_values) == 1:
+                sslmode = ssl_values[0]
+            remote_host = parsed.hostname
         else:
             options = {}
             for item in split_conninfo(dsn):
                 if "=" not in item:
                     continue
                 key, value = item.split("=", 1)
-                if key == "sslmode":
+                if key in ("sslmode", "host"):
                     if key in options:
                         options[key] = None
-                        break
+                        continue
                     options[key] = value
             sslmode = options.get("sslmode")
+            remote_host = options.get("host")
     except (TypeError, ValueError):
         sslmode = None
+        remote_host = None
     if sslmode != "verify-full":
         raise ValueError(
             "MARKET_DATA_POSTGRES_DSN must explicitly set sslmode=verify-full"
+        )
+    if not remote_host or remote_host.startswith("/"):
+        raise ValueError(
+            "MARKET_DATA_POSTGRES_DSN must include a remote hostname for TLS verification"
         )
 
 
