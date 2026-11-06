@@ -176,14 +176,14 @@ jobs:
           set -euo pipefail
           gh --version
           cp "${{ steps.attest.outputs.bundle-path }}" synthetic-evidence-attestation.bundle.json
-          gh attestation verify synthetic-evidence-bundle.zip \\
-            --bundle synthetic-evidence-attestation.bundle.json \\
-            --repo "${GITHUB_REPOSITORY}" \\
-            --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/p1-8-synthetic-evidence.yml" \\
-            --source-digest "${GITHUB_SHA}" \\
-            --source-ref "${GITHUB_REF}" \\
-            --cert-oidc-issuer "https://token.actions.githubusercontent.com" \\
-            --deny-self-hosted-runners \\
+          gh attestation verify synthetic-evidence-bundle.zip \
+            --bundle synthetic-evidence-attestation.bundle.json \
+            --repo "${GITHUB_REPOSITORY}" \
+            --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/p1-8-synthetic-evidence.yml" \
+            --source-digest "${GITHUB_SHA}" \
+            --source-ref "${GITHUB_REF}" \
+            --cert-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --deny-self-hosted-runners \
             --format json > synthetic-evidence-attestation-verification.json
           python - <<'PY'
           import hashlib, json
