@@ -43,10 +43,11 @@ kiện cuối của sàn, hàng đợi khớp lệnh hoặc chuỗi cập nhật
   giới hạn giá và không vượt khối lượng hiển thị.
 - Phần chưa khớp ở trạng thái OPEN hoặc PARTIALLY_FILLED. Không có background fill
   hay giả định rằng lệnh limit chắc chắn sẽ được khớp trong tương lai.
-- Mỗi snapshot đầy đủ được dùng cho tối đa một lần có fill. Một intent khác dùng
-  lại chính snapshot đã tiêu thụ bị từ chối; chưa mô phỏng reservation theo từng mức.
-  Snapshot mới chỉ là quan sát mới, không chứng minh thanh khoản của thị trường thật
-  có thể tái sử dụng — đây là giới hạn của mô hình paper.
+- Đường MANUAL/legacy cũ giữ cơ chế snapshot đơn-lần. Với Dual Ledger, Core/AI
+  và đường Legacy reduction theo dõi lượng đã khớp ở từng mức giá trong cùng snapshot.
+  Mỗi transaction trừ cả Core/AI level reservations và Legacy consumptions trước khi
+  tính lượng còn hiển thị; tổng fill không vượt depth của snapshot. Đây chỉ là mô hình
+  paper trên snapshot, không chứng minh thanh khoản hoặc khả năng khớp lệnh thật.
 - Phí bằng quote notional thực sự mô phỏng đã khớp nhân fee rate. Tính toán dùng
   Decimal với precision 80, không dùng float cho tiền trong ledger.
 - Giá vốn/PnL được cập nhật theo từng fill ở từng mức giá, để fill đóng vị thế cũ
@@ -71,6 +72,29 @@ giữa vị thế/giá vốn và cờ pause trước khi đọc hoặc submit. S
 `cancel(order_id, now_ms)` chỉ hủy phần chưa khớp; không đảo ngược fill hoặc phí.
 Pause/cancel không đồng nghĩa đóng vị thế. Ledger không cung cấp lệnh flatten tự
 động hay nút bật live. Snapshot hiển thị tối đa 100 lệnh gần nhất.
+
+
+## LEGACY_UNATTRIBUTED close-only reconciliation
+
+Schema migration v2 adds `paper_legacy_book_consumptions` separately from the
+Core/AI risk-reservation tables. Records reference the paper order, book snapshot,
+side/price/consumed quantity, reconciliation ID and a `sha256:` digest. Database
+constraints enforce the digest format and prevent updates/deletes of recorded
+consumption evidence.
+
+`reduce_legacy_unattributed(db_path, intent, book, now_ms, ...)` is a PAPER-only
+module API for reducing or flattening an existing `LEGACY_UNATTRIBUTED` position.
+It rejects increases and reversals, does not create Core/AI risk reservations, and
+does not reassign ownership. A valid reduction remains permitted while the shared
+Kill Switch is active. It uses `BEGIN IMMEDIATE` and records each filled book level
+so subsequent Core/AI orders see only the remaining visible depth. The caller must
+supply a reconciliation ID and a lowercase `sha256:` digest of the external
+reconciliation evidence; format validation does not independently verify the
+underlying evidence bytes.
+
+This API is not an owner-reassignment mechanism, production migration command,
+backtest, exchange adapter or live execution path. `ai_execution_enabled=false`
+remains mandatory.
 
 ## Kiểm chứng
 
