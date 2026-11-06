@@ -48,6 +48,24 @@ class ReservationLifecycleTests(unittest.TestCase):
         self.assertEqual(gate.reserved_exposure, "100")
         self.assertEqual(gate.open_reservation_count, 10)
 
+    def test_concurrent_admission_never_exceeds_open_position_cap(self):
+        gate = SharedRiskAdmission(
+            policy(max_total_exposure="1000", max_open_positions=7), portfolio()
+        )
+        barrier = threading.Barrier(32)
+
+        def submit(index):
+            barrier.wait()
+            return gate.admit(intent(f"position-cap-{index}"))
+
+        with ThreadPoolExecutor(max_workers=32) as pool:
+            results = list(pool.map(submit, range(32)))
+
+        self.assertEqual(sum(item["status"] == "ACCEPTED" for item in results), 7)
+        self.assertEqual(gate.open_reservation_count, 7)
+        self.assertEqual(gate.reservation_count, 7)
+        self.assertEqual(gate.reserved_exposure, "70")
+
     def test_concurrent_duplicate_delivery_creates_exactly_one_reservation(self):
         gate = SharedRiskAdmission(policy(), portfolio())
         barrier = threading.Barrier(32)
