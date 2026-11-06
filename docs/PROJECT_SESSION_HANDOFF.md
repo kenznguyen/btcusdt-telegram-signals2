@@ -3233,3 +3233,21 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Recommendation: preserve Option A now. Consider Option B only after external evidence is independently available and a separate approval is granted. If no complete anchor can be obtained, keep risk increases blocked.
 - Next: no source implementation until the user explicitly approves the new-epoch policy and supplies/identifies an authoritative anchor source. First technical follow-up, if approved, is a schema-only design review with migration compatibility proof; persistent DB access remains separately gated.
 - Restrictions unchanged: no persistent account DB opening/migration, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+## 2026-11-07 — Additive schema compatibility review for proposed Baseline Epoch
+
+- Scope: architecture/schema review only, based on current source definitions for migrations v6-v9 and the existing daily baseline writer. No Python source, migration, tests, workflow, or database was changed/opened.
+- Confirmed compatibility constraints:
+  - v6 creates the daily baseline table with unique `(account_id, utc_day_ms)` and a foreign key to the original account cutover.
+  - v7 adds immutable per-ledger cutover snapshots.
+  - v8 adds explicit fee-currency provenance.
+  - v9 adds immutable daily baseline audit rows, unique per account/day/event.
+  - Existing writer validates the immediately preceding day and references the original cutover.
+- Design review: `docs/architecture/DAILY_BASELINE_EPOCH_SCHEMA_COMPATIBILITY_REVIEW_2026-11-07.md`, commit `4231b0c0ef109ca745f4d4f578a92b102f858138`.
+- Recommendation: if Option B is separately approved, use additive parallel epoch tables rather than rebuilding/re-keying existing v6/v9 baseline and audit tables. Proposed separate immutable epoch, Core/AI/Legacy anchor snapshots, epoch daily baseline/audit, and append-only activation events. Existing v1/v2 rows and old writer remain untouched and fail-closed.
+- Risk integration remains a separate hard dependency: an epoch baseline table alone must not authorize exposure. A future resolver must select epoch-scoped risk reference state; legacy risk state remains read-only/unready. No mutable pointer or silent `epoch_id` backfill proposed.
+- Proposed migration staging: v10 additive schema only; v11 read-only epoch risk resolver/invariants; v12 activation and epoch writer only after separate approval. Exact version sequence must be rechecked before implementation.
+- Status: **PASS — additive compatibility design documented. NOT VERIFIED — implementation, SQLite-version/index concurrency behavior, migration tests, external evidence authenticity, and actual persistent DB compatibility.**
+- Recommendation remains Option A operationally: unresolved v1 stays blocked; no HWM reset or new epoch activation until complete independent account/position/order/fee/funding/mark evidence and explicit policy approval exist.
+- Next: await explicit approval of Option B and identification of authoritative evidence source before source implementation. Persistent DB access and epoch activation remain separately gated.
+- Restrictions unchanged: no persistent account DB opening/migration, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
