@@ -2,6 +2,8 @@ from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 import json
 import sqlite3
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -1455,6 +1457,283 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertTrue(snapshot["available"], snapshot)
         self.assertTrue(snapshot["riskReady"], snapshot)
         self.assertEqual(after, before, "Read-only snapshot must not alter the SQLite database file")
+
+
+
+    def test_account_equity_cutover_process_crash_before_commit_rolls_back_all_state(self):
+        crash_points = (
+            ("after_cutover_insert", 71),
+            ("after_risk_state_update", 71),
+            ("after_cutover_audit_insert", 71),
+        )
+        child_script = r"""
+import json
+import os
+import sys
+import paper_execution.funding as funding
+
+db_path, crash_point, payload = sys.argv[1:4]
+kwargs = json.loads(payload)
+original_connect = funding.sqlite3.connect
+
+class CrashConnection:
+    def __init__(self, connection):
+        self.connection = connection
+
+    def __getattr__(self, name):
+        return getattr(self.connection, name)
+
+    def __enter__(self):
+        self.connection.__enter__()
+        return self
+
+    def execute(self, sql, parameters=()):
+        cursor = self.connection.execute(sql, parameters)
+        normalized = " ".join(sql.upper().split())
+        if crash_point == "after_cutover_insert" and normalized.startswith(
+            "INSERT INTO PAPER_ACCOUNT_EQUITY_CUTOVERS"
+        ):
+            os._exit(71)
+        if crash_point == "after_risk_state_update" and normalized.startswith(
+            "UPDATE PAPER_ACCOUNT_RISK_STATE SET HIGH_WATER_MARK_QUOTE"
+        ):
+            os._exit(71)
+        if crash_point == "after_cutover_audit_insert" and (
+            normalized.startswith("INSERT INTO PAPER_AUDIT")
+            and "ACCOUNT_EQUITY_CUTOVER" in normalized
+        ):
+            os._exit(71)
+        return cursor
+
+    def __exit__(self, exc_type, exc, traceback):
+        return self.connection.__exit__(exc_type, exc, traceback)
+
+    def close(self):
+        return self.connection.close()
+
+def crash_connect(*args, **kwargs):
+    return CrashConnection(original_connect(*args, **kwargs))
+
+funding.sqlite3.connect = crash_connect
+funding.record_account_equity_cutover(db_path, **kwargs)
+os._exit(0)
+"""
+        for crash_point, expected_exit in crash_points:
+            with self.subTest(crash_point=crash_point):
+                path = self.fresh_account_db(
+                    f"cutover-crash-{crash_point}.sqlite3",
+                    establish_cutover=False,
+                )
+                ledger.record_funding_coverage(
+                    path,
+                    coverage_id=f"crash-{crash_point}-coverage",
+                    start_at_ms=self.now - 86_400_000,
+                    end_at_ms=self.now,
+                    status="VERIFIED",
+                    source="RECONCILED_ACCOUNT_STATEMENT",
+                    source_snapshot_id=f"crash:{crash_point}:funding",
+                    payload_hash="sha256:" + "c" * 64,
+                    config_version="funding-policy-v1",
+                    recorded_at_ms=self.now,
+                )
+                kwargs = {
+                    "cutover_id": f"crash-{crash_point}-cutover",
+                    "expected_initial_capital_quote": "100",
+                    "expected_realized_pnl_quote": "0",
+                    "expected_fees_quote": "0",
+                    "expected_funding_quote": "0",
+                    "expected_account_equity_quote": "100",
+                    "mark_price": "100",
+                    "mark_candle_close_ms": self.now - 60_000,
+                    "mark_observed_at_ms": self.now,
+                    "dataset_version": "sha256:dual-ledger-seed",
+                    "funding_coverage_start_at_ms": self.now - 86_400_000,
+                    "source": "RECONCILED_ACCOUNT_STATEMENT",
+                    "source_snapshot_id": f"crash:{crash_point}:account",
+                    "payload_hash": "sha256:" + "d" * 64,
+                    "config_version": "account-cutover-v1",
+                    "recorded_at_ms": self.now,
+                }
+                with sqlite3.connect(path) as connection:
+                    before_risk = connection.execute(
+                        """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
+                                  daily_baseline_equity_quote,last_equity_quote,
+                                  risk_ready,version
+                           FROM paper_account_risk_state WHERE account_id=1"""
+                    ).fetchone()
+                completed = subprocess.run(
+                    [
+                        sys.executable, "-c", child_script, str(path),
+                        crash_point, json.dumps(kwargs),
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=15,
+                )
+                self.assertEqual(completed.returncode, expected_exit, completed.stderr)
+                with sqlite3.connect(path) as connection:
+                    self.assertEqual(
+                        connection.execute(
+                            "SELECT COUNT(*) FROM paper_account_equity_cutovers"
+                        ).fetchone()[0],
+                        0,
+                    )
+                    self.assertEqual(
+                        connection.execute(
+                            """SELECT COUNT(*) FROM paper_audit
+                               WHERE kind='ACCOUNT_EQUITY_CUTOVER'"""
+                        ).fetchone()[0],
+                        0,
+                    )
+                    after_crash_risk = connection.execute(
+                        """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
+                                  daily_baseline_equity_quote,last_equity_quote,
+                                  risk_ready,version
+                           FROM paper_account_risk_state WHERE account_id=1"""
+                    ).fetchone()
+                self.assertEqual(after_crash_risk, before_risk)
+
+                recovered = ledger.record_account_equity_cutover(path, **kwargs)
+                self.assertTrue(recovered["riskReady"])
+                with sqlite3.connect(path) as connection:
+                    self.assertEqual(
+                        connection.execute(
+                            "SELECT COUNT(*) FROM paper_account_equity_cutovers"
+                        ).fetchone()[0],
+                        1,
+                    )
+                    self.assertEqual(
+                        connection.execute(
+                            """SELECT COUNT(*) FROM paper_audit
+                               WHERE kind='ACCOUNT_EQUITY_CUTOVER'"""
+                        ).fetchone()[0],
+                        1,
+                    )
+
+    def test_account_equity_cutover_process_crash_after_commit_replays_without_duplicates(self):
+        child_script = r"""
+import json
+import os
+import sys
+import paper_execution.funding as funding
+
+db_path, payload = sys.argv[1:3]
+kwargs = json.loads(payload)
+original_connect = funding.sqlite3.connect
+
+class ExitAfterCommitConnection:
+    def __init__(self, connection):
+        self.connection = connection
+
+    def __getattr__(self, name):
+        return getattr(self.connection, name)
+
+    def __enter__(self):
+        self.connection.__enter__()
+        return self
+
+    def execute(self, sql, parameters=()):
+        return self.connection.execute(sql, parameters)
+
+    def __exit__(self, exc_type, exc, traceback):
+        result = self.connection.__exit__(exc_type, exc, traceback)
+        if exc_type is None:
+            os._exit(72)
+        return result
+
+    def close(self):
+        return self.connection.close()
+
+def crash_connect(*args, **kwargs):
+    return ExitAfterCommitConnection(original_connect(*args, **kwargs))
+
+funding.sqlite3.connect = crash_connect
+funding.record_account_equity_cutover(db_path, **kwargs)
+os._exit(0)
+"""
+        path = self.fresh_account_db(
+            "cutover-process-crash-after-commit.sqlite3",
+            establish_cutover=False,
+        )
+        ledger.record_funding_coverage(
+            path,
+            coverage_id="post-commit-crash-coverage",
+            start_at_ms=self.now - 86_400_000,
+            end_at_ms=self.now,
+            status="VERIFIED",
+            source="RECONCILED_ACCOUNT_STATEMENT",
+            source_snapshot_id="post-commit-crash:funding",
+            payload_hash="sha256:" + "e" * 64,
+            config_version="funding-policy-v1",
+            recorded_at_ms=self.now,
+        )
+        kwargs = {
+            "cutover_id": "post-commit-crash-cutover",
+            "expected_initial_capital_quote": "100",
+            "expected_realized_pnl_quote": "0",
+            "expected_fees_quote": "0",
+            "expected_funding_quote": "0",
+            "expected_account_equity_quote": "100",
+            "mark_price": "100",
+            "mark_candle_close_ms": self.now - 60_000,
+            "mark_observed_at_ms": self.now,
+            "dataset_version": "sha256:dual-ledger-seed",
+            "funding_coverage_start_at_ms": self.now - 86_400_000,
+            "source": "RECONCILED_ACCOUNT_STATEMENT",
+            "source_snapshot_id": "post-commit-crash:account",
+            "payload_hash": "sha256:" + "f" * 64,
+            "config_version": "account-cutover-v1",
+            "recorded_at_ms": self.now,
+        }
+        completed = subprocess.run(
+            [sys.executable, "-c", child_script, str(path), json.dumps(kwargs)],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        self.assertEqual(completed.returncode, 72, completed.stderr)
+
+        with sqlite3.connect(path) as connection:
+            committed = {
+                "cutovers": connection.execute(
+                    "SELECT COUNT(*) FROM paper_account_equity_cutovers"
+                ).fetchone()[0],
+                "audits": connection.execute(
+                    """SELECT COUNT(*) FROM paper_audit
+                       WHERE kind='ACCOUNT_EQUITY_CUTOVER'"""
+                ).fetchone()[0],
+                "risk": connection.execute(
+                    """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
+                              daily_baseline_equity_quote,last_equity_quote,
+                              risk_ready,version
+                       FROM paper_account_risk_state WHERE account_id=1"""
+                ).fetchone(),
+            }
+        self.assertEqual(committed["cutovers"], 1)
+        self.assertEqual(committed["audits"], 1)
+        self.assertEqual(committed["risk"][0], "100")
+        self.assertEqual(committed["risk"][2], "100")
+        self.assertEqual(committed["risk"][4], 1)
+
+        replay = ledger.record_account_equity_cutover(path, **kwargs)
+        self.assertEqual(replay["cutoverId"], kwargs["cutover_id"])
+        with sqlite3.connect(path) as connection:
+            after_replay = {
+                "cutovers": connection.execute(
+                    "SELECT COUNT(*) FROM paper_account_equity_cutovers"
+                ).fetchone()[0],
+                "audits": connection.execute(
+                    """SELECT COUNT(*) FROM paper_audit
+                       WHERE kind='ACCOUNT_EQUITY_CUTOVER'"""
+                ).fetchone()[0],
+                "risk": connection.execute(
+                    """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
+                              daily_baseline_equity_quote,last_equity_quote,
+                              risk_ready,version
+                       FROM paper_account_risk_state WHERE account_id=1"""
+                ).fetchone(),
+            }
+        self.assertEqual(after_replay, committed)
 
 
 if __name__ == "__main__":
