@@ -342,6 +342,16 @@ if __name__ == "__main__":
 class SyntheticFaultInjectionTests(unittest.TestCase):
     """Fault contracts for an isolated synthetic reference model, not T0/T1 runtime."""
 
+
+    def test_fault_catalog_names_match_executable_contracts(self):
+        fixture = generate_fixture(
+            seed_hex=SEED, namespace=NAMESPACE, base_time_utc=BASE_TIME,
+            event_count=3, source_sha=SOURCE_SHA,
+        )
+        names = {item["name"] for item in fixture["negative_vectors"]}
+        self.assertTrue({"UNKNOWN_FEE_FUNDING", "STALE_MARK", "CHECKPOINT_BOUNDARY", "RECOVERY"} <= names)
+
+
     def test_unknown_fee_or_funding_never_becomes_zero_equity_input(self):
         from synthetic_evidence.fault_injection import IncompleteEquityError, calculate_equity
         from decimal import Decimal
