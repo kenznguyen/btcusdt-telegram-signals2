@@ -2028,7 +2028,7 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - The plan separates offline deterministic validation, isolated local lifecycle/fault testing, PC endurance, separately approved public market-data connectivity, and later VPS staging/cutover proof.
 - Explicit non-authorizations retained: no package installation, OS configuration changes, database creation/opening, Feeder startup, exchange connection, market-data sync, provider/VPS provisioning, production credentials, Paper DB mutation or live execution.
 - No tests were run, no workflow was triggered, no source/runtime code changed, and no database or Feeder was started. This increment does not establish PC operational stability.
-- Current branch tip after the plan commit: `2371bf77b72c16bcb3b01e116d7998217ba58609`; working-tree state is not available through the GitHub contents API.
+- Plan document commit: `2371bf77b72c16bcb3b01e116d7998217ba58609`. Final branch HEAD after the handoff update: `c22170df3ca4390d144419f71f7c25087358bd85`; working-tree state is not available through the GitHub contents API.
 - CI evidence: NOT RUN. No workflow run or artifact exists for this documentation-only change.
 - T0 provider bootstrap remains BLOCKED under PostgreSQL 16 non-superuser CREATEROLE semantics; keep migration guard unchanged. VPS/provider remains NOT DECIDED.
 - Next safe step: read-only PC capability inventory (OS, Python, available resources, disk/filesystem and time sync) and review the exact proposed offline test scope. Before any DB creation or Feeder process startup, obtain explicit approval for that isolated test scope.
