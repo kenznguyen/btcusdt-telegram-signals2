@@ -171,3 +171,16 @@ The proposal defines:
 - A staged approval ladder from architecture/storage review through isolated tests and only later separately authorized persistent paper capture.
 
 **Status:** documentation proposal only. No source, schema, workflow, storage, DB, or runtime changes. No provider/cost selected. Does not recreate historical data or change Option A. User approval is still required at each future implementation/storage/activation gate.
+
+
+## 2026-11-07 — Forward evidence threat model reviewed
+
+Created `docs/architecture/FORWARD_EVIDENCE_THREAT_MODEL_REVIEW_2026-11-07.md`, commit `61c152d138336915a9e6fc68b05c04d19e6dde86`.
+
+The review records 30 threats, including fabricated upstream events, shared administrator/credential compromise, mutable-source observer contamination, hash-vs-authenticity confusion, signing-key loss/compromise, sequence/replay faults, writer/outbox crash split-brain, observer lag, common-mode reducer defects, clock/UTC errors, late events, unknown fee/funding, ownership errors, storage outage/retention deletion, compromised builds, privacy leakage, and false-green monitoring.
+
+Critical trust-boundary conclusion: Root A and Root B may independently retain and compute, but they share the upstream event emitter and potentially host/operator/provider control planes. LEVEL 1 is not independent economic-source verification. SHA-256 proves byte integrity only; authenticated manifests require a separately controlled signing identity, whose key custody remains a trust dependency.
+
+Open decisions are explicitly left unresolved: provider/region, storage-domain separation, retention, Root B lag threshold/outage policy, durability SLA, key custody, clock skew, RPO/RTO, privacy classification, and atomic outbox architecture.
+
+Status: **PASS — threat model documented. NOT VERIFIED — security controls/tests are not implemented or run.** No source, schema, workflow, storage, DB, or runtime changes; no provider selected; no persistent access authorized.
