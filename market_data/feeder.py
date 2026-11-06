@@ -929,6 +929,18 @@ class FeederRuntime:
         return result
 
     def stop(self, timeout=None):
+        if timeout is not None and (
+            isinstance(timeout, bool) or not isinstance(timeout, (int, float))
+            or not math.isfinite(timeout) or timeout < 0
+        ):
+            raise ValueError("timeout must be a nonnegative finite number or None")
+        deadline = None if timeout is None else time.monotonic() + timeout
+
+        def remaining_timeout():
+            if deadline is None:
+                return None
+            return max(0.0, deadline - time.monotonic())
+
         with self._lock:
             if self._state == "STOPPED":
                 return True
@@ -936,12 +948,57 @@ class FeederRuntime:
             if self._state != "LEASE_LOST":
                 self._state = "STOPPING"
         self._heartbeat_stop.set()
+
+        # Close scheduler admission before waiting on any potentially blocked
+        # heartbeat operation. Existing writers are drained below.
+        self.scheduler.stop()
+
         heartbeat = self._heartbeat_thread
         if heartbeat is not None and heartbeat is not threading.current_thread():
-            heartbeat.join(timeout=timeout)
+            heartbeat.join(timeout=remaining_timeout())
             if heartbeat.is_alive():
                 self._emit("shutdown_heartbeat_timeout")
                 raise TimeoutError("Feeder shutdown timed out waiting for lease heartbeat to stop")
+
+        drained = self.scheduler.wait_for_idle(timeout=remaining_timeout())
+        if drained is False:
+            self._emit("shutdown_drain_timeout")
+            raise TimeoutError("Feeder shutdown timed out while waiting for active sync work")
+
+        with self._lock:
+            lease_already_lost = self._state == "LEASE_LOST"
+
+        if (self.lease_generation is not None and not self._released
+                and not lease_already_lost):
+            released = self.lease_store.release(self.owner_id, self.lease_generation)
+            if released is False:
+                with self._lock:
+                    lease_already_lost = self._state == "LEASE_LOST"
+                    if not lease_already_lost:
+                        self._state = "STOPPED"
+                if not lease_already_lost:
+                    if self.health is not None:
+                        mark_stopped = getattr(self.health, "mark_stopped", None)
+                        if callable(mark_stopped):
+                            mark_stopped()
+                    self._emit("lease_release_failed")
+                    raise RuntimeError("Feeder could not release its owner/generation lease")
+            else:
+                self._released = True
+
+        if lease_already_lost:
+            # Ownership has already moved to another fencing generation.
+            # Never attempt to release or mutate that replacement lease.
+            self._emit("lease_release_skipped_after_loss")
+
+        with self._lock:
+            self._state = "STOPPED"
+        if self.health is not None:
+            mark_stopped = getattr(self.health, "mark_stopped", None)
+            if callable(mark_stopped):
+                mark_stopped()
+        self._emit("stopped")
+        return True
 
         self.scheduler.stop()
         drained = self.scheduler.wait_for_idle(timeout=timeout)
