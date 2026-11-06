@@ -3437,3 +3437,16 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - **Status: PASS — documentation review and test-plan amendment. NOT VERIFIED — live provider behavior, restore, audit export, region, cost, and key custody. NOT APPROVED — provider selection, account creation, purchase, credentials, provisioning, storage access, or persistent capture.** No CI run (documentation-only); no source/schema/workflow/database/runtime changes.
 - Next: perform a vendor-neutral requirements and cost-input review, then prepare a bounded synthetic-data qualification proposal comparing GCS and Azure. Do not provision accounts or execute provider tests until separately approved. Do not use canonical account data.
 - Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A strict predecessor chain unchanged. T0 paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — P1.4 Forward Evidence Storage Cost Model (documentation only)
+
+- Created `docs/architecture/FORWARD_EVIDENCE_STORAGE_COST_MODEL_2026-11-07.md`, commit `a252fd23ff90eb0ff838a6205b7f215c94a0cdd0`.
+- Model decomposes Root A and Root B costs into capacity, request/transaction classes, retrieval, egress, replication/redundancy, versioning, audit/logging, key management, restore, taxes and support. It defines measured workload inputs and retention-horizon growth; indefinite retention is explicitly unbounded.
+- Reviewed official pricing for AWS S3/CloudTrail, GCS/Cloud Logging and Azure Blob/Azure Monitor. No complete comparable Singapore quote can be certified without exact region/SKU, retention, workload and billing assumptions. No invented per-GB estimate was inserted.
+- Key pricing caveats: Azure immutable storage has no separate capacity surcharge, but version-level WORM may increase capacity; Azure Archive has 180-day minimum storage and early-deletion fees. GCS Data Access audit logs may incur charges. AWS CloudTrail data events have separate charges. Budget notifications are not guaranteed hard caps; AWS billing data may lag, Azure budgets do not stop consumption, and GCP spend caps are limited to eligible services and are not instantaneous.
+- Acceptance Test Plan amended with measured workload, exact SKU quote, retention growth, full restore cost, budget controls and post-test bill reconciliation. Commit: `bad784a97d3eb276b37f577969c108a3d62ad566`.
+- Evidence Inventory update commit: `4f5c07557168d72008797a8f06c75f0ce376f50b`.
+- **Status: PASS — cost model and acceptance gates documented. NOT VERIFIED — exact Singapore prices, workload, retention and budget fit. USD 5/month is illustrative only, NOT APPROVED and not demonstrated feasible. NOT APPROVED — provider selection, accounts, purchase, credentials, provisioning, provider tests or persistent capture.** No CI run (documentation-only); no source/schema/workflow/database/runtime changes.
+- Next: define the synthetic evidence envelope and minimum retention/recovery requirements from the architecture, then prepare a non-provisioning cost worksheet with measured sample sizes and candidate region/SKU quotes. Any live provider test requires separate approval and a hard test-spend authorization.
+- Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A strict predecessor chain unchanged. T0 paused; PAPER-only; `ai_execution_enabled=false`.
