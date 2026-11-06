@@ -100,6 +100,83 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
         self.assertEqual(risk, (self.boundary, "100", 1, "100", "100", self.recorded, self.boundary, "sha256:dual-ledger-seed"))
 
 
+    def _intent_at(self, intent_id, target, limit, snapshot_id, now_ms):
+        intent = self.fixture.intent(intent_id, target, limit, snapshot_id)
+        intent["decisionAtMs"] = now_ms - 100
+        intent["validUntilMs"] = now_ms + 30_000
+        return intent
+
+    def test_verified_daily_baseline_admits_core_and_ai_through_shared_risk_engine(self):
+        self.persist()
+        core_now = self.recorded
+        core_order = self.fixture.core.submit(
+            self._intent_at("rollover-core-entry", "0.01", "100.1", "core-boundary", core_now),
+            self.fixture.book(core_now, bid="100", ask="100.1"), core_now,
+        )
+        ai_now = self.recorded + 1
+        ai_order = self.fixture.ai.submit(
+            self._intent_at("rollover-ai-entry", "-0.01", "100", "ai-boundary", ai_now),
+            self.fixture.book(ai_now, bid="100", ask="100.2"), ai_now,
+        )
+        self.assertEqual(core_order["status"], "FILLED", core_order)
+        self.assertEqual(ai_order["status"], "FILLED", ai_order)
+        self.assertEqual(self.fixture.core.snapshot()["positionBase"], "0.01")
+        self.assertEqual(self.fixture.ai.snapshot()["positionBase"], "-0.01")
+
+    def test_wrong_day_baseline_blocks_new_exposure_after_rollover(self):
+        self.persist()
+        with self._connection() as db:
+            db.execute(
+                "UPDATE paper_account_risk_state SET daily_baseline_utc_day_ms=? WHERE account_id=1",
+                (self.boundary - account_history.DAY_MS,),
+            )
+            db.commit()
+        order = self.fixture.core.submit(
+            self._intent_at("wrong-day-entry", "0.01", "100.1", "wrong-day-book", self.recorded),
+            self.fixture.book(self.recorded), self.recorded,
+        )
+        self.assertEqual(order["status"], "REJECTED")
+        self.assertEqual(order["reason"], "RISK_INPUTS_STALE_OR_CORRUPT")
+        self.assertEqual(self.fixture.core.snapshot()["positionBase"], "0")
+
+    def test_stale_boundary_mark_blocks_new_exposure_after_rollover(self):
+        self.persist()
+        with self._connection() as db:
+            db.execute(
+                "UPDATE paper_account_risk_state SET mark_observed_at_ms=? WHERE account_id=1",
+                (self.recorded - 31 * 60_000,),
+            )
+            db.commit()
+        order = self.fixture.ai.submit(
+            self._intent_at("stale-mark-entry", "-0.01", "100", "stale-mark-book", self.recorded),
+            self.fixture.book(self.recorded), self.recorded,
+        )
+        self.assertEqual(order["status"], "REJECTED")
+        self.assertEqual(order["reason"], "RISK_INPUTS_STALE_OR_CORRUPT")
+        self.assertEqual(self.fixture.ai.snapshot()["positionBase"], "0")
+
+    def test_existing_position_can_reduce_when_daily_baseline_becomes_unavailable(self):
+        self.persist()
+        entry_now = self.recorded
+        entry = self.fixture.core.submit(
+            self._intent_at("reduce-after-rollover-entry", "0.01", "100.1", "reduce-entry-book", entry_now),
+            self.fixture.book(entry_now), entry_now,
+        )
+        self.assertEqual(entry["status"], "FILLED", entry)
+        with self._connection() as db:
+            db.execute(
+                "UPDATE paper_account_risk_state SET daily_baseline_utc_day_ms=NULL WHERE account_id=1"
+            )
+            db.commit()
+        exit_now = self.recorded + 1
+        exit_order = self.fixture.core.submit(
+            self._intent_at("reduce-after-rollover-exit", "0", "100", "reduce-exit-book", exit_now),
+            self.fixture.book(exit_now, bid="100", ask="100.1"), exit_now,
+            strategy_event="EXIT",
+        )
+        self.assertEqual(exit_order["status"], "FILLED", exit_order)
+        self.assertEqual(self.fixture.core.snapshot()["positionBase"], "0")
+
     def test_baseline_is_consumed_by_shared_risk_snapshot_at_boundary_mark(self):
         self.persist()
         snapshot = read_account_risk_snapshot(self.path, now_ms=self.recorded)
