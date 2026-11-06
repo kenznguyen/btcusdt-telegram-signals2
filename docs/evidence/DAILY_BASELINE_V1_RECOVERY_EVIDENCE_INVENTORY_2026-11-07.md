@@ -291,3 +291,26 @@ Specification covers:
 Acceptance Test Plan amended with 11 P1.6 gates; commit `913760fabd14f7f99d4f632bf6ff0b5bff663c80`.
 
 **Status:** PASS — fixture/measurement specification and acceptance gates documented. NOT IMPLEMENTED — generator/harness. NOT RUN — synthetic generation, size/throughput/restore/spool benchmark and provider tests. NOT MEASURED — event size, daily volume, object counts, storage cost or restore duration. NOT SELECTED — provider, region, retention, budget, credentials and account boundary. NOT AUTHORIZED — generator implementation, cloud account, purchase, credentials, provisioning, provider tests or persistent capture. No source/schema/workflow/database/runtime changes; no CI run (documentation-only). Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged; T0 paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — P1.7 Synthetic Fixture Readiness Review & Specification Hardening
+
+Created `docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_FIXTURE_READINESS_REVIEW_2026-11-07.md`, commit `f364b178ce163898b4fd7cde6619d5a5b0283c1f`.
+
+Review identified and resolved ten specification ambiguities before any generator work:
+- Exact HMAC-SHA-256 PRF message framing, big-endian field/counter encoding and multi-block output.
+- Synthetic stream ID grammar and UUIDv5 name bytes.
+- Scenario/state-machine generation to preserve valid causal/economic event transitions; target percentages cannot force invalid events.
+- Monotonic per-stream commit time, sequence authority and inter-stream ordering.
+- One stream per segment, contiguous sequence and exact byte-cap accounting.
+- Separate immutable pre-upload manifest from post-upload storage receipt.
+- Separate manifest JCS/hash/signature domains from event domains.
+- Test signing keys limited to published RFC vectors or ephemeral process memory; no private key in artifacts.
+- Arithmetic mean and nearest-rank quantile definition; raw sample retention.
+- Local Root B replay is only `LOCAL_REPLAY_SIMULATION`, not evidence of independent process/admin/provider durability.
+
+P1.6 specification hardened in §13: commit `6b5d643ea4b22f066877cdbf221dd3f01ca726d5`.
+
+Acceptance Test Plan amended with P1.7 readiness gates: commit `296518594fd192b0468c7a600657d3ca04d69f06`.
+
+**Status:** PASS — documentation review and deterministic-profile amendments recorded. CONDITIONAL — P1.6 is ready for implementation planning only after review of the exact PRF/manifest profiles. NOT IMPLEMENTED — generator/harness. NOT RUN — crypto vectors, fixture generation, benchmark, replay or restore. NOT AUTHORIZED — generator implementation, provider tests, cloud account, credentials, provisioning, persistent capture or runtime changes. No CI run (documentation-only); no source/schema/workflow/database/runtime changes. Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged; T0 paused; PAPER-only; `ai_execution_enabled=false`.
