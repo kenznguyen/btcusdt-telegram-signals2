@@ -898,6 +898,28 @@ class DualLedgerRedTest(unittest.TestCase):
             config_version="funding-policy-v1",
             recorded_at_ms=self.now,
         )
+        ledger.record_funding_event(
+            self.path,
+            funding_event_id="cutover-core-funding",
+            strategy_id="STRATEGY_CORE",
+            amount_quote="0.3",
+            event_at_ms=self.now - 1_000,
+            source="RECONCILED_ACCOUNT_STATEMENT",
+            source_snapshot_id="account-statement:core-funding",
+            payload_hash="sha256:" + "7" * 64,
+            recorded_at_ms=self.now,
+        )
+        ledger.record_funding_event(
+            self.path,
+            funding_event_id="cutover-ai-funding",
+            strategy_id="AI_FREQAI",
+            amount_quote="-0.1",
+            event_at_ms=self.now - 1_000,
+            source="RECONCILED_ACCOUNT_STATEMENT",
+            source_snapshot_id="account-statement:ai-funding",
+            payload_hash="sha256:" + "8" * 64,
+            recorded_at_ms=self.now,
+        )
         with sqlite3.connect(self.path) as connection:
             connection.execute(
                 """UPDATE paper_strategy_ledgers SET position_base='0.1',
