@@ -581,9 +581,9 @@ class PaperLedger:
                     ("maxDrawdownPct", "maxDailyLossUsdt", "maxExposureUsdt")
                 )):
                     reason = "RISK_LIMITS_UNCONFIGURED"
-                elif risk_row is None or account is None or not risk_row[8]:
+                if reason is None and (risk_row is None or account is None or not risk_row[8]):
                     reason = "RISK_INPUTS_UNAVAILABLE"
-                else:
+                elif reason is None:
                     try:
                         mark = Decimal(risk_row[4])
                         mark_observed = stamp(risk_row[5])
