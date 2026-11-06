@@ -164,6 +164,16 @@ class T0FreqtradeAdapterTests(unittest.TestCase):
         with self.assertRaisesRegex(T0FreqtradeAdapterError, "CANDLE_AFTER_AS_OF_CUTOFF"):
             export_t0_snapshot(self.snapshot, self.output)
 
+
+    def test_rejects_symlinked_output_root(self):
+        real_root = self.root / "real-output"
+        real_root.mkdir()
+        symlink_root = self.root / "linked-output"
+        symlink_root.symlink_to(real_root, target_is_directory=True)
+        with self.assertRaisesRegex(T0FreqtradeAdapterError, "OUTPUT_ROOT_SYMLINK"):
+            export_t0_snapshot(self.snapshot, symlink_root)
+        self.assertEqual(list(real_root.iterdir()), [])
+
     def test_refuses_to_overwrite_an_existing_dataset_export(self):
         first = export_t0_snapshot(self.snapshot, self.output)
         original = Path(first["data_file"]).read_bytes()
