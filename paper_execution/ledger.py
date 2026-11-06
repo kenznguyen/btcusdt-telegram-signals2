@@ -564,10 +564,22 @@ class PaperLedger:
             mark = mark_observed = mark_candle = None
             equity = None
             if increase_quantity > 0 and reason is None:
-                if self.risk_limits is None or not all(
+                legacy_row = connection.execute(
+                    """SELECT position_base FROM paper_strategy_ledgers
+                       WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
+                ).fetchone()
+                try:
+                    legacy_quantity = Decimal(legacy_row[0]) if legacy_row else ZERO
+                    if not legacy_quantity.is_finite():
+                        raise ValueError
+                except (DecimalException, TypeError, ValueError):
+                    reason = "LEGACY_UNATTRIBUTED_STATE_CORRUPT"
+                if reason is None and legacy_quantity != 0:
+                    reason = "LEGACY_UNATTRIBUTED_EXPOSURE"
+                if reason is None and (self.risk_limits is None or not all(
                     key in self.risk_limits for key in
                     ("maxDrawdownPct", "maxDailyLossUsdt", "maxExposureUsdt")
-                ):
+                )):
                     reason = "RISK_LIMITS_UNCONFIGURED"
                 elif risk_row is None or account is None or not risk_row[8]:
                     reason = "RISK_INPUTS_UNAVAILABLE"
