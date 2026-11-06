@@ -2119,3 +2119,26 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Added six corresponding acceptance-test requirements to the proposal. No source code, test files, schema, DB or runtime configuration changed. No GitHub Actions run was triggered.
 - Status: architecture contract **APPROVED FOR DESIGN**; schema/migration plan **DOCUMENTED / REVIEW REQUIRED**; six decision defaults **PROPOSED / AWAITING USER APPROVAL**; implementation **NOT AUTHORIZED**.
 - Next: obtain explicit approval or corrections to the six proposed decisions. If approved, update the schema/migration plan and handoff as documentation only; then request separate authorization before implementation. Preserve PAPER-only and `ai_execution_enabled=false`.
+
+
+## 2026-11-06 — User approved all six Dual Ledger open decisions
+
+- User explicitly approved all six decisions in `docs/architecture/DUAL_LEDGER_OPEN_DECISIONS_PROPOSAL.md`.
+- Approval is limited to normative design requirements, schema/migration plan and acceptance-test specifications. It does **not** authorize source implementation, DB migration/data rewrite, feature activation, backtests, merge, deployment, exchange connectivity or live execution.
+- Updated proposal status to **APPROVED** and recorded the approval boundary.
+- Updated `docs/architecture/DUAL_LEDGER_SCHEMA_MIGRATION_PLAN.md` to resolve the six open questions as normative requirements:
+  1. Unowned historical realized PnL/fees remain account-level legacy adjustments, counted once and excluded from Core/AI strategy statistics; unreconciled amounts fail closed.
+  2. Missing historical funding is never assumed zero; future funding requires amount/time/source/hash/strategy provenance; missing required inputs fail closed.
+  3. Aggregate equity/HWM/UTC daily baseline require reconciled capital, PnL, fees, funding and one fresh mark; otherwise readiness remains false and only valid reductions/closures are allowed.
+  4. Each ENTRY/DCA gets a fixed reservation of 1% of admission-time Account Equity; partial fills and unused reservations are accounted proportionately; existing reservations are not repriced after equity changes.
+  5. Max Gross Exposure includes filled gross positions plus remaining unfilled pending reservations, without netting or double-counting.
+  6. Unknown-owner legacy position remains `LEGACY_UNATTRIBUTED`, blocks all increases, permits dedicated reductions, and can be reassigned only with immutable evidence plus separate user approval.
+- Added six corresponding acceptance-test groups to the approved plan.
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Branch HEAD before documentation updates: `5030251232e046024db2805c8ba2a10168f652cb`.
+- Proposal update commit: `57580e3669f573453d2b1556567b971d68f46346`; new proposal blob: `6139fb888626843259b39e63a4585e740ba307be`.
+- Schema/migration plan update commit: `db04a163dfac8a1412a69c188357bf16f33bea87`; new plan blob: `08e907818806c1628a421d1cd7fb0d6455433ad0`.
+- No source, tests, runtime config, database or schema was changed. No tests or workflow were run because this increment changes documentation only.
+- Existing RED 1 evidence remains unchanged: GitHub Actions run `42178592443`, source SHA `554d122762a9d49a6144a1be54d178902d3db7d9`, expected failure on AI SHORT coexistence; artifact ID `13484247308`.
+- Status: six design decisions **APPROVED**; schema/migration plan **DESIGN APPROVED**; source implementation **NOT AUTHORIZED**; DB migration/feature activation/backtests/merge/deploy/live execution **NOT AUTHORIZED**.
+- Next step: request separate explicit approval for T1.2.2 implementation. If approved, start with TDD RED tests and isolated migration fixtures, then run focused GitHub Actions tests against exact source SHAs. Preserve PAPER-only and `ai_execution_enabled=false`.
