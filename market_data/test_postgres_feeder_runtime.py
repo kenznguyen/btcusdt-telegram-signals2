@@ -191,6 +191,43 @@ class PostgresRuntimeCompositionContractTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "sslmode=verify-full"):
                     build_production_runtime(environment)
 
+
+    def test_production_runtime_rejects_verify_full_without_remote_hostname(self):
+        import sys
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from market_data.feeder_service import build_production_runtime
+
+        fake_ccxt = SimpleNamespace(binanceusdm=lambda options: SimpleNamespace(options=options))
+        for dsn in (
+            "postgresql:///t0?sslmode=verify-full",
+            "dbname=t0 sslmode=verify-full host=/var/run/postgresql",
+        ):
+            environment = {
+                "MARKET_DATA_BACKEND": "postgres",
+                "MARKET_DATA_POSTGRES_DSN": dsn,
+            }
+            with self.subTest(dsn=dsn), patch.dict(sys.modules, {"ccxt": fake_ccxt}):
+                with self.assertRaisesRegex(ValueError, "remote hostname"):
+                    build_production_runtime(environment)
+
+    def test_production_runtime_accepts_keyword_dsn_with_verified_tls_and_hostname(self):
+        import sys
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from market_data.feeder_service import build_production_runtime
+
+        dsn = "dbname=t0 user=test host=db.example sslmode=verify-full"
+        fake_ccxt = SimpleNamespace(binanceusdm=lambda options: SimpleNamespace(options=options))
+        environment = {
+            "MARKET_DATA_BACKEND": "postgres",
+            "MARKET_DATA_POSTGRES_DSN": dsn,
+        }
+        with patch.dict(sys.modules, {"ccxt": fake_ccxt}):
+            runtime = build_production_runtime(environment)
+
+        self.assertEqual(runtime.canonical_write_gateway.location, dsn)
+
     def test_production_runtime_accepts_only_verified_tls_dsn(self):
         import sys
         from types import SimpleNamespace
