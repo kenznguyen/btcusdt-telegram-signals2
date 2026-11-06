@@ -112,6 +112,9 @@ class FixtureTests(unittest.TestCase):
         serialized = json.dumps(fixture["descriptor"], sort_keys=True)
         self.assertNotIn("private_key", serialized)
         self.assertNotIn("seed_hex", serialized)
+        self.assertIn("hash_signature_profile", fixture["descriptor"])
+        self.assertIn("cpu_count", fixture["descriptor"]["environment"])
+        self.assertEqual(fixture["descriptor"]["environment"]["storage_medium"], "NOT_MEASURED")
 
     def test_segments_are_single_stream_contiguous_and_within_byte_cap(self):
         fixture = self.build()
