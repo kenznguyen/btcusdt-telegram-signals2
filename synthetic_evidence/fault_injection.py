@@ -158,7 +158,7 @@ def replay_order_lifecycle(events: Iterable[dict[str, Any]]) -> dict[str, Any]:
         active = orders[active_order_id]
         remaining_total = active["original"] - active["filled"]
     status = orders[active_order_id]["status"] if active_order_id is not None else (
-        next(reversed(orders.values()))["status"] if orders else "EMPTY"
+        orders[next(reversed(orders))]["status"] if orders else "EMPTY"
     )
     return {
         "active_order_id": active_order_id,
