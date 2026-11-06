@@ -179,6 +179,7 @@ class TrustLifecycleTests(unittest.TestCase):
         result = assess_revocation(mode="OFFLINE", evidence=evidence)
         self.assertEqual(result["status"], "REVOKED_REPORTED")
         self.assertEqual(result["decision"], "REJECT")
+        self.assertEqual(result["evidence_authenticity"], "NOT_VERIFIED_BY_THIS_MODULE")
 
     def test_reviewed_clearance_requires_traceable_evidence(self):
         evidence = {
@@ -190,6 +191,7 @@ class TrustLifecycleTests(unittest.TestCase):
         result = assess_revocation(mode="OFFLINE", evidence=evidence)
         self.assertEqual(result["status"], "REVIEWED_CLEAR_AUDIT_ONLY")
         self.assertEqual(result["decision"], "BLOCK_UNLESS_EVIDENCE_AUTHENTICITY_IS_SEPARATELY_VERIFIED")
+        self.assertEqual(result["evidence_authenticity"], "NOT_VERIFIED_BY_THIS_MODULE")
         evidence["evidence_sha256"] = "invalid"
         with self.assertRaisesRegex(ValueError, "evidence digest"):
             assess_revocation(mode="OFFLINE", evidence=evidence)
