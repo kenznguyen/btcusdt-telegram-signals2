@@ -293,18 +293,32 @@ def migrate_dual_ledger(connection, source_sha):
         "AI_FREQAI": ("0", "0"),
         "LEGACY_UNATTRIBUTED": ("0", "0"),
     }
+    strategy_metadata = {
+        strategy: (0, "0") for strategy in positions
+    }
     legacy_qty, legacy_avg = Decimal(legacy_position), Decimal(legacy_average)
+    legacy_dca = owner_row[1]
+    try:
+        legacy_margin = number(str(owner_row[2]))
+    except (DecimalException, TypeError, ValueError):
+        raise sqlite3.DatabaseError("DUAL_LEDGER_LEGACY_STRATEGY_STATE_CORRUPT") from None
+    if type(legacy_dca) is not int or legacy_dca not in (0, 1) or legacy_margin < 0:
+        raise sqlite3.DatabaseError("DUAL_LEDGER_LEGACY_STRATEGY_STATE_CORRUPT")
+    if not legacy_qty and (legacy_dca or legacy_margin):
+        raise sqlite3.DatabaseError("DUAL_LEDGER_LEGACY_STRATEGY_STATE_INCONSISTENT")
     if legacy_qty:
         target_owner = owner if owner in DUAL_STRATEGIES else "LEGACY_UNATTRIBUTED"
         positions[target_owner] = (text(legacy_qty), text(legacy_avg))
+        strategy_metadata[target_owner] = (legacy_dca, text(legacy_margin))
 
     for strategy_id, (quantity, average) in positions.items():
+        dca_used, initial_margin = strategy_metadata[strategy_id]
         connection.execute(
             """INSERT INTO paper_strategy_ledgers
                (account_id,strategy_id,position_base,average_entry_price,realized_pnl_quote,
                 fees_quote,funding_quote,dca_used,initial_margin_quote,updated_at_ms,version)
-               VALUES (1,?,?,?,'0','0','0',0,'0',?,1)""",
-            (strategy_id, quantity, average, applied_at),
+               VALUES (1,?,?,?,'0','0','0',?,?,?,1)""",
+            (strategy_id, quantity, average, dca_used, initial_margin, applied_at),
         )
 
     adjustment_source = json.dumps(
