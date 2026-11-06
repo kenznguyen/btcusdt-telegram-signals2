@@ -334,7 +334,7 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
             counts = connection.execute(
                 "SELECT version,COUNT(*) FROM paper_schema_migrations GROUP BY version ORDER BY version"
             ).fetchall()
-        self.assertEqual(counts, [(1, 1), (2, 1), (3, 1)])
+        self.assertEqual(counts, [(1, 1), (2, 1), (3, 1), (4, 1)])
 
 
 if __name__ == "__main__":
