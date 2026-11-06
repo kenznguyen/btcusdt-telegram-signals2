@@ -841,6 +841,11 @@ class PaperLedger:
             raise ValueError("PAPER_LEDGER_STRATEGY_SCOPE_MISMATCH")
         if self.strategy_id in DUAL_STRATEGIES:
             return self._submit_scoped(intent, book, now, strategy_event)
+        migrated = self.connect().execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_schema_migrations'"
+        ).fetchone()
+        if migrated:
+            raise ValueError("DUAL_LEDGER_MIGRATION_ACTIVE_MANUAL_WRITE_BLOCKED")
         if strategy_id not in {"MANUAL", "STRATEGY_CORE", "AI_FREQAI"}:
             raise ValueError("Invalid strategy owner")
         if strategy_event not in (None, "ENTRY", "DCA", "EXIT"):
@@ -957,6 +962,8 @@ class PaperLedger:
         return self.snapshot().get("strategyState", {"owner": None, "dcaUsed": False, "initialMarginQuote": "0"})
 
     def record_equity(self, mark_price, candle_close_ms, observed_at_ms, dataset_version, initial_capital="100"):
+        if self.strategy_id in DUAL_STRATEGIES:
+            raise ValueError("DUAL_LEDGER_ACCOUNT_EQUITY_REQUIRES_SHARED_RECONCILIATION")
         with closing(self.connect()) as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
             position, average, realized, fees, _ = stored_state(connection)
@@ -1015,6 +1022,21 @@ class PaperLedger:
             if order["status"] in ACTIVE:
                 order.update(status="CANCELED", updatedAtMs=now, reason="CANCELED_BY_USER")
                 connection.execute("UPDATE paper_orders SET status=?,document=? WHERE order_id=?", (order["status"], json.dumps(order), order_id))
+                reservation_id = order.get("reservationId")
+                if reservation_id:
+                    reservation = connection.execute(
+                        "SELECT remaining_notional_quote FROM paper_risk_reservations WHERE reservation_id=?",
+                        (reservation_id,),
+                    ).fetchone()
+                    if reservation:
+                        next_status = "CONSUMED" if Decimal(order["filledBase"]) > 0 else "RELEASED"
+                        connection.execute(
+                            """UPDATE paper_risk_reservations
+                               SET status=?,remaining_margin_quote='0',
+                                   remaining_notional_quote='0',updated_at_ms=?
+                               WHERE reservation_id=?""",
+                            (next_status, now, reservation_id),
+                        )
                 self.audit(connection, now, "CANCEL", {"orderId": order_id})
             return order
 
