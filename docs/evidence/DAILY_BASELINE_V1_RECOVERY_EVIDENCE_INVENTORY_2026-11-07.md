@@ -250,3 +250,24 @@ Official documentation confirms that provider pricing has multiple meters; Azure
 Acceptance plan amended with mandatory measured workload, region/SKU quotes, retention-horizon, restore-cost, budget-control and post-test bill-reconciliation gates. Amendment commit `bad784a97d3eb276b37f577969c108a3d62ad566`.
 
 **Status:** PASS — cost model and acceptance gates documented. NOT VERIFIED — exact Singapore quote, workload volumes, retention period, final budget fit. USD 5/month remains illustrative only, NOT APPROVED and not demonstrated feasible. NOT APPROVED — provider selection, accounts, purchase, credentials, provisioning, provider tests or persistent capture. No CI run (documentation-only); source/schema/workflow/database/runtime unchanged. Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged; T0 paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — P1.5 Forward Evidence Envelope & Minimum Recovery Requirements
+
+Created `docs/architecture/FORWARD_EVIDENCE_ENVELOPE_RECOVERY_REQUIREMENTS_2026-11-07.md`, commit `7e34ae783f0cc9774169d75dbcf4b93385d4ef37`.
+
+The contract documents:
+- An immutable event envelope with event/stream identity, per-stream sequence, event/schema version, exact source build/config provenance, Core/AI/Legacy scope, UTC event/commit times, causal/idempotency references, typed payload, source-vs-derived provenance and previous-event hash.
+- A canonical byte profile using UTF-8 + RFC 8785 JCS over `event_core`; financial decimals and large integers are strings to avoid IEEE-754 precision loss. Required/null/omission semantics, duplicate-key rejection and exact no-BOM/no-trailing-newline bytes are specified.
+- Domain-separated SHA-256 event hashes and a proposed Ed25519 signature message, stream hash chaining, key ID/version history, rotation/revocation and the explicit limitation that hashes alone do not establish authenticity.
+- Append-only correction/supersession, idempotent retries, same-ID/different-bytes rejection, sequence-gap detection, late-event handling and UTC checkpoint invalidation.
+- Minimum recovery event classes for intent/admission/reservations/orders/fills/positions/DCA/reversal/fees/funding/marks/config/risk/Kill Switch/HWM/daily baselines and audit/recovery events.
+- Signed segment manifests bound to exact object version/generation, byte length, digest, retention read-back and Root A/Root B receipts; Root B is prohibited from querying mutable account DB rows.
+- Candidate RPO/RTO definitions, reliability-first fail-closed behavior, spool/backpressure requirements, retention categories and 1/3/7-year/indefinite comparison horizons. Numeric thresholds and retention remain undecided.
+- Deterministic synthetic measurement requirements for event size, object count, batching, observer throughput, spool growth and clean-room restore.
+
+References reviewed: RFC 8785 (JCS), RFC 8032 (EdDSA) and RFC 3339 (timestamps). RFC 8785 and RFC 8032 are Informational publications, not Internet Standards Track specifications. Their use here is a proposed profile, not an implemented or tested cryptographic protocol.
+
+Acceptance Test Plan amendment committed: `61204f2531bffa7a210945fc7951a7479d42811f`.
+
+**Status:** PASS — P1.5 documentation contract and acceptance-test requirements recorded. NOT IMPLEMENTED / NOT TESTED — canonicalizer, hash/signature, key custody, journal/outbox, Root B observer, RPO/RTO, retention and recovery behavior. NOT SELECTED — provider, region, budget and retention. NOT AUTHORIZED — account, credential, provisioning, provider tests or persistent capture. No source/schema/workflow/database/runtime changes; no CI run (documentation-only). Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged; T0 paused; PAPER-only; `ai_execution_enabled=false`.
