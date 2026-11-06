@@ -3977,3 +3977,20 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Detailed report: `docs/architecture/P1.8.11_SYNTHETIC_DUAL_FIXTURE_REPRODUCIBILITY_ACCEPTANCE_2026-11-07.md`; report commit `29a2edb64c46b5c09e50550ad1141c6ce1476cc7`.
 - **P1.8.11: PASS — dual-fixture generation, reproducibility, artifact inclusion and independent archive verification.** Does not establish Root B/provider independence, signed provenance, production durability, or production runtime correctness.
 - No runtime integration, DB, exchange, VPS/provider, persistent capture, paper/live execution, or merge. T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`.
+
+
+## 2026-11-07 — P1.8.12 Synthetic Evidence Provenance & Source Binding Acceptance
+
+- User approval: `APPROVE P1.8.12 — SYNTHETIC EVIDENCE PROVENANCE & SOURCE BINDING ACCEPTANCE`.
+- Scope: synthetic-only provenance record and fail-closed source/run/workflow/dual-fixture binding. No runtime or external data service.
+- Final exact passing source SHA: `16f0edf2c93c45ef5ee479f74f6bb7a06e7358e3`.
+- GitHub Actions run `42302581356`, job `128183815458`, SUCCESS; checked-out SHA exactly matches source SHA.
+- Python 3.11.18 compile PASS; **81/81 tests PASS**; synthetic-only preflight PASS; DB/exchange credentials empty; `AI_EXECUTION_ENABLED=false`.
+- Provenance workflow step PASS. Record binds source SHA, run ID `42302581356`, attempt 1, repository, branch ref, workflow ref, workflow SHA-256 `e4ca4bc5d968fb3c8fb36b478b830ac84ea2fd2751f375fc8365ea9b70e5de21`, and both fixture descriptor `generator_source_sha` values.
+- Artifact ID `13544467848`, size 597,436 bytes, SHA-256 `f09f29e0e4ad1123264aa4925f3d3f22a0fa2a8e38107a8ced561990c8a0b040`; independently downloaded ZIP SHA-256 MATCH; ZIP integrity PASS; 43 members.
+- Independent payload verification: provenance record present; fixture A/B each 18 files and 17/17 inventory checks PASS; relative path sets equal; 18/18 fixture file pairs byte-identical; both descriptors bind to exact source SHA.
+- The provenance JSON marks artifact ID and payload digest `NOT_AVAILABLE_AT_BUILD_TIME` because GitHub assigns these after upload. Bind artifact ID/digest externally via GitHub metadata/report; do not claim self-referential in-archive digest.
+- Initial/intermediate failed runs retained in the P1.8.12 report as audit history; final PASS applies only to exact source SHA and run above.
+- Detailed report: `docs/architecture/P1.8.12_SYNTHETIC_EVIDENCE_PROVENANCE_SOURCE_BINDING_ACCEPTANCE_2026-11-07.md`.
+- **P1.8.12: PASS — synthetic evidence source/run/workflow/dual-fixture provenance binding and independent artifact payload verification.** No signature, trusted timestamp, Root B/provider independence, production correctness/durability or runtime certification is implied.
+- Restrictions unchanged: T0 PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`; no DB, exchange, VPS/provider, persistent capture, runtime integration, paper/live execution, or merge.
