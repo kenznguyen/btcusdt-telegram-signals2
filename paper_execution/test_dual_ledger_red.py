@@ -1748,5 +1748,88 @@ os._exit(0)
         self.assertEqual(after_replay, committed)
 
 
+
+    def test_funding_refresh_updates_equity_but_preserves_hwm_when_risk_unready(self):
+        path = self.fresh_account_db(
+            "funding-refresh-risk-unready.sqlite3",
+            establish_cutover=False,
+        )
+        with sqlite3.connect(path) as connection:
+            connection.execute(
+                """UPDATE paper_account_risk_state
+                   SET risk_ready=0,unavailable_reason='TEST_NOT_READY',
+                       high_water_mark_quote='100' WHERE account_id=1"""
+            )
+
+        ledger.record_funding_event(
+            path,
+            funding_event_id="unready-risk-funding-credit",
+            strategy_id="STRATEGY_CORE",
+            amount_quote="-5",
+            event_at_ms=self.now - 1_000,
+            source="OKX_FUNDING_HISTORY",
+            source_snapshot_id="risk-unready:funding-credit",
+            payload_hash="sha256:" + "a" * 64,
+            recorded_at_ms=self.now,
+        )
+
+        with sqlite3.connect(path) as connection:
+            high_water_mark, equity, risk_ready = connection.execute(
+                """SELECT high_water_mark_quote,last_equity_quote,risk_ready
+                   FROM paper_account_risk_state WHERE account_id=1"""
+            ).fetchone()
+        self.assertEqual(high_water_mark, "100")
+        self.assertEqual(equity, "105")
+        self.assertEqual(risk_ready, 0)
+
+    def test_funding_coverage_rejects_overlap_after_cutover(self):
+        path = self.path
+        with self.assertRaisesRegex(ValueError, "FUNDING_COVERAGE_INTERVAL_OVERLAP"):
+            ledger.record_funding_coverage(
+                path,
+                coverage_id="overlap-after-cutover",
+                start_at_ms=self.now - 10 * 60_000,
+                end_at_ms=self.now - 5 * 60_000,
+                status="VERIFIED",
+                source="RECONCILED_FUNDING_STATEMENT",
+                source_snapshot_id="post-cutover-overlap:funding",
+                payload_hash="sha256:" + "b" * 64,
+                config_version="funding-policy-v1",
+                recorded_at_ms=self.now,
+            )
+        with sqlite3.connect(path) as connection:
+            count = connection.execute(
+                "SELECT COUNT(*) FROM paper_funding_coverage WHERE coverage_id=?",
+                ("overlap-after-cutover",),
+            ).fetchone()[0]
+        self.assertEqual(count, 0)
+
+    def test_read_only_snapshot_fails_closed_on_corrupt_funding_event_provenance(self):
+        path = self.path
+        ledger.record_funding_event(
+            path,
+            funding_event_id="snapshot-corrupt-provenance-event",
+            strategy_id="STRATEGY_CORE",
+            amount_quote="0",
+            event_at_ms=self.now - 1_000,
+            source="OKX_FUNDING_HISTORY",
+            source_snapshot_id="snapshot-corrupt:funding",
+            payload_hash="sha256:" + "c" * 64,
+            recorded_at_ms=self.now,
+        )
+        with sqlite3.connect(path) as connection:
+            connection.execute("DROP TRIGGER paper_funding_events_immutable_update")
+            connection.execute(
+                """UPDATE paper_funding_events SET source='LEGACY_UNVERIFIED'
+                   WHERE funding_event_id=?""",
+                ("snapshot-corrupt-provenance-event",),
+            )
+
+        snapshot = ledger.read_account_risk_snapshot(path, now_ms=self.now)
+        self.assertTrue(snapshot["available"], snapshot)
+        self.assertFalse(snapshot["riskReady"], snapshot)
+        self.assertEqual(snapshot["unavailableReason"], "FUNDING_PROVENANCE_INCOMPLETE")
+
+
 if __name__ == "__main__":
     unittest.main()
