@@ -478,6 +478,16 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(order["status"], "FILLED", order)
         self.assertEqual(order["strategyId"], "LEGACY_UNATTRIBUTED")
         self.assertEqual(order["strategyEvent"], "LEGACY_REDUCTION")
+
+        replayed = ledger.reduce_legacy_unattributed(
+            self.path,
+            self.intent("legacy-partial-close", "0.02", "100", "legacy-close-book"),
+            self.book(self.now),
+            self.now,
+            reconciliation_id="legacy-close-review-001",
+            evidence_hash="sha256:legacy-close-evidence-001",
+        )
+        self.assertEqual(replayed, order, "Retrying the same intent must replay, not consume depth twice")
         with sqlite3.connect(self.path) as connection:
             rows = {
                 row[0]: row[1:]
@@ -531,6 +541,59 @@ class DualLedgerRedTest(unittest.TestCase):
                WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
         ).fetchone()
         self.assertEqual(before, after)
+
+
+    def test_legacy_depth_consumption_reduces_core_visible_depth_atomically(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """UPDATE paper_strategy_ledgers
+                   SET position_base='0.1',average_entry_price='100',
+                       initial_margin_quote='0.5'
+                   WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
+            )
+            connection.execute(
+                """UPDATE paper_account_risk_state
+                   SET last_equity_quote='100',high_water_mark_quote='100'
+                   WHERE account_id=1"""
+            )
+        shared_book = self.book(self.now)
+        shared_book["bids"] = [{"price": "100", "quantity": "0.15"}]
+        shared_book["asks"] = [{"price": "100.1", "quantity": "1"}]
+        legacy_close = ledger.reduce_legacy_unattributed(
+            self.path,
+            self.intent("legacy-depth-close", "0", "100", "shared-depth-book"),
+            shared_book,
+            self.now,
+            reconciliation_id="legacy-depth-review-001",
+            evidence_hash="sha256:legacy-depth-evidence-001",
+        )
+        self.assertEqual(legacy_close["status"], "FILLED", legacy_close)
+        self.assertEqual(legacy_close["filledBase"], "0.1")
+
+        core_short = self.core.submit(
+            self.intent("core-after-legacy-close", "-0.1", "100", "shared-depth-book"),
+            shared_book,
+            self.now,
+        )
+        self.assertEqual(core_short["status"], "PARTIALLY_FILLED", core_short)
+        self.assertEqual(core_short["filledBase"], "0.05")
+        with sqlite3.connect(self.path) as connection:
+            legacy_used = connection.execute(
+                """SELECT SUM(CAST(consumed_quantity AS REAL))
+                   FROM paper_legacy_book_consumptions
+                   WHERE book_id=(SELECT book_id FROM paper_legacy_book_consumptions LIMIT 1)
+                     AND side='SELL' AND price='100'"""
+            ).fetchone()[0]
+            core_used = connection.execute(
+                """SELECT SUM(CAST(reserved_quantity AS REAL))
+                   FROM paper_book_level_reservations
+                   WHERE book_id=(SELECT book_id FROM paper_legacy_book_consumptions LIMIT 1)
+                     AND side='SELL' AND price='100'
+                     AND status IN ('ACTIVE','CONSUMED')"""
+            ).fetchone()[0]
+        self.assertAlmostEqual(legacy_used, 0.1)
+        self.assertAlmostEqual(core_used, 0.05)
+        self.assertAlmostEqual(legacy_used + core_used, 0.15)
 
 
 if __name__ == "__main__":
