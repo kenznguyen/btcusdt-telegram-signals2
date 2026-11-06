@@ -1,5 +1,5 @@
 name: P1.8 Synthetic Evidence Generator
-run-name: P1.8 synthetic-only validation (\${{ github.ref_name }} @ \${{ github.sha }})
+run-name: P1.8 synthetic-only validation (${{ github.ref_name }} @ ${{ github.sha }})
 
 on:
   push:
@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: p1-8-synthetic-evidence-\${{ github.ref }}
+  group: p1-8-synthetic-evidence-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -44,7 +44,7 @@ jobs:
       - name: Checkout exact triggering source
         uses: actions/checkout@v4
         with:
-          ref: \${{ github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Set up Python
@@ -57,12 +57,12 @@ jobs:
         run: |
           set -euo pipefail
           for key in DATABASE_URL DATABASE_PATH SQLITE_PATH MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB PAPER_TRADING_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET EXCHANGE_API_KEY EXCHANGE_API_SECRET; do
-            if [[ -n "\${!key:-}" ]]; then
+            if [[ -n "${!key:-}" ]]; then
               echo "Unsafe environment variable present: $key"
               exit 1
             fi
           done
-          test "\${AI_EXECUTION_ENABLED}" = "false"
+          test "${AI_EXECUTION_ENABLED}" = "false"
           git rev-parse HEAD | tee synthetic-evidence-source-sha.txt
           echo "P1_8_SYNTHETIC_ONLY_PREFLIGHT=PASS" | tee synthetic-evidence-preflight.txt
 
@@ -87,18 +87,18 @@ jobs:
           BASE_TIME=2026-11-07T00:00:00.000Z
           SOURCE_SHA="$(git rev-parse HEAD)"
           python -m synthetic_evidence \
-            --seed "\${SEED}" --namespace "\${NAMESPACE}" --base-time-utc "\${BASE_TIME}" \
-            --events 1000 --source-sha "\${SOURCE_SHA}" --out synthetic-evidence-output-a
+            --seed "${SEED}" --namespace "${NAMESPACE}" --base-time-utc "${BASE_TIME}" \
+            --events 1000 --source-sha "${SOURCE_SHA}" --out synthetic-evidence-output-a
           python -m synthetic_evidence \
-            --seed "\${SEED}" --namespace "\${NAMESPACE}" --base-time-utc "\${BASE_TIME}" \
-            --events 1000 --source-sha "\${SOURCE_SHA}" --out synthetic-evidence-output-b
+            --seed "${SEED}" --namespace "${NAMESPACE}" --base-time-utc "${BASE_TIME}" \
+            --events 1000 --source-sha "${SOURCE_SHA}" --out synthetic-evidence-output-b
           diff -qr synthetic-evidence-output-a synthetic-evidence-output-b
           (cd synthetic-evidence-output-a && sha256sum -c fixture.sha256)
           (cd synthetic-evidence-output-b && sha256sum -c fixture.sha256)
           cmp synthetic-evidence-output-a/fixture.sha256 synthetic-evidence-output-b/fixture.sha256
           {
             echo "DETERMINISTIC_REGENERATION=PASS"
-            echo "SOURCE_SHA=\${SOURCE_SHA}"
+            echo "SOURCE_SHA=${SOURCE_SHA}"
             echo "FIXTURE_A_INVENTORY_SHA256=$(sha256sum synthetic-evidence-output-a/fixture.sha256 | cut -d' ' -f1)"
             echo "FIXTURE_B_INVENTORY_SHA256=$(sha256sum synthetic-evidence-output-b/fixture.sha256 | cut -d' ' -f1)"
             echo "FIXTURE_A_FILE_COUNT=$(find synthetic-evidence-output-a -type f | wc -l | tr -d ' ')"
@@ -115,7 +115,7 @@ jobs:
             --descriptor-a synthetic-evidence-output-a/run_descriptor.json \
             --descriptor-b synthetic-evidence-output-b/run_descriptor.json \
             --output synthetic-evidence-provenance.json
-          python -c 'import hashlib, json; from pathlib import Path; from synthetic_evidence.provenance import verify_provenance; d=json.loads(Path("synthetic-evidence-provenance.json").read_text()); h=hashlib.sha256(Path(".github/workflows/p1-8-synthetic-evidence.yml").read_bytes()).hexdigest(); assert verify_provenance(d, expected_source_sha="\${{ github.sha }}", expected_run_id=int("\${{ github.run_id }}"), expected_workflow_sha256=h, descriptor_a="synthetic-evidence-output-a/run_descriptor.json", descriptor_b="synthetic-evidence-output-b/run_descriptor.json"); print("PROVENANCE_SOURCE_RUN_WORKFLOW_FIXTURE_BYTES_BINDING=PASS")'
+          python -c 'import hashlib, json; from pathlib import Path; from synthetic_evidence.provenance import verify_provenance; d=json.loads(Path("synthetic-evidence-provenance.json").read_text()); h=hashlib.sha256(Path(".github/workflows/p1-8-synthetic-evidence.yml").read_bytes()).hexdigest(); assert verify_provenance(d, expected_source_sha="${{ github.sha }}", expected_run_id=int("${{ github.run_id }}"), expected_workflow_sha256=h, descriptor_a="synthetic-evidence-output-a/run_descriptor.json", descriptor_b="synthetic-evidence-output-b/run_descriptor.json"); print("PROVENANCE_SOURCE_RUN_WORKFLOW_FIXTURE_BYTES_BINDING=PASS")'
 
       - name: Write compact smoke result
         if: always()
@@ -142,7 +142,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: p1-8-synthetic-evidence-\${{ github.sha }}
+          name: p1-8-synthetic-evidence-${{ github.sha }}
           path: |
             synthetic-evidence-tests.log
             synthetic-evidence-source-sha.txt
