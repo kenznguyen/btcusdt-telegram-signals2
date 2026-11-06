@@ -83,12 +83,30 @@ jobs:
           gh --version
           gh attestation trusted-root > trusted_root.jsonl
           python - <<'PY'
+          import json
+          from datetime import datetime, timezone
           from pathlib import Path
           from synthetic_evidence.trust_anchor import verify_trusted_root
           from synthetic_evidence.trusted_root_pin import TRUSTED_ROOT_SHA256
-          digest = verify_trusted_root(Path("trusted_root.jsonl").read_bytes(), TRUSTED_ROOT_SHA256)
-          Path("trusted_root.sha256").write_text(f"{digest}  trusted_root.jsonl\\n")
+          from synthetic_evidence.trust_lifecycle import (
+              build_trust_snapshot, compare_trusted_roots, decode_pinned_root_snapshot,
+              format_sha256_sidecar,
+          )
+          baseline_path = Path("synthetic_evidence/trust_roots/2026-11-07-trusted_root.jsonl.gz.b64")
+          baseline = decode_pinned_root_snapshot(baseline_path.read_bytes(), TRUSTED_ROOT_SHA256)
+          current = Path("trusted_root.jsonl").read_bytes()
+          rotation = compare_trusted_roots(baseline, current)
+          Path("trust-root-rotation-diff.json").write_text(json.dumps(rotation, sort_keys=True, indent=2) + "\n")
+          if rotation["status"] != "UNCHANGED":
+              print("TRUST_ROOT_ROTATION_DETECTED=BLOCKED")
+              raise SystemExit("trusted-root change requires separate review and explicit repinning")
+          digest = verify_trusted_root(current, TRUSTED_ROOT_SHA256)
+          Path("trusted_root.sha256").write_text(format_sha256_sidecar(digest, "trusted_root.jsonl"))
+          captured_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+          snapshot = build_trust_snapshot(current, captured_at=captured_at, sequence=1, tuf_verified=True)
+          Path("trust-root-snapshot.json").write_text(json.dumps(snapshot, sort_keys=True, indent=2) + "\n")
           print(f"TRUSTED_ROOT_PIN_VERIFICATION=PASS sha256={digest}")
+          print("TRUST_ROOT_ROTATION_CHECK=UNCHANGED")
           PY
 
       - name: Run deterministic fixture and provenance contracts
@@ -174,8 +192,12 @@ jobs:
               Path("synthetic-evidence-provenance.json"),
               Path("trusted_root.jsonl"),
               Path("trusted_root.sha256"),
+              Path("trust-root-snapshot.json"),
+              Path("trust-root-rotation-diff.json"),
               Path("synthetic_evidence/trusted_root_pin.py"),
               Path("synthetic_evidence/verify_offline.sh"),
+              Path("synthetic_evidence/trust_lifecycle.py"),
+              Path("synthetic_evidence/trust_roots/2026-11-07-trusted_root.jsonl.gz.b64"),
               *sorted(Path("synthetic-evidence-output-a").rglob("*")),
               *sorted(Path("synthetic-evidence-output-b").rglob("*")),
           ]
@@ -222,6 +244,41 @@ jobs:
           print(f"ATTESTED_SUBJECT_SHA256={digest}")
           PY
 
+
+      - name: Build and verify long-term retention manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from synthetic_evidence.trust_lifecycle import build_retention_manifest, verify_retention_manifest
+          names = [
+              "synthetic-evidence-bundle.zip",
+              "synthetic-evidence-bundle.sha256",
+              "synthetic-evidence-attestation.bundle.json",
+              "trusted_root.jsonl",
+              "trusted_root.sha256",
+              "trust-root-snapshot.json",
+              "trust-root-rotation-diff.json",
+              "synthetic-evidence-tests.log",
+              "synthetic-evidence-provenance.json",
+          ]
+          files = {name: Path(name).read_bytes() for name in names}
+          archived_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+          manifest = build_retention_manifest(
+              files,
+              source_sha=os.environ["GITHUB_SHA"],
+              workflow_run_id=int(os.environ["GITHUB_RUN_ID"]),
+              archived_at=archived_at,
+          )
+          assert verify_retention_manifest(manifest, files)
+          Path("synthetic-evidence-retention-manifest.json").write_text(json.dumps(manifest, sort_keys=True, indent=2) + "\n")
+          print("LONG_TERM_RETENTION_MANIFEST=PASS")
+          print("RETENTION_MANIFEST_SHA256=" + manifest["manifest_sha256"])
+          PY
+
       - name: Upload signed synthetic-only evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -239,10 +296,15 @@ jobs:
             synthetic-evidence-reproducibility.txt
             synthetic-evidence-smoke-summary.json
             synthetic-evidence-provenance.json
+            synthetic-evidence-retention-manifest.json
+            trusted_root.jsonl
+            trusted_root.sha256
+            trust-root-snapshot.json
+            trust-root-rotation-diff.json
             synthetic-evidence-output-a/**
             synthetic-evidence-output-b/**
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 90
 
   independent-attestation-verification:
     name: Independent runner Sigstore verification
@@ -308,3 +370,66 @@ jobs:
             downloaded-evidence/synthetic-evidence-bundle.sha256
           if-no-files-found: error
           retention-days: 7
+
+  archive-evidence:
+    name: Commit verified evidence to long-term Git history
+    needs: [synthetic-only, independent-attestation-verification]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Checkout existing branch for append-only evidence commit
+        uses: actions/checkout@v4
+        with:
+          ref: \${{ github.ref }}
+          persist-credentials: true
+
+      - name: Download verified evidence package
+        uses: actions/download-artifact@v4
+        with:
+          name: p1-8-synthetic-evidence-\${{ github.sha }}
+          path: retained-evidence
+
+      - name: Verify manifest and commit retained evidence
+        shell: bash
+        env:
+          SOURCE_SHA: \${{ github.sha }}
+          WORKFLOW_RUN_ID: \${{ github.run_id }}
+          BRANCH_NAME: \${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from synthetic_evidence.trust_lifecycle import verify_retention_manifest
+          root = Path("retained-evidence")
+          manifest = json.loads((root / "synthetic-evidence-retention-manifest.json").read_text())
+          if manifest["source_sha"] != os.environ["SOURCE_SHA"]:
+              raise SystemExit("retention manifest source SHA mismatch")
+          if manifest["workflow_run_id"] != int(os.environ["WORKFLOW_RUN_ID"]):
+              raise SystemExit("retention manifest workflow run mismatch")
+          names = [entry["path"] for entry in manifest["files"]]
+          files = {name: (root / name).read_bytes() for name in names}
+          assert verify_retention_manifest(manifest, files)
+          print("RETENTION_PAYLOAD_INDEPENDENT_RECHECK=PASS")
+          PY
+          DEST="docs/evidence/p1-8/\${SOURCE_SHA}"
+          mkdir -p "$DEST"
+          cp retained-evidence/synthetic-evidence-bundle.zip "$DEST/"
+          cp retained-evidence/synthetic-evidence-bundle.sha256 "$DEST/"
+          cp retained-evidence/synthetic-evidence-attestation.bundle.json "$DEST/"
+          cp retained-evidence/synthetic-evidence-retention-manifest.json "$DEST/"
+          git add "$DEST"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --cached --quiet; then
+            echo "EVIDENCE_ARCHIVE_ALREADY_PRESENT=PASS"
+          else
+            git commit -m "archive(evidence): retain P1.8 signed bundle"
+            git push origin "HEAD:\${BRANCH_NAME}"
+          fi
+          git show "HEAD:$DEST/synthetic-evidence-retention-manifest.json" >/dev/null
+          echo "LONG_TERM_GIT_HISTORY_RETENTION=PASS"
+
