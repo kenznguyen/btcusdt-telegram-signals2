@@ -262,5 +262,43 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(reservation, ("CONSUMED", "0", "0"))
 
 
+    def test_partial_reservation_survives_reopen_and_reduces_other_strategy_capacity(self):
+        self.core.risk_limits["maxExposureUsdt"] = "15"
+        self.ai.risk_limits["maxExposureUsdt"] = "15"
+        partial = self.core.submit(
+            self.intent("core-restart-pending", "0.12", "100.1", "core-restart-pending"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        self.assertEqual(partial["status"], "PARTIALLY_FILLED", partial)
+
+        reopened_core = PaperLedger(
+            self.path, max_position_base="1", strategy_id="STRATEGY_CORE",
+            source_sha="a" * 40,
+        )
+        reopened_orders = reopened_core.snapshot()["orders"]
+        self.assertTrue(any(
+            order["intentId"] == "core-restart-pending" and
+            order["status"] == "PARTIALLY_FILLED"
+            for order in reopened_orders
+        ))
+        with sqlite3.connect(self.path) as connection:
+            reservation = connection.execute(
+                """SELECT status,remaining_notional_quote,remaining_margin_quote
+                   FROM paper_risk_reservations WHERE reservation_id=?""",
+                (partial["reservationId"],),
+            ).fetchone()
+        self.assertEqual(reservation[0], "PARTIAL")
+        self.assertGreater(Decimal(reservation[1]), Decimal("0"))
+        self.assertGreater(Decimal(reservation[2]), Decimal("0"))
+
+        ai_order = self.ai.submit(
+            self.intent("ai-after-core-pending", "0.03", "100.1", "ai-after-core-pending"),
+            self.book(self.now+1), self.now+1,
+        )
+        self.assertEqual(ai_order["status"], "REJECTED", ai_order)
+        self.assertEqual(ai_order["reason"], "MAX_EXPOSURE_LIMIT")
+
+
 if __name__ == "__main__":
     unittest.main()
