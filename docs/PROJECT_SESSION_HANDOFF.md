@@ -3840,3 +3840,25 @@ Test expectation corrected in commit `101b4be4d868d64aca5c7d49c7758a52b888a83a`:
 - Status: **IMPLEMENTED / CI NOT VERIFIED**. Do not mark PASS until exact source checkout, all tests, deterministic fixtures/replay and artifact checksum are verified.
 - Strict boundaries: synthetic-only. No T0/T1 runtime, Strategy Core, Shared Risk Engine, database, exchange, provider, VPS, credentials, persistent capture, execution adapter or live execution. `AI_EXECUTION_ENABLED=false`; T0 remains PAUSED.
 - Next: inspect GitHub Actions evidence for exact SHA and reconcile artifact provenance. Preserve this branch; no merge without explicit approval.
+
+
+### P1.8.4 CI correction and final status — PASS (2026-11-07)
+
+- Failed workflow `42292467088`, job `128149126321`, exact checkout SHA `c2bd1303d13b7002184a2f23c7f90eabd72749cd`: compile passed; 42/43 tests passed. The sole failure was a test regex mismatch against the model's correct close-required error. The model was not changed.
+- Test-only correction commit: `dd9f20b4269ea5f886d9470370c5279d4c7ad2ab`; test blob SHA `cd494b259e4cfa8c3b1245299072eaea31918100`. Assertions cover reduction greater than remaining quantity, reduction equal to remaining quantity (must use explicit close), and wrong active position.
+- Passing workflow: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42292921593
+- Job `128150725043`, `Deterministic local fixture contracts`, SUCCESS.
+- Exact checkout/source SHA: `dd9f20b4269ea5f886d9470370c5279d4c7ad2ab`; checkout log, `git rev-parse HEAD`, and fixture descriptors agree.
+- Synthetic-only preflight PASS; Python 3.11.18 compile PASS; **43/43 tests PASS**.
+- Two byte-identical 1,000-event fixtures; each local replay verified 1,000 events over 3 streams and 12 segments; fixture manifest SHA-256 checks **17/17 PASS**.
+- DB paths/exchange credentials empty; `AI_EXECUTION_ENABLED=false`.
+- Artifact ID `13539664461`, name `p1-8-synthetic-evidence-dd9f20b4269ea5f886d9470370c5279d4c7ad2ab`, size 299,195 bytes, SHA-256 `17092da91d32c491be5a6b8885d7a4faa293354b69453207eec47d4f854f3050`, expires `2026-11-13T20:59:17Z`. Upload log and GitHub metadata agree; archive was not independently downloaded/re-hashed.
+- Evidence report commit: `0e768c896d5e940f6a8327632e5accfab4c1d053`; report blob SHA `7bab9520dcfd6b73ccf4876358b630377b3428c6`.
+
+**P1.8.4: PASS — synthetic-only execution invariant test scope only.** This does not certify production T0/T1 semantics, Strategy Core, Shared Risk Engine, provider durability, production readiness or live execution.
+
+### Current boundaries and next step
+
+T0 remains PAUSED. Keep `AI_EXECUTION_ENABLED=false`. No production runtime integration, database, exchange, provider/VPS, persistent capture or live execution is authorized. Preserve the existing branch; do not merge without explicit user approval.
+
+Next bounded work requires a separately scoped proposal and approval. Do not infer that P1.8.4 PASS authorizes the next phase or any operational activation.
