@@ -131,7 +131,7 @@ def migrate_account_history(connection, source_sha):
         status TEXT NOT NULL CHECK(status IN ('VERIFIED','UNKNOWN')),
         source TEXT NOT NULL CHECK(length(trim(source))>0),
         source_snapshot_id TEXT NOT NULL CHECK(length(trim(source_snapshot_id))>0),
-        payload_hash TEXT NOT NULL UNIQUE CHECK(length(payload_hash)=71
+        payload_hash TEXT NOT NULL CHECK(length(payload_hash)=71
             AND substr(payload_hash,1,7)='sha256:'
             AND substr(payload_hash,8) NOT GLOB '*[^0-9a-f]*'),
         recorded_at_ms INTEGER NOT NULL,
@@ -149,7 +149,7 @@ def migrate_account_history(connection, source_sha):
         source TEXT NOT NULL CHECK(length(trim(source))>0),
         source_snapshot_id TEXT NOT NULL CHECK(length(trim(source_snapshot_id))>0),
         dataset_version TEXT NOT NULL CHECK(length(trim(dataset_version))>0),
-        payload_hash TEXT NOT NULL UNIQUE CHECK(length(payload_hash)=71
+        payload_hash TEXT NOT NULL CHECK(length(payload_hash)=71
             AND substr(payload_hash,1,7)='sha256:'
             AND substr(payload_hash,8) NOT GLOB '*[^0-9a-f]*'),
         quality_status TEXT NOT NULL CHECK(quality_status IN ('VERIFIED','UNKNOWN')),
@@ -276,10 +276,10 @@ def record_account_history_event(
             if prior != (canonical, digest):
                 raise ValueError("ACCOUNT_HISTORY_EVENT_ID_CONFLICT")
             return {"eventId": event_id, "payloadHash": digest, "idempotent": True}
-        columns = list(values) + ["canonical_payload", "created_at_ms"]
+        columns = ["account_id", *values.keys(), "canonical_payload", "created_at_ms"]
         db.execute(
             f"INSERT INTO paper_account_event_journal ({','.join(columns)}) VALUES ({','.join('?' for _ in columns)})",
-            tuple(values[key] for key in values) + (canonical, recorded),
+            (1, *values.values(), canonical, recorded),
         )
     return {"eventId": event_id, "payloadHash": digest, "idempotent": False}
 
