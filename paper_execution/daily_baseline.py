@@ -79,12 +79,15 @@ def persist_daily_equity_baseline(connection, *, utc_day_ms, now_ms, source_sha)
         ).fetchone()
         risk = connection.execute(
             """SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote,
-                      risk_ready,version
+                      risk_ready,version,high_water_mark_quote
                FROM paper_account_risk_state WHERE account_id=1"""
         ).fetchall()
         if len(risk) != 1 or type(risk[0][2]) is not int or risk[0][2] not in (0, 1):
             raise sqlite3.DatabaseError("DAILY_BASELINE_RISK_STATE_INVALID")
-        risk_day, risk_equity, risk_ready, _ = risk[0]
+        risk_day, risk_equity, risk_ready, _, raw_hwm = risk[0]
+        hwm = Decimal(raw_hwm)
+        if not hwm.is_finite() or hwm <= 0:
+            raise sqlite3.DatabaseError("DAILY_BASELINE_HIGH_WATER_MARK_INVALID")
 
         if existing:
             expected = (baseline_id, replay["equity_quote"],
@@ -124,12 +127,18 @@ def persist_daily_equity_baseline(connection, *, utc_day_ms, now_ms, source_sha)
                VALUES (?,1,?,?, 'DAILY_BASELINE_CREATED',?,?,?)""",
             (audit_id, boundary, baseline_id, replay_digest, payload_json, now),
         )
+        mark = inputs["market_mark"]
+        next_hwm = max(hwm, equity) if risk_ready else hwm
         updated = connection.execute(
             """UPDATE paper_account_risk_state
                SET daily_baseline_utc_day_ms=?,daily_baseline_equity_quote=?,
+                   last_equity_quote=?,last_mark_price=?,mark_observed_at_ms=?,
+                   mark_candle_close_ms=?,dataset_version=?,high_water_mark_quote=?,
                    updated_at_ms=?,version=version+1
                WHERE account_id=1""",
-            (boundary, replay["equity_quote"], now),
+            (boundary, replay["equity_quote"], replay["equity_quote"],
+             mark["mark_price"], mark["observed_at_ms"], mark["candle_close_ms"],
+             mark["dataset_version"], format(next_hwm, "f"), now),
         )
         if updated.rowcount != 1:
             raise sqlite3.DatabaseError("DAILY_BASELINE_RISK_STATE_UPDATE_FAILED")

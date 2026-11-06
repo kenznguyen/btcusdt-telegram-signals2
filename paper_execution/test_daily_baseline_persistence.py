@@ -88,14 +88,16 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
             ).fetchone()
             risk = db.execute(
                 """SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote,
-                          risk_ready FROM paper_account_risk_state WHERE account_id=1"""
+                          risk_ready,last_equity_quote,last_mark_price,mark_observed_at_ms,
+                          mark_candle_close_ms,dataset_version
+                   FROM paper_account_risk_state WHERE account_id=1"""
             ).fetchone()
         self.assertEqual(baseline[:4], (
             self.boundary, "100", "fixture-boundary-mark", "fixture-account-cutover"
         ))
         self.assertEqual(baseline[4], result["replay_digest"])
         self.assertEqual(audit, (result["baseline_id"], result["replay_digest"], "DAILY_BASELINE_CREATED"))
-        self.assertEqual(risk, (self.boundary, "100", 1))
+        self.assertEqual(risk, (self.boundary, "100", 1, "100", "100", self.recorded, self.boundary, "sha256:dual-ledger-seed"))
 
 
     def test_baseline_is_consumed_by_shared_risk_snapshot_at_boundary_mark(self):
