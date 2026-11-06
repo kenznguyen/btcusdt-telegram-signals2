@@ -104,6 +104,39 @@ class TrustLifecycleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "sequence"):
             verify_snapshot_chain([first, third])
 
+
+    def test_snapshot_chain_appends_monotonic_trust_root_versions(self):
+        from synthetic_evidence.trust_lifecycle import append_trust_snapshot, build_snapshot_chain
+        first = build_trust_snapshot(self.root_a, captured_at="2026-11-01T00:00:00Z", sequence=1, tuf_verified=True)
+        chain = build_snapshot_chain()
+        chain = append_trust_snapshot(chain, first)
+        second = build_trust_snapshot(
+            self.root_b, captured_at="2026-11-07T12:00:00Z", sequence=2,
+            previous_snapshot_sha256=first["snapshot_sha256"], tuf_verified=True
+        )
+        chain = append_trust_snapshot(chain, second)
+        self.assertTrue(verify_snapshot_chain(chain))
+        self.assertEqual(len(chain["snapshots"]), 2)
+
+    def test_snapshot_chain_detects_chain_manifest_tampering(self):
+        from synthetic_evidence.trust_lifecycle import build_snapshot_chain
+        first = build_trust_snapshot(self.root_a, captured_at="2026-11-01T00:00:00Z", sequence=1, tuf_verified=True)
+        chain = build_snapshot_chain([first])
+        chain["snapshots"][0]["trusted_root_sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "chain digest"):
+            verify_snapshot_chain(chain)
+
+    def test_snapshot_chain_rejects_replayed_or_wrong_predecessor(self):
+        from synthetic_evidence.trust_lifecycle import append_trust_snapshot, build_snapshot_chain
+        first = build_trust_snapshot(self.root_a, captured_at="2026-11-01T00:00:00Z", sequence=1, tuf_verified=True)
+        chain = append_trust_snapshot(build_snapshot_chain(), first)
+        replay = build_trust_snapshot(
+            self.root_b, captured_at="2026-11-07T12:00:00Z", sequence=2,
+            previous_snapshot_sha256="f" * 64, tuf_verified=True
+        )
+        with self.assertRaisesRegex(ValueError, "predecessor"):
+            append_trust_snapshot(chain, replay)
+
     def test_freshness_is_review_due_without_invalidating_historical_verification(self):
         snapshot = build_trust_snapshot(self.root_a, captured_at="2026-10-01T00:00:00Z", sequence=1, tuf_verified=True)
         result = assess_snapshot_freshness(snapshot, now=self.now, max_age_days=30)
