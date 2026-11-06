@@ -2,6 +2,7 @@
 import hashlib
 import json
 import re
+import zipfile
 from pathlib import Path
 
 _SHA40 = re.compile(r"^[0-9a-f]{40}$")
@@ -12,6 +13,26 @@ def _required(name, value):
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"missing or invalid {name}")
     return value.strip()
+
+
+def verify_artifact_archive(archive_path, *, expected_sha256):
+    """Verify externally anchored artifact bytes and ZIP member integrity."""
+    if not isinstance(expected_sha256, str) or not _SHA64.fullmatch(expected_sha256):
+        raise ValueError("invalid expected artifact SHA-256")
+    try:
+        actual = hashlib.sha256(Path(archive_path).read_bytes()).hexdigest()
+    except OSError as exc:
+        raise ValueError("artifact archive unavailable") from exc
+    if actual != expected_sha256:
+        raise ValueError("artifact archive SHA-256 mismatch")
+    try:
+        with zipfile.ZipFile(archive_path) as archive:
+            bad_member = archive.testzip()
+            if bad_member is not None:
+                raise ValueError(f"artifact ZIP member CRC failure: {bad_member}")
+    except (OSError, zipfile.BadZipFile) as exc:
+        raise ValueError("artifact archive is not a valid ZIP") from exc
+    return True
 
 
 def _read_descriptor(label, path, expected_source_sha=None):
