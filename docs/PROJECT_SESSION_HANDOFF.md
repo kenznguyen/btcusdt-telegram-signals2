@@ -3962,3 +3962,18 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Detailed report: `docs/architecture/P1.8.10_SYNTHETIC_FIXTURE_INDEPENDENT_REPLAY_VERIFICATION_2026-11-07.md`; report commit `c972cfb5316714f07787e59ffb5680ee872a08b1`.
 - **P1.8.10: PASS — independent offline replay/integrity verification of archived synthetic fixture A only.** This is not Root B/provider independence, signed evidence, production replay, or production durability certification.
 - No runtime, DB, exchange, VPS/provider, persistent capture, paper/live execution, workflow rerun, or merge. T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`.
+
+
+## 2026-11-07 — P1.8.11 Synthetic Dual-Fixture Reproducibility Acceptance
+
+- User approval: `APPROVE P1.8.11 — SYNTHETIC DUAL-FIXTURE REPRODUCIBILITY ACCEPTANCE`.
+- Scope: synthetic-only workflow/test change to retain both independently generated fixture A and B in one Actions artifact; no T0/T1 runtime or external services.
+- Implementation SHA: `46c8904c1e7f0ac894b6133eabe7594adddb9e4c`; parent `b103ecae5314286f30cecd5b2bee20c348c8cb2d`. Files changed: `.github/workflows/p1-8-synthetic-evidence.yml` and `synthetic_evidence/test_generator.py`.
+- GitHub Actions run `42301769109`, job `128181055508`, SUCCESS; exact head SHA matches implementation SHA. Python 3.11.18 compile PASS; **75/75 tests PASS**; synthetic-only preflight PASS; DB/exchange credential env vars empty; `AI_EXECUTION_ENABLED=false`.
+- Workflow separately generates A/B, recursive `diff -qr`, validates each `fixture.sha256`, compares inventory files with `cmp`, records both inventory digests/counts and uploads both fixture directories.
+- Artifact `13544597038`, size 596,834 bytes, SHA-256 `2bb873aa0b1f8f4d30ce9f8399851103c6d69161910c0005582bb43f0c12748c`; independently downloaded/re-hashed ZIP MATCH; ZIP integrity PASS.
+- Artifact contains 42 files: A 18, B 18, top-level evidence 6. Independent comparison: complete relative paths equal; all **18/18 files byte-identical**; fixture A inventory 17/17 SHA checks; fixture B inventory 17/17 SHA checks; 1,000 event lines; 12 manifest lines. Both descriptor source SHAs match implementation SHA.
+- A/B inventory-file SHA-256 both `f7679c14718ad1529fb9536379d48a7a0401c92bb552e2f22586c5ec18900ff9`; events JSONL SHA-256 `9496370af967460b9e9f8b8b87a4a88a5835deb2397b24faf31b48b74ca592ad`; manifests JSONL SHA-256 `3198fd42d036cb8902264cc4f6f2ce90d61383a275e49dfcc92fa0a7f78631e6`.
+- Detailed report: `docs/architecture/P1.8.11_SYNTHETIC_DUAL_FIXTURE_REPRODUCIBILITY_ACCEPTANCE_2026-11-07.md`; report commit `29a2edb64c46b5c09e50550ad1141c6ce1476cc7`.
+- **P1.8.11: PASS — dual-fixture generation, reproducibility, artifact inclusion and independent archive verification.** Does not establish Root B/provider independence, signed provenance, production durability, or production runtime correctness.
+- No runtime integration, DB, exchange, VPS/provider, persistent capture, paper/live execution, or merge. T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`.
