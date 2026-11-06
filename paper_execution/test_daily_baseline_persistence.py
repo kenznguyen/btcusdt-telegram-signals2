@@ -59,6 +59,38 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
             recorded_at_ms=self.recorded,
         )
 
+
+    def _rewrite_current_baseline_audit_as_v1(self):
+        import hashlib
+        import json
+        from paper_execution.daily_baseline import _canonical
+
+        with self._connection() as db:
+            db.execute("DROP TRIGGER paper_daily_equity_baselines_immutable_update")
+            db.execute("DROP TRIGGER paper_daily_equity_baseline_audit_immutable_update")
+            row = db.execute(
+                """SELECT payload_json FROM paper_daily_equity_baseline_audit
+                   WHERE account_id=1 AND utc_day_ms=?""",
+                (self.boundary,),
+            ).fetchone()
+            payload = json.loads(row[0])
+            payload.pop("auditSchemaVersion", None)
+            payload.pop("riskState", None)
+            payload_json = _canonical(payload)
+            digest = "sha256:" + hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
+            db.execute(
+                """UPDATE paper_daily_equity_baselines SET replay_digest=?
+                   WHERE account_id=1 AND utc_day_ms=?""",
+                (digest, self.boundary),
+            )
+            db.execute(
+                """UPDATE paper_daily_equity_baseline_audit
+                   SET replay_digest=?,payload_json=?
+                   WHERE account_id=1 AND utc_day_ms=?""",
+                (digest, payload_json, self.boundary),
+            )
+            db.commit()
+
     def persist(self):
         connection = self._connection()
         try:
@@ -343,6 +375,26 @@ os._exit(74)
         self.assertTrue(snapshot["riskReady"])
         retry = self.persist()
         self.assertTrue(retry["idempotent"])
+
+
+    def test_v1_baseline_audit_without_risk_snapshot_is_not_risk_ready(self):
+        self.persist()
+        self._rewrite_current_baseline_audit_as_v1()
+        with self.assertRaisesRegex(
+            sqlite3.DatabaseError, "DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED"
+        ):
+            read_account_risk_snapshot(self.path, now_ms=self.recorded)
+
+    def test_v1_baseline_audit_cannot_admit_new_exposure_after_restart(self):
+        self.persist()
+        self._rewrite_current_baseline_audit_as_v1()
+        order = self.fixture.core.submit(
+            self._intent_at("legacy-v1-baseline-entry", "0.01", "100.1",
+                            "legacy-v1-baseline-book", self.recorded),
+            self.fixture.book(self.recorded), self.recorded,
+        )
+        self.assertEqual(order["status"], "REJECTED")
+        self.assertIsNotNone(order["reason"])
 
     def test_missing_daily_baseline_blocks_new_exposure(self):
         self.persist()
