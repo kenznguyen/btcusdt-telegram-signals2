@@ -394,7 +394,7 @@ os._exit(74)
             self.fixture.book(self.recorded), self.recorded,
         )
         self.assertEqual(order["status"], "REJECTED")
-        self.assertIsNotNone(order["reason"])
+        self.assertEqual(order["reason"], "RISK_INPUTS_STALE_OR_CORRUPT")
 
     def test_missing_daily_baseline_blocks_new_exposure(self):
         self.persist()
