@@ -2692,3 +2692,27 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - `paper_equity_history` is legacy single-strategy history. No dedicated immutable dual-ledger historical mark table or complete Core/AI/Legacy event-journal completeness watermark was found in the inspected `paper_execution` schema.
 - Result: existing `paper_audit`/`paper_orders` are evidence inputs to reconcile/migrate, not sufficient authority for a certified 00:00 UTC replay without proving historical row completeness and protecting the history from mutation. Do not derive daily baselines directly from these tables.
 - Proposed next design increment: introduce a canonical append-only account event journal populated atomically with every fill/reduction/reversal/fee/adjustment/funding event, plus immutable market-mark snapshots and source-coverage watermarks. Backfill only from verifiable existing audit/evidence; any uncovered period remains UNKNOWN and blocks rollover. Keep historical original tables unchanged.
+
+## 2026-11-06 — UTC Equity Reconstruction v1 design + RED contract
+
+- User selected exact historical reconstruction at 00:00:00 UTC; first-in-day snapshot is not an acceptable Daily Loss baseline.
+- Design contract added: `docs/architecture/T1_UTC_EQUITY_RECONSTRUCTION_EVENT_JOURNAL_V1_2026-11-06.md`.
+  - Migration v6 proposal: append-only `paper_account_event_journal`, `paper_account_history_coverage`, immutable `paper_market_mark_history`, and immutable `paper_daily_equity_baselines`.
+  - Half-open event boundary: events before B included; events exactly at B excluded from baseline.
+  - Separate verified coverage required for Core, AI, Legacy execution streams, market marks, and existing funding history.
+  - Exact effective boundary mark required; no nearest/latest mark, interpolation, inferred fees, or synthetic fills.
+  - Atomic `BEGIN IMMEDIATE` reconstruction; deterministic replay; one baseline per account/day; idempotent identical retry; conflicting digest rejected; failure preserves previous baseline and blocks increases.
+  - Existing `paper_orders` aggregate fill and mutable `paper_audit` are not authoritative for complete historical replay. No backfill unless execution-level source evidence is independently verified.
+- RED tests added to `paper_execution/test_dual_ledger_red.py`:
+  1. migration creates the four v6 history tables and immutable triggers;
+  2. event idempotency/conflict;
+  3. adjacent coverage accepted and overlap rejected;
+  4. exact-boundary mark persistence and immutability;
+  5. missing-coverage reconstruction fails closed without baseline/readiness mutation.
+- Design commit: `90ff1b468bb8865e6c164bdf7c33dbd10b71077a`.
+- RED test commit/source SHA: `7a55b1242be35b35ba88ba95b6a44556acd4550f`.
+- Current branch HEAD at this handoff update: pending final verification below.
+- Test status: **RED CONTRACT WRITTEN / EXECUTION NOT VERIFIED**. The GitHub Actions workflow `.github/workflows/dual-ledger-red.yml` is configured for push changes under `paper_execution/**`; no workflow run for the test SHA was visible in the repository run listing at inspection time. No local checkout/runtime is available through this GitHub operation, so do not claim compile/test execution.
+- No implementation or migration v6 source added yet. The tests are expected to fail against current code until the API/schema is implemented; the exact failure output remains NOT VERIFIED.
+- Next: obtain a real GitHub Actions run of the RED test SHA and retain the expected failing evidence; then implement v6 minimally and atomically with per-fill journal writes inside existing ledger transactions, followed by GREEN and full `paper_execution` regression.
+- Restrictions: no persistent DB migration/backfill, no production DB access, no backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; `ai_execution_enabled=false`.
