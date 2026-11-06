@@ -473,7 +473,7 @@ class DualLedgerRedTest(unittest.TestCase):
             self.book(self.now),
             self.now,
             reconciliation_id="legacy-close-review-001",
-            evidence_hash="sha256:legacy-close-evidence-001",
+            evidence_hash="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         )
         self.assertEqual(order["status"], "FILLED", order)
         self.assertEqual(order["strategyId"], "LEGACY_UNATTRIBUTED")
@@ -485,7 +485,7 @@ class DualLedgerRedTest(unittest.TestCase):
             self.book(self.now),
             self.now,
             reconciliation_id="legacy-close-review-001",
-            evidence_hash="sha256:legacy-close-evidence-001",
+            evidence_hash="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         )
         self.assertEqual(replayed, order, "Retrying the same intent must replay, not consume depth twice")
         with sqlite3.connect(self.path) as connection:
@@ -510,7 +510,7 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertLess(Decimal(rows["LEGACY_UNATTRIBUTED"][3]), Decimal("0.35"))
         self.assertEqual(reservation_count, before_reservations)
         self.assertIn("legacy-close-review-001", audit)
-        self.assertIn("sha256:legacy-close-evidence-001", audit)
+        self.assertIn("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", audit)
 
     def test_legacy_reduction_path_rejects_increase_or_reversal_without_mutation(self):
         with sqlite3.connect(self.path) as connection:
@@ -531,7 +531,7 @@ class DualLedgerRedTest(unittest.TestCase):
                 self.book(self.now),
                 self.now,
                 reconciliation_id="legacy-close-review-002",
-                evidence_hash="sha256:legacy-close-evidence-002",
+                evidence_hash="sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             )
             self.assertEqual(result["status"], "REJECTED", result)
             self.assertEqual(result["reason"], "LEGACY_REDUCTION_ONLY")
@@ -565,7 +565,7 @@ class DualLedgerRedTest(unittest.TestCase):
             shared_book,
             self.now,
             reconciliation_id="legacy-depth-review-001",
-            evidence_hash="sha256:legacy-depth-evidence-001",
+            evidence_hash="sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         )
         self.assertEqual(legacy_close["status"], "FILLED", legacy_close)
         self.assertEqual(legacy_close["filledBase"], "0.1")
