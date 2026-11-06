@@ -3300,3 +3300,19 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Consequence: Dual Reconstruction cannot currently be independently verified from tracked repository evidence. Two calculations over the same mutable account DB remain INTERNAL_CONSISTENCY_ONLY and cannot qualify an Epoch anchor.
 - Next: if proceeding without external evidence, preserve Option A and keep v1 unresolved/risk increases blocked. To continue the evidence path, identify a separately retained external checkpoint/archive by its storage/source identity first; do not open the persistent account DB, download arbitrary artifacts, import account data, or implement source/schema changes without separate authorization.
 - Restrictions unchanged: no source/test implementation, schema migration, persistent account DB opening, backfill, external account import, exchange connection, production backtest, deployment, merge, Epoch activation, HWM reset, or live order. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — GitHub Actions artifact metadata classification
+
+- Scope: read-only metadata review of five known T1 CI runs. Artifact payloads were not downloaded or extracted; no persistent DB or external/local archive was opened.
+- Runs and artifacts:
+  - run `42277853667`, source `7cddb5eacfd70f5bc886bc03f672177cdf3f8f2a`, artifact `13533807345`, 8,452 bytes, digest `sha256:fb41913d0826f836adf7b6c460efc6bd3d41f6af41f5e976764cc099c00376c9`.
+  - run `42279162334`, source `fbf74c5d72ee977651b8075f13dadf9763b4b272`, artifact `13534541826`, 8,919 bytes, digest `sha256:ac769ba03c657a4361d72eef3f794ac005cada4108395fc85e4719d6f1ea1ff0`.
+  - run `42279706472`, source `4eac10b704882c7f14901400be9d76465b0ffc44`, artifact `13534577603`, 8,971 bytes, digest `sha256:f098522daedc72098025bf1cdd43efb4315e68f8613cfe0a10ce3865fe09955e`.
+  - run `42280083080`, source `f7df95c2ff2008aa88923b3242b1486c096d9342`, artifact `13533829670`, 9,017 bytes, digest `sha256:518596b09e16712d2c5ed157baa85168fd6c960ffbf5a7414ee9d6d547195275`.
+  - run `42276535949`, source `e06b28b740590b99c4c930004bf547c8fccbaf99`, artifact `13533163461`, 8,189 bytes, digest `sha256:62557812142e7aa84aa238c4c6a4dd99a851c9116beeeca2dd1a1893abc0f88e`.
+- Artifact names are `dual-ledger-red-evidence-<source SHA>`; all five are CI evidence packages, not identified as account event archives/checkpoints. Metadata alone does not prove payload contents or original account-data authenticity. All were unexpired during inspection and expire on 2026-11-13 UTC.
+- Inventory updated: `docs/evidence/DAILY_BASELINE_V1_RECOVERY_EVIDENCE_INVENTORY_2026-11-07.md`, commit `67d93ae0967383b865eb4509e17c5e7f23e5f0ff`.
+- Status: **PASS — metadata classification recorded. NOT VERIFIED — artifact payload contents; no independent account evidence root found.** These artifacts remain useful for CI/test provenance, not for Replay A or Reconstruction B.
+- Next: preserve the current classification. Do not download/extract artifacts absent a specific evidence-based reason and explicit scope. A genuine second root must be a retained account event archive or independently retained account checkpoint, not a CI test report.
+- Restrictions unchanged: no source/test implementation, schema migration, persistent account DB opening, backfill, external account import, exchange connection, production backtest, deployment, merge, Epoch activation, HWM reset, or live order. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
