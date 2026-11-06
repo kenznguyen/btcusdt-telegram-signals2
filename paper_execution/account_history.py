@@ -68,13 +68,21 @@ def _replay_text(number):
     return rendered or "0"
 
 
-def replay_ledger_events(snapshot, execution_events, funding_events, *, boundary_ms):
+def replay_ledger_events(snapshot, execution_events, funding_events, *, boundary_ms, coverage_watermark_at_ms):
     """Replay one ledger using strict event-time ordering and half-open UTC cutoff."""
     boundary = _stamp(boundary_ms, "ACCOUNT_HISTORY_UTC_DAY_INVALID")
     if boundary % DAY_MS:
         raise ValueError("ACCOUNT_HISTORY_UTC_DAY_INVALID")
     if not isinstance(snapshot, dict):
         raise ValueError("ACCOUNT_HISTORY_CUTOVER_SNAPSHOT_INVALID")
+    snapshot_at = _stamp(
+        snapshot.get("snapshot_at_ms"), "ACCOUNT_HISTORY_CUTOVER_SNAPSHOT_INVALID"
+    )
+    watermark = _stamp(
+        coverage_watermark_at_ms, "ACCOUNT_HISTORY_COVERAGE_WATERMARK_INVALID"
+    )
+    if not snapshot_at < boundary <= watermark:
+        raise ValueError("ACCOUNT_HISTORY_COVERAGE_WATERMARK_INVALID")
 
     position = _replay_decimal(
         snapshot.get("position_base"), "ACCOUNT_HISTORY_CUTOVER_SNAPSHOT_INVALID", signed=True
@@ -104,8 +112,19 @@ def replay_ledger_events(snapshot, execution_events, funding_events, *, boundary
         if not isinstance(event, dict):
             raise ValueError("ACCOUNT_HISTORY_EVENT_INVALID")
         event_at = _stamp(event.get("event_at_ms"), "ACCOUNT_HISTORY_EVENT_TIME_INVALID")
+        recorded_at = _stamp(
+            event.get("recorded_at_ms"), "ACCOUNT_HISTORY_RECORDED_TIME_INVALID"
+        )
+        if event_at > recorded_at:
+            raise ValueError("ACCOUNT_HISTORY_EVENT_TIME_INVALID")
+        if event_at <= snapshot_at:
+            if recorded_at > snapshot_at:
+                raise ValueError("ACCOUNT_HISTORY_LATE_EVENT")
+            continue
         if event_at >= boundary:
             continue
+        if recorded_at > watermark:
+            raise ValueError("ACCOUNT_HISTORY_LATE_EVENT")
         event_id = _text(event.get("event_id"), "ACCOUNT_HISTORY_EVENT_ID_INVALID", 200)
         if event_id in seen_event_ids:
             raise ValueError("ACCOUNT_HISTORY_EVENT_ID_DUPLICATE")
@@ -153,8 +172,19 @@ def replay_ledger_events(snapshot, execution_events, funding_events, *, boundary
         if not isinstance(event, dict):
             raise ValueError("ACCOUNT_HISTORY_FUNDING_EVENT_INVALID")
         event_at = _stamp(event.get("event_at_ms"), "FUNDING_EVENT_TIMESTAMP_INVALID")
+        recorded_at = _stamp(
+            event.get("recorded_at_ms"), "FUNDING_EVENT_RECORDED_TIME_INVALID"
+        )
+        if event_at > recorded_at:
+            raise ValueError("FUNDING_EVENT_TIMESTAMP_INVALID")
+        if event_at <= snapshot_at:
+            if recorded_at > snapshot_at:
+                raise ValueError("ACCOUNT_HISTORY_LATE_EVENT")
+            continue
         if event_at >= boundary:
             continue
+        if recorded_at > watermark:
+            raise ValueError("ACCOUNT_HISTORY_LATE_EVENT")
         event_id = _text(
             event.get("funding_event_id", event.get("event_id")),
             "FUNDING_EVENT_ID_INVALID", 200,
@@ -180,6 +210,8 @@ def replay_ledger_events(snapshot, execution_events, funding_events, *, boundary
         "funding_quote": _replay_text(funding),
         "included_event_ids": included_event_ids,
         "included_funding_event_ids": included_funding_event_ids,
+        "snapshot_at_ms": snapshot_at,
+        "coverage_watermark_at_ms": watermark,
         "boundary_ms": boundary,
     }
 
