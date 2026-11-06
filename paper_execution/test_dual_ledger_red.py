@@ -10,9 +10,13 @@ class DualLedgerRedTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.path = Path(self.temp.name) / "shared-account.sqlite3"
-        self.core = PaperLedger(self.path, max_position_base="1", fee_rate="0.001", strategy_id="STRATEGY_CORE")
-        self.ai = PaperLedger(self.path, max_position_base="1", fee_rate="0.001", strategy_id="AI_FREQAI")
         self.now = 1_800_000_000_000
+        bootstrap = PaperLedger(self.path, max_position_base="1", fee_rate="0.001")
+        bootstrap.record_equity("100", self.now - 60_000, self.now, "sha256:dual-ledger-seed", "100")
+        self.core = PaperLedger(self.path, max_position_base="1", fee_rate="0.001",
+                                strategy_id="STRATEGY_CORE", source_sha="a" * 40)
+        self.ai = PaperLedger(self.path, max_position_base="1", fee_rate="0.001",
+                              strategy_id="AI_FREQAI", source_sha="a" * 40)
 
     def intent(self, intent_id, target, limit, snapshot_id):
         return {
@@ -63,8 +67,8 @@ class DualLedgerRedTest(unittest.TestCase):
             self.ai.snapshot()["positionBase"], "-0.2"
         )
 
-        reopened_core = PaperLedger(self.path, max_position_base="1", strategy_id="STRATEGY_CORE")
-        reopened_ai = PaperLedger(self.path, max_position_base="1", strategy_id="AI_FREQAI")
+        reopened_core = PaperLedger(self.path, max_position_base="1", strategy_id="STRATEGY_CORE", source_sha="a" * 40)
+        reopened_ai = PaperLedger(self.path, max_position_base="1", strategy_id="AI_FREQAI", source_sha="a" * 40)
         self.assertEqual(
             reopened_core.snapshot()["positionBase"], "0.1"
         )
