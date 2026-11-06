@@ -50,8 +50,10 @@ class DualLedgerRedTest(unittest.TestCase):
             )
             ledger.record_account_equity_cutover(
                 path, cutover_id="fixture-account-cutover",
-                expected_initial_capital_quote="100", mark_price="100",
-                mark_candle_close_ms=self.now-60_000,
+                expected_initial_capital_quote="100",
+                expected_realized_pnl_quote="0", expected_fees_quote="0",
+                expected_funding_quote="0", expected_account_equity_quote="100",
+                mark_price="100", mark_candle_close_ms=self.now-60_000,
                 mark_observed_at_ms=self.now,
                 dataset_version="sha256:dual-ledger-seed",
                 funding_coverage_start_at_ms=self.now-86_400_000,
@@ -899,6 +901,8 @@ class DualLedgerRedTest(unittest.TestCase):
                 path,
                 cutover_id="cutover-blocked-unknown-funding",
                 expected_initial_capital_quote="100",
+                expected_realized_pnl_quote="0", expected_fees_quote="0",
+                expected_funding_quote="0", expected_account_equity_quote="100",
                 mark_price="100",
                 mark_candle_close_ms=self.now - 60_000,
                 mark_observed_at_ms=self.now,
@@ -989,6 +993,10 @@ class DualLedgerRedTest(unittest.TestCase):
         kwargs = {
             "cutover_id": "account-cutover-verified-001",
             "expected_initial_capital_quote": "100",
+            "expected_realized_pnl_quote": "1.5",
+            "expected_fees_quote": "0.4",
+            "expected_funding_quote": "0.2",
+            "expected_account_equity_quote": "102.4",
             "mark_price": "100",
             "mark_candle_close_ms": self.now - 60_000,
             "mark_observed_at_ms": self.now,
