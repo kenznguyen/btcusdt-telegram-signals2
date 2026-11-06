@@ -107,7 +107,7 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
         self.assertEqual(ai, ("0",))
         self.assertEqual(risk[0], 0)
         self.assertIsNotNone(risk[1])
-        self.assertEqual(migration, [(1, "APPLIED")])
+        self.assertEqual(migration, [(1, "APPLIED"), (2, "APPLIED")])
         self.assertEqual(legacy_after, legacy_state)
         self.assertEqual(owner_after, legacy_owner)
 
@@ -167,6 +167,81 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
 
         self.assertEqual(legacy_position, "NaN")
         self.assertIsNone(migration_table)
+
+
+    def test_v2_legacy_book_consumption_migration_is_additive_and_idempotent(self):
+        legacy_state, legacy_owner, order_count = self.make_legacy_database()
+        PaperLedger(
+            self.path, max_position_base="1", strategy_id="STRATEGY_CORE",
+            source_sha="c" * 40,
+        )
+        with sqlite3.connect(self.path) as connection:
+            migrations = connection.execute(
+                "SELECT version,name,checksum,status FROM paper_schema_migrations ORDER BY version"
+            ).fetchall()
+            columns = {
+                row[1] for row in connection.execute(
+                    "PRAGMA table_info(paper_legacy_book_consumptions)"
+                )
+            }
+            foreign_keys = connection.execute(
+                "PRAGMA foreign_key_list(paper_legacy_book_consumptions)"
+            ).fetchall()
+            unique_indexes = []
+            for index in connection.execute(
+                "PRAGMA index_list(paper_legacy_book_consumptions)"
+            ).fetchall():
+                if index[2]:
+                    unique_indexes.append({
+                        row[2] for row in connection.execute(
+                            f"PRAGMA index_info({index[1]})"
+                        )
+                    })
+            preserved = connection.execute(
+                "SELECT position,average,realized,fees FROM paper_state WHERE id=1"
+            ).fetchone()
+            owner = connection.execute(
+                "SELECT owner,dca_used,initial_margin_quote FROM paper_strategy_state WHERE id=1"
+            ).fetchone()
+            orders = connection.execute(
+                "SELECT COUNT(*) FROM paper_orders"
+            ).fetchone()[0]
+
+        self.assertEqual([row[0] for row in migrations], [1, 2])
+        self.assertEqual(migrations[1][1], "legacy_book_depth_v2")
+        self.assertEqual(len(migrations[1][2]), 64)
+        self.assertEqual(migrations[1][3], "APPLIED")
+        self.assertTrue({
+            "consumption_id", "account_id", "intent_id", "book_id", "side",
+            "price", "consumed_quantity", "reconciliation_id", "evidence_hash",
+            "created_at_ms",
+        }.issubset(columns))
+        self.assertTrue(any(
+            row[2] == "paper_orders" and row[3] == "intent_id"
+            for row in foreign_keys
+        ))
+        self.assertIn({"intent_id", "book_id", "side", "price"}, unique_indexes)
+        self.assertEqual(preserved, legacy_state)
+        self.assertEqual(owner, legacy_owner)
+        self.assertEqual(orders, order_count)
+
+        PaperLedger(
+            self.path, max_position_base="1", strategy_id="AI_FREQAI",
+            source_sha="c" * 40,
+        )
+        PaperLedger(
+            self.path, max_position_base="1", strategy_id="STRATEGY_CORE",
+            source_sha="c" * 40,
+        )
+        with sqlite3.connect(self.path) as connection:
+            counts = connection.execute(
+                "SELECT version,COUNT(*) FROM paper_schema_migrations GROUP BY version ORDER BY version"
+            ).fetchall()
+            preserved_after_reopen = connection.execute(
+                "SELECT position,average,realized,fees FROM paper_state WHERE id=1"
+            ).fetchone()
+        self.assertEqual(counts, [(1, 1), (2, 1)])
+        self.assertEqual(preserved_after_reopen, legacy_state)
 
 
 if __name__ == "__main__":
