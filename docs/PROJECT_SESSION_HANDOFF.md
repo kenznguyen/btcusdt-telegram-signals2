@@ -2540,3 +2540,24 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Prior T1 cutover overlap and statement-total mismatch tests remain NOT VERIFIED until a workflow runs on the exact merged SHA. Earlier 69/69 evidence applies only to `8dadd35b7e9e0174efab70c425eab53bca99fa34`.
 - `ai_execution_enabled=false`; paper-only boundary retained. No persistent account database was opened or migrated; no backtest, deployment, exchange connection, Feeder activation, or live order occurred.
 - Next: inspect the merge commit's complete file list and run isolated CI on the exact merge SHA. Record T0 and T1 results separately. Keep all unresolved funding provenance/cutover checks NOT VERIFIED.
+
+
+## 2026-11-06 — post-merge exact-SHA CI result
+
+- Merge commit/source SHA: `8ec8f17f387742a4925d01d3c5454983455d2794`; GitHub Actions push run [#42197091587](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42197091587) checked out this exact SHA.
+- Overall workflow conclusion: **FAIL** because the fresh-cluster restricted provider bootstrap job failed. Do not mark the combined run PASS.
+- PASS jobs:
+  - Static Gateway contract verification (job `127822957142`): complete `market_data` regression 233 tests, 37 skipped, remaining tests PASS; merged `market_data/test_write_gateway.py` regressions all PASS, including process-crash/restart and invalid-existing-schema/no-side-effect.
+  - Paper consumer fixture regressions (job `127822957315`): 44/44 PASS.
+  - Isolated TimescaleDB integration (job `127823076393`): atomic writer 7/7; PostgreSQL FeederRuntime integration 18/18; PostgreSQL runtime lifecycle 4/4; least-privilege roles 18/18; read-only TimescaleDB 6/6. Total 53/53 PASS against disposable CI services only.
+- FAIL job:
+  - Fresh-cluster restricted provider bootstrap (job `127822957489`): 1 test ERROR in `test_non_superuser_bootstrap_provisions_roles_then_restricted_migrations_run`; `migrate()` raises `RuntimeError: t0_migrator may only be granted to the ephemeral t0_migrator_login role`. This is a PostgreSQL role-membership safety contract failure. No security guard was weakened and no T0 source was modified to force green.
+- Artifacts, all associated with exact SHA `8ec8f17f387742a4925d01d3c5454983455d2794`:
+  - T0 Gateway evidence ID `13492172760`, SHA-256 `a73396f1e60bef4417c32779cd52add34d2683a55baa00019a1db922edee0e56`.
+  - Paper consumer evidence ID `13493025206`, SHA-256 `bcc7e5faf47e06d27f003d224edf9876cf7847d72ece573af4a8009281d045f3`.
+  - T0 provider bootstrap failure evidence ID `13493245380`, SHA-256 `7a18c87909a7d84ec3e428e0a4089c2f1705f9f61ac19f3a0a669595c22b34d6`.
+  - TimescaleDB integration evidence ID `13492403228`, SHA-256 `108cacc0f1c31f95dc7578d971fc50653d07dc7886362188309214d6e858ea40`.
+- Dual Ledger workflow `.github/workflows/dual-ledger-red.yml` did not trigger on this merge push because its path filter covers `paper_execution/**` and that workflow file; neither changed in the merge. Therefore current-merge-SHA Dual Ledger suite is **NOT RUN / NOT VERIFIED**. Earlier 69/69 remains evidence only for SHA `8dadd35b7e9e0174efab70c425eab53bca99fa34`; it must not be transferred to this merge SHA.
+- Merge diff from the T1 parent contains only eight imported paths plus the two reconciled files; no T0 production source, T1 paper-execution source, persistent database, or runtime configuration was changed. The only T0 code path change is test-only `market_data/test_write_gateway.py`.
+- Status: **BRANCH SYNC MERGE PASS; T0 GATEWAY/PAPER CONSUMER/TIMESCALEDB SUITES PASS; PROVIDER BOOTSTRAP BLOCKED; DUAL LEDGER CURRENT-SHA CI NOT VERIFIED.**
+- Next: keep branch at the merge commit unless a separately scoped follow-up is approved. Investigate the T0 provider role-membership failure without weakening least-privilege rules. Separately arrange exact-SHA Dual Ledger CI for the unchanged T1 paper_execution source. No T0 production DB migration, VPS/Feeder activation, exchange connection, backtest, deployment or live execution. `ai_execution_enabled=false`.
