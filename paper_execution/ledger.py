@@ -1548,6 +1548,56 @@ class PaperLedger:
                 if filled:
                     fee = quote*self.fee_rate
                     next_fees += fee
+                    for fill_index, (_, price_text, quantity_text) in enumerate(used_levels):
+                        fill_quantity = Decimal(quantity_text)
+                        fill_price = Decimal(price_text)
+                        signed_quantity = fill_quantity if delta > 0 else -fill_quantity
+                        fill_fee = fill_quantity * fill_price * self.fee_rate
+                        event_id = identity("account-event:", {
+                            "intentId": intent["intentId"],
+                            "strategyId": strategy_id,
+                            "bookId": book_id,
+                            "fillIndex": fill_index,
+                        })
+                        event_payload = {
+                            "eventId": event_id,
+                            "accountId": 1,
+                            "strategyId": strategy_id,
+                            "eventType": "FILL",
+                            "eventAtMs": now,
+                            "recordedAtMs": now,
+                            "orderId": identity("paper:", intent["intentId"]),
+                            "intentId": intent["intentId"],
+                            "sourceEventId": f"{intent['intentId']}:{fill_index}",
+                            "quantityDeltaBase": text(signed_quantity),
+                            "fillPrice": text(fill_price),
+                            "feeQuote": text(fill_fee),
+                            "source": "PAPER_VISIBLE_DEPTH_SIMULATION",
+                            "sourceSnapshotId": book_id,
+                        }
+                        canonical_event = json.dumps(
+                            event_payload, sort_keys=True, separators=(",", ":"),
+                            allow_nan=False,
+                        )
+                        event_hash = "sha256:" + hashlib.sha256(
+                            canonical_event.encode("utf-8")
+                        ).hexdigest()
+                        connection.execute(
+                            """INSERT INTO paper_account_event_journal
+                               (event_id,account_id,strategy_id,event_type,event_at_ms,
+                                recorded_at_ms,order_id,intent_id,source_event_id,
+                                quantity_delta_base,fill_price,fee_quote,source,
+                                source_snapshot_id,payload_hash,canonical_payload,created_at_ms)
+                               VALUES (?,1,?,'FILL',?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                            (
+                                event_id, strategy_id, now, now,
+                                event_payload["orderId"], intent["intentId"],
+                                event_payload["sourceEventId"], text(signed_quantity),
+                                text(fill_price), text(fill_fee),
+                                event_payload["source"], book_id, event_hash,
+                                canonical_event, now,
+                            ),
+                        )
 
             status = "REJECTED" if reason else (
                 "FILLED" if filled == quantity else
