@@ -302,11 +302,11 @@ class FileBackedSharedRiskAdmission:
     def initialize(self) -> None:
         import fcntl
         with self._locked() as handle:
-            try:
-                self._load()
-            except FileNotFoundError:
+            if not self._state_path.exists():
                 model = SharedRiskAdmission(self._policy, self._portfolio)
                 self._write(model.export_state())
+            else:
+                self._load()
             finally:
                 fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
@@ -339,7 +339,7 @@ class FileBackedSharedRiskAdmission:
         try:
             raw = self._state_path.read_text(encoding="utf-8")
         except FileNotFoundError:
-            raise FileNotFoundError("state missing: explicit initialize required")
+            raise ValueError("state missing: explicit initialize required")
         try:
             state = json.loads(raw)
             # Validate checksum and schema before returning untrusted disk data.
