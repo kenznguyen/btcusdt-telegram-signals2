@@ -2590,3 +2590,16 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **PASS — cutover rejects funding gaps, future mark observations, stale closed candles, and corrupted funding-event provenance; focused 41/41 and full 76/76 PASS on exact SHA `dd208e1...`.**
 - Still NOT VERIFIED: actual historical funding completeness, external statement-byte authenticity, real-account cutover, and backtest suitability. These fixtures prove local guard behavior only.
 - Next: exercise restart/replay/idempotency boundaries for cutover and verify read-only snapshot behavior under corrupt or incomplete provenance. Keep T0 investigation paused. No persistent DB migration, backtest, merge, deployment, exchange connection, or live execution. `ai_execution_enabled=false`.
+
+## 2026-11-06 — T1 Account Equity Cutover restart/replay and read-only snapshot verification
+
+- Scope: test-only additions in `paper_execution/test_dual_ledger_red.py`; no production source, schema, workflow, or T0 changes. T0 investigation remains paused.
+- Added `test_account_equity_cutover_replay_after_reopen_is_idempotent_and_conflict_safe`: establishes cutover, closes/reopens database access and reconstructs Core/AI ledger handles, then replays the identical cutover request. Verifies exactly one cutover row and one cutover audit, identical replay result, and unchanged HWM/daily baseline/equity/readiness/version. A changed payload hash under the same cutover ID must raise `ACCOUNT_EQUITY_CUTOVER_ID_CONFLICT` without changing durable state.
+- Added `test_read_account_risk_snapshot_leaves_database_bytes_unchanged`: compares exact SQLite file bytes before and after snapshot read and verifies snapshot remains available and risk-ready.
+- Exact source SHA: `c6390a53d12a7999ab71c2a9a45cdf8aba563c24`.
+- Exact push workflow [#42198245149](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42198245149), checked out exact source SHA; conclusion SUCCESS. Compile PASS; isolated PAPER-only preflight PASS; focused Dual Ledger + migration tests 43/43 PASS; full `paper_execution` regression 78/78 PASS.
+- Job ID: `127826812719`.
+- Artifact ID: `13493186942`, name `dual-ledger-red-evidence-c6390a53d12a7999ab71c2a9a45cdf8aba563c24`, GitHub upload digest `sha256:67dedde715226c151168ea33c168ed86f6ad555a86ab664c99e413c371567ba2`, expires 2026-11-13. Digest is GitHub artifact metadata; payload bytes were not separately downloaded and re-hashed.
+- Status: **PASS — cutover replay after reopening is idempotent, conflicting replay is mutation-free, and risk snapshot leaves the SQLite file byte-identical; focused 43/43 and full 78/78 PASS on exact SHA `c6390a5...`.**
+- Limits: restart is simulated by closing/reopening database access and reconstructing ledger handles within one test process; an OS/process-kill recovery test is not yet performed. Byte-identical snapshot proof is for this SQLite fixture and code path, not production DB.
+- Next: add process-crash/restart coverage around cutover transaction commit boundaries if the test harness can deterministically inject a crash; otherwise review transaction atomicity and recovery semantics read-only. Keep T0 paused. No persistent account DB migration, backtest, merge, deployment, exchange connection, or live execution. `ai_execution_enabled=false`.
