@@ -86,8 +86,8 @@ The adapter does not make HTTP requests, import/open a T0 database, modify Freqt
 | Full effective Freqtrade/FreqAI config | NOT VERIFIED | Config files absent from inspected tracked paths; only digests available |
 | T0 published schema and read-only semantics | PASS — documentation/source scope | T0 README, store and API inspected on T0 branch |
 | Actual T0 candle comparison | BLOCKED | T0 remains PAUSED; no DB or snapshot opened |
-| F1 offline exporter implementation | IMPLEMENTED / NOT TEST VERIFIED | Source and 10 contract cases committed; no test run evidence retrieved |
-| GitHub Actions F1 workflow | ADDED / NOT VERIFIED | Workflow file committed; no matching workflow run ID, checked-out SHA, job result or artifact evidence was retrieved |
+| F1 offline exporter contract | PASS — exact PR head | Run `42310673116`, job `128211020242`; checked-out SHA equals PR head `d43b34348225629eb6b783f7c4c655301e108a72`; compile PASS; 10/10 tests PASS |
+| GitHub Actions F1 workflow | PASS — exact PR head | Run `42310673116`; preflight PASS; artifact `13548780012`, SHA-256 `35a1a7fda37ead44cf440d819471242c39caa96807d63c94abb2fc4b2e22cf8d`; downloaded ZIP hash independently matched GitHub metadata |
 | Existing backtest/model preservation | NOT MODIFIED | No backtest, model, strategy, config or existing evidence file changed in this increment |
 | Runtime integration | NOT AUTHORIZED / NOT RUN | T0 remains PAUSED; adapter is offline only |
 
@@ -102,9 +102,9 @@ Branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`
 - F1 Freqtrade futures-layout correction: `ddcbd5a2e746066f2fd3c0550f36829b5eb6ca04`.
 - F1 strict source/output validation: `debdc05d9085e59697bc4671b3bad6e0b3c0b5ce`.
 - F1 symlink-output regression: `4ed5209a723029b59bd2f6593991fbf1a379009e`.
-- Current branch head when this report was updated: `1a5e5ca4da77dc704f7f856c16ae52b85aa060be`.
+- F1 exact-head verification source: `d43b34348225629eb6b783f7c4c655301e108a72` (run `42310673116`).
 
-No GitHub Actions run ID or artifact is claimed. Upstream format references: [Freqtrade 2026.9 IDataHandler](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/data/history/datahandlers/idatahandler.py), [JsonDataHandler](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/data/history/datahandlers/jsondatahandler.py), and [pair_to_filename](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/misc.py). The source is not ready for acceptance until exact-head Actions evidence is retrieved and the adapter is tested against a real, user-authorized T0 export.
+Earlier run `42310599932` tested the synthetic merge SHA `18a31f6bfd0d7703995334cb0e20fd6fc26c2470` and is not treated as direct-head evidence. The later run `42310673116` explicitly checked out the PR head SHA. Its artifact ZIP was downloaded and independently hashed; local SHA-256 matched the GitHub artifact digest. No live T0 data or Freqtrade runtime was involved. Upstream format references: [Freqtrade 2026.9 IDataHandler](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/data/history/datahandlers/idatahandler.py), [JsonDataHandler](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/data/history/datahandlers/jsondatahandler.py), and [pair_to_filename](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/misc.py). The source is not ready for acceptance until exact-head Actions evidence is retrieved and the adapter is tested against a real, user-authorized T0 export and Freqtrade's installed 2026.9 JSON loader.
 
 ## Next permitted steps
 
@@ -112,4 +112,4 @@ No GitHub Actions run ID or artifact is claimed. Upstream format references: [Fr
 2. When T0 is explicitly resumed and a canonical snapshot is made available, export a bounded M15/H1 window and run the adapter offline. Do not start T0 merely to satisfy this audit.
 3. Verify source payload hash, datasetVersion, row counts, full coverage, output hash and Freqtrade JSON parsing on the exact source SHA.
 4. Keep Binance export isolated from the existing OKX frozen-model research path.
-5. Only after these gates pass, separately propose any runtime read-only integration. No strategy, model, T1, risk, paper execution or live-order changes are implied.
+5. Validate a saved T0 export with Freqtrade 2026.9 `list-data` / JSON loader in an isolated data directory after a real T0 snapshot is explicitly authorized.\n6. Only after these gates pass, separately propose any runtime read-only integration. No strategy, model, T1, risk, paper execution or live-order changes are implied.
