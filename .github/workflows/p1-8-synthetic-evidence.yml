@@ -521,7 +521,7 @@ jobs:
           cp retained-evidence/synthetic-evidence-retention-manifest.json "$DEST/"
           cp retained-evidence/trust-root-snapshot.json "$DEST/"
           python - <<'PY'
-          import json
+          import json, os
           from pathlib import Path
           from synthetic_evidence.trust_lifecycle import (
               append_trust_snapshot, build_snapshot_chain, build_trust_snapshot,
