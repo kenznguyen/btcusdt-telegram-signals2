@@ -2257,3 +2257,15 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No source, test, migration, runtime, provider, database or workflow changes in this increment; architecture decision document only. No tests run because this is documentation-only.
 - Status: **PROVIDER CAPABILITY DECISION NOTE RECORDED — DESIGN ONLY; NO PROVIDER QUALIFIED; NO IMPLEMENTATION AUTHORIZED.**
 - Next: user chooses whether to keep Option C as the current provider policy or nominate a specific provider/tier for a documented capability review. Separate explicit approval remains required before source/test or provider provisioning changes.
+
+
+## 2026-11-06 — User decision: retain T0 provider Option C (fail closed)
+
+- User explicitly decided: **keep Option C as the default policy until a provider is qualified**.
+- Normative policy: any provider/bootstrap path that cannot demonstrate supported, least-privilege provisioning of the reserved PostgreSQL roles and satisfy the T0 role-membership guards remains **UNSUPPORTED / BLOCKED**. Fail closed; do not weaken `_assert_writer_roles_safe`, accept unintended CREATEROLE memberships, or use a broad/superuser application migration identity to force compatibility.
+- No provider is selected or qualified by this decision. Timescale Cloud/Tiger Cloud and DigitalOcean remain unqualified candidates; prior research or disposable PostgreSQL 16 CI evidence is not provider certification.
+- Provider qualification requires provider/tier-specific documentation and disposable-instance evidence for role provisioning and membership graph, restricted migrations, TLS verify-full/hostname, writer fencing/runtime lifecycle, backup/PITR/restore, and measured recovery/failover gates. Until those checks pass, retain the existing PC + CI validation path and SQLite default.
+- This decision authorizes documentation/policy recording only. It does not authorize provider evaluation against a live service, trial/provisioning/payment, database creation, migration, Feeder activation, exchange connection/data sync, VPS deployment, or production use.
+- No source, test, workflow, schema, runtime configuration, or database changed; no tests/workflow run. `ai_execution_enabled=false`; paper-only boundary unchanged.
+- Status: **OPTION C DEFAULT — APPROVED; NO PROVIDER QUALIFIED; T0 PROVIDER BOOTSTRAP BLOCKED UNTIL QUALIFICATION.**
+- Next: preserve this policy. Reopen provider qualification only when a concrete provider and service tier are nominated; begin with a read-only capability review, then request separate approval before any disposable provider instance or provisioning.
