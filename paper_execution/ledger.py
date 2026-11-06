@@ -509,7 +509,7 @@ class PaperLedger:
                      "remainingBase": text(quantity-filled), "averagePrice": text(quote/filled) if filled else None,
                      "feeQuote": text(fee), "createdAtMs": now, "updatedAtMs": now, "mode": "PAPER",
                      "reason": reason or ("TARGET_ALREADY_REACHED" if quantity == 0 else "VISIBLE_DEPTH_SIMULATION")}
-            connection.execute("INSERT INTO paper_orders VALUES (?,?,?,?,?)",
+            connection.execute("INSERT INTO paper_orders(intent_id,payload_hash,order_id,status,document) VALUES (?,?,?,?,?)",
                                (intent["intentId"], digest, order["orderId"], status, json.dumps(order, allow_nan=False)))
             self.audit(connection, now, "SUBMIT", order)
             return order
