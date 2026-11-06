@@ -1811,3 +1811,17 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No real Binance data, canonical T0 data, production credentials or Feeder activation.
 - `ai_execution_enabled=false`; paper-only boundary unchanged.
 - Next: decide whether a limited paid compatibility endpoint is needed at all. If yes, obtain exact checkout cost and approve the specific provider/service/maximum spend before provisioning. Otherwise continue CI-based validation and preserve the budget.
+
+
+## 2026-11-06 — DigitalOcean candidate compatibility review and VPS decision reaffirmation
+
+- User reaffirmed: VPS **NOT DECIDED**. No provider, VPS, region or configuration selection; no account, trial, payment, resource, network rule, secret or service provisioning. Continue PC + existing CI validation.
+- Reviewed current T0 migration/runtime source and current official DigitalOcean Standard PostgreSQL documentation. Research details are recorded in `docs/T0_STAGING_PROVIDER_RESEARCH.md` section 9.
+- DigitalOcean Standard officially lists TimescaleDB for PostgreSQL 16/17; current CI baseline is PG16/TimescaleDB 2.17.2. Exact provider extension version is not documented by the support matrix and remains NOT VERIFIED. Do not select PG18 for this candidate unless its current extension matrix changes.
+- DigitalOcean documents `doadmin` as CREATEROLE but not superuser. T0 migrations 003/004 create capability/owner roles and transfer SECURITY DEFINER ownership; migration runner uses `SET ROLE t0_migrator` when that role exists. A fresh-cluster bootstrap/migration sequence must therefore be proven; public docs alone do not establish compatibility. A narrow pre-bootstrap of reserved roles/memberships is a hypothesis only, not proven or authorized.
+- Provider TLS verify-full is documented with CA certificate for Standard, but actual CA/SAN handshake remains NOT VERIFIED.
+- Status: source-level candidate review **PARTIAL PASS**; provider migration compatibility **NOT VERIFIED**; exact extension version **NOT VERIFIED**; TLS handshake **NOT VERIFIED**; restore/RPO/RTO/failover fencing **NOT VERIFIED**.
+- No code/tests/migrations/workflows changed. Documentation-only update; no CI run claimed. No provider endpoint, VPS, database or credentials created. No Binance connection, canonical ingestion or Feeder activation.
+- Research update commit: `79b705b6e74bfb79f55e950f9e3d50b8b6c89f32`; research blob: `b98446be4d408ab651da1cc72b0375d0fbd37599`.
+- Next safe step: continue source-level review and design a disposable provider-compatibility acceptance script/checklist. Do not provision until the user separately approves a named provider, plan, region, exact spend cap and temporary purpose.
+- Hard boundaries unchanged: T0 remains an independent data asset; PC + existing CI; no VPS decision; no canonical DB/real market data/Feeder activation; `ai_execution_enabled=false`; paper-only.
