@@ -2416,3 +2416,27 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No persistent account DB was opened or migrated. No backtest, merge, deployment, exchange connection, live order or feature activation occurred. ai_execution_enabled=false. T0 source/tests/workflows and provider policy unchanged.
 - Status: LEGACY REDUCTION/V2 IMMUTABLE DEPTH PASS; FULL paper_execution REGRESSION PASS 60/60 ON SHA 153437aee9fb0c88d48e44a71479778eb9772176; T1.2.2 REMAINS IN PROGRESS because account cutover readiness, funding provenance and reservation expiry/restart lifecycle are not fully verified.
 - Next: inspect and specify reservation expiry/restart behavior (including partial fills and remaining reservations) and funding provenance. Keep all tests on isolated temporary SQLite. No persistent DB migration, backtest, merge, deployment or execution activation without separate approval.
+
+
+## 2026-11-06 — T1.2.2 reservation expiry v3 and restart recovery GREEN
+
+- Continued on the existing branch feature/t0-centralized-data-feeder-p1-20261101. T0 remains untouched.
+- Added additive migration v3, reservation_expiry_v3: nullable expires_at_ms on paper_risk_reservations plus (status,expires_at_ms) index. Requires valid v1 and v2 migrations/checksums; v1/v2 checksums remain unchanged.
+- New Core/AI order documents persist validUntilMs; their risk reservations persist the same admission-time deadline. Existing pending reservations are backfilled only when a valid deadline already exists in the order document. Unknown expiry remains NULL and is not guessed.
+- Added transactional expiry sweep before scoped submit/cancel. ACTIVE/PARTIAL reservations expire only when expires_at_ms < now_ms. Linked order changes to EXPIRED; reservation changes to EXPIRED; remaining margin/notional becomes zero. Already-filled position, PnL, fees and consumed book levels remain intact.
+- Sweep validates reservation/order linkage and persisted order state; malformed expiry or mismatched pending order fails closed. Unknown-expiry reservations remain active and continue to block same-ledger replacement.
+- Expiry is persistent across restart; retry of the same intent replays the EXPIRED order. Read-only snapshots do not mutate or sweep.
+- RED tests covered migration v3 idempotency, partial fill expiry after reopening the writer, release of only unfilled capacity, preserved filled position, same-intent replay and unknown-expiry fail-closed behavior.
+- Exact implementation/test source SHA: b1a9478178479a87043002a6915a56c068fcb78a.
+- Exact GitHub Actions run 42189203483 completed SUCCESS on that checked-out SHA:
+  - Compile PASS.
+  - Focused Dual Ledger + migration tests: 28/28 PASS.
+  - Full paper_execution regression: 63/63 PASS.
+  - URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42189203483.
+  - Artifact ID 13489605142, name dual-ledger-red-evidence-b1a9478178479a87043002a6915a56c068fcb78a, SHA-256 90554188c1dcc02b9fc932a45ee4375208679b0c0a8915f3dfc8d3ade141e879; expires 2026-11-13.
+- Supporting docs:
+  - paper_execution/README.md: e48b8648db77b13ddd76c680a2e864e9dc27abeb.
+  - docs/architecture/DUAL_LEDGER_SCHEMA_MIGRATION_PLAN.md: 5147071f43c8fdf504d003309c895ebda96e1f26.
+- No persistent account DB migration, backtest, merge, deployment, exchange connection, live order or feature activation. ai_execution_enabled=false. T0 source/tests/workflows/provider policy unchanged.
+- Status: LEGACY REDUCTION/V2 IMMUTABLE DEPTH PASS; RESERVATION EXPIRY V3/RESTART PASS; FULL paper_execution REGRESSION PASS 63/63 ON SHA b1a9478178479a87043002a6915a56c068fcb78a; T1.2.2 REMAINS IN PROGRESS because account cutover readiness and funding provenance are not fully verified.
+- Next: design/test funding provenance and account-equity cutover reconciliation, including historical unknown funding fail-closed behavior and future event source/snapshot identity/hash/strategy attribution. Do not run a persistent DB migration or enable execution. No backtest, merge or deployment without separate approval.
