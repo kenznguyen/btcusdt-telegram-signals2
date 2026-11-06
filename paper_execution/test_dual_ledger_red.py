@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from paper_execution import ledger
 from paper_execution.ledger import PaperLedger
 
 
@@ -320,6 +321,94 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(order["status"], "REJECTED", order)
         self.assertEqual(order["reason"], "LEGACY_UNATTRIBUTED_EXPOSURE")
         self.assertEqual(self.core.snapshot()["positionBase"], "0")
+
+
+    def test_read_only_account_risk_snapshot_aggregates_both_ledgers_legacy_and_reservations(self):
+        partial = self.core.submit(
+            self.intent("snapshot-pending-core", "0.12", "100.1", "snapshot-pending-core"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        self.assertEqual(partial["status"], "PARTIALLY_FILLED", partial)
+
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """UPDATE paper_strategy_ledgers
+                   SET position_base='0.1',average_entry_price='100',
+                       realized_pnl_quote='5',fees_quote='1',funding_quote='0.5',
+                       initial_margin_quote='1'
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            )
+            connection.execute(
+                """UPDATE paper_strategy_ledgers
+                   SET position_base='-0.2',average_entry_price='110',
+                       realized_pnl_quote='-2',fees_quote='0.5',funding_quote='-0.25',
+                       initial_margin_quote='2'
+                   WHERE account_id=1 AND strategy_id='AI_FREQAI'"""
+            )
+            connection.execute(
+                """UPDATE paper_strategy_ledgers
+                   SET position_base='0.05',average_entry_price='90'
+                   WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
+            )
+            connection.execute(
+                """INSERT INTO paper_account_adjustments
+                   (adjustment_id,account_id,strategy_id,adjustment_type,amount_quote,
+                    source_table,source_hash,created_at_ms)
+                   VALUES ('snapshot-legacy-pnl',1,'LEGACY_UNATTRIBUTED',
+                           'LEGACY_REALIZED_PNL','4','test_fixture','legacy-pnl-hash',?)""",
+                (self.now,),
+            )
+            connection.execute(
+                """INSERT INTO paper_account_adjustments
+                   (adjustment_id,account_id,strategy_id,adjustment_type,amount_quote,
+                    source_table,source_hash,created_at_ms)
+                   VALUES ('snapshot-legacy-fee',1,'LEGACY_UNATTRIBUTED',
+                           'LEGACY_FEES','1','test_fixture','legacy-fee-hash',?)""",
+                (self.now,),
+            )
+            connection.execute(
+                """UPDATE paper_account_risk_state
+                   SET high_water_mark_quote='110',
+                       daily_baseline_utc_day_ms=?,
+                       daily_baseline_equity_quote='108',
+                       last_equity_quote='106.75',
+                       last_mark_price='100',mark_observed_at_ms=?,
+                       mark_candle_close_ms=?,dataset_version='sha256:snapshot-fixture',
+                       risk_ready=1,unavailable_reason=NULL,updated_at_ms=?
+                   WHERE account_id=1""",
+                (self.now // 86_400_000 * 86_400_000, self.now,
+                 self.now - 60_000, self.now),
+            )
+
+        self.core.set_killed(True, self.now + 1, "SNAPSHOT_TEST")
+        with sqlite3.connect(self.path) as connection:
+            before = connection.execute("SELECT total_changes()").fetchone()[0]
+            reservation = connection.execute(
+                """SELECT remaining_notional_quote,remaining_margin_quote
+                   FROM paper_risk_reservations WHERE reservation_id=?""",
+                (partial["reservationId"],),
+            ).fetchone()
+        snapshot = ledger.read_account_risk_snapshot(self.path, now_ms=self.now + 2)
+        with sqlite3.connect(self.path) as connection:
+            after = connection.execute("SELECT total_changes()").fetchone()[0]
+
+        self.assertEqual(snapshot["mode"], "PAPER")
+        self.assertTrue(snapshot["available"], snapshot)
+        self.assertFalse(snapshot["liveTradingSupported"])
+        self.assertEqual(Decimal(snapshot["accountEquityQuote"]), Decimal("106.75"))
+        self.assertEqual(
+            Decimal(snapshot["grossExposureQuote"]),
+            Decimal("35") + Decimal(reservation[0]),
+        )
+        self.assertEqual(
+            Decimal(snapshot["reservedMarginQuote"]),
+            Decimal(reservation[1]),
+        )
+        self.assertEqual(Decimal(snapshot["maxDrawdownUsdt"]), Decimal("3.25"))
+        self.assertEqual(Decimal(snapshot["dailyLossUsdt"]), Decimal("1.25"))
+        self.assertTrue(snapshot["killSwitch"]["killed"])
+        self.assertEqual(before, after, "Account risk snapshot must not write to SQLite")
 
 
 if __name__ == "__main__":
