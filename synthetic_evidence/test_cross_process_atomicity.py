@@ -82,6 +82,7 @@ class CrossProcessAtomicityTests(unittest.TestCase):
 
     def test_crash_after_atomic_replace_is_committed_and_retry_is_idempotent(self):
         with tempfile.TemporaryDirectory() as directory:
+            FileBackedSharedRiskAdmission(directory, _policy(), _portfolio()).initialize()
             proc = multiprocessing.get_context("spawn").Process(
                 target=_crash_worker, args=((directory, "after-replace", "after_replace"),)
             )
