@@ -268,3 +268,12 @@ GitHub Actions gate:
 - [ ] Artifact ID/name/expiry and SHA-256 evidence captured and tied to the same source SHA.
 
 Known limits: Ed25519 signing/verification, signature key lifecycle, complete execution of all negative vectors, cross-language RFC 8785 comparison, 100k/burst/recovery profiles and Root B/provider independence remain NOT IMPLEMENTED or NOT VERIFIED. These local gates do not authorize provider tests, persistent capture, account DB access or T0/T1 runtime changes.
+
+
+### P1.8.1 run-descriptor provenance amendment
+
+- [x] Record OS, architecture, CPU model/count, sysconf-reported memory where available, Python/runtime versions and explicit storage-medium NOT_MEASURED.
+- [x] Record an explicit hash/signature profile so unsigned local fixtures cannot be mistaken for signed evidence.
+- [x] Re-run focused tests, py_compile, duplicate 1k generation and SHA-256 manifest verification after the descriptor change.
+
+Local verification remains 19/19 PASS. Exact GitHub Actions run/artifact verification remains a separate unchecked gate.
