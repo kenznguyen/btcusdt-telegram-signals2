@@ -3701,3 +3701,52 @@ No change to P1.8 approval boundary: provider qualification, persistent capture,
 - T0 remains PAUSED. No persistent capture, provider access, runtime integration, or live execution authorized; `ai_execution_enabled=false`.
 
 Next step: a separate bounded synthetic-only increment for canonicalization/cryptographic/fault-vector gaps; do not expand to providers or runtime without explicit approval.
+
+
+## 2026-11-07 — P1.8.2 Synthetic-only integrity tests
+
+### Approval and scope
+
+User explicitly approved: `APPROVE P1.8.2 — SYNTHETIC-ONLY INTEGRITY TESTS`.
+
+Only `synthetic_evidence/test_generator.py` was changed for this increment; generator/runtime behavior was not changed. No T0/T1 production code, database, exchange, credentials, cloud provider, VPS, persistent capture, signing key, paper execution, or live execution was accessed or enabled. Existing GitHub Actions workflow and existing feature branch were reused; no new branch or PR was created.
+
+### Commits and files
+
+- First test-vector commit: `eeb68bf602d4967d769d47594337fc9f3ec38f7a` — GitHub Actions run 11 failed at Python compile due to incorrectly escaped literals in the newly authored test source. This was a test-code defect, not a generator defect.
+- Corrected test source commit: `de0602dfb3daa999b06280e2044eecb1d76d45d1`.
+- Evidence report update: `b5726da33f088070593deb074dcd5c442fdc4df9`, file `docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_GENERATOR_IMPLEMENTATION_2026-11-07.md`.
+- This handoff update is committed immediately after the evidence report; resulting commit SHA must be verified by GitHub read-back.
+
+### Independent vectors and test coverage
+
+- RFC 8785 §3.2.3 property ordering vector, including UTF-16 key order and non-BMP code points: https://www.rfc-editor.org/rfc/rfc8785.html
+- RFC 4231 §4.2 HMAC-SHA-256 test case 1: https://www.rfc-editor.org/rfc/rfc4231.html
+- SHA-256 known-answer vector; independent event/manifest hash domain separation.
+- Strict-subset string escaping, nested object sorting, array-order preservation, float rejection, invalid UTF-8/JSON numeric rejection, event-hash tampering and sequence reordering.
+- Focused suite increased from 19 to **29 tests**; 10 new tests cover the above cases.
+
+### GitHub Actions evidence
+
+- Workflow run: `42289567234`, run 12, event `push`: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42289567234
+- Job: `128139126406`, `Deterministic local fixture contracts`, conclusion **success**.
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Exact checked-out/source SHA: `de0602dfb3daa999b06280e2044eecb1d76d45d1`.
+- Synthetic-only preflight PASS; DB/exchange credential environment variables empty; `AI_EXECUTION_ENABLED=false`.
+- Python 3.11 compile PASS; focused tests **29/29 PASS**.
+- Two 1,000-event fixtures byte-identical; local replay verified 1,000 events over 3 streams; 12 segments.
+- SHA-256 fixture manifest **17/17 PASS**, independently verified from downloaded artifact.
+- Artifact ID `13539715524`; name `p1-8-synthetic-evidence-de0602dfb3daa999b06280e2044eecb1d76d45d1`; size 298,854 bytes; SHA-256 `4a2678b4e80aae0fc94681e42d8183f0a0a7548713dd5aed388bcca8e96c49c3`; expires `2026-11-13T20:34:57Z`.
+- Downloaded ZIP independently hashed against GitHub artifact metadata; all 17 fixture manifest entries matched.
+
+### Status and limits
+
+**P1.8.2 synthetic-only integrity tests: PASS** for exact source SHA `de0602dfb3daa999b06280e2044eecb1d76d45d1`.
+
+This is not full RFC 8785 certification. The implementation intentionally rejects floats; ECMAScript number-serialization vectors in RFC 8785 Appendix B are outside the current strict subset. No second-language implementation was run. Not all 13 catalogued negative vectors have executable coverage. Ed25519 signing/verification, key lifecycle, signed receipts, Root B, 100k/burst/recovery/restore, provider durability and production performance remain NOT IMPLEMENTED / NOT RUN / NOT AUTHORIZED as applicable.
+
+T0 remains PAUSED; PAPER-only; `ai_execution_enabled=false`. No persistent capture, provider access, account DB access, T0/T1 runtime integration or live execution is authorized.
+
+### Next step and approval boundary
+
+P1.8.2 is complete for the bounded approved scope. Any expansion to full RFC 8785 floating-point support, signing/key custody, additional high-volume/recovery tests, provider qualification or runtime integration requires separate review and approval. Preserve current branch and evidence; do not merge without explicit approval.
