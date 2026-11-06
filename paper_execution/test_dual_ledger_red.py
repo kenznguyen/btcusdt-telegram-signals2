@@ -227,8 +227,8 @@ class DualLedgerRedTest(unittest.TestCase):
 
     def test_strategy_cannot_cancel_another_ledgers_pending_order(self):
         partial = self.core.submit(
-            self.intent("core-pending", "0.2", "100.1", "core-pending"),
-            self.book(self.now), self.now,
+            self.intent("core-pending", "0.12", "100.1", "core-pending"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]}, self.now,
         )
         self.assertEqual(partial["status"], "PARTIALLY_FILLED", partial)
         with self.assertRaisesRegex(ValueError, "PAPER_ORDER_STRATEGY_SCOPE_MISMATCH"):
@@ -247,8 +247,8 @@ class DualLedgerRedTest(unittest.TestCase):
 
     def test_strategy_can_cancel_its_own_partial_order_and_release_remaining_reservation(self):
         partial = self.core.submit(
-            self.intent("core-cancel-own", "0.2", "100.1", "core-cancel-own"),
-            self.book(self.now), self.now,
+            self.intent("core-cancel-own", "0.12", "100.1", "core-cancel-own"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]}, self.now,
         )
         self.assertEqual(partial["status"], "PARTIALLY_FILLED", partial)
         canceled = self.core.cancel(partial["orderId"], self.now+1)
