@@ -2056,3 +2056,12 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No exchange connection, collector, backtest, live execution, or real order is authorized. No database outside isolated test fixtures is to be created or modified.
 - Next: add the isolated Core/AI position contract test first; inspect its exact-source Codemagic result. Only after an observed failing test may the minimal ledger implementation begin.
 - Workflow run/artifact: **NONE**. Source SHA for this handoff update will be recorded after commit creation.
+
+### RED 1 execution attempt — blocked (2026-11-06)
+
+- Current branch HEAD before this note: `f30667e6ea6f59eb8892a40ddb0785529f037161`.
+- Test contract prepared: instantiate strategy-scoped Core and AI ledgers over one isolated SQLite fixture; submit distinct opposite-side entries using distinct book snapshots; assert each ledger and reopened instance sees only its own position.
+- Attempts to add the test to `paper_execution/test_ledger.py` and as a new `paper_execution/test_dual_ledger_red.py` were blocked by the GitHub write safety gate. No test file was changed or committed.
+- Therefore RED 1 is **DESIGNED / NOT ADDED / NOT EXECUTED**, not a verified RED failure. No implementation has started.
+- No Codemagic workflow run or artifact exists. The available connected GitHub actions are read-only for workflow inspection; no Codemagic execution connector is available in this session.
+- Next: resume the test-file write through an authorized repository editing path, then run only the focused RED 1 test on Codemagic against the exact commit. Do not implement until the failure is observed.
