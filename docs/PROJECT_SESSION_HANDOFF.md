@@ -2810,3 +2810,36 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
   - No historical funding completeness, external statement authenticity, production account cutover, or backtest suitability is certified.
 - Next: implement deterministic event replay from immutable per-ledger v7 cutover snapshots and the v6/v8 journal. First add RED tests for event-time sorting (not insertion order), signed long/short partial fills, reduction/reversal/DCA math, unknown legacy fee currency, funding exactly at boundary, late-arriving pre-boundary events, and exact boundary mark provenance. Then add replay result/coverage digest and atomic immutable baseline persistence. Keep all unknown evidence fail-closed.
 - Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 deterministic per-ledger replay core (pure calculation slice)
+
+- Scope: add a deterministic, side-effect-free replay primitive before integrating replay with database baseline reconstruction. No account database is opened by this function; it accepts immutable snapshot/event values and returns a calculated ledger state.
+- RED contract:
+  - Commit/source SHA `0eaa9a5d6db959e400a7ccc8fee1697cdfec3425`.
+  - GitHub Actions [#42266750473](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42266750473): PAPER-only preflight and compile PASS; focused contract correctly failed because `replay_ledger_events` did not exist.
+  - Artifact ID `13528100086`, GitHub upload digest `sha256:714cb999f5ff414262508da0aebb45b0132d6a2dfa73459a91b47a38480e8b50`.
+- Implementation:
+  - Added `replay_ledger_events(snapshot, execution_events, funding_events, boundary_ms)` in `paper_execution/account_history.py`.
+  - Sorts fills and funding by `(event_at_ms, stable event ID)`, independent of input/insertion order.
+  - Applies signed fills with weighted average entry for same-direction adds; realizes PnL on reductions; handles full close and reversal with new-side average equal to reversal fill price.
+  - Accumulates explicit nonnegative USDT fee amounts and signed funding amounts. Missing/non-USDT fee currency fails closed.
+  - Uses half-open cutoff: only events with `event_at_ms < boundary_ms` are included. Events exactly at 00:00 UTC are excluded from prior-day replay.
+  - Returns final position, average entry, realized PnL, fee/funding totals and included event IDs. It does not mutate a database.
+- Test fixture correction: an intermediate test attempt used non-UTC-aligned boundaries and initially placed the “at-boundary” funding event before the actual boundary. Corrected to an exact 86,400,000 ms UTC day boundary and corrected realized PnL expectation to include both the profitable partial reduction and later reversal loss.
+- Exact GREEN source SHA: `10689cbeadd654f8bea294bf9a2db2a7df540687`.
+- GitHub Actions [#42267133821](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42267133821): SUCCESS on exact checked-out SHA.
+  - PAPER-only preflight: PASS.
+  - Python compile: PASS.
+  - Focused Dual Ledger + migration + replay contract: 68/68 PASS.
+  - Full `paper_execution` regression: 164/164 PASS.
+  - Job ID: `128061861943`.
+  - Artifact ID: `13527223127`, name `dual-ledger-red-evidence-10689cbeadd654f8bea294bf9a2db2a7df540687`, GitHub upload digest `sha256:58917092885b0cfc4b527f4f882a8e2b0231810a7f817fdb153654b217c1d05c`, expires 2026-11-13. Digest is GitHub artifact metadata; payload bytes were not separately downloaded and re-hashed.
+- Status: **PASS — deterministic pure replay calculation for FILL events and funding cutoff. NOT VERIFIED — database reconstruction/baseline integration.**
+- Known limits:
+  - `LEDGER_ADJUSTMENT` events are not yet replayed; current helper rejects unsupported event types.
+  - Replay helper currently validates fee currency and numeric amounts, but integration must additionally validate event source/snapshot/hash provenance and compare event recorded times against verified coverage watermarks to detect late-arriving pre-boundary events.
+  - The helper does not yet verify funding coverage continuity, per-ledger cutover snapshot identity, exact boundary mark provenance, equity reconciliation, replay digest, immutable baseline insertion, or risk admission.
+  - No database persistence is performed by this helper. No persistent account DB was opened or migrated.
+- Next: integrate this pure helper into `reconstruct_daily_equity_baseline` with per-ledger v7 cutover snapshots, v6/v8 event journal, v4 funding events/coverage and exact boundary market mark. Require VERIFIED continuous coverage and provenance watermarks; reject late-arriving events and unsupported adjustments; persist immutable per-ledger replay outputs + digest + baseline + audit atomically; add rollback/idempotency/conflict and risk fail-closed tests.
+- Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
