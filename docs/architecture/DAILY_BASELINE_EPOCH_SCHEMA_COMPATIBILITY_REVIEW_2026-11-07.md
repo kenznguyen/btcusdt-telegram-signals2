@@ -133,3 +133,26 @@ This document does not approve:
 - running a production backtest, connecting to an exchange, deploying, merging, or placing orders.
 
 Before any implementation, obtain separate approval for the epoch policy, the exact schema strategy, the external evidence source, and persistent DB access/activation. The current operational state remains Option A: strict chain, unresolved v1, no exposure increases.
+
+## Runtime and migration-trigger review
+
+A further source inspection found a critical operational detail:
+
+- `PaperLedger.__init__` creates/opens its SQLite database, enables WAL, and for Core/AI strategies directly invokes the existing migration sequence v2-v9.
+- Therefore, adding v10-v12 to that constructor sequence would make an ordinary Core/AI ledger initialization a schema-mutation trigger. This is not acceptable for an epoch migration that requires separate approval and evidence review.
+- The existing migration functions are passed a source SHA and run inside the constructor's database transaction context. This is convenient for the existing application bootstrap but does not provide a separate human approval boundary for a high-impact epoch activation.
+- The daily baseline writer checks that the connection is writable, foreign keys are enabled, and no transaction is already open; it then starts `BEGIN IMMEDIATE`. This serializes SQLite writers at the transaction boundary, but the epoch design still needs explicit contention, busy-timeout, and crash/reopen tests.
+- Current GitHub Actions workflow selects Python 3.12. It does not record or assert the linked SQLite runtime version. Python version alone does not pin the SQLite library shipped with the runner.
+- Existing connections use a 10-second SQLite timeout; the ledger constructor enables WAL. The exact production journal mode, synchronous setting, filesystem durability, and SQLite library version are not established by the repository-only review.
+
+### Required migration safety change before any epoch implementation
+
+1. Do not append v10-v12 to the automatic migration calls in `PaperLedger.__init__`.
+2. Keep epoch schema installation behind a dedicated, explicit migration entry point that defaults to dry-run / inspect-only and requires an explicit operator action plus a verified source SHA and approval reference.
+3. The normal runtime must detect an absent or incomplete epoch schema and remain fail-closed; it must not create, repair, or upgrade epoch tables implicitly.
+4. Separate schema installation from epoch activation. Installing empty tables must not select an active epoch, change risk state, or enable exposure.
+5. CI must print and assert `sqlite3.sqlite_version` against a documented minimum/qualified version. Record the actual version in test artifacts.
+6. Add two-connection writer-contention tests, timeout/error classification, WAL recovery, process-kill/reopen, and rollback tests before any persistent database operation is considered.
+7. A dedicated migration command must first verify the target DB identity/path, backup availability, current schema checksums, foreign-key integrity, and a no-write migration plan. Actual persistent DB use still requires separate approval.
+
+This finding strengthens the additive-table recommendation but changes the operational migration strategy: **additive schema alone is not safe if the existing constructor auto-applies it.**
