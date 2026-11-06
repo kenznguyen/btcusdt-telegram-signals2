@@ -1042,7 +1042,7 @@ class DualLedgerRedTest(unittest.TestCase):
             self.path,
             coverage_id="post-cutover-funding-gap",
             start_at_ms=self.now - 30_000,
-            end_at_ms=self.now + 30_000,
+            end_at_ms=self.now,
             status="UNKNOWN",
             source="LATE_HISTORY_GAP",
             source_snapshot_id="funding-gap:late-discovery",
