@@ -2216,7 +2216,7 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Branch HEAD verified after workflow update: `6b7c5795aa97a15cde2a0cb1fcb11825568e28e2`.
 - GitHub Actions run ID/conclusion/artifact are **NOT VERIFIED**. The available GitHub connection exposes workflow-run detail only when a run ID is already known and does not expose a dispatch/list-runs action in this session. The workflow has a push trigger scoped to this file and a manual dispatch trigger; do not claim that it executed until a run record is retrieved.
 - No application source, tests, database migrations, schema, runtime configuration, or existing T0 workflow changed. Only the new diagnostic workflow was added. No live or persistent database was accessed; no data feeder, exchange, paper order, or live order was run. `ai_execution_enabled=false` remains unchanged.
-- Status: **DIAGNOSTIC WORKFLOW COMMITTED; EXECUTION/RESULT NOT VERIFIED; ROOT CAUSE MECHANISM DOCUMENTED; PROVIDER-BOOTSTRAP FIX NOT AUTHORIZED/NOT MADE.** T0 provider-bootstrap remains BLOCKED pending the reproduction evidence.
+- Status at that point: **DIAGNOSTIC WORKFLOW COMMITTED; EXECUTION/RESULT NOT YET VERIFIED; PROVIDER-BOOTSTRAP FIX NOT AUTHORIZED/NOT MADE.** The subsequent result section records the successful reproduction.
 - Next: obtain the run record for the new workflow, inspect its job log and artifact, and record exact run ID, source SHA, artifact ID and SHA-256. Only after evidence, propose a narrowly scoped test/provisioning correction; do not change the migration role guard or production role policy.
 
 
