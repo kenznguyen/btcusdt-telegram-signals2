@@ -2361,3 +2361,20 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - T0 source/tests/workflows/provider policy/runtime were not modified. No persistent account DB migration, backtest, merge, deployment, exchange connection, or live execution occurred. `ai_execution_enabled=false` remains unchanged.
 - Status: **ACCOUNT RISK SNAPSHOT FIRST GREEN SLICE PASS 15/15 ON SHA `a44d174c62f0550733de3dc718337d3b9ca202d1`; BROADER CORRUPTION/STALE-INPUT COVERAGE AND FULL REGRESSION NOT VERIFIED; T1.2.2 IN PROGRESS; T0 UNCHANGED.**
 - Next: add RED tests for risk_ready=false and stale/corrupt mark/equity reconciliation, then validate fail-closed snapshot behavior. Follow with dedicated LEGACY_UNATTRIBUTED reduce/flatten path, funding provenance and reservation expiry/restart lifecycle. Run full `paper_execution` regression before declaring the increment complete. Do not merge, backtest, deploy, migrate persistent account DB, or enable execution without separate approval.
+
+## 2026-11-06 — T1 account risk snapshot fail-closed input coverage
+
+- Continued from verified HEAD `647eb92b57b6f7a84f17b617672f5acb64a9dd56`; re-read the T1 handoff, current snapshot implementation and focused test setup before editing. TDD guidance was reviewed.
+- Added four focused contract tests in `paper_execution/test_dual_ledger_red.py`:
+  1. `risk_ready=0` is surfaced as `riskReady=false` with the persisted unavailable reason; a readable snapshot is not promoted to risk readiness.
+  2. stale mark/candle timestamps fail closed with `ACCOUNT_RISK_MARK_STALE_OR_INVALID`.
+  3. non-finite mark value fails closed with `ACCOUNT_RISK_MARK_PRICE_INVALID`.
+  4. persisted Account Equity inconsistent with the independently recomputed aggregate fails closed with `ACCOUNT_EQUITY_RECONCILIATION_MISMATCH`.
+- Test commit/source SHA: `25e05b64855ca905efa5f595a12823e6fd1c6ba3`.
+- Exact GitHub Actions run **42187278175** completed SUCCESS on that exact SHA. Compile PASS; focused contract suite **19/19 PASS**. Test log: `Ran 19 tests in 1.318s; OK`. URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42187278175.
+- Artifact ID **13488171640**, name `dual-ledger-red-evidence-25e05b64855ca905efa5f595a12823e6fd1c6ba3`, not expired at verification.
+- No production behavior/source implementation changed in this increment; only focused tests were added. Existing snapshot implementation passed these four additional contract checks.
+- Limitations: this is focused contract coverage, not full `paper_execution` regression. The snapshot still reports `available=true` with `riskReady=false` when the database is readable but cutover readiness is false; callers must gate all exposure admission on readiness and must not interpret snapshot availability as authorization. Tests do not yet cover every malformed ledger/reservation field, funding event provenance reconciliation, or daily UTC rollover/restart.
+- T0 source, tests, workflows and Option C provider policy remain unchanged. No persistent account DB migration, backtest, merge, deployment, exchange connection or live execution. `ai_execution_enabled=false`.
+- Status: **SNAPSHOT FAIL-CLOSED MARK/EQUITY INPUT TESTS PASS 19/19 ON SHA `25e05b64855ca905efa5f595a12823e6fd1c6ba3`; FULL REGRESSION AND FUNDING PROVENANCE NOT VERIFIED; T1.2.2 IN PROGRESS.**
+- Next: design a dedicated `LEGACY_UNATTRIBUTED` reduce/flatten path that cannot reassign ownership or route legacy fills into Core/AI, write RED tests for close-only authorization and immutable legacy accounting, then implement a minimal PAPER-only path. Afterwards test reservation expiry/restart and funding provenance, and run full `paper_execution` regression. No merge, backtest, deployment, persistent DB migration or execution activation without separate approval.
