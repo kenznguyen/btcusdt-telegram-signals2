@@ -3021,3 +3021,27 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **PASS — Core/AI exposure admission consumes the verified current UTC baseline; wrong-day/stale mark gates block increases, and valid reductions remain permitted. NOT VERIFIED — all post-rollover kill-switch/funding-gap/limit combinations in the same integrated fixture and OS-process crash recovery.**
 - Next: add post-rollover regression cases for missing baseline, funding coverage ending before the boundary mark's observation, Kill Switch, and max exposure/daily loss limits; verify no path bypasses shared risk checks. Then perform process-kill/reopen recovery testing against temporary SQLite. Do not use persistent account DB.
 - Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 post-rollover funding, Kill Switch and risk-limit admission gates
+
+- Scope: expand actual Core/AI PAPER submit-path verification after a reconstructed daily baseline. No production risk logic changes in this increment.
+- Added integration coverage:
+  - Missing daily baseline blocks exposure increases.
+  - Funding coverage that reaches 00:00 UTC but ends before the exact boundary mark's later observation blocks exposure with `RISK_INPUTS_UNAVAILABLE`; baseline existence does not bypass funding provenance.
+  - Kill Switch remains effective after rollover and rejects new exposure with `KILL_SWITCH`.
+  - Daily loss threshold still latches Kill Switch and rejects new exposure with `DAILY_LOSS_LIMIT`.
+  - Max gross exposure limit remains enforced with `MAX_EXPOSURE_LIMIT`.
+  - Prior tests in the same suite cover Core/AI admission with verified current-day baseline, wrong-day/stale-mark rejection, and reduction/EXIT while baseline is unavailable.
+- One initial test run exposed a fixture issue, not a source defect: the daily-loss test advanced the mark observation one millisecond beyond the funding coverage watermark, so the expected funding fail-closed guard fired first. The fixture now keeps the mark observation within the verified funding watermark and tests the daily-loss branch independently.
+- Exact GREEN source SHA: `63cfb98718fe65c4a82b3e8486c0cc24cc99c16c`.
+- GitHub Actions [#42274238857](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42274238857): SUCCESS on exact SHA.
+  - PAPER-only preflight: PASS.
+  - Python compile: PASS.
+  - Focused contracts: 159/159 PASS.
+  - Full `paper_execution` regression: 258/258 PASS.
+  - Job ID: `128086325865`.
+  - Artifact ID: `13532736629`, name `dual-ledger-red-evidence-63cfb98718fe65c4a82b3e8486c0cc24cc99c16c`, GitHub upload digest `sha256:288debd3ae4d7723637e2a6668f09502f485287b19af6e106e3886cece332136`, expires 2026-11-13. Digest is GitHub artifact metadata; payload bytes were not separately downloaded and re-hashed.
+- Status: **PASS — post-rollover missing-baseline, funding-watermark, Kill Switch, daily-loss and max-exposure gates verified through Core/AI submit path; reductions remain allowed under baseline unavailability. NOT VERIFIED — OS-process crash recovery after baseline transaction and recovery audit reconciliation.**
+- Next: implement an OS-process-kill/reopen test around baseline persistence using temporary SQLite only. Verify crash before commit leaves no baseline/audit/risk update; crash after commit leaves all three durable and identical retry is idempotent. Reopen in a fresh process and verify read-only risk snapshot and submit gate. Do not open/migrate persistent account DB.
+- Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
