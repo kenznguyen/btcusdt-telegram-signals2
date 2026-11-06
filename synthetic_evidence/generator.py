@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import hmac
 import json
+import os
 import platform
 import re
 import uuid
@@ -221,6 +222,22 @@ def _stats(values: list[int]) -> dict[str, int | str]:
     }
 
 
+def _environment_descriptor() -> dict[str, Any]:
+    try:
+        memory_bytes = int(os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE"))
+    except (AttributeError, OSError, ValueError):
+        memory_bytes = None
+    return {
+        "os": platform.system(),
+        "architecture": platform.machine(),
+        "cpu_model": platform.processor() or "UNKNOWN",
+        "cpu_count": os.cpu_count(),
+        "memory_total_bytes_sysconf": memory_bytes,
+        "storage_medium": "NOT_MEASURED",
+        "tool_versions": {"python": platform.python_version(), "implementation": platform.python_implementation()},
+    }
+
+
 def _build_digest() -> str:
     digest = hashlib.sha256()
     build_files = ("__init__.py", "generator.py", "__main__.py")
@@ -294,10 +311,10 @@ def generate_fixture(*, seed_hex: str, namespace: str, base_time_utc: str, event
         "payload_profile": "ROTATING-SMALL-MEDIAN-LARGE/1",
         "canonicalization_profile": "RFC8785-JCS-STRICT-SUBSET/1",
         "hash_profile": "BTCUSDT-PAPER-EVENT-V1+MANIFEST-V1",
+        "hash_signature_profile": "SHA256_EVENT_AND_MANIFEST_UNSIGNED_LOCAL/1",
         "segment_policy": {"event_cap": segment_event_cap, "byte_cap": segment_byte_cap, "scope": "single-stream-contiguous"},
         "compression_profile": "NONE", "negative_vector_profile": "synthetic-fault-vectors/1",
-        "environment": {"python": platform.python_version(), "implementation": platform.python_implementation(),
-                        "os": platform.system(), "architecture": platform.machine()},
+        "environment": _environment_descriptor(),
     }
 
     events_by_stream: dict[str, list[dict[str, Any]]] = {}
