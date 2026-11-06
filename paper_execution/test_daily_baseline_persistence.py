@@ -637,5 +637,20 @@ os._exit(74)
                 )
 
 
+    def test_idempotent_retry_rejects_risk_state_mark_that_differs_from_baseline_audit(self):
+        self.persist()
+        with self._connection() as db:
+            db.execute(
+                """UPDATE paper_account_risk_state
+                   SET last_mark_price='999' WHERE account_id=1"""
+            )
+            db.commit()
+        with self.assertRaisesRegex(
+            sqlite3.DatabaseError,
+            "DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED",
+        ):
+            self.persist()
+
+
 if __name__ == "__main__":
     unittest.main()
