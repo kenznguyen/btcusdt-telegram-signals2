@@ -125,3 +125,38 @@ RED 1 currently covers only item 1's initial coexistence assertion and is intent
 - T1.3: only then build independent Core and AI backtests using the same market data window and shared account assumptions, with separate trade ledgers/results.
 
 No implementation, schema migration, backtest, merge or live execution is authorized by this design document. Any ambiguity in legacy attribution or account equity is a hard stop, not an invitation to infer ownership.
+
+
+## 10. Funding provenance and verified account cutover
+
+Funding is account-risk input, not optional display metadata.
+
+- Every future funding event records strategy attribution, signed quote amount,
+  event timestamp, source, immutable source snapshot ID, SHA-256 payload digest and
+  recorded timestamp. Positive amounts are costs; negative amounts are credits.
+- Event IDs are idempotent. A reused ID with changed economic or provenance data
+  is rejected. Event and coverage evidence is append-only.
+- Historical funding with known amount but unknown owner is attributed to
+  LEGACY_UNATTRIBUTED, never silently assigned to Core or AI. Unknown amount or
+  incomplete coverage is not zero and blocks new exposure.
+- Funding-disabled paper tests must persist PAPER_TEST_CONFIGURATION, source
+  snapshot ID, payload digest and config version. No implicit disabled-funding mode.
+- A cutover requires contiguous VERIFIED funding coverage (or explicit paper-test
+  DISABLED evidence), fresh mark and closed candle, dataset identity, and exact
+  statement reconciliation of initial capital, realized PnL, fees, funding and
+  account equity. Unrealized PnL is computed from each signed ledger position and
+  the same fresh mark.
+- Only the immutable cutover snapshot initializes HWM and UTC daily baseline and
+  sets account risk readiness. A missing cutover or UNKNOWN interval overlapping
+  its coverage window blocks new exposure. Reductions remain governed by the
+  reduce-only policy.
+- A second cutover or reset is not automatic. It requires a separate reviewed
+  reconciliation/reset procedure. Source snapshot IDs and SHA-256 fingerprints
+  are references; the local ledger does not independently retrieve or hash
+  external statement bytes.
+
+Migration v4 adds funding event/coverage provenance. Migration v5 adds the
+one-time immutable account cutover record. Both are additive and tested only on
+temporary SQLite in CI. No persistent account DB migration, backtest, merge,
+deployment, exchange connectivity or live execution is implied. The user-approved
+scope remains PAPER-only and ai_execution_enabled=false.
