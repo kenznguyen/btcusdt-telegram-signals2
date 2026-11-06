@@ -125,7 +125,7 @@ class TrustLifecycleTests(unittest.TestCase):
         }
         result = assess_revocation(mode="OFFLINE", evidence=evidence)
         self.assertEqual(result["status"], "REVIEWED_CLEAR")
-        self.assertEqual(result["decision"], "ALLOW_WITH_REVIEW_RECORD")
+        self.assertEqual(result["decision"], "BLOCK_UNLESS_EVIDENCE_AUTHENTICITY_IS_SEPARATELY_VERIFIED")
         evidence["evidence_sha256"] = "invalid"
         with self.assertRaisesRegex(ValueError, "evidence digest"):
             assess_revocation(mode="OFFLINE", evidence=evidence)
