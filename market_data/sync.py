@@ -12,7 +12,7 @@ import os
 import time
 
 from market_data.store import Candle, INTERVAL_MS, MAX_CANDLES, MAX_TIMESTAMP
-from market_data.storage import create_store
+from market_data.write_gateway import ShadowWriteGateway
 
 
 EXCHANGE_SYMBOL = "BTC/USDT:USDT"
@@ -80,7 +80,7 @@ def sync_window(exchange, store, timeframe, start_ms, end_ms, now_ms=None):
         next_cursor = page[-1][0] + interval
         if next_cursor <= cursor:
             raise ValueError("OHLCV pagination made no progress")
-        inserted += store.insert(candles)
+        inserted += store.write_batch(candles)
         cursor = next_cursor
         if len(page) < limit or cursor > closed_through:
             break
@@ -88,34 +88,37 @@ def sync_window(exchange, store, timeframe, start_ms, end_ms, now_ms=None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Sync closed BTCUSDT perpetual candles into the canonical store")
-    parser.add_argument("--backend", choices=("sqlite", "postgres"),
-                        default=os.environ.get("MARKET_DATA_BACKEND", "sqlite"),
-                        help="Storage backend (default: sqlite or MARKET_DATA_BACKEND)")
-    parser.add_argument("--db", default=os.environ.get("MARKET_DATA_DB", ""),
-                        help="SQLite database path; required only for SQLite")
+    parser = argparse.ArgumentParser(
+        description="Fetch closed BTCUSDT candles for non-persistent Shadow inspection"
+    )
+    parser.add_argument(
+        "--shadow-only", action="store_true", required=True,
+        help="Required explicit acknowledgement: fetched candles are never persisted",
+    )
     parser.add_argument("--timeframe", choices=tuple(INTERVAL_MS), required=True)
-    parser.add_argument("--start-ms", type=int, required=True, help="Inclusive aligned UTC epoch milliseconds")
-    parser.add_argument("--end-ms", type=int, required=True, help="Exclusive aligned UTC epoch milliseconds")
+    parser.add_argument("--start-ms", type=int, required=True,
+                        help="Inclusive aligned UTC epoch milliseconds")
+    parser.add_argument("--end-ms", type=int, required=True,
+                        help="Exclusive aligned UTC epoch milliseconds")
     args = parser.parse_args()
     try:
-        # Optional dependency: offline API/store/tests can run without installing CCXT.
         import ccxt
     except ImportError:
-        parser.exit(1, "Install requirements-market-data.txt to fetch exchange data.\n")
+        parser.exit(1, "Install requirements-market-data.txt to fetch exchange data.\\n")
     try:
         exchange = ccxt.binanceusdm({"enableRateLimit": True, "timeout": 15_000})
-        store = create_store(
-            args.backend,
-            sqlite_path=args.db,
-            postgres_dsn=os.environ.get("MARKET_DATA_POSTGRES_DSN", ""),
+        shadow_only = ShadowWriteGateway()
+        candidates = sync_window(
+            exchange, shadow_only, args.timeframe,
+            args.start_ms, args.end_ms,
         )
-        count = sync_window(exchange, store, args.timeframe, args.start_ms, args.end_ms)
-        window = store.read_window("BTCUSDT", args.timeframe, args.start_ms, args.end_ms)
     except Exception as error:
-        parser.exit(1, f"Sync failed ({type(error).__name__}); earlier successful pages remain stored.\n")
-    print(json.dumps({"inserted": count, "datasetVersion": window["datasetVersion"],
-                      "coverage": window["coverage"]}, allow_nan=False))
+        parser.exit(1, f"Shadow sync failed ({type(error).__name__}).\\n")
+    print(json.dumps({
+        "mode": "SHADOW_ONLY",
+        "persisted": False,
+        "shadowCandidates": candidates,
+    }, allow_nan=False))
 
 
 if __name__ == "__main__":

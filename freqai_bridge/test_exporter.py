@@ -9,6 +9,7 @@ import pandas as pd
 from freqai_bridge.exporter import TARGET, make_prediction, read_context, write_artifact
 from freqai_bridge.context import canonical_context
 from market_data.store import Candle, CandleStore, read_window
+from market_data.test_support import seed_candles
 
 
 class FreqaiExporterTest(unittest.TestCase):
@@ -19,7 +20,8 @@ class FreqaiExporterTest(unittest.TestCase):
         self.opened = 1_800_000_000_000
         self.now = self.opened+900_000+3000
         database = self.path / "candles.sqlite3"
-        CandleStore(database).insert([Candle("15m", self.opened, "100", "102", "99", "101", "3", self.now-1000)])
+        CandleStore(database)
+        seed_candles(database, [Candle("15m", self.opened, "100", "102", "99", "101", "3", self.now-1000)])
         self.window = read_window(database, "BTCUSDT", "15m", self.opened, self.opened+900_000)
         self.frame = pd.DataFrame({"date": [pd.Timestamp(self.opened, unit="ms", tz="UTC")],
             "open": [100.0], "high": [102.0], "low": [99.0], "close": [101.0], "volume": [3.0],

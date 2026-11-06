@@ -5,6 +5,8 @@ from unittest.mock import patch
 
 from market_data.store import Candle, INTERVAL_MS
 from market_data.sync import sync_window
+from market_data.feeder import LeaseStore
+from market_data.write_gateway import SQLiteWriteGateway
 from market_data.storage import (
     PostgresStore,
     SQLiteCandleStore,
@@ -48,7 +50,14 @@ class StorageFactoryTest(unittest.TestCase):
             store = create_store("sqlite", sqlite_path=path)
             step = INTERVAL_MS["15m"]
             candle = Candle("15m", 0, "100", "102", "99", "101", "5", step + 1)
-            self.assertEqual(store.insert([candle]), 1)
+            store.initialize()
+            leases = LeaseStore(path)
+            lease = leases.acquire("storage-test", 0, ttl_seconds=10_000)
+            gateway = SQLiteWriteGateway(
+                store=store, lease_store=leases, owner_id="storage-test",
+                generation_provider=lambda: lease.generation, clock=lambda: 1,
+            )
+            self.assertEqual(gateway.write_batch([candle]), 1)
             result = store.read_window("BTCUSDT", "15m", 0, step)
             self.assertEqual(result["candles"][0]["close"], "101")
             self.assertTrue(result["coverage"]["complete"])
@@ -73,7 +82,14 @@ class StorageFactoryTest(unittest.TestCase):
                 def fetch_ohlcv(self, *args, **kwargs):
                     return [[0, 100, 102, 99, 101, 5]]
 
-            self.assertEqual(sync_window(Exchange(), store, "15m", 0, step, now_ms=lambda: step), 1)
+            store.initialize()
+            leases = LeaseStore(str(store.path))
+            lease = leases.acquire("storage-sync-test", 0, ttl_seconds=10_000)
+            gateway = SQLiteWriteGateway(
+                store=store, lease_store=leases, owner_id="storage-sync-test",
+                generation_provider=lambda: lease.generation, clock=lambda: 1,
+            )
+            self.assertEqual(sync_window(Exchange(), gateway, "15m", 0, step, now_ms=lambda: step), 1)
             self.assertEqual(store.read_window("BTCUSDT", "15m", 0, step)["coverage"]["returned"], 1)
 
     def test_postgres_connection_failure_is_not_reinterpreted_as_sqlite(self):

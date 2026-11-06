@@ -3,6 +3,8 @@ import unittest
 from pathlib import Path
 
 from market_data.store import Candle, CandleStore, INTERVAL_MS, MAX_CANDLES, read_window
+from market_data.feeder import LeaseStore
+from market_data.write_gateway import SQLiteWriteGateway
 
 
 class CandleStoreTest(unittest.TestCase):
@@ -11,6 +13,12 @@ class CandleStoreTest(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.path = Path(self.directory.name) / "candles.sqlite3"
         self.store = CandleStore(self.path)
+        self.leases = LeaseStore(str(self.path))
+        self.lease = self.leases.acquire("store-test", 0, ttl_seconds=1_000_000_000)
+        self.gateway = SQLiteWriteGateway(
+            store=self.store, lease_store=self.leases, owner_id="store-test",
+            generation_provider=lambda: self.lease.generation, clock=lambda: 1,
+        )
         self.step = INTERVAL_MS["15m"]
 
     def candle(self, slot=0, **changes):
@@ -24,7 +32,7 @@ class CandleStoreTest(unittest.TestCase):
 
     def test_persists_exact_decimals_and_closed_candle_identity(self):
         candle = self.candle(open="100.12345678901234567890123456789")
-        self.assertEqual(self.store.insert([candle]), 1)
+        self.assertEqual(self.gateway.write_batch([candle]), 1)
         CandleStore(self.path)
         row = self.window(1)["candles"][0]
         self.assertEqual(row["open"], "100.12345678901234567890123456789")
@@ -36,25 +44,25 @@ class CandleStoreTest(unittest.TestCase):
         self.assertEqual(row["availabilityKind"], "FIRST_OBSERVED")
 
     def test_duplicate_reimport_preserves_first_observation_and_dataset_version(self):
-        self.store.insert([self.candle()])
+        self.gateway.write_batch([self.candle()])
         before = self.window(1)
-        self.assertEqual(self.store.insert([self.candle(available_at_ms=self.step + 500)]), 0)
+        self.assertEqual(self.gateway.write_batch([self.candle(available_at_ms=self.step + 500)]), 0)
         self.assertEqual(self.window(1)["datasetVersion"], before["datasetVersion"])
         self.assertEqual(self.window(1)["candles"][0]["availableAtMs"], self.step + 100)
 
     def test_conflicting_candle_rolls_back_the_whole_batch(self):
-        self.store.insert([self.candle()])
+        self.gateway.write_batch([self.candle()])
         with self.assertRaises(ValueError):
-            self.store.insert([self.candle(1), self.candle(close="100.5")])
+            self.gateway.write_batch([self.candle(1), self.candle(close="100.5")])
         self.assertEqual(self.window(2)["coverage"]["returned"], 1)
 
     def test_conflicting_duplicate_in_one_batch_is_atomic(self):
         with self.assertRaises(ValueError):
-            self.store.insert([self.candle(), self.candle(close="100.5")])
+            self.gateway.write_batch([self.candle(), self.candle(close="100.5")])
         self.assertEqual(self.window(1)["candles"], [])
 
     def test_reports_leading_internal_trailing_gaps_without_filling(self):
-        self.store.insert([self.candle(1), self.candle(3)])
+        self.gateway.write_batch([self.candle(1), self.candle(3)])
         result = self.window(5)
         self.assertEqual([c["openTimeMs"] for c in result["candles"]], [self.step, 3 * self.step])
         self.assertEqual(result["coverage"], {
@@ -64,7 +72,7 @@ class CandleStoreTest(unittest.TestCase):
                      {"startMs": 4 * self.step, "endMs": 5 * self.step}]})
 
     def test_as_of_filters_by_first_seen_time_without_backdating_history(self):
-        self.store.insert([self.candle(available_at_ms=10 * self.step)])
+        self.gateway.write_batch([self.candle(available_at_ms=10 * self.step)])
         hidden = self.window(1, as_of_ms=9 * self.step)
         visible = self.window(1, as_of_ms=10 * self.step)
         self.assertEqual(hidden["candles"], [])
@@ -72,10 +80,10 @@ class CandleStoreTest(unittest.TestCase):
 
     def test_dataset_version_changes_only_with_selected_content_or_query(self):
         empty = self.window(1)["datasetVersion"]
-        self.store.insert([self.candle()])
+        self.gateway.write_batch([self.candle()])
         populated = self.window(1)["datasetVersion"]
         self.assertNotEqual(empty, populated)
-        self.store.insert([self.candle(2)])
+        self.gateway.write_batch([self.candle(2)])
         self.assertEqual(populated, self.window(1)["datasetVersion"])
 
     def test_rejects_nonfinite_inconsistent_unclosed_and_oversized_values(self):

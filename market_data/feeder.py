@@ -676,7 +676,10 @@ class HealthEvaluator:
         states = [item.state for item in timeframes.values()]
         if snapshot.get("startup_complete") is not True:
             states.append("STARTING")
-        if snapshot.get("lease_valid") is not True:
+        # Missing lease is expected while startup/recovery is still in
+        # progress. Once startup has completed, lease loss degrades readiness.
+        if (snapshot.get("startup_complete") is True
+                and snapshot.get("lease_valid") is not True):
             states.append("DEGRADED")
 
         state = self._worst_state(states)
@@ -825,7 +828,14 @@ class FeederRuntime:
                 with self._lock:
                     self._state = "STOPPING"
                 raise
-            self._release_startup_lease()
+            try:
+                self._release_startup_lease()
+            except RuntimeError:
+                # The exact generation could no longer be released. This
+                # means ownership changed while startup was failing; never
+                # report a generic startup failure or touch the replacement.
+                self.on_lease_lost()
+                raise
             with self._lock:
                 self._state = "FAILED"
             raise

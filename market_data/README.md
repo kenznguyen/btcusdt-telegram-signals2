@@ -93,12 +93,16 @@ API không tạo database khi thiếu file, không gọi sàn trong request và 
 
 ## Kiểm chứng
 
-CI chạy trên Codemagic với workflow `canonical-market-data`, cấu hình tại `codemagic.yaml`. GitHub chỉ lưu source/PR; không chạy GitHub Actions. Xem [hướng dẫn Codemagic](../docs/CODEMAGIC_SETUP.md) để cài đặt tài khoản và tải log/artifact.
+CI mặc định chạy bằng **GitHub Actions**. Workflow T0 Gateway và kiểm thử tích hợp TimescaleDB disposable được định nghĩa tại `.github/workflows/t0-single-writer-gateway-red.yml`. Job TimescaleDB dùng image `timescale/timescaledb:2.17.2-pg16`, database tạm `t0_test` trên loopback và không nhận cấu hình canonical storage, paper execution hoặc exchange credentials. Codemagic chỉ là phương án thay thế khi có giới hạn hoặc lợi ích chi phí rõ ràng; không phải runner mặc định.
+
+Chạy bộ kiểm thử offline:
 
 ```bash
 python3 -m unittest market_data.test_store market_data.test_sync market_data.test_api integrations.test_hummingbot_bridge -v
 ```
 
-Các kiểm thử dùng SQLite thật, handler WSGI thật và giả lập duy nhất kết nối CCXT ngoài hệ thống. Có kiểm tra pagination, metadata thị trường, nến đang chạy, dữ liệu sai/trùng/xung đột, timestamp khả dụng, gaps, hash và xác thực. Không cần CCXT cho bộ kiểm thử offline; cài gói và kết nối Binance thật là kiểm chứng riêng, chưa được suy ra từ test giả lập.
+Các kiểm thử offline dùng SQLite tạm, handler WSGI thật và giả lập duy nhất kết nối CCXT ngoài hệ thống. Có kiểm tra pagination, metadata thị trường, nến đang chạy, dữ liệu sai/trùng/xung đột, timestamp khả dụng, gaps, hash và xác thực. Không cần CCXT cho bộ kiểm thử offline; kết nối sàn thật là acceptance riêng và không được suy ra từ test giả lập.
+
+Kiểm thử TimescaleDB không dùng canonical database. Bộ integration yêu cầu đồng thời `MARKET_DATA_TEST_DISPOSABLE=1`, `MARKET_DATA_REQUIRE_TIMESCALE=1` và DSN cục bộ đúng database/user `t0_test`; nếu thiếu điều kiện, bộ test sẽ fail closed hoặc bị skip theo cấu hình. PostgreSQL read adapter (`PostgresCandleStore`) vẫn read-only. Feeder canonical write path là `PostgresWriteGateway`, gọi hàm DB `market_data.write_canonical_candle()` có `SECURITY DEFINER`, kiểm tra lease trong DB và xử lý idempotency/conflict. Migration tạo capability role `t0_feeder_writer`; login role của Feeder phải được cấp membership rõ ràng, không được cấp `INSERT/UPDATE/DELETE/TRUNCATE` trực tiếp trên `market_data.candles`. Quyền `EXECUTE` không cấp cho `PUBLIC`. Các kiểm thử ghi dùng riêng database TimescaleDB disposable.
 
 Nguồn adapter: [CCXT binanceusdm](https://github.com/ccxt/ccxt/blob/master/python/ccxt/binanceusdm.py), [Binance fetch_ohlcv/fetch_time](https://github.com/ccxt/ccxt/blob/master/python/ccxt/binance.py), [Freqtrade data download](https://github.com/freqtrade/freqtrade/blob/develop/docs/data-download.md). Bước sau: xuất dataset dùng chung cho nghiên cứu Freqtrade/FreqAI và nối đặc trưng trinh sát theo [kiến trúc 5 tầng](../docs/FIVE_LAYER_ARCHITECTURE.md).

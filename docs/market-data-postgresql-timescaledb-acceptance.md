@@ -64,8 +64,8 @@ A mismatch in any candle, availability field, gap, or dataset hash blocks cutove
 ## Gate 4 — paper-ledger isolation
 
 - [ ] `MARKET_DATA_DB` retains its existing SQLite meaning during the compatibility period.
-- [ ] Market-data PostgreSQL configuration uses a separate variable, `MARKET_DATA_DATABASE_URL`.
-- [ ] In mixed mode, `MARKET_DATA_DATABASE_URL` is consumed only by market-data repository operations; `MARKET_DATA_DB` remains the SQLite path used by the paper ledger and SQLite fallback.
+- [ ] Market-data PostgreSQL configuration uses a separate variable, `MARKET_DATA_POSTGRES_DSN`.
+- [ ] In mixed mode, `MARKET_DATA_POSTGRES_DSN` is consumed only by market-data repository operations; `MARKET_DATA_DB` remains the SQLite path used by the paper ledger and SQLite fallback.
 - [ ] Paper-ledger reads/writes do not receive a PostgreSQL DSN through `sqlite3.connect()`.
 - [ ] Paper ledger remains on SQLite and its schema, transactions, idempotency, audit trail, risk latches, equity history, and persisted state are unchanged.
 - [ ] If/when a separate `PAPER_DB_PATH` is introduced, it is a separately reviewed compatibility change with explicit startup validation and regression tests.
@@ -86,16 +86,16 @@ A mismatch in any candle, availability field, gap, or dataset hash blocks cutove
 
 ## Gate 6 — Codemagic evidence
 
-All executable validation belongs in Codemagic, not GitHub Actions.
+GitHub Actions is the default executable validation and evidence platform. Codemagic is a fallback only when GitHub Actions is unavailable or materially constrained.
 
-- [ ] A dedicated manual Codemagic workflow targets a disposable PostgreSQL/TimescaleDB staging service.
+- [ ] A dedicated manually triggered GitHub Actions workflow targets a disposable PostgreSQL/TimescaleDB staging service. If GitHub Actions cannot run for a documented reason, an equivalent Codemagic fallback may be used.
 - [ ] The workflow records exact source commit SHA, database engine/extension versions, migration IDs/checksums, and test artifact hashes.
 - [ ] Unit/contract tests cover both adapters and all compatibility cases above.
 - [ ] PostgreSQL integration tests cover transaction rollback, uniqueness, duplicate/conflict behavior, numeric precision, and hypertable query behavior.
 - [ ] Migration tests cover clean install, upgrade, interrupted/retried batches, and checksum mismatch fail-closed behavior.
 - [ ] Parity tests compare identical SQLite and PostgreSQL datasets and verify identical `datasetVersion`.
 - [ ] Artifacts include machine-readable test results and a parity report; logs do not expose database credentials or tokens.
-- [ ] A successful Codemagic run is tied to the exact PR head SHA. YAML presence or a locally inferred result is not evidence of a successful run.
+- [ ] A successful workflow run is tied to the exact PR head SHA. Record whether GitHub Actions or an explicitly approved Codemagic fallback ran. YAML presence or a locally inferred result is not evidence of a successful run.
 
 ## Cutover approval checklist
 

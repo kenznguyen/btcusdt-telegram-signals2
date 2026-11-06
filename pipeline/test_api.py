@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from futures_intelligence.import_collector import build_snapshot
 from market_data.store import Candle, CandleStore, read_window
+from market_data.test_support import seed_candles
 from pipeline import api
 
 
@@ -22,7 +23,8 @@ class FiveLayerApiTest(unittest.TestCase):
         self.end = 1_800_001_800_000
         self.now = self.end + 5000
         self.db = self.root / "system.sqlite3"
-        CandleStore(self.db).insert([
+        CandleStore(self.db)
+        seed_candles(self.db, [
             Candle("15m", self.end-1_800_000, "100", "102", "99", "101", "3", self.end-899_000),
             Candle("15m", self.end-900_000, "101", "102", "99", "100", "2", self.end+1000)])
         self.window = read_window(self.db, "BTCUSDT", "15m", self.end-1_800_000, self.end)

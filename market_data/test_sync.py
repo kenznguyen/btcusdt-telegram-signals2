@@ -5,6 +5,8 @@ import tempfile
 import unittest
 
 from market_data.store import CandleStore, INTERVAL_MS, read_window
+from market_data.feeder import LeaseStore
+from market_data.write_gateway import SQLiteWriteGateway
 from market_data.sync import sync_window
 
 
@@ -48,7 +50,15 @@ class CandleSyncTest(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.path = str(Path(self.directory.name) / "candles.sqlite3")
-        self.store = CandleStore(self.path)
+        self.candle_store = CandleStore(self.path)
+        self.leases = LeaseStore(self.path)
+        self.lease = self.leases.acquire("sync-test", START, ttl_seconds=2_000_000)
+        self.store = SQLiteWriteGateway(
+            store=self.candle_store, lease_store=self.leases,
+            owner_id="sync-test",
+            generation_provider=lambda: self.lease.generation,
+            clock=lambda: START + 1,
+        )
 
     def test_exact_futures_market_and_response_observation_time(self):
         received = START + 4 * STEP + 1234
@@ -145,6 +155,20 @@ class CandleSyncTest(unittest.TestCase):
                                 capture_output=True, text=True, check=True)
         self.assertIn("--start-ms", result.stdout)
         self.assertEqual(exchange.calls, [])
+
+    def test_manual_cli_requires_shadow_only_before_any_exchange_access(self):
+        result = subprocess.run(
+            [
+                sys.executable, "-m", "market_data.sync",
+                "--timeframe", "15m",
+                "--start-ms", str(START),
+                "--end-ms", str(START + STEP),
+            ],
+            capture_output=True, text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--shadow-only", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
 
 
 if __name__ == "__main__":

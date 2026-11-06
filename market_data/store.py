@@ -94,26 +94,6 @@ class CandleStore:
             )""")
             connection.commit()
 
-    def insert(self, candles):
-        batch = list(candles)
-        if any(not isinstance(candle, Candle) for candle in batch):
-            raise ValueError("Expected validated Candle values")
-        inserted = 0
-        with closing(sqlite3.connect(self.path, timeout=5)) as connection, connection:
-            connection.execute("BEGIN IMMEDIATE")
-            for candle in batch:
-                key = (EXCHANGE, MARKET_TYPE, candle.symbol, candle.timeframe, candle.open_time_ms)
-                prices = tuple(getattr(candle, name) for name in PRICE_FIELDS)
-                existing = connection.execute("""SELECT open, high, low, close, volume FROM candles
-                    WHERE exchange=? AND market_type=? AND symbol=? AND timeframe=? AND open_time_ms=?""", key).fetchone()
-                if existing is not None:
-                    if existing != prices:
-                        raise ValueError("Conflicting closed candle; history was not overwritten")
-                    continue
-                connection.execute("INSERT INTO candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                                   key + prices + (candle.available_at_ms,))
-                inserted += 1
-        return inserted
 
 
 def read_window(db_path, symbol, timeframe, start_ms, end_ms, as_of_ms=None):

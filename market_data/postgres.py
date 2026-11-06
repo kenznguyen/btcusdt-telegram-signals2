@@ -1,6 +1,8 @@
 """PostgreSQL/TimescaleDB adapter ported from PR #63's PostgresCandleStore."""
 
 from contextlib import contextmanager
+from dataclasses import dataclass, field
+from datetime import datetime
 from decimal import Decimal
 import hashlib
 import json
@@ -63,36 +65,12 @@ def _render_window(symbol, timeframe, start, end, as_of_ms, candles):
 
 
 class PostgresCandleStore:
-    """Same insert contract as SQLite; constructor performs no DDL or migration."""
+    """Read-only adapter; canonical writes are deliberately disabled."""
+
+    canonical_writes_disabled = True
 
     def __init__(self, location):
         self.location = location
-
-    def insert(self, candles):
-        batch = list(candles)
-        if any(not isinstance(candle, Candle) for candle in batch):
-            raise ValueError("Expected validated Candle values")
-        batch.sort(key=lambda candle: (candle.symbol, candle.timeframe, candle.open_time_ms))
-        inserted = 0
-        with connection(self.location) as database:
-            for candle in batch:
-                key = (EXCHANGE, MARKET_TYPE, candle.symbol, candle.timeframe, candle.open_time_ms)
-                prices = tuple(Decimal(getattr(candle, name)) for name in PRICE_FIELDS)
-                result = database.execute("""INSERT INTO market_data.candles
-                    (exchange,market_type,symbol,timeframe,open_time_ms,open,high,low,close,volume,available_at_ms)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                    ON CONFLICT (exchange,market_type,symbol,timeframe,open_time_ms) DO NOTHING
-                    RETURNING open_time_ms""", key + prices + (candle.available_at_ms,)).fetchone()
-                if result is not None:
-                    inserted += 1
-                    continue
-                existing = database.execute("""SELECT open,high,low,close,volume FROM market_data.candles
-                    WHERE exchange=%s AND market_type=%s AND symbol=%s AND timeframe=%s AND open_time_ms=%s""",
-                    key).fetchone()
-                if existing != prices:
-                    raise ValueError("Conflicting closed candle; history was not overwritten")
-        return inserted
-
 
 def read_window(location, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
     start, end, _ = _validate_window(symbol, timeframe, start_ms, end_ms, as_of_ms)
@@ -106,3 +84,146 @@ def read_window(location, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
         candles = [Candle(row[0], row[1], *(format(value, "f") for value in row[2:7]), row[7], row[8]).as_dict()
                    for row in rows]
     return _render_window(symbol, timeframe, start, end, as_of_ms, candles)
+
+
+@dataclass(frozen=True)
+class PostgresLease:
+    owner: str = field(repr=False)
+    generation: int
+    expires_at: datetime
+
+
+class PostgresLeaseStore:
+    """PostgreSQL singleton lease with DB-clock expiry and monotonic fencing."""
+
+    def __init__(self, location, lease_name="binance-btcusdt-canonical"):
+        if not isinstance(location, str) or not location.strip():
+            raise ValueError("location must be a non-empty PostgreSQL DSN")
+        if not isinstance(lease_name, str) or not lease_name.strip():
+            raise ValueError("lease_name must be a non-empty string")
+        self.location = location
+        self.lease_name = lease_name
+
+    @staticmethod
+    def _validate(owner, generation=None, ttl_seconds=None):
+        if not isinstance(owner, str) or not owner.strip():
+            raise ValueError("owner must be a non-empty string")
+        if generation is not None and (type(generation) is not int or generation < 1):
+            raise ValueError("generation must be a positive integer")
+        if ttl_seconds is not None and (type(ttl_seconds) is not int or ttl_seconds <= 0):
+            raise ValueError("ttl_seconds must be a positive integer")
+
+    def acquire(self, owner, ttl_seconds=60):
+        self._validate(owner, ttl_seconds=ttl_seconds)
+        with connection(self.location) as database:
+            row = database.execute(
+                """SELECT generation, expires_at
+                   FROM market_data.acquire_feeder_lease(%s, %s, %s)""",
+                (self.lease_name, owner, ttl_seconds),
+            ).fetchone()
+            return None if row is None else PostgresLease(owner, row[0], row[1])
+
+    def heartbeat(self, owner, generation, ttl_seconds=60):
+        self._validate(owner, generation, ttl_seconds)
+        with connection(self.location) as database:
+            return database.execute(
+                """SELECT market_data.heartbeat_feeder_lease(%s, %s, %s, %s)""",
+                (self.lease_name, owner, generation, ttl_seconds),
+            ).fetchone()[0]
+
+    def is_current(self, owner, generation):
+        self._validate(owner, generation)
+        with connection(self.location, read_only=True) as database:
+            return database.execute(
+                """SELECT market_data.is_current_feeder_lease(%s, %s, %s)""",
+                (self.lease_name, owner, generation),
+            ).fetchone()[0]
+
+    def release(self, owner, generation):
+        self._validate(owner, generation)
+        with connection(self.location) as database:
+            return database.execute(
+                """SELECT market_data.release_feeder_lease(%s, %s, %s)""",
+                (self.lease_name, owner, generation),
+            ).fetchone()[0]
+
+
+class PostgresWriteGateway:
+    """Atomic PostgreSQL lease-fenced writer for canonical closed candles."""
+
+    def __init__(self, location, *, lease_name, owner_id, generation_provider):
+        if not isinstance(location, str) or not location.strip():
+            raise ValueError("location must be a non-empty PostgreSQL DSN")
+        if not isinstance(lease_name, str) or not lease_name.strip():
+            raise ValueError("lease_name must be a non-empty string")
+        if not isinstance(owner_id, str) or not owner_id.strip():
+            raise ValueError("owner_id must be a non-empty string")
+        if not callable(generation_provider):
+            raise TypeError("generation_provider must be callable")
+        self.location = location
+        self.lease_name = lease_name
+        self.owner_id = owner_id
+        self.generation_provider = generation_provider
+
+    @staticmethod
+    def _validated_batch(candles):
+        batch = list(candles)
+        validated = []
+        for candle in batch:
+            if not isinstance(candle, Candle):
+                raise ValueError("Expected validated Candle values")
+            # Reconstruct to reject mutated/fabricated instances before opening
+            # a transaction; the database constraints remain the final guard.
+            validated.append(Candle(
+                candle.timeframe, candle.open_time_ms, candle.open, candle.high,
+                candle.low, candle.close, candle.volume, candle.available_at_ms,
+                candle.symbol,
+            ))
+        return validated
+
+    def write_batch(self, candles):
+        batch = self._validated_batch(candles)
+        generation = self.generation_provider()
+        if type(generation) is not int or generation < 1:
+            raise PermissionError("Feeder lease is unavailable; canonical write rejected")
+
+        inserted = 0
+        with connection(self.location) as database:
+            # The SECURITY DEFINER candle function locks and validates the
+            # lease row. Its lock remains held until this outer batch commits,
+            # so the Feeder login needs no direct lease-table privileges.
+            for candle in batch:
+                values = tuple(Decimal(getattr(candle, name)) for name in PRICE_FIELDS)
+                parameters = (
+                    self.lease_name, self.owner_id, generation,
+                    EXCHANGE, MARKET_TYPE, candle.symbol, candle.timeframe,
+                    candle.open_time_ms, *values, candle.available_at_ms,
+                )
+                try:
+                    created = database.execute(
+                        """SELECT market_data.write_canonical_candle(
+                               %s, %s, %s, %s, %s, %s, %s, %s,
+                               %s, %s, %s, %s, %s, %s
+                           )""",
+                        parameters,
+                    ).fetchone()[0]
+                except Exception as error:
+                    sqlstate = getattr(error, "sqlstate", None)
+                    if sqlstate == "42501":
+                        raise PermissionError(
+                            "Feeder lease is not current; canonical write rejected"
+                        ) from None
+                    if sqlstate == "P0001":
+                        raise ValueError(
+                            "Conflicting closed candle; canonical history was not overwritten"
+                        ) from None
+                    raise
+                inserted += int(created)
+
+            still_current = database.execute(
+                """SELECT market_data.is_current_feeder_lease(%s, %s, %s)""",
+                (self.lease_name, self.owner_id, generation),
+            ).fetchone()[0]
+            if not still_current:
+                raise PermissionError("Feeder lease expired before commit; canonical write rejected")
+        return inserted

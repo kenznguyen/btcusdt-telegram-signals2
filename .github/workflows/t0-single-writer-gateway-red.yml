@@ -1,0 +1,264 @@
+name: T0 Single Writer Gateway Contracts
+
+on:
+  push:
+    branches:
+      - feature/t0-atomic-write-fencing-20261105
+    paths:
+      - "market_data/**"
+      - ".github/workflows/t0-single-writer-gateway-red.yml"
+  pull_request:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - "market_data/**"
+      - ".github/workflows/t0-single-writer-gateway-red.yml"
+      - "docs/evidence/T0_SINGLE_WRITER_GATEWAY_RED_2026-11-05.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: t0-swg-red-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  shadow-contracts:
+    name: Static Gateway contract verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    steps:
+      - name: Checkout exact workflow source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install web test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r requirements-web.txt
+      - name: Enforce source-only environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "${MARKET_DATA_DB}"
+          test -z "${T0_FEEDER_LEASE_DB}"
+          test -z "${PAPER_DB}"
+          test -z "${BINANCE_API_KEY}"
+          test -z "${BINANCE_API_SECRET}"
+          test -z "${OKX_API_KEY}"
+          test -z "${OKX_API_SECRET}"
+          echo "T0_SWG_SHADOW_PREFLIGHT=PASS" | tee t0-swg-preflight.log
+      - name: Compile contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile market_data/test_single_writer_gateway_red.py
+          echo "T0_SWG_RED_COMPILE=PASS" | tee t0-swg-compile.log
+      - name: Run Gateway static acceptance contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          env -u MARKET_DATA_DB -u T0_FEEDER_LEASE_DB -u PAPER_DB \
+            -u BINANCE_API_KEY -u BINANCE_API_SECRET -u OKX_API_KEY -u OKX_API_SECRET \
+            python -m unittest market_data.test_single_writer_gateway_red -v 2>&1 | tee t0-swg-contract-tests.log
+          echo "T0_SWG_CONTRACTS=PASS" | tee t0-swg-contract-verdict.log
+      - name: Run Gateway behavioral and feeder regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest \
+            market_data.test_write_gateway \
+            market_data.test_fenced_store \
+            market_data.test_store \
+            market_data.test_sync \
+            market_data.test_storage \
+            market_data.test_feeder_lifecycle -v 2>&1 | tee t0-swg-behavior-tests.log
+      - name: Run Health and Readiness contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest \
+            market_data.test_feeder_health \
+            market_data.test_feeder_health_api -v 2>&1 | tee t0-health-readiness-tests.log
+      - name: Run process-level SIGKILL restart and fencing acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest market_data.test_feeder_process_restart -v 2>&1 | tee t0-process-restart-tests.log
+      - name: Run complete market_data regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s market_data -p 'test_*.py' -v 2>&1 | tee t0-market-data-full-suite.log
+      - name: Upload source identity and RED evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-swg-contract-evidence-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            t0-swg-preflight.log
+            t0-swg-compile.log
+            t0-swg-contract-tests.log
+            t0-swg-contract-verdict.log
+            t0-swg-behavior-tests.log
+            t0-health-readiness-tests.log
+            t0-process-restart-tests.log
+            t0-market-data-full-suite.log
+
+  paper-consumer-regressions:
+    name: Paper consumer fixture regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact workflow source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install paper test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r requirements-web.txt "pandas>=2.2,<3"
+      - name: Run five-layer paper consumer regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest pipeline.test_decision pipeline.test_api freqai_bridge.test_exporter -v 2>&1 | tee t0-paper-consumer-tests.log
+      - name: Upload paper consumer test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-paper-consumer-tests-${{ github.sha }}
+          if-no-files-found: error
+          path: t0-paper-consumer-tests.log
+
+  timescaledb-read-only-integration:
+    name: Isolated TimescaleDB read-only integration
+    needs: shadow-contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      MARKET_DATA_TEST_DATABASE_URL: postgresql://t0_test:t0_test@127.0.0.1:5432/t0_test
+      MARKET_DATA_TEST_DISPOSABLE: "1"
+      MARKET_DATA_REQUIRE_TIMESCALE: "1"
+      MARKET_DATA_DB: ""
+      MARKET_DATA_POSTGRES_DSN: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    services:
+      timescaledb:
+        image: timescale/timescaledb:2.17.2-pg16
+        env:
+          POSTGRES_USER: t0_test
+          POSTGRES_PASSWORD: t0_test
+          POSTGRES_DB: t0_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U t0_test -d t0_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Checkout workflow source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install isolated market-data dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r requirements-market-data.txt
+      - name: Enforce disposable TimescaleDB target
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from urllib.parse import urlparse
+
+          assert os.environ.get("MARKET_DATA_TEST_DISPOSABLE") == "1"
+          assert os.environ.get("MARKET_DATA_REQUIRE_TIMESCALE") == "1"
+          dsn = urlparse(os.environ["MARKET_DATA_TEST_DATABASE_URL"])
+          assert dsn.scheme in {"postgres", "postgresql"}
+          assert dsn.hostname == "127.0.0.1" and dsn.port == 5432
+          assert dsn.username == "t0_test" and dsn.path == "/t0_test"
+          for name in (
+              "MARKET_DATA_DB", "MARKET_DATA_POSTGRES_DSN", "T0_FEEDER_LEASE_DB",
+              "PAPER_DB", "BINANCE_API_KEY", "BINANCE_API_SECRET",
+              "OKX_API_KEY", "OKX_API_SECRET",
+          ):
+              assert not os.environ.get(name), f"Forbidden environment variable: {name}"
+          print("T0_TIMESCALE_DISPOSABLE_PREFLIGHT=PASS")
+          PY
+          {
+            echo "T0_TIMESCALE_IMAGE=timescale/timescaledb:2.17.2-pg16"
+            echo "T0_TIMESCALE_DATABASE=t0_test"
+            echo "T0_TIMESCALE_HOST=127.0.0.1"
+            echo "T0_TIMESCALE_PORT=5432"
+            echo "T0_TIMESCALE_SOURCE_SHA=$(git rev-parse HEAD)"
+          } | tee t0-timescale-preflight.log
+      - name: Run PostgreSQL atomic writer integration contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile market_data/test_postgres_write_gateway.py
+          python -m unittest market_data.test_postgres_write_gateway -v 2>&1 | tee t0-postgres-writer-tests.log
+          echo "T0_POSTGRES_WRITER_INTEGRATION=PASS" | tee t0-postgres-writer-red-verdict.log
+      - name: Run PostgreSQL FeederRuntime integration contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile market_data/test_postgres_feeder_runtime.py
+          python -m unittest market_data.test_postgres_feeder_runtime -v 2>&1 | tee t0-postgres-feeder-runtime-tests.log
+          echo "T0_POSTGRES_FEEDER_RUNTIME_INTEGRATION=PASS" | tee t0-postgres-feeder-runtime-verdict.log
+      - name: Run PostgreSQL least-privilege role integration contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile market_data/test_postgres_role_privileges.py
+          python -m unittest market_data.test_postgres_role_privileges -v 2>&1 | tee t0-postgres-role-privileges-tests.log
+          echo "T0_POSTGRES_ROLE_PRIVILEGES=PASS" | tee t0-postgres-role-privileges-verdict.log
+      - name: Run read-only TimescaleDB integration contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest market_data.test_timescaledb -v 2>&1 | tee t0-timescale-tests.log
+          echo "T0_TIMESCALE_READ_ONLY_INTEGRATION=PASS" | tee t0-timescale-verdict.log
+      - name: Upload TimescaleDB integration evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-timescale-read-only-evidence-${{ github.sha }}
+          if-no-files-found: warn
+          path: |
+            t0-timescale-preflight.log
+            t0-postgres-writer-tests.log
+            t0-postgres-writer-red-verdict.log
+            t0-postgres-feeder-runtime-tests.log
+            t0-postgres-feeder-runtime-verdict.log
+            t0-postgres-role-privileges-tests.log
+            t0-postgres-role-privileges-verdict.log
+            t0-timescale-tests.log
+            t0-timescale-verdict.log

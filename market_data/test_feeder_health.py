@@ -53,6 +53,15 @@ class HealthContractTest(unittest.TestCase):
         self.assertTrue(result.live)
         self.assertFalse(result.ready)
 
+    def test_startup_before_lease_acquisition_is_starting_and_not_ready(self):
+        state = healthy_snapshot()
+        state["startup_complete"] = False
+        state["lease_valid"] = False
+        result = self.evaluate(state)
+        self.assertEqual(result.state, "STARTING")
+        self.assertTrue(result.live)
+        self.assertFalse(result.ready)
+
     def test_m15_one_cycle_lag_is_degraded_warning(self):
         state = healthy_snapshot()
         state["m15"]["latest_closed_candle_close_ms"] = NOW - M15
