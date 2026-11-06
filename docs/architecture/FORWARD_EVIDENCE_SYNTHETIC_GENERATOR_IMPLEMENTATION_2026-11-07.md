@@ -267,3 +267,21 @@ No T0/T1 runtime, database, strategy, provider, VPS, persistent capture, signing
 - A new push-triggered workflow run is expected; its run ID and result are pending verification.
 
 **Current P1.8.3 status: BLOCKED pending rerun CI.** Do not mark PASS until the rerun checks out the corrected source SHA and all tests, reproducibility, replay and artifact checks pass.
+
+
+### CI verification — P1.8.3 PASS (2026-11-07)
+
+- Workflow run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42291352255
+- Job ID: `128145290479`, `Deterministic local fixture contracts`, conclusion **SUCCESS**.
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Exact checked-out/source SHA: `a64d7366a5d19dd0e8d70b8aa27db2b5e30aa841`; checkout log and `git rev-parse HEAD` agree.
+- Corrected test source blob: `7303eb823305f94cce17763acbc79dee458c59ab`; exact source contains the terminal FILLED assertions (`active_order_id is None`, O2 status FILLED, filled quantity 7).
+- Synthetic-only preflight: PASS. Python 3.11.18 compile: PASS. Unit tests: **36/36 PASS**.
+- Two independently generated 1,000-event fixture directories were byte-identical according to the workflow reproducibility check.
+- Both local replay smoke checks: PASS; 1,000 events, 3 streams, 12 segments each.
+- Fixture manifest: 17/17 SHA-256 entries passed in workflow; artifact downloaded and independently checked again, 17/17 PASS.
+- Artifact ID `13539157781`; name `p1-8-synthetic-evidence-a64d7366a5d19dd0e8d70b8aa27db2b5e30aa841`; 299,039 bytes; SHA-256 `d9ea3cd456999c7948143a59b2166f702abc3e47ffd2c3a92f3bd6fea4c7321c`; expires `2026-11-13T20:47:44Z`. Downloaded ZIP hash independently matches GitHub artifact metadata and upload log.
+- Artifact contains 24 files; its run descriptor records source SHA `a64d7366a5d19dd0e8d70b8aa27db2b5e30aa841`, 1,000 events (Core 334, AI 333, Legacy 333), Python 3.11.18 / CPython / Linux x86_64, storage medium NOT_MEASURED, canonicalization `RFC8785-JCS-STRICT-SUBSET/1`, and unsigned local SHA-256 evidence profile.
+- Workflow log confirms database/exchange credential environment variables empty and `AI_EXECUTION_ENABLED=false`.
+
+**P1.8.3 status: PASS — synthetic-only fault injection harness and CI contract verified for the exact source SHA above.** This does not certify production T0/T1 behavior or broader durability/recovery properties. T0 remains PAUSED; no provider, VPS, persistent capture, database/runtime integration, signing/key lifecycle, Root B, live order or execution work was performed or authorized.
