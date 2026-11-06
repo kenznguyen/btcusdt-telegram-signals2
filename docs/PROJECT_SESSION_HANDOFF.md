@@ -2142,3 +2142,25 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Existing RED 1 evidence remains unchanged: GitHub Actions run `42178592443`, source SHA `554d122762a9d49a6144a1be54d178902d3db7d9`, expected failure on AI SHORT coexistence; artifact ID `13484247308`.
 - Status: six design decisions **APPROVED**; schema/migration plan **DESIGN APPROVED**; source implementation **NOT AUTHORIZED**; DB migration/feature activation/backtests/merge/deploy/live execution **NOT AUTHORIZED**.
 - Next step: request separate explicit approval for T1.2.2 implementation. If approved, start with TDD RED tests and isolated migration fixtures, then run focused GitHub Actions tests against exact source SHAs. Preserve PAPER-only and `ai_execution_enabled=false`.
+
+## 2026-11-06 — T0 regression baseline review at Dual Ledger HEAD
+
+- Requested baseline target: branch `feature/t0-centralized-data-feeder-p1-20261101`, HEAD `faa069222bb05eb8a5fede66c15bbff58883290f`.
+- Re-verified branch API HEAD exactly matches the requested SHA. Re-read this handoff before inspection.
+- Current workflow inventory: `.github/workflows/t0-single-writer-gateway-red.yml` and `.github/workflows/dual-ledger-red.yml`. The T0 workflow has `workflow_dispatch`, source-only environment guards, disposable TimescaleDB services, and runs Gateway/Feeder/Health/Readiness/process-restart plus complete `market_data` tests. No workflow-dispatch action is exposed by the connected GitHub tools in this session; no exact-HEAD workflow run was triggered. No workflow configuration was changed.
+- Latest T0 workflow evidence inspected: run **42166319563**, event `push`, checked-out/head SHA `7c41ac990a7a0842b773a2d07b8db2f1d769a855`, URL https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42166319563.
+  - Static Gateway contract verification: SUCCESS; includes Gateway contracts, behavioral/feeder regressions, Health/Readiness, SIGKILL restart/fencing and complete `market_data` regression suite.
+  - Paper consumer fixture regressions: SUCCESS.
+  - Isolated TimescaleDB read-only integration: SUCCESS.
+  - Fresh-cluster restricted provider bootstrap: FAILURE. The strict migration role guard rejected the disposable bootstrap membership graph; this remains a known fail-closed provider-bootstrap blocker and must not be weakened without a separate threat model and approval.
+  - Overall workflow conclusion: FAILURE because provider bootstrap failed; this is not a fully green T0 workflow.
+- Artifacts:
+  - Gateway/static + complete `market_data` evidence: artifact **13479136579**, SHA-256 `b7676699ec4a497a2ae1b4d054a141b76e48606e2502a753fef01a0950585a69`.
+  - Timescale read-only integration: artifact **13479106179**, SHA-256 `b0ddf990becfabd4a63d60dc7dd8c286fb7ad55ab2dafde5fdc54466ade82678`.
+  - Paper consumer regressions: artifact **13478883570**, SHA-256 `1e0945f9344b20a5ba7299971245fab87e63ba08d0ebe046703533d72e50ecc7`.
+  - Provider bootstrap failure evidence: artifact **13478428940**, SHA-256 `6e99f27f09949cf05c7cae43521d770a6ed9aeca8c562f6d490f6aa52e43c63c`.
+  - Artifacts expire **2026-11-13T05:05:31Z**.
+- Exact compare `7c41ac990a7a0842b773a2d07b8db2f1d769a855...faa069222bb05eb8a5fede66c15bbff58883290f`: 22 commits ahead, 0 behind. Changed files are limited to the Dual Ledger workflow/test, handoff, T0 planning/provider research documents, and Dual Ledger architecture documents. **No `market_data/**` source or test files, T0 workflow, or requirements files changed after the tested SHA.** Therefore the T0 source/test suite exercised at run 421663 is source-equivalent to the requested HEAD for those paths, although the workflow did not check out the exact HEAD.
+- Baseline verdict: **CONDITIONAL PASS — T0 Gateway/Feeder/Health/Readiness/process restart, complete `market_data` suite, paper-consumer regressions and Timescale read-only integration are source-equivalent to current HEAD and passed on SHA `7c41ac9...`. Provider bootstrap remains BLOCKED. Exact-HEAD workflow execution is NOT RUN.**
+- No source, tests, schema, database, runtime configuration or workflow was modified. No DB was created/opened, no Feeder started, no exchange contacted, no market-data sync, no Paper DB mutation, no live execution. `ai_execution_enabled=false` remains unchanged.
+- Next: before T1.2.2 implementation, preserve the provider-bootstrap blocker and require an exact-HEAD T0 run when a workflow-dispatch path is available or when an authorized T0-path commit naturally triggers CI. Do not create a dummy source/workflow change solely to trigger CI. T1.2.2 source implementation still requires separate explicit approval.
