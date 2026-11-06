@@ -652,5 +652,24 @@ os._exit(74)
             self.persist()
 
 
+    def test_idempotent_retry_rejects_risk_state_version_rollback(self):
+        self.persist()
+        with self._connection() as db:
+            version = db.execute(
+                "SELECT version FROM paper_account_risk_state WHERE account_id=1"
+            ).fetchone()[0]
+            self.assertGreater(version, 1)
+            db.execute(
+                "UPDATE paper_account_risk_state SET version=? WHERE account_id=1",
+                (version - 1,),
+            )
+            db.commit()
+        with self.assertRaisesRegex(
+            sqlite3.DatabaseError,
+            "DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED",
+        ):
+            self.persist()
+
+
 if __name__ == "__main__":
     unittest.main()
