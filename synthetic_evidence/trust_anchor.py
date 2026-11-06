@@ -90,10 +90,15 @@ def validate_trusted_root(data):
 
 
 def verify_trusted_root(data, expected_sha256):
-    """Fail closed unless the trusted-root bytes match the reviewed SHA-256 pin."""
+    """Check the reviewed digest before parsing any untrusted trusted-root bytes."""
+    import hashlib
+
     if not isinstance(expected_sha256, str) or not _SHA64.fullmatch(expected_sha256):
         raise ValueError("invalid trusted-root pin")
-    actual = validate_trusted_root(data)
+    if not isinstance(data, bytes) or not data:
+        raise ValueError("empty trusted root")
+    actual = hashlib.sha256(data).hexdigest()
     if actual != expected_sha256:
         raise ValueError("trusted-root digest mismatch")
+    validate_trusted_root(data)
     return actual
