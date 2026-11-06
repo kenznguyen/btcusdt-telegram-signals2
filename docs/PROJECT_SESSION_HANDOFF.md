@@ -3806,3 +3806,20 @@ Artifact `13540216092` (`p1-8-synthetic-evidence-311e6810ab5c7388daefb34373e58b1
 Test expectation corrected in commit `101b4be4d868d64aca5c7d49c7758a52b888a83a`: terminal active ID must be null, with O2 separately asserted FILLED and quantity 7. No harness/runtime behavior changed. Awaiting push-triggered rerun.
 
 **P1.8.3 remains BLOCKED pending exact-SHA rerun.** Do not mark PASS until the corrected source passes compile, all 36 tests, deterministic fixture/replay checks and artifact checksum reconciliation.
+
+
+### P1.8.3 CI rerun — PASS (2026-11-07)
+
+- Workflow run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42291352255
+- Job: `128145290479`, `Deterministic local fixture contracts`, SUCCESS.
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Exact checkout/source SHA: `a64d7366a5d19dd0e8d70b8aa27db2b5e30aa841`; checkout log and `git rev-parse HEAD` agree.
+- Corrected test blob: `7303eb823305f94cce17763acbc79dee458c59ab`; verified the corrected terminal FILLED assertions are present in this exact source.
+- Synthetic-only preflight PASS; Python 3.11.18 compile PASS; **36/36 tests PASS**.
+- Two 1,000-event fixtures byte-identical; each local replay verified 1,000 events across 3 streams; 12 segments; both smoke checks PASS.
+- Workflow manifest validation 17/17 PASS. Downloaded artifact independently checked: 24 files, all 17 fixture manifest SHA-256 entries match.
+- Artifact ID `13539157781`; name `p1-8-synthetic-evidence-a64d7366a5d19dd0e8d70b8aa27db2b5e30aa841`; size 299,039 bytes; SHA-256 `d9ea3cd456999c7948143a59b2166f702abc3e47ffd2c3a92f3bd6fea4c7321c`; expires 2026-11-13T20:47:44Z. Downloaded ZIP digest matches GitHub metadata and upload log.
+- Run descriptor source SHA agrees with the workflow source SHA. It records Core 334 / AI 333 / Legacy 333; Python 3.11.18, Linux x86_64; storage medium NOT_MEASURED; JCS strict subset and unsigned local hash profile.
+- DB/exchange credential variables empty; `AI_EXECUTION_ENABLED=false`.
+
+**P1.8.3 status: PASS for the synthetic-only harness and stated CI contract.** This does not prove production T0/T1 ledger/recovery semantics, provider durability, cross-language JCS, Ed25519/signing, Root B, 100k/burst/recovery/spool/restore, performance or production readiness. T0 remains PAUSED. No persistent capture, provider/VPS, runtime integration, exchange, database or live execution authorized.
