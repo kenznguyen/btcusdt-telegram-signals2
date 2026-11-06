@@ -1400,3 +1400,14 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Direct-head push CI: **NOT VERIFIED**. Artifact payload hash recomputation: **NOT VERIFIED**. These are not implied by the merge-context workflow or GitHub upload digests.
 - PR remains OPEN / DRAFT / NOT MERGED. No merge approval inferred. No canonical T0 DB migration, production Feeder activation, VPS deployment, exchange connection/sync or live execution was performed or authorized.
 - Next: preserve PR #134 pending explicit user merge approval; before any merge, resolve any remaining direct-head CI requirement only if a real push run becomes available, and retain the above provenance distinctions. No production activation follows from CI PASS.
+
+
+## 2026-11-06 — PR #134 promoted to ready for review
+
+- Current head remains `9e5d99b16b1316549eacbd6091ef670d4035ac0a`; base remains `8b196d2720eab804728df7c0227c606c094b16ad`.
+- Rechecked PR state and review surface: PR mergeable=true; all 13 inline review threads resolved; no unresolved review threads. Codex receipt for current head prefix `9e5d99b16b` reports no major issues.
+- PR description updated with latest workflow #42123643557 provenance, TimescaleDB 18/18 role tests, read-only 6/6, review receipt, and explicit verification limits.
+- PR #134 transitioned from DRAFT to **OPEN / READY FOR REVIEW / NOT MERGED**. This is a review-readiness transition only, not merge approval.
+- Direct-head push CI remains NOT VERIFIED; workflow #42123643557 checked out synthetic merge SHA `317cabd05ab0c36bdbbf6284fbd0cee9a3d58029`. Artifact payload hashes are not independently recomputed.
+- No merge, canonical T0 migration, production Feeder activation, VPS deployment, exchange connection/sync or live execution.
+- Next gate: human review/explicit merge approval. Do not merge automatically. If further CI evidence is required, only accept a real push-triggered run with checked-out SHA equal to current PR head.
