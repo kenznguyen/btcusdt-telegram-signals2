@@ -1532,3 +1532,50 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Documentation-only change; no tests rerun, no source/runtime/config changes, no database/VPS/credential/network/Feeder/exchange actions.
 - Current production readiness remains **BLOCKED / NOT CERTIFIED** until provider/region/cost ceiling are selected and exact-provider TLS, credential rotation, backup/PITR, restore/failover, and old-primary fencing acceptance are demonstrated.
 - Next technical review: inspect production runtime DSN handling against the documented TLS `verify-full` requirement; do not weaken TLS requirements or connect to any production target.
+
+## 2026-11-06 — P0 production PostgreSQL TLS enforcement
+
+### Review finding and implementation
+
+- Focused review compared production runtime connection handling with the P0 security design. The design required TLS certificate and hostname verification (sslmode=verify-full), but build_production_runtime() previously accepted PostgreSQL DSNs without validating this requirement.
+- Added fail-closed _require_verified_postgres_tls() in market_data/feeder_service.py. It accepts only an explicit sslmode=verify-full parameter for both PostgreSQL URI DSNs and libpq keyword DSNs; missing mode, require, disable, duplicate/conflicting URI parameters, and malformed DSNs are rejected.
+- Uses Python standard-library parsing only; no new dependency. Enforcement is scoped to production runtime composition. Low-level disposable test fixtures and direct adapter construction remain usable without a production TLS policy.
+- Updated production-runtime test fixtures to declare verified TLS explicitly.
+- Commits on feature/t0-centralized-data-feeder-p1-20261101:
+  - 6dd113f6b3d8ad46c2dc666d550792c89004d4d9 — RED TLS enforcement tests.
+  - 552aaf54aaa537f849a7e461b45ac698ffbcbdf3 — initial enforcement implementation (first CI attempt exposed that psycopg is not installed in the source-only static job).
+  - f302721f203ff040ac061867b244028310e81df8 — update production test fixtures to use explicit sslmode=verify-full.
+  - 0ce6fce16eedebe6108fe6105c3af850da938ef8 — switch validation to standard-library parsing; no runtime import dependency.
+
+### TDD and CI evidence
+
+1. RED run https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42158069198, exact source SHA 6dd113f6b3d8ad46c2dc666d550792c89004d4d9:
+   - Static Gateway suite failed exactly on the new negative cases: DSNs with no sslmode, sslmode=require, and sslmode=disable were accepted.
+   - This confirms the prior production runtime did not enforce the documented TLS policy.
+   - Paper consumer job passed; TimescaleDB job skipped because the static suite failed.
+2. First GREEN attempt on SHA f302721f203ff040ac061867b244028310e81df8 exposed a test-environment compatibility issue: the source-only static job does not install psycopg, so TLS validation must not import the DB driver. This was corrected with standard-library parsing.
+3. Final GREEN run https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42158215844:
+   - Event: push; branch: feature/t0-centralized-data-feeder-p1-20261101.
+   - Exact checked-out source SHA: 0ce6fce16eedebe6108fe6105c3af850da938ef8, confirmed by disposable TimescaleDB job log T0_TIMESCALE_SOURCE_SHA.
+   - Jobs: 3/3 SUCCESS (Static Gateway contract verification, Paper consumer fixture regressions, Isolated TimescaleDB read-only integration).
+   - Static Gateway / complete market_data suite: 227 tests PASS, 36 skipped.
+   - Production runtime TLS tests: negative cases for absent mode, require, and disable PASS; explicit verify-full acceptance PASS.
+   - PostgreSQL atomic writer: 7/7 PASS.
+   - PostgreSQL FeederRuntime: 16/16 PASS.
+   - PostgreSQL FeederRuntime lifecycle: 4/4 PASS.
+   - PostgreSQL least-privilege roles: 18/18 PASS.
+   - Read-only TimescaleDB: 6/6 PASS.
+   - Paper consumer regressions: job SUCCESS.
+   - Disposable TimescaleDB preflight PASS; no production DB, credentials, exchange access, or external network ingestion.
+   - Artifacts (GitHub upload metadata; payload bytes not independently downloaded/re-hashed):
+     - Static Gateway ID 13474813671, digest sha256:4d177a1962b5aba1f48d71dd78c907dd00aeeadb43cef99282fda0de34997610.
+     - TimescaleDB ID 13474634158, digest sha256:b943fd242500ef5d2e463c736b1067ad6a4c9e72f2a83a3e7545340712052810.
+     - Paper consumer ID 13474484339, digest sha256:56cf83530e78db754e8f6b8813bdd5319db9adf4c5ecb8b382dac3b0cab82643e.
+
+### Verdict and boundaries
+
+- Production PostgreSQL DSN TLS policy enforcement: PASS on exact source SHA 0ce6fce16eedebe6108fe6105c3af850da938ef8.
+- This verifies configuration rejection/acceptance logic only. It does not prove a real provider certificate chain, hostname, CA bundle, ingress allowlist, or remote TLS handshake; those remain staging acceptance items.
+- No TLS credentials/certificates, production DB, VPS, network rules, Feeder, Binance connectivity, or market-data sync were configured or activated.
+- No merge. ai_execution_enabled=false; paper-only boundary unchanged.
+- Next: continue focused P0 security/recovery review, especially shutdown deadline/admission ordering and production provider-specific TLS/backup acceptance. Do not provision production resources or activate Feeder.
