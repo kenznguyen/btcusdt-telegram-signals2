@@ -69,6 +69,16 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
         finally:
             connection.close()
 
+    def persist_at(self, utc_day_ms, now_ms):
+        connection = self._connection()
+        try:
+            return persist_daily_equity_baseline(
+                connection, utc_day_ms=utc_day_ms, now_ms=now_ms,
+                source_sha="b" * 40,
+            )
+        finally:
+            connection.close()
+
     def _connection(self):
         connection = sqlite3.connect(self.path, timeout=10)
         connection.execute("PRAGMA foreign_keys=ON")
@@ -107,6 +117,46 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
         intent["decisionAtMs"] = now_ms - 100
         intent["validUntilMs"] = now_ms + 30_000
         return intent
+
+    def test_writer_rejects_skipping_an_unverified_utc_day(self):
+        next_boundary = self.boundary + account_history.DAY_MS
+        next_now = self.recorded + account_history.DAY_MS
+        with self.assertRaisesRegex(
+            ValueError, "DAILY_BASELINE_DAY_GAP_REQUIRES_RECONCILIATION"
+        ):
+            self.persist_at(next_boundary, next_now)
+        with self._connection() as db:
+            self.assertEqual(db.execute(
+                "SELECT COUNT(*) FROM paper_daily_equity_baselines"
+            ).fetchone()[0], 0)
+            self.assertEqual(db.execute(
+                "SELECT COUNT(*) FROM paper_daily_equity_baseline_audit"
+            ).fetchone()[0], 0)
+
+    def test_writer_requires_previous_persisted_baseline_after_cutover_day(self):
+        with self._connection() as db:
+            db.execute(
+                """UPDATE paper_account_risk_state
+                   SET daily_baseline_utc_day_ms=?,daily_baseline_equity_quote='100'
+                   WHERE account_id=1""",
+                (self.boundary,),
+            )
+            db.commit()
+        next_boundary = self.boundary + account_history.DAY_MS
+        next_now = self.recorded + account_history.DAY_MS
+        with self.assertRaisesRegex(
+            sqlite3.DatabaseError, "DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED"
+        ):
+            self.persist_at(next_boundary, next_now)
+        with self._connection() as db:
+            state = db.execute(
+                "SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote "
+                "FROM paper_account_risk_state WHERE account_id=1"
+            ).fetchone()
+            self.assertEqual(state, (self.boundary, "100"))
+            self.assertEqual(db.execute(
+                "SELECT COUNT(*) FROM paper_daily_equity_baselines"
+            ).fetchone()[0], 0)
 
     def test_writer_rejects_missing_immutable_audit_trigger_before_writing(self):
         with self._connection() as db:
