@@ -11,7 +11,7 @@ class ProvenanceBindingTests(unittest.TestCase):
         workflow = root / "workflow.yml"
         workflow.write_text("name: synthetic", encoding="utf-8")
         a, b = root / "a.json", root / "b.json"
-        a.write_text(json.dumps({"source_sha": sha}), encoding="utf-8")
+        a.write_text(json.dumps({"generator_source_sha": sha}), encoding="utf-8")
         b.write_text(json.dumps({"source_sha": sha}), encoding="utf-8")
         return dict(source_sha=sha, run_id="12345", run_attempt="1",
                     repository="owner/repo", ref="refs/heads/feature/test",
