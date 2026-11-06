@@ -233,6 +233,13 @@ jobs:
           python -m py_compile market_data/test_postgres_feeder_runtime.py
           python -m unittest market_data.test_postgres_feeder_runtime -v 2>&1 | tee t0-postgres-feeder-runtime-tests.log
           echo "T0_POSTGRES_FEEDER_RUNTIME_INTEGRATION=PASS" | tee t0-postgres-feeder-runtime-verdict.log
+      - name: Run PostgreSQL FeederRuntime lifecycle acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile market_data/test_postgres_feeder_runtime_lifecycle.py
+          python -m unittest market_data.test_postgres_feeder_runtime_lifecycle -v 2>&1 | tee t0-postgres-feeder-runtime-lifecycle-tests.log
+          echo "T0_POSTGRES_FEEDER_RUNTIME_LIFECYCLE=PASS" | tee t0-postgres-feeder-runtime-lifecycle-verdict.log
       - name: Run PostgreSQL least-privilege role integration contracts
         shell: bash
         run: |
