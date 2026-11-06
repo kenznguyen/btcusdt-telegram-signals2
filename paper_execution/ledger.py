@@ -95,20 +95,72 @@ def stored_state(connection):
         raise sqlite3.DatabaseError("Paper ledger state is corrupt or uninitialized") from None
 
 
-def read_snapshot(db_path):
-    """Read existing paper state without creating a database or initializing tables."""
+def read_snapshot(db_path, strategy_id=None):
+    """Read an existing paper ledger without creating a database or initializing tables."""
     path = Path(db_path).resolve()
     if not path.is_file():
         raise FileNotFoundError("Paper ledger is unavailable")
     with closing(sqlite3.connect(path.as_uri()+"?mode=ro", uri=True, timeout=10)) as connection, connection, localcontext() as context:
         context.prec = 80
         connection.execute("BEGIN")
-        position, average, realized, fees, paused = stored_state(connection)
         risk = risk_control.snapshot(connection)
-        strategy = connection.execute("SELECT owner,dca_used,initial_margin_quote FROM paper_strategy_state WHERE id=1").fetchone() if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_strategy_state'").fetchone() else (None, 0, "0")
-        orders = [json.loads(row[0]) for row in connection.execute("SELECT document FROM paper_orders ORDER BY rowid DESC LIMIT 100")]
-        return {"mode": "PAPER", "liveTradingSupported": False, "paused": bool(paused), "riskControl": risk, "strategyState": {"owner": strategy[0], "dcaUsed": bool(strategy[1]), "initialMarginQuote": strategy[2]}, "positionBase": text(position),
-                "averageEntryPrice": text(average), "realizedPnlQuote": text(realized), "feesQuote": text(fees),
+        if strategy_id in DUAL_STRATEGIES:
+            migration = connection.execute(
+                "SELECT 1 FROM paper_schema_migrations WHERE version=? AND status='APPLIED'",
+                (MIGRATION_VERSION,),
+            ).fetchone()
+            if not migration:
+                raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_APPLIED")
+            row = connection.execute(
+                """SELECT position_base,average_entry_price,realized_pnl_quote,fees_quote,
+                          funding_quote,dca_used,initial_margin_quote
+                   FROM paper_strategy_ledgers WHERE account_id=1 AND strategy_id=?""",
+                (strategy_id,),
+            ).fetchone()
+            if row is None:
+                raise sqlite3.DatabaseError("DUAL_LEDGER_STRATEGY_STATE_MISSING")
+            try:
+                position, average, realized, fees, funding, margin = (
+                    Decimal(row[0]), Decimal(row[1]), Decimal(row[2]),
+                    Decimal(row[3]), Decimal(row[4]), Decimal(row[6])
+                )
+                if any(not value.is_finite() for value in
+                       (position, average, realized, fees, funding, margin)):
+                    raise ValueError
+                if (position == 0 and average != 0) or (position != 0 and average <= 0):
+                    raise ValueError
+                if fees < 0 or margin < 0 or type(row[5]) is not int or row[5] not in (0, 1):
+                    raise ValueError
+            except (DecimalException, TypeError, ValueError):
+                raise sqlite3.DatabaseError("DUAL_LEDGER_STRATEGY_STATE_CORRUPT") from None
+            orders = [json.loads(item[0]) for item in connection.execute(
+                "SELECT document FROM paper_orders WHERE strategy_id=? ORDER BY rowid DESC LIMIT 100",
+                (strategy_id,),
+            )]
+            return {
+                "mode": "PAPER", "liveTradingSupported": False, "paused": risk["paused"],
+                "riskControl": risk,
+                "strategyState": {"owner": strategy_id, "strategyId": strategy_id,
+                                  "dcaUsed": bool(row[5]), "initialMarginQuote": row[6]},
+                "positionBase": text(position), "averageEntryPrice": text(average),
+                "realizedPnlQuote": text(realized), "feesQuote": text(fees),
+                "fundingQuote": text(funding), "netRealizedPnlQuote": text(realized-fees-funding),
+                "orders": orders, "simulationModel": "VISIBLE_DEPTH_LIMIT_SNAPSHOT",
+            }
+        position, average, realized, fees, paused = stored_state(connection)
+        strategy = connection.execute(
+            "SELECT owner,dca_used,initial_margin_quote FROM paper_strategy_state WHERE id=1"
+        ).fetchone() if connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_strategy_state'"
+        ).fetchone() else (None, 0, "0")
+        orders = [json.loads(row[0]) for row in connection.execute(
+            "SELECT document FROM paper_orders ORDER BY rowid DESC LIMIT 100"
+        )]
+        return {"mode": "PAPER", "liveTradingSupported": False, "paused": bool(paused),
+                "riskControl": risk, "strategyState": {"owner": strategy[0],
+                "dcaUsed": bool(strategy[1]), "initialMarginQuote": strategy[2]},
+                "positionBase": text(position), "averageEntryPrice": text(average),
+                "realizedPnlQuote": text(realized), "feesQuote": text(fees),
                 "netRealizedPnlQuote": text(realized-fees), "orders": orders,
                 "simulationModel": "VISIBLE_DEPTH_LIMIT_SNAPSHOT"}
 
@@ -529,7 +581,7 @@ class PaperLedger:
             return order
 
     def snapshot(self):
-        return read_snapshot(self.path)
+        return read_snapshot(self.path, self.strategy_id)
 
     def strategy_state(self):
         return self.snapshot().get("strategyState", {"owner": None, "dcaUsed": False, "initialMarginQuote": "0"})
