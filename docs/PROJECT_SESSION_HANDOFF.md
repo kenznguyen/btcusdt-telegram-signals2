@@ -2779,3 +2779,34 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
   - Next RED tests: replay long/short partial fills, reductions, reversals and DCA in event-time order; funding at exactly boundary is excluded from prior day and included in new day; late-arriving pre-boundary event invalidates coverage; exact-boundary mark and dataset identity; missing fee/owner/coverage never treated as zero; deterministic digest and atomic/idempotent baseline insert; failure rollback and no risk-readiness promotion.
   - Snapshot state is now available only for new verified cutovers. No automatic reconstruction or historical backfill is authorized.
 - Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 migration v8: explicit fee amount and quote-currency provenance
+
+- Scope: close the event-journal fee-provenance gap before deterministic replay. Added additive migration v8; removed the event API's implicit `fee_quote="0"` default; fee amount and fee currency are now mandatory. This is source/schema/test work only.
+- RED contract commit/source SHA: `50fab449d5c8b6e2297b864dddf409e6fabab35e`.
+  - GitHub Actions [#42262214928](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42262214928): expected RED; compile PASS; 63 focused tests executed with 1 failure and 4 errors at the missing explicit fee/currency contract.
+  - Artifact ID `13524389670`; uploaded ZIP SHA-256 `a84e9007659135d02ca43b7fc05443ec88bc3f0b3586ea6ccf3c0a12be969c5d`.
+- Implementation:
+  - Migration v8 adds nullable `fee_currency` to `paper_account_event_journal`, records version/checksum, and installs an INSERT trigger requiring the BTCUSDT quote currency `USDT`.
+  - `record_account_history_event` requires both `fee_quote` and `fee_currency`; it rejects missing values and currencies other than USDT. Canonical payload includes the explicit fee currency.
+  - Core/AI scoped fills and Legacy reductions now persist `fee_currency='USDT'` in the same transaction as their fill journal rows; source payloads include the currency too.
+  - Event API checks that v8 is applied before writing. Migration re-open verifies the column and trigger.
+  - Existing rows are deliberately not assigned a guessed currency by migration. Any pre-v8 journal row with NULL fee currency remains UNKNOWN and must block replay until independently reconciled; it is not treated as USDT or zero.
+- An intermediate implementation run [#42262617890](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42262617890) exposed one stale migration expectation (test still expected versions 1–7). That assertion was corrected; no production logic was weakened.
+- Exact GREEN source SHA: `dc0abe734cd64012e29faa3a0b45510ca0be8df7`.
+- GitHub Actions [#42262782158](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42262782158): SUCCESS on exact checked-out SHA.
+  - PAPER-only preflight: PASS.
+  - Python compile: PASS.
+  - Focused Dual Ledger + migration tests: 64/64 PASS.
+  - Full `paper_execution` regression: 160/160 PASS.
+  - Job ID: `128046762304`.
+  - Artifact ID: `13524769491`, name `dual-ledger-red-evidence-dc0abe734cd64012e29faa3a0b45510ca0be8df7`, GitHub upload digest `sha256:d8ec1c6156ac61b0cc44c0bf0d812138b4e0fbfe9a3d0e2822e3a5ceb45b1878`, expires 2026-11-13. Digest is GitHub artifact metadata; payload bytes were not separately downloaded and re-hashed.
+- Status: **PASS — fee amount/currency are explicit for all new account-history event writes; missing or non-USDT currency is rejected at API and SQL insert boundary.**
+- Limits:
+  - Migration v8 was exercised only on temporary SQLite CI databases. No persistent account DB was opened or migrated.
+  - Existing historical rows are not backfilled; fee currency for any old journal row remains UNKNOWN.
+  - The replay engine, late-event invalidation, exact-boundary funding selection, immutable daily baseline insertion, and risk-admission gate remain NOT IMPLEMENTED / NOT VERIFIED.
+  - No historical funding completeness, external statement authenticity, production account cutover, or backtest suitability is certified.
+- Next: implement deterministic event replay from immutable per-ledger v7 cutover snapshots and the v6/v8 journal. First add RED tests for event-time sorting (not insertion order), signed long/short partial fills, reduction/reversal/DCA math, unknown legacy fee currency, funding exactly at boundary, late-arriving pre-boundary events, and exact boundary mark provenance. Then add replay result/coverage digest and atomic immutable baseline persistence. Keep all unknown evidence fail-closed.
+- Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
