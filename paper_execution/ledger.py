@@ -647,10 +647,11 @@ class PaperLedger:
                                     if requested_notional > admission_notional:
                                         reason = "MARGIN_RESERVATION_EXCEEDED"
 
-            if reason is None and increase_quantity == 0 and risk_control.risk_block_reason(connection):
-                # Existing exposure may always be reduced/flattened under a latch.
-                if not reducing:
-                    reason = risk_control.risk_block_reason(connection)
+            if reason is None:
+                latch_reason = risk_control.risk_block_reason(connection)
+                if latch_reason and (increase_quantity > 0 or not reducing):
+                    # A kill/pause blocks every increase, but does not block a valid reduction.
+                    reason = latch_reason
             if reason is None and not intent["decisionAtMs"] <= now <= intent["validUntilMs"]:
                 reason = "EXPIRED_INTENT"
 
