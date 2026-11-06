@@ -2065,3 +2065,19 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Therefore RED 1 is **DESIGNED / NOT ADDED / NOT EXECUTED**, not a verified RED failure. No implementation has started.
 - No Codemagic workflow run or artifact exists. The available connected GitHub actions are read-only for workflow inspection; no Codemagic execution connector is available in this session.
 - Next: resume the test-file write through an authorized repository editing path, then run only the focused RED 1 test on Codemagic against the exact commit. Do not implement until the failure is observed.
+
+
+## 2026-11-06 — T1.2 Dual Ledger RED 1 — GitHub Actions execution
+
+- **Status: RED OBSERVED / IMPLEMENTATION NOT STARTED.** The earlier source-write blocker is resolved for this increment; the RED test and dedicated GitHub Actions workflow were committed to the existing branch.
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Test source commit: `209be99dd104eb1b55e3484f30ef57e472723691`; test file: `paper_execution/test_dual_ledger_red.py`; blob SHA at final branch HEAD: `eb1d003601f90911fb5e70ea7e7c1a17ccd45b69`.
+- Workflow commit / current branch HEAD: `554d122762a9d49a6144a1be54d178902d3db7d9`; workflow file: `.github/workflows/dual-ledger-red.yml`; blob SHA: `0ce7bf393510411bfb5be969e15f8ed33a3795d3`.
+- GitHub Actions run #1: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42178592443 ; run ID `42178592443`; event `push`; exact checked-out source SHA `554d122762a9d49a6144a1be54d178902d3db7d9`; final conclusion **FAILURE**, as expected for RED.
+- Preflight: **PASS** — PAPER-only, no PAPER_DB/MARKET_DATA_DB and no exchange credentials; no external services.
+- Python compile: **PASS**.
+- Focused RED test: **FAIL (expected)** — one test executed; Core LONG order filled, but the independent AI SHORT order returned `REJECTED` where the contract requires `FILLED`. Failure assertion: `paper_execution/test_dual_ledger_red.py:59`. This confirms the current single-owner/single-position ledger blocks the second strategy; it does not yet prove all persistence and snapshot-isolation assertions.
+- Artifact: `dual-ledger-red-evidence-554d122762a9d49a6144a1be54d178902d3db7d9`; artifact ID `13484247308`; SHA-256 `fcf4c3337761abde7daeac6edb051178beebfd2ec36aee6da47e54651f7ce662`; expires `2026-11-13T07:05:37Z`.
+- Workflow is scoped to this branch and `paper_execution/**`; manual `workflow_dispatch` is enabled. No production secrets or write permissions are granted to the workflow (`contents: read`).
+- No ledger implementation, migration, risk-engine change, backtest, merge, exchange connection, or live execution was performed. `ai_execution_enabled=false` and PAPER-only boundary remain unchanged.
+- **Next:** inspect the rejected order reason and formalize the strategy-scoped ledger contract (including per-ledger snapshot/read API and shared account-level atomic risk reservations) before writing GREEN implementation. Do not implement by merely removing the current owner guard; preserve shared risk, idempotency, pending-order and shared book-depth protections. Run the focused RED/GREEN and regression suites through GitHub Actions on exact source SHAs.
