@@ -48,6 +48,142 @@ def _decimal(value, code, *, positive=False, nonnegative=False, signed=False):
     return format(result, "f")
 
 
+
+def _replay_decimal(value, code, *, positive=False, nonnegative=False, signed=False):
+    try:
+        number = Decimal(str(value))
+    except (DecimalException, TypeError, ValueError):
+        raise ValueError(code) from None
+    if (not number.is_finite() or (positive and number <= 0)
+            or (nonnegative and number < 0)
+            or (not signed and not nonnegative and number < 0)):
+        raise ValueError(code)
+    return number
+
+
+def _replay_text(number):
+    rendered = format(number, "f")
+    if "." in rendered:
+        rendered = rendered.rstrip("0").rstrip(".")
+    return rendered or "0"
+
+
+def replay_ledger_events(snapshot, execution_events, funding_events, *, boundary_ms):
+    """Replay one ledger using strict event-time ordering and half-open UTC cutoff."""
+    boundary = _stamp(boundary_ms, "ACCOUNT_HISTORY_UTC_DAY_INVALID")
+    if boundary % DAY_MS:
+        raise ValueError("ACCOUNT_HISTORY_UTC_DAY_INVALID")
+    if not isinstance(snapshot, dict):
+        raise ValueError("ACCOUNT_HISTORY_CUTOVER_SNAPSHOT_INVALID")
+
+    position = _replay_decimal(
+        snapshot.get("position_base"), "ACCOUNT_HISTORY_CUTOVER_SNAPSHOT_INVALID", signed=True
+    )
+    average = _replay_decimal(
+        snapshot.get("average_entry_price"), "ACCOUNT_HISTORY_CUTOVER_SNAPSHOT_INVALID",
+        nonnegative=True,
+    )
+    realized = _replay_decimal(
+        snapshot.get("realized_pnl_quote"), "ACCOUNT_HISTORY_CUTOVER_SNAPSHOT_INVALID", signed=True
+    )
+    fees = _replay_decimal(
+        snapshot.get("fees_quote"), "ACCOUNT_HISTORY_CUTOVER_SNAPSHOT_INVALID", nonnegative=True
+    )
+    funding = _replay_decimal(
+        snapshot.get("funding_quote"), "ACCOUNT_HISTORY_CUTOVER_SNAPSHOT_INVALID", signed=True
+    )
+    if (position == 0 and average != 0) or (position != 0 and average <= 0):
+        raise ValueError("ACCOUNT_HISTORY_CUTOVER_SNAPSHOT_INVALID")
+
+    if not isinstance(execution_events, (list, tuple)) or not isinstance(funding_events, (list, tuple)):
+        raise ValueError("ACCOUNT_HISTORY_EVENT_COLLECTION_INVALID")
+
+    selected_events = []
+    seen_event_ids = set()
+    for event in execution_events:
+        if not isinstance(event, dict):
+            raise ValueError("ACCOUNT_HISTORY_EVENT_INVALID")
+        event_at = _stamp(event.get("event_at_ms"), "ACCOUNT_HISTORY_EVENT_TIME_INVALID")
+        if event_at >= boundary:
+            continue
+        event_id = _text(event.get("event_id"), "ACCOUNT_HISTORY_EVENT_ID_INVALID", 200)
+        if event_id in seen_event_ids:
+            raise ValueError("ACCOUNT_HISTORY_EVENT_ID_DUPLICATE")
+        seen_event_ids.add(event_id)
+        selected_events.append((event_at, event_id, event))
+
+    selected_events.sort(key=lambda item: (item[0], item[1]))
+    included_event_ids = []
+    for _, event_id, event in selected_events:
+        if event.get("event_type") != "FILL":
+            raise ValueError("ACCOUNT_HISTORY_EVENT_TYPE_UNSUPPORTED")
+        if event.get("fee_currency") != "USDT":
+            raise ValueError("ACCOUNT_HISTORY_FEE_PROVENANCE_UNKNOWN")
+        quantity = _replay_decimal(
+            event.get("quantity_delta_base"), "ACCOUNT_HISTORY_FILL_QUANTITY_INVALID", signed=True
+        )
+        price = _replay_decimal(
+            event.get("fill_price"), "ACCOUNT_HISTORY_FILL_PRICE_INVALID", positive=True
+        )
+        fee = _replay_decimal(
+            event.get("fee_quote"), "ACCOUNT_HISTORY_FEE_PROVENANCE_UNKNOWN", nonnegative=True
+        )
+        if quantity == 0:
+            raise ValueError("ACCOUNT_HISTORY_FILL_QUANTITY_INVALID")
+
+        if position == 0 or (position > 0 and quantity > 0) or (position < 0 and quantity < 0):
+            new_quantity = abs(position) + abs(quantity)
+            average = ((abs(position) * average + abs(quantity) * price) / new_quantity)
+            position += quantity
+        else:
+            closing_quantity = min(abs(position), abs(quantity))
+            realized += closing_quantity * (price - average) * (1 if position > 0 else -1)
+            next_position = position + quantity
+            if next_position == 0:
+                average = Decimal(0)
+            elif (next_position > 0) != (position > 0):
+                average = price
+            position = next_position
+        fees += fee
+        included_event_ids.append(event_id)
+
+    selected_funding = []
+    seen_funding_ids = set()
+    for event in funding_events:
+        if not isinstance(event, dict):
+            raise ValueError("ACCOUNT_HISTORY_FUNDING_EVENT_INVALID")
+        event_at = _stamp(event.get("event_at_ms"), "FUNDING_EVENT_TIMESTAMP_INVALID")
+        if event_at >= boundary:
+            continue
+        event_id = _text(
+            event.get("funding_event_id", event.get("event_id")),
+            "FUNDING_EVENT_ID_INVALID", 200,
+        )
+        if event_id in seen_funding_ids:
+            raise ValueError("FUNDING_EVENT_ID_DUPLICATE")
+        seen_funding_ids.add(event_id)
+        amount = _replay_decimal(
+            event.get("amount_quote"), "FUNDING_EVENT_AMOUNT_INVALID", signed=True
+        )
+        selected_funding.append((event_at, event_id, amount))
+    selected_funding.sort(key=lambda item: (item[0], item[1]))
+    included_funding_event_ids = []
+    for _, event_id, amount in selected_funding:
+        funding += amount
+        included_funding_event_ids.append(event_id)
+
+    return {
+        "position_base": _replay_text(position),
+        "average_entry_price": _replay_text(average),
+        "realized_pnl_quote": _replay_text(realized),
+        "fees_quote": _replay_text(fees),
+        "funding_quote": _replay_text(funding),
+        "included_event_ids": included_event_ids,
+        "included_funding_event_ids": included_funding_event_ids,
+        "boundary_ms": boundary,
+    }
+
+
 def migrate_account_history(connection, source_sha):
     if (not isinstance(source_sha, str) or len(source_sha) != 40
             or any(char not in "0123456789abcdef" for char in source_sha.lower())):
