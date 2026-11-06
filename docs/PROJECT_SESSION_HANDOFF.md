@@ -2748,3 +2748,34 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - All CI used temporary isolated SQLite databases. No persistent account DB was opened or migrated; no external exchange/network clients were used.
 - Next: implement deterministic per-ledger replay from verified cutover using event journal + funding events + exact boundary mark; extend baseline schema to persist full per-ledger replay results and coverage manifest; add RED tests for event ordering, partial fills, reversals, UTC boundary inclusivity, funding boundary, late events, conflicts, and rollback. Only after this should daily risk admission consume the reconstructed baseline.
 - Restrictions: no persistent DB migration/backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; `ai_execution_enabled=false`.
+
+
+## 2026-11-06 — T1 migration v7: immutable per-ledger cutover snapshots
+
+- Scope: add a versioned additive schema for the exact starting state required by deterministic replay. No existing account database was opened, migrated, or backfilled; all CI fixtures use temporary SQLite. No T0 source/runtime/provider changes.
+- RED contract commit/source SHA: `1f40e416b3783bd13cc23147f39c6c7dadb005e0`.
+  - Added three tests requiring one cutover snapshot for each of Core, AI, and Legacy; immutable UPDATE/DELETE; and exact cutover timestamp/source snapshot/hash.
+  - GitHub Actions [#42203208768](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42203208768): expected RED confirmed (missing v7 table/metadata).
+  - Artifact ID `13495406644`; SHA-256 `34551e4e0332a8cf351b616bd41030675936e64bc6870d4968c2309bd2f5a862`.
+- Implementation:
+  - Migration v7 creates `paper_account_cutover_ledger_snapshots`, keyed by `(cutover_id,strategy_id)`, with signed position, average entry, realized PnL, fees, funding, exact cutover mark-observation timestamp, source snapshot ID, payload hash, and canonical payload.
+  - UPDATE/DELETE triggers reject mutation.
+  - Migration runs after v6 as part of Dual Ledger initialization; checksum/status and schema completeness are verified on repeat opens.
+  - `record_account_equity_cutover` captures all three ledger snapshots inside the same `BEGIN IMMEDIATE` transaction as the immutable account cutover and risk baseline update. It verifies the complete expected strategy set before inserting.
+  - Identical cutover replay remains idempotent because the existing cutover row is checked before snapshot insertion; conflicting cutover requests reject before mutation.
+- An intermediate CI run exposed three outdated migration-version assertions; these were updated to include v7. No production logic was weakened.
+- Exact GREEN source SHA: `b9ea830678cd8a00e1dc5dae32e041611923e10f`.
+- GitHub Actions [#42203452852](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42203452852): SUCCESS on exact SHA.
+  - PAPER-only preflight: PASS.
+  - Python compile: PASS.
+  - Focused Dual Ledger + migration suite: 60/60 PASS.
+  - Full `paper_execution` regression: 152/152 PASS.
+  - Job ID: `127844144742`.
+  - Artifact ID: `13494694690`, name `dual-ledger-red-evidence-b9ea830678cd8a00e1dc5dae32e041611923e10f`, GitHub upload digest `sha256:2d699dc58f4ff5653bfba3e18846a7a89fba631aa9c3af43f7902d30cb85aacf`.
+- Status: **PASS — v7 per-ledger cutover snapshot schema and atomic snapshot capture verified on temporary SQLite.**
+- Important limits / next:
+  - This does not yet implement deterministic replay, funding cutoff selection, exact-boundary equity valuation, baseline insertion, late-event invalidation, or the exposure-admission gate.
+  - Event journal API still has a default `fee_quote="0"`; this is not acceptable evidence for replay when the fee input was omitted. Next change must make fee provenance explicit and prove missing fees fail closed, while checking every writer call site.
+  - Next RED tests: replay long/short partial fills, reductions, reversals and DCA in event-time order; funding at exactly boundary is excluded from prior day and included in new day; late-arriving pre-boundary event invalidates coverage; exact-boundary mark and dataset identity; missing fee/owner/coverage never treated as zero; deterministic digest and atomic/idempotent baseline insert; failure rollback and no risk-readiness promotion.
+  - Snapshot state is now available only for new verified cutovers. No automatic reconstruction or historical backfill is authorized.
+- Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
