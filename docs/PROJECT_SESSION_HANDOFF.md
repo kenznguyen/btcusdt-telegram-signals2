@@ -2577,3 +2577,16 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **PASS — nested funding-coverage overlap is now detected even when an earlier interval already spans the full cutover window; focused 37/37 and full 72/72 PASS on exact SHA `fe7c130...`.**
 - Still NOT VERIFIED: actual historical funding completeness, external statement-byte authenticity, real-account cutover, and backtest suitability. Tests use temporary SQLite fixtures only.
 - Next: add isolated cutover regressions for future/stale mark and candle timestamps, corrupt funding-event provenance, and restart/replay/immutability boundaries. Keep T0 investigation paused. No persistent DB migration, backtest, merge, deployment, exchange connection, or live execution. `ai_execution_enabled=false`.
+
+## 2026-11-06 — T1 account cutover failure-boundary regressions
+
+- Scope: test-only additions in `paper_execution/test_dual_ledger_red.py`; no production logic changed in this increment. T0 investigation remains paused.
+- Added isolated temporary-SQLite regressions for: (1) a gap between VERIFIED funding-coverage intervals; (2) a future mark observation later than the supplied recorded-at timestamp; (3) a closed candle older than the 30-minute cutover freshness limit; and (4) a funding event whose immutable provenance is deliberately corrupted in the test fixture after dropping its update trigger.
+- Test source SHA: `dd208e1a4c70b84e787e1a1961c5cc48ca144f0a`.
+- Exact push workflow [#42197863770](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42197863770), checked out the exact source SHA; conclusion SUCCESS. Compile PASS; isolated PAPER-only preflight PASS; focused Dual Ledger + migration tests 41/41 PASS; full `paper_execution` regression 76/76 PASS.
+- Job ID: `127825537178`.
+- Artifact ID: `13493470732`, name `dual-ledger-red-evidence-dd208e1a4c70b84e787e1a1961c5cc48ca144f0a`, GitHub upload digest `sha256:4646944f53a01758b8a2c3444dbe4d80bd59a8df4c51f0b2087d4a398c402cff`, expires 2026-11-13. Digest is GitHub artifact metadata; payload bytes were not separately downloaded and re-hashed.
+- All four new tests PASS against the existing fail-closed guards. No source/schema/workflow changes, no persistent account DB opened or migrated, no exchange connection, backtest, deployment, or live order.
+- Status: **PASS — cutover rejects funding gaps, future mark observations, stale closed candles, and corrupted funding-event provenance; focused 41/41 and full 76/76 PASS on exact SHA `dd208e1...`.**
+- Still NOT VERIFIED: actual historical funding completeness, external statement-byte authenticity, real-account cutover, and backtest suitability. These fixtures prove local guard behavior only.
+- Next: exercise restart/replay/idempotency boundaries for cutover and verify read-only snapshot behavior under corrupt or incomplete provenance. Keep T0 investigation paused. No persistent DB migration, backtest, merge, deployment, exchange connection, or live execution. `ai_execution_enabled=false`.
