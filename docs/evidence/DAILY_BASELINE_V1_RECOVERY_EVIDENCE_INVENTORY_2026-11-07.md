@@ -147,3 +147,13 @@ The T0 PostgreSQL/Timescale workflows use disposable test databases and upload t
 **Repository CI artifact search conclusion:** no currently tracked workflow is configured to publish a qualifying Replay A event archive or Reconstruction B account checkpoint. This is based on workflow source allowlists, not on inspection of every historical artifact payload. It does not rule out private Project files, local PC/Android exports, or external archival storage.
 
 Result: `NO_QUALIFYING_ACCOUNT_EVIDENCE_ARTIFACT_IN_TRACKED_WORKFLOWS`. Keep the independent reconstruction gate BLOCKED; do not use CI logs, APKs, or disposable T0 test database evidence as account history.
+
+
+## 2026-11-07 — User confirmation: no independent archive/checkpoint currently exists
+
+- User confirmed that no independent event archive or checkpoint is currently available.
+- Combined with the tracked Git tree inventory and workflow artifact allowlist review, there is no identified second evidence root available for historical Dual Reconstruction at this time.
+- Historical reconstruction/independent verification is therefore **UNAVAILABLE / BLOCKED**, not merely awaiting another repository search. Do not manufacture a second root by exporting the same mutable account DB, replaying CI fixtures, or treating CI logs as account history.
+- Preserve Option A (strict predecessor chain) as the current operational policy. Do not activate a new epoch, reset HWM/daily baseline, or admit new exposure based on an unverified anchor.
+- A future independently retained archive/checkpoint can support a new review only from the point it is actually captured and retained with independent provenance; it cannot retroactively prove missing historical events.
+- Forward-looking work may specify a capture/retention protocol, but no source/schema/database writer or persistent storage changes are authorized by this confirmation.
