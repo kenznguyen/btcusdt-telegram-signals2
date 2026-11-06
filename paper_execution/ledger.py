@@ -9,6 +9,9 @@ import sqlite3
 
 from pipeline.values import identity, number, stamp
 from paper_execution import risk_control, equity as equity_history
+from paper_execution.funding import (
+    migrate_funding_provenance, record_funding_event, record_funding_coverage,
+)
 
 ZERO = Decimal(0)
 ACTIVE = {"OPEN", "PARTIALLY_FILLED"}
@@ -1100,6 +1103,7 @@ class PaperLedger:
                 migrate_dual_ledger(connection, self.source_sha)
                 migrate_legacy_book_depth(connection, self.source_sha)
                 migrate_reservation_expiry(connection, self.source_sha)
+                migrate_funding_provenance(connection, self.source_sha)
 
     def connect(self):
         connection = sqlite3.connect(self.path, timeout=10)
