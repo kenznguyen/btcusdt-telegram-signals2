@@ -596,5 +596,20 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertAlmostEqual(legacy_used + core_used, 0.15)
 
 
+    def test_manual_ledger_cannot_cancel_core_order_after_dual_migration(self):
+        partial = self.core.submit(
+            self.intent("core-owned-pending-for-manual", "0.12", "100.1", "manual-cancel-book"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        self.assertEqual(partial["status"], "PARTIALLY_FILLED", partial)
+        manual = PaperLedger(self.path, max_position_base="1")
+        with self.assertRaisesRegex(ValueError, "PAPER_ORDER_STRATEGY_SCOPE_MISMATCH"):
+            manual.cancel(partial["orderId"], self.now + 1)
+        state = self.core.snapshot()["orders"]
+        owned = next(order for order in state if order["intentId"] == "core-owned-pending-for-manual")
+        self.assertEqual(owned["status"], "PARTIALLY_FILLED")
+
+
 if __name__ == "__main__":
     unittest.main()
