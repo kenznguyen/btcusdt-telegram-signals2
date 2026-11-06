@@ -1066,5 +1066,54 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(order["reason"], "RISK_INPUTS_UNAVAILABLE")
 
 
+    def test_account_equity_cutover_rejects_overlapping_funding_coverage(self):
+        path = self.fresh_account_db("overlapping-funding-coverage.sqlite3", establish_cutover=False)
+        ledger.record_funding_coverage(
+            path,
+            coverage_id="coverage-overlap-first",
+            start_at_ms=self.now - 86_400_000,
+            end_at_ms=self.now - 43_200_000,
+            status="VERIFIED",
+            source="RECONCILED_FUNDING_STATEMENT",
+            source_snapshot_id="funding-overlap:first",
+            payload_hash="sha256:" + "a" * 64,
+            config_version="funding-policy-v1",
+            recorded_at_ms=self.now,
+        )
+        ledger.record_funding_coverage(
+            path,
+            coverage_id="coverage-overlap-second",
+            start_at_ms=self.now - 64_800_000,
+            end_at_ms=self.now,
+            status="VERIFIED",
+            source="RECONCILED_FUNDING_STATEMENT",
+            source_snapshot_id="funding-overlap:second",
+            payload_hash="sha256:" + "b" * 64,
+            config_version="funding-policy-v1",
+            recorded_at_ms=self.now,
+        )
+
+        with self.assertRaisesRegex(ValueError, "FUNDING_COVERAGE_INTERVAL_OVERLAP"):
+            ledger.record_account_equity_cutover(
+                path,
+                cutover_id="overlapping-coverage-cutover",
+                expected_initial_capital_quote="100",
+                expected_realized_pnl_quote="0",
+                expected_fees_quote="0",
+                expected_funding_quote="0",
+                expected_account_equity_quote="100",
+                mark_price="100",
+                mark_candle_close_ms=self.now - 60_000,
+                mark_observed_at_ms=self.now,
+                dataset_version="sha256:dual-ledger-seed",
+                funding_coverage_start_at_ms=self.now - 86_400_000,
+                source="RECONCILED_ACCOUNT_STATEMENT",
+                source_snapshot_id="account-cutover:overlap",
+                payload_hash="sha256:" + "c" * 64,
+                config_version="account-cutover-v1",
+                recorded_at_ms=self.now,
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
