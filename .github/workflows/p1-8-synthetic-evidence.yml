@@ -70,11 +70,11 @@ jobs:
           python -m py_compile synthetic_evidence/*.py
           echo "PY_COMPILE=PASS" | tee synthetic-evidence-compile.txt
 
-      - name: Run deterministic fixture contracts
+      - name: Run deterministic fixture and shared risk contracts
         shell: bash
         run: |
           set -euo pipefail
-          python -m unittest synthetic_evidence.test_generator -v 2>&1 | tee synthetic-evidence-tests.log
+          python -m unittest discover -s synthetic_evidence -p 'test_*.py' -v 2>&1 | tee synthetic-evidence-tests.log
 
       - name: Generate two identical 1,000-event fixtures and compare bytes
         shell: bash
@@ -110,7 +110,7 @@ jobs:
               descriptor = json.loads(path.read_text())
               result["events_requested"] = descriptor["event_count_requested"]
               result["generator_build_digest"] = descriptor["generator_build_digest"]
-          Path("synthetic-evidence-smoke-summary.json").write_text(json.dumps(result, sort_keys=True, indent=2) + "\n")
+          Path("synthetic-evidence-smoke-summary.json").write_text(json.dumps(result, sort_keys=True, indent=2) + "\\n")
           PY
 
       - name: Upload synthetic-only evidence
