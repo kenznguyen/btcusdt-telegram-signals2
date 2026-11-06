@@ -146,6 +146,7 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
             "paper_schema_migrations", "paper_accounts", "paper_strategy_ledgers",
             "paper_account_risk_state", "paper_risk_reservations",
             "paper_book_level_reservations", "paper_funding_events",
+            "paper_legacy_book_consumptions",
         }.issubset(required_tables))
 
     def test_corrupt_legacy_state_stops_migration_without_rewriting_legacy_data(self):
