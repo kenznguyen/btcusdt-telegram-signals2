@@ -13,6 +13,7 @@ class DailyEquityReplayReconciliationContractTest(unittest.TestCase):
             "account_equity_quote": "1000",
             "mark_price": "100",
             "mark_candle_close_ms": self.snapshot_at,
+            "mark_observed_at_ms": self.snapshot_at,
             "reconciled_realized_pnl_quote": "0",
             "reconciled_fees_quote": "0",
             "reconciled_funding_quote": "0",
@@ -30,6 +31,7 @@ class DailyEquityReplayReconciliationContractTest(unittest.TestCase):
             "utc_day_ms": self.boundary,
             "cutover_id": "cutover-1",
             "cutover_snapshot_at_ms": self.snapshot_at,
+            "funding_coverage_watermark_at_ms": self.boundary + 1000,
             "cutover": dict(self.cutover),
             "ledgers": {
                 "STRATEGY_CORE": {
