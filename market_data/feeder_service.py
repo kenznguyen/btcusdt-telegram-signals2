@@ -215,17 +215,31 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
 
 def _require_verified_postgres_tls(dsn):
     """Reject production PostgreSQL DSNs without certificate and hostname verification."""
+    from shlex import split as split_conninfo
+    from urllib.parse import parse_qs, urlsplit
+
+    sslmode = None
     try:
-        from psycopg.conninfo import conninfo_to_dict
-    except ImportError:
-        raise RuntimeError(
-            "psycopg is required to validate PostgreSQL TLS configuration"
-        ) from None
-    try:
-        options = conninfo_to_dict(dsn)
-    except Exception:
-        raise ValueError("MARKET_DATA_POSTGRES_DSN must be a valid PostgreSQL DSN") from None
-    if options.get("sslmode") != "verify-full":
+        if "://" in dsn:
+            query = parse_qs(urlsplit(dsn).query, keep_blank_values=True)
+            values = query.get("sslmode", [])
+            if len(values) == 1:
+                sslmode = values[0]
+        else:
+            options = {}
+            for item in split_conninfo(dsn):
+                if "=" not in item:
+                    continue
+                key, value = item.split("=", 1)
+                if key == "sslmode":
+                    if key in options:
+                        options[key] = None
+                        break
+                    options[key] = value
+            sslmode = options.get("sslmode")
+    except (TypeError, ValueError):
+        sslmode = None
+    if sslmode != "verify-full":
         raise ValueError(
             "MARKET_DATA_POSTGRES_DSN must explicitly set sslmode=verify-full"
         )
