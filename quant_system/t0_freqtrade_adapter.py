@@ -213,12 +213,14 @@ def export_t0_snapshot(snapshot_path, output_root) -> dict:
     ).encode("utf-8")
 
     dataset_dir.parent.mkdir(parents=True, exist_ok=True)
+    created = False
     try:
         dataset_dir.mkdir(exist_ok=False)
+        created = True
         (dataset_dir / filename).write_bytes(data_bytes)
         (dataset_dir / "t0-provenance.json").write_bytes(manifest_bytes)
     except OSError as exc:
-        if dataset_dir.exists():
+        if created:
             shutil.rmtree(dataset_dir, ignore_errors=True)
         if isinstance(exc, FileExistsError):
             raise T0FreqtradeAdapterError("EXPORT_ALREADY_EXISTS") from exc
