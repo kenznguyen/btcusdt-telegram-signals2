@@ -3592,3 +3592,62 @@ Documentation-only continuation on `feature/t0-centralized-data-feeder-p1-202611
 ### Next step and approval boundary
 
 P1.8 should be a bounded approval decision for a standalone synthetic-only generator and local test harness. The current continuation request did not explicitly approve source implementation, so no generator was created. If approved later, scope must exclude T0/T1 production code, account DB, exchange connectivity, provider accounts, credentials, provisioning, persistent capture and risk-policy changes. Provider qualification requires a separate approval.
+
+
+## 2026-11-07 — P1.8 Standalone Synthetic Evidence Generator
+
+### Approval and boundary
+
+User explicitly approved: `APPROVE P1.8 — SYNTHETIC-ONLY LOCAL GENERATOR`.
+
+Scope implemented only as an isolated standard-library Python package and a GitHub Actions workflow. No account/T0/T1 DB, external artifact, VPS, exchange, provider, credential, cloud bucket, persistent capture, runtime integration, risk-policy change or real order was accessed or changed. `ai_execution_enabled=false` remains unchanged.
+
+### Source and evidence commits
+
+- Package marker: `a7cc4696192f95aacc1c305bf518ea50d248bcb5`.
+- TDD test-first RED import failure and initial contracts: `2070a86d7e14916f1d38563ca48261bdcf24422e`.
+- Generator implementation: `7c089273e165aeb0a8215e808d61c52cb39a6297`.
+- CLI: `3321355fb311761acd34352c72e7a4f3bfc03997`.
+- Usage/limitations README: `07bd28c68185b95115a7ea1e508d89a784cdaa6e`.
+- GitHub Actions workflow: `a591bfb3626b3cdeaa9841b81eaf3d1a90410a2d`; expression correction: `1960e091f84fc64f2e40b4243abdbb440116a05d`.
+- Replay/input hardening: `6f8b2c140ef32264496c6c8b7da3020b3babc16b`.
+- Expanded replay fault tests: `9587051361e13063841a6e96c7b415fbb6ae0cf5`.
+- Implementation report: `docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_GENERATOR_IMPLEMENTATION_2026-11-07.md`, commit `8eefd83bca4b49ddcb531a575d2dc7030157964b`.
+- P1.6 target-weight sum correction: `21cc29fb9bf1261672d8d2934f041c7411938e8d`.
+- P1.8 Acceptance Test Plan: `03d81abf7347e964beb63dbaad74269da56c1844`.
+- Evidence Inventory P1.8 entry: `262f67a45e48f45f37ea31da82d7fb353448544c`.
+- This handoff update is the final P1.8 documentation commit; exact SHA is the resulting GitHub commit after read-back.
+
+### Implementation
+
+- Fixed 32-byte HMAC-SHA-256 deterministic PRF and UUIDv5 synthetic identities.
+- Core, AI and Legacy synthetic streams; fixed UTC clock, sequence, causation and hash chain.
+- SMALL/MEDIAN/LARGE cohorts, 13 separate negative-vector catalog entries.
+- Strict JCS-compatible subset; event and manifest SHA-256; per-stream segments and unsigned local manifests.
+- Exact byte-cap and nearest-rank measurement; local replay simulation; duplicate identical delivery idempotency and tamper/gap/wrong-hash rejection.
+- Output writer refuses overwrite and produces SHA-256 file manifest.
+- No third-party dependencies.
+
+### Verification
+
+- Local focused tests: **19/19 PASS**.
+- Python compile: **PASS**.
+- Two 1,000-event fixtures: **byte-identical**; all fixture SHA-256 manifest entries verified.
+- Exploratory single-run local measurements: 1k ~2,282 events/s; 10k ~2,131 events/s. These are not production performance certification or a five-run benchmark.
+- GitHub Actions workflow added with exact-SHA checkout, no package installation, blank DB/exchange credential env, explicit `AI_EXECUTION_ENABLED=false`, focused tests, two 1k fixture generation/reproducibility comparison and 7-day artifact upload.
+- GitHub combined-status query returned no status records. Available workflow-run connector only exposed PR-triggered runs; exact push run ID, job conclusion, checked-out SHA from logs and artifact ID/digest remain **NOT VERIFIED**. Do not report GitHub Actions PASS until exact run evidence is available.
+
+### Specification corrections and limits
+
+- P1.6 event class weights add to 94, not 100. The specification now treats them as relative weights normalized by 94; actual scenario-driven counts are reported separately.
+- Full RFC 8785 cross-implementation conformance NOT VERIFIED.
+- Ed25519 signing/verification, key lifecycle and signed storage receipts NOT IMPLEMENTED.
+- Negative vector catalog exists; not every listed fault path has executable coverage.
+- 100k, burst, recovery, spool, cold restore and Root B independent-provider tests NOT RUN.
+- No provider/region/retention/budget/key custody selected or authorized.
+- Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged; no Epoch activation, HWM/Daily Loss reset or exposure increase.
+- T0 remains PAUSED; PAPER-only; `ai_execution_enabled=false`.
+
+### Next step
+
+Retrieve exact GitHub Actions run metadata and artifact evidence for the workflow triggered by P1.8 source/report. If no run exists, inspect GitHub Actions event/branch/path-filter configuration and correct only this isolated workflow. Do not switch CI platforms or access providers. After exact-head CI is verified, review remaining RFC 8785/crypto/fault-vector gaps as a separate local-only increment. Provider qualification and runtime integration still require separate approval.
