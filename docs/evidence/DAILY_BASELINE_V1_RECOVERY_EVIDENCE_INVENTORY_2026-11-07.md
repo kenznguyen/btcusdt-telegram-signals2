@@ -210,3 +210,19 @@ It includes candidate-specific verification questions for AWS S3 and Cloudflare 
 Acceptance requires exact configuration provenance and passing mandatory tests using disposable accounts and synthetic data. No canonical account data, T0 database, exchange credentials, or production runtime may be used.
 
 **Status:** PASS — documentation draft committed. NOT RUN — provider tests. NOT APPROVED — provider selection, purchase, account creation, credentials, provisioning, source/schema/workflow/database/runtime changes, or persistent capture. Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — Vendor security review
+
+Created `docs/architecture/FORWARD_EVIDENCE_STORAGE_VENDOR_SECURITY_REVIEW_2026-11-07.md`, commit `13c6f8b5ca63bab0950a1e0d56e0321d6fd88500`.
+
+Official documentation review findings:
+- AWS S3 Compliance Mode provides stronger documented object-version WORM protection than Governance Mode, including resistance to delete by the account root during retention; deletion of the associated AWS account is a catastrophic exception.
+- S3 Object Lock protects specific versions; simple DELETE can create a delete marker and new PUTs can create new versions. Recovery and manifests must bind exact version IDs.
+- Cloudflare R2 Bucket Lock rules protect objects while active but can be removed/replaced by authorized bucket-configuration administration. R2 is therefore only a conditional Root B candidate, not equivalent to S3 Compliance Mode against admin compromise.
+- R2 Data Access Logs are best effort and omit HTTP 400+; Cloudflare Audit Logs v2 have 18-month retention and documented coverage gaps. They cannot be the sole complete evidence record.
+- Revised recommendation: AWS S3 Compliance Mode remains preferred Root A candidate; R2 is conditional Root B candidate, with asymmetry explicitly disclosed. If admin-compromise resistance is required for both roots, reconsider a second separately administered WORM-capable root.
+
+Acceptance plan amended with additional mandatory tests for S3 delete markers/version IDs, account-level bypass boundaries, R2 lock-rule administration, writer token scope, audit-log omissions and external audit retention. Amendment commit: `a6cbbd84771fe6b5f3943131eeafd83f05f353e4`.
+
+**Status:** PASS — official documentation review and test-plan amendment recorded. NOT VERIFIED — live account behavior, region, cost, key custody, and independent restore. NOT APPROVED — provider selection, account creation, purchase, credentials, provisioning, or capture. No source/schema/workflow/database/runtime changes. Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged; T0 paused; PAPER-only; `ai_execution_enabled=false`.
