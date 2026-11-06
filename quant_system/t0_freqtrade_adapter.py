@@ -182,7 +182,10 @@ def export_t0_snapshot(snapshot_path, output_root) -> dict:
     _require(not dataset_dir.exists() and not dataset_dir.is_symlink(),
              "EXPORT_ALREADY_EXISTS")
 
-    filename = f"BTC_USDT-{metadata['timeframe']}-futures.json"
+    # Freqtrade 2026.9 maps BTC/USDT:USDT to BTC_USDT_USDT and stores
+    # non-spot candle types below the futures/ subdirectory.
+    filename = f"BTC_USDT_USDT-{metadata['timeframe']}-futures.json"
+    relative_filename = f"futures/{filename}"
     manifest = {
         "schema_version": 1,
         "adapter": "T0_TO_FREQTRADE_OFFLINE_V1",
@@ -194,7 +197,7 @@ def export_t0_snapshot(snapshot_path, output_root) -> dict:
         "timeframe": metadata["timeframe"],
         "source_dataset_version": metadata["source_dataset_version"],
         "source_payload_sha256": source_sha,
-        "freqtrade_data_file": filename,
+        "freqtrade_data_file": relative_filename,
         "freqtrade_data_sha256": output_sha,
         "row_count": metadata["row_count"],
         "start_ms": metadata["start_ms"],
@@ -217,7 +220,9 @@ def export_t0_snapshot(snapshot_path, output_root) -> dict:
     try:
         dataset_dir.mkdir(exist_ok=False)
         created = True
-        (dataset_dir / filename).write_bytes(data_bytes)
+        futures_dir = dataset_dir / "futures"
+        futures_dir.mkdir()
+        (futures_dir / filename).write_bytes(data_bytes)
         (dataset_dir / "t0-provenance.json").write_bytes(manifest_bytes)
     except OSError as exc:
         if created:
@@ -228,7 +233,7 @@ def export_t0_snapshot(snapshot_path, output_root) -> dict:
 
     return {
         "dataset_dir": str(dataset_dir),
-        "data_file": str(dataset_dir / filename),
+        "data_file": str(dataset_dir / "futures" / filename),
         "manifest_file": str(dataset_dir / "t0-provenance.json"),
         "row_count": metadata["row_count"],
         "source_dataset_version": metadata["source_dataset_version"],
