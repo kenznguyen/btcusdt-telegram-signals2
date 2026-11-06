@@ -2876,3 +2876,39 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
   - No persistent account DB was opened or migrated.
 - Next: design and test a read-only replay input loader that joins cutover snapshots, journal rows, per-ledger EXECUTION coverage, funding coverage/events and exact boundary mark. Derive the effective watermark only from contiguous VERIFIED coverage, reject UNKNOWN/gaps/overlaps/late arrivals, validate event source/hash/snapshot provenance, then pass the proven stream to pure replay. Keep baseline persistence for a separate atomic transaction increment after loader and replay reconciliation tests pass.
 - Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 read-only daily replay input loader
+
+- Scope: implement the read-only data-loading and provenance gate before daily equity replay. This increment does not reconstruct equity or persist a daily baseline.
+- RED evidence:
+  - Contract first failed because `load_daily_equity_replay_inputs` was absent: run [#42268254288](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42268254288).
+  - Added explicit reconstruction-time validation; run [#42269064349](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42269064349) correctly failed because `now_ms` was not yet accepted.
+  - Added a clean-transaction boundary contract; run [#42269777299](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42269777299) correctly failed because the loader did not yet reject a caller-owned transaction.
+- Implementation:
+  - Added `paper_execution/replay_inputs.py`; moved the loader out of `account_history.py` to keep module responsibilities and file size bounded. `account_history.py` is now 736 lines; `replay_inputs.py` is 366 lines.
+  - `load_daily_equity_replay_inputs(connection, utc_day_ms, now_ms)` requires an existing SQLite connection, rejects a pre-existing transaction, enables connection-local `PRAGMA query_only=ON`, and begins a read transaction. It performs no inserts, updates, migrations, or baseline writes.
+  - Requires applied v4/v5 funding, v6 account-history, v7 cutover-ledger-snapshot and v8 fee-provenance migrations.
+  - Requires exactly one account cutover and exactly one immutable snapshot for each of Core, AI and Legacy; validates each snapshot timestamp, numeric state and canonical payload against the stored columns.
+  - Requires contiguous VERIFIED execution coverage for each ledger from its cutover snapshot through the half-open UTC boundary. Requires contiguous VERIFIED funding coverage through the same half-open boundary and market-mark coverage including the exact boundary instant.
+  - Derives stream-specific watermarks from the persisted coverage rows' `recorded_at_ms`; rejects coverage evidence recorded after caller-supplied `now_ms`.
+  - Loads events in deterministic event-time/ID order. Events already reflected in the cutover snapshot are excluded only when recorded no later than the snapshot. Late-arriving pre-snapshot events, events outside verified intervals, and events recorded after their interval watermark fail closed.
+  - Funding events must be covered by exactly one VERIFIED interval and must not be marked `LEGACY_UNVERIFIED`. The boundary mark must be unique, VERIFIED, effective and candle-close exactly at 00:00 UTC, observed within 30 minutes after the boundary, and recorded no later than both its coverage watermark and `now_ms`.
+  - Validates source/snapshot identifiers, payload-hash format, fee currency and numeric values. External evidence bytes are not fetched or re-hashed by this loader.
+  - Added tests for all three ledgers, funding and exact mark loading, coverage gaps, late execution arrival, future-dated evidence, existing caller transaction rejection, query-only write rejection and exact database-byte immutability.
+- Exact GREEN source SHA: `33246b418933f3c3780679c7d1f64fcbfd85f9c4`.
+- GitHub Actions [#42269875713](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42269875713): SUCCESS on exact checked-out SHA.
+  - PAPER-only preflight: PASS.
+  - Python compile: PASS.
+  - Focused Dual Ledger + migration + replay contract: 74/74 PASS.
+  - Full `paper_execution` regression: 173/173 PASS.
+  - Job ID: `128071354901`.
+  - Artifact ID: `13528483352`, name `dual-ledger-red-evidence-33246b418933f3c3780679c7d1f64fcbfd85f9c4`, GitHub upload digest `sha256:2d1af2a4f631e38c5d4e0d9b65aa4c2f57b576939125c2141cfdabea8ef4108d`, expires 2026-11-13. Digest is GitHub artifact metadata; payload bytes were not separately downloaded and re-hashed.
+- Status: **PASS — read-only replay input loading and persisted coverage/provenance gates. NOT VERIFIED — invocation of the pure replay helper from this loader, per-ledger PnL/equity reconciliation, exact boundary mark-to-equity calculation, immutable baseline persistence, audit and risk-state rollover.**
+- Limits:
+  - The loader returns raw per-ledger snapshots/events, funding events and the exact boundary mark; it does not yet call `replay_ledger_events`.
+  - `LEDGER_ADJUSTMENT` remains unsupported and is rejected; no unsupported event is silently ignored.
+  - Hash values are syntax-checked and stored provenance fields are cross-checked where canonical snapshot data exists; external source payload bytes are not retrieved, so cryptographic authenticity against external source data is NOT VERIFIED.
+  - No persistent account DB was opened or migrated. Tests use temporary SQLite fixtures only.
+- Next: add a pure orchestration/reconciliation layer that consumes only this loader output, invokes replay independently for Core/AI/Legacy, handles only explicitly supported adjustment semantics, computes unrealized PnL using the exact boundary mark, and reconciles aggregate equity against the prior verified baseline/cutover. Keep all database writes out of that slice; atomic immutable baseline + audit + risk-readiness transaction remains a separate subsequent increment.
+- Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
