@@ -1,6 +1,6 @@
 # Five-Layer System — Session Handoff
 
-Last updated: 2026-11-06 (Asia/Ho_Chi_Minh)
+Last updated: 2026-11-07 (Asia/Ho_Chi_Minh)
 
 ## Purpose
 
@@ -3450,3 +3450,55 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - **Status: PASS — cost model and acceptance gates documented. NOT VERIFIED — exact Singapore prices, workload, retention and budget fit. USD 5/month is illustrative only, NOT APPROVED and not demonstrated feasible. NOT APPROVED — provider selection, accounts, purchase, credentials, provisioning, provider tests or persistent capture.** No CI run (documentation-only); no source/schema/workflow/database/runtime changes.
 - Next: define the synthetic evidence envelope and minimum retention/recovery requirements from the architecture, then prepare a non-provisioning cost worksheet with measured sample sizes and candidate region/SKU quotes. Any live provider test requires separate approval and a hard test-spend authorization.
 - Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A strict predecessor chain unchanged. T0 paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — P1.5 Forward Evidence Envelope & Minimum Recovery Requirements
+
+### Scope and artifacts
+
+Documentation-only continuation on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`.
+
+- Contract: `docs/architecture/FORWARD_EVIDENCE_ENVELOPE_RECOVERY_REQUIREMENTS_2026-11-07.md`
+  - Commit: `7e34ae783f0cc9774169d75dbcf4b93385d4ef37`
+- Acceptance Test Plan amendment: `docs/architecture/FORWARD_EVIDENCE_STORAGE_ACCEPTANCE_TEST_PLAN_2026-11-07.md`
+  - Commit: `61204f2531bffa7a210945fc7951a7479d42811f`
+- Evidence Inventory amendment: `docs/evidence/DAILY_BASELINE_V1_RECOVERY_EVIDENCE_INVENTORY_2026-11-07.md`
+  - Commit: `5cedc28b3b74c233812ce2a67d677695e2ef0572`
+- This handoff update is the final P1.5 documentation commit; record its resulting SHA after write/read-back verification.
+
+### Contract decisions documented (proposals, not implementation)
+
+- Immutable `event_core` plus integrity envelope; globally unique event ID, stable stream ID, monotonic 20-digit per-stream sequence, typed event/schema version, exact source build/config provenance, ledger/strategy ownership, separate occurred/committed UTC timestamps, causality/idempotency, payload provenance and previous-event hash.
+- Canonical bytes: UTF-8 RFC 8785 JCS over `event_core` only, no BOM/trailing newline. Financial decimals and large integers are decimal strings; duplicate keys, unsafe numeric representations, invalid Unicode and ambiguous required/null/omission forms are rejected.
+- Proposed domain-separated SHA-256 hash and Ed25519 signature message. Signature key ID/version, rotation/revocation and compromise history are part of the evidence trust chain. Key custody and exact production algorithm decision remain open.
+- Append-only corrections/supersessions; identical retry is idempotent; same event ID with changed bytes, duplicate sequence, missing sequence, predecessor mismatch or invalid signature blocks readiness. Late pre-boundary events invalidate affected checkpoints.
+- Recovery coverage includes Core/AI/Legacy ownership, intent/admission/reservation, order lifecycle, partial/full fills, position transitions/DCA/reversal, fee/funding, marks/valuation, strategy/risk config, Kill Switch, HWM and daily UTC baseline.
+- Signed segment manifests bind exact sequence range, count, first/last hash, segment digest/length, previous manifest, exact object version/generation, retention read-back and Root A/Root B receipts.
+- Root B consumes committed Root A envelopes only; it must not query mutable account DB rows. Assurance remains Level 1 at most because the upstream event emitter is shared.
+- Candidate RPO/RTO definitions and reliability-first fail-closed proposal recorded. Root A/Root B failure, integrity gaps, uncertain durability, spool exhaustion or Root B lag blocks new exposure increases. Reductions/closures require a durable evidence path.
+- Candidate service observation bands 1/5/15 minutes and retention comparison horizons 1/3/7 years/indefinite are planning inputs only, NOT APPROVED thresholds or retention policy.
+
+### Standards references
+
+- RFC 8785 JCS: canonical JSON; Informational RFC, not Internet Standards Track.
+- RFC 8032 EdDSA: signature algorithm definitions; Informational RFC.
+- RFC 3339 timestamps, narrowed by this proposed contract to fixed-millisecond UTC timestamps.
+
+These references were reviewed from RFC Editor sources. They are design references only; no library or cryptographic behavior was implemented or tested.
+
+### Verification and status
+
+- P1.5 contract, acceptance plan and inventory updates: **PASS — documentation recorded**.
+- NOT IMPLEMENTED / NOT TESTED: canonicalizer, hash/signature code, key custody, atomic journal/outbox, Root B observer/reducer, recovery/replay, RPO/RTO, retention and fail-closed runtime behavior.
+- NOT RUN: deterministic synthetic size/throughput benchmark and provider acceptance tests.
+- NOT SELECTED: provider pair, region, budget, retention duration, Root B lag threshold, RPO/RTO numeric targets and key custody.
+- NOT AUTHORIZED: cloud account, purchase, credential issuance, provisioning, persistent capture, source/schema/database/workflow/runtime changes.
+- CI: NOT RUN; documentation-only scope. No CI run ID or artifact exists for this increment.
+- No persistent account DB opened; no external artifact downloaded; no exchange connection; no T0 runtime/data sync; no live order.
+- Historical Dual Reconstruction remains **UNAVAILABLE / BLOCKED**; Option A strict predecessor chain remains unchanged. No Epoch activation, HWM/Daily Loss reset or exposure increase from an unverified anchor.
+- T0 remains PAUSED; PAPER-only; `ai_execution_enabled=false`.
+
+### Next step
+
+Review the P1.5 contract and open decisions. If continuing without implementation approval, prepare a deterministic synthetic fixture specification and a measurement worksheet. Source implementation, key provisioning, provider qualification, persistent capture, runtime changes and any risk-policy change each require separate explicit approval.
+
