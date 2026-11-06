@@ -130,3 +130,16 @@ Until these decisions are explicitly approved:
 - Provider feature pages do not replace a live staging acceptance test.
 - No latency, IOPS, TLS handshake, role privilege, backup restore, RPO, RTO, or failover experiment has been run against either provider.
 - No vendor SLA or marketing statement is treated as evidence that T0 meets its operational targets.
+
+## 7. User provider decision — Timescale Cloud
+
+On 2026-11-06, the user selected Timescale Cloud as the provider direction for T0 staging. Current vendor documentation uses the product name Tiger Cloud.
+
+- AWS Singapore `ap-southeast-1` is officially listed as a supported region. Azure Singapore is also listed. AWS Singapore remains proposed, not confirmed.
+- Performance plan starts at USD 30/month and documents 3-day PITR. Scale starts at USD 36/month and documents 14-day PITR, multi-node HA and private endpoints. Storage is additional and compute varies by region. These are starting prices, not a quote.
+- Scale is the preliminary plan to evaluate because the proposed T0 backup history target is at least 7 days. It is not yet approved.
+- Tiger Cloud documents `tsdbadmin` as non-superuser. Validate migrations, SECURITY DEFINER ownership, Feeder/Reader grants and least privilege on the actual service.
+- Capture actual PostgreSQL and TimescaleDB extension versions. CI baseline is PostgreSQL 16 / TimescaleDB 2.17.2.
+- Provider HA does not replace application lease-generation fencing. Prove old Feeder rejection and new generation advancement after failover.
+- Official references: https://www.tigerdata.com/docs/get-started/supported-regions ; https://www.tigerdata.com/pricing ; https://www.tigerdata.com/docs/get-started/feature-comparison ; https://www.tigerdata.com/docs/deploy/tiger-cloud/tiger-cloud-aws/security/read-only-role
+- State: provider direction SELECTED; AWS Singapore PROPOSED; Scale PRELIMINARY; budget NOT PROVIDED; trial/service creation NOT AUTHORIZED; staging/production NOT PROVISIONED.
