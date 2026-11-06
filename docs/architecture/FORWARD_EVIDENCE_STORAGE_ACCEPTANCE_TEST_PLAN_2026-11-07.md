@@ -242,3 +242,29 @@ Before accepting any synthetic generator implementation:
 - Verify local Root B replay output is labeled `LOCAL_REPLAY_SIMULATION` and is never counted as evidence of provider/admin/process independence.
 
 These gates are specification checks only. No generator, crypto harness, benchmark or provider test is created or run by this amendment.
+
+
+## 14. P1.8 local synthetic generator acceptance (2026-11-07)
+
+Implementation reference: `docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_GENERATOR_IMPLEMENTATION_2026-11-07.md`.
+
+Local-only gates:
+- [x] Fixed-seed HMAC-SHA-256 known-answer vector and input validation.
+- [x] UUIDv5 synthetic identity and per-stream sequence/hash/causation contracts.
+- [x] Strict JCS-compatible subset rejects floats, unsafe integers, duplicate keys and invalid Unicode; full RFC 8785 conformance remains NOT VERIFIED.
+- [x] Core, AI and Legacy synthetic scenario streams with SMALL/MEDIAN/LARGE cohorts.
+- [x] Event-class target weights normalized by their actual sum 94; actual scenario counts reported independently.
+- [x] Single-stream contiguous segment boundaries and exact byte-cap edge tests.
+- [x] Event/manifest SHA-256 and segment digest verification.
+- [x] Local replay tests for identical duplicate idempotency, changed bytes, sequence gaps, wrong previous hash and tampering.
+- [x] Existing output directories are not overwritten.
+- [x] Negative-vector catalog remains separate from clean volume counts.
+
+Local result: 19/19 focused tests PASS; Python compile PASS; repeated 1,000-event fixture byte comparison PASS; fixture SHA-256 manifest PASS.
+
+GitHub Actions gate:
+- [ ] Exact triggering source SHA checked out and recorded.
+- [ ] Workflow conclusion SUCCESS.
+- [ ] Artifact ID/name/expiry and SHA-256 evidence captured and tied to the same source SHA.
+
+Known limits: Ed25519 signing/verification, signature key lifecycle, complete execution of all negative vectors, cross-language RFC 8785 comparison, 100k/burst/recovery profiles and Root B/provider independence remain NOT IMPLEMENTED or NOT VERIFIED. These local gates do not authorize provider tests, persistent capture, account DB access or T0/T1 runtime changes.
