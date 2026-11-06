@@ -160,3 +160,49 @@ The workflow push path filter includes `synthetic_evidence/**`; exact GitHub Act
 **Acceptance status:** GitHub Actions P1.8 synthetic fixture CI = **PASS** for the exact SHA above. This PASS is limited to the isolated synthetic fixture contracts and reproducibility checks. It does not certify full RFC 8785 conformance, signatures/key management, all 13 fault-vector execution paths, 100k/burst/recovery/restore, independent Root B, provider durability, or production performance. T0 remains PAUSED; no persistent capture, provider access, T0/T1 runtime integration, or live execution is authorized; `ai_execution_enabled=false`.
 
 Next bounded step: update the project handoff with this exact run and artifact provenance. Keep remaining cryptographic/canonicalization/fault-path gaps as separate synthetic-only work.
+
+
+## 10. P1.8.2 — synthetic-only independent integrity vectors
+
+### Approval and scope
+
+User approval: `APPROVE P1.8.2 — SYNTHETIC-ONLY INTEGRITY TESTS`.
+
+Only `synthetic_evidence/test_generator.py` was changed. No generator behavior, production runtime, T0/T1 source, database, exchange, credentials, provider, persistent capture, signing key, or execution policy was changed. The workflow remained the existing GitHub Actions workflow on the existing feature branch.
+
+### Independent vector sources and coverage
+
+- RFC 8785 §3.2.3 property-order example, including UTF-16 ordering across BMP and non-BMP characters: https://www.rfc-editor.org/rfc/rfc8785.html
+- RFC 4231 §4.2 HMAC-SHA-256 test case 1: https://www.rfc-editor.org/rfc/rfc4231.html
+- SHA-256 known-answer vector for `abc`.
+- Independent event-vs-manifest domain-separation expected digests.
+- Additional strict-subset tests for string escaping, nested object ordering, array-order preservation, float rejection, invalid UTF-8, duplicate/invalid numeric input, event-hash tampering and stream-sequence reordering.
+
+The initial test-only commit `eeb68bf602d4967d769d47594337fc9f3ec38f7a` failed at Python compilation because of incorrectly escaped test literals. This was a test-source defect, not a generator failure. The literals were corrected in commit `de0602dfb3daa999b06280e2044eecb1d76d45d1`; the corrected exact source was then checked by GitHub Actions.
+
+### Exact GitHub Actions evidence
+
+- Workflow run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42289567234
+- Run ID: `42289567234`; run number: 12; event: `push`; conclusion: **success**.
+- Job ID: `128139126406`, `Deterministic local fixture contracts`; conclusion: **success**.
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Exact head/checked-out/source SHA: `de0602dfb3daa999b06280e2044eecb1d76d45d1`.
+- Synthetic-only preflight: PASS; DB/exchange credential environment variables empty; `AI_EXECUTION_ENABLED=false`.
+- Python 3.11 compile: PASS.
+- Focused suite: **29/29 PASS** (19 existing + 10 added).
+- Two 1,000-event fixtures: byte-identical; replay verified 1,000 events over 3 streams; 12 segments.
+- SHA-256 fixture manifest: 17/17 PASS in workflow and independently after artifact download.
+- Artifact ID: `13539715524`; name: `p1-8-synthetic-evidence-de0602dfb3daa999b06280e2044eecb1d76d45d1`; size: 298,854 bytes; SHA-256: `4a2678b4e80aae0fc94681e42d8183f0a0a7548713dd5aed388bcca8e96c49c3`; expires: `2026-11-13T20:34:57Z`.
+- Downloaded ZIP was independently hashed; its digest matches GitHub artifact metadata. ZIP contains 24 files. All 17 entries in `fixture.sha256` independently verified.
+
+### Acceptance and remaining limits
+
+**P1.8.2 synthetic-only integrity test increment: PASS** for the exact source SHA above.
+
+This proves only the published primitive/canonicalization-subset vectors and listed synthetic replay faults. It does NOT establish full RFC 8785 conformance: the implementation intentionally rejects floating-point JSON values, so RFC 8785 ECMAScript number-serialization Appendix B remains outside the supported subset. No independent second-language implementation was run. The other catalogued negative vectors are not all executable or verified. Ed25519 signing/verification, key lifecycle, signed receipts, Root B, 100k/burst/recovery/restore, provider durability, and performance qualification remain NOT IMPLEMENTED, NOT RUN, or NOT AUTHORIZED as applicable.
+
+T0 remains PAUSED. No database, exchange, provider, persistent capture, runtime integration, or live execution was accessed or enabled. `ai_execution_enabled=false` remains unchanged.
+
+### Next step
+
+Keep the P1.8.2 result recorded and review the next gap separately. Do not enable full RFC 8785 floating-point support, introduce signing/key custody, or begin provider/runtime work without a separate explicit approval.
