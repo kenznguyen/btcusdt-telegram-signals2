@@ -3683,3 +3683,21 @@ No change to P1.8 approval boundary: provider qualification, persistent capture,
 - No workflow run has been dispatched or verified yet. CI execution, checked-out source SHA, job results, artifact identity and digest remain **NOT VERIFIED**.
 - Next: open the Actions workflow page; the Run workflow control should now be available. Select branch `feature/t0-centralized-data-feeder-p1-20261101` before dispatch so the run uses the feature-branch workflow and source. Reconcile run logs and artifact against the exact checked-out SHA.
 - P1.8 remains synthetic-only; no provider qualification, persistent capture, T0/T1 runtime integration, or live execution is authorized. `ai_execution_enabled=false`.
+
+
+
+### P1.8 GitHub Actions acceptance — PASS (2026-11-07)
+
+- Workflow run: `42288889345`; job `128136820125`, `Deterministic local fixture contracts`; conclusion **success**.
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Exact checked-out source SHA: `90cd3cfe64bcac2f1fb238660e5264431c69d419`; checkout log, `git rev-parse HEAD`, smoke summary and run descriptor agree.
+- Synthetic-only preflight PASS; database/exchange credential environment variables empty; `AI_EXECUTION_ENABLED=false`.
+- Python compile PASS; focused tests **19/19 PASS**.
+- Two 1,000-event fixtures byte-identical; local replay verified 1,000 events across 3 streams; 12 segments generated.
+- SHA-256 fixture manifest: **17/17 PASS** in workflow logs and independently rechecked after downloading the artifact.
+- Artifact ID `13539350402`, name `p1-8-synthetic-evidence-90cd3cfe64bcac2f1fb238660e5264431c69d419`, size 298,473 bytes, SHA-256 `7adee2525ab7690d8ce1792eb809b93a6a4b7cf02adb8f234bbc45793fe4dd76`, expires `2026-11-13T20:30:14Z`.
+- Detailed evidence and limitations recorded in `docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_GENERATOR_IMPLEMENTATION_2026-11-07.md`; report commit `9ac231467df7b4c66cab76e9cd1ba5ca2c427a09`.
+- This PASS is limited to synthetic-only fixture contracts/reproducibility. Full RFC 8785 conformance, Ed25519/key lifecycle, execution of all negative vectors, 100k/burst/recovery/restore, Root B and provider durability remain NOT VERIFIED or NOT RUN. Descriptor explicitly records storage medium `NOT_MEASURED`.
+- T0 remains PAUSED. No persistent capture, provider access, runtime integration, or live execution authorized; `ai_execution_enabled=false`.
+
+Next step: a separate bounded synthetic-only increment for canonicalization/cryptographic/fault-vector gaps; do not expand to providers or runtime without explicit approval.
