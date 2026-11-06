@@ -171,7 +171,9 @@ jobs:
               Path("synthetic-evidence-compile.txt"),
               Path("synthetic-evidence-reproducibility.txt"),
               Path("synthetic-evidence-smoke-summary.json"),
-              Path("synthetic-evidence-provenance.json"),\n              Path("trusted_root.jsonl"),\n              Path("trusted_root.sha256"),
+              Path("synthetic-evidence-provenance.json"),
+              Path("trusted_root.jsonl"),
+              Path("trusted_root.sha256"),
               *sorted(Path("synthetic-evidence-output-a").rglob("*")),
               *sorted(Path("synthetic-evidence-output-b").rglob("*")),
           ]
@@ -285,10 +287,9 @@ jobs:
           PY
           gh --version
           VERIFY_DIR="$PWD"
-          sudo unshare --net bash -c '
+          sudo unshare --net env GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" GITHUB_SHA="${GITHUB_SHA}" GITHUB_REF="${GITHUB_REF}" GH_TOKEN=offline-verification-no-network bash -c '
             set -euo pipefail
             cd "$1"
-            export GH_TOKEN=offline-verification-no-network
             gh attestation verify synthetic-evidence-bundle.zip \
               --bundle synthetic-evidence-attestation.bundle.json \
               --custom-trusted-root trusted_root.jsonl \
