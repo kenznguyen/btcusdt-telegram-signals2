@@ -1852,3 +1852,18 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No code, migrations, credentials, workflow, VPS, database, exchange connection or feeder activation was changed/created. Documentation-only audit; no CI run claimed.
 - Next safe step: implement a disposable CI bootstrap-privilege acceptance fixture for the restricted migration sequence and run all T0 suites on the exact source SHA. Preserve SQLite default and all production gates.
 - VPS/provider remains **NOT DECIDED**; PC + existing CI only. T0 remains independent; no real Binance data or canonical ingestion; `ai_execution_enabled=false`.
+
+
+## 2026-11-06 — Restricted provider bootstrap fixture
+
+- Continued the active T0 workstream on `feature/t0-centralized-data-feeder-p1-20261101`; no new branch or PR was created.
+- Added `test_non_superuser_bootstrap_prepares_restricted_migrator_roles` to `market_data/test_postgres_role_privileges.py`.
+- The fixture models a non-SUPERUSER bootstrap login with CREATEROLE/CREATEDB, prepares the temporary migration roles and memberships, creates a disposable database owned by `t0_db_owner`, pre-enables TimescaleDB as a provider-controlled step, then runs migrations through the restricted `t0_migrator_login`.
+- Test change commits: `22b5b2611d07296536fa402fa34f0243e94f1544` (initial test) and `66194a83d421050514f1d401ceff4bfd425dce81` (teardown grant cleanup). Final test blob: `ffa5d9102b15aad7792a07d9f73eb07bfeac8f2d`.
+- Evidence scope report: `docs/evidence/T0_PROVIDER_BOOTSTRAP_FIXTURE_2026-11-06.md`; commit `8a7e7da5566f9f6218ffe6f6c55896b05a96d674`.
+- Self-review: temporary database and role identifiers are unique; role grants are parameterized with psycopg SQL identifiers/literals; database creation uses autocommit; cleanup drops the database before revoking and dropping temporary roles. The test intentionally does not weaken role guards.
+- Verification: **NOT VERIFIED**. GitHub combined status lookup for source commit `66194a83d421050514f1d401ceff4bfd425dce81` returned no status checks; no test result is claimed. Earlier CI results apply only to their recorded SHAs.
+- Scope limitation: the shared CI service already has the T0 capability/owner roles from its baseline migration, so this fixture does not prove pristine-cluster creation of every reserved role. TimescaleDB extension enablement is performed by the service admin; provider-specific extension privileges remain NOT VERIFIED. The fixture is a compatibility probe, not certification for DigitalOcean/Tiger Cloud.
+- No VPS/provider provisioning, external DB, credential, canonical T0 DB, Feeder activation, exchange connection, market-data sync, or live execution.
+- Next: retrieve the direct-push GitHub Actions run for this branch and verify the exact checked-out SHA; run the focused new integration test and full `market_data` suite. If unavailable, mark BLOCKED/NOT VERIFIED and do not infer PASS. If the test exposes a provider permission gap, preserve logs and update the provider acceptance requirements rather than broadening migration privileges.
+- VPS/provider remains **NOT DECIDED**; PC + existing CI only. T0 remains an independent data asset; `ai_execution_enabled=false`; paper-only.
