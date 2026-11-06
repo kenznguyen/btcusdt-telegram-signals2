@@ -75,7 +75,8 @@ class DeterministicLedgerReplayContractTest(unittest.TestCase):
             self.event("a-buy", 1_700_000_010_000, "1", "110", "0"),
         ]
         result = replay_ledger_events(
-            self.snapshot, events, [], boundary_ms=86_400_000
+            self.snapshot, events, [], boundary_ms=1_700_006_400_000,
+            coverage_watermark_at_ms=1_700_006_500_000
         )
         self.assertEqual(result["included_event_ids"], ["a-buy", "z-buy"])
         self.assertEqual(result["average_entry_price"], "105")
