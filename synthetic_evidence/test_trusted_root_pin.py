@@ -8,8 +8,8 @@ from synthetic_evidence.trusted_root_pin import TRUSTED_ROOT_SHA256
 class TrustedRootPinTests(unittest.TestCase):
     def setUp(self):
         self.root_bytes = (
-            b'{"mediaType":"application/vnd.dev.sigstore.trustedroot+json;version=0.1"}\\n'
-            b'{"mediaType":"application/vnd.dev.sigstore.trustedroot+json;version=0.1","source":"second"}\\n'
+            b'{"mediaType":"application/vnd.dev.sigstore.trustedroot+json;version=0.1"}\n'
+            b'{"mediaType":"application/vnd.dev.sigstore.trustedroot+json;version=0.1","source":"second"}\n'
         )
         self.pin = hashlib.sha256(self.root_bytes).hexdigest()
 
@@ -32,12 +32,12 @@ class TrustedRootPinTests(unittest.TestCase):
             verify_trusted_root(b"", self.pin)
 
     def test_rejects_malformed_jsonl(self):
-        malformed = b'{"valid":true}\\nnot-json\\n'
+        malformed = b'{"valid":true}\nnot-json\n'
         with self.assertRaisesRegex(ValueError, "invalid JSONL"):
             verify_trusted_root(malformed, hashlib.sha256(malformed).hexdigest())
 
     def test_rejects_non_object_jsonl_record(self):
-        malformed = b'[]\\n'
+        malformed = b'[]\n'
         with self.assertRaisesRegex(ValueError, "JSON object"):
             verify_trusted_root(malformed, hashlib.sha256(malformed).hexdigest())
 
