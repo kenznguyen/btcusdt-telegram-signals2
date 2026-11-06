@@ -281,8 +281,9 @@ def assess_revocation(*, mode, evidence=None):
     _parse_utc(reviewed_at)
     if decision == "REVOKED":
         return {
-            "status": "REVOKED",
+            "status": "REVOKED_REPORTED",
             "decision": "REJECT",
+            "evidence_authenticity": "NOT_VERIFIED_BY_THIS_MODULE",
             "evidence_sha256": digest,
             "review_id": review_id,
             "may_claim_not_revoked": False,
@@ -292,6 +293,7 @@ def assess_revocation(*, mode, evidence=None):
         return {
             "status": "REVIEWED_CLEAR_AUDIT_ONLY",
             "decision": "BLOCK_UNLESS_EVIDENCE_AUTHENTICITY_IS_SEPARATELY_VERIFIED",
+            "evidence_authenticity": "NOT_VERIFIED_BY_THIS_MODULE",
             "evidence_sha256": digest,
             "review_id": review_id,
             "may_claim_not_revoked": False,
