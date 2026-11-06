@@ -1757,3 +1757,17 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No account, trial, VPS, managed database, DNS, network rule, credential, TLS certificate, or backup job was created.
 - No Binance connection or real market-data sync. No Feeder activation. `ai_execution_enabled=false`; paper-only.
 - Next: obtain the user's provider/topology choice and explicit temporary + monthly budget ceiling. Then perform a provider-specific cost/contract review and update the staging execution plan before any provisioning.
+
+## 2026-11-06 — User selected Timescale Cloud direction
+
+- User selected **Timescale Cloud** as the provider direction for T0 staging planning. Current product documentation uses the name **Tiger Cloud**.
+- Official region documentation lists AWS Singapore `ap-southeast-1`; Azure Singapore `southeastasia` is also listed. AWS Singapore is a candidate, not yet separately confirmed.
+- Current published plan comparison: Performance starts at USD 30/month with 3-day PITR; Scale starts at USD 36/month with 14-day PITR, multi-node HA and private endpoints. Storage is billed separately; compute varies by region. These are starting prices, not an estimate or quote.
+- Scale is the preliminary plan to evaluate because the proposed T0 backup-history gate is at least 7 days. No plan is approved yet.
+- Tiger Cloud documents `tsdbadmin` as non-superuser. Existing migrations, SECURITY DEFINER ownership, Feeder/Reader roles and least-privilege contracts must be tested on the actual provider before staging can pass.
+- CI engine baseline is PostgreSQL 16 / TimescaleDB 2.17.2. Actual service `server_version` and extension version must be recorded and compatibility proven.
+- Provider HA does not replace T0 writer lease/generation fencing. Old Feeder rejection and generation advancement remain required acceptance tests.
+- Research sources: https://www.tigerdata.com/docs/get-started/supported-regions ; https://www.tigerdata.com/pricing ; https://www.tigerdata.com/docs/get-started/feature-comparison ; https://www.tigerdata.com/docs/deploy/tiger-cloud/tiger-cloud-aws/security/read-only-role
+- Provider-specific planning: **IN PROGRESS**. AWS Singapore: **PROPOSED**. Scale: **PRELIMINARY**. Budget ceiling: **NOT PROVIDED**.
+- No trial, service, database, network connection, or paid resource was created. Staging provisioning remains **NOT AUTHORIZED**; production remains **NOT AUTHORIZED**. No new CI run is claimed.
+- Next: obtain explicit monthly staging budget and confirm AWS Singapore + Scale plan; then complete a costed staging plan and seek separate provisioning approval.
