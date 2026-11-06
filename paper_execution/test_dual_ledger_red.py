@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 
 from paper_execution import ledger
+from paper_execution.replay_reconciliation import reconcile_daily_equity_replay
 from paper_execution.ledger import PaperLedger
 
 
@@ -2364,6 +2365,16 @@ os._exit(0)
             inputs["ledgers"]["STRATEGY_CORE"]["coverage_watermark_at_ms"], watermark
         )
         self.assertEqual(inputs["funding_coverage_watermark_at_ms"], watermark)
+
+        # Exercise the real read-only loader output through the pure replay
+        # orchestrator; no DB write or mutation is permitted in this stage.
+        replay = reconcile_daily_equity_replay(inputs)
+        self.assertEqual(replay["cutover_id"], "fixture-account-cutover")
+        self.assertEqual(replay["boundary_ms"], boundary)
+        self.assertEqual(replay["ledgers"]["STRATEGY_CORE"]["position_base"], "0.1")
+        self.assertEqual(replay["ledgers"]["STRATEGY_CORE"]["fees_quote"], "0.01")
+        self.assertEqual(replay["ledgers"]["STRATEGY_CORE"]["funding_quote"], "0.25")
+        self.assertEqual(replay["equity_quote"], "100.14")
 
         ledger.record_account_history_event(
             self.path,
