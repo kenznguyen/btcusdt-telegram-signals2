@@ -217,12 +217,13 @@ def replay_ledger_events(snapshot, execution_events, funding_events, *, boundary
 
 
 
-def load_daily_equity_replay_inputs(connection, *, utc_day_ms):
+def load_daily_equity_replay_inputs(connection, *, utc_day_ms, now_ms):
     """Load and validate one day's replay inputs using a read-only SQLite snapshot."""
     if not isinstance(connection, sqlite3.Connection):
         raise ValueError("ACCOUNT_HISTORY_READ_ONLY_CONNECTION_REQUIRED")
     boundary = _stamp(utc_day_ms, "ACCOUNT_HISTORY_UTC_DAY_INVALID")
-    if boundary % DAY_MS:
+    now = _stamp(now_ms, "ACCOUNT_HISTORY_NOW_INVALID")
+    if boundary % DAY_MS or now < boundary:
         raise ValueError("ACCOUNT_HISTORY_UTC_DAY_INVALID")
 
     # query_only is connection-local; no schema or account data is changed.
@@ -264,7 +265,7 @@ def load_daily_equity_replay_inputs(connection, *, utc_day_ms):
     cutover_id, snapshot_at, funding_start = cutovers[0]
     snapshot_at = _stamp(snapshot_at, "ACCOUNT_HISTORY_CUTOVER_SNAPSHOT_INVALID")
     funding_start = _stamp(funding_start, "FUNDING_COVERAGE_START_INVALID")
-    if not snapshot_at < boundary or funding_start > snapshot_at:
+    if not snapshot_at < boundary or funding_start > snapshot_at or snapshot_at > now:
         raise ValueError("ACCOUNT_HISTORY_CUTOVER_BOUNDARY_INVALID")
 
     snapshot_rows = connection.execute(
@@ -347,6 +348,8 @@ def load_daily_equity_replay_inputs(connection, *, utc_day_ms):
             start = _stamp(start, "ACCOUNT_HISTORY_COVERAGE_TIME_INVALID")
             end = _stamp(end, "ACCOUNT_HISTORY_COVERAGE_TIME_INVALID")
             recorded = _stamp(recorded, "ACCOUNT_HISTORY_RECORDED_TIME_INVALID")
+            if recorded > now:
+                raise ValueError("ACCOUNT_HISTORY_EVIDENCE_FROM_FUTURE")
             if (start >= end or end > recorded or status != "VERIFIED"
                     or (previous_end is not None and start < previous_end)
                     or start > cursor):
@@ -436,6 +439,8 @@ def load_daily_equity_replay_inputs(connection, *, utc_day_ms):
         start = _stamp(start, "FUNDING_COVERAGE_INTERVAL_INVALID")
         end = _stamp(end, "FUNDING_COVERAGE_INTERVAL_INVALID")
         recorded = _stamp(recorded, "FUNDING_COVERAGE_RECORDED_TIME_INVALID")
+        if recorded > now:
+            raise ValueError("ACCOUNT_HISTORY_EVIDENCE_FROM_FUTURE")
         if (start >= end or end > recorded or status != "VERIFIED"
                 or (previous_end is not None and start < previous_end)
                 or start > cursor):
@@ -467,6 +472,8 @@ def load_daily_equity_replay_inputs(connection, *, utc_day_ms):
         recorded = _stamp(recorded, "FUNDING_EVENT_RECORDED_TIME_INVALID")
         if event_at > recorded:
             raise ValueError("FUNDING_EVENT_TIMESTAMP_INVALID")
+        if recorded > now:
+            raise ValueError("ACCOUNT_HISTORY_EVIDENCE_FROM_FUTURE")
         if event_at <= snapshot_at:
             if recorded > snapshot_at:
                 raise ValueError("ACCOUNT_HISTORY_LATE_EVENT")
@@ -512,9 +519,11 @@ def load_daily_equity_replay_inputs(connection, *, utc_day_ms):
     observed = _stamp(observed, "ACCOUNT_HISTORY_MARK_TIME_INVALID")
     candle = _stamp(candle, "ACCOUNT_HISTORY_MARK_TIME_INVALID")
     recorded = _stamp(recorded, "ACCOUNT_HISTORY_RECORDED_TIME_INVALID")
+    if observed > now or recorded > now:
+        raise ValueError("ACCOUNT_HISTORY_EVIDENCE_FROM_FUTURE")
     if (effective != boundary or candle != boundary or observed < boundary
-            or recorded < observed or recorded > market_watermark
-            or quality != "VERIFIED"):
+            or observed - boundary > 30 * 60_000 or recorded < observed
+            or recorded > market_watermark or quality != "VERIFIED"):
         raise ValueError("ACCOUNT_HISTORY_BOUNDARY_MARK_INVALID")
     market_mark = {
         "mark_id": _text(mark_id, "ACCOUNT_HISTORY_MARK_ID_INVALID", 200),
