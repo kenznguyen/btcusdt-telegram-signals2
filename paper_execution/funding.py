@@ -407,10 +407,10 @@ def record_account_equity_cutover(
                 source_snapshot_id,payload_hash,config_version,high_water_mark_quote,
                 daily_baseline_utc_day_ms,daily_baseline_equity_quote,recorded_at_ms)
                VALUES (?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (cutover_id, format(expected_capital, "f"), format(equity, "f"),
+            (cutover_id, format(expected_capital, "f"), _decimal_text(equity),
              format(mark, "f"), candle, observed, dataset, coverage_start, observed,
-             source, snapshot, digest, config, format(equity, "f"), day,
-             format(equity, "f"), recorded),
+             source, snapshot, digest, config, _decimal_text(equity), day,
+             _decimal_text(equity), recorded),
         )
         db.execute(
             """UPDATE paper_account_risk_state SET high_water_mark_quote=?,
@@ -419,13 +419,13 @@ def record_account_equity_cutover(
                mark_candle_close_ms=?,dataset_version=?,risk_ready=1,
                unavailable_reason=NULL,updated_at_ms=?,version=version+1
                WHERE account_id=1""",
-            (format(equity, "f"), day, format(equity, "f"), format(equity, "f"),
+            (_decimal_text(equity), day, _decimal_text(equity), _decimal_text(equity),
              format(mark, "f"), observed, candle, dataset, recorded),
         )
         result = {
-            "cutoverId": cutover_id, "accountEquityQuote": format(equity, "f"),
-            "highWaterMarkQuote": format(equity, "f"),
-            "dailyBaselineEquityQuote": format(equity, "f"),
+            "cutoverId": cutover_id, "accountEquityQuote": _decimal_text(equity),
+            "highWaterMarkQuote": _decimal_text(equity),
+            "dailyBaselineEquityQuote": _decimal_text(equity),
             "dailyBaselineUtcDayMs": day, "riskReady": True, "mode": "PAPER",
         }
         db.execute(
