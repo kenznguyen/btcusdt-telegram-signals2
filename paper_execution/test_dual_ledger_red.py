@@ -1343,5 +1343,119 @@ class DualLedgerRedTest(unittest.TestCase):
             )
 
 
+
+    def test_account_equity_cutover_replay_after_reopen_is_idempotent_and_conflict_safe(self):
+        path = self.fresh_account_db("cutover-restart-replay.sqlite3", establish_cutover=False)
+        ledger.record_funding_coverage(
+            path,
+            coverage_id="restart-replay-funding-coverage",
+            start_at_ms=self.now - 86_400_000,
+            end_at_ms=self.now,
+            status="VERIFIED",
+            source="RECONCILED_ACCOUNT_STATEMENT",
+            source_snapshot_id="restart-replay:funding-window",
+            payload_hash="sha256:" + "c" * 64,
+            config_version="funding-policy-v1",
+            recorded_at_ms=self.now,
+        )
+        kwargs = {
+            "cutover_id": "restart-replay-cutover-001",
+            "expected_initial_capital_quote": "100",
+            "expected_realized_pnl_quote": "0",
+            "expected_fees_quote": "0",
+            "expected_funding_quote": "0",
+            "expected_account_equity_quote": "100",
+            "mark_price": "100",
+            "mark_candle_close_ms": self.now - 60_000,
+            "mark_observed_at_ms": self.now,
+            "dataset_version": "sha256:dual-ledger-seed",
+            "funding_coverage_start_at_ms": self.now - 86_400_000,
+            "source": "RECONCILED_ACCOUNT_STATEMENT",
+            "source_snapshot_id": "restart-replay:account-cutover",
+            "payload_hash": "sha256:" + "d" * 64,
+            "config_version": "account-cutover-v1",
+            "recorded_at_ms": self.now,
+        }
+        first = ledger.record_account_equity_cutover(path, **kwargs)
+
+        with sqlite3.connect(path) as connection:
+            before = {
+                "cutovers": connection.execute(
+                    "SELECT COUNT(*) FROM paper_account_equity_cutovers"
+                ).fetchone()[0],
+                "audits": connection.execute(
+                    "SELECT COUNT(*) FROM paper_audit WHERE kind='ACCOUNT_EQUITY_CUTOVER'"
+                ).fetchone()[0],
+                "risk": connection.execute(
+                    """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
+                              daily_baseline_equity_quote,last_equity_quote,
+                              risk_ready,version
+                       FROM paper_account_risk_state WHERE account_id=1"""
+                ).fetchone(),
+            }
+        self.assertEqual(before["cutovers"], 1)
+        self.assertEqual(before["audits"], 1)
+
+        # Reopen the database and reconstruct strategy handles as after a process restart.
+        reopened_core = PaperLedger(
+            path, max_position_base="1", strategy_id="STRATEGY_CORE",
+            source_sha="a" * 40,
+        )
+        reopened_ai = PaperLedger(
+            path, max_position_base="1", strategy_id="AI_FREQAI",
+            source_sha="a" * 40,
+        )
+        self.assertEqual(reopened_core.snapshot()["positionBase"], "0")
+        self.assertEqual(reopened_ai.snapshot()["positionBase"], "0")
+        replay = ledger.record_account_equity_cutover(path, **kwargs)
+        self.assertEqual(replay, first)
+
+        with sqlite3.connect(path) as connection:
+            after_replay = {
+                "cutovers": connection.execute(
+                    "SELECT COUNT(*) FROM paper_account_equity_cutovers"
+                ).fetchone()[0],
+                "audits": connection.execute(
+                    "SELECT COUNT(*) FROM paper_audit WHERE kind='ACCOUNT_EQUITY_CUTOVER'"
+                ).fetchone()[0],
+                "risk": connection.execute(
+                    """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
+                              daily_baseline_equity_quote,last_equity_quote,
+                              risk_ready,version
+                       FROM paper_account_risk_state WHERE account_id=1"""
+                ).fetchone(),
+            }
+        self.assertEqual(after_replay, before, "Idempotent replay must not rewrite risk state or audit")
+
+        conflicting = dict(kwargs, payload_hash="sha256:" + "e" * 64)
+        with self.assertRaisesRegex(ValueError, "ACCOUNT_EQUITY_CUTOVER_ID_CONFLICT"):
+            ledger.record_account_equity_cutover(path, **conflicting)
+        with sqlite3.connect(path) as connection:
+            after_conflict = {
+                "cutovers": connection.execute(
+                    "SELECT COUNT(*) FROM paper_account_equity_cutovers"
+                ).fetchone()[0],
+                "audits": connection.execute(
+                    "SELECT COUNT(*) FROM paper_audit WHERE kind='ACCOUNT_EQUITY_CUTOVER'"
+                ).fetchone()[0],
+                "risk": connection.execute(
+                    """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
+                              daily_baseline_equity_quote,last_equity_quote,
+                              risk_ready,version
+                       FROM paper_account_risk_state WHERE account_id=1"""
+                ).fetchone(),
+            }
+        self.assertEqual(after_conflict, before, "Conflicting replay must leave durable state unchanged")
+
+    def test_read_account_risk_snapshot_leaves_database_bytes_unchanged(self):
+        before = self.path.read_bytes()
+        snapshot = ledger.read_account_risk_snapshot(self.path, now_ms=self.now)
+        after = self.path.read_bytes()
+
+        self.assertTrue(snapshot["available"], snapshot)
+        self.assertTrue(snapshot["riskReady"], snapshot)
+        self.assertEqual(after, before, "Read-only snapshot must not alter the SQLite database file")
+
+
 if __name__ == "__main__":
     unittest.main()
