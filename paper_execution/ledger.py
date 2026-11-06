@@ -168,7 +168,7 @@ def read_snapshot(db_path, strategy_id=None):
 DUAL_STRATEGIES = {"STRATEGY_CORE", "AI_FREQAI"}
 MIGRATION_VERSION = 1
 MIGRATION_CHECKSUM = hashlib.sha256(
-    b"dual-ledger-v1:additive-account-strategy-ledgers-risk-reservations-funding"
+    b"dual-ledger-v1.1:additive-account-strategy-ledgers-risk-reservations-funding-remaining"
 ).hexdigest()
 
 
@@ -299,7 +299,9 @@ def migrate_dual_ledger(connection, source_sha):
         status TEXT NOT NULL CHECK(status IN
             ('ACTIVE','PARTIAL','RELEASED','CONSUMED','EXPIRED')),
         reserved_margin_quote TEXT NOT NULL,
+        remaining_margin_quote TEXT NOT NULL,
         reserved_notional_quote TEXT NOT NULL,
+        remaining_notional_quote TEXT NOT NULL,
         leverage TEXT NOT NULL,
         equity_basis_quote TEXT NOT NULL,
         risk_config_version TEXT NOT NULL,
@@ -466,11 +468,379 @@ class PaperLedger:
         connection.execute("INSERT INTO paper_audit(at_ms,kind,document) VALUES (?,?,?)",
                            (at_ms, kind, json.dumps(value, allow_nan=False)))
 
+
+    def _submit_scoped(self, intent, book, now, strategy_event):
+        strategy_id = self.strategy_id
+        if strategy_event not in (None, "ENTRY", "DCA", "EXIT"):
+            raise ValueError("Invalid strategy event")
+        with closing(self.connect()) as connection, connection, localcontext() as context:
+            context.prec = 80
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                """SELECT position_base,average_entry_price,realized_pnl_quote,fees_quote,
+                          funding_quote,dca_used,initial_margin_quote
+                   FROM paper_strategy_ledgers WHERE account_id=1 AND strategy_id=?""",
+                (strategy_id,),
+            ).fetchone()
+            if row is None:
+                raise sqlite3.DatabaseError("DUAL_LEDGER_STRATEGY_STATE_MISSING")
+            try:
+                position, average, realized, fees, funding, margin = (
+                    Decimal(row[0]), Decimal(row[1]), Decimal(row[2]),
+                    Decimal(row[3]), Decimal(row[4]), Decimal(row[6])
+                )
+                if any(not value.is_finite() for value in
+                       (position, average, realized, fees, funding, margin)):
+                    raise ValueError
+                if (position == 0 and average != 0) or (position != 0 and average <= 0):
+                    raise ValueError
+                if fees < 0 or margin < 0 or type(row[5]) is not int or row[5] not in (0, 1):
+                    raise ValueError
+            except (DecimalException, TypeError, ValueError):
+                raise sqlite3.DatabaseError("DUAL_LEDGER_STRATEGY_STATE_CORRUPT") from None
+
+            digest = identity("payload:", {
+                **intent, "strategyId": strategy_id, "strategyEvent": strategy_event,
+            })
+            previous = connection.execute(
+                "SELECT payload_hash,document FROM paper_orders WHERE intent_id=?",
+                (intent["intentId"],),
+            ).fetchone()
+            if previous:
+                if previous[0] != digest:
+                    raise ValueError("Intent ID was reused with a different payload")
+                return json.loads(previous[1])
+
+            target = Decimal(intent["targetPositionBase"])
+            limit = Decimal(intent["limitPrice"])
+            delta = target - position
+            quantity = abs(delta)
+            side = "BUY" if delta > 0 else "SELL" if delta < 0 else "NONE"
+            reducing = position != 0 and target * position >= 0 and abs(target) < abs(position)
+            reversing = position != 0 and target * position < 0
+            increase_quantity = (
+                abs(target) if reversing else
+                max(ZERO, abs(target) - abs(position)) if position * target > 0 else
+                abs(target) if position == 0 else ZERO
+            )
+            event = strategy_event or (
+                "ENTRY" if position == 0 or reversing else
+                "DCA" if increase_quantity > 0 else "EXIT"
+            )
+            if event == "EXIT" and increase_quantity > 0:
+                reason = "EXIT_CANNOT_INCREASE_EXPOSURE"
+            elif increase_quantity > 0 and event == "DCA" and bool(row[5]):
+                reason = "DCA_ALREADY_USED"
+            elif increase_quantity > 0 and event == "DCA" and position == 0:
+                reason = "DCA_REQUIRES_EXISTING_POSITION"
+            elif increase_quantity > 0 and event == "ENTRY" and position != 0 and not reversing:
+                reason = "ENTRY_REQUIRES_FLAT_OR_REVERSAL"
+            elif increase_quantity == 0 and event == "DCA":
+                reason = "DCA_WITHOUT_EXPOSURE_INCREASE"
+            else:
+                reason = None
+
+            pending = connection.execute(
+                """SELECT 1 FROM paper_orders
+                   WHERE strategy_id=? AND status IN ('OPEN','PARTIALLY_FILLED') LIMIT 1""",
+                (strategy_id,),
+            ).fetchone()
+            if reason is None and pending:
+                reason = "PENDING_ORDER"
+
+            risk_row = connection.execute(
+                """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
+                          daily_baseline_equity_quote,last_equity_quote,last_mark_price,
+                          mark_observed_at_ms,mark_candle_close_ms,dataset_version,
+                          risk_ready,unavailable_reason
+                   FROM paper_account_risk_state WHERE account_id=1"""
+            ).fetchone()
+            account = connection.execute(
+                "SELECT initial_capital FROM paper_accounts WHERE account_id=1"
+            ).fetchone()
+            mark = mark_observed = mark_candle = None
+            equity = None
+            if increase_quantity > 0 and reason is None:
+                if self.risk_limits is None or not all(
+                    key in self.risk_limits for key in
+                    ("maxDrawdownPct", "maxDailyLossUsdt", "maxExposureUsdt")
+                ):
+                    reason = "RISK_LIMITS_UNCONFIGURED"
+                elif risk_row is None or account is None or not risk_row[8]:
+                    reason = "RISK_INPUTS_UNAVAILABLE"
+                else:
+                    try:
+                        mark = Decimal(risk_row[4])
+                        mark_observed = stamp(risk_row[5])
+                        mark_candle = stamp(risk_row[6])
+                        hwm = Decimal(risk_row[0])
+                        daily_baseline = Decimal(risk_row[2])
+                        if (
+                            mark <= 0 or hwm <= 0 or daily_baseline <= 0 or
+                            mark_observed > now or now-mark_observed > 30*60_000 or
+                            mark_candle > now or now-mark_candle > 30*60_000 or
+                            not risk_row[7] or
+                            risk_row[1] != now//86_400_000*86_400_000
+                        ):
+                            raise ValueError
+                    except (DecimalException, TypeError, ValueError):
+                        reason = "RISK_INPUTS_STALE_OR_CORRUPT"
+                    else:
+                        ledgers = connection.execute(
+                            """SELECT position_base,average_entry_price,realized_pnl_quote,
+                                      fees_quote,funding_quote
+                               FROM paper_strategy_ledgers WHERE account_id=1"""
+                        ).fetchall()
+                        adjustment_rows = connection.execute(
+                            "SELECT adjustment_type,amount_quote FROM paper_account_adjustments WHERE account_id=1"
+                        ).fetchall()
+                        adjustment_realized = sum(
+                            (Decimal(amount) for kind, amount in adjustment_rows
+                             if kind == "LEGACY_REALIZED_PNL"), ZERO
+                        )
+                        adjustment_fees = sum(
+                            (Decimal(amount) for kind, amount in adjustment_rows
+                             if kind == "LEGACY_FEES"), ZERO
+                        )
+                        aggregate_realized = aggregate_fees = aggregate_funding = unrealized = gross = ZERO
+                        for ledger_row in ledgers:
+                            qty, avg, rpnl, fee_total, funding_total = map(Decimal, ledger_row)
+                            aggregate_realized += rpnl
+                            aggregate_fees += fee_total
+                            aggregate_funding += funding_total
+                            if qty:
+                                unrealized += qty * (mark-avg)
+                                gross += abs(qty) * mark
+                        equity = (
+                            Decimal(account[0]) + adjustment_realized + aggregate_realized +
+                            unrealized - adjustment_fees - aggregate_fees - aggregate_funding
+                        )
+                        if equity <= 0:
+                            reason = "ACCOUNT_EQUITY_NON_POSITIVE"
+                        else:
+                            drawdown_pct = max(ZERO, hwm-equity) / hwm * Decimal(100)
+                            daily_loss = max(ZERO, daily_baseline-equity)
+                            if drawdown_pct >= Decimal(str(self.risk_limits["maxDrawdownPct"])):
+                                reason = "MAX_DRAWDOWN_LIMIT"
+                                risk_control.set_kill(connection, True, now, reason)
+                            elif daily_loss >= Decimal(str(self.risk_limits["maxDailyLossUsdt"])):
+                                reason = "DAILY_LOSS_LIMIT"
+                                risk_control.set_kill(connection, True, now, reason)
+                            else:
+                                active_reservations = connection.execute(
+                                    """SELECT remaining_notional_quote FROM paper_risk_reservations
+                                       WHERE account_id=1 AND status IN ('ACTIVE','PARTIAL')"""
+                                ).fetchall()
+                                reserved = sum((Decimal(item[0]) for item in active_reservations), ZERO)
+                                projected_gross = gross + reserved
+                                if reversing:
+                                    projected_gross -= abs(position)*mark
+                                    projected_gross += abs(target)*mark
+                                else:
+                                    projected_gross += increase_quantity*mark
+                                if projected_gross > Decimal(str(self.risk_limits["maxExposureUsdt"])):
+                                    reason = "MAX_EXPOSURE_LIMIT"
+                                else:
+                                    admission_margin = equity * Decimal("0.01")
+                                    admission_notional = admission_margin * self.leverage
+                                    requested_notional = increase_quantity * limit
+                                    if requested_notional > admission_notional:
+                                        reason = "MARGIN_RESERVATION_EXCEEDED"
+
+            if reason is None and increase_quantity == 0 and risk_control.risk_block_reason(connection):
+                # Existing exposure may always be reduced/flattened under a latch.
+                if not reducing:
+                    reason = risk_control.risk_block_reason(connection)
+            if reason is None and not intent["decisionAtMs"] <= now <= intent["validUntilMs"]:
+                reason = "EXPIRED_INTENT"
+
+            bids = asks = None
+            book_id = None
+            if reason is None and quantity:
+                try:
+                    bids, asks, spread, book_id = book_value(book, now)
+                except (ValueError, TypeError):
+                    reason = "INVALID_BOOK"
+                else:
+                    if spread > self.spread:
+                        reason = "SPREAD_LIMIT"
+
+            filled = quote = fee = ZERO
+            next_position, next_average, next_realized, next_fees = position, average, realized, fees
+            used_levels = []
+            if reason is None and quantity:
+                levels = asks if delta > 0 else bids
+                for price, visible in levels:
+                    if (delta > 0 and price > limit) or (delta < 0 and price < limit):
+                        break
+                    consumed_rows = connection.execute(
+                        """SELECT reserved_quantity FROM paper_book_level_reservations
+                           WHERE book_id=? AND side=? AND price=? AND status IN ('ACTIVE','CONSUMED')""",
+                        (book_id, side, text(price)),
+                    ).fetchall()
+                    consumed = sum((Decimal(item[0]) for item in consumed_rows), ZERO)
+                    available = max(ZERO, visible-consumed)
+                    take = min(quantity-filled, available)
+                    if take <= 0:
+                        continue
+                    filled += take
+                    quote += take*price
+                    signed_fill = take if delta > 0 else -take
+                    new_position = next_position+signed_fill
+                    if next_position == 0 or next_position*signed_fill > 0:
+                        next_average = (
+                            abs(next_position)*next_average+take*price
+                        )/abs(new_position)
+                    else:
+                        next_realized += min(abs(next_position), take) * (
+                            price-next_average
+                        ) * (1 if next_position > 0 else -1)
+                        if new_position == 0:
+                            next_average = ZERO
+                        elif next_position*new_position < 0:
+                            next_average = price
+                    next_position = new_position
+                    used_levels.append((side, text(price), text(take)))
+                    if filled == quantity:
+                        break
+                if filled:
+                    fee = quote*self.fee_rate
+                    next_fees += fee
+
+            status = "REJECTED" if reason else (
+                "FILLED" if filled == quantity else
+                "PARTIALLY_FILLED" if filled else "OPEN"
+            )
+            reservation_id = identity("reservation:", {
+                "intentId": intent["intentId"], "strategyId": strategy_id,
+            }) if reason is None and quantity else None
+            order = {
+                "orderId": identity("paper:", intent["intentId"]),
+                "intentId": intent["intentId"], "strategyId": strategy_id,
+                "strategyEvent": event, "reservationId": reservation_id,
+                "status": status, "side": side, "quantityBase": text(quantity),
+                "filledBase": text(filled), "remainingBase": text(quantity-filled),
+                "averagePrice": text(quote/filled) if filled else None,
+                "feeQuote": text(fee), "createdAtMs": now, "updatedAtMs": now,
+                "mode": "PAPER",
+                "reason": reason or ("TARGET_ALREADY_REACHED" if quantity == 0 else "VISIBLE_DEPTH_SIMULATION"),
+            }
+            connection.execute(
+                """INSERT INTO paper_orders
+                   (intent_id,payload_hash,order_id,status,document,account_id,strategy_id,
+                    strategy_event,reservation_id,created_schema_version)
+                   VALUES (?,?,?,?,?,1,?,?,?,?)""",
+                (intent["intentId"], digest, order["orderId"], status,
+                 json.dumps(order, allow_nan=False), strategy_id, event,
+                 reservation_id, MIGRATION_VERSION),
+            )
+
+            if reservation_id:
+                if increase_quantity > 0:
+                    reserved_margin = admission_margin
+                    reserved_notional = admission_notional
+                    opening_filled = (
+                        max(ZERO, filled-abs(position)) if reversing else
+                        min(filled, increase_quantity)
+                    )
+                    remaining_open = max(ZERO, increase_quantity-opening_filled)
+                    remaining_notional = min(
+                        reserved_notional, remaining_open*limit
+                    )
+                    remaining_margin = remaining_notional/self.leverage
+                    reservation_status = (
+                        "CONSUMED" if remaining_notional == 0 else
+                        "PARTIAL" if filled else "ACTIVE"
+                    )
+                    reservation_kind = event
+                else:
+                    reserved_margin = reserved_notional = remaining_margin = remaining_notional = ZERO
+                    reservation_status = "CONSUMED"
+                    reservation_kind = "BOOK_DEPTH"
+                config_version = identity("risk-config:", {
+                    "limits": {key: str(value) for key, value in self.risk_limits.items()}
+                    if self.risk_limits else None,
+                    "leverage": text(self.leverage),
+                })
+                connection.execute(
+                    """INSERT INTO paper_risk_reservations
+                       (reservation_id,account_id,intent_id,strategy_id,reservation_kind,status,
+                        reserved_margin_quote,remaining_margin_quote,reserved_notional_quote,
+                        remaining_notional_quote,leverage,equity_basis_quote,risk_config_version,
+                        created_at_ms,updated_at_ms)
+                       VALUES (?,1,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (reservation_id, intent["intentId"], strategy_id, reservation_kind,
+                     reservation_status, text(reserved_margin), text(remaining_margin),
+                     text(reserved_notional), text(remaining_notional), text(self.leverage),
+                     text(equity) if equity is not None else "0", config_version, now, now),
+                )
+                for level_side, price_text, quantity_text in used_levels:
+                    connection.execute(
+                        """INSERT INTO paper_book_level_reservations
+                           (reservation_id,book_id,side,price,reserved_quantity,
+                            remaining_quantity,status)
+                           VALUES (?,?,?,?,?,'0','CONSUMED')""",
+                        (reservation_id, book_id, level_side, price_text, quantity_text),
+                    )
+
+            if filled:
+                next_margin = abs(next_position)*next_average/self.leverage if next_position else ZERO
+                next_dca = 0 if next_position == 0 else (
+                    1 if event == "DCA" and increase_quantity > 0 else row[5]
+                )
+                connection.execute(
+                    """UPDATE paper_strategy_ledgers
+                       SET position_base=?,average_entry_price=?,realized_pnl_quote=?,
+                           fees_quote=?,dca_used=?,initial_margin_quote=?,
+                           updated_at_ms=?,version=version+1
+                       WHERE account_id=1 AND strategy_id=?""",
+                    (text(next_position), text(next_average), text(next_realized),
+                     text(next_fees), next_dca, text(next_margin), now, strategy_id),
+                )
+                if risk_row and risk_row[8]:
+                    mark_for_update = Decimal(risk_row[4])
+                    updated_rows = connection.execute(
+                        """SELECT position_base,average_entry_price,realized_pnl_quote,
+                                  fees_quote,funding_quote
+                           FROM paper_strategy_ledgers WHERE account_id=1"""
+                    ).fetchall()
+                    unrealized_after = sum(
+                        (Decimal(qty)*(mark_for_update-Decimal(avg)) if Decimal(qty) else ZERO)
+                        for qty, avg, _, _, _ in updated_rows
+                    )
+                    realized_after = sum((Decimal(item[2]) for item in updated_rows), ZERO)
+                    fees_after = sum((Decimal(item[3]) for item in updated_rows), ZERO)
+                    funding_after = sum((Decimal(item[4]) for item in updated_rows), ZERO)
+                    adjustment_realized_after = sum(
+                        (Decimal(amount) for kind, amount in adjustment_rows
+                         if kind == "LEGACY_REALIZED_PNL"), ZERO
+                    ) if increase_quantity > 0 and equity is not None else ZERO
+                    adjustment_fees_after = sum(
+                        (Decimal(amount) for kind, amount in adjustment_rows
+                         if kind == "LEGACY_FEES"), ZERO
+                    ) if increase_quantity > 0 and equity is not None else ZERO
+                    capital_after = Decimal(account[0]) if account else ZERO
+                    equity_after = (
+                        capital_after+adjustment_realized_after+realized_after+
+                        unrealized_after-adjustment_fees_after-fees_after-funding_after
+                    )
+                    hwm_after = max(Decimal(risk_row[0]), equity_after)
+                    connection.execute(
+                        """UPDATE paper_account_risk_state
+                           SET last_equity_quote=?,high_water_mark_quote=?,updated_at_ms=?,
+                               version=version+1 WHERE account_id=1""",
+                        (text(equity_after), text(hwm_after), now),
+                    )
+            self.audit(connection, now, "SUBMIT", order)
+            return order
+
     def submit(self, raw, book, now_ms, *, strategy_id=None, strategy_event=None):
         intent, now = intent_value(raw), stamp(now_ms)
         strategy_id = self.strategy_id if strategy_id is None else strategy_id
         if self.strategy_id in DUAL_STRATEGIES and strategy_id != self.strategy_id:
             raise ValueError("PAPER_LEDGER_STRATEGY_SCOPE_MISMATCH")
+        if self.strategy_id in DUAL_STRATEGIES:
+            return self._submit_scoped(intent, book, now, strategy_event)
         if strategy_id not in {"MANUAL", "STRATEGY_CORE", "AI_FREQAI"}:
             raise ValueError("Invalid strategy owner")
         if strategy_event not in (None, "ENTRY", "DCA", "EXIT"):
