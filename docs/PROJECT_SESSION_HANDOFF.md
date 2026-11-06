@@ -3328,3 +3328,21 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Result: **PASS — artifact producer classified from exact workflow source. BLOCKED — independent account evidence root still not found.** This conclusion is limited to this workflow; other workflows/private artifacts/external archives were not proven absent.
 - Next: inspect remaining relevant artifact-producing workflows (if any) and their explicit upload allowlists, then stop repository-side evidence search if they also contain only CI logs. Do not download arbitrary artifacts or open the persistent account DB.
 - Restrictions unchanged: no source/test implementation, schema migration, persistent account DB opening, backfill, external account import, exchange connection, production backtest, deployment, merge, Epoch activation, HWM reset, or live order. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — Complete tracked CI artifact producer inventory
+
+- Scope: read-only inspection of all seven workflow files under `.github/workflows/` at HEAD `88a0235df85ba15eeb194e4f013d7ecab444543d`. No historical artifact payloads were downloaded, no DB was opened.
+- Reviewed all artifact upload allowlists:
+  - `dual-ledger-red.yml`: preflight/compile/test/regression logs only.
+  - `p5-3-11-g2-integration-green.yml`: source/isolation/compile/gateway/feeder/T0/consumer test logs and verdict.
+  - `paper-writer-isolation-red.yml`: static contract test log only.
+  - `t0-manual-validation.yml`: source/isolation/config/component/provider/SQLite/Timescale test logs and reports.
+  - `t0-postgres16-grantor-repro.yml`: PostgreSQL grantor reproduction log only.
+  - `t0-single-writer-gateway-red.yml`: T0 contract/behavior/health/restart/market-data test logs; disposable Timescale integration logs; paper consumer test log.
+  - `android-release-pair.yml`: APK binaries, source/release manifests, Android test results/reports; no account history.
+- No tracked workflow uploads raw Core/AI/Legacy fills, position history, funding/fee history, event archive, or independent account checkpoint. T0 DB artifacts are disposable test evidence, not account history.
+- Inventory updated: `docs/evidence/DAILY_BASELINE_V1_RECOVERY_EVIDENCE_INVENTORY_2026-11-07.md`, commit `b3aff2312f0b3809fb5c54bf3f39baddba72d812`.
+- Result: **PASS — tracked CI artifact producer inventory completed. BLOCKED — no qualifying independent account evidence root found in tracked workflows.** This does not rule out private Project files, PC/Android exports, or external archive storage; historical payloads were not inspected.
+- Next: stop searching tracked CI workflows for account history. The only useful next evidence step requires identifying a specific independent archive/checkpoint location outside the repository (Project file, PC/Android export, or external archive) and its owner/source identity. Do not open persistent account DB, import data, or download unspecified artifacts.
+- Restrictions unchanged: no source/test implementation, schema migration, persistent account DB opening, backfill, external account import, exchange connection, production backtest, deployment, merge, Epoch activation, HWM reset, or live order. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
