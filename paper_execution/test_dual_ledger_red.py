@@ -693,5 +693,158 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertIsNone(reservation[2])
 
 
+    def test_funding_event_has_immutable_provenance_and_idempotent_accounting(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """UPDATE paper_account_risk_state
+                   SET risk_ready=1,unavailable_reason=NULL,
+                       high_water_mark_quote='100',last_equity_quote='100'
+                   WHERE account_id=1"""
+            )
+
+        event = ledger.record_funding_event(
+            self.path,
+            funding_event_id="okx-funding-core-001",
+            strategy_id="STRATEGY_CORE",
+            amount_quote="0.25",
+            event_at_ms=self.now - 1_000,
+            source="OKX_FUNDING_HISTORY",
+            source_snapshot_id="okx:BTC-USDT-SWAP:funding:1800000000000",
+            payload_hash="sha256:" + "a" * 64,
+            recorded_at_ms=self.now,
+        )
+        replay = ledger.record_funding_event(
+            self.path,
+            funding_event_id="okx-funding-core-001",
+            strategy_id="STRATEGY_CORE",
+            amount_quote="0.25",
+            event_at_ms=self.now - 1_000,
+            source="OKX_FUNDING_HISTORY",
+            source_snapshot_id="okx:BTC-USDT-SWAP:funding:1800000000000",
+            payload_hash="sha256:" + "a" * 64,
+            recorded_at_ms=self.now + 1,
+        )
+        self.assertEqual(event, replay)
+        self.assertEqual(event["strategyId"], "STRATEGY_CORE")
+        self.assertEqual(event["amountQuote"], "0.25")
+
+        with sqlite3.connect(self.path) as connection:
+            count = connection.execute(
+                "SELECT COUNT(*) FROM paper_funding_events"
+            ).fetchone()[0]
+            funding = connection.execute(
+                """SELECT funding_quote FROM paper_strategy_ledgers
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            ).fetchone()[0]
+            columns = {
+                row[1] for row in connection.execute(
+                    "PRAGMA table_info(paper_funding_events)"
+                )
+            }
+        self.assertEqual(count, 1)
+        self.assertEqual(Decimal(funding), Decimal("0.25"))
+        self.assertTrue({"source", "recorded_at_ms"}.issubset(columns))
+        snapshot = ledger.read_account_risk_snapshot(self.path, now_ms=self.now + 2)
+        self.assertEqual(Decimal(snapshot["accountEquityQuote"]), Decimal("99.75"))
+
+        with self.assertRaisesRegex(ValueError, "FUNDING_EVENT_ID_CONFLICT"):
+            ledger.record_funding_event(
+                self.path,
+                funding_event_id="okx-funding-core-001",
+                strategy_id="STRATEGY_CORE",
+                amount_quote="0.5",
+                event_at_ms=self.now - 1_000,
+                source="OKX_FUNDING_HISTORY",
+                source_snapshot_id="okx:BTC-USDT-SWAP:funding:1800000000000",
+                payload_hash="sha256:" + "b" * 64,
+                recorded_at_ms=self.now + 2,
+            )
+
+        with sqlite3.connect(self.path) as connection:
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "FUNDING_EVENT_IMMUTABLE"):
+                connection.execute(
+                    "UPDATE paper_funding_events SET amount_quote='9' WHERE funding_event_id=?",
+                    ("okx-funding-core-001",),
+                )
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "FUNDING_EVENT_IMMUTABLE"):
+                connection.execute(
+                    "DELETE FROM paper_funding_events WHERE funding_event_id=?",
+                    ("okx-funding-core-001",),
+                )
+
+    def test_known_funding_without_strategy_owner_is_account_level_legacy_attribution(self):
+        event = ledger.record_funding_event(
+            self.path,
+            funding_event_id="historical-funding-unowned-001",
+            strategy_id="LEGACY_UNATTRIBUTED",
+            amount_quote="0.4",
+            event_at_ms=self.now - 10_000,
+            source="RECONCILED_HISTORICAL_STATEMENT",
+            source_snapshot_id="statement:account:cutover-001",
+            payload_hash="sha256:" + "c" * 64,
+            recorded_at_ms=self.now,
+        )
+        self.assertEqual(event["strategyId"], "LEGACY_UNATTRIBUTED")
+        with sqlite3.connect(self.path) as connection:
+            core = connection.execute(
+                "SELECT funding_quote FROM paper_strategy_ledgers WHERE strategy_id='STRATEGY_CORE'"
+            ).fetchone()[0]
+            ai = connection.execute(
+                "SELECT funding_quote FROM paper_strategy_ledgers WHERE strategy_id='AI_FREQAI'"
+            ).fetchone()[0]
+            legacy = connection.execute(
+                "SELECT funding_quote FROM paper_strategy_ledgers WHERE strategy_id='LEGACY_UNATTRIBUTED'"
+            ).fetchone()[0]
+        self.assertEqual(core, "0")
+        self.assertEqual(ai, "0")
+        self.assertEqual(Decimal(legacy), Decimal("0.4"))
+
+    def test_unknown_funding_coverage_fails_closed_and_disabled_policy_is_explicit(self):
+        unknown = ledger.record_funding_coverage(
+            self.path,
+            coverage_id="funding-history-unknown-001",
+            start_at_ms=self.now - 86_400_000,
+            end_at_ms=self.now,
+            status="UNKNOWN",
+            source="LEGACY_ACCOUNT_HISTORY",
+            source_snapshot_id="legacy-history:unavailable:001",
+            payload_hash="sha256:" + "d" * 64,
+            config_version="funding-policy-v1",
+            recorded_at_ms=self.now,
+        )
+        self.assertEqual(unknown["status"], "UNKNOWN")
+        with sqlite3.connect(self.path) as connection:
+            risk = connection.execute(
+                "SELECT risk_ready,unavailable_reason FROM paper_account_risk_state WHERE account_id=1"
+            ).fetchone()
+        self.assertEqual(risk[0], 0)
+        self.assertEqual(risk[1], "FUNDING_PROVENANCE_INCOMPLETE")
+
+        disabled = ledger.record_funding_coverage(
+            self.path,
+            coverage_id="paper-funding-disabled-test-001",
+            start_at_ms=self.now,
+            end_at_ms=self.now + 60_000,
+            status="DISABLED",
+            source="PAPER_TEST_CONFIGURATION",
+            source_snapshot_id="paper-config:funding-disabled:001",
+            payload_hash="sha256:" + "e" * 64,
+            config_version="paper-risk-config-v2",
+            recorded_at_ms=self.now,
+        )
+        self.assertEqual(disabled["status"], "DISABLED")
+        with sqlite3.connect(self.path) as connection:
+            row = connection.execute(
+                """SELECT status,source,source_snapshot_id,payload_hash,config_version
+                   FROM paper_funding_coverage WHERE coverage_id=?""",
+                ("paper-funding-disabled-test-001",),
+            ).fetchone()
+        self.assertEqual(row, (
+            "DISABLED", "PAPER_TEST_CONFIGURATION",
+            "paper-config:funding-disabled:001", "sha256:" + "e" * 64,
+            "paper-risk-config-v2",
+        ))
+
+
 if __name__ == "__main__":
     unittest.main()
