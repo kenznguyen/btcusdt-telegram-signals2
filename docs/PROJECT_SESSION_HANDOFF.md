@@ -1411,3 +1411,17 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Direct-head push CI remains NOT VERIFIED; workflow #42123643557 checked out synthetic merge SHA `317cabd05ab0c36bdbbf6284fbd0cee9a3d58029`. Artifact payload hashes are not independently recomputed.
 - No merge, canonical T0 migration, production Feeder activation, VPS deployment, exchange connection/sync or live execution.
 - Next gate: human review/explicit merge approval. Do not merge automatically. If further CI evidence is required, only accept a real push-triggered run with checked-out SHA equal to current PR head.
+
+
+## 2026-11-06 — PR #134 merged (T0 atomic write fencing / role security)
+
+- **Status: MERGED.** User explicitly approved the merge. PR #134: https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/134
+- Source branch: `feature/t0-atomic-write-fencing-20261105`; merged into base branch `feature/t0-centralized-data-feeder-p1-20261101`.
+- Exact PR head SHA: `9e5d99b16b1316549eacbd6091ef670d4035ac0a`.
+- Base SHA before merge: `8b196d2720eab804728df7c0227c606c094b16ad`.
+- GitHub merge commit SHA: `3b768a2aab143ee42539bddd0b5538ec3a4700ae`; merged at `2026-11-06T03:10:11Z`.
+- Pre-merge checks: PR reported mergeable=true and READY FOR REVIEW; all 13 inline review threads resolved; no unresolved threads. Codex review receipt #6671497665 reviewed source prefix `9e5d99b16b` and reported no major issues.
+- PR merge-context workflow #42123643557: **SUCCESS**, all 3 jobs completed successfully: Static Gateway contract verification, Paper consumer fixture regressions, and Isolated TimescaleDB read-only integration. Disposable PostgreSQL least-privilege role suite 18/18 PASS; read-only TimescaleDB suite 6/6 PASS; isolated migration 004 ADMIN OPTION regression PASS. Synthetic merge checkout SHA: `317cabd05ab0c36bdbbf6284fbd0cee9a3d58029`.
+- Provenance limits retained: direct-head push CI **NOT VERIFIED**; workflow #42123643557 is PR merge-context, not a direct checkout of the branch head. Artifact payload bytes were not independently downloaded/re-hashed; GitHub upload digests remain metadata only.
+- Scope boundary: merge only. No canonical/production T0 DB migration, VPS deployment, Feeder activation, exchange connection/sync, or live execution was performed or authorized. Paper-only boundary and `ai_execution_enabled=false` remain unchanged.
+- Next workstream: SWG-F Paper Writer Isolation Gate. Keep it isolated from T0 lease authority; implement/test admission states, generation-bound writer tokens, in-flight accounting, bounded fail-closed drain, idempotent release, and safe reopen only after settled outcome with zero writers. Use temporary/test resources only. No canonical ingestion or deployment without a separate explicit approval.
