@@ -51,11 +51,6 @@ def migrate_funding_provenance(connection, source_sha):
     if (not isinstance(source_sha, str) or len(source_sha) != 40
             or any(c not in "0123456789abcdef" for c in source_sha.lower())):
         raise ValueError("DUAL_LEDGER_SOURCE_SHA_REQUIRED")
-    for version, checksum in (
-        (1, "f0c8c0b21e7e3d5a5a9e8b3c5c9f5a4f2f8c3a8f9e4b7c1d6a0e2f4b8c9d1a3b"),
-    ):
-        # Version 1-3 are validated by the migration chain before this function.
-        pass
     applied = connection.execute(
         "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
         (MIGRATION_VERSION,),
@@ -280,7 +275,7 @@ def record_funding_coverage(
         raise FileNotFoundError("Paper ledger is unavailable")
     coverage_id = _required_text(coverage_id, "FUNDING_COVERAGE_ID_INVALID", 200)
     start, end, recorded = _stamp(start_at_ms), _stamp(end_at_ms), _stamp(recorded_at_ms)
-    if start >= end or end > recorded:
+    if start >= end or (status != "DISABLED" and end > recorded):
         raise ValueError("FUNDING_COVERAGE_INTERVAL_INVALID")
     if status not in {"VERIFIED", "UNKNOWN", "DISABLED"}:
         raise ValueError("FUNDING_COVERAGE_STATUS_INVALID")
