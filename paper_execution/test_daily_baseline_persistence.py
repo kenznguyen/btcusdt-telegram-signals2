@@ -5,6 +5,7 @@ import unittest
 from paper_execution import account_history
 from paper_execution.test_dual_ledger_red import DualLedgerRedTest
 from paper_execution.daily_baseline import persist_daily_equity_baseline
+from paper_execution.ledger import read_account_risk_snapshot
 
 
 class DailyBaselinePersistenceContractTest(unittest.TestCase):
@@ -40,7 +41,7 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
         from paper_execution import ledger
         ledger.record_funding_coverage(
             self.path, coverage_id="fixture-funding-after-cutover",
-            start_at_ms=self.now, end_at_ms=self.boundary + 1,
+            start_at_ms=self.now, end_at_ms=self.recorded,
             status="VERIFIED", source="FIXTURE_FUNDING_HISTORY",
             source_snapshot_id="fixture:funding-after-cutover",
             payload_hash="sha256:" + "e" * 64,
