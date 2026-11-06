@@ -2247,5 +2247,111 @@ os._exit(0)
         self.assertEqual(event_count, 0)
 
 
+    def test_read_only_daily_replay_loader_returns_verified_inputs_for_all_ledgers(self):
+        boundary = (self.now // 86_400_000 + 1) * 86_400_000
+        watermark = boundary + 2_000
+        for strategy_id in sorted(ledger.DUAL_STRATEGIES):
+            ledger.record_account_history_coverage(
+                self.path,
+                coverage_id=f"replay-execution-{strategy_id.lower()}",
+                stream_type="EXECUTION",
+                strategy_id=strategy_id,
+                start_at_ms=self.now,
+                end_at_ms=boundary,
+                status="VERIFIED",
+                source="RECONCILED_EXECUTION_HISTORY",
+                source_snapshot_id=f"execution:{strategy_id}:snapshot",
+                payload_hash="sha256:" + ("1" if strategy_id == "STRATEGY_CORE" else "2" if strategy_id == "AI_FREQAI" else "3") * 64,
+                recorded_at_ms=watermark,
+            )
+        ledger.record_account_history_coverage(
+            self.path,
+            coverage_id="replay-market-mark-coverage",
+            stream_type="MARKET_MARK",
+            strategy_id=None,
+            start_at_ms=self.now,
+            end_at_ms=boundary,
+            status="VERIFIED",
+            source="RECONCILED_MARK_HISTORY",
+            source_snapshot_id="market-mark:coverage-snapshot",
+            payload_hash="sha256:" + "4" * 64,
+            recorded_at_ms=watermark,
+        )
+        ledger.record_funding_coverage(
+            self.path,
+            coverage_id="replay-funding-coverage",
+            start_at_ms=self.now,
+            end_at_ms=boundary,
+            status="VERIFIED",
+            source="RECONCILED_FUNDING_HISTORY",
+            source_snapshot_id="funding:coverage-snapshot",
+            payload_hash="sha256:" + "5" * 64,
+            config_version="funding-v1",
+            recorded_at_ms=watermark,
+        )
+        ledger.record_account_history_event(
+            self.path,
+            event_id="replay-core-fill",
+            strategy_id="STRATEGY_CORE",
+            event_type="FILL",
+            event_at_ms=self.now + 500,
+            recorded_at_ms=self.now + 600,
+            quantity_delta_base="0.1",
+            fill_price="101",
+            fee_quote="0.01",
+            fee_currency="USDT",
+            source="PAPER_EXECUTION_FILL",
+            source_snapshot_id="execution:core:event",
+            payload_hash="sha256:" + "6" * 64,
+        )
+        ledger.record_funding_event(
+            self.path,
+            funding_event_id="replay-core-funding",
+            strategy_id="STRATEGY_CORE",
+            amount_quote="0.25",
+            event_at_ms=self.now + 700,
+            source="RECONCILED_FUNDING_EVENT",
+            source_snapshot_id="funding:event-snapshot",
+            payload_hash="sha256:" + "7" * 64,
+            recorded_at_ms=self.now + 800,
+        )
+        ledger.record_market_mark_history(
+            self.path,
+            mark_id="replay-exact-boundary-mark",
+            effective_at_ms=boundary,
+            observed_at_ms=boundary + 1_000,
+            mark_price="105",
+            candle_close_ms=boundary,
+            source="VERIFIED_BOUNDARY_MARK",
+            source_snapshot_id="market-mark:boundary-snapshot",
+            dataset_version="sha256:boundary-dataset",
+            payload_hash="sha256:" + "8" * 64,
+            quality_status="VERIFIED",
+            recorded_at_ms=boundary + 1_000,
+        )
+
+        with sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True) as connection:
+            inputs = ledger.load_daily_equity_replay_inputs(connection, utc_day_ms=boundary)
+
+        self.assertEqual(inputs["utc_day_ms"], boundary)
+        self.assertEqual(inputs["cutover_id"], "fixture-account-cutover")
+        self.assertEqual(set(inputs["ledgers"]), set(ledger.DUAL_STRATEGIES))
+        self.assertEqual(
+            inputs["ledgers"]["STRATEGY_CORE"]["execution_events"][0]["event_id"],
+            "replay-core-fill",
+        )
+        self.assertEqual(
+            inputs["ledgers"]["AI_FREQAI"]["execution_events"], []
+        )
+        self.assertEqual(
+            inputs["funding_events"][0]["funding_event_id"], "replay-core-funding"
+        )
+        self.assertEqual(inputs["market_mark"]["mark_id"], "replay-exact-boundary-mark")
+        self.assertEqual(
+            inputs["ledgers"]["STRATEGY_CORE"]["coverage_watermark_at_ms"], watermark
+        )
+        self.assertEqual(inputs["funding_coverage_watermark_at_ms"], watermark)
+
+
 if __name__ == "__main__":
     unittest.main()
