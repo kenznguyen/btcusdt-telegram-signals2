@@ -547,3 +547,30 @@ class SyntheticExecutionInvariantTests(unittest.TestCase):
         vector = next(item for item in fixture["negative_vectors"] if item["name"] == "REDUCE_CLOSE_REVERSAL")
         self.assertFalse(vector["clean_volume_denominator"])
         self.assertEqual(vector["expected_disposition"], "REDUCE_THEN_ADMIT_REVERSE")
+
+
+class DualFixtureArtifactContracts(unittest.TestCase):
+    """Two separately written deterministic fixtures must be byte-identical."""
+
+    def test_independent_fixture_writes_have_identical_complete_file_inventories(self):
+        kwargs = dict(
+            seed_hex=SEED,
+            namespace=NAMESPACE,
+            base_time_utc=BASE_TIME,
+            event_count=48,
+            source_sha=SOURCE_SHA,
+        )
+        fixture_a = generate_fixture(**kwargs)
+        fixture_b = generate_fixture(**kwargs)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output_a = write_fixture(fixture_a, root / "fixture-a")
+            output_b = write_fixture(fixture_b, root / "fixture-b")
+
+            files_a = sorted(path.relative_to(output_a).as_posix() for path in output_a.rglob("*") if path.is_file())
+            files_b = sorted(path.relative_to(output_b).as_posix() for path in output_b.rglob("*") if path.is_file())
+            self.assertTrue(files_a)
+            self.assertEqual(files_a, files_b)
+            for relative in files_a:
+                with self.subTest(file=relative):
+                    self.assertEqual((output_a / relative).read_bytes(), (output_b / relative).read_bytes())

@@ -92,7 +92,17 @@ jobs:
             --events 1000 --source-sha "${SOURCE_SHA}" --out synthetic-evidence-output-b
           diff -qr synthetic-evidence-output-a synthetic-evidence-output-b
           (cd synthetic-evidence-output-a && sha256sum -c fixture.sha256)
-          echo "DETERMINISTIC_REGENERATION=PASS" | tee synthetic-evidence-reproducibility.txt
+          (cd synthetic-evidence-output-b && sha256sum -c fixture.sha256)
+          cmp synthetic-evidence-output-a/fixture.sha256 synthetic-evidence-output-b/fixture.sha256
+          {
+            echo "DETERMINISTIC_REGENERATION=PASS"
+            echo "SOURCE_SHA=${SOURCE_SHA}"
+            echo "FIXTURE_A_INVENTORY_SHA256=$(sha256sum synthetic-evidence-output-a/fixture.sha256 | cut -d' ' -f1)"
+            echo "FIXTURE_B_INVENTORY_SHA256=$(sha256sum synthetic-evidence-output-b/fixture.sha256 | cut -d' ' -f1)"
+            echo "FIXTURE_A_FILE_COUNT=$(find synthetic-evidence-output-a -type f | wc -l | tr -d ' ')"
+            echo "FIXTURE_B_FILE_COUNT=$(find synthetic-evidence-output-b -type f | wc -l | tr -d ' ')"
+            echo "BYTE_FOR_BYTE_COMPARISON=PASS"
+          } | tee synthetic-evidence-reproducibility.txt
 
       - name: Write compact smoke result
         if: always()
@@ -103,6 +113,8 @@ jobs:
           path = Path("synthetic-evidence-output-a/run_descriptor.json")
           result = {"source_sha": Path("synthetic-evidence-source-sha.txt").read_text().strip() if Path("synthetic-evidence-source-sha.txt").exists() else "NOT_RECORDED",
                     "fixture_descriptor_present": path.exists(),
+                    "fixture_b_descriptor_present": Path("synthetic-evidence-output-b/run_descriptor.json").exists(),
+                    "dual_fixture_reproducibility": Path("synthetic-evidence-reproducibility.txt").read_text().strip().splitlines() if Path("synthetic-evidence-reproducibility.txt").exists() else ["NOT_RECORDED"],
                     "scope": "SYNTHETIC_ONLY_LOCAL",
                     "provider_tests": "NOT_RUN",
                     "runtime_integration": "NOT_AUTHORIZED"}
@@ -126,5 +138,6 @@ jobs:
             synthetic-evidence-reproducibility.txt
             synthetic-evidence-smoke-summary.json
             synthetic-evidence-output-a/**
-          if-no-files-found: warn
+            synthetic-evidence-output-b/**
+          if-no-files-found: error
           retention-days: 7
