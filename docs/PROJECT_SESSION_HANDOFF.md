@@ -2081,3 +2081,17 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Workflow is scoped to this branch and `paper_execution/**`; manual `workflow_dispatch` is enabled. No production secrets or write permissions are granted to the workflow (`contents: read`).
 - No ledger implementation, migration, risk-engine change, backtest, merge, exchange connection, or live execution was performed. `ai_execution_enabled=false` and PAPER-only boundary remain unchanged.
 - **Next:** inspect the rejected order reason and formalize the strategy-scoped ledger contract (including per-ledger snapshot/read API and shared account-level atomic risk reservations) before writing GREEN implementation. Do not implement by merely removing the current owner guard; preserve shared risk, idempotency, pending-order and shared book-depth protections. Run the focused RED/GREEN and regression suites through GitHub Actions on exact source SHAs.
+
+
+## 2026-11-06 — T1.2.1 Dual Ledger Contract frozen for design review
+
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Source inspection reconfirmed current branch HEAD before documentation commit: `e8eb75905b42b7a72d3ac1a23379724d78e1b135`.
+- Re-read `paper_execution/ledger.py`, `paper_execution/test_ledger.py`, `paper_execution/risk_control.py`, `paper_execution/equity.py`, the RED test and the dedicated GitHub Actions workflow.
+- Exact RED diagnosis: `PaperLedger.submit()` reads one global `paper_state` and one global `paper_strategy_state`; after Core opens LONG, AI's independent SHORT intent is rejected by `POSITION_OWNED_BY_OTHER_STRATEGY`. The existing equity risk gate also computes projected exposure from one target position rather than aggregate gross exposure across both strategy ledgers. A storage-only split is therefore insufficient.
+- Added design contract: `docs/architecture/DUAL_LEDGER_CONTRACT.md`; file blob SHA `99160908e4bc43f05374727637f482f8c3780646`; commit `6da95224349e044aa8eab382bc004adb577e2677`.
+- Contract records: independent Core/AI ledger ownership; account-wide atomic Shared Risk Engine; current-equity 1% margin reservation for each ENTRY and exposure-increasing DCA; aggregate gross exposure (no netting); account-level equity/HWM/daily baseline; pending order and visible book-depth reservations; idempotency; reductions allowed under kill/risk latch; legacy unattributed migration and reconciliation; required read models and 15 test gates.
+- Important correction to RED evidence: only the initial coexistence status assertion ran to failure. Snapshot isolation and reopen persistence assertions were not reached and remain NOT VERIFIED.
+- Handoff update is documentation-only. No source logic, schema, migration, config or test changed in this increment. No tests/workflow were triggered; prior RED evidence remains run #1, source SHA `554d122762a9d49a6144a1be54d178902d3db7d9`, run ID `42178592443`, artifact ID `13484247308`.
+- Current decision: T1.2.1 contract is **DOCUMENTED / REVIEW REQUIRED**, not implementation-approved. No GREEN work until contract review is accepted and detailed schema/migration plan is written. No merge, backtest, exchange connection or live execution.
+- Next: review the contract's account equity / gross exposure definitions and migration behavior; then produce a table-by-table schema and transaction plan before adding more RED tests. Preserve PAPER-only and `ai_execution_enabled=false`.
