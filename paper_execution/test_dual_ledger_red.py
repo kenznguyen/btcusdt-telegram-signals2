@@ -846,5 +846,130 @@ class DualLedgerRedTest(unittest.TestCase):
         ))
 
 
+    def test_account_equity_cutover_rejects_unknown_funding_coverage(self):
+        ledger.record_funding_coverage(
+            self.path,
+            coverage_id="cutover-funding-unknown",
+            start_at_ms=self.now - 86_400_000,
+            end_at_ms=self.now,
+            status="UNKNOWN",
+            source="LEGACY_ACCOUNT_HISTORY",
+            source_snapshot_id="legacy-history:unknown",
+            payload_hash="sha256:" + "f" * 64,
+            config_version="funding-policy-v1",
+            recorded_at_ms=self.now,
+        )
+        with self.assertRaisesRegex(ValueError, "FUNDING_PROVENANCE_INCOMPLETE"):
+            ledger.record_account_equity_cutover(
+                self.path,
+                cutover_id="cutover-blocked-unknown-funding",
+                expected_initial_capital_quote="100",
+                mark_price="100",
+                mark_candle_close_ms=self.now - 60_000,
+                mark_observed_at_ms=self.now,
+                dataset_version="sha256:dual-ledger-seed",
+                funding_coverage_start_at_ms=self.now - 86_400_000,
+                source="RECONCILED_ACCOUNT_STATEMENT",
+                source_snapshot_id="account-cutover:unknown-funding",
+                payload_hash="sha256:" + "1" * 64,
+                config_version="account-cutover-v1",
+                recorded_at_ms=self.now,
+            )
+        with sqlite3.connect(self.path) as connection:
+            risk = connection.execute(
+                "SELECT risk_ready,unavailable_reason FROM paper_account_risk_state WHERE account_id=1"
+            ).fetchone()
+            count = connection.execute(
+                "SELECT COUNT(*) FROM paper_account_equity_cutovers"
+            ).fetchone()[0]
+        self.assertEqual(risk, (0, "FUNDING_PROVENANCE_INCOMPLETE"))
+        self.assertEqual(count, 0)
+
+    def test_account_equity_cutover_reconciles_both_ledgers_and_legacy_once(self):
+        ledger.record_funding_coverage(
+            self.path,
+            coverage_id="cutover-funding-verified",
+            start_at_ms=self.now - 86_400_000,
+            end_at_ms=self.now,
+            status="VERIFIED",
+            source="RECONCILED_ACCOUNT_STATEMENT",
+            source_snapshot_id="account-statement:funding-window",
+            payload_hash="sha256:" + "2" * 64,
+            config_version="funding-policy-v1",
+            recorded_at_ms=self.now,
+        )
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """UPDATE paper_strategy_ledgers SET position_base='0.1',
+                   average_entry_price='90',realized_pnl_quote='2',
+                   fees_quote='0.2',funding_quote='0.3'
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            )
+            connection.execute(
+                """UPDATE paper_strategy_ledgers SET position_base='-0.05',
+                   average_entry_price='110',realized_pnl_quote='-1',
+                   fees_quote='0.1',funding_quote='-0.1'
+                   WHERE account_id=1 AND strategy_id='AI_FREQAI'"""
+            )
+            connection.execute(
+                """INSERT INTO paper_account_adjustments
+                   (adjustment_id,account_id,strategy_id,adjustment_type,amount_quote,
+                    source_table,source_hash,created_at_ms)
+                   VALUES ('cutover-legacy-pnl',1,'LEGACY_UNATTRIBUTED',
+                           'LEGACY_REALIZED_PNL','0.5','legacy_statement',?,?)""",
+                ("sha256:" + "3" * 64, self.now),
+            )
+            connection.execute(
+                """INSERT INTO paper_account_adjustments
+                   (adjustment_id,account_id,strategy_id,adjustment_type,amount_quote,
+                    source_table,source_hash,created_at_ms)
+                   VALUES ('cutover-legacy-fees',1,'LEGACY_UNATTRIBUTED',
+                           'LEGACY_FEES','0.1','legacy_statement',?,?)""",
+                ("sha256:" + "4" * 64, self.now),
+            )
+
+        kwargs = {
+            "cutover_id": "account-cutover-verified-001",
+            "expected_initial_capital_quote": "100",
+            "mark_price": "100",
+            "mark_candle_close_ms": self.now - 60_000,
+            "mark_observed_at_ms": self.now,
+            "dataset_version": "sha256:dual-ledger-seed",
+            "funding_coverage_start_at_ms": self.now - 86_400_000,
+            "source": "RECONCILED_ACCOUNT_STATEMENT",
+            "source_snapshot_id": "account-cutover:verified-001",
+            "payload_hash": "sha256:" + "5" * 64,
+            "config_version": "account-cutover-v1",
+            "recorded_at_ms": self.now,
+        }
+        first = ledger.record_account_equity_cutover(self.path, **kwargs)
+        replay = ledger.record_account_equity_cutover(self.path, **kwargs)
+        self.assertEqual(first, replay)
+        self.assertEqual(Decimal(first["accountEquityQuote"]), Decimal("102.4"))
+        self.assertEqual(first["highWaterMarkQuote"], "102.4")
+        self.assertEqual(first["dailyBaselineEquityQuote"], "102.4")
+        self.assertEqual(first["dailyBaselineUtcDayMs"], self.now // 86_400_000 * 86_400_000)
+
+        snapshot = ledger.read_account_risk_snapshot(self.path, now_ms=self.now)
+        self.assertEqual(Decimal(snapshot["accountEquityQuote"]), Decimal("102.4"))
+        self.assertTrue(snapshot["riskReady"])
+
+        with sqlite3.connect(self.path) as connection:
+            count = connection.execute(
+                "SELECT COUNT(*) FROM paper_account_equity_cutovers"
+            ).fetchone()[0]
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "ACCOUNT_EQUITY_CUTOVER_IMMUTABLE"):
+                connection.execute(
+                    """UPDATE paper_account_equity_cutovers SET account_equity_quote='999'
+                       WHERE cutover_id=?""",
+                    (kwargs["cutover_id"],),
+                )
+        self.assertEqual(count, 1)
+
+        changed = dict(kwargs, payload_hash="sha256:" + "6" * 64)
+        with self.assertRaisesRegex(ValueError, "ACCOUNT_EQUITY_CUTOVER_ID_CONFLICT"):
+            ledger.record_account_equity_cutover(self.path, **changed)
+
+
 if __name__ == "__main__":
     unittest.main()
