@@ -2979,3 +2979,24 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
   - `LEDGER_ADJUSTMENT` remains unsupported and rejected.
 - Next: add tests and integration proving the daily baseline is consumed by the shared risk snapshot/admission path: day mismatch or missing baseline blocks exposure increases; verified baseline enables the normal risk evaluation without bypassing Kill Switch, funding, mark freshness, HWM, drawdown or exposure limits. Keep exposure increases fail-closed and use temporary SQLite only. Process-kill/reopen recovery and persistent DB migration remain separate approvals.
 - Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 daily baseline to shared risk snapshot integration
+
+- Follow-up RED exposed a real integration gap after baseline persistence: the daily baseline row/day was updated, but shared risk state still carried the cutover mark timestamp, so `read_account_risk_snapshot` correctly rejected it as stale.
+  - RED source SHA `43466302d2745f084feff7b3d3a9e409dc1c9928`; run [#42273307132](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42273307132) failed on `ACCOUNT_RISK_MARK_STALE_OR_INVALID`.
+- Fixed atomic risk-state update to persist the exact verified boundary mark's price, observation time, candle close and dataset version, plus replayed boundary equity and daily baseline in the same transaction.
+  - Lifetime HWM advances to `max(previous HWM,boundary equity)` only when existing `risk_ready=1`; if already unready, HWM remains frozen. Existing `risk_ready` and `unavailable_reason` are never promoted/cleared by this operation.
+  - Extended fixture funding coverage through the boundary mark's observation timestamp so the normal shared risk validator can verify funding completeness at the same mark.
+  - Added integration test proving `read_account_risk_snapshot` accepts the newly persisted boundary state and reports the expected UTC baseline/equity/mark. Existing test proves an unready account stays unready.
+- Exact GREEN source SHA: `1926093af139a03cac0f60fad355096cbc671177`.
+- GitHub Actions [#42273445520](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42273445520): SUCCESS on exact SHA.
+  - PAPER-only preflight: PASS.
+  - Python compile: PASS.
+  - Focused contracts: 150/150 PASS.
+  - Full `paper_execution` regression: 249/249 PASS.
+  - Job ID: `128083624466`.
+  - Artifact ID: `13532270921`, name `dual-ledger-red-evidence-1926093af139a03cac0f60fad355096cbc671177`, GitHub upload digest `sha256:c6f145d0ef90bc9b89325fa6642b34787564539c6d98a3a02c2e2bb2e378da6e`, expires 2026-11-13. Digest is GitHub artifact metadata; payload bytes were not separately downloaded and re-hashed.
+- Status: **PASS — persisted UTC baseline is consumed by the shared read-only risk snapshot at the exact boundary mark. NOT VERIFIED — direct exposure-admission behavior after rollover.**
+- Next: add tests around the actual Core/AI `submit` path: verified current-day baseline + fresh boundary mark permits only normal risk evaluation; missing/wrong-day baseline, stale mark, funding gap, Kill Switch and limit breaches block exposure increases; reductions remain permitted. No bypass of shared Risk Engine. Temporary SQLite only.
+- Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
