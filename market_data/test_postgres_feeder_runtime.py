@@ -153,7 +153,7 @@ class PostgresRuntimeCompositionContractTest(unittest.TestCase):
         from market_data.feeder_service import build_production_runtime
         from market_data.postgres import PostgresLeaseStore, PostgresWriteGateway
 
-        dsn = "postgresql://test:test@127.0.0.1:5432/t0_test"
+        dsn = "postgresql://test:test@127.0.0.1:5432/t0_test?sslmode=verify-full"
         fake_ccxt = SimpleNamespace(binanceusdm=lambda options: SimpleNamespace(options=options))
         environment = {
             "MARKET_DATA_BACKEND": "postgres",
@@ -218,7 +218,7 @@ class PostgresRuntimeCompositionContractTest(unittest.TestCase):
         fake_ccxt = SimpleNamespace(binanceusdm=lambda options: SimpleNamespace(options=options))
         environment = {
             "MARKET_DATA_BACKEND": "postgres",
-            "MARKET_DATA_POSTGRES_DSN": "postgresql://test:test@127.0.0.1:5432/t0_test",
+            "MARKET_DATA_POSTGRES_DSN": "postgresql://test:test@127.0.0.1:5432/t0_test?sslmode=verify-full",
             "T0_FEEDER_OWNER_ID": "shared-seed",
         }
         with patch.dict(sys.modules, {"ccxt": fake_ccxt}):
@@ -231,7 +231,7 @@ class PostgresRuntimeCompositionContractTest(unittest.TestCase):
         from unittest.mock import patch
         from market_data.feeder_service import build_production_runtime
 
-        dsn = "postgresql://test:test@127.0.0.1:5432/t0_test"
+        dsn = "postgresql://test:test@127.0.0.1:5432/t0_test?sslmode=verify-full"
         fake_ccxt = SimpleNamespace(binanceusdm=lambda options: SimpleNamespace(options=options))
         environment = {
             "MARKET_DATA_BACKEND": "postgres",
@@ -255,7 +255,7 @@ class PostgresRuntimeCompositionContractTest(unittest.TestCase):
         fake_ccxt = SimpleNamespace(binanceusdm=lambda options: SimpleNamespace(options=options))
         environment = {
             "MARKET_DATA_BACKEND": "postgres",
-            "MARKET_DATA_POSTGRES_DSN": "postgresql://test:test@127.0.0.1:5432/t0_test",
+            "MARKET_DATA_POSTGRES_DSN": "postgresql://test:test@127.0.0.1:5432/t0_test?sslmode=verify-full",
             "T0_FEEDER_LEASE_NAME": "second-writer-lease",
         }
         with patch.dict(sys.modules, {"ccxt": fake_ccxt}):
@@ -271,7 +271,7 @@ class PostgresRuntimeCompositionContractTest(unittest.TestCase):
         fake_ccxt = SimpleNamespace(binanceusdm=lambda options: SimpleNamespace(options=options))
         environment = {
             "MARKET_DATA_BACKEND": "postgres",
-            "MARKET_DATA_POSTGRES_DSN": "postgresql://test:test@127.0.0.1:5432/t0_test",
+            "MARKET_DATA_POSTGRES_DSN": "postgresql://test:test@127.0.0.1:5432/t0_test?sslmode=verify-full",
             "T0_FEEDER_LEASE_DB": "/tmp/forbidden-lease.sqlite",
         }
         with patch.dict(sys.modules, {"ccxt": fake_ccxt}):
