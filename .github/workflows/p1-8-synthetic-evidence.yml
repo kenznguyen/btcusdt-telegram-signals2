@@ -136,12 +136,77 @@ jobs:
           Path("synthetic-evidence-smoke-summary.json").write_text(json.dumps(result, sort_keys=True, indent=2) + "\\n")
           PY
 
-      - name: Upload synthetic-only evidence
+      - name: Package immutable synthetic evidence subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile
+          paths = [
+              Path("synthetic-evidence-tests.log"),
+              Path("synthetic-evidence-source-sha.txt"),
+              Path("synthetic-evidence-preflight.txt"),
+              Path("synthetic-evidence-compile.txt"),
+              Path("synthetic-evidence-reproducibility.txt"),
+              Path("synthetic-evidence-smoke-summary.json"),
+              Path("synthetic-evidence-provenance.json"),
+              *sorted(Path("synthetic-evidence-output-a").rglob("*")),
+              *sorted(Path("synthetic-evidence-output-b").rglob("*")),
+          ]
+          with ZipFile("synthetic-evidence-bundle.zip", "w", ZIP_DEFLATED) as archive:
+              for path in paths:
+                  if path.is_file():
+                      archive.write(path, path.as_posix())
+          PY
+          sha256sum synthetic-evidence-bundle.zip | tee synthetic-evidence-bundle.sha256
+          test -s synthetic-evidence-bundle.zip
+
+      - name: Generate Sigstore-backed GitHub artifact attestation
+        id: attest
+        uses: actions/attest@v4
+        with:
+          subject-path: synthetic-evidence-bundle.zip
+
+      - name: Verify external trust anchor, signer identity and source binding
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh --version
+          cp "${{ steps.attest.outputs.bundle-path }}" synthetic-evidence-attestation.bundle.json
+          gh attestation verify synthetic-evidence-bundle.zip \\
+            --bundle synthetic-evidence-attestation.bundle.json \\
+            --repo "${GITHUB_REPOSITORY}" \\
+            --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/p1-8-synthetic-evidence.yml" \\
+            --source-digest "${GITHUB_SHA}" \\
+            --source-ref "${GITHUB_REF}" \\
+            --cert-oidc-issuer "https://token.actions.githubusercontent.com" \\
+            --deny-self-hosted-runners \\
+            --format json > synthetic-evidence-attestation-verification.json
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          from synthetic_evidence.trust_anchor import verify_attestation_result
+          archive = Path("synthetic-evidence-bundle.zip")
+          digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+          result = json.loads(Path("synthetic-evidence-attestation-verification.json").read_text())
+          assert verify_attestation_result(result, expected_subject_sha256=digest)
+          print("SIGSTORE_EXTERNAL_TRUST_ANCHOR_VERIFICATION=PASS")
+          print(f"ATTESTED_SUBJECT_SHA256={digest}")
+          PY
+
+      - name: Upload signed synthetic-only evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: p1-8-synthetic-evidence-${{ github.sha }}
           path: |
+            synthetic-evidence-bundle.zip
+            synthetic-evidence-bundle.sha256
+            synthetic-evidence-attestation.bundle.json
+            synthetic-evidence-attestation-verification.json
             synthetic-evidence-tests.log
             synthetic-evidence-source-sha.txt
             synthetic-evidence-preflight.txt
