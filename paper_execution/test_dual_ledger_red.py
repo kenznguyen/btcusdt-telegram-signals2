@@ -464,14 +464,15 @@ class DualLedgerRedTest(unittest.TestCase):
                    SET last_equity_quote='100.5',high_water_mark_quote='100.5'
                    WHERE account_id=1"""
             )
+        self.core.set_killed(True, self.now + 1, "LEGACY_REDUCTION_KILL_SWITCH")
         before_reservations = sqlite3.connect(self.path).execute(
             "SELECT COUNT(*) FROM paper_risk_reservations"
         ).fetchone()[0]
         order = ledger.reduce_legacy_unattributed(
             self.path,
             self.intent("legacy-partial-close", "0.02", "100", "legacy-close-book"),
-            self.book(self.now),
-            self.now,
+            self.book(self.now + 2),
+            self.now + 2,
             reconciliation_id="legacy-close-review-001",
             evidence_hash="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         )
@@ -482,8 +483,8 @@ class DualLedgerRedTest(unittest.TestCase):
         replayed = ledger.reduce_legacy_unattributed(
             self.path,
             self.intent("legacy-partial-close", "0.02", "100", "legacy-close-book"),
-            self.book(self.now),
-            self.now,
+            self.book(self.now + 2),
+            self.now + 2,
             reconciliation_id="legacy-close-review-001",
             evidence_hash="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         )
