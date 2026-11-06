@@ -3170,3 +3170,21 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **PASS — read-only evidence completeness/contradiction assessor and tests. ELIGIBLE_FOR_MANUAL_REVIEW is not migration-ready and does not permit readiness promotion. NOT VERIFIED — actual historical v1 evidence availability/authenticity and any future controlled migration.**
 - Next: assess whether the actual retained repository schema and audit sources can populate this manifest without assumptions. Produce a read-only inventory only; if a required historical risk snapshot (especially HWM/version/readiness) or raw source bytes do not exist, report BLOCKED and preserve v1 rows unchanged. No automatic backfill or migration.
 - Restrictions unchanged: no persistent account DB opening/migration, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+## 2026-11-07 — Repository-only inventory for legacy v1 recovery
+
+- Scope: read-only inspection of the current branch's T1 schema and source paths to determine whether a v1 daily baseline can be populated into the v2 recovery manifest without assumptions. No persistent account DB was opened; no real rows were inspected or modified.
+- Exact source files reviewed:
+  - `paper_execution/account_history.py`: `6163065798b2386e1c466650048e40b7eab0d2eb`
+  - `paper_execution/ledger.py`: `0bc94ae0e704a69e253246a575991c1de436e0a4`
+  - `paper_execution/funding.py`: `575758eb3223b4341ac37bad56d58e52539305c0`
+  - `paper_execution/equity.py`: `40d6566294355c646839614c92f8fba6116b582c`
+  - `paper_execution/risk_control.py`: `3c76e462b0b4d924c2418842d95ed74285e2315d`
+- Confirmed immutable evidence sources: v6 append-only event journal, per-stream coverage and market marks; v7 immutable Core/AI/Legacy cutover snapshots; v4 funding event/coverage provenance; v5 immutable account cutover; v9 immutable daily baseline and audit rows.
+- Critical gap: `paper_account_risk_state` is one mutable current-state row. No immutable risk-state history table or per-version snapshot was found. The v7 snapshots and v5 HWM/readiness are cutover-only, not snapshots at later daily baseline timestamps. Updates increment version and change HWM/readiness but do not append immutable before/after risk-state snapshots.
+- Other limits: `paper_audit` has no immutable UPDATE/DELETE triggers; `paper_orders` contains mutable aggregate order/fill state; legacy `paper_equity_history` / `paper_daily_baselines` are single-strategy and not immutable; pre-v8 fee currency can remain NULL/unknown; stored payload hash syntax does not prove original source bytes were rehashed.
+- Exact report: `docs/evidence/DAILY_BASELINE_V1_RECOVERY_EVIDENCE_INVENTORY_2026-11-07.md` (commit `ec638efd7e3aa3d8ca68f868b5ea38337151fe5d`).
+- Status: **BLOCKED — repository schema/code alone cannot independently populate the historical v1 risk-state snapshot (especially HWM/version/readiness) or attest original external payload bytes. This is not a statement about actual persistent DB rows, which were not opened. Do not set manifest attestations to true without independently retained evidence.**
+- Safe outcome: keep v1 rows immutable and fail-closed. Do not synthesize HWM/version/readiness, fee currency, missing events or source-byte authenticity. If independently retained external evidence is later supplied, manifest assessment can only qualify it for manual review; it cannot authorize migration.
+- Next: add a regression proving a v1 baseline retry cannot silently rewrite/upgrade its audit payload or mutate risk state. Then leave historical recovery BLOCKED unless independent evidence is actually available. No automatic backfill.
+- Restrictions unchanged: no persistent account DB opening/migration, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
