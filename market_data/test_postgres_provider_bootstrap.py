@@ -217,7 +217,14 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
                             sql.Identifier(database_name)
                         )
                     )
-                # Dropping roles also removes their cluster-level memberships.
+                # Drop bootstrap first so any temporary ADMIN memberships it
+                # retained after a failed setup are removed before reserved roles.
+                if bootstrap_created:
+                    service_admin.execute(
+                        sql.SQL("DROP ROLE IF EXISTS {}").format(
+                            sql.Identifier(bootstrap_role)
+                        )
+                    )
                 for role_name in (
                     "t0_migrator_login",
                     "t0_migrator",
@@ -230,12 +237,6 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
                     service_admin.execute(
                         sql.SQL("DROP ROLE IF EXISTS {}").format(
                             sql.Identifier(role_name)
-                        )
-                    )
-                if bootstrap_created:
-                    service_admin.execute(
-                        sql.SQL("DROP ROLE IF EXISTS {}").format(
-                            sql.Identifier(bootstrap_role)
                         )
                     )
 
