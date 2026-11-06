@@ -3947,3 +3947,18 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - No tests rerun, no source/runtime/workflow changes, no DB/exchange/VPS/provider, no persistent capture, no execution, no merge.
 - T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`.
 
+
+
+## 2026-11-07 — P1.8.10 Synthetic Fixture Independent Replay Verification
+
+- User approval: `APPROVE P1.8.10 — SYNTHETIC FIXTURE INDEPENDENT REPLAY VERIFICATION`.
+- Scope: offline independent verification of archived fixture A from P1.8.8 artifact `13544470861`; no source/runtime/workflow changes and no external service access.
+- Artifact source SHA: `c060dc061f910583f81d91bab1b0644734715d66`; original GitHub Actions run `42300805695`, job `128177778298`, SUCCESS.
+- Artifact ZIP SHA-256 was independently verified in P1.8.9 as `b562864af5712d957f818526549122304e25955b6abadf31d0bdf7246e121b24`.
+- Separate offline verifier (not importing/calling the generator's `verify_local_replay`) parsed archived fixture A and independently recomputed canonical event hashes and manifest hashes.
+- Results: fixture inventory 17/17; 1,000/1,000 event hashes; 3/3 stream sequence/hash/causation chains; global event ordering PASS; UUIDv5 event IDs 1,000/1,000; 12/12 segment byte digests; 12/12 manifest hashes; 3/3 manifest chains; segment-to-global-event byte equivalence 1,000/1,000; all stream sequence ranges gap-free; UUIDv5 manifest IDs 12/12; config SHA-256 MATCH.
+- Stream counts: AI 333 events / 4 segments; Core 334 / 4; Legacy 333 / 4. Thirteen negative fault vectors remain outside the clean event denominator.
+- Fixture B is not in the archived ZIP; the original workflow log records its two-fixture byte-comparison step as SUCCESS, but fixture-B comparison was not independently repeated from the artifact. No new GitHub Actions run was triggered for this offline replay.
+- Detailed report: `docs/architecture/P1.8.10_SYNTHETIC_FIXTURE_INDEPENDENT_REPLAY_VERIFICATION_2026-11-07.md`; report commit `c972cfb5316714f07787e59ffb5680ee872a08b1`.
+- **P1.8.10: PASS — independent offline replay/integrity verification of archived synthetic fixture A only.** This is not Root B/provider independence, signed evidence, production replay, or production durability certification.
+- No runtime, DB, exchange, VPS/provider, persistent capture, paper/live execution, workflow rerun, or merge. T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`.
