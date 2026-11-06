@@ -2440,3 +2440,17 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No persistent account DB migration, backtest, merge, deployment, exchange connection, live order or feature activation. ai_execution_enabled=false. T0 source/tests/workflows/provider policy unchanged.
 - Status: LEGACY REDUCTION/V2 IMMUTABLE DEPTH PASS; RESERVATION EXPIRY V3/RESTART PASS; FULL paper_execution REGRESSION PASS 63/63 ON SHA b1a9478178479a87043002a6915a56c068fcb78a; T1.2.2 REMAINS IN PROGRESS because account cutover readiness and funding provenance are not fully verified.
 - Next: design/test funding provenance and account-equity cutover reconciliation, including historical unknown funding fail-closed behavior and future event source/snapshot identity/hash/strategy attribution. Do not run a persistent DB migration or enable execution. No backtest, merge or deployment without separate approval.
+
+
+## 2026-11-06 — T1 funding provenance RED
+
+- Re-verified current branch baseline against the prior handoff commit `85424810a568772a9dc947e3fc83b8fa0814d6db`; the branch was identical before this increment. Work remains on `feature/t0-centralized-data-feeder-p1-20261101`.
+- Added three focused PAPER-only tests to `paper_execution/test_dual_ledger_red.py` for immutable/idempotent funding events, known unowned funding attribution to `LEGACY_UNATTRIBUTED`, and explicit unknown/disabled funding coverage evidence.
+- Test commit/source SHA: `2af532fee6deb8daf7a337e3a42c007cb9fbf509`.
+- Exact push workflow [#42192251105](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42192251105) checked out the exact source SHA. Compile PASS; 28 existing focused tests PASS; the 3 new tests ERROR as expected at missing APIs `record_funding_event` and `record_funding_coverage`. Total focused invocation: 31 tests, 3 expected RED errors. Full `paper_execution` regression was skipped after the RED step and is NOT a PASS.
+- Job ID: `127806851954`. Artifact: `dual-ledger-red-evidence-2af532fee6deb8daf7a337e3a42c007cb9fbf509`, ID `13490227810`, GitHub upload digest `sha256:0a14b243a243fc49e5503503389f4d7804f244a1b9a937303cf81cdc6a33d245` (metadata/log digest; payload bytes not independently re-hashed), expires 2026-11-13.
+- Evidence report: `docs/evidence/T1_FUNDING_PROVENANCE_RED_2026-11-06.md`, commit `8bbf6f674f9a0ce5ade7957e11c7ee65adfadb5d`.
+- GREEN contract direction: additive migration v4 preserving v1-v3 checksums; append-only immutable event and coverage tables; signed amount semantics (positive cost, negative credit); stable idempotency; known unowned historical funding recorded under `LEGACY_UNATTRIBUTED`; unknown funding is not zero and blocks risk readiness; funding-disabled paper tests persist explicit config/version evidence.
+- No T0 source/test/workflow/provider policy changed. No persistent account DB migration, backtest, merge, deployment, exchange connection, live order, or execution activation. `ai_execution_enabled=false`.
+- Status: **FUNDING PROVENANCE RED CONFIRMED; GREEN NOT IMPLEMENTED; ACCOUNT EQUITY CUTOVER NOT VERIFIED; T1.2.2 IN PROGRESS.**
+- Next: implement v4 and funding event/coverage APIs, then add RED/ GREEN tests for account-equity cutover (verified funding coverage, fresh mark/candle, dataset identity, exact capital/equity reconciliation, HWM and UTC daily baseline). Keep tests isolated; no persistent DB migration or backtest without separate approval.
