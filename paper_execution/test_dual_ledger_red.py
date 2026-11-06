@@ -1877,5 +1877,105 @@ os._exit(0)
         self.assertEqual(count, 0)
 
 
+
+    def test_mark_advancement_requires_contiguous_funding_coverage_and_allows_admission(self):
+        advanced_now = self.now + 5 * 60_000
+        ledger.record_funding_coverage(
+            self.path,
+            coverage_id="mark-advance-adjacent-funding-coverage",
+            start_at_ms=self.now,
+            end_at_ms=self.now + 10 * 60_000,
+            status="VERIFIED",
+            source="RECONCILED_FUNDING_STATEMENT",
+            source_snapshot_id="mark-advance:adjacent-coverage",
+            payload_hash="sha256:" + "7" * 64,
+            config_version="funding-policy-v1",
+            recorded_at_ms=self.now + 10 * 60_000,
+        )
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """UPDATE paper_account_risk_state
+                   SET last_mark_price='101',mark_observed_at_ms=?,
+                       mark_candle_close_ms=?,updated_at_ms=?
+                   WHERE account_id=1""",
+                (advanced_now, advanced_now - 60_000, advanced_now),
+            )
+
+        snapshot = ledger.read_account_risk_snapshot(self.path, now_ms=advanced_now)
+        self.assertTrue(snapshot["riskReady"], snapshot)
+        order = self.core.submit(
+            self.intent("mark-advance-covered-entry", "0.1", "100.1", "mark-advance-book"),
+            self.book(advanced_now),
+            advanced_now,
+        )
+        self.assertEqual(order["status"], "FILLED", order)
+
+    def test_mark_advancement_beyond_funding_coverage_blocks_new_exposure(self):
+        advanced_now = self.now + 5 * 60_000
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """UPDATE paper_account_risk_state
+                   SET mark_observed_at_ms=?,mark_candle_close_ms=?,updated_at_ms=?
+                   WHERE account_id=1""",
+                (advanced_now, advanced_now - 60_000, advanced_now),
+            )
+
+        snapshot = ledger.read_account_risk_snapshot(self.path, now_ms=advanced_now)
+        self.assertTrue(snapshot["available"], snapshot)
+        self.assertFalse(snapshot["riskReady"], snapshot)
+        self.assertEqual(snapshot["unavailableReason"], "FUNDING_PROVENANCE_INCOMPLETE")
+        order = self.core.submit(
+            self.intent("mark-advance-uncovered-entry", "0.1", "100.1", "mark-advance-gap-book"),
+            self.book(advanced_now),
+            advanced_now,
+        )
+        self.assertEqual(order["status"], "REJECTED", order)
+        self.assertEqual(order["reason"], "RISK_INPUTS_UNAVAILABLE")
+
+    def test_utc_day_rollover_does_not_silently_reset_daily_loss_baseline(self):
+        next_day = (self.now // 86_400_000 + 1) * 86_400_000
+        advanced_now = next_day + 5 * 60_000
+        ledger.record_funding_coverage(
+            self.path,
+            coverage_id="utc-rollover-contiguous-funding-coverage",
+            start_at_ms=self.now,
+            end_at_ms=advanced_now,
+            status="VERIFIED",
+            source="RECONCILED_FUNDING_STATEMENT",
+            source_snapshot_id="utc-rollover:continuous-coverage",
+            payload_hash="sha256:" + "8" * 64,
+            config_version="funding-policy-v1",
+            recorded_at_ms=advanced_now,
+        )
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """UPDATE paper_account_risk_state
+                   SET mark_observed_at_ms=?,mark_candle_close_ms=?,updated_at_ms=?
+                   WHERE account_id=1""",
+                (advanced_now, advanced_now - 60_000, advanced_now),
+            )
+            previous_baseline = connection.execute(
+                """SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote
+                   FROM paper_account_risk_state WHERE account_id=1"""
+            ).fetchone()
+
+        with self.assertRaisesRegex(sqlite3.DatabaseError, "ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE"):
+            ledger.read_account_risk_snapshot(self.path, now_ms=advanced_now)
+
+        order = self.core.submit(
+            self.intent("utc-rollover-no-baseline-entry", "0.1", "100.1", "utc-rollover-book"),
+            self.book(advanced_now),
+            advanced_now,
+        )
+        self.assertEqual(order["status"], "REJECTED", order)
+        self.assertEqual(order["reason"], "RISK_INPUTS_STALE_OR_CORRUPT")
+        with sqlite3.connect(self.path) as connection:
+            current_baseline = connection.execute(
+                """SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote
+                   FROM paper_account_risk_state WHERE account_id=1"""
+            ).fetchone()
+        self.assertEqual(current_baseline, previous_baseline)
+
+
 if __name__ == "__main__":
     unittest.main()
