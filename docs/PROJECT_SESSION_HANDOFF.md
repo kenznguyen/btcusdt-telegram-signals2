@@ -2528,3 +2528,15 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No persistent account DB opened/migrated; no backtest, merge, deployment, exchange connectivity, live execution, or Codemagic fallback. `ai_execution_enabled=false`.
 - Status: **STATEMENT-MISMATCH REGRESSION ADDED; TEST/CI NOT VERIFIED.**
 - Next: obtain exact-SHA GitHub Actions evidence for current branch source. Then add isolated cases for coverage gaps, future/stale mark and candle timestamps, corrupt funding provenance, and restart/idempotent cutover replay. Do not run backtests until historical funding/fee provenance and real-account cutover are independently reconciled.
+
+
+## 2026-11-06 — controlled synchronization of main into T1 branch
+
+- Owner approval received to merge `main` into `feature/t0-centralized-data-feeder-p1-20261101`, preserving Dual Ledger work; no rebase or force-push.
+- Merge parents: T1 pre-merge `9032dd73672918eca0d0a89cd4f41deca3941776`; main pre-merge `1e16b437456d56eac2f7d9564ca9ab8e7d032f62`.
+- The main-branch handoff is preserved verbatim as `docs/evidence/MAIN_PROJECT_SESSION_HANDOFF_2026-11-06.md` (source blob `3e021fb5f1c37392a497b1fc684e2fc388b363c8`). This T1 handoff remains the primary session handoff so T1 progress and NOT VERIFIED boundaries are not overwritten.
+- Imported main-only files: four GitHub Actions workflows, the T0 PostgreSQL atomic-writer design record, and two Android/Chart Pro audit evidence documents. These are source/document imports only; they do not authorize a T0 production migration, Feeder activation, VPS deployment, exchange connection, Android release, or live execution.
+- Reconciled `market_data/test_write_gateway.py`: retained main's committed-batch process-crash/restart regression and branch's invalid-existing-schema/no-side-effect regression, along with both existing gateway isolation checks. No production T0 implementation code was changed by this merge.
+- Prior T1 cutover overlap and statement-total mismatch tests remain NOT VERIFIED until a workflow runs on the exact merged SHA. Earlier 69/69 evidence applies only to `8dadd35b7e9e0174efab70c425eab53bca99fa34`.
+- `ai_execution_enabled=false`; paper-only boundary retained. No persistent account database was opened or migrated; no backtest, deployment, exchange connection, Feeder activation, or live order occurred.
+- Next: inspect the merge commit's complete file list and run isolated CI on the exact merge SHA. Record T0 and T1 results separately. Keep all unresolved funding provenance/cutover checks NOT VERIFIED.

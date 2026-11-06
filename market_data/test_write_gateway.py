@@ -68,6 +68,53 @@ class SQLiteWriteGatewayTest(unittest.TestCase):
         )
         self.assertEqual(result["coverage"]["returned"], 1)
 
+    def test_committed_batch_survives_writer_process_crash_and_restart(self):
+        import os
+        import subprocess
+        import sys
+        script = r"""
+import os, sys
+from market_data.feeder import LeaseStore
+from market_data.store import Candle, CandleStore, INTERVAL_MS
+from market_data.write_gateway import SQLiteWriteGateway
+path, generation = sys.argv[1], int(sys.argv[2])
+store = CandleStore(path)
+leases = LeaseStore(path)
+gateway = SQLiteWriteGateway(
+    store=store, lease_store=leases, owner_id="worker-A",
+    generation_provider=lambda: generation, clock=lambda: 1_800_000_000_001,
+)
+gateway.write_batch([Candle(
+    timeframe="15m", open_time_ms=1_800_000_000_000,
+    open="100", high="101", low="99", close="100.5",
+    volume="1", available_at_ms=1_800_000_900_000,
+)])
+os._exit(0)
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", script, self.path, str(self.lease.generation)],
+            capture_output=True, text=True, timeout=10,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        persisted = read_window(
+            self.path, "BTCUSDT", "15m", NOW, NOW + INTERVAL_MS["15m"],
+        )
+        self.assertEqual(persisted["coverage"]["returned"], 1)
+
+        restarted = SQLiteWriteGateway(
+            store=self.store, lease_store=self.leases, owner_id="worker-A",
+            generation_provider=lambda: self.lease.generation,
+            clock=lambda: NOW + 3,
+        )
+        self.assertEqual(
+            restarted.write_batch([candle(NOW + INTERVAL_MS["15m"])]), 1,
+        )
+        after_restart = read_window(
+            self.path, "BTCUSDT", "15m", NOW,
+            NOW + 2 * INTERVAL_MS["15m"],
+        )
+        self.assertEqual(after_restart["coverage"]["returned"], 2)
+
     def test_gateway_rejects_separate_lease_database(self):
         other_path = str(Path(self.temp.name) / "other.sqlite3")
         other_lease = LeaseStore(other_path)
@@ -77,7 +124,6 @@ class SQLiteWriteGatewayTest(unittest.TestCase):
                 owner_id="worker-A", generation_provider=lambda: 1,
                 clock=lambda: NOW,
             )
-
 
     def test_gateway_rejects_existing_database_without_canonical_schema(self):
         empty = Path(self.temp.name) / "empty.sqlite3"
