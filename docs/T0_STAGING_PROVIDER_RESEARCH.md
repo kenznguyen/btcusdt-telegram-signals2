@@ -143,3 +143,73 @@ On 2026-11-06, the user selected Timescale Cloud as the provider direction for T
 - Provider HA does not replace application lease-generation fencing. Prove old Feeder rejection and new generation advancement after failover.
 - Official references: https://www.tigerdata.com/docs/get-started/supported-regions ; https://www.tigerdata.com/pricing ; https://www.tigerdata.com/docs/get-started/feature-comparison ; https://www.tigerdata.com/docs/deploy/tiger-cloud/tiger-cloud-aws/security/read-only-role
 - State: provider direction SELECTED; AWS Singapore PROPOSED; Scale PRELIMINARY; budget NOT PROVIDED; trial/service creation NOT AUTHORIZED; staging/production NOT PROVISIONED.
+
+## 8. Temporary staging comparison — budget ceiling USD 20/month
+
+**User instruction received 2026-11-06:** compare providers; monthly ceiling under USD 20; temporary staging only; do not provision without separate approval.
+
+This narrows the decision. The prior Timescale Cloud direction remains the preferred product direction, but a paid Tiger Cloud service is not within this budget based on published starting prices.
+
+### Candidate 1 — Tiger Cloud Free (Timescale Cloud)
+
+- Published free service includes PostgreSQL with TimescaleDB and vector extensions.
+- Free services are currently hosted in AWS `us-east-1`, with shared/preconfigured CPU and memory and a 750 MiB storage limit per free service (two free services described in the pricing/changelog documentation).
+- Free service excludes VPC, replication, data tiering, exporters and metrics/other advanced operational capabilities; it enters read-only state at its storage limit.
+- **Cost:** USD 0, subject to free-service limits and current account eligibility.
+- **Use:** schema exploration, migration syntax validation, and small disposable compatibility tests only.
+- **Not suitable as complete T0 staging:** region differs from Singapore; no VPC/replication/metrics; cannot certify HA, private networking, operational monitoring, production-like recovery or the complete role/fencing acceptance.
+- Official sources: https://www.tigerdata.com/docs/get-started/quickstart/create-service ; https://www.tigerdata.com/pricing ; https://www.tigerdata.com/docs/about/changelog
+
+### Candidate 2 — DigitalOcean Managed PostgreSQL Standard, Singapore SGP1
+
+This is not Timescale Cloud, but its official Standard Edition supported-extension list includes `timescaledb` for PostgreSQL 16 and 17. It is a plausible low-cost managed compatibility target, subject to exact extension version and permissions.
+
+- Singapore SGP1 is listed as available for Managed PostgreSQL.
+- Single-node Standard cluster starts at USD 15/month for 1 GiB RAM; additional storage is published at USD 0.215/GiB-month. A standby/HA topology starts at USD 30/month per node and is outside the budget.
+- Daily full backups and WAL allow PITR over the previous seven days.
+- Single-node is not highly available. Provider docs state restore creates a new node; old endpoint/client fencing still requires application-level validation.
+- The service does not grant PostgreSQL superuser. Role ownership, migrations, SECURITY DEFINER functions and grants must be tested.
+- **Estimated floor:** USD 15/month before additional storage/tax/other billable resources; must verify the current checkout quote and included storage before any order.
+- **Use:** potentially suitable for temporary provider compatibility testing under USD 20 if the actual cluster configuration and invoice estimate remain within the cap.
+- **Not production certified:** no HA within budget, no measured RPO/RTO, no test of T0 migrations/least privilege/fencing on this provider, and exact TimescaleDB extension version not established by the support list alone.
+- Official sources: https://docs.digitalocean.com/products/databases/postgresql/details/pricing/ ; https://docs.digitalocean.com/products/databases/postgresql/details/availability/ ; https://docs.digitalocean.com/products/databases/postgresql/details/supported-extensions/ ; https://docs.digitalocean.com/products/databases/postgresql/details/features/ ; https://docs.digitalocean.com/products/databases/postgresql/details/limits/
+
+### Candidate 3 — self-managed PostgreSQL + TimescaleDB on a low-cost VPS
+
+- Could potentially fit below USD 20/month, but a current provider/region/plan quote has not been researched or verified in this increment.
+- Operator owns OS/database patching, TLS, firewall, backups, PITR/WAL archive, restore drills, monitoring, and recovery.
+- A single VPS is one failure domain. An off-host encrypted backup destination adds cost and must be included in the cap.
+- **Use:** only disposable engineering tests if a provider quote and backup design fit the cap.
+- **Not a substitute for managed-service acceptance:** it does not test Tiger Cloud role/extension/HA behavior.
+
+### Cost/fit summary
+
+| Candidate | Published/minimum cost | Region | TimescaleDB | Suitable within temporary cap? | What it can prove |
+|---|---:|---|---|---|---|
+| Tiger Cloud Free | $0 | us-east-1 | Included | Yes, limited | Schema and small migration compatibility only |
+| Tiger Cloud Performance | Starts $30 + storage | Singapore available | Native | No | Would be a more realistic managed T0 staging target, but exceeds cap |
+| Tiger Cloud Scale | Starts $36 + storage | Singapore available | Native | No | 14-day PITR/private endpoint/multi-node HA feature evaluation, exceeds cap |
+| DigitalOcean Standard single node | Starts $15 + extra storage | SGP1 | Extension listed PG16/17 | Potentially, pending exact quote | Managed PG extension, migrations, roles, TLS and 7-day PITR tests; no HA |
+| Self-managed VPS | Quote not yet verified | Region TBD | Operator installs | Unknown | Linux/PG/Timescale runtime and backup design; not Tiger Cloud compatibility |
+
+### Recommended staged approach under the current cap
+
+1. **No paid resource yet.** First use the existing disposable TimescaleDB CI environment for all code-level contracts; it already covers writer fencing, lifecycle, role privileges, TLS DSN policy and read-only consumer behavior.
+2. If a real provider endpoint is needed for compatibility, compare the Tiger Cloud Free service for schema-only checks against DigitalOcean Standard SGP1 at its published $15/month starting price. Do not call either a complete T0 production staging environment.
+3. Before any paid order, obtain the exact checkout estimate including storage, taxes, network/egress and service lifecycle. Stop if expected total can exceed USD 20 in the billing period.
+4. Do not put real Binance market data, production secrets, or canonical T0 data in a temporary under-budget service. Use synthetic test data only.
+5. If full T0 acceptance requires private endpoint, HA, monitoring, or production-like restore, report that the USD 20 cap is incompatible with the required test scope. Ask for a revised budget rather than weakening gates.
+6. Delete/terminate any temporary paid resource after the approved test window and retain only sanitized logs, version evidence, test results and checksums in GitHub.
+
+### Decision status
+
+- User requested comparison, not a provider switch: **COMPARE**.
+- Budget: **UNDER USD 20/month**.
+- Scope: **TEMPORARY STAGING ONLY**.
+- Preferred long-term managed product direction from prior user instruction: **Timescale Cloud / Tiger Cloud**.
+- Tiger Cloud paid Performance/Scale: **OVER BUDGET**.
+- Tiger Cloud Free: **LIMITED — compatibility checks only**.
+- DigitalOcean Standard SGP1: **COST-FIT CANDIDATE — NOT SELECTED**.
+- Self-managed VPS: **NOT QUOTED**.
+- Provisioning/trial/payment: **NOT AUTHORIZED**.
+- No database, account, secret, endpoint, backup, DNS, network rule or Feeder was created.
