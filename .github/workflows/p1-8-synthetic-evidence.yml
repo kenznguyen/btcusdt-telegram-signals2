@@ -383,21 +383,21 @@ jobs:
       - name: Checkout existing branch for append-only evidence commit
         uses: actions/checkout@v4
         with:
-          ref: \${{ github.ref }}
+          ref: ${{ github.ref }}
           persist-credentials: true
 
       - name: Download verified evidence package
         uses: actions/download-artifact@v4
         with:
-          name: p1-8-synthetic-evidence-\${{ github.sha }}
+          name: p1-8-synthetic-evidence-${{ github.sha }}
           path: retained-evidence
 
       - name: Verify manifest and commit retained evidence
         shell: bash
         env:
-          SOURCE_SHA: \${{ github.sha }}
-          WORKFLOW_RUN_ID: \${{ github.run_id }}
-          BRANCH_NAME: \${{ github.ref_name }}
+          SOURCE_SHA: ${{ github.sha }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          BRANCH_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -415,7 +415,7 @@ jobs:
           assert verify_retention_manifest(manifest, files)
           print("RETENTION_PAYLOAD_INDEPENDENT_RECHECK=PASS")
           PY
-          DEST="docs/evidence/p1-8/\${SOURCE_SHA}"
+          DEST="docs/evidence/p1-8/${SOURCE_SHA}"
           mkdir -p "$DEST"
           cp retained-evidence/synthetic-evidence-bundle.zip "$DEST/"
           cp retained-evidence/synthetic-evidence-bundle.sha256 "$DEST/"
@@ -428,7 +428,7 @@ jobs:
             echo "EVIDENCE_ARCHIVE_ALREADY_PRESENT=PASS"
           else
             git commit -m "archive(evidence): retain P1.8 signed bundle"
-            git push origin "HEAD:\${BRANCH_NAME}"
+            git push origin "HEAD:${BRANCH_NAME}"
           fi
           git show "HEAD:$DEST/synthetic-evidence-retention-manifest.json" >/dev/null
           echo "LONG_TERM_GIT_HISTORY_RETENTION=PASS"
