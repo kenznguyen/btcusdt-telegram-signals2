@@ -195,6 +195,80 @@ def migrate_account_history(connection, source_sha):
     )
 
 
+CUTOVER_SNAPSHOT_MIGRATION_VERSION = 7
+CUTOVER_SNAPSHOT_MIGRATION_CHECKSUM = hashlib.sha256(
+    b"dual-ledger-v7:immutable-per-ledger-cutover-snapshots"
+).hexdigest()
+
+
+def migrate_cutover_ledger_snapshots(connection, source_sha):
+    if (not isinstance(source_sha, str) or len(source_sha) != 40
+            or any(char not in "0123456789abcdef" for char in source_sha.lower())):
+        raise ValueError("DUAL_LEDGER_SOURCE_SHA_REQUIRED")
+    applied = connection.execute(
+        "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
+        (CUTOVER_SNAPSHOT_MIGRATION_VERSION,),
+    ).fetchone()
+    if applied:
+        if applied != (CUTOVER_SNAPSHOT_MIGRATION_CHECKSUM, "APPLIED"):
+            raise sqlite3.DatabaseError("CUTOVER_SNAPSHOT_MIGRATION_CHECKSUM_MISMATCH")
+        columns = {row[1] for row in connection.execute(
+            "PRAGMA table_info(paper_account_cutover_ledger_snapshots)"
+        )}
+        triggers = {row[0] for row in connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='trigger'"
+        )}
+        if not {
+            "cutover_id", "strategy_id", "snapshot_at_ms", "position_base",
+            "average_entry_price", "realized_pnl_quote", "fees_quote",
+            "funding_quote", "source_snapshot_id", "payload_hash",
+        }.issubset(columns) or not {
+            "paper_account_cutover_ledger_snapshots_immutable_update",
+            "paper_account_cutover_ledger_snapshots_immutable_delete",
+        }.issubset(triggers):
+            raise sqlite3.DatabaseError("CUTOVER_SNAPSHOT_SCHEMA_INCOMPLETE")
+        return
+
+    if connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' "
+        "AND name='paper_account_cutover_ledger_snapshots'"
+    ).fetchone():
+        raise sqlite3.DatabaseError("CUTOVER_SNAPSHOT_SCHEMA_WITHOUT_MIGRATION_RECORD")
+    connection.execute("""CREATE TABLE paper_account_cutover_ledger_snapshots (
+        cutover_id TEXT NOT NULL REFERENCES paper_account_equity_cutovers(cutover_id),
+        strategy_id TEXT NOT NULL CHECK(strategy_id IN
+            ('STRATEGY_CORE','AI_FREQAI','LEGACY_UNATTRIBUTED')),
+        snapshot_at_ms INTEGER NOT NULL,
+        position_base TEXT NOT NULL,
+        average_entry_price TEXT NOT NULL,
+        realized_pnl_quote TEXT NOT NULL,
+        fees_quote TEXT NOT NULL,
+        funding_quote TEXT NOT NULL,
+        source_snapshot_id TEXT NOT NULL CHECK(length(trim(source_snapshot_id))>0),
+        payload_hash TEXT NOT NULL CHECK(length(payload_hash)=71
+            AND substr(payload_hash,1,7)='sha256:'
+            AND substr(payload_hash,8) NOT GLOB '*[^0-9a-f]*'),
+        canonical_payload TEXT NOT NULL,
+        created_at_ms INTEGER NOT NULL,
+        PRIMARY KEY(cutover_id,strategy_id)
+    )""")
+    connection.execute("""CREATE TRIGGER paper_account_cutover_ledger_snapshots_immutable_update
+        BEFORE UPDATE ON paper_account_cutover_ledger_snapshots
+        BEGIN SELECT RAISE(ABORT,'ACCOUNT_CUTOVER_SNAPSHOT_IMMUTABLE'); END""")
+    connection.execute("""CREATE TRIGGER paper_account_cutover_ledger_snapshots_immutable_delete
+        BEFORE DELETE ON paper_account_cutover_ledger_snapshots
+        BEGIN SELECT RAISE(ABORT,'ACCOUNT_CUTOVER_SNAPSHOT_IMMUTABLE'); END""")
+    applied_at = connection.execute(
+        "SELECT updated_at_ms FROM paper_account_risk_state WHERE account_id=1"
+    ).fetchone()[0]
+    connection.execute(
+        """INSERT INTO paper_schema_migrations
+           (version,name,checksum,applied_at_ms,source_sha,status)
+           VALUES (7,'account_cutover_ledger_snapshots_v7',?,?,?,'APPLIED')""",
+        (CUTOVER_SNAPSHOT_MIGRATION_CHECKSUM, applied_at, source_sha.lower()),
+    )
+
+
 def _connect(path):
     path = Path(path).resolve()
     if not path.is_file():
