@@ -163,12 +163,16 @@ def _validate_persisted_baseline(connection, *, utc_day_ms, expected_equity,
     payload_digest = "sha256:" + hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
     try:
         risk_audit = payload["riskState"]
-        mark = payload["inputs"]["market_mark"]
+        inputs_payload = payload["inputs"]
+        replay_payload = payload["replay"]
+        mark = inputs_payload["market_mark"]
         audit_hwm = Decimal(risk_audit["highWaterMarkQuote"])
         audit_equity = Decimal(equity)
     except (KeyError, TypeError, ValueError, DecimalException):
         raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED") from None
-    if (payload.get("auditSchemaVersion") != 2
+    if (not isinstance(risk_audit, dict) or not isinstance(inputs_payload, dict)
+            or not isinstance(replay_payload, dict) or not isinstance(mark, dict)
+            or payload.get("auditSchemaVersion") != 2
             or type(risk_audit.get("version")) is not int
             or risk_audit["version"] < 2
             or type(risk_audit.get("riskReady")) is not bool
@@ -187,9 +191,9 @@ def _validate_persisted_baseline(connection, *, utc_day_ms, expected_equity,
             or audit_digest != digest or audit_recorded != recorded_at_ms
             or canonical_payload != payload_json or payload_digest != digest
             or payload.get("utcDayMs") != utc_day_ms
-            or payload.get("inputs", {}).get("cutover_id") != cutover_id
+            or inputs_payload.get("cutover_id") != cutover_id
             or mark.get("mark_id") != mark_id
-            or payload.get("replay", {}).get("equity_quote") != equity
+            or replay_payload.get("equity_quote") != equity
             or payload.get("algorithmVersion") != algorithm):
         raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED")
     return baseline
@@ -395,7 +399,7 @@ def persist_daily_equity_baseline(connection, *, utc_day_ms, now_ms, source_sha)
             connection.commit()
             return {"baseline_id": baseline_id, "utc_day_ms": boundary,
                     "baseline_equity_quote": replay["equity_quote"],
-                    "replay_digest": replay_digest, "idempotent": True,
+                    "replay_digest": existing[4], "idempotent": True,
                     "risk_ready": bool(risk_ready)}
 
         if audit is not None:
