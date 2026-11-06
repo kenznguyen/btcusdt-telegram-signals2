@@ -3085,3 +3085,20 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **PASS — runtime schema-integrity checks, immutable row guards, canonical replay/audit reconciliation and malformed HWM fail-closed behavior verified on temporary SQLite. NOT VERIFIED — persistent database upgrade, external source payload authenticity, or production filesystem durability.**
 - Next: review daily baseline recovery semantics across UTC-day sequencing and repeated/missed days. Confirm the writer cannot skip an unverified prior UTC day, overwrite an existing day, or advance the daily risk baseline from incomplete coverage. Add tests for gaps/multi-day recovery; do not backfill historical baselines without explicit approval.
 - Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+## 2026-11-07 — T1 sequential UTC baseline recovery and prior-day retry
+
+- Scope: verify consecutive daily baseline creation, predecessor enforcement, and idempotent retry of an earlier day after the account has advanced to a later UTC day. Temporary SQLite only.
+- Initial RED/diagnostic run at source SHA `bd0c83667783be6b4b048a432907418f704940f9`, workflow [#42276046612](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42276046612): compile and PAPER-only preflight PASS; focused contract failed one test because the test retried the first day's baseline using the first day's old `now_ms`, while the risk state had already advanced to the next day. This was an invalid recovery-time fixture, not evidence of a production logic defect.
+- Corrected the retry test to use the current recovery timestamp (`next_recorded`) while retrying the original UTC day. No runtime implementation change in this increment.
+- Exact GREEN source SHA: `e06b28b740590b99c4c930004bf547c8fccbaf99`.
+- GitHub Actions [#42276535949](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42276535949): SUCCESS on exact SHA.
+  - PAPER-only preflight: PASS; external DB/API credentials empty.
+  - Python compile: PASS.
+  - Focused Dual Ledger + migration + replay + daily baseline contracts: 167/167 PASS.
+  - Full `paper_execution` regression: 266/266 PASS.
+  - Job ID: `128094176814`.
+  - Artifact ID: `13533163461`, name `dual-ledger-red-evidence-e06b28b740590b99c4c930004bf547c8fccbaf99`, GitHub upload digest `sha256:62557812142e7aa84aa238c4c6a4dd99a851c9116beeeca2dd1a1893abc0f88e`, expires 2026-11-13. Digest is GitHub artifact metadata; payload bytes were not separately downloaded and re-hashed.
+- Status: **PASS — sequential baseline creation after verified predecessor, rejection of missing predecessor/day gaps, and idempotent retry of an older baseline at current recovery time. NOT VERIFIED — arbitrary multi-day outage reconciliation/backfill policy and audit payload semantic cross-check against baseline columns.**
+- Next: review and test semantic integrity of persisted audit payload: replay equity, mark ID, cutover ID, UTC day and algorithm version must agree with immutable baseline row and risk state; tampered-but-canonical audit payload must fail closed. No automatic backfill of missing days.
+- Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
