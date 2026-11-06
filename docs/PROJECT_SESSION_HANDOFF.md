@@ -1899,3 +1899,27 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Teardown order is: drop disposable database; drop temporary bootstrap login to clear any auto-created ADMIN memberships left by an interrupted setup; then drop only fixture-created reserved roles.
 - Latest bootstrap test source commit: `7d194d29ae011330b22f74d65401e68654b995f3`; test blob: `6e2f59b4b8725f15156e98e8f7360c9639be7986`; evidence doc blob: `2e28c4e29fa628fad52347130f231e4433656659`.
 - Direct-push CI status remains **NOT VERIFIED**: GitHub connector's combined-status endpoint returned no status entries and its workflow-run wrapper only exposes PR-triggered runs. This is an observability limitation, not evidence of success or failure. Need obtain the direct-push run and inspect exact checkout SHA/job logs/artifact before setting PASS.
+
+## T0 provider bootstrap fixture — syntax correction and CI rerun (2026-11-06)
+
+- Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Previous source SHA `7d194d29ae011330b22f74d65401e68654b995f3` was checked out exactly by workflow run #42165196769 (push event).
+- Run #42165196769: FAILURE. The new provider bootstrap test had a Python syntax error at line 185: an SQL string literal was split across physical lines without adjacent-string concatenation. The same import error caused the full `market_data` suite to fail (232 tests discovered, 1 import error, 36 skipped). The dedicated fresh-cluster job failed at `py_compile`; no PostgreSQL bootstrap logic was executed.
+- Corrected only the SQL string concatenation in `market_data/test_postgres_provider_bootstrap.py`; no role grants, migration guards, runtime behavior, or workflow privileges were changed.
+- Fix commit/source SHA: `92a8ba178716d73b3cdb645cc441ec99e775e962`; test blob: `0fde856def1e71c691e9f71c685814d08e3f9af7`.
+- Follow-up push workflow #42165386542: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42165386542
+  - Exact head SHA: `92a8ba178716d73b3cdb645cc441ec99e775e962`.
+  - Static Gateway job #127720536760: SUCCESS, including Gateway contracts, behavioral/feeder regressions, health/readiness, SIGKILL restart/fencing, and complete `market_data` regression suite.
+  - Paper consumer job #127720533177: SUCCESS.
+  - At handoff update time, fresh-cluster restricted provider bootstrap job #127720532984 and isolated TimescaleDB read-only integration job #127720611217 were still initializing their service containers; results NOT VERIFIED / IN PROGRESS. Do not infer PASS from static success.
+- Artifacts already published for run #42165386542:
+  - Static evidence artifact ID `13477959914`, SHA-256 `ad2b2b1908852e84050d124f8d5996eaed444ccfb485c95c484f408d7d116df7`.
+  - Paper consumer artifact ID `13478618479`, SHA-256 `631f953d8ea5b5a97dcef77f423d1a7527be5dca17662f2949016c61ecc0980d`.
+  - Provider bootstrap artifact not yet listed at update time.
+- Previous failed-run artifacts (not valid as passing evidence):
+  - Static artifact ID `13478264153`, SHA-256 `ac4c1d524d60da075cd130f033a302c69e98ec5f18bd985a4bebb141175cf205`.
+  - Provider bootstrap artifact ID `13478134662`, SHA-256 `af3693850d57c51e463daa6bb992ef5daf1419adc58ef6af0f11fc4ba6ab43c4`.
+- Current verdict: syntax correction committed; static + paper CI PASS on exact SHA `92a8ba178716d73b3cdb645cc441ec99e775e962`; provider bootstrap / TimescaleDB integration NOT VERIFIED pending run completion. Managed-provider compatibility remains NOT VERIFIED.
+- Safety: test uses only the workflow's disposable local TimescaleDB service. No provider/VPS provisioning, canonical T0 database, Feeder activation, exchange connection, Binance sync, Paper DB mutation, or live execution.
+- Next: inspect completion and logs for run #42165386542, especially the fresh-cluster bootstrap. Diagnose permission/migration failures without broadening privileges or weakening migration guards; then update this handoff with exact job outcomes and artifact digests.
+
