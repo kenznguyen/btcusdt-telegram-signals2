@@ -107,7 +107,7 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
         self.assertEqual(ai, ("0",))
         self.assertEqual(risk[0], 0)
         self.assertIsNotNone(risk[1])
-        self.assertEqual(migration, [(1, "APPLIED"), (2, "APPLIED")])
+        self.assertEqual(migration, [(1, "APPLIED"), (2, "APPLIED"), (3, "APPLIED")])
         self.assertEqual(legacy_after, legacy_state)
         self.assertEqual(owner_after, legacy_owner)
 
@@ -207,7 +207,7 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
                 "SELECT COUNT(*) FROM paper_orders"
             ).fetchone()[0]
 
-        self.assertEqual([row[0] for row in migrations], [1, 2])
+        self.assertEqual([row[0] for row in migrations], [1, 2, 3])
         self.assertEqual(migrations[1][1], "legacy_book_depth_v2")
         self.assertEqual(len(migrations[1][2]), 64)
         self.assertEqual(migrations[1][3], "APPLIED")
@@ -240,7 +240,7 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
             preserved_after_reopen = connection.execute(
                 "SELECT position,average,realized,fees FROM paper_state WHERE id=1"
             ).fetchone()
-        self.assertEqual(counts, [(1, 1), (2, 1)])
+        self.assertEqual(counts, [(1, 1), (2, 1), (3, 1)])
         self.assertEqual(preserved_after_reopen, legacy_state)
 
 
