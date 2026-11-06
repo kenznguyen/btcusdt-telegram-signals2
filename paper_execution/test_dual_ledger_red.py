@@ -451,5 +451,87 @@ class DualLedgerRedTest(unittest.TestCase):
             ledger.read_account_risk_snapshot(self.path, now_ms=self.now)
 
 
+    def test_dedicated_legacy_reduction_closes_only_legacy_ledger(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """UPDATE paper_strategy_ledgers
+                   SET position_base='0.05',average_entry_price='90',
+                       initial_margin_quote='0.35'
+                   WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
+            )
+            connection.execute(
+                """UPDATE paper_account_risk_state
+                   SET last_equity_quote='100.5',high_water_mark_quote='100.5'
+                   WHERE account_id=1"""
+            )
+        before_reservations = sqlite3.connect(self.path).execute(
+            "SELECT COUNT(*) FROM paper_risk_reservations"
+        ).fetchone()[0]
+        order = ledger.reduce_legacy_unattributed(
+            self.path,
+            self.intent("legacy-partial-close", "0.02", "100", "legacy-close-book"),
+            self.book(self.now),
+            self.now,
+            reconciliation_id="legacy-close-review-001",
+            evidence_hash="sha256:legacy-close-evidence-001",
+        )
+        self.assertEqual(order["status"], "FILLED", order)
+        self.assertEqual(order["strategyId"], "LEGACY_UNATTRIBUTED")
+        self.assertEqual(order["strategyEvent"], "LEGACY_REDUCTION")
+        with sqlite3.connect(self.path) as connection:
+            rows = {
+                row[0]: row[1:]
+                for row in connection.execute(
+                    """SELECT strategy_id,position_base,realized_pnl_quote,fees_quote,
+                              initial_margin_quote
+                       FROM paper_strategy_ledgers WHERE account_id=1"""
+                )
+            }
+            reservation_count = connection.execute(
+                "SELECT COUNT(*) FROM paper_risk_reservations"
+            ).fetchone()[0]
+            audit = connection.execute(
+                "SELECT document FROM paper_audit ORDER BY id DESC LIMIT 1"
+            ).fetchone()[0]
+        self.assertEqual(rows["LEGACY_UNATTRIBUTED"][0], "0.02")
+        self.assertEqual(rows["STRATEGY_CORE"][0], "0")
+        self.assertEqual(rows["AI_FREQAI"][0], "0")
+        self.assertGreater(Decimal(rows["LEGACY_UNATTRIBUTED"][2]), Decimal("0"))
+        self.assertLess(Decimal(rows["LEGACY_UNATTRIBUTED"][3]), Decimal("0.35"))
+        self.assertEqual(reservation_count, before_reservations)
+        self.assertIn("legacy-close-review-001", audit)
+        self.assertIn("sha256:legacy-close-evidence-001", audit)
+
+    def test_legacy_reduction_path_rejects_increase_or_reversal_without_mutation(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """UPDATE paper_strategy_ledgers
+                   SET position_base='0.05',average_entry_price='100'
+                   WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
+            )
+        before = sqlite3.connect(self.path).execute(
+            """SELECT position_base,realized_pnl_quote,fees_quote
+               FROM paper_strategy_ledgers
+               WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
+        ).fetchone()
+        for target, intent_id in (("0.06", "legacy-increase"), ("-0.01", "legacy-reverse")):
+            result = ledger.reduce_legacy_unattributed(
+                self.path,
+                self.intent(intent_id, target, "100.1", intent_id),
+                self.book(self.now),
+                self.now,
+                reconciliation_id="legacy-close-review-002",
+                evidence_hash="sha256:legacy-close-evidence-002",
+            )
+            self.assertEqual(result["status"], "REJECTED", result)
+            self.assertEqual(result["reason"], "LEGACY_REDUCTION_ONLY")
+        after = sqlite3.connect(self.path).execute(
+            """SELECT position_base,realized_pnl_quote,fees_quote
+               FROM paper_strategy_ledgers
+               WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
+        ).fetchone()
+        self.assertEqual(before, after)
+
+
 if __name__ == "__main__":
     unittest.main()
