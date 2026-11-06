@@ -13,10 +13,23 @@ class DualLedgerRedTest(unittest.TestCase):
         self.now = 1_800_000_000_000
         bootstrap = PaperLedger(self.path, max_position_base="1", fee_rate="0.001")
         bootstrap.record_equity("100", self.now - 60_000, self.now, "sha256:dual-ledger-seed", "100")
+        limits = {"maxDrawdownPct": "50", "maxDailyLossUsdt": "50", "maxExposureUsdt": "1000"}
         self.core = PaperLedger(self.path, max_position_base="1", fee_rate="0.001",
-                                strategy_id="STRATEGY_CORE", source_sha="a" * 40)
+                                strategy_id="STRATEGY_CORE", source_sha="a" * 40,
+                                risk_limits=limits, require_risk_limits=True)
         self.ai = PaperLedger(self.path, max_position_base="1", fee_rate="0.001",
-                              strategy_id="AI_FREQAI", source_sha="a" * 40)
+                              strategy_id="AI_FREQAI", source_sha="a" * 40,
+                              risk_limits=limits, require_risk_limits=True)
+        with sqlite3.connect(self.path) as connection:
+            day = self.now // 86_400_000 * 86_400_000
+            connection.execute(
+                """UPDATE paper_account_risk_state SET high_water_mark_quote='100',
+                   daily_baseline_utc_day_ms=?,daily_baseline_equity_quote='100',
+                   last_equity_quote='100',last_mark_price='100',mark_observed_at_ms=?,
+                   mark_candle_close_ms=?,dataset_version='sha256:dual-ledger-seed',
+                   risk_ready=1,unavailable_reason=NULL,updated_at_ms=? WHERE account_id=1""",
+                (day, self.now, self.now-60_000, self.now),
+            )
 
     def intent(self, intent_id, target, limit, snapshot_id):
         return {
@@ -52,7 +65,7 @@ class DualLedgerRedTest(unittest.TestCase):
             self.now,
         )
         ai_order = self.ai.submit(
-            self.intent("ai-short", "-0.2", "100", "ai-book"),
+            self.intent("ai-short", "-0.1", "100", "ai-book"),
             self.book(self.now + 1),
             self.now + 1,
         )
