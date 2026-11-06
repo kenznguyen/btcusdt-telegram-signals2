@@ -260,11 +260,11 @@ def _negative_vectors(namespace_uuid: uuid.UUID) -> list[dict[str, Any]]:
         ("INVALID_SIGNATURE", "synthetic invalid signature bytes; no private key involved", "REJECT_SIGNATURE"),
         ("UNKNOWN_SIGNING_KEY", "signature references an unknown synthetic key ID", "REJECT_UNKNOWN_KEY"),
         ("REVOKED_SIGNING_KEY", "signature references a revoked synthetic key ID", "REJECT_REVOKED_KEY"),
-        ("LATE_PRE_BOUNDARY_EVENT", "pre-boundary event commits after the proposed boundary", "INVALIDATE_CHECKPOINT"),
-        ("PARTIAL_FILL_CANCEL_REPLACE", "accepted, partial fill, cancel, replace, final fill", "REPLAY_ORDER_LIFECYCLE"),
+        ("CHECKPOINT_BOUNDARY", "pre-boundary event commits after the proposed boundary", "INVALIDATE_CHECKPOINT"),
+        ("RECOVERY", "crash/restart with partial fill, cancel, replace and final fill", "REPLAY_ORDER_LIFECYCLE"),
         ("REDUCE_CLOSE_REVERSAL", "reduce and close before separately admitting reversal increase", "REDUCE_THEN_ADMIT_REVERSE"),
         ("UNKNOWN_FEE_FUNDING", "fee and funding amounts are UNKNOWN, not numeric zero", "BLOCK_REQUIRED_EQUITY"),
-        ("STALE_MISSING_MARK_CLOCK", "stale/missing mark and uncertain source clock", "BLOCK_VALUATION_READINESS"),
+        ("STALE_MARK", "stale/missing mark and uncertain source clock", "BLOCK_VALUATION_READINESS"),
         ("ROOT_B_DUPLICATE_ACK_CRASH", "duplicate observer acknowledgement and crash around checkpoint commit", "IDEMPOTENT_RECOVERY_OR_BLOCK"),
     ]
     return [{
