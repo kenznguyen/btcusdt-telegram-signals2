@@ -126,6 +126,13 @@ class T0FreqtradeAdapterTests(unittest.TestCase):
 
     def test_rejects_unclosed_or_unvalidated_candle(self):
         self.payload["candles"][0]["isClosed"] = False
+        identity = {key: self.payload[key] for key in (
+            "exchange", "marketType", "symbol", "timeframe",
+            "startMs", "endMs", "asOfMs", "candles"
+        )}
+        self.payload["datasetVersion"] = "sha256:" + hashlib.sha256(
+            json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
         self.write_snapshot()
         with self.assertRaisesRegex(T0FreqtradeAdapterError, "CANDLE_NOT_CLOSED_AND_VALIDATED"):
             export_t0_snapshot(self.snapshot, self.output)
