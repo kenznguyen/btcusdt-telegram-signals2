@@ -11,7 +11,6 @@ import uuid
 from market_data.feeder import FeederConfig, FeederRuntime
 from market_data.feeder_service import PostgresRuntimeLeaseAdapter
 from market_data.postgres import PostgresLeaseStore, connection
-from market_data.storage import PostgresStore
 
 
 DSN = os.environ.get("MARKET_DATA_TEST_DATABASE_URL", "")
@@ -122,15 +121,24 @@ class PostgresFeederRuntimeLifecycleIntegrationTest(unittest.TestCase):
                 time.sleep(0.05)
             self.assertEqual(runtime.state, "LEASE_LOST")
             self.assertTrue(scheduler.stopped)
+            now_ms = time.time_ns() // 1_000_000
             snapshot = runtime.health_snapshot({
                 "storage_readable": True,
                 "storage_writable": True,
-                "m15": {"latest_closed_candle_close_ms": 1,
-                        "last_successful_sync_ms": 1,
+                "startup_complete": True,
+                "m15": {"latest_closed_candle_close_ms": now_ms,
+                        "last_successful_sync_ms": now_ms,
                         "unresolved_gap_count": 0, "sync_error": None},
             })
+            from market_data.feeder import HealthEvaluator
+            health = HealthEvaluator(FeederConfig(timeframes=("15m",))).evaluate(
+                snapshot, now_ms=now_ms
+            )
             self.assertIs(snapshot["lease_valid"], False)
-            self.assertNotEqual(snapshot.get("startup_complete"), True)
+            self.assertFalse(health.ready)
+            # A drained old runtime must stop cleanly without releasing or
+            # disturbing the replacement owner's fencing generation.
+            self.assertTrue(runtime.stop(timeout=3))
         finally:
             # A lost owner must never release the replacement generation.
             runtime._heartbeat_stop.set()
