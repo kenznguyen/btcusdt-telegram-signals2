@@ -9,6 +9,13 @@ import sqlite3
 
 from pipeline.values import identity, number, stamp
 from paper_execution import risk_control, equity as equity_history
+from paper_execution.account_history import (
+    MIGRATION_VERSION as ACCOUNT_HISTORY_MIGRATION_VERSION,
+    MIGRATION_CHECKSUM as ACCOUNT_HISTORY_MIGRATION_CHECKSUM,
+    migrate_account_history, record_account_history_event,
+    record_account_history_coverage, record_market_mark_history,
+    reconstruct_daily_equity_baseline,
+)
 from paper_execution.funding import (
     MIGRATION_VERSION as FUNDING_MIGRATION_VERSION,
     MIGRATION_CHECKSUM as FUNDING_MIGRATION_CHECKSUM,
@@ -1213,6 +1220,7 @@ class PaperLedger:
                 migrate_reservation_expiry(connection, self.source_sha)
                 migrate_funding_provenance(connection, self.source_sha)
                 migrate_account_equity_cutover(connection, self.source_sha)
+                migrate_account_history(connection, self.source_sha)
 
     def connect(self):
         connection = sqlite3.connect(self.path, timeout=10)
