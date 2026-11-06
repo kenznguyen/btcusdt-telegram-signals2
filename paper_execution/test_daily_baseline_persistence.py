@@ -108,6 +108,53 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
         intent["validUntilMs"] = now_ms + 30_000
         return intent
 
+    def test_writer_rejects_missing_immutable_audit_trigger_before_writing(self):
+        with self._connection() as db:
+            db.execute("DROP TRIGGER paper_daily_equity_baseline_audit_immutable_update")
+            db.commit()
+        with self.assertRaisesRegex(
+            sqlite3.DatabaseError, "DAILY_BASELINE_IMMUTABLE_SCHEMA_INCOMPLETE"
+        ):
+            self.persist()
+        with self._connection() as db:
+            self.assertEqual(db.execute(
+                "SELECT COUNT(*) FROM paper_daily_equity_baselines"
+            ).fetchone()[0], 0)
+            self.assertEqual(db.execute(
+                "SELECT COUNT(*) FROM paper_daily_equity_baseline_audit"
+            ).fetchone()[0], 0)
+
+    def test_writer_rejects_missing_immutable_baseline_trigger_before_writing(self):
+        with self._connection() as db:
+            db.execute("DROP TRIGGER paper_daily_equity_baselines_immutable_delete")
+            db.commit()
+        with self.assertRaisesRegex(
+            sqlite3.DatabaseError, "DAILY_BASELINE_IMMUTABLE_SCHEMA_INCOMPLETE"
+        ):
+            self.persist()
+        with self._connection() as db:
+            self.assertEqual(db.execute(
+                "SELECT COUNT(*) FROM paper_daily_equity_baselines"
+            ).fetchone()[0], 0)
+
+    def test_invalid_high_water_mark_fails_closed_without_partial_baseline(self):
+        with self._connection() as db:
+            db.execute(
+                "UPDATE paper_account_risk_state SET high_water_mark_quote=NULL WHERE account_id=1"
+            )
+            db.commit()
+        with self.assertRaisesRegex(
+            sqlite3.DatabaseError, "DAILY_BASELINE_RISK_STATE_INVALID"
+        ):
+            self.persist()
+        with self._connection() as db:
+            self.assertEqual(db.execute(
+                "SELECT COUNT(*) FROM paper_daily_equity_baselines"
+            ).fetchone()[0], 0)
+            self.assertEqual(db.execute(
+                "SELECT COUNT(*) FROM paper_daily_equity_baseline_audit"
+            ).fetchone()[0], 0)
+
     def test_os_process_kill_before_commit_rolls_back_baseline_audit_and_risk_state(self):
         script = r"""
 import os
