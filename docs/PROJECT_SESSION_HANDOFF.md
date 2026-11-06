@@ -1518,3 +1518,17 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 ### Next step
 
 - Perform a focused self-review of the shutdown state transition and the complete P0 security/recovery design against the tested source SHA; then define the next explicitly gated production-readiness increment. Keep production provisioning and Feeder activation blocked until that review and its approval gates are complete.
+
+
+## 2026-11-06 — P0 production security document reconciliation
+
+- Self-review of the P0 production security/recovery design found two stale statements:
+  1. It incorrectly claimed the PostgreSQL design document still used `MARKET_DATA_DATABASE_URL`. Current code, design, and acceptance docs consistently use `MARKET_DATA_POSTGRES_DSN`; the separate `MARKET_DATA_DB` SQLite path remains the Paper ledger/fallback path.
+  2. It described disposable role/grant acceptance as not yet performed, despite the exact-source TimescaleDB role suite passing 18/18.
+- Corrected `docs/T0_PRODUCTION_SECURITY_BACKUP_RPO_RTO.md` in commit `a12bd374a52cc8daa0e1f09b5922d2642ed45e8c`:
+  - Removed the false DSN naming blocker and explicitly disallowed an unsupported `MARKET_DATA_DATABASE_URL` alias.
+  - Recorded disposable TimescaleDB 2.17.2 role/grant acceptance 18/18 PASS.
+  - Preserved the boundary that production-provider grants, provider-specific TLS/credential rotation, backup/PITR, and restore/failover remain unverified.
+- Documentation-only change; no tests rerun, no source/runtime/config changes, no database/VPS/credential/network/Feeder/exchange actions.
+- Current production readiness remains **BLOCKED / NOT CERTIFIED** until provider/region/cost ceiling are selected and exact-provider TLS, credential rotation, backup/PITR, restore/failover, and old-primary fencing acceptance are demonstrated.
+- Next technical review: inspect production runtime DSN handling against the documented TLS `verify-full` requirement; do not weaken TLS requirements or connect to any production target.
