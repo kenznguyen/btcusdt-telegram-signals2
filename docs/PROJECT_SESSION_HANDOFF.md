@@ -1484,9 +1484,9 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 
 1. Initial CI run `42156450016`, source SHA `e181f2a779419c6930f043be47e43d89eb0b685f`: static Gateway and Paper jobs passed; TimescaleDB lifecycle tests failed because the fixture used a noncanonical lease name. This run did not verify lifecycle behavior.
 2. RED reproduction after canonical lease fixture correction, run `42156715010`, source SHA `708d815473ec653e1a4b4fa6f8616d2ac9d5079d`: lifecycle suite ran 4 tests; takeover/readiness test failed exactly at shutdown with `RuntimeError: Feeder could not release its owner/generation lease`. The other 3 lifecycle tests passed. This confirmed the runtime defect.
-3. GREEN run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42156876274
+3. Initial GREEN implementation run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42156876274. After self-review, lifecycle-test cleanup was hardened so the old runtime is always drained/joined even if an assertion fails (commit `dbf16ab31019b91a616e5b8982ee1da513eb6fce`). Final exact-HEAD revalidation: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42157325408.
    - Event: push; branch: `feature/t0-centralized-data-feeder-p1-20261101`.
-   - Exact checked-out source SHA: `75856f73da569a6a33e0b8b9c11340d518ad7794` (confirmed by the TimescaleDB job's `git rev-parse HEAD` output).
+   - Final exact checked-out source SHA: `dbf16ab31019b91a616e5b8982ee1da513eb6fce` (confirmed by the TimescaleDB job's `git rev-parse HEAD` output).
    - Jobs: 3/3 SUCCESS (Static Gateway contract verification, Paper consumer fixture regressions, Isolated TimescaleDB integration).
    - Static Gateway RED contracts: 10/10 PASS.
    - Existing Gateway/Feeder regression invocation: 60 tests PASS.
@@ -1502,14 +1502,14 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
      - Read-only TimescaleDB: 6/6 PASS.
      - Disposable target preflight PASS; no exchange credentials, production DB, or external exchange access.
    - Artifacts:
-     - Static Gateway: ID `13475192285`, SHA-256 digest `231bf597c7596e0a20193b5b14295470692f701559513c65d13fc31e5726b1ec`.
-     - Paper consumer: ID `13475515590`, SHA-256 digest `2fd4cbb46bd8ec4a535e8c3da6b62f0dd1c5e87033e92cee2efa05860a47e7b3`.
-     - TimescaleDB including lifecycle logs: ID `13474439132`, SHA-256 digest `e4ba19f50cbfb1ccfb9da716ec38f3ab0cb5743b2194a20a4c9e950dc3a4151a`.
+     - Static Gateway: ID `13474772650`, SHA-256 digest `e25bae2244e49e56abd11aab2e130cb6e99872e11e17a3370c534b6c432c2cc4`.
+     - Paper consumer: ID `13474414668`, SHA-256 digest `ac466622bab23e52ce63b26e4dcc6e3cfe52119b03b71ce415a3c20031f1d47e`.
+     - TimescaleDB including lifecycle logs: ID `13475531098`, SHA-256 digest `2679d072d2e6811110574593c73e30439db9f20bf506994e0fd346b916a8f8c6`.
    - Artifact digests are GitHub upload digests; payload bytes have not been independently downloaded and re-hashed in this increment.
 
 ### Verdict and boundaries
 
-- P0 PostgreSQL FeederRuntime lifecycle acceptance: **PASS** on exact source SHA `75856f73da569a6a33e0b8b9c11340d518ad7794`.
+- P0 PostgreSQL FeederRuntime lifecycle acceptance: **PASS** on final exact source SHA `dbf16ab31019b91a616e5b8982ee1da513eb6fce` (run `42157325408`, 3/3 jobs SUCCESS).
 - PG Gateway + runtime adapter + lifecycle + least-privilege + read-only integration CI: **PASS** for the tested disposable TimescaleDB environment.
 - Production certification: **NOT GRANTED**. These tests do not authorize provisioning or migration of a production canonical database, creating credentials, changing TLS/network/VPS settings, starting the production Feeder, connecting Binance, or syncing market data.
 - `ai_execution_enabled=false`; paper-only boundary unchanged.
