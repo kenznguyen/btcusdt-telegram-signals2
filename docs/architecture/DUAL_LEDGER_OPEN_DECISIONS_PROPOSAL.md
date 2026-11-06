@@ -1,6 +1,6 @@
 # Dual Ledger — Open Decision Proposal
 
-**Status:** PROPOSED FOR USER REVIEW — not approved for implementation  
+**Status:** APPROVED — six design decisions accepted; implementation remains separately gated  
 **Date:** 2026-11-06  
 **Branch:** `feature/t0-centralized-data-feeder-p1-20261101`  
 **Scope:** Resolve the six open design questions in `DUAL_LEDGER_SCHEMA_MIGRATION_PLAN.md`.
@@ -82,3 +82,8 @@ If approved, these six decisions become normative schema/runtime requirements. A
 ## Approval boundary
 
 A user approval of this proposal would close the six **design decisions** and authorize updating the schema/migration plan and test specifications only. It would **not** authorize source implementation, DB migration, feature flag activation, backtests, merge/deployment or any live execution. Those require separate explicit approval.
+
+
+## Approval record — 2026-11-06
+
+The user explicitly approved all six decisions in this proposal. They are now normative design requirements for the schema/migration plan and test specifications. This approval authorizes documentation updates only. It does not authorize source implementation, database migration/data rewrite, feature activation, backtests, merge, deployment, exchange connectivity or live execution. A separate explicit approval is required before implementation.
