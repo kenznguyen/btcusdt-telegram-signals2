@@ -206,3 +206,43 @@ T0 remains PAUSED. No database, exchange, provider, persistent capture, runtime 
 ### Next step
 
 Keep the P1.8.2 result recorded and review the next gap separately. Do not enable full RFC 8785 floating-point support, introduce signing/key custody, or begin provider/runtime work without a separate explicit approval.
+
+
+## 11. P1.8.3 — synthetic-only fault injection harness (implementation in progress)
+
+### Approval and exact scope
+
+User explicitly approved `APPROVE P1.8.3 — SYNTHETIC-ONLY FAULT INJECTION` on 2026-11-07.
+
+The increment is restricted to deterministic, local synthetic reference models and GitHub Actions. It does not import or call T0/T1 runtime code and does not access a database, exchange, provider, VPS, credentials, persistent capture, signing keys, or any execution adapter. `ai_execution_enabled=false` remains required.
+
+### Source changes
+
+- `synthetic_evidence/fault_injection.py`: isolated reference-model contracts for unknown fee/funding, mark freshness, late-event checkpoint invalidation, and accepted/partial/cancel/replace/fill replay.
+- `synthetic_evidence/generator.py`: renamed three catalog vector identifiers to the approved executable names `CHECKPOINT_BOUNDARY`, `STALE_MARK`, and `RECOVERY`; retained `UNKNOWN_FEE_FUNDING`.
+- `synthetic_evidence/test_generator.py`: added seven unittest cases; total focused suite is now 36 tests (29 prior + 7 new).
+
+### Implemented synthetic contracts
+
+- `UNKNOWN_FEE_FUNDING`: a missing fee or funding amount raises an incomplete-equity error; it is never silently coerced to numeric zero.
+- `STALE_MARK`: missing/non-positive marks, stale timestamps, unsafe future timestamps and excessive clock uncertainty are rejected.
+- `CHECKPOINT_BOUNDARY`: a late-committed event whose event time is at/before the checkpoint boundary invalidates that checkpoint; events after the boundary do not.
+- `RECOVERY`: replay is idempotent for identical duplicate delivery, rejects changed bytes under the same event ID and late fills against inactive/cancelled orders, and models partial fill -> cancel -> replacement -> final fill. The crash/restart test compares replayed state with uninterrupted replay.
+
+These are synthetic reference-model tests, not proof that the T0/T1 production ledger or recovery coordinator implements these semantics.
+
+### Exact source and current verification state
+
+- Test/catalog coverage commit: `16ccd8a3747ce9bf98e795d522d52a5adeca8155`.
+- Generator blob SHA: `ba179aebe14aabb177d05f36236a75d0cdfd6d88`.
+- Test blob SHA: `fdb3369f916672173b681870c9f310b1872d5982`.
+- Fault harness blob SHA: `0af64d3625e88e8e1334182364094b1227faec58`.
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- GitHub Actions run ID, job ID, checked-out SHA confirmation and artifact digest: **NOT VERIFIED** at the time of this update.
+- Compile and 36-test execution: **NOT VERIFIED** until GitHub Actions evidence is inspected.
+
+### Status and remaining boundaries
+
+**Implementation: IN PROGRESS. CI acceptance: NOT VERIFIED.** Do not label P1.8.3 PASS until the workflow checks out exact source SHA `16ccd8a3747ce9bf98e795d522d52a5adeca8155`, compilation and all 36 tests pass, and the artifact/provenance are reconciled.
+
+No T0/T1 runtime, database, strategy, provider, VPS, persistent capture, signing/key lifecycle, Root B, or live execution work is included. T0 remains PAUSED and `ai_execution_enabled=false`.
