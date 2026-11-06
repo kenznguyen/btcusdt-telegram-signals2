@@ -357,3 +357,16 @@ Explicit limitations:
 - Provider, storage, persistent capture and T0/T1 runtime work remain outside scope.
 
 Local verification at implementation time: 19/19 focused tests PASS; py_compile PASS; two 1,000-event outputs byte-identical; fixture SHA-256 manifest PASS. GitHub Actions exact-head result and artifact must be recorded separately after the workflow completes.
+
+
+## 15. P1.8.1 environment and signature-profile descriptor fields (2026-11-07)
+
+For local generator run descriptors, record:
+- OS and architecture;
+- CPU model and logical CPU count;
+- sysconf-reported total memory where available (otherwise explicit null);
+- storage medium as `NOT_MEASURED` unless independently measured;
+- Python/runtime implementation and tool versions;
+- explicit `hash_signature_profile` distinguishing unsigned local hash-only fixtures from any future signed profile.
+
+The environment is descriptive provenance, not a claim that host memory equals a container/cgroup memory limit. Missing storage-medium measurement must remain explicit rather than inferred.
