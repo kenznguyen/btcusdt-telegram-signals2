@@ -24,7 +24,7 @@ class DeterministicLedgerReplayContractTest(unittest.TestCase):
             "fill_price": price,
             "fee_quote": fee,
             "fee_currency": "USDT",
-            "recorded_at_ms": 1_700_000_000_100,
+            "recorded_at_ms": 1_700_006_000_000,
         }
 
     def test_replay_sorts_by_event_time_and_handles_partial_fills_reduction_and_reversal(self):
