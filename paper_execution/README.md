@@ -96,6 +96,23 @@ This API is not an owner-reassignment mechanism, production migration command,
 backtest, exchange adapter or live execution path. `ai_execution_enabled=false`
 remains mandatory.
 
+
+## Reservation expiry and restart recovery
+
+Migration v3 adds nullable expires_at_ms to paper_risk_reservations and an expiry
+index. New Core/AI orders persist validUntilMs in the order document and the same
+admission-time deadline in their reservation. A pending or partial reservation
+expires only after now_ms is later than validUntilMs; its order becomes EXPIRED and
+only the unfilled remaining margin/notional is released. Filled position, PnL, fees
+and consumed book depth are not rolled back.
+
+Expiry is swept transactionally before a scoped Core/AI submit or cancel, so a
+restart does not reset the deadline. Retrying the original intent returns the
+persisted EXPIRED order. Read-only snapshots never perform expiry writes. Historical
+active reservations with no trustworthy expiry timestamp remain active and continue
+to block same-ledger replacement; they require explicit cancel/reconciliation rather
+than an invented deadline.
+
 ## Kiểm chứng
 
 ```bash
