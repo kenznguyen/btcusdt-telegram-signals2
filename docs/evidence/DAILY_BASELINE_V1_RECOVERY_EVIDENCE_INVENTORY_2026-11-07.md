@@ -314,3 +314,46 @@ P1.6 specification hardened in §13: commit `6b5d643ea4b22f066877cdbf221dd3f01ca
 Acceptance Test Plan amended with P1.7 readiness gates: commit `296518594fd192b0468c7a600657d3ca04d69f06`.
 
 **Status:** PASS — documentation review and deterministic-profile amendments recorded. CONDITIONAL — P1.6 is ready for implementation planning only after review of the exact PRF/manifest profiles. NOT IMPLEMENTED — generator/harness. NOT RUN — crypto vectors, fixture generation, benchmark, replay or restore. NOT AUTHORIZED — generator implementation, provider tests, cloud account, credentials, provisioning, persistent capture or runtime changes. No CI run (documentation-only); no source/schema/workflow/database/runtime changes. Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged; T0 paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — P1.8 Standalone Synthetic Evidence Generator
+
+### Scope and source commits
+
+Approved scope: synthetic-only local generator/test harness. No account DB, T0/T1 runtime, exchange, provider, credentials, persistent capture or live execution.
+
+- Package marker: `synthetic_evidence/__init__.py`, commit `a7cc4696192f95aacc1c305bf518ea50d248bcb5`.
+- TDD tests first (RED import failure before implementation): `synthetic_evidence/test_generator.py`, commit `2070a86d7e14916f1d38563ca48261bdcf24422e`.
+- Generator implementation: `synthetic_evidence/generator.py`, initial commit `7c089273e165aeb0a8215e808d61c52cb39a6297`; replay/input hardening commit `6f8b2c140ef32264496c6c8b7da3020b3babc16b`.
+- CLI: `synthetic_evidence/__main__.py`, commit `3321355fb311761acd34352c72e7a4f3bfc03997`.
+- Local usage/limits: `synthetic_evidence/README.md`, commit `07bd28c68185b95115a7ea1e508d89a784cdaa6e`.
+- GitHub Actions workflow: `.github/workflows/p1-8-synthetic-evidence.yml`, initial commit `a591bfb3626b3cdeaa9841b81eaf3d1a90410a2d`; expression fix `1960e091f84fc64f2e40b4243abdbb440116a05d`.
+- Replay edge tests: `synthetic_evidence/test_generator.py`, commit `9587051361e13063841a6e96c7b415fbb6ae0cf5`.
+- Implementation report: `docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_GENERATOR_IMPLEMENTATION_2026-11-07.md`, commit `8eefd83bca4b49ddcb531a575d2dc7030157964b`.
+- P1.6 weight-sum/spec correction: commit `21cc29fb9bf1261672d8d2934f041c7411938e8d`.
+- Acceptance Test Plan P1.8 gates: commit `03d81abf7347e964beb63dbaad74269da56c1844`.
+
+### Local evidence
+
+- Focused tests: **19/19 PASS**.
+- `py_compile synthetic_evidence/*.py`: **PASS**.
+- PRF known-answer vector, strict JSON validation, UUID/sequence/hash/causality, segment caps, manifest digest, replay duplicate/tamper/gap/wrong-hash: **PASS**.
+- Two independent 1,000-event output directories with identical descriptor: **byte-identical**.
+- SHA-256 file manifest: **all listed files PASS**.
+- Exploratory local single-run measurements: 1k events 0.438 s (~2,282 events/s); 10k events 4.693 s (~2,131 events/s). These are not production throughput certification or the five-run P1.6 benchmark.
+
+### GitHub Actions evidence status
+
+- Workflow source committed and exact triggering SHA checkout configured.
+- GitHub combined status query returned no status records; available workflow-run listing connector only exposes pull-request-triggered runs and returned none for this push commit.
+- Exact GitHub Actions run ID, conclusion, checked-out SHA from job log, artifact ID and artifact digest: **NOT VERIFIED / NOT RECORDED**. Do not claim CI PASS until those details are retrieved.
+- Workflow is designed to upload `p1-8-synthetic-evidence-<SHA>` with 7-day retention; this is a configured name, not proof that an artifact exists.
+
+### Known limits
+
+- P1.6 event-class weights were incorrectly described as summing to 100; actual sum is 94. They are now normalized as relative weights; actual scenario counts remain separately reported.
+- Canonical JSON is a strict JCS-compatible subset; full RFC 8785 and cross-language vectors NOT VERIFIED.
+- Ed25519 signing/verification, key lifecycle and signed storage receipt NOT IMPLEMENTED.
+- 13 negative-vector descriptions are catalogued; not every fault path is executed.
+- Root B remains LOCAL_REPLAY_SIMULATION only. Provider qualification, retention, cost, independent restore and persistent capture NOT AUTHORIZED.
+- Source changes are confined to `synthetic_evidence/`; one isolated GitHub Actions workflow added. No T0/T1 runtime/schema/database/risk changes. PAPER-only; `ai_execution_enabled=false`.
