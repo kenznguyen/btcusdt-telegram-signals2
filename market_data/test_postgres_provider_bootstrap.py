@@ -43,6 +43,7 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
         )
         database_created = False
         bootstrap_created = False
+        created_reserved_roles = []
 
         try:
             # The service admin is used only to create a restricted bootstrap
@@ -71,16 +72,23 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
                 self.assertEqual(flags, (False, True, True))
 
                 bootstrap.execute("CREATE ROLE t0_db_owner NOLOGIN")
+                created_reserved_roles.append("t0_db_owner")
                 bootstrap.execute("CREATE ROLE t0_migrator NOLOGIN")
+                created_reserved_roles.append("t0_migrator")
                 bootstrap.execute(
                     sql.SQL("CREATE ROLE t0_migrator_login LOGIN PASSWORD {}").format(
                         sql.Literal(migrator_password)
                     )
                 )
+                created_reserved_roles.append("t0_migrator_login")
                 bootstrap.execute("CREATE ROLE t0_feeder_writer NOLOGIN")
+                created_reserved_roles.append("t0_feeder_writer")
                 bootstrap.execute("CREATE ROLE t0_candle_writer_owner NOLOGIN")
+                created_reserved_roles.append("t0_candle_writer_owner")
                 bootstrap.execute("CREATE ROLE t0_feeder_lease_manager NOLOGIN")
+                created_reserved_roles.append("t0_feeder_lease_manager")
                 bootstrap.execute("CREATE ROLE t0_lease_manager_owner NOLOGIN")
+                created_reserved_roles.append("t0_lease_manager_owner")
 
                 bootstrap.execute("GRANT t0_db_owner TO t0_migrator")
                 bootstrap.execute("GRANT t0_candle_writer_owner TO t0_migrator")
@@ -234,6 +242,8 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
                     "t0_feeder_lease_manager",
                     "t0_lease_manager_owner",
                 ):
+                    if role_name not in created_reserved_roles:
+                        continue
                     service_admin.execute(
                         sql.SQL("DROP ROLE IF EXISTS {}").format(
                             sql.Identifier(role_name)
