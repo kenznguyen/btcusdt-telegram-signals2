@@ -167,8 +167,13 @@ jobs:
                       sql.SQL("REVOKE {} FROM CURRENT_USER").format(sql.Identifier(admin_role))
                   )
                   after_explicit_revoke = memberships(creator, bootstrap)
-                  assert not any(row[0] == admin_role for row in after_explicit_revoke)
-                  print("EXPLICIT_GRANTOR_REVOKE_RESULT=MEMBERSHIP_REMOVED", flush=True)
+                  assert any(row[0] == admin_role and row[2] == "t0_test" for row in after_explicit_revoke), (
+                      "bootstrap-superuser automatic membership must survive creator-owned REVOKE"
+                  )
+                  assert not any(row[0] == admin_role and row[2] == bootstrap for row in after_explicit_revoke), (
+                      "explicit creator-granted membership should be removed by creator REVOKE"
+                  )
+                  print("EXPLICIT_GRANTOR_REVOKE_RESULT=ONLY_BOOTSTRAP_SUPERUSER_MEMBERSHIP_REMAINS", flush=True)
 
               print("T0_PG16_GRANTOR_REPRODUCTION=PASS", flush=True)
           finally:
