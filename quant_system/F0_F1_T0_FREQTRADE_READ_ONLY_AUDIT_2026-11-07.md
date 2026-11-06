@@ -35,13 +35,14 @@ Observed pinned runtime and model provenance:
 - Frozen prospective holdout protocol: 2026-11-04T00:00:00Z through 2026-12-04T00:00:00Z. Phase22 keeps retraining, tuning, OOS certification, AI promotion and live orders disabled.
 
 Configuration evidence and provenance reconciliation:
-- Historical source commit `082edc082996425f61f48c952be41fb037564103` was inspected through its complete Git tree. It contains two checked-in candidate configs:
-  - `freqai_bridge/config.okx-research.json`, Git blob `bbccccb8fd6688c8b5b27fa6160b8068f3103f35`, 1,890 bytes. It specifies OKX USDT perpetual, isolated futures, M15, BTC/USDT:USDT, dry_run=true, stake 10 USDT, dry_run_wallet 1,000 USDT, max_open_trades=1, FreqAI identifier `chart-pro-okx-shadow-v1`, force_entry_enable=false and initial_state=running.
-  - `freqai_bridge/config.research.json`, Git blob `a777e018f457628150647064119435ce75dc3e29`, 1,730 bytes. It specifies Binance, dry_run=true, M15, BTC/USDT:USDT, FreqAI identifier `chart-pro-shadow-v1`; it is not the OKX model config.
-- Frozen metadata `research_evidence/frozen-model/phase13b-20261104/model-candidate-metadata.json`, Git blob `33acca8aac89f0639694efc84fcff76ddf68d989`, records expected `config_sha256=c253091852b704c00fa33bd6fceb69fb4d480630da1645e3e35ebea13888bb72` and `freqai_config_sha256=a716c80fbb78b8d4bc8b436136912e93e6988a8cdf8d7d1945e8f512bcd6d852`.
-- SHA-256 computed from exact retrieved file bytes: OKX candidate `81229b2321adc1345735e476051dec3e9df6065944b2cff6d5cb8dbad8a41e7d`; Binance candidate `3e2aa8a4f131b21b54ff7e7019666b7f054434b10465e53c95f983c62c53cef6`. Neither matches the metadata's expected config hash. These candidate files cannot be asserted as the exact configs used to produce the frozen model.
-- `requirements-freqai.txt` at the same source commit pins `freqtrade[freqai]==2026.9` (Git blob `a33804e411fa4f8a65858590eb0a10c326c02bed`).
-- Result: historical config candidates recovered, but the exact effective/frozen training config and its provenance remain **NOT VERIFIED**. A matching config hash and runtime overrides are still required. No config was modified or executed.
+- Historical source commit `082edc082996425f61f48c952be41fb037564103` was inspected through its complete Git tree. It contains:
+  - `freqai_bridge/config.okx-research.json`, Git blob `bbccccb8fd6688c8b5b27fa6160b8068f3103f35`, 1,890 bytes. It specifies OKX USDT perpetual, isolated futures, M15, BTC/USDT:USDT, `dry_run=true`, stake 10 USDT, dry-run wallet 1,000 USDT, max_open_trades=1, FreqAI identifier `chart-pro-okx-shadow-v1`, `force_entry_enable=false`, and `initial_state=running`.
+  - `freqai_bridge/config.research.json`, Git blob `a777e018f457628150647064119435ce75dc3e29`, 1,730 bytes. It specifies Binance and identifier `chart-pro-shadow-v1`; it is not the config path passed by the Phase13B native research workflow.
+- The Phase13B Codemagic workflow at the same source commit explicitly passes `--config-path freqai_bridge/config.okx-research.json` to `quant_system.native_research`. That module allowlists and reads this exact file. This is strong source-level evidence that the OKX candidate config was intended for the frozen-model research job; the workflow/source alone does not prove the actual historical job's runtime-resolved config.
+- Important hash semantics: `quant_system/phase13b_freeze.py::_canonical_sha()` hashes canonical JSON objects, not raw config-file bytes. `freqai_bridge/ChartProAuditLightGBMRegressor.py::_capture_phase13b_predict()` constructs the recorded snapshot from the effective Freqtrade `self.config` subset: `freqai`, exchange name, timeframe, `dry_run`, and `force_entry_enable`. The frozen metadata's `config_sha256=c253091852b704c00fa33bd6fceb69fb4d480630da1645e3e35ebea13888bb72` and `freqai_config_sha256=a716c80fbb78b8d4bc8b436136912e93e6988a8cdf8d7d1945e8f512bcd6d852` are therefore effective-runtime-object hashes, not raw file SHA-256 values.
+- Raw file SHA-256 inventory (exact retrieved bytes): OKX config `81229b2321adc1345735e476051dec3e9df6065944b2cff6d5cb8dbad8a41e7d`; Binance config `3e2aa8a4f131b21b54ff7e7019666b7f054434b10465e53c95f983c62c53cef6`. These values are not directly comparable to the metadata's canonical runtime-object hashes.
+- Reconstructing the metadata hashes requires the pinned Freqtrade 2026.9 configuration loader and the effective `self.config` object (or the original run's captured config evidence). That runtime reconstruction has not been performed. The effective runtime config hash is **NOT VERIFIED**.
+- `requirements-freqai.txt` at the same source commit pins `freqtrade[freqai]==2026.9`. The historical OKX candidate contains `live_retrain_hours=1` and `initial_state=running`; do not start this config or a FreqAI process as part of F0/F1. No configuration was executed or modified.
 ## F0 — T0 comparison
 
 T0 canonical contract (from `market_data/README.md` and `market_data/store.py`):
@@ -96,8 +97,8 @@ Pinned upstream source was inspected read-only at tag `2026.9`:
 |---|---|---|
 | F0 pinned Freqtrade version and strategy source inspection | PARTIAL PASS | Version pin and strategy source inspected on the Phase22 branch |
 | Frozen model identity and hashes | PASS — metadata scope only | Exact hashes and model ID read from preserved metadata; no model bytes loaded |
-| Historical config candidates | PARTIAL / HASH MISMATCH | OKX and Binance candidates recovered from source SHA `082edc0`; neither exact-byte SHA-256 matches frozen metadata hashes |
-| Exact frozen/effective Freqtrade/FreqAI config | NOT VERIFIED | Candidate config provenance mismatch; effective runtime overrides unavailable |
+| Historical config path | SOURCE-VERIFIED CANDIDATE | Phase13B workflow passes `freqai_bridge/config.okx-research.json` to native research at source SHA `082edc0`; actual runtime config object hash not reproduced |
+| Effective frozen Freqtrade/FreqAI config hash | NOT VERIFIED | Metadata hashes canonicalized effective `self.config`; pinned Freqtrade loader/runtime object not reconstructed |
 | T0 published schema and read-only semantics | PASS — documentation/source scope | T0 README, store and API inspected on T0 branch |
 | Actual T0 candle comparison | BLOCKED | T0 remains PAUSED; no DB or snapshot opened |
 | F1 offline exporter contract | PASS — exact PR head | Run `42310673116`, job `128211020242`; checked-out SHA equals PR head `d43b34348225629eb6b783f7c4c655301e108a72`; compile PASS; 10/10 tests PASS |
@@ -123,9 +124,10 @@ Earlier run `42310599932` tested the synthetic merge SHA `18a31f6bfd0d7703995334
 
 ## Next permitted steps
 
-1. Recover the original config artifacts whose exact bytes match both frozen metadata hashes; do not substitute the historical candidate files.
-2. To run the actual Freqtrade 2026.9 JSON loader against a synthetic fixture, obtain approval to install the pinned package in an isolated GitHub Actions job or use an already provisioned disposable environment. The current F1 workflow intentionally uses only the Python standard library.
-3. When T0 is explicitly resumed and a canonical snapshot is made available, export a bounded M15/H1 window and run the adapter offline. Do not start T0 merely to satisfy this audit.
-4. Verify source payload hash, datasetVersion, row counts, full coverage, output hash and Freqtrade JSON parsing on the exact source SHA.
-5. Keep Binance export isolated from the existing OKX frozen-model research path.
-6. Only after these gates pass, separately propose any runtime read-only integration. No strategy, model, T1, risk, paper execution or live-order changes are implied.
+1. Recover original run evidence containing the effective Freqtrade `self.config` snapshot, if available, and independently recompute both metadata hashes.
+2. Otherwise obtain explicit approval to add an isolated GitHub Actions job that installs only the pinned `freqtrade[freqai]==2026.9` package, loads the historical OKX config without connecting to an exchange or starting a strategy, and records the effective config hashes.
+3. Use that same disposable CI environment to validate an adapter-generated synthetic fixture through the actual Freqtrade 2026.9 JSON loader / `list-data`; no T0 database or Feeder access is needed for this synthetic format test.
+4. When T0 is explicitly resumed and a canonical snapshot is made available, export a bounded M15/H1 window and run the adapter offline. Do not start T0 merely to satisfy this audit.
+5. Verify source payload hash, datasetVersion, row counts, full coverage, output hash and Freqtrade JSON parsing on the exact source SHA.
+6. Keep Binance export isolated from the existing OKX frozen-model research path.
+7. Only after these gates pass, separately propose any runtime read-only integration. No strategy, model, T1, risk, paper execution or live-order changes are implied.
