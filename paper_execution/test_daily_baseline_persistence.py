@@ -611,7 +611,7 @@ os._exit(74)
                 (self.boundary,),
             ).fetchone()
             payload = json.loads(payload_row[0])
-            payload["replay"]["equity_quote"] = "999"
+            payload["inputs"]["market_mark"]["mark_id"] = "forged-mark-id"
             payload_json = _canonical(payload)
             digest = "sha256:" + hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
             db.execute(
