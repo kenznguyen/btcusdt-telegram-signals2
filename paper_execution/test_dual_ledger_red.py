@@ -1217,5 +1217,131 @@ class DualLedgerRedTest(unittest.TestCase):
             )
 
 
+    def test_account_equity_cutover_rejects_funding_coverage_gap(self):
+        path = self.fresh_account_db("cutover-funding-gap.sqlite3", establish_cutover=False)
+        ledger.record_funding_coverage(
+            path, coverage_id="funding-gap-first",
+            start_at_ms=self.now - 86_400_000, end_at_ms=self.now - 60_000,
+            status="VERIFIED", source="RECONCILED_FUNDING_STATEMENT",
+            source_snapshot_id="funding-gap:first", payload_hash="sha256:" + "2" * 64,
+            config_version="funding-policy-v1", recorded_at_ms=self.now,
+        )
+        ledger.record_funding_coverage(
+            path, coverage_id="funding-gap-second",
+            start_at_ms=self.now - 30_000, end_at_ms=self.now,
+            status="VERIFIED", source="RECONCILED_FUNDING_STATEMENT",
+            source_snapshot_id="funding-gap:second", payload_hash="sha256:" + "3" * 64,
+            config_version="funding-policy-v1", recorded_at_ms=self.now,
+        )
+
+        with self.assertRaisesRegex(ValueError, "FUNDING_PROVENANCE_INCOMPLETE"):
+            ledger.record_account_equity_cutover(
+                path, cutover_id="cutover-funding-gap",
+                expected_initial_capital_quote="100", expected_realized_pnl_quote="0",
+                expected_fees_quote="0", expected_funding_quote="0",
+                expected_account_equity_quote="100", mark_price="100",
+                mark_candle_close_ms=self.now - 60_000, mark_observed_at_ms=self.now,
+                dataset_version="sha256:dual-ledger-seed",
+                funding_coverage_start_at_ms=self.now - 86_400_000,
+                source="RECONCILED_ACCOUNT_STATEMENT",
+                source_snapshot_id="account-cutover:funding-gap",
+                payload_hash="sha256:" + "4" * 64,
+                config_version="account-cutover-v1", recorded_at_ms=self.now,
+            )
+
+    def test_account_equity_cutover_rejects_future_mark_observation(self):
+        path = self.fresh_account_db("cutover-future-mark.sqlite3", establish_cutover=False)
+        ledger.record_funding_coverage(
+            path, coverage_id="future-mark-funding-coverage",
+            start_at_ms=self.now - 86_400_000, end_at_ms=self.now,
+            status="VERIFIED", source="RECONCILED_FUNDING_STATEMENT",
+            source_snapshot_id="funding-future-mark:window",
+            payload_hash="sha256:" + "5" * 64,
+            config_version="funding-policy-v1", recorded_at_ms=self.now,
+        )
+
+        with self.assertRaisesRegex(ValueError, "ACCOUNT_EQUITY_CUTOVER_MARK_INVALID"):
+            ledger.record_account_equity_cutover(
+                path, cutover_id="cutover-future-mark",
+                expected_initial_capital_quote="100", expected_realized_pnl_quote="0",
+                expected_fees_quote="0", expected_funding_quote="0",
+                expected_account_equity_quote="100", mark_price="100",
+                mark_candle_close_ms=self.now - 60_000,
+                mark_observed_at_ms=self.now + 1,
+                dataset_version="sha256:dual-ledger-seed",
+                funding_coverage_start_at_ms=self.now - 86_400_000,
+                source="RECONCILED_ACCOUNT_STATEMENT",
+                source_snapshot_id="account-cutover:future-mark",
+                payload_hash="sha256:" + "6" * 64,
+                config_version="account-cutover-v1", recorded_at_ms=self.now,
+            )
+
+    def test_account_equity_cutover_rejects_stale_closed_candle(self):
+        path = self.fresh_account_db("cutover-stale-candle.sqlite3", establish_cutover=False)
+        ledger.record_funding_coverage(
+            path, coverage_id="stale-candle-funding-coverage",
+            start_at_ms=self.now - 86_400_000, end_at_ms=self.now,
+            status="VERIFIED", source="RECONCILED_FUNDING_STATEMENT",
+            source_snapshot_id="funding-stale-candle:window",
+            payload_hash="sha256:" + "7" * 64,
+            config_version="funding-policy-v1", recorded_at_ms=self.now,
+        )
+
+        with self.assertRaisesRegex(ValueError, "ACCOUNT_EQUITY_CUTOVER_CANDLE_STALE"):
+            ledger.record_account_equity_cutover(
+                path, cutover_id="cutover-stale-candle",
+                expected_initial_capital_quote="100", expected_realized_pnl_quote="0",
+                expected_fees_quote="0", expected_funding_quote="0",
+                expected_account_equity_quote="100", mark_price="100",
+                mark_candle_close_ms=self.now - 30 * 60_000 - 1,
+                mark_observed_at_ms=self.now,
+                dataset_version="sha256:dual-ledger-seed",
+                funding_coverage_start_at_ms=self.now - 86_400_000,
+                source="RECONCILED_ACCOUNT_STATEMENT",
+                source_snapshot_id="account-cutover:stale-candle",
+                payload_hash="sha256:" + "8" * 64,
+                config_version="account-cutover-v1", recorded_at_ms=self.now,
+            )
+
+    def test_account_equity_cutover_rejects_corrupt_funding_event_provenance(self):
+        path = self.fresh_account_db("cutover-corrupt-funding-event.sqlite3", establish_cutover=False)
+        ledger.record_funding_coverage(
+            path, coverage_id="corrupt-event-funding-coverage",
+            start_at_ms=self.now - 86_400_000, end_at_ms=self.now,
+            status="VERIFIED", source="RECONCILED_FUNDING_STATEMENT",
+            source_snapshot_id="funding-corrupt-event:window",
+            payload_hash="sha256:" + "9" * 64,
+            config_version="funding-policy-v1", recorded_at_ms=self.now,
+        )
+        ledger.record_funding_event(
+            path, funding_event_id="corrupt-provenance-event",
+            strategy_id="STRATEGY_CORE", amount_quote="0.25",
+            event_at_ms=self.now - 1_000, source="OKX_FUNDING_HISTORY",
+            source_snapshot_id="okx:funding:corrupt-test",
+            payload_hash="sha256:" + "a" * 64, recorded_at_ms=self.now,
+        )
+        with sqlite3.connect(path) as connection:
+            connection.execute("DROP TRIGGER paper_funding_events_immutable_update")
+            connection.execute(
+                "UPDATE paper_funding_events SET source='LEGACY_UNVERIFIED' WHERE funding_event_id=?",
+                ("corrupt-provenance-event",),
+            )
+
+        with self.assertRaisesRegex(ValueError, "FUNDING_PROVENANCE_INCOMPLETE"):
+            ledger.record_account_equity_cutover(
+                path, cutover_id="cutover-corrupt-funding-event",
+                expected_initial_capital_quote="100", expected_realized_pnl_quote="0",
+                expected_fees_quote="0", expected_funding_quote="0.25",
+                expected_account_equity_quote="99.75", mark_price="100",
+                mark_candle_close_ms=self.now - 60_000, mark_observed_at_ms=self.now,
+                dataset_version="sha256:dual-ledger-seed",
+                funding_coverage_start_at_ms=self.now - 86_400_000,
+                source="RECONCILED_ACCOUNT_STATEMENT",
+                source_snapshot_id="account-cutover:corrupt-funding-event",
+                payload_hash="sha256:" + "b" * 64,
+                config_version="account-cutover-v1", recorded_at_ms=self.now,
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
