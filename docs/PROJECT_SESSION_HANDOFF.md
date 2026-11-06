@@ -3316,3 +3316,15 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **PASS — metadata classification recorded. NOT VERIFIED — artifact payload contents; no independent account evidence root found.** These artifacts remain useful for CI/test provenance, not for Replay A or Reconstruction B.
 - Next: preserve the current classification. Do not download/extract artifacts absent a specific evidence-based reason and explicit scope. A genuine second root must be a retained account event archive or independently retained account checkpoint, not a CI test report.
 - Restrictions unchanged: no source/test implementation, schema migration, persistent account DB opening, backfill, external account import, exchange connection, production backtest, deployment, merge, Epoch activation, HWM reset, or live order. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — CI artifact producer workflow inspection
+
+- Inspected `.github/workflows/dual-ledger-red.yml` at branch HEAD `88a0235df85ba15eeb194e4f013d7ecab444543d`; workflow blob SHA `c7c3e16026c6b5f01b6be1a7d2f1c504a532607a`.
+- The workflow explicitly blanks `PAPER_DB`, `MARKET_DATA_DB`, Binance credentials, and OKX credentials; preflight records PAPER_ONLY and EXTERNAL_SERVICES=NONE.
+- Artifact upload allowlist contains only four test/provenance logs: preflight, compile, focused RED tests, and full paper_execution regression. No account DB, event export, checkpoint, market data payload, or raw trading records are uploaded by this workflow.
+- Therefore the known `dual-ledger-red-evidence-<SHA>` artifacts are test logs by workflow design, not Replay A/B evidence. No artifact payload download was needed; no persistent DB was opened.
+- Inventory updated: `docs/evidence/DAILY_BASELINE_V1_RECOVERY_EVIDENCE_INVENTORY_2026-11-07.md`, commit `813ef724048146e4f2642d88259638d5abfca829`.
+- Result: **PASS — artifact producer classified from exact workflow source. BLOCKED — independent account evidence root still not found.** This conclusion is limited to this workflow; other workflows/private artifacts/external archives were not proven absent.
+- Next: inspect remaining relevant artifact-producing workflows (if any) and their explicit upload allowlists, then stop repository-side evidence search if they also contain only CI logs. Do not download arbitrary artifacts or open the persistent account DB.
+- Restrictions unchanged: no source/test implementation, schema migration, persistent account DB opening, backfill, external account import, exchange connection, production backtest, deployment, merge, Epoch activation, HWM reset, or live order. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
