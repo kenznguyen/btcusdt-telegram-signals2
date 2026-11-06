@@ -1634,3 +1634,45 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No production DB, credentials, TLS certificates, VPS/network rules, Feeder activation, Binance connection, or market-data sync.
 - No merge. ai_execution_enabled=false; paper-only boundary unchanged.
 - Next: complete P0 security/recovery design self-review and enumerate exact staging acceptance gates. Production provisioning remains blocked until provider, region, cost ceiling, TLS/rotation, backup/restore, and fencing evidence are selected and approved.
+
+## 2026-11-06 — P0 PostgreSQL TLS remote-host enforcement
+
+### Review finding and implementation
+
+- Additional review found that sslmode=verify-full alone is insufficient if a DSN selects a Unix-domain socket: libpq does not perform a remote TLS handshake for a local socket, so the configuration could appear compliant while TLS/hostname verification is not actually in use.
+- Extended _require_verified_postgres_tls() to require both explicit sslmode=verify-full and a non-empty remote hostname. Applies to PostgreSQL URI DSNs and libpq keyword DSNs. Unix-socket paths and DSNs without a host are rejected.
+- Added tests for absent remote hostname, Unix-socket host, and valid keyword DSN with remote hostname.
+- Commits:
+  - 976e215d96a5c7e2ab6e6b2bec68de10cb2d9671 — RED remote-host tests.
+  - 631b4525059f49aac7ad588177587df3cba61844 — require remote hostname in TLS DSN validation.
+
+### TDD and CI evidence
+
+1. RED run https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42158795002, source SHA 976e215d96a5c7e2ab6e6b2bec68de10cb2d9671:
+   - Both negative cases failed as expected: a URI DSN without a hostname and a keyword DSN using a Unix socket were accepted despite sslmode=verify-full.
+   - Static Gateway job failed only on the two new TLS hostname cases; Paper consumer job passed; TimescaleDB job skipped.
+2. GREEN run https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42158842138:
+   - Event: push; branch: feature/t0-centralized-data-feeder-p1-20261101.
+   - Exact checked-out source SHA: 631b4525059f49aac7ad588177587df3cba61844, confirmed by disposable TimescaleDB job log T0_TIMESCALE_SOURCE_SHA.
+   - Jobs: 3/3 SUCCESS (Static Gateway contract verification, Paper consumer fixture regressions, Isolated TimescaleDB read-only integration).
+   - Static Gateway / complete market_data suite: 231 tests PASS, 36 skipped.
+   - TLS DSN contract: explicit verify-full and remote hostname accepted; absent sslmode, require, disable, missing hostname, and Unix-socket host rejected.
+   - PostgreSQL atomic writer: 7/7 PASS.
+   - PostgreSQL FeederRuntime: 18/18 PASS.
+   - PostgreSQL FeederRuntime lifecycle: 4/4 PASS.
+   - PostgreSQL least-privilege roles: 18/18 PASS.
+   - Read-only TimescaleDB: 6/6 PASS.
+   - Paper consumer regressions: 44/44 PASS.
+   - Disposable TimescaleDB preflight PASS; no production database, production credentials, external exchange access, or market-data sync.
+   - Artifacts (GitHub upload metadata; payload bytes not independently downloaded/re-hashed):
+     - Static Gateway ID 13476036291, digest sha256:2ce923e2970f82afae9d556d25e207b557dbe4fd68816df17c58aee40e442109.
+     - Paper consumer ID 13474839626, digest sha256:ee96910806b8ab4df23635d76ce01eabc7ff8a675368691c59cc98ac9526c5e4.
+     - TimescaleDB ID 13476171027, digest sha256:a416e61bcd8d60cc661f0b46461e2fa176aede17f7423329e03f010d1fe871cf.
+
+### Verdict and boundaries
+
+- Production PostgreSQL TLS DSN policy (explicit verify-full plus remote hostname): **PASS** on exact source SHA 631b4525059f49aac7ad588177587df3cba61844.
+- This verifies fail-closed configuration parsing and disposable database regression only. Real provider CA chain, certificate validity, hostname match, ingress allowlist, and remote TLS handshake remain **NOT VERIFIED** until a provider-specific staging target is approved.
+- No production database, TLS certificate/secret, VPS, network rule, Feeder activation, Binance connection, or market-data sync.
+- No merge. ai_execution_enabled=false; paper-only boundary unchanged.
+- Next: finalize the P0 security/recovery design review and produce a provider-neutral staging acceptance checklist with measurable evidence requirements. Production provisioning remains blocked.
