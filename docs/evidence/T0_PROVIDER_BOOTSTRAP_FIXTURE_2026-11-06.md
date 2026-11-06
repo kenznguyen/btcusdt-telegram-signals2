@@ -1,43 +1,50 @@
-# T0 Restricted Provider Bootstrap Fixture — 2026-11-06
+# T0 Fresh-Cluster Restricted Provider Bootstrap — 2026-11-06
 
 ## Scope
 
-Add an integration acceptance case for a managed-provider-style bootstrap login that is explicitly **not SUPERUSER**, but has `CREATEROLE` and `CREATEDB`. The fixture provisions the temporary migration identity and its memberships, creates a disposable database owned by `t0_db_owner`, pre-enables TimescaleDB as the provider-controlled extension step, and then runs the existing immutable migrations using the restricted `t0_migrator_login`.
+Replace the first bootstrap probe after source review found it was unsuitable for the shared TimescaleDB integration cluster: it attempted to create fixed cluster-wide T0 roles after the baseline migrations had already created some of them.
 
-This is an isolated CI test only. It does not connect to an external provider or create any paid resource.
+The replacement is a dedicated, fresh TimescaleDB service job. A temporary bootstrap login has `CREATEROLE` and `CREATEDB`, but is asserted to have `rolsuper=false`. It provisions the complete reserved T0 role set, creates an isolated database, revokes its temporary role memberships, and then applies the existing migrations using only `t0_migrator_login`.
 
 ## Source
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`
 - Branch: `feature/t0-centralized-data-feeder-p1-20261101`
-- Source commit: `66194a83d421050514f1d401ceff4bfd425dce81`
-- Test file: `market_data/test_postgres_role_privileges.py`
-- Test blob: `ffa5d9102b15aad7792a07d9f73eb07bfeac8f2d`
-- Added test: `test_non_superuser_bootstrap_prepares_restricted_migrator_roles`
+- Test: `market_data/test_postgres_provider_bootstrap.py`
+- Test blob: `bc3509795d27caf75880726cb2885bc5038b9c3c`
+- Workflow: `.github/workflows/t0-single-writer-gateway-red.yml`
+- Workflow blob: `47e8312469db0772eba52053005324314fe0baf6`
+- Removed the invalid shared-cluster probe from `market_data/test_postgres_role_privileges.py`; current blob: `f26f8ec7a782fd1ca0d339a1d8eb5ef613cda13f`
+- Relevant commits:
+  - New isolated test: `edc3d653c0929768dead89301622dc0e14ab75b6`
+  - Removed shared-cluster test: `34efd769266472826b36bc13d9ab4a4b10eae4c2`
+  - Dedicated CI job: `b2394dc97e80d7f87b5ff2e1f2138a310d02b256`
+  - Additional ownership assertions: `3eb21368eaa4b0d46d69a1ba1a97ae5f80e226d3`, `7e6ec2dab44c954bc48ded7eda14b93a1c1c7b13`
 
-## Acceptance intent
+## Acceptance checks
 
-1. Bootstrap login is confirmed `rolsuper=false`, `rolcreaterole=true`, `rolcreatedb=true`.
-2. Bootstrap creates the temporary `t0_db_owner`, `t0_migrator`, and `t0_migrator_login` roles.
-3. `t0_migrator` receives only the required database/function-owner memberships; ephemeral login is only a member of `t0_migrator`.
-4. Database ownership is assigned to `t0_db_owner`.
-5. Migrations execute through the restricted login and transfer schema/table/function ownership to the intended non-login roles.
-6. Test teardown drops the disposable database and revokes/drops temporary role memberships.
+1. The test requires a fresh disposable PostgreSQL cluster and fails if any reserved T0 role already exists.
+2. Bootstrap role is confirmed non-superuser with CREATEROLE and CREATEDB.
+3. Bootstrap creates `t0_db_owner`, `t0_migrator`, `t0_migrator_login`, both Feeder capability roles and both SECURITY DEFINER owner roles.
+4. `t0_migrator` receives the required memberships; the ephemeral login receives only `t0_migrator`.
+5. Bootstrap's temporary memberships are revoked before migration safety checks run.
+6. TimescaleDB is pre-enabled as a separate provider/service-admin operation.
+7. Migrations execute through the restricted login and assert schema, table, and SECURITY DEFINER function ownership.
+8. The test asserts restricted role attributes and absence of unexpected owner-role memberships.
+9. Teardown drops the disposable database and all temporary roles.
 
-## Explicit limitations
+## CI isolation
 
-- The existing CI TimescaleDB service has already applied the baseline migrations, so the capability/SECURITY DEFINER owner roles `t0_candle_writer_owner` and `t0_lease_manager_owner` exist at cluster scope before this new test runs. This fixture verifies a non-superuser bootstrap for the migration identity and database ownership, **not** a pristine-cluster creation of every T0 role.
-- TimescaleDB extension enablement is performed by the service admin before restricted migrations. Provider-specific permission to enable the extension remains unverified.
-- The fixture does not model DigitalOcean/Tiger Cloud role semantics exactly and does not establish provider compatibility.
-- No code change to migration behavior is included.
+A new independent job, `restricted-provider-bootstrap-integration`, starts its own `timescale/timescaledb:2.17.2-pg16` service. It does not share the already-migrated database used by other integration jobs. The job checks loopback host, port, database/user identity, disposable flag, and empty trading/Paper environment variables before running the focused test.
 
 ## Verification
 
-- Test execution on the new exact source commit: **NOT VERIFIED** (no CI status check is currently attached to this commit).
+- Exact-source test execution: **NOT VERIFIED**; no direct-push workflow run result has been retrieved yet.
 - Test result: **NOT RUN / NOT VERIFIED**.
-- Existing PostgreSQL/TimescaleDB evidence from earlier source SHAs is historical only and is not promoted to this commit.
-- No provider endpoint, VPS, production database, credential, canonical T0 database, Feeder activation, exchange connection, or market-data synchronization was created or used.
+- Workflow syntax/runtime: **NOT VERIFIED** until GitHub Actions reports the job outcome.
+- No provider endpoint, VPS, production database, external credential, canonical T0 database, Feeder activation, exchange connection, or market-data synchronization was created or used.
+- This fixture proves only the PostgreSQL 16 / TimescaleDB 2.17.2 CI service path if it passes. It does not certify DigitalOcean/Tiger Cloud role behavior, provider extension permissions, TLS CA/SAN, PITR, restore, RPO/RTO or failover fencing.
 
 ## Next step
 
-Run the new focused integration test and full `market_data` suite on this exact source SHA using the existing GitHub Actions TimescaleDB service. If the restricted bootstrap test fails, preserve the failure output and adjust only the fixture or documented provider preconditions—do not weaken T0 role guards or grant SUPERUSER to the migration login.
+Retrieve the direct-push GitHub Actions run for the exact branch tip. Confirm the new job checked out that exact SHA and inspect its logs/artifact. If it fails, preserve the failure and adjust the bootstrap/test assumptions without weakening T0 role guards or granting SUPERUSER to the migration login.
