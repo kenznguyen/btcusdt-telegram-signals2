@@ -1,0 +1,13 @@
+{
+  "schema": "p1.8.trust-root-baseline.v1",
+  "captured_at": "2026-11-06T22:32:03Z",
+  "source_run_id": 42305379372,
+  "source_sha": "1f002a1769504d00c0894d67b5e1f35f46c97414",
+  "attestation_id": "64694507",
+  "rekor_log_index": "3725779480",
+  "trusted_root_file": "2026-11-07-trusted_root.jsonl.gz.b64",
+  "encoding": "gzip+base64",
+  "trusted_root_sha256": "65ca537f6ed8a47fd0e560c421baa1f6c1efb8b25fc200d8c5c02c0e92eb2b9c",
+  "acquisition": "gh attestation trusted-root; GitHub CLI TUF verification succeeded",
+  "rotation_policy": "Any byte or inventory change blocks CI; no automatic repinning."
+}
