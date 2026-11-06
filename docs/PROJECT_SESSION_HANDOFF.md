@@ -2391,3 +2391,28 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No implementation was attempted after identifying this schema constraint. No schema/migration version changed; no persistent DB was migrated. T0 unchanged; no backtest, merge, deployment, exchange connection or live execution. `ai_execution_enabled=false`.
 - Status: **LEGACY RED TESTS CONFIRMED (2 EXPECTED ERRORS) ON SHA `7d69f17ebcdc4170b406c7c5a3f515b8ffb27d20`; IMPLEMENTATION BLOCKED PENDING ADDITIVE V2 SCHEMA DESIGN; T1.2.2 IN PROGRESS.**
 - Next: specify additive migration v2 for legacy book-level consumption, atomic interaction with Core/AI depth reservations, immutable reconciliation evidence, and restart/idempotency. Add migration RED tests first, then implement v2 and the dedicated reduce/flatten path. Preserve owner separation, no legacy increase/reversal, Kill Switch reduce-only behavior, and no changes to T0. Do not run migration against any persistent account DB or merge/deploy without separate approval.
+
+
+## 2026-11-06 — T1.2.2 Legacy close-only path and immutable book-depth v2 GREEN
+
+- Continued on the existing branch: feature/t0-centralized-data-feeder-p1-20261101. T0 was not modified.
+- Implemented additive migration v2, separate from v1 and without widening the Core/AI reservation owner constraint. New table paper_legacy_book_consumptions references paper_orders, has unique intent/book/side/price identity, an indexed book/side/price lookup, strict lowercase SHA-256 evidence format, and database triggers preventing UPDATE/DELETE.
+- Added reduce_legacy_unattributed(...): PAPER-only, same-sign strict reduction/flatten only; increases and reversals return LEGACY_REDUCTION_ONLY. It records actual consumed book levels, reconciliation ID and evidence hash; uses BEGIN IMMEDIATE and idempotent intent replay; does not create Core/AI risk reservations or mutate Core/AI ledgers.
+- Core/AI shared book-depth admission now subtracts both Core/AI reservations and immutable Legacy fill consumptions for the same book snapshot, side and price. Legacy reductions also subtract prior Core/AI and Legacy depth before filling. All three flows serialize through SQLite immediate write transactions.
+- Kill Switch coverage confirms valid Legacy reductions remain allowed while the Kill Switch is active. New exposure remains blocked by the existing shared admission/legacy-exposure guard.
+- Manual cancellation compatibility was restored: pre-v1 MANUAL databases without strategy_id remain cancellable; a MANUAL instance cannot cancel an explicitly Core/AI-owned order after Dual Ledger migration.
+- Evidence-hash boundary: API validates lowercase sha256: plus 64 hex characters and persists it immutably. It does not retrieve or independently hash the external evidence bytes; external evidence provenance remains the reconciliation process's responsibility.
+- RED coverage: v2 table/schema/idempotency, Legacy close-only/reversal rejection, shared book depth, intent replay, manual cancellation isolation, immutable evidence and Kill Switch reduction.
+- Exact final implementation source SHA: 153437aee9fb0c88d48e44a71479778eb9772176.
+- Exact GitHub Actions run 42188808296 completed SUCCESS on that exact checked-out SHA:
+  - Compile PASS.
+  - Focused Dual Ledger + migration tests: 25/25 PASS.
+  - Full paper_execution regression: 60/60 PASS.
+  - URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42188808296.
+  - Artifact ID 13489205046, name dual-ledger-red-evidence-153437aee9fb0c88d48e44a71479778eb9772176, SHA-256 82a301f5a948faf83c0dc0bd7f9712f3e1712c3ea025cad0ea43490248a09831; expires 2026-11-13.
+- Supporting documentation commits:
+  - paper_execution/README.md: 620a66d2096c0c44c0a93872ee57797ae1c8648c.
+  - docs/architecture/DUAL_LEDGER_SCHEMA_MIGRATION_PLAN.md v2 addendum: cdad6807de0e0c358ad9f8c6017fc610ba1a3214.
+- No persistent account DB was opened or migrated. No backtest, merge, deployment, exchange connection, live order or feature activation occurred. ai_execution_enabled=false. T0 source/tests/workflows and provider policy unchanged.
+- Status: LEGACY REDUCTION/V2 IMMUTABLE DEPTH PASS; FULL paper_execution REGRESSION PASS 60/60 ON SHA 153437aee9fb0c88d48e44a71479778eb9772176; T1.2.2 REMAINS IN PROGRESS because account cutover readiness, funding provenance and reservation expiry/restart lifecycle are not fully verified.
+- Next: inspect and specify reservation expiry/restart behavior (including partial fills and remaining reservations) and funding provenance. Keep all tests on isolated temporary SQLite. No persistent DB migration, backtest, merge, deployment or execution activation without separate approval.
