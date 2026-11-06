@@ -838,8 +838,12 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(Decimal(legacy), Decimal("0.4"))
 
     def test_unknown_funding_coverage_fails_closed_and_disabled_policy_is_explicit(self):
+        path = self.fresh_account_db(
+            "unknown-and-disabled-coverage.sqlite3",
+            establish_cutover=False,
+        )
         unknown = ledger.record_funding_coverage(
-            self.path,
+            path,
             coverage_id="funding-history-unknown-001",
             start_at_ms=self.now - 86_400_000,
             end_at_ms=self.now,
@@ -851,7 +855,7 @@ class DualLedgerRedTest(unittest.TestCase):
             recorded_at_ms=self.now,
         )
         self.assertEqual(unknown["status"], "UNKNOWN")
-        with sqlite3.connect(self.path) as connection:
+        with sqlite3.connect(path) as connection:
             risk = connection.execute(
                 "SELECT risk_ready,unavailable_reason FROM paper_account_risk_state WHERE account_id=1"
             ).fetchone()
@@ -859,7 +863,7 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(risk[1], "FUNDING_PROVENANCE_INCOMPLETE")
 
         disabled = ledger.record_funding_coverage(
-            self.path,
+            path,
             coverage_id="paper-funding-disabled-test-001",
             start_at_ms=self.now,
             end_at_ms=self.now + 60_000,
@@ -871,7 +875,7 @@ class DualLedgerRedTest(unittest.TestCase):
             recorded_at_ms=self.now,
         )
         self.assertEqual(disabled["status"], "DISABLED")
-        with sqlite3.connect(self.path) as connection:
+        with sqlite3.connect(path) as connection:
             row = connection.execute(
                 """SELECT status,source,source_snapshot_id,payload_hash,config_version
                    FROM paper_funding_coverage WHERE coverage_id=?""",
@@ -882,7 +886,6 @@ class DualLedgerRedTest(unittest.TestCase):
             "paper-config:funding-disabled:001", "sha256:" + "e" * 64,
             "paper-risk-config-v2",
         ))
-
 
     def test_account_equity_cutover_rejects_unknown_funding_coverage(self):
         path = self.fresh_account_db("cutover-unknown.sqlite3", establish_cutover=False)
@@ -1043,14 +1046,14 @@ class DualLedgerRedTest(unittest.TestCase):
         ledger.record_funding_coverage(
             self.path,
             coverage_id="post-cutover-funding-gap",
-            start_at_ms=self.now - 30_000,
-            end_at_ms=self.now,
+            start_at_ms=self.now,
+            end_at_ms=self.now + 30_000,
             status="UNKNOWN",
             source="LATE_HISTORY_GAP",
             source_snapshot_id="funding-gap:late-discovery",
             payload_hash="sha256:" + "9" * 64,
             config_version="funding-policy-v1",
-            recorded_at_ms=self.now,
+            recorded_at_ms=self.now + 30_000,
         )
         with sqlite3.connect(self.path) as connection:
             connection.execute(
@@ -1067,7 +1070,6 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(order["status"], "REJECTED")
         self.assertEqual(order["reason"], "RISK_INPUTS_UNAVAILABLE")
 
-
     def test_account_equity_cutover_rejects_overlapping_funding_coverage(self):
         path = self.fresh_account_db("overlapping-funding-coverage.sqlite3", establish_cutover=False)
         ledger.record_funding_coverage(
@@ -1082,40 +1084,25 @@ class DualLedgerRedTest(unittest.TestCase):
             config_version="funding-policy-v1",
             recorded_at_ms=self.now,
         )
-        ledger.record_funding_coverage(
-            path,
-            coverage_id="coverage-overlap-second",
-            start_at_ms=self.now - 64_800_000,
-            end_at_ms=self.now,
-            status="VERIFIED",
-            source="RECONCILED_FUNDING_STATEMENT",
-            source_snapshot_id="funding-overlap:second",
-            payload_hash="sha256:" + "b" * 64,
-            config_version="funding-policy-v1",
-            recorded_at_ms=self.now,
-        )
-
         with self.assertRaisesRegex(ValueError, "FUNDING_COVERAGE_INTERVAL_OVERLAP"):
-            ledger.record_account_equity_cutover(
+            ledger.record_funding_coverage(
                 path,
-                cutover_id="overlapping-coverage-cutover",
-                expected_initial_capital_quote="100",
-                expected_realized_pnl_quote="0",
-                expected_fees_quote="0",
-                expected_funding_quote="0",
-                expected_account_equity_quote="100",
-                mark_price="100",
-                mark_candle_close_ms=self.now - 60_000,
-                mark_observed_at_ms=self.now,
-                dataset_version="sha256:dual-ledger-seed",
-                funding_coverage_start_at_ms=self.now - 86_400_000,
-                source="RECONCILED_ACCOUNT_STATEMENT",
-                source_snapshot_id="account-cutover:overlap",
-                payload_hash="sha256:" + "c" * 64,
-                config_version="account-cutover-v1",
+                coverage_id="coverage-overlap-second",
+                start_at_ms=self.now - 64_800_000,
+                end_at_ms=self.now,
+                status="VERIFIED",
+                source="RECONCILED_FUNDING_STATEMENT",
+                source_snapshot_id="funding-overlap:second",
+                payload_hash="sha256:" + "b" * 64,
+                config_version="funding-policy-v1",
                 recorded_at_ms=self.now,
             )
-
+        with sqlite3.connect(path) as connection:
+            count = connection.execute(
+                "SELECT COUNT(*) FROM paper_funding_coverage WHERE coverage_id=?",
+                ("coverage-overlap-second",),
+            ).fetchone()[0]
+        self.assertEqual(count, 0)
 
     def test_account_equity_cutover_rejects_statement_total_mismatch(self):
         path = self.fresh_account_db("cutover-statement-mismatch.sqlite3", establish_cutover=False)
@@ -1184,40 +1171,25 @@ class DualLedgerRedTest(unittest.TestCase):
             config_version="funding-policy-v1",
             recorded_at_ms=self.now,
         )
-        ledger.record_funding_coverage(
-            path,
-            coverage_id="coverage-nested-overlap",
-            start_at_ms=self.now - 60_000,
-            end_at_ms=self.now - 30_000,
-            status="VERIFIED",
-            source="RECONCILED_FUNDING_STATEMENT",
-            source_snapshot_id="funding-overlap:nested-window",
-            payload_hash="sha256:" + "e" * 64,
-            config_version="funding-policy-v1",
-            recorded_at_ms=self.now,
-        )
-
         with self.assertRaisesRegex(ValueError, "FUNDING_COVERAGE_INTERVAL_OVERLAP"):
-            ledger.record_account_equity_cutover(
+            ledger.record_funding_coverage(
                 path,
-                cutover_id="overlap-after-complete-coverage-cutover",
-                expected_initial_capital_quote="100",
-                expected_realized_pnl_quote="0",
-                expected_fees_quote="0",
-                expected_funding_quote="0",
-                expected_account_equity_quote="100",
-                mark_price="100",
-                mark_candle_close_ms=self.now - 60_000,
-                mark_observed_at_ms=self.now,
-                dataset_version="sha256:dual-ledger-seed",
-                funding_coverage_start_at_ms=self.now - 86_400_000,
-                source="RECONCILED_ACCOUNT_STATEMENT",
-                source_snapshot_id="account-cutover:overlap-after-complete-coverage",
-                payload_hash="sha256:" + "1" * 64,
-                config_version="account-cutover-v1",
+                coverage_id="coverage-nested-overlap",
+                start_at_ms=self.now - 60_000,
+                end_at_ms=self.now - 30_000,
+                status="VERIFIED",
+                source="RECONCILED_FUNDING_STATEMENT",
+                source_snapshot_id="funding-overlap:nested-window",
+                payload_hash="sha256:" + "e" * 64,
+                config_version="funding-policy-v1",
                 recorded_at_ms=self.now,
             )
-
+        with sqlite3.connect(path) as connection:
+            count = connection.execute(
+                "SELECT COUNT(*) FROM paper_funding_coverage WHERE coverage_id=?",
+                ("coverage-nested-overlap",),
+            ).fetchone()[0]
+        self.assertEqual(count, 0)
 
     def test_account_equity_cutover_rejects_funding_coverage_gap(self):
         path = self.fresh_account_db("cutover-funding-gap.sqlite3", establish_cutover=False)
