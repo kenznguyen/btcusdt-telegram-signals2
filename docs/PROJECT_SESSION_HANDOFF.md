@@ -2728,3 +2728,23 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Full `paper_execution` regression: SKIPPED by workflow after focused RED failed; no full-suite result for this SHA.
 - Artifact ID: `13493653671`, name `dual-ledger-red-evidence-9e595b19984787d14f45f9109c0d41148adcb69a`, digest `sha256:5fc757343798756536e75e212b3d998463987d544234068860d911cbb2ec6778`, expires 2026-11-13.
 - This RED run is test evidence only; it does not establish migration safety or reconstruction correctness. Next implementation must make these five tests GREEN and add broader replay/boundary/rollback tests before any full regression claim.
+
+### GREEN slice — v6 schema and atomic fill journal (2026-11-06)
+
+- Exact tested source SHA: `8d4b2431c95add83ed594b98fdc2f11d39667bc7`.
+- GitHub Actions [#42202152930](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42202152930): SUCCESS on exact SHA.
+- Job ID: `127839825999`.
+- Compile: PASS. Focused Dual Ledger + migration tests: **60/60 PASS**. Full `paper_execution` suite: **95/95 PASS**.
+- Artifact ID: `13494797355`, name `dual-ledger-red-evidence-8d4b2431c95add83ed594b98fdc2f11d39667bc7`, digest `sha256:28f6a9c40858bee8f33f1fbe09e1c3d82efedd7b7a20a3c9443172317d8d6831`, expires 2026-11-13.
+- Migration v6 adds four account history tables and immutable UPDATE/DELETE triggers for event journal, coverage, market marks, and daily baseline. Migration checksum/version is validated on repeat open.
+- Event API supports PAPER FILL / explicit LEDGER_ADJUSTMENT records, SHA-256 payload syntax, stable event IDs, idempotent identical retry, and conflict rejection.
+- Coverage API enforces stream ownership, half-open intervals, adjacent interval acceptance, overlap rejection, and immutable evidence. Coverage is tracked separately for Core, AI, Legacy, and account market-mark stream.
+- Market-mark API accepts only exact UTC boundary marks (`effective_at_ms` and `candle_close_ms` equal UTC midnight), with source/dataset/hash metadata; conflicting mark at same account boundary is rejected.
+- Core/AI scoped submit now appends one journal event per consumed book level, including signed quantity, fill price, per-level fee, intent/order IDs, book snapshot identity, and SHA-256 digest **inside the same BEGIN IMMEDIATE transaction** as order/ledger/reservation changes.
+- Legacy unattributed reduction similarly journals each consumed level inside its existing transaction; no Core/AI ledger is mutated.
+- New tests prove multi-level Core fill journaling and that a journal INSERT failure rolls back the Core order/position; existing Legacy reduction test verifies separate Legacy event attribution.
+- Important incomplete behavior: `reconstruct_daily_equity_baseline(...)` currently validates contiguous execution/market-mark coverage and exact boundary mark, but deliberately stops with `ACCOUNT_HISTORY_REPLAY_NOT_IMPLEMENTED` after evidence validation. It does not create a baseline, replay fills/funding, or change readiness. Baseline table currently stores only initial reconstruction metadata; full per-ledger replay result columns/digest manifest and replay engine remain to be implemented.
+- Historical data ingestion/backfill, market-mark completeness, funding integration into replay, late-event invalidation, exact equity reconciliation, atomic baseline insertion/idempotency, and risk admission gate against the new baseline remain NOT VERIFIED / NOT IMPLEMENTED.
+- All CI used temporary isolated SQLite databases. No persistent account DB was opened or migrated; no external exchange/network clients were used.
+- Next: implement deterministic per-ledger replay from verified cutover using event journal + funding events + exact boundary mark; extend baseline schema to persist full per-ledger replay results and coverage manifest; add RED tests for event ordering, partial fills, reversals, UTC boundary inclusivity, funding boundary, late events, conflicts, and rollback. Only after this should daily risk admission consume the reconstructed baseline.
+- Restrictions: no persistent DB migration/backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; `ai_execution_enabled=false`.
