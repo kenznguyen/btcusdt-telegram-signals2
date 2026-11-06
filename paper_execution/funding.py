@@ -468,7 +468,7 @@ def record_account_equity_cutover(
                 daily_baseline_utc_day_ms,daily_baseline_equity_quote,
                 reconciled_realized_pnl_quote,reconciled_fees_quote,
                 reconciled_funding_quote,expected_account_equity_quote,recorded_at_ms)
-               VALUES (?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               VALUES (?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (cutover_id, format(expected_capital, "f"), _decimal_text(equity),
              format(mark, "f"), candle, observed, dataset, coverage_start, observed,
              source, snapshot, digest, config, _decimal_text(equity), day,
