@@ -2218,3 +2218,30 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No application source, tests, database migrations, schema, runtime configuration, or existing T0 workflow changed. Only the new diagnostic workflow was added. No live or persistent database was accessed; no data feeder, exchange, paper order, or live order was run. `ai_execution_enabled=false` remains unchanged.
 - Status: **DIAGNOSTIC WORKFLOW COMMITTED; EXECUTION/RESULT NOT VERIFIED; ROOT CAUSE MECHANISM DOCUMENTED; PROVIDER-BOOTSTRAP FIX NOT AUTHORIZED/NOT MADE.** T0 provider-bootstrap remains BLOCKED pending the reproduction evidence.
 - Next: obtain the run record for the new workflow, inspect its job log and artifact, and record exact run ID, source SHA, artifact ID and SHA-256. Only after evidence, propose a narrowly scoped test/provisioning correction; do not change the migration role guard or production role policy.
+
+
+## 2026-11-06 — T0 PostgreSQL 16 grantor reproduction result
+
+- Reproduction workflow ran successfully on exact source SHA `6b7c5795aa97a15cde2a0cb1fcb11825568e28e2`.
+- GitHub Actions workflow run: **42182638820**, job **127775650645**, conclusion **SUCCESS**. Job URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42182638820/job/127775650645
+- Artifact: `t0-pg16-grantor-reproduction-6b7c5795aa97a15cde2a0cb1fcb11825568e28e2`, artifact ID **13486036752**, size 481 bytes, SHA-256 `e4fd0377c5a624c16bc8d6247776ba81c404c62c83f236d795eb3263d43a2a56`, expires **2026-11-13T07:42:30Z**.
+- Runtime evidence:
+  - Exact image `timescale/timescaledb:2.17.2-pg16`; PostgreSQL server version **16.6**.
+  - Disposable service admin `t0_test` is superuser; test bootstrap is a separate non-superuser CREATEROLE/CREATEDB login.
+  - After bootstrap creates NOLOGIN roles, `pg_auth_members` records automatic creator membership with `grantor=t0_test`, `admin_option=true`, `inherit_option=false`, `set_option=false`.
+  - `REVOKE created_role FROM CURRENT_USER` as the CREATEROLE creator leaves the automatic bootstrap-superuser-granted membership intact.
+  - Superuser `t0_test` can revoke that membership; catalog inspection confirms the row disappears.
+  - Adding a separate explicit creator-issued grant creates a second membership row with `grantor=bootstrap`, `admin_option=false`, `inherit_option=true`, `set_option=true`. Creator `REVOKE` removes only that explicit row; the automatic `t0_test` row remains.
+  - Random test roles were dropped and cleanup assertion passed: `CLEANUP=PASS`.
+  - Final markers: `T0_PG16_GRANTOR_REPRODUCTION=PASS`, `CLEANUP=PASS`.
+- Initial workflow run on the earlier assertion version: run **42182579901**, job **127775371978**, failed because that first draft incorrectly expected the explicit creator REVOKE to remove the bootstrap-superuser membership too. The assertion was corrected before the successful run above. This initial failure is a diagnostic-test assertion error, not a T0 source regression.
+- **Root cause confirmed**: PostgreSQL 16 CREATEROLE role creation automatically records an unrevokable-by-creator ADMIN membership from the bootstrap superuser. The existing bootstrap integration test creates reserved roles as a non-superuser and then attempts to remove the creator's automatic memberships with `REVOKE ... FROM CURRENT_USER`; that cleanup cannot remove the automatic rows. The migration guard then correctly rejects the extra membership.
+- **Security implication / unresolved design constraint**: the current strict guard and a bootstrap model in which a persistent non-superuser CREATEROLE login creates all reserved roles are incompatible on PostgreSQL 16 unless an appropriately privileged provider-side operation removes the bootstrap membership or the provisioning model is redesigned. Do not weaken the guard based only on this reproduction. The automatic row has ADMIN=true even though INHERIT=false and SET=false, so it still conveys role-grant authority.
+- Candidate paths requiring separate security review:
+  1. Provision reserved roles through a provider-authorized privileged control-plane/bootstrap mechanism that does not leave an untrusted CREATEROLE login as a member.
+  2. For providers that expose an authorized superuser-equivalent operation, explicitly remove the automatic memberships and prove the provider's privilege model; do not assume all managed providers permit this.
+  3. If neither is available, mark that provider/bootstrap path unsupported and fail closed.
+- No production/provider DB was accessed. The only database was the disposable CI TimescaleDB service, destroyed at job completion. No migration, application source/test, schema, runtime config, feeder, exchange, paper or live execution changed.
+- Status: **POSTGRESQL 16.6 GRANTOR ROOT CAUSE REPRODUCED — PASS; T0 PROVIDER BOOTSTRAP REMAINS BLOCKED; CORRECTIVE CHANGE NOT AUTHORIZED/NOT MADE.** The broader T0 baseline remains CONDITIONAL PASS as previously recorded.
+- Branch HEAD before this handoff update: `95abdf542d27967d0c7b0c9b16d534591722d5f9`.
+- Next: prepare a provider-capability/security decision note comparing the three candidate paths, then request explicit approval before changing `market_data/test_postgres_provider_bootstrap.py`, migrations, or provider provisioning policy.
