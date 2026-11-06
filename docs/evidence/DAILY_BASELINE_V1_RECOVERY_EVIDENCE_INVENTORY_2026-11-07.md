@@ -197,3 +197,16 @@ Recommendation is conditional Pattern F (encrypted bounded local spool plus two 
 Defined capability requirements, disqualifiers, failure-domain behavior, retention/cost measurement inputs, restore requirements, and decisions required before vendor shortlist. No provider, region, retention duration, budget, credentials, or service was selected.
 
 Status: **PASS — architecture comparison documented. NOT APPROVED — vendor selection, purchase, provisioning, storage access, or runtime capture.** No source/schema/workflow/DB/runtime changes. Historical evidence remains unavailable; Option A unchanged.
+
+
+## 2026-11-07 — Forward evidence storage acceptance plan
+
+Created `docs/architecture/FORWARD_EVIDENCE_STORAGE_ACCEPTANCE_TEST_PLAN_2026-11-07.md`, commit `41d67ea9b57b6398506e4d539d0e62723e33bc51`.
+
+The vendor-neutral plan defines 20 qualification tests covering account/admin separation, least privilege, object immutability and lock activation timing, version identity, independent restore of both roots, cross-root isolation, read-back SHA-256, signing-key separation, event sequence/replay, observer lag/outage, partial upload/crash, local spool bounds, one-root loss, retention/legal hold, region/jurisdiction, cost envelope, audit trail, and provider exit.
+
+It includes candidate-specific verification questions for AWS S3 and Cloudflare R2, but explicitly classifies both as candidates only. It does not select a provider, region, account, retention period, budget, lag threshold, or key custody model. The proposed 5-minute warning / 15-minute block remains unapproved and must not be treated as runtime configuration.
+
+Acceptance requires exact configuration provenance and passing mandatory tests using disposable accounts and synthetic data. No canonical account data, T0 database, exchange credentials, or production runtime may be used.
+
+**Status:** PASS — documentation draft committed. NOT RUN — provider tests. NOT APPROVED — provider selection, purchase, account creation, credentials, provisioning, source/schema/workflow/database/runtime changes, or persistent capture. Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
