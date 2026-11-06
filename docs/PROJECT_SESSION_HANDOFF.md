@@ -3927,3 +3927,23 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 **P1.8.8: PASS — synthetic local POSIX journal durability/recovery acceptance only.** Process exit tests do not simulate power loss, kernel panic, controller cache loss, or filesystem corruption. No multi-host/network filesystem, production DB/WAL, backup/restore or real crash durability is proven.
 
 Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0/T1/Strategy Core runtime integration, DB, exchange, provider/VPS, persistent capture, paper execution, or live execution. No merge. Any production persistence/database design requires a separate review and explicit approval.
+
+
+## 2026-11-07 — P1.8.9 Synthetic Evidence Artifact Independent Verification
+
+- User approval: `APPROVE P1.8.9 — SYNTHETIC EVIDENCE ARTIFACT INDEPENDENT VERIFICATION`.
+- Downloaded GitHub Actions artifact `13544470861` from run `42300805695` to a local ZIP and independently computed SHA-256 from the downloaded bytes.
+- Actual ZIP size: 300,085 bytes.
+- Independently computed SHA-256: `b562864af5712d957f818526549122304e25955b6abadf31d0bdf7246e121b24`; GitHub artifact API digest: same value. **MATCH**.
+- ZIP CRC/member integrity: PASS; no corrupt member reported.
+- Artifact source SHA file, fixture run descriptor, and smoke summary all identify `c060dc061f910583f81d91bab1b0644734715d66`.
+- Run `42300805695`: SUCCESS, event push, branch `feature/t0-centralized-data-feeder-p1-20261101`, exact head SHA `c060dc061f910583f81d91bab1b0644734715d66`; job `128177778298` SUCCESS.
+- Artifact test log independently inspected: 74 tests, 1.306s, OK; compile and synthetic-only preflight markers PASS.
+- Independently recomputed fixture A SHA-256 inventory: **17/17 PASS**; fixture A contains 1,000 event lines and 12 segments.
+- Scope limitation: artifact archive contains fixture A only, not fixture B. The GitHub Actions job records the two-fixture generation/byte-comparison step as completed; fixture-B comparison was not independently repeated from the archived payload.
+- Current branch head at verification: `aa4adb55ff7cbed590c43934328d327a23d8d042`. GitHub compare shows it is 2 commits ahead / 0 behind P1.8.8 source SHA; both intervening commits are documentation-only (P1.8.8 report and handoff).
+- Detailed report: `docs/architecture/P1.8.9_SYNTHETIC_EVIDENCE_ARTIFACT_INDEPENDENT_VERIFICATION_2026-11-07.md`.
+- **P1.8.9: PASS — downloaded artifact SHA-256, ZIP integrity, source identity and evidence-chain reconciliation.** This does not expand P1.8.8's synthetic-only assurance or prove real power-loss/production durability.
+- No tests rerun, no source/runtime/workflow changes, no DB/exchange/VPS/provider, no persistent capture, no execution, no merge.
+- T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`.
+
