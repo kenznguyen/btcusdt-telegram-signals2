@@ -3884,3 +3884,24 @@ Next bounded work requires a separately scoped proposal and approval. Do not inf
 **P1.8.6: PASS — synthetic reference model and exact-source CI contracts only.** The lock is process-local; no multi-process/distributed atomicity or durable persistence is proven. Snapshot serialization is not production crash-safe storage; SHA-256 is not an authenticated signature.
 
 Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No Strategy Core/T1/T0 runtime integration, DB, exchange, provider/VPS, persistent capture, paper execution, or live execution. No merge. Next scope requires separate approval; specify cross-process transactional and crash-durability contracts before any production persistence or runtime integration.
+
+
+## 2026-11-07 — P1.8.7 Synthetic-only Cross-Process Atomicity & Crash Consistency
+
+- User approval: `APPROVE P1.8.7`.
+- Scope: synthetic-only POSIX local-filesystem reference journal using process-shared `flock`, same-directory temp file, file `fsync`, atomic `os.replace`, and directory `fsync`.
+- Test-first contracts: `91c0b535ad7a018f65ce8dbb65611403395ab42b`; initialization test correction `5cb0f92969680c496f9dfa2583e5eba4eebc47cb`.
+- Initial journal implementation: `ee0419ca95188f683a314c4d3b5fc50b696112be`; missing-state correction `af2fc10277dc6f79eaeb83df1892bb89b5b94337`; after-replace test correction `8670c280d7757c77f3bd7f422c3d13a3c2840b3a`; lock syntax correction `df96c9618a36e9cee654076a64817745d29fb176`.
+- Exact passing source SHA: `df96c9618a36e9cee654076a64817745d29fb176`.
+- GitHub Actions run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42300485414
+- Job: `128176661247`, SUCCESS; checked-out SHA agrees with source SHA in test artifact.
+- Python 3.11.18 compile PASS; **69/69 tests PASS** (63 baseline + 6 new cross-process/crash contracts).
+- Multiprocess exposure cap, position cap, crash-before-replace recovery, crash-after-replace idempotent replay, corrupt/missing state rejection PASS.
+- Two 1,000-event fixture outputs byte-identical; replay 1,000 events / 3 streams / 12 segments; fixture manifest checks PASS.
+- Artifact ID `13544390654`; name `p1-8-synthetic-evidence-df96c9618a36e9cee654076a64817745d29fb176`; size 299,837 bytes; SHA-256 `1e3748f88146c017e9a30b0b12fc013cbcbe6070e3323772ffa882e745a5b201`; expires 2026-11-13T21:54:13Z. Upload log digest agrees with GitHub metadata; ZIP was not independently downloaded/re-hashed.
+- Evidence report: `docs/architecture/P1.8.7_CROSS_PROCESS_ATOMICITY_CRASH_CONSISTENCY_SYNTHETIC_EVIDENCE_2026-11-07.md`; report commit `53b30d1c41e68de90c8eb7111b1b09c9ed55cdd6`.
+- Failed test-first/implementation runs retained: `42300259938` (expected RED, missing class); `42300317178` (state/init test issues); `42300401646` (compile syntax error). Final exact-source run above is the passing run.
+
+**P1.8.7: PASS — synthetic POSIX local-filesystem reference model and exact-source CI contracts only.** This is not distributed locking, not network-filesystem validation, and not real power-loss/kernel-crash testing. No production database transaction, WAL recovery, or durable backup/restore is proven.
+
+Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0/T1/Strategy Core runtime integration, DB, exchange, provider/VPS, persistent capture, paper execution, or live execution. No merge. Any production persistence/database integration requires a separate design and explicit approval.
