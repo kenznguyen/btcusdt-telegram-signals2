@@ -2912,3 +2912,37 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
   - No persistent account DB was opened or migrated. Tests use temporary SQLite fixtures only.
 - Next: add a pure orchestration/reconciliation layer that consumes only this loader output, invokes replay independently for Core/AI/Legacy, handles only explicitly supported adjustment semantics, computes unrealized PnL using the exact boundary mark, and reconciles aggregate equity against the prior verified baseline/cutover. Keep all database writes out of that slice; atomic immutable baseline + audit + risk-readiness transaction remains a separate subsequent increment.
 - Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 pure daily replay orchestration and equity reconciliation
+
+- Scope: consume the read-only daily replay loader output, independently replay Core/AI/Legacy ledgers, calculate unrealized PnL at the exact 00:00 UTC boundary mark, and reconcile the immutable cutover snapshot before producing an in-memory equity result. No database writes or baseline persistence in this increment.
+- RED/diagnostic evidence:
+  - Contract commit/source SHA `59b0d4ee986de83a6029650ef74fdb3f372d45ca`; run [#42270373157](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42270373157) failed as expected because the orchestration module did not exist.
+  - Initial implementation SHA `480d4fb084989c14579d395b57b02796e9f37ecb`; run [#42270542419](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42270542419) exposed 3 failures + 2 errors in test fixtures; full regression was skipped.
+  - Fixture corrections committed at `84a1fc8f7a3cee8ed035ba0a3a351cf40d6d64dd`; run [#42270674571](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42270674571) succeeded: focused 82/82, full `paper_execution` 181/181.
+- Implementation:
+  - Added `paper_execution/replay_reconciliation.py` with pure `reconcile_daily_equity_replay(inputs)`.
+  - Replays each ledger independently through existing deterministic `replay_ledger_events`, using the earlier of execution/funding coverage watermarks.
+  - Verifies the Core/AI/Legacy ledger set and each cutover snapshot; recomputes cutover realized PnL, unrealized PnL, fees, funding and equity and requires exact match to immutable cutover statement values.
+  - Requires boundary mark effective time and candle close exactly at UTC midnight, VERIFIED quality and positive price.
+  - Computes per-ledger and aggregate realized/unrealized PnL, fees, funding and equity. Unknown fee currency and unsupported event types remain fail-closed through the replay helper.
+  - Added 7 pure contract tests covering aggregate calculations, cutover mismatch, ledger set mismatch, exact mark validation, fee provenance, and input immutability.
+  - Added loader-to-orchestrator integration assertion using the actual read-only SQLite loader fixture; expected boundary equity is 100.14 USDT. No DB bytes are changed by this orchestration stage.
+- Exact GREEN source SHA: `7b6401b0af56468bdd862410b34b54fc04ae28e0`.
+- GitHub Actions [#42271183619](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42271183619): SUCCESS on exact SHA.
+  - PAPER-only preflight: PASS.
+  - Python compile: PASS.
+  - Focused Dual Ledger + migration + replay contracts: 82/82 PASS.
+  - Full `paper_execution` regression: 181/181 PASS.
+  - Job ID: `128075854414`.
+  - Artifact ID: `13529935225`, name `dual-ledger-red-evidence-7b6401b0af56468bdd862410b34b54fc04ae28e0`, GitHub upload digest `sha256:9399c0dc3238bbcfbf5915f5c35673c95a8f3eafb58bf51867c7c2215e4c6ccf`, expires 2026-11-13. Digest is GitHub artifact metadata; payload bytes were not separately downloaded and re-hashed.
+- Status: **PASS — pure per-ledger replay orchestration and exact cutover/boundary equity reconciliation on temporary fixtures. NOT VERIFIED — atomic immutable daily baseline + audit persistence, transaction rollback/retry/conflict semantics, daily risk-state rollover, and risk admission integration.**
+- Limits:
+  - No persistent account DB was opened or migrated; no historical backfill.
+  - No daily baseline row or audit record was written.
+  - No risk readiness or daily loss baseline was mutated.
+  - External source evidence bytes remain un-retrieved; the loader validates stored provenance identifiers/hashes and verified coverage but does not authenticate external payload bytes.
+  - `LEDGER_ADJUSTMENT` remains unsupported and is rejected; no amount/sign is guessed.
+- Next: implement a separate atomic daily-baseline persistence slice using temporary SQLite only. In one `BEGIN IMMEDIATE` transaction, revalidate cutover, boundary mark and immutable input provenance, insert exactly one immutable baseline and audit record, then update daily risk baseline/readiness only after complete reconciliation. Identical retry must be idempotent; conflicting replay digest must fail without changing prior state; any failure must roll back all writes and keep exposure increases blocked. Do not open or migrate a persistent account DB.
+- Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
