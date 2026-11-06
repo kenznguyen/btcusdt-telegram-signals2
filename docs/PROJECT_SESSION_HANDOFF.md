@@ -2843,3 +2843,36 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
   - No database persistence is performed by this helper. No persistent account DB was opened or migrated.
 - Next: integrate this pure helper into `reconstruct_daily_equity_baseline` with per-ledger v7 cutover snapshots, v6/v8 event journal, v4 funding events/coverage and exact boundary market mark. Require VERIFIED continuous coverage and provenance watermarks; reject late-arriving events and unsupported adjustments; persist immutable per-ledger replay outputs + digest + baseline + audit atomically; add rollback/idempotency/conflict and risk fail-closed tests.
 - Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 replay anchored to cutover snapshot and late-arrival watermark
+
+- Scope: strengthen pure deterministic replay so it does not double-count events already reflected in the immutable v7 cutover snapshot and rejects late-arriving historical events. No database integration or persistent data access.
+- RED evidence:
+  - Contract commit `1cab91d3af4073e36248658d5a2ab4d328e25a1c`; run [#42267583128](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42267583128) correctly failed because the new cutover/watermark contract was not implemented.
+  - Follow-up fixture-alignment commit `4df76ce021b59423042eaa305a49f4c86d3610f3`; run [#42267621200](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42267621200) remained RED on the missing API arguments.
+  - First implementation run [#42267725989](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42267725989) exposed a fixture timestamp inconsistency (recorded_at_ms earlier than economic event time); corrected fixture only, without relaxing production validation.
+- Implementation:
+  - `replay_ledger_events` now requires `coverage_watermark_at_ms` and a `snapshot_at_ms` in the per-ledger snapshot.
+  - Requires `snapshot_at_ms < boundary_ms <= coverage_watermark_at_ms`.
+  - Execution and funding events with `event_at_ms <= snapshot_at_ms` are treated as already reflected in the cutover snapshot and excluded. If such an event was recorded after the snapshot timestamp, replay fails with `ACCOUNT_HISTORY_LATE_EVENT` because the snapshot cannot contain it.
+  - Events after the snapshot and before the UTC boundary are included only when `recorded_at_ms <= coverage_watermark_at_ms`; later arrivals fail closed with `ACCOUNT_HISTORY_LATE_EVENT`.
+  - All event timestamps must satisfy `event_at_ms <= recorded_at_ms`. Half-open UTC boundary semantics remain unchanged.
+  - Added tests for late execution after watermark, late event at/before snapshot, and funding already included in snapshot versus funding after snapshot.
+- Exact GREEN source SHA: `b59676e42ffbbcaeb6837d8137193f2798a0c8a5`.
+- GitHub Actions [#42267824602](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42267824602): SUCCESS on exact checked-out SHA.
+  - PAPER-only preflight: PASS.
+  - Python compile: PASS.
+  - Focused Dual Ledger + migration + replay contract: 71/71 PASS.
+  - Full `paper_execution` regression: 167/167 PASS.
+  - Job ID: `128064251218`.
+  - Artifact ID: `13527886216`, name `dual-ledger-red-evidence-b59676e42ffbbcaeb6837d8137193f2798a0c8a5`, GitHub upload digest `sha256:95452998048f2608da60cccbae61359a8978bded274975381e716dd9dd87ab0b`, expires 2026-11-13. Digest is GitHub artifact metadata; payload bytes were not separately downloaded and re-hashed.
+- Status: **PASS — pure replay now starts after cutover snapshot and rejects events outside the recorded completeness watermark. NOT VERIFIED — actual persisted coverage-watermark derivation and daily baseline integration.**
+- Limits:
+  - The watermark is currently a required caller-supplied scalar; production integration must derive it from verified per-stream/per-ledger coverage rows and prove contiguous VERIFIED intervals. It must not use an arbitrary timestamp or the current wall clock as a substitute.
+  - Event source, source_snapshot_id and payload_hash are not yet revalidated by this pure helper against immutable coverage rows. Funding event provenance/coverage membership and exact boundary market mark provenance remain integration requirements.
+  - `LEDGER_ADJUSTMENT` is still unsupported by the pure helper; it fails closed rather than being ignored.
+  - No baseline insert, replay digest, audit row, or Risk Engine readiness mutation is implemented in this increment.
+  - No persistent account DB was opened or migrated.
+- Next: design and test a read-only replay input loader that joins cutover snapshots, journal rows, per-ledger EXECUTION coverage, funding coverage/events and exact boundary mark. Derive the effective watermark only from contiguous VERIFIED coverage, reject UNKNOWN/gaps/overlaps/late arrivals, validate event source/hash/snapshot provenance, then pass the proven stream to pure replay. Keep baseline persistence for a separate atomic transaction increment after loader and replay reconciliation tests pass.
+- Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
