@@ -244,5 +244,54 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
         self.assertEqual(preserved_after_reopen, legacy_state)
 
 
+    def test_v2_legacy_book_consumptions_are_immutable_and_hash_format_is_enforced(self):
+        self.make_legacy_database()
+        PaperLedger(
+            self.path, max_position_base="1", strategy_id="STRATEGY_CORE",
+            source_sha="d" * 40,
+        )
+        with sqlite3.connect(self.path) as connection:
+            connection.execute("PRAGMA foreign_keys=ON")
+            connection.execute(
+                """INSERT INTO paper_orders
+                   (intent_id,payload_hash,order_id,status,document)
+                   VALUES ('legacy-invalid-evidence','payload','legacy-invalid-order','REJECTED','{}')"""
+            )
+            with self.assertRaises(sqlite3.IntegrityError):
+                connection.execute(
+                    """INSERT INTO paper_legacy_book_consumptions
+                       (consumption_id,account_id,intent_id,book_id,side,price,
+                        consumed_quantity,reconciliation_id,evidence_hash,created_at_ms)
+                       VALUES ('invalid-hash',1,'legacy-invalid-evidence','book-invalid',
+                               'SELL','100','0.01','reconcile-invalid',?,?)""",
+                    ("sha256:" + "g" * 64, self.now),
+                )
+            connection.execute(
+                """INSERT INTO paper_orders
+                   (intent_id,payload_hash,order_id,status,document)
+                   VALUES ('legacy-valid-evidence','payload','legacy-valid-order','REJECTED','{}')"""
+            )
+            connection.execute(
+                """INSERT INTO paper_legacy_book_consumptions
+                   (consumption_id,account_id,intent_id,book_id,side,price,
+                    consumed_quantity,reconciliation_id,evidence_hash,created_at_ms)
+                   VALUES ('valid-consumption',1,'legacy-valid-evidence','book-valid',
+                           'SELL','100','0.01','reconcile-valid',?,?)""",
+                ("sha256:" + "a" * 64, self.now),
+            )
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "LEGACY_BOOK_CONSUMPTION_IMMUTABLE"):
+                connection.execute(
+                    "UPDATE paper_legacy_book_consumptions SET consumed_quantity='0.02' WHERE consumption_id='valid-consumption'"
+                )
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "LEGACY_BOOK_CONSUMPTION_IMMUTABLE"):
+                connection.execute(
+                    "DELETE FROM paper_legacy_book_consumptions WHERE consumption_id='valid-consumption'"
+                )
+            row = connection.execute(
+                "SELECT consumed_quantity,evidence_hash FROM paper_legacy_book_consumptions WHERE consumption_id='valid-consumption'"
+            ).fetchone()
+        self.assertEqual(row, ("0.01", "sha256:" + "a" * 64))
+
+
 if __name__ == "__main__":
     unittest.main()
