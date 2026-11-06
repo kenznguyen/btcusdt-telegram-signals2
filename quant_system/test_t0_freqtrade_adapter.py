@@ -111,7 +111,6 @@ class T0FreqtradeAdapterTests(unittest.TestCase):
     def test_rejects_non_contiguous_candles(self):
         self.payload["candles"][1]["openTimeMs"] += INTERVAL_MS["15m"]
         self.payload["candles"][1]["closeTimeMs"] += INTERVAL_MS["15m"]
-        self.payload["endMs"] = self.payload["candles"][1]["closeTimeMs"]
         self.payload["datasetVersion"] = "sha256:" + hashlib.sha256(
             json.dumps(
                 {key: self.payload[key] for key in (
