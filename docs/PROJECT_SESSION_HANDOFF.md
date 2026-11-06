@@ -3669,3 +3669,17 @@ Reverification after the source change: 19/19 focused tests PASS; py_compile PAS
 The latest code/test source SHA is `bd558f0041302ef521ea6837e87923c17e3fceaa`. The workflow path filter includes the package, so this source update is eligible to trigger GitHub Actions. The GitHub Actions run ID, conclusion, checked-out SHA from job logs and artifact ID/digest remain NOT VERIFIED; no CI PASS is claimed.
 
 No change to P1.8 approval boundary: provider qualification, persistent capture, account DB access and T0/T1 runtime integration remain unauthorized.
+
+
+
+### P1.8 workflow-dispatch visibility fix (2026-11-07)
+
+- User explicitly approved publishing only `.github/workflows/p1-8-synthetic-evidence.yml` to the repository default branch so GitHub exposes the manual workflow-dispatch control.
+- Default branch: `main`. Before the change, the P1.8 workflow existed only on `feature/t0-centralized-data-feeder-p1-20261101`; it was absent from `main`.
+- Current workflows on `main` were inspected before the change. No existing workflow was modified or removed.
+- Created the exact workflow file on `main` with commit `f5b74affb8777953fa66d241784965fbb0e577ba`.
+- Verified the `main` workflow blob SHA is `baec3b23057037a169a498eb4fed1e69336656f3`, identical to the feature-branch workflow blob; file contents compare byte-for-byte equal.
+- Scope is workflow-dispatch discoverability only. No generator/source package, T0/T1 runtime, database, provider, credentials, execution policy, or trading behavior was copied or changed on `main`.
+- No workflow run has been dispatched or verified yet. CI execution, checked-out source SHA, job results, artifact identity and digest remain **NOT VERIFIED**.
+- Next: open the Actions workflow page; the Run workflow control should now be available. Select branch `feature/t0-centralized-data-feeder-p1-20261101` before dispatch so the run uses the feature-branch workflow and source. Reconcile run logs and artifact against the exact checked-out SHA.
+- P1.8 remains synthetic-only; no provider qualification, persistent capture, T0/T1 runtime integration, or live execution is authorized. `ai_execution_enabled=false`.
