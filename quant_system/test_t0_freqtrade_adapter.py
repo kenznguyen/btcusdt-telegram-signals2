@@ -80,6 +80,8 @@ class T0FreqtradeAdapterTests(unittest.TestCase):
         )
 
         self.assertEqual(len(data), 2)
+        self.assertEqual(Path(result["data_file"]).parent.name, "futures")
+        self.assertEqual(Path(result["data_file"]).name, "BTC_USDT_USDT-15m-futures.json")
         self.assertEqual(data[0][0], self.payload["candles"][0]["openTimeMs"])
         self.assertEqual(data[0][1:], [65000.1, 65100.2, 64900.05, 65050.25, 12.345])
         self.assertEqual(manifest["source"], "T0_CANONICAL_BINANCE_USDT_PERPETUAL")
