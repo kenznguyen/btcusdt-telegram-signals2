@@ -175,6 +175,67 @@ def _validate_persisted_baseline(connection, *, utc_day_ms, expected_equity,
     return baseline
 
 
+def _validate_risk_state_against_baseline(connection, *, utc_day_ms,
+                                             expected_equity, cutover_id, now_ms):
+    baseline = _validate_persisted_baseline(
+        connection, utc_day_ms=utc_day_ms, expected_equity=expected_equity,
+        cutover_id=cutover_id, now_ms=now_ms,
+    )
+    audit = connection.execute(
+        """SELECT payload_json FROM paper_daily_equity_baseline_audit
+           WHERE account_id=1 AND utc_day_ms=?""",
+        (utc_day_ms,),
+    ).fetchone()
+    try:
+        payload = json.loads(audit[0])
+        mark = payload["inputs"]["market_mark"]
+        baseline_equity = Decimal(baseline[1])
+        risk = connection.execute(
+            """SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote,
+                      last_equity_quote,last_mark_price,mark_observed_at_ms,
+                      mark_candle_close_ms,dataset_version,updated_at_ms,
+                      high_water_mark_quote,risk_ready,version
+               FROM paper_account_risk_state WHERE account_id=1"""
+        ).fetchone()
+        (risk_day, daily_equity, last_equity, last_mark_price, observed_at,
+         candle_close, dataset_version, updated_at, raw_hwm, risk_ready,
+         risk_version) = risk
+        hwm = Decimal(raw_hwm)
+    except (KeyError, TypeError, ValueError, DecimalException, IndexError):
+        raise sqlite3.DatabaseError(
+            "DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED"
+        ) from None
+    if (risk_day != utc_day_ms or daily_equity != expected_equity
+            or not isinstance(last_equity, str)
+            or not Decimal(last_equity).is_finite()
+            or updated_at is None or type(updated_at) is not int
+            or updated_at < baseline[7] or updated_at > now_ms
+            or not hwm.is_finite() or hwm <= 0
+            or type(risk_ready) is not int or risk_ready not in (0, 1)
+            or type(risk_version) is not int or risk_version < 1
+            or (risk_ready == 1 and hwm < baseline_equity)):
+        raise sqlite3.DatabaseError(
+            "DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED"
+        )
+    if last_equity != expected_equity:
+        # A later risk refresh may change mark/equity without changing the
+        # daily baseline. Only demand baseline mark equality at its own write.
+        if updated_at == baseline[7]:
+            raise sqlite3.DatabaseError(
+                "DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED"
+            )
+    if updated_at == baseline[7] and (
+        last_mark_price != mark.get("mark_price")
+        or observed_at != mark.get("observed_at_ms")
+        or candle_close != mark.get("candle_close_ms")
+        or dataset_version != mark.get("dataset_version")
+    ):
+        raise sqlite3.DatabaseError(
+            "DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED"
+        )
+    return baseline
+
+
 def _validate_rollover_predecessor(connection, *, boundary, now, risk_day,
                                    risk_equity, cutover_id, cutover_mark_at_ms,
                                    cutover_equity):
@@ -192,7 +253,7 @@ def _validate_rollover_predecessor(connection, *, boundary, now, risk_day,
         if risk_equity != cutover_equity:
             raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED")
         return
-    _validate_persisted_baseline(
+    _validate_risk_state_against_baseline(
         connection, utc_day_ms=risk_day, expected_equity=risk_equity,
         cutover_id=cutover_id, now_ms=now,
     )
@@ -290,8 +351,12 @@ def persist_daily_equity_baseline(connection, *, utc_day_ms, now_ms, source_sha)
             if (risk_day is None or risk_day < boundary
                     or risk_day > now // DAY_MS * DAY_MS):
                 raise sqlite3.DatabaseError("DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED")
-            if risk_day == boundary and risk_equity != replay["equity_quote"]:
-                raise sqlite3.DatabaseError("DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED")
+            if risk_day == boundary:
+                _validate_risk_state_against_baseline(
+                    connection, utc_day_ms=boundary,
+                    expected_equity=replay["equity_quote"],
+                    cutover_id=inputs["cutover_id"], now_ms=now,
+                )
             if risk_day > boundary:
                 cutover_row = connection.execute(
                     """SELECT cutover_id FROM paper_account_equity_cutovers
@@ -299,7 +364,7 @@ def persist_daily_equity_baseline(connection, *, utc_day_ms, now_ms, source_sha)
                 ).fetchone()
                 if cutover_row is None:
                     raise sqlite3.DatabaseError("DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED")
-                _validate_persisted_baseline(
+                _validate_risk_state_against_baseline(
                     connection, utc_day_ms=risk_day, expected_equity=risk_equity,
                     cutover_id=cutover_row[0], now_ms=now,
                 )
