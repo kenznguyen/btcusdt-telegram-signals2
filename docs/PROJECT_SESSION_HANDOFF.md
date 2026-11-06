@@ -3905,3 +3905,25 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No St
 **P1.8.7: PASS — synthetic POSIX local-filesystem reference model and exact-source CI contracts only.** This is not distributed locking, not network-filesystem validation, and not real power-loss/kernel-crash testing. No production database transaction, WAL recovery, or durable backup/restore is proven.
 
 Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0/T1/Strategy Core runtime integration, DB, exchange, provider/VPS, persistent capture, paper execution, or live execution. No merge. Any production persistence/database integration requires a separate design and explicit approval.
+
+
+## 2026-11-07 — P1.8.8 Synthetic-only Durability & Recovery Acceptance
+
+- User approval: `phê duyệt` for P1.8.8.
+- Scope: synthetic local POSIX file journal only; process-termination injection at after-temp-write, after-file-fsync, before-replace, after-replace, and before-directory-fsync; restart/reopen/recovery cycles; orphan temp cleanup; fail-closed handling of missing/corrupt authoritative journal.
+- Test-first contracts commit: `cb2117b8635eaf7ac139fc41feb0390822a044d5`.
+- Initial implementation attempt `41fc77bab98f7c131887a695227d7aee3e67723c` accidentally replaced existing model definitions and failed imports; corrected by restoring P1.8.7 source and applying targeted class-level changes.
+- Exact passing source SHA: `c060dc061f910583f81d91bab1b0644734715d66`.
+- GitHub Actions run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42300805695
+- Job: `128177778298`, SUCCESS; exact checkout SHA matches source SHA.
+- Python 3.11.18 compile PASS; **74/74 tests PASS** (69 baseline + 5 P1.8.8 contracts).
+- Five write-boundary restart cases PASS; repeated restart ledger/exposure reconciliation PASS; orphan temp cleanup PASS; corrupt/missing state preservation and fail-closed recovery PASS.
+- Two independent 1,000-event fixtures byte-identical; replay 1,000 events / 3 streams / 12 segments; fixture manifest checks PASS.
+- Synthetic-only preflight PASS; DB/exchange credential variables empty; `AI_EXECUTION_ENABLED=false`.
+- Artifact ID `13544470861`; name `p1-8-synthetic-evidence-c060dc061f910583f81d91bab1b0644734715d66`; size 300,085 bytes; SHA-256 `b562864af5712d957f818526549122304e25955b6abadf31d0bdf7246e121b24`; expires 2026-11-13T21:56:41Z. Upload log digest agrees with GitHub metadata; ZIP not independently downloaded/re-hashed.
+- Evidence report: `docs/architecture/P1.8.8_SYNTHETIC_DURABILITY_RECOVERY_ACCEPTANCE_2026-11-07.md`; report commit `5198ac868c5219bec9b2ce13a44ec731ab32e25a`.
+- Failed runs retained: `42300699235` (expected RED: missing recovery/fault API); `42300740160` (initial implementation accidentally replaced model definitions and failed imports). Final exact-source run above passes.
+
+**P1.8.8: PASS — synthetic local POSIX journal durability/recovery acceptance only.** Process exit tests do not simulate power loss, kernel panic, controller cache loss, or filesystem corruption. No multi-host/network filesystem, production DB/WAL, backup/restore or real crash durability is proven.
+
+Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0/T1/Strategy Core runtime integration, DB, exchange, provider/VPS, persistent capture, paper execution, or live execution. No merge. Any production persistence/database design requires a separate review and explicit approval.
