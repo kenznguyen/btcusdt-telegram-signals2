@@ -359,7 +359,10 @@ def persist_daily_equity_baseline(connection, *, utc_day_ms, now_ms, source_sha)
         if existing:
             expected = (baseline_id, replay["equity_quote"],
                         inputs["market_mark"]["mark_id"], inputs["cutover_id"])
-            if existing[:4] != expected or existing[5] != ALGORITHM_VERSION:
+            if (existing[:4] != expected or existing[5] != ALGORITHM_VERSION
+                    or not isinstance(existing[4], str) or len(existing[4]) != 71
+                    or not existing[4].startswith("sha256:")
+                    or any(char not in "0123456789abcdef" for char in existing[4][7:])):
                 raise ValueError("DAILY_BASELINE_REPLAY_CONFLICT")
             try:
                 _source_sha(existing[6])
