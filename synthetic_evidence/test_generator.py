@@ -166,6 +166,40 @@ class FixtureTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "hash mismatch"):
             verify_local_replay(corrupted)
 
+    def test_local_replay_treats_identical_duplicate_delivery_as_idempotent(self):
+        fixture = self.build()
+        events = list(fixture["events"])
+        events.insert(1, events[0])
+        result = verify_local_replay(events)
+        self.assertEqual(result["duplicate_deliveries_ignored"], 1)
+        self.assertEqual(result["events_verified"], 120)
+
+    def test_local_replay_rejects_same_event_id_with_changed_bytes(self):
+        fixture = self.build()
+        events = list(fixture["events"])
+        changed = json.loads(json.dumps(events[0]))
+        changed["event_core"]["payload"]["amount"] = "9.9999"
+        events.insert(1, changed)
+        with self.assertRaisesRegex(ValueError, "same event ID delivered with changed bytes"):
+            verify_local_replay(events)
+
+    def test_local_replay_rejects_sequence_gap_and_wrong_previous_hash(self):
+        fixture = self.build()
+        by_stream = {}
+        for event in fixture["events"]:
+            by_stream.setdefault(event["event_core"]["stream_id"], []).append(event)
+        stream = "SYNTH-CORE-001"
+        gap = [event for event in fixture["events"] if event["event_core"]["stream_id"] != stream]
+        gap.extend(by_stream[stream][0:1] + by_stream[stream][2:])
+        gap.sort(key=lambda event: (event["event_core"]["time"]["committed_at"], event["event_core"]["stream_id"], event["event_core"]["sequence"]))
+        with self.assertRaisesRegex(ValueError, "sequence gap or reorder"):
+            verify_local_replay(gap)
+        wrong = json.loads(json.dumps(fixture["events"]))
+        target = next(event for event in wrong if event["event_core"]["stream_id"] == stream and event["event_core"]["sequence"] == "00000000000000000002")
+        target["event_core"]["previous_event_hash"] = "f" * 64
+        with self.assertRaisesRegex(ValueError, "previous hash mismatch"):
+            verify_local_replay(wrong)
+
     def test_fixture_writer_refuses_to_overwrite_existing_directory(self):
         fixture = self.build()
         with tempfile.TemporaryDirectory() as tmp:
