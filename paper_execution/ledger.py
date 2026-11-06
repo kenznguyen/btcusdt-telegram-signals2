@@ -170,6 +170,10 @@ MIGRATION_VERSION = 1
 MIGRATION_CHECKSUM = hashlib.sha256(
     b"dual-ledger-v1.1:additive-account-strategy-ledgers-risk-reservations-funding-remaining"
 ).hexdigest()
+LEGACY_BOOK_MIGRATION_VERSION = 2
+LEGACY_BOOK_MIGRATION_CHECKSUM = hashlib.sha256(
+    b"dual-ledger-v2:legacy-book-depth-consumption-reconciliation-evidence"
+).hexdigest()
 
 
 def read_account_risk_snapshot(db_path, *, now_ms):
@@ -558,6 +562,365 @@ def migrate_dual_ledger(connection, source_sha):
     )
 
 
+def migrate_legacy_book_depth(connection, source_sha):
+    """Add an independent, append-only consumption ledger for legacy reductions."""
+    if not isinstance(source_sha, str) or len(source_sha) != 40 or any(
+        character not in "0123456789abcdef" for character in source_sha.lower()
+    ):
+        raise ValueError("DUAL_LEDGER_SOURCE_SHA_REQUIRED")
+
+    base = connection.execute(
+        "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
+        (MIGRATION_VERSION,),
+    ).fetchone()
+    if base is None or base[0] != MIGRATION_CHECKSUM or base[1] != "APPLIED":
+        raise sqlite3.DatabaseError("DUAL_LEDGER_V1_REQUIRED_FOR_LEGACY_BOOK_V2")
+
+    applied = connection.execute(
+        "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
+        (LEGACY_BOOK_MIGRATION_VERSION,),
+    ).fetchone()
+    if applied:
+        if (applied[0] != LEGACY_BOOK_MIGRATION_CHECKSUM
+                or applied[1] != "APPLIED"):
+            raise sqlite3.DatabaseError("LEGACY_BOOK_MIGRATION_CHECKSUM_MISMATCH")
+        table = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_legacy_book_consumptions'"
+        ).fetchone()
+        if not table:
+            raise sqlite3.DatabaseError("LEGACY_BOOK_MIGRATION_SCHEMA_MISSING")
+        return
+
+    existing_table = connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_legacy_book_consumptions'"
+    ).fetchone()
+    if existing_table:
+        raise sqlite3.DatabaseError("LEGACY_BOOK_SCHEMA_WITHOUT_MIGRATION_RECORD")
+
+    connection.execute("""CREATE TABLE paper_legacy_book_consumptions (
+        consumption_id TEXT PRIMARY KEY,
+        account_id INTEGER NOT NULL REFERENCES paper_accounts(account_id),
+        intent_id TEXT NOT NULL REFERENCES paper_orders(intent_id),
+        book_id TEXT NOT NULL CHECK(length(book_id)>0),
+        side TEXT NOT NULL CHECK(side IN ('BUY','SELL')),
+        price TEXT NOT NULL,
+        consumed_quantity TEXT NOT NULL,
+        reconciliation_id TEXT NOT NULL CHECK(length(trim(reconciliation_id))>0),
+        evidence_hash TEXT NOT NULL CHECK(
+            length(evidence_hash)=71 AND substr(evidence_hash,1,7)='sha256:'
+        ),
+        created_at_ms INTEGER NOT NULL,
+        UNIQUE(intent_id,book_id,side,price)
+    )""")
+    connection.execute(
+        "CREATE INDEX paper_legacy_book_depth_active "
+        "ON paper_legacy_book_consumptions(book_id,side,price)"
+    )
+    applied_at_row = connection.execute(
+        "SELECT updated_at_ms FROM paper_account_risk_state WHERE account_id=1"
+    ).fetchone()
+    applied_at = applied_at_row[0] if applied_at_row else 0
+    connection.execute(
+        """INSERT INTO paper_schema_migrations
+           (version,name,checksum,applied_at_ms,source_sha,status)
+           VALUES (?,?,?,?,?,'APPLIED')""",
+        (LEGACY_BOOK_MIGRATION_VERSION, "legacy_book_depth_v2",
+         LEGACY_BOOK_MIGRATION_CHECKSUM, applied_at, source_sha.lower()),
+    )
+
+
+def reduce_legacy_unattributed(
+    db_path, raw, book, now_ms, *, reconciliation_id, evidence_hash,
+    fee_rate="0.001", max_spread_bps="50",
+):
+    """PAPER-only close/flatten path for unattributed legacy exposure; never opens risk."""
+    path = Path(db_path).resolve()
+    if not path.is_file():
+        raise FileNotFoundError("Paper ledger is unavailable")
+    intent, now = intent_value(raw), stamp(now_ms)
+    if (not isinstance(reconciliation_id, str) or not reconciliation_id.strip()
+            or len(reconciliation_id) > 256 or not reconciliation_id.isprintable()):
+        raise ValueError("LEGACY_RECONCILIATION_ID_REQUIRED")
+    if (not isinstance(evidence_hash, str) or len(evidence_hash) != 71
+            or not evidence_hash.startswith("sha256:")
+            or any(character not in "0123456789abcdef" for character in evidence_hash[7:])):
+        raise ValueError("LEGACY_EVIDENCE_HASH_REQUIRED")
+    fee = number(fee_rate)
+    spread_limit = number(max_spread_bps)
+    if fee < 0 or fee > 1 or spread_limit <= 0:
+        raise ValueError("LEGACY_REDUCTION_CONFIGURATION_INVALID")
+
+    strategy_id = "LEGACY_UNATTRIBUTED"
+    event = "LEGACY_REDUCTION"
+    digest = identity("payload:", {
+        **intent, "strategyId": strategy_id, "strategyEvent": event,
+        "reconciliationId": reconciliation_id, "evidenceHash": evidence_hash,
+    })
+
+    with closing(sqlite3.connect(path, timeout=10)) as connection, connection, localcontext() as context:
+        context.prec = 80
+        connection.execute("PRAGMA foreign_keys=ON")
+        connection.execute("BEGIN IMMEDIATE")
+
+        migration = connection.execute(
+            "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
+            (LEGACY_BOOK_MIGRATION_VERSION,),
+        ).fetchone()
+        if (migration is None or migration[0] != LEGACY_BOOK_MIGRATION_CHECKSUM
+                or migration[1] != "APPLIED"):
+            raise sqlite3.DatabaseError("LEGACY_BOOK_MIGRATION_NOT_APPLIED")
+
+        previous = connection.execute(
+            "SELECT payload_hash,document FROM paper_orders WHERE intent_id=?",
+            (intent["intentId"],),
+        ).fetchone()
+        if previous:
+            if previous[0] != digest:
+                raise ValueError("Intent ID was reused with a different payload")
+            return json.loads(previous[1])
+
+        row = connection.execute(
+            """SELECT position_base,average_entry_price,realized_pnl_quote,fees_quote,
+                      funding_quote,dca_used,initial_margin_quote
+               FROM paper_strategy_ledgers
+               WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
+        ).fetchone()
+        if row is None:
+            raise sqlite3.DatabaseError("DUAL_LEDGER_LEGACY_STRATEGY_STATE_MISSING")
+        try:
+            position, average, realized, fees, funding, margin = (
+                Decimal(row[0]), Decimal(row[1]), Decimal(row[2]),
+                Decimal(row[3]), Decimal(row[4]), Decimal(row[6])
+            )
+            if any(not value.is_finite() for value in
+                   (position, average, realized, fees, funding, margin)):
+                raise ValueError
+            if ((position == 0 and average != 0) or (position != 0 and average <= 0)
+                    or fees < 0 or margin < 0 or type(row[5]) is not int
+                    or row[5] not in (0, 1)):
+                raise ValueError
+        except (DecimalException, TypeError, ValueError):
+            raise sqlite3.DatabaseError("DUAL_LEDGER_LEGACY_STRATEGY_STATE_CORRUPT") from None
+
+        target = Decimal(intent["targetPositionBase"])
+        delta = target - position
+        quantity = abs(delta)
+        side = "BUY" if delta > 0 else "SELL" if delta < 0 else "NONE"
+        reducing = (
+            position != 0 and target * position >= 0
+            and abs(target) < abs(position)
+        )
+        reason = None if reducing else "LEGACY_REDUCTION_ONLY"
+        bids = asks = None
+        book_id = None
+        if reason is None and not intent["decisionAtMs"] <= now <= intent["validUntilMs"]:
+            reason = "EXPIRED_INTENT"
+        if reason is None:
+            try:
+                bids, asks, spread, book_id = book_value(book, now)
+            except (ValueError, TypeError):
+                reason = "INVALID_BOOK"
+            else:
+                if spread > spread_limit:
+                    reason = "SPREAD_LIMIT"
+
+        filled = quote = fee_quote = ZERO
+        next_position, next_average = position, average
+        next_realized, next_fees = realized, fees
+        used_levels = []
+        if reason is None and quantity:
+            levels = asks if delta > 0 else bids
+            for price, visible in levels:
+                if (delta > 0 and price > Decimal(intent["limitPrice"])) or (
+                    delta < 0 and price < Decimal(intent["limitPrice"])
+                ):
+                    break
+                core_ai_rows = connection.execute(
+                    """SELECT reserved_quantity FROM paper_book_level_reservations
+                       WHERE book_id=? AND side=? AND price=?
+                         AND status IN ('ACTIVE','CONSUMED')""",
+                    (book_id, side, text(price)),
+                ).fetchall()
+                legacy_rows = connection.execute(
+                    """SELECT consumed_quantity FROM paper_legacy_book_consumptions
+                       WHERE book_id=? AND side=? AND price=?""",
+                    (book_id, side, text(price)),
+                ).fetchall()
+                already_used = (
+                    sum((Decimal(item[0]) for item in core_ai_rows), ZERO)
+                    + sum((Decimal(item[0]) for item in legacy_rows), ZERO)
+                )
+                available = max(ZERO, visible - already_used)
+                take = min(quantity - filled, available)
+                if take <= 0:
+                    continue
+                filled += take
+                quote += take * price
+                signed_fill = take if delta > 0 else -take
+                new_position = next_position + signed_fill
+                if next_position == 0 or next_position * signed_fill > 0:
+                    next_average = (
+                        abs(next_position) * next_average + take * price
+                    ) / abs(new_position)
+                else:
+                    next_realized += min(abs(next_position), take) * (
+                        price - next_average
+                    ) * (1 if next_position > 0 else -1)
+                    if new_position == 0:
+                        next_average = ZERO
+                next_position = new_position
+                used_levels.append((side, text(price), text(take)))
+                if filled == quantity:
+                    break
+            if filled:
+                fee_quote = quote * fee
+                next_fees += fee_quote
+
+        status = "REJECTED" if reason else (
+            "FILLED" if filled == quantity else
+            "PARTIALLY_FILLED" if filled else "OPEN"
+        )
+        order = {
+            "orderId": identity("paper:", intent["intentId"]),
+            "intentId": intent["intentId"],
+            "strategyId": strategy_id,
+            "strategyEvent": event,
+            "reservationId": None,
+            "status": status,
+            "side": side,
+            "quantityBase": text(quantity),
+            "filledBase": text(filled),
+            "remainingBase": text(quantity - filled),
+            "averagePrice": text(quote / filled) if filled else None,
+            "feeQuote": text(fee_quote),
+            "createdAtMs": now,
+            "updatedAtMs": now,
+            "mode": "PAPER",
+            "reason": reason or (
+                "VISIBLE_DEPTH_SIMULATION" if filled else "NO_VISIBLE_DEPTH"
+            ),
+            "reconciliationId": reconciliation_id,
+            "evidenceHash": evidence_hash,
+        }
+        connection.execute(
+            """INSERT INTO paper_orders
+               (intent_id,payload_hash,order_id,status,document,account_id,strategy_id,
+                strategy_event,reservation_id,created_schema_version)
+               VALUES (?,?,?,?,?,1,?,?,NULL,?)""",
+            (intent["intentId"], digest, order["orderId"], status,
+             json.dumps(order, allow_nan=False), strategy_id, event,
+             LEGACY_BOOK_MIGRATION_VERSION),
+        )
+
+        if filled:
+            next_margin = (
+                margin * abs(next_position) / abs(position)
+                if next_position else ZERO
+            )
+            next_dca = row[5] if next_position else 0
+            connection.execute(
+                """UPDATE paper_strategy_ledgers
+                   SET position_base=?,average_entry_price=?,realized_pnl_quote=?,
+                       fees_quote=?,dca_used=?,initial_margin_quote=?,
+                       updated_at_ms=?,version=version+1
+                   WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'""",
+                (text(next_position), text(next_average), text(next_realized),
+                 text(next_fees), next_dca, text(next_margin), now),
+            )
+            for level_side, price_text, quantity_text in used_levels:
+                consumption_id = identity("legacy-book-consumption:", {
+                    "intentId": intent["intentId"], "bookId": book_id,
+                    "side": level_side, "price": price_text,
+                })
+                connection.execute(
+                    """INSERT INTO paper_legacy_book_consumptions
+                       (consumption_id,account_id,intent_id,book_id,side,price,
+                        consumed_quantity,reconciliation_id,evidence_hash,created_at_ms)
+                       VALUES (?,1,?,?,?,?,?,?,?,?)""",
+                    (consumption_id, intent["intentId"], book_id, level_side,
+                     price_text, quantity_text, reconciliation_id, evidence_hash, now),
+                )
+
+            risk = connection.execute(
+                """SELECT high_water_mark_quote,last_mark_price,risk_ready
+                   FROM paper_account_risk_state WHERE account_id=1"""
+            ).fetchone()
+            if risk and risk[2]:
+                try:
+                    mark = Decimal(risk[1])
+                    hwm = Decimal(risk[0])
+                    capital_row = connection.execute(
+                        "SELECT initial_capital FROM paper_accounts WHERE account_id=1"
+                    ).fetchone()
+                    if capital_row is None or not mark.is_finite() or mark <= 0 or not hwm.is_finite() or hwm <= 0:
+                        raise ValueError
+                    ledger_rows = connection.execute(
+                        """SELECT position_base,average_entry_price,realized_pnl_quote,
+                                  fees_quote,funding_quote
+                           FROM paper_strategy_ledgers WHERE account_id=1"""
+                    ).fetchall()
+                    adjustment_rows = connection.execute(
+                        """SELECT adjustment_type,amount_quote FROM paper_account_adjustments
+                           WHERE account_id=1"""
+                    ).fetchall()
+                    aggregate_realized = aggregate_fees = aggregate_funding = unrealized = ZERO
+                    for ledger_row in ledger_rows:
+                        qty, avg, rpnl, ledger_fees, funding_total = map(Decimal, ledger_row)
+                        if any(not value.is_finite() for value in
+                               (qty, avg, rpnl, ledger_fees, funding_total)):
+                            raise ValueError
+                        aggregate_realized += rpnl
+                        aggregate_fees += ledger_fees
+                        aggregate_funding += funding_total
+                        if qty:
+                            unrealized += qty * (mark - avg)
+                    adjustment_realized = sum(
+                        (Decimal(amount) for kind, amount in adjustment_rows
+                         if kind == "LEGACY_REALIZED_PNL"), ZERO
+                    )
+                    adjustment_fees = sum(
+                        (Decimal(amount) for kind, amount in adjustment_rows
+                         if kind == "LEGACY_FEES"), ZERO
+                    )
+                    equity_after = (
+                        Decimal(capital_row[0]) + adjustment_realized
+                        + aggregate_realized + unrealized
+                        - adjustment_fees - aggregate_fees - aggregate_funding
+                    )
+                    if not equity_after.is_finite() or equity_after <= 0:
+                        raise ValueError
+                    connection.execute(
+                        """UPDATE paper_account_risk_state
+                           SET last_equity_quote=?,high_water_mark_quote=?,
+                               updated_at_ms=?,version=version+1
+                           WHERE account_id=1""",
+                        (text(equity_after), text(max(hwm, equity_after)), now),
+                    )
+                except (DecimalException, TypeError, ValueError):
+                    connection.execute(
+                        """UPDATE paper_account_risk_state
+                           SET risk_ready=0,
+                               unavailable_reason='LEGACY_REDUCTION_EQUITY_RECONCILIATION_FAILED',
+                               updated_at_ms=?,version=version+1
+                           WHERE account_id=1""",
+                        (now,),
+                    )
+
+        audit = {
+            **order,
+            "bookId": book_id,
+            "consumedLevels": [
+                {"side": item[0], "price": item[1], "quantity": item[2]}
+                for item in used_levels
+            ],
+        }
+        connection.execute(
+            "INSERT INTO paper_audit(at_ms,kind,document) VALUES (?,?,?)",
+            (now, event, json.dumps(audit, allow_nan=False)),
+        )
+        return order
+
+
 class PaperLedger:
     def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage="13", strategy_id="MANUAL", source_sha=None):
         self.path = Path(db_path)
@@ -607,6 +970,7 @@ class PaperLedger:
             equity_history.ensure(connection)
             if self.strategy_id in DUAL_STRATEGIES:
                 migrate_dual_ledger(connection, self.source_sha)
+                migrate_legacy_book_depth(connection, self.source_sha)
 
     def connect(self):
         connection = sqlite3.connect(self.path, timeout=10)
@@ -841,7 +1205,15 @@ class PaperLedger:
                            WHERE book_id=? AND side=? AND price=? AND status IN ('ACTIVE','CONSUMED')""",
                         (book_id, side, text(price)),
                     ).fetchall()
-                    consumed = sum((Decimal(item[0]) for item in consumed_rows), ZERO)
+                    legacy_consumed_rows = connection.execute(
+                        """SELECT consumed_quantity FROM paper_legacy_book_consumptions
+                           WHERE book_id=? AND side=? AND price=?""",
+                        (book_id, side, text(price)),
+                    ).fetchall()
+                    consumed = (
+                        sum((Decimal(item[0]) for item in consumed_rows), ZERO)
+                        + sum((Decimal(item[0]) for item in legacy_consumed_rows), ZERO)
+                    )
                     available = max(ZERO, visible-consumed)
                     take = min(quantity-filled, available)
                     if take <= 0:
