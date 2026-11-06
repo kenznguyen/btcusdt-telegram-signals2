@@ -232,7 +232,7 @@ def record_funding_event(
             return {"fundingEventId": event_id, "strategyId": strategy_id,
                     "amountQuote": old[1], "eventAtMs": event_at, "source": source,
                     "sourceSnapshotId": snapshot, "payloadHash": digest,
-                    "recordedAtMs": old[6]}
+                    "recordedAtMs": old[6], "mode": "PAPER"}
         if db.execute("SELECT 1 FROM paper_funding_events WHERE payload_hash=?", (digest,)).fetchone():
             raise ValueError("FUNDING_EVENT_PAYLOAD_DUPLICATE")
         row = db.execute(
