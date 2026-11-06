@@ -171,6 +171,44 @@ class PostgresRuntimeCompositionContractTest(unittest.TestCase):
         self.assertEqual(runtime.canonical_write_gateway.location, dsn)
 
 
+    def test_production_runtime_rejects_postgres_dsn_without_verified_tls(self):
+        import sys
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from market_data.feeder_service import build_production_runtime
+
+        fake_ccxt = SimpleNamespace(binanceusdm=lambda options: SimpleNamespace(options=options))
+        for dsn in (
+            "postgresql://test:test@db.example:5432/t0",
+            "postgresql://test:test@db.example:5432/t0?sslmode=require",
+            "postgresql://test:test@db.example:5432/t0?sslmode=disable",
+        ):
+            environment = {
+                "MARKET_DATA_BACKEND": "postgres",
+                "MARKET_DATA_POSTGRES_DSN": dsn,
+            }
+            with self.subTest(dsn=dsn), patch.dict(sys.modules, {"ccxt": fake_ccxt}):
+                with self.assertRaisesRegex(ValueError, "sslmode=verify-full"):
+                    build_production_runtime(environment)
+
+    def test_production_runtime_accepts_only_verified_tls_dsn(self):
+        import sys
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from market_data.feeder_service import build_production_runtime
+
+        dsn = "postgresql://test:test@db.example:5432/t0?sslmode=verify-full"
+        fake_ccxt = SimpleNamespace(binanceusdm=lambda options: SimpleNamespace(options=options))
+        environment = {
+            "MARKET_DATA_BACKEND": "postgres",
+            "MARKET_DATA_POSTGRES_DSN": dsn,
+        }
+        with patch.dict(sys.modules, {"ccxt": fake_ccxt}):
+            runtime = build_production_runtime(environment)
+
+        self.assertEqual(runtime.canonical_write_gateway.location, dsn)
+
+
     def test_production_runtime_rejects_configured_shared_owner_id(self):
         import sys
         from types import SimpleNamespace
