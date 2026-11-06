@@ -130,6 +130,16 @@ class TrustLifecycleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "evidence digest"):
             assess_revocation(mode="OFFLINE", evidence=evidence)
 
+
+    def test_sha256_sidecar_is_a_real_newline_terminated_checksum_line(self):
+        from synthetic_evidence.trust_lifecycle import format_sha256_sidecar, verify_sha256_sidecar
+        digest = "c" * 64
+        sidecar = format_sha256_sidecar(digest, "trusted_root.jsonl")
+        self.assertEqual(sidecar, f"{digest}  trusted_root.jsonl\n")
+        self.assertTrue(verify_sha256_sidecar(sidecar, digest, "trusted_root.jsonl"))
+        with self.assertRaisesRegex(ValueError, "sidecar mismatch"):
+            verify_sha256_sidecar(sidecar.replace("\n", "\\n"), digest, "trusted_root.jsonl")
+
     def test_retention_manifest_records_every_file_digest_and_git_history_class(self):
         files = {
             "synthetic-evidence-bundle.zip": b"subject",
