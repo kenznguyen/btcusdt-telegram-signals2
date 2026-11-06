@@ -322,3 +322,21 @@ The repository's existing workflow compiles `synthetic_evidence/*.py` and runs `
 ### Next step and restrictions
 
 Inspect the workflow run for exact source SHA, confirm the 43-test result and artifact checksum, then update this record with run/job/artifact evidence. If any test fails, correct the defect without weakening the invariant and rerun on the new exact SHA. Keep the existing branch; no merge without explicit approval. No production integration, provider/VPS, database, exchange, persistent capture or live execution is authorized.
+
+
+### P1.8.4 CI correction and verification — PASS (2026-11-07)
+
+- Failed run diagnosis: workflow run `42292467088`, job `128149126321`, checked out `c2bd1303d13b7002184a2f23c7f90eabd72749cd`. Compile passed; 42/43 tests passed. The only failure was an assertion mismatch: the model correctly raised `reduction must be smaller than remaining quantity; use close`, while the test expected `exceeds remaining`. The model behavior was consistent with the invariant that a full reduction must use an explicit `POSITION_CLOSED` event.
+- Test-only correction commit: `dd9f20b4269ea5f886d9470370c5279d4c7ad2ab`.
+- Updated test blob SHA: `cd494b259e4cfa8c3b1245299072eaea31918100`.
+- Test now asserts both over-reduction (6 from 5) and full-size reduction (5 from 5) are rejected with the model's close-required contract; wrong-position transition remains rejected. Test name now describes the actual covered behavior. No reference-model/runtime code changed.
+- Workflow run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42292921593
+- Job: `128150725043`, `Deterministic local fixture contracts`, conclusion **SUCCESS**.
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Exact workflow checkout/source SHA: `dd9f20b4269ea5f886d9470370c5279d4c7ad2ab`; checkout log, `git rev-parse HEAD`, and both generated fixture descriptors agree.
+- Synthetic-only preflight: PASS. Python 3.11.18 compile: PASS. Unit tests: **43/43 PASS**.
+- Two independently generated 1,000-event fixture directories were byte-identical; each replay verified 1,000 events across 3 streams and 12 segments. Fixture manifest SHA-256 checks: **17/17 PASS**.
+- DB paths and exchange credential variables were empty; `AI_EXECUTION_ENABLED=false`.
+- Artifact ID `13539664461`; name `p1-8-synthetic-evidence-dd9f20b4269ea5f886d9470370c5279d4c7ad2ab`; size 299,195 bytes; SHA-256 `17092da91d32c491be5a6b8885d7a4faa293354b69453207eec47d4f854f3050`; expires `2026-11-13T20:59:17Z`. Workflow upload log and GitHub artifact metadata report the same digest. The ZIP was not separately downloaded and re-hashed in this verification.
+ 
+**P1.8.4 status: PASS — synthetic-only execution invariant test scope verified for exact source SHA `dd9f20b4269ea5f886d9470370c5279d4c7ad2ab`.** This proves only the isolated synthetic reference model and CI contracts. It does not certify production T0/T1 execution/ledger semantics, exchange integration, shared risk engine behavior, provider durability, production readiness or live trading. T0 remains PAUSED; no production runtime integration, provider/VPS, database, exchange, persistent capture or live execution was performed or authorized.
