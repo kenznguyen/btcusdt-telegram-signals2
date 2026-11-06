@@ -1978,5 +1978,122 @@ os._exit(0)
         self.assertEqual(current_baseline, previous_baseline)
 
 
+    def test_account_history_v6_migration_creates_append_only_replay_tables(self):
+        with sqlite3.connect(self.path) as connection:
+            tables = {row[0] for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )}
+            required = {
+                "paper_account_event_journal", "paper_account_history_coverage",
+                "paper_market_mark_history", "paper_daily_equity_baselines",
+            }
+            self.assertTrue(required.issubset(tables), required - tables)
+            triggers = {row[0] for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='trigger'"
+            )}
+            self.assertTrue({
+                "paper_account_event_journal_immutable_update",
+                "paper_account_event_journal_immutable_delete",
+                "paper_market_mark_history_immutable_update",
+                "paper_market_mark_history_immutable_delete",
+                "paper_daily_equity_baselines_immutable_update",
+                "paper_daily_equity_baselines_immutable_delete",
+            }.issubset(triggers))
+
+    def test_account_history_event_retry_is_idempotent_and_conflict_safe(self):
+        event = {
+            "event_id": "history-fill-core-001", "strategy_id": "STRATEGY_CORE",
+            "event_type": "FILL", "event_at_ms": self.now + 1_000,
+            "quantity_delta_base": "0.1", "fill_price": "101", "fee_quote": "0.0101",
+            "source": "PAPER_EXECUTION_FILL",
+            "source_snapshot_id": "history-fill-snapshot-001",
+            "payload_hash": "sha256:" + "1" * 64,
+            "recorded_at_ms": self.now + 1_100, "order_id": "history-order-001",
+            "intent_id": "history-intent-001",
+        }
+        first = ledger.record_account_history_event(self.path, **event)
+        replay = ledger.record_account_history_event(self.path, **event)
+        self.assertEqual(first["eventId"], replay["eventId"])
+        self.assertEqual(first["payloadHash"], replay["payloadHash"])
+        with self.assertRaisesRegex(ValueError, "ACCOUNT_HISTORY_EVENT_ID_CONFLICT"):
+            ledger.record_account_history_event(
+                self.path, **{**event, "fee_quote": "0.02"}
+            )
+        with sqlite3.connect(self.path) as connection:
+            row = connection.execute(
+                """SELECT COUNT(*),MAX(fee_quote) FROM paper_account_event_journal
+                   WHERE event_id=?""", (event["event_id"],)
+            ).fetchone()
+        self.assertEqual(row, (1, "0.0101"))
+
+    def test_account_history_coverage_accepts_adjacent_and_rejects_overlap(self):
+        common = {
+            "stream_type": "EXECUTION", "strategy_id": "STRATEGY_CORE",
+            "status": "VERIFIED", "source": "PAPER_EXECUTION_JOURNAL",
+            "source_snapshot_id": "history-coverage-snapshot",
+            "payload_hash": "sha256:" + "2" * 64,
+            "recorded_at_ms": self.now + 10_000,
+        }
+        ledger.record_account_history_coverage(
+            self.path, coverage_id="history-core-coverage-a",
+            start_at_ms=self.now, end_at_ms=self.now + 5_000, **common,
+        )
+        ledger.record_account_history_coverage(
+            self.path, coverage_id="history-core-coverage-b",
+            start_at_ms=self.now + 5_000, end_at_ms=self.now + 10_000, **common,
+        )
+        with self.assertRaisesRegex(ValueError, "ACCOUNT_HISTORY_COVERAGE_OVERLAP"):
+            ledger.record_account_history_coverage(
+                self.path, coverage_id="history-core-coverage-overlap",
+                start_at_ms=self.now + 4_000, end_at_ms=self.now + 6_000, **common,
+            )
+
+    def test_market_mark_history_requires_exact_boundary_and_is_immutable(self):
+        boundary = (self.now // 86_400_000 + 1) * 86_400_000
+        mark = {
+            "mark_id": "history-boundary-mark-001", "effective_at_ms": boundary,
+            "observed_at_ms": boundary + 1_000, "mark_price": "105",
+            "candle_close_ms": boundary, "source": "VERIFIED_BOUNDARY_MARK",
+            "source_snapshot_id": "history-boundary-mark-snapshot",
+            "dataset_version": "sha256:boundary-dataset",
+            "payload_hash": "sha256:" + "3" * 64,
+            "quality_status": "VERIFIED", "recorded_at_ms": boundary + 1_000,
+        }
+        stored = ledger.record_market_mark_history(self.path, **mark)
+        self.assertEqual(stored["effectiveAtMs"], boundary)
+        with sqlite3.connect(self.path) as connection:
+            with self.assertRaises(sqlite3.IntegrityError):
+                connection.execute(
+                    """UPDATE paper_market_mark_history SET mark_price='1'
+                       WHERE mark_id=?""", (mark["mark_id"],)
+                )
+
+    def test_utc_equity_reconstruction_fails_closed_without_complete_history(self):
+        boundary = (self.now // 86_400_000 + 1) * 86_400_000
+        with sqlite3.connect(self.path) as connection:
+            before = connection.execute(
+                """SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote,
+                          risk_ready,unavailable_reason
+                   FROM paper_account_risk_state WHERE account_id=1"""
+            ).fetchone()
+        with self.assertRaisesRegex(ValueError, "ACCOUNT_HISTORY_COVERAGE_INCOMPLETE"):
+            ledger.reconstruct_daily_equity_baseline(
+                self.path, utc_day_ms=boundary, now_ms=boundary + 60_000,
+                source_sha="b" * 40,
+            )
+        with sqlite3.connect(self.path) as connection:
+            after = connection.execute(
+                """SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote,
+                          risk_ready,unavailable_reason
+                   FROM paper_account_risk_state WHERE account_id=1"""
+            ).fetchone()
+            count = connection.execute(
+                """SELECT COUNT(*) FROM paper_daily_equity_baselines
+                   WHERE account_id=1 AND utc_day_ms=?""", (boundary,)
+            ).fetchone()[0]
+        self.assertEqual(after, before)
+        self.assertEqual(count, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
