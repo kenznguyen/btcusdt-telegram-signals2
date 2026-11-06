@@ -391,6 +391,66 @@ os._exit(74)
         ):
             read_account_risk_snapshot(self.path, now_ms=self.recorded)
 
+    def test_v1_predecessor_blocks_next_utc_day_without_state_mutation(self):
+        self.persist()
+        self._rewrite_current_baseline_audit_as_v1()
+        with self._connection() as db:
+            before = (
+                db.execute(
+                    """SELECT baseline_id,baseline_equity_quote,replay_digest
+                       FROM paper_daily_equity_baselines
+                       WHERE account_id=1 AND utc_day_ms=?""",
+                    (self.boundary,),
+                ).fetchone(),
+                db.execute(
+                    """SELECT audit_id,replay_digest,payload_json
+                       FROM paper_daily_equity_baseline_audit
+                       WHERE account_id=1 AND utc_day_ms=?""",
+                    (self.boundary,),
+                ).fetchone(),
+                db.execute(
+                    """SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote,
+                              high_water_mark_quote,risk_ready,version
+                       FROM paper_account_risk_state WHERE account_id=1"""
+                ).fetchone(),
+            )
+        with self.assertRaisesRegex(
+            sqlite3.DatabaseError, "DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED"
+        ):
+            self.persist_at(
+                self.boundary + account_history.DAY_MS,
+                self.recorded + account_history.DAY_MS,
+            )
+        with self._connection() as db:
+            after = (
+                db.execute(
+                    """SELECT baseline_id,baseline_equity_quote,replay_digest
+                       FROM paper_daily_equity_baselines
+                       WHERE account_id=1 AND utc_day_ms=?""",
+                    (self.boundary,),
+                ).fetchone(),
+                db.execute(
+                    """SELECT audit_id,replay_digest,payload_json
+                       FROM paper_daily_equity_baseline_audit
+                       WHERE account_id=1 AND utc_day_ms=?""",
+                    (self.boundary,),
+                ).fetchone(),
+                db.execute(
+                    """SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote,
+                              high_water_mark_quote,risk_ready,version
+                       FROM paper_account_risk_state WHERE account_id=1"""
+                ).fetchone(),
+            )
+            self.assertEqual(
+                db.execute("SELECT COUNT(*) FROM paper_daily_equity_baselines").fetchone()[0],
+                1,
+            )
+            self.assertEqual(
+                db.execute("SELECT COUNT(*) FROM paper_daily_equity_baseline_audit").fetchone()[0],
+                1,
+            )
+        self.assertEqual(after, before)
+
     def test_v1_baseline_retry_never_upgrades_audit_or_changes_risk_state(self):
         self.persist()
         self._rewrite_current_baseline_audit_as_v1()
