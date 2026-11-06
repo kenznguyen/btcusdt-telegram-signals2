@@ -878,8 +878,9 @@ class DualLedgerRedTest(unittest.TestCase):
 
 
     def test_account_equity_cutover_rejects_unknown_funding_coverage(self):
+        path = self.fresh_account_db("cutover-unknown.sqlite3", establish_cutover=False)
         ledger.record_funding_coverage(
-            self.path,
+            path,
             coverage_id="cutover-funding-unknown",
             start_at_ms=self.now - 86_400_000,
             end_at_ms=self.now,
@@ -892,7 +893,7 @@ class DualLedgerRedTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "FUNDING_PROVENANCE_INCOMPLETE"):
             ledger.record_account_equity_cutover(
-                self.path,
+                path,
                 cutover_id="cutover-blocked-unknown-funding",
                 expected_initial_capital_quote="100",
                 mark_price="100",
@@ -906,7 +907,7 @@ class DualLedgerRedTest(unittest.TestCase):
                 config_version="account-cutover-v1",
                 recorded_at_ms=self.now,
             )
-        with sqlite3.connect(self.path) as connection:
+        with sqlite3.connect(path) as connection:
             risk = connection.execute(
                 "SELECT risk_ready,unavailable_reason FROM paper_account_risk_state WHERE account_id=1"
             ).fetchone()
@@ -917,8 +918,9 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(count, 0)
 
     def test_account_equity_cutover_reconciles_both_ledgers_and_legacy_once(self):
+        path = self.fresh_account_db("cutover-verified.sqlite3", establish_cutover=False)
         ledger.record_funding_coverage(
-            self.path,
+            path,
             coverage_id="cutover-funding-verified",
             start_at_ms=self.now - 86_400_000,
             end_at_ms=self.now,
@@ -930,7 +932,7 @@ class DualLedgerRedTest(unittest.TestCase):
             recorded_at_ms=self.now,
         )
         ledger.record_funding_event(
-            self.path,
+            path,
             funding_event_id="cutover-core-funding",
             strategy_id="STRATEGY_CORE",
             amount_quote="0.3",
@@ -941,7 +943,7 @@ class DualLedgerRedTest(unittest.TestCase):
             recorded_at_ms=self.now,
         )
         ledger.record_funding_event(
-            self.path,
+            path,
             funding_event_id="cutover-ai-funding",
             strategy_id="AI_FREQAI",
             amount_quote="-0.1",
@@ -951,7 +953,7 @@ class DualLedgerRedTest(unittest.TestCase):
             payload_hash="sha256:" + "8" * 64,
             recorded_at_ms=self.now,
         )
-        with sqlite3.connect(self.path) as connection:
+        with sqlite3.connect(path) as connection:
             connection.execute(
                 """UPDATE paper_strategy_ledgers SET position_base='0.1',
                    average_entry_price='90',realized_pnl_quote='2',
@@ -995,19 +997,19 @@ class DualLedgerRedTest(unittest.TestCase):
             "config_version": "account-cutover-v1",
             "recorded_at_ms": self.now,
         }
-        first = ledger.record_account_equity_cutover(self.path, **kwargs)
-        replay = ledger.record_account_equity_cutover(self.path, **kwargs)
+        first = ledger.record_account_equity_cutover(path, **kwargs)
+        replay = ledger.record_account_equity_cutover(path, **kwargs)
         self.assertEqual(first, replay)
         self.assertEqual(Decimal(first["accountEquityQuote"]), Decimal("102.4"))
         self.assertEqual(first["highWaterMarkQuote"], "102.4")
         self.assertEqual(first["dailyBaselineEquityQuote"], "102.4")
         self.assertEqual(first["dailyBaselineUtcDayMs"], self.now // 86_400_000 * 86_400_000)
 
-        snapshot = ledger.read_account_risk_snapshot(self.path, now_ms=self.now)
+        snapshot = ledger.read_account_risk_snapshot(path, now_ms=self.now)
         self.assertEqual(Decimal(snapshot["accountEquityQuote"]), Decimal("102.4"))
         self.assertTrue(snapshot["riskReady"])
 
-        with sqlite3.connect(self.path) as connection:
+        with sqlite3.connect(path) as connection:
             count = connection.execute(
                 "SELECT COUNT(*) FROM paper_account_equity_cutovers"
             ).fetchone()[0]
@@ -1021,7 +1023,7 @@ class DualLedgerRedTest(unittest.TestCase):
 
         changed = dict(kwargs, payload_hash="sha256:" + "6" * 64)
         with self.assertRaisesRegex(ValueError, "ACCOUNT_EQUITY_CUTOVER_ID_CONFLICT"):
-            ledger.record_account_equity_cutover(self.path, **changed)
+            ledger.record_account_equity_cutover(path, **changed)
 
 
 if __name__ == "__main__":
