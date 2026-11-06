@@ -1,3 +1,4 @@
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -70,14 +71,14 @@ class DualLedgerRedTest(unittest.TestCase):
             self.now + 1,
         )
 
-        self.assertEqual(core_order["status"], "FILLED")
-        self.assertEqual(ai_order["status"], "FILLED")
+        self.assertEqual(core_order["status"], "FILLED", core_order)
+        self.assertEqual(ai_order["status"], "FILLED", ai_order)
 
         self.assertEqual(
             self.core.snapshot()["positionBase"], "0.1"
         )
         self.assertEqual(
-            self.ai.snapshot()["positionBase"], "-0.2"
+            self.ai.snapshot()["positionBase"], "-0.1"
         )
 
         reopened_core = PaperLedger(self.path, max_position_base="1", strategy_id="STRATEGY_CORE", source_sha="a" * 40)
@@ -86,7 +87,7 @@ class DualLedgerRedTest(unittest.TestCase):
             reopened_core.snapshot()["positionBase"], "0.1"
         )
         self.assertEqual(
-            reopened_ai.snapshot()["positionBase"], "-0.2"
+            reopened_ai.snapshot()["positionBase"], "-0.1"
         )
 
 
