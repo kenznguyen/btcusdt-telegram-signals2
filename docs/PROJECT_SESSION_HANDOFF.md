@@ -3213,3 +3213,23 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Operational consequence: do not describe this as a working forward-only migration path. Before new daily baselines can resume, a separately approved recovery/re-anchor design is required; it must not fabricate historical HWM/version/readiness or rewrite v1 rows. Current schema has one immutable cutover and no independent historical risk-state snapshots after cutover, so no such re-anchor is implemented or authorized here.
 - Next: architecture-only decision on whether to preserve the strict predecessor chain indefinitely or define a separately audited, evidence-backed new baseline epoch using an independently verified current account statement and fresh market/funding provenance. Any new epoch must explicitly define HWM/daily-loss semantics and be separately approved before source or persistent DB changes.
 - Restrictions unchanged: no persistent account DB opening/migration, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+## 2026-11-07 — Architecture-only proposal for a new Daily Baseline Epoch
+
+- Scope: read-only review of current baseline writer/schema constraints and a proposal for a separately identified risk-measurement epoch. No Python source, tests, workflow, schema, or persistent database was changed/opened.
+- Confirmed current design constraints from source:
+  - Baseline chain requires the immediately previous UTC-day baseline to validate before creating the next.
+  - A v1 audit without `riskState` is rejected by predecessor validation.
+  - Current daily baseline uniqueness is `(account_id, utc_day_ms)`; baseline records reference the original account cutover.
+  - Account risk state is mutable; no independently retained immutable per-day HWM/version/readiness history was found in repository schema.
+- Architecture decision document: `docs/architecture/DAILY_BASELINE_EPOCH_REANCHOR_DECISION_2026-11-07.md`, commit `2af630b861ac612e0fa771a4e60fe6a1f4dfe4d4`.
+- Options evaluated:
+  - A: retain strict predecessor chain and keep account blocked indefinitely. This remains the current operational default and safest option absent independent evidence.
+  - B: create a separately identified immutable epoch from a complete independently verified account/position/order/fee/funding/mark anchor. This is only a future proposal, not implemented or approved.
+- Proposed semantics, if separately approved: anchor exactly at 00:00 UTC; new epoch HWM and first daily-loss baseline start at independently verified opening equity; explicitly label the new reference period and disclose historical drawdown continuity is unavailable. Do not claim the new HWM reconstructs old history.
+- Proposed schema direction: immutable epoch record, immutable Core/AI/Legacy anchor snapshots, epoch-aware daily baseline identity, active epoch pointer in risk state, append-only transition audit. Existing v1/v2 rows remain unchanged. Exact migration/FK design still requires separate review.
+- Minimum evidence includes authoritative account statement; complete Core/AI/Legacy positions; open orders/reservations; explicit fee and funding provenance/coverage; exact-boundary market mark; reconciliation report; explicit policy approval for HWM reset. Balance screenshot alone is insufficient.
+- Status: **PASS — architecture options and evidence requirements documented. NOT VERIFIED — availability/authenticity of external account/position/order/funding/fee evidence; no epoch implementation or activation.**
+- Recommendation: preserve Option A now. Consider Option B only after external evidence is independently available and a separate approval is granted. If no complete anchor can be obtained, keep risk increases blocked.
+- Next: no source implementation until the user explicitly approves the new-epoch policy and supplies/identifies an authoritative anchor source. First technical follow-up, if approved, is a schema-only design review with migration compatibility proof; persistent DB access remains separately gated.
+- Restrictions unchanged: no persistent account DB opening/migration, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
