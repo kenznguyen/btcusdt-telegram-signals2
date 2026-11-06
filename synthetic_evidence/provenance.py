@@ -25,10 +25,7 @@ def _read_descriptor(label, path, expected_source_sha=None):
     observed = value.get("generator_source_sha")
     if expected_source_sha is not None and observed != expected_source_sha:
         raise ValueError(f"fixture {label} source SHA mismatch")
-    return {
-        "source_sha": observed,
-        "descriptor_sha256": hashlib.sha256(raw).hexdigest(),
-    }
+    return {"source_sha": observed, "descriptor_sha256": hashlib.sha256(raw).hexdigest()}
 
 
 def build_provenance(*, source_sha, run_id, run_attempt, repository, ref,
@@ -92,9 +89,9 @@ def verify_provenance(data, *, expected_source_sha, expected_run_id,
         actual = _read_descriptor(label, path, expected_source_sha)
         recorded_digest = recorded.get("descriptor_sha256")
         if not isinstance(recorded_digest, str) or not _SHA64.fullmatch(recorded_digest):
-            raise ValueError(f"fixture {label} descriptor digest invalid")
+            raise ValueError(f"descriptor {label} digest invalid")
         if recorded_digest != actual["descriptor_sha256"]:
-            raise ValueError(f"fixture {label} descriptor SHA-256 mismatch")
+            raise ValueError(f"descriptor {label} SHA-256 mismatch")
         if recorded.get("source_sha") != actual["source_sha"]:
             raise ValueError(f"fixture {label} source SHA mismatch")
     for key in ("repository", "ref", "workflow_ref"):
