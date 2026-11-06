@@ -2407,5 +2407,17 @@ os._exit(0)
                 ledger.load_daily_equity_replay_inputs(connection, utc_day_ms=boundary, now_ms=boundary + 60_000)
 
 
+    def test_read_only_replay_loader_rejects_preexisting_connection_transaction(self):
+        boundary = (self.now // 86_400_000 + 1) * 86_400_000
+        with sqlite3.connect(self.path) as connection:
+            connection.execute("BEGIN")
+            with self.assertRaisesRegex(
+                ValueError, "ACCOUNT_HISTORY_READ_ONLY_TRANSACTION_REQUIRED"
+            ):
+                ledger.load_daily_equity_replay_inputs(
+                    connection, utc_day_ms=boundary, now_ms=boundary + 60_000
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
