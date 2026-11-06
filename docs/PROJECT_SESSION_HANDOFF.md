@@ -4038,3 +4038,33 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - **P1.8.14: PASS — Sigstore external trust anchor, Rekor transparency evidence, exact subject digest, signer/source identity constraints, and independent-runner verification.**
 - Limits: the attestation binds the archive to the authenticated GitHub workflow identity; it does not certify correctness/safety of source or data. Workflow maintainers can still alter the workflow and what it attests. Offline verification requires a separately obtained and trusted Sigstore trusted-root bundle. No Root B/provider independence or production certification is claimed.
 - Restrictions unchanged: T0 PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`; no DB/exchange, VPS/provider, persistent capture, runtime integration, paper/live execution, or merge.
+
+
+## 2026-11-07 — P1.8.15 Offline Attestation Verification & Trusted Root Pinning
+
+- User approval: `APPROVE P1.8.15 — OFFLINE ATTESTATION VERIFICATION & TRUSTED ROOT PINNING`.
+- Scope: synthetic-only Sigstore trusted-root acquisition, reviewed SHA-256 pinning, portable offline verification and network-isolated CI acceptance. No strategy, Shared Risk Engine behavior, T0/T1 runtime, DB/exchange, VPS/provider, persistent capture, paper/live execution, branch creation, PR, or merge.
+- Final exact source SHA: `1f002a1769504d00c0894d67b5e1f35f46c97414`.
+- GitHub Actions run [42305379372](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42305379372):
+  - Build job `128193377184`: SUCCESS.
+  - Independent offline verification job `128193528452`: SUCCESS.
+  - Python 3.11 compile PASS; **102/102 tests PASS**.
+  - Trusted-root acquisition and pin check before signing PASS.
+  - Dual 1,000-event fixtures and byte comparison PASS.
+  - Source/run/workflow/fixture provenance binding PASS.
+  - Independent network-isolated offline verification PASS.
+  - DB/exchange credential env vars empty; `AI_EXECUTION_ENABLED=false`.
+- Trusted root acquired using `gh attestation trusted-root`, included in the signed subject archive with SHA sidecar. Reviewed pin in `synthetic_evidence/trusted_root_pin.py`:
+  `65ca537f6ed8a47fd0e560c421baa1f6c1efb8b25fc200d8c5c02c0e92eb2b9c`.
+- `synthetic_evidence/trust_anchor.py` checks raw digest against pin before parsing JSONL. `synthetic_evidence/verify_offline.sh` uses local artifact, local Sigstore bundle and local custom trusted root.
+- Independent runner executes the reusable verifier inside `sudo unshare --net`; logs contain `TRUSTED_ROOT_PIN_VERIFICATION=PASS` and `OFFLINE_SIGSTORE_VERIFICATION=PASS`.
+- Attestation ID `64694507`: https://github.com/kenznguyen/btcusdt-telegram-signals2/attestations/64694507
+- Rekor log index `3725779480`: https://search.sigstore.dev?logIndex=3725779480
+- Attested subject SHA-256: `cf62008062570e4ce296b2be67690006cf9c6459a360f1db2402eac4cfc9489d`.
+- Primary artifact ID `13545188812`, size 1,219,111 bytes, GitHub artifact ZIP digest `sha256:2e7fd68f34143f5809278660498de17839e68127093d632361e596bdb1672f57`.
+- Independent verification artifact ID `13546556454`, size 9,113 bytes, GitHub artifact ZIP digest `sha256:47b04a5c381a8f7b6dac372f29f8313f5068768c0b51e36088bd61d438d66cef`.
+- Both artifacts expire `2026-11-13T22:31:41Z`; preserve separately for long-term retention.
+- Final report: `docs/architecture/P1.8.15_OFFLINE_ATTESTATION_VERIFICATION_TRUSTED_ROOT_PINNING_2026-11-07.md`; report commit `3d4e48344c8da8def30b45669df675a88ef45ec4`.
+- **P1.8.15: PASS — reviewed trusted-root SHA-256 pin, local bundle/root verification, network-isolated Sigstore verification and independent runner evidence.**
+- Limits: pinned root can become stale after Sigstore rotation and cannot learn later revocations while offline. Root refresh must be separately reviewed and explicitly repinned. Offline repository-name comparison cannot detect later repository rename/name reuse. This is not Root B/provider independence or production certification.
+- Restrictions unchanged: T0 PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`; no DB/exchange, VPS/provider, persistent capture, runtime integration, paper/live execution, or merge.
