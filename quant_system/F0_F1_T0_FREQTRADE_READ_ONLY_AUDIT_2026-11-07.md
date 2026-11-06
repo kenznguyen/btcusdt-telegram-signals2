@@ -95,7 +95,7 @@ The adapter does not make HTTP requests, import/open a T0 database, modify Freqt
 
 Branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`
 
-- Initial RED contract test: `4e6d3a255b47027cb98e8ef7025b3e5f98370028`.
+- Initial contract-test scaffold (added before adapter implementation): `4e6d3a255b47027cb98e8ef7025b3e5f98370028`.
 - F1 GitHub Actions workflow: `c33bb8f89e830ad09dac2edaa1b769363e2882d6`.
 - Adapter implementation: `468569f49120db87223e78e7723bcd857b5f7979`.
 - Adapter create-race safety fix: `a316a7f7b86dc81d19d82a826ab4e2b816d92227`.
