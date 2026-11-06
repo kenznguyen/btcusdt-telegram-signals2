@@ -562,6 +562,9 @@ os._exit(74)
 
     def test_baseline_reconstruction_does_not_promote_an_unready_account(self):
         with self._connection() as db:
+            before_hwm, before_version = db.execute(
+                "SELECT high_water_mark_quote,version FROM paper_account_risk_state WHERE account_id=1"
+            ).fetchone()
             db.execute(
                 """UPDATE paper_account_risk_state SET risk_ready=0,
                    unavailable_reason='PREEXISTING_RISK_GATE' WHERE account_id=1"""
@@ -569,12 +572,18 @@ os._exit(74)
             db.commit()
         result = self.persist()
         self.assertFalse(result["risk_ready"])
+        retry = self.persist()
+        self.assertTrue(retry["idempotent"])
         with self._connection() as db:
             state = db.execute(
-                "SELECT risk_ready,unavailable_reason,daily_baseline_utc_day_ms "
-                "FROM paper_account_risk_state WHERE account_id=1"
+                """SELECT risk_ready,unavailable_reason,daily_baseline_utc_day_ms,
+                          high_water_mark_quote,version
+                   FROM paper_account_risk_state WHERE account_id=1"""
             ).fetchone()
-        self.assertEqual(state, (0, "PREEXISTING_RISK_GATE", self.boundary))
+        self.assertEqual(state, (
+            0, "PREEXISTING_RISK_GATE", self.boundary,
+            before_hwm, before_version + 1,
+        ))
 
     def test_baseline_and_audit_rows_reject_update_and_delete(self):
         self.persist()
@@ -669,6 +678,84 @@ os._exit(74)
             "DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED",
         ):
             self.persist()
+
+
+    def test_idempotent_retry_rejects_each_risk_state_mark_metadata_mismatch(self):
+        self.persist()
+        mutations = (
+            ("last_mark_price", "999"),
+            ("mark_observed_at_ms", self.recorded - 1),
+            ("mark_candle_close_ms", self.boundary - 1),
+            ("dataset_version", "sha256:forged-dataset"),
+        )
+        with self._connection() as db:
+            originals = {
+                column: db.execute(
+                    f"SELECT {column} FROM paper_account_risk_state WHERE account_id=1"
+                ).fetchone()[0]
+                for column, _ in mutations
+            }
+            for column, value in mutations:
+                db.execute(
+                    f"UPDATE paper_account_risk_state SET {column}=? WHERE account_id=1",
+                    (value,),
+                )
+                db.commit()
+                with self.assertRaisesRegex(
+                    sqlite3.DatabaseError,
+                    "DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED",
+                ):
+                    self.persist()
+                db.execute(
+                    f"UPDATE paper_account_risk_state SET {column}=? WHERE account_id=1",
+                    (originals[column],),
+                )
+                db.commit()
+
+    def test_idempotent_retry_rejects_daily_baseline_day_and_equity_mismatch(self):
+        self.persist()
+        mutations = (
+            ("daily_baseline_utc_day_ms", self.boundary + account_history.DAY_MS),
+            ("daily_baseline_equity_quote", "101"),
+        )
+        with self._connection() as db:
+            originals = {
+                column: db.execute(
+                    f"SELECT {column} FROM paper_account_risk_state WHERE account_id=1"
+                ).fetchone()[0]
+                for column, _ in mutations
+            }
+            for column, value in mutations:
+                db.execute(
+                    f"UPDATE paper_account_risk_state SET {column}=? WHERE account_id=1",
+                    (value,),
+                )
+                db.commit()
+                with self.assertRaisesRegex(
+                    sqlite3.DatabaseError,
+                    "DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED",
+                ):
+                    self.persist()
+                db.execute(
+                    f"UPDATE paper_account_risk_state SET {column}=? WHERE account_id=1",
+                    (originals[column],),
+                )
+                db.commit()
+
+    def test_idempotent_retry_rejects_high_water_mark_rollback(self):
+        self.persist()
+        with self._connection() as db:
+            db.execute(
+                """UPDATE paper_account_risk_state SET high_water_mark_quote='99'
+                   WHERE account_id=1"""
+            )
+            db.commit()
+        with self.assertRaisesRegex(
+            sqlite3.DatabaseError,
+            "DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED",
+        ):
+            self.persist()
+
 
 
 if __name__ == "__main__":
