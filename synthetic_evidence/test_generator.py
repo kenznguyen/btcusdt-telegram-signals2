@@ -228,24 +228,24 @@ class IndependentCanonicalizationVectors(unittest.TestCase):
     def test_rfc8785_section_3_2_3_property_order_vector(self):
         # RFC 8785 §3.2.3: property ordering vector, including non-BMP UTF-16 ordering.
         value = {
-            "\\u20ac": "Euro Sign",
-            "\\r": "Carriage Return",
-            "\\ufb33": "Hebrew Letter Dalet With Dagesh",
+            "\u20ac": "Euro Sign",
+            "\r": "Carriage Return",
+            "\ufb33": "Hebrew Letter Dalet With Dagesh",
             "1": "One",
-            "\\U0001f600": "Emoji: Grinning Face",
-            "\\u0080": "Control",
-            "\\u00f6": "Latin Small Letter O With Diaeresis",
+            "\U0001f600": "Emoji: Grinning Face",
+            "\u0080": "Control",
+            "\u00f6": "Latin Small Letter O With Diaeresis",
         }
         expected = (
-            '{"\\\\r":"Carriage Return","1":"One","\\u0080":"Control",'
+            '{"\\r":"Carriage Return","1":"One","\u0080":"Control",'
             '"ö":"Latin Small Letter O With Diaeresis","€":"Euro Sign",'
             '"😀":"Emoji: Grinning Face","דּ":"Hebrew Letter Dalet With Dagesh"}'
         ).encode("utf-8")
         self.assertEqual(canonical_json(value), expected)
 
     def test_rfc8785_string_escaping_rules_for_subset(self):
-        value = {"text": "\\u0000\\b\\t\\n\\f\\r\\\"\\\\/€"}
-        expected = b'{"text":"\\\\u0000\\\\b\\\\t\\\\n\\\\f\\\\r\\\\\\"\\\\\\\\/€"}'
+        value = {"text": "\u0000\b\t\n\f\r\"\\/\u20ac"}
+        expected = r'{"text":"\u0000\b\t\n\f\r\"\\/€"}'.encode("utf-8")
         self.assertEqual(canonical_json(value), expected)
 
     def test_nested_objects_are_sorted_but_array_order_is_preserved(self):
@@ -282,8 +282,8 @@ class IndependentCryptographicVectors(unittest.TestCase):
 
     def test_event_and_manifest_hash_domains_are_independent(self):
         payload = b'{"fixture":"integrity-vector","sequence":1}'
-        event_hash = hashlib.sha256(b"BTCUSDT-PAPER-EVENT-V1\\n" + payload).hexdigest()
-        manifest_hash = hashlib.sha256(b"BTCUSDT-PAPER-MANIFEST-V1\\n" + payload).hexdigest()
+        event_hash = hashlib.sha256(b"BTCUSDT-PAPER-EVENT-V1\n" + payload).hexdigest()
+        manifest_hash = hashlib.sha256(b"BTCUSDT-PAPER-MANIFEST-V1\n" + payload).hexdigest()
         self.assertEqual(
             event_hash,
             "a2982bdd1251e1f62c0a1faf67e98dd6860123dd7905b6bd6113b5d89ea2ed11",
@@ -297,7 +297,8 @@ class IndependentCryptographicVectors(unittest.TestCase):
 
 class StrictInputAndReplayFaultVectors(unittest.TestCase):
     def test_parser_rejects_invalid_utf8_nonfinite_and_float_tokens(self):
-        for source in (b'{"x":"\\xff"}', '{"x":NaN}', '{"x":Infinity}', '{"x":1.0}'):
+        invalid_utf8 = b'{"x":"' + bytes([0xff]) + b'"}'
+        for source in (invalid_utf8, '{"x":NaN}', '{"x":Infinity}', '{"x":1.0}'):
             with self.subTest(source=source):
                 with self.assertRaises(ValueError):
                     parse_json_strict(source)
@@ -333,7 +334,6 @@ class StrictInputAndReplayFaultVectors(unittest.TestCase):
         events[indices[0]], events[indices[1]] = events[indices[1]], events[indices[0]]
         with self.assertRaisesRegex(ValueError, "sequence gap or reorder"):
             verify_local_replay(events)
-
 
 if __name__ == "__main__":
     unittest.main()
