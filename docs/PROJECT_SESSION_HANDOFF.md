@@ -1825,3 +1825,30 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Research update commit: `79b705b6e74bfb79f55e950f9e3d50b8b6c89f32`; research blob: `b98446be4d408ab651da1cc72b0375d0fbd37599`.
 - Next safe step: continue source-level review and design a disposable provider-compatibility acceptance script/checklist. Do not provision until the user separately approves a named provider, plan, region, exact spend cap and temporary purpose.
 - Hard boundaries unchanged: T0 remains an independent data asset; PC + existing CI; no VPS decision; no canonical DB/real market data/Feeder activation; `ai_execution_enabled=false`; paper-only.
+
+
+## 2026-11-06 — T0 current-state source audit
+
+- Audited the current active branch tip `325cc4b3527442454ac15fe87ef0dc204ed3ef8d`; comparison against the branch ref returned `identical` (0 ahead / 0 behind).
+- Confirmed source files and current blob identities:
+  - `market_data/feeder.py`: `f782a75e01394a21f2bb3c987909951b83d23642`.
+  - `market_data/feeder_service.py`: `0b7c44d538af5f2899d3d184b7d9b65ce87dd803`.
+  - `market_data/postgres.py`: `2fe27fe2d066dda0c192a381b72d27404487b800`.
+  - `market_data/storage.py`: `13fe1ae01ebb5318b69e69eef3e512d207f74c49`.
+  - `market_data/migrations.py`: `b4574f2a867b0dae7818cd39249cfd95fe0ce1f0`.
+  - `market_data/migrations/002_t0_feeder_leases.sql`: `009474f187a143381e5b29209a64709698795854`.
+  - `market_data/migrations/003_t0_database_fenced_candle_writer.sql`: `1e08f77a9e6411050f370f8f14096dcbff605aea`.
+  - `market_data/migrations/004_t0_fenced_lease_api.sql`: `cc79631a0c4e12010dc120413973cab7f84f6406`.
+  - `market_data/test_postgres_feeder_runtime_lifecycle.py`: `75575786038d0033fae41950e4239c55b8b8de73`.
+  - `market_data/test_postgres_role_privileges.py`: `7aef94df5c8d7c6ed754a3d18bcbb8bb1a0151b6`.
+  - `market_data/test_postgres_write_gateway.py`: `63339efa52806cb787dea0a1dd7a6d60ffa55629`.
+  - `market_data/test_postgres_feeder_runtime.py`: `1d00ef7d9cdb1447beb643bf9022f6857e377c8b`.
+  - `market_data/test_feeder_health.py`: `80e0b7d042c821d4814d626b69c3196853dc49d9`.
+- Source audit confirms: SQLite remains default; PostgreSQL is opt-in; constructors do not implicitly migrate; production PostgreSQL DSN requires `sslmode=verify-full` plus a remote hostname; PostgreSQL lease and candle writer use the same DSN and fenced Gateway; canonical lease identity is fixed; owner capability is generated per process; 15m/1h are the configured feeder timeframes; recovery and scheduler route through the canonical sync path.
+- SQL review confirms the fenced candle function locks and validates the canonical lease, uses conflict-safe insert, rejects conflicting historical candle values, and rechecks lease expiry before commit. Lease API uses DB clock and generation-bound acquire/heartbeat/release/current checks. Runtime lifecycle integration tests exist for PostgreSQL heartbeat renewal, lease takeover/readiness closure, drain timeout retaining lease, and restart generation advancement.
+- Existing recorded CI evidence remains: lifecycle/shutdown GREEN at source SHA `8cf727450efb34723da649a0e123851d7c002aae`, workflow #42158536250; TLS DSN configuration GREEN at SHA `631b4525059f49aac7ad588177587df3cba61844`, workflow #42158842138. Historical test totals/artifacts remain as recorded in preceding handoff entries. This audit did not rerun CI, and no direct-head CI result is claimed for the current docs-only tip.
+- Assessment: core T0 feeder scheduling/retry/lease/health and PostgreSQL writer/runtime security implementation **SOURCE REVIEW PASS** against current source; prior CI evidence **PASS for the recorded SHAs**; current exact tip CI **NOT VERIFIED**; provider migration/TLS/restore compatibility **NOT VERIFIED**; production readiness **NOT READY / NOT AUTHORIZED**.
+- Gaps still open: run a disposable PG16/TimescaleDB test of the exact restricted migration bootstrap sequence; add or run end-to-end PG lifecycle coverage on the current exact source tip; verify provider TLS CA/SAN, backup/PITR restore and measured RPO/RTO only after a provider is separately approved. No current provider endpoint exists.
+- No code, migrations, credentials, workflow, VPS, database, exchange connection or feeder activation was changed/created. Documentation-only audit; no CI run claimed.
+- Next safe step: implement a disposable CI bootstrap-privilege acceptance fixture for the restricted migration sequence and run all T0 suites on the exact source SHA. Preserve SQLite default and all production gates.
+- VPS/provider remains **NOT DECIDED**; PC + existing CI only. T0 remains independent; no real Binance data or canonical ingestion; `ai_execution_enabled=false`.
