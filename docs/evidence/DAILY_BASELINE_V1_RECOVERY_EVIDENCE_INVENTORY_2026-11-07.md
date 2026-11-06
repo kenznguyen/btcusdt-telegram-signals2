@@ -237,3 +237,16 @@ Official documentation review compared Google Cloud Storage Bucket Lock and Azur
 Acceptance plan amended with GCS policy/lien/audit/version restore tests, Azure container/version WORM and account-deletion tests, and cross-provider admin separation/clean-room restore tests. Amendment commit: `67c8304f91f0c6e318d6cb59ff8a119342654452`.
 
 **Status:** PASS — official-documentation comparison and test-plan amendment committed. NOT VERIFIED — live provider behavior, project/account deletion paths, restore, audit export, region, cost, and key custody. NOT APPROVED — provider selection, account creation, purchase, credentials, provisioning, storage access, or persistent capture. No source/schema/workflow/database/runtime changes. No CI run (documentation-only). Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged; T0 paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — Forward evidence storage cost model (P1.4)
+
+Created `docs/architecture/FORWARD_EVIDENCE_STORAGE_COST_MODEL_2026-11-07.md`, commit `a252fd23ff90eb0ff838a6205b7f215c94a0cdd0`.
+
+The model decomposes both roots into capacity, requests/transactions, retrieval, egress, replication/redundancy, versions, audit/logging, key management, clean-room restore, taxes and support. It defines required measured workload inputs (bytes, object counts, request classes, retention, version multiplier, audit volume, restore and egress) and warns that indefinite retention causes unbounded growth. It compares cost drivers for S3, GCS and Azure without inventing a per-GB price or treating a generic price page as a Singapore quote.
+
+Official documentation confirms that provider pricing has multiple meters; Azure immutable storage has no separate capacity surcharge but version-level WORM can increase retained capacity; Azure Archive has a 180-day minimum and early-deletion charge; GCS Data Access logs can incur charges; AWS CloudTrail data events are separately charged. Budget alerts are not hard spending caps: Azure budgets do not stop consumption, AWS billing data/notifications can lag, and GCP spend caps are eligibility-limited and not instantaneous.
+
+Acceptance plan amended with mandatory measured workload, region/SKU quotes, retention-horizon, restore-cost, budget-control and post-test bill-reconciliation gates. Amendment commit `bad784a97d3eb276b37f577969c108a3d62ad566`.
+
+**Status:** PASS — cost model and acceptance gates documented. NOT VERIFIED — exact Singapore quote, workload volumes, retention period, final budget fit. USD 5/month remains illustrative only, NOT APPROVED and not demonstrated feasible. NOT APPROVED — provider selection, accounts, purchase, credentials, provisioning, provider tests or persistent capture. No CI run (documentation-only); source/schema/workflow/database/runtime unchanged. Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged; T0 paused; PAPER-only; `ai_execution_enabled=false`.
