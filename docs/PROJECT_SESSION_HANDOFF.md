@@ -3113,3 +3113,24 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **PASS — baseline audit replay equity and mark identity are cross-checked against immutable baseline fields; canonical-but-tampered payloads tested fail closed. NOT VERIFIED — external source bytes authenticity, full risk-state semantic cross-check on all historical replay fields, and production filesystem crash durability.**
 - Next: audit the complete baseline-to-risk-state invariant, including mark price/time/dataset version, daily UTC key/equity, risk version, and HWM behavior; test corruption and interrupted transaction recovery. No automatic backfill.
 - Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+## 2026-11-07 — T1 Daily Baseline to Risk State integrity
+
+- Scope: bind the immutable daily baseline audit to the exact risk-state version committed in the same SQLite transaction; verify later idempotent retries cannot accept state rollback or tampering. Temporary SQLite only.
+- RED evidence:
+  - Source SHA `e3b619d1af978f2593b51bbfc0b1eaee39bb2ec5`, workflow [#42277186899](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42277186899): a changed `last_mark_price` with no matching baseline audit was accepted.
+  - Source SHA `9a631bb55b7d8fc2ada6aee210a1fc7bb474433d`, workflow [#42277463193](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42277463193): a rollback of the account risk-state version was accepted.
+- Implementation: audit payload schema v2 now stores the committed risk-state snapshot: daily UTC day/equity, last equity, mark price/observed time/candle close/dataset version, HWM, readiness, update timestamp and incremented risk-state version. Audit validator checks these values against baseline/replay/mark columns. Retry/predecessor validation requires risk version and HWM to be monotonic; if the current version still equals the baseline commit version, all captured risk-state fields must match exactly. Later legitimate risk refreshes may advance the version and update mark/equity while preserving the daily baseline, but may not roll back HWM or version.
+- Additional tests cover mark price/time/candle/dataset mismatches, daily baseline day/equity corruption, risk version rollback, HWM rollback, and preservation of HWM plus exactly one version increment when the account is already unready. Idempotent retry must not increment the version again.
+- Intermediate implementation diagnostics:
+  - SHA `fa5c45b3ec2f04de0087e0022728fb3fb07bfbeb`, run [#42277621107](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42277621107): expected refactor regression due idempotent result referencing a removed local digest; corrected in next source.
+  - SHA `4a4d3692b75c6d5f5edb8b1419107b1997ed8a33`, run [#42277650441](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42277650441): existing malformed-digest conflict fixture was rejected earlier as unverified; restored explicit invalid-digest conflict classification.
+- Exact GREEN source SHA: `7cddb5eacfd70f5bc886bc03f672177cdf3f8f2a`; GitHub Actions [#42277853667](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42277853667), SUCCESS.
+  - PAPER-only preflight: PASS.
+  - Python compile: PASS.
+  - Focused Dual Ledger + migration + replay + daily baseline contracts: 173/173 PASS.
+  - Full `paper_execution` regression: 272/272 PASS.
+  - Artifact ID `13533807345`, name `dual-ledger-red-evidence-7cddb5eacfd70f5bc886bc03f672177cdf3f8f2a`, GitHub upload digest `sha256:fb41913d0826f836adf7b6c460efc6bd3d41f6af41f5e976764cc099c00376c9`, expires 2026-11-13. Digest is GitHub artifact metadata; payload bytes were not separately downloaded/re-hashed.
+- Status: **PASS — baseline/risk-state audit binding, mark metadata integrity, daily baseline key/equity integrity, risk version monotonicity, HWM monotonicity, unready HWM preservation, and idempotent retry are verified on temporary SQLite. NOT VERIFIED — external source payload byte authenticity, power-loss behavior on production storage, and persistent account DB migration.**
+- Next: review audit schema v2 compatibility and recovery policy for pre-existing v1 daily baseline rows. Keep any legacy row without risk-state snapshot fail-closed; define an explicit evidence-based reconciliation path rather than silently synthesizing missing version/HWM history. Then inspect complete transaction crash/reopen coverage against this updated payload shape.
+- Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
