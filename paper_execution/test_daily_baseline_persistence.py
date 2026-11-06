@@ -1,5 +1,7 @@
 """Atomic daily baseline persistence contract (PAPER-only, temporary SQLite)."""
 import sqlite3
+import subprocess
+import sys
 import unittest
 
 from paper_execution import account_history
@@ -105,6 +107,88 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
         intent["decisionAtMs"] = now_ms - 100
         intent["validUntilMs"] = now_ms + 30_000
         return intent
+
+    def test_os_process_kill_before_commit_rolls_back_baseline_audit_and_risk_state(self):
+        script = r"""
+import os
+import sqlite3
+import sys
+from paper_execution.daily_baseline import persist_daily_equity_baseline
+
+connection = sqlite3.connect(sys.argv[1], timeout=10)
+connection.execute("PRAGMA foreign_keys=ON")
+connection.create_function("hard_exit", 0, lambda: os._exit(73))
+connection.execute("CREATE TRIGGER crash_before_daily_baseline_commit BEFORE UPDATE ON paper_account_risk_state BEGIN SELECT hard_exit(); END")
+connection.commit()
+persist_daily_equity_baseline(
+    connection, utc_day_ms=int(sys.argv[2]), now_ms=int(sys.argv[3]),
+    source_sha="b" * 40,
+)
+"""
+        process = subprocess.run(
+            [sys.executable, "-c", script, str(self.path),
+             str(self.boundary), str(self.recorded)],
+            capture_output=True, text=True, timeout=20,
+        )
+        self.assertEqual(process.returncode, 73, process.stderr)
+        with self._connection() as db:
+            baseline_count = db.execute(
+                "SELECT COUNT(*) FROM paper_daily_equity_baselines"
+            ).fetchone()[0]
+            audit_count = db.execute(
+                "SELECT COUNT(*) FROM paper_daily_equity_baseline_audit"
+            ).fetchone()[0]
+            risk = db.execute(
+                """SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote,
+                          risk_ready FROM paper_account_risk_state WHERE account_id=1"""
+            ).fetchone()
+        self.assertEqual((baseline_count, audit_count), (0, 0))
+        self.assertEqual(
+            risk,
+            (self.now // account_history.DAY_MS * account_history.DAY_MS, "100", 1),
+        )
+
+    def test_os_process_kill_after_commit_keeps_complete_state_and_retry_is_idempotent(self):
+        script = r"""
+import os
+import sqlite3
+import sys
+from paper_execution.daily_baseline import persist_daily_equity_baseline
+
+connection = sqlite3.connect(sys.argv[1], timeout=10)
+connection.execute("PRAGMA foreign_keys=ON")
+persist_daily_equity_baseline(
+    connection, utc_day_ms=int(sys.argv[2]), now_ms=int(sys.argv[3]),
+    source_sha="b" * 40,
+)
+os._exit(74)
+"""
+        process = subprocess.run(
+            [sys.executable, "-c", script, str(self.path),
+             str(self.boundary), str(self.recorded)],
+            capture_output=True, text=True, timeout=20,
+        )
+        self.assertEqual(process.returncode, 74, process.stderr)
+        with self._connection() as db:
+            baseline = db.execute(
+                """SELECT baseline_id,baseline_equity_quote,replay_digest
+                   FROM paper_daily_equity_baselines WHERE account_id=1"""
+            ).fetchone()
+            audit = db.execute(
+                """SELECT baseline_id,replay_digest FROM paper_daily_equity_baseline_audit
+                   WHERE account_id=1"""
+            ).fetchone()
+            risk = db.execute(
+                """SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote,risk_ready
+                   FROM paper_account_risk_state WHERE account_id=1"""
+            ).fetchone()
+        self.assertEqual(baseline[1], "100")
+        self.assertEqual(audit, (baseline[0], baseline[2]))
+        self.assertEqual(risk, (self.boundary, "100", 1))
+        snapshot = read_account_risk_snapshot(self.path, now_ms=self.recorded)
+        self.assertTrue(snapshot["riskReady"])
+        retry = self.persist()
+        self.assertTrue(retry["idempotent"])
 
     def test_missing_daily_baseline_blocks_new_exposure(self):
         self.persist()
