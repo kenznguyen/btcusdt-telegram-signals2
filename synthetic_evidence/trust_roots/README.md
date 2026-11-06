@@ -41,8 +41,8 @@ The Sigstore trusted-root JSONL is a set of trust materials, not a complete per-
 This project therefore reports:
 - `NOT_CHECKED_OFFLINE` for offline verification without separately authenticated revocation evidence.
 - `REVOCATION_STATUS_NOT_EXPOSED` when using the online TUF root but the CLI result does not expose an explicit per-certificate revocation verdict.
-- `REVOKED / REJECT` when an authenticated external revocation record is supplied to the policy layer.
-- `REVIEWED_CLEAR_AUDIT_ONLY` for a review record whose authenticity is not independently verified. This does not authorize admission and does not support a "not revoked" claim.
+- `REVOKED_REPORTED / REJECT` when a record reports revocation. The policy layer blocks conservatively but does not authenticate the external source.
+- `REVIEWED_CLEAR_AUDIT_ONLY` for a review record whose authenticity is not independently verified. This does not authorize admission and does not support a "not revoked" claim. Automated OCSP/CRL/advisory ingestion and signature validation are NOT VERIFIED in this milestone.
 
 Never translate absence of revocation evidence into "not revoked". If a revocation is suspected, block use pending independent review. Historical signatures may remain cryptographically verifiable under an older root; that is not proof that their signing identity remains acceptable today.
 
