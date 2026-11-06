@@ -110,3 +110,19 @@ Assessment:
 - They remain unexpired at the time of inspection; retention ends on 2026-11-13 UTC as listed above.
 
 **Result unchanged:** no independent account event archive/checkpoint has been identified. The five CI artifacts do not clear the Dual Reconstruction evidence gate.
+
+
+## 2026-11-07 — CI artifact producer workflow inspection
+
+Inspected `.github/workflows/dual-ledger-red.yml` at branch HEAD `88a0235df85ba15eeb194e4f013d7ecab444543d` (workflow blob `c7c3e16026c6b5f01b6be1a7d2f1c504a532607a`).
+
+The workflow establishes:
+- `PAPER_DB`, `MARKET_DATA_DB`, Binance credentials, and OKX credentials are explicitly empty.
+- Preflight logs `DUAL_LEDGER_MODE=PAPER_ONLY`, exact source SHA, and `DUAL_LEDGER_EXTERNAL_SERVICES=NONE`.
+- It compiles test/source files and runs focused + full `paper_execution` unittest suites.
+- The artifact upload allowlist contains only four text logs: `dual-ledger-preflight.log`, `dual-ledger-compile.log`, `dual-ledger-red-tests.log`, and `paper-execution-regression.log`.
+- No account database, event journal export, account checkpoint, market data payload, or raw trading record is included in this workflow's artifact path list.
+
+This workflow-level inspection independently confirms that artifacts named `dual-ledger-red-evidence-<SHA>` are test/provenance logs by design, not an account event archive or account checkpoint. Payload download is unnecessary for this classification. It does not establish whether other workflows, private artifacts, or external storage contain a separate evidence root.
+
+**Result:** `DUAL_LEDGER_RED_ARTIFACTS_ARE_TEST_LOGS`. They are not eligible for Replay A or Reconstruction B. No artifact payload was downloaded; no database was opened.
