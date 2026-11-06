@@ -4068,3 +4068,45 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - **P1.8.15: PASS — reviewed trusted-root SHA-256 pin, local bundle/root verification, network-isolated Sigstore verification and independent runner evidence.**
 - Limits: pinned root can become stale after Sigstore rotation and cannot learn later revocations while offline. Root refresh must be separately reviewed and explicitly repinned. Offline repository-name comparison cannot detect later repository rename/name reuse. This is not Root B/provider independence or production certification.
 - Restrictions unchanged: T0 PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`; no DB/exchange, VPS/provider, persistent capture, runtime integration, paper/live execution, or merge.
+
+
+## 2026-11-07 — P1.8.16 Trust Root Rotation, Revocation & Long-Term Evidence Retention
+
+- User approval: `APPROVE P1.8.16 — TRUST ROOT ROTATION, REVOCATION & LONG-TERM EVIDENCE RETENTION`.
+- Scope remained synthetic-only. No Strategy Core/AI Strategy/Shared Risk Engine changes, T0/T1 runtime, DB/exchange, VPS/provider, persistent capture, paper/live execution, new branch/PR, or merge.
+- Exact tested source SHA: `99331fd263fb6840c3963d0ba316f18884f9d2c7`.
+- Final GitHub Actions run [42306934521](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42306934521):
+  - Build/synthetic contracts job `128198523248`: SUCCESS.
+  - Independent offline Sigstore verification job `128198673591`: SUCCESS.
+  - Git-history evidence archive job `128198727017`: SUCCESS.
+  - Python compile PASS; **121/121 tests PASS**.
+  - Current root pin PASS; root inventory comparison `UNCHANGED`; no automatic repin.
+  - Snapshot history, P1.8.15 backfill, signed bundle, independent offline verification and retention manifest PASS.
+- Root baseline SHA-256: `65ca537f6ed8a47fd0e560c421baa1f6c1efb8b25fc200d8c5c02c0e92eb2b9c`.
+- Baseline root acquired in P1.8.15 run `42305379372`, source `1f002a1769504d00c0894d67b5e1f35f46c97414`, attestation `64694507`. Compressed snapshot and baseline metadata retained under `synthetic_evidence/trust_roots/`.
+- Root rotation compares TLogs, CTLogs, certificate authorities and timestamp authorities; any byte/inventory change blocks CI. No automatic repin. Current root comparison is unchanged; a real production root rotation was not observed.
+- Snapshot chain: `docs/evidence/p1-8/trust-root-snapshot-chain.json`; sequence 2; baseline snapshot SHA `4e0359abfcd28f3f118eb753f6e6260269c420dbe76f6c71fff6ea1a240d8a82`; current snapshot SHA `4220e467da161679ca6ee45cd7548e9439250d1eb3f0d39d1cfe4f6ea4d19d0e`; chain SHA `8724353e63c20f071600091b113ba2ac05b7663d6782c432e73a71a5f1e472f8`.
+- Revocation policy is fail-closed:
+  - offline: `NOT_CHECKED_OFFLINE`;
+  - online TUF: `REVOCATION_STATUS_NOT_EXPOSED`;
+  - reported revoked: `REVOKED_REPORTED / REJECT`;
+  - reviewed clear: audit-only, remains blocked unless external evidence authenticity is separately verified.
+  - Automated OCSP/CRL/advisory ingestion and external evidence signature verification are **NOT IMPLEMENTED / NOT VERIFIED**. The system never infers "not revoked" from missing evidence.
+- P1.8.15 evidence backfill completed before artifact expiry:
+  - primary artifact `13545188812`, independent artifact `13546556454`;
+  - original subject SHA `cf62008062570e4ce296b2be67690006cf9c6459a360f1db2402eac4cfc9489d`;
+  - offline Sigstore verification PASS;
+  - combined retained archive SHA `1b8563eab22f8cff65ae98c106a9c77e31397eb9e29f80513ab2d33d88923bfe`.
+- P1.8.16 attestation ID `64697921`: https://github.com/kenznguyen/btcusdt-telegram-signals2/attestations/64697921
+- Rekor index `3725976921`: https://search.sigstore.dev?logIndex=3725976921
+- Attested subject SHA-256: `c12671f0f54ec3983257d27eea140499a2b2941858c5e928a0351138ff80c1dd`.
+- Primary artifact ID `13546338730`, size 3,710,871 bytes, outer artifact digest `sha256:467f286fee30d8340d55f5d98346c55bc1a51d7187ac67dcbafb68612ed4aae6`.
+- Independent verification artifact ID `13546312762`, size 9,088 bytes, outer digest `sha256:a54e24fef24e61bbcecbafe77b69d0c81c16585ca4b0f57ddb1b230587ed6be9`.
+- Retention manifest SHA-256 `9716632f116c9c5dcc80d3121cce353410649248f3e6dc4883296182e69808b2`; 12 payload entries independently rehashed.
+- Artifact retention set to 90 days, subject to repository policy. Git archive is durable history but **NOT WORM**; external immutable/offline backup remains NOT VERIFIED.
+- Archive path: `docs/evidence/p1-8/99331fd263fb6840c3963d0ba316f18884f9d2c7/`.
+- Archive commit / branch HEAD at acceptance: `13cd69ac7959207d02c262e3f13b0a85b069af64`.
+- Final report: `docs/architecture/P1.8.16_TRUST_ROOT_ROTATION_REVOCATION_LONG_TERM_RETENTION_2026-11-07.md`; report commit `5f032ac947607d25207c9f99118eda1e33a995e2`.
+- **P1.8.16: PASS — trust-root rotation detection and fail-closed pinning, hash-chained snapshot history, conservative revocation semantics, P1.8.15 backfill and Git-history retention.**
+- Substatus: rotation PASS; revocation fail-closed policy PASS; automated revocation source/authentication NOT VERIFIED; Git-history retention PASS; WORM/offsite backup NOT VERIFIED.
+- Restrictions unchanged: T0 PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`; no DB/exchange, VPS/provider, persistent capture, runtime integration, paper/live execution, or merge.
