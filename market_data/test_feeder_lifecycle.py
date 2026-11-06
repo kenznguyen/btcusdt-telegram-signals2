@@ -26,6 +26,49 @@ class RuntimeLifecycleTest(unittest.TestCase):
         self.assertEqual(events, ["scheduler_stopped", "work_drained", "lease_released"])
         leases.release.assert_called_once_with("worker-A", 4)
 
+
+    def test_stop_closes_scheduler_admission_before_waiting_for_heartbeat(self):
+        scheduler, leases = Mock(), Mock()
+        heartbeat = Mock()
+        heartbeat.is_alive.return_value = True
+        heartbeat.join.side_effect = lambda timeout: self.assertTrue(
+            scheduler.stop.called,
+            "scheduler admission must close before waiting for heartbeat shutdown",
+        )
+        runtime = FeederRuntime(
+            config=FeederConfig(), scheduler=scheduler, lease_store=leases,
+            owner_id="worker-stop-order",
+        )
+        runtime.lease_generation = 21
+        runtime._heartbeat_thread = heartbeat
+
+        with self.assertRaises(TimeoutError):
+            runtime.stop(timeout=0.01)
+
+        scheduler.stop.assert_called_once()
+        leases.release.assert_not_called()
+
+    def test_stop_shares_one_timeout_budget_between_heartbeat_and_drain(self):
+        scheduler, leases = Mock(), Mock()
+        scheduler.wait_for_idle.return_value = True
+        leases.release.return_value = True
+        heartbeat = Mock()
+        heartbeat.is_alive.return_value = False
+        runtime = FeederRuntime(
+            config=FeederConfig(), scheduler=scheduler, lease_store=leases,
+            owner_id="worker-stop-deadline",
+        )
+        runtime.lease_generation = 22
+        runtime._heartbeat_thread = heartbeat
+
+        from unittest.mock import patch
+        with patch("market_data.feeder.time.monotonic", side_effect=[10.0, 10.04, 10.08]):
+            runtime.stop(timeout=0.1)
+
+        heartbeat.join.assert_called_once()
+        self.assertAlmostEqual(heartbeat.join.call_args.kwargs["timeout"], 0.06)
+        self.assertAlmostEqual(scheduler.wait_for_idle.call_args.kwargs["timeout"], 0.02)
+
     def test_stop_is_idempotent(self):
         scheduler, leases = Mock(), Mock()
         runtime = FeederRuntime(
