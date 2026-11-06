@@ -130,7 +130,7 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
             ).fetchone()[0], "sha256:conflict")
             self.assertEqual(db.execute(
                 "SELECT daily_baseline_utc_day_ms FROM paper_account_risk_state WHERE account_id=1"
-            ).fetchone()[0], self.boundary)
+            ).fetchone()[0], self.now // account_history.DAY_MS * account_history.DAY_MS)
 
     def test_failure_during_risk_state_update_rolls_back_baseline_and_audit(self):
         with self._connection() as db:
