@@ -3370,3 +3370,15 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Historical independent evidence remains NONE AVAILABLE; historical Dual Reconstruction remains UNAVAILABLE/BLOCKED. Option A remains current policy. Prospective capture cannot restore missing historical records.
 - Next: architecture/threat-model review and explicit selection of storage, retention, access-control, and cost constraints. Do not start source implementation, schema migration, storage provisioning, DB opening, or runtime capture without separate approval.
 - Restrictions unchanged: no T0 work, no exchange connection, no live orders, no epoch activation, no HWM/Daily Loss reset, no exposure increase based on unverified history, no deployment or merge. PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — Forward Evidence Threat Model Review (documentation only)
+
+- Created `docs/architecture/FORWARD_EVIDENCE_THREAT_MODEL_REVIEW_2026-11-07.md`, commit `61c152d138336915a9e6fc68b05c04d19e6dde86`.
+- Recorded 30 threats spanning upstream event fabrication, shared admin/credential compromise, observer contamination from mutable DB, hash integrity vs authenticity, signing-key compromise/loss, sequence/replay, writer/outbox split-brain, observer lag, common-mode reducer defects, clock/UTC and late-event faults, missing fee/funding/marks, ownership attribution, storage outage/retention deletion, compromised CI/build, privacy, and false-green monitoring.
+- Explicit trust limitation: Root A and Root B may be separate retention/computation paths but share the upstream event emitter and may share host/operator/provider control planes. LEVEL 1 is not independent economic-source verification. SHA-256 alone is not authenticity; signed manifests require separately controlled key custody, which remains a trust dependency.
+- Open decisions remain open and must not be guessed: provider/region, separate provider/account vs locked namespaces, retention/legal hold, Root B lag and outage policy, durability SLA, signing/key custody, clock skew, RPO/RTO, privacy classification, and atomic outbox design.
+- Indexed in `docs/evidence/DAILY_BASELINE_V1_RECOVERY_EVIDENCE_INVENTORY_2026-11-07.md`, commit `2a792acfb9f1c2467431bfd89ed44a5802497c3e`.
+- Status: **PASS — threat model documented. NOT VERIFIED — controls are not implemented and security tests are not run.** No source, tests, schema, workflow, storage, persistent DB, or runtime behavior changed.
+- Next: review open storage/security decisions and define a threat acceptance boundary. No implementation or provisioning without separate approval.
+- Restrictions unchanged: no T0 work, no exchange connection, no live orders, no epoch activation, no HWM/Daily Loss reset, no exposure increase based on unverified history, no deployment or merge. PAPER-only; `ai_execution_enabled=false`.
