@@ -57,10 +57,14 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
         )
 
     def persist(self):
-        return persist_daily_equity_baseline(
-            self._connection(), utc_day_ms=self.boundary,
-            now_ms=self.recorded, source_sha="b" * 40,
-        )
+        connection = self._connection()
+        try:
+            return persist_daily_equity_baseline(
+                connection, utc_day_ms=self.boundary,
+                now_ms=self.recorded, source_sha="b" * 40,
+            )
+        finally:
+            connection.close()
 
     def _connection(self):
         connection = sqlite3.connect(self.path, timeout=10)
@@ -107,11 +111,15 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
             ).fetchone()[0], 1)
 
     def test_conflicting_existing_replay_digest_is_rejected_without_state_change(self):
-        self.persist()
         with self._connection() as db:
             db.execute(
-                """UPDATE paper_daily_equity_baselines SET replay_digest='conflict'
-                   WHERE account_id=1 AND utc_day_ms=?""", (self.boundary,)
+                """INSERT INTO paper_daily_equity_baselines
+                   (baseline_id,account_id,utc_day_ms,baseline_equity_quote,mark_id,
+                    starting_cutover_id,replay_digest,algorithm_version,source_sha,recorded_at_ms)
+                   VALUES (?,1,?,'100','fixture-boundary-mark','fixture-account-cutover',
+                           'sha256:conflict','daily-equity-replay-v1',?,?)""",
+                (f"daily-equity-baseline:1:{self.boundary}", self.boundary,
+                 "b" * 40, self.recorded),
             )
             db.commit()
         with self.assertRaisesRegex(ValueError, "DAILY_BASELINE_REPLAY_CONFLICT"):
@@ -144,6 +152,22 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
             ).fetchone()
         self.assertEqual(risk[0], self.now // account_history.DAY_MS * account_history.DAY_MS)
         self.assertEqual(risk[1], 1)
+
+    def test_baseline_reconstruction_does_not_promote_an_unready_account(self):
+        with self._connection() as db:
+            db.execute(
+                """UPDATE paper_account_risk_state SET risk_ready=0,
+                   unavailable_reason='PREEXISTING_RISK_GATE' WHERE account_id=1"""
+            )
+            db.commit()
+        result = self.persist()
+        self.assertFalse(result["risk_ready"])
+        with self._connection() as db:
+            state = db.execute(
+                "SELECT risk_ready,unavailable_reason,daily_baseline_utc_day_ms "
+                "FROM paper_account_risk_state WHERE account_id=1"
+            ).fetchone()
+        self.assertEqual(state, (0, "PREEXISTING_RISK_GATE", self.boundary))
 
     def test_baseline_and_audit_rows_reject_update_and_delete(self):
         self.persist()
