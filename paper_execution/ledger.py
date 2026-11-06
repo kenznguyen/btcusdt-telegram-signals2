@@ -273,7 +273,7 @@ def read_account_risk_snapshot(db_path, *, now_ms):
             previous_end = None
             for coverage in coverage_rows:
                 start, end, status, source = coverage
-                if end <= coverage_start or start >= observed:
+                if end <= coverage_start or start > observed:
                     continue
                 if previous_end is not None and start < previous_end:
                     funding_gap = True
