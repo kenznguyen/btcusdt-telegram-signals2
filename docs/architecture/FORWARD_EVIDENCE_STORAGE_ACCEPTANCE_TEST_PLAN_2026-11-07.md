@@ -175,3 +175,31 @@ Add mandatory cost qualification evidence before any candidate pair is accepted:
 - Never delete or weaken retained WORM evidence to meet a budget. A candidate exceeding the approved budget is disqualified or requires a new explicit budget approval.
 
 The USD 5/month figure is an illustrative research ceiling only. It is not approved, not a provider quote, and not demonstrated feasible. No account, purchase, provider test or persistent capture is authorized by this amendment.
+
+
+## 11. P1.5 synthetic envelope and recovery contract amendments (2026-11-07)
+
+Reference: `docs/architecture/FORWARD_EVIDENCE_ENVELOPE_RECOVERY_REQUIREMENTS_2026-11-07.md`.
+
+Add these mandatory vendor-neutral acceptance tests before any source implementation or provider qualification:
+
+- JCS canonicalization: RFC 8785 golden vectors, cross-language byte equivalence, UTF-8/no-BOM/no-trailing-newline, duplicate-key and invalid-Unicode rejection.
+- Project canonical profile: reject financial floats, unsafe integer numbers, NaN/Infinity, ambiguous null/omission, unknown unversioned fields and invalid decimal-string grammar.
+- Exact hash/signature vectors: verify domain-separated SHA-256 and Ed25519 message bytes; reject changed payload, hash, signature, key ID, revoked/unknown key and incorrect signing-time key status.
+- Stream integrity: verify genesis sentinel, monotonic 20-digit sequence, previous-hash linkage, same-ID/same-bytes idempotency, same-ID/different-bytes rejection, duplicate-sequence rejection and gap blocking.
+- Late events/corrections: preserve original event time and actual commit time; append corrections/supersessions without rewriting history; invalidate affected UTC boundary checkpoints.
+- Manifest integrity: canonical signed manifest, event count, sequence range, byte length, segment SHA-256, previous manifest hash, exact object version/generation, retention read-back and non-authoritative mutable pointer behavior.
+- Root B isolation: demonstrate that Root B cannot read the mutable account DB and can consume only committed Root A envelopes; verify separate reducer/checkpoint identity and receipt coverage.
+- Replay safety: duplicate receipt, observer crash before/after checkpoint commit, acknowledgement loss and replay must not double-apply or skip committed events.
+- Recovery completeness: cover Core, AI, Legacy/account-level ownership, fills, partial fills, order lifecycle, reservations, fees, funding, marks, config, risk decisions, Kill Switch, HWM and daily UTC baselines; UNKNOWN is never converted to zero.
+- Fail-closed/backpressure: Root A/Root B outage, lag, sequence/hash/signature fault, spool full, disk full, key loss, retention drift and uncertain durable commit block new exposure increases; reductions/closures require a durable evidence path.
+- RPO/RTO and restore: measure Root A durability, Root B catch-up, detection and clean-room restore against separately approved numeric thresholds. Do not use candidate bands as approved targets.
+- Retention/key lifecycle: verify exact policy by evidence category, legal hold, key rotation/revocation history, public-key verification and clean-room decrypt/restore.
+- Synthetic workload: derive bytes/day, objects/day, p95/max segment size, request counts, Root B throughput, spool growth and full restore cost from deterministic fixtures and exact source SHA.
+
+Policy notes:
+- Candidate RPO-A zero applies only to events acknowledged as durably committed by Root A; it is not yet qualified.
+- Root B unavailable/behind is proposed to block new exposure increases immediately until contiguous verification catches up. This is a reliability-first proposal, not an approved runtime threshold.
+- Candidate observation bands of 1/5/15 minutes are planning comparisons only. The previously documented 5-minute warning/15-minute block remains unapproved and must not be silently adopted.
+- Candidate retention horizons 1/3/7 years and indefinite are comparison inputs only. No legal retention rule or jurisdiction is assumed.
+- No provider, region, budget, account, credential, source implementation, schema migration, runtime capture or provider test is authorized by these test-plan amendments.
