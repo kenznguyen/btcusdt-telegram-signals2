@@ -2499,3 +2499,18 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 2. Build offline reconciliation fixtures from actual account-statement exports only after the user supplies/approves those files; do not open or migrate the persistent account DB.
 3. Keep historical funding/fee provenance and actual-account cutover NOT VERIFIED until source evidence is reconciled. Do not run a backtest until those prerequisites are verified or separately scoped.
 4. No T0 changes, persistent DB migration, merge, deployment, exchange connection or live execution without separate approval.
+
+## 2026-11-06 — T1 funding-coverage overlap guard (verification pending)
+
+- Continued on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch or PR created.
+- Added regression test `test_account_equity_cutover_rejects_overlapping_funding_coverage` in `paper_execution/test_dual_ledger_red.py`.
+- Test commit: `620a7171464acdb02160801f6b7d1ef8521e92d1`; test blob: `8b1578995cbd53c8d6892412902b813c6a705870`.
+- The test creates two independently sourced VERIFIED funding-coverage intervals that overlap, then requires account cutover to reject them with `FUNDING_COVERAGE_INTERVAL_OVERLAP`.
+- Added a guard in `paper_execution/funding.py`: cutover now checks each ordered interval against the previous interval end and rejects overlap. Adjacent intervals remain valid; gaps and UNKNOWN coverage continue to fail closed.
+- Implementation commit: `cd21ac526b051f2878f7538b392cd1bfb40e27ab`; funding module blob: `1798a645fb060c5daf24526bec8598762e5ee50c`.
+- Exact implementation commit inspection confirms only `paper_execution/funding.py` changed in the implementation commit; the preceding test commit changed only `paper_execution/test_dual_ledger_red.py`. No T0 files changed.
+- Verification boundary: the GitHub connector did not expose push-triggered workflow runs for this commit; the PR-only workflow-run lookup returned no runs. The new test has **NOT BEEN EXECUTED / RED NOT VERIFIED**, and the implementation is **NOT VERIFIED**. Do not count this as a passing test or CI run. A run must be checked against exact source SHA `cd21ac526b051f2878f7538b392cd1bfb40e27ab` before promoting status.
+- No artifact/run ID is recorded because none was retrievable in this increment.
+- No persistent account DB was opened or migrated. No backtest, merge, deployment, exchange connection, live execution, T0 modification, or Codemagic fallback occurred. `ai_execution_enabled=false`.
+- Status: **OVERLAP GUARD IMPLEMENTED; TEST/CI NOT VERIFIED; T1.2.2 IN PROGRESS.**
+- Next: obtain exact-SHA GitHub Actions evidence for the RED/GREEN regression; then add and verify the remaining cutover failure cases (statement-total mismatch, coverage gaps, stale/future mark and candle, corrupt funding provenance, restart/idempotent replay). Do not run backtests until historical funding/fee provenance and real-account cutover are independently reconciled.
