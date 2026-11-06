@@ -25,14 +25,19 @@ def _stamp(value):
     return value
 
 
-def _amount(value):
+def _decimal_value(value, code, *, nonnegative=False, positive=False):
     try:
         result = Decimal(str(value))
     except (DecimalException, TypeError, ValueError):
-        raise ValueError("FUNDING_AMOUNT_INVALID") from None
-    if not result.is_finite() or result == 0:
-        raise ValueError("FUNDING_AMOUNT_INVALID")
+        raise ValueError(code) from None
+    if (not result.is_finite() or (nonnegative and result < 0)
+            or (positive and result <= 0)):
+        raise ValueError(code)
     return result
+
+
+def _amount(value):
+    return _decimal_value(value, "FUNDING_AMOUNT_INVALID")
 
 
 def _decimal_text(value):
@@ -239,6 +244,10 @@ def migrate_account_equity_cutover(connection, source_sha):
         high_water_mark_quote TEXT NOT NULL,
         daily_baseline_utc_day_ms INTEGER NOT NULL,
         daily_baseline_equity_quote TEXT NOT NULL,
+        reconciled_realized_pnl_quote TEXT NOT NULL,
+        reconciled_fees_quote TEXT NOT NULL,
+        reconciled_funding_quote TEXT NOT NULL,
+        expected_account_equity_quote TEXT NOT NULL,
         recorded_at_ms INTEGER NOT NULL
     )""")
     connection.execute("""CREATE TRIGGER paper_account_equity_cutovers_immutable_update
@@ -259,8 +268,10 @@ def migrate_account_equity_cutover(connection, source_sha):
 
 
 def record_account_equity_cutover(
-    db_path, *, cutover_id, expected_initial_capital_quote, mark_price,
-    mark_candle_close_ms, mark_observed_at_ms, dataset_version,
+    db_path, *, cutover_id, expected_initial_capital_quote,
+    expected_realized_pnl_quote, expected_fees_quote, expected_funding_quote,
+    expected_account_equity_quote, mark_price, mark_candle_close_ms,
+    mark_observed_at_ms, dataset_version,
     funding_coverage_start_at_ms, source, source_snapshot_id, payload_hash,
     config_version, recorded_at_ms,
 ):
@@ -268,8 +279,22 @@ def record_account_equity_cutover(
     if not path.is_file():
         raise FileNotFoundError("Paper ledger is unavailable")
     cutover_id = _required_text(cutover_id, "ACCOUNT_EQUITY_CUTOVER_ID_INVALID", 200)
-    expected_capital = _amount(expected_initial_capital_quote)
-    mark = _amount(mark_price)
+    expected_capital = _decimal_value(
+        expected_initial_capital_quote, "ACCOUNT_EQUITY_CAPITAL_INVALID", positive=True
+    )
+    expected_realized = _decimal_value(
+        expected_realized_pnl_quote, "ACCOUNT_EQUITY_REALIZED_INVALID"
+    )
+    expected_fees = _decimal_value(
+        expected_fees_quote, "ACCOUNT_EQUITY_FEES_INVALID", nonnegative=True
+    )
+    expected_funding = _decimal_value(
+        expected_funding_quote, "ACCOUNT_EQUITY_FUNDING_INVALID"
+    )
+    expected_equity = _decimal_value(
+        expected_account_equity_quote, "ACCOUNT_EQUITY_EXPECTED_INVALID", positive=True
+    )
+    mark = _decimal_value(mark_price, "ACCOUNT_EQUITY_MARK_INVALID", positive=True)
     candle, observed = _stamp(mark_candle_close_ms), _stamp(mark_observed_at_ms)
     coverage_start, recorded = _stamp(funding_coverage_start_at_ms), _stamp(recorded_at_ms)
     if mark <= 0 or candle > observed or observed > recorded or recorded - observed > 30 * 60_000:
@@ -299,7 +324,9 @@ def record_account_equity_cutover(
             (cutover_id,),
         ).fetchone()
         request_identity = (
-            format(expected_capital, "f"), format(mark, "f"), candle, observed,
+            format(expected_capital, "f"), format(expected_realized, "f"),
+            format(expected_fees, "f"), format(expected_funding, "f"),
+            format(expected_equity, "f"), format(mark, "f"), candle, observed,
             dataset, coverage_start, source, snapshot, digest, config,
         )
         if prior:
@@ -317,7 +344,9 @@ def record_account_equity_cutover(
                 "highWaterMarkQuote": prior["high_water_mark_quote"],
                 "dailyBaselineEquityQuote": prior["daily_baseline_equity_quote"],
                 "dailyBaselineUtcDayMs": prior["daily_baseline_utc_day_ms"],
-                "riskReady": True, "mode": "PAPER",
+                "riskReady": bool(db.execute(
+                    "SELECT risk_ready FROM paper_account_risk_state WHERE account_id=1"
+                ).fetchone()[0]), "mode": "PAPER",
             }
         if db.execute("SELECT 1 FROM paper_account_equity_cutovers LIMIT 1").fetchone():
             raise ValueError("ACCOUNT_EQUITY_CUTOVER_ALREADY_ESTABLISHED")
@@ -375,7 +404,9 @@ def record_account_equity_cutover(
             for event in events:
                 amount = Decimal(event["amount_quote"])
                 if (not amount.is_finite() or event["source"] == "LEGACY_UNVERIFIED"
-                        or not event["source_snapshot_id"] or not event["payload_hash"]):
+                        or not event["source_snapshot_id"] or not event["payload_hash"]
+                        or event["event_at_ms"] < coverage_start
+                        or event["event_at_ms"] > observed):
                     raise ValueError("FUNDING_PROVENANCE_INCOMPLETE")
                 event_total += amount
             if event_total != fund:
@@ -395,8 +426,13 @@ def record_account_equity_cutover(
                 legacy_fees += amount
             else:
                 raise ValueError("ACCOUNT_EQUITY_LEGACY_ADJUSTMENT_INVALID")
-        equity = expected_capital + realized + legacy_pnl + unrealized - fees - legacy_fees - funding_total
-        if not equity.is_finite() or equity <= 0:
+        reconciled_realized = realized + legacy_pnl
+        reconciled_fees = fees + legacy_fees
+        if (reconciled_realized != expected_realized or reconciled_fees != expected_fees
+                or funding_total != expected_funding):
+            raise ValueError("ACCOUNT_EQUITY_STATEMENT_TOTALS_MISMATCH")
+        equity = expected_capital + reconciled_realized + unrealized - reconciled_fees - funding_total
+        if not equity.is_finite() or equity <= 0 or equity != expected_equity:
             raise ValueError("ACCOUNT_EQUITY_RECONCILIATION_FAILED")
         day = observed // 86_400_000 * 86_400_000
         db.execute(
@@ -405,12 +441,16 @@ def record_account_equity_cutover(
                 mark_price,mark_candle_close_ms,mark_observed_at_ms,dataset_version,
                 funding_coverage_start_at_ms,funding_coverage_end_at_ms,source,
                 source_snapshot_id,payload_hash,config_version,high_water_mark_quote,
-                daily_baseline_utc_day_ms,daily_baseline_equity_quote,recorded_at_ms)
-               VALUES (?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                daily_baseline_utc_day_ms,daily_baseline_equity_quote,
+                reconciled_realized_pnl_quote,reconciled_fees_quote,
+                reconciled_funding_quote,expected_account_equity_quote,recorded_at_ms)
+               VALUES (?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (cutover_id, format(expected_capital, "f"), _decimal_text(equity),
              format(mark, "f"), candle, observed, dataset, coverage_start, observed,
              source, snapshot, digest, config, _decimal_text(equity), day,
-             _decimal_text(equity), recorded),
+             _decimal_text(equity), format(reconciled_realized, "f"),
+             format(reconciled_fees, "f"), format(funding_total, "f"),
+             _decimal_text(expected_equity), recorded),
         )
         db.execute(
             """UPDATE paper_account_risk_state SET high_water_mark_quote=?,
