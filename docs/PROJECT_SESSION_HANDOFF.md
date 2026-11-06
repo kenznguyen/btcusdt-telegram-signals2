@@ -1891,3 +1891,11 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - PostgreSQL 16 official role docs confirm that non-superuser CREATEROLE users receive ADMIN OPTION membership on roles they create, with SET/INHERIT disabled by default; the test explicitly revokes these temporary memberships before invoking migration safety checks. This is only the PostgreSQL 16 baseline, not a managed-provider compatibility guarantee: https://www.postgresql.org/docs/16/role-attributes.html
 - Latest source commit: `b85b6cc5f99511b11aa2eacbabeb20a87595d78e`; test blob: `4874c64101cd86929b3317d722ac462dfb7cafbf`; evidence doc blob: `800090fb7d14abefeea63127c908cdc354d9ea7c`.
 - Verification remains **NOT VERIFIED** pending the exact direct-push Actions job result. Do not infer a test PASS from source review or workflow definition.
+
+
+### Bootstrap fixture cleanup isolation — 2026-11-06
+
+- Added explicit per-role creation tracking. The test teardown now drops only reserved roles that this test successfully created. If the pristine-cluster precondition fails because any T0 role already exists, cleanup leaves all pre-existing roles untouched.
+- Teardown order is: drop disposable database; drop temporary bootstrap login to clear any auto-created ADMIN memberships left by an interrupted setup; then drop only fixture-created reserved roles.
+- Latest bootstrap test source commit: `7d194d29ae011330b22f74d65401e68654b995f3`; test blob: `6e2f59b4b8725f15156e98e8f7360c9639be7986`; evidence doc blob: `2e28c4e29fa628fad52347130f231e4433656659`.
+- Direct-push CI status remains **NOT VERIFIED**: GitHub connector's combined-status endpoint returned no status entries and its workflow-run wrapper only exposes PR-triggered runs. This is an observability limitation, not evidence of success or failure. Need obtain the direct-push run and inspect exact checkout SHA/job logs/artifact before setting PASS.
