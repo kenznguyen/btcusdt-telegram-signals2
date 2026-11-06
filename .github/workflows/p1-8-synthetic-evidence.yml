@@ -21,6 +21,10 @@ concurrency:
 jobs:
   synthetic-only:
     name: Deterministic local fixture contracts
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -216,5 +220,59 @@ jobs:
             synthetic-evidence-provenance.json
             synthetic-evidence-output-a/**
             synthetic-evidence-output-b/**
+          if-no-files-found: error
+          retention-days: 7
+
+  independent-attestation-verification:
+    name: Independent runner Sigstore verification
+    needs: synthetic-only
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      attestations: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download signed evidence from completed build job
+        uses: actions/download-artifact@v4
+        with:
+          name: p1-8-synthetic-evidence-${{ github.sha }}
+          path: downloaded-evidence
+
+      - name: Independently verify artifact digest and Sigstore trust chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd downloaded-evidence
+          sha256sum -c synthetic-evidence-bundle.sha256
+          gh --version
+          gh attestation verify synthetic-evidence-bundle.zip \
+            --bundle synthetic-evidence-attestation.bundle.json \
+            --repo "${GITHUB_REPOSITORY}" \
+            --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/p1-8-synthetic-evidence.yml" \
+            --source-digest "${GITHUB_SHA}" \
+            --source-ref "${GITHUB_REF}" \
+            --cert-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --deny-self-hosted-runners \
+            --format json > independent-attestation-verification.json
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          from synthetic_evidence.trust_anchor import verify_attestation_result
+          digest = hashlib.sha256(Path("synthetic-evidence-bundle.zip").read_bytes()).hexdigest()
+          result = json.loads(Path("independent-attestation-verification.json").read_text())
+          assert verify_attestation_result(result, expected_subject_sha256=digest)
+          print("INDEPENDENT_RUNNER_SIGSTORE_VERIFICATION=PASS")
+          print(f"VERIFIED_SUBJECT_SHA256={digest}")
+          PY
+
+      - name: Retain independent verification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-8-independent-attestation-verification-${{ github.sha }}
+          path: |
+            downloaded-evidence/independent-attestation-verification.json
+            downloaded-evidence/synthetic-evidence-bundle.sha256
           if-no-files-found: error
           retention-days: 7
