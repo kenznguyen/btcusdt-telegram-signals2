@@ -1903,11 +1903,12 @@ os._exit(0)
 
         snapshot = ledger.read_account_risk_snapshot(self.path, now_ms=advanced_now)
         self.assertTrue(snapshot["riskReady"], snapshot)
-        order = self.core.submit(
-            self.intent("mark-advance-covered-entry", "0.1", "100.1", "mark-advance-book"),
-            self.book(advanced_now),
-            advanced_now,
+        intent = self.intent(
+            "mark-advance-covered-entry", "0.1", "100.1", "mark-advance-book"
         )
+        intent["decisionAtMs"] = advanced_now - 100
+        intent["validUntilMs"] = advanced_now + 30_000
+        order = self.core.submit(intent, self.book(advanced_now), advanced_now)
         self.assertEqual(order["status"], "FILLED", order)
 
     def test_mark_advancement_beyond_funding_coverage_blocks_new_exposure(self):
