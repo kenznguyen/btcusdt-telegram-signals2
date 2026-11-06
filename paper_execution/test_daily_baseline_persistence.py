@@ -89,6 +89,12 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
                    WHERE account_id=1 AND utc_day_ms=?""",
                 (digest, payload_json, self.boundary),
             )
+            db.execute("""CREATE TRIGGER paper_daily_equity_baselines_immutable_update
+                BEFORE UPDATE ON paper_daily_equity_baselines
+                BEGIN SELECT RAISE(ABORT,'DAILY_BASELINE_IMMUTABLE'); END""")
+            db.execute("""CREATE TRIGGER paper_daily_equity_baseline_audit_immutable_update
+                BEFORE UPDATE ON paper_daily_equity_baseline_audit
+                BEGIN SELECT RAISE(ABORT,'DAILY_BASELINE_AUDIT_IMMUTABLE'); END""")
             db.commit()
 
     def persist(self):
