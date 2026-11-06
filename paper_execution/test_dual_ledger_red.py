@@ -612,5 +612,85 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(owned["status"], "PARTIALLY_FILLED")
 
 
+    def test_partial_reservation_expires_after_restart_and_releases_remaining_capacity(self):
+        self.core.risk_limits["maxExposureUsdt"] = "15"
+        self.ai.risk_limits["maxExposureUsdt"] = "15"
+        partial = self.core.submit(
+            self.intent("core-expiry-pending", "0.12", "100.1", "core-expiry-book"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        self.assertEqual(partial["status"], "PARTIALLY_FILLED", partial)
+        reopened_core = PaperLedger(
+            self.path, max_position_base="1", strategy_id="STRATEGY_CORE",
+            source_sha="a" * 40, risk_limits=self.core.risk_limits,
+            require_risk_limits=True,
+        )
+        expiry_now = self.now + 30_001
+        ai_intent = self.intent("ai-after-core-expiry", "-0.1", "100", "ai-after-expiry")
+        ai_intent["decisionAtMs"] = expiry_now - 100
+        ai_intent["validUntilMs"] = expiry_now + 30_000
+        ai_order = self.ai.submit(ai_intent, self.book(expiry_now), expiry_now)
+        self.assertEqual(ai_order["status"], "FILLED", ai_order)
+
+        with sqlite3.connect(self.path) as connection:
+            reservation = connection.execute(
+                """SELECT status,remaining_notional_quote,remaining_margin_quote,expires_at_ms
+                   FROM paper_risk_reservations WHERE reservation_id=?""",
+                (partial["reservationId"],),
+            ).fetchone()
+            order_doc = connection.execute(
+                "SELECT status,document FROM paper_orders WHERE intent_id='core-expiry-pending'"
+            ).fetchone()
+        self.assertEqual(reservation, ("EXPIRED", "0", "0", self.now + 30_000))
+        expired_order = json.loads(order_doc[1])
+        self.assertEqual(order_doc[0], "EXPIRED")
+        self.assertEqual(expired_order["status"], "EXPIRED")
+        self.assertEqual(expired_order["filledBase"], "0.05")
+        self.assertEqual(expired_order["remainingBase"], "0.07")
+        self.assertEqual(reopened_core.snapshot()["positionBase"], "0.05")
+        self.assertEqual(self.ai.snapshot()["positionBase"], "-0.1")
+
+        replay = reopened_core.submit(
+            self.intent("core-expiry-pending", "0.12", "100.1", "core-expiry-book"),
+            self.book(self.now), expiry_now,
+        )
+        self.assertEqual(replay["status"], "EXPIRED")
+        self.assertEqual(replay["filledBase"], "0.05")
+
+    def test_active_reservation_with_unknown_expiry_remains_blocking_after_restart(self):
+        partial = self.core.submit(
+            self.intent("core-expiry-unknown", "0.12", "100.1", "core-expiry-unknown-book"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        self.assertEqual(partial["status"], "PARTIALLY_FILLED", partial)
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                "UPDATE paper_risk_reservations SET expires_at_ms=NULL WHERE reservation_id=?",
+                (partial["reservationId"],),
+            )
+        reopened_core = PaperLedger(
+            self.path, max_position_base="1", strategy_id="STRATEGY_CORE",
+            source_sha="a" * 40, risk_limits=self.core.risk_limits,
+            require_risk_limits=True,
+        )
+        later = self.now + 30_001
+        next_intent = self.intent("core-blocked-unknown-expiry", "0.13", "100.1", "new-book")
+        next_intent["decisionAtMs"] = later - 100
+        next_intent["validUntilMs"] = later + 30_000
+        blocked = reopened_core.submit(next_intent, self.book(later), later)
+        self.assertEqual(blocked["status"], "REJECTED", blocked)
+        self.assertEqual(blocked["reason"], "PENDING_ORDER")
+        with sqlite3.connect(self.path) as connection:
+            reservation = connection.execute(
+                "SELECT status,remaining_notional_quote,expires_at_ms FROM paper_risk_reservations WHERE reservation_id=?",
+                (partial["reservationId"],),
+            ).fetchone()
+        self.assertEqual(reservation[0], "PARTIAL")
+        self.assertGreater(Decimal(reservation[1]), Decimal("0"))
+        self.assertIsNone(reservation[2])
+
+
 if __name__ == "__main__":
     unittest.main()
