@@ -3424,3 +3424,16 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **PASS — documentation review and acceptance-plan amendment. NOT VERIFIED — live provider tests, region, costs, key custody and independent restore. NOT APPROVED — provider selection, purchase, accounts, credentials, provisioning or persistent capture.**
 - No CI run (documentation-only). No source/schema/workflow/database/runtime changes. Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged; T0 paused; PAPER-only; `ai_execution_enabled=false`.
 - Next: compare a second WORM-capable provider/account option for Root B, or explicitly accept and document R2's weaker admin-resistance before any disposable provider test approval. Do not provision or use canonical account data.
+
+
+## 2026-11-07 — P1.3 second WORM provider qualification review (documentation only)
+
+- Created `docs/architecture/FORWARD_EVIDENCE_SECOND_WORM_PROVIDER_REVIEW_2026-11-07.md`, commit `952d8a4a86c25a86979d8826620375b9459de517`.
+- Compared official documentation for Google Cloud Storage Bucket Lock and Azure Blob immutable storage as cross-provider Root B candidates. AWS S3 Compliance Mode remains the preferred Root A candidate; Cloudflare R2 is retained only as a lower-assurance fallback.
+- GCS: locked bucket retention cannot be reduced/removed; bucket deletion is blocked while retained objects remain; a project lien blocks project deletion, but privileged project owner/organization administrator can remove the lien. Data Access audit logs must be explicitly enabled; Object Versioning alone does not protect whole-bucket deletion.
+- Azure: locked time-based WORM policies cannot be shortened/deleted; Microsoft documents storage-account deletion barriers under specified locked container/version conditions. Exact container-vs-version policy scope, retention expiry, account deletion path and restore must be tested. Legal hold is not equivalent to irreversible time-based retention.
+- Acceptance plan amended with GCS policy/lien/audit/generation restore tests, Azure container/version/account deletion tests, and independent admin/clean-room restore tests. Plan commit `67c8304f91f0c6e318d6cb59ff8a119342654452`.
+- Evidence inventory update commit: `6ec7d47916024a2ce2ce3ad0788b75717a9f5707`.
+- **Status: PASS — documentation review and test-plan amendment. NOT VERIFIED — live provider behavior, restore, audit export, region, cost, and key custody. NOT APPROVED — provider selection, account creation, purchase, credentials, provisioning, storage access, or persistent capture.** No CI run (documentation-only); no source/schema/workflow/database/runtime changes.
+- Next: perform a vendor-neutral requirements and cost-input review, then prepare a bounded synthetic-data qualification proposal comparing GCS and Azure. Do not provision accounts or execute provider tests until separately approved. Do not use canonical account data.
+- Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A strict predecessor chain unchanged. T0 paused; PAPER-only; `ai_execution_enabled=false`.
