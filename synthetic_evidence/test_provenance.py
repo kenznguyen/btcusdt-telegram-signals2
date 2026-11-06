@@ -1,3 +1,4 @@
+import hashlib
 import json
 import tempfile
 import unittest
@@ -53,14 +54,15 @@ class ProvenanceBindingTests(unittest.TestCase):
     def test_verifier_fails_closed_on_missing_or_altered_binding(self):
         with tempfile.TemporaryDirectory() as tmp:
             data = build_provenance(**self._inputs(Path(tmp)))
-            self.assertTrue(verify_provenance(data, expected_source_sha="a"*40, expected_run_id=12345))
+            expected = hashlib.sha256((Path(tmp) / "workflow.yml").read_bytes()).hexdigest()
+            self.assertTrue(verify_provenance(data, expected_source_sha="a"*40, expected_run_id=12345, expected_workflow_sha256=expected))
             with self.assertRaisesRegex(ValueError, "run_id"):
-                verify_provenance(data, expected_source_sha="a"*40, expected_run_id=999)
+                verify_provenance(data, expected_source_sha="a"*40, expected_run_id=999, expected_workflow_sha256=expected)
             altered = dict(data, workflow_sha256="0"*64)
             with self.assertRaisesRegex(ValueError, "workflow_sha256"):
-                verify_provenance(altered, expected_source_sha="a"*40, expected_run_id=12345)
+                verify_provenance(altered, expected_source_sha="a"*40, expected_run_id=12345, expected_workflow_sha256=expected)
             with self.assertRaisesRegex(ValueError, "missing"):
-                verify_provenance({}, expected_source_sha="a"*40, expected_run_id=12345)
+                verify_provenance({}, expected_source_sha="a"*40, expected_run_id=12345, expected_workflow_sha256=expected)
 
 if __name__ == "__main__":
     unittest.main()
