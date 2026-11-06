@@ -1015,9 +1015,13 @@ class PaperLedger:
             raise ValueError("Invalid order identifier")
         with closing(self.connect()) as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
-            row = connection.execute("SELECT document FROM paper_orders WHERE order_id=?", (order_id,)).fetchone()
+            row = connection.execute(
+                "SELECT document,strategy_id FROM paper_orders WHERE order_id=?", (order_id,)
+            ).fetchone()
             if row is None:
                 raise ValueError("Unknown paper order")
+            if self.strategy_id in DUAL_STRATEGIES and row[1] != self.strategy_id:
+                raise ValueError("PAPER_ORDER_STRATEGY_SCOPE_MISMATCH")
             order = json.loads(row[0])
             if now < order["createdAtMs"]:
                 raise ValueError("Cancel time precedes order")
