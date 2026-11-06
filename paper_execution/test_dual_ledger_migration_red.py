@@ -86,6 +86,9 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
             migration = connection.execute(
                 "SELECT version,status FROM paper_schema_migrations"
             ).fetchall()
+            adjustments = dict(connection.execute(
+                "SELECT adjustment_type,amount_quote FROM paper_account_adjustments"
+            ).fetchall())
             legacy_after = connection.execute(
                 "SELECT position,average,realized,fees FROM paper_state WHERE id=1"
             ).fetchone()
@@ -93,7 +96,9 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
                 "SELECT owner,dca_used,initial_margin_quote FROM paper_strategy_state WHERE id=1"
             ).fetchone()
 
-        self.assertEqual(migrated, legacy_state)
+        self.assertEqual(migrated, (legacy_state[0], legacy_state[1], "0", "0"))
+        self.assertEqual(adjustments["LEGACY_REALIZED_PNL"], legacy_state[2])
+        self.assertEqual(adjustments["LEGACY_FEES"], legacy_state[3])
         self.assertEqual(core, ("0",))
         self.assertEqual(ai, ("0",))
         self.assertEqual(risk[0], 0)
@@ -105,8 +110,8 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
     def test_migration_is_idempotent_and_preserves_legacy_orders_and_tables(self):
         legacy_state, legacy_owner, order_count = self.make_legacy_database()
 
-        PaperLedger(self.path, max_position_base="1", strategy_id="STRATEGY_CORE")
-        PaperLedger(self.path, max_position_base="1", strategy_id="AI_FREQAI")
+        PaperLedger(self.path, max_position_base="1", strategy_id="STRATEGY_CORE", source_sha="b" * 40)
+        PaperLedger(self.path, max_position_base="1", strategy_id="AI_FREQAI", source_sha="b" * 40)
         PaperLedger(self.path, max_position_base="1", strategy_id="STRATEGY_CORE")
 
         with sqlite3.connect(self.path) as connection:
