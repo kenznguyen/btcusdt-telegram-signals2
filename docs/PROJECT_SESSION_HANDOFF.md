@@ -3823,3 +3823,19 @@ Test expectation corrected in commit `101b4be4d868d64aca5c7d49c7758a52b888a83a`:
 - DB/exchange credential variables empty; `AI_EXECUTION_ENABLED=false`.
 
 **P1.8.3 status: PASS for the synthetic-only harness and stated CI contract.** This does not prove production T0/T1 ledger/recovery semantics, provider durability, cross-language JCS, Ed25519/signing, Root B, 100k/burst/recovery/spool/restore, performance or production readiness. T0 remains PAUSED. No persistent capture, provider/VPS, runtime integration, exchange, database or live execution authorized.
+
+
+## 2026-11-07 — P1.8.4 Synthetic-only Execution Invariant Tests
+
+- Approval: `APPROVE P1.8.4 — SYNTHETIC-ONLY EXECUTION INVARIANT TESTS`.
+- Scope: standalone synthetic position transition model only. A reversal is accepted only after the prior position is explicitly reduced/closed to zero; it must reference the last closed position and use the opposite side. Duplicate identical events are idempotent; changed bytes under the same event ID are rejected. Crash/restart replay equivalence is covered.
+- Test-first commit: `2d7ec90eeb9ae4e44878b42612758e9aaa6d9bdc`.
+- Model commit: `584298321ec8db50b0b3bfad0e50c7e1e53d0912`.
+- Current implementation/test source SHA: `cfea58b8db10b3cd5ea67f2bb1e113b06d823bd3`.
+- Test blob SHA: `e325dd1ca98045ff41ecb79c8ad473d88e5d8447`.
+- Model blob SHA: `2fe6a09ba0658535997ca4989fc097ef6bd37599`.
+- Seven new test contracts; expected suite count 43 including the 36-test baseline.
+- GitHub Actions exact-SHA compile/test/reproducibility/artifact evidence: **NOT VERIFIED**.
+- Status: **IMPLEMENTED / CI NOT VERIFIED**. Do not mark PASS until exact source checkout, all tests, deterministic fixtures/replay and artifact checksum are verified.
+- Strict boundaries: synthetic-only. No T0/T1 runtime, Strategy Core, Shared Risk Engine, database, exchange, provider, VPS, credentials, persistent capture, execution adapter or live execution. `AI_EXECUTION_ENABLED=false`; T0 remains PAUSED.
+- Next: inspect GitHub Actions evidence for exact SHA and reconcile artifact provenance. Preserve this branch; no merge without explicit approval.
