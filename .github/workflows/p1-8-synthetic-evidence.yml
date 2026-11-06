@@ -104,6 +104,16 @@ jobs:
             echo "BYTE_FOR_BYTE_COMPARISON=PASS"
           } | tee synthetic-evidence-reproducibility.txt
 
+      - name: Bind evidence provenance to source, workflow and Actions run
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m synthetic_evidence.provenance \
+            --workflow-file .github/workflows/p1-8-synthetic-evidence.yml \
+            --descriptor-a synthetic-evidence-output-a/run_descriptor.json \
+            --descriptor-b synthetic-evidence-output-b/run_descriptor.json \
+            --output synthetic-evidence-provenance.json
+          python -c 'import json; from pathlib import Path; from synthetic_evidence.provenance import verify_provenance; d=json.loads(Path("synthetic-evidence-provenance.json").read_text()); assert verify_provenance(d, expected_source_sha="${{ github.sha }}", expected_run_id=int("${{ github.run_id }}")); print("PROVENANCE_SOURCE_RUN_WORKFLOW_FIXTURE_BINDING=PASS")'
       - name: Write compact smoke result
         if: always()
         run: |
@@ -137,6 +147,7 @@ jobs:
             synthetic-evidence-compile.txt
             synthetic-evidence-reproducibility.txt
             synthetic-evidence-smoke-summary.json
+            synthetic-evidence-provenance.json
             synthetic-evidence-output-a/**
             synthetic-evidence-output-b/**
           if-no-files-found: error
