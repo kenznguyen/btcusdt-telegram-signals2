@@ -3502,3 +3502,47 @@ These references were reviewed from RFC Editor sources. They are design referenc
 
 Review the P1.5 contract and open decisions. If continuing without implementation approval, prepare a deterministic synthetic fixture specification and a measurement worksheet. Source implementation, key provisioning, provider qualification, persistent capture, runtime changes and any risk-policy change each require separate explicit approval.
 
+
+
+## 2026-11-07 — P1.6 Deterministic Synthetic Evidence Fixture & Measurement Specification
+
+### Scope and artifacts
+
+Documentation-only continuation on `feature/t0-centralized-data-feeder-p1-20261101`.
+
+- Synthetic fixture and measurement specification: `docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_FIXTURE_MEASUREMENT_SPEC_2026-11-07.md`
+  - Commit: `83e787730cf7a35b99aad4c92e16e4d91e0089dd`
+- Acceptance Test Plan amendment: `docs/architecture/FORWARD_EVIDENCE_STORAGE_ACCEPTANCE_TEST_PLAN_2026-11-07.md`
+  - Commit: `913760fabd14f7f99d4f632bf6ff0b5bff663c80`
+- Evidence Inventory amendment: `docs/evidence/DAILY_BASELINE_V1_RECOVERY_EVIDENCE_INVENTORY_2026-11-07.md`
+  - Commit: `465a161892323cfbf538a92133119604d08640bd`
+- Handoff update: current documentation commit and blob SHA are recorded in GitHub history and final read-back.
+
+### Specification
+
+- Reproducibility descriptor fixes fixture spec version, future generator/build SHA, 256-bit seed, UUID namespace, UTC base time, event mix, payload profile, canonicalization/hash profile, segment policy and environment.
+- Deterministic generation uses domain-separated HMAC-SHA-256 counter stream, UUIDv5 synthetic event IDs, fixed timestamps, deterministic stream sequencing/inter-stream tie-break and exact decimal strings. Wall clock, platform PRNG, filesystem order and process scheduling are excluded.
+- All P1.5 event classes are represented. Negative vectors (duplicate/tamper/gap/late event, partial-fill lifecycle, UNKNOWN fee/funding, stale mark, observer crash) are separated from clean workload statistics.
+- Payload cohorts: SMALL/MEDIAN/LARGE plus separate STRESS. Proposed fixture scales: 1k, 10k, 100k events, plus burst and recovery profiles.
+- Event-core canonical bytes, transport envelope, segments, manifests and optional compression are measured separately. Report min/median/p90/p95/p99/max with counts and cohort identity.
+- Candidate batching matrix: 100 events/1 MiB, 500/4 MiB, 1,000/8 MiB and 5,000/32 MiB. These are benchmark inputs, not runtime limits.
+- Daily storage formulas use measured event mix/size; Root A and Root B are modeled independently. Cost worksheet requires exact provider/account boundary, region/SKU, retention, request/retrieval/egress, KMS, audit, restore, taxes/FX and quote provenance.
+- Region-neutral decision rule: Singapore is not a default. Compare proximity from Viet Nam only after durability, admin separation, residency, restore and cost gates.
+
+### Verification and status
+
+- P1.6 specification and Acceptance Test Plan gates: **PASS — documentation recorded**.
+- Generator implementation: NOT CREATED / NOT AUTHORIZED.
+- Synthetic generation, JCS cross-implementation, event-size, segment, throughput, spool, Root B replay and clean-room restore benchmarks: NOT RUN.
+- Event size, daily volume, object count, storage cost, restore time and throughput: NOT MEASURED.
+- Provider/region/retention/budget/account boundary: NOT SELECTED.
+- Provider accounts, credentials, purchase, provisioning, provider tests and persistent capture: NOT AUTHORIZED.
+- Source/schema/workflow/database/runtime: UNCHANGED. CI: NOT RUN (documentation-only; no workflow run or artifact).
+- No persistent account DB access, external artifact download, exchange connection, T0 runtime/data sync or live order.
+- Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A strict predecessor chain unchanged. No Epoch activation, HWM/Daily Loss reset or exposure increase from unverified history.
+- T0 remains PAUSED; PAPER-only; `ai_execution_enabled=false`.
+
+### Next step
+
+Review P1.6 assumptions. If explicitly approved, the next bounded implementation could be a standalone deterministic synthetic fixture generator and local-only test harness, with no account DB, exchange, provider, persistent capture or runtime integration. Such approval must be separate and limited to the generator/test harness; it does not authorize provider qualification or T0/T1 runtime changes.
+
