@@ -250,6 +250,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          export PYTHONPATH="${GITHUB_WORKSPACE}${PYTHONPATH:+:${PYTHONPATH}}"
           cd downloaded-evidence
           sha256sum -c synthetic-evidence-bundle.sha256
           gh --version
