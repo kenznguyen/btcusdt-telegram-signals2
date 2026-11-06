@@ -106,6 +106,85 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
         intent["validUntilMs"] = now_ms + 30_000
         return intent
 
+    def test_missing_daily_baseline_blocks_new_exposure(self):
+        self.persist()
+        with self._connection() as db:
+            db.execute(
+                """UPDATE paper_account_risk_state
+                   SET daily_baseline_utc_day_ms=NULL,daily_baseline_equity_quote=NULL
+                   WHERE account_id=1"""
+            )
+            db.commit()
+        order = self.fixture.core.submit(
+            self._intent_at("missing-baseline-entry", "0.01", "100.1", "missing-baseline-book", self.recorded),
+            self.fixture.book(self.recorded), self.recorded,
+        )
+        self.assertEqual(order["status"], "REJECTED")
+        self.assertEqual(order["reason"], "RISK_INPUTS_STALE_OR_CORRUPT")
+
+    def test_funding_coverage_gap_after_boundary_mark_observation_blocks_exposure(self):
+        with self._connection() as db:
+            db.execute("DROP TRIGGER paper_funding_coverage_immutable_update")
+            db.execute("DROP TRIGGER paper_funding_coverage_immutable_delete")
+            db.execute(
+                """UPDATE paper_funding_coverage SET end_at_ms=?
+                   WHERE coverage_id='fixture-funding-after-cutover'""",
+                (self.boundary + 1,),
+            )
+            db.commit()
+        self.persist()
+        order = self.fixture.ai.submit(
+            self._intent_at("funding-gap-entry", "-0.01", "100", "funding-gap-book", self.recorded),
+            self.fixture.book(self.recorded), self.recorded,
+        )
+        self.assertEqual(order["status"], "REJECTED")
+        self.assertEqual(order["reason"], "RISK_INPUTS_UNAVAILABLE")
+
+    def test_kill_switch_still_blocks_new_exposure_after_daily_baseline(self):
+        self.persist()
+        self.fixture.core.set_killed(True, self.recorded, "ROLLOVER_KILL_SWITCH")
+        order = self.fixture.core.submit(
+            self._intent_at("rollover-kill-entry", "0.01", "100.1", "rollover-kill-book", self.recorded),
+            self.fixture.book(self.recorded), self.recorded,
+        )
+        self.assertEqual(order["status"], "REJECTED")
+        self.assertEqual(order["reason"], "KILL_SWITCH")
+
+    def test_daily_loss_limit_latches_kill_after_baseline_rollover(self):
+        self.persist()
+        entry_now = self.recorded
+        entry = self.fixture.core.submit(
+            self._intent_at("daily-loss-seed-entry", "0.01", "100.1", "daily-loss-seed-book", entry_now),
+            self.fixture.book(entry_now), entry_now,
+        )
+        self.assertEqual(entry["status"], "FILLED", entry)
+        self.fixture.core.risk_limits["maxDailyLossUsdt"] = "0.05"
+        with self._connection() as db:
+            db.execute(
+                """UPDATE paper_account_risk_state SET last_mark_price='90',
+                   mark_observed_at_ms=?,mark_candle_close_ms=? WHERE account_id=1""",
+                (self.recorded + 1, self.boundary),
+            )
+            db.commit()
+        order_now = self.recorded + 1
+        rejected = self.fixture.core.submit(
+            self._intent_at("daily-loss-trigger-entry", "0.02", "90", "daily-loss-trigger-book", order_now),
+            self.fixture.book(order_now, bid="89.9", ask="90"), order_now,
+        )
+        self.assertEqual(rejected["status"], "REJECTED")
+        self.assertEqual(rejected["reason"], "DAILY_LOSS_LIMIT")
+        self.assertTrue(self.fixture.core.snapshot()["riskControl"]["killed"])
+
+    def test_max_exposure_limit_still_applies_after_daily_baseline(self):
+        self.persist()
+        self.fixture.core.risk_limits["maxExposureUsdt"] = "0.5"
+        order = self.fixture.core.submit(
+            self._intent_at("rollover-exposure-entry", "0.01", "100.1", "rollover-exposure-book", self.recorded),
+            self.fixture.book(self.recorded), self.recorded,
+        )
+        self.assertEqual(order["status"], "REJECTED")
+        self.assertEqual(order["reason"], "MAX_EXPOSURE_LIMIT")
+
     def test_verified_daily_baseline_admits_core_and_ai_through_shared_risk_engine(self):
         self.persist()
         core_now = self.recorded
