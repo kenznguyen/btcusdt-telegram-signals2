@@ -310,3 +310,82 @@ The user has approved the Dual Ledger architecture contract and all six design d
 - exchange connectivity or live execution.
 
 A separate explicit user approval is required before source implementation begins. All activity remains PAPER-only and `ai_execution_enabled=false`.
+
+## 10. Implementation addendum — Legacy Book Depth v2 (2026-11-06)
+
+This addendum extends the approved v1 schema plan without changing the v1 migration
+checksum or widening the paper_risk_reservations.strategy_id constraint.
+
+### v2 schema contract
+
+- Migration version: 2; migration name: legacy_book_depth_v2.
+- New table: paper_legacy_book_consumptions.
+- Each row records one actual Legacy fill at one book level: account, paper-order
+  intent, immutable book snapshot ID, side, price, consumed quantity, reconciliation
+  ID, SHA-256 evidence digest and timestamp.
+- intent_id references paper_orders(intent_id). A unique key on
+  (intent_id, book_id, side, price) prevents duplicate level consumption for one
+  intent. An index on (book_id, side, price) supports shared-depth admission.
+- Evidence digest must be lowercase sha256: plus 64 hexadecimal characters.
+  SQLite triggers reject UPDATE and DELETE; records are append-only.
+- v2 is additive and transactional. It requires a valid applied v1 checksum and
+  source SHA. If v2 metadata exists but the table/index/triggers/required columns
+  are missing or inconsistent, startup fails closed. It never rewrites v1 rows or
+  the legacy single-ledger tables.
+
+### Shared book-depth accounting
+
+Within the same SQLite BEGIN IMMEDIATE transaction, Core/AI admission subtracts:
+1. Core/AI level reservations in paper_book_level_reservations with ACTIVE or
+   CONSUMED status; and
+2. immutable Legacy fills in paper_legacy_book_consumptions for the same
+   (book_id, side, price).
+
+The two tables have disjoint ownership: the first contains Core/AI fills/reservations,
+the second only Legacy reduction fills. Therefore the quantities are summed without
+relabeling or double-counting. Legacy reduction itself subtracts both tables before
+consuming additional visible depth. Concurrent Legacy/Core/AI transactions serialize
+through SQLite's immediate write lock.
+
+### Dedicated Legacy reduction API
+
+reduce_legacy_unattributed(db_path, intent, book, now_ms, *,
+reconciliation_id, evidence_hash, fee_rate, max_spread_bps) is a PAPER-only
+close/flatten path:
+- accepts only a strict reduction of the existing signed Legacy position;
+- rejects flat/no-op, exposure increase and reversal with LEGACY_REDUCTION_ONLY;
+- never writes Core or AI ledger state and never creates a Core/AI risk reservation;
+- records actual filled book levels and immutable reconciliation evidence;
+- uses stable intent idempotency; a retry replays the original order and cannot
+  consume the same depth again;
+- allows valid reductions while the Kill Switch is active; it does not authorize
+  any increase or owner reassignment;
+- proportionally releases Legacy margin on partial close and clears DCA/margin when
+  the position is flattened. Account equity is recomputed only when the account risk
+  state is ready; corrupt inputs demote readiness rather than blocking a reduction.
+
+The evidence hash is format-validated and persisted, but the API does not retrieve or
+independently hash the external evidence file. Evidence provenance must remain
+available to the separate reconciliation/audit process.
+
+### Verification evidence
+
+- Implementation source SHA: 153437aee9fb0c88d48e44a71479778eb9772176.
+- GitHub Actions run: 42188808296
+  (https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42188808296).
+- Exact checked-out SHA: 153437aee9fb0c88d48e44a71479778eb9772176.
+- Compile: PASS; focused Dual Ledger/migration suite: 25/25 PASS;
+  full paper_execution regression: 60/60 PASS.
+- Artifact ID: 13489205046; name
+  dual-ledger-red-evidence-153437aee9fb0c88d48e44a71479778eb9772176;
+  SHA-256 82a301f5a948faf83c0dc0bd7f9712f3e1712c3ea025cad0ea43490248a09831.
+- No persistent account DB migration was run. Tests used isolated temporary SQLite
+  databases. T0 source/tests/workflows were not changed.
+
+### Authorization boundary
+
+The user separately approved T1.2.2 PAPER-only source implementation on 2026-11-06.
+This covers the v2 schema implementation and close-only API described above. It does
+not authorize applying migration v2 to a persistent account DB, enabling production
+readiness, running backtests, merging, deploying, connecting to an exchange or live
+execution. ai_execution_enabled=false remains mandatory.
