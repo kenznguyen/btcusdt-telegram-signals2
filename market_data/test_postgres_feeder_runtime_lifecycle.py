@@ -49,7 +49,7 @@ class PostgresFeederRuntimeLifecycleIntegrationTest(unittest.TestCase):
         migrate(cls.dsn)
 
     def setUp(self):
-        self.lease_name = "lifecycle-" + uuid.uuid4().hex
+        self.lease_name = "binance-btcusdt-canonical"
         self.backend = PostgresLeaseStore(self.dsn, lease_name=self.lease_name)
         self.adapter = PostgresRuntimeLeaseAdapter(self.backend)
 
