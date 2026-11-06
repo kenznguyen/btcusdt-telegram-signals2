@@ -37,6 +37,7 @@ def _crash_worker(args):
 class CrossProcessAtomicityTests(unittest.TestCase):
     def test_independent_processes_cannot_overreserve_shared_exposure(self):
         with tempfile.TemporaryDirectory() as directory:
+            FileBackedSharedRiskAdmission(directory, _policy(), _portfolio()).initialize()
             with ProcessPoolExecutor(max_workers=20) as pool:
                 results = list(pool.map(_admit_worker, [(directory, f"mp-{i}") for i in range(20)]))
 
@@ -49,6 +50,7 @@ class CrossProcessAtomicityTests(unittest.TestCase):
     def test_independent_processes_cannot_overrun_position_cap(self):
         policy = RiskPolicy(False, "1000", 6, "10")
         with tempfile.TemporaryDirectory() as directory:
+            FileBackedSharedRiskAdmission(directory, policy, _portfolio()).initialize()
             with ProcessPoolExecutor(max_workers=16) as pool:
                 results = list(pool.map(
                     lambda_args_worker,
@@ -61,6 +63,7 @@ class CrossProcessAtomicityTests(unittest.TestCase):
 
     def test_crash_before_atomic_replace_keeps_old_state_and_retry_commits_once(self):
         with tempfile.TemporaryDirectory() as directory:
+            FileBackedSharedRiskAdmission(directory, _policy(), _portfolio()).initialize()
             proc = multiprocessing.get_context("spawn").Process(
                 target=_crash_worker, args=((directory, "before-replace", "before_replace"),)
             )
