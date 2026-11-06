@@ -163,7 +163,7 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
             db.execute(
                 """UPDATE paper_account_risk_state SET last_mark_price='90',
                    mark_observed_at_ms=?,mark_candle_close_ms=? WHERE account_id=1""",
-                (self.recorded + 1, self.boundary),
+                (self.recorded, self.boundary),
             )
             db.commit()
         order_now = self.recorded + 1
