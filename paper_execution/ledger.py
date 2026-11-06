@@ -10,6 +10,10 @@ import sqlite3
 from pipeline.values import identity, number, stamp
 from paper_execution import risk_control, equity as equity_history
 from paper_execution.funding import (
+    MIGRATION_VERSION as FUNDING_MIGRATION_VERSION,
+    MIGRATION_CHECKSUM as FUNDING_MIGRATION_CHECKSUM,
+    CUTOVER_MIGRATION_VERSION,
+    CUTOVER_MIGRATION_CHECKSUM,
     migrate_funding_provenance, migrate_account_equity_cutover,
     record_funding_event, record_funding_coverage, record_account_equity_cutover,
 )
@@ -212,6 +216,8 @@ def read_account_risk_snapshot(db_path, *, now_ms):
             (MIGRATION_VERSION, MIGRATION_CHECKSUM),
             (LEGACY_BOOK_MIGRATION_VERSION, LEGACY_BOOK_MIGRATION_CHECKSUM),
             (RESERVATION_EXPIRY_MIGRATION_VERSION, RESERVATION_EXPIRY_MIGRATION_CHECKSUM),
+            (FUNDING_MIGRATION_VERSION, FUNDING_MIGRATION_CHECKSUM),
+            (CUTOVER_MIGRATION_VERSION, CUTOVER_MIGRATION_CHECKSUM),
         )
         for version, checksum in required_migrations:
             migration = db.execute(
@@ -231,8 +237,21 @@ def read_account_risk_snapshot(db_path, *, now_ms):
                       risk_ready,unavailable_reason
                FROM paper_account_risk_state WHERE account_id=1"""
         ).fetchone()
+        cutover = db.execute(
+            "SELECT funding_coverage_start_at_ms,funding_coverage_end_at_ms,initial_capital_quote "
+            "FROM paper_account_equity_cutovers WHERE account_id=1 LIMIT 1"
+        ).fetchone()
+        funding_gap = False
+        if cutover:
+            funding_gap = db.execute(
+                """SELECT 1 FROM paper_funding_coverage
+                   WHERE status='UNKNOWN' AND start_at_ms < ? AND end_at_ms > ? LIMIT 1""",
+                (cutover["funding_coverage_end_at_ms"], cutover["funding_coverage_start_at_ms"]),
+            ).fetchone() is not None
         if account is None or risk is None or type(risk["risk_ready"]) is not int or risk["risk_ready"] not in (0, 1):
             raise sqlite3.DatabaseError("ACCOUNT_RISK_STATE_MISSING_OR_CORRUPT")
+        if cutover and dec(cutover["initial_capital_quote"], "CUTOVER_INITIAL_CAPITAL", True) != dec(account["initial_capital"], "INITIAL_CAPITAL", True):
+            raise sqlite3.DatabaseError("ACCOUNT_EQUITY_CUTOVER_CAPITAL_MISMATCH")
 
         capital = dec(account["initial_capital"], "INITIAL_CAPITAL", True)
         mark = dec(risk["last_mark_price"], "MARK_PRICE", True)
@@ -325,7 +344,12 @@ def read_account_risk_snapshot(db_path, *, now_ms):
         drawdown = max(Decimal(0), hwm - equity)
         return {
             "mode": "PAPER", "liveTradingSupported": False, "available": True,
-            "riskReady": bool(risk["risk_ready"]), "unavailableReason": risk["unavailable_reason"],
+            "riskReady": bool(risk["risk_ready"]) and bool(cutover) and not funding_gap,
+            "unavailableReason": (
+                "ACCOUNT_EQUITY_CUTOVER_NOT_ESTABLISHED" if not cutover else
+                "FUNDING_PROVENANCE_INCOMPLETE" if funding_gap else
+                risk["unavailable_reason"]
+            ),
             "accountEquityQuote": text(equity),
             "grossExposureQuote": text(filled + reserved_notional),
             "filledExposureQuote": text(filled), "reservedNotionalQuote": text(reserved_notional),
@@ -1248,6 +1272,9 @@ class PaperLedger:
                           risk_ready,unavailable_reason
                    FROM paper_account_risk_state WHERE account_id=1"""
             ).fetchone()
+            cutover_row = connection.execute(
+                "SELECT 1 FROM paper_account_equity_cutovers WHERE account_id=1 LIMIT 1"
+            ).fetchone()
             account = connection.execute(
                 "SELECT initial_capital FROM paper_accounts WHERE account_id=1"
             ).fetchone()
@@ -1274,7 +1301,9 @@ class PaperLedger:
                     ("maxDrawdownPct", "maxDailyLossUsdt", "maxExposureUsdt")
                 )):
                     reason = "RISK_LIMITS_UNCONFIGURED"
-                if reason is None and (risk_row is None or account is None or not risk_row[8]):
+                if reason is None and (
+                    risk_row is None or account is None or not risk_row[8] or not cutover_row
+                ):
                     reason = "RISK_INPUTS_UNAVAILABLE"
                 elif reason is None:
                     try:
