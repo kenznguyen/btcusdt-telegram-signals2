@@ -1954,3 +1954,30 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Current verdict: general static + TimescaleDB read-only integration PASS on `92a8ba178716d73b3cdb645cc441ec99e775e962`; bootstrap fixture remains NOT VERIFIED until run #42165516115 completes. Managed-provider compatibility is still NOT VERIFIED.
 - Next: inspect run #42165516115 exact source checkout and the bootstrap test result/logs. If it passes, verify artifact digest and update the evidence manifest. If it fails, preserve the failure and make the smallest test-only correction. No provider/VPS provisioning or production activation.
 
+## T0 restricted provider bootstrap — run #42165516115 final result (2026-11-06)
+
+- Active branch: `feature/t0-centralized-data-feeder-p1-20261101`; branch tip after this handoff update will be recorded by the resulting docs commit.
+- Exact source SHA tested: `3bf7f0c807c497f18ac84999d2555bed92b501fb`.
+- Workflow run #42165516115: FAILURE (completed), exact head SHA confirmed.
+- Job outcomes:
+  - Static Gateway contract verification #127720956063: SUCCESS. Includes Gateway static contracts, behavioral/feeder regressions, Health/Readiness, SIGKILL restart/fencing and complete `market_data` suite.
+  - Paper consumer fixture regressions #127720955939: SUCCESS.
+  - Isolated TimescaleDB read-only integration #127721029764: SUCCESS:
+    - Atomic writer 7/7.
+    - FeederRuntime/composition 18/18.
+    - Lifecycle 4/4.
+    - Least-privilege role tests 18/18.
+    - Read-only integration 6/6.
+  - Fresh-cluster restricted provider bootstrap #127720955957: FAILURE at `migrate(migrator_dsn)`, `market_data/migrations.py::_assert_writer_roles_safe`, raising `RuntimeError: t0_migrator may only be granted to the ephemeral t0_migrator_login role`.
+- Downloaded and inspected provider bootstrap artifact #13478673154, SHA-256 `efdaa285f26ae4ce3d66dd9628618b68ebad64655f87a265c60c20657e48905a`. It confirms the test ran one case and failed at the safety guard. Teardown then also failed to drop the temporary bootstrap role because it remained the grantor of membership edges:
+  - `t0_migrator` in `t0_db_owner`;
+  - `t0_migrator` in `t0_candle_writer_owner`;
+  - `t0_migrator` in `t0_lease_manager_owner`;
+  - `t0_migrator_login` in `t0_migrator`.
+- TimescaleDB integration artifact #13478966960, SHA-256 `2bc3e07f5518f64d234f2c1c5a9c742fa86c0dea6fa0ac21007beefae8dcccaf`.
+- Static evidence artifact #13478946980, SHA-256 `ac35b299504ff86ae66bf48c6b190d009b97386aa674b5fb8c0134d6c2a47be0`.
+- Paper consumer artifact #13478394447, SHA-256 `3024330fadae4c527895c00ab80ebe476d89146235aebadd73e529d52b3688df`.
+- Diagnosis boundary: extension setup and initial SQL syntax are fixed. Current failure is a PostgreSQL 16 role-membership/grantor lifecycle mismatch in the test bootstrap. The migration guard is correctly failing closed; do not weaken it. Teardown also needs to revoke membership edges as their actual grantor (the temporary bootstrap login), not as the service admin. The exact residual membership responsible for the safety guard must be identified from PostgreSQL catalog state before changing the fixture.
+- Current status: core T0 PostgreSQL runtime/read-only integration PASS on exact source SHA; fresh-cluster non-superuser provider bootstrap BLOCKED; managed-provider compatibility NOT VERIFIED.
+- Next: improve the disposable fixture's diagnostic capture to record `pg_auth_members` (roleid/member/grantor/admin_option/set_option/inherit_option where supported) and effective role membership immediately before migrations, while keeping secrets redacted. Then make a test-only correction based on that evidence; teardown must connect as the temporary bootstrap grantor to revoke its own test-created membership edges before dropping it. Re-run exact-source CI. No migration guard weakening, no provider/VPS provisioning, no production database, no Feeder activation, no exchange connectivity or canonical ingestion.
+
