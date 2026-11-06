@@ -246,3 +246,24 @@ These are synthetic reference-model tests, not proof that the T0/T1 production l
 **Implementation: IN PROGRESS. CI acceptance: NOT VERIFIED.** Do not label P1.8.3 PASS until the workflow checks out exact source SHA `16ccd8a3747ce9bf98e795d522d52a5adeca8155`, compilation and all 36 tests pass, and the artifact/provenance are reconciled.
 
 No T0/T1 runtime, database, strategy, provider, VPS, persistent capture, signing/key lifecycle, Root B, or live execution work is included. T0 remains PAUSED and `ai_execution_enabled=false`.
+
+
+### CI result — workflow run 42291124242 (2026-11-06 UTC)
+
+- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42291124242
+- Job ID: `128144496660`, conclusion: **FAILURE**.
+- Exact checkout SHA: `311e6810ab5c7388daefb34373e58b1271dcb592` (verified in job log).
+- Synthetic-only preflight: PASS; Python compile: PASS.
+- Unit suite: 36 tests executed; 35 passed, 1 failed.
+- Failure: `test_recovery_after_crash_matches_uninterrupted_partial_fill_cancel_replace` expected `active_order_id == "O2"` after O2 was fully filled. The replay model correctly returned `None` because a terminal FILLED order is no longer active. This is a test expectation defect, not evidence of an unfinished active order.
+- Artifact ID `13540216092`, name `p1-8-synthetic-evidence-311e6810ab5c7388daefb34373e58b1271dcb592`, size 2,529 bytes, SHA-256 `07ad0fa8301f16522cc671d7304f7986b0e0c65bdf9974660f5b8c4161a21674`, expires 2026-11-13T20:46:07Z. It contains only the partial test/source/preflight/compile/smoke evidence; reproducibility step was skipped after test failure. It is not a passing fixture artifact.
+- Environment log confirms DB/exchange credential variables empty and `AI_EXECUTION_ENABLED=false`.
+
+### Correction after failed CI
+
+- Test-only correction commit: `101b4be4d868d64aca5c7d49c7758a52b888a83a`.
+- Updated assertion now requires `active_order_id is None`, and separately verifies O2 has terminal `FILLED` status and filled quantity `7`.
+- No production/reference-model behavior was changed in this correction.
+- A new push-triggered workflow run is expected; its run ID and result are pending verification.
+
+**Current P1.8.3 status: BLOCKED pending rerun CI.** Do not mark PASS until the rerun checks out the corrected source SHA and all tests, reproducibility, replay and artifact checks pass.
