@@ -91,7 +91,7 @@ jobs:
           from synthetic_evidence.trusted_root_pin import TRUSTED_ROOT_SHA256
           from synthetic_evidence.trust_lifecycle import (
               build_trust_snapshot, compare_trusted_roots, decode_pinned_root_snapshot,
-              format_sha256_sidecar, verify_snapshot_chain,
+              ensure_baseline_snapshot, format_sha256_sidecar, verify_snapshot_chain,
           )
           baseline_path = Path("synthetic_evidence/trust_roots/2026-11-07-trusted_root.jsonl.gz.b64")
           baseline = decode_pinned_root_snapshot(baseline_path.read_bytes(), TRUSTED_ROOT_SHA256)
@@ -112,18 +112,31 @@ jobs:
           latest_workflow = subprocess.check_output(["git", "show", f"{latest}:.github/workflows/p1-8-synthetic-evidence.yml"])
           if latest_workflow != Path(".github/workflows/p1-8-synthetic-evidence.yml").read_bytes():
               raise SystemExit("triggering source is behind the branch verification workflow; refusing stale verifier")
+          for relative in (
+              "synthetic_evidence/trust_lifecycle.py",
+              "synthetic_evidence/trust_roots/2026-11-07-trusted_root.jsonl.gz.b64",
+              "synthetic_evidence/trust_roots/baseline-2026-11-07.json",
+          ):
+              latest_bytes = subprocess.check_output(["git", "show", f"{latest}:{relative}"])
+              if latest_bytes != Path(relative).read_bytes():
+                  raise SystemExit(f"triggering source is behind current trust policy: {relative}")
           chain_result = subprocess.run(
               ["git", "show", f"{latest}:docs/evidence/p1-8/trust-root-snapshot-chain.json"],
               check=False, capture_output=True,
           )
           chain = json.loads(chain_result.stdout) if chain_result.returncode == 0 else None
-          if chain is not None:
-              verify_snapshot_chain(chain)
-              history = chain["snapshots"]
-              sequence = len(history) + 1
-              previous = history[-1]["snapshot_sha256"] if history else None
-          else:
-              sequence, previous = 1, None
+          baseline_metadata = json.loads(Path("synthetic_evidence/trust_roots/baseline-2026-11-07.json").read_text())
+          baseline_snapshot = build_trust_snapshot(
+              baseline,
+              captured_at=baseline_metadata["captured_at"],
+              sequence=1,
+              tuf_verified=True,
+          )
+          chain = ensure_baseline_snapshot(chain, baseline_snapshot)
+          verify_snapshot_chain(chain)
+          history = chain["snapshots"]
+          sequence = len(history) + 1
+          previous = history[-1]["snapshot_sha256"] if history else None
           captured_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
           snapshot = build_trust_snapshot(
               current, captured_at=captured_at, sequence=sequence,
@@ -510,9 +523,33 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          from synthetic_evidence.trust_lifecycle import append_trust_snapshot, build_snapshot_chain
+          from synthetic_evidence.trust_lifecycle import (
+              append_trust_snapshot, build_snapshot_chain, build_trust_snapshot,
+              decode_pinned_root_snapshot, ensure_baseline_snapshot,
+          )
+          from synthetic_evidence.trusted_root_pin import TRUSTED_ROOT_SHA256
+          source_sha = os.environ["SOURCE_SHA"]
+          for relative in (
+              "synthetic_evidence/trust_lifecycle.py",
+              "synthetic_evidence/trusted_root_pin.py",
+              "synthetic_evidence/trust_roots/2026-11-07-trusted_root.jsonl.gz.b64",
+              "synthetic_evidence/trust_roots/baseline-2026-11-07.json",
+              ".github/workflows/p1-8-synthetic-evidence.yml",
+          ):
+              source_bytes = __import__("subprocess").check_output(["git", "show", f"{source_sha}:{relative}"])
+              if source_bytes != Path(relative).read_bytes():
+                  raise SystemExit(f"source changed since build; refusing archive append: {relative}")
+          baseline = decode_pinned_root_snapshot(
+              Path("synthetic_evidence/trust_roots/2026-11-07-trusted_root.jsonl.gz.b64").read_bytes(),
+              TRUSTED_ROOT_SHA256,
+          )
+          baseline_metadata = json.loads(Path("synthetic_evidence/trust_roots/baseline-2026-11-07.json").read_text())
+          baseline_snapshot = build_trust_snapshot(
+              baseline, captured_at=baseline_metadata["captured_at"], sequence=1, tuf_verified=True
+          )
           chain_path = Path("docs/evidence/p1-8/trust-root-snapshot-chain.json")
-          chain = json.loads(chain_path.read_text()) if chain_path.exists() else build_snapshot_chain()
+          chain = json.loads(chain_path.read_text()) if chain_path.exists() else None
+          chain = ensure_baseline_snapshot(chain, baseline_snapshot)
           snapshot = json.loads(Path("retained-evidence/trust-root-snapshot.json").read_text())
           updated = append_trust_snapshot(chain, snapshot)
           chain_path.parent.mkdir(parents=True, exist_ok=True)
