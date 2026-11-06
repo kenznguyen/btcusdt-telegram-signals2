@@ -327,8 +327,9 @@ def read_account_risk_snapshot(db_path, *, now_ms):
                FROM paper_account_risk_state WHERE account_id=1"""
         ).fetchone()
         cutover = db.execute(
-            "SELECT funding_coverage_start_at_ms,funding_coverage_end_at_ms,initial_capital_quote "
-            "FROM paper_account_equity_cutovers WHERE account_id=1 LIMIT 1"
+            """SELECT funding_coverage_start_at_ms,funding_coverage_end_at_ms,
+                      initial_capital_quote,cutover_id,mark_observed_at_ms
+               FROM paper_account_equity_cutovers WHERE account_id=1 LIMIT 1"""
         ).fetchone()
         funding_gap = False
         if account is None or risk is None or type(risk["risk_ready"]) is not int or risk["risk_ready"] not in (0, 1):
@@ -432,6 +433,17 @@ def read_account_risk_snapshot(db_path, *, now_ms):
         day = now // 86_400_000 * 86_400_000
         if risk["daily_baseline_utc_day_ms"] != day:
             raise sqlite3.DatabaseError("ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE")
+        if cutover and risk["daily_baseline_utc_day_ms"] > (
+            cutover["mark_observed_at_ms"] // 86_400_000 * 86_400_000
+        ):
+            from paper_execution.daily_baseline import _validate_risk_state_against_baseline
+            _validate_risk_state_against_baseline(
+                db,
+                utc_day_ms=day,
+                expected_equity=risk["daily_baseline_equity_quote"],
+                cutover_id=cutover["cutover_id"],
+                now_ms=now,
+            )
         daily_pnl = equity - baseline
         drawdown = max(Decimal(0), hwm - equity)
         return {
@@ -1415,7 +1427,8 @@ class PaperLedger:
                    FROM paper_account_risk_state WHERE account_id=1"""
             ).fetchone()
             cutover_row = connection.execute(
-                """SELECT funding_coverage_start_at_ms,funding_coverage_end_at_ms
+                """SELECT funding_coverage_start_at_ms,funding_coverage_end_at_ms,
+                          cutover_id,mark_observed_at_ms
                    FROM paper_account_equity_cutovers WHERE account_id=1 LIMIT 1"""
             ).fetchone()
             funding_gap = not (
@@ -1432,6 +1445,22 @@ class PaperLedger:
             ).fetchall()
             mark = mark_observed = mark_candle = None
             equity = None
+            if increase_quantity > 0 and reason is None and risk_row and cutover_row:
+                baseline_day = risk_row[1]
+                cutover_day = cutover_row[3] // 86_400_000 * 86_400_000
+                if type(baseline_day) is not int or baseline_day > cutover_day:
+                    try:
+                        from paper_execution.daily_baseline import _validate_risk_state_against_baseline
+                        _validate_risk_state_against_baseline(
+                            connection,
+                            utc_day_ms=baseline_day,
+                            expected_equity=risk_row[2],
+                            cutover_id=cutover_row[2],
+                            now_ms=now,
+                        )
+                    except (sqlite3.DatabaseError, TypeError, ValueError):
+                        reason = "RISK_INPUTS_STALE_OR_CORRUPT"
+
             if increase_quantity > 0 and reason is None:
                 legacy_row = connection.execute(
                     """SELECT position_base FROM paper_strategy_ledgers
