@@ -1,0 +1,192 @@
+name: T0 PostgreSQL 16 Grantor Reproduction
+
+on:
+  push:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - ".github/workflows/t0-postgres16-grantor-repro.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: t0-pg16-grantor-repro
+  cancel-in-progress: false
+
+jobs:
+  disposable-grantor-reproduction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGDATABASE: t0_test
+      PGUSER: t0_test
+      PGPASSWORD: t0_test
+      MARKET_DATA_TEST_DISPOSABLE: "1"
+      MARKET_DATA_DB: ""
+      MARKET_DATA_POSTGRES_DSN: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    services:
+      timescaledb:
+        image: timescale/timescaledb:2.17.2-pg16
+        env:
+          POSTGRES_USER: t0_test
+          POSTGRES_PASSWORD: t0_test
+          POSTGRES_DB: t0_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U t0_test -d t0_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install isolated PostgreSQL driver
+        run: python -m pip install "psycopg[binary]>=3.2,<4"
+      - name: Enforce disposable target and reproduce grantor semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee t0-pg16-grantor-reproduction.log
+          import os
+          import uuid
+          import psycopg
+          from psycopg import sql
+
+          assert os.environ["MARKET_DATA_TEST_DISPOSABLE"] == "1"
+          assert os.environ["PGHOST"] == "127.0.0.1"
+          assert os.environ["PGDATABASE"] == "t0_test"
+          assert os.environ["PGUSER"] == "t0_test"
+          for key in ("MARKET_DATA_DB", "MARKET_DATA_POSTGRES_DSN",
+                      "T0_FEEDER_LEASE_DB", "PAPER_DB", "BINANCE_API_KEY",
+                      "BINANCE_API_SECRET", "OKX_API_KEY", "OKX_API_SECRET"):
+              assert not os.environ.get(key), f"forbidden env: {key}"
+
+          suffix = uuid.uuid4().hex[:10]
+          bootstrap = "t0_repro_bootstrap_" + suffix
+          auto_role = "t0_repro_auto_" + suffix
+          admin_role = "t0_repro_admin_" + suffix
+          password = uuid.uuid4().hex
+          created = []
+          dsn = (
+              f"host={os.environ['PGHOST']} port={os.environ['PGPORT']} "
+              f"dbname={os.environ['PGDATABASE']} user={os.environ['PGUSER']} "
+              f"password={os.environ['PGPASSWORD']}"
+          )
+
+          def memberships(conn, member):
+              rows = conn.execute(
+                  """
+                  SELECT granted.rolname, member_role.rolname, grantor.rolname,
+                         m.admin_option, m.inherit_option, m.set_option
+                  FROM pg_auth_members m
+                  JOIN pg_roles granted ON granted.oid=m.roleid
+                  JOIN pg_roles member_role ON member_role.oid=m.member
+                  JOIN pg_roles grantor ON grantor.oid=m.grantor
+                  WHERE member_role.rolname=%s
+                  ORDER BY granted.rolname, grantor.rolname
+                  """, (member,)
+              ).fetchall()
+              print("MEMBERSHIP_GRAPH", member, rows, flush=True)
+              return rows
+
+          try:
+              with psycopg.connect(dsn, autocommit=True) as admin:
+                  version = admin.execute("SHOW server_version").fetchone()[0]
+                  identity = admin.execute(
+                      "SELECT session_user, current_user, rolsuper "
+                      "FROM pg_roles WHERE rolname=current_user"
+                  ).fetchone()
+                  print("SERVER_VERSION", version, flush=True)
+                  print("SERVICE_ADMIN_IDENTITY", identity, flush=True)
+                  assert identity[2] is True
+                  admin.execute(
+                      sql.SQL("CREATE ROLE {} LOGIN CREATEROLE CREATEDB PASSWORD {}").format(
+                          sql.Identifier(bootstrap), sql.Literal(password)
+                      )
+                  )
+                  created.append(bootstrap)
+
+              bootstrap_dsn = (
+                  f"host={os.environ['PGHOST']} port={os.environ['PGPORT']} "
+                  f"dbname={os.environ['PGDATABASE']} user={bootstrap} password={password}"
+              )
+              with psycopg.connect(bootstrap_dsn, autocommit=True) as creator:
+                  creator.execute(sql.SQL("CREATE ROLE {} NOLOGIN").format(sql.Identifier(auto_role)))
+                  created.append(auto_role)
+                  creator.execute(sql.SQL("CREATE ROLE {} NOLOGIN").format(sql.Identifier(admin_role)))
+                  created.append(admin_role)
+                  print("CREATOR_IDENTITY", creator.execute(
+                      "SELECT session_user, current_user"
+                  ).fetchone(), flush=True)
+                  before_auto = memberships(creator, bootstrap)
+                  assert any(row[0] == auto_role and row[2] == "t0_test" and row[3] for row in before_auto), (
+                      "expected auto membership with service-admin grantor and ADMIN OPTION"
+                  )
+                  creator.execute(
+                      sql.SQL("REVOKE {} FROM CURRENT_USER").format(sql.Identifier(auto_role))
+                  )
+                  after_current_user_revoke = memberships(creator, bootstrap)
+                  assert any(row[0] == auto_role for row in after_current_user_revoke), (
+                      "expected grantor-owned automatic membership to remain after creator REVOKE"
+                  )
+                  print("CURRENT_USER_REVOKE_RESULT=AUTOMATIC_MEMBERSHIP_REMAINS", flush=True)
+
+              with psycopg.connect(dsn, autocommit=True) as admin:
+                  before_admin_revoke = memberships(admin, bootstrap)
+                  assert any(row[0] == auto_role for row in before_admin_revoke)
+                  admin.execute(
+                      sql.SQL("REVOKE {} FROM {}").format(
+                          sql.Identifier(auto_role), sql.Identifier(bootstrap)
+                      )
+                  )
+                  after_admin_revoke = memberships(admin, bootstrap)
+                  assert not any(row[0] == auto_role for row in after_admin_revoke)
+                  print("SERVICE_ADMIN_REVOKE_RESULT=AUTOMATIC_MEMBERSHIP_REMOVED", flush=True)
+
+              with psycopg.connect(bootstrap_dsn, autocommit=True) as creator:
+                  creator.execute(
+                      sql.SQL("GRANT {} TO {}").format(
+                          sql.Identifier(admin_role), sql.Identifier(bootstrap)
+                      )
+                  )
+                  print("EXPLICIT_GRANTOR_MEMBERSHIP_GRAPH", memberships(creator, bootstrap), flush=True)
+                  creator.execute(
+                      sql.SQL("REVOKE {} FROM CURRENT_USER").format(sql.Identifier(admin_role))
+                  )
+                  after_explicit_revoke = memberships(creator, bootstrap)
+                  assert not any(row[0] == admin_role for row in after_explicit_revoke)
+                  print("EXPLICIT_GRANTOR_REVOKE_RESULT=MEMBERSHIP_REMOVED", flush=True)
+
+              print("T0_PG16_GRANTOR_REPRODUCTION=PASS", flush=True)
+          finally:
+              with psycopg.connect(dsn, autocommit=True) as admin:
+                  # Disposable random roles only; cleanup is performed by cluster admin.
+                  for role in reversed(created):
+                      admin.execute(sql.SQL("DROP ROLE IF EXISTS {}").format(sql.Identifier(role)))
+                  leftovers = admin.execute(
+                      "SELECT rolname FROM pg_roles WHERE rolname = ANY(%s)",
+                      (created,)
+                  ).fetchall()
+                  assert leftovers == [], f"test roles remain: {leftovers}"
+                  print("CLEANUP=PASS", flush=True)
+          PY
+      - name: Upload exact reproduction evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-pg16-grantor-reproduction-${{ github.sha }}
+          if-no-files-found: error
+          path: t0-pg16-grantor-reproduction.log
