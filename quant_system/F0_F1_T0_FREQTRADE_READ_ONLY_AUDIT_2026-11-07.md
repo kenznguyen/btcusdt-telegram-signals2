@@ -81,6 +81,15 @@ Adapter behavior:
 
 The adapter does not make HTTP requests, import/open a T0 database, modify Freqtrade config, replace existing market data, or start a strategy. Pair-to-filename conversion and futures subdirectory placement were checked against the pinned upstream Freqtrade 2026.9 `IDataHandler`, `JsonDataHandler` and `misc.pair_to_filename` implementations.
 
+## F1 — pinned Freqtrade 2026.9 loader source verification
+
+Pinned upstream source was inspected read-only at tag `2026.9`:
+- `freqtrade/data/history/datahandlers/jsondatahandler.py`, blob `baed3e9d9e6bef1be6f1337d22735e31cf20a039`: `JsonDataHandler._ohlcv_load()` uses the same `_pair_data_filename()` lookup, reads positional JSON rows with `pandas.read_json(..., orient="values")`, normalizes positional columns, applies candle dtypes and converts the first field from Unix milliseconds to UTC dates.
+- `freqtrade/data/history/datahandlers/idatahandler.py`, blob `e5429c04d4f5f7963e558c2aea15f029edc52376`: non-spot candle types resolve below the `futures/` directory and use the `-{candle_type}` filename suffix.
+- `freqtrade/misc.py`, blob `065321bafefec14780aa3549831a30a95bf9662b`: `pair_to_filename()` replaces slash and colon with underscores; `BTC/USDT:USDT` therefore maps to `BTC_USDT_USDT`.
+- This confirms the adapter's intended six-value OHLCV row layout and `futures/BTC_USDT_USDT-15m-futures.json` / `...-1h-futures.json` naming against the pinned source implementation.
+- Boundary: this is source-level compatibility verification only. The Freqtrade package was not installed or invoked, and no `list-data` or `JsonDataHandler` runtime test was run. Actual T0 export remains blocked while T0 is PAUSED.
+
 ## Verification status
 
 | Item | Status | Evidence / limitation |
