@@ -12,7 +12,7 @@ class ProvenanceBindingTests(unittest.TestCase):
         workflow.write_text("name: synthetic", encoding="utf-8")
         a, b = root / "a.json", root / "b.json"
         a.write_text(json.dumps({"generator_source_sha": sha}), encoding="utf-8")
-        b.write_text(json.dumps({"source_sha": sha}), encoding="utf-8")
+        b.write_text(json.dumps({"generator_source_sha": sha}), encoding="utf-8")
         return dict(source_sha=sha, run_id="12345", run_attempt="1",
                     repository="owner/repo", ref="refs/heads/feature/test",
                     workflow_ref="owner/repo/.github/workflows/test.yml@refs/heads/feature/test",
@@ -41,7 +41,7 @@ class ProvenanceBindingTests(unittest.TestCase):
 
     def test_rejects_fixture_a_source_mismatch(self):
         with tempfile.TemporaryDirectory() as tmp:
-            args = self._inputs(Path(tmp)); args["descriptor_a"].write_text('{"source_sha":"' + "b"*40 + '"}')
+            args = self._inputs(Path(tmp)); args["descriptor_a"].write_text('{"generator_source_sha":"' + "b"*40 + '"}')
             with self.assertRaisesRegex(ValueError, "fixture A"):
                 build_provenance(**args)
 
