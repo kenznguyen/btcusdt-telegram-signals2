@@ -478,14 +478,19 @@ class SyntheticExecutionInvariantTests(unittest.TestCase):
         self.assertEqual(result["positions"]["P1"]["status"], "CLOSED")
         self.assertEqual(result["positions"]["P2"]["side"], "SHORT")
 
-    def test_reduction_cannot_exceed_remaining_quantity_or_change_position_side(self):
+    def test_reduction_must_be_less_than_remaining_and_target_active_position(self):
         from synthetic_evidence.execution_invariants import replay_position_transitions
 
         opened = {"event_id": "1", "type": "POSITION_OPENED", "position_id": "P1",
                   "side": "LONG", "quantity": "5"}
         too_much = {"event_id": "2", "type": "POSITION_REDUCED", "position_id": "P1", "quantity": "6"}
-        with self.assertRaisesRegex(ValueError, "exceeds remaining"):
+        full_amount = {"event_id": "2", "type": "POSITION_REDUCED", "position_id": "P1", "quantity": "5"}
+        expected = "reduction must be smaller than remaining quantity; use close"
+        with self.assertRaisesRegex(ValueError, expected):
             replay_position_transitions([opened, too_much])
+        with self.assertRaisesRegex(ValueError, expected):
+            replay_position_transitions([opened, full_amount])
+
         wrong_position = {"event_id": "2", "type": "POSITION_REDUCED", "position_id": "P9", "quantity": "1"}
         with self.assertRaisesRegex(ValueError, "active position"):
             replay_position_transitions([opened, wrong_position])
