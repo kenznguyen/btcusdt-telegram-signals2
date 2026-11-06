@@ -589,5 +589,53 @@ os._exit(74)
             db.rollback()
 
 
+    def test_previous_baseline_rejects_canonical_audit_payload_with_mismatched_replay_equity(self):
+        import hashlib
+        import json
+        from paper_execution.daily_baseline import (
+            _canonical, _validate_persisted_baseline,
+        )
+
+        self.persist()
+        with self._connection() as db:
+            db.execute("DROP TRIGGER paper_daily_equity_baselines_immutable_update")
+            db.execute("DROP TRIGGER paper_daily_equity_baseline_audit_immutable_update")
+            row = db.execute(
+                """SELECT replay_digest FROM paper_daily_equity_baselines
+                   WHERE account_id=1 AND utc_day_ms=?""",
+                (self.boundary,),
+            ).fetchone()
+            payload_row = db.execute(
+                """SELECT payload_json FROM paper_daily_equity_baseline_audit
+                   WHERE account_id=1 AND utc_day_ms=?""",
+                (self.boundary,),
+            ).fetchone()
+            payload = json.loads(payload_row[0])
+            payload["replay"]["equity_quote"] = "999"
+            payload_json = _canonical(payload)
+            digest = "sha256:" + hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
+            db.execute(
+                """UPDATE paper_daily_equity_baselines SET replay_digest=?
+                   WHERE account_id=1 AND utc_day_ms=?""",
+                (digest, self.boundary),
+            )
+            db.execute(
+                """UPDATE paper_daily_equity_baseline_audit
+                   SET replay_digest=?,payload_json=?
+                   WHERE account_id=1 AND utc_day_ms=?""",
+                (digest, payload_json, self.boundary),
+            )
+            db.commit()
+
+        with self._connection() as db:
+            with self.assertRaisesRegex(
+                sqlite3.DatabaseError, "DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED"
+            ):
+                _validate_persisted_baseline(
+                    db, utc_day_ms=self.boundary, expected_equity="100",
+                    cutover_id="fixture-account-cutover", now_ms=self.recorded,
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
