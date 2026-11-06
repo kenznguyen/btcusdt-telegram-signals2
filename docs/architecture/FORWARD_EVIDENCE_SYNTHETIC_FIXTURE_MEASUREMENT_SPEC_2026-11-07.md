@@ -333,3 +333,27 @@ For every event class/cohort and representation (event_core, transport envelope,
 For timing/throughput, retain every run, warm-up marker, environment, fixture digest and failures. Five measured runs are exploratory evidence only; do not claim a statistically strong p95 from five samples.
 
 A local Root B replay is labeled `LOCAL_REPLAY_SIMULATION`; it tests deterministic reducer/replay semantics only. It cannot satisfy independent-process, separate-admin, WORM, provider durability or provider clean-room restore acceptance.
+
+
+## 14. P1.8 implementation clarification (2026-11-07)
+
+### 14.1 Corrected event-class weights
+
+Correction to §3.2: the listed weights add to **94**, not 100. Treat them as relative weights, not percentages. For target-count calculation, normalize each weight by the total weight 94 and use largest-remainder allocation with the fixed lexical tie-break. The original statement “percentages sum to 100” is superseded by this correction.
+
+The generator reports normalized target counts separately from actual scenario-driven counts. Mandatory causal/state-machine events are not dropped or reordered to force a target distribution.
+
+### 14.2 P1.8 implementation boundary
+
+Implementation report: `docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_GENERATOR_IMPLEMENTATION_2026-11-07.md`.
+
+The standalone package implements deterministic HMAC/UUID fixture generation, strict JCS-compatible subset serialization, event and manifest SHA-256 hashes, per-stream segments, unsigned local manifests, byte measurements, a negative-vector catalog and local replay simulation.
+
+Explicit limitations:
+- Full RFC 8785 cross-implementation conformance remains NOT VERIFIED.
+- Ed25519 signing/verification and signed storage receipts are NOT IMPLEMENTED.
+- The negative-vector catalog is not proof that every listed fault path has executable coverage.
+- `LOCAL_REPLAY_SIMULATION` is not independent Root B evidence.
+- Provider, storage, persistent capture and T0/T1 runtime work remain outside scope.
+
+Local verification at implementation time: 19/19 focused tests PASS; py_compile PASS; two 1,000-event outputs byte-identical; fixture SHA-256 manifest PASS. GitHub Actions exact-head result and artifact must be recorded separately after the workflow completes.
