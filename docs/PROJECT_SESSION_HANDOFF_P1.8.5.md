@@ -9,7 +9,9 @@ This supplement records the latest P1.8.5 increment for the primary `docs/PROJEC
 - Repository: `kenznguyen/btcusdt-telegram-signals2`
 - Branch: `feature/t0-centralized-data-feeder-p1-20261101`
 - P1.8.5 source SHA: `3c27f716df5c6d69d9e0882210151f9bfdb9cb8e`
-- Latest documentation commit at the time of this supplement: `2e480f0f67ab691b1a205e7d496a7535743d399c` (this supplement itself is committed immediately after the evidence report; verify branch HEAD by GitHub read-back).
+- Evidence report commit: `2e480f0f67ab691b1a205e7d496a7535743d399c`.
+- Handoff supplement commit: `9f22c382d8537e961c6119fa5e71ad82117b9169`.
+- Branch HEAD was read back as `9f22c382d8537e961c6119fa5e71ad82117b9169` before this metadata correction.
 - P1.8.5 evidence report: `docs/architecture/P1.8.5_SHARED_RISK_ADMISSION_SYNTHETIC_EVIDENCE_2026-11-07.md`.
 
 ## P1.8.5 result
