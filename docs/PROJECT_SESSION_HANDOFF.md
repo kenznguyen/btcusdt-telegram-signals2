@@ -1923,3 +1923,34 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Safety: test uses only the workflow's disposable local TimescaleDB service. No provider/VPS provisioning, canonical T0 database, Feeder activation, exchange connection, Binance sync, Paper DB mutation, or live execution.
 - Next: inspect completion and logs for run #42165386542, especially the fresh-cluster bootstrap. Diagnose permission/migration failures without broadening privileges or weakening migration guards; then update this handoff with exact job outcomes and artifact digests.
 
+## T0 provider bootstrap fixture — second diagnosis and cleanup correction (2026-11-06)
+
+- Follow-up source SHA `92a8ba178716d73b3cdb645cc441ec99e775e962`, workflow run #42165386542, checked out exactly.
+- Run #42165386542 results:
+  - Static Gateway contract verification: SUCCESS, including full `market_data` suite.
+  - Paper consumer fixture regressions: SUCCESS.
+  - Isolated TimescaleDB read-only integration: SUCCESS:
+    - PostgreSQL atomic writer: 7/7.
+    - PostgreSQL FeederRuntime + composition contracts: 18/18.
+    - FeederRuntime lifecycle: 4/4.
+    - Least-privilege role integration: 18/18.
+    - Read-only TimescaleDB integration: 6/6.
+  - Fresh-cluster restricted provider bootstrap: FAILURE, isolated to its test fixture.
+- Bootstrap failure diagnosis from job #127720532984:
+  1. The dedicated database already had the TimescaleDB extension, so unconditional `CREATE EXTENSION timescaledb` raised `DuplicateObject`. This is compatible with provider-managed/preinstalled extension behavior; fixture now uses `CREATE EXTENSION IF NOT EXISTS`.
+  2. The bootstrap login was the grantor for membership edges `t0_migrator -> {t0_db_owner,t0_candle_writer_owner,t0_lease_manager_owner}` and `t0_migrator_login -> t0_migrator`. Dropping the bootstrap role before revoking those edges raised `DependentObjectsStillExist`. Teardown now revokes only those test-created membership edges as service admin, then drops bootstrap and reserved roles.
+  3. No migration or production role policy was changed. The fix does not add privileges or weaken guards.
+- Fix commit/source SHA: `3bf7f0c807c497f18ac84999d2555bed92b501fb`; test blob `c7beb4f33a27cdda0a3f5f10edc5163988598f72`.
+- Fix workflow run #42165516115: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42165516115
+  - Exact head SHA: `3bf7f0c807c497f18ac84999d2555bed92b501fb`.
+  - Static Gateway job #127720956063: SUCCESS, including full `market_data` suite.
+  - Paper consumer job #127720955939: SUCCESS.
+  - Fresh-cluster bootstrap job #127720955957 and isolated TimescaleDB integration job #127721029764 were still in progress at this handoff update; bootstrap result NOT VERIFIED.
+- Artifacts from the prior exact-source run #42165386542:
+  - Provider bootstrap failure evidence artifact ID `13478802306`, SHA-256 `7760c1a2006c7d92f878b71b5a01f2f59c26406cc1b0811d693191915436b613`.
+  - TimescaleDB integration PASS artifact ID `13478449224`, SHA-256 `cf3d0b7e29c63080784338de2147b2db1ad824231e4b7b860fb93d1590509e78`.
+  - Static evidence artifact ID `13477959914`, SHA-256 `ad2b2b1908852e84050d124f8d5996eaed444ccfb485c95c484f408d7d116df7`.
+  - Paper consumer artifact ID `13478618479`, SHA-256 `631f953d8ea5b5a97dcef77f423d1a7527be5dca17662f2949016c61ecc0980d`.
+- Current verdict: general static + TimescaleDB read-only integration PASS on `92a8ba178716d73b3cdb645cc441ec99e775e962`; bootstrap fixture remains NOT VERIFIED until run #42165516115 completes. Managed-provider compatibility is still NOT VERIFIED.
+- Next: inspect run #42165516115 exact source checkout and the bootstrap test result/logs. If it passes, verify artifact digest and update the evidence manifest. If it fails, preserve the failure and make the smallest test-only correction. No provider/VPS provisioning or production activation.
+
