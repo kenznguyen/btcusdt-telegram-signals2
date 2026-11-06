@@ -2514,3 +2514,17 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No persistent account DB was opened or migrated. No backtest, merge, deployment, exchange connection, live execution, T0 modification, or Codemagic fallback occurred. `ai_execution_enabled=false`.
 - Status: **OVERLAP GUARD IMPLEMENTED; TEST/CI NOT VERIFIED; T1.2.2 IN PROGRESS.**
 - Next: obtain exact-SHA GitHub Actions evidence for the RED/GREEN regression; then add and verify the remaining cutover failure cases (statement-total mismatch, coverage gaps, stale/future mark and candle, corrupt funding provenance, restart/idempotent replay). Do not run backtests until historical funding/fee provenance and real-account cutover are independently reconciled.
+
+## 2026-11-06 — T1 cutover statement-total mismatch regression (verification pending)
+
+- Re-verified the existing branch before work: comparison of `8b17eca13698ae287fe6ed682d30102eb821138b` against `feature/t0-centralized-data-feeder-p1-20261101` was identical (ahead 0 / behind 0).
+- Read the current handoff and relevant Dual Ledger test/funding implementation before editing.
+- Added `test_account_equity_cutover_rejects_statement_total_mismatch` to `paper_execution/test_dual_ledger_red.py`.
+- Test commit: `d59f725de56a7e6b71b142d8831c52fb1cb0e140`; test blob: `d504020c51f0791e40ef473bc19aea2a843365b4`.
+- The regression fixture uses a temporary SQLite database, verified funding coverage, and a Core realized-PnL ledger total that disagrees with the supplied account statement. It requires `ACCOUNT_EQUITY_STATEMENT_TOTALS_MISMATCH`, no cutover row, and no mutation of the pre-existing readiness flag.
+- Existing implementation in `paper_execution/funding.py` already compares reconciled realized PnL, fees and funding totals before computing/recording cutover; this increment adds a direct regression test without changing production logic.
+- Exact commit inspection: only `paper_execution/test_dual_ledger_red.py` changed. T0 source/tests/workflows were not touched.
+- Verification: test source is committed but **NOT EXECUTED** in this increment. No exact-SHA workflow run or artifact has been obtained; do not mark this test PASS. Existing earlier v4/v5 evidence remains 69/69 only for source `8dadd35b7e9e0174efab70c425eab53bca99fa34`, not for current branch source.
+- No persistent account DB opened/migrated; no backtest, merge, deployment, exchange connectivity, live execution, or Codemagic fallback. `ai_execution_enabled=false`.
+- Status: **STATEMENT-MISMATCH REGRESSION ADDED; TEST/CI NOT VERIFIED.**
+- Next: obtain exact-SHA GitHub Actions evidence for current branch source. Then add isolated cases for coverage gaps, future/stale mark and candle timestamps, corrupt funding provenance, and restart/idempotent cutover replay. Do not run backtests until historical funding/fee provenance and real-account cutover are independently reconciled.
