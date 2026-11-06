@@ -446,3 +446,89 @@ class SyntheticFaultInjectionTests(unittest.TestCase):
         ]
         with self.assertRaisesRegex(ValueError, "inactive order"):
             replay_order_lifecycle(events)
+
+
+class SyntheticExecutionInvariantTests(unittest.TestCase):
+    """Synthetic position-state invariants; not an order/exchange execution adapter."""
+
+    def test_reversal_is_rejected_until_prior_position_is_fully_closed(self):
+        from synthetic_evidence.execution_invariants import replay_position_transitions
+
+        events = [
+            {"event_id": "1", "type": "POSITION_OPENED", "position_id": "P1", "side": "LONG", "quantity": "5"},
+            {"event_id": "2", "type": "REVERSAL_OPENED", "position_id": "P2", "side": "SHORT",
+             "quantity": "3", "reversal_of": "P1"},
+        ]
+        with self.assertRaisesRegex(ValueError, "must be closed before reversal"):
+            replay_position_transitions(events)
+
+    def test_reduce_then_close_then_opposite_reversal_is_accepted(self):
+        from synthetic_evidence.execution_invariants import replay_position_transitions
+
+        events = [
+            {"event_id": "1", "type": "POSITION_OPENED", "position_id": "P1", "side": "LONG", "quantity": "5"},
+            {"event_id": "2", "type": "POSITION_REDUCED", "position_id": "P1", "quantity": "2"},
+            {"event_id": "3", "type": "POSITION_CLOSED", "position_id": "P1", "quantity": "3"},
+            {"event_id": "4", "type": "REVERSAL_OPENED", "position_id": "P2", "side": "SHORT",
+             "quantity": "3", "reversal_of": "P1"},
+        ]
+        result = replay_position_transitions(events)
+        self.assertEqual(result["active_position_id"], "P2")
+        self.assertEqual(result["positions"]["P1"]["remaining_quantity"], "0")
+        self.assertEqual(result["positions"]["P1"]["status"], "CLOSED")
+        self.assertEqual(result["positions"]["P2"]["side"], "SHORT")
+
+    def test_reduction_cannot_exceed_remaining_quantity_or_change_position_side(self):
+        from synthetic_evidence.execution_invariants import replay_position_transitions
+
+        opened = {"event_id": "1", "type": "POSITION_OPENED", "position_id": "P1",
+                  "side": "LONG", "quantity": "5"}
+        too_much = {"event_id": "2", "type": "POSITION_REDUCED", "position_id": "P1", "quantity": "6"}
+        with self.assertRaisesRegex(ValueError, "exceeds remaining"):
+            replay_position_transitions([opened, too_much])
+        wrong_position = {"event_id": "2", "type": "POSITION_REDUCED", "position_id": "P9", "quantity": "1"}
+        with self.assertRaisesRegex(ValueError, "active position"):
+            replay_position_transitions([opened, wrong_position])
+
+    def test_reversal_must_reference_last_closed_position_and_opposite_side(self):
+        from synthetic_evidence.execution_invariants import replay_position_transitions
+
+        events = [
+            {"event_id": "1", "type": "POSITION_OPENED", "position_id": "P1", "side": "LONG", "quantity": "2"},
+            {"event_id": "2", "type": "POSITION_CLOSED", "position_id": "P1", "quantity": "2"},
+            {"event_id": "3", "type": "REVERSAL_OPENED", "position_id": "P2", "side": "LONG",
+             "quantity": "1", "reversal_of": "P1"},
+        ]
+        with self.assertRaisesRegex(ValueError, "opposite side"):
+            replay_position_transitions(events)
+        wrong_parent = dict(events[2], event_id="4", side="SHORT", reversal_of="P0")
+        with self.assertRaisesRegex(ValueError, "last closed position"):
+            replay_position_transitions(events[:2] + [wrong_parent])
+
+    def test_duplicate_delivery_is_idempotent_and_changed_bytes_are_rejected(self):
+        from synthetic_evidence.execution_invariants import replay_position_transitions
+
+        opened = {"event_id": "1", "type": "POSITION_OPENED", "position_id": "P1",
+                  "side": "LONG", "quantity": "4"}
+        duplicate = replay_position_transitions([opened, opened])
+        self.assertEqual(duplicate["positions"]["P1"]["remaining_quantity"], "4")
+        changed = dict(opened, quantity="5")
+        with self.assertRaisesRegex(ValueError, "changed bytes"):
+            replay_position_transitions([opened, changed])
+
+    def test_crash_restart_replay_matches_uninterrupted_reduce_close_reversal(self):
+        from synthetic_evidence.execution_invariants import replay_position_transitions
+
+        events = [
+            {"event_id": "1", "type": "POSITION_OPENED", "position_id": "P1", "side": "LONG", "quantity": "5"},
+            {"event_id": "2", "type": "POSITION_REDUCED", "position_id": "P1", "quantity": "2"},
+            {"event_id": "3", "type": "POSITION_CLOSED", "position_id": "P1", "quantity": "3"},
+            {"event_id": "4", "type": "REVERSAL_OPENED", "position_id": "P2", "side": "SHORT",
+             "quantity": "3", "reversal_of": "P1"},
+        ]
+        uninterrupted = replay_position_transitions(events)
+        checkpoint_state = replay_position_transitions(events[:3])
+        self.assertIsNone(checkpoint_state["active_position_id"])
+        restarted = replay_position_transitions(events[:3] + events[3:])
+        self.assertEqual(restarted, uninterrupted)
+        self.assertEqual(restarted["active_position_id"], "P2")
