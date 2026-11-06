@@ -84,11 +84,11 @@ jobs:
           gh attestation trusted-root > trusted_root.jsonl
           python - <<'PY'
           from pathlib import Path
-          from synthetic_evidence.trust_anchor import validate_trusted_root
-          digest = validate_trusted_root(Path("trusted_root.jsonl").read_bytes())
+          from synthetic_evidence.trust_anchor import verify_trusted_root
+          from synthetic_evidence.trusted_root_pin import TRUSTED_ROOT_SHA256
+          digest = verify_trusted_root(Path("trusted_root.jsonl").read_bytes(), TRUSTED_ROOT_SHA256)
           Path("trusted_root.sha256").write_text(f"{digest}  trusted_root.jsonl\\n")
-          print(f"TRUSTED_ROOT_BOOTSTRAP_SHA256={digest}")
-          print("TRUSTED_ROOT_JSONL_VALID=PASS")
+          print(f"TRUSTED_ROOT_PIN_VERIFICATION=PASS sha256={digest}")
           PY
 
       - name: Run deterministic fixture and provenance contracts
