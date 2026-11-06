@@ -93,6 +93,23 @@ def _root_inventory(data):
     return inventory
 
 
+
+def decode_pinned_root_snapshot(encoded_gzip_base64, expected_sha256):
+    """Decode a checked-in historical root snapshot and verify its exact bytes."""
+    import gzip
+
+    if not isinstance(encoded_gzip_base64, bytes):
+        raise ValueError("compressed root snapshot must be bytes")
+    try:
+        compressed = base64.b64decode(encoded_gzip_base64.strip(), validate=True)
+        root_bytes = gzip.decompress(compressed)
+    except (ValueError, OSError) as exc:
+        raise ValueError("invalid compressed root snapshot") from exc
+    if hashlib.sha256(root_bytes).hexdigest() != expected_sha256:
+        raise ValueError("historical trusted-root digest mismatch")
+    _parse_root(root_bytes)
+    return root_bytes
+
 def build_trust_snapshot(
     trusted_root_bytes,
     *,
