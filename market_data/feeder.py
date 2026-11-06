@@ -949,18 +949,31 @@ class FeederRuntime:
             self._emit("shutdown_drain_timeout")
             raise TimeoutError("Feeder shutdown timed out while waiting for active sync work")
 
-        if self.lease_generation is not None and not self._released:
+        with self._lock:
+            lease_already_lost = self._state == "LEASE_LOST"
+
+        if (self.lease_generation is not None and not self._released
+                and not lease_already_lost):
             released = self.lease_store.release(self.owner_id, self.lease_generation)
             if released is False:
                 with self._lock:
-                    self._state = "STOPPED"
-                if self.health is not None:
-                    mark_stopped = getattr(self.health, "mark_stopped", None)
-                    if callable(mark_stopped):
-                        mark_stopped()
-                self._emit("lease_release_failed")
-                raise RuntimeError("Feeder could not release its owner/generation lease")
-            self._released = True
+                    lease_already_lost = self._state == "LEASE_LOST"
+                    if not lease_already_lost:
+                        self._state = "STOPPED"
+                if not lease_already_lost:
+                    if self.health is not None:
+                        mark_stopped = getattr(self.health, "mark_stopped", None)
+                        if callable(mark_stopped):
+                            mark_stopped()
+                    self._emit("lease_release_failed")
+                    raise RuntimeError("Feeder could not release its owner/generation lease")
+            else:
+                self._released = True
+
+        if lease_already_lost:
+            # Ownership has already moved to another fencing generation.
+            # Never attempt to release or mutate that replacement lease.
+            self._emit("lease_release_skipped_after_loss")
 
         with self._lock:
             self._state = "STOPPED"
