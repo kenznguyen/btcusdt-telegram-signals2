@@ -72,3 +72,19 @@ These sources can support replay of some historical economics when complete cove
 ## Scope limits
 
 This was a source/schema inspection only. It did not inspect a persistent account DB, enumerate real v1 rows, verify live data availability, migrate, backfill, deploy, connect to an exchange, or place orders. T0 remains paused; paper-only execution and `ai_execution_enabled=false` remain unchanged.
+
+
+## 2026-11-07 — Independent archive/checkpoint repository scan
+
+A second read-only inventory was performed against the recursive Git tree at branch commit 2eb17051dd93a9c36b1e9be45333168793546702 after the Dual Reconstruction contract was committed.
+
+- Git tree contained 279 paths and was not truncated.
+- No tracked files with database, SQLite, JSONL/NDJSON, CSV, Parquet, Arrow, archive, binary payload, checksum-manifest, or equivalent raw event/checkpoint data extensions were found.
+- The evidence directory contains documentation reports/manifests, not a retained raw event archive or independent account checkpoint.
+- The tree contains source code for the event journal, funding, ledger and baseline logic; source code is not a second evidence root.
+- The scan does not enumerate or download GitHub Actions artifact payloads, private Project attachments, local PC/Android files, or any separately retained external archive. Those sources remain NOT INSPECTED.
+- The prior immutable event journal/coverage/mark tables and cutover snapshots described above are schema capabilities. Because the persistent account DB was not opened, their actual rows, completeness, raw source bytes, and independence from a second checkpoint remain NOT VERIFIED.
+
+**Result:** INDEPENDENT_SECOND_ROOT_NOT_FOUND_IN_TRACKED_GIT_TREE. The repository alone currently provides no discoverable separately retained event archive/checkpoint suitable for Reconstruction B. This does not prove that no such evidence exists outside the tracked Git tree. Do not treat a pair of computations over the mutable account DB as independent verification. Keep the candidate BLOCKED unless an external retained evidence root is identified and byte-verified.
+
+No account DB was opened; no artifacts were downloaded; no source, schema, tests, workflow, migration, or data were changed.
