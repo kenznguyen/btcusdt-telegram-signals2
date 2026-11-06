@@ -2197,10 +2197,10 @@ os._exit(0)
         self.assertEqual(sum((Decimal(row[2]) for row in events), Decimal(0)), Decimal("0.1"))
         self.assertEqual(sum((Decimal(row[4]) for row in events), Decimal(0)), Decimal(order["feeQuote"]))
         self.assertEqual({row[5] for row in events}, {"USDT"})
-        self.assertEqual({row[5] for row in events}, {self.now})
         self.assertEqual({row[6] for row in events}, {self.now})
-        self.assertEqual(len({row[7] for row in events}), 1)
-        self.assertTrue(all(row[8].startswith("sha256:") for row in events))
+        self.assertEqual({row[7] for row in events}, {self.now})
+        self.assertEqual(len({row[8] for row in events}), 1)
+        self.assertTrue(all(row[9].startswith("sha256:") for row in events))
 
     def test_journal_failure_rolls_back_core_order_and_position_atomically(self):
         intent_id = "history-journal-abort-core-entry"

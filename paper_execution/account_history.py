@@ -269,6 +269,51 @@ def migrate_cutover_ledger_snapshots(connection, source_sha):
     )
 
 
+FEE_PROVENANCE_MIGRATION_VERSION = 8
+FEE_PROVENANCE_MIGRATION_CHECKSUM = hashlib.sha256(
+    b"dual-ledger-v8:explicit-fee-amount-and-quote-currency"
+).hexdigest()
+
+
+def migrate_fee_currency_provenance(connection, source_sha):
+    if (not isinstance(source_sha, str) or len(source_sha) != 40
+            or any(char not in "0123456789abcdef" for char in source_sha.lower())):
+        raise ValueError("DUAL_LEDGER_SOURCE_SHA_REQUIRED")
+    applied = connection.execute(
+        "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
+        (FEE_PROVENANCE_MIGRATION_VERSION,),
+    ).fetchone()
+    columns = {row[1] for row in connection.execute(
+        "PRAGMA table_info(paper_account_event_journal)"
+    )}
+    triggers = {row[0] for row in connection.execute(
+        "SELECT name FROM sqlite_master WHERE type='trigger'"
+    )}
+    trigger_name = "paper_account_event_journal_fee_currency_required"
+    if applied:
+        if applied != (FEE_PROVENANCE_MIGRATION_CHECKSUM, "APPLIED"):
+            raise sqlite3.DatabaseError("FEE_PROVENANCE_MIGRATION_CHECKSUM_MISMATCH")
+        if "fee_currency" not in columns or trigger_name not in triggers:
+            raise sqlite3.DatabaseError("FEE_PROVENANCE_SCHEMA_INCOMPLETE")
+        return
+    if "fee_currency" in columns or trigger_name in triggers:
+        raise sqlite3.DatabaseError("FEE_PROVENANCE_SCHEMA_WITHOUT_MIGRATION_RECORD")
+    connection.execute("ALTER TABLE paper_account_event_journal ADD COLUMN fee_currency TEXT")
+    connection.execute("""CREATE TRIGGER paper_account_event_journal_fee_currency_required
+        BEFORE INSERT ON paper_account_event_journal
+        WHEN NEW.fee_currency IS NULL OR NEW.fee_currency != 'USDT'
+        BEGIN SELECT RAISE(ABORT,'ACCOUNT_HISTORY_FEE_CURRENCY_REQUIRED'); END""")
+    applied_at = connection.execute(
+        "SELECT updated_at_ms FROM paper_account_risk_state WHERE account_id=1"
+    ).fetchone()[0]
+    connection.execute(
+        """INSERT INTO paper_schema_migrations
+           (version,name,checksum,applied_at_ms,source_sha,status)
+           VALUES (8,'account_history_fee_provenance_v8',?,?,?,'APPLIED')""",
+        (FEE_PROVENANCE_MIGRATION_CHECKSUM, applied_at, source_sha.lower()),
+    )
+
+
 def _connect(path):
     path = Path(path).resolve()
     if not path.is_file():
@@ -289,7 +334,7 @@ def _require_migration(db):
 
 def record_account_history_event(
     db_path, *, event_id, strategy_id, event_type, event_at_ms, source,
-    source_snapshot_id, payload_hash, recorded_at_ms, fee_quote="0",
+    source_snapshot_id, payload_hash, recorded_at_ms, fee_quote, fee_currency,
     quantity_delta_base=None, fill_price=None, order_id=None, intent_id=None,
     source_event_id=None, position_delta_base=None, average_entry_price=None,
     realized_pnl_delta_quote=None, fee_delta_quote=None,
@@ -307,12 +352,15 @@ def record_account_history_event(
     snapshot = _text(source_snapshot_id, "ACCOUNT_HISTORY_SNAPSHOT_INVALID")
     digest = _hash(payload_hash, "ACCOUNT_HISTORY_PAYLOAD_HASH_INVALID")
     fee = _decimal(fee_quote, "ACCOUNT_HISTORY_FEE_INVALID", nonnegative=True)
+    currency = _text(fee_currency, "ACCOUNT_HISTORY_FEE_CURRENCY_INVALID", 10)
+    if currency != "USDT":
+        raise ValueError("ACCOUNT_HISTORY_FEE_CURRENCY_INVALID")
     values = {
         "event_id": event_id, "strategy_id": strategy_id, "event_type": event_type,
         "event_at_ms": event_at, "recorded_at_ms": recorded, "order_id": order_id,
         "intent_id": intent_id, "source_event_id": source_event_id,
         "quantity_delta_base": None, "fill_price": None, "fee_quote": fee,
-        "position_delta_base": None, "average_entry_price": None,
+        "fee_currency": currency, "position_delta_base": None, "average_entry_price": None,
         "realized_pnl_delta_quote": None, "fee_delta_quote": None,
         "source": source, "source_snapshot_id": snapshot, "payload_hash": digest,
     }

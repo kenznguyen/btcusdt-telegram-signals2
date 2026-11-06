@@ -15,6 +15,7 @@ from paper_execution.account_history import (
     migrate_account_history, record_account_history_event,
     record_account_history_coverage, record_market_mark_history,
     reconstruct_daily_equity_baseline, migrate_cutover_ledger_snapshots,
+    migrate_fee_currency_provenance,
 )
 from paper_execution.funding import (
     MIGRATION_VERSION as FUNDING_MIGRATION_VERSION,
@@ -1042,7 +1043,7 @@ def reduce_legacy_unattributed(
                         "quantityDeltaBase": text(signed_quantity),
                         "fillPrice": text(fill_price), "feeQuote": text(fill_fee),
                         "source": "PAPER_LEGACY_REDUCTION_SIMULATION",
-                        "sourceSnapshotId": book_id,
+                        "sourceSnapshotId": book_id, "feeCurrency": "USDT",
                     }
                     canonical_event = json.dumps(
                         event_payload, sort_keys=True, separators=(",", ":"),
@@ -1055,14 +1056,14 @@ def reduce_legacy_unattributed(
                         """INSERT INTO paper_account_event_journal
                            (event_id,account_id,strategy_id,event_type,event_at_ms,
                             recorded_at_ms,order_id,intent_id,source_event_id,
-                            quantity_delta_base,fill_price,fee_quote,source,
+                            quantity_delta_base,fill_price,fee_quote,fee_currency,source,
                             source_snapshot_id,payload_hash,canonical_payload,created_at_ms)
-                           VALUES (?,1,?,'FILL',?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                           VALUES (?,1,?,'FILL',?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                         (
                             event_id, strategy_id, now, now,
                             event_payload["orderId"], intent["intentId"],
                             event_payload["sourceEventId"], text(signed_quantity),
-                            text(fill_price), text(fill_fee),
+                            text(fill_price), text(fill_fee), "USDT",
                             event_payload["source"], book_id, event_hash,
                             canonical_event, now,
                         ),
@@ -1268,6 +1269,7 @@ class PaperLedger:
                 migrate_account_equity_cutover(connection, self.source_sha)
                 migrate_account_history(connection, self.source_sha)
                 migrate_cutover_ledger_snapshots(connection, self.source_sha)
+                migrate_fee_currency_provenance(connection, self.source_sha)
 
     def connect(self):
         connection = sqlite3.connect(self.path, timeout=10)
@@ -1620,7 +1622,7 @@ class PaperLedger:
                             "fillPrice": text(fill_price),
                             "feeQuote": text(fill_fee),
                             "source": "PAPER_VISIBLE_DEPTH_SIMULATION",
-                            "sourceSnapshotId": book_id,
+                            "sourceSnapshotId": book_id, "feeCurrency": "USDT",
                         }
                         canonical_event = json.dumps(
                             event_payload, sort_keys=True, separators=(",", ":"),
@@ -1633,14 +1635,14 @@ class PaperLedger:
                             """INSERT INTO paper_account_event_journal
                                (event_id,account_id,strategy_id,event_type,event_at_ms,
                                 recorded_at_ms,order_id,intent_id,source_event_id,
-                                quantity_delta_base,fill_price,fee_quote,source,
+                                quantity_delta_base,fill_price,fee_quote,fee_currency,source,
                                 source_snapshot_id,payload_hash,canonical_payload,created_at_ms)
-                               VALUES (?,1,?,'FILL',?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                               VALUES (?,1,?,'FILL',?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                             (
                                 event_id, strategy_id, now, now,
                                 event_payload["orderId"], intent["intentId"],
                                 event_payload["sourceEventId"], text(signed_quantity),
-                                text(fill_price), text(fill_fee),
+                                text(fill_price), text(fill_fee), "USDT",
                                 event_payload["source"], book_id, event_hash,
                                 canonical_event, now,
                             ),
