@@ -48,6 +48,9 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
             "100", self.now - 60_000, self.now, "sha256:legacy-equity", "100"
         )
         with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                "UPDATE paper_strategy_state SET dca_used=1,initial_margin_quote='0.5' WHERE id=1"
+            )
             state = connection.execute(
                 "SELECT position,average,realized,fees FROM paper_state WHERE id=1"
             ).fetchone()
@@ -68,7 +71,8 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
 
         with sqlite3.connect(self.path) as connection:
             migrated = connection.execute(
-                """SELECT position_base,average_entry_price,realized_pnl_quote,fees_quote
+                """SELECT position_base,average_entry_price,realized_pnl_quote,fees_quote,
+                          dca_used,initial_margin_quote
                    FROM paper_strategy_ledgers
                    WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
             ).fetchone()
@@ -96,7 +100,7 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
                 "SELECT owner,dca_used,initial_margin_quote FROM paper_strategy_state WHERE id=1"
             ).fetchone()
 
-        self.assertEqual(migrated, (legacy_state[0], legacy_state[1], "0", "0"))
+        self.assertEqual(migrated, (legacy_state[0], legacy_state[1], "0", "0", 1, "0.5"))
         self.assertEqual(adjustments["LEGACY_REALIZED_PNL"], legacy_state[2])
         self.assertEqual(adjustments["LEGACY_FEES"], legacy_state[3])
         self.assertEqual(core, ("0",))
