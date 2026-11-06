@@ -113,4 +113,5 @@ Earlier run `42310599932` tested the synthetic merge SHA `18a31f6bfd0d7703995334
 2. When T0 is explicitly resumed and a canonical snapshot is made available, export a bounded M15/H1 window and run the adapter offline. Do not start T0 merely to satisfy this audit.
 3. Verify source payload hash, datasetVersion, row counts, full coverage, output hash and Freqtrade JSON parsing on the exact source SHA.
 4. Keep Binance export isolated from the existing OKX frozen-model research path.
-5. Validate a saved T0 export with Freqtrade 2026.9 `list-data` / JSON loader in an isolated data directory after a real T0 snapshot is explicitly authorized.\n6. Only after these gates pass, separately propose any runtime read-only integration. No strategy, model, T1, risk, paper execution or live-order changes are implied.
+5. Validate a saved T0 export with Freqtrade 2026.9 `list-data` / JSON loader in an isolated data directory after a real T0 snapshot is explicitly authorized.
+6. Only after these gates pass, separately propose any runtime read-only integration. No strategy, model, T1, risk, paper execution or live-order changes are implied.
