@@ -2015,3 +2015,20 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Next: keep the role guard unchanged. Determine from official provider documentation/support whether reserved T0 roles can be provisioned by a provider control-plane path without implicit CREATEROLE membership, or retain the provider candidate as BLOCKED. If considering an explicit trusted-admin membership exception, prepare a threat model and request user approval before any code change.
 - Safety unchanged: no VPS/provider selection, no provisioning/payment, no production DB/credentials, no Feeder activation, no Binance/OKX connection, no canonical market-data sync, no Paper DB mutation and no live execution.
 
+
+
+## 2026-11-06 — T0 PC Temporary Runtime plan
+
+- Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Branch source HEAD at planning start: `a743295f7b5399f0555e8d292041a7b41b864925`; compare against that SHA confirmed the branch ref was identical before this documentation increment.
+- Added `docs/T0_PC_TEMPORARY_RUNTIME_PLAN.md`, committed as `2371bf77b72c16bcb3b01e116d7998217ba58609`.
+- Plan is documentation-only and **PLAN ONLY / NOT AUTHORIZED TO START**. It defines PC as a temporary validation host, not production/canonical host.
+- Source review used `market_data/feeder_service.py`, `market_data/storage.py`, `.github/workflows/t0-single-writer-gateway-red.yml`, and `docs/T0_STAGING_ACCEPTANCE_CHECKLIST.md`.
+- Important source-derived constraint: offline deterministic validation must use injected `build_runtime()` with a fake exchange and synthetic candles; `build_production_runtime()` constructs a Binance USD-M client and is not an offline test entrypoint. SQLite candle/lease stores must share one DB path; PostgreSQL candle/lease/gateway must share one DSN. Storage initialization/migrations remain explicit.
+- The plan separates offline deterministic validation, isolated local lifecycle/fault testing, PC endurance, separately approved public market-data connectivity, and later VPS staging/cutover proof.
+- Explicit non-authorizations retained: no package installation, OS configuration changes, database creation/opening, Feeder startup, exchange connection, market-data sync, provider/VPS provisioning, production credentials, Paper DB mutation or live execution.
+- No tests were run, no workflow was triggered, no source/runtime code changed, and no database or Feeder was started. This increment does not establish PC operational stability.
+- Current branch tip after the plan commit: `2371bf77b72c16bcb3b01e116d7998217ba58609`; working-tree state is not available through the GitHub contents API.
+- CI evidence: NOT RUN. No workflow run or artifact exists for this documentation-only change.
+- T0 provider bootstrap remains BLOCKED under PostgreSQL 16 non-superuser CREATEROLE semantics; keep migration guard unchanged. VPS/provider remains NOT DECIDED.
+- Next safe step: read-only PC capability inventory (OS, Python, available resources, disk/filesystem and time sync) and review the exact proposed offline test scope. Before any DB creation or Feeder process startup, obtain explicit approval for that isolated test scope.
