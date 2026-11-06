@@ -104,6 +104,7 @@ class PostgresFeederRuntimeLifecycleIntegrationTest(unittest.TestCase):
                                 scheduler=scheduler)
         self.assertTrue(runtime.start())
         old_generation = runtime.lease_generation
+        replacement = None
         try:
             with connection(self.dsn) as database:
                 database.execute(
@@ -140,11 +141,16 @@ class PostgresFeederRuntimeLifecycleIntegrationTest(unittest.TestCase):
             # disturbing the replacement owner's fencing generation.
             self.assertTrue(runtime.stop(timeout=3))
         finally:
+            # Always drain/join the old runtime, including on assertion failure.
+            runtime.stop(timeout=3)
             # A lost owner must never release the replacement generation.
-            runtime._heartbeat_stop.set()
-            runtime.scheduler.stop()
-            self.assertTrue(self.backend.is_current(new_owner, replacement.generation))
-            self.backend.release(new_owner, replacement.generation)
+            if replacement is not None:
+                replacement_is_current = self.backend.is_current(
+                    new_owner, replacement.generation
+                )
+                self.assertTrue(replacement_is_current)
+                if replacement_is_current:
+                    self.backend.release(new_owner, replacement.generation)
 
     def test_shutdown_drain_timeout_retains_current_lease(self):
         owner = "drain-" + uuid.uuid4().hex
