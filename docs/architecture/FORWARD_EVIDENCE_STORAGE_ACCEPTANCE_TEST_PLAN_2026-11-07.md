@@ -157,3 +157,21 @@ The documentation review added Google Cloud Storage Bucket Lock and Azure Blob i
 Reference: `docs/architecture/FORWARD_EVIDENCE_SECOND_WORM_PROVIDER_REVIEW_2026-11-07.md`.
 
 These are test requirements only. No provider test, account creation, purchase, credential issuance, provisioning or persistent capture is authorized by this amendment.
+
+
+## 10. P1.4 cost-model amendments (2026-11-07)
+
+Reference: `docs/architecture/FORWARD_EVIDENCE_STORAGE_COST_MODEL_2026-11-07.md`.
+
+Add mandatory cost qualification evidence before any candidate pair is accepted:
+- Produce a region/SKU-specific quote for capacity, operations/transactions, retrieval, egress, replication/redundancy, versioning, audit logs, KMS/key operations, restore and tax.
+- Measure event bytes, object counts, batching, manifest/checkpoint overhead, version multiplier and required audit volume using synthetic payloads; do not infer from guessed event sizes.
+- Calculate retention-horizon accumulation for both roots separately. If retention is indefinite, model unbounded growth rather than a fixed bucket size.
+- Include one full clean-room restore and post-restore verification in one-time and recurring cost scenarios.
+- Produce pilot/expected/stress scenarios with source price timestamp, exact region/SKU, currency, tax/free-tier assumptions and retained calculator output.
+- Demonstrate that the application writer cannot evade client-side request/byte ceilings. Configure provider quotas/restrictions where supported and out-of-band billing alerts.
+- Prove the stop procedure disables further writes independently of budget alerts; reconcile final billing after usage reports settle.
+- Treat budget notifications as alerts, not hard caps. AWS and Azure budget notifications can lag or do not stop consumption; Google spend caps are service-eligibility limited and enforcement is not instantaneous.
+- Never delete or weaken retained WORM evidence to meet a budget. A candidate exceeding the approved budget is disqualified or requires a new explicit budget approval.
+
+The USD 5/month figure is an illustrative research ceiling only. It is not approved, not a provider quote, and not demonstrated feasible. No account, purchase, provider test or persistent capture is authorized by this amendment.
