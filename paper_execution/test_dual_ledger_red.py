@@ -2335,7 +2335,7 @@ os._exit(0)
 
         self.assertEqual(inputs["utc_day_ms"], boundary)
         self.assertEqual(inputs["cutover_id"], "fixture-account-cutover")
-        self.assertEqual(set(inputs["ledgers"]), set(ledger.DUAL_STRATEGIES))
+        self.assertEqual(set(inputs["ledgers"]), {"STRATEGY_CORE", "AI_FREQAI", "LEGACY_UNATTRIBUTED"})
         self.assertEqual(
             inputs["ledgers"]["STRATEGY_CORE"]["execution_events"][0]["event_id"],
             "replay-core-fill",
