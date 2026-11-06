@@ -122,6 +122,32 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
                         )
                     )
 
+                # Capture PostgreSQL's authoritative membership graph after
+                # the bootstrap user's automatic ADMIN memberships are removed.
+                identity = bootstrap.execute(
+                    "SELECT session_user, current_user"
+                ).fetchone()
+                membership_state = bootstrap.execute(
+                    """
+                    SELECT granted.rolname, member.rolname, grantor.rolname,
+                           membership.admin_option, membership.set_option,
+                           membership.inherit_option
+                    FROM pg_auth_members membership
+                    JOIN pg_roles granted ON granted.oid=membership.roleid
+                    JOIN pg_roles member ON member.oid=membership.member
+                    JOIN pg_roles grantor ON grantor.oid=membership.grantor
+                    WHERE granted.rolname = ANY(%s)
+                       OR member.rolname = ANY(%s)
+                    ORDER BY granted.rolname, member.rolname, grantor.rolname
+                    """,
+                    (list(reserved_roles), list(reserved_roles)),
+                ).fetchall()
+                print(
+                    "T0_PROVIDER_BOOTSTRAP_ROLE_MEMBERSHIP_DIAGNOSTIC",
+                    {"identity": identity, "memberships": membership_state},
+                    flush=True,
+                )
+
             database_admin_dsn = make_conninfo(DSN, dbname=database_name)
             with psycopg.connect(database_admin_dsn, autocommit=True) as service_admin:
                 # Managed providers may pre-install/enable this extension as
@@ -248,6 +274,33 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
                     )
 
                 if bootstrap_created:
+                    # Membership grants made by the bootstrap login must be
+                    # revoked by that grantor; service-admin REVOKE is not
+                    # guaranteed to own the grant records on managed PG.
+                    bootstrap_cleanup_dsn = make_conninfo(
+                        DSN, user=bootstrap_role, password=bootstrap_password
+                    )
+                    with psycopg.connect(
+                        bootstrap_cleanup_dsn, autocommit=True
+                    ) as bootstrap_cleanup:
+                        for owner_role in (
+                            "t0_db_owner",
+                            "t0_candle_writer_owner",
+                            "t0_lease_manager_owner",
+                        ):
+                            if owner_role in created_reserved_roles:
+                                bootstrap_cleanup.execute(
+                                    sql.SQL("REVOKE {} FROM t0_migrator").format(
+                                        sql.Identifier(owner_role)
+                                    )
+                                )
+                        if (
+                            "t0_migrator_login" in created_reserved_roles
+                            and "t0_migrator" in created_reserved_roles
+                        ):
+                            bootstrap_cleanup.execute(
+                                "REVOKE t0_migrator FROM t0_migrator_login"
+                            )
                     service_admin.execute(
                         sql.SQL("DROP ROLE IF EXISTS {}").format(
                             sql.Identifier(bootstrap_role)
