@@ -60,14 +60,14 @@ jobs:
       - name: Compile RED contract
         run: |
           set -euo pipefail
-          python -m py_compile paper_execution/daily_baseline.py paper_execution/test_daily_baseline_persistence.py paper_execution/test_dual_ledger_red.py paper_execution/test_dual_ledger_migration_red.py paper_execution/test_account_history_replay_red.py paper_execution/test_daily_equity_reconciliation.py paper_execution/test_daily_baseline_persistence.py
+          python -m py_compile paper_execution/daily_baseline.py paper_execution/test_daily_baseline_persistence.py paper_execution/test_daily_baseline_v1_recovery.py paper_execution/test_dual_ledger_red.py paper_execution/test_dual_ledger_migration_red.py paper_execution/test_account_history_replay_red.py paper_execution/test_daily_equity_reconciliation.py paper_execution/test_daily_baseline_persistence.py
           echo "DUAL_LEDGER_RED_COMPILE=PASS" | tee dual-ledger-compile.log
 
       - name: Execute focused RED contract
         shell: bash
         run: |
           set -o pipefail
-          python -m unittest paper_execution.test_dual_ledger_red paper_execution.test_dual_ledger_migration_red paper_execution.test_account_history_replay_red paper_execution.test_daily_equity_reconciliation paper_execution.test_daily_baseline_persistence -v 2>&1 | tee dual-ledger-red-tests.log
+          python -m unittest paper_execution.test_dual_ledger_red paper_execution.test_dual_ledger_migration_red paper_execution.test_account_history_replay_red paper_execution.test_daily_equity_reconciliation paper_execution.test_daily_baseline_persistence paper_execution.test_daily_baseline_v1_recovery -v 2>&1 | tee dual-ledger-red-tests.log
 
       - name: Execute full paper_execution regression
         shell: bash
