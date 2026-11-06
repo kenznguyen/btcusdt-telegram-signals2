@@ -210,6 +210,8 @@ jobs:
               Path("synthetic_evidence/verify_offline.sh"),
               Path("synthetic_evidence/trust_lifecycle.py"),
               Path("synthetic_evidence/trust_roots/2026-11-07-trusted_root.jsonl.gz.b64"),
+              Path("synthetic_evidence/trust_roots/baseline-2026-11-07.json"),
+              Path("synthetic_evidence/trust_roots/README.md"),
               *sorted(Path("synthetic-evidence-output-a").rglob("*")),
               *sorted(Path("synthetic-evidence-output-b").rglob("*")),
           ]
