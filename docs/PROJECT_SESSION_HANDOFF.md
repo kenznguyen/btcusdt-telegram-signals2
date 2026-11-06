@@ -3862,3 +3862,24 @@ Test expectation corrected in commit `101b4be4d868d64aca5c7d49c7758a52b888a83a`:
 T0 remains PAUSED. Keep `AI_EXECUTION_ENABLED=false`. No production runtime integration, database, exchange, provider/VPS, persistent capture or live execution is authorized. Preserve the existing branch; do not merge without explicit user approval.
 
 Next bounded work requires a separately scoped proposal and approval. Do not infer that P1.8.4 PASS authorizes the next phase or any operational activation.
+
+
+## 2026-11-07 — P1.8.6 Synthetic-only Concurrent Risk & Reservation Lifecycle
+
+- User approval: `APPROVE P1.8.6`.
+- Scope: synthetic reference model only; process-local thread serialization, concurrent reservation cap tests, duplicate-intent concurrency/idempotency, release/expiry, snapshot export/restore and restart replay.
+- Test-first contracts commit: `eb356050f46ec361aaa84ad3cd1cd910a3579a6b`.
+- Initial implementation commit: `9b9ca8547bb341eafc44c558300027db8075c658`.
+- Test-only timestamp correction: `c2549a3259d9327d18af9d2bfcea939d5b4a0255`.
+- Exact passing source SHA: `c2549a3259d9327d18af9d2bfcea939d5b4a0255`.
+- GitHub Actions run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42299818719
+- Job: `128174400937`, SUCCESS; checkout log and `git rev-parse HEAD` agree.
+- Python 3.11.18 compile PASS; **62/62 tests PASS** (54 baseline + 8 new contracts).
+- Two 1,000-event fixtures byte-identical; replay 1,000 events / 3 streams / 12 segments; fixture manifest checks PASS.
+- Artifact ID `13542709350`; name `p1-8-synthetic-evidence-c2549a3259d9327d18af9d2bfcea939d5b4a0255`; size 299,659 bytes; SHA-256 `c5058689f26fb3cd1f03ece0bcde2efb4df661f5402db8b409756b4869f21600`; expires 2026-11-13T21:49:10Z. Upload log digest agrees with GitHub metadata; ZIP was not independently downloaded/re-hashed.
+- Evidence report: `docs/architecture/P1.8.6_CONCURRENT_RISK_RESERVATION_LIFECYCLE_SYNTHETIC_EVIDENCE_2026-11-07.md`; report commit `b902fdd713955fbefa39967821cae32c47caf5b6`.
+- Initial RED run `42299752615` failed as expected before implementation. First GREEN attempt `42299806573` exposed a test timestamp error (`second=60`); corrected in test-only commit above. Final exact-source run is the passing run listed above.
+
+**P1.8.6: PASS — synthetic reference model and exact-source CI contracts only.** The lock is process-local; no multi-process/distributed atomicity or durable persistence is proven. Snapshot serialization is not production crash-safe storage; SHA-256 is not an authenticated signature.
+
+Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No Strategy Core/T1/T0 runtime integration, DB, exchange, provider/VPS, persistent capture, paper execution, or live execution. No merge. Next scope requires separate approval; specify cross-process transactional and crash-durability contracts before any production persistence or runtime integration.
