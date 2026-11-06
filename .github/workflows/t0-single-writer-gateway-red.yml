@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/t0-atomic-write-fencing-20261105
+      - feature/t0-centralized-data-feeder-p1-20261101
     paths:
       - "market_data/**"
       - ".github/workflows/t0-single-writer-gateway-red.yml"
