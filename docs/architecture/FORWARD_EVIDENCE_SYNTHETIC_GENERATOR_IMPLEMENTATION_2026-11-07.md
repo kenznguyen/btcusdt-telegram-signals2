@@ -285,3 +285,40 @@ No T0/T1 runtime, database, strategy, provider, VPS, persistent capture, signing
 - Workflow log confirms database/exchange credential environment variables empty and `AI_EXECUTION_ENABLED=false`.
 
 **P1.8.3 status: PASS — synthetic-only fault injection harness and CI contract verified for the exact source SHA above.** This does not certify production T0/T1 behavior or broader durability/recovery properties. T0 remains PAUSED; no provider, VPS, persistent capture, database/runtime integration, signing/key lifecycle, Root B, live order or execution work was performed or authorized.
+
+
+## 2026-11-07 — P1.8.4 Synthetic-only Execution Invariant Tests
+
+### Approval and bounded scope
+
+User explicitly approved: `APPROVE P1.8.4 — SYNTHETIC-ONLY EXECUTION INVARIANT TESTS`.
+
+Scope is limited to a standalone synthetic position-transition reference model and tests. The model requires an existing position to be explicitly reduced/closed to zero before admitting an opposite-side reversal; reversal must reference the most recently closed position and use the opposite side. Duplicate identical event delivery is idempotent; changed bytes under an existing event ID are rejected. Crash/restart equivalence is tested by replaying the complete deterministic event stream after a prefix checkpoint.
+
+No T0/T1 runtime, Strategy Core, Shared Risk Engine, database, exchange, provider, VPS, credentials, persistent capture, execution adapter, or live execution is accessed or changed. `AI_EXECUTION_ENABLED=false`; T0 remains PAUSED.
+
+### Commits and exact source
+
+- Test-first RED contracts: `2d7ec90eeb9ae4e44878b42612758e9aaa6d9bdc`.
+- Initial isolated reference model: `584298321ec8db50b0b3bfad0e50c7e1e53d0912`.
+- Fault-catalog assertion and current implementation/test source: `cfea58b8db10b3cd5ea67f2bb1e113b06d823bd3`.
+- Test blob SHA: `e325dd1ca98045ff41ecb79c8ad473d88e5d8447`.
+- New model blob SHA: `2fe6a09ba0658535997ca4989fc097ef6bd37599`.
+
+### Test contracts added
+
+Seven tests cover: reversal rejected before prior close; reduce then exact close then opposite reversal accepted; over-reduction and inactive-position transitions rejected; reversal must reference the last closed position and opposite side; duplicate delivery idempotency and changed-byte rejection; crash/restart replay equivalence; and the `REDUCE_CLOSE_REVERSAL` fault vector excluded from clean-volume denominator.
+
+The repository's existing workflow compiles `synthetic_evidence/*.py` and runs `python -m unittest synthetic_evidence.test_generator -v`, so the new tests are included in the existing GitHub Actions gate.
+
+### Verification state
+
+- Source/test changes are committed and read back from GitHub at the exact source SHA above.
+- GitHub Actions run/job identity, compile result, unit-test result, reproducibility, artifact identity and artifact digest: **NOT VERIFIED** pending workflow evidence for this source.
+- Expected suite count: 43 tests (36 existing + 7 new); actual result must be taken from the workflow log, not assumed.
+
+**P1.8.4 status: IMPLEMENTED / CI NOT VERIFIED.** Do not mark PASS until GitHub Actions checks out exact source SHA `cfea58b8db10b3cd5ea67f2bb1e113b06d823bd3`, compilation and all tests pass, and artifact provenance is reconciled.
+
+### Next step and restrictions
+
+Inspect the workflow run for exact source SHA, confirm the 43-test result and artifact checksum, then update this record with run/job/artifact evidence. If any test fails, correct the defect without weakening the invariant and rerun on the new exact SHA. Keep the existing branch; no merge without explicit approval. No production integration, provider/VPS, database, exchange, persistent capture or live execution is authorized.
