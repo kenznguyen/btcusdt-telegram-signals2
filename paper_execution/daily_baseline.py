@@ -161,15 +161,35 @@ def _validate_persisted_baseline(connection, *, utc_day_ms, expected_equity,
     except (TypeError, ValueError, json.JSONDecodeError):
         raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED") from None
     payload_digest = "sha256:" + hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
-    if (audit_id != f"daily-equity-baseline-audit:1:{utc_day_ms}"
+    try:
+        risk_audit = payload["riskState"]
+        mark = payload["inputs"]["market_mark"]
+        audit_hwm = Decimal(risk_audit["highWaterMarkQuote"])
+        audit_equity = Decimal(equity)
+    except (KeyError, TypeError, ValueError, DecimalException):
+        raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED") from None
+    if (payload.get("auditSchemaVersion") != 2
+            or type(risk_audit.get("version")) is not int
+            or risk_audit["version"] < 2
+            or type(risk_audit.get("riskReady")) is not bool
+            or risk_audit.get("dailyBaselineUtcDayMs") != utc_day_ms
+            or risk_audit.get("dailyBaselineEquityQuote") != equity
+            or risk_audit.get("lastEquityQuote") != equity
+            or risk_audit.get("lastMarkPrice") != mark.get("mark_price")
+            or risk_audit.get("markObservedAtMs") != mark.get("observed_at_ms")
+            or risk_audit.get("markCandleCloseMs") != mark.get("candle_close_ms")
+            or risk_audit.get("datasetVersion") != mark.get("dataset_version")
+            or risk_audit.get("updatedAtMs") != recorded_at_ms
+            or not audit_hwm.is_finite() or audit_hwm <= 0
+            or (risk_audit["riskReady"] and audit_hwm < audit_equity)
+            or audit_id != f"daily-equity-baseline-audit:1:{utc_day_ms}"
             or audit_baseline != baseline_id or event_type != "DAILY_BASELINE_CREATED"
             or audit_digest != digest or audit_recorded != recorded_at_ms
             or canonical_payload != payload_json or payload_digest != digest
             or payload.get("utcDayMs") != utc_day_ms
             or payload.get("inputs", {}).get("cutover_id") != cutover_id
-            or payload.get("inputs", {}).get("market_mark", {}).get("mark_id") != mark_id
+            or mark.get("mark_id") != mark_id
             or payload.get("replay", {}).get("equity_quote") != equity
-            or payload.get("utcDayMs") != utc_day_ms
             or payload.get("algorithmVersion") != algorithm):
         raise sqlite3.DatabaseError("DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED")
     return baseline
@@ -188,8 +208,9 @@ def _validate_risk_state_against_baseline(connection, *, utc_day_ms,
     ).fetchone()
     try:
         payload = json.loads(audit[0])
-        mark = payload["inputs"]["market_mark"]
+        risk_audit = payload["riskState"]
         baseline_equity = Decimal(baseline[1])
+        baseline_hwm = Decimal(risk_audit["highWaterMarkQuote"])
         risk = connection.execute(
             """SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote,
                       last_equity_quote,last_mark_price,mark_observed_at_ms,
@@ -201,34 +222,35 @@ def _validate_risk_state_against_baseline(connection, *, utc_day_ms,
          candle_close, dataset_version, updated_at, raw_hwm, risk_ready,
          risk_version) = risk
         hwm = Decimal(raw_hwm)
+        last_equity_value = Decimal(last_equity)
+        last_mark_value = Decimal(last_mark_price)
     except (KeyError, TypeError, ValueError, DecimalException, IndexError):
         raise sqlite3.DatabaseError(
             "DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED"
         ) from None
     if (risk_day != utc_day_ms or daily_equity != expected_equity
-            or not isinstance(last_equity, str)
-            or not Decimal(last_equity).is_finite()
+            or not last_equity_value.is_finite() or last_equity_value <= 0
+            or not last_mark_value.is_finite() or last_mark_value <= 0
             or updated_at is None or type(updated_at) is not int
-            or updated_at < baseline[7] or updated_at > now_ms
-            or not hwm.is_finite() or hwm <= 0
+            or updated_at < risk_audit["updatedAtMs"] or updated_at > now_ms
+            or not hwm.is_finite() or hwm < baseline_hwm
             or type(risk_ready) is not int or risk_ready not in (0, 1)
-            or type(risk_version) is not int or risk_version < 1
+            or type(risk_version) is not int
+            or risk_version < risk_audit["version"]
             or (risk_ready == 1 and hwm < baseline_equity)):
         raise sqlite3.DatabaseError(
             "DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED"
         )
-    if last_equity != expected_equity:
-        # A later risk refresh may change mark/equity without changing the
-        # daily baseline. Only demand baseline mark equality at its own write.
-        if updated_at == baseline[7]:
-            raise sqlite3.DatabaseError(
-                "DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED"
-            )
-    if updated_at == baseline[7] and (
-        last_mark_price != mark.get("mark_price")
-        or observed_at != mark.get("observed_at_ms")
-        or candle_close != mark.get("candle_close_ms")
-        or dataset_version != mark.get("dataset_version")
+    if risk_version == risk_audit["version"] and (
+        updated_at != risk_audit["updatedAtMs"]
+        or daily_equity != risk_audit["dailyBaselineEquityQuote"]
+        or last_equity != risk_audit["lastEquityQuote"]
+        or last_mark_price != risk_audit["lastMarkPrice"]
+        or observed_at != risk_audit["markObservedAtMs"]
+        or candle_close != risk_audit["markCandleCloseMs"]
+        or dataset_version != risk_audit["datasetVersion"]
+        or format(hwm, "f") != risk_audit["highWaterMarkQuote"]
+        or bool(risk_ready) != risk_audit["riskReady"]
     ):
         raise sqlite3.DatabaseError(
             "DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED"
@@ -313,8 +335,6 @@ def persist_daily_equity_baseline(connection, *, utc_day_ms, now_ms, source_sha)
 
         payload = {"algorithmVersion": ALGORITHM_VERSION,
                    "utcDayMs": boundary, "inputs": inputs, "replay": replay}
-        payload_json = _canonical(payload)
-        replay_digest = "sha256:" + hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
         baseline_id = f"daily-equity-baseline:1:{boundary}"
         audit_id = f"daily-equity-baseline-audit:1:{boundary}"
 
@@ -330,13 +350,12 @@ def persist_daily_equity_baseline(connection, *, utc_day_ms, now_ms, source_sha)
                WHERE account_id=1 AND utc_day_ms=?""",
             (boundary,),
         ).fetchone()
-        risk_day, risk_equity, risk_ready, _, hwm = _risk_state(connection)
+        risk_day, risk_equity, risk_ready, risk_version, hwm = _risk_state(connection)
 
         if existing:
             expected = (baseline_id, replay["equity_quote"],
-                        inputs["market_mark"]["mark_id"], inputs["cutover_id"],
-                        replay_digest, ALGORITHM_VERSION)
-            if existing[:6] != expected:
+                        inputs["market_mark"]["mark_id"], inputs["cutover_id"])
+            if existing[:4] != expected or existing[5] != ALGORITHM_VERSION:
                 raise ValueError("DAILY_BASELINE_REPLAY_CONFLICT")
             try:
                 _source_sha(existing[6])
@@ -345,9 +364,14 @@ def persist_daily_equity_baseline(connection, *, utc_day_ms, now_ms, source_sha)
             baseline_recorded = existing[7]
             if type(baseline_recorded) is not int or not boundary <= baseline_recorded <= now:
                 raise sqlite3.DatabaseError("DAILY_BASELINE_ROW_INVALID")
-            if audit != (audit_id, baseline_id, "DAILY_BASELINE_CREATED",
-                         replay_digest, payload_json, baseline_recorded):
-                raise sqlite3.DatabaseError("DAILY_BASELINE_AUDIT_RECONCILIATION_FAILED")
+            _validate_persisted_baseline(
+                connection, utc_day_ms=boundary,
+                expected_equity=replay["equity_quote"],
+                cutover_id=inputs["cutover_id"], now_ms=now,
+            )
+            stored_payload = json.loads(audit[4]) if audit else {}
+            if stored_payload.get("inputs") != inputs or stored_payload.get("replay") != replay:
+                raise ValueError("DAILY_BASELINE_REPLAY_CONFLICT")
             if (risk_day is None or risk_day < boundary
                     or risk_day > now // DAY_MS * DAY_MS):
                 raise sqlite3.DatabaseError("DAILY_BASELINE_RISK_STATE_RECONCILIATION_FAILED")
@@ -379,6 +403,25 @@ def persist_daily_equity_baseline(connection, *, utc_day_ms, now_ms, source_sha)
         if risk_day is not None and (type(risk_day) is not int or risk_day >= boundary):
             raise ValueError("DAILY_BASELINE_RISK_STATE_CONFLICT")
 
+        mark = inputs["market_mark"]
+        next_hwm = max(hwm, equity) if risk_ready else hwm
+        risk_state_audit = {
+            "dailyBaselineUtcDayMs": boundary,
+            "dailyBaselineEquityQuote": replay["equity_quote"],
+            "lastEquityQuote": replay["equity_quote"],
+            "lastMarkPrice": mark["mark_price"],
+            "markObservedAtMs": mark["observed_at_ms"],
+            "markCandleCloseMs": mark["candle_close_ms"],
+            "datasetVersion": mark["dataset_version"],
+            "highWaterMarkQuote": format(next_hwm, "f"),
+            "riskReady": bool(risk_ready),
+            "updatedAtMs": now,
+            "version": risk_version + 1,
+        }
+        payload.update(auditSchemaVersion=2, riskState=risk_state_audit)
+        payload_json = _canonical(payload)
+        replay_digest = "sha256:" + hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
+
         connection.execute(
             """INSERT INTO paper_daily_equity_baselines
                (baseline_id,account_id,utc_day_ms,baseline_equity_quote,mark_id,
@@ -395,8 +438,6 @@ def persist_daily_equity_baseline(connection, *, utc_day_ms, now_ms, source_sha)
                VALUES (?,1,?,?, 'DAILY_BASELINE_CREATED',?,?,?)""",
             (audit_id, boundary, baseline_id, replay_digest, payload_json, now),
         )
-        mark = inputs["market_mark"]
-        next_hwm = max(hwm, equity) if risk_ready else hwm
         updated = connection.execute(
             """UPDATE paper_account_risk_state
                SET daily_baseline_utc_day_ms=?,daily_baseline_equity_quote=?,
