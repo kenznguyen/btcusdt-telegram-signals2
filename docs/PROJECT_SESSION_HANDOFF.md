@@ -1771,3 +1771,4 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Provider-specific planning: **IN PROGRESS**. AWS Singapore: **PROPOSED**. Scale: **PRELIMINARY**. Budget ceiling: **NOT PROVIDED**.
 - No trial, service, database, network connection, or paid resource was created. Staging provisioning remains **NOT AUTHORIZED**; production remains **NOT AUTHORIZED**. No new CI run is claimed.
 - Next: obtain explicit monthly staging budget and confirm AWS Singapore + Scale plan; then complete a costed staging plan and seek separate provisioning approval.
+- Follow-up provider research document update: `docs/T0_STAGING_PROVIDER_RESEARCH.md` commit `f463f431823bd0f456ab579b4ece1c11c85034c8` (blob `0e734a82cae28931fe1a3b1b277379de39740e57`).
