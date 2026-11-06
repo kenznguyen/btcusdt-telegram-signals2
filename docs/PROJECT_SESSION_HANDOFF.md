@@ -3357,3 +3357,16 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Inventory updated: `docs/evidence/DAILY_BASELINE_V1_RECOVERY_EVIDENCE_INVENTORY_2026-11-07.md`, commit `bbf44704521b3f1bb913039b729fc30040d6de00`.
 - Next safe work: documentation-only design of a forward evidence capture/retention protocol, if requested. No source/schema/database writer or persistent storage changes are authorized.
 - Restrictions unchanged: no source/test implementation, schema migration, persistent account DB opening, backfill, external account import, exchange connection, production backtest, deployment, merge, Epoch activation, HWM reset, or live order. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — Forward Evidence Capture & Retention Protocol (documentation only)
+
+- Created `docs/architecture/FORWARD_EVIDENCE_CAPTURE_RETENTION_PROTOCOL_2026-11-07.md`, commit `8601a6922fcaa41cf35e58431480f3ae4b832088`.
+- Design separates Root A (append-only, hash-linked paper execution event journal) from Root B (separate observer process, independent reducer/projection/checkpoint, separate storage namespace and credentials). Root B must consume committed event envelopes; it must not construct a checkpoint by querying mutable account DB rows.
+- Assurance levels explicitly distinguish mutable-source export/internal consistency (LEVEL 0), independent retention/capture with shared upstream event-emitter limitation (LEVEL 1), and independent external economic source (LEVEL 2, not available/assumed). This is a paper-system integrity design, not exchange verification.
+- Protocol covers canonical event envelope/provenance, sequence/hash continuity, idempotency, journal durability ordering, observer lag/gaps, periodic and UTC boundary checkpoints, immutable manifests/read-back hashes, retention/access controls, crash recovery, monitoring, and acceptance tests.
+- Inventory indexed the new proposal in `docs/evidence/DAILY_BASELINE_V1_RECOVERY_EVIDENCE_INVENTORY_2026-11-07.md`, commit `61fb94c097fc488ed9a02b5279554c2a200170fe`.
+- Status: **PASS — documentation draft created. NOT APPROVED — implementation/storage/runtime.** No source, tests, schema, workflow, persistent DB, storage provider, or runtime behavior changed. No provider/cost selected.
+- Historical independent evidence remains NONE AVAILABLE; historical Dual Reconstruction remains UNAVAILABLE/BLOCKED. Option A remains current policy. Prospective capture cannot restore missing historical records.
+- Next: architecture/threat-model review and explicit selection of storage, retention, access-control, and cost constraints. Do not start source implementation, schema migration, storage provisioning, DB opening, or runtime capture without separate approval.
+- Restrictions unchanged: no T0 work, no exchange connection, no live orders, no epoch activation, no HWM/Daily Loss reset, no exposure increase based on unverified history, no deployment or merge. PAPER-only; `ai_execution_enabled=false`.
