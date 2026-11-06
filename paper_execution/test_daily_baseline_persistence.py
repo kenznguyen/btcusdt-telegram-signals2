@@ -96,6 +96,16 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
         self.assertEqual(audit, (result["baseline_id"], result["replay_digest"], "DAILY_BASELINE_CREATED"))
         self.assertEqual(risk, (self.boundary, "100", 1))
 
+
+    def test_baseline_is_consumed_by_shared_risk_snapshot_at_boundary_mark(self):
+        self.persist()
+        snapshot = read_account_risk_snapshot(self.path, now_ms=self.recorded)
+        self.assertTrue(snapshot['available'])
+        self.assertTrue(snapshot['riskReady'])
+        self.assertEqual(snapshot['dailyBaselineUtcDayMs'], self.boundary)
+        self.assertEqual(snapshot['accountEquityQuote'], '100')
+        self.assertEqual(snapshot['markObservedAtMs'], self.recorded)
+
     def test_identical_retry_is_idempotent_and_does_not_duplicate_audit(self):
         first = self.persist()
         second = self.persist()
