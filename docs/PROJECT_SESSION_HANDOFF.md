@@ -3045,3 +3045,22 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **PASS — post-rollover missing-baseline, funding-watermark, Kill Switch, daily-loss and max-exposure gates verified through Core/AI submit path; reductions remain allowed under baseline unavailability. NOT VERIFIED — OS-process crash recovery after baseline transaction and recovery audit reconciliation.**
 - Next: implement an OS-process-kill/reopen test around baseline persistence using temporary SQLite only. Verify crash before commit leaves no baseline/audit/risk update; crash after commit leaves all three durable and identical retry is idempotent. Reopen in a fresh process and verify read-only risk snapshot and submit gate. Do not open/migrate persistent account DB.
 - Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 daily baseline OS-process crash/reopen recovery
+
+- Scope: verify SQLite transaction recovery when the process is terminated around the daily baseline commit, using only temporary SQLite databases.
+- Added subprocess crash tests that invoke the actual `persist_daily_equity_baseline` implementation:
+  - **Crash before commit:** a SQLite trigger invokes `os._exit(73)` during the risk-state UPDATE, after baseline and audit INSERTs but before transaction commit. A fresh parent connection reopens the database and verifies baseline count=0, audit count=0, and prior daily risk baseline/readiness unchanged. SQLite recovered the uncommitted transaction without partial state.
+  - **Crash after commit:** child process runs the writer to successful commit and immediately exits via `os._exit(74)`. Parent process reopens the DB and verifies baseline, matching audit digest and daily risk state are all durable; read-only shared risk snapshot is ready; retry returns idempotent without duplicate rows.
+- Exact GREEN source SHA: `02809a4e92e245f4fbb701aaea2eee57c3c40a13`.
+- GitHub Actions [#42274539759](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42274539759): SUCCESS on exact SHA.
+  - PAPER-only preflight: PASS.
+  - Python compile: PASS.
+  - Focused contracts: 161/161 PASS.
+  - Full `paper_execution` regression: 260/260 PASS.
+  - Job ID: `128087359791`.
+  - Artifact ID: `13532062055`, name `dual-ledger-red-evidence-02809a4e92e245f4fbb701aaea2eee57c3c40a13`, GitHub upload digest `sha256:9d76e6e059f5ab38fc3cc56a2e400fd232f6f3b6bed80bd79387dfd6867ce5f8`, expires 2026-11-13. Digest is GitHub artifact metadata; payload bytes were not separately downloaded and re-hashed.
+- Status: **PASS — OS-process termination before/after commit recovers atomically on temporary SQLite; fresh-process reopen, risk snapshot and retry verified. NOT VERIFIED — crash/power-loss behavior on production storage/filesystem and persistent account DB.**
+- Next: review baseline persistence and migration v9 implementation for security/consistency edge cases, especially migration upgrade safety, audit/baseline row cross-integrity, replay digest canonicalization and risk-state reconciliation. Add regression tests for any findings. Persistent account DB migration remains prohibited.
+- Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
