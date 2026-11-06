@@ -19,7 +19,7 @@ Repository: `kenznguyen/btcusdt-telegram-signals2`
 
 Relevant source line:
 - Phase22 frozen-model PR #94: `feature/dual-strategy-phase22-frozen-reproducibility-20261031`, head `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
-- Phase22 attestation PR #95: `feature/dual-strategy-phase22-preholdout-attestation-20261031`, current head at this report `b9582b3fd3c225c090a74d0a3147fc67f1e69f3a`, base `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
+- Phase22 attestation PR #95: `feature/dual-strategy-phase22-preholdout-attestation-20261031`, current head at this report update `1a5e5ca4da77dc704f7f856c16ae52b85aa060be`, base `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
 - Both PRs remain Draft; neither is merged.
 
 Observed pinned runtime and model provenance:
@@ -71,7 +71,7 @@ Adapter behavior:
 3. Recomputes and verifies T0 `datasetVersion`.
 4. Requires complete coverage, no gaps/overlaps, contiguous closed candles, validated quality, first-observed availability and optional `asOfMs` compliance.
 5. Validates decimal OHLCV and OHLC bounds before conversion to Freqtrade float64 JSON rows.
-6. Writes into a new dataset-specific directory and refuses to overwrite an existing export.
+6. Writes into a new dataset-specific directory using the Freqtrade 2026.9 futures layout `futures/BTC_USDT_USDT-<timeframe>-futures.json`; refuses to overwrite existing exports and rejects symlinked output roots.
 7. Writes a provenance manifest with source payload hash, T0 dataset version, output hash, row count, time range and the float64 conversion boundary.
 8. Explicitly records `existing_okx_shadow_model_compatible=false`, `strategy_core_modified=false`, `native_orders_enabled=false`, `ai_execution_enabled=false` and `runtime_integration=false`.
 
@@ -86,7 +86,7 @@ The adapter does not make HTTP requests, import/open a T0 database, modify Freqt
 | Full effective Freqtrade/FreqAI config | NOT VERIFIED | Config files absent from inspected tracked paths; only digests available |
 | T0 published schema and read-only semantics | PASS — documentation/source scope | T0 README, store and API inspected on T0 branch |
 | Actual T0 candle comparison | BLOCKED | T0 remains PAUSED; no DB or snapshot opened |
-| F1 offline exporter implementation | IMPLEMENTED / NOT TEST VERIFIED | Source and tests committed; no runtime invocation |
+| F1 offline exporter implementation | IMPLEMENTED / NOT TEST VERIFIED | Source and 10 contract cases committed; no test run evidence retrieved |
 | GitHub Actions F1 workflow | ADDED / NOT VERIFIED | Workflow file committed; no matching workflow run ID, checked-out SHA, job result or artifact evidence was retrieved |
 | Existing backtest/model preservation | NOT MODIFIED | No backtest, model, strategy, config or existing evidence file changed in this increment |
 | Runtime integration | NOT AUTHORIZED / NOT RUN | T0 remains PAUSED; adapter is offline only |
@@ -99,7 +99,10 @@ Branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`
 - F1 GitHub Actions workflow: `c33bb8f89e830ad09dac2edaa1b769363e2882d6`.
 - Adapter implementation: `468569f49120db87223e78e7723bcd857b5f7979`.
 - Adapter create-race safety fix: `a316a7f7b86dc81d19d82a826ab4e2b816d92227`.
-- Current branch head when this report was updated: `4ed5209a723029b59bd2f6593991fbf1a379009e`.
+- F1 Freqtrade futures-layout correction: `ddcbd5a2e746066f2fd3c0550f36829b5eb6ca04`.
+- F1 strict source/output validation: `debdc05d9085e59697bc4671b3bad6e0b3c0b5ce`.
+- F1 symlink-output regression: `4ed5209a723029b59bd2f6593991fbf1a379009e`.
+- Current branch head when this report was updated: `1a5e5ca4da77dc704f7f856c16ae52b85aa060be`.
 
 No GitHub Actions run ID or artifact is claimed. Upstream format references: [Freqtrade 2026.9 IDataHandler](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/data/history/datahandlers/idatahandler.py), [JsonDataHandler](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/data/history/datahandlers/jsondatahandler.py), and [pair_to_filename](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/misc.py). The source is not ready for acceptance until exact-head Actions evidence is retrieved and the adapter is tested against a real, user-authorized T0 export.
 
