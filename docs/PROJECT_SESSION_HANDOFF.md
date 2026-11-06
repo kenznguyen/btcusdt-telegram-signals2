@@ -3382,3 +3382,16 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **PASS — threat model documented. NOT VERIFIED — controls are not implemented and security tests are not run.** No source, tests, schema, workflow, storage, persistent DB, or runtime behavior changed.
 - Next: review open storage/security decisions and define a threat acceptance boundary. No implementation or provisioning without separate approval.
 - Restrictions unchanged: no T0 work, no exchange connection, no live orders, no epoch activation, no HWM/Daily Loss reset, no exposure increase based on unverified history, no deployment or merge. PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — Forward Evidence Storage Architecture Decision Review (documentation only)
+
+- Created `docs/architecture/FORWARD_EVIDENCE_STORAGE_ARCHITECTURE_DECISION_REVIEW_2026-11-07.md`, commit `d3b9cecea912bba6172b68d2c6fa4d35842682a6`.
+- Compared six patterns: local-only; two namespaces in one cloud account; separate accounts under one provider; two providers; local spool plus one remote root; local spool plus two separately controlled remote roots.
+- Conditional target recommendation: Pattern F — encrypted bounded local spool plus two remote roots in separately controlled provider accounts, preferably across providers. Fallback Pattern C (separate accounts under one provider) requires explicit residual-risk acceptance. Pattern B (two buckets in one account) is insufficient for a strong independence claim. Local PC storage is not an authoritative archive.
+- Defined vendor capability checklist/disqualifiers, cost measurement model, retention/access controls, outage and compromise behavior, restore requirements, and open decisions before a vendor shortlist.
+- Indexed in `docs/evidence/DAILY_BASELINE_V1_RECOVERY_EVIDENCE_INVENTORY_2026-11-07.md`, commit `40e0c2bf80768a2756a49d2748c8f6909a7609b6`.
+- Status: **PASS — storage architecture comparison documented. NOT APPROVED — provider selection, purchase, provisioning, credentials, storage access, or runtime capture.** No source/schema/workflow/DB/runtime changes.
+- Open decisions: cross-provider vs separate-account acceptance; authorized monthly budget; retention duration/legal hold; provider account/billing/recovery owners; local spool policy; region/jurisdiction; Root B lag/outage threshold; signing-key custody.
+- Next: obtain explicit decisions on these constraints. Only then prepare a vendor shortlist using current official pricing/capability documentation. No provisioning or implementation before separate approval.
+- Restrictions unchanged: no T0 work, no exchange connection, no live orders, no epoch activation, no HWM/Daily Loss reset, no exposure increase based on unverified history, no deployment or merge. PAPER-only; `ai_execution_enabled=false`.
