@@ -174,13 +174,17 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
                     "SELECT p.proname, owner.rolname FROM pg_proc p "
                     "JOIN pg_roles owner ON owner.oid=p.proowner "
                     "WHERE p.proname IN "
-                    "('write_canonical_candle','acquire_feeder_lease') "
+                    "('write_canonical_candle','acquire_feeder_lease','heartbeat_feeder_lease',
+                         'release_feeder_lease','is_current_feeder_lease') "
                     "ORDER BY p.proname"
                 ).fetchall()
                 self.assertEqual(
                     function_owners,
                     [
                         ("acquire_feeder_lease", "t0_lease_manager_owner"),
+                        ("heartbeat_feeder_lease", "t0_lease_manager_owner"),
+                        ("is_current_feeder_lease", "t0_lease_manager_owner"),
+                        ("release_feeder_lease", "t0_lease_manager_owner"),
                         ("write_canonical_candle", "t0_candle_writer_owner"),
                     ],
                 )
