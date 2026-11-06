@@ -2330,9 +2330,15 @@ os._exit(0)
             recorded_at_ms=boundary + 1_000,
         )
 
+        with sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True) as connection:
+            with self.assertRaisesRegex(ValueError, "ACCOUNT_HISTORY_EVIDENCE_FROM_FUTURE"):
+                ledger.load_daily_equity_replay_inputs(
+                    connection, utc_day_ms=boundary, now_ms=boundary + 1_500
+                )
+
         before_read = self.path.read_bytes()
         with sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True) as connection:
-            inputs = ledger.load_daily_equity_replay_inputs(connection, utc_day_ms=boundary)
+            inputs = ledger.load_daily_equity_replay_inputs(connection, utc_day_ms=boundary, now_ms=boundary + 60_000)
             self.assertEqual(connection.execute("PRAGMA query_only").fetchone()[0], 1)
             with self.assertRaises(sqlite3.OperationalError):
                 connection.execute(
@@ -2376,7 +2382,7 @@ os._exit(0)
         )
         with sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True) as connection:
             with self.assertRaisesRegex(ValueError, "ACCOUNT_HISTORY_LATE_EVENT"):
-                ledger.load_daily_equity_replay_inputs(connection, utc_day_ms=boundary)
+                ledger.load_daily_equity_replay_inputs(connection, utc_day_ms=boundary, now_ms=boundary + 60_000)
 
     def test_read_only_daily_replay_loader_rejects_execution_coverage_gap(self):
         boundary = (self.now // 86_400_000 + 1) * 86_400_000
