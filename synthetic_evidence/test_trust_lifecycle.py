@@ -24,7 +24,7 @@ def root_bytes(rekor_key="rekor-key-a", fulcio_key="fulcio-root-a"):
         "ctlogs": [],
         "timestampAuthorities": [],
     }
-    return (json.dumps(record, sort_keys=True, separators=(",", ":")) + "\\n").encode()
+    return (json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n").encode()
 
 
 class TrustLifecycleTests(unittest.TestCase):
@@ -141,7 +141,7 @@ class TrustLifecycleTests(unittest.TestCase):
             "reviewed_at": "2026-11-07T11:00:00Z",
         }
         result = assess_revocation(mode="OFFLINE", evidence=evidence)
-        self.assertEqual(result["status"], "REVIEWED_CLEAR")
+        self.assertEqual(result["status"], "REVIEWED_CLEAR_AUDIT_ONLY")
         self.assertEqual(result["decision"], "BLOCK_UNLESS_EVIDENCE_AUTHENTICITY_IS_SEPARATELY_VERIFIED")
         evidence["evidence_sha256"] = "invalid"
         with self.assertRaisesRegex(ValueError, "evidence digest"):
