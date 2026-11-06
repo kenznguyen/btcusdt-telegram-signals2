@@ -2043,3 +2043,16 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Keep the existing PC plan and all safety boundaries unchanged: PC is a proposed isolated validation host only, not yet a canonical writer; no concurrent PC/VPS writers; no provider/VPS provisioning; no weakening of lease/fencing or PostgreSQL role guards.
 - No tests were run and no workflow was triggered for this update.
 - Next step is **PAUSED**. Resume with read-only Windows PC inventory only when the user asks to continue.
+
+## 2026-11-06 — T1.2 Dual Ledger / RED 1 started
+
+- Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Verified branch HEAD before this increment: `f0ccaaf235c00db84e62d1cc278ecefe078d2e8b`.
+- User-confirmed architecture: independent `CORE_LEDGER` and `AI_LEDGER`; one shared, fail-closed Risk Engine; no fixed position-count cap; each new ENTRY or exposure-increasing DCA reserves margin equal to 1% of current Account Equity; both strategies remain PAPER-only.
+- Account-level controls remain mandatory: configured Max Exposure, Max Drawdown, Daily Loss and Kill Switch. Gross Exposure is authoritative; do not net opposing strategies to reduce risk. Exposure reductions remain allowed while new exposure is blocked.
+- Reviewed existing implementation and contract: `paper_execution/ledger.py` still stores one global `paper_state`, one global `paper_strategy_state` owner/DCA record, one global pending-order gate and one global book-consumption table. Existing `paper_execution/test_ledger.py` exercises only the single-ledger behavior. This cannot support simultaneous independently attributed Core and AI positions.
+- Proposed RED 1 contract: two strategy-scoped `PaperLedger` instances share one account database but expose isolated position and strategy state. Core and AI can hold opposite/same-side positions concurrently without ownership collision or cross-ledger mutation. This first test does not implement migration, shared risk admission, margin sizing, order-book reservations, or backtests.
+- TDD state: **RED 1 TEST DESIGN STARTED**. No implementation change authorized in this increment. Existing test suite has not been run. The GitHub connector can update source files but does not provide a local Python execution environment; no Codemagic run has been triggered or verified. Test execution status: **NOT VERIFIED** until the configured Codemagic workflow runs against the exact test commit.
+- No exchange connection, collector, backtest, live execution, or real order is authorized. No database outside isolated test fixtures is to be created or modified.
+- Next: add the isolated Core/AI position contract test first; inspect its exact-source Codemagic result. Only after an observed failing test may the minimal ledger implementation begin.
+- Workflow run/artifact: **NONE**. Source SHA for this handoff update will be recorded after commit creation.
