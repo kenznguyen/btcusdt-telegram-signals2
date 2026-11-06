@@ -1,0 +1,57 @@
+{
+  "archived_at": "2026-11-06T22:41:34Z",
+  "files": [
+    {
+      "path": "synthetic-evidence-attestation.bundle.json",
+      "sha256": "2fb7ed657c0a118f324c01e0bdef3bd8dacba64df05b549228e0ba1141ac557b",
+      "size_bytes": 12770
+    },
+    {
+      "path": "synthetic-evidence-bundle.sha256",
+      "sha256": "b1946895580d2043d307bf0681959cace690540f5f0835b2bc065febc14c1559",
+      "size_bytes": 96
+    },
+    {
+      "path": "synthetic-evidence-bundle.zip",
+      "sha256": "8efeb3ca7e91bfc24d38d9f73b7205c92b269e4a93879e8ad32b0019897d40f9",
+      "size_bytes": 642998
+    },
+    {
+      "path": "synthetic-evidence-provenance.json",
+      "sha256": "df837bcd079753758d46a68e3492ddaae928b585e15ce91af2ebca380b4807d3",
+      "size_bytes": 1020
+    },
+    {
+      "path": "synthetic-evidence-tests.log",
+      "sha256": "69f48e59e3151c03f012b0c47ed700ae75d1024cb4e6a65d25579dd18bfc7be7",
+      "size_bytes": 19622
+    },
+    {
+      "path": "trust-root-rotation-diff.json",
+      "sha256": "56422d1910bfa91c677e505efc8a9e149aa4f12af62b79c5c199fcf6ea6ccf79",
+      "size_bytes": 505
+    },
+    {
+      "path": "trust-root-snapshot.json",
+      "sha256": "cdec1cc33dff4cdd30beac2507579c07933daf0b9c9ef6cea0a8bba825d31f17",
+      "size_bytes": 3890
+    },
+    {
+      "path": "trusted_root.jsonl",
+      "sha256": "65ca537f6ed8a47fd0e560c421baa1f6c1efb8b25fc200d8c5c02c0e92eb2b9c",
+      "size_bytes": 34634
+    },
+    {
+      "path": "trusted_root.sha256",
+      "sha256": "58d7a9cf9fda3136f3154d1d2964973cd7fd907e2476574c79ba4c8860d7de1f",
+      "size_bytes": 85
+    }
+  ],
+  "immutability": "NOT_WORM",
+  "manifest_sha256": "e0e595b5d52d0baf13d0e7b1ab85eea1db38993d3857470bd6259187c4c7e243",
+  "policy": "Git history plus 90-day Actions artifact; Git history is not WORM storage.",
+  "retention_class": "GIT_HISTORY",
+  "schema": "p1.8.evidence-retention.v1",
+  "source_sha": "5241c5f2b9cba24ffc89ad409d356213960b5da7",
+  "workflow_run_id": 42306576242
+}

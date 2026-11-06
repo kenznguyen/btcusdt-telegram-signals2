@@ -1,0 +1,44 @@
+{
+  "chain_sha256": "5bafbece5e4f6273229c56a43352473398a3c81c1d9dbd279cec6ad937137860",
+  "schema": "p1.8.trust-snapshot-chain.v1",
+  "snapshots": [
+    {
+      "captured_at": "2026-11-06T22:41:26Z",
+      "inventory": {
+        "certificateAuthorities": [
+          "fulcio.githubapp.com:2de8956f3a5cc56bc429eedd1f15233476e8ef1f198295d93793b959a88e1413,f9a6c57ca4229826530a8d93b848c243131de6ff7be64e975ee23824eb5ae230,47368c0b6a6fa985ba1eb2d3ecfba812f6b728182c6b4f89e3b1f61caa2fa346",
+          "fulcio.githubapp.com:703d6fb0765e5334a2961123c2ee662730eb8635335a17b6251da48cb85d8253,f9a6c57ca4229826530a8d93b848c243131de6ff7be64e975ee23824eb5ae230,47368c0b6a6fa985ba1eb2d3ecfba812f6b728182c6b4f89e3b1f61caa2fa346",
+          "fulcio.githubapp.com:7ebd8fa717e858af9230610ca3b547334ffd4a614d0934a6e0d60b298abe2c6c,f9a6c57ca4229826530a8d93b848c243131de6ff7be64e975ee23824eb5ae230,47368c0b6a6fa985ba1eb2d3ecfba812f6b728182c6b4f89e3b1f61caa2fa346",
+          "fulcio.githubapp.com:a372a6565ef7a216a63e9380543c89e46395e27bb5e295a3e41d8cdc1e4416a0,f9a6c57ca4229826530a8d93b848c243131de6ff7be64e975ee23824eb5ae230,47368c0b6a6fa985ba1eb2d3ecfba812f6b728182c6b4f89e3b1f61caa2fa346",
+          "fulcio.githubapp.com:d38ff2f49a36c5097d46481af402e828a5b7173502be270b8674e74d4f4b2a0a,f9a6c57ca4229826530a8d93b848c243131de6ff7be64e975ee23824eb5ae230,47368c0b6a6fa985ba1eb2d3ecfba812f6b728182c6b4f89e3b1f61caa2fa346",
+          "fulcio.githubapp.com:f15e6702080f4f359577f1d950fa00bd12fff19b5471716c2a0e9cfdf125e66d,f9a6c57ca4229826530a8d93b848c243131de6ff7be64e975ee23824eb5ae230,47368c0b6a6fa985ba1eb2d3ecfba812f6b728182c6b4f89e3b1f61caa2fa346",
+          "https://fulcio.sigstore.dev:2eaf5e8c6e6f854bd0023a326994f26be28fc1de534e1adf76e2acb95efd03de",
+          "https://fulcio.sigstore.dev:54c9c11429f66cd704729c61cea3ec3eed58e6bf2d3c74a2844e1b54c311d7fd,71d789fd3c6bac9aa12b645d3b1ef15f265dff389ceb6f0e2f46c2cd88598fd8"
+        ],
+        "ctlogs": [
+          "3T0wasbHETJjGR4cmWc3AqJKXrjePK3/h4pygC8p7o4=",
+          "CGCS8ChS/2hF0dFrJ4ScRWcYrBY9wzjSbea8IgY2b3I="
+        ],
+        "timestampAuthorities": [
+          "https://timestamp.sigstore.dev/api/v1/timestamp:736222d07a093902a98df2c2290c86697c00c64f1e43470697d12cb6fabadcd4,ffe27c5233a244563809fc8b61b1ebb602c6ba6dd3d47e7a832853675b51db39",
+          "timestamp.githubapp.com:150e6c9fb1fa094eadcb0e5b0e065ce10055db32ceb546583c4d940918220017,e833d6c33d223b486f15161939d1b61b757b2e02b2e556cab83c89dd76ba86d6,47368c0b6a6fa985ba1eb2d3ecfba812f6b728182c6b4f89e3b1f61caa2fa346",
+          "timestamp.githubapp.com:43e32a9d1866aee99adc8f0d31efa5781857246969357ca646a4988000d7560f,e833d6c33d223b486f15161939d1b61b757b2e02b2e556cab83c89dd76ba86d6,47368c0b6a6fa985ba1eb2d3ecfba812f6b728182c6b4f89e3b1f61caa2fa346",
+          "timestamp.githubapp.com:787a8a7f465e986ab07ed139fe48d2389a6c3cf1cb06780fb9bb98bdd22cf19c,e833d6c33d223b486f15161939d1b61b757b2e02b2e556cab83c89dd76ba86d6,47368c0b6a6fa985ba1eb2d3ecfba812f6b728182c6b4f89e3b1f61caa2fa346",
+          "timestamp.githubapp.com:86729c7e5e9ddeccf09fefc1cfbf921a3f79c5cc5eada9c70aed88a6c21b035d,e833d6c33d223b486f15161939d1b61b757b2e02b2e556cab83c89dd76ba86d6,47368c0b6a6fa985ba1eb2d3ecfba812f6b728182c6b4f89e3b1f61caa2fa346",
+          "timestamp.githubapp.com:9df4ffbb96619a53ccef7730b3fb9742f588a0c97d262692a5af925bbf454e72,e833d6c33d223b486f15161939d1b61b757b2e02b2e556cab83c89dd76ba86d6,47368c0b6a6fa985ba1eb2d3ecfba812f6b728182c6b4f89e3b1f61caa2fa346",
+          "timestamp.githubapp.com:c08159596d9443518c4dfcab5a5325233bbe564492fd55dce32b2e2d20a7ae6a,e833d6c33d223b486f15161939d1b61b757b2e02b2e556cab83c89dd76ba86d6,47368c0b6a6fa985ba1eb2d3ecfba812f6b728182c6b4f89e3b1f61caa2fa346"
+        ],
+        "tlogs": [
+          "wNI9atQGlz+VWfO6LRygH4QUfY/8W4RFwiT5i5WRgB0=",
+          "zxGZFVvd0FEmjR8WrFwMdcAJ9vtaY/QXf44Y1wUeP6A="
+        ]
+      },
+      "previous_snapshot_sha256": null,
+      "schema": "p1.8.trust-snapshot.v1",
+      "sequence": 1,
+      "snapshot_sha256": "8efcf3671c1fe83d5e83b21fa8618ffe41dbd13f1ae155a80238ee6e1b7001f4",
+      "trusted_root_sha256": "65ca537f6ed8a47fd0e560c421baa1f6c1efb8b25fc200d8c5c02c0e92eb2b9c",
+      "tuf_verification": "GH_CLI_TUF_VERIFIED"
+    }
+  ]
+}
