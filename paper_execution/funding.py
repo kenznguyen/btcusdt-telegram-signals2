@@ -331,7 +331,9 @@ def record_account_equity_cutover(
         )
         if prior:
             stored_identity = (
-                prior["initial_capital_quote"], prior["mark_price"],
+                prior["initial_capital_quote"], prior["reconciled_realized_pnl_quote"],
+                prior["reconciled_fees_quote"], prior["reconciled_funding_quote"],
+                prior["expected_account_equity_quote"], prior["mark_price"],
                 prior["mark_candle_close_ms"], prior["mark_observed_at_ms"],
                 prior["dataset_version"], prior["funding_coverage_start_at_ms"],
                 prior["source"], prior["source_snapshot_id"], prior["payload_hash"],
