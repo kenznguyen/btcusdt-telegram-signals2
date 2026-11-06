@@ -2454,3 +2454,48 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No T0 source/test/workflow/provider policy changed. No persistent account DB migration, backtest, merge, deployment, exchange connection, live order, or execution activation. `ai_execution_enabled=false`.
 - Status: **FUNDING PROVENANCE RED CONFIRMED; GREEN NOT IMPLEMENTED; ACCOUNT EQUITY CUTOVER NOT VERIFIED; T1.2.2 IN PROGRESS.**
 - Next: implement v4 and funding event/coverage APIs, then add RED/ GREEN tests for account-equity cutover (verified funding coverage, fresh mark/candle, dataset identity, exact capital/equity reconciliation, HWM and UTC daily baseline). Keep tests isolated; no persistent DB migration or backtest without separate approval.
+
+
+## 2026-11-06 — T1.2.2 Funding Provenance v4 + Account Equity Cutover v5 GREEN
+
+### Scope completed
+
+- Added PAPER-only funding event and funding-coverage APIs in `paper_execution/funding.py`.
+- Migration v4 adds immutable source/recorded timestamps to funding events and a new immutable coverage ledger. Existing funding rows without source provenance are marked `LEGACY_UNVERIFIED` and force readiness false.
+- Funding event identity is idempotent; same event ID with changed economic/provenance fields fails. Duplicate payload digest fails. Positive funding is a cost; negative funding is a credit.
+- Known funding with unknown strategy owner is attributed to `LEGACY_UNATTRIBUTED`, never Core or AI. UNKNOWN coverage is not zero and blocks new exposure. DISABLED coverage requires persisted `PAPER_TEST_CONFIGURATION`, source snapshot, payload digest and config version.
+- Migration v5 creates an immutable one-time account cutover record. The API requires contiguous funding coverage, fresh mark and closed candle, dataset identity, source/snapshot/hash/config evidence, and explicit expected statement totals for capital, realized PnL, fees, funding and account equity.
+- Cutover reconciles Core + AI + Legacy ledger totals and known legacy account adjustments; funding event totals must match each ledger. Calculated mark-to-market equity must exactly equal supplied statement equity. Successful cutover initializes HWM and UTC daily baseline from that same verified snapshot and sets risk readiness.
+- Account snapshot and new exposure admission now require v4/v5 and a persisted cutover. UNKNOWN funding coverage overlapping the cutover interval blocks readiness and exposure increases even if the readiness flag is manually inconsistent. Valid reductions remain under the existing reduce-only policy.
+- v4/v5 migrations are additive and were exercised only by isolated temporary SQLite CI fixtures. No persistent account DB was opened or migrated.
+
+### Exact verification
+
+- Exact implementation/test source SHA: `8dadd35b7e9e0174efab70c425eab53bca99fa34`.
+- GitHub Actions run [#42194525276](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42194525276), push event, exact checked-out SHA confirmed in logs.
+- Job ID: `127814336951`, conclusion SUCCESS.
+- Compile: PASS.
+- Focused Dual Ledger + migration tests: 34/34 PASS.
+- Full `paper_execution` regression: 69/69 PASS.
+- Artifact: [13491067898](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42194525276/artifacts/13491067898), name `dual-ledger-red-evidence-8dadd35b7e9e0174efab70c425eab53bca99fa34`, GitHub SHA-256 `3f48255660a6a6094a07d2f749d571e069ba01096f72bb5085d704c33f5d58b3`, expires 2026-11-13. This is the GitHub upload digest; artifact payload bytes were not separately downloaded and re-hashed in this increment.
+
+### Documentation commits
+
+- `paper_execution/README.md`: `58208cdeb1683d9bc1b41f881134ee8e0b4bfefe`.
+- `docs/architecture/DUAL_LEDGER_SCHEMA_MIGRATION_PLAN.md`: `ee7370e22def77870e05d773d5fdff391cb900b5`.
+- `docs/architecture/DUAL_LEDGER_CONTRACT.md`: `efa7c9b20d6a4508c3624705f94fb40e0112596a`.
+- These commits are documentation-only after the tested source SHA; no source implementation changed after the 69/69 regression.
+
+### Status and limits
+
+- **PASS:** funding event provenance APIs; immutable funding event/coverage tables; v4 migration; known unowned funding isolation; explicit disabled-funding evidence; v5 cutover record; statement totals reconciliation; HWM/UTC daily baseline initialization; fail-closed UNKNOWN coverage; snapshot/admission gating; 69/69 full `paper_execution` regression on the exact implementation SHA.
+- **NOT VERIFIED:** actual historical funding completeness and actual external statement-byte authenticity for a real account. The local ledger stores source snapshot IDs and SHA-256 fingerprints but does not retrieve or independently hash external statement bytes.
+- **NOT RUN / NOT APPROVED:** persistent account DB migration, real-account cutover, backtests, merge, deployment, exchange connectivity, live execution.
+- T0 source/tests/workflows/provider policy unchanged; Option C remains default. Dual Strategy remains PAPER-only; `ai_execution_enabled=false`. Core/AI separation, 1% account-equity margin per exposure-increasing ENTRY/DCA and no fixed max-position count remain unchanged.
+
+### Next permitted work
+
+1. Add focused RED/GREEN cases for statement-total mismatch, funding-coverage gaps/overlaps, stale/future mark/candle, corrupt funding event evidence and restart/idempotent cutover replay.
+2. Build offline reconciliation fixtures from actual account-statement exports only after the user supplies/approves those files; do not open or migrate the persistent account DB.
+3. Keep historical funding/fee provenance and actual-account cutover NOT VERIFIED until source evidence is reconciled. Do not run a backtest until those prerequisites are verified or separately scoped.
+4. No T0 changes, persistent DB migration, merge, deployment, exchange connection or live execution without separate approval.
