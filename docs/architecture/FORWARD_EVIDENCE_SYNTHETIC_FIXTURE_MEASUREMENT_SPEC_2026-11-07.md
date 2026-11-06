@@ -288,3 +288,48 @@ Next permitted step: review the fixture assumptions and decide whether to approv
 - P1.5 contract: `docs/architecture/FORWARD_EVIDENCE_ENVELOPE_RECOVERY_REQUIREMENTS_2026-11-07.md`
 - P1.1 acceptance plan: `docs/architecture/FORWARD_EVIDENCE_STORAGE_ACCEPTANCE_TEST_PLAN_2026-11-07.md`
 - P1.4 cost model: `docs/architecture/FORWARD_EVIDENCE_STORAGE_COST_MODEL_2026-11-07.md`
+
+
+## 13. P1.7 deterministic profile hardening (2026-11-07)
+
+Reference: `docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_FIXTURE_READINESS_REVIEW_2026-11-07.md`.
+
+The following details are normative for a future synthetic-only generator; they do not authorize implementation.
+
+### 13.1 Exact deterministic PRF byte framing
+
+- Seed is exactly 32 bytes (64 lowercase hex in run descriptor); HMAC-SHA-256 key is those seed bytes.
+- Message is ASCII `SYNTH-EVIDENCE-PRF-V1\n` || uint16be(domain UTF-8 byte length) || domain bytes || uint16be(stream UTF-8 byte length) || stream bytes || uint64be(sequence) || uint16be(field-path UTF-8 byte length) || field-path bytes || uint32be(sample_index) || uint32be(block_index).
+- All integer encodings are unsigned big-endian. Domain/stream/path lengths >65,535 bytes and counters outside their widths are rejected. Sequence is 1..10^20−1 in the fixture and is serialized as 20 zero-padded decimal digits in events.
+- HMAC output is 32 bytes. For longer output, increment block_index from zero and concatenate; truncate only the final block to requested length.
+- No implicit separators, locale, filesystem order, wall clock or Unicode normalization. Known-answer vectors are required for empty path, UTF-8 non-ASCII labels, sequence boundaries and multi-block output before generator acceptance.
+
+### 13.2 Identity, scenarios and causal validity
+
+- Synthetic stream IDs are ASCII `[A-Z0-9-]{1,64}`. UUIDv5 name bytes are UTF-8 `stream_id + ":" + sequence20` using the fixed namespace in the run descriptor.
+- Build deterministic scenario/state-machine bundles before allocating optional event-mix counts. Dependent events reference existing event IDs and legal prior state.
+- Core/AI/Legacy streams have separate explicit scenario templates. The percentage table is a target distribution, not a reason to omit mandatory causal events or emit impossible transitions. Report target counts, mandatory causal overhead and actual counts.
+- Clean fixtures contain only valid transitions. Each negative vector is a separate fault-injected derivative with its declared fault(s); it does not contaminate clean volume statistics.
+- UNKNOWN fee/funding/mark is represented as a typed UNKNOWN state, never numeric zero.
+
+### 13.3 Stream ordering and segment framing
+
+- Each segment contains exactly one stream ID and contiguous sequence range; no cross-stream segment.
+- Commit timestamps are nondecreasing within each stream. Sequence is authoritative within stream. Inter-stream ordering uses `committed_at_ms, stream_id, sequence20`; occurred_at never reorders committed stream history.
+- Segment byte cap includes exact stored segment framing plus event transport bytes and excludes manifest bytes. The framing format/version is part of the run descriptor.
+- Close before adding an event that would exceed the cap. Never split or truncate an event. An event larger than the cap is a separately reported rejected fixture case.
+
+### 13.4 Manifest and storage receipt separation
+
+- Local fixture creates immutable `manifest_core` containing schema/version, manifest ID, stream ID, contiguous range/count, first/last event hashes, previous manifest hash, segment byte length/digest, source schema/build/config identities, seal time and signature profile ID.
+- For local tests, canonical manifest bytes are UTF-8 JCS(`manifest_core`), no BOM or trailing newline. Hash domain: `BTCUSDT-PAPER-MANIFEST-V1\n`; signature message: `BTCUSDT-PAPER-MANIFEST-SIGNATURE-V1\n` || raw 32-byte manifest hash.
+- A post-upload `storage_receipt` is a separate append-only object created only after provider read-back. Local fixtures omit it; they must not fabricate provider version/generation IDs, retention state or durable-write receipts.
+- Use published RFC 8032 vectors for crypto conformance. Any fixture-specific Ed25519 seed is derived with a separate domain label only in disposable process memory and must never be persisted/exported. This is not a key custody design.
+
+### 13.5 Measurement statistics
+
+For every event class/cohort and representation (event_core, transport envelope, segment, manifest, compressed object), report sample count, min, arithmetic mean, p50, p90, p95, p99, max and total bytes. Quantiles use nearest-rank: sorted value at rank ceil(p*n), 1-indexed. State clean/fault cohort separately. Define compression ratio as compressed bytes divided by uncompressed bytes. Retain all raw samples and exact fixture digest.
+
+For timing/throughput, retain every run, warm-up marker, environment, fixture digest and failures. Five measured runs are exploratory evidence only; do not claim a statistically strong p95 from five samples.
+
+A local Root B replay is labeled `LOCAL_REPLAY_SIMULATION`; it tests deterministic reducer/replay semantics only. It cannot satisfy independent-process, separate-admin, WORM, provider durability or provider clean-room restore acceptance.
