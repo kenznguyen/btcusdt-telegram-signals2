@@ -518,6 +518,17 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(order["status"], "FILLED", order)
         self.assertEqual(order["strategyId"], "LEGACY_UNATTRIBUTED")
         self.assertEqual(order["strategyEvent"], "LEGACY_REDUCTION")
+        with sqlite3.connect(self.path) as connection:
+            journal = connection.execute(
+                """SELECT strategy_id,event_type,quantity_delta_base,fill_price,fee_quote
+                   FROM paper_account_event_journal WHERE intent_id=?""",
+                ("legacy-partial-close",),
+            ).fetchall()
+        self.assertEqual(len(journal), 1)
+        self.assertEqual(journal[0][0:2], ("LEGACY_UNATTRIBUTED", "FILL"))
+        self.assertEqual(journal[0][2], "-0.03")
+        self.assertEqual(journal[0][3], "100")
+        self.assertEqual(Decimal(journal[0][4]), Decimal(order["feeQuote"]))
 
         replayed = ledger.reduce_legacy_unattributed(
             self.path,
