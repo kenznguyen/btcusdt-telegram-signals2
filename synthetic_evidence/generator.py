@@ -118,7 +118,10 @@ def canonical_json(value: Any) -> bytes:
 def parse_json_strict(source: str | bytes) -> Any:
     """Parse JSON while rejecting duplicate keys, floats, constants and invalid Unicode."""
     if isinstance(source, bytes):
-        source = source.decode("utf-8", errors="strict")
+        try:
+            source = source.decode("utf-8", errors="strict")
+        except UnicodeDecodeError as exc:
+            raise ValueError("invalid UTF-8 JSON input") from exc
 
     def pairs(items):
         result = {}
@@ -220,7 +223,8 @@ def _stats(values: list[int]) -> dict[str, int | str]:
 
 def _build_digest() -> str:
     digest = hashlib.sha256()
-    for source_path in sorted(Path(__file__).parent.glob("*.py"), key=lambda path: path.name):
+    build_files = ("__init__.py", "generator.py", "__main__.py")
+    for source_path in (Path(__file__).parent / name for name in build_files):
         relative, content = source_path.name.encode("utf-8"), source_path.read_bytes()
         digest.update(len(relative).to_bytes(2, "big"))
         digest.update(relative)
@@ -259,19 +263,19 @@ def _negative_vectors(namespace_uuid: uuid.UUID) -> list[dict[str, Any]]:
 def generate_fixture(*, seed_hex: str, namespace: str, base_time_utc: str, event_count: int,
                      source_sha: str, segment_event_cap: int = 100, segment_byte_cap: int = 1_048_576) -> dict[str, Any]:
     """Build a deterministic clean fixture entirely in memory."""
-    if not re.fullmatch(r"[0-9a-f]{64}", seed_hex):
+    if not isinstance(seed_hex, str) or not re.fullmatch(r"[0-9a-f]{64}", seed_hex):
         raise ValueError("seed_hex must be 64 lowercase hexadecimal characters")
     try:
         namespace_uuid = uuid.UUID(namespace)
     except (ValueError, AttributeError) as exc:
         raise ValueError("namespace must be a UUID") from exc
-    if str(namespace_uuid) != namespace.lower():
-        raise ValueError("namespace must use canonical UUID notation")
+    if str(namespace_uuid) != namespace:
+        raise ValueError("namespace must use canonical lowercase UUID notation")
     if not isinstance(event_count, int) or isinstance(event_count, bool) or not 1 <= event_count <= 100_000:
         raise ValueError("event_count must be between 1 and 100000")
     if not isinstance(source_sha, str) or not SHA_RE.fullmatch(source_sha):
         raise ValueError("source_sha must be a full lowercase Git SHA")
-    if not isinstance(segment_event_cap, int) or not 1 <= segment_event_cap <= 5000:
+    if not isinstance(segment_event_cap, int) or isinstance(segment_event_cap, bool) or not 1 <= segment_event_cap <= 5000:
         raise ValueError("segment_event_cap must be between 1 and 5000")
     if not isinstance(segment_byte_cap, int) or not 1024 <= segment_byte_cap <= 32 * 1024 * 1024:
         raise ValueError("segment_byte_cap must be between 1 KiB and 32 MiB")
@@ -443,9 +447,18 @@ def generate_fixture(*, seed_hex: str, namespace: str, base_time_utc: str, event
 
 def verify_local_replay(events: list[dict[str, Any]]) -> dict[str, Any]:
     """Verify local event chains; this is not independent Root B evidence."""
-    last_sequence, last_hash, last_event_id, last_committed_at, seen_ids = {}, {}, {}, {}, set()
+    last_sequence, last_hash, last_event_id, last_committed_at = {}, {}, {}, {}
+    seen_ids: dict[str, bytes] = {}
+    duplicate_deliveries_ignored = 0
     for event in events:
         core = event["event_core"]
+        event_id = core["event_id"]
+        event_bytes = canonical_json(event)
+        if event_id in seen_ids:
+            if seen_ids[event_id] != event_bytes:
+                raise ValueError("same event ID delivered with changed bytes")
+            duplicate_deliveries_ignored += 1
+            continue
         stream, sequence_text = core["stream_id"], core["sequence"]
         if not re.fullmatch(r"\d{20}", sequence_text):
             raise ValueError("sequence must be a 20-digit decimal string")
@@ -464,16 +477,16 @@ def verify_local_replay(events: list[dict[str, Any]]) -> dict[str, Any]:
         committed_at = core["time"]["committed_at"]
         if committed_at < last_committed_at.get(stream, committed_at):
             raise ValueError(f"commit timestamp moved backwards in {stream}")
-        if core["event_id"] in seen_ids:
-            raise ValueError("duplicate event ID")
         expected_hash = hashlib.sha256(EVENT_HASH_DOMAIN + canonical_json(core)).hexdigest()
         if event["integrity"].get("event_hash") != expected_hash:
             raise ValueError("event hash mismatch")
-        seen_ids.add(core["event_id"])
+        seen_ids[event_id] = event_bytes
         last_sequence[stream], last_hash[stream] = sequence, expected_hash
         last_event_id[stream], last_committed_at[stream] = core["event_id"], committed_at
     return {"status": "PASS", "assurance": "LOCAL_REPLAY_SIMULATION",
-            "events_verified": len(events), "streams_verified": len(last_sequence)}
+            "events_verified": len(events) - duplicate_deliveries_ignored,
+            "deliveries_seen": len(events), "duplicate_deliveries_ignored": duplicate_deliveries_ignored,
+            "streams_verified": len(last_sequence)}
 
 
 def write_fixture(fixture: dict[str, Any], output_dir: Path) -> Path:
