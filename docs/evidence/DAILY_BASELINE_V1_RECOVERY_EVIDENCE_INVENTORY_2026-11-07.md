@@ -226,3 +226,14 @@ Official documentation review findings:
 Acceptance plan amended with additional mandatory tests for S3 delete markers/version IDs, account-level bypass boundaries, R2 lock-rule administration, writer token scope, audit-log omissions and external audit retention. Amendment commit: `a6cbbd84771fe6b5f3943131eeafd83f05f353e4`.
 
 **Status:** PASS — official documentation review and test-plan amendment recorded. NOT VERIFIED — live account behavior, region, cost, key custody, and independent restore. NOT APPROVED — provider selection, account creation, purchase, credentials, provisioning, or capture. No source/schema/workflow/database/runtime changes. Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged; T0 paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — Second WORM provider review (P1.3)
+
+Created `docs/architecture/FORWARD_EVIDENCE_SECOND_WORM_PROVIDER_REVIEW_2026-11-07.md`, commit `952d8a4a86c25a86979d8826620375b9459de517`.
+
+Official documentation review compared Google Cloud Storage Bucket Lock and Azure Blob immutable storage as potential cross-provider Root B candidates alongside AWS S3 Compliance Mode as the preferred Root A candidate. GCS locked bucket retention cannot be reduced or removed and applies a project lien, but a sufficiently privileged project owner/organization administrator can remove the lien. Azure locked time-based WORM policies cannot be shortened/deleted; Microsoft documents storage-account deletion barriers while protected containers/versions remain, subject to exact policy scope and conditions. Cloudflare R2 remains a lower-assurance fallback because its lock rules can be administratively changed.
+
+Acceptance plan amended with GCS policy/lien/audit/version restore tests, Azure container/version WORM and account-deletion tests, and cross-provider admin separation/clean-room restore tests. Amendment commit: `67c8304f91f0c6e318d6cb59ff8a119342654452`.
+
+**Status:** PASS — official-documentation comparison and test-plan amendment committed. NOT VERIFIED — live provider behavior, project/account deletion paths, restore, audit export, region, cost, and key custody. NOT APPROVED — provider selection, account creation, purchase, credentials, provisioning, storage access, or persistent capture. No source/schema/workflow/database/runtime changes. No CI run (documentation-only). Historical Dual Reconstruction remains UNAVAILABLE / BLOCKED; Option A unchanged; T0 paused; PAPER-only; `ai_execution_enabled=false`.
