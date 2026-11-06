@@ -126,7 +126,7 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
             with psycopg.connect(database_admin_dsn, autocommit=True) as service_admin:
                 # Managed providers may pre-install/enable this extension as
                 # a provider operation before application migrations.
-                service_admin.execute("CREATE EXTENSION timescaledb")
+                service_admin.execute("CREATE EXTENSION IF NOT EXISTS timescaledb")
 
             migrator_dsn = make_conninfo(
                 DSN,
@@ -225,8 +225,28 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
                             sql.Identifier(database_name)
                         )
                     )
-                # Drop bootstrap first so any temporary ADMIN memberships it
-                # retained after a failed setup are removed before reserved roles.
+                # Bootstrap is the grantor for these memberships. Revoke the
+                # test-only graph explicitly before dropping its grantor role.
+                if "t0_migrator" in created_reserved_roles:
+                    for owner_role in (
+                        "t0_db_owner",
+                        "t0_candle_writer_owner",
+                        "t0_lease_manager_owner",
+                    ):
+                        if owner_role in created_reserved_roles:
+                            service_admin.execute(
+                                sql.SQL("REVOKE {} FROM t0_migrator").format(
+                                    sql.Identifier(owner_role)
+                                )
+                            )
+                if (
+                    "t0_migrator_login" in created_reserved_roles
+                    and "t0_migrator" in created_reserved_roles
+                ):
+                    service_admin.execute(
+                        "REVOKE t0_migrator FROM t0_migrator_login"
+                    )
+
                 if bootstrap_created:
                     service_admin.execute(
                         sql.SQL("DROP ROLE IF EXISTS {}").format(
