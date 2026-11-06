@@ -7,7 +7,7 @@
 - Canonical source remains Binance USD-M BTCUSDT, stored identity `binance / USDT_PERPETUAL / BTCUSDT`, timeframes M15/H1.
 - T0 database ownership is independent from the Paper DB and SWG-F writer admission state.
 - No database, VPS, credential, network rule, migration, backup job, or Feeder service is created or changed by this document.
-- PostgreSQL runtime adapter and atomic writer are implemented and pass disposable TimescaleDB CI; production role grants and recovery remain unverified.
+- PostgreSQL runtime adapter and atomic writer pass disposable TimescaleDB CI. Disposable role/grant acceptance passes on TimescaleDB 2.17.2; production-provider-specific grants, TLS/rotation, backup/PITR, and restore/failover remain unverified.
 
 ## 1. Security principals and privilege boundaries
 
@@ -46,8 +46,8 @@ Reviewed against `market_data/postgres.py`, `market_data/feeder_service.py`, `ma
 - `market_data.feeder_leases`: Feeder receives no direct table privileges. Acquire/heartbeat/release/expiry takeover and initial row creation run through SECURITY DEFINER functions owned by the dedicated NOLOGIN `t0_lease_manager_owner`; lease-validity checks also run through a SECURITY DEFINER function. The Feeder login has EXECUTE only through `t0_feeder_lease_manager`, and cannot read or mutate lease ownership directly. Reader receives no lease-table privileges.
 - `market_data.candles`: the Feeder login receives no direct write privilege. It receives `EXECUTE` on `market_data.write_canonical_candle()` through membership in `t0_feeder_writer`; the SECURITY DEFINER function runs as the dedicated NOLOGIN `t0_candle_writer_owner`, which has only `SELECT, INSERT` on candles and the lease privileges required to lock/check fencing state. The function checks lease owner/generation/expiry, inserts missing rows, treats exact duplicates as idempotent, and rejects conflicting candle values. Reader receives `SELECT` only.
 - Migration metadata/schema DDL is not used by the runtime. `PostgresStore.initialize()` is read-only/no-op and migrations are explicitly applied through the migration command. Therefore Feeder must not own schema/tables and must not receive CREATE/ALTER/DROP or extension privileges.
-- Current code selects PostgreSQL DSN from `MARKET_DATA_POSTGRES_DSN`. The older design document names `MARKET_DATA_DATABASE_URL`; that naming mismatch is a deployment blocker until docs/config are reconciled in a separately reviewed change. Do not set both or silently introduce an alias.
-- These grants are a source-derived minimum hypothesis, not yet database acceptance. Verify them with role-based integration tests, including negative tests and the exact provider/extension version, before production.
+- Current code, PostgreSQL design, and acceptance criteria use `MARKET_DATA_POSTGRES_DSN` for market-data PostgreSQL only. `MARKET_DATA_DATABASE_URL` is not a supported alias. Keep `MARKET_DATA_DB` as the separate SQLite path used by the Paper ledger and SQLite fallback; do not set both PostgreSQL names or silently introduce an alias.
+- These grants remain a source-derived minimum for production provisioning. Disposable TimescaleDB 2.17.2 role-based acceptance passed 18/18 tests, including negative privilege and migration-membership checks. That result does not certify a production provider, managed-role model, or extension version; repeat the acceptance against the exact selected provider/extension version before production.
 
 - Verify actual effective privileges using `has_database_privilege`, `has_schema_privilege`, `has_table_privilege`, role membership queries, and negative integration tests. A written grant list alone is not acceptance evidence.
 - Keep migration ownership separate from runtime ownership. Runtime must fail closed if a required migration is missing or has a checksum mismatch.
