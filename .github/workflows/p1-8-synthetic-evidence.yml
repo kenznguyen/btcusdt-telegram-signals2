@@ -25,6 +25,7 @@ jobs:
       contents: read
       id-token: write
       attestations: write
+      actions: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -178,6 +179,54 @@ jobs:
             --output synthetic-evidence-provenance.json
           python -c 'import hashlib, json; from pathlib import Path; from synthetic_evidence.provenance import verify_provenance; d=json.loads(Path("synthetic-evidence-provenance.json").read_text()); h=hashlib.sha256(Path(".github/workflows/p1-8-synthetic-evidence.yml").read_bytes()).hexdigest(); assert verify_provenance(d, expected_source_sha="${{ github.sha }}", expected_run_id=int("${{ github.run_id }}"), expected_workflow_sha256=h, descriptor_a="synthetic-evidence-output-a/run_descriptor.json", descriptor_b="synthetic-evidence-output-b/run_descriptor.json"); print("PROVENANCE_SOURCE_RUN_WORKFLOW_FIXTURE_BYTES_BINDING=PASS")'
 
+
+      - name: Backfill and independently verify P1.8.15 evidence before artifact expiry
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 42305379372 --repo "$GITHUB_REPOSITORY" \
+            --name p1-8-synthetic-evidence-1f002a1769504d00c0894d67b5e1f35f46c97414 \
+            --dir p1-8.15-primary
+          gh run download 42305379372 --repo "$GITHUB_REPOSITORY" \
+            --name p1-8-independent-attestation-verification-1f002a1769504d00c0894d67b5e1f35f46c97414 \
+            --dir p1-8.15-independent
+          (
+            cd p1-8.15-primary
+            sha256sum -c synthetic-evidence-bundle.sha256
+            unzip -p synthetic-evidence-bundle.zip trusted_root.jsonl > trusted_root.jsonl
+            sudo unshare --net env GITHUB_REPOSITORY="$GITHUB_REPOSITORY" GH_TOKEN=offline-verification-no-network \
+              bash "$GITHUB_WORKSPACE/synthetic_evidence/verify_offline.sh" \
+                synthetic-evidence-bundle.zip \
+                synthetic-evidence-attestation.bundle.json \
+                trusted_root.jsonl \
+                1f002a1769504d00c0894d67b5e1f35f46c97414 \
+                refs/heads/feature/t0-centralized-data-feeder-p1-20261101 \
+                > ../p1-8.15-offline-verification.json
+          )
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
+          roots = [Path("p1-8.15-primary"), Path("p1-8.15-independent")]
+          with ZipFile("p1-8.15-retained-evidence.zip", "w") as archive:
+              for root in roots:
+                  for path in sorted(root.rglob("*")):
+                      if path.is_file():
+                          name = f"{root.name}/{path.relative_to(root).as_posix()}"
+                          info = ZipInfo(name, date_time=(2026, 11, 7, 0, 0, 0))
+                          info.compress_type = ZIP_DEFLATED
+                          archive.writestr(info, path.read_bytes())
+          report = [
+              "P1_8_15_PRIMARY_ARTIFACT_SHA256_CHECK=PASS",
+              "P1_8_15_OFFLINE_SIGSTORE_VERIFICATION=PASS",
+              "P1_8_15_INDEPENDENT_VERIFICATION_ARTIFACT=RETAINED",
+          ]
+          Path("p1-8.15-prior-verification.txt").write_text("\n".join(report) + "\n")
+          PY
+          sha256sum p1-8.15-retained-evidence.zip | tee p1-8.15-retained-evidence.sha256
+          echo "P1_8_15_EVIDENCE_BACKFILL=PASS"
+
       - name: Write compact smoke result
         if: always()
         run: |
@@ -224,6 +273,9 @@ jobs:
               Path("synthetic_evidence/trust_roots/2026-11-07-trusted_root.jsonl.gz.b64"),
               Path("synthetic_evidence/trust_roots/baseline-2026-11-07.json"),
               Path("synthetic_evidence/trust_roots/README.md"),
+              Path("p1-8.15-retained-evidence.zip"),
+              Path("p1-8.15-retained-evidence.sha256"),
+              Path("p1-8.15-prior-verification.txt"),
               *sorted(Path("synthetic-evidence-output-a").rglob("*")),
               *sorted(Path("synthetic-evidence-output-b").rglob("*")),
           ]
@@ -290,6 +342,9 @@ jobs:
               "trust-root-rotation-diff.json",
               "synthetic-evidence-tests.log",
               "synthetic-evidence-provenance.json",
+              "p1-8.15-retained-evidence.zip",
+              "p1-8.15-retained-evidence.sha256",
+              "p1-8.15-prior-verification.txt",
           ]
           files = {name: Path(name).read_bytes() for name in names}
           archived_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -327,6 +382,9 @@ jobs:
             trusted_root.sha256
             trust-root-snapshot.json
             trust-root-rotation-diff.json
+            p1-8.15-retained-evidence.zip
+            p1-8.15-retained-evidence.sha256
+            p1-8.15-prior-verification.txt
             synthetic-evidence-output-a/**
             synthetic-evidence-output-b/**
           if-no-files-found: error
