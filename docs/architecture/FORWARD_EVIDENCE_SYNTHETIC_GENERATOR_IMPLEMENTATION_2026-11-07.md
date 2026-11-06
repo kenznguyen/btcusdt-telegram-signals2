@@ -139,3 +139,24 @@ Re-verification after this change:
 - SHA-256 manifest: all listed files PASS.
 
 The workflow push path filter includes `synthetic_evidence/**`; exact GitHub Actions run metadata for this latest source SHA remains NOT VERIFIED until its run and artifact can be inspected.
+
+
+
+## 9. GitHub Actions acceptance evidence — verified 2026-11-07
+
+- Workflow run: [42288889345](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42288889345).
+- Job: `128136820125` — `Deterministic local fixture contracts`, conclusion **success**.
+- Triggered branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Exact checked-out/source SHA: `90cd3cfe64bcac2f1fb238660e5264431c69d419`; checkout log, `git rev-parse HEAD`, smoke summary and fixture descriptor agree.
+- Synthetic-only preflight: PASS; all database and exchange credential environment variables were empty; `AI_EXECUTION_ENABLED=false`.
+- Python 3.11 compile: PASS.
+- Focused unit tests: **19/19 PASS**.
+- Deterministic regeneration: two 1,000-event outputs compared byte-for-byte equal; local replay verified 1,000 events across 3 streams; 12 segments generated.
+- SHA-256 manifest: 17/17 entries passed in the workflow. The downloaded artifact was independently rechecked in this review: 17/17 entries match.
+- Artifact: `p1-8-synthetic-evidence-90cd3cfe64bcac2f1fb238660e5264431c69d419`; artifact ID `13539350402`; size 298,473 bytes; SHA-256 `7adee2525ab7690d8ce1792eb809b93a6a4b7cf02adb8f234bbc45793fe4dd76`; expires `2026-11-13T20:30:14Z`.
+- Artifact contains 24 files, including source SHA, preflight, compile/test logs, smoke summary, fixture events, manifests, measurements, run descriptor, negative-vector catalog and 12 segments.
+- The descriptor records `RFC8785-JCS-STRICT-SUBSET/1`, unsigned local hash profile, and storage medium `NOT_MEASURED`. Provider tests are `NOT_RUN`; runtime integration is `NOT_AUTHORIZED`.
+
+**Acceptance status:** GitHub Actions P1.8 synthetic fixture CI = **PASS** for the exact SHA above. This PASS is limited to the isolated synthetic fixture contracts and reproducibility checks. It does not certify full RFC 8785 conformance, signatures/key management, all 13 fault-vector execution paths, 100k/burst/recovery/restore, independent Root B, provider durability, or production performance. T0 remains PAUSED; no persistent capture, provider access, T0/T1 runtime integration, or live execution is authorized; `ai_execution_enabled=false`.
+
+Next bounded step: update the project handoff with this exact run and artifact provenance. Keep remaining cryptographic/canonicalization/fault-path gaps as separate synthetic-only work.
