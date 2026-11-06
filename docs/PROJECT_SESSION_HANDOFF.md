@@ -3464,7 +3464,7 @@ Documentation-only continuation on the existing branch `feature/t0-centralized-d
   - Commit: `61204f2531bffa7a210945fc7951a7479d42811f`
 - Evidence Inventory amendment: `docs/evidence/DAILY_BASELINE_V1_RECOVERY_EVIDENCE_INVENTORY_2026-11-07.md`
   - Commit: `5cedc28b3b74c233812ce2a67d677695e2ef0572`
-- This handoff update is the final P1.5 documentation commit; record its resulting SHA after write/read-back verification.
+- This handoff update is the final P1.5 documentation entry; its commit identity is recorded in GitHub history and the completion report.
 
 ### Contract decisions documented (proposals, not implementation)
 
