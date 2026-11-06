@@ -1430,6 +1430,7 @@ class PaperLedger:
                 "filledBase": text(filled), "remainingBase": text(quantity-filled),
                 "averagePrice": text(quote/filled) if filled else None,
                 "feeQuote": text(fee), "createdAtMs": now, "updatedAtMs": now,
+                "validUntilMs": intent["validUntilMs"],
                 "mode": "PAPER",
                 "reason": reason or ("TARGET_ALREADY_REACHED" if quantity == 0 else "VISIBLE_DEPTH_SIMULATION"),
             }
