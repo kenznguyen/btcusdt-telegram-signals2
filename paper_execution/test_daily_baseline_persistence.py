@@ -127,7 +127,7 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
         with self._connection() as db:
             self.assertEqual(db.execute(
                 "SELECT replay_digest FROM paper_daily_equity_baselines WHERE account_id=1"
-            ).fetchone()[0], "conflict")
+            ).fetchone()[0], "sha256:conflict")
             self.assertEqual(db.execute(
                 "SELECT daily_baseline_utc_day_ms FROM paper_account_risk_state WHERE account_id=1"
             ).fetchone()[0], self.boundary)
