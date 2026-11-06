@@ -174,6 +174,8 @@ jobs:
               Path("synthetic-evidence-provenance.json"),
               Path("trusted_root.jsonl"),
               Path("trusted_root.sha256"),
+              Path("synthetic_evidence/trusted_root_pin.py"),
+              Path("synthetic_evidence/verify_offline.sh"),
               *sorted(Path("synthetic-evidence-output-a").rglob("*")),
               *sorted(Path("synthetic-evidence-output-b").rglob("*")),
           ]
@@ -274,33 +276,18 @@ jobs:
           sha256sum -c synthetic-evidence-bundle.sha256
           unzip -p synthetic-evidence-bundle.zip trusted_root.jsonl > trusted_root.jsonl
           unzip -p synthetic-evidence-bundle.zip trusted_root.sha256 > trusted_root.sha256
-          python - <<'PY'
-          from pathlib import Path
-          from synthetic_evidence.trust_anchor import verify_trusted_root
-          from synthetic_evidence.trusted_root_pin import TRUSTED_ROOT_SHA256
-          digest = verify_trusted_root(Path("trusted_root.jsonl").read_bytes(), TRUSTED_ROOT_SHA256)
-          expected_sidecar = f"{digest}  trusted_root.jsonl\\n"
-          if Path("trusted_root.sha256").read_text() != expected_sidecar:
-              raise SystemExit("trusted-root sidecar does not match pinned bytes")
-          print("TRUSTED_ROOT_PIN_VERIFICATION=PASS")
-          print(f"PINNED_TRUSTED_ROOT_SHA256={digest}")
-          PY
-          gh --version
           VERIFY_DIR="$PWD"
-          sudo unshare --net env GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" GITHUB_SHA="${GITHUB_SHA}" GITHUB_REF="${GITHUB_REF}" GH_TOKEN=offline-verification-no-network bash -c '
+          sudo unshare --net env GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" bash -c '
             set -euo pipefail
             cd "$1"
-            gh attestation verify synthetic-evidence-bundle.zip \
-              --bundle synthetic-evidence-attestation.bundle.json \
-              --custom-trusted-root trusted_root.jsonl \
-              --repo "${GITHUB_REPOSITORY}" \
-              --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/p1-8-synthetic-evidence.yml" \
-              --source-digest "${GITHUB_SHA}" \
-              --source-ref "${GITHUB_REF}" \
-              --cert-oidc-issuer "https://token.actions.githubusercontent.com" \
-              --deny-self-hosted-runners \
-              --format json > independent-attestation-verification.json
-          ' _ "$VERIFY_DIR"
+            export GH_TOKEN=offline-verification-no-network
+            bash "$2/synthetic_evidence/verify_offline.sh" \
+              synthetic-evidence-bundle.zip \
+              synthetic-evidence-attestation.bundle.json \
+              trusted_root.jsonl \
+              "${3}" \
+              "${4}"
+          ' _ "$VERIFY_DIR" "$GITHUB_WORKSPACE" "$GITHUB_SHA" "$GITHUB_REF" > independent-attestation-verification.json
           python - <<'PY'
           import hashlib, json
           from pathlib import Path
