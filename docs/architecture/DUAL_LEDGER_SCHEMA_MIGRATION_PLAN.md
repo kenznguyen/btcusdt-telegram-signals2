@@ -1,6 +1,6 @@
 # Dual Ledger Schema and Migration Plan
 
-**Status:** DESIGN ONLY — schema proposal; no database changes authorized  
+**Status:** DESIGN APPROVED — six open decisions resolved; implementation and database changes remain unauthorized  
 **Approval basis:** User approved `DUAL_LEDGER_CONTRACT.md` on 2026-11-06  
 **Scope:** T1.2.1 follow-on design for the PAPER-only BTCUSDT Quant System  
 **Branch:** `feature/t0-centralized-data-feeder-p1-20261101`
@@ -276,18 +276,32 @@ Stable errors include `ACCOUNT_NOT_READY`, `LEGACY_RECONCILIATION_REQUIRED`, `EQ
 
 All gates run through GitHub Actions on exact source SHAs, using isolated temporary SQLite databases and no secrets or external exchange connections.
 
-## 8. Explicit open questions / hard stops
+## 8. Resolved design decisions — normative requirements
 
-1. **Legacy PnL/fees attribution:** the current database has a single realized/fee aggregate. Unless immutable order/fill evidence can reconstruct strategy ownership, keep it in an account-level legacy adjustment. Do not allocate proportionally or guess.
-2. **Funding history:** current inspected ledger has no funding event table. Historical funding is unknown unless independently sourced; do not backfill invented zero values. Record provenance and risk readiness.
-3. **Equity continuity:** legacy equity history uses a single position. It can be retained as historical evidence but cannot be represented as a verified dual-ledger aggregate without reconciling its source. Establish a new aggregate baseline only with a valid mark and funding/equity inputs.
-4. **Margin model:** the current code records initial margin as notional/leverage. Contract's 1% of current equity defines per-entry margin budget. Confirm whether that is a strict fixed reservation or a maximum allocation with actual fill margin; implementation must not silently reinterpret it.
-5. **Exposure limits:** configured max exposure is currently USDT value. Confirm whether it is account gross notional or gross notional plus pending reservations; proposed rule is the latter to prevent over-admission.
-6. **Legacy open exposure:** if owner is ambiguous, new exposure remains blocked until explicit reconciliation. This may temporarily block both Core and AI even if the position was previously opened by a known manual flow.
+All six decisions below were explicitly approved by the user on 2026-11-06. They are mandatory requirements for implementation and acceptance tests; they are not optional defaults.
+
+1. **Historical realized PnL and fees without strategy provenance:** preserve exact known aggregates as account-level `LEGACY_UNATTRIBUTED` adjustments and include them once in account equity. Never assign them to Core/AI statistics or infer ownership. Attribute individual fills only with immutable evidence. If amount or sign cannot be reconciled, equity is NOT VERIFIED and all exposure increases fail closed.
+2. **Historical and future funding:** never backfill missing historical funding as zero. Known amount with unknown owner remains an account-level legacy adjustment; unknown amount makes account equity NOT VERIFIED and blocks increases. Persist future modeled funding with amount, timestamp, source/snapshot identity, payload hash and strategy attribution. If funding is intentionally disabled for a paper test, persist explicit configuration/version evidence. Missing or stale funding required by the active model fails closed.
+3. **Account Equity cutover:** do not seed aggregate equity from legacy single-position history unless capital, mark, realized PnL, fees and funding provenance reconcile. Compute once from initial capital + reconciled realized PnL + unrealized PnL for all migrated positions at one fresh mark − fees − funding. Seed HWM and UTC daily baseline only from a verified cutover snapshot and known UTC boundary. Otherwise preserve legacy data read-only, mark readiness false and block increases; valid reductions/closures remain allowed.
+4. **1% current-equity margin:** each new ENTRY or exposure-increasing DCA receives a fixed admission-time margin reservation equal to 1% of current Account Equity. Store the equity basis, admitted leverage and risk-config version. Filled margin is filled notional divided by admitted leverage and cannot exceed the reservation. Partial fills consume proportionately; unfilled remainder stays reserved until completion/cancel/expiry, when unused reservation is released. Later equity changes do not recalculate an existing reservation; each later ENTRY/DCA uses then-current equity.
+5. **Max Gross Exposure:** include filled gross position notional plus only remaining unfilled pending/reserved notional across Core, AI and legacy. Filled portions count only in position exposure; remaining unfilled portions count in reservations. Use absolute notional; never net opposing positions. Serialize concurrent admission within the same account transaction.
+6. **Unknown-owner legacy position:** migrate the complete proven position/average/state to `LEGACY_UNATTRIBUTED`, never guess ownership. Block all new Core/AI ENTRY/DCA exposure account-wide while unattributed legacy exposure remains. Permit valid reduction/flatten through a dedicated reconciliation path. Reassignment requires immutable evidence and a separate user-approved auditable operation. Corrupt legacy state stops migration writes and preserves the original DB/backup for forward repair.
+
+### Required acceptance tests added by approval
+
+- Known unowned PnL/fees affect account equity exactly once and never Core/AI strategy statistics.
+- Unknown historical funding blocks readiness; known unowned funding is counted once; future events require provenance; explicit disabled-funding configuration is auditable.
+- Cutover requires a fresh mark and reconciled components; invalid legacy history cannot seed HWM/daily baseline.
+- Every ENTRY/DCA reserves exactly 1% of admission-time equity; partial fills consume/release only the correct portions; later equity changes do not mutate existing reservations.
+- Max Gross Exposure includes remaining pending reservations, without double-counting filled quantity or netting opposite sides; concurrent admission cannot over-reserve.
+- Unattributed legacy positions block increases but allow dedicated reductions/closure; reassignment requires explicit immutable evidence and separate approval.
+
+No unresolved design question remains among these six items. Any newly discovered ambiguity or unreconcilable evidence remains a hard stop and must fail closed; do not invent data.
+
 
 ## 9. Authorization boundary
 
-User approval of the architecture contract authorizes this schema/migration design only. It does **not** authorize:
+The user has approved the Dual Ledger architecture contract and all six design decisions. This authorizes the documentation/schema/migration/test-specification design to be treated as approved. It does **not** authorize:
 - source-code implementation;
 - database migration or data rewrite;
 - enabling the feature flag;
@@ -295,4 +309,4 @@ User approval of the architecture contract authorizes this schema/migration desi
 - merge/deploy;
 - exchange connectivity or live execution.
 
-Implementation requires a separate explicit approval after reviewing this plan. All activity remains PAPER-only and `ai_execution_enabled=false`.
+A separate explicit user approval is required before source implementation begins. All activity remains PAPER-only and `ai_execution_enabled=false`.
