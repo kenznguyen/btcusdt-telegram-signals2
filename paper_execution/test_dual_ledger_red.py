@@ -2095,5 +2095,67 @@ os._exit(0)
         self.assertEqual(count, 0)
 
 
+    def test_core_partial_fills_are_journaled_per_level_in_the_order_transaction(self):
+        book = {
+            "source": "hummingbot", "connector": "binance_perpetual",
+            "symbol": "BTCUSDT", "observedAtMs": self.now,
+            "bids": [{"price": "99.9", "quantity": "1"}],
+            "asks": [
+                {"price": "100.1", "quantity": "0.04"},
+                {"price": "100.2", "quantity": "0.06"},
+            ],
+        }
+        order = self.core.submit(
+            self.intent("history-multi-level-core-fill", "0.1", "100.2", "history-multi-level-book"),
+            book, self.now,
+        )
+        self.assertEqual(order["status"], "FILLED", order)
+        with sqlite3.connect(self.path) as connection:
+            events = connection.execute(
+                """SELECT strategy_id,event_type,quantity_delta_base,fill_price,fee_quote,
+                          event_at_ms,recorded_at_ms,source_snapshot_id,payload_hash
+                   FROM paper_account_event_journal
+                   WHERE intent_id=? ORDER BY event_id""",
+                ("history-multi-level-core-fill",),
+            ).fetchall()
+        self.assertEqual(len(events), 2)
+        self.assertEqual({row[0] for row in events}, {"STRATEGY_CORE"})
+        self.assertEqual({row[1] for row in events}, {"FILL"})
+        self.assertEqual(sum((Decimal(row[2]) for row in events), Decimal(0)), Decimal("0.1"))
+        self.assertEqual(sum((Decimal(row[4]) for row in events), Decimal(0)), Decimal(order["feeQuote"]))
+        self.assertEqual({row[5] for row in events}, {self.now})
+        self.assertEqual({row[6] for row in events}, {self.now})
+        self.assertEqual(len({row[7] for row in events}), 1)
+        self.assertTrue(all(row[8].startswith("sha256:") for row in events))
+
+    def test_journal_failure_rolls_back_core_order_and_position_atomically(self):
+        intent_id = "history-journal-abort-core-entry"
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """CREATE TRIGGER fail_account_history_insert
+                   BEFORE INSERT ON paper_account_event_journal
+                   BEGIN SELECT RAISE(ABORT,'TEST_JOURNAL_WRITE_FAILURE'); END"""
+            )
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "TEST_JOURNAL_WRITE_FAILURE"):
+            self.core.submit(
+                self.intent(intent_id, "0.1", "100.1", "history-journal-abort-book"),
+                self.book(self.now), self.now,
+            )
+        with sqlite3.connect(self.path) as connection:
+            order_count = connection.execute(
+                "SELECT COUNT(*) FROM paper_orders WHERE intent_id=?", (intent_id,)
+            ).fetchone()[0]
+            position = connection.execute(
+                """SELECT position_base FROM paper_strategy_ledgers
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            ).fetchone()[0]
+            event_count = connection.execute(
+                "SELECT COUNT(*) FROM paper_account_event_journal WHERE intent_id=?", (intent_id,)
+            ).fetchone()[0]
+        self.assertEqual(order_count, 0)
+        self.assertEqual(position, "0")
+        self.assertEqual(event_count, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
