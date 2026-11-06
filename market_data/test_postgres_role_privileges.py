@@ -757,6 +757,14 @@ class PostgresRolePrivilegeIntegrationTest(unittest.TestCase):
                     admin.execute(sql.SQL(
                         "DROP DATABASE IF EXISTS {} WITH (FORCE)"
                     ).format(sql.Identifier(database_name)))
+                admin.execute("REVOKE t0_migrator FROM t0_migrator_login")
+                admin.execute("REVOKE t0_db_owner FROM t0_migrator")
+                admin.execute("REVOKE t0_candle_writer_owner FROM t0_migrator")
+                admin.execute("REVOKE t0_lease_manager_owner FROM t0_migrator")
+                if created_bootstrap:
+                    admin.execute(sql.SQL(
+                        "REVOKE t0_db_owner FROM {}"
+                    ).format(sql.Identifier(bootstrap_role)))
                 admin.execute("DROP ROLE IF EXISTS t0_migrator_login")
                 admin.execute("DROP ROLE IF EXISTS t0_migrator")
                 admin.execute("DROP ROLE IF EXISTS t0_db_owner")
