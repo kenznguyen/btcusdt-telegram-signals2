@@ -2,8 +2,11 @@ import hashlib
 import json
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
-from synthetic_evidence.provenance import build_provenance, verify_provenance
+from synthetic_evidence.provenance import (
+    build_provenance, verify_artifact_archive, verify_provenance,
+)
 
 
 class ProvenanceBindingTests(unittest.TestCase):
@@ -61,10 +64,9 @@ class ProvenanceBindingTests(unittest.TestCase):
             args = self._inputs(Path(tmp))
             data = build_provenance(**args)
             expected = hashlib.sha256(args["workflow_file"].read_bytes()).hexdigest()
-            self.assertTrue(verify_provenance(
-                data, expected_source_sha="a"*40, expected_run_id=12345,
-                expected_workflow_sha256=expected,
-                descriptor_a=args["descriptor_a"], descriptor_b=args["descriptor_b"]))
+            verify_provenance(data, expected_source_sha="a"*40, expected_run_id=12345,
+                              expected_workflow_sha256=expected,
+                              descriptor_a=args["descriptor_a"], descriptor_b=args["descriptor_b"])
             with self.assertRaisesRegex(ValueError, "run_id"):
                 verify_provenance(data, expected_source_sha="a"*40, expected_run_id=999,
                                   expected_workflow_sha256=expected,
@@ -84,8 +86,7 @@ class ProvenanceBindingTests(unittest.TestCase):
             args = self._inputs(Path(tmp))
             data = build_provenance(**args)
             expected = hashlib.sha256(args["workflow_file"].read_bytes()).hexdigest()
-            original_a = args["descriptor_a"].read_bytes()
-            original_b = args["descriptor_b"].read_bytes()
+            original_a, original_b = args["descriptor_a"].read_bytes(), args["descriptor_b"].read_bytes()
             args["descriptor_a"].write_bytes(original_b)
             args["descriptor_b"].write_bytes(original_a)
             with self.assertRaisesRegex(ValueError, "descriptor A"):
@@ -124,6 +125,34 @@ class ProvenanceBindingTests(unittest.TestCase):
                 verify_provenance(data, expected_source_sha="b"*40, expected_run_id=12345,
                                   expected_workflow_sha256=expected,
                                   descriptor_a=args["descriptor_a"], descriptor_b=args["descriptor_b"])
+
+    def test_accepts_exact_artifact_archive_digest_and_valid_zip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = Path(tmp) / "evidence.zip"
+            with zipfile.ZipFile(archive, "w") as z:
+                z.writestr("provenance.json", '{"schema":"p1.8.synthetic-provenance.v2"}')
+            digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+            self.assertTrue(verify_artifact_archive(archive, expected_sha256=digest))
+
+    def test_rejects_substituted_artifact_archive(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            expected_archive = Path(tmp) / "expected.zip"
+            substituted_archive = Path(tmp) / "substituted.zip"
+            with zipfile.ZipFile(expected_archive, "w") as z:
+                z.writestr("evidence.json", "expected")
+            with zipfile.ZipFile(substituted_archive, "w") as z:
+                z.writestr("evidence.json", "substituted")
+            expected = hashlib.sha256(expected_archive.read_bytes()).hexdigest()
+            with self.assertRaisesRegex(ValueError, "SHA-256 mismatch"):
+                verify_artifact_archive(substituted_archive, expected_sha256=expected)
+
+    def test_rejects_corrupt_artifact_archive(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = Path(tmp) / "corrupt.zip"
+            archive.write_bytes(b"not a zip archive")
+            digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+            with self.assertRaisesRegex(ValueError, "valid ZIP"):
+                verify_artifact_archive(archive, expected_sha256=digest)
 
 
 if __name__ == "__main__":
