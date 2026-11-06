@@ -29,7 +29,7 @@ def build_provenance(*, source_sha, run_id, run_attempt, repository, ref,
             value = json.loads(Path(path).read_text(encoding="utf-8"))
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
             raise ValueError(f"fixture {label} descriptor unavailable or invalid") from exc
-        observed = value.get("source_sha") if isinstance(value, dict) else None
+        observed = value.get("generator_source_sha") if isinstance(value, dict) else None
         if observed != source_sha:
             raise ValueError(f"fixture {label} source SHA mismatch")
         descriptors[label] = {"source_sha": observed}
