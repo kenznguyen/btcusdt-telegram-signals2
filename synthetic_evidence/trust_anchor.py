@@ -67,3 +67,33 @@ def verify_attestation_result(result, *, expected_subject_sha256):
     if not saw_subject:
         raise ValueError("subject digest mismatch")
     raise ValueError("attestation policy verification failed")
+
+
+def validate_trusted_root(data):
+    """Validate trusted_root.jsonl framing and return its SHA-256 digest."""
+    import hashlib
+    import json
+
+    if not isinstance(data, bytes) or not data.strip():
+        raise ValueError("empty trusted root")
+    records = [line for line in data.splitlines() if line.strip()]
+    if not records:
+        raise ValueError("empty trusted root")
+    for line in records:
+        try:
+            record = json.loads(line)
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ValueError("invalid JSONL trusted root") from exc
+        if not isinstance(record, dict):
+            raise ValueError("trusted-root JSONL record must be a JSON object")
+    return hashlib.sha256(data).hexdigest()
+
+
+def verify_trusted_root(data, expected_sha256):
+    """Fail closed unless the trusted-root bytes match the reviewed SHA-256 pin."""
+    if not isinstance(expected_sha256, str) or not _SHA64.fullmatch(expected_sha256):
+        raise ValueError("invalid trusted-root pin")
+    actual = validate_trusted_root(data)
+    if actual != expected_sha256:
+        raise ValueError("trusted-root digest mismatch")
+    return actual
