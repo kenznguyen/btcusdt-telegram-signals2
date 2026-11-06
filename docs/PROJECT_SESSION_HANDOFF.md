@@ -1772,3 +1772,42 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No trial, service, database, network connection, or paid resource was created. Staging provisioning remains **NOT AUTHORIZED**; production remains **NOT AUTHORIZED**. No new CI run is claimed.
 - Next: obtain explicit monthly staging budget and confirm AWS Singapore + Scale plan; then complete a costed staging plan and seek separate provisioning approval.
 - Follow-up provider research document update: `docs/T0_STAGING_PROVIDER_RESEARCH.md` commit `f463f431823bd0f456ab579b4ece1c11c85034c8` (blob `0e734a82cae28931fe1a3b1b277379de39740e57`).
+
+## 2026-11-06 — Temporary T0 staging comparison under USD 20/month
+
+### User decision / scope
+
+- User submitted: provider = compare; maximum monthly budget = under USD 20; scope = temporary staging only.
+- This is a comparison instruction, not a provider switch. The prior Timescale Cloud / Tiger Cloud direction remains the preferred long-term managed product direction.
+- No provisioning, trial activation, payment, service creation, endpoint, network rule, credential, or secret was authorized.
+
+### Research result
+
+- Tiger Cloud Free: USD 0, includes PostgreSQL + TimescaleDB, but free services are currently hosted in AWS us-east-1, have 750 MiB storage and limited shared resources, and omit VPC/replication/metrics and other operational capabilities. Suitable only for schema/migration compatibility experiments; not complete T0 staging.
+- Tiger Cloud Performance starts at USD 30/month plus storage; Scale starts at USD 36/month plus storage. Both exceed the USD 20 cap. Scale has 14-day PITR/private endpoints/multi-node HA; Performance PITR is 3 days.
+- DigitalOcean Managed PostgreSQL Standard in Singapore SGP1 is a cost-fit candidate, not selected: published single-node floor USD 15/month for 1 GiB; additional storage billed separately; TimescaleDB appears in the supported-extension lists for PG16/17; daily backup + PITR up to 7 days. Single node is not HA; superuser is unavailable; exact extension version, role/migration compatibility and checkout total remain unverified.
+- Self-managed VPS may fit but was not quoted and moves TLS, patching, PITR, backup, restore and monitoring responsibility to the operator.
+- Recommendation: retain CI disposable TimescaleDB as primary source-level acceptance. If provider endpoint testing is necessary, evaluate Tiger Cloud Free for schema-only or DigitalOcean SGP1 single node for limited provider compatibility, with synthetic data only. If the full acceptance requires HA/private endpoint/production-like recovery, raise the budget instead of weakening gates.
+
+### Git and validation
+
+- Research comparison appended to `docs/T0_STAGING_PROVIDER_RESEARCH.md`.
+- Research commit: `df3be61c69782d1966f36a88466fa02bc97f6cfe`; blob `117ebea9cdd30ad48cedad1a8780e950c8cfd018`.
+- Handoff update follows.
+- Documentation-only; no source/tests changed; no new CI run claimed.
+- Sources linked in research document include official Tiger Cloud and DigitalOcean pricing, regions, extension, feature and limit docs.
+
+### Verdict / boundaries
+
+- Provider comparison: **PASS — documented**.
+- Budget constraint: **UNDER USD 20/month**.
+- Scope: **TEMPORARY STAGING ONLY**.
+- Long-term provider direction: **Timescale Cloud / Tiger Cloud remains preferred**.
+- Tiger Cloud paid plans: **OVER BUDGET**.
+- Tiger Cloud Free: **LIMITED — not complete staging**.
+- DigitalOcean SGP1 single node: **COST-FIT CANDIDATE — NOT SELECTED**.
+- Self-managed VPS: **NOT QUOTED**.
+- Provisioning: **NOT AUTHORIZED**.
+- No real Binance data, canonical T0 data, production credentials or Feeder activation.
+- `ai_execution_enabled=false`; paper-only boundary unchanged.
+- Next: decide whether a limited paid compatibility endpoint is needed at all. If yes, obtain exact checkout cost and approve the specific provider/service/maximum spend before provisioning. Otherwise continue CI-based validation and preserve the budget.
