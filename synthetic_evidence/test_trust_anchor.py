@@ -24,32 +24,27 @@ class TrustAnchorPolicyTests(unittest.TestCase):
 
     def test_rejects_empty_verification_result(self):
         with self.assertRaisesRegex(ValueError, "no verified attestations"):
-            verify_attestation_result([], expected_subject_sha256="a" * 64,
-                                      expected_source_sha="b" * 40)
+            verify_attestation_result([], expected_subject_sha256="a" * 64)
 
     def test_rejects_subject_digest_substitution(self):
         with self.assertRaisesRegex(ValueError, "subject digest"):
-            verify_attestation_result(self._valid(), expected_subject_sha256="c" * 64,
-                                      expected_source_sha="b" * 40)
+            verify_attestation_result(self._valid(), expected_subject_sha256="c" * 64)
 
     def test_rejects_missing_transparency_timestamp(self):
         result = self._valid()
         result[0]["verificationResult"]["verifiedTimestamps"] = []
         with self.assertRaisesRegex(ValueError, "transparency timestamp"):
-            verify_attestation_result(result, expected_subject_sha256="a" * 64,
-                                      expected_source_sha="b" * 40)
+            verify_attestation_result(result, expected_subject_sha256="a" * 64)
 
     def test_rejects_wrong_predicate_type(self):
         result = self._valid()
         result[0]["verificationResult"]["statement"]["predicateType"] = "https://example.invalid"
         with self.assertRaisesRegex(ValueError, "predicate type"):
-            verify_attestation_result(result, expected_subject_sha256="a" * 64,
-                                      expected_source_sha="b" * 40)
+            verify_attestation_result(result, expected_subject_sha256="a" * 64)
 
     def test_rejects_malformed_verification_shape(self):
         with self.assertRaisesRegex(ValueError, "verification result"):
-            verify_attestation_result({"not": "an array"}, expected_subject_sha256="a" * 64,
-                                      expected_source_sha="b" * 40)
+            verify_attestation_result({"not": "an array"}, expected_subject_sha256="a" * 64)
 
 
 if __name__ == "__main__":
