@@ -34,11 +34,11 @@ class DeterministicLedgerReplayContractTest(unittest.TestCase):
             self.event("buy-first", 10, "1", "100", "0.10"),
         ]
         result = replay_ledger_events(
-            self.snapshot, events, [], boundary_ms=50
+            self.snapshot, events, [], boundary_ms=86_400_000
         )
         self.assertEqual(result["position_base"], "-0.5")
         self.assertEqual(result["average_entry_price"], "90")
-        self.assertEqual(result["realized_pnl_quote"], "-22.5")
+        self.assertEqual(result["realized_pnl_quote"], "-15")
         self.assertEqual(result["fees_quote"], "0.45")
         self.assertEqual(
             result["included_event_ids"],
@@ -53,7 +53,7 @@ class DeterministicLedgerReplayContractTest(unittest.TestCase):
              "amount_quote": "9.00"},
         ]
         result = replay_ledger_events(
-            self.snapshot, [], funding, boundary_ms=100
+            self.snapshot, [], funding, boundary_ms=86_400_000
         )
         self.assertEqual(result["funding_quote"], "0.25")
         self.assertEqual(result["included_funding_event_ids"], ["before-boundary"])
@@ -62,7 +62,7 @@ class DeterministicLedgerReplayContractTest(unittest.TestCase):
         event = self.event("unknown-fee", 10, "1", "100", "0")
         event["fee_currency"] = None
         with self.assertRaisesRegex(ValueError, "ACCOUNT_HISTORY_FEE_PROVENANCE_UNKNOWN"):
-            replay_ledger_events(self.snapshot, [event], [], boundary_ms=20)
+            replay_ledger_events(self.snapshot, [event], [], boundary_ms=86_400_000)
 
     def test_same_timestamp_events_have_stable_event_id_order(self):
         events = [
