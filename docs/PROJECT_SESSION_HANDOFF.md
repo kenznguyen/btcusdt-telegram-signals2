@@ -2946,3 +2946,36 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
   - `LEDGER_ADJUSTMENT` remains unsupported and is rejected; no amount/sign is guessed.
 - Next: implement a separate atomic daily-baseline persistence slice using temporary SQLite only. In one `BEGIN IMMEDIATE` transaction, revalidate cutover, boundary mark and immutable input provenance, insert exactly one immutable baseline and audit record, then update daily risk baseline/readiness only after complete reconciliation. Identical retry must be idempotent; conflicting replay digest must fail without changing prior state; any failure must roll back all writes and keep exposure increases blocked. Do not open or migrate a persistent account DB.
 - Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 atomic UTC daily equity baseline persistence
+
+- Scope: add PAPER-only atomic persistence of a daily equity baseline using the read-only replay loader and pure replay/reconciliation layer. All tests use temporary SQLite fixtures; no persistent account database was opened or migrated.
+- RED contract:
+  - Added `paper_execution/test_daily_baseline_persistence.py` with tests for atomic baseline+audit+risk-state update, idempotent retry, conflicting digest rejection, rollback on risk-state write failure, immutable baseline/audit rows, and preservation of an already-unready risk state.
+  - Initial RED source SHA `3325047822cb1db8f3c5fb2c0565946bb73ea601`; run [#42271964459](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42271964459) correctly failed because `paper_execution.daily_baseline` did not exist.
+  - Initial implementation runs exposed only expected migration-list fixture updates and one assertion correction: [#42272294568](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42272294568), [#42272377078](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42272377078), [#42272498742](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42272498742), [#42272628100](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42272628100).
+- Implementation:
+  - Added migration v9 `daily_equity_baseline_audit_v9` with append-only `paper_daily_equity_baseline_audit`, unique account/day creation event, baseline foreign key, replay digest and canonical audit payload. UPDATE/DELETE are rejected by triggers.
+  - Wired v9 into the existing dual-ledger migration sequence. Existing daily baseline table from v6 remains immutable and unique per account/UTC day.
+  - Extended `load_daily_equity_replay_inputs` with a private transaction-owned path. Public loader behavior remains query-only and rejects caller-owned transactions; atomic writer uses the same loader after acquiring `BEGIN IMMEDIATE`, so provenance revalidation and writes share one SQLite transaction/snapshot.
+  - Added `persist_daily_equity_baseline(connection, utc_day_ms, now_ms, source_sha)`. It validates a clean writable connection, applied schema, complete verified replay inputs and reconciliation; computes canonical SHA-256 digest; inserts baseline and audit; updates only daily baseline fields and version in shared risk state. It does not promote `risk_ready=0` to ready and preserves its reason.
+  - Identical retries require matching baseline, audit payload/digest and risk-state fields, then return idempotently without duplicate rows. Existing digest conflict, orphan/mismatched audit, or inconsistent risk state fails closed.
+  - All writes occur after `BEGIN IMMEDIATE`; any exception rolls back baseline, audit and risk-state changes together.
+- Exact GREEN source SHA: `200208aa90cc19c03aa12e115185334b50d29982`.
+- GitHub Actions [#42272772316](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42272772316): SUCCESS on exact SHA.
+  - PAPER-only preflight: PASS; external services and DB secrets absent.
+  - Python compile: PASS.
+  - Focused Dual Ledger + migration + replay + daily baseline contracts: 149/149 PASS.
+  - Full `paper_execution` regression: 248/248 PASS.
+  - Job ID: `128081328493`.
+  - Artifact ID: `13532570066`, name `dual-ledger-red-evidence-200208aa90cc19c03aa12e115185334b50d29982`, GitHub upload digest `sha256:d41b9259e48f724226155c545d393b3f075d0d4b777809976b27bc4b668135b9`, expires 2026-11-13. Digest is GitHub artifact metadata; payload bytes were not separately downloaded and re-hashed.
+- Status: **PASS — atomic daily baseline + audit + daily risk baseline persistence on temporary SQLite, including retry/conflict/rollback/immutability tests. NOT VERIFIED — real historical source completeness/authenticity, OS-process crash recovery, and integration with the live risk-admission call path.**
+- Limits:
+  - No persistent account DB was opened or migrated; v9 migration was exercised only in isolated test databases.
+  - No historical backfill, production backtest, exchange connection, deployment, merge, or live order.
+  - `risk_ready` is preserved, not promoted by baseline persistence; an existing unready account remains unready.
+  - The transaction revalidates database-stored provenance and coverage but does not fetch external source evidence bytes to authenticate external payload hashes.
+  - `LEDGER_ADJUSTMENT` remains unsupported and rejected.
+- Next: add tests and integration proving the daily baseline is consumed by the shared risk snapshot/admission path: day mismatch or missing baseline blocks exposure increases; verified baseline enables the normal risk evaluation without bypassing Kill Switch, funding, mark freshness, HWM, drawdown or exposure limits. Keep exposure increases fail-closed and use temporary SQLite only. Process-kill/reopen recovery and persistent DB migration remain separate approvals.
+- Restrictions unchanged: no persistent account DB migration/opening, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
