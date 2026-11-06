@@ -300,5 +300,27 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(ai_order["reason"], "MAX_EXPOSURE_LIMIT")
 
 
+    def test_unattributed_legacy_exposure_blocks_all_new_strategy_entries(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """UPDATE paper_strategy_ledgers
+                   SET position_base='0.05',average_entry_price='100'
+                   WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
+            )
+            # Even if a stale or incorrectly restored readiness flag is set,
+            # legacy ownership ambiguity must remain an independent hard stop.
+            connection.execute(
+                """UPDATE paper_account_risk_state
+                   SET risk_ready=1,unavailable_reason=NULL WHERE account_id=1"""
+            )
+        order = self.core.submit(
+            self.intent("core-blocked-by-legacy", "0.1", "100.1", "core-blocked-by-legacy"),
+            self.book(self.now), self.now,
+        )
+        self.assertEqual(order["status"], "REJECTED", order)
+        self.assertEqual(order["reason"], "LEGACY_UNATTRIBUTED_EXPOSURE")
+        self.assertEqual(self.core.snapshot()["positionBase"], "0")
+
+
 if __name__ == "__main__":
     unittest.main()
