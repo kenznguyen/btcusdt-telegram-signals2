@@ -74,6 +74,23 @@ jobs:
           python -m py_compile synthetic_evidence/*.py
           echo "PY_COMPILE=PASS" | tee synthetic-evidence-compile.txt
 
+      - name: Capture Sigstore trusted root for offline verification
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh --version
+          gh attestation trusted-root > trusted_root.jsonl
+          python - <<'PY'
+          from pathlib import Path
+          from synthetic_evidence.trust_anchor import validate_trusted_root
+          digest = validate_trusted_root(Path("trusted_root.jsonl").read_bytes())
+          Path("trusted_root.sha256").write_text(f"{digest}  trusted_root.jsonl\\n")
+          print(f"TRUSTED_ROOT_BOOTSTRAP_SHA256={digest}")
+          print("TRUSTED_ROOT_JSONL_VALID=PASS")
+          PY
+
       - name: Run deterministic fixture and provenance contracts
         shell: bash
         run: |
@@ -154,7 +171,7 @@ jobs:
               Path("synthetic-evidence-compile.txt"),
               Path("synthetic-evidence-reproducibility.txt"),
               Path("synthetic-evidence-smoke-summary.json"),
-              Path("synthetic-evidence-provenance.json"),
+              Path("synthetic-evidence-provenance.json"),\n              Path("trusted_root.jsonl"),\n              Path("trusted_root.sha256"),
               *sorted(Path("synthetic-evidence-output-a").rglob("*")),
               *sorted(Path("synthetic-evidence-output-b").rglob("*")),
           ]
