@@ -3651,3 +3651,21 @@ Scope implemented only as an isolated standard-library Python package and a GitH
 ### Next step
 
 Retrieve exact GitHub Actions run metadata and artifact evidence for the workflow triggered by P1.8 source/report. If no run exists, inspect GitHub Actions event/branch/path-filter configuration and correct only this isolated workflow. Do not switch CI platforms or access providers. After exact-head CI is verified, review remaining RFC 8785/crypto/fault-vector gaps as a separate local-only increment. Provider qualification and runtime integration still require separate approval.
+
+
+### P1.8.1 run-descriptor environment provenance follow-up
+
+- Generator source commit: `b55c851a5db3eb698d3ac68b073a825abcf55026`.
+- Test commit: `bd558f0041302ef521ea6837e87923c17e3fceaa`.
+- Implementation report update: `280437fcf73b7a34d0f0322dd0f09c1a1f73a8a2`.
+- P1.6 specification update: `4f46b31bbfbfe3bac15b3fb904df01158f96f208`.
+- Acceptance Plan update: `015172e0bb8050272962d03626f0290555d4faf5`.
+- Evidence Inventory update: `82ec12cc50f8920d654c49f25ffd027f907d60cd`.
+
+The run descriptor now includes OS, architecture, CPU model/count, sysconf-reported memory where available, explicit storage-medium NOT_MEASURED, runtime/tool versions and an unsigned-local hash/signature profile.
+
+Reverification after the source change: 19/19 focused tests PASS; py_compile PASS; two 1,000-event fixture outputs byte-identical; SHA-256 manifest PASS.
+
+The latest code/test source SHA is `bd558f0041302ef521ea6837e87923c17e3fceaa`. The workflow path filter includes the package, so this source update is eligible to trigger GitHub Actions. The GitHub Actions run ID, conclusion, checked-out SHA from job logs and artifact ID/digest remain NOT VERIFIED; no CI PASS is claimed.
+
+No change to P1.8 approval boundary: provider qualification, persistent capture, account DB access and T0/T1 runtime integration remain unauthorized.
