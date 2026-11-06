@@ -386,12 +386,16 @@ def record_account_equity_cutover(
             (observed, coverage_start),
         ).fetchall()
         cursor = coverage_start
+        previous_end = None
         for row in coverage:
             start, end, status, coverage_source = row
+            if previous_end is not None and start < previous_end:
+                raise ValueError("FUNDING_COVERAGE_INTERVAL_OVERLAP")
             if start > cursor or status == "UNKNOWN":
                 raise ValueError("FUNDING_PROVENANCE_INCOMPLETE")
             if status == "DISABLED" and coverage_source != "PAPER_TEST_CONFIGURATION":
                 raise ValueError("FUNDING_PROVENANCE_INCOMPLETE")
+            previous_end = end
             cursor = max(cursor, end)
             if cursor >= observed:
                 break
