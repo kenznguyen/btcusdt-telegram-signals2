@@ -1676,3 +1676,47 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No production database, TLS certificate/secret, VPS, network rule, Feeder activation, Binance connection, or market-data sync.
 - No merge. ai_execution_enabled=false; paper-only boundary unchanged.
 - Next: finalize the P0 security/recovery design review and produce a provider-neutral staging acceptance checklist with measurable evidence requirements. Production provisioning remains blocked.
+
+## 2026-11-06 — P0 Security & Recovery Design Review / provider-neutral staging checklist
+
+### Review outcome
+
+- Reviewed the PostgreSQL/TimescaleDB design, production security/backup/RPO/RTO proposal, migrations 002–004, migration runner, PostgreSQL adapter, Feeder production runtime composition, role privilege acceptance tests, and the latest TLS/shutdown changes.
+- No new source-code defect was confirmed in the reviewed SECURITY DEFINER search paths, fixed canonical lease identity, generation-bound lease transitions, writer fencing, role-membership guards, or shutdown admission/deadline behavior.
+- TLS enforcement currently applies at production Feeder runtime composition. Provider-specific migration-login TLS handshake and endpoint policy must also be verified as part of the staging migration gate; the current disposable CI does not prove provider certificate/hostname behavior.
+- Important verification boundary: the current passing TLS tests prove DSN policy rejection/acceptance only. They do not prove a live provider CA chain, SAN/hostname, network allowlist, secret rotation, or remote handshake.
+- Production security/recovery proposal remains design-only. RPO <=5m, RTO <=60m and PITR >=7d are proposed acceptance targets, not measured provider guarantees.
+
+### New provider-neutral checklist
+
+- Added `docs/T0_STAGING_ACCEPTANCE_CHECKLIST.md`.
+- Covers entry decisions before staging, provider/engine identity, TLS/network/credential rotation, effective roles and negative privilege tests, writer fencing/runtime lifecycle, SQLite parity, backup/PITR/restore, measurable RPO/RTO, old-primary fencing, operations/rollback, and final evidence bundle.
+- Defines exact pass thresholds:
+  - PITR history >=7 days.
+  - Actual RPO <=5 minutes.
+  - Actual RTO <=60 minutes.
+  - 100% of recorded keys/values/hashes restored.
+  - Zero successful old-writer connections after old-primary fence.
+  - Restored Feeder lease generation strictly advances.
+- Clearly distinguishes existing disposable TimescaleDB CI PASS from provider-specific NOT VERIFIED gates.
+- Does not select a provider, VPS, region, plan, or cost; does not provision staging or production resources.
+
+### Git and validation
+
+- Checklist commit: `8da1cca15e7d61bcf986040da211dad968854c16`.
+- Handoff update follows this entry.
+- This increment changes documentation only; no runtime/test source changed and no new CI run is claimed.
+- Existing source verification remains:
+  - TLS remote-host enforcement GREEN run #42158842138 on source SHA `631b4525059f49aac7ad588177587df3cba61844`.
+  - Feeder shutdown admission/deadline GREEN run #42158536250 on source SHA `8cf727450efb34723da649a0e123851d7c002aae`.
+- Latest branch source SHA before this documentation increment: `a50034e551b6cc3c71c1084ff14ddc5fa6d7196f`; checklist and handoff commits are documentation-only descendants.
+
+### Verdict and limits
+
+- P0 source-level security/runtime review: **PASS for reviewed contracts**, with provider-specific verification still open.
+- Provider-neutral staging checklist: **PASS — documented**.
+- Staging readiness: **BLOCKED / NOT AUTHORIZED** until entry-gate provider, engine/version, region, network, secret, backup, and cost decisions are approved.
+- Production certification: **NOT GRANTED**.
+- No production database, staging resource, VPS, credential, TLS certificate, network rule, backup job, Binance connection, market-data sync, or Feeder activation was created.
+- No merge. T0 remains separate from Paper DB and SWG-F. `ai_execution_enabled=false`; paper-only boundary unchanged.
+- Next: once provider/region/plan and cost ceiling are chosen, convert Gates A–G into a provider-specific staging execution plan. Until then, do not provision resources or run real-market ingestion.
