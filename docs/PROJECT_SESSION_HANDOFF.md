@@ -2197,3 +2197,24 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **ROOT CAUSE EXPLANATION SUPPORTED BY PG16 DOCUMENTATION; DISPOSABLE REPRODUCTION NOT RUN; CORRECTION NOT AUTHORIZED/NOT MADE.** T0 provider-bootstrap workflow remains BLOCKED. T0 baseline remains CONDITIONAL PASS as previously recorded.
 - Safety: no source/test/workflow/schema/runtime changes; no database opened or modified in this turn; no Feeder, exchange, sync, paper execution, or live execution. `ai_execution_enabled=false` unchanged.
 - Next step: execute the isolated SQL reproduction in CI using the same TimescaleDB 2.17.2-pg16 image, then report the before/after catalog evidence and proposed least-privilege test-only fix for explicit approval.
+
+
+## 2026-11-06 — T0 PostgreSQL 16 grantor reproduction workflow added
+
+- User requested continuation of the previously proposed disposable PostgreSQL role-grantor reproduction. Re-verified the branch and handoff before work.
+- Added isolated workflow `.github/workflows/t0-postgres16-grantor-repro.yml`, using the same disposable image as the failing acceptance test: `timescale/timescaledb:2.17.2-pg16`. It has no repository secrets, no external DB, no application migrations, no Feeder, no exchange credentials, and uses randomly named throwaway roles only.
+- Workflow scope is diagnostic only: record PostgreSQL version and session identity; inspect complete `pg_auth_members` tuples; compare automatic creator membership against an explicit creator-issued membership; attempt creator `REVOKE`; verify grantor-specific rows; verify privileged cleanup removes the automatic row; drop all throwaway roles and assert cleanup.
+- Workflow commits:
+  - Initial workflow: `c6f805051e6c72ac2e354ec7d7f69e9015b04607`.
+  - Corrected grantor-specific assertion: `6b7c5795aa97a15cde2a0cb1fcb11825568e28e2`.
+  - Current workflow blob: `c7bc589ca8240edb25a9c33cce5b9a76e6193271`.
+- The assertion was refined before run verification: PostgreSQL 16 can retain separate membership records for the bootstrap-superuser automatic grant and an explicit grant by the CREATEROLE user. Revoking the explicit grant must remove only the creator-granted row; the bootstrap-superuser-granted row should remain until an authorized superuser cleanup.
+- PostgreSQL 16 official documentation supports the mechanism: a non-superuser with CREATEROLE automatically receives ADMIN OPTION on a role it creates, and the implicit grant is recorded as granted by the bootstrap superuser; the creator cannot revoke that implicit membership. Superusers can revoke membership in any role. Sources:
+  - https://www.postgresql.org/docs/16/sql-createrole.html
+  - https://www.postgresql.org/docs/16/sql-grant.html
+  - https://www.postgresql.org/docs/16/catalog-pg-auth-members.html
+- Branch HEAD verified after workflow update: `6b7c5795aa97a15cde2a0cb1fcb11825568e28e2`.
+- GitHub Actions run ID/conclusion/artifact are **NOT VERIFIED**. The available GitHub connection exposes workflow-run detail only when a run ID is already known and does not expose a dispatch/list-runs action in this session. The workflow has a push trigger scoped to this file and a manual dispatch trigger; do not claim that it executed until a run record is retrieved.
+- No application source, tests, database migrations, schema, runtime configuration, or existing T0 workflow changed. Only the new diagnostic workflow was added. No live or persistent database was accessed; no data feeder, exchange, paper order, or live order was run. `ai_execution_enabled=false` remains unchanged.
+- Status: **DIAGNOSTIC WORKFLOW COMMITTED; EXECUTION/RESULT NOT VERIFIED; ROOT CAUSE MECHANISM DOCUMENTED; PROVIDER-BOOTSTRAP FIX NOT AUTHORIZED/NOT MADE.** T0 provider-bootstrap remains BLOCKED pending the reproduction evidence.
+- Next: obtain the run record for the new workflow, inspect its job log and artifact, and record exact run ID, source SHA, artifact ID and SHA-256. Only after evidence, propose a narrowly scoped test/provisioning correction; do not change the migration role guard or production role policy.
