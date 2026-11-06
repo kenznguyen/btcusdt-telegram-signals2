@@ -420,7 +420,7 @@ def record_account_equity_cutover(
             if qty:
                 unrealized += qty * (mark - average)
             events = db.execute(
-                """SELECT amount_quote,source,source_snapshot_id,payload_hash
+                """SELECT amount_quote,event_at_ms,source,source_snapshot_id,payload_hash
                    FROM paper_funding_events WHERE account_id=1 AND strategy_id=?""",
                 (row["strategy_id"],),
             ).fetchall()
