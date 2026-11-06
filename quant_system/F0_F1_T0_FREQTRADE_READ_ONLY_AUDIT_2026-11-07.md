@@ -96,7 +96,8 @@ Pinned upstream source was inspected read-only at tag `2026.9`:
 |---|---|---|
 | F0 pinned Freqtrade version and strategy source inspection | PARTIAL PASS | Version pin and strategy source inspected on the Phase22 branch |
 | Frozen model identity and hashes | PASS — metadata scope only | Exact hashes and model ID read from preserved metadata; no model bytes loaded |
-| Historical config candidates | PARTIAL / HASH MISMATCH | OKX and Binance candidates recovered from source SHA `082edc0`; neither exact-byte SHA-256 matches frozen metadata hashes |\n| Exact frozen/effective Freqtrade/FreqAI config | NOT VERIFIED | Candidate config provenance mismatch; effective runtime overrides unavailable |
+| Historical config candidates | PARTIAL / HASH MISMATCH | OKX and Binance candidates recovered from source SHA `082edc0`; neither exact-byte SHA-256 matches frozen metadata hashes |
+| Exact frozen/effective Freqtrade/FreqAI config | NOT VERIFIED | Candidate config provenance mismatch; effective runtime overrides unavailable |
 | T0 published schema and read-only semantics | PASS — documentation/source scope | T0 README, store and API inspected on T0 branch |
 | Actual T0 candle comparison | BLOCKED | T0 remains PAUSED; no DB or snapshot opened |
 | F1 offline exporter contract | PASS — exact PR head | Run `42310673116`, job `128211020242`; checked-out SHA equals PR head `d43b34348225629eb6b783f7c4c655301e108a72`; compile PASS; 10/10 tests PASS |
