@@ -112,3 +112,17 @@ Any BLOCKED or NOT VERIFIED mandatory test prevents acceptance. A successful sto
 - Historical Dual Reconstruction: UNAVAILABLE / BLOCKED.
 - Option A strict predecessor chain: UNCHANGED.
 - T0: PAUSED; Paper-only; `ai_execution_enabled=false`.
+
+
+## 8. Vendor-review amendments (2026-11-07)
+
+The subsequent official-documentation review identified additional mandatory tests:
+- AWS Compliance Mode: verify delete/retention-change denial for bucket admin, IAM admin, and account root during retention; document deletion of the associated AWS account as a catastrophic exception.
+- AWS version visibility: test simple DELETE/delete-marker behavior and prove recovery enumerates exact retained version IDs.
+- AWS manifest identity: verify a new PUT cannot silently change the authoritative manifest reference; immutable manifests must be version-addressed and sealed.
+- R2 lock-policy administration: prove lock-rule removal/replacement requires a separately held administrator and triggers an out-of-band alert/readiness failure.
+- R2 writer scope: prove object writer token cannot edit bucket lock configuration, create/delete buckets, or administer the account.
+- R2 audit gaps: demonstrate that best-effort Data Access Logs and Audit Logs v2 omissions are not treated as complete evidence; export required audit records to a separately controlled destination.
+- Audit retention: qualify export beyond Cloudflare's documented 18-month native retention if longer audit retention is required.
+
+See `docs/architecture/FORWARD_EVIDENCE_STORAGE_VENDOR_SECURITY_REVIEW_2026-11-07.md` for source-backed findings. These amendments are test requirements only; no tests were executed.
