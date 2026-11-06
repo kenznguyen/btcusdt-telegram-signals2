@@ -75,7 +75,7 @@ Adapter behavior:
 7. Writes a provenance manifest with source payload hash, T0 dataset version, output hash, row count, time range and the float64 conversion boundary.
 8. Explicitly records `existing_okx_shadow_model_compatible=false`, `strategy_core_modified=false`, `native_orders_enabled=false`, `ai_execution_enabled=false` and `runtime_integration=false`.
 
-The adapter does not make HTTP requests, import/open a T0 database, modify Freqtrade config, replace existing market data, or start a strategy.
+The adapter does not make HTTP requests, import/open a T0 database, modify Freqtrade config, replace existing market data, or start a strategy. Pair-to-filename conversion and futures subdirectory placement were checked against the pinned upstream Freqtrade 2026.9 `IDataHandler`, `JsonDataHandler` and `misc.pair_to_filename` implementations.
 
 ## Verification status
 
@@ -99,9 +99,9 @@ Branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`
 - F1 GitHub Actions workflow: `c33bb8f89e830ad09dac2edaa1b769363e2882d6`.
 - Adapter implementation: `468569f49120db87223e78e7723bcd857b5f7979`.
 - Adapter create-race safety fix: `a316a7f7b86dc81d19d82a826ab4e2b816d92227`.
-- Current branch head when this report was written: `b9582b3fd3c225c090a74d0a3147fc67f1e69f3a`.
+- Current branch head when this report was updated: `fe3cbdb6104350d66b5ce279d65585213e758e90`.
 
-No GitHub Actions run ID or artifact is claimed. The source is not ready for acceptance until exact-head Actions evidence is retrieved and the adapter is tested against a real, user-authorized T0 export.
+No GitHub Actions run ID or artifact is claimed. Upstream format references: [Freqtrade 2026.9 IDataHandler](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/data/history/datahandlers/idatahandler.py), [JsonDataHandler](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/data/history/datahandlers/jsondatahandler.py), and [pair_to_filename](https://github.com/freqtrade/freqtrade/blob/2026.9/freqtrade/misc.py). The source is not ready for acceptance until exact-head Actions evidence is retrieved and the adapter is tested against a real, user-authorized T0 export.
 
 ## Next permitted steps
 
