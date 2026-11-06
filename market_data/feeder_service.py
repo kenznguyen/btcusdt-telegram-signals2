@@ -212,6 +212,25 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
     return runtime
 
 
+
+def _require_verified_postgres_tls(dsn):
+    """Reject production PostgreSQL DSNs without certificate and hostname verification."""
+    try:
+        from psycopg.conninfo import conninfo_to_dict
+    except ImportError:
+        raise RuntimeError(
+            "psycopg is required to validate PostgreSQL TLS configuration"
+        ) from None
+    try:
+        options = conninfo_to_dict(dsn)
+    except Exception:
+        raise ValueError("MARKET_DATA_POSTGRES_DSN must be a valid PostgreSQL DSN") from None
+    if options.get("sslmode") != "verify-full":
+        raise ValueError(
+            "MARKET_DATA_POSTGRES_DSN must explicitly set sslmode=verify-full"
+        )
+
+
 def build_production_runtime(environ=None):
     """Build concrete Binance USD-M + selected canonical store + SQLite lease."""
     values = os.environ if environ is None else environ
@@ -221,6 +240,9 @@ def build_production_runtime(environ=None):
         raise RuntimeError("Install requirements-market-data.txt to run the T0 feeder") from exc
 
     backend = values.get("MARKET_DATA_BACKEND", "sqlite").strip().lower()
+    if backend == "postgres":
+        postgres_dsn = values.get("MARKET_DATA_POSTGRES_DSN", "").strip()
+        _require_verified_postgres_tls(postgres_dsn)
     store = create_store_from_env(values)
     if backend == "postgres":
         if values.get("T0_FEEDER_LEASE_DB", "").strip():
