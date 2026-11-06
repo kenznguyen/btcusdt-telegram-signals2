@@ -2330,8 +2330,15 @@ os._exit(0)
             recorded_at_ms=boundary + 1_000,
         )
 
+        before_read = self.path.read_bytes()
         with sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True) as connection:
             inputs = ledger.load_daily_equity_replay_inputs(connection, utc_day_ms=boundary)
+            self.assertEqual(connection.execute("PRAGMA query_only").fetchone()[0], 1)
+            with self.assertRaises(sqlite3.OperationalError):
+                connection.execute(
+                    "UPDATE paper_account_risk_state SET risk_ready=0 WHERE account_id=1"
+                )
+        self.assertEqual(self.path.read_bytes(), before_read)
 
         self.assertEqual(inputs["utc_day_ms"], boundary)
         self.assertEqual(inputs["cutover_id"], "fixture-account-cutover")
@@ -2351,6 +2358,46 @@ os._exit(0)
             inputs["ledgers"]["STRATEGY_CORE"]["coverage_watermark_at_ms"], watermark
         )
         self.assertEqual(inputs["funding_coverage_watermark_at_ms"], watermark)
+
+        ledger.record_account_history_event(
+            self.path,
+            event_id="replay-late-core-fill",
+            strategy_id="STRATEGY_CORE",
+            event_type="FILL",
+            event_at_ms=self.now + 900,
+            recorded_at_ms=watermark + 1,
+            quantity_delta_base="0.01",
+            fill_price="102",
+            fee_quote="0.001",
+            fee_currency="USDT",
+            source="LATE_PAPER_EXECUTION_FILL",
+            source_snapshot_id="execution:core:late-event",
+            payload_hash="sha256:" + "9" * 64,
+        )
+        with sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True) as connection:
+            with self.assertRaisesRegex(ValueError, "ACCOUNT_HISTORY_LATE_EVENT"):
+                ledger.load_daily_equity_replay_inputs(connection, utc_day_ms=boundary)
+
+    def test_read_only_daily_replay_loader_rejects_execution_coverage_gap(self):
+        boundary = (self.now // 86_400_000 + 1) * 86_400_000
+        watermark = boundary + 2_000
+        for strategy_id in ("AI_FREQAI", "LEGACY_UNATTRIBUTED", "STRATEGY_CORE"):
+            ledger.record_account_history_coverage(
+                self.path,
+                coverage_id=f"replay-gap-{strategy_id.lower()}",
+                stream_type="EXECUTION",
+                strategy_id=strategy_id,
+                start_at_ms=self.now + 1,
+                end_at_ms=boundary,
+                status="VERIFIED",
+                source="RECONCILED_EXECUTION_HISTORY",
+                source_snapshot_id=f"execution:{strategy_id}:gap",
+                payload_hash="sha256:" + ("a" if strategy_id == "AI_FREQAI" else "b" if strategy_id == "LEGACY_UNATTRIBUTED" else "c") * 64,
+                recorded_at_ms=watermark,
+            )
+        with sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True) as connection:
+            with self.assertRaisesRegex(ValueError, "ACCOUNT_HISTORY_COVERAGE_INCOMPLETE"):
+                ledger.load_daily_equity_replay_inputs(connection, utc_day_ms=boundary)
 
 
 if __name__ == "__main__":
