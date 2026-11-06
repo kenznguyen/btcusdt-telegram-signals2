@@ -149,7 +149,7 @@ def _refresh_equity(connection, now):
                   mark_candle_close_ms,dataset_version,risk_ready
            FROM paper_account_risk_state WHERE account_id=1"""
     ).fetchone()
-    if not risk or risk[5] != 1:
+    if not risk:
         return
     try:
         mark = Decimal(risk[1])
@@ -225,6 +225,24 @@ def migrate_account_equity_cutover(connection, source_sha):
     if applied:
         if applied != (CUTOVER_MIGRATION_CHECKSUM, "APPLIED"):
             raise sqlite3.DatabaseError("ACCOUNT_EQUITY_CUTOVER_MIGRATION_CHECKSUM_MISMATCH")
+        columns = {row[1] for row in connection.execute(
+            "PRAGMA table_info(paper_account_equity_cutovers)"
+        )}
+        triggers = {
+            row[0] for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='trigger'"
+            )
+        }
+        required_columns = {
+            "reconciled_realized_pnl_quote", "reconciled_fees_quote",
+            "reconciled_funding_quote", "expected_account_equity_quote",
+        }
+        if (not required_columns.issubset(columns)
+                or not {
+                    "paper_account_equity_cutovers_immutable_update",
+                    "paper_account_equity_cutovers_immutable_delete",
+                }.issubset(triggers)):
+            raise sqlite3.DatabaseError("ACCOUNT_EQUITY_CUTOVER_SCHEMA_INCOMPLETE")
         return
     connection.execute("""CREATE TABLE paper_account_equity_cutovers (
         cutover_id TEXT PRIMARY KEY,
@@ -352,6 +370,10 @@ def record_account_equity_cutover(
             }
         if db.execute("SELECT 1 FROM paper_account_equity_cutovers LIMIT 1").fetchone():
             raise ValueError("ACCOUNT_EQUITY_CUTOVER_ALREADY_ESTABLISHED")
+        if db.execute(
+            "SELECT 1 FROM paper_account_risk_state WHERE account_id=1"
+        ).fetchone() is None:
+            raise sqlite3.DatabaseError("ACCOUNT_EQUITY_CUTOVER_RISK_STATE_MISSING")
         account = db.execute(
             "SELECT initial_capital FROM paper_accounts WHERE account_id=1"
         ).fetchone()
