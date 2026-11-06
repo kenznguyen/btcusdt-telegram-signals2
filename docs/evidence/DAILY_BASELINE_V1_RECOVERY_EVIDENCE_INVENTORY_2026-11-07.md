@@ -184,3 +184,16 @@ Critical trust-boundary conclusion: Root A and Root B may independently retain a
 Open decisions are explicitly left unresolved: provider/region, storage-domain separation, retention, Root B lag threshold/outage policy, durability SLA, key custody, clock skew, RPO/RTO, privacy classification, and atomic outbox architecture.
 
 Status: **PASS — threat model documented. NOT VERIFIED — security controls/tests are not implemented or run.** No source, schema, workflow, storage, DB, or runtime changes; no provider selected; no persistent access authorized.
+
+
+## 2026-11-07 — Forward evidence storage architecture comparison
+
+Created `docs/architecture/FORWARD_EVIDENCE_STORAGE_ARCHITECTURE_DECISION_REVIEW_2026-11-07.md`, commit `d3b9cecea912bba6172b68d2c6fa4d35842682a6`.
+
+Compared six storage patterns: local-only; two namespaces in one cloud account; separate accounts under one provider; two providers; local spool plus one remote root; and local spool plus two separately controlled remote roots.
+
+Recommendation is conditional Pattern F (encrypted bounded local spool plus two remote roots in separately controlled provider accounts, preferably across providers). Pattern C (separate accounts under one provider) is a fallback only with explicit residual-risk acceptance. Two buckets in one account are not sufficient for a strong independence claim. Local PC storage is not an authoritative archive.
+
+Defined capability requirements, disqualifiers, failure-domain behavior, retention/cost measurement inputs, restore requirements, and decisions required before vendor shortlist. No provider, region, retention duration, budget, credentials, or service was selected.
+
+Status: **PASS — architecture comparison documented. NOT APPROVED — vendor selection, purchase, provisioning, storage access, or runtime capture.** No source/schema/workflow/DB/runtime changes. Historical evidence remains unavailable; Option A unchanged.
