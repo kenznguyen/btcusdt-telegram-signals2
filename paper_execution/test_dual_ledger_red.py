@@ -1037,5 +1037,34 @@ class DualLedgerRedTest(unittest.TestCase):
             ledger.record_account_equity_cutover(path, **changed)
 
 
+    def test_unknown_funding_after_cutover_blocks_readiness_and_admission(self):
+        ledger.record_funding_coverage(
+            self.path,
+            coverage_id="post-cutover-funding-gap",
+            start_at_ms=self.now - 30_000,
+            end_at_ms=self.now + 30_000,
+            status="UNKNOWN",
+            source="LATE_HISTORY_GAP",
+            source_snapshot_id="funding-gap:late-discovery",
+            payload_hash="sha256:" + "9" * 64,
+            config_version="funding-policy-v1",
+            recorded_at_ms=self.now,
+        )
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                "UPDATE paper_account_risk_state SET risk_ready=1,unavailable_reason=NULL WHERE account_id=1"
+            )
+        snapshot = ledger.read_account_risk_snapshot(self.path, now_ms=self.now)
+        self.assertFalse(snapshot["riskReady"])
+        self.assertEqual(snapshot["unavailableReason"], "FUNDING_PROVENANCE_INCOMPLETE")
+        order = self.core.submit(
+            self.intent("unknown-funding-after-cutover", "0.1", "100.1", "funding-gap-book"),
+            self.book(self.now + 1),
+            self.now + 1,
+        )
+        self.assertEqual(order["status"], "REJECTED")
+        self.assertEqual(order["reason"], "RISK_INPUTS_UNAVAILABLE")
+
+
 if __name__ == "__main__":
     unittest.main()
