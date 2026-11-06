@@ -223,5 +223,117 @@ class FixtureTests(unittest.TestCase):
             self.assertTrue((output / "fixture.sha256").is_file())
 
 
+
+class IndependentCanonicalizationVectors(unittest.TestCase):
+    def test_rfc8785_section_3_2_3_property_order_vector(self):
+        # RFC 8785 §3.2.3: property ordering vector, including non-BMP UTF-16 ordering.
+        value = {
+            "\\u20ac": "Euro Sign",
+            "\\r": "Carriage Return",
+            "\\ufb33": "Hebrew Letter Dalet With Dagesh",
+            "1": "One",
+            "\\U0001f600": "Emoji: Grinning Face",
+            "\\u0080": "Control",
+            "\\u00f6": "Latin Small Letter O With Diaeresis",
+        }
+        expected = (
+            '{"\\\\r":"Carriage Return","1":"One","\\u0080":"Control",'
+            '"ö":"Latin Small Letter O With Diaeresis","€":"Euro Sign",'
+            '"😀":"Emoji: Grinning Face","דּ":"Hebrew Letter Dalet With Dagesh"}'
+        ).encode("utf-8")
+        self.assertEqual(canonical_json(value), expected)
+
+    def test_rfc8785_string_escaping_rules_for_subset(self):
+        value = {"text": "\\u0000\\b\\t\\n\\f\\r\\\"\\\\/€"}
+        expected = b'{"text":"\\\\u0000\\\\b\\\\t\\\\n\\\\f\\\\r\\\\\\"\\\\\\\\/€"}'
+        self.assertEqual(canonical_json(value), expected)
+
+    def test_nested_objects_are_sorted_but_array_order_is_preserved(self):
+        value = {"z": [{"b": 2, "a": 1}, {"d": 4, "c": 3}], "a": [2, 1]}
+        self.assertEqual(
+            canonical_json(value),
+            b'{"a":[2,1],"z":[{"a":1,"b":2},{"c":3,"d":4}]}',
+        )
+
+    def test_subset_does_not_claim_ecmascript_float_number_serialization(self):
+        # The profile intentionally rejects all floats; RFC 8785 Appendix B
+        # floating-point serialization vectors are outside this subset.
+        for value in (0.0, -0.0, 1e-7, float("nan"), float("inf")):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    canonical_json({"number": value})
+
+
+class IndependentCryptographicVectors(unittest.TestCase):
+    def test_sha256_known_answer_vector(self):
+        self.assertEqual(
+            hashlib.sha256(b"abc").hexdigest(),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        )
+
+    def test_hmac_sha256_rfc4231_test_case_1(self):
+        # RFC 4231 §4.2, cross-verified published HMAC-SHA-256 vector.
+        key = bytes.fromhex("0b" * 20)
+        message = bytes.fromhex("4869205468657265")
+        self.assertEqual(
+            __import__("hmac").new(key, message, hashlib.sha256).hexdigest(),
+            "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7",
+        )
+
+    def test_event_and_manifest_hash_domains_are_independent(self):
+        payload = b'{"fixture":"integrity-vector","sequence":1}'
+        event_hash = hashlib.sha256(b"BTCUSDT-PAPER-EVENT-V1\\n" + payload).hexdigest()
+        manifest_hash = hashlib.sha256(b"BTCUSDT-PAPER-MANIFEST-V1\\n" + payload).hexdigest()
+        self.assertEqual(
+            event_hash,
+            "a2982bdd1251e1f62c0a1faf67e98dd6860123dd7905b6bd6113b5d89ea2ed11",
+        )
+        self.assertEqual(
+            manifest_hash,
+            "fbedd00fab4d24714d1ff2e5fd17eb8507f7d63935e897320847070379d9d7af",
+        )
+        self.assertNotEqual(event_hash, manifest_hash)
+
+
+class StrictInputAndReplayFaultVectors(unittest.TestCase):
+    def test_parser_rejects_invalid_utf8_nonfinite_and_float_tokens(self):
+        for source in (b'{"x":"\\xff"}', '{"x":NaN}', '{"x":Infinity}', '{"x":1.0}'):
+            with self.subTest(source=source):
+                with self.assertRaises(ValueError):
+                    parse_json_strict(source)
+
+    def test_replay_rejects_event_hash_tampering_even_if_payload_is_well_formed(self):
+        fixture = generate_fixture(
+            seed_hex=SEED,
+            namespace=NAMESPACE,
+            base_time_utc=BASE_TIME,
+            event_count=24,
+            source_sha=SOURCE_SHA,
+        )
+        events = json.loads(json.dumps(fixture["events"]))
+        events[0]["integrity"]["event_hash"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "hash mismatch"):
+            verify_local_replay(events)
+
+    def test_replay_rejects_reordered_stream_sequence(self):
+        fixture = generate_fixture(
+            seed_hex=SEED,
+            namespace=NAMESPACE,
+            base_time_utc=BASE_TIME,
+            event_count=36,
+            source_sha=SOURCE_SHA,
+        )
+        events = list(fixture["events"])
+        stream = "SYNTH-CORE-001"
+        indices = [
+            i for i, event in enumerate(events)
+            if event["event_core"]["stream_id"] == stream
+        ]
+        self.assertGreaterEqual(len(indices), 2)
+        events[indices[0]], events[indices[1]] = events[indices[1]], events[indices[0]]
+        with self.assertRaisesRegex(ValueError, "sequence gap or reorder"):
+            verify_local_replay(events)
+
+
 if __name__ == "__main__":
     unittest.main()
