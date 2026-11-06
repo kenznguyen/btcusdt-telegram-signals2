@@ -163,7 +163,7 @@ class TrustLifecycleTests(unittest.TestCase):
             "reviewed_at": "2026-11-07T11:00:00Z",
         }
         result = assess_revocation(mode="OFFLINE", evidence=evidence)
-        self.assertEqual(result["status"], "REVOKED")
+        self.assertEqual(result["status"], "REVOKED_REPORTED")
         self.assertEqual(result["decision"], "REJECT")
 
     def test_reviewed_clearance_requires_traceable_evidence(self):
