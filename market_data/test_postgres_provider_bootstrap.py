@@ -140,7 +140,7 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
                 table_owners = service_admin.execute(
                     "SELECT tablename, tableowner FROM pg_tables "
                     "WHERE schemaname='market_data' "
-                    "AND tablename IN ('candles','feeder_leases','schema_migrations') "
+                    "AND tablename IN ('candles','feeder_leases','instruments','schema_migrations') "
                     "ORDER BY tablename"
                 ).fetchall()
                 self.assertEqual(
@@ -148,6 +148,7 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
                     [
                         ("candles", "t0_db_owner"),
                         ("feeder_leases", "t0_db_owner"),
+                        ("instruments", "t0_db_owner"),
                         ("schema_migrations", "t0_db_owner"),
                     ],
                 )
