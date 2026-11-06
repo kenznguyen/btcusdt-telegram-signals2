@@ -11,21 +11,24 @@ from paper_execution.ledger import PaperLedger
 
 
 class DualLedgerRedTest(unittest.TestCase):
-    def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        self.path = Path(self.temp.name) / "shared-account.sqlite3"
-        self.now = 1_800_000_000_000
-        bootstrap = PaperLedger(self.path, max_position_base="1", fee_rate="0.001")
-        bootstrap.record_equity("100", self.now - 60_000, self.now, "sha256:dual-ledger-seed", "100")
+    def fresh_account_db(self, filename, *, establish_cutover=True):
+        path = Path(self.temp.name) / filename
+        bootstrap = PaperLedger(path, max_position_base="1", fee_rate="0.001")
+        bootstrap.record_equity(
+            "100", self.now - 60_000, self.now, "sha256:dual-ledger-seed", "100"
+        )
         limits = {"maxDrawdownPct": "50", "maxDailyLossUsdt": "50", "maxExposureUsdt": "1000"}
-        self.core = PaperLedger(self.path, max_position_base="1", fee_rate="0.001",
-                                strategy_id="STRATEGY_CORE", source_sha="a" * 40,
-                                risk_limits=limits, require_risk_limits=True)
-        self.ai = PaperLedger(self.path, max_position_base="1", fee_rate="0.001",
-                              strategy_id="AI_FREQAI", source_sha="a" * 40,
-                              risk_limits=limits, require_risk_limits=True)
-        with sqlite3.connect(self.path) as connection:
+        PaperLedger(
+            path, max_position_base="1", fee_rate="0.001",
+            strategy_id="STRATEGY_CORE", source_sha="a" * 40,
+            risk_limits=limits, require_risk_limits=True,
+        )
+        PaperLedger(
+            path, max_position_base="1", fee_rate="0.001",
+            strategy_id="AI_FREQAI", source_sha="a" * 40,
+            risk_limits=limits, require_risk_limits=True,
+        )
+        with sqlite3.connect(path) as connection:
             day = self.now // 86_400_000 * 86_400_000
             connection.execute(
                 """UPDATE paper_account_risk_state SET high_water_mark_quote='100',
@@ -35,6 +38,34 @@ class DualLedgerRedTest(unittest.TestCase):
                    risk_ready=1,unavailable_reason=NULL,updated_at_ms=? WHERE account_id=1""",
                 (day, self.now, self.now-60_000, self.now),
             )
+        if establish_cutover:
+            ledger.record_funding_coverage(
+                path, coverage_id="fixture-funding-coverage",
+                start_at_ms=self.now - 86_400_000, end_at_ms=self.now,
+                status="VERIFIED", source="FIXTURE_RECONCILED_HISTORY",
+                source_snapshot_id="fixture:funding-history",
+                payload_hash="sha256:" + "a" * 64,
+                config_version="fixture-funding-v1", recorded_at_ms=self.now,
+            )
+            ledger.record_account_equity_cutover(
+                path, cutover_id="fixture-account-cutover",
+                expected_initial_capital_quote="100", mark_price="100",
+                mark_candle_close_ms=self.now-60_000,
+                mark_observed_at_ms=self.now,
+                dataset_version="sha256:dual-ledger-seed",
+                funding_coverage_start_at_ms=self.now-86_400_000,
+                source="FIXTURE_RECONCILED_HISTORY",
+                source_snapshot_id="fixture:account-cutover",
+                payload_hash="sha256:" + "b" * 64,
+                config_version="fixture-cutover-v1", recorded_at_ms=self.now,
+            )
+        return path
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.now = 1_800_000_000_000
+        self.path = self.fresh_account_db("shared-account.sqlite3")
 
     def intent(self, intent_id, target, limit, snapshot_id):
         return {
