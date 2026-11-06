@@ -126,3 +126,34 @@ The subsequent official-documentation review identified additional mandatory tes
 - Audit retention: qualify export beyond Cloudflare's documented 18-month native retention if longer audit retention is required.
 
 See `docs/architecture/FORWARD_EVIDENCE_STORAGE_VENDOR_SECURITY_REVIEW_2026-11-07.md` for source-backed findings. These amendments are test requirements only; no tests were executed.
+
+
+## 9. P1.3 second WORM provider amendments (2026-11-07)
+
+The documentation review added Google Cloud Storage Bucket Lock and Azure Blob immutable storage as Root B candidates for synthetic-data qualification. Neither is selected or tested. AWS S3 Compliance Mode remains the preferred Root A candidate; Cloudflare R2 remains a lower-assurance fallback.
+
+### Google Cloud Storage Bucket Lock
+- Verify a locked retention policy cannot be reduced or removed by bucket administrators or project IAM principals.
+- Verify object overwrite/delete and bucket deletion are blocked while retained objects remain.
+- Verify the project lien is present and blocks project deletion; separately test the privileged owner/organization-admin lien-removal path and record that residual risk.
+- Verify Object Versioning does not protect against whole-bucket deletion; test soft-delete recovery separately.
+- Enable Data Access audit logs (disabled by default), retain Admin Activity logs, and export both to a separately controlled project/account. Test documented audit coverage gaps.
+- Restore exact object generations and validate signed manifest references, size and SHA-256.
+
+### Azure Blob immutable storage
+- Select exact policy scope before testing: container-level WORM or version-level WORM. Do not assume identical semantics.
+- Verify a locked time-based retention policy cannot be deleted or shortened; verify extension limits and legal-hold distinction.
+- With retained synthetic blobs present, test container deletion and storage-account deletion through all supported management paths; record exact policy state and API responses.
+- For version-scope mode, verify protected version deletion is denied and overwrite creates a distinct version; restore the exact version ID.
+- Test expiry behavior, blob soft-delete recovery, and the separate effect of Resource Manager account locks.
+- Export Azure management-plane Activity Logs and relevant storage diagnostics to a separately controlled account/provider.
+
+### Cross-provider administrative separation
+- For either GCS or Azure, prove the application writer cannot change retention, IAM, project/subscription ownership, billing, recovery identities or audit export.
+- Prove privileged retention, IAM, lien, subscription and account actions alert an independently administered monitor.
+- Bind immutable object identity (version/generation), byte length, SHA-256, retention metadata and signed manifest to every accepted evidence object.
+- Perform clean-room restore using an identity that is not an administrator of either the source account or application host.
+
+Reference: `docs/architecture/FORWARD_EVIDENCE_SECOND_WORM_PROVIDER_REVIEW_2026-11-07.md`.
+
+These are test requirements only. No provider test, account creation, purchase, credential issuance, provisioning or persistent capture is authorized by this amendment.
