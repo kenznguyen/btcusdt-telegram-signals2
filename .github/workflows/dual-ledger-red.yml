@@ -60,7 +60,7 @@ jobs:
       - name: Compile RED contract
         run: |
           set -euo pipefail
-          python -m py_compile paper_execution/test_dual_ledger_red.py paper_execution/test_dual_ledger_migration_red.py paper_execution/test_account_history_replay_red.py paper_execution/test_daily_equity_reconciliation.py
+          python -m py_compile paper_execution/test_dual_ledger_red.py paper_execution/test_dual_ledger_migration_red.py paper_execution/test_account_history_replay_red.py paper_execution/test_daily_equity_reconciliation.py paper_execution/test_daily_baseline_persistence.py
           echo "DUAL_LEDGER_RED_COMPILE=PASS" | tee dual-ledger-compile.log
 
       - name: Execute focused RED contract
