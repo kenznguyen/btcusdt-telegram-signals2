@@ -157,3 +157,17 @@ Result: `NO_QUALIFYING_ACCOUNT_EVIDENCE_ARTIFACT_IN_TRACKED_WORKFLOWS`. Keep the
 - Preserve Option A (strict predecessor chain) as the current operational policy. Do not activate a new epoch, reset HWM/daily baseline, or admit new exposure based on an unverified anchor.
 - A future independently retained archive/checkpoint can support a new review only from the point it is actually captured and retained with independent provenance; it cannot retroactively prove missing historical events.
 - Forward-looking work may specify a capture/retention protocol, but no source/schema/database writer or persistent storage changes are authorized by this confirmation.
+
+
+## 2026-11-07 — Prospective evidence capture protocol drafted
+
+Created `docs/architecture/FORWARD_EVIDENCE_CAPTURE_RETENTION_PROTOCOL_2026-11-07.md`, commit `8601a6922fcaa41cf35e58431480f3ae4b832088`.
+
+The proposal defines:
+- Root A: append-only, hash-linked execution event journal at the paper state-transition boundary.
+- Root B: separate observer process, independently implemented projection/checkpoint, separate storage namespace and credentials; it consumes committed event envelopes and does not query mutable account DB rows.
+- Explicit assurance levels: mutable-source exports are internal consistency only; independent retention/capture is LEVEL 1 with a disclosed common event-emitter trust boundary; independent external economic source would be LEVEL 2 and is not available/assumed.
+- Canonical event provenance, event sequence, idempotency, durability ordering, checkpoint cadence, UTC boundary handling, immutable manifests, storage controls, recovery behavior, monitoring, and acceptance tests.
+- A staged approval ladder from architecture/storage review through isolated tests and only later separately authorized persistent paper capture.
+
+**Status:** documentation proposal only. No source, schema, workflow, storage, DB, or runtime changes. No provider/cost selected. Does not recreate historical data or change Option A. User approval is still required at each future implementation/storage/activation gate.
