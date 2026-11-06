@@ -3395,3 +3395,17 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Open decisions: cross-provider vs separate-account acceptance; authorized monthly budget; retention duration/legal hold; provider account/billing/recovery owners; local spool policy; region/jurisdiction; Root B lag/outage threshold; signing-key custody.
 - Next: obtain explicit decisions on these constraints. Only then prepare a vendor shortlist using current official pricing/capability documentation. No provisioning or implementation before separate approval.
 - Restrictions unchanged: no T0 work, no exchange connection, no live orders, no epoch activation, no HWM/Daily Loss reset, no exposure increase based on unverified history, no deployment or merge. PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — Forward evidence storage acceptance plan
+
+- Created `docs/architecture/FORWARD_EVIDENCE_STORAGE_ACCEPTANCE_TEST_PLAN_2026-11-07.md`.
+- Commit adding the plan: `41d67ea9b57b6398506e4d539d0e62723e33bc51`.
+- Inventory index update: `e34e714a32600520c9c17dc74380eec504292aba`.
+- The plan defines 20 vendor-neutral acceptance tests for identity separation, least privilege, WORM/retention behavior, object versions, independent Root A/Root B restore, cross-root isolation, read-back integrity, signing-key separation, replay/gap handling, observer lag/outage, crash/partial uploads, spool bounds, single-root loss, retention/legal hold, region, cost, auditability, and provider exit.
+- Candidate-specific checks are listed for AWS S3 and Cloudflare R2. Both remain candidates only; neither is selected or approved. No provider account, region, budget, retention period, lag threshold, or key custody choice is assumed.
+- Proposed 5-minute warning / 15-minute exposure-block thresholds remain unapproved. They are not runtime settings.
+- Status: **PASS — documentation draft committed. NOT RUN — provider tests. NOT APPROVED — purchase, account creation, credentials, provisioning, storage access, source/schema/workflow/database/runtime changes, or persistent capture.**
+- No CI was run because this was documentation-only. No tests, source, workflow, database, T0 runtime, or T1 runtime were changed.
+- Historical Dual Reconstruction remains **UNAVAILABLE / BLOCKED**; Option A strict predecessor chain remains unchanged. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+- Next: review and approve/revise the qualification constraints. Only after explicit approval may disposable provider test accounts and synthetic-data tests be considered. Do not use canonical account data or open the persistent account DB.
