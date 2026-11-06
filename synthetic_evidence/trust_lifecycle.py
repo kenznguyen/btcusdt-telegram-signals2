@@ -246,7 +246,7 @@ def format_sha256_sidecar(digest, filename):
         raise ValueError("invalid SHA-256 digest")
     if not isinstance(filename, str) or not filename or PurePosixPath(filename).name != filename:
         raise ValueError("sidecar filename must be a basename")
-    return f"{digest}  {filename}\\n"
+    return f"{digest}  {filename}\n"
 
 
 def verify_sha256_sidecar(sidecar, digest, filename):
@@ -266,8 +266,10 @@ def build_retention_manifest(files, *, source_sha, workflow_run_id, archived_at)
         raise ValueError("retention payload is empty")
     entries = []
     for name, payload in sorted(files.items()):
+        if not isinstance(name, str) or not name:
+            raise ValueError("invalid retained file path")
         path = PurePosixPath(name)
-        if not isinstance(name, str) or not name or path.is_absolute() or ".." in path.parts:
+        if path.is_absolute() or ".." in path.parts:
             raise ValueError("invalid retained file path")
         if not isinstance(payload, bytes):
             raise ValueError("retained payload must be bytes")
@@ -298,12 +300,20 @@ def verify_retention_manifest(manifest, files):
     entries = manifest.get("files")
     if not isinstance(entries, list):
         raise ValueError("retention manifest files are invalid")
-    expected_paths = {entry.get("path") for entry in entries if isinstance(entry, dict)}
-    if set(files) != expected_paths:
+    if any(not isinstance(entry, dict) for entry in entries):
+        raise ValueError("retention manifest entry is invalid")
+    expected_paths = [entry.get("path") for entry in entries]
+    if any(not isinstance(path, str) or not path for path in expected_paths):
+        raise ValueError("retention manifest path is invalid")
+    if len(expected_paths) != len(set(expected_paths)):
+        raise ValueError("duplicate retained file path")
+    if set(files) != set(expected_paths):
         raise ValueError("missing retained file or unexpected payload")
     for entry in entries:
         path = entry["path"]
         payload = files[path]
+        if not isinstance(entry.get("sha256"), str) or not _SHA256.fullmatch(entry["sha256"]):
+            raise ValueError(f"invalid retained file digest: {path}")
         if not isinstance(payload, bytes) or len(payload) != entry.get("size_bytes"):
             raise ValueError(f"retained file size mismatch: {path}")
         if hashlib.sha256(payload).hexdigest() != entry.get("sha256"):
