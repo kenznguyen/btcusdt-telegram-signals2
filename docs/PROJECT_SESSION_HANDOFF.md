@@ -3268,3 +3268,22 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Status: **PASS — migration auto-trigger risk identified and documented. NOT VERIFIED — SQLite runtime qualification, concurrency/crash tests, migration implementation, and persistent DB compatibility.**
 - Next: no code until explicit approval of Option B, authoritative anchor evidence source, schema strategy, and separate persistent DB/migration permissions. Operational default remains strict predecessor chain and blocked exposure.
 - Restrictions unchanged: no persistent account DB opening/migration, no backfill, no production backtest, no exchange connection, no deployment, no merge, no live orders. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — Dual Reconstruction verification contract
+
+- Scope: architecture/contract documentation only. No source code, tests, workflow, schema, persistent database, or runtime was changed or opened.
+- Added `docs/architecture/DUAL_RECONSTRUCTION_VERIFICATION_CONTRACT_2026-11-07.md`.
+- Contract defines:
+  - Replay A over a complete immutable event stream and Reconstruction B over a separately retained immutable checkpoint/archive.
+  - Independent evidence roots, byte-level SHA-256 verification, coverage manifests, provenance, and the rule that two calculations over the same mutable SQLite rows are only `INTERNAL_CONSISTENCY_ONLY`, never independent verification.
+  - Required event classes: fills/partial fills, reductions/closures, reversals, DCA, fees, funding, order lifecycle, reservations, marks, Legacy adjustments, and explicit corrections.
+  - Deterministic event ordering and exact UTC boundary semantics: pre-boundary events are included in opening reconstruction; events at/after the boundary belong to the new epoch; late pre-boundary events invalidate the candidate.
+  - Per-ledger Core/AI/Legacy and account-level reconciliation fields; precision-derived numeric tolerances; exact matching for identities, ownership, currencies, coverage, statuses and hashes.
+  - Fail-closed conditions and explicit result vocabulary: INTERNAL_CONSISTENCY_ONLY, BLOCKED, RECONCILED_CANDIDATE, and separately authorized APPROVED_FOR_ACTIVATION.
+- Tolerance proposal: quote-currency residual <= one smallest supported quote unit; quantity residual <= half declared quantity step; price residual <= half declared tick; IDs/ownership/currency/coverage/status/hash exact. Undefined precision means BLOCKED. These are proposed contract thresholds, not tested implementation behavior.
+- Critical independence limitation: a GitHub artifact is not verified merely because an artifact ID/digest is recorded; payload bytes must be retrieved and re-hashed. A database-stored payload hash alone does not prove original source-byte authenticity.
+- Commit adding contract: `041ceeca37faa50b56bca182711505d37fe4a260`.
+- Status: **PASS — verification contract documented. NOT VERIFIED — availability/authenticity of two independent evidence roots, numeric behavior in code, and any actual anchor reconciliation. No Epoch policy, source, schema, or activation approval is implied.**
+- Next: identify whether independently retained event archive and checkpoint evidence actually exist, using repository/project artifacts and metadata only. Do not open the persistent account DB or import external account data. If no genuinely independent second root exists, classify dual reconstruction as unavailable and preserve Option A.
+- Restrictions unchanged: no source/test implementation, schema migration, persistent account DB opening, backfill, external account import, exchange connection, production backtest, deployment, merge, Epoch activation, HWM reset, or live order. T0 remains paused; PAPER-only; `ai_execution_enabled=false`.
