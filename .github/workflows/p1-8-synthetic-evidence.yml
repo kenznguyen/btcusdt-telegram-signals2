@@ -205,6 +205,7 @@ jobs:
                 refs/heads/feature/t0-centralized-data-feeder-p1-20261101 \
                 > ../p1-8.15-offline-verification.json
           )
+          mv p1-8.15-offline-verification.json p1-8.15-primary/offline-verification-recheck.json
           python - <<'PY'
           from pathlib import Path
           from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
