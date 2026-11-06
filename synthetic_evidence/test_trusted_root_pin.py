@@ -1,7 +1,7 @@
 import hashlib
 import unittest
 
-from synthetic_evidence.trust_anchor import verify_trusted_root
+from synthetic_evidence.trust_anchor import verify_trusted_root\nfrom synthetic_evidence.trusted_root_pin import TRUSTED_ROOT_SHA256
 
 
 class TrustedRootPinTests(unittest.TestCase):
@@ -12,7 +12,7 @@ class TrustedRootPinTests(unittest.TestCase):
         )
         self.pin = hashlib.sha256(self.root_bytes).hexdigest()
 
-    def test_accepts_exact_pinned_jsonl_trusted_root(self):
+    def test_reviewed_pin_is_a_sha256_digest(self):\n        self.assertRegex(TRUSTED_ROOT_SHA256, r"^[0-9a-f]{64}$")\n\n    def test_accepts_exact_pinned_jsonl_trusted_root(self):
         self.assertEqual(verify_trusted_root(self.root_bytes, self.pin), self.pin)
 
     def test_rejects_modified_trusted_root_bytes(self):
