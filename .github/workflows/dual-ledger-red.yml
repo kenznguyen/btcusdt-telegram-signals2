@@ -1,4 +1,4 @@
-name: Dual Ledger RED Contract
+name: Dual Ledger RED and Migration Contract
 
 on:
   push:
@@ -60,14 +60,14 @@ jobs:
       - name: Compile RED contract
         run: |
           set -euo pipefail
-          python -m py_compile paper_execution/test_dual_ledger_red.py
+          python -m py_compile paper_execution/test_dual_ledger_red.py paper_execution/test_dual_ledger_migration_red.py
           echo "DUAL_LEDGER_RED_COMPILE=PASS" | tee dual-ledger-compile.log
 
       - name: Execute focused RED contract
         shell: bash
         run: |
           set -o pipefail
-          python -m unittest paper_execution.test_dual_ledger_red -v 2>&1 | tee dual-ledger-red-tests.log
+          python -m unittest paper_execution.test_dual_ledger_red paper_execution.test_dual_ledger_migration_red -v 2>&1 | tee dual-ledger-red-tests.log
 
       - name: Upload source and RED evidence
         if: always()
