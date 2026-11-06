@@ -385,6 +385,41 @@ os._exit(74)
         ):
             read_account_risk_snapshot(self.path, now_ms=self.recorded)
 
+    def test_v1_baseline_retry_never_upgrades_audit_or_changes_risk_state(self):
+        self.persist()
+        self._rewrite_current_baseline_audit_as_v1()
+        with self._connection() as db:
+            before = (
+                db.execute(
+                    """SELECT replay_digest,payload_json FROM paper_daily_equity_baseline_audit
+                       WHERE account_id=1 AND utc_day_ms=?""",
+                    (self.boundary,),
+                ).fetchone(),
+                db.execute(
+                    """SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote,
+                              high_water_mark_quote,risk_ready,version
+                       FROM paper_account_risk_state WHERE account_id=1"""
+                ).fetchone(),
+            )
+        with self.assertRaisesRegex(
+            sqlite3.DatabaseError, "DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED"
+        ):
+            self.persist()
+        with self._connection() as db:
+            after = (
+                db.execute(
+                    """SELECT replay_digest,payload_json FROM paper_daily_equity_baseline_audit
+                       WHERE account_id=1 AND utc_day_ms=?""",
+                    (self.boundary,),
+                ).fetchone(),
+                db.execute(
+                    """SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote,
+                              high_water_mark_quote,risk_ready,version
+                       FROM paper_account_risk_state WHERE account_id=1"""
+                ).fetchone(),
+            )
+        self.assertEqual(after, before)
+
     def test_v1_baseline_audit_cannot_admit_new_exposure_after_restart(self):
         self.persist()
         self._rewrite_current_baseline_audit_as_v1()
