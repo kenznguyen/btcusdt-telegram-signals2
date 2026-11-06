@@ -2020,6 +2020,7 @@ os._exit(0)
             "source_snapshot_id": "history-fill-snapshot-001",
             "payload_hash": "sha256:" + "1" * 64,
             "recorded_at_ms": self.now + 1_100, "order_id": "history-order-001",
+            "fee_currency": "USDT",
             "intent_id": "history-intent-001",
         }
         first = ledger.record_account_history_event(self.path, **event)
@@ -2032,10 +2033,71 @@ os._exit(0)
             )
         with sqlite3.connect(self.path) as connection:
             row = connection.execute(
-                """SELECT COUNT(*),MAX(fee_quote) FROM paper_account_event_journal
+                """SELECT COUNT(*),MAX(fee_quote),MAX(fee_currency) FROM paper_account_event_journal
                    WHERE event_id=?""", (event["event_id"],)
             ).fetchone()
-        self.assertEqual(row, (1, "0.0101"))
+        self.assertEqual(row, (1, "0.0101", "USDT"))
+
+    def test_account_history_event_requires_explicit_fee_amount_and_currency(self):
+        common = {
+            "event_id": "history-fee-required", "strategy_id": "STRATEGY_CORE",
+            "event_type": "FILL", "event_at_ms": self.now + 1_000,
+            "quantity_delta_base": "0.1", "fill_price": "101",
+            "source": "PAPER_EXECUTION_FILL",
+            "source_snapshot_id": "history-fee-required-snapshot",
+            "payload_hash": "sha256:" + "9" * 64,
+            "recorded_at_ms": self.now + 1_100,
+        }
+        with self.assertRaises(TypeError):
+            ledger.record_account_history_event(self.path, **common)
+        with self.assertRaises(TypeError):
+            ledger.record_account_history_event(
+                self.path, **common, fee_quote="0.01"
+            )
+
+    def test_account_history_event_rejects_non_quote_fee_currency(self):
+        with self.assertRaisesRegex(ValueError, "ACCOUNT_HISTORY_FEE_CURRENCY_INVALID"):
+            ledger.record_account_history_event(
+                self.path,
+                event_id="history-invalid-fee-currency",
+                strategy_id="STRATEGY_CORE",
+                event_type="FILL",
+                event_at_ms=self.now + 1_000,
+                recorded_at_ms=self.now + 1_100,
+                quantity_delta_base="0.1",
+                fill_price="101",
+                fee_quote="0.01",
+                fee_currency="BTC",
+                source="PAPER_EXECUTION_FILL",
+                source_snapshot_id="history-invalid-fee-currency-snapshot",
+                payload_hash="sha256:" + "8" * 64,
+            )
+
+    def test_account_history_event_persists_explicit_usdt_fee_currency(self):
+        result = ledger.record_account_history_event(
+            self.path,
+            event_id="history-explicit-fee-currency",
+            strategy_id="STRATEGY_CORE",
+            event_type="FILL",
+            event_at_ms=self.now + 1_000,
+            recorded_at_ms=self.now + 1_100,
+            quantity_delta_base="0.1",
+            fill_price="101",
+            fee_quote="0.01",
+            fee_currency="USDT",
+            source="PAPER_EXECUTION_FILL",
+            source_snapshot_id="history-explicit-fee-currency-snapshot",
+            payload_hash="sha256:" + "7" * 64,
+        )
+        self.assertFalse(result["idempotent"])
+        with sqlite3.connect(self.path) as connection:
+            row = connection.execute(
+                """SELECT fee_quote,fee_currency,canonical_payload
+                   FROM paper_account_event_journal WHERE event_id=?""",
+                ("history-explicit-fee-currency",),
+            ).fetchone()
+        self.assertEqual(row[:2], ("0.01", "USDT"))
+        self.assertIn('"fee_currency":"USDT"', row[2])
 
     def test_account_history_coverage_accepts_adjacent_and_rejects_overlap(self):
         common = {
@@ -2123,7 +2185,7 @@ os._exit(0)
         self.assertEqual(order["status"], "FILLED", order)
         with sqlite3.connect(self.path) as connection:
             events = connection.execute(
-                """SELECT strategy_id,event_type,quantity_delta_base,fill_price,fee_quote,
+                """SELECT strategy_id,event_type,quantity_delta_base,fill_price,fee_quote,fee_currency,
                           event_at_ms,recorded_at_ms,source_snapshot_id,payload_hash
                    FROM paper_account_event_journal
                    WHERE intent_id=? ORDER BY event_id""",
@@ -2134,6 +2196,7 @@ os._exit(0)
         self.assertEqual({row[1] for row in events}, {"FILL"})
         self.assertEqual(sum((Decimal(row[2]) for row in events), Decimal(0)), Decimal("0.1"))
         self.assertEqual(sum((Decimal(row[4]) for row in events), Decimal(0)), Decimal(order["feeQuote"]))
+        self.assertEqual({row[5] for row in events}, {"USDT"})
         self.assertEqual({row[5] for row in events}, {self.now})
         self.assertEqual({row[6] for row in events}, {self.now})
         self.assertEqual(len({row[7] for row in events}), 1)
