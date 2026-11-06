@@ -90,7 +90,7 @@ jobs:
           from synthetic_evidence.trusted_root_pin import TRUSTED_ROOT_SHA256
           from synthetic_evidence.trust_lifecycle import (
               build_trust_snapshot, compare_trusted_roots, decode_pinned_root_snapshot,
-              format_sha256_sidecar,
+              format_sha256_sidecar, verify_snapshot_chain,
           )
           baseline_path = Path("synthetic_evidence/trust_roots/2026-11-07-trusted_root.jsonl.gz.b64")
           baseline = decode_pinned_root_snapshot(baseline_path.read_bytes(), TRUSTED_ROOT_SHA256)
@@ -102,8 +102,20 @@ jobs:
               raise SystemExit("trusted-root change requires separate review and explicit repinning")
           digest = verify_trusted_root(current, TRUSTED_ROOT_SHA256)
           Path("trusted_root.sha256").write_text(format_sha256_sidecar(digest, "trusted_root.jsonl"))
+          chain_path = Path("docs/evidence/p1-8/trust-root-snapshot-chain.json")
+          chain = json.loads(chain_path.read_text()) if chain_path.exists() else None
+          if chain is not None:
+              verify_snapshot_chain(chain)
+              history = chain["snapshots"]
+              sequence = len(history) + 1
+              previous = history[-1]["snapshot_sha256"] if history else None
+          else:
+              sequence, previous = 1, None
           captured_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-          snapshot = build_trust_snapshot(current, captured_at=captured_at, sequence=1, tuf_verified=True)
+          snapshot = build_trust_snapshot(
+              current, captured_at=captured_at, sequence=sequence,
+              previous_snapshot_sha256=previous, tuf_verified=True,
+          )
           Path("trust-root-snapshot.json").write_text(json.dumps(snapshot, sort_keys=True, indent=2) + "\n")
           print(f"TRUSTED_ROOT_PIN_VERIFICATION=PASS sha256={digest}")
           print("TRUST_ROOT_ROTATION_CHECK=UNCHANGED")
@@ -421,7 +433,20 @@ jobs:
           cp retained-evidence/synthetic-evidence-bundle.sha256 "$DEST/"
           cp retained-evidence/synthetic-evidence-attestation.bundle.json "$DEST/"
           cp retained-evidence/synthetic-evidence-retention-manifest.json "$DEST/"
-          git add "$DEST"
+          cp retained-evidence/trust-root-snapshot.json "$DEST/"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from synthetic_evidence.trust_lifecycle import append_trust_snapshot, build_snapshot_chain
+          chain_path = Path("docs/evidence/p1-8/trust-root-snapshot-chain.json")
+          chain = json.loads(chain_path.read_text()) if chain_path.exists() else build_snapshot_chain()
+          snapshot = json.loads(Path("retained-evidence/trust-root-snapshot.json").read_text())
+          updated = append_trust_snapshot(chain, snapshot)
+          chain_path.parent.mkdir(parents=True, exist_ok=True)
+          chain_path.write_text(json.dumps(updated, sort_keys=True, indent=2) + "\n")
+          print("TRUST_ROOT_SNAPSHOT_CHAIN_APPEND=PASS")
+          PY
+          git add "$DEST" docs/evidence/p1-8/trust-root-snapshot-chain.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git diff --cached --quiet; then
