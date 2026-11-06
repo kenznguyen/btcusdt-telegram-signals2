@@ -1,0 +1,63 @@
+name: F1 T0 to Freqtrade adapter contracts
+
+on:
+  push:
+    branches:
+      - feature/dual-strategy-phase22-preholdout-attestation-20261031
+    paths:
+      - "quant_system/t0_freqtrade_adapter.py"
+      - "quant_system/test_t0_freqtrade_adapter.py"
+      - ".github/workflows/f1-t0-freqtrade-adapter.yml"
+  pull_request:
+    paths:
+      - "quant_system/t0_freqtrade_adapter.py"
+      - "quant_system/test_t0_freqtrade_adapter.py"
+      - ".github/workflows/f1-t0-freqtrade-adapter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: f1-t0-freqtrade-adapter-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  offline-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      AI_EXECUTION_ENABLED: "false"
+      DATABASE_URL: ""
+      MARKET_DATA_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Enforce offline paper-only boundary
+        run: |
+          set -euo pipefail
+          test "$AI_EXECUTION_ENABLED" = "false"
+          test -z "$DATABASE_URL"
+          test -z "$MARKET_DATA_DB"
+          test -z "$PAPER_DB"
+          test -z "$BINANCE_API_KEY"
+          test -z "$BINANCE_API_SECRET"
+          test -z "$OKX_API_KEY"
+          test -z "$OKX_API_SECRET"
+          git rev-parse HEAD | tee source-sha.txt
+          echo "F1_OFFLINE_ONLY_PREFLIGHT=PASS"
+      - name: Compile adapter and tests
+        run: python -m py_compile quant_system/t0_freqtrade_adapter.py quant_system/test_t0_freqtrade_adapter.py
+      - name: Run adapter contracts
+        run: python -m unittest quant_system.test_t0_freqtrade_adapter -v
