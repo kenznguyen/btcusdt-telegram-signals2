@@ -47,7 +47,7 @@ def build_provenance(*, source_sha, run_id, run_attempt, repository, ref,
         "artifact_payload_digest": "NOT_AVAILABLE_AT_BUILD_TIME",
     }
 
-def verify_provenance(data, *, expected_source_sha, expected_run_id):
+def verify_provenance(data, *, expected_source_sha, expected_run_id, expected_workflow_sha256):
     required = ("schema", "source_sha", "run_id", "run_attempt", "repository", "ref",
                 "workflow_ref", "workflow_sha256", "fixture_descriptors")
     if not isinstance(data, dict) or any(key not in data for key in required):
@@ -60,8 +60,9 @@ def verify_provenance(data, *, expected_source_sha, expected_run_id):
         raise ValueError("run_id mismatch")
     if not isinstance(data["run_attempt"], int) or data["run_attempt"] <= 0:
         raise ValueError("invalid run_attempt")
-    if not isinstance(data["workflow_sha256"], str) or not _SHA64.fullmatch(data["workflow_sha256"]):
-        raise ValueError("invalid workflow_sha256")
+    if (not isinstance(data["workflow_sha256"], str) or not _SHA64.fullmatch(data["workflow_sha256"])
+            or data["workflow_sha256"] != expected_workflow_sha256):
+        raise ValueError("workflow_sha256 mismatch")
     for label in ("A", "B"):
         item = data["fixture_descriptors"].get(label)
         if not isinstance(item, dict) or item.get("source_sha") != expected_source_sha:
@@ -90,7 +91,8 @@ def main():
         descriptor_b=args.descriptor_b,
     )
     verify_provenance(data, expected_source_sha=os.environ.get("GITHUB_SHA", ""),
-                      expected_run_id=int(os.environ.get("GITHUB_RUN_ID", "0")))
+                      expected_run_id=int(os.environ.get("GITHUB_RUN_ID", "0")),
+                      expected_workflow_sha256=hashlib.sha256(Path(args.workflow_file).read_bytes()).hexdigest())
     Path(args.output).write_text(json.dumps(data, sort_keys=True, indent=2) + "\n", encoding="utf-8")
 
 if __name__ == "__main__":
