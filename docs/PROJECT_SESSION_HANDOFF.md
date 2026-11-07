@@ -4212,3 +4212,14 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - PG-LC-02 status upgraded to **PASS** for unit and disposable TimescaleDB integration. Matrix update commit `0c73efb197c2c02890a4d4195c88a649a8edf6c3`, blob `b4e27032602b41a637593f1eda6b9629465793d5`.
 - No provider staging, VPS, canonical DB, production Feeder, exchange connection, data sync or Backup/DR activity.
 - Next lifecycle gap: PG-LC-03 — database disconnect during an in-flight PostgreSQL writer transaction. Inspect existing gateway transaction boundaries and available fault-injection hooks before adding a deterministic test; do not add automatic retry/replay or alter idempotency/fencing semantics without evidence.
+
+
+## 2026-11-07 — PG-LC-03 in-flight writer disconnect test
+
+- Source/test commit `adcd9d369bc57b854974a3ee37689217fec89bf6`; test file `market_data/test_postgres_write_gateway.py`, blob `36f1b9c660100706cb8f19ad8131444f22206d58`.
+- Added disposable TimescaleDB fault-injection test `test_connection_termination_during_batch_rolls_back_prior_rows`: a trigger delays the second candle after the first has been inserted inside the same transaction; test identifies the active writer backend, terminates that connection, expects `StoreUnavailable`, and verifies zero rows from the interrupted two-candle batch.
+- Workflow [42322291792](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42322291792), exact source SHA `adcd9d369bc57b854974a3ee37689217fec89bf6). Static job `128249430994` SUCCESS; full market_data suite 236 tests, 38 skipped, OK. The new integration test is skipped in this job because no disposable DSN is configured.
+- Static artifact `13552913986`, 10,716 bytes, digest `sha256:769e7feae1c7cf9cb7c52607cfdca7bc382fe20984759cd2ee3ba5cd59bfb0e3`; downloaded ZIP independently hashed and matched.
+- Disposable TimescaleDB job `128249502313` was still at `Initialize containers` at documentation time. PG-LC-03 remains **NOT VERIFIED** until that job executes the new fault-injection test. No assumption of pass is allowed.
+- Matrix update commit `50b6ad829dc6a57df0b6c9e7e977953354206f0a`, blob `4e1d9d31d75744a4a27fc92c8fa505a75f76ff79`.
+- No production code changed in this increment. No external provider/VPS, canonical DB, production Feeder, exchange, data sync or Backup/DR activity.
