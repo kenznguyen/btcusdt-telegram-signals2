@@ -325,12 +325,12 @@ def probe_websocket(timeout=8):
     """Perform direct TLS WebSocket upgrade and receive one BTCUSDT kline event."""
     key = base64.b64encode(secrets.token_bytes(16)).decode("ascii")
     request = (
-        f"GET {WS_PATH} HTTP/1.1\\r\\n"
-        f"Host: {WS_HOST}\\r\\n"
-        "Upgrade: websocket\\r\\nConnection: Upgrade\\r\\n"
-        f"Sec-WebSocket-Key: {key}\\r\\n"
-        "Sec-WebSocket-Version: 13\\r\\n"
-        "User-Agent: T0-read-only-connectivity-probe/1.0\\r\\n\\r\\n"
+        f"GET {WS_PATH} HTTP/1.1\r\n"
+        f"Host: {WS_HOST}\r\n"
+        "Upgrade: websocket\r\nConnection: Upgrade\r\n"
+        f"Sec-WebSocket-Key: {key}\r\n"
+        "Sec-WebSocket-Version: 13\r\n"
+        "User-Agent: T0-read-only-connectivity-probe/1.0\r\n\r\n"
     ).encode("ascii")
     started = time.monotonic()
     stage = "TCP_CONNECT"
