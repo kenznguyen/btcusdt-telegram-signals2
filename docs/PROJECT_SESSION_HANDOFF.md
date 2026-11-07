@@ -5606,3 +5606,12 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Dashboard backend/frontend, security audits and Docker builds all passed on run 42370859818. No Sidecar offline test result; RED remains NOT VERIFIED.
 - Next: poll Actions for `f6f32c279160e56302fdad555ebb675cc0005789`. Confirm the targeted regression is the sole expected failure before implementing the inverse disconnect-reason guard.
 - PR #1 OPEN / DRAFT / NOT MERGED. No runtime, Binance, DB, market capture, T0 changes, merge or live execution; `ai_execution_enabled=false`.
+
+
+## T1 R5.3 follow-up — inverse heartbeat disconnect-reason guard (2026-11-07)
+- Corrected test source SHA `f6f32c279160e56302fdad555ebb675cc0005789`; exact-commit Actions run [42371385189](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42371385189).
+- RED confirmed: Sidecar writer format and Clippy PASS; offline integration suite 25 PASS / 1 FAIL. Sole failure: `requires_heartbeat_timeout_reason_after_timeout_was_observed`, asserting that `TransportError` disconnect is rejected after durable `PING_TIMEOUT` evidence. Collector workspace tests passed (library 40/40, binary 1/1); dashboard backend/frontend and security passed. Docker job was still running at last poll. This is behavioral RED on exact test commit.
+- Minimal implementation committed as `bcfa23e929e3bb251b57359b344deffeb478da5f` on existing T1 branch. In `disconnected()`, after existing HeartbeatTimeout-requires-evidence guard, added inverse guard: if `heartbeat_timeout_observed` then any reason other than `HeartbeatTimeout` is rejected before durable append or lifecycle mutation. No changes to PONG resolution or multiple-pending-PING behavior.
+- GREEN/full CI run [42371580205](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42371580205) is IN PROGRESS at handoff update. Implementation status BLOCKED / NOT VERIFIED until all jobs and the Sidecar offline suite complete on this SHA.
+- Next: poll run 42371580205; verify Sidecar offline suite 26/26, full CI jobs, exact source SHA and any artifacts. Update PR description and this handoff with final evidence after completion.
+- PR #1 OPEN / DRAFT / NOT MERGED. No runtime, Binance, DB, market capture, T0 changes, merge or live execution; keep `ai_execution_enabled=false`.
