@@ -4626,3 +4626,16 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - Next: inspect authoritative T2 OKX dataset provenance and T0 Binance sample coverage; prepare a bounded comparison report while preserving current OKX backtest input.
 - T0 integration workflow `42331669847` remains SUCCESS, all four jobs.
 - Canonical SQLite NOT CREATED; canonical ingestion NOT RUN; Feeder STOPPED; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
+
+
+### Binance–OKX parity readiness audit (2026-11-07)
+
+- T0 market source: Binance USD-M perpetual `BTC/USDT:USDT`, BTCUSDT M15/H1 via CCXT `binanceusdm`.
+- Existing T2 `bot.py` and `backtest.py` source: OKX perpetual `BTC-USDT-SWAP` via OKX history-candles API. Do not replace this source.
+- T2 offline `freqtrade_parity.dataset_io` requires closed continuous CSVs and emits `CHARTPRO-OHLCV-V2` digest. T2 README says shared signed dataset and paired runtime traces remain missing.
+- No tracked paired Binance/OKX dataset or signed traces found. `.data/` is gitignored; no PC-local data files accessed.
+- Hashes are different contracts: T0 datasetVersion is canonical JSON envelope including market/window/as-of/provenance/decimal fields; T2 V2 digest is binary int64 timestamp + float64 OHLCV rows. Keep both hashes, document decimal→float64 conversion; never assert direct equality.
+- Binance/OKX parity NOT RUN / BLOCKED pending immutable paired source exports for the same UTC window.
+- Next: build offline parity manifest/harness; accept only explicit closed-candle CSVs, validate M15/H1 alignment/coverage, compute independent V2 hashes and report source differences. No market sync or canonical ingestion.
+- Freqtrade/FreqAI 2026.9 strategy discovery PASS at workflow `42332039353`, exact SHA `c15fff327bb5da25a571a8ae654c728a7d22a2b4`, artifact `13558216419` digest `sha256:87c364ae3937aae1b9769029753bac22fa8b3733c27a4fda9430a7c278f4d263`.
+- Canonical SQLite NOT CREATED; ingestion NOT RUN; Feeder STOPPED; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
