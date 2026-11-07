@@ -5260,3 +5260,14 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Status: dependency resolution + lockfile assertions PASS; full CI/security PENDING; T1 operational readiness NOT VERIFIED.
 - Next: inspect run 42353751500 on exact head SHA `91715f9c41546fb789890ff6f127de1e11ea3e8c`; confirm Rust, sidecar, dashboard, Docker, cargo-audit and both npm audit steps. Do not integrate runtime writer or start collector until all gates pass.
 - Safety unchanged: no Cargo.toml changes, advisory ignores, security gate weakening, runtime start, exchange connection, DB access, data capture, merge, or live execution. Keep `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 dependency diagnostics aligned with lockfile
+
+- After Cargo generated the seven patched package versions, updated both default-feature and all-target package selectors in T1 `.github/workflows/ci.yml` to those exact versions. This prevents stale package selectors from querying the old locked versions.
+- T1 CI workflow change commit: `283be28f14d60f212b0edb434d1d008d764d4bd6`.
+- Current PR head/source SHA: `283be28f14d60f212b0edb434d1d008d764d4bd6`.
+- Current PR CI run: [42353825424](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42353825424), queued at last check for the exact current head.
+- Previous full CI run [42353751500](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42353751500) checked source SHA `91715f9c41546fb789890ff6f127de1e11ea3e8c`: dashboard frontend PASS; dashboard backend tests PASS; dependency reachability diagnostic steps PASS. Rust collector, Docker and cargo-audit were still running at last inspection; npm audit had not yet started. This run predates the diagnostic selector alignment commit and is not final evidence for current head.
+- Current status: dependency updates and Cargo-generated lockfile assertions PASS; CI validation of current head PENDING; security clearance NOT VERIFIED; T1 operational readiness NOT VERIFIED.
+- Next: inspect run 42353825424 on exact current head SHA, and verify both npm audit steps execute after cargo-audit. Preserve PR OPEN / DRAFT / NOT MERGED. No runtime integration, collector start, exchange connection, DB access, data capture, or live execution. Keep `ai_execution_enabled=false`.
