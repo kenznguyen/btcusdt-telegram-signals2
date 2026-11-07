@@ -37,6 +37,7 @@ jobs:
           python -m quant_system.phase22_archive_integrity \
             --archive research_evidence/phase14-frozen-original-evidence.zip \
             --current-bundle research_evidence/frozen-model/phase13b-20261104/original-frozen-model.joblib \
+            --protocol-file research_evidence/frozen-model/phase13b-20261104/phase13b-oos-protocol.json \
             --out /tmp/r22-5-phase14-archive-integrity.json
 
       - name: Publish exact-source integrity report
