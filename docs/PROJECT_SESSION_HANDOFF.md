@@ -4449,3 +4449,15 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - Dedicated offline GitHub Actions [42328662902](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42328662902): exact SHA checkout, py_compile PASS, 18/18 probe tests PASS, offline-only scope PASS. Artifact [13556750284](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42328662902/artifacts/13556750284), digest `sha256:9640bb7daebd67b4330663a07ee8f92372bf013d6a8f6007000f8dab016432c1`.
 - Status: corrected endpoint path PASS in code/tests; PC handshake and first 15m Kline event on corrected path NOT YET TESTED; P1.9 overall BLOCKED / NOT VERIFIED.
 - Next: user reruns only the read-only probe from exact source SHA `2b4cc1cd0f7c3e55e6de27388df6c4e87de811e3`. If comparing via PowerShell, use `/market/ws/btcusdt@kline_15m` (not legacy `/ws`). No credentials, proxy/VPN, DB, Feeder, persistence, Controlled First Run, VPS, or AI execution.
+
+
+### P1.9 corrected-route PC validation — PASS (2026-11-07T02:23:12Z)
+
+- User supplied BINANCE_USDM read-only probe JSON with passed=true.
+- REST 5/5 HTTP 200 with valid schemas: ping 184.95 ms; time 150.59 ms; exchange_info 266.85 ms; closed M15 141.11 ms; closed H1 119.20 ms.
+- WebSocket PASS: HTTP 101; KLINE_EVENT_RECEIVED; event_valid=true; 746.34 ms.
+- Safety: no credentials, proxy, DB, Feeder, persistence; ai_execution_enabled=false.
+- Corrected /market/ws/btcusdt@kline_15m route validated for this single PC sample. JSON does not contain source SHA; associate with instructed snapshot 2b4cc1cd0f7c3e55e6de27388df6c4e87de811e3 contextually, not cryptographically.
+- CI on that exact source: workflow https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42328662902; py_compile and 18/18 offline contracts PASS; artifact 13556750284.
+- P1.9 read-only connectivity probe: PASS for this sample. Durable availability/SLA: NOT VERIFIED. T0 canonical dataset acceptance and Controlled First Run: NOT RUN.
+- No authorization for DB writes, canonical ingestion, Feeder startup, VPS, or live execution. Keep ai_execution_enabled=false. Next: prepare a separately reviewed controlled-ingestion acceptance plan; do not execute without explicit authorization.
