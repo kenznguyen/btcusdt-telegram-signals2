@@ -5399,3 +5399,18 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Review follow-up: inspect crash recovery and torn JSONL tails; validate manifest sidecar_bytes and event_count against actual JSONL content; explicitly distinguish durable event writes from caller-asserted capture completeness. These remain NOT VERIFIED and require separate remediation/evidence.
 - Current verdict: R1 finalization I/O fail-closed correction PASS. Full sidecar source review remains IN PROGRESS; crash recovery/manifest consistency NOT VERIFIED; T1 operational readiness NOT VERIFIED.
 - Safety unchanged: no writer integration/start, Collector startup, Binance connection, DB access, market capture, merge, or live execution. Keep ai_execution_enabled=false. Do not mark PR ready or merge without explicit user approval.
+
+## 2026-11-07 — T1 R2 manifest consistency CI closeout
+- T1 repository: `kenznguyen/binance-futures-collector`; PR #1 OPEN / DRAFT / NOT MERGED.
+- Branch: `feature/t1-connection-sidecar-integration-20261107`; base SHA: `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Final source SHA: `762675c69ce6085e8e2a24263fe30b7ed3442b4c`.
+- R2 implementation validates a bounded, single-handle JSONL snapshot against writer byte count and file metadata, requires a newline-terminated final record, parses each record as a JSON object, checks record count against writer event count, and computes digest from that same validated snapshot.
+- Compile failure found in CI: ambiguous `.by_ref()` on `std::fs::File` due to both `Read` and `Write` trait methods. Fixed with explicit `std::io::Read::by_ref(&mut digest_file)`; commit `762675c69ce6085e8e2a24263fe30b7ed3442b4c`.
+- Exact PR-head GitHub Actions run: [42359667849](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42359667849), event pull_request, conclusion SUCCESS. Run head SHA matches PR head SHA exactly.
+- All 5/5 jobs PASS: Collector fmt/Clippy/build/tests; Sidecar writer format/Clippy/offline tests; dashboard backend; dashboard frontend type-check/build/Vitest; security audit; Docker image build.
+- Workflow artifacts: none published.
+- R2 implementation and exact-head CI: **PASS**. Regression RED evidence for the out-of-band append case: **NOT VERIFIED** (the candidate RED runs did not establish a clean failure of that test before implementation).
+- R3 crash recovery validator: **NOT STARTED**. It remains approved only as offline/read-only; must classify valid unsealed JSONL, truncated final line/missing newline, malformed JSON, manifest mismatch, and sealed-consistent data. It must not mutate, truncate, repair, resume, or append to source files.
+- R4 docs clarification remains pending: distinguish durable JSONL/manifest lifecycle from caller-asserted watermark and actual market-data completeness; no semantics change.
+- Operational readiness: **NOT VERIFIED**. No Collector startup, Binance connection, DB access, market capture, merge, or live execution. Keep `ai_execution_enabled=false`.
+- Next: start R3 with schema inspection and TDD; continue on the existing T1 branch/PR. No merge or runtime activation without explicit user approval.
