@@ -83,3 +83,31 @@ Workflow path filters were expanded so changes under `freqai_bridge/**`, `pipeli
 - Test-only fixture writes are confined to temporary databases.
 - No merge, source switch, canonical DB creation, migration, ingestion, Feeder startup, VPS provisioning, or live execution.
 - Overall: **PASS for isolated T0→T2 consumer/read-only regression; NOT VERIFIED for Freqtrade runtime and exchange parity.**
+
+
+## Final verification — T0 integration workflow completed (2026-11-07)
+
+- Re-checked workflow run [42331669847](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42331669847): final status **SUCCESS**, exact head SHA `0464b70a8a0b012730f675239f67abcb589a2ca5`.
+- All four jobs SUCCESS: Static Gateway, Paper consumer, restricted provider bootstrap, isolated TimescaleDB read-only integration.
+- Artifacts:
+  - Paper consumer `13557379289`, digest `sha256:1c47deb2e00eca992edc2cd466368fed438d6e575190d1aa7931069c5321e01e`.
+  - TimescaleDB read-only `13558195472`, digest `sha256:0edb675178596ddc11c2d3b09ceb5a54890d0663bf25586ee059a2637c6307e0`.
+  - Static/Gateway `13557860731`, digest `sha256:f25b883eb7492a5f490a9990a0ff6486b7c2b35a15b2037bfcf123580ab7acc6`.
+  - Provider bootstrap `13557462607`, digest `sha256:07ed38b3c578ff36b698bdf13d488dd45714f03fbe5e8fc8aed9fa44fd9cb869`.
+- These are isolated test databases and fixtures; no PC Canonical DB, production ingestion or Feeder was used.
+
+## Pinned Freqtrade runtime smoke — in progress
+
+- Added `.github/workflows/t2-freqtrade-2026-9-strategy-smoke.yml`, commit `c9344633c0fc78bb08015e546475afcf432804d8`.
+- First run `42331884189` confirmed official image version `freqtrade 2026.9`, but failed because the workflow passed unsupported CLI flag `--print-json` to `list-strategies`. This was a workflow invocation error, not a strategy failure.
+- Removed the unsupported flag in commit `8e5a815c8c729e832ab6c705b9e175b935081f5e`.
+- Corrected run `42331960788` is in progress; exact head SHA `8e5a815c8c729e832ab6c705b9e175b935081f5e`. Final strategy-load result must be recorded after completion.
+- The smoke job checks dry-run and disabled entry/exit guards, has empty exchange credentials, mounts source read-only, and runs only strategy discovery; no exchange sync, DB, model training or order execution.
+
+## Updated disposition
+
+- T0→T2 consumer regression and T0 isolated storage/provider/Timescale CI: PASS.
+- Freqtrade 2026.9 image version: VERIFIED.
+- Freqtrade strategy-load: PENDING corrected run.
+- Binance/OKX parity: NOT RUN.
+- Canonical SQLite PC: NOT CREATED; canonical ingestion NOT RUN; Feeder STOPPED; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
