@@ -5101,3 +5101,19 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Exact audit evidence report: `docs/evidence/t1/T1_COLLECTOR_CARGO_AUDIT_EXACT_EVIDENCE_2026-11-07.md`, commit `3c5ad9c12018ecf43232b07a6ddb56907b2ebcb8`.
 - Next: retrieve diagnostic step output after job completes; classify optional/default graph reachability; only then prepare targeted Cargo-generated lockfile updates. No hand edits, no audit suppressions, no runtime integration until security and all CI gates pass.
 - Safety: no collector process, Binance connection, exchange capture, DB access, credentials/config changes, merge, or live trading. `ai_execution_enabled=false`.
+
+
+ 
+## 2026-11-07 — T1 Fork CI Completed; Default Feature Reachability Recorded
+
+- Collector fork: kenznguyen/binance-futures-collector; branch feature/t1-connection-sidecar-integration-20261107; PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Latest fork source SHA: 32867b89379d3f3fe4227b0fb1bf97e8c7063a03. Pinned upstream base: bc4f0ef633fbeee4a49defd72827f17162693805.
+- PR run 42348223722 completed FAILURE. Exact synthetic merge checkout SHA: 43d5030bd9f08da0ab133c778a43eb2a25e80d1d. Security job 128330521398; collector job 128330521322.
+- Push run 42348219928 completed FAILURE on source SHA 32867b89379d3f3fe4227b0fb1bf97e8c7063a03. Security job 128330509319; collector job 128330509513.
+- Both runs: collector library tests 40/40, binary 1/1, sidecar writer 11/11 PASS; format, Clippy and build PASS. Dashboard backend/frontend and Docker PASS. Security job FAIL at cargo-audit with 12 vulnerabilities + 2 warnings among 248 locked packages; npm audit skipped.
+- Read-only default feature graph: quinn-proto, rustls, rustls-webpki, webpki-root-certs, tokio and chacha20 PRESENT; webpki-roots NOT_IN_DEFAULT_GRAPH. This does not establish target-specific absence. Need --target all and full reverse dependency paths before classifying optional/target-only packages. No full paths were captured.
+- Both runs returned no artifacts. No artifact IDs/digests.
+- Evidence reports updated: docs/evidence/t1/T1_COLLECTOR_CARGO_AUDIT_EXACT_EVIDENCE_2026-11-07.md (commit 5edfc0d6122782c2d8af9d033b1db46cd37dff99); docs/evidence/t1/T1_COLLECTOR_FORK_PREHANDSHAKE_SIDECAR_2026-11-07.md (commit 517f3e30690b9c30b4c12b958fcce6345ab49b9a).
+- Current overall status: sidecar offline CI PASS; security gate BLOCKED; PR draft/unmerged; collector runtime integration NOT STARTED. No dependency changes, audit suppressions, or gate weakening.
+- Next: inspect cargo tree --locked --target all -e features -i for all seven advisory packages; capture complete paths; distinguish target-specific/optional/lockfile-only dependencies; inspect direct dependency sources and compatibility. Only then propose narrow Cargo-resolver-generated updates and tests.
+- Safety remains: no collector runtime, Binance connection, market-data capture, database open/create/access, merge, or live orders. ai_execution_enabled=false.
