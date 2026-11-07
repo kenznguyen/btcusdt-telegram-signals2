@@ -101,3 +101,21 @@ Resolve why the fork has no GitHub Actions runs, then execute the exact PR head 
 - No artifacts are available yet. Final workflow conclusion, exact checkout SHA, full Rust test count and artifact metadata remain NOT VERIFIED.
 - PR #1 body updated with this run and current validation boundaries; remains OPEN / DRAFT / NOT MERGED.
 - Next: wait for run completion; inspect every job, fetch logs to prove checkout SHA and test counts, inspect artifacts/digests, then update this report and handoff with final evidence. Do not start runtime integration until exact-source CI passes.
+
+
+## 2026-11-07 Addendum — Completed PR CI Run 42343825387
+
+- PR #1 remains OPEN / DRAFT / NOT MERGED. PR head/source SHA: `e1ccc11f654082456f3ef7b728f161e475904da0`.
+- GitHub Actions run: [42343825387](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42343825387), event `pull_request`, completed. The workflow checked out synthetic merge commit `25fd6c3fe1e7bbf30f59f456bd06c11ff11e4b6a`, whose parents are the PR head `e1ccc11f654082456f3ef7b728f161e475904da0` and upstream base `bc4f0ef633fbeee4a49defd72827f17162693805`. Do not label the synthetic merge SHA as the PR source SHA.
+- Job results:
+  - Collector job `128317128179`: FAIL. Base collector format, Clippy and build PASS; existing collector tests PASS (40 library + 1 binary = 41/41). Sidecar writer format FAIL. Sidecar writer Clippy and 11 sidecar tests SKIPPED because the format step failed.
+  - Security job `128317127920`: FAIL. `cargo audit` reports 12 vulnerabilities and 2 allowed warnings; npm audit steps SKIPPED because the Rust audit command exited nonzero.
+  - Dashboard backend `128317128141`: PASS.
+  - Dashboard frontend `128317128165`: PASS.
+  - Docker `128317128304`: PASS.
+- Sidecar formatting failure is non-semantic: rustfmt requests line wrapping/import ordering in `crates/connection-sidecar/src/lib.rs` and `crates/connection-sidecar/tests/sidecar_writer.rs`. No sidecar tests ran in this attempt.
+- Upstream dependency comparison: fork `Cargo.lock` blob SHA and pinned upstream baseline `Cargo.lock` blob SHA are both `625a8b8af376511d1d3245fc0ab9f72b138d180e`; fork and upstream baseline `Cargo.toml` blob SHA are both `f373e8b32e090a76399905538742e8b34a669419`. Thus the audited Rust dependency manifest and lockfile are byte-identical to upstream baseline; the audit findings are inherited baseline findings, not introduced by the sidecar PR. No dependency changes were made. Do not suppress/allowlist these advisories merely to turn CI green; any dependency remediation must be narrowly resolved, lockfile-generated, tested, and reviewed for compatibility.
+- Artifact query returned no run artifacts.
+- Overall verdict: **BLOCKED**. Sidecar exact-source acceptance is NOT VERIFIED because sidecar Clippy/tests were skipped; security gate remains blocked by inherited upstream dependency advisories.
+- Next: make only the rustfmt-required formatting correction, then re-run GitHub Actions on the new PR head. In parallel, prepare a minimal dependency remediation plan for the inherited advisories; do not modify the dependency graph by hand or weaken cargo-audit. Only consider Tokio writer-worker integration after the complete required CI gates pass.
+- Safety unchanged: no collector runtime, Binance connection, database open/create, market-data capture, or live trading. `ai_execution_enabled=false`.
