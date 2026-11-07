@@ -144,3 +144,14 @@ Updated status:
 - Corrected run `42331960788` pending. No claim of strategy-load success until run concludes.
 - Next: confirm strategy discovery result, then build Binance/OKX bounded parity report using paired timestamp windows and source provenance. Existing OKX data remains authoritative for current T2 backtests.
 - Safety unchanged: no canonical DB creation, ingestion, Feeder, VPS or execution.
+
+
+## Freqtrade 2026.9 strategy-load smoke — PASS (2026-11-07)
+
+- Workflow `42332039353`: SUCCESS; exact source SHA `c15fff327bb5da25a571a8ae654c728a7d22a2b4`.
+- Official image `freqtradeorg/freqtrade:2026.9_freqai` reports `freqtrade 2026.9`.
+- `freqtrade list-strategies` discovered `ChartProFreqaiResearch` with status **OK**.
+- Artifact `13558216419`; digest `sha256:87c364ae3937aae1b9769029753bac22fa8b3733c27a4fda9430a7c278f4d263`.
+- The smoke only validates framework import and strategy discovery, not FreqAI training, prediction quality/provenance, database availability, or market parity.
+- Next: read-only inspect T2's authoritative OKX dataset provenance and T0 Binance sample windows; define a bounded, like-for-like parity report without changing the current OKX source.
+- Safety unchanged: Canonical SQLite NOT CREATED; ingestion NOT RUN; Feeder STOPPED; no source switch or live execution.
