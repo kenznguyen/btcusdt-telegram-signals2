@@ -7,12 +7,18 @@ on:
       - feature/t0-centralized-data-feeder-p1-20261101
     paths:
       - "market_data/**"
+      - "freqai_bridge/**"
+      - "pipeline/**"
+      - "requirements-web.txt"
       - ".github/workflows/t0-single-writer-gateway-red.yml"
   pull_request:
     branches:
       - feature/t0-centralized-data-feeder-p1-20261101
     paths:
       - "market_data/**"
+      - "freqai_bridge/**"
+      - "pipeline/**"
+      - "requirements-web.txt"
       - ".github/workflows/t0-single-writer-gateway-red.yml"
       - "docs/evidence/T0_SINGLE_WRITER_GATEWAY_RED_2026-11-05.md"
   workflow_dispatch:
