@@ -205,3 +205,18 @@ Nguồn đã đối chiếu:
 [header constants](https://github.com/waynemason1/binance-futures-collector/blob/bc4f0ef633fbeee4a49defd72827f17162693805/src/constants.rs),
 [CSV writer](https://github.com/waynemason1/binance-futures-collector/blob/bc4f0ef633fbeee4a49defd72827f17162693805/src/utils/csv_writer.rs),
 [message handler](https://github.com/waynemason1/binance-futures-collector/blob/bc4f0ef633fbeee4a49defd72827f17162693805/src/websocket/message_handler.rs).
+
+
+## Rust collector-side connection sidecar writer
+
+A portable offline Rust reference writer is available at
+`futures_intelligence/collector_sidecar_writer`. It writes append-only JSONL
+lifecycle events, fsyncs each event before returning, correlates Ping/Pong IDs,
+records the exact subscription set in a finalized manifest, and calculates
+the sidecar SHA-256.
+
+It is not yet integrated into the upstream collector. See
+`futures_intelligence/collector_sidecar_writer/README.md` for the API and
+`docs/evidence/t1/T1_COLLECTOR_SIDECAR_WRITER_IMPLEMENTATION_2026-11-07.md`
+for exact-source CI evidence and integration blockers. Existing importer
+`connectionStatus` remains `UNVERIFIABLE`.
