@@ -5190,3 +5190,17 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Scope of this update: documentation only. No source code, runtime configuration, workflow, repository split, branch, PR, or T3 repository was changed. No tests or workflows were run; status for this documentation decision is **APPROVED / DOCUMENTED**, while operational stability of the four active tiers remains governed by their individual evidence.
 - Current documentation branch: `feature/t0-centralized-data-feeder-p1-20261101`. Continue on the existing branch; do not create a parallel branch/PR or merge without separate explicit approval.
 - Next step: continue the currently authorized T0/T1 workstream and maintain the per-tier evidence gates. Revisit T3 only after all four active tiers meet the re-integration gate.
+
+
+## 2026-11-07 — T1 collector fork CI rechecked (run 42352383679)
+
+- Rechecked T1 fork PR #1 in `kenznguyen/binance-futures-collector`: OPEN / DRAFT / NOT MERGED. PR head/source SHA recorded by GitHub: `7ac7480c1eb4a94719966dd284e87e274d40c502`; upstream base remains `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Latest GitHub Actions run: [42352383679](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42352383679), run number 18, triggered by the PR-head commit above. At evidence capture the workflow remained IN_PROGRESS.
+- Completed jobs: collector Rust fmt/Clippy/build/test + sidecar format/Clippy/offline-test job **SUCCESS** (job `128343090636`); dashboard backend **SUCCESS** (`128343090428`); dashboard frontend **SUCCESS** (`128343090554`); Docker build **SUCCESS** (`128343090580`).
+- Security job `128343090581` remained IN_PROGRESS at `cargo-audit`; npm audit steps had not started. The diagnostic and all-target exact-package reachability steps completed SUCCESS, but their full log output/classifications were not retrieved. Job logs endpoint returned BlobNotFound while the job was still running. Exact checkout SHA from job logs, detailed numeric test output, final cargo-audit/npm conclusions remain **NOT VERIFIED**.
+- Run artifacts query returned none at evidence capture.
+- No dependency changes, audit suppressions, workflow weakening, runtime integration, collector execution, Binance connection, database access, market-data capture, merge or live trading.
+- Current T1 verdict: Rust/sidecar and dashboard/Docker jobs PASS at job-step/job level; overall CI and security gate **BLOCKED / IN_PROGRESS** pending security job completion and exact evidence. PR #1 remains DRAFT and unmerged.
+- Next: poll run `42352383679` until completion; retrieve security job logs and all-target diagnostic output; verify exact checkout SHA, test counts, audit/npm results and artifact metadata. Only after dependency reachability is understood may narrowly scoped Cargo-resolver-generated security updates be considered. Do not integrate the Tokio writer worker or start collector runtime before security and all required CI gates pass.
+- This entry records evidence only; no T0 work or 4+1 architecture boundary changed. Keep `ai_execution_enabled=false`.
+
