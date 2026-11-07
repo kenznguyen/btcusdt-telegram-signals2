@@ -195,13 +195,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile futures_intelligence/import_collector.py futures_intelligence/test_import_collector.py pipeline/values.py
+          python -m py_compile futures_intelligence/import_collector.py futures_intelligence/test_import_collector.py futures_intelligence/connection_events.py futures_intelligence/test_connection_events.py pipeline/values.py
           echo "T1_IMPORTER_COMPILE=PASS" | tee t1-importer-compile.txt
       - name: Run T1 Futures Intelligence importer fixture suite
         shell: bash
         run: |
           set -euo pipefail
-          python -m unittest futures_intelligence.test_import_collector -v 2>&1 | tee t1-importer-tests.log
+          python -m unittest futures_intelligence.test_import_collector futures_intelligence.test_connection_events -v 2>&1 | tee t1-importer-tests.log
           echo "T1_IMPORTER_FIXTURE_TESTS=PASS" | tee t1-importer-verdict.txt
       - name: Upload T1 importer source and test evidence
         if: always()
