@@ -5677,3 +5677,14 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - README correction + exact-source CI: **PASS**. T1 operational readiness: **NOT VERIFIED**.
 - No runtime writer integration/start, Collector startup, Binance connection, DB access, market capture, T0 changes, merge, or live execution. Keep `ai_execution_enabled=false`.
 - Next: source-only review of non-heartbeat lifecycle (`CONNECT_FAILED`, `RECONNECT_SCHEDULED`), session/resource bounds, finalization and filesystem cleanup/durability boundaries. No runtime activation or integration.
+
+## T1 non-heartbeat lifecycle and create-path review — 2026-11-07
+- Review target: T1 source SHA `f63f2a2918bb2e3dd2341cb952e6ab9b7ce9697d`; no T1 source/test changes made in this review.
+- Reviewed `connect_failed()`, `connected()`, `reconnect_scheduled()`, lifecycle guards, session connection/subscription bounds, `finalize()`, and sidecar create/publish filesystem paths.
+- No proven invalid transition found in `CONNECT_FAILED → RECONNECT_SCHEDULED` or `DISCONNECTED → RECONNECT_SCHEDULED`; each socket attempt is unique, terminal lifecycle checks apply, and only one reconnect schedule is accepted per socket. Attempt numbering remains caller-supplied bounded evidence, not independently reconciled with a logical retry series.
+- Confirmed a cleanup failure window in `SidecarWriter::create()`: after `create_new()` succeeds, `sync_parent_directory()` can fail and return an error while leaving the newly created JSONL path behind. The caller receives no writer handle, and a retry against the same path then fails because the file already exists. This is a source-level finding; deterministic regression test and fix are NOT YET VERIFIED.
+- Resource state remains bounded by session connection count, aggregate subscription bytes, event count/file size and event-field limits; heartbeat ID history is indirectly bounded by MAX_EVENTS. No additional proven unbounded-growth defect identified.
+- R5.1 same-file readback checks and finalization poisoning remain in place; documented concurrent directory mutation / non-Unix identity limitations remain. No hostile-filesystem guarantee is claimed.
+- Status: lifecycle review PASS for reviewed transitions; create-path cleanup BLOCKED pending deterministic RED test and fail-safe cleanup implementation. T1 operational readiness remains NOT VERIFIED.
+- Next: add a deterministic fault-injection unit test for parent-directory sync failure after file creation, verify RED, then implement best-effort removal of the newly created file while preserving the original sync error; verify cleanup failure is surfaced without claiming rollback succeeded. Run exact-source GitHub Actions CI before updating status.
+- PR #1 remains OPEN / DRAFT / NOT MERGED. No runtime writer integration/start, Collector startup, Binance connection, DB access, market capture, T0 changes, merge, or live execution. Keep `ai_execution_enabled=false`.
