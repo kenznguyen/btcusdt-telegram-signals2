@@ -4639,3 +4639,14 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - Next: build offline parity manifest/harness; accept only explicit closed-candle CSVs, validate M15/H1 alignment/coverage, compute independent V2 hashes and report source differences. No market sync or canonical ingestion.
 - Freqtrade/FreqAI 2026.9 strategy discovery PASS at workflow `42332039353`, exact SHA `c15fff327bb5da25a571a8ae654c728a7d22a2b4`, artifact `13558216419` digest `sha256:87c364ae3937aae1b9769029753bac22fa8b3733c27a4fda9430a7c278f4d263`.
 - Canonical SQLite NOT CREATED; ingestion NOT RUN; Feeder STOPPED; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
+
+
+### Binance–OKX parity manifest specification prepared (2026-11-07)
+
+- Spec: docs/evidence/t0/T0_T2_BINANCE_OKX_PARITY_MANIFEST_SPEC_2026-11-07.md
+- Commit: 868276d01fc291b58bca2905d3d47d4cf8c9ed36
+- Records Binance USD-M BTC/USDT:USDT as T0 and OKX BTC-USDT-SWAP as existing T2 source; explicit BTC base-volume mapping via OKX history-candles volCcy; separate source-file, T0 JSON datasetVersion and T2 binary V2 hashes.
+- Requires exact same UTC half-open windows, complete closed M15/H1 rows, no gaps/duplicates/fill, and per-field difference metrics. Exact OHLCV equality is not required because exchange sources differ.
+- Paired datasets are absent; parity NOT RUN. No acquisition or canonical ingestion performed.
+- Runtime smoke PASS: Freqtrade 2026.9 image and ChartProFreqaiResearch strategy discovery, run 42332039353, SHA c15fff327bb5da25a571a8ae654c728a7d22a2b4, artifact 13558216419.
+- Safety unchanged: Canonical SQLite NOT CREATED; ingestion NOT RUN; Feeder STOPPED; VPS NOT PROVISIONED; ai_execution_enabled=false.
