@@ -5026,3 +5026,21 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - CSV importer remains unchanged; `connectionStatus=UNVERIFIABLE`.
 - Canonical SQLite NOT CREATED; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; no exchange/data capture/database activity; T2 OKX unchanged; `ai_execution_enabled=false`.
 - No PR or merge.
+
+
+## 2026-11-07 — T1 Collector Fork Pre-handshake Sidecar Increment
+
+- Evidence report: `docs/evidence/t1/T1_COLLECTOR_FORK_PREHANDSHAKE_SIDECAR_2026-11-07.md`.
+- Evidence report commit: `4ab56abe8e43240053387d6f9448aa8eb92f74f1`.
+- Collector fork: `kenznguyen/binance-futures-collector`, forked from `waynemason1/binance-futures-collector`.
+- Upstream baseline: `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Collector branch: `feature/t1-connection-sidecar-integration-20261107`.
+- Draft PR: https://github.com/kenznguyen/binance-futures-collector/pull/1 (OPEN / DRAFT / NOT MERGED).
+- Latest collector PR head / branch SHA: `8fe12b7be05ee3e250af54d39deed723a65e83c1`.
+- Added `crates/connection-sidecar` with `CONNECT_ATTEMPTED` and `CONNECT_FAILED` events. A connection attempt must be durably recorded before handshake; `CONNECTED` requires a pending attempt; failed attempts can be followed by one bounded reconnect schedule; finalization rejects unresolved attempts. Retry attempts must have unique per-attempt connection IDs.
+- Authored Rust test count: 11. This is an authored test count only; tests have NOT RUN.
+- GitHub Actions workflow now includes sidecar format, Clippy and offline test commands and a push filter for the feature branch.
+- GitHub Actions verification: latest Actions query returned zero workflow runs; combined commit status had zero contexts and remained pending. No run ID, job ID, artifact or test logs exist. Do not infer the reason from the absence of runs. Exact-source CI is **NOT VERIFIED / BLOCKED**.
+- Collector-side runtime integration remains NOT IMPLEMENTED. No collector process, exchange request, database, capture, or market data was touched. No upstream source changed.
+- Next: establish why Actions have not started for this fork, then run the exact head SHA `8fe12b7be05ee3e250af54d39deed723a65e83c1` in GitHub Actions. Do not migrate CI to Codemagic. After exact-source CI passes, proceed to bounded Tokio writer-worker integration with durable acknowledgements, heartbeat payload correlation, lifecycle hooks and shutdown finalization.
+- Safety remains: no live collector or Binance contact; no database creation/access; no market-data capture; no live trading/orders; `ai_execution_enabled=false`.
