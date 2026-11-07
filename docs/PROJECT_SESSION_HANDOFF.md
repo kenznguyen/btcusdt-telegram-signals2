@@ -5117,3 +5117,16 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Current overall status: sidecar offline CI PASS; security gate BLOCKED; PR draft/unmerged; collector runtime integration NOT STARTED. No dependency changes, audit suppressions, or gate weakening.
 - Next: inspect cargo tree --locked --target all -e features -i for all seven advisory packages; capture complete paths; distinguish target-specific/optional/lockfile-only dependencies; inspect direct dependency sources and compatibility. Only then propose narrow Cargo-resolver-generated updates and tests.
 - Safety remains: no collector runtime, Binance connection, market-data capture, database open/create/access, merge, or live orders. ai_execution_enabled=false.
+
+
+## 2026-11-07 — T1 All-target Dependency Reachability CI In Progress
+
+- Fork: kenznguyen/binance-futures-collector; PR #1 OPEN / DRAFT / NOT MERGED.
+- Latest fork source SHA: eda201bb5e659e438b81a09eee7c20cdd749763a. Upstream base remains bc4f0ef633fbeee4a49defd72827f17162693805.
+- Workflow-only change: corrected default diagnostic log newline output and added cargo tree --locked --target all -e features -i for seven advisory packages. No dependency, feature, runtime or audit-gate changes. Workflow blob SHA a2b82d4b5e08763aa465ec3cb37b15525252a677.
+- New push run 42349892441 and PR run 42349896315. Security jobs: 128335579401 (push), 128335591206 (PR).
+- At last poll, all-target diagnostic steps completed SUCCESS in both runs; cargo-audit and some other jobs were still IN_PROGRESS. Final graph output, exact checkout SHA for PR run, test totals, audit conclusion and artifact metadata remain NOT VERIFIED.
+- PR #1 body updated with latest source SHA and both pending run IDs.
+- Evidence reports updated: T1_COLLECTOR_CARGO_AUDIT_EXACT_EVIDENCE_2026-11-07.md (commit 2afd083bef319e7768698549e620c515cf8f7b70); T1_COLLECTOR_FORK_PREHANDSHAKE_SIDECAR_2026-11-07.md (commit 69e53d588db4f88064815e4fae928bbbd5d4b06c).
+- Next: poll both runs to completion; retrieve the all-target graph output and classify all advisory packages by exact dependency path; record test counts, security/npm status and artifacts. No dependency changes until the graph is understood.
+- Safety unchanged: no collector runtime, Binance connection, database access, market capture, merge or live execution. ai_execution_enabled=false.
