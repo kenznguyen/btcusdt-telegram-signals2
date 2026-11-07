@@ -60,7 +60,7 @@ The following cases were not established by the inspected test files/evidence an
 
 | ID | Missing or incomplete scenario | Required safe assertion | Status |
 |---|---|---|---|
-| PG-LC-01 | PostgreSQL unavailable before runtime startup | Startup fails closed; no scheduler admission, no SQLite fallback, no lease-less writer | **RED CONFIRMED** — exact-head workflow 42321683647, job 128247465461, test observed runtime.state='STARTING' instead of 'FAILED' |
+| PG-LC-01 | PostgreSQL unavailable before runtime startup | Startup fails closed; no scheduler admission, no SQLite fallback, no lease-less writer | **PASS** — RED reproduced on SHA `514d22b`; GREEN verified on SHA `819d5f8`, static + TimescaleDB integration
 | PG-LC-02 | Connection loss during heartbeat / lease check | Runtime becomes non-ready and stops admission; no stale generation can write | NOT VERIFIED |
 | PG-LC-03 | Database disconnect during an in-flight writer transaction | Whole transaction rolls back or commit outcome is reconciled unambiguously; no partial candle batch | NOT VERIFIED |
 | PG-LC-04 | Connection establishment timeout / concurrent connection churn | Bounded failure under the adapter's per-operation connection model; no unbounded thread growth or readiness false-positive | NOT VERIFIED |
@@ -88,6 +88,17 @@ Do not implement automatic reconnect/recovery behavior merely to make these test
 7. Update this matrix and `docs/PROJECT_SESSION_HANDOFF.md` after each meaningful increment.
 
 ## 6. Current verdict and boundaries
+
+### PG-LC-01 RED/GREEN evidence (2026-11-07)
+
+- RED source SHA `514d22b00097f8b3af87e04904ca0f92b3a38b8d`, workflow run `42321683647`, job `128247465461`: the new test failed exactly as expected (`STARTING` observed, `FAILED` expected). RED artifact `13553666452`, digest `sha256:2c1e1ab498ef0aab199f1dce0c3e4d7f8dcd4e62ab130ce481332e16e81b9b1a`; downloaded ZIP hash matched.
+- Minimal fix on source SHA `819d5f843e6d1d7cac9326b2173c9e2b01c89ce4`: catch lease-acquisition exception, transition runtime to terminal `FAILED`, re-raise original exception. No release is attempted because no lease was acquired. Scheduler and readiness remain untouched.
+- GREEN workflow run `42321809275`, job `128247868529`, checked-out SHA matches `819d5f843e6d1d7cac9326b2173c9e2b01c89ce4`: full market_data suite 234 tests, 37 skipped, OK; static contracts 10/10; behavioral/feeder regressions 63/63; health/readiness 21/21; process restart 2/2.
+- Disposable TimescaleDB job `128247942819`: atomic writer 7/7, FeederRuntime 19/19 (includes PG-LC-01), lifecycle 4/4, role privileges 18/18, read-only TimescaleDB 6/6 — all PASS.
+- GREEN static artifact `13553462059`, size 10,665 bytes, GitHub digest `sha256:f9d7fff493ed3767759ff67d529784ff3d11a0435699033708e50c536f2ac0a2`; downloaded ZIP SHA-256 matched.
+- TimescaleDB artifact `13553532015`, size 4,286 bytes, GitHub digest `sha256:e371ec5f6cf437b9c4f4f4dca9303c8207a1528a6fdfd70465bbde4350c3ee38`; downloaded ZIP SHA-256 matched.
+- Workflow overall conclusion is **FAILURE** only because fresh-cluster PostgreSQL 16 non-superuser bootstrap job `128247868783` remains BLOCKED by the known implicit ADMIN membership (`t0_migrator` is granted to bootstrap login, contrary to the strict guard). Do not weaken the guard. Provider bootstrap artifact `13553820702`, digest `sha256:13ca3c7b578d21ebcc87f319c58d07746d3ab2666505a165870a36fede984b69`; downloaded ZIP hash matched.
+
 
 ### PG-LC-01 RED evidence (2026-11-07)
 
