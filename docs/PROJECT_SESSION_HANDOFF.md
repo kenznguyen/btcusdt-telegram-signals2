@@ -497,8 +497,7 @@ This section records the latest user direction and takes precedence over older c
 - Runtime correction: a failed/exceptional recovery lease heartbeat calls `on_lease_lost()` immediately. If startup cleanup then cannot release its exact owner/generation, it preserves LEASE_LOST instead of leaving the runtime in STARTING or releasing another owner's lease.
 - TDD evidence: initial RED runs exposed the missing LEASE_LOST transition (`STARTING` persisted after replacement takeover). A test-fixture market key mismatch was corrected; tests were not skipped or weakened.
 - Exact-head push run [#42008186782](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42008186782): SUCCESS on source SHA `14dfa54c49cf6713954c783ccf18d64e104dcb26`; Gateway job `127180175263`, TimescaleDB job `127180352476`, both SUCCESS.
-- PR merge-context run [#42008449494](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42008449494): SUCCESS; PR source head `14dfa54c49cf6713954c783ccf18d64e104dcb26`; synthetic merge SHA `b43b6a35c110d3dfeaade87600d246d4c18f2430`; base `8b196d2720eab804728df7c0227c606c094b16ad`. Jobs `127181053375` and `127181178227`, both SUCCESS.- Both CI contexts: Gateway contracts 10/10 PASS; focused Gateway/Feeder lifecycle tests 57/57 PASS; Health/Readiness 21/21 PASS; process restart 2/2 PASS; full `market_data` suite 179 PASS / 6 SKIPPED; disposable TimescaleDB read-only integration 6/6 PASS.
-- Exact-head artifacts: Gateway ID `13404998362`, digest `sha256:99cd71cc6017e639ff87b2fcb06f54f70f2731238d3eca1b0d8159c6370409a1`; TimescaleDB ID `13406410855`, digest `sha256:da6597cb6d477c7b51c0cd2346f90d6f2e2bfa0672d96154e830955748f6c895`.
+- PR merge-context run [#42008449494](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42008449494): SUCCESS; PR source head `14dfa54c49cf6713954c783ccf18d64e104dcb26`; synthetic merge SHA `b43b6a35c110d3dfeaade87600d246d4c18f2430`; base `8b196d2720eab804728df7c0227c606c094b16ad`. Jobs `127181053375` and `127181178227`, both SUCCESS.- Both CI contexts: Gateway contracts 10/10 PASS; focused Gateway/Feeder lifecycle tests 57/57 PASS; Health/Readiness 21/21 PASS; process restart 2/2 PASS; full `market_data` suite 179 PASS / 6 SKIPPED; disposable TimescaleDB read-only integration 6/6 PASS.- Exact-head artifacts: Gateway ID `13404998362`, digest `sha256:99cd71cc6017e639ff87b2fcb06f54f70f2731238d3eca1b0d8159c6370409a1`; TimescaleDB ID `13406410855`, digest `sha256:da6597cb6d477c7b51c0cd2346f90d6f2e2bfa0672d96154e830955748f6c895`.
 - PR merge-context artifacts: Gateway ID `13405582111`, digest `sha256:0b78ac34568843a212968afc1d8f671df25a34a2a758772e4d2fec4f188eba5e`; TimescaleDB ID `13405677160`, digest `sha256:7c47918a49b0db34b797cd161925c2e21b4953bd5e57b1dbe372b73bceae0fb8`. Artifact bytes were not independently downloaded/re-hashed.
 - Status: incomplete recovery fail-closed **PASS**; lease takeover between recovery pages / no subsequent write **PASS**; replacement lease preserved **PASS**; readiness remains closed **PASS**; exact-head and PR merge-context CI **PASS**.
 - Limits: synthetic exchange and temporary SQLite do not verify live exchange behavior, canonical DB, production Feeder operation, 24/7 reliability or PC/VPS deployment. All remain **NOT VERIFIED / NOT AUTHORIZED**. No real exchange, canonical DB, deployment or live execution was used.
@@ -998,7 +997,6 @@ Current status:
 - PR #134 status remains OPEN / DRAFT / NOT MERGED. No source fix has been applied yet. Current PR head remains `d0f503ee3ba987784daa36e904588829c44e93b6`; current CI remains merge-context PASS only (synthetic checkout `510ca182aea15cfbc10694601d85c1aefb6c0f04`).
 - Next action: correct the implicit DB creation path on the existing PR branch, add the missing-path runtime regression, run relevant tests and exact-provenance GitHub Actions, then self-review again. Do not merge PR #134 until resolved.- No canonical DB was created/opened, no Feeder started, no exchange contacted, no market data synchronized, and no live execution. `ai_execution_enabled=false`.
 
-
 ## 2026-11-05 — PR #134 fail-closed runtime correction
 - Fixed the self-review blocker: `build_runtime()` no longer calls SQLite `initialize()`; missing canonical DB now fails closed before provisioning. Explicit DB setup remains separate.
 - Added `test_build_runtime_does_not_create_a_missing_canonical_sqlite_database`; it asserts FileNotFoundError and no DB/parent creation. Two existing disposable fixtures now provision explicitly.
@@ -1497,8 +1495,7 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
      - PostgreSQL FeederRuntime: 14/14 PASS.
      - PostgreSQL FeederRuntime lifecycle: 4/4 PASS.     - PostgreSQL least-privilege roles: 18/18 PASS.
      - Read-only TimescaleDB: 6/6 PASS.
-     - Disposable target preflight PASS; no exchange credentials, production DB, or external exchange access.
-   - Artifacts:
+     - Disposable target preflight PASS; no exchange credentials, production DB, or external exchange access.   - Artifacts:
      - Static Gateway: ID `13474772650`, SHA-256 digest `e25bae2244e49e56abd11aab2e130cb6e99872e11e17a3370c534b6c432c2cc4`.
      - Paper consumer: ID `13474414668`, SHA-256 digest `ac466622bab23e52ce63b26e4dcc6e3cfe52119b03b71ce415a3c20031f1d47e`.
      - TimescaleDB including lifecycle logs: ID `13475531098`, SHA-256 digest `2679d072d2e6811110574593c73e30439db9f20bf506994e0fd346b916a8f8c6`.
@@ -1997,8 +1994,7 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
   - `t0_migrator` granted to bootstrap login by `t0_test`, ADMIN=true, SET=false, INHERIT=false.  - `t0_db_owner`, `t0_candle_writer_owner`, `t0_lease_manager_owner`, and `t0_migrator_login` also have automatic bootstrap membership rows with grantor `t0_test`, ADMIN=true, SET=false, INHERIT=false.
   - Explicit intended grants from bootstrap login to `t0_migrator` (owner roles) and `t0_migrator_login` (migrator) have grantor bootstrap login and ADMIN=false, SET=true, INHERIT=true.
 - Root cause is documented PostgreSQL 16 behavior, not a fixture bug: when a non-superuser CREATEROLE role creates another role, PostgreSQL automatically grants the created role back to the creator with ADMIN true, SET false, INHERIT false. The grantor is the bootstrap superuser; the CREATEROLE user cannot revoke/change this automatic membership. Official PostgreSQL 16 docs:
-  - https://www.postgresql.org/docs/16/role-attributes.html
-  - https://www.postgresql.org/docs/16/sql-createrole.html
+  - https://www.postgresql.org/docs/16/role-attributes.html  - https://www.postgresql.org/docs/16/sql-createrole.html
 - The T0 migration guard correctly rejects the extra bootstrap membership of `t0_migrator`. Do not weaken the guard or permit arbitrary ADMIN membership.
 - Run #42166319563 artifacts:
   - Static evidence #13479136579, SHA-256 `b7676699ec4a497a2ae1b4d054a141b76e48606e2502a753fef01a0950585a69`.
@@ -2497,8 +2493,7 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 
 ## 2026-11-06 — T1 funding-coverage overlap guard (verification pending)
 
-- Continued on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch or PR created.
-- Added regression test `test_account_equity_cutover_rejects_overlapping_funding_coverage` in `paper_execution/test_dual_ledger_red.py`.
+- Continued on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch or PR created.- Added regression test `test_account_equity_cutover_rejects_overlapping_funding_coverage` in `paper_execution/test_dual_ledger_red.py`.
 - Test commit: `620a7171464acdb02160801f6b7d1ef8521e92d1`; test blob: `8b1578995cbd53c8d6892412902b813c6a705870`.
 - The test creates two independently sourced VERIFIED funding-coverage intervals that overlap, then requires account cutover to reject them with `FUNDING_COVERAGE_INTERVAL_OVERLAP`.
 - Added a guard in `paper_execution/funding.py`: cutover now checks each ordered interval against the previous interval end and rejects overlap. Adjacent intervals remain valid; gaps and UNKNOWN coverage continue to fail closed.
@@ -2997,7 +2992,6 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 
 
 ## 2026-11-07 — T1 daily baseline shared-risk exposure admission verification
-
 - Scope: verify actual Core and AI `PaperLedger.submit` admission paths after daily UTC baseline persistence; no risk-engine bypass or execution logic changes.
 - Added temporary-SQLite integration tests:
   - With verified current-day baseline and fresh boundary mark, Core LONG and AI SHORT both pass the normal shared risk checks and fill independently.
@@ -3498,7 +3492,6 @@ Review the P1.5 contract and open decisions. If continuing without implementatio
 
 
 ## 2026-11-07 — P1.6 Deterministic Synthetic Evidence Fixture & Measurement Specification
-
 ### Scope and artifacts
 
 Documentation-only continuation on `feature/t0-centralized-data-feeder-p1-20261101`.
@@ -3997,8 +3990,7 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Python 3.11.18 compile PASS; **88/88 tests PASS**; synthetic-only preflight PASS; DB/exchange credential env vars empty; `AI_EXECUTION_ENABLED=false`.
 - Provenance schema advanced to `p1.8.synthetic-provenance.v2`. Both fixture descriptors bind exact `generator_source_sha` and SHA-256 of raw descriptor bytes. Verification rejects missing/invalid descriptor, descriptor swap, changed descriptor bytes, altered recorded digest, source mismatch, malformed provenance, run mismatch, and workflow digest mismatch.
 - `verify_artifact_archive()` verifies externally anchored artifact SHA-256 and ZIP CRC/integrity; tests reject a substituted valid ZIP and corrupt ZIP.
-- Workflow generates two deterministic 1,000-event fixtures, checks A/B byte equality, then verifies provenance against exact descriptor files. Provenance step marker: `PROVENANCE_SOURCE_RUN_WORKFLOW_FIXTURE_BYTES_BINDING=PASS`.
-- Artifact ID `13545625743`; name `p1-8-synthetic-evidence-02f5857885378de1e9a385b810f7a5d2f9ccbaaf`; size 597,690 bytes; GitHub digest `sha256:106d4d961ebd8aecb02848a957f45cdfadae14be05681dc8134fd5db3dd87dba`. Independently downloaded ZIP SHA-256 MATCH; ZIP integrity PASS; 43 members.
+- Workflow generates two deterministic 1,000-event fixtures, checks A/B byte equality, then verifies provenance against exact descriptor files. Provenance step marker: `PROVENANCE_SOURCE_RUN_WORKFLOW_FIXTURE_BYTES_BINDING=PASS`.- Artifact ID `13545625743`; name `p1-8-synthetic-evidence-02f5857885378de1e9a385b810f7a5d2f9ccbaaf`; size 597,690 bytes; GitHub digest `sha256:106d4d961ebd8aecb02848a957f45cdfadae14be05681dc8134fd5db3dd87dba`. Independently downloaded ZIP SHA-256 MATCH; ZIP integrity PASS; 43 members.
 - Independent payload verification: fixture A/B each 18 files; inventory 17/17 SHA checks for each; path sets identical; 18/18 file pairs byte-identical; both descriptor SHA-256 values independently recomputed and match provenance; both fixture source SHAs match exact source SHA.
 - Intermediate RED/failing runs were retained as audit history; only run `42303757076` on exact source SHA above is the acceptance PASS.
 - Detailed report: `docs/architecture/P1.8.13_SYNTHETIC_PROVENANCE_TAMPER_SUBSTITUTION_RESISTANCE_2026-11-07.md`; report commit `ae407475f965cb67fb0aa8291b677bbf1d474fd1`.
@@ -4497,8 +4489,7 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - Provider bootstrap integration PASS. Test fixture handles PostgreSQL 16 automatic ADMIN memberships in disposable cluster; production migration role-safety guards were not weakened. Migration return semantics assertion corrected.
 - PG-LC07 fixed by replacing psycopg-incompatible `LIKE '%pg_sleep(4)%'` with `position('pg_sleep(4)' IN query) > 0`. Atomic writer, FeederRuntime, lifecycle, least-privilege and Timescale read-only integration all PASS.
 - Artifacts: `13557310259` static/Gateway (digest `sha256:f08b725554380761e3f63b8d7e9b504010d0229737835a73d176f15457a5cdbc`); `13557220615` provider bootstrap (digest `sha256:9846f8a7688371752e40b5647da0a138c70c4c1d82e9b1f19deed4d5a8044c07`); `13557141783` paper consumer (digest `sha256:3bdd2d0b95df219728ef17d508b5f684e058a10dd0f4b1536e76d4346ade6e20`); `13556792589` Timescale read-only (digest `sha256:3e35c51a08b7874f5326ed88eeb92719d5f441fd6eea6e73676f630f9e5f1069`).
-- Tests used synthetic market data, temporary SQLite, and disposable CI PostgreSQL/TimescaleDB. No canonical DB or production data ingestion. No production Feeder, VPS, or live execution.
-- Final test verdict: Controlled Ingestion acceptance gates PASS. Safety authorization remains unchanged: canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; `ai_execution_enabled=false`.
+- Tests used synthetic market data, temporary SQLite, and disposable CI PostgreSQL/TimescaleDB. No canonical DB or production data ingestion. No production Feeder, VPS, or live execution.- Final test verdict: Controlled Ingestion acceptance gates PASS. Safety authorization remains unchanged: canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; `ai_execution_enabled=false`.
 - Next step: freeze/review the acceptance contract and ask for explicit approval of a separately scoped Controlled First Run. Do not run it automatically.
 
 
@@ -4997,8 +4988,7 @@ Integration must address:
 | Item | Status |
 |---|---|
 | Portable Rust writer | PASS |
-| Format + Clippy | PASS |
-| Rust offline suite | PASS (9/9) |
+| Format + Clippy | PASS || Rust offline suite | PASS (9/9) |
 | Existing Python T1 regressions | PASS (24/24) |
 | Exact-source GitHub Actions | PASS (6/6) |
 | Collector integration | NOT IMPLEMENTED |
@@ -5099,3 +5089,14 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Verdict: Rust/sidecar checks **PASS at job-step level**; overall CI **BLOCKED** by security audit. PR #1 remains OPEN / DRAFT / NOT MERGED.
 - Next: inspect dependency graph and advisory reachability; propose only minimal lockfile-generated compatible updates and regression tests. Do not weaken cargo-audit or add blanket ignores. Re-run GitHub Actions on the resulting source SHA and verify checkout provenance. No Tokio writer-worker/runtime integration until required gates pass.
 - Safety: no collector runtime, Binance connection, DB access, market-data capture, credentials/config change, merge, or live trading. `ai_execution_enabled=false`.
+
+## 2026-11-07 — T1 Collector dependency advisory triage (static; remediation not applied)
+
+- Added `docs/evidence/t1/T1_COLLECTOR_DEPENDENCY_ADVISORY_TRIAGE_2026-11-07.md`, commit `7983bae2ff0d62eb891ca2e4fa5613de21b83db3`.
+- Reviewed fork source SHA `00cc447e6f39e3e14dfe13eaa88a7a82e40828e3` and pinned upstream baseline `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Confirmed fork/upstream Cargo.toml blob SHA `f373e8b32e090a76399905538742e8b34a669419` and Cargo.lock blob SHA `625a8b8af376511d1d3245fc0ab9f72b138d180e` are identical. Audit findings are inherited from the pinned baseline.
+- Static RustSec candidate mapping: `quinn-proto 0.11.16`, `rustls 0.23.43`, `rustls-webpki 0.103.14`, `webpki-roots/webpki-root-certs 1.0.9`, and `tokio 1.53.1`. Candidate patched floors and advisory IDs are in the report. `h2 0.4.18` and `rand 0.8.7/0.10.2` are above the relevant advisory fix floors.
+- Important caveat: cargo-audit job logs returned HTTP 404; complete advisory output/count remains unavailable. Lockfile presence does not prove optional package feature activation. `quinn-proto` reachability and rustls feature conditions require `cargo tree -e features -i` verification. Triage is **PARTIAL / NOT VERIFIED**, not a complete audit reconstruction.
+- No Cargo.toml/Cargo.lock changes, dependency updates, advisory ignores, workflow edits, runtime integration, collector process, Binance access, DB or data capture.
+- Next: recover full audit output if possible; run feature-graph inspection; then propose only targeted Cargo-generated lockfile updates and compatibility tests. Keep PR #1 Draft/unmerged. No Tokio writer worker until security and full CI gates pass.
+- Safety: paper-only; `ai_execution_enabled=false`.
