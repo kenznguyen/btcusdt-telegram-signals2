@@ -4601,3 +4601,15 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - Freqtrade/FreqAI 2026.9 runtime and strategy-load NOT VERIFIED; Binance/OKX parity NOT RUN.
 - No branch merge/source switch, canonical DB creation, migration, ingestion, Feeder startup, VPS provisioning, or live execution. Canonical SQLite NOT CREATED; Feeder STOPPED; `ai_execution_enabled=false`.
 - Next: check final workflow result, verify pinned Freqtrade/FreqAI 2026.9 without exchange sync/credentials/orders, then build bounded Binance-vs-OKX parity report.
+
+
+### T0–T2 workflow final PASS and Freqtrade runtime smoke (2026-11-07)
+
+- T0 workflow `42331669847` final **SUCCESS**, exact SHA `0464b70a8a0b012730f675239f67abcb589a2ca5`; all four jobs PASS: Static Gateway, Paper consumer (45 tests), restricted provider bootstrap, isolated TimescaleDB read-only integration.
+- Artifacts: consumer `13557379289` digest `sha256:1c47deb2e00eca992edc2cd466368fed438d6e575190d1aa7931069c5321e01e`; Timescale `13558195472` digest `sha256:0edb675178596ddc11c2d3b09ceb5a54890d0663bf25586ee059a2637c6307e0`; Gateway `13557860731` digest `sha256:f25b883eb7492a5f490a9990a0ff6486b7c2b35a15b2037bfcf123580ab7acc6`; provider `13557462607` digest `sha256:07ed38b3c578ff36b698bdf13d488dd45714f03fbe5e8fc8aed9fa44fd9cb869`.
+- Added `.github/workflows/t2-freqtrade-2026-9-strategy-smoke.yml`. Initial run `42331884189` verified `freqtrade 2026.9`, then failed because unsupported `--print-json` was supplied. Corrected in commit `8e5a815c8c729e832ab6c705b9e175b935081f5e`.
+- Corrected run `42331960788` pending at handoff update. Must inspect final job output before marking strategy-load PASS.
+- No exchange credentials, sync, DB mount or write, model training, or orders in runtime smoke; source mounted read-only.
+- Binance/OKX parity NOT RUN; current OKX backtest source unchanged.
+- Canonical SQLite NOT CREATED; ingestion NOT RUN; Feeder STOPPED; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
+- Next: finish exact Freqtrade strategy-load smoke, then bounded Binance/OKX parity.
