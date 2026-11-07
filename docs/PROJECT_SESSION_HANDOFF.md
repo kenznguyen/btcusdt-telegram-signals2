@@ -4364,3 +4364,18 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 | Production Feeder / VPS | NOT AUTHORIZED / NOT RUN |
 
 Next: reconcile completion of run `42326194295` including job `128262082698`; then update this handoff and evidence report with exact conclusions/artifacts. After that, update the user's PC source snapshot from the exact tested commit and rerun the read-only probe. No API credentials, DB, canonical T0 store, Feeder, `sync_window()`, proxy/VPN, market-data persistence, or execution was used. Do not proceed to Controlled First Run without separate explicit authorization.
+
+
+### P1.9 run 42326194295 — final regression outcomes
+
+- Run [42326194295](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42326194295) completed on exact source SHA `ab564eccbb9c0484fdd30b694f5b052bc4a2c991`.
+- Static Gateway job `128262017337`: SUCCESS; `market_data` suite 255 tests, 42 skipped, OK.
+- Paper consumer job `128262017581`: SUCCESS.
+- Fresh-cluster provider bootstrap job `128262017655`: FAILURE at the existing strict role guard `t0_migrator may only be granted to the ephemeral t0_migrator_login role`; no guard weakened.
+- Isolated TimescaleDB job `128262082698`: FAILURE in existing PG-LC-07 migration test with psycopg placeholder error `only '%s', '%b', '%t' are allowed as placeholders, got '%p'`. PostgreSQL writer suite ran 10 tests with one error; subsequent FeederRuntime, lifecycle, role-privilege and read-only TimescaleDB steps were skipped. These skipped suites are NOT VERIFIED on this SHA.
+- TimescaleDB artifact `13555023203`, digest `sha256:e76db931726ada7aa9e66c1d311f44a515f9b04e044ec1338415ede400500ef7`; provider bootstrap artifact `13555685559`, digest `sha256:43a34c348822115e02bb5f177421d2d6511ddfaa4fc99f5eaf8a241e65b68612`.
+- Overall workflow conclusion: FAILURE due to the two independent pre-existing blockers above. Probe dedicated CI 15/15, static T0 suite 255 tests/42 skipped, and paper consumer regressions remain PASS.
+- Evidence report final reconciliation commit: `f2df9f9a6265ebe195a28dbc52ce8edac16f327e`.
+- No PG-LC-07 changes, role-guard weakening, canonical DB/Feeder, exchange/data sync, proxy/VPN or execution activity.
+
+Next permitted step: provide the user with a fresh source ZIP from the branch at or after implementation commit `ab564eccbb9c0484fdd30b694f5b052bc4a2c991` (documentation-only commits follow it), then rerun only the read-only probe on the PC. The official WebSocket Kline event remains NOT VERIFIED. Controlled First Run and canonical ingestion remain NOT AUTHORIZED.
