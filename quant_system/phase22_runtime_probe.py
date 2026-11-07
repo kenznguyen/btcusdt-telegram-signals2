@@ -11,6 +11,18 @@ from pathlib import Path
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def ensure_repository_root_on_sys_path() -> str:
+    """Make repository packages importable when this file is run as a script."""
+    root = str(ROOT)
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    return root
+
+
+ensure_repository_root_on_sys_path()
+
 CONFIG_PATH = ROOT / "freqai_bridge" / "config.okx-research.json"
 METADATA_PATH = ROOT / "research_evidence/frozen-model/phase13b-20261104/model-candidate-metadata.json"
 EXPECTED_FREQTRADE = "2026.9"
@@ -86,6 +98,33 @@ def config_hash_diagnostics(
         "raw_freqai_config_sha256": canonical_sha(raw_snapshot["freqai"]),
         "runtime_vs_raw_diff_paths": _diff_paths(raw_snapshot, snapshot),
     }
+
+
+def build_runtime_feature_columns(
+    config: dict,
+    strategy,
+    candles: pd.DataFrame,
+    pair: str,
+) -> list[str]:
+    """Run pinned FreqAI DataKitchen expansion on local synthetic candles only."""
+    from freqtrade.freqai.data_kitchen import FreqaiDataKitchen
+
+    kitchen = object.__new__(FreqaiDataKitchen)
+    kitchen.config = config
+    kitchen.freqai_config = config["freqai"]
+    base_dataframes = {config["timeframe"]: candles.copy()}
+    populated = kitchen.populate_features(
+        candles.copy(),
+        pair,
+        strategy,
+        corr_dataframes={},
+        base_dataframes=base_dataframes,
+    )
+    populated = strategy.feature_engineering_standard(
+        populated.copy(),
+        metadata={"pair": pair},
+    )
+    return [column for column in populated.columns if column.startswith("%")]
 
 
 def expected_expanded_features(pair: str, timeframe: str, periods: list[int],
@@ -189,16 +228,20 @@ def run_probe() -> dict:
     # execute only its pure feature-engineering methods on synthetic candles.
     from freqai_bridge.ChartProFreqaiResearch import ChartProFreqaiResearch
     strategy = object.__new__(ChartProFreqaiResearch)
-    frame = pd.DataFrame({
+    candles = pd.DataFrame({
         "date": pd.date_range("2026-01-01", periods=96, freq="15min", tz="UTC"),
+        "open": [99.5 + i for i in range(96)],
+        "high": [101.0 + i for i in range(96)],
+        "low": [99.0 + i for i in range(96)],
         "close": [100.0 + i for i in range(96)],
         "volume": [10.0 + (i % 7) for i in range(96)],
     })
+    base_features = candles.copy()
     for period in raw["freqai"]["feature_parameters"]["indicator_periods_candles"]:
-        frame = strategy.feature_engineering_expand_all(frame, period, {})
-    frame = strategy.feature_engineering_expand_basic(frame, {})
-    frame = strategy.feature_engineering_standard(frame, {})
-    base_columns = [c for c in frame.columns if c.startswith("%-")]
+        base_features = strategy.feature_engineering_expand_all(base_features, period, {})
+    base_features = strategy.feature_engineering_expand_basic(base_features, {})
+    base_features = strategy.feature_engineering_standard(base_features, {})
+    base_columns = [c for c in base_features.columns if c.startswith("%-")]
     required_base = {
         "%-relative-price", "%-relative-volume", "%-pct-change",
         "%-raw-volume", "%-day-of-week", "%-hour-of-day",
@@ -210,8 +253,15 @@ def run_probe() -> dict:
     expanded = expected_expanded_features(
         "BTC/USDT:USDT", raw["timeframe"],
         fp["indicator_periods_candles"], fp["include_shifted_candles"])
+    runtime_features = build_runtime_feature_columns(
+        loaded_config, strategy, candles, "BTC/USDT:USDT"
+    )
     frozen = metadata["ordered_feature_columns"]
-    if expanded != frozen or len(set(expanded)) != 20:
+    if (
+        runtime_features != expanded
+        or expanded != frozen
+        or len(set(runtime_features)) != 20
+    ):
         raise AssertionError("PHASE22_ORDERED_FEATURE_SCHEMA_MISMATCH")
 
     return {
@@ -219,8 +269,9 @@ def run_probe() -> dict:
         "freqtrade_version": version,
         "effective_config_sha256": config_sha,
         "freqai_config_sha256": freqai_sha,
-        "feature_count": len(expanded),
+        "feature_count": len(runtime_features),
         "feature_schema_match": True,
+        "feature_schema_source": "FreqaiDataKitchen.populate_features+strategy.feature_engineering_standard",
         "runtime_config_loader": "PASS",
         "strategy_feature_methods": "PASS_SYNTHETIC_ONLY",
         "exchange_network_calls": 0,
