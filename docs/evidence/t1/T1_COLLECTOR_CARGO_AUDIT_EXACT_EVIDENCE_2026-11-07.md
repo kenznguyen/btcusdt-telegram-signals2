@@ -147,3 +147,12 @@ Safety limits remain: no collector process, no Binance DNS/TCP/WebSocket connect
 - Verdict: reverse paths verified for six package IDs; quinn-proto path NOT VERIFIED; security gate BLOCKED; dependency remediation NOT STARTED. No Cargo.toml/Cargo.lock changes, feature changes, audit suppressions or gate weakening.
 - PR #1 remains OPEN / DRAFT / NOT MERGED. No collector runtime integration, Binance connection, database access, capture, or live execution.
 - Next: investigate quinn-proto package resolution separately (including Cargo.lock package metadata and target/feature-specific dependency edges); then build a narrow Cargo-resolver-generated remediation plan for reachable advisory packages and validate compatibility before changing dependencies.
+
+
+## 2026-11-07 Addendum — quinn-proto lockfile-only dependency chain clarified
+
+- Inspected fork `Cargo.toml` and `Cargo.lock` at source SHA `22900b860426a5c19622ec6b5ea3673646df2229`. Both manifest and lockfile blobs remain identical to pinned upstream baseline (Cargo.toml `f373e8b32e090a76399905538742e8b34a669419`; Cargo.lock `625a8b8af376511d1d3245fc0ab9f72b138d180e`).
+- Cargo.lock contains `quinn-proto 0.11.16`; its only lockfile package dependent is `quinn 0.11.11`; `quinn 0.11.11` is listed as a dependency of `reqwest 0.13.1`.
+- Collector's direct reqwest declaration is `default-features = false` with explicit features `json`, `rustls`, `webpki-roots`, and `http2`; it does not explicitly enable an HTTP/3/QUIC feature. This is consistent with the exact-version `cargo tree --locked --target all -i quinn-proto@0.11.16` output containing no reverse path.
+- Classification: `quinn-proto@0.11.16` is **PRESENT IN LOCKFILE / NO PATH IN RESOLVED ALL-TARGET GRAPH** for this feature selection. It is not counted as a reachable runtime dependency based on current evidence. The diagnostic script incorrectly labels every successful cargo tree exit as PRESENT even when output is empty; this is a diagnostic-label bug, not a package reachability result.
+- Do not remove the advisory finding by suppression or edit Cargo.lock manually. Keep the lockfile package recorded; resolve only through Cargo's resolver if a later legitimate dependency/feature update prunes or updates it.
