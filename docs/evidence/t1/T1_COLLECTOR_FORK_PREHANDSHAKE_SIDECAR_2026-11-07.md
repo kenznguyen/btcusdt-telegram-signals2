@@ -159,3 +159,13 @@ Resolve why the fork has no GitHub Actions runs, then execute the exact PR head 
 - No dependency updates, audit ignores, feature changes, runtime changes or workflow gate weakening. PR remains draft/unmerged.
 - Verdict: sidecar implementation offline CI PASS; overall PR CI BLOCKED by inherited RustSec audit findings. Runtime integration NOT AUTHORIZED / NOT STARTED.
 - Next: complete all-target reverse dependency graph and inspect exact package paths before proposing narrow Cargo-generated lockfile updates. Keep PR draft and do not merge. No collector, Binance, database, capture, or live execution. ai_execution_enabled=false.
+
+
+## 2026-11-07 Addendum — All-target dependency graph diagnostic added
+
+- Fork source SHA: eda201bb5e659e438b81a09eee7c20cdd749763a; PR #1 OPEN / DRAFT / NOT MERGED.
+- Workflow change is diagnostics-only: fixed newline printing in default graph step and added cargo tree --locked --target all -e features -i for seven advisory packages. No Cargo.toml/Cargo.lock, feature selection, runtime or audit policy change.
+- Workflow blob SHA: a2b82d4b5e08763aa465ec3cb37b15525252a677.
+- Push run 42349892441 and PR run 42349896315 started on this source SHA. At last poll, both all-target diagnostic steps had completed SUCCESS; cargo-audit and other jobs remained IN_PROGRESS. Security job IDs: 128335579401 (push), 128335591206 (PR).
+- PR body refreshed with latest source SHA and pending validation. Do not interpret diagnostic step SUCCESS as evidence that all seven crates are reachable; inspect its log output after the job completes.
+- Next: retrieve completed all-target paths and final CI results; then classify dependencies and prepare a narrow Cargo-generated remediation proposal. No runtime integration, collector process, Binance connection, database access, capture or live execution.
