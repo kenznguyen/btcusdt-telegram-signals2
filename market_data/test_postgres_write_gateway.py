@@ -169,13 +169,13 @@ class PostgresWriteGatewayIntegrationTest(unittest.TestCase):
         with connection(DSN) as database:
             database.execute(f"""
                 CREATE OR REPLACE FUNCTION market_data.pg_red_disconnect_insert()
-                RETURNS trigger LANGUAGE plpgsql AS $
+                RETURNS trigger LANGUAGE plpgsql AS $t0_disconnect$
                 BEGIN
                     IF NEW.open_time_ms = {second_open} THEN
                         PERFORM pg_sleep(8);
                     END IF;
                     RETURN NEW;
-                END $
+                END $t0_disconnect$
             """)
             database.execute("""
                 CREATE TRIGGER pg_red_disconnect_insert
