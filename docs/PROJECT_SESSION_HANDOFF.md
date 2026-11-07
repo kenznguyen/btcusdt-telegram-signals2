@@ -4438,3 +4438,14 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - This reproduces the Python probe's Upgrade-success / first-frame-timeout behavior with an independent .NET client, so a Python-only parser/receiver bug is less likely. Root cause remains unknown (stream delivery, local network/intermediary behavior after Upgrade, or another transport issue).
 - Status: REST CONDITIONAL PASS; WebSocket Upgrade PASS; first frame 15m and 1m NOT RECEIVED; P1.9 BLOCKED / NOT VERIFIED.
 - Next: if continuing diagnostics, capture control-frame behavior and isolate host/path policy without treating another endpoint as acceptance. No proxy/VPN, credentials, DB, Feeder, persistence, Controlled First Run, VPS, or AI execution.
+
+
+### P1.9 correction — previous WebSocket tests used a legacy path; current route fixed (2026-11-07)
+
+- Current official Binance USDⓈ-M Kline documentation specifies raw route `wss://fstream.binance.com/market/ws/{symbol}@kline_{interval}`, combined route `/market/stream?streams=...`, and 250 ms updates when a current candle exists. Documentation: https://developers.binance.info/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/ws-streams/market#kline-candlestick-streams
+- The prior probe constant and the user's direct PowerShell tests both used `/ws/...`; thus the previous two-client timeout comparison did not test the current documented route. The .NET result is not evidence of failure on `/market/ws`.
+- TDD RED test commit `14e744e8ff124aa478aa8c82a9bfb579b2521a89`; new test asserted the documented path and failed against the legacy constant in workflow [42328640533](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42328640533).
+- Fixed `WS_PATH` to `/market/ws/btcusdt@kline_15m`. Implementation source SHA `2b4cc1cd0f7c3e55e6de27388df6c4e87de811e3`.
+- Dedicated offline GitHub Actions [42328662902](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42328662902): exact SHA checkout, py_compile PASS, 18/18 probe tests PASS, offline-only scope PASS. Artifact [13556750284](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42328662902/artifacts/13556750284), digest `sha256:9640bb7daebd67b4330663a07ee8f92372bf013d6a8f6007000f8dab016432c1`.
+- Status: corrected endpoint path PASS in code/tests; PC handshake and first 15m Kline event on corrected path NOT YET TESTED; P1.9 overall BLOCKED / NOT VERIFIED.
+- Next: user reruns only the read-only probe from exact source SHA `2b4cc1cd0f7c3e55e6de27388df6c4e87de811e3`. If comparing via PowerShell, use `/market/ws/btcusdt@kline_15m` (not legacy `/ws`). No credentials, proxy/VPN, DB, Feeder, persistence, Controlled First Run, VPS, or AI execution.
