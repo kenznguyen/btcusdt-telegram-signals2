@@ -7,7 +7,7 @@ from urllib.error import URLError
 
 from market_data.binance_connectivity_probe import (
     classify_http_status, parse_http_upgrade, parse_server_frame,
-    _receive_kline_event, _rest_request, probe_websocket, validate_exchange_info,
+    _receive_kline_event, _rest_request, _websocket_failure_result, probe_websocket, validate_exchange_info,
     validate_kline_event, validate_klines, validate_server_time,
 )
 
