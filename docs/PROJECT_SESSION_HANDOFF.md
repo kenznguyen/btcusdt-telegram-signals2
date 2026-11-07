@@ -4403,3 +4403,16 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - Current P1.9 verdict: REST CONDITIONAL PASS (two recent 5/5 samples); WebSocket HTTP Upgrade BLOCKED; Kline event NOT RUN; overall P1.9 BLOCKED. No credentials/proxy/DB/Feeder/persistence/execution.
 - Next: compare a fresh direct PowerShell HTTP Upgrade handshake against the probe from the same PC/network, capturing host/path, status and response headers. No alternate domains, VPN/proxy, network circumvention, canonical ingestion, Controlled First Run, or Feeder activation.
 - Evidence report update commit: `c9172f917972d84f57ba02621bb4a9efc9556462`.
+
+
+### P1.9 follow-up — HTTP Upgrade CRLF terminator bug fixed (2026-11-07)
+
+- User's direct PowerShell 5.1 handshake at 2026-11-07T02:10:07Z to fstream.binance.com:443/ws/btcusdt@kline_1m completed TCP and TLS 1.2, returned HTTP 101, and passed Sec-WebSocket-Accept validation in 413.58 ms. This validates the independent 1m handshake only; it does not prove the probe's 15m stream or Kline delivery.
+- Source inspection of prior probe SHA f61deca1cd7874e61851ca52ad4857bd0ff4535c found the HTTP header terminator was double escaped in the _recv_until call. The probe searched for literal backslash-r/backslash-n bytes instead of CRLF CRLF and therefore timed out after the valid server response.
+- TDD RED commit: 8a7ab00f6f6a39c3ad63079298c9f6e0b397e2f9; run [42327787488](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42327787488) failed as expected with ImportError for the not-yet-implemented _recv_http_upgrade_response helper.
+- Final tested source SHA: 54f9344e42baa2bd92a45fd6d96eae35c2b49148. Added _recv_http_upgrade_response() using the correct b"\r\n\r\n" marker and a deterministic regression test with literal CRLF bytes.
+- Dedicated GitHub Actions run [42327833404](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42327833404): SUCCESS; exact checked-out SHA confirmed; py_compile PASS; 17/17 offline probe contracts PASS.
+- Artifact [13556555458](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42327833404/artifacts/13556555458), name t0-binance-probe-contracts-54f9344e42baa2bd92a45fd6d96eae35c2b49148, 983 bytes, GitHub digest sha256:9de24a8856c23cd402772c6577fbd543cd75441d6aefe2418713926cdaf6baee. Payload bytes not independently re-hashed.
+- Evidence report updated in commit 3069b4c89904bbe11b354cef8b2a84af158615ea: docs/evidence/t0/T0_BINANCE_CONNECTIVITY_PROBE_P1_9_2026-11-07.md.
+- Current verdict: code-level HTTP header terminator fix PASS on dedicated CI; user's direct 1m PowerShell handshake PASS; probe 15m WebSocket handshake and Kline event NOT YET RE-RUN ON PC; P1.9 overall remains BLOCKED / NOT VERIFIED until a fresh PC probe confirms it.
+- Next: provide a source snapshot from exact SHA 54f9344e42baa2bd92a45fd6d96eae35c2b49148; user runs py_compile, 17 offline tests, then only the read-only network probe. Verify the source SHA separately. No credentials, proxy/VPN, alternate endpoint, DB writes, persistence, Feeder, Controlled First Run, VPS, or AI execution.
