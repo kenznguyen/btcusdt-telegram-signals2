@@ -4129,3 +4129,16 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Safety remains unchanged: T0 remains independent; paper-only; `ai_execution_enabled=false`; no live orders.
 
 - Checklist follow-up correction: removed the retired backup/restore drill content from Gate F and removed backup-freshness dependencies from Gate G; only the explicit DEFERRED notice remains. Latest checklist commit: `873cd05c2aa36728f227522b7a2669430870520c`; blob SHA: `bece714ef5a5a5fabd847ebd012218379837fc35`.
+
+
+## 2026-11-07 — PostgreSQL Lifecycle Acceptance Matrix
+
+- Added `docs/T0_POSTGRESQL_LIFECYCLE_ACCEPTANCE_MATRIX.md` on the existing branch.
+- Matrix commit: `3f11b94ef30f47146452e5676afd53bc53f6cbce`; current matrix blob SHA: `2c26ae724f61d5c2f098d6537dd1e4dc4a286475`.
+- Scope is lifecycle-only and synthetic/disposable CI. Backup/DR remains DEFERRED; provider/VPS provisioning, canonical DB, production Feeder, exchange connection and market-data sync remain unauthorized.
+- Mapped existing PostgreSQL tests: runtime composition/startup recovery, heartbeat, lease takeover/readiness, drain timeout, generation restart, atomic writer/rollback, role/privilege and fresh-cluster bootstrap.
+- Historical evidence recorded in the matrix is limited to workflow #42166319563 at exact source SHA `7c41ac990a7a0842b773a2d07b8db2f1d769a855`: writer 7/7, FeederRuntime/composition 18/18, lifecycle 4/4, role integration 18/18, read-only integration 6/6 PASS; fresh-cluster bootstrap BLOCKED. No result is promoted to the current branch tip.
+- Explicit lifecycle gaps listed as NOT VERIFIED: DB unavailable at startup; connection loss during heartbeat/lease checks; disconnect during an in-flight transaction; pool exhaustion/timeouts; safe behavior after transient outage; process kill during a PostgreSQL writer transaction; interrupted migration retry; readiness under DB connectivity loss.
+- Next sequence: review runtime state transitions/timeouts, then add one focused RED lifecycle test at a time. Do not implement automatic reconnect/resume without a source-derived state-machine decision.
+- Work performed: source/test/documentation inspection and matrix documentation only. No code, SQL, workflow or runtime configuration changed; no tests/workflows were run.
+- Current verdict: matrix DOCUMENTED; current-tip CI NOT VERIFIED; provider compatibility NOT VERIFIED; PostgreSQL 16 non-superuser CREATEROLE bootstrap BLOCKED; Backup/DR DEFERRED.
