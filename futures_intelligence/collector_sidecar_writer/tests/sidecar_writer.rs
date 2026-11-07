@@ -105,6 +105,7 @@ fn finalizes_manifest_with_exact_file_size_and_sha256() {
     writer.connected(&connection, START).unwrap();
     writer.ping_sent(&connection, "hb-1", START + 10).unwrap();
     writer.pong_received(&connection, "hb-1", START + 20).unwrap();
+    writer.disconnected(&connection, DisconnectReason::Shutdown, START + 30).unwrap();
 
     let manifest = writer.finalize(START + 30, START + 40).unwrap();
     let bytes = fs::read(&path).unwrap();
@@ -115,7 +116,7 @@ fn finalizes_manifest_with_exact_file_size_and_sha256() {
     assert_eq!(manifest.sidecar_sha256.len(), 64);
     assert!(manifest.capture_finalized);
     assert_eq!(manifest.capture_complete_through_ms, START + 30);
-    assert_eq!(manifest.event_count, 3);
+    assert_eq!(manifest.event_count, 4);
 
     let manifest_path = SidecarWriter::manifest_path(&path);
     let saved: serde_json::Value =
