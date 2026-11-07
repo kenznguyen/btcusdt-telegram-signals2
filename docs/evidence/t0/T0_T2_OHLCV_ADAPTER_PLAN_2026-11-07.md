@@ -189,3 +189,18 @@ Updated status:
 - The tool reads operator-supplied CSVs offline, requires exact M15/H1 UTC window coverage and closed candles, checks source identity/volume unit, records raw file hashes and T0 datasetVersion provenance, computes separate T2 V2 hashes and per-field difference metrics.
 - Real Binance/OKX comparison remains NOT RUN pending paired immutable CSV exports. No external data fetch was performed. Current T2 OKX source remains unchanged.
 - No Canonical SQLite creation/access/write, ingestion, Feeder, VPS, exchange execution or live orders.
+
+
+## Largest-difference evidence enhancement — PASS (2026-11-07)
+
+- Gap found during spec review: aggregate per-field statistics existed, but the report did not yet list the largest-difference rows with source timestamps and both original values.
+- TDD RED: valid synthetic fixture run [42333165249](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42333165249), exact test source SHA `7cdceb3978f1030a6ad8bdba862332dd33f110fc`; the new assertion failed with expected `KeyError: largest_differences`.
+- One earlier attempt used an invalid fixture (close above high); corrected the fixture OHLC envelope before accepting the RED evidence.
+- Implementation commit: `95932ec6cf9a6f5c061c2d7fbe0bafa740e9f313`.
+- Final T0 workflow [42333240421](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42333240421): **SUCCESS**, exact source SHA `95932ec6cf9a6f5c061c2d7fbe0bafa740e9f313`, all 4 jobs SUCCESS.
+- Static Gateway: 271 tests PASS; paper consumer: 53 tests PASS, including largest-difference test; provider bootstrap PASS; TimescaleDB integration PASS (10 writer, 20 FeederRuntime, 6 lifecycle, 18 role privilege, 6 read-only integration tests).
+- Added deterministic top-5 rows for every M15/H1 OHLCV field, ordered by descending absolute difference then ascending timestamp. Each row records UTC open timestamp, original Binance/OKX decimal strings, absolute difference, and relative difference using OKX as denominator (n/a when OKX value is zero).
+- Markdown report now includes a Largest difference rows section.
+- T0 artifacts: consumer `13558188809` digest `sha256:f71425f026b20df1c2629d7ef820fcdbf696fa494fa02b3d603726c392198f70`; Gateway `13558248887` digest `sha256:41f391569c3eb4e9e06dcf45ad0ffdcc9696114f0b917a9be461a595bc127954`; provider `13557633648` digest `sha256:cdbd71b62ad677124211ffb4097146fa5ed773691ef2812069cb1c2c6da4eb97`; Timescale `13558471829` digest `sha256:f098ca773ee7757e2658d57a2f2e87fc78a06b2c8f996cc8c5f44054f2218186`.
+- Freqtrade 2026.9 smoke [42333240406](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42333240406): SUCCESS at same exact SHA; strategy `ChartProFreqaiResearch` status OK; artifact `13557394964`, digest `sha256:951294815b964295675bb0d3996ad3c0685d5a1e04259bcdad572584fa7aa616`.
+- Real Binance–OKX parity remains NOT RUN pending paired immutable CSVs. No network acquisition, Canonical DB access/write, ingestion, Feeder, VPS or execution.
