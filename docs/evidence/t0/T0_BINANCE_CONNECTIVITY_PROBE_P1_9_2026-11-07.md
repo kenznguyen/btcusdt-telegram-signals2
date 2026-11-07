@@ -399,3 +399,19 @@ Next: prepare a separately reviewed and approved controlled-ingestion acceptance
 - Important boundary: this is a new test source commit, not a verified test result. GitHub Actions execution has not yet been observed for this commit; local execution was not available in this session.
 - Status: test source COMMITTED; test execution NOT VERIFIED; Controlled First Run NOT AUTHORIZED; canonical ingestion NOT RUN; Feeder STOPPED; `ai_execution_enabled=false`.
 - Next: run `python -m unittest market_data.test_controlled_ingestion_acceptance -v` and then the full `market_data` test discovery on the exact commit. Resolve any failures test-first. Only after CI evidence is captured should this contract be reviewed for completeness and the API/rollback acceptance extended if needed.
+
+
+## 2026-11-07 — Controlled Ingestion Acceptance exact-SHA CI
+
+- Test source SHA: `0043231388d8f8447a0282e500f1f8e90372ca25`.
+- Workflow [42329219280](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42329219280), push event on the existing T0 branch; exact `head_sha` confirmed.
+- Static Gateway job `128271639525`: SUCCESS. Full `market_data` discovery ran **263 tests, 42 skipped, OK**. The new `market_data.test_controlled_ingestion_acceptance` tests all passed:
+  - `test_24_hour_window_has_exact_m15_and_h1_coverage_and_idempotent_hash`
+  - `test_read_api_returns_http_200_and_hash_matches_canonical_read`
+  - `test_conflicting_duplicate_rolls_back_entire_batch`
+  - `test_acceptance_is_isolated_from_repository_and_canonical_paths`
+- Artifact `13556896117`, name `t0-swg-contract-evidence-0043231388d8f8447a0282e500f1f8e90372ca25`, upload digest `sha256:e349a34e912cf00794c6222147a77044d4504450604b86e503e179dd4e043c1f`. Artifact payload not independently downloaded/re-hashed.
+- Paper consumer job `128271639766`: SUCCESS.
+- At evidence capture, fresh-cluster provider bootstrap job `128271639719` and isolated TimescaleDB job `128271704539` were still IN PROGRESS; no overall workflow conclusion is claimed.
+- Scope: synthetic data and temporary SQLite only. No Binance calls, canonical DB, credentials, Feeder runtime, market-data production sync, VPS, or execution.
+- Status: isolated SQLite acceptance tests PASS on exact SHA; PostgreSQL/provider/Timescale dependent jobs PENDING at capture; Controlled First Run NOT AUTHORIZED; canonical ingestion NOT RUN; Feeder STOPPED; `ai_execution_enabled=false`.
