@@ -4509,3 +4509,15 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - Tests used synthetic market data, temporary SQLite, and disposable CI PostgreSQL/TimescaleDB. No canonical DB or production data ingestion. No production Feeder, VPS, or live execution.
 - Final test verdict: Controlled Ingestion acceptance gates PASS. Safety authorization remains unchanged: canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; `ai_execution_enabled=false`.
 - Next step: freeze/review the acceptance contract and ask for explicit approval of a separately scoped Controlled First Run. Do not run it automatically.
+
+
+### Controlled First Run approval plan prepared — no execution (2026-11-07)
+
+- Plan: `docs/evidence/t0/T0_CONTROLLED_FIRST_RUN_APPROVAL_PLAN_2026-11-07.md`.
+- Plan commit: `ea5d2ed223a7b5ab569cc93df56e720c535530d4`.
+- Based on offline acceptance source SHA `1aac449b96c4079004e1cab882280b92390b45d`? No: the verified source SHA is `1aac449b96c4079004e1cab882280b923e33342c`; workflow `42329799499` SUCCESS.
+- Plan includes unresolved preflight inputs, read-only checks, exact bounded 24h window requirements, supervised one-shot procedure, stop conditions, backup/restore verification, rollback evidence, acceptance report, and explicit authorization wording.
+- Critical unresolved items: backend/target identity not supplied; production schema/API target not read-only verified; no production backup/restore proof; exact UTC window/operator/maintenance window not selected. Therefore any first-run execution remains BLOCKED / NOT AUTHORIZED.
+- No canonical DB was created/opened for writing; no live exchange sync, write lease, Feeder, VPS, or execution was started.
+- Safety remains: canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; `ai_execution_enabled=false`.
+- Next: perform only read-only preflight after target/backend identity and operator details are provided. Do not execute a write unless a separate explicit approval names exact source SHA, target identity, and UTC window.
