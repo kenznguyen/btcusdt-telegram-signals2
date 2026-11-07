@@ -4573,3 +4573,18 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - Branches are distinct: T0 `feature/t0-centralized-data-feeder-p1-20261101`; T2 `feature/freqtrade-strategy-parity-20261029`. Cross-branch compatibility is NOT VERIFIED; no merge/branch integration was performed.
 - No canonical SQLite file was created; no DB write, migration, ingestion, Feeder, VPS or execution was started.
 - Status: T0 isolated acceptance remains PASS at SHA `1aac449b96c4079004e1cab882280b923e33342c` / run `42329799499`; T2 direct consumer PRESENT on separate branch; cross-branch schema compatibility NOT VERIFIED; T2 tests not run in this session; canonical DB NOT CREATED; canonical ingestion NOT RUN; Feeder STOPPED; `ai_execution_enabled=false`.
+
+
+### T0–T2 Compatibility Audit — source-level result (2026-11-07)
+
+- Audit report: `docs/evidence/t0/T0_T2_COMPATIBILITY_AUDIT_2026-11-07.md`.
+- T0 branch source HEAD before documentation update: `b1a3daec797ab92280a95bee54aacede7cc40a57`.
+- T2 branch source HEAD inspected: `4c039411542e11e073615a52d5a50d4ca605b49a`.
+- Static schema/read contract comparison: CONDITIONAL PASS. The candle table identity, OHLCV fields, UTC millisecond timestamps, market identity, interval semantics and deterministic window-hash contract align.
+- T2 context calls `market_data.store.read_window()`; both branches' read_window implementation opens SQLite with URI `mode=ro`. Exporter writes a separate atomic JSON prediction artifact, not the T0 DB. This is source inspection only; runtime DB immutability remains NOT VERIFIED.
+- Found fixture API incompatibility: T2's tests call `CandleStore.insert()`, but T0 has removed that direct writer in favor of the single-writer gateway. Do not restore a direct T0 writer. Adapt test fixtures to a temporary DB using a test-only fixture writer or T0 gateway.
+- Freqtrade/FreqAI 2026.9 is documented/configured, but actual installed runtime and strategy-load remain NOT VERIFIED.
+- Binance/OKX parity NOT RUN; no paired dataset/report was inspected. Existing OKX source remains unchanged.
+- No code tests or GitHub Actions workflow were run in this audit. No merge, canonical DB creation/access/write, migration, ingestion, Feeder, VPS, exchange sync, or execution.
+- Status: source schema/read compatibility CONDITIONAL PASS; T2 fixture compatibility BLOCKED; runtime read-only NOT VERIFIED; Freqtrade 2026.9 runtime NOT VERIFIED; Binance/OKX parity NOT RUN; canonical DB NOT CREATED; ingestion NOT RUN; Feeder STOPPED; `ai_execution_enabled=false`.
+- Next: implement a temporary-only fixture path compatible with the T0 writer boundary, add before/after DB immutability regression, inspect GitHub Actions workflow inventory, then run focused exact-SHA tests and the pinned Freqtrade strategy-load smoke test. Do not merge branches or replace OKX without separate acceptance.
