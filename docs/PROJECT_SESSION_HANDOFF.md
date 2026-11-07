@@ -5548,3 +5548,11 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - PR description updated with the RED/GREEN evidence and explicit merge-context-vs-exact-head distinction. PR #1 remains OPEN / DRAFT / NOT MERGED.
 - T1 operational readiness: NOT VERIFIED. Existing R3/R5.1 filesystem TOCTOU limitations remain. No runtime integration/start, Binance connection, DB access, market capture, T0 changes, merge or live execution. Keep `ai_execution_enabled=false`.
 - Next: continue source-level review of heartbeat timeout state transitions and event ordering. Do not enable runtime or relax filesystem threat boundaries.
+
+
+## T1 R5.3 — heartbeat timeout terminal-state review (2026-11-07)
+- Source review target: T1 head `e37254c853d3efa59de1ed9caa43dd778d083623`. Finding: after `heartbeat_timed_out()` records and resolves an expired PING, connection lifecycle remains `Connected`; `ping_sent()` does not check `heartbeat_timeout_observed`, so it can append a fresh PING after a terminal heartbeat timeout. This permits new heartbeat traffic after the timeout condition has already been durably recorded.
+- TDD regression test committed first at test-only SHA `abb39a7455b02fe0e60de660c5bdff44e9ab3903`: `refuses_to_send_new_ping_after_heartbeat_timeout_is_observed`. It asserts a new PING is rejected and JSONL bytes remain unchanged.
+- RED: **PENDING / NOT VERIFIED**. The connector has not yet surfaced a PR workflow run for this head. No implementation change has been made.
+- PR #1 remains OPEN / DRAFT / NOT MERGED. No runtime integration, Binance connection, DB access, market capture, T0 changes, merge or live execution. Keep `ai_execution_enabled=false`.
+- Next: obtain exact PR-head workflow result and confirm this single test fails before implementing the terminal heartbeat guard.
