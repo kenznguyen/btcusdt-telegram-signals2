@@ -1,6 +1,7 @@
 use collector_connection_sidecar::{ConnectionIdentity, DisconnectReason, Route, SidecarWriter};
 use std::fs;
 use std::path::PathBuf;
+use sha2::{Digest, Sha256};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static NEXT_PATH: AtomicU64 = AtomicU64::new(0);
@@ -21,6 +22,7 @@ fn identity(route: Route) -> ConnectionIdentity {
         connection_id: "socket-public-001".to_string(),
         batch_id: 0,
         route,
+        subscriptions: vec!["btcusdt@depth@100ms".to_string()],
     }
 }
 
@@ -42,6 +44,8 @@ fn writes_python_contract_jsonl_and_fsyncs_each_event_before_returning() {
     assert_eq!(connected["route"], "public");
     assert_eq!(connected["eventType"], "CONNECTED");
     assert_eq!(connected["eventAtMs"], START);
+    assert_eq!(connected["subscriptionCount"], 1);
+    assert_eq!(connected["subscriptionSetSha256"].as_str().unwrap().len(), 64);
     assert!(connected["eventId"].as_str().unwrap().contains(SESSION));
 
     writer
@@ -142,6 +146,10 @@ fn finalizes_manifest_with_exact_file_size_and_sha256() {
     assert_eq!(saved["sidecarSha256"], manifest.sidecar_sha256);
     assert_eq!(saved["captureFinalized"], true);
     assert_eq!(saved["captureCompleteThroughMs"], START + 30);
+    assert_eq!(saved["connectionSubscriptions"][0]["subscriptions"][0], "btcusdt@depth@100ms");
+    let digest = Sha256::digest(&bytes);
+    let expected = digest.iter().map(|byte| format!("{byte:02x}")).collect::<String>();
+    assert_eq!(manifest.sidecar_sha256, expected);
 
     fs::remove_file(path).unwrap();
     fs::remove_file(manifest_path).unwrap();
@@ -157,6 +165,38 @@ fn refuses_incomplete_or_time_reversed_finalization() {
     assert!(writer.finalize(START - 1, START).is_err());
     // Failed finalization must not leave a manifest that could be mistaken for sealed evidence.
     assert!(!SidecarWriter::manifest_path(&path).exists());
+    drop(writer);
+    fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn refuses_to_finalize_while_a_socket_is_still_open() {
+    let path = temp_path("open-finalize");
+    let connection = identity(Route::Public);
+    let mut writer = SidecarWriter::create(&path, SOURCE, SESSION).unwrap();
+    writer.connected(&connection, START).unwrap();
+
+    assert!(writer.finalize(START + 1, START + 2).is_err());
+    assert!(!SidecarWriter::manifest_path(&path).exists());
+    drop(writer);
+    fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn refuses_empty_or_duplicate_subscription_sets() {
+    let path = temp_path("subscriptions");
+    let mut empty = identity(Route::Public);
+    empty.subscriptions.clear();
+    assert!(SidecarWriter::create(&path, SOURCE, SESSION).unwrap()
+        .connected(&empty, START).is_err());
+    drop(fs::File::open(&path).unwrap());
+    fs::remove_file(&path).unwrap();
+
+    let path = temp_path("duplicate-subscriptions");
+    let mut duplicate = identity(Route::Public);
+    duplicate.subscriptions.push("btcusdt@depth@100ms".to_string());
+    let mut writer = SidecarWriter::create(&path, SOURCE, SESSION).unwrap();
+    assert!(writer.connected(&duplicate, START).is_err());
     drop(writer);
     fs::remove_file(path).unwrap();
 }
