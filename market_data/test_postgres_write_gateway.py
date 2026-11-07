@@ -247,6 +247,137 @@ class PostgresWriteGatewayIntegrationTest(unittest.TestCase):
                     "DROP FUNCTION IF EXISTS market_data.pg_red_disconnect_insert()"
                 )
 
+    def test_sigkill_writer_process_rolls_back_batch_and_allows_new_generation(self):
+        import os
+        import signal
+        import subprocess
+        import sys
+        from market_data.postgres import PostgresLeaseStore, connection
+
+        second_open = self.open_time + self.step
+        with connection(DSN) as database:
+            database.execute(f"""
+                CREATE OR REPLACE FUNCTION market_data.pg_red_process_kill_insert()
+                RETURNS trigger LANGUAGE plpgsql AS $t0_process_kill$
+                BEGIN
+                    IF NEW.open_time_ms = {second_open} THEN
+                        PERFORM pg_sleep(3);
+                    END IF;
+                    RETURN NEW;
+                END $t0_process_kill$
+            """)
+            database.execute("""
+                CREATE TRIGGER pg_red_process_kill_insert
+                BEFORE INSERT ON market_data.candles
+                FOR EACH ROW EXECUTE FUNCTION market_data.pg_red_process_kill_insert()
+            """)
+
+        process = None
+        try:
+            script = """
+import os
+from market_data.postgres import PostgresWriteGateway
+from market_data.store import Candle
+
+step = 900_000
+start = int(os.environ["T0_TEST_OPEN_TIME"])
+candles = [
+    Candle("15m", start, "100", "102", "99", "101", "5", start + step + 1),
+    Candle("15m", start + step, "100", "102", "99", "101", "5", start + 2 * step + 1),
+]
+gateway = PostgresWriteGateway(
+    os.environ["T0_TEST_DSN"],
+    lease_name="binance-btcusdt-canonical",
+    owner_id=os.environ["T0_TEST_OWNER"],
+    generation_provider=lambda: int(os.environ["T0_TEST_GENERATION"]),
+)
+gateway.write_batch(candles)
+"""
+            environment = dict(os.environ)
+            environment.update({
+                "T0_TEST_DSN": DSN,
+                "T0_TEST_OWNER": self.owner,
+                "T0_TEST_GENERATION": str(self.lease.generation),
+                "T0_TEST_OPEN_TIME": str(self.open_time),
+            })
+            process = subprocess.Popen(
+                [sys.executable, "-c", script],
+                env=environment,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+
+            backend_pid = None
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline and backend_pid is None:
+                with connection(DSN, read_only=True) as database:
+                    row = database.execute(
+                        """
+                        SELECT pid
+                        FROM pg_stat_activity
+                        WHERE datname = current_database()
+                          AND state = 'active'
+                          AND pid <> pg_backend_pid()
+                          AND query LIKE '%write_canonical_candle%'
+                        ORDER BY query_start DESC
+                        LIMIT 1
+                        """
+                    ).fetchone()
+                if row is not None:
+                    backend_pid = row[0]
+                else:
+                    time.sleep(0.05)
+
+            self.assertIsNotNone(
+                backend_pid,
+                "child writer did not enter the second-row trigger",
+            )
+            process.kill()
+            self.assertEqual(process.wait(timeout=5), -signal.SIGKILL)
+
+            deadline = time.monotonic() + 8
+            backend_still_active = True
+            while time.monotonic() < deadline and backend_still_active:
+                with connection(DSN, read_only=True) as database:
+                    row = database.execute(
+                        "SELECT 1 FROM pg_stat_activity WHERE pid=%s",
+                        (backend_pid,),
+                    ).fetchone()
+                backend_still_active = row is not None
+                if backend_still_active:
+                    time.sleep(0.05)
+            self.assertFalse(backend_still_active, "terminated writer backend did not exit")
+
+            with connection(DSN, read_only=True) as database:
+                count = database.execute(
+                    """
+                    SELECT count(*)
+                    FROM market_data.candles
+                    WHERE open_time_ms IN (%s, %s)
+                    """,
+                    (self.open_time, second_open),
+                ).fetchone()[0]
+            self.assertEqual(count, 0)
+
+            self.assertTrue(self.leases.release(self.owner, self.lease.generation))
+            replacement = self.leases.acquire("writer-after-sigkill", ttl_seconds=30)
+            self.assertIsNotNone(replacement)
+            self.assertGreater(replacement.generation, self.lease.generation)
+            self.assertTrue(
+                self.leases.is_current("writer-after-sigkill", replacement.generation)
+            )
+        finally:
+            if process is not None and process.poll() is None:
+                process.kill()
+                process.wait(timeout=5)
+            with connection(DSN) as database:
+                database.execute(
+                    "DROP TRIGGER IF EXISTS pg_red_process_kill_insert ON market_data.candles"
+                )
+                database.execute(
+                    "DROP FUNCTION IF EXISTS market_data.pg_red_process_kill_insert()"
+                )
+
     def test_invalid_middle_candle_is_rejected_before_any_write(self):
         from market_data.postgres import connection
 
