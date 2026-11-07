@@ -5464,3 +5464,12 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - **R5 review verdict: BLOCKED pending resolution of the three required findings.** No code or tests changed in this review. Existing R1–R4 CI results remain historical evidence for their respective source SHAs; they do not validate any future fixes.
 - Restrictions unchanged: no Collector startup, Binance connection, DB access, market capture, T0 changes, merge, or live execution. Keep `ai_execution_enabled=false`.
 - Proposed next slice: R5.1 TDD for heartbeat terminal semantics, aggregate resource limits, and writer-handle/path identity. Implement only after explicit user approval; keep PR Draft.
+
+
+## 2026-11-07 — R5.1 TDD regression tests committed; RED pending CI
+- User granted standing approval for the next T1 engineering steps, bounded to source review, tests, code changes, GitHub Actions, and handoff updates. Explicit restrictions remain: no merge, no Draft-to-Ready transition, no Collector runtime/start, no Binance connection, no DB access/data capture, no T0 changes, and no live execution. Keep `ai_execution_enabled=false`.
+- T1 PR #1 current head/source SHA: `b206b7861043803ca8026c1d2c4ddb649e34309b`; branch `feature/t1-connection-sidecar-integration-20261107`; PR OPEN / DRAFT / NOT MERGED.
+- Test-only commit `b206b7861043803ca8026c1d2c4ddb649e34309b`, changed only `crates/connection-sidecar/tests/sidecar_writer.rs` (verified commit file list).
+- Added 3 regression tests: reject disconnect/finalize with unanswered Ping; enforce aggregate subscription budget across a session; reject same-size valid JSONL pathname replacement during finalization.
+- Push workflow [42363209236](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42363209236) is running on exact source SHA `b206b7861043803ca8026c1d2c4ddb649e34309b`. At last poll backend and frontend jobs PASS; Collector fmt/Clippy/test, Security audit and Docker build remain IN_PROGRESS. RED is **NOT VERIFIED** until the Collector job completes and the three intended tests are observed failing for the expected reasons.
+- No implementation code changed yet. No new CI artifacts confirmed. Next: inspect exact Collector job output; fix any test compilation issues first; confirm behavioral RED, then implement minimal GREEN changes and run full CI.
