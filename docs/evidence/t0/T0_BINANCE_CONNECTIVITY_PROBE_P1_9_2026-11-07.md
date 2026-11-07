@@ -280,3 +280,27 @@ Next diagnostic step: compare the probe's exact HTTP Upgrade request/response pa
 | AI execution | DISABLED |
 
 Next: download source snapshot from exact SHA 54f9344e42baa2bd92a45fd6d96eae35c2b49148, run the existing offline tests locally, then run only the read-only probe with explicit network confirmation. Record the resulting JSON and verify its source SHA separately. No credentials, proxy/VPN, alternate endpoint, DB writes, persistence, Feeder, or execution.
+
+
+### P1.9 PC rerun — Upgrade succeeds, first 15m Kline event times out (2026-11-07)
+
+- User-provided probe observation: `2026-11-07T02:15:07Z`.
+- REST: **5/5 PASS**; all endpoints returned HTTP 200 and valid schemas. Latencies: ping 208.05 ms; time 134.20 ms; exchangeInfo 723.02 ms; closed M15 136.84 ms; closed H1 125.60 ms.
+- WebSocket: `status=101`, `stage=WAITING_FOR_KLINE_EVENT`, `classification=EVENT_TIMEOUT`, `TimeoutError`, 20,430.78 ms; `event_valid=false`. This proves the probe completed and validated the HTTP Upgrade for its configured `/ws/btcusdt@kline_15m` stream, but no first WebSocket event was received before timeout.
+- This is progress from the prior `HTTP_UPGRADE/status=null` result. The CRLF response-header reader is no longer the observed blocker. It does **not** prove the Binance server failed to publish data; possible causes remain unisolated (15m stream/path behavior, network middlebox/data-frame delivery, or client frame reception).
+- Binance USDⓈ-M official market-stream documentation describes Kline updates for an existing current candle at 250 ms intervals. A 20.43-second first-event timeout is therefore anomalous and requires a controlled comparison; it is not explained by the 15-minute candle duration. Reference: https://developers.binance.com/docs/derivatives/usds-margined-futures/websocket-market-streams/Kline-Candlestick-Streams
+- The supplied JSON does not include a source SHA. The intended PC snapshot was the archive pinned to source SHA `54f9344e42baa2bd92a45fd6d96eae35c2b49148`; runtime provenance remains contextual, not independently attested by the JSON.
+- Safety fields: no credentials, proxy, DB, Feeder, market-data persistence, or AI execution.
+  
+#### Updated gate verdict
+
+| Gate | Status |
+|---|---|
+| PC REST | CONDITIONAL PASS — 5/5 in this sample; not an SLA claim |
+| Probe HTTP Upgrade for 15m | PASS — validated HTTP 101 |
+| First 15m Kline event | NOT VERIFIED — 20.43s event timeout |
+| P1.9 overall | BLOCKED / NOT VERIFIED |
+| Canonical ingestion / DB / Feeder / Controlled First Run | NOT AUTHORIZED / NOT RUN |
+| AI execution | DISABLED |
+
+Next diagnostic: from the same PC/network, compare first-frame receipt for `btcusdt@kline_15m` and `btcusdt@kline_1m` using a direct WebSocket client, recording only endpoint interval, HTTP status, first frame opcode/length, and elapsed time. Do not change the canonical probe interval or accept a non-15m stream as satisfying P1.9. Keep the test read-only; no alternate host, VPN/proxy, credentials, DB, Feeder, or persistence.
