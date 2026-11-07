@@ -5366,3 +5366,12 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - PR #1 remains OPEN / DRAFT / NOT MERGED. Exact-head CI verdict: PASS. T1 operational readiness remains NOT VERIFIED; CI does not authorize runtime use.
 - No runtime writer integration/start, Binance connection, DB access, market capture, merge, or live execution. Keep `ai_execution_enabled=false`.
 - Next: perform a source-level review of the sidecar and dependency changes, then document any findings. Keep PR Draft; no merge or runtime activation without explicit approval.
+
+
+## T1 sidecar source review — 2026-11-07
+- Reviewed PR #1 changed-file set and sidecar implementation/tests at source SHA `87b13393d5c4c581768f12bd0277924d38eda8de` after exact-head CI PASS.
+- Review dimensions: lifecycle correctness, durability/error paths, identity validation, tests, architecture and dependency scope.
+- **REQUIRED finding / merge blocker:** `crates/connection-sidecar/src/lib.rs:553-560`. Manifest hard-link publication can succeed, followed by temp-file removal or parent-directory sync failure. The error path returns without poisoning the writer, allowing later events to append and silently invalidate the already-published manifest digest/byte count. Inline review comment posted on PR #1 (review ID `5811119433`).
+- Required remediation: make the writer permanently non-writable immediately after manifest publication (including post-publication cleanup/sync errors), or use an equivalent fail-closed state transition; add a regression test for a failure after publication proving no later append can alter the sealed sidecar.
+- Current verdict: CI **PASS**; source review **BLOCKED pending required fix**; T1 operational readiness **NOT VERIFIED**. No source changes or tests were made during this review.
+- Next: implement the minimal fail-closed fix with a test-first regression, run focused sidecar tests and exact-head GitHub Actions CI, then update this handoff and PR evidence. Keep PR OPEN / DRAFT / NOT MERGED; no Collector integration/start, exchange connection, DB access, market capture, or live execution. Keep `ai_execution_enabled=false`.
