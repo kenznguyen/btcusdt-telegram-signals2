@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+from contextlib import closing
 from pathlib import Path
 import sqlite3
 
@@ -11,7 +12,7 @@ from market_data.store import CandleStore
 
 def _initialize_schema(path):
     CandleStore(path)
-    with sqlite3.connect(path, timeout=5) as database:
+    with closing(sqlite3.connect(path, timeout=5)) as database:
         database.execute("""CREATE TABLE feeder_leases (
             lease_name TEXT PRIMARY KEY,
             owner TEXT,
@@ -40,7 +41,7 @@ def create_canonical_database(db_path, *, initializer=None):
     os.close(descriptor)
     try:
         (initializer or _initialize_schema)(target)
-        with sqlite3.connect(target.resolve().as_uri() + "?mode=ro", uri=True, timeout=5) as database:
+        with closing(sqlite3.connect(target.resolve().as_uri() + "?mode=ro", uri=True, timeout=5)) as database:
             tables = {row[0] for row in database.execute(
                 "SELECT name FROM sqlite_master WHERE type='table'"
             )}
