@@ -84,6 +84,8 @@ def load_and_validate_connection_events(
     window_start_ms,
     window_end_ms,
     max_heartbeat_gap_ms,
+    capture_finalized,
+    capture_complete_through_ms,
     expected_connections=None,
 ):
     """Validate a JSONL sidecar and derive conservative per-connection status.
@@ -100,8 +102,13 @@ def load_and_validate_connection_events(
         raise ValueError("Expected collector session identity")
     if type(window_start_ms) is not int or type(window_end_ms) is not int or not 0 <= window_start_ms < window_end_ms:
         raise ValueError("Invalid half-open connection evidence window")
-    if type(max_heartbeat_gap_ms) is not int or max_heartbeat_gap_ms <= 0:
-        raise ValueError("Invalid heartbeat gap policy")
+    if type(max_heartbeat_gap_ms) is not int or not 0 < max_heartbeat_gap_ms <= 60_000:
+        raise ValueError("Heartbeat gap policy must be between 1 and 60000 ms")
+    if capture_finalized is not True:
+        raise ValueError("Connection event capture must be finalized")
+    if (type(capture_complete_through_ms) is not int
+            or capture_complete_through_ms < window_end_ms):
+        raise ValueError("Capture watermark does not cover the requested window")
 
     source_path = Path(path)
     if source_path.stat().st_size > MAX_EVENT_FILE_BYTES:
