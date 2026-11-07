@@ -4495,3 +4495,17 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - TimescaleDB job `128271704539`: FAILURE in existing `test_interrupted_migration_rolls_back_and_retry_applies_cleanly`, psycopg placeholder error `only '%s', '%b', '%t' are allowed as placeholders, got '%p'`. PostgreSQL FeederRuntime, lifecycle, least-privilege and read-only integration steps skipped; NOT VERIFIED.
 - Isolated SQLite acceptance remains PASS. Overall PostgreSQL acceptance is BLOCKED; no canonical ingestion or Feeder authorization.
 - Next: keep the SQLite acceptance contract frozen and separately diagnose the provider role guard and PG-LC07 placeholder issue test-first. Do not weaken guards, bypass skipped dependencies, create/use canonical DB, run live sync, or start Feeder.
+
+
+### T0 Controlled Ingestion Acceptance — final CI PASS (2026-11-07)
+
+- Final source SHA: `1aac449b96c4079004e1cab882280b923e33342c`.
+- GitHub Actions [42329799499](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42329799499): **SUCCESS**, exact head SHA verified.
+- Four jobs all SUCCESS: Static Gateway `128273518997`; restricted provider bootstrap `128273519235`; paper consumer `128273519333`; isolated TimescaleDB `128273592985`.
+- Static full suite: **263 tests, 42 skipped, OK**. Four Controlled Ingestion acceptance tests PASS (96 M15/24 H1, second-sync zero inserts and stable hash, API HTTP 200/hash parity, conflicting-batch rollback, temporary DB isolation).
+- Provider bootstrap integration PASS. Test fixture handles PostgreSQL 16 automatic ADMIN memberships in disposable cluster; production migration role-safety guards were not weakened. Migration return semantics assertion corrected.
+- PG-LC07 fixed by replacing psycopg-incompatible `LIKE '%pg_sleep(4)%'` with `position('pg_sleep(4)' IN query) > 0`. Atomic writer, FeederRuntime, lifecycle, least-privilege and Timescale read-only integration all PASS.
+- Artifacts: `13557310259` static/Gateway (digest `sha256:f08b725554380761e3f63b8d7e9b504010d0229737835a73d176f15457a5cdbc`); `13557220615` provider bootstrap (digest `sha256:9846f8a7688371752e40b5647da0a138c70c4c1d82e9b1f19deed4d5a8044c07`); `13557141783` paper consumer (digest `sha256:3bdd2d0b95df219728ef17d508b5f684e058a10dd0f4b1536e76d4346ade6e20`); `13556792589` Timescale read-only (digest `sha256:3e35c51a08b7874f5326ed88eeb92719d5f441fd6eea6e73676f630f9e5f1069`).
+- Tests used synthetic market data, temporary SQLite, and disposable CI PostgreSQL/TimescaleDB. No canonical DB or production data ingestion. No production Feeder, VPS, or live execution.
+- Final test verdict: Controlled Ingestion acceptance gates PASS. Safety authorization remains unchanged: canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; `ai_execution_enabled=false`.
+- Next step: freeze/review the acceptance contract and ask for explicit approval of a separately scoped Controlled First Run. Do not run it automatically.
