@@ -5536,3 +5536,15 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - New commit workflow [42366993165](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42366993165) is IN_PROGRESS at handoff update. R5.2 GREEN remains **NOT VERIFIED** until exact-source checkout, sidecar offline tests (including heartbeat timeout path), and all required jobs complete successfully.
 - No artifacts confirmed. No Collector runtime, Binance connection, DB access, market capture, T0 changes, PR readiness transition, merge, or live execution. Keep `ai_execution_enabled=false`.
 - Next: poll run 42366993165; inspect logs if format/Clippy/tests fail. If GREEN, update PR description and this handoff with exact-source evidence, then continue source review. Preserve all runtime and merge restrictions.
+
+
+## T1 R5.2 — merge-context CI closeout (2026-11-07)
+- T1 PR #1 head/source SHA: `e37254c853d3efa59de1ed9caa43dd778d083623`.
+- Workflow [42366993165](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42366993165) completed SUCCESS, all 5/5 jobs PASS. The Collector job log proves it checked out synthetic merge SHA `cb2e47b48cfa338e7c50baf4696cb5c66e41cba8`, which merges PR head `e37254c853d3efa59de1ed9caa43dd778d083623` into base `bc4f0ef633fbeee4a49defd72827f17162693805`. This is merge-context evidence, not exact-head push evidence.
+- Collector workspace format/Clippy/release build PASS; Collector library 40/40 and binary 1/1 PASS; Sidecar format/Clippy PASS; Sidecar offline integration suite 24/24 PASS. Explicitly passed `records_heartbeat_timeout_and_allows_terminal_disconnect_and_finalize` and `refuses_heartbeat_timeout_disconnect_before_timeout_threshold`, plus unanswered-PING, aggregate subscription, path-replacement and validator regressions.
+- Dashboard backend pytest PASS; frontend TypeScript/build/Vitest PASS; dependency reachability diagnostics, cargo-audit and npm audit steps PASS; Docker collector/dashboard image build PASS.
+- Artifacts query: none published.
+- R5.2 RED/GREEN: RED confirmed on exact test SHA `f622759de2287848d6b7c8337adcb64688640a61` in run [42365276279](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42365276279), sidecar suite 23 passed / 1 intended failure. Implementation + 24/24 sidecar tests and 5/5 merge-context CI: **PASS**. Exact-source push CI on `e37254c853d3efa59de1ed9caa43dd778d083623`: **NOT VERIFIED** (available commit-run wrapper only returns PR-triggered runs).
+- PR description updated with the RED/GREEN evidence and explicit merge-context-vs-exact-head distinction. PR #1 remains OPEN / DRAFT / NOT MERGED.
+- T1 operational readiness: NOT VERIFIED. Existing R3/R5.1 filesystem TOCTOU limitations remain. No runtime integration/start, Binance connection, DB access, market capture, T0 changes, merge or live execution. Keep `ai_execution_enabled=false`.
+- Next: continue source-level review of heartbeat timeout state transitions and event ordering. Do not enable runtime or relax filesystem threat boundaries.
