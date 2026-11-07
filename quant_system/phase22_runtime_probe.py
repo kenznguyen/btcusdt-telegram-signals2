@@ -5,6 +5,7 @@ import hashlib
 import importlib.metadata
 import json
 import tempfile
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -50,6 +51,47 @@ def runtime_config_snapshot(config: dict) -> dict:
         "timeframe": config["timeframe"],
         "dry_run": config["dry_run"],
         "force_entry_enable": config["force_entry_enable"],
+    }
+
+
+def _diff_paths(left, right, prefix="") -> list[str]:
+    """Return deterministic paths whose values differ, without exposing values."""
+    if isinstance(left, dict) and isinstance(right, dict):
+        paths = []
+        for key in sorted(set(left) | set(right)):
+            path = f"{prefix}.{key}" if prefix else str(key)
+            if key not in left or key not in right:
+                paths.append(path)
+            else:
+                paths.extend(_diff_paths(left[key], right[key], path))
+        return paths
+    if isinstance(left, list) and isinstance(right, list):
+        paths = []
+        for index in range(max(len(left), len(right))):
+            path = f"{prefix}[{index}]"
+            if index >= len(left) or index >= len(right):
+                paths.append(path)
+            else:
+                paths.extend(_diff_paths(left[index], right[index], path))
+        return paths
+    return [] if type(left) is type(right) and left == right else [prefix or "$"]
+
+
+def config_hash_diagnostics(
+    snapshot: dict,
+    raw_snapshot: dict,
+    *,
+    expected_config_sha256: str,
+    expected_freqai_sha256: str,
+) -> dict:
+    """Summarize hash provenance and raw-to-resolved changes without values."""
+    return {
+        "expected_config_sha256": expected_config_sha256,
+        "actual_config_sha256": canonical_sha(snapshot),
+        "expected_freqai_config_sha256": expected_freqai_sha256,
+        "actual_freqai_config_sha256": canonical_sha(snapshot["freqai"]),
+        "raw_freqai_config_sha256": canonical_sha(raw_snapshot["freqai"]),
+        "runtime_vs_raw_diff_paths": _diff_paths(raw_snapshot, snapshot),
     }
 
 
@@ -114,10 +156,25 @@ def run_probe() -> dict:
     # Historical ChartProAuditLightGBMRegressor._capture_phase13b_predict()
     # hashes this exact five-field snapshot derived from self.config.
     snapshot = runtime_config_snapshot(loaded_config)
-    config_sha = canonical_sha(snapshot)
-    freqai_sha = canonical_sha(snapshot["freqai"])
-    if config_sha != metadata["config_sha256"] or freqai_sha != metadata["freqai_config_sha256"]:
+    diagnostics = config_hash_diagnostics(
+        snapshot,
+        runtime_config_snapshot(raw),
+        expected_config_sha256=metadata["config_sha256"],
+        expected_freqai_sha256=metadata["freqai_config_sha256"],
+    )
+    if (
+        diagnostics["actual_config_sha256"] != diagnostics["expected_config_sha256"]
+        or diagnostics["actual_freqai_config_sha256"]
+        != diagnostics["expected_freqai_config_sha256"]
+    ):
+        print(
+            "PHASE22_CONFIG_HASH_DIAGNOSTICS="
+            + json.dumps(diagnostics, sort_keys=True),
+            file=sys.stderr,
+        )
         raise AssertionError("PHASE22_EFFECTIVE_CONFIG_HASH_MISMATCH")
+    config_sha = diagnostics["actual_config_sha256"]
+    freqai_sha = diagnostics["actual_freqai_config_sha256"]
 
     # Import the actual strategy against the pinned Freqtrade runtime and
     # execute only its pure feature-engineering methods on synthetic candles.
