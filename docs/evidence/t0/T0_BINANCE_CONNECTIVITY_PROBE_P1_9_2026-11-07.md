@@ -237,3 +237,46 @@ Next: update PC source from exact SHA `f61deca1cd7874e61851ca52ad4857bd0ff4535c`
 | Canonical ingestion / Controlled First Run / Feeder | NOT AUTHORIZED / NOT RUN |
 
 Next diagnostic step: compare the probe's exact HTTP Upgrade request/response path with a fresh direct PowerShell handshake test from the same PC and network, recording timestamp, target host/path, HTTP status and response headers (never include secrets). A successful independent handshake would narrow the issue to differences in the probe's request/socket handling; a timeout there would point to the PC/network path or endpoint reachability. Do not add alternate domains, VPN/proxy, retries that bypass policy, or modify the probe until this comparison is available.
+
+
+
+### Follow-up — PowerShell handshake comparison and HTTP header terminator fix (2026-11-07)
+
+#### Independent PC handshake observation
+
+- User ran a direct PowerShell 5.1.19041.4291 handshake at 2026-11-07T02:10:07Z.
+- Target: fstream.binance.com:443/ws/btcusdt@kline_1m.
+- TCP: PASS; TLS 1.2: PASS.
+- Server returned HTTP/1.1 101 Switching Protocols; Sec-WebSocket-Accept validation: VALID.
+- Measured elapsed time: 413.58 ms.
+- This verifies an independent handshake for the 1m stream at that timestamp. It does not verify the probe's 15m stream or receipt of a Kline event.
+
+#### Source-level root cause
+
+- Compared the exact probe source at f61deca1cd7874e61851ca52ad4857bd0ff4535c with the successful PowerShell handshake.
+- The probe passed a double-escaped CRLF marker to _recv_until, representing literal backslash characters rather than the HTTP header terminator bytes CRLF CRLF.
+- As a result, the probe kept reading after receiving a valid HTTP 101 header block and timed out at HTTP_UPGRADE.
+- Corrected by adding _recv_http_upgrade_response() using the actual byte marker b"\r\n\r\n" and routing the probe through that helper.
+
+#### TDD and GitHub Actions evidence
+
+- RED test commit: 8a7ab00f6f6a39c3ad63079298c9f6e0b397e2f9.
+- RED workflow: [42327787488](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42327787488), failed as expected because _recv_http_upgrade_response was not yet implemented (ImportError). This confirms the new regression contract could not pass against the pre-fix implementation.
+- Final tested source SHA: 54f9344e42baa2bd92a45fd6d96eae35c2b49148.
+- Dedicated offline workflow: [42327833404](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42327833404), SUCCESS; exact checked-out SHA confirmed in logs; syntax compilation PASS; 17/17 probe contract tests PASS, including test_reads_headers_until_real_crlf_terminator.
+- Artifact: [13556555458](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42327833404/artifacts/13556555458); name t0-binance-probe-contracts-54f9344e42baa2bd92a45fd6d96eae35c2b49148; size 983 bytes; GitHub upload digest sha256:9de24a8856c23cd402772c6577fbd543cd75441d6aefe2418713926cdaf6baee. Payload bytes have not been independently downloaded and re-hashed.
+
+#### Updated verdict and boundary
+
+| Gate | Status |
+|---|---|
+| PC direct PowerShell HTTP Upgrade (1m stream) | PASS — HTTP 101 and accept digest valid |
+| Probe HTTP response terminator handling | PASS — regression fixed and 17/17 offline contracts pass |
+| Probe WebSocket HTTP Upgrade (15m stream) | NOT YET RE-RUN ON PC |
+| WebSocket 15m Kline event | NOT VERIFIED |
+| REST reachability | CONDITIONAL PASS — recent 5/5 samples, not a durability/SLA claim |
+| P1.9 overall | BLOCKED / NOT VERIFIED pending fresh PC probe |
+| Canonical ingestion / DB / Feeder / Controlled First Run | NOT AUTHORIZED / NOT RUN |
+| AI execution | DISABLED |
+
+Next: download source snapshot from exact SHA 54f9344e42baa2bd92a45fd6d96eae35c2b49148, run the existing offline tests locally, then run only the read-only probe with explicit network confirmation. Record the resulting JSON and verify its source SHA separately. No credentials, proxy/VPN, alternate endpoint, DB writes, persistence, Feeder, or execution.
