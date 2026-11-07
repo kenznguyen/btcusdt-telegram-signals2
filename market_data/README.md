@@ -106,3 +106,29 @@ Các kiểm thử offline dùng SQLite tạm, handler WSGI thật và giả lậ
 Kiểm thử TimescaleDB không dùng canonical database. Bộ integration yêu cầu đồng thời `MARKET_DATA_TEST_DISPOSABLE=1`, `MARKET_DATA_REQUIRE_TIMESCALE=1` và DSN cục bộ đúng database/user `t0_test`; nếu thiếu điều kiện, bộ test sẽ fail closed hoặc bị skip theo cấu hình. PostgreSQL read adapter (`PostgresCandleStore`) vẫn read-only. Feeder canonical write path là `PostgresWriteGateway`, gọi hàm DB `market_data.write_canonical_candle()` có `SECURITY DEFINER`, kiểm tra lease trong DB và xử lý idempotency/conflict. Migration tạo capability role `t0_feeder_writer`; login role của Feeder phải được cấp membership rõ ràng, không được cấp `INSERT/UPDATE/DELETE/TRUNCATE` trực tiếp trên `market_data.candles`. Quyền `EXECUTE` không cấp cho `PUBLIC`. Các kiểm thử ghi dùng riêng database TimescaleDB disposable.
 
 Nguồn adapter: [CCXT binanceusdm](https://github.com/ccxt/ccxt/blob/master/python/ccxt/binanceusdm.py), [Binance fetch_ohlcv/fetch_time](https://github.com/ccxt/ccxt/blob/master/python/ccxt/binance.py), [Freqtrade data download](https://github.com/freqtrade/freqtrade/blob/develop/docs/data-download.md). Bước sau: xuất dataset dùng chung cho nghiên cứu Freqtrade/FreqAI và nối đặc trưng trinh sát theo [kiến trúc 5 tầng](../docs/FIVE_LAYER_ARCHITECTURE.md).
+
+
+## P1.9 — Binance USD-M connectivity probe (read-only)
+
+The separate probe checks public REST reachability and a live BTCUSDT 15-minute WebSocket kline event. It does not import or start the Feeder, open/create a database, call `sync_window()`, persist candles, or use API credentials. REST is configured for direct access without inheriting HTTP proxy environment variables; WebSocket uses direct TLS.
+
+Run only on the PC/network whose Binance access is being evaluated:
+
+```bash
+python3 -m market_data.binance_connectivity_probe --confirm-network
+```
+
+Optional timeout (1–30 seconds per request):
+
+```bash
+python3 -m market_data.binance_connectivity_probe --confirm-network --timeout 10
+```
+
+The probe checks:
+- Public USD-M ping, server time, and BTCUSDT perpetual market metadata.
+- At least one closed BTCUSDT M15 and H1 candle response.
+- Direct TLS WebSocket upgrade and a BTCUSDT M15 kline event.
+
+The JSON report classifies HTTP 451 as `NETWORK_POLICY_BLOCKED`, 429 as `RATE_LIMITED`, authentication/permission errors separately, and DNS/TLS/timeout/connection failures distinctly. A successful GitHub Actions run validates offline contracts only; it does **not** test Binance connectivity from the PC. Run the command on the target PC and retain its JSON output before treating provider connectivity as verified. This probe does not cover T1 funding/OI/trades/liquidations endpoints.
+
+Evidence and limits: [P1.9 probe report](../docs/evidence/t0/T0_BINANCE_CONNECTIVITY_PROBE_P1_9_2026-11-07.md).
