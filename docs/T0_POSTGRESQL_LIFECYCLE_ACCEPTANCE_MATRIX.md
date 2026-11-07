@@ -63,13 +63,19 @@ The following cases were not established by the inspected test files/evidence an
 | PG-LC-01 | PostgreSQL unavailable before runtime startup | Startup fails closed; no scheduler admission, no SQLite fallback, no lease-less writer | NOT VERIFIED |
 | PG-LC-02 | Connection loss during heartbeat / lease check | Runtime becomes non-ready and stops admission; no stale generation can write | NOT VERIFIED |
 | PG-LC-03 | Database disconnect during an in-flight writer transaction | Whole transaction rolls back or commit outcome is reconciled unambiguously; no partial candle batch | NOT VERIFIED |
-| PG-LC-04 | Connection pool exhaustion / connection timeout | Bounded failure, no unbounded thread growth or readiness false-positive | NOT VERIFIED |
+| PG-LC-04 | Connection establishment timeout / concurrent connection churn | Bounded failure under the adapter's per-operation connection model; no unbounded thread growth or readiness false-positive | NOT VERIFIED |
 | PG-LC-05 | Database returns after transient outage | Runtime either performs an explicitly designed safe recovery or remains stopped pending restart; never resumes with stale lease | NOT VERIFIED |
 | PG-LC-06 | Process termination during PostgreSQL writer transaction | No partial batch; a new owner must acquire a higher generation before writing | NOT VERIFIED |
 | PG-LC-07 | Migration interruption / retry on a disposable clean database | Migration state is deterministic and fail-closed; no implicit migration from runtime constructors | PARTIAL / NOT VERIFIED |
 | PG-LC-08 | Readiness during database connectivity loss (not only lease loss) | Readiness becomes false within a bounded interval and remains false until lease and DB authority are re-established | NOT VERIFIED |
 
 Do not implement automatic reconnect/recovery behavior merely to make these tests pass. First derive the intended state machine and bounded timeout semantics from the existing runtime contract. A safe terminal failure may be correct where automatic resumption could violate fencing.
+
+### Source-derived observations (read-only audit, 2026-11-07)
+
+- `market_data/postgres.py::connection()` opens a new psycopg connection per operation; there is no connection pool in the current adapter. It uses `connect_timeout=5`, `statement_timeout=5000`, and `lock_timeout=5000`. Therefore, pool-exhaustion tests are not applicable unless a pool is introduced later; PG-LC-04 targets bounded connection establishment and concurrent connection churn instead.
+- `FeederRuntime.start()` sets state to `STARTING`, then calls `lease_store.acquire()` before entering its startup `try` block. If PostgreSQL is unavailable and acquire raises, the exception propagates while state remains `STARTING`; the scheduler is not started, and the same runtime cannot be started again because only `NEW` is accepted. Readiness remains fail-closed, but the terminal state/diagnostic behavior is not explicitly tested. Proposed first RED test: inject a `StoreUnavailable` from acquire and assert the runtime fails closed, does not start the scheduler, does not attempt to release a lease it never acquired, and exposes a deterministic terminal state.
+- `_heartbeat_loop()` already converts heartbeat exceptions to lease loss and calls `on_lease_lost()`, which stops scheduler admission. `run_once()` likewise calls `on_lease_lost()` if `is_current()` raises. Existing takeover tests cover stale/expired lease loss, but a database-connection exception path is not independently tested. Do not add automatic reconnect/resume without a separate state-machine design.
 
 ## 5. Acceptance sequence
 
