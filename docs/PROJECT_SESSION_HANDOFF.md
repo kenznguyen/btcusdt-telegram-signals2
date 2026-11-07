@@ -4484,3 +4484,14 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - All acceptance tests used synthetic data and a temporary SQLite database. No live Binance network, canonical DB, Feeder, VPS, or execution.
 - Status: isolated SQLite Controlled Ingestion contract PASS; PostgreSQL/provider and Timescale integration NOT YET VERIFIED; canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; `ai_execution_enabled=false`.
 - Next: reconcile remaining jobs in run 42329219280. Keep existing provider-role and Timescale blockers explicit; do not weaken guards. Do not execute Controlled First Run.
+
+
+### Workflow 42329219280 — final outcome
+
+- Overall workflow FAILURE due to independent PostgreSQL provider-bootstrap and TimescaleDB integration failures.
+- Static Gateway job `128271639525`: SUCCESS; complete `market_data` suite **263 tests, 42 skipped, OK**; all four new isolated Controlled Ingestion acceptance tests passed.
+- Paper consumer job `128271639766`: SUCCESS.
+- Provider bootstrap job `128271639719`: FAILURE at existing strict role guard: `t0_migrator may only be granted to the ephemeral t0_migrator_login role`. Do not weaken.
+- TimescaleDB job `128271704539`: FAILURE in existing `test_interrupted_migration_rolls_back_and_retry_applies_cleanly`, psycopg placeholder error `only '%s', '%b', '%t' are allowed as placeholders, got '%p'`. PostgreSQL FeederRuntime, lifecycle, least-privilege and read-only integration steps skipped; NOT VERIFIED.
+- Isolated SQLite acceptance remains PASS. Overall PostgreSQL acceptance is BLOCKED; no canonical ingestion or Feeder authorization.
+- Next: keep the SQLite acceptance contract frozen and separately diagnose the provider role guard and PG-LC07 placeholder issue test-first. Do not weaken guards, bypass skipped dependencies, create/use canonical DB, run live sync, or start Feeder.
