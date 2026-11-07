@@ -321,6 +321,24 @@ def _recv_until(sock, buffer, marker, max_bytes=65536):
     return buffer
 
 
+def _websocket_failure_result(error, *, stage, status, started, now=None):
+    """Preserve the furthest completed handshake stage when a probe fails."""
+    observed = time.monotonic() if now is None else now
+    timed_out_waiting_for_event = (
+        stage == "WAITING_FOR_KLINE_EVENT"
+        and isinstance(error, (TimeoutError, socket.timeout))
+    )
+    return {
+        "status": status,
+        "stage": stage,
+        "classification": "EVENT_TIMEOUT" if timed_out_waiting_for_event else _network_error_kind(error),
+        "error_type": type(error).__name__,
+        "error_detail": " ".join(str(error).split())[:240],
+        "latency_ms": round((observed - started) * 1000, 2),
+        "event_valid": False,
+    }
+
+
 def probe_websocket(timeout=8):
     """Perform direct TLS WebSocket upgrade and receive one BTCUSDT kline event."""
     key = base64.b64encode(secrets.token_bytes(16)).decode("ascii")
@@ -366,19 +384,9 @@ def probe_websocket(timeout=8):
                     "event_valid": event_valid,
                 }
     except Exception as error:
-        timed_out_waiting_for_event = (
-            stage == "WAITING_FOR_KLINE_EVENT"
-            and isinstance(error, (TimeoutError, socket.timeout))
+        return _websocket_failure_result(
+            error, stage=stage, status=status, started=started
         )
-        return {
-            "status": status,
-            "stage": stage,
-            "classification": "EVENT_TIMEOUT" if timed_out_waiting_for_event else _network_error_kind(error),
-            "error_type": type(error).__name__,
-            "error_detail": " ".join(str(error).split())[:240],
-            "latency_ms": round((time.monotonic() - started) * 1000, 2),
-            "event_valid": False,
-        }
 
 
 def run_probe(timeout=8):
