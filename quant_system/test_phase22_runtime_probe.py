@@ -147,3 +147,66 @@ class Phase22FreqAIConfigValidationTests(unittest.TestCase):
             snapshot["freqai"]["feature_parameters"]["shuffle_after_split"],
             False,
         )
+
+
+class Phase22RuntimeFeatureSchemaTests(unittest.TestCase):
+    def test_script_mode_can_restore_repository_root_import_path(self):
+        import sys
+        from pathlib import Path
+
+        from quant_system.phase22_runtime_probe import ensure_repository_root_on_sys_path
+
+        root = str(Path(__file__).resolve().parents[1])
+        original = list(sys.path)
+        try:
+            sys.path[:] = [entry for entry in sys.path if str(Path(entry or ".").resolve()) != root]
+            ensure_repository_root_on_sys_path()
+            self.assertEqual(sys.path[0], root)
+            import freqai_bridge.ChartProFreqaiResearch  # noqa: F401
+        finally:
+            sys.path[:] = original
+
+    def test_native_freqai_data_kitchen_expansion_matches_frozen_feature_order(self):
+        import json
+        import tempfile
+        from pathlib import Path
+
+        import pandas as pd
+        from freqtrade.configuration import Configuration
+        from freqai_bridge.ChartProFreqaiResearch import ChartProFreqaiResearch
+        from quant_system.phase22_runtime_probe import (
+            apply_freqtrade_schema_defaults,
+            build_runtime_config,
+            build_runtime_feature_columns,
+        )
+
+        root = Path(__file__).resolve().parents[1]
+        raw = json.loads((root / "freqai_bridge/config.okx-research.json").read_text())
+        metadata = json.loads(
+            (root / "research_evidence/frozen-model/phase13b-20261104/model-candidate-metadata.json").read_text()
+        )
+        with tempfile.TemporaryDirectory(prefix="r22-feature-schema-") as temp:
+            user_data = Path(temp) / "user_data"
+            user_data.mkdir()
+            config_path = Path(temp) / "config.json"
+            config_path.write_text(
+                json.dumps(build_runtime_config(raw, str(user_data))),
+                encoding="utf8",
+            )
+            config = apply_freqtrade_schema_defaults(
+                Configuration.from_files([str(config_path)])
+            )
+
+        frame = pd.DataFrame({
+            "date": pd.date_range("2026-01-01", periods=96, freq="15min", tz="UTC"),
+            "open": [99.5 + i for i in range(96)],
+            "high": [101.0 + i for i in range(96)],
+            "low": [99.0 + i for i in range(96)],
+            "close": [100.0 + i for i in range(96)],
+            "volume": [10.0 + (i % 7) for i in range(96)],
+        })
+        strategy = object.__new__(ChartProFreqaiResearch)
+        actual = build_runtime_feature_columns(
+            config, strategy, frame, "BTC/USDT:USDT"
+        )
+        self.assertEqual(actual, metadata["ordered_feature_columns"])
