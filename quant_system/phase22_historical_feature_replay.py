@@ -232,10 +232,13 @@ def _load_safe_freqai_config(config_path: Path) -> tuple[dict, dict]:
         loaded = Configuration.from_files([str(safe_config_path)])
         loaded = apply_freqtrade_schema_defaults(loaded)
     snapshot = runtime_config_snapshot(loaded)
-    require(canonical_sha(snapshot) == EXPECTED_CONFIG_SHA256,
+    require(normalize_registered_sha256(canonical_sha(snapshot)) == EXPECTED_CONFIG_SHA256,
             "R22_6_EFFECTIVE_CONFIG_HASH_MISMATCH")
-    require(canonical_sha(snapshot["freqai"]) == EXPECTED_FREQAI_CONFIG_SHA256,
-            "R22_6_FREQAI_CONFIG_HASH_MISMATCH")
+    require(
+        normalize_registered_sha256(canonical_sha(snapshot["freqai"]))
+        == EXPECTED_FREQAI_CONFIG_SHA256,
+        "R22_6_FREQAI_CONFIG_HASH_MISMATCH",
+    )
     return loaded, {
         "effective_config_sha256": canonical_sha(snapshot),
         "freqai_config_sha256": canonical_sha(snapshot["freqai"]),
