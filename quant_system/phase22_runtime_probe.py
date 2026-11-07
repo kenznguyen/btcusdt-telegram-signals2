@@ -76,7 +76,7 @@ def expected_expanded_features(pair: str, timeframe: str, periods: list[int],
 
 
 def build_runtime_config(raw: dict) -> dict:
-    """Remove startup/retraining controls; probe only the configuration loader."""
+    """Prevent bot startup while preserving the frozen FreqAI configuration."""
     safe = json.loads(json.dumps(raw))
     safe["initial_state"] = "stopped"
     # Preserve all fields included in the historical config hash. Loading a
@@ -100,8 +100,7 @@ def run_probe() -> dict:
     with tempfile.TemporaryDirectory(prefix="r22-config-") as temp:
         safe_path = Path(temp) / "config.json"
         safe_path.write_text(json.dumps(build_runtime_config(raw)), encoding="utf8")
-        loaded = Configuration.from_files(["--config", str(safe_path)])
-        loaded_config = loaded.get_config()
+        loaded_config = Configuration.from_files([str(safe_path)])
         if loaded_config.get("dry_run") is not True:
             raise AssertionError("PHASE22_RUNTIME_CONFIG_NOT_DRY_RUN")
         if loaded_config.get("force_entry_enable") is not False:
