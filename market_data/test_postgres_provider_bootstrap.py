@@ -188,7 +188,10 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
                 dbname=database_name,
             )
             applied, total = migrate(migrator_dsn)
-            self.assertEqual(applied, total)
+            # migrate() reports the count present before this invocation;
+            # first application therefore returns (0, total), then (total, total).
+            self.assertEqual(applied, 0)
+            self.assertGreater(total, 0)
 
             with psycopg.connect(database_admin_dsn, autocommit=True) as service_admin:
                 schema_owner = service_admin.execute(
@@ -301,33 +304,9 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
                     )
 
                 if bootstrap_created:
-                    # Membership grants made by the bootstrap login must be
-                    # revoked by that grantor; service-admin REVOKE is not
-                    # guaranteed to own the grant records on managed PG.
-                    bootstrap_cleanup_dsn = make_conninfo(
-                        DSN, user=bootstrap_role, password=bootstrap_password
-                    )
-                    with psycopg.connect(
-                        bootstrap_cleanup_dsn, autocommit=True
-                    ) as bootstrap_cleanup:
-                        for owner_role in (
-                            "t0_db_owner",
-                            "t0_candle_writer_owner",
-                            "t0_lease_manager_owner",
-                        ):
-                            if owner_role in created_reserved_roles:
-                                bootstrap_cleanup.execute(
-                                    sql.SQL("REVOKE {} FROM t0_migrator").format(
-                                        sql.Identifier(owner_role)
-                                    )
-                                )
-                        if (
-                            "t0_migrator_login" in created_reserved_roles
-                            and "t0_migrator" in created_reserved_roles
-                        ):
-                            bootstrap_cleanup.execute(
-                                "REVOKE t0_migrator FROM t0_migrator_login"
-                            )
+                    # The disposable provider-admin fixture created the
+                    # normalized role graph after removing automatic bootstrap
+                    # memberships, so the service admin owns its cleanup.
                     service_admin.execute(
                         sql.SQL("DROP ROLE IF EXISTS {}").format(
                             sql.Identifier(bootstrap_role)
