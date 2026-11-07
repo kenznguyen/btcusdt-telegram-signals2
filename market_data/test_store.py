@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from market_data.store import Candle, CandleStore, INTERVAL_MS, MAX_CANDLES, read_window
+from market_data.store import Candle, CandleStore, INTERVAL_MS, MAX_CANDLES, MAX_READ_CANDLES, read_window
 from market_data.feeder import LeaseStore
 from market_data.write_gateway import SQLiteWriteGateway
 
@@ -129,7 +129,7 @@ class CandleStoreTest(unittest.TestCase):
             ("BTCUSDT", "15m", 1, self.step, None),
             ("BTCUSDT", "15m", 0, self.step + 1, None),
             ("BTCUSDT", "15m", 0, 0, None),
-            ("BTCUSDT", "15m", 0, (MAX_CANDLES + 1) * self.step, None),
+            ("BTCUSDT", "15m", 0, (MAX_READ_CANDLES + 1) * self.step, None),
             ("BTCUSDT", "15m", 0, self.step, -1),
             ("BTCUSDT", "15m", 0, self.step, True),
         ]:
