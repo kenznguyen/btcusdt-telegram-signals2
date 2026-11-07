@@ -73,6 +73,8 @@ class ConnectionEventContractTest(unittest.TestCase):
         self.assertEqual(result["verifiedConnections"], 1)
         self.assertEqual(result["connections"][0]["batchId"], 0)
         self.assertEqual(result["connections"][0]["route"], "market")
+        self.assertTrue(result["captureFinalized"])
+        self.assertEqual(result["captureCompleteThroughMs"], END)
 
     def test_missing_pong_or_excessive_heartbeat_gap_fails_closed(self):
         events = self.healthy_events()
