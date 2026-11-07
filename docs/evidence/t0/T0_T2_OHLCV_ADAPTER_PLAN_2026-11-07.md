@@ -120,16 +120,17 @@ Updated status:
 - T0 canonical ingestion: NOT RUN; Feeder STOPPED; `ai_execution_enabled=false`.
 
 
-## T0–T2 Compatibility Audit — source-level result (2026-11-07)
 
-- Audit report: `docs/evidence/t0/T0_T2_COMPATIBILITY_AUDIT_2026-11-07.md`.
-- T0 source HEAD inspected: `b1a3daec797ab92280a95bee54aacede7cc40a57`.
-- T2 source HEAD inspected: `4c039411542e11e073615a52d5a50d4ca605b49a`.
-- Schema/read contract: CONDITIONAL PASS by static inspection; both branches agree on candles table identity, fields, UTC-ms timestamps, decimal OHLCV, market identity and read_window semantics.
-- T2 context reads via `read_window()`, whose SQLite connection uses `mode=ro`; exporter writes a separate JSON artifact, not the canonical database. Runtime DB immutability remains NOT VERIFIED.
-- Compatibility blocker: T2 test fixtures call `CandleStore.insert()`; T0 branch no longer exposes this direct writer. Do not restore a writer to T0. Use a temporary fixture writer or T0 gateway in isolated tests.
-- T2 documents Freqtrade/FreqAI 2026.9 and dry_run=true, but installed runtime and strategy-load remain NOT VERIFIED.
-- Binance/OKX parity NOT RUN; no paired bounded datasets/report were inspected. Existing OKX source remains unchanged.
-- No tests/workflows were run in this audit. No merge, DB access/write, canonical DB creation, ingestion, Feeder, VPS or execution.
-- Overall: CONDITIONAL / BLOCKED FOR RUNTIME ACCEPTANCE.
-- Next: adapt isolated test fixtures to T0's single-writer boundary; add DB immutability regression; run focused T2 tests against exact combined source SHAs via GitHub Actions; verify Freqtrade 2026.9; then perform bounded Binance/OKX parity.
+## T0–T2 Compatibility Audit — corrected runtime consumer result (2026-11-07)
+
+- Full corrected report: `docs/evidence/t0/T0_T2_COMPATIBILITY_AUDIT_2026-11-07.md`.
+- Correction: earlier audit identified a legacy `CandleStore.insert()` fixture in the separate T2 branch. The active T0 branch already carries the FreqAI bridge and adapted tests using test-only `market_data.test_support.seed_candles()`; the fixture issue does not block the active branch's test run.
+- Added `test_t0_context_and_prediction_export_leave_canonical_sqlite_unchanged`: snapshots SQLite/WAL/SHM hashes and DB identity around canonical context read, prediction generation and separate JSON export.
+- GitHub Actions run 42331669847, exact head SHA `0464b70a8a0b012730f675239f67abcb589a2ca5`.
+- Paper consumer job 128279379624: 45 tests PASS (`pipeline.test_decision`, `pipeline.test_api`, `freqai_bridge.test_exporter`), including DB immutability regression.
+- Artifact 13557379289, digest `sha256:1c47deb2e00eca992edc2cd466368fed438d6e575190d1aa7931069c5321e01e`.
+- Static Gateway job 128279379462: SUCCESS; complete `market_data` regression passed.
+- Other provider/Timescale jobs were still running when this note was recorded; final overall run status must be checked separately.
+- Freqtrade/FreqAI 2026.9 actual runtime and strategy-load: NOT VERIFIED. Binance/OKX parity: NOT RUN.
+- Canonical DB remains NOT CREATED; ingestion NOT RUN; Feeder STOPPED; no merge/source switch; `ai_execution_enabled=false`.
+- Next: record final workflow conclusion, then verify pinned Freqtrade 2026.9 in isolated mode and prepare bounded Binance/OKX parity evidence.
