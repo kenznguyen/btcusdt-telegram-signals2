@@ -6060,3 +6060,15 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Preferred next engineering step: add a narrowly scoped GitHub Actions job on the existing T1 branch to build the standalone Linux x86_64 Collector binary from the exact source SHA and publish a short-retention workflow artifact. This avoids installing Rust/Docker on the VPS and avoids compiling on its small root disk. Before changing CI, inspect current workflow and repository CI policy; preserve existing jobs and PR #1 state.
 - After artifact publication, verify artifact run association, checked-out SHA, size, and checksum before providing a VPS download/verification command. Do not run the Collector until an isolated BTCUSDT config, data path, retention/capture window, disk guard, and stop procedure are reviewed.
 - No PR merge, no Draft → Ready transition, no T0 modification, no proxy/VPN, no API key, and no live trading.
+
+
+## T1 Linux binary artifact pipeline — queued verification (2026-11-08)
+
+- Following the VPS preflight, added a minimal artifact-publication step to the existing T1 GitHub Actions workflow on the existing branch `feature/t1-connection-sidecar-integration-20261107`; no new branch or PR was created.
+- Workflow change commit / exact push SHA: `d8ac9fc820dcf2e912e66518a1a1c73a8fa81ac7`.
+- Workflow file: `.github/workflows/ci.yml`; prior blob SHA `4d31e7b9b4d8fd43cb041cb7d952018bd3e42fc4`; new blob SHA `8329039c807d63cf6834ca9c85fbd0cd99e474d4`.
+- Existing Collector build remains `cargo build --release --locked`. After the existing Sidecar offline tests pass, a push-only step verifies runner architecture is x86_64 and creates `target/release/SHA256SUMS`; `actions/upload-artifact@v4` then uploads the standalone `binance-futures-collector` binary and checksum file. Artifact name includes `github.sha`; retention is 7 days. PR events do not publish an artifact.
+- Exact-source push workflow [42424240328](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42424240328): QUEUED at handoff update. No conclusion or artifact exists yet. PR workflow for this commit had not appeared in the API result at handoff update.
+- Status: workflow edit committed; syntax/build/test/artifact publication **NOT VERIFIED** pending exact-source push run. No T1 binary downloaded to VPS, no runtime configuration created, no Collector process started, no Binance capture, and no T0 change.
+- Next: poll run 42424240328. Require all five jobs to pass and verify artifact name, ID, size, source SHA association, and SHA-256 before providing deployment commands. If CI fails, inspect logs and change only the demonstrated issue. PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Hard limits unchanged: BTCUSDT only, public market data, no API key, no Dashboard, separate T1 data path, preserve at least 2 GiB free disk, no proxy/VPN, no T0 modification, no live trading.
