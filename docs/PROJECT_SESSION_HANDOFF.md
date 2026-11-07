@@ -4154,3 +4154,17 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Updated matrix commit: `3a8413f11a1e82a73ac9ac11127846989ebf7773`; matrix blob: `3f09a46eadd59ad693c0e36fa744f5aaa3d3a488`.
 - No tests/workflows were run; no runtime/database/provider/Feeder/exchange activity occurred.
 - Next decision: approve or revise the focused RED test for startup DB-unavailable behavior before changing tests or runtime logic.
+
+
+## 2026-11-07 — PG-LC-01 startup database-unavailable RED
+
+- User said “tiếp theo” after the focused RED test proposal; proceeded with the test-only increment.
+- Added `FeederRuntimeStartupFailureTest.test_database_unavailable_during_lease_acquire_fails_closed` in `market_data/test_postgres_feeder_runtime.py`. Test source commit: `514d22b00097f8b3af87e04904ca0f92b3a38b8d`; test file blob: `b8de3d99bbcaacfd07a49bfd999594089cec1611`.
+- Test injects PostgreSQL `StoreUnavailable` from `lease_store.acquire()` and requires deterministic `FAILED`, no scheduler start, no release of an unacquired lease, and no readiness mark.
+- GitHub Actions run [42321683647](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42321683647), event push, branch `feature/t0-centralized-data-feeder-p1-20261101`, head/checked-out source SHA `514d22b00097f8b3af87e04904ca0f92b3a38b8d`.
+- Job `128247465461` (Static Gateway contract verification): compile PASS; 10/10 static contracts PASS; 63/63 behavioral/feeder regression PASS; 21/21 health/readiness PASS; 2/2 process restart PASS; full market_data suite **RED as intended**: 234 tests, 1 failure, 37 skipped. Failure is exact assertion at test line 474: expected state `FAILED`, observed `STARTING`.
+- Artifact `13553666452`, name `t0-swg-contract-evidence-514d22b00097f8b3af87e04904ca0f92b3a38b8d`, 10,877 bytes, digest `sha256:2c1e1ab498ef0aab199f1dce0c3e4d7f8dcd4e62ab130ce481332e16e81b9b1a`; downloaded ZIP independently hashed and matched GitHub digest.
+- Paper consumer job `128247465359`: SUCCESS. TimescaleDB integration job `128247550839`: SKIPPED because its dependency `shadow-contracts` failed on the intended RED test; no PostgreSQL integration PASS is claimed from this run. Fresh-cluster provider bootstrap job `128247465188` was still running at the time of evidence capture; final workflow conclusion not yet available.
+- Updated matrix commit: `3e9ee0850cf59fcec48f4a11e6ea7c9f5cf9670b`; matrix blob `89bc0db0f898d3438e3a6dfe986befc14bc13f30`.
+- Runtime implementation remains unchanged. No database/provider/VPS/Feeder/exchange/market-data operation occurred. The RED result is the expected proof of PG-LC-01 defect, not a regression in the existing passing focused suites.
+- Next: minimal GREEN fix should catch lease-acquisition exceptions, set runtime state to terminal `FAILED`, emit a non-sensitive startup failure event, re-raise the original exception, and never release a lease that was not acquired. Then run the same exact-head GitHub Actions regression and reconcile all jobs/artifacts.
