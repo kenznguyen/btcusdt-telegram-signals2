@@ -5473,3 +5473,10 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Added 3 regression tests: reject disconnect/finalize with unanswered Ping; enforce aggregate subscription budget across a session; reject same-size valid JSONL pathname replacement during finalization.
 - Push workflow [42363209236](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42363209236) is running on exact source SHA `b206b7861043803ca8026c1d2c4ddb649e34309b`. At last poll backend and frontend jobs PASS; Collector fmt/Clippy/test, Security audit and Docker build remain IN_PROGRESS. RED is **NOT VERIFIED** until the Collector job completes and the three intended tests are observed failing for the expected reasons.
 - No implementation code changed yet. No new CI artifacts confirmed. Next: inspect exact Collector job output; fix any test compilation issues first; confirm behavioral RED, then implement minimal GREEN changes and run full CI.
+
+
+## R5.1 follow-up — test syntax corrected; behavioral RED pending (2026-11-07)
+- Initial test-only commit `b206b7861043803ca8026c1d2c4ddb649e34309b` triggered push run [42363209236](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42363209236). Collector fmt stopped before sidecar tests due an invalid escaped byte character literal in the new test. This is a test-authoring syntax failure, **not behavioral RED**.
+- Corrected the test assertion and added per-line JSON-object validation in commit `aa9cd4db7fbfe66ab707911da8b28208f9448165`; changed file remains tests only.
+- Current source SHA: `aa9cd4db7fbfe66ab707911da8b28208f9448165`. Exact-source push workflow [42363383082](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42363383082) is IN_PROGRESS. Latest poll: backend and frontend PASS; Collector, Security and Docker IN_PROGRESS. RED remains **NOT VERIFIED** pending Collector output.
+- Next: poll run 42363383082. If test compilation passes, record expected behavioral failures. If it fails for any non-behavioral reason, correct only that issue and rerun. No implementation code until RED is demonstrated.
