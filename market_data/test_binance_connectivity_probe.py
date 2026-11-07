@@ -26,8 +26,8 @@ class HttpStatusClassificationTests(unittest.TestCase):
 
 class RestPayloadContractTests(unittest.TestCase):
     def test_exchange_time_requires_integer_milliseconds(self):
-        self.assertTrue(validate_server_time({"serverTime": 1794000000000}))
-        self.assertFalse(validate_server_time({"serverTime": "1794000000000"}))
+        self.assertTrue(validate_server_time({"serverTime": 1793999700000}))
+        self.assertFalse(validate_server_time({"serverTime": "1793999700000"}))
         self.assertFalse(validate_server_time({"serverTime": -1}))
 
     def test_exchange_info_requires_active_linear_usdt_btcusdt_perpetual(self):
@@ -40,13 +40,13 @@ class RestPayloadContractTests(unittest.TestCase):
         self.assertFalse(validate_exchange_info(payload))
 
     def test_kline_requires_valid_closed_ohlcv_row(self):
-        row = [1794000000000, "100", "110", "90", "105", "2",
-               1794000899999, "200", 3, "1", "100", "0"]
-        self.assertTrue(validate_klines([row], now_ms=1794000900000, interval_ms=900000))
-        self.assertFalse(validate_klines([row], now_ms=1794000800000, interval_ms=900000))
+        row = [1793999700000, "100", "110", "90", "105", "2",
+               1794000599999, "200", 3, "1", "100", "0"]
+        self.assertTrue(validate_klines([row], now_ms=1794000600000, interval_ms=900000))
+        self.assertFalse(validate_klines([row], now_ms=1794000500000, interval_ms=900000))
         invalid = list(row)
         invalid[2] = "80"
-        self.assertFalse(validate_klines([invalid], now_ms=1794000900000, interval_ms=900000))
+        self.assertFalse(validate_klines([invalid], now_ms=1794000600000, interval_ms=900000))
 
 
 class WebSocketHandshakeTests(unittest.TestCase):
