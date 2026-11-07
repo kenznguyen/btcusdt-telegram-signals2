@@ -5060,3 +5060,16 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - PR #1 body updated with current SHA and validation status.
 - Next: inspect the collector fork Actions tab for workflow visibility, disabled/approval banners, or pending approval; if no workflow appears, verify workflow availability on the default branch and repository Actions policy in Settings. Do not proceed to Tokio/runtime integration until exact-head CI passes.
 - Safety unchanged: no collector process, Binance request, database access, market-data capture, credential/config change, merge, or live execution. `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 Fork GitHub Actions Run In Progress
+
+- Collector fork PR #1 remains OPEN / DRAFT / NOT MERGED; current PR head `e1ccc11f654082456f3ef7b728f161e475904da0`.
+- GitHub Actions run [42343825387](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42343825387) started; event `pull_request`; run metadata head SHA matches PR head.
+- Jobs at latest inspection: dashboard backend SUCCESS; dashboard frontend SUCCESS; collector Rust job IN_PROGRESS (Format PASS, Clippy PASS, Build IN_PROGRESS; tests/sidecar checks pending); Docker IN_PROGRESS; Security IN_PROGRESS.
+- Job IDs: Rust `128317128179`; backend `128317128141`; frontend `128317128165`; Docker `128317128304`; Security `128317127920`.
+- Because event is `pull_request`, do not equate run head SHA with checked-out SHA until logs are inspected; GitHub may check out a synthetic merge ref. No artifacts are available yet.
+- Exact checkout identity, 11 sidecar tests, complete job conclusions, final workflow result and artifact digest remain NOT VERIFIED.
+- PR body updated. Evidence report addendum commit: `59d0b0fa52f4cd2d3028dc70f39a05720d3c122c`.
+- Next: poll run 42343825387; once complete, inspect job logs for checked-out SHA, full test results and artifacts, then update report/handoff. Do not proceed to runtime integration before exact-source CI passes.
+- Safety unchanged: no collector process, Binance request, DB access, market-data capture, merge or live execution; `ai_execution_enabled=false`.
