@@ -5695,3 +5695,11 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Exact-head GitHub Actions push workflow [42374948630](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42374948630) was IN_PROGRESS at handoff update. Format/Clippy and dashboard frontend/backend PASS; collector build, security and Docker still running; Sidecar offline test not yet executed. RED: NOT VERIFIED until the Sidecar test actually fails for the intended assertion.
 - No cleanup implementation fix yet. Next: verify expected RED, implement best-effort removal of newly created file while preserving original sync error, and add/verify cleanup-removal failure semantics. Run full exact-head CI after fix.
 - PR #1 remains OPEN / DRAFT / NOT MERGED. No T1 runtime integration, Collector startup, Binance connection, DB access, market capture, T0 changes, merge, or live execution. Keep `ai_execution_enabled=false`.
+
+
+## T1 cleanup test CI correction — 2026-11-07
+- Initial test/seam commit `255ed067db61bcc3572edbafbd3ee2cecfa63d81` workflow [42374948630](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42374948630) failed at Sidecar writer rustfmt because of two extra blank lines. Collector format/Clippy/build and workspace tests passed, but Sidecar Clippy/offline tests were skipped. This is a formatting failure, not behavioral RED.
+- Formatting-only correction/current T1 head: `dbbf09b55a71f11276e0c38360f641553577ff7b`.
+- Exact-head push workflow [42375119953](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42375119953) remains IN_PROGRESS. Collector format/Clippy PASS; dashboard frontend/backend PASS; Collector build, security and Docker still running; Sidecar writer fmt/Clippy/offline tests pending at time of this update.
+- Behavioral RED: NOT VERIFIED. No implementation fix yet. Next: await Sidecar offline test result on corrected source, confirm the expected assertion failure, then implement cleanup and verify GREEN.
+- PR #1 remains OPEN / DRAFT / NOT MERGED; no runtime, Binance, DB, capture, T0, merge or live execution. Keep `ai_execution_enabled=false`.
