@@ -440,7 +440,7 @@ gateway.write_batch(candles)
                                 WHERE datname=%s
                                   AND application_name=%s
                                   AND state='active'
-                                  AND query LIKE '%pg_sleep(4)%'
+                                  AND position('pg_sleep(4)' IN query) > 0
                                 LIMIT 1
                                 """,
                                 (database_name, application_name),
