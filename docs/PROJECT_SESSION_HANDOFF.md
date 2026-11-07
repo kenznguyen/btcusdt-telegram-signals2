@@ -5885,3 +5885,14 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Latest observed PR job state: dashboard backend/frontend PASS; Collector, Docker and security jobs still IN_PROGRESS.
 - Documentation commit CI status remains **BLOCKED / GREEN NOT VERIFIED** pending completion of both workflows. No artifacts observed yet.
 - Handoff update commit recording this tracking state: pending (this section is being committed separately).
+
+## T1 README clarification — exact branch-head CI PASS (2026-11-07)
+- T1 branch / PR #1 head SHA: `dc5a4ede2af9a1b3e2a22bce22fd5a02a60a4403`.
+- Exact-head push workflow [42385858905](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42385858905): completed SUCCESS, all 5/5 jobs.
+- Exact-head PR workflow [42385864568](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42385864568): completed SUCCESS, all 5/5 jobs.
+- Both runs include Collector fmt/Clippy/build/tests, Sidecar writer format/Clippy/offline tests, dashboard backend/frontend, Docker image build and security audit. No failed jobs. No artifacts published.
+- PR #1 remains OPEN / DRAFT / NOT MERGED; GitHub reports mergeable, but no merge or draft-state change is authorized.
+- Handoff status correction: previous subsection said these two workflows were still in progress. That status is superseded by this exact-head PASS.
+- Current sidecar API still classifies a valid sidecar with no final manifest as `UnsealedValid`; temporary-manifest files are not inspected by `validate_capture()`. A crash before hard-link publication can therefore leave a temp manifest while read-only validation reports only the sidecar as unsealed-valid. This is not automatically unsafe because there is no current production/startup consumer and README instructs recovery review, but the interrupted-publication classification is not explicit in the API. This is the next narrow contract gap to evaluate.
+- Next: define whether temp-only residue should be represented as a distinct read-only validation state or remain an operational diagnostic outside `CaptureValidation`. Before changing the public enum, inspect API consumers and add a test-first contract proposal; do not implement a breaking behavior without establishing compatibility. No runtime, Binance access, DB, market capture, T0 edits or live execution.
+- Verdict: regression implementation and README clarification **PASS** at exact branch-head CI level. Crash/restart recovery protocol, explicit temp-only classification, durability attestation, hostile filesystem TOCTOU, and non-Unix file identity remain **NOT VERIFIED**. Operational readiness remains NOT VERIFIED.
