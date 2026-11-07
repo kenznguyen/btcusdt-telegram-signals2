@@ -256,7 +256,7 @@ def inspect_historical_features(
 
     result = {
         "schemaVersion": 1,
-        "audit": "R22_6_NATIVE_FREQAI_DATKITCHEN_HISTORICAL_FEATURE_REPLAY",
+        "audit": "R22_6_NATIVE_FREQAI_DATAKITCHEN_HISTORICAL_FEATURE_REPLAY",
         "native_datakitchen_feature_values_reconciled": False,
         "feature_source_prefix_invariance_verified": False,
         "full_model_pipeline_causality_verified": False,
