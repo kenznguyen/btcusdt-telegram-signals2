@@ -5711,3 +5711,11 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Exact-head PR workflow [42375340479](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42375340479) is IN_PROGRESS. Collector fmt/Clippy PASS; dashboard frontend/backend PASS; Collector build, security and Docker in progress; Sidecar writer offline test pending.
 - Behavioral RED remains NOT VERIFIED. Next: wait for offline test and verify it fails specifically because orphan file remains; only then implement best-effort cleanup while preserving the original sync error and test cleanup-failure reporting.
 - PR #1 OPEN / DRAFT / NOT MERGED. No runtime integration, Binance, DB, capture, T0 changes, merge or live execution. Keep `ai_execution_enabled=false`.
+
+
+## T1 cleanup regression test — rustfmt correction (2026-11-07)
+- Exact-head PR workflow [42375340479](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42375340479) on source `eaeb6a5163bcba7240414f726cc68582b44ec378`: Collector format/Clippy/build/workspace tests PASS; Dashboard frontend/backend PASS; Sidecar writer format FAILED due one rustfmt line-wrap mismatch at injected `io::Error::other(...)`; Sidecar Clippy/offline tests skipped. This is formatting-only; no behavioral RED.
+- Applied formatting-only correction. Current T1 source SHA: `6b143337a0cbd644b73bcd86791b93ddce31b4ba`.
+- Exact-head push workflow [42375494335](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42375494335) and PR workflow [42375498696](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42375498696) queued. Behavioral RED remains NOT VERIFIED until Sidecar offline test runs.
+- Next: verify corrected CI reaches Sidecar offline test; then confirm expected orphan-file assertion failure, implement cleanup, add cleanup-removal-failure coverage, and rerun CI.
+- PR #1 OPEN / DRAFT / NOT MERGED. No runtime integration, Binance, DB, capture, T0 changes, merge or live execution. Keep `ai_execution_enabled=false`.
