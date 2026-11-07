@@ -5,6 +5,7 @@ from quant_system.phase22_runtime_probe import (
     build_runtime_config,
     canonical_sha,
     expected_expanded_features,
+    runtime_config_snapshot,
 )
 
 
@@ -27,6 +28,29 @@ class Phase22RuntimeProbeTests(unittest.TestCase):
     def test_canonical_hash_is_key_order_independent(self):
         self.assertEqual(canonical_sha({"a": 1, "b": 2}),
                          canonical_sha({"b": 2, "a": 1}))
+
+    def test_runtime_config_snapshot_matches_historical_phase13b_shape(self):
+        resolved = {
+            "freqai": {"enabled": True, "live_retrain_hours": 1, "resolved_default": 7},
+            "exchange": {"name": "okx", "pair_whitelist": ["BTC/USDT:USDT"]},
+            "timeframe": "15m",
+            "dry_run": True,
+            "force_entry_enable": False,
+            "initial_state": "stopped",
+        }
+        snapshot = runtime_config_snapshot(resolved)
+        self.assertEqual(
+            snapshot,
+            {
+                "freqai": resolved["freqai"],
+                "exchange": {"name": "okx"},
+                "timeframe": "15m",
+                "dry_run": True,
+                "force_entry_enable": False,
+            },
+        )
+        self.assertNotIn("pair_whitelist", snapshot["exchange"])
+        self.assertNotIn("initial_state", snapshot)
 
     def test_expanded_feature_schema_preserves_order_and_shift_groups(self):
         actual = expected_expanded_features("BTC/USDT:USDT", "15m", [14, 28], 2)
