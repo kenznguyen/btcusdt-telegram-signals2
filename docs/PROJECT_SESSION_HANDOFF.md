@@ -4110,3 +4110,20 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - **P1.8.16: PASS — trust-root rotation detection and fail-closed pinning, hash-chained snapshot history, conservative revocation semantics, P1.8.15 backfill and Git-history retention.**
 - Substatus: rotation PASS; revocation fail-closed policy PASS; automated revocation source/authentication NOT VERIFIED; Git-history retention PASS; WORM/offsite backup NOT VERIFIED.
 - Restrictions unchanged: T0 PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`; no DB/exchange, VPS/provider, persistent capture, runtime integration, paper/live execution, or merge.
+
+
+## 2026-11-07 — PostgreSQL Lifecycle / Provider Compatibility scope update
+
+- Operator decision: **Backup and Disaster Recovery are DEFERRED — NOT IN CURRENT SCOPE**. No backup/PITR provisioning, backup jobs, restore drills, failover-recovery exercises, RPO/RTO measurement, offsite/WORM retention, or backup evidence collection is authorized in the current workstream.
+- This is a scope deferral, **not PASS**, not a claim that backups are available, and not production-readiness certification. Earlier handoff entries and architecture documents that list Backup/DR as future production gates remain historical context; this newer decision controls the current scope.
+- Current PostgreSQL work is limited to:
+  1. **Lifecycle** on disposable/synthetic PostgreSQL/TimescaleDB: connection/pool behavior, explicit initialization/migrations, writer transaction atomicity/rollback, lease acquire/heartbeat/expiry/release, fencing generations and stale-writer rejection, runtime recovery/restart, readiness fail-closed, shutdown/drain, and controlled concurrency/fault injection.
+  2. **Provider compatibility** only after a provider is separately selected/approved: exact PostgreSQL/TimescaleDB versions, TLS CA/SAN/verify-full, private networking/ingress, effective roles/grants, credential rotation/revocation, connection limits/timeouts, migration/extension privileges, and failover endpoint interruption/fencing compatibility. Provider-specific claims remain NOT VERIFIED until tested against that exact provider/tier.
+- Transaction rollback, atomic writes, lease fencing, stale-writer prevention, readiness closure, and ordinary process restart remain in scope. These are lifecycle/data-integrity controls, not Backup/DR proof.
+- Updated checklist: `docs/T0_STAGING_ACCEPTANCE_CHECKLIST.md`; documentation commit `a8c70073f6c2c9deba92c667381457695d7e7187`; new blob SHA `5beb075ea4c39c8a72751545c2e271157a98701f`.
+- Checklist now marks Gate F **DEFERRED** and excludes it from the current scoped staging verdict. Gates A–E and G remain applicable to a future provider-specific staging acceptance; a scoped PASS would not imply Backup/DR or production readiness.
+- Repository branch: `feature/t0-centralized-data-feeder-p1-20261101`. Branch HEAD before these documentation commits was `7eefc7f13fe29670e68a898569fb480522f390d0`.
+- Work performed: documentation-only. No code, SQL migrations, workflows, runtime configuration, tests, database, credentials, VPS/provider, backup service, Feeder, exchange connection, or market-data sync was changed/run.
+- Evidence status: **DOCUMENTATION UPDATE PASS** (GitHub accepted the file update). Tests/workflows: **NOT RUN**. PostgreSQL lifecycle end-to-end current-tip CI: **NOT VERIFIED**. Exact-provider compatibility: **NOT VERIFIED / PROVIDER NOT SELECTED**. Backup/DR: **DEFERRED**.
+- Next permitted step: prepare a lifecycle-only disposable PostgreSQL acceptance matrix and identify the existing tests/gaps. Do not provision provider staging, activate Feeder, create/open canonical T0 storage, connect an exchange, or sync market data without separate explicit approval.
+- Safety remains unchanged: T0 remains independent; paper-only; `ai_execution_enabled=false`; no live orders.
