@@ -94,7 +94,7 @@ class T0T2ParityTest(unittest.TestCase):
     def test_report_includes_largest_field_differences_with_both_source_values(self):
         rows = [
             {"open_time": START + index * STEP["m15"], "open": "100",
-             "high": "102", "low": "99", "close": close, "volume": "2.5",
+             "high": "105", "low": "99", "close": close, "volume": "2.5",
              "closed": "true"}
             for index, close in enumerate(("101", "104", "103", "101"))
         ]
