@@ -185,9 +185,11 @@ impl SidecarWriter {
         if heartbeat_id.is_empty() || heartbeat_id.len() > 128 {
             return Err(invalid("heartbeat_id must contain 1..=128 bytes"));
         }
-        let state = self.connections.get(&identity.connection_id).expect("checked above");
-        if !state.heartbeat_ids.insert(heartbeat_id.to_string()) {
-            return Err(invalid("heartbeat_id must be unique within a connection"));
+        {
+            let state = self.connections.get(&identity.connection_id).expect("checked above");
+            if state.heartbeat_ids.contains(heartbeat_id) {
+                return Err(invalid("heartbeat_id must be unique within a connection"));
+            }
         }
 
         // Do not mutate the state until the event has been durably appended.
@@ -426,7 +428,7 @@ impl SidecarWriter {
         };
         let mut line = serde_json::to_vec(&event)
             .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
-        line.push(b'\\n');
+        line.push(b'\n');
         if line.len() > MAX_EVENT_BYTES {
             return Err(invalid("serialized sidecar event exceeds 16 KiB"));
         }
