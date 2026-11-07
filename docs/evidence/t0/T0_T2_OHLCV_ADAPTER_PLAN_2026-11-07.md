@@ -134,3 +134,13 @@ Updated status:
 - Freqtrade/FreqAI 2026.9 actual runtime and strategy-load: NOT VERIFIED. Binance/OKX parity: NOT RUN.
 - Canonical DB remains NOT CREATED; ingestion NOT RUN; Feeder STOPPED; no merge/source switch; `ai_execution_enabled=false`.
 - Next: record final workflow conclusion, then verify pinned Freqtrade 2026.9 in isolated mode and prepare bounded Binance/OKX parity evidence.
+
+
+## T0 CI final result and Freqtrade runtime smoke (2026-11-07)
+
+- T0 integration workflow `42331669847` final **SUCCESS**, exact SHA `0464b70a8a0b012730f675239f67abcb589a2ca5`, all four jobs PASS including isolated TimescaleDB read-only integration.
+- Timescale artifact `13558195472`, digest `sha256:0edb675178596ddc11c2d3b09ceb5a54890d0663bf25586ee059a2637c6307e0`.
+- Added official Freqtrade 2026.9 FreqAI Docker strategy-load smoke workflow. First run `42331884189` verified version `freqtrade 2026.9` but used unsupported `--print-json`; corrected workflow commit `8e5a815c8c729e832ab6c705b9e175b935081f5e`.
+- Corrected run `42331960788` pending. No claim of strategy-load success until run concludes.
+- Next: confirm strategy discovery result, then build Binance/OKX bounded parity report using paired timestamp windows and source provenance. Existing OKX data remains authoritative for current T2 backtests.
+- Safety unchanged: no canonical DB creation, ingestion, Feeder, VPS or execution.
