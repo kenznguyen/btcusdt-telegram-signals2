@@ -166,3 +166,14 @@ Updated status:
 - Hash formats differ by design: T0 datasetVersion hashes JSON envelope/provenance and decimal candles; T2 V2 hashes M15/H1 closed candle rows as int64 timestamp + float64 OHLCV. Do not compare these digests directly. Preserve T0 source hash and compute a separate V2 digest using an explicit tested conversion.
 - Actual parity remains NOT RUN / BLOCKED pending paired immutable datasets.
 - Next: design offline parity manifest/harness for two externally supplied closed-candle CSVs; verify UTC windows/coverage and report differences, never assume Binance and OKX OHLCV should match. No Canonical DB creation or ingestion.
+
+
+## Binance–OKX parity manifest specification prepared (2026-11-07)
+
+- Spec: docs/evidence/t0/T0_T2_BINANCE_OKX_PARITY_MANIFEST_SPEC_2026-11-07.md
+- Commit: 868276d01fc291b58bca2905d3d47d4cf8c9ed36
+- Defines source identity, independent file/T0/V2 hashes, UTC window, closed-candle and continuity gates, volume-unit mapping, explicit decimal→float64 conversion, and per-field difference outputs.
+- T0 source is Binance USD-M BTC/USDT:USDT; existing T2 bot/backtest source is OKX BTC-USDT-SWAP. OKX volume must use volCcy (BTC base volume), not contract-count vol.
+- T0 JSON datasetVersion and T2 CHARTPRO-OHLCV-V2 binary hash are different contracts; never compare them directly.
+- No paired dataset is present in tracked source; parity remains NOT RUN pending immutable input exports.
+- No data acquisition, Canonical DB creation, ingestion, Feeder, VPS or execution.
