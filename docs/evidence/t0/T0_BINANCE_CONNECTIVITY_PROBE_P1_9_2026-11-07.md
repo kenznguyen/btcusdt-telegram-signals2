@@ -174,3 +174,45 @@ The run completed. All jobs checked out exact source SHA `ab564eccbb9c0484fdd30b
 - No PG-LC-07 fix was attempted in this work. No role guard was weakened. Artifact digests remain GitHub upload metadata and have not been independently recomputed from downloaded ZIP payloads.
 
 Final code verdict remains: probe receiver/diagnostic change **PASS on dedicated CI**; broader static regression **PASS**; provider/bootstrap and PG-LC-07 integration blockers **BLOCKED**; target-PC WebSocket Kline event **NOT VERIFIED**.
+
+
+## 2026-11-07 — PC rerun and WebSocket timeout-stage observability
+
+### PC run on implementation SHA ab564ecc
+
+User ran:
+- Source folder: `btcusdt-telegram-signals2-ab564eccbb9c0484fdd30b694f5b052bc4a2c991`.
+- Probe time: `2026-11-07T01:57:09Z`.
+- REST: **5/5 PASS**; ping 211.28 ms, time 117.62 ms, exchangeInfo 216.14 ms, M15 114.80 ms, H1 135.95 ms. Every endpoint HTTP 200 and schema_valid true.
+- WebSocket: `TIMEOUT`, `TimeoutError`, 20,440.33 ms, `status:null`, event_valid false.
+- No credentials, proxy, DB, Feeder, persistence, or execution.
+- Because the old probe discarded HTTP Upgrade status when a later read timed out, this output alone does not distinguish timeout during handshake from timeout waiting for the first event. The earlier independent PowerShell HTTP 101 observation is not evidence that this particular probe run completed the upgrade.
+
+### Timeout-stage diagnostic change
+
+- Added `stage` to WebSocket probe outcomes:
+  - `TCP_CONNECT`
+  - `TLS_HANDSHAKE`
+  - `HTTP_UPGRADE`
+  - `WAITING_FOR_KLINE_EVENT`
+  - `KLINE_EVENT_RECEIVED`
+- Preserve HTTP status 101 after a successful Upgrade, even if receiving the first Kline frame times out.
+- A timeout after a validated 101 Upgrade is now classified `EVENT_TIMEOUT`; timeouts before that stage retain their appropriate network timeout classification.
+- Bounded error detail is retained.
+- TDD RED for the isolated timeout-stage contract: commit `01bfdb9bd9aa9b21d42f4f505b37634548e2aee5`, workflow [42326976887](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42326976887), expected import failure because `_websocket_failure_result` had not yet been implemented.
+- GREEN implementation SHA: `f61deca1cd7874e61851ca52ad4857bd0ff4535c`.
+- Dedicated offline workflow [42327017054](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42327017054): **16 tests PASS**, including `test_timeout_after_upgrade_is_classified_as_event_timeout`.
+- Artifact ID `13555462335`; name `t0-binance-probe-contracts-f61deca1cd7874e61851ca52ad4857bd0ff4535c`; size 938 bytes; GitHub upload digest `sha256:dde5bbb0f6b76903c62566cd238a9297292857533b8ea6e47f33f183ddbb2402`.
+- The implementation request retains proper HTTP CRLF framing; the final test run verifies syntax and offline contracts. The previous intermediate mock-based integration fixture attempts failed and were replaced with a focused deterministic classification contract; those intermediate failures are not represented as PASS.
+
+### Current gate status
+
+| Gate | Status |
+|---|---|
+| Latest PC REST sample | PASS 5/5 |
+| Latest PC WebSocket first event | NOT VERIFIED |
+| WebSocket stage diagnostics | PASS on dedicated CI |
+| Offline probe contracts | PASS 16/16 on SHA `f61deca1cd7874e61851ca52ad4857bd0ff4535c` |
+| Controlled First Run / canonical ingestion / Feeder | NOT AUTHORIZED / NOT RUN |
+
+Next: update PC source from exact SHA `f61deca1cd7874e61851ca52ad4857bd0ff4535c` and rerun only the read-only probe. Interpret `status=101` + `stage=WAITING_FOR_KLINE_EVENT` + `classification=EVENT_TIMEOUT` as successful Upgrade but no first Kline event observed within the timeout; it is not full WebSocket data-plane acceptance.
