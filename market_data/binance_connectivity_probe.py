@@ -23,7 +23,7 @@ from urllib.request import ProxyHandler, Request, build_opener
 
 REST_BASE = "https://fapi.binance.com"
 WS_HOST = "fstream.binance.com"
-WS_PATH = "/ws/btcusdt@kline_15m"
+WS_PATH = "/market/ws/btcusdt@kline_15m"
 WS_PORT = 443
 INTERVAL_MS = 900_000
 MAX_WS_FRAME = 1_048_576
