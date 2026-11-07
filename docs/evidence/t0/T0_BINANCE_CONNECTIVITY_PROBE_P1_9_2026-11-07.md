@@ -216,3 +216,24 @@ User ran:
 | Controlled First Run / canonical ingestion / Feeder | NOT AUTHORIZED / NOT RUN |
 
 Next: update PC source from exact SHA `f61deca1cd7874e61851ca52ad4857bd0ff4535c` and rerun only the read-only probe. Interpret `status=101` + `stage=WAITING_FOR_KLINE_EVENT` + `classification=EVENT_TIMEOUT` as successful Upgrade but no first Kline event observed within the timeout; it is not full WebSocket data-plane acceptance.
+
+
+### Follow-up PC observation — 2026-11-07T02:05:21Z
+
+- User reran the read-only probe on the updated diagnostic implementation (source SHA expected from the supplied run context: `f61deca1cd7874e61851ca52ad4857bd0ff4535c`; the JSON itself does not embed a source SHA, so exact runtime provenance remains user-folder/context reported, not independently attested).
+- REST: **5/5 PASS**; all five endpoints returned HTTP 200 and valid schemas. Latencies: ping 190.69 ms; time 127.13 ms; exchangeInfo 250.60 ms; closed M15 143.63 ms; closed H1 142.83 ms.
+- WebSocket: **TIMEOUT at HTTP_UPGRADE**, `status=null`, `TimeoutError: The read operation timed out`, 20,433.86 ms. The probe did not receive/validate HTTP 101. This is before the first-event wait stage; do not classify it as an event timeout.
+- This repeat confirms the same broad split as the prior run: REST is reachable in the sampled interval, while the official WebSocket handshake remains blocked/unverified from this PC/network path. It does not establish the cause (firewall, ISP/network policy, endpoint path, or other handshake-path issue).
+- Safety fields confirm no credentials, proxy, DB, Feeder, persistence, or AI execution were used.
+
+### Updated gate verdict
+
+| Gate | Status |
+|---|---|
+| PC REST reachability | CONDITIONAL PASS — 5/5 on two recent samples; not yet a durable availability/SLA claim |
+| Official WebSocket HTTP Upgrade | BLOCKED — timeout at `HTTP_UPGRADE`, no HTTP 101 |
+| Official WebSocket Kline event | NOT RUN — handshake did not complete |
+| P1.9 overall | BLOCKED — REST passes but required WebSocket gate does not |
+| Canonical ingestion / Controlled First Run / Feeder | NOT AUTHORIZED / NOT RUN |
+
+Next diagnostic step: compare the probe's exact HTTP Upgrade request/response path with a fresh direct PowerShell handshake test from the same PC and network, recording timestamp, target host/path, HTTP status and response headers (never include secrets). A successful independent handshake would narrow the issue to differences in the probe's request/socket handling; a timeout there would point to the PC/network path or endpoint reachability. Do not add alternate domains, VPN/proxy, retries that bypass policy, or modify the probe until this comparison is available.
