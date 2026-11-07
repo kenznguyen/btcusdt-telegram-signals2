@@ -228,3 +228,64 @@ This exactly matches the R22.2 diagnostic's raw/resolved pre-FreqAI hash and exp
 The remaining task is to identify the exact, source-backed transformation or historical config overlay that produced the runtime hash, then reproduce it using synthetic/local-only fixtures without starting a strategy, bot, backtest, training or retraining. Current upstream source inspection found a conditional DataKitchen default that inserts data_split_parameters.shuffle=false only when absent; the tracked source JSON already contains shuffle=false, so that single default does not explain the distinct hash. Do not invent a mutation, inject guessed defaults, replace the expected hash, or weaken the hash equality gate.
 
 Corrected disposition: source JSON hash reproduction PASS; frozen runtime hash reproduction NOT VERIFIED / BLOCKED; runtime feature schema NOT VERIFIED; prospective OOS IN PROGRESS / NOT CERTIFIED. Historical metadata is not declared invalid based on this mismatch alone. The exact runtime transformation/overlay remains an open provenance question. No model, metadata, Core, backtest, or holdout changes; no bot start, exchange API call, training/retraining, persistent DB, T0 access, deployment or live execution.
+
+
+### R22.3 — Historical FreqAI runtime transformation reproduced (2026-11-07)
+
+#### Root cause
+
+The earlier R22.2 probe used Freqtrade 2026.9 Configuration.from_files(), which loads and normalizes config files but does not execute the JSON Schema validation stage. The historical config snapshot is captured after Freqtrade has applied nested schema defaults.
+
+Pinned upstream Freqtrade 2026.9 source confirms:
+- Configuration.from_files() returns the loaded configuration from Configuration initialization without calling validate_config_schema().
+- FreqtradeBot resolves the strategy and calls validate_config_consistency(config).
+- validate_config_consistency() invokes validate_config_schema().
+- FreqtradeValidator recursively inserts declared schema defaults into nested objects, including the FreqAI feature_parameters defaults.
+
+R22.3 now applies the same pinned validate_config_schema() function directly to the isolated, stopped configuration object. It does not instantiate FreqtradeBot, load/start the strategy lifecycle, or start FreqAI.
+
+#### Frozen hash reproduction
+
+TDD RED:
+- Test commit 8a670d5bf8a53951c3c712981caee2953be907d9.
+- Direct push run 42319979203, job 128241905715: Freqtrade 2026.9 installation PASS; five existing tests PASS; new schema-validation helper import failed as expected.
+- Artifact ID 13552447418; GitHub upload digest sha256:882a6ad38b79b57de6fb1150b017d7667e1f9e6103486cfafcdc7694060e72f5.
+
+Schema-validation implementation:
+- Commit 27f2c554b56792240a385ea439987fb8d210c065.
+- Direct push run 42320096376, job 128242288536: Freqtrade 2026.9 installation PASS; 6/6 tests PASS; new test proves both frozen hashes match after schema validation. The standalone probe then exposed a separate script import-path issue before feature checks.
+- Artifact ID 13552497112; GitHub upload digest sha256:f80834c6ff4bc7f52833e082fe6c9cceca14058dc79191bd38db8393f2422cf2.
+
+#### Native FreqAI feature-schema verification
+
+The previous probe generated the expected 20-column order with a local helper but did not execute FreqAI's own expansion method. R22.3 added a synthetic-only test through FreqaiDataKitchen.populate_features(), the actual ChartProFreqaiResearch feature methods, and Freqtrade's remove_special_chars_from_feature_names() normalization used before model fitting.
+
+- TDD RED commit 7e99fa10902cb1c0e036ac5a52e93999d846c605.
+- Direct push run 42320324256, job 128243049184: 8 tests executed; two expected ImportErrors confirmed the missing repository-root import helper and native DataKitchen feature helper. Artifact ID 13552447999; upload digest sha256:3a23911f5518c8debd0671c99ca4af5d86abfcb321736d55b60d35e5aba63b2f.
+- Initial native DataKitchen implementation commit f2049ec1105167b2e51756b225381360648a553a.
+- Run 42320481514, job 128243566904: 8 tests executed; one feature-schema comparison failed because the first probe version had not yet applied Freqtrade's colon-removal normalization. Artifact ID 13552841151; upload digest sha256:14793d111d4d68c71fd5e79db17f6f57d90c2f0a7d0e326b25703d0cf64a64f9.
+- Added the same DataKitchen feature-name normalization as the historical backtest fitting path.
+
+#### Final exact-source verification
+
+- Final implementation source SHA: 4079212886d29e9943e791c8f206a4fc4cfdaece.
+- Direct push workflow run 42320612784: SUCCESS.
+- Job 128243995654: all steps SUCCESS; pinned Freqtrade 2026.9 installation PASS; unit tests 8/8 PASS; isolated runtime probe PASS; artifact upload PASS.
+- PR-triggered duplicate run 42320620156: SUCCESS on the same head SHA. Direct push run remains the primary exact-head evidence.
+- Artifact ID 13552174748; artifact name r22-2-phase22-runtime-4079212886d29e9943e791c8f206a4fc4cfdaece; GitHub upload digest sha256:918610a8661f947b463c758a98a80e580f80b44292f8830c68c860c9e7e56c27. Digest is GitHub upload metadata; payload bytes were not independently re-downloaded and re-hashed in this step.
+
+Final probe output:
+- Freqtrade version: 2026.9.
+- Effective config SHA-256: c253091852b704c00fa33bd6fceb69fb4d480630da1645e3e35ebea13888bb72 — exact frozen metadata match.
+- FreqAI config SHA-256: a716c80fbb78b8d4bc8b436136912e93e6988a8cdf8d7d1945e8f512bcd6d852 — exact frozen metadata match.
+- Native FreqAI feature columns: 20; ordered feature schema equals frozen metadata.
+- Feature schema source: FreqaiDataKitchen.populate_features + ChartProFreqaiResearch.feature_engineering_standard + Freqtrade feature-name normalization.
+- Runtime config loader: PASS.
+- Strategy feature methods: PASS_SYNTHETIC_ONLY.
+- Exchange network calls: 0.
+- Strategy started: false; backtest started: false; training started: false; retraining started: false; live orders enabled: false.
+- OOS certified: false.
+
+R22.3 disposition: PASS for reproducing the frozen post-schema-validation config hashes and the ordered 20-column feature schema using the pinned Freqtrade 2026.9 code and synthetic/local fixtures. This does not prove historical model retraining reproducibility, feature causality across the full historical dataset, scaler/transform fit boundaries, or prospective OOS performance. It does not certify Phase 22.
+
+Next safe work: R22.4 read-only feature-causality and leakage audit, covering all 20 feature definitions, timestamp/closed-candle alignment, rolling-window causality, label horizon separation, purge boundary, and fit-only transforms. Do not train/retrain, run backtests, alter metadata/model/Core, touch the prospective holdout, access T0, or enable execution.
