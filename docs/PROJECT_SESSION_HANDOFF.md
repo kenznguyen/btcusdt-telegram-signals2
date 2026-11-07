@@ -5556,3 +5556,9 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - RED: **PENDING / NOT VERIFIED**. The connector has not yet surfaced a PR workflow run for this head. No implementation change has been made.
 - PR #1 remains OPEN / DRAFT / NOT MERGED. No runtime integration, Binance connection, DB access, market capture, T0 changes, merge or live execution. Keep `ai_execution_enabled=false`.
 - Next: obtain exact PR-head workflow result and confirm this single test fails before implementing the terminal heartbeat guard.
+
+
+### R5.3 CI run started
+- Exact test-only commit `abb39a7455b02fe0e60de660c5bdff44e9ab3903` triggered PR workflow [42367758975](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42367758975).
+- Last poll: dashboard backend PASS; Collector Format PASS and Clippy/build/tests pending; Security, Docker and Frontend still in progress.
+- Behavioral RED is not yet established because Sidecar offline tests have not run. No implementation changes.
