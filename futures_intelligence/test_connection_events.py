@@ -62,6 +62,8 @@ class ConnectionEventContractTest(unittest.TestCase):
             window_start_ms=START,
             window_end_ms=END,
             max_heartbeat_gap_ms=GAP,
+            capture_finalized=True,
+            capture_complete_through_ms=END,
             **kwargs,
         )
 
@@ -166,6 +168,23 @@ class ConnectionEventContractTest(unittest.TestCase):
                 path, expected_sha256=digest, expected_source_commit=SOURCE,
                 expected_session_id=SESSION, window_start_ms=START,
                 window_end_ms=END, max_heartbeat_gap_ms=GAP,
+                capture_finalized=True, capture_complete_through_ms=END,
+            )
+
+    def test_rejects_unfinalized_capture_and_short_completeness_watermark(self):
+        path, digest = self.write(self.healthy_events())
+        common = dict(
+            expected_sha256=digest, expected_source_commit=SOURCE,
+            expected_session_id=SESSION, window_start_ms=START,
+            window_end_ms=END, max_heartbeat_gap_ms=GAP,
+        )
+        with self.assertRaises(ValueError):
+            load_and_validate_connection_events(
+                path, capture_finalized=False, capture_complete_through_ms=END, **common
+            )
+        with self.assertRaises(ValueError):
+            load_and_validate_connection_events(
+                path, capture_finalized=True, capture_complete_through_ms=END - 1, **common
             )
 
     def test_missing_expected_route_remains_unverifiable(self):
