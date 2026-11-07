@@ -237,6 +237,7 @@ def probe_rest(timeout=8):
         ("time", "/fapi/v1/time"),
         ("exchange_info", "/fapi/v1/exchangeInfo"),
         ("closed_m15_kline", "/fapi/v1/klines?symbol=BTCUSDT&interval=15m&limit=2"),
+        ("closed_h1_kline", "/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=2"),
     )
     for name, path in endpoints:
         result, payload = _rest_request(opener, name, path, timeout)
@@ -248,7 +249,9 @@ def probe_rest(timeout=8):
         elif name == "exchange_info":
             schema_valid = validate_exchange_info(payload)
         elif name == "closed_m15_kline" and time_payload:
-            schema_valid = validate_klines(payload, now_ms=time_payload["serverTime"])
+            schema_valid = validate_klines(payload, now_ms=time_payload["serverTime"], interval_ms=900_000)
+        elif name == "closed_h1_kline" and time_payload:
+            schema_valid = validate_klines(payload, now_ms=time_payload["serverTime"], interval_ms=3_600_000)
         elif name == "ping":
             schema_valid = payload == {}
         result["schema_valid"] = schema_valid
