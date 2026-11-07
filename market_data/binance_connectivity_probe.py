@@ -170,12 +170,51 @@ def parse_server_frame(data):
             raise ValueError("incomplete WebSocket frame")
         length = struct.unpack("!Q", data[2:10])[0]
         offset = 10
+    if opcode in (8, 9, 10) and length > 125:
+        raise ValueError("WebSocket control frame exceeds 125-byte limit")
     if length > MAX_WS_FRAME:
         raise ValueError("WebSocket frame exceeds safety limit")
     if len(data) < offset + length:
         raise ValueError("incomplete WebSocket frame")
     return opcode, data[offset:offset + length], offset + length
 
+
+def _build_client_frame(opcode, payload):
+    """Build a masked client control frame as required by RFC 6455."""
+    if opcode not in (8, 10):
+        raise ValueError("unsupported client control opcode")
+    if len(payload) > 125:
+        raise ValueError("WebSocket control frame exceeds 125-byte limit")
+    mask = secrets.token_bytes(4)
+    masked = bytes(value ^ mask[index % 4] for index, value in enumerate(payload))
+    return bytes((0x80 | opcode, 0x80 | len(payload))) + mask + masked
+
+
+def _receive_kline_event(sock, initial_data=b""):
+    """Read until a text event arrives, answering Ping and ignoring Pong frames."""
+    buffer = initial_data
+    while True:
+        try:
+            opcode, payload, consumed = parse_server_frame(buffer)
+        except ValueError as error:
+            if str(error) != "incomplete WebSocket frame":
+                raise
+            chunk = sock.recv(4096)
+            if not chunk:
+                raise ConnectionError("WebSocket closed before first event")
+            buffer += chunk
+            continue
+
+        buffer = buffer[consumed:]
+        if opcode == 9:
+            sock.sendall(_build_client_frame(10, payload))
+            continue
+        if opcode == 10:
+            continue
+        if opcode == 8:
+            raise ConnectionError("WebSocket closed before first event")
+        if opcode == 1:
+            return payload
 
 def validate_kline_event(event):
     return (
@@ -224,7 +263,17 @@ def _rest_request(opener, name, path, timeout):
     except HTTPError as error:
         return {"name": name, "status": error.code, "classification": classify_http_status(error.code), "latency_ms": round((time.monotonic() - started) * 1000, 2)}, None
     except Exception as error:
-        return {"name": name, "status": None, "classification": _network_error_kind(error), "error_type": type(error).__name__, "latency_ms": round((time.monotonic() - started) * 1000, 2)}, None
+        reason = error.reason if isinstance(error, URLError) else error
+        detail = " ".join(str(reason).split())[:240]
+        return {
+            "name": name,
+            "status": None,
+            "classification": _network_error_kind(error),
+            "error_type": type(error).__name__,
+            "error_reason_type": type(reason).__name__,
+            "error_detail": detail,
+            "latency_ms": round((time.monotonic() - started) * 1000, 2),
+        }, None
 
 
 def probe_rest(timeout=8):
@@ -294,20 +343,7 @@ def probe_websocket(timeout=8):
                 accepted, status, remainder = parse_http_upgrade(received, key)
                 if not accepted:
                     return {"status": status, "classification": classify_http_status(status) if status else "INVALID_HANDSHAKE", "latency_ms": round((time.monotonic() - started) * 1000, 2), "event_valid": False}
-                frame = remainder
-                while True:
-                    try:
-                        opcode, payload, consumed = parse_server_frame(frame)
-                        break
-                    except ValueError as error:
-                        if str(error) != "incomplete WebSocket frame":
-                            raise
-                        chunk = secure.recv(4096)
-                        if not chunk:
-                            raise ConnectionError("WebSocket closed before first event")
-                        frame += chunk
-                if opcode != 1:
-                    raise ValueError("first WebSocket message is not a text event")
+                payload = _receive_kline_event(secure, remainder)
                 event = json.loads(payload)
                 event_valid = validate_kline_event(event)
                 return {"status": 101, "classification": "REACHABLE", "latency_ms": round((time.monotonic() - started) * 1000, 2), "event_valid": event_valid}
