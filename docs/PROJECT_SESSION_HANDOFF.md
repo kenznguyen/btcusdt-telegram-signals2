@@ -5582,3 +5582,12 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Main handoff update commit: this section records current evidence; prior R5.3 tracking commit was `e748bdbc52746c8b946c9124b610af9835c4d7f1`.
 - PR #1 remains OPEN / DRAFT / NOT MERGED. No Collector runtime, Binance connection, DB access, market capture, T0 change, merge, or live execution. Keep `ai_execution_enabled=false`. Existing R3/R5.1 filesystem TOCTOU limitations remain.
 - Next: continue source-level review of heartbeat terminal lifecycle, especially interactions among multiple outstanding PINGs and disconnect reasons, before declaring R5 source review clear. Do not enable runtime or change PR readiness.
+
+
+## T1 R5.3 follow-up review — disconnect reason consistency (2026-11-07)
+- Source review target: implementation SHA `2c1f025afdcb2c24ae05638959604e562e1b31ae`. `heartbeat_timed_out()` records terminal timeout evidence; `ping_sent()` now rejects new PINGs; `pong_received()` can still resolve other outstanding PINGs; `disconnected()` currently permits a non-`HeartbeatTimeout` reason after timeout evidence exists. This can produce contradictory durable history (PING_TIMEOUT followed by DISCONNECTED with a different reason).
+- Test-only commit: `f969ad693ca022052d0285d5aa2d6f23e4a886fe`, adding `requires_heartbeat_timeout_reason_after_timeout_was_observed`. It asserts a non-timeout disconnect is rejected and JSONL bytes remain unchanged.
+- RED workflow for this test commit has not yet appeared in the commit-run listing; behavioral RED is NOT VERIFIED. No implementation change has been made for this finding.
+- R5.3 prior GREEN remains valid for implementation SHA `2c1f025afdcb2c24ae05638959604e562e1b31ae` in PR merge-context run [42367954332](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42367954332), synthetic checkout SHA `7052b11802f7cb315f521b033b823fc07d1d35c7`, 5/5 jobs PASS, sidecar 25/25. It does not cover this new regression.
+- Next: poll Actions for test commit `f969ad693ca022052d0285d5aa2d6f23e4a886fe`; if the intended test fails, implement the minimal disconnect-reason guard and rerun full CI. If it passes unexpectedly, inspect why before changing behavior.
+- PR #1 remains OPEN / DRAFT / NOT MERGED. No runtime, Binance, DB, market capture, T0 modification, merge or live execution. Keep `ai_execution_enabled=false`.
