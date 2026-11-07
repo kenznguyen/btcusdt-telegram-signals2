@@ -158,3 +158,13 @@ Final verdict may be PASS only if every mandatory gate passes. Otherwise record 
 No approval is being requested or implied by this document. The next user decision should occur only after the mandatory inputs and read-only preflight report are complete.
 
 The eventual approval must explicitly say that a single bounded write is authorized for the exact source SHA, target identity, and UTC window, and acknowledge the backup/rollback plan. Silence, “continue”, or approval of this document alone must not be interpreted as write authorization.
+
+
+### Architecture decision — SQLite Canonical on PC approved (2026-11-07)
+
+- User approved SQLite as the T0 canonical backend for the current PC-first development and validation phase.
+- PostgreSQL/TimescaleDB remains a later evaluation option; no migration is authorized by this decision.
+- This approval covers architecture selection and read-only verification only. It does NOT authorize database creation, schema migration, ingestion, any database write, Controlled First Run, Feeder startup, VPS provisioning, or live execution.
+- Target identity is still NOT VERIFIED. Do not infer that `.data/market-data.sqlite3` is the canonical database; it is only a repository CLI example.
+- Next required input: exact absolute path to the existing SQLite file and its volume/device identity (non-secret). Then perform read-only file/SQLite integrity, schema, API-target identity and backup/restore preflight. Do not open in a write-capable mode.
+- Status: SQLite architecture choice APPROVED; canonical target identity NOT VERIFIED; read-only target preflight BLOCKED pending path; canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
