@@ -111,3 +111,33 @@ Workflow path filters were expanded so changes under `freqai_bridge/**`, `pipeli
 - Freqtrade strategy-load: PENDING corrected run.
 - Binance/OKX parity: NOT RUN.
 - Canonical SQLite PC: NOT CREATED; canonical ingestion NOT RUN; Feeder STOPPED; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
+
+
+## Freqtrade/FreqAI 2026.9 runtime strategy-load — PASS
+
+- Workflow: [42332039353](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42332039353), final **SUCCESS**.
+- Exact workflow/source SHA: `c15fff327bb5da25a571a8ae654c728a7d22a2b4`.
+- Official image: `freqtradeorg/freqtrade:2026.9_freqai`; runtime output confirms `freqtrade 2026.9`.
+- Strategy discovery output: `ChartProFreqaiResearch`, status **OK**.
+- Artifact: `13558216419`; digest `sha256:87c364ae3937aae1b9769029753bac22fa8b3733c27a4fda9430a7c278f4d263`.
+- First smoke attempt exposed two harness issues (unsupported `--print-json`; read-only bind mount placed at Freqtrade's default writable user-data directory). Both were corrected in the workflow. The final run mounts source at `/workspace:ro` and uses isolated `/tmp/freqtrade-userdata`.
+- The smoke proves the pinned framework imports and discovers the strategy. It does NOT prove a FreqAI training run, prediction quality, model provenance, actual canonical DB availability, exchange parity, or trading behavior.
+- No exchange sync, credentials, canonical DB mount, DB writes, model training or orders were used.
+
+## Updated acceptance
+
+| Gate | Result |
+|---|---|
+| T0→T2 consumer regression | PASS |
+| T0 static Gateway + SQLite contracts | PASS |
+| Disposable PostgreSQL provider bootstrap | PASS |
+| Disposable TimescaleDB read-only integration | PASS |
+| Freqtrade/FreqAI 2026.9 image | PASS |
+| ChartProFreqaiResearch strategy discovery | PASS |
+| FreqAI training/model provenance | NOT RUN |
+| Binance/OKX parity | NOT RUN |
+| Canonical SQLite PC | NOT CREATED |
+| Canonical ingestion / Feeder | NOT RUN / STOPPED |
+| Live execution | DISABLED |
+
+Overall: **PASS for T0 isolated consumer/storage integration and Freqtrade 2026.9 strategy discovery. NOT VERIFIED for FreqAI training/prediction and Binance–OKX data parity.**
