@@ -202,7 +202,14 @@ def load_and_validate_connection_events(
             for sent_at in pending.values()
         )
         status = "UNVERIFIABLE"
-        if in_window_disconnect:
+        outside_window = (
+            opened_at is None
+            or opened_at >= window_end_ms
+            or (disconnect is not None and disconnect["eventAtMs"] < window_start_ms)
+        )
+        if outside_window:
+            status = "OUTSIDE_WINDOW"
+        elif in_window_disconnect:
             status = "DISCONNECTED"
         elif opened_at is not None and opened_at <= window_start_ms and window_pongs:
             window_pongs.sort()
@@ -241,7 +248,10 @@ def load_and_validate_connection_events(
                     or not isinstance(item.get("route"), str) or item.get("route") not in ROUTES):
                 raise ValueError("Invalid expected connection identity")
             expected.add((item["batchId"], item["route"]))
-        observed = {(item["batchId"], item["route"]) for item in results}
+        observed = {
+            (item["batchId"], item["route"])
+            for item in results if item["connectionStatus"] != "OUTSIDE_WINDOW"
+        }
         for batch_id, route in sorted(expected - observed):
             results.append({
                 "connectionId": None, "batchId": batch_id, "route": route,
@@ -252,12 +262,15 @@ def load_and_validate_connection_events(
             })
         results.sort(key=lambda item: (item["batchId"], item["route"], item["connectionId"] or ""))
 
-    statuses = {item["connectionStatus"] for item in results}
+    statuses = {
+        item["connectionStatus"] for item in results
+        if item["connectionStatus"] != "OUTSIDE_WINDOW"
+    }
     if "DISCONNECTED" in statuses:
         overall = "DISCONNECTED"
     elif "HEARTBEAT_GAP" in statuses:
         overall = "HEARTBEAT_GAP"
-    elif not results or statuses != {"VERIFIED_CONNECTED"}:
+    elif not statuses or statuses != {"VERIFIED_CONNECTED"}:
         overall = "UNVERIFIABLE"
     else:
         overall = "VERIFIED_CONNECTED"
