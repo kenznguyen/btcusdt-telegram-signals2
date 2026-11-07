@@ -4268,3 +4268,14 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - PG-LC-04 status: **PASS**. Matrix update commit `93389df3f4bfbc60c740c811aa093fc79c0748f8`, blob `7d89a9f36f6f5deaa78de29d5aab001ebeea1b92`.
 - No pool was added; no pool-exhaustion test was created. The adapter remains per-operation connection, with bounded connection/statement/lock timeout behavior. No production runtime/provider/DB/exchange/data-sync/Backup-DR action.
 - Next: PG-LC-05 — define and verify safe behavior when PostgreSQL returns after a transient outage. Existing runtime is fail-terminal on startup failure and transitions to LEASE_LOST on heartbeat failure; do not introduce automatic recovery/resume. Test should prove that stale runtime cannot resume writes and a fresh runtime must obtain a newer fencing generation.
+
+
+## 2026-11-07 — PG-LC-05 transient outage no-auto-resume test
+
+- Added `test_runtime_does_not_resume_after_transient_heartbeat_outage` to `market_data/test_postgres_feeder_runtime_lifecycle.py`; source commit `945eb98fc2845d2e2dd9d20539f3ae4de9c42fbb`, blob `ff8458fd6250fca264799810d78b2566ebcfda10`.
+- Test injects one `StoreUnavailable` from a lease adapter heartbeat, then restores delegation to the real disposable PostgreSQL lease backend. It asserts the old runtime stays `LEASE_LOST`, scheduler stays stopped, heartbeat does not retry/resume, and after the expired lease is taken over a fresh runtime acquires a strictly higher generation. Stopping the old runtime must not release the replacement lease.
+- Static workflow run [42322920542](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42322920542), exact source SHA `945eb98fc2845d2e2dd9d20539f3ae4de9c42fbb`; static job `128251449779` SUCCESS. Full market_data suite 238 tests, 40 skipped, OK; static contracts 10/10; behavioral/feeder 63/63; health/readiness 21/21; process restart 2/2. New integration test skipped in static suite because no disposable DSN.
+- Static artifact `13552959770`, 10,791 bytes, digest `sha256:84c73341a1f3704bdabe687cdaad727f3eda71f99f87e177709b00305cf7bb26`; downloaded ZIP SHA-256 independently matched.
+- Disposable TimescaleDB job `128251515014` remains at container initialization. PG-LC-05 is **NOT VERIFIED** until the test executes against the disposable DB and its artifact is reconciled.
+- Matrix update commit `adea0476722ff8f9e26cd9141e72494e108e19bc`, blob `e839fd9de5db7398bdaf07b09cfa664375ebcb75`.
+- No runtime source change or production/external activity.
