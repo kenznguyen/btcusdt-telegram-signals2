@@ -85,3 +85,19 @@ Resolve why the fork has no GitHub Actions runs, then execute the exact PR head 
 - Tests: 11 authored, **NOT RUN**. Format and Clippy **NOT VERIFIED**. No collector runtime integration or exchange access occurred.
 - Next: inspect the fork's Actions tab for workflow visibility, disabled/approval banners, and pending approval; if no workflow appears, verify the workflow file is present on the default branch and inspect repository Actions policy in Settings. Do not add runtime integration until exact-head CI passes.
 - Safety unchanged: no collector process, Binance request, DB access, data capture, credential/config change, merge, or live execution. `ai_execution_enabled=false`.
+
+
+## 2026-11-07 Addendum — GitHub Actions Run Started
+
+- Fresh workflow run is now visible: [42343825387](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42343825387), workflow `CI`, event `pull_request`, status `in_progress`.
+- Run metadata PR head SHA: `e1ccc11f654082456f3ef7b728f161e475904da0`, matching current PR head. Because this is a pull_request event, the actual checkout may be a synthetic merge SHA; checked-out SHA must be confirmed from job logs after completion.
+- Jobs at latest inspection:
+  - `dashboard backend · pytest`: SUCCESS.
+  - `dashboard frontend · tsc · vitest`: SUCCESS.
+  - `collector · fmt · clippy · test`: IN_PROGRESS; Format PASS, Clippy PASS, Build IN_PROGRESS; remaining tests/sidecar commands pending.
+  - `docker · build images`: IN_PROGRESS.
+  - `security · cargo-audit · npm audit`: IN_PROGRESS.
+- Collector job ID: `128317128179`. Dashboard backend job ID: `128317128141`. Dashboard frontend job ID: `128317128165`. Docker job ID: `128317128304`. Security job ID: `128317127920`.
+- No artifacts are available yet. Final workflow conclusion, exact checkout SHA, full Rust test count and artifact metadata remain NOT VERIFIED.
+- PR #1 body updated with this run and current validation boundaries; remains OPEN / DRAFT / NOT MERGED.
+- Next: wait for run completion; inspect every job, fetch logs to prove checkout SHA and test counts, inspect artifacts/digests, then update this report and handoff with final evidence. Do not start runtime integration until exact-source CI passes.
