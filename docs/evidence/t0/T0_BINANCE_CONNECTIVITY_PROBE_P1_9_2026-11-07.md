@@ -361,3 +361,30 @@ Next diagnostic should capture WebSocket control-frame behavior and compare the 
 | P1.9 overall | BLOCKED / NOT VERIFIED pending PC rerun |
 
 Next: user downloads the exact source snapshot at `2b4cc1cd0f7c3e55e6de27388df6c4e87de811e3`, runs the offline contract tests, then runs only the read-only network probe. The old PowerShell `.NET ClientWebSocket` test must be updated to the documented `/market/ws/...` path if independently repeated. Do not use the old `/ws` result as current endpoint evidence. No DB writes, canonical ingestion, Feeder, Controlled First Run, VPS, proxy/VPN, or AI execution.
+
+
+### PC rerun on corrected USD-M route — PASS (2026-11-07T02:23:12Z)
+
+User supplied successful read-only probe JSON.
+
+- Exchange: BINANCE_USDM; scope: READ_ONLY_PUBLIC_CONNECTIVITY; passed=true.
+- REST: 5/5 PASS, all HTTP 200 and schema_valid=true: ping 184.95 ms; time 150.59 ms; exchange_info 266.85 ms; closed M15 141.11 ms; closed H1 119.20 ms.
+- WebSocket: PASS; HTTP 101; stage=KLINE_EVENT_RECEIVED; event_valid=true; 746.34 ms.
+- Safety: credentials_used=false; proxy_used=false; database_accessed=false; feeder_started=false; market_data_persisted=false; ai_execution_enabled=false.
+- observed_at_utc: 2026-11-07T02:23:12Z.
+- Runtime SHA is not embedded in JSON. Associate with instructed snapshot 2b4cc1cd0f7c3e55e6de27388df6c4e87de811e3 by user workflow/context, not cryptographic attestation. CI on that SHA: workflow https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42328662902; py_compile and 18/18 offline tests PASS; artifact 13556750284.
+
+#### Updated gate verdict
+
+| Gate | Status |
+|---|---|
+| Correct documented USD-M route in source/test | PASS |
+| Offline contracts on source SHA 2b4cc1cd0f7c3e55e6de27388df6c4e87de811e3 | PASS 18/18 |
+| PC REST public connectivity sample | PASS 5/5 |
+| PC corrected-route WebSocket Upgrade | PASS HTTP 101 |
+| First 15m Kline event | PASS, valid event received |
+| P1.9 read-only connectivity probe | PASS for this observed sample |
+| Durable availability/SLA | NOT VERIFIED |
+| T0 canonical dataset acceptance (96 M15 + 24 H1, repeat sync/hash/API checks) | NOT RUN / NOT VERIFIED |
+
+Next: prepare a separately reviewed and approved controlled-ingestion acceptance plan. This result does not authorize DB writes, canonical ingestion, Feeder startup, VPS deployment, or live execution. Keep ai_execution_enabled=false.
