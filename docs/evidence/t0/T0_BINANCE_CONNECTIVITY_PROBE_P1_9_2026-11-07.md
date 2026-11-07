@@ -304,3 +304,30 @@ Next: download source snapshot from exact SHA 54f9344e42baa2bd92a45fd6d96eae35c2
 | AI execution | DISABLED |
 
 Next diagnostic: from the same PC/network, compare first-frame receipt for `btcusdt@kline_15m` and `btcusdt@kline_1m` using a direct WebSocket client, recording only endpoint interval, HTTP status, first frame opcode/length, and elapsed time. Do not change the canonical probe interval or accept a non-15m stream as satisfying P1.9. Keep the test read-only; no alternate host, VPN/proxy, credentials, DB, Feeder, or persistence.
+
+
+### Same-PC direct .NET WebSocket comparison — both streams receive no first frame (2026-11-07)
+
+- User ran the direct PowerShell `ClientWebSocket` comparison against `wss://fstream.binance.com/ws/btcusdt@kline_15m` and `...@kline_1m`.
+- Both `ConnectAsync` operations completed and reported `WebSocketState.Open`.
+- Both first `ReceiveAsync` operations were canceled at the 20-second timeout:
+  - 15m: 20,008 ms; no frame received.
+  - 1m: 20,006 ms; no frame received.
+- The displayed `System.Threading.Tasks.VoidTaskResult` is incidental PowerShell output from the async connect invocation; the relevant observations are successful `Open` state followed by receive cancellation.
+- This independent .NET client reproduces the same handshake-success / first-frame-timeout symptom as the Python probe on both intervals. This reduces the likelihood that the issue is limited to Python's WebSocket frame parser/receiver. It does not identify whether the cause is Binance edge/stream delivery, local network/intermediary handling after Upgrade, or another transport behavior.
+- No frame opcode or payload was observed. No credentials, proxy/VPN, DB, Feeder, persistence, or AI execution were used.
+
+#### Updated verdict
+
+| Gate | Status |
+|---|---|
+| REST | CONDITIONAL PASS — recent 5/5 sample |
+| Python probe HTTP Upgrade | PASS — HTTP 101 |
+| .NET WebSocket Upgrade | PASS — both sockets Open |
+| First frame on 15m | NOT RECEIVED — 20.008s timeout |
+| First frame on 1m | NOT RECEIVED — 20.006s timeout |
+| Python-only receiver defect hypothesis | DOWNGRADED — independent .NET client shows same symptom |
+| Root cause | NOT DETERMINED |
+| P1.9 overall | BLOCKED / NOT VERIFIED |
+
+Next diagnostic should capture WebSocket control-frame behavior and compare the same PC/network against a separately documented Binance public WebSocket endpoint only if needed to isolate host/path policy; do not accept a different endpoint or interval as T0 Binance USD-M acceptance. Do not add proxy/VPN, credentials, persistence, DB, Feeder, or live execution.
