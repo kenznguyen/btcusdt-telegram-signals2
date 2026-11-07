@@ -5488,3 +5488,16 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Current T1 source SHA / PR head: `b7f9f42b7ea809c46f388c81cc6e69b1b472e6f2`; PR #1 OPEN / DRAFT / NOT MERGED.
 - Exact-source push workflow [42363640380](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42363640380) is IN_PROGRESS. Latest poll: backend PASS, frontend PASS; Collector, Security, Docker IN_PROGRESS. No behavioral result yet.
 - Next: await Collector test output. Only after expected failing assertions are observed may R5.1 implementation begin. Preserve no runtime, no Binance, no DB/capture, no T0 changes, no merge, no live execution; `ai_execution_enabled=false`.
+
+
+## T1 R5.1 — RED/GREEN closeout (2026-11-07)
+- T1 repository: `kenznguyen/binance-futures-collector`; PR #1 remains OPEN / DRAFT / NOT MERGED.
+- T1 branch: `feature/t1-connection-sidecar-integration-20261107`; exact current source/head SHA: `02e27ad96a23f2bb47c8434b5f66f69684e50d89`.
+- R5.1 test-only RED source SHA: `fabec99dbdd9c723dce78169834b623b78130a41`; exact-source push run [42363857750](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42363857750) ran sidecar tests and reported 19 passed / 3 failed, exactly the three intended regressions (unanswered heartbeat PING, aggregate subscription budget, same-size valid JSONL path replacement).
+- Implementation SHA: `79e9aacf80e0fb621baa4a8bbbf8230286845eb1`; formatting-only follow-up SHA: `02e27ad96a23f2bb47c8434b5f66f69684e50d89`.
+- Implementation now rejects disconnect/finalize with unanswered heartbeat PINGs; enforces session-wide subscription metadata (1 MiB), connection count (1024), and serialized manifest (1 MiB) bounds; reads back using the original read+append writer handle and verifies path identity around readback.
+- Exact-source GitHub Actions push run [42364226095](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42364226095): SUCCESS, all 5/5 jobs on SHA `02e27ad96a23f2bb47c8434b5f66f69684e50d89`. Collector workspace format/Clippy/release build PASS; collector lib 40/40 and binary 1/1 PASS; sidecar format/Clippy PASS; sidecar offline suite 22/22 PASS. Log explicitly confirms all three R5 regression tests PASS. Dashboard backend/frontend, security audits and Docker image builds PASS.
+- Artifacts: none published. PR description updated with R5.1 RED/GREEN evidence, current source SHA and limitations. PR remains OPEN / DRAFT / NOT MERGED.
+- Verdict: R5.1 source fixes + test evidence + exact-source CI **PASS**. T1 operational readiness **NOT VERIFIED**.
+- Platform limitation: Unix path identity compares device/inode. Non-Unix fallback checks regular non-symlink files and matching length only; it does not provide equivalent file-identity assurance. Existing offline validator manifest path TOCTOU caveat remains.
+- Next: continue source-level review for remaining correctness/durability gaps and document evidence. Do not integrate/start Collector runtime, connect Binance, access DB, capture market data, modify T0, merge PR, or enable live execution. Keep `ai_execution_enabled=false`.
