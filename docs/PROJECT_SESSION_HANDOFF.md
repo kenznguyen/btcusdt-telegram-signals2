@@ -5703,3 +5703,11 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Exact-head push workflow [42375119953](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42375119953) remains IN_PROGRESS. Collector format/Clippy PASS; dashboard frontend/backend PASS; Collector build, security and Docker still running; Sidecar writer fmt/Clippy/offline tests pending at time of this update.
 - Behavioral RED: NOT VERIFIED. No implementation fix yet. Next: await Sidecar offline test result on corrected source, confirm the expected assertion failure, then implement cleanup and verify GREEN.
 - PR #1 remains OPEN / DRAFT / NOT MERGED; no runtime, Binance, DB, capture, T0, merge or live execution. Keep `ai_execution_enabled=false`.
+
+
+## T1 cleanup regression test — Clippy correction (2026-11-07)
+- Workflow [42375119953](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42375119953) on `dbbf09b55a71f11276e0c38360f641553577ff7b` failed at Sidecar writer Clippy, not at the behavioral test. Exact diagnostic: `clippy::io-other-error` at `src/lib.rs:1101`, requiring `io::Error::other(...)`; Sidecar offline tests skipped, so no RED evidence.
+- Corrected only the injected test error construction using `io::Error::other(...)`; new source SHA `eaeb6a5163bcba7240414f726cc68582b44ec378`. No production cleanup logic changed.
+- Exact-head PR workflow [42375340479](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42375340479) is IN_PROGRESS. Collector fmt/Clippy PASS; dashboard frontend/backend PASS; Collector build, security and Docker in progress; Sidecar writer offline test pending.
+- Behavioral RED remains NOT VERIFIED. Next: wait for offline test and verify it fails specifically because orphan file remains; only then implement best-effort cleanup while preserving the original sync error and test cleanup-failure reporting.
+- PR #1 OPEN / DRAFT / NOT MERGED. No runtime integration, Binance, DB, capture, T0 changes, merge or live execution. Keep `ai_execution_enabled=false`.
