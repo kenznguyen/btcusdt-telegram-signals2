@@ -96,3 +96,65 @@ Run the command on the target PC and save the JSON report. Review the exact endp
 Current branch: `feature/t0-centralized-data-feeder-p1-20261101`.
 Implementation GREEN source SHA: `688e108ba84b1de526d32cc03a9129e0ae952e9c`.
 Documentation update commit: `d612774c9e5fd056a311d572f754065599f73f81`.
+
+
+## 2026-11-07 — PC observation and WebSocket receiver diagnostics
+
+### Target-PC observations (user-provided)
+
+- First official probe:
+  - REST 5/5: HTTP 200; schemas valid.
+  - WebSocket: TIMEOUT at approximately 10.45 seconds.
+- Second official probe:
+  - Ping, server time, M15 and H1: HTTP 200; schemas valid.
+  - Exchange Info: `URLError` / `CONNECTION_ERROR` after 29.71 ms; original reason was not retained by the probe.
+  - WebSocket: TIMEOUT at approximately 20.33 seconds.
+- Independent PowerShell checks:
+  - DNS resolution succeeded (8 IPv4 answers were observed; answer sets can rotate).
+  - TCP port 443: `TcpTestSucceeded=True`.
+  - TLS authentication: `True`, protocol TLS 1.2, AES-128.
+  - Manual RFC6455 handshake: HTTP 101 Switching Protocols, Upgrade and Connection headers accepted.
+  - The PowerShell `Find-NetIPsecRule` command-not-found diagnostic did not invalidate the reported TCP success.
+- Boundary: the manual handshake did not read/validate a Kline event. Therefore it does not upgrade WebSocket event delivery to PASS.
+
+### TDD receiver and diagnostics correction
+
+- Test-first commit: `16ca2f0896cccbbf0273e669f9feefc9874f9014`.
+- RED workflow: [42326134473](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42326134473), exact source SHA `16ca2f0896cccbbf0273e669f9feefc9874f9014`; failed as expected because `_receive_kline_event` had not yet been implemented/imported.
+- RED artifact ID `13554977848`; name `t0-binance-probe-contracts-16ca2f0896cccbbf0273e669f9feefc9874f9014`; upload digest `sha256:46136092c8f2a6ea23e97f85f63301a194fc3e18e0edcc56b667fc44c37c50e9`.
+- Implementation commit / exact source SHA: `ab564eccbb9c0484fdd30b694f5b052bc4a2c991`.
+- Changes:
+  - Read WebSocket frames until a text event arrives.
+  - Reply to server Ping with a masked client Pong carrying the same payload.
+  - Ignore Pong frames; classify Close before first event as a connection closure.
+  - Enforce the RFC6455 125-byte control-frame limit.
+  - Preserve bounded `URLError.reason` type and detail in REST diagnostics.
+- GREEN workflow: [42326194320](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42326194320), exact source SHA `ab564eccbb9c0484fdd30b694f5b052bc4a2c991`; dedicated offline contracts **15/15 PASS**.
+- GREEN artifact ID `13554799956`; name `t0-binance-probe-contracts-ab564eccbb9c0484fdd30b694f5b052bc4a2c991`; GitHub upload digest `sha256:41b66386edded07ad4a98f89dfa0ec4fbbb3805dc9f446849640b614d1d322af`.
+
+### Full T0 regression on the implementation SHA
+
+- Workflow: [42326194295](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42326194295), push event, branch `feature/t0-centralized-data-feeder-p1-20261101`, exact head/checkout SHA `ab564eccbb9c0484fdd30b694f5b052bc4a2c991`.
+- Static Gateway job `128262017337`: SUCCESS. Complete `market_data` suite **255 tests, 42 skipped, OK**; static Gateway, behavioral/Feeder, Health/Readiness, and process SIGKILL steps also completed successfully.
+- Paper consumer job `128262017581`: SUCCESS.
+- Static artifact ID `13555675449`; name `t0-swg-contract-evidence-ab564eccbb9c0484fdd30b694f5b052bc4a2c991`; size 11,285 bytes; GitHub upload digest `sha256:0cdd64351806dc64ead10583cdfc8dc2b9efa4942e4a1ffec886fc2c40cbd5bb`.
+- Paper artifact ID `13555535334`; name `t0-paper-consumer-tests-ab564eccbb9c0484fdd30b694f5b052bc4a2c991`; size 1,694 bytes; GitHub upload digest `sha256:7863f192dbdfeeb957eb439d59ae462fa4e7c6406863f5922a966c56a7300c44`.
+- Fresh-cluster restricted provider bootstrap and isolated TimescaleDB integration jobs were still running at the time of this evidence update. Their conclusions are deliberately NOT RECORDED until the jobs complete. Existing provider-bootstrap role guard and PG-LC-07 placeholder failure remain unrelated known blockers; do not weaken guards or bypass dependencies.
+- GitHub upload digests above are workflow metadata; artifact payload ZIPs have not been independently downloaded and re-hashed in this increment.
+
+### Updated verdict at this evidence point
+
+| Gate | Status |
+|---|---|
+| PC REST reachability | CONDITIONAL / INTERMITTENT (two samples differ) |
+| PC DNS / TCP 443 / TLS 1.2 | PASS for the observed independent checks |
+| Manual WebSocket HTTP Upgrade | PASS |
+| Official probe WebSocket Kline event | NOT VERIFIED (both attempts timed out) |
+| TDD RED | PASS (expected failing test import) |
+| Dedicated offline contracts | PASS (15/15) |
+| Static T0 regression | PASS (255 tests, 42 skipped) |
+| Paper consumer regression | PASS |
+| Disposable PostgreSQL integration jobs | IN PROGRESS at evidence capture |
+| Controlled First Run / canonical ingestion / Feeder | NOT AUTHORIZED / NOT RUN |
+
+No network request was made by GitHub Actions. No API credentials, DB, canonical T0 store, Feeder, sync operation, proxy/VPN, or execution capability was used.
