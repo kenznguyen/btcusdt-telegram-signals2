@@ -3,7 +3,7 @@
 ## Status and authorization boundary
 
 - Status: **Prepared — NOT EXECUTED; staging not provisioned; no production authorization**.
-- Scope: validate the T0 PostgreSQL/TimescaleDB security, writer fencing, TLS, credential rotation, backup/restore, and operational recovery design against one selected provider.
+- Scope: validate T0 PostgreSQL/TimescaleDB lifecycle, writer fencing, TLS, credential rotation, and operational compatibility. Backup/DR is deferred.
 - This checklist is provider-neutral. It does not select a provider, region, plan, VPS, cost, network topology, or database endpoint.
 - All executable acceptance must use an isolated staging database, synthetic candles, and non-production credentials. No production canonical database or real Binance ingestion is needed for these tests.
 - GitHub Actions remains the default CI/evidence platform. Codemagic is fallback only when GitHub Actions is unavailable or materially constrained.
@@ -151,51 +151,13 @@ Writer fencing, lease generation, transaction rollback/atomicity, readiness fail
 
 Reopen Gate F only under a separately approved scope. Until then, Gate F is excluded from the current staging acceptance verdict.
 
-
-### Backup capability
-
-- [ ] Provider confirms automated base backup and continuous WAL/PITR (or an equivalent mechanism proven to meet the RPO).
-- [ ] At least 7 days of recovery history is available and visible on the selected plan.
-- [ ] Backups are encrypted in transit and at rest; key control is separate from Feeder credentials.
-- [ ] Feeder cannot delete, overwrite, shorten retention, or alter backup policies.
-- [ ] Backup health, latest recoverable point, archive lag, retention, and last successful restore are observable.
-- [ ] A separate encrypted logical export of T0 schema and migration metadata is available for portability; it is not treated as a replacement for PITR.
-
-### Timed restore drill
-
-1. Seed a known synthetic dataset and record a durable marker for each committed write.
-2. Record the incident declaration time and chosen recovery point.
-3. Restore into a separate isolated endpoint; do not connect the Feeder.
-4. Verify engine/extension compatibility, migration checksums, integrity, row/key ranges, decimal values, gaps, and canonical hashes.
-5. Determine the newest committed marker present in the restored database and calculate actual RPO.
-6. Fence the former primary and every old Feeder instance. Prove the old endpoint/credential cannot accept a writer.
-7. Invalidate the restored lease and advance the generation before allowing a new Feeder to start.
-8. Rotate the Feeder credential; prove old credentials fail.
-9. Start exactly one Feeder on the restored endpoint; verify new generation, bounded recovery, and readiness.
-10. Record restore start/end, read-service verification, healthy Feeder time, actual RTO, actual RPO, and all relevant SHA/run/artifact references.
-
-### Measurable acceptance thresholds
-
-| Measure | Target | Evidence |
-|---|---:|---|
-| PITR history | >= 7 days | Provider configuration + selectable recovery point |
-| RPO | <= 5 minutes | Incident timestamp vs newest committed marker restored |
-| RTO | <= 60 minutes | Incident declaration vs verified read service + one healthy Feeder |
-| Restore integrity | 100% of recorded keys/values/hashes | Machine-readable parity report |
-| Old-primary fencing | 0 successful old-writer connections after fence | Connection/write denial evidence |
-| Lease recovery | New generation strictly greater than restored/old generation | SQL query + Feeder event log |
-| Backup isolation | Feeder cannot mutate/delete backups | Negative permission test |
-
-If RPO or RTO misses target, record **BLOCKED**. Do not silently weaken the targets or infer capability from provider marketing. Any revised objective requires explicit operator approval.
-
 ## 8. Gate G — operational readiness and rollback
 
 - [ ] Feeder runs as a dedicated unprivileged OS service identity.
 - [ ] Secret files/variables are protected; no secret is exposed in process arguments, shell history, logs, crash dumps, or artifacts.
 - [ ] Restart policy does not create concurrent uncontrolled Feeder instances.
 - [ ] Health/readiness reports DB connectivity, current lease generation state, heartbeat age, recovery coverage, and runtime readiness.
-- [ ] Missing/stale backup telemetry blocks go-live.
-- [ ] Disk, connection, storage, CPU, memory, WAL, and backup capacity alerts have thresholds and owners.
+- [ ] Disk, connection, storage, CPU, memory, and WAL capacity alerts have thresholds and owners.
 - [ ] Rollback procedure is exercised: stop Feeder, fence writer credential, preserve PostgreSQL evidence, and return reads only to a verified SQLite snapshot if parity allows.
 - [ ] No dual-write or automatic copy-back is used as a rollback shortcut.
 - [ ] Operator has a documented incident owner, access path, and break-glass audit procedure.
