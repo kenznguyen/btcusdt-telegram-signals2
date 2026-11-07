@@ -92,3 +92,11 @@ No collector activation, exchange capture, database access, Canonical SQLite cre
 - Exact-version all-target graph confirms reverse paths for rustls 0.23.43, rustls-webpki 0.103.14, webpki-root-certs 1.0.9, webpki-roots 1.0.9, tokio 1.53.1 and chacha20 0.10.1. Key paths are recorded in `T1_COLLECTOR_CARGO_AUDIT_EXACT_EVIDENCE_2026-11-07.md`.
 - `quinn-proto@0.11.16` remains NOT VERIFIED: cargo tree returned "nothing to print" with exit 0. The diagnostic script's PRESENT marker is a false-positive condition and must not be treated as reachability evidence.
 - No dependency or runtime changes. Sidecar remains an offline reference implementation; no collector was started and no exchange/data/database operation was performed. T1 continuity remains NOT CERTIFIED; security BLOCKED.
+
+
+## 2026-11-07 Addendum — QUIC advisory package resolution clarified
+
+- Fork `Cargo.lock` at source SHA `22900b860426a5c19622ec6b5ea3673646df2229` contains `quinn-proto 0.11.16 → quinn 0.11.11 → reqwest 0.13.1` as lockfile dependency metadata.
+- Collector's reqwest declaration disables default features and explicitly selects json/rustls/webpki-roots/http2; it does not explicitly enable HTTP/3/QUIC. Exact-version all-target `cargo tree` emitted no reverse path for `quinn-proto@0.11.16`.
+- Correct classification: package remains in Cargo.lock, but no activated all-target dependency path was emitted. This is not evidence that quinn-proto is part of the active resolved graph. CI's diagnostic PRESENT marker is inaccurate when cargo tree exits 0 with empty output and must be corrected before relying on that marker.
+- No manifest, lockfile, dependency, workflow, runtime or collector changes made during this clarification. Security gate remains BLOCKED on 12 other reachable/unresolved vulnerabilities plus 2 warnings; PR stays draft/unmerged.
