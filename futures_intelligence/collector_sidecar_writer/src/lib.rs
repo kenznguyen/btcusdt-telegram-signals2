@@ -9,9 +9,13 @@ const MAX_EVENT_BYTES: usize = 16 * 1024;
 const MAX_FILE_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_EVENTS: u64 = 100_000;
 const MAX_BATCH_ID: u32 = 100_000;
+const MAX_RECONNECT_ATTEMPTS: u32 = 1_000_000;
 const MAX_RECONNECT_DELAY_MS: u64 = 60_000;
+const MAX_TIMESTAMP_MS: u64 = i64::MAX as u64;
+const MAX_SUBSCRIPTIONS: usize = 10_000;
+const MAX_SUBSCRIPTION_BYTES: usize = 256;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Route {
     Public,
@@ -23,6 +27,8 @@ pub struct ConnectionIdentity {
     pub connection_id: String,
     pub batch_id: u32,
     pub route: Route,
+    /// Exact stream names passed to the WebSocket subscription URL.
+    pub subscriptions: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -67,6 +73,20 @@ struct Event<'a> {
     attempt: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     delay_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    subscription_count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    subscription_set_sha256: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConnectionSubscription {
+    pub connection_id: String,
+    pub batch_id: u32,
+    pub route: Route,
+    pub subscriptions: Vec<String>,
+    pub subscription_set_sha256: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -82,6 +102,7 @@ pub struct CaptureManifest {
     pub capture_complete_through_ms: u64,
     pub finalized_at_ms: u64,
     pub event_count: u64,
+    pub connection_subscriptions: Vec<ConnectionSubscription>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -130,9 +151,10 @@ impl SidecarWriter {
 
         let path = path.as_ref().to_path_buf();
         let file = OpenOptions::new()
-            .write(true)
+            .append(true)
             .create_new(true)
             .open(&path)?;
+        sync_parent_directory(&path)?;
 
         Ok(Self {
             file,
@@ -152,14 +174,30 @@ impl SidecarWriter {
         path.as_ref().with_extension("manifest.json")
     }
 
-    pub fn connected(&mut self, identity: &ConnectionIdentity, event_at_ms: u64) -> io::Result<()> {
+    pub fn connected(
+        &mut self,
+        identity: &ConnectionIdentity,
+        event_at_ms: u64,
+    ) -> io::Result<()> {
         self.ensure_usable()?;
         validate_identity(identity)?;
         if self.connections.contains_key(&identity.connection_id) {
-            return Err(invalid("connection_id may be opened only once per session"));
+            return Err(invalid(
+                "connection_id may be opened only once per session",
+            ));
         }
-
-        self.append_event(identity, "CONNECTED", event_at_ms, None, None, None, None)?;
+        let subscription_hash = subscription_set_sha256(&identity.subscriptions);
+        self.append_event(
+            identity,
+            "CONNECTED",
+            event_at_ms,
+            None,
+            None,
+            None,
+            None,
+            Some(identity.subscriptions.len()),
+            Some(subscription_hash),
+        )?;
         self.connections.insert(
             identity.connection_id.clone(),
             ConnectionState {
@@ -189,16 +227,19 @@ impl SidecarWriter {
                 .get(&identity.connection_id)
                 .expect("checked above");
             if state.heartbeat_ids.contains(heartbeat_id) {
-                return Err(invalid("heartbeat_id must be unique within a connection"));
+                return Err(invalid(
+                    "heartbeat_id must be unique within a connection",
+                ));
             }
         }
 
-        // Do not mutate the state until the event has been durably appended.
         self.append_event(
             identity,
             "PING_SENT",
             event_at_ms,
             Some(heartbeat_id),
+            None,
+            None,
             None,
             None,
             None,
@@ -240,6 +281,8 @@ impl SidecarWriter {
             None,
             None,
             None,
+            None,
+            None,
         )?;
         self.connections
             .get_mut(&identity.connection_id)
@@ -264,6 +307,8 @@ impl SidecarWriter {
             Some(reason.as_str()),
             None,
             None,
+            None,
+            None,
         )?;
         self.connections
             .get_mut(&identity.connection_id)
@@ -285,7 +330,11 @@ impl SidecarWriter {
                 "only one reconnect schedule is allowed per closed socket",
             ));
         }
-        if attempt == 0 || delay_ms == 0 || delay_ms > MAX_RECONNECT_DELAY_MS {
+        if attempt == 0
+            || attempt > MAX_RECONNECT_ATTEMPTS
+            || delay_ms == 0
+            || delay_ms > MAX_RECONNECT_DELAY_MS
+        {
             return Err(invalid(
                 "reconnect attempt/delay is outside the supported bounds",
             ));
@@ -299,6 +348,8 @@ impl SidecarWriter {
             None,
             Some(attempt),
             Some(delay_ms),
+            None,
+            None,
         )?;
         self.connections
             .get_mut(&identity.connection_id)
@@ -326,6 +377,11 @@ impl SidecarWriter {
             return Err(invalid(
                 "all sockets must be disconnected before session finalization",
             ));
+        }
+        if capture_complete_through_ms > MAX_TIMESTAMP_MS
+            || finalized_at_ms > MAX_TIMESTAMP_MS
+        {
+            return Err(invalid("capture timestamps exceed the signed 64-bit contract"));
         }
         if self
             .last_event_at_ms
@@ -367,6 +423,29 @@ impl SidecarWriter {
             .ok_or_else(|| invalid("sidecar filename must be valid UTF-8"))?
             .to_string();
 
+        let mut connection_subscriptions = self
+            .connections
+            .values()
+            .map(|state| {
+                let mut subscriptions = state.identity.subscriptions.clone();
+                subscriptions.sort();
+                ConnectionSubscription {
+                    connection_id: state.identity.connection_id.clone(),
+                    batch_id: state.identity.batch_id,
+                    route: state.identity.route,
+                    subscription_set_sha256: subscription_set_sha256(&subscriptions),
+                    subscriptions,
+                }
+            })
+            .collect::<Vec<_>>();
+        connection_subscriptions.sort_by(|left, right| {
+            (left.batch_id, left.route, &left.connection_id).cmp(&(
+                right.batch_id,
+                right.route,
+                &right.connection_id,
+            ))
+        });
+
         let manifest = CaptureManifest {
             schema_version: 1,
             source_commit: self.source_commit.clone(),
@@ -378,19 +457,41 @@ impl SidecarWriter {
             capture_complete_through_ms,
             finalized_at_ms,
             event_count: self.event_count,
+            connection_subscriptions,
         };
 
         let manifest_path = Self::manifest_path(&self.path);
-        let mut manifest_file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&manifest_path)?;
+        let mut temp_name = manifest_path
+            .file_name()
+            .ok_or_else(|| invalid("manifest path has no filename"))?
+            .to_os_string();
+        temp_name.push(format!(
+            ".tmp-{}-{}",
+            std::process::id(),
+            self.next_event_sequence
+        ));
+        let temp_path = manifest_path.with_file_name(temp_name);
         let manifest_bytes = serde_json::to_vec_pretty(&manifest)
             .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
-        manifest_file.write_all(&manifest_bytes)?;
-        manifest_file.flush()?;
-        manifest_file.sync_all()?;
-        sync_parent_directory(&manifest_path)?;
+
+        let publish_result = (|| -> io::Result<()> {
+            let mut temp_file = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&temp_path)?;
+            temp_file.write_all(&manifest_bytes)?;
+            temp_file.flush()?;
+            temp_file.sync_all()?;
+            fs::hard_link(&temp_path, &manifest_path)?;
+            fs::remove_file(&temp_path)?;
+            sync_parent_directory(&manifest_path)?;
+            Ok(())
+        })();
+        if publish_result.is_err() {
+            let _ = fs::remove_file(&temp_path);
+            return publish_result.map(|_| manifest);
+        }
+
         self.poisoned = true;
         Ok(manifest)
     }
@@ -414,7 +515,7 @@ impl SidecarWriter {
             .ok_or_else(|| invalid("event references an unknown connection_id"))?;
         if state.identity != *identity {
             return Err(invalid(
-                "connection_id reused with a different batch or route",
+                "connection_id reused with a different batch, route, or subscription set",
             ));
         }
         if state.lifecycle != Lifecycle::Connected {
@@ -432,7 +533,7 @@ impl SidecarWriter {
             .ok_or_else(|| invalid("event references an unknown connection_id"))?;
         if state.identity != *identity {
             return Err(invalid(
-                "connection_id reused with a different batch or route",
+                "connection_id reused with a different batch, route, or subscription set",
             ));
         }
         if state.lifecycle != Lifecycle::Disconnected {
@@ -441,6 +542,7 @@ impl SidecarWriter {
         Ok(state)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn append_event(
         &mut self,
         identity: &ConnectionIdentity,
@@ -450,13 +552,23 @@ impl SidecarWriter {
         reason: Option<&'static str>,
         attempt: Option<u32>,
         delay_ms: Option<u64>,
+        subscription_count: Option<usize>,
+        subscription_set_sha256: Option<String>,
     ) -> io::Result<()> {
         self.ensure_usable()?;
         if self.event_count >= MAX_EVENTS {
             return Err(invalid("sidecar event count limit exceeded"));
         }
-        if self.last_event_at_ms.is_some_and(|last| event_at_ms < last) {
-            return Err(invalid("event timestamps must be globally non-decreasing"));
+        if event_at_ms > MAX_TIMESTAMP_MS {
+            return Err(invalid("event timestamp exceeds the signed 64-bit contract"));
+        }
+        if self
+            .last_event_at_ms
+            .is_some_and(|last| event_at_ms < last)
+        {
+            return Err(invalid(
+                "event timestamps must be globally non-decreasing",
+            ));
         }
 
         let event = Event {
@@ -473,6 +585,8 @@ impl SidecarWriter {
             reason,
             attempt,
             delay_ms,
+            subscription_count,
+            subscription_set_sha256,
         };
         let mut line = serde_json::to_vec(&event)
             .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
@@ -509,7 +623,40 @@ fn validate_identity(identity: &ConnectionIdentity) -> io::Result<()> {
     if identity.batch_id > MAX_BATCH_ID {
         return Err(invalid("batch_id exceeds the supported bound"));
     }
+    if identity.subscriptions.is_empty() || identity.subscriptions.len() > MAX_SUBSCRIPTIONS {
+        return Err(invalid("subscription set is empty or exceeds the supported count"));
+    }
+    let mut unique = HashSet::new();
+    let mut total_bytes = 0_usize;
+    for subscription in &identity.subscriptions {
+        if subscription.is_empty() || subscription.len() > MAX_SUBSCRIPTION_BYTES {
+            return Err(invalid("subscription name is empty or exceeds 256 bytes"));
+        }
+        if !unique.insert(subscription) {
+            return Err(invalid("subscription set contains a duplicate stream"));
+        }
+        total_bytes = total_bytes.saturating_add(subscription.len());
+    }
+    if total_bytes > 2 * 1024 * 1024 {
+        return Err(invalid("subscription set exceeds the 2 MiB bound"));
+    }
     Ok(())
+}
+
+fn subscription_set_sha256(subscriptions: &[String]) -> String {
+    let mut sorted = subscriptions.to_vec();
+    sorted.sort();
+    let mut hasher = Sha256::new();
+    for subscription in sorted {
+        let bytes = subscription.as_bytes();
+        hasher.update((bytes.len() as u32).to_be_bytes());
+        hasher.update(bytes);
+    }
+    hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 fn is_lower_hex(value: &str, expected_len: usize) -> bool {
