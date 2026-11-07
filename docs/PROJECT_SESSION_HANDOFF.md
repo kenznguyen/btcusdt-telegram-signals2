@@ -5073,3 +5073,15 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - PR body updated. Evidence report addendum commit: `59d0b0fa52f4cd2d3028dc70f39a05720d3c122c`.
 - Next: poll run 42343825387; once complete, inspect job logs for checked-out SHA, full test results and artifacts, then update report/handoff. Do not proceed to runtime integration before exact-source CI passes.
 - Safety unchanged: no collector process, Binance request, DB access, market-data capture, merge or live execution; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 Collector Fork CI Completed / Blocked
+
+- Collector fork: `kenznguyen/binance-futures-collector`; PR #1 remains OPEN / DRAFT / NOT MERGED.
+- PR head/source SHA: `e1ccc11f654082456f3ef7b728f161e475904da0`; GitHub Actions run [42343825387](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42343825387) completed on synthetic merge checkout SHA `25fd6c3fe1e7bbf30f59f456bd06c11ff11e4b6a` (PR head + upstream base `bc4f0ef633fbeee4a49defd72827f17162693805)).
+- Collector job `128317128179`: base format/Clippy/build PASS; existing collector tests 41/41 PASS; sidecar format FAIL; sidecar Clippy and 11 sidecar tests SKIPPED.
+- Security job `128317127920`: FAIL, cargo-audit reports 12 vulnerabilities + 2 allowed warnings; npm audit steps skipped. Dashboard backend `128317128141`, frontend `128317128165`, Docker `128317128304`: PASS.
+- Dependency baseline comparison: fork/upstream Cargo.lock blob SHA identical `625a8b8af376511d1d3245fc0ab9f72b138d180e`; Cargo.toml blob SHA identical `f373e8b32e090a76399905538742e8b34a669419`. Audit findings are inherited from pinned upstream baseline, not introduced by this sidecar change. No dependency changes or audit suppressions applied.
+- No artifacts returned. Overall CI **BLOCKED**; 11 sidecar tests NOT RUN; sidecar acceptance NOT VERIFIED.
+- Next: minimal rustfmt-only correction; re-run GitHub Actions on new PR head; separately evaluate narrowly scoped, lockfile-generated dependency remediation for inherited advisories. Do not integrate Tokio writer worker until full required CI passes.
+- Safety: collector remains stopped; no Binance connection, DB access/open/create, market-data capture, or live orders. `ai_execution_enabled=false`.
