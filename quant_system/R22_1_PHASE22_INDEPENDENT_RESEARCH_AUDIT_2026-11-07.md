@@ -114,3 +114,48 @@ Previously recorded Phase 22 unit tests (15/15 PASS) remain historical test evid
 - No paper runtime, exchange connection, live order, production database, deployment or VPS operation was performed or authorized.
 
 Overall R22.1 disposition: **PARTIAL PASS — SOURCE AUDIT ONLY**. Historical runtime reproducibility, complete feature causality, effective config hash reproduction and OOS remain NOT VERIFIED.
+
+
+## 2026-11-07 — R22.2 runtime config snapshot provenance correction
+
+### Historical caller traced
+
+The prior R22.2 diagnosis that the historical freeze hashes the entire `config` object was incorrect for the Phase13B execution path. Exact historical source at commit `082edc082996425f61f48c952be41fb037564103`, file `freqai_bridge/ChartProAuditLightGBMRegressor.py` (blob `83e93704ebc0c4a37054fe891e7cc2eff0121490`), shows `_capture_phase13b_predict()` builds `config_snapshot` with exactly five fields:
+- `freqai`: `self.config["freqai"]`
+- `exchange`: a new object containing only `name`
+- `timeframe`
+- `dry_run`
+- `force_entry_enable`
+
+It passes that snapshot to `capture_candidate()`. The snapshot shape in the original probe was therefore correct. The remaining mismatch was the object source: the original probe hashed a subset taken from raw JSON, while the historical caller hashes the five-field snapshot derived from Freqtrade's resolved `self.config`.
+
+### R22.2 implementation correction
+
+- Added `runtime_config_snapshot(config)` to encode the exact historical five-field shape.
+- The probe now invokes pinned Freqtrade 2026.9 `Configuration.from_files()` first and derives the hash snapshot from `loaded.get_config()`, rather than from raw JSON.
+- The temporary config copy changes only `initial_state` to `stopped`. The `freqai` object, including `live_retrain_hours`, is preserved because it is part of the frozen hash. Configuration loading does not start a bot, strategy, exchange connection or retraining lifecycle.
+- Metadata and frozen model hashes were not changed.
+- Added regression coverage for the historical five-field snapshot and preservation of frozen FreqAI config fields.
+
+### TDD evidence
+
+- RED test commit: `709b4c05094177a5831c1e54a608bc85470ad925`.
+- Direct push workflow: run `42317353456`, job `128233132789`, conclusion FAILURE as expected for RED. Unit test import failed because `runtime_config_snapshot` had not yet been implemented. This is the deliberate failing test evidence, not a runtime acceptance result.
+- RED artifact: ID `13551780814`; SHA-256 `10f698b1d48fde7d41984c0c258794d3200d1d88d15f8cd8fffc26023daa32e5`.
+- GREEN implementation commit: `74f566ed6066d42107e2d83fa37ba624e5bbcfca`.
+- Follow-up test/config preservation commit: `1336841a869899ffc9460f1b7ed90af472fcca9c`.
+- At report update time, direct push R22.2 run `42317382779` and PR-context run `42317388653` on source SHA `1336841a869899ffc9460f1b7ed90af472fcca9c` were still IN PROGRESS. No GREEN result is claimed yet.
+
+### Current disposition
+
+| Item | Status |
+|---|---|
+| Historical five-field snapshot structure | SOURCE-VERIFIED |
+| Freqtrade-resolved config object used by the isolated probe | IMPLEMENTED; runtime verification pending |
+| RED regression evidence | PASS (expected failure reproduced) |
+| Unit tests on corrected source | IN PROGRESS |
+| Effective config hash reproduction | NOT VERIFIED |
+| Runtime feature schema | NOT VERIFIED |
+| OOS certification | NOT CERTIFIED; holdout remains open |
+
+Safety boundaries unchanged: no strategy start, backtest, training/retraining, exchange calls, T0 access, persistent database, deployment, VPS operation or live execution. `AI_EXECUTION_ENABLED=false`; model, Strategy Core, prior backtests and holdout are unchanged.
