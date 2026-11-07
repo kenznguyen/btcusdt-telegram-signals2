@@ -82,3 +82,13 @@ Before accepting the upstream change, add deterministic offline tests for: ping/
 **Recommended next bounded task:** prepare a schema proposal and offline acceptance tests for a dedicated connection-event sidecar, keeping the current CSV importer backward compatible and preserving `connectionStatus=UNVERIFIABLE` until the new evidence is present.
 
 No collector activation, exchange capture, database access, Canonical SQLite creation, Feeder startup, T2 source switch, merge, VPS provisioning, or live execution is authorized by this review. `ai_execution_enabled=false`.
+
+
+## 2026-11-07 Addendum — Exact-version security graph and CI results
+
+- Fork source SHA `22900b860426a5c19622ec6b5ea3673646df2229`; PR #1 remains OPEN / DRAFT / NOT MERGED.
+- PR run 42350687437 checked out synthetic merge SHA `ac53d7b672e91590f16e555f2ef0ffd232ab905c`; push run 42350684200 checked out source SHA `22900b860426a5c19622ec6b5ea3673646df2229`.
+- Both runs passed collector library 40/40, binary 1/1, sidecar writer 11/11, Rust format/Clippy/build, dashboard backend/frontend and Docker. Security failed at cargo-audit (12 vulnerabilities + 2 warnings); npm audit steps skipped. No artifacts.
+- Exact-version all-target graph confirms reverse paths for rustls 0.23.43, rustls-webpki 0.103.14, webpki-root-certs 1.0.9, webpki-roots 1.0.9, tokio 1.53.1 and chacha20 0.10.1. Key paths are recorded in `T1_COLLECTOR_CARGO_AUDIT_EXACT_EVIDENCE_2026-11-07.md`.
+- `quinn-proto@0.11.16` remains NOT VERIFIED: cargo tree returned "nothing to print" with exit 0. The diagnostic script's PRESENT marker is a false-positive condition and must not be treated as reachability evidence.
+- No dependency or runtime changes. Sidecar remains an offline reference implementation; no collector was started and no exchange/data/database operation was performed. T1 continuity remains NOT CERTIFIED; security BLOCKED.
