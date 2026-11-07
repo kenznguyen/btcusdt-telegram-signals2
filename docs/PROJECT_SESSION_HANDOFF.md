@@ -4515,7 +4515,7 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 
 - Plan: `docs/evidence/t0/T0_CONTROLLED_FIRST_RUN_APPROVAL_PLAN_2026-11-07.md`.
 - Plan commit: `ea5d2ed223a7b5ab569cc93df56e720c535530d4`.
-- Based on offline acceptance source SHA `1aac449b96c4079004e1cab882280b92390b45d`? No: the verified source SHA is `1aac449b96c4079004e1cab882280b923e33342c`; workflow `42329799499` SUCCESS.
+- Based on offline acceptance source SHA `1aac449b96c4079004e1cab882280b923e33342c`; workflow `42329799499` SUCCESS.
 - Plan includes unresolved preflight inputs, read-only checks, exact bounded 24h window requirements, supervised one-shot procedure, stop conditions, backup/restore verification, rollback evidence, acceptance report, and explicit authorization wording.
 - Critical unresolved items: backend/target identity not supplied; production schema/API target not read-only verified; no production backup/restore proof; exact UTC window/operator/maintenance window not selected. Therefore any first-run execution remains BLOCKED / NOT AUTHORIZED.
 - No canonical DB was created/opened for writing; no live exchange sync, write lease, Feeder, VPS, or execution was started.
