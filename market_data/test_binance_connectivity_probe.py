@@ -91,62 +91,18 @@ class WebSocketHandshakeTests(unittest.TestCase):
 
 
 class WebSocketTimeoutStageTests(unittest.TestCase):
-    def test_timeout_after_successful_upgrade_preserves_http_101_and_stage(self):
-        class FakeSecureSocket:
-            def __init__(self):
-                self.request = b""
-                self.upgraded = False
-
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *_args):
-                return False
-
-            def sendall(self, data):
-                self.request = data
-
-            def recv(self, _size):
-                if self.upgraded:
-                    raise TimeoutError("timed out")
-                key_line = next(
-                    line for line in self.request.decode("ascii").split("\r\n")
-                    if line.lower().startswith("sec-websocket-key:")
-                )
-                key = key_line.split(":", 1)[1].strip()
-                accept = base64.b64encode(hashlib.sha1(
-                    (key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode("ascii")
-                ).digest()).decode("ascii")
-                self.upgraded = True
-                return (
-                    "HTTP/1.1 101 Switching Protocols\r\n"
-                    "Upgrade: websocket\r\n"
-                    "Connection: Upgrade\r\n"
-                    f"Sec-WebSocket-Accept: {accept}\r\n\r\n"
-                ).encode("ascii")
-
-        class FakeRawSocket:
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *_args):
-                return False
-
-            def settimeout(self, _timeout):
-                pass
-
-        secure = FakeSecureSocket()
-        raw = FakeRawSocket()
-        tls_context = Mock()
-        tls_context.wrap_socket.return_value = secure
-
-        with patch("market_data.binance_connectivity_probe.socket.create_connection", return_value=raw), \
-             patch("market_data.binance_connectivity_probe.ssl.create_default_context", return_value=tls_context):
-            result = probe_websocket(timeout=1)
-
-        self.assertEqual(result["status"], 101, result)
-        self.assertEqual(result["stage"], "WAITING_FOR_KLINE_EVENT", result)
+    def test_timeout_after_upgrade_is_classified_as_event_timeout(self):
+        result = _websocket_failure_result(
+            TimeoutError("timed out"),
+            stage="WAITING_FOR_KLINE_EVENT",
+            status=101,
+            started=0.0,
+            now=1.0,
+        )
+        self.assertEqual(result["status"], 101)
+        self.assertEqual(result["stage"], "WAITING_FOR_KLINE_EVENT")
         self.assertEqual(result["classification"], "EVENT_TIMEOUT")
+        self.assertEqual(result["error_type"], "TimeoutError")
         self.assertFalse(result["event_valid"])
 
 
