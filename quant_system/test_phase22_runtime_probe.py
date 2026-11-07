@@ -17,8 +17,9 @@ class Phase22RuntimeProbeTests(unittest.TestCase):
             "force_entry_enable": False,
             "freqai": {"enabled": True, "live_retrain_hours": 1},
         }
-        safe = build_runtime_config(source)
+        safe = build_runtime_config(source, "/tmp/r22-isolated-user-data")
         self.assertEqual(safe["initial_state"], "stopped")
+        self.assertEqual(safe["user_data_dir"], "/tmp/r22-isolated-user-data")
         self.assertIs(safe["dry_run"], True)
         self.assertIs(safe["force_entry_enable"], False)
         self.assertEqual(safe["freqai"]["live_retrain_hours"], 1)
