@@ -106,3 +106,44 @@ class Phase22ConfigHashDiagnosticsTests(unittest.TestCase):
             result["runtime_vs_raw_diff_paths"],
             ["freqai.feature_parameters.include_corr_pairlist"],
         )
+
+
+class Phase22FreqAIConfigValidationTests(unittest.TestCase):
+    def test_schema_validation_reproduces_frozen_post_validation_hashes(self):
+        import json
+        import tempfile
+        from pathlib import Path
+
+        from freqtrade.configuration import Configuration
+        from quant_system.phase22_runtime_probe import (
+            apply_freqtrade_schema_defaults,
+            canonical_sha,
+        )
+
+        root = Path(__file__).resolve().parents[1]
+        raw = json.loads((root / "freqai_bridge/config.okx-research.json").read_text())
+        metadata = json.loads(
+            (root / "research_evidence/frozen-model/phase13b-20261104/model-candidate-metadata.json").read_text()
+        )
+
+        with tempfile.TemporaryDirectory(prefix="r22-schema-defaults-") as temp:
+            user_data = Path(temp) / "user_data"
+            user_data.mkdir()
+            config_path = Path(temp) / "config.json"
+            config_path.write_text(
+                json.dumps(build_runtime_config(raw, str(user_data))),
+                encoding="utf8",
+            )
+            loaded = Configuration.from_files([str(config_path)])
+            validated = apply_freqtrade_schema_defaults(loaded)
+
+        snapshot = runtime_config_snapshot(validated)
+        self.assertEqual(
+            canonical_sha(snapshot["freqai"]),
+            metadata["freqai_config_sha256"],
+        )
+        self.assertEqual(canonical_sha(snapshot), metadata["config_sha256"])
+        self.assertIs(
+            snapshot["freqai"]["feature_parameters"]["shuffle_after_split"],
+            False,
+        )
