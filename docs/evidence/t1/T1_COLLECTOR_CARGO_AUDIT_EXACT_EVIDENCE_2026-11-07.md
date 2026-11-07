@@ -93,3 +93,17 @@ Next:
 5. Keep runtime integration blocked until security and all CI gates pass.
 
 Safety limits remain: no collector process, no Binance DNS/TCP/WebSocket connection, no exchange data capture, no database access, no runtime integration, no live orders. `ai_execution_enabled=false`.
+
+
+## 2026-11-07 Addendum — Completed feature reachability diagnostics (run 42348223722)
+
+- Collector fork source SHA: 32867b89379d3f3fe4227b0fb1bf97e8c7063a03; PR #1 remains OPEN / DRAFT / NOT MERGED, base bc4f0ef633fbeee4a49defd72827f17162693805.
+- PR workflow run https://github.com/kenznguyen/binance-futures-collector/actions/runs/42348223722, event pull_request, completed FAILURE. Push run https://github.com/kenznguyen/binance-futures-collector/actions/runs/42348219928, event push, completed FAILURE. Both runs reference the same source SHA.
+- PR run exact checkout: synthetic merge commit 43d5030bd9f08da0ab133c778a43eb2a25e80d1d, merging source 32867b89379d3f3fe4227b0fb1bf97e8c7063a03 into base bc4f0ef633fbeee4a49defd72827f17162693805. Rust job 128330521322, security job 128330521398. Push run checks out source SHA directly; Rust job 128330509513, security job 128330509319.
+- Both runs: collector format/Clippy/build/tests and sidecar format/Clippy/offline tests PASS; collector library 40/40, binary 1/1, sidecar writer 11/11. Dashboard backend, dashboard frontend and Docker jobs PASS. Security job FAILS at cargo-audit; npm audit steps are SKIPPED. Each run reports 12 vulnerabilities and 2 allowed warnings among 248 locked packages.
+- Diagnostic default-graph results (identical in both runs): quinn-proto=PRESENT, rustls=PRESENT, rustls-webpki=PRESENT, webpki-root-certs=PRESENT, tokio=PRESENT, chacha20=PRESENT, webpki-roots=NOT_IN_DEFAULT_GRAPH (cargo tree inverse lookup exits 101). This is a default resolved feature graph check only; it does not establish target-specific absence. Cargo output explicitly recommends --target all to inspect target-specific dependencies. No complete dependency paths were captured for all packages, so path-level reachability remains PARTIAL / NOT VERIFIED.
+- Exact audit remains 12 vulnerabilities + 2 warnings. Advisory IDs and locked versions are unchanged from the table above. In particular, webpki-roots 1.0.9 is in Cargo.lock but not the default feature graph; do not assume its advisory is exploitable or irrelevant until all-target graph and dependency source paths are checked. The webpki-root-certs 1.0.9 package is separately PRESENT in the default graph.
+- Both workflow runs returned no artifacts. No artifact IDs or digests.
+- Workflow diagnostic step itself PASS; security gate remains BLOCKED. No Cargo.toml/Cargo.lock updates, no feature selection changes, no advisory suppressions, no CI gate weakening.
+- Next: inspect cargo tree --locked --target all -e features -i for all advisory packages; capture complete reverse dependency paths, distinguish default/target/optional/lockfile-only packages, and inspect the direct dependency source for webpki-root-certs and webpki-roots. Then formulate only Cargo-resolver-generated compatible updates with regression tests. Do not begin collector runtime integration.
+- Safety unchanged: no collector runtime, Binance connection, exchange capture, database access, merge, or live execution; ai_execution_enabled=false.
