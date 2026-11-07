@@ -5788,3 +5788,12 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Exchange connection / market-data ingestion: **NOT AUTHORIZED**.
 - Live trading: prohibited; keep `ai_execution_enabled=false`.
 - Next: complete source-level resource audit and design reproducible synthetic benchmark; after separate authorization, evaluate on a temporary disposable environment. Record checkout quote and exact instance details before provisioning.
+
+
+## T1 manifest-temp cleanup regression — RED setup in progress (2026-11-07)
+- T1 branch: `feature/t1-connection-sidecar-integration-20261107`.
+- Added two private unit tests in `crates/connection-sidecar/src/lib.rs` for reporting a temporary-manifest cleanup failure together with the primary publish error, and for ignoring `NotFound` when the temp file was already removed.
+- Test addition commit: `450afb2913717bf321361e4c7c06d749135ec63c`. First Actions run [42382319731](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42382319731) failed at Sidecar rustfmt before compiling these tests. Formatting-only commits: `0294d786b98df807ce61df0fa994e8112da8b019` and `403442ad3d66cc29d948102a25270f1dc805cea0`.
+- Latest source SHA: `403442ad3d66cc29d948102a25270f1dc805cea0`. Exact commit Actions run [42382668821](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42382668821) is IN_PROGRESS at handoff update. Format, Clippy and build passed; full Collector test step is still running, Sidecar format/Clippy/offline tests not yet reached. RED is **NOT VERIFIED**; do not infer compile/test failure until the focused Sidecar test step runs.
+- Earlier format-only run [42382479481](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42382479481) passed workspace format/Clippy/build/tests but failed Sidecar rustfmt due a trailing blank line; this was corrected in the latest source.
+- Current status: **BLOCKED / CI PENDING**. No implementation changed. Next: inspect run 42382668821; confirm RED from compiler/test output. Then implement the smallest cleanup error-reporting helper and test GREEN with exact-source Actions. Keep PR #1 OPEN / DRAFT / NOT MERGED; no runtime, Binance, DB, market capture, T0 edits, or live execution.
