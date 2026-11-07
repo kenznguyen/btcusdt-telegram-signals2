@@ -66,14 +66,7 @@ def _diff_paths(left, right, prefix="") -> list[str]:
                 paths.extend(_diff_paths(left[key], right[key], path))
         return paths
     if isinstance(left, list) and isinstance(right, list):
-        paths = []
-        for index in range(max(len(left), len(right))):
-            path = f"{prefix}[{index}]"
-            if index >= len(left) or index >= len(right):
-                paths.append(path)
-            else:
-                paths.extend(_diff_paths(left[index], right[index], path))
-        return paths
+        return [] if left == right else [prefix or "$"]
     return [] if type(left) is type(right) and left == right else [prefix or "$"]
 
 
