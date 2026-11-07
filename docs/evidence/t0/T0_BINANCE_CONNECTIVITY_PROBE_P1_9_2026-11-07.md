@@ -426,3 +426,26 @@ Next: prepare a separately reviewed and approved controlled-ingestion acceptance
 - Isolated TimescaleDB job `128271704539`: FAILURE in `test_interrupted_migration_rolls_back_and_retry_applies_cleanly`; psycopg error: `only '%s', '%b', '%t' are allowed as placeholders, got '%p'`. Dependent PostgreSQL FeederRuntime, lifecycle, least-privilege and read-only TimescaleDB steps were skipped and remain NOT VERIFIED.
 - Overall workflow [42329219280](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42329219280).
 - Final verdict: isolated SQLite Controlled Ingestion acceptance PASS; PostgreSQL/provider integration BLOCKED; overall workflow FAILURE due to independent existing blockers. Do not weaken either guard or mark skipped tests PASS.
+
+
+## 2026-11-07 — Controlled Ingestion Acceptance PostgreSQL blockers resolved
+
+- Final source SHA: `1aac449b96c4079004e1cab882280b923e33342c`.
+- Final GitHub Actions workflow [42329799499](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42329799499): **SUCCESS**; exact head SHA confirmed.
+- All four jobs SUCCESS:
+  - Static Gateway contract verification `128273518997`
+  - Fresh-cluster restricted provider bootstrap `128273519235`
+  - Paper consumer fixture regressions `128273519333`
+  - Isolated TimescaleDB read-only integration `128273592985`
+- Static suite: `market_data` discovery **263 tests, 42 skipped, OK**. Four isolated Controlled Ingestion acceptance tests PASS (M15 96/H1 24, idempotent second sync/hash stability, API HTTP 200/hash parity, conflicting batch rollback, temporary DB isolation).
+- PostgreSQL provider bootstrap test PASS. The disposable PG16 fixture now removes automatically granted ADMIN memberships and normalizes only the test cluster's role graph via provider-admin. Migration safety assertions in production code were not weakened. Migration result assertion now matches documented return semantics: first call returns preexisting count 0; after apply, second call returns (4,4).
+- PG-LC07 fix: replaced psycopg query fragment `LIKE '%pg_sleep(4)%'` (interpreted as invalid `%p` placeholder) with `position('pg_sleep(4)' IN query) > 0`. The isolated TimescaleDB job passed atomic writer, FeederRuntime, lifecycle, least-privilege and read-only integration steps.
+- Artifacts:
+  - Static/Gateway `13557310259`, digest `sha256:f08b725554380761e3f63b8d7e9b504010d0229737835a73d176f15457a5cdbc`
+  - Provider bootstrap `13557220615`, digest `sha256:9846f8a7688371752e40b5647da0a138c70c4c1d82e9b1f19deed4d5a8044c07`
+  - Paper consumer `13557141783`, digest `sha256:3bdd2d0b95df219728ef17d508b5f684e058a10dd0f4b1536e76d4346ade6e20`
+  - Timescale read-only `13556792589`, digest `sha256:3e35c51a08b7874f5326ed88eeb92719d5f441fd6eea6e73676f630f9e5f1069`
+- All integration jobs ran against disposable CI PostgreSQL/TimescaleDB; SQLite acceptance ran against temporary DB and synthetic exchange data. No canonical DB, live Binance ingestion, production Feeder, VPS, or live execution was invoked.
+- Verdict: Offline SQLite acceptance PASS; PostgreSQL provider bootstrap PASS; PostgreSQL writer/FeederRuntime/lifecycle/least-privilege PASS; TimescaleDB read-only integration PASS; complete workflow PASS.
+- Authorization boundary unchanged: Canonical Ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; `ai_execution_enabled=false`.
+- Next step: review and freeze this acceptance contract; then request explicit separate approval before any Controlled First Run. Do not auto-run it.
