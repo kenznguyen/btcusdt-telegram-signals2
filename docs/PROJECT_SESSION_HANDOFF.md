@@ -4650,3 +4650,41 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - Paired datasets are absent; parity NOT RUN. No acquisition or canonical ingestion performed.
 - Runtime smoke PASS: Freqtrade 2026.9 image and ChartProFreqaiResearch strategy discovery, run 42332039353, SHA c15fff327bb5da25a571a8ae654c728a7d22a2b4, artifact 13558216419.
 - Safety unchanged: Canonical SQLite NOT CREATED; ingestion NOT RUN; Feeder STOPPED; VPS NOT PROVISIONED; ai_execution_enabled=false.
+
+
+### T0→T2 offline Binance/OKX parity harness — PASS (2026-11-07)
+
+Branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+
+Implementation commits:
+- Test-first parity suite: `d28c4ebddcbc24a7c613759da0f1794724e5ce50`.
+- Consumer workflow includes parity tests: `0fb76a394b62a87b1c014559ea6437a4156914ec`.
+- Offline parity engine: `f271ac771582c385511be9b733873273a16c0a87`.
+- Corrected parity assertions/golden vector: `55cb40dce61530bf305403879184f47639468aa0`, then final V2 byte order correction `4664c28eaf0ae40f5e797b022284a378d2309c49`.
+
+TDD:
+- RED run `42332542018`, exact SHA `0fb76a394b62a87b1c014559ea6437a4156914ec`: `ModuleNotFoundError: market_data.t0_t2_parity`, expected before implementation.
+- First implementation run exposed a test assertion mismatch for report window metadata and the V2 test's expected section/row order. Corrected assertions to the T2 contract; no production strategy logic was changed.
+
+Final verification:
+- T0 workflow [42332748148](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42332748148): SUCCESS; exact head/source SHA `4664c28eaf0ae40f5e797b022284a378d2309c49`.
+- Jobs all SUCCESS: Static Gateway (270 tests), Paper consumer (52 tests, includes 7 parity tests), restricted provider bootstrap, isolated TimescaleDB read-only integration.
+- Artifacts:
+  - Consumer `13558540383`, digest `sha256:0311b7e5b3b0264b6f2f5ac3e5442cb3e3061109b5ccc597177dcefcbc532673`.
+  - Static/Gateway `13558003133`, digest `sha256:c50838261cd0fffcbf1a772f2b355334da3277a5c33440a96f779b3fbc5b739e`.
+  - Provider bootstrap `13558347616`, digest `sha256:f876d226d421801a453a887494dc89dddf59030a6991dda761058407e1df5129`.
+  - Timescale `13557404226`, digest `sha256:9d0ec699740b570d2578071582b6a6a03561dcb5d4b864866381faf429401f7c`.
+- Freqtrade 2026.9 strategy smoke at the same SHA: [42332748141](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42332748141), SUCCESS; artifact `13557692507`, digest `sha256:a265665d029bdc0754de12fcdd7f43dd40b25a1eda609136366f8a4e736e3114`.
+
+Files:
+- `market_data/t0_t2_parity.py`: offline CSV validation, exact window/coverage gates, source identity and volume checks, raw file SHA-256, T0 provenance preservation, T2 V2 digest, per-field OHLCV metrics and Markdown/JSON report.
+- `market_data/test_t0_t2_parity.py`: 7 tests.
+- `.github/workflows/t0-single-writer-gateway-red.yml`: parity test added to consumer regression suite.
+- `docs/evidence/t0/T0_T2_BINANCE_OKX_PARITY_MANIFEST_SPEC_2026-11-07.md`: invocation and CSV contract.
+
+Acceptance boundary:
+- Offline harness synthetic fixture tests: PASS.
+- Real Binance–OKX parity: NOT RUN, pending paired immutable M15/H1 CSV exports and T0 datasetVersion values from the corresponding T0 windows.
+- T2 OKX source unchanged. No exchange sync or external data retrieval.
+- Canonical SQLite NOT CREATED; ingestion NOT RUN; Feeder STOPPED; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
+- Next: wait for operator-supplied paired CSV exports or explicit approval for a separate isolated read-only data-export task. Do not use the Canonical DB or trigger any exchange sync as a side effect.
