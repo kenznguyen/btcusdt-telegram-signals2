@@ -215,3 +215,16 @@ Exact-source direct push verification for diagnostic commit 5c1f8432b399c0e71464
 - Artifact confirms source SHA 5c1f8432b399c0e71464187cc8fe4fd0a1b7fb6e, AI_EXECUTION_ENABLED=false, no exchange credentials, no database targets, five unit tests passing, and the hash mismatch diagnostics above.
 
 Disposition: effective-config provenance BLOCKED; runtime feature schema NOT VERIFIED; prospective OOS remains IN PROGRESS / NOT CERTIFIED. Do not change the frozen metadata, model bundle, Core strategy, prior backtests, or holdout. Next safe research step is a read-only provenance trace of the historical candidate-generation command/config inputs and any runtime config mutation path. No strategy start, exchange API call, training/retraining, persistent DB, T0 access, deployment or live execution is authorized by this result.
+
+
+### R22.2 historical hash interpretation correction (2026-11-07)
+
+A further historical source audit found commit 0a0a9241c6679c0074aaa0831870d87e32872b18 (2026-10-31), which explicitly distinguishes the pinned source-JSON FreqAI hash from the FreqAI runtime hash recorded in the frozen metadata. Its Phase16 frozen-OOS gate pins:
+- Source JSON FreqAI hash: sha256:ef8a29169e1a873a517d81869bcad05e0228c66ebdb381b26f5a5d28a167444a.
+- Frozen metadata runtime FreqAI hash: sha256:a716c80fbb78b8d4bc8b436136912e93e6988a8cdf8d7d1945e8f512bcd6d852.
+
+This exactly matches the R22.2 diagnostic's raw/resolved pre-FreqAI hash and expected frozen runtime hash. Therefore the previous statement that the tracked config snapshot itself does not reproduce metadata should not be interpreted as evidence that frozen metadata is wrong. The source JSON hash is reproduced; the metadata intentionally records a distinct post-FreqAI runtime configuration hash. The prior diagnostic correctly demonstrates that Configuration.from_files alone does not perform the historical FreqAI runtime mutation/resolution.
+
+The remaining task is to identify the exact, source-backed transformation or historical config overlay that produced the runtime hash, then reproduce it using synthetic/local-only fixtures without starting a strategy, bot, backtest, training or retraining. Current upstream source inspection found a conditional DataKitchen default that inserts data_split_parameters.shuffle=false only when absent; the tracked source JSON already contains shuffle=false, so that single default does not explain the distinct hash. Do not invent a mutation, inject guessed defaults, replace the expected hash, or weaken the hash equality gate.
+
+Corrected disposition: source JSON hash reproduction PASS; frozen runtime hash reproduction NOT VERIFIED / BLOCKED; runtime feature schema NOT VERIFIED; prospective OOS IN PROGRESS / NOT CERTIFIED. Historical metadata is not declared invalid based on this mismatch alone. The exact runtime transformation/overlay remains an open provenance question. No model, metadata, Core, backtest, or holdout changes; no bot start, exchange API call, training/retraining, persistent DB, T0 access, deployment or live execution.
