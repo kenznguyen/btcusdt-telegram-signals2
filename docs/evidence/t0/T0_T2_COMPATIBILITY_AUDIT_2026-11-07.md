@@ -232,3 +232,18 @@ No source switch, branch merge, canonical DB creation, ingestion, Feeder, VPS or
 ### Next bounded step
 
 Before any real parity conclusion, obtain paired immutable Binance USD-M and OKX CSVs for the same fresh 30-day UTC window and genuine T0 `read_window()` datasetVersion values for the exact Binance M15/H1 windows. If genuine provenance cannot be produced through an isolated temporary store without Canonical SQLite, stop as BLOCKED. Do not fabricate provenance, access/create Canonical SQLite, start Feeder, or change T2 source.
+
+
+## Canonical SQLite empty initializer — implementation and test evidence (2026-11-07)
+
+- User explicitly approved creation of the T0 Canonical DB. Scope for this increment is schema initialization only: no Binance fetch, candle ingestion, lease acquisition, Feeder startup, or T2 source change.
+- Added `market_data/initialize_sqlite.py` and `market_data/test_initialize_sqlite.py`.
+- Initializer default path: `.data/market-data.sqlite3`; creates a new file exclusively with restrictive mode `0600` where supported; refuses any existing file/directory/symlink target rather than overwriting it.
+- Creates only the current SQLite `candles` and `feeder_leases` tables, sets schema `user_version=1`, runs `PRAGMA integrity_check`, and verifies both tables contain zero rows. It does not start a Feeder or contact an exchange.
+- TDD RED evidence: run `42337706098`, exact test-only SHA `a83e8ee30dae890eb2ff849c05977eef5a567b22`, Static Gateway full market_data suite failed as expected with `ModuleNotFoundError: market_data.initialize_sqlite`; artifact `13559648818`, digest `sha256:3cc6d730fcb2435621ce42f5a1c6a73ff79bfeebafaff60a55525e4d62c6c124`.
+- Implementation commit sequence: `b289d7c1168e7bb7cfeca403966d5647800dc43a`, `1d7a5a8c80939acb60fe12c5d36c3c16e5105b3f`, final tested code SHA `28ef9da578118190f8bb3033d02a58da8b40ec7f`.
+- Final workflow `42337762615` at exact SHA `28ef9da578118190f8bb3033d02a58da8b40ec7f`: Static Gateway contract job SUCCESS, including full `market_data` regression suite; paper consumer regression job SUCCESS. Restricted provider bootstrap and isolated TimescaleDB jobs were still in progress at the time of this record; overall workflow conclusion therefore remains NOT VERIFIED.
+- PC Canonical DB creation has NOT been executed from this ChatGPT session because the PC filesystem is not accessible here. The GitHub Actions runner is intentionally not used as the Canonical data host.
+- After the code is available on the PC, the exact operator command is: `python -m market_data.initialize_sqlite --db .data/market-data.sqlite3 --confirm-create`. This command is intentionally fail-closed if the target already exists.
+- Required post-creation evidence from the PC: command JSON output; file path/size/permissions; `PRAGMA integrity_check=ok`; tables exactly `candles, feeder_leases`; zero candle rows and zero lease rows; no WAL/SHM integrity issue; computed SHA-256 of the DB file. Do not upload the DB itself to GitHub; record only hashes and non-sensitive metadata.
+- Status: initializer implementation and static/full market_data regression PASS on isolated GitHub runner; provider/Timescale full workflow NOT VERIFIED; PC Canonical DB NOT CREATED; ingestion NOT RUN; Feeder STOPPED; live execution disabled.
