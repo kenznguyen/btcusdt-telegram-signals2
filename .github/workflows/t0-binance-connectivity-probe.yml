@@ -1,0 +1,67 @@
+name: T0 Binance Connectivity Probe Contracts
+run-name: T0 Binance probe contracts (${{ github.sha }})
+
+'on':
+  push:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - "market_data/binance_connectivity_probe.py"
+      - "market_data/test_binance_connectivity_probe.py"
+      - ".github/workflows/t0-binance-connectivity-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: t0-binance-probe-contracts-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  offline-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      DATABASE_URL: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      AI_EXECUTION_ENABLED: "false"
+    steps:
+      - name: Checkout exact triggering SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Enforce offline-only scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$MARKET_DATA_DB"
+          test -z "$T0_FEEDER_LEASE_DB"
+          test -z "$DATABASE_URL"
+          test -z "$BINANCE_API_KEY"
+          test -z "$BINANCE_API_SECRET"
+          test "$AI_EXECUTION_ENABLED" = "false"
+          git rev-parse HEAD | tee source-sha.txt
+      - name: Run offline probe contracts
+        run: |
+          set -euo pipefail
+          python -m py_compile market_data/binance_connectivity_probe.py market_data/test_binance_connectivity_probe.py
+          python -m unittest market_data.test_binance_connectivity_probe -v 2>&1 | tee probe-contract-tests.log
+      - name: Upload exact-source test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-binance-probe-contracts-${{ github.sha }}
+          path: |
+            source-sha.txt
+            probe-contract-tests.log
+          if-no-files-found: warn
+          retention-days: 14
