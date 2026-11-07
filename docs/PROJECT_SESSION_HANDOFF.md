@@ -5349,3 +5349,20 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Current status: frontend full npm audit PASS; resolver install/build/test PASS; exact-head full CI PENDING; T1 operational readiness NOT VERIFIED. Artifacts for run 42356204008 not yet inspected.
 - No Tokio writer integration, Collector startup, Binance connection, DB access, market capture, merge, or live execution. Keep `ai_execution_enabled=false`.
 - Next: finish run 42356204008; inspect all five job conclusions, exact test counts, security log and artifacts; update PR and handoff with final CI evidence. Keep PR Draft and do not merge without separate explicit approval.
+
+
+## Final exact-head CI evidence — run 42356204008
+- Run: https://github.com/kenznguyen/binance-futures-collector/actions/runs/42356204008 (push event; conclusion SUCCESS).
+- Branch: `feature/t1-connection-sidecar-integration-20261107`.
+- PR head/source SHA: `87b13393d5c4c581768f12bd0277924d38eda8de`; Rust collector checkout log independently records this exact SHA via `git log -1 --format=%H`. PR head still matches this SHA.
+- Upstream/base SHA: `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- All five jobs SUCCESS: security `128354721674`; Docker `128354721719`; Rust collector + sidecar `128354721777`; dashboard frontend `128354721808`; dashboard backend `128354721895`.
+- Rust collector: fmt, Clippy and build PASS; library tests 40/40 and binary tests 1/1 PASS. Sidecar writer fmt/Clippy PASS; offline tests 11/11 PASS.
+- Dashboard frontend: TypeScript/type-check and production build PASS; Vitest 6/6 PASS.
+- Dashboard backend: pytest 57 passed, 1 warning.
+- Security: dependency reachability diagnostics PASS; cargo-audit completed successfully scanning 248 Cargo.lock dependencies; npm production audit reported 0 vulnerabilities; full/dev npm audit reported 0 vulnerabilities.
+- Docker: collector and dashboard images built successfully.
+- Workflow artifacts: none published (artifact query returned an empty list).
+- PR #1 remains OPEN / DRAFT / NOT MERGED. Exact-head CI verdict: PASS. T1 operational readiness remains NOT VERIFIED; CI does not authorize runtime use.
+- No runtime writer integration/start, Binance connection, DB access, market capture, merge, or live execution. Keep `ai_execution_enabled=false`.
+- Next: perform a source-level review of the sidecar and dependency changes, then document any findings. Keep PR Draft; no merge or runtime activation without explicit approval.
