@@ -1,0 +1,48 @@
+name: R22.5 Phase14 original archive integrity verification
+
+on:
+  push:
+    branches:
+      - feature/dual-strategy-phase22-preholdout-attestation-20261031
+    paths:
+      - "quant_system/phase22_archive_integrity.py"
+      - "quant_system/test_phase22_archive_integrity.py"
+      - "research_evidence/phase14-frozen-original-evidence.zip"
+      - ".github/workflows/r22-5-phase14-archive-integrity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-original-archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up isolated Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run archive integrity unit tests
+        run: python -m unittest quant_system.test_phase22_archive_integrity -v
+
+      - name: Hash archive and embedded original files without unpickling
+        run: |
+          python -m quant_system.phase22_archive_integrity \
+            --archive research_evidence/phase14-frozen-original-evidence.zip \
+            --current-bundle research_evidence/frozen-model/phase13b-20261104/original-frozen-model.joblib \
+            --out /tmp/r22-5-phase14-archive-integrity.json
+
+      - name: Publish exact-source integrity report
+        uses: actions/upload-artifact@v4
+        with:
+          name: r22-5-phase14-archive-integrity-${{ github.sha }}
+          path: /tmp/r22-5-phase14-archive-integrity.json
+          if-no-files-found: error
+          retention-days: 14
