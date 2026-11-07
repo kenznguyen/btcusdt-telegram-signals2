@@ -5664,3 +5664,16 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - PR #1 description updated with regression and README evidence. PR verified OPEN / DRAFT / NOT MERGED, current head `f63f2a2918bb2e3dd2341cb952e6ab9b7ce9697d`, base `bc4f0ef633fbeee4a49defd72827f17162693805`.
 - Handoff commit: pending result of this update. T1 source implementation unchanged in this documentation step. Operational readiness remains NOT VERIFIED. No runtime integration/start, Binance, DB, market capture, T0 change, merge, or live execution; keep `ai_execution_enabled=false`.
 - Next: verify exact-head push run 42372991438; then inspect README against crate metadata and source limits. Continue with source-only review of non-heartbeat lifecycle/resource bounds after docs CI; no runtime activation.
+
+
+## T1 README correction — exact-head CI closeout (2026-11-07)
+- T1 repository: `kenznguyen/binance-futures-collector`; branch `feature/t1-connection-sidecar-integration-20261107`.
+- Current source/PR head SHA: `f63f2a2918bb2e3dd2341cb952e6ab9b7ce9697d`; confirmed independently by branch ref, PR API and workflow metadata. Parent SHA: `42c33dfa77fa32ad40da2429b944a7dfab2b6e6f`.
+- README-only correction in `crates/connection-sidecar/README.md`: adds `PING_TIMEOUT`; documents strict >60,000 ms timeout boundary; clarifies session limits (1,024 connections/session, 10,000 subscriptions/socket, 256 bytes/name, 1 MiB aggregate subscription-name bytes/session, 1 MiB serialized manifest); corrects offline Cargo manifest paths to `crates/connection-sidecar/Cargo.toml`.
+- Exact-source GitHub Actions [run 42372991438](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42372991438): pull_request event, SUCCESS, all 5/5 jobs PASS. Run head SHA exactly `f63f2a2918bb2e3dd2341cb952e6ab9b7ce9697d`; base SHA `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Collector format/Clippy/build/workspace tests PASS; Sidecar format/Clippy/offline integration suite **27/27 PASS**; dashboard frontend type-check/build/Vitest PASS; backend pytest PASS; cargo-audit/npm audits PASS; Docker collector/dashboard builds PASS.
+- Workflow artifacts: none published.
+- PR #1 verified OPEN / DRAFT / NOT MERGED. PR body appended with this evidence. No merge or Ready transition.
+- README correction + exact-source CI: **PASS**. T1 operational readiness: **NOT VERIFIED**.
+- No runtime writer integration/start, Collector startup, Binance connection, DB access, market capture, T0 changes, merge, or live execution. Keep `ai_execution_enabled=false`.
+- Next: source-only review of non-heartbeat lifecycle (`CONNECT_FAILED`, `RECONNECT_SCHEDULED`), session/resource bounds, finalization and filesystem cleanup/durability boundaries. No runtime activation or integration.
