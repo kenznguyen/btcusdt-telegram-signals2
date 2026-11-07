@@ -135,6 +135,8 @@ def load_and_validate_connection_events(
         event_ids.add(event["eventId"])
         if event["sourceCommit"] != expected_source_commit or event["sessionId"] != expected_session_id:
             raise ValueError("Connection event source/session identity mismatch")
+        if event["eventAtMs"] > capture_complete_through_ms:
+            raise ValueError("Connection event exceeds the trusted capture watermark")
         if event["eventAtMs"] < previous_global_at:
             raise ValueError("Connection event file is not append-time ordered")
         previous_global_at = event["eventAtMs"]
