@@ -61,7 +61,7 @@ The following cases were not established by the inspected test files/evidence an
 | ID | Missing or incomplete scenario | Required safe assertion | Status |
 |---|---|---|---|
 | PG-LC-01 | PostgreSQL unavailable before runtime startup | Startup fails closed; no scheduler admission, no SQLite fallback, no lease-less writer | **PASS** — RED reproduced on SHA `514d22b`; GREEN verified on SHA `819d5f8`, static + TimescaleDB integration
-| PG-LC-02 | Connection loss during heartbeat / lease check | Runtime becomes non-ready and stops admission; no stale generation can write | NOT VERIFIED |
+| PG-LC-02 | Connection loss during heartbeat / lease checks | Runtime becomes non-ready and stops admission; no stale generation can write | **UNIT PASS** — synthetic StoreUnavailable regression in run 42322039770, job 128248620046; disposable PostgreSQL integration on this SHA NOT VERIFIED (job 128248711729 pending) |
 | PG-LC-03 | Database disconnect during an in-flight writer transaction | Whole transaction rolls back or commit outcome is reconciled unambiguously; no partial candle batch | NOT VERIFIED |
 | PG-LC-04 | Connection establishment timeout / concurrent connection churn | Bounded failure under the adapter's per-operation connection model; no unbounded thread growth or readiness false-positive | NOT VERIFIED |
 | PG-LC-05 | Database returns after transient outage | Runtime either performs an explicitly designed safe recovery or remains stopped pending restart; never resumes with stale lease | NOT VERIFIED |
