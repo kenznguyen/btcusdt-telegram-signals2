@@ -5634,3 +5634,11 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - No correctness defect established in this multi-PING/post-timeout-PONG path; no source changes made. Coverage gap noted: there is no dedicated integration test documenting this interaction. This remains a test-coverage opportunity, not a verified bug.
 - Current R5.3 inverse disconnect-reason implementation remains GREEN under PR-head workflow [42371580205](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42371580205), source SHA `bcfa23e929e3bb251b57359b344deffeb478da5f`, 5/5 jobs and Sidecar offline 26/26.
 - Next: add a focused offline regression that records two outstanding PINGs, times out one, accepts a timely PONG for the other, rejects a PONG for the timed-out ID, and still requires a HeartbeatTimeout disconnect. Run test-first and full GitHub Actions CI. PR #1 remains OPEN / DRAFT / NOT MERGED; no runtime, Binance, DB, capture, T0 changes, merge or live execution. Keep `ai_execution_enabled=false`.
+
+
+## T1 heartbeat multi-PING interaction regression — test CI pending (2026-11-07)
+- Added test-first regression `resolves_other_pending_ping_after_one_heartbeat_times_out` to `crates/connection-sidecar/tests/sidecar_writer.rs`.
+- Test-only T1 source SHA: `ca7694960c3077748c9e71bb7d7506b6fe51aac4` on existing branch `feature/t1-connection-sidecar-integration-20261107`; no implementation changes.
+- Scenario: two outstanding PINGs; first expires after >60 seconds; second receives PONG at exactly 60 seconds from its own send time and must be accepted; a PONG for the timed-out ID must be rejected without changing JSONL bytes; terminal disconnect must still use `HeartbeatTimeout`, then finalize.
+- Actions run [42372231049](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42372231049) is IN_PROGRESS. Behavioral RED/GREEN is NOT VERIFIED until the Sidecar offline test output is available. If it passes, treat as regression coverage for intended semantics; if it fails, inspect exact assertion before changing code.
+- PR #1 remains OPEN / DRAFT / NOT MERGED. No runtime, Binance, DB, market capture, T0 changes, merge or live execution; keep `ai_execution_enabled=false`.
