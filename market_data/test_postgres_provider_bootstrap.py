@@ -148,6 +148,29 @@ class PostgresProviderBootstrapIntegrationTest(unittest.TestCase):
                     flush=True,
                 )
 
+            # PostgreSQL 16 records memberships created by a CREATEROLE
+            # session with the cluster bootstrap superuser as grantor. Revoke
+            # those test-only ADMIN memberships as that grantor (t0_test),
+            # rather than as the restricted bootstrap role, which is not the
+            # recorded grantor and cannot remove them.
+            with psycopg.connect(DSN, autocommit=True) as service_admin:
+                for role_name in reserved_roles:
+                    if role_name in created_reserved_roles:
+                        service_admin.execute(
+                            sql.SQL("REVOKE {} FROM {}").format(
+                                sql.Identifier(role_name),
+                                sql.Identifier(bootstrap_role),
+                            )
+                        )
+                remaining = service_admin.execute(
+                    "SELECT granted.rolname FROM pg_auth_members membership "
+                    "JOIN pg_roles granted ON granted.oid=membership.roleid "
+                    "JOIN pg_roles member ON member.oid=membership.member "
+                    "WHERE member.rolname=%s AND granted.rolname = ANY(%s)",
+                    (bootstrap_role, list(reserved_roles)),
+                ).fetchall()
+                self.assertEqual(remaining, [], "bootstrap identity must have no reserved-role memberships")
+
             database_admin_dsn = make_conninfo(DSN, dbname=database_name)
             with psycopg.connect(database_admin_dsn, autocommit=True) as service_admin:
                 # Managed providers may pre-install/enable this extension as
