@@ -1,0 +1,95 @@
+# T0 PostgreSQL Lifecycle Acceptance Matrix
+
+Updated: 2026-11-07  
+Branch: `feature/t0-centralized-data-feeder-p1-20261101`
+
+## 1. Scope and authorization
+
+This matrix covers PostgreSQL/TimescaleDB lifecycle and ordinary data-integrity behavior using disposable local CI services and synthetic fixtures only.
+
+Included:
+- connection and pool behavior;
+- explicit database initialization and migrations;
+- writer transaction lifecycle and atomicity;
+- lease acquire, heartbeat, expiry, takeover, release and fencing;
+- FeederRuntime startup/recovery, readiness and shutdown/drain;
+- restart behavior and controlled writer concurrency;
+- fail-closed behavior when lease authority is lost.
+
+Explicitly excluded:
+- backup/PITR provisioning or validation;
+- restore drills, disaster recovery, failover recovery objectives, RPO/RTO;
+- offsite or immutable/WORM retention;
+- provider/VPS provisioning or external provider endpoint tests;
+- canonical T0 database creation, production Feeder activation, real exchange access or market-data synchronization.
+
+All test targets must be disposable and synthetic. Do not use a production/canonical DSN, Paper DB, exchange credentials, or real market data. Preserve SQLite as the default and preserve all role/fencing guards.
+
+## 2. Existing test coverage
+
+The source audit on 2026-11-06 recorded these test files and contracts on the active branch. The file paths below are current source references; historical CI evidence applies only to its recorded SHA/run, not automatically to the current documentation tip.
+
+| Lifecycle area | Existing test source | Observed coverage | Current assessment |
+|---|---|---|---|
+| PostgreSQL runtime composition | `market_data/test_postgres_feeder_runtime.py` | Same DSN for store/lease/gateway; scheduler and recovery share one fenced gateway; reject mixed SQLite/PostgreSQL stores; DB-clock lease adapter; TLS DSN and canonical lease identity contracts | Source coverage present; current-tip CI NOT VERIFIED |
+| PostgreSQL startup recovery | `market_data/test_postgres_feeder_runtime.py` | Synthetic exchange; runtime startup recovery; scheduler reuses the same PostgreSQL fenced gateway; graceful stop/release | Historical disposable TimescaleDB integration PASS; current-tip CI NOT VERIFIED |
+| Heartbeat and lease renewal | `market_data/test_postgres_feeder_runtime_lifecycle.py` | Runtime heartbeat renews lease expiry using database clock | Historical disposable TimescaleDB integration PASS (1 of 4 lifecycle tests) |
+| Lease expiry/takeover and readiness | `market_data/test_postgres_feeder_runtime_lifecycle.py` | Replacement receives higher generation; old runtime enters LEASE_LOST; scheduler stops; health reports not-ready; old runtime cannot release replacement lease | Historical disposable TimescaleDB integration PASS (1 of 4 lifecycle tests) |
+| Shutdown/drain timeout | `market_data/test_postgres_feeder_runtime_lifecycle.py` | Drain timeout raises and retains current lease; successful later drain releases exact generation | Historical disposable TimescaleDB integration PASS (1 of 4 lifecycle tests) |
+| Restart generation | `market_data/test_postgres_feeder_runtime_lifecycle.py` | New runtime acquires a strictly higher fencing generation after clean stop | Historical disposable TimescaleDB integration PASS (1 of 4 lifecycle tests) |
+| Atomic writer and rollback | `market_data/test_postgres_write_gateway.py` | Current generation commit; stale/wrong owner rejection; DB-clock expiry; duplicate idempotence; conflicting duplicate rollback; invalid middle candle; takeover waits for writer transaction; generation-bound heartbeat/release | Historical disposable TimescaleDB integration PASS (7/7) |
+| Role and privilege boundary | `market_data/test_postgres_role_privileges.py` | Feeder/Reader least privilege, lease API restrictions, SECURITY DEFINER ownership, restricted migrator memberships and ADMIN OPTION checks | Historical disposable TimescaleDB integration PASS (18/18) |
+| Fresh-cluster role bootstrap | `market_data/test_postgres_provider_bootstrap.py` | Clean-cluster role creation, restricted migration identity, ownership and membership assertions | BLOCKED on PostgreSQL 16 non-superuser CREATEROLE implicit ADMIN membership; keep the migration guard unchanged |
+| Process restart/fencing regression | `market_data/test_feeder_process_restart.py` and static Gateway workflow | Static restart/fencing regression suite | Historical CI PASS; not equivalent to PostgreSQL process-kill-during-transaction coverage |
+
+## 3. Historical evidence boundary
+
+The handoff records workflow run [42166319563](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42166319563), exact tested source SHA `7c41ac990a7a0842b773a2d07b8db2f1d769a855`:
+- PostgreSQL atomic writer: 7/7 PASS.
+- PostgreSQL FeederRuntime/composition: 18/18 PASS.
+- PostgreSQL FeederRuntime lifecycle: 4/4 PASS.
+- Least-privilege role integration: 18/18 PASS.
+- Read-only TimescaleDB integration: 6/6 PASS.
+- Fresh-cluster provider bootstrap: BLOCKED at the existing role-safety guard due to PostgreSQL 16 non-superuser CREATEROLE semantics.
+
+This evidence is for that exact source SHA and disposable PostgreSQL 16 / TimescaleDB 2.17.2 CI service. It does not establish provider compatibility. The active branch has advanced with later source and documentation commits; exact current-tip CI is **NOT VERIFIED** unless a later workflow proves the checked-out SHA.
+
+## 4. Lifecycle gaps requiring explicit acceptance tests
+
+The following cases were not established by the inspected test files/evidence and must not be inferred from adjacent tests:
+
+| ID | Missing or incomplete scenario | Required safe assertion | Status |
+|---|---|---|---|
+| PG-LC-01 | PostgreSQL unavailable before runtime startup | Startup fails closed; no scheduler admission, no SQLite fallback, no lease-less writer | NOT VERIFIED |
+| PG-LC-02 | Connection loss during heartbeat / lease check | Runtime becomes non-ready and stops admission; no stale generation can write | NOT VERIFIED |
+| PG-LC-03 | Database disconnect during an in-flight writer transaction | Whole transaction rolls back or commit outcome is reconciled unambiguously; no partial candle batch | NOT VERIFIED |
+| PG-LC-04 | Connection pool exhaustion / connection timeout | Bounded failure, no unbounded thread growth or readiness false-positive | NOT VERIFIED |
+| PG-LC-05 | Database returns after transient outage | Runtime either performs an explicitly designed safe recovery or remains stopped pending restart; never resumes with stale lease | NOT VERIFIED |
+| PG-LC-06 | Process termination during PostgreSQL writer transaction | No partial batch; a new owner must acquire a higher generation before writing | NOT VERIFIED |
+| PG-LC-07 | Migration interruption / retry on a disposable clean database | Migration state is deterministic and fail-closed; no implicit migration from runtime constructors | PARTIAL / NOT VERIFIED |
+| PG-LC-08 | Readiness during database connectivity loss (not only lease loss) | Readiness becomes false within a bounded interval and remains false until lease and DB authority are re-established | NOT VERIFIED |
+
+Do not implement automatic reconnect/recovery behavior merely to make these tests pass. First derive the intended state machine and bounded timeout semantics from the existing runtime contract. A safe terminal failure may be correct where automatic resumption could violate fencing.
+
+## 5. Acceptance sequence
+
+1. Confirm the intended runtime state transitions and timeout policy for PG-LC-01 through PG-LC-08 from existing source; do not change behavior yet.
+2. Add focused RED tests for one lifecycle gap at a time, using only the dedicated disposable TimescaleDB CI service and synthetic data.
+3. Preserve existing passing writer, lease, role and SQLite regression contracts.
+4. Implement only after the corresponding RED failure is observed and reviewed.
+5. Run GitHub Actions on the exact candidate source SHA. Record PR/head SHA, checked-out SHA, run/event, job IDs/conclusions, test summaries and artifact ID/digest.
+6. Reconcile the artifact payload and exact source identity before recording PASS.
+7. Update this matrix and `docs/PROJECT_SESSION_HANDOFF.md` after each meaningful increment.
+
+## 6. Current verdict and boundaries
+
+- Existing PostgreSQL writer/runtime/role integration: historical PASS on the exact SHA and run stated above.
+- Fresh-cluster PostgreSQL 16 non-superuser CREATEROLE bootstrap: BLOCKED; do not weaken the role guard.
+- Connection interruption, pool exhaustion, in-flight disconnect, process kill during PostgreSQL transaction and post-outage behavior: NOT VERIFIED.
+- Current branch-tip CI: NOT VERIFIED.
+- Exact managed-provider compatibility: NOT VERIFIED; no provider selected.
+- Backup/DR: DEFERRED — NOT IN CURRENT SCOPE.
+- PostgreSQL staging, VPS, canonical database and production Feeder: NOT AUTHORIZED.
+- T0 remains independent; `ai_execution_enabled=false`; paper-only; no live orders.
+
+Next permitted work: review the PG-LC state machine and choose the first isolated RED test. No provider provisioning, runtime activation, canonical DB, exchange connection or market-data sync is implied by this matrix.
