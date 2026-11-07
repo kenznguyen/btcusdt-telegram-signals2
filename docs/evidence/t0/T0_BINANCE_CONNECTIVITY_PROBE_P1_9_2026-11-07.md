@@ -158,3 +158,19 @@ Documentation update commit: `d612774c9e5fd056a311d572f754065599f73f81`.
 | Controlled First Run / canonical ingestion / Feeder | NOT AUTHORIZED / NOT RUN |
 
 No network request was made by GitHub Actions. No API credentials, DB, canonical T0 store, Feeder, sync operation, proxy/VPN, or execution capability was used.
+
+
+### Final exact-SHA regression reconciliation — run 42326194295
+
+The run completed. All jobs checked out exact source SHA `ab564eccbb9c0484fdd30b694f5b052bc4a2c991`.
+
+- Static Gateway job `128262017337`: **SUCCESS**; complete `market_data` suite 255 tests, 42 skipped, OK.
+- Paper consumer job `128262017581`: **SUCCESS**.
+- Fresh-cluster restricted provider bootstrap job `128262017655`: **FAILURE** at the existing strict role membership guard: `t0_migrator may only be granted to the ephemeral t0_migrator_login role`. This is unchanged from prior runs and unrelated to the probe.
+- Isolated TimescaleDB job `128262082698`: **FAILURE** in the pre-existing PG-LC-07 test `test_interrupted_migration_rolls_back_and_retry_applies_cleanly`; psycopg raised `ProgrammingError: only '%s', '%b', '%t' are allowed as placeholders, got '%p'`. The job ran the PostgreSQL atomic writer suite (10 tests, one error) and then skipped the dependent FeederRuntime, lifecycle, role-privilege, and read-only TimescaleDB steps. Do not claim those skipped suites passed.
+- TimescaleDB artifact `13555023203`; name `t0-timescale-read-only-evidence-ab564eccbb9c0484fdd30b694f5b052bc4a2c991`; size 1,181 bytes; GitHub upload digest `sha256:e76db931726ada7aa9e66c1d311f44a515f9b04e044ec1338415ede400500ef7`.
+- Provider bootstrap artifact `13555685559`; digest `sha256:43a34c348822115e02bb5f177421d2d6511ddfaa4fc99f5eaf8a241e65b68612`.
+- Overall workflow [42326194295](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42326194295): **FAILURE due to the two pre-existing independent blockers above**. Probe-specific offline contracts and the static market_data/paper regressions remain PASS.
+- No PG-LC-07 fix was attempted in this work. No role guard was weakened. Artifact digests remain GitHub upload metadata and have not been independently recomputed from downloaded ZIP payloads.
+
+Final code verdict remains: probe receiver/diagnostic change **PASS on dedicated CI**; broader static regression **PASS**; provider/bootstrap and PG-LC-07 integration blockers **BLOCKED**; target-PC WebSocket Kline event **NOT VERIFIED**.
