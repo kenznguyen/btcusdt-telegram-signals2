@@ -5383,3 +5383,19 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - GREEN verification on exact source SHA `abaee25ee53e5a948429cb9f8d7d34e022701ee1`: GitHub Actions run `42357127069` completed SUCCESS, all 5/5 jobs PASS. Collector fmt/Clippy/build PASS; collector library 40/40 and binary 1/1 tests PASS; sidecar fmt/Clippy PASS; sidecar offline suite 12/12 PASS including the new regression. Dashboard frontend TypeScript/build PASS and Vitest 6/6 PASS; backend pytest 57 passed (1 warning); cargo-audit scanned 248 locked crates successfully; production and full npm audits each reported 0 vulnerabilities; Docker built `capture-desk-dashboard` and `capture-desk-collector` images successfully.
 - Workflow artifacts: none published. Run URL: https://github.com/kenznguyen/binance-futures-collector/actions/runs/42357127069. PR head matches exact source SHA and remains OPEN / DRAFT / NOT MERGED.
 - T1 operational readiness remains NOT VERIFIED. This change only makes sidecar finalization fail-closed; it does not authorize writer integration/start, Binance connection, DB access, market capture, merge, or live execution. Keep `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 Sidecar finalization I/O fail-closed correction
+
+- T1 repo: kenznguyen/binance-futures-collector; PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Active T1 branch: feature/t1-connection-sidecar-integration-20261107; upstream/base SHA: bc4f0ef633fbeee4a49defd72827f17162693805.
+- Source review identified a second failure window in SidecarWriter::finalize(): filesystem failures during flush, sync_all, JSONL readback for SHA-256, or metadata access happened before writer poisoning, leaving the writer usable after failed finalization.
+- TDD RED test commit: 7fecf8dff41953ed8a87496b83ad8dd4b3468ad9. GitHub Actions run 42357747227: new regression poisons_writer_when_sidecar_readback_fails_during_finalization failed as expected; sidecar suite 12 passed / 1 failed.
+- Fix commit / final T1 source SHA: 2cd1e0f301ee0f469428c1184e6edf8dbcf316a2. Finalization now sets poisoned immediately after validation and before the first filesystem operation. This makes any subsequent flush/sync/readback/metadata/serialization/publication failure terminal; validation errors before finalization starts remain retryable.
+- Exact-head GitHub Actions run 42357909004: https://github.com/kenznguyen/binance-futures-collector/actions/runs/42357909004. Push event, SUCCESS, all 5/5 jobs PASS. Collector checkout log confirms exact SHA 2cd1e0f301ee0f469428c1184e6edf8dbcf316a2.
+- Tests: collector library 40/40, binary 1/1; sidecar offline 13/13; dashboard backend pytest 57 passed (1 warning); frontend Vitest 6/6 with TypeScript/build PASS. Cargo-audit scanned 248 locked crates successfully. Production npm audit and full npm audit each found 0 vulnerabilities. Docker collector/dashboard image build PASS.
+- Workflow artifacts: none published.
+- PR description updated with RED/GREEN evidence, exact SHA, run, test totals and restrictions. PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Review follow-up: inspect crash recovery and torn JSONL tails; validate manifest sidecar_bytes and event_count against actual JSONL content; explicitly distinguish durable event writes from caller-asserted capture completeness. These remain NOT VERIFIED and require separate remediation/evidence.
+- Current verdict: R1 finalization I/O fail-closed correction PASS. Full sidecar source review remains IN PROGRESS; crash recovery/manifest consistency NOT VERIFIED; T1 operational readiness NOT VERIFIED.
+- Safety unchanged: no writer integration/start, Collector startup, Binance connection, DB access, market capture, merge, or live execution. Keep ai_execution_enabled=false. Do not mark PR ready or merge without explicit user approval.
