@@ -54,6 +54,7 @@ class ConnectionEventContractTest(unittest.TestCase):
 
     def validate(self, events, **kwargs):
         path, digest = self.write(events)
+        capture_through = kwargs.pop("capture_complete_through_ms", END)
         return load_and_validate_connection_events(
             path,
             expected_sha256=digest,
@@ -63,7 +64,7 @@ class ConnectionEventContractTest(unittest.TestCase):
             window_end_ms=END,
             max_heartbeat_gap_ms=GAP,
             capture_finalized=True,
-            capture_complete_through_ms=END,
+            capture_complete_through_ms=capture_through,
             **kwargs,
         )
 
@@ -113,7 +114,7 @@ class ConnectionEventContractTest(unittest.TestCase):
         recovered = self.event("e12", "CONNECTED", END + 1_000)
         recovered["connectionId"] = "conn-2"
         events.append(recovered)
-        result = self.validate(events)
+        result = self.validate(events, capture_complete_through_ms=END + 1_000)
         self.assertEqual(result["connections"][0]["connectionId"], "conn-1")
         self.assertEqual(result["connections"][0]["connectionStatus"], "DISCONNECTED")
         self.assertEqual(result["connections"][1]["connectionId"], "conn-2")
