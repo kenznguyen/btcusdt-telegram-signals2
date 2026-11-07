@@ -4471,3 +4471,16 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - This is source committed, NOT test verified. No local test execution or GitHub Actions run has been observed for this commit in this session.
 - Current state: P1.9 read-only connectivity PASS for the user-provided sample; offline Controlled Ingestion test source COMMITTED / execution NOT VERIFIED; canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; `ai_execution_enabled=false`.
 - Next: execute focused test `python -m unittest market_data.test_controlled_ingestion_acceptance -v`, then full `market_data` suite on the exact commit; preserve any unrelated provider/Timescale blockers without weakening guards. Do not run live sync, create canonical DB, or start Feeder.
+
+
+### Controlled Ingestion Acceptance — exact-SHA CI result (2026-11-07)
+
+- Test source SHA: `0043231388d8f8447a0282e500f1f8e90372ca25`.
+- Workflow [42329219280](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42329219280), push event, exact head SHA confirmed.
+- Static Gateway job `128271639525`: SUCCESS; complete `market_data` discovery **263 tests, 42 skipped, OK**. All four tests in `market_data/test_controlled_ingestion_acceptance.py` passed: 96 M15/24 H1 coverage + second-sync idempotency/hash stability; API HTTP 200/hash parity; conflicting-batch rollback; temporary-path isolation.
+- Paper consumer job `128271639766`: SUCCESS.
+- Artifact `13556896117`; name `t0-swg-contract-evidence-0043231388d8f8447a0282e500f1f8e90372ca25`; upload digest `sha256:e349a34e912cf00794c6222147a77044d4504450604b86e503e179dd4e043c1f`. Digest is GitHub upload metadata; payload not independently re-hashed.
+- At capture, provider bootstrap job `128271639719` and isolated TimescaleDB job `128271704539` remained in progress. Overall workflow not yet concluded.
+- All acceptance tests used synthetic data and a temporary SQLite database. No live Binance network, canonical DB, Feeder, VPS, or execution.
+- Status: isolated SQLite Controlled Ingestion contract PASS; PostgreSQL/provider and Timescale integration NOT YET VERIFIED; canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; `ai_execution_enabled=false`.
+- Next: reconcile remaining jobs in run 42329219280. Keep existing provider-role and Timescale blockers explicit; do not weaken guards. Do not execute Controlled First Run.
