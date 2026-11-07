@@ -4770,3 +4770,15 @@ Acceptance boundary:
 - Then capture output and verify exact tables `candles, feeder_leases`, `PRAGMA integrity_check=ok`, zero candle rows, zero lease rows, file permissions and SHA-256. Do not commit/upload the database file to GitHub.
 - Current status: initializer implementation PASS in isolated CI; complete workflow NOT VERIFIED; PC Canonical DB NOT CREATED; no ingestion; Feeder STOPPED; no T2 source switch; `ai_execution_enabled=false`.
 - Next: complete exact-SHA CI, then execute the guarded initializer on the PC and verify its evidence. Only after that propose a separate controlled-ingestion approval.
+
+
+## 2026-11-07 — Canonical DB deferred; 30-day T0 read-window limit addressed
+
+- User deferred PC Canonical SQLite creation. Do not run `market_data.initialize_sqlite`, do not create/open/write Canonical SQLite, and do not start ingestion or Feeder until the user re-authorizes.
+- The next independent task is to prepare an isolated GitHub Actions public-read-only paired Binance USD-M / OKX acquisition path for the previously approved 30-day parity pilot. It must use no credentials, no proxy/VPN, no Canonical DB and no persistent services. A temporary runner-only T0 SQLite store may be considered solely if genuine T0 `read_window()` provenance can be produced and the DB remains isolated/ephemeral; otherwise stop BLOCKED.
+- Discovered the 30-day M15 window needs 2,880 rows but `read_window()` previously capped reads at 2,000. Added `MAX_READ_CANDLES=3000` while retaining `MAX_CANDLES=2000` for sync/ingestion. Added a 2,880-row M15 read regression. This does not increase ingestion limits.
+- TDD RED: run `42338026283`, SHA `2c54ee6a5e1857f2c51850644ec65f9fffbe282f`, failed as expected at old read bound; artifact `13560825276`, digest `sha256:a215fc0315ee54c75c712feefa00534ffde49dc3aa0b9202e06c2928639fce18`.
+- Intermediate SHA `4fd8e3f096a29e9d36067e1684830c781bd0100f` exposed accidental write-window coupling; fixed by separate read and sync bounds.
+- Current code SHA `1b190ba7562b3843de75894ce68bd6f0ea99b321`. Workflow `42338141750`: Static Gateway suite PASS and Paper consumer regressions PASS; provider bootstrap and TimescaleDB integration still running at record time. Static artifact `13559494829`, digest `sha256:8836bac802bb8eb869f66c0339f2b23fae1025cb96edd15877a87212ea098cba`; paper artifact `13560313069`, digest `sha256:894df1eae176be762a1e4d60cc4ac0752ecccc931e3a7d2544a0511a23bbe219`.
+- T2 Freqtrade smoke run `42338141694` is for the same SHA; status pending at record time.
+- Canonical DB remains NOT CREATED; PC creation deferred; canonical ingestion NOT RUN; Feeder STOPPED; T2 OKX source unchanged; no merge; no VPS; `ai_execution_enabled=false`.
