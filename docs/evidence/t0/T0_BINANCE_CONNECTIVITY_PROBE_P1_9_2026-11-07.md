@@ -415,3 +415,14 @@ Next: prepare a separately reviewed and approved controlled-ingestion acceptance
 - At evidence capture, fresh-cluster provider bootstrap job `128271639719` and isolated TimescaleDB job `128271704539` were still IN PROGRESS; no overall workflow conclusion is claimed.
 - Scope: synthetic data and temporary SQLite only. No Binance calls, canonical DB, credentials, Feeder runtime, market-data production sync, VPS, or execution.
 - Status: isolated SQLite acceptance tests PASS on exact SHA; PostgreSQL/provider/Timescale dependent jobs PENDING at capture; Controlled First Run NOT AUTHORIZED; canonical ingestion NOT RUN; Feeder STOPPED; `ai_execution_enabled=false`.
+
+
+### Workflow 42329219280 — final matrix reconciliation
+
+- Overall workflow: FAILURE because two separate PostgreSQL integration jobs failed; this does not invalidate the passing isolated SQLite acceptance tests.
+- Static Gateway job `128271639525`: SUCCESS; **263 tests, 42 skipped, OK**. All four new controlled-ingestion acceptance tests passed.
+- Paper consumer job `128271639766`: SUCCESS.
+- Fresh-cluster provider bootstrap job `128271639719`: FAILURE at the existing strict guard `t0_migrator may only be granted to the ephemeral t0_migrator_login role`. No permission guard was weakened.
+- Isolated TimescaleDB job `128271704539`: FAILURE in `test_interrupted_migration_rolls_back_and_retry_applies_cleanly`; psycopg error: `only '%s', '%b', '%t' are allowed as placeholders, got '%p'`. Dependent PostgreSQL FeederRuntime, lifecycle, least-privilege and read-only TimescaleDB steps were skipped and remain NOT VERIFIED.
+- Overall workflow [42329219280](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42329219280).
+- Final verdict: isolated SQLite Controlled Ingestion acceptance PASS; PostgreSQL/provider integration BLOCKED; overall workflow FAILURE due to independent existing blockers. Do not weaken either guard or mark skipped tests PASS.
