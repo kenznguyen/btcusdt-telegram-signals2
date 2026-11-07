@@ -377,3 +377,49 @@ R22.5 disposition: original Phase14 archive, embedded candidate, metadata, separ
 Remaining blockers unchanged: full_model_pipeline_causality_verified=false; real 180-day FreqaiDataKitchen feature-value reconciliation NOT VERIFIED; Phase22 OOS eligibility attestation schema mismatch NOT VERIFIED; prospective OOS IN PROGRESS / NOT CERTIFIED; funding/mark/liquidation and Kotlin parity pending.
 
 Next safe work R22.6: use the verified pre-holdout archive's historical canonical M15 file and pinned Freqtrade 2026.9 DataKitchen to compare all 20 native expanded feature values against the Phase13/15 strategy reconstruction over the complete historical 180-day dataset. No model loading, training, backtest, exchange access, holdout reads, T0 access, or live execution.
+
+
+### R22.6 — Full historical native DataKitchen feature replay (2026-11-07)
+
+Final exact-source verification:
+- Source SHA: 7dd91e564d91e5993ff7d5fa660ce4f3f0e44511.
+- GitHub Actions run 42322386663, job 128249738824: SUCCESS.
+- Pinned Freqtrade FreqAI 2026.9 install PASS; synthetic regression tests 5/5 PASS; historical DataKitchen replay PASS; artifact upload PASS.
+- Artifact ID 13553836665; name r22-6-historical-datakitchen-replay-7dd91e564d91e5993ff7d5fa660ce4f3f0e44511; GitHub upload digest sha256:1465a53c5abfd1649083ef879def49522a2b0a5ac37d2ff81390e1f9bcf5fa92.
+
+Historical source data:
+- Archive: the exact Phase14 pre-holdout archive, SHA-256 b64f39bd70c27c8d6abed1795ee06504c108eed42ebdab98ce375a6449b5b035.
+- Canonical member: artifacts/phase3/canonical/15m.csv.
+- Canonical M15 SHA-256: e9a8d9c4d790b7f1cbe58ed71c2c2e10d2e891b48c8dbab7a47bb6a8f20e6a1f.
+- 21,210 closed M15 candles, first open 2026-03-24T00:00:00Z, last open 2026-10-30T20:15:00Z. Record the exact range/row count; do not describe this raw archive as exactly 180 calendar days.
+- Frozen metadata source SHA 082edc082996425f61f48c952be41fb037564103 and bundle SHA 918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f verified.
+- Effective config and FreqAI hashes reproduced exactly.
+
+Results:
+- Native FreqaiDataKitchen.populate_features + ChartProFreqaiResearch.feature_engineering_standard + Freqtrade feature-name normalization produced the exact frozen 20-column ordered schema.
+- Compared 423,939 finite feature values across all 21,210 rows against the Phase13/15 strategy reconstruction; maximum absolute difference 0.0.
+- 35 prefix cut points; 700/700 feature comparisons invariant to future suffix availability.
+- No model file was opened, loaded or unpickled. Only the canonical CSV member was copied to a temporary file; the ZIP was not bulk-extracted.
+- No exchange network calls, bot/strategy start, backtest, training, retraining, or holdout candle reads.
+- Report intentionally retains full_model_pipeline_causality_verified=false and independent_oos_verified=false.
+
+R22.6 disposition: native DataKitchen historical feature-value reconciliation PASS; historical source-feature prefix invariance PASS. This resolves the missing actual DataKitchen feature-construction evidence within the canonical dataset scope. It does not retroactively rewrite the immutable Phase16 summary, nor does it alone certify the full model pipeline or prospective OOS.
+
+### R22.7 — OOS eligibility gate compatibility and pre-holdout trust audit (2026-11-07)
+
+Read-only audit of the existing Phase22 verifier and the original pre-holdout records found a material mismatch:
+
+1. The actual sealed protocol snapshot is research_seals/phase13b-20261104/phase13b-oos-protocol.json, Git blob 0dbf07b12ccb4d4675f34827298456e8d7c69fb7. It has status PRE_REGISTERED_PROTOCOL_CANDIDATE_NOT_SEALED and null source_commit_sha, frozen_model_bundle_sha256, frozen_model_metadata_sha256, seal_git_commit, and sealed_in_git. The seal-manifest commit 888efb11... fingerprints its SHA, but the protocol JSON itself is not the separate SEALED_BY_EXTERNAL_ATTESTATION object expected by Phase22.
+2. The registered pre-holdout attestation file at commit f9591bcda1b11f15a549f397aa211259346ed3f9 contains one protocol_sha256. It does not contain historical_protocol_sha256 or oos_protocol_sha256, which the current verify_oos_eligibility() requires.
+3. The current verifier expects a different file path, research_evidence/frozen-model/phase13b-20261104/oos-protocol.json. The actual registered file is phase13b-oos-protocol.json.
+4. The Phase16 research-only release gate at commit 409d446bb186a8e2ea0189df26057a9df7e839de approves only a future manual offline frozen paper OOS after completion; it explicitly leaves independent_oos_verified=false and oos_certified=false. It is not the separate OOS protocol object required by the Phase22 verifier.
+5. GitHub API lookups returned no associated GitHub Actions workflow runs for the pre-holdout commits 888efb11..., 409d446..., and f9591bc.... Their GitHub commit signature verification is unsigned (verified=false). Their commit-object committer dates are 2026-10-30T22:50:49Z, 2026-10-31T02:10:30Z, and 2026-10-31T16:18:24Z respectively, all earlier than holdout start, but these unsigned commit-object dates are not equivalent to a pre-holdout GitHub Actions server timestamp.
+6. The Phase22 _verify_github_server_proof() requires proof_source=github_actions_run and server_evidence.created_at strictly earlier than 2026-11-04T00:00:00Z. No such pre-holdout workflow runs exist for these commits. A new verification run now would be post-holdout and cannot satisfy that existing requirement.
+
+Disposition:
+- Phase16 research-only approval record: SOURCE-VERIFIED, but not OOS certification.
+- Current Phase22 OOS eligibility gate: BLOCKED / schema and provenance-proof mismatch.
+- Current 2026-11-04 to 2026-12-04 holdout: NOT ELIGIBLE FOR CERTIFICATION under the current fail-closed verifier; do not read or evaluate holdout rows.
+- Do not retrofit a post-holdout workflow run as pre-holdout evidence, do not accept unsigned committer dates as equivalent to server timestamps, and do not weaken the gate without explicit user approval.
+
+Next step R22.8 requires an explicit policy decision. The reliability-preserving path is to keep the current window NOT CERTIFIED and prepare a new OOS protocol, external seal and GitHub Actions server-time proof before a future holdout start. Any alternative that accepts the existing unsigned commit timestamps or changes the Phase22 gate semantics requires separate approval. No holdout data access, training, tuning, backtest, model/Core change, T0 access, deployment or live execution is authorized.
