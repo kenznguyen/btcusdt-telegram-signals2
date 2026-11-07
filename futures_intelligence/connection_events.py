@@ -288,6 +288,8 @@ def load_and_validate_connection_events(
         "sessionId": expected_session_id,
         "windowStartMs": window_start_ms,
         "windowEndMs": window_end_ms,
+        "captureFinalized": capture_finalized,
+        "captureCompleteThroughMs": capture_complete_through_ms,
         "sidecarSha256": expected_sha256,
         "connectionStatus": overall,
         "verifiedConnections": sum(item["connectionStatus"] == "VERIFIED_CONNECTED" for item in results),
