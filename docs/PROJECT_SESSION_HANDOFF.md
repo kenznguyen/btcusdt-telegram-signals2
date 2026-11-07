@@ -4860,7 +4860,15 @@ Acceptance boundary:
   - `dbe05a406131659d83b22e2b27646cab49a98631` — completed both path filters.
 - Current branch HEAD at handoff update: `dbe05a406131659d83b22e2b27646cab49a98631`.
 - GitHub Actions run: [42339519835](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42339519835), push event, exact head SHA `dbe05a406131659d83b22e2b27646cab49a98631`.
-- Last observed run state: **PENDING**, no jobs exposed yet; test result **NOT VERIFIED**, artifact **NOT AVAILABLE**. Do not report PASS until the run concludes and job logs/artifact are checked against this exact SHA.
-- No tests were run locally in this operation. No source/test code changed; workflow configuration only.
-- Next: inspect run `42339519835`; verify the dedicated T1 job, exact checked-out SHA, test count/result and artifact ID/digest. If run fails, diagnose before any retry.
+- Final run state: **SUCCESS**; all five jobs in workflow run `42339519835` completed successfully.
+- Dedicated T1 job: `128304212283`, **SUCCESS**. Logs confirm checkout SHA `dbe05a406131659d83b22e2b27646cab49a98631`, matching the workflow run head SHA.
+- Offline guard: all DB paths/DSNs and Binance/OKX credentials were empty; scope recorded as `OFFLINE_TEMPORARY_CSV_FIXTURES_ONLY`.
+- Compile: `futures_intelligence/import_collector.py`, `futures_intelligence/test_import_collector.py`, and `pipeline/values.py` compiled successfully.
+- Fixture suite: **10/10 tests PASS** (unittest; 0.013s). Coverage includes missing-feed/null semantics, artifact hashes and atomic replacement, aggregate-ID deduplication/conflicts/gaps, freshness and unknown liquidation continuity, exact headers/feed semantics, capture mutation rejection, timestamp/numeric/aggressor validation, snapshot input checksums/unknown continuity, explicit trade-ID gaps, and half-open bounded windows.
+- T1 artifact: [13561012134](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42339519835/artifacts/13561012134), name `t1-importer-offline-evidence-dbe05a406131659d83b22e2b27646cab49a98631`, 1,339 bytes, GitHub digest `sha256:1035795ad2a9474899f57b79da4ec7c1c5d86f5b7fa72e35b98ccb83602473d6`.
+- Workflow run [42339519835](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42339519835): **SUCCESS**, push event, exact head/checked-out SHA `dbe05a406131659d83b22e2b27646cab49a98631`; all 5 jobs SUCCESS (T1 offline tests, Static Gateway, Paper consumer, restricted provider bootstrap, isolated TimescaleDB integration).
+- Artifact digest is GitHub's upload digest from run metadata/logs; payload ZIP bytes have not been independently downloaded and re-hashed. Payload checksum recomputation remains **NOT VERIFIED**.
+- T1 importer CI coverage: **PASS** for offline fixture/compile validation at the exact SHA above. This does not prove live collector capture, feed continuity, or T1 operational readiness.
+- Safety boundary held: job made no exchange requests, ran no collector, accessed no DB, and did not start Feeder. No local tests were run during this documentation/reconciliation step.
+- Next: retain T1 live-capture/continuity as a separate NOT VERIFIED gap. No collector activation or exchange capture without a separately authorized scope.
 - Existing restrictions remain: Canonical SQLite creation deferred; ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Windows preflight DEFERRED; Feeder STOPPED; paired dataset acquisition PAUSED; T2 OKX source unchanged; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
