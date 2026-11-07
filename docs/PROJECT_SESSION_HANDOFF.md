@@ -5414,3 +5414,28 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - R4 docs clarification remains pending: distinguish durable JSONL/manifest lifecycle from caller-asserted watermark and actual market-data completeness; no semantics change.
 - Operational readiness: **NOT VERIFIED**. No Collector startup, Binance connection, DB access, market capture, merge, or live execution. Keep `ai_execution_enabled=false`.
 - Next: start R3 with schema inspection and TDD; continue on the existing T1 branch/PR. No merge or runtime activation without explicit user approval.
+
+
+## 2026-11-07 — T1 R3 offline read-only crash recovery validator closeout
+- T1 repository: `kenznguyen/binance-futures-collector`; PR #1 remains OPEN / DRAFT / NOT MERGED.
+- T1 branch: `feature/t1-connection-sidecar-integration-20261107`; base SHA: `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Final R3 source SHA: `607e160e8c189ff8ec84fa8efccbeb3b85b900a2`.
+- Added read-only `validate_capture(&path)` classification:
+  - valid JSONL with no manifest -> `UnsealedValid` (incomplete; not a completed capture);
+  - missing final newline / torn final record -> `TruncatedFinalLine`;
+  - malformed JSON or non-object JSONL record -> `MalformedJsonl`;
+  - invalid or inconsistent manifest -> `ManifestMismatch`;
+  - finalized manifest matching filename, schema, byte count, SHA-256 and event count -> `SealedConsistent`.
+- Enforces regular non-symlink sidecar path, 64 MiB sidecar bound, regular non-symlink manifest path, 1 MiB manifest bound, bounded snapshot length check, JSON object records and MAX_EVENTS. Validator never writes, repairs, truncates, appends, or resumes either source file.
+- Immutability evidence: validator tests compare original and post-validation sidecar bytes for unsealed, truncated, malformed, mismatch and sealed cases; manifest bytes are compared for mismatch and sealed cases. Sidecar offline suite confirms all five classification tests.
+- CI found and fixed an iterator bug where split-on-newline included the trailing empty segment; final iteration uses the count of actual newline delimiters.
+- Exact PR-head GitHub Actions: [42362014390](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42362014390), pull_request event, SUCCESS, all 5/5 jobs PASS on exact PR head SHA `607e160e8c189ff8ec84fa8efccbeb3b85b900a2`.
+- Exact push GitHub Actions: [42362011081](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42362011081), SUCCESS, all 5/5 jobs PASS on the same SHA.
+- Test evidence: collector library 40/40, binary 1/1; sidecar offline integration tests 19/19; Rust format/Clippy/build PASS; dashboard backend PASS; dashboard frontend type-check/build/Vitest PASS; cargo-audit PASS; production and full npm audit each report 0 vulnerabilities; Docker collector/dashboard image build PASS.
+- Workflow artifacts: none published for either exact-head run.
+- TDD RED evidence specifically for R3 validator tests: **NOT VERIFIED**; earlier failures did not establish a clean pre-implementation RED test.
+- PR description updated with R3 evidence and caveats. PR remains OPEN / DRAFT / NOT MERGED.
+- Source review caveat: manifest metadata symlink/file check followed by `fs::read` is not an atomic open/no-follow operation. Treat this as offline diagnostic validation, not a hostile concurrent-filesystem security boundary.
+- R3 implementation and exact PR-head CI: **PASS**. T1 operational readiness: **NOT VERIFIED**.
+- No Collector startup, Binance connection, database access, market capture, merge, or live execution. Keep `ai_execution_enabled=false`. T0 code was not modified.
+- Next permitted task: R4 documentation-only clarification that durable sidecar writes and a caller-supplied completeness watermark do not prove complete market-data capture. Keep PR Draft; no runtime integration or activation without separate explicit approval.
