@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 INTERVAL_MS = {"15m": 900_000, "1h": 3_600_000}
-MAX_CANDLES = 2000
+MAX_CANDLES = 3000  # 30 days of M15 (2880) plus a bounded 120-candle margin
 MAX_TIMESTAMP = 2**63 - 1
 EXCHANGE, MARKET_TYPE, SYMBOL = "binance", "USDT_PERPETUAL", "BTCUSDT"
 PRICE_FIELDS = ("open", "high", "low", "close", "volume")
