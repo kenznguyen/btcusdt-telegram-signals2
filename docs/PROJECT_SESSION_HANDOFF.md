@@ -5308,3 +5308,16 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - PR description updated with exact source/run/job/test/audit evidence and remaining dev-only findings.
 - No source runtime changes, no Tokio writer integration, no Collector startup, no Binance connection, DB access, market capture, merge, or live execution. No advisory ignore or workflow weakening. Keep `ai_execution_enabled=false`.
 - Next: assess the six dev dependency findings and identify a minimal resolver-generated lockfile-only remediation without `--force`, breaking Vite upgrades, app source or package manifest changes. Do not integrate runtime writer or start Collector until this is reviewed and separately authorized.
+
+
+## T1 CI final result — 2026-11-07
+- Full GitHub Actions CI run [42354468267](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42354468267) completed SUCCESS on exact PR/source SHA `8e556f4522113696c8d8ee73e37dc774281505d6` (push event; run attempt 1).
+- All five jobs PASS: Docker images; dashboard backend pytest; security job; Rust collector fmt/Clippy/build/tests plus sidecar writer fmt/Clippy/offline tests; dashboard frontend TypeScript/build/Vitest.
+- Rust tests: 40 + 1 passed; sidecar offline tests: 11 passed. No test failures.
+- Security job detail: cargo-audit completed successfully against 248 Cargo.lock dependencies; production `npm audit --omit=dev --audit-level=high` found 0 vulnerabilities.
+- IMPORTANT: informational full `npm audit --audit-level=high` did run and reported 6 development-tree vulnerabilities (4 moderate, 2 high). Findings include Vitest/@vitest/mocker, baseline-browser-mapping, Browserslist and esbuild via Vite; the step exits 1 but is configured informational/continue-on-error, so the overall CI job remains success. This is NOT a clean full npm audit. Do not describe all dependencies as vulnerability-free.
+- Workflow artifacts: none published by run 42354468267.
+- PR #1 remains OPEN / DRAFT / NOT MERGED; current head is `8e556f4522113696c8d8ee73e37dc774281505d6`; upstream/base SHA remains `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Current status: build/test CI PASS; Rust audit PASS; production npm audit PASS; development dependency audit BLOCKED/PENDING remediation; T1 operational readiness NOT VERIFIED.
+- Next: inspect exact dev dependency tree and determine minimum non-breaking lockfile-only remediation. Do not use `npm audit fix --force` or accept Vite major upgrades without compatibility analysis. Then rerun CI on the resulting exact SHA. Keep PR DRAFT.
+- Safety unchanged: no collector runtime integration/start, Binance connection, DB access, data capture, merge, or live execution. Keep `ai_execution_enabled=false`.
