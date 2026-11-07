@@ -430,3 +430,48 @@ class PostgresFeederRuntimeIntegrationTest(unittest.TestCase):
                     "DELETE FROM market_data.feeder_leases WHERE lease_name=%s",
                     (lease_name,),
                 )
+
+
+class FeederRuntimeStartupFailureTest(unittest.TestCase):
+    def test_database_unavailable_during_lease_acquire_fails_closed(self):
+        from market_data.feeder import FeederConfig, FeederRuntime
+        from market_data.postgres import StoreUnavailable
+
+        class Scheduler:
+            def __init__(self):
+                self.started = False
+
+            def run_due(self):
+                return {}
+
+            def start(self):
+                self.started = True
+
+            def stop(self):
+                return True
+
+            def wait_for_idle(self, timeout=None):
+                return True
+
+        scheduler = Scheduler()
+        lease_store = Mock()
+        lease_store.acquire.side_effect = StoreUnavailable("PostgreSQL unavailable")
+        health = Mock()
+        events = []
+        runtime = FeederRuntime(
+            config=FeederConfig(timeframes=("15m",)),
+            scheduler=scheduler,
+            lease_store=lease_store,
+            owner_id="startup-failure-worker",
+            health=health,
+            event_sink=events.append,
+            clock=lambda: 1_800_000_000_000,
+        )
+
+        with self.assertRaises(StoreUnavailable):
+            runtime.start()
+
+        self.assertEqual(runtime.state, "FAILED")
+        self.assertFalse(scheduler.started)
+        lease_store.release.assert_not_called()
+        health.mark_ready.assert_not_called()
