@@ -4872,3 +4872,20 @@ Acceptance boundary:
 - Safety boundary held: job made no exchange requests, ran no collector, accessed no DB, and did not start Feeder. No local tests were run during this documentation/reconciliation step.
 - Next: retain T1 live-capture/continuity as a separate NOT VERIFIED gap. No collector activation or exchange capture without a separately authorized scope.
 - Existing restrictions remain: Canonical SQLite creation deferred; ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Windows preflight DEFERRED; Feeder STOPPED; paired dataset acquisition PAUSED; T2 OKX source unchanged; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 Collector Heartbeat and Reconnect Contract Review
+
+- Read-only report: `docs/evidence/t1/T1_COLLECTOR_HEARTBEAT_RECONNECT_REVIEW_2026-11-07.md`.
+- Report commit: `1c9729194d8ade90e69e2071e75a756104b826cf`.
+- Reviewed five-layer branch: `feature/t0-centralized-data-feeder-p1-20261101`; source HEAD at review start `2103efaa5b5ec2faa4182c7af25764b3924b30fe`.
+- Local source identities: importer blob `5effe6540b86edcb190456c95b6bb11456aec099`; importer test blob `19fd6f813d98ca199747d74929f967988bcdde0b`; README blob `8f475d7ef66b1e0adcb6132ccf57803bee7011c1`.
+- Upstream source pinned by importer: `waynemason1/binance-futures-collector@bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Static review confirms upstream has per-route WebSocket heartbeat monitoring, explicit Pong handling, a 30-second no-frame timeout, and automatic exponential reconnect with jitter. Example config: ping 20s, reconnect threshold 3 missed intervals (60s), retry delay 2s to 60s; max_reconnect_attempts=10 escalates logs but does not stop retrying.
+- Connection lifecycle events (`Connected`, `Disconnected`, `Error`) are handled as logs only. The pinned CSV schema has no persisted heartbeat/pong/disconnect/reconnect/session event records. Connection state and retry counters are in memory.
+- Local importer therefore correctly leaves `connectionStatus=UNVERIFIABLE`. Trade ID gap detection does not prove transport continuity when no gap is observed.
+- Existing T1 offline importer CI remains PASS: run `42339519835`, exact SHA `dbe05a406131659d83b22e2b27646cab49a98631`, 10/10 tests. It does not compile or test the upstream Rust collector or outage recovery.
+- Verdict: upstream heartbeat/reconnect source behavior **PASS (static review only)**; durable lifecycle evidence **NOT IMPLEMENTED**; live reconnect behavior **NOT VERIFIED / NOT RUN**; T1 operational readiness **NOT CERTIFIED**.
+- Recommended next bounded task: draft a dedicated append-only connection-event sidecar schema and deterministic offline acceptance tests. Keep existing CSV importer backward compatible and retain `connectionStatus=UNVERIFIABLE` until valid evidence exists.
+- No code, tests, workflow, or runtime config changed in this review. No collector started, no exchange contacted, no capture/DB accessed, no Canonical SQLite or Feeder operation, no T2 source switch, no merge/VPS action. `ai_execution_enabled=false`.
+- Current branch HEAD after report + handoff documentation commits: `1c9729194d8ade90e69e2071e75a756104b826cf`.
