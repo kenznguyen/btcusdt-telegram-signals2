@@ -4827,3 +4827,22 @@ Acceptance boundary:
 - No database was opened/created/modified; no exchange was contacted; no lease acquired; no Feeder process started; no market data persisted. No tests were rerun because this increment is documentation/source inspection only.
 - Status: source-level preparation review **PASS**; PC target/configuration preflight **BLOCKED / NOT RUN**; Canonical SQLite **NOT CREATED**; ingestion **NOT RUN**; Controlled First Run **NOT AUTHORIZED**; Feeder **STOPPED**; VPS **NOT PROVISIONED**; `ai_execution_enabled=false`.
 - Next safe step: perform a host-local, read-only configuration/path/dependency/process preflight without constructing a store, opening SQLite, importing a production runtime, contacting Binance, or invoking any write-capable command. Only after that report is reviewed should a separate first-run authorization be considered.
+
+
+## 2026-11-07 — T0–T1–T2 Operational Readiness Review
+
+- Read-only review report: `docs/evidence/t0/T0_T1_T2_OPERATIONAL_READINESS_REVIEW_2026-11-07.md`.
+- Review commit: `d171437819a2dc0e1621b8e685963e32b0b2739b`.
+- Reviewed branch at start: `feature/t0-centralized-data-feeder-p1-20261101`, HEAD `0b1f68464ea5337dd3a44e0b4ad56ce55c0312a5`.
+- Compared code/test SHA `1b190ba7562b3843de75894ce68bd6f0ea99b321` to reviewed HEAD: 7 commits ahead, 0 behind; only documentation paths changed. No code/test drift was found.
+- T0 verdict: isolated source/CI contracts PASS; PC Canonical SQLite NOT CREATED, ingestion NOT RUN, Feeder STOPPED, host preflight DEFERRED.
+- T1 verdict: Futures Intelligence CSV importer and strict snapshot contract exist; fixture tests exist, but current T0 GitHub Actions workflow does not invoke `futures_intelligence.test_import_collector`; no accepted live capture/continuity evidence was found. T1 is a separate microstructure feed importer, not a direct T0 OHLCV consumer.
+- T2 verdict: direct read-only T0 M15 bridge and consumer fixture regressions PASS; H1 is not consumed by current FreqAI strategy/config. Freqtrade/FreqAI 2026.9 strategy-load smoke PASS; actual training/inference/OOS and real Binance–OKX parity NOT VERIFIED / NOT RUN.
+- Latest relevant CI:
+  - T0 run `42338141750`, exact SHA `1b190ba7562b3843de75894ce68bd6f0ea99b321`, SUCCESS, four jobs SUCCESS. Static market_data suite: 276 tests, 42 skipped. Paper consumer suite: 53 PASS.
+  - T2 smoke `42338141694`, same SHA, SUCCESS; job `128299761176` loaded `ChartProFreqaiResearch` under official Freqtrade/FreqAI 2026.9.
+  - Artifact IDs/digests and scope limitations are recorded in the report.
+- Cross-layer decision contract requires T0 M15 + T1 observed fresh trade flow + T2 FreqAI prediction provenance + T3 Hummingbot order-book snapshot. Missing/invalid input fails closed to WAIT. This is not end-to-end operational certification.
+- Recommended next bounded task: add the existing T1 importer fixture suite to an offline-only GitHub Actions gate, then verify exact SHA/artifact. No live collector or exchange capture is included.
+- No source/test/workflow/runtime changes were made in this review. No tests were rerun. No DB accessed/created/written, no exchange contacted, no Feeder/lease started, no T2 source switch, no paired acquisition resumed, no merge or VPS action.
+- Safety remains: Canonical SQLite creation deferred; ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Windows preflight DEFERRED; Isolated Paired Dataset Acquisition Runner PAUSED; T2 OKX source unchanged; `ai_execution_enabled=false`.
