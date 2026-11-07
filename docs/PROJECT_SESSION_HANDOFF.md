@@ -4199,3 +4199,16 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Matrix update commit `3ece1952899a4bfebf87ac2bd48f15e1516720ba`, blob `ac773e861a4b78eacb928775df4b519a2f73ab9f`.
 - No runtime code change in this increment; no provider/VPS/canonical DB/production Feeder/exchange/data-sync/Backup-DR activity.
 - Next: finish exact-SHA integration reconciliation for run `42322039770`. If the TimescaleDB job remains blocked by CI infrastructure, record it as INTERRUPTED/NOT VERIFIED rather than assuming pass. Then select PG-LC-03 (disconnect during in-flight writer transaction) only after the current run's evidence is reconciled.
+
+
+### PG-LC-02 exact-SHA TimescaleDB integration reconciliation (2026-11-07)
+
+- Workflow [42322039770](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42322039770) completed with overall FAILURE because the independent fresh-cluster PostgreSQL 16 provider-bootstrap job remains BLOCKED by the known implicit ADMIN membership issue. Do not weaken the strict role guard.
+- Exact source SHA `be29c78a451c23b746da1e014b7f9675d12ed23a`.
+- Disposable TimescaleDB job `128248711729`: SUCCESS. PostgreSQL writer 7/7, FeederRuntime 20/20 (includes the new heartbeat-disconnect regression), runtime lifecycle 4/4, role privileges 18/18, read-only TimescaleDB 6/6 — all PASS.
+- Static job `128248620046`: SUCCESS; 235 market_data tests, 37 skipped, OK; static contracts 10/10; behavioral/feeder regressions 63/63; health/readiness 21/21; process restart 2/2. Paper consumer job `128248620196`: SUCCESS.
+- TimescaleDB artifact `13552858688`, size 4,311 bytes, GitHub digest `sha256:fb6c74adafc2dbec72ad07b35425562883889871207641bd2a5e9e4f7bf6b838`; downloaded ZIP SHA-256 independently matched.
+- Provider bootstrap artifact `13553895631`, digest `sha256:71200e2a7999d5af590abfb661d25aa5ab01b7977b6e0507a4b18b7d7bf1b2ae`; failure is same PostgreSQL 16 implicit ADMIN membership conflict.
+- PG-LC-02 status upgraded to **PASS** for unit and disposable TimescaleDB integration. Matrix update commit `0c73efb197c2c02890a4d4195c88a649a8edf6c3`, blob `b4e27032602b41a637593f1eda6b9629465793d5`.
+- No provider staging, VPS, canonical DB, production Feeder, exchange connection, data sync or Backup/DR activity.
+- Next lifecycle gap: PG-LC-03 — database disconnect during an in-flight PostgreSQL writer transaction. Inspect existing gateway transaction boundaries and available fault-injection hooks before adding a deterministic test; do not add automatic retry/replay or alter idempotency/fencing semantics without evidence.
