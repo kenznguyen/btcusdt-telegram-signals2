@@ -4319,3 +4319,48 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Matrix update commit `8e70fc87a9cff27f6223ccd90ed92e0acc36fd0d`, blob `c2243a81a6353bd25eb58cf176b3388df5cd513d`.
 - No production migration, database, provider, VPS, canonical T0 storage, Feeder, exchange, market-data sync, or Backup/DR activity. Only test source and documentation were changed.
 - Next: wait for the parallel Binance connectivity probe implementation to land or for its owner to resolve the missing module; then rerun exact-head GitHub Actions so the TimescaleDB dependency can execute PG-LC-07. Do not bypass the failing dependency or alter the unrelated probe task.
+
+
+## 2026-11-07 — P1.9 PC diagnostics and Binance probe receiver correction
+
+### Target-PC observations
+
+- User ran the read-only Binance USD-M probe from source snapshot SHA `688e108ba84b1de526d32cc03a9129e0ae952e9c`.
+- First probe: REST 5/5 PASS; WebSocket TIMEOUT (~10.45 s).
+- Second probe: ping/time/M15/H1 PASS; exchangeInfo failed with `URLError` / `CONNECTION_ERROR` (~29.71 ms); WebSocket TIMEOUT (~20.33 s).
+- Independent PowerShell observations: DNS resolved; TCP 443 `TcpTestSucceeded=True`; TLS authenticated with TLS 1.2/AES-128; manual RFC6455 handshake returned HTTP 101.
+- Manual handshake did not validate a Kline frame. PC WebSocket event delivery remains NOT VERIFIED.
+- PowerShell emitted a `Find-NetIPsecRule` cmdlet error while still reporting TCP success; it is not treated as a failed TCP check.
+
+### Code/test increment
+
+- Active branch unchanged: `feature/t0-centralized-data-feeder-p1-20261101`.
+- TDD test commit: `16ca2f0896cccbbf0273e669f9feefc9874f9014`; dedicated RED run [42326134473](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42326134473), expected import failure because the receiver helper was not yet implemented. Artifact `13554977848`, digest `sha256:46136092c8f2a6ea23e97f85f63301a194fc3e18e0edcc56b667fc44c37c50e9`.
+- Implementation commit / exact source SHA: `ab564eccbb9c0484fdd30b694f5b052bc4a2c991`.
+- Implementation now reads until a text event; replies to Ping with a masked Pong; ignores Pong; classifies Close before event; enforces the 125-byte control-frame limit; and preserves bounded `URLError.reason` type/detail in REST diagnostics.
+- Dedicated GREEN run [42326194320](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42326194320): **15/15 offline contracts PASS**, exact source SHA `ab564eccbb9c0484fdd30b694f5b052bc4a2c991`. Artifact `13554799956`, digest `sha256:41b66386edded07ad4a98f89dfa0ec4fbbb3805dc9f446849640b614d1d322af`.
+- Full regression run [42326194295](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42326194295), push event, exact source SHA `ab564eccbb9c0484fdd30b694f5b052bc4a2c991`:
+  - Static Gateway job `128262017337`: SUCCESS; complete `market_data` suite **255 tests, 42 skipped, OK**; Gateway static, behavioral/Feeder, Health/Readiness and process SIGKILL steps succeeded.
+  - Paper consumer job `128262017581`: SUCCESS.
+  - Fresh-cluster restricted provider bootstrap job `128262017655`: FAILURE at the known strict role guard, `t0_migrator may only be granted to the ephemeral t0_migrator_login role`. Do not weaken the guard.
+  - Isolated TimescaleDB job `128262082698`: IN PROGRESS at the time of this handoff update; do not infer a result.
+- Static artifact `13555675449`, digest `sha256:0cdd64351806dc64ead10583cdfc8dc2b9efa4942e4a1ffec886fc2c40cbd5bb`; Paper artifact `13555535334`, digest `sha256:7863f192dbdfeeb957eb439d59ae462fa4e7c6406863f5922a966c56a7300c44`. Dedicated probe artifact and static/paper artifact digests are GitHub upload metadata; payload bytes have not been independently re-hashed in this increment.
+- Evidence report updated at `docs/evidence/t0/T0_BINANCE_CONNECTIVITY_PROBE_P1_9_2026-11-07.md`, commit `357a5c7867eead80f4a18996fa731e2909571f3e`.
+
+### Current verdict and restrictions
+
+| Item | Status |
+|---|---|
+| Probe implementation / syntax | PASS on CI |
+| Offline probe contracts | PASS 15/15 |
+| Static market_data regression | PASS 255 tests, 42 skipped |
+| Paper consumer regression | PASS |
+| PostgreSQL provider bootstrap | BLOCKED by existing strict role guard |
+| TimescaleDB integration on SHA ab564ecc | IN PROGRESS at handoff update |
+| PC REST stability | CONDITIONAL / INTERMITTENT |
+| PC DNS / TCP / TLS / manual HTTP Upgrade | PASS for observed checks |
+| PC WebSocket Kline event | NOT VERIFIED |
+| Controlled First Run / canonical T0 ingestion | NOT AUTHORIZED / NOT RUN |
+| Production Feeder / VPS | NOT AUTHORIZED / NOT RUN |
+
+Next: reconcile completion of run `42326194295` including job `128262082698`; then update this handoff and evidence report with exact conclusions/artifacts. After that, update the user's PC source snapshot from the exact tested commit and rerun the read-only probe. No API credentials, DB, canonical T0 store, Feeder, `sync_window()`, proxy/VPN, market-data persistence, or execution was used. Do not proceed to Controlled First Run without separate explicit authorization.
