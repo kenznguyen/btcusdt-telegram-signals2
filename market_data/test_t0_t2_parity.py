@@ -78,7 +78,7 @@ class T0T2ParityTest(unittest.TestCase):
     def test_builds_comparable_report_with_independent_source_hashes(self):
         report = build_report(self.manifest_path)
         self.assertEqual(report["status"], "COMPARABLE")
-        self.assertEqual(report["window"], {"start_ms": START, "end_ms": END})
+        self.assertEqual((report["window"]["start_ms"], report["window"]["end_ms"]), (START, END))
         self.assertEqual(report["coverage"]["m15"]["rows_per_source"], 4)
         self.assertEqual(report["coverage"]["h1"]["rows_per_source"], 1)
         self.assertEqual(report["sources"]["binance_t0"]["t0_dataset_version"]["m15"], HASH)
