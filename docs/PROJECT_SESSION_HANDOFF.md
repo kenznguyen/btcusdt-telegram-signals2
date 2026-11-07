@@ -6167,3 +6167,40 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 
 - Next: prepare a complete config derived from the exact example, change only whitelist and isolated paths, keep 500 ms cadence and all stream settings unchanged, then validate TOML/config parse and review the exact launch/stop command with the user before any start.
 - No T0 changes, no API key, no proxy/VPN, no Dashboard, no PR merge or Draft → Ready transition, and no live trading.
+
+
+## T1 BTCUSDT-only VPS config validation — PASS, collector not started (2026-11-08)
+
+### User-provided VPS evidence
+- User created `/home/ubuntu/t1/config.toml` from the exact T1 source example at SHA `d8ac9fc820dcf2e912e66518a1a1c73a8fa81ac7`.
+- Python `tomllib` validation: `TOML parse: PASS`.
+- Parsed values: `collection.symbols == ["btcusdt"]`; output base `/home/ubuntu/t1/data/futures`; gaps base `/home/ubuntu/t1/data/gaps`; `proxy.enabled == false`; orderbook cadence `500 ms`.
+- Grep evidence confirms log file `/home/ubuntu/t1/logs/collector.log`; proxy disabled; tracking disabled.
+- Root disk remains 7.9G total, 3.4G used, 4.5G available (43%); >=2G reserve currently satisfied.
+- Config was derived from `config.example.toml` at exact T1 branch/source SHA above. The example has no API key configured; public Binance Futures market data does not require one.
+- Source inspection confirms CONFIG_PATH is supported, default config path is `./config.toml`, and `--help` documents only `--version|--help`. Stats exporter writes to `stats/` under the parent of `output.base_dir`, i.e. planned `/home/ubuntu/t1/data/stats`.
+
+### Important scope details
+- Fixed whitelist intentionally skips symbol discovery; only BTCUSDT will be collected, but all configured data streams for BTCUSDT remain enabled, including order-book depth and trades. This is not a reduced-stream profile.
+- No hard disk quota or duration limit exists in the inspected binary. A supervised external timeout + SIGTERM is required for a bounded test.
+- TOML parse and selected-value assertions passed, but the binary has not yet been started with this config; full application-level config loading is NOT VERIFIED.
+- No T1 capture/runtime has started. No evidence of T0 changes.
+
+### Status
+| Check | Status |
+|---|---|
+| TOML syntax and selected config assertions | PASS |
+| BTCUSDT-only whitelist | PASS |
+| T1 output/gap/log path isolation in config | PASS |
+| Proxy disabled; no API key configured | PASS |
+| 500 ms orderbook setting | PASS |
+| Disk reserve >=2G | PASS |
+| Binary application-level config load | NOT VERIFIED |
+| Runtime/capture/storage growth/SIGTERM flush | NOT RUN |
+| T0 unchanged | NOT VERIFIED by a fresh integrity check |
+
+### Next step / restrictions
+- Before launch, verify `timeout` availability, inspect the exact config without exposing credentials, check T0 PID remains present, and confirm the T1 directories are separate and empty (or record their baseline).
+- Then, only after the user authorizes launch, run a supervised 5-minute capture using `CONFIG_PATH=/home/ubuntu/t1/config.toml` and GNU `timeout` sending SIGTERM, with `--kill-after` safety cap. Record pre/post disk, process, logs, stats, CSV file counts/sizes, and gap registry.
+- Preserve >=2G free. If the 5-minute result suggests unsafe growth, stop and do not extend. No unattended service.
+- No T0 modification, no Dashboard, no proxy/VPN, no API key, no PR merge/Draft transition, and no real trading.
