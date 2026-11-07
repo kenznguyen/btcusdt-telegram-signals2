@@ -75,10 +75,11 @@ def expected_expanded_features(pair: str, timeframe: str, periods: list[int],
     return expanded
 
 
-def build_runtime_config(raw: dict) -> dict:
+def build_runtime_config(raw: dict, user_data_dir: str) -> dict:
     """Prevent bot startup while preserving the frozen FreqAI configuration."""
     safe = json.loads(json.dumps(raw))
     safe["initial_state"] = "stopped"
+    safe["user_data_dir"] = user_data_dir
     # Preserve all fields included in the historical config hash. Loading a
     # stopped configuration does not start the bot or its FreqAI retraining.
     return safe
@@ -99,7 +100,11 @@ def run_probe() -> dict:
     from freqtrade.configuration import Configuration
     with tempfile.TemporaryDirectory(prefix="r22-config-") as temp:
         safe_path = Path(temp) / "config.json"
-        safe_path.write_text(json.dumps(build_runtime_config(raw)), encoding="utf8")
+        isolated_user_data = Path(temp) / "user_data"
+        isolated_user_data.mkdir()
+        safe_path.write_text(
+            json.dumps(build_runtime_config(raw, str(isolated_user_data))), encoding="utf8"
+        )
         loaded_config = Configuration.from_files([str(safe_path)])
         if loaded_config.get("dry_run") is not True:
             raise AssertionError("PHASE22_RUNTIME_CONFIG_NOT_DRY_RUN")
