@@ -786,9 +786,16 @@ class FeederRuntime:
                 raise RuntimeError("FeederRuntime cannot start after shutdown or failed startup")
             self._state = "STARTING"
 
-        lease = self.lease_store.acquire(
-            self.owner_id, now_ms=now, ttl_seconds=self.config.lease_ttl_seconds
-        )
+        try:
+            lease = self.lease_store.acquire(
+                self.owner_id, now_ms=now, ttl_seconds=self.config.lease_ttl_seconds
+            )
+        except Exception:
+            # Startup has no lease to release. Fail terminally so this runtime
+            # cannot remain stuck in STARTING after a storage outage.
+            with self._lock:
+                self._state = "FAILED"
+            raise
         if lease is None:
             with self._lock:
                 self._state = "FAILED"
