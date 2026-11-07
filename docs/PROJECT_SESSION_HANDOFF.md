@@ -5756,3 +5756,35 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Status: create-path cleanup regression **PASS** at source/CI level. This does not establish hostile-filesystem safety or operational readiness. Existing filesystem TOCTOU/non-Unix identity limitations remain.
 - No Collector runtime, Binance connection, DB access, market capture, T0 modification, or live execution. Keep `ai_execution_enabled=false`.
 - Next permitted work: source-only review of remaining filesystem/finalization boundaries and any bounded lifecycle gaps, with TDD and exact-source Actions evidence. Do not activate runtime or merge PR without explicit authorization.
+
+
+## 2026-11-07 — Temporary VPS evaluation choice and SQLite decision
+
+### Decision status: APPROVED AS A TEMPORARY EVALUATION TARGET; NOT PROVISIONED
+
+- Temporary VPS candidate: **netcup VPS 500 G12**, EU region (use an available German/EU location; Singapore is not required).
+- Target resources from the current official plan listing: 2 vCore (x86), 4 GB RAM, 128 GB NVMe, included traffic.
+- Official listed price: from **€5.91/month including 19% VAT**, with hourly billing advertised and no minimum contract term selectable. Verify the exact SKU, location, billing mode, tax treatment and checkout total before any purchase; public plan pages can change.
+- Official pricing/reference: https://www.netcup.com/en/server/vps
+- Reason: lowest-risk temporary evaluation choice within the user's approximate €5–10/month target, with 2 vCPU/4 GB baseline and hourly billing option. EU location is acceptable; do not pay a location premium solely for proximity to Vietnam.
+- This is a temporary benchmark/evaluation target, not a production capacity certification or a purchase authorization. No VPS account/order/provisioning action is authorized by this decision.
+- Fallback candidate if netcup checkout terms/availability fail: re-evaluate Contabo EU Cloud VPS 4, but note its low advertised price is tied to a 24-month term and 100 GB SSD rather than NVMe; do not silently substitute it.
+
+### T0 storage decision
+
+- **SQLite remains the temporary/default T0 backend** for the current PC-first and initial VPS evaluation phase.
+- Do not migrate to PostgreSQL/TimescaleDB now.
+- Continue with SQLite only while measured workload satisfies the acceptance criteria: bounded single-writer behavior, no unresolved lock timeouts, acceptable WAL/checkpoint and disk latency, correct lease/recovery behavior, no missing/duplicate candle windows, and stable concurrent T0 + T1 operation.
+- Reconsider PostgreSQL/TimescaleDB only if benchmark or operational evidence demonstrates that SQLite cannot meet required concurrency, write throughput, recovery, or operational reliability. Migration requires a separate design, parity tests and explicit approval; do not treat a VPS selection as approval to migrate storage.
+- SQLite isolated CI tests do not establish 24/7 production readiness. Canonical SQLite DB remains NOT CREATED unless separately authorized.
+
+### Current limits and next actions
+
+- VPS selection: **TEMPORARY EVALUATION TARGET SELECTED**.
+- VPS purchase/provisioning: **NOT AUTHORIZED / NOT PROVISIONED**.
+- T0 + T1 concurrent resource benchmark: **NOT RUN**.
+- T0 canonical SQLite DB: **NOT CREATED**.
+- Feeder / Collector runtime: **STOPPED / NOT STARTED**.
+- Exchange connection / market-data ingestion: **NOT AUTHORIZED**.
+- Live trading: prohibited; keep `ai_execution_enabled=false`.
+- Next: complete source-level resource audit and design reproducible synthetic benchmark; after separate authorization, evaluate on a temporary disposable environment. Record checkout quote and exact instance details before provisioning.
