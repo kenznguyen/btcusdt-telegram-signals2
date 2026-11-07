@@ -497,8 +497,7 @@ This section records the latest user direction and takes precedence over older c
 - Runtime correction: a failed/exceptional recovery lease heartbeat calls `on_lease_lost()` immediately. If startup cleanup then cannot release its exact owner/generation, it preserves LEASE_LOST instead of leaving the runtime in STARTING or releasing another owner's lease.
 - TDD evidence: initial RED runs exposed the missing LEASE_LOST transition (`STARTING` persisted after replacement takeover). A test-fixture market key mismatch was corrected; tests were not skipped or weakened.
 - Exact-head push run [#42008186782](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42008186782): SUCCESS on source SHA `14dfa54c49cf6713954c783ccf18d64e104dcb26`; Gateway job `127180175263`, TimescaleDB job `127180352476`, both SUCCESS.
-- PR merge-context run [#42008449494](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42008449494): SUCCESS; PR source head `14dfa54c49cf6713954c783ccf18d64e104dcb26`; synthetic merge SHA `b43b6a35c110d3dfeaade87600d246d4c18f2430`; base `8b196d2720eab804728df7c0227c606c094b16ad`. Jobs `127181053375` and `127181178227`, both SUCCESS.- Both CI contexts: Gateway contracts 10/10 PASS; focused Gateway/Feeder lifecycle tests 57/57 PASS; Health/Readiness 21/21 PASS; process restart 2/2 PASS; full `market_data` suite 179 PASS / 6 SKIPPED; disposable TimescaleDB read-only integration 6/6 PASS.- Exact-head artifacts: Gateway ID `13404998362`, digest `sha256:99cd71cc6017e639ff87b2fcb06f54f70f2731238d3eca1b0d8159c6370409a1`; TimescaleDB ID `13406410855`, digest `sha256:da6597cb6d477c7b51c0cd2346f90d6f2e2bfa0672d96154e830955748f6c895`.
-- PR merge-context artifacts: Gateway ID `13405582111`, digest `sha256:0b78ac34568843a212968afc1d8f671df25a34a2a758772e4d2fec4f188eba5e`; TimescaleDB ID `13405677160`, digest `sha256:7c47918a49b0db34b797cd161925c2e21b4953bd5e57b1dbe372b73bceae0fb8`. Artifact bytes were not independently downloaded/re-hashed.
+- PR merge-context run [#42008449494](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42008449494): SUCCESS; PR source head `14dfa54c49cf6713954c783ccf18d64e104dcb26`; synthetic merge SHA `b43b6a35c110d3dfeaade87600d246d4c18f2430`; base `8b196d2720eab804728df7c0227c606c094b16ad`. Jobs `127181053375` and `127181178227`, both SUCCESS.- Both CI contexts: Gateway contracts 10/10 PASS; focused Gateway/Feeder lifecycle tests 57/57 PASS; Health/Readiness 21/21 PASS; process restart 2/2 PASS; full `market_data` suite 179 PASS / 6 SKIPPED; disposable TimescaleDB read-only integration 6/6 PASS.- Exact-head artifacts: Gateway ID `13404998362`, digest `sha256:99cd71cc6017e639ff87b2fcb06f54f70f2731238d3eca1b0d8159c6370409a1`; TimescaleDB ID `13406410855`, digest `sha256:da6597cb6d477c7b51c0cd2346f90d6f2e2bfa0672d96154e830955748f6c895`.- PR merge-context artifacts: Gateway ID `13405582111`, digest `sha256:0b78ac34568843a212968afc1d8f671df25a34a2a758772e4d2fec4f188eba5e`; TimescaleDB ID `13405677160`, digest `sha256:7c47918a49b0db34b797cd161925c2e21b4953bd5e57b1dbe372b73bceae0fb8`. Artifact bytes were not independently downloaded/re-hashed.
 - Status: incomplete recovery fail-closed **PASS**; lease takeover between recovery pages / no subsequent write **PASS**; replacement lease preserved **PASS**; readiness remains closed **PASS**; exact-head and PR merge-context CI **PASS**.
 - Limits: synthetic exchange and temporary SQLite do not verify live exchange behavior, canonical DB, production Feeder operation, 24/7 reliability or PC/VPS deployment. All remain **NOT VERIFIED / NOT AUTHORIZED**. No real exchange, canonical DB, deployment or live execution was used.
 - Next: perform a focused code review of startup failure/lease-loss cleanup and consider a separate isolated test for lease expiry during an in-flight SQLite write transaction. Do not merge PR #134 or activate canonical ingestion without separate explicit approval.
@@ -997,8 +996,7 @@ Current status:
 - PR #134 status remains OPEN / DRAFT / NOT MERGED. No source fix has been applied yet. Current PR head remains `d0f503ee3ba987784daa36e904588829c44e93b6`; current CI remains merge-context PASS only (synthetic checkout `510ca182aea15cfbc10694601d85c1aefb6c0f04`).
 - Next action: correct the implicit DB creation path on the existing PR branch, add the missing-path runtime regression, run relevant tests and exact-provenance GitHub Actions, then self-review again. Do not merge PR #134 until resolved.- No canonical DB was created/opened, no Feeder started, no exchange contacted, no market data synchronized, and no live execution. `ai_execution_enabled=false`.
 
-## 2026-11-05 — PR #134 fail-closed runtime correction
-- Fixed the self-review blocker: `build_runtime()` no longer calls SQLite `initialize()`; missing canonical DB now fails closed before provisioning. Explicit DB setup remains separate.
+## 2026-11-05 — PR #134 fail-closed runtime correction- Fixed the self-review blocker: `build_runtime()` no longer calls SQLite `initialize()`; missing canonical DB now fails closed before provisioning. Explicit DB setup remains separate.
 - Added `test_build_runtime_does_not_create_a_missing_canonical_sqlite_database`; it asserts FileNotFoundError and no DB/parent creation. Two existing disposable fixtures now provision explicitly.
 - Final head `c09fe85fab7de3ec799cfed37087718dfa6b87c4`; run [#42060578659](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42060578659) SUCCESS 2/2. Both jobs checked out synthetic merge `634ee1c9c1337e730e736f413fc5cd6868b2a6d0`; direct-head-only verification NOT VERIFIED.
 - Static: 202 market_data tests PASS (10 Gateway contracts, 59 focused, 21 Health/Readiness, 2 process tests are overlapping subsets). Disposable TimescaleDB: writer 7/7, FeederRuntime 10/10, role privileges 4/4, read-only 6/6 PASS.
@@ -1497,8 +1495,7 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
      - Read-only TimescaleDB: 6/6 PASS.
      - Disposable target preflight PASS; no exchange credentials, production DB, or external exchange access.   - Artifacts:
      - Static Gateway: ID `13474772650`, SHA-256 digest `e25bae2244e49e56abd11aab2e130cb6e99872e11e17a3370c534b6c432c2cc4`.
-     - Paper consumer: ID `13474414668`, SHA-256 digest `ac466622bab23e52ce63b26e4dcc6e3cfe52119b03b71ce415a3c20031f1d47e`.
-     - TimescaleDB including lifecycle logs: ID `13475531098`, SHA-256 digest `2679d072d2e6811110574593c73e30439db9f20bf506994e0fd346b916a8f8c6`.
+     - Paper consumer: ID `13474414668`, SHA-256 digest `ac466622bab23e52ce63b26e4dcc6e3cfe52119b03b71ce415a3c20031f1d47e`.     - TimescaleDB including lifecycle logs: ID `13475531098`, SHA-256 digest `2679d072d2e6811110574593c73e30439db9f20bf506994e0fd346b916a8f8c6`.
    - Artifact digests are GitHub upload digests; payload bytes have not been independently downloaded and re-hashed in this increment.
 
 ### Verdict and boundaries
@@ -1997,8 +1994,7 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
   - https://www.postgresql.org/docs/16/role-attributes.html  - https://www.postgresql.org/docs/16/sql-createrole.html
 - The T0 migration guard correctly rejects the extra bootstrap membership of `t0_migrator`. Do not weaken the guard or permit arbitrary ADMIN membership.
 - Run #42166319563 artifacts:
-  - Static evidence #13479136579, SHA-256 `b7676699ec4a497a2ae1b4d054a141b76e48606e2502a753fef01a0950585a69`.
-  - Paper consumer #13478883570, SHA-256 `1e0945f9344b20a5ba7299971245fab87e63ba08d0ebe046703533d72e50ecc7`.
+  - Static evidence #13479136579, SHA-256 `b7676699ec4a497a2ae1b4d054a141b76e48606e2502a753fef01a0950585a69`.  - Paper consumer #13478883570, SHA-256 `1e0945f9344b20a5ba7299971245fab87e63ba08d0ebe046703533d72e50ecc7`.
   - TimescaleDB integration #13479106179, SHA-256 `b0ddf990becfabd4a63d60dc7dd8c286fb7ad55ab2dafde5fdc54466ade82678`.
   - Bootstrap diagnostic #13478428940, SHA-256 `6e99f27f09949cf05c7cae43521d770a6ed9aeca8c562f6d490f6aa52e43c63c`.
 - Provider compatibility consequence: using a non-superuser CREATEROLE admin (e.g. DigitalOcean `doadmin`) to create the T0 reserved roles conflicts with the current strict membership guard. Candidate status downgraded to BLOCKED unless provider offers a supported privileged pre-provisioning operation that avoids these memberships. Tiger Cloud behavior remains provider-specific and NOT VERIFIED.
@@ -2497,8 +2493,7 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Test commit: `620a7171464acdb02160801f6b7d1ef8521e92d1`; test blob: `8b1578995cbd53c8d6892412902b813c6a705870`.
 - The test creates two independently sourced VERIFIED funding-coverage intervals that overlap, then requires account cutover to reject them with `FUNDING_COVERAGE_INTERVAL_OVERLAP`.
 - Added a guard in `paper_execution/funding.py`: cutover now checks each ordered interval against the previous interval end and rejects overlap. Adjacent intervals remain valid; gaps and UNKNOWN coverage continue to fail closed.
-- Implementation commit: `cd21ac526b051f2878f7538b392cd1bfb40e27ab`; funding module blob: `1798a645fb060c5daf24526bec8598762e5ee50c`.
-- Exact implementation commit inspection confirms only `paper_execution/funding.py` changed in the implementation commit; the preceding test commit changed only `paper_execution/test_dual_ledger_red.py`. No T0 files changed.
+- Implementation commit: `cd21ac526b051f2878f7538b392cd1bfb40e27ab`; funding module blob: `1798a645fb060c5daf24526bec8598762e5ee50c`.- Exact implementation commit inspection confirms only `paper_execution/funding.py` changed in the implementation commit; the preceding test commit changed only `paper_execution/test_dual_ledger_red.py`. No T0 files changed.
 - Verification boundary: the GitHub connector did not expose push-triggered workflow runs for this commit; the PR-only workflow-run lookup returned no runs. The new test has **NOT BEEN EXECUTED / RED NOT VERIFIED**, and the implementation is **NOT VERIFIED**. Do not count this as a passing test or CI run. A run must be checked against exact source SHA `cd21ac526b051f2878f7538b392cd1bfb40e27ab` before promoting status.
 - No artifact/run ID is recorded because none was retrievable in this increment.
 - No persistent account DB was opened or migrated. No backtest, merge, deployment, exchange connection, live execution, T0 modification, or Codemagic fallback occurred. `ai_execution_enabled=false`.
@@ -2997,8 +2992,7 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
   - With verified current-day baseline and fresh boundary mark, Core LONG and AI SHORT both pass the normal shared risk checks and fill independently.
   - Wrong UTC baseline day blocks a new Core exposure with `RISK_INPUTS_STALE_OR_CORRUPT`.
   - Stale boundary mark blocks a new AI exposure with `RISK_INPUTS_STALE_OR_CORRUPT`.
-  - Existing Core position can EXIT/reduce when daily baseline becomes unavailable; exposure reduction is not blocked by the baseline gate.
-- Exact tested source SHA: `ca8a658db81d343345855b790f71787ba6e130d2`.
+  - Existing Core position can EXIT/reduce when daily baseline becomes unavailable; exposure reduction is not blocked by the baseline gate.- Exact tested source SHA: `ca8a658db81d343345855b790f71787ba6e130d2`.
 - GitHub Actions [#42273745481](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42273745481): SUCCESS on exact SHA.
   - PAPER-only preflight: PASS.
   - Python compile: PASS.
@@ -3497,8 +3491,7 @@ Review the P1.5 contract and open decisions. If continuing without implementatio
 Documentation-only continuation on `feature/t0-centralized-data-feeder-p1-20261101`.
 
 - Synthetic fixture and measurement specification: `docs/architecture/FORWARD_EVIDENCE_SYNTHETIC_FIXTURE_MEASUREMENT_SPEC_2026-11-07.md`
-  - Commit: `83e787730cf7a35b99aad4c92e16e4d91e0089dd`
-- Acceptance Test Plan amendment: `docs/architecture/FORWARD_EVIDENCE_STORAGE_ACCEPTANCE_TEST_PLAN_2026-11-07.md`
+  - Commit: `83e787730cf7a35b99aad4c92e16e4d91e0089dd`- Acceptance Test Plan amendment: `docs/architecture/FORWARD_EVIDENCE_STORAGE_ACCEPTANCE_TEST_PLAN_2026-11-07.md`
   - Commit: `913760fabd14f7f99d4f632bf6ff0b5bff663c80`
 - Evidence Inventory amendment: `docs/evidence/DAILY_BASELINE_V1_RECOVERY_EVIDENCE_INVENTORY_2026-11-07.md`
   - Commit: `465a161892323cfbf538a92133119604d08640bd`
@@ -3998,7 +3991,6 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Limits: SHA-256 is integrity hashing, not a digital signature or trusted timestamp. Authenticity still depends on a trusted external expected artifact digest. Deterministic A/B fixture payloads are equal by design; distinct A/B descriptors are used in negative unit tests to prove label swapping is rejected. No Root B/provider independence or production certification is claimed.
 - Restrictions unchanged: T0 PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`; no DB/exchange, VPS/provider, persistent capture, runtime integration, paper/live execution, or merge.
 
-
 ## 2026-11-07 — P1.8.14 External Trust Anchor & Provenance Authenticity
 
 - User approval: `APPROVE P1.8.14 — EXTERNAL TRUST ANCHOR & PROVENANCE AUTHENTICITY`.
@@ -4497,8 +4489,7 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 
 - Plan: `docs/evidence/t0/T0_CONTROLLED_FIRST_RUN_APPROVAL_PLAN_2026-11-07.md`.
 - Plan commit: `ea5d2ed223a7b5ab569cc93df56e720c535530d4`.
-- Based on offline acceptance source SHA `1aac449b96c4079004e1cab882280b923e33342c`; workflow `42329799499` SUCCESS.
-- Plan includes unresolved preflight inputs, read-only checks, exact bounded 24h window requirements, supervised one-shot procedure, stop conditions, backup/restore verification, rollback evidence, acceptance report, and explicit authorization wording.
+- Based on offline acceptance source SHA `1aac449b96c4079004e1cab882280b923e33342c`; workflow `42329799499` SUCCESS.- Plan includes unresolved preflight inputs, read-only checks, exact bounded 24h window requirements, supervised one-shot procedure, stop conditions, backup/restore verification, rollback evidence, acceptance report, and explicit authorization wording.
 - Critical unresolved items: backend/target identity not supplied; production schema/API target not read-only verified; no production backup/restore proof; exact UTC window/operator/maintenance window not selected. Therefore any first-run execution remains BLOCKED / NOT AUTHORIZED.
 - No canonical DB was created/opened for writing; no live exchange sync, write lease, Feeder, VPS, or execution was started.
 - Safety remains: canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; `ai_execution_enabled=false`.
@@ -4998,7 +4989,6 @@ Integration must address:
 | T1 operational readiness | NOT CERTIFIED |
 
 The manifest is not signed; SHA-256 alone does not authenticate its producer. Non-Unix parent-directory sync is not equivalent to Unix directory fsync. The process session ID and socket IDs are caller-supplied and must be freshly generated by the future collector integration.
-
 ### Next step and limits
 
 - Next: create a user-owned fork of the pinned upstream collector and integrate the writer, unique IDs, exact subscription set, heartbeat payload correlation, disconnect/reconnect events, blocking writer worker, and shutdown finalization.
@@ -5100,3 +5090,14 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - No Cargo.toml/Cargo.lock changes, dependency updates, advisory ignores, workflow edits, runtime integration, collector process, Binance access, DB or data capture.
 - Next: recover full audit output if possible; run feature-graph inspection; then propose only targeted Cargo-generated lockfile updates and compatibility tests. Keep PR #1 Draft/unmerged. No Tokio writer worker until security and full CI gates pass.
 - Safety: paper-only; `ai_execution_enabled=false`.
+
+## 2026-11-07 — Exact T1 cargo-audit log recovered; feature graph CI added
+
+- Recovered full Security job log from run `42344752951`, job `128319958140`. Exact checked-out synthetic merge SHA is `1e9a10fb71fef5b2722c4af6bb00f5ad5403d54b`, merging PR source `00cc447e6f39e3e14dfe13eaa88a7a82e40828e3` into upstream baseline `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Exact cargo-audit result: **12 vulnerabilities + 2 warnings** in 248 locked packages. Vulnerability advisory IDs: quinn-proto `RUSTSEC-2026-0338/0339/0340/0341/0342`; rustls `RUSTSEC-2026-0285/0346/0348/0349`; rustls-webpki `RUSTSEC-2026-0382`; webpki-root-certs `RUSTSEC-2026-0383`; webpki-roots `RUSTSEC-2026-0381`. Warnings: Tokio `1.53.1`, `RUSTSEC-2026-0386` (unsound I/O safety); `chacha20 0.10.1` yanked.
+- Rust job log now confirms exact tests: collector library 40/40, binary 1/1, sidecar writer 11/11; all passed. Both Rust and Security jobs checked out synthetic merge SHA `1e9a10fb71fef5b2722c4af6bb00f5ad5403d54b`.
+- Added read-only `cargo tree --locked -e features -i` diagnostic step for seven advisory packages to collector fork CI. Fork source commit `32867b89379d3f3fe4227b0fb1bf97e8c7063a03`; PR #1 remains Draft.
+- New run `42348223722`, security job `128330521398`. Diagnostic step completed SUCCESS; cargo-audit still IN_PROGRESS at evidence capture. Full feature path output and final run result NOT VERIFIED. Dashboard backend/frontend PASS; collector and Docker jobs still running.
+- Exact audit evidence report: `docs/evidence/t1/T1_COLLECTOR_CARGO_AUDIT_EXACT_EVIDENCE_2026-11-07.md`, commit `3c5ad9c12018ecf43232b07a6ddb56907b2ebcb8`.
+- Next: retrieve diagnostic step output after job completes; classify optional/default graph reachability; only then prepare targeted Cargo-generated lockfile updates. No hand edits, no audit suppressions, no runtime integration until security and all CI gates pass.
+- Safety: no collector process, Binance connection, exchange capture, DB access, credentials/config changes, merge, or live trading. `ai_execution_enabled=false`.
