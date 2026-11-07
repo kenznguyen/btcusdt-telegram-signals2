@@ -114,6 +114,21 @@ class ConnectionEventContractTest(unittest.TestCase):
         self.assertEqual(result["connections"][0]["connectionStatus"], "DISCONNECTED")
         self.assertEqual(result["connections"][1]["connectionId"], "conn-2")
 
+    def test_recovered_connection_can_prove_window_without_old_closed_session_poisoning_it(self):
+        previous = [
+            self.event("old-1", "CONNECTED", START - 100_000),
+            self.event("old-2", "DISCONNECTED", START - 90_000, reason="REMOTE_CLOSE"),
+            self.event("old-3", "RECONNECT_SCHEDULED", START - 89_000, attempt=1, delayMs=2_000),
+        ]
+        current = self.healthy_events()
+        for item in current:
+            item["connectionId"] = "conn-2"
+            item["eventId"] = "new-" + item["eventId"]
+        result = self.validate(previous + current)
+        self.assertEqual(result["connectionStatus"], "VERIFIED_CONNECTED")
+        statuses = {item["connectionId"]: item["connectionStatus"] for item in result["connections"]}
+        self.assertEqual(statuses, {"conn-1": "OUTSIDE_WINDOW", "conn-2": "VERIFIED_CONNECTED"})
+
     def test_session_restart_cannot_be_spliced_into_one_continuous_session(self):
         events = self.healthy_events()
         restarted = dict(events[-1])
