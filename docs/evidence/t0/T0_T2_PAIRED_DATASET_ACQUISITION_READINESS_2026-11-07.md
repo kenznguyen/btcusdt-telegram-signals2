@@ -101,3 +101,22 @@ A public read-only export is not the same as canonical ingestion. Any inability 
 - Live execution: disabled.
 
 Next action requiring operator authorization: approve a separate isolated public read-only export task for the 30-day pilot, or supply the four immutable CSVs and matching T0 provenance. Until then, do not fetch market data or create any database.
+
+
+## Operator approval recorded — execution pending (2026-11-07)
+
+The operator explicitly approved one isolated public read-only Binance USD-M / OKX OHLCV export for the 30-calendar-day pilot.
+
+Proposed exact window based on the latest complete H1 boundary at approval time:
+- Start: `2026-10-08T03:00:00Z` (`1791428400000` ms)
+- End: `2026-11-07T03:00:00Z` (`1794020400000` ms)
+- Semantics: `[start_ms,end_ms)`
+- Expected per source: 2,880 M15 and 720 H1 rows.
+
+**Execution status: BLOCKED / NOT RUN in this session.** The available connected execution surfaces do not expose a raw public HTTP export runner or a GitHub Actions workflow-dispatch action. The web retrieval path could not access the exchange kline endpoint. No alternative proxy, VPN, credentials, Canonical DB or unverified transport was used. Approval is recorded but is not evidence of acquisition.
+
+Before capture, re-check the latest fully closed H1 boundary and recompute the 30-day start; do not blindly reuse this window if execution occurs later. Keep the exact selected window identical across both exchanges.
+
+T0 `datasetVersion` provenance remains a hard requirement. Since Canonical SQLite does not exist and is not authorized to be created, any implementation that cannot obtain genuine T0 provenance through an isolated temporary store must stop and report BLOCKED; do not fabricate or bypass provenance.
+
+Current state: approval GRANTED; acquisition NOT RUN; paired CSVs NOT PROVIDED; real-data parity NOT RUN; Canonical SQLite NOT CREATED; Feeder STOPPED; T2 OKX source unchanged; live execution disabled.
