@@ -119,3 +119,14 @@ Resolve why the fork has no GitHub Actions runs, then execute the exact PR head 
 - Overall verdict: **BLOCKED**. Sidecar exact-source acceptance is NOT VERIFIED because sidecar Clippy/tests were skipped; security gate remains blocked by inherited upstream dependency advisories.
 - Next: make only the rustfmt-required formatting correction, then re-run GitHub Actions on the new PR head. In parallel, prepare a minimal dependency remediation plan for the inherited advisories; do not modify the dependency graph by hand or weaken cargo-audit. Only consider Tokio writer-worker integration after the complete required CI gates pass.
 - Safety unchanged: no collector runtime, Binance connection, database open/create, market-data capture, or live trading. `ai_execution_enabled=false`.
+
+
+## 2026-11-07 Addendum — Rustfmt Correction and CI Rerun
+
+- Applied only rustfmt-requested formatting to `crates/connection-sidecar/src/lib.rs` and `crates/connection-sidecar/tests/sidecar_writer.rs`; no logic, test assertions, dependency, runtime, or workflow changes.
+- Fork commits: implementation formatting `88c0027514fc79ef9c4fae02a870f8a7c9ae5f9e`; test formatting / latest PR source SHA `00cc447e6f39e3e14dfe13eaa88a7a82e40828e3`.
+- New GitHub Actions run [42344752951](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42344752951), triggered for source SHA `00cc447e6f39e3e14dfe13eaa88a7a82e40828e3`. Rust job `128319958110`; security job `128319958140`; dashboard backend `128319958177`.
+- At latest inspection: Rust base Format PASS; Clippy IN_PROGRESS; Build/Test/sidecar format/sidecar Clippy/11 sidecar tests pending. Dashboard backend PASS. Dashboard frontend, Docker, Security still in progress. Exact checkout SHA and final conclusions not yet verified.
+- Overall state remains **IN PROGRESS / NOT VERIFIED**. Do not infer sidecar acceptance or security clearance until all jobs complete and logs confirm results.
+- Dependency audit baseline comparison remains unchanged: fork and upstream baseline Cargo.toml/Cargo.lock blobs identical; no dependency remediation or audit suppression applied.
+- Safety unchanged: no collector process, Binance connection, DB open/create, market data capture, or live trading; `ai_execution_enabled=false`. PR #1 remains OPEN / DRAFT / NOT MERGED.
