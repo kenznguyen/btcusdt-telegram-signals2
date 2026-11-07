@@ -4305,3 +4305,17 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - PG-LC-06 status: **PASS**. Matrix update commit `e61114acc0e140bd05ca16639325e6a2209964c1`, blob `7eeb28bdcfb93d8ac9dd26720cd83d6025710752`.
 - No production source behavior changed. No provider/VPS/canonical DB/production Feeder/exchange/data-sync/Backup-DR activity.
 - Next: PG-LC-07 — interrupted migration and retry on a disposable clean database. Inspect migration transaction boundaries and idempotency before designing a deterministic interruption test; no migration behavior change or production schema operation.
+
+
+## 2026-11-07 — PG-LC-07 migration interruption test added; CI blocked by unrelated incomplete probe
+
+- Added `test_interrupted_migration_rolls_back_and_retry_applies_cleanly` to `market_data/test_postgres_write_gateway.py`; commit/source SHA `6aaf9c3be321634418f526cf73027dd34ac10d1a`, blob `041862b0ba62963f9983ab946b21f43a477dec46`.
+- Test creates a uniquely named disposable database and temporary two-file migration set. A background migration enters a deterministic `pg_sleep(4)`; the test cancels that backend, expects `StoreUnavailable`, asserts the outer migration transaction left no schema/version markers, retries, verifies both migrations and data, then confirms a second run is idempotent. The database is dropped in `finally`.
+- GitHub Actions run [42323482284](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42323482284), exact source SHA `6aaf9c3be321634418f526cf73027dd34ac10d1a`.
+- Static job `128253453875` failed full `market_data` discovery: 241 tests, 42 skipped, 1 import error. The failure is unrelated to PG-LC-07: concurrently added `market_data/test_binance_connectivity_probe.py` imports `market_data.binance_connectivity_probe`, but that implementation module is absent at this SHA. Do not delete/alter this parallel task's test or fabricate a stub; preserve its work and coordinate only if explicitly directed.
+- TimescaleDB job `128253528330` was SKIPPED because it depends on the failed static `shadow-contracts` job. Therefore the new migration interruption test was not executed against PostgreSQL; PG-LC-07 remains **NOT VERIFIED / BLOCKED BY UNRELATED TEST-DISCOVERY FAILURE**.
+- Static artifact `13553634796`, 11,247 bytes, digest `sha256:08cad716fa7edc9f3014b169fc7afcbe1485c6c1d05b61ba0d0aa331b3d31c5d`; downloaded ZIP SHA-256 independently matched.
+- Paper consumer job `128253453483`: SUCCESS. Provider bootstrap continues to show the known PostgreSQL 16 implicit ADMIN membership blocker; no role guard was weakened.
+- Matrix update commit `8e70fc87a9cff27f6223ccd90ed92e0acc36fd0d`, blob `c2243a81a6353bd25eb58cf176b3388df5cd513d`.
+- No production migration, database, provider, VPS, canonical T0 storage, Feeder, exchange, market-data sync, or Backup/DR activity. Only test source and documentation were changed.
+- Next: wait for the parallel Binance connectivity probe implementation to land or for its owner to resolve the missing module; then rerun exact-head GitHub Actions so the TimescaleDB dependency can execute PG-LC-07. Do not bypass the failing dependency or alter the unrelated probe task.
