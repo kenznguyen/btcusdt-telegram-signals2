@@ -6018,3 +6018,45 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - PR #1 remains OPEN / DRAFT / NOT MERGED; head SHA matches `06569651833ea6e3b623f1ed75b05e518e41bbd9`. No merge or draft-status change performed.
 - Verdict: empty-sidecar validation inconsistency **PASS at source + exact-head CI level**. This does not establish operational readiness, hostile-filesystem TOCTOU safety, or non-Unix file identity behavior.
 - Next: continue T1 offline contract review / risk assessment from the existing PR state; before any further behavior change, define a concrete invariant and add a regression test first. No Collector runtime, Binance access, DB, market capture, T0 edits, VPS deployment, or live execution. Keep `ai_execution_enabled=false`.
+
+
+## T1 VPS deployment preflight — binary delivery blocked (2026-11-08)
+
+### Scope
+- User-authorized target remains VPS `btcquant-t0-t1-test-01`; T1 isolated data directory; BTCUSDT only; public Binance USDT-M market data; no API key; no Dashboard; no trading/signals execution; do not modify T0.
+- This increment is read-only preflight assessment. No clone, package installation, build, configuration write, T1 process, or market capture was performed.
+
+### User-provided VPS evidence
+- Host storage: `/dev/sda1`, 7.9G filesystem, 3.4G used, 4.6G available (43%).
+- `lsblk`: root disk 9.3G; root partition 8.2G; separate /boot and EFI partitions.
+- Rust/Cargo: `command -v cargo`, `cargo --version`, and `rustc --version` produced no output; toolchain is absent.
+- Docker: `command -v docker`, `docker --version`, and `docker info` produced no output; Docker is unavailable.
+- Existing T0 checkout Git metadata: 8.0M at `/home/ubuntu/t0/app/.git`.
+- T1 process search returned no matching process. Listening sockets shown were DNS stub and SSH only; no T1 service port was observed.
+- Previous preflight evidence for this host recorded 4 vCPU, 7.7 GiB RAM, 7.2 GiB available, and successful public Binance Futures ping. This does not substitute for a fresh network test at launch.
+- Preserve at least 2 GiB free disk; therefore current practical T1 disk budget is at most approximately 2.6 GiB, including binary, logs, and captured data.
+
+### GitHub delivery-channel inspection
+- T1 repo: `kenznguyen/binance-futures-collector`.
+- Branch: `feature/t1-connection-sidecar-integration-20261107`.
+- Exact current source / PR #1 head SHA: `06569651833ea6e3b623f1ed75b05e518e41bbd9`.
+- Exact-source push workflow [42422915571](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42422915571): SUCCESS, 5/5 jobs. PR workflow [42422919187](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42422919187): SUCCESS, 5/5 jobs.
+- GitHub Releases API returned an empty list (`[]`); no published release binary exists.
+- Actions artifact endpoint for run 42422915571 returned `total_count: 0`; no CI binary artifact is available to download.
+- CI success verifies source/tests only; it does not provide a deployable binary or runtime proof.
+
+### Verdict
+| Item | Status | Evidence boundary |
+|---|---|---|
+| VPS read-only preflight | PASS | User-provided command output |
+| Rust native build path | BLOCKED | Rust/Cargo absent; installation/build not authorized in this increment and disk reserve is tight |
+| Docker path | BLOCKED | Docker unavailable |
+| Prebuilt release binary | BLOCKED | No GitHub releases |
+| CI artifact binary | BLOCKED | Run 42422915571 has zero artifacts |
+| T1 runtime / Binance capture | NOT RUN | No T1 process, config, or data directory created |
+| T0 preservation | NOT VERIFIED in this increment | No T0 files or process state changed by the assistant; no new T0 integrity snapshot taken |
+
+### Next step and limits
+- Preferred next engineering step: add a narrowly scoped GitHub Actions job on the existing T1 branch to build the standalone Linux x86_64 Collector binary from the exact source SHA and publish a short-retention workflow artifact. This avoids installing Rust/Docker on the VPS and avoids compiling on its small root disk. Before changing CI, inspect current workflow and repository CI policy; preserve existing jobs and PR #1 state.
+- After artifact publication, verify artifact run association, checked-out SHA, size, and checksum before providing a VPS download/verification command. Do not run the Collector until an isolated BTCUSDT config, data path, retention/capture window, disk guard, and stop procedure are reviewed.
+- No PR merge, no Draft → Ready transition, no T0 modification, no proxy/VPN, no API key, and no live trading.
