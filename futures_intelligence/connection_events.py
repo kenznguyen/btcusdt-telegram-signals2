@@ -21,7 +21,8 @@ DISCONNECT_REASONS = {
     "REMOTE_CLOSE", "TRANSPORT_ERROR", "HEARTBEAT_TIMEOUT", "SHUTDOWN", "UNKNOWN",
 }
 MAX_EVENT_BYTES = 16 * 1024
-MAX_EVENTS = 1_000_000
+MAX_EVENT_FILE_BYTES = 64 * 1024 * 1024
+MAX_EVENTS = 100_000
 MAX_RECONNECT_DELAY_MS = 60_000
 
 
@@ -40,7 +41,7 @@ def _required_int(event, key, minimum=0, maximum=2**63 - 1):
 
 
 def _parse_event(event):
-    if not isinstance(event, dict) or event.get("schemaVersion") != 1:
+    if not isinstance(event, dict) or type(event.get("schemaVersion")) is not int or event["schemaVersion"] != 1:
         raise ValueError("Unsupported connection event schema")
     event_id = _required_text(event, "eventId")
     source = _required_text(event, "sourceCommit", 40)
@@ -95,15 +96,18 @@ def load_and_validate_connection_events(
         raise ValueError("Expected a lowercase SHA-256 digest")
     if not isinstance(expected_source_commit, str) or not COMMIT_RE.fullmatch(expected_source_commit):
         raise ValueError("Expected a pinned collector source commit")
-    if not isinstance(expected_session_id, str) or not expected_session_id:
+    if not isinstance(expected_session_id, str) or not expected_session_id or len(expected_session_id) > 128:
         raise ValueError("Expected collector session identity")
     if type(window_start_ms) is not int or type(window_end_ms) is not int or not 0 <= window_start_ms < window_end_ms:
         raise ValueError("Invalid half-open connection evidence window")
     if type(max_heartbeat_gap_ms) is not int or max_heartbeat_gap_ms <= 0:
         raise ValueError("Invalid heartbeat gap policy")
 
-    raw = Path(path).read_bytes()
-    if not raw or len(raw) > MAX_EVENTS * MAX_EVENT_BYTES:
+    source_path = Path(path)
+    if source_path.stat().st_size > MAX_EVENT_FILE_BYTES:
+        raise ValueError("Connection event sidecar is too large")
+    raw = source_path.read_bytes()
+    if not raw or len(raw) > MAX_EVENT_FILE_BYTES:
         raise ValueError("Connection event sidecar is empty or too large")
     if hashlib.sha256(raw).hexdigest() != expected_sha256:
         raise ValueError("Connection event sidecar checksum mismatch")
@@ -192,7 +196,11 @@ def load_and_validate_connection_events(
         opened_at = opened[0] if opened else None
         disconnect = disconnected[0] if disconnected else None
         in_window_disconnect = disconnect and window_start_ms <= disconnect["eventAtMs"] < window_end_ms
-        window_pongs = [at for at in pongs if window_start_ms - max_heartbeat_gap_ms <= at < window_end_ms + max_heartbeat_gap_ms]
+        window_pongs = [at for at in pongs if window_start_ms - max_heartbeat_gap_ms <= at < window_end_ms]
+        expired_unanswered_ping = any(
+            sent_at <= window_end_ms - max_heartbeat_gap_ms
+            for sent_at in pending.values()
+        )
         status = "UNVERIFIABLE"
         if in_window_disconnect:
             status = "DISCONNECTED"
@@ -206,7 +214,7 @@ def load_and_validate_connection_events(
                 right - left <= max_heartbeat_gap_ms
                 for left, right in zip(window_pongs, window_pongs[1:])
             )
-            if not boundary_ok or not gaps_ok:
+            if not boundary_ok or not gaps_ok or expired_unanswered_ping:
                 status = "HEARTBEAT_GAP"
             elif disconnect is None or disconnect["eventAtMs"] >= window_end_ms:
                 status = "VERIFIED_CONNECTED"
@@ -229,7 +237,8 @@ def load_and_validate_connection_events(
     if expected_connections is not None:
         expected = set()
         for item in expected_connections:
-            if not isinstance(item, dict) or type(item.get("batchId")) is not int or item.get("route") not in ROUTES:
+            if (not isinstance(item, dict) or type(item.get("batchId")) is not int
+                    or not isinstance(item.get("route"), str) or item.get("route") not in ROUTES):
                 raise ValueError("Invalid expected connection identity")
             expected.add((item["batchId"], item["route"]))
         observed = {(item["batchId"], item["route"]) for item in results}
