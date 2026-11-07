@@ -5,7 +5,7 @@ import unittest
 
 from market_data.binance_connectivity_probe import (
     classify_http_status, parse_http_upgrade, parse_server_frame,
-    validate_exchange_info, validate_klines, validate_server_time,
+    validate_exchange_info, validate_kline_event, validate_klines, validate_server_time,
 )
 
 
@@ -50,6 +50,12 @@ class RestPayloadContractTests(unittest.TestCase):
 
 
 class WebSocketHandshakeTests(unittest.TestCase):
+    def test_event_must_be_btcusdt_15m_kline(self):
+        event = {"e": "kline", "s": "BTCUSDT", "k": {"s": "BTCUSDT", "i": "15m"}}
+        self.assertTrue(validate_kline_event(event))
+        event["k"]["i"] = "1m"
+        self.assertFalse(validate_kline_event(event))
+
     def test_valid_upgrade_requires_correct_accept_digest(self):
         key = base64.b64encode(b"probe-key-123456").decode("ascii")
         expected = base64.b64encode(
