@@ -5904,3 +5904,14 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Previous README clarification commit `dc5a4ede2af9a1b3e2a22bce22fd5a02a60a4403` remains verified by push run `42385858905` and PR run `42385864568`, both SUCCESS 5/5.
 - Status: temp-only contract documentation **NOT VERIFIED pending exact-commit CI**. No production behavior/API change. Recovery protocol and crash/restart reconciliation remain NOT VERIFIED.
 - Next: poll workflow `42386389371`; verify all jobs and Sidecar tests. Then inspect PR #1 state/head and update handoff with exact result. Keep PR OPEN / DRAFT / NOT MERGED. No Collector runtime, Binance access, DB, market capture, T0 edits or live execution.
+
+
+## T1 temp-only manifest classification — exact-source CI PASS (2026-11-07)
+- T1 source / PR #1 head SHA: `002ff694a97dcedb2ce253cdd105cdf871c98db8`.
+- Exact-source push workflow [42386389371](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42386389371): SUCCESS, all 5/5 jobs. Collector fmt/Clippy/build/tests and Sidecar writer format/Clippy/offline tests PASS; dashboard backend/frontend, Docker build and security audit PASS.
+- PR workflow [42386393808](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42386393808): SUCCESS, all 5/5 jobs. PR workflow is a synthetic merge context; exact source verification is established by push workflow 42386389371.
+- Artifacts: none published by either workflow.
+- PR #1 state verified after CI: OPEN / DRAFT / NOT MERGED; head branch `feature/t1-connection-sidecar-integration-20261107`; head SHA matches the tested source. No merge or draft-state change performed.
+- README-only contract clarification: a valid sidecar with no final manifest is classified `UnsealedValid`, even if a temporary manifest remains. This state means valid sidecar/no final manifest; it does not prove finalization was never attempted. Temp-only residue is diagnostic and requires recovery review. Do not promote, rename or delete it automatically; no recovery protocol has been implemented.
+- Verdict: **PASS — documentation clarification verified by exact-source CI**. No API or runtime behavior changed. Explicit temp-only API classification, recovery protocol, crash/restart reconciliation, durability attestation, hostile filesystem TOCTOU, and non-Unix file identity remain **NOT VERIFIED**. Operational readiness remains NOT VERIFIED.
+- Next: assess the next isolated T1 contract gap without expanding into public API changes until a test-first proposal and compatibility assessment exist. Keep PR #1 OPEN / DRAFT / NOT MERGED. No Collector runtime, Binance access, DB, market capture, T0 edits or live execution.
