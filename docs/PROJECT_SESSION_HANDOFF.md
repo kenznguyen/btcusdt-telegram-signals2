@@ -4521,3 +4521,16 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - No canonical DB was created/opened for writing; no live exchange sync, write lease, Feeder, VPS, or execution was started.
 - Safety remains: canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; `ai_execution_enabled=false`.
 - Next: perform only read-only preflight after target/backend identity and operator details are provided. Do not execute a write unless a separate explicit approval names exact source SHA, target identity, and UTC window.
+
+
+### Controlled First Run — repository configuration preflight (read-only) (2026-11-07)
+
+- Inspected active-branch market_data/storage.py, market_data/README.md, .gitignore, market_data/feeder_service.py, and T0 GitHub Actions workflows. No runtime host, environment secret, DB, or exchange endpoint was accessed.
+- storage.py defaults to SQLite only when MARKET_DATA_BACKEND is absent; PostgreSQL requires explicit backend and DSN.
+- README's .data/market-data.sqlite3 is a local CLI example, not proof of canonical target identity. .data/ and .env* are gitignored.
+- T0 CI deliberately clears DB env vars for static/probe jobs and uses disposable loopback t0_test for Timescale integration. These workflows do not reveal a production target.
+- feeder_service.py builds the selected runtime from environment, but committed files do not identify the actual operator host or selected target.
+- Updated plan: docs/evidence/t0/T0_CONTROLLED_FIRST_RUN_APPROVAL_PLAN_2026-11-07.md; read-only findings recorded. Plan update commit faae62008c50a9efbdb117248aa437085e61f56a.
+- Conclusion: backend/target identity remains NOT VERIFIED. Do not infer .data/market-data.sqlite3 is canonical. No canonical DB accessed/created/written; no Feeder or VPS started.
+- Next required input: operator must provide the intended backend and non-secret target identity (SQLite absolute path and volume identity, or PostgreSQL host/port/database/schema identity). Secrets must not be pasted into chat or committed. Then perform only read-only target/schema/API identity checks and backup/restore preflight.
+- Safety unchanged: canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; ai_execution_enabled=false.
