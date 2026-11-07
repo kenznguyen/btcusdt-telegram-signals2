@@ -60,7 +60,7 @@ The following cases were not established by the inspected test files/evidence an
 
 | ID | Missing or incomplete scenario | Required safe assertion | Status |
 |---|---|---|---|
-| PG-LC-01 | PostgreSQL unavailable before runtime startup | Startup fails closed; no scheduler admission, no SQLite fallback, no lease-less writer | NOT VERIFIED |
+| PG-LC-01 | PostgreSQL unavailable before runtime startup | Startup fails closed; no scheduler admission, no SQLite fallback, no lease-less writer | **RED CONFIRMED** — exact-head workflow 42321683647, job 128247465461, test observed runtime.state='STARTING' instead of 'FAILED' |
 | PG-LC-02 | Connection loss during heartbeat / lease check | Runtime becomes non-ready and stops admission; no stale generation can write | NOT VERIFIED |
 | PG-LC-03 | Database disconnect during an in-flight writer transaction | Whole transaction rolls back or commit outcome is reconciled unambiguously; no partial candle batch | NOT VERIFIED |
 | PG-LC-04 | Connection establishment timeout / concurrent connection churn | Bounded failure under the adapter's per-operation connection model; no unbounded thread growth or readiness false-positive | NOT VERIFIED |
@@ -88,6 +88,15 @@ Do not implement automatic reconnect/recovery behavior merely to make these test
 7. Update this matrix and `docs/PROJECT_SESSION_HANDOFF.md` after each meaningful increment.
 
 ## 6. Current verdict and boundaries
+
+### PG-LC-01 RED evidence (2026-11-07)
+
+- Test added at source SHA `514d22b00097f8b3af87e04904ca0f92b3a38b8d`: `FeederRuntimeStartupFailureTest.test_database_unavailable_during_lease_acquire_fails_closed`.
+- GitHub Actions run `42321683647`, job `128247465461` (`Static Gateway contract verification`), checked-out SHA equals test source SHA. Compile, static contracts, behavioral/feeder regressions, health/readiness and process SIGKILL tests passed; complete market_data suite failed on the intended new RED assertion.
+- Exact assertion: expected `runtime.state == FAILED`, observed `STARTING` after `StoreUnavailable` from `lease_store.acquire()`. Full suite: 234 tests, 1 failure (the intended RED), 37 skipped.
+- Artifact `13553666452`, name `t0-swg-contract-evidence-514d22b00097f8b3af87e04904ca0f92b3a38b8d`, size 10,877 bytes, GitHub digest `sha256:2c1e1ab498ef0aab199f1dce0c3e4d7f8dcd4e62ab130ce481332e16e81b9b1a`; downloaded ZIP SHA-256 independently matched the GitHub digest.
+- This confirms the startup state defect. No runtime fix has yet been made. Overall workflow remains in progress at the time of this record; do not label the workflow PASS.
+
 
 - Existing PostgreSQL writer/runtime/role integration: historical PASS on the exact SHA and run stated above.
 - Fresh-cluster PostgreSQL 16 non-superuser CREATEROLE bootstrap: BLOCKED; do not weaken the role guard.
