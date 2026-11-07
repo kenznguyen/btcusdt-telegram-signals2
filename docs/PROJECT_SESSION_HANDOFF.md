@@ -4534,3 +4534,13 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - Conclusion: backend/target identity remains NOT VERIFIED. Do not infer .data/market-data.sqlite3 is canonical. No canonical DB accessed/created/written; no Feeder or VPS started.
 - Next required input: operator must provide the intended backend and non-secret target identity (SQLite absolute path and volume identity, or PostgreSQL host/port/database/schema identity). Secrets must not be pasted into chat or committed. Then perform only read-only target/schema/API identity checks and backup/restore preflight.
 - Safety unchanged: canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; ai_execution_enabled=false.
+
+
+### Architecture decision — SQLite Canonical on PC approved (2026-11-07)
+
+- User approved SQLite as the T0 canonical backend for the current PC-first development and validation phase.
+- PostgreSQL/TimescaleDB remains a later evaluation option; no migration is authorized by this decision.
+- This approval covers architecture selection and read-only verification only. It does NOT authorize database creation, schema migration, ingestion, any database write, Controlled First Run, Feeder startup, VPS provisioning, or live execution.
+- Target identity is still NOT VERIFIED. Do not infer that `.data/market-data.sqlite3` is the canonical database; it is only a repository CLI example.
+- Next required input: exact absolute path to the existing SQLite file and its volume/device identity (non-secret). Then perform read-only file/SQLite integrity, schema, API-target identity and backup/restore preflight. Do not open in a write-capable mode.
+- Status: SQLite architecture choice APPROVED; canonical target identity NOT VERIFIED; read-only target preflight BLOCKED pending path; canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
