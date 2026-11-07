@@ -56,14 +56,14 @@ class WebSocketHandshakeTests(unittest.TestCase):
             hashlib.sha1((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()
         ).decode("ascii")
         response = (
-            "HTTP/1.1 101 Switching Protocols\\r\\n"
-            "Upgrade: websocket\\r\\nConnection: Upgrade\\r\\n"
-            f"Sec-WebSocket-Accept: {expected}\\r\\n\\r\\n"
+            "HTTP/1.1 101 Switching Protocols\r\n"
+            "Upgrade: websocket\r\nConnection: Upgrade\r\n"
+            f"Sec-WebSocket-Accept: {expected}\r\n\r\n"
         ).encode()
         self.assertTrue(parse_http_upgrade(response, key)[0])
 
     def test_invalid_upgrade_is_rejected(self):
-        response = b"HTTP/1.1 451 Unavailable For Legal Reasons\\r\\n\\r\\n"
+        response = b"HTTP/1.1 451 Unavailable For Legal Reasons\r\n\r\n"
         self.assertFalse(parse_http_upgrade(response, "dGhlIHNhbXBsZSBub25jZQ==")[0])
 
     def test_server_text_frame_is_decoded_without_accepting_masked_frames(self):
