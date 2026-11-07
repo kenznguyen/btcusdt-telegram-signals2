@@ -6093,3 +6093,36 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Status: CI build + artifact publication **PASS**. Artifact download to VPS and checksum verification **NOT VERIFIED**. T1 runtime **NOT RUN**. T0 unchanged.
 - Next: download artifact using authenticated GitHub Actions access (repo read / Actions artifact read permission), unpack under a new T1-only directory, run `sha256sum -c SHA256SUMS`, verify binary architecture and `--version`, then inspect a BTCUSDT-only config and storage guard before any capture.
 - No Collector start, no market capture, no T0 modification, no PR merge, no Draft → Ready transition, and no trading.
+
+
+## T1 VPS binary artifact verification — checksum and executable verified (2026-11-08)
+
+### Scope and evidence
+- VPS: `btcquant-t0-t1-test-01`; T1 remains isolated from the existing T0 installation and data.
+- User-reported VPS output after downloading artifact ID `13594961114` from T1 workflow run [42424240328](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42424240328), exact source SHA `d8ac9fc820dcf2e912e66518a1a1c73a8fa81ac7`.
+- ZIP download completed (approximately 3.99 MB). Initial extraction was blocked because `unzip` was absent; user installed it and reconnected. No evidence indicates T0 was changed.
+- `sha256sum -c SHA256SUMS`: `binance-futures-collector: OK`.
+- `uname -m`: `x86_64`.
+- `file binance-futures-collector`: ELF 64-bit LSB PIE, x86-64, dynamically linked, BuildID `c44891b56f35c26b5338a1d9f13f581fd226c3ab`.
+- `binance-futures-collector --version`: `binance-futures-collector 1.0.0`.
+- Disk: root filesystem 7.9G total, 3.4G used, 4.5G available (43%); required >=2G reserve is currently satisfied.
+- This is user-supplied terminal evidence; the assistant did not directly inspect VPS filesystem or process state.
+
+### Verdict
+| Item | Status | Evidence boundary |
+|---|---|---|
+| GitHub artifact download | PASS | User terminal showed 3.99 MB downloaded |
+| ZIP extraction | PASS | Subsequent checksum/file/version commands succeeded |
+| SHA256 verification | PASS | `sha256sum -c` returned OK |
+| Linux x86_64 architecture | PASS | `uname -m` and ELF inspection |
+| Binary version execution | PASS | Version 1.0.0 output |
+| Disk reserve | PASS | 4.5G available; >=2G policy |
+| T1 config / isolated data path | NOT VERIFIED | Not yet inspected or created |
+| Collector runtime / Binance capture | NOT RUN | No launch evidence |
+| T0 unchanged | NOT VERIFIED in this increment | No T0 command or mutation requested; no fresh integrity snapshot |
+
+### Next action and limits
+- Inspect the exact-source repository config schema/example and CLI options at SHA `d8ac9fc820dcf2e912e66518a1a1c73a8fa81ac7`; prepare a BTCUSDT-only configuration with T1-only data directory, Dashboard disabled, public endpoints only, and no API key.
+- Establish a short, supervised initial capture window and pre/post disk measurements; preserve at least 2G free. Confirm clean SIGTERM stop and inspect output/heartbeat/gap files before considering any longer run.
+- Present the exact config and launch/stop commands for review before starting the Collector.
+- No T0 changes, no proxy/VPN, no API key, no Dashboard, no PR merge or Draft → Ready transition, and no live trading or real orders.
