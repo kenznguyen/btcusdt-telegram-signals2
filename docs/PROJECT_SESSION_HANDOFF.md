@@ -4428,3 +4428,13 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - Current status: REST CONDITIONAL PASS; WebSocket 15m Upgrade PASS; first 15m event NOT VERIFIED; P1.9 overall BLOCKED / NOT VERIFIED.
 - Next: compare first-frame receipt on the same PC/network for 15m and 1m streams using a direct WebSocket client; record status, first frame opcode/length, elapsed time. Do not change the canonical 15m requirement or substitute 1m as acceptance. No credentials, proxy/VPN, DB, Feeder, persistence, Controlled First Run, VPS, or AI execution.
 - Evidence report update commit: `7e2ac0ee70da59456267eb86a72607f64d983e7b`.
+
+
+### P1.9 follow-up — direct .NET WebSocket also receives no first frame (2026-11-07)
+
+- User compared `btcusdt@kline_15m` and `btcusdt@kline_1m` with PowerShell `.NET ClientWebSocket`.
+- Both `ConnectAsync` calls succeeded; state was `Open`.
+- Both first `ReceiveAsync` calls were canceled at 20s: 15m 20,008 ms; 1m 20,006 ms. No frame opcode/payload was received.
+- This reproduces the Python probe's Upgrade-success / first-frame-timeout behavior with an independent .NET client, so a Python-only parser/receiver bug is less likely. Root cause remains unknown (stream delivery, local network/intermediary behavior after Upgrade, or another transport issue).
+- Status: REST CONDITIONAL PASS; WebSocket Upgrade PASS; first frame 15m and 1m NOT RECEIVED; P1.9 BLOCKED / NOT VERIFIED.
+- Next: if continuing diagnostics, capture control-frame behavior and isolate host/path policy without treating another endpoint as acceptance. No proxy/VPN, credentials, DB, Feeder, persistence, Controlled First Run, VPS, or AI execution.
