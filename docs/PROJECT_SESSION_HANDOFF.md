@@ -4223,3 +4223,12 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Disposable TimescaleDB job `128249502313` was still at `Initialize containers` at documentation time. PG-LC-03 remains **NOT VERIFIED** until that job executes the new fault-injection test. No assumption of pass is allowed.
 - Matrix update commit `50b6ad829dc6a57df0b6c9e7e977953354206f0a`, blob `4e1d9d31d75744a4a27fc92c8fa505a75f76ff79`.
 - No production code changed in this increment. No external provider/VPS, canonical DB, production Feeder, exchange, data sync or Backup/DR activity.
+
+
+### PG-LC-03 test harness correction (2026-11-07)
+
+- First disposable TimescaleDB attempt, run `42322291792`, failed before exercising the writer disconnect: PostgreSQL rejected the trigger function definition and the connection context surfaced `StoreUnavailable`. Artifact `13553468137`, digest `sha256:43d98d5c07455172b279dd1c0d78ab0dfde1c026b17653523377de4465bdcfd8`; ZIP hash was independently checked.
+- Root cause: dollar-quoted PL/pgSQL body delimiter was malformed in the generated test source. Corrected to explicit `$t0_disconnect$...$t0_disconnect$` in commit `7577afac0e1d86453fe97dec798d80de82674d42`, blob `2617fa54368528339b71829f119d212a91ad157a`.
+- Rerun [42322449766](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42322449766), exact source SHA `7577afac0e1d86453fe97dec798d80de82674d42`. Static job `128249946479` SUCCESS; artifact `13553602870`, 10,716 bytes, digest `sha256:495ebc2bd7d1648b4ff3f6f208020a559ce819e48d7cd60439dc250eb8845b18`. Disposable TimescaleDB job `128250015010` was still initializing containers at capture time.
+- PG-LC-03 remains NOT VERIFIED until the corrected trigger test actually runs against disposable TimescaleDB and the test artifact is reconciled. Do not infer behavior from the skipped unit-suite result.
+- Matrix correction commit `1f6d322473705071d5d7d3353df3af769ee9b630`, blob `7be2aefd009fe0280920efada9d4a1c57f8bfdb9`.
