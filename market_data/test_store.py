@@ -104,6 +104,24 @@ class CandleStoreTest(unittest.TestCase):
             read_window(missing, "BTCUSDT", "15m", 0, self.step)
         self.assertFalse(missing.exists())
 
+
+    def test_reads_complete_30_day_m15_window_within_explicit_safety_cap(self):
+        count = 30 * 24 * 4
+        candles = [
+            self.candle(slot, available_at_ms=(slot + 1) * self.step + 100)
+            for slot in range(count)
+        ]
+        self.assertEqual(self.gateway.write_batch(candles), count)
+
+        result = self.window(count)
+
+        self.assertEqual(result["coverage"]["expected"], count)
+        self.assertEqual(result["coverage"]["returned"], count)
+        self.assertTrue(result["coverage"]["complete"])
+        self.assertEqual(result["candles"][0]["openTimeMs"], 0)
+        self.assertEqual(result["candles"][-1]["openTimeMs"], (count - 1) * self.step)
+        self.assertTrue(result["datasetVersion"].startswith("sha256:"))
+
     def test_rejects_unaligned_unbounded_or_wrong_market_queries(self):
         for args in [
             ("ETHUSDT", "15m", 0, self.step, None),
