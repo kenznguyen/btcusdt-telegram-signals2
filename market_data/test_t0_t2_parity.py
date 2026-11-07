@@ -91,6 +91,25 @@ class T0T2ParityTest(unittest.TestCase):
         self.assertEqual(report["metrics"]["m15"]["close"]["max_rel_diff"], 0.0)
         self.assertIn("COMPARABLE", render_markdown(report))
 
+    def test_report_includes_largest_field_differences_with_both_source_values(self):
+        rows = [
+            {"open_time": START + index * STEP["m15"], "open": "100",
+             "high": "102", "low": "99", "close": close, "volume": "2.5",
+             "closed": "true"}
+            for index, close in enumerate(("101", "104", "103", "101"))
+        ]
+        self.write_rows("okx_m15.csv", rows)
+
+        report = build_report(self.manifest_path)
+        largest = report["largest_differences"]["m15"]["close"][0]
+        self.assertEqual(largest["open_time"], START + STEP["m15"])
+        self.assertEqual(largest["binance_value"], "101.00")
+        self.assertEqual(largest["okx_value"], "104")
+        self.assertEqual(largest["abs_diff"], 3.0)
+        self.assertAlmostEqual(largest["rel_diff"], 3.0 / 104.0)
+        self.assertIn("Largest difference rows", render_markdown(report))
+        self.assertIn(str(START + STEP["m15"]), render_markdown(report))
+
     def test_v2_hash_matches_t2_binary_contract_and_is_ordered_by_open_time(self):
         rows = [
             {"open_time": START, "open": "100", "high": "102", "low": "99",
