@@ -378,6 +378,129 @@ gateway.write_batch(candles)
                     "DROP FUNCTION IF EXISTS market_data.pg_red_process_kill_insert()"
                 )
 
+    def test_interrupted_migration_rolls_back_and_retry_applies_cleanly(self):
+        import tempfile
+        from concurrent.futures import ThreadPoolExecutor
+        from pathlib import Path
+        import psycopg
+        from psycopg import sql
+        from psycopg.conninfo import make_conninfo
+        import market_data.migrations as migration_module
+        from market_data.migrations import migrate
+        from market_data.postgres import StoreUnavailable
+
+        database_name = "t0_migration_" + uuid.uuid4().hex[:12]
+        application_name = "t0-migration-interrupt-" + uuid.uuid4().hex[:8]
+        target_dsn = make_conninfo(
+            DSN, dbname=database_name, application_name=application_name
+        )
+        original_migrations = migration_module.MIGRATIONS
+        database_created = False
+
+        try:
+            with psycopg.connect(DSN, autocommit=True) as admin:
+                admin.execute(
+                    sql.SQL("CREATE DATABASE {}").format(sql.Identifier(database_name))
+                )
+            database_created = True
+
+            with tempfile.TemporaryDirectory(prefix="t0-migrations-") as temporary:
+                migration_dir = Path(temporary)
+                (migration_dir / "001_probe.sql").write_text(
+                    """
+                    CREATE TABLE market_data.migration_probe (
+                        id INTEGER PRIMARY KEY
+                    );
+                    INSERT INTO market_data.migration_probe VALUES (1);
+                    """,
+                    encoding="utf-8",
+                )
+                (migration_dir / "002_delayed_probe.sql").write_text(
+                    """
+                    CREATE TABLE market_data.interrupted_probe (
+                        id INTEGER PRIMARY KEY
+                    );
+                    SELECT pg_sleep(4);
+                    INSERT INTO market_data.interrupted_probe VALUES (2);
+                    """,
+                    encoding="utf-8",
+                )
+                migration_module.MIGRATIONS = migration_dir
+
+                with ThreadPoolExecutor(max_workers=1) as pool:
+                    migration_future = pool.submit(migrate, target_dsn)
+                    backend_pid = None
+                    deadline = time.monotonic() + 3
+                    while time.monotonic() < deadline and backend_pid is None:
+                        with psycopg.connect(DSN, autocommit=True) as admin:
+                            row = admin.execute(
+                                """
+                                SELECT pid
+                                FROM pg_stat_activity
+                                WHERE datname=%s
+                                  AND application_name=%s
+                                  AND state='active'
+                                  AND query LIKE '%pg_sleep(4)%'
+                                LIMIT 1
+                                """,
+                                (database_name, application_name),
+                            ).fetchone()
+                        if row is not None:
+                            backend_pid = row[0]
+                        else:
+                            time.sleep(0.05)
+
+                    self.assertIsNotNone(
+                        backend_pid,
+                        "migration did not reach the deterministic delay statement",
+                    )
+                    with psycopg.connect(DSN, autocommit=True) as admin:
+                        cancelled = admin.execute(
+                            "SELECT pg_cancel_backend(%s)", (backend_pid,)
+                        ).fetchone()[0]
+                    self.assertTrue(cancelled)
+                    with self.assertRaises(StoreUnavailable):
+                        migration_future.result(timeout=5)
+
+                with psycopg.connect(target_dsn, autocommit=True) as database:
+                    schema_exists = database.execute(
+                        "SELECT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname='market_data')"
+                    ).fetchone()[0]
+                self.assertFalse(schema_exists, "interrupted migration left partial schema state")
+
+                self.assertEqual(migrate(target_dsn), (0, 2))
+                with psycopg.connect(target_dsn, autocommit=True) as database:
+                    migration_rows = database.execute(
+                        "SELECT migration_id FROM market_data.schema_migrations ORDER BY migration_id"
+                    ).fetchall()
+                    probe_rows = database.execute(
+                        "SELECT id FROM market_data.migration_probe"
+                    ).fetchall()
+                    delayed_rows = database.execute(
+                        "SELECT id FROM market_data.interrupted_probe"
+                    ).fetchall()
+                self.assertEqual(
+                    migration_rows,
+                    [("001_probe.sql",), ("002_delayed_probe.sql",)],
+                )
+                self.assertEqual(probe_rows, [(1,)])
+                self.assertEqual(delayed_rows, [(2,)])
+                self.assertEqual(migrate(target_dsn), (2, 2))
+        finally:
+            migration_module.MIGRATIONS = original_migrations
+            if database_created:
+                with psycopg.connect(DSN, autocommit=True) as admin:
+                    admin.execute(
+                        "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                        "WHERE datname=%s AND pid<>pg_backend_pid()",
+                        (database_name,),
+                    )
+                    admin.execute(
+                        sql.SQL("DROP DATABASE IF EXISTS {}").format(
+                            sql.Identifier(database_name)
+                        )
+                    )
+
     def test_invalid_middle_candle_is_rejected_before_any_write(self):
         from market_data.postgres import connection
 
