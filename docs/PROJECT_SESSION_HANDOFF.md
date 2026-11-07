@@ -4255,3 +4255,16 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Static artifact `13553307897`, size 10,764 bytes, digest `sha256:3290448be8a9f54720d979b1d431ab837d0a1aa1ddcd39706737be198b660e81`; downloaded ZIP independently hashed and matched.
 - Disposable TimescaleDB job `128250794111` is still running dependency installation; PG-LC-04 remains **NOT VERIFIED** until this test runs there.
 - No runtime implementation change, connection pool, provider/VPS, canonical DB, production Feeder, exchange/data sync or Backup/DR operation.
+
+
+### PG-LC-04 exact-SHA concurrent connect-timeout verification (2026-11-07)
+
+- Workflow [42322694050](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42322694050), exact source SHA `3b2db445aa4cfe067c91a2d64530eea52879a496`, completed with overall FAILURE only because fresh-cluster PostgreSQL 16 provider bootstrap job `128250723958` hit the existing implicit ADMIN membership guard. Do not weaken the role guard.
+- Disposable TimescaleDB job `128250794111`: SUCCESS. Lifecycle suite **5/5**, including the new concurrent unresponsive-handshake test; three simultaneous loopback TCP connections accepted PostgreSQL startup packets but withheld the handshake response, and all three returned `StoreUnavailable` within the asserted 7-second bound (adapter uses `connect_timeout=5`). The test itself completed successfully; no external host/provider was contacted.
+- Same integration job: PostgreSQL writer 8/8; FeederRuntime 20/20; runtime lifecycle 5/5; least-privilege roles 18/18; read-only TimescaleDB 6/6 — all PASS.
+- Static job `128250723920`: SUCCESS; 237 market_data tests, 39 skipped, OK; static contracts 10/10; behavioral/feeder regressions 63/63; health/readiness 21/21; process restart 2/2. Paper consumer job `128250723680`: SUCCESS.
+- TimescaleDB artifact `13553777231`, size 4,387 bytes, GitHub digest `sha256:c12e4f4915eefa57d9ca2a679f3171d9674f71e08140e1556793db42cbd17bf9`; downloaded ZIP SHA-256 independently matched.
+- Static artifact `13553307897`, size 10,764 bytes, digest `sha256:3290448be8a9f54720d979b1d431ab837d0a1aa1ddcd39706737be198b660e81`; downloaded ZIP SHA-256 independently matched.
+- PG-LC-04 status: **PASS**. Matrix update commit `93389df3f4bfbc60c740c811aa093fc79c0748f8`, blob `7d89a9f36f6f5deaa78de29d5aab001ebeea1b92`.
+- No pool was added; no pool-exhaustion test was created. The adapter remains per-operation connection, with bounded connection/statement/lock timeout behavior. No production runtime/provider/DB/exchange/data-sync/Backup-DR action.
+- Next: PG-LC-05 — define and verify safe behavior when PostgreSQL returns after a transient outage. Existing runtime is fail-terminal on startup failure and transitions to LEASE_LOST on heartbeat failure; do not introduce automatic recovery/resume. Test should prove that stale runtime cannot resume writes and a fresh runtime must obtain a newer fencing generation.
