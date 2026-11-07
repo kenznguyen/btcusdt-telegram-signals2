@@ -348,3 +348,32 @@ R22.4 disposition:
 - Independent prospective OOS: IN PROGRESS / NOT CERTIFIED.
 
 Next safe step R22.5: use a disposable GitHub Actions job to hash the pre-holdout Phase14 archive and stream-hash its embedded candidate, metadata and protocol without unpickling. Compare the embedded candidate to the registered SHA and separately report the current repo copy mismatch. Do not restore/overwrite the model file without explicit approval. Do not read holdout candles, retrain, backtest, tune, access T0, or enable execution.
+
+
+### R22.5 — Phase14 original archive and frozen bundle byte verification (2026-11-07)
+
+A disposable GitHub Actions workflow was added to hash the pre-holdout Phase14 ZIP and stream-hash its embedded files. The workflow uses only Python standard-library ZIP/crypto operations; it does not extract archive members or unpickle/load the joblib model.
+
+TDD and workflow evidence:
+- RED test-only commit 31f0144f4b368f3054d2ffc2f194b70636193483; R22.5 run 42321362140, job 128246431636: expected import failure because the archive-audit module was not implemented yet.
+- Initial implementation run 42321424726, job 128246639237: 5/5 unit tests PASS; archive probe correctly stopped because the pre-registered protocol is a separate sealed repository file, not a member attested as contained in the ZIP. The verifier was corrected to hash the protocol file separately rather than assume it is inside the archive.
+- Final source SHA c81f886a8012274dbd1abb6e93f36c1a2eb6d8fe.
+- Final direct push run 42321514294, job 128246931676: SUCCESS; 6/6 unit tests PASS; archive/member/protocol verification PASS; artifact upload PASS.
+- Artifact ID 13552773238; name r22-5-phase14-archive-integrity-c81f886a8012274dbd1abb6e93f36c1a2eb6d8fe; GitHub upload digest sha256:61ed1fd22fac1f4789f1890c88355e3bee2227b1c63f156b99b379f005038031.
+
+Exact byte-level results from the workflow report:
+- Phase14 archive SHA-256 b64f39bd70c27c8d6abed1795ee06504c108eed42ebdab98ce375a6449b5b035 — PASS.
+- Phase14 archive Git blob SHA-1 17ec47fcbab047a540b1b1d2faad6a73182b5ab5 — PASS.
+- Embedded original model member artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib SHA-256 918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f — PASS.
+- Embedded candidate metadata SHA-256 07e9c1b65df7a477de8ee14c51d47325932e6bf9a0732f3ea64e3118abcac3e5 — PASS.
+- Separate sealed protocol file research_evidence/frozen-model/phase13b-20261104/phase13b-oos-protocol.json SHA-256 b10d63c952a40fa70a3d4dfed2d952d676a888a0f72832734d3ff8d8c14c5b6e — PASS.
+- Current repo copy original-frozen-model.joblib raw SHA-256 is also 918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f and its Git blob SHA-1 is 91283dde513e24b9f87a936220a09e5f78612a49. It matches the registered bundle bytes.
+- archive_integrity_verified=true; current_repo_bundle_matches_registered=true; restoration_required=false; archive_extracted=false; unpickle_performed=false.
+
+Important correction: the older phase14-blocker-investigation.json records the same current Git blob SHA-1 91283dde... but reports raw SHA-256 51c8474d... and RESTORE_REQUIRED. The R22.5 disposable GitHub Actions run directly hashes the exact checked-out file bytes and proves the raw SHA-256 is 918dc473... matching the registered model. The old 51c8474d... value is therefore superseded and must not be used to classify the current repository copy as corrupt. The historical investigation JSON is left unchanged; this section records the later exact-byte correction.
+
+R22.5 disposition: original Phase14 archive, embedded candidate, metadata, separate protocol, and current repo model copy byte identities PASS within the verified SHA scope. No model restoration or modification was needed; no joblib loading/unpickling occurred.
+
+Remaining blockers unchanged: full_model_pipeline_causality_verified=false; real 180-day FreqaiDataKitchen feature-value reconciliation NOT VERIFIED; Phase22 OOS eligibility attestation schema mismatch NOT VERIFIED; prospective OOS IN PROGRESS / NOT CERTIFIED; funding/mark/liquidation and Kotlin parity pending.
+
+Next safe work R22.6: use the verified pre-holdout archive's historical canonical M15 file and pinned Freqtrade 2026.9 DataKitchen to compare all 20 native expanded feature values against the Phase13/15 strategy reconstruction over the complete historical 180-day dataset. No model loading, training, backtest, exchange access, holdout reads, T0 access, or live execution.
