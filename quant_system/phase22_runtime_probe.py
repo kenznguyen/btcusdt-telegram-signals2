@@ -124,6 +124,9 @@ def build_runtime_feature_columns(
         populated.copy(),
         metadata={"pair": pair},
     )
+    # Match the original backtest training path: Freqtrade removes ":" from
+    # feature names after feature engineering and before model fitting.
+    populated = kitchen.remove_special_chars_from_feature_names(populated)
     return [column for column in populated.columns if column.startswith("%")]
 
 
