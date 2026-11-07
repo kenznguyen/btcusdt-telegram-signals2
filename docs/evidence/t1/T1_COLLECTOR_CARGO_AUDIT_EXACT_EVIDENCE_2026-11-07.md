@@ -128,3 +128,22 @@ Safety limits remain: no collector process, no Binance DNS/TCP/WebSocket connect
 - Corrective workflow step now uses exact package IDs (including versions) and no feature-tree output mode: cargo tree --locked --target all -i <crate@version> for all seven advisories. Fork source SHA 22900b860426a5c19622ec6b5ea3673646df2229; workflow blob SHA f966f0040533b28e97897200db0b4638129b349a. New PR run 42350687437 (security job 128337964057) and push run 42350684200 (security job 128337953368) are still IN_PROGRESS at the last poll; exact-version output and final conclusions NOT VERIFIED.
 - PR #1 remains OPEN / DRAFT / NOT MERGED. No manifest/lockfile dependency changes, audit suppressions, feature changes or gate weakening.
 - Next: wait for exact-version runs; verify quinn-proto@0.11.16 and webpki-roots@1.0.9 paths without ambiguous specs; record final checkout SHA, tests, audit/npm and artifact results. Only then propose narrow Cargo-resolver-generated remediation.
+
+
+## 2026-11-07 Addendum — Exact-version all-target dependency diagnostics completed
+
+- Collector fork source SHA: `22900b860426a5c19622ec6b5ea3673646df2229`; pinned upstream base: `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- PR run [42350687437](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42350687437), security job `128337964057`, checked out synthetic merge SHA `ac53d7b672e91590f16e555f2ef0ffd232ab905c`. Push run [42350684200](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42350684200), security job `128337953368`, checked out source SHA `22900b860426a5c19622ec6b5ea3673646df2229`.
+- Both runs: collector library 40/40, binary 1/1, sidecar writer 11/11; Rust format/Clippy/build, dashboard backend/frontend and Docker PASS. Security FAIL at cargo-audit with 12 vulnerabilities + 2 warnings among 248 locked packages. npm audit high/dev steps SKIPPED after cargo-audit failure. Both runs returned no artifacts.
+- Exact all-target reverse paths:
+  - `rustls@0.23.43`: `reqwest 0.13.1 → hyper-rustls 0.27.9`; also `tokio-tungstenite 0.30.0` via `tokio-rustls 0.26.4`.
+  - `rustls-webpki@0.103.14`: via `rustls 0.23.43` and `rustls-platform-verifier 0.6.2 → reqwest 0.13.1`.
+  - `webpki-root-certs@1.0.9`: `rustls-platform-verifier 0.6.2 → reqwest 0.13.1`.
+  - `webpki-roots@1.0.9`: direct through `reqwest 0.13.1`; separate `webpki-roots 0.26.11` is also present via `tokio-tungstenite 0.30.0`. Exact package query removes prior version ambiguity.
+  - `tokio@1.53.1`: direct collector dependency and indirect paths via `hyper-util 0.1.20 → reqwest 0.13.1`, `tokio-tungstenite 0.30.0`, and related Hyper/Tower packages.
+  - `chacha20@0.10.1`: `rand 0.10.2 → tungstenite 0.30.0 → tokio-tungstenite 0.30.0`.
+  - `quinn-proto@0.11.16`: command exited 0 but emitted only `warning: nothing to print`; no reverse path was emitted. Reachability remains **NOT VERIFIED**; the workflow's PRESENT marker is not valid evidence.
+- Audit finding counts and IDs remain unchanged from the verified prior run: 12 vulnerabilities + 2 warnings. The exact-version diagnostics do not prove runtime execution or exploitability; they establish resolved all-target graph paths only.
+- Verdict: reverse paths verified for six package IDs; quinn-proto path NOT VERIFIED; security gate BLOCKED; dependency remediation NOT STARTED. No Cargo.toml/Cargo.lock changes, feature changes, audit suppressions or gate weakening.
+- PR #1 remains OPEN / DRAFT / NOT MERGED. No collector runtime integration, Binance connection, database access, capture, or live execution.
+- Next: investigate quinn-proto package resolution separately (including Cargo.lock package metadata and target/feature-specific dependency edges); then build a narrow Cargo-resolver-generated remediation plan for reachable advisory packages and validate compatibility before changing dependencies.
