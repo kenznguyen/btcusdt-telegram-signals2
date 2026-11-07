@@ -10,7 +10,8 @@ from pathlib import Path
 
 
 INTERVAL_MS = {"15m": 900_000, "1h": 3_600_000}
-MAX_CANDLES = 3000  # 30 days of M15 (2880) plus a bounded 120-candle margin
+MAX_CANDLES = 2000  # Maximum ingestion/sync window; keep write-side bounds unchanged
+MAX_READ_CANDLES = 3000  # 30 days of M15 (2880) plus a bounded 120-candle margin
 MAX_TIMESTAMP = 2**63 - 1
 EXCHANGE, MARKET_TYPE, SYMBOL = "binance", "USDT_PERPETUAL", "BTCUSDT"
 PRICE_FIELDS = ("open", "high", "low", "close", "volume")
@@ -101,7 +102,7 @@ def read_window(db_path, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
         raise ValueError("Unsupported market or timeframe")
     start, end = _integer(start_ms), _integer(end_ms)
     interval = INTERVAL_MS[timeframe]
-    if start % interval or end % interval or not 0 < end - start <= MAX_CANDLES * interval:
+    if start % interval or end % interval or not 0 < end - start <= MAX_READ_CANDLES * interval:
         raise ValueError("Window must be aligned, nonempty and bounded")
     if as_of_ms is not None:
         _integer(as_of_ms)
