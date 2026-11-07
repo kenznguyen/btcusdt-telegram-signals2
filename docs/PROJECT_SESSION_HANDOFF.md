@@ -6007,3 +6007,14 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Exact-source push workflow [42422915571](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42422915571) and PR workflow [42422919187](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42422919187) are QUEUED; GREEN is NOT VERIFIED.
 - Status: regression remains the correct guard; fix is implemented, **NOT VERIFIED** pending both exact-source CI results. No artifacts known yet.
 - Next: poll both workflows; require all five jobs, especially Sidecar offline tests 8/8, to pass on exact SHA `06569651833ea6e3b623f1ed75b05e518e41bbd9`. If failed, inspect the exact step logs before changing code. PR #1 remains OPEN / DRAFT / NOT MERGED. No Collector runtime, Binance access, DB, market capture, T0 edits, or live execution.
+
+
+## T1 empty-sidecar validator — exact-source CI GREEN (2026-11-08)
+- Final source / PR head SHA: `06569651833ea6e3b623f1ed75b05e518e41bbd9`.
+- Regression sequence: test-only SHA `4a55f6dbf7d381892c48506d7f9a88597120da74` proved RED: empty file incorrectly classified as `UnsealedValid { sidecar_bytes: 0, event_count: 0 }`. The minimal first fix SHA `85b7725e6e35d0704c0dd4dc949096af61ecd62f` rejected it but returned `InvalidInput`; exact-source CI correctly caught the error-kind mismatch (7/8 Sidecar unit tests). Final correction constructs `io::ErrorKind::InvalidData` directly for this malformed capture condition.
+- Exact-source push workflow [42422915571](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42422915571): **SUCCESS, 5/5 jobs** — Collector, Dashboard backend, Dashboard frontend, Docker, Security. Collector steps Format, Clippy, Build, workspace Test, Sidecar writer format, Sidecar writer Clippy and Sidecar offline tests all PASS. Sidecar offline tests **8/8**; integration tests **27/27**. Regression `rejects_empty_sidecar_instead_of_classifying_it_as_unsealed_valid` PASS.
+- PR workflow [42422919187](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42422919187): **SUCCESS, 5/5 jobs**. PR workflow uses GitHub's PR validation/merge context; treat push run as the exact-head source verification.
+- Artifacts: none published by either workflow.
+- PR #1 remains OPEN / DRAFT / NOT MERGED; head SHA matches `06569651833ea6e3b623f1ed75b05e518e41bbd9`. No merge or draft-status change performed.
+- Verdict: empty-sidecar validation inconsistency **PASS at source + exact-head CI level**. This does not establish operational readiness, hostile-filesystem TOCTOU safety, or non-Unix file identity behavior.
+- Next: continue T1 offline contract review / risk assessment from the existing PR state; before any further behavior change, define a concrete invariant and add a regression test first. No Collector runtime, Binance access, DB, market capture, T0 edits, VPS deployment, or live execution. Keep `ai_execution_enabled=false`.
