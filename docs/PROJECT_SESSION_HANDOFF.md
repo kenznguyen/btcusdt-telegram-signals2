@@ -4186,3 +4186,16 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - PG-LC-01 is now **PASS** with a verified RED/GREEN cycle. Matrix updated in commit `e4e86612476e9630f98fad734175e044e48bd619`, blob `f37577650c74c72916c25809d987d493accbfd6b`.
 - Scope remained synthetic/disposable only. No provider/VPS, canonical T0 DB, production Feeder, exchange credentials, exchange connection, market-data sync, backup/DR, or live order activity occurred. `ai_execution_enabled=false` unchanged.
 - Next: continue with PG-LC-02, a focused test proving that a PostgreSQL connection exception during heartbeat/lease validation closes readiness and scheduler admission. Keep the PostgreSQL 16 role bootstrap BLOCKED and separate from this lifecycle pass.
+
+
+## 2026-11-07 — PG-LC-02 heartbeat connection-loss regression
+
+- Added `FeederRuntimeHeartbeatFailureTest.test_database_unavailable_during_heartbeat_closes_runtime_readiness` to `market_data/test_postgres_feeder_runtime.py`, commit/source SHA `be29c78a451c23b746da1e014b7f9675d12ed23a`, test blob `dba7b3a61b3963984c58309e7d334b61c0889256`.
+- The test injects `StoreUnavailable` on heartbeat after a successful synthetic lease acquisition and verifies state `LEASE_LOST`, scheduler stopped, health `mark_not_ready`, no lease release, and health snapshot `lease_valid=false`.
+- GitHub Actions run [42322039770](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42322039770), push event, exact head/checked-out SHA `be29c78a451c23b746da1e014b7f9675d12ed23a`.
+- Static job `128248620046`: SUCCESS; full market_data suite 235 tests, 37 skipped, OK; static contracts 10/10; behavioral/feeder regressions 63/63; health/readiness 21/21; process restart 2/2. Paper consumer job `128248620196`: SUCCESS.
+- Static artifact `13553276962`, size 10,688 bytes, GitHub digest `sha256:95d849d560435e295c1543edb02ed6e7c02b67c77c14e2d92141f85c6b434c8b`; downloaded ZIP independently hashed and matched.
+- Disposable TimescaleDB integration job `128248711729` had not yet progressed beyond container initialization at evidence capture. Therefore PG-LC-02 is **UNIT PASS / PostgreSQL integration NOT VERIFIED** on this SHA. Provider bootstrap continues to show the known PostgreSQL 16 role-membership blocker; do not weaken the guard.
+- Matrix update commit `3ece1952899a4bfebf87ac2bd48f15e1516720ba`, blob `ac773e861a4b78eacb928775df4b519a2f73ab9f`.
+- No runtime code change in this increment; no provider/VPS/canonical DB/production Feeder/exchange/data-sync/Backup-DR activity.
+- Next: finish exact-SHA integration reconciliation for run `42322039770`. If the TimescaleDB job remains blocked by CI infrastructure, record it as INTERRUPTED/NOT VERIFIED rather than assuming pass. Then select PG-LC-03 (disconnect during in-flight writer transaction) only after the current run's evidence is reconciled.
