@@ -5292,3 +5292,19 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 
 
 - Follow-up CI trigger: created empty-tree validation commit `8e556f4522113696c8d8ee73e37dc774281505d6` (same tree/content as cleanup head `ce0026e7dbf7f5ba84af245090f5c366593d2913`) to ensure push CI runs after the lockfile-only resolver commit. Branch head is now `8e556f4522113696c8d8ee73e37dc774281505d6`; CI run [42354468267](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42354468267) is IN_PROGRESS on this exact SHA. At last inspection: dashboard backend tests PASS; dashboard frontend install PASS and build running; Rust collector and Docker running; cargo-audit running; npm audit steps not yet started. Final CI/security acceptance remains PENDING.
+
+
+## 2026-11-07 — T1 exact-head CI/security evidence (run 42354468267)
+
+- Repository: `kenznguyen/binance-futures-collector`; PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Branch: `feature/t1-connection-sidecar-integration-20261107`; exact PR head/source SHA `8e556f4522113696c8d8ee73e37dc774281505d6`; upstream/base SHA `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- GitHub Actions [run 42354468267](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42354468267), run #35, event push, conclusion SUCCESS. Collector job checkout log independently records the exact SHA. All 5 jobs completed SUCCESS: Docker `128349394935`; backend `128349394993`; security `128349395036`; Rust/sidecar `128349395086`; frontend `128349396641`.
+- Rust/Collector tests: library 40/40 PASS; binary 1/1 PASS. Sidecar offline tests 11/11 PASS; sidecar format and Clippy PASS. Rust fmt, Clippy and build PASS.
+- Dashboard backend: pytest 57 passed, 1 warning. Dashboard frontend: type-check/build PASS; Vitest 6/6 PASS. Docker collector/dashboard image build PASS.
+- Security: default/all-target dependency reachability diagnostics PASS; cargo-audit step SUCCESS scanning 248 locked dependencies; npm production audit PASS with 0 vulnerabilities.
+- Important npm caveat: full/dev audit ran but reported 6 dev-tree vulnerabilities (4 moderate, 2 high): @vitest/mocker/Vitest, baseline-browser-mapping, Browserslist and esbuild. Existing workflow marks this step informational/continue-on-error, so the overall security job is green despite these findings. Do not claim the full npm dependency tree is clean. esbuild remediation indicates a breaking Vite 8 upgrade with `npm audit fix --force`; no force upgrade was applied. Dev findings remain OPEN / require compatibility-aware scope review.
+- GitHub artifacts query returned none for this run.
+- Verdict: exact-head CI PASS (5/5); Rust cargo-audit PASS; npm production high-severity gate PASS; npm dev dependency posture CONDITIONAL / FINDINGS OPEN; T1 operational readiness NOT VERIFIED.
+- PR description updated with exact source/run/job/test/audit evidence and remaining dev-only findings.
+- No source runtime changes, no Tokio writer integration, no Collector startup, no Binance connection, DB access, market capture, merge, or live execution. No advisory ignore or workflow weakening. Keep `ai_execution_enabled=false`.
+- Next: assess the six dev dependency findings and identify a minimal resolver-generated lockfile-only remediation without `--force`, breaking Vite upgrades, app source or package manifest changes. Do not integrate runtime writer or start Collector until this is reviewed and separately authorized.
