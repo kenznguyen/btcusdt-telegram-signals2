@@ -1,0 +1,56 @@
+name: R22.6 Historical FreqAI DataKitchen feature replay
+
+on:
+  push:
+    branches:
+      - feature/dual-strategy-phase22-preholdout-attestation-20261031
+    paths:
+      - "quant_system/phase22_historical_feature_replay.py"
+      - "quant_system/test_phase22_historical_feature_replay.py"
+      - "research_evidence/phase14-frozen-original-evidence.zip"
+      - "research_evidence/frozen-model/phase13b-20261104/model-candidate-metadata.json"
+      - "freqai_bridge/config.okx-research.json"
+      - ".github/workflows/r22-6-native-datakitchen-replay.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay-historical-features:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact source without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up isolated Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: "requirements*.txt"
+
+      - name: Install exact pinned Freqtrade FreqAI runtime
+        run: python -m pip install "freqtrade[freqai]==2026.9"
+
+      - name: Run synthetic DataKitchen regression tests
+        run: python -m unittest quant_system.test_phase22_historical_feature_replay -v
+
+      - name: Replay native DataKitchen against pre-holdout canonical 180d candles
+        run: |
+          python -m quant_system.phase22_historical_feature_replay \
+            --archive research_evidence/phase14-frozen-original-evidence.zip \
+            --config freqai_bridge/config.okx-research.json \
+            --metadata research_evidence/frozen-model/phase13b-20261104/model-candidate-metadata.json \
+            --out /tmp/r22-6-historical-feature-replay.json
+
+      - name: Publish exact-source historical feature report
+        uses: actions/upload-artifact@v4
+        with:
+          name: r22-6-historical-datakitchen-replay-${{ github.sha }}
+          path: /tmp/r22-6-historical-feature-replay.json
+          if-no-files-found: error
+          retention-days: 14
