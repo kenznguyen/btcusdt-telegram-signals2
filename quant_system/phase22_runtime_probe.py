@@ -42,6 +42,17 @@ def canonical_sha(value: dict) -> str:
     return "sha256:" + hashlib.sha256(raw.encode("utf8")).hexdigest()
 
 
+def runtime_config_snapshot(config: dict) -> dict:
+    """Match ChartProAuditLightGBMRegressor's historical freeze snapshot."""
+    return {
+        "freqai": config["freqai"],
+        "exchange": {"name": config["exchange"]["name"]},
+        "timeframe": config["timeframe"],
+        "dry_run": config["dry_run"],
+        "force_entry_enable": config["force_entry_enable"],
+    }
+
+
 def expected_expanded_features(pair: str, timeframe: str, periods: list[int],
                                shifts: int) -> list[str]:
     normalized_pair = pair.replace(":", "")
@@ -68,9 +79,8 @@ def build_runtime_config(raw: dict) -> dict:
     """Remove startup/retraining controls; probe only the configuration loader."""
     safe = json.loads(json.dumps(raw))
     safe["initial_state"] = "stopped"
-    safe["force_entry_enable"] = False
-    safe["dry_run"] = True
-    safe["freqai"].pop("live_retrain_hours", None)
+    # Preserve all fields included in the historical config hash. Loading a
+    # stopped configuration does not start the bot or its FreqAI retraining.
     return safe
 
 
@@ -81,20 +91,11 @@ def run_probe() -> dict:
 
     raw = json.loads(CONFIG_PATH.read_text(encoding="utf8"))
     metadata = json.loads(METADATA_PATH.read_text(encoding="utf8"))
-    snapshot = {
-        "freqai": raw["freqai"],
-        "exchange": {"name": raw["exchange"]["name"]},
-        "timeframe": raw["timeframe"],
-        "dry_run": raw["dry_run"],
-        "force_entry_enable": raw["force_entry_enable"],
-    }
-    config_sha = canonical_sha(snapshot)
-    freqai_sha = canonical_sha(snapshot["freqai"])
-    if config_sha != metadata["config_sha256"] or freqai_sha != metadata["freqai_config_sha256"]:
-        raise AssertionError("PHASE22_EFFECTIVE_CONFIG_HASH_MISMATCH")
 
-    # The Freqtrade loader parses a safe copy only; no bot, exchange or strategy
-    # lifecycle is started. No API credentials are injected.
+    # Resolve the same config object that Freqtrade exposes as self.config.
+    # The loader parses a stopped copy only; no bot, strategy, exchange, or
+    # retraining lifecycle is started. Keep FreqAI settings intact because
+    # they are part of the historical snapshot hash.
     from freqtrade.configuration import Configuration
     with tempfile.TemporaryDirectory(prefix="r22-config-") as temp:
         safe_path = Path(temp) / "config.json"
@@ -105,6 +106,14 @@ def run_probe() -> dict:
             raise AssertionError("PHASE22_RUNTIME_CONFIG_NOT_DRY_RUN")
         if loaded_config.get("force_entry_enable") is not False:
             raise AssertionError("PHASE22_RUNTIME_ENTRY_OVERRIDE_ENABLED")
+
+    # Historical ChartProAuditLightGBMRegressor._capture_phase13b_predict()
+    # hashes this exact five-field snapshot derived from self.config.
+    snapshot = runtime_config_snapshot(loaded_config)
+    config_sha = canonical_sha(snapshot)
+    freqai_sha = canonical_sha(snapshot["freqai"])
+    if config_sha != metadata["config_sha256"] or freqai_sha != metadata["freqai_config_sha256"]:
+        raise AssertionError("PHASE22_EFFECTIVE_CONFIG_HASH_MISMATCH")
 
     # Import the actual strategy against the pinned Freqtrade runtime and
     # execute only its pure feature-engineering methods on synthetic candles.
