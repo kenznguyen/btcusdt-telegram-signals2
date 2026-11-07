@@ -325,30 +325,60 @@ def probe_websocket(timeout=8):
     """Perform direct TLS WebSocket upgrade and receive one BTCUSDT kline event."""
     key = base64.b64encode(secrets.token_bytes(16)).decode("ascii")
     request = (
-        f"GET {WS_PATH} HTTP/1.1\r\n"
-        f"Host: {WS_HOST}\r\n"
-        "Upgrade: websocket\r\nConnection: Upgrade\r\n"
-        f"Sec-WebSocket-Key: {key}\r\n"
-        "Sec-WebSocket-Version: 13\r\n"
-        "User-Agent: T0-read-only-connectivity-probe/1.0\r\n\r\n"
+        f"GET {WS_PATH} HTTP/1.1\\r\\n"
+        f"Host: {WS_HOST}\\r\\n"
+        "Upgrade: websocket\\r\\nConnection: Upgrade\\r\\n"
+        f"Sec-WebSocket-Key: {key}\\r\\n"
+        "Sec-WebSocket-Version: 13\\r\\n"
+        "User-Agent: T0-read-only-connectivity-probe/1.0\\r\\n\\r\\n"
     ).encode("ascii")
     started = time.monotonic()
+    stage = "TCP_CONNECT"
+    status = None
     try:
         raw = socket.create_connection((WS_HOST, WS_PORT), timeout=timeout)
+        stage = "TLS_HANDSHAKE"
         with raw:
             raw.settimeout(timeout)
             with ssl.create_default_context().wrap_socket(raw, server_hostname=WS_HOST) as secure:
+                stage = "HTTP_UPGRADE"
                 secure.sendall(request)
-                received = _recv_until(secure, b"", b"\r\n\r\n")
+                received = _recv_until(secure, b"", b"\\r\\n\\r\\n")
                 accepted, status, remainder = parse_http_upgrade(received, key)
                 if not accepted:
-                    return {"status": status, "classification": classify_http_status(status) if status else "INVALID_HANDSHAKE", "latency_ms": round((time.monotonic() - started) * 1000, 2), "event_valid": False}
+                    return {
+                        "status": status,
+                        "stage": stage,
+                        "classification": classify_http_status(status) if status else "INVALID_HANDSHAKE",
+                        "latency_ms": round((time.monotonic() - started) * 1000, 2),
+                        "event_valid": False,
+                    }
+                status = 101
+                stage = "WAITING_FOR_KLINE_EVENT"
                 payload = _receive_kline_event(secure, remainder)
                 event = json.loads(payload)
                 event_valid = validate_kline_event(event)
-                return {"status": 101, "classification": "REACHABLE", "latency_ms": round((time.monotonic() - started) * 1000, 2), "event_valid": event_valid}
+                return {
+                    "status": 101,
+                    "stage": "KLINE_EVENT_RECEIVED",
+                    "classification": "REACHABLE",
+                    "latency_ms": round((time.monotonic() - started) * 1000, 2),
+                    "event_valid": event_valid,
+                }
     except Exception as error:
-        return {"status": None, "classification": _network_error_kind(error), "error_type": type(error).__name__, "latency_ms": round((time.monotonic() - started) * 1000, 2), "event_valid": False}
+        timed_out_waiting_for_event = (
+            stage == "WAITING_FOR_KLINE_EVENT"
+            and isinstance(error, (TimeoutError, socket.timeout))
+        )
+        return {
+            "status": status,
+            "stage": stage,
+            "classification": "EVENT_TIMEOUT" if timed_out_waiting_for_event else _network_error_kind(error),
+            "error_type": type(error).__name__,
+            "error_detail": " ".join(str(error).split())[:240],
+            "latency_ms": round((time.monotonic() - started) * 1000, 2),
+            "event_valid": False,
+        }
 
 
 def run_probe(timeout=8):
