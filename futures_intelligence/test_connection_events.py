@@ -80,13 +80,13 @@ class ConnectionEventContractTest(unittest.TestCase):
 
     def test_remote_close_inside_half_open_window_is_disconnected(self):
         events = self.healthy_events()
-        events.append(self.event("e10", "DISCONNECTED", START + 50_000, reason="REMOTE_CLOSE"))
+        events.append(self.event("e10", "DISCONNECTED", START + 59_000, reason="REMOTE_CLOSE"))
         result = self.validate(events)
         self.assertEqual(result["connectionStatus"], "DISCONNECTED")
 
     def test_transport_error_is_recorded_as_disconnect_reason(self):
         events = self.healthy_events()
-        events.append(self.event("e10", "DISCONNECTED", START + 50_000, reason="TRANSPORT_ERROR"))
+        events.append(self.event("e10", "DISCONNECTED", START + 59_000, reason="TRANSPORT_ERROR"))
         result = self.validate(events)
         self.assertEqual(result["connections"][0]["disconnectReason"], "TRANSPORT_ERROR")
 
@@ -94,7 +94,7 @@ class ConnectionEventContractTest(unittest.TestCase):
         events = self.healthy_events()
         events.extend([
             self.event("e10", "DISCONNECTED", START + 50_000, reason="REMOTE_CLOSE"),
-            self.event("e11", "RECONNECT_SCHEDULED", START + 51_000, attempt=1, delayMs=2_000),
+            self.event("e11", "RECONNECT_SCHEDULED", START + 59_500, attempt=1, delayMs=2_000),
         ])
         result = self.validate(events)
         self.assertEqual(result["connections"][0]["reconnectAttempt"], 1)
