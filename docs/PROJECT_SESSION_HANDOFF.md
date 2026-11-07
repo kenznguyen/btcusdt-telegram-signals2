@@ -5439,3 +5439,19 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - R3 implementation and exact PR-head CI: **PASS**. T1 operational readiness: **NOT VERIFIED**.
 - No Collector startup, Binance connection, database access, market capture, merge, or live execution. Keep `ai_execution_enabled=false`. T0 code was not modified.
 - Next permitted task: R4 documentation-only clarification that durable sidecar writes and a caller-supplied completeness watermark do not prove complete market-data capture. Keep PR Draft; no runtime integration or activation without separate explicit approval.
+
+
+## 2026-11-07 — T1 R4 documentation clarification (CI pending)
+- T1 repository: `kenznguyen/binance-futures-collector`; PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Documentation commit/source SHA: `a173a5adb678f4f007763a7f92ea36d8d8348ae6`; file: `crates/connection-sidecar/README.md`.
+- Clarifies three separate claims: durable sidecar event persistence; structural JSONL/manifest consistency; independently evidenced market-data completeness.
+- Explicitly states `capture_complete_through_ms` is caller-supplied and checked only for local timestamp ordering. It is not independently verified against Binance, market-data files, stream sequence IDs, gap registries, or downstream ingestion.
+- Clarifies `capture_finalized=true` / `SealedConsistent` do not certify market-data completeness; `UnsealedValid` or missing manifest is not completion. Adds examples of separate downstream coverage checks and safe status vocabulary.
+- Scope is documentation only: no source code, tests, schema, runtime behavior, or integration changed.
+- Exact source SHA Actions:
+  - PR run [42362505671](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42362505671).
+  - Push run [42362501041](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42362501041).
+  - Both target exact SHA `a173a5adb678f4f007763a7f92ea36d8d8348ae6`. At handoff update time backend and frontend jobs had passed where complete; collector, security, and Docker jobs were still running. R4 CI: **NOT VERIFIED / IN PROGRESS**.
+- PR description updated with R4 scope and pending CI status; PR remains OPEN / DRAFT / NOT MERGED.
+- T1 operational readiness remains NOT VERIFIED. No Collector startup, Binance connection, DB access, market capture, merge, or live execution. Keep `ai_execution_enabled=false`. T0 code unchanged.
+- Next: poll exact-head runs 42362505671 and 42362501041; record all job outcomes and final R4 verdict. No runtime integration or activation without separate explicit approval.
