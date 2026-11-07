@@ -6072,3 +6072,24 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Status: workflow edit committed; syntax/build/test/artifact publication **NOT VERIFIED** pending exact-source push run. No T1 binary downloaded to VPS, no runtime configuration created, no Collector process started, no Binance capture, and no T0 change.
 - Next: poll run 42424240328. Require all five jobs to pass and verify artifact name, ID, size, source SHA association, and SHA-256 before providing deployment commands. If CI fails, inspect logs and change only the demonstrated issue. PR #1 remains OPEN / DRAFT / NOT MERGED.
 - Hard limits unchanged: BTCUSDT only, public market data, no API key, no Dashboard, separate T1 data path, preserve at least 2 GiB free disk, no proxy/VPN, no T0 modification, no live trading.
+
+
+## T1 Linux binary artifact — CI verified (2026-11-08)
+
+- Exact T1 source/workflow SHA: `d8ac9fc820dcf2e912e66518a1a1c73a8fa81ac7`.
+- Push workflow [42424240328](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42424240328): COMPLETED / SUCCESS. All 5 jobs passed:
+  - Collector fmt, Clippy, release build, workspace tests, Sidecar format/Clippy/offline tests, artifact preparation and upload.
+  - Dashboard backend tests.
+  - Dashboard frontend type-check/build/tests.
+  - Docker image build.
+  - Security diagnostics and audits.
+- Artifact API confirms exactly one non-expired artifact:
+  - ID: `13594961114`
+  - Name: `t1-collector-linux-x86_64-d8ac9fc820dcf2e912e66518a1a1c73a8fa81ac7`
+  - Size: 4,186,783 bytes.
+  - Created: `2026-11-07T23:14:52Z`; expires: `2026-11-14T23:14:51Z`.
+  - Associated workflow run: `42424240328`, branch `feature/t1-connection-sidecar-integration-20261107`, exact head SHA above.
+- Artifact is a workflow ZIP containing the standalone Collector binary and `SHA256SUMS`. The checksum has not yet been independently read/verified on VPS.
+- Status: CI build + artifact publication **PASS**. Artifact download to VPS and checksum verification **NOT VERIFIED**. T1 runtime **NOT RUN**. T0 unchanged.
+- Next: download artifact using authenticated GitHub Actions access (repo read / Actions artifact read permission), unpack under a new T1-only directory, run `sha256sum -c SHA256SUMS`, verify binary architecture and `--version`, then inspect a BTCUSDT-only config and storage guard before any capture.
+- No Collector start, no market capture, no T0 modification, no PR merge, no Draft → Ready transition, and no trading.
