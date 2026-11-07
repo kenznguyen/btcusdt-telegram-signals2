@@ -183,5 +183,64 @@ class PostgresFeederRuntimeLifecycleIntegrationTest(unittest.TestCase):
             second.stop(timeout=3)
 
 
+@unittest.skipUnless(DSN, "Set the disposable local TimescaleDB test service")
+class PostgresConnectionTimeoutContractTest(unittest.TestCase):
+    def test_connection_timeout_bounds_concurrent_unresponsive_handshakes(self):
+        import socket
+        import threading
+        from concurrent.futures import ThreadPoolExecutor
+        from market_data.postgres import StoreUnavailable, connection
+
+        connection_count = 3
+        listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(connection_count)
+        listener.settimeout(8)
+        port = listener.getsockname()[1]
+        release_server = threading.Event()
+        accepted = []
+        server_errors = []
+
+        def hold_startup_handshakes():
+            try:
+                for _ in range(connection_count):
+                    client, _ = listener.accept()
+                    accepted.append(client)
+                release_server.wait(8)
+            except Exception as error:
+                server_errors.append(error)
+            finally:
+                for client in accepted:
+                    client.close()
+                listener.close()
+
+        server = threading.Thread(target=hold_startup_handshakes, daemon=True)
+        server.start()
+        dsn = (
+            f"postgresql://timeout_test:timeout_test@127.0.0.1:{port}/t0_timeout"
+            "?sslmode=disable"
+        )
+
+        def attempt_connection():
+            with connection(dsn):
+                self.fail("unresponsive PostgreSQL handshake unexpectedly succeeded")
+
+        started = time.monotonic()
+        try:
+            with ThreadPoolExecutor(max_workers=connection_count) as pool:
+                futures = [pool.submit(attempt_connection) for _ in range(connection_count)]
+                for future in futures:
+                    with self.assertRaises(StoreUnavailable):
+                        future.result(timeout=7)
+            elapsed = time.monotonic() - started
+            self.assertEqual(len(accepted), connection_count)
+            self.assertLess(elapsed, 7.0)
+            self.assertFalse(server_errors)
+        finally:
+            release_server.set()
+            server.join(timeout=1)
+
+
 if __name__ == "__main__":
     unittest.main()
