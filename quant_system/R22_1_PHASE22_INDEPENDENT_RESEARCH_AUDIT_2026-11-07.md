@@ -1,0 +1,116 @@
+# R22.1 — Phase 22 Independent Research Audit
+
+Date: 2026-11-07 (Asia/Ho_Chi_Minh)
+
+## Scope
+
+Read-only source and provenance audit of the frozen Phase 22 LightGBM research line. This increment does not install packages, invoke Freqtrade, access T0, run backtests, train/tune models, open the prospective holdout, alter strategy/model/configuration, or enable execution.
+
+Repository: `kenznguyen/btcusdt-telegram-signals2`
+Branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`
+Inspected source commit: `f0a66386c53afe0cbc5de1e182c83beed2b17600`
+Project handoff read from default branch; blob SHA: `3e021fb5f1c37392a497b1fc684e2fc388b363c8`.
+
+## Immutable baseline
+
+- Model identifier: `chart-pro-okx-shadow-v1`.
+- Frozen model bundle SHA-256: `918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f`.
+- Source commit bound by model metadata: `082edc082996425f61f48c952be41fb037564103`.
+- Metadata effective config hash: `c253091852b704c00fa33bd6fceb69fb4d480630da1645e3e35ebea13888bb72`.
+- Metadata effective FreqAI config hash: `a716c80fbb78b8d4bc8b436136912e93e6988a8cdf8d7d1945e8f512bcd6d852`.
+- Ordered feature schema: 20 columns.
+- Research venue: OKX USDT perpetual, `BTC/USDT:USDT`; M15 strategy timeframe, 5m detail.
+- Prospective holdout protocol: `2026-11-04T00:00:00Z` to `2026-12-04T00:00:00Z`. At this audit date the holdout is still in progress. No OOS certification is claimed.
+
+The frozen bundle, previous backtest outputs, Strategy Core and model metadata were not modified.
+
+## Source-level findings
+
+### 1. Historical configuration
+
+Inspected `freqai_bridge/config.okx-research.json` (blob `bbccccb8fd6688c8b5b27fa6160b8068f3103f35`):
+
+- `freqtrade[freqai]` version pin is `2026.9`.
+- OKX isolated USDT futures; M15; BTC/USDT:USDT.
+- `dry_run=true`, `force_entry_enable=false`.
+- FreqAI: `train_period_days=30`, `backtest_period_days=7`, label horizon 4 candles, shifted candles 2, indicator periods 14 and 28, `test_size=0.2`, `shuffle=false`.
+- The historical config also contains `live_retrain_hours=1` and `initial_state=running`. It is NOT SAFE TO START as-is. Do not start this config or a FreqAI process for this audit.
+
+The historical Phase13B workflow passed this OKX config path to `quant_system.native_research`. This is source-level evidence of intended configuration, not proof of the exact runtime-resolved config used by the original run.
+
+### 2. Label construction and split purge
+
+Inspected:
+- `freqai_bridge/ChartProFreqaiResearch.py`, blob `0ddaabca32e678bd1c6e181146c2f1418941c133`.
+- `freqai_bridge/ChartProAuditLightGBMRegressor.py`, blob `83e93704ebc0c4a37054fe891e7cc2eff0121490`.
+- `quant_system/phase12_purge.py`, blob `768a66362d5e78a21b2648eb258d3cd66e0a7956`.
+- `quant_system/phase12_sample_identity.py`, blob `6823b56fa203b382fdd90d4519c3e1a6630af1c2`.
+- `quant_system/phase12_training_audit.py`, blob `a8fc3cb0a2404650f84774ac10e87e8fb6f8cca2`.
+
+Observed controls:
+- Target is future close return using `close.shift(-horizon) / close - 1`; configured horizon is 4 M15 candles.
+- The instrumentation intercepts the actual FreqAI train/test split and removes training rows whose label end reaches or crosses the first test feature opening, before the fitted feature/label scalers and LightGBM fit call.
+- The split is required to be chronological and non-shuffled; the test fraction is fixed at 20%.
+- The training audit reconstructs label values against candle prices and checks train/test timestamp separation and the four-candle label boundary.
+
+Important limitation:
+- This purge addresses label overlap at the internal fold train/test boundary. It does NOT turn that internal 20% test partition into an independent prospective OOS test.
+- The training audit itself records blockers for full feature causality and independent OOS proof. It explicitly sets `oos_certified=false`.
+
+### 3. Feature and matrix evidence
+
+Feature source uses:
+- Relative close to rolling mean.
+- Relative volume to rolling mean.
+- Percentage change and raw volume.
+- Day-of-week and hour-of-day.
+- FreqAI expands features using configured timeframes, periods and shifted candles.
+
+The visible feature expressions are causal by inspection (rolling/current and past observations, no explicit negative shift). This is NOT a complete feature-causality proof: effective expanded column ordering, pipeline behavior, all actual fit/predict matrices and every transform boundary still require runtime evidence.
+
+Inspected `quant_system/phase13b_matrix.py`, blob `9550c6b69c0732703d85b070006217cb4b2a355c`. It captures actual LightGBM fit/eval matrices and prediction features/flags, but its own module contract says capture is evidence, not proof of scaler/feature causality or OOS.
+
+### 4. Effective configuration hash
+
+Inspected `quant_system/phase13b_freeze.py`, blob `1add637dea547e6d85f0525f7ce0d23e57d6a95d`, and the custom model instrumentation.
+
+The metadata hashes canonical JSON objects derived from effective runtime configuration, not raw JSON file bytes. The historical raw OKX config SHA-256 is `81229b2321adc1345735e476051dec3e9df6065944b2cff6d5cb8dbad8a41e7d`; it is not comparable to either metadata runtime hash. Effective config hash reproduction remains NOT VERIFIED.
+
+## Findings and status
+
+| Audit item | Status | Reason |
+|---|---|---|
+| Frozen model identity and immutable baseline | PASS — metadata scope | Exact model ID and bundle/config hashes recorded in existing evidence |
+| Historical OKX config intent | SOURCE-VERIFIED | Historical workflow passes the OKX config path; actual resolved runtime object not retained here |
+| Label horizon and target definition | SOURCE-VERIFIED | Four M15 candles; forward close-return target |
+| Internal train/test label purge | SOURCE-VERIFIED | Explicit chronological purge before scaler/model fit |
+| Label value reconstruction controls | SOURCE-VERIFIED | Audit checks raw labels against candle prices and timestamps |
+| Feature causality | NOT VERIFIED | Source expressions look causal, but full effective feature/pipeline runtime is not independently proven |
+| Effective Freqtrade config hashes | NOT VERIFIED | Requires pinned 2026.9 loader/runtime object or original captured snapshot |
+| Historical run reproducibility | NOT VERIFIED | Original full run logs/artifacts/runtime environment not independently replayed in this increment |
+| Prospective OOS | IN PROGRESS / NOT CERTIFIED | Holdout closes 2026-12-04 UTC |
+| Current Freqtrade runtime | NOT RUN | No package install or CLI invocation authorized/performed |
+
+## CI evidence boundary
+
+Current inspected source commit `f0a66386c53afe0cbc5de1e182c83beed2b17600` has GitHub Actions run `42315157767` for the F1 T0-to-Freqtrade adapter workflow, conclusion SUCCESS. This is unrelated to Phase 22 model/runtime acceptance and is not counted as Phase 22 test evidence.
+
+Previously recorded Phase 22 unit tests (15/15 PASS) remain historical test evidence only; this R22.1 audit did not rerun them and does not upgrade them into runtime/OOS certification.
+
+## Next steps
+
+1. Recover original Phase 22 run manifest, complete logs, artifact inventory and effective runtime config snapshot, if retained. Verify each against exact source/data/model hashes.
+2. If the original effective config snapshot is unavailable, request separate approval for a disposable GitHub Actions job pinned to `freqtrade[freqai]==2026.9`. It must use synthetic/local fixtures only, contain no exchange credentials, make no network exchange calls, not start a strategy, not start retraining, and not access T0.
+3. Independently verify the complete effective feature schema and transform order against actual pinned runtime matrices.
+4. Preserve the existing holdout boundary. Do not tune, retrain, select features, or change thresholds using holdout observations before its close.
+5. Only after these checks, decide whether a controlled historical reproduction is justified. Any new model or research run must use a separate version, dataset manifest and output directory; never overwrite the frozen baseline.
+
+## Safety boundary
+
+- T0 remains PAUSED and untouched.
+- Strategy Core, Phase 22 frozen bundle, historical backtests and model parameters remain unchanged.
+- T1 Shared Risk Engine and paper ledger remain untouched.
+- `AI_EXECUTION_ENABLED=false`; native Freqtrade entries remain disabled.
+- No paper runtime, exchange connection, live order, production database, deployment or VPS operation was performed or authorized.
+
+Overall R22.1 disposition: **PARTIAL PASS — SOURCE AUDIT ONLY**. Historical runtime reproducibility, complete feature causality, effective config hash reproduction and OOS remain NOT VERIFIED.
