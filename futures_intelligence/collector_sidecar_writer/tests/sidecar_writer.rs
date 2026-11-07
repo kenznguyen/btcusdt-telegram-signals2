@@ -187,9 +187,9 @@ fn refuses_empty_or_duplicate_subscription_sets() {
     let path = temp_path("subscriptions");
     let mut empty = identity(Route::Public);
     empty.subscriptions.clear();
-    assert!(SidecarWriter::create(&path, SOURCE, SESSION).unwrap()
-        .connected(&empty, START).is_err());
-    drop(fs::File::open(&path).unwrap());
+    let mut empty_writer = SidecarWriter::create(&path, SOURCE, SESSION).unwrap();
+    assert!(empty_writer.connected(&empty, START).is_err());
+    drop(empty_writer);
     fs::remove_file(&path).unwrap();
 
     let path = temp_path("duplicate-subscriptions");
