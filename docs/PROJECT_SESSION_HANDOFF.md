@@ -4613,3 +4613,16 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - Binance/OKX parity NOT RUN; current OKX backtest source unchanged.
 - Canonical SQLite NOT CREATED; ingestion NOT RUN; Feeder STOPPED; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
 - Next: finish exact Freqtrade strategy-load smoke, then bounded Binance/OKX parity.
+
+
+### Freqtrade/FreqAI 2026.9 strategy-load smoke — PASS (2026-11-07)
+
+- Workflow [42332039353](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42332039353): final SUCCESS; exact SHA `c15fff327bb5da25a571a8ae654c728a7d22a2b4`.
+- Official image `freqtradeorg/freqtrade:2026.9_freqai` verified version `freqtrade 2026.9`.
+- `freqtrade list-strategies` discovered `ChartProFreqaiResearch` with status **OK**.
+- Artifact `13558216419`; digest `sha256:87c364ae3937aae1b9769029753bac22fa8b3733c27a4fda9430a7c278f4d263`.
+- Strategy discovery was performed with source mounted read-only, isolated temporary Freqtrade user-data directory, no exchange credentials, no exchange sync, no canonical DB, no training and no orders.
+- This proves framework/strategy import only. FreqAI training, real model provenance/prediction and Binance/OKX parity remain NOT RUN.
+- Next: inspect authoritative T2 OKX dataset provenance and T0 Binance sample coverage; prepare a bounded comparison report while preserving current OKX backtest input.
+- T0 integration workflow `42331669847` remains SUCCESS, all four jobs.
+- Canonical SQLite NOT CREATED; canonical ingestion NOT RUN; Feeder STOPPED; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
