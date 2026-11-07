@@ -388,3 +388,14 @@ User supplied successful read-only probe JSON.
 | T0 canonical dataset acceptance (96 M15 + 24 H1, repeat sync/hash/API checks) | NOT RUN / NOT VERIFIED |
 
 Next: prepare a separately reviewed and approved controlled-ingestion acceptance plan. This result does not authorize DB writes, canonical ingestion, Feeder startup, VPS deployment, or live execution. Keep ai_execution_enabled=false.
+
+
+## 2026-11-07 — Controlled Ingestion Acceptance offline contract (initial)
+
+- Scope: design and add isolated acceptance tests only. No canonical DB path, Binance network, credentials, Feeder runtime, persistence outside a temporary directory, VPS, or execution.
+- Added `market_data/test_controlled_ingestion_acceptance.py` in commit `0043231388d8f8447a0282e500f1f8e90372ca25`.
+- Contract covers a synthetic aligned 24-hour window: exactly 96 M15 candles and 24 H1 candles; second sync inserts zero rows; stable `datasetVersion`; read-only WSGI API HTTP 200 and hash equality against canonical read; conflicting duplicate causes whole-batch rollback.
+- Test fixture uses a temporary SQLite database, synthetic Binance USD-M-compatible exchange, and existing lease-fenced `SQLiteWriteGateway`. It does not invoke the production Feeder or live Binance.
+- Important boundary: this is a new test source commit, not a verified test result. GitHub Actions execution has not yet been observed for this commit; local execution was not available in this session.
+- Status: test source COMMITTED; test execution NOT VERIFIED; Controlled First Run NOT AUTHORIZED; canonical ingestion NOT RUN; Feeder STOPPED; `ai_execution_enabled=false`.
+- Next: run `python -m unittest market_data.test_controlled_ingestion_acceptance -v` and then the full `market_data` test discovery on the exact commit. Resolve any failures test-first. Only after CI evidence is captured should this contract be reviewed for completeness and the API/rollback acceptance extended if needed.
