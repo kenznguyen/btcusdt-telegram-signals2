@@ -93,7 +93,7 @@ class ConnectionEventContractTest(unittest.TestCase):
     def test_reconnect_schedule_requires_increasing_attempt_and_bounded_delay(self):
         events = self.healthy_events()
         events.extend([
-            self.event("e10", "DISCONNECTED", START + 50_000, reason="REMOTE_CLOSE"),
+            self.event("e10", "DISCONNECTED", START + 59_000, reason="REMOTE_CLOSE"),
             self.event("e11", "RECONNECT_SCHEDULED", START + 59_500, attempt=1, delayMs=2_000),
         ])
         result = self.validate(events)
@@ -104,7 +104,7 @@ class ConnectionEventContractTest(unittest.TestCase):
         events = self.healthy_events()
         events.extend([
             self.event("e10", "DISCONNECTED", START + 50_000, reason="REMOTE_CLOSE"),
-            self.event("e11", "RECONNECT_SCHEDULED", START + 51_000, attempt=1, delayMs=2_000),
+            self.event("e11", "RECONNECT_SCHEDULED", START + 59_500, attempt=1, delayMs=2_000),
         ])
         recovered = self.event("e12", "CONNECTED", END + 1_000)
         recovered["connectionId"] = "conn-2"
@@ -159,7 +159,8 @@ class ConnectionEventContractTest(unittest.TestCase):
             expected_connections=[{"batchId": 0, "route": "public"}],
         )
         self.assertEqual(result["connectionStatus"], "UNVERIFIABLE")
-        self.assertEqual(result["verifiedConnections"], 0)
+        self.assertEqual(result["verifiedConnections"], 1)
+        self.assertEqual({item["connectionStatus"] for item in result["connections"]}, {"VERIFIED_CONNECTED", "UNVERIFIABLE"})
 
 
 if __name__ == "__main__":
