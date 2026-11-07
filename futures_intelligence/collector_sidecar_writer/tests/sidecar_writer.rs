@@ -121,7 +121,9 @@ fn finalizes_manifest_with_exact_file_size_and_sha256() {
     writer
         .pong_received(&connection, "hb-1", START + 20)
         .unwrap();
-    writer.disconnected(&connection, DisconnectReason::Shutdown, START + 30).unwrap();
+    writer
+        .disconnected(&connection, DisconnectReason::Shutdown, START + 30)
+        .unwrap();
 
     let manifest = writer.finalize(START + 30, START + 40).unwrap();
     let bytes = fs::read(&path).unwrap();
