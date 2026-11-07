@@ -100,8 +100,9 @@ class T0T2ParityTest(unittest.TestCase):
         import struct
 
         expected = hashlib_module.sha256(
-            b"CHARTPRO-OHLCV-V2\0M15\0H1\0"
+            b"CHARTPRO-OHLCV-V2\0M15\0"
             + struct.pack(">q5d", START, 100.0, 102.0, 99.0, 101.0, 2.0)
+            + b"H1\0"
         ).hexdigest()
         self.assertEqual(chartpro_v2_hash(rows, []), "sha256:" + expected)
 
