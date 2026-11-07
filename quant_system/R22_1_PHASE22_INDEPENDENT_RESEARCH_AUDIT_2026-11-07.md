@@ -289,3 +289,62 @@ Final probe output:
 R22.3 disposition: PASS for reproducing the frozen post-schema-validation config hashes and the ordered 20-column feature schema using the pinned Freqtrade 2026.9 code and synthetic/local fixtures. This does not prove historical model retraining reproducibility, feature causality across the full historical dataset, scaler/transform fit boundaries, or prospective OOS performance. It does not certify Phase 22.
 
 Next safe work: R22.4 read-only feature-causality and leakage audit, covering all 20 feature definitions, timestamp/closed-candle alignment, rolling-window causality, label horizon separation, purge boundary, and fit-only transforms. Do not train/retrain, run backtests, alter metadata/model/Core, touch the prospective holdout, access T0, or enable execution.
+
+
+### R22.4 — Feature causality, label leakage and evidence integrity audit (2026-11-07)
+
+#### Feature source and candle alignment
+
+The frozen source at commit 082edc082996425f61f48c952be41fb037564103 defines 20 model features:
+- Four right-aligned rolling features: relative close and relative volume at periods 14 and 28.
+- Two basic features: close percentage change and raw volume.
+- Twelve positive-lag copies: the six rolling/basic features shifted by 1 and 2 candles.
+- Two timestamp features: day-of-week and hour-of-day.
+
+No future shift, centered rolling window, backfill, or future target is used in the 20 source feature methods. The target is separately named &-future_return and is close[t+4]/close[t]-1 over four M15 candles. Freqtrade 2026.9 DataKitchen explicitly uses informative_df[indicators].shift(n) for n=1..include_shifted_candles; it does not shift feature columns negatively.
+
+Closed-candle handling is source-verified for the pinned Freqtrade 2026.9 OKX path: Exchange's default ohlcv_partial_candle is true; OKX does not override it; _process_ohlcv_df drops the currently forming or not-yet-final last candle before ohlcv_to_dataframe. process_only_new_candles alone is not the closed-candle guarantee—the exchange OHLCV partial-candle filter is. This is source-level evidence, not a live exchange runtime test.
+
+#### Label purge and fitted preprocessing
+
+- Phase12's four-candle target is checked against source close[t+4]/close[t]-1.
+- The custom fit hook wraps DataKitchen.make_train_test_datasets and removes the chronological TRAIN suffix for which feature_open + 4*M15 is not strictly earlier than first TEST feature open. The purge occurs before fit_labels(), feature_pipeline.fit_transform(), label_pipeline.fit_transform(), and LightGBM.fit().
+- Freqtrade 2026.9 BaseRegressionModel fits feature and label pipelines on TRAIN only, then transforms TEST using the fitted pipelines. DataKitchen.fit_labels() estimates label mean/std from train_labels only.
+- Phase16 independently replayed all 26 historical folds from original native FIT_TRAIN/FIT_TEST X/y/weights and reconstructed source samples: 59,696 TRAIN rows, 14,825 validation rows, 52 fit archives, all 26 native X/y/weight replays, future-only intervention invariant in all 26 folds, and eligible TRAIN positive controls detected in all 26 folds. Errors were empty.
+- Independent Phase16 summary commit 0978727223c528d941bf3005362c4e494df89d2d, server commit time 2026-10-31T02:09:59Z. Pre-holdout research-only release gate commit 409d446bb186a8e2ea0189df26057a9df7e839de, server commit time 2026-10-31T02:10:30Z.
+- Phase14's fitted inference pipeline audit reports 5 historical witness rows, 10 feature comparisons, 5 label comparisons, and 5 accepted forecast replays with no errors.
+
+#### Remaining full-pipeline limitation
+
+The above evidence does not permit setting full_model_pipeline_causality_verified=true. The Phase16 code explicitly retains blocker NOT_ALL_OF_ORIGINAL_UPSTREAM_FEATURE_CONSTRUCTION_FIT_OBSERVED. Its all-26-fold refit reconstructs features through the strategy feature_matrix helper, not through FreqaiDataKitchen.populate_features on the complete original 180-day canonical dataset. R22.3 verified native DataKitchen expansion and exact 20-column order on synthetic candles only. Thus:
+- Strategy source-feature causality across historical fold rows: PASS within the Phase16 evidence scope.
+- Fit-only preprocessing replay and future-suffix intervention across 26 folds: PASS within the Phase16 evidence scope.
+- Native DataKitchen historical 180-day feature values reconciled to every original FIT matrix: NOT VERIFIED.
+- Full model pipeline causality: NOT VERIFIED.
+
+#### Frozen model binary preservation blocker
+
+The current GitHub copy at research_evidence/frozen-model/phase13b-20261104/original-frozen-model.joblib has Git blob SHA-1 91283dde513e24b9f87a936220a09e5f78612a49. The Phase14 blocker investigation records its byte SHA-256 as 51c847... and explicitly states it does not match the registered candidate bundle SHA-256 918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f. Do not load this copy.
+
+A separate original evidence archive is already committed before holdout:
+- Archive upload commit 2ec6890f20931cb859c3eb48309842002fae6459, server time 2026-10-30T23:47:56Z, Git blob SHA-1 17ec47fcbab047a540b1b1d2faad6a73182b5ab5.
+- Independent Phase14 binary attestation, included in pre-holdout release-gate commit 409d446..., records archive SHA-256 b64f39bd70c27c8d6abed1795ee06504c108eed42ebdab98ce375a6449b5b035 and states the archive contains the original candidate at artifacts/phase3/native/phase13b-unsealed-model-candidate.joblib with SHA-256 918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f.
+- This attestation is strong historical provenance, but the archive and embedded candidate bytes have not yet been independently re-hashed by the current R22 GitHub Actions workflow. No restoration or overwrite is authorized by this audit.
+
+#### OOS gate compatibility
+
+The Phase16 pre-holdout approval is research-only and explicitly does not certify OOS. The current Phase22 verify_oos_eligibility implementation also expects a separately sealed OOS protocol and attestation fields historical_protocol_sha256 and oos_protocol_sha256. The registered pre-holdout-attestation.json at commit f9591bcda1b11f15a549f397aa211259346ed3f9 does not contain those fields; the tracked phase13b-oos-protocol.json remains PRE_REGISTERED_PROTOCOL_CANDIDATE_NOT_SEALED. Therefore the Phase22 OOS eligibility verifier is NOT VERIFIED / currently incompatible with the registered attestation schema. Do not use it to authorize a holdout run until the schema and external commit proofs are reconciled.
+
+R22.4 disposition:
+- Source feature definitions and positive-lag semantics: PASS by source audit.
+- Four-candle target and chronological purge contract: PASS within Phase12/Phase16 evidence.
+- All-26-fold fitted preprocessing replay and future-only interventions: PASS within the SHA-bound Phase16 report scope.
+- Pinned Freqtrade 2026.9 OKX incomplete-candle filter: SOURCE-VERIFIED.
+- Native DataKitchen real 180-day feature-value reconciliation: NOT VERIFIED.
+- Full model pipeline causality: NOT VERIFIED.
+- Current repo joblib copy: BLOCKED / digest mismatch.
+- Original archive provenance: PRE-HOLDOUT ATTESTED; independent current-workflow re-hash pending.
+- Phase22 OOS eligibility gate: NOT VERIFIED / attestation schema mismatch.
+- Independent prospective OOS: IN PROGRESS / NOT CERTIFIED.
+
+Next safe step R22.5: use a disposable GitHub Actions job to hash the pre-holdout Phase14 archive and stream-hash its embedded candidate, metadata and protocol without unpickling. Compare the embedded candidate to the registered SHA and separately report the current repo copy mismatch. Do not restore/overwrite the model file without explicit approval. Do not read holdout candles, retrain, backtest, tune, access T0, or enable execution.
