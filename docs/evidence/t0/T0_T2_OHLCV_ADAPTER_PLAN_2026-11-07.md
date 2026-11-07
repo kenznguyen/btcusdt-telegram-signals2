@@ -177,3 +177,15 @@ Updated status:
 - T0 JSON datasetVersion and T2 CHARTPRO-OHLCV-V2 binary hash are different contracts; never compare them directly.
 - No paired dataset is present in tracked source; parity remains NOT RUN pending immutable input exports.
 - No data acquisition, Canonical DB creation, ingestion, Feeder, VPS or execution.
+
+
+## Offline Binance–OKX parity harness — implementation PASS (2026-11-07)
+
+- Added `market_data/t0_t2_parity.py` and `market_data/test_t0_t2_parity.py`.
+- TDD RED run `42332542018` at SHA `0fb76a394b62a87b1c014559ea6437a4156914ec`: expected ModuleNotFoundError for the missing harness.
+- Final T0 workflow `42332748148` SUCCESS at exact SHA `4664c28eaf0ae40f5e797b022284a378d2309c49`; Static Gateway 270 tests PASS, consumer 52 tests PASS, provider bootstrap PASS, TimescaleDB integration PASS.
+- New parity tests: 7 PASS, including a V2 binary golden-layout assertion against the T2 contract and fail-closed CSV/window/source validations.
+- T2 2026.9 smoke at the same SHA: run `42332748141` SUCCESS; strategy discovery PASS; artifact `13557692507`, digest `sha256:a265665d029bdc0754de12fcdd7f43dd40b25a1eda609136366f8a4e736e3114`.
+- The tool reads operator-supplied CSVs offline, requires exact M15/H1 UTC window coverage and closed candles, checks source identity/volume unit, records raw file hashes and T0 datasetVersion provenance, computes separate T2 V2 hashes and per-field difference metrics.
+- Real Binance/OKX comparison remains NOT RUN pending paired immutable CSV exports. No external data fetch was performed. Current T2 OKX source remains unchanged.
+- No Canonical SQLite creation/access/write, ingestion, Feeder, VPS, exchange execution or live orders.
