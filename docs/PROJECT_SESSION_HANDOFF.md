@@ -5031,7 +5031,7 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 ## 2026-11-07 — T1 Collector Fork Pre-handshake Sidecar Increment
 
 - Evidence report: `docs/evidence/t1/T1_COLLECTOR_FORK_PREHANDSHAKE_SIDECAR_2026-11-07.md`.
-- Evidence report commit: `4ab56abe8e43240053387d6f9448aa8eb92f74f1`.
+- Evidence report commit: `3c0622ac3ec1d52642856d0c48a838caf1a180d8`.
 - Collector fork: `kenznguyen/binance-futures-collector`, forked from `waynemason1/binance-futures-collector`.
 - Upstream baseline: `bc4f0ef633fbeee4a49defd72827f17162693805`.
 - Collector branch: `feature/t1-connection-sidecar-integration-20261107`.
