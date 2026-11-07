@@ -4557,3 +4557,19 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - No database was created/opened/written; no migration, canonical ingestion, exchange sync, Feeder, VPS or execution was started.
 - Status: SQLite architecture APPROVED; T0 isolated Controlled Ingestion acceptance PASS at source SHA `1aac449b96c4079004e1cab882280b923e33342c` / workflow `42329799499`; T2 adapter design READY; T2 runtime/version NOT VERIFIED; adapter code/tests NOT STARTED; Canonical DB NOT CREATED; canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
 - Next: inspect authoritative T2 branch/revision and its Freqtrade/FreqAI dependency/config/workflow. Pin exact version and native data format, then implement adapter test-first with temporary data only.
+
+
+### T2 direct T0 consumer discovered — adapter plan corrected (2026-11-07)
+
+- Inspection of branch `feature/freqtrade-strategy-parity-20261029` found an existing direct T0 SQLite consumer; a separate OHLCV exporter would duplicate existing functionality and is NOT REQUIRED.
+- T2 evidence:
+  - `freqai_bridge/README.md`, blob `9cbe44a60a880e7a5ccd10266c2353a5dbf409e0`, documents Freqtrade/FreqAI 2026.9 and direct canonical SQLite use.
+  - `freqai_bridge/config.research.json`, blob `a777e018f457628150647064119435ce75dc3e29`, configures `.data/market-data.sqlite3`, BTC/USDT:USDT, 15m and dry_run=true.
+  - `freqai_bridge/context.py`, blob `6df3606df8ab34366bfe3abdb77a83574b76e7b1`, reads via `market_data.store.read_window()`, rejects gaps and future availability.
+  - `freqai_bridge/exporter.py`, blob `3b707174316d0c6b464ac947cbbe2d2fbee73682`, matches actual FreqAI dataframe timestamps/OHLCV to canonical candles, validates model provenance and writes a bounded prediction artifact atomically.
+  - `freqai_bridge/test_exporter.py`, blob `81fcd9bb3823899be50e20f671696ea9812fcfe7`, tests with temporary SQLite and pandas.
+- Plan correction recorded in `docs/evidence/t0/T0_T2_OHLCV_ADAPTER_PLAN_2026-11-07.md`, update commit `771633a138f833170b1685db3aaaaa558e29ef31`.
+- Revised next work: compare T0/T2 schema contracts across branches; prove T2 is read-only; run existing exporter/decision tests against compatible exact source; validate pinned Freqtrade 2026.9 strategy-load; create bounded Binance-vs-OKX parity report. Do not silently replace OKX or assume market-source equality.
+- Branches are distinct: T0 `feature/t0-centralized-data-feeder-p1-20261101`; T2 `feature/freqtrade-strategy-parity-20261029`. Cross-branch compatibility is NOT VERIFIED; no merge/branch integration was performed.
+- No canonical SQLite file was created; no DB write, migration, ingestion, Feeder, VPS or execution was started.
+- Status: T0 isolated acceptance remains PASS at SHA `1aac449b96c4079004e1cab882280b923e33342c` / run `42329799499`; T2 direct consumer PRESENT on separate branch; cross-branch schema compatibility NOT VERIFIED; T2 tests not run in this session; canonical DB NOT CREATED; canonical ingestion NOT RUN; Feeder STOPPED; `ai_execution_enabled=false`.
