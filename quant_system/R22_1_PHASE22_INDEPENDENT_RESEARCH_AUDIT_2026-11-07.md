@@ -159,3 +159,14 @@ It passes that snapshot to `capture_candidate()`. The snapshot shape in the orig
 | OOS certification | NOT CERTIFIED; holdout remains open |
 
 Safety boundaries unchanged: no strategy start, backtest, training/retraining, exchange calls, T0 access, persistent database, deployment, VPS operation or live execution. `AI_EXECUTION_ENABLED=false`; model, Strategy Core, prior backtests and holdout are unchanged.
+
+
+### R22.2 runtime loader API correction (2026-11-07)
+
+The first implementation attempt used `Configuration.from_files(["--config", path])` and treated the return value as a Configuration instance. Inspection of the pinned upstream Freqtrade 2026.9 source (`freqtrade/configuration/configuration.py`, tag `2026.9`) proves `from_files()` is a static method that accepts a list of config file paths and returns the resolved config dictionary directly. The isolated run confirmed the mismatch: Freqtrade raised `OperationalException: Config file "--config" not found`.
+
+- Source SHA: `1336841a869899ffc9460f1b7ed90af472fcca9c`.
+- Direct push run: `42317382779`; job `128233378295`; Freqtrade 2026.9 install PASS; unit tests 4/4 PASS; runtime probe BLOCKED at config loader API invocation.
+- Artifact ID: `13551960123`; SHA-256 `f2506abd118d6ecd01249e1d5829f8f944e8bea5ccf299b041584541b4bf0f3e`.
+- Corrected source commit: `795109b42dfcb50eb14b5766aeab2133d96f5ac3`; now calls `Configuration.from_files([str(safe_path)])` and consumes the returned dictionary.
+- New direct push run: `42317541165` on exact source SHA `795109b42dfcb50eb14b5766aeab2133d96f5ac3`; IN PROGRESS at this report update. No runtime hash or feature schema PASS is claimed.
