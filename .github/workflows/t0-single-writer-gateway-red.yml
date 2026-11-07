@@ -18,6 +18,7 @@ on:
     paths:
       - "market_data/**"
       - "freqai_bridge/**"
+      - "futures_intelligence/**"
       - "pipeline/**"
       - "requirements-web.txt"
       - ".github/workflows/t0-single-writer-gateway-red.yml"
