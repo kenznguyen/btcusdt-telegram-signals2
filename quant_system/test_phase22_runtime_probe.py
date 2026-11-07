@@ -21,7 +21,7 @@ class Phase22RuntimeProbeTests(unittest.TestCase):
         self.assertEqual(safe["initial_state"], "stopped")
         self.assertIs(safe["dry_run"], True)
         self.assertIs(safe["force_entry_enable"], False)
-        self.assertNotIn("live_retrain_hours", safe["freqai"])
+        self.assertEqual(safe["freqai"]["live_retrain_hours"], 1)
         self.assertEqual(source["initial_state"], "running")
         self.assertEqual(source["freqai"]["live_retrain_hours"], 1)
 
