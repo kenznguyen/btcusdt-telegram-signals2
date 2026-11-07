@@ -10,19 +10,19 @@ This increment adds a separate JSONL connection-event validator. It does not cha
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`
 - Branch: `feature/t0-centralized-data-feeder-p1-20261101`
-- CI source SHA: `d23c218333755566fa04215e9ce8a7c8b9294343`
-- Workflow run: [42340439288](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42340439288)
-- Dedicated job: `128306867028`, T1 Futures Intelligence importer offline tests.
-- Job conclusion: **SUCCESS**.
-- Checked-out SHA from job logs: `d23c218333755566fa04215e9ce8a7c8b9294343`.
+- CI source SHA: `8ef12c8839ab15cf2e60c6d06e4386250c0621d6`
+- Workflow run: [42340838793](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42340838793)
+- Dedicated job: `128308192940`, T1 Futures Intelligence importer offline tests.
+- Dedicated job conclusion: **SUCCESS**; checked-out SHA in job logs exactly matches the workflow head SHA above.
+- Overall workflow conclusion: **SUCCESS**, all 5/5 jobs completed successfully (Static Gateway, Paper consumer, T1 offline tests, restricted provider bootstrap, isolated TimescaleDB integration).
 - Python compile: PASS for importer, importer tests, sidecar validator, sidecar tests, and shared values module.
-- Combined suite: **22/22 tests PASS** — 10 legacy importer regression tests and 12 connection-event sidecar tests.
-- T1 evidence artifact: [13561013720](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42340439288/artifacts/13561013720)
-  - Name: `t1-importer-offline-evidence-d23c218333755566fa04215e9ce8a7c8b9294343`
-  - Size: 1,725 bytes
-  - GitHub upload digest: `sha256:6deacf3fbe88006eb41dc187dac30b24ac9aaeb502ce3fe9f2b0b4ccc09841b3`
+- Combined suite: **24/24 tests PASS** — 10 legacy importer regression tests and 14 connection-event sidecar tests.
+- T1 evidence artifact: [13561403522](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42340838793/artifacts/13561403522)
+  - Name: `t1-importer-offline-evidence-8ef12c8839ab15cf2e60c6d06e4386250c0621d6`
+  - Size: 1,775 bytes
+  - GitHub upload digest: `sha256:62de84e2ffd59808661e512be8c827ea9b117eadf6888f468be779d3cc9620c8`
 - The artifact digest is GitHub's upload digest; ZIP payload bytes were not downloaded and independently re-hashed.
-- At the time this report was drafted, the other workflow jobs were still running. T1's dedicated job is PASS; the overall workflow conclusion is not promoted until all jobs complete.
+- A prior exact-source attempt at SHA `15f917bec81d7e2999976302fe152ef5f31207fc` failed one fixture because a reconnect event occurred beyond its declared capture watermark. The fixture was corrected to declare a watermark covering that event; final SHA `8ef12c8...` passes all 24 tests.
 
 ## Files
 
@@ -61,12 +61,12 @@ Producer requirements for a future collector implementation:
 3. Persist each lifecycle/heartbeat event with its UTC timestamp; do not synthesize Pong events from successful market messages.
 4. Pair each Pong to the exact client Ping using `heartbeatId`.
 5. Persist the disconnect reason and reconnect attempt/delay before starting the next socket.
-6. Finalize a capture manifest with the sidecar byte size and SHA-256. The expected digest must come from a trusted capture manifest; a self-supplied digest alone is not source authentication.
+6. Seal each captured sidecar segment and finalize a trusted manifest with byte size, SHA-256, and `captureCompleteThroughMs` watermark. The watermark must cover the requested window end; do not treat an unsealed/truncated tail as evidence of no disconnect.
 7. Keep event output independent of trades/funding/OI/liquidation CSV schemas.
 
 ## Validator rules
 
-`load_and_validate_connection_events(...)` requires the expected file SHA-256, collector source SHA, session ID, half-open window `[startMs,endMs)`, heartbeat gap policy, and optionally expected (batchId, route) pairs.
+`load_and_validate_connection_events(...)` requires the expected file SHA-256, collector source SHA, session ID, half-open window `[startMs,endMs)`, heartbeat gap policy, `capture_finalized=True`, a trusted `capture_complete_through_ms >= windowEndMs`, and optionally expected (batchId, route) pairs. Events later than the trusted watermark are rejected. The result exposes the finalized flag and watermark. A sealed capture segment does not require stopping the collector process.
 
 Resource bounds: 64 MiB sidecar, 16 KiB per event line, 100,000 events.
 
@@ -82,7 +82,7 @@ The SHA-256 comparison detects changes relative to a trusted expected digest. It
 
 ## Offline acceptance coverage
 
-The 12 sidecar tests cover:
+The 14 sidecar tests cover:
 1. paired Pong evidence across a healthy window;
 2. missing expected route remains UNVERIFIABLE;
 3. missing Pong/excessive heartbeat gap;
@@ -94,7 +94,9 @@ The 12 sidecar tests cover:
 9. session restart cannot be spliced into one session;
 10. out-of-order events and duplicate event IDs;
 11. unmatched Pong and reused heartbeat identity;
-12. sidecar checksum tampering.
+12. sidecar checksum tampering;
+13. unfinalized capture and insufficient completeness watermark;
+14. event timestamp beyond the trusted capture watermark.
 
 All tests use synthetic JSONL files in temporary directories. They make no network or database calls.
 
