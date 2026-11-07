@@ -4232,3 +4232,16 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Rerun [42322449766](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42322449766), exact source SHA `7577afac0e1d86453fe97dec798d80de82674d42`. Static job `128249946479` SUCCESS; artifact `13553602870`, 10,716 bytes, digest `sha256:495ebc2bd7d1648b4ff3f6f208020a559ce819e48d7cd60439dc250eb8845b18`. Disposable TimescaleDB job `128250015010` was still initializing containers at capture time.
 - PG-LC-03 remains NOT VERIFIED until the corrected trigger test actually runs against disposable TimescaleDB and the test artifact is reconciled. Do not infer behavior from the skipped unit-suite result.
 - Matrix correction commit `1f6d322473705071d5d7d3353df3af769ee9b630`, blob `7be2aefd009fe0280920efada9d4a1c57f8bfdb9`.
+
+
+### PG-LC-03 exact-SHA disconnect/atomicity verification (2026-11-07)
+
+- Corrected run [42322449766](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42322449766), exact source SHA `7577afac0e1d86453fe97dec798d80de82674d42`, completed. Disposable TimescaleDB job `128250015010`: SUCCESS.
+- PostgreSQL writer suite **8/8 PASS**, including `test_connection_termination_during_batch_rolls_back_prior_rows`. The test confirmed the second-row trigger was active, terminated the actual writer backend, observed `StoreUnavailable`, and queried zero persisted rows for both candles. This proves the earlier row in the same interrupted batch was rolled back.
+- Additional same-run suites: FeederRuntime 20/20, runtime lifecycle 4/4, least-privilege roles 18/18, read-only TimescaleDB 6/6 — all PASS. Static suite 236 tests, 38 skipped, OK; static contracts 10/10; behavioral/feeder 63/63; health/readiness 21/21; process restart 2/2.
+- TimescaleDB artifact `13552549961`, size 4,336 bytes, GitHub digest `sha256:8d150becf1d76e0af630eb11ea1d92d1db486e924baafaac741f1db9022ef48d`; downloaded ZIP SHA-256 independently matched.
+- Static artifact `13553602870`, size 10,718 bytes, digest `sha256:495ebc2bd7d1648b4ff3f6f208020a559ce819e48d7cd60439dc250eb8845b18`.
+- Workflow overall FAILURE only because fresh-cluster PostgreSQL 16 provider bootstrap job `128249946430` remains blocked by the already-known implicit ADMIN membership conflict. No role guard was weakened; no provider compatibility PASS is claimed.
+- PG-LC-03 is **PASS**. Matrix update commit `f14162bfbe9385aaac7f870d55472e9cd2c27c37`, blob `b9c787746db95830b63e33c0441f514d3e0e3357`.
+- No provider/VPS/canonical DB/production Feeder/exchange/data sync/Backup-DR activity.
+- Next lifecycle gap: PG-LC-04 — bounded connection establishment failure and concurrent connection churn. Audit the current psycopg adapter timeout contract first; no pool-exhaustion test is applicable because the adapter has no pool.
