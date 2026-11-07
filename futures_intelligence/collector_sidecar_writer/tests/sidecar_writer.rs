@@ -1,6 +1,4 @@
-use collector_connection_sidecar::{
-    ConnectionIdentity, DisconnectReason, Route, SidecarWriter,
-};
+use collector_connection_sidecar::{ConnectionIdentity, DisconnectReason, Route, SidecarWriter};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -46,8 +44,12 @@ fn writes_python_contract_jsonl_and_fsyncs_each_event_before_returning() {
     assert_eq!(connected["eventAtMs"], START);
     assert!(connected["eventId"].as_str().unwrap().contains(SESSION));
 
-    writer.ping_sent(&connection, "hb-001", START + 10_000).unwrap();
-    writer.pong_received(&connection, "hb-001", START + 10_050).unwrap();
+    writer
+        .ping_sent(&connection, "hb-001", START + 10_000)
+        .unwrap();
+    writer
+        .pong_received(&connection, "hb-001", START + 10_050)
+        .unwrap();
     let contents = fs::read_to_string(&path).unwrap();
     assert_eq!(contents.lines().count(), 3);
     assert!(contents.contains("\"heartbeatId\":\"hb-001\""));
@@ -64,15 +66,27 @@ fn enforces_connection_lifecycle_and_ping_pong_pairing() {
     let connection = identity(Route::Market);
     let mut writer = SidecarWriter::create(&path, SOURCE, SESSION).unwrap();
 
-    assert!(writer.ping_sent(&connection, "hb-before-open", START).is_err());
+    assert!(writer
+        .ping_sent(&connection, "hb-before-open", START)
+        .is_err());
     writer.connected(&connection, START).unwrap();
     writer.ping_sent(&connection, "hb-1", START + 1).unwrap();
     assert!(writer.ping_sent(&connection, "hb-1", START + 2).is_err());
-    assert!(writer.pong_received(&connection, "unknown", START + 3).is_err());
-    writer.pong_received(&connection, "hb-1", START + 4).unwrap();
-    writer.disconnected(&connection, DisconnectReason::RemoteClose, START + 5).unwrap();
-    writer.reconnect_scheduled(&connection, 1, 2_000, START + 6).unwrap();
-    assert!(writer.ping_sent(&connection, "hb-after-close", START + 7).is_err());
+    assert!(writer
+        .pong_received(&connection, "unknown", START + 3)
+        .is_err());
+    writer
+        .pong_received(&connection, "hb-1", START + 4)
+        .unwrap();
+    writer
+        .disconnected(&connection, DisconnectReason::RemoteClose, START + 5)
+        .unwrap();
+    writer
+        .reconnect_scheduled(&connection, 1, 2_000, START + 6)
+        .unwrap();
+    assert!(writer
+        .ping_sent(&connection, "hb-after-close", START + 7)
+        .is_err());
 
     let contents = fs::read_to_string(&path).unwrap();
     assert_eq!(contents.lines().count(), 5);
@@ -104,7 +118,9 @@ fn finalizes_manifest_with_exact_file_size_and_sha256() {
     let mut writer = SidecarWriter::create(&path, SOURCE, SESSION).unwrap();
     writer.connected(&connection, START).unwrap();
     writer.ping_sent(&connection, "hb-1", START + 10).unwrap();
-    writer.pong_received(&connection, "hb-1", START + 20).unwrap();
+    writer
+        .pong_received(&connection, "hb-1", START + 20)
+        .unwrap();
     writer.disconnected(&connection, DisconnectReason::Shutdown, START + 30).unwrap();
 
     let manifest = writer.finalize(START + 30, START + 40).unwrap();
@@ -159,10 +175,18 @@ fn rejects_invalid_source_identity_and_reconnect_bounds() {
     let connection = identity(Route::Public);
     let mut writer = SidecarWriter::create(&path, SOURCE, SESSION).unwrap();
     writer.connected(&connection, START).unwrap();
-    writer.disconnected(&connection, DisconnectReason::TransportError, START + 1).unwrap();
-    assert!(writer.reconnect_scheduled(&connection, 0, 2_000, START + 2).is_err());
-    assert!(writer.reconnect_scheduled(&connection, 1, 60_001, START + 2).is_err());
-    writer.reconnect_scheduled(&connection, 1, 60_000, START + 2).unwrap();
+    writer
+        .disconnected(&connection, DisconnectReason::TransportError, START + 1)
+        .unwrap();
+    assert!(writer
+        .reconnect_scheduled(&connection, 0, 2_000, START + 2)
+        .is_err());
+    assert!(writer
+        .reconnect_scheduled(&connection, 1, 60_001, START + 2)
+        .is_err());
+    writer
+        .reconnect_scheduled(&connection, 1, 60_000, START + 2)
+        .unwrap();
     drop(writer);
     fs::remove_file(path).unwrap();
 }
