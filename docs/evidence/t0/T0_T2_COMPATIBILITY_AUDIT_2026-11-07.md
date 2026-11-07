@@ -141,3 +141,29 @@ Workflow path filters were expanded so changes under `freqai_bridge/**`, `pipeli
 | Live execution | DISABLED |
 
 Overall: **PASS for T0 isolated consumer/storage integration and Freqtrade 2026.9 strategy discovery. NOT VERIFIED for FreqAI training/prediction and Binance–OKX data parity.**
+
+
+## Binance–OKX parity readiness audit (read-only source inspection)
+
+### Confirmed source identities
+
+- T0 canonical market-data source: Binance USD-M perpetual `BTC/USDT:USDT`, symbol key `BTCUSDT`, M15/H1; `market_data/sync.py` uses CCXT `binanceusdm`.
+- Existing T2 bot/backtest source: OKX perpetual `BTC-USDT-SWAP`; `bot.py` calls `https://www.okx.com/api/v5/market/history-candles`, and `backtest.py` calls the same endpoint.
+- T2's current OKX path is direct API fetch into pandas frames; it is not reading T0's Binance store. Preserve this source until parity review is complete.
+- T2 `freqtrade_parity/dataset_io.py` consumes explicit closed-candle CSV files, checks continuity/alignment and emits a `CHARTPRO-OHLCV-V2` hash. T2 README explicitly says a signed shared OHLCV dataset and genuine paired traces are still missing.
+- No committed paired Binance/OKX dataset or signed trace artifacts were found in the inspected branch tree. `.data/` is gitignored. No local operator dataset was accessed.
+
+### Hash contract mismatch — do not compare hashes directly
+
+- T0 `market_data.store.read_window()` `datasetVersion` is SHA-256 over a canonical JSON envelope including exchange/market identity, symbol, timeframe, UTC window, as-of value and decimal candle/provenance fields.
+- T2 `freqtrade_parity.dataset_hash` hashes binary `CHARTPRO-OHLCV-V2` bytes: sorted M15/H1 closed rows, signed int64 UTC open milliseconds and five IEEE754 float64 values.
+- These hashes intentionally represent different contracts and are NOT expected to match. A future parity package must retain the original T0 `datasetVersion` as source provenance and separately compute the T2 V2 hash from an explicitly specified decimal-to-float64 conversion. Never relabel one as the other.
+- T0 stores normalized decimal strings; T2 V2 conversion to float64 can lose decimal precision. The conversion rule and resulting bytes must be explicit and tested against the shared Kotlin/Python V2 golden vector.
+
+### Parity status and safe next step
+
+**NOT RUN / BLOCKED BY MISSING PAIRED DATASET.** No real T0 Canonical database exists on PC, and no committed OKX dataset artifact is available for the same UTC window. Do not fetch/ingest into Canonical as a side effect of parity work.
+
+Next bounded task: prepare a parity manifest/schema and offline comparison harness that accepts two operator-supplied, immutable closed-candle CSV exports (Binance and OKX), records independent source identity and T0 datasetVersion provenance, verifies M15/H1 UTC windows and coverage, computes per-source V2 hashes, and reports differences without expecting OHLCV equality. Keep the input files outside Git if they contain large market datasets; commit only manifests and compact evidence. Actual parity execution waits for paired data and explicit review.
+
+No source switch, branch merge, canonical DB creation, ingestion, Feeder, VPS or execution.
