@@ -198,3 +198,20 @@ The isolated user_data correction is effective: Freqtrade 2026.9 loads the stopp
 - At this report update, exact-source push run 42318631847 for SHA 5c1f8432b399c0e71464187cc8fe4fd0a1b7fb6e was IN PROGRESS; PR run 42318638339 was PENDING. No runtime hash diagnosis or feature-schema result is yet available for this corrected diagnostic version.
 
 Current disposition: runtime config hash NOT VERIFIED / BLOCKED pending exact-SHA workflow; runtime feature schema NOT VERIFIED; OOS remains IN PROGRESS / NOT CERTIFIED. No frozen metadata/model/Core/backtest/holdout changes; no strategy start, exchange API call, training/retraining, persistent DB, T0 access, deployment or live execution. Next step: inspect the diagnostic hash/path output from the exact-SHA workflow, then reconcile only the provenance discrepancy—never replace the frozen expected hashes or weaken the equality check.
+
+
+### R22.2 exact-source hash diagnostic result (2026-11-07)
+
+Exact-source direct push verification for diagnostic commit 5c1f8432b399c0e71464187cc8fe4fd0a1b7fb6e completed with the following result:
+
+- Run 42318631847, job 128237448084: Freqtrade 2026.9 installation PASS; all five probe unit tests PASS; isolated paper-only preflight PASS; runtime hash gate FAIL as expected. The runtime did not proceed to feature-schema validation.
+- Expected frozen config hash: sha256:c253091852b704c00fa33bd6fceb69fb4d480630da1645e3e35ebea13888bb72.
+- Actual Freqtrade-resolved five-field config hash: sha256:0c8974fc45d7b996ab879e78e7047b47a1cdddd4a265d9694192723bc8921893.
+- Expected frozen FreqAI subtree hash: sha256:a716c80fbb78b8d4bc8b436136912e93e6988a8cdf8d7d1945e8f512bcd6d852.
+- Actual resolved FreqAI subtree hash: sha256:ef8a29169e1a873a517d81869bcad05e0228c66ebdb381b26f5a5d28a167444a.
+- Raw tracked FreqAI subtree hash is also sha256:ef8a29169e1a873a517d81869bcad05e0228c66ebdb381b26f5a5d28a167444a; runtime_vs_raw_diff_paths is empty. Therefore Freqtrade's isolated Configuration.from_files loader did not change the five-field snapshot or FreqAI subtree. The tracked config snapshot itself does not reproduce the frozen metadata hashes.
+- This establishes a frozen-config provenance discrepancy, not yet its historical cause. Possibilities still requiring evidence include an unrecorded config overlay or a mutation later in the historical FreqAI lifecycle. The current safe probe does not start a strategy or FreqAI training lifecycle, so it cannot distinguish those explanations. Do not rewrite metadata hashes or assume the discrepancy is harmless.
+- Artifact ID 13551632525; GitHub upload digest sha256:2d964df0ec9c16e3f4afaf648aa9337341e7c87a4a348bddeb0993970e18bfe4. Artifact ZIP was downloaded and independently SHA-256 recomputed; local digest matched the GitHub digest exactly.
+- Artifact confirms source SHA 5c1f8432b399c0e71464187cc8fe4fd0a1b7fb6e, AI_EXECUTION_ENABLED=false, no exchange credentials, no database targets, five unit tests passing, and the hash mismatch diagnostics above.
+
+Disposition: effective-config provenance BLOCKED; runtime feature schema NOT VERIFIED; prospective OOS remains IN PROGRESS / NOT CERTIFIED. Do not change the frozen metadata, model bundle, Core strategy, prior backtests, or holdout. Next safe research step is a read-only provenance trace of the historical candidate-generation command/config inputs and any runtime config mutation path. No strategy start, exchange API call, training/retraining, persistent DB, T0 access, deployment or live execution is authorized by this result.
