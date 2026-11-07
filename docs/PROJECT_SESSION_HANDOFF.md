@@ -5598,3 +5598,11 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Formatting-only correction commit/current PR head: `aec41e0b1b2544e891d4ff059bd954fc0fcec19f`, only `crates/connection-sidecar/tests/sidecar_writer.rs` whitespace changed. New Actions run not yet exposed in commit-run listing.
 - No implementation change for disconnect-reason finding. Next: poll Actions for `aec41e0b1b2544e891d4ff059bd954fc0fcec19f`; verify Sidecar RED specifically on `requires_heartbeat_timeout_reason_after_timeout_was_observed`. Only then implement the minimal guard and rerun full CI.
 - PR #1 remains OPEN / DRAFT / NOT MERGED. No runtime, Binance, DB, market capture, T0 modification, merge or live execution; keep `ai_execution_enabled=false`.
+
+
+## T1 R5.3 follow-up — regression test compile correction (2026-11-07)
+- Formatting-corrected test head `aec41e0b1b2544e891d4ff059bd954fc0fcec19f` ran as Actions [42370859818](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42370859818), overall FAILURE. Collector format/Clippy/build/workspace tests passed (library 40/40, binary 1/1); Sidecar writer format passed. Sidecar Clippy failed before offline tests because test used nonexistent `DisconnectReason::TransportClosed`; actual enum variant is `TransportError`. This is a test compile error, NOT behavioral RED.
+- Corrected test to use supported `DisconnectReason::TransportError`; commit/current PR head: `f6f32c279160e56302fdad555ebb675cc0005789`. Only the regression test enum variant changed.
+- Dashboard backend/frontend, security audits and Docker builds all passed on run 42370859818. No Sidecar offline test result; RED remains NOT VERIFIED.
+- Next: poll Actions for `f6f32c279160e56302fdad555ebb675cc0005789`. Confirm the targeted regression is the sole expected failure before implementing the inverse disconnect-reason guard.
+- PR #1 OPEN / DRAFT / NOT MERGED. No runtime, Binance, DB, market capture, T0 changes, merge or live execution; `ai_execution_enabled=false`.
