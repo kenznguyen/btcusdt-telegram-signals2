@@ -6204,3 +6204,43 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Then, only after the user authorizes launch, run a supervised 5-minute capture using `CONFIG_PATH=/home/ubuntu/t1/config.toml` and GNU `timeout` sending SIGTERM, with `--kill-after` safety cap. Record pre/post disk, process, logs, stats, CSV file counts/sizes, and gap registry.
 - Preserve >=2G free. If the 5-minute result suggests unsafe growth, stop and do not extend. No unattended service.
 - No T0 modification, no Dashboard, no proxy/VPN, no API key, no PR merge/Draft transition, and no real trading.
+
+
+## T1 VPS runtime preflight — PASS, awaiting explicit launch approval (2026-11-08)
+
+### User-provided preflight evidence
+- Target host: `btcquant-t0-t1-test-01`; user ran the pre-launch checks after config validation.
+- GNU timeout: `/usr/bin/timeout` exists.
+- T1 directory tree exists and is isolated under `/home/ubuntu/t1`:
+  - `logs/`
+  - `data/futures/`
+  - `data/gaps/`
+  - `releases/d8ac9fc820dcf2e912e66518a1a1c73a8fa81ac7/`
+- Baseline sizes: `/home/ubuntu/t1/data` = 12K; `/home/ubuntu/t1/logs` = 4.0K. Treat as baseline, not proof of complete emptiness.
+- T0 feeder remains present: PID 3465, command `/home/ubuntu/t0/venv/bin/python -m market_data.feeder_service`.
+- Root disk: 7.9G total, 3.4G used, 4.5G available (43%); >=2G reserve satisfied.
+- Binary `--help` executes and reports `binance-futures-collector 1.0.0`, standalone Binance USDT-M perpetual futures CSV collector, config from `CONFIG_PATH` or `./config.toml`.
+- Combined with preceding config validation: TOML syntax PASS; BTCUSDT-only whitelist; isolated T1 paths; proxy disabled; 500ms order-book cadence; no API key configured.
+- User supplied terminal output; assistant did not directly inspect VPS state.
+
+### Verdict
+| Check | Status |
+|---|---|
+| Timeout available | PASS |
+| T1 directory separation | PASS |
+| T1 data/log baseline recorded | PASS |
+| T0 feeder process present | PASS |
+| Disk reserve >=2G | PASS |
+| Binary help/version invocation | PASS |
+| Application-level config load | NOT VERIFIED |
+| Collector runtime / Binance capture | NOT RUN |
+| Runtime storage growth / SIGTERM flush | NOT RUN |
+| T0 integrity unchanged | NOT VERIFIED by fresh DB/process integrity snapshot |
+
+### Next step and hard boundary
+- Preflight is sufficient to present a bounded first-run command, but it is **not authorization to start the Collector**.
+- Proposed first run, pending explicit user approval: 300 seconds (5 minutes), with `CONFIG_PATH=/home/ubuntu/t1/config.toml`, GNU `timeout` sending SIGTERM and a 15-second forced-kill grace period. Capture pre/post disk usage, process exit status, logs, stats, CSV counts/sizes, and gap registry.
+- Expected timeout exit code 124 after the 300-second limit must be distinguished from Collector failure; verify graceful shutdown log and flushed outputs rather than treating 124 alone as failure.
+- Preserve >=2G free. Do not extend duration or enable unattended service without reviewing measured BTCUSDT growth and shutdown evidence.
+- No T0 modification, no API key, no proxy/VPN, no Dashboard, no PR merge or Draft → Ready transition, and no live trading.
+- T1 source remains `d8ac9fc820dcf2e912e66518a1a1c73a8fa81ac7`; CI run `42424240328` SUCCESS 5/5; artifact ID `13594961114`. This runtime preflight does not change source or CI provenance.
