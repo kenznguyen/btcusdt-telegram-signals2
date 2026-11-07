@@ -144,8 +144,8 @@ class WebSocketTimeoutStageTests(unittest.TestCase):
              patch("market_data.binance_connectivity_probe.ssl.create_default_context", return_value=tls_context):
             result = probe_websocket(timeout=1)
 
-        self.assertEqual(result["status"], 101)
-        self.assertEqual(result["stage"], "WAITING_FOR_KLINE_EVENT")
+        self.assertEqual(result["status"], 101, result)
+        self.assertEqual(result["stage"], "WAITING_FOR_KLINE_EVENT", result)
         self.assertEqual(result["classification"], "EVENT_TIMEOUT")
         self.assertFalse(result["event_valid"])
 
