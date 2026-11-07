@@ -72,7 +72,7 @@ The existing T0 Single Writer Gateway workflow also ran on the same implementati
 - Static Gateway job `128254667811`: SUCCESS. Complete `market_data` discovery: **251 tests, 42 skipped, OK**.
 - Paper consumer job `128254668064`: SUCCESS.
 - Fresh-cluster provider bootstrap job `128254668032`: FAILED at the known migration-role guard: `t0_migrator may only be granted to the ephemeral t0_migrator_login role`. No guard was weakened; this is a separate PostgreSQL 16 provider-bootstrap blocker, not a Binance probe failure.
-- Isolated TimescaleDB job `128254761702`: still running at the time of this report update; do not infer a result.
+- Isolated TimescaleDB job `128254761702`: FAILED only in the concurrently added PG-LC-07 test `test_interrupted_migration_rolls_back_and_retry_applies_cleanly`; psycopg raised `ProgrammingError: only '%s', '%b', '%t' are allowed as placeholders, got '%p'`. Other TimescaleDB integration assertions in that job were executed, but the job conclusion is FAILURE. This is a separate PG-LC-07 test defect, not a Binance probe failure.
 - Static artifact ID `13553339580`; GitHub digest `sha256:3fd69246338950f5d2588238fa649331e0da8faf43a5ac3f3fe0c41c2c5808be`. Paper artifact ID `13554027300`; digest `sha256:e76bc0af0261f6088f727c2104cba92a26d177705fc848e2d33fb3a672dab83a`. These are GitHub upload metadata digests, not independently recomputed payload hashes.
 
 ## Verdict
