@@ -91,7 +91,7 @@ jobs:
             list-strategies \
               --strategy-path /freqtrade/user_data/freqai_bridge \
               --config /freqtrade/user_data/freqai_bridge/config.research.json \
-              --print-json 2>&1 | tee t2-freqtrade-strategy-load.log
+              2>&1 | tee t2-freqtrade-strategy-load.log
           grep -q "ChartProFreqaiResearch" t2-freqtrade-strategy-load.log
 
       - name: Upload exact runtime smoke evidence
