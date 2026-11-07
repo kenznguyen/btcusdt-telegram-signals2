@@ -8,6 +8,7 @@ on:
     paths:
       - "market_data/**"
       - "freqai_bridge/**"
+      - "futures_intelligence/**"
       - "pipeline/**"
       - "requirements-web.txt"
       - ".github/workflows/t0-single-writer-gateway-red.yml"
@@ -153,6 +154,66 @@ jobs:
           name: t0-paper-consumer-tests-${{ github.sha }}
           if-no-files-found: error
           path: t0-paper-consumer-tests.log
+
+
+  t1-importer-offline-tests:
+    name: T1 Futures Intelligence importer offline tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      MARKET_DATA_DB: ""
+      MARKET_DATA_POSTGRES_DSN: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Enforce offline fixture-only scope and record source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in MARKET_DATA_DB MARKET_DATA_POSTGRES_DSN T0_FEEDER_LEASE_DB PAPER_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+            if [[ -n "${!key:-}" ]]; then
+              echo "Forbidden runtime configuration present: $key"
+              exit 1
+            fi
+          done
+          git rev-parse HEAD | tee t1-importer-source-sha.txt
+          echo "T1_IMPORTER_SCOPE=OFFLINE_TEMPORARY_CSV_FIXTURES_ONLY" | tee t1-importer-scope.txt
+      - name: Compile T1 importer and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile futures_intelligence/import_collector.py futures_intelligence/test_import_collector.py pipeline/values.py
+          echo "T1_IMPORTER_COMPILE=PASS" | tee t1-importer-compile.txt
+      - name: Run T1 Futures Intelligence importer fixture suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest futures_intelligence.test_import_collector -v 2>&1 | tee t1-importer-tests.log
+          echo "T1_IMPORTER_FIXTURE_TESTS=PASS" | tee t1-importer-verdict.txt
+      - name: Upload T1 importer source and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t1-importer-offline-evidence-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            t1-importer-source-sha.txt
+            t1-importer-scope.txt
+            t1-importer-compile.txt
+            t1-importer-tests.log
+            t1-importer-verdict.txt
 
 
   restricted-provider-bootstrap-integration:
