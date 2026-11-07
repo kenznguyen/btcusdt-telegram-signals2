@@ -5501,3 +5501,10 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Verdict: R5.1 source fixes + test evidence + exact-source CI **PASS**. T1 operational readiness **NOT VERIFIED**.
 - Platform limitation: Unix path identity compares device/inode. Non-Unix fallback checks regular non-symlink files and matching length only; it does not provide equivalent file-identity assurance. Existing offline validator manifest path TOCTOU caveat remains.
 - Next: continue source-level review for remaining correctness/durability gaps and document evidence. Do not integrate/start Collector runtime, connect Binance, access DB, capture market data, modify T0, merge PR, or enable live execution. Keep `ai_execution_enabled=false`.
+
+
+## T1 R5.1 follow-up review limitation — 2026-11-07
+- Review target remains T1 source SHA `02e27ad96a23f2bb47c8434b5f66f69684e50d89`; no source code changed.
+- The sidecar verifies the open-file identity immediately before and after bounded readback. A narrow TOCTOU remains between the final identity check and manifest publication: a concurrent actor able to rename/replace files in the capture directory during that interval could change the pathname after the check. The deterministic regression proves rejection of replacement before finalization/readback, not hostile concurrent directory-mutation resistance.
+- Explicit boundary: do not claim hostile-filesystem safety. Any future operational deployment must protect the capture directory from untrusted writers, or separately design and test a stronger filesystem ownership/locking boundary. The existing validator manifest-path TOCTOU caveat also remains.
+- PR #1 description updated to disclose this limitation. PR remains OPEN / DRAFT / NOT MERGED. No Collector runtime, Binance, DB, capture, T0 change, merge or live execution. Keep `ai_execution_enabled=false`.
