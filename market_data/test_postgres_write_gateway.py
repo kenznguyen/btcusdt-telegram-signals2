@@ -161,6 +161,92 @@ class PostgresWriteGatewayIntegrationTest(unittest.TestCase):
         self.assertEqual(rows[0][0], self.open_time)
         self.assertEqual(str(rows[0][1]), "101")
         
+    def test_connection_termination_during_batch_rolls_back_prior_rows(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from market_data.postgres import StoreUnavailable, connection
+
+        second_open = self.open_time + self.step
+        with connection(DSN) as database:
+            database.execute(f"""
+                CREATE OR REPLACE FUNCTION market_data.pg_red_disconnect_insert()
+                RETURNS trigger LANGUAGE plpgsql AS $
+                BEGIN
+                    IF NEW.open_time_ms = {second_open} THEN
+                        PERFORM pg_sleep(8);
+                    END IF;
+                    RETURN NEW;
+                END $
+            """)
+            database.execute("""
+                CREATE TRIGGER pg_red_disconnect_insert
+                BEFORE INSERT ON market_data.candles
+                FOR EACH ROW EXECUTE FUNCTION market_data.pg_red_disconnect_insert()
+            """)
+
+        try:
+            gateway = self.gateway()
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                write_future = pool.submit(
+                    gateway.write_batch,
+                    [
+                        self.candle(open_time=self.open_time),
+                        self.candle(open_time=second_open),
+                    ],
+                )
+
+                backend_pid = None
+                deadline = time.monotonic() + 4
+                while time.monotonic() < deadline and backend_pid is None:
+                    with connection(DSN, read_only=True) as database:
+                        row = database.execute(
+                            """
+                            SELECT pid
+                            FROM pg_stat_activity
+                            WHERE datname = current_database()
+                              AND state = 'active'
+                              AND pid <> pg_backend_pid()
+                              AND query LIKE '%write_canonical_candle%'
+                            ORDER BY query_start DESC
+                            LIMIT 1
+                            """
+                        ).fetchone()
+                    if row is not None:
+                        backend_pid = row[0]
+                    else:
+                        time.sleep(0.05)
+
+                self.assertIsNotNone(
+                    backend_pid,
+                    "writer backend did not enter the second-row trigger",
+                )
+                with connection(DSN) as database:
+                    terminated = database.execute(
+                        "SELECT pg_terminate_backend(%s)", (backend_pid,)
+                    ).fetchone()[0]
+                self.assertTrue(terminated)
+
+                with self.assertRaises(StoreUnavailable):
+                    write_future.result(timeout=5)
+
+            with connection(DSN, read_only=True) as database:
+                count = database.execute(
+                    """
+                    SELECT count(*)
+                    FROM market_data.candles
+                    WHERE open_time_ms IN (%s, %s)
+                    """,
+                    (self.open_time, second_open),
+                ).fetchone()[0]
+            self.assertEqual(count, 0)
+        finally:
+            with connection(DSN) as database:
+                database.execute(
+                    "DROP TRIGGER IF EXISTS pg_red_disconnect_insert ON market_data.candles"
+                )
+                database.execute(
+                    "DROP FUNCTION IF EXISTS market_data.pg_red_disconnect_insert()"
+                )
+
     def test_invalid_middle_candle_is_rejected_before_any_write(self):
         from market_data.postgres import connection
 
