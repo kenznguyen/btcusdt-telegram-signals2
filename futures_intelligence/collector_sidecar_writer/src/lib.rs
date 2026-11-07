@@ -174,17 +174,11 @@ impl SidecarWriter {
         path.as_ref().with_extension("manifest.json")
     }
 
-    pub fn connected(
-        &mut self,
-        identity: &ConnectionIdentity,
-        event_at_ms: u64,
-    ) -> io::Result<()> {
+    pub fn connected(&mut self, identity: &ConnectionIdentity, event_at_ms: u64) -> io::Result<()> {
         self.ensure_usable()?;
         validate_identity(identity)?;
         if self.connections.contains_key(&identity.connection_id) {
-            return Err(invalid(
-                "connection_id may be opened only once per session",
-            ));
+            return Err(invalid("connection_id may be opened only once per session"));
         }
         let subscription_hash = subscription_set_sha256(&identity.subscriptions);
         self.append_event(
@@ -227,9 +221,7 @@ impl SidecarWriter {
                 .get(&identity.connection_id)
                 .expect("checked above");
             if state.heartbeat_ids.contains(heartbeat_id) {
-                return Err(invalid(
-                    "heartbeat_id must be unique within a connection",
-                ));
+                return Err(invalid("heartbeat_id must be unique within a connection"));
             }
         }
 
@@ -381,7 +373,9 @@ impl SidecarWriter {
         if capture_complete_through_ms > MAX_TIMESTAMP_MS
             || finalized_at_ms > MAX_TIMESTAMP_MS
         {
-            return Err(invalid("capture timestamps exceed the signed 64-bit contract"));
+            return Err(invalid(
+                "capture timestamps exceed the signed 64-bit contract",
+            ));
         }
         if self
             .last_event_at_ms
@@ -562,13 +556,8 @@ impl SidecarWriter {
         if event_at_ms > MAX_TIMESTAMP_MS {
             return Err(invalid("event timestamp exceeds the signed 64-bit contract"));
         }
-        if self
-            .last_event_at_ms
-            .is_some_and(|last| event_at_ms < last)
-        {
-            return Err(invalid(
-                "event timestamps must be globally non-decreasing",
-            ));
+        if self.last_event_at_ms.is_some_and(|last| event_at_ms < last) {
+            return Err(invalid("event timestamps must be globally non-decreasing"));
         }
 
         let event = Event {
@@ -624,7 +613,9 @@ fn validate_identity(identity: &ConnectionIdentity) -> io::Result<()> {
         return Err(invalid("batch_id exceeds the supported bound"));
     }
     if identity.subscriptions.is_empty() || identity.subscriptions.len() > MAX_SUBSCRIPTIONS {
-        return Err(invalid("subscription set is empty or exceeds the supported count"));
+        return Err(invalid(
+            "subscription set is empty or exceeds the supported count",
+        ));
     }
     let mut unique = HashSet::new();
     let mut total_bytes = 0_usize;
