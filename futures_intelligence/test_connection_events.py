@@ -173,6 +173,12 @@ class ConnectionEventContractTest(unittest.TestCase):
                 capture_finalized=True, capture_complete_through_ms=END,
             )
 
+    def test_rejects_events_after_the_trusted_capture_watermark(self):
+        events = self.healthy_events()
+        events.append(self.event("after-watermark", "DISCONNECTED", END + 1, reason="REMOTE_CLOSE"))
+        with self.assertRaises(ValueError):
+            self.validate(events)
+
     def test_rejects_unfinalized_capture_and_short_completeness_watermark(self):
         path, digest = self.write(self.healthy_events())
         common = dict(
