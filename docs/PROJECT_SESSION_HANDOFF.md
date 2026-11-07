@@ -4245,3 +4245,13 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - PG-LC-03 is **PASS**. Matrix update commit `f14162bfbe9385aaac7f870d55472e9cd2c27c37`, blob `b9c787746db95830b63e33c0441f514d3e0e3357`.
 - No provider/VPS/canonical DB/production Feeder/exchange/data sync/Backup-DR activity.
 - Next lifecycle gap: PG-LC-04 — bounded connection establishment failure and concurrent connection churn. Audit the current psycopg adapter timeout contract first; no pool-exhaustion test is applicable because the adapter has no pool.
+
+
+## 2026-11-07 — PG-LC-04 concurrent PostgreSQL connect-timeout test
+
+- Added `PostgresConnectionTimeoutContractTest.test_connection_timeout_bounds_concurrent_unresponsive_handshakes` in `market_data/test_postgres_feeder_runtime_lifecycle.py`; source commit `3b2db445aa4cfe067c91a2d64530eea52879a496`, test blob `8c111f0da96d7b43ad6421d8085e88d07ede625e`.
+- Test uses three concurrent loopback TCP sockets that accept PostgreSQL startup packets but never complete the PostgreSQL handshake. It asserts all connection attempts fail as `StoreUnavailable` within the 7-second bound, consistent with adapter `connect_timeout=5`. This is local synthetic socket fault injection; no external network/provider is contacted.
+- Static workflow run [42322694050](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42322694050), exact source SHA `3b2db445aa4cfe067c91a2d64530eea52879a496`; static job `128250723920` SUCCESS. Full market_data suite 237 tests, 39 skipped, OK; the new test is skipped here because it is scoped to disposable TimescaleDB CI.
+- Static artifact `13553307897`, size 10,764 bytes, digest `sha256:3290448be8a9f54720d979b1d431ab837d0a1aa1ddcd39706737be198b660e81`; downloaded ZIP independently hashed and matched.
+- Disposable TimescaleDB job `128250794111` is still running dependency installation; PG-LC-04 remains **NOT VERIFIED** until this test runs there.
+- No runtime implementation change, connection pool, provider/VPS, canonical DB, production Feeder, exchange/data sync or Backup/DR operation.
