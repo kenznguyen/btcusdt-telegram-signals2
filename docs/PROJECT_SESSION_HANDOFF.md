@@ -4392,3 +4392,14 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - Evidence update commit: `57963c892f61acdcc98b195a4fd72bc7d76b474a`.
 - Latest REST sample PASS does not establish durable availability; keep provider acceptance conditional until repeatability is tested. WebSocket Kline event remains NOT VERIFIED.
 - Next: update PC snapshot from exact implementation SHA `f61deca1cd7874e61851ca52ad4857bd0ff4535c`, rerun only the read-only probe and report the new stage/status/classification. Do not start Controlled First Run, canonical ingestion, DB writes, or Feeder without separate explicit approval.
+
+
+### P1.9 latest PC rerun — WebSocket still times out during HTTP Upgrade (2026-11-07)
+
+- User-provided probe observation: `2026-11-07T02:05:21Z`.
+- REST 5/5 PASS (all HTTP 200, schemas valid): ping 190.69 ms; time 127.13 ms; exchangeInfo 250.60 ms; closed M15 143.63 ms; closed H1 142.83 ms.
+- WebSocket: TIMEOUT at `HTTP_UPGRADE`, `status=null`, read operation timed out after 20,433.86 ms. No HTTP 101 was received/validated; this is not an event-wait timeout.
+- The JSON does not contain a source SHA. The user was previously instructed to run implementation SHA `f61deca1cd7874e61851ca52ad4857bd0ff4535c`; exact runtime provenance remains contextual and is not independently attested by this JSON.
+- Current P1.9 verdict: REST CONDITIONAL PASS (two recent 5/5 samples); WebSocket HTTP Upgrade BLOCKED; Kline event NOT RUN; overall P1.9 BLOCKED. No credentials/proxy/DB/Feeder/persistence/execution.
+- Next: compare a fresh direct PowerShell HTTP Upgrade handshake against the probe from the same PC/network, capturing host/path, status and response headers. No alternate domains, VPN/proxy, network circumvention, canonical ingestion, Controlled First Run, or Feeder activation.
+- Evidence report update commit: `c9172f917972d84f57ba02621bb4a9efc9556462`.
