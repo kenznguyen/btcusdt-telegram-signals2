@@ -353,7 +353,7 @@ impl SidecarWriter {
     /// Seal this process-session sidecar and publish its manifest without replacing
     /// an existing manifest. All sockets must first have a durable DISCONNECTED event.
     pub fn finalize(
-        mut self,
+        &mut self,
         capture_complete_through_ms: u64,
         finalized_at_ms: u64,
     ) -> io::Result<CaptureManifest> {
