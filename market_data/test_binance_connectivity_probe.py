@@ -7,7 +7,7 @@ from urllib.error import URLError
 
 from market_data.binance_connectivity_probe import (
     classify_http_status, parse_http_upgrade, parse_server_frame,
-    _receive_kline_event, _rest_request, _websocket_failure_result, probe_websocket, validate_exchange_info,
+    _receive_kline_event, _recv_http_upgrade_response, _rest_request, _websocket_failure_result, probe_websocket, validate_exchange_info,
     validate_kline_event, validate_klines, validate_server_time,
 )
 
@@ -88,6 +88,32 @@ class WebSocketHandshakeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             parse_server_frame(bytes([0x81, 0x80 | len(payload)]) + payload)
 
+
+
+class HttpUpgradeResponseReaderTests(unittest.TestCase):
+    def test_reads_headers_until_real_crlf_terminator(self):
+        response = (
+            b"HTTP/1.1 101 Switching Protocols\\r\\n"
+            b"Upgrade: websocket\\r\\n"
+            b"Connection: Upgrade\\r\\n"
+            b"\\r\\n"
+        )
+
+        class FakeSocket:
+            def __init__(self):
+                self.reads = 0
+
+            def recv(self, _size):
+                self.reads += 1
+                if self.reads == 1:
+                    return response
+                raise AssertionError("reader waited beyond the HTTP header terminator")
+
+        sock = FakeSocket()
+        received = _recv_http_upgrade_response(sock)
+
+        self.assertEqual(received, response)
+        self.assertEqual(sock.reads, 1)
 
 
 class WebSocketTimeoutStageTests(unittest.TestCase):
