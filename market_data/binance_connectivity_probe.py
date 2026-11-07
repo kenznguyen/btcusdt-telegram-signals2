@@ -309,14 +309,7 @@ def probe_websocket(timeout=8):
                 if opcode != 1:
                     raise ValueError("first WebSocket message is not a text event")
                 event = json.loads(payload)
-                event_valid = (
-                    isinstance(event, dict)
-                    and event.get("e") == "kline"
-                    and event.get("s") == "BTCUSDT"
-                    and isinstance(event.get("k"), dict)
-                    and event["k"].get("s") == "BTCUSDT"
-        and event["k"].get("i") == "15m"
-                )
+                event_valid = validate_kline_event(event)
                 return {"status": 101, "classification": "REACHABLE", "latency_ms": round((time.monotonic() - started) * 1000, 2), "event_valid": event_valid}
     except Exception as error:
         return {"status": None, "classification": _network_error_kind(error), "error_type": type(error).__name__, "latency_ms": round((time.monotonic() - started) * 1000, 2), "event_valid": False}
