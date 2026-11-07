@@ -5130,3 +5130,17 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Evidence reports updated: T1_COLLECTOR_CARGO_AUDIT_EXACT_EVIDENCE_2026-11-07.md (commit 2afd083bef319e7768698549e620c515cf8f7b70); T1_COLLECTOR_FORK_PREHANDSHAKE_SIDECAR_2026-11-07.md (commit 69e53d588db4f88064815e4fae928bbbd5d4b06c).
 - Next: poll both runs to completion; retrieve the all-target graph output and classify all advisory packages by exact dependency path; record test counts, security/npm status and artifacts. No dependency changes until the graph is understood.
 - Safety unchanged: no collector runtime, Binance connection, database access, market capture, merge or live execution. ai_execution_enabled=false.
+
+
+## 2026-11-07 — T1 All-target Reachability Correction; Exact-version Rerun Pending
+
+- Completed runs 42349896315 (PR) and 42349892441 (push): collector library 40/40, binary 1/1, sidecar 11/11 PASS; format/Clippy/build, dashboard backend/frontend and Docker PASS. Security FAIL: cargo-audit 12 vulnerabilities + 2 warnings among 248 locked packages; npm audit skipped. No artifacts.
+- PR synthetic merge checkout SHA 0c28969 (merge source eda201bb5e659e438b81a09eee7c20cdd749763a into upstream baseline bc4f0ef633fbeee4a49defd72827f17162693805); push checkout SHA eda201bb5e659e438b81a09eee7c20cdd749763a.
+- Corrected prior interpretation: quinn-proto all-target query printed "nothing to print" (exit 0), and webpki-roots was ambiguous because Cargo.lock has versions 0.26.11 and 1.0.9. Neither previous marker is valid proof of reachability/non-reachability.
+- Paths confirmed: rustls via reqwest/hyper-rustls and tokio-tungstenite; rustls-webpki via rustls-platform-verifier/reqwest and rustls; webpki-root-certs via rustls-platform-verifier/reqwest; tokio via hyper-util/reqwest; chacha20 via rand/tungstenite/tokio-tungstenite.
+- Fork now uses exact package IDs with versions in all-target reverse dependency checks: cargo tree --locked --target all -i crate@version. Latest source SHA 22900b860426a5c19622ec6b5ea3673646df2229; workflow blob f966f0040533b28e97897200db0b4638129b349a.
+- New PR run 42350687437 (security job 128337964057) and push run 42350684200 (security job 128337953368). Exact-version diagnostic steps PASS, but logs/final workflow conclusions not yet verified at last poll.
+- Evidence updates: audit report commit c444f357f4e4a508b21de8666b62be70b260afe3; sidecar report commit 6c5f6a26e3583be2829abf8029dbee23353188dd.
+- PR #1 remains OPEN / DRAFT / NOT MERGED. No Cargo.toml/Cargo.lock updates, audit suppressions, feature changes or gate weakening.
+- Next: poll both exact-version runs, retrieve paths for quinn-proto@0.11.16 and webpki-roots@1.0.9, verify checkout SHA, all tests, audit/npm, artifacts. Then propose narrow resolver-generated fixes. No runtime integration.
+- Safety unchanged: no collector runtime, Binance connection, database access, capture, merge or live execution; ai_execution_enabled=false.
