@@ -209,6 +209,28 @@ def _field_metrics(binance_rows, okx_rows):
     return metrics
 
 
+def _largest_differences(binance_rows, okx_rows, limit=5):
+    """Return deterministic top absolute-difference rows for each OHLCV field."""
+    result = {}
+    for field in FIELDS:
+        differences = []
+        for left, right in zip(binance_rows, okx_rows):
+            a, b = left[field], right[field]
+            absolute = abs(a - b)
+            relative = (absolute / abs(b)) if b != 0 else None
+            differences.append({
+                "open_time": left["open_time"],
+                "binance_value": str(a),
+                "okx_value": str(b),
+                "abs_diff": float(absolute),
+                "rel_diff": float(relative) if relative is not None else None,
+            })
+        differences.sort(key=lambda item: (-item["abs_diff"], item["open_time"]))
+        result[field] = differences[:limit]
+    return result
+
+
+
 def build_report(manifest_path):
     manifest_path = Path(manifest_path).resolve()
     try:
@@ -251,10 +273,12 @@ def build_report(manifest_path):
             )
 
     metrics = {}
+    largest_differences = {}
     for timeframe in INTERVALS:
-        metrics[timeframe] = _field_metrics(
-            loaded["binance_t0"][timeframe], loaded["okx_t2"][timeframe]
-        )
+        binance_rows = loaded["binance_t0"][timeframe]
+        okx_rows = loaded["okx_t2"][timeframe]
+        metrics[timeframe] = _field_metrics(binance_rows, okx_rows)
+        largest_differences[timeframe] = _largest_differences(binance_rows, okx_rows)
     return {
         "schema": SCHEMA,
         "status": "COMPARABLE",
@@ -280,6 +304,7 @@ def build_report(manifest_path):
             "implementation_revision": manifest["conversion"]["implementation_revision"],
         },
         "metrics": metrics,
+        "largest_differences": largest_differences,
         "interpretation": (
             "Differences describe distinct exchange market data and contract feeds; "
             "they do not by themselves indicate corruption. OHLCV equality is not required."
@@ -322,6 +347,23 @@ def render_markdown(report):
                 f"{values['mean_abs_diff']:.12g} | {values['p95_abs_diff']:.12g} | "
                 f"{values['max_abs_diff']:.12g} | {relative_text} |"
             )
+        lines.append("")
+    lines.extend(["## Largest difference rows", ""])
+    for timeframe, fields in report["largest_differences"].items():
+        lines.extend([
+            f"### {timeframe.upper()}",
+            "",
+            "| Field | Open time (UTC ms) | Binance | OKX | Abs diff | Relative diff (OKX base) |",
+            "|---|---:|---:|---:|---:|---:|",
+        ])
+        for field, rows in fields.items():
+            for item in rows:
+                relative = item["rel_diff"]
+                relative_text = "n/a" if relative is None else f"{relative:.12g}"
+                lines.append(
+                    f"| {field} | {item['open_time']} | {item['binance_value']} | "
+                    f"{item['okx_value']} | {item['abs_diff']:.12g} | {relative_text} |"
+                )
         lines.append("")
     lines.extend(["## Interpretation", "", report["interpretation"], ""])
     return "\n".join(lines)
