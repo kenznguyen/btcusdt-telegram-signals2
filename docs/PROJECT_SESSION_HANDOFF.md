@@ -5218,3 +5218,14 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - No Cargo.toml/Cargo.lock updates, advisory ignores, workflow gate weakening, Tokio writer integration, collector runtime, Binance connection, database access, data capture, merge, or live execution.
 - Next: prepare a narrowly scoped dependency-remediation plan from the exact advisory paths, then use Cargo resolver/lockfile updates (not hand edits) and compatibility regression tests. Keep cargo-audit hard-gated; do not begin collector runtime or Tokio writer worker integration until all security and CI gates pass. `ai_execution_enabled=false`.
 
+
+
+## 2026-11-07 — T1 dependency remediation inputs inspected
+
+- Inspected fork `kenznguyen/binance-futures-collector` at PR branch `feature/t1-connection-sidecar-integration-20261107`, source SHA `7ac7480c1eb4a94719966dd284e87e274d40c502`. Cargo.toml blob `f373e8b32e090a76399905538742e8b34a669419`; Cargo.lock blob `625a8b8af376511d1d3245fc0ab9f72b138d180e`. Cargo.toml/Cargo.lock remain unchanged from the pinned upstream baseline.
+- Direct constraints include Tokio `1.35` with full features, reqwest `0.13` with rustls/webpki-roots/http2, tokio-tungstenite `0.30` with rustls webpki roots, and rand `0.8`. Tungstenite's resolved graph also brings rand `0.10.2` / chacha20 `0.10.1`.
+- Confirmed all-target graph paths for the vulnerable rustls, rustls-webpki, webpki-root-certs, webpki-roots, tokio and chacha20 packages; quinn-proto@0.11.16 has no reverse path emitted, but remains in Cargo.lock and is still reported by cargo-audit.
+- Candidate advisory minimums observed in the exact cargo-audit output: quinn-proto >=0.11.17 for some advisories and >=0.11.18 for others; rustls >=0.23.46; rustls-webpki >=0.103.16; webpki-root-certs >=1.0.10; webpki-roots >=1.0.10. Tokio warning and yanked chacha20 require resolver-compatible treatment; do not infer a safe minimum from the current run.
+- No dependency update was applied. Next authorized engineering action is to construct a resolver-based remediation proposal and compatibility test plan; do not hand-edit Cargo.lock, remove direct dependencies, add advisory ignores, or weaken cargo-audit. Implementation must preserve behavior and run full Rust/dashboard/Docker CI on the exact new source SHA.
+- Runtime/collector integration remains NOT STARTED; PR #1 stays DRAFT/unmerged. `ai_execution_enabled=false`.
+
