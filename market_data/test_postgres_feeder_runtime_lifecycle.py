@@ -165,6 +165,94 @@ class PostgresFeederRuntimeLifecycleIntegrationTest(unittest.TestCase):
         self.assertTrue(runtime.stop(timeout=1))
         self.assertFalse(self.backend.is_current(owner, generation))
 
+    def test_runtime_does_not_resume_after_transient_heartbeat_outage(self):
+        from unittest.mock import Mock
+        from market_data.feeder import FeederConfig, FeederRuntime
+        from market_data.postgres import StoreUnavailable, connection
+
+        class FailOnceHeartbeatAdapter:
+            def __init__(self, backend):
+                self.backend = PostgresRuntimeLeaseAdapter(backend)
+                self.heartbeat_calls = 0
+
+            def acquire(self, owner, *, now_ms=None, ttl_seconds=60):
+                return self.backend.acquire(
+                    owner, now_ms=now_ms, ttl_seconds=ttl_seconds
+                )
+
+            def heartbeat(self, owner, generation, *, now_ms=None, ttl_seconds=60):
+                self.heartbeat_calls += 1
+                if self.heartbeat_calls == 1:
+                    raise StoreUnavailable("simulated transient PostgreSQL outage")
+                return self.backend.heartbeat(
+                    owner, generation, now_ms=now_ms, ttl_seconds=ttl_seconds
+                )
+
+            def release(self, owner, generation):
+                return self.backend.release(owner, generation)
+
+            def is_current(self, owner, generation, *, now_ms=None):
+                return self.backend.is_current(owner, generation, now_ms=now_ms)
+
+        old_owner = "outage-old-" + uuid.uuid4().hex
+        new_owner = "outage-new-" + uuid.uuid4().hex
+        old_scheduler = _LifecycleScheduler()
+        health = Mock()
+        flaky = FailOnceHeartbeatAdapter(self.backend)
+        config = FeederConfig(
+            timeframes=("15m",),
+            lease_ttl_seconds=8,
+            lease_heartbeat_seconds=1,
+        )
+        old_runtime = FeederRuntime(
+            config=config,
+            scheduler=old_scheduler,
+            lease_store=flaky,
+            owner_id=old_owner,
+            health=health,
+        )
+
+        self.assertTrue(old_runtime.start())
+        old_generation = old_runtime.lease_generation
+        try:
+            deadline = time.monotonic() + 4
+            while old_runtime.state != "LEASE_LOST" and time.monotonic() < deadline:
+                time.sleep(0.05)
+            self.assertEqual(old_runtime.state, "LEASE_LOST")
+            self.assertTrue(old_scheduler.stopped)
+            health.mark_not_ready.assert_called_once()
+
+            # The adapter now delegates to the healthy PostgreSQL backend, but
+            # the old heartbeat loop has terminated and must not self-resume.
+            time.sleep(1.2)
+            self.assertEqual(flaky.heartbeat_calls, 1)
+            self.assertEqual(old_runtime.state, "LEASE_LOST")
+
+            with connection(self.dsn) as database:
+                database.execute(
+                    """UPDATE market_data.feeder_leases
+                       SET expires_at=clock_timestamp() - interval '1 second'
+                       WHERE lease_name=%s AND owner_id=%s AND generation=%s""",
+                    (self.lease_name, old_owner, old_generation),
+                )
+
+            new_runtime = self._runtime(self.adapter, new_owner, ttl=8, heartbeat=1)
+            try:
+                self.assertTrue(new_runtime.start())
+                self.assertGreater(new_runtime.lease_generation, old_generation)
+                self.assertEqual(old_runtime.state, "LEASE_LOST")
+                self.assertTrue(
+                    self.backend.is_current(new_owner, new_runtime.lease_generation)
+                )
+                self.assertTrue(old_runtime.stop(timeout=3))
+                self.assertTrue(
+                    self.backend.is_current(new_owner, new_runtime.lease_generation)
+                )
+            finally:
+                new_runtime.stop(timeout=3)
+        finally:
+            old_runtime.stop(timeout=3)
+
     def test_restart_acquires_a_strictly_new_fencing_generation(self):
         owner_one = "restart-one-" + uuid.uuid4().hex
         owner_two = "restart-two-" + uuid.uuid4().hex
