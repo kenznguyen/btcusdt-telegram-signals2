@@ -6126,3 +6126,44 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Establish a short, supervised initial capture window and pre/post disk measurements; preserve at least 2G free. Confirm clean SIGTERM stop and inspect output/heartbeat/gap files before considering any longer run.
 - Present the exact config and launch/stop commands for review before starting the Collector.
 - No T0 changes, no proxy/VPN, no API key, no Dashboard, no PR merge or Draft → Ready transition, and no live trading or real orders.
+
+
+## T1 BTCUSDT-only runtime configuration review — no launch (2026-11-08)
+
+### Exact-source inspection
+- Inspected T1 branch `feature/t1-connection-sidecar-integration-20261107` at source SHA `d8ac9fc820dcf2e912e66518a1a1c73a8fa81ac7`.
+- `config.example.toml` blob SHA: `3436a8b75dc827a9299c083e9af783c8a74196c3`.
+- `src/config.rs` blob SHA: `e07fd601986d7a8db18109e3179937579c425f98`.
+- `src/main.rs` blob SHA: `d3cde50a9fb761a1d6ef711a5a04cbbda359f3ed`.
+- README confirms the standalone binary runs without Dashboard; config is read from `./config.toml` or `CONFIG_PATH`. No CLI duration or disk-quota option is documented or implemented in the inspected main entrypoint.
+- Fixed whitelist `collection.symbols = ["btcusdt"]` bypasses symbol discovery and restricts collectors to BTCUSDT. The collector still runs its full configured stream set for that one symbol.
+- Proxy is controlled by `proxy.enabled`; set false. API key is optional and public market-data endpoints require none; omit `api_key`.
+- Data paths are independently configurable:
+  - CSV: `output.base_dir`
+  - gaps: `gaps.base_dir`
+  - logs: `logging.log_file`
+  - heartbeat: `stats/stats.json` under the parent of `output.base_dir`.
+- Proposed isolated paths (not yet created): `/home/ubuntu/t1/data/futures`, `/home/ubuntu/t1/data/gaps`, `/home/ubuntu/t1/data/stats`, and `/home/ubuntu/t1/logs/collector.log`.
+- Clean shutdown is explicitly handled for SIGTERM: stop WebSocket ingest, drain handler queue, flush CSV buffers, persist dirty gap registry, then log `Shutdown complete`.
+
+### Storage and run-control boundary
+- README's ~40 GB/day estimate describes all ~500 symbols at 500 ms and must not be applied as a measured BTCUSDT-only rate. No measured BTCUSDT growth rate is available.
+- There is no verified built-in hard disk quota or duration limit. Therefore no unattended/indefinite run is approved. A first run, if separately approved, must be externally time-bounded with SIGTERM, supervised by the user, and use before/after disk measurements; preserve >=2 GB free.
+- Dashboard will not be installed or started. No dashboard backend/frontend dependencies are required for the standalone binary.
+- The planned config has not been written to VPS, no T1 data directories have been created, and no Collector process or Binance capture has started.
+
+### Verdict and next step
+| Item | Status |
+|---|---|
+| Exact-source config schema review | PASS |
+| BTCUSDT whitelist mechanism | PASS |
+| Independent T1 path mapping | PASS (source-level plan only; not created) |
+| Public-only / no API key / proxy disabled configuration | PASS (source-level plan only) |
+| SIGTERM graceful flush path | PASS (source inspection only; not runtime-tested on VPS) |
+| Measured BTCUSDT storage rate | NOT VERIFIED |
+| Hard storage quota / native duration limit | NOT AVAILABLE / NOT VERIFIED |
+| Runtime config creation and parse check on VPS | NOT RUN |
+| Collector runtime / capture | NOT RUN |
+
+- Next: prepare a complete config derived from the exact example, change only whitelist and isolated paths, keep 500 ms cadence and all stream settings unchanged, then validate TOML/config parse and review the exact launch/stop command with the user before any start.
+- No T0 changes, no API key, no proxy/VPN, no Dashboard, no PR merge or Draft → Ready transition, and no live trading.
