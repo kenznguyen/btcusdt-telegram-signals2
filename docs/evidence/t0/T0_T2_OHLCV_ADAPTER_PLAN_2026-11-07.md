@@ -86,3 +86,35 @@ The adapter should initially support only BTCUSDT and the already supported 15m/
 ## Next action
 
 Inspect the active branch's T2 strategy, FreqAI config, dependency pins and GitHub Actions workflow. Record exact version and data-format evidence before writing adapter code. If these assets are not present on this branch, stop and identify the authoritative T2 branch/revision rather than implementing against assumptions.
+
+
+## Architecture correction — existing T2 bridge discovered (2026-11-07)
+
+The initial proposal to build a separate OHLCV export adapter is superseded by inspection of the existing T2 branch `feature/freqtrade-strategy-parity-20261029`.
+
+Verified files on that branch:
+- `freqai_bridge/README.md` (blob `9cbe44a60a880e7a5ccd10266c2353a5dbf409e0`): documents Freqtrade/FreqAI **2026.9**, direct canonical SQLite consumption and the existing verification commands.
+- `freqai_bridge/config.research.json` (blob `a777e018f457628150647064119435ce75dc3e29`): points `canonical_db_path` to `.data/market-data.sqlite3`, timeframe 15m, BTC/USDT:USDT, dry_run true.
+- `freqai_bridge/context.py` (blob `6df3606df8ab34366bfe3abdb77a83574b76e7b1`): calls T0 `market_data.store.read_window()`, requires complete canonical coverage and checks availability time.
+- `freqai_bridge/exporter.py` (blob `3b707174316d0c6b464ac947cbbe2d2fbee73682`): binds actual FreqAI dataframe timestamps and OHLCV to the canonical window, validates prediction/provenance, and emits an atomic JSON artifact.
+- `freqai_bridge/test_exporter.py` (blob `81fcd9bb3823899be50e20f671696ea9812fcfe7`): uses temporary SQLite and pandas fixtures to test real dataframe/canonical matching.
+
+Therefore, do NOT build a duplicate CSV/Feather/Parquet adapter. The next task is an integration/parity verification, not a new data exporter.
+
+## Revised next work item
+
+1. Compare the T0 branch's current `market_data.store` contract and schema with the T2 branch's assumptions. Confirm table/column names, timeframe semantics, UTC timestamps, decimal values, source identity and read-only access.
+2. Confirm the T2 consumer opens SQLite without initializing or writing to it. Add a regression proving source schema/hash/row count are unchanged by T2 context and prediction export.
+3. Run the existing `freqai_bridge.test_exporter` and `pipeline.test_decision` suites against the exact compatible source tree using temporary SQLite only.
+4. Validate the exact Freqtrade 2026.9 strategy-load smoke test in its pinned environment; do not infer compatibility solely from pandas tests.
+5. Build a bounded parity report against the existing OKX T2 dataset. Binance and OKX candles are different market sources; report timestamp/price/volume differences, do not expect exact equality or silently replace OKX.
+6. Keep the existing OKX source and all live-execution guards unchanged. Any future T0 source enablement in T2 requires separate acceptance.
+
+Branch boundary: the T2 implementation inspected above is on `feature/freqtrade-strategy-parity-20261029`; the current T0 development branch remains `feature/t0-centralized-data-feeder-p1-20261101`. Do not assume the two branches are merged or that the T2 code has passed tests against the latest T0 source. Cross-branch compatibility remains NOT VERIFIED.
+
+Updated status:
+- Duplicate export adapter: NOT REQUIRED based on existing implementation.
+- Existing T2 direct SQLite bridge: PRESENT on T2 branch; exact compatibility with current T0 branch NOT VERIFIED.
+- Freqtrade/FreqAI target: 2026.9 documented; installed runtime and strategy-load test NOT VERIFIED in this session.
+- T0 Canonical SQLite file: NOT CREATED.
+- T0 canonical ingestion: NOT RUN; Feeder STOPPED; `ai_execution_enabled=false`.
