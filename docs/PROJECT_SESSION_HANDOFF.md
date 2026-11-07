@@ -5480,3 +5480,11 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Corrected the test assertion and added per-line JSON-object validation in commit `aa9cd4db7fbfe66ab707911da8b28208f9448165`; changed file remains tests only.
 - Current source SHA: `aa9cd4db7fbfe66ab707911da8b28208f9448165`. Exact-source push workflow [42363383082](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42363383082) is IN_PROGRESS. Latest poll: backend and frontend PASS; Collector, Security and Docker IN_PROGRESS. RED remains **NOT VERIFIED** pending Collector output.
 - Next: poll run 42363383082. If test compilation passes, record expected behavioral failures. If it fails for any non-behavioral reason, correct only that issue and rerun. No implementation code until RED is demonstrated.
+
+
+## R5.1 CI follow-up — formatter correction committed; RED not yet verified (2026-11-07)
+- Exact-source run [42363383082](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42363383082) completed with Collector job failure at sidecar test formatting check. The tests compiled and the failure was only rustfmt diff; test behavior was not executed, so RED remains NOT VERIFIED.
+- Formatting-only test commit: `b7f9f42b7ea809c46f388c81cc6e69b1b472e6f2`, changed only `crates/connection-sidecar/tests/sidecar_writer.rs`.
+- Current T1 source SHA / PR head: `b7f9f42b7ea809c46f388c81cc6e69b1b472e6f2`; PR #1 OPEN / DRAFT / NOT MERGED.
+- Exact-source push workflow [42363640380](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42363640380) is IN_PROGRESS. Latest poll: backend PASS, frontend PASS; Collector, Security, Docker IN_PROGRESS. No behavioral result yet.
+- Next: await Collector test output. Only after expected failing assertions are observed may R5.1 implementation begin. Preserve no runtime, no Binance, no DB/capture, no T0 changes, no merge, no live execution; `ai_execution_enabled=false`.
