@@ -145,3 +145,17 @@ Resolve why the fork has no GitHub Actions runs, then execute the exact PR head 
 - Verdict: sidecar Rust checks **PASS at job-step level**; overall CI **BLOCKED** by the security gate. Exact checkout identity and detailed 11-test count remain NOT VERIFIED. PR #1 remains OPEN / DRAFT / NOT MERGED.
 - Next: inspect dependency graph/advisory reachability and design the smallest compatible, lockfile-generated remediation with tests. Do not weaken cargo-audit or add blanket ignores. Re-run GitHub Actions and verify checkout SHA from accessible logs. Do not start Tokio writer-worker/runtime integration until required gates pass.
 - Safety unchanged: no collector runtime, Binance connection, database access, market-data capture, credential/config change, merge, or live trading. `ai_execution_enabled=false`.
+
+
+## 2026-11-07 Addendum — Final fork CI and dependency graph result
+
+- Latest fork branch / PR source SHA: 32867b89379d3f3fe4227b0fb1bf97e8c7063a03.
+- PR #1 remains OPEN / DRAFT / NOT MERGED; PR base is upstream baseline bc4f0ef633fbeee4a49defd72827f17162693805.
+- PR Actions run https://github.com/kenznguyen/binance-futures-collector/actions/runs/42348223722 completed FAILURE. Actual synthetic merge checkout SHA: 43d5030bd9f08da0ab133c778a43eb2a25e80d1d. Push Actions run https://github.com/kenznguyen/binance-futures-collector/actions/runs/42348219928 completed FAILURE on the source branch SHA.
+- PR Rust job 128330521322; push Rust job 128330509513: SUCCESS. Each run confirms collector library 40/40, binary 1/1, sidecar writer 11/11; format, Clippy, build and tests pass. Dashboard backend, frontend and Docker pass in both runs.
+- PR security job 128330521398; push security job 128330509319: FAILURE at cargo-audit. Each audit reports 12 vulnerabilities + 2 allowed warnings in 248 locked packages. npm audit is skipped after cargo-audit failure.
+- Read-only default feature graph diagnostics: quinn-proto, rustls, rustls-webpki, webpki-root-certs, tokio and chacha20 PRESENT; webpki-roots NOT_IN_DEFAULT_GRAPH. This does not rule out target-specific use; cargo tree --target all remains required. Full dependency paths are not yet captured.
+- Artifact query returned empty for both runs; no artifact IDs/digests.
+- No dependency updates, audit ignores, feature changes, runtime changes or workflow gate weakening. PR remains draft/unmerged.
+- Verdict: sidecar implementation offline CI PASS; overall PR CI BLOCKED by inherited RustSec audit findings. Runtime integration NOT AUTHORIZED / NOT STARTED.
+- Next: complete all-target reverse dependency graph and inspect exact package paths before proposing narrow Cargo-generated lockfile updates. Keep PR draft and do not merge. No collector, Binance, database, capture, or live execution. ai_execution_enabled=false.
