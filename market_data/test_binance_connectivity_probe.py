@@ -93,10 +93,10 @@ class WebSocketHandshakeTests(unittest.TestCase):
 class HttpUpgradeResponseReaderTests(unittest.TestCase):
     def test_reads_headers_until_real_crlf_terminator(self):
         response = (
-            b"HTTP/1.1 101 Switching Protocols\\r\\n"
-            b"Upgrade: websocket\\r\\n"
-            b"Connection: Upgrade\\r\\n"
-            b"\\r\\n"
+            b"HTTP/1.1 101 Switching Protocols\r\n"
+            b"Upgrade: websocket\r\n"
+            b"Connection: Upgrade\r\n"
+            b"\r\n"
         )
 
         class FakeSocket:
