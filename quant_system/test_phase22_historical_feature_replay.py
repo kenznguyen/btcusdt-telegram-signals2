@@ -87,3 +87,21 @@ class Phase22HistoricalDataKitchenTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Phase22RegisteredHashParsingTests(unittest.TestCase):
+    def test_sha256_metadata_prefix_is_normalized_without_changing_digest(self):
+        from quant_system.phase22_historical_feature_replay import normalize_registered_sha256
+
+        digest = "918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f"
+        self.assertEqual(normalize_registered_sha256("sha256:" + digest), digest)
+        self.assertEqual(normalize_registered_sha256(digest), digest)
+
+    def test_malformed_registered_sha256_fails_closed(self):
+        from quant_system.phase22_historical_feature_replay import (
+            FeatureReplayError,
+            normalize_registered_sha256,
+        )
+
+        with self.assertRaisesRegex(FeatureReplayError, "INVALID_REGISTERED_SHA256"):
+            normalize_registered_sha256("sha256:not-a-digest")
