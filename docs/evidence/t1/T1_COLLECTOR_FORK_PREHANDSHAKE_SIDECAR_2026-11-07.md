@@ -71,3 +71,17 @@ Do not infer that Actions are disabled from the absence of runs; the reason is n
 ## Next action
 
 Resolve why the fork has no GitHub Actions runs, then execute the exact PR head SHA `8fe12b7be05ee3e250af54d39deed723a65e83c1` through GitHub Actions. Record checked-out SHA, run ID, each job result, test totals and artifact metadata. Only after CI passes should the next increment integrate a dedicated bounded blocking writer worker, durable acknowledgements, unique heartbeat Ping/Pong payload correlation, pre-handshake failure hooks, disconnect/reconnect recording and graceful shutdown finalization.
+
+
+## 2026-11-07 Addendum — Actions Enabled / Fresh Push Recheck
+
+- User confirmed that GitHub Actions were enabled for the fork.
+- Rechecked PR #1: OPEN / DRAFT / NOT MERGED; base remains `main` at upstream baseline `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Workflow source `.github/workflows/ci.yml` was read at the feature branch. It declares `push` for `main` and `feature/t1-connection-sidecar-integration-20261107`, and `pull_request` without path filters.
+- Since enabling Actions did not produce a run for the existing event, created and pushed a no-source-change commit to the same feature branch to generate a fresh push event. Commit: `e1ccc11f654082456f3ef7b728f161e475904da0`; parent: `3d7d308bd63bf840d648f2cd22705477781a2557`; tree unchanged: `f7023d9c05ec232b4e68f341f14ea5ec5b2953a7`.
+- Exact PR head is now `e1ccc11f654082456f3ef7b728f161e475904da0`. PR body was updated to reflect this identity and current validation state.
+- Recheck after the fresh push: Actions API still reports zero workflow runs; commit status has zero contexts. No run ID, job ID, artifact, digest or logs exist.
+- Verdict remains **BLOCKED / NOT VERIFIED**. The reason the workflow does not start is still undetermined; do not claim the user's enablement failed or infer a specific repository setting.
+- Tests: 11 authored, **NOT RUN**. Format and Clippy **NOT VERIFIED**. No collector runtime integration or exchange access occurred.
+- Next: inspect the fork's Actions tab for workflow visibility, disabled/approval banners, and pending approval; if no workflow appears, verify the workflow file is present on the default branch and inspect repository Actions policy in Settings. Do not add runtime integration until exact-head CI passes.
+- Safety unchanged: no collector process, Binance request, DB access, data capture, credential/config change, merge, or live execution. `ai_execution_enabled=false`.
