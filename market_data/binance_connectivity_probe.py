@@ -314,7 +314,8 @@ def probe_websocket(timeout=8):
                     and event.get("e") == "kline"
                     and event.get("s") == "BTCUSDT"
                     and isinstance(event.get("k"), dict)
-                    and event["k"].get("s") == "BTCUSDT"\n                    and event["k"].get("i") == "15m"
+                    and event["k"].get("s") == "BTCUSDT"
+        and event["k"].get("i") == "15m"
                 )
                 return {"status": 101, "classification": "REACHABLE", "latency_ms": round((time.monotonic() - started) * 1000, 2), "event_valid": event_valid}
     except Exception as error:
