@@ -1,0 +1,105 @@
+name: T2 Freqtrade 2026.9 Strategy Load Smoke
+
+on:
+  push:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - "freqai_bridge/**"
+      - "pipeline/**"
+      - "market_data/**"
+      - ".github/workflows/t2-freqtrade-2026-9-strategy-smoke.yml"
+  pull_request:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - "freqai_bridge/**"
+      - "pipeline/**"
+      - "market_data/**"
+      - ".github/workflows/t2-freqtrade-2026-9-strategy-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: t2-freqtrade-2026-9-smoke-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  strategy-load:
+    name: Pinned Freqtrade 2026.9 FreqAI strategy load
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+      MARKET_DATA_DB: ""
+      MARKET_DATA_POSTGRES_DSN: ""
+      PAPER_DB: ""
+    steps:
+      - name: Checkout exact workflow source
+        uses: actions/checkout@v4
+
+      - name: Verify paper-only configuration and source guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          config = json.loads(Path("freqai_bridge/config.research.json").read_text())
+          strategy = Path("freqai_bridge/ChartProFreqaiResearch.py").read_text()
+          assert config["dry_run"] is True
+          assert config["force_entry_enable"] is False
+          assert config["exchange"]["pair_whitelist"] == ["BTC/USDT:USDT"]
+          assert 'dataframe["enter_long"] = 0' in strategy
+          assert 'dataframe["enter_short"] = 0' in strategy
+          assert "return False" in strategy
+          assert not any(__import__("os").environ.get(k) for k in (
+              "BINANCE_API_KEY", "BINANCE_API_SECRET", "OKX_API_KEY",
+              "OKX_API_SECRET", "MARKET_DATA_DB", "MARKET_DATA_POSTGRES_DSN", "PAPER_DB"
+          ))
+          print("T2_PAPER_ONLY_PREFLIGHT=PASS")
+          PY
+
+      - name: Pull pinned official Freqtrade 2026.9 FreqAI image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull freqtradeorg/freqtrade:2026.9_freqai
+
+      - name: Verify exact framework version
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --entrypoint freqtrade freqtradeorg/freqtrade:2026.9_freqai --version 2>&1 | tee t2-freqtrade-version.log
+          grep -E '2026\.9' t2-freqtrade-version.log
+
+      - name: Load strategy without exchange sync or database access
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -e PYTHONPATH=/freqtrade/user_data \
+            -v "${GITHUB_WORKSPACE}:/freqtrade/user_data:ro" \
+            --entrypoint freqtrade \
+            freqtradeorg/freqtrade:2026.9_freqai \
+            list-strategies \
+              --strategy-path /freqtrade/user_data/freqai_bridge \
+              --config /freqtrade/user_data/freqai_bridge/config.research.json \
+              --print-json 2>&1 | tee t2-freqtrade-strategy-load.log
+          grep -q "ChartProFreqaiResearch" t2-freqtrade-strategy-load.log
+
+      - name: Upload exact runtime smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t2-freqtrade-2026-9-strategy-smoke-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            t2-freqtrade-version.log
+            t2-freqtrade-strategy-load.log
