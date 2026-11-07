@@ -5744,3 +5744,15 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Status: BLOCKED — Clippy/offline test/full CI verification pending on the new exact source SHA. Next: inspect exact-head push and PR Actions, confirm Sidecar offline tests, all five jobs, checkout SHA and artifacts. Update PR description and this handoff after evidence.
 - R5.3 inverse heartbeat disconnect-reason guard remains GREEN on `bcfa23e929e3bb251b57359b344deffeb478da5f`, PR run [42371580205](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42371580205), 5/5 jobs and Sidecar 26/26.
 - PR #1 remains OPEN / DRAFT / NOT MERGED. No Collector runtime, Binance, DB, market capture, T0 changes, merge or live execution. Keep `ai_execution_enabled=false`.
+
+
+## T1 create-path cleanup — exact-source CI GREEN (2026-11-07)
+- T1 repository/branch: `kenznguyen/binance-futures-collector` / `feature/t1-connection-sidecar-integration-20261107`.
+- Source SHA: `5e22b051e617b3f131045afde6e60863a2ef6114`. Exact-head push run [42376799428](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42376799428) logs explicitly fetch and check out this SHA; PR run [42376804091](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42376804091) also completed SUCCESS with the Collector/Sidecar job passing.
+- Both runs: **5/5 jobs SUCCESS** — Collector, Docker, Security, Dashboard backend, Dashboard frontend. Sidecar writer format PASS; Sidecar writer Clippy PASS; Sidecar offline tests PASS. Collector workspace tests: library 40/40, binary 1/1. Sidecar offline tests: unit tests 3/3 and integration tests 27/27. The three cleanup fault-injection tests all passed: cleanup after initial parent-directory sync failure, reporting removal failure, and reporting second directory-sync failure.
+- Minimal Clippy lifetime correction: both generic `fs::remove_file` function-item arguments replaced with closures `|path| fs::remove_file(path)`; no behavioral change.
+- Artifacts: none published by either run.
+- PR #1 remains **OPEN / DRAFT / NOT MERGED**; no merge or Ready transition. PR description updated with exact-source CI and test evidence.
+- Status: create-path cleanup regression **PASS** at source/CI level. This does not establish hostile-filesystem safety or operational readiness. Existing filesystem TOCTOU/non-Unix identity limitations remain.
+- No Collector runtime, Binance connection, DB access, market capture, T0 modification, or live execution. Keep `ai_execution_enabled=false`.
+- Next permitted work: source-only review of remaining filesystem/finalization boundaries and any bounded lifecycle gaps, with TDD and exact-source Actions evidence. Do not activate runtime or merge PR without explicit authorization.
