@@ -40,7 +40,7 @@ def create_canonical_database(db_path, *, initializer=None):
     os.close(descriptor)
     try:
         (initializer or _initialize_schema)(target)
-        with sqlite3.connect(target.as_uri() + "?mode=ro", uri=True, timeout=5) as database:
+        with sqlite3.connect(target.resolve().as_uri() + "?mode=ro", uri=True, timeout=5) as database:
             tables = {row[0] for row in database.execute(
                 "SELECT name FROM sqlite_master WHERE type='table'"
             )}
