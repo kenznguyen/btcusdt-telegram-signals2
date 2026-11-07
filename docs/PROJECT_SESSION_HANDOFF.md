@@ -4142,3 +4142,15 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Next sequence: review runtime state transitions/timeouts, then add one focused RED lifecycle test at a time. Do not implement automatic reconnect/resume without a source-derived state-machine decision.
 - Work performed: source/test/documentation inspection and matrix documentation only. No code, SQL, workflow or runtime configuration changed; no tests/workflows were run.
 - Current verdict: matrix DOCUMENTED; current-tip CI NOT VERIFIED; provider compatibility NOT VERIFIED; PostgreSQL 16 non-superuser CREATEROLE bootstrap BLOCKED; Backup/DR DEFERRED.
+
+
+### PostgreSQL lifecycle source review — first RED candidate (2026-11-07)
+
+- Read-only source review of `market_data/feeder.py`, `market_data/feeder_service.py`, and `market_data/postgres.py`; source blobs: feeder `f782a75e01394a21f2bb3c987909951b83d23642`, feeder_service `0b7c44d538af5f2899d3d184b7d9b65ce87dd803`, postgres `2fe27fe2d066dda0c192a381b72d27404487b800`.
+- Connection model correction: the PostgreSQL adapter opens a fresh psycopg connection per operation; it has no pool. Connection timeout is 5 seconds, statement timeout 5 seconds, lock timeout 5 seconds. Do not create a pool-exhaustion test for a pool that does not exist; test bounded connect failure/concurrent connection churn instead.
+- First candidate lifecycle gap: `FeederRuntime.start()` sets state to STARTING and invokes `lease_store.acquire()` before its startup `try` block. A database connection exception therefore propagates while the runtime remains STARTING; scheduler admission does not start, but this runtime cannot be started again because start accepts only NEW. Health remains non-ready, but terminal-state handling and diagnostics are untested.
+- Proposed first RED test: inject PostgreSQL `StoreUnavailable` from lease acquisition; assert fail-closed startup, scheduler never starts, no release is attempted for a lease never acquired, and runtime transitions to a deterministic terminal failure state. This is a test proposal only; no test or source behavior has been changed.
+- Heartbeat and `run_once()` already route connection exceptions to `on_lease_lost()`; scheduler admission stops. Add a separate DB-disconnect regression later to prove this path, but do not implement automatic reconnect/resume without a reviewed state-machine contract.
+- Updated matrix commit: `3a8413f11a1e82a73ac9ac11127846989ebf7773`; matrix blob: `3f09a46eadd59ad693c0e36fa744f5aaa3d3a488`.
+- No tests/workflows were run; no runtime/database/provider/Feeder/exchange activity occurred.
+- Next decision: approve or revise the focused RED test for startup DB-unavailable behavior before changing tests or runtime logic.
