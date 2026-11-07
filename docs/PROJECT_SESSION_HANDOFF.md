@@ -4846,3 +4846,21 @@ Acceptance boundary:
 - Recommended next bounded task: add the existing T1 importer fixture suite to an offline-only GitHub Actions gate, then verify exact SHA/artifact. No live collector or exchange capture is included.
 - No source/test/workflow/runtime changes were made in this review. No tests were rerun. No DB accessed/created/written, no exchange contacted, no Feeder/lease started, no T2 source switch, no paired acquisition resumed, no merge or VPS action.
 - Safety remains: Canonical SQLite creation deferred; ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Windows preflight DEFERRED; Isolated Paired Dataset Acquisition Runner PAUSED; T2 OKX source unchanged; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 Importer CI Coverage
+
+- Scope: add an offline-only GitHub Actions job for the existing Futures Intelligence CSV importer fixture suite.
+- Workflow: `.github/workflows/t0-single-writer-gateway-red.yml`; job `t1-importer-offline-tests`.
+- Job behavior: Python 3.12; compile importer/test/shared values module; run `python -m unittest futures_intelligence.test_import_collector -v`; upload source SHA, scope, compile log, test log and verdict as a dedicated artifact.
+- Safety: job explicitly requires database DSNs/paths and Binance/OKX credentials to be empty; it uses the existing temporary CSV fixtures only. It does not install application dependencies, contact an exchange, run the collector, access canonical storage, or start the Feeder.
+- Push and pull_request path filters now include `futures_intelligence/**`.
+- Workflow update commits:
+  - `0bf61852973a9e084670b2ac8f1f49abf1cc35e5` — added offline T1 job.
+  - `dbe05a406131659d83b22e2b27646cab49a98631` — completed both path filters.
+- Current branch HEAD at handoff update: `dbe05a406131659d83b22e2b27646cab49a98631`.
+- GitHub Actions run: [42339519835](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42339519835), push event, exact head SHA `dbe05a406131659d83b22e2b27646cab49a98631`.
+- Last observed run state: **PENDING**, no jobs exposed yet; test result **NOT VERIFIED**, artifact **NOT AVAILABLE**. Do not report PASS until the run concludes and job logs/artifact are checked against this exact SHA.
+- No tests were run locally in this operation. No source/test code changed; workflow configuration only.
+- Next: inspect run `42339519835`; verify the dedicated T1 job, exact checked-out SHA, test count/result and artifact ID/digest. If run fails, diagnose before any retry.
+- Existing restrictions remain: Canonical SQLite creation deferred; ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Windows preflight DEFERRED; Feeder STOPPED; paired dataset acquisition PAUSED; T2 OKX source unchanged; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
