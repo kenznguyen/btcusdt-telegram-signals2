@@ -150,14 +150,19 @@ result = load_and_validate_connection_events(
     window_start_ms=1_700_000_000_000,
     window_end_ms=1_700_000_060_000,
     max_heartbeat_gap_ms=60_000,
+    capture_finalized=True,
+    capture_complete_through_ms=1_700_000_060_000,
     expected_connections=[{"batchId": 0, "route": "public"},
                           {"batchId": 0, "route": "market"}],
 )
 ```
 
-The validator checks file checksum, source/session identity, ordered unique
-events, connection state transitions, Ping/Pong pairing, heartbeat coverage,
-and expected batch/routes. It returns conservative states:
+The validator requires a sealed capture segment and a trusted
+`capture_complete_through_ms` watermark at or beyond the requested window end;
+this prevents a truncated event-file tail from being treated as proof that no
+disconnect occurred. It checks file checksum, source/session identity, ordered
+unique events, connection state transitions, Ping/Pong pairing, heartbeat
+coverage, and expected batch/routes. It returns conservative states:
 `VERIFIED_CONNECTED`, `DISCONNECTED`, `HEARTBEAT_GAP`,
 `UNVERIFIABLE`, or `OUTSIDE_WINDOW`. A verified result requires a connection
 already open at the start of the half-open window, matching Pong evidence spanning
