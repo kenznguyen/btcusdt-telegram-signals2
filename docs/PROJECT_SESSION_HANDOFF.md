@@ -4379,3 +4379,16 @@ Next: reconcile completion of run `42326194295` including job `128262082698`; th
 - No PG-LC-07 changes, role-guard weakening, canonical DB/Feeder, exchange/data sync, proxy/VPN or execution activity.
 
 Next permitted step: provide the user with a fresh source ZIP from the branch at or after implementation commit `ab564eccbb9c0484fdd30b694f5b052bc4a2c991` (documentation-only commits follow it), then rerun only the read-only probe on the PC. The official WebSocket Kline event remains NOT VERIFIED. Controlled First Run and canonical ingestion remain NOT AUTHORIZED.
+
+
+### P1.9 follow-up — PC REST recovered; WebSocket timeout stage instrumented
+
+- User reran the read-only probe from folder `btcusdt-telegram-signals2-ab564eccbb9c0484fdd30b694f5b052bc4a2c991` at `2026-11-07T01:57:09Z`.
+- REST: **5/5 PASS** in one sample (all HTTP 200, all schema_valid true): ping 211.28 ms; time 117.62 ms; exchangeInfo 216.14 ms; closed M15 114.80 ms; closed H1 135.95 ms.
+- WebSocket: `TIMEOUT`, `TimeoutError`, 20,440.33 ms, `status:null`; the old implementation did not expose whether timeout was during HTTP Upgrade or waiting for the first Kline event. Do not infer successful Upgrade from this run. Previous PowerShell HTTP 101 was an independent observation only.
+- Added explicit WebSocket `stage` reporting (`TCP_CONNECT`, `TLS_HANDSHAKE`, `HTTP_UPGRADE`, `WAITING_FOR_KLINE_EVENT`, `KLINE_EVENT_RECEIVED`); preserve status 101 after accepted Upgrade; classify timeout while awaiting the first event as `EVENT_TIMEOUT`.
+- TDD RED: `01bfdb9bd9aa9b21d42f4f505b37634548e2aee5`, run [42326976887](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42326976887), expected missing-helper import failure.
+- GREEN source SHA: `f61deca1cd7874e61851ca52ad4857bd0ff4535c`; dedicated run [42327017054](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42327017054), 16/16 offline tests PASS. Artifact `13555462335`, digest `sha256:dde5bbb0f6b76903c62566cd238a9297292857533b8ea6e47f33f183ddbb2402`.
+- Evidence update commit: `57963c892f61acdcc98b195a4fd72bc7d76b474a`.
+- Latest REST sample PASS does not establish durable availability; keep provider acceptance conditional until repeatability is tested. WebSocket Kline event remains NOT VERIFIED.
+- Next: update PC snapshot from exact implementation SHA `f61deca1cd7874e61851ca52ad4857bd0ff4535c`, rerun only the read-only probe and report the new stage/status/classification. Do not start Controlled First Run, canonical ingestion, DB writes, or Feeder without separate explicit approval.
