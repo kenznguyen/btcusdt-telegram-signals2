@@ -5878,3 +5878,10 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Prior code verification remains: source SHA `4db228e0e93acdc3843188280984145ca949c5d0`; exact-source push run `42385162505` SUCCESS 5/5; exact-head PR run `42385167688` SUCCESS 5/5; Sidecar unit 7/7 and integration 27/27. No artifacts.
 - Verdict: post-hard-link regression behavior and content classification **PASS**; runtime consumer integration is **NOT APPLICABLE / NOT INTEGRATED** at this stage. Recovery protocol, restart reconciliation, durable-finalize attestation, hostile filesystem TOCTOU and non-Unix file identity remain **NOT VERIFIED**. Operational readiness remains NOT VERIFIED.
 - Next: verify GitHub Actions triggered by README commit `dc5a4ede2af9a1b3e2a22bce22fd5a02a60a4403`. If CI passes, mark this documentation clarification complete. Then proceed to the next isolated T1 contract gap; do not integrate the sidecar into the upstream collector or start runtime without explicit scope/approval. PR #1 remains OPEN / DRAFT / NOT MERGED. No Binance access, DB, market capture, T0 edits or live execution.
+
+### README clarification CI tracking update
+- Documentation commit `dc5a4ede2af9a1b3e2a22bce22fd5a02a60a4403` triggered exact-head push workflow [42385858905](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42385858905) and PR workflow [42385864568](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42385864568).
+- Latest observed push job state: dashboard backend/frontend PASS; Collector format and Clippy PASS; Collector build, Docker build and security audit still IN_PROGRESS; Collector tests and Sidecar format/Clippy/offline tests pending.
+- Latest observed PR job state: dashboard backend/frontend PASS; Collector, Docker and security jobs still IN_PROGRESS.
+- Documentation commit CI status remains **BLOCKED / GREEN NOT VERIFIED** pending completion of both workflows. No artifacts observed yet.
+- Handoff update commit recording this tracking state: pending (this section is being committed separately).
