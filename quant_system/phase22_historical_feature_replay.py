@@ -34,6 +34,16 @@ def require(condition: bool, code: str) -> None:
         raise FeatureReplayError(code)
 
 
+def normalize_registered_sha256(value: str) -> str:
+    """Normalize metadata SHA-256 values with or without the sha256: prefix."""
+    if not isinstance(value, str):
+        raise FeatureReplayError("INVALID_REGISTERED_SHA256")
+    digest = value[7:] if value.startswith("sha256:") else value
+    if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
+        raise FeatureReplayError("INVALID_REGISTERED_SHA256")
+    return digest
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -265,7 +275,8 @@ def inspect_historical_features(
         metadata = json.loads(metadata_path.read_text(encoding="utf8"))
         require(metadata.get("source_commit_sha") == EXPECTED_SOURCE_COMMIT,
                 "FROZEN_SOURCE_COMMIT_MISMATCH")
-        require(metadata.get("candidate_sha256") == EXPECTED_BUNDLE_SHA256,
+        candidate_sha = normalize_registered_sha256(metadata.get("candidate_sha256"))
+        require(candidate_sha == EXPECTED_BUNDLE_SHA256,
                 "FROZEN_CANDIDATE_SHA_MISMATCH")
         expected_columns = metadata.get("ordered_feature_columns")
         require(isinstance(expected_columns, list) and len(expected_columns) == 20,
@@ -296,7 +307,7 @@ def inspect_historical_features(
             "last_candle_open_utc": frame["date"].iloc[-1].isoformat(),
             "archive_sha256": archive_sha,
             "source_commit_sha": metadata["source_commit_sha"],
-            "candidate_sha256": metadata["candidate_sha256"],
+            "candidate_sha256": candidate_sha,
             **config_hashes,
             **comparison,
             **prefix,
