@@ -5044,3 +5044,19 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Collector-side runtime integration remains NOT IMPLEMENTED. No collector process, exchange request, database, capture, or market data was touched. No upstream source changed.
 - Next: establish why Actions have not started for this fork, then run the exact head SHA `3d7d308bd63bf840d648f2cd22705477781a2557` in GitHub Actions. Do not migrate CI to Codemagic. After exact-source CI passes, proceed to bounded Tokio writer-worker integration with durable acknowledgements, heartbeat payload correlation, lifecycle hooks and shutdown finalization.
 - Safety remains: no live collector or Binance contact; no database creation/access; no market-data capture; no live trading/orders; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 Fork Actions Recheck After User Enablement
+
+- Collector fork: `kenznguyen/binance-futures-collector`; PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Collector branch: `feature/t1-connection-sidecar-integration-20261107`.
+- User confirmed GitHub Actions were enabled.
+- Workflow `.github/workflows/ci.yml` declares push triggers for `main` and the feature branch, plus `pull_request`.
+- Created a no-source-change CI retrigger commit after enablement: `e1ccc11f654082456f3ef7b728f161e475904da0` (parent `3d7d308bd63bf840d648f2cd22705477781a2557`; unchanged tree `f7023d9c05ec232b4e68f341f14ea5ec5b2953a7`). Collector PR head is now exactly `e1ccc11f654082456f3ef7b728f161e475904da0`.
+- Fresh push did not create a workflow run: Actions API returned zero runs; commit status has zero contexts. No run/job/artifact/digest/log evidence exists.
+- CI status: **BLOCKED / NOT VERIFIED**; cause remains undetermined. Do not infer the cause or switch to Codemagic.
+- 11 Rust tests are authored but **NOT RUN**; format and Clippy **NOT VERIFIED**. No runtime integration.
+- Evidence addendum: `docs/evidence/t1/T1_COLLECTOR_FORK_PREHANDSHAKE_SIDECAR_2026-11-07.md`, report commit `01435a93ca42d08f465c11704089cdf2e04262d5`.
+- PR #1 body updated with current SHA and validation status.
+- Next: inspect the collector fork Actions tab for workflow visibility, disabled/approval banners, or pending approval; if no workflow appears, verify workflow availability on the default branch and repository Actions policy in Settings. Do not proceed to Tokio/runtime integration until exact-head CI passes.
+- Safety unchanged: no collector process, Binance request, database access, market-data capture, credential/config change, merge, or live execution. `ai_execution_enabled=false`.
