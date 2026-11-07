@@ -90,7 +90,7 @@ class ConnectionEventContractTest(unittest.TestCase):
         result = self.validate(events)
         self.assertEqual(result["connections"][0]["disconnectReason"], "TRANSPORT_ERROR")
 
-    def test_reconnect_schedule_requires_increasing_attempt_and_bounded_delay(self):
+    def test_reconnect_schedule_records_attempt_and_bounded_delay(self):
         events = self.healthy_events()
         events.extend([
             self.event("e10", "DISCONNECTED", START + 59_000, reason="REMOTE_CLOSE"),
