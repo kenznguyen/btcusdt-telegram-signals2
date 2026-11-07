@@ -321,6 +321,11 @@ def _recv_until(sock, buffer, marker, max_bytes=65536):
     return buffer
 
 
+
+def _recv_http_upgrade_response(sock):
+    """Read the complete HTTP Upgrade response header block."""
+    return _recv_until(sock, b"", b"\r\n\r\n")
+
 def _websocket_failure_result(error, *, stage, status, started, now=None):
     """Preserve the furthest completed handshake stage when a probe fails."""
     observed = time.monotonic() if now is None else now
@@ -361,7 +366,7 @@ def probe_websocket(timeout=8):
             with ssl.create_default_context().wrap_socket(raw, server_hostname=WS_HOST) as secure:
                 stage = "HTTP_UPGRADE"
                 secure.sendall(request)
-                received = _recv_until(secure, b"", b"\\r\\n\\r\\n")
+                received = _recv_http_upgrade_response(secure)
                 accepted, status, remainder = parse_http_upgrade(received, key)
                 if not accepted:
                     return {
