@@ -1,7 +1,7 @@
 use collector_connection_sidecar::{ConnectionIdentity, DisconnectReason, Route, SidecarWriter};
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
-use sha2::{Digest, Sha256};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static NEXT_PATH: AtomicU64 = AtomicU64::new(0);
@@ -45,7 +45,10 @@ fn writes_python_contract_jsonl_and_fsyncs_each_event_before_returning() {
     assert_eq!(connected["eventType"], "CONNECTED");
     assert_eq!(connected["eventAtMs"], START);
     assert_eq!(connected["subscriptionCount"], 1);
-    assert_eq!(connected["subscriptionSetSha256"].as_str().unwrap().len(), 64);
+    assert_eq!(
+        connected["subscriptionSetSha256"].as_str().unwrap().len(),
+        64
+    );
     assert!(connected["eventId"].as_str().unwrap().contains(SESSION));
 
     writer
@@ -146,9 +149,15 @@ fn finalizes_manifest_with_exact_file_size_and_sha256() {
     assert_eq!(saved["sidecarSha256"], manifest.sidecar_sha256);
     assert_eq!(saved["captureFinalized"], true);
     assert_eq!(saved["captureCompleteThroughMs"], START + 30);
-    assert_eq!(saved["connectionSubscriptions"][0]["subscriptions"][0], "btcusdt@depth@100ms");
+    assert_eq!(
+        saved["connectionSubscriptions"][0]["subscriptions"][0],
+        "btcusdt@depth@100ms"
+    );
     let digest = Sha256::digest(&bytes);
-    let expected = digest.iter().map(|byte| format!("{byte:02x}")).collect::<String>();
+    let expected = digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
     assert_eq!(manifest.sidecar_sha256, expected);
 
     fs::remove_file(path).unwrap();
@@ -194,7 +203,9 @@ fn refuses_empty_or_duplicate_subscription_sets() {
 
     let path = temp_path("duplicate-subscriptions");
     let mut duplicate = identity(Route::Public);
-    duplicate.subscriptions.push("btcusdt@depth@100ms".to_string());
+    duplicate
+        .subscriptions
+        .push("btcusdt@depth@100ms".to_string());
     let mut writer = SidecarWriter::create(&path, SOURCE, SESSION).unwrap();
     assert!(writer.connected(&duplicate, START).is_err());
     drop(writer);
