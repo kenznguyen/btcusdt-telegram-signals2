@@ -120,7 +120,9 @@ impl SidecarWriter {
         session_id: &str,
     ) -> io::Result<Self> {
         if !is_lower_hex(source_commit, 40) {
-            return Err(invalid("source_commit must be a 40-character lowercase Git SHA"));
+            return Err(invalid(
+                "source_commit must be a 40-character lowercase Git SHA",
+            ));
         }
         if session_id.is_empty() || session_id.len() > 128 {
             return Err(invalid("session_id must contain 1..=128 bytes"));
@@ -150,11 +152,7 @@ impl SidecarWriter {
         path.as_ref().with_extension("manifest.json")
     }
 
-    pub fn connected(
-        &mut self,
-        identity: &ConnectionIdentity,
-        event_at_ms: u64,
-    ) -> io::Result<()> {
+    pub fn connected(&mut self, identity: &ConnectionIdentity, event_at_ms: u64) -> io::Result<()> {
         self.ensure_usable()?;
         validate_identity(identity)?;
         if self.connections.contains_key(&identity.connection_id) {
@@ -186,17 +184,33 @@ impl SidecarWriter {
             return Err(invalid("heartbeat_id must contain 1..=128 bytes"));
         }
         {
-            let state = self.connections.get(&identity.connection_id).expect("checked above");
+            let state = self
+                .connections
+                .get(&identity.connection_id)
+                .expect("checked above");
             if state.heartbeat_ids.contains(heartbeat_id) {
                 return Err(invalid("heartbeat_id must be unique within a connection"));
             }
         }
 
         // Do not mutate the state until the event has been durably appended.
-        self.append_event(identity, "PING_SENT", event_at_ms, Some(heartbeat_id), None, None, None)?;
-        let state = self.connections.get_mut(&identity.connection_id).expect("checked above");
+        self.append_event(
+            identity,
+            "PING_SENT",
+            event_at_ms,
+            Some(heartbeat_id),
+            None,
+            None,
+            None,
+        )?;
+        let state = self
+            .connections
+            .get_mut(&identity.connection_id)
+            .expect("checked above");
         state.heartbeat_ids.insert(heartbeat_id.to_string());
-        state.pending_pings.insert(heartbeat_id.to_string(), event_at_ms);
+        state
+            .pending_pings
+            .insert(heartbeat_id.to_string(), event_at_ms);
         Ok(())
     }
 
@@ -213,10 +227,20 @@ impl SidecarWriter {
             .and_then(|state| state.pending_pings.get(heartbeat_id).copied())
             .ok_or_else(|| invalid("Pong has no matching outstanding Ping"))?;
         if event_at_ms < sent_at || event_at_ms - sent_at > MAX_RECONNECT_DELAY_MS {
-            return Err(invalid("Pong arrived outside the 60-second heartbeat bound"));
+            return Err(invalid(
+                "Pong arrived outside the 60-second heartbeat bound",
+            ));
         }
 
-        self.append_event(identity, "PONG_RECEIVED", event_at_ms, Some(heartbeat_id), None, None, None)?;
+        self.append_event(
+            identity,
+            "PONG_RECEIVED",
+            event_at_ms,
+            Some(heartbeat_id),
+            None,
+            None,
+            None,
+        )?;
         self.connections
             .get_mut(&identity.connection_id)
             .expect("checked above")
@@ -257,10 +281,14 @@ impl SidecarWriter {
     ) -> io::Result<()> {
         let state = self.ensure_disconnected(identity)?;
         if state.reconnect_scheduled {
-            return Err(invalid("only one reconnect schedule is allowed per closed socket"));
+            return Err(invalid(
+                "only one reconnect schedule is allowed per closed socket",
+            ));
         }
         if attempt == 0 || delay_ms == 0 || delay_ms > MAX_RECONNECT_DELAY_MS {
-            return Err(invalid("reconnect attempt/delay is outside the supported bounds"));
+            return Err(invalid(
+                "reconnect attempt/delay is outside the supported bounds",
+            ));
         }
 
         self.append_event(
@@ -290,14 +318,27 @@ impl SidecarWriter {
         if self.event_count == 0 {
             return Err(invalid("cannot finalize an empty sidecar"));
         }
-        if self.connections.values().any(|state| state.lifecycle == Lifecycle::Connected) {
-            return Err(invalid("all sockets must be disconnected before session finalization"));
+        if self
+            .connections
+            .values()
+            .any(|state| state.lifecycle == Lifecycle::Connected)
+        {
+            return Err(invalid(
+                "all sockets must be disconnected before session finalization",
+            ));
         }
-        if self.last_event_at_ms.is_some_and(|last| capture_complete_through_ms < last) {
-            return Err(invalid("capture completeness watermark precedes the final event"));
+        if self
+            .last_event_at_ms
+            .is_some_and(|last| capture_complete_through_ms < last)
+        {
+            return Err(invalid(
+                "capture completeness watermark precedes the final event",
+            ));
         }
         if finalized_at_ms < capture_complete_through_ms {
-            return Err(invalid("finalized_at_ms precedes capture completeness watermark"));
+            return Err(invalid(
+                "finalized_at_ms precedes capture completeness watermark",
+            ));
         }
 
         self.file.flush()?;
@@ -314,7 +355,10 @@ impl SidecarWriter {
             hasher.update(&buffer[..read]);
         }
         let digest = hasher.finalize();
-        let sidecar_sha256 = digest.iter().map(|byte| format!("{byte:02x}")).collect::<String>();
+        let sidecar_sha256 = digest
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
         let sidecar_bytes = fs::metadata(&self.path)?.len();
         let sidecar_file = self
             .path
@@ -369,7 +413,9 @@ impl SidecarWriter {
             .get(&identity.connection_id)
             .ok_or_else(|| invalid("event references an unknown connection_id"))?;
         if state.identity != *identity {
-            return Err(invalid("connection_id reused with a different batch or route"));
+            return Err(invalid(
+                "connection_id reused with a different batch or route",
+            ));
         }
         if state.lifecycle != Lifecycle::Connected {
             return Err(invalid("event requires an open WebSocket connection"));
