@@ -4168,3 +4168,21 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Updated matrix commit: `3e9ee0850cf59fcec48f4a11e6ea7c9f5cf9670b`; matrix blob `89bc0db0f898d3438e3a6dfe986befc14bc13f30`.
 - Runtime implementation remains unchanged. No database/provider/VPS/Feeder/exchange/market-data operation occurred. The RED result is the expected proof of PG-LC-01 defect, not a regression in the existing passing focused suites.
 - Next: minimal GREEN fix should catch lease-acquisition exceptions, set runtime state to terminal `FAILED`, emit a non-sensitive startup failure event, re-raise the original exception, and never release a lease that was not acquired. Then run the same exact-head GitHub Actions regression and reconcile all jobs/artifacts.
+
+
+## 2026-11-07 — PG-LC-01 GREEN and disposable TimescaleDB verification
+
+- Minimal runtime fix committed on existing branch: `market_data/feeder.py`, commit/source SHA `819d5f843e6d1d7cac9326b2173c9e2b01c89ce4`, blob `0b4362cc4b588f610e0dd5460cb4edcc9f728001`. If `lease_store.acquire()` raises, runtime now sets terminal state `FAILED` and re-raises the original exception. No lease release is attempted because no lease was acquired. Scheduler is not started; readiness is not marked ready. No reconnect/resume behavior was added.
+- GREEN workflow [42321809275](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42321809275), push event, branch `feature/t0-centralized-data-feeder-p1-20261101`, exact head and checked-out SHA `819d5f843e6d1d7cac9326b2173c9e2b01c89ce4`.
+- Job `128247868529` Static Gateway contract verification: SUCCESS. 234 market_data tests, 37 skipped, overall OK; static Gateway contracts 10/10; behavioral/feeder regression 63/63; health/readiness 21/21; process restart 2/2.
+- Job `128247942819` Isolated TimescaleDB read-only integration: SUCCESS. Atomic writer 7/7; PostgreSQL FeederRuntime 19/19 (includes PG-LC-01); runtime lifecycle 4/4; least-privilege roles 18/18; read-only TimescaleDB 6/6. Service was disposable `timescale/timescaledb:2.17.2-pg16`, loopback-only, synthetic test data.
+- Job `128247868818` Paper consumer fixture regressions: SUCCESS.
+- Job `128247868783` Fresh-cluster restricted provider bootstrap: FAILURE / existing BLOCKED issue. Exact diagnostic: PostgreSQL 16 grants `t0_migrator` to bootstrap login with ADMIN OPTION, while `_assert_writer_roles_safe()` requires `t0_migrator` only be granted to ephemeral `t0_migrator_login`. This is the already-known strict role-guard conflict. Do not weaken the guard or modify grants to force green.
+- Workflow overall conclusion: FAILURE due only to the known provider bootstrap job. The lifecycle/static and disposable TimescaleDB jobs passed. This is not a provider compatibility PASS.
+- Independently downloaded and SHA-256 reconciled artifacts:
+  - Static contracts: artifact `13553462059`, 10,665 bytes, digest `sha256:f9d7fff493ed3767759ff67d529784ff3d11a0435699033708e50c536f2ac0a2` (downloaded ZIP hash MATCH).
+  - TimescaleDB integration: artifact `13553532015`, 4,286 bytes, digest `sha256:e371ec5f6cf437b9c4f4f4dca9303c8207a1528a6fdfd70465bbde4350c3ee38` (downloaded ZIP hash MATCH).
+  - Provider bootstrap failure evidence: artifact `13553820702`, 1,043 bytes, digest `sha256:13ca3c7b578d21ebcc87f319c58d07746d3ab2666505a165870a36fede984b69` (downloaded ZIP hash MATCH).
+- PG-LC-01 is now **PASS** with a verified RED/GREEN cycle. Matrix updated in commit `e4e86612476e9630f98fad734175e044e48bd619`, blob `f37577650c74c72916c25809d987d493accbfd6b`.
+- Scope remained synthetic/disposable only. No provider/VPS, canonical T0 DB, production Feeder, exchange credentials, exchange connection, market-data sync, backup/DR, or live order activity occurred. `ai_execution_enabled=false` unchanged.
+- Next: continue with PG-LC-02, a focused test proving that a PostgreSQL connection exception during heartbeat/lease validation closes readiness and scheduler admission. Keep the PostgreSQL 16 role bootstrap BLOCKED and separate from this lifecycle pass.
