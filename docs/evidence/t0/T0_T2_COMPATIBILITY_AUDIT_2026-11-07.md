@@ -167,3 +167,35 @@ Overall: **PASS for T0 isolated consumer/storage integration and Freqtrade 2026.
 Next bounded task: prepare a parity manifest/schema and offline comparison harness that accepts two operator-supplied, immutable closed-candle CSV exports (Binance and OKX), records independent source identity and T0 datasetVersion provenance, verifies M15/H1 UTC windows and coverage, computes per-source V2 hashes, and reports differences without expecting OHLCV equality. Keep the input files outside Git if they contain large market datasets; commit only manifests and compact evidence. Actual parity execution waits for paired data and explicit review.
 
 No source switch, branch merge, canonical DB creation, ingestion, Feeder, VPS or execution.
+
+
+## Offline parity harness implementation — PASS (2026-11-07)
+
+### TDD evidence
+
+- RED: run [42332542018](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42332542018), exact SHA `0fb76a394b62a87b1c014559ea6437a4156914ec`; parity test failed at expected missing module `market_data.t0_t2_parity`.
+- Intermediate GREEN exposed two incorrect test expectations: report window included explicit UTC semantics, and the V2 golden vector must place M15 rows before the H1 section marker. Assertions were corrected to match the manifest/report contract and T2's canonical byte order.
+- Final T0 workflow [42332748148](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42332748148): **SUCCESS**, exact source SHA `4664c28eaf0ae40f5e797b022284a378d2309c49`, all four jobs SUCCESS.
+- Static Gateway: 270 tests PASS.
+- Paper consumer: 52 tests PASS, including 7 new parity tests.
+- Restricted provider bootstrap: PASS.
+- Isolated TimescaleDB read-only integration: all 4 test groups PASS (10 atomic writer, 20 FeederRuntime, 6 lifecycle, 18 role privilege, 6 Timescale read-only tests).
+- Consumer artifact `13558540383`, digest `sha256:0311b7e5b3b0264b6f2f5ac3e5442cb3e3061109b5ccc597177dcefcbc532673`.
+- Static/Gateway artifact `13558003133`, digest `sha256:c50838261cd0fffcbf1a772f2b355334da3277a5c33440a96f779b3fbc5b739e`.
+- Provider artifact `13558347616`, digest `sha256:f876d226d421801a453a887494dc89dddf59030a6991dda761058407e1df5129`.
+- Timescale artifact `13557404226`, digest `sha256:9d0ec699740b570d2578071582b6a6a03561dcb5d4b864866381faf429401f7c`.
+
+### Implementation
+
+- `market_data/t0_t2_parity.py`: stdlib-only offline parser/report engine; no exchange/network/database access.
+- `market_data/test_t0_t2_parity.py`: 7 tests cover comparable report, T2 V2 byte contract, unclosed candles, gaps/duplicates/unaligned timestamps, invalid OHLC/non-finite values, source identity/volume units, mismatched windows and missing T0 provenance.
+- `.github/workflows/t0-single-writer-gateway-red.yml` now includes the parity tests in paper consumer regressions.
+- T2 Freqtrade 2026.9 strategy smoke also reran at the same exact SHA: [42332748141](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42332748141), SUCCESS; artifact `13557692507`, digest `sha256:a265665d029bdc0754de12fcdd7f43dd40b25a1eda609136366f8a4e736e3114`.
+
+### Verification boundary
+
+- Offline harness and T2 V2 hash compatibility: PASS on synthetic fixtures only.
+- Real Binance–OKX parity: NOT RUN; no paired immutable source CSVs supplied.
+- The harness strictly requires exact full-window M15/H1 coverage and closed rows; it rejects rather than fills gaps or filters rows.
+- T0 JSON `datasetVersion` is retained separately from the T2 V2 binary digest. The harness does not claim the two hashes are equal.
+- No PC Canonical DB, exchange API, market sync, ingestion, Feeder, VPS or live execution was used.
