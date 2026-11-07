@@ -170,3 +170,16 @@ The first implementation attempt used `Configuration.from_files(["--config", pat
 - Artifact ID: `13551960123`; SHA-256 `f2506abd118d6ecd01249e1d5829f8f944e8bea5ccf299b041584541b4bf0f3e`.
 - Corrected source commit: `795109b42dfcb50eb14b5766aeab2133d96f5ac3`; now calls `Configuration.from_files([str(safe_path)])` and consumes the returned dictionary.
 - New direct push run: `42317541165` on exact source SHA `795109b42dfcb50eb14b5766aeab2133d96f5ac3`; IN PROGRESS at this report update. No runtime hash or feature schema PASS is claimed.
+
+
+### R22.2 isolated user-data directory correction (2026-11-07)
+
+The corrected `Configuration.from_files([path])` API reached the pinned Freqtrade loader, but the run stopped because the repository checkout does not contain the default `user_data` directory. This is a local loader precondition, not a config hash mismatch. Pinned upstream Freqtrade 2026.9 source `freqtrade/configuration/directory_operations.py` confirms `create_userdata_dir(..., create_dir=False)` requires an existing directory and then creates only its required subdirectories.
+
+- Source SHA: `795109b42dfcb50eb14b5766aeab2133d96f5ac3`.
+- Run `42317541165`, job `128233773628`: Freqtrade 2026.9 install PASS; unit tests 4/4 PASS; runtime probe BLOCKED before hash comparison with `OperationalException` stating default `user_data` directory does not exist; artifact upload PASS.
+- Artifact ID `13551556394`; SHA-256 `22f5dc1f5c34fc5ba9e31b2acbff3b2fcebcd54b76f04f9928bb5a7b7636b130`.
+- Correction on new source: `build_runtime_config()` now points `user_data_dir` to an isolated temporary directory created by the probe. No persistent repository user_data directory or DB is created. Unit test asserts the isolated path. Commits: `ce886367fe53b658e965e6efeafa1d7b2f798d6d`, `93db167089fa0bda3c3203f2ad829ef84ce7b7c2`.
+- Workflow runs on corrected code: push run `42317804086` and PR run `42317809077`, source SHA `ce886367fe53b658e965e6efeafa1d7b2f798d6d`; both IN PROGRESS at report update. The subsequent test-only commit `93db167...` may trigger another run.
+
+Current disposition: effective config hash NOT VERIFIED; runtime feature schema NOT VERIFIED; OOS NOT CERTIFIED. No metadata/model/Core/backtest/holdout changes; no bot start, exchange call, training, persistent DB, T0 access, deployment or live execution.
