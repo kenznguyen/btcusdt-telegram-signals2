@@ -4703,3 +4703,13 @@ Acceptance boundary:
 - T0 artifacts: consumer `13558188809` digest `sha256:f71425f026b20df1c2629d7ef820fcdbf696fa494fa02b3d603726c392198f70`; Gateway `13558248887` digest `sha256:41f391569c3eb4e9e06dcf45ad0ffdcc9696114f0b917a9be461a595bc127954`; provider `13557633648` digest `sha256:cdbd71b62ad677124211ffb4097146fa5ed773691ef2812069cb1c2c6da4eb97`; Timescale `13558471829` digest `sha256:f098ca773ee7757e2658d57a2f2e87fc78a06b2c8f996cc8c5f44054f2218186`.
 - Freqtrade 2026.9 smoke [42333240406](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42333240406): SUCCESS at same exact SHA; strategy `ChartProFreqaiResearch` status OK; artifact `13557394964`, digest `sha256:951294815b964295675bb0d3996ad3c0685d5a1e04259bcdad572584fa7aa616`.
 - Real Binance–OKX parity remains NOT RUN pending paired immutable CSVs. No network acquisition, Canonical DB access/write, ingestion, Feeder, VPS or execution.
+
+
+## T0→T2 paired dataset acquisition readiness — READY / BLOCKED pending approval (2026-11-07)
+
+- Added runbook: `docs/evidence/t0/T0_T2_PAIRED_DATASET_ACQUISITION_READINESS_2026-11-07.md`.
+- Runbook defines a recommended first 30-calendar-day UTC pilot, aligned half-open window, expected 2,880 M15 and 720 H1 rows per source, four immutable CSV inputs, Binance/OKX market identities, OKX `volCcy` mapping, genuine T0 `datasetVersion` provenance, hash preservation, fail-closed validation and publication evidence.
+- Explicit stop condition: if genuine T0 `read_window()` provenance cannot be obtained without accessing/writing Canonical SQLite, do not bypass the manifest requirement; report BLOCKED.
+- This is documentation/readiness only. No public endpoint was called, no market data was acquired, no credentials/proxy/VPN used, no database created/accessed/written, Feeder remains STOPPED, and T2 OKX source remains unchanged.
+- Current state: runbook READY; paired CSVs and matching T0 provenance NOT PROVIDED; real-data parity NOT RUN.
+- Next step requires operator authorization for a separate isolated read-only public data export, or operator-supplied immutable CSVs plus matching provenance.
