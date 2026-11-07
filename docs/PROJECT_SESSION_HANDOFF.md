@@ -5085,3 +5085,13 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - No artifacts returned. Overall CI **BLOCKED**; 11 sidecar tests NOT RUN; sidecar acceptance NOT VERIFIED.
 - Next: minimal rustfmt-only correction; re-run GitHub Actions on new PR head; separately evaluate narrowly scoped, lockfile-generated dependency remediation for inherited advisories. Do not integrate Tokio writer worker until full required CI passes.
 - Safety: collector remains stopped; no Binance connection, DB access/open/create, market-data capture, or live orders. `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — T1 Sidecar Formatting Fix / CI Rerun In Progress
+
+- On fork `kenznguyen/binance-futures-collector`, applied rustfmt-only edits to sidecar library and tests. No behavior/dependency/runtime changes.
+- Latest PR source SHA `00cc447e6f39e3e14dfe13eaa88a7a82e40828e3`; formatting commits `88c0027514fc79ef9c4fae02a870f8a7c9ae5f9e` and `00cc447e6f39e3e14dfe13eaa88a7a82e40828e3`.
+- Actions run [42344752951](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42344752951): Rust job `128319958110`, security `128319958140`, dashboard backend `128319958177`. At last inspection Rust Format PASS, Clippy IN_PROGRESS, all subsequent Rust steps pending; backend PASS; frontend/Docker/security in progress. Final run and exact checkout SHA NOT VERIFIED.
+- Prior run dependency audit findings were confirmed inherited: Cargo.toml and Cargo.lock blob hashes match pinned upstream baseline. No dependency changes/allowlists made.
+- Overall BLOCKED state not cleared; sidecar 11 tests not yet verified. Next: wait for run completion; inspect sidecar Clippy and all 11 tests; separately resolve inherited RustSec advisories with narrowly scoped lockfile updates only after dependency graph analysis.
+- PR #1 remains Draft/unmerged. No collector, Binance, DB, capture, or live execution. `ai_execution_enabled=false`.
