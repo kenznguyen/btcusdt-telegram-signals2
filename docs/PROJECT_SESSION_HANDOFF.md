@@ -4461,3 +4461,13 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - CI on that exact source: workflow https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42328662902; py_compile and 18/18 offline contracts PASS; artifact 13556750284.
 - P1.9 read-only connectivity probe: PASS for this sample. Durable availability/SLA: NOT VERIFIED. T0 canonical dataset acceptance and Controlled First Run: NOT RUN.
 - No authorization for DB writes, canonical ingestion, Feeder startup, VPS, or live execution. Keep ai_execution_enabled=false. Next: prepare a separately reviewed controlled-ingestion acceptance plan; do not execute without explicit authorization.
+
+
+### T0 Controlled Ingestion Acceptance — offline contract added (2026-11-07)
+
+- Latest test-source commit: `0043231388d8f8447a0282e500f1f8e90372ca25`, file `market_data/test_controlled_ingestion_acceptance.py`.
+- Scope is isolated synthetic testing only: temporary SQLite DB, synthetic Binance USD-M-compatible candles, existing lease-fenced SQLiteWriteGateway. No canonical DB, live network, credentials, Feeder runtime, or market-data production sync.
+- Contract assertions: 24h aligned window yields exactly 96 M15 and 24 H1 candles; second sync inserts zero; `datasetVersion` remains stable; read-only WSGI API returns HTTP 200 and the same hash as canonical read; conflicting duplicate rolls back the entire attempted batch.
+- This is source committed, NOT test verified. No local test execution or GitHub Actions run has been observed for this commit in this session.
+- Current state: P1.9 read-only connectivity PASS for the user-provided sample; offline Controlled Ingestion test source COMMITTED / execution NOT VERIFIED; canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; `ai_execution_enabled=false`.
+- Next: execute focused test `python -m unittest market_data.test_controlled_ingestion_acceptance -v`, then full `market_data` suite on the exact commit; preserve any unrelated provider/Timescale blockers without weakening guards. Do not run live sync, create canonical DB, or start Feeder.
