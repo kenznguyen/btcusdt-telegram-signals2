@@ -672,7 +672,10 @@ fn invalid(message: &'static str) -> io::Error {
 
 #[cfg(unix)]
 fn sync_parent_directory(path: &Path) -> io::Result<()> {
-    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
     File::open(parent)?.sync_all()
 }
 
