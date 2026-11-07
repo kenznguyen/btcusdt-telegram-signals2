@@ -431,7 +431,9 @@ impl SidecarWriter {
             .get(&identity.connection_id)
             .ok_or_else(|| invalid("event references an unknown connection_id"))?;
         if state.identity != *identity {
-            return Err(invalid("connection_id reused with a different batch or route"));
+            return Err(invalid(
+                "connection_id reused with a different batch or route",
+            ));
         }
         if state.lifecycle != Lifecycle::Disconnected {
             return Err(invalid("reconnect schedule requires a disconnected socket"));
