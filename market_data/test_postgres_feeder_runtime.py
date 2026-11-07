@@ -475,3 +475,80 @@ class FeederRuntimeStartupFailureTest(unittest.TestCase):
         self.assertFalse(scheduler.started)
         lease_store.release.assert_not_called()
         health.mark_ready.assert_not_called()
+
+
+class FeederRuntimeHeartbeatFailureTest(unittest.TestCase):
+    def test_database_unavailable_during_heartbeat_closes_runtime_readiness(self):
+        from types import SimpleNamespace
+        from market_data.feeder import FeederConfig, FeederRuntime
+        from market_data.postgres import StoreUnavailable
+
+        class Scheduler:
+            def __init__(self):
+                self.started = False
+                self.stopped = False
+
+            def run_due(self):
+                return {}
+
+            def start(self):
+                self.started = True
+
+            def stop(self):
+                self.stopped = True
+
+            def wait_for_idle(self, timeout=None):
+                return True
+
+        class OneHeartbeatTick:
+            def __init__(self):
+                self.was_stopped = False
+
+            def wait(self, timeout):
+                return False
+
+            def set(self):
+                self.was_stopped = True
+
+        scheduler = Scheduler()
+        lease_store = Mock()
+        lease_store.acquire.return_value = SimpleNamespace(generation=9)
+        lease_store.heartbeat = None
+        lease_store.release = Mock(return_value=True)
+        health = Mock()
+        events = []
+        runtime = FeederRuntime(
+            config=FeederConfig(timeframes=("15m",)),
+            scheduler=scheduler,
+            lease_store=lease_store,
+            owner_id="heartbeat-failure-worker",
+            health=health,
+            event_sink=events.append,
+            clock=lambda: 1_800_000_000_000,
+        )
+
+        self.assertTrue(runtime.start())
+        self.assertTrue(scheduler.started)
+        health.mark_ready.assert_called_once()
+
+        lease_store.heartbeat = Mock(
+            side_effect=StoreUnavailable("PostgreSQL heartbeat unavailable")
+        )
+        heartbeat_wait = OneHeartbeatTick()
+        runtime._heartbeat_stop = heartbeat_wait
+        runtime._heartbeat_loop()
+
+        self.assertEqual(runtime.state, "LEASE_LOST")
+        self.assertTrue(scheduler.stopped)
+        self.assertTrue(heartbeat_wait.was_stopped)
+        health.mark_not_ready.assert_called_once()
+        lease_store.release.assert_not_called()
+        self.assertIn("lease_lost", events)
+
+        snapshot = runtime.health_snapshot({
+            "storage_readable": True,
+            "storage_writable": True,
+            "startup_complete": True,
+        })
+        self.assertIs(snapshot["lease_valid"], False)
+        self.assertIs(snapshot["process_running"], True)
