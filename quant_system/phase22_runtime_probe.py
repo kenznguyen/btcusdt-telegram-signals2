@@ -110,6 +110,21 @@ def expected_expanded_features(pair: str, timeframe: str, periods: list[int],
     return expanded
 
 
+def apply_freqtrade_schema_defaults(config: dict) -> dict:
+    """Apply the pinned Freqtrade config-schema defaults without starting a bot.
+
+    Configuration.from_files() loads and normalizes files but does not execute
+    validate_config_schema(). FreqtradeBot reaches that validator through
+    validate_config_consistency() after strategy resolution. The validator
+    recursively inserts declared defaults into nested FreqAI configuration,
+    which is part of the historical post-validation config snapshot.
+    """
+    from freqtrade.configuration.config_validation import validate_config_schema
+
+    validate_config_schema(config)
+    return config
+
+
 def build_runtime_config(raw: dict, user_data_dir: str) -> dict:
     """Prevent bot startup while preserving the frozen FreqAI configuration."""
     safe = json.loads(json.dumps(raw))
@@ -141,6 +156,7 @@ def run_probe() -> dict:
             json.dumps(build_runtime_config(raw, str(isolated_user_data))), encoding="utf8"
         )
         loaded_config = Configuration.from_files([str(safe_path)])
+        loaded_config = apply_freqtrade_schema_defaults(loaded_config)
         if loaded_config.get("dry_run") is not True:
             raise AssertionError("PHASE22_RUNTIME_CONFIG_NOT_DRY_RUN")
         if loaded_config.get("force_entry_enable") is not False:
