@@ -35,7 +35,21 @@ CI additionally passed the provider bootstrap and isolated PostgreSQL/TimescaleD
 
 This does **not** prove a production database target is configured, a backup is recoverable, production credentials/permissions are correct, a live exchange window is complete, or that the production API is correctly pointed at the intended canonical store. Those remain preflight gates.
 
-## 3. Mandatory unresolved inputs — execution is BLOCKED until recorded
+## 3. Repository configuration inspection — read-only result (2026-11-07)
+
+Inspected the committed configuration and workflow files on the active branch; no runtime process, host environment, secret value, database, or exchange endpoint was accessed.
+
+- `market_data/storage.py`: SQLite is the backwards-compatible default when `MARKET_DATA_BACKEND` is absent; PostgreSQL requires explicit `MARKET_DATA_BACKEND=postgres` and `MARKET_DATA_POSTGRES_DSN`.
+- `market_data/README.md`: `.data/market-data.sqlite3` is a documented local CLI example, not evidence of the canonical production path.
+- `.gitignore`: `.data/` and `.env*` are excluded from Git, so their machine-local contents cannot be inferred from the repository.
+- T0 CI workflow `.github/workflows/t0-single-writer-gateway-red.yml`: static job sets `MARKET_DATA_DB` empty; PostgreSQL integration jobs use disposable loopback `t0_test` and explicitly empty `MARKET_DATA_DB` / `MARKET_DATA_POSTGRES_DSN`. This is test isolation, not a production target.
+- T0 manual validation workflow checks that production-like DB variables are absent in its component-test job; its optional Timescale test consumes a dedicated disposable test DSN.
+- Connectivity-probe workflow explicitly asserts DB environment variables are empty. It is not an ingestion workflow.
+- `market_data/feeder_service.py` composes the runtime from environment-selected storage, but committed source does not identify an actual operator host, environment values, or canonical database location.
+
+Conclusion: repository source proves backend selection rules, not the selected runtime backend or target. No committed production target identity was found in the inspected configuration. Do not infer that the default SQLite backend means `.data/market-data.sqlite3` is the canonical database. Target/backend remains unresolved and no runtime secrets were inspected.
+
+## 4. Mandatory unresolved inputs — execution is BLOCKED until recorded
 
 The following values must be explicitly resolved and reviewed before requesting approval:
 
