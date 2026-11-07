@@ -5158,3 +5158,11 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Overall status: sidecar offline CI PASS; dependency audit/security BLOCKED; quinn-proto reachability NOT VERIFIED; PR remains draft/unmerged; collector runtime integration NOT STARTED.
 - Next: inspect Cargo.lock/package metadata and target/feature graph for quinn-proto; then prepare narrow Cargo-resolver-generated updates for confirmed vulnerable dependency paths, with compatibility/regression tests. Do not start runtime integration until security and all CI gates pass.
 - Safety unchanged: no collector process, Binance connection, market-data capture, database access, canonical DB creation, merge, or live orders. `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — quinn-proto lockfile-only chain clarified
+
+- Inspected collector fork Cargo.toml/Cargo.lock at source SHA `22900b860426a5c19622ec6b5ea3673646df2229`; both blobs match upstream baseline.
+- Cargo.lock chain: `quinn-proto 0.11.16 → quinn 0.11.11 → reqwest 0.13.1`. Collector reqwest disables default features and enables only json/rustls/webpki-roots/http2; no explicit HTTP/3/QUIC feature is selected.
+- Exact all-target inverse cargo tree returned exit 0 but no reverse path for quinn-proto. Correct status: **LOCKFILE_PRESENT / NO RESOLVED ALL-TARGET PATH EMITTED**, not PRESENT_IN_GRAPH. The workflow diagnostic's unconditional success marker is defective for empty output and needs a small fail-safe correction before further dependency reachability decisions.
+- No Cargo.toml/Cargo.lock/runtime changes. Continue to keep PR #1 draft/unmerged and security gate blocked pending targeted resolver-based remediation and full CI.
