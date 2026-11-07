@@ -331,3 +331,33 @@ Next diagnostic: from the same PC/network, compare first-frame receipt for `btcu
 | P1.9 overall | BLOCKED / NOT VERIFIED |
 
 Next diagnostic should capture WebSocket control-frame behavior and compare the same PC/network against a separately documented Binance public WebSocket endpoint only if needed to isolate host/path policy; do not accept a different endpoint or interval as T0 Binance USD-M acceptance. Do not add proxy/VPN, credentials, persistence, DB, Feeder, or live execution.
+
+
+### P1.9 endpoint route correction — current USD-M market WebSocket path (2026-11-07)
+
+#### Root cause identified from current Binance documentation
+
+- The probe source before this increment used `WS_PATH = "/ws/btcusdt@kline_15m"`.
+- Current official Binance USDⓈ-M WebSocket Market Streams documentation specifies the raw Kline route as `wss://fstream.binance.com/market/ws/{symbol}@kline_{interval}`, with combined route `/market/stream?streams=...`. It documents current Kline updates every 250 ms when an existing candle is available. Source: https://developers.binance.info/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/ws-streams/market#kline-candlestick-streams
+- Therefore, the earlier Python and PowerShell tests were both testing the legacy `/ws` route. The .NET comparison was not independent evidence for the current documented route. Its Open state only proved the old route's Upgrade, not that the current USD-M Kline subscription was correctly addressed.
+- This is the concrete configuration defect to correct; no network policy, proxy, or parser workaround is justified by the previous evidence.
+
+#### TDD and GitHub Actions
+
+- RED test commit: `14e744e8ff124aa478aa8c82a9bfb579b2521a89`; added `test_usdm_kline_stream_uses_current_market_ws_route` asserting `/market/ws/btcusdt@kline_15m`.
+- Dedicated offline workflow [42328640533](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42328640533) failed at the new route assertion on the old `/ws` constant (expected RED).
+- Implementation source SHA: `2b4cc1cd0f7c3e55e6de27388df6c4e87de811e3`; changed only `WS_PATH` to `/market/ws/btcusdt@kline_15m`.
+- Dedicated offline workflow [42328662902](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42328662902): exact SHA checkout confirmed; py_compile PASS; **18/18 probe contract tests PASS**; offline scope guard PASS; no external network, credentials, DB, Feeder, persistence, or AI execution.
+- Artifact [13556750284](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42328662902/artifacts/13556750284), name `t0-binance-probe-contracts-2b4cc1cd0f7c3e55e6de27388df6c4e87de811e3`, size 1,010 bytes, upload digest `sha256:9640bb7daebd67b4330663a07ee8f92372bf013d6a8f6007000f8dab016432c1`. Payload has not been independently downloaded/re-hashed.
+
+#### Updated gate verdict
+
+| Gate | Status |
+|---|---|
+| Route matches current official USDⓈ-M Kline docs | PASS in source and offline test |
+| Probe contracts | PASS 18/18 on exact SHA `2b4cc1cd0f7c3e55e6de27388df6c4e87de811e3` |
+| PC handshake on corrected `/market/ws` route | NOT YET TESTED |
+| First 15m Kline event on corrected route | NOT VERIFIED |
+| P1.9 overall | BLOCKED / NOT VERIFIED pending PC rerun |
+
+Next: user downloads the exact source snapshot at `2b4cc1cd0f7c3e55e6de27388df6c4e87de811e3`, runs the offline contract tests, then runs only the read-only network probe. The old PowerShell `.NET ClientWebSocket` test must be updated to the documented `/market/ws/...` path if independently repeated. Do not use the old `/ws` result as current endpoint evidence. No DB writes, canonical ingestion, Feeder, Controlled First Run, VPS, proxy/VPN, or AI execution.
