@@ -145,3 +145,41 @@ Do not collapse all metrics into one opaque similarity score.
 - Do not replace OKX as T2's current source based on this report alone.
 - No live execution, exchange credentials, Feeder or VPS.
 - Report is research evidence, not a profitability claim or signal certification.
+
+
+## Offline harness invocation and CSV contract
+
+Implementation: `market_data/t0_t2_parity.py` (Python standard library only).
+
+Each of the four input CSV files (Binance M15/H1 and OKX M15/H1) must contain these columns:
+
+`open_time,open,high,low,close,volume,closed`
+
+- `open_time`: Unix UTC milliseconds.
+- OHLCV values: original decimal strings; prices strictly positive; volume non-negative.
+- `closed`: `1` or `true`.
+- Rows must be sorted, unique, gap-free and exactly cover the manifest's half-open UTC window for that timeframe. No forward fill, zero fill, filtering or synthetic candles.
+- CSV paths are resolved relative to the manifest file's directory.
+- The manifest must include Binance `t0_dataset_version.m15` and `t0_dataset_version.h1` values from the corresponding T0 `read_window()` calls. These are provenance values, not recomputed from CSV bytes.
+
+Example invocation (only after operator supplies paired exports and provenance):
+
+~~~bash
+python -m market_data.t0_t2_parity \\
+  --manifest /path/to/parity/manifest.json \\
+  --json-output /path/to/parity/report.json \\
+  --markdown-output /path/to/parity/report.md
+~~~
+
+Successful output is `COMPARABLE`; invalid/missing inputs fail closed with exit code 2 and `NOT_COMPARABLE` on stderr. The tool does not contact exchanges, open a database, or create market data.
+
+## Harness verification evidence
+
+- TDD RED: run `42332542018`, source SHA `0fb76a394b62a87b1c014559ea6437a4156914ec`, missing harness module as expected.
+- Final CI: run `42332748148`, exact SHA `4664c28eaf0ae40f5e797b022284a378d2309c49`, all 4 jobs SUCCESS.
+- Static Gateway 270 tests PASS; Paper consumer 52 tests PASS including 7 parity tests; restricted provider bootstrap PASS; isolated TimescaleDB integration PASS.
+- Consumer artifact `13558540383` digest `sha256:0311b7e5b3b0264b6f2f5ac3e5442cb3e3061109b5ccc597177dcefcbc532673`.
+- Static/Gateway artifact `13558003133` digest `sha256:c50838261cd0fffcbf1a772f2b355334da3277a5c33440a96f779b3fbc5b739e`.
+- Provider artifact `13558347616` digest `sha256:f876d226d421801a453a887494dc89dddf59030a6991dda761058407e1df5129`.
+- Timescale artifact `13557404226` digest `sha256:9d0ec699740b570d2578071582b6a6a03561dcb5d4b864866381faf429401f7c`.
+- Real Binance/OKX parity is still NOT RUN; no paired CSV exports supplied.
