@@ -84,14 +84,10 @@ jobs:
         run: |
           set -euo pipefail
           docker run --rm \
-            -e PYTHONPATH=/freqtrade/user_data \
-            -v "${GITHUB_WORKSPACE}:/freqtrade/user_data:ro" \
-            --entrypoint freqtrade \
+            -v "${GITHUB_WORKSPACE}:/workspace:ro" \
+            --entrypoint sh \
             freqtradeorg/freqtrade:2026.9_freqai \
-            list-strategies \
-              --strategy-path /freqtrade/user_data/freqai_bridge \
-              --config /freqtrade/user_data/freqai_bridge/config.research.json \
-              2>&1 | tee t2-freqtrade-strategy-load.log
+            -c "mkdir -p /tmp/freqtrade-userdata && PYTHONPATH=/workspace freqtrade list-strategies --userdir /tmp/freqtrade-userdata --strategy-path /workspace/freqai_bridge --config /workspace/freqai_bridge/config.research.json" 2>&1 | tee t2-freqtrade-strategy-load.log
           grep -q "ChartProFreqaiResearch" t2-freqtrade-strategy-load.log
 
       - name: Upload exact runtime smoke evidence
