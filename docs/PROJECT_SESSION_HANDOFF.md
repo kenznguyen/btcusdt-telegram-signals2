@@ -5924,3 +5924,15 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Decision: **DEFER public enum/API expansion**. Retain the current `UnsealedValid` semantics and the README diagnostic/recovery warning until a separately specified recovery protocol and consumer contract justify a new state. Do not infer that temp-only residue is harmless or automatically recoverable.
 - No T1 source change, tests, runtime, DB, exchange access or market capture performed for this assessment. This is a compatibility/scope decision only.
 - Next permitted review: identify another isolated, testable T1 contract risk from the existing offline implementation. Any behavior/API change remains test-first and requires a compatibility assessment. PR #1 remains OPEN / DRAFT / NOT MERGED; no merge or readiness change authorized.
+
+
+## T1 empty-sidecar validator contract — RED reproduction queued (2026-11-08)
+- Reviewed T1 branch `feature/t1-connection-sidecar-integration-20261107`, current test-only source SHA `4a55f6dbf7d381892c48506d7f9a88597120da74`.
+- Candidate inconsistency: `SidecarWriter::finalize()` rejects `event_count == 0`, while `validate_capture()` currently accepts a zero-byte regular file through the no-manifest path and may return `UnsealedValid { sidecar_bytes: 0, event_count: 0 }`. This is a suspected contract mismatch pending the focused test execution.
+- Added only a regression test `rejects_empty_sidecar_instead_of_classifying_it_as_unsealed_valid`, expecting `io::ErrorKind::InvalidData` with message `sidecar must contain at least one event`. No production code changed yet.
+- Test-only commit SHA: `4a55f6dbf7d381892c48506d7f9a88597120da74`.
+- Exact-source push workflow `42415381232`: IN_PROGRESS at last poll. Collector format and Clippy PASS; Collector build/tests and Sidecar format/Clippy/offline tests not yet complete. Dashboard backend/frontend PASS; Docker and security jobs still running.
+- PR workflow `42415385074`: IN_PROGRESS at last poll. Dashboard backend/frontend PASS; Collector, Docker and security jobs still running. PR workflow is secondary; exact-source push run is the primary source check.
+- Verdict: **NOT VERIFIED**. The regression test has not yet reported its result; do not call this a confirmed bug or claim RED until the Sidecar offline test step completes. No implementation change until RED is observed.
+- Next: poll both runs; if focused test fails for the expected reason, add the minimal empty-sidecar rejection before returning `UnsealedValid`, rerun focused/full offline tests and exact-source CI. If it passes unexpectedly or fails for another reason, inspect logs and reassess. No public enum expansion, Collector runtime, Binance access, DB, market capture, T0 edits, or live execution.
+- PR #1 remains OPEN / DRAFT / NOT MERGED; no merge/readiness action performed.
