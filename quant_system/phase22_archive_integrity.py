@@ -19,7 +19,6 @@ EXPECTED_BUNDLE_MEMBER = "artifacts/phase3/native/phase13b-unsealed-model-candid
 EXPECTED_METADATA_SHA256 = "07e9c1b65df7a477de8ee14c51d47325932e6bf9a0732f3ea64e3118abcac3e5"
 EXPECTED_METADATA_BASENAME = "phase13b-unsealed-model-candidate.json"
 EXPECTED_PROTOCOL_SHA256 = "b10d63c952a40fa70a3d4dfed2d952d676a888a0f72832734d3ff8d8c14c5b6e"
-EXPECTED_PROTOCOL_BASENAME = "phase13b-oos-protocol.json"
 AUDITED_BAD_COPY_SHA256 = "51c8474d0bdb93140523bd127cf89a9afb69d299e143518c8da90a4487ad3874"
 AUDITED_BAD_COPY_GIT_BLOB_SHA1 = "91283dde513e24b9f87a936220a09e5f78612a49"
 
@@ -91,6 +90,7 @@ def _member_sha256(archive: zipfile.ZipFile, info: zipfile.ZipInfo) -> str:
 def audit_archive(
     archive_path: str | Path,
     current_bundle_path: str | Path,
+    protocol_path: str | Path,
     *,
     expected_archive_sha256: str,
     expected_bundle_sha256: str,
@@ -102,6 +102,7 @@ def audit_archive(
 ) -> dict:
     archive_path = Path(archive_path)
     current_bundle_path = Path(current_bundle_path)
+    protocol_path = Path(protocol_path)
     if not archive_path.is_file() or archive_path.is_symlink():
         raise ArchiveIntegrityError("ARCHIVE_FILE_MISSING_OR_UNSAFE")
 
@@ -137,13 +138,9 @@ def audit_archive(
             metadata = _unique_member(
                 infos, EXPECTED_METADATA_BASENAME, "METADATA_MEMBER"
             )
-            protocol = _unique_member(
-                infos, EXPECTED_PROTOCOL_BASENAME, "PROTOCOL_MEMBER"
-            )
 
             candidate_sha = _member_sha256(archive, candidate)
             metadata_sha = _member_sha256(archive, metadata)
-            protocol_sha = _member_sha256(archive, protocol)
     except zipfile.BadZipFile as exc:
         raise ArchiveIntegrityError("INVALID_ZIP_ARCHIVE") from exc
 
@@ -151,8 +148,11 @@ def audit_archive(
         raise ArchiveIntegrityError("EMBEDDED_CANDIDATE_SHA256_MISMATCH")
     if metadata_sha != expected_metadata_sha256:
         raise ArchiveIntegrityError("EMBEDDED_METADATA_SHA256_MISMATCH")
+    if not protocol_path.is_file() or protocol_path.is_symlink():
+        raise ArchiveIntegrityError("PROTOCOL_FILE_MISSING_OR_UNSAFE")
+    protocol_sha = _hash_file(protocol_path, "sha256")
     if protocol_sha != expected_protocol_sha256:
-        raise ArchiveIntegrityError("EMBEDDED_PROTOCOL_SHA256_MISMATCH")
+        raise ArchiveIntegrityError("PROTOCOL_SHA256_MISMATCH")
 
     current_present = current_bundle_path.is_file() and not current_bundle_path.is_symlink()
     current_sha = _hash_file(current_bundle_path, "sha256") if current_present else None
@@ -180,8 +180,9 @@ def audit_archive(
         "metadata_member_path": metadata.filename,
         "metadata_sha256": metadata_sha,
         "expected_metadata_sha256": expected_metadata_sha256,
-        "protocol_member_path": protocol.filename,
+        "protocol_path": str(protocol_path),
         "protocol_sha256": protocol_sha,
+        "protocol_sha256_match": protocol_sha == expected_protocol_sha256,
         "expected_protocol_sha256": expected_protocol_sha256,
         "current_repo_bundle_path": str(current_bundle_path),
         "current_repo_bundle_present": current_present,
@@ -202,6 +203,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--archive", required=True)
     parser.add_argument("--current-bundle", required=True)
+    parser.add_argument("--protocol-file", required=True)
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
 
@@ -209,6 +211,7 @@ def main() -> int:
         result = audit_archive(
             args.archive,
             args.current_bundle,
+            args.protocol_file,
             expected_archive_sha256=EXPECTED_ARCHIVE_SHA256,
             expected_archive_git_blob_sha1=EXPECTED_ARCHIVE_GIT_BLOB_SHA1,
             expected_bundle_sha256=EXPECTED_BUNDLE_SHA256,
