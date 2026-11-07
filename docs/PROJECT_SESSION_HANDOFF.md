@@ -5144,3 +5144,17 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - PR #1 remains OPEN / DRAFT / NOT MERGED. No Cargo.toml/Cargo.lock updates, audit suppressions, feature changes or gate weakening.
 - Next: poll both exact-version runs, retrieve paths for quinn-proto@0.11.16 and webpki-roots@1.0.9, verify checkout SHA, all tests, audit/npm, artifacts. Then propose narrow resolver-generated fixes. No runtime integration.
 - Safety unchanged: no collector runtime, Binance connection, database access, capture, merge or live execution; ai_execution_enabled=false.
+
+
+## 2026-11-07 — T1 exact-version dependency diagnostics and CI completed
+
+- Collector fork: `kenznguyen/binance-futures-collector`, branch `feature/t1-connection-sidecar-integration-20261107`, PR #1 OPEN / DRAFT / NOT MERGED.
+- Fork source SHA: `22900b860426a5c19622ec6b5ea3673646df2229`; pinned upstream base: `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- PR run [42350687437](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42350687437), security job `128337964057`, exact synthetic merge checkout SHA `ac53d7b672e91590f16e555f2ef0ffd232ab905c`. Push run [42350684200](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42350684200), security job `128337953368`, checkout/source SHA `22900b860426a5c19622ec6b5ea3673646df2229`.
+- Both runs: collector library 40/40, binary 1/1, sidecar writer 11/11; Rust format/Clippy/build, dashboard backend/frontend and Docker PASS. Security BLOCKED: cargo-audit reports 12 vulnerabilities + 2 warnings among 248 locked packages; npm audit steps skipped. No artifacts in either run.
+- Exact all-target reverse paths verified for six packages: rustls 0.23.43 via reqwest/hyper-rustls and tokio-tungstenite; rustls-webpki 0.103.14 via rustls and rustls-platform-verifier/reqwest; webpki-root-certs 1.0.9 via rustls-platform-verifier/reqwest; webpki-roots 1.0.9 via reqwest (a separate 0.26.11 is also used via tokio-tungstenite); tokio 1.53.1 via collector/Hyper/reqwest/tokio-tungstenite; chacha20 0.10.1 via rand/tungstenite/tokio-tungstenite.
+- `quinn-proto@0.11.16` remains NOT VERIFIED: exact-version cargo tree returned exit 0 with "nothing to print", so its workflow PRESENT marker is invalid. Do not infer absence or reachability.
+- Updated evidence: `docs/evidence/t1/T1_COLLECTOR_CARGO_AUDIT_EXACT_EVIDENCE_2026-11-07.md` and `docs/evidence/t1/T1_COLLECTOR_HEARTBEAT_RECONNECT_REVIEW_2026-11-07.md`.
+- Overall status: sidecar offline CI PASS; dependency audit/security BLOCKED; quinn-proto reachability NOT VERIFIED; PR remains draft/unmerged; collector runtime integration NOT STARTED.
+- Next: inspect Cargo.lock/package metadata and target/feature graph for quinn-proto; then prepare narrow Cargo-resolver-generated updates for confirmed vulnerable dependency paths, with compatibility/regression tests. Do not start runtime integration until security and all CI gates pass.
+- Safety unchanged: no collector process, Binance connection, market-data capture, database access, canonical DB creation, merge, or live orders. `ai_execution_enabled=false`.
