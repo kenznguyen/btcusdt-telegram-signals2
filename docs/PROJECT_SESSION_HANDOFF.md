@@ -4588,3 +4588,16 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - No code tests or GitHub Actions workflow were run in this audit. No merge, canonical DB creation/access/write, migration, ingestion, Feeder, VPS, exchange sync, or execution.
 - Status: source schema/read compatibility CONDITIONAL PASS; T2 fixture compatibility BLOCKED; runtime read-only NOT VERIFIED; Freqtrade 2026.9 runtime NOT VERIFIED; Binance/OKX parity NOT RUN; canonical DB NOT CREATED; ingestion NOT RUN; Feeder STOPPED; `ai_execution_enabled=false`.
 - Next: implement a temporary-only fixture path compatible with the T0 writer boundary, add before/after DB immutability regression, inspect GitHub Actions workflow inventory, then run focused exact-SHA tests and the pinned Freqtrade strategy-load smoke test. Do not merge branches or replace OKX without separate acceptance.
+
+
+### T0–T2 Compatibility Audit — corrected runtime consumer result (2026-11-07)
+
+- Corrected audit: `docs/evidence/t0/T0_T2_COMPATIBILITY_AUDIT_2026-11-07.md`.
+- The earlier fixture incompatibility was found in the separate historical T2 branch. The active T0 branch already includes the FreqAI bridge and adapted test fixtures using `market_data.test_support.seed_candles()`; no production `insert()` writer is required.
+- Added regression `test_t0_context_and_prediction_export_leave_canonical_sqlite_unchanged` checking SQLite/WAL/SHM SHA-256 and DB path identity before/after context read and JSON prediction export.
+- Workflow run 42331669847; exact source SHA `0464b70a8a0b012730f675239f67abcb589a2ca5`.
+- Paper consumer job 128279379624: 45 tests PASS, including decision, API, exporter and DB immutability. Artifact 13557379289; digest `sha256:1c47deb2e00eca992edc2cd466368fed438d6e575190d1aa7931069c5321e01e`.
+- Static Gateway job 128279379462: SUCCESS, including full market_data suite. Provider bootstrap and Timescale jobs were still running at the time of this handoff update; re-check overall run for final conclusion.
+- Freqtrade/FreqAI 2026.9 runtime and strategy-load NOT VERIFIED; Binance/OKX parity NOT RUN.
+- No branch merge/source switch, canonical DB creation, migration, ingestion, Feeder startup, VPS provisioning, or live execution. Canonical SQLite NOT CREATED; Feeder STOPPED; `ai_execution_enabled=false`.
+- Next: check final workflow result, verify pinned Freqtrade/FreqAI 2026.9 without exchange sync/credentials/orders, then build bounded Binance-vs-OKX parity report.
