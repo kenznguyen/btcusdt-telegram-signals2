@@ -145,7 +145,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m unittest pipeline.test_decision pipeline.test_api freqai_bridge.test_exporter -v 2>&1 | tee t0-paper-consumer-tests.log
+          python -m unittest pipeline.test_decision pipeline.test_api freqai_bridge.test_exporter market_data.test_t0_t2_parity -v 2>&1 | tee t0-paper-consumer-tests.log
       - name: Upload paper consumer test evidence
         if: always()
         uses: actions/upload-artifact@v4
