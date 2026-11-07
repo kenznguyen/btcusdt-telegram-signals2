@@ -4279,3 +4279,16 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Disposable TimescaleDB job `128251515014` remains at container initialization. PG-LC-05 is **NOT VERIFIED** until the test executes against the disposable DB and its artifact is reconciled.
 - Matrix update commit `adea0476722ff8f9e26cd9141e72494e108e19bc`, blob `e839fd9de5db7398bdaf07b09cfa664375ebcb75`.
 - No runtime source change or production/external activity.
+
+
+### PG-LC-05 exact-SHA transient-outage no-resume verification (2026-11-07)
+
+- Workflow [42322920542](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42322920542), exact source SHA `945eb98fc2845d2e2dd9d20539f3ae4de9c42fbb`, completed with overall FAILURE only because fresh-cluster PostgreSQL 16 provider bootstrap job `128251449662` hit the known implicit ADMIN membership conflict. Do not weaken the role guard.
+- Disposable TimescaleDB job `128251515014`: SUCCESS. Runtime lifecycle suite **6/6**, including `test_runtime_does_not_resume_after_transient_heartbeat_outage`. The test injected one heartbeat `StoreUnavailable`, restored backend delegation, proved the old runtime remained `LEASE_LOST` with no second heartbeat attempt, expired the old lease, and verified a fresh runtime acquired a strictly higher generation. Stopping the old runtime did not release the replacement generation.
+- Same integration job: PostgreSQL writer 8/8; FeederRuntime 20/20; runtime lifecycle 6/6; least-privilege roles 18/18; read-only TimescaleDB 6/6 — all PASS.
+- Static job `128251449779`: SUCCESS; 238 market_data tests, 40 skipped, OK; static contracts 10/10; behavioral/feeder 63/63; health/readiness 21/21; process restart 2/2. Paper consumer job `128251449833`: SUCCESS.
+- TimescaleDB artifact `13554021042`, size 4,418 bytes, GitHub digest `sha256:1740e501cc9a94ddb33439957f89b4855d83707ebd4fb9a2612575ccfebeba5f`; downloaded ZIP SHA-256 independently matched.
+- Static artifact `13552959770`, size 10,791 bytes, digest `sha256:84c73341a1f3704bdabe687cdaad727f3eda71f99f87e177709b00305cf7bb26`; downloaded ZIP SHA-256 independently matched.
+- PG-LC-05 status: **PASS**. Matrix update commit `6439c19f8ae16865f23f3ca96c2dd1838f62a019`, blob `8ccde7f7d48315dc1e00b62dc896f8e31bbbdf39`.
+- No automatic reconnect/resume behavior added. No provider/VPS/canonical DB/production Feeder/exchange/data-sync/Backup-DR activity.
+- Next: PG-LC-06 — process termination during an active PostgreSQL writer transaction. Existing PG-LC-03 killed a DB backend connection, not the client process. Add a process-level acceptance test that kills the writer process while the transaction is held, then verifies transaction rollback and fresh-owner higher-generation fencing; keep it isolated to disposable TimescaleDB.
