@@ -5177,3 +5177,16 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - PR #1 body updated to source SHA and current run IDs. PR remains OPEN / DRAFT / NOT MERGED.
 - No Cargo.toml/Cargo.lock changes, audit suppressions, gate weakening, runtime integration, collector execution, Binance connection, DB access, market capture, merge or live execution.
 - Next: poll runs 42351605128 and 42351601277; verify fixture 3/3, exact dependency classifications, tests, cargo-audit/npm, checkout SHA and artifact metadata. Keep security BLOCKED until cargo-audit and all required gates pass.
+
+
+## 2026-11-07 — Approved temporary 4+1 separation (T3 deferred)
+
+- User explicitly approved the temporary **4+1 architecture** on 2026-11-07 (Asia/Ho_Chi_Minh).
+- Active system scope: T0, T1, T2 and T4 continue development and verification. T3 (Hummingbot) is temporarily separated from the active system runtime and integration/data flow.
+- T3 is **DEFERRED**, not deleted: preserve its repository, source, configuration and research records. Do not add T3 as a runtime dependency of T0/T1/T2/T4.
+- Re-integration gate: do not begin T3 integration until T0, T1, T2 and T4 each meet their documented stability/acceptance criteria with traceable test evidence, and the user separately authorizes the integration work.
+- T0 and T1 retain their independent data-collection boundaries. This decision does not authorize moving T1 data into T0, making T1 depend on T0, or changing either data contract.
+- Safety: paper/signals only; keep `ai_execution_enabled=false`; no live orders or exchange execution. No runtime activation, canonical DB creation, Feeder startup, exchange connection, market-data sync, deployment, or migration is authorized by this architecture approval.
+- Scope of this update: documentation only. No source code, runtime configuration, workflow, repository split, branch, PR, or T3 repository was changed. No tests or workflows were run; status for this documentation decision is **APPROVED / DOCUMENTED**, while operational stability of the four active tiers remains governed by their individual evidence.
+- Current documentation branch: `feature/t0-centralized-data-feeder-p1-20261101`. Continue on the existing branch; do not create a parallel branch/PR or merge without separate explicit approval.
+- Next step: continue the currently authorized T0/T1 workstream and maintain the per-tier evidence gates. Revisit T3 only after all four active tiers meet the re-integration gate.
