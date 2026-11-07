@@ -20,19 +20,18 @@ Do not provision staging until the operator has selected and recorded:
 - [ ] Private networking / ingress model and how the Feeder host reaches the database.
 - [ ] TLS CA delivery and rotation mechanism.
 - [ ] Secret manager and credential rotation mechanism.
-- [ ] Backup/PITR product, retention, recovery-point visibility, and restore permissions.
-- [ ] Staging and eventual production monthly cost ceilings, including database, VPS, storage, backups, egress, and snapshots.
+- [ ] Staging and eventual production monthly cost ceilings, including database, VPS, storage, and egress.
 - [ ] Staging data classification: synthetic only; no production credentials or personal data.
 - [ ] Exact source SHA and workflow required for the staging candidate.
 
-**Entry decision:** all items above recorded and reviewed. If a provider cannot offer remote TLS hostname verification, least-privilege roles, isolated restore, and old-primary fencing, reject it rather than weakening controls.
+**Entry decision:** all items above recorded and reviewed. If a provider cannot offer remote TLS hostname verification, least-privilege roles, and safe writer fencing, reject it rather than weakening controls.
 
 ## 2. Gate A — provider and engine identity
 
 Capture machine-readable evidence:
 
 - [ ] Provider, product, region, plan/tier, database endpoint class (private/public), PostgreSQL version, TimescaleDB version, extension availability.
-- [ ] Database parameter settings relevant to TLS, logging, connection limits, timeouts, WAL/PITR, and backups.
+- [ ] Database parameter settings relevant to TLS, logging, connection limits, and timeouts.
 - [ ] The exact source SHA, migration IDs/checksums, workflow run URL, job IDs, and artifact IDs.
 - [ ] Confirm staging is isolated from production projects/accounts/endpoints and has a documented deletion process after evidence retention.
 - [ ] Confirm no credentials or DSNs appear in logs, workflow artifacts, Git history, command arguments, or handoff documents.
@@ -142,9 +141,16 @@ SQLite remains the source of truth until a separate, approved migration/cutover 
 
 **PASS criteria:** all canonical outputs match byte-for-byte where the contract requires identical serialization/hash; every unexplained mismatch blocks migration/cutover.
 
-## 7. Gate F — backup, PITR, restore, and old-primary fencing
+## 7. Gate F — Backup and Disaster Recovery (DEFERRED)
 
-The backup failure domain must be independent of the Feeder VPS and primary database failure domain.
+**DEFERRED — NOT IN CURRENT SCOPE**
+
+By explicit operator decision dated 2026-11-07, backup capability and Disaster Recovery proof are excluded from the current PostgreSQL lifecycle/provider-compatibility workstream. Do not provision backup services or run backup, PITR, restore, failover-recovery, RPO/RTO, offsite, immutable/WORM, or restore-drill tests in this scope. This is a deferral, not a PASS and not evidence of production readiness.
+
+Writer fencing, lease generation, transaction rollback/atomicity, readiness fail-closed, and safe runtime restart remain in scope because they protect ordinary database lifecycle integrity; they are not Backup/DR acceptance.
+
+Reopen Gate F only under a separately approved scope. Until then, Gate F is excluded from the current staging acceptance verdict.
+
 
 ### Backup capability
 
@@ -187,7 +193,7 @@ If RPO or RTO misses target, record **BLOCKED**. Do not silently weaken the targ
 - [ ] Feeder runs as a dedicated unprivileged OS service identity.
 - [ ] Secret files/variables are protected; no secret is exposed in process arguments, shell history, logs, crash dumps, or artifacts.
 - [ ] Restart policy does not create concurrent uncontrolled Feeder instances.
-- [ ] Health/readiness reports DB connectivity, current lease generation state, heartbeat age, recovery coverage, backup freshness, and last restore drill.
+- [ ] Health/readiness reports DB connectivity, current lease generation state, heartbeat age, recovery coverage, and runtime readiness.
 - [ ] Missing/stale backup telemetry blocks go-live.
 - [ ] Disk, connection, storage, CPU, memory, WAL, and backup capacity alerts have thresholds and owners.
 - [ ] Rollback procedure is exercised: stop Feeder, fence writer credential, preserve PostgreSQL evidence, and return reads only to a verified SQLite snapshot if parity allows.
@@ -196,7 +202,7 @@ If RPO or RTO misses target, record **BLOCKED**. Do not silently weaken the targ
 
 ## 9. Final staging verdict
 
-A staging run is **PASS** only when Gates A–G pass on the exact selected provider/version and exact application source SHA, with reproducible artifacts.
+A staging run for the current scope is **PASS** only when Gates A–E and G pass on the exact selected provider/version and exact application source SHA, with reproducible artifacts. Gate F is explicitly DEFERRED and is not counted as PASS. This scoped verdict does not certify Backup/DR or production readiness.
 
 The final evidence bundle must contain:
 
@@ -206,7 +212,7 @@ The final evidence bundle must contain:
 - Effective role/grant snapshots and privilege-denial tests.
 - Writer fencing, process-kill, lifecycle, and readiness logs.
 - Data parity report and canonical hashes.
-- Backup configuration evidence, restore logs, actual RPO/RTO calculations, old-primary fencing proof, and new lease generation.
+- Runtime lifecycle, atomicity, readiness and fencing evidence. Backup/DR evidence is excluded while Gate F remains deferred.
 - Artifact IDs/digests and an explicit list of evidence not independently verified.
 
 ### Current state before provider selection
@@ -219,8 +225,7 @@ The final evidence bundle must contain:
 | Provider-specific effective roles/grants | NOT VERIFIED |
 | Credential rotation | NOT VERIFIED |
 | Provider network isolation | NOT VERIFIED |
-| Backup/PITR availability and 7-day retention | NOT VERIFIED |
-| Restore drill and measured RPO/RTO | NOT VERIFIED |
+| Backup/PITR, restore drill, RPO/RTO, offsite/WORM retention | DEFERRED — NOT IN CURRENT SCOPE |
 | Old-primary fencing on provider failover | NOT VERIFIED |
 | VPS service hardening / cost ceiling | NOT SELECTED |
 
