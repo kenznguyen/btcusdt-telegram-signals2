@@ -4416,3 +4416,15 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - Evidence report updated in commit 3069b4c89904bbe11b354cef8b2a84af158615ea: docs/evidence/t0/T0_BINANCE_CONNECTIVITY_PROBE_P1_9_2026-11-07.md.
 - Current verdict: code-level HTTP header terminator fix PASS on dedicated CI; user's direct 1m PowerShell handshake PASS; probe 15m WebSocket handshake and Kline event NOT YET RE-RUN ON PC; P1.9 overall remains BLOCKED / NOT VERIFIED until a fresh PC probe confirms it.
 - Next: provide a source snapshot from exact SHA 54f9344e42baa2bd92a45fd6d96eae35c2b49148; user runs py_compile, 17 offline tests, then only the read-only network probe. Verify the source SHA separately. No credentials, proxy/VPN, alternate endpoint, DB writes, persistence, Feeder, Controlled First Run, VPS, or AI execution.
+
+
+### P1.9 latest PC rerun — HTTP Upgrade PASS; 15m event timeout (2026-11-07T02:15:07Z)
+
+- User-provided JSON: REST 5/5 PASS (ping 208.05 ms; time 134.20 ms; exchangeInfo 723.02 ms; closed M15 136.84 ms; closed H1 125.60 ms; all HTTP 200/schema valid).
+- WebSocket: HTTP status 101; `WAITING_FOR_KLINE_EVENT`; `EVENT_TIMEOUT` after 20,430.78 ms; no valid event received.
+- Interpretation: the probe now validates the HTTP Upgrade on its configured `btcusdt@kline_15m` endpoint. The former HTTP header parsing blocker is no longer observed. The data frame path remains unverified; do not attribute the timeout to the Binance server without a same-PC comparison.
+- Official Binance USDⓈ-M Kline stream documentation says current-candle updates are pushed every 250 ms when an existing candle is available; therefore the 20.43s timeout is anomalous, not a normal wait for the 15m candle to close. Documentation: https://developers.binance.com/docs/derivatives/usds-margined-futures/websocket-market-streams/Kline-Candlestick-Streams
+- JSON does not carry a source SHA. Intended snapshot was source SHA `54f9344e42baa2bd92a45fd6d96eae35c2b49148`; exact runtime provenance is contextual only.
+- Current status: REST CONDITIONAL PASS; WebSocket 15m Upgrade PASS; first 15m event NOT VERIFIED; P1.9 overall BLOCKED / NOT VERIFIED.
+- Next: compare first-frame receipt on the same PC/network for 15m and 1m streams using a direct WebSocket client; record status, first frame opcode/length, elapsed time. Do not change the canonical 15m requirement or substitute 1m as acceptance. No credentials, proxy/VPN, DB, Feeder, persistence, Controlled First Run, VPS, or AI execution.
+- Evidence report update commit: `7e2ac0ee70da59456267eb86a72607f64d983e7b`.
