@@ -155,3 +155,14 @@ Updated status:
 - The smoke only validates framework import and strategy discovery, not FreqAI training, prediction quality/provenance, database availability, or market parity.
 - Next: read-only inspect T2's authoritative OKX dataset provenance and T0 Binance sample windows; define a bounded, like-for-like parity report without changing the current OKX source.
 - Safety unchanged: Canonical SQLite NOT CREATED; ingestion NOT RUN; Feeder STOPPED; no source switch or live execution.
+
+
+## Binance–OKX parity readiness — source audit (2026-11-07)
+
+- T0 source confirmed: Binance USD-M perpetual via `ccxt.binanceusdm`, BTCUSDT M15/H1.
+- Existing T2 bot/backtest confirmed: OKX `BTC-USDT-SWAP` through `https://www.okx.com/api/v5/market/history-candles`. This source remains unchanged.
+- T2 offline parity input contract: closed-candle CSV, continuous aligned timestamps, `CHARTPRO-OHLCV-V2` binary hash. README says signed shared dataset and independent traces remain absent.
+- No paired Binance/OKX dataset artifacts were found in tracked branch files; `.data/` is gitignored. No local PC files were accessed.
+- Hash formats differ by design: T0 datasetVersion hashes JSON envelope/provenance and decimal candles; T2 V2 hashes M15/H1 closed candle rows as int64 timestamp + float64 OHLCV. Do not compare these digests directly. Preserve T0 source hash and compute a separate V2 digest using an explicit tested conversion.
+- Actual parity remains NOT RUN / BLOCKED pending paired immutable datasets.
+- Next: design offline parity manifest/harness for two externally supplied closed-candle CSVs; verify UTC windows/coverage and report differences, never assume Binance and OKX OHLCV should match. No Canonical DB creation or ingestion.
