@@ -148,6 +148,7 @@ def load_and_validate_connection_events(
         opened = []
         disconnected = []
         pending = {}
+        heartbeat_ids = set()
         pongs = []
         reconnect = None
         state = "NEW"
@@ -166,8 +167,9 @@ def load_and_validate_connection_events(
                 if state != "CONNECTED":
                     raise ValueError("Ping sent while connection is not open")
                 heartbeat_id = event["heartbeatId"]
-                if heartbeat_id in pending:
-                    raise ValueError("Duplicate outstanding heartbeat identity")
+                if heartbeat_id in heartbeat_ids:
+                    raise ValueError("Duplicate heartbeat identity")
+                heartbeat_ids.add(heartbeat_id)
                 pending[heartbeat_id] = at
             elif kind == "PONG_RECEIVED":
                 heartbeat_id = event["heartbeatId"]
