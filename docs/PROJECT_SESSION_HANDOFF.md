@@ -4889,3 +4889,62 @@ Acceptance boundary:
 - Recommended next bounded task: draft a dedicated append-only connection-event sidecar schema and deterministic offline acceptance tests. Keep existing CSV importer backward compatible and retain `connectionStatus=UNVERIFIABLE` until valid evidence exists.
 - No code, tests, workflow, or runtime config changed in this review. No collector started, no exchange contacted, no capture/DB accessed, no Canonical SQLite or Feeder operation, no T2 source switch, no merge/VPS action. `ai_execution_enabled=false`.
 - Current branch HEAD after report + handoff documentation commits: `1c9729194d8ade90e69e2071e75a756104b826cf`.
+
+
+## 2026-11-07 — T1 Connection Event Sidecar Contract
+
+### Scope and implementation
+
+- Implemented a separate offline JSONL sidecar validator: `futures_intelligence/connection_events.py`.
+- Added deterministic temporary-file fixtures: `futures_intelligence/test_connection_events.py`.
+- Documented the contract in `futures_intelligence/README.md` and this evidence report:
+  `docs/evidence/t1/T1_CONNECTION_EVENT_SIDECAR_CONTRACT_2026-11-07.md`.
+- Updated the existing GitHub Actions workflow `.github/workflows/t0-single-writer-gateway-red.yml` so the T1 offline job compiles and runs both the existing CSV importer suite and the new sidecar suite.
+- Existing CSV importer implementation and tests remain unchanged. No new branch or PR was created.
+
+### Exact source and CI evidence
+
+- Tested source SHA: `8ef12c8839ab15cf2e60c6d06e4386250c0621d6`.
+- Workflow run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42340838793 — push event, exact head/checkout SHA above, overall **SUCCESS**, 5/5 jobs SUCCESS.
+- Dedicated T1 job: `128308192940`, **SUCCESS**.
+- Compile: PASS for `import_collector.py`, `test_import_collector.py`, `connection_events.py`, `test_connection_events.py`, and `pipeline/values.py`.
+- Test result: **24/24 PASS** — 10 existing importer regression tests + 14 sidecar acceptance tests.
+- Artifact: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42340838793/artifacts/13561403522
+  - ID `13561403522`
+  - Name `t1-importer-offline-evidence-8ef12c8839ab15cf2e60c6d06e4386250c0621d6`
+  - Size 1,775 bytes
+  - GitHub upload digest `sha256:62de84e2ffd59808661e512be8c827ea9b117eadf6888f468be779d3cc9620c8`
+  - Payload ZIP was not downloaded and independently re-hashed; independent payload checksum remains **NOT VERIFIED**.
+- Earlier run `42340744818` at SHA `15f917bec81d7e2999976302fe152ef5f31207fc` had one fixture error: a post-window reconnect event exceeded the declared capture watermark. The fixture was corrected to provide a watermark covering that event. Final SHA `8ef12c8...` passes 24/24.
+
+### Contract and verification boundary
+
+- JSONL v1 common identity: `schemaVersion`, unique `eventId`, exact collector `sourceCommit`, process `sessionId`, per-socket `connectionId`, `batchId`, `route`, `eventType`, UTC `eventAtMs`.
+- Event types: `CONNECTED`, `PING_SENT`, `PONG_RECEIVED`, `DISCONNECTED`, `RECONNECT_SCHEDULED`.
+- Validator checks file SHA-256 against a trusted expected digest, source/session identity, ordered unique events, lifecycle transitions, paired Ping/Pong, heartbeat gap/deadline, expected batch/routes, and half-open window coverage.
+- Requires a sealed capture segment (`capture_finalized=True`) and trusted `capture_complete_through_ms >= windowEndMs`; any event later than the watermark is rejected. SHA-256 is not a signature.
+- Window states include `VERIFIED_CONNECTED`, `DISCONNECTED`, `HEARTBEAT_GAP`, `UNVERIFIABLE`, and `OUTSIDE_WINDOW`.
+- Sidecar validator is **not integrated** into the CSV importer, feed quality, or decision layer. Current importer `connectionStatus` remains `UNVERIFIABLE`.
+
+### Status
+
+| Item | Status |
+|---|---|
+| Sidecar schema/validator contract | PASS (offline implementation) |
+| Sidecar fixture suite | PASS (14/14) |
+| Existing importer regression suite | PASS (10/10) |
+| GitHub Actions exact-source run | PASS (5/5 jobs) |
+| Collector-side JSONL event writer | NOT IMPLEMENTED |
+| Upstream Rust writer durability/atomicity | NOT VERIFIED |
+| Live heartbeat/disconnect/reconnect behavior | NOT RUN / NOT VERIFIED |
+| T1 transport continuity | NOT VERIFIED |
+| T1 operational readiness | NOT CERTIFIED |
+
+### Next bounded task and safety limits
+
+- Proposed next task: separately review/implement the collector-side append-only writer in a newly pinned upstream collector revision, with offline Rust tests for event persistence/order, Ping/Pong pairing, remote close, transport error, heartbeat timeout, retry/backoff, process restart/session identity, and trusted manifest watermark/checksum.
+- No changes were made to `waynemason1/binance-futures-collector`; its currently pinned commit `bc4f0ef633fbeee4a49defd72827f17162693805` still only logs lifecycle events and does not emit this sidecar.
+- Collector-side implementation in that upstream repository has not been started or approved. No live collector activation or exchange capture is authorized by this completed offline contract work.
+- Canonical SQLite remains NOT CREATED; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; Windows preflight deferred; paired dataset acquisition PAUSED; T2 OKX source unchanged; VPS not provisioned; `ai_execution_enabled=false`.
+- No database opened, exchange contacted, market data synchronized, live order placed, PR merged, or branch merged.
+- Source SHA tested above; documentation update before this handoff: `b723b955543c50a74d982275cdda370f86c1a608`.
