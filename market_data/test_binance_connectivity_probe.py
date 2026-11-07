@@ -47,6 +47,9 @@ class RestPayloadContractTests(unittest.TestCase):
         invalid = list(row)
         invalid[2] = "80"
         self.assertFalse(validate_klines([invalid], now_ms=1794000600000, interval_ms=900000))
+        h1 = [1793998800000, "100", "110", "90", "105", "2",
+              1794002399999, "200", 3, "1", "100", "0"]
+        self.assertTrue(validate_klines([h1], now_ms=1794002400000, interval_ms=3600000))
 
 
 class WebSocketHandshakeTests(unittest.TestCase):
