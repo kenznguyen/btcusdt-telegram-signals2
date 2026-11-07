@@ -370,9 +370,7 @@ impl SidecarWriter {
                 "all sockets must be disconnected before session finalization",
             ));
         }
-        if capture_complete_through_ms > MAX_TIMESTAMP_MS
-            || finalized_at_ms > MAX_TIMESTAMP_MS
-        {
+        if capture_complete_through_ms > MAX_TIMESTAMP_MS || finalized_at_ms > MAX_TIMESTAMP_MS {
             return Err(invalid(
                 "capture timestamps exceed the signed 64-bit contract",
             ));
@@ -554,7 +552,9 @@ impl SidecarWriter {
             return Err(invalid("sidecar event count limit exceeded"));
         }
         if event_at_ms > MAX_TIMESTAMP_MS {
-            return Err(invalid("event timestamp exceeds the signed 64-bit contract"));
+            return Err(invalid(
+                "event timestamp exceeds the signed 64-bit contract",
+            ));
         }
         if self.last_event_at_ms.is_some_and(|last| event_at_ms < last) {
             return Err(invalid("event timestamps must be globally non-decreasing"));
