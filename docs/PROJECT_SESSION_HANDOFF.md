@@ -5334,3 +5334,18 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Current T1 status: production npm security gate PASS; dev audit findings reduced 6 -> 2, with one high still OPEN; full exact-head CI PENDING; operational readiness NOT VERIFIED. PR #1 remains OPEN / DRAFT / NOT MERGED.
 - No source/manifest changes, advisory ignores, workflow weakening, runtime writer integration, Collector startup, exchange connection, DB access, market capture, merge, or live execution. Keep `ai_execution_enabled=false`.
 - Next: finish run 42354941895, inspect audit output and test totals, then update PR and handoff with exact final evidence. Evaluate whether the remaining Vite/esbuild dev-only finding warrants a separately authorized major-version compatibility migration; do not apply `--force` automatically.
+
+
+## 2026-11-07 — T1 frontend Vite security migration (full CI pending)
+
+- User explicitly authorized a compatible Vite 6 migration to address the remaining development dependency audit findings.
+- Updated only frontend dependency metadata/lockfile: `dashboard/frontend/package.json` Vite range `^5.0.12` -> `^6.4.5`; lockfile resolves Vite `6.4.5` and esbuild `0.25.12`. Vitest `4.1.12` and @vitejs/plugin-react `4.7.0` remain compatible.
+- Manifest blob SHA: `17e3a97e0b52754dd4cfdf4fdeb02471edd3bf46`; package-lock blob SHA: `6577b6ec36a57ea5527f82cb6e349e45fe98e30f`.
+- Resolver GitHub Actions run [42356116805](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42356116805) SUCCESS on resolver input SHA `4d84c1ff31564568b13e4cb09aa2a17704481d8e`: npm ci PASS; full npm audit reported 0 vulnerabilities (0 info/low/moderate/high/critical); TypeScript + production build PASS with Vite 6.4.5; Vitest 6/6 PASS.
+- Commit `a8e92ce8076c9e0a5236e9c62f57d589e21d64ca` records the manifest/lockfile migration and removes the temporary resolver workflow. No application source changed; no `npm audit fix --force`, advisory ignores or weakened checks.
+- Exact final content validation SHA: `87b13393d5c4c581768f12bd0277924d38eda8de` (temporary CI trigger file was created and removed; no residual trigger file).
+- Full GitHub Actions run [42356204008](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42356204008) is IN PROGRESS on exact SHA `87b13393d5c4c581768f12bd0277924d38eda8de`. At last inspection: frontend job PASS; backend pytest PASS; Rust collector and security jobs still running; Docker build still running. Do not claim exact-head full CI PASS until all five jobs finish.
+- PR #1 description updated with current source identity and evidence; remains OPEN / DRAFT / NOT MERGED. PR URL: https://github.com/kenznguyen/binance-futures-collector/pull/1.
+- Current status: frontend full npm audit PASS; resolver install/build/test PASS; exact-head full CI PENDING; T1 operational readiness NOT VERIFIED. Artifacts for run 42356204008 not yet inspected.
+- No Tokio writer integration, Collector startup, Binance connection, DB access, market capture, merge, or live execution. Keep `ai_execution_enabled=false`.
+- Next: finish run 42356204008; inspect all five job conclusions, exact test counts, security log and artifacts; update PR and handoff with final CI evidence. Keep PR Draft and do not merge without separate explicit approval.
