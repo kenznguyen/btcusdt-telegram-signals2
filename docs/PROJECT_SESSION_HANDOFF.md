@@ -5242,3 +5242,21 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Validation required on the resulting exact source SHA: cargo tree default/all-target path checks; cargo audit; cargo fmt --all --check; cargo clippy --all-targets --all-features -- -D warnings; cargo build --release --locked; cargo test --all; sidecar format/Clippy/tests; dashboard backend/frontend tests; Docker build; npm production audit must run (not be skipped). Compare lockfile diff and confirm no unrelated dependency churn. Preserve behavior and all existing hard gates.
 - Current status: remediation plan PREPARED / NOT EXECUTED; dependency security BLOCKED; T1 operational readiness NOT VERIFIED. No Cargo.toml/Cargo.lock/workflow change, no runtime/collector start, exchange connection, DB access, market capture, merge, or live execution. PR #1 remains OPEN / DRAFT / NOT MERGED; ai_execution_enabled=false.
 - Next: execute resolver-generated dependency updates only after explicit authorization for the dependency/lockfile change; run full CI on the resulting exact source SHA. Do not integrate Tokio writer runtime before all security and CI gates pass.
+
+
+## 2026-11-07 — T1 dependency remediation executed
+
+- User explicitly authorized the seven-package dependency remediation.
+- T1 repo: kenznguyen/binance-futures-collector; PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Resolver workflow ran on GitHub Actions only. First attempt failed before lockfile verification/commit because Cargo's selector `webpki-roots` was ambiguous (two locked major versions). Corrected selector to `webpki-roots@1.0.9`; second resolver run succeeded.
+- Successful resolver workflow run: [42353716894](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42353716894). All target versions verified from Cargo.lock; `git diff --check` passed; diff was exactly 16 insertions / 16 deletions in Cargo.lock.
+- Cargo-generated dependency commit: `cc66e97ab62017873c8bb628a04a768a14f94d2a`.
+- Current T1 PR head after temporary resolver workflow removal: `91715f9c41546fb789890ff6f127de1e11ea3e8c`.
+- Current Cargo.lock blob: `6c5c2bd325d812034540cd46b7fead684a120161`.
+- Resolved versions: quinn-proto 0.11.18; rustls 0.23.46; rustls-webpki 0.103.16; webpki-root-certs 1.0.10; webpki-roots 1.0.10 (separate webpki-roots 0.26.11 remains); tokio 1.53.3; chacha20 0.10.2.
+- Cargo.toml unchanged. Temporary workflow `.github/workflows/resolve-t1-dependencies.yml` was deleted after successful lockfile generation. Comparing pre-remediation commit `fbfb3260b48268c7ec20544347bda9ec1633c35a` to current PR head shows only Cargo.lock modified plus temporary workflow added then removed; net file diff is Cargo.lock only.
+- PR description updated with new source SHA, dependency evidence, and pending CI state.
+- Latest full PR CI on current head: [42353751500](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42353751500), queued at last check. A prior CI attempt on dependency commit SHA `cc66e97ab62017873c8bb628a04a768a14f94d2a` returned `action_required`; do not treat it as test evidence.
+- Status: dependency resolution + lockfile assertions PASS; full CI/security PENDING; T1 operational readiness NOT VERIFIED.
+- Next: inspect run 42353751500 on exact head SHA `91715f9c41546fb789890ff6f127de1e11ea3e8c`; confirm Rust, sidecar, dashboard, Docker, cargo-audit and both npm audit steps. Do not integrate runtime writer or start collector until all gates pass.
+- Safety unchanged: no Cargo.toml changes, advisory ignores, security gate weakening, runtime start, exchange connection, DB access, data capture, merge, or live execution. Keep `ai_execution_enabled=false`.
