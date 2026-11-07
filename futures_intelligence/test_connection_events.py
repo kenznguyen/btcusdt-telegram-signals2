@@ -48,7 +48,7 @@ class ConnectionEventContractTest(unittest.TestCase):
 
     def write(self, events, name="events.jsonl"):
         path = Path(self.directory.name, name)
-        raw = "".join(json.dumps(item, sort_keys=True, separators=(",", ":")) + "\\n" for item in events).encode()
+        raw = "".join(json.dumps(item, sort_keys=True, separators=(",", ":")) + "\n" for item in events).encode()
         path.write_bytes(raw)
         return path, hashlib.sha256(raw).hexdigest()
 
