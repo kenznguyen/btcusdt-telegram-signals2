@@ -4292,3 +4292,16 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - PG-LC-05 status: **PASS**. Matrix update commit `6439c19f8ae16865f23f3ca96c2dd1838f62a019`, blob `8ccde7f7d48315dc1e00b62dc896f8e31bbbdf39`.
 - No automatic reconnect/resume behavior added. No provider/VPS/canonical DB/production Feeder/exchange/data-sync/Backup-DR activity.
 - Next: PG-LC-06 — process termination during an active PostgreSQL writer transaction. Existing PG-LC-03 killed a DB backend connection, not the client process. Add a process-level acceptance test that kills the writer process while the transaction is held, then verifies transaction rollback and fresh-owner higher-generation fencing; keep it isolated to disposable TimescaleDB.
+
+
+### PG-LC-06 exact-SHA process-kill/transaction rollback verification (2026-11-07)
+
+- Workflow [42323145591](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42323145591), exact source SHA `826f519418a0de277ad49e1f24816f99034a708f`, completed with overall FAILURE only because fresh-cluster PostgreSQL 16 provider bootstrap job `128252176016` remains blocked by the known implicit ADMIN membership guard. Do not weaken the role guard.
+- Disposable TimescaleDB job `128252259414`: SUCCESS. PostgreSQL writer suite **9/9**, including `test_sigkill_writer_process_rolls_back_batch_and_allows_new_generation`. A child writer process entered the second-row trigger after the first row was inserted in the open transaction; parent sent SIGKILL, waited for the backend to exit, verified zero rows for both candles, released the old lease, and verified a replacement owner acquired a strictly higher generation.
+- Same integration job: FeederRuntime 20/20; runtime lifecycle 6/6; role privileges 18/18; read-only TimescaleDB 6/6 — all PASS.
+- Static job `128252175934`: SUCCESS; 239 market_data tests, 41 skipped, OK; static contracts 10/10; behavioral/feeder 63/63; health/readiness 21/21; process restart 2/2. Paper consumer job `128252175618`: SUCCESS.
+- TimescaleDB artifact `13554150967`, size 4,451 bytes, GitHub digest `sha256:478ab2fd2f6c1f29ca06770831b361d9e5cfe4e84b55f929159b0b6f1b1bf05c`; downloaded ZIP SHA-256 independently matched.
+- Static artifact `13553622999`, size 10,819 bytes, digest `sha256:4d2366a3d57756bce3878a0b3fc1cbd3d7a6b94864c63acd4c523f4d8bef37a8`; downloaded ZIP SHA-256 independently matched.
+- PG-LC-06 status: **PASS**. Matrix update commit `e61114acc0e140bd05ca16639325e6a2209964c1`, blob `7eeb28bdcfb93d8ac9dd26720cd83d6025710752`.
+- No production source behavior changed. No provider/VPS/canonical DB/production Feeder/exchange/data-sync/Backup-DR activity.
+- Next: PG-LC-07 — interrupted migration and retry on a disposable clean database. Inspect migration transaction boundaries and idempotency before designing a deterministic interruption test; no migration behavior change or production schema operation.
