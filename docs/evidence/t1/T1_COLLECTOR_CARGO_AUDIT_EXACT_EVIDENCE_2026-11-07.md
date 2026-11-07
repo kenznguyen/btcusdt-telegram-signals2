@@ -107,3 +107,13 @@ Safety limits remain: no collector process, no Binance DNS/TCP/WebSocket connect
 - Workflow diagnostic step itself PASS; security gate remains BLOCKED. No Cargo.toml/Cargo.lock updates, no feature selection changes, no advisory suppressions, no CI gate weakening.
 - Next: inspect cargo tree --locked --target all -e features -i for all advisory packages; capture complete reverse dependency paths, distinguish default/target/optional/lockfile-only packages, and inspect the direct dependency source for webpki-root-certs and webpki-roots. Then formulate only Cargo-resolver-generated compatible updates with regression tests. Do not begin collector runtime integration.
 - Safety unchanged: no collector runtime, Binance connection, exchange capture, database access, merge, or live execution; ai_execution_enabled=false.
+
+
+## 2026-11-07 Addendum — All-target dependency graph CI queued
+
+- Added a separate read-only diagnostic step to the fork workflow, preserving the default-graph diagnostic and correcting printf output so tree paths are emitted as real log lines.
+- New step runs cargo tree --locked --target all -e features -i for quinn-proto, rustls, rustls-webpki, webpki-root-certs, webpki-roots, tokio and chacha20. No manifest, lockfile, runtime or security gate changes.
+- Fork source commit: eda201bb5e659e438b81a09eee7c20cdd749763a; workflow blob SHA a2b82d4b5e08763aa465ec3cb37b15525252a677.
+- New push run 42349892441; new PR run 42349896315. Security jobs: push 128335579401, PR 128335591206. At last inspection both all-target diagnostic steps completed SUCCESS, while cargo-audit and other jobs were still running. Final output and run conclusions remain PENDING / NOT VERIFIED.
+- PR #1 description updated to source SHA eda201bb5e659e438b81a09eee7c20cdd749763a and the pending run IDs. PR remains OPEN / DRAFT / NOT MERGED.
+- Next: wait for both runs to finish; retrieve all-target output and full package paths; confirm source/checkout SHA, test totals, audit result, npm audit status and artifacts. Do not modify dependencies until the all-target graph is understood.
