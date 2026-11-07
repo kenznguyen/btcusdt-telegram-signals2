@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -68,6 +69,29 @@ class FreqaiExporterTest(unittest.TestCase):
         self.assertEqual(json.loads(output.read_text()), result)
         with self.assertRaises(ValueError):
             write_artifact(self.path / "model.pkl", result)
+
+    def test_t0_context_and_prediction_export_leave_canonical_sqlite_unchanged(self):
+        database = self.path / "candles.sqlite3"
+        output = self.path / "exports" / "prediction.json"
+
+        def database_snapshot():
+            paths = [database, Path(str(database) + "-wal"), Path(str(database) + "-shm")]
+            return {
+                str(path): hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in paths if path.exists()
+            }
+
+        before = database_snapshot()
+        identity_before = database.resolve()
+        window = canonical_context(database, self.now, bars=1)
+        prediction = make_prediction(self.frame, window, self.provenance, self.now)
+        write_artifact(output, prediction)
+        after = database_snapshot()
+
+        self.assertEqual(database.resolve(), identity_before)
+        self.assertEqual(after, before)
+        self.assertTrue(output.is_file())
+        self.assertEqual(read_context(output), prediction)
 
     def test_context_hash_matches_api_without_query_time_drift(self):
         database = self.path / "candles.sqlite3"
