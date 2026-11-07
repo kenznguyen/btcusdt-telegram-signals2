@@ -5166,3 +5166,14 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Cargo.lock chain: `quinn-proto 0.11.16 → quinn 0.11.11 → reqwest 0.13.1`. Collector reqwest disables default features and enables only json/rustls/webpki-roots/http2; no explicit HTTP/3/QUIC feature is selected.
 - Exact all-target inverse cargo tree returned exit 0 but no reverse path for quinn-proto. Correct status: **LOCKFILE_PRESENT / NO RESOLVED ALL-TARGET PATH EMITTED**, not PRESENT_IN_GRAPH. The workflow diagnostic's unconditional success marker is defective for empty output and needs a small fail-safe correction before further dependency reachability decisions.
 - No Cargo.toml/Cargo.lock/runtime changes. Continue to keep PR #1 draft/unmerged and security gate blocked pending targeted resolver-based remediation and full CI.
+
+
+## 2026-11-07 — Cargo tree empty-output classifier corrected; CI pending
+
+- Collector fork branch `feature/t1-connection-sidecar-integration-20261107`; source SHA `a0b51717a45d7fc8da79da91eda632570bdc3ca3`; workflow blob SHA `36bb62018013e85ec53e7ecc07f13c933fab37af`.
+- Fixed both default-feature and all-target diagnostics: successful cargo tree exit is no longer sufficient for PATH_FOUND. Classifier emits PATH_FOUND only when at least two package-version nodes are present; empty output and Cargo's `warning: nothing to print` emit NO_PATH_EMITTED; nonzero cargo tree exits emit COMMAND_ERROR.
+- Added three in-workflow fixtures: populated reverse tree, nothing-to-print warning, and empty output. They must all pass before dependency diagnostics execute.
+- New PR run [42351605128](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42351605128), security job `128340743275`; push run [42351601277](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42351601277), security job `128340730230`. At last poll, both diagnostic steps completed SUCCESS; dashboard frontend/backend jobs passed; collector, Docker and security jobs remained IN_PROGRESS. Job logs were not yet available (GitHub returned BlobNotFound while jobs were running). Final fixture output, dependency classifications, cargo-audit/npm result, exact checkout SHA and artifacts remain NOT VERIFIED.
+- PR #1 body updated to source SHA and current run IDs. PR remains OPEN / DRAFT / NOT MERGED.
+- No Cargo.toml/Cargo.lock changes, audit suppressions, gate weakening, runtime integration, collector execution, Binance connection, DB access, market capture, merge or live execution.
+- Next: poll runs 42351605128 and 42351601277; verify fixture 3/3, exact dependency classifications, tests, cargo-audit/npm, checkout SHA and artifact metadata. Keep security BLOCKED until cargo-audit and all required gates pass.
