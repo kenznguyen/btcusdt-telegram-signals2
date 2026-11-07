@@ -5591,3 +5591,10 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - R5.3 prior GREEN remains valid for implementation SHA `2c1f025afdcb2c24ae05638959604e562e1b31ae` in PR merge-context run [42367954332](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42367954332), synthetic checkout SHA `7052b11802f7cb315f521b033b823fc07d1d35c7`, 5/5 jobs PASS, sidecar 25/25. It does not cover this new regression.
 - Next: poll Actions for test commit `f969ad693ca022052d0285d5aa2d6f23e4a886fe`; if the intended test fails, implement the minimal disconnect-reason guard and rerun full CI. If it passes unexpectedly, inspect why before changing behavior.
 - PR #1 remains OPEN / DRAFT / NOT MERGED. No runtime, Binance, DB, market capture, T0 modification, merge or live execution. Keep `ai_execution_enabled=false`.
+
+
+## T1 R5.3 follow-up — disconnect reason regression formatting correction (2026-11-07)
+- Initial test commit `f969ad693ca022052d0285d5aa2d6f23e4a886fe` triggered Actions run [42370673698](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42370673698). Collector format/Clippy/build and workspace tests passed (library 40/40, binary 1/1), but Sidecar writer format failed due one extra blank line before the new regression test; Sidecar Clippy/offline tests were skipped. Therefore RED is NOT VERIFIED. Dashboard backend/frontend passed; Security and Docker were still running at last poll.
+- Formatting-only correction commit/current PR head: `aec41e0b1b2544e891d4ff059bd954fc0fcec19f`, only `crates/connection-sidecar/tests/sidecar_writer.rs` whitespace changed. New Actions run not yet exposed in commit-run listing.
+- No implementation change for disconnect-reason finding. Next: poll Actions for `aec41e0b1b2544e891d4ff059bd954fc0fcec19f`; verify Sidecar RED specifically on `requires_heartbeat_timeout_reason_after_timeout_was_observed`. Only then implement the minimal guard and rerun full CI.
+- PR #1 remains OPEN / DRAFT / NOT MERGED. No runtime, Binance, DB, market capture, T0 modification, merge or live execution; keep `ai_execution_enabled=false`.
