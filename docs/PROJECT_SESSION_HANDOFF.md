@@ -4544,3 +4544,16 @@ Next permitted step: provide the user with a fresh source ZIP from the branch at
 - Target identity is still NOT VERIFIED. Do not infer that `.data/market-data.sqlite3` is the canonical database; it is only a repository CLI example.
 - Next required input: exact absolute path to the existing SQLite file and its volume/device identity (non-secret). Then perform read-only file/SQLite integrity, schema, API-target identity and backup/restore preflight. Do not open in a write-capable mode.
 - Status: SQLite architecture choice APPROVED; canonical target identity NOT VERIFIED; read-only target preflight BLOCKED pending path; canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
+
+
+### T0 → T2 OHLCV adapter — design checkpoint (2026-11-07)
+
+- User requested continuation after architecture assessment. Selected next bounded work item: design a read-only T0 → T2 OHLCV adapter before adding more T1 data streams.
+- Plan committed at `docs/evidence/t0/T0_T2_OHLCV_ADAPTER_PLAN_2026-11-07.md`, commit `9548cb7f3c6b9e245a5c6dcecd7967a23f4269cf`.
+- Contract requires read-only source access, exact identity/window checks, complete coverage/no gaps, closed+validated candles, deterministic decimal conversion, provenance manifest, staged atomic export, no silent overwrite, and exact pinned Freqtrade compatibility.
+- T2's current OKX source/config must remain unchanged until a separate parity acceptance is passed. No forward-fill or synthetic candles.
+- Active T0 branch inventory did not establish an authoritative T2 strategy/config/dependency pin or exact Freqtrade output format. Several expected paths were absent on this branch; default-branch code search is not sufficient evidence for the active branch. Exact T2 runtime/version/config remains NOT VERIFIED. Do not implement an assumed format; next identify the authoritative T2 source revision and pin.
+- User confirmed canonical SQLite file does not yet exist. This supersedes the earlier request for an existing file path: no path is needed to continue isolated development. Use only temporary isolated SQLite fixtures for adapter tests.
+- No database was created/opened/written; no migration, canonical ingestion, exchange sync, Feeder, VPS or execution was started.
+- Status: SQLite architecture APPROVED; T0 isolated Controlled Ingestion acceptance PASS at source SHA `1aac449b96c4079004e1cab882280b923e33342c` / workflow `42329799499`; T2 adapter design READY; T2 runtime/version NOT VERIFIED; adapter code/tests NOT STARTED; Canonical DB NOT CREATED; canonical ingestion NOT RUN; Controlled First Run NOT AUTHORIZED; Feeder STOPPED; VPS NOT PROVISIONED; `ai_execution_enabled=false`.
+- Next: inspect authoritative T2 branch/revision and its Freqtrade/FreqAI dependency/config/workflow. Pin exact version and native data format, then implement adapter test-first with temporary data only.
