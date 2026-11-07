@@ -1,113 +1,85 @@
-# T0–T2 Compatibility Audit — 2026-11-07
+# T0–T2 Compatibility Audit — 2026-11-07 (corrected with runtime consumer tests)
 
-## Scope
+## Scope and exact source
 
-Read-only source audit of:
-- T0 branch: `feature/t0-centralized-data-feeder-p1-20261101`
-- T0 source HEAD before this documentation update: `b1a3daec797ab92280a95bee54aacede7cc40a57`
-- T2 branch: `feature/freqtrade-strategy-parity-20261029`
-- T2 source HEAD inspected: `4c039411542e11e073615a52d5a50d4ca605b49a`
+Repository: `kenznguyen/btcusdt-telegram-signals2`
 
-No branch merge, code modification, workflow execution, database creation/opening, schema migration, ingestion, exchange connection, Feeder startup, VPS provisioning, or execution was performed.
+- T0 working branch: `feature/t0-centralized-data-feeder-p1-20261101`
+- T0 source audited before documentation corrections: `b1a3daec797ab92280a95bee54aacede7cc40a57`
+- T0 integration-test source: `0464b70a8a0b012730f675239f67abcb589a2ca5`
+- T2 branch inspected for comparison: `feature/freqtrade-strategy-parity-20261029`, HEAD `4c039411542e11e073615a52d5a50d4ca605b49a`
 
-## Source inventory
+Important correction: the earlier audit compared older T2 branch files and found its legacy `CandleStore.insert()` test-fixture API. The active T0 branch already contains the ported FreqAI bridge and consumer tests using `market_data.test_support.seed_candles()`. Therefore the old fixture blocker does NOT block tests on the active T0 branch. The T2 branch remains a separate historical source and has not been merged.
 
-T0:
-- `market_data/store.py`, blob `2b47b7a29b2407651515a3cabfda6045ff4386b4`.
+No canonical DB creation, DB access outside isolated test fixtures, migration, live market collection, ingestion, Feeder startup, VPS provisioning, exchange credentials, order execution, or branch merge occurred.
 
-T2:
-- `market_data/store.py`, blob `5bc0543e3074fd66b9025289b34864e23612c702`.
-- `freqai_bridge/README.md`, blob `9cbe44a60a880e7a5ccd10266c2353a5dbf409e0`.
-- `freqai_bridge/config.research.json`, blob `a777e018f457628150647064119435ce75dc3e29`.
-- `freqai_bridge/context.py`, blob `6df3606df8ab34366bfe3abdb77a83574b76e7b1`.
-- `freqai_bridge/exporter.py`, blob `3b707174316d0c6b464ac947cbbe2d2fbee73682`.
-- `freqai_bridge/ChartProFreqaiResearch.py`, blob `c24a1d75523c907fde08cfe6cfe509312593e849`.
-- `freqai_bridge/test_exporter.py`, blob `81fcd9bb3823899be50e20f671696ea9812fcfe7`.
-- `pipeline/decision.py`, blob `66f94d96604a31979e8cec0a983f840aea63cbe4`.
-- `pipeline/test_decision.py`, blob `38e158584befd48aed95cc780fc7c8e43cd30ab3`.
+## Source findings
 
-## Findings
+1. T0 and T2 candle store schema/read contract are compatible at source level: candle identity columns, OHLCV decimal strings, UTC millisecond timestamps, Binance USD-M BTCUSDT M15/H1 identity, bounded windows and deterministic dataset hash.
+2. Active T0 branch's `read_window()` opens SQLite in URI `mode=ro`; T0's FreqAI `canonical_context()` uses that reader.
+3. FreqAI exporter verifies dataframe timestamps and OHLCV against the canonical window. Prediction artifact is atomically written as a separate JSON file, not to T0 SQLite.
+4. T0 active branch test fixtures initialize a temporary SQLite DB and seed it through explicitly test-only `market_data.test_support.seed_candles()`. Production `CandleStore` does not expose the legacy T2 `insert()` API. Do not restore a direct writer to production.
+5. T2 documents Freqtrade/FreqAI 2026.9 and `dry_run=true`; installed version and real strategy-load remain NOT VERIFIED.
+6. Binance-vs-OKX parity remains NOT RUN. Existing T2 OKX research/backtest source is not replaced.
 
-### 1. Read contract and schema
+## New read-only regression
 
-**CONDITIONAL PASS — source-level compatibility.**
+Added `test_t0_context_and_prediction_export_leave_canonical_sqlite_unchanged` to `freqai_bridge/test_exporter.py`.
 
-Both store implementations use the same `candles` table columns and primary key:
-`exchange, market_type, symbol, timeframe, open_time_ms`; OHLCV and availability timestamps are stored as decimal/text and integer UTC milliseconds respectively. The T0 and T2 readers agree on the BTCUSDT Binance USD-M market identity, M15/H1 interval mapping, half-open time windows, closed-candle validation and deterministic dataset hash structure.
+The test snapshots SHA-256 of the temporary database and its WAL/SHM sidecars, runs T0 canonical context read, makes a FreqAI prediction from the actual fixture dataframe, writes a separate JSON artifact, then asserts:
+- canonical DB path identity is unchanged;
+- database/WAL/SHM file hashes and presence are unchanged;
+- JSON artifact exists and reads back correctly.
 
-The `read_window()` implementation in both branches opens SQLite with URI `mode=ro`. T2's `canonical_context()` calls only `read_window()`, checks complete coverage and verifies `availableAtMs <= now`. The T2 prediction exporter compares actual FreqAI dataframe candle times and OHLCV against the canonical window. The decision pipeline independently validates canonical coverage and recomputes the dataset identity.
+The test uses only a temporary isolated SQLite fixture and does not touch a Canonical PC database.
 
-This is a source-code inspection result, not a runtime proof against a real canonical database.
+## GitHub Actions verification
 
-### 2. Writer/API divergence
+- Workflow: `.github/workflows/t0-single-writer-gateway-red.yml`
+- Workflow run: [42331669847](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42331669847)
+- Exact head SHA: `0464b70a8a0b012730f675239f67abcb589a2ca5`
+- Paper consumer job ID: `128279379624`
+- Paper consumer tests: **45 passed**, including:
+  - `pipeline.test_decision`
+  - `pipeline.test_api`
+  - `freqai_bridge.test_exporter`
+  - new canonical SQLite immutability regression.
+- Paper consumer artifact: [13557379289](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42331669847/artifacts/13557379289)
+- Artifact digest: `sha256:1c47deb2e00eca992edc2cd466368fed438d6e575190d1aa7931069c5321e01e`
+- Static Gateway contract job ID `128279379462`: SUCCESS, including full `market_data` regression suite.
+- At report time, restricted provider bootstrap and isolated TimescaleDB jobs were still running; overall workflow conclusion remains pending until all jobs complete.
 
-**BLOCKED — existing T2 test fixtures are not directly compatible with the T0 branch.**
-
-T2's `market_data/store.py` contains `CandleStore.insert()`; the T0 version no longer exposes that method. T2 tests `freqai_bridge.test_exporter` and `pipeline.test_decision` currently construct temporary data by calling `CandleStore(path).insert(...)`. Running those fixtures unchanged with T0's store module will fail before testing the consumer contract.
-
-Do not restore a direct writer to T0 merely to satisfy T2 tests. Adapt tests to use an isolated test-only fixture writer or the T0 single-writer gateway against a temporary database. The production consumer must retain read-only access.
-
-### 3. Consumer write boundary
-
-**CONDITIONAL PASS — source-level only.**
-
-- T2 context reads through T0 `read_window()`; no store initialization or insert call is made by this path.
-- T2 decision evaluation is an in-memory validation/decision function.
-- T2 exporter writes an atomic JSON prediction artifact to its configured output path; this is not a write to the T0 database.
-- The Freqtrade strategy calls `self.freqai.start()` and publishes the JSON artifact in dry-run mode. The strategy sets native entry/exit flags to zero and `confirm_trade_entry()` returns false.
-
-No runtime filesystem observation or before/after SQLite hash/schema/row-count test has been run. Therefore the actual read-only property remains NOT VERIFIED at runtime.
-
-### 4. Freqtrade/FreqAI runtime
-
-**NOT VERIFIED.**
-
-T2 README and configuration document target version Freqtrade/FreqAI 2026.9 and set `dry_run=true`, pair `BTC/USDT:USDT`, timeframe `15m`, and canonical DB path `.data/market-data.sqlite3`. This is a documented target, not evidence that 2026.9 is installed or that strategy loading succeeds in the current environment.
-
-The configured path is an operator setting/example. It does not prove that a canonical SQLite file exists. User has confirmed that the canonical file is NOT CREATED.
-
-### 5. Binance versus OKX parity
-
-**NOT RUN / NOT VERIFIED.**
-
-The inspected FreqAI research config explicitly selects Binance USD-M. No identical, bounded Binance/OKX dataset pair or parity artifact was inspected in this audit. Exchange candles are not expected to be identical. No source switch, normalization, or OKX replacement is approved.
-
-### 6. CI status
-
-No GitHub Actions workflow was run in this audit. The T2 branch contains a `codemagic.yaml` change in its current head; this is not authorization to use Codemagic. Future verification must use GitHub Actions, consistent with the project rule. Workflow availability and exact-head test coverage still need a dedicated inspection before execution.
+Workflow path filters were expanded so changes under `freqai_bridge/**`, `pipeline/**` and `requirements-web.txt` trigger the consumer regression workflow on the active branch.
 
 ## Acceptance matrix
 
-| Gate | Result | Evidence boundary |
+| Gate | Result | Evidence |
 |---|---|---|
-| T0/T2 candle table schema | CONDITIONAL PASS | Static source comparison |
-| Market/timeframe/timestamp contract | CONDITIONAL PASS | Static source comparison |
-| T2 uses T0 read_window | PASS (source inspection) | No runtime DB access |
-| T2 DB writes absent from consumer path | CONDITIONAL PASS | JSON artifact write is separate; runtime DB immutability not tested |
-| Existing T2 tests on exact combined source | NOT RUN | Fixture writer API mismatch found |
-| Test fixture compatibility | BLOCKED | T2 tests call removed T0 `CandleStore.insert()` |
-| Freqtrade/FreqAI 2026.9 installed | NOT VERIFIED | Documentation/config only |
-| Freqtrade strategy-load smoke test | NOT RUN | No runtime invocation |
-| Binance/OKX parity | NOT RUN | No paired dataset/report |
-| Canonical SQLite file | NOT CREATED | User-confirmed |
-| Canonical ingestion / Feeder | NOT RUN / STOPPED | Not authorized |
+| T0/T2 schema and read contract | CONDITIONAL PASS | Static source comparison |
+| Active T0 consumer reads via read_window | PASS | Source inspection + 45-test CI job |
+| Canonical SQLite immutability during context/export | PASS in isolated fixture | New hash/identity regression |
+| T2 decision + API regressions | PASS | 45-test consumer job |
+| T2 legacy test fixtures on T0 source | Not applicable to active branch | Active T0 branch has test-only fixture seeding |
+| Freqtrade/FreqAI 2026.9 installed | NOT VERIFIED | Docs/config only |
+| Real Freqtrade strategy-load smoke test | NOT RUN | No framework runtime invocation |
+| Binance/OKX parity | NOT RUN | No paired bounded dataset/report |
+| Canonical SQLite on PC | NOT CREATED | User-confirmed |
+| Canonical ingestion | NOT RUN | Not authorized |
+| Feeder | STOPPED | Not authorized |
+| VPS | NOT PROVISIONED | No decision to provision |
 | Live execution | DISABLED | `ai_execution_enabled=false` |
 
-## Required next steps
+## Next steps
 
-1. Add a temporary-database fixture path compatible with the T0 single-writer design; do not add a production writer to the T0 consumer API.
-2. Add a regression that snapshots the temporary DB's schema, row count and file/database identity before and after T2 context + exporter execution, proving no T0 mutation.
-3. Run `freqai_bridge.test_exporter` and `pipeline.test_decision` against a combined source checkout pinned to both exact branch SHAs. Use only temporary SQLite fixtures.
-4. Inspect GitHub Actions workflow inventory and add/extend a GitHub Actions-only exact-SHA job if required. Do not use Codemagic absent a documented GitHub Actions blocker and explicit authorization.
-5. Verify Freqtrade/FreqAI 2026.9 in an isolated environment and run strategy-load smoke test without exchange sync, credentials, or orders.
-6. Build a bounded Binance-vs-OKX parity report only after both datasets and their provenance are available.
+1. Wait for and record the final result of workflow run 42331669847 and its remaining provider/Timescale jobs.
+2. Inspect T0/T2 exact source diff and decide whether any code synchronization is actually needed; do not merge branches merely to align them.
+3. Verify Freqtrade/FreqAI 2026.9 in an isolated environment and run a strategy-load smoke test without exchange sync, credentials, or orders.
+4. Build a bounded Binance-vs-OKX parity report with provenance and explicit differences. Keep existing OKX backtest data unchanged until acceptance.
 
-## Safety and disposition
+## Safety disposition
 
-- T0 remains the owner of canonical data and the single-writer boundary.
-- T2 remains a read-only consumer of T0.
-- Existing OKX research/backtest source remains unchanged.
-- No merge or source switch.
-- Canonical SQLite remains NOT CREATED; ingestion NOT RUN; Feeder STOPPED; VPS NOT PROVISIONED.
-- `ai_execution_enabled=false`; no live orders or exchange execution.
-- Overall audit verdict: **CONDITIONAL / BLOCKED FOR RUNTIME ACCEPTANCE**.
+- T0 remains canonical data owner and single-writer boundary.
+- T2 consumer access remains read-only.
+- Test-only fixture writes are confined to temporary databases.
+- No merge, source switch, canonical DB creation, migration, ingestion, Feeder startup, VPS provisioning, or live execution.
+- Overall: **PASS for isolated T0→T2 consumer/read-only regression; NOT VERIFIED for Freqtrade runtime and exchange parity.**
