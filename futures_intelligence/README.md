@@ -121,6 +121,69 @@ AI decision hiện chỉ dùng trade flow đã qua quality gate làm đầu vào
 OI và liquidation được công bố cho Dashboard/downstream analysis nhưng chưa là
 điều kiện định hướng lệnh; Strategy Core RSI/ADX/Smart DCA không bị thay đổi.
 
+## Connection Event Sidecar v1 — offline contract only
+
+The separate `connection_events` module validates an append-only JSONL sidecar
+for WebSocket lifecycle evidence. It is deliberately not wired into the legacy
+CSV importer. The importer continues to report `connectionStatus=UNVERIFIABLE`
+until a trusted collector-side event writer and a separately reviewed integration
+are implemented.
+
+Each event carries `schemaVersion`, unique `eventId`, exact `sourceCommit`,
+process `sessionId`, per-socket `connectionId`, `batchId`, `route`
+(`public`/`market`), `eventType`, and UTC `eventAtMs`. Supported event
+types are `CONNECTED`, `PING_SENT`, `PONG_RECEIVED`, `DISCONNECTED`, and
+`RECONNECT_SCHEDULED`. Ping/Pong records pair through `heartbeatId`; disconnect
+records require a reason; reconnect records require a positive attempt and delay
+no greater than 60 seconds.
+
+Example offline validation call:
+
+```python
+from futures_intelligence.connection_events import load_and_validate_connection_events
+
+result = load_and_validate_connection_events(
+    "/capture/session-001/connection-events.jsonl",
+    expected_sha256="trusted-manifest-sha256",
+    expected_source_commit="collector-source-commit-sha",
+    expected_session_id="collector-session-001",
+    window_start_ms=1_700_000_000_000,
+    window_end_ms=1_700_000_060_000,
+    max_heartbeat_gap_ms=60_000,
+    expected_connections=[{"batchId": 0, "route": "public"},
+                          {"batchId": 0, "route": "market"}],
+)
+```
+
+The validator checks file checksum, source/session identity, ordered unique
+events, connection state transitions, Ping/Pong pairing, heartbeat coverage,
+and expected batch/routes. It returns conservative states:
+`VERIFIED_CONNECTED`, `DISCONNECTED`, `HEARTBEAT_GAP`,
+`UNVERIFIABLE`, or `OUTSIDE_WINDOW`. A verified result requires a connection
+already open at the start of the half-open window, matching Pong evidence spanning
+the window, no excessive heartbeat gap, and no disconnect inside the window.
+Missing expected routes and partial-window sessions fail closed.
+
+The sidecar is bounded to 64 MiB, 16 KiB per line, and 100,000 events. SHA-256
+only detects changes relative to a trusted expected digest; it is not a signature
+or proof of collector authenticity.
+
+Test offline with:
+
+```bash
+python3 -m unittest futures_intelligence.test_connection_events -v
+```
+
+**Important:** the currently pinned upstream Rust collector
+`bc4f0ef633fbeee4a49defd72827f17162693805` does not write this sidecar.
+All sidecar tests use synthetic temporary files. No live collector, WebSocket,
+exchange, or database is involved. The validator is not operational continuity
+proof and must not be used to promote current CSV snapshots from
+`UNVERIFIABLE`.
+
+Full schema and producer requirements:
+`docs/evidence/t1/T1_CONNECTION_EVENT_SIDECAR_CONTRACT_2026-11-07.md`.
+
 ## Kiểm chứng
 
 ```bash
