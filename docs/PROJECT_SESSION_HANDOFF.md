@@ -5204,3 +5204,17 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Next: poll run `42352383679` until completion; retrieve security job logs and all-target diagnostic output; verify exact checkout SHA, test counts, audit/npm results and artifact metadata. Only after dependency reachability is understood may narrowly scoped Cargo-resolver-generated security updates be considered. Do not integrate the Tokio writer worker or start collector runtime before security and all required CI gates pass.
 - This entry records evidence only; no T0 work or 4+1 architecture boundary changed. Keep `ai_execution_enabled=false`.
 
+
+
+## 2026-11-07 — T1 run 42352383679 final evidence
+
+- Final workflow result: [run 42352383679](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42352383679) **FAILURE**, run number 18. PR head/source SHA `7ac7480c1eb4a94719966dd284e87e274d40c502`; base SHA `bc4f0ef633fbeee4a49defd72827f17162693805`; checked-out synthetic merge SHA `747de737021ccb2a66dfc77db3420326e37a4434`. This is merge-context CI, not direct-head-only CI.
+- Collector job `128343090636`: format, Clippy, build PASS; library tests **40/40**, binary tests **1/1**, sidecar tests **11/11** PASS.
+- Dashboard backend `128343090428`, frontend `128343090554`, Docker `128343090580`: SUCCESS.
+- Security job `128343090581`: FAILED at cargo-audit. Exact output: **12 vulnerabilities + 2 warnings** in 248 locked packages. Advisory groups include quinn-proto 0.11.16 (5 advisories), rustls 0.23.43 (4), rustls-webpki 0.103.14 (1), webpki-root-certs 1.0.9 (1), webpki-roots 1.0.9 (1); warnings: Tokio 1.53.1 (RUSTSEC-2026-0386) and yanked chacha20 0.10.1. cargo-audit scans Cargo.lock even where an exact package has no resolved reverse path. npm audit production/dev steps were SKIPPED because cargo-audit failed first.
+- Diagnostic classifier fixtures: **4/4 PASS**. Default-feature graph: rustls, rustls-webpki, webpki-roots, tokio and chacha20 PATH_FOUND; quinn-proto and webpki-root-certs NO_PATH_EMITTED. All-target graph: rustls, rustls-webpki, webpki-root-certs, webpki-roots, tokio and chacha20 PATH_FOUND; quinn-proto NO_PATH_EMITTED. Therefore quinn-proto is lockfile-present with no resolved reverse path emitted; webpki-root-certs is target-specific (no default path, all-target path). Do not label quinn-proto absent from Cargo.lock or assume cargo-audit excludes it.
+- No workflow artifacts. Exact job logs independently verified the checkout SHA and test totals. Security remains **BLOCKED**.
+- PR #1 description updated to current source/run evidence; PR remains OPEN / DRAFT / NOT MERGED: https://github.com/kenznguyen/binance-futures-collector/pull/1.
+- No Cargo.toml/Cargo.lock updates, advisory ignores, workflow gate weakening, Tokio writer integration, collector runtime, Binance connection, database access, data capture, merge, or live execution.
+- Next: prepare a narrowly scoped dependency-remediation plan from the exact advisory paths, then use Cargo resolver/lockfile updates (not hand edits) and compatibility regression tests. Keep cargo-audit hard-gated; do not begin collector runtime or Tokio writer worker integration until all security and CI gates pass. `ai_execution_enabled=false`.
+
