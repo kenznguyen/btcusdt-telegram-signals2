@@ -4713,3 +4713,14 @@ Acceptance boundary:
 - This is documentation/readiness only. No public endpoint was called, no market data was acquired, no credentials/proxy/VPN used, no database created/accessed/written, Feeder remains STOPPED, and T2 OKX source remains unchanged.
 - Current state: runbook READY; paired CSVs and matching T0 provenance NOT PROVIDED; real-data parity NOT RUN.
 - Next step requires operator authorization for a separate isolated read-only public data export, or operator-supplied immutable CSVs plus matching provenance.
+
+
+### Paired Binance–OKX export approval (2026-11-07)
+
+- Operator explicitly approved one isolated public read-only OHLCV export for Binance USD-M and OKX, 30-calendar-day pilot.
+- Proposed window at approval time: `[2026-10-08T03:00:00Z, 2026-11-07T03:00:00Z)`; epoch ms `1791428400000` to `1794020400000`; expected 2,880 M15 and 720 H1 rows per source.
+- Recompute the window from the latest fully closed H1 boundary if execution occurs later; both exchanges must use identical boundaries.
+- Execution BLOCKED / NOT RUN in this session: available connected execution surfaces do not expose raw public HTTP export or GitHub Actions workflow dispatch; web retrieval could not access exchange kline endpoint. No proxy/VPN/credentials or alternate unsafe route used.
+- Approval is not acquisition evidence. No CSVs, no T0 datasetVersion values, no real parity report.
+- Canonical SQLite remains NOT CREATED; no DB accessed/written; Feeder STOPPED; T2 OKX source unchanged; `ai_execution_enabled=false`.
+- Hard stop: if genuine T0 `read_window()` datasetVersion cannot be produced via an isolated temporary store without Canonical SQLite, report BLOCKED; never fabricate or weaken provenance checks.
