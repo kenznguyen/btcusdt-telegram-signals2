@@ -5944,3 +5944,49 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Exact-source push workflow [42415661953](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42415661953) was IN_PROGRESS at handoff update. Collector job had not yet passed cache setup; no Sidecar test result available. No conclusion about the suspected empty-sidecar behavior; RED is NOT established.
 - Status: formatting correction committed; regression behavior **NOT VERIFIED** pending rerun. No production fix, API change, runtime, Binance access, DB, market capture or T0 edits.
 - Next: poll push run 42415661953 and confirm Sidecar writer format, Clippy and offline tests. Only if the new regression fails for the expected empty-sidecar acceptance should a minimal production rejection be considered. Keep PR #1 OPEN / DRAFT / NOT MERGED; no merge or readiness change.
+
+
+## T0 canonical SQLite + Binance USD-M Feeder — VPS runtime evidence (2026-11-08)
+
+### Scope and authorization
+- User explicitly authorized creating the canonical T0 SQLite database and starting the T0 Feeder on the experimental Scaleway VPS.
+- Scope: Binance USD-M perpetual, BTCUSDT only, M15/H1 only, SQLite canonical DB, startup recovery capped at 2,000 candles per timeframe, public market data only. No API credentials, authenticated endpoints, exchange orders, T1 runtime, other exchanges, or live execution.
+- VPS: `btcquant-t0-t1-test-01`, Ubuntu 26.04.1, 4 vCPU / 8 GB RAM / 10 GB root volume. This remains an experiment, not production.
+- Runtime source checkout at launch: `4cf3959532024d286a76712bd93708b7a96489df` on `feature/t0-centralized-data-feeder-p1-20261101`. Feeder source blob at that checkout: `0b7c44d538af5f2899d3d184b7d9b65ce87dd803`. Do not substitute the later documentation-branch HEAD for the running process source identity.
+- Git branch HEAD observed while recording this evidence: `322eed6cd83ab4b49f7d7dd686227072952b1cd8`. The branch advanced after the runtime checkout; no runtime source update or restart was performed.
+
+### Environment and preflight
+- Python 3.14.4, venv `~/t0/venv`; installed runtime dependencies include ccxt 4.5.92, numpy 2.5.4, pandas 2.3.3, Flask 3.1.3, requests 2.34.2, psycopg 3.3.8.
+- VPS component tests: 68/68 PASS; compile check PASS; offline regression tests 37/37 PASS. Total 105 tests PASS on VPS Python 3.14.4. This is not evidence of the separate GitHub Actions Python 3.11 run.
+- Canonical DB created at `~/t0/app/.data/market-data.sqlite3`; initial schema version 1; tables `candles` and `feeder_leases`; file mode 0600. Runtime DB is local VPS data and is not committed.
+- Initial SQLite integrity check: `ok`.
+
+### Runtime observations
+- Feeder process PID 3465 remained present after the SSH connection dropped; later process inspection showed state `Sl+` and elapsed time approximately 1h30m. No duplicate Feeder was started.
+- Candle coverage observed in SQLite:
+  - Binance / USDT_PERPETUAL / BTCUSDT / 15m: 2,006 initially, then 2,007; latest open time advanced from 2026-11-07 22:15 UTC to 22:30 UTC; latest available timestamp for the 22:30 candle was 2026-11-07 22:45:05.916 UTC.
+  - Binance / USDT_PERPETUAL / BTCUSDT / 1h: 2,001; latest open time 2026-11-07 21:00 UTC; latest available timestamp 2026-11-07 22:00:08.982 UTC.
+- SQLite integrity check after ingestion: `ok`.
+- Lease `binance-btcusdt-canonical`: owner remained stable; generation 1. Two snapshots 30 seconds apart showed expiry advanced by 30.74 seconds, consistent with active lease heartbeat (configured heartbeat 15 seconds / TTL 60 seconds).
+- The M15 count increased by one and the next closed 22:30 UTC candle was persisted at 22:45:05.916 UTC. This is direct evidence of at least one periodic scheduler ingestion cycle after startup recovery.
+- H1 did not advance during this observation window; this is expected because the next H1 close was later than the snapshot. No H1 post-startup periodic update was observed yet.
+
+### Verdict and limits
+| Area | Status | Evidence boundary |
+|---|---|---|
+| Canonical SQLite creation and integrity | PASS | Initial and post-ingestion integrity checks returned `ok` |
+| Binance USD-M BTCUSDT M15/H1 startup ingestion | PASS | Rows and timestamps observed in canonical DB |
+| Startup recovery | PASS (observed outcome) | Recovery-sized history present; startup logs/completion marker not captured |
+| Feeder process survival after SSH disconnect | PASS (process observed alive) | One process PID 3465; not a managed service |
+| Lease heartbeat | PASS | Two timed snapshots; expiry advanced 30.74 seconds |
+| Periodic scheduler | PASS (at least one M15 cycle) | M15 count +1 and 22:30 UTC candle persisted |
+| Repeated scheduler reliability / long-duration soak | NOT VERIFIED | Only one post-startup periodic M15 ingestion cycle observed |
+| H1 periodic cycle after startup | NOT VERIFIED | No subsequent H1 close observed in this sample |
+| SIGTERM/SIGKILL restart and lease takeover recovery | NOT VERIFIED | No restart/takeover test performed |
+| systemd/autostart and reboot persistence of Feeder | NOT VERIFIED / NOT AUTHORIZED | Feeder is not installed as a managed service |
+| Production readiness / 24x7 reliability | NOT VERIFIED | Experimental VPS, limited observation window |
+| T1 integration or live execution | NOT AUTHORIZED | Explicitly out of scope |
+
+- No GitHub Actions workflow was run for this VPS runtime observation; no workflow run ID or artifact exists for it. The 105 VPS test results are recorded as terminal evidence, not as a GitHub Actions artifact.
+- No source code, runtime configuration, lease, or database mutation was made as part of this handoff update. Do not commit the SQLite DB, credentials, or unredacted runtime secrets.
+- Next: observe another M15 scheduler cycle and the next H1 close without restarting the process; then separately assess whether a controlled restart-recovery test is needed and obtain explicit authorization before any restart. Keep T1 and production deployment out of scope.
