@@ -127,3 +127,16 @@ Current state: approval GRANTED; acquisition NOT RUN; paired CSVs NOT PROVIDED; 
 The 30-day M15 window requires 2,880 candles, which exceeded the prior T0 `read_window()` limit of 2,000. A distinct `MAX_READ_CANDLES=3000` bound has now been introduced for bounded read snapshots, while `MAX_CANDLES=2000` remains the ingestion/sync bound. The regression test covers a complete 2,880-candle M15 snapshot. Exact-SHA CI status is recorded in `T0_T2_COMPATIBILITY_AUDIT_2026-11-07.md`.
 
 This resolves the API-size precondition for one genuine 30-day M15 `datasetVersion`; it does not produce provenance until an isolated T0 temporary store is populated and read. It does not authorize Canonical DB creation, canonical ingestion, or Feeder startup. The user has deferred Canonical DB creation; preserve that decision.
+
+
+## Workflow evidence reconciled and implementation boundary clarified — 2026-11-07
+
+- Latest T0 workflow `42338141750` is SUCCESS at exact code SHA `1b190ba7562b3843de75894ce68bd6f0ea99b321`, all four jobs PASS. Current branch HEAD at reconciliation is `8537763d8efe543dd702978954b5341700b32c35`; comparison confirms the intervening commits changed documentation only.
+- Freqtrade 2026.9 strategy-load workflow `42338141694` is SUCCESS at the same code SHA; strategy-load job `128299761176` PASS.
+- T0 read-only provenance can be produced using an isolated temporary SQLite DB populated through the existing T0 `sync_window()` + lease-fenced write gateway, followed by `read_window()`. This is a proposed runner design only; no temporary DB was created in this documentation step.
+- `sync_window()` accepts at most 2,000 candles per call. For the 30-day pilot, M15 must use adjacent 2,000 + 880 row windows; H1 uses 720 rows. The full M15 read is bounded by `MAX_READ_CANDLES=3000`.
+- Important precision limitation: the existing T0 CCXT adapter parses OHLCV before converting values to strings. The exported Binance CSV must preserve the T0 read-window values and explicitly disclose that this is not a raw-decimal exchange capture.
+- OKX history candles must use `volCcy` (base BTC) and `confirm=1`, not contract-count `vol`. The OKX public history endpoint documents a 300-row page maximum. Binance USD-M klines documents a 1,500-row maximum. References: [Binance USD-M market data API](https://developers.binance.info/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data) and [OKX API v5 documentation](https://app.okx.com/docs-v5/en/).
+- The previously approved one-shot public-read-only export remains authorized but has NOT RUN. Before enabling the runner, add offline tests for pagination, exact identity/window, closed-candle rules, rate limiting, no-proxy behavior, temporary DB isolation, T0 provenance equality, and cleanup. Do not touch Canonical SQLite or start the Feeder.
+- At reconciliation time 2026-11-07 04:25Z, candidate 30-day UTC window is [1791432000000,1794024000000); recalculate from the latest closed H1 boundary immediately before actual acquisition.
+- Status: acquisition runner NOT IMPLEMENTED; paired exports NOT AVAILABLE; real parity NOT RUN; Canonical SQLite NOT CREATED; Feeder STOPPED; T2 OKX source unchanged; live execution disabled.
