@@ -4756,3 +4756,17 @@ Acceptance boundary:
 - Verification references remain: T0 consumer workflow `42331669847` SUCCESS at SHA `0464b70a8a0b012730f675239f67abcb589a2ca5`; parity harness/largest-difference workflow `42333240421` SUCCESS at SHA `95932ec6cf9a6f5c061c2d7fbe0bafa740e9f313`; Freqtrade 2026.9 strategy discovery workflow `42333240406` SUCCESS at the same code SHA.
 - Status: read-only M15 bridge PASS in isolated fixtures; H1 T2 consumption NOT IMPLEMENTED / NOT VERIFIED; real Binance–OKX parity NOT RUN; FreqAI training/provenance NOT RUN.
 - Next: obtain paired immutable Binance USD-M / OKX M15+H1 CSVs and genuine T0 `datasetVersion` provenance for identical UTC windows through an isolated route. If provenance requires Canonical SQLite access/creation, stop BLOCKED. No Canonical DB, ingestion, Feeder, source switch, merge, VPS or live execution. `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — Canonical SQLite creation approved; guarded initializer added
+
+- User explicitly approved creating T0 Canonical SQLite. This approval is limited to empty schema initialization; it does not authorize ingestion, Feeder startup, or source switching.
+- Added `market_data/initialize_sqlite.py` and `market_data/test_initialize_sqlite.py` on the existing branch.
+- Default DB path is `.data/market-data.sqlite3`. The initializer exclusively creates a new file, refuses existing paths, creates `candles` and `feeder_leases`, sets `user_version=1`, verifies SQLite integrity and zero rows, and does not call an exchange or acquire a lease.
+- TDD RED: run `42337706098` at test-only SHA `a83e8ee30dae890eb2ff849c05977eef5a567b22` failed with the expected missing-module error; artifact `13559648818`, digest `sha256:3cc6d730fcb2435621ce42f5a1c6a73ff79bfeebafaff60a55525e4d62c6c124`.
+- Final code SHA `28ef9da578118190f8bb3033d02a58da8b40ec7f`; workflow `42337762615`: Static Gateway full market_data suite PASS and paper consumer regressions PASS. Provider bootstrap and TimescaleDB jobs were still running when this note was prepared; overall workflow NOT VERIFIED.
+- The actual PC Canonical DB has NOT yet been created; this session has no direct access to the PC filesystem. Do not treat a GitHub Actions temporary runner as the Canonical host.
+- On the target PC, after pulling this branch, run: `python -m market_data.initialize_sqlite --db .data/market-data.sqlite3 --confirm-create`. It will refuse to overwrite an existing target.
+- Then capture output and verify exact tables `candles, feeder_leases`, `PRAGMA integrity_check=ok`, zero candle rows, zero lease rows, file permissions and SHA-256. Do not commit/upload the database file to GitHub.
+- Current status: initializer implementation PASS in isolated CI; complete workflow NOT VERIFIED; PC Canonical DB NOT CREATED; no ingestion; Feeder STOPPED; no T2 source switch; `ai_execution_enabled=false`.
+- Next: complete exact-SHA CI, then execute the guarded initializer on the PC and verify its evidence. Only after that propose a separate controlled-ingestion approval.
