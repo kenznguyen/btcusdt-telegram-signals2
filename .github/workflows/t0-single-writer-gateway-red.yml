@@ -217,6 +217,69 @@ jobs:
             t1-importer-verdict.txt
 
 
+
+  t1-collector-sidecar-rust:
+    name: T1 collector sidecar writer · Rust offline tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      MARKET_DATA_DB: ""
+      MARKET_DATA_POSTGRES_DSN: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Enforce offline-only scope and record source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in MARKET_DATA_DB MARKET_DATA_POSTGRES_DSN T0_FEEDER_LEASE_DB PAPER_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+            if [[ -n "${!key:-}" ]]; then
+              echo "Forbidden runtime configuration present: $key"
+              exit 1
+            fi
+          done
+          git rev-parse HEAD | tee t1-sidecar-rust-source-sha.txt
+          echo "T1_SIDECAR_RUST_SCOPE=OFFLINE_TEMPORARY_FILES_ONLY" | tee t1-sidecar-rust-scope.txt
+      - name: Rust format check
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path futures_intelligence/collector_sidecar_writer/Cargo.toml --all -- --check 2>&1 | tee t1-sidecar-rust-fmt.log
+      - name: Rust Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy --manifest-path futures_intelligence/collector_sidecar_writer/Cargo.toml --all-targets -- -D warnings 2>&1 | tee t1-sidecar-rust-clippy.log
+      - name: Run Rust sidecar writer offline tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path futures_intelligence/collector_sidecar_writer/Cargo.toml --all-targets -- --nocapture 2>&1 | tee t1-sidecar-rust-tests.log
+      - name: Upload T1 Rust writer RED/GREEN evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t1-sidecar-rust-evidence-${{ github.sha }}
+          if-no-files-found: warn
+          path: |
+            t1-sidecar-rust-source-sha.txt
+            t1-sidecar-rust-scope.txt
+            t1-sidecar-rust-fmt.log
+            t1-sidecar-rust-clippy.log
+            t1-sidecar-rust-tests.log
+
   restricted-provider-bootstrap-integration:
     name: Fresh-cluster restricted provider bootstrap
     runs-on: ubuntu-latest
