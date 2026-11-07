@@ -4127,3 +4127,5 @@ Restrictions: T0 remains PAUSED; PAPER-only; `AI_EXECUTION_ENABLED=false`. No T0
 - Evidence status: **DOCUMENTATION UPDATE PASS** (GitHub accepted the file update). Tests/workflows: **NOT RUN**. PostgreSQL lifecycle end-to-end current-tip CI: **NOT VERIFIED**. Exact-provider compatibility: **NOT VERIFIED / PROVIDER NOT SELECTED**. Backup/DR: **DEFERRED**.
 - Next permitted step: prepare a lifecycle-only disposable PostgreSQL acceptance matrix and identify the existing tests/gaps. Do not provision provider staging, activate Feeder, create/open canonical T0 storage, connect an exchange, or sync market data without separate explicit approval.
 - Safety remains unchanged: T0 remains independent; paper-only; `ai_execution_enabled=false`; no live orders.
+
+- Checklist follow-up correction: removed the retired backup/restore drill content from Gate F and removed backup-freshness dependencies from Gate G; only the explicit DEFERRED notice remains. Latest checklist commit: `873cd05c2aa36728f227522b7a2669430870520c`; blob SHA: `bece714ef5a5a5fabd847ebd012218379837fc35`.
