@@ -7,7 +7,7 @@ from urllib.error import URLError
 
 from market_data.binance_connectivity_probe import (
     classify_http_status, parse_http_upgrade, parse_server_frame,
-    _receive_kline_event, _recv_http_upgrade_response, _rest_request, _websocket_failure_result, probe_websocket, validate_exchange_info,
+    WS_PATH, _receive_kline_event, _recv_http_upgrade_response, _rest_request, _websocket_failure_result, probe_websocket, validate_exchange_info,
     validate_kline_event, validate_klines, validate_server_time,
 )
 
@@ -56,6 +56,9 @@ class RestPayloadContractTests(unittest.TestCase):
 
 
 class WebSocketHandshakeTests(unittest.TestCase):
+    def test_usdm_kline_stream_uses_current_market_ws_route(self):
+        self.assertEqual(WS_PATH, "/market/ws/btcusdt@kline_15m")
+
     def test_event_must_be_btcusdt_15m_kline(self):
         event = {"e": "kline", "s": "BTCUSDT", "k": {"s": "BTCUSDT", "i": "15m"}}
         self.assertTrue(validate_kline_event(event))
