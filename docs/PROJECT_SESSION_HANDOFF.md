@@ -4808,3 +4808,22 @@ Acceptance boundary:
 - Recompute the 30-day half-open UTC window at execution time from the latest fully closed H1 boundary. At this reconciliation time (2026-11-07 04:25Z), the candidate window is [`1791432000000`, `1794024000000`) = 2026-10-08 04:00Z through 2026-11-07 04:00Z; do not reuse it if the actual run starts later.
 - Before acquisition is enabled, implement and test the runner's pagination, source identity, closed-candle, rate-limit, no-proxy, temporary-DB isolation, provenance equality, and cleanup contracts. Then run the one-shot GitHub Actions job and preserve exact SHA/run/artifact hashes.
 - Current status: T0 CI PASS; T2 Freqtrade 2026.9 strategy-load PASS; acquisition runner NOT IMPLEMENTED; paired real exports NOT AVAILABLE; real parity NOT RUN; Canonical SQLite NOT CREATED; Feeder STOPPED; T2 OKX source unchanged; `ai_execution_enabled=false`.
+
+
+## 2026-11-07 — Feeder preparation review (read-only; no startup)
+
+- User selected **Prepare Feeder**, not production startup or ingestion.
+- Re-verified active branch `feature/t0-centralized-data-feeder-p1-20261101`, HEAD `8294e85b6140ab041cbbb1d09af2621f7a4ddf11`.
+- Static source review at that branch:
+  - `market_data/feeder_service.py` blob `0b7c44d538af5f2899d3d184b7d9b65ce87dd803`.
+  - `market_data/feeder.py` blob `0b4362cc4b588f610e0dd5460cb4edcc9f728001`.
+  - `market_data/storage.py` blob `13fe1ae01ebb5318b69e69eef3e512d207f74c49`.
+  - `market_data/initialize_sqlite.py` blob `58bd2deba66cc667bad8d6446c5ff54e7f5dd240`.
+- Confirmed SQLite selection is the default if `MARKET_DATA_BACKEND` is absent; production runtime requires a configured `MARKET_DATA_DB`. SQLite candle store and lease store must resolve to the same database. An explicit alternate `T0_FEEDER_LEASE_DB` is therefore not acceptable for the canonical SQLite setup.
+- **Startup is write-capable, not a harmless smoke test:** `FeederRuntime.start()` acquires a lease; the first SQLite lease transaction creates `feeder_leases` if absent; startup recovery can call canonical `sync_window()` before the periodic scheduler starts. Do not call `build_production_runtime()` followed by `runtime.start()` as a preparation check.
+- The service configures BTCUSDT USD-M M15/H1, poll interval 5s, close grace 5s, retry attempts 5, lease TTL 60s, heartbeat 15s, and recovery lookback up to 2,000 candles per timeframe (unless explicitly overridden). These are source defaults, not an approved first-run window.
+- The guarded initializer requires explicit `--confirm-create` and refuses an existing path, but PC Canonical SQLite creation remains deferred/not authorized. Do not invoke it.
+- No PC filesystem, environment variables, actual target path, process list, or local dependency installation was inspected. Host-specific preflight is therefore **NOT RUN / NOT VERIFIED**.
+- No database was opened/created/modified; no exchange was contacted; no lease acquired; no Feeder process started; no market data persisted. No tests were rerun because this increment is documentation/source inspection only.
+- Status: source-level preparation review **PASS**; PC target/configuration preflight **BLOCKED / NOT RUN**; Canonical SQLite **NOT CREATED**; ingestion **NOT RUN**; Controlled First Run **NOT AUTHORIZED**; Feeder **STOPPED**; VPS **NOT PROVISIONED**; `ai_execution_enabled=false`.
+- Next safe step: perform a host-local, read-only configuration/path/dependency/process preflight without constructing a store, opening SQLite, importing a production runtime, contacting Binance, or invoking any write-capable command. Only after that report is reviewed should a separate first-run authorization be considered.
