@@ -147,7 +147,7 @@ fn finalizes_manifest_with_exact_file_size_and_sha256() {
     let saved: serde_json::Value =
         serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
     assert_eq!(saved["sidecarSha256"], manifest.sidecar_sha256);
-    assert_eq!(saved["captureFinalized"], true);
+    assert!(saved["captureFinalized"].as_bool().unwrap());
     assert_eq!(saved["captureCompleteThroughMs"], START + 30);
     assert_eq!(
         saved["connectionSubscriptions"][0]["subscriptions"][0],
