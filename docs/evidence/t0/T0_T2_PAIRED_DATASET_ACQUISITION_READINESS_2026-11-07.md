@@ -120,3 +120,10 @@ Before capture, re-check the latest fully closed H1 boundary and recompute the 3
 T0 `datasetVersion` provenance remains a hard requirement. Since Canonical SQLite does not exist and is not authorized to be created, any implementation that cannot obtain genuine T0 provenance through an isolated temporary store must stop and report BLOCKED; do not fabricate or bypass provenance.
 
 Current state: approval GRANTED; acquisition NOT RUN; paired CSVs NOT PROVIDED; real-data parity NOT RUN; Canonical SQLite NOT CREATED; Feeder STOPPED; T2 OKX source unchanged; live execution disabled.
+
+
+## Read-window provenance prerequisite resolved in code — 2026-11-07
+
+The 30-day M15 window requires 2,880 candles, which exceeded the prior T0 `read_window()` limit of 2,000. A distinct `MAX_READ_CANDLES=3000` bound has now been introduced for bounded read snapshots, while `MAX_CANDLES=2000` remains the ingestion/sync bound. The regression test covers a complete 2,880-candle M15 snapshot. Exact-SHA CI status is recorded in `T0_T2_COMPATIBILITY_AUDIT_2026-11-07.md`.
+
+This resolves the API-size precondition for one genuine 30-day M15 `datasetVersion`; it does not produce provenance until an isolated T0 temporary store is populated and read. It does not authorize Canonical DB creation, canonical ingestion, or Feeder startup. The user has deferred Canonical DB creation; preserve that decision.
