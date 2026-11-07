@@ -10,7 +10,7 @@ Repository: https://github.com/kenznguyen/binance-futures-collector
 - Upstream baseline: `bc4f0ef633fbeee4a49defd72827f17162693805`.
 - Working branch: `feature/t1-connection-sidecar-integration-20261107`.
 - Draft PR: https://github.com/kenznguyen/binance-futures-collector/pull/1.
-- Latest observed PR head / branch SHA: `8fe12b7be05ee3e250af54d39deed723a65e83c1`.
+- Latest observed PR head / branch SHA: `3d7d308bd63bf840d648f2cd22705477781a2557`.
 
 ## Implemented
 
@@ -33,9 +33,10 @@ Added `crates/connection-sidecar` as a portable offline Rust writer crate, copie
 - Test timestamp correction: `04cfefda1459b0da3cb298424453987553dbe186`.
 - Workflow update: `36046be953396d1bdd74ed1c09959b1fbbe1765e`.
 - Test setup correction: `408ce65f7a7a948b9bbd2749db276271ec6e5680`.
-- Latest workflow branch commit: `8fe12b7be05ee3e250af54d39deed723a65e83c1`.
+- Workflow push-filter commit: `8fe12b7be05ee3e250af54d39deed723a65e83c1`.
+- Subsequent source hygiene commits: `9e2e58f1f7357f926f2ea9f2e41d460b726caf48` (format lifecycle methods), `73d1438c85b1092787e3c65fa2ec9b3bbcdd8a9d` (format regression tests), and `3d7d308bd63bf840d648f2cd22705477781a2557` (remove unused test dependency).
 - PR #1 is OPEN / DRAFT / NOT MERGED.
-- Latest observed Actions query returned `total_count=0`, no workflow runs.
+- Latest observed Actions query returned `total_count=0`, no workflow runs, including after adding the feature branch to the push filter.
 - Latest observed commit status had zero status contexts and state `pending`.
 - No workflow run ID, job ID, artifact ID, artifact digest or test log is available.
 
