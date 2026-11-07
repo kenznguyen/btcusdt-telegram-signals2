@@ -169,3 +169,13 @@ Resolve why the fork has no GitHub Actions runs, then execute the exact PR head 
 - Push run 42349892441 and PR run 42349896315 started on this source SHA. At last poll, both all-target diagnostic steps had completed SUCCESS; cargo-audit and other jobs remained IN_PROGRESS. Security job IDs: 128335579401 (push), 128335591206 (PR).
 - PR body refreshed with latest source SHA and pending validation. Do not interpret diagnostic step SUCCESS as evidence that all seven crates are reachable; inspect its log output after the job completes.
 - Next: retrieve completed all-target paths and final CI results; then classify dependencies and prepare a narrow Cargo-generated remediation proposal. No runtime integration, collector process, Binance connection, database access, capture or live execution.
+
+
+## 2026-11-07 Addendum — Reachability correction and exact-version rerun
+
+- Completed runs 42349896315 / 42349892441: all code/test/build/dashboard jobs PASS; collector 40/40, binary 1/1, sidecar 11/11. Security FAIL: cargo-audit 12 vulnerabilities + 2 warnings; npm audit skipped. No artifacts.
+- The first all-target inverse query was inconclusive for quinn-proto (cargo tree printed "nothing to print") and webpki-roots (ambiguous between locked versions 0.26.11 and 1.0.9). Do not interpret either previous status marker as package reachability proof.
+- Confirmed inverse paths: rustls → reqwest/hyper-rustls and tokio-tungstenite; rustls-webpki → rustls-platform-verifier/reqwest and rustls; webpki-root-certs → rustls-platform-verifier/reqwest; tokio → hyper-util/reqwest; chacha20 → rand → tungstenite → tokio-tungstenite.
+- Workflow now uses exact package IDs for all seven advisory packages with cargo tree --locked --target all -i crate@version. Latest fork source SHA 22900b860426a5c19622ec6b5ea3673646df2229; workflow blob f966f0040533b28e97897200db0b4638129b349a.
+- New PR run 42350687437 and push run 42350684200; exact-version diagnostic steps passed, but logs are not yet available and cargo-audit / remaining jobs were still running at last poll. Final results NOT VERIFIED.
+- PR #1 remains DRAFT/unmerged. No dependency changes or security gate weakening. No collector runtime, Binance, database or live execution.
