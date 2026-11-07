@@ -177,6 +177,17 @@ def parse_server_frame(data):
     return opcode, data[offset:offset + length], offset + length
 
 
+def validate_kline_event(event):
+    return (
+        isinstance(event, dict)
+        and event.get("e") == "kline"
+        and event.get("s") == "BTCUSDT"
+        and isinstance(event.get("k"), dict)
+        and event["k"].get("s") == "BTCUSDT"
+        and event["k"].get("i") == "15m"
+    )
+
+
 def _network_error_kind(error):
     if isinstance(error, socket.gaierror):
         return "DNS_ERROR"
