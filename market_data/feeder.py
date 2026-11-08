@@ -812,8 +812,10 @@ class FeederRuntime:
 
         try:
             if self.wal_keeper is not None:
-                self.wal_keeper.open()
+                # Mark ownership before open() so cleanup also runs when a
+                # custom keeper partially initializes and then raises.
                 self._wal_keeper_opened = True
+                self.wal_keeper.open()
                 self._emit("wal_keeper_opened")
             if self.recovery is not None:
                 recover_all = getattr(self.recovery, "recover_all", None)
