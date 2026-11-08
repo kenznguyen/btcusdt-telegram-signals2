@@ -6927,3 +6927,20 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No tests or GitHub Actions run for this pause record. No code, workflow, DNS, registrar, VPS, firewall, proxy, service, environment, secret, Feeder, database, or T2 runtime changes.
 - **Resume point:** only resume when the user explicitly asks. Start by re-reading this handoff and verifying current branch HEAD. Do not automatically proceed to domain purchase, DNS changes, deployment planning, VPS changes, endpoint probes, or T2 activation.
 - Preserve current branch and all runtime state; do not create a branch/PR or clean untracked runtime/log directories as part of resumption.
+
+
+## 2026-11-08 — T4 Dashboard / API Gateway architecture decision recorded
+
+- Continued on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch or PR.
+- Baseline branch HEAD before this increment: `364942d738b0e7f534197991ab7b5ea77461c070`.
+- Added architecture decision: `docs/architecture/T4_API_GATEWAY_ARCHITECTURE_DECISION_2026-11-08.md`.
+- Decision commit: `1f9942efc6a607ef48c59ce838012d86f994b05c`; document blob SHA: `58822c59cf2dd0f4c5d2afe47f09ced41d343d6e`.
+- Decision: API Gateway and T4 Dashboard are independent components. Gateway owns edge TLS/routing/request controls; T4 React consumes same-origin versioned APIs and renders/monitors. Neither may take strategy, ledger, or Shared Risk Engine authority. An optional T4 BFF is deferred unless concrete aggregation/session needs justify it.
+- Browser must not connect directly to database files, database ports, or bot service ports. Service credentials and exchange credentials must not be exposed in browser code. Freqtrade/admin routes must not be publicly proxied wholesale; trade-changing routes remain denied absent separate approval.
+- Proxy-selection reconciliation: this does **not** select Nginx. Existing T0 HTTPS design still names Caddy as preferred candidate and Nginx as an alternative; neither is installed/selected. Do not install both or silently replace the T0-specific design.
+- Delivery sequence recorded: route/API contract → isolated mock-backend tests → T4 API integration → security/failure review → separately approved deployment gate.
+- Scope: documentation only. No code, tests, workflows, database, VPS, DNS, firewall, proxy, process, service, credential, Feeder, exchange, or trading state changed.
+- Verification: new decision file was re-fetched from the same branch and its contents confirmed. No tests or GitHub Actions workflow were run because this increment is architecture documentation only.
+- Status: architecture separation **DECIDED / DOCUMENTED**; route contract **NOT IMPLEMENTED**; mock-backend tests **NOT RUN**; Nginx selection **NOT SELECTED**; Caddy/Nginx consolidated edge choice **NOT RESOLVED**; T4 implementation **NOT VERIFIED**; deployment **NOT AUTHORIZED**.
+- Safety boundary remains: T0/T1/T2 runtime unchanged; `ai_execution_enabled=false`; paper-only; no live trading.
+- Next permitted step: prepare a route map and versioned API contract plus isolated mock-backend test plan. Do not implement or deploy until separately authorized.
