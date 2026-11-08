@@ -77,8 +77,8 @@ jobs:
               "test_strategy_does_not_accept_canonical_db_path",
               "test_strategy_does_not_pass_database_to_canonical_context",
           }
-          failures = set(re.findall(r"^FAIL: (test_[^(]+)", output, re.MULTILINE))
-          errors = re.findall(r"^ERROR: (test_[^(]+)", output, re.MULTILINE)
+          failures = set(re.findall(r"^FAIL: (test_[^( ]+)", output, re.MULTILINE))
+          errors = re.findall(r"^ERROR: (test_[^( ]+)", output, re.MULTILINE)
           ran = re.findall(r"^Ran (\d+) tests?", output, re.MULTILINE)
           summary = re.search(r"^FAILED \(failures=(\d+)\)$", output, re.MULTILINE)
           passed_policy = (
