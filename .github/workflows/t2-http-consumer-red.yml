@@ -66,10 +66,10 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest freqai_bridge.test_http_candles -v 2>&1 | tee t2-http-tests.log
-          grep -Eq "^Ran 41 tests?" t2-http-tests.log
+          grep -Eq "^Ran 43 tests?" t2-http-tests.log
           grep -Eq "^OK$" t2-http-tests.log
           echo "T2_HTTP_GREEN=PASS"
-          echo "T2_HTTP_GREEN_TESTS=41"
+          echo "T2_HTTP_GREEN_TESTS=43"
 
       - name: Upload exact-SHA adapter evidence
         if: always()
