@@ -7179,3 +7179,24 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No source, test, workflow, database/schema, API, VPS, Feeder, policy engine, retention timer, archive, vacuum, or deletion operation was changed or activated.
 - Verification: document was created on the existing branch; handoff update records this commit. Documentation read-back and final branch comparison are pending. No CI/test run and no test PASS claimed.
 - Next: define `DATASET_CONSUMER_CONTRACT.md` for exact dataset-version dependency registration, ACK/release, stale-consumer handling, idempotency, and fail-closed behavior; then define the separate deletion safety contract.
+
+
+## 2026-11-08 — T0 Feeder/API transient systemd integration PASS
+
+- Continued on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no branch or PR divergence.
+- Feeder systemd notification GREEN remains verified at SHA `2484cc73edc155b2566b9d73199ad713e04acb10`: T0 Single Writer Gateway Contracts run `42486755480` SUCCESS; three notification tests passed; 76 targeted tests passed; health/readiness and process SIGKILL/restart/fencing acceptance passed; full `market_data` suite 292 tests, 42 skipped, OK. WAL sandbox run `42486755421` and T2 Freqtrade smoke run `42486755447` also SUCCESS.
+- Added disposable integration harness `ci/t0_systemd_feeder_api_integration.py` and workflow `.github/workflows/t0-systemd-feeder-api-integration.yml`.
+  - Harness uses a synthetic SQLite DB, real `FeederRuntime`, `LeaseStore`, `SQLiteWalKeeper`, and existing `market_data.api:application`; deterministic scheduler/recovery adapters; no exchange credentials or network sync.
+  - Transient Feeder unit uses `Type=notify`; API unit uses `Requires=`, `After=`, `BindsTo=`, and `ReadOnlyPaths=`.
+  - Verified readiness gating: `FEEDER_READY_GENERATION_1` timestamp precedes API process start.
+  - Verified authenticated `/v1/candles` returns the seeded synthetic candle; unauthenticated request returns 401.
+  - Verified API filesystem write probe is denied in both API service instances while read access succeeds.
+  - Verified Feeder SIGKILL stops API via `BindsTo=`.
+  - Verified restart acquires a new lease generation (`2`) and dependent API reads successfully.
+  - Verified orderly stop order: API SIGTERM precedes Feeder SIGTERM, then Feeder STOPPING/drain and exit.
+- Integration workflow exact source SHA `75cfaa5f5ec2e78261799272a3ca2a6058e88bde`; run `42488295514` SUCCESS; job `128754896648` SUCCESS; runner systemd `259.9-0ubuntu0.1`; marker `T0_SYSTEMD_FEEDER_API_INTEGRATION=PASS`.
+- Integration evidence artifact `t0-systemd-feeder-api-integration-75cfaa5f5ec2e78261799272a3ca2a6058e88bde`, ID `13620660924`, digest `sha256:c31d5991a7343ae938a1c680fbda7b16c7bbe3690e06ed8e099f369aba3ed0b0`.
+- Test plan and executed results: `docs/evidence/t0/T0_SYSTEMD_FEEDER_API_INTEGRATION_TEST_PLAN_2026-11-08.md`; result update commit `d83c45a1e7e83f5f2df4fd11addc49cfe4fce00a`.
+- Status: Feeder notification adapter **PASS — CI**; transient two-service dependency/readiness/crash/restart/orderly shutdown **PASS — CI synthetic**; API read-only mount probe **PASS — CI synthetic**; VPS/systemd compatibility **NOT VERIFIED**; production `.service` files **NOT CREATED**; production API deployment **BLOCKED**; T2 runtime **NOT ACTIVATED**; `ai_execution_enabled=false`.
+- No VPS, canonical DB, production Feeder/API process, production service manager, package, permission, secret, firewall, DNS, proxy, external network, exchange connection, data deletion, or T2 runtime was changed or accessed.
+- Next bounded step: perform a source and evidence self-review of the new harness/workflow, ensure cleanup/failure diagnostics are robust, then update the integration acceptance matrix/runbook with the CI-only proof boundary. Do not create production units or deploy to VPS without separate explicit approval.
