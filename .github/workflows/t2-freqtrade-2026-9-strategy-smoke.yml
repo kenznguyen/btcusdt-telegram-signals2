@@ -56,6 +56,7 @@ jobs:
           assert config["dry_run"] is True
           assert config["force_entry_enable"] is False
           assert config["exchange"]["pair_whitelist"] == ["BTC/USDT:USDT"]
+          assert "canonical_db_path" not in config["freqai_bridge"]
           assert 'dataframe["enter_long"] = 0' in strategy
           assert 'dataframe["enter_short"] = 0' in strategy
           assert "return False" in strategy
@@ -90,6 +91,17 @@ jobs:
             -c "mkdir -p /tmp/freqtrade-userdata && PYTHONPATH=/workspace freqtrade list-strategies --userdir /tmp/freqtrade-userdata --strategy-path /workspace/freqai_bridge --config /workspace/freqai_bridge/config.research.json" 2>&1 | tee t2-freqtrade-strategy-load.log
           grep -q "ChartProFreqaiResearch" t2-freqtrade-strategy-load.log
 
+      - name: Run HTTP consumer migration and exporter regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/workspace:ro" \
+            --entrypoint sh \
+            freqtradeorg/freqtrade:2026.9_freqai \
+            -c "PYTHONPATH=/workspace python -m unittest freqai_bridge.test_exporter freqai_bridge.test_context_http freqai_bridge.t2_http_migration_acceptance pipeline.test_decision -v" 2>&1 | tee t2-http-consumer-regression.log
+          grep -Eq "Ran [0-9]+ tests?" t2-http-consumer-regression.log
+          grep -q "^OK$" t2-http-consumer-regression.log
       - name: Upload exact runtime smoke evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -99,3 +111,4 @@ jobs:
           path: |
             t2-freqtrade-version.log
             t2-freqtrade-strategy-load.log
+            t2-http-consumer-regression.log
