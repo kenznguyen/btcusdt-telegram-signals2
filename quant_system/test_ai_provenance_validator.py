@@ -204,23 +204,11 @@ class AIProvenanceValidatorTests(unittest.TestCase):
 
     def verify_rehashed_predictions(self, artifacts):
         manifest = json.loads(json.dumps(self.manifest))
-        data = artifacts["predictions"]
-        manifest["artifacts"]["predictions"] = {
-            "sha256": hashlib.sha256(data).hexdigest(),
-            "size_bytes": len(data),
-        }
-        return self.verify(
-            envelope=self.signed_envelope(manifest),
-            artifacts=artifacts,
-        )
-
-    def verify_rehashed_predictions(self, artifacts):
-        manifest = json.loads(json.dumps(self.manifest))
-        data = artifacts["predictions"]
-        manifest["artifacts"]["predictions"] = {
-            "sha256": hashlib.sha256(data).hexdigest(),
-            "size_bytes": len(data),
-        }
+        for role, data in artifacts.items():
+            manifest["artifacts"][role] = {
+                "sha256": hashlib.sha256(data).hexdigest(),
+                "size_bytes": len(data),
+            }
         return self.verify(envelope=self.signed_envelope(manifest), artifacts=artifacts)
 
     def test_rejects_prediction_timestamp_before_oos_window(self):
