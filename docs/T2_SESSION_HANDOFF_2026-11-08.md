@@ -5,7 +5,7 @@
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
 - Latest verified code/test SHA: `afa44c4bbab5a86040aadbeed219df7fe10a87cb`.
-- Latest GREEN evidence commit before this handoff update: `2ccde8eb8bc57a8ac65a3474a2688095f450a4ac`.
+- Latest GREEN evidence commit before this handoff update: `41338e0ef625c12ab5e087c54c3f89387e2461bc`.
 - PR #95: OPEN / DRAFT / NOT MERGED.
 - PR base: `feature/dual-strategy-phase22-frozen-reproducibility-20261031` at `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
 - No new branch or PR was created.
@@ -106,13 +106,24 @@ Working-tree status: NOT VERIFIED; GitHub Contents API commits were used and no 
 - T0/T1 runtime integration: NOT RUN.
 - Production readiness: NOT CERTIFIED.
 
+## Critical legacy integration finding
+
+The old Phase 2/3 signal path is not compatible with the updated Dual-Strategy rules and has not been changed:
+
+- `quant_system/dual_strategy.py` still uses `RiskSnapshot.max_positions` and `_select` to choose one signal or block opposing CORE/AI signals.
+- `quant_system/paper_bridge.py` still uses the legacy `StrategyRules().p.entry_margin_pct` sizing and `PaperLedger`'s single signed net position.
+- This path does not implement independent CORE_LEDGER/AI_LEDGER, 1% margin per entry/DCA, or no fixed position-count cap.
+- Do not treat `PaperSignalCoordinator` or `DualPaperBridge` as wired to the new `dual_ledger.py` shared-risk API.
+- `quant_system/test_dual_strategy_phase2.py` and `quant_system/test_phase3_paper_bridge.py` have not been run against the latest code SHA.
+
 ## Remaining required work before combined paper use
 
-1. Define the gross notional exposure ceiling. The engine calculates gross exposure but does not invent a threshold.
-2. Confirm the portfolio margin budget. Current collateral logic prevents committed margin from exceeding supplied account equity (100% collateral guard).
-3. Integrate CORE and AI signal routes through persistent `reserve_entry`/`reserve_dca` and matching reserved ledger writes.
-4. Connect Kill Switch to an authoritative runtime state source.
-5. Run isolated strategy backtests, then combined portfolio backtest, before paper runtime.
+1. Build a new signal coordinator that preserves `core_signal` / `ai_signal` provenance but emits independent CORE and AI intents; do not reuse `_select` conflict arbitration.
+2. Route every entry/DCA through persistent shared reservations and matching ledger writes.
+3. Replace the legacy fixed-position / 50%-margin gate in the paper path; preserve the Strategy Core RSI/ADX/Smart DCA signal rules and explicitly separate execution sizing from strategy predicates.
+4. Define the gross notional exposure ceiling and confirm the portfolio margin budget (current collateral logic uses a 100% account-equity guard).
+5. Connect Kill Switch to an authoritative runtime state source.
+6. Run legacy regression tests, isolated strategy backtests, and combined portfolio backtest before paper runtime.
 
 ## Constraints
 
