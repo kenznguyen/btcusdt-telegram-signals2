@@ -115,3 +115,18 @@ The available GitHub connection can read and write files/branches in existing re
 - No exchange contacted, no market data captured, no database opened.
 - T2 OKX source unchanged; no live orders; `ai_execution_enabled=false`.
 - No PR opened or merged; no branch merged.
+
+
+## 2026-11-08 — Sidecar validator semantic schema + manifest identity regression closeout
+
+- T1 source repository: `kenznguyen/binance-futures-collector`; branch `feature/t1-connection-sidecar-integration-20261107`; final source SHA `6c7e29489128d0c3f1cfff30b0434b8ac6f306ec`.
+- Validator implementation source SHA: `b4d6e34eeaaa557e98cdad9ec5a32ad9330c144c`. It now deserializes required v1 event identity fields, checks schema version, bounded identity values, route/event-type allowlists and timestamp bounds, enforces consistent sourceCommit/sessionId across events, and compares those identities with the manifest.
+- TDD RED: Push CI #219 `42451614036`; the two new regressions failed as intended (missing eventType accepted as SealedConsistent; manifest sourceCommit mismatch accepted as SealedConsistent). Other collector and dashboard checks passed in that RED run.
+- Fixture compatibility correction: commit `6c7e29489128d0c3f1cfff30b0434b8ac6f306ec` updated only the shared publication-failure test fixture to use a schema-valid JSONL event and manifest. It did not change validator logic.
+- Push CI #223: [42452189107](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42452189107), SUCCESS 5/5 at exact source SHA `6c7e29489128d0c3f1cfff30b0434b8ac6f306ec`.
+- PR CI #224: [42452192126](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42452192126), SUCCESS 5/5 at the same PR head SHA; PR #1 base `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Collector checks: Format, Clippy, Build PASS; collector library 43/43 and binary 1/1; Sidecar writer format/Clippy PASS; Sidecar offline unit tests 11/11 and integration tests 27/27 PASS. Dashboard frontend/backend, Docker build and Security audit PASS in both workflows.
+- Push artifact metadata: ID `13605344125`, name `t1-collector-linux-x86_64-6c7e29489128d0c3f1cfff30b0434b8ac6f306ec`, size 4,186,964 bytes, GitHub-reported SHA-256 `58a379be44fda51c806af9264b9f7b3cfc595dbc722d10e428948425228c58c4`. Metadata only; artifact payload was not independently downloaded/rehashed. PR workflow did not publish an artifact.
+- Verdict: **PASS** for the two validator regression cases and complete Push/PR CI at exact SHA `6c7e29489128d0c3f1cfff30b0434b8ac6f306ec`.
+- Remaining limitation: validator still does not semantically compare manifest `connectionSubscriptions` against the JSONL-derived connection/batch/route/subscription inventory. Full manifest inventory integrity is therefore **NOT VERIFIED** and must not be claimed PASS.
+- Safety boundaries: PR #1 remains OPEN / DRAFT / NOT MERGED. No T0 runtime, VPS deployment, collector runtime, Binance connection, live execution, or trading action was performed. Sidecar validation remains offline/read-only and is not connected to feed-quality or strategy gating.
