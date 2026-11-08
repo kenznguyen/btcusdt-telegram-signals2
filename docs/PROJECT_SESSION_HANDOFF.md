@@ -6944,3 +6944,21 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Status: architecture separation **DECIDED / DOCUMENTED**; route contract **NOT IMPLEMENTED**; mock-backend tests **NOT RUN**; Nginx selection **NOT SELECTED**; Caddy/Nginx consolidated edge choice **NOT RESOLVED**; T4 implementation **NOT VERIFIED**; deployment **NOT AUTHORIZED**.
 - Safety boundary remains: T0/T1/T2 runtime unchanged; `ai_execution_enabled=false`; paper-only; no live trading.
 - Next permitted step: prepare a route map and versioned API contract plus isolated mock-backend test plan. Do not implement or deploy until separately authorized.
+
+## 2026-11-08 — T0–T1–T2 synchronization gap assessment
+
+- Continued on existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch or PR.
+- Baseline branch HEAD before this increment: `15c3ce26d79812e632b9763e6d51ccd37169467e`.
+- Added `docs/architecture/T0_T1_T2_SYNCHRONIZATION_GAP_ASSESSMENT_2026-11-08.md`.
+- Assessment commit: `af2076de2ad66bd4e3d14424bd7fad1a8b0b8507`; the document was re-fetched and a source-blob reference typo was corrected in a follow-up documentation commit (see latest branch HEAD).
+- Findings:
+  - T0→T2: isolated HTTP Candle Contract v1 adapter and consumer CI PASS at the exact historical source SHAs recorded in the contract plan; live endpoint/TLS/auth remain NOT VERIFIED.
+  - T0→T1: contract target exists, but no live/isolated T1 consumer integration is evidenced.
+  - T1 Collector→T1 Intelligence: bounded CSV importer and JSON snapshot exist with file hashes, collector source pin, availability time, and per-feed coverage. The 300-second BTCUSDT runtime is limited evidence, not continuity/production proof.
+  - T1 connection sidecar: Python validator/Rust reference writer are offline; upstream collector integration is not established. T1 PR #1 remains OPEN/DRAFT/NOT MERGED at head `93a3931a3e5098dcac5ab04fa5f535cd1bd252ba`; exact-head push run `42455219012` and PR run `42455222283` failed because Sidecar writer rustfmt check failed; a required post-hard-link manifest publication poison finding remains to be verified against current source.
+  - T1→T2: no versioned read-only intelligence snapshot consumer path is verified.
+- Preserved approved ownership: T0 canonical store remains T0-owned; T1/T2 must not access its DB files directly. SQLite `single/shared` remains isolated design/prototype only and is not adopted as canonical.
+- Next sequence: resolve T1 producer/sidecar exact-head CI and review blocker → freeze T1 snapshot contract → isolated T0→T1 adapter → isolated T1→T2 adapter → cross-layer provenance/time/freshness reconciliation → separately approved live read-only probes.
+- Scope: source/evidence review and documentation only. No tests/workflows run for this assessment; no artifacts. No source code, canonical DB, Feeder, VPS, DNS, proxy, exchange, T1/T2 runtime, paper order routing, or live trading changes.
+- Status: assessment **COMMITTED**; T0→T2 isolated adapter **PASS**; T0→T1 **NOT VERIFIED**; T1→T2 **NOT IMPLEMENTED**; end-to-end synchronization **NOT VERIFIED**; `ai_execution_enabled=false`.
+- Do not merge T1 PR #1, deploy services, change canonical storage, or activate runtime without separate review/approval.
