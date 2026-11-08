@@ -1,0 +1,55 @@
+name: T2 Dual Signal Coordinator Contract
+
+on:
+  push:
+    branches:
+      - feature/dual-strategy-phase22-preholdout-attestation-20261031
+    paths:
+      - "quant_system/dual_signal_coordinator.py"
+      - "quant_system/test_dual_signal_coordinator.py"
+      - "quant_system/dual_ledger.py"
+      - "quant_system/dual_strategy.py"
+      - ".github/workflows/t2-dual-signal-coordinator.yml"
+  pull_request:
+    paths:
+      - "quant_system/dual_signal_coordinator.py"
+      - "quant_system/test_dual_signal_coordinator.py"
+      - "quant_system/dual_ledger.py"
+      - "quant_system/dual_strategy.py"
+      - ".github/workflows/t2-dual-signal-coordinator.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  dual-signal-coordinator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      AI_EXECUTION_ENABLED: "false"
+      DATABASE_URL: ""
+      MARKET_DATA_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Enforce paper-only offline boundary
+        run: |
+          test "$AI_EXECUTION_ENABLED" = "false"
+          test -z "$DATABASE_URL"
+          test -z "$MARKET_DATA_DB"
+          test -z "$PAPER_DB"
+          test -z "$BINANCE_API_KEY"
+          test -z "$BINANCE_API_SECRET"
+          test -z "$OKX_API_KEY"
+          test -z "$OKX_API_SECRET"
+      - name: Run coordinator contract tests
+        run: python -m unittest quant_system.test_dual_signal_coordinator -v
