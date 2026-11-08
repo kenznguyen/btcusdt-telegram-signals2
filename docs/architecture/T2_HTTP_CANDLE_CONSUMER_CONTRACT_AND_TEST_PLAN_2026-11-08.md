@@ -229,7 +229,7 @@ RED must be observed against the pre-implementation source. Do not label a test 
 | M15 freshness threshold | CONDITIONALLY APPROVED — 120000 ms, using first-observation ingestion delay formula below |
 | T2 HTTP client implementation | NOT AUTHORIZED — separate authorization required |
 | T2 direct SQLite removal | NOT STARTED |
-| Architecture RED baseline | CONFIRMED — 6 expected architecture failures; run 42468065621 at exact SHA `8bfc920a949c817fb6065657dda6663373bc2f25` |
+| Architecture RED baseline | CONFIRMED — 6 expected architecture failures; run 42468167014 at exact SHA `3222c1bd56ccc089d84f2744f4bafede4747ce50` |
 | HTTP behavior RED specification | AUTHORED — 28 adapter-dependent tests currently blocked by missing `freqai_bridge.http_candles`; behavior NOT VERIFIED |
 | GitHub Actions exact-SHA | NOT VERIFIED |
 | T2 runtime activation/deployment | NOT AUTHORIZED |
@@ -278,3 +278,14 @@ This plan defines the proposed implementation and acceptance criteria only. It d
 - Evidence report: `docs/evidence/t2/T2_HTTP_CONSUMER_RED_EXPANDED_2026-11-08.md`; artifact ID `13612630819`; SHA-256 `f0912b735532640803fff56374dffe0e24b48c15411f37828c9142eefdcc9dd1`.
 - Workflow conclusion PASS means the expected RED shape was validated. It does not mean the T2 HTTP client or its behavior passed.
 - Next RED-only task is to resolve any test-interface ambiguity and extend/run behavior-specific checks when a test-only seam is available. No production code or GREEN implementation is authorized by this approval.
+
+
+## Final RED fixture correction and rerun — 2026-11-08
+
+- Test file SHA: `3222c1bd56ccc089d84f2744f4bafede4747ce50`.
+- Corrected freshness fixtures so as-of cutoffs include the availability timestamps under test and server-global expected-slot metadata is consistent with server generation time.
+- GitHub Actions run `42468167014`, job `128692428965`, conclusion PASS for the expected-RED harness.
+- Result: 37 tests; 6 expected architecture assertion failures; 28 adapter-dependent behavior tests blocked by missing adapter import; 3 assertions PASS; no unexpected error types. Compile and preflight PASS.
+- Artifact ID `13611894815`; SHA-256 `27d2f20452c19b50a9d02d0a61935e2b77071b895fa47375469d5fcc022b57ad`.
+- Evidence report: `docs/evidence/t2/T2_HTTP_CONSUMER_RED_EXPANDED_2026-11-08.md`.
+- The behavior tests remain NOT VERIFIED; expected RED harness PASS is not product/HTTP client PASS. No GREEN code or runtime authorization.
