@@ -466,7 +466,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
             }
         row["feature_cutoffs"] = cutoffs
         rows[0] = json.dumps(row, sort_keys=True, separators=(",", ":"))
-        artifacts["predictions"] = ("\\n".join(rows) + "\\n").encode()
+        artifacts["predictions"] = ("\n".join(rows) + "\n").encode()
         return artifacts
 
     def test_rejects_prediction_without_declared_m15_h1_feature_cutoffs(self):
@@ -487,7 +487,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
         row = json.loads(rows[0])
         row["feature_cutoffs"]["1h"]["open_time_ms"] += 3_600_000
         rows[0] = json.dumps(row, sort_keys=True, separators=(",", ":"))
-        artifacts["predictions"] = ("\\n".join(rows) + "\\n").encode()
+        artifacts["predictions"] = ("\n".join(rows) + "\n").encode()
         result = self.verify_rehashed_predictions(artifacts)
         self.assertFalse(result.accepted)
         self.assertIn("FEATURE_CANDLE_REFERENCE_INVALID:1h", result.reasons)
