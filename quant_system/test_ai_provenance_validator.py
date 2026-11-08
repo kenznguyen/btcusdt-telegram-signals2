@@ -381,7 +381,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
             row = json.loads(line)
             row["dataset_version"] = manifest["dataset_version"]
             rows[index] = json.dumps(row, sort_keys=True, separators=(",", ":"))
-        artifacts["predictions"] = ("\\n".join(rows) + "\\n").encode()
+        artifacts["predictions"] = ("\n".join(rows) + "\n").encode()
         for role, data in artifacts.items():
             manifest["artifacts"][role] = {
                 "sha256": hashlib.sha256(data).hexdigest(),
