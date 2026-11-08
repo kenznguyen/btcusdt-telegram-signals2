@@ -635,3 +635,20 @@ Implement semantic reconciliation between the signed prediction JSONL and the si
 - No code/tests/runtime changed. No T0/T1 DB/Feeder/exchange/paper/live access. `AI_EXECUTION_ENABLED=false`.
 - PR #95 remains OPEN / DRAFT / NOT MERGED. No merge/rebase.
 - Next: define the independent AI Strategy training/label contract from its actual pipeline, then bind model identity and split semantics into the signed manifest with RED tests. Do not run OOS or enable runtime.
+
+
+## Independent AI training/label contract discovery — 2026-11-08
+
+- Read-only audit: `quant_system/T2_AI_TRAINING_LABEL_CONTRACT_DISCOVERY_2026-11-08.md`.
+- Audit commit: `7ba3e55c11645a89738f24de2983e6c050279a08`.
+- Identified an existing research candidate, `chart-pro-shadow-v1`, in `freqai_bridge/config.research.json` (blob `a777e018f457628150647064119435ce75dc3e29`), separate by configured identifier/venue from legacy frozen `chart-pro-okx-shadow-v1`.
+- Candidate uses Binance USDT perpetual BTCUSDT, M15, LightGBMRegressor, 30-day training window, 7-day backtest window, chronological non-shuffled 20% internal split, and a 4-M15-candle scalar forward close-return target. This is source/config evidence only, not approval of the new AI Strategy label horizon.
+- `ChartProFreqaiResearch.py` (blob `0ddaabca32e678bd1c6e181146c2f1418941c133`) declares M15-only feature engineering and scalar `&-future_return`; no explicit LONG/SHORT threshold, neutral band, side semantics or calibrated confidence mapping.
+- `native_prediction_capture.py` records actual FreqAI scalar predictions and abstentions but explicitly is not a signed training-cutoff/OOS certificate. `exporter.py` requires trainer-supplied provenance fields; no actual trainer sidecar/model artifact/training run was provided in this audit.
+- Candidate code can run an offline native FreqAI backtest, but this was not invoked. The candidate config has `initial_state=running`; do not start it as a service.
+- Important contract mismatch to resolve: signed prediction provenance currently requires M15+H1 feature cutoffs, while candidate model's visible feature config uses M15 only. Decide whether H1 is a true consumed feature or separately recorded context; never claim H1 consumption without feature-matrix evidence.
+- Recommendation: keep `chart-pro-shadow-v1` as an unaccepted research candidate. Before semantic leakage implementation, explicitly choose regression-to-direction (with pre-registered horizon, thresholds, abstention band and confidence derivation) or direct directional classification (LONG/SHORT/ABSTAIN target and probability semantics). Do not derive thresholds from OOS.
+- Status: candidate source identified PASS; immutable independent model/artifact NOT VERIFIED; actual training/provenance sidecar NOT PROVIDED; LONG/SHORT and confidence mapping NOT DEFINED; H1 feature contract NOT DEFINED; semantic OOS leakage BLOCKED; no calibration/leverage authorization.
+- No code/tests/training/backtest/runtime changed. No T0/T1 DB/feeder/exchange/paper/live activity. `AI_EXECUTION_ENABLED=false`.
+- PR #95 remains OPEN / DRAFT / NOT MERGED. No merge/rebase.
+- Next: settle target semantics and H1 feature role, then add versioned label/decision contract and signed-manifest bindings with RED tests. Do not start training or consume OOS holdout before protocol sealing.
