@@ -76,8 +76,14 @@ The RED workflow and original RED evidence were retained. No T0/T1 files, strate
 
 - Run ID: `42454144968`.
 - URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454144968
-- At evidence capture: IN_PROGRESS; no conclusion or artifact asserted.
-- This run is not required to claim the 11-test T2 contract result. Update this evidence if/when the run completes.
+- Conclusion: SUCCESS; job ID `128649460777`.
+- PR head SHA: `d4e04a701ae229c585d4598e93632831791c74d3`; base SHA: `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
+- Checked-out synthetic merge SHA: `41a059bdc40c74c5c5b028ef78de3d7e8068935e`.
+- Offline runtime probe: 8 tests PASS; paper-only boundary PASS; OKX API key/secret values empty.
+- Artifact ID: `13607047149`; name `r22-2-phase22-runtime-41a059bdc40c74c5c5b028ef78de3d7e8068935e`; size 7,026 bytes; not expired at metadata inspection.
+- GitHub upload SHA-256 digest: `efcf2bade58264d6e257509998962b13b17f35bc45a6ebab76058740772f170b`.
+- Artifact payload bytes have not been downloaded and independently re-hashed.
+- This is merge-context offline verification, not production runtime certification.
 
 ## Test coverage — 11/11
 
