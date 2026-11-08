@@ -274,3 +274,56 @@ Final verdict for this increment:
 - PR #95: still OPEN / DRAFT / NOT MERGED. No merge or rebase.
 - Working-tree status: NOT VERIFIED (no local checkout inspected).
 - Real calibration quality, acceptance metrics, sample-size requirements, confidence-domain configuration, gross exposure ceiling and runtime integration remain blocked or unverified as recorded above.
+
+
+## AI Calibration Evaluator — implementation increment (2026-11-08)
+
+### Scope
+
+Implemented a standalone offline evaluator for already-produced AI probability predictions:
+- `quant_system/ai_calibration_evaluator.py`
+- `quant_system/test_ai_calibration_evaluator.py`
+- `quant_system/AI_CALIBRATION_EVALUATOR_2026-11-08.md`
+- Updated `.github/workflows/t2-dual-signal-coordinator.yml` to compile the calibration/leverage modules and run both independent suites; upload source provenance, compile log and both test logs.
+
+### Contract
+
+- Equal-width ECE with explicit bin count.
+- Brier score compared with a same-sample climatology/no-skill reference; strict improvement required.
+- Overall metrics and separate LONG/SHORT × each explicitly declared regime.
+- Every policy value is required explicitly: max ECE, minimum total samples, minimum per-group samples, bin count and regime taxonomy. No production defaults were invented.
+- Fail closed for non-OOS markers, malformed labels/probabilities, unknown regimes, missing/undersized directional-regime groups, excessive ECE or Brier not better than baseline.
+- Canonical ordered input rows are fingerprinted; report digest binds the input fingerprint, metrics, reasons and explicit gate policy.
+- Evaluator acceptance is metric-gate acceptance only. It never issues a leverage attestation and always returns `trade_authorized=false` and `attestation_issued=false`.
+
+### TDD and exact-source CI
+
+RED evidence:
+- Run `42457995143`, source `bd7ea4c74e9f3f0cc6ba16188a01e19b108cb22f`: expected import failure because evaluator implementation did not yet exist.
+- Run `42458033277`, source `cab0d34102c7da884c820662ae5d4b5df34d1b52`: evaluator imported; first behavioral acceptance test exposed an incorrect synthetic fixture.
+- Runs `42458082523` and `42458142080`: refined fixture exposed finite-sample ECE expectation mismatch; no implementation acceptance was claimed from these RED runs.
+
+Final exact-source push:
+- Run: [42458217777](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458217777), event push, source/head/checked-out SHA `56da92b86dc75ad76e0b391854c2e672268178b1`, SUCCESS.
+- Job: `128661678013`, SUCCESS.
+- Logs: py_compile PASS; calibration evaluator 14/14; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18 — **111/111 test invocations PASS**.
+- Artifact: ID `13608870606`, name `t2-ai-intelligence-contracts-56da92b86dc75ad76e0b391854c2e672268178b1`, GitHub digest `sha256:ba6de2deb3deefdc3ab8715571a2dc167ec6b577f8d50b2c56a9ae43b16b1284`.
+- Artifact ZIP downloaded; independently recomputed SHA-256 matched the GitHub digest. Payload contains source provenance, compile log, calibration evaluator log and leverage log. Calibration evaluator log confirms 14/14 PASS.
+- Artifact provenance: push event, github_sha=checked_out_sha=`56da92b86dc75ad76e0b391854c2e672268178b1`, `AI_EXECUTION_ENABLED=false`, DB targets empty, exchange credentials empty.
+- PR-context run: [42458221166](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458221166), PR head SHA `56da92b86dc75ad76e0b391854c2e672268178b1`, synthetic merge checkout SHA `8033250cc6179eb23397f54ea603a38458f13a9b`, SUCCESS. This is merge-context verification, not direct-head evidence.
+- Evidence report update commit: `2ba84eda4e2251a3d081bca3952da2c4d82f8d1a`.
+
+### Limits and status
+
+- Evaluator implementation and synthetic contract/regression CI: PASS.
+- Production ECE threshold, sample counts, bin count and regime taxonomy: BLOCKED / NOT APPROVED. The values in unit fixtures are test-only and are not production recommendations.
+- Real BTCUSDT OOS predictions, split manifest authenticity, temporal separation/leakage proof, frozen model/dataset provenance, artifact byte authentication, calibration uncertainty intervals and drift: NOT VERIFIED / NOT IMPLEMENTED.
+- ECE/Brier passing synthetic tests does not prove real model calibration.
+- No calibration attestation issued; no integration with `AIDynamicLeveragePolicy` or Coordinator.
+- `AI_EXECUTION_ENABLED=false`; no DB, T0/T1, exchange, market-data or execution runtime touched.
+- Gross notional exposure ceiling remains undefined.
+- PR #95 remains OPEN / DRAFT / NOT MERGED; no merge/rebase.
+- Current code/test/workflow verification SHA: `56da92b86dc75ad76e0b391854c2e672268178b1`. Current branch HEAD after evidence-document commits must be refreshed below.
+- Working-tree status: NOT VERIFIED (no local checkout inspected).
+
+Next step: obtain explicit approval for production calibration gate policy (ECE maximum, Brier comparison protocol, minimum total and per LONG/SHORT × regime sample counts, bin count and regime taxonomy); then build an authenticated OOS split/data provenance validator before any attestation can be issued. Keep all runtime execution disabled.
