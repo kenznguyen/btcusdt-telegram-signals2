@@ -7338,3 +7338,15 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No source, tests, workflow, database/schema, API, VPS, Feeder, registry, scheduler, retention timer, archive, vacuum, backup expiry, cleanup, or deletion operation was changed or activated.
 - Verification pending: document read-back, handoff update, and branch comparison. No CI/test run; no artifact.
 - Next: documentation-only cross-contract consistency review across Shared Data Foundation, Central Data Lifecycle Policy, Dataset Consumer Contract, and Data Deletion Safety Contract. No implementation or real-data lifecycle action is authorized.
+
+
+## 2026-11-09 — Shared Data Lifecycle cross-contract review and alignment
+
+- Added `docs/architecture/SHARED_DATA_LIFECYCLE_CROSS_CONTRACT_REVIEW_2026-11-09.md`, review commit `66ebe184d3208cf832d9a9e87f0efd98481d256d`.
+- Reviewed Shared Data Foundation, Central Data Lifecycle Policy, Dataset Consumer Contract, and Data Deletion Safety Contract. Recorded 10 findings: stale-consumer review semantics; distinct state domains; archive/availability compatibility; T0 maintenance vs central deletion authority; outdated forward references; governance actor separation; missing actual dataset/consumer inventory; backup/replica governance; and T0 canonical deletion default.
+- Applied documentation-only alignment to `SHARED_DATA_FOUNDATION.md` (commit `391dcfffa630d45538776aede2fc9bcc97c0c83a`) and `CENTRAL_DATA_LIFECYCLE_POLICY.md` (commit `0c8bb12ade6cdeee04867be387908371ac18cc1f`).
+- Clarified that T0 maintenance/correction is not deletion approval; destructive removal of a published shared dataset/version must follow central deletion governance. Clarified stale review deadlines never auto-release dependencies. Separated dataset, dependency, and deletion-request state domains. Updated links to the now-existing consumer and deletion contracts.
+- Archive availability compatibility remains an explicit design gap; unknown availability requirements block archive. No schema/API or runtime implementation was introduced.
+- Verification: review report read back at blob `6f034ec489c42e2f63e0c8f85c7b767bc9b05ca7`, 12,723 characters, 10 findings. Foundation read back at blob `f4f64d0b12bc8706cacc8aa832f90218425b81ab`, 19,498 characters; central deletion boundary and next-step references present. Lifecycle policy read back at blob `03f4b5764b0b449a0038b09778c4b725b763cbe6`, 22,889 characters; separate state domains and no-auto-release clarification present.
+- CI/tests: NOT RUN. No artifact. No source, tests, workflow, database/schema, API, VPS, Feeder, registry, scheduler, retention timer, archive, vacuum, backup expiry, cleanup, or deletion operation was changed or activated.
+- Next: create a read-only inventory of actual datasets, consumers, lineage, holds, reproducibility/recovery evidence, replicas, backups, exports, and local copies. Do not assign numeric retention periods or perform lifecycle operations until inventory evidence and separate approvals exist.
