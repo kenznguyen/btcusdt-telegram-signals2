@@ -108,3 +108,18 @@ No runtime or T0 runtime changes. No artifact was produced by runs 198 or 200; a
 - Verdict: bounded source review **PASS — no new confirmed finding**; previously green CI remains the test evidence. TOCTOU/hostile-filesystem behavior, non-Unix durability semantics, and deployed runtime behavior remain **NOT VERIFIED**.
 - No source changes, tests, collector execution, Binance/VPS runtime, T0 operation, PR merge, or draft-state transition.
 - Next: choose a separate bounded T1 source-review slice (connection-state/event lifecycle and limits) before any broader integration/runtime proposal.
+
+
+## 2026-11-08 — T1 Sidecar connection/heartbeat lifecycle review finding
+
+- Reviewed exact T1 source SHA `ed126fa8ecae61d70939336d51ffd4bf86acc102`:
+  - `crates/connection-sidecar/src/lib.rs`, blob `7e2b58557692386bd24699861ba4aa545863dd55`.
+  - `crates/connection-sidecar/tests/sidecar_writer.rs`, blob `37614ded67022b116c8d0ba7e1f33d74e0746a1c`.
+  - `crates/connection-sidecar/README.md`.
+- Finding — **REQUIRED DESIGN REVIEW before treating the lifecycle contract as complete**: `SidecarWriter::disconnected()` rejects every disconnect while any Ping remains outstanding. The only current ways to clear a pending Ping are a matching Pong or `heartbeat_timed_out()` after strictly more than 60,000 ms. There is no event/API for a Ping abandoned because the socket remotely closed or hit a transport error before the timeout threshold.
+- The current test `refuses_to_disconnect_or_finalize_with_an_unanswered_ping` explicitly codifies rejection, but it does not provide a valid terminal path for an early `REMOTE_CLOSE` / `TRANSPORT_ERROR`. In that situation, the caller cannot truthfully record the actual disconnect and schedule reconnect without either waiting until the Ping timeout and misclassifying the disconnect as `HEARTBEAT_TIMEOUT`, or leaving the connection lifecycle unresolved and preventing finalization.
+- This conflicts with the documented `DISCONNECTED` reasons (including remote close and transport error) and reconnect flow. The crate README says it is an offline reference implementation and is not integrated into the upstream collector; therefore this is a contract/API correctness gap, not evidence of a current production collector outage.
+- Recommended design direction (not implemented): add an explicit terminal resolution for outstanding Ping IDs when the socket closes (for example, a bounded `PING_ABANDONED` / `PING_CANCELLED` event tied to the disconnect reason), or define and test another truthful resolution that does not fabricate a heartbeat timeout. Preserve strict Ping/Pong correlation and event timestamp ordering.
+- Status: **FINDING RECORDED / NOT FIXED / NOT VERIFIED BY TEST**. No code or test changed in this increment. The prior CI PASS at `ed126fa8...` remains valid only for the tests it ran; it does not resolve this lifecycle gap.
+- No collector execution, Binance/VPS runtime, T0 action, live order, PR merge, or PR draft-state transition.
+- Next: obtain authorization for a narrowly scoped offline regression test that reproduces early remote close/transport error with an outstanding Ping, then implement the smallest explicit resolution contract and verify through GitHub Actions on the existing PR branch.
