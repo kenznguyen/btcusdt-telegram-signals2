@@ -143,8 +143,9 @@ Implementation contract:
 
 - Contract tests: `quant_system/test_dual_signal_coordinator.py` (11 tests: independent signal generation plus routing).
 - RED test commit: `a4596369ff98f836745e115b6ce44360d84301a2`.
-- RED workflow run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455777252
-- RED run ID `42455777252`, source SHA `c0c793689b06abe3f7261f618652b0e7e535d54b`, expected failure because `quant_system.dual_signal_coordinator` did not exist. The loader ran one failed import test; the eight behavioral methods did not execute.
+- Initial routing RED: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455777252 — run ID `42455777252`, source SHA `c0c793689b06abe3f7261f618652b0e7e535d54b`; expected missing-module import failure, so behavioral tests did not execute.
+- Signal-generation RED: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42456047853 — run ID `42456047853`, source SHA `cb6e8f065646996505f9bce312e46b08ed1a9925`; 11 tests ran, with 3 errors because `generate_signals` was not implemented yet.
+- Intermediate run `42456073810` exposed a test-fixture clock error: the synthetic evaluation timestamp preceded candle availability. The fixture was corrected to evaluate after the canonical candle became available; this was not a production-code failure.
 - Coordinator implementation commit: `78bf5b8b8b620dde7bd6f093ad197db4a9b22219`.
 - Final coordinator workflow commit: `34c6b41246b5eb580f7d6085c62e25b7a35c3160`.
 - Exact source SHA for the final direct-push and PR verification: `23e51529d88e338d488fb8d6808fc567b023f93e` (coordinator implementation unchanged from `78bf5b8b8b620dde7bd6f093ad197db4a9b22219`).
@@ -156,10 +157,11 @@ Implementation contract:
 - T0 → Freqtrade adapter contract: 10/10 PASS.
 - Total across coordinator workflow: **83 tests PASS** on the exact source SHA.
 - Direct-push run: `42456099914`, SUCCESS; exact source SHA `7d2b73bfbe6d588c57257e93193806f7d942dbb9`.
-- PR coordinator run: `42456102768`, SUCCESS; exact PR head `7d2b73bfbe6d588c57257e93193806f7d942dbb9`.
-- PR dual-ledger run: `42456102834`, SUCCESS; 23/23.
-- PR legacy regression run: `42456102796`, SUCCESS; 49/49.
-- PR T0 adapter run: `42456102773`, SUCCESS; 10/10.
+- Final PR coordinator run: `42456177935`, SUCCESS; exact PR code head `7d2b73bfbe6d588c57257e93193806f7d942dbb9`; job `128655567454`.
+- Final PR dual-ledger run: `42456178029`, SUCCESS; 23/23.
+- Final PR legacy regression run: `42456177941`, SUCCESS; 49/49.
+- Final PR T0 adapter run: `42456177970`, SUCCESS; 10/10.
+- Documentation-only PR head subsequently advanced to `bddf1ce751502640d0676683e3018de26afb8e5c`; coordinator, ledger, legacy and adapter source files were unchanged. R22.2 verification for that latest PR head was still IN_PROGRESS at evidence capture.
 - Earlier 8-test routing-only run `42455938655` was PASS on predecessor SHA `23e51529d88e338d488fb8d6808fc567b023f93e`; superseded by the 11-test final proof.
 - Offline boundary passed: `AI_EXECUTION_ENABLED=false`; DB targets and Binance/OKX credentials empty.
 - No artifact produced.
