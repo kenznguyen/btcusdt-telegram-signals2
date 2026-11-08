@@ -18,7 +18,7 @@ _CONNECT_TIMEOUT_S = 3
 _READ_TIMEOUT_S = 5
 _MAX_ATTEMPTS = 3
 _BACKOFF_SECONDS = (0.25, 0.5)
-_DATASET_VERSION = re.compile(r"sha256:[0-9a-f]{64}\\Z")
+_DATASET_VERSION = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _ENVELOPE_FIELDS = {
     "contractVersion", "schemaVersion", "exchange", "marketType", "symbol",
     "timeframe", "startMs", "endMs", "asOfMs", "candles", "datasetVersion",
