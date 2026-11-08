@@ -12,6 +12,12 @@ import re
 from decimal import Decimal, InvalidOperation
 from collections.abc import Mapping
 
+from quant_system.ai_calibration_evaluator import (
+    CalibrationEvaluator,
+    CalibrationGatePolicy,
+    CalibrationObservation,
+)
+
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
@@ -143,6 +149,124 @@ def _validate_prediction_rows(predictions, manifest):
     return tuple(sorted(set(reasons)))
 
 
+def _validate_calibration_report(predictions, report_bytes, manifest):
+    """Recompute calibration metrics and both evaluator fingerprints from signed rows."""
+    if not isinstance(report_bytes, bytes) or not report_bytes:
+        return ("CALIBRATION_REPORT_INVALID",)
+    try:
+        report = json.loads(
+            report_bytes.decode("utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_constant=lambda _value: (_ for _ in ()).throw(ValueError("non-finite JSON")),
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):
+        return ("CALIBRATION_REPORT_INVALID",)
+
+    required_report_keys = {
+        "schema_version", "policy", "accepted", "reasons", "sample_count",
+        "group_count", "metrics", "input_sha256", "report_sha256",
+        "trade_authorized", "attestation_issued",
+    }
+    if not isinstance(report, Mapping) or set(report) != required_report_keys:
+        return ("CALIBRATION_REPORT_INVALID",)
+    if type(report.get("schema_version")) is not int or report["schema_version"] != 1:
+        return ("CALIBRATION_REPORT_INVALID",)
+
+    policy_payload = report.get("policy")
+    policy_keys = {
+        "max_ece", "min_total_samples", "min_group_samples",
+        "ece_bins", "required_regimes",
+    }
+    if not isinstance(policy_payload, Mapping) or set(policy_payload) != policy_keys:
+        return ("CALIBRATION_REPORT_INVALID",)
+    try:
+        max_ece = Decimal(str(policy_payload["max_ece"]))
+        regimes = policy_payload["required_regimes"]
+        if (not max_ece.is_finite() or max_ece != Decimal("0.05")
+                or type(policy_payload["min_total_samples"]) is not int
+                or policy_payload["min_total_samples"] != 1000
+                or type(policy_payload["min_group_samples"]) is not int
+                or policy_payload["min_group_samples"] != 200
+                or type(policy_payload["ece_bins"]) is not int
+                or not 1 <= policy_payload["ece_bins"] <= 100
+                or not isinstance(regimes, list) or not regimes
+                or any(not isinstance(item, str) or not item.strip() for item in regimes)
+                or len(set(regimes)) != len(regimes)):
+            return ("CALIBRATION_POLICY_NOT_APPROVED",)
+    except (InvalidOperation, TypeError, ValueError):
+        return ("CALIBRATION_POLICY_NOT_APPROVED",)
+
+    try:
+        rows_text = predictions.decode("utf-8")
+        lines = rows_text.splitlines()
+        if not lines or any(not line.strip() for line in lines):
+            return ("CALIBRATION_INPUT_INVALID",)
+        observations = []
+        split = manifest.get("temporal_split")
+        if not isinstance(split, Mapping) or set(split) != _REQUIRED_SPLIT_KEYS:
+            return ("TEMPORAL_SPLIT_INVALID",)
+        start_ms, end_ms = split["oos_start_ms"], split["oos_end_ms"]
+        if type(start_ms) is not int or type(end_ms) is not int:
+            return ("TEMPORAL_SPLIT_INVALID",)
+        for line in lines:
+            row = json.loads(
+                line,
+                object_pairs_hook=_reject_duplicate_keys,
+                parse_constant=lambda _value: (_ for _ in ()).throw(ValueError("non-finite JSON")),
+            )
+            if not isinstance(row, Mapping):
+                return ("CALIBRATION_INPUT_INVALID",)
+            prediction_ms = row.get("prediction_timestamp_ms")
+            outcome_ms = row.get("outcome_available_at_ms")
+            if (type(prediction_ms) is not int or not start_ms <= prediction_ms <= end_ms
+                    or type(outcome_ms) is not int or outcome_ms <= prediction_ms
+                    or outcome_ms > end_ms):
+                return ("CALIBRATION_INPUT_INVALID",)
+            if (row.get("model_version") != manifest.get("model_version")
+                    or row.get("dataset_version") != manifest.get("dataset_version")):
+                return ("CALIBRATION_INPUT_INVALID",)
+            observations.append(CalibrationObservation(
+                outcome=row.get("outcome"),
+                confidence=row.get("confidence"),
+                side=row.get("side"),
+                regime=row.get("regime"),
+                out_of_sample=True,
+            ))
+    except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):
+        return ("CALIBRATION_INPUT_INVALID",)
+
+    policy = CalibrationGatePolicy(
+        max_ece=policy_payload["max_ece"],
+        min_total_samples=policy_payload["min_total_samples"],
+        min_group_samples=policy_payload["min_group_samples"],
+        ece_bins=policy_payload["ece_bins"],
+        required_regimes=tuple(regimes),
+    )
+    evaluation = CalibrationEvaluator().evaluate(observations, policy)
+    expected = {
+        "schema_version": 1,
+        "policy": {
+            "max_ece": format(max_ece, "f"),
+            "min_total_samples": policy.min_total_samples,
+            "min_group_samples": policy.min_group_samples,
+            "ece_bins": policy.ece_bins,
+            "required_regimes": list(policy.required_regimes),
+        },
+        "accepted": evaluation.accepted,
+        "reasons": list(evaluation.reasons),
+        "sample_count": evaluation.sample_count,
+        "group_count": evaluation.group_count,
+        "metrics": evaluation.metrics,
+        "input_sha256": evaluation.input_sha256,
+        "report_sha256": evaluation.report_sha256,
+        "trade_authorized": False,
+        "attestation_issued": False,
+    }
+    if report != expected or not evaluation.accepted:
+        return ("CALIBRATION_REPORT_MISMATCH",)
+    return ()
+
+
 def verify_signed_provenance(envelope, artifacts, trusted_public_keys, *, now_ms):
     """Verify signature, trusted key, exact artifact bytes and OOS chronology.
 
@@ -240,7 +364,12 @@ def verify_signed_provenance(envelope, artifacts, trusted_public_keys, *, now_ms
                 verified.append(role)
 
     if isinstance(artifacts, Mapping) and "predictions" in artifacts:
-        reasons.extend(_validate_prediction_rows(artifacts["predictions"], manifest))
+        prediction_data = artifacts["predictions"]
+        reasons.extend(_validate_prediction_rows(prediction_data, manifest))
+        if "calibration_report" in artifacts:
+            reasons.extend(_validate_calibration_report(
+                prediction_data, artifacts["calibration_report"], manifest
+            ))
 
     return ProvenanceVerification(
         accepted=not reasons, reasons=tuple(sorted(set(reasons))), key_id=key_id,
