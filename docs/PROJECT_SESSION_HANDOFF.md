@@ -6498,3 +6498,15 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Fix commit / current source to verify: `e317b7dc02363db0600737a89442dd918559af3c`; file `market_data/api.py`; blob `81733c9b6de811cbebb2f5d472d41f37f337990c`.
 - Status: **IMPLEMENTED / NOT VERIFIED**. Next: run `python3 -m unittest market_data.test_api -v` at exact SHA `e317b7dc02363db0600737a89442dd918559af3c`; then full relevant suite and exact-head GitHub Actions proof.
 - Limits unchanged: no T2 HTTP/FreqAI migration, no DB/Feeder/VPS/runtime/Data Quality Gate, no consumer activation or live execution. Keep `ai_execution_enabled=false`.
+
+
+## 2026-11-08 — Focused T0 Candle API tests passed
+
+- User verified exact source SHA `e317b7dc02363db0600737a89442dd918559af3c` in a clean detached checkout (`## HEAD (no branch)`).
+- Command: `python3 -m unittest market_data.test_api -v`.
+- Result: **13/13 PASS**, 0 failures, 0 errors; runtime 0.268s. This includes the previously failing empty as-of freshness test.
+- Exact tested API source: `market_data/api.py`, blob `81733c9b6de811cbebb2f5d472d41f37f337990c`.
+- Focused module: **PASS**. Broader regression and overall contract release: **NOT VERIFIED**.
+- GitHub combined status has no entries and commit workflow-run lookup returned no runs for this SHA; Actions evidence/artifacts **NOT VERIFIED**.
+- Next step: execute the repository's full relevant regression suite at the same source SHA and capture output; then reconcile with exact-head CI evidence if available.
+- Limits: no T2 HTTP/FreqAI migration, no T0 DB/Feeder/VPS/runtime/Data Quality Gate, no consumer activation, deployment, or live execution. Keep `ai_execution_enabled=false`.
