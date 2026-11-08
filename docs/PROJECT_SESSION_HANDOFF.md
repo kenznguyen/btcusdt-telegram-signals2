@@ -7078,3 +7078,10 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Status: WAL keeper runtime lifecycle **PASS — disposable CI**; sidecar persistence across short-lived writes/heartbeats **PASS — disposable tests**; read-only systemd WAL sandbox **PASS — disposable runner**; actual VPS/systemd compatibility **NOT VERIFIED**; production Feeder/API units **NOT DEPLOYED**; T0 API endpoint **NOT RUN**; T2 runtime **NOT ACTIVATED**; `ai_execution_enabled=false`.
 - No VPS, canonical database, secrets, permissions, firewall, DNS, proxy, or live runtime was changed.
 - Next: inspect final source diff and final overall workflow result; build a disposable systemd integration test that runs actual `FeederRuntime` + `SQLiteWalKeeper` and a separate read-only API service, including Feeder crash and orderly shutdown. Do not deploy or create VPS service units without separate explicit approval.
+### Final overall workflow completion — WAL Keeper increment
+
+- Final overall T0 Single Writer Gateway Contracts run `42484777981` at source SHA `702e366882c1f585e14f2700497b9f7290d841ca`: **SUCCESS**; all six jobs PASS (static gateway + lifecycle/regression/full market_data suite, provider bootstrap, paper consumer regressions, T1 importer, T1 Rust sidecar, Timescale read-only integration).
+- Full market_data regression: 289 tests OK, 42 skipped; focused lifecycle/gateway: 73 tests OK; health/readiness: 21 tests OK; process restart/fencing: 2 tests OK.
+- Additional completed-run artifacts: provider bootstrap ID `13619415580`, SHA-256 `2775bde527085a190d06285575d3d32455273c1a8137e3a020bd54bfdf8a8700`; T1 Rust ID `13618913309`, SHA-256 `e1613b0549f563485b73fa56c68c45c15fe98ee14c53afe880be12566b57a834`; Timescale read-only ID `13618584170`, SHA-256 `435889ecafed2fd86dbb6e1fc1c5c311257a659eaff3dc667b5dbc8c06f659c5`.
+- Updated evidence document with final completion record; commit `3b7483e9ccaa8a509bd116a324ee21a0995d5105`.
+- This closes the current WAL Keeper implementation increment only. No VPS deployment authorization is implied.
