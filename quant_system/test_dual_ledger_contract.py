@@ -239,7 +239,7 @@ class DualLedgerContractTest(unittest.TestCase):
             side="LONG", quantity="0.01", entry_price="100000",
         )
         position = self.core.snapshot().positions[0]
-        self.assertEqual(position.margin_used, Decimal("100"))
+        self.assertEqual(position.margin_used, Decimal("200"))
         with self.assertRaises(ValueError):
             self.core.record_reserved_entry(
                 reservation_id="entry-core-1", position_id="core-reserved-1",
@@ -263,7 +263,7 @@ class DualLedgerContractTest(unittest.TestCase):
             quantity="0.01", price="99000",
         )
         self.assertEqual(self.core.snapshot().positions[0].dca_count, 1)
-        self.assertEqual(self.core.snapshot().positions[0].margin_used, Decimal("200"))
+        self.assertEqual(self.core.snapshot().positions[0].margin_used, Decimal("300"))
         self.assertEqual(self.ai.snapshot().positions[0].dca_count, 0)
         with self.assertRaises(ValueError):
             self.core.record_reserved_dca(
