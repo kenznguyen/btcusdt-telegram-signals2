@@ -9,11 +9,16 @@ This record defines the target PostgreSQL/TimescaleDB canonical write architectu
 
 - Canonical market: Binance USD-M BTCUSDT USDT perpetual (temporary selection).
 - Kraken Spot remains a separate research dataset; OKX remains Shadow/non-canonical.
-- T0 remains an independent data asset.
+- T0 remains the canonical market-data foundation under shared system-wide logical data ownership; lifecycle policy is governed centrally as recorded in [the Shared Data Foundation ADR](SHARED_DATA_FOUNDATION_LIFECYCLE_ADR_2026-11-08.md).
 - `ai_execution_enabled=false`; no order endpoints, trading credentials, or live execution.
 - Existing SQLiteWriteGateway remains the tested reference implementation and must not be weakened or removed as part of this design.
 - PostgreSQL/TimescaleDB is the proposed production canonical backend, subject to disposable integration acceptance.
 - GitHub Actions remains the default CI. Codemagic is fallback-only under the existing handoff rule.
+
+### Data ownership boundary — superseding decision (2026-11-08)
+
+The earlier independent-T0-asset statement is superseded. T0 remains the canonical producer and fenced writer authority, while logical dataset ownership and retention governance are shared across T0–T4 and centrally governed. This PostgreSQL writer design remains narrowly scoped to atomic canonical writes and lease fencing; it does not define dataset retention or deletion. Shared ownership does not grant consumer write/delete access. No lifecycle scheduler, archive, vacuum or deletion operation is authorized here.
+
 
 ## 2. Current verified source boundary
 
