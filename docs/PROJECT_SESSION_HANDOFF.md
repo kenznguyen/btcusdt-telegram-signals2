@@ -7470,3 +7470,30 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Archive job independently rechecked the retention payload successfully (`RETENTION_PAYLOAD_INDEPENDENT_RECHECK=PASS`). It then failed while running `git show <SOURCE_SHA>:synthetic_evidence/trust_lifecycle.py`: the branch checkout was at newer HEAD `ee7d5dc2c613822825f5cc0af857cd72d8dcc542`, but `actions/checkout` used its default shallow depth of one commit, so the triggering source SHA `8f20b9b...` was not present in the local object database. This is a checkout-history availability failure, not a retention-manifest or attestation failure.
 - No evidence archive commit was created by run #122. No branch rewrite, merge, T0 runtime, VPS, database, Feeder, ingestion, or execution change occurred.
 - Status: **BLOCKED — archive job implementation needs a bounded source-commit fetch**. Proposed correction: in the archive job, fetch the exact `SOURCE_SHA` from origin at depth 1 before source-file `git show` checks, and assert it is an ancestor of the checked-out branch HEAD. Avoid an unbounded full-history checkout. Add a regression test for this workflow contract, then rerun the workflow and verify archive commit, source SHA, and artifact expiry metadata.
+
+
+## 2026-11-09 — P1.8 bounded archive checkout fix verified
+
+### Scope and correction
+
+- Added regression coverage in `synthetic_evidence/test_workflow_archive_contract.py` for exact source commit fetch, branch ancestry verification, and authenticated GitHub compare access.
+- Updated `.github/workflows/p1-8-synthetic-evidence.yml`: archive job fetches only `SOURCE_SHA` with `--depth=1`, verifies the commit object, and accepts only GitHub compare status `ahead` or `identical` for `SOURCE_SHA...BRANCH_HEAD`. No unbounded full-history fetch.
+- Implementation commit: `e8bc6f8f6cdc7263287fa5fde32c94d5a88a9406`; test assertion correction commit: `70cc776c79fbe244ef24852e4bfa408848658f8f`.
+
+### Verification evidence
+
+- Run #127: [42516728964](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42516728964), source SHA `70cc776c79fbe244ef24852e4bfa408848658f8f`; all three jobs PASS. Synthetic suite: 124 tests PASS, including all three archive contract tests. Archive log: `SOURCE_SHA_BRANCH_ANCESTRY=PASS status=identical`, `RETENTION_PAYLOAD_INDEPENDENT_RECHECK=PASS`, `TRUST_ROOT_SNAPSHOT_CHAIN_APPEND=PASS`, `LONG_TERM_GIT_HISTORY_RETENTION=PASS`. Archive commit: `1edc9491ce0cb1741b458e59811a023e017c973d`. Evidence path: `docs/evidence/p1-8/70cc776c79fbe244ef24852e4bfa408848658f8f/`.
+- Run #128: [42516866811](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42516866811), source SHA `dc7959858bb31de346ae25422b764310a22ce94c`; all three jobs PASS. Synthetic suite again: 124 tests PASS. Archive log again confirms bounded source fetch, ancestry status `identical`, payload recheck, trust-root chain append, and Git retention marker. Archive commit: `fbc558d039f9f7a4c05aadb030b6f13bd86a4d1b`. Evidence path: `docs/evidence/p1-8/dc7959858bb31de346ae25422b764310a22ce94c/`.
+- Run #128 primary artifact ID `13631861923`, digest `sha256:77f8c6468f174a6566467e48db65f3c861b00e0c4ad4f68272ac16f9dc89da96`; independent verification artifact ID `13631677752`, digest `sha256:69223530d45f64e6174c991d713f35754b7571263b66da9be6f50b954a545599`. Both actual GitHub `expires_at`: `2026-11-15T19:48:20Z` (7 days).
+
+### Status
+
+- P1.8 bounded archive source fetch / shallow-checkout defect: **PASS — fixed and verified in two consecutive successful workflow runs**.
+- P1.8 synthetic generation, independent Sigstore verification, retention manifest, and append-only Git evidence archive: **PASS** for the two recorded source SHAs above.
+- Retention boundary remains explicit: Git history plus 7-day Actions artifacts; `NOT_WORM`; no WORM or external long-term archive is claimed.
+- Current branch HEAD after run #128 archive commit: `fbc558d039f9f7a4c05aadb030b6f13bd86a4d1b`. No merge performed.
+- No T0 runtime, VPS, DB, Feeder, ingestion, or trading execution was changed. `AI_EXECUTION_ENABLED=false` remains enforced.
+
+### Next step
+
+- Continue to the next approved P1.8/P1.9 evidence requirement; do not expand retention guarantees or enable runtime operations without a separate decision.
