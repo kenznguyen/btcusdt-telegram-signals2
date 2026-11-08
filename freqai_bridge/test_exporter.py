@@ -9,8 +9,6 @@ import pandas as pd
 from freqai_bridge.exporter import TARGET, make_prediction, read_context, write_artifact
 from freqai_bridge.context import canonical_context
 from pipeline.values import identity
-from market_data.store import Candle, CandleStore, read_window
-from market_data.test_support import seed_candles
 
 
 
@@ -38,10 +36,22 @@ class FreqaiExporterTest(unittest.TestCase):
         self.path = Path(self.temp.name)
         self.opened = 1_800_000_000_000
         self.now = self.opened+900_000+3000
-        database = self.path / "candles.sqlite3"
-        CandleStore(database)
-        seed_candles(database, [Candle("15m", self.opened, "100", "102", "99", "101", "3", self.now-1000)])
-        self.window = read_window(database, "BTCUSDT", "15m", self.opened, self.opened+900_000)
+        candle = {
+            "exchange": "binance", "marketType": "USDT_PERPETUAL", "symbol": "BTCUSDT",
+            "timeframe": "15m", "openTimeMs": self.opened, "closeTimeMs": self.opened+900_000,
+            "open": "100", "high": "102", "low": "99", "close": "101", "volume": "3",
+            "isClosed": True, "availableAtMs": self.now-1000,
+            "availabilityKind": "FIRST_OBSERVED", "quality": "VALIDATED", "source": "ccxt.binanceusdm",
+        }
+        payload = {
+            "exchange": "binance", "marketType": "USDT_PERPETUAL", "symbol": "BTCUSDT",
+            "timeframe": "15m", "startMs": self.opened, "endMs": self.opened+900_000,
+            "asOfMs": None, "candles": [candle],
+        }
+        self.window = payload | {
+            "datasetVersion": identity("sha256:", payload),
+            "coverage": {"expected": 1, "returned": 1, "complete": True, "gaps": []},
+        }
         self.frame = pd.DataFrame({"date": [pd.Timestamp(self.opened, unit="ms", tz="UTC")],
             "open": [100.0], "high": [102.0], "low": [99.0], "close": [101.0], "volume": [3.0],
             TARGET: [0.004], "do_predict": [1]})
