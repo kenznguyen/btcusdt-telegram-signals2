@@ -293,10 +293,10 @@ def integration(db_path, event_path):
 def main():
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="mode", required=True)
-    for mode in ("feeder", "api"):
+    for mode in ("feeder", "api", "integration"):
         child = sub.add_parser(mode)
         child.add_argument("--events", required=True)
-        if mode == "feeder":
+        if mode in ("feeder", "integration"):
             child.add_argument("--db", required=True)
     args = parser.parse_args()
 
@@ -304,6 +304,9 @@ def main():
         return feeder_process(args.db, args.events)
     if args.mode == "api":
         return api_process(args.events)
+    if args.mode == "integration":
+        integration(args.db, args.events)
+        return 0
     return 2
 
 
