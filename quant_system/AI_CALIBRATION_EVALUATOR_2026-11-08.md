@@ -83,3 +83,16 @@ Do not convert this evaluator's accepted result directly into a leverage attesta
 - OOS split and source provenance authenticity: NOT VERIFIED.
 - Leverage attestation integration: NOT IMPLEMENTED.
 - Runtime: DISABLED.
+
+
+## Approved gate implementation verification — 2026-11-08
+
+- User-approved thresholds: ECE `0.05`; total OOS minimum `1,000`; per LONG/SHORT × regime minimum `200`; strict Brier improvement over same-sample climatology.
+- Factory `approved_calibration_gate_policy(*, ece_bins, required_regimes)` fixes those thresholds and rejects missing/invalid bin count or regime taxonomy. Neither is defaulted.
+- Code/test source commit: `f4be0101380abe41b1c9d304815981d261d33e65`.
+- PR run [42458576895](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458576895): job `128662736759` SUCCESS.
+- Follow-up PR run [42458607712](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458607712): PR head `55508e19617fc6cf7c0bf8c43090ae5f10b9fbdf`; merge checkout `401805e544800a0d12b72359931b75ccf6458124`; job `128662828359` SUCCESS.
+- Exact follow-up test counts: evaluator 16/16; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. Total **113/113 PASS**; py_compile PASS.
+- Artifact ID `13608826508`, digest `sha256:1898863091dcf09606d9d017d90e35a5366a8b763a44bc11a7173406fe68def1`.
+- Verification is PR merge-context, not direct-head push evidence.
+- Actual BTCUSDT OOS calibration, provenance authenticity and leverage attestation remain NOT VERIFIED / NOT ISSUED.
