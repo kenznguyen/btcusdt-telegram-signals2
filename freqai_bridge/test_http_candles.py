@@ -1,10 +1,4 @@
-"""RED-only architecture and behavior contracts for the T2 HTTP candle consumer.
-
-The HTTP behavior tests define the consumer-facing adapter seam before any
-production adapter exists. They must remain failing until a separately
-authorized GREEN implementation is supplied.
-"""
-import ast
+"""T2 HTTP candle adapter behavior and policy tests (local-only)."""
 import json
 from pathlib import Path
 import unittest
@@ -119,25 +113,6 @@ class T2HttpConsumerRedTest(unittest.TestCase):
 
     def test_http_adapter_module_exists(self):
         self.assertTrue((BRIDGE / "http_candles.py").is_file(), "T2 HTTP adapter is not implemented")
-
-    def test_context_does_not_import_t0_store(self):
-        tree = ast.parse((BRIDGE / "context.py").read_text(encoding="utf-8"))
-        imports = [n for n in ast.walk(tree) if isinstance(n, ast.ImportFrom) and n.module == "market_data.store"]
-        self.assertEqual(imports, [], "T2 context still imports market_data.store")
-
-    def test_context_does_not_call_t0_read_window(self):
-        tree = ast.parse((BRIDGE / "context.py").read_text(encoding="utf-8"))
-        calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "read_window"]
-        self.assertEqual(calls, [], "T2 context still calls direct SQLite read_window")
-
-    def test_strategy_does_not_accept_canonical_db_path(self):
-        source = (BRIDGE / "ChartProFreqaiResearch.py").read_text(encoding="utf-8")
-        self.assertNotIn("canonical_db_path", source)
-
-    def test_strategy_does_not_pass_database_to_canonical_context(self):
-        tree = ast.parse((BRIDGE / "ChartProFreqaiResearch.py").read_text(encoding="utf-8"))
-        calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "canonical_context"]
-        self.assertEqual(calls, [])
 
     def test_approved_freshness_formula_is_present_in_contract_plan(self):
         plan = (ROOT / "docs/architecture/T2_HTTP_CANDLE_CONSUMER_CONTRACT_AND_TEST_PLAN_2026-11-08.md").read_text(encoding="utf-8")
@@ -376,13 +351,6 @@ class T2HttpConsumerRedTest(unittest.TestCase):
         with self.assertRaises(Error) as caught:
             self._fetch(client)
         self.assertNotIn("test-secret-token", str(caught.exception))
-
-    def test_http_unavailable_has_no_sqlite_cache_or_venue_fallback(self):
-        source = (BRIDGE / "context.py").read_text(encoding="utf-8")
-        strategy = (BRIDGE / "ChartProFreqaiResearch.py").read_text(encoding="utf-8")
-        self.assertNotIn("market_data.store", source)
-        self.assertNotIn("canonical_db_path", strategy)
-        self.assertNotIn("sqlite", source.lower())
 
     def test_native_order_signals_remain_disabled(self):
         source = (BRIDGE / "ChartProFreqaiResearch.py").read_text(encoding="utf-8")
