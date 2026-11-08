@@ -85,9 +85,12 @@ class AIDynamicLeveragePolicy:
                 or type(calibration.leakage_free) is not bool or not calibration.leakage_free):
             return "CALIBRATION_VALIDATION_INVALID"
 
-        if (not _SHA256.fullmatch(calibration.report_sha256 or "")
-                or not _SHA256.fullmatch(calibration.protocol_sha256 or "")
-                or not _DATASET_VERSION.fullmatch(calibration.dataset_version or "")):
+        if (not isinstance(calibration.report_sha256, str)
+                or not _SHA256.fullmatch(calibration.report_sha256)
+                or not isinstance(calibration.protocol_sha256, str)
+                or not _SHA256.fullmatch(calibration.protocol_sha256)
+                or not isinstance(calibration.dataset_version, str)
+                or not _DATASET_VERSION.fullmatch(calibration.dataset_version)):
             return "CALIBRATION_PROVENANCE_INVALID"
         if (type(calibration.validated_at_ms) is not int
                 or type(calibration.expires_at_ms) is not int
