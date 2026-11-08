@@ -119,8 +119,10 @@ This is a passing ledger/risk-accounting slice, **not full Dual-Strategy executi
 1. **Gross exposure ceiling is not defined.** Engine calculates and reports gross notional exposure but does not invent a maximum. Set the intended gross exposure limit before combined paper use.
 2. **Collateral ceiling is provisional.** Available collateral is account equity minus gross recorded/pending margin, effectively preventing committed margin from exceeding 100% of supplied equity. Confirm this portfolio margin budget before combined paper use.
 3. **Signal coordinator integration is not implemented.** CORE and AI signal routes must use persistent `reserve_entry`/`reserve_dca` and consume through `record_reserved_entry`/`record_reserved_dca`. The `restore_position`/`restore_dca` methods are for reconciled restore only.
-4. **Kill Switch wiring is not integrated with a runtime control source.** The gate accepts the current boolean state; coordinator must supply an authoritative state.
-5. **Combined CORE + AI replay and T0/T1 runtime integration have not run.**
+4. **Legacy signal/paper route is incompatible and remains unchanged.** `quant_system/dual_strategy.py` still routes through `RiskSnapshot.max_positions`, and `_select` arbitrates CORE/AI into one selected signal (opposing directions are blocked). `quant_system/paper_bridge.py` still calculates stake from the legacy `StrategyRules().p.entry_margin_pct` and uses `PaperLedger`'s single signed net position. These do not implement independent CORE_LEDGER/AI_LEDGER with 1% margin and no fixed position-count cap. Do not treat the legacy `PaperSignalCoordinator` / `DualPaperBridge` path as integrated with the new `dual_ledger.py` module.
+5. **Signal coordinator and runtime Kill Switch wiring are not implemented.** The new risk API accepts a boolean Kill Switch state; the coordinator must supply an authoritative source.
+6. **Legacy Phase 2/Phase 3 regression tests were not run at the latest code SHA.** `quant_system/test_dual_strategy_phase2.py` and `quant_system/test_phase3_paper_bridge.py` remain NOT VERIFIED against this increment.
+7. **Combined CORE + AI replay and T0/T1 runtime integration have not run.**
 
 ## Status
 
@@ -133,7 +135,8 @@ This is a passing ledger/risk-accounting slice, **not full Dual-Strategy executi
 - Exact-head T0 adapter regression: **PASS**.
 - R22.2 isolated offline verification for code SHA `afa44c4bbab5a86040aadbeed219df7fe10a87cb`: **PASS (8/8)**.
 - Gross exposure policy threshold: **NOT DEFINED**.
-- Signal coordinator integration: **NOT IMPLEMENTED**.
+- New Dual-Strategy signal coordinator integration: **NOT IMPLEMENTED**.
+- Legacy Phase 2/Phase 3 tests at current SHA: **NOT VERIFIED**.
 - Combined paper replay: **NOT RUN**.
 - Production readiness: **NOT CERTIFIED**.
 
