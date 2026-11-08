@@ -7317,3 +7317,13 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Verdict: WAL Keeper startup lease-loss cleanup and exact-head CI regression **PASS**. This is isolated test/CI evidence only; it does not certify VPS deployment, live Feeder ownership, or canonical database operation.
 - No VPS deployment, process restart, canonical DB modification, retention operation, or live trading was performed. `ai_execution_enabled=false` remains unchanged.
 - Next: preserve current VPS runtime and DB. Any source synchronization, Feeder restart, or canonical DB operation requires separate explicit approval.
+
+
+## 2026-11-09 — Dataset Consumer Contract designed
+
+- Added `docs/architecture/DATASET_CONSUMER_CONTRACT.md`, design-only commit `2fc436829949754d25c2d9a8c0fec16191ab61ce`.
+- Defines immutable dataset/version pinning; consumer identity, ownership, purpose, and access scope; idempotent registration; ACK versus release semantics; exact-scope release; stale-consumer and orphan dependency handling; conflict/concurrency rules; T0–T4 expectations; reconciliation; and fail-closed behavior.
+- Explicitly prohibits timeout-based auto-release, treating ACK as deletion authorization, and relying on stale read models to prove absence of demand.
+- No API, schema, registry, service, scheduler, identity system, retention value, archive, vacuum, or deletion behavior is implemented or activated. No real data lifecycle action is authorized.
+- Verification: consumer contract fetched at commit `2fc436829949754d25c2d9a8c0fec16191ab61ce`, blob `5f614992db2694b00c446924a84b56c1963d81dd`, 20,477 characters; acceptance criteria present and status explicitly NOT IMPLEMENTED / NOT ACTIVE. Branch comparison from parent `9ae2eeae4ece3d657781b68e96b6f4509cd95f24` to this commit: 1 commit ahead, 0 behind, only the new contract file changed. No CI/test run; no artifact.
+- Next: design `DATA_DELETION_SAFETY_CONTRACT.md` separately. Do not implement or activate a deletion executor, retention scheduler, archive, vacuum, or cleanup path without separate approval.
