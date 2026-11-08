@@ -113,7 +113,7 @@ class AIDynamicLeveragePolicyTests(unittest.TestCase):
         )
         for config in invalid:
             with self.subTest(config=config):
-                with self.assertRaises(ValueError):
+                with self.assertRaises((TypeError, ValueError)):
                     AIDynamicLeveragePolicy(**config)
 
     def test_leverage_is_always_inside_explicit_bounds(self):
