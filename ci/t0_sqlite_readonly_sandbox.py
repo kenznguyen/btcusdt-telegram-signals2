@@ -239,6 +239,25 @@ def main() -> None:
             expect_success=wal_after_heartbeat and shm_after_heartbeat,
         )
 
+        # Evaluate a candidate persistent WAL-keeper connection owned by the
+        # Feeder process. It must keep the WAL/SHM sidecars available between
+        # short-lived write_batch()/lease-heartbeat connections.
+        keeper = sqlite3.connect(gateway_db, timeout=5, isolation_level=None)
+        try:
+            keeper.execute("PRAGMA journal_mode=WAL")
+            keeper.execute("SELECT COUNT(*) FROM candles").fetchone()
+            wal_keeper = Path(str(gateway_db) + "-wal").is_file()
+            shm_keeper = Path(str(gateway_db) + "-shm").is_file()
+            print(f"T0_WAL_KEEPER_WAL_EXISTS={wal_keeper}")
+            print(f"T0_WAL_KEEPER_SHM_EXISTS={shm_keeper}")
+            assert wal_keeper and shm_keeper, "persistent keeper did not establish WAL/SHM sidecars"
+            _run_readonly_service(
+                gateway_db, 1, "actual-feeder-with-persistent-wal-keeper",
+                expect_success=True,
+            )
+        finally:
+            keeper.close()
+
     print("T0_SYSTEMD_READONLY_WAL_COLD_START_GUARD=PASS")
     print("T0_SYSTEMD_READONLY_WAL_SANDBOX=PASS")
     print("T0_ACTUAL_WRITE_GATEWAY_LIFECYCLE=TESTED")
