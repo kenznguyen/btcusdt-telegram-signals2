@@ -14,7 +14,9 @@ from pathlib import Path
 REPOSITORY = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY))
 
-from market_data.store import INTERVAL_MS, read_window
+from market_data.feeder import LeaseStore
+from market_data.store import Candle, CandleStore, INTERVAL_MS, read_window
+from market_data.write_gateway import SQLiteWriteGateway
 
 STEP = INTERVAL_MS["15m"]
 
@@ -193,8 +195,53 @@ def main() -> None:
         finally:
             restarted_writer.close()
 
+    # Model the actual production SQLiteWriteGateway lifecycle. Unlike the
+    # persistent writer above, write_batch opens and closes its own connection.
+    with tempfile.TemporaryDirectory(prefix="t0-real-feeder-writer-") as temporary:
+        gateway_db = Path(temporary) / "canonical.sqlite3"
+        store = CandleStore(gateway_db)
+        leases = LeaseStore(str(gateway_db))
+        lease = leases.acquire("feeder-probe", 1_800_000_000_000, 60)
+        assert lease is not None
+        gateway = SQLiteWriteGateway(
+            store=store,
+            lease_store=leases,
+            owner_id="feeder-probe",
+            generation_provider=lambda: lease.generation,
+            clock=lambda: 1_800_000_000_001,
+        )
+        gateway.write_batch([Candle(
+            timeframe="15m",
+            open_time_ms=1_800_000_000_000,
+            open="100", high="102", low="99", close="101",
+            volume="5", available_at_ms=1_800_000_900_000,
+        )])
+        wal_exists = Path(str(gateway_db) + "-wal").is_file()
+        shm_exists = Path(str(gateway_db) + "-shm").is_file()
+        print(f"T0_ACTUAL_WRITE_GATEWAY_WAL_EXISTS={wal_exists}")
+        print(f"T0_ACTUAL_WRITE_GATEWAY_SHM_EXISTS={shm_exists}")
+        _run_readonly_service(
+            gateway_db, 1, "actual-write-gateway-after-close",
+            expect_success=wal_exists and shm_exists,
+        )
+        # Lease heartbeat is another short-lived writer connection in the
+        # current Feeder implementation. Check the sidecar lifecycle again.
+        leases.heartbeat(
+            "feeder-probe", lease.generation,
+            now_ms=1_800_000_000_002, ttl_seconds=60,
+        )
+        wal_after_heartbeat = Path(str(gateway_db) + "-wal").is_file()
+        shm_after_heartbeat = Path(str(gateway_db) + "-shm").is_file()
+        print(f"T0_ACTUAL_FEEDER_HEARTBEAT_WAL_EXISTS={wal_after_heartbeat}")
+        print(f"T0_ACTUAL_FEEDER_HEARTBEAT_SHM_EXISTS={shm_after_heartbeat}")
+        _run_readonly_service(
+            gateway_db, 1, "actual-feeder-after-heartbeat",
+            expect_success=wal_after_heartbeat and shm_after_heartbeat,
+        )
+
     print("T0_SYSTEMD_READONLY_WAL_COLD_START_GUARD=PASS")
     print("T0_SYSTEMD_READONLY_WAL_SANDBOX=PASS")
+    print("T0_ACTUAL_WRITE_GATEWAY_LIFECYCLE=TESTED")
     print("T0_DISPOSABLE_ONLY=PASS")
 
 
