@@ -123,3 +123,35 @@ No runtime or T0 runtime changes. No artifact was produced by runs 198 or 200; a
 - Status: **FINDING RECORDED / NOT FIXED / NOT VERIFIED BY TEST**. No code or test changed in this increment. The prior CI PASS at `ed126fa8...` remains valid only for the tests it ran; it does not resolve this lifecycle gap.
 - No collector execution, Binance/VPS runtime, T0 action, live order, PR merge, or PR draft-state transition.
 - Next: obtain authorization for a narrowly scoped offline regression test that reproduces early remote close/transport error with an outstanding Ping, then implement the smallest explicit resolution contract and verify through GitHub Actions on the existing PR branch.
+
+
+## 2026-11-08 — T1 Sidecar early-disconnect heartbeat resolution — CLOSED
+
+### Scope and implementation
+- Authorized scope: deterministic offline regression test + minimal Sidecar lifecycle correction on the existing T1 PR branch only.
+- T1 repo/branch: `kenznguyen/binance-futures-collector` / `feature/t1-connection-sidecar-integration-20261107`.
+- Test-first sequence:
+  - `12e5dfc46e003b6b1b7a0f0d8e3e659d2f4c8c53`: add early-close regression for `REMOTE_CLOSE` and `TRANSPORT_ERROR`.
+  - `38f7226e30ecbcb86905f834db3c88e5a518091d`: rustfmt-only correction before behavioral RED.
+  - RED confirmed in push run #207 `42450442409`: Collector Format/Clippy/Build/workspace tests passed; Sidecar writer format/Clippy passed; Sidecar offline test failed exactly at `resolves_outstanding_ping_when_socket_closes_before_timeout`, 26 passed / 1 failed. The failure was the expected `InvalidInput: cannot disconnect while heartbeat Pings remain unanswered`.
+- Implementation:
+  - `a4a7d46b89a0e3ae380d8b56a0f5fc8cea6166e1`: add `PING_ABANDONED` for each outstanding heartbeat when a socket closes, preserving the actual disconnect reason and avoiding fabricated `PING_TIMEOUT`; deterministic heartbeat-ID ordering; README contract update in `6411be38e89a4185f2c3116920882b2a62ffbbee`.
+  - An intermediate Clippy run identified `explicit_counter_loop`; final correction uses `enumerate()` and makes the writer terminal if the disconnect event fails after abandonment events were persisted.
+  - Final source/PR head SHA: `8f73459d7f1f0736f211c92b98ea9d7d6cc89df5`.
+- Regression behavior now verified for both early `REMOTE_CLOSE` and `TRANSPORT_ERROR`: each outstanding Ping receives `PING_ABANDONED` with the real reason, then `DISCONNECTED`; reconnect scheduling and session finalization succeed; no `PING_TIMEOUT` is fabricated.
+
+### Exact-source CI evidence
+- PR CI run #214: [42450737104](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42450737104), **SUCCESS 5/5 jobs**, exact PR head `8f73459d7f1f0736f211c92b98ea9d7d6cc89df5`, base `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Collector job: Format, Clippy, Build, workspace tests, Sidecar format, Sidecar Clippy, Sidecar offline tests all PASS.
+- Test counts: Collector library 43/43; Collector binary 1/1; Sidecar unit tests 9/9; Sidecar integration tests 27/27. Regression `resolves_outstanding_ping_when_socket_closes_before_timeout` PASS.
+- Dashboard backend, dashboard frontend, Security audit, Docker build all PASS in PR CI #214.
+- Push CI run #213: [42450733372](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42450733372), exact head SHA `8f73459d7f1f0736f211c92b98ea9d7d6cc89df5`. Collector, dashboard backend/frontend, Docker jobs PASS; Security job was still in progress at the time of this record. PR CI #214 is the complete 5/5 result.
+- Linux artifact from push run #213: ID `13605197747`; name `t1-collector-linux-x86_64-8f73459d7f1f0736f211c92b98ea9d7d6cc89df5`; size 4,186,964 bytes; GitHub metadata SHA-256 `a5aa11cac5c63436e5c365700081157acfe23808d63639cc407673cd7108a311`. Metadata only; payload has not been independently downloaded/rehashed in this increment.
+
+### Verdict and limits
+- Verdict: **PASS** — heartbeat lifecycle regression fixed and exact-head PR CI #214 5/5 PASS.
+- This validates the Sidecar offline reference crate only. README continues to state that the crate is not integrated into the upstream collector.
+- Runtime heartbeat behavior, real WebSocket close/reconnect handling, hostile-filesystem behavior, and deployed/VPS behavior remain **NOT VERIFIED**.
+- No collector execution, Binance connection, VPS deployment, database access, T0 changes, live orders, PR merge, or PR draft-state change.
+- PR #1 remains **OPEN / DRAFT / NOT MERGED**.
+- Next: continue a bounded offline review of Sidecar validation/event lifecycle invariants on the same PR branch; no runtime integration/deployment without separate authorization.
