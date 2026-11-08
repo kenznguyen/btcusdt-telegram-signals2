@@ -71,3 +71,44 @@ Therefore a passing result is **signed manifest + artifact-byte integrity + decl
 - Calibration attestation: NOT ISSUED.
 - Leverage authorization or runtime integration: NOT IMPLEMENTED.
 - AI execution remains disabled; no DB, T0/T1, exchange or execution runtime was touched.
+
+
+## Row-level OOS prediction verification — 2026-11-08
+
+### Added contract
+
+The signed `predictions` artifact is now required to be UTF-8 JSONL. Each row must contain exactly:
+- `prediction_timestamp_ms`
+- `outcome_available_at_ms`
+- `outcome` (integer 0 or 1)
+- `confidence` (finite decimal in [0, 1])
+- `side` (LONG or SHORT)
+- `regime` (non-empty string)
+- `model_version`
+- `dataset_version`
+
+The verifier rejects malformed/duplicate-key JSON rows, blank rows, empty files, prediction timestamps outside the signed OOS interval, outcome resolution at/before prediction time or after OOS end, and row-level model/dataset version mismatches. A malformed signed split is rejected before row-level timestamp access; it cannot raise a KeyError.
+
+This is a row-level chronology and lineage consistency check for prediction records. It does not independently prove the timestamps or outcomes against the original market dataset.
+
+### TDD evidence
+
+- New row-level test contracts were added before the final implementation.
+- RED run [42459595402](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459595402), source `b2a4ae69dbe1334f2ce36869e6c5c033253ac490`: 23 tests, failed as expected with `KeyError: 'oos_start_ms'` for a malformed signed split.
+- Final implementation commit/source SHA: `07e8212e4723cc913e4d0a3b196212f134a8a23e`.
+- Exact-source push run [42459618363](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459618363), job `128665883617`, SUCCESS. Checked-out SHA equals source SHA.
+- PR-context run [42459622326](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459622326), job `128665895716`, SUCCESS; synthetic merge checkout SHA `1a04c7abf0464de74c534d3f4de3690f0606e1b7`.
+- Exact suite counts: provenance validator 23/23; calibration evaluator 16/16; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. **136/136 test invocations PASS**; py_compile PASS.
+- Push artifact ID `13609465168`, name `t2-ai-intelligence-contracts-07e8212e4723cc913e4d0a3b196212f134a8a23e`, GitHub digest `sha256:e548da7a689ea9f0ee877d92f6baef6ffd849f08aeb4f453d2b4db1e37108b87`.
+- PR artifact ID `13608987960`, name `t2-ai-intelligence-contracts-1a04c7abf0464de74c534d3f4de3690f0606e1b7`, GitHub digest `sha256:1ced67485be007d95bdbdd2503e5f8303b707dd5d17604e21651d1ca562104b1`.
+- Both CI runs confirm `AI_EXECUTION_ENABLED=false`, database targets EMPTY, exchange credentials EMPTY.
+
+### Remaining boundaries
+
+- The signed `dataset` artifact is still opaque bytes; its individual candle rows and timestamps are not parsed or reconciled with prediction rows.
+- Prediction outcome labels are not independently recomputed from market prices.
+- The validator does not prove no feature/label leakage, no hyperparameter-selection leakage, or that the signed model actually generated the predictions.
+- Calibration report contents and evaluator `input_sha256`/`report_sha256` are not yet semantically reconciled to the prediction rows.
+- No real BTCUSDT model, dataset, predictions, split protocol or calibration report were supplied.
+- No production trust root or independent signer is provisioned.
+- Calibration attestation remains NOT ISSUED; AI leverage authorization and runtime integration remain NOT IMPLEMENTED.
