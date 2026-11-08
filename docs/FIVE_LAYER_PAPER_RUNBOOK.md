@@ -12,6 +12,17 @@ Không có endpoint đặt lệnh thật. Thiếu dữ liệu/model hợp lệ t
 | 3 | `paper_execution/` | Lệnh/vị thế/phí/PnL mô phỏng có lưu bền vững, pause/cancel và idempotency |
 | 4 | `control_dashboard/`, `pipeline/api.py` | React và API chung; quyền đọc và điều khiển paper tách riêng; APK dùng được endpoint Order Book chung |
 
+## Data ownership and lifecycle boundary — decision 2026-11-08
+
+The five-layer system uses a **Shared Data Foundation with Centralized Lifecycle Governance** (see [ADR](architecture/SHARED_DATA_FOUNDATION_LIFECYCLE_ADR_2026-11-08.md)).
+
+- T0 remains the canonical market-data producer and fenced writer boundary; it is not the sole logical owner or retention-policy authority for all system datasets.
+- T1–T4 consumers must use declared dataset identity/version and dependency metadata. Consumer reads or ACKs do not independently authorize payload deletion.
+- Raw-data retention is demand-based, including replay, model training/inference lineage, backtest, audit and recovery requirements. No retention durations are defined by this runbook.
+- No retention scheduler, archive process, vacuum policy or deletion execution is enabled or authorized by this documentation.
+- Keep CORE_LEDGER and AI_LEDGER separate; lifecycle metadata must not merge strategy-origin state or paper-accounting records.
+
+
 ## 1. Runtime và CI
 
 **GitHub chỉ lưu source/PR. Codemagic chạy kiểm thử/build** theo `codemagic.yaml`:
