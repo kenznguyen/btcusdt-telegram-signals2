@@ -52,7 +52,9 @@ class CandleHttpConfig:
     def __post_init__(self):
         if not isinstance(self.base_url, str) or not self.base_url.strip():
             raise CandleHttpError("CONFIG_INVALID")
-        if not isinstance(self.token, str) or not self.token.strip():
+        if (not isinstance(self.token, str) or not self.token
+                or len(self.token) > 4096
+                or not re.fullmatch(r"[A-Za-z0-9._~+/=-]+", self.token)):
             raise CandleHttpError("CONFIG_INVALID")
         if type(self.max_lag_ms) is not int or not 1 <= self.max_lag_ms <= 120_000:
             raise CandleHttpError("CONFIG_INVALID")
@@ -161,13 +163,19 @@ class CandleHttpClient:
                 media_type = content_type.split(";", 1)[0].strip().lower()
                 if media_type != "application/json":
                     raise CandleHttpError("CONTRACT_UNSUPPORTED")
+                content_encoding = response.headers.get("Content-Encoding", "identity").strip().lower()
+                if content_encoding not in ("", "identity"):
+                    raise CandleHttpError("CONTRACT_UNSUPPORTED")
                 content_length = response.headers.get("Content-Length")
                 if content_length is not None:
                     try:
-                        if int(content_length) > _MAX_BODY_BYTES:
-                            raise CandleHttpError("RESPONSE_TOO_LARGE")
+                        declared_length = int(content_length)
                     except ValueError:
                         raise CandleHttpError("CONTRACT_UNSUPPORTED") from None
+                    if declared_length < 0:
+                        raise CandleHttpError("CONTRACT_UNSUPPORTED")
+                    if declared_length > _MAX_BODY_BYTES:
+                        raise CandleHttpError("RESPONSE_TOO_LARGE")
                 body = bytearray()
                 for chunk in response.iter_content(chunk_size=8192):
                     if not chunk:
@@ -194,6 +202,8 @@ class CandleHttpClient:
                     reason = "HTTP_TIMEOUT" if isinstance(error, requests.exceptions.Timeout) else "HTTP_UNAVAILABLE"
                     raise CandleHttpError(reason) from None
                 self.sleep(_BACKOFF_SECONDS[attempt])
+            except requests.exceptions.RequestException:
+                raise CandleHttpError("HTTP_UNAVAILABLE") from None
             finally:
                 if response is not None:
                     response.close()
