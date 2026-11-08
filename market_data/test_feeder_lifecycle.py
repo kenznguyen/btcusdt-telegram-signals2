@@ -268,6 +268,11 @@ class RuntimeLifecycleTest(unittest.TestCase):
             FeederConfig(timeframes=("15m", "1h")),
             clock=lambda: clock_ms[0],
             sync_callback=sync,
+            coverage_reader=lambda frame, start, end: {
+                "startMs": start,
+                "endMs": end,
+                "coverage": {"complete": True, "gaps": []},
+            },
         )
         clock_ms[0] = NOW + 60 * 60 * 1000 + 5_000
         errors = []
@@ -318,6 +323,11 @@ class RuntimeLifecycleTest(unittest.TestCase):
                 FeederConfig(timeframes=("15m", "1h")),
                 clock=lambda: clock_ms[0],
                 sync_callback=sync,
+            coverage_reader=lambda frame, start, end: {
+                "startMs": start,
+                "endMs": end,
+                "coverage": {"complete": True, "gaps": []},
+            },
             )
             clock_ms[0] = NOW + 60 * 60 * 1000 + 5_000
             runtime = FeederRuntime(
@@ -461,6 +471,11 @@ class RuntimeLifecycleTest(unittest.TestCase):
                 FeederConfig(timeframes=("15m",)),
                 clock=lambda: NOW,
                 sync_callback=lambda *args: 0,
+                coverage_reader=lambda frame, start, end: {
+                    "startMs": start,
+                    "endMs": end,
+                    "coverage": {"complete": True, "gaps": []},
+                },
             )
             runtime = FeederRuntime(
                 config=scheduler.config,

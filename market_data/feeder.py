@@ -152,11 +152,14 @@ class SchedulerExecutionError(RuntimeError):
 class FeederScheduler:
     """UTC close-boundary scheduler with independent per-timeframe watermarks."""
 
-    def __init__(self, config, clock=None, sync_callback=None):
+    def __init__(self, config, clock=None, sync_callback=None,
+                 coverage_reader=None):
         if not isinstance(config, FeederConfig):
             raise TypeError("config must be FeederConfig")
         if not callable(sync_callback):
             raise TypeError("sync_callback must be callable")
+        if not callable(coverage_reader):
+            raise TypeError("coverage_reader must be callable")
         self.config = config
         self.clock = clock if clock is not None else (lambda: time.time_ns() // 1_000_000)
         if not callable(self.clock):
@@ -173,6 +176,8 @@ class FeederScheduler:
         }
         self._running = set()
         self.sync_callback = sync_callback
+        self.coverage_reader = coverage_reader
+        self.coverage_planner = RecoveryPlanner()
 
     def _now_ms(self):
         value = self.clock()
@@ -321,6 +326,15 @@ class FeederScheduler:
                     break
                 start_ms, end_ms = self.window_for(timeframe)
                 result = self.sync_callback(timeframe, start_ms, end_ms)
+                coverage = self.coverage_reader(
+                    timeframe, start_ms, end_ms
+                )
+                gaps = self.coverage_planner.plan(timeframe, coverage)
+                if gaps:
+                    raise RecoveryIncompleteError(
+                        f"Feeder sync left {len(gaps)} coverage gap(s) "
+                        f"for {timeframe}"
+                    )
                 self.mark_completed(timeframe, end_ms)
                 completed[timeframe] = result
             except Exception as error:

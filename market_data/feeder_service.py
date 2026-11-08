@@ -141,6 +141,9 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
     def canonical_sync(timeframe, start_ms, end_ms):
         return sync_window(exchange, write_gateway, timeframe, start_ms, end_ms, now_ms=clock_fn)
 
+    def coverage_reader(timeframe, start_ms, end_ms):
+        return store.read_window("BTCUSDT", timeframe, start_ms, end_ms)
+
     retry = RetryPolicy(
         max_attempts=config.retry_max_attempts,
         base_delay_seconds=config.retry_base_delay_seconds,
@@ -153,9 +156,7 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
             sync_callback=lambda frame, start, end: retry.execute(
                 lambda: canonical_sync(frame, start, end)
             ),
-            coverage_reader=lambda frame, start, end: store.read_window(
-                "BTCUSDT", frame, start, end
-            ),
+            coverage_reader=coverage_reader,
         )
     recovery = RecoveryAdapter(
         coordinators=coordinators,
@@ -167,6 +168,7 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
         config=config,
         clock=clock_fn,
         sync_callback=canonical_sync,
+        coverage_reader=coverage_reader,
     )
     runtime = FeederRuntime(
         config=config,

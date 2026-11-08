@@ -105,6 +105,11 @@ RUNTIME_WORKER = textwrap.dedent('''
         config,
         clock=lambda: now_ms,
         sync_callback=lambda timeframe, start_ms, end_ms: 0,
+        coverage_reader=lambda timeframe, start_ms, end_ms: {
+            "startMs": start_ms,
+            "endMs": end_ms,
+            "coverage": {"complete": True, "gaps": []},
+        },
     )
     runtime = FeederRuntime(
         config=config,
@@ -322,6 +327,11 @@ class FeederProcessRestartTest(unittest.TestCase):
                 config,
                 clock=lambda: restart_now,
                 sync_callback=lambda timeframe, start_ms, end_ms: 0,
+        coverage_reader=lambda timeframe, start_ms, end_ms: {
+            "startMs": start_ms,
+            "endMs": end_ms,
+            "coverage": {"complete": True, "gaps": []},
+        },
             )
             restarted = FeederRuntime(
                 config=config,

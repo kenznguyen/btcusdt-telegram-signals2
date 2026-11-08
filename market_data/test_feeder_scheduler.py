@@ -4,7 +4,8 @@ from unittest.mock import Mock
 
 from market_data.store import INTERVAL_MS, MAX_CANDLES
 from market_data.feeder import (
-    FeederConfig, FeederScheduler, SchedulerExecutionError,
+    FeederConfig, FeederScheduler, RecoveryIncompleteError,
+    SchedulerExecutionError,
 )
 
 M15 = INTERVAL_MS["15m"]
@@ -39,7 +40,12 @@ class SchedulerContractTest(unittest.TestCase):
         self.clock = FakeClock(BASE)
         self.sync = Mock()
         self.scheduler = FeederScheduler(
-            config=FeederConfig(), clock=self.clock, sync_callback=self.sync
+            config=FeederConfig(),
+            clock=self.clock,
+            sync_callback=self.sync,
+            coverage_reader=lambda frame, start, end: scheduler_coverage(
+                start, end
+            ),
         )
 
     def test_approved_poll_and_close_grace_defaults(self):
@@ -142,6 +148,138 @@ class SchedulerContractTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.scheduler.mark_completed("15m", BASE + M15 + 1)
 
+
+def scheduler_coverage(start_ms, end_ms, gaps=None):
+    return {
+        "startMs": start_ms,
+        "endMs": end_ms,
+        "coverage": {
+            "complete": not gaps,
+            "gaps": gaps or [],
+        },
+    }
+
+
+class SchedulerCoverageContractTest(unittest.TestCase):
+    def setUp(self):
+        self.clock = FakeClock(BASE)
+        self.sync = Mock()
+        self.coverage_reader = Mock()
+
+    def make_scheduler(self, timeframes=("15m",)):
+        current_time = self.clock.value
+        self.clock.value = BASE
+        try:
+            return FeederScheduler(
+                config=FeederConfig(timeframes=timeframes),
+                clock=self.clock,
+                sync_callback=self.sync,
+                coverage_reader=self.coverage_reader,
+            )
+        finally:
+            self.clock.value = current_time
+
+    def test_zero_insertions_with_complete_coverage_can_complete(self):
+        self.clock.value = BASE + M15 + 5_000
+        self.sync.return_value = 0
+        self.coverage_reader.return_value = scheduler_coverage(
+            BASE, BASE + M15
+        )
+        scheduler = self.make_scheduler()
+
+        result = scheduler.run_due()
+
+        self.assertEqual(result, {"15m": 0})
+        self.assertEqual(
+            scheduler.last_completed_end_ms["15m"], BASE + M15
+        )
+
+    def test_remaining_gap_never_advances_watermark(self):
+        self.clock.value = BASE + M15 + 5_000
+        self.sync.return_value = 0
+        self.coverage_reader.return_value = scheduler_coverage(
+            BASE, BASE + M15,
+            [{"startMs": BASE, "endMs": BASE + M15}],
+        )
+        scheduler = self.make_scheduler()
+
+        with self.assertRaises(SchedulerExecutionError) as raised:
+            scheduler.run_due()
+
+        self.assertEqual(
+            scheduler.last_completed_end_ms["15m"], BASE
+        )
+        self.assertNotIn("15m", scheduler.running_timeframes)
+        self.assertIsInstance(
+            raised.exception.failures["15m"], RecoveryIncompleteError
+        )
+
+    def test_coverage_reader_error_never_advances_watermark(self):
+        self.clock.value = BASE + M15 + 5_000
+        self.coverage_reader.side_effect = OSError("coverage unavailable")
+        scheduler = self.make_scheduler()
+
+        with self.assertRaises(SchedulerExecutionError):
+            scheduler.run_due()
+
+        self.assertEqual(
+            scheduler.last_completed_end_ms["15m"], BASE
+        )
+        self.assertNotIn("15m", scheduler.running_timeframes)
+
+    def test_incomplete_window_is_retried_on_next_poll(self):
+        self.clock.value = BASE + M15 + 5_000
+        self.sync.return_value = 0
+        self.coverage_reader.side_effect = [
+            scheduler_coverage(
+                BASE, BASE + M15,
+                [{"startMs": BASE, "endMs": BASE + M15}],
+            ),
+            scheduler_coverage(BASE, BASE + M15),
+        ]
+        scheduler = self.make_scheduler()
+
+        with self.assertRaises(SchedulerExecutionError):
+            scheduler.run_due()
+
+        self.assertEqual(
+            scheduler.last_completed_end_ms["15m"], BASE
+        )
+
+        result = scheduler.run_due()
+
+        self.assertEqual(result, {"15m": 0})
+        self.assertEqual(self.sync.call_count, 2)
+        self.assertEqual(
+            scheduler.last_completed_end_ms["15m"], BASE + M15
+        )
+
+    def test_m15_coverage_failure_does_not_block_h1_completion(self):
+        self.clock.value = BASE + H1 + 5_000
+        self.sync.return_value = 0
+
+        def read_coverage(frame, start_ms, end_ms):
+            if frame == "15m":
+                return scheduler_coverage(
+                    start_ms, end_ms,
+                    [{"startMs": start_ms, "endMs": end_ms}],
+                )
+            return scheduler_coverage(start_ms, end_ms)
+
+        self.coverage_reader.side_effect = read_coverage
+        scheduler = self.make_scheduler(("15m", "1h"))
+
+        with self.assertRaises(SchedulerExecutionError) as raised:
+            scheduler.run_due()
+
+        self.assertIn("15m", raised.exception.failures)
+        self.assertEqual(raised.exception.completed, {"1h": 0})
+        self.assertEqual(
+            scheduler.last_completed_end_ms["15m"], BASE
+        )
+        self.assertEqual(
+            scheduler.last_completed_end_ms["1h"], BASE + H1
+        )
 
 if __name__ == "__main__":
     unittest.main()
