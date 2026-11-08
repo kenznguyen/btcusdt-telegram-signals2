@@ -360,6 +360,90 @@ class RuntimeLifecycleTest(unittest.TestCase):
 
 
 
+    def test_wal_keeper_opens_after_lease_before_recovery_and_closes_after_release(self):
+        events = []
+        scheduler, leases, recovery, keeper = Mock(), Mock(), Mock(), Mock()
+        leases.acquire.side_effect = lambda *args, **kwargs: (
+            events.append("lease_acquired") or Mock(generation=31)
+        )
+        recovery.recover_all.side_effect = lambda: (
+            events.append("recovery_completed") or True
+        )
+        keeper.open.side_effect = lambda: events.append("wal_keeper_open")
+        keeper.close.side_effect = lambda: events.append("wal_keeper_close")
+        scheduler.stop.side_effect = lambda: events.append("scheduler_stopped")
+        scheduler.wait_for_idle.side_effect = lambda timeout=None: (
+            events.append("writers_drained") or True
+        )
+        leases.release.side_effect = lambda owner, generation: (
+            events.append("lease_released") or True
+        )
+        runtime = FeederRuntime(
+            config=FeederConfig(), scheduler=scheduler, lease_store=leases,
+            recovery=recovery, owner_id="wal-worker", wal_keeper=keeper,
+        )
+
+        self.assertTrue(runtime.start(now_ms=NOW))
+        self.assertLess(events.index("lease_acquired"), events.index("wal_keeper_open"))
+        self.assertLess(events.index("wal_keeper_open"), events.index("recovery_completed"))
+        runtime.stop()
+        self.assertLess(events.index("writers_drained"), events.index("lease_released"))
+        self.assertLess(events.index("lease_released"), events.index("wal_keeper_close"))
+
+    def test_wal_keeper_start_failure_fails_closed_and_releases_lease(self):
+        scheduler, leases, recovery, keeper = Mock(), Mock(), Mock(), Mock()
+        leases.acquire.return_value = Mock(generation=32)
+        keeper.open.side_effect = OSError("cannot establish WAL keeper")
+        runtime = FeederRuntime(
+            config=FeederConfig(), scheduler=scheduler, lease_store=leases,
+            recovery=recovery, owner_id="wal-worker-fail", wal_keeper=keeper,
+        )
+
+        with self.assertRaisesRegex(OSError, "cannot establish WAL keeper"):
+            runtime.start(now_ms=NOW)
+
+        self.assertEqual(runtime.state, "FAILED")
+        recovery.recover_all.assert_not_called()
+        scheduler.start.assert_not_called()
+        scheduler.stop.assert_called_once()
+        scheduler.wait_for_idle.assert_called_once()
+        leases.release.assert_called_once_with("wal-worker-fail", 32)
+        keeper.close.assert_called_once()
+
+    def test_wal_keeper_remains_open_when_shutdown_drain_times_out(self):
+        scheduler, leases, keeper = Mock(), Mock(), Mock()
+        scheduler.wait_for_idle.return_value = False
+        runtime = FeederRuntime(
+            config=FeederConfig(), scheduler=scheduler, lease_store=leases,
+            owner_id="wal-worker-drain", wal_keeper=keeper,
+        )
+        runtime.lease_generation = 33
+
+        with self.assertRaises(TimeoutError):
+            runtime.stop(timeout=0)
+
+        leases.release.assert_not_called()
+        keeper.close.assert_not_called()
+
+    def test_wal_keeper_closes_after_incomplete_recovery_releases_lease(self):
+        events = []
+        scheduler, leases, recovery, keeper = Mock(), Mock(), Mock(), Mock()
+        leases.acquire.return_value = Mock(generation=34)
+        recovery.recover_all.return_value = False
+        leases.release.side_effect = lambda owner, generation: (
+            events.append("lease_released") or True
+        )
+        keeper.close.side_effect = lambda: events.append("wal_keeper_closed")
+        runtime = FeederRuntime(
+            config=FeederConfig(), scheduler=scheduler, lease_store=leases,
+            recovery=recovery, owner_id="wal-worker-recovery", wal_keeper=keeper,
+        )
+
+        self.assertFalse(runtime.start(now_ms=NOW))
+        self.assertEqual(events, ["lease_released", "wal_keeper_closed"])
+        scheduler.start.assert_not_called()
+
+
 class RuntimeIntegrationContractTest(unittest.TestCase):
     def test_recovery_adapter_recovers_each_configured_timeframe(self):
         calls = []
