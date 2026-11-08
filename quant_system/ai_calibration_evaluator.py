@@ -36,6 +36,7 @@ class CalibrationEvaluation:
     group_count: int
     metrics: dict
     report_sha256: str
+    input_sha256: str
     trade_authorized: bool = False
     attestation_issued: bool = False
 
@@ -188,18 +189,42 @@ class CalibrationEvaluator:
         if not metrics["overall"]["brier_beats_reference"]:
             reasons.append("BRIER_NOT_BETTER_THAN_BASELINE:overall")
 
+        canonical_rows = [
+            {
+                "outcome": outcome,
+                "confidence": format(confidence, "f"),
+                "side": side,
+                "regime": regime,
+            }
+            for outcome, confidence, side, regime in normalized
+        ]
+        input_payload = json.dumps(
+            canonical_rows, sort_keys=True, separators=(",", ":"), allow_nan=False
+        )
+        input_sha256 = hashlib.sha256(input_payload.encode("utf-8")).hexdigest()
+        policy_payload = {
+            "max_ece": format(_finite_decimal(policy.max_ece), "f"),
+            "min_total_samples": policy.min_total_samples,
+            "min_group_samples": policy.min_group_samples,
+            "ece_bins": policy.ece_bins,
+            "required_regimes": list(policy.required_regimes),
+        }
         return self._report(
-            not reasons, sorted(set(reasons)), len(normalized), len(grouped), metrics
+            not reasons, sorted(set(reasons)), len(normalized), len(grouped), metrics,
+            input_sha256=input_sha256, policy_payload=policy_payload,
         )
 
     @staticmethod
-    def _report(accepted, reasons, sample_count, group_count, metrics):
+    def _report(accepted, reasons, sample_count, group_count, metrics,
+                *, input_sha256="", policy_payload=None):
         payload = {
             "accepted": bool(accepted),
             "reasons": list(reasons),
             "sample_count": sample_count,
             "group_count": group_count,
             "metrics": metrics,
+            "input_sha256": input_sha256,
+            "policy": policy_payload,
             "trade_authorized": False,
             "attestation_issued": False,
         }
@@ -212,4 +237,5 @@ class CalibrationEvaluator:
             group_count=group_count,
             metrics=metrics,
             report_sha256=digest,
+            input_sha256=input_sha256,
         )
