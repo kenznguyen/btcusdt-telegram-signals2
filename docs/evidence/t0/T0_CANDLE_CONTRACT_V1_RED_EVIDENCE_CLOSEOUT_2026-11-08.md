@@ -62,3 +62,19 @@ The assertion `self.assertEqual(candle["volume"], "2.50")` is not supported by t
 The corrected RED baseline is now established at exact SHA `9f5b9f12473ef5e25aa0caadf68c5230f3de2bb8`: 10 passed, 3 expected errors. The next code step is to implement the additive Contract v1 response envelope under TDD GREEN on this same branch, but the contract design explicitly requires corresponding user authorization before code changes.
 
 Do not change storage precision semantics, create a PostgreSQL migration, run Data Quality Gate, activate T1/T2 runtime, or modify the production Feeder as part of this closeout.
+
+
+## 2026-11-08 — T0 Candle Contract v1 API implementation (GREEN verification pending)
+
+- Authorized scope: additive API response envelope/freshness only, on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`.
+- Exact implementation commit: `42fda132bf06edcf2cb5f5d3ea415fc3e7a47fc1` — `feat(t0): add versioned candle API envelope`.
+- Changed source: `market_data/api.py`; blob SHA `e7db052605e449a7ba1e5d1da3b622822cd82b80`.
+- Implementation adds `contractVersion=1.0.0`, `schemaVersion=1`, `volumeUnit=BTC_BASE_ASSET`, dataset-level `source=ccxt.binanceusdm`, and the freshness object (latest expected/returned candle, close/availability times, observation age, close lag, evaluable flag).
+- Public API window cap is now an independent `MAX_API_CANDLES=2000`; Store and write/sync limits are unchanged.
+- Existing route, GET-only behavior, Bearer authentication, response errors, Store, DB, and Feeder code are unchanged.
+- TDD RED baseline remains exact test SHA `9f5b9f12473ef5e25aa0caadf68c5230f3de2bb8`: 13 tests, 10 passed, 3 expected errors, as supplied by the user.
+- **GREEN tests: NOT RUN / NOT VERIFIED.** No claim that the focused or full suite passes. The combined commit status currently exposes no checks; exact-head GitHub Actions run/job/log/artifact is **NOT VERIFIED**.
+- Independent code review: additive-only diff confirmed; no Store or runtime changes. Runtime/API behavior remains unverified until tests execute.
+- Verdict: **IMPLEMENTED / NOT VERIFIED** (not PASS).
+- Next step: execute `python3 -m unittest market_data.test_api -v` on exact SHA `42fda132bf06edcf2cb5f5d3ea415fc3e7a47fc1`, then run the repository's full relevant test suite and capture exact GitHub Actions evidence where available. Fix only demonstrated failures on this branch.
+- Restrictions: no T2 HTTP client/FreqAI migration in this increment; no T0 DB, Feeder, VPS, exchange, Data Quality Gate, T1/T2 runtime, deployment, promotion, or live execution. Keep `ai_execution_enabled=false`.
