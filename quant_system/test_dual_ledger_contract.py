@@ -22,6 +22,25 @@ class DualLedgerContractTest(unittest.TestCase):
         self.ai = StrategyLedger(self.db, strategy_id="AI", initial_equity="10000")
         self.risk = SharedRiskEngine()
 
+
+    def test_entry_margin_uses_combined_core_and_ai_equity(self):
+        self.core.apply_realized_pnl(pnl="500", fees="0")
+        self.ai.apply_realized_pnl(pnl="1500", fees="0")
+        decision = self.risk.admit_entry(
+            account_equity="22000", core_snapshot=self.core.snapshot(),
+            ai_snapshot=self.ai.snapshot(), data_fresh=True, state_reconciled=True,
+        )
+        self.assertTrue(decision.accepted)
+        self.assertEqual(decision.required_margin, Decimal("220"))
+
+    def test_risk_rejects_strategy_only_equity_when_portfolio_equity_is_higher(self):
+        decision = self.risk.admit_entry(
+            account_equity="10000", core_snapshot=self.core.snapshot(),
+            ai_snapshot=self.ai.snapshot(), data_fresh=True, state_reconciled=True,
+        )
+        self.assertFalse(decision.accepted)
+        self.assertEqual(decision.reason, "ACCOUNT_EQUITY_MISMATCH")
+
     def test_core_and_ai_positions_are_isolated_in_one_persistent_store(self):
         self.core.restore_position("core-1", side="LONG", quantity="0.01",
                                entry_price="100000", margin_used="100")
@@ -66,21 +85,21 @@ class DualLedgerContractTest(unittest.TestCase):
         empty_core = self.core.snapshot()
         empty_ai = self.ai.snapshot()
         entry = self.risk.admit_entry(
-            account_equity="10000", core_snapshot=empty_core,
+            account_equity="20000", core_snapshot=empty_core,
             ai_snapshot=empty_ai, data_fresh=True, state_reconciled=True,
         )
         self.assertTrue(entry.accepted)
-        self.assertEqual(entry.required_margin, Decimal("100"))
+        self.assertEqual(entry.required_margin, Decimal("200"))
 
         self.core.restore_position("core-1", side="LONG", quantity="0.01",
                                entry_price="100000", margin_used=str(entry.required_margin))
         dca = self.risk.admit_dca(
-            account_equity="11000", position_id="core-1",
+            account_equity="20000", position_id="core-1",
             core_snapshot=self.core.snapshot(), ai_snapshot=self.ai.snapshot(),
             data_fresh=True, state_reconciled=True,
         )
         self.assertTrue(dca.accepted)
-        self.assertEqual(dca.required_margin, Decimal("110"))
+        self.assertEqual(dca.required_margin, Decimal("200"))
 
     def test_shared_risk_counts_gross_margin_without_offsetting_opposite_sides(self):
         self.core.restore_position("core-long", side="LONG", quantity="0.01",
@@ -88,18 +107,18 @@ class DualLedgerContractTest(unittest.TestCase):
         self.ai.restore_position("ai-short", side="SHORT", quantity="0.01",
                              entry_price="100000", margin_used="100")
         decision = self.risk.admit_entry(
-            account_equity="10000", core_snapshot=self.core.snapshot(),
+            account_equity="20000", core_snapshot=self.core.snapshot(),
             ai_snapshot=self.ai.snapshot(), data_fresh=True, state_reconciled=True,
         )
         self.assertEqual(decision.gross_margin_used, Decimal("200"))
         self.assertEqual(decision.gross_exposure, Decimal("2000"))
-        self.assertEqual(decision.required_margin, Decimal("100"))
+        self.assertEqual(decision.required_margin, Decimal("200"))
         self.assertTrue(decision.accepted)
 
     def test_no_fixed_position_count_cap_when_shared_risk_budget_allows_entries(self):
         for index in range(12):
             decision = self.risk.admit_entry(
-                account_equity="10000", core_snapshot=self.core.snapshot(),
+                account_equity="20000", core_snapshot=self.core.snapshot(),
                 ai_snapshot=self.ai.snapshot(), data_fresh=True, state_reconciled=True,
             )
             self.assertTrue(decision.accepted, f"entry {index} unexpectedly blocked")
@@ -111,7 +130,7 @@ class DualLedgerContractTest(unittest.TestCase):
 
     def test_kill_switch_blocks_entries_and_dca_but_allows_reductions(self):
         entry = self.risk.admit_entry(
-            account_equity="10000", core_snapshot=self.core.snapshot(),
+            account_equity="20000", core_snapshot=self.core.snapshot(),
             ai_snapshot=self.ai.snapshot(), data_fresh=True,
             state_reconciled=True, kill_switch=True,
         )
@@ -121,7 +140,7 @@ class DualLedgerContractTest(unittest.TestCase):
         self.core.restore_position("core-1", side="LONG", quantity="0.01",
                                entry_price="100000", margin_used="100")
         dca = self.risk.admit_dca(
-            account_equity="10000", position_id="core-1",
+            account_equity="20000", position_id="core-1",
             core_snapshot=self.core.snapshot(), ai_snapshot=self.ai.snapshot(),
             data_fresh=True, state_reconciled=True, kill_switch=True,
         )
@@ -136,11 +155,11 @@ class DualLedgerContractTest(unittest.TestCase):
 
     def test_stale_data_and_unreconciled_state_fail_closed(self):
         stale = self.risk.admit_entry(
-            account_equity="10000", core_snapshot=self.core.snapshot(),
+            account_equity="20000", core_snapshot=self.core.snapshot(),
             ai_snapshot=self.ai.snapshot(), data_fresh=False, state_reconciled=True,
         )
         unreconciled = self.risk.admit_entry(
-            account_equity="10000", core_snapshot=self.core.snapshot(),
+            account_equity="20000", core_snapshot=self.core.snapshot(),
             ai_snapshot=self.ai.snapshot(), data_fresh=True, state_reconciled=False,
         )
         self.assertFalse(stale.accepted)
@@ -150,19 +169,19 @@ class DualLedgerContractTest(unittest.TestCase):
 
     def test_shared_gross_margin_must_leave_one_percent_for_next_admission(self):
         self.core.restore_position("core-heavy", side="LONG", quantity="1",
-                               entry_price="100000", margin_used="9950")
+                               entry_price="100000", margin_used="19900")
         decision = self.risk.admit_entry(
-            account_equity="10000", core_snapshot=self.core.snapshot(),
+            account_equity="20000", core_snapshot=self.core.snapshot(),
             ai_snapshot=self.ai.snapshot(), data_fresh=True, state_reconciled=True,
         )
         self.assertFalse(decision.accepted)
         self.assertEqual(decision.reason, "INSUFFICIENT_MARGIN")
-        self.assertEqual(decision.gross_margin_used, Decimal("9950"))
+        self.assertEqual(decision.gross_margin_used, Decimal("19900"))
         self.assertEqual(decision.required_margin, Decimal("100"))
 
     def test_dca_rejects_missing_or_ambiguous_position_identity(self):
         missing = self.risk.admit_dca(
-            account_equity="10000", position_id="missing",
+            account_equity="20000", position_id="missing",
             core_snapshot=self.core.snapshot(), ai_snapshot=self.ai.snapshot(),
             data_fresh=True, state_reconciled=True,
         )
@@ -174,7 +193,7 @@ class DualLedgerContractTest(unittest.TestCase):
         self.ai.restore_position("shared-id", side="SHORT", quantity="0.01",
                              entry_price="100000", margin_used="100")
         ambiguous = self.risk.admit_dca(
-            account_equity="10000", position_id="shared-id",
+            account_equity="20000", position_id="shared-id",
             core_snapshot=self.core.snapshot(), ai_snapshot=self.ai.snapshot(),
             data_fresh=True, state_reconciled=True,
         )
@@ -184,14 +203,14 @@ class DualLedgerContractTest(unittest.TestCase):
 
     def test_competing_core_and_ai_reservations_are_serialized_against_shared_collateral(self):
         self.core.restore_position("core-heavy", side="LONG", quantity="1",
-                               entry_price="100000", margin_used="9850")
+                               entry_price="100000", margin_used="19750")
         core_engine = SharedRiskEngine(self.db)
         ai_engine = SharedRiskEngine(self.db)
 
         def reserve(engine, strategy_id, reservation_id):
             return engine.reserve_entry(
                 reservation_id=reservation_id, strategy_id=strategy_id,
-                position_id=f"{strategy_id.lower()}-new", account_equity="10000",
+                position_id=f"{strategy_id.lower()}-new", account_equity="20000",
                 notional_exposure="1000", data_fresh=True, state_reconciled=True,
             )
 
@@ -211,7 +230,7 @@ class DualLedgerContractTest(unittest.TestCase):
         engine = SharedRiskEngine(self.db)
         decision = engine.reserve_entry(
             reservation_id="entry-core-1", strategy_id="CORE",
-            position_id="core-reserved-1", account_equity="10000",
+            position_id="core-reserved-1", account_equity="20000",
             notional_exposure="1000", data_fresh=True, state_reconciled=True,
         )
         self.assertTrue(decision.accepted)
@@ -235,7 +254,7 @@ class DualLedgerContractTest(unittest.TestCase):
         engine = SharedRiskEngine(self.db)
         decision = engine.reserve_dca(
             reservation_id="dca-core-1", strategy_id="CORE",
-            position_id="core-1", account_equity="10000",
+            position_id="core-1", account_equity="20000",
             notional_exposure="1000", data_fresh=True, state_reconciled=True,
         )
         self.assertTrue(decision.accepted)
@@ -256,12 +275,12 @@ class DualLedgerContractTest(unittest.TestCase):
         engine = SharedRiskEngine(self.db)
         first = engine.reserve_entry(
             reservation_id="duplicate-id", strategy_id="CORE",
-            position_id="core-1", account_equity="10000",
+            position_id="core-1", account_equity="20000",
             notional_exposure="1000", data_fresh=True, state_reconciled=True,
         )
         second = engine.reserve_entry(
             reservation_id="duplicate-id", strategy_id="AI",
-            position_id="ai-1", account_equity="10000",
+            position_id="ai-1", account_equity="20000",
             notional_exposure="1000", data_fresh=True, state_reconciled=True,
         )
         self.assertTrue(first.accepted)
@@ -273,7 +292,7 @@ class DualLedgerContractTest(unittest.TestCase):
         engine = SharedRiskEngine(self.db)
         decision = engine.reserve_entry(
             reservation_id="entry-limited", strategy_id="CORE",
-            position_id="core-limited", account_equity="10000",
+            position_id="core-limited", account_equity="20000",
             notional_exposure="500", data_fresh=True, state_reconciled=True,
         )
         self.assertTrue(decision.accepted)
@@ -295,7 +314,7 @@ class DualLedgerContractTest(unittest.TestCase):
         engine = SharedRiskEngine(self.db)
         decision = engine.reserve_dca(
             reservation_id="dca-limited", strategy_id="CORE",
-            position_id="core-1", account_equity="10000",
+            position_id="core-1", account_equity="20000",
             notional_exposure="500", data_fresh=True, state_reconciled=True,
         )
         self.assertTrue(decision.accepted)
@@ -318,13 +337,13 @@ class DualLedgerContractTest(unittest.TestCase):
         engine = SharedRiskEngine(self.db)
         first = engine.reserve_entry(
             reservation_id="orphaned-reservation", strategy_id="AI",
-            position_id="ai-pending-1", account_equity="10000",
+            position_id="ai-pending-1", account_equity="20000",
             notional_exposure="1000", data_fresh=True, state_reconciled=True,
         )
         self.assertTrue(first.accepted)
         blocked = engine.reserve_entry(
             reservation_id="blocked-while-pending", strategy_id="AI",
-            position_id="ai-pending-2", account_equity="10000",
+            position_id="ai-pending-2", account_equity="20000",
             notional_exposure="1000", data_fresh=True, state_reconciled=True,
         )
         self.assertFalse(blocked.accepted)
@@ -338,7 +357,7 @@ class DualLedgerContractTest(unittest.TestCase):
         )
         released = engine.reserve_entry(
             reservation_id="after-reconciliation", strategy_id="AI",
-            position_id="ai-pending-2", account_equity="10000",
+            position_id="ai-pending-2", account_equity="20000",
             notional_exposure="1000", data_fresh=True, state_reconciled=True,
         )
         self.assertTrue(released.accepted)
