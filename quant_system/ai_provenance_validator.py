@@ -74,8 +74,14 @@ def _validate_prediction_rows(predictions, manifest):
     if not isinstance(predictions, bytes) or not predictions:
         return ("PREDICTIONS_EMPTY",)
 
-    split = manifest["temporal_split"]
+    split = manifest.get("temporal_split")
+    if (not isinstance(split, Mapping)
+            or set(split) != _REQUIRED_SPLIT_KEYS):
+        return ("TEMPORAL_SPLIT_INVALID",)
     start_ms, end_ms = split["oos_start_ms"], split["oos_end_ms"]
+    if (type(start_ms) is not int or type(end_ms) is not int
+            or start_ms <= 0 or end_ms < start_ms):
+        return ("TEMPORAL_SPLIT_INVALID",)
     expected_model = manifest["model_version"]
     expected_dataset = manifest["dataset_version"]
     required = {
