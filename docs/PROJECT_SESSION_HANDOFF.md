@@ -6510,3 +6510,16 @@ Documentation-only closeout is complete for this increment. If further assurance
 - GitHub combined status has no entries and commit workflow-run lookup returned no runs for this SHA; Actions evidence/artifacts **NOT VERIFIED**.
 - Next step: execute the repository's full relevant regression suite at the same source SHA and capture output; then reconcile with exact-head CI evidence if available.
 - Limits: no T2 HTTP/FreqAI migration, no T0 DB/Feeder/VPS/runtime/Data Quality Gate, no consumer activation, deployment, or live execution. Keep `ai_execution_enabled=false`.
+
+
+## 2026-11-08 — T0 Candle Contract v1 full local regression PASS
+
+- Existing branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Tested source SHA: `e317b7dc02363db0600737a89442dd918559af3c`; user verified `git rev-parse HEAD` and clean detached status (`## HEAD (no branch)`).
+- Focused API module: `python3 -m unittest market_data.test_api -v` — **13/13 PASS**, 0 failures/errors, 0.268s.
+- Repository-wide local suite: `python3 -m unittest discover -q` — **404 tests, OK, EXIT_CODE=0**, 24.530s (user-provided Termux output).
+- Evidence report: `docs/evidence/t0/T0_CANDLE_CONTRACT_V1_RED_EVIDENCE_CLOSEOUT_2026-11-08.md`; update commit `e98df2a65b1ceb4e0072a4141a39b652b1eb5d0c`.
+- GitHub combined status for source SHA had no status entries; commit workflow-run lookup returned no runs. Exact-head GitHub Actions run/job/log/artifact: **NOT VERIFIED / NOT RECORDED**. Local test PASS must not be represented as CI PASS.
+- Status: **LOCAL UNITTEST SUITE PASS** for exact source SHA `e317b7d...`; **overall Contract v1 release NOT VERIFIED**. Independent review and T2 HTTP consumer conformance remain outstanding. T2 direct SQLite access remains non-conformant with the approved architecture until separately migrated and tested.
+- Next: perform independent review of API contract implementation and test coverage; then propose a separately bounded T2 HTTP-client/FreqAI migration only if authorized. Do not activate consumer runtime.
+- Restrictions: no T0 DB/Feeder/VPS/runtime/Data Quality Gate changes; no T1/T2 runtime activation, deployment, promotion, or live execution. Keep `ai_execution_enabled=false`.
