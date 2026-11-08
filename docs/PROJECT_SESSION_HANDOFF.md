@@ -6830,3 +6830,14 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - In `market_data/api.py`, `/v1/candles` returns 503 `UNCONFIGURED` when `MARKET_DATA_TOKEN` is unset, before Authorization comparison. Once the server token is configured, absent/invalid Authorization returns 401 `UNAUTHORIZED`. A valid token may still return 503 `STORE_UNAVAILABLE` if the backing store is unavailable.
 - `/health` is handled before candle authentication and is liveness only; it is not readiness or proof of authentication.
 - Authentication probe matrix now conditions 401 expectations on server-side token configuration and distinguishes auth from store availability. No live request was made.
+
+
+### VPS listener inventory — operator evidence (2026-11-08 11:22:57 UTC)
+
+- Host `btcquant-t0-t1-test-01`; operator supplied read-only output.
+- Listening sockets: SSH TCP/22 and loopback resolver only; no TCP/80, TCP/443, TCP/8788.
+- No matching running nginx/caddy/apache/traefik/market/feeder/docker services; no Nginx/Caddy config summary entries; no Docker containers listed.
+- Conclusion limited to this VPS and observation time: no active T0 API listener or HTTPS front door observed. This does not establish whether API is hosted elsewhere or whether stopped local service definitions/code exist.
+- Evidence appended to `docs/evidence/t2/T2_LIVE_T0_ENDPOINT_OFFLINE_READINESS_AUDIT_2026-11-08.md`. No network request, service action, secret read, DB access, VPS change, or T2 activation.
+- Next: read-only inventory of local checkout directories, stopped service definitions and process names only; exclude env/secret/private-key contents.
+- Endpoint status **BLOCKED / NOT ESTABLISHED**; live verification **NOT RUN**; T2 **NOT ACTIVATED**; `ai_execution_enabled=false`.
