@@ -193,3 +193,31 @@ The aggregate dataset fingerprint is SHA-256 over canonical compact sorted-key U
 - Calibration attestation: NOT ISSUED; AI leverage authorization: NOT ISSUED; runtime integration: NOT IMPLEMENTED.
 - No T0/T1 DB, feeder, exchange, paper or live execution touched.
 - `AI_EXECUTION_ENABLED=false`; PR #95 remains OPEN / DRAFT / NOT MERGED.
+
+## Prediction decision-time / M15-H1 feature cutoff contract — 2026-11-08
+
+### Contract
+- prediction_timestamp_ms is the UTC millisecond instant when the AI decision/prediction is emitted.
+- Every prediction JSONL row requires feature_cutoffs with exactly 15m and 1h.
+- Each timeframe cutoff contains exactly open_time_ms, close_time_ms (exclusive interval end), and available_at_ms.
+- Validator resolves open_time_ms against the corresponding signed bundle snapshot, then requires exact close/availability timestamp equality with the candle, isClosed=true, availabilityKind=FIRST_OBSERVED, and quality=VALIDATED.
+- Each referenced candle must have available_at_ms <= prediction_timestamp_ms; absent, malformed, mismatched, future-available or invalid candles fail closed.
+- This checks declared feature cutoff provenance. It does not prove that model code actually consumed only those rows or that hidden feature leakage is absent.
+
+### TDD and CI evidence
+- RED test source b78f2196bccac918149554570fb768ff5bbdc92f; run [42461459462](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42461459462), 38 tests, failed on the missing-cutoff contract before the final reason-code correction. Earlier fixture-only RED runs 42461316512 and 42461427335 are intermediate evidence, not acceptance evidence.
+- Implementation source SHA d9765fa786e89d756d059450f149383dc9067636.
+- Exact-source push CI [42461490366](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42461490366), job 128671530214, SUCCESS; checked_out_sha equals source SHA.
+- PR-context CI [42461493744](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42461493744), job 128671540217, SUCCESS; synthetic merge checkout SHA c1c15faeb7f59f7808fc7ee3268c23f87570ed9f. This is not direct-head evidence.
+- Exact-source counts: provenance validator 38/38; calibration evaluator 16/16; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. Total 151/151 test invocations PASS; py_compile PASS.
+- Push artifact ID 13610265789, digest sha256:aec77528404c6a93f238fa8ae26ddc0ba85998b752c874510cf22aba62e0a9ba.
+- PR artifact ID 13609946638, digest sha256:2c119f87e8950c72239223a174763e246a66e4e2fa7b756f06bae0e6998cce20.
+- CI preflight confirms AI_EXECUTION_ENABLED=false, database targets EMPTY and exchange credentials EMPTY.
+
+### Status / boundaries
+- Decision-time definition and per-row M15/H1 cutoff contract: IMPLEMENTED.
+- Exact cutoff-to-candle reference and availability checks: PASS on synthetic fixtures.
+- Actual BTCUSDT OOS model/dataset/predictions: NOT PROVIDED / NOT VERIFIED.
+- Actual inference feature consumption, hidden leakage, outcome label truth, price basis and label horizon: NOT VERIFIED / NOT IMPLEMENTED.
+- Calibration attestation and AI leverage authorization: NOT ISSUED; runtime integration: NOT IMPLEMENTED.
+- No T0/T1 DB, feeder, exchange, paper or live runtime touched. PR #95 remains OPEN / DRAFT / NOT MERGED.
