@@ -4,8 +4,8 @@
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
-- Latest verified code/test SHA: `9492b8bc5a2d3da45a3662dc4eba7ece28fe7c7c`.
-- Latest GREEN evidence commit before this handoff update: `47971e85402aebd55ce3174b2e3617ff5b3c154c`.
+- Latest verified code/test SHA: `34c6b41246b5eb580f7d6085c62e25b7a35c3160`.
+- Latest GREEN evidence commit before this handoff update: `a654dcb83e8d0ed83264821b5cdd9e660af46214`.
 - PR #95: OPEN / DRAFT / NOT MERGED.
 - PR base: `feature/dual-strategy-phase22-frozen-reproducibility-20261031` at `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
 - No new branch or PR was created.
@@ -14,6 +14,9 @@
 ## Changed files
 
 - `quant_system/dual_ledger.py` — independent ledgers, atomic shared reservations, gross exposure, cancellation/reconciliation, reduction accounting.
+- `quant_system/dual_signal_coordinator.py` — independent CORE/AI ENTRY/DCA intent routing through the shared risk reservations; paper-only, no exchange orders.
+- `quant_system/test_dual_signal_coordinator.py` — 8 coordinator contract tests.
+- `.github/workflows/t2-dual-signal-coordinator.yml` — offline coordinator, dual-ledger and legacy regression gate.
 - `quant_system/test_dual_ledger_contract.py` — 21 focused tests.
 - `.github/workflows/t2-dual-ledger-contract.yml` — T2 dual-ledger gate.
 - `.github/workflows/t2-legacy-paper-regression.yml` — legacy Phase 2/3 and PaperLedger regression gate.
@@ -102,6 +105,17 @@ The user selected combined portfolio equity as the 1% margin basis. The implemen
 - GitHub upload digest: `7b07fa372063b022fe14c43a8152a1adce3042e01d9f2c8a78bc5642ebae5150`.
 - Artifact payload bytes have not been independently downloaded and re-hashed.
 
+## Dual-Strategy coordinator increment
+
+- Coordinator contract RED run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455777252 — run ID `42455777252`, source SHA `c0c793689b06abe3f7261f618652b0e7e535d54b`; expected import failure because module did not exist. Only the unittest loader error ran; no behavioral methods executed.
+- Implementation commit: `78bf5b8b8b620dde7bd6f093ad197db4a9b22219`.
+- Final workflow commit and exact tested source SHA: `34c6b41246b5eb580f7d6085c62e25b7a35c3160`.
+- GREEN run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455858929 — run ID `42455858929`, push event, SUCCESS; job `128654599899`.
+- Tests on exact source: coordinator 8/8, dual-ledger 23/23, legacy Phase 2 20/20, Phase 3 11/11, PaperLedger 18/18; **70/70 total PASS**.
+- Offline preflight: `AI_EXECUTION_ENABLED=false`; database targets and Binance/OKX credentials empty. No artifact produced.
+- Opposing CORE LONG and AI SHORT are admitted independently when shared risk permits; each position is persisted to its own ledger. Single-source signals also route independently. ENTRY/DCA use combined portfolio equity and 1% shared reservations. DCA side mismatch is rejected. Kill Switch blocks increases while reductions remain available.
+- This is an offline coordinator slice only. It does not yet call `core_signal` / `ai_signal` itself or connect to the legacy `paper_bridge.py` / Freqtrade runtime.
+
 ## Current verdict
 
 - Independent CORE/AI ledger accounting and combined-equity sizing: PASS (23/23).
@@ -113,7 +127,7 @@ The user selected combined portfolio equity as the 1% margin basis. The implemen
 - Exact-head T0 adapter regression: PASS (10/10).
 - R22.2 isolated offline runtime probe: PASS (8/8).
 - Gross exposure ceiling: NOT DEFINED.
-- Signal coordinator integration: NOT IMPLEMENTED.
+- Offline independent signal coordinator: PASS (8/8); runtime/paper-bridge integration: NOT IMPLEMENTED.
 - Combined CORE + AI paper replay: NOT RUN.
 - T0/T1 runtime integration: NOT RUN.
 - Production readiness: NOT CERTIFIED.
@@ -135,8 +149,8 @@ The old Phase 2/3 path remains regression-tested, but is not compatible with the
 
 ## Remaining required work before combined paper use
 
-1. Build a new signal coordinator that preserves `core_signal` / `ai_signal` provenance but emits independent CORE and AI intents; do not reuse `_select` conflict arbitration.
-2. Route every entry/DCA through persistent shared reservations and matching ledger writes.
+1. Connect the coordinator to `core_signal` and validated `ai_signal` producers while preserving provenance; do not reuse `_select` conflict arbitration.
+2. Add a paper-only adapter that feeds explicit order sizing into the coordinator and persists matching ledger writes; do not use legacy `PaperLedger` netting.
 3. Replace the legacy fixed-position / 50%-margin gate in the paper path; preserve Strategy Core RSI/ADX/Smart DCA signal rules and separate execution sizing from strategy predicates.
 4. Combined portfolio equity is CONFIRMED as the 1% margin basis; preserve independent ledger equity accounting.
 5. Define the gross notional exposure ceiling and confirm the portfolio margin budget (current collateral logic uses a 100% account-equity collateral guard).
@@ -155,4 +169,4 @@ The old Phase 2/3 path remains regression-tested, but is not compatible with the
 
 ## Next step
 
-Implement the Dual-Strategy signal coordinator and route both Core and AI signals through the persistent shared-risk reservation API. Obtain the gross-exposure ceiling and confirm the margin budget before combined paper replay.
+Integrate the offline coordinator with the existing closed-candle CORE and validated FreqAI signal producers, then define AI sizing/leverage, gross-notional exposure ceiling, and authoritative Kill Switch source. Only after these are explicit, implement the paper-only execution adapter and isolated/combined backtests. No paper runtime yet.
