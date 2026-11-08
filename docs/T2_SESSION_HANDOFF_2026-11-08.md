@@ -178,3 +178,27 @@ The old Phase 2/3 path remains regression-tested, but is not compatible with the
 ## Next step
 
 Define AI sizing/leverage, gross-notional exposure ceiling, and authoritative Kill Switch source. Then connect generated candidates to a paper-only execution adapter that accepts explicit sizing, preserves independent ledgers, and never uses legacy `_select` or `PaperLedger` netting. Follow with isolated CORE/AI backtests and combined portfolio replay. No paper runtime yet.
+
+
+## AI dynamic leverage decision — 2026-11-08
+
+User decision:
+
+- AI leverage is dynamic and must vary according to the model's calibrated confidence.
+- AI leverage must have explicit configured `min_leverage` and `max_leverage` bounds.
+- AI leverage requires a separate validation/acceptance gate; Strategy Core leverage or Core validation evidence must not be reused as a substitute.
+- AI leverage is independent of the legacy Core 13x setting. No Core leverage default may leak into the AI path.
+- Any missing/invalid bounds, unvalidated calibration artifact, invalid/out-of-domain confidence, or calculated leverage outside the configured interval must fail closed and reject AI ENTRY/DCA.
+- A leverage decision may only affect AI order sizing/gross exposure. Every resulting intent remains subject to the shared risk engine, combined-equity 1% margin reservation, gross exposure accounting, Kill Switch and reconciliation gates.
+- `AI_EXECUTION_ENABLED=false`; this decision does not authorize live execution or paper-runtime activation.
+
+Not yet specified by the user and therefore deliberately NOT defaulted:
+
+1. Numeric `min_leverage` and `max_leverage` values.
+2. The confidence-to-leverage mapping function (for example, linear interpolation versus a calibrated lookup/policy curve).
+3. Calibration acceptance thresholds and minimum validation sample size (e.g. ECE/Brier limits, coverage, regime slices).
+4. Whether leverage is recalculated only on new signal admission or also on subsequent DCA admissions; any recalculation must not retroactively change existing position leverage.
+
+Implementation gate: build a sizing-agnostic AI leverage policy contract with explicit required configuration and fail-closed validation only after mapping and calibration acceptance criteria are specified. Do not infer numerical limits or claim calibration validity from model confidence alone.
+
+Status: POLICY DIRECTION CONFIRMED; NUMERIC BOUNDS / MAPPING / CALIBRATION ACCEPTANCE CRITERIA BLOCKED ON USER SPECIFICATION. No code, runtime, T0 or T1 behavior changed in this increment.
