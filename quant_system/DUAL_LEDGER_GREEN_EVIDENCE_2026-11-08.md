@@ -147,13 +147,16 @@ Implementation contract:
 - RED run ID `42455777252`, source SHA `c0c793689b06abe3f7261f618652b0e7e535d54b`, expected failure because `quant_system.dual_signal_coordinator` did not exist. The loader ran one failed import test; the eight behavioral methods did not execute.
 - Coordinator implementation commit: `78bf5b8b8b620dde7bd6f093ad197db4a9b22219`.
 - Final coordinator workflow commit: `34c6b41246b5eb580f7d6085c62e25b7a35c3160`.
-- Exact source SHA and PR head for the final verification: `34c6b41246b5eb580f7d6085c62e25b7a35c3160`.
+- Exact source SHA for the final direct-push and PR verification: `23e51529d88e338d488fb8d6808fc567b023f93e` (coordinator implementation unchanged from `78bf5b8b8b620dde7bd6f093ad197db4a9b22219`).
 - GREEN workflow: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455858929
 - Run ID `42455858929`, event `push`, conclusion SUCCESS; job `128654599899`.
 - Focused coordinator: 8/8 PASS.
 - Shared ledger contract: 23/23 PASS.
 - Legacy Phase 2: 20/20 PASS; Phase 3: 11/11 PASS; PaperLedger: 18/18 PASS.
 - Total: **70 tests PASS** on the exact source SHA.
+- Final direct-push run: `42455938655`, SUCCESS; exact source SHA `23e51529d88e338d488fb8d6808fc567b023f93e`; job `128654850985`.
+- Final PR run: `42455942259`, SUCCESS; exact PR head `23e51529d88e338d488fb8d6808fc567b023f93e`; job `128654862209`.
+- Final legacy regression run: `42455942275`, SUCCESS; exact PR head `23e51529d88e338d488fb8d6808fc567b023f93e`; job `128654862214`.
 - Offline boundary passed: `AI_EXECUTION_ENABLED=false`; DB targets and Binance/OKX credentials empty.
 - No artifact produced.
 - Coordinator accepts separately produced CORE and AI intents, preserves opposing directions, uses combined portfolio equity for each 1% admission, persists each entry/DCA reservation, and writes only to its matching ledger. It does not submit exchange orders.
