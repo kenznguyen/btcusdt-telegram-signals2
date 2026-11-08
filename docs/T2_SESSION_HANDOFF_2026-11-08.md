@@ -594,3 +594,17 @@ Implement semantic reconciliation between the signed prediction JSONL and the si
 - Status: contract and synthetic tests PASS; actual BTCUSDT OOS artifacts, actual model feature consumption, hidden leakage, label correctness, price basis and label horizon remain NOT VERIFIED / NOT IMPLEMENTED.
 - AI_EXECUTION_ENABLED=false; no T0/T1 DB/Feeder/exchange, paper/live runtime, attestation or AI leverage authorization. PR #95 OPEN / DRAFT / NOT MERGED.
 - Next: add adversarial cutoff tests for duplicate/ambiguous candle references and signed OOS-window boundaries, then consider temporal split-to-dataset row-level binding. Do not infer label horizon or outcome price basis.
+
+## OOS temporal boundary / leakage audit — 2026-11-08
+
+- Read-only audit report: `quant_system/T2_OOS_TEMPORAL_LEAKAGE_AUDIT_2026-11-08.md`.
+- Audit report commit: `647e4bf325bd227f125feb19651494ca5201e9e6`.
+- Audited current branch implementation `d9765fa786e89d756d059450f149383dc9067636`; branch HEAD before audit documentation was `f718e230be792c8933f66e5b03be101b28858c6e`.
+- Confirmed current checks: train_end < oos_start <= oos_end; predictions inside OOS window; exact M15/H1 feature candle reference and availability at decision time; outcome availability after prediction and within OOS end; signed bundle hashes/fingerprints.
+- BLOCKED: split_protocol artifact is only signature/hash/size verified and remains opaque. Training model artifact is also opaque. No actual BTCUSDT OOS data/model/split supplied.
+- Cannot define purge/embargo without label horizon and label fully-available semantics. Do not require all inference feature candles to predate OOS start: prior OOS candles can be valid causal features for walk-forward inference.
+- Prediction ordering/duplicate semantics remain undefined; no uniqueness rule added without stable row identity/cardinality contract.
+- No code or tests changed in this audit; semantic leakage certification is BLOCKED rather than guessed.
+- Required contract: canonical split_protocol schema, training sample/label timestamp semantics, label horizon or per-sample label-end/availability, price basis/candle boundary convention, purge/embargo policy, same-timestamp prediction identity/cardinality.
+- Next: inspect the actual training pipeline/model artifact production process to derive those fields, or obtain user-approved definitions if not represented in source. Then add RED tests for split mismatch, training-label overlap, purge/embargo and OOS boundary cases.
+- `AI_EXECUTION_ENABLED=false`; no T0/T1 DB/feeder/exchange, paper/live runtime, calibration attestation or AI leverage authorization. PR #95 OPEN / DRAFT / NOT MERGED.
