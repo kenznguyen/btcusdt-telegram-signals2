@@ -175,12 +175,12 @@ These are provisional functional classes. Sensitivity labels, retention floors, 
 
 ## 8. Scope boundary — experimental and future official environments
 
-The current VPS is an **experimental operations environment only**. It is explicitly excluded from any further dataset, filesystem, database, consumer, replica, backup, or storage inventory. No SSH connection, remote listing, database open/query, or other data collection from that environment is requested or authorized by this document.
+The current VPS is an **experimental operations environment only**. The user has revoked the prior blanket prohibition and permits a scoped read-only inventory of datasets, filesystem, databases, consumers, replicas, backups, and storage on this VPS. Any observations must be labeled EXPERIMENTAL and must not be promoted to official T0 evidence.
 
 The static repository inventory above is not a substitute for a production inventory and must not be represented as one. Historical experimental-environment observations remain historical context only; they are not evidence of current canonical T0 state or production readiness.
 
 A future official environment has not yet been designated. Until it is explicitly identified and its evidence scope is separately approved:
-- do not initiate runtime/storage inventory against the experimental VPS;
+- read-only runtime/storage inventory against the experimental VPS is permitted within the safeguards in [Environment and Evidence Boundary](ENVIRONMENT_EVIDENCE_BOUNDARY.md);
 - do not infer that experimental paths, volumes, data, processes, or provider choices define the official T0 deployment;
 - do not promote experimental results to official acceptance evidence;
 - do not assign retention, archive, backup-expiry, vacuum, cleanup, or deletion policy from this static baseline.
@@ -192,11 +192,11 @@ When an official environment is designated, its inventory must be separately sco
 - [x] Static repository source and documentation inventory completed for T0, T1, T2, paper state, and evidence domains.
 - [x] Source-defined objects distinguished from historical runtime evidence and design-only proposals.
 - [x] Unknown runtime presence, copies, consumers, and dependencies explicitly marked NOT VERIFIED.
-- [x] Current experimental VPS explicitly excluded from further data collection and inventory.
+- [x] Current experimental VPS classified as experimental; scoped read-only inventory is permitted under the environment boundary.
 - [x] No numeric retention period or cleanup policy assigned.
 - [x] No database, VPS, exchange, or runtime accessed for this documentation update.
 - [x] No source/schema/API/workflow/runtime or data lifecycle operation changed.
 
-**Status: STATIC REPOSITORY INVENTORY COMPLETE — EXPERIMENTAL VPS INVENTORY EXCLUDED — OFFICIAL ENVIRONMENT NOT DESIGNATED — NO LIFECYCLE ACTION AUTHORIZED.**
+**Status: STATIC REPOSITORY INVENTORY COMPLETE — EXPERIMENTAL VPS READ-ONLY INVENTORY PERMITTED — OFFICIAL ENVIRONMENT NOT DESIGNATED — NO MUTATION/LIFECYCLE ACTION AUTHORIZED.**
 
-Next: documentation-only environment/evidence boundary alignment. Do not collect data from the experimental VPS or infer official-environment state from it.
+Next: prepare and execute a bounded read-only inventory of the experimental VPS, preserving experimental evidence labels and redacting secrets. Do not infer official-environment state from it.
