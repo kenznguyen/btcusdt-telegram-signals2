@@ -31,9 +31,17 @@ The migration must remove this T0 Store import and the canonical DB path from th
 
 ## 3. Proposed module boundary
 
-Add a small T2-owned HTTP adapter (final module name to follow repository conventions) with two responsibilities:
+The RED test seam fixes the adapter module and public interface as `freqai_bridge.http_candles`:
 
-1. **Transport:** issue GET to configured base URL plus `/v1/candles`, send Bearer token only in the Authorization header, send `Cache-Control: no-store`, use HTTPS for cross-host requests, and enforce bounded connect/read timeouts, bounded retry policy, and maximum response-body bytes.
+- `CandleHttpConfig(base_url, token, max_lag_ms, ...)` validates required values and approved transport limits.
+- `CandleHttpClient(config, session=..., sleep=..., clock_ms=...)` provides deterministic transport/time injection for tests.
+- `CandleHttpClient.fetch(start_ms, end_ms, as_of_ms)` issues the request and returns the complete validated Contract v1 envelope as an in-memory dictionary.
+- `CandleHttpError` exposes a stable `.reason` category; its string representation must not contain the token, response body, or internal host details.
+- The injected session uses a Requests-compatible `get(url, params=..., headers=..., timeout=(3,5), stream=True, allow_redirects=False, verify=True)` interface. Response bodies are consumed incrementally and bounded before JSON decode.
+
+The adapter has two responsibilities:
+
+1. **Transport:** issue GET to configured base URL plus `/v1/candles`, send Bearer token only in the Authorization header, send `Cache-Control: no-store`, use HTTPS for cross-host requests, and enforce approved timeout/retry/body-size policy.
 2. **Validation:** treat the response as untrusted external input; parse and validate the entire envelope and every candle before returning a typed/normalized in-memory context.
 
 The adapter must not import `market_data.store`, open files/SQLite, write to T0, initialize schemas, or contact an exchange directly.
@@ -221,8 +229,8 @@ RED must be observed against the pre-implementation source. Do not label a test 
 | M15 freshness threshold | CONDITIONALLY APPROVED — 120000 ms, using first-observation ingestion delay formula below |
 | T2 HTTP client implementation | NOT AUTHORIZED — separate authorization required |
 | T2 direct SQLite removal | NOT STARTED |
-| Architecture RED baseline | CONFIRMED — 7 tests, 5 expected failures / 2 policy assertions pass; run 42467842637 at exact SHA `d8ba2e1cf7e7e23977dc5eb0bd6484ed1d1d4745` |
-| Full HTTP behavior RED suite (transport/schema/candle/freshness/no-fallback) | NOT IMPLEMENTED / NOT RUN |
+| Architecture RED baseline | CONFIRMED — 6 expected architecture failures; run 42468065621 at exact SHA `8bfc920a949c817fb6065657dda6663373bc2f25` |
+| HTTP behavior RED specification | AUTHORED — 28 adapter-dependent tests currently blocked by missing `freqai_bridge.http_candles`; behavior NOT VERIFIED |
 | GitHub Actions exact-SHA | NOT VERIFIED |
 | T2 runtime activation/deployment | NOT AUTHORIZED |
 
@@ -260,3 +268,13 @@ This plan defines the proposed implementation and acceptance criteria only. It d
 - Artifact ID `13612118332`; SHA-256 `39140a7a10cf3c723c67cab728784f836a6e89446cbf0c8c2e27618704d35de8`.
 - This is an architecture-gap baseline only. The detailed HTTP behavior cases in section 7 (auth, TLS, retry, timeout, body cap, response schema, identity, coverage, decimal/candle integrity, freshness boundaries, secret redaction and no-fallback) are not yet implemented as executable tests and remain NOT VERIFIED.
 - No production code, direct SQLite path, config, T0, Feeder, VPS or runtime changed. GREEN implementation remains NOT AUTHORIZED.
+
+
+## Expanded RED test specification — 2026-11-08
+
+- Test interface is now fixed for the RED/GREEN boundary: module `freqai_bridge.http_candles`; public types `CandleHttpConfig`, `CandleHttpClient`, `CandleHttpError`; client call `fetch(start_ms, end_ms, as_of_ms)`. Deterministic injection points are `session`, `sleep`, and `clock_ms`.
+- Test file expanded to 37 tests. Exact-SHA workflow run `42468065621`, checked-out SHA `8bfc920a949c817fb6065657dda6663373bc2f25`.
+- Observed: 37 tests, 6 architecture-gap assertion failures, 28 behavior tests blocked by missing adapter import, 3 assertions PASS, zero unexpected error types. The blocked tests are authored acceptance specifications; none of their client behaviors is yet verified.
+- Evidence report: `docs/evidence/t2/T2_HTTP_CONSUMER_RED_EXPANDED_2026-11-08.md`; artifact ID `13612630819`; SHA-256 `f0912b735532640803fff56374dffe0e24b48c15411f37828c9142eefdcc9dd1`.
+- Workflow conclusion PASS means the expected RED shape was validated. It does not mean the T2 HTTP client or its behavior passed.
+- Next RED-only task is to resolve any test-interface ambiguity and extend/run behavior-specific checks when a test-only seam is available. No production code or GREEN implementation is authorized by this approval.
