@@ -6990,3 +6990,23 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No canonical VPS database, Feeder, API service, systemd, filesystem permissions, secrets, firewall, DNS, proxy, or T2 runtime was accessed or changed. No live trading or exchange access.
 - Collateral T2 CI: run `42482866297` (`T2 Freqtrade 2026.9 Strategy Load Smoke`) exact same source SHA **SUCCESS**; artifact `t2-freqtrade-2026-9-strategy-smoke-8e7816927810e391b3960c404ab79449708cf318`, ID `13617907902`, SHA-256 `b05a90199801baea6af76cbb7a014558163ea29548b9374e5e141e340b9fa038`. This is a CI smoke test only, not T2 runtime activation.
 - Next: design a separate disposable Linux sandbox test for `ReadOnlyPaths` and WAL/SHM startup/restart lifecycle. Do not deploy or alter VPS state without separate approval.
+
+
+## 2026-11-08 — T0 systemd ReadOnlyPaths + SQLite WAL sandbox proof
+
+- Continued on existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch or PR.
+- Added disposable Linux probe `ci/t0_sqlite_readonly_sandbox.py` and isolated workflow `.github/workflows/t0-sqlite-readonly-sandbox.yml`. No production API, Feeder, or DB code was changed.
+- Probe creates a temporary SQLite database, keeps a WAL writer transaction open (WAL and SHM files present), then starts transient systemd services under the same UID as the database owner with `ReadOnlyPaths=<temporary-data-directory>` and `NoNewPrivileges=yes`.
+- First workflow attempt `42483255791` at SHA `bcbdd260b71d0fabcbc45b5f7bbec815d8ac5c16` failed before running the sandbox due to a Python import-path error (`ModuleNotFoundError: market_data`). This was a test-harness defect, not a WAL/systemd result.
+- Corrected repository-root import resolution. Fix commit / exact workflow SHA: `cb82588b9b1df668fdc67361b29ec65127c52568`; script blob SHA `0198d9cd0b593454a6cc4c3e2315cb1d044f7cd8`.
+- Exact GitHub Actions run `42483299972`: **SUCCESS**; job `Disposable SQLite WAL under systemd ReadOnlyPaths` (job ID `128739679880`) **PASS**. Evidence confirms:
+  - API `read_window()` reads the live WAL snapshot while the writer has an uncommitted row.
+  - API reader sees the committed row on a fresh service invocation after writer commit.
+  - A filesystem write under the data directory is denied.
+  - A normal SQLite write connection's UPDATE is denied.
+  - Feeder-equivalent writer can commit; final logical dataset remains unchanged except for its intended committed row.
+- Evidence artifact: `t0-systemd-readonly-sandbox-cb82588b9b1df668fdc67361b29ec65127c52568`, artifact ID `13618277622`, SHA-256 `d7b264f2707dccd6eb67c566003a394e1d87351d0424809495f3aad6343e7552`; [workflow run](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42483299972).
+- Combined with the previous exact-SHA test run `42482866310` (**SUCCESS**, 282 market_data tests / 42 skipped / OK), this proves SQLite `mode=ro` and the candidate systemd read-only mount can coexist with a live WAL writer on a disposable GitHub Linux runner.
+- Limits: this does not prove the actual VPS kernel/systemd version, API Gunicorn unit, API startup when WAL/SHM are absent, restart ordering against the real Feeder, or live endpoint readiness. No VPS/systemd/service/permissions were touched.
+- Status: SQLite read-only mutation rejection **PASS**; WAL concurrent reader/writer **PASS**; disposable systemd `ReadOnlyPaths` isolation **PASS**; cold-start without WAL/SHM **NOT VERIFIED**; production service definition **NOT CREATED**; API deployment **BLOCKED**; T2 runtime **NOT ACTIVATED**; `ai_execution_enabled=false`.
+- Next: add a cold-start lifecycle probe for the no-WAL/no-SHM state and define the required systemd ordering/condition against Feeder readiness. Only after that should a deployment unit be proposed for separate approval. Do not start API, restart Feeder, change VPS, or expose ports.
