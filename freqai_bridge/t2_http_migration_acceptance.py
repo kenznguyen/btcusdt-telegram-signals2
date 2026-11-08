@@ -23,7 +23,9 @@ class T2HttpMigrationAcceptanceTest(unittest.TestCase):
 
     def test_strategy_does_not_accept_canonical_db_path(self):
         source = (BRIDGE / "ChartProFreqaiResearch.py").read_text(encoding="utf-8")
+        config = (BRIDGE / "config.research.json").read_text(encoding="utf-8")
         self.assertNotIn("canonical_db_path", source)
+        self.assertNotIn("canonical_db_path", config)
 
     def test_strategy_calls_context_without_database_arguments(self):
         tree = ast.parse((BRIDGE / "ChartProFreqaiResearch.py").read_text(encoding="utf-8"))
