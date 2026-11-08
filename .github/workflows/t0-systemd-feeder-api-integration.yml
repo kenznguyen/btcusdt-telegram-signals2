@@ -1,0 +1,103 @@
+name: T0 Feeder API systemd Integration
+
+on:
+  push:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - "ci/t0_systemd_feeder_api_integration.py"
+      - "market_data/api.py"
+      - "market_data/feeder.py"
+      - "market_data/feeder_service.py"
+      - "market_data/store.py"
+      - "market_data/write_gateway.py"
+      - ".github/workflows/t0-systemd-feeder-api-integration.yml"
+  pull_request:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - "ci/t0_systemd_feeder_api_integration.py"
+      - "market_data/api.py"
+      - "market_data/feeder.py"
+      - "market_data/feeder_service.py"
+      - "market_data/store.py"
+      - "market_data/write_gateway.py"
+      - ".github/workflows/t0-systemd-feeder-api-integration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: t0-systemd-feeder-api-integration-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  disposable-two-service-systemd:
+    name: Disposable Feeder API dependency and lifecycle
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify systemd runner prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v systemd-run
+          sudo -n true
+          systemctl is-system-running || test "$?" -eq 1
+          python --version
+          systemd --version | head -n 1 | tee t0-systemd-version.txt
+          git rev-parse HEAD | tee t0-systemd-source-sha.txt
+          echo "T0_SYSTEMD_TARGET=DISPOSABLE_GITHUB_RUNNER_ONLY" | tee t0-systemd-scope.txt
+      - name: Compile integration harness
+        run: python -m py_compile ci/t0_systemd_feeder_api_integration.py
+      - name: Run transient Feeder and API integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$(mktemp -d /tmp/t0-systemd-integration.XXXXXX)"
+          mkdir -p "$ROOT/data"
+          echo "$ROOT" > t0-systemd-temp-root.txt
+          python ci/t0_systemd_feeder_api_integration.py integration \
+            --db "$ROOT/data/candles.sqlite3" \
+            --events "$ROOT/events.log" 2>&1 | tee t0-systemd-integration.log
+      - name: Collect transient unit evidence
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          for unit in t0-int-api-a.service t0-int-feeder-a.service t0-int-api-b.service t0-int-feeder-b.service; do
+            echo "===== $unit =====" >> t0-systemd-units.log
+            sudo systemctl show "$unit" --no-pager >> t0-systemd-units.log 2>&1
+            sudo journalctl -u "$unit" --no-pager -n 150 >> t0-systemd-journal.log 2>&1
+            sudo systemctl stop "$unit" >> t0-systemd-cleanup.log 2>&1
+            sudo systemctl reset-failed "$unit" >> t0-systemd-cleanup.log 2>&1
+          done
+          if [ -f t0-systemd-temp-root.txt ]; then
+            ROOT="$(cat t0-systemd-temp-root.txt)"
+            sudo rm -rf "$ROOT"
+          fi
+      - name: Upload integration evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-systemd-feeder-api-integration-${{ github.sha }}
+          if-no-files-found: warn
+          path: |
+            t0-systemd-version.txt
+            t0-systemd-source-sha.txt
+            t0-systemd-scope.txt
+            t0-systemd-temp-root.txt
+            t0-systemd-integration.log
+            t0-systemd-units.log
+            t0-systemd-journal.log
+            t0-systemd-cleanup.log
