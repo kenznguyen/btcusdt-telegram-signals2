@@ -1,7 +1,7 @@
 # T0 Feeder/API systemd integration test plan
 
 Date: 2026-11-08
-Status: **TEST PLAN — DESIGN ONLY; NO TWO-SERVICE INTEGRATION CLAIM**
+Status: **IMPLEMENTED — PASS ON DISPOSABLE GITHUB ACTIONS RUNNER; VPS NOT VERIFIED**
 
 ## 1. Purpose
 
@@ -55,3 +55,22 @@ The job must fail closed if systemd, `systemd-run`, or required privileges are u
 ## 7. Acceptance boundary
 
 A passing job proves only that the tested transient systemd units and synthetic SQLite/API/Feeder composition behave as asserted on that GitHub runner image. It does not certify the Scaleway VPS kernel, systemd version, filesystem, service identities, production unit files, or deployed API.
+
+
+## 8. Executed evidence — 2026-11-08
+
+- Harness: `ci/t0_systemd_feeder_api_integration.py`.
+- Workflow: `.github/workflows/t0-systemd-feeder-api-integration.yml`.
+- Exact source SHA: `75cfaa5f5ec2e78261799272a3ca2a6058e88bde`.
+- GitHub Actions run: `42488295514` — SUCCESS; job `128754896648` — SUCCESS.
+- Runner systemd: `systemd 259 (259.9-0ubuntu0.1)`.
+- Observed timestamped events prove:
+  - `FEEDER_READY_GENERATION_1` precedes API process start;
+  - authenticated candle read succeeds and unauthenticated request returns 401;
+  - API write probe is denied in both API service instances while the API can read the synthetic candle;
+  - SIGKILL of Feeder causes API termination via `BindsTo=`;
+  - a new Feeder lease generation (`2`) is acquired on restart and the dependent API reads successfully;
+  - during orderly shutdown, `API_SIGTERM` precedes `FEEDER_SIGTERM`, followed by Feeder STOPPING/drain and exit.
+- Final marker: `T0_SYSTEMD_FEEDER_API_INTEGRATION=PASS`.
+- Evidence artifact: `t0-systemd-feeder-api-integration-75cfaa5f5ec2e78261799272a3ca2a6058e88bde`, ID `13620660924`, digest `sha256:c31d5991a7343ae938a1c680fbda7b16c7bbe3690e06ed8e099f369aba3ed0b0`.
+- Scope remains synthetic disposable SQLite and transient systemd units on the GitHub runner. This does not certify VPS systemd/kernel/filesystem behavior, production service identities, production unit definitions, or deployment readiness.
