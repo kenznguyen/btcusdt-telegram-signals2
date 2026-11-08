@@ -25,7 +25,7 @@ if REPO_ROOT not in sys.path:
 
 from market_data.api import application
 from market_data.feeder import FeederConfig, FeederRuntime, LeaseStore
-from market_data.feeder_service import run_service
+from market_data.feeder_service import run_service, systemd_notify
 from market_data.store import CandleStore, INTERVAL_MS
 from market_data.write_gateway import SQLiteWalKeeper
 
@@ -107,7 +107,15 @@ def feeder_process(db_path, event_path):
 
     signal.signal(signal.SIGTERM, request_stop)
     signal.signal(signal.SIGINT, request_stop)
-    result = run_service(runtime, stop_event=stop_event)
+
+    def notify(message):
+        systemd_notify(message)
+        if message == "READY=1":
+            event(event_path, f"FEEDER_READY_GENERATION_{runtime.lease_generation}")
+        elif message == "STOPPING=1":
+            event(event_path, "FEEDER_SYSTEMD_STOPPING")
+
+    result = run_service(runtime, stop_event=stop_event, notify=notify)
     event(event_path, f"FEEDER_EXIT_{result}")
     return result
 
@@ -307,6 +315,14 @@ def integration(db_path, event_path):
     records = read_events(event_path)
     api_stop = [int(row[0]) for row in records if row[1] == "API_SIGTERM"]
     feeder_stop = [int(row[0]) for row in records if row[1] == "FEEDER_SIGTERM"]
+    ready_events = [(int(row[0]), row[1]) for row in records
+                    if row[1].startswith("FEEDER_READY_GENERATION_")]
+    api_starts = [int(row[0]) for row in records if row[1] == "API_PROCESS_STARTING"]
+    generations = [int(name.rsplit("_", 1)[1]) for _, name in ready_events]
+    assert len(generations) == 2 and generations[0] != generations[1], records
+    assert len(api_starts) == 2 and all(
+        ready_events[index][0] < api_starts[index] for index in range(2)
+    ), records
     assert api_stop and feeder_stop and api_stop[-1] < feeder_stop[-1], records
     assert sum(1 for row in records if row[1] == "API_DATABASE_WRITE_DENIED") == 2, records
     event(event_path, "ORDERLY_REVERSE_SHUTDOWN_PASS")
