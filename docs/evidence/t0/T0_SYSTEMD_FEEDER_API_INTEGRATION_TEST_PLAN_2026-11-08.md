@@ -76,3 +76,15 @@ A passing job proves only that the tested transient systemd units and synthetic 
 - Scope remains synthetic disposable SQLite and transient systemd units on the GitHub runner. This does not certify VPS systemd/kernel/filesystem behavior, production service identities, production unit definitions, or deployment readiness.
 
 - Final self-review cleanup removed unused harness imports; exact final source SHA was rerun and remained PASS (run `42488536321`). No behavioral code changed in this cleanup.
+
+
+## 9. Additional SQL mutation proof — 2026-11-08
+
+- Self-review identified that the earlier API write probe proved directory file-creation denial but did not explicitly attempt a SQL mutation against the mounted candle database.
+- Added an in-process SQLite `UPDATE candles ...` attempt from each API service instance. The test now requires SQLite to reject the mutation and records `API_SQLITE_MUTATION_DENIED`; the integration acceptance requires exactly two such events, one per API instance.
+- Exact source SHA: `9dd05c22046e5f34e547871f47b7dfb729a7efa1`.
+- GitHub Actions run `42488635517`: **SUCCESS**; job `128755920478`: **SUCCESS**.
+- Timestamped log confirms both API instances emitted `API_DATABASE_WRITE_DENIED` and `API_SQLITE_MUTATION_DENIED`; authenticated read, readiness gating, SIGKILL propagation, generation-2 restart, and orderly reverse shutdown also passed.
+- Final marker: `T0_SYSTEMD_FEEDER_API_INTEGRATION=PASS`.
+- Artifact: `t0-systemd-feeder-api-integration-9dd05c22046e5f34e547871f47b7dfb729a7efa1`, ID `13620273926`, digest `sha256:f46daaad5aea0525a60b66f20d4bd74df3feaa71b9a2e7a749a11be99e42d636`.
+- This is still synthetic SQLite and transient systemd on GitHub Actions only. It does not verify the VPS kernel, filesystem, production service identities, production unit files, canonical data, or deployment readiness.
