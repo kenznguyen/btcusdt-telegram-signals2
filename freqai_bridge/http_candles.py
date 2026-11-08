@@ -54,7 +54,7 @@ class CandleHttpConfig:
             raise CandleHttpError("CONFIG_INVALID")
         if not isinstance(self.token, str) or not self.token.strip():
             raise CandleHttpError("CONFIG_INVALID")
-        if type(self.max_lag_ms) is not int or self.max_lag_ms <= 0:
+        if type(self.max_lag_ms) is not int or not 1 <= self.max_lag_ms <= 120_000:
             raise CandleHttpError("CONFIG_INVALID")
 
         parsed = urlsplit(self.base_url.strip())
@@ -178,8 +178,10 @@ class CandleHttpClient:
                 return payload
             except CandleHttpError:
                 raise
+            except requests.exceptions.SSLError:
+                raise CandleHttpError("HTTP_UNAVAILABLE") from None
             except (requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout,
-                    requests.exceptions.ConnectionError) as error:
+                    requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as error:
                 if attempt >= _MAX_ATTEMPTS - 1:
                     reason = "HTTP_TIMEOUT" if isinstance(error, requests.exceptions.Timeout) else "HTTP_UNAVAILABLE"
                     raise CandleHttpError(reason) from None
