@@ -214,7 +214,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
     def test_rejects_prediction_timestamp_before_oos_window(self):
         artifacts = dict(self.artifacts)
         artifacts["predictions"] = artifacts["predictions"].replace(
-            b'"prediction_timestamp_ms":1700000001000',
+            b'"prediction_timestamp_ms":1700000000100',
             b'"prediction_timestamp_ms":1699999999000',
         )
         result = self.verify_rehashed_predictions(artifacts)
@@ -224,7 +224,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
     def test_rejects_prediction_timestamp_after_oos_window(self):
         artifacts = dict(self.artifacts)
         artifacts["predictions"] = artifacts["predictions"].replace(
-            b'"prediction_timestamp_ms":1700000001000',
+            b'"prediction_timestamp_ms":1700000000100',
             b'"prediction_timestamp_ms":1710000000001',
         )
         result = self.verify_rehashed_predictions(artifacts)
@@ -234,7 +234,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
     def test_rejects_outcome_available_before_prediction(self):
         artifacts = dict(self.artifacts)
         artifacts["predictions"] = artifacts["predictions"].replace(
-            b'"outcome_available_at_ms":1700000002000',
+            b'"outcome_available_at_ms":1700000000600',
             b'"outcome_available_at_ms":1700000000000',
         )
         result = self.verify_rehashed_predictions(artifacts)
@@ -244,7 +244,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
     def test_rejects_outcome_available_after_oos_window(self):
         artifacts = dict(self.artifacts)
         artifacts["predictions"] = artifacts["predictions"].replace(
-            b'"outcome_available_at_ms":1700000002000',
+            b'"outcome_available_at_ms":1700000000600',
             b'"outcome_available_at_ms":1710000000001',
         )
         result = self.verify_rehashed_predictions(artifacts)
