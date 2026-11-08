@@ -141,7 +141,7 @@ Implementation contract:
 
 ## Dual-Strategy coordinator RED → GREEN
 
-- Contract tests: `quant_system/test_dual_signal_coordinator.py` (8 tests).
+- Contract tests: `quant_system/test_dual_signal_coordinator.py` (11 tests: independent signal generation plus routing).
 - RED test commit: `a4596369ff98f836745e115b6ce44360d84301a2`.
 - RED workflow run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455777252
 - RED run ID `42455777252`, source SHA `c0c793689b06abe3f7261f618652b0e7e535d54b`, expected failure because `quant_system.dual_signal_coordinator` did not exist. The loader ran one failed import test; the eight behavioral methods did not execute.
@@ -150,13 +150,17 @@ Implementation contract:
 - Exact source SHA for the final direct-push and PR verification: `23e51529d88e338d488fb8d6808fc567b023f93e` (coordinator implementation unchanged from `78bf5b8b8b620dde7bd6f093ad197db4a9b22219`).
 - GREEN workflow: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455858929
 - Run ID `42455858929`, event `push`, conclusion SUCCESS; job `128654599899`.
-- Focused coordinator: 8/8 PASS.
+- Focused coordinator: 11/11 PASS, including opposing CORE LONG / AI SHORT candidate generation, AI-only generation when CORE is silent, and CORE preservation when AI provenance is invalid.
 - Shared ledger contract: 23/23 PASS.
 - Legacy Phase 2: 20/20 PASS; Phase 3: 11/11 PASS; PaperLedger: 18/18 PASS.
-- Total: **70 tests PASS** on the exact source SHA.
-- Final direct-push run: `42455938655`, SUCCESS; exact source SHA `23e51529d88e338d488fb8d6808fc567b023f93e`; job `128654850985`.
-- Final PR run: `42455942259`, SUCCESS; exact PR head `23e51529d88e338d488fb8d6808fc567b023f93e`; job `128654862209`.
-- Final legacy regression run: `42455942275`, SUCCESS; exact PR head `23e51529d88e338d488fb8d6808fc567b023f93e`; job `128654862214`.
+- T0 → Freqtrade adapter contract: 10/10 PASS.
+- Total across coordinator workflow: **83 tests PASS** on the exact source SHA.
+- Direct-push run: `42456099914`, SUCCESS; exact source SHA `7d2b73bfbe6d588c57257e93193806f7d942dbb9`.
+- PR coordinator run: `42456102768`, SUCCESS; exact PR head `7d2b73bfbe6d588c57257e93193806f7d942dbb9`.
+- PR dual-ledger run: `42456102834`, SUCCESS; 23/23.
+- PR legacy regression run: `42456102796`, SUCCESS; 49/49.
+- PR T0 adapter run: `42456102773`, SUCCESS; 10/10.
+- Earlier 8-test routing-only run `42455938655` was PASS on predecessor SHA `23e51529d88e338d488fb8d6808fc567b023f93e`; superseded by the 11-test final proof.
 - Offline boundary passed: `AI_EXECUTION_ENABLED=false`; DB targets and Binance/OKX credentials empty.
 - No artifact produced.
 - Coordinator accepts separately produced CORE and AI intents, preserves opposing directions, uses combined portfolio equity for each 1% admission, persists each entry/DCA reservation, and writes only to its matching ledger. It does not submit exchange orders.
@@ -199,7 +203,7 @@ This is a passing ledger/risk-accounting slice, **not full Dual-Strategy executi
 - Exact-head T0 adapter regression: **PASS**.
 - R22.2 isolated offline verification for code SHA `afa44c4bbab5a86040aadbeed219df7fe10a87cb`: **PASS (8/8)**.
 - Gross exposure policy threshold: **NOT DEFINED**.
-- New offline Dual-Strategy coordinator: **PASS (8/8)**; paper bridge/runtime wiring: **NOT IMPLEMENTED**.
+- Offline Dual-Strategy coordinator and independent CORE/AI signal generation: **PASS (11/11)**; paper bridge/runtime wiring: **NOT IMPLEMENTED**.
 - Legacy Phase 2/Phase 3 regression suite: **PASS (49 tests across 3 modules) under legacy behavior**; compatibility with updated Dual-Strategy risk policy remains BLOCKED.
 - Combined paper replay: **NOT RUN**.
 - Production readiness: **NOT CERTIFIED**.
