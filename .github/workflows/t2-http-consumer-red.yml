@@ -6,7 +6,12 @@ on:
       - feature/t0-centralized-data-feeder-p1-20261101
     paths:
       - "freqai_bridge/http_candles.py"
+      - "freqai_bridge/context.py"
+      - "freqai_bridge/ChartProFreqaiResearch.py"
       - "freqai_bridge/test_http_candles.py"
+      - "freqai_bridge/test_context_http.py"
+      - "freqai_bridge/t2_http_migration_acceptance.py"
+      - "freqai_bridge/config.research.json"
       - ".github/workflows/t2-http-consumer-red.yml"
 
 permissions:
@@ -58,7 +63,7 @@ jobs:
       - name: Compile adapter and test modules
         run: |
           set -euo pipefail
-          python -m py_compile freqai_bridge/http_candles.py freqai_bridge/test_http_candles.py freqai_bridge/t2_http_migration_acceptance.py
+          python -m py_compile freqai_bridge/http_candles.py freqai_bridge/context.py freqai_bridge/ChartProFreqaiResearch.py freqai_bridge/test_http_candles.py freqai_bridge/test_context_http.py freqai_bridge/t2_http_migration_acceptance.py
           echo "T2_HTTP_GREEN_COMPILE=PASS" | tee t2-http-compile.log
 
       - name: Run HTTP adapter behavior tests
@@ -71,6 +76,19 @@ jobs:
           echo "T2_HTTP_GREEN=PASS"
           echo "T2_HTTP_GREEN_TESTS=45"
 
+      - name: Verify HTTP-only migration tests are RED before implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python -m unittest freqai_bridge.test_context_http freqai_bridge.t2_http_migration_acceptance -v > t2-migration-red.log 2>&1
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -q "FAILED" t2-migration-red.log
+          grep -q "still imports market_data.store" t2-migration-red.log
+          grep -q "canonical_db_path" t2-migration-red.log
+          echo "T2_HTTP_MIGRATION_RED=CONFIRMED"
       - name: Upload exact-SHA adapter evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -81,3 +99,4 @@ jobs:
             t2-http-source-sha.txt
             t2-http-compile.log
             t2-http-tests.log
+            t2-migration-red.log
