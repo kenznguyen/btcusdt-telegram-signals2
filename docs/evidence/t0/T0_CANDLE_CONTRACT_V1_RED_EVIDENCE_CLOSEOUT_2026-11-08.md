@@ -102,3 +102,17 @@ Do not change storage precision semantics, create a PostgreSQL migration, run Da
 - GitHub combined status for this SHA returned no status entries; commit workflow-run lookup returned no runs. Therefore no exact-head Actions run/job/log/artifact is available to cite and CI is **NOT VERIFIED**.
 - Next: run repository-wide or documented relevant regression suite on a clean checkout of this exact source SHA; record the exact command, output, and SHA. Do not infer full-suite PASS from the focused module.
 - Runtime restrictions unchanged: no T2 HTTP/FreqAI migration, DB/Feeder/VPS/runtime, Data Quality Gate, consumer activation, deployment, or live execution. Keep `ai_execution_enabled=false`.
+
+
+## 2026-11-08 — Repository-wide unittest suite GREEN
+
+- Exact source SHA: `e317b7dc02363db0600737a89442dd918559af3c`.
+- User confirmed the detached checkout was clean: `## HEAD (no branch)`; `git rev-parse HEAD` returned the exact SHA above.
+- Command: `python3 -m unittest discover -q`.
+- User-provided terminal result: `Ran 404 tests in 24.530s`, `OK`, `EXIT_CODE=0`.
+- Verdict: **FULL LOCAL UNITTEST SUITE PASS — 404/404**, at the exact source SHA. This supersedes the earlier NOT VERIFIED statement for broader local regression.
+- Environment: user-run Termux/Android. This is local test evidence, not a GitHub Actions run.
+- GitHub combined commit status returned no status entries; commit workflow-run lookup returned no runs for this SHA. Exact-head GitHub Actions run/job/log/artifact: **NOT VERIFIED / NOT RECORDED**.
+- Contract v1 API code + repository unittest suite: **LOCAL TEST PASS**. Overall release/conformance is still **NOT VERIFIED** pending exact-head CI where available, independent contract review, and consumer-side HTTP conformance. T2 remains non-conformant until its direct SQLite path is migrated to the versioned read-only API.
+- Next: independently review the API contract implementation and decide the bounded next task. Do not infer T2 conformance or runtime readiness from these tests.
+- Restrictions: no T2 HTTP/FreqAI migration in this increment; no T0 DB, Feeder, VPS, exchange, Data Quality Gate, T1/T2 runtime, deployment, promotion, or live execution. Keep `ai_execution_enabled=false`.
