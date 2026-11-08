@@ -11,10 +11,12 @@ import tempfile
 import uuid
 from pathlib import Path
 
+REPOSITORY = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPOSITORY))
+
 from market_data.store import INTERVAL_MS, read_window
 
 STEP = INTERVAL_MS["15m"]
-REPOSITORY = Path.cwd().resolve()
 
 
 def _run_readonly_service(database: Path, expected_rows: int, label: str) -> str:
