@@ -124,6 +124,7 @@ def main() -> None:
                 ("binance", "USDT_PERPETUAL", "BTCUSDT", "15m", 0,
                  "100", "102", "99", "101", "5", STEP + 100),
             )
+        setup.close()
 
         # A cleanly closed WAL database can have no -wal/-shm sidecars.
         # Prove the sandboxed read-only service fails closed in this state.
