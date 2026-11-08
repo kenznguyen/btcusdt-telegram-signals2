@@ -300,6 +300,6 @@ No default timeout or automatic release behavior should be introduced until thes
 
 **Status: CONSUMER CONTRACT DESIGN COMPLETE — NOT IMPLEMENTED / NOT ACTIVE.**
 
-Next: design `DATA_DELETION_SAFETY_CONTRACT.md` as a separate contract for deletion request, review, approval, grace/cancellation, exact-scope execution, idempotency, tombstones, audit, and post-operation verification. That document must not authorize actual deletion or activate an executor.
+The separate [Data Deletion Safety Contract](DATA_DELETION_SAFETY_CONTRACT.md) is now documented. The repository-level static inventory is recorded in [Dataset Consumer Inventory Baseline](DATASET_CONSUMER_INVENTORY_BASELINE_2026-11-09.md). Do not collect runtime inventory from the current experimental VPS; it is excluded even from read-only inspection. A future official environment is NOT DESIGNATED and requires separate designation and scope approval before any runtime inventory. See [Environment and Evidence Boundary](ENVIRONMENT_EVIDENCE_BOUNDARY.md).
 
 No source code, tests, workflow, database/schema, API, VPS, Feeder, registry, scheduler, retention timer, archive, vacuum, or deletion operation is changed or activated by this document. Real-data lifecycle operations remain unauthorized without separate review and explicit approval.
