@@ -7,9 +7,50 @@ import sqlite3
 import time
 from urllib.parse import parse_qs
 
-from market_data.store import INTERVAL_MS, MAX_CANDLES
+from market_data.store import INTERVAL_MS
 from market_data.postgres import StoreUnavailable
 from market_data.storage import create_store_from_env
+
+
+MAX_API_CANDLES = 2000
+VOLUME_UNIT = "BTC_BASE_ASSET"
+DATA_SOURCE = "ccxt.binanceusdm"
+
+
+def _freshness(candles, timeframe, start_ms, end_ms, generated_at_ms):
+    interval = INTERVAL_MS[timeframe]
+    latest_expected = min(end_ms - interval, (generated_at_ms // interval) * interval - interval)
+    latest = candles[-1] if candles else None
+    if latest is None:
+        return {
+            "latestExpectedOpenTimeMs": latest_expected,
+            "latestReturnedOpenTimeMs": None,
+            "latestCloseTimeMs": None,
+            "latestAvailableAtMs": None,
+            "observationAgeMs": None,
+            "closeLagMs": None,
+            "evaluable": False,
+        }
+
+    open_time = latest.get("openTimeMs")
+    close_time = latest.get("closeTimeMs")
+    available_at = latest.get("availableAtMs")
+    valid_timestamps = all(
+        type(value) is int and value >= 0
+        for value in (open_time, close_time, available_at, generated_at_ms)
+    )
+    observation_age = generated_at_ms - available_at if valid_timestamps else None
+    close_lag = generated_at_ms - close_time if valid_timestamps else None
+    evaluable = bool(valid_timestamps and observation_age >= 0 and close_lag >= 0)
+    return {
+        "latestExpectedOpenTimeMs": latest_expected,
+        "latestReturnedOpenTimeMs": open_time,
+        "latestCloseTimeMs": close_time,
+        "latestAvailableAtMs": available_at,
+        "observationAgeMs": observation_age,
+        "closeLagMs": close_lag,
+        "evaluable": evaluable,
+    }
 
 
 def candle_query(query):
@@ -34,7 +75,7 @@ def candle_query(query):
 
     start, end = integer("startMs"), integer("endMs")
     step = INTERVAL_MS[values["timeframe"]]
-    if start % step or end % step or not 0 < end - start <= MAX_CANDLES * step:
+    if start % step or end % step or not 0 < end - start <= MAX_API_CANDLES * step:
         raise ValueError("Invalid or oversized window")
     return dict(symbol=values["symbol"], timeframe=values["timeframe"], start_ms=start,
                 end_ms=end, as_of_ms=integer("asOfMs") if "asOfMs" in values else None)
@@ -72,7 +113,19 @@ def application(environ, start_response):
     try:
         store = create_store_from_env()
         result = store.read_window(**query)
-        return reply("200 OK", {**result, "generatedAtMs": time.time_ns() // 1_000_000})
+        generated_at_ms = time.time_ns() // 1_000_000
+        return reply("200 OK", {
+            **result,
+            "contractVersion": "1.0.0",
+            "schemaVersion": 1,
+            "volumeUnit": VOLUME_UNIT,
+            "source": DATA_SOURCE,
+            "generatedAtMs": generated_at_ms,
+            "freshness": _freshness(
+                result["candles"], query["timeframe"], query["start_ms"],
+                query["end_ms"], generated_at_ms,
+            ),
+        })
     except (OSError, sqlite3.Error, ValueError, StoreUnavailable):
         return reply("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
 
