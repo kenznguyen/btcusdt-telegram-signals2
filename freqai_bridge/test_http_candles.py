@@ -299,15 +299,17 @@ class T2HttpConsumerTest(unittest.TestCase):
         client, _ = self._client(envelope=response_envelope(candles=[candle], generatedAtMs=generated, asOfMs=generated, freshness=freshness), clock_ms=generated)
         self._fetch(client, as_of_ms=generated)
 
-    def test_server_global_expected_slot_may_be_outside_request_window(self):
+    def test_server_response_after_next_m15_boundary_uses_original_request_cutoff(self):
+        # Client captured asOfMs before the next M15 boundary; server generated
+        # its response after that boundary. The requested window remains fixed.
         generated = END + STEP + 1_000
         freshness = response_envelope()["freshness"] | {
             "latestExpectedOpenTimeMs": END,
             "observationAgeMs": generated - AVAILABLE,
             "closeLagMs": generated - END,
         }
-        client, _ = self._client(envelope=response_envelope(generatedAtMs=generated, asOfMs=generated, freshness=freshness), clock_ms=generated)
-        self._fetch(client, as_of_ms=generated)
+        client, _ = self._client(envelope=response_envelope(generatedAtMs=generated, asOfMs=AS_OF, freshness=freshness), clock_ms=generated)
+        self._fetch(client)
 
     def test_unauthorized_response_is_not_retried(self):
         _, _, Error = self._adapter()
