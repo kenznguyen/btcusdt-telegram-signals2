@@ -371,6 +371,35 @@ class AIProvenanceValidatorTests(unittest.TestCase):
 
 
 
+
+    def test_rejects_dataset_bundle_version_not_bound_to_manifest(self):
+        manifest = json.loads(json.dumps(self.manifest))
+        manifest["dataset_version"] = "sha256:" + "f" * 64
+        artifacts = dict(self.artifacts)
+        rows = artifacts["predictions"].decode().splitlines()
+        for index, line in enumerate(rows):
+            row = json.loads(line)
+            row["dataset_version"] = manifest["dataset_version"]
+            rows[index] = json.dumps(row, sort_keys=True, separators=(",", ":"))
+        artifacts["predictions"] = ("\\n".join(rows) + "\\n").encode()
+        for role, data in artifacts.items():
+            manifest["artifacts"][role] = {
+                "sha256": hashlib.sha256(data).hexdigest(),
+                "size_bytes": len(data),
+            }
+        result = self.verify(
+            envelope=self.signed_envelope(manifest), artifacts=artifacts
+        )
+        self.assertFalse(result.accepted)
+        self.assertIn("DATASET_MANIFEST_VERSION_MISMATCH", result.reasons)
+
+    def test_rejects_duplicate_json_keys_in_dataset_bundle(self):
+        artifacts = dict(self.artifacts)
+        artifacts["dataset"] = b'{"schema_version":1,"schema_version":1}'
+        result = self.verify_rehashed_predictions(artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("DATASET_BUNDLE_INVALID", result.reasons)
+
     def test_rejects_dataset_bundle_missing_h1_snapshot(self):
         bundle = json.loads(self.artifacts["dataset"])
         del bundle["snapshots"]["1h"]
