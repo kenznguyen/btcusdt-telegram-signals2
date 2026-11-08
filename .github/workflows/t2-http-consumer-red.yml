@@ -10,7 +10,11 @@ on:
       - "freqai_bridge/ChartProFreqaiResearch.py"
       - "freqai_bridge/test_http_candles.py"
       - "freqai_bridge/test_context_http.py"
+      - "freqai_bridge/test_exporter.py"
+      - "freqai_bridge/exporter.py"
       - "freqai_bridge/t2_http_migration_acceptance.py"
+      - "pipeline/decision.py"
+      - "pipeline/values.py"
       - "freqai_bridge/config.research.json"
       - ".github/workflows/t2-http-consumer-red.yml"
 
@@ -44,7 +48,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install HTTP client dependency
-        run: python -m pip install --disable-pip-version-check "requests>=2.32.0,<3"
+        run: python -m pip install --disable-pip-version-check "requests>=2.32.0,<3" "pandas>=2.2,<3"
 
       - name: Enforce isolated paper-only test environment
         shell: bash
@@ -85,6 +89,14 @@ jobs:
           grep -Eq "^OK$" t2-migration-tests.log
           echo "T2_HTTP_CONSUMER_MIGRATION=PASS"
           echo "T2_HTTP_MIGRATION_TESTS=10"
+      - name: Run HTTP-backed prediction exporter regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest freqai_bridge.test_exporter -v 2>&1 | tee t2-exporter-tests.log
+          grep -Eq "^Ran 6 tests?" t2-exporter-tests.log
+          grep -Eq "^OK$" t2-exporter-tests.log
+          echo "T2_HTTP_EXPORTER_REGRESSION=PASS"
       - name: Upload exact-SHA adapter evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -96,3 +108,4 @@ jobs:
             t2-http-compile.log
             t2-http-tests.log
             t2-migration-tests.log
+            t2-exporter-tests.log
