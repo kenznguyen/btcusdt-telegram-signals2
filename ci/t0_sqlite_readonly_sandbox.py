@@ -19,7 +19,7 @@ from market_data.store import INTERVAL_MS, read_window
 STEP = INTERVAL_MS["15m"]
 
 
-def _run_readonly_service(database: Path, expected_rows: int, label: str) -> str:
+def _run_readonly_service(database: Path, expected_rows: int, label: str, expect_success: bool = True) -> str:
     child = r"""
 import os
 import sqlite3
@@ -79,10 +79,17 @@ print("T0_EXPECTED_ROWS=" + str(expected))
     ]
     completed = subprocess.run(command, capture_output=True, text=True, timeout=45)
     output = completed.stdout + completed.stderr
-    if completed.returncode:
+    if expect_success and completed.returncode:
         raise RuntimeError(
             f"systemd read-only sandbox failed ({label}, exit={completed.returncode}):\n{output}"
         )
+    if not expect_success:
+        if completed.returncode == 0:
+            raise AssertionError(
+                f"read-only service unexpectedly opened without WAL/SHM ({label}):\n{output}"
+            )
+        print(f"T0_COLD_START_WITHOUT_WAL_SHM=BLOCKED_AS_EXPECTED ({label})")
+        return output
     for marker in (
         "T0_SYSTEMD_READONLY_WAL_READ=PASS",
         "T0_SYSTEMD_READONLY_FILESYSTEM_WRITE=DENIED",
@@ -118,8 +125,18 @@ def main() -> None:
                  "100", "102", "99", "101", "5", STEP + 100),
             )
 
-        # Keep a writer connection and an uncommitted row alive so both WAL
-        # and SHM files exist while the systemd sandbox attempts a read.
+        # A cleanly closed WAL database can have no -wal/-shm sidecars.
+        # Prove the sandboxed read-only service fails closed in this state.
+        for suffix in ("-wal", "-shm"):
+            sidecar = Path(str(database) + suffix)
+            if sidecar.exists():
+                sidecar.unlink()
+        assert not Path(str(database) + "-wal").exists()
+        assert not Path(str(database) + "-shm").exists()
+        _run_readonly_service(database, 1, "cold-no-sidecars", expect_success=False)
+
+        # Feeder startup must open the writer and establish the WAL/SHM
+        # lifecycle before the API service is allowed to start.
         writer = sqlite3.connect(database, timeout=5, isolation_level=None)
         try:
             writer.execute("PRAGMA journal_mode=WAL")
@@ -131,6 +148,7 @@ def main() -> None:
             )
             assert Path(str(database) + "-wal").is_file()
             assert Path(str(database) + "-shm").is_file()
+            _run_readonly_service(database, 1, "writer-ready")
 
             _run_readonly_service(database, 1, "uncommitted")
             writer.execute("COMMIT")
@@ -141,9 +159,40 @@ def main() -> None:
             after = read_window(database, "BTCUSDT", "15m", 0, 2 * STEP)
             assert after["coverage"]["returned"] == 2
             assert [row["close"] for row in after["candles"]] == ["101", "102"]
+            checkpoint = writer.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
+            assert checkpoint[0] == 0, checkpoint
         finally:
             writer.close()
 
+        # Model an orderly Feeder shutdown/checkpoint. The WAL/SHM files are
+        # absent again, so an API restart must remain blocked until writer
+        # startup re-establishes the sidecars.
+        for suffix in ("-wal", "-shm"):
+            sidecar = Path(str(database) + suffix)
+            if sidecar.exists():
+                sidecar.unlink()
+        assert not Path(str(database) + "-wal").exists()
+        assert not Path(str(database) + "-shm").exists()
+        _run_readonly_service(database, 2, "restart-after-clean-checkpoint", expect_success=False)
+
+        # Restart the writer and perform a committed write to recreate sidecars.
+        restarted_writer = sqlite3.connect(database, timeout=5, isolation_level=None)
+        try:
+            restarted_writer.execute("PRAGMA journal_mode=WAL")
+            restarted_writer.execute("BEGIN IMMEDIATE")
+            restarted_writer.execute(
+                "INSERT INTO candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                ("binance", "USDT_PERPETUAL", "BTCUSDT", "15m", 2 * STEP,
+                 "102", "104", "101", "103", "7", 3 * STEP + 100),
+            )
+            restarted_writer.execute("COMMIT")
+            assert Path(str(database) + "-wal").is_file()
+            assert Path(str(database) + "-shm").is_file()
+            _run_readonly_service(database, 3, "api-restart-after-writer-ready")
+        finally:
+            restarted_writer.close()
+
+    print("T0_SYSTEMD_READONLY_WAL_COLD_START_GUARD=PASS")
     print("T0_SYSTEMD_READONLY_WAL_SANDBOX=PASS")
     print("T0_DISPOSABLE_ONLY=PASS")
 
