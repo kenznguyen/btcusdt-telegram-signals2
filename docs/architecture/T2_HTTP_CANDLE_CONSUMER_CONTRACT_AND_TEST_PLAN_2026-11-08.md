@@ -307,3 +307,12 @@ The original design-only disclaimer is superseded only for the isolated HTTP ada
 - The five direct-SQLite migration acceptance checks are separated in freqai_bridge/t2_http_migration_acceptance.py and were compile-checked only; not executed.
 - T2 context.py still imports market_data.store/read_window and ChartProFreqaiResearch.py still uses canonical_db_path. The HTTP adapter is not wired into the strategy. Consumer migration remains NOT STARTED and requires separate approval.
 - No T0 API/store/DB, Feeder, VPS, exchange, runtime config, model, paper order routing, deployment, or trading state changed. Keep ai_execution_enabled=false.
+
+
+## Same-SHA T0/T1 regression — 2026-11-08
+
+- Existing workflow run 42469402459 at exact SHA 6b55f6f02f7e2bcceb4b38a7944e9f9b42bbe64d concluded SUCCESS across all six jobs.
+- Static Gateway job ran the complete market_data package: 280 tests, 42 skipped because no dedicated TimescaleDB DSN was supplied to that static job; result OK.
+- Separate disposable TimescaleDB integration job, provider bootstrap, paper consumer fixtures, T1 importer and Rust sidecar offline tests all concluded SUCCESS.
+- This is same-SHA regression evidence only; no canonical T0 DB, Feeder, VPS or exchange runtime was activated. Full repository-wide unittest discovery was not run.
+- Details and artifact metadata: docs/evidence/t2/T2_HTTP_CANDLE_CLIENT_GREEN_2026-11-08.md.
