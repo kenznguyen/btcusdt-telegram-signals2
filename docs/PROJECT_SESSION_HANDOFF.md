@@ -6871,3 +6871,19 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Current VPS checkout SHA reported by operator: `4cf3959532024d286a76712bd93708b7a96489df`; GitHub documentation commits below are separate identities.
 - Status: filesystem prerequisite **PASS**; API deployment **NOT VERIFIED**; HTTPS endpoint **BLOCKED / NOT ESTABLISHED**; live T2 probe **NOT RUN**; T2 **NOT ACTIVATED**; `ai_execution_enabled=false`.
 - Next: documentation/design review only for a loopback Gunicorn service under `ubuntu` at `127.0.0.1:8788`, without activating it. HTTPS hostname, authorized probe origin, credential owner/provisioning, bounded probe budget, and explicit deployment approval remain prerequisites.
+
+
+## 2026-11-08 — T0 Candle API HTTPS front-door design (documentation only)
+
+- Continued on existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch or PR.
+- Baseline branch HEAD before this increment: `8630b609651b066c18df60e8843bff16d7abfb10`.
+- Added `docs/architecture/T0_CANDLE_API_HTTPS_FRONT_DOOR_DESIGN_2026-11-08.md`; design commit: `0609bb8f78b821c2ebf2ebe9567d3e0afb7beabb`.
+- Scope: offline architecture/security design only. No code, workflow, test, network, DNS, registrar, VPS, firewall, process, service, environment, secret, Feeder, database, or T2 runtime change.
+- Design recommendation: dedicated API hostname → Caddy HTTPS reverse proxy → Gunicorn on `127.0.0.1:8788` → existing read-only T0 Candle API. Nginx remains an alternative, not an additional installed proxy.
+- Preserved boundaries: port 8788 must remain loopback-only; API remains GET-only and Bearer-authenticated; no direct database consumer access; no T2 fallback or live execution.
+- Domain/subdomain pointing to the VPS is absent. DNS owner/provider and exact hostname are not established; TLS certificate, public endpoint, and live probe remain BLOCKED / NOT RUN.
+- Important storage limitation retained: SQLite file was observed as `ubuntu:ubuntu` mode `0600`; this proves same-user file access only and does not prove API/Feeder OS isolation. Dedicated API identity requires a separately validated SQLite/WAL/SHM permission model on a disposable copy. No permission broadening is authorized.
+- Security checklist covers DNS, TLS/ACME, ports, loopback binding, authentication, secret handling, log redaction, cache, methods, request bounds, storage read-only proof, service identity, monitoring, and rollback.
+- Verification: documentation write accepted by GitHub; no tests or workflows run because this increment is design-only. Documentation correctness has not been independently reviewed.
+- Status: **DESIGN DOCUMENT COMMITTED**; DNS/domain **BLOCKED**; VPS deployment **NOT AUTHORIZED**; public API **NOT ESTABLISHED**; live endpoint probe **NOT RUN**; T2 runtime **NOT ACTIVATED**.
+- Next step: owner selects a domain/subdomain and confirms DNS control. Until then remain at design stage; do not change DNS, firewall, proxy, API service, Feeder, database, secrets, or T2 runtime.
