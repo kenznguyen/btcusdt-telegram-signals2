@@ -26,7 +26,7 @@ class DualStrategySignalCoordinatorTests(unittest.TestCase):
             core_ledger=self.core, ai_ledger=self.ai, risk_engine=self.risk
         )
         self.closed = 1_800_000_000_000
-        self.now_ms = self.closed + 5_000
+        self.now_ms = self.closed + 905_000
         self.market_db = Path(self.temp.name) / "market.sqlite3"
         CandleStore(self.market_db).insert([
             Candle("15m", self.closed, "100", "102", "99", "101", "3", self.closed + 901_000)
