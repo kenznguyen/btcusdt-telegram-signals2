@@ -6384,3 +6384,19 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Verdict: **FINDING RECORDED / FIX NOT AUTHORIZED / NOT VERIFIED BY REGRESSION TEST**. Static review only; no code/test/runtime changes.
 - Next bounded step: add offline RED tests for malformed semantic event object and manifest source/session identity mismatch, then implement strict schema-aware validation and rerun exact-head GitHub Actions on the existing PR branch. Keep validation read-only; do not infer market-data completeness.
 - Restrictions unchanged: no T0 changes/runtime, no Binance/VPS runtime, no live execution, no PR merge or draft-state transition. PR #1 remains OPEN/DRAFT/NOT MERGED.
+
+
+## Latest T1 closeout — Sidecar validator semantic schema and manifest identity (2026-11-08)
+
+- T1 source repo: `kenznguyen/binance-futures-collector`; existing branch `feature/t1-connection-sidecar-integration-20261107`; PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Final source SHA: `6c7e29489128d0c3f1cfff30b0434b8ac6f306ec`. Validator implementation commit: `b4d6e34eeaaa557e98cdad9ec5a32ad9330c144c`; test-fixture-only compatibility commit: `6c7e29489128d0c3f1cfff30b0434b8ac6f306ec`.
+- TDD RED: Push CI #219 `42451614036` reproduced both intended failures: a JSON object missing eventType was accepted as SealedConsistent; a manifest sourceCommit mismatch was accepted as SealedConsistent.
+- GREEN Push CI #223 `42452189107`: **SUCCESS 5/5**, exact head SHA `6c7e29489128d0c3f1cfff30b0434b8ac6f306ec`.
+- GREEN PR CI #224 `42452192126`: **SUCCESS 5/5**, exact PR head SHA `6c7e29489128d0c3f1cfff30b0434b8ac6f306ec`, base `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Collector Format/Clippy/Build PASS; library 43/43, binary 1/1; Sidecar writer Format/Clippy PASS; Sidecar offline tests 11/11 and integration tests 27/27 PASS. Dashboard frontend/backend, Docker and Security PASS in both workflows.
+- Push artifact metadata: ID `13605344125`, 4,186,964 bytes, GitHub-reported SHA-256 `58a379be44fda51c806af9264b9f7b3cfc595dbc722d10e428948425228c58c4`; payload not independently downloaded/rehashed.
+- Evidence report updated in commit `4d3d01cfd38ec34c31d7bc61cd7d2b27a36920aa`.
+- Verdict: **PASS** for the two semantic-event/manifest-identity regression cases and exact-head Push/PR CI.
+- Remaining limit: `connectionSubscriptions` in the manifest is still not semantically compared against JSONL-derived connection/batch/route/subscription inventory. Full manifest inventory integrity remains **NOT VERIFIED**.
+- No T0/runtime/VPS/collector runtime/Binance/live trading actions. Sidecar validator remains offline/read-only and is not wired into feed-quality or strategy gating.
+- Next bounded task: review and add offline tests for manifest `connectionSubscriptions` inventory consistency against validated event records; inspect actual writer/event semantics before changing validation. Keep changes on the existing T1 branch. Do not deploy, merge, or change PR draft state without separate approval.
