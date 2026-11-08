@@ -105,7 +105,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
         prediction_rows = []
         observations = []
         for index in range(1000):
-            timestamp = 1_700_000_000_100 + index * 1000
+            timestamp = 1_700_003_700_100 + index * 1000
             outcome = (index // 2) % 2
             side = "LONG" if index % 2 == 0 else "SHORT"
             confidence = "0.975" if outcome else "0.025"
@@ -118,6 +118,19 @@ class AIProvenanceValidatorTests(unittest.TestCase):
                 "regime": "TREND",
                 "model_version": "model-sha-test-v1",
                 "dataset_version": self.dataset_version,
+                "feature_cutoffs": {
+                    timeframe: {
+                        "open_time_ms": candle["openTimeMs"],
+                        "close_time_ms": candle["closeTimeMs"],
+                        "available_at_ms": candle["availableAtMs"],
+                    }
+                    for timeframe in ("15m", "1h")
+                    for candle in [max(
+                        (item for item in self.dataset_bundle["snapshots"][timeframe]["candles"]
+                         if item["availableAtMs"] <= timestamp),
+                        key=lambda item: item["openTimeMs"],
+                    )]
+                },
             }
             prediction_rows.append(json.dumps(row, sort_keys=True, separators=(",", ":")))
             observations.append(CalibrationObservation(
