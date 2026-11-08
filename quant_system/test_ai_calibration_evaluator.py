@@ -6,6 +6,7 @@ from quant_system.ai_calibration_evaluator import (
     CalibrationEvaluator,
     CalibrationGatePolicy,
     CalibrationObservation,
+    approved_calibration_gate_policy,
 )
 
 
@@ -151,6 +152,26 @@ class CalibrationEvaluatorTests(unittest.TestCase):
         self.assertNotEqual(baseline.input_sha256, changed_input.input_sha256)
         self.assertNotEqual(baseline.report_sha256, changed_input.report_sha256)
         self.assertNotEqual(baseline.report_sha256, changed_policy.report_sha256)
+
+    def test_approved_production_gate_uses_user_approved_thresholds(self):
+        policy = approved_calibration_gate_policy(
+            ece_bins=10, required_regimes=("TREND", "RANGE", "HIGH_VOL"),
+        )
+        self.assertEqual(str(policy.max_ece), "0.05")
+        self.assertEqual(policy.min_total_samples, 1000)
+        self.assertEqual(policy.min_group_samples, 200)
+        self.assertEqual(policy.ece_bins, 10)
+        self.assertEqual(policy.required_regimes, ("TREND", "RANGE", "HIGH_VOL"))
+
+    def test_approved_gate_requires_explicit_bins_and_regime_taxonomy(self):
+        with self.assertRaises(TypeError):
+            approved_calibration_gate_policy()
+        with self.assertRaises(ValueError):
+            approved_calibration_gate_policy(ece_bins=10, required_regimes=())
+        with self.assertRaises(ValueError):
+            approved_calibration_gate_policy(ece_bins=0, required_regimes=("TREND",))
+        with self.assertRaises(ValueError):
+            approved_calibration_gate_policy(ece_bins=10, required_regimes=("TREND", "TREND"))
 
     def test_policy_is_explicit_and_has_no_implicit_acceptance_thresholds(self):
         with self.assertRaises(TypeError):
