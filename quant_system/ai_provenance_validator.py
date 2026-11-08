@@ -75,7 +75,7 @@ def _valid_identity(value):
     return isinstance(value, str) and bool(value.strip()) and len(value) <= 256
 
 
-def _validate_prediction_rows(predictions, manifest, dataset_coverage=None):
+def _validate_prediction_rows(predictions, manifest, dataset_coverage=None, dataset_candles=None):
     """Validate row-level prediction timestamps and model/dataset identity."""
     if not isinstance(predictions, bytes) or not predictions:
         return ("PREDICTIONS_EMPTY",)
@@ -93,6 +93,7 @@ def _validate_prediction_rows(predictions, manifest, dataset_coverage=None):
     required = {
         "prediction_timestamp_ms", "outcome_available_at_ms", "outcome",
         "confidence", "side", "regime", "model_version", "dataset_version",
+        "feature_cutoffs",
     }
     try:
         text = predictions.decode("utf-8")
@@ -125,6 +126,33 @@ def _validate_prediction_rows(predictions, manifest, dataset_coverage=None):
         outcome_ms = row.get("outcome_available_at_ms")
         if type(prediction_ms) is not int or not start_ms <= prediction_ms <= end_ms:
             reasons.append("PREDICTION_TIMESTAMP_OUTSIDE_OOS")
+        cutoffs = row.get("feature_cutoffs")
+        if (not isinstance(cutoffs, Mapping)
+                or set(cutoffs) != {"15m", "1h"}):
+            reasons.append("FEATURE_CUTOFFS_INVALID")
+        elif dataset_candles is not None:
+            for timeframe in ("15m", "1h"):
+                cutoff = cutoffs.get(timeframe)
+                if (not isinstance(cutoff, Mapping)
+                        or set(cutoff) != {"open_time_ms", "close_time_ms", "available_at_ms"}
+                        or any(type(cutoff.get(field)) is not int for field in (
+                            "open_time_ms", "close_time_ms", "available_at_ms"
+                        ))):
+                    reasons.append(f"FEATURE_CUTOFFS_INVALID:{timeframe}")
+                    continue
+                candle = dataset_candles[timeframe].get(cutoff["open_time_ms"])
+                if (candle is None
+                        or candle.get("closeTimeMs") != cutoff["close_time_ms"]
+                        or candle.get("availableAtMs") != cutoff["available_at_ms"]
+                        or candle.get("isClosed") is not True
+                        or candle.get("availabilityKind") != "FIRST_OBSERVED"
+                        or candle.get("quality") != "VALIDATED"):
+                    reasons.append(f"FEATURE_CANDLE_REFERENCE_INVALID:{timeframe}")
+                    continue
+                if (type(prediction_ms) is not int
+                        or cutoff["available_at_ms"] > prediction_ms):
+                    reasons.append(f"FEATURE_CANDLE_NOT_AVAILABLE_AT_DECISION:{timeframe}")
+
         if (type(outcome_ms) is not int or type(prediction_ms) is not int
                 or outcome_ms <= prediction_ms or outcome_ms > end_ms):
             reasons.append("OUTCOME_TIMESTAMP_INVALID")
@@ -207,6 +235,7 @@ def _validate_dataset_bundle(dataset_bytes, manifest):
     reasons = []
     coverage = {}
     snapshot_versions = {}
+    candles_by_timeframe = {}
     for timeframe in _DATASET_TIMEFRAMES:
         snapshot = snapshots.get(timeframe)
         if not isinstance(snapshot, Mapping) or snapshot.get("timeframe") != timeframe:
@@ -223,6 +252,9 @@ def _validate_dataset_bundle(dataset_bytes, manifest):
             reasons.append(f"DATASET_SNAPSHOT_INVALID:{timeframe}")
             continue
         coverage[timeframe] = (metadata["start_ms"], metadata["end_ms"])
+        candles_by_timeframe[timeframe] = {
+            candle["openTimeMs"]: candle for candle in snapshot["candles"]
+        }
         snapshot_versions[timeframe] = snapshot["datasetVersion"]
 
     aggregate_identity = {
@@ -248,7 +280,7 @@ def _validate_dataset_bundle(dataset_bytes, manifest):
 
     if reasons or set(coverage) != set(_DATASET_TIMEFRAMES):
         return tuple(sorted(set(reasons))), None
-    return (), coverage
+    return (), (coverage, candles_by_timeframe)
 
 
 def _validate_calibration_report(predictions, report_bytes, manifest):
@@ -466,16 +498,19 @@ def verify_signed_provenance(envelope, artifacts, trusted_public_keys, *, now_ms
                 verified.append(role)
 
     dataset_coverage = None
+    dataset_candles = None
     if isinstance(artifacts, Mapping) and "dataset" in artifacts:
-        dataset_reasons, dataset_coverage = _validate_dataset_bundle(
+        dataset_reasons, dataset_data = _validate_dataset_bundle(
             artifacts["dataset"], manifest
         )
         reasons.extend(dataset_reasons)
+        if dataset_data is not None:
+            dataset_coverage, dataset_candles = dataset_data
 
     if isinstance(artifacts, Mapping) and "predictions" in artifacts:
         prediction_data = artifacts["predictions"]
         reasons.extend(_validate_prediction_rows(
-            prediction_data, manifest, dataset_coverage
+            prediction_data, manifest, dataset_coverage, dataset_candles
         ))
         if "calibration_report" in artifacts:
             reasons.extend(_validate_calibration_report(
