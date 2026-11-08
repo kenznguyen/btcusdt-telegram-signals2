@@ -13,7 +13,7 @@ Use the existing T0 read-only HTTP API as the intended consumer boundary. Keep t
 
 T0 remains the owner of canonical ingestion and storage. T1/T2 are read-only consumers. The contract is a data interface, not a strategy signal, order, or execution interface.
 
-**Important implementation finding:** the current T2 FreqAI bridge does not yet conform to the approved boundary. `freqai_bridge/context.py` calls `market_data.store.read_window()` directly using a configured SQLite path; `freqai_bridge/README.md` documents the shared SQLite path. This bypasses the intended service boundary even though the store's SQLite connection is opened read-only. Treat this path as **LEGACY / NON-CONFORMANT** until the bridge is migrated to the HTTP contract and independently verified. Do not silently grandfather it as approved direct DB access.
+**Historical finding — superseded by later implementation evidence:** at the time of this initial contract review, the T2 bridge used direct SQLite access. The later T2 HTTP consumer migration removed the direct `market_data.store`/`read_window()` dependency from `freqai_bridge/context.py`, wired the strategy context through `CandleHttpClient`, and passed the recorded offline migration acceptance checks. See [T2 HTTP Candle Client GREEN evidence](../evidence/t2/T2_HTTP_CANDLE_CLIENT_GREEN_2026-11-08.md), which records the final migration and CI evidence at its exact source SHA. Current source inspection at the inventory baseline SHA also shows the HTTP client path. This does not prove that a live T0 endpoint, remote TLS, credentials, or deployed runtime is available; those remain NOT VERIFIED. Do not reintroduce direct T0 DB access or a fallback path.
 
 ## 2. Endpoint and request
 
@@ -173,9 +173,9 @@ Reviewed on branch `feature/t0-centralized-data-feeder-p1-20261101`, baseline HE
 |---|---|---|
 | `market_data/api.py` | GET-only `/v1/candles`, Bearer token, bounded query, read through store, `generatedAtMs` | No explicit contract/schema version; no dataset freshness envelope; API uses `MAX_CANDLES` (write/sync bound) for read-window cap |
 | `market_data/store.py` | Closed candle validation, decimal strings, provenance fields, `availableAtMs`, gap reporting, dataset hash, SQLite read-only URI | Good foundation; `MAX_READ_CANDLES=3000` differs from API's stricter 2000 cap; no API freshness summary |
-| `freqai_bridge/context.py` | Calls `read_window(database,...)` directly on a configured DB path | **NON-CONFORMANT** with service-boundary decision; must consume HTTP contract |
-| `freqai_bridge/ChartProFreqaiResearch.py` | Calls `canonical_context(path,...)` from configured `canonical_db_path` | Inherits direct DB dependency; no T0 HTTP adapter yet |
-| `freqai_bridge/README.md` | Documents shared SQLite DB path for FreqAI bridge | Must be updated after adapter migration; current documentation contradicts approved boundary |
+| `freqai_bridge/context.py` | Uses `CandleHttpClient` through the T0 read-only HTTP contract | Source integration present; live endpoint/deployment remains NOT VERIFIED |
+| `freqai_bridge/ChartProFreqaiResearch.py` | Calls the HTTP-backed context and writes a prediction artifact | Source integration present; artifact/runtime presence NOT VERIFIED |
+| `freqai_bridge/README.md` | Documents the HTTP candle contract and no direct local-storage fallback | Aligned with the later T2 HTTP migration evidence |
 | `market_data/test_api.py` | Covers auth, GET-only behavior, coverage gaps, as-of, missing DB, query bounds | Existing tests do not yet assert contract/schema version or freshness envelope |
 | `market_data/test_store.py` | Covers decimal precision, closed candle, gaps, as-of, dataset version | Store-level tests are a foundation; freshness response tests belong at API boundary |
 
@@ -187,8 +187,8 @@ The SQLite read path uses read-only mode, which protects against writes through 
 
 1. **Contract tests first (RED):** add API tests for version fields, identity, volume unit, freshness metadata, null/empty behavior, timestamp validity, unsupported schema handling, and consistent response shape.
 2. **API implementation:** add the versioned envelope and freshness metadata; use a dedicated API read-window limit constant (2,000) instead of coupling the public API to the write/sync limit constant. Keep Store's internal maximum separate.
-3. **HTTP consumer client:** implement a small T2-side client that sends Bearer auth, applies bounded timeout/retry rules, validates the full response contract, and never opens T0 storage.
-4. **FreqAI bridge migration:** replace direct `canonical_db_path`/SQLite calls with the HTTP client; retain the exact candle-window comparison, training provenance, dataset hash, and fail-closed WAIT behavior.
+3. **Live endpoint acceptance:** separately verify the deployed T0 endpoint, remote TLS, credentials, freshness, and coverage using an explicitly approved read-only procedure. The offline migration CI does not prove remote runtime availability.
+4. **Independent review:** confirm no direct T0 DB import/path or fallback has reappeared in the current T2 runtime; record exact source SHA and evidence.
 5. **Offline tests:** use local WSGI/HTTP test server and deterministic fixtures only; no canonical database, exchange connection, model training, or live runtime.
 6. **Independent review:** verify no direct T0 DB imports/path remain in T2 runtime; verify token redaction, request bounds, timeout behavior, and no fallback path.
 7. **Evidence:** record exact SHA, GitHub Actions run/job IDs, checked-out SHA, artifact IDs/digests, tests and outcomes before promoting contract conformance.
@@ -202,7 +202,7 @@ Do not combine this with Data Quality Gate threshold approval, T0 runtime change
 | Existing read-only API as design base | PASS — source inspected |
 | Contract v1 design | REVIEWED — implementation not verified |
 | T0 API conformance to v1 | NOT VERIFIED |
-| T2 FreqAI HTTP integration | BLOCKED — current bridge uses direct DB |
+| T2 FreqAI HTTP integration | PASS — source wiring and recorded offline migration CI; live endpoint NOT VERIFIED |
 | T0 Data Quality Gate | PAUSED / NOT VERIFIED |
 | T0 as official T2 replacement source | NOT APPROVED |
 | T1 complete market-data readiness | PARTIAL / NOT VERIFIED |
