@@ -5,7 +5,7 @@
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
 - Latest verified code/test SHA: `afa44c4bbab5a86040aadbeed219df7fe10a87cb`.
-- Latest GREEN evidence commit before this handoff update: `24346c29f4186a0ac3fb1f79e506f55ff9c8649a`.
+- Latest GREEN evidence commit before this handoff update: `0f4d87f1ba6c4e3a901b612f7271a2165e754381`.
 - PR #95: OPEN / DRAFT / NOT MERGED.
 - PR base: `feature/dual-strategy-phase22-frozen-reproducibility-20261031` at `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
 - No new branch or PR was created.
@@ -126,10 +126,12 @@ The old Phase 2/3 path remains regression-tested, but is not compatible with the
 
 1. Build a new signal coordinator that preserves `core_signal` / `ai_signal` provenance but emits independent CORE and AI intents; do not reuse `_select` conflict arbitration.
 2. Route every entry/DCA through persistent shared reservations and matching ledger writes.
-3. Replace the legacy fixed-position / 50%-margin gate in the paper path; preserve the Strategy Core RSI/ADX/Smart DCA signal rules and explicitly separate execution sizing from strategy predicates.
-4. Define the gross notional exposure ceiling and confirm the portfolio margin budget (current collateral logic uses a 100% account-equity guard).
-5. Connect Kill Switch to an authoritative runtime state source.
-6. Run legacy regression tests, isolated strategy backtests, and combined portfolio backtest before paper runtime.
+3. Replace the legacy fixed-position / 50%-margin gate in the paper path; preserve Strategy Core RSI/ADX/Smart DCA signal rules and separate execution sizing from strategy predicates.
+4. Confirm whether 1% margin is based on each strategy's own ledger equity or combined portfolio equity.
+5. Define the gross notional exposure ceiling and confirm the portfolio margin budget (current collateral logic uses a 100% account-equity collateral guard).
+6. Define AI leverage/position sizing; do not assume Core's legacy 13x leverage applies to AI.
+7. Connect Kill Switch to an authoritative runtime state source.
+8. Run legacy regression tests, isolated strategy backtests, and combined portfolio backtest before paper runtime.
 
 ## Constraints
 
