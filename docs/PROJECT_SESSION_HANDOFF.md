@@ -6317,3 +6317,18 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Evidence report updated in commit `0b3cede15535710432c98bc65754c9ed2e6c90d1`.
 - No VPS runtime, Binance connection, T0 runtime/database, resnapshot policy or live execution touched.
 - Next: verify run 42448956679 on exact merge SHA, then update final verdict. Raw-tape persistence and real reconnect recovery remain NOT VERIFIED by these tests.
+
+
+## 2026-11-08 — T1 Order Book offline assurance closeout
+
+- T1 source repo: `kenznguyen/binance-futures-collector`, branch `feature/t1-connection-sidecar-integration-20261107`, PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Latest T1 source SHA: `3c2745a30f3cb20375a20188b5f4e10e7b7bbfef`.
+- GitHub Actions run #200: [42448956679](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42448956679), conclusion SUCCESS, 5/5 jobs.
+- Exact checked-out synthetic merge SHA from Collector job log: `3ec602e` (log records full SHA prefix `3ec602e`), PR head `3c2745a...` merged with base `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Collector Format, Clippy, release Build and Test PASS. Three explicit offline tests PASS: `snapshot_plus_buffered_diffs_matches_independent_reconstruction`, `initial_attach_rejects_a_missing_diff_after_the_bridge`, `reconnect_pu_break_leaves_untouched_levels_stale_in_live_book`. Test totals: library 43/43, main 1/1.
+- Sidecar tests 8/8 + 27/27; dashboard frontend and backend, Docker build, Security audit PASS.
+- Artifact inventory empty; artifact preparation and upload steps were skipped. No binary artifact is claimed.
+- Verdict: deterministic offline Order Book behaviors at source SHA `3c2745a...` are **PASS** under run #200. Raw-tape persistence, actual live reconnect behavior, and reconnect resnapshot/recovery remain **NOT VERIFIED**.
+- No T0 runtime/DB/Feeder, VPS, Binance connection, or live execution was touched. PR #1 was not merged and draft state was not changed.
+- Evidence report: `docs/evidence/t1/T1_ORDERBOOK_OFFLINE_TESTS_2026-11-08.md`.
+- Next permitted step: inspect and address the separate outstanding PR review finding on sidecar manifest publication failure (post-hard-link failure must poison writer / prevent further append), with a narrowly scoped regression test and GitHub Actions validation. Do not merge PR without explicit approval. No VPS/runtime or exchange action is authorized.
