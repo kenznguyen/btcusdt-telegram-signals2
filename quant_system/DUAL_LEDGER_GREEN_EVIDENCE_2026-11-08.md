@@ -121,8 +121,22 @@ This is a passing ledger/risk-accounting slice, **not full Dual-Strategy executi
 3. **Signal coordinator integration is not implemented.** CORE and AI signal routes must use persistent `reserve_entry`/`reserve_dca` and consume through `record_reserved_entry`/`record_reserved_dca`. The `restore_position`/`restore_dca` methods are for reconciled restore only.
 4. **Legacy signal/paper route is incompatible and remains unchanged.** `quant_system/dual_strategy.py` still routes through `RiskSnapshot.max_positions`, and `_select` arbitrates CORE/AI into one selected signal (opposing directions are blocked). `quant_system/paper_bridge.py` still calculates stake from the legacy `StrategyRules().p.entry_margin_pct` and uses `PaperLedger`'s single signed net position. These do not implement independent CORE_LEDGER/AI_LEDGER with 1% margin and no fixed position-count cap. Do not treat the legacy `PaperSignalCoordinator` / `DualPaperBridge` path as integrated with the new `dual_ledger.py` module.
 5. **Signal coordinator and runtime Kill Switch wiring are not implemented.** The new risk API accepts a boolean Kill Switch state; the coordinator must supply an authoritative source.
-6. **Legacy Phase 2/Phase 3 regression tests were not run at the latest code SHA.** `quant_system/test_dual_strategy_phase2.py` and `quant_system/test_phase3_paper_bridge.py` remain NOT VERIFIED against this increment.
+6. **Legacy Phase 2/Phase 3 regression tests PASS but preserve legacy semantics.** Workflow run `42455156480` at SHA `8849ea2c6c9f28ac60067a7e6339eb7260a27b6b` passed 20 Phase 2 tests, 11 Phase 3 paper bridge tests, and 18 PaperLedger tests. These prove no regression in the old path; they do NOT certify compatibility with the new 1% margin, no-fixed-position-cap, independent-ledger rules.
 7. **Combined CORE + AI replay and T0/T1 runtime integration have not run.**
+
+### Legacy paper regression gate
+
+- Workflow: T2 Legacy Paper Regression.
+- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455156480
+- Run ID: `42455156480`, event `push`, conclusion SUCCESS.
+- Source and checked-out SHA: `8849ea2c6c9f28ac60067a7e6339eb7260a27b6b`.
+- Job ID: `128652473964`.
+- `quant_system.test_dual_strategy_phase2`: 20 tests PASS.
+- `quant_system.test_phase3_paper_bridge`: 11 tests PASS.
+- `paper_execution.test_ledger`: 18 tests PASS.
+- Total: 49 tests PASS.
+- No artifact produced.
+- These are regression proofs for the legacy path only; that path still conflicts with the new independent-ledger risk rules described above.
 
 ## Status
 
@@ -136,7 +150,7 @@ This is a passing ledger/risk-accounting slice, **not full Dual-Strategy executi
 - R22.2 isolated offline verification for code SHA `afa44c4bbab5a86040aadbeed219df7fe10a87cb`: **PASS (8/8)**.
 - Gross exposure policy threshold: **NOT DEFINED**.
 - New Dual-Strategy signal coordinator integration: **NOT IMPLEMENTED**.
-- Legacy Phase 2/Phase 3 tests at current SHA: **NOT VERIFIED**.
+- Legacy Phase 2/Phase 3 regression suite: **PASS (49 tests across 3 modules) under legacy behavior**; compatibility with updated Dual-Strategy risk policy remains BLOCKED.
 - Combined paper replay: **NOT RUN**.
 - Production readiness: **NOT CERTIFIED**.
 
