@@ -173,30 +173,30 @@ These are provisional functional classes. Sensitivity labels, retention floors, 
 6. **Paper evidence archive gap.** Forward evidence capture remains proposal-only; GitHub artifacts and mutable ledger storage cannot be assumed to provide independent long-term evidence retention.
 7. **T4 actual dataset map unavailable.** The target architecture exists, but current authoritative stores/consumers are not established.
 
-## 8. Required next evidence phase — read-only only
+## 8. Scope boundary — experimental and future official environments
 
-Before assigning retention values, a separately approved read-only inventory capture should record:
+The current VPS is an **experimental operations environment only**. It is explicitly excluded from any further dataset, filesystem, database, consumer, replica, backup, or storage inventory. No SSH connection, remote listing, database open/query, or other data collection from that environment is requested or authorized by this document.
 
-- exact VPS source checkout SHA and timestamp;
-- exact paths and metadata for configured databases/artifacts, without opening or modifying databases unless a separate read-only procedure is approved;
-- database provider identity, schema/migration version, table/object names, sizes, and coverage metadata;
-- dataset ID/version/digest and producer/steward where available;
-- consumer/job identities, exact version references, and purpose;
-- backup/replica/export inventory and restore evidence;
-- lineage/rebuildability and unresolved holds;
-- source/evidence freshness and provenance limitations.
+The static repository inventory above is not a substitute for a production inventory and must not be represented as one. Historical experimental-environment observations remain historical context only; they are not evidence of current canonical T0 state or production readiness.
 
-This is a proposal for a future evidence-gathering step, not permission to connect to the VPS or inspect storage now. User authorization is required before any remote inspection. No exchange/network probe, sync, collector run, database open/query, or runtime action is implied.
+A future official environment has not yet been designated. Until it is explicitly identified and its evidence scope is separately approved:
+- do not initiate runtime/storage inventory against the experimental VPS;
+- do not infer that experimental paths, volumes, data, processes, or provider choices define the official T0 deployment;
+- do not promote experimental results to official acceptance evidence;
+- do not assign retention, archive, backup-expiry, vacuum, cleanup, or deletion policy from this static baseline.
+
+When an official environment is designated, its inventory must be separately scoped and approved. This section is a boundary, not authorization to inspect any environment.
 
 ## 9. Acceptance and status
 
 - [x] Static repository source and documentation inventory completed for T0, T1, T2, paper state, and evidence domains.
 - [x] Source-defined objects distinguished from historical runtime evidence and design-only proposals.
 - [x] Unknown runtime presence, copies, consumers, and dependencies explicitly marked NOT VERIFIED.
+- [x] Current experimental VPS explicitly excluded from further data collection and inventory.
 - [x] No numeric retention period or cleanup policy assigned.
-- [x] No database, VPS, exchange, collector, or runtime accessed.
+- [x] No database, VPS, exchange, or runtime accessed for this documentation update.
 - [x] No source/schema/API/workflow/runtime or data lifecycle operation changed.
 
-**Status: STATIC INVENTORY BASELINE COMPLETE — RUNTIME INVENTORY NOT VERIFIED — NO LIFECYCLE ACTION AUTHORIZED.**
+**Status: STATIC REPOSITORY INVENTORY COMPLETE — EXPERIMENTAL VPS INVENTORY EXCLUDED — OFFICIAL ENVIRONMENT NOT DESIGNATED — NO LIFECYCLE ACTION AUTHORIZED.**
 
-Next: documentation-only correction of the stale T0 Read-only Candle Contract v1 status text, then seek explicit approval before any read-only VPS/storage inventory. Do not proceed to retention values, archive, vacuum, cleanup, or deletion based only on this static baseline.
+Next: documentation-only environment/evidence boundary alignment. Do not collect data from the experimental VPS or infer official-environment state from it.
