@@ -382,3 +382,29 @@ No T0 runtime, VPS, database, Feeder, market-data ingestion, exchange connection
 - Archive job independently rechecked the retention payload successfully (`RETENTION_PAYLOAD_INDEPENDENT_RECHECK=PASS`). It then failed while running `git show <SOURCE_SHA>:synthetic_evidence/trust_lifecycle.py`: the branch checkout was at newer HEAD `ee7d5dc2c613822825f5cc0af857cd72d8dcc542`, but `actions/checkout` used its default shallow depth of one commit, so the triggering source SHA `8f20b9b...` was not present in the local object database. This is a checkout-history availability failure, not a retention-manifest or attestation failure.
 - No evidence archive commit was created by run #122. No branch rewrite, merge, T0 runtime, VPS, database, Feeder, ingestion, or execution change occurred.
 - Status: **BLOCKED — archive job implementation needs a bounded source-commit fetch**. Proposed correction: in the archive job, fetch the exact `SOURCE_SHA` from origin at depth 1 before source-file `git show` checks, and assert it is an ancestor of the checked-out branch HEAD. Avoid an unbounded full-history checkout. Add a regression test for this workflow contract, then rerun the workflow and verify archive commit, source SHA, and artifact expiry metadata.
+
+
+## 2026-11-09 — P1.8 bounded archive source fetch verified (run #127)
+
+### CI evidence
+
+- Workflow run #127: [42516728964](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42516728964).
+- Exact workflow source SHA: `70cc776c79fbe244ef24852e4bfa408848658f8f` on `feature/t0-centralized-data-feeder-p1-20261101`.
+- Overall workflow conclusion: **success**; all three jobs succeeded.
+- Synthetic fixture/provenance job: **PASS**. The suite ran 124 tests; the three new archive checkout contract tests were present and passed. Deterministic 1,000-event fixture regeneration, byte-for-byte comparison, provenance binding, P1.8.15 backfill, and Sigstore attestation verification also completed.
+- Independent runner Sigstore verification: **PASS**.
+- Archive job: **PASS**. Logs confirm the exact source commit was fetched at depth 1 into `FETCH_HEAD`; GitHub compare returned `SOURCE_SHA_BRANCH_ANCESTRY=PASS status=identical`; the independent retention payload recheck and trust-root snapshot-chain append passed.
+- Archive commit: `1edc9491ce0cb1741b458e59811a023e017c973d`, message `archive(evidence): retain P1.8 signed bundle`. It pushed successfully to the same feature branch. Archive path: `docs/evidence/p1-8/70cc776c79fbe244ef24852e4bfa408848658f8f/`; trust-root chain updated at `docs/evidence/p1-8/trust-root-snapshot-chain.json`.
+
+### Artifact retention metadata
+
+- Primary evidence artifact ID `13631244333`, digest `sha256:7a5dd27bd12b8ea0ef2746b533039bc00c1f8d051b15bb94a8f69030d11c5a89`, expires `2026-11-15T19:46:42Z`.
+- Independent verification artifact ID `13631343994`, digest `sha256:7dd9ac8039407b1dafb36e4c1894022a4746db85d23087f4d5de5c4b38d7f484`, expires `2026-11-15T19:46:42Z`.
+- Both actual GitHub expiry timestamps match the seven-day policy. The archived manifest records `actions_artifact_retention_days: 7`, `retention_class: GIT_HISTORY`, and `immutability: NOT_WORM`.
+
+### Status and boundaries
+
+- Archive shallow-checkout defect: **PASS — corrected and verified**.
+- P1.8 evidence generation, independent verification, retention-manifest verification, and Git archive append for source SHA `70cc776...`: **PASS**.
+- Retention remains Git history plus seven-day Actions artifacts; this is not WORM and no long-term retention guarantee or external archive is claimed.
+- No merge, branch rewrite, T0 runtime, VPS, database, Feeder, ingestion, or trading execution change was made. `AI_EXECUTION_ENABLED=false` remains enforced in the synthetic workflow.
