@@ -2,7 +2,7 @@
 
 ## Scope
 
-Paper-only Dual-Strategy accounting and shared-risk slices implemented:
+Paper-only Dual-Strategy accounting and shared-risk slices implemented. The approved margin basis is now **combined portfolio equity = CORE ledger equity + AI ledger equity**. Each entry/DCA reserves 1% of that combined value at admission; independent ledger equity/PnL accounting remains separate.
 
 - Independent CORE/AI position, DCA, equity and realized-PnL ledgers.
 - Shared gross margin and gross notional exposure across both strategies; opposing LONG/SHORT positions are summed, never netted.
@@ -21,7 +21,9 @@ Paper-only Dual-Strategy accounting and shared-risk slices implemented:
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
 - PR #95: OPEN / DRAFT / NOT MERGED.
-- Current code/test head at evidence capture: `afa44c4bbab5a86040aadbeed219df7fe10a87cb`.
+- Current code/test head at evidence capture: `9492b8bc5a2d3da45a3662dc4eba7ece28fe7c7c`.
+- Portfolio-equity policy implementation commit: `9d3ef163868c99a2438bfaa4b9c98e3a9954ef4c`.
+- Final focused-test correction commit: `9492b8bc5a2d3da45a3662dc4eba7ece28fe7c7c`.
 - Base branch: `feature/dual-strategy-phase22-frozen-reproducibility-20261031`.
 - Base SHA: `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
 
@@ -88,7 +90,32 @@ Files changed:
 - At evidence capture: IN_PROGRESS; no conclusion or artifact asserted.
 - Earlier R22.2 PASS on older source SHA does not certify the latest reservation/reduction implementation.
 
-## Test coverage — 21/21
+## Combined portfolio equity decision and verification
+
+The user selected **combined portfolio equity** as the 1% margin basis.
+
+Implementation contract:
+- `portfolio_equity = CORE.snapshot().equity + AI.snapshot().equity`.
+- Every admitted entry/DCA requires margin = `portfolio_equity * 0.01`.
+- Independent CORE and AI equity/PnL ledgers remain separate; only the shared risk budget uses their sum.
+- Stateless admission rejects a caller-supplied equity value that differs from the sum of the two snapshots with `ACCOUNT_EQUITY_MISMATCH`.
+- Persistent reservation reads both stored strategy account balances inside the same `BEGIN IMMEDIATE` transaction and rejects a caller-supplied mismatch. The authoritative combined value determines required margin.
+- The combined equity is recalculated at every admission, so realized PnL in either ledger changes subsequent admission sizing.
+
+### RED → GREEN
+
+- RED test commit: `d2c651927fc1e11ac1667309b87e147437513ddc`.
+- RED run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455448910
+- Run ID `42455448910`, source SHA `d2c651927fc1e11ac1667309b87e147437513ddc`, expected FAILURE: 23 tests ran; 5 failures exposed caller-supplied single-ledger equity and stale 1% sizing.
+- GREEN code commit: `9d3ef163868c99a2438bfaa4b9c98e3a9954ef4c`.
+- Final GREEN source SHA: `9492b8bc5a2d3da45a3662dc4eba7ece28fe7c7c`.
+- T2 run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455568974
+- Run ID `42455568974`, event `push`, exact source SHA `9492b8bc5a2d3da45a3662dc4eba7ece28fe7c7c`, SUCCESS; 23 tests PASS.
+- Legacy regression run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455568882
+- Run ID `42455568882`, same exact source SHA, SUCCESS; Phase 2 20/20, Phase 3 11/11, PaperLedger 18/18 (49/49 total).
+- No artifacts produced by these two push workflows.
+
+## Test coverage — 23/23
 
 1. CORE/AI position isolation in one persistent store.
 2. DCA state isolation.
@@ -141,8 +168,8 @@ This is a passing ledger/risk-accounting slice, **not full Dual-Strategy executi
 
 ## Status
 
-- Independent CORE/AI ledger accounting: **PASS (21/21 focused tests)**.
-- Atomic shared margin reservation and exactly-once consumption: **PASS**.
+- Independent CORE/AI ledger accounting and combined-equity risk sizing: **PASS (23/23 focused tests)**.
+- Atomic shared margin reservation and exactly-once consumption: **PASS; 1% basis is combined CORE + AI equity**.
 - Gross margin and gross notional aggregation without directional netting: **PASS**.
 - Reservation cancellation/reconciliation: **PASS (focused test)**.
 - Partial/full reduction accounting: **PASS (focused tests)**.
