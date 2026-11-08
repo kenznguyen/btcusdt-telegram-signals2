@@ -56,3 +56,17 @@ A separate repository protocol was inspected: `research_evidence/frozen-model/ph
 - no holdout rows for training/scalers.
 
 However, that artifact is a separate Phase13B prospective protocol candidate, explicitly `PRE_REGISTERED_PROTOCOL_CANDIDATE_NOT_SEALED`, with model seal/source/bundle fields still null. It is not the signed split_protocol artifact for the new independent AI strategy and must not be silently reused to define that strategy's label horizon, price basis, purge or embargo. Its own related Phase14 evidence also states full model-pipeline fit causality is not certified. This cross-check therefore does not change the BLOCKED decision.
+
+## Training-pipeline source inspection — additional evidence
+
+Inspected the tracked legacy FreqAI research pipeline:
+- `freqai_bridge/ChartProFreqaiResearch.py` (blob `0ddaabca32e678bd1c6e181146c2f1418941c133`): target is `close.shift(-horizon) / close - 1`; horizon is read from `freqai.feature_parameters.label_period_candles`.
+- `freqai_bridge/config.okx-research.json` (blob `bbccccb8fd6688c8b5b27fa6160b8068f3103f35`): legacy identifier `chart-pro-okx-shadow-v1`, M15 timeframe, `label_period_candles=4`, chronological `test_size=0.2, shuffle=false`.
+- `quant_system/PHASE12_ACTUAL_FIT_LABEL_PURGE.md` (blob `905a51fce85dcbaee4756389e058db0370676783`) documents an actual-fit audit and a pre-fit purge: remove TRAIN samples where `feature_open + 4*M15 >= first_test_feature_open`; acceptance boundary is strict `max(TRAIN label_end) < min(TEST feature start)`. The report states this purge was implemented after an observed overlap.
+- `quant_system/phase12_training_audit.py` (blob `a8fc3cb0a2404650f84774ac10e87e8fb6f8cca2`) independently reconstructs raw labels from canonical M15 close prices and checks the 4-candle label end, fit cutoff and first prediction.
+
+### Scope warning
+These findings establish a concrete label contract for the **legacy OKX model/pipeline only**: M15 close-to-close forward return over four candles, label end at `feature_open_ms + 4*900000`, with strict train/test purge. They do NOT establish that the independent AI Strategy's model uses this same target, dataset, venue, timeframe or fit pipeline. The signed provenance manifest currently does not bind the AI model to this legacy identifier/config hash. Therefore this is source evidence, not permission to copy the legacy label horizon or purge policy into the independent AI OOS protocol.
+
+### Next required decision
+Before implementing a semantic split parser, bind the independent AI strategy to its exact model/pipeline identity and source/config hashes. If it is intended to use the exact legacy frozen model, that must be explicitly confirmed and the model identity must be bound in the signed manifest. If it is a distinct model, its training target and fit-sample evidence must be inspected separately. No purge/embargo rule is added to the validator in this increment.
