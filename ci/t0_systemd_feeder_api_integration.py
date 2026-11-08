@@ -19,6 +19,10 @@ import urllib.error
 import urllib.request
 from wsgiref.simple_server import make_server
 
+REPO_ROOT = str(Path(__file__).resolve().parents[1])
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
 from market_data.api import application
 from market_data.feeder import FeederConfig, FeederRuntime, LeaseStore
 from market_data.feeder_service import run_service
