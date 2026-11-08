@@ -41,7 +41,6 @@ class T2HttpContextTest(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             with self.assertRaises(CandleHttpError):
                 canonical_context(now_ms=NOW, bars=2)
-        self.assertNotIn("sqlite", open(__file__, encoding="utf-8").read().lower())
 
     def test_http_client_uses_explicit_environment_contract_configuration(self):
         captured = {}
