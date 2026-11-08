@@ -612,3 +612,10 @@ Implement semantic reconciliation between the signed prediction JSONL and the si
 ### Cross-check note
 - Inspected separate `research_evidence/frozen-model/phase13b-20261104/phase13b-oos-protocol.json` (blob `0dbf07b12ccb4d4675f34827298456e8d7c69fb7`). It declares a 4-M15-candle label horizon and labels ending before holdout, but is for `chart-pro-okx-shadow-v1` on OKX and remains PRE_REGISTERED_PROTOCOL_CANDIDATE_NOT_SEALED with null seal fields.
 - Do NOT reuse that legacy Phase13B label horizon/purge assumptions for the independent AI strategy's signed split_protocol. Related Phase14 record says full model-pipeline fit causality is not certified.
+
+### Training pipeline inspection update
+- Inspected `ChartProFreqaiResearch.py` blob `0ddaabca32e678bd1c6e181146c2f1418941c133`: target formula `close.shift(-horizon)/close-1`.
+- Legacy config blob `bbccccb8fd6688c8b5b27fa6160b8068f3103f35` sets M15 and horizon 4 for `chart-pro-okx-shadow-v1`.
+- Phase12 audit docs/source (`905a51fce85dcbaee4756389e058db0370676783`, `a8fc3cb0a2404650f84774ac10e87e8fb6f8cca2`) describe actual fit-row label reconstruction and strict purge `max(TRAIN label_end) < min(TEST feature start)`, purging rows where `feature_open + 4*M15 >= first_test_feature_open`.
+- This is proven legacy-pipeline evidence only. Independent AI model has not yet been bound to that exact model/config identity. Do not transplant the 4-candle horizon or purge rule without confirming model identity.
+- Next essential decision: is the independent AI strategy intended to use this exact frozen legacy model/pipeline, or a distinct model? Bind model identifier + source/config hashes in the signed manifest before split protocol implementation.
