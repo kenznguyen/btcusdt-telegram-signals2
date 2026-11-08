@@ -122,17 +122,11 @@ These are documentation-only corrections. They do not approve a registry, API, s
 
 ## 6. Required evidence before retention policy can be quantified
 
-A read-only inventory is needed before assigning numeric retention values:
-- dataset ID/version and functional/sensitivity class;
-- actual producer/steward and deployed storage locations;
-- known consumers and exact purposes;
-- source/derived lineage and reproducibility evidence;
-- backtest/model/replay/audit/recovery obligations;
-- holds and policy obligations;
-- replicas, backups, exports, caches, and local copies;
-- rebuild/restore evidence and limitations.
+A repository-level static source inventory has been completed in [Dataset Consumer Inventory Baseline](DATASET_CONSUMER_INVENTORY_BASELINE_2026-11-09.md). It does not establish deployed storage, active consumers, runtime dependencies, replicas, backups, exports, or restore capability.
 
-Unknown owner, classification, dependency, or copy inventory must be treated as unresolved/protected. Do not infer “unused” from no reads or missing heartbeat.
+The current VPS is an experimental environment and is explicitly excluded from all further inspection, including read-only inventory. The official environment is NOT DESIGNATED. A future runtime inventory may be planned only after the user separately designates an official environment and approves its exact inspection scope. See [Environment and Evidence Boundary](ENVIRONMENT_EVIDENCE_BOUNDARY.md).
+
+Until then, runtime owner, classification, dependency, and copy inventory remain NOT VERIFIED and must be treated as unresolved/protected. Do not infer “unused” from source absence, no reads, missing heartbeat, or experimental-environment observations.
 
 ## 7. Decisions still requiring explicit approval
 
