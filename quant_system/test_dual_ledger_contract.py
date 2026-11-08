@@ -333,7 +333,7 @@ class DualLedgerContractTest(unittest.TestCase):
 
     def test_cancelled_reservation_requires_evidence_and_releases_collateral(self):
         self.core.restore_position("core-heavy", side="LONG", quantity="1",
-                                   entry_price="100000", margin_used="19900")
+                                   entry_price="100000", margin_used="19750")
         engine = SharedRiskEngine(self.db)
         first = engine.reserve_entry(
             reservation_id="orphaned-reservation", strategy_id="AI",
