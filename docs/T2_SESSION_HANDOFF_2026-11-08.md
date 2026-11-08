@@ -361,3 +361,18 @@ Added tests covering the approved values, missing required arguments, invalid bi
 - Working-tree status: NOT VERIFIED (GitHub API-only changes; no local checkout inspected).
 
 Next: verify exact-head Actions for the approved policy implementation. Then implement an authenticated OOS provenance/split validator before considering any calibration attestation. Keep runtime execution disabled.
+
+
+### Verification update — approved calibration gate
+
+- Production gate factory: `approved_calibration_gate_policy(*, ece_bins, required_regimes)`.
+- Code/test source commit: `f4be0101380abe41b1c9d304815981d261d33e65`.
+- Test-first commit: `f065a71e8f5d1bb7b24f98eefddfcbd42b6f2b5c`; implementation follows in the code/test source commit above.
+- PR-context workflow run: [42458576895](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458576895), PR head SHA `f4be0101380abe41b1c9d304815981d261d33e65`, merge checkout `0d6c32b6d27c2bec2983937e602696ee73bb6bc4`, job `128662736759` SUCCESS.
+- Follow-up PR-context workflow run: [42458607712](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458607712), PR head SHA `55508e19617fc6cf7c0bf8c43090ae5f10b9fbdf`, merge checkout `401805e544800a0d12b72359931b75ccf6458124`, job `128662828359` SUCCESS.
+- Follow-up job: py_compile PASS; evaluator 16/16; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; legacy Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. **113/113 test invocations PASS.**
+- Evidence artifact ID `13608826508`, name `t2-ai-intelligence-contracts-401805e544800a0d12b72359931b75ccf6458124`, GitHub digest `sha256:1898863091dcf09606d9d017d90e35a5366a8b763a44bc11a7173406fe68def1`.
+- Artifact provenance: PR event, github/checked-out SHA `401805e544800a0d12b72359931b75ccf6458124`, `AI_EXECUTION_ENABLED=false`, database targets EMPTY, exchange credentials EMPTY.
+- This is PR merge-context verification. It is not a direct push checkout of the PR head.
+- Evidence/handoff commit: `55508e19617fc6cf7c0bf8c43090ae5f10b9fbdf`.
+- Code and tests: PASS under PR merge-context CI. Actual BTCUSDT OOS calibration: NOT VERIFIED. Calibration attestation: NOT ISSUED.
