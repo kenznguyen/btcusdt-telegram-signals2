@@ -7401,3 +7401,15 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No VPS connection or inventory command has yet been run in this increment. This change records authorization only.
 - CI/tests: NOT RUN. No artifact.
 - Next: prepare a read-only command plan, verify branch/source identity and access path, then collect bounded experimental metadata only. Record timestamps, commands, exit status, and redacted outputs. No mutation/lifecycle action without separate authorization.
+
+
+## 2026-11-09 — Copy/backup/replica lifecycle contract designed
+
+- User deferred the experimental VPS read-only inventory and directed continuation to the next step. VPS inventory remains **DEFERRED**; no SSH connection or VPS command was run.
+- Added `docs/architecture/DATA_COPY_BACKUP_REPLICA_LIFECYCLE_CONTRACT.md`, design-only commit `06b3a88ba5e29f76e92010fe005cac0efeaa5c26`, blob `0c37919257ab979239ce02c61ce65cc801566b78`, 12,856 characters.
+- Contract covers replicas, backup/recovery chains, exports, local/working copies, caches/materializations, and evidence copies. It defines copy identity/lineage, separate copy lifecycle states, recovery/restore checks, exact-scope authorization, fail-closed disposition, and independent post-operation reconciliation.
+- Updated `docs/architecture/SHARED_DATA_LIFECYCLE_CROSS_CONTRACT_REVIEW_2026-11-09.md`: commit `86648b096b4330dafb4afc87a1560916da20fb27`, blob `85786fe11a5c48e3583994ffe3067977ae5e11e9`. CC-09 is now DESIGN ADDRESSED; runtime inventory, authoritative registry, restore proof, and implementation remain NOT VERIFIED / NOT IMPLEMENTED.
+- Verification: new contract read back from GitHub and checked for design-only status, fail-closed disposition, and explicit no-authorization boundary. Cross-contract follow-up recorded.
+- CI/tests: NOT RUN. No artifact. No source code, schema, API, workflow, database, VPS, Feeder, runtime, retention, archive, vacuum, cleanup, backup expiry, replica removal, export deletion, or other destructive operation was changed or activated.
+- Experimental VPS remains non-official; official T0 environment remains NOT DESIGNATED. `ai_execution_enabled=false`; paper-only boundary unchanged.
+- Next bounded step: documentation-only cross-read of the new copy lifecycle contract against the four existing lifecycle contracts, focusing on source-vs-copy deletion authority, holds, recovery-chain dependencies, and independent approval. Keep VPS inventory deferred unless the user reopens it. No numeric retention/RPO/RTO values or implementation without evidence and separate approval.
