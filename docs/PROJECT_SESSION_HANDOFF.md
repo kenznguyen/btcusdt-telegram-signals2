@@ -6712,3 +6712,18 @@ Documentation-only closeout is complete for this increment. If further assurance
 ### Next step
 
 Request separate explicit authorization for the T2 consumer migration: switch canonical_context to the validated HTTP client, remove the direct market_data.store/read_window dependency and canonical_db_path config, then run the five migration acceptance tests plus relevant consumer regressions. Do not touch T0 or runtime.
+
+
+## 2026-11-08 — Final T2 HTTP boundary rerun (supersedes earlier 133bc8b run identity)
+
+- Strengthened the boundary fixture to capture consumer asOfMs before the next M15 boundary while the server generates the response after that boundary. The response is still validated against the original request endMs and expected candle sequence; server-global latestExpectedOpenTimeMs remains diagnostic.
+- Final exact checked-out SHA for adapter tests and Freqtrade smoke: 6b55f6f02f7e2bcceb4b38a7944e9f9b42bbe64d.
+- Focused adapter workflow run 42469402438, job 128696421586, event push, conclusion SUCCESS. URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42469402438.
+- Focused result: 45 tests in 0.076s; OK; compile and isolated paper-only preflight PASS.
+- Focused artifact ID 13613080643; name t2-http-adapter-6b55f6f02f7e2bcceb4b38a7944e9f9b42bbe64d; SHA-256 9f36fe04efe744f4a5cf1741919aa6dddffad0f60170719e003eed2c94c09497.
+- Pinned Freqtrade 2026.9 smoke run 42469402445, job 128696421737, same checked-out SHA, conclusion SUCCESS. URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42469402445.
+- Smoke confirms paper-only/source guards, exact Freqtrade 2026.9 framework and existing strategy load without exchange sync/database access.
+- Smoke artifact ID 13613106308; name t2-freqtrade-2026-9-strategy-smoke-6b55f6f02f7e2bcceb4b38a7944e9f9b42bbe64d; SHA-256 69be478af85484583543a8ad92efcf3254fbbfb3886cfd69e2ded27fa43d6ca3.
+- Evidence report: docs/evidence/t2/T2_HTTP_CANDLE_CLIENT_GREEN_2026-11-08.md.
+- Plan updated with final exact-SHA results. The previous 133bc8b runs remain historical evidence; use the 6b55f6f runs as the final boundary-verified evidence.
+- Scope and restrictions unchanged: adapter only; no T2 strategy wiring/direct SQLite removal, no T0/VPS/Feeder/runtime changes; keep ai_execution_enabled=false.
