@@ -130,7 +130,7 @@ python3 -m unittest pipeline.test_decision freqai_bridge.test_exporter -v
 python3 -m freqai_bridge.context --help
 ```
 
-The tests use real SQLite, real pandas dataframes and actual JSON publication.
+The tests use contract-shaped HTTP fixtures, real pandas dataframes and actual JSON publication; they do not connect to the T0 service.
 They do not train a model, install Freqtrade, prove forecast quality or verify a
 live run. A real framework strategy-load smoke test and a research training run
 remain separate checks; no profitability or execution parity is claimed.
