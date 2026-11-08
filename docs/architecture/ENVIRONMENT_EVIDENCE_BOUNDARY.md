@@ -1,7 +1,7 @@
 # Environment and Evidence Boundary
 
 Date: 2026-11-09
-Status: **DOCUMENTATION POLICY — NO ENVIRONMENT INSPECTION AUTHORIZED**
+Status: **EXPERIMENTAL VPS READ-ONLY INVENTORY PERMITTED — MUTATIONS NOT AUTHORIZED**
 
 ## 1. Purpose
 
@@ -17,16 +17,19 @@ Define how experimental, CI, and future official-environment evidence must be cl
 
 ## 3. Current experimental VPS exclusion
 
-The current VPS is an experimental operations environment only. The user has explicitly excluded collection of its data.
+The current VPS is an experimental operations environment only. The user has revoked the prior blanket exclusion and permits scoped read-only data collection from this experimental VPS.
 
-Therefore, this project must not:
-- connect to that VPS for inventory or evidence collection;
-- list or inspect its files, volumes, databases, backups, replicas, logs, or runtime consumers;
-- open/query its databases or calculate dataset sizes/coverage;
-- use its current or historical contents as a canonical T0 inventory;
-- infer official provider, storage, deployment, or retention decisions from its setup.
+Permitted within a scoped read-only inventory:
+- connect to the experimental VPS using the existing approved access path;
+- inspect filesystem paths, mounts, volume metadata, service/process metadata, and relevant configuration with secrets redacted;
+- inspect database identity/schema/version, table metadata, row counts, bounded time coverage, and integrity status using read-only access;
+- inspect backup/replica metadata and consumer/dependency evidence without changing their state.
 
-This exclusion applies to read-only inspection as well as mutation. A read-only label does not override the user's exclusion.
+Constraints:
+- do not write, delete, migrate, vacuum, compact, restart, deploy, install, reconfigure, ingest, sync, or alter permissions;
+- do not expose credentials, private keys, tokens, or unrestricted raw user/account data in logs or GitHub evidence;
+- do not treat experimental observations as official T0 acceptance or canonical production state;
+- stop if a command could mutate state or its read-only behavior is uncertain.
 
 ## 4. Evidence admissibility
 
@@ -56,12 +59,12 @@ Before any official-environment inventory or acceptance work:
 4. Evidence collection must follow the approved least-privilege procedure.
 5. Any write, deployment, service restart, database creation/migration, ingestion, retention, archive, vacuum, cleanup, or deletion requires its own authorization where applicable.
 
-This document does not authorize access to any VPS, host, database, cloud account, or storage service.
+This document records the user's permission for scoped read-only inventory on the current experimental VPS only. It does not authorize write/mutation actions or access to other environments/accounts.
 
 ## 6. Data lifecycle implications
 
 - The static dataset/consumer inventory is a repository-level baseline only.
-- No runtime inventory is required from the current experimental VPS.
+- A scoped read-only runtime inventory may be collected from the current experimental VPS; it remains experimental evidence only.
 - Unknown official-environment datasets, copies, consumers, dependencies, backups, and recovery properties remain **NOT VERIFIED**, not absent.
 - No numeric retention period, archive tier, backup expiry, vacuum, cleanup, or deletion rule is approved by this boundary.
 - Shared ownership and centralized lifecycle governance remain design principles; they do not grant any environment or consumer implicit write/delete authority.
@@ -69,10 +72,10 @@ This document does not authorize access to any VPS, host, database, cloud accoun
 ## 7. Acceptance checklist
 
 - [x] Experimental VPS is explicitly classified as non-official.
-- [x] User exclusion of data collection from the experimental VPS is captured.
-- [x] Read-only inspection is included in the exclusion.
+- [x] User's revocation of the blanket inspection ban is captured.
+- [x] Scoped read-only inventory is permitted; mutation remains prohibited.
 - [x] Synthetic CI evidence is separated from deployed runtime evidence.
 - [x] Official environment is marked NOT DESIGNATED.
 - [x] No environment access or lifecycle operation is authorized.
 
-**Status: POLICY DOCUMENTED — OFFICIAL ENVIRONMENT NOT DESIGNATED — NO VPS INVENTORY AUTHORIZED.**
+**Status: EXPERIMENTAL VPS READ-ONLY INVENTORY PERMITTED — OFFICIAL ENVIRONMENT NOT DESIGNATED — MUTATIONS NOT AUTHORIZED.**
