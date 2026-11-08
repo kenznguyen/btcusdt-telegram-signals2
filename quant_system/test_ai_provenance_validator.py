@@ -8,6 +8,11 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from quant_system.ai_provenance_validator import verify_signed_provenance
+from quant_system.ai_calibration_evaluator import (
+    CalibrationEvaluator,
+    CalibrationObservation,
+    approved_calibration_gate_policy,
+)
 
 
 ROLES = ("model", "dataset", "predictions", "split_protocol", "calibration_report")
@@ -262,6 +267,58 @@ class AIProvenanceValidatorTests(unittest.TestCase):
         result = self.verify(envelope=self.signed_envelope(manifest))
         self.assertFalse(result.accepted)
         self.assertIn("TEMPORAL_SPLIT_INVALID", result.reasons)
+
+
+    def test_rejects_calibration_report_with_wrong_input_fingerprint(self):
+        artifacts = dict(self.artifacts)
+        report = json.loads(artifacts["calibration_report"])
+        report["input_sha256"] = "0" * 64
+        artifacts["calibration_report"] = json.dumps(
+            report, sort_keys=True, separators=(",", ":")
+        ).encode()
+        result = self.verify_rehashed_predictions(artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("CALIBRATION_REPORT_MISMATCH", result.reasons)
+
+    def test_rejects_calibration_report_with_wrong_report_digest(self):
+        artifacts = dict(self.artifacts)
+        report = json.loads(artifacts["calibration_report"])
+        report["report_sha256"] = "0" * 64
+        artifacts["calibration_report"] = json.dumps(
+            report, sort_keys=True, separators=(",", ":")
+        ).encode()
+        result = self.verify_rehashed_predictions(artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("CALIBRATION_REPORT_MISMATCH", result.reasons)
+
+    def test_rejects_calibration_report_that_weakens_approved_policy(self):
+        artifacts = dict(self.artifacts)
+        report = json.loads(artifacts["calibration_report"])
+        report["policy"]["max_ece"] = "0.10"
+        artifacts["calibration_report"] = json.dumps(
+            report, sort_keys=True, separators=(",", ":")
+        ).encode()
+        result = self.verify_rehashed_predictions(artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("CALIBRATION_POLICY_NOT_APPROVED", result.reasons)
+
+    def test_rejects_calibration_report_metrics_not_recomputed_from_predictions(self):
+        artifacts = dict(self.artifacts)
+        report = json.loads(artifacts["calibration_report"])
+        report["metrics"]["overall"]["ece"] = 0.0
+        artifacts["calibration_report"] = json.dumps(
+            report, sort_keys=True, separators=(",", ":")
+        ).encode()
+        result = self.verify_rehashed_predictions(artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("CALIBRATION_REPORT_MISMATCH", result.reasons)
+
+    def test_rejects_malformed_calibration_report(self):
+        artifacts = dict(self.artifacts)
+        artifacts["calibration_report"] = b'{"schema_version":'
+        result = self.verify_rehashed_predictions(artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("CALIBRATION_REPORT_INVALID", result.reasons)
 
 if __name__ == "__main__":
     unittest.main()
