@@ -119,3 +119,71 @@ Behavior implemented:
 - Separate isolated TimescaleDB integration job 128696468092 concluded SUCCESS. This used disposable CI containers, not the canonical T0 DB or VPS.
 - This is regression evidence for the unchanged T0/T1 code at the same checkout SHA; it does not certify or activate canonical T0 runtime.
 - Artifact IDs include 13613170916 (Gateway), 13613190837 (provider bootstrap), 13612911518 (Timescale read-only), 13612946066 (paper consumers), 13613160296 (T1 importer), and 13612966914 (T1 Rust sidecar). Their GitHub artifact digests are recorded in run metadata; payload bytes were not independently downloaded and re-hashed in this increment.
+
+
+---
+
+## Final T2 HTTP consumer migration — 2026-11-08 (supersedes prior NOT STARTED status)
+
+### Scope
+
+User explicitly approved the separate T2 consumer migration. The T2 context now consumes T0 only through the validated HTTP Candle Contract v1. No T0/VPS/Feeder/runtime changes were authorized or performed.
+
+### Source
+
+- Repository: `kenznguyen/btcusdt-telegram-signals2`
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`
+- Final migration verification HEAD: `65fe065ccdc197a51b969da37ce99d5414201a92`
+- Production paths changed: `freqai_bridge/context.py`, `freqai_bridge/ChartProFreqaiResearch.py`, `freqai_bridge/config.research.json`.
+- Test/docs/workflow: `freqai_bridge/test_context_http.py`, `freqai_bridge/test_exporter.py`, `freqai_bridge/t2_http_migration_acceptance.py`, `.github/workflows/t2-http-consumer-red.yml`, `.github/workflows/t2-freqtrade-2026-9-strategy-smoke.yml`, `freqai_bridge/README.md`.
+
+### Migration behavior
+
+- Removed the T2 context import of `market_data.store` and its `read_window()` call.
+- Removed `canonical_db_path` from the strategy and research config.
+- Context computes the aligned M15 range for 1–32 bars and calls the strict HTTP adapter with the consumer observation cutoff as `asOfMs`.
+- Required environment configuration: `T0_CANDLE_API_BASE_URL`, `T0_CANDLE_API_TOKEN`, and `T0_CANDLE_MAX_LAG_MS` (approved deployment value 120000).
+- Missing/invalid configuration and HTTP errors fail closed. No SQLite/cache/synthetic candle/alternate venue fallback.
+- Strategy emits a prediction-unavailable artifact on HTTP/data/provenance failure. Native entry/exit flags remain zero; `confirm_trade_entry()` remains false.
+- Exporter tests use contract-shaped fixtures, not a local SQLite store.
+
+### Exact-SHA verification
+
+1. Adapter, migration and exporter suites:
+   - Run `42470569288`; URL https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42470569288
+   - Checked-out SHA `65fe065ccdc197a51b969da37ce99d5414201a92`; job `128700143303`; SUCCESS.
+   - HTTP adapter: 45/45; context + migration acceptance: 11/11; exporter: 6/6.
+   - Compile and isolated paper-only preflight PASS.
+   - Artifact ID `13612932409`; SHA-256 `2d93c86d272c13894e4662aef32229373a138701e0100dd6c02ad8f38b4d3f0f`.
+
+2. Freqtrade 2026.9 strategy-load and consumer regression:
+   - Run `42470559497`; URL https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42470559497
+   - Checked-out SHA `f016e82434609d77eb17a10eb48207933dd4040c`; job `128700074546`; SUCCESS.
+   - Freqtrade 2026.9 verified; paper-only preflight PASS; strategy loaded without exchange sync or database access.
+   - 31 consumer/exporter/pipeline tests; OK.
+   - Artifact ID `13613257638`; SHA-256 `fef2b839a84a5c25fa0e090e2356542736932f9669bf61e34541271786bcdcbc`.
+   - The sole commit from this smoke SHA to final migration verification HEAD changed only `.github/workflows/t2-http-consumer-red.yml`; production and test source files were unchanged.
+
+3. Existing T0/T1 regression:
+   - Run `42470342807`; URL https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42470342807
+   - SHA `720bdf77106a58dfcd4e537d67cd329806ca2243`; all six jobs SUCCESS.
+   - Includes paper consumers, T1 importer, Rust sidecar, static Gateway, disposable provider bootstrap and isolated TimescaleDB read-only integration. No canonical T0 DB/VPS was used.
+
+### Integrated HTTP test detail
+
+- The context suite includes an in-process loopback HTTP server and invokes the real `CandleHttpClient` through `canonical_context`.
+- It validates Bearer header, `/v1/candles` path, exact request cutoff, complete response parsing and dataset version.
+- This is a local integration test only; it does not prove the deployed T0 endpoint, remote TLS certificate, real credentials or network availability.
+
+### Status and limitations
+
+- T2 HTTP context wiring: PASS.
+- Direct T0 SQLite dependency removal from T2: PASS.
+- No-fallback migration acceptance: PASS.
+- Loopback HTTP integration: PASS.
+- Freqtrade 2026.9 strategy-load smoke: PASS.
+- Live T0 endpoint, remote TLS and deployment environment: NOT VERIFIED.
+- Independent second-reviewer sign-off: NOT VERIFIED.
+- Full repository-wide unittest discovery: NOT VERIFIED.
+- T2 runtime/deployment: NOT AUTHORIZED.
+- No T0 API/store/DB, Feeder, VPS, exchange, runtime service, model training, paper order routing or trading state changed. Keep `ai_execution_enabled=false`.
