@@ -68,7 +68,8 @@ Do not change storage precision semantics, create a PostgreSQL migration, run Da
 
 - Authorized scope: additive API response envelope/freshness only, on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`.
 - Exact implementation commit: `42fda132bf06edcf2cb5f5d3ea415fc3e7a47fc1` — `feat(t0): add versioned candle API envelope`.
-- Changed source: `market_data/api.py`; blob SHA `e7db052605e449a7ba1e5d1da3b622822cd82b80`.
+- Follow-up self-review cleanup commit: `d88e3ddda0502708e64c4815ecae08ed707f4641` — `refactor(t0): simplify candle freshness helper`.
+- Final source SHA: `d88e3ddda0502708e64c4815ecae08ed707f4641`; changed source `market_data/api.py`; final blob SHA `179c11b684b7ba28d2fe07e56c3a4a50a2b9dba1`.
 - Implementation adds `contractVersion=1.0.0`, `schemaVersion=1`, `volumeUnit=BTC_BASE_ASSET`, dataset-level `source=ccxt.binanceusdm`, and the freshness object (latest expected/returned candle, close/availability times, observation age, close lag, evaluable flag).
 - Public API window cap is now an independent `MAX_API_CANDLES=2000`; Store and write/sync limits are unchanged.
 - Existing route, GET-only behavior, Bearer authentication, response errors, Store, DB, and Feeder code are unchanged.
