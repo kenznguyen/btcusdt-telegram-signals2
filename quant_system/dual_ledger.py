@@ -172,7 +172,7 @@ class StrategyLedger:
             db.execute("BEGIN IMMEDIATE")
             try:
                 reservation = db.execute(
-                    """SELECT strategy_id, position_id, action, required_margin, status
+                    """SELECT strategy_id, position_id, action, required_margin, notional_exposure, status
                        FROM risk_reservations WHERE reservation_id=?""",
                     (reservation_id,),
                 ).fetchone()
@@ -243,7 +243,7 @@ class StrategyLedger:
             db.execute("BEGIN IMMEDIATE")
             try:
                 reservation = db.execute(
-                    """SELECT strategy_id, position_id, action, required_margin, status
+                    """SELECT strategy_id, position_id, action, required_margin, notional_exposure, status
                        FROM risk_reservations WHERE reservation_id=?""",
                     (reservation_id,),
                 ).fetchone()
