@@ -268,5 +268,48 @@ class DualLedgerContractTest(unittest.TestCase):
         self.assertEqual(second.reason, "DUPLICATE_RESERVATION")
 
 
+    def test_reserved_entry_cannot_consume_more_gross_exposure_than_admitted(self):
+        engine = SharedRiskEngine(self.db)
+        decision = engine.reserve_entry(
+            reservation_id="entry-limited", strategy_id="CORE",
+            position_id="core-limited", account_equity="10000",
+            notional_exposure="500", data_fresh=True, state_reconciled=True,
+        )
+        self.assertTrue(decision.accepted)
+        with self.assertRaises(ValueError):
+            self.core.record_reserved_entry(
+                reservation_id="entry-limited", position_id="core-limited",
+                side="LONG", quantity="0.01", entry_price="100000",
+            )
+        self.assertEqual(self.core.snapshot().positions, ())
+        self.core.record_reserved_entry(
+            reservation_id="entry-limited", position_id="core-limited",
+            side="LONG", quantity="0.005", entry_price="100000",
+        )
+        self.assertEqual(self.core.snapshot().positions[0].gross_exposure, Decimal("500"))
+
+    def test_reserved_dca_cannot_consume_more_gross_exposure_than_admitted(self):
+        self.core.restore_position("core-1", side="LONG", quantity="0.01",
+                                   entry_price="100000", margin_used="100")
+        engine = SharedRiskEngine(self.db)
+        decision = engine.reserve_dca(
+            reservation_id="dca-limited", strategy_id="CORE",
+            position_id="core-1", account_equity="10000",
+            notional_exposure="500", data_fresh=True, state_reconciled=True,
+        )
+        self.assertTrue(decision.accepted)
+        with self.assertRaises(ValueError):
+            self.core.record_reserved_dca(
+                reservation_id="dca-limited", position_id="core-1",
+                quantity="0.01", price="99000",
+            )
+        self.assertEqual(self.core.snapshot().positions[0].dca_count, 0)
+        self.core.record_reserved_dca(
+            reservation_id="dca-limited", position_id="core-1",
+            quantity="0.005", price="99000",
+        )
+        self.assertEqual(self.core.snapshot().positions[0].dca_count, 1)
+
+
 if __name__ == "__main__":
     unittest.main()
