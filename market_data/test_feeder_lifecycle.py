@@ -444,6 +444,69 @@ class RuntimeLifecycleTest(unittest.TestCase):
         scheduler.start.assert_not_called()
 
 
+    def test_real_runtime_keeps_wal_sidecars_until_after_lease_release(self):
+        import tempfile
+        from pathlib import Path
+        from market_data.feeder import LeaseStore
+        from market_data.store import Candle, CandleStore, INTERVAL_MS, read_window
+        from market_data.write_gateway import SQLiteWalKeeper, SQLiteWriteGateway
+
+        with tempfile.TemporaryDirectory(prefix="t0-runtime-wal-keeper-") as directory:
+            database = Path(directory) / "canonical.sqlite3"
+            store = CandleStore(database)
+            leases = LeaseStore(str(database))
+            keeper = SQLiteWalKeeper(database)
+            scheduler = FeederScheduler(
+                FeederConfig(timeframes=("15m",)),
+                clock=lambda: NOW,
+                sync_callback=lambda *args: 0,
+            )
+            runtime = FeederRuntime(
+                config=scheduler.config,
+                scheduler=scheduler,
+                lease_store=leases,
+                owner_id="runtime-wal-owner",
+                clock=lambda: NOW,
+                wal_keeper=keeper,
+            )
+
+            self.assertTrue(runtime.start(now_ms=NOW))
+            self.assertTrue(keeper.is_open)
+            self.assertTrue(Path(str(database) + "-wal").is_file())
+            self.assertTrue(Path(str(database) + "-shm").is_file())
+
+            gateway = SQLiteWriteGateway(
+                store=store,
+                lease_store=leases,
+                owner_id="runtime-wal-owner",
+                generation_provider=lambda: runtime.lease_generation,
+                clock=lambda: NOW + 1,
+            )
+            candle = Candle(
+                "15m", NOW, "100", "101", "99", "100.5", "1",
+                NOW + INTERVAL_MS["15m"],
+            )
+            self.assertEqual(gateway.write_batch([candle]), 1)
+            self.assertTrue(leases.heartbeat(
+                "runtime-wal-owner", runtime.lease_generation,
+                now_ms=NOW + 2, ttl_seconds=60,
+            ))
+            self.assertTrue(Path(str(database) + "-wal").is_file())
+            self.assertTrue(Path(str(database) + "-shm").is_file())
+            result = read_window(
+                database, "BTCUSDT", "15m", NOW, NOW + INTERVAL_MS["15m"],
+            )
+            self.assertEqual(result["coverage"]["returned"], 1)
+
+            self.assertTrue(runtime.stop())
+            self.assertFalse(keeper.is_open)
+            self.assertFalse(Path(str(database) + "-wal").exists())
+            self.assertFalse(Path(str(database) + "-shm").exists())
+            self.assertFalse(leases.is_current(
+                "runtime-wal-owner", runtime.lease_generation, NOW + 3,
+            ))
+
+
 class RuntimeIntegrationContractTest(unittest.TestCase):
     def test_recovery_adapter_recovers_each_configured_timeframe(self):
         calls = []
