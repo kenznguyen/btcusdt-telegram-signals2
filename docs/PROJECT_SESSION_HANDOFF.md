@@ -6571,7 +6571,8 @@ Documentation-only closeout is complete for this increment. If further assurance
 ## 2026-11-08 — T2 HTTP transport and freshness policy approved
 
 - Policy document: `docs/architecture/T2_HTTP_CANDLE_CONSUMER_CONTRACT_AND_TEST_PLAN_2026-11-08.md`.
-- Policy document commit: `0630d07b1032349104411378ebcf389f48c96efa`.
+- Initial policy documentation commit: `0630d07b1032349104411378ebcf389f48c96efa`.
+- Follow-up reconciliation commit (final policy/test-plan wording and numbering): `f5b8abe4ce1ceb9eb45eb903f9ebd6b9cf29dd38`.
 - User approved transport/resource limits: connect timeout 3 s; read timeout 5 s; maximum 3 attempts total; fixed backoff 250 ms then 500 ms; response body cap 256 KiB; `Accept-Encoding: identity`; no automatic redirects; TLS certificate verification for cross-host HTTPS; enforce body cap while streaming before JSON decode.
 - Retry scope: transient connection/transport errors, connect/read timeouts, and HTTP 503 only. Do not retry 400/401/404/405, other statuses, or validation failures. No endpoint/source/cache/DB fallback.
 - User conditionally approved M15 `max_lag_ms=120000` after confirming the correct calculation: first-observation ingestion delay = `latestAvailableAtMs - latestCloseTimeMs` = `closeLagMs - observationAgeMs`. Do not compare 120000 ms against raw `closeLagMs` or `observationAgeMs`; both naturally grow during a 15-minute candle interval and would create false stale rejections.
