@@ -90,3 +90,36 @@ Before adopting this:
 No source runtime implementation, canonical database, Feeder process, VPS, systemd service, permissions, secrets, firewall, network, DNS, proxy, or T2 runtime was accessed or changed. No live trading or exchange access.
 
 Next bounded step: inspect the current Feeder launch/supervision model and define a read-only readiness contract from tracked source and existing operator evidence. Do not create/install service units or alter VPS state until a separate deployment approval.
+
+
+## 7. Actual Feeder writer lifecycle — additional verification
+
+The previous persistent-writer probe did not model the exact production connection lifecycle. Source inspection established:
+- `SQLiteWriteGateway.write_batch()` opens a SQLite connection for each batch and closes it after commit.
+- `LeaseStore` operations (including heartbeat) also open and close their own connections.
+- `FeederRuntime.start()` acquires the lease, runs recovery, starts the scheduler, marks RUNNING and starts heartbeat; `stop()` drains work and releases the lease. There is currently no persistent WAL-keeper lifecycle hook in this runtime.
+- The operator VPS snapshot had not established a systemd Feeder unit; the current observed process was managed through tmux.
+
+A follow-up disposable probe now exercises the actual `CandleStore`, `LeaseStore`, and `SQLiteWriteGateway` classes:
+- After `write_batch()` closes its connection: both `-wal` and `-shm` are absent.
+- After a Feeder-equivalent lease heartbeat closes its connection: both sidecars remain absent.
+- The read-only API sandbox is blocked in this state, as expected.
+- A candidate long-lived connection opened in WAL mode and used for a SELECT keeps both sidecars present; while it remains open, the sandboxed API read succeeds.
+
+Exact GitHub Actions evidence:
+- Run `42483989133`, exact SHA `e929cdbc072221121581be0e573be7641b4cb7f3`, **SUCCESS**; job `128741767394` PASS.
+- Artifact `t0-systemd-readonly-sandbox-e929cdbc072221121581be0e573be7641b4cb7f3`, ID `13618796077`, SHA-256 `cb99b979931bf2f56b36a043edd013935bc1cfd359671f628a6528b916bf8fed`.
+- [Workflow run](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42483989133).
+
+This reveals a production integration blocker: with the current short-lived writer/heartbeat connections, the read-only API may be unable to read between writes when the data directory is sandboxed read-only. A persistent WAL-keeper connection owned by the Feeder is a viable candidate and passed the disposable read probe, but its production lifecycle is not implemented or proven.
+
+### Required lifecycle contract before implementation
+
+1. Feeder acquires its fencing lease.
+2. Feeder opens a dedicated WAL-keeper connection and verifies WAL/SHM sidecars exist and are readable.
+3. Feeder completes recovery and starts scheduling; only then may it report service readiness.
+4. API starts only after Feeder readiness, with `Requires=`, `After=` and a read-only sidecar readiness check. Consider `BindsTo=` so unexpected Feeder exit stops the API; validate exact systemd semantics in an isolated test.
+5. On orderly shutdown, API must stop before Feeder. Feeder stops scheduler admission, drains in-flight writes, stops heartbeat, releases the exact lease, and only then closes the WAL keeper.
+6. On Feeder crash, the API must fail closed and be stopped/restarted only after the Feeder re-establishes WAL/SHM readiness.
+
+No production code was changed in this follow-up. The persistent keeper is a candidate design, not an adopted runtime behavior.
