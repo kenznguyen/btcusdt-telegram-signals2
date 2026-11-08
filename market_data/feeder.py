@@ -710,7 +710,7 @@ class FeederRuntime:
 
     def __init__(self, config, scheduler, lease_store, owner_id,
                  recovery=None, health=None, event_sink=None, clock=None,
-                 retry_policy=None):
+                 retry_policy=None, wal_keeper=None):
         if not isinstance(config, FeederConfig):
             raise TypeError("config must be FeederConfig")
         if not isinstance(owner_id, str) or not owner_id.strip():
@@ -737,6 +737,12 @@ class FeederRuntime:
             max_delay_seconds=config.retry_max_delay_seconds,
             jitter_ratio=config.retry_jitter_ratio,
         )
+        if wal_keeper is not None and (
+                not callable(getattr(wal_keeper, "open", None))
+                or not callable(getattr(wal_keeper, "close", None))):
+            raise TypeError("wal_keeper must provide open() and close()")
+        self.wal_keeper = wal_keeper
+        self._wal_keeper_opened = False
         self.lease_generation = None
         self._state = "NEW"
         self._lock = threading.RLock()
@@ -805,12 +811,17 @@ class FeederRuntime:
         self._emit("lease_acquired")
 
         try:
+            if self.wal_keeper is not None:
+                self.wal_keeper.open()
+                self._wal_keeper_opened = True
+                self._emit("wal_keeper_opened")
             if self.recovery is not None:
                 recover_all = getattr(self.recovery, "recover_all", None)
                 if not callable(recover_all):
                     raise TypeError("recovery must provide recover_all()")
                 if recover_all() is not True:
                     self._release_startup_lease()
+                    self._close_wal_keeper()
                     with self._lock:
                         self._state = "FAILED"
                     self._emit("recovery_incomplete")
@@ -837,6 +848,7 @@ class FeederRuntime:
                 raise
             try:
                 self._release_startup_lease()
+                self._close_wal_keeper()
             except RuntimeError:
                 # The exact generation could no longer be released. This
                 # means ownership changed while startup was failing; never
@@ -854,6 +866,11 @@ class FeederRuntime:
         if released is False:
             raise RuntimeError("Feeder startup could not release its lease generation")
         self._released = True
+
+    def _close_wal_keeper(self):
+        if self.wal_keeper is not None and self._wal_keeper_opened:
+            self.wal_keeper.close()
+            self._wal_keeper_opened = False
 
     def _start_heartbeat(self):
         if not callable(getattr(self.lease_store, "heartbeat", None)):
@@ -997,6 +1014,10 @@ class FeederRuntime:
             # Ownership has already moved to another fencing generation.
             # Never attempt to release or mutate that replacement lease.
             self._emit("lease_release_skipped_after_loss")
+
+        # The WAL keeper remains alive until all writers are drained and the
+        # exact lease is released (or definitively lost).
+        self._close_wal_keeper()
 
         with self._lock:
             self._state = "STOPPED"
