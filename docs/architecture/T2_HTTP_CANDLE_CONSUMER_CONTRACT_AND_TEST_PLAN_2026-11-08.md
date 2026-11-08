@@ -226,11 +226,14 @@ RED must be observed against the pre-implementation source. Do not label a test 
 | HTTP transport/resource limits | APPROVED — 3 s connect, 5 s read, 3 attempts, 250/500 ms backoff, 256 KiB body cap, identity encoding, no redirects |
 | M15 freshness threshold | APPROVED — 120000 ms, using first-observation ingestion delay formula below |
 | T2 HTTP client implementation | PASS — isolated adapter implemented; 45/45 focused tests PASS |
-| T2 direct SQLite removal | NOT STARTED |
-| Architecture RED baseline | CONFIRMED — 6 expected architecture failures; run 42468167014 at exact SHA `3222c1bd56ccc089d84f2744f4bafede4747ce50` |
-| HTTP behavior test specification | GREEN — 45/45 adapter behavior and policy tests PASS at exact SHA `6b55f6f02f7e2bcceb4b38a7944e9f9b42bbe64d` |
-| GitHub Actions exact-SHA | PASS — adapter run `42469402438`; Freqtrade smoke run `42469402445`; same checked-out SHA |
-| Pinned Freqtrade 2026.9 strategy-load smoke | PASS — run `42469161057`; no exchange sync/database access |\n| T2 direct SQLite removal / consumer wiring | NOT STARTED — separate authorization required |\n| Independent second-reviewer sign-off | NOT VERIFIED |\n| T2 runtime activation/deployment | NOT AUTHORIZED |
+| Architecture RED baseline | CONFIRMED — 6 expected architecture failures; run 42468167014 at exact SHA 3222c1bd56ccc089d84f2744f4bafede4747ce50 |
+| HTTP behavior test specification | GREEN — 45/45 adapter behavior and policy tests PASS at exact SHA 6b55f6f02f7e2bcceb4b38a7944e9f9b42bbe64d |
+| GitHub Actions exact-SHA | PASS — adapter run 42469402438; Freqtrade smoke run 42469402445; same checked-out SHA |
+| Pinned Freqtrade 2026.9 strategy-load smoke | PASS — run 42469402445; no exchange sync/database access |
+| T2 direct SQLite removal / consumer wiring | NOT STARTED — separate authorization required |
+| No-fallback consumer migration acceptance | NOT RUN |
+| Independent second-reviewer sign-off | NOT VERIFIED |
+| T2 runtime activation/deployment | NOT AUTHORIZED |
 
 The original design-only disclaimer is superseded only for the isolated HTTP adapter GREEN increment explicitly approved by the user on 2026-11-08. The separate T2 consumer migration and all runtime activity remain gated.
 
