@@ -114,8 +114,8 @@ class T2HttpConsumerRedTest(unittest.TestCase):
         config = Config(**values)
         return Client(config, session=session, sleep=lambda _: None, clock_ms=lambda: GENERATED), session
 
-    def _fetch(self, client):
-        return client.fetch(start_ms=START, end_ms=END, as_of_ms=AS_OF)
+    def _fetch(self, client, as_of_ms=AS_OF):
+        return client.fetch(start_ms=START, end_ms=END, as_of_ms=as_of_ms)
 
     def test_http_adapter_module_exists(self):
         self.assertTrue((BRIDGE / "http_candles.py").is_file(), "T2 HTTP adapter is not implemented")
@@ -279,8 +279,8 @@ class T2HttpConsumerRedTest(unittest.TestCase):
             "observationAgeMs": generated - (END + 120_000),
             "closeLagMs": generated - END,
         }
-        client, _ = self._client(envelope=response_envelope(candles=[candle], generatedAtMs=generated, freshness=freshness))
-        self._fetch(client)
+        client, _ = self._client(envelope=response_envelope(candles=[candle], generatedAtMs=generated, asOfMs=generated, freshness=freshness))
+        self._fetch(client, as_of_ms=generated)
 
     def test_ingestion_delay_120001_ms_is_rejected(self):
         _, _, Error = self._adapter()
@@ -291,26 +291,31 @@ class T2HttpConsumerRedTest(unittest.TestCase):
             "observationAgeMs": generated - (END + 120_001),
             "closeLagMs": generated - END,
         }
-        client, _ = self._client(envelope=response_envelope(candles=[candle], generatedAtMs=generated, freshness=freshness))
+        client, _ = self._client(envelope=response_envelope(candles=[candle], generatedAtMs=generated, asOfMs=generated, freshness=freshness))
         with self.assertRaises(Error):
-            self._fetch(client)
+            self._fetch(client, as_of_ms=generated)
 
     def test_large_normal_m15_close_lag_and_observation_age_do_not_cause_false_stale_rejection(self):
         candle = response_envelope()["candles"][0] | {"availableAtMs": END + 30_000}
-        generated = END + 800_000
+        generated = END + STEP + 1_000
         freshness = response_envelope()["freshness"] | {
             "latestAvailableAtMs": END + 30_000,
             "observationAgeMs": generated - (END + 30_000),
             "closeLagMs": generated - END,
             "latestExpectedOpenTimeMs": END,
         }
-        client, _ = self._client(envelope=response_envelope(candles=[candle], generatedAtMs=generated, freshness=freshness))
-        self._fetch(client)
+        client, _ = self._client(envelope=response_envelope(candles=[candle], generatedAtMs=generated, asOfMs=generated, freshness=freshness))
+        self._fetch(client, as_of_ms=generated)
 
     def test_server_global_expected_slot_may_be_outside_request_window(self):
-        freshness = response_envelope()["freshness"] | {"latestExpectedOpenTimeMs": END}
-        client, _ = self._client(envelope=response_envelope(freshness=freshness))
-        self._fetch(client)
+        generated = END + STEP + 1_000
+        freshness = response_envelope()["freshness"] | {
+            "latestExpectedOpenTimeMs": END,
+            "observationAgeMs": generated - AVAILABLE,
+            "closeLagMs": generated - END,
+        }
+        client, _ = self._client(envelope=response_envelope(generatedAtMs=generated, asOfMs=generated, freshness=freshness))
+        self._fetch(client, as_of_ms=generated)
 
     def test_unauthorized_response_is_not_retried(self):
         _, _, Error = self._adapter()
