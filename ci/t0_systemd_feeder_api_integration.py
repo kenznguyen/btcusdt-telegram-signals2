@@ -131,6 +131,19 @@ def api_process(event_path):
         probe_path.unlink(missing_ok=True)
         raise AssertionError("API wrote inside its read-only database directory")
 
+    # Verify the actual database mount rejects SQL mutation, not just file creation.
+    try:
+        with sqlite3.connect(db_path, timeout=1) as db:
+            db.execute(
+                "UPDATE candles SET close = ? WHERE symbol = ?",
+                ("999.0", "BTCUSDT"),
+            )
+            db.commit()
+    except sqlite3.Error:
+        event(event_path, "API_SQLITE_MUTATION_DENIED")
+    else:
+        raise AssertionError("API mutated the candle database through SQLite")
+
     def request_stop(_signum, _frame):
         event(event_path, "API_SIGTERM")
         raise SystemExit(0)
@@ -323,6 +336,7 @@ def integration(db_path, event_path):
     ), records
     assert api_stop and feeder_stop and api_stop[-1] < feeder_stop[-1], records
     assert sum(1 for row in records if row[1] == "API_DATABASE_WRITE_DENIED") == 2, records
+    assert sum(1 for row in records if row[1] == "API_SQLITE_MUTATION_DENIED") == 2, records
     event(event_path, "ORDERLY_REVERSE_SHUTDOWN_PASS")
     event(event_path, "T0_SYSTEMD_FEEDER_API_INTEGRATION=PASS")
     for row in read_events(event_path):
