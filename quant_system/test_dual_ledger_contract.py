@@ -92,6 +92,7 @@ class DualLedgerContractTest(unittest.TestCase):
             ai_snapshot=self.ai.snapshot(), data_fresh=True, state_reconciled=True,
         )
         self.assertEqual(decision.gross_margin_used, Decimal("200"))
+        self.assertEqual(decision.gross_exposure, Decimal("2000"))
         self.assertEqual(decision.required_margin, Decimal("100"))
         self.assertTrue(decision.accepted)
 
@@ -191,7 +192,7 @@ class DualLedgerContractTest(unittest.TestCase):
             return engine.reserve_entry(
                 reservation_id=reservation_id, strategy_id=strategy_id,
                 position_id=f"{strategy_id.lower()}-new", account_equity="10000",
-                data_fresh=True, state_reconciled=True,
+                notional_exposure="1000", data_fresh=True, state_reconciled=True,
             )
 
         with ThreadPoolExecutor(max_workers=2) as pool:
@@ -210,7 +211,7 @@ class DualLedgerContractTest(unittest.TestCase):
         decision = engine.reserve_entry(
             reservation_id="entry-core-1", strategy_id="CORE",
             position_id="core-reserved-1", account_equity="10000",
-            data_fresh=True, state_reconciled=True,
+            notional_exposure="1000", data_fresh=True, state_reconciled=True,
         )
         self.assertTrue(decision.accepted)
         self.core.record_reserved_entry(
@@ -234,7 +235,7 @@ class DualLedgerContractTest(unittest.TestCase):
         decision = engine.reserve_dca(
             reservation_id="dca-core-1", strategy_id="CORE",
             position_id="core-1", account_equity="10000",
-            data_fresh=True, state_reconciled=True,
+            notional_exposure="1000", data_fresh=True, state_reconciled=True,
         )
         self.assertTrue(decision.accepted)
         self.core.record_reserved_dca(
@@ -255,12 +256,12 @@ class DualLedgerContractTest(unittest.TestCase):
         first = engine.reserve_entry(
             reservation_id="duplicate-id", strategy_id="CORE",
             position_id="core-1", account_equity="10000",
-            data_fresh=True, state_reconciled=True,
+            notional_exposure="1000", data_fresh=True, state_reconciled=True,
         )
         second = engine.reserve_entry(
             reservation_id="duplicate-id", strategy_id="AI",
             position_id="ai-1", account_equity="10000",
-            data_fresh=True, state_reconciled=True,
+            notional_exposure="1000", data_fresh=True, state_reconciled=True,
         )
         self.assertTrue(first.accepted)
         self.assertFalse(second.accepted)
