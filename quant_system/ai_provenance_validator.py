@@ -93,7 +93,6 @@ def _validate_prediction_rows(predictions, manifest, dataset_coverage=None, data
     required = {
         "prediction_timestamp_ms", "outcome_available_at_ms", "outcome",
         "confidence", "side", "regime", "model_version", "dataset_version",
-        "feature_cutoffs",
     }
     try:
         text = predictions.decode("utf-8")
@@ -118,7 +117,7 @@ def _validate_prediction_rows(predictions, manifest, dataset_coverage=None, data
             reasons.append("PREDICTION_ROW_INVALID")
             continue
 
-        if not isinstance(row, Mapping) or set(row) != required:
+        if not isinstance(row, Mapping) or set(row) not in (required, required | {"feature_cutoffs"}):
             reasons.append("PREDICTION_ROW_INVALID")
             continue
 
