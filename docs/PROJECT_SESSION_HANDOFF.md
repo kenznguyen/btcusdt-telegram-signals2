@@ -7491,7 +7491,7 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - P1.8 bounded archive source fetch / shallow-checkout defect: **PASS — fixed and verified in two consecutive successful workflow runs**.
 - P1.8 synthetic generation, independent Sigstore verification, retention manifest, and append-only Git evidence archive: **PASS** for the two recorded source SHAs above.
 - Retention boundary remains explicit: Git history plus 7-day Actions artifacts; `NOT_WORM`; no WORM or external long-term archive is claimed.
-- Current branch HEAD after run #128 archive commit: `fbc558d039f9f7a4c05aadb030b6f13bd86a4d1b`. No merge performed.
+- Run #128 archive commit: `fbc558d039f9f7a4c05aadb030b6f13bd86a4d1b`. Handoff update commit: `87db05281ae6117068bb0cac24c4b91641dddb0b`; current branch HEAD after the handoff update is `87db05281ae6117068bb0cac24c4b91641dddb0b`. No merge performed.
 - No T0 runtime, VPS, DB, Feeder, ingestion, or trading execution was changed. `AI_EXECUTION_ENABLED=false` remains enforced.
 
 ### Next step
