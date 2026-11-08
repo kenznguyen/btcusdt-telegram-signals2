@@ -285,6 +285,61 @@ class StrategyLedger:
                 db.rollback()
                 raise
 
+
+    def record_reduction(self, position_id, *, quantity, realized_pnl, fees):
+        """Atomically reduce one strategy position, release proportional margin and book PnL."""
+        qty = _decimal(quantity, "quantity", positive=True)
+        realized = _decimal(realized_pnl, "realized_pnl")
+        fee_amount = _decimal(fees, "fees", non_negative=True)
+        with closing(self._connect()) as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                position = db.execute(
+                    """SELECT quantity, margin_used FROM strategy_positions
+                       WHERE strategy_id=? AND position_id=?""",
+                    (self.strategy_id, position_id),
+                ).fetchone()
+                if position is None:
+                    raise ValueError("Unknown position for this strategy")
+                old_quantity = Decimal(position["quantity"])
+                old_margin = Decimal(position["margin_used"])
+                if qty > old_quantity:
+                    raise ValueError("Reduction quantity exceeds the open position")
+                remaining_quantity = old_quantity - qty
+                released_margin = old_margin * qty / old_quantity
+                remaining_margin = old_margin - released_margin
+
+                account = db.execute(
+                    "SELECT equity FROM strategy_accounts WHERE strategy_id=?",
+                    (self.strategy_id,),
+                ).fetchone()
+                if account is None:
+                    raise RuntimeError("Strategy account is missing")
+                updated_equity = Decimal(account["equity"]) + realized - fee_amount
+                if updated_equity <= 0:
+                    raise ValueError("Reduction would make strategy equity non-positive")
+
+                if remaining_quantity == 0:
+                    db.execute(
+                        "DELETE FROM strategy_positions WHERE strategy_id=? AND position_id=?",
+                        (self.strategy_id, position_id),
+                    )
+                else:
+                    db.execute(
+                        """UPDATE strategy_positions SET quantity=?, margin_used=?
+                           WHERE strategy_id=? AND position_id=?""",
+                        (str(remaining_quantity), str(remaining_margin),
+                         self.strategy_id, position_id),
+                    )
+                db.execute(
+                    "UPDATE strategy_accounts SET equity=? WHERE strategy_id=?",
+                    (str(updated_equity), self.strategy_id),
+                )
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+
     def apply_realized_pnl(self, *, pnl, fees):
         realized = _decimal(pnl, "pnl")
         fee_amount = _decimal(fees, "fees", non_negative=True)
@@ -336,8 +391,16 @@ class SharedRiskEngine:
                     action TEXT NOT NULL CHECK (action IN ('ENTRY', 'DCA')),
                     required_margin TEXT NOT NULL,
                     notional_exposure TEXT NOT NULL,
-                    status TEXT NOT NULL CHECK (status IN ('RESERVED', 'CONSUMED', 'CANCELLED'))
+                    status TEXT NOT NULL CHECK (status IN ('RESERVED', 'CONSUMED', 'CANCELLED')),
+                    resolution_evidence TEXT
                 )""")
+                columns = {
+                    row[1] for row in db.execute("PRAGMA table_info(risk_reservations)").fetchall()
+                }
+                if "notional_exposure" not in columns:
+                    db.execute("ALTER TABLE risk_reservations ADD COLUMN notional_exposure TEXT")
+                if "resolution_evidence" not in columns:
+                    db.execute("ALTER TABLE risk_reservations ADD COLUMN resolution_evidence TEXT")
                 db.execute("""CREATE UNIQUE INDEX IF NOT EXISTS one_active_position_reservation
                     ON risk_reservations(strategy_id, position_id) WHERE status='RESERVED'""")
                 db.commit()
@@ -471,6 +534,35 @@ class SharedRiskEngine:
             state_reconciled=state_reconciled,
             kill_switch=kill_switch,
         )
+
+
+    def cancel_reservation(self, reservation_id, *, evidence):
+        """Release only an unresolved reservation with explicit reconciliation evidence."""
+        if self.path is None:
+            raise ValueError("Persistent reservation store is required")
+        if not isinstance(evidence, str) or not evidence.strip():
+            raise ValueError("Reconciliation evidence is required")
+        with closing(sqlite3.connect(self.path, timeout=15, isolation_level=None)) as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                row = db.execute(
+                    "SELECT status FROM risk_reservations WHERE reservation_id=?",
+                    (reservation_id,),
+                ).fetchone()
+                if row is None or row[0] != "RESERVED":
+                    raise ValueError("Only an active reservation can be reconciled as cancelled")
+                updated = db.execute(
+                    """UPDATE risk_reservations
+                       SET status='CANCELLED', resolution_evidence=?
+                       WHERE reservation_id=? AND status='RESERVED'""",
+                    (evidence.strip(), reservation_id),
+                )
+                if updated.rowcount != 1:
+                    raise ValueError("Reservation state changed during reconciliation")
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
 
     def _gross_margin(self, core_snapshot, ai_snapshot):
         if not isinstance(core_snapshot, LedgerSnapshot) or not isinstance(ai_snapshot, LedgerSnapshot):
