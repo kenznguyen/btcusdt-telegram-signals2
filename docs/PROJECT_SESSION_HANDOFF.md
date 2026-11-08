@@ -7118,3 +7118,14 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No production systemd unit was created. No VPS, canonical DB, Feeder process, API process, system service manager, package, permission, secret, firewall, DNS, proxy, network or T2 runtime was changed or accessed.
 - Status: notification contracts RED reproduced **PASS**; notification adapter implemented **NOT YET VERIFIED**; disposable two-service integration harness **NOT IMPLEMENTED**; actual Feeder/API systemd dependency and crash propagation **NOT RUN**; production deployment **BLOCKED**; T2 runtime **NOT ACTIVATED**; `ai_execution_enabled=false`.
 - Next: inspect completion of runs `42486715297` and `42486755480`; verify the exact checked-out SHA and test logs; fix any implementation defect with TDD. Then add the disposable two-service systemd integration harness for Feeder READY gating, authenticated API candle read, Feeder SIGKILL propagation, orderly API-before-Feeder shutdown, and restart. Do not deploy units to VPS without separate explicit approval.
+
+
+## 2026-11-08 — Shared Data Foundation lifecycle architecture decision
+
+- User selected and accepted the architecture direction: shared logical data ownership across T0–T4; demand-based raw-data retention; central system-level lifecycle governance.
+- Architecture Decision Record added: `docs/architecture/SHARED_DATA_FOUNDATION_LIFECYCLE_ADR_2026-11-08.md`.
+- ADR commit: `1c101fb80efd2c9e71bd727a8abbe5ebb5dc1287`; prior branch tip before this documentation increment: `b460f12e0b5d2ae02130dca3b2b6c6970edfd268`.
+- This is a documentation-only decision record. Shared ownership does not grant T1–T4 write/delete authority over canonical T0 data. Consumer ACK is not deletion authorization. Dataset identity, consumer dependencies, retention policy versioning, holds, grace period, explicit deletion authorization, tombstones, and audit evidence are required design elements.
+- Numeric retention periods, data-class thresholds, archive mechanics, dataset/consumer contract, and deletion safety contract remain OPEN / DESIGN REQUIRED.
+- No source code, tests, workflow, database/schema, runtime configuration, VPS, Feeder, API process, exchange connection, market-data sync, archive, vacuum, or deletion was changed or activated. `ai_execution_enabled=false`; paper-only.
+- Next: inspect the active branch tip and continue documentation-only design on this same branch. Reconcile `docs/FIVE_LAYER_ARCHITECTURE.md`, `docs/FIVE_LAYER_PAPER_RUNBOOK.md`, `docs/architecture/T0_POSTGRESQL_ATOMIC_WRITER_P0_2026-11-05.md`, and keep PostgreSQL runtime lifecycle acceptance separate from dataset retention lifecycle. Do not implement lifecycle automation or delete real data without separate explicit approval.
