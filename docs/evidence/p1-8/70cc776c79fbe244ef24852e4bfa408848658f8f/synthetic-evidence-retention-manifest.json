@@ -1,0 +1,73 @@
+{
+  "actions_artifact_retention_days": 7,
+  "archived_at": "2026-11-08T19:47:00Z",
+  "files": [
+    {
+      "path": "p1-8.15-prior-verification.txt",
+      "sha256": "a3fb9ee374f58578ee40783017436614eecb4e516b6768a12a667448a062e6df",
+      "size_bytes": 137
+    },
+    {
+      "path": "p1-8.15-retained-evidence.sha256",
+      "sha256": "0cdbfa97620ac56da6b83993e224e9e1399554d53beb59eb2a9de4d1d9c97a35",
+      "size_bytes": 96
+    },
+    {
+      "path": "p1-8.15-retained-evidence.zip",
+      "sha256": "1b8563eab22f8cff65ae98c106a9c77e31397eb9e29f80513ab2d33d88923bfe",
+      "size_bytes": 1264659
+    },
+    {
+      "path": "synthetic-evidence-attestation.bundle.json",
+      "sha256": "689cc6c8c8a1fa077059dfabd14ee9833f90d8aa5e4037d96d1b5bb3394010aa",
+      "size_bytes": 12527
+    },
+    {
+      "path": "synthetic-evidence-bundle.sha256",
+      "sha256": "9f2cbe40c44036327d1a4daf60b27636d435028c07a9075560ee6c3cb1dd9079",
+      "size_bytes": 96
+    },
+    {
+      "path": "synthetic-evidence-bundle.zip",
+      "sha256": "348ec4bc31d271f8ca366877ba10adc878ab12769d3bad76d010024f136c9a36",
+      "size_bytes": 1876891
+    },
+    {
+      "path": "synthetic-evidence-provenance.json",
+      "sha256": "864390f90755ae279db95b005b478c579ad954d057558499e07146764a552898",
+      "size_bytes": 1020
+    },
+    {
+      "path": "synthetic-evidence-tests.log",
+      "sha256": "350c67ee123ec86e8d54923a0b3c7ffd7129b1b04f19769c948426e147ff0fa3",
+      "size_bytes": 20436
+    },
+    {
+      "path": "trust-root-rotation-diff.json",
+      "sha256": "56422d1910bfa91c677e505efc8a9e149aa4f12af62b79c5c199fcf6ea6ccf79",
+      "size_bytes": 505
+    },
+    {
+      "path": "trust-root-snapshot.json",
+      "sha256": "d63a38b43285596797254985ede4cb1cf557b9e4cde5d4ebffa0b71d2f39551d",
+      "size_bytes": 3952
+    },
+    {
+      "path": "trusted_root.jsonl",
+      "sha256": "65ca537f6ed8a47fd0e560c421baa1f6c1efb8b25fc200d8c5c02c0e92eb2b9c",
+      "size_bytes": 34634
+    },
+    {
+      "path": "trusted_root.sha256",
+      "sha256": "58d7a9cf9fda3136f3154d1d2964973cd7fd907e2476574c79ba4c8860d7de1f",
+      "size_bytes": 85
+    }
+  ],
+  "immutability": "NOT_WORM",
+  "manifest_sha256": "7566175c1214e2568515e66bf931e8c12b8bdb30508fc8d891c7388d00cf73c8",
+  "policy": "Git history plus 7-day Actions artifact; Git history is not WORM storage.",
+  "retention_class": "GIT_HISTORY",
+  "schema": "p1.8.evidence-retention.v1",
+  "source_sha": "70cc776c79fbe244ef24852e4bfa408848658f8f",
+  "workflow_run_id": 42516728964
+}
