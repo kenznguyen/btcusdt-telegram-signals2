@@ -160,13 +160,25 @@ class AIProvenanceValidatorTests(unittest.TestCase):
 
 
 
+    def verify_rehashed_predictions(self, artifacts):
+        manifest = json.loads(json.dumps(self.manifest))
+        data = artifacts["predictions"]
+        manifest["artifacts"]["predictions"] = {
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "size_bytes": len(data),
+        }
+        return self.verify(
+            envelope=self.signed_envelope(manifest),
+            artifacts=artifacts,
+        )
+
     def test_rejects_prediction_timestamp_before_oos_window(self):
         artifacts = dict(self.artifacts)
         artifacts["predictions"] = artifacts["predictions"].replace(
             b'"prediction_timestamp_ms":1700000001000',
             b'"prediction_timestamp_ms":1699999999000',
         )
-        result = self.verify(artifacts=artifacts)
+        result = self.verify_rehashed_predictions(artifacts)
         self.assertFalse(result.accepted)
         self.assertIn("PREDICTION_TIMESTAMP_OUTSIDE_OOS", result.reasons)
 
