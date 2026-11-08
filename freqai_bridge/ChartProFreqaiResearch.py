@@ -8,6 +8,7 @@ from pandas import DataFrame
 
 from freqai_bridge.exporter import TARGET, make_prediction, read_context, write_artifact
 from freqai_bridge.context import canonical_context
+from freqai_bridge.http_candles import CandleHttpError
 
 logger = logging.getLogger(__name__)
 
@@ -55,21 +56,21 @@ class ChartProFreqaiResearch(IStrategy):
 
     def _publish_prediction(self, dataframe):
         context = self.config.get("freqai_bridge", {})
-        paths = (context.get("canonical_db_path"), context.get("provenance_path"), context.get("output_path"))
+        paths = (context.get("provenance_path"), context.get("output_path"))
         if not all(isinstance(path, str) and path for path in paths):
             return
         observed = time.time_ns() // 1_000_000
         try:
-            canonical = canonical_context(paths[0], observed, context.get("candle_window_bars", 2))
-            provenance = read_context(paths[1])
+            canonical = canonical_context(now_ms=observed, bars=context.get("candle_window_bars", 2))
+            provenance = read_context(paths[0])
             if provenance.get("freqaiIdentifier") != self.config["freqai"]["identifier"]:
                 raise ValueError("Model identifier mismatch")
             artifact = make_prediction(dataframe, canonical, provenance, observed)
-        except (KeyError, ValueError, TypeError, OSError, OverflowError):
+        except (CandleHttpError, KeyError, ValueError, TypeError, OSError, OverflowError):
             artifact = {"available": False, "source": "freqai", "availableAtMs": observed,
                         "reason": "PREDICTION_OR_PROVENANCE_UNAVAILABLE"}
             logger.warning("Chart Pro prediction unavailable; native order signals remain disabled")
-        write_artifact(paths[2], artifact)
+        write_artifact(paths[1], artifact)
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict):
         dataframe["enter_long"] = 0
