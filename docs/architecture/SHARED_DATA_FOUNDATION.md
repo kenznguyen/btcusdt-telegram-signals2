@@ -29,8 +29,8 @@ This is a logical architecture, not a mandate to create a new database, data lak
 ### Out of scope
 
 - Numeric retention periods, TTL values, archive tiers, and cost thresholds.
-- Concrete consumer ACK/checkpoint protocol and registry schema.
-- Deletion authorization implementation and operational runbooks.
+- Concrete consumer registry/API schema and runtime implementation (logical dependency and ACK/release semantics are defined in [Dataset Consumer Contract](DATASET_CONSUMER_CONTRACT.md)).
+- Deletion execution implementation and operational runbooks (the governance and safety boundary is defined in [Data Deletion Safety Contract](DATA_DELETION_SAFETY_CONTRACT.md)).
 - Database/provider selection, schema migration, API changes, deployment, and runtime activation.
 - Trading/execution behavior or changes to Core/AI strategy logic.
 
@@ -82,7 +82,7 @@ Use three distinct responsibilities:
 
 The producer remains accountable for its published dataset. The system-level governance authority controls cross-layer policy. Consumers receive only the read and dependency-release capabilities required for their tasks.
 
-A producer cannot use shared ownership to bypass central policy. Central governance cannot silently rewrite producer-owned payloads. Any correction to a canonical or derived dataset must follow the producer's versioned correction/republication contract.
+A producer cannot use shared ownership to bypass central policy. Central governance cannot silently rewrite producer-owned payloads. Any correction to a canonical or derived dataset must follow the producer's versioned correction/republication contract. T0 maintenance/correction authority is not deletion approval. Destructive removal of a published shared dataset/version must pass central lifecycle review, independent approval, exact-scope execution authorization, and post-operation verification under [Data Deletion Safety Contract](DATA_DELETION_SAFETY_CONTRACT.md).
 
 ## 4. Dataset domains and stewardship
 
@@ -147,7 +147,7 @@ The architecture follows least privilege and producer-scoped writes.
 
 | Actor | Read | Publish/write | Correct/delete |
 |---|---|---|---|
-| T0 canonical writer | Required source inputs | Canonical T0 datasets under fenced lease | Only through T0's reviewed correction/maintenance authority; never via consumer credentials |
+| T0 canonical writer | Required source inputs | Canonical T0 datasets under fenced lease | Producer-scoped correction/republication under T0 controls; destructive removal of a published shared dataset/version must pass central deletion governance and the separate deletion safety contract |
 | T1 producer | Approved T0/source datasets | T1-owned intelligence datasets | Only T1-owned outputs under versioned producer contract |
 | T2 producer | Approved T0/T1 datasets | T2-owned features, model/inference and strategy artifacts | Only T2-owned outputs under versioned producer contract |
 | T3 producer | Approved strategy and market context | T3-owned paper/execution state | Only through T3 state-transition rules |
@@ -171,18 +171,9 @@ A consumer registers a dependency against a specific dataset identity/version an
 
 A dependency release means only that the named consumer/task no longer requires that specific version for that declared purpose. It does not prove that all consumers are finished.
 
-The consumer contract must eventually define:
+The detailed logical contract is defined in [Dataset Consumer Contract](DATASET_CONSUMER_CONTRACT.md). It covers consumer identity, exact dataset/version pinning, purpose, registration, ACK, release, idempotency, stale-consumer review, retries, and reconciliation. The contract does not define an implementation schema or API.
 
-- consumer identity and owning layer;
-- dataset ID/version and purpose;
-- task/run/experiment/model reference;
-- dependency creation and release semantics;
-- heartbeat/expiry for abandoned registrations;
-- ACK idempotency and evidence;
-- handling for retries, partial completion, and failed consumers;
-- central recheck before any lifecycle transition.
-
-No dependency registry, ACK endpoint, TTL, or automatic cleanup is implemented or authorized by this architecture document.
+A missing heartbeat or overdue review date is only a review/escalation signal. It never releases a dependency or removes its protective effect. No dependency registry, ACK endpoint, TTL, or automatic cleanup is implemented or authorized by this architecture document.
 
 ## 9. Failure and consistency rules
 
@@ -235,8 +226,8 @@ No layer should rely on undocumented filesystem sharing or direct database acces
 The following remain unresolved and must not be guessed during implementation:
 
 1. Concrete dataset ID/version format and canonical manifest serialization.
-2. Consumer registry storage and ownership.
-3. Dependency heartbeat, abandoned-consumer handling, and ACK protocol.
+2. Concrete registry/API implementation, storage, and ownership.
+3. Operational review cadence and escalation for stale consumers; the logical contract prohibits timeout-based auto-release.
 4. Dataset classification details and numeric retention periods.
 5. Archive storage classes and restore service levels.
 6. Deletion authorization roles, grace period, and final recheck semantics.
@@ -260,6 +251,6 @@ The following remain unresolved and must not be guessed during implementation:
 
 **Status: DESIGN DOCUMENT COMPLETE — NOT IMPLEMENTED.**
 
-Next design document: CENTRAL_DATA_LIFECYCLE_POLICY.md, which will define the data classes, demand model, retention decision inputs, policy versioning, archive eligibility, expiry review, and unresolved retention values. The consumer and deletion safety contracts remain separate follow-on documents.
+Detailed follow-on designs now exist: [Central Data Lifecycle Policy](CENTRAL_DATA_LIFECYCLE_POLICY.md), [Dataset Consumer Contract](DATASET_CONSUMER_CONTRACT.md), and [Data Deletion Safety Contract](DATA_DELETION_SAFETY_CONTRACT.md). The cross-contract review is recorded in [Shared Data Lifecycle Cross-Contract Review](SHARED_DATA_LIFECYCLE_CROSS_CONTRACT_REVIEW_2026-11-09.md). Next: complete a read-only inventory of actual datasets, consumers, lineage, and copies before proposing numeric retention values. This inventory must not change or delete data.
 
 No source code, test, workflow, database/schema, API, VPS, Feeder, scheduler, archive, vacuum, or deletion operation is changed or activated by this document. Any such work requires separate review and explicit authorization.
