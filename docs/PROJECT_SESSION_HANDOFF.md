@@ -7160,3 +7160,12 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No VPS, canonical DB, production systemd unit, Feeder/API service, package, permission, secret, firewall, DNS, proxy, or T2 runtime was changed or accessed. No exchange call or data deletion. `ai_execution_enabled=false` remains unchanged.
 - Status: notification adapter **PASS — disposable CI**; existing WAL sandbox **PASS — disposable CI**; two-service systemd integration **NOT IMPLEMENTED / NOT RUN**; VPS compatibility **NOT VERIFIED**; production deployment **BLOCKED**; T2 runtime **NOT ACTIVATED**.
 - Next bounded step: implement the disposable integration harness and workflow from the test plan, use only synthetic data, require the runner to fail closed if systemd prerequisites are missing, and preserve logs/artifact/digest. No production deployment without separate explicit approval.
+
+
+## 2026-11-08 — Shared Data Foundation design completed
+
+- Added `docs/architecture/SHARED_DATA_FOUNDATION.md` (design only), commit `0d9ecbaf3024bd2d5511f3abbb6759f3c99e61b6`.
+- The document defines data plane vs central governance control plane; shared ownership vs producer stewardship vs consumer access; T0–T4 dataset domains; canonical/derived/evidence/ephemeral classes; dataset identity and lineage requirements; least-privilege read/write/correction boundaries; consumer dependency concepts; fail-closed behavior; T0 interface compatibility boundaries; and unresolved design questions.
+- No new service, database, API, schema, registry, ACK endpoint, scheduler, retention policy values, archive, vacuum, or deletion mechanism is specified as implemented or activated.
+- Verification: the created design document was fetched at branch commit `0b65834dc588137fb63c731a826e6188d0c54931`, blob `fe18d3eef7f2789a06905affc78d039589798bd5`, 18,432 characters; acceptance section present. No CI/test run; documentation content review only. No CI PASS is claimed.
+- Next: design `CENTRAL_DATA_LIFECYCLE_POLICY.md`. Dataset/consumer protocol and deletion safety remain separate design documents. No real-data archive/deletion or runtime activation without separate explicit approval.
