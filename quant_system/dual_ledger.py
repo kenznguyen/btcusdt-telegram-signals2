@@ -131,7 +131,8 @@ class StrategyLedger:
         )
         return LedgerSnapshot(self.strategy_id, Decimal(account["equity"]), positions)
 
-    def record_entry(self, position_id, *, side, quantity, entry_price, margin_used):
+    def restore_position(self, position_id, *, side, quantity, entry_price, margin_used):
+        """Restore a reconciled existing position; not an admission API."""
         if not isinstance(position_id, str) or not position_id.strip():
             raise ValueError("position_id is required")
         if side not in ("LONG", "SHORT"):
@@ -194,7 +195,8 @@ class StrategyLedger:
                 db.rollback()
                 raise
 
-    def record_dca(self, position_id, *, quantity, price, margin_used):
+    def restore_dca(self, position_id, *, quantity, price, margin_used):
+        """Restore historical DCA state; new DCA intents require a reservation."""
         qty = _decimal(quantity, "quantity", positive=True)
         dca_price = _decimal(price, "price", positive=True)
         margin = _decimal(margin_used, "margin_used", positive=True)
