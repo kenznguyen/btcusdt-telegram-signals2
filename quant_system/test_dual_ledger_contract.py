@@ -132,5 +132,53 @@ class DualLedgerContractTest(unittest.TestCase):
         self.assertTrue(reduction.accepted)
 
 
+    def test_stale_data_and_unreconciled_state_fail_closed(self):
+        stale = self.risk.admit_entry(
+            account_equity="10000", core_snapshot=self.core.snapshot(),
+            ai_snapshot=self.ai.snapshot(), data_fresh=False, state_reconciled=True,
+        )
+        unreconciled = self.risk.admit_entry(
+            account_equity="10000", core_snapshot=self.core.snapshot(),
+            ai_snapshot=self.ai.snapshot(), data_fresh=True, state_reconciled=False,
+        )
+        self.assertFalse(stale.accepted)
+        self.assertEqual(stale.reason, "STALE_DATA")
+        self.assertFalse(unreconciled.accepted)
+        self.assertEqual(unreconciled.reason, "UNRECONCILED_STATE")
+
+    def test_shared_gross_margin_must_leave_one_percent_for_next_admission(self):
+        self.core.record_entry("core-heavy", side="LONG", quantity="1",
+                               entry_price="100000", margin_used="9950")
+        decision = self.risk.admit_entry(
+            account_equity="10000", core_snapshot=self.core.snapshot(),
+            ai_snapshot=self.ai.snapshot(), data_fresh=True, state_reconciled=True,
+        )
+        self.assertFalse(decision.accepted)
+        self.assertEqual(decision.reason, "INSUFFICIENT_MARGIN")
+        self.assertEqual(decision.gross_margin_used, Decimal("9950"))
+        self.assertEqual(decision.required_margin, Decimal("100"))
+
+    def test_dca_rejects_missing_or_ambiguous_position_identity(self):
+        missing = self.risk.admit_dca(
+            account_equity="10000", position_id="missing",
+            core_snapshot=self.core.snapshot(), ai_snapshot=self.ai.snapshot(),
+            data_fresh=True, state_reconciled=True,
+        )
+        self.assertFalse(missing.accepted)
+        self.assertEqual(missing.reason, "POSITION_NOT_UNIQUELY_FOUND")
+
+        self.core.record_entry("shared-id", side="LONG", quantity="0.01",
+                               entry_price="100000", margin_used="100")
+        self.ai.record_entry("shared-id", side="SHORT", quantity="0.01",
+                             entry_price="100000", margin_used="100")
+        ambiguous = self.risk.admit_dca(
+            account_equity="10000", position_id="shared-id",
+            core_snapshot=self.core.snapshot(), ai_snapshot=self.ai.snapshot(),
+            data_fresh=True, state_reconciled=True,
+        )
+        self.assertFalse(ambiguous.accepted)
+        self.assertEqual(ambiguous.reason, "POSITION_NOT_UNIQUELY_FOUND")
+
+
 if __name__ == "__main__":
     unittest.main()
