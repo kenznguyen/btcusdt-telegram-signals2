@@ -6324,7 +6324,7 @@ Documentation-only closeout is complete for this increment. If further assurance
 - T1 source repo: `kenznguyen/binance-futures-collector`, branch `feature/t1-connection-sidecar-integration-20261107`, PR #1 remains OPEN / DRAFT / NOT MERGED.
 - Latest T1 source SHA: `3c2745a30f3cb20375a20188b5f4e10e7b7bbfef`.
 - GitHub Actions run #200: [42448956679](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42448956679), conclusion SUCCESS, 5/5 jobs.
-- Exact checked-out synthetic merge SHA from Collector job log: `3ec602e` (log records full SHA prefix `3ec602e`), PR head `3c2745a...` merged with base `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Exact checked-out synthetic merge SHA from Collector job log: `3ec602e1c3508747fccb7a47e4d9e737a2239720`, PR head `3c2745a...` merged with base `bc4f0ef633fbeee4a49defd72827f17162693805`.
 - Collector Format, Clippy, release Build and Test PASS. Three explicit offline tests PASS: `snapshot_plus_buffered_diffs_matches_independent_reconstruction`, `initial_attach_rejects_a_missing_diff_after_the_bridge`, `reconnect_pu_break_leaves_untouched_levels_stale_in_live_book`. Test totals: library 43/43, main 1/1.
 - Sidecar tests 8/8 + 27/27; dashboard frontend and backend, Docker build, Security audit PASS.
 - Artifact inventory empty; artifact preparation and upload steps were skipped. No binary artifact is claimed.
