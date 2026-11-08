@@ -528,3 +528,38 @@ Implement semantic reconciliation between the signed prediction JSONL and the si
 - No tests/workflow run/artifact for this documentation-only audit. Working tree remains NOT VERIFIED (GitHub API writes only).
 - Hard limits unchanged: `AI_EXECUTION_ENABLED=false`; no T0/T1 DB/Feeder/exchange, no paper/live runtime, no attestation or leverage authorization; PR #95 remains OPEN / DRAFT / NOT MERGED.
 - Next: confirm single-timeframe versus M15+H1 bundle before writing RED tests and implementation.
+
+
+## Signed M15+H1 dataset bundle validator — 2026-11-08
+
+### Contract and implementation
+- User confirmed the signed AI `dataset` artifact must bundle both M15 and H1 snapshots.
+- Bundle format: `T0_M15_H1_DATASET_BUNDLE_V1`; exact top-level identity: canonical Binance `USDT_PERPETUAL/BTCUSDT`; `snapshots` must contain exactly `15m` and `1h`.
+- Each embedded snapshot is validated using the existing T0 adapter's `_validate_snapshot` contract. This checks source identity, per-snapshot `datasetVersion`, closed/validated candle rows, timestamp continuity/availability, coverage and OHLCV constraints.
+- Aggregate `datasetVersion` is SHA-256 over canonical compact sorted-key JSON of the fixed bundle identity and both per-snapshot versions. Signed manifest `dataset_version` must match the aggregate.
+- Prediction timestamps must lie inside both snapshots' inclusive coverage envelopes; outcome-resolution timestamps must lie inside M15 coverage.
+- Coverage-envelope validation is not exact candle-selection/feature-time proof. It does not define label horizon or price basis, and does not recompute outcomes from OHLCV.
+- Implementation commit: `9d738f82e0ee9ce6e255581d077561eaf51bf67c`.
+- Test commits: `ed9769676f48a5943ee7c7845e5adef429629cea` (first RED tests), `dc0dc6674d36a353da4f8a5b316da1a971f5c452` (fixture correction), `a0abc63017cb3a8855018a47d3410e04d55b770b` (manifest binding and duplicate-key tests), `9103c0c15b63bdace4b17301a7d5b4540634e28a` (final fixture correction).
+- Evidence report: `quant_system/AI_PROVENANCE_VALIDATOR_2026-11-08.md`, update commit `c2e6f8490a12d2c7220d7c63871714afd928a0ea`.
+
+### TDD and CI
+- Final RED baseline: [42460744680](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42460744680), source `dc0dc6674d36a353da4f8a5b316da1a971f5c452`; exactly five bundle/coverage contracts failed before implementation.
+- Exact-source push run [42460912700](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42460912700), job `128669809731`, SUCCESS; `github_sha=checked_out_sha=9103c0c15b63bdace4b17301a7d5b4540634e28a`.
+- PR-context run [42460914804](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42460914804), job `128669816763`, SUCCESS; synthetic merge checkout `122fe436fc8f91dc93c6b5216d72100120bcfcd9`.
+- **148/148 test invocations PASS**: provenance 35, calibration 16, dynamic leverage 14, coordinator 11, dual ledger 23, Phase 2 20, Phase 3 11, PaperLedger 18. py_compile PASS.
+- Push artifact `13609334289`, digest `sha256:2b4a1fe0661b6d2b5e3d346099132a15225df15467aba68f1be557ccfcd71d68`.
+- PR artifact `13609383998`, digest `sha256:45bb8bc1263550f93091db26b8310433581ff34ce29d7d718cfc5332e113c697`.
+- CI preflight on both runs: `AI_EXECUTION_ENABLED=false`, DB targets EMPTY, exchange credentials EMPTY.
+
+### Status / restrictions
+- Bundle schema, both snapshot validations, aggregate fingerprint, manifest binding, prediction and outcome coverage-envelope checks: PASS on synthetic fixtures.
+- Actual BTCUSDT OOS dataset/predictions: NOT PROVIDED / NOT VERIFIED.
+- Exact candle-close/feature availability alignment, label semantics and OHLCV outcome recomputation: NOT VERIFIED / NOT IMPLEMENTED.
+- Feature/label leakage and model-to-prediction identity: NOT VERIFIED.
+- Production signer/trust root lifecycle: NOT CONFIGURED.
+- Calibration attestation and AI leverage authorization: NOT ISSUED; runtime integration: NOT IMPLEMENTED.
+- No T0/T1 DB, feeder, exchange, paper or live runtime activity. `AI_EXECUTION_ENABLED=false`.
+- PR #95 remains OPEN / DRAFT / NOT MERGED. No merge/rebase.
+- Branch HEAD at implementation CI: `9103c0c15b63bdace4b17301a7d5b4540634e28a`; documentation commits follow. Working-tree status NOT VERIFIED (GitHub API writes only).
+- Next increment: review exact timestamp semantics and determine whether dataset metadata must explicitly bind timeframe-specific OOS windows to the signed split before considering row-level outcome/label validation. Do not infer price basis or label horizon.
