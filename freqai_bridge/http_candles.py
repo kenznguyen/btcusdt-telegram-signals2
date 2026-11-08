@@ -54,7 +54,7 @@ class CandleHttpConfig:
             raise CandleHttpError("CONFIG_INVALID")
         if (not isinstance(self.token, str) or not self.token
                 or len(self.token) > 4096
-                or not re.fullmatch(r"[A-Za-z0-9._~+/=-]+", self.token)):
+                or not re.fullmatch(r"[A-Za-z0-9._~+/-]+=*", self.token)):
             raise CandleHttpError("CONFIG_INVALID")
         if type(self.max_lag_ms) is not int or not 1 <= self.max_lag_ms <= 120_000:
             raise CandleHttpError("CONFIG_INVALID")
@@ -149,6 +149,7 @@ class CandleHttpClient:
                 status = response.status_code
                 if status == 503 and attempt < _MAX_ATTEMPTS - 1:
                     response.close()
+                    response = None
                     self.sleep(_BACKOFF_SECONDS[attempt])
                     continue
                 if status != 200:
@@ -187,7 +188,7 @@ class CandleHttpClient:
                     decoded = bytes(body).decode("utf-8", errors="strict")
                     payload = json.loads(decoded, object_pairs_hook=self._unique_object,
                                          parse_constant=lambda _: (_ for _ in ()).throw(ValueError("invalid constant")))
-                except (UnicodeDecodeError, json.JSONDecodeError, ValueError, TypeError):
+                except (UnicodeDecodeError, json.JSONDecodeError, ValueError, TypeError, RecursionError):
                     raise CandleHttpError("CONTRACT_UNSUPPORTED") from None
                 if not isinstance(payload, dict):
                     raise CandleHttpError("CONTRACT_UNSUPPORTED")
