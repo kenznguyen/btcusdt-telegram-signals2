@@ -5,6 +5,8 @@ on:
     branches:
       - feature/dual-strategy-phase22-preholdout-attestation-20261031
     paths:
+      - "quant_system/ai_calibration_evaluator.py"
+      - "quant_system/test_ai_calibration_evaluator.py"
       - "quant_system/ai_dynamic_leverage.py"
       - "quant_system/test_ai_dynamic_leverage.py"
       - "quant_system/dual_signal_coordinator.py"
@@ -19,6 +21,8 @@ on:
       - ".github/workflows/t2-dual-signal-coordinator.yml"
   pull_request:
     paths:
+      - "quant_system/ai_calibration_evaluator.py"
+      - "quant_system/test_ai_calibration_evaluator.py"
       - "quant_system/ai_dynamic_leverage.py"
       - "quant_system/test_ai_dynamic_leverage.py"
       - "quant_system/dual_signal_coordinator.py"
@@ -76,6 +80,8 @@ jobs:
             echo "database_targets=EMPTY"
             echo "exchange_credentials=EMPTY"
           } | tee t2-ai-leverage-evidence/source-provenance.txt
+      - name: Run independent AI calibration evaluator tests
+        run: python -m unittest quant_system.test_ai_calibration_evaluator -v
       - name: Run independent AI dynamic leverage contract tests
         shell: bash
         run: |
