@@ -6479,7 +6479,8 @@ Documentation-only closeout is complete for this increment. If further assurance
 ## 2026-11-08 — T0 Candle Contract v1 API envelope implementation
 
 - Existing branch: `feature/t0-centralized-data-feeder-p1-20261101`.
-- Exact source commit: `42fda132bf06edcf2cb5f5d3ea415fc3e7a47fc1`; changed file `market_data/api.py`; blob `e7db052605e449a7ba1e5d1da3b622822cd82b80`.
+- Implementation commit: `42fda132bf06edcf2cb5f5d3ea415fc3e7a47fc1`; self-review cleanup commit: `d88e3ddda0502708e64c4815ecae08ed707f4641`.
+- Final source SHA: `d88e3ddda0502708e64c4815ecae08ed707f4641`; changed file `market_data/api.py`; blob `179c11b684b7ba28d2fe07e56c3a4a50a2b9dba1`.
 - User explicitly authorized the API Contract v1 GREEN implementation.
 - Added the versioned response envelope: contract/schema versions, BTC base-asset volume unit, dataset-level source identity, and freshness observations including a null/non-evaluable shape for empty results.
 - Separated the 2,000-slot public API cap into `MAX_API_CANDLES`; did not change Store/write/sync limits.
