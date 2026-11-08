@@ -4,7 +4,7 @@
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
-- Latest branch HEAD at handoff publication: `b8dd2026a15fd7698ddf3d114dadf376d69a6610` (evidence documentation commit).
+- Latest branch HEAD at handoff publication: `581fc72d6bab1441bf052e526f4b59793f61c441` (R22.2 evidence update).
 - Latest implementation/test source SHA: `d4e04a701ae229c585d4598e93632831791c74d3`.
 - Implementation source commit: `d4e5d05070e18478f9bfc7927d881e3658f7affe`.
 - PR #95: OPEN / DRAFT / NOT MERGED.
@@ -18,7 +18,7 @@
 - `.github/workflows/t2-dual-ledger-contract.yml` — GitHub Actions gate, unchanged in GREEN increment.
 - `quant_system/dual_ledger.py` — initial independent ledger and shared risk admission implementation.
 - `quant_system/DUAL_LEDGER_RED_EVIDENCE_2026-11-08.md` — original RED evidence.
-- `quant_system/DUAL_LEDGER_GREEN_EVIDENCE_2026-11-08.md` — GREEN evidence, test and review boundaries.
+- `quant_system/DUAL_LEDGER_GREEN_EVIDENCE_2026-11-08.md` — GREEN evidence, test and review boundaries; updated after R22.2 completed SUCCESS.
 - `docs/T2_SESSION_HANDOFF_2026-11-08.md` — this handoff.
 
 Working-tree status: GitHub contents API commits were used; local working-tree status was not inspected and is therefore NOT VERIFIED.
