@@ -96,3 +96,59 @@ The observed checkout SHA is 4cf3959532024d286a76712bd93708b7a96489df. This is s
 - Keep .logs/ and .runtime/ out of source commits; they are runtime state.
 - Preserve the running Feeder. Do not stop it, configure autostart, or start another instance without separate authorization.
 - GitHub Actions run/artifact: NOT RUN / NOT APPLICABLE for this VPS-only observation.
+
+## Addendum — Controlled graceful stop, lease release, restart, and post-restart recovery (2026-11-08)
+
+### Scope and source identity
+- User explicitly authorized a controlled graceful stop of the supervised T0 Feeder PID 5919, followed by restart and recovery observation.
+- Scope remained Binance USD-M perpetual BTCUSDT, M15/H1, SQLite canonical store, public market data only. No T1 runtime, API keys, other symbols/timeframes, exchange orders, or live execution.
+- VPS checkout SHA observed while the restarted process was present: `4cf3959532024d286a76712bd93708b7a96489df`. This identifies the checked-out repository state at inspection; it is not a cryptographic measurement of code already loaded into the Python process.
+- Restarted process command: `/home/ubuntu/t0/venv/bin/python -m market_data.feeder_service`; Python PID `6584`; tmux wrapper PID `6583`; tmux session `t0-feeder`.
+- Restart log: `/home/ubuntu/t0/app/.logs/feeder-restart-20261108T043225Z.log`. It contains the start marker `START_UTC=2026-11-08T04:32:25Z`; no detailed recovery/cycle trace was emitted in the inspected log.
+- Runtime configuration remained `MARKET_DATA_BACKEND=sqlite` and `MARKET_DATA_DB=/home/ubuntu/t0/app/.data/market-data.sqlite3`.
+
+### Controlled shutdown evidence
+- Before stop: PID 5919 command line matched the Feeder module; tmux session `t0-feeder` existed; SQLite integrity was `ok`.
+- Pre-stop candles: M15 2,029; H1 2,007.
+- Pre-stop lease: name `binance-btcusdt-canonical`, owner `O6EF0eUn7tZDFFqeE-NCLLU61G4Iv6OmvnMlUefoZ0k`, generation 2.
+- Sent Ctrl-C through tmux. PID 5919 exited within the 35-second wait; no force-kill was used. tmux session ended.
+- Post-stop lease row remained but was explicitly released: owner `NULL`, generation 2, `expires_at_ms=0`.
+- Post-stop SQLite integrity remained `ok`; candle counts and latest timestamps were unchanged from pre-stop (M15 2,029; H1 2,007).
+- The previously referenced first-run log path was not present when inspected during shutdown; shutdown log detail is therefore NOT VERIFIED.
+
+### Restart and recovery observations (user-provided VPS output)
+- Restarted at `2026-11-08T04:32:25Z` under tmux using the same SQLite environment; no duplicate process was present at the pre-restart guard.
+- New lease owner: `Qll8BuEUDWB2gmqVAQFkugHYkvTTRvUGRjHPuWMguUU`; generation increased from 2 to 3.
+- Initial post-restart snapshot: M15 2,030; H1 2,007; SQLite integrity `ok`.
+- Lease heartbeat observed across a 35-second interval: expiry advanced from `1794112468822` to `1794112498872` ms (30.05 seconds); process PID 6584 remained present.
+- At 04:46:28 UTC, M15 count increased to 2,031; latest M15 open time `1794112200000` ms (04:30 UTC), available at `1794113109339` ms (04:45:09 UTC). H1 remained 2,007, as its next close was 05:00 UTC.
+- At 07:44:31 UTC, SQLite integrity remained `ok`; M15 count was 2,042 and H1 count was 2,010. Latest M15 open time `1794122100000` ms (07:15 UTC), available at `1794123008140` ms (07:30:08 UTC). Latest H1 open time `1794117600000` ms (06:00 UTC), available at `1794121206939` ms (07:00:06 UTC).
+- At 07:44:31 UTC, the lease remained owned by the restarted process identity, generation 3, expiry `1794123928559` ms; PID 6584 and tmux wrapper PID 6583 were present.
+- From the first post-restart snapshot to 07:44:31 UTC, candle counts increased by 12 M15 and 3 H1. The latest persisted candle timestamps are consistent with the next M15 close at 07:45 UTC and next H1 close at 08:00 UTC; the exact 07:45/08:00 close cycles were not yet observed in the supplied output.
+
+### Verdict and evidence boundary
+| Check | Status | Evidence boundary |
+|---|---|---|
+| Graceful Ctrl-C shutdown | PASS | PID 5919 exited; no force-kill |
+| Lease release | PASS | owner NULL and expiry 0 after stop |
+| SQLite integrity across stop | PASS | `integrity_check=ok` before/after |
+| Candle preservation across stop | PASS | counts and latest timestamps unchanged |
+| Restart under tmux | PASS | PID 6584, tmux session, start marker |
+| Lease generation takeover | PASS | generation 2 → 3, new owner |
+| Lease heartbeat after restart | PASS | expiry advanced 30.05 seconds across snapshots |
+| Post-restart M15 persistence | PASS | count increased; new closed M15 timestamps observed |
+| Post-restart H1 persistence | PASS | count increased by 3; later closed H1 timestamp observed |
+| Sustained supervised runtime after restart | PASS — bounded observation | process/lease alive and M15/H1 data advanced through 07:44:31 UTC, approximately 3h12m after restart |
+| Detailed recovery/startup log trace | NOT VERIFIED | restart log contained only START_UTC in inspected tail |
+| Exact loaded-code provenance | NOT VERIFIED | checkout SHA captured while process ran; no loaded-module hash/process-to-source attestation |
+| 24x7/production reliability | NOT VERIFIED | bounded supervised VPS observation only |
+| Reboot/autostart recovery | NOT RUN / NOT AUTHORIZED | no systemd, linger, or autostart changes |
+| GitHub Actions workflow/artifact | NOT RUN / NOT APPLICABLE | VPS operational test only; no source or workflow change |
+
+**Overall verdict: PASS for the bounded graceful-stop, lease-release, restart, heartbeat, SQLite integrity, and post-restart M15/H1 persistence scope.** This is not production certification, not 24x7 reliability evidence, and not reboot/autostart validation. The exact loaded-code provenance and detailed startup/recovery trace remain NOT VERIFIED.
+
+### Next step and restrictions
+1. Keep the restarted Feeder running; do not start a duplicate.
+2. Continue only with read-only health/quality observation or a separately authorized test.
+3. Do not enable systemd/autostart/linger, alter runtime configuration, install packages, activate T1, connect authenticated exchange endpoints, add symbols/timeframes, or enable trading without separate authorization.
+4. No GitHub Actions run or artifact was produced for this VPS-only increment.
