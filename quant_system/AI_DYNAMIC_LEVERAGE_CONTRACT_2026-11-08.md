@@ -51,8 +51,8 @@ Those remain independent calibration evidence requirements. Until the user appro
 
 - RED: run [42457533430](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42457533430), source `004eaf3c0870f11692174c27669c5bd4021275b9`; the new independent suite exposed a dataset-provenance mismatch not being rejected (13 passed, 1 failed).
 - Initial GREEN: run [42457536254](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42457536254), exact source `685abd9cf214566e2c653af4b04171e1c42241b5`; independent leverage suite 14/14 PASS, coordinator/ledger/legacy regressions also passed. No artifacts were produced.
-- Updated fixed-bound validation: run [42457578245](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42457578245), exact source `617ceea8e9669b701dbeae36acae16666b769970`; SUCCESS. Final provenance-type hardening is later than this run and requires the newest run to complete before claiming final exact-head PASS.
-- Final exact-source CI for the latest provenance-type hardening is pending at the time of this report; record its result in the next update.
+- Final exact-source run: [42457596650](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42457596650), event `push`, source/head SHA `6bb1ecd899e9857dfef80635c4d53a745f7c2662`, conclusion SUCCESS; job `128659833226` SUCCESS. Logs confirm the AI leverage suite **14/14**, coordinator **11/11**, dual-ledger **23/23**, legacy Phase 2 **20/20**, Phase 3 **11/11**, and PaperLedger **18/18** — **97/97 test invocations PASS**. The workflow preflight confirmed `AI_EXECUTION_ENABLED=false`, empty DB targets and empty Binance/OKX credentials. No artifacts were produced.
+- Run 42457596650 checks out the exact push head; job logs show the checkout action completed and all listed suites ran successfully.
 
 ## Status
 
