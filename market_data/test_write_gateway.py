@@ -163,6 +163,41 @@ os._exit(0)
         self.assertFalse(missing.exists())
 
 
+    def test_wal_keeper_preserves_sidecars_across_short_lived_writer_and_heartbeat(self):
+        from market_data.write_gateway import SQLiteWalKeeper
+
+        keeper = SQLiteWalKeeper(self.path)
+        self.assertTrue(keeper.open())
+        wal_path = Path(self.path + "-wal")
+        shm_path = Path(self.path + "-shm")
+        self.assertTrue(wal_path.is_file())
+        self.assertTrue(shm_path.is_file())
+
+        self.assertEqual(self.gateway.write_batch([candle()]), 1)
+        self.assertTrue(self.leases.heartbeat(
+            "worker-A", self.lease.generation, now_ms=NOW + 3, ttl_seconds=60,
+        ))
+        self.assertTrue(wal_path.is_file())
+        self.assertTrue(shm_path.is_file())
+        result = read_window(
+            self.path, "BTCUSDT", "15m", NOW, NOW + INTERVAL_MS["15m"],
+        )
+        self.assertEqual(result["coverage"]["returned"], 1)
+
+        self.assertTrue(keeper.close())
+        self.assertFalse(keeper.is_open)
+        self.assertFalse(wal_path.exists())
+        self.assertFalse(shm_path.exists())
+
+    def test_wal_keeper_fails_closed_for_missing_database(self):
+        from market_data.write_gateway import SQLiteWalKeeper
+
+        missing = Path(self.temp.name) / "not-created.sqlite3"
+        with self.assertRaisesRegex(FileNotFoundError, "must already exist"):
+            SQLiteWalKeeper(missing)
+        self.assertFalse(missing.exists())
+
+
 class ShadowWriteGatewayTest(unittest.TestCase):
     def test_shadow_gateway_counts_without_creating_a_database(self):
         gateway = ShadowWriteGateway()
