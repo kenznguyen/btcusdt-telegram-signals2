@@ -6,6 +6,8 @@ Status: **DESIGN — proposed policy framework; not implemented or activated**
 Related decisions and architecture:
 - [Shared Data Foundation with Centralized Lifecycle Governance ADR](SHARED_DATA_FOUNDATION_LIFECYCLE_ADR_2026-11-08.md)
 - [Shared Data Foundation](SHARED_DATA_FOUNDATION.md)
+- [Dataset Consumer Contract](DATASET_CONSUMER_CONTRACT.md)
+- [Data Deletion Safety Contract](DATA_DELETION_SAFETY_CONTRACT.md)
 
 ## 1. Purpose
 
@@ -111,9 +113,11 @@ No read-based reference counting or delete-after-ACK behavior is permitted.
 
 ### 5.2 Stale or unavailable demand records
 
-A missed heartbeat or expired lease may indicate an abandoned registration, not that the underlying data is no longer needed. Stale dependency handling must be defined in the consumer contract and must include owner resolution, bounded grace/review, and auditable reconciliation. Until then, stale or ambiguous demand blocks destructive action.
+A missed heartbeat or expired lease may indicate an abandoned registration, not that the underlying data is no longer needed. Stale dependency handling is defined in [Dataset Consumer Contract](DATASET_CONSUMER_CONTRACT.md). Review deadlines and any separately approved grace/escalation windows trigger owner resolution and auditable reconciliation only; they never auto-release the dependency or remove its protective effect. Until an authorized owner release or governed adjudication resolves the record, stale or ambiguous demand blocks destructive action.
 
 ## 6. Lifecycle states
+
+Dataset lifecycle, per-consumer dependency, and deletion request/execution are three separate state domains. Their states must not be collapsed into one shared enum. The consumer contract defines dependency states; the deletion safety contract defines request/execution stages. Cross-domain guards are: Released dependencies do not imply dataset eligibility; Deletion review does not imply authorization; and the dataset may become Deleted/tombstoned only after exact-scope execution is independently verified and reconciled.
 
 The following logical states define policy review. They are not a runtime state machine or an approved database enum.
 
@@ -165,7 +169,7 @@ These are decision criteria, not automatic retention durations or deletion permi
 
 ## 8. Archive policy
 
-Archive is a storage-tier transition, not deletion and not proof that data is no longer valuable.
+Archive is a storage-tier transition, not deletion and not proof that data is no longer valuable. Consumer dependencies must declare the availability/latency requirement they rely on; archive is blocked when the requirement is unknown or incompatible with the proposed archive/restore service. This compatibility requirement remains a design gap until the consumer contract is extended and approved.
 
 Before a dataset can be marked archive eligible, the reviewer must establish:
 
@@ -184,19 +188,9 @@ Archive must fail closed if any prerequisite cannot be verified. No archive tier
 
 A dataset that appears to have no remaining demand may enter **Deletion review** only. It must not be deleted automatically when a retention timer expires or all known consumers ACK.
 
-The deletion safety contract must separately define:
-- who may request, review, approve, and execute deletion;
-- independent approval or separation-of-duties requirements;
-- exact dataset/version and storage-object scope;
-- dependency, hold, lineage, legal, audit, and recovery rechecks;
-- grace period and cancellation mechanism;
-- policy version and evidence required at authorization time;
-- time-bounded authorization and replay protection;
-- storage adapter behavior, idempotency, partial failure, and reconciliation;
-- tombstone, audit, and manifest preservation;
-- post-operation verification and incident handling.
+These requirements are detailed in the separate [Data Deletion Safety Contract](DATA_DELETION_SAFETY_CONTRACT.md), which defines requester/reviewer/approver/executor separation, exact dataset/version/object scope, dependency and hold rechecks, cancellation, authorization, idempotency, reconciliation, tombstones, and post-operation verification.
 
-This policy document does not authorize any deletion, including raw-data, derived-data, expired-data, or ephemeral-data deletion. Even ephemeral cleanup requires its own bounded contract and approval.
+This policy document does not authorize any deletion, including raw-data, derived-data, expired-data, or ephemeral-data deletion. Even ephemeral cleanup requires the same explicit governance and safety review; no cleanup exception is implied.
 
 ## 10. Policy versioning and change control
 
@@ -293,6 +287,6 @@ No numeric value should be chosen until dataset inventory, consumer map, reprodu
 
 **Status: POLICY FRAMEWORK DESIGN COMPLETE — NOT IMPLEMENTED / NOT ACTIVE.**
 
-Next: define `DATASET_CONSUMER_CONTRACT.md` so dependency registration, release/ACK, stale-consumer handling, and exact dataset-version references are testable and unambiguous. After that, define `DATA_DELETION_SAFETY_CONTRACT.md` as a separate authorization and execution boundary.
+The detailed [Dataset Consumer Contract](DATASET_CONSUMER_CONTRACT.md) and [Data Deletion Safety Contract](DATA_DELETION_SAFETY_CONTRACT.md) are now documented separately. The cross-contract review and required corrections are recorded in [Shared Data Lifecycle Cross-Contract Review](SHARED_DATA_LIFECYCLE_CROSS_CONTRACT_REVIEW_2026-11-09.md). Next: build a read-only inventory of actual datasets, consumers, lineage, holds, and storage copies before considering numeric retention values.
 
 No source code, tests, workflow, database/schema, API, VPS, Feeder, policy engine, retention timer, archive, vacuum, or deletion operation is changed or activated by this document. Real-data lifecycle operations remain unauthorized without separate review and explicit approval.
