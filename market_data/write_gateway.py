@@ -161,6 +161,7 @@ class SQLiteWalKeeper:
             return True
         connection = sqlite3.connect(
             self.db_uri, uri=True, timeout=5, isolation_level=None,
+            check_same_thread=False,
         )
         try:
             connection.execute("PRAGMA busy_timeout=5000")
