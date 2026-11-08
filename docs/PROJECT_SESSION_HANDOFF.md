@@ -6445,3 +6445,16 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Documentation-only increment: no code, tests, workflow, artifact, runtime, canonical DB, Feeder, exchange connection, or market-data sync was changed/run. GitHub Actions: **NOT RUN / NOT APPLICABLE**.
 - Restrictions preserved: keep supervised Feeder untouched; no T1/T2 runtime activation; no Data Quality Gate execution; no direct T0 DB access; no autostart/deployment/live execution; keep `ai_execution_enabled=false`.
 - Next authorized scope must be separately confirmed: contract TDD (RED) for API envelope/freshness, then API implementation, then fixture-only HTTP client and FreqAI bridge migration, followed by exact-head GitHub Actions and independent review. Do not promote source or runtime on contract tests alone.
+
+
+## 2026-11-08 — T0 Candle Contract v1 API tests (RED scope)
+
+- Evidence report: `docs/evidence/T0_CANDLE_CONTRACT_V1_RED_2026-11-08.md`.
+- Test-only commit: `d7bda566fdaa32f060a8d08cea9ee2250847cb3b`.
+- Evidence-document commit: `75f7cebfb2b017abc3e84e150e62dba78e762db0`.
+- Changed test file: `market_data/test_api.py`; four deterministic contract tests added for response version/identity, freshness calculations, empty-result freshness, and candle close/provenance fields.
+- Source inspection confirms the current API response lacks `contractVersion`, `schemaVersion`, `volumeUnit`, and `freshness`; the tests are expected to fail against current production code.
+- **RED execution: NOT RUN / NOT VERIFIED.** The tests were not executed; no GitHub Actions run/job/log/artifact is claimed. The test outcome must not be described as confirmed RED.
+- Production code unchanged. No T2 HTTP client or FreqAI migration. No canonical DB access/modification, Feeder action, exchange connection, data sync, Data Quality Gate, or T0/T1/T2 runtime activation.
+- Restrictions unchanged: keep the supervised Feeder untouched; keep `ai_execution_enabled=false`; no live execution.
+- Next step: run the focused API tests through the approved GitHub Actions workflow, record exact checked-out SHA and run/job/artifact evidence, and confirm RED before separately authorizing API implementation.
