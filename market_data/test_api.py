@@ -150,5 +150,76 @@ class CandleApiTest(unittest.TestCase):
         self.assertEqual(body, {"error": "UNCONFIGURED"})
 
 
+    def test_contract_v1_response_has_explicit_version_and_market_identity(self):
+        generated_at = self.start + 2*self.interval + 1_000
+        with patch("market_data.api.time.time_ns", return_value=generated_at * 1_000_000):
+            code, body = self.request()
+
+        self.assertEqual(code, 200)
+        self.assertEqual(body["contractVersion"], "1.0.0")
+        self.assertEqual(body["schemaVersion"], 1)
+        self.assertEqual(body["exchange"], "binance")
+        self.assertEqual(body["marketType"], "USDT_PERPETUAL")
+        self.assertEqual(body["symbol"], "BTCUSDT")
+        self.assertEqual(body["timeframe"], "15m")
+        self.assertEqual(body["volumeUnit"], "BTC_BASE_ASSET")
+        self.assertEqual(body["source"], "ccxt.binanceusdm")
+        self.assertEqual(body["startMs"], self.start)
+        self.assertEqual(body["endMs"], self.start + 2*self.interval)
+        self.assertIsNone(body["asOfMs"])
+        self.assertRegex(body["datasetVersion"], r"^sha256:[0-9a-f]{64}$")
+
+    def test_contract_v1_freshness_reports_exact_observation_and_close_lag(self):
+        generated_at = self.start + 2*self.interval + 1_000
+        with patch("market_data.api.time.time_ns", return_value=generated_at * 1_000_000):
+            code, body = self.request()
+
+        self.assertEqual(code, 200)
+        self.assertEqual(body["freshness"], {
+            "latestExpectedOpenTimeMs": self.start + self.interval,
+            "latestReturnedOpenTimeMs": self.start,
+            "latestCloseTimeMs": self.start + self.interval,
+            "latestAvailableAtMs": self.start + self.interval + 7,
+            "observationAgeMs": generated_at - (self.start + self.interval + 7),
+            "closeLagMs": generated_at - (self.start + self.interval),
+            "evaluable": True,
+        })
+
+    def test_contract_v1_empty_as_of_window_has_null_freshness_and_is_not_evaluable(self):
+        generated_at = self.start + 2*self.interval + 1_000
+        query = (
+            f"symbol=BTCUSDT&timeframe=15m&startMs={self.start}"
+            f"&endMs={self.start+self.interval}&asOfMs={self.start+self.interval}"
+        )
+        with patch("market_data.api.time.time_ns", return_value=generated_at * 1_000_000):
+            code, body = self.request(query)
+
+        self.assertEqual(code, 200)
+        self.assertEqual(body["candles"], [])
+        self.assertEqual(body["freshness"], {
+            "latestExpectedOpenTimeMs": self.start + self.interval,
+            "latestReturnedOpenTimeMs": None,
+            "latestCloseTimeMs": None,
+            "latestAvailableAtMs": None,
+            "observationAgeMs": None,
+            "closeLagMs": None,
+            "evaluable": False,
+        })
+
+    def test_contract_v1_candle_has_explicit_exclusive_close_and_quality_provenance(self):
+        generated_at = self.start + 2*self.interval + 1_000
+        with patch("market_data.api.time.time_ns", return_value=generated_at * 1_000_000):
+            code, body = self.request()
+
+        self.assertEqual(code, 200)
+        candle = body["candles"][0]
+        self.assertEqual(candle["openTimeMs"], self.start)
+        self.assertEqual(candle["closeTimeMs"], self.start + self.interval)
+        self.assertEqual(candle["availabilityKind"], "FIRST_OBSERVED")
+        self.assertEqual(candle["quality"], "VALIDATED")
+        self.assertEqual(candle["source"], "ccxt.binanceusdm")
+        self.assertEqual(candle["volume"], "2.50")
+
+
 if __name__ == "__main__":
     unittest.main()
