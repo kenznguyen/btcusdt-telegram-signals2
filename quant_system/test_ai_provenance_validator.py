@@ -340,7 +340,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
     def test_rejects_prediction_dataset_version_mismatch(self):
         artifacts = dict(self.artifacts)
         artifacts["predictions"] = artifacts["predictions"].replace(
-            b'"dataset_version":"dataset-sha-test-v1"',
+            f'"dataset_version":"{self.dataset_version}"'.encode(),
             b'"dataset_version":"different-dataset"',
         )
         result = self.verify_rehashed_predictions(artifacts)
@@ -403,7 +403,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
         row["prediction_timestamp_ms"] = h1_end + 1000
         row["outcome_available_at_ms"] = h1_end + 1500
         rows[0] = json.dumps(row, sort_keys=True, separators=(",", ":"))
-        artifacts["predictions"] = ("\\n".join(rows) + "\\n").encode()
+        artifacts["predictions"] = ("\n".join(rows) + "\n").encode()
         result = self.verify_rehashed_predictions(artifacts)
         self.assertFalse(result.accepted)
         self.assertIn("PREDICTION_OUTSIDE_DATASET_COVERAGE", result.reasons)
@@ -414,7 +414,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
         row = json.loads(rows[0])
         row["outcome_available_at_ms"] = self.dataset_bundle["snapshots"]["15m"]["endMs"] + 1
         rows[0] = json.dumps(row, sort_keys=True, separators=(",", ":"))
-        artifacts["predictions"] = ("\\n".join(rows) + "\\n").encode()
+        artifacts["predictions"] = ("\n".join(rows) + "\n").encode()
         result = self.verify_rehashed_predictions(artifacts)
         self.assertFalse(result.accepted)
         self.assertIn("OUTCOME_OUTSIDE_M15_DATASET_COVERAGE", result.reasons)
