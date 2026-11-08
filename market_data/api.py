@@ -17,9 +17,11 @@ VOLUME_UNIT = "BTC_BASE_ASSET"
 DATA_SOURCE = "ccxt.binanceusdm"
 
 
-def _freshness(candles, timeframe, start_ms, end_ms, generated_at_ms):
+def _freshness(candles, timeframe, end_ms, generated_at_ms):
     interval = INTERVAL_MS[timeframe]
-    latest_expected = min(end_ms - interval, (generated_at_ms // interval) * interval - interval)
+    latest_expected = min(
+        end_ms - interval, (generated_at_ms // interval) * interval - interval
+    )
     latest = candles[-1] if candles else None
     if latest is None:
         return {
@@ -122,8 +124,7 @@ def application(environ, start_response):
             "source": DATA_SOURCE,
             "generatedAtMs": generated_at_ms,
             "freshness": _freshness(
-                result["candles"], query["timeframe"], query["start_ms"],
-                query["end_ms"], generated_at_ms,
+                result["candles"], query["timeframe"], query["end_ms"], generated_at_ms,
             ),
         })
     except (OSError, sqlite3.Error, ValueError, StoreUnavailable):
