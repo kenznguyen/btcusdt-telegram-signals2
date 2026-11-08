@@ -80,3 +80,19 @@ No runtime or T0 runtime changes. No artifact was produced by runs 198 or 200; a
 - Verdict: source regression test + push CI + PR CI **PASS** for exact source SHA `ed126fa8...`; artifact metadata recorded. Previous run #202's format failure is superseded by the rustfmt correction and green runs #203/#204.
 - Limitations remain: no Binance/VPS runtime or real filesystem fault injection against deployed process; this is deterministic offline test coverage. No T0 runtime/database/Feeder, live execution, PR merge, or PR draft-state change.
 - Next: documentation/evidence closeout only, then continue with the next scoped T1 offline review item. Do not deploy/run collector or merge PR without explicit authorization.
+
+
+## 2026-11-08 — T1 Linux artifact payload independent verification
+
+- T1 source repo/branch: `kenznguyen/binance-futures-collector` / `feature/t1-connection-sidecar-integration-20261107`; PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Artifact downloaded from GitHub Actions run #203, artifact ID `13605356026`, exact name `t1-collector-linux-x86_64-ed126fa8ecae61d70939336d51ffd4bf86acc102`.
+- Downloaded ZIP size: 4,186,964 bytes; matches GitHub artifact metadata.
+- Independently computed ZIP SHA-256: `5ddee4e79c43baead94f2a01f8069e56abff090e9796903f892c9a7eb5b0eff8`; exact match with GitHub artifact metadata digest.
+- Archive contents: `binance-futures-collector` (9,978,328 bytes) and `SHA256SUMS` (92 bytes); no unexpected files.
+- Embedded checksum verification: `sha256sum -c SHA256SUMS` PASS; binary SHA-256 `c526d422cad2244f8041283377d5240f709f16df72502af2f508cc44a4c6b9e3`.
+- Static ELF inspection: ELF64, little-endian, x86-64, position-independent executable; GNU/Linux interpreter `/lib64/ld-linux-x86-64.so.2`; dynamically linked against `libgcc_s.so.1`, `libm.so.6`, and `libc.so.6`.
+- Static strings identify `binance-futures-collector 1.0.0` and its documented `--version|--help` usage. Binary was NOT executed.
+- Provenance: run #203 Collector job logs had already established checkout of exact source SHA `ed126fa8ecae61d70939336d51ffd4bf86acc102`; the binary itself does not expose a verifiable embedded Git SHA. Therefore source association relies on the exact workflow checkout/build evidence plus artifact identity, not an embedded commit marker.
+- Verdict: artifact download/size/SHA-256 and internal binary checksum **PASS**; archive structure **PASS**; ELF architecture **PASS**. Runtime behavior, dynamic-library availability on target host, and execution remain **NOT VERIFIED / NOT RUN**.
+- No collector execution, Binance connection, VPS deployment, T0 action, live order, PR merge, or PR draft-state change.
+- Next: continue bounded offline/source review on the same T1 PR branch. Do not execute or deploy the binary without separate explicit authorization.
