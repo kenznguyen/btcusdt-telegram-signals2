@@ -136,3 +136,21 @@ This section records process orchestration evidence only. It does **not** change
 - Production Feeder/API units and VPS deployment remain **NOT AUTHORIZED**. No canonical database or real data was used. T2 runtime remains inactive; `ai_execution_enabled=false`.
 
 Keep this acceptance axis separate from PostgreSQL lifecycle tests: the systemd harness uses SQLite and deterministic adapters, while PostgreSQL provider/bootstrap, transaction, role, interruption, and pool tests require their own exact evidence.
+
+
+## 6. SQLite Feeder/API systemd integration proof boundary (2026-11-08)
+
+This is a separate runtime-integration acceptance track. It does not replace the PostgreSQL lifecycle/provider checks above and does not establish PostgreSQL deployment readiness.
+
+| ID | Acceptance | Evidence | Status / boundary |
+|---|---|---|---|
+| T0-SD-01 | Feeder `Type=notify` readiness only after lease, WAL Keeper, recovery and scheduler startup | `market_data/test_feeder_lifecycle.py`; T0 Single Writer Gateway run `42486755480`, source SHA `2484cc73edc155b2566b9d73199ad713e04acb10` | **PASS — disposable CI unit/lifecycle tests** |
+| T0-SD-02 | API waits for Feeder READY; authenticated candle read works; unauthenticated request is rejected | Integration run `42488635517`, source SHA `9dd05c22046e5f34e547871f47b7dfb729a7efa1` | **PASS — synthetic SQLite / transient systemd** |
+| T0-SD-03 | API cannot create files in data directory or execute SQLite candle mutation | Integration run `42488635517`; both API instances emitted `API_DATABASE_WRITE_DENIED` and `API_SQLITE_MUTATION_DENIED` | **PASS — synthetic read-only mount** |
+| T0-SD-04 | Feeder SIGKILL propagates to dependent API; restart obtains a new lease generation | Integration run `42488635517`; generation 1 then generation 2 | **PASS — disposable GitHub runner only** |
+| T0-SD-05 | Orderly stop terminates API before Feeder graceful drain | Integration run `42488635517`; timestamped `API_SIGTERM` precedes `FEEDER_SIGTERM` | **PASS — disposable GitHub runner only** |
+| T0-SD-06 | Actual VPS kernel/systemd/filesystem and production identities/unit files match the tested behavior | No production service or VPS test authorized | **NOT VERIFIED / BLOCKED** |
+
+Integration source: `ci/t0_systemd_feeder_api_integration.py`; workflow: `.github/workflows/t0-systemd-feeder-api-integration.yml`; test plan and evidence: `docs/evidence/t0/T0_SYSTEMD_FEEDER_API_INTEGRATION_TEST_PLAN_2026-11-08.md`. Artifact ID `13620273926`, digest `sha256:f46daaad5aea0525a60b66f20d4bd74df3feaa71b9a2e7a749a11be99e42d636`.
+
+**Acceptance boundary:** PASS means only the tested transient units and synthetic SQLite/API/Feeder composition worked on the GitHub Actions runner. It is not a PostgreSQL result, VPS certification, production unit approval, or permission to deploy. Keep API deployment and T2 runtime activation blocked pending separate VPS compatibility and operational approval.
