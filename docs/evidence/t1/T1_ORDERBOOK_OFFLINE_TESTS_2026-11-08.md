@@ -41,8 +41,11 @@ Existing workflow: `.github/workflows/ci.yml`, GitHub Actions, workflow name `CI
 
 - Source change committed: PASS.
 - Rust formatting on initial run: BLOCKED by formatting-only differences; correction committed.
-- Focused Order Book tests: NOT VERIFIED pending follow-up CI.
-- Full Collector build/Clippy/tests: NOT VERIFIED pending follow-up CI.
-- Overall offline Order Book assurance: NOT VERIFIED.
+- Source change and first full CI validation at SHA `684ea8...`: PASS.
+- All three Order Book tests at merge SHA `a3b2234...`: PASS (included in 43 passing library tests).
+- Full Collector format/Clippy/release build/tests and all five CI jobs at run 198: PASS.
+- Raw-tape persistence and real reconnect resnapshot/recovery: NOT VERIFIED by these offline unit tests.
+- Latest source SHA `3c2745...` has a test-name/claim precision refinement; run 200 is pending, so latest-head CI: NOT VERIFIED.
+- Overall offline Order Book assurance: PASS for the three explicitly tested deterministic behaviors at SHA `684ea8...`; latest refinement still awaiting CI.
 
 No runtime or T0 changes. No artifact can be claimed from the failed first run. The follow-up run is required before promoting any test result.
