@@ -89,3 +89,16 @@ Do not change storage precision semantics, create a PostgreSQL migration, run Da
 - Changed file: `market_data/api.py`; blob SHA `81733c9b6de811cbebb2f5d472d41f37f337990c`.
 - The helper now computes `floor(generatedAtMs / interval) * interval - interval` directly. Candle selection, `asOfMs` filtering, store, DB, and runtime are unchanged.
 - Fix status: **IMPLEMENTED / NOT VERIFIED**. Required next check: `python3 -m unittest market_data.test_api -v` at exact SHA `e317b7dc02363db0600737a89442dd918559af3c`. No GREEN claim until user-provided test output and relevant CI evidence are reviewed.
+
+
+## 2026-11-08 — Focused API tests GREEN on freshness fix SHA
+
+- User-provided Termux verification checked out exact source SHA `e317b7dc02363db0600737a89442dd918559af3c`; detached worktree status was clean (`## HEAD (no branch)`).
+- Command: `python3 -m unittest market_data.test_api -v`.
+- Result: **13 tests, 13 PASS, 0 failures, 0 errors**, runtime 0.268s.
+- The previously failing empty historical/as-of freshness case now passes, as do explicit contract identity/version, freshness timing, candle provenance, auth/read-only behavior, gaps, and storage compatibility tests in this focused module.
+- Exact source tested: `e317b7dc02363db0600737a89442dd918559af3c`; `market_data/api.py` blob `81733c9b6de811cbebb2f5d472d41f37f337990c`.
+- Focused test verdict: **PASS**. Overall API Contract v1 release verdict remains **NOT VERIFIED** pending broader relevant regression suite and CI evidence.
+- GitHub combined status for this SHA returned no status entries; commit workflow-run lookup returned no runs. Therefore no exact-head Actions run/job/log/artifact is available to cite and CI is **NOT VERIFIED**.
+- Next: run repository-wide or documented relevant regression suite on a clean checkout of this exact source SHA; record the exact command, output, and SHA. Do not infer full-suite PASS from the focused module.
+- Runtime restrictions unchanged: no T2 HTTP/FreqAI migration, DB/Feeder/VPS/runtime, Data Quality Gate, consumer activation, deployment, or live execution. Keep `ai_execution_enabled=false`.
