@@ -6244,3 +6244,47 @@ The manifest is not signed; SHA-256 alone does not authenticate its producer. No
 - Preserve >=2G free. Do not extend duration or enable unattended service without reviewing measured BTCUSDT growth and shutdown evidence.
 - No T0 modification, no API key, no proxy/VPN, no Dashboard, no PR merge or Draft → Ready transition, and no live trading.
 - T1 source remains `d8ac9fc820dcf2e912e66518a1a1c73a8fa81ac7`; CI run `42424240328` SUCCESS 5/5; artifact ID `13594961114`. This runtime preflight does not change source or CI provenance.
+
+## 2026-11-08 — T1 Order Book CSV audit and exact-source review
+
+### Latest documentation commits on this branch
+
+- T1 runtime CSV/order-book sequence audit: commit `842d12c9a3bf0cc63e40a428b9ed7b39a13f8598`.
+- Exact-source Order Book implementation review: commit `2b5596c68d181cc0e1685cb92bbbb08e397b38d4`.
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- No source code or workflow was changed; no new GitHub Actions run or artifact was generated for these documentation-only increments.
+
+### T1 source review identity
+
+- Repository: `kenznguyen/binance-futures-collector`.
+- Exact deployed source SHA: `d8ac9fc820dcf2e912e66518a1a1c73a8fa81ac7`.
+- Reviewed:
+  - `src/collectors/orderbook_manager.rs`, blob `d18d047c1f7cdddd03cea60b02de54b656ad4edf`.
+  - `src/websocket/message_handler.rs`, blob `7d7f221fbf4b31470049baea55584645352f61b7`.
+  - `src/websocket/connection_manager.rs`, blob `1a219cabaf88c3e71c0fa4419ba2b3b77bc0dfce`.
+  - `docs/ORDERBOOK.md`, blob `d3e8f446258675cc5fb92751db220c9ae19a7b69`.
+
+### Findings / status
+
+- Initial synchronization: source opens/buffers WebSocket before REST snapshot; bridge selection skips diffs covered by snapshot and supports direct-continuity and pu-based attach; subsequent attach diffs check `pu == previous u`. **PASS — source review.**
+- Update application: zero quantity deletes a level, nonzero quantity replaces it, and book update ID advances. **PASS — source review.**
+- Existing unit tests cover bridge rules, covered diffs, unbridgeable snapshot, sorting/deduplication, update/delete, parse failure and depth trimming. Test existence was inspected; no tests were rerun in this documentation-only increment.
+- The VPS CSV audit showed 595 depth events, no invalid U/u ranges, no adjacent pu mismatch, and a first eligible event bridging the initial snapshot ID. Long/Short Ratio timestamps are ordered within each of the three ratio_type groups. **PASS — bounded CSV-level evidence.**
+- The collector deliberately does not enforce `pu == in_memory_book.last_update_id` or resnapshot immediately in the live loop after reconnect. This avoids batch-wide REST resnapshot storms. The raw tape can expose a pu break; active price levels may self-correct on later absolute updates, but quiet levels changed during outage can remain stale. **Live in-memory continuity across reconnect is NOT GUARANTEED BY DESIGN.**
+- Actual in-memory book independently reconciled against snapshot + diffs: **NOT VERIFIED**.
+- Full async snapshot-to-LIVE integration and forced reconnect/missing-diff behavior: **NOT VERIFIED**.
+- The five-minute runtime had `total_reconnects=0`; it provides no forced-outage evidence.
+
+### Current T1 evidence verdict
+
+PASS is limited to the 300-second supervised BTCUSDT capture, CSV parsing/sequence checks, initial snapshot bridge condition in the recorded tape, source-level initial bridge implementation, and graceful SIGTERM flush. Do not promote this to production certification, reconnect recovery certification, or continuous live Order Book integrity.
+
+- Source CI run: `42424240328`, SUCCESS 5/5.
+- Artifact ID: `13594961114`.
+- No new CI run/artifact for CSV audit or source review.
+- No T1 runtime restart, forced disconnect, longer capture, code change, or configuration change was performed.
+- T0 runtime/database were not touched by these review/documentation steps.
+
+### Next permitted step
+
+Documentation-only closeout is complete for this increment. If further assurance is required, first authorize a bounded offline/integration test scope covering: (1) snapshot + buffered diffs versus an independently reconstructed expected book; (2) a missing diff during initial attach; and (3) deliberate reconnect pu-break behavior, asserting the documented raw-tape/live-book trade-off. Do not launch T1, alter code, or modify T0 without explicit approval.
