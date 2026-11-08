@@ -75,7 +75,7 @@ def _valid_identity(value):
     return isinstance(value, str) and bool(value.strip()) and len(value) <= 256
 
 
-def _validate_prediction_rows(predictions, manifest):
+def _validate_prediction_rows(predictions, manifest, dataset_coverage=None):
     """Validate row-level prediction timestamps and model/dataset identity."""
     if not isinstance(predictions, bytes) or not predictions:
         return ("PREDICTIONS_EMPTY",)
@@ -128,6 +128,15 @@ def _validate_prediction_rows(predictions, manifest):
         if (type(outcome_ms) is not int or type(prediction_ms) is not int
                 or outcome_ms <= prediction_ms or outcome_ms > end_ms):
             reasons.append("OUTCOME_TIMESTAMP_INVALID")
+        elif dataset_coverage is not None:
+            m15_start, m15_end = dataset_coverage["15m"]
+            if not m15_start <= outcome_ms <= m15_end:
+                reasons.append("OUTCOME_OUTSIDE_M15_DATASET_COVERAGE")
+
+        if (type(prediction_ms) is int and dataset_coverage is not None
+                and not all(start <= prediction_ms <= end
+                            for start, end in dataset_coverage.values())):
+            reasons.append("PREDICTION_OUTSIDE_DATASET_COVERAGE")
 
         if row.get("model_version") != expected_model:
             reasons.append("PREDICTION_MODEL_VERSION_MISMATCH")
@@ -147,6 +156,99 @@ def _validate_prediction_rows(predictions, manifest):
             reasons.append("PREDICTION_ROW_INVALID")
 
     return tuple(sorted(set(reasons)))
+
+
+
+_DATASET_BUNDLE_REQUIRED_KEYS = {
+    "schema_version", "format", "source", "exchange", "marketType",
+    "symbol", "snapshots", "datasetVersion",
+}
+_DATASET_BUNDLE_FORMAT = "T0_M15_H1_DATASET_BUNDLE_V1"
+_DATASET_BUNDLE_SOURCE = "T0_CANONICAL_BINANCE_USDT_PERPETUAL"
+_DATASET_TIMEFRAMES = ("15m", "1h")
+
+
+def _validate_dataset_bundle(dataset_bytes, manifest):
+    """Verify a signed M15+H1 bundle by reusing the canonical T0 snapshot contract."""
+    if not isinstance(dataset_bytes, bytes) or not dataset_bytes:
+        return ("DATASET_BUNDLE_INVALID",), None
+    try:
+        bundle = json.loads(
+            dataset_bytes.decode("utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_constant=lambda _value: (_ for _ in ()).throw(ValueError("non-finite JSON")),
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):
+        return ("DATASET_BUNDLE_INVALID",), None
+
+    if not isinstance(bundle, Mapping) or set(bundle) != _DATASET_BUNDLE_REQUIRED_KEYS:
+        return ("DATASET_BUNDLE_SCHEMA_INVALID",), None
+    if (type(bundle.get("schema_version")) is not int
+            or bundle["schema_version"] != 1
+            or bundle.get("format") != _DATASET_BUNDLE_FORMAT
+            or bundle.get("source") != _DATASET_BUNDLE_SOURCE
+            or bundle.get("exchange") != "binance"
+            or bundle.get("marketType") != "USDT_PERPETUAL"
+            or bundle.get("symbol") != "BTCUSDT"):
+        return ("DATASET_BUNDLE_IDENTITY_INVALID",), None
+
+    snapshots = bundle.get("snapshots")
+    if not isinstance(snapshots, Mapping) or set(snapshots) != set(_DATASET_TIMEFRAMES):
+        return ("DATASET_BUNDLE_SCHEMA_INVALID",), None
+
+    try:
+        from quant_system.t0_freqtrade_adapter import (
+            T0FreqtradeAdapterError,
+            _validate_snapshot,
+        )
+    except ImportError:
+        return ("DATASET_VALIDATOR_UNAVAILABLE",), None
+
+    reasons = []
+    coverage = {}
+    snapshot_versions = {}
+    for timeframe in _DATASET_TIMEFRAMES:
+        snapshot = snapshots.get(timeframe)
+        if not isinstance(snapshot, Mapping) or snapshot.get("timeframe") != timeframe:
+            reasons.append(f"DATASET_SNAPSHOT_INVALID:{timeframe}")
+            continue
+        if (snapshot.get("exchange") != bundle["exchange"]
+                or snapshot.get("marketType") != bundle["marketType"]
+                or snapshot.get("symbol") != bundle["symbol"]):
+            reasons.append(f"DATASET_SNAPSHOT_INVALID:{timeframe}")
+            continue
+        try:
+            _rows, metadata = _validate_snapshot(snapshot)
+        except (T0FreqtradeAdapterError, KeyError, TypeError, ValueError):
+            reasons.append(f"DATASET_SNAPSHOT_INVALID:{timeframe}")
+            continue
+        coverage[timeframe] = (metadata["start_ms"], metadata["end_ms"])
+        snapshot_versions[timeframe] = snapshot["datasetVersion"]
+
+    aggregate_identity = {
+        "schema_version": 1,
+        "format": _DATASET_BUNDLE_FORMAT,
+        "source": _DATASET_BUNDLE_SOURCE,
+        "exchange": "binance",
+        "marketType": "USDT_PERPETUAL",
+        "symbol": "BTCUSDT",
+        "snapshotVersions": snapshot_versions,
+    }
+    try:
+        aggregate_digest = "sha256:" + hashlib.sha256(
+            _canonical_json(aggregate_identity)
+        ).hexdigest()
+    except (TypeError, ValueError):
+        reasons.append("DATASET_BUNDLE_VERSION_MISMATCH")
+    else:
+        if bundle.get("datasetVersion") != aggregate_digest:
+            reasons.append("DATASET_BUNDLE_VERSION_MISMATCH")
+    if bundle.get("datasetVersion") != manifest.get("dataset_version"):
+        reasons.append("DATASET_MANIFEST_VERSION_MISMATCH")
+
+    if reasons or set(coverage) != set(_DATASET_TIMEFRAMES):
+        return tuple(sorted(set(reasons))), None
+    return (), coverage
 
 
 def _validate_calibration_report(predictions, report_bytes, manifest):
@@ -363,9 +465,18 @@ def verify_signed_provenance(envelope, artifacts, trusted_public_keys, *, now_ms
                     continue
                 verified.append(role)
 
+    dataset_coverage = None
+    if isinstance(artifacts, Mapping) and "dataset" in artifacts:
+        dataset_reasons, dataset_coverage = _validate_dataset_bundle(
+            artifacts["dataset"], manifest
+        )
+        reasons.extend(dataset_reasons)
+
     if isinstance(artifacts, Mapping) and "predictions" in artifacts:
         prediction_data = artifacts["predictions"]
-        reasons.extend(_validate_prediction_rows(prediction_data, manifest))
+        reasons.extend(_validate_prediction_rows(
+            prediction_data, manifest, dataset_coverage
+        ))
         if "calibration_report" in artifacts:
             reasons.extend(_validate_calibration_report(
                 prediction_data, artifacts["calibration_report"], manifest
