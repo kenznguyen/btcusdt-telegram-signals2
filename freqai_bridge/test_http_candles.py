@@ -172,7 +172,7 @@ class T2HttpConsumerRedTest(unittest.TestCase):
 
     def test_missing_or_invalid_freshness_threshold_fails_closed(self):
         _, Config, Error = self._adapter()
-        for value in (None, 0, -1, True, "120000"):
+        for value in (None, 0, -1, 120_001, True, "120000"):
             with self.subTest(value=value), self.assertRaises((Error, TypeError)):
                 Config(base_url="https://t0.example.invalid", token="secret", max_lag_ms=value)
 
@@ -351,6 +351,78 @@ class T2HttpConsumerRedTest(unittest.TestCase):
         with self.assertRaises(Error) as caught:
             self._fetch(client)
         self.assertNotIn("test-secret-token", str(caught.exception))
+
+    def test_missing_or_null_freshness_is_rejected(self):
+        _, _, Error = self._adapter()
+        for freshness in (None, {}, response_envelope()["freshness"] | {"latestAvailableAtMs": None}):
+            client, _ = self._client(envelope=response_envelope(freshness=freshness))
+            with self.subTest(freshness=freshness), self.assertRaises(Error):
+                self._fetch(client)
+
+    def test_freshness_age_and_close_lag_must_match_server_timestamps(self):
+        _, _, Error = self._adapter()
+        base = response_envelope()["freshness"]
+        for change in ({"observationAgeMs": base["observationAgeMs"] + 1},
+                       {"closeLagMs": base["closeLagMs"] + 1}):
+            client, _ = self._client(envelope=response_envelope(freshness=base | change))
+            with self.subTest(change=change), self.assertRaises(Error):
+                self._fetch(client)
+
+    def test_freshness_evaluable_false_is_rejected(self):
+        _, _, Error = self._adapter()
+        freshness = response_envelope()["freshness"] | {"evaluable": False}
+        client, _ = self._client(envelope=response_envelope(freshness=freshness))
+        with self.assertRaises(Error):
+            self._fetch(client)
+
+    def test_generated_at_or_as_of_future_of_client_clock_is_rejected(self):
+        _, _, Error = self._adapter()
+        future = GENERATED + 1
+        client, _ = self._client(envelope=response_envelope(generatedAtMs=future), clock_ms=GENERATED)
+        with self.assertRaises(Error):
+            self._fetch(client)
+        client, _ = self._client(clock_ms=GENERATED)
+        with self.assertRaises(Error):
+            self._fetch(client, as_of_ms=future)
+
+    def test_duplicate_json_keys_are_rejected(self):
+        _, _, Error = self._adapter()
+        raw = json.dumps(response_envelope(), separators=(",", ":"))
+        raw = raw.replace('"symbol":"BTCUSDT"', '"symbol":"BTCUSDT","symbol":"ETHUSDT"', 1)
+        client, _ = self._client(responses=[FakeResponse(body=raw.encode())])
+        with self.assertRaises(Error):
+            self._fetch(client)
+
+    def test_tls_certificate_failure_is_not_retried(self):
+        import requests
+        _, _, Error = self._adapter()
+        client, session = self._client(responses=[requests.exceptions.SSLError("certificate verify failed")])
+        with self.assertRaises(Error):
+            self._fetch(client)
+        self.assertEqual(len(session.calls), 1)
+
+    def test_redirect_response_is_not_followed_or_retried(self):
+        _, _, Error = self._adapter()
+        client, session = self._client(responses=[FakeResponse(status=302, payload={"location": "https://other.invalid"})])
+        with self.assertRaises(Error):
+            self._fetch(client)
+        self.assertEqual(len(session.calls), 1)
+        self.assertFalse(session.calls[0][1]["allow_redirects"])
+
+    def test_declared_content_length_over_cap_is_rejected(self):
+        _, _, Error = self._adapter()
+        response = FakeResponse(payload=response_envelope())
+        response.headers["Content-Length"] = str(256 * 1024 + 1)
+        client, _ = self._client(responses=[response])
+        with self.assertRaises(Error):
+            self._fetch(client)
+
+    def test_availability_before_candle_close_is_rejected(self):
+        _, _, Error = self._adapter()
+        candle = response_envelope()["candles"][0] | {"availableAtMs": END - 1}
+        client, _ = self._client(envelope=response_envelope(candles=[candle]))
+        with self.assertRaises(Error):
+            self._fetch(client)
 
     def test_native_order_signals_remain_disabled(self):
         source = (BRIDGE / "ChartProFreqaiResearch.py").read_text(encoding="utf-8")
