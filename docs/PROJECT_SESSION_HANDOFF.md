@@ -7129,3 +7129,17 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Numeric retention periods, data-class thresholds, archive mechanics, dataset/consumer contract, and deletion safety contract remain OPEN / DESIGN REQUIRED.
 - No source code, tests, workflow, database/schema, runtime configuration, VPS, Feeder, API process, exchange connection, market-data sync, archive, vacuum, or deletion was changed or activated. `ai_execution_enabled=false`; paper-only.
 - Next: inspect the active branch tip and continue documentation-only design on this same branch. Reconcile `docs/FIVE_LAYER_ARCHITECTURE.md`, `docs/FIVE_LAYER_PAPER_RUNBOOK.md`, `docs/architecture/T0_POSTGRESQL_ATOMIC_WRITER_P0_2026-11-05.md`, and keep PostgreSQL runtime lifecycle acceptance separate from dataset retention lifecycle. Do not implement lifecycle automation or delete real data without separate explicit approval.
+
+
+## 2026-11-08 — Shared Data Foundation documentation alignment
+
+- Continued on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch or PR was created.
+- Starting documentation baseline after ADR/handoff recording: ADR commit `1c101fb80efd2c9e71bd727a8abbe5ebb5dc1287`; handoff record commit `18fbbcac01f770a1f1ea685b32626991cb8c699d`.
+- Updated `docs/FIVE_LAYER_ARCHITECTURE.md` to replace the independent-T0-asset model with shared logical ownership, demand-based retention, and central lifecycle governance. Commit: `ee652291b88573a542ca3558d65f031d3d8f3b25`.
+- Updated `docs/FIVE_LAYER_PAPER_RUNBOOK.md` with consumer dependency, ACK, no-delete-after-read, and CORE_LEDGER/AI_LEDGER lifecycle boundaries. Commit: `bafdd2b8a7db0c7e132d9230b3bcabb026ca6fbd`.
+- Updated `docs/T0_POSTGRESQL_LIFECYCLE_ACCEPTANCE_MATRIX.md` to explicitly separate PostgreSQL/Feeder runtime lifecycle from system-wide dataset retention/deletion lifecycle. Existing runtime test evidence was not changed. Commit: `2a8109562baf98497734e33266577d69fb0acd0d`.
+- Updated `docs/architecture/T0_POSTGRESQL_ATOMIC_WRITER_P0_2026-11-05.md` to supersede the old independent-T0 ownership statement while preserving the narrow atomic-writer/fencing scope. Commit: `63be1dcd5542bf4f96deff33b24970e315dcb889`.
+- Verification: documentation changes were applied sequentially to the same existing branch using the prior blob SHA for each update. No code/test/workflow/runtime behavior was changed. Documentation tests/workflows: NOT RUN. No CI PASS is claimed.
+- Current scope status: architecture decision and cross-document alignment recorded; detailed dataset registry/consumer contract, numeric retention policy, archive policy, deletion safety contract, and retention test plan remain DESIGN REQUIRED.
+- No source code, tests, workflow, database/schema, runtime configuration, VPS, Feeder/API process, exchange connection, market-data sync, archive, vacuum, or deletion was changed or activated. `ai_execution_enabled=false`; paper-only.
+- Next: design `SHARED_DATA_FOUNDATION.md` and `CENTRAL_DATA_LIFECYCLE_POLICY.md` on this same branch. Keep deletion implementation and all real-data destructive operations unauthorized until separate review and explicit approval.
