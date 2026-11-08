@@ -98,6 +98,15 @@ Unknown identity, lineage, completeness, consistency, or ownership is a blocking
 - A cache label or TTL does not itself authorize deletion.
 - A derived copy with independent consumer value, audit obligations, or non-reproducible information must be governed as a dataset, not assumed disposable.
 
+### 5.6 Hold inheritance across source and copies
+
+- A hold on a source dataset/version is a protective constraint for every known copy that contains, represents, or derives from the held scope.
+- A copy must not be treated as unheld merely because its copy record has no local hold entry. The source-hold relationship must be resolved during copy inventory and disposition review.
+- A hold may be excluded from a particular copy only when the authoritative hold owner or authorized governance reviewer explicitly establishes that the hold's scope does not apply to that copy, records the rationale and evidence, and binds the decision to the exact source and copy identities.
+- A copy may also carry an independent copy-specific hold even when no source hold applies.
+- Releasing a source hold removes only that hold constraint after an authenticated, auditable release. It does not itself authorize copy disposition; all other dependencies, holds, recovery obligations, and disposition gates still apply.
+- If lineage is incomplete, the source hold cannot be reliably mapped, or applicability is disputed, the copy remains protected and disposition is blocked.
+
 ### 5.5 Evidence copies
 
 - Evidence required to substantiate an acceptance, incident, financial reconstruction, or audit claim must be protected from deletion while that obligation remains active.
@@ -181,7 +190,7 @@ No destructive copy lifecycle operation is authorized by this design document.
 - Required copy classes and minimum inventory coverage for each layer T0–T4.
 - Authoritative copy registry and accountable custodian model.
 - Recovery-point selection, RPO/RTO, and restore-test requirements.
-- Whether and how backup chains, replicas, exports, and local copies inherit source holds.
+- Hold inheritance is protective by default under §5.6; any exception requires exact-scope, evidence-backed adjudication. Detailed hold taxonomy and jurisdiction-specific application remain open.
 - External export tracking and recipient attestation requirements.
 - Cryptographic key lifecycle and recoverability evidence.
 - Independent approval and execution-authority separation.
