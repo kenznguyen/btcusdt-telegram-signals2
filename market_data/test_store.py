@@ -1,4 +1,5 @@
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from pathlib import Path
@@ -102,18 +103,19 @@ class CandleStoreTest(unittest.TestCase):
     def test_read_only_uri_rejects_mutations_and_preserves_dataset(self):
         self.gateway.write_batch([self.candle()])
         uri = self.path.resolve().as_uri() + "?mode=ro"
-        with sqlite3.connect(uri, uri=True, timeout=5) as reader:
-            statements = [
-                ("INSERT INTO candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                 ("binance", "USDT_PERPETUAL", "BTCUSDT", "15m", self.step,
-                  "100", "102", "99", "101", "5", self.step * 2 + 100)),
-                ("UPDATE candles SET close='102' WHERE open_time_ms=0", ()),
-                ("DELETE FROM candles WHERE open_time_ms=0", ()),
-                ("CREATE TABLE forbidden_write (value INTEGER)", ()),
-            ]
-            for statement, parameters in statements:
-                with self.subTest(statement=statement), self.assertRaises(sqlite3.OperationalError):
-                    reader.execute(statement, parameters)
+        with closing(sqlite3.connect(uri, uri=True, timeout=5)) as reader:
+            with reader:
+                statements = [
+                    ("INSERT INTO candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                     ("binance", "USDT_PERPETUAL", "BTCUSDT", "15m", self.step,
+                      "100", "102", "99", "101", "5", self.step * 2 + 100)),
+                    ("UPDATE candles SET close='102' WHERE open_time_ms=0", ()),
+                    ("DELETE FROM candles WHERE open_time_ms=0", ()),
+                    ("CREATE TABLE forbidden_write (value INTEGER)", ()),
+                ]
+                for statement, parameters in statements:
+                    with self.subTest(statement=statement), self.assertRaises(sqlite3.OperationalError):
+                        reader.execute(statement, parameters)
 
         result = self.window(1)
         self.assertEqual(result["coverage"]["returned"], 1)

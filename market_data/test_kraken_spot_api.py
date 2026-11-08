@@ -3,6 +3,7 @@
 import json
 import os
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from pathlib import Path
@@ -141,20 +142,21 @@ class KrakenSpotApiTest(unittest.TestCase):
 
     def test_api_does_not_modify_either_database(self):
         spot_before = self.db.stat().st_mtime_ns
-        with sqlite3.connect(self.canonical) as connection:
-            connection.execute(
-                "CREATE TABLE candles (exchange TEXT, market_type TEXT, symbol TEXT)"
-            )
-            connection.execute(
-                "INSERT INTO candles VALUES ('binance', 'USDT_PERPETUAL', 'BTCUSDT')"
-            )
+        with closing(sqlite3.connect(self.canonical)) as connection:
+            with connection:
+                connection.execute(
+                    "CREATE TABLE candles (exchange TEXT, market_type TEXT, symbol TEXT)"
+                )
+                connection.execute(
+                    "INSERT INTO candles VALUES ('binance', 'USDT_PERPETUAL', 'BTCUSDT')"
+                )
         canonical_before = self.canonical.stat().st_mtime_ns
 
         self.assertEqual(self.request()[0], 200)
 
         self.assertEqual(self.db.stat().st_mtime_ns, spot_before)
         self.assertEqual(self.canonical.stat().st_mtime_ns, canonical_before)
-        with sqlite3.connect(self.canonical) as connection:
+        with closing(sqlite3.connect(self.canonical)) as connection:
             self.assertEqual(
                 connection.execute("SELECT * FROM candles").fetchall(),
                 [("binance", "USDT_PERPETUAL", "BTCUSDT")],

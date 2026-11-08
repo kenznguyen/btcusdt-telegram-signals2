@@ -1,4 +1,5 @@
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from pathlib import Path
@@ -19,14 +20,15 @@ class CanonicalDatabaseInitializationTest(unittest.TestCase):
             self.assertEqual(report["created"], True)
             self.assertEqual(report["candles"], 0)
             self.assertEqual(report["leases"], 0)
-            with sqlite3.connect(path) as database:
-                tables = {row[0] for row in database.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table'"
-                )}
-                self.assertEqual(tables, {"candles", "feeder_leases"})
-                self.assertEqual(database.execute("PRAGMA integrity_check").fetchone()[0], "ok")
-                self.assertEqual(database.execute("SELECT COUNT(*) FROM candles").fetchone()[0], 0)
-                self.assertEqual(database.execute("SELECT COUNT(*) FROM feeder_leases").fetchone()[0], 0)
+            with closing(sqlite3.connect(path)) as database:
+                with database:
+                    tables = {row[0] for row in database.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table'"
+                    )}
+                    self.assertEqual(tables, {"candles", "feeder_leases"})
+                    self.assertEqual(database.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+                    self.assertEqual(database.execute("SELECT COUNT(*) FROM candles").fetchone()[0], 0)
+                    self.assertEqual(database.execute("SELECT COUNT(*) FROM feeder_leases").fetchone()[0], 0)
             result = read_window(path, "BTCUSDT", "15m", 0, INTERVAL_MS["15m"])
             self.assertFalse(result["coverage"]["complete"])
             self.assertEqual(result["coverage"]["returned"], 0)

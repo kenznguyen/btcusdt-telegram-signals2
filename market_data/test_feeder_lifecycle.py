@@ -1019,6 +1019,10 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     runtime.start(now_ms=aligned_now)
 
+            self.assertFalse(
+                runtime.wal_keeper.is_open,
+                "WAL keeper must close after lease loss during startup",
+            )
             self.assertEqual(len(recovery_pages), 1)
             self.assertEqual(len(exchange_calls), 1)
             self.assertEqual(runtime.state, "LEASE_LOST")
@@ -1060,6 +1064,99 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
             self.assertNotEqual(health.state, "HEALTHY")
             self.assertIsNone(runtime.scheduler._thread)
 
+
+
+    def test_startup_lease_loss_always_closes_wal_keeper_when_cleanup_callback_fails(self):
+        from types import SimpleNamespace
+        from market_data.feeder import FeederRuntime
+
+        for failure_point in (
+            "scheduler",
+            "health",
+            "event_sink",
+            "wal_keeper_close",
+        ):
+            with self.subTest(failure_point=failure_point):
+                class Scheduler:
+                    def __init__(self):
+                        self.stop_calls = 0
+
+                    def run_due(self):
+                        return {}
+
+                    def stop(self):
+                        self.stop_calls += 1
+                        if failure_point == "scheduler" and self.stop_calls == 2:
+                            raise ValueError("scheduler stop failure")
+
+                    def wait_for_idle(self):
+                        return True
+
+                class LeaseStore:
+                    def acquire(self, *args, **kwargs):
+                        return SimpleNamespace(generation=7)
+
+                    def release(self, *args):
+                        return False
+
+                class Recovery:
+                    def recover_all(self):
+                        raise ValueError("startup recovery failure")
+
+                class Health:
+                    def mark_not_ready(self):
+                        if failure_point == "health":
+                            raise ValueError("health callback failure")
+
+                class WalKeeper:
+                    def __init__(self):
+                        self.is_open = False
+
+                    def open(self):
+                        self.is_open = True
+
+                    def close(self):
+                        if failure_point == "wal_keeper_close":
+                            raise ValueError("WAL keeper close failure")
+                        self.is_open = False
+
+                scheduler = Scheduler()
+                keeper = WalKeeper()
+
+                def event_sink(event):
+                    if failure_point == "event_sink" and event == "lease_lost":
+                        raise ValueError("event sink failure")
+
+                runtime = FeederRuntime(
+                    config=FeederConfig(timeframes=("15m",)),
+                    scheduler=scheduler,
+                    lease_store=LeaseStore(),
+                    owner_id="cleanup-test-owner",
+                    recovery=Recovery(),
+                    health=Health(),
+                    event_sink=event_sink,
+                    clock=lambda: NOW,
+                    wal_keeper=keeper,
+                )
+
+                with self.assertRaisesRegex(
+                    RuntimeError, "could not release its lease generation"
+                ) as caught:
+                    runtime.start(now_ms=NOW)
+
+                if failure_point == "wal_keeper_close":
+                    self.assertIsInstance(caught.exception.__cause__, ValueError)
+                    self.assertEqual(
+                        str(caught.exception.__cause__),
+                        "WAL keeper close failure",
+                    )
+                else:
+                    self.assertFalse(
+                        keeper.is_open,
+                        f"WAL keeper remained open after {failure_point} failure",
+                    )
+
+                self.assertEqual(runtime.state, "LEASE_LOST")
 
 class RuntimeDatabaseProvisioningBoundaryTest(unittest.TestCase):
     def test_build_runtime_does_not_create_a_missing_canonical_sqlite_database(self):

@@ -26,11 +26,14 @@ def seed_candles(db_path, candles):
             candle.volume,
             candle.available_at_ms,
         ))
-    with sqlite3.connect(db_path) as database:
-        database.executemany(
-            """INSERT INTO candles (
-                exchange, market_type, symbol, timeframe, open_time_ms,
-                open, high, low, close, volume, available_at_ms
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            rows,
-        )
+    from contextlib import closing
+
+    with closing(sqlite3.connect(db_path)) as database:
+        with database:
+            database.executemany(
+                """INSERT INTO candles (
+                    exchange, market_type, symbol, timeframe, open_time_ms,
+                    open, high, low, close, volume, available_at_ms
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                rows,
+            )

@@ -852,11 +852,25 @@ class FeederRuntime:
                 raise
             try:
                 self._release_startup_lease()
-            except RuntimeError:
-                # The exact generation could no longer be released. This
-                # means ownership changed while startup was failing; never
-                # report a generic startup failure or touch the replacement.
-                self.on_lease_lost()
+            except RuntimeError as lease_error:
+                # Ownership changed while startup was failing. Never release
+                # or mutate the replacement lease. The scheduler has already
+                # drained, so close only this runtime's WAL keeper.
+                cleanup_error = None
+                try:
+                    self.on_lease_lost()
+                except Exception as error:
+                    cleanup_error = error
+
+                try:
+                    self._close_wal_keeper()
+                except Exception as close_error:
+                    if cleanup_error is not None:
+                        close_error.__cause__ = cleanup_error
+                    raise lease_error from close_error
+
+                if cleanup_error is not None:
+                    raise lease_error from cleanup_error
                 raise
             try:
                 self._close_wal_keeper()

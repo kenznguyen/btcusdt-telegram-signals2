@@ -1,6 +1,7 @@
 import json
 import os
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from pathlib import Path
@@ -99,8 +100,9 @@ class CandleApiTest(unittest.TestCase):
         self.assertEqual(body, {"ok": True, "service": "canonical-market-data"})
 
     def test_corrupt_stored_prices_are_not_served_as_validated(self):
-        with sqlite3.connect(self.db) as connection:
-            connection.execute("UPDATE candles SET high='0'")
+        with closing(sqlite3.connect(self.db)) as connection:
+            with connection:
+                connection.execute("UPDATE candles SET high='0'")
         code, body = self.request()
         self.assertEqual(code, 503)
         self.assertEqual(body, {"error": "STORE_UNAVAILABLE"})

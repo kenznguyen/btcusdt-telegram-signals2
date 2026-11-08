@@ -2,6 +2,7 @@
 
 import os
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from pathlib import Path
@@ -123,17 +124,18 @@ class KrakenSpotSQLiteStoreTest(unittest.TestCase):
                 KrakenSpotSQLiteStore(self.binance_path)
 
     def test_kraken_store_does_not_create_or_modify_binance_canonical_tables(self):
-        with sqlite3.connect(self.binance_path) as connection:
-            connection.execute(
-                "CREATE TABLE candles (exchange TEXT, market_type TEXT, symbol TEXT)"
-            )
-            connection.execute(
-                "INSERT INTO candles VALUES ('binance', 'USDT_PERPETUAL', 'BTCUSDT')"
-            )
+        with closing(sqlite3.connect(self.binance_path)) as connection:
+            with connection:
+                connection.execute(
+                    "CREATE TABLE candles (exchange TEXT, market_type TEXT, symbol TEXT)"
+                )
+                connection.execute(
+                    "INSERT INTO candles VALUES ('binance', 'USDT_PERPETUAL', 'BTCUSDT')"
+                )
 
         self.store.insert([candle(START)])
 
-        with sqlite3.connect(self.binance_path) as connection:
+        with closing(sqlite3.connect(self.binance_path)) as connection:
             rows = connection.execute("SELECT * FROM candles").fetchall()
             tables = connection.execute(
                 "SELECT name FROM sqlite_master WHERE type='table'"
@@ -173,22 +175,23 @@ class KrakenSpotSQLiteStoreTest(unittest.TestCase):
                     "malformed-null.sqlite3" if invalid_id is None
                     else "malformed-blank.sqlite3"
                 )
-                with sqlite3.connect(malformed_path) as connection:
-                    connection.execute(
-                        """CREATE TABLE kraken_spot_candles (
-                            exchange TEXT, market_type TEXT, native_market_id TEXT,
-                            symbol TEXT, timeframe TEXT, open_time_ms INTEGER,
-                            open TEXT, high TEXT, low TEXT, close TEXT,
-                            volume TEXT, available_at_ms INTEGER
-                        )"""
-                    )
-                    connection.execute(
-                        """INSERT INTO kraken_spot_candles VALUES (
-                            'kraken', 'SPOT', ?, 'BTC/USDT', '15m', ?,
-                            '100', '105', '99', '102', '1.5', ?
-                        )""",
-                        (invalid_id, START, START + STEP),
-                    )
+                with closing(sqlite3.connect(malformed_path)) as connection:
+                    with connection:
+                        connection.execute(
+                            """CREATE TABLE kraken_spot_candles (
+                                exchange TEXT, market_type TEXT, native_market_id TEXT,
+                                symbol TEXT, timeframe TEXT, open_time_ms INTEGER,
+                                open TEXT, high TEXT, low TEXT, close TEXT,
+                                volume TEXT, available_at_ms INTEGER
+                            )"""
+                        )
+                        connection.execute(
+                            """INSERT INTO kraken_spot_candles VALUES (
+                                'kraken', 'SPOT', ?, 'BTC/USDT', '15m', ?,
+                                '100', '105', '99', '102', '1.5', ?
+                            )""",
+                            (invalid_id, START, START + STEP),
+                        )
 
                 read_only_store = KrakenSpotSQLiteStore(
                     malformed_path,
@@ -201,27 +204,28 @@ class KrakenSpotSQLiteStoreTest(unittest.TestCase):
 
     def test_read_only_open_rejects_duplicate_candle_identities_without_unique_constraint(self):
         malformed_path = self.root / "malformed-duplicate-candles.sqlite3"
-        with sqlite3.connect(malformed_path) as connection:
-            connection.execute(
-                """CREATE TABLE kraken_spot_candles (
-                    exchange TEXT, market_type TEXT, native_market_id TEXT,
-                    symbol TEXT, timeframe TEXT, open_time_ms INTEGER,
-                    open TEXT, high TEXT, low TEXT, close TEXT,
-                    volume TEXT, available_at_ms INTEGER
-                )"""
-            )
-            row = (
-                "kraken", "SPOT", "XBTUSDT", "BTC/USDT", "15m",
-                START, "100", "105", "99", "102", "1.5", START + STEP,
-            )
-            connection.execute(
-                "INSERT INTO kraken_spot_candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                row,
-            )
-            connection.execute(
-                "INSERT INTO kraken_spot_candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                row,
-            )
+        with closing(sqlite3.connect(malformed_path)) as connection:
+            with connection:
+                connection.execute(
+                    """CREATE TABLE kraken_spot_candles (
+                        exchange TEXT, market_type TEXT, native_market_id TEXT,
+                        symbol TEXT, timeframe TEXT, open_time_ms INTEGER,
+                        open TEXT, high TEXT, low TEXT, close TEXT,
+                        volume TEXT, available_at_ms INTEGER
+                    )"""
+                )
+                row = (
+                    "kraken", "SPOT", "XBTUSDT", "BTC/USDT", "15m",
+                    START, "100", "105", "99", "102", "1.5", START + STEP,
+                )
+                connection.execute(
+                    "INSERT INTO kraken_spot_candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    row,
+                )
+                connection.execute(
+                    "INSERT INTO kraken_spot_candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    row,
+                )
 
         read_only_store = KrakenSpotSQLiteStore(
             malformed_path,

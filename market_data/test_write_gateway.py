@@ -141,10 +141,13 @@ os._exit(0)
                 clock=lambda: NOW,
             )
 
-        with sqlite3.connect(empty) as connection:
+        connection = sqlite3.connect(empty)
+        try:
             tables = connection.execute(
                 "SELECT name FROM sqlite_master WHERE type='table'"
             ).fetchall()
+        finally:
+            connection.close()
         self.assertEqual(tables, [])
 
     def test_gateway_rejects_missing_database_without_creating_it(self):
