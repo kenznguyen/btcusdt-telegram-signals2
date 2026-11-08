@@ -6489,3 +6489,12 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Status: **IMPLEMENTED / NOT VERIFIED**; do not mark API contract PASS or promote consumers.
 - Next: user runs `python3 -m unittest market_data.test_api -v` against exact SHA `d88e3ddda0502708e64c4815ecae08ed707f4641`; then run full relevant suite and record CI proof. Address only observed failures.
 - Limits: T2 HTTP client/FreqAI migration not included; no T0 DB/Feeder/VPS/runtime, exchange, Data Quality Gate, T1/T2 runtime, deployment, or live execution. Keep `ai_execution_enabled=false`.
+
+
+## 2026-11-08 — Freshness expected-candle calculation fix
+
+- User ran focused tests at `d88e3ddda0502708e64c4815ecae08ed707f4641`: 12 PASS / 1 FAIL out of 13. The single failure showed `latestExpectedOpenTimeMs` was wrongly capped by query `endMs` for an empty as-of window.
+- Root cause: the contract defines latest expected closed candle from `generatedAtMs` and timeframe boundary, not from requested range. Removed the query-window cap.
+- Fix commit / current source to verify: `e317b7dc02363db0600737a89442dd918559af3c`; file `market_data/api.py`; blob `81733c9b6de811cbebb2f5d472d41f37f337990c`.
+- Status: **IMPLEMENTED / NOT VERIFIED**. Next: run `python3 -m unittest market_data.test_api -v` at exact SHA `e317b7dc02363db0600737a89442dd918559af3c`; then full relevant suite and exact-head GitHub Actions proof.
+- Limits unchanged: no T2 HTTP/FreqAI migration, no DB/Feeder/VPS/runtime/Data Quality Gate, no consumer activation or live execution. Keep `ai_execution_enabled=false`.
