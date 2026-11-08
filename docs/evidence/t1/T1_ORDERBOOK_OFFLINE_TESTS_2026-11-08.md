@@ -65,3 +65,18 @@ No runtime or T0 runtime changes. No artifact was produced by runs 198 or 200; a
 - Verdict at handoff update: source change committed; regression test and full CI **NOT VERIFIED** pending run #202.
 - No VPS, Binance, T0 runtime/database, live execution, PR merge, or PR draft-state change.
 - Next: poll run #202; inspect Sidecar offline test output and exact checked-out SHA. If green, record exact CI evidence; if failed, diagnose only the demonstrated issue on the same branch.
+
+
+## 2026-11-08 — T1 Sidecar post-hard-link writer poison regression — CI closeout
+
+- T1 source repo/branch: `kenznguyen/binance-futures-collector` / `feature/t1-connection-sidecar-integration-20261107`; PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Exact source SHA: `ed126fa8ecae61d70939336d51ffd4bf86acc102`; changed file `crates/connection-sidecar/src/lib.rs`. This is the rustfmt-only correction to the regression-test commit `8892b72570d7c3f12c7d714aaeb37def63c56dcc`.
+- Push CI run #203: [42449616310](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42449616310), event `push`, conclusion SUCCESS, 5/5 jobs.
+- PR CI run #204: [42449619551](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42449619551), event `pull_request`, conclusion SUCCESS, 5/5 jobs. PR head `ed126fa8...`; base `bc4f0ef633fbeee4a49defd72827f17162693805`. Synthetic merge SHA not recorded in the fetched job summary; do not infer it.
+- Push Collector job checked out exact source SHA `ed126fa8ecae61d70939336d51ffd4bf86acc102`.
+- Push CI: Collector Format/Clippy/release Build/Test PASS; base Collector tests 43/43 library and 1/1 main. Sidecar writer format PASS; Sidecar Clippy PASS; Sidecar offline tests PASS: 9/9 in `connection_sidecar`, 27/27 in the additional sidecar test target. Regression test `create_cleanup_tests::post_hard_link_publication_failure_poisons_writer_and_preserves_manifest_consistency` explicitly PASS.
+- Dashboard frontend, Dashboard backend, Security audit, and Docker build all PASS. Overall push CI 5/5 PASS; PR CI 5/5 PASS.
+- Artifact: ID `13605356026`; name `t1-collector-linux-x86_64-ed126fa8ecae61d70939336d51ffd4bf86acc102`; size 4,186,964 bytes; SHA-256 `5ddee4e79c43baead94f2a01f8069e56abff090e9796903f892c9a7eb5b0eff8`; [download page](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42449616310/artifacts/13605356026); expires 2026-11-15. Artifact metadata is verified; payload bytes were not independently downloaded/rehashed.
+- Verdict: source regression test + push CI + PR CI **PASS** for exact source SHA `ed126fa8...`; artifact metadata recorded. Previous run #202's format failure is superseded by the rustfmt correction and green runs #203/#204.
+- Limitations remain: no Binance/VPS runtime or real filesystem fault injection against deployed process; this is deterministic offline test coverage. No T0 runtime/database/Feeder, live execution, PR merge, or PR draft-state change.
+- Next: documentation/evidence closeout only, then continue with the next scoped T1 offline review item. Do not deploy/run collector or merge PR without explicit authorization.
