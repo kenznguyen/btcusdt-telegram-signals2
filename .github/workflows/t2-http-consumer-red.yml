@@ -37,6 +37,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install HTTP test dependency
+        run: python -m pip install --disable-pip-version-check "requests>=2.32.0,<3"
+
       - name: Enforce isolated paper-only test environment
         shell: bash
         run: |
