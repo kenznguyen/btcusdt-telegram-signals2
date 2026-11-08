@@ -218,7 +218,7 @@ class CandleApiTest(unittest.TestCase):
         self.assertEqual(candle["availabilityKind"], "FIRST_OBSERVED")
         self.assertEqual(candle["quality"], "VALIDATED")
         self.assertEqual(candle["source"], "ccxt.binanceusdm")
-        self.assertEqual(candle["volume"], "2.50")
+        self.assertEqual(candle["volume"], "2.5")
 
 
 if __name__ == "__main__":
