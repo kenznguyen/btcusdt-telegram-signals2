@@ -6727,3 +6727,14 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Evidence report: docs/evidence/t2/T2_HTTP_CANDLE_CLIENT_GREEN_2026-11-08.md.
 - Plan updated with final exact-SHA results. The previous 133bc8b runs remain historical evidence; use the 6b55f6f runs as the final boundary-verified evidence.
 - Scope and restrictions unchanged: adapter only; no T2 strategy wiring/direct SQLite removal, no T0/VPS/Feeder/runtime changes; keep ai_execution_enabled=false.
+
+
+## 2026-11-08 — Same-SHA T0/T1 regression evidence for T2 HTTP client increment
+
+- Existing workflow run 42469402459, URL https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42469402459, checked out exact source SHA 6b55f6f02f7e2bcceb4b38a7944e9f9b42bbe64d.
+- All six jobs concluded SUCCESS: Rust T1 sidecar offline tests, paper consumer fixtures, static Gateway verification, disposable provider bootstrap, T1 importer offline tests, and isolated TimescaleDB read-only integration.
+- Static Gateway job 128696421966 ran the complete market_data test package: 280 tests; 42 skipped in that static job because the dedicated TimescaleDB DSN was not supplied; result OK.
+- Separate isolated TimescaleDB integration job 128696468092 concluded SUCCESS using disposable CI containers. No canonical T0 DB or VPS was used.
+- This provides regression evidence for T0/T1 code at the same source SHA, not a certification or activation of canonical T0 runtime. The full repository-wide unittest discovery suite was not run in this increment.
+- Artifacts from this workflow include Gateway 13613170916, provider bootstrap 13613190837, Timescale read-only 13612911518, paper consumers 13612946066, T1 importer 13613160296, and T1 Rust sidecar 13612966914. GitHub metadata digests are retained by the run; payload bytes were not independently downloaded and re-hashed here.
+- Evidence report: docs/evidence/t2/T2_HTTP_CANDLE_CLIENT_GREEN_2026-11-08.md.
