@@ -103,21 +103,17 @@ class AIDynamicLeveragePolicy:
             return "CALIBRATION_EXPIRED"
 
         try:
-            expected = (
-                _identity(model_version, "model_version"),
-                _identity(strategy_version, "strategy_version"),
-                _identity(dataset_version, "dataset_version"),
-                _identity(calibration.model_version, "calibration.model_version"),
-                _identity(calibration.strategy_version, "calibration.strategy_version"),
-            )
+            _identity(model_version, "model_version")
+            _identity(strategy_version, "strategy_version")
+            _identity(dataset_version, "dataset_version")
+            _identity(calibration.model_version, "calibration.model_version")
+            _identity(calibration.strategy_version, "calibration.strategy_version")
         except ValueError:
             return "CALIBRATION_PROVENANCE_INVALID"
-        if expected[:3] != expected[3:] + (dataset_version,):
-            # Keep the three source identities explicit and compare independently.
-            if (model_version != calibration.model_version
-                    or strategy_version != calibration.strategy_version
-                    or dataset_version != calibration.dataset_version):
-                return "CALIBRATION_PROVENANCE_MISMATCH"
+        if (model_version != calibration.model_version
+                or strategy_version != calibration.strategy_version
+                or dataset_version != calibration.dataset_version):
+            return "CALIBRATION_PROVENANCE_MISMATCH"
         return None
 
     def calculate(self, *, confidence, calibration, now_ms,
