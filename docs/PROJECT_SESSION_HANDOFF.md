@@ -7034,3 +7034,28 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Status: SQLite read-only mutation rejection **PASS**; concurrent WAL reader/writer **PASS**; disposable systemd `ReadOnlyPaths` isolation **PASS**; cold start without WAL/SHM **BLOCKED AS EXPECTED**; API read after writer readiness **PASS**; actual VPS/systemd compatibility **NOT VERIFIED**; Feeder service manager/readiness **NOT VERIFIED**; Gunicorn unit **NOT CREATED**; API deployment **BLOCKED**; T2 runtime **NOT ACTIVATED**; `ai_execution_enabled=false`.
 - No canonical database, Feeder process, VPS, systemd service, filesystem permission, secret, firewall, network, DNS, proxy, or T2 runtime was accessed or changed.
 - Next bounded step: inspect tracked Feeder startup/supervision code and existing deployment evidence to define a read-only readiness contract and establish whether a systemd unit exists. Do not create/install units or alter VPS state without separate approval.
+
+
+## 2026-11-08 — T0 actual SQLiteWriteGateway WAL sidecar lifecycle finding
+
+- Continued on existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch or PR.
+- Source inspection at the current branch found:
+  - `SQLiteWriteGateway.write_batch()` opens and closes its SQLite connection per batch.
+  - `LeaseStore` acquire/heartbeat/release operations also open and close independent connections.
+  - `FeederRuntime.start()` acquires the lease, runs recovery, starts the scheduler, then marks RUNNING/ready and starts heartbeat; `stop()` stops scheduler admission, drains work, stops heartbeat, releases lease. There is no persistent WAL-keeper lifecycle hook.
+  - Previous operator evidence did not establish a systemd Feeder unit; Feeder was observed in tmux.
+- Extended `ci/t0_sqlite_readonly_sandbox.py` to exercise actual `CandleStore`, `LeaseStore`, and `SQLiteWriteGateway`, then a candidate persistent WAL keeper.
+- Final probe commit / exact SHA: `e929cdbc072221121581be0e573be7641b4cb7f3`; script blob SHA `fff5976b59cbd4d783f303fd23f5c123967b86eb`.
+- GitHub Actions run `42483989133`: **SUCCESS**, job `Disposable SQLite WAL under systemd ReadOnlyPaths` ID `128741767394` **PASS**.
+- Results:
+  - After actual `SQLiteWriteGateway.write_batch()` closes: WAL and SHM both absent.
+  - After actual-style `LeaseStore.heartbeat()` closes: WAL and SHM both absent.
+  - Sandboxed read-only API is blocked in this gap, as expected.
+  - Candidate long-lived WAL-mode connection plus SELECT keeps both sidecars present; sandboxed API read succeeds while keeper remains open.
+- Artifact: `t0-systemd-readonly-sandbox-e929cdbc072221121581be0e573be7641b4cb7f3`, ID `13618796077`, SHA-256 `cb99b979931bf2f56b36a043edd013935bc1cfd359671f628a6528b916bf8fed`; [workflow run](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42483989133).
+- Intermediate probe run `42483940161` failed because the test candle timestamp was outside the probe query window; corrected fixture and exact-head run above passed. This was a test harness defect, not a source/runtime failure.
+- Key finding: prior persistent-writer WAL proof did not model the production short-lived connection lifecycle. Under the current Feeder write/heartbeat lifecycle, read-only API requests may fail between writes when API filesystem namespace is read-only. A persistent Feeder-owned WAL keeper is a viable candidate, proven on disposable CI only; it is not implemented or adopted.
+- Candidate lifecycle contract is recorded in `docs/evidence/t0/T0_SQLITE_WAL_COLD_START_LIFECYCLE_2026-11-08.md`: acquire lease → open WAL keeper and verify sidecars → recovery/scheduler readiness → API starts only after Feeder readiness; orderly stop API before Feeder; Feeder drains and releases lease before closing keeper; unexpected Feeder exit must stop API.
+- Status: actual writer/heartbeat sidecar persistence **FAIL (sidecars absent after connection close)**; sandbox API between writes **BLOCKED AS EXPECTED**; persistent keeper sidecars/read path **PASS — disposable CI**; keeper integration into FeederRuntime **NOT IMPLEMENTED**; Feeder systemd unit/readiness **NOT VERIFIED**; API deployment **BLOCKED**; T2 runtime **NOT ACTIVATED**; `ai_execution_enabled=false`.
+- No production source, canonical database, Feeder process, VPS, systemd, permissions, secrets, firewall, network, DNS, proxy, or T2 runtime was changed or accessed.
+- Next bounded step: add TDD coverage for a Feeder-owned WAL keeper lifecycle (startup before readiness; remains open across write/heartbeat cycles; closes only after scheduler drain and lease release; startup failure fails closed). Implement only after reviewing how to attach cleanup safely to `FeederRuntime`; continue on this branch and keep all tests disposable. No VPS deployment or service-unit installation without separate approval.
