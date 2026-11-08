@@ -76,3 +76,45 @@ Overall: PASS for the bounded 300-second BTCUSDT supervised runtime, data writin
 - Keep T1 storage separate from T0. No T0 changes were authorized by this runtime test.
 - Any longer run or reconnect test requires a separately reviewed bounded scope, disk guard, and explicit user authorization.
 - GitHub Actions run/artifact for this runtime increment: NOT RUN / NOT APPLICABLE; source build provenance remains run 42424240328 and artifact 13594961114.
+
+## Post-run CSV and order-book sequence audit — 2026-11-08
+
+### User-provided read-only VPS inspection
+
+- CSV inventory: 13 files; aggregate data rows reported by the prior scanner: 1,497.
+- Long/Short Ratio file has three independent `ratio_type` groups: `global`, `top_trader_account`, and `top_trader_position`. Each group contains eight records at 5-minute intervals, from timestamp_ms `1794092100000` through `1794094200000`. The earlier apparent duplicate/backward timestamp warnings were caused by evaluating the concatenated groups as one sequence; timestamps are ordered within each group.
+- Initial order-book snapshot: `last_update_id=12045456530176`; all rows in that snapshot share one timestamp and update ID, while bid/ask rows naturally repeat those snapshot-level values.
+- The later depth snapshot file showed two distinct timestamp/update-ID values in the inspection sample. Its relationship to the initial snapshot was not further audited here.
+- Depth Update CSV: 595 events. No invalid `U > u` ranges. All 594 adjacent event transitions had `pu == previous event's u`.
+- Snapshot bridge check: the first event with `u >= snapshot last_update_id` is at zero-based row index 3:
+  - `U=12045456519794`
+  - `u=12045456653059`
+  - `pu=12045456519789`
+  - Snapshot ID: `12045456530176`
+  - `U <= snapshot_id <= u`: true.
+  - The three preceding events have `u < snapshot_id` and are therefore stale relative to the snapshot boundary.
+- The first eligible event spans the snapshot update ID. Subsequent recorded events satisfy the previous-`u` / current-`pu` continuity check.
+
+### Updated verdict and evidence boundary
+
+| Check | Status | Evidence boundary |
+|---|---|---|
+| Long/Short Ratio timestamp ordering | PASS | Three ratio_type groups independently ordered at 5-minute intervals |
+| Snapshot-to-first-eligible-event bridge | PASS | CSV update IDs satisfy `U <= snapshot_id <= u` |
+| Depth Update U/u range validity | PASS | 0 invalid ranges across 595 events |
+| Depth Update pu continuity | PASS | 0 mismatches across 594 adjacent transitions |
+| Collector's actual in-memory snapshot application | NOT VERIFIED | CSV IDs establish a valid bridge candidate, not direct observation of the collector's internal book state |
+| Full order-book correctness / sequence-gap recovery | NOT VERIFIED | No independent reconstructed-book comparison, checksum, or forced-gap recovery test |
+| Later depth snapshot consistency | NOT VERIFIED | Two distinct snapshot-level timestamp/update-ID values were observed but not reconciled against the initial snapshot and update stream |
+
+The earlier blanket statement that full order-book sequence continuity and snapshot reconciliation had no sequence audit is superseded only for the specific CSV-level checks above. The bounded CSV-level bridge and `pu` chain now PASS. This does not certify the collector's in-memory order book or outage recovery.
+
+### Overall scope
+
+The original 300-second supervised runtime remains PASS for bounded ingestion, CSV output, and graceful SIGTERM shutdown. This follow-up adds PASS for Long/Short Ratio per-group timestamp ordering, Depth Update U/u validity, pu continuity, and the initial-snapshot bridge condition. Production readiness, long-duration reliability, reconnect recovery, and reconstructed order-book correctness remain NOT VERIFIED.
+
+- Source SHA remains `d8ac9fc820dcf2e912e66518a1a1c73a8fa81ac7`.
+- Source CI run remains `42424240328` (SUCCESS, 5/5); artifact ID `13594961114`.
+- No new workflow was run and no artifact was produced for this read-only runtime-data audit.
+- No source, runtime configuration, T0 process/database, or VPS service state was changed by this audit.
+- Next permitted step: documentation/evidence review only. Any new capture, forced disconnect, or longer runtime requires separate bounded scope and explicit authorization.
