@@ -107,3 +107,15 @@ Behavior implemented:
 - Focused artifact ID 13613080643; SHA-256 9f36fe04efe744f4a5cf1741919aa6dddffad0f60170719e003eed2c94c09497.
 - Pinned Freqtrade 2026.9 smoke run 42469402445, job 128696421737: SUCCESS at the same exact SHA; no exchange sync or DB access.
 - Freqtrade smoke artifact ID 13613106308; SHA-256 69be478af85484583543a8ad92efcf3254fbbfb3886cfd69e2ded27fa43d6ca3.
+
+
+## Existing T0/T1 regression workflow at the same source SHA
+
+- Run: 42469402459
+- URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42469402459
+- Checked-out SHA: 6b55f6f02f7e2bcceb4b38a7944e9f9b42bbe64d
+- All six existing jobs concluded SUCCESS, including paper-consumer fixtures, Gateway/Feeder regressions, the market_data suite, isolated TimescaleDB integration, T1 importer and Rust sidecar offline tests.
+- Static Gateway job 128696421966 ran the complete market_data test package: 280 tests, 42 skipped because the dedicated TimescaleDB DSN was not supplied to that job; result OK.
+- Separate isolated TimescaleDB integration job 128696468092 concluded SUCCESS. This used disposable CI containers, not the canonical T0 DB or VPS.
+- This is regression evidence for the unchanged T0/T1 code at the same checkout SHA; it does not certify or activate canonical T0 runtime.
+- Artifact IDs include 13613170916 (Gateway), 13613190837 (provider bootstrap), 13612911518 (Timescale read-only), 13612946066 (paper consumers), 13613160296 (T1 importer), and 13612966914 (T1 Rust sidecar). Their GitHub artifact digests are recorded in run metadata; payload bytes were not independently downloaded and re-hashed in this increment.
