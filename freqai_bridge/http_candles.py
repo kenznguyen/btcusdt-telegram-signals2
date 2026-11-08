@@ -98,7 +98,7 @@ class CandleHttpClient:
     @staticmethod
     def _decimal(value, *, allow_zero=False):
         if (not isinstance(value, str) or not 1 <= len(value) <= 128
-                or not re.fullmatch(r"[0-9]+(?:\\.[0-9]+)?", value)):
+                or not re.fullmatch(r"[0-9]+(?:\.[0-9]+)?", value)):
             raise CandleHttpError("CANDLE_INVALID")
         try:
             number = Decimal(value)
