@@ -6430,3 +6430,18 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Restrictions preserved: keep the supervised T0 Feeder untouched; no T1/T2 runtime activation; no direct T0 DB access; no systemd/autostart/linger; no live execution.
 - Next step when separately authorized: review/version the T0 read-only candle contract, then fixture-first T2 adapter conformance; resume Data Quality Gate only with explicit authorization.
 - Source branch: `feature/t0-centralized-data-feeder-p1-20261101`. Parent source HEAD: `4ef0e8528a9980ed49eba7b0130b7676ed9e5772`. No GitHub Actions run/artifact: **NOT RUN / NOT APPLICABLE** (documentation-only change).
+
+
+## 2026-11-08 — T0 Read-only Candle Contract v1 design review
+
+- Design document: `docs/architecture/T0_READ_ONLY_CANDLE_CONTRACT_V1_2026-11-08.md`.
+- Design commit: `557355f04215f6098eab7e81ee12b3102ba84cf8`.
+- Baseline source HEAD before this documentation increment: `7a491e1966640319df19033256310ff6616503d0`.
+- Status: **CONTRACT DESIGN REVIEWED — IMPLEMENTATION NOT VERIFIED**.
+- Existing `GET /v1/candles` in `market_data/api.py` is selected as the intended read-only service boundary. Contract v1 defines explicit version/schema identity, fixed Binance USD-M BTCUSDT identity, UTC [start,end) semantics, decimal strings, first-observed availability, coverage/gaps, dataset hash, freshness observations, consumer fail-closed checks, and consistent errors.
+- Source review found a material current architecture gap: `freqai_bridge/context.py` invokes `market_data.store.read_window()` directly against a configured canonical SQLite path; `ChartProFreqaiResearch.py` inherits that path and the FreqAI README documents it. This is **NON-CONFORMANT** with the approved no-direct-T0-DB consumer boundary, despite the SQLite connection being read-only. T2 must migrate to the HTTP contract before contract conformance can PASS.
+- API response currently lacks explicit contract/schema version and freshness metadata. API read bound is 2,000 while Store internal read maximum is 3,000; design retains a 2,000 public request cap and calls for a dedicated API limit constant rather than reusing the write/sync constant.
+- T0 API conformance: **NOT VERIFIED**. T2 HTTP integration: **BLOCKED / NOT IMPLEMENTED**. Data Quality Gate remains **PAUSED / NOT VERIFIED**. T0 is not approved to replace OKX as official T2 source.
+- Documentation-only increment: no code, tests, workflow, artifact, runtime, canonical DB, Feeder, exchange connection, or market-data sync was changed/run. GitHub Actions: **NOT RUN / NOT APPLICABLE**.
+- Restrictions preserved: keep supervised Feeder untouched; no T1/T2 runtime activation; no Data Quality Gate execution; no direct T0 DB access; no autostart/deployment/live execution; keep `ai_execution_enabled=false`.
+- Next authorized scope must be separately confirmed: contract TDD (RED) for API envelope/freshness, then API implementation, then fixture-only HTTP client and FreqAI bridge migration, followed by exact-head GitHub Actions and independent review. Do not promote source or runtime on contract tests alone.
