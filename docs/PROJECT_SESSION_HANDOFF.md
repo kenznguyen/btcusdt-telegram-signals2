@@ -6809,3 +6809,16 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Keep `ai_execution_enabled=false`. Freqtrade entry/exit signals and trade-entry confirmation remain disabled.
 - Evidence report: `docs/evidence/t2/T2_HTTP_CANDLE_CLIENT_GREEN_2026-11-08.md`.
 - Architecture/test plan: `docs/architecture/T2_HTTP_CANDLE_CONSUMER_CONTRACT_AND_TEST_PLAN_2026-11-08.md`.
+
+
+## 2026-11-08 — T2 live T0 endpoint offline readiness audit
+
+- Plan commit: `aa608fa9288fe45ec32b7d6b56f40695f137b4ac`; plan: `docs/architecture/T2_LIVE_T0_ENDPOINT_VERIFICATION_PLAN_2026-11-08.md`.
+- Offline audit report commit: `88ed430ad26d7edcadf5877bc3be64989e7ad1aa`; report: `docs/evidence/t2/T2_LIVE_T0_ENDPOINT_OFFLINE_READINESS_AUDIT_2026-11-08.md`.
+- Inspected `market_data/api.py` (blob `81733c9b6de811cbebb2f5d472d41f37f337990c`): GET `/v1/candles`, Bearer auth from `MARKET_DATA_TOKEN`, versioned response; development entrypoint binds plain HTTP to `127.0.0.1:8788`.
+- Inspected `freqai_bridge/http_candles.py` (blob `eb9aeccdf381e8a2ebc3450a7a31ae4e9da164ac`): HTTPS required for non-loopback URLs, TLS verification enabled, redirects disabled, bounded transport.
+- Actual deployed HTTPS hostname/base URL, TLS termination/reverse proxy, API process deployment, probe origin/egress authorization, credential owner/store, and deployed storage-level read-only role/transaction evidence were not found in the inspected repository evidence.
+- Offline audit verdict: **BLOCKED — LIVE ENDPOINT IDENTITY AND DEPLOYMENT PATH NOT ESTABLISHED**. This is not evidence that no external proxy exists; it means none has been verified.
+- No network request, secret lookup, VPS access/change, API/Feeder/database change, workflow creation, T2/Freqtrade startup, or runtime action occurred. No tests/workflows were run because this increment was documentation/source inspection only.
+- Next: obtain the exact approved T0 API base URL (no token), TLS front-door/CA details, authorized probe origin, credential owner and secure injection method, and server-side read-only DB enforcement evidence. Then seek separate explicit approval for a bounded live read-only probe.
+- Keep `ai_execution_enabled=false`; T2 remains NOT ACTIVATED; live endpoint verification NOT RUN.
