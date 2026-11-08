@@ -53,6 +53,7 @@ class RiskDecision:
     reason: str
     required_margin: Decimal = Decimal("0")
     gross_margin_used: Decimal = Decimal("0")
+    reservation_id: str | None = None
 
 
 class StrategyLedger:
@@ -152,6 +153,47 @@ class StrategyLedger:
                 db.rollback()
                 raise
 
+
+    def record_reserved_entry(self, *, reservation_id, position_id, side, quantity, entry_price):
+        """Atomically consume a shared ENTRY reservation and persist its position."""
+        if not isinstance(position_id, str) or not position_id.strip():
+            raise ValueError("position_id is required")
+        if side not in ("LONG", "SHORT"):
+            raise ValueError("side must be LONG or SHORT")
+        qty = _decimal(quantity, "quantity", positive=True)
+        price = _decimal(entry_price, "entry_price", positive=True)
+        with closing(self._connect()) as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                reservation = db.execute(
+                    """SELECT strategy_id, position_id, action, required_margin, status
+                       FROM risk_reservations WHERE reservation_id=?""",
+                    (reservation_id,),
+                ).fetchone()
+                if (reservation is None or reservation["status"] != "RESERVED"
+                    or reservation["strategy_id"] != self.strategy_id
+                    or reservation["position_id"] != position_id
+                    or reservation["action"] != "ENTRY"):
+                    raise ValueError("Missing, consumed, or mismatched ENTRY reservation")
+                db.execute(
+                    """INSERT INTO strategy_positions
+                       (strategy_id, position_id, side, quantity, entry_price, margin_used, dca_count)
+                       VALUES (?, ?, ?, ?, ?, ?, 0)""",
+                    (self.strategy_id, position_id, side, str(qty), str(price),
+                     reservation["required_margin"]),
+                )
+                updated = db.execute(
+                    """UPDATE risk_reservations SET status='CONSUMED'
+                       WHERE reservation_id=? AND status='RESERVED'""",
+                    (reservation_id,),
+                )
+                if updated.rowcount != 1:
+                    raise ValueError("ENTRY reservation was already consumed")
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+
     def record_dca(self, position_id, *, quantity, price, margin_used):
         qty = _decimal(quantity, "quantity", positive=True)
         dca_price = _decimal(price, "price", positive=True)
@@ -183,6 +225,55 @@ class StrategyLedger:
                 db.rollback()
                 raise
 
+
+    def record_reserved_dca(self, *, reservation_id, position_id, quantity, price):
+        """Atomically consume a shared DCA reservation and update one position."""
+        qty = _decimal(quantity, "quantity", positive=True)
+        dca_price = _decimal(price, "price", positive=True)
+        with closing(self._connect()) as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                reservation = db.execute(
+                    """SELECT strategy_id, position_id, action, required_margin, status
+                       FROM risk_reservations WHERE reservation_id=?""",
+                    (reservation_id,),
+                ).fetchone()
+                if (reservation is None or reservation["status"] != "RESERVED"
+                    or reservation["strategy_id"] != self.strategy_id
+                    or reservation["position_id"] != position_id
+                    or reservation["action"] != "DCA"):
+                    raise ValueError("Missing, consumed, or mismatched DCA reservation")
+                row = db.execute(
+                    """SELECT quantity, entry_price, margin_used, dca_count
+                       FROM strategy_positions WHERE strategy_id=? AND position_id=?""",
+                    (self.strategy_id, position_id),
+                ).fetchone()
+                if row is None:
+                    raise ValueError("Unknown position for this strategy")
+                old_qty = Decimal(row["quantity"])
+                old_price = Decimal(row["entry_price"])
+                total_qty = old_qty + qty
+                average_price = ((old_qty * old_price) + (qty * dca_price)) / total_qty
+                total_margin = Decimal(row["margin_used"]) + Decimal(reservation["required_margin"])
+                db.execute(
+                    """UPDATE strategy_positions
+                       SET quantity=?, entry_price=?, margin_used=?, dca_count=?
+                       WHERE strategy_id=? AND position_id=?""",
+                    (str(total_qty), str(average_price), str(total_margin),
+                     row["dca_count"] + 1, self.strategy_id, position_id),
+                )
+                updated = db.execute(
+                    """UPDATE risk_reservations SET status='CONSUMED'
+                       WHERE reservation_id=? AND status='RESERVED'""",
+                    (reservation_id,),
+                )
+                if updated.rowcount != 1:
+                    raise ValueError("DCA reservation was already consumed")
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+
     def apply_realized_pnl(self, *, pnl, fees):
         realized = _decimal(pnl, "pnl")
         fee_amount = _decimal(fees, "fees", non_negative=True)
@@ -209,13 +300,144 @@ class StrategyLedger:
 
 
 class SharedRiskEngine:
-    """Aggregate gross collateral across CORE and AI without directional netting.
+    """Shared collateral gate with optional atomic reservations in the ledger DB.
 
-    Each admission reserves 1% of the supplied portfolio equity. Available
-    collateral is the supplied equity less gross margin already recorded in
-    both ledgers. There is no position-count limit. Data freshness, reconciled
-    state, Kill Switch, and collateral sufficiency are mandatory gates.
+    Stateless admit_* methods support deterministic backtests. For concurrent
+    CORE/AI paper admission, use reserve_entry/reserve_dca with the same SQLite
+    file as both StrategyLedger instances. BEGIN IMMEDIATE serializes admission,
+    and reserved collateral is included until a ledger consumes the reservation.
     """
+
+    def __init__(self, path=None):
+        self.path = None
+        if path is not None:
+            if not path or str(path) == ":memory:":
+                raise ValueError("A durable shared reservation database path is required")
+            self.path = Path(path)
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            with closing(sqlite3.connect(self.path, timeout=15)) as db:
+                db.execute("PRAGMA journal_mode=WAL")
+                db.execute("PRAGMA synchronous=FULL")
+                db.execute("""CREATE TABLE IF NOT EXISTS risk_reservations (
+                    reservation_id TEXT PRIMARY KEY,
+                    strategy_id TEXT NOT NULL CHECK (strategy_id IN ('CORE', 'AI')),
+                    position_id TEXT NOT NULL,
+                    action TEXT NOT NULL CHECK (action IN ('ENTRY', 'DCA')),
+                    required_margin TEXT NOT NULL,
+                    status TEXT NOT NULL CHECK (status IN ('RESERVED', 'CONSUMED', 'CANCELLED'))
+                )""")
+                db.execute("""CREATE UNIQUE INDEX IF NOT EXISTS one_active_position_reservation
+                    ON risk_reservations(strategy_id, position_id) WHERE status='RESERVED'""")
+                db.commit()
+
+    def _reserve_increase(self, *, reservation_id, strategy_id, position_id,
+                          action, account_equity, data_fresh,
+                          state_reconciled, kill_switch):
+        if self.path is None:
+            return RiskDecision(False, "PERSISTENT_RESERVATION_STORE_REQUIRED")
+        if (not isinstance(reservation_id, str) or not reservation_id.strip()
+            or strategy_id not in STRATEGY_IDS
+            or not isinstance(position_id, str) or not position_id.strip()
+            or action not in ("ENTRY", "DCA")
+            or type(data_fresh) is not bool
+            or type(state_reconciled) is not bool
+            or type(kill_switch) is not bool):
+            return RiskDecision(False, "INVALID_RISK_STATE")
+        try:
+            equity = _decimal(account_equity, "account_equity", positive=True)
+        except ValueError:
+            return RiskDecision(False, "INVALID_RISK_STATE")
+        required = equity * MARGIN_FRACTION
+        if kill_switch:
+            return RiskDecision(False, "KILL_SWITCH_ACTIVE", required)
+        if not data_fresh:
+            return RiskDecision(False, "STALE_DATA", required)
+        if not state_reconciled:
+            return RiskDecision(False, "UNRECONCILED_STATE", required)
+
+        with closing(sqlite3.connect(self.path, timeout=15, isolation_level=None)) as db:
+            db.row_factory = sqlite3.Row
+            db.execute("PRAGMA synchronous=FULL")
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                if db.execute(
+                    "SELECT 1 FROM risk_reservations WHERE reservation_id=?",
+                    (reservation_id,),
+                ).fetchone():
+                    db.rollback()
+                    return RiskDecision(False, "DUPLICATE_RESERVATION", required)
+                accounts = db.execute(
+                    "SELECT COUNT(*) AS count FROM strategy_accounts WHERE strategy_id IN ('CORE', 'AI')"
+                ).fetchone()["count"]
+                if accounts != 2:
+                    db.rollback()
+                    return RiskDecision(False, "INVALID_RISK_STATE", required)
+                position = db.execute(
+                    "SELECT 1 FROM strategy_positions WHERE strategy_id=? AND position_id=?",
+                    (strategy_id, position_id),
+                ).fetchone()
+                if action == "ENTRY" and position is not None:
+                    db.rollback()
+                    return RiskDecision(False, "POSITION_ALREADY_EXISTS", required)
+                if action == "DCA" and position is None:
+                    db.rollback()
+                    return RiskDecision(False, "POSITION_NOT_FOUND", required)
+                active = db.execute(
+                    """SELECT 1 FROM risk_reservations
+                       WHERE strategy_id=? AND position_id=? AND status='RESERVED'""",
+                    (strategy_id, position_id),
+                ).fetchone()
+                if active:
+                    db.rollback()
+                    return RiskDecision(False, "POSITION_ALREADY_RESERVED", required)
+                gross = sum(
+                    (Decimal(row["margin_used"]) for row in db.execute(
+                        "SELECT margin_used FROM strategy_positions"
+                    ).fetchall()),
+                    Decimal("0"),
+                )
+                pending = sum(
+                    (Decimal(row["required_margin"]) for row in db.execute(
+                        "SELECT required_margin FROM risk_reservations WHERE status='RESERVED'"
+                    ).fetchall()),
+                    Decimal("0"),
+                )
+                committed = gross + pending
+                if committed > equity or equity - committed < required:
+                    db.rollback()
+                    return RiskDecision(False, "INSUFFICIENT_MARGIN", required, committed)
+                db.execute(
+                    """INSERT INTO risk_reservations
+                       (reservation_id, strategy_id, position_id, action, required_margin, status)
+                       VALUES (?, ?, ?, ?, ?, 'RESERVED')""",
+                    (reservation_id, strategy_id, position_id, action, str(required)),
+                )
+                db.commit()
+                return RiskDecision(True, "RISK_ADMITTED", required, committed, reservation_id)
+            except sqlite3.IntegrityError:
+                db.rollback()
+                return RiskDecision(False, "POSITION_ALREADY_RESERVED", required)
+            except Exception:
+                db.rollback()
+                raise
+
+    def reserve_entry(self, *, reservation_id, strategy_id, position_id,
+                      account_equity, data_fresh, state_reconciled, kill_switch=False):
+        return self._reserve_increase(
+            reservation_id=reservation_id, strategy_id=strategy_id,
+            position_id=position_id, action="ENTRY", account_equity=account_equity,
+            data_fresh=data_fresh, state_reconciled=state_reconciled,
+            kill_switch=kill_switch,
+        )
+
+    def reserve_dca(self, *, reservation_id, strategy_id, position_id,
+                    account_equity, data_fresh, state_reconciled, kill_switch=False):
+        return self._reserve_increase(
+            reservation_id=reservation_id, strategy_id=strategy_id,
+            position_id=position_id, action="DCA", account_equity=account_equity,
+            data_fresh=data_fresh, state_reconciled=state_reconciled,
+            kill_switch=kill_switch,
+        )
 
     def _gross_margin(self, core_snapshot, ai_snapshot):
         if not isinstance(core_snapshot, LedgerSnapshot) or not isinstance(ai_snapshot, LedgerSnapshot):
