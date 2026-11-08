@@ -19,6 +19,8 @@ on:
       - ".github/workflows/t2-dual-signal-coordinator.yml"
   pull_request:
     paths:
+      - "quant_system/ai_dynamic_leverage.py"
+      - "quant_system/test_ai_dynamic_leverage.py"
       - "quant_system/dual_signal_coordinator.py"
       - "quant_system/test_dual_signal_coordinator.py"
       - "quant_system/dual_ledger.py"
@@ -63,8 +65,30 @@ jobs:
           test -z "$BINANCE_API_SECRET"
           test -z "$OKX_API_KEY"
           test -z "$OKX_API_SECRET"
+      - name: Prepare AI leverage evidence
+        run: |
+          mkdir -p t2-ai-leverage-evidence
+          {
+            echo "event=$GITHUB_EVENT_NAME"
+            echo "github_sha=$GITHUB_SHA"
+            echo "checked_out_sha=$(git rev-parse HEAD)"
+            echo "ai_execution_enabled=$AI_EXECUTION_ENABLED"
+            echo "database_targets=EMPTY"
+            echo "exchange_credentials=EMPTY"
+          } | tee t2-ai-leverage-evidence/source-provenance.txt
       - name: Run independent AI dynamic leverage contract tests
-        run: python -m unittest quant_system.test_ai_dynamic_leverage -v
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest quant_system.test_ai_dynamic_leverage -v 2>&1 | tee t2-ai-leverage-evidence/ai-dynamic-leverage-tests.log
+      - name: Upload AI leverage contract evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t2-ai-dynamic-leverage-${{ github.sha }}
+          path: t2-ai-leverage-evidence/**
+          if-no-files-found: error
+          retention-days: 30
       - name: Run coordinator contract tests
         run: python -m unittest quant_system.test_dual_signal_coordinator -v
       - name: Run shared dual-ledger regression
