@@ -85,10 +85,10 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest freqai_bridge.test_context_http freqai_bridge.t2_http_migration_acceptance -v 2>&1 | tee t2-migration-tests.log
-          grep -Eq "^Ran 10 tests?" t2-migration-tests.log
+          grep -Eq "^Ran 11 tests?" t2-migration-tests.log
           grep -Eq "^OK$" t2-migration-tests.log
           echo "T2_HTTP_CONSUMER_MIGRATION=PASS"
-          echo "T2_HTTP_MIGRATION_TESTS=10"
+          echo "T2_HTTP_MIGRATION_TESTS=11"
       - name: Run HTTP-backed prediction exporter regressions
         shell: bash
         run: |
