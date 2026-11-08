@@ -254,3 +254,23 @@ Status correction:
 - AI dynamic leverage contract and the final exact-source contract/regression CI: PASS.
 - This is not evidence that a real calibration has passed. Confidence-domain endpoints, calibration metrics/acceptance thresholds, minimum OOS sample size, calibration artifact authenticity and directional/regime coverage remain BLOCKED / NOT VERIFIED.
 - No coordinator or paper runtime integration occurred. No paper or live orders were enabled.
+
+
+### Evidence artifact and PR-context verification update
+
+The workflow was hardened to include the new leverage files in both push and pull_request path filters and to upload a provenance + test-log artifact.
+
+- Final exact-head push run: [42457686964](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42457686964), source/head/checked-out SHA `ccc182378772a25f2afb475b4070d281222d7f7f`, SUCCESS; job `128660101285` SUCCESS.
+- Test logs: AI leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. Total 97/97.
+- Exact-head artifact: ID `13607992537`, name `t2-ai-dynamic-leverage-ccc182378772a25f2afb475b4070d281222d7f7f`, GitHub digest and independently recomputed ZIP SHA-256 both `3d2c14ea53cdf1e12633c6fbe1f2f540b052c2a6ae16bcfecae8e915f6112cce`.
+- Artifact contents confirm push event, exact checked-out SHA, `AI_EXECUTION_ENABLED=false`, empty database targets and exchange credentials, and AI leverage tests 14/14 PASS.
+- PR run: [42457691928](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42457691928), PR head SHA `ccc182378772a25f2afb475b4070d281222d7f7f`, synthetic merge checkout SHA `443b08f5e94c584aba75d232f6e86609a43d7ef8`, SUCCESS; same 97/97 suite totals. Do not mislabel this as direct-head evidence.
+- PR-context artifact ID `13608346507`, GitHub digest `sha256:31b28ed5130b7523e25f853f02c691e32014fec857698a21472c1e5c32bf9004`.
+- Latest evidence-document commit before this handoff append: `e40c66aada46859ecbc3734a514b322af80f01bf`.
+
+Final verdict for this increment:
+- Contract implementation + independent unit tests + T2 regression: PASS at exact push SHA `ccc182378772a25f2afb475b4070d281222d7f7f`.
+- Exact-head artifact payload integrity: PASS (independent ZIP hash matched GitHub digest).
+- PR #95: still OPEN / DRAFT / NOT MERGED. No merge or rebase.
+- Working-tree status: NOT VERIFIED (no local checkout inspected).
+- Real calibration quality, acceptance metrics, sample-size requirements, confidence-domain configuration, gross exposure ceiling and runtime integration remain blocked or unverified as recorded above.
