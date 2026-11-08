@@ -1,6 +1,6 @@
 # Five-Layer System — Session Handoff
 
-Last updated: 2026-11-08 (Asia/Ho_Chi_Minh)
+Last updated: 2026-11-09 (Asia/Ho_Chi_Minh)
 
 ## Purpose
 
@@ -7362,4 +7362,22 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Inventory read-back: blob `b64f3579ea7f455b26c3d3d3ba662b00bc17d480`, 18,170 characters; static-only/no-runtime-inspection boundary present.
 - T0 contract read-back: blob `e4ce9e30b64c73610369dcfeeb8d76dd88f99be9`, 14,381 characters; superseded historical finding and current HTTP integration status present.
 - CI/tests: NOT RUN for this documentation increment. No artifact.
-- Next: request explicit approval before any read-only VPS/storage inventory capture. Do not assign numeric retention values or perform archive, vacuum, cleanup, backup expiry, or deletion based on this static baseline.
+- Next: maintain the repository-level static inventory only. The current experimental VPS is explicitly excluded from all inspection, including read-only inspection. The official environment is NOT DESIGNATED; do not request or initiate VPS inventory unless the user separately designates a future official environment and approves the exact inspection scope. Do not assign numeric retention values or perform archive, vacuum, cleanup, backup expiry, or deletion based on this static baseline.
+
+
+## 2026-11-09 — Experimental/official environment boundary alignment
+
+- User clarified that the current VPS is only for experimental operation; it is not the official T0 environment.
+- Added `docs/architecture/ENVIRONMENT_EVIDENCE_BOUNDARY.md` at prior commit `517811d59e1e9fc01b5bf5bfb5a0a2f2bdc9a95a`. It classifies the VPS as experimental, explicitly excludes all data collection from it (including read-only inspection), marks the official environment NOT DESIGNATED, and separates source, synthetic CI, experimental, and future official evidence.
+- Aligned lifecycle documents so their next steps no longer request or imply runtime inventory from the experimental VPS:
+  - Shared Data Foundation: `1dbd8c1ab90f7d22ca32907d61e17d102f49285a`.
+  - Central Data Lifecycle Policy: `26842b21e723e7434be56bac8f487fabfa6a4af7`.
+  - Dataset Consumer Contract: `f15ee5d3139c785559b2a3085d0733bea054c9a6`.
+  - Data Deletion Safety Contract: `fd9ade82636cc8328aa89c85a1ad26b2cb10fa25`.
+  - Cross-contract review evidence prerequisites: `8f2918799cb4836632864183c4f870e0799bc350`.
+  - Cross-contract review status/next step: `8b36c482829162b88319da74319d5016f738141e`.
+- Static inventory remains repository/source evidence only. Runtime locations, active DBs, consumers, copies, backups, replicas, and recovery state remain NOT VERIFIED. No runtime inventory is authorized or needed from the experimental VPS.
+- No source code, tests, workflows, VPS, SSH, database, Feeder, Collector, sync, network probe, retention, archive, vacuum, cleanup, backup expiry, or deletion was performed or activated.
+- CI/tests: NOT RUN for this documentation-only alignment. No artifact.
+- Verification required after handoff update: read back all six architecture documents, handoff, and exact branch HEAD. No deployment or lifecycle action is authorized.
+- Next: keep runtime facts NOT VERIFIED until the user designates a future official environment and separately approves a least-privilege inventory scope. Continue only with source/documentation work that does not imply runtime inspection.
