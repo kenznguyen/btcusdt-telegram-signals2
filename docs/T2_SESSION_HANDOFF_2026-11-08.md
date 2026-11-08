@@ -4,8 +4,8 @@
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
-- Latest verified code/test SHA: `afa44c4bbab5a86040aadbeed219df7fe10a87cb`.
-- Latest GREEN evidence commit before this handoff update: `0f4d87f1ba6c4e3a901b612f7271a2165e754381`.
+- Latest verified code/test SHA: `9492b8bc5a2d3da45a3662dc4eba7ece28fe7c7c`.
+- Latest GREEN evidence commit before this handoff update: `47971e85402aebd55ce3174b2e3617ff5b3c154c`.
 - PR #95: OPEN / DRAFT / NOT MERGED.
 - PR base: `feature/dual-strategy-phase22-frozen-reproducibility-20261031` at `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
 - No new branch or PR was created.
@@ -27,7 +27,7 @@ Working-tree status: NOT VERIFIED; GitHub Contents API commits were used and no 
 
 - CORE and AI have independent persisted position, DCA, equity and realized-PnL state.
 - Both ledgers can share one SQLite file; writes are transactional.
-- Each entry/DCA admission calculates margin as 1% of supplied account equity.
+- Each entry/DCA admission calculates margin as 1% of combined portfolio equity (CORE ledger equity + AI ledger equity). The separate ledgers retain independent equity/PnL accounting; combined equity is used only for shared-risk admission. Caller-supplied equity must match the authoritative sum, otherwise admission fails closed with `ACCOUNT_EQUITY_MISMATCH`.
 - No fixed position-count cap; shared collateral uses gross margin.
 - Gross notional exposure sums both strategies without netting opposing LONG/SHORT positions.
 - SQLite `BEGIN IMMEDIATE` serializes concurrent shared reservations.
@@ -39,7 +39,18 @@ Working-tree status: NOT VERIFIED; GitHub Contents API commits were used and no 
 - Kill Switch blocks increases; validated reductions remain admissible.
 - No exchange order path was added.
 
+## Combined portfolio equity decision
+
+The user selected combined portfolio equity as the 1% margin basis. The implementation reads both ledger balances and recalculates the total at every admission. A realized PnL/fee update in either ledger therefore affects the next shared-risk admission without merging the two ledger books.
+
 ## Exact verification
+
+### Combined portfolio equity RED → GREEN
+
+- RED run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455448910 — run ID `42455448910`, source SHA `d2c651927fc1e11ac1667309b87e147437513ddc`, expected failure; 23 tests ran and 5 failures exposed incorrect single-ledger equity assumptions.
+- GREEN run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455568974 — run ID `42455568974`, exact source SHA `9492b8bc5a2d3da45a3662dc4eba7ece28fe7c7c`, SUCCESS; 23/23 tests PASS.
+- Legacy regression run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455568882 — same exact source SHA, SUCCESS; 20 + 11 + 18 = 49 tests PASS.
+- No artifacts produced by these push workflows.
 
 ### RED for reservation recovery/reduction
 
@@ -93,8 +104,8 @@ Working-tree status: NOT VERIFIED; GitHub Contents API commits were used and no 
 
 ## Current verdict
 
-- Independent CORE/AI ledger accounting: PASS (21/21).
-- Atomic shared margin reservation and exactly-once consumption: PASS.
+- Independent CORE/AI ledger accounting and combined-equity sizing: PASS (23/23).
+- Atomic shared margin reservation and exactly-once consumption: PASS; 1% basis is combined portfolio equity.
 - Gross margin and gross notional aggregation without directional netting: PASS.
 - Reservation cancellation/reconciliation: PASS in focused tests.
 - Partial/full reduction accounting: PASS in focused tests.
@@ -127,7 +138,7 @@ The old Phase 2/3 path remains regression-tested, but is not compatible with the
 1. Build a new signal coordinator that preserves `core_signal` / `ai_signal` provenance but emits independent CORE and AI intents; do not reuse `_select` conflict arbitration.
 2. Route every entry/DCA through persistent shared reservations and matching ledger writes.
 3. Replace the legacy fixed-position / 50%-margin gate in the paper path; preserve Strategy Core RSI/ADX/Smart DCA signal rules and separate execution sizing from strategy predicates.
-4. Confirm whether 1% margin is based on each strategy's own ledger equity or combined portfolio equity.
+4. Combined portfolio equity is CONFIRMED as the 1% margin basis; preserve independent ledger equity accounting.
 5. Define the gross notional exposure ceiling and confirm the portfolio margin budget (current collateral logic uses a 100% account-equity collateral guard).
 6. Define AI leverage/position sizing; do not assume Core's legacy 13x leverage applies to AI.
 7. Connect Kill Switch to an authoritative runtime state source.
