@@ -512,3 +512,19 @@ Implement semantic reconciliation between the signed prediction JSONL and the si
 - This handoff commit will be the branch HEAD after this documentation update.
 - Working tree: NOT VERIFIED (GitHub API updates only).
 - Next increment: define and validate a canonical dataset artifact row schema and independently reconcile candle timestamps/coverage to prediction timestamps and outcome-resolution windows. Do not recompute trade outcomes or issue attestation until market-data semantics, price basis, candle close-time convention and label horizon are explicit.
+
+
+## Dataset provenance schema discovery — 2026-11-08
+
+- Read-only schema audit commit: `6f98ddc1444f4c2f1692c9721935a3720451cfdd`.
+- Audit: `quant_system/T2_DATASET_PROVENANCE_SCHEMA_DISCOVERY_2026-11-08.md`.
+- Branch HEAD before this handoff update: `6f98ddc1444f4c2f1692c9721935a3720451cfdd`; starting inspected HEAD was `96266de7e514e45389e24ce5b23391d177872fc9`.
+- Found existing T0 JSON snapshot contract in `quant_system/t0_freqtrade_adapter.py`: canonical Binance USDT_PERPETUAL/BTCUSDT, one timeframe per snapshot (M15 or H1), candle open/close/availability timestamps, validated closed rows, decimal-string OHLCV, complete coverage and a per-snapshot `datasetVersion` fingerprint.
+- Found older ChartPro CSV contract in `freqtrade_parity/dataset_io.py`: OHLCV plus closed flag and contiguous timestamps, but no exchange/market/symbol/source provenance; not sufficient alone for canonical T0 lineage.
+- The signed AI manifest currently treats its `dataset` artifact as opaque bytes and does not declare a dataset format or multi-timeframe packaging contract.
+- **BLOCKED:** T0 snapshots are single-timeframe, while T2 strategy context requires M15 and closed H1. No existing contract defines whether one signed dataset artifact is a single timeframe or a versioned M15+H1 bundle, nor the aggregate fingerprint and prediction-to-candle coverage convention.
+- Recommendation (not implemented): versioned bundle embedding the existing T0 snapshots unchanged, with a defined aggregate fingerprint. T0 schema/runtime remains independent and untouched.
+- Dataset row validator: NOT IMPLEMENTED. Prediction-to-candle coverage reconciliation: NOT IMPLEMENTED. Outcome/label recomputation from OHLCV remains out of scope until price basis, candle-close convention and label horizon are explicit.
+- No tests/workflow run/artifact for this documentation-only audit. Working tree remains NOT VERIFIED (GitHub API writes only).
+- Hard limits unchanged: `AI_EXECUTION_ENABLED=false`; no T0/T1 DB/Feeder/exchange, no paper/live runtime, no attestation or leverage authorization; PR #95 remains OPEN / DRAFT / NOT MERGED.
+- Next: confirm single-timeframe versus M15+H1 bundle before writing RED tests and implementation.
