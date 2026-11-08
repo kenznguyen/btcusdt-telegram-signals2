@@ -471,11 +471,12 @@ class AIProvenanceValidatorTests(unittest.TestCase):
         for timeframe, offset in (("15m", m15_available_offset), ("1h", h1_available_offset)):
             candles = self.dataset_bundle["snapshots"][timeframe]["candles"]
             eligible = [c for c in candles if c["availableAtMs"] <= timestamp]
-            candle = eligible[-1] if eligible else candles[0]
+            future = [c for c in candles if c["availableAtMs"] > timestamp]
+            candle = (future[0] if offset and future else eligible[-1] if eligible else candles[0])
             cutoffs[timeframe] = {
                 "open_time_ms": candle["openTimeMs"],
                 "close_time_ms": candle["closeTimeMs"],
-                "available_at_ms": candle["availableAtMs"] + offset,
+                "available_at_ms": candle["availableAtMs"],
             }
         row["feature_cutoffs"] = cutoffs
         rows[0] = json.dumps(row, sort_keys=True, separators=(",", ":"))
