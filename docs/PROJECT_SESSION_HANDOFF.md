@@ -6345,3 +6345,16 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Verdict at handoff update: source change committed; regression test and full CI **NOT VERIFIED** pending run #202.
 - No VPS, Binance, T0 runtime/database, live execution, PR merge, or PR draft-state change.
 - Next: poll run #202; inspect Sidecar offline test output and exact checked-out SHA. If green, record exact CI evidence; if failed, diagnose only the demonstrated issue on the same branch.
+
+
+## 2026-11-08 — T1 Sidecar post-hard-link writer poison regression — verified closeout
+
+- T1 source repo: `kenznguyen/binance-futures-collector`; branch `feature/t1-connection-sidecar-integration-20261107`; PR #1 OPEN / DRAFT / NOT MERGED.
+- Exact source SHA: `ed126fa8ecae61d70939336d51ffd4bf86acc102`. Prior regression implementation commit `8892b72570d7c3f12c7d714aaeb37def63c56dcc`; final commit only corrected rustfmt layout.
+- Push CI #203: [42449616310](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42449616310), SUCCESS 5/5; exact checked-out SHA confirmed in Collector logs: `ed126fa8...`.
+- PR CI #204: [42449619551](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42449619551), SUCCESS 5/5; PR head `ed126fa8...`, base `bc4f0ef633fbeee4a49defd72827f17162693805`. Merge SHA not asserted because not captured in the fetched job logs.
+- Collector Format, Clippy, release Build, Test PASS; library 43/43, main 1/1. Sidecar format/Clippy PASS; Sidecar offline tests 9/9 + 27/27 PASS. Explicit regression `post_hard_link_publication_failure_poisons_writer_and_preserves_manifest_consistency` PASS. Dashboard frontend/backend, Docker build and Security audit PASS.
+- Artifact ID `13605356026`, name `t1-collector-linux-x86_64-ed126fa8ecae61d70939336d51ffd4bf86acc102`, SHA-256 `5ddee4e79c43baead94f2a01f8069e56abff090e9796903f892c9a7eb5b0eff8`, size 4,186,964 bytes; artifact metadata verified, payload hash not independently recomputed.
+- Verdict: **PASS** for offline regression + full push/PR CI at exact source SHA `ed126fa8...`. Run #202 format failure was fixed by rustfmt-only commit and is superseded by #203/#204.
+- Restrictions preserved: no T0 change/runtime, no VPS/Binance collector runtime, no live execution, no PR merge or draft-state change. Real deployed-filesystem failure behavior remains NOT VERIFIED beyond deterministic offline fault injection.
+- Next: documentation-only closeout complete; continue with next bounded T1 source/offline review. Deployment/runtime/merge require separate explicit approval.
