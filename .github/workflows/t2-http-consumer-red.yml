@@ -111,11 +111,11 @@ jobs:
           failures = set(re.findall(r"^FAIL: (test_[^( ]+)", output, re.MULTILINE))
           errors = set(re.findall(r"^ERROR: (test_[^( ]+)", output, re.MULTILINE))
           missing_adapter_errors = re.findall(
-              r"ModuleNotFoundError: No module named 'freqai_bridge\\.http_candles'",
+              r"ModuleNotFoundError: No module named 'freqai_bridge\.http_candles'",
               output,
           )
-          ran = re.findall(r"^Ran (\\d+) tests?", output, re.MULTILINE)
-          summary = re.search(r"^FAILED \\(failures=(\\d+), errors=(\\d+)\\)$", output, re.MULTILINE)
+          ran = re.findall(r"^Ran (\d+) tests?", output, re.MULTILINE)
+          summary = re.search(r"^FAILED \(failures=(\d+), errors=(\d+)\)$", output, re.MULTILINE)
           passed_policy = (
               "test_approved_freshness_formula_is_present_in_contract_plan" in output
               and "test_transport_limits_are_recorded_in_contract_plan" in output
