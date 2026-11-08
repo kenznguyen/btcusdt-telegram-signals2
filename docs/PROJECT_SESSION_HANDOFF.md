@@ -6962,3 +6962,13 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Scope: source/evidence review and documentation only. No tests/workflows run for this assessment; no artifacts. No source code, canonical DB, Feeder, VPS, DNS, proxy, exchange, T1/T2 runtime, paper order routing, or live trading changes.
 - Status: assessment **COMMITTED**; T0→T2 isolated adapter **PASS**; T0→T1 **NOT VERIFIED**; T1→T2 **NOT IMPLEMENTED**; end-to-end synchronization **NOT VERIFIED**; `ai_execution_enabled=false`.
 - Do not merge T1 PR #1, deploy services, change canonical storage, or activate runtime without separate review/approval.
+
+## 2026-11-08 — T1 sidecar formatting correction and exact-head CI
+
+- Continued on existing T1 branch `feature/t1-connection-sidecar-integration-20261107`; no new branch or PR.
+- T1 source commit: `6e20fe94f3ad64cc450e73def80a167fe371e49e`; changed only rustfmt line wrapping in `crates/connection-sidecar/src/lib.rs` (old blob `a27206c07855e9b7462dbcd0504333c778e8c14a`, new blob `0a2c127000ee1c9776b3594e1292b481c42c878c`).
+- Exact-head GitHub Actions push run `42479494373`: IN PROGRESS at this handoff update. Collector Format **PASS**, Collector Clippy **PASS**, Dashboard frontend/backend **PASS**; collector build/tests, sidecar format/Clippy/tests, Docker and security jobs pending/in progress. No artifact published at the time of check.
+- Existing source already sets the writer terminal/poisoned before finalization filesystem operations and includes a post-hard-link failure regression test. The PR review thread is still open/not formally resolved; do not call the finding closed until exact-head tests and independent review are verified.
+- PR #1 remains OPEN / DRAFT / NOT MERGED. No merge action.
+- This is a formatting-only source correction; no T1 runtime, Binance, VPS, T0 DB/Feeder, or T2 runtime activity.
+- Next: wait for run `42479494373` exact-head conclusion; inspect Sidecar tests and artifact outcome; then obtain independent review closure before further T1→T2 integration.
