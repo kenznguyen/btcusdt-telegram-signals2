@@ -1,6 +1,6 @@
 """Strict read-only HTTP client for T0 Candle Contract v1 (BTCUSDT M15)."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 import json
 import re
@@ -46,7 +46,7 @@ class CandleHttpError(Exception):
 @dataclass(frozen=True)
 class CandleHttpConfig:
     base_url: str
-    token: str
+    token: str = field(repr=False)
     max_lag_ms: int
 
     def __post_init__(self):
@@ -57,8 +57,15 @@ class CandleHttpConfig:
         if type(self.max_lag_ms) is not int or not 1 <= self.max_lag_ms <= 120_000:
             raise CandleHttpError("CONFIG_INVALID")
 
-        parsed = urlsplit(self.base_url.strip())
+        normalized_url = self.base_url.strip()
+        try:
+            parsed = urlsplit(normalized_url)
+            port = parsed.port
+        except ValueError:
+            raise CandleHttpError("CONFIG_INVALID") from None
         if parsed.scheme not in ("https", "http") or not parsed.hostname:
+            raise CandleHttpError("CONFIG_INVALID")
+        if port is not None and not 1 <= port <= 65535:
             raise CandleHttpError("CONFIG_INVALID")
         if parsed.username is not None or parsed.password is not None or parsed.query or parsed.fragment:
             raise CandleHttpError("CONFIG_INVALID")
@@ -67,6 +74,7 @@ class CandleHttpConfig:
             raise CandleHttpError("CONFIG_INVALID")
         if parsed.path not in ("", "/"):
             raise CandleHttpError("CONFIG_INVALID")
+        object.__setattr__(self, "base_url", normalized_url.rstrip("/"))
 
 
 class CandleHttpClient:
