@@ -1,6 +1,6 @@
 # Five-Layer System — Session Handoff
 
-Last updated: 2026-11-07 (Asia/Ho_Chi_Minh)
+Last updated: 2026-11-08 (Asia/Ho_Chi_Minh)
 
 ## Purpose
 
@@ -6566,3 +6566,17 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Approval scope is the freshness boundary design only. Numeric connect/read timeout, retry/backoff, and response-body-size limits remain NOT APPROVED. RED tests have not been added/run. HTTP implementation and runtime activation remain NOT AUTHORIZED.
 - No code, tests, T0 DB, Feeder, VPS, exchange, Data Quality Gate, T1/T2 runtime, deployment, or live execution changed. Keep `ai_execution_enabled=false`.
 - Next step: propose explicit numeric HTTP transport/resource limits for review; after those are approved, obtain separate authorization for RED tests and implementation.
+
+
+## 2026-11-08 — T2 HTTP transport and freshness policy approved
+
+- Policy document: `docs/architecture/T2_HTTP_CANDLE_CONSUMER_CONTRACT_AND_TEST_PLAN_2026-11-08.md`.
+- Policy document commit: `0630d07b1032349104411378ebcf389f48c96efa`.
+- User approved transport/resource limits: connect timeout 3 s; read timeout 5 s; maximum 3 attempts total; fixed backoff 250 ms then 500 ms; response body cap 256 KiB; `Accept-Encoding: identity`; no automatic redirects; TLS certificate verification for cross-host HTTPS; enforce body cap while streaming before JSON decode.
+- Retry scope: transient connection/transport errors, connect/read timeouts, and HTTP 503 only. Do not retry 400/401/404/405, other statuses, or validation failures. No endpoint/source/cache/DB fallback.
+- User conditionally approved M15 `max_lag_ms=120000` after confirming the correct calculation: first-observation ingestion delay = `latestAvailableAtMs - latestCloseTimeMs` = `closeLagMs - observationAgeMs`. Do not compare 120000 ms against raw `closeLagMs` or `observationAgeMs`; both naturally grow during a 15-minute candle interval and would create false stale rejections.
+- Require `availableAtMs >= closeTimeMs`; 120000 ms is accepted, greater than 120000 ms is rejected. Preserve validation of API freshness timestamps and arithmetic. Add deterministic threshold and M15-cycle tests.
+- Scope completed: policy/design documentation only. No source code or tests changed or run; no GitHub Actions run/artifact; no T0 API/store/DB, Feeder, VPS, exchange, Data Quality Gate, T1/T2 runtime, deployment, or trading state changed.
+- Status: transport/resource policy **APPROVED**; freshness threshold **APPROVED WITH VERIFIED FORMULA**; RED tests **NOT STARTED / NOT AUTHORIZED**; HTTP adapter and direct SQLite removal **NOT STARTED / NOT AUTHORIZED**; runtime activation **NOT AUTHORIZED**.
+- Next step: request separate explicit authorization for the RED-only test increment. Keep the same branch and record exact SHA and observed RED evidence. Do not implement production client code until separately authorized after RED evidence.
+- Safety: keep `ai_execution_enabled=false`; paper/research only; no live execution.
