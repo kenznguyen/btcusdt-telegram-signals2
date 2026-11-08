@@ -15,14 +15,17 @@
 
 ## Explicit gate policy (no defaults)
 
-Every call must supply:
-- `max_ece`.
-- `min_total_samples`.
-- `min_group_samples`.
-- `ece_bins` (1–100).
+The user approved the following production gate thresholds on 2026-11-08:
+- `max_ece=0.05`.
+- `min_total_samples=1000`.
+- `min_group_samples=200` for every LONG/SHORT × regime group.
+- Brier score must strictly beat the same-sample climatology/no-skill reference, overall and in every required group.
+
+`approved_calibration_gate_policy(ece_bins=..., required_regimes=...)` supplies those fixed approved thresholds. It deliberately requires the caller to provide:
+- `ece_bins` (integer 1–100).
 - `required_regimes` (non-empty, unique, explicit regime taxonomy).
 
-No threshold, minimum sample count, bin count, or regime taxonomy is silently chosen by the evaluator. The test fixture values are synthetic test inputs, not approved production thresholds. User approval is still required before a real calibration gate can be configured.
+Neither the bin count nor regime taxonomy was part of the user's approval; neither has a default. A policy with multiple regimes may require more than 1,000 total observations because every LONG/SHORT × regime group independently needs at least 200 samples.
 
 ## Fail-closed behavior
 
@@ -44,7 +47,7 @@ The report has deterministic SHA-256 fingerprints:
 This evaluator does **not** prove:
 - That `out_of_sample=true` is truthful or that the split is temporally/leakage-safe. The upstream split manifest and dataset provenance must be independently verified.
 - That the supplied predictions came from the claimed model/version/dataset; model, strategy, dataset, split-manifest and artifact byte provenance still need a separate signed/verified evidence envelope.
-- That ECE/Brier thresholds or sample-size criteria are statistically suitable for the actual BTCUSDT data. No production values have been approved.
+- That the approved ECE/Brier/sample thresholds are statistically suitable for the actual BTCUSDT data; approval fixes policy values, not their empirical validity.
 - That each market regime taxonomy is complete or stable over time.
 - Confidence intervals, bootstrap uncertainty, multiple-comparison corrections, drift, or post-calibration stability.
 
@@ -73,7 +76,9 @@ Do not convert this evaluator's accepted result directly into a leverage attesta
 
 - Evaluator implementation: IMPLEMENTED.
 - Unit tests + exact-source CI: PASS at SHA `56da92b86dc75ad76e0b391854c2e672268178b1`; 111/111 invocations PASS and artifact payload digest independently matched.
-- Production gate policy values: BLOCKED / NOT APPROVED.
+- Approved threshold policy factory: IMPLEMENTED; ECE 0.05, total OOS 1,000, each LONG/SHORT × regime group 200, strict Brier improvement.
+- Bin count and regime taxonomy: CONFIGURATION REQUIRED; no defaults.
+- Real OOS dataset and calibration quality: NOT VERIFIED.
 - Real OOS dataset and calibration quality: NOT VERIFIED.
 - OOS split and source provenance authenticity: NOT VERIFIED.
 - Leverage attestation integration: NOT IMPLEMENTED.
