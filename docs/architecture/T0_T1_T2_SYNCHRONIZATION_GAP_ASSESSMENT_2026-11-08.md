@@ -154,7 +154,7 @@ Before T2 consumes T1, specify:
   - T0 read-only candle contract: `dd19fe6f933a5c8b2a192f7bc65b64a00f205e9d`.
   - T2 HTTP consumer plan: `81d7eaef9aa9d2ad98d65e0dad1bac057b80e703`.
   - T1 importer: `5effe6540b86edcb190456c95b6bb11456aec099`.
-  - T1 connection validator: `61b569d38fe817322fa8c7956cc1e55a326c50e8`.
+  - T1 connection validator: `61b569d38fe817322fa8e7956cc1e55a326c50e8`.
 - T1 collector PR #1 current head: `93a3931a3e5098dcac5ab04fa5f535cd1bd252ba`; push run `42455219012` FAILURE; PR run `42455222283` FAILURE.
 - This assessment itself ran no tests and created no artifacts. Existing CI references above retain their exact historical SHAs and are not re-labeled as tests of this documentation commit.
 - Assessment status: T0→T2 isolated adapter **PASS**; T0→T1 **NOT VERIFIED**; T1→T2 **NOT IMPLEMENTED**; T1 sidecar integration **BLOCKED**; end-to-end 3-layer synchronization **NOT VERIFIED**.
