@@ -22,7 +22,7 @@ from market_data.storage import PostgresStore, create_store_from_env
 from market_data.postgres import PostgresLeaseStore, PostgresWriteGateway
 from market_data.sync import sync_window
 from market_data.store import INTERVAL_MS
-from market_data.write_gateway import SQLiteWriteGateway
+from market_data.write_gateway import SQLiteWalKeeper, SQLiteWriteGateway
 
 
 POSTGRES_CANONICAL_LEASE_NAME = "binance-btcusdt-canonical"
@@ -99,6 +99,7 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
 
     # Select one atomic writer/lease authority pair. PostgreSQL must use one
     # DSN for candles, leases and the transactionally fenced write gateway.
+    wal_keeper = None
     if isinstance(store, PostgresStore):
         if not isinstance(lease_store, PostgresLeaseStore):
             raise ValueError("PostgreSQL store and lease must both use PostgreSQL")
@@ -134,6 +135,7 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
             generation_provider=lambda: runtime.lease_generation,
             clock=clock_fn,
         )
+        wal_keeper = SQLiteWalKeeper(store_path)
 
     def canonical_sync(timeframe, start_ms, end_ms):
         return sync_window(exchange, write_gateway, timeframe, start_ms, end_ms, now_ms=clock_fn)
@@ -175,6 +177,7 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
         event_sink=event_sink,
         clock=clock_fn,
         retry_policy=retry,
+        wal_keeper=wal_keeper,
     )
     runtime.canonical_write_gateway = write_gateway
 
