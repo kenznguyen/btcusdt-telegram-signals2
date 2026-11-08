@@ -6523,3 +6523,18 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Status: **LOCAL UNITTEST SUITE PASS** for exact source SHA `e317b7d...`; **overall Contract v1 release NOT VERIFIED**. Independent review and T2 HTTP consumer conformance remain outstanding. T2 direct SQLite access remains non-conformant with the approved architecture until separately migrated and tested.
 - Next: perform independent review of API contract implementation and test coverage; then propose a separately bounded T2 HTTP-client/FreqAI migration only if authorized. Do not activate consumer runtime.
 - Restrictions: no T0 DB/Feeder/VPS/runtime/Data Quality Gate changes; no T1/T2 runtime activation, deployment, promotion, or live execution. Keep `ai_execution_enabled=false`.
+
+## 2026-11-08 — T0 Candle Contract v1 independent code review
+
+- Review report: `docs/evidence/t0/T0_CANDLE_CONTRACT_V1_INDEPENDENT_REVIEW_2026-11-08.md`.
+- Review report commit: `c2143c1ea81cdefcc95efc3e56d8fcd75673fa90`.
+- Reviewed implementation SHA: `e317b7dc02363db0600737a89442dd918559af3c`; API blob `81733c9b6de811cbebb2f5d472d41f37f337990c`.
+- Scope inspected: `market_data/api.py`, `market_data/store.py`, `market_data/storage.py`, `market_data/postgres.py`, `market_data/test_api.py`, `market_data/test_store.py`, `freqai_bridge/context.py`, and `freqai_bridge/ChartProFreqaiResearch.py`.
+- Verdict: **CONDITIONAL PASS** as a read-only diagnostic API foundation; Contract v1 is not yet certified for T2 consumption. No confirmed critical API defect found in this source review.
+- Freshness arithmetic is consistent with the contract: expected latest closed candle is derived from server generation time; age and close lag use the documented timestamps. `freshness.evaluable` means computability only, not freshness/strategy eligibility.
+- Coverage/gap reporting is explicit and does not synthesize candles. Identity, source, quality, availability provenance, contract/schema version, deterministic dataset hash, query bounds, Bearer authentication, GET-only routing, SQLite read-only mode, PostgreSQL read-only transaction and 2,000-slot API cap were inspected.
+- Required before T2 acceptance: remove T2's direct SQLite runtime path; implement consumer-side strict identity/schema/range/timestamp/decimal/coverage/freshness/digest validation with no fallback; prove TLS verification, bounded timeout/retry and response-body size limits. `/health` is unauthenticated liveness only, not readiness.
+- Test evidence at exact reviewed SHA: focused API 13/13 PASS and repository unittest suite 404 tests / OK / EXIT_CODE=0, both user-provided local Termux results. GitHub Actions exact-SHA run/job/artifact remains **NOT VERIFIED**.
+- T2 HTTP client: NOT IMPLEMENTED. T2 direct SQLite path: NON-CONFORMANT / NOT REMOVED. TLS/deployment: NOT VERIFIED.
+- No code or runtime was changed; no canonical DB/Feeder/VPS/exchange action, Data Quality Gate, T1/T2 activation, deployment, or live execution. Keep `ai_execution_enabled=false`.
+- Next permitted step: prepare a separately scoped T2 HTTP-client contract and fixture-only test plan. Implementation requires separate explicit authorization.
