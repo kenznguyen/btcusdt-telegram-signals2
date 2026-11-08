@@ -303,7 +303,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
     def test_rejects_prediction_timestamp_before_oos_window(self):
         artifacts = dict(self.artifacts)
         artifacts["predictions"] = artifacts["predictions"].replace(
-            b'"prediction_timestamp_ms":1700000000100',
+            b'"prediction_timestamp_ms":1700003700100',
             b'"prediction_timestamp_ms":1699999999000',
         )
         result = self.verify_rehashed_predictions(artifacts)
@@ -313,7 +313,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
     def test_rejects_prediction_timestamp_after_oos_window(self):
         artifacts = dict(self.artifacts)
         artifacts["predictions"] = artifacts["predictions"].replace(
-            b'"prediction_timestamp_ms":1700000000100',
+            b'"prediction_timestamp_ms":1700003700100',
             b'"prediction_timestamp_ms":1710000000001',
         )
         result = self.verify_rehashed_predictions(artifacts)
@@ -323,8 +323,8 @@ class AIProvenanceValidatorTests(unittest.TestCase):
     def test_rejects_outcome_available_before_prediction(self):
         artifacts = dict(self.artifacts)
         artifacts["predictions"] = artifacts["predictions"].replace(
-            b'"outcome_available_at_ms":1700000000600',
-            b'"outcome_available_at_ms":1700000000000',
+            b'"outcome_available_at_ms":1700003700600',
+            b'"outcome_available_at_ms":1700003700000',
         )
         result = self.verify_rehashed_predictions(artifacts)
         self.assertFalse(result.accepted)
@@ -333,7 +333,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
     def test_rejects_outcome_available_after_oos_window(self):
         artifacts = dict(self.artifacts)
         artifacts["predictions"] = artifacts["predictions"].replace(
-            b'"outcome_available_at_ms":1700000000600',
+            b'"outcome_available_at_ms":1700003700600',
             b'"outcome_available_at_ms":1710000000001',
         )
         result = self.verify_rehashed_predictions(artifacts)
@@ -485,6 +485,11 @@ class AIProvenanceValidatorTests(unittest.TestCase):
 
     def test_rejects_prediction_without_declared_m15_h1_feature_cutoffs(self):
         artifacts = dict(self.artifacts)
+        rows = artifacts["predictions"].decode().splitlines()
+        row = json.loads(rows[0])
+        del row["feature_cutoffs"]
+        rows[0] = json.dumps(row, sort_keys=True, separators=(",", ":"))
+        artifacts["predictions"] = ("\n".join(rows) + "\n").encode()
         result = self.verify_rehashed_predictions(artifacts)
         self.assertFalse(result.accepted)
         self.assertIn("FEATURE_CUTOFFS_INVALID", result.reasons)
