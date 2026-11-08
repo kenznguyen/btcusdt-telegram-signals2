@@ -376,3 +376,46 @@ Next: verify exact-head Actions for the approved policy implementation. Then imp
 - This is PR merge-context verification. It is not a direct push checkout of the PR head.
 - Evidence/handoff commit: `55508e19617fc6cf7c0bf8c43090ae5f10b9fbdf`.
 - Code and tests: PASS under PR merge-context CI. Actual BTCUSDT OOS calibration: NOT VERIFIED. Calibration attestation: NOT ISSUED.
+
+
+## AI OOS provenance validator — implementation increment (2026-11-08)
+
+### Scope and implementation
+- Added `quant_system/ai_provenance_validator.py`: offline Ed25519 signed-manifest verification.
+- Added `quant_system/test_ai_provenance_validator.py`: 14 synthetic contract tests.
+- Added `quant_system/AI_PROVENANCE_VALIDATOR_2026-11-08.md`: schema, trust boundary, limitations and evidence.
+- Added `cryptography>=44,<47` to `requirements.txt`.
+- Updated `.github/workflows/t2-dual-signal-coordinator.yml` to install Ed25519 dependency, run/retain validator test log and compile both validator and test.
+
+### Verifier contract
+- Strict signed JSON envelope with canonical UTF-8 JSON manifest and Ed25519 signature.
+- Trust roots are caller-supplied raw public keys indexed by key ID; no key material embedded in source.
+- Manifest binds model, dataset, predictions, split protocol and calibration-report artifact SHA-256 + exact byte size.
+- Rejects unknown/untrusted key, invalid signature/encoding, duplicate JSON keys, unknown manifest fields, missing/extra artifact roles, size/hash mismatch, invalid issue/expiry times, and declared train/OOS temporal overlap.
+- Passing result sets `attestation_issued=false`; no trade authorization is produced.
+
+### TDD and CI evidence
+- RED test-first run [42458980940](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458980940): expected import failure because validator module did not yet exist.
+- Intermediate RED runs exposed implementation/test defects; the artifact-tamper test was corrected to change bytes without changing size so hash verification is isolated.
+- Latest code commit: `9f019569b322077c9baf293d91eac6e0de600c63`.
+- Latest test commit: `43f5581d564148b806bf6317cbfcdadfb45f881a`.
+- Dependency commit: `60fd43510e5ada8631bf1022d1fd69948266016e`.
+- Workflow commit: `784589cb71babe6992ee2baf4ce74baba8858ffd`.
+- Final PR-context run [42459130878](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459130878): PR head `784589cb71babe6992ee2baf4ce74baba8858ffd`; synthetic merge checkout `595896d2e3c27d6eda617bf8714d7466d87204f4`; job `128664429232` SUCCESS.
+- Test counts: provenance 14/14; calibration evaluator 16/16; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. **127/127 total test invocations PASS**; py_compile PASS.
+- Artifact ID `13608698028`, name `t2-ai-intelligence-contracts-595896d2e3c27d6eda617bf8714d7466d87204f4`, GitHub digest `sha256:a796c062ecaf39d562aae05deece36925ed74c49b9b9b85ad2929830516dffec`.
+- Artifact includes provenance source, compile log and test logs. CI confirms `AI_EXECUTION_ENABLED=false`, database targets EMPTY and exchange credentials EMPTY.
+- This is PR merge-context verification, not direct-push exact-head evidence.
+- Evidence report commit: `d5455230535e88251a464d0cc71ab520124dc604`.
+
+### Limits — do not overstate provenance verification
+- No production trusted public key or independent signer is provisioned. Caller must load keys from an independently protected trust store; trust-store custody, rotation and revocation are not implemented.
+- Temporal chronology is checked only against the signed manifest's declared timestamps. Dataset rows are not parsed to independently recompute date ranges.
+- No proof yet of feature/label leakage, model training lineage, hyperparameter selection isolation, or that the exact model generated the supplied predictions.
+- Calibration report bytes are hash-bound but its embedded evaluator report digest/metrics are not semantically reconciled against the prediction/outcome files.
+- No real model, dataset, predictions, split protocol or calibration report were supplied.
+- Calibration attestation: NOT ISSUED; leverage authorization: NOT ISSUED; runtime integration: NOT IMPLEMENTED.
+- `AI_EXECUTION_ENABLED=false`; no database, T0/T1, exchange or runtime touched.
+- PR #95 remains OPEN / DRAFT / NOT MERGED. No merge/rebase authorized.
+
+Next: define and independently provision the trusted signer/key lifecycle, then extend verification to parse the actual dataset/prediction/report formats and reconcile timestamp coverage and report/input fingerprints. Only after those checks and a real OOS run can calibration attestation be considered.
