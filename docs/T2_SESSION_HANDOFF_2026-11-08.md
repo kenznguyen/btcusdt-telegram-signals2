@@ -5,7 +5,7 @@
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
 - Latest verified code/test SHA: `afa44c4bbab5a86040aadbeed219df7fe10a87cb`.
-- Latest GREEN evidence commit before this handoff update: `743fcf1ac8f32e0e04abcf70f1fac83d6daac515`.
+- Latest GREEN evidence commit before this handoff update: `2ccde8eb8bc57a8ac65a3474a2688095f450a4ac`.
 - PR #95: OPEN / DRAFT / NOT MERGED.
 - PR base: `feature/dual-strategy-phase22-frozen-reproducibility-20261031` at `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
 - No new branch or PR was created.
@@ -79,10 +79,16 @@ Working-tree status: NOT VERIFIED; GitHub Contents API commits were used and no 
 
 ### R22.2
 
-- Latest run for code SHA `afa44c4bbab5a86040aadbeed219df7fe10a87cb`: run ID `42454888603`.
-- URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454888603
-- At handoff capture: IN_PROGRESS / NOT VERIFIED.
-- Earlier R22.2 PASS on an older source SHA does not certify the latest reservation/reduction implementation.
+- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454888603
+- Run ID: `42454888603`, event `pull_request`, conclusion SUCCESS.
+- PR head SHA at run: `afa44c4bbab5a86040aadbeed219df7fe10a87cb`.
+- Base SHA: `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
+- Checked-out synthetic merge SHA: `b8312df971472df2f6118641aac3b186c00f916b`.
+- Job ID: `128651696509`.
+- Offline runtime probe: **8 tests PASS**; paper-only boundary PASS; OKX API key/secret values empty.
+- Artifact ID: `13607287365`, name `r22-2-phase22-runtime-b8312df971472df2f6118641aac3b186c00f916b`, 6,993 bytes, not expired at metadata inspection.
+- GitHub upload digest: `7b07fa372063b022fe14c43a8152a1adce3042e01d9f2c8a78bc5642ebae5150`.
+- Artifact payload bytes have not been independently downloaded and re-hashed.
 
 ## Current verdict
 
@@ -93,7 +99,7 @@ Working-tree status: NOT VERIFIED; GitHub Contents API commits were used and no 
 - Partial/full reduction accounting: PASS in focused tests.
 - Exact-head T2 CI: PASS (21/21).
 - Exact-head T0 adapter regression: PASS (10/10).
-- Latest R22.2: IN_PROGRESS / NOT VERIFIED.
+- R22.2 isolated offline runtime probe: PASS (8/8).
 - Gross exposure ceiling: NOT DEFINED.
 - Signal coordinator integration: NOT IMPLEMENTED.
 - Combined CORE + AI paper replay: NOT RUN.
