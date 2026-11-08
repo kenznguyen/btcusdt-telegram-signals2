@@ -7,6 +7,11 @@ on:
     paths:
       - "ci/t0_sqlite_readonly_sandbox.py"
       - "market_data/store.py"
+      - "market_data/feeder.py"
+      - "market_data/feeder_service.py"
+      - "market_data/write_gateway.py"
+      - "market_data/test_feeder_lifecycle.py"
+      - "market_data/test_write_gateway.py"
       - ".github/workflows/t0-sqlite-readonly-sandbox.yml"
   pull_request:
     branches:
