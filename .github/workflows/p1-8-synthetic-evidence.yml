@@ -402,7 +402,7 @@ jobs:
             synthetic-evidence-output-a/**
             synthetic-evidence-output-b/**
           if-no-files-found: error
-          retention-days: 90
+          retention-days: 7
 
   independent-attestation-verification:
     name: Independent runner Sigstore verification

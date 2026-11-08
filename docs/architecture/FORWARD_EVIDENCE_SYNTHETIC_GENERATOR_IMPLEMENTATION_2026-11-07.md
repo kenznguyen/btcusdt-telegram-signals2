@@ -340,3 +340,33 @@ Inspect the workflow run for exact source SHA, confirm the 43-test result and ar
 - Artifact ID `13539664461`; name `p1-8-synthetic-evidence-dd9f20b4269ea5f886d9470370c5279d4c7ad2ab`; size 299,195 bytes; SHA-256 `17092da91d32c491be5a6b8885d7a4faa293354b69453207eec47d4f854f3050`; expires `2026-11-13T20:59:17Z`. Workflow upload log and GitHub artifact metadata report the same digest. The ZIP was not separately downloaded and re-hashed in this verification.
  
 **P1.8.4 status: PASS — synthetic-only execution invariant test scope verified for exact source SHA `dd9f20b4269ea5f886d9470370c5279d4c7ad2ab`.** This proves only the isolated synthetic reference model and CI contracts. It does not certify production T0/T1 execution/ledger semantics, exchange integration, shared risk engine behavior, provider durability, production readiness or live trading. T0 remains PAUSED; no production runtime integration, provider/VPS, database, exchange, persistent capture or live execution was performed or authorized.
+
+
+## 2026-11-09 — P1.8 artifact-retention policy correction
+
+### Finding and evidence
+
+- P1.8 workflow run #119: [run 42515890552](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42515890552), source SHA `306b09b555948adaa2ac2c00a297f50e6ba238b3`; all three jobs succeeded.
+- GitHub artifact metadata showed both artifacts expiring at `2026-11-15T19:36:43Z`, seven days after creation. Evidence artifact ID `13631500841`; independent verification artifact ID `13631745765`.
+- The primary upload step requested `retention-days: 90`, while GitHub's effective artifact expiration was seven days. `build_retention_manifest` also claimed “90-day Actions artifact”. This made the retention manifest factually inaccurate.
+- The archived evidence manifest for run #119 is historical evidence and is not rewritten. Its recorded policy mismatch remains part of the audit trail.
+
+### Test-first correction
+
+- RED test commit: `7144911af1ff2089a06228d675da39024460fac0`.
+- Workflow run #120: [run 42516131891](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42516131891), exact source SHA `7144911af1ff2089a06228d675da39024460fac0`.
+- Expected RED result: 120 tests ran; the new retention contract test failed with `KeyError: 'actions_artifact_retention_days'`, confirming the manifest omitted the required effective configuration field. Compile and synthetic-only preflight passed. The workflow stopped before packaging, signing, artifact upload, or archive commit.
+
+### Correction scope
+
+- Set the primary signed-evidence upload retention to seven days, matching the observed effective retention for this repository.
+- Add structured `actions_artifact_retention_days: 7` to the generated manifest and update its policy text to “Git history plus 7-day Actions artifact; Git history is not WORM storage.”
+- Keep the independent-verification artifact at seven days.
+- Retain Git history as the longer-lived repository copy, but explicitly do not characterize it as WORM or immutable storage.
+- No repository-level Actions retention setting is changed. No WORM storage/provider, numeric long-term Git retention period, or external archive is selected.
+
+### Verification boundary
+
+The correction must be verified by a new GitHub Actions run on the exact correction commit. Confirm the focused retention tests and full synthetic suite, inspect the generated manifest, verify both uploaded artifacts' actual `expires_at`, and verify the archive commit and source SHA. Until then, correction status is **IMPLEMENTED / CI NOT VERIFIED**.
+
+No T0 runtime, VPS, database, Feeder, market-data ingestion, exchange connection, paper/live execution, or data lifecycle operation was changed or activated. `AI_EXECUTION_ENABLED=false`.

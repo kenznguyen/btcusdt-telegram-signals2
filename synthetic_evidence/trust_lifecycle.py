@@ -364,7 +364,8 @@ def build_retention_manifest(files, *, source_sha, workflow_run_id, archived_at)
         "retention_class": "GIT_HISTORY",
         "immutability": "NOT_WORM",
         "files": entries,
-        "policy": "Git history plus 90-day Actions artifact; Git history is not WORM storage.",
+        "actions_artifact_retention_days": 7,
+        "policy": "Git history plus 7-day Actions artifact; Git history is not WORM storage.",
     }
     body["manifest_sha256"] = hashlib.sha256(_canonical_bytes(body)).hexdigest()
     return body
