@@ -6313,10 +6313,10 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Collector: Format, Clippy, release Build and `cargo test --all` PASS. 43 library tests + 1 main test passed; all three new Order Book tests explicitly PASS. Doc tests: 0. Sidecar format/Clippy PASS; sidecar tests 8 + 27 PASS. Dashboard frontend/backend, Docker build and security jobs PASS.
 - Artifact inventory for run 198 is empty; artifact prepare/upload steps were skipped. No binary artifact is claimed.
 - During result review, reconnect test was found to imply raw-tape persistence although it only exercised the in-memory book. Renamed it to `reconnect_pu_break_leaves_untouched_levels_stale_in_live_book` and changed assertions to avoid claiming raw-tape coverage.
-- Refinement source SHA: `3c2745a30f3cb20375a20188b5f4e10e7b7bbfef`; new CI run 200: [42448956679](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42448956679), pending final outcome at handoff update.
+- Refinement source SHA: `3c2745a30f3cb20375a20188b5f4e10e7b7bbfef`; run 200 final result is recorded in the closeout section below.
 - Evidence report updated in commit `0b3cede15535710432c98bc65754c9ed2e6c90d1`.
 - No VPS runtime, Binance connection, T0 runtime/database, resnapshot policy or live execution touched.
-- Next: verify run 42448956679 on exact merge SHA, then update final verdict. Raw-tape persistence and real reconnect recovery remain NOT VERIFIED by these tests.
+- This earlier next-step note is superseded by the run 200 closeout below. Raw-tape persistence and real reconnect recovery remain NOT VERIFIED by these tests.
 
 
 ## 2026-11-08 — T1 Order Book offline assurance closeout
