@@ -137,6 +137,50 @@ class SQLiteWriteGateway:
                 raise
 
 
+class SQLiteWalKeeper:
+    """Keep a WAL-mode SQLite connection alive for concurrent read-only API clients.
+
+    The keeper performs no candle or lease writes. Its lifetime is owned by the
+    FeederRuntime and must span recovery, scheduling, and heartbeat activity.
+    """
+
+    def __init__(self, database_path):
+        resolved = Path(database_path).resolve()
+        if not resolved.is_file():
+            raise FileNotFoundError("WAL keeper database must already exist")
+        self.db_path = str(resolved)
+        self.db_uri = resolved.as_uri() + "?mode=rw"
+        self._connection = None
+
+    @property
+    def is_open(self):
+        return self._connection is not None
+
+    def open(self):
+        if self._connection is not None:
+            return True
+        connection = sqlite3.connect(
+            self.db_uri, uri=True, timeout=5, isolation_level=None,
+        )
+        try:
+            connection.execute("PRAGMA busy_timeout=5000")
+            mode = connection.execute("PRAGMA journal_mode=WAL").fetchone()
+            if not mode or str(mode[0]).lower() != "wal":
+                raise RuntimeError("SQLite WAL keeper could not establish WAL mode")
+            connection.execute("SELECT COUNT(*) FROM candles").fetchone()
+        except Exception:
+            connection.close()
+            raise
+        self._connection = connection
+        return True
+
+    def close(self):
+        connection, self._connection = self._connection, None
+        if connection is not None:
+            connection.close()
+        return True
+
+
 class ShadowWriteGateway:
     """Explicit no-persistence sink for manual, read-only shadow inspection."""
 
