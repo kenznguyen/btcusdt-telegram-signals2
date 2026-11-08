@@ -77,5 +77,5 @@ Do not change storage precision semantics, create a PostgreSQL migration, run Da
 - **GREEN tests: NOT RUN / NOT VERIFIED.** No claim that the focused or full suite passes. The combined commit status currently exposes no checks; exact-head GitHub Actions run/job/log/artifact is **NOT VERIFIED**.
 - Independent code review: additive-only diff confirmed; no Store or runtime changes. Runtime/API behavior remains unverified until tests execute.
 - Verdict: **IMPLEMENTED / NOT VERIFIED** (not PASS).
-- Next step: execute `python3 -m unittest market_data.test_api -v` on exact SHA `42fda132bf06edcf2cb5f5d3ea415fc3e7a47fc1`, then run the repository's full relevant test suite and capture exact GitHub Actions evidence where available. Fix only demonstrated failures on this branch.
+- Next step: execute `python3 -m unittest market_data.test_api -v` on exact SHA `d88e3ddda0502708e64c4815ecae08ed707f4641`, then run the repository's full relevant test suite and capture exact GitHub Actions evidence where available. Fix only demonstrated failures on this branch.
 - Restrictions: no T2 HTTP client/FreqAI migration in this increment; no T0 DB, Feeder, VPS, exchange, Data Quality Gate, T1/T2 runtime, deployment, promotion, or live execution. Keep `ai_execution_enabled=false`.
