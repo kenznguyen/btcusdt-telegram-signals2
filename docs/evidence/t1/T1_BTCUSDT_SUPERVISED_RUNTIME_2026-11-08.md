@@ -23,7 +23,7 @@ Record user-provided VPS evidence for the first bounded T1 Collector run on BTCU
 - Only BTCUSDT paths were observed under /home/ubuntu/t1/data/futures.
 
 ## Output inventory and CSV checks
-13 CSV files were present, all with a header and at least one data row:
+13 CSV files were present in the timestamp/size inventory. The CSV structure inspection output was truncated while printing the large orderbook depth-update row; therefore only the nine stream files below have independently visible line counts and header/sample records in the supplied output:
 
 | Stream | CSV lines | Data rows |
 |---|---:|---:|
@@ -36,12 +36,12 @@ Record user-provided VPS evidence for the first bounded T1 Collector run on BTCU
 | liquidations | 2 | 1 |
 | funding rates | 2 | 1 |
 | open interest | 2 | 1 |
-| index price klines | 7 | 6 |
-| premium index klines | 7 | 6 |
-| orderbook snapshot | present | header and data shown in output |
-| initial orderbook snapshot | present | header and data shown in output |
+| index price klines | NOT CAPTURED | File existence and size were recorded; row count/content not visible in the truncated CSV inspection output |
+| premium index klines | NOT CAPTURED | File existence and size were recorded; row count/content not visible in the truncated CSV inspection output |
+| orderbook snapshot | NOT CAPTURED | File existence and size were recorded; row count/content not visible in the truncated CSV inspection output |
+| initial orderbook snapshot | NOT CAPTURED | File existence and size were recorded; row count/content not visible in the truncated CSV inspection output |
 
-Note: line counts and sample headers/records were supplied by the user. The orderbook snapshot files were shown to exist and contain data, but complete row counts for both snapshots were not separately captured in the summarized terminal output.
+Note: the timestamp/size inventory confirms the remaining four CSV files exist, but the supplied CSV inspection output was truncated before their headers, samples, or line counts appeared. Do not infer their row counts or content validity from file existence alone.
 
 ## Graceful shutdown evidence
 - At 2026-11-07 23:38:00 UTC the process logged: Received SIGTERM; beginning graceful shutdown.
