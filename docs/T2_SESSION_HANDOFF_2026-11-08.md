@@ -5,7 +5,7 @@
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
 - Latest verified code/test SHA: `7d2b73bfbe6d588c57257e93193806f7d942dbb9`.
-- Latest GREEN evidence commit before this handoff update: `8cb561839537b911d1fac7dcceed2a26dc7db707`.
+- Latest GREEN evidence commit before this handoff update: `99951a4d863938909ea2d682d63911ba0ddb4625`.
 - PR #95: OPEN / DRAFT / NOT MERGED.
 - PR base: `feature/dual-strategy-phase22-frozen-reproducibility-20261031` at `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
 - No new branch or PR was created.
@@ -114,10 +114,11 @@ The user selected combined portfolio equity as the 1% margin basis. The implemen
 - Tests on exact source: coordinator 11/11, dual-ledger 23/23, legacy Phase 2 20/20, Phase 3 11/11, PaperLedger 18/18; **83/83 total PASS**.
 - T0 → Freqtrade adapter regression: 10/10 PASS.
 - Direct-push workflow run `42456099914`: SUCCESS, exact SHA `7d2b73bfbe6d588c57257e93193806f7d942dbb9`.
-- PR coordinator run `42456102768`: SUCCESS, exact PR head `7d2b73bfbe6d588c57257e93193806f7d942dbb9`.
-- PR dual-ledger run `42456102834`: SUCCESS, 23/23.
-- PR legacy regression run `42456102796`: SUCCESS, 49/49.
-- PR T0 adapter run `42456102773`: SUCCESS, 10/10.
+- PR coordinator run `42456177935`: SUCCESS, exact PR code head `7d2b73bfbe6d588c57257e93193806f7d942dbb9`, 83 tests PASS.
+- PR dual-ledger run `42456178029`: SUCCESS, 23/23.
+- PR legacy regression run `42456177941`: SUCCESS, 49/49.
+- PR T0 adapter run `42456177970`: SUCCESS, 10/10.
+- A later documentation-only PR head (`bddf1ce751502640d0676683e3018de26afb8e5c`) triggered R22.2; that verification was IN_PROGRESS at handoff capture.
 - Offline preflight: `AI_EXECUTION_ENABLED=false`; database targets and Binance/OKX credentials empty. No artifact produced.
 - `generate_signals()` reuses the existing closed-candle `core_signal()` RSI/ADX/H1 logic and validated `ai_signal()` FreqAI provenance checks, but returns both candidates independently. Tests prove opposing CORE LONG / AI SHORT are both preserved, AI can signal when CORE is silent, and invalid AI provenance does not suppress a valid CORE signal.
 - Opposing CORE LONG and AI SHORT intents are admitted independently when shared risk permits; each position is persisted to its own ledger. ENTRY/DCA use combined portfolio equity and 1% shared reservations. DCA side mismatch is rejected. Kill Switch blocks increases while reductions remain available.
