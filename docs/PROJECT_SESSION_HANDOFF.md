@@ -7124,7 +7124,7 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 
 - User selected and accepted the architecture direction: shared logical data ownership across T0–T4; demand-based raw-data retention; central system-level lifecycle governance.
 - Architecture Decision Record added: `docs/architecture/SHARED_DATA_FOUNDATION_LIFECYCLE_ADR_2026-11-08.md`.
-- ADR commit: `1c101fb80efd2c9e71bd727a8abbe5ebb5dc1287`; prior branch tip before this documentation increment: `b460f12e0b5d2ae02130dca3b2b6c6970edfd268`.
+- ADR commit: `1c101fb80efd2c9e71bd727a8abbe5ebb5dc1287`; its actual parent was `d7c95557b2bfbba4ec714bb8db3f9331356810cc`. The branch had advanced from the initially inspected `b460f12e0b5d2ae02130dca3b2b6c6970edfd268` before the ADR commit was created; the intervening Feeder systemd notification source/test commits predate this lifecycle documentation work and were not modified by it.
 - This is a documentation-only decision record. Shared ownership does not grant T1–T4 write/delete authority over canonical T0 data. Consumer ACK is not deletion authorization. Dataset identity, consumer dependencies, retention policy versioning, holds, grace period, explicit deletion authorization, tombstones, and audit evidence are required design elements.
 - Numeric retention periods, data-class thresholds, archive mechanics, dataset/consumer contract, and deletion safety contract remain OPEN / DESIGN REQUIRED.
 - No source code, tests, workflow, database/schema, runtime configuration, VPS, Feeder, API process, exchange connection, market-data sync, archive, vacuum, or deletion was changed or activated. `ai_execution_enabled=false`; paper-only.
