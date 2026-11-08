@@ -123,3 +123,60 @@ This reveals a production integration blocker: with the current short-lived writ
 6. On Feeder crash, the API must fail closed and be stopped/restarted only after the Feeder re-establishes WAL/SHM readiness.
 
 No production code was changed in this follow-up. The persistent keeper is a candidate design, not an adopted runtime behavior.
+
+## 8. Feeder-owned WAL Keeper implementation — TDD and CI evidence
+
+### Implementation
+
+- Added `SQLiteWalKeeper` in `market_data/write_gateway.py`. It opens the existing database using `mode=rw`, verifies WAL mode and the canonical `candles` table, and retains one idle SQLite connection. It does not write candles or lease rows.
+- Added optional `wal_keeper` lifecycle ownership to `FeederRuntime:
+  - Open after the fencing lease is acquired and before startup recovery.
+  - If open/recovery/startup fails, stop admission, drain, release the exact lease, then close the keeper.
+  - On normal shutdown, stop admission, wait for heartbeat and active writers, release the exact lease, then close the keeper.
+  - If writer drain times out or lease release is not confirmed, retain the keeper; do not close it prematurely.
+  - If lease is lost, drain and close the keeper without attempting to release a replacement generation.
+- `build_runtime()` wires a keeper for SQLite only. PostgreSQL runtime remains unchanged.
+- `SQLiteWalKeeper` permits close from the shutdown thread (`check_same_thread=False`); a regression test caught and corrected SQLite's default thread-affinity failure.
+- Startup cleanup marks the keeper as owned before calling `open()`, so partially initialized custom keepers are also closed on failure.
+
+### TDD evidence
+
+- RED tests were committed first in `market_data/test_feeder_lifecycle.py`; exact SHA `d2ad3e85236fa9367a639d0dd874afb49e51fd6f` failed because `FeederRuntime` did not yet accept `wal_keeper`.
+- First GREEN attempt exposed two further lifecycle defects:
+  - Keeper close from a different thread raised `sqlite3.ProgrammingError`.
+  - A keeper whose `open()` raised was not sent through cleanup.
+- Both were corrected and regression-tested.
+- Added actual disposable runtime coverage: start runtime, retain WAL/SHM across actual `SQLiteWriteGateway.write_batch()` and `LeaseStore.heartbeat()`, read committed candles, drain/release lease, then close keeper and verify sidecars disappear.
+
+### Final exact-source verification
+
+- Final implementation/test source SHA: `702e366882c1f585e14f2700497b9f7290d841ca`.
+- T0 Single Writer Gateway Contracts run: `42484777981`; target job `Static Gateway contract verification`, ID `128744313677`, **SUCCESS**. At evidence capture, other independent jobs in the same workflow run were still executing; overall workflow conclusion was therefore still in progress.
+- Target job results:
+  - Feeder lifecycle and gateway focused/regression tests: `73 tests`, **OK**.
+  - Health/readiness tests: `21 tests`, **OK**.
+  - Process restart/fencing tests: `2 tests`, **OK**.
+  - Full `market_data` suite: `289 tests`, **OK (42 skipped)**.
+- Target job artifact: `t0-swg-contract-evidence-702e366882c1f585e14f2700497b9f7290d841ca`, ID `13618638809`, SHA-256 `ad887590c4b4b52c28c032f09e041bb79604446c60104c4eb3b8a8985e79d4ef`.
+- Disposable systemd WAL sandbox run `42484778028`: **SUCCESS**, job ID `128744166456`; artifact ID `13618563920`, SHA-256 `ff9f8b45ded427971988958347996ae52a32fd5d750671d04e7a3ca4e1277118`.
+- T2 Freqtrade 2026.9 strategy load smoke run `42484777986`: **SUCCESS** at the same source SHA. This is a CI smoke only; it does not activate T2 runtime.
+- Workflow links:
+  - [T0 Single Writer Gateway Contracts](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42484777981)
+  - [T0 SQLite Read-only systemd Sandbox](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42484778028)
+  - [T2 strategy load smoke](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42484777986)
+
+### Status after implementation
+
+- Keeper startup, readiness ordering, and shutdown lifecycle: **PASS — disposable tests**.
+- Sidecars persist across short-lived write and heartbeat connections while Keeper remains open: **PASS — disposable tests**.
+- API read-only `ReadOnlyPaths` with live WAL: **PASS — disposable systemd runner**.
+- Keeper startup failure and partial initialization cleanup: **PASS — tests**.
+- Shutdown drain timeout preserves keeper and lease: **PASS — tests**.
+- Actual VPS systemd/kernel behavior and process manager: **NOT VERIFIED**.
+- Production Feeder/API service units and readiness integration: **NOT DEPLOYED**.
+- T0 API endpoint: **NOT RUN**; T2 runtime: **NOT ACTIVATED**; `ai_execution_enabled=false`.
+- No VPS, canonical database, secrets, permissions, firewall, DNS, proxy, or live runtime was changed.
+
+### Next bounded step
+
+Review the final diff and the full workflow conclusion; add an isolated systemd integration probe that runs the actual `FeederRuntime` with `SQLiteWalKeeper` as the writer service and a separate read-only API service. Verify readiness ordering, Feeder crash, and shutdown ordering on the disposable runner. Only after that may a deployment unit be proposed for explicit approval.
