@@ -180,3 +180,9 @@ No production code was changed in this follow-up. The persistent keeper is a can
 ### Next bounded step
 
 Review the final diff and the full workflow conclusion; add an isolated systemd integration probe that runs the actual `FeederRuntime` with `SQLiteWalKeeper` as the writer service and a separate read-only API service. Verify readiness ordering, Feeder crash, and shutdown ordering on the disposable runner. Only after that may a deployment unit be proposed for explicit approval.
+
+### Final overall workflow completion (verified after the initial capture)
+
+- Overall T0 Single Writer Gateway Contracts run `42484777981`: **SUCCESS** at exact SHA `702e366882c1f585e14f2700497b9f7290d841ca`.
+- All six jobs completed successfully: T1 importer offline tests; Static Gateway contract verification; Fresh-cluster restricted provider bootstrap; Paper consumer fixture regressions; T1 collector sidecar writer Rust tests; Isolated TimescaleDB read-only integration.
+- Additional artifacts from the completed overall run: provider bootstrap artifact ID `13619415580`, SHA-256 `2775bde527085a190d06285575d3d32455273c1a8137e3a020bd54bfdf8a8700`; T1 Rust artifact ID `13618913309`, SHA-256 `e1613b0549f563485b73fa56c68c45c15fe98ee14c53afe880be12566b57a834`; Timescale read-only artifact ID `13618584170`, SHA-256 `435889ecafed2fd86dbb6e1fc1c5c311257a659eaff3dc667b5dbc8c06f659c5`.
