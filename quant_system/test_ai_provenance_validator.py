@@ -21,6 +21,11 @@ class AIProvenanceValidatorTests(unittest.TestCase):
             format=serialization.PublicFormat.Raw,
         )
         self.artifacts = {role: (f"synthetic-{role}-bytes").encode() for role in ROLES}
+        self.artifacts["predictions"] = (
+            b'{"prediction_timestamp_ms":1700000001000,"outcome_available_at_ms":1700000002000,'
+            b'"outcome":1,"confidence":"0.9","side":"LONG","regime":"trend",'
+            b'"model_version":"model-sha-test-v1","dataset_version":"dataset-sha-test-v1"}\\n'
+        )
         self.now_ms = 1_800_000_000_000
         self.manifest = {
             "schema_version": 1,
