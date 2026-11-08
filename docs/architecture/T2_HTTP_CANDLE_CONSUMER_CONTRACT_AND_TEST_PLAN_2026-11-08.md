@@ -294,11 +294,12 @@ The original design-only disclaimer is superseded only for the isolated HTTP ada
 - User explicitly approved isolated HTTP client implementation after the RED baseline.
 - Implementation: freqai_bridge/http_candles.py; public API CandleHttpConfig, CandleHttpClient, CandleHttpError; request method fetch(start_ms, end_ms, as_of_ms).
 - Implementation commit: 3223fb5746841bfd537258f27c14d2a5d8f57039.
-- Test/workflow checked-out SHA: 133bc8b0692a7f97c38bf9f2a1e3e9bbcde0fb48.
-- Focused workflow run 42469161176, job 128695643657: SUCCESS; 45 tests, 0 failures/errors; compile and paper-only preflight PASS.
-- Focused artifact ID 13612921873; SHA-256 ed03ef3b27e657d6a5ae009808b536a165c6427f663aa8635ec96c73b1d6e55d.
-- Pinned Freqtrade 2026.9 strategy-load run 42469161057, job 128695703023: SUCCESS at the same checked-out SHA; no exchange sync/database access.
-- Freqtrade smoke artifact ID 13612986619; SHA-256 957cfede82f55a61d75d49e59ea6d3ecef743574b03fdd04ddd376dd8e2ec669.
+- Final test/workflow checked-out SHA: 6b55f6f02f7e2bcceb4b38a7944e9f9b42bbe64d.
+- Focused workflow run 42469402438, job 128696421586: SUCCESS; 45 tests in 0.076s; 0 failures/errors; compile and paper-only preflight PASS.
+- Focused artifact ID 13613080643; SHA-256 9f36fe04efe744f4a5cf1741919aa6dddffad0f60170719e003eed2c94c09497.
+- Pinned Freqtrade 2026.9 strategy-load run 42469402445, job 128696421737: SUCCESS at the same checked-out SHA; no exchange sync/database access.
+- Freqtrade smoke artifact ID 13613106308; SHA-256 69be478af85484583543a8ad92efcf3254fbbfb3886cfd69e2ded27fa43d6ca3.
+- Final boundary test simulates asOfMs captured before the next M15 boundary and API response generated after it, while preserving the original requested endMs/window.
 - Detailed evidence: docs/evidence/t2/T2_HTTP_CANDLE_CLIENT_GREEN_2026-11-08.md.
 - The five direct-SQLite migration acceptance checks are separated in freqai_bridge/t2_http_migration_acceptance.py and were compile-checked only; not executed.
 - T2 context.py still imports market_data.store/read_window and ChartProFreqaiResearch.py still uses canonical_db_path. The HTTP adapter is not wired into the strategy. Consumer migration remains NOT STARTED and requires separate approval.
