@@ -163,3 +163,65 @@ The documentation-only corrections in §5 have been applied and read back. The s
 - The user's experimental VPS read-only inventory step is **DEFERRED**. This design does not depend on VPS inspection and does not promote the experimental VPS to official status.
 - No retention value, RPO/RTO, provider, official environment, backup expiry, replica removal, export deletion, local cleanup, archive, vacuum, or destructive operation was selected or authorized.
 - No source code, schema, API, workflow, service, database, VPS, Feeder, or runtime state was changed. CI/tests: NOT RUN; no artifact.
+
+
+## 2026-11-09 follow-up — Copy lifecycle cross-contract review
+
+### Scope
+
+Read the copy lifecycle contract against:
+- `SHARED_DATA_FOUNDATION.md`;
+- `CENTRAL_DATA_LIFECYCLE_POLICY.md`;
+- `DATASET_CONSUMER_CONTRACT.md`;
+- `DATA_DELETION_SAFETY_CONTRACT.md`;
+- `ENVIRONMENT_EVIDENCE_BOUNDARY.md`.
+
+Documentation-only review. No runtime inventory, storage access, VPS command, test, schema, API, or implementation was performed.
+
+### Findings and disposition
+
+**COPY-01 — AUTHORITY ALIGNMENT: PASS**
+
+The copy contract assigns central governance authority over destructive disposition and restricts executors to exact authorized scope. This aligns with the foundation's producer stewardship and central governance model, and the deletion contract's separation of requester, reviewer, independent approver, execution authority, and storage executor. No parallel consumer- or T0-owned destructive path is introduced. T0 writer fencing remains independent of lifecycle approval.
+
+**COPY-02 — HOLD INHERITANCE: GAP RESOLVED WITH FAIL-CLOSED DESIGN RULE**
+
+The initial copy contract listed source-hold inheritance as an open decision. It now states in §5.6 that a hold on a source dataset/version protects every known copy containing, representing, or deriving from that scope by default. Exclusion requires exact-scope, evidence-backed adjudication by an authorized hold/governance authority. Copy-specific holds remain independent. Releasing a source hold does not itself authorize copy disposition. Unknown lineage or disputed applicability keeps the copy protected.
+
+This is a design rule only; no hold registry, propagation mechanism, or runtime behavior is implemented.
+
+**COPY-03 — BACKUP/REPLICA DELETION AUTHORITY: PASS AFTER REFERENCE ALIGNMENT**
+
+The deletion safety contract already prohibited implicit cascading and required separate copy disposition. Its §12 now points to the dedicated copy lifecycle contract and makes explicit that each copy needs its own exact-scope review and authorization. The shared foundation now lists the copy lifecycle contract as the detailed design boundary. No conflict remains between source deletion and copy disposition at the documentation-authority level.
+
+**COPY-04 — ARCHIVE AVAILABILITY REQUIREMENT: OPEN / NOT RESOLVED**
+
+The central lifecycle policy §8 requires consumer dependencies to declare availability/latency requirements and blocks archive when those requirements are unknown or incompatible. The current Dataset Consumer Contract does not yet define a normative availability requirement vocabulary or field. The copy contract preserves this dependency gate but does not fill the consumer-contract gap. Until a separately reviewed consumer-contract amendment exists, unknown availability requirements continue to block archive. No online/latency/restore SLA or default has been invented.
+
+**COPY-05 — RECOVERY-CHAIN AND REBUILDABILITY: PASS AT DESIGN LEVEL; EVIDENCE NOT VERIFIED**
+
+The copy contract requires backup-chain dependency mapping, consistency points, restore procedures, restore verification, and fail-closed handling of unknown lineage. The deletion contract requires recovery and rebuildability evidence and prohibits removing recovery-critical backups. These rules are compatible. Actual backup inventory, chain integrity, restore proof, replica lag, and rebuild tests remain NOT VERIFIED.
+
+**COPY-06 — ENVIRONMENT EVIDENCE BOUNDARY: PASS**
+
+The copy contract does not promote source-defined or experimental observations to official-environment evidence. The environment boundary still classifies the current VPS as EXPERIMENTAL, permits scoped read-only inventory only, prohibits mutations, and leaves the official T0 environment NOT DESIGNATED. The VPS inventory remains DEFERRED by user direction.
+
+### Updated documentation
+
+- `DATA_COPY_BACKUP_REPLICA_LIFECYCLE_CONTRACT.md`: source-hold inheritance rule added (§5.6).
+- `DATA_DELETION_SAFETY_CONTRACT.md`: §12 now references the dedicated copy lifecycle contract.
+- `SHARED_DATA_FOUNDATION.md`: copy lifecycle contract added to the detailed design references and out-of-scope implementation boundary.
+
+### Overall result
+
+- Copy lifecycle authority alignment: **PASS**.
+- Source-hold inheritance design: **PASS — FAIL-CLOSED RULE RECORDED**.
+- Source deletion vs copy disposition: **PASS**.
+- Recovery-chain governance: **PASS AT DESIGN LEVEL; RUNTIME EVIDENCE NOT VERIFIED**.
+- Archive availability requirement in consumer contract: **OPEN GAP — ARCHIVE BLOCKED WHILE UNKNOWN**.
+- Runtime copy inventory / restore evidence: **NOT VERIFIED**.
+- Implementation and destructive operations: **NOT AUTHORIZED**.
+
+No numeric retention, RPO/RTO, archive SLA, evidence freshness, provider, approval quorum, or official environment was selected. No source code, tests, workflow, database/schema, API, VPS, Feeder, runtime, backup, replica, export, or local copy was changed.
+
+**Status: COPY LIFECYCLE CROSS-REVIEW COMPLETE — DESIGN ALIGNMENT PASS WITH ONE OPEN CONTRACT GAP (ARCHIVE AVAILABILITY REQUIREMENT) — NOT IMPLEMENTED / NOT ACTIVE.**
