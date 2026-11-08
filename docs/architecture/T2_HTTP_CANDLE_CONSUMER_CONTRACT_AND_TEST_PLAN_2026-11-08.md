@@ -206,18 +206,16 @@ Tests must be deterministic, local-only, and written before implementation. Use 
 
 RED must be observed against the pre-implementation source. Do not label a test RED solely because it was authored; execute it and record exact source SHA and failure reason.
 
-## 8. Implementation sequence after approval
+## 8. Implementation sequence and current boundary
 
-1. Freshness boundary and numeric transport/resource policy are now approved and recorded; retain the verified ingestion-delay formula in all implementation/tests.
-2. Obtain separate explicit authorization, then add RED tests only; run focused tests and capture actual RED at exact SHA.
-3. Implement the HTTP adapter only; no T0 API/store/DB changes.
-4. Migrate `canonical_context` to consume validated HTTP response and remove direct Store import.
-5. Remove `canonical_db_path` from T2 runtime configuration and update README/config docs.
-6. Add local-server integration tests, secret-redaction checks, and no-fallback tests.
-7. Run focused tests, relevant T2 regression, and full repository suite.
-8. Independent review confirms no direct T0 DB dependency remains in T2 runtime.
-9. Run GitHub Actions on the same branch and record exact source/checkout SHA and artifacts.
-10. Record PASS/BLOCKED/NOT VERIFIED. Runtime promotion remains a separate approval.
+1. Freshness boundary and transport/resource policies: APPROVED.
+2. RED architecture baseline and executable behavior specification: completed and recorded in the RED evidence reports.
+3. Isolated HTTP adapter GREEN implementation: completed; 45/45 focused tests PASS at exact SHA; see the GREEN evidence report.
+4. Pinned Freqtrade 2026.9 strategy-load smoke: PASS at the same checked-out source SHA, without exchange sync or database access.
+5. T2 consumer migration is a separate next increment: migrate canonical_context to the validated HTTP response, remove direct Store import/read_window, remove canonical_db_path from T2 config, and prove no SQLite/cache/venue fallback. This step requires separate explicit authorization.
+6. Add consumer-level HTTP integration tests and run focused, T2 regression and full repository tests for that migration.
+7. Independent review must assess the integrated consumer migration before merge.
+8. Runtime promotion/deployment remains a separate approval; this adapter-only increment does not authorize runtime use.
 
 ## 9. Approval gates and status
 
@@ -226,15 +224,15 @@ RED must be observed against the pre-implementation source. Do not label a test 
 | Contract design / source review | CONDITIONAL PASS |
 | Freshness vs request-window boundary clarification | APPROVED — request-window latest slot = endMs - 900000 |
 | HTTP transport/resource limits | APPROVED — 3 s connect, 5 s read, 3 attempts, 250/500 ms backoff, 256 KiB body cap, identity encoding, no redirects |
-| M15 freshness threshold | CONDITIONALLY APPROVED — 120000 ms, using first-observation ingestion delay formula below |
-| T2 HTTP client implementation | NOT AUTHORIZED — separate authorization required |
+| M15 freshness threshold | APPROVED — 120000 ms, using first-observation ingestion delay formula below |
+| T2 HTTP client implementation | PASS — isolated adapter implemented; 45/45 focused tests PASS |
 | T2 direct SQLite removal | NOT STARTED |
 | Architecture RED baseline | CONFIRMED — 6 expected architecture failures; run 42468167014 at exact SHA `3222c1bd56ccc089d84f2744f4bafede4747ce50` |
-| HTTP behavior RED specification | AUTHORED — 28 adapter-dependent tests currently blocked by missing `freqai_bridge.http_candles`; behavior NOT VERIFIED |
-| GitHub Actions exact-SHA | NOT VERIFIED |
-| T2 runtime activation/deployment | NOT AUTHORIZED |
+| HTTP behavior test specification | GREEN — 45/45 adapter behavior and policy tests PASS at exact SHA `133bc8b0692a7f97c38bf9f2a1e3e9bbcde0fb48` |
+| GitHub Actions exact-SHA | PASS — adapter run `42469161176`; Freqtrade smoke run `42469161057`; same checked-out SHA |
+| Pinned Freqtrade 2026.9 strategy-load smoke | PASS — run `42469161057`; no exchange sync/database access |\n| T2 direct SQLite removal / consumer wiring | NOT STARTED — separate authorization required |\n| Independent second-reviewer sign-off | NOT VERIFIED |\n| T2 runtime activation/deployment | NOT AUTHORIZED |
 
-This plan defines the proposed implementation and acceptance criteria only. It does not authorize source changes or runtime activity.
+The original design-only disclaimer is superseded only for the isolated HTTP adapter GREEN increment explicitly approved by the user on 2026-11-08. The separate T2 consumer migration and all runtime activity remain gated.
 
 
 ## Approval record — freshness boundary rule
@@ -289,3 +287,19 @@ This plan defines the proposed implementation and acceptance criteria only. It d
 - Artifact ID `13611894815`; SHA-256 `27d2f20452c19b50a9d02d0a61935e2b77071b895fa47375469d5fcc022b57ad`.
 - Evidence report: `docs/evidence/t2/T2_HTTP_CONSUMER_RED_EXPANDED_2026-11-08.md`.
 - The behavior tests remain NOT VERIFIED; expected RED harness PASS is not product/HTTP client PASS. No GREEN code or runtime authorization.
+
+
+## GREEN implementation record — 2026-11-08
+
+- User explicitly approved isolated HTTP client implementation after the RED baseline.
+- Implementation: freqai_bridge/http_candles.py; public API CandleHttpConfig, CandleHttpClient, CandleHttpError; request method fetch(start_ms, end_ms, as_of_ms).
+- Implementation commit: 3223fb5746841bfd537258f27c14d2a5d8f57039.
+- Test/workflow checked-out SHA: 133bc8b0692a7f97c38bf9f2a1e3e9bbcde0fb48.
+- Focused workflow run 42469161176, job 128695643657: SUCCESS; 45 tests, 0 failures/errors; compile and paper-only preflight PASS.
+- Focused artifact ID 13612921873; SHA-256 ed03ef3b27e657d6a5ae009808b536a165c6427f663aa8635ec96c73b1d6e55d.
+- Pinned Freqtrade 2026.9 strategy-load run 42469161057, job 128695703023: SUCCESS at the same checked-out SHA; no exchange sync/database access.
+- Freqtrade smoke artifact ID 13612986619; SHA-256 957cfede82f55a61d75d49e59ea6d3ecef743574b03fdd04ddd376dd8e2ec669.
+- Detailed evidence: docs/evidence/t2/T2_HTTP_CANDLE_CLIENT_GREEN_2026-11-08.md.
+- The five direct-SQLite migration acceptance checks are separated in freqai_bridge/t2_http_migration_acceptance.py and were compile-checked only; not executed.
+- T2 context.py still imports market_data.store/read_window and ChartProFreqaiResearch.py still uses canonical_db_path. The HTTP adapter is not wired into the strategy. Consumer migration remains NOT STARTED and requires separate approval.
+- No T0 API/store/DB, Feeder, VPS, exchange, runtime config, model, paper order routing, deployment, or trading state changed. Keep ai_execution_enabled=false.
