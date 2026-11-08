@@ -82,12 +82,14 @@ Use the approved one-shot probe environment and inject the token only through it
 |---|---|---|---|
 | TLS-01 | HTTPS request with certificate verification enabled | Valid chain, hostname match, certificate within validity period | Fail closed; no bypass |
 | TLS-02 | Redirect behavior | No redirect followed; endpoint responds directly | Treat redirect as failure; do not forward credentials |
-| AUTH-01 | GET without Authorization | HTTP 401 | Stop; no retry |
-| AUTH-02 | GET with one deliberately invalid token | HTTP 401 | Stop; no brute force or repeated attempts |
-| AUTH-03 | GET with approved token | Authenticated response; no credential disclosure | Stop on any unexpected status |
+| AUTH-01 | GET without Authorization, after operator confirms `MARKET_DATA_TOKEN` is configured | HTTP 401 | If server token is unset, source returns 503 `UNCONFIGURED` before checking Authorization; classify as configuration BLOCKED, not auth failure |
+| AUTH-02 | GET with one deliberately invalid token, after server token configuration is confirmed | HTTP 401 | If server token is unset, 503 `UNCONFIGURED`; stop, do not retry as an auth probe or brute-force |
+| AUTH-03 | GET with approved token | HTTP 200 with valid contract response if storage is available; otherwise distinguish 503 `STORE_UNAVAILABLE` from auth outcome | Stop on any unexpected status; never infer auth success from a generic 503 |
 | AUTH-04 | Inspect sanitized logs/artifact | No token/header value or secret-bearing error text | Block and rotate/revoke if exposure is suspected |
 
-Do not infer authentication success from a TCP/TLS handshake. AUTH-03 must complete a valid authenticated GET.
+Source-order note: `market_data/api.py` checks that `MARKET_DATA_TOKEN` is configured before comparing the Authorization header. Therefore an unset server token yields 503 `UNCONFIGURED` for `/v1/candles`, while a configured server token plus absent/invalid Authorization yields 401 `UNAUTHORIZED`. A valid token can still receive 503 `STORE_UNAVAILABLE` if the backing store is unavailable. Do not misclassify these states. `/health` is handled before candle authentication and is only a liveness endpoint; it does not prove readiness or auth.
+
+Do not infer authentication success from a TCP/TLS handshake. AUTH-03 must complete a valid authenticated GET and validate its contract response.
 
 ## 6. Phase 2 — GET-only and read-only verification (requires separate approval)
 
