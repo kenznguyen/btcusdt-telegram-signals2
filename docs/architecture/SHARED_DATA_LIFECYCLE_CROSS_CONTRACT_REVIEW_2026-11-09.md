@@ -124,7 +124,7 @@ These are documentation-only corrections. They do not approve a registry, API, s
 
 A repository-level static source inventory has been completed in [Dataset Consumer Inventory Baseline](DATASET_CONSUMER_INVENTORY_BASELINE_2026-11-09.md). It does not establish deployed storage, active consumers, runtime dependencies, replicas, backups, exports, or restore capability.
 
-The current VPS is an experimental environment and is explicitly excluded from all further inspection, including read-only inventory. The official environment is NOT DESIGNATED. A future runtime inventory may be planned only after the user separately designates an official environment and approves its exact inspection scope. See [Environment and Evidence Boundary](ENVIRONMENT_EVIDENCE_BOUNDARY.md).
+The current VPS is an experimental environment. The user has revoked the blanket inspection prohibition and permits scoped read-only inventory under [Environment and Evidence Boundary](ENVIRONMENT_EVIDENCE_BOUNDARY.md). Findings remain EXPERIMENTAL and cannot be promoted to official T0 evidence. The official environment remains NOT DESIGNATED. See [Environment and Evidence Boundary](ENVIRONMENT_EVIDENCE_BOUNDARY.md).
 
 Until then, runtime owner, classification, dependency, and copy inventory remain NOT VERIFIED and must be treated as unresolved/protected. Do not infer “unused” from source absence, no reads, missing heartbeat, or experimental-environment observations.
 
@@ -152,4 +152,4 @@ No values or defaults are selected by this review.
 
 **Status: REVIEW COMPLETE — CORRECTIONS RECOMMENDED — NOT IMPLEMENTED / NOT ACTIVE.**
 
-The documentation-only corrections in §5 have been applied and read back. The subsequent environment/evidence boundary is recorded in [Environment and Evidence Boundary](ENVIRONMENT_EVIDENCE_BOUNDARY.md). Next: maintain the static repository baseline and keep runtime facts NOT VERIFIED until a future official environment is separately designated and inspection scope is explicitly approved. The current experimental VPS remains excluded. Do not proceed to source/schema/API/runtime work, retention values, archive, vacuum, or deletion without separate approval.
+The documentation-only corrections in §5 have been applied and read back. The subsequent environment/evidence boundary is recorded in [Environment and Evidence Boundary](ENVIRONMENT_EVIDENCE_BOUNDARY.md). Next: perform a bounded read-only inventory of the experimental VPS, redact secrets, preserve exact timestamps and source identity, and classify all results as EXPERIMENTAL. Keep official-environment facts NOT VERIFIED. Do not perform source/schema/API changes, writes, migrations, retention, archive, vacuum, cleanup, or deletion without separate approval.
