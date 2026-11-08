@@ -221,7 +221,8 @@ RED must be observed against the pre-implementation source. Do not label a test 
 | M15 freshness threshold | CONDITIONALLY APPROVED — 120000 ms, using first-observation ingestion delay formula below |
 | T2 HTTP client implementation | NOT AUTHORIZED — separate authorization required |
 | T2 direct SQLite removal | NOT STARTED |
-| Local fixture/HTTP tests | NOT RUN |
+| Architecture RED baseline | CONFIRMED — 7 tests, 5 expected failures / 2 policy assertions pass; run 42467842637 at exact SHA `d8ba2e1cf7e7e23977dc5eb0bd6484ed1d1d4745` |
+| Full HTTP behavior RED suite (transport/schema/candle/freshness/no-fallback) | NOT IMPLEMENTED / NOT RUN |
 | GitHub Actions exact-SHA | NOT VERIFIED |
 | T2 runtime activation/deployment | NOT AUTHORIZED |
 
@@ -246,3 +247,16 @@ This plan defines the proposed implementation and acceptance criteria only. It d
 - Require `availableAtMs >= closeTimeMs`; accept exactly 120000 ms and reject values greater than 120000 ms. Continue validating all server-generated freshness fields and their arithmetic.
 - Add deterministic tests for the formula, exact threshold boundary (120000 accepted / 120001 rejected), and proof that normal M15 interval age does not trigger false stale rejection.
 - Scope: documentation/policy approval only. This does not authorize RED test implementation/execution, T2 HTTP client implementation, T2 direct SQLite removal, T0/VPS/runtime changes, deployment, or trading activation. A separate explicit authorization is required before code/test work.
+
+
+## RED-only execution record — 2026-11-08
+
+- Test file: `freqai_bridge/test_http_candles.py`.
+- Workflow: `.github/workflows/t2-http-consumer-red.yml`.
+- Evidence report: `docs/evidence/t2/T2_HTTP_CONSUMER_RED_BASELINE_2026-11-08.md`.
+- Exact source/checkout SHA: `d8ba2e1cf7e7e23977dc5eb0bd6484ed1d1d4745`.
+- GitHub Actions run `42467842637`, event `push`, job `128691379082`, conclusion `success` because the expected RED was validated.
+- Observed test result: 7 tests; 5 intentional architecture-gap failures (missing HTTP adapter, direct Store import/read, legacy DB path/call) and 2 policy assertions PASS; zero unexpected errors. Test compile PASS.
+- Artifact ID `13612118332`; SHA-256 `39140a7a10cf3c723c67cab728784f836a6e89446cbf0c8c2e27618704d35de8`.
+- This is an architecture-gap baseline only. The detailed HTTP behavior cases in section 7 (auth, TLS, retry, timeout, body cap, response schema, identity, coverage, decimal/candle integrity, freshness boundaries, secret redaction and no-fallback) are not yet implemented as executable tests and remain NOT VERIFIED.
+- No production code, direct SQLite path, config, T0, Feeder, VPS or runtime changed. GREEN implementation remains NOT AUTHORIZED.
