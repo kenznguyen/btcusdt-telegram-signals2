@@ -6373,3 +6373,14 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Verdict: **PASS** for Sidecar offline contract/regression and exact-head PR CI. The Sidecar remains an offline reference crate, not integrated into upstream Collector. Real WebSocket runtime/reconnect, VPS/deployed filesystem behavior, and production operation remain **NOT VERIFIED**.
 - Restrictions unchanged: no T0 changes/runtime, no Binance/VPS collector runtime, no live execution, no PR merge or draft-state change. PR #1 remains OPEN/DRAFT/NOT MERGED.
 - Next: bounded offline review of Sidecar validation/event lifecycle invariants on the same branch. Runtime integration/deployment requires separate explicit authorization.
+
+
+## Latest T1 review finding — Sidecar validator semantic schema gap (2026-11-08)
+
+- Reviewed T1 source SHA `8f73459d7f1f0736f211c92b98ea9d7d6cc89df5` (PR #1 head, unchanged).
+- Finding: `validate_capture()` parses each JSONL line as `serde_json::Value` and checks only that it is an object. It does not validate the README's required v1 event identity fields or event-specific schema. Thus syntactically valid but semantically invalid objects could be accepted as `SealedConsistent` if the manifest's byte/hash/count fields match.
+- Related gap: `ManifestValidationFields` ignores manifest `sourceCommit` and `sessionId` and subscription inventory, so those identity fields can disagree without causing `ManifestMismatch`.
+- Evidence report commit: `133098b470536eeb98623d5e5021021c5057c42c`.
+- Verdict: **FINDING RECORDED / FIX NOT AUTHORIZED / NOT VERIFIED BY REGRESSION TEST**. Static review only; no code/test/runtime changes.
+- Next bounded step: add offline RED tests for malformed semantic event object and manifest source/session identity mismatch, then implement strict schema-aware validation and rerun exact-head GitHub Actions on the existing PR branch. Keep validation read-only; do not infer market-data completeness.
+- Restrictions unchanged: no T0 changes/runtime, no Binance/VPS runtime, no live execution, no PR merge or draft-state transition. PR #1 remains OPEN/DRAFT/NOT MERGED.
