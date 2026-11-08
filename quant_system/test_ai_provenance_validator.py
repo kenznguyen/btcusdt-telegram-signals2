@@ -255,5 +255,13 @@ class AIProvenanceValidatorTests(unittest.TestCase):
         self.assertFalse(result.accepted)
         self.assertIn("PREDICTION_ROW_INVALID", result.reasons)
 
+
+    def test_rejects_prediction_rows_when_signed_split_is_malformed(self):
+        manifest = json.loads(json.dumps(self.manifest))
+        manifest["temporal_split"] = {"train_end_ms": 1_700_000_000_000}
+        result = self.verify(envelope=self.signed_envelope(manifest))
+        self.assertFalse(result.accepted)
+        self.assertIn("TEMPORAL_SPLIT_INVALID", result.reasons)
+
 if __name__ == "__main__":
     unittest.main()
