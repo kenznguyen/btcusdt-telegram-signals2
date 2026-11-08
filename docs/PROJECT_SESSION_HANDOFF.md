@@ -7224,3 +7224,22 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No code/runtime/database changes in this documentation increment. No VPS access or deployment, no production unit creation, no exchange call, no T2 activation, no data deletion. `ai_execution_enabled=false`.
 - Status: CI transient Feeder/API systemd integration **PASS**; docs reconciled **PASS**; VPS compatibility **NOT VERIFIED**; production deployment **BLOCKED**.
 - Next bounded step: review the resulting docs for consistency against the shared-data ADR and current T0/T2 Candle API contract. Do not begin production deployment or PostgreSQL activation without separate authorization.
+
+
+## 2026-11-08 — T0 Feeder/API integration self-review and documentation alignment
+
+- Continued on existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no branch or PR divergence.
+- Self-review of `ci/t0_systemd_feeder_api_integration.py` and `.github/workflows/t0-systemd-feeder-api-integration.yml` found one evidence gap: the earlier read-only probe attempted directory file creation but did not directly attempt a SQL mutation against `candles` from the API process.
+- Added direct SQLite `UPDATE candles ...` attempt in each transient API service instance. The test fails if mutation succeeds and records `API_SQLITE_MUTATION_DENIED` when SQLite rejects it. Exact harness/source commit: `9dd05c22046e5f34e547871f47b7dfb729a7efa1`; harness blob `dd2880c63a3396934aeb19620e522aa20106e7c4`.
+- GitHub Actions integration run `42488635517`: **SUCCESS**; job `128755920478`: **SUCCESS**; exact checked-out SHA matches `9dd05c22046e5f34e547871f47b7dfb729a7efa1`.
+  - Timestamped events show `FEEDER_READY_GENERATION_1` before API process start; authenticated candle read and unauthenticated 401 assertion passed.
+  - Both API instances emitted `API_DATABASE_WRITE_DENIED` and `API_SQLITE_MUTATION_DENIED`.
+  - Feeder SIGKILL propagated to dependent API; restart acquired generation 2; orderly shutdown recorded API SIGTERM before Feeder SIGTERM and graceful drain.
+  - Final marker: `T0_SYSTEMD_FEEDER_API_INTEGRATION=PASS`.
+- Evidence artifact `t0-systemd-feeder-api-integration-9dd05c22046e5f34e547871f47b7dfb729a7efa1`, ID `13620273926`, digest `sha256:f46daaad5aea0525a60b66f20d4bd74df3feaa71b9a2e7a749a11be99e42d636`.
+- Updated test plan with the SQL mutation proof and exact run/artifact evidence; commit `563108170cac3d0649810e0c3e3e424e3adfca8c`, blob `aceafac91b4d58801e8e7e593935ee8bdf20200b`.
+- Updated `docs/T0_POSTGRESQL_LIFECYCLE_ACCEPTANCE_MATRIX.md` with separate T0-SD-01..06 rows. The SQLite/systemd evidence is explicitly not PostgreSQL provider/lifecycle evidence; VPS and production units remain NOT VERIFIED/BLOCKED. Commit `2f4ac19b72e7619187de8ce8651f8c5059a11add`, blob `271515822276bb7a9005335c938dde8ea48499c5`.
+- Updated `docs/FIVE_LAYER_PAPER_RUNBOOK.md` to state GitHub Actions as workflow execution evidence and add the CI-only Feeder/API systemd proof boundary. It explicitly prohibits treating transient test units as production deployment instructions. Commit `c4da84809c9576899a50b4d247f7641a7e4f50da`, blob `e31394bf7de3c0084cbab1915af5306140f131f8`.
+- No production source/runtime behavior changed in this increment beyond the disposable CI harness assertion. No VPS, canonical database, Feeder/API production process, package, service definition, permission, secret, firewall, DNS, proxy, exchange connection, data retention/deletion, T2 runtime, or live order path was changed or accessed. `ai_execution_enabled=false`.
+- Status: Feeder READY notification **PASS — CI**; transient two-service systemd lifecycle **PASS — CI synthetic**; API directory write denial **PASS — CI synthetic**; API SQL mutation denial **PASS — CI synthetic**; runbook/acceptance matrix aligned **PASS — documentation read-back pending**; VPS compatibility **NOT VERIFIED**; production units **NOT CREATED**; API deployment **BLOCKED**; T2 runtime **NOT ACTIVATED**.
+- Next bounded step: read back the updated test plan, acceptance matrix and paper runbook at the final branch tip; verify the branch ref and exact document blobs. Then decide whether to design (not deploy) a VPS-specific compatibility checklist. No production unit creation or VPS changes without separate explicit approval.
