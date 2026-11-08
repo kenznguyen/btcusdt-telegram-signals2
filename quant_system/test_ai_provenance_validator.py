@@ -85,7 +85,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
 
     def test_rejects_tampered_artifact_bytes(self):
         artifacts = dict(self.artifacts)
-        artifacts["model"] = b"changed model bytes"
+        artifacts["model"] = b"X" + artifacts["model"][1:]
         result = self.verify(artifacts=artifacts)
         self.assertFalse(result.accepted)
         self.assertIn("ARTIFACT_HASH_MISMATCH:model", result.reasons)
