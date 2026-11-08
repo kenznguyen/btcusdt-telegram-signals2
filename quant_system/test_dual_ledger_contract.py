@@ -205,6 +205,7 @@ class DualLedgerContractTest(unittest.TestCase):
         self.assertEqual(sum(decision.accepted for decision in decisions), 1)
         rejected = next(decision for decision in decisions if not decision.accepted)
         self.assertEqual(rejected.reason, "INSUFFICIENT_MARGIN")
+        self.assertEqual(rejected.gross_exposure, Decimal("101000"))
 
     def test_reserved_entry_is_consumed_once_by_its_own_ledger(self):
         engine = SharedRiskEngine(self.db)
