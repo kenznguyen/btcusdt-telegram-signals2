@@ -29,7 +29,7 @@ from market_data.store import read_window
 database = Path(os.environ["T0_SANDBOX_DB"])
 expected = int(os.environ["T0_EXPECTED_ROWS"])
 step = 900_000
-result = read_window(database, "BTCUSDT", "15m", 0, 2 * step)
+result = read_window(database, "BTCUSDT", "15m", 0, 3 * step)
 assert result["coverage"]["returned"] == expected, result["coverage"]
 
 # The ordinary API read path must work with the whole data directory mounted
