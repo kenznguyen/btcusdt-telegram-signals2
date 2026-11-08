@@ -336,6 +336,6 @@ Until these are decided, reviewed, and explicitly approved, deletion remains dis
 
 **Status: DELETION SAFETY CONTRACT DESIGN COMPLETE — NOT IMPLEMENTED / NOT APPROVED FOR EXECUTION / NOT ACTIVE.**
 
-Next: conduct a documentation-only cross-contract consistency review across the Shared Data Foundation, Central Data Lifecycle Policy, Dataset Consumer Contract, and this Deletion Safety Contract. Identify contradictions, missing decisions, and approval gates. Do not implement an executor, API, schema, registry, scheduler, archive, vacuum, cleanup, or deletion operation as part of that review.
+The documentation-only cross-contract review is recorded in [Shared Data Lifecycle Cross-Contract Review](SHARED_DATA_LIFECYCLE_CROSS_CONTRACT_REVIEW_2026-11-09.md), and the static repository inventory is recorded in [Dataset Consumer Inventory Baseline](DATASET_CONSUMER_INVENTORY_BASELINE_2026-11-09.md). The current experimental VPS is excluded from all inspection, including read-only inspection. The official environment is NOT DESIGNATED. Any future runtime inventory requires separate official-environment designation and explicit scope approval; see [Environment and Evidence Boundary](ENVIRONMENT_EVIDENCE_BOUNDARY.md).
 
 No source code, tests, workflow, database/schema, API, VPS, Feeder, registry, scheduler, retention timer, archive, vacuum, backup expiry, or deletion operation is changed or activated by this document. Real-data lifecycle operations remain unauthorized without separate review and explicit approval.
