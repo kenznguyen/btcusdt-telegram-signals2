@@ -99,3 +99,32 @@ Assessment:
 Next bounded action: read-only inventory of local checkout directories, relevant stopped service definitions, and process command names to determine whether T0 code/service is present but stopped. Do not read environment files, credentials, private keys, or secret values. No start/restart/reload, network probe, firewall/configuration change, DB access, or T2 activation is authorized by this observation.
 
 Status: endpoint deployment **BLOCKED / NOT ESTABLISHED**; live verification **NOT RUN**; T2 runtime **NOT ACTIVATED**; `ai_execution_enabled=false`.
+
+
+## Follow-up: operator-provided local T0 checkout and process inventory
+
+Evidence type: operator-pasted read-only command output; observation timestamp was not included in the supplied output.
+
+Observed on the VPS previously identified as `btcquant-t0-t1-test-01`:
+- T0 checkout exists at `/home/ubuntu/t0/app`, with `.git` and `market_data` directories.
+- A tmux session named `t0-feeder` is running a command that changes to that checkout, sets `MARKET_DATA_BACKEND=sqlite` and `MARKET_DATA_DB=/home/ubuntu/t0/app/.data/market-data.sqlite3`, then executes `/home/ubuntu/t0/venv/bin/python -m market_data.feeder_service`.
+- Process list shows the tmux server (PID 6583) and active Python Feeder process (PID 6584).
+- The filtered systemd unit-file inventory returned no matching market/feeder/nginx/caddy/API service definitions.
+- The filtered installed-package inventory returned no matching nginx/caddy/apache2/docker package rows.
+
+Assessment:
+- This supersedes the earlier uncertainty about whether T0 checkout/Feeder exists locally: the checkout is present and the Feeder process is running at the time represented by the operator output.
+- It does not establish that the Candle HTTP API is running. The prior socket inventory showed no TCP/8788, TCP/80 or TCP/443 listener; this new output does not show an API process or HTTPS front door either.
+- The process command establishes the Feeder's selected SQLite backend and configured DB path, but does not prove DB integrity, ingestion freshness, API readiness, or storage-level read-only enforcement for API consumers.
+- Absence from the filtered unit/package results is limited to those filters; it does not prove no alternative process manager or externally hosted API exists.
+
+Updated verdict:
+- Local T0 checkout: **OBSERVED PRESENT**.
+- T0 Feeder process: **OBSERVED RUNNING** (operator snapshot; no independent process probe).
+- T0 Candle API listener / HTTPS front door: **NOT OBSERVED / NOT ESTABLISHED**.
+- T2 live endpoint verification: **BLOCKED**; no endpoint identity or approved probe origin.
+- Live verification: **NOT RUN**; T2 runtime: **NOT ACTIVATED**.
+
+No service, process, DB, environment file, secret, network, firewall, VPS configuration, or T2 runtime was changed or accessed by this assessment. No tests or workflows were run. Do not stop/restart the Feeder, start an API, install packages, expose a port, or alter runtime configuration without separate explicit approval.
+
+Next bounded step: if the operator wants to continue local discovery, inspect only the T0 checkout's tracked API entrypoint/deployment documentation and safe process metadata. Do not read `.env`, secret files, credentials, private keys, or DB contents. Establish API deployment intent and ownership before proposing any activation.
