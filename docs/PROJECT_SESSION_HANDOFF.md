@@ -6538,3 +6538,18 @@ Documentation-only closeout is complete for this increment. If further assurance
 - T2 HTTP client: NOT IMPLEMENTED. T2 direct SQLite path: NON-CONFORMANT / NOT REMOVED. TLS/deployment: NOT VERIFIED.
 - No code or runtime was changed; no canonical DB/Feeder/VPS/exchange action, Data Quality Gate, T1/T2 activation, deployment, or live execution. Keep `ai_execution_enabled=false`.
 - Next permitted step: prepare a separately scoped T2 HTTP-client contract and fixture-only test plan. Implementation requires separate explicit authorization.
+
+## 2026-11-08 — T2 HTTP candle consumer contract and RED test plan
+
+- Plan: `docs/architecture/T2_HTTP_CANDLE_CONSUMER_CONTRACT_AND_TEST_PLAN_2026-11-08.md`.
+- Plan commit: `6157e271927c44af2a1e2b95bb470fa5e4ddb5e8`.
+- Based on T0 API source reviewed at `e317b7dc02363db0600737a89442dd918af3c` and the independent review report.
+- Scope: documentation/design only. No source code, tests, runtime configuration, DB, Feeder, VPS, exchange, or consumer runtime changed.
+- Current non-conformant path confirmed: `freqai_bridge/context.py` imports `market_data.store.read_window()`; `ChartProFreqaiResearch.py` passes `canonical_db_path`. T2 must remove both; read-only SQLite is still a direct DB dependency.
+- Plan preserves current T2 behavior (BTCUSDT M15, 1–32 bars, as-of cutoff, dataset provenance, prediction-unavailable fail-closed behavior) while specifying HTTP auth, validation, TLS, bounded timeout/retry, response-size cap, secret redaction, and no fallback.
+- **Blocking design ambiguity identified:** API `latestExpectedOpenTimeMs` uses server `generatedAtMs`, but T2 request range is based on consumer clock. At a timeframe boundary, global expected candle may lie outside requested `[startMs,endMs)`. Resolve freshness-vs-request-window semantics and add deterministic boundary tests before implementing the client.
+- Numeric timeout/retry/body-size limits are intentionally NOT APPROVED; define and review before implementation.
+- RED test plan covers configuration/request semantics, contract/version/identity/range, coverage/candle integrity, freshness and clock boundaries, transport/TLS/body limits, secret redaction, no fallback/direct DB path, prediction unavailable behavior, and regressions. Authored tests are not RED evidence until actually executed at an exact SHA.
+- Status: design plan committed; implementation NOT AUTHORIZED; tests NOT RUN; T2 HTTP migration NOT STARTED; T2 direct SQLite path remains NON-CONFORMANT; runtime activation/deployment NOT AUTHORIZED.
+- Next step: resolve the freshness boundary rule and approve operational HTTP limits. Only then request/obtain separate authorization for RED tests and implementation.
+- Safety unchanged: no T0 canonical DB/Feeder/VPS/exchange/Data Quality Gate action; no T1/T2 runtime activation; keep `ai_execution_enabled=false`; no live execution.
