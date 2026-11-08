@@ -47,3 +47,12 @@ Once defined, add RED tests for inconsistent split manifests, training-label ove
 - No T0/T1 DB, feeder, exchange, paper or live runtime accessed.
 - No calibration attestation or AI leverage authorization issued.
 - PR #95 remains OPEN / DRAFT / NOT MERGED.
+
+## Cross-check against existing Phase13B protocol — not reusable as AI contract
+A separate repository protocol was inspected: `research_evidence/frozen-model/phase13b-20261104/phase13b-oos-protocol.json` (blob SHA `0dbf07b12ccb4d4675f34827298456e8d7c69fb7`). It declares:
+- model identifier `chart-pro-okx-shadow-v1`, venue OKX USDT perpetual;
+- `label_horizon_m15_candles=4`;
+- `all_training_labels_end_before_holdout_start=true`;
+- no holdout rows for training/scalers.
+
+However, that artifact is a separate Phase13B prospective protocol candidate, explicitly `PRE_REGISTERED_PROTOCOL_CANDIDATE_NOT_SEALED`, with model seal/source/bundle fields still null. It is not the signed split_protocol artifact for the new independent AI strategy and must not be silently reused to define that strategy's label horizon, price basis, purge or embargo. Its own related Phase14 evidence also states full model-pipeline fit causality is not certified. This cross-check therefore does not change the BLOCKED decision.
