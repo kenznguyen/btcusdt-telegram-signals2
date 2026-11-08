@@ -7169,3 +7169,13 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No new service, database, API, schema, registry, ACK endpoint, scheduler, retention policy values, archive, vacuum, or deletion mechanism is specified as implemented or activated.
 - Verification: the created design document was fetched at branch commit `0b65834dc588137fb63c731a826e6188d0c54931`, blob `fe18d3eef7f2789a06905affc78d039589798bd5`, 18,432 characters; acceptance section present. No CI/test run; documentation content review only. No CI PASS is claimed.
 - Next: design `CENTRAL_DATA_LIFECYCLE_POLICY.md`. Dataset/consumer protocol and deletion safety remain separate design documents. No real-data archive/deletion or runtime activation without separate explicit approval.
+
+
+## 2026-11-08 — Central Data Lifecycle Policy framework designed
+
+- Added `docs/architecture/CENTRAL_DATA_LIFECYCLE_POLICY.md`, design-only commit `21e9ef76eec38ffefdede9e0f99bf2ac19636a8d`.
+- Defines functional dataset classes and orthogonal sensitivity classification; demand per exact dataset/version/purpose; dependency release semantics; logical lifecycle states; class-specific retention decision inputs; archive eligibility and restore safeguards; separation of deletion eligibility from authorization; policy versioning/change control; holds/exceptions; monitoring/audit; and T0–T4 compatibility boundaries.
+- No numeric retention period, TTL, archive provider, restore objective, deletion role/quorum, grace period, or automated cleanup behavior was selected. No deletion is authorized.
+- No source, test, workflow, database/schema, API, VPS, Feeder, policy engine, retention timer, archive, vacuum, or deletion operation was changed or activated.
+- Verification: document was created on the existing branch; handoff update records this commit. Documentation read-back and final branch comparison are pending. No CI/test run and no test PASS claimed.
+- Next: define `DATASET_CONSUMER_CONTRACT.md` for exact dataset-version dependency registration, ACK/release, stale-consumer handling, idempotency, and fail-closed behavior; then define the separate deletion safety contract.
