@@ -69,6 +69,90 @@ class T2HttpContextTest(unittest.TestCase):
         self.assertEqual(captured["request"]["as_of_ms"], NOW)
         self.assertEqual(result["datasetVersion"], "sha256:" + "b" * 64)
 
+    def test_context_uses_real_http_adapter_against_loopback_contract_server(self):
+        import hashlib
+        import json
+        import threading
+        import time
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        from urllib.parse import parse_qs, urlsplit
+
+        captured = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                query = parse_qs(urlsplit(self.path).query)
+                start = int(query["startMs"][0])
+                end = int(query["endMs"][0])
+                as_of = int(query["asOfMs"][0])
+                generated = time.time_ns() // 1_000_000
+                available = end + 1_000
+                candle = {
+                    "exchange": "binance", "marketType": "USDT_PERPETUAL", "symbol": "BTCUSDT",
+                    "timeframe": "15m", "openTimeMs": start, "closeTimeMs": end,
+                    "open": "100", "high": "102", "low": "99", "close": "101", "volume": "3",
+                    "isClosed": True, "availableAtMs": available,
+                    "availabilityKind": "FIRST_OBSERVED", "quality": "VALIDATED",
+                    "source": "ccxt.binanceusdm",
+                }
+                payload = {
+                    "exchange": "binance", "marketType": "USDT_PERPETUAL", "symbol": "BTCUSDT",
+                    "timeframe": "15m", "startMs": start, "endMs": end, "asOfMs": as_of,
+                    "candles": [candle],
+                }
+                version = hashlib.sha256(
+                    json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+                ).hexdigest()
+                body = {
+                    "contractVersion": "1.0.0", "schemaVersion": 1,
+                    **payload, "datasetVersion": "sha256:" + version,
+                    "coverage": {"expected": 1, "returned": 1, "complete": True, "gaps": []},
+                    "volumeUnit": "BTC_BASE_ASSET", "source": "ccxt.binanceusdm",
+                    "generatedAtMs": generated,
+                    "freshness": {
+                        "latestExpectedOpenTimeMs": start,
+                        "latestReturnedOpenTimeMs": start,
+                        "latestCloseTimeMs": end,
+                        "latestAvailableAtMs": available,
+                        "observationAgeMs": generated - available,
+                        "closeLagMs": generated - end,
+                        "evaluable": True,
+                    },
+                }
+                captured["authorization"] = self.headers.get("Authorization")
+                captured["path"] = urlsplit(self.path).path
+                encoded = json.dumps(body, separators=(",", ":")).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(encoded)))
+                self.end_headers()
+                self.wfile.write(encoded)
+
+            def log_message(self, *args):
+                return
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        self.addCleanup(thread.join, 2)
+
+        observation = time.time_ns() // 1_000_000 - 60_000
+        env = {
+            "T0_CANDLE_API_BASE_URL": f"http://127.0.0.1:{server.server_port}",
+            "T0_CANDLE_API_TOKEN": "loopback-test-token",
+            "T0_CANDLE_MAX_LAG_MS": "120000",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            result = canonical_context(now_ms=observation, bars=1)
+
+        self.assertEqual(captured["authorization"], "Bearer loopback-test-token")
+        self.assertEqual(captured["path"], "/v1/candles")
+        self.assertEqual(result["asOfMs"], observation)
+        self.assertEqual(len(result["candles"]), 1)
+        self.assertEqual(result["datasetVersion"][:7], "sha256:")
+
     def test_invalid_or_missing_freshness_configuration_fails_closed(self):
         base = {
             "T0_CANDLE_API_BASE_URL": "https://t0.example.invalid",
