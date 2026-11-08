@@ -5,7 +5,7 @@
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
 - Latest verified code/test SHA: `afa44c4bbab5a86040aadbeed219df7fe10a87cb`.
-- Latest GREEN evidence commit before this handoff update: `41338e0ef625c12ab5e087c54c3f89387e2461bc`.
+- Latest GREEN evidence commit before this handoff update: `24346c29f4186a0ac3fb1f79e506f55ff9c8649a`.
 - PR #95: OPEN / DRAFT / NOT MERGED.
 - PR base: `feature/dual-strategy-phase22-frozen-reproducibility-20261031` at `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
 - No new branch or PR was created.
@@ -15,7 +15,8 @@
 
 - `quant_system/dual_ledger.py` — independent ledgers, atomic shared reservations, gross exposure, cancellation/reconciliation, reduction accounting.
 - `quant_system/test_dual_ledger_contract.py` — 21 focused tests.
-- `.github/workflows/t2-dual-ledger-contract.yml` — existing GitHub Actions gate.
+- `.github/workflows/t2-dual-ledger-contract.yml` — T2 dual-ledger gate.
+- `.github/workflows/t2-legacy-paper-regression.yml` — legacy Phase 2/3 and PaperLedger regression gate.
 - `quant_system/DUAL_LEDGER_RED_EVIDENCE_2026-11-08.md` — RED evidence.
 - `quant_system/DUAL_LEDGER_GREEN_EVIDENCE_2026-11-08.md` — latest GREEN evidence and limits.
 - `docs/T2_SESSION_HANDOFF_2026-11-08.md` — this handoff.
@@ -106,15 +107,20 @@ Working-tree status: NOT VERIFIED; GitHub Contents API commits were used and no 
 - T0/T1 runtime integration: NOT RUN.
 - Production readiness: NOT CERTIFIED.
 
-## Critical legacy integration finding
+## Legacy regression evidence and critical integration finding
 
-The old Phase 2/3 signal path is not compatible with the updated Dual-Strategy rules and has not been changed:
+The old Phase 2/3 path remains regression-tested, but is not compatible with the updated Dual-Strategy rules and has not been changed:
+
+- Legacy regression run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455156480
+- Run ID `42455156480`, exact checked-out SHA `8849ea2c6c9f28ac60067a7e6339eb7260a27b6b`, SUCCESS.
+- Phase 2 tests: 20/20 PASS; Phase 3 paper bridge tests: 11/11 PASS; PaperLedger tests: 18/18 PASS; total 49/49.
+- This proves no regression in the old path, not compliance with the new risk policy.
 
 - `quant_system/dual_strategy.py` still uses `RiskSnapshot.max_positions` and `_select` to choose one signal or block opposing CORE/AI signals.
 - `quant_system/paper_bridge.py` still uses the legacy `StrategyRules().p.entry_margin_pct` sizing and `PaperLedger`'s single signed net position.
 - This path does not implement independent CORE_LEDGER/AI_LEDGER, 1% margin per entry/DCA, or no fixed position-count cap.
 - Do not treat `PaperSignalCoordinator` or `DualPaperBridge` as wired to the new `dual_ledger.py` shared-risk API.
-- `quant_system/test_dual_strategy_phase2.py` and `quant_system/test_phase3_paper_bridge.py` have not been run against the latest code SHA.
+- The legacy tests pass, but they assert old max-position / single-net-position behavior and do not certify the new independent-ledger policy.
 
 ## Remaining required work before combined paper use
 
