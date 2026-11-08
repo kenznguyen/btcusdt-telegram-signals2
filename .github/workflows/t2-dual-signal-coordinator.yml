@@ -21,6 +21,11 @@ on:
       - "quant_system/test_dual_signal_coordinator.py"
       - "quant_system/dual_ledger.py"
       - "quant_system/dual_strategy.py"
+      - "quant_system/test_dual_ledger_contract.py"
+      - "quant_system/test_dual_strategy_phase2.py"
+      - "quant_system/test_phase3_paper_bridge.py"
+      - "quant_system/paper_bridge.py"
+      - "paper_execution/**"
       - ".github/workflows/t2-dual-signal-coordinator.yml"
 
 permissions:
