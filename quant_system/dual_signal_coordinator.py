@@ -9,7 +9,9 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from quant_system.dual_ledger import RiskDecision
-from quant_system.dual_strategy import CANDLE_MS, Origin, Side, Signal
+from quant_system.dual_strategy import (
+    CANDLE_MS, Origin, Side, Signal, ai_signal, core_signal,
+)
 
 
 def _positive_decimal(value, field):
@@ -46,6 +48,13 @@ class IntentResult:
     position_id: str | None = None
     reservation_id: str | None = None
     required_margin: Decimal = Decimal("0")
+
+
+@dataclass(frozen=True)
+class SignalCandidates:
+    core: Signal | None
+    ai: Signal | None
+    reason: str
 
 
 @dataclass(frozen=True)
@@ -100,6 +109,39 @@ class DualStrategySignalCoordinator:
         if exposure < quantity * price:
             raise ValueError("NOTIONAL_BELOW_ORDER_VALUE")
         return quantity, price, exposure
+
+    @staticmethod
+    def generate_signals(row, canonical_window, prediction, now_ms, *,
+                         rules=None, ai_threshold="0.002"):
+        """Generate CORE and AI candidates independently from one closed M15.
+
+        CORE keeps its existing RSI/ADX/H1 predicates. AI keeps the existing
+        FreqAI provenance validation. Neither candidate suppresses the other.
+        """
+        if not isinstance(row, dict) or row.get("closed") is not True:
+            return SignalCandidates(None, None, "UNVERIFIED_CANDLE")
+        try:
+            from pipeline.decision import _canonical
+            latest = _canonical(canonical_window, now_ms)
+        except (KeyError, TypeError, ValueError, OverflowError, AttributeError):
+            return SignalCandidates(None, None, "INVALID_CANONICAL_WINDOW")
+        try:
+            if type(row.get("open_time")) is not int or row["open_time"] != latest["openTimeMs"]:
+                raise ValueError("Mismatched candle")
+            for field in ("open", "high", "low", "close", "volume"):
+                value, canonical_value = Decimal(str(row[field])), Decimal(latest[field])
+                if not value.is_finite() or value != canonical_value:
+                    raise ValueError("Mismatched market row")
+        except (TypeError, ValueError, KeyError, InvalidOperation):
+            return SignalCandidates(None, None, "CANONICAL_ROW_MISMATCH")
+
+        core = core_signal(row, rules)
+        ai = ai_signal(
+            prediction, canonical_window, latest, now_ms, threshold=ai_threshold
+        )
+        if core is None and ai is None:
+            return SignalCandidates(None, None, "NO_SIGNAL")
+        return SignalCandidates(core, ai, "SIGNALS_GENERATED")
 
     def route(self, intents, *, data_fresh, state_reconciled, kill_switch=False):
         """Admit each supplied intent separately and write it to its own ledger.
