@@ -244,7 +244,7 @@ class CandleHttpClient:
             now = self.clock_ms()
         except Exception:
             raise CandleHttpError("FRESHNESS_UNAVAILABLE") from None
-        if not self._timestamp(now) or generated > max(now, as_of_ms):
+        if not self._timestamp(now) or as_of_ms > now or generated > now:
             raise CandleHttpError("FRESHNESS_UNAVAILABLE")
 
         candles = payload["candles"]
