@@ -6358,3 +6358,18 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Verdict: **PASS** for offline regression + full push/PR CI at exact source SHA `ed126fa8...`. Run #202 format failure was fixed by rustfmt-only commit and is superseded by #203/#204.
 - Restrictions preserved: no T0 change/runtime, no VPS/Binance collector runtime, no live execution, no PR merge or draft-state change. Real deployed-filesystem failure behavior remains NOT VERIFIED beyond deterministic offline fault injection.
 - Next: documentation-only closeout complete; continue with next bounded T1 source/offline review. Deployment/runtime/merge require separate explicit approval.
+
+
+## Latest T1 closeout — Sidecar early-disconnect heartbeat resolution (2026-11-08)
+
+- T1 source repo: `kenznguyen/binance-futures-collector`; existing branch `feature/t1-connection-sidecar-integration-20261107`; final head SHA `8f73459d7f1f0736f211c92b98ea9d7d6cc89df5`.
+- Authorized offline-only change: added `PING_ABANDONED` before `DISCONNECTED` when a socket closes with outstanding Pings; event reason matches actual socket close; early remote/transport close is not mislabeled `PING_TIMEOUT`. Heartbeat IDs are emitted deterministically; partial disconnect-event persistence fails closed.
+- TDD RED: push CI #207 `42450442409`, source `38f7226e30ecbcb86905f834db3c88e5a518091d`; expected test failed with `InvalidInput` while 26 other Sidecar integration tests passed.
+- Final GREEN: PR CI #214 `42450737104`, **SUCCESS 5/5**, exact PR head `8f73459d7f1f0736f211c92b98ea9d7d6cc89df5`, base `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Tests: Collector library 43/43, binary 1/1; Sidecar unit 9/9, integration 27/27; format/Clippy/build PASS; regression `resolves_outstanding_ping_when_socket_closes_before_timeout` PASS. Dashboard frontend/backend, Security and Docker PASS in PR CI.
+- Push CI #213 `42450733372`: Collector/dashboard/Docker jobs PASS; Security job remained in progress at closeout. PR CI #214 is the full 5/5 proof.
+- Artifact metadata from push #213: ID `13605197747`, name `t1-collector-linux-x86_64-8f73459d7f1f0736f211c92b98ea9d7d6cc89df5`, 4,186,964 bytes, metadata SHA-256 `a5aa11cac5c63436e5c365700081157acfe23808d63639cc407673cd7108a311`; payload not independently rehashed.
+- Evidence report updated in commit `95d01b7634f8aea4b3462032961ecd191bac1d3f`.
+- Verdict: **PASS** for Sidecar offline contract/regression and exact-head PR CI. The Sidecar remains an offline reference crate, not integrated into upstream Collector. Real WebSocket runtime/reconnect, VPS/deployed filesystem behavior, and production operation remain **NOT VERIFIED**.
+- Restrictions unchanged: no T0 changes/runtime, no Binance/VPS collector runtime, no live execution, no PR merge or draft-state change. PR #1 remains OPEN/DRAFT/NOT MERGED.
+- Next: bounded offline review of Sidecar validation/event lifecycle invariants on the same branch. Runtime integration/deployment requires separate explicit authorization.
