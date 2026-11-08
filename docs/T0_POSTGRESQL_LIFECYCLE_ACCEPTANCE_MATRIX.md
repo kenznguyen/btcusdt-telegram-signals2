@@ -122,3 +122,17 @@ Do not implement automatic reconnect/recovery behavior merely to make these test
 - T0 remains the canonical data foundation under shared system ownership; this runtime matrix does not define dataset retention. `ai_execution_enabled=false`; paper-only; no live orders.
 
 Next permitted work: review the PG-LC state machine and choose the first isolated RED test. No provider provisioning, runtime activation, canonical DB, exchange connection or market-data sync is implied by this matrix.
+
+
+## 7. Feeder/API systemd integration — separate acceptance axis
+
+This section records process orchestration evidence only. It does **not** change any PostgreSQL provider, connection, pool, role, transaction, or lifecycle verdict in the matrix above.
+
+- Transient two-service systemd integration on a disposable GitHub Actions runner: **PASS** at source SHA `0e73f9184bb15561341e76c31f698ba96e2a2703`; run `42488536321`; job `128755620737`.
+- Verified `Type=notify` Feeder readiness after runtime startup, API `Requires=`/`After=` gating, `BindsTo=` API stop after Feeder SIGKILL, authenticated `/v1/candles` read, API write denial under `ReadOnlyPaths=`, fresh lease generation after restart, and API-before-Feeder graceful shutdown.
+- Runner systemd version: `259.9-0ubuntu0.1`.
+- Artifact `t0-systemd-feeder-api-integration-0e73f9184bb15561341e76c31f698ba96e2a2703`, ID `13620800948`, digest `sha256:5a0e932e6145958a2aa9b88be14a5198075b107d9b1b01d3cd58849747f2305c`.
+- Scope is synthetic SQLite plus transient units on the hosted runner. It does not prove compatibility with the Scaleway VPS, production filesystem/identities, production unit definitions, or PostgreSQL runtime behavior.
+- Production Feeder/API units and VPS deployment remain **NOT AUTHORIZED**. No canonical database or real data was used. T2 runtime remains inactive; `ai_execution_enabled=false`.
+
+Keep this acceptance axis separate from PostgreSQL lifecycle tests: the systemd harness uses SQLite and deterministic adapters, while PostgreSQL provider/bootstrap, transaction, role, interruption, and pool tests require their own exact evidence.
