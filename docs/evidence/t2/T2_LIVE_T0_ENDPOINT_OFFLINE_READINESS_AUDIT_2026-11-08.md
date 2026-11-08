@@ -128,3 +128,34 @@ Updated verdict:
 No service, process, DB, environment file, secret, network, firewall, VPS configuration, or T2 runtime was changed or accessed by this assessment. No tests or workflows were run. Do not stop/restart the Feeder, start an API, install packages, expose a port, or alter runtime configuration without separate explicit approval.
 
 Next bounded step: if the operator wants to continue local discovery, inspect only the T0 checkout's tracked API entrypoint/deployment documentation and safe process metadata. Do not read `.env`, secret files, credentials, private keys, or DB contents. Establish API deployment intent and ownership before proposing any activation.
+
+
+## 2026-11-08 — API service-user and SQLite filesystem permission check
+
+Operator supplied read-only permission output; command timestamp was not included.
+
+Observed:
+- Intended API process identity: `ubuntu`, UID 1000, primary GID 1000.
+- Path traversal permissions: `/home` is root-owned 755; `/home/ubuntu` is ubuntu-owned 750; `/home/ubuntu/t0`, checkout, and `.data` are ubuntu-owned and traversable.
+- SQLite file: regular file, owner/group `ubuntu:ubuntu`, mode `0600`, size 634880 bytes.
+- Gunicorn executable: owner/group `ubuntu:ubuntu`, mode `0775`.
+
+Assessment:
+- **PASS — filesystem access prerequisite** for running the API as `ubuntu` against the observed SQLite path. No ownership or permission broadening is required.
+- This does not prove the database is healthy, that the API is running, or that the API endpoint is reachable.
+- The file is mode 0600, so a different service identity would not have read access without a separately reviewed permission design. Keep the proposed service identity as `ubuntu` unless a future security review explicitly approves another model.
+- The Feeder and API would share the same OS identity if the API runs as `ubuntu`; SQLite API reads are source-level read-only, but this filesystem check is not proof of database-level isolation from writes by that identity.
+
+Verification boundary:
+- No file was opened or modified by this permission check; no ownership/mode changed.
+- No process/service, Feeder, API, database, environment, secret, network, firewall, or VPS configuration was changed.
+- No tests or GitHub Actions workflows were run. This is operator-supplied metadata, not an independently executed permission test.
+
+Updated status:
+- API process identity prerequisite: **PASS**.
+- SQLite path/file read permission prerequisite: **PASS**.
+- API service deployment/process: **NOT VERIFIED**.
+- HTTPS front door and hostname: **BLOCKED / NOT ESTABLISHED**.
+- T2 live endpoint verification: **NOT RUN**; T2 runtime: **NOT ACTIVATED**.
+
+Next bounded step: prepare and review a deployment design only. Do not create a service, start Gunicorn, configure TLS/reverse proxy, change firewall or environment, or restart the Feeder without separate explicit approval and the missing endpoint/network/credential details.
