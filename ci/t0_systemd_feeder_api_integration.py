@@ -200,16 +200,16 @@ def candle_request(token):
         return error.code, json.loads(error.read())
 
 
-def wait_api_ready():
+def wait_api_ready(unit):
     def ready():
-        if unit_state("t0-int-api-a.service") != "active":
+        if unit_state(unit) != "active":
             return False
         try:
             status, body = candle_request(TOKEN)
             return status == 200 and len(body.get("candles", [])) == 1
         except (OSError, ValueError):
             return False
-    wait_for(ready, "authenticated API candle read")
+    wait_for(ready, f"authenticated API candle read from {unit}")
 
 
 def assert_api_unavailable():
@@ -250,6 +250,7 @@ def integration(db_path, event_path):
              "Feeder systemd READY")
     wait_for(lambda: unit_state(f"{api_a}.service") == "active",
              "dependent API activation")
+    wait_api_ready(f"{api_a}.service")
     status, body = candle_request(TOKEN)
     assert status == 200 and len(body.get("candles", [])) == 1, (status, body)
     unauthenticated = candle_request("")
@@ -276,6 +277,7 @@ def integration(db_path, event_path):
     start_api(script, api_b, feeder_b, db_path, event_path, repo_root)
     wait_for(lambda: unit_state(f"{api_b}.service") == "active",
              "restarted dependent API")
+    wait_api_ready(f"{api_b}.service")
     status, body = candle_request(TOKEN)
     assert status == 200 and len(body.get("candles", [])) == 1, (status, body)
     event(event_path, "FEEDER_API_RESTART_READ_PASS")
