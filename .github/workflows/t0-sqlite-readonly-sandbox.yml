@@ -1,0 +1,68 @@
+name: T0 SQLite Read-only systemd Sandbox
+
+on:
+  push:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - "ci/t0_sqlite_readonly_sandbox.py"
+      - "market_data/store.py"
+      - ".github/workflows/t0-sqlite-readonly-sandbox.yml"
+  pull_request:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - "ci/t0_sqlite_readonly_sandbox.py"
+      - "market_data/store.py"
+      - ".github/workflows/t0-sqlite-readonly-sandbox.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: t0-sqlite-readonly-sandbox-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  disposable-systemd-wal-sandbox:
+    name: Disposable SQLite WAL under systemd ReadOnlyPaths
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify disposable runner prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v systemd-run
+          sudo -n true
+          systemctl is-system-running || test "$?" -eq 1
+          git rev-parse HEAD | tee t0-systemd-sandbox-source-sha.txt
+          echo "T0_SYSTEMD_SANDBOX_TARGET=DISPOSABLE_RUNNER_ONLY" | tee t0-systemd-sandbox-scope.txt
+      - name: Run SQLite WAL read-only systemd sandbox probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile ci/t0_sqlite_readonly_sandbox.py
+          python ci/t0_sqlite_readonly_sandbox.py 2>&1 | tee t0-systemd-sandbox-tests.log
+          echo "T0_SYSTEMD_READONLY_WAL_SANDBOX=PASS" | tee t0-systemd-sandbox-verdict.txt
+      - name: Upload source and sandbox evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-systemd-readonly-sandbox-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            t0-systemd-sandbox-source-sha.txt
+            t0-systemd-sandbox-scope.txt
+            t0-systemd-sandbox-tests.log
+            t0-systemd-sandbox-verdict.txt
