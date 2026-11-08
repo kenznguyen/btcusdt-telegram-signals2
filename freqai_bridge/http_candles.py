@@ -203,6 +203,9 @@ class CandleHttpClient:
                 if attempt >= _MAX_ATTEMPTS - 1:
                     reason = "HTTP_TIMEOUT" if isinstance(error, requests.exceptions.Timeout) else "HTTP_UNAVAILABLE"
                     raise CandleHttpError(reason) from None
+                if response is not None:
+                    response.close()
+                    response = None
                 self.sleep(_BACKOFF_SECONDS[attempt])
             except requests.exceptions.RequestException:
                 raise CandleHttpError("HTTP_UNAVAILABLE") from None
