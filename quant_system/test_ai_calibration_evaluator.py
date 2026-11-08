@@ -13,19 +13,23 @@ class CalibrationEvaluatorTests(unittest.TestCase):
     def setUp(self):
         self.policy = CalibrationGatePolicy(
             max_ece="0.20",
-            min_total_samples=8,
-            min_group_samples=2,
+            min_total_samples=32,
+            min_group_samples=8,
             ece_bins=4,
             required_regimes=("TREND", "RANGE"),
         )
 
+    @staticmethod
+    def calibrated_rows():
+        return [(1, ".8")] * 3 + [(0, ".8"), (1, ".2")] + [(0, ".2")] * 3
+
     def observations(self, *, long_trend=None, long_range=None,
                      short_trend=None, short_range=None):
         groups = {
-            ("LONG", "TREND"): long_trend or [(1, ".8"), (0, ".2")],
-            ("LONG", "RANGE"): long_range or [(1, ".8"), (0, ".2")],
-            ("SHORT", "TREND"): short_trend or [(1, ".8"), (0, ".2")],
-            ("SHORT", "RANGE"): short_range or [(1, ".8"), (0, ".2")],
+            ("LONG", "TREND"): long_trend or self.calibrated_rows(),
+            ("LONG", "RANGE"): long_range or self.calibrated_rows(),
+            ("SHORT", "TREND"): short_trend or self.calibrated_rows(),
+            ("SHORT", "RANGE"): short_range or self.calibrated_rows(),
         }
         return [
             CalibrationObservation(
@@ -39,13 +43,13 @@ class CalibrationEvaluatorTests(unittest.TestCase):
     def test_perfect_calibration_passes_explicit_policy(self):
         report = CalibrationEvaluator().evaluate(self.observations(), self.policy)
         self.assertTrue(report.accepted)
-        self.assertEqual(report.sample_count, 8)
+        self.assertEqual(report.sample_count, 32)
         self.assertEqual(report.group_count, 4)
         self.assertEqual(report.metrics["overall"]["ece"], 0.0)
-        self.assertEqual(report.metrics["overall"]["brier_score"], 0.04)
+        self.assertEqual(report.metrics["overall"]["brier_score"], 0.095)
 
     def test_rejects_insufficient_total_oos_samples(self):
-        rows = self.observations()[:7]
+        rows = self.observations()[:31]
         report = CalibrationEvaluator().evaluate(rows, self.policy)
         self.assertFalse(report.accepted)
         self.assertIn("TOTAL_SAMPLE_COUNT_BELOW_MINIMUM", report.reasons)
@@ -72,9 +76,9 @@ class CalibrationEvaluatorTests(unittest.TestCase):
         self.assertIn("NON_OOS_OBSERVATION_PRESENT", report.reasons)
 
     def test_rejects_ece_above_explicit_limit(self):
-        rows = self.observations(long_trend=[(1, ".1"), (0, ".9")])
+        rows = self.observations(long_trend=[(1, ".1")] * 4 + [(0, ".9")] * 4)
         strict = CalibrationGatePolicy(
-            max_ece="0.05", min_total_samples=8, min_group_samples=2,
+            max_ece="0.05", min_total_samples=32, min_group_samples=8,
             ece_bins=4, required_regimes=("TREND", "RANGE"),
         )
         report = CalibrationEvaluator().evaluate(rows, strict)
@@ -82,7 +86,7 @@ class CalibrationEvaluatorTests(unittest.TestCase):
         self.assertTrue(any(x.startswith("ECE_LIMIT_EXCEEDED:") for x in report.reasons))
 
     def test_rejects_brier_not_better_than_reference_baseline(self):
-        rows = self.observations(long_trend=[(1, ".5"), (0, ".5")])
+        rows = self.observations(long_trend=[(1, ".5")] * 4 + [(0, ".5")] * 4)
         report = CalibrationEvaluator().evaluate(rows, self.policy)
         self.assertIn("BRIER_NOT_BETTER_THAN_BASELINE:LONG:TREND", report.reasons)
 
@@ -110,11 +114,11 @@ class CalibrationEvaluatorTests(unittest.TestCase):
     def test_rejects_missing_or_invalid_gate_configuration(self):
         for policy in (
             None,
-            CalibrationGatePolicy(max_ece="NaN", min_total_samples=8, min_group_samples=2,
+            CalibrationGatePolicy(max_ece="NaN", min_total_samples=32, min_group_samples=8,
                                   ece_bins=4, required_regimes=("TREND", "RANGE")),
-            CalibrationGatePolicy(max_ece=".2", min_total_samples=0, min_group_samples=2,
+            CalibrationGatePolicy(max_ece=".2", min_total_samples=0, min_group_samples=8,
                                   ece_bins=4, required_regimes=("TREND", "RANGE")),
-            CalibrationGatePolicy(max_ece=".2", min_total_samples=8, min_group_samples=2,
+            CalibrationGatePolicy(max_ece=".2", min_total_samples=32, min_group_samples=8,
                                   ece_bins=0, required_regimes=("TREND", "RANGE")),
             CalibrationGatePolicy(max_ece=".2", min_total_samples=8, min_group_samples=2,
                                   ece_bins=4, required_regimes=()),
@@ -140,7 +144,7 @@ class CalibrationEvaluatorTests(unittest.TestCase):
         changed_policy = CalibrationEvaluator().evaluate(
             self.observations(),
             CalibrationGatePolicy(
-                max_ece=".19", min_total_samples=8, min_group_samples=2,
+                max_ece=".19", min_total_samples=32, min_group_samples=8,
                 ece_bins=4, required_regimes=("TREND", "RANGE"),
             ),
         )
