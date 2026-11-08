@@ -7435,3 +7435,15 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Do not rebase, merge, reset, force-push, create a new branch, or open a PR to address this discrepancy without explicit review/approval. Continue no further documentation commits on this branch until the cause is understood.
 - The documentation cross-review itself is recorded and read back successfully; its latest file blobs are: copy contract `4112c68eceef7d9047117efc5027750ae2edf2d8`, deletion contract `e055d88308d8576c5c6826e12280b847f5ec5717`, foundation `18f8566723b95c4b38586e3848bde5305295a4dc`, cross-review `3d6d8505da43d755d35efe4ac44e580e541a21ae`.
 - Next action is read-only Git history diagnosis: inspect branch tip parents, merge base, main's recent commits, and associated PR/history. Do not alter refs or content. The archive availability contract gap remains open and should be addressed only after branch ancestry is understood.
+
+
+
+## 2026-11-09 — Main-to-feature synchronization merge completed
+
+- Explicit user approval received to merge repository `main` into `feature/t0-centralized-data-feeder-p1-20261101`, preserving commit history; no rebase, force-push, new branch, or PR.
+- Revalidated source refs immediately before merge: feature HEAD `aa6ad9ecde6085c3ed03e37e8b927f726d0d4b01`; main HEAD `f5b74affb8777953fa66d241784965fbb0e577ba`; merge base `1e16b437456d56eac2f7d9564ca9ab8e7d032f62`.
+- Resolved the independently-added same-path workflow safely: both branches contained `.github/workflows/p1-8-synthetic-evidence.yml`; main version was 131 lines/blob `baec3b23057037a169a498eb4fed1e69336656f3`, feature version was 571 lines/blob `00c6f70b918aa61084c1dbd5c0e65a81de2d97cd`. Retained the feature version because it already includes `workflow_dispatch` and the more developed synthetic-only checks; no feature workflow content was overwritten.
+- Created a two-parent merge commit `5fc7e911a4b15be15568c5ffa6b4fa1ae413be80` with first parent feature `aa6ad9ecde6085c3ed03e37e8b927f726d0d4b01` and second parent main `f5b74affb8777953fa66d241784965fbb0e577ba`. Updated the existing feature branch using expected-head protection; GitHub confirmed success.
+- Post-merge verification: feature ref points to `5fc7e911a4b15be15568c5ffa6b4fa1ae413be80`; merge commit has both expected parents; compare `main...feature` reports ahead_by=1709, behind_by=0, merge base equals main HEAD. Workflow blob remains `00c6f70b918aa61084c1dbd5c0e65a81de2d97cd` and contains `workflow_dispatch`.
+- Status: Git synchronization **PASS**. CI/tests **NOT RUN**; no workflow run or artifact was found for the merge commit at verification time. No source/runtime/T0/VPS/DB/Feeder/exchange/live-execution changes were made.
+- Next step: run the P1.8 synthetic-only workflow manually or validate its updated feature-branch workflow on the merged source; capture workflow run ID, artifact, and test evidence before marking CI acceptance. Keep `AI_EXECUTION_ENABLED=false`; no live execution.
