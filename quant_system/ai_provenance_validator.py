@@ -68,6 +68,74 @@ def _valid_identity(value):
     return isinstance(value, str) and bool(value.strip()) and len(value) <= 256
 
 
+def _validate_prediction_rows(predictions, manifest):
+    """Validate row-level prediction and label-resolution timestamps."""
+    reasons = []
+    if not isinstance(predictions, bytes) or not predictions:
+        return ("PREDICTIONS_EMPTY",)
+
+    split = manifest["temporal_split"]
+    start_ms, end_ms = split["oos_start_ms"], split["oos_end_ms"]
+    expected_model = manifest["model_version"]
+    expected_dataset = manifest["dataset_version"]
+    required = {
+        "prediction_timestamp_ms", "outcome_available_at_ms", "outcome",
+        "confidence", "side", "regime", "model_version", "dataset_version",
+    }
+
+    try:
+        text = predictions.decode("utf-8")
+    except UnicodeDecodeError:
+        return ("PREDICTION_ROW_INVALID",)
+
+    lines = text.splitlines()
+    if not lines or any(not line.strip() for line in lines):
+        return ("PREDICTIONS_EMPTY" if not lines else "PREDICTION_ROW_INVALID",)
+
+    for line in lines:
+        try:
+            row = json.loads(
+                line,
+                object_pairs_hook=_reject_duplicate_keys,
+                parse_constant=lambda _value: (_ for _ in ()).throw(ValueError("non-finite JSON")),
+            )
+        except (json.JSONDecodeError, TypeError, ValueError):
+            reasons.append("PREDICTION_ROW_INVALID")
+            continue
+
+        if not isinstance(row, Mapping) or set(row) != required:
+            reasons.append("PREDICTION_ROW_INVALID")
+            continue
+
+        prediction_ms = row.get("prediction_timestamp_ms")
+        outcome_ms = row.get("outcome_available_at_ms")
+        if type(prediction_ms) is not int or not start_ms <= prediction_ms <= end_ms:
+            reasons.append("PREDICTION_TIMESTAMP_OUTSIDE_OOS")
+        if (type(outcome_ms) is not int or type(prediction_ms) is not int
+                or outcome_ms <= prediction_ms or outcome_ms > end_ms):
+            reasons.append("OUTCOME_TIMESTAMP_INVALID")
+
+        if row.get("model_version") != expected_model:
+            reasons.append("PREDICTION_MODEL_VERSION_MISMATCH")
+        if row.get("dataset_version") != expected_dataset:
+            reasons.append("PREDICTION_DATASET_VERSION_MISMATCH")
+
+        if (type(row.get("outcome")) is not int or row["outcome"] not in (0, 1)
+                or row.get("side") not in ("LONG", "SHORT")
+                or not isinstance(row.get("regime"), str) or not row["regime"].strip()):
+            reasons.append("PREDICTION_ROW_INVALID")
+        try:
+            from decimal import Decimal, InvalidOperation
+            confidence = Decimal(str(row.get("confidence")))
+            if (isinstance(row.get("confidence"), bool) or not confidence.is_finite()
+                    or confidence < 0 or confidence > 1):
+                raise ValueError("invalid confidence")
+        except (InvalidOperation, TypeError, ValueError):
+            reasons.append("PREDICTION_ROW_INVALID")
+
+    return tuple(sorted(set(reasons)))
+
+
 def verify_signed_provenance(envelope, artifacts, trusted_public_keys, *, now_ms):
     """Verify signature, trusted key, exact artifact bytes and OOS chronology.
 
@@ -163,6 +231,9 @@ def verify_signed_provenance(envelope, artifacts, trusted_public_keys, *, now_ms
                     reasons.append(f"ARTIFACT_HASH_MISMATCH:{role}")
                     continue
                 verified.append(role)
+
+    if isinstance(artifacts, Mapping) and "predictions" in artifacts:
+        reasons.extend(_validate_prediction_rows(artifacts["predictions"], manifest))
 
     return ProvenanceVerification(
         accepted=not reasons, reasons=tuple(sorted(set(reasons))), key_id=key_id,
