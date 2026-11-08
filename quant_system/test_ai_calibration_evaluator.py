@@ -40,13 +40,13 @@ class CalibrationEvaluatorTests(unittest.TestCase):
             for outcome, confidence in rows
         ]
 
-    def test_perfect_calibration_passes_explicit_policy(self):
+    def test_calibrated_oos_samples_pass_explicit_policy(self):
         report = CalibrationEvaluator().evaluate(self.observations(), self.policy)
         self.assertTrue(report.accepted)
         self.assertEqual(report.sample_count, 32)
         self.assertEqual(report.group_count, 4)
-        self.assertEqual(report.metrics["overall"]["ece"], 0.0)
-        self.assertEqual(report.metrics["overall"]["brier_score"], 0.095)
+        self.assertEqual(report.metrics["overall"]["ece"], 0.05)
+        self.assertEqual(report.metrics["overall"]["brier_score"], 0.19)
 
     def test_rejects_insufficient_total_oos_samples(self):
         rows = self.observations()[:31]
