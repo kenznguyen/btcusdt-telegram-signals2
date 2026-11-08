@@ -118,3 +118,54 @@ The original 300-second supervised runtime remains PASS for bounded ingestion, C
 - No new workflow was run and no artifact was produced for this read-only runtime-data audit.
 - No source, runtime configuration, T0 process/database, or VPS service state was changed by this audit.
 - Next permitted step: documentation/evidence review only. Any new capture, forced disconnect, or longer runtime requires separate bounded scope and explicit authorization.
+
+## Exact-source Order Book implementation review — 2026-11-08
+
+### Source identity and inspected files
+
+Read-only review of T1 repository `kenznguyen/binance-futures-collector` at exact source SHA `d8ac9fc820dcf2e912e66518a1a1c73a8fa81ac7`.
+
+| File | Blob SHA | Review scope |
+|---|---|---|
+| `src/collectors/orderbook_manager.rs` | `d18d047c1f7cdddd03cea60b02de54b656ad4edf` | Snapshot lifecycle, bridge selection, diff application, live loop, unit tests |
+| `src/websocket/message_handler.rs` | `7d7f221fbf4b31470049baea55584645352f61b7` | Depth event parsing, buffering, CSV message forwarding |
+| `src/websocket/connection_manager.rs` | `1a219cabaf88c3e71c0fa4419ba2b3b77bc0dfce` | Heartbeat monitor and reconnect-related code |
+| `docs/ORDERBOOK.md` | `d3e8f446258675cc5fb92751db220c9ae19a7b69` | Documented synchronization and reconnect contract |
+
+### Findings
+
+1. **Buffer-before-snapshot ordering — PASS (source review).** Startup opens the WebSocket batch and allows buffering before `manage_symbol` fetches the REST snapshot. This closes the startup race where diffs could otherwise be missed between snapshot and stream startup.
+2. **Snapshot bridge rules — PASS (source review).** `find_bridge` skips diffs with `u <= snapshot_u`; it accepts direct continuity when `U <= snapshot_u + 1`, and a pu-based attach when `pu <= snapshot_u < U`. This matches the observed VPS sample, where the first eligible event spans the snapshot update ID.
+3. **Post-bridge continuity — PASS (source review).** `try_attach_to_stream` checks each subsequent diff's `pu` against the previous applied `u`. A mismatch aborts the attach attempt rather than continuing to claim a successful bridge.
+4. **Absolute quantity application — PASS (source review).** Quantity zero removes a price level; nonzero quantity replaces it. Each applied diff advances the book's `last_update_id`; both sides are trimmed to configured depth.
+5. **Unit-test coverage — PASS for tested pure behaviors.** The source contains tests for both bridge rules, skipping snapshot-covered diffs, unbridgeable snapshots, sorting/deduplication, insert/update/delete semantics, malformed string price parsing, and depth trimming. This source review did not execute tests; CI provenance remains the existing run recorded above.
+6. **Reconnect policy — intentional limitation, NOT a continuity guarantee.** `run_live_depth_update_loop` explicitly does not enforce `pu == book.last_update_id` and does not trigger a resnapshot after reconnect. The code documents the trade-off: avoid a batch-wide REST resnapshot storm; preserve the raw diff tape; allow active price levels to self-correct when later absolute-quantity updates arrive; rely on a newer snapshot for offline reconstruction. Quiet levels changed during an outage can remain stale in the in-memory book until updated or trimmed.
+7. **CSV raw tape versus live in-memory book — distinct guarantees.** The WebSocket handler buffers each parsed depth update and separately forwards it for CSV writing. The raw tape can expose a reconnect chain break, but this does not mean the live in-memory book is sequence-validated after reconnect.
+
+### Review risks / remaining verification
+
+- **Required verification gap:** no end-to-end test or runtime evidence in this review proves that the collector's actual in-memory book after initial attach equals an independently reconstructed book from REST snapshot plus buffered diffs.
+- **Known design limitation:** live reconnect does not validate the first post-reconnect `pu` against the in-memory book's `last_update_id`. This is explicitly documented behavior, not an undisclosed implementation bug. Do not label the live book continuously sequence-consistent across reconnects.
+- **Known best-effort behavior:** absolute updates self-correct only levels that are updated again. Levels that changed during an outage and then remain quiet may be stale until trimmed or refreshed by a later snapshot/reconstruction.
+- **Test coverage gap:** existing unit tests exercise bridge selection and update primitives, but the inspected tests do not prove the full async REST-snapshot → buffer attach → LIVE transition, nor reconnect behavior against a controlled missing-diff fixture.
+- **CSV audit boundary:** the 595-row VPS file proves the recorded `pu` chain was continuous during that bounded run. It cannot establish behavior under a forced disconnect because `total_reconnects=0` in the five-minute runtime.
+
+### Verdict
+
+| Review item | Status |
+|---|---|
+| Initial snapshot bridge implementation | PASS — source review |
+| Subsequent attach-chain validation | PASS — source review |
+| Absolute quantity and zero-delete semantics | PASS — source review |
+| Unit tests for bridge and update primitives exist | PASS — existence/source inspection; not rerun |
+| Actual in-memory book independently reconciled against snapshot + diffs | NOT VERIFIED |
+| Live in-memory continuity across reconnect | NOT GUARANTEED BY DESIGN |
+| Reconnect gap detection in raw tape | Documented design; forced outage not tested |
+| Reconnect self-healing of every price level | NOT GUARANTEED; active-level best effort only |
+| Full async attach and reconnect integration tests | NOT VERIFIED in inspected test coverage |
+
+No source code, test, config, runtime, database, or VPS service was changed. No GitHub Actions run or artifact was created for this read-only review. Existing source SHA, workflow run `42424240328`, and artifact `13594961114` remain unchanged.
+
+### Next step
+
+Documentation-only closeout is permitted. To raise the order-book assurance level, a separately authorized test scope should add deterministic offline/integration coverage for: (a) REST snapshot + buffered bridge + independently reconstructed expected book; (b) a missing diff during attach; and (c) reconnect with a deliberate `pu` break, explicitly asserting the documented raw-tape/live-book behavior. Do not start another VPS capture or change implementation without separate approval.
