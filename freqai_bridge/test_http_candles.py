@@ -318,7 +318,7 @@ class T2HttpConsumerTest(unittest.TestCase):
 
     def test_client_and_server_errors_400_404_405_are_not_retried(self):
         _, _, Error = self._adapter()
-        for status in (400, 404, 405):
+        for status in (400, 404, 405, 429, 500):
             client, session = self._client(responses=[FakeResponse(status=status, payload={"error": "rejected"})])
             with self.subTest(status=status), self.assertRaises(Error):
                 self._fetch(client)
@@ -364,11 +364,17 @@ class T2HttpConsumerTest(unittest.TestCase):
                 self._fetch(client)
 
     def test_secret_is_not_exposed_in_error_text(self):
+        import requests
         _, _, Error = self._adapter()
-        client, _ = self._client(responses=[FakeResponse(status=401, payload={"error": "UNAUTHORIZED"})])
-        with self.assertRaises(Error) as caught:
-            self._fetch(client)
-        self.assertNotIn("test-secret-token", str(caught.exception))
+        responses = [
+            FakeResponse(status=401, payload={"error": "UNAUTHORIZED"}),
+            requests.exceptions.InvalidHeader("test-secret-token"),
+        ]
+        for response in responses:
+            client, _ = self._client(responses=[response])
+            with self.subTest(response_type=type(response).__name__), self.assertRaises(Error) as caught:
+                self._fetch(client)
+            self.assertNotIn("test-secret-token", str(caught.exception))
 
     def test_missing_or_null_freshness_is_rejected(self):
         _, _, Error = self._adapter()
