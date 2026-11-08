@@ -76,6 +76,7 @@ def verify_signed_provenance(envelope, artifacts, trusted_public_keys, *, now_ms
     A passing result is provenance verification only, not trade authorization.
     """
     reasons = []
+    verified = []
     try:
         manifest, signature_text = _parse_envelope(envelope)
     except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):
@@ -134,31 +135,34 @@ def verify_signed_provenance(envelope, artifacts, trusted_public_keys, *, now_ms
     if (not isinstance(manifest_artifacts, Mapping)
             or set(manifest_artifacts) != _REQUIRED_ARTIFACT_ROLES):
         reasons.append("ARTIFACT_ROLE_SET_MISMATCH")
-    if not isinstance(artifacts, Mapping) or set(artifacts) != _REQUIRED_ARTIFACT_ROLES:
+    if not isinstance(artifacts, Mapping):
         reasons.append("ARTIFACT_ROLE_SET_MISMATCH")
-    elif isinstance(manifest_artifacts, Mapping):
-        for role in sorted(_REQUIRED_ARTIFACT_ROLES):
-            descriptor, data = manifest_artifacts.get(role), artifacts.get(role)
-            if not isinstance(descriptor, Mapping) or set(descriptor) != {"sha256", "size_bytes"}:
-                reasons.append(f"ARTIFACT_DESCRIPTOR_INVALID:{role}")
-                continue
-            if not isinstance(data, bytes):
-                reasons.append(f"ARTIFACT_MISSING:{role}")
-                continue
-            expected_hash, expected_size = descriptor.get("sha256"), descriptor.get("size_bytes")
-            if not isinstance(expected_hash, str) or not _SHA256.fullmatch(expected_hash):
-                reasons.append(f"ARTIFACT_DESCRIPTOR_INVALID:{role}")
-                continue
-            if type(expected_size) is not int or expected_size <= 0:
-                reasons.append(f"ARTIFACT_DESCRIPTOR_INVALID:{role}")
-                continue
-            if len(data) != expected_size:
-                reasons.append(f"ARTIFACT_SIZE_MISMATCH:{role}")
-                continue
-            if hashlib.sha256(data).hexdigest() != expected_hash:
-                reasons.append(f"ARTIFACT_HASH_MISMATCH:{role}")
-                continue
-            verified.append(role)
+    else:
+        if set(artifacts) != _REQUIRED_ARTIFACT_ROLES:
+            reasons.append("ARTIFACT_ROLE_SET_MISMATCH")
+        if isinstance(manifest_artifacts, Mapping):
+            for role in sorted(_REQUIRED_ARTIFACT_ROLES):
+                descriptor, data = manifest_artifacts.get(role), artifacts.get(role)
+                if not isinstance(descriptor, Mapping) or set(descriptor) != {"sha256", "size_bytes"}:
+                    reasons.append(f"ARTIFACT_DESCRIPTOR_INVALID:{role}")
+                    continue
+                if not isinstance(data, bytes):
+                    reasons.append(f"ARTIFACT_MISSING:{role}")
+                    continue
+                expected_hash, expected_size = descriptor.get("sha256"), descriptor.get("size_bytes")
+                if not isinstance(expected_hash, str) or not _SHA256.fullmatch(expected_hash):
+                    reasons.append(f"ARTIFACT_DESCRIPTOR_INVALID:{role}")
+                    continue
+                if type(expected_size) is not int or expected_size <= 0:
+                    reasons.append(f"ARTIFACT_DESCRIPTOR_INVALID:{role}")
+                    continue
+                if len(data) != expected_size:
+                    reasons.append(f"ARTIFACT_SIZE_MISMATCH:{role}")
+                    continue
+                if hashlib.sha256(data).hexdigest() != expected_hash:
+                    reasons.append(f"ARTIFACT_HASH_MISMATCH:{role}")
+                    continue
+                verified.append(role)
 
     return ProvenanceVerification(
         accepted=not reasons, reasons=tuple(sorted(set(reasons))), key_id=key_id,
