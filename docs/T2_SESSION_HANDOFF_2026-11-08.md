@@ -202,3 +202,37 @@ Not yet specified by the user and therefore deliberately NOT defaulted:
 Implementation gate: build a sizing-agnostic AI leverage policy contract with explicit required configuration and fail-closed validation only after mapping and calibration acceptance criteria are specified. Do not infer numerical limits or claim calibration validity from model confidence alone.
 
 Status: POLICY DIRECTION CONFIRMED; NUMERIC BOUNDS / MAPPING / CALIBRATION ACCEPTANCE CRITERIA BLOCKED ON USER SPECIFICATION. No code, runtime, T0 or T1 behavior changed in this increment.
+
+
+## AI Dynamic Leverage Contract — implementation increment (2026-11-08)
+
+User-approved policy:
+- `min_leverage=1x`, `max_leverage=3x`, `mapping=linear`.
+- AI does not inherit Strategy Core's legacy leverage.
+- Confidence-domain endpoints are required configuration and are intentionally not defaulted from the unapproved 0.60/0.90 proposal.
+- AI calibration acceptance metrics and minimum sample-size criteria remain unspecified; do not claim a real model calibration has passed.
+
+Implementation:
+- `quant_system/ai_dynamic_leverage.py`: standalone Decimal-based policy contract; fixed 1x–3x bounds; linear mapping; explicit confidence domain; calibration attestation identity/provenance/time checks; fail-closed rejection.
+- `quant_system/test_ai_dynamic_leverage.py`: independent tests for mapping boundaries, invalid confidence, invalid bounds, calibration rejection, OOS/leakage flags, provenance hash/type and identity mismatch, future/expired evidence, and no Core leverage fallback.
+- `.github/workflows/t2-dual-signal-coordinator.yml`: runs the independent AI leverage contract suite before existing coordinator/ledger/legacy regressions.
+- `quant_system/AI_DYNAMIC_LEVERAGE_CONTRACT_2026-11-08.md`: scope and evidence limits.
+
+TDD evidence:
+- RED run `42457533430`, source SHA `004eaf3c0870f11692174c27669c5bd4021275b9`: leverage suite failed as expected on a dataset-provenance mismatch (13 passed, 1 failed).
+- GREEN run `42457536254`, source SHA `685abd9cf214566e2c653af4b04171e1c42241b5`: 14/14 AI leverage tests PASS; coordinator, dual-ledger and legacy regression steps PASS; no artifacts.
+- Fixed-bound run `42457578245`, source SHA `617ceea8e9669b701dbeae36acae16666b769970`: workflow SUCCESS.
+- Additional hardening rejects non-string provenance fingerprints safely. Latest code/test source SHA: `6bb1ecd899e9857dfef80635c4d53a745f7c2662`; exact-source workflow run is pending at handoff capture. Do not promote the latest SHA to PASS until run/job logs confirm it.
+- Latest documentation commit before this handoff update: `fb1d439bbd3520bc025a593bc5724e42faf435f3`.
+
+Current status:
+- Linear leverage contract and 1x–3x bounds: IMPLEMENTED.
+- Confidence floor/ceiling: CONFIGURATION REQUIRED; no production defaults.
+- Calibration evaluator, acceptance metrics and minimum OOS sample size: BLOCKED / NOT IMPLEMENTED.
+- Calibration artifact authenticity and actual model quality: NOT VERIFIED.
+- Coordinator/paper runtime integration: NOT IMPLEMENTED; `AI_EXECUTION_ENABLED=false`.
+- Gross notional exposure ceiling: still undefined.
+- No T0/T1, database, Feeder, exchange, market data, or live-order behavior changed.
+- PR #95 remains OPEN / DRAFT / NOT MERGED. No merge or rebase authorized.
+
+Next step: verify exact-source CI for `6bb1ecd899e9857dfef80635c4d53a745f7c2662`, then continue with an independent calibration-evidence evaluator only after acceptance thresholds and sample-size rules are specified. Keep runtime disabled.
