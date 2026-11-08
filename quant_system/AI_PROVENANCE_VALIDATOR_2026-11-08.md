@@ -143,3 +143,53 @@ The validator reconstructs calibration observations from the exact signed predic
 - No proof of feature/label leakage absence, training lineage, or model-to-prediction execution identity.
 - No real BTCUSDT OOS artifacts or production trust root/independent signer were supplied.
 - Calibration attestation NOT ISSUED; leverage authorization NOT ISSUED; runtime integration NOT IMPLEMENTED.
+
+
+## Signed T0 M15+H1 dataset bundle verification — 2026-11-08
+
+### Bundle contract
+
+The signed `dataset` artifact is now a strict UTF-8 JSON bundle with exactly these top-level fields:
+
+- `schema_version=1`
+- `format=T0_M15_H1_DATASET_BUNDLE_V1`
+- `source=T0_CANONICAL_BINANCE_USDT_PERPETUAL`
+- `exchange=binance`, `marketType=USDT_PERPETUAL`, `symbol=BTCUSDT`
+- `snapshots`: exactly `15m` and `1h`, each embedding its existing T0 API snapshot payload unchanged
+- `datasetVersion`: aggregate SHA-256 identifier
+
+Each embedded snapshot is passed through the existing `quant_system.t0_freqtrade_adapter._validate_snapshot` contract. This reuses the established T0 checks for its per-timeframe identity, snapshot fingerprint, exact complete coverage, contiguous candle timestamps, closed/validated status, availability chronology, OHLC bounds and decimal-string values. The validator does not connect to T0 or an exchange.
+
+The aggregate dataset fingerprint is SHA-256 over canonical compact sorted-key UTF-8 JSON containing the fixed bundle identity and the `datasetVersion` values for both snapshots. The signed manifest's `dataset_version` must equal this aggregate identifier.
+
+### Prediction-to-dataset coverage checks
+
+- Every prediction timestamp must fall inside the inclusive coverage envelope `[startMs, endMs]` of both the M15 and H1 snapshots.
+- Every `outcome_available_at_ms` must fall inside the M15 snapshot coverage envelope.
+- Missing timeframe, wrong snapshot identity/timeframe, malformed/duplicate-key JSON, invalid embedded snapshot, aggregate fingerprint mismatch, and manifest/bundle version mismatch fail closed.
+- Coverage envelope checks establish only that the event timestamp lies within the declared snapshot window. They do not assert the exact candle-selection/close-time convention or prove that the feature set was available to the model at prediction time.
+- Outcome labels are not recomputed from OHLCV. Price basis, label horizon and exact candle-close semantics remain unspecified and out of scope.
+
+### TDD and CI evidence
+
+- RED after fixture migration: [42460744680](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42460744680), source `dc0dc6674d36a353da4f8a5b316da1a971f5c452`; exactly five new bundle/coverage tests failed before validator implementation. The older first RED run [42460661166](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42460661166) also contained a stale legacy fixture and is retained as intermediate evidence, not the final RED baseline.
+- Validator implementation commit/source: `9d738f82e0ee9ce6e255581d077561eaf51bf67c`.
+- Additional manifest binding and duplicate-key tests: `a0abc63017cb3a8855018a47d3410e04d55b770b`; fixture correction: `9103c0c15b63bdace4b17301a7d5b4540634e28a`.
+- Exact-source push CI [42460912700](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42460912700), job `128669809731`, SUCCESS; `github_sha` and `checked_out_sha` both equal `9103c0c15b63bdace4b17301a7d5b4540634e28a`.
+- PR-context CI [42460914804](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42460914804), job `128669816763`, SUCCESS; synthetic merge checkout `122fe436fc8f91dc93c6b5216d72100120bcfcd9`.
+- Test counts: provenance validator 35/35; calibration evaluator 16/16; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. **148/148 test invocations PASS**; py_compile PASS.
+- Push artifact ID `13609334289`, digest `sha256:2b4a1fe0661b6d2b5e3d346099132a15225df15467aba68f1be557ccfcd71d68`.
+- PR artifact ID `13609383998`, digest `sha256:45bb8bc1263550f93091db26b8310433581ff34ce29d7d718cfc5332e113c697`.
+- Both runs confirm `AI_EXECUTION_ENABLED=false`, database targets EMPTY and exchange credentials EMPTY.
+
+### Status and boundaries
+
+- Signed M15+H1 bundle schema, both embedded T0 snapshot checks, aggregate fingerprint, manifest binding and prediction/outcome coverage-envelope checks: PASS on synthetic fixtures.
+- Real BTCUSDT OOS dataset and predictions: NOT PROVIDED / NOT VERIFIED.
+- Dataset authenticity beyond supplied signer trust and artifact hashes: NOT VERIFIED.
+- Exact feature-time/candle-close alignment and label semantics: NOT VERIFIED.
+- Outcome recomputation from OHLCV and feature/label leakage analysis: NOT IMPLEMENTED.
+- Production trust root and independent signer lifecycle: NOT CONFIGURED.
+- Calibration attestation: NOT ISSUED; AI leverage authorization: NOT ISSUED; runtime integration: NOT IMPLEMENTED.
+- No T0/T1 DB, feeder, exchange, paper or live execution touched.
+- `AI_EXECUTION_ENABLED=false`; PR #95 remains OPEN / DRAFT / NOT MERGED.
