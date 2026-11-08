@@ -6841,3 +6841,18 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Evidence appended to `docs/evidence/t2/T2_LIVE_T0_ENDPOINT_OFFLINE_READINESS_AUDIT_2026-11-08.md`. No network request, service action, secret read, DB access, VPS change, or T2 activation.
 - Next: read-only inventory of local checkout directories, stopped service definitions and process names only; exclude env/secret/private-key contents.
 - Endpoint status **BLOCKED / NOT ESTABLISHED**; live verification **NOT RUN**; T2 **NOT ACTIVATED**; `ai_execution_enabled=false`.
+
+
+## 2026-11-08 — T0 local checkout and Feeder process inventory
+
+- Operator supplied a second read-only VPS inventory (timestamp not included in pasted output).
+- Checkout observed at `/home/ubuntu/t0/app` (`.git` and `market_data` present).
+- tmux session `t0-feeder` and Python PID 6584 observed running `market_data.feeder_service` from `/home/ubuntu/t0/app`.
+- Process command sets `MARKET_DATA_BACKEND=sqlite` and DB path `/home/ubuntu/t0/app/.data/market-data.sqlite3`.
+- Filtered systemd unit-file and installed-package inventories returned no matching market/feeder/nginx/caddy/API services or nginx/caddy/apache2/docker packages.
+- Combined with the earlier socket inventory (no TCP/8788, 80 or 443), the local Feeder is observed running but no Candle API listener or HTTPS front door is established. This does not rule out an API hosted elsewhere or another deployment mechanism.
+- Feeder running does not prove API readiness, DB integrity/freshness, or storage-level read-only enforcement.
+- Evidence report: `docs/evidence/t2/T2_LIVE_T0_ENDPOINT_OFFLINE_READINESS_AUDIT_2026-11-08.md`.
+- No tests/workflows, network probes, DB/secret reads, service actions, configuration changes, package installation, or T2 activation. `ai_execution_enabled=false`.
+- Status: checkout **OBSERVED PRESENT**; Feeder **OBSERVED RUNNING**; API/HTTPS endpoint **NOT ESTABLISHED**; live verification **BLOCKED / NOT RUN**; T2 **NOT ACTIVATED**.
+- Next: inspect only tracked API entrypoint/deployment documentation and safe process metadata if needed. No API startup, Feeder restart, package installation, port exposure, or runtime change without separate explicit approval.
