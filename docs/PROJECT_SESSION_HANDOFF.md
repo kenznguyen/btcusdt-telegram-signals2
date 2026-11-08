@@ -7413,3 +7413,16 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - CI/tests: NOT RUN. No artifact. No source code, schema, API, workflow, database, VPS, Feeder, runtime, retention, archive, vacuum, cleanup, backup expiry, replica removal, export deletion, or other destructive operation was changed or activated.
 - Experimental VPS remains non-official; official T0 environment remains NOT DESIGNATED. `ai_execution_enabled=false`; paper-only boundary unchanged.
 - Next bounded step: documentation-only cross-read of the new copy lifecycle contract against the four existing lifecycle contracts, focusing on source-vs-copy deletion authority, holds, recovery-chain dependencies, and independent approval. Keep VPS inventory deferred unless the user reopens it. No numeric retention/RPO/RTO values or implementation without evidence and separate approval.
+
+
+## 2026-11-09 — Copy lifecycle cross-contract review completed
+
+- Cross-read `DATA_COPY_BACKUP_REPLICA_LIFECYCLE_CONTRACT.md` against Shared Data Foundation, Central Data Lifecycle Policy, Dataset Consumer Contract, Data Deletion Safety Contract, and Environment Evidence Boundary.
+- Added fail-closed source-hold inheritance rule in copy contract §5.6: source holds protect all known copies by default; exclusions require exact-scope, evidence-backed authorized adjudication; copy-specific holds remain independent; source-hold release does not itself authorize disposition. Commit `4c3329efe684e647255a14693c8fdd19ebbedfc3`.
+- Updated deletion contract §12 to reference the dedicated copy lifecycle contract and require separate exact-scope disposition for each copy. Commit `1b37f13240618e9300b8dc40177222b9e0bf45ce`.
+- Updated Shared Data Foundation references and implementation boundary for the copy lifecycle design. Commit `c3dc60d3e7d6036038de7c7cc18dc67a85d7376a`.
+- Recorded cross-review: commit `78a4da90d4ecc6e7eff4edc18fc437a4c14db65b`. Results: authority alignment PASS; hold inheritance PASS at design level; source-vs-copy deletion separation PASS; recovery-chain design PASS but runtime evidence NOT VERIFIED; archive availability requirement remains OPEN because Dataset Consumer Contract has no normative availability/latency requirement. Unknown availability requirement blocks archive. No SLA/default invented.
+- Verification performed by reading current GitHub files and checking the amended clauses and review record. CI/tests NOT RUN; no artifact.
+- No runtime inventory, VPS/SSH command, storage read, source code, test, workflow, schema, API, database, Feeder, backup, replica, export, or local-copy mutation occurred. VPS inventory remains DEFERRED; current VPS remains EXPERIMENTAL; official T0 environment remains NOT DESIGNATED.
+- No retention, RPO/RTO, archive SLA, evidence freshness, provider, approval quorum, backup expiry, replica removal, export deletion, cleanup, vacuum, or destructive operation was selected or authorized.
+- Next step: resolve the remaining archive availability contract gap by reviewing the consumer dependency contract and proposing a minimal, fail-closed availability requirement vocabulary (online, low-latency, restore-acceptable, metadata-only) without numeric SLA or runtime implementation. Continue documentation-only; no lifecycle mutation or VPS inventory unless separately reopened.
