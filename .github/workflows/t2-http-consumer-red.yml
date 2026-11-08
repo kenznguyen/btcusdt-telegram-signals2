@@ -79,8 +79,8 @@ jobs:
           }
           failures = set(re.findall(r"^FAIL: (test_[^(]+)", output, re.MULTILINE))
           errors = re.findall(r"^ERROR: (test_[^(]+)", output, re.MULTILINE)
-          ran = re.findall(r"^Ran (\\d+) tests?", output, re.MULTILINE)
-          summary = re.search(r"^FAILED \\(failures=(\\d+)\\)$", output, re.MULTILINE)
+          ran = re.findall(r"^Ran (\d+) tests?", output, re.MULTILINE)
+          summary = re.search(r"^FAILED \(failures=(\d+)\)$", output, re.MULTILINE)
           passed_policy = (
               "test_approved_freshness_formula_is_present_in_contract_plan" in output
               and "test_transport_limits_are_recorded_in_contract_plan" in output
