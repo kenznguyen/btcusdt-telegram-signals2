@@ -6822,3 +6822,11 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No network request, secret lookup, VPS access/change, API/Feeder/database change, workflow creation, T2/Freqtrade startup, or runtime action occurred. No tests/workflows were run because this increment was documentation/source inspection only.
 - Next: obtain the exact approved T0 API base URL (no token), TLS front-door/CA details, authorized probe origin, credential owner and secure injection method, and server-side read-only DB enforcement evidence. Then seek separate explicit approval for a bounded live read-only probe.
 - Keep `ai_execution_enabled=false`; T2 remains NOT ACTIVATED; live endpoint verification NOT RUN.
+
+
+### Follow-up source-level auth probe clarification
+
+- Updated verification plan commit: `d62f851f8d42dd9b65b88f1c51adf5a0eb49a89a`.
+- In `market_data/api.py`, `/v1/candles` returns 503 `UNCONFIGURED` when `MARKET_DATA_TOKEN` is unset, before Authorization comparison. Once the server token is configured, absent/invalid Authorization returns 401 `UNAUTHORIZED`. A valid token may still return 503 `STORE_UNAVAILABLE` if the backing store is unavailable.
+- `/health` is handled before candle authentication and is liveness only; it is not readiness or proof of authentication.
+- Authentication probe matrix now conditions 401 expectations on server-side token configuration and distinguishes auth from store availability. No live request was made.
