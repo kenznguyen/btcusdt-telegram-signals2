@@ -6901,3 +6901,29 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Tests/workflows not run (documentation-only). No domain purchase, DNS lookup/change, VPS, firewall, proxy, API, Feeder, database, secret, or T2 runtime action.
 - Status: domain/DNS selection criteria **COMMITTED**; D1 **BLOCKED — owner domain and DNS control not confirmed**; D2 **NOT READY**; D3 **NOT AUTHORIZED**; D4 **NOT RUN**; D5 **NOT ACTIVATED**; `ai_execution_enabled=false`.
 - Next: owner confirms whether an existing domain is available and under their DNS control. If not, compare registrar candidates and obtain explicit purchase approval. Do not request credentials/tokens. No operational changes until separately approved.
+
+
+## 2026-11-08 — User-directed pause and progress preservation
+
+- User explicitly requested: **pause the plan and save current progress**.
+- Current branch at pause: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Baseline HEAD before this handoff update: `ebb96ea468be3de8319df0c2b1d657b2192a0454`.
+- Current completed documentation:
+  - HTTPS front-door design: `docs/architecture/T0_CANDLE_API_HTTPS_FRONT_DOOR_DESIGN_2026-11-08.md`.
+  - Domain/DNS selection criteria: `docs/architecture/T0_API_DOMAIN_SELECTION_CRITERIA_2026-11-08.md`.
+  - Offline endpoint readiness audit: `docs/evidence/t2/T2_LIVE_T0_ENDPOINT_OFFLINE_READINESS_AUDIT_2026-11-08.md`.
+  - Live endpoint verification plan: `docs/architecture/T2_LIVE_T0_ENDPOINT_VERIFICATION_PLAN_2026-11-08.md`.
+- Latest domain/DNS criteria commit: `de29785dc57488282aba9e40908e9c65a33f636f`; document blob SHA `c647911d0e6ad36320e2ec03a95ee4247df9c475`.
+- Previous handoff commit: `ebb96ea468be3de8319df0c2b1d657b2192a0454`.
+- Pause-state assessment:
+  - D0 design and domain/DNS criteria: **DOCUMENTED**; design still has review limitations.
+  - D1 domain/DNS: **BLOCKED** — no domain/subdomain or DNS control confirmed.
+  - D2 deployment plan: **NOT READY** — independent review must resolve cloud Security Group/firewall coverage and a concrete, pinned rate-limit approach or explicitly defer rate limiting with compensating controls.
+  - D3 VPS deployment: **NOT AUTHORIZED**.
+  - D4 live endpoint probe: **NOT RUN**.
+  - D5 T2 connection/runtime: **NOT ACTIVATED**.
+  - T2 HTTP adapter source migration remains committed with prior exact-SHA CI evidence; this does not establish a deployed live endpoint.
+  - `ai_execution_enabled=false`; paper-only boundary remains.
+- No tests or GitHub Actions run for this pause record. No code, workflow, DNS, registrar, VPS, firewall, proxy, service, environment, secret, Feeder, database, or T2 runtime changes.
+- **Resume point:** only resume when the user explicitly asks. Start by re-reading this handoff and verifying current branch HEAD. Do not automatically proceed to domain purchase, DNS changes, deployment planning, VPS changes, endpoint probes, or T2 activation.
+- Preserve current branch and all runtime state; do not create a branch/PR or clean untracked runtime/log directories as part of resumption.
