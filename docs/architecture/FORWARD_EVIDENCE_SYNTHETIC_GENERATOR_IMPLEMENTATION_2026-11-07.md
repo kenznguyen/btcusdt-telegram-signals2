@@ -367,6 +367,6 @@ Inspect the workflow run for exact source SHA, confirm the 43-test result and ar
 
 ### Verification boundary
 
-The correction must be verified by a new GitHub Actions run on the exact correction commit. Confirm the focused retention tests and full synthetic suite, inspect the generated manifest, verify both uploaded artifacts' actual `expires_at`, and verify the archive commit and source SHA. Until then, correction status is **IMPLEMENTED / CI NOT VERIFIED**.
+The correction must be verified by manually dispatching the workflow on the current feature-branch HEAD. The dispatched source SHA must include correction commit `a2a0956b733efe6d90bbff0aeae0d4f0ee134bb1` as an ancestor; record the actual `github.sha` from the run rather than assuming it equals the correction commit. Confirm the focused retention tests and full synthetic suite, inspect the generated manifest, verify both uploaded artifacts' actual `expires_at`, and verify the archive commit and source SHA. Until then, correction status is **IMPLEMENTED / CI NOT VERIFIED**.
 
 No T0 runtime, VPS, database, Feeder, market-data ingestion, exchange connection, paper/live execution, or data lifecycle operation was changed or activated. `AI_EXECUTION_ENABLED=false`.
