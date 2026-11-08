@@ -96,7 +96,7 @@ class T2HttpConsumerRedTest(unittest.TestCase):
         from freqai_bridge.http_candles import CandleHttpClient, CandleHttpConfig, CandleHttpError
         return CandleHttpClient, CandleHttpConfig, CandleHttpError
 
-    def _client(self, responses=None, envelope=None, **config_changes):
+    def _client(self, responses=None, envelope=None, clock_ms=GENERATED, **config_changes):
         Client, Config, _ = self._adapter()
         session = FakeSession(responses or [FakeResponse(payload=envelope or response_envelope())])
         values = {
@@ -106,7 +106,7 @@ class T2HttpConsumerRedTest(unittest.TestCase):
         }
         values.update(config_changes)
         config = Config(**values)
-        return Client(config, session=session, sleep=lambda _: None, clock_ms=lambda: GENERATED), session
+        return Client(config, session=session, sleep=lambda _: None, clock_ms=lambda: clock_ms), session
 
     def _fetch(self, client, as_of_ms=AS_OF):
         return client.fetch(start_ms=START, end_ms=END, as_of_ms=as_of_ms)
@@ -254,7 +254,7 @@ class T2HttpConsumerRedTest(unittest.TestCase):
             "observationAgeMs": generated - (END + 120_000),
             "closeLagMs": generated - END,
         }
-        client, _ = self._client(envelope=response_envelope(candles=[candle], generatedAtMs=generated, asOfMs=generated, freshness=freshness))
+        client, _ = self._client(envelope=response_envelope(candles=[candle], generatedAtMs=generated, asOfMs=generated, freshness=freshness), clock_ms=generated)
         self._fetch(client, as_of_ms=generated)
 
     def test_ingestion_delay_120001_ms_is_rejected(self):
@@ -266,7 +266,7 @@ class T2HttpConsumerRedTest(unittest.TestCase):
             "observationAgeMs": generated - (END + 120_001),
             "closeLagMs": generated - END,
         }
-        client, _ = self._client(envelope=response_envelope(candles=[candle], generatedAtMs=generated, asOfMs=generated, freshness=freshness))
+        client, _ = self._client(envelope=response_envelope(candles=[candle], generatedAtMs=generated, asOfMs=generated, freshness=freshness), clock_ms=generated)
         with self.assertRaises(Error):
             self._fetch(client, as_of_ms=generated)
 
@@ -289,7 +289,7 @@ class T2HttpConsumerRedTest(unittest.TestCase):
             "observationAgeMs": generated - AVAILABLE,
             "closeLagMs": generated - END,
         }
-        client, _ = self._client(envelope=response_envelope(generatedAtMs=generated, asOfMs=generated, freshness=freshness))
+        client, _ = self._client(envelope=response_envelope(generatedAtMs=generated, asOfMs=generated, freshness=freshness), clock_ms=generated)
         self._fetch(client, as_of_ms=generated)
 
     def test_unauthorized_response_is_not_retried(self):
