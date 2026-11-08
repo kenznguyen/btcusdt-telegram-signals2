@@ -7327,3 +7327,14 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No API, schema, registry, service, scheduler, identity system, retention value, archive, vacuum, or deletion behavior is implemented or activated. No real data lifecycle action is authorized.
 - Verification: consumer contract fetched at commit `2fc436829949754d25c2d9a8c0fec16191ab61ce`, blob `5f614992db2694b00c446924a84b56c1963d81dd`, 20,477 characters; acceptance criteria present and status explicitly NOT IMPLEMENTED / NOT ACTIVE. Branch comparison from parent `9ae2eeae4ece3d657781b68e96b6f4509cd95f24` to this commit: 1 commit ahead, 0 behind, only the new contract file changed. No CI/test run; no artifact.
 - Next: design `DATA_DELETION_SAFETY_CONTRACT.md` separately. Do not implement or activate a deletion executor, retention scheduler, archive, vacuum, or cleanup path without separate approval.
+
+
+## 2026-11-09 — Data Deletion Safety Contract designed
+
+- Added `docs/architecture/DATA_DELETION_SAFETY_CONTRACT.md`, design-only commit `14658efcf85bffe59124d7256a8696227e758555`.
+- Defines separate proposal, eligibility review, independent approval, final execution authorization, exact-scope execution, cancellation/expiry, idempotency/retry, partial-failure reconciliation, replica/backup/export boundaries, tombstones, retained audit evidence, and independent post-operation verification.
+- Requires fail-closed checks for immutable dataset/version/object identity, dependencies, holds, lineage, recovery/rebuildability, policy, and audit availability. Explicitly prohibits age/TTL/ACK/timeout-based deletion, wildcard scope, implicit cascading, and treating executor return code as verified success.
+- No numeric grace period, approval quorum, authorization lifetime, evidence freshness window, or adapter mechanism was selected. No deletion is approved or activated.
+- No source, tests, workflow, database/schema, API, VPS, Feeder, registry, scheduler, retention timer, archive, vacuum, backup expiry, cleanup, or deletion operation was changed or activated.
+- Verification pending: document read-back, handoff update, and branch comparison. No CI/test run; no artifact.
+- Next: documentation-only cross-contract consistency review across Shared Data Foundation, Central Data Lifecycle Policy, Dataset Consumer Contract, and Data Deletion Safety Contract. No implementation or real-data lifecycle action is authorized.
