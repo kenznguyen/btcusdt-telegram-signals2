@@ -189,7 +189,7 @@ class T2HttpConsumerRedTest(unittest.TestCase):
 
     def test_bearer_token_rejects_whitespace_and_header_control_characters(self):
         _, Config, Error = self._adapter()
-        for value in ("token with spaces", "token\\r\\nInjected: yes", ""):
+        for value in ("token with spaces", "token\\r\\nInjected: yes", "token=middle", ""):
             with self.subTest(value=value), self.assertRaises(Error):
                 Config(base_url="https://t0.example.invalid", token=value, max_lag_ms=120_000)
 
@@ -356,6 +356,7 @@ class T2HttpConsumerRedTest(unittest.TestCase):
         responses = [
             FakeResponse(body=b"{}", content_type="text/plain"),
             FakeResponse(body=b"{not-json", content_type="application/json"),
+            FakeResponse(body=b"[" * 10_000 + b"0" + b"]" * 10_000, content_type="application/json"),
         ]
         for response in responses:
             client, _ = self._client(responses=[response])
