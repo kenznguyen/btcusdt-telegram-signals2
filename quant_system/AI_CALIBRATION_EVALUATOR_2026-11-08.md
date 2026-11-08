@@ -63,12 +63,16 @@ Do not convert this evaluator's accepted result directly into a leverage attesta
 - RED behavioral test: run [42458033277](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458033277), source `cab0d34102c7da884c820662ae5d4b5df34d1b52`; test import succeeded and exposed the first evaluator acceptance-path failure.
 - RED fixture refinement runs: [42458082523](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458082523), [42458142080](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458142080); exposed incorrect synthetic calibration expectations (not implementation acceptance claims).
 - First exact-source GREEN before artifact-log hardening: [42458190901](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458190901), source `8e94fa36d9086b0e9340abc243a437950ee8fd0b`; all suites passed: evaluator 14/14, leverage 14/14, coordinator 11/11, dual ledger 23/23, Phase 2 20/20, Phase 3 11/11, PaperLedger 18/18 (111 total invocations).
-- The workflow was then improved to include py_compile and both calibration/leverage test logs in the evidence artifact. Exact-source verification for the resulting workflow/source SHA is pending and must be recorded after run completion.
+- Final exact-source push run: [42458217777](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458217777), source/head/checked-out SHA `56da92b86dc75ad76e0b391854c2e672268178b1`, conclusion SUCCESS; job `128661678013` SUCCESS.
+- Logs confirm py_compile PASS; calibration evaluator 14/14; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18 — **111/111 test invocations PASS**.
+- Exact-head artifact: ID `13608870606`, name `t2-ai-intelligence-contracts-56da92b86dc75ad76e0b391854c2e672268178b1`, GitHub digest `sha256:ba6de2deb3deefdc3ab8715571a2dc167ec6b577f8d50b2c56a9ae43b16b1284`. The downloaded ZIP was independently SHA-256 hashed; result matched the GitHub digest. Its contents include the exact source provenance, compile log, and both test logs; calibration evaluator log records 14/14 PASS.
+- Preflight artifact records event=push, github_sha=checked_out_sha=`56da92b86dc75ad76e0b391854c2e672268178b1`, `AI_EXECUTION_ENABLED=false`, empty database targets and empty exchange credentials.
+- PR merge-context run: [42458221166](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458221166), PR head SHA `56da92b86dc75ad76e0b391854c2e672268178b1`, synthetic merge checkout SHA `8033250cc6179eb23397f54ea603a38458f13a9b`, conclusion SUCCESS. This is merge-context evidence, not direct-head evidence.
 
 ## Current status
 
 - Evaluator implementation: IMPLEMENTED.
-- Unit tests: PASS at SHA `8e94fa36d9086b0e9340abc243a437950ee8fd0b`; latest workflow/evidence change pending re-verification.
+- Unit tests + exact-source CI: PASS at SHA `56da92b86dc75ad76e0b391854c2e672268178b1`; 111/111 invocations PASS and artifact payload digest independently matched.
 - Production gate policy values: BLOCKED / NOT APPROVED.
 - Real OOS dataset and calibration quality: NOT VERIFIED.
 - OOS split and source provenance authenticity: NOT VERIFIED.
