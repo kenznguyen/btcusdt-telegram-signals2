@@ -232,7 +232,7 @@ Deletion scope must explicitly account for data copies and relationships:
 
 The default is **no cascading deletion**. A primary-payload deletion request does not imply deletion of backups, replicas, exports, or derived outputs. Each copy has its own owner, policy, dependency, and authorization. Where a copy cannot be located or its lifecycle cannot be governed, the request must disclose the limitation and remain blocked if the copy creates an unresolved preservation or privacy obligation.
 
-Backup expiration and destruction must be a separate contract, including restore-chain integrity and evidence retention. Do not remove a backup needed to recover a dataset while its recovery obligation remains active.
+Backup, replica, export, local-copy, cache, and evidence-copy governance is detailed in [Data Copy, Backup, Replica, and Export Lifecycle Contract](DATA_COPY_BACKUP_REPLICA_LIFECYCLE_CONTRACT.md). Disposition of each copy remains separate from source-dataset deletion and requires its own exact-scope review and authorization. Do not remove a backup needed to recover a dataset while its recovery obligation remains active.
 
 ## 13. Tombstones and retained evidence
 
