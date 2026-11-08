@@ -139,14 +139,33 @@ Implementation contract:
 20. Partial reduction releases proportional margin and books realized PnL/fees.
 21. Full reduction closes the position; over-reduction is rejected without mutation.
 
+## Dual-Strategy coordinator RED → GREEN
+
+- Contract tests: `quant_system/test_dual_signal_coordinator.py` (8 tests).
+- RED test commit: `a4596369ff98f836745e115b6ce44360d84301a2`.
+- RED workflow run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455777252
+- RED run ID `42455777252`, source SHA `c0c793689b06abe3f7261f618652b0e7e535d54b`, expected failure because `quant_system.dual_signal_coordinator` did not exist. The loader ran one failed import test; the eight behavioral methods did not execute.
+- Coordinator implementation commit: `78bf5b8b8b620dde7bd6f093ad197db4a9b22219`.
+- Final coordinator workflow commit: `34c6b41246b5eb580f7d6085c62e25b7a35c3160`.
+- Exact source SHA and PR head for the final verification: `34c6b41246b5eb580f7d6085c62e25b7a35c3160`.
+- GREEN workflow: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455858929
+- Run ID `42455858929`, event `push`, conclusion SUCCESS; job `128654599899`.
+- Focused coordinator: 8/8 PASS.
+- Shared ledger contract: 23/23 PASS.
+- Legacy Phase 2: 20/20 PASS; Phase 3: 11/11 PASS; PaperLedger: 18/18 PASS.
+- Total: **70 tests PASS** on the exact source SHA.
+- Offline boundary passed: `AI_EXECUTION_ENABLED=false`; DB targets and Binance/OKX credentials empty.
+- No artifact produced.
+- Coordinator accepts separately produced CORE and AI intents, preserves opposing directions, uses combined portfolio equity for each 1% admission, persists each entry/DCA reservation, and writes only to its matching ledger. It does not submit exchange orders.
+
 ## Review findings and remaining boundaries
 
 This is a passing ledger/risk-accounting slice, **not full Dual-Strategy execution certification**.
 
 1. **Gross exposure ceiling is not defined.** Engine calculates and reports gross notional exposure but does not invent a maximum. Set the intended gross exposure limit before combined paper use.
-2. **Collateral/equity basis is unresolved.** Available collateral is supplied account equity minus gross recorded/pending margin, effectively preventing committed margin from exceeding 100% of that supplied equity. The coordinator has not yet defined whether `account_equity` is each strategy ledger's own equity or one combined portfolio equity. Confirm both the equity basis and portfolio margin budget before combined paper use.
+2. **Equity basis is confirmed; portfolio budget remains conservative.** The 1% margin basis is combined portfolio equity (CORE + AI). Available collateral is combined equity minus gross recorded/pending margin, so committed margin cannot exceed 100% of combined equity. A separate gross-notional exposure ceiling is still undefined.
 3. **AI sizing/leverage is not defined.** The new risk API receives an explicit notional exposure from its caller, but no AI position-sizing/leverage policy has been approved. Do not infer AI leverage from the legacy Core 13x setting.
-4. **Signal coordinator integration is not implemented.** CORE and AI signal routes must use persistent `reserve_entry`/`reserve_dca` and consume through `record_reserved_entry`/`record_reserved_dca`. The `restore_position`/`restore_dca` methods are for reconciled restore only.
+4. **Coordinator exists as an offline integration slice; live paper bridge wiring is not implemented.** `quant_system/dual_signal_coordinator.py` accepts independent CORE/AI ENTRY and DCA intents, routes each through persistent shared reservations, and writes only to the originating ledger. It does not yet call the signal producers itself or connect to `paper_bridge.py` / the Freqtrade runtime. The `restore_position`/`restore_dca` methods remain for reconciled restore only.
 5. **Legacy signal/paper route is incompatible and remains unchanged.** `quant_system/dual_strategy.py` still routes through `RiskSnapshot.max_positions`, and `_select` arbitrates CORE/AI into one selected signal (opposing directions are blocked). `quant_system/paper_bridge.py` still calculates stake from the legacy `StrategyRules().p.entry_margin_pct` and uses `PaperLedger`'s single signed net position. These do not implement independent CORE_LEDGER/AI_LEDGER with 1% margin and no fixed position-count cap. Do not treat the legacy `PaperSignalCoordinator` / `DualPaperBridge` path as integrated with the new `dual_ledger.py` module.
 6. **Signal coordinator and runtime Kill Switch wiring are not implemented.** The new risk API accepts a boolean Kill Switch state; the coordinator must supply an authoritative source.
 7. **Legacy Phase 2/Phase 3 regression tests PASS but preserve legacy semantics.** Workflow run `42455156480` at SHA `8849ea2c6c9f28ac60067a7e6339eb7260a27b6b` passed 20 Phase 2 tests, 11 Phase 3 paper bridge tests, and 18 PaperLedger tests. These prove no regression in the old path; they do NOT certify compatibility with the new 1% margin, no-fixed-position-cap, independent-ledger rules.
@@ -177,7 +196,7 @@ This is a passing ledger/risk-accounting slice, **not full Dual-Strategy executi
 - Exact-head T0 adapter regression: **PASS**.
 - R22.2 isolated offline verification for code SHA `afa44c4bbab5a86040aadbeed219df7fe10a87cb`: **PASS (8/8)**.
 - Gross exposure policy threshold: **NOT DEFINED**.
-- New Dual-Strategy signal coordinator integration: **NOT IMPLEMENTED**.
+- New offline Dual-Strategy coordinator: **PASS (8/8)**; paper bridge/runtime wiring: **NOT IMPLEMENTED**.
 - Legacy Phase 2/Phase 3 regression suite: **PASS (49 tests across 3 modules) under legacy behavior**; compatibility with updated Dual-Strategy risk policy remains BLOCKED.
 - Combined paper replay: **NOT RUN**.
 - Production readiness: **NOT CERTIFIED**.
@@ -192,4 +211,4 @@ This is a passing ledger/risk-accounting slice, **not full Dual-Strategy executi
 
 ## Next step
 
-Implement the Dual-Strategy signal coordinator and route both Core and AI signals through the persistent reservation API. Before combined paper replay, obtain the portfolio gross-exposure ceiling and confirm the margin collateral budget.
+Wire the offline coordinator to the independently validated CORE/AI signal producers and a paper-only execution adapter without reusing legacy `_select` arbitration or `PaperLedger` netting. Before combined paper replay, define the gross-notional exposure ceiling, AI sizing/leverage, and authoritative Kill Switch source.
