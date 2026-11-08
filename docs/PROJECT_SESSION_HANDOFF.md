@@ -6581,3 +6581,20 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Status: transport/resource policy **APPROVED**; freshness threshold **APPROVED WITH VERIFIED FORMULA**; RED tests **NOT STARTED / NOT AUTHORIZED**; HTTP adapter and direct SQLite removal **NOT STARTED / NOT AUTHORIZED**; runtime activation **NOT AUTHORIZED**.
 - Next step: request separate explicit authorization for the RED-only test increment. Keep the same branch and record exact SHA and observed RED evidence. Do not implement production client code until separately authorized after RED evidence.
 - Safety: keep `ai_execution_enabled=false`; paper/research only; no live execution.
+
+
+## 2026-11-08 — T2 HTTP consumer RED-only baseline executed
+
+- User explicitly approved Phase RED-only. No production implementation or runtime work was authorized.
+- Added `freqai_bridge/test_http_candles.py` and isolated workflow `.github/workflows/t2-http-consumer-red.yml`.
+- Test source SHA / workflow checked-out SHA: `d8ba2e1cf7e7e23977dc5eb0bd6484ed1d1d4745`.
+- Workflow run `42467842637`, event `push`, URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42467842637.
+- Job `Confirm T2 HTTP migration contract gaps`, job ID `128691379082`, conclusion **success** because the workflow verified the expected RED result.
+- Test result: 7 executed; 5 expected architecture-gap assertion failures (HTTP adapter absent; T2 direct Store import/read_window remains; strategy still has canonical_db_path and passes the legacy DB argument); 2 policy assertions PASS; 0 unexpected errors. Test compile PASS. This is not a GREEN product test result.
+- Artifact: `t2-http-consumer-red-d8ba2e1cf7e7e23977dc5eb0bd6484ed1d1d4745`; artifact ID `13612118332`; SHA-256 `39140a7a10cf3c723c67cab728784f836a6e89446cbf0c8c2e27618704d35de8`.
+- Evidence report: `docs/evidence/t2/T2_HTTP_CONSUMER_RED_BASELINE_2026-11-08.md`.
+- Plan update commit: `622351fe1cf6eaa842b4f763b6fa5b292431b76b`.
+- **Coverage limitation:** this is only the architecture-gap baseline (7 tests). Detailed executable HTTP behavior tests for auth, TLS, bounded retry/timeouts, body cap, schema/identity, coverage, decimal/candle integrity, freshness boundaries, redaction, and no-fallback are not yet implemented/run. Do not treat the 47/48-case plan as completed.
+- Status: architecture RED baseline **CONFIRMED**; full HTTP behavior RED suite **NOT IMPLEMENTED / NOT VERIFIED**; HTTP adapter and direct SQLite removal **NOT AUTHORIZED**; runtime/deployment **NOT AUTHORIZED**.
+- No production source, strategy/config, T0 API/store/DB, Feeder, VPS, exchange, Data Quality Gate, model training, paper order routing, deployment, or live execution changed. Keep `ai_execution_enabled=false`.
+- Next: continue RED-only by defining and adding executable behavior tests against the approved T2 adapter interface before any GREEN implementation is considered. Keep the same branch and capture a new exact SHA/run/artifact for that increment.
