@@ -57,17 +57,18 @@ Phase 1 consumer supports the existing FreqAI bridge use case only:
 
 The client must preserve the current window semantics and validate that the response echoes the exact request identity/range/as-of value.
 
-### Contract clarification required before implementation
+### Approved freshness / request-window rule
 
-The API's `freshness.latestExpectedOpenTimeMs` is calculated from server `generatedAtMs`, while the T2 request range is currently calculated from the consumer clock. Near a 15-minute boundary, the server's latest expected candle may fall outside the requested `[startMs,endMs)` range. The design also says the latest returned candle must equal the latest expected candle for strategy use.
+**APPROVED by user on 2026-11-08.**
 
-Before writing the client, resolve this clock/range relationship in the contract:
-- define whether T2's freshness comparison is against the latest expected slot inside the requested range (`endMs - interval`) or the server-global `latestExpectedOpenTimeMs`;
-- define behavior when client/server clocks straddle a timeframe boundary;
-- define maximum permitted clock skew, if any, and whether a single bounded re-request is permitted;
-- ensure `asOfMs` and `generatedAtMs` semantics cannot make a valid current window look stale or let a stale window pass.
+- Evaluate whether the requested window is complete against its own expected slots; for M15, the latest required candle is exactly `openTimeMs = endMs - 900000`.
+- Do not require the server-global `freshness.latestExpectedOpenTimeMs` to lie inside the consumer's requested window. It is diagnostic server-clock metadata, not the request-window membership criterion.
+- Continue validating `generatedAtMs` and each `availableAtMs` for integer/type validity and the separately approved time/freshness policy.
+- Require an explicitly configured M15 freshness threshold; missing or invalid threshold fails closed.
+- Do not automatically shift/retry the request window and do not fall back to cache, SQLite, synthetic candles, or another venue.
+- Add deterministic tests with client/server clocks on opposite sides of an M15 boundary, proving that a complete requested window is evaluated by its own end slot and stale data still fails the configured threshold.
 
-Do not code around this ambiguity with a permissive exception. Add deterministic tests for both sides of a timeframe boundary.
+This approval resolves the boundary comparison only. It does not approve numeric timeout/retry/body-size limits or implementation/runtime activity.
 
 ## 5. Fail-closed response validation
 
@@ -211,8 +212,8 @@ RED must be observed against the pre-implementation source. Do not label a test 
 | Gate | Status |
 |---|---|
 | Contract design / source review | CONDITIONAL PASS |
-| Freshness vs request-window boundary clarification | BLOCKED — decision required |
-| Timeout/retry/body-size numeric policy | NOT APPROVED |
+| Freshness vs request-window boundary clarification | APPROVED — request-window latest slot = endMs - 900000 |
+| Timeout/retry/body-size numeric policy | NOT APPROVED — separate decision required |
 | T2 HTTP client implementation | NOT AUTHORIZED |
 | T2 direct SQLite removal | NOT STARTED |
 | Local fixture/HTTP tests | NOT RUN |
@@ -220,3 +221,12 @@ RED must be observed against the pre-implementation source. Do not label a test 
 | T2 runtime activation/deployment | NOT AUTHORIZED |
 
 This plan defines the proposed implementation and acceptance criteria only. It does not authorize source changes or runtime activity.
+
+
+## Approval record — freshness boundary rule
+
+- User approval received 2026-11-08.
+- Approved rule: request-window completeness and latest M15 candle are evaluated against the request's own end boundary; latest required candle is `endMs - 900000`. Server-global `latestExpectedOpenTimeMs` remains diagnostic and is not required to fall inside the requested range.
+- Continue validating server generation and availability timestamps; configured M15 max-lag remains mandatory and fail-closed.
+- No automatic window shift/re-request or fallback to SQLite/cache/synthetic/alternate venue.
+- Scope of approval: design rule only. Numeric transport limits remain unapproved. No RED tests have been added or run; no implementation or runtime activity is authorized by this decision.
