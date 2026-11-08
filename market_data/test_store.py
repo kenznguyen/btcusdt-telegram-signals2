@@ -1,3 +1,4 @@
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -97,6 +98,58 @@ class CandleStoreTest(unittest.TestCase):
         ]:
             with self.subTest(changes=changes), self.assertRaises(ValueError):
                 self.candle(**changes)
+
+    def test_read_only_uri_rejects_mutations_and_preserves_dataset(self):
+        self.gateway.write_batch([self.candle()])
+        uri = self.path.resolve().as_uri() + "?mode=ro"
+        with sqlite3.connect(uri, uri=True, timeout=5) as reader:
+            statements = [
+                ("INSERT INTO candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                 ("binance", "USDT_PERPETUAL", "BTCUSDT", "15m", self.step,
+                  "100", "102", "99", "101", "5", self.step * 2 + 100)),
+                ("UPDATE candles SET close='102' WHERE open_time_ms=0", ()),
+                ("DELETE FROM candles WHERE open_time_ms=0", ()),
+                ("CREATE TABLE forbidden_write (value INTEGER)", ()),
+            ]
+            for statement, parameters in statements:
+                with self.subTest(statement=statement), self.assertRaises(sqlite3.OperationalError):
+                    reader.execute(statement, parameters)
+
+        result = self.window(1)
+        self.assertEqual(result["coverage"]["returned"], 1)
+        self.assertEqual(result["candles"][0]["close"], "101")
+
+    def test_read_only_reader_observes_wal_snapshot_while_writer_commits(self):
+        self.gateway.write_batch([self.candle()])
+        writer = sqlite3.connect(self.path, timeout=5, isolation_level=None)
+        self.addCleanup(writer.close)
+        self.assertEqual(writer.execute("PRAGMA journal_mode=WAL").fetchone()[0].lower(), "wal")
+
+        pending = self.candle(1)
+        writer.execute("BEGIN IMMEDIATE")
+        writer.execute(
+            """INSERT INTO candles (
+                exchange, market_type, symbol, timeframe, open_time_ms,
+                open, high, low, close, volume, available_at_ms
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("binance", "USDT_PERPETUAL", pending.symbol, pending.timeframe,
+             pending.open_time_ms, pending.open, pending.high, pending.low,
+             pending.close, pending.volume, pending.available_at_ms),
+        )
+
+        wal_path = Path(str(self.path) + "-wal")
+        shm_path = Path(str(self.path) + "-shm")
+        self.assertTrue(wal_path.exists())
+        self.assertTrue(shm_path.exists())
+
+        during_write = self.window(2)
+        self.assertEqual(during_write["coverage"]["returned"], 1)
+        self.assertEqual([row["openTimeMs"] for row in during_write["candles"]], [0])
+
+        writer.execute("COMMIT")
+        after_commit = self.window(2)
+        self.assertEqual(after_commit["coverage"]["returned"], 2)
+        self.assertEqual([row["openTimeMs"] for row in after_commit["candles"]], [0, self.step])
 
     def test_readonly_query_does_not_create_missing_database(self):
         missing = self.path.parent / "missing.sqlite3"
