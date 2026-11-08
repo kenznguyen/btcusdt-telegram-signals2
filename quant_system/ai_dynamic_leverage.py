@@ -67,10 +67,8 @@ class AIDynamicLeveragePolicy:
         self.confidence_floor = _decimal(confidence_floor, "confidence_floor")
         self.confidence_ceiling = _decimal(confidence_ceiling, "confidence_ceiling")
 
-        if (self.min_leverage < Decimal("1")
-                or self.max_leverage > Decimal("3")
-                or self.min_leverage > self.max_leverage):
-            raise ValueError("AI leverage bounds must satisfy 1 <= min <= max <= 3")
+        if (self.min_leverage != Decimal("1") or self.max_leverage != Decimal("3")):
+            raise ValueError("AI leverage bounds are fixed at min=1x and max=3x")
         if (self.confidence_floor < 0
                 or self.confidence_ceiling > 1
                 or self.confidence_floor >= self.confidence_ceiling):
