@@ -61,8 +61,8 @@ A passing job proves only that the tested transient systemd units and synthetic 
 
 - Harness: `ci/t0_systemd_feeder_api_integration.py`.
 - Workflow: `.github/workflows/t0-systemd-feeder-api-integration.yml`.
-- Exact source SHA: `75cfaa5f5ec2e78261799272a3ca2a6058e88bde`.
-- GitHub Actions run: `42488295514` — SUCCESS; job `128754896648` — SUCCESS.
+- Exact source SHA: `0e73f9184bb15561341e76c31f698ba96e2a2703`.
+- GitHub Actions run: `42488536321` — SUCCESS; job `128755620737` — SUCCESS.
 - Runner systemd: `systemd 259 (259.9-0ubuntu0.1)`.
 - Observed timestamped events prove:
   - `FEEDER_READY_GENERATION_1` precedes API process start;
@@ -72,5 +72,7 @@ A passing job proves only that the tested transient systemd units and synthetic 
   - a new Feeder lease generation (`2`) is acquired on restart and the dependent API reads successfully;
   - during orderly shutdown, `API_SIGTERM` precedes `FEEDER_SIGTERM`, followed by Feeder STOPPING/drain and exit.
 - Final marker: `T0_SYSTEMD_FEEDER_API_INTEGRATION=PASS`.
-- Evidence artifact: `t0-systemd-feeder-api-integration-75cfaa5f5ec2e78261799272a3ca2a6058e88bde`, ID `13620660924`, digest `sha256:c31d5991a7343ae938a1c680fbda7b16c7bbe3690e06ed8e099f369aba3ed0b0`.
+- Evidence artifact: `t0-systemd-feeder-api-integration-0e73f9184bb15561341e76c31f698ba96e2a2703`, ID `13620800948`, digest `sha256:5a0e932e6145958a2aa9b88be14a5198075b107d9b1b01d3cd58849747f2305c`.
 - Scope remains synthetic disposable SQLite and transient systemd units on the GitHub runner. This does not certify VPS systemd/kernel/filesystem behavior, production service identities, production unit definitions, or deployment readiness.
+
+- Final self-review cleanup removed unused harness imports; exact final source SHA was rerun and remained PASS (run `42488536321`). No behavioral code changed in this cleanup.
