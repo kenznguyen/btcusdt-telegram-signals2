@@ -1,5 +1,4 @@
 import copy
-import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -9,8 +8,27 @@ import pandas as pd
 
 from freqai_bridge.exporter import TARGET, make_prediction, read_context, write_artifact
 from freqai_bridge.context import canonical_context
+from pipeline.values import identity
 from market_data.store import Candle, CandleStore, read_window
 from market_data.test_support import seed_candles
+
+
+
+class WindowHttpClient:
+    def __init__(self, window):
+        self.window = window
+        self.calls = []
+
+    def fetch(self, *, start_ms, end_ms, as_of_ms):
+        self.calls.append((start_ms, end_ms, as_of_ms))
+        result = dict(self.window)
+        result["asOfMs"] = as_of_ms
+        payload = {key: result[key] for key in (
+            "exchange", "marketType", "symbol", "timeframe", "startMs",
+            "endMs", "asOfMs", "candles"
+        )}
+        result["datasetVersion"] = identity("sha256:", payload)
+        return result
 
 
 class FreqaiExporterTest(unittest.TestCase):
@@ -70,38 +88,27 @@ class FreqaiExporterTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             write_artifact(self.path / "model.pkl", result)
 
-    def test_t0_context_and_prediction_export_leave_canonical_sqlite_unchanged(self):
-        database = self.path / "candles.sqlite3"
+    def test_http_context_and_prediction_export_publish_a_bound_artifact(self):
         output = self.path / "exports" / "prediction.json"
-
-        def database_snapshot():
-            paths = [database, Path(str(database) + "-wal"), Path(str(database) + "-shm")]
-            return {
-                str(path): hashlib.sha256(path.read_bytes()).hexdigest()
-                for path in paths if path.exists()
-            }
-
-        before = database_snapshot()
-        identity_before = database.resolve()
-        window = canonical_context(database, self.now, bars=1)
+        client = WindowHttpClient(self.window)
+        window = canonical_context(self.now, bars=1, client=client)
         prediction = make_prediction(self.frame, window, self.provenance, self.now)
         write_artifact(output, prediction)
-        after = database_snapshot()
 
-        self.assertEqual(database.resolve(), identity_before)
-        self.assertEqual(after, before)
+        self.assertEqual(client.calls, [(self.opened, self.opened+900_000, self.now)])
+        self.assertEqual(window["asOfMs"], self.now)
         self.assertTrue(output.is_file())
         self.assertEqual(read_context(output), prediction)
 
-    def test_context_hash_matches_api_without_query_time_drift(self):
-        database = self.path / "candles.sqlite3"
-        first = canonical_context(database, self.now, bars=1)
-        later = canonical_context(database, self.now+1000, bars=1)
-        self.assertEqual(first, self.window)
-        self.assertIsNone(first["asOfMs"])
-        self.assertEqual(first["datasetVersion"], later["datasetVersion"])
+    def test_context_dataset_hash_binds_the_observation_cutoff(self):
+        first = canonical_context(self.now, bars=1, client=WindowHttpClient(self.window))
+        later = canonical_context(self.now+1000, bars=1, client=WindowHttpClient(self.window))
+        self.assertEqual(first["asOfMs"], self.now)
+        self.assertEqual(later["asOfMs"], self.now+1000)
+        self.assertNotEqual(first["datasetVersion"], later["datasetVersion"])
+        self.assertEqual(first["candles"], later["candles"])
         with self.assertRaises(ValueError):
-            canonical_context(database, self.now, bars=2)
+            canonical_context(self.now, bars=33, client=WindowHttpClient(self.window))
 
 
 if __name__ == "__main__":
