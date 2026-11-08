@@ -164,6 +164,17 @@ class T2HttpConsumerRedTest(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(Error):
                 Config(base_url=value, token="secret", max_lag_ms=120_000)
 
+    def test_secret_is_not_exposed_by_configuration_representation(self):
+        _, Config, _ = self._adapter()
+        config = Config(base_url="https://t0.example.invalid", token="test-secret-token", max_lag_ms=120_000)
+        self.assertNotIn("test-secret-token", repr(config))
+
+    def test_malformed_or_credential_bearing_base_url_is_rejected(self):
+        _, Config, Error = self._adapter()
+        for value in ("https://[invalid", "https://user:password@t0.example.invalid", "https://t0.example.invalid/path"):
+            with self.subTest(value=value), self.assertRaises(Error):
+                Config(base_url=value, token="secret", max_lag_ms=120_000)
+
     def test_missing_or_blank_token_is_rejected(self):
         _, Config, Error = self._adapter()
         for value in ("", "   "):
