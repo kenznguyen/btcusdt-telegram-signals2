@@ -6487,5 +6487,5 @@ Documentation-only closeout is complete for this increment. If further assurance
 - TDD RED baseline: exact test SHA `9f5b9f12473ef5e25aa0caadf68c5230f3de2bb8`, 13 tests = 10 pass / 3 expected errors (user-provided Termux output).
 - GREEN focused/full tests: **NOT RUN / NOT VERIFIED**. Combined commit status has no reported checks; exact GitHub Actions run/job/log/artifact **NOT VERIFIED**.
 - Status: **IMPLEMENTED / NOT VERIFIED**; do not mark API contract PASS or promote consumers.
-- Next: user runs `python3 -m unittest market_data.test_api -v` against exact SHA `42fda132bf06edcf2cb5f5d3ea415fc3e7a47fc1`; then run full relevant suite and record CI proof. Address only observed failures.
+- Next: user runs `python3 -m unittest market_data.test_api -v` against exact SHA `d88e3ddda0502708e64c4815ecae08ed707f4641`; then run full relevant suite and record CI proof. Address only observed failures.
 - Limits: T2 HTTP client/FreqAI migration not included; no T0 DB/Feeder/VPS/runtime, exchange, Data Quality Gate, T1/T2 runtime, deployment, or live execution. Keep `ai_execution_enabled=false`.
