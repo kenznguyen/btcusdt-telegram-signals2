@@ -7214,3 +7214,13 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Production boundary unchanged: no VPS or canonical DB access; no production `.service` units, packages, permissions, secrets, firewall, DNS, proxy, or runtime changes. No exchange connectivity, real data writes/deletes, T2 activation, or live trading. `ai_execution_enabled=false`.
 - Status: transient Feeder/API systemd integration **PASS — synthetic GitHub runner only**; VPS compatibility **NOT VERIFIED**; production deployment **BLOCKED**.
 - Next: reconcile the T0 lifecycle acceptance matrix and paper runbook with this new CI proof boundary; keep production unit authoring and VPS deployment out of scope until separately approved.
+
+
+## 2026-11-08 — T0 lifecycle acceptance matrix and paper runbook reconciled
+
+- Added a separate systemd integration acceptance axis to `docs/T0_POSTGRESQL_LIFECYCLE_ACCEPTANCE_MATRIX.md`; commit `7211af474d036d58bf7b8b83f264718f5ab23ea5`. The new section explicitly does not change PostgreSQL provider, role, pool, transaction, or lifecycle verdicts.
+- Added T0 Feeder/API CI evidence and deployment boundary to `docs/FIVE_LAYER_PAPER_RUNBOOK.md`; commit `ea27d627436fd212e0d752c64f68ca403d55689c`. The runbook distinguishes liveness `/health` from authenticated data-path `/v1/candles` and marks VPS/production activation as not verified/authorized.
+- Both documentation updates reference final integration source SHA `0e73f9184bb15561341e76c31f698ba96e2a2703`, run `42488536321`, artifact `13620800948`, digest `sha256:5a0e932e6145958a2aa9b88be14a5198075b107d9b1b01d3cd58849747f2305c`.
+- No code/runtime/database changes in this documentation increment. No VPS access or deployment, no production unit creation, no exchange call, no T2 activation, no data deletion. `ai_execution_enabled=false`.
+- Status: CI transient Feeder/API systemd integration **PASS**; docs reconciled **PASS**; VPS compatibility **NOT VERIFIED**; production deployment **BLOCKED**.
+- Next bounded step: review the resulting docs for consistency against the shared-data ADR and current T0/T2 Candle API contract. Do not begin production deployment or PostgreSQL activation without separate authorization.
