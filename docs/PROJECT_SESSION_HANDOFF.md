@@ -6400,3 +6400,17 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Remaining limit: `connectionSubscriptions` in the manifest is still not semantically compared against JSONL-derived connection/batch/route/subscription inventory. Full manifest inventory integrity remains **NOT VERIFIED**.
 - No T0/runtime/VPS/collector runtime/Binance/live trading actions. Sidecar validator remains offline/read-only and is not wired into feed-quality or strategy gating.
 - Next bounded task: review and add offline tests for manifest `connectionSubscriptions` inventory consistency against validated event records; inspect actual writer/event semantics before changing validation. Keep changes on the existing T1 branch. Do not deploy, merge, or change PR draft state without separate approval.
+
+
+## 2026-11-08 — T0 supervised Feeder stop/restart closeout
+
+- Evidence report: `docs/evidence/t0/T0_FEEDER_SUPERVISED_RUNTIME_2026-11-08.md`.
+- Latest evidence update commit: `f9f3c65c6518b79eaff61cc45caf75759c25f67f`.
+- VPS checkout SHA observed while Feeder was running: `4cf3959532024d286a76712bd93708b7a96489df`; this is checkout identity, not cryptographic attestation of loaded Python code.
+- Controlled stop of PID 5919 via tmux Ctrl-C: PASS; process exited without force kill; lease owner became NULL and expiry 0; SQLite integrity remained ok and candle counts were preserved.
+- Restart at 2026-11-08 04:32:25 UTC: PASS; Python PID 6584, tmux wrapper PID 6583, lease generation 2 → 3, heartbeat renewed.
+- Latest observation at 08:26:41 UTC: SQLite integrity ok; M15 2,045 rows, latest open 08:00 UTC and available 08:15:05 UTC; H1 2,011 rows, latest open 07:00 UTC and available 08:00:09 UTC; lease generation 3 valid; process/session present.
+- Verdict: PASS for bounded graceful stop, lease release, restart, heartbeat, integrity, and post-restart M15/H1 persistence through the 08:00 UTC close cycle. Supervised observation after restart was approximately 3h54m, not 24x7 certification.
+- Detailed startup/recovery logs and exact loaded-code provenance remain NOT VERIFIED. Reboot/autostart NOT RUN / NOT AUTHORIZED. No GitHub Actions run/artifact (VPS-only observation; no source change).
+- Restrictions: keep current Feeder running; no duplicate; no systemd/autostart/linger, no T1 activation, no authenticated exchange access, no symbol/timeframe expansion, no live execution.
+- Next bounded task: read-only T0 data-quality/continuity/age monitoring; define and review stale-data/gap thresholds before any readiness promotion.
