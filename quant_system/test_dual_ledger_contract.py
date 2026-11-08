@@ -23,9 +23,9 @@ class DualLedgerContractTest(unittest.TestCase):
         self.risk = SharedRiskEngine()
 
     def test_core_and_ai_positions_are_isolated_in_one_persistent_store(self):
-        self.core.record_entry("core-1", side="LONG", quantity="0.01",
+        self.core.restore_position("core-1", side="LONG", quantity="0.01",
                                entry_price="100000", margin_used="100")
-        self.ai.record_entry("ai-1", side="SHORT", quantity="0.02",
+        self.ai.restore_position("ai-1", side="SHORT", quantity="0.02",
                              entry_price="100000", margin_used="100")
 
         core = self.core.snapshot()
@@ -36,11 +36,11 @@ class DualLedgerContractTest(unittest.TestCase):
         self.assertEqual(ai.positions[0].side, "SHORT")
 
     def test_dca_state_is_independent_between_strategies(self):
-        self.core.record_entry("core-1", side="LONG", quantity="0.01",
+        self.core.restore_position("core-1", side="LONG", quantity="0.01",
                                entry_price="100000", margin_used="100")
-        self.ai.record_entry("ai-1", side="SHORT", quantity="0.01",
+        self.ai.restore_position("ai-1", side="SHORT", quantity="0.01",
                              entry_price="100000", margin_used="100")
-        self.core.record_dca("core-1", quantity="0.01", price="99000",
+        self.core.restore_dca("core-1", quantity="0.01", price="99000",
                              margin_used="100")
 
         self.assertEqual(self.core.snapshot().positions[0].dca_count, 1)
@@ -52,9 +52,9 @@ class DualLedgerContractTest(unittest.TestCase):
         self.assertEqual(self.ai.snapshot().equity, Decimal("10000"))
 
     def test_ledger_state_survives_reopening_without_cross_contamination(self):
-        self.core.record_entry("core-1", side="LONG", quantity="0.01",
+        self.core.restore_position("core-1", side="LONG", quantity="0.01",
                                entry_price="100000", margin_used="100")
-        self.ai.record_entry("ai-1", side="SHORT", quantity="0.01",
+        self.ai.restore_position("ai-1", side="SHORT", quantity="0.01",
                              entry_price="100000", margin_used="100")
 
         core_reopened = StrategyLedger(self.db, strategy_id="CORE", initial_equity="10000")
@@ -72,7 +72,7 @@ class DualLedgerContractTest(unittest.TestCase):
         self.assertTrue(entry.accepted)
         self.assertEqual(entry.required_margin, Decimal("100"))
 
-        self.core.record_entry("core-1", side="LONG", quantity="0.01",
+        self.core.restore_position("core-1", side="LONG", quantity="0.01",
                                entry_price="100000", margin_used=str(entry.required_margin))
         dca = self.risk.admit_dca(
             account_equity="11000", position_id="core-1",
@@ -83,9 +83,9 @@ class DualLedgerContractTest(unittest.TestCase):
         self.assertEqual(dca.required_margin, Decimal("110"))
 
     def test_shared_risk_counts_gross_margin_without_offsetting_opposite_sides(self):
-        self.core.record_entry("core-long", side="LONG", quantity="0.01",
+        self.core.restore_position("core-long", side="LONG", quantity="0.01",
                                entry_price="100000", margin_used="100")
-        self.ai.record_entry("ai-short", side="SHORT", quantity="0.01",
+        self.ai.restore_position("ai-short", side="SHORT", quantity="0.01",
                              entry_price="100000", margin_used="100")
         decision = self.risk.admit_entry(
             account_equity="10000", core_snapshot=self.core.snapshot(),
@@ -102,7 +102,7 @@ class DualLedgerContractTest(unittest.TestCase):
                 ai_snapshot=self.ai.snapshot(), data_fresh=True, state_reconciled=True,
             )
             self.assertTrue(decision.accepted, f"entry {index} unexpectedly blocked")
-            self.core.record_entry(
+            self.core.restore_position(
                 f"core-{index}", side="LONG", quantity="0.001",
                 entry_price="100000", margin_used=str(decision.required_margin),
             )
@@ -117,7 +117,7 @@ class DualLedgerContractTest(unittest.TestCase):
         self.assertFalse(entry.accepted)
         self.assertEqual(entry.reason, "KILL_SWITCH_ACTIVE")
 
-        self.core.record_entry("core-1", side="LONG", quantity="0.01",
+        self.core.restore_position("core-1", side="LONG", quantity="0.01",
                                entry_price="100000", margin_used="100")
         dca = self.risk.admit_dca(
             account_equity="10000", position_id="core-1",
@@ -148,7 +148,7 @@ class DualLedgerContractTest(unittest.TestCase):
         self.assertEqual(unreconciled.reason, "UNRECONCILED_STATE")
 
     def test_shared_gross_margin_must_leave_one_percent_for_next_admission(self):
-        self.core.record_entry("core-heavy", side="LONG", quantity="1",
+        self.core.restore_position("core-heavy", side="LONG", quantity="1",
                                entry_price="100000", margin_used="9950")
         decision = self.risk.admit_entry(
             account_equity="10000", core_snapshot=self.core.snapshot(),
@@ -168,9 +168,9 @@ class DualLedgerContractTest(unittest.TestCase):
         self.assertFalse(missing.accepted)
         self.assertEqual(missing.reason, "POSITION_NOT_UNIQUELY_FOUND")
 
-        self.core.record_entry("shared-id", side="LONG", quantity="0.01",
+        self.core.restore_position("shared-id", side="LONG", quantity="0.01",
                                entry_price="100000", margin_used="100")
-        self.ai.record_entry("shared-id", side="SHORT", quantity="0.01",
+        self.ai.restore_position("shared-id", side="SHORT", quantity="0.01",
                              entry_price="100000", margin_used="100")
         ambiguous = self.risk.admit_dca(
             account_equity="10000", position_id="shared-id",
@@ -182,7 +182,7 @@ class DualLedgerContractTest(unittest.TestCase):
 
 
     def test_competing_core_and_ai_reservations_are_serialized_against_shared_collateral(self):
-        self.core.record_entry("core-heavy", side="LONG", quantity="1",
+        self.core.restore_position("core-heavy", side="LONG", quantity="1",
                                entry_price="100000", margin_used="9850")
         core_engine = SharedRiskEngine(self.db)
         ai_engine = SharedRiskEngine(self.db)
@@ -226,9 +226,9 @@ class DualLedgerContractTest(unittest.TestCase):
             )
 
     def test_reserved_dca_is_consumed_once_and_updates_only_target_ledger(self):
-        self.core.record_entry("core-1", side="LONG", quantity="0.01",
+        self.core.restore_position("core-1", side="LONG", quantity="0.01",
                                entry_price="100000", margin_used="100")
-        self.ai.record_entry("ai-1", side="SHORT", quantity="0.01",
+        self.ai.restore_position("ai-1", side="SHORT", quantity="0.01",
                              entry_price="100000", margin_used="100")
         engine = SharedRiskEngine(self.db)
         decision = engine.reserve_dca(
