@@ -6887,3 +6887,17 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Verification: documentation write accepted by GitHub; no tests or workflows run because this increment is design-only. Documentation correctness has not been independently reviewed.
 - Status: **DESIGN DOCUMENT COMMITTED**; DNS/domain **BLOCKED**; VPS deployment **NOT AUTHORIZED**; public API **NOT ESTABLISHED**; live endpoint probe **NOT RUN**; T2 runtime **NOT ACTIVATED**.
 - Next step: owner selects a domain/subdomain and confirms DNS control. Until then remain at design stage; do not change DNS, firewall, proxy, API service, Feeder, database, secrets, or T2 runtime.
+
+
+## 2026-11-08 — T0 API domain/DNS selection criteria (documentation only)
+
+- Continued on existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch or PR.
+- Baseline branch HEAD: `e653a9e20d6a65b7c992c4795e9e4f8aae98a3e4`.
+- Added `docs/architecture/T0_API_DOMAIN_SELECTION_CRITERIA_2026-11-08.md`.
+- Criteria cover reuse of an owner-controlled domain, registrar renewal/transfer/account-security requirements, authoritative DNS capabilities, DNS-only initial deployment, A/AAAA/CAA/DNSSEC/TTL policy, total-cost comparison, naming rules, and explicit D1 approval checklist.
+- No registrar or DNS provider selected. No existing domain confirmed. No hostname or VPS public address supplied.
+- GitHub commit: `de29785dc57488282aba9e40908e9c65a33f636f`; document blob SHA: `c647911d0e6ad36320e2ec03a95ee4247df9c475`.
+- Post-write verification: branch HEAD and file content re-fetched; expected approval checklist and NOT SELECTED status present.
+- Tests/workflows not run (documentation-only). No domain purchase, DNS lookup/change, VPS, firewall, proxy, API, Feeder, database, secret, or T2 runtime action.
+- Status: domain/DNS selection criteria **COMMITTED**; D1 **BLOCKED — owner domain and DNS control not confirmed**; D2 **NOT READY**; D3 **NOT AUTHORIZED**; D4 **NOT RUN**; D5 **NOT ACTIVATED**; `ai_execution_enabled=false`.
+- Next: owner confirms whether an existing domain is available and under their DNS control. If not, compare registrar candidates and obtain explicit purchase approval. Do not request credentials/tokens. No operational changes until separately approved.
