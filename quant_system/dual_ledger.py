@@ -39,6 +39,10 @@ class PositionSnapshot:
     margin_used: Decimal
     dca_count: int
 
+    @property
+    def gross_exposure(self):
+        return self.quantity * self.entry_price
+
 
 @dataclass(frozen=True)
 class LedgerSnapshot:
@@ -53,6 +57,7 @@ class RiskDecision:
     reason: str
     required_margin: Decimal = Decimal("0")
     gross_margin_used: Decimal = Decimal("0")
+    gross_exposure: Decimal = Decimal("0")
     reservation_id: str | None = None
 
 
@@ -176,6 +181,8 @@ class StrategyLedger:
                     or reservation["position_id"] != position_id
                     or reservation["action"] != "ENTRY"):
                     raise ValueError("Missing, consumed, or mismatched ENTRY reservation")
+                if qty * price > Decimal(reservation["notional_exposure"]):
+                    raise ValueError("ENTRY exceeds reserved gross exposure")
                 db.execute(
                     """INSERT INTO strategy_positions
                        (strategy_id, position_id, side, quantity, entry_price, margin_used, dca_count)
@@ -245,6 +252,8 @@ class StrategyLedger:
                     or reservation["position_id"] != position_id
                     or reservation["action"] != "DCA"):
                     raise ValueError("Missing, consumed, or mismatched DCA reservation")
+                if qty * dca_price > Decimal(reservation["notional_exposure"]):
+                    raise ValueError("DCA exceeds reserved gross exposure")
                 row = db.execute(
                     """SELECT quantity, entry_price, margin_used, dca_count
                        FROM strategy_positions WHERE strategy_id=? AND position_id=?""",
@@ -326,6 +335,7 @@ class SharedRiskEngine:
                     position_id TEXT NOT NULL,
                     action TEXT NOT NULL CHECK (action IN ('ENTRY', 'DCA')),
                     required_margin TEXT NOT NULL,
+                    notional_exposure TEXT NOT NULL,
                     status TEXT NOT NULL CHECK (status IN ('RESERVED', 'CONSUMED', 'CANCELLED'))
                 )""")
                 db.execute("""CREATE UNIQUE INDEX IF NOT EXISTS one_active_position_reservation
@@ -333,8 +343,8 @@ class SharedRiskEngine:
                 db.commit()
 
     def _reserve_increase(self, *, reservation_id, strategy_id, position_id,
-                          action, account_equity, data_fresh,
-                          state_reconciled, kill_switch):
+                          action, account_equity, notional_exposure,
+                          data_fresh, state_reconciled, kill_switch):
         if self.path is None:
             return RiskDecision(False, "PERSISTENT_RESERVATION_STORE_REQUIRED")
         if (not isinstance(reservation_id, str) or not reservation_id.strip()
@@ -347,6 +357,7 @@ class SharedRiskEngine:
             return RiskDecision(False, "INVALID_RISK_STATE")
         try:
             equity = _decimal(account_equity, "account_equity", positive=True)
+            exposure = _decimal(notional_exposure, "notional_exposure", positive=True)
         except ValueError:
             return RiskDecision(False, "INVALID_RISK_STATE")
         required = equity * MARGIN_FRACTION
@@ -392,30 +403,46 @@ class SharedRiskEngine:
                 if active:
                     db.rollback()
                     return RiskDecision(False, "POSITION_ALREADY_RESERVED", required)
-                gross = sum(
-                    (Decimal(row["margin_used"]) for row in db.execute(
-                        "SELECT margin_used FROM strategy_positions"
-                    ).fetchall()),
-                    Decimal("0"),
+                position_rows = db.execute(
+                    "SELECT quantity, entry_price, margin_used FROM strategy_positions"
+                ).fetchall()
+                gross_margin = sum(
+                    (Decimal(row["margin_used"]) for row in position_rows), Decimal("0")
                 )
-                pending = sum(
-                    (Decimal(row["required_margin"]) for row in db.execute(
-                        "SELECT required_margin FROM risk_reservations WHERE status='RESERVED'"
-                    ).fetchall()),
-                    Decimal("0"),
+                gross_exposure = sum(
+                    (Decimal(row["quantity"]) * Decimal(row["entry_price"])
+                     for row in position_rows), Decimal("0")
                 )
-                committed = gross + pending
-                if committed > equity or equity - committed < required:
+                pending_rows = db.execute(
+                    """SELECT required_margin, notional_exposure FROM risk_reservations
+                       WHERE status='RESERVED'"""
+                ).fetchall()
+                pending_margin = sum(
+                    (Decimal(row["required_margin"]) for row in pending_rows), Decimal("0")
+                )
+                pending_exposure = sum(
+                    (Decimal(row["notional_exposure"]) for row in pending_rows), Decimal("0")
+                )
+                committed_margin = gross_margin + pending_margin
+                committed_exposure = gross_exposure + pending_exposure
+                if committed_margin > equity or equity - committed_margin < required:
                     db.rollback()
-                    return RiskDecision(False, "INSUFFICIENT_MARGIN", required, committed)
+                    return RiskDecision(
+                        False, "INSUFFICIENT_MARGIN", required, committed_margin,
+                        committed_exposure,
+                    )
                 db.execute(
                     """INSERT INTO risk_reservations
-                       (reservation_id, strategy_id, position_id, action, required_margin, status)
-                       VALUES (?, ?, ?, ?, ?, 'RESERVED')""",
-                    (reservation_id, strategy_id, position_id, action, str(required)),
+                       (reservation_id, strategy_id, position_id, action, required_margin,
+                        notional_exposure, status)
+                       VALUES (?, ?, ?, ?, ?, ?, 'RESERVED')""",
+                    (reservation_id, strategy_id, position_id, action, str(required), str(exposure)),
                 )
                 db.commit()
-                return RiskDecision(True, "RISK_ADMITTED", required, committed, reservation_id)
+                return RiskDecision(
+                    True, "RISK_ADMITTED", required, committed_margin,
+                    committed_exposure, reservation_id,
+                )
             except sqlite3.IntegrityError:
                 db.rollback()
                 return RiskDecision(False, "POSITION_ALREADY_RESERVED", required)
@@ -424,20 +451,24 @@ class SharedRiskEngine:
                 raise
 
     def reserve_entry(self, *, reservation_id, strategy_id, position_id,
-                      account_equity, data_fresh, state_reconciled, kill_switch=False):
+                      account_equity, notional_exposure, data_fresh,
+                      state_reconciled, kill_switch=False):
         return self._reserve_increase(
             reservation_id=reservation_id, strategy_id=strategy_id,
             position_id=position_id, action="ENTRY", account_equity=account_equity,
-            data_fresh=data_fresh, state_reconciled=state_reconciled,
+            notional_exposure=notional_exposure, data_fresh=data_fresh,
+            state_reconciled=state_reconciled,
             kill_switch=kill_switch,
         )
 
     def reserve_dca(self, *, reservation_id, strategy_id, position_id,
-                    account_equity, data_fresh, state_reconciled, kill_switch=False):
+                    account_equity, notional_exposure, data_fresh,
+                    state_reconciled, kill_switch=False):
         return self._reserve_increase(
             reservation_id=reservation_id, strategy_id=strategy_id,
             position_id=position_id, action="DCA", account_equity=account_equity,
-            data_fresh=data_fresh, state_reconciled=state_reconciled,
+            notional_exposure=notional_exposure, data_fresh=data_fresh,
+            state_reconciled=state_reconciled,
             kill_switch=kill_switch,
         )
 
@@ -453,25 +484,40 @@ class SharedRiskEngine:
                 gross += margin
         return gross
 
+    def _gross_exposure(self, core_snapshot, ai_snapshot):
+        if not isinstance(core_snapshot, LedgerSnapshot) or not isinstance(ai_snapshot, LedgerSnapshot):
+            raise ValueError("Both valid ledger snapshots are required")
+        if core_snapshot.strategy_id != "CORE" or ai_snapshot.strategy_id != "AI":
+            raise ValueError("Snapshots must be supplied in CORE, AI order")
+        gross = Decimal("0")
+        for snapshot in (core_snapshot, ai_snapshot):
+            for position in snapshot.positions:
+                quantity = _decimal(position.quantity, "position quantity", positive=True)
+                price = _decimal(position.entry_price, "position entry price", positive=True)
+                gross += quantity * price
+        return gross
+
     def _admit_increase(self, *, account_equity, core_snapshot, ai_snapshot,
                         data_fresh, state_reconciled, kill_switch):
         try:
             equity = _decimal(account_equity, "account_equity", positive=True)
             gross = self._gross_margin(core_snapshot, ai_snapshot)
+            gross_exposure = self._gross_exposure(core_snapshot, ai_snapshot)
         except (ValueError, TypeError):
             return RiskDecision(False, "INVALID_RISK_STATE")
         if type(data_fresh) is not bool or type(state_reconciled) is not bool or type(kill_switch) is not bool:
-            return RiskDecision(False, "INVALID_RISK_STATE", gross_margin_used=gross)
+            return RiskDecision(False, "INVALID_RISK_STATE", gross_margin_used=gross,
+                                gross_exposure=gross_exposure)
         required = equity * MARGIN_FRACTION
         if kill_switch:
-            return RiskDecision(False, "KILL_SWITCH_ACTIVE", required, gross)
+            return RiskDecision(False, "KILL_SWITCH_ACTIVE", required, gross, gross_exposure)
         if not data_fresh:
-            return RiskDecision(False, "STALE_DATA", required, gross)
+            return RiskDecision(False, "STALE_DATA", required, gross, gross_exposure)
         if not state_reconciled:
-            return RiskDecision(False, "UNRECONCILED_STATE", required, gross)
+            return RiskDecision(False, "UNRECONCILED_STATE", required, gross, gross_exposure)
         if gross > equity or equity - gross < required:
-            return RiskDecision(False, "INSUFFICIENT_MARGIN", required, gross)
-        return RiskDecision(True, "RISK_ADMITTED", required, gross)
+            return RiskDecision(False, "INSUFFICIENT_MARGIN", required, gross, gross_exposure)
+        return RiskDecision(True, "RISK_ADMITTED", required, gross, gross_exposure)
 
     def admit_entry(self, *, account_equity, core_snapshot, ai_snapshot,
                     data_fresh, state_reconciled, kill_switch=False):
@@ -496,7 +542,8 @@ class SharedRiskEngine:
         ]
         if len(matches) != 1:
             return RiskDecision(False, "POSITION_NOT_UNIQUELY_FOUND",
-                                decision.required_margin, decision.gross_margin_used)
+                                decision.required_margin, decision.gross_margin_used,
+                                decision.gross_exposure)
         return decision
 
     def admit_reduction(self, *, strategy_id, position_id, quantity,
@@ -512,5 +559,8 @@ class SharedRiskEngine:
         matches = [p for p in selected.positions if p.position_id == position_id]
         if len(matches) != 1 or qty > matches[0].quantity:
             return RiskDecision(False, "INVALID_REDUCTION")
-        return RiskDecision(True, "RISK_REDUCTION_ADMITTED",
-                            gross_margin_used=self._gross_margin(core_snapshot, ai_snapshot))
+        return RiskDecision(
+            True, "RISK_REDUCTION_ADMITTED",
+            gross_margin_used=self._gross_margin(core_snapshot, ai_snapshot),
+            gross_exposure=self._gross_exposure(core_snapshot, ai_snapshot),
+        )
