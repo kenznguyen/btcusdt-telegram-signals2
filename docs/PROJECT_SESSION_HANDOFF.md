@@ -6856,3 +6856,18 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No tests/workflows, network probes, DB/secret reads, service actions, configuration changes, package installation, or T2 activation. `ai_execution_enabled=false`.
 - Status: checkout **OBSERVED PRESENT**; Feeder **OBSERVED RUNNING**; API/HTTPS endpoint **NOT ESTABLISHED**; live verification **BLOCKED / NOT RUN**; T2 **NOT ACTIVATED**.
 - Next: inspect only tracked API entrypoint/deployment documentation and safe process metadata if needed. No API startup, Feeder restart, package installation, port exposure, or runtime change without separate explicit approval.
+
+
+## 2026-11-08 — T0 Candle API service-user permission check
+
+- Operator supplied read-only output; timestamp not included.
+- Intended service identity is `ubuntu` (UID/GID 1000).
+- SQLite path traversal is available to `ubuntu`; database file is owned by `ubuntu:ubuntu`, mode `0600`, size 634880 bytes.
+- Gunicorn executable is owned by `ubuntu:ubuntu`, mode `0775`.
+- Verdict: **PASS — filesystem access prerequisite** for running the API as `ubuntu`; no chmod/chown or broader DB permissions are needed.
+- Limit: this does not prove DB health, API process/readiness, endpoint reachability, or DB-level separation from writes by the shared OS identity.
+- No process/service, Feeder, API, DB, env, secret, network, firewall, or VPS configuration changed. No tests/workflows run.
+- Evidence: `docs/evidence/t2/T2_LIVE_T0_ENDPOINT_OFFLINE_READINESS_AUDIT_2026-11-08.md`.
+- Current VPS checkout SHA reported by operator: `4cf3959532024d286a76712bd93708b7a96489df`; GitHub documentation commits below are separate identities.
+- Status: filesystem prerequisite **PASS**; API deployment **NOT VERIFIED**; HTTPS endpoint **BLOCKED / NOT ESTABLISHED**; live T2 probe **NOT RUN**; T2 **NOT ACTIVATED**; `ai_execution_enabled=false`.
+- Next: documentation/design review only for a loopback Gunicorn service under `ubuntu` at `127.0.0.1:8788`, without activating it. HTTPS hostname, authorized probe origin, credential owner/provisioning, bounded probe budget, and explicit deployment approval remain prerequisites.
