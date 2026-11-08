@@ -6332,3 +6332,16 @@ Documentation-only closeout is complete for this increment. If further assurance
 - No T0 runtime/DB/Feeder, VPS, Binance connection, or live execution was touched. PR #1 was not merged and draft state was not changed.
 - Evidence report: `docs/evidence/t1/T1_ORDERBOOK_OFFLINE_TESTS_2026-11-08.md`.
 - Next permitted step: inspect and address the separate outstanding PR review finding on sidecar manifest publication failure (post-hard-link failure must poison writer / prevent further append), with a narrowly scoped regression test and GitHub Actions validation. Do not merge PR without explicit approval. No VPS/runtime or exchange action is authorized.
+
+
+## 2026-11-08 — T1 Sidecar post-hard-link writer poison regression
+
+- T1 source repo: `kenznguyen/binance-futures-collector`, branch `feature/t1-connection-sidecar-integration-20261107`, PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Source commit: `8892b72570d7c3f12c7d714aaeb37def63c56dcc`; changed file `crates/connection-sidecar/src/lib.rs`.
+- Existing implementation was verified to set `self.poisoned = true` before the first filesystem operation in finalization. The code change adds a private publication-injection seam; production still uses hard-link, temp unlink, and parent-directory sync.
+- Added regression test `post_hard_link_publication_failure_poisons_writer_and_preserves_manifest_consistency`: it creates a real writer and event stream, performs a real hard-link to publish the manifest, injects a post-link error, verifies a subsequent reconnect event is rejected with BrokenPipe, and verifies the final manifest/sidecar pair validates as SealedConsistent with 2 events.
+- GitHub Actions push run #202: [42449429950](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42449429950), status IN_PROGRESS at handoff update. Collector Format PASS; Collector Clippy/Build in progress; Sidecar offline tests pending. Dashboard frontend and backend PASS. Security and Docker jobs in progress.
+- Artifact inventory checked while run was in progress: empty; do not infer final artifact outcome.
+- Verdict at handoff update: source change committed; regression test and full CI **NOT VERIFIED** pending run #202.
+- No VPS, Binance, T0 runtime/database, live execution, PR merge, or PR draft-state change.
+- Next: poll run #202; inspect Sidecar offline test output and exact checked-out SHA. If green, record exact CI evidence; if failed, diagnose only the demonstrated issue on the same branch.
