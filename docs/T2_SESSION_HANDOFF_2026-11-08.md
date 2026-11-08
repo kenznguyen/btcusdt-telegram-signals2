@@ -419,3 +419,39 @@ Next: verify exact-head Actions for the approved policy implementation. Then imp
 - PR #95 remains OPEN / DRAFT / NOT MERGED. No merge/rebase authorized.
 
 Next: define and independently provision the trusted signer/key lifecycle, then extend verification to parse the actual dataset/prediction/report formats and reconcile timestamp coverage and report/input fingerprints. Only after those checks and a real OOS run can calibration attestation be considered.
+
+
+## Row-level OOS prediction chronology — 2026-11-08
+
+### Scope
+- Extended `quant_system/ai_provenance_validator.py` to parse the signed `predictions` artifact as strict UTF-8 JSONL.
+- Every prediction row must carry prediction timestamp, outcome-available timestamp, outcome, confidence, side, regime, model version and dataset version.
+- Enforces prediction timestamp inside signed OOS interval; outcome resolution strictly after prediction and no later than OOS end; row model/dataset versions must match manifest.
+- Rejects empty/malformed/blank/duplicate-key rows, invalid outcome/confidence/side/regime, and malformed temporal split before accessing split keys.
+- No dataset-row parsing or market-price outcome recomputation is claimed.
+
+### TDD and verification
+- RED for malformed split: [42459595402](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459595402), test source `b2a4ae69dbe1334f2ce36869e6c5c033253ac490`; validator test failed with the expected `KeyError: 'oos_start_ms'`.
+- Fix commit: `07e8212e4723cc913e4d0a3b196212f134a8a23e`.
+- Exact-source push run [42459618363](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459618363), job `128665883617`, SUCCESS; checked-out SHA equals `07e8212e4723cc913e4d0a3b196212f134a8a23e`.
+- PR-context run [42459622326](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459622326), job `128665895716`, SUCCESS; synthetic merge checkout `1a04c7abf0464de74c534d3f4de3690f0606e1b7`.
+- Test counts: provenance 23/23; calibration evaluator 16/16; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. **136/136 invocations PASS**, py_compile PASS.
+- Push artifact ID `13609465168`, SHA-256 `e548da7a689ea9f0ee877d92f6baef6ffd849f08aeb4f453d2b4db1e37108b87`.
+- PR artifact ID `13608987960`, SHA-256 `1ced67485be007d95bdbdd2503e5f8303b707dd5d17604e21651d1ca562104b1`.
+- CI preflight records `AI_EXECUTION_ENABLED=false`, DB targets EMPTY, exchange credentials EMPTY.
+- Evidence/report update commit: `645ccf1e9ac848ef5b629bf3927eeb9285b5777f`.
+
+### Status and remaining gates
+- Row-level prediction timestamp/identity checks: PASS under exact-source push and PR merge-context CI.
+- Signed dataset artifact row/timestamp validation: NOT IMPLEMENTED.
+- Prediction outcomes recomputed from OHLCV: NOT IMPLEMENTED.
+- Calibration report metrics/input/report hash semantic reconciliation: NOT IMPLEMENTED.
+- Leakage-free model training and OOS process: NOT VERIFIED.
+- Production signer/trust root lifecycle: NOT CONFIGURED.
+- Real BTCUSDT OOS artifacts: NOT PROVIDED.
+- Calibration attestation: NOT ISSUED; AI leverage authorization: NOT ISSUED; runtime integration: NOT IMPLEMENTED.
+- No T0/T1 data/runtime, DB, exchange, paper or live execution was touched. `AI_EXECUTION_ENABLED=false`.
+- PR #95 remains OPEN / DRAFT / NOT MERGED.
+
+### Next increment
+Implement semantic reconciliation between the signed prediction JSONL and the signed calibration report: recompute the evaluator input fingerprint and report digest from the exact rows and explicit approved policy; reject any mismatch. Dataset row-level validation remains a separate subsequent gate.
