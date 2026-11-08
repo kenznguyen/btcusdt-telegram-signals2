@@ -184,24 +184,24 @@ Tests must be deterministic, local-only, and written before implementation. Use 
 39. Error body and token are not leaked to logs/artifacts.
 
 ### G. No fallback / integration
-39. No code path imports `market_data.store` from the T2 HTTP adapter.
-40. No T2 runtime path accepts `canonical_db_path`.
-41. HTTP unavailable never triggers SQLite/cache/venue fallback.
-42. Prediction artifact is unavailable on any rejected response.
-43. Native entry/exit signals remain zero; trade-entry confirmation remains false.
+40. No code path imports `market_data.store` from the T2 HTTP adapter.
+41. No T2 runtime path accepts `canonical_db_path`.
+42. HTTP unavailable never triggers SQLite/cache/venue fallback.
+43. Prediction artifact is unavailable on any rejected response.
+44. Native entry/exit signals remain zero; trade-entry confirmation remains false.
 
 ### H. Regression
-44. Existing FreqAI exporter/provenance tests remain unchanged and pass.
-45. Existing T2 paper/research regression remains pass.
-46. Full repository test suite passes after implementation.
-47. GitHub Actions evidence identifies exact source SHA, run/event, checked-out SHA, job conclusions and artifact identity.
+45. Existing FreqAI exporter/provenance tests remain unchanged and pass.
+46. Existing T2 paper/research regression remains pass.
+47. Full repository test suite passes after implementation.
+48. GitHub Actions evidence identifies exact source SHA, run/event, checked-out SHA, job conclusions and artifact identity.
 
 RED must be observed against the pre-implementation source. Do not label a test RED solely because it was authored; execute it and record exact source SHA and failure reason.
 
 ## 8. Implementation sequence after approval
 
-1. Resolve section 4 freshness/range ambiguity and approve numeric timeout/retry/body limits.
-2. Add RED tests only; run focused tests and capture actual RED at exact SHA.
+1. Freshness boundary and numeric transport/resource policy are now approved and recorded; retain the verified ingestion-delay formula in all implementation/tests.
+2. Obtain separate explicit authorization, then add RED tests only; run focused tests and capture actual RED at exact SHA.
 3. Implement the HTTP adapter only; no T0 API/store/DB changes.
 4. Migrate `canonical_context` to consume validated HTTP response and remove direct Store import.
 5. Remove `canonical_db_path` from T2 runtime configuration and update README/config docs.
@@ -234,7 +234,7 @@ This plan defines the proposed implementation and acceptance criteria only. It d
 - Approved rule: request-window completeness and latest M15 candle are evaluated against the request's own end boundary; latest required candle is `endMs - 900000`. Server-global `latestExpectedOpenTimeMs` remains diagnostic and is not required to fall inside the requested range.
 - Continue validating server generation and availability timestamps; configured M15 max-lag remains mandatory and fail-closed.
 - No automatic window shift/re-request or fallback to SQLite/cache/synthetic/alternate venue.
-- Scope of approval: design rule only. Numeric transport limits remain unapproved. No RED tests have been added or run; no implementation or runtime activity is authorized by this decision.
+- Scope of this earlier approval: freshness boundary design only. The transport limits were approved later in the subsequent policy record. No RED tests have been added or run; no implementation or runtime activity is authorized by either policy approval.
 
 
 ## Approval record — T2 HTTP transport and freshness policy
