@@ -5,6 +5,7 @@ This process only ingests closed BTCUSDT USD-M candles; it never places orders.
 """
 import os
 import signal
+import socket
 from pathlib import Path
 import secrets
 import threading
@@ -319,17 +320,41 @@ def build_production_runtime(environ=None):
     )
 
 
-def run_service(runtime, stop_event=None):
-    """Start once, block until SIGINT/SIGTERM, and always perform graceful drain."""
+def systemd_notify(message, notify_socket=None):
+    """Send one sd_notify datagram when systemd supplied NOTIFY_SOCKET.
+
+    A missing socket means the process is running outside a Type=notify unit;
+    an advertised but unusable socket is an error and must fail startup closed.
+    """
+    address = notify_socket if notify_socket is not None else os.environ.get("NOTIFY_SOCKET")
+    if not address:
+        return False
+    if address.startswith("@"):
+        address = "\\0" + address[1:]
+    with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as client:
+        client.connect(address)
+        client.sendall(message.encode("utf-8"))
+    return True
+
+
+def run_service(runtime, stop_event=None, notify=None):
+    """Start, publish truthful systemd readiness, then gracefully drain on exit."""
     requested_stop = stop_event if stop_event is not None else threading.Event()
+    notify_fn = notify if notify is not None else systemd_notify
     if runtime.start() is not True:
         return 2
     try:
+        # Runtime.start() returns only after lease acquisition, WAL keeper setup,
+        # recovery, scheduler start and internal readiness have succeeded.
+        notify_fn("READY=1")
         while not requested_stop.wait(1):
             if runtime.state in ("LEASE_LOST", "FAILED"):
                 return 3
     finally:
-        runtime.stop(timeout=30)
+        try:
+            notify_fn("STOPPING=1")
+        finally:
+            runtime.stop(timeout=30)
     return 0
 
 
