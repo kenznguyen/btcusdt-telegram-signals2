@@ -312,5 +312,73 @@ class DualLedgerContractTest(unittest.TestCase):
         self.assertEqual(self.core.snapshot().positions[0].dca_count, 1)
 
 
+    def test_cancelled_reservation_requires_evidence_and_releases_collateral(self):
+        self.core.restore_position("core-heavy", side="LONG", quantity="1",
+                                   entry_price="100000", margin_used="9850")
+        engine = SharedRiskEngine(self.db)
+        first = engine.reserve_entry(
+            reservation_id="orphaned-reservation", strategy_id="AI",
+            position_id="ai-pending-1", account_equity="10000",
+            notional_exposure="1000", data_fresh=True, state_reconciled=True,
+        )
+        self.assertTrue(first.accepted)
+        blocked = engine.reserve_entry(
+            reservation_id="blocked-while-pending", strategy_id="AI",
+            position_id="ai-pending-2", account_equity="10000",
+            notional_exposure="1000", data_fresh=True, state_reconciled=True,
+        )
+        self.assertFalse(blocked.accepted)
+        self.assertEqual(blocked.reason, "INSUFFICIENT_MARGIN")
+
+        with self.assertRaises(ValueError):
+            engine.cancel_reservation("orphaned-reservation", evidence=" ")
+        engine.cancel_reservation(
+            "orphaned-reservation",
+            evidence="Reconciled paper intent: no ledger entry was created after restart",
+        )
+        released = engine.reserve_entry(
+            reservation_id="after-reconciliation", strategy_id="AI",
+            position_id="ai-pending-2", account_equity="10000",
+            notional_exposure="1000", data_fresh=True, state_reconciled=True,
+        )
+        self.assertTrue(released.accepted)
+        with self.assertRaises(ValueError):
+            engine.cancel_reservation(
+                "orphaned-reservation",
+                evidence="duplicate cancellation must not change terminal state",
+            )
+
+    def test_partial_reduction_releases_margin_and_books_realized_pnl_and_fees(self):
+        self.core.restore_position("core-1", side="LONG", quantity="0.01",
+                                   entry_price="100000", margin_used="100")
+        self.core.record_reduction(
+            "core-1", quantity="0.005", realized_pnl="25", fees="2",
+        )
+        snapshot = self.core.snapshot()
+        self.assertEqual(snapshot.positions[0].quantity, Decimal("0.005"))
+        self.assertEqual(snapshot.positions[0].margin_used, Decimal("50"))
+        self.assertEqual(snapshot.equity, Decimal("10023"))
+
+    def test_full_reduction_closes_position_and_releases_all_margin(self):
+        self.core.restore_position("core-1", side="LONG", quantity="0.01",
+                                   entry_price="100000", margin_used="100")
+        self.core.record_reduction(
+            "core-1", quantity="0.01", realized_pnl="50", fees="5",
+        )
+        snapshot = self.core.snapshot()
+        self.assertEqual(snapshot.positions, ())
+        self.assertEqual(snapshot.equity, Decimal("10045"))
+
+    def test_reduction_cannot_exceed_position_quantity_or_mutate_state(self):
+        self.core.restore_position("core-1", side="LONG", quantity="0.01",
+                                   entry_price="100000", margin_used="100")
+        before = self.core.snapshot()
+        with self.assertRaises(ValueError):
+            self.core.record_reduction(
+                "core-1", quantity="0.02", realized_pnl="50", fees="5",
+            )
+        self.assertEqual(self.core.snapshot(), before)
+
+
 if __name__ == "__main__":
     unittest.main()
