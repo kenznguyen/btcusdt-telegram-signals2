@@ -6598,3 +6598,19 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Status: architecture RED baseline **CONFIRMED**; full HTTP behavior RED suite **NOT IMPLEMENTED / NOT VERIFIED**; HTTP adapter and direct SQLite removal **NOT AUTHORIZED**; runtime/deployment **NOT AUTHORIZED**.
 - No production source, strategy/config, T0 API/store/DB, Feeder, VPS, exchange, Data Quality Gate, model training, paper order routing, deployment, or live execution changed. Keep `ai_execution_enabled=false`.
 - Next: continue RED-only by defining and adding executable behavior tests against the approved T2 adapter interface before any GREEN implementation is considered. Keep the same branch and capture a new exact SHA/run/artifact for that increment.
+
+
+## 2026-11-08 — T2 HTTP RED specification expanded to 37 tests
+
+- Test file: `freqai_bridge/test_http_candles.py`; dedicated workflow: `.github/workflows/t2-http-consumer-red.yml`.
+- Test-facing adapter interface fixed in the plan: `freqai_bridge.http_candles`, `CandleHttpConfig`, `CandleHttpClient`, `CandleHttpError`, and `fetch(start_ms, end_ms, as_of_ms)`; inject `session`, `sleep`, and `clock_ms` for deterministic tests.
+- Exact test/workflow source and checkout SHA: `8bfc920a949c817fb6065657dda6663373bc2f25`.
+- GitHub Actions run `42468065621`, event `push`, job `128692102416`, conclusion **success** because expected RED was parsed and recorded. URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42468065621.
+- Test result: 37 executed; 6 architecture-gap assertion failures; 28 behavior tests blocked at import because `freqai_bridge.http_candles` does not exist; 3 assertions PASS; zero unexpected error types. Test compile and isolated preflight PASS.
+- Important: the 28 import-blocked tests are authored behavior acceptance specifications, not observed HTTP-client behavior failures and not PASS. Client auth/TLS/retry/body cap/schema/identity/coverage/candle/freshness/redaction/no-fallback behavior remains NOT VERIFIED.
+- Artifact ID `13612630819`; name `t2-http-consumer-red-8bfc920a949c817fb6065657dda6663373bc2f25`; SHA-256 `f0912b735532640803fff56374dffe0e24b48c15411f37828c9142eefdcc9dd1`.
+- Evidence: `docs/evidence/t2/T2_HTTP_CONSUMER_RED_EXPANDED_2026-11-08.md`.
+- Plan update commit: `cb993869fd7e2d23e08a2183a7b9a911ad18dad5`.
+- Status: RED architecture gaps **CONFIRMED**; 28 behavior test specifications **AUTHORED / BLOCKED BY MISSING ADAPTER**; adapter implementation and direct SQLite removal **NOT AUTHORIZED**; runtime/deployment **NOT AUTHORIZED**.
+- No production code, T2 runtime config, T0 API/store/DB, Feeder, VPS, exchange, Data Quality Gate, model training, paper order routing, deployment, or live execution changed. Keep `ai_execution_enabled=false`.
+- Next: close remaining RED test gaps or resolve interface ambiguity without implementing production code. Obtain separate approval before GREEN implementation.
