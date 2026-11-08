@@ -152,3 +152,33 @@ The observed checkout SHA is 4cf3959532024d286a76712bd93708b7a96489df. This is s
 2. Continue only with read-only health/quality observation or a separately authorized test.
 3. Do not enable systemd/autostart/linger, alter runtime configuration, install packages, activate T1, connect authenticated exchange endpoints, add symbols/timeframes, or enable trading without separate authorization.
 4. No GitHub Actions run or artifact was produced for this VPS-only increment.
+
+
+## Addendum — Post-restart M15/H1 close-cycle confirmation (2026-11-08)
+
+### Latest user-provided VPS observation
+- Observation time: `2026-11-08 08:26:41 UTC`.
+- Runtime checkout SHA observed on VPS: `4cf3959532024d286a76712bd93708b7a96489df`.
+- Feeder Python PID `6584` and tmux wrapper PID `6583` remained present; tmux session `t0-feeder` remained active.
+- SQLite `PRAGMA integrity_check` returned `ok`.
+- M15: 2,045 rows; latest `open_time_ms=1794124800000` (08:00 UTC), `available_at_ms=1794125705547` (08:15:05 UTC).
+- H1: 2,011 rows; latest `open_time_ms=1794121200000` (07:00 UTC), `available_at_ms=1794124809915` (08:00:09 UTC).
+- Lease: `binance-btcusdt-canonical`, same restarted owner, generation 3, expiry `1794126451739` ms (08:27:31 UTC). Lease was valid at observation.
+- Compared with the 07:47:50 UTC snapshot, M15 count increased from 2,043 to 2,045 and H1 from 2,010 to 2,011. The latest timestamps demonstrate persistence of the 08:00 UTC M15 candle and 07:00 UTC H1 candle after their close/availability windows.
+
+### Updated verdict
+- Graceful shutdown and explicit lease release: **PASS**.
+- Restart and generation takeover (2 → 3): **PASS**.
+- Heartbeat after restart: **PASS**.
+- SQLite integrity: **PASS**.
+- Post-restart M15/H1 persistence through the 08:00 UTC close cycle: **PASS**.
+- Bounded supervised operation after restart: **PASS**, observations span from 04:32:25 to 08:26:41 UTC (approximately 3h54m); this is not 24x7 or production certification.
+- Detailed startup/recovery log trace: **NOT VERIFIED**; inspected log contains only the start marker.
+- Exact loaded-code provenance: **NOT VERIFIED**; checkout SHA was observed while the process ran, but no cryptographic process-to-loaded-code attestation was collected.
+- Reboot/autostart: **NOT RUN / NOT AUTHORIZED**.
+- GitHub Actions workflow/artifact: **NOT RUN / NOT APPLICABLE**; this was a user-operated VPS runtime observation with no source-code change.
+
+### Next step and restrictions
+- Keep the existing Feeder running; do not start a duplicate.
+- Next useful bounded check is read-only T0 data-quality/continuity/age monitoring, with explicit stale-data and gap thresholds reviewed before any readiness promotion.
+- Do not enable systemd/autostart/linger, change runtime configuration, install packages, activate T1, connect authenticated exchange endpoints, expand symbols/timeframes, or enable live execution without separate authorization.
