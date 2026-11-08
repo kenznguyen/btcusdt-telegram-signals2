@@ -236,6 +236,12 @@ def integration(db_path, event_path):
     script = str(Path(__file__).resolve())
     repo_root = str(Path(__file__).resolve().parents[1])
     seed_database(db_path)
+    event_file = Path(event_path)
+    event_file.parent.mkdir(parents=True, exist_ok=True)
+    event_file.touch(exist_ok=True)
+    # Services run as root in this disposable system manager; the harness
+    # runner must still be able to read the timestamped evidence afterward.
+    os.chmod(event_file, 0o666)
 
     # Pair A: readiness gating, authenticated read, then Feeder SIGKILL propagation.
     feeder_a, api_a = "t0-int-feeder-a", "t0-int-api-a"
