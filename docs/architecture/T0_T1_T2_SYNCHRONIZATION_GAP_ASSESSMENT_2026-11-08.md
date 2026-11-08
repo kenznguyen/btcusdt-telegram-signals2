@@ -45,6 +45,11 @@ This is **not** approval for a shared SQLite database. The prior SQLite `single/
   - A required review finding remains on the post-hard-link manifest publication failure path: after publishing a manifest, a subsequent cleanup/directory-sync error must permanently poison the writer so no more events can be appended. Do not treat earlier cleanup GREEN evidence as closure of this later finding without verifying the current PR head and exact regression test.
   - No current-head artifact was published in the observed failed push run.
 
+- Follow-up formatting-only correction committed in the T1 collector repo: `6e20fe94f3ad64cc450e73def80a167fe371e49e` (changed one rustfmt line in `crates/connection-sidecar/src/lib.rs`; no behavior change).
+- Exact-head GitHub Actions push run `42479494373`: **IN PROGRESS** at this assessment update. Collector Format PASS and Clippy PASS; collector build/tests, Sidecar format/Clippy/tests, Docker, and security jobs not yet complete. Dashboard frontend/backend jobs PASS. Artifact inventory empty while run is in progress.
+- The current source contains the terminal writer-poison behavior and a post-hard-link failure regression test; the existing review thread has not yet been formally resolved. Require exact-head CI and independent review closure before treating the sidecar blocker as closed.
+
+
 ### T2
 
 - T2 FreqAI candle context uses the T0 HTTP adapter, not direct T0 SQLite.
