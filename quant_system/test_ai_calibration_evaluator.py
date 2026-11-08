@@ -23,9 +23,9 @@ class CalibrationEvaluatorTests(unittest.TestCase):
                      short_trend=None, short_range=None):
         groups = {
             ("LONG", "TREND"): long_trend or [(1, ".8"), (0, ".2")],
-            ("LONG", "RANGE"): long_range or [(1, ".7"), (0, ".3")],
+            ("LONG", "RANGE"): long_range or [(1, ".8"), (0, ".2")],
             ("SHORT", "TREND"): short_trend or [(1, ".8"), (0, ".2")],
-            ("SHORT", "RANGE"): short_range or [(1, ".7"), (0, ".3")],
+            ("SHORT", "RANGE"): short_range or [(1, ".8"), (0, ".2")],
         }
         return [
             CalibrationObservation(
