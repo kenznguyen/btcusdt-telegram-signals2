@@ -563,3 +563,17 @@ Implement semantic reconciliation between the signed prediction JSONL and the si
 - PR #95 remains OPEN / DRAFT / NOT MERGED. No merge/rebase.
 - Branch HEAD at implementation CI: `9103c0c15b63bdace4b17301a7d5b4540634e28a`; documentation commits follow. Working-tree status NOT VERIFIED (GitHub API writes only).
 - Next increment: review exact timestamp semantics and determine whether dataset metadata must explicitly bind timeframe-specific OOS windows to the signed split before considering row-level outcome/label validation. Do not infer price basis or label horizon.
+
+## Prediction / candle timestamp semantics audit — 2026-11-08
+
+- Read-only audit report: `quant_system/T2_PREDICTION_CANDLE_TIMESTAMP_AUDIT_2026-11-08.md`.
+- Audit commit: `7d0d5a74eed35abd841eb2c2256ea66c61ee7def`.
+- Starting inspected branch HEAD: `a34c04f817316c5145616e41e2d6417ee3cb936d`.
+- Confirmed T0 semantics: M15/H1 interval sizes 900,000/3,600,000 ms; `openTimeMs` is interval start; `closeTimeMs = openTimeMs + interval` is exclusive end; adjacent candles are contiguous; `availableAtMs >= closeTimeMs`; rows must be closed, FIRST_OBSERVED and VALIDATED; optional `asOfMs` caps availability.
+- Current T2 prediction rows define `prediction_timestamp_ms` but repository code does not define whether it is candle open/close, feature cutoff, decision time or model emission time.
+- Current validator checks only OOS and M15/H1 coverage envelopes; it does not bind each prediction to the exact last consumed M15/H1 candle or prove those candles were available at prediction time.
+- Therefore candle-level no-lookahead proof remains **NOT VERIFIED**. No implementation or tests were run in this audit.
+- Proposed contract, pending user confirmation: define `prediction_timestamp_ms` as UTC model decision/emission instant; add per-row M15 and H1 consumed-candle references (open and exclusive close timestamps, optionally exact source fingerprint); require each reference to resolve to a closed/validated candle with `availableAtMs <= prediction_timestamp_ms`.
+- Even with this contract, hidden feature leakage and actual model-consumption behavior remain separate verification gaps. No label horizon or outcome price basis is inferred.
+- PR #95 remains OPEN / DRAFT / NOT MERGED. `AI_EXECUTION_ENABLED=false`; no T0/T1 DB/Feeder/exchange, no paper/live runtime, no calibration attestation or AI leverage authorization.
+- Next: obtain confirmation of prediction timestamp and per-row consumed-candle reference contract, then add RED tests before implementation.
