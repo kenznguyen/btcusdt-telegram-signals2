@@ -114,6 +114,16 @@ def feeder_process(db_path, event_path):
 
 def api_process(event_path):
     event(event_path, "API_PROCESS_STARTING")
+    db_path = os.environ["MARKET_DATA_DB"]
+    probe_path = Path(db_path).parent / f".api-write-probe-{os.getpid()}"
+    try:
+        with probe_path.open("x", encoding="utf-8") as probe:
+            probe.write("must-not-persist")
+    except OSError:
+        event(event_path, "API_DATABASE_WRITE_DENIED")
+    else:
+        probe_path.unlink(missing_ok=True)
+        raise AssertionError("API wrote inside its read-only database directory")
 
     def request_stop(_signum, _frame):
         event(event_path, "API_SIGTERM")
@@ -298,8 +308,12 @@ def integration(db_path, event_path):
     api_stop = [int(row[0]) for row in records if row[1] == "API_SIGTERM"]
     feeder_stop = [int(row[0]) for row in records if row[1] == "FEEDER_SIGTERM"]
     assert api_stop and feeder_stop and api_stop[-1] < feeder_stop[-1], records
+    assert sum(1 for row in records if row[1] == "API_DATABASE_WRITE_DENIED") == 2, records
     event(event_path, "ORDERLY_REVERSE_SHUTDOWN_PASS")
     event(event_path, "T0_SYSTEMD_FEEDER_API_INTEGRATION=PASS")
+    for row in read_events(event_path):
+        print("SYSTEMD_EVENT", *row, flush=True)
+    print("T0_SYSTEMD_FEEDER_API_INTEGRATION=PASS", flush=True)
 
 
 def main():
