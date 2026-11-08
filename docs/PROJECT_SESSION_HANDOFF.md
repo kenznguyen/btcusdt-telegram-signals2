@@ -6288,3 +6288,19 @@ PASS is limited to the 300-second supervised BTCUSDT capture, CSV parsing/sequen
 ### Next permitted step
 
 Documentation-only closeout is complete for this increment. If further assurance is required, first authorize a bounded offline/integration test scope covering: (1) snapshot + buffered diffs versus an independently reconstructed expected book; (2) a missing diff during initial attach; and (3) deliberate reconnect pu-break behavior, asserting the documented raw-tape/live-book trade-off. Do not launch T1, alter code, or modify T0 without explicit approval.
+
+
+## 2026-11-08 — T1 Order Book offline assurance tests (in progress)
+
+- User explicitly authorized source changes and GitHub Actions testing for the bounded offline Order Book scope.
+- T1 repo/branch: `kenznguyen/binance-futures-collector` / `feature/t1-connection-sidecar-integration-20261107`; PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Current PR head/source SHA: `684ea8bed55d6a3cf0ad50d02ee8b9586bb9e789`.
+- Changes are limited to `src/collectors/orderbook_manager.rs`: extract attach-sequence application into a pure helper and add three deterministic offline tests (snapshot reconstruction, missing diff after bridge, reconnect pu-break with stale quiet levels).
+- No change to reconnect resnapshot policy; no Binance connection, VPS runtime, T0 database/Feeder, or live execution.
+- Commit sequence: `efc5887de9c19e19c9150455a7d4500afc285fd0`, `152cc04a3d7079345829144eb1e9560dcf156623`, `684ea8bed55d6a3cf0ad50d02ee8b9586bb9e789`.
+- First PR workflow [42448670426](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42448670426) checked out synthetic merge SHA `597269dc0a153e15a92ed014ac3324fb6626b4db` (PR head `152cc04...` + base `bc4f0ef...`) and failed Collector Format only due rustfmt layout; later Rust checks were skipped. This is not a test verdict.
+- Formatting correction committed as `684ea8bed55d6a3cf0ad50d02ee8b9586bb9e789`.
+- Follow-up PR workflow [42448706196](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42448706196) was IN_PROGRESS at handoff update; exact checked-out merge SHA, final jobs, test summary and artifact status remain pending.
+- Evidence report: `docs/evidence/t1/T1_ORDERBOOK_OFFLINE_TESTS_2026-11-08.md`, commit `30a85f56f54f7de7c55ba3095f17a7b1aa97c8c1`.
+- Verdict: source/test additions committed PASS; focused tests and overall CI NOT VERIFIED pending run 42448706196. No artifact from the failed first run.
+- Next: inspect run 42448706196, verify checked-out merge SHA and Collector Format/Clippy/Build/Test outcomes. If successful, record artifact metadata (if any) and update the evidence report/handoff. If it fails, fix only the demonstrated issue on the same branch and rerun GitHub Actions.
