@@ -7010,3 +7010,27 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Limits: this does not prove the actual VPS kernel/systemd version, API Gunicorn unit, API startup when WAL/SHM are absent, restart ordering against the real Feeder, or live endpoint readiness. No VPS/systemd/service/permissions were touched.
 - Status: SQLite read-only mutation rejection **PASS**; WAL concurrent reader/writer **PASS**; disposable systemd `ReadOnlyPaths` isolation **PASS**; cold-start without WAL/SHM **NOT VERIFIED**; production service definition **NOT CREATED**; API deployment **BLOCKED**; T2 runtime **NOT ACTIVATED**; `ai_execution_enabled=false`.
 - Next: add a cold-start lifecycle probe for the no-WAL/no-SHM state and define the required systemd ordering/condition against Feeder readiness. Only after that should a deployment unit be proposed for separate approval. Do not start API, restart Feeder, change VPS, or expose ports.
+
+
+## 2026-11-08 — T0 SQLite WAL cold-start and restart lifecycle proof
+
+- Continued on existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch or PR.
+- Extended disposable probe `ci/t0_sqlite_readonly_sandbox.py` to test database startup/restart when WAL/SHM sidecars are absent, writer readiness, active WAL reads, clean checkpoint, and API reader restart.
+- Two intermediate exact-head runs failed in the test harness:
+  - `42483512711` at `aa920dded25155c5fc263f0c138f4e153d13888c`: after the expected cold-start denial, the setup SQLite connection had not been explicitly closed (Python connection context managers commit/rollback but do not close); subsequent writer WAL setup hit disk I/O error.
+  - `42483532010` at `e0e584d403c64139c51d9466424f4976776932e7`: same test-harness lifecycle issue before the explicit close fix was committed.
+- Fixed by explicitly closing the disposable setup connection before removing sidecars and running cold-start checks. Final probe commit / exact source SHA: `718c1eefe391e4907b777cc109e12ef7c1cccc0d`; script blob SHA `7b635d6a650908774556ab1c1ab48526bec60ef5`.
+- GitHub Actions run `42483585220`: **SUCCESS**; job `Disposable SQLite WAL under systemd ReadOnlyPaths` ID `128740536980` **PASS**.
+- Verified on disposable runner:
+  - With WAL/SHM absent, read-only sandboxed API read fails closed as expected.
+  - After writer startup establishes WAL/SHM, sandboxed API reads succeed.
+  - While writer transaction is open, reader sees only committed snapshot; after commit a fresh reader sees new data.
+  - After clean checkpoint and writer close, sidecars absent and API restart is blocked as expected.
+  - After writer restart re-establishes sidecars, API reader succeeds.
+  - API process filesystem and SQLite writes are denied; writer commits remain possible.
+- Artifact: `t0-systemd-readonly-sandbox-718c1eefe391e4907b777cc109e12ef7c1cccc0d`, ID `13617664165`, SHA-256 `877aa71838130c492e73886546ebc4c360469ab000477572a7d16dbc4486de1a`; [workflow run](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42483585220).
+- Added evidence document `docs/evidence/t0/T0_SQLITE_WAL_COLD_START_LIFECYCLE_2026-11-08.md`, commit `c1be3c33531a57aa206649e852218e173258cf86`.
+- Operational decision: API must not start until Feeder readiness establishes readable WAL/SHM sidecars. Do not use `immutable=1`, writable directory exceptions, or allow API to create sidecars as workarounds. Candidate systemd dependency shape is documented only; actual Feeder supervisor/unit name remains unverified.
+- Status: SQLite read-only mutation rejection **PASS**; concurrent WAL reader/writer **PASS**; disposable systemd `ReadOnlyPaths` isolation **PASS**; cold start without WAL/SHM **BLOCKED AS EXPECTED**; API read after writer readiness **PASS**; actual VPS/systemd compatibility **NOT VERIFIED**; Feeder service manager/readiness **NOT VERIFIED**; Gunicorn unit **NOT CREATED**; API deployment **BLOCKED**; T2 runtime **NOT ACTIVATED**; `ai_execution_enabled=false`.
+- No canonical database, Feeder process, VPS, systemd service, filesystem permission, secret, firewall, network, DNS, proxy, or T2 runtime was accessed or changed.
+- Next bounded step: inspect tracked Feeder startup/supervision code and existing deployment evidence to define a read-only readiness contract and establish whether a systemd unit exists. Do not create/install units or alter VPS state without separate approval.
