@@ -4,6 +4,7 @@ The implementation module is intentionally absent in this RED increment.
 This contract preserves independent strategy accounting while the shared risk
 engine evaluates gross exposure across both ledgers.
 """
+from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 from pathlib import Path
 import tempfile
@@ -178,6 +179,92 @@ class DualLedgerContractTest(unittest.TestCase):
         )
         self.assertFalse(ambiguous.accepted)
         self.assertEqual(ambiguous.reason, "POSITION_NOT_UNIQUELY_FOUND")
+
+
+    def test_competing_core_and_ai_reservations_are_serialized_against_shared_collateral(self):
+        self.core.record_entry("core-heavy", side="LONG", quantity="1",
+                               entry_price="100000", margin_used="9850")
+        core_engine = SharedRiskEngine(self.db)
+        ai_engine = SharedRiskEngine(self.db)
+
+        def reserve(engine, strategy_id, reservation_id):
+            return engine.reserve_entry(
+                reservation_id=reservation_id, strategy_id=strategy_id,
+                position_id=f"{strategy_id.lower()}-new", account_equity="10000",
+                data_fresh=True, state_reconciled=True,
+            )
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [
+                pool.submit(reserve, core_engine, "CORE", "reserve-core"),
+                pool.submit(reserve, ai_engine, "AI", "reserve-ai"),
+            ]
+            decisions = [future.result() for future in futures]
+
+        self.assertEqual(sum(decision.accepted for decision in decisions), 1)
+        rejected = next(decision for decision in decisions if not decision.accepted)
+        self.assertEqual(rejected.reason, "INSUFFICIENT_MARGIN")
+
+    def test_reserved_entry_is_consumed_once_by_its_own_ledger(self):
+        engine = SharedRiskEngine(self.db)
+        decision = engine.reserve_entry(
+            reservation_id="entry-core-1", strategy_id="CORE",
+            position_id="core-reserved-1", account_equity="10000",
+            data_fresh=True, state_reconciled=True,
+        )
+        self.assertTrue(decision.accepted)
+        self.core.record_reserved_entry(
+            reservation_id="entry-core-1", position_id="core-reserved-1",
+            side="LONG", quantity="0.01", entry_price="100000",
+        )
+        position = self.core.snapshot().positions[0]
+        self.assertEqual(position.margin_used, Decimal("100"))
+        with self.assertRaises(ValueError):
+            self.core.record_reserved_entry(
+                reservation_id="entry-core-1", position_id="core-reserved-1",
+                side="LONG", quantity="0.01", entry_price="100000",
+            )
+
+    def test_reserved_dca_is_consumed_once_and_updates_only_target_ledger(self):
+        self.core.record_entry("core-1", side="LONG", quantity="0.01",
+                               entry_price="100000", margin_used="100")
+        self.ai.record_entry("ai-1", side="SHORT", quantity="0.01",
+                             entry_price="100000", margin_used="100")
+        engine = SharedRiskEngine(self.db)
+        decision = engine.reserve_dca(
+            reservation_id="dca-core-1", strategy_id="CORE",
+            position_id="core-1", account_equity="10000",
+            data_fresh=True, state_reconciled=True,
+        )
+        self.assertTrue(decision.accepted)
+        self.core.record_reserved_dca(
+            reservation_id="dca-core-1", position_id="core-1",
+            quantity="0.01", price="99000",
+        )
+        self.assertEqual(self.core.snapshot().positions[0].dca_count, 1)
+        self.assertEqual(self.core.snapshot().positions[0].margin_used, Decimal("200"))
+        self.assertEqual(self.ai.snapshot().positions[0].dca_count, 0)
+        with self.assertRaises(ValueError):
+            self.core.record_reserved_dca(
+                reservation_id="dca-core-1", position_id="core-1",
+                quantity="0.01", price="99000",
+            )
+
+    def test_duplicate_reservation_id_cannot_be_reused_by_other_strategy(self):
+        engine = SharedRiskEngine(self.db)
+        first = engine.reserve_entry(
+            reservation_id="duplicate-id", strategy_id="CORE",
+            position_id="core-1", account_equity="10000",
+            data_fresh=True, state_reconciled=True,
+        )
+        second = engine.reserve_entry(
+            reservation_id="duplicate-id", strategy_id="AI",
+            position_id="ai-1", account_equity="10000",
+            data_fresh=True, state_reconciled=True,
+        )
+        self.assertTrue(first.accepted)
+        self.assertFalse(second.accepted)
+        self.assertEqual(second.reason, "DUPLICATE_RESERVATION")
 
 
 if __name__ == "__main__":
