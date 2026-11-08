@@ -212,9 +212,9 @@ def main() -> None:
         )
         gateway.write_batch([Candle(
             timeframe="15m",
-            open_time_ms=1_800_000_000_000,
+            open_time_ms=0,
             open="100", high="102", low="99", close="101",
-            volume="5", available_at_ms=1_800_000_900_000,
+            volume="5", available_at_ms=900_000,
         )])
         wal_exists = Path(str(gateway_db) + "-wal").is_file()
         shm_exists = Path(str(gateway_db) + "-shm").is_file()
