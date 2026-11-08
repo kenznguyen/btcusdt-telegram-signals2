@@ -34,7 +34,7 @@ class ArchiveJobCheckoutContractTests(unittest.TestCase):
             "archive job must verify source-to-branch ancestry through GitHub compare",
         )
         self.assertIn(
-            'test "$comparison_status" = "ahead" -o "$comparison_status" = "identical"',
+            'if [[ "$comparison_status" != "ahead" && "$comparison_status" != "identical" ]]; then',
             self.archive_job,
             "archive must fail closed unless branch head contains the triggering source",
         )
