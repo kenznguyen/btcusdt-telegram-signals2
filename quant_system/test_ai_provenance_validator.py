@@ -448,6 +448,50 @@ class AIProvenanceValidatorTests(unittest.TestCase):
         self.assertFalse(result.accepted)
         self.assertIn("OUTCOME_OUTSIDE_M15_DATASET_COVERAGE", result.reasons)
 
+
+    def _prediction_with_feature_cutoffs(self, *, m15_available_offset=0, h1_available_offset=0):
+        artifacts = dict(self.artifacts)
+        rows = artifacts["predictions"].decode().splitlines()
+        row = json.loads(rows[0])
+        timestamp = row["prediction_timestamp_ms"]
+        cutoffs = {}
+        for timeframe, offset in (("15m", m15_available_offset), ("1h", h1_available_offset)):
+            candles = self.dataset_bundle["snapshots"][timeframe]["candles"]
+            eligible = [c for c in candles if c["availableAtMs"] <= timestamp]
+            candle = eligible[-1] if eligible else candles[0]
+            cutoffs[timeframe] = {
+                "open_time_ms": candle["openTimeMs"],
+                "close_time_ms": candle["closeTimeMs"],
+                "available_at_ms": candle["availableAtMs"] + offset,
+            }
+        row["feature_cutoffs"] = cutoffs
+        rows[0] = json.dumps(row, sort_keys=True, separators=(",", ":"))
+        artifacts["predictions"] = ("\\n".join(rows) + "\\n").encode()
+        return artifacts
+
+    def test_rejects_prediction_without_declared_m15_h1_feature_cutoffs(self):
+        artifacts = dict(self.artifacts)
+        result = self.verify_rehashed_predictions(artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("FEATURE_CUTOFFS_INVALID", result.reasons)
+
+    def test_rejects_feature_candle_available_after_prediction_decision(self):
+        artifacts = self._prediction_with_feature_cutoffs(m15_available_offset=1)
+        result = self.verify_rehashed_predictions(artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("FEATURE_CANDLE_NOT_AVAILABLE_AT_DECISION:15m", result.reasons)
+
+    def test_rejects_feature_cutoff_that_does_not_match_dataset_candle(self):
+        artifacts = self._prediction_with_feature_cutoffs()
+        rows = artifacts["predictions"].decode().splitlines()
+        row = json.loads(rows[0])
+        row["feature_cutoffs"]["1h"]["open_time_ms"] += 3_600_000
+        rows[0] = json.dumps(row, sort_keys=True, separators=(",", ":"))
+        artifacts["predictions"] = ("\\n".join(rows) + "\\n").encode()
+        result = self.verify_rehashed_predictions(artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("FEATURE_CANDLE_REFERENCE_INVALID:1h", result.reasons)
+
     def test_rejects_calibration_report_with_wrong_input_fingerprint(self):
         artifacts = dict(self.artifacts)
         report = json.loads(artifacts["calibration_report"])
