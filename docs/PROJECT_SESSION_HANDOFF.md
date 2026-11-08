@@ -7200,3 +7200,17 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Status: Feeder notification adapter **PASS — CI**; transient two-service dependency/readiness/crash/restart/orderly shutdown **PASS — CI synthetic**; API read-only mount probe **PASS — CI synthetic**; VPS/systemd compatibility **NOT VERIFIED**; production `.service` files **NOT CREATED**; production API deployment **BLOCKED**; T2 runtime **NOT ACTIVATED**; `ai_execution_enabled=false`.
 - No VPS, canonical DB, production Feeder/API process, production service manager, package, permission, secret, firewall, DNS, proxy, external network, exchange connection, data deletion, or T2 runtime was changed or accessed.
 - Next bounded step: perform a source and evidence self-review of the new harness/workflow, ensure cleanup/failure diagnostics are robust, then update the integration acceptance matrix/runbook with the CI-only proof boundary. Do not create production units or deploy to VPS without separate explicit approval.
+
+
+## 2026-11-08 — Final self-review and rerun of T0 systemd integration harness
+
+- Reviewed the new harness and workflow for correctness, isolation, evidence, and cleanup. Removed two unused standard-library imports; no runtime product code changed.
+- Re-ran the exact final harness/workflow source SHA `0e73f9184bb15561341e76c31f698ba96e2a2703`.
+- GitHub Actions run `42488536321`: SUCCESS; job `128755620737`: SUCCESS.
+- Final artifact `t0-systemd-feeder-api-integration-0e73f9184bb15561341e76c31f698ba96e2a2703`, ID `13620800948`, digest `sha256:5a0e932e6145958a2aa9b88be14a5198075b107d9b1b01d3cd58849747f2305c`.
+- Final run retained timestamped event evidence and asserted readiness-generation ordering, API read/write isolation, authenticated read/401 behavior, Feeder SIGKILL propagation, generation increment on restart, and API-before-Feeder graceful stop.
+- Earlier failed workflow attempts were harness/setup defects only and were corrected: runner version probe used unavailable `systemd` executable instead of `systemctl`; Python import path omitted repository root; API test read raced service process activation; root-owned event file was unreadable by the runner. Final reruns passed after each correction. These failures do not indicate a production runtime defect.
+- Updated integration plan/evidence: `docs/evidence/t0/T0_SYSTEMD_FEEDER_API_INTEGRATION_TEST_PLAN_2026-11-08.md`; latest evidence run is `42488536321` at SHA above.
+- Production boundary unchanged: no VPS or canonical DB access; no production `.service` units, packages, permissions, secrets, firewall, DNS, proxy, or runtime changes. No exchange connectivity, real data writes/deletes, T2 activation, or live trading. `ai_execution_enabled=false`.
+- Status: transient Feeder/API systemd integration **PASS — synthetic GitHub runner only**; VPS compatibility **NOT VERIFIED**; production deployment **BLOCKED**.
+- Next: reconcile the T0 lifecycle acceptance matrix and paper runbook with this new CI proof boundary; keep production unit authoring and VPS deployment out of scope until separately approved.
