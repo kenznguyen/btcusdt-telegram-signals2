@@ -7292,3 +7292,28 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Working checkout had unrelated untracked shell/pager artifacts and `market-data-audit.sqlite3` with sidecars. They were deliberately not staged or committed and remain preserved; cleanup is **NOT AUTHORIZED / NOT DONE**.
 - No VPS Feeder restart, deployment, production service change, canonical DB modification, ingestion, exchange connection, or live trading occurred. `ai_execution_enabled=false` remains unchanged.
 - Next bounded step: reconcile the current VPS checkout/runtime against the committed source without pulling/resetting or touching the running Feeder; first inspect checkout ancestry and untracked artifact ownership. Any source synchronization, Feeder restart, or canonical DB operation requires separate explicit approval. Preserve current live process and DB.
+
+## 2026-11-08 — T0 WAL Keeper exact-head CI verification
+
+- Verification target: `bb749260f00f4ca010d3fa46aa24a2fdf6f06d0e`, branch `feature/t0-centralized-data-feeder-p1-20261101`.
+- GitHub Actions workflow `t0-single-writer-gateway-red.yml`: run [42498998631](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42498998631), event `workflow_dispatch`, conclusion **SUCCESS**, exact `head_sha` matches the verification target.
+- Downloaded and inspected GitHub artifacts. Single Writer Gateway evidence artifact ID `13623764433`, name `t0-swg-contract-evidence-bb749260f00f4ca010d3fa46aa24a2fdf6f06d0e`.
+- Exact-head artifact results:
+  - Full `market_data` suite: **293 tests, 42 skipped, PASS**.
+  - Single Writer Gateway contracts: `T0_SWG_CONTRACTS=PASS`.
+  - Gateway behavioral suite: **77 tests, PASS**.
+- Isolated checkout local verification at the same HEAD:
+  - Lifecycle suite: **34 tests, PASS**.
+  - Full `market_data` suite: **293 tests, 42 skipped, PASS**.
+  - `ResourceWarning` count: **0**; tests ran with `-W error::ResourceWarning`.
+  - `git diff --check`: **PASS**.
+- Other artifacts attached to run `42498998631`:
+  - Paper consumer: `13625115174`.
+  - T1 sidecar Rust: `13624681348`.
+  - T0 provider bootstrap: `13624128363`.
+  - T0 Timescale read-only: `13623968870`.
+  - T1 importer offline: `13623824020`.
+- TDD boundary: original WAL Keeper leak has RED→GREEN evidence. The close-failure-specific RED phase remains **NOT VERIFIED**, although its GREEN subtest passes.
+- Verdict: WAL Keeper startup lease-loss cleanup and exact-head CI regression **PASS**. This is isolated test/CI evidence only; it does not certify VPS deployment, live Feeder ownership, or canonical database operation.
+- No VPS deployment, process restart, canonical DB modification, retention operation, or live trading was performed. `ai_execution_enabled=false` remains unchanged.
+- Next: preserve current VPS runtime and DB. Any source synchronization, Feeder restart, or canonical DB operation requires separate explicit approval.
