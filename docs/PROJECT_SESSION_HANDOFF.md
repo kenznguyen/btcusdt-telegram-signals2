@@ -7265,3 +7265,30 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No VPS file, package, service, canonical DB, Feeder/API process, firewall, secret, permission, or network setting was changed. No production unit or ingestion was activated. `ai_execution_enabled=false`; paper-only.
 - Status: test fixture ResourceWarning fix **PASS — GitHub CI**; complete `market_data` suite **PASS — 292 tests / 42 skipped**; VPS Python 3.14 post-fix verification **NOT VERIFIED**; VPS deployment **BLOCKED**.
 - Next: preserve the VPS working tree and inspect the two untracked directories before any checkout synchronization. If synchronization is approved later, use a controlled source update and rerun the focused 25-test lifecycle suite under Python 3.14.4 with `-W error::ResourceWarning`. Do not start Feeder or alter canonical data as part of this test.
+
+
+## 2026-11-08 — T0 WAL Keeper startup lease-loss cleanup and ResourceWarning regression
+
+- Continued on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch or PR created.
+- Isolated checkout: `/tmp/t0-compat-audit`; source branch HEAD before implementation commit: `0489eccbcb04f2c6f8aff88ca079d10db4bfb544`.
+- Scope: make `FeederRuntime.start()` attempt to close its owned WAL Keeper even when lease-loss cleanup callbacks raise; preserve the original lease-loss RuntimeError and retain cleanup/close exceptions as causes. Test fixtures were also updated to close SQLite connections explicitly while preserving transaction contexts.
+- Source commit: `d077e9325eefa3bcc8c5837e8eb875fe4facb128` (`fix(t0): close WAL keeper on startup lease loss`); 9 files changed, 218 insertions, 89 deletions.
+- Files: `market_data/feeder.py`, `market_data/test_api.py`, `market_data/test_feeder_lifecycle.py`, `market_data/test_initialize_sqlite.py`, `market_data/test_kraken_spot_api.py`, `market_data/test_kraken_spot_store.py`, `market_data/test_store.py`, `market_data/test_support.py`, `market_data/test_write_gateway.py`.
+- Local verification at source commit:
+  - Full `market_data` regression: **293 tests, 42 skipped, 0 failures/errors**.
+  - `ResourceWarning` scan: no matches.
+  - `git diff --check`: PASS.
+  - All 9 changed files reviewed; no logic defect identified in the reviewed diff.
+  - SQLite audit copy `PRAGMA integrity_check`: `ok`.
+  - TDD original WAL Keeper leak: RED then GREEN. Additional cleanup callback and close-failure subtests are GREEN; the close-failure-specific RED phase was **NOT VERIFIED**.
+- GitHub push: successful to the same branch; remote advanced from `0489ecc` to `d077e93`.
+- GitHub Actions, all triggered by `push` and all reporting exact `head_sha=d077e9325eefa3bcc8c5837e8eb875fe4facb128`:
+  1. T0 SQLite Read-only systemd Sandbox — run [42498098446](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42498098446), **SUCCESS**; artifact ID `13623817874`, name `t0-systemd-readonly-sandbox-d077e9325eefa3bcc8c5837e8eb875fe4facb128`.
+  2. T0 Feeder API systemd Integration — run [42498098495](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42498098495), **SUCCESS**; artifact ID `13624347662`, name `t0-systemd-feeder-api-integration-d077e9325eefa3bcc8c5837e8eb875fe4facb128`.
+  3. T2 Freqtrade 2026.9 Strategy Load Smoke — run [42498098493](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42498098493), **SUCCESS**; artifact ID `13624342550`, name `t2-freqtrade-2026-9-strategy-smoke-d077e9325eefa3bcc8c5837e8eb875fe4facb128`.
+  4. T0 Single Writer Gateway Contracts — run [42498098482](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42498098482), **SUCCESS**, 6/6 jobs; artifact IDs `13624441277`, `13624556384`, `13624670714`, `13624755235`.
+- Artifact metadata reports all listed artifacts present and unexpired. Artifact payload downloads and independent SHA-256 recomputation were **NOT VERIFIED** in this increment; do not claim payload checksum verification.
+- Verdict: local regression **PASS**; source review **PASS**; push **PASS**; four GitHub Actions workflows **PASS** on the exact commit head SHA. This does not certify a production runtime or canonical database.
+- Working checkout had unrelated untracked shell/pager artifacts and `market-data-audit.sqlite3` with sidecars. They were deliberately not staged or committed and remain preserved; cleanup is **NOT AUTHORIZED / NOT DONE**.
+- No VPS Feeder restart, deployment, production service change, canonical DB modification, ingestion, exchange connection, or live trading occurred. `ai_execution_enabled=false` remains unchanged.
+- Next bounded step: reconcile the current VPS checkout/runtime against the committed source without pulling/resetting or touching the running Feeder; first inspect checkout ancestry and untracked artifact ownership. Any source synchronization, Feeder restart, or canonical DB operation requires separate explicit approval. Preserve current live process and DB.
