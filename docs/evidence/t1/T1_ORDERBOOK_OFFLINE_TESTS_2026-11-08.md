@@ -155,3 +155,17 @@ No runtime or T0 runtime changes. No artifact was produced by runs 198 or 200; a
 - No collector execution, Binance connection, VPS deployment, database access, T0 changes, live orders, PR merge, or PR draft-state change.
 - PR #1 remains **OPEN / DRAFT / NOT MERGED**.
 - Next: continue a bounded offline review of Sidecar validation/event lifecycle invariants on the same PR branch; no runtime integration/deployment without separate authorization.
+
+
+## 2026-11-08 — T1 Sidecar validator semantic-validation review
+
+- Reviewed exact T1 PR head `8f73459d7f1f0736f211c92b98ea9d7d6cc89df5`:
+  - `crates/connection-sidecar/src/lib.rs`, blob `5be18efd3950c1e82239fb86bbe75bbec7ae6176`, especially `validate_capture()` lines 1095–1249 and `ManifestValidationFields` lines 1085–1092.
+  - `crates/connection-sidecar/tests/sidecar_writer.rs`, blob `65d0376fbd15cac000306a7ce789ff8cefedda73`.
+  - `crates/connection-sidecar/README.md`, blob `43806ca013aa1b8b8784fd29805dac677729aa12`.
+- Finding — **REQUIRED: validator currently proves JSON-object/hash/count agreement, not event-schema validity**. For each JSONL line, `validate_capture()` only deserializes to `serde_json::Value` and checks `is_object()`; it does not enforce the documented v1 identity fields (`schemaVersion`, `eventId`, `sourceCommit`, `sessionId`, `connectionId`, `batchId`, `route`, `eventType`, `eventAtMs`), event-type-specific required/forbidden fields, timestamp/sequence ordering, or known enum values. If a file contains syntactically valid but semantically invalid JSON objects and a matching manifest hash/byte count/event count, the current validator can classify it `SealedConsistent`. This overstates what its current checks actually establish.
+- Related manifest identity gap: `ManifestValidationFields` only deserializes schema version, sidecar filename, bytes, digest, finalized flag, and event count. It ignores manifest `sourceCommit` and `sessionId` (and the manifest's connection-subscription inventory), so those identity/inventory fields can disagree with the JSONL and still pass the current consistency check.
+- Existing tests cover malformed JSON syntax, non-object JSON, torn final line, and byte/hash/count mismatch; they do not test semantically invalid event objects or source/session identity mismatch.
+- Scope of this review: static source/test/README inspection only. No code changed, no test run, no collector/VPS/Binance runtime.
+- Status: **FINDING RECORDED / FIX NOT AUTHORIZED YET / NOT VERIFIED BY REGRESSION TEST**. The prior exact-head CI PASS remains valid for its existing test suite but does not close this validator gap.
+- Recommended bounded next step: add offline regression tests first for (1) a JSON object missing required v1 event identity fields with a recomputed matching manifest and (2) manifest `sourceCommit`/`sessionId` mismatch; then implement schema-aware event validation and identity binding without expanding into exchange-stream completeness claims. Keep validation read-only and preserve existing `UnsealedValid`/truncation/malformed classifications.
