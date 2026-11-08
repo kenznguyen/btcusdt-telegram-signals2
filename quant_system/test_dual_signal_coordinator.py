@@ -7,6 +7,7 @@ import unittest
 
 from quant_system.dual_ledger import SharedRiskEngine, StrategyLedger
 from quant_system.dual_strategy import Origin, Side, Signal
+from market_data.store import Candle, CandleStore, read_window
 from quant_system.dual_signal_coordinator import (
     DualStrategySignalCoordinator,
     StrategyIntent,
@@ -25,6 +26,30 @@ class DualStrategySignalCoordinatorTests(unittest.TestCase):
             core_ledger=self.core, ai_ledger=self.ai, risk_engine=self.risk
         )
         self.closed = 1_800_000_000_000
+        self.now_ms = self.closed + 5_000
+        self.market_db = Path(self.temp.name) / "market.sqlite3"
+        CandleStore(self.market_db).insert([
+            Candle("15m", self.closed, "100", "102", "99", "101", "3", self.closed + 901_000)
+        ])
+        self.window = read_window(
+            self.market_db, "BTCUSDT", "15m", self.closed, self.closed + 900_000
+        )
+        self.row = {
+            "closed": True, "open_time": self.closed, "open": 100.0,
+            "high": 102.0, "low": 99.0, "close": 101.0, "volume": 3.0,
+            "rsi": 31.0, "previous_rsi": 29.0, "h1_plus": 26.0,
+            "h1_minus": 12.0, "h1_adx": 22.0,
+            "h1_source_open_time": self.closed - 3_600_000,
+        }
+        self.prediction = {
+            "schemaVersion": 1, "exchange": "binance", "marketType": "USDT_PERPETUAL",
+            "symbol": "BTCUSDT", "timeframe": "15m", "candleOpenTimeMs": self.closed,
+            "candleCloseTimeMs": self.closed + 900_000, "availableAtMs": self.now_ms - 2_000,
+            "trainedThroughMs": self.closed, "trainingCompletedAtMs": self.closed + 1_000,
+            "modelVersion": "model-1", "strategyVersion": "strategy-1",
+            "trainingDatasetVersion": "sha256:" + "a" * 64, "predictedReturn": "0.004",
+            "doPredict": 1, "datasetVersion": self.window["datasetVersion"],
+        }
 
     def intent(self, origin, side, *, action="ENTRY", position_id=None,
                quantity="0.01", price="1000", reservation_id=None):
@@ -46,6 +71,31 @@ class DualStrategySignalCoordinatorTests(unittest.TestCase):
         }
         options.update(overrides)
         return self.coordinator.route(intents, **options)
+
+
+    def test_signal_generation_preserves_opposing_core_long_and_ai_short(self):
+        candidates = self.coordinator.generate_signals(
+            self.row, self.window,
+            {**self.prediction, "predictedReturn": "-0.004"}, self.now_ms,
+        )
+        self.assertEqual(candidates.reason, "SIGNALS_GENERATED")
+        self.assertEqual(candidates.core.side, Side.LONG)
+        self.assertEqual(candidates.ai.side, Side.SHORT)
+
+    def test_ai_signal_is_generated_when_core_is_silent(self):
+        row = {**self.row, "rsi": 40.0, "previous_rsi": 39.0}
+        candidates = self.coordinator.generate_signals(
+            row, self.window, self.prediction, self.now_ms,
+        )
+        self.assertIsNone(candidates.core)
+        self.assertEqual(candidates.ai.side, Side.LONG)
+
+    def test_valid_core_signal_survives_invalid_ai_prediction(self):
+        candidates = self.coordinator.generate_signals(
+            self.row, self.window, {**self.prediction, "doPredict": 0}, self.now_ms,
+        )
+        self.assertEqual(candidates.core.side, Side.LONG)
+        self.assertIsNone(candidates.ai)
 
     def test_opposing_core_and_ai_signals_are_both_admitted_to_separate_ledgers(self):
         result = self.route(
