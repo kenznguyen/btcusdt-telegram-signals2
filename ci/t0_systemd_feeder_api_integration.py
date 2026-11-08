@@ -9,11 +9,9 @@ import json
 import os
 from pathlib import Path
 import signal
-import socket
 import sqlite3
 import subprocess
 import sys
-import tempfile
 import time
 import urllib.error
 import urllib.request
