@@ -39,12 +39,14 @@ Add a small T2-owned HTTP adapter (final module name to follow repository conven
 The adapter must not import `market_data.store`, open files/SQLite, write to T0, initialize schemas, or contact an exchange directly.
 
 Configuration contract:
-- Required: API base URL, token, connect timeout, read timeout, max response bytes, and freshness threshold for 15m.
+- Required: API base URL, token, connect timeout, read timeout, maximum response bytes, and M15 `max_lag_ms`.
 - Missing/blank values, non-HTTPS cross-host URL, invalid thresholds, or invalid bounds => unavailable/fail closed.
 - Never log or include the token in exception text, URLs, artifacts, or diagnostics.
 - No token query parameter.
 - Loopback HTTP may be allowed only for an explicitly configured same-host deployment; remote HTTP is forbidden.
-- Numeric timeout/retry/body-size defaults are NOT approved here; define and review them before implementation rather than silently inventing operational limits.
+- Approved transport defaults: connect timeout 3 s; read timeout 5 s; at most 3 total attempts; fixed backoff 250 ms then 500 ms; maximum response body 256 KiB.
+- Send `Accept-Encoding: identity`; do not automatically follow redirects; stream and enforce the body cap before full JSON decoding.
+- TLS certificate verification is mandatory for cross-host HTTPS. These limits govern the client only; they do not authorize runtime deployment or changes to the T0 server.
 
 ## 4. Request semantics
 
@@ -94,17 +96,18 @@ Reject the complete response (do not partially salvage candles) unless all check
 - Freshness fields are internally consistent: age and close lag equal their documented differences, nullability is consistent, and `evaluable` has the documented meaning.
 
 ### Strategy freshness
-- Explicit 15m max-lag threshold is mandatory and must be a positive bounded integer.
-- No threshold or invalid threshold => unavailable.
-- Latest required candle and freshness policy must pass according to the clock/range rule resolved in section 4.
-- An HTTP 200 response with incomplete coverage, stale candles, or `evaluable=false` is a rejection, not a successful empty/partial context.
+- Explicit M15 `max_lag_ms` is mandatory; approved value is `120000` ms (120 seconds). Missing or invalid configuration => unavailable.
+- **Meaning of this threshold:** ingestion/first-observation delay for the latest required candle, calculated as `latestAvailableAtMs - latestCloseTimeMs`. This is also `closeLagMs - observationAgeMs` using the API's documented fields. It is NOT the raw `closeLagMs` (`generatedAtMs - latestCloseTimeMs`) and NOT `observationAgeMs` (`generatedAtMs - latestAvailableAtMs`); those grow naturally during an M15 interval and a 120-second cap on either would reject otherwise-current data for much of every 15-minute cycle.
+- Require `latestAvailableAtMs >= latestCloseTimeMs`; negative or uncomputable ingestion delay fails closed. Accept delay exactly 120000 ms; reject any value greater than 120000 ms.
+- Continue validating the API's `generatedAtMs`, `availableAtMs`, `observationAgeMs`, `closeLagMs`, and `evaluable` arithmetic. The latest required candle must also be present at `openTimeMs = endMs - 900000`.
+- An HTTP 200 response with incomplete coverage, ingestion delay above threshold, or `evaluable=false` is a rejection, not a successful empty/partial context.
 
 ### Transport and errors
 - TLS certificate verification enabled for cross-host HTTPS; no insecure bypass.
 - Connect/read timeouts always bounded.
-- Retry only transient transport errors and selected 503 responses; bounded attempts/backoff; never retry 400/401/404/405.
-- No retry may silently switch endpoint, source, DB, or cache.
-- Enforce maximum response bytes before full JSON decode; reject oversized, truncated, malformed, non-JSON, or unexpected content types.
+- Retry only transient connection/transport errors, connect/read timeouts, and HTTP 503; maximum 3 total attempts with fixed 250 ms then 500 ms backoff. HTTP 400/401/404/405 and all contract/data validation failures are not retried. Other HTTP statuses fail closed without retry.
+- Do not automatically follow redirects. No retry may silently switch endpoint, source, DB, or cache.
+- Send `Accept-Encoding: identity`; require the expected JSON content type. Stream the response and abort as soon as the body exceeds 256 KiB, before full JSON decode. Reject oversized, truncated, malformed, non-JSON, or unexpected content types.
 - Redact credentials and internal endpoint details from logs/errors/artifacts.
 
 ## 6. Error contract returned to FreqAI bridge
@@ -164,20 +167,21 @@ Tests must be deterministic, local-only, and written before implementation. Use 
 24. Reject missing/null freshness for a nonempty response.
 25. Reject inconsistent age/close-lag arithmetic.
 26. Reject `evaluable=false`.
-27. Reject stale response above configured max lag.
-28. Reject latest expected candle missing from the requested current window.
-29. Test client/server clocks immediately before and after a 15m boundary.
-30. Test `asOfMs` filtering at exact equality and one millisecond after/before.
+27. Accept ingestion delay exactly 120000 ms and reject 120001 ms; verify the calculation `availableAtMs - closeTimeMs = closeLagMs - observationAgeMs`.
+28. Prove a normal M15 interval does not fail merely because raw `closeLagMs` or `observationAgeMs` exceeds 120000 ms.
+29. Reject latest required candle missing from the requested window.
+30. Test client/server clocks immediately before and after a 15m boundary.
+31. Test `asOfMs` filtering at exact equality and one millisecond after/before.
 
 ### F. HTTP and resource safety
-31. 401 stops retries and returns AUTH_REJECTED.
-32. 400/404/405 do not retry.
-33. 503/transient transport failures obey bounded retry count.
-34. Connect/read timeout returns unavailable.
-35. Invalid TLS certificate fails closed.
-36. Oversized body is rejected before JSON decode.
-37. Truncated/non-JSON/wrong content-type response is rejected.
-38. Error body and token are not leaked to logs/artifacts.
+32. 401 stops retries and returns AUTH_REJECTED.
+33. 400/404/405 and non-retryable statuses do not retry.
+34. 503/transient transport failures obey the 3-attempt limit and 250/500 ms backoff.
+35. Connect/read timeout uses 3 s/5 s bounds and returns unavailable after the bounded attempts.
+36. Invalid TLS certificate fails closed; redirects are not followed.
+37. `Accept-Encoding: identity` is sent; response body above 256 KiB is rejected before JSON decode.
+38. Truncated/non-JSON/wrong content-type response is rejected.
+39. Error body and token are not leaked to logs/artifacts.
 
 ### G. No fallback / integration
 39. No code path imports `market_data.store` from the T2 HTTP adapter.
@@ -213,8 +217,9 @@ RED must be observed against the pre-implementation source. Do not label a test 
 |---|---|
 | Contract design / source review | CONDITIONAL PASS |
 | Freshness vs request-window boundary clarification | APPROVED — request-window latest slot = endMs - 900000 |
-| Timeout/retry/body-size numeric policy | NOT APPROVED — separate decision required |
-| T2 HTTP client implementation | NOT AUTHORIZED |
+| HTTP transport/resource limits | APPROVED — 3 s connect, 5 s read, 3 attempts, 250/500 ms backoff, 256 KiB body cap, identity encoding, no redirects |
+| M15 freshness threshold | CONDITIONALLY APPROVED — 120000 ms, using first-observation ingestion delay formula below |
+| T2 HTTP client implementation | NOT AUTHORIZED — separate authorization required |
 | T2 direct SQLite removal | NOT STARTED |
 | Local fixture/HTTP tests | NOT RUN |
 | GitHub Actions exact-SHA | NOT VERIFIED |
@@ -230,3 +235,14 @@ This plan defines the proposed implementation and acceptance criteria only. It d
 - Continue validating server generation and availability timestamps; configured M15 max-lag remains mandatory and fail-closed.
 - No automatic window shift/re-request or fallback to SQLite/cache/synthetic/alternate venue.
 - Scope of approval: design rule only. Numeric transport limits remain unapproved. No RED tests have been added or run; no implementation or runtime activity is authorized by this decision.
+
+
+## Approval record — T2 HTTP transport and freshness policy
+
+- User approval received 2026-11-08.
+- Transport/resource limits approved: connect timeout 3 seconds; read timeout 5 seconds; maximum 3 attempts total; fixed backoff 250 ms then 500 ms; maximum response body 256 KiB; send `Accept-Encoding: identity`; do not follow redirects; verify TLS certificates for cross-host HTTPS; enforce the response cap while streaming and before full JSON decode.
+- Retry only transient connection/transport errors, connect/read timeouts, and HTTP 503. Do not retry 400/401/404/405, other HTTP statuses, or contract/data validation failures. Never switch endpoint/source/cache/DB.
+- M15 `max_lag_ms=120000` is approved subject to the verified interpretation: ingestion delay = `latestAvailableAtMs - latestCloseTimeMs`, equivalently `closeLagMs - observationAgeMs`. It is not raw `closeLagMs` or `observationAgeMs`, since those naturally increase during an M15 interval and a 120-second cap on either would reject valid current data during much of the interval.
+- Require `availableAtMs >= closeTimeMs`; accept exactly 120000 ms and reject values greater than 120000 ms. Continue validating all server-generated freshness fields and their arithmetic.
+- Add deterministic tests for the formula, exact threshold boundary (120000 accepted / 120001 rejected), and proof that normal M15 interval age does not trigger false stale rejection.
+- Scope: documentation/policy approval only. This does not authorize RED test implementation/execution, T2 HTTP client implementation, T2 direct SQLite removal, T0/VPS/runtime changes, deployment, or trading activation. A separate explicit authorization is required before code/test work.
