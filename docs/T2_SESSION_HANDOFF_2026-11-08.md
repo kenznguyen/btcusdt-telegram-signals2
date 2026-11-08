@@ -328,3 +328,36 @@ Final exact-source push:
 - Working-tree status: NOT VERIFIED (no local checkout inspected).
 
 Next step: obtain explicit approval for production calibration gate policy (ECE maximum, Brier comparison protocol, minimum total and per LONG/SHORT × regime sample counts, bin count and regime taxonomy); then build an authenticated OOS split/data provenance validator before any attestation can be issued. Keep all runtime execution disabled.
+
+
+## User-approved AI calibration gate policy — 2026-11-08
+
+### Decision and implementation
+User approved:
+- Maximum ECE: `0.05`.
+- Brier score must strictly beat the same-sample climatology/no-skill reference, overall and for every required directional/regime group.
+- Minimum total OOS predictions: `1,000`.
+- Minimum samples in each LONG/SHORT × regime group: `200`.
+
+Implemented `approved_calibration_gate_policy(*, ece_bins, required_regimes)` in `quant_system/ai_calibration_evaluator.py`. It fixes only the approved numeric thresholds. It requires explicit caller-supplied bin count (1–100) and non-empty, unique regime names because those were not specified by the user. There are no implicit values for either. Multi-regime policies can require more than 1,000 total samples due to per-group minima.
+
+Added tests covering the approved values, missing required arguments, invalid bin count, empty regimes and duplicate regimes.
+
+### Scope boundaries
+- This approves evaluator thresholds only; it does not attest that BTCUSDT predictions pass them.
+- No actual OOS prediction dataset was evaluated.
+- `out_of_sample=true` remains caller-provided and is not authenticated.
+- Authenticated split/dataset/model/artifact provenance remains a separate required validator before any calibration attestation.
+- No calibration attestation or leverage authorization issued.
+- No integration into AI leverage, coordinator, paper bridge or runtime.
+- `AI_EXECUTION_ENABLED=false`; no exchange, DB, T0/T1 or runtime touched.
+- PR #95 remains OPEN / DRAFT / NOT MERGED; no merge or rebase.
+
+### Verification state at handoff update
+- Test-first change commit: `f065a71e8f5d1bb7b24f98eefddfcbd42b6f2b5c` (new tests import the not-yet-implemented policy factory).
+- Implementation commit: `f4be0101380abe41b1c9d304815981d261d33e65`.
+- Documentation update commit: `89e3ca65bb6003177fd7bff9bdf1bdc1fc3f5045`.
+- Exact final code/test/workflow SHA and Actions run/artifact: PENDING verification; do not claim PASS until GitHub Actions completes on the exact code/test SHA.
+- Working-tree status: NOT VERIFIED (GitHub API-only changes; no local checkout inspected).
+
+Next: verify exact-head Actions for the approved policy implementation. Then implement an authenticated OOS provenance/split validator before considering any calibration attestation. Keep runtime execution disabled.
