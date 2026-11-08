@@ -1,4 +1,5 @@
 """P1.2 contract tests: graceful shutdown and restart recovery."""
+from contextlib import closing
 import threading
 import unittest
 from unittest.mock import Mock
@@ -967,15 +968,16 @@ class RuntimeIntegrationContractTest(unittest.TestCase):
             store = SQLiteCandleStore(db_path)
             store.initialize()
             leases = LeaseStore(str(db_path))
-            with sqlite3.connect(db_path) as connection:
-                connection.execute(
-                    """INSERT INTO candles
-                       (exchange, market_type, symbol, timeframe, open_time_ms,
-                        open, high, low, close, volume, available_at_ms)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    ("binance", "USDT_PERPETUAL", "BTCUSDT", "15m", middle_open,
-                     "100", "101", "99", "100", "1", middle_open + interval),
-                )
+            with closing(sqlite3.connect(db_path)) as connection:
+                with connection:
+                    connection.execute(
+                        """INSERT INTO candles
+                           (exchange, market_type, symbol, timeframe, open_time_ms,
+                            open, high, low, close, volume, available_at_ms)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        ("binance", "USDT_PERPETUAL", "BTCUSDT", "15m", middle_open,
+                         "100", "101", "99", "100", "1", middle_open + interval),
+                    )
 
             initial_coverage = read_window(
                 db_path, "BTCUSDT", "15m", recovery_start, recovery_end
