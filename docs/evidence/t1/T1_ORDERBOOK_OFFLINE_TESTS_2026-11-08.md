@@ -16,6 +16,7 @@ Commits:
 - `efc5887de9c19e19c9150455a7d4500afc285fd0` — extracted normalized attach application into a pure helper and added three offline tests.
 - `152cc04a3d7079345829144eb1e9560dcf156623` — removed a redundant reconnect fixture.
 - `684ea8bed55d6a3cf0ad50d02ee8b9586bb9e789` — rustfmt correction.
+- `3c2745a30f3cb20375a20188b5f4e10e7b7bbfef` — clarified reconnect test name/assertions so it does not imply raw-tape persistence coverage.
 
 Changed file: `src/collectors/orderbook_manager.rs`.
 
@@ -36,6 +37,8 @@ Existing workflow: `.github/workflows/ci.yml`, GitHub Actions, workflow name `CI
 - Result: Collector Format failed due two rustfmt-only differences. Clippy, Build, Test, Sidecar format/Clippy/tests and artifact steps were skipped. This run does not verify the new tests.
 - Corrected formatting in commit `684ea8bed55d6a3cf0ad50d02ee8b9586bb9e789`.
 - Follow-up PR workflow run: [42448706196](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42448706196), run number 198. Result: SUCCESS, 5/5 jobs; checked-out merge SHA `a3b2234fb0b113bb2a837ab6fe7ded0d45e1d7c8`, merging PR head `684ea8bed55d6a3cf0ad50d02ee8b9586bb9e789` with base `bc4f0ef633fbeee4a49defd72827f17162693805`. Collector library tests 43/43, main 1/1; all three offline Order Book tests passed. No artifacts were produced.
+
+- Latest-head validation: [run 200](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42448956679), event `pull_request`, conclusion SUCCESS, all five jobs completed successfully. Collector job ID `128633858017`; exact checked-out merge SHA `3ec602e1c3508747fccb7a47e4d9e737a2239720`.
 
 ## Verdict
 
