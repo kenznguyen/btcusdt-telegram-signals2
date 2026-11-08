@@ -239,3 +239,26 @@ class CalibrationEvaluator:
             report_sha256=digest,
             input_sha256=input_sha256,
         )
+
+
+def approved_calibration_gate_policy(*, ece_bins, required_regimes):
+    """Build the user-approved production thresholds with explicit bin/regime inputs.
+
+    The user-approved numeric gates are fixed here. Binning and regime taxonomy
+    remain caller-supplied because neither was part of the approval decision.
+    """
+    if type(ece_bins) is not int or not 1 <= ece_bins <= 100:
+        raise ValueError("ece_bins must be an integer in [1, 100]")
+    if (not isinstance(required_regimes, (tuple, list))
+            or not required_regimes
+            or any(not isinstance(item, str) or not item.strip()
+                   for item in required_regimes)
+            or len(set(required_regimes)) != len(required_regimes)):
+        raise ValueError("required_regimes must be non-empty, unique regime names")
+    return CalibrationGatePolicy(
+        max_ece="0.05",
+        min_total_samples=1000,
+        min_group_samples=200,
+        ece_bins=ece_bins,
+        required_regimes=tuple(required_regimes),
+    )
