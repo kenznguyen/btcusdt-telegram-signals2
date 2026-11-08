@@ -323,7 +323,8 @@ Final exact-source push:
 - `AI_EXECUTION_ENABLED=false`; no DB, T0/T1, exchange, market-data or execution runtime touched.
 - Gross notional exposure ceiling remains undefined.
 - PR #95 remains OPEN / DRAFT / NOT MERGED; no merge/rebase.
-- Current code/test/workflow verification SHA: `56da92b86dc75ad76e0b391854c2e672268178b1`. Current branch HEAD after evidence-document commits must be refreshed below.
+- Current code/test/workflow verification SHA: `56da92b86dc75ad76e0b391854c2e672268178b1`.
+- Branch HEAD before this state-note commit: `2937e7dc0979e1a92ce2bc7328b9dd39cb42b2ca`; this update advances the branch. The resulting commit SHA is recorded in the session response.
 - Working-tree status: NOT VERIFIED (no local checkout inspected).
 
 Next step: obtain explicit approval for production calibration gate policy (ECE maximum, Brier comparison protocol, minimum total and per LONG/SHORT × regime sample counts, bin count and regime taxonomy); then build an authenticated OOS split/data provenance validator before any attestation can be issued. Keep all runtime execution disabled.
