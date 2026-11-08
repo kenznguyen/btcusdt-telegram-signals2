@@ -76,3 +76,26 @@ This audit does not authorize:
 - Paper order routing or live execution.
 
 Keep `ai_execution_enabled=false`. T2 remains **NOT ACTIVATED**; live endpoint verification remains **NOT RUN**.
+
+
+## Follow-up: operator-provided VPS listener snapshot
+
+Timestamp: `2026-11-08 11:22:57 UTC`  
+Host: `btcquant-t0-t1-test-01`  
+Evidence type: operator-pasted read-only command output; not independently collected by CI.
+
+Observed:
+- `ss -lntp` showed only SSH on TCP/22 and local system resolver listeners; no listeners on TCP/80, TCP/443, or TCP/8788.
+- No running service matching nginx, caddy, apache, traefik, market, feeder, or docker appeared in the filtered running-service list.
+- Nginx sites-enabled/conf.d summary and Caddyfile summary produced no entries.
+- `docker ps` produced no container rows.
+- Nginx config validation produced no output; nginx binary/service availability is not established by this alone.
+
+Assessment:
+- At the observation time, this VPS did not expose a listening T0 Candle API on the development port 8788 or a web front door on 80/443. No running reverse proxy or Docker container was observed by the supplied checks.
+- This does not prove that T0 API is absent from every host, nor does it prove no API code or stopped service definition exists on this VPS.
+- Endpoint identity remains unresolved. Do not infer a public IP, hostname, or base URL.
+
+Next bounded action: read-only inventory of local checkout directories, relevant stopped service definitions, and process command names to determine whether T0 code/service is present but stopped. Do not read environment files, credentials, private keys, or secret values. No start/restart/reload, network probe, firewall/configuration change, DB access, or T2 activation is authorized by this observation.
+
+Status: endpoint deployment **BLOCKED / NOT ESTABLISHED**; live verification **NOT RUN**; T2 runtime **NOT ACTIVATED**; `ai_execution_enabled=false`.
