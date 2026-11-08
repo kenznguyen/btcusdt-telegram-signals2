@@ -18,6 +18,79 @@ from quant_system.ai_calibration_evaluator import (
 ROLES = ("model", "dataset", "predictions", "split_protocol", "calibration_report")
 
 
+
+def make_t0_snapshot(timeframe, count):
+    interval = {"15m": 900_000, "1h": 3_600_000}[timeframe]
+    anchor = 1_700_000_000_000
+    start = (anchor // interval) * interval
+    candles = []
+    for index in range(count):
+        opened = start + index * interval
+        candles.append({
+            "exchange": "binance", "marketType": "USDT_PERPETUAL",
+            "symbol": "BTCUSDT", "timeframe": timeframe,
+            "openTimeMs": opened, "closeTimeMs": opened + interval,
+            "open": "65000.10", "high": "65100.20", "low": "64900.05",
+            "close": "65050.25", "volume": "12.345", "isClosed": True,
+            "availableAtMs": opened + interval + 1000,
+            "availabilityKind": "FIRST_OBSERVED", "quality": "VALIDATED",
+            "source": "ccxt.binanceusdm",
+        })
+    payload = {
+        "exchange": "binance", "marketType": "USDT_PERPETUAL",
+        "symbol": "BTCUSDT", "timeframe": timeframe,
+        "startMs": candles[0]["openTimeMs"],
+        "endMs": candles[-1]["closeTimeMs"], "asOfMs": None,
+        "candles": candles,
+    }
+    identity = {key: payload[key] for key in (
+        "exchange", "marketType", "symbol", "timeframe",
+        "startMs", "endMs", "asOfMs", "candles",
+    )}
+    payload["datasetVersion"] = "sha256:" + hashlib.sha256(
+        json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    payload["coverage"] = {
+        "expected": count, "returned": count, "complete": True, "gaps": [],
+    }
+    payload["generatedAtMs"] = candles[-1]["availableAtMs"] + 1
+    return payload
+
+
+def make_m15_h1_bundle():
+    snapshots = {
+        "15m": make_t0_snapshot("15m", 24),
+        "1h": make_t0_snapshot("1h", 6),
+    }
+    identity = {
+        "schema_version": 1,
+        "format": "T0_M15_H1_DATASET_BUNDLE_V1",
+        "source": "T0_CANONICAL_BINANCE_USDT_PERPETUAL",
+        "exchange": "binance", "marketType": "USDT_PERPETUAL",
+        "symbol": "BTCUSDT",
+        "snapshotVersions": {
+            key: snapshots[key]["datasetVersion"] for key in ("15m", "1h")
+        },
+    }
+    bundle = {
+        "schema_version": 1,
+        "format": "T0_M15_H1_DATASET_BUNDLE_V1",
+        "source": "T0_CANONICAL_BINANCE_USDT_PERPETUAL",
+        "exchange": "binance", "marketType": "USDT_PERPETUAL",
+        "symbol": "BTCUSDT", "snapshots": snapshots,
+        "datasetVersion": "sha256:" + hashlib.sha256(
+            json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest(),
+    }
+    return bundle
+
+
+def bundle_bytes(bundle):
+    return json.dumps(
+        bundle, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode()
+
+
 class AIProvenanceValidatorTests(unittest.TestCase):
     def setUp(self):
         self.private_key = Ed25519PrivateKey.generate()
@@ -25,7 +98,10 @@ class AIProvenanceValidatorTests(unittest.TestCase):
             encoding=serialization.Encoding.Raw,
             format=serialization.PublicFormat.Raw,
         )
+        self.dataset_bundle = make_m15_h1_bundle()
+        self.dataset_version = self.dataset_bundle["datasetVersion"]
         self.artifacts = {role: (f"synthetic-{role}-bytes").encode() for role in ROLES}
+        self.artifacts["dataset"] = bundle_bytes(self.dataset_bundle)
         prediction_rows = []
         observations = []
         for index in range(1000):
@@ -41,7 +117,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
                 "side": side,
                 "regime": "TREND",
                 "model_version": "model-sha-test-v1",
-                "dataset_version": "dataset-sha-test-v1",
+                "dataset_version": self.dataset_version,
             }
             prediction_rows.append(json.dumps(row, sort_keys=True, separators=(",", ":")))
             observations.append(CalibrationObservation(
@@ -74,7 +150,7 @@ class AIProvenanceValidatorTests(unittest.TestCase):
             "key_id": "offline-test-root-1",
             "model_version": "model-sha-test-v1",
             "strategy_version": "dual-ai-v1",
-            "dataset_version": "dataset-sha-test-v1",
+            "dataset_version": self.dataset_version,
             "issued_at_ms": self.now_ms - 1000,
             "expires_at_ms": self.now_ms + 60_000,
             "temporal_split": {
@@ -293,6 +369,55 @@ class AIProvenanceValidatorTests(unittest.TestCase):
         self.assertFalse(result.accepted)
         self.assertIn("TEMPORAL_SPLIT_INVALID", result.reasons)
 
+
+
+    def test_rejects_dataset_bundle_missing_h1_snapshot(self):
+        bundle = json.loads(self.artifacts["dataset"])
+        del bundle["snapshots"]["1h"]
+        artifacts = dict(self.artifacts, dataset=bundle_bytes(bundle))
+        result = self.verify_rehashed_predictions(artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("DATASET_BUNDLE_SCHEMA_INVALID", result.reasons)
+
+    def test_rejects_dataset_bundle_with_snapshot_under_wrong_timeframe(self):
+        bundle = json.loads(self.artifacts["dataset"])
+        bundle["snapshots"]["1h"] = bundle["snapshots"]["15m"]
+        artifacts = dict(self.artifacts, dataset=bundle_bytes(bundle))
+        result = self.verify_rehashed_predictions(artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("DATASET_SNAPSHOT_INVALID:1h", result.reasons)
+
+    def test_rejects_dataset_bundle_with_tampered_aggregate_fingerprint(self):
+        bundle = json.loads(self.artifacts["dataset"])
+        bundle["datasetVersion"] = "sha256:" + "0" * 64
+        artifacts = dict(self.artifacts, dataset=bundle_bytes(bundle))
+        result = self.verify_rehashed_predictions(artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("DATASET_BUNDLE_VERSION_MISMATCH", result.reasons)
+
+    def test_rejects_prediction_timestamp_outside_both_timeframe_coverage(self):
+        artifacts = dict(self.artifacts)
+        rows = artifacts["predictions"].decode().splitlines()
+        row = json.loads(rows[0])
+        h1_end = self.dataset_bundle["snapshots"]["1h"]["endMs"]
+        row["prediction_timestamp_ms"] = h1_end + 1000
+        row["outcome_available_at_ms"] = h1_end + 1500
+        rows[0] = json.dumps(row, sort_keys=True, separators=(",", ":"))
+        artifacts["predictions"] = ("\\n".join(rows) + "\\n").encode()
+        result = self.verify_rehashed_predictions(artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("PREDICTION_OUTSIDE_DATASET_COVERAGE", result.reasons)
+
+    def test_rejects_outcome_resolution_after_m15_dataset_coverage(self):
+        artifacts = dict(self.artifacts)
+        rows = artifacts["predictions"].decode().splitlines()
+        row = json.loads(rows[0])
+        row["outcome_available_at_ms"] = self.dataset_bundle["snapshots"]["15m"]["endMs"] + 1
+        rows[0] = json.dumps(row, sort_keys=True, separators=(",", ":"))
+        artifacts["predictions"] = ("\\n".join(rows) + "\\n").encode()
+        result = self.verify_rehashed_predictions(artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("OUTCOME_OUTSIDE_M15_DATASET_COVERAGE", result.reasons)
 
     def test_rejects_calibration_report_with_wrong_input_fingerprint(self):
         artifacts = dict(self.artifacts)
