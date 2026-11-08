@@ -370,3 +370,15 @@ Inspect the workflow run for exact source SHA, confirm the 43-test result and ar
 The correction must be verified by manually dispatching the workflow on the current feature-branch HEAD. The dispatched source SHA must include correction commit `a2a0956b733efe6d90bbff0aeae0d4f0ee134bb1` as an ancestor; record the actual `github.sha` from the run rather than assuming it equals the correction commit. Confirm the focused retention tests and full synthetic suite, inspect the generated manifest, verify both uploaded artifacts' actual `expires_at`, and verify the archive commit and source SHA. Until then, correction status is **IMPLEMENTED / CI NOT VERIFIED**.
 
 No T0 runtime, VPS, database, Feeder, market-data ingestion, exchange connection, paper/live execution, or data lifecycle operation was changed or activated. `AI_EXECUTION_ENABLED=false`.
+
+
+## 2026-11-09 — P1.8 archive job shallow-checkout failure (run #122)
+
+- Workflow run: [42516333044](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42516333044), run #122, event `push`, branch `feature/t0-centralized-data-feeder-p1-20261101`, source SHA `8f20b9b5c01ca5e3ef90e3b17410954d394757e1`.
+- Job 1 `Deterministic local fixture contracts`: PASS; all listed steps completed, including deterministic fixtures, provenance, retention manifest, and primary artifact upload.
+- Job 2 `Independent runner Sigstore verification`: PASS; independent offline verification and verification artifact upload completed.
+- Job 3 `Commit verified evidence to long-term Git history`: FAIL.
+- Both uploaded artifacts have actual GitHub metadata expiry `2026-11-15T19:41:58Z`, consistent with seven-day retention. Primary artifact ID `13630554437`, digest `sha256:83348e8905ff800042a258083272325a18ebe02cd7b750a0aeb2b041c67a5663`; independent verification artifact ID `13631238682`, digest `sha256:03ab7689ef185d2fec9e3cdf98cee929e0bbff94124401952c32ce111aaf0f94`.
+- Archive job independently rechecked the retention payload successfully (`RETENTION_PAYLOAD_INDEPENDENT_RECHECK=PASS`). It then failed while running `git show <SOURCE_SHA>:synthetic_evidence/trust_lifecycle.py`: the branch checkout was at newer HEAD `ee7d5dc2c613822825f5cc0af857cd72d8dcc542`, but `actions/checkout` used its default shallow depth of one commit, so the triggering source SHA `8f20b9b...` was not present in the local object database. This is a checkout-history availability failure, not a retention-manifest or attestation failure.
+- No evidence archive commit was created by run #122. No branch rewrite, merge, T0 runtime, VPS, database, Feeder, ingestion, or execution change occurred.
+- Status: **BLOCKED — archive job implementation needs a bounded source-commit fetch**. Proposed correction: in the archive job, fetch the exact `SOURCE_SHA` from origin at depth 1 before source-file `git show` checks, and assert it is an ancestor of the checked-out branch HEAD. Avoid an unbounded full-history checkout. Add a regression test for this workflow contract, then rerun the workflow and verify archive commit, source SHA, and artifact expiry metadata.
