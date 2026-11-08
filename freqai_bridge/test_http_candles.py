@@ -279,7 +279,7 @@ class T2HttpConsumerRedTest(unittest.TestCase):
             "closeLagMs": generated - END,
             "latestExpectedOpenTimeMs": END,
         }
-        client, _ = self._client(envelope=response_envelope(candles=[candle], generatedAtMs=generated, asOfMs=generated, freshness=freshness))
+        client, _ = self._client(envelope=response_envelope(candles=[candle], generatedAtMs=generated, asOfMs=generated, freshness=freshness), clock_ms=generated)
         self._fetch(client, as_of_ms=generated)
 
     def test_server_global_expected_slot_may_be_outside_request_window(self):
