@@ -106,6 +106,8 @@ class AIDynamicLeveragePolicyTests(unittest.TestCase):
         invalid = (
             {},
             {"min_leverage": "0", "max_leverage": "3", "confidence_floor": "0.6", "confidence_ceiling": "0.9"},
+            {"min_leverage": "1.5", "max_leverage": "3", "confidence_floor": "0.6", "confidence_ceiling": "0.9"},
+            {"min_leverage": "1", "max_leverage": "2", "confidence_floor": "0.6", "confidence_ceiling": "0.9"},
             {"min_leverage": "3", "max_leverage": "1", "confidence_floor": "0.6", "confidence_ceiling": "0.9"},
             {"min_leverage": "1", "max_leverage": "3", "confidence_floor": "0.9", "confidence_ceiling": "0.6"},
             {"min_leverage": "1", "max_leverage": "3", "confidence_floor": "0.6", "confidence_ceiling": "0.6"},
