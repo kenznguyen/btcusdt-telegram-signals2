@@ -131,7 +131,7 @@ This is a passing ledger/risk-accounting slice, **not full Dual-Strategy executi
 - Partial/full reduction accounting: **PASS (focused tests)**.
 - Exact-head T2 GitHub Actions: **PASS**.
 - Exact-head T0 adapter regression: **PASS**.
-- Latest R22.2 for current code SHA: **IN_PROGRESS / NOT VERIFIED**.
+- R22.2 isolated offline verification for code SHA `afa44c4bbab5a86040aadbeed219df7fe10a87cb`: **PASS (8/8)**.
 - Gross exposure policy threshold: **NOT DEFINED**.
 - Signal coordinator integration: **NOT IMPLEMENTED**.
 - Combined paper replay: **NOT RUN**.
