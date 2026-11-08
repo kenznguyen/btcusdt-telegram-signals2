@@ -74,6 +74,7 @@ class AIDynamicLeveragePolicyTests(unittest.TestCase):
         for changes in (
             {"report_sha256": ""},
             {"report_sha256": "not-a-digest"},
+            {"report_sha256": 12345},
             {"protocol_sha256": "0" * 63},
             {"dataset_version": "dataset-without-digest"},
         ):
