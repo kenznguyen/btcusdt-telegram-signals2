@@ -6614,3 +6614,16 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Status: RED architecture gaps **CONFIRMED**; 28 behavior test specifications **AUTHORED / BLOCKED BY MISSING ADAPTER**; adapter implementation and direct SQLite removal **NOT AUTHORIZED**; runtime/deployment **NOT AUTHORIZED**.
 - No production code, T2 runtime config, T0 API/store/DB, Feeder, VPS, exchange, Data Quality Gate, model training, paper order routing, deployment, or live execution changed. Keep `ai_execution_enabled=false`.
 - Next: close remaining RED test gaps or resolve interface ambiguity without implementing production code. Obtain separate approval before GREEN implementation.
+
+
+## 2026-11-08 — Final T2 HTTP RED fixture rerun
+
+- Test fixtures corrected for as-of cutoff inclusion at the exact 120000/120001 ms ingestion-delay boundary and for server-global expected-slot consistency across the M15 boundary.
+- Final test source/checked-out SHA: `3222c1bd56ccc089d84f2744f4bafede4747ce50`.
+- GitHub Actions run `42468167014`, job `128692428965`, event `push`, conclusion **success** for the expected-RED harness. URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42468167014.
+- Result: 37 tests; 6 expected architecture assertion failures; 28 adapter-dependent behavior tests blocked by missing `freqai_bridge.http_candles` import; 3 assertions PASS; no unexpected error types. Compile and isolated preflight PASS.
+- Final artifact ID `13611894815`, SHA-256 `27d2f20452c19b50a9d02d0a61935e2b77071b895fa47375469d5fcc022b57ad`.
+- Evidence report updated: `docs/evidence/t2/T2_HTTP_CONSUMER_RED_EXPANDED_2026-11-08.md`.
+- Plan update commit: `156697ef5ad0503b9c2f56e4b79f3d4abd9f76b6`.
+- Final status: architecture RED **CONFIRMED**; 28 behavior tests **AUTHORED / BLOCKED BY MISSING ADAPTER / NOT VERIFIED**; T2 HTTP client implementation and direct SQLite removal **NOT AUTHORIZED**; runtime/deployment **NOT AUTHORIZED**.
+- No production code or runtime changed. Keep `ai_execution_enabled=false`.
