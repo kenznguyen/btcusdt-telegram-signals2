@@ -577,3 +577,20 @@ Implement semantic reconciliation between the signed prediction JSONL and the si
 - Even with this contract, hidden feature leakage and actual model-consumption behavior remain separate verification gaps. No label horizon or outcome price basis is inferred.
 - PR #95 remains OPEN / DRAFT / NOT MERGED. `AI_EXECUTION_ENABLED=false`; no T0/T1 DB/Feeder/exchange, no paper/live runtime, no calibration attestation or AI leverage authorization.
 - Next: obtain confirmation of prediction timestamp and per-row consumed-candle reference contract, then add RED tests before implementation.
+
+## Prediction decision-time / M15-H1 feature cutoff implementation — 2026-11-08
+
+- User approved prediction_timestamp_ms as UTC AI decision/emission time and exact per-row M15/H1 feature_cutoffs.
+- Implemented in quant_system/ai_provenance_validator.py; tests and report updated.
+- Feature cutoff schema per timeframe: open_time_ms, close_time_ms (exclusive), available_at_ms.
+- Validator checks exact candle resolution against the matching snapshot, exact close/availability timestamps, closed/validated/FIRST_OBSERVED flags, and available_at_ms <= prediction_timestamp_ms. Missing or invalid cutoff fails closed.
+- Final tested implementation SHA: d9765fa786e89d756d059450f149383dc9067636.
+- Exact-source push run [42461490366](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42461490366), job 128671530214, SUCCESS; checked-out SHA matches implementation SHA.
+- PR-context run [42461493744](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42461493744), job 128671540217, SUCCESS; synthetic merge checkout c1c15faeb7f59f7808fc7ee3268c23f87570ed9f.
+- Tests: provenance 38/38; calibration 16/16; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. Total 151/151 PASS; py_compile PASS.
+- Push artifact 13610265789, digest sha256:aec77528404c6a93f238fa8ae26ddc0ba85998b752c874510cf22aba62e0a9ba.
+- PR artifact 13609946638, digest sha256:2c119f87e8950c72239223a174763e246a66e4e2fa7b756f06bae0e6998cce20.
+- RED run 42461459462 exercised the missing-cutoff fail-closed path before final reason-code correction. Earlier failed fixture runs are intermediate TDD evidence, not acceptance.
+- Status: contract and synthetic tests PASS; actual BTCUSDT OOS artifacts, actual model feature consumption, hidden leakage, label correctness, price basis and label horizon remain NOT VERIFIED / NOT IMPLEMENTED.
+- AI_EXECUTION_ENABLED=false; no T0/T1 DB/Feeder/exchange, paper/live runtime, attestation or AI leverage authorization. PR #95 OPEN / DRAFT / NOT MERGED.
+- Next: add adversarial cutoff tests for duplicate/ambiguous candle references and signed OOS-window boundaries, then consider temporal split-to-dataset row-level binding. Do not infer label horizon or outcome price basis.
