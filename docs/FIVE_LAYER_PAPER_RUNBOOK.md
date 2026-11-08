@@ -23,6 +23,18 @@ The five-layer system uses a **Shared Data Foundation with Centralized Lifecycle
 - Keep CORE_LEDGER and AI_LEDGER separate; lifecycle metadata must not merge strategy-origin state or paper-accounting records.
 
 
+## T0 Feeder/API lifecycle evidence — CI only (2026-11-08)
+
+GitHub Actions đã kiểm chứng một cấu hình **transient systemd** trên runner dùng dữ liệu SQLite tổng hợp:
+
+- Feeder dùng `Type=notify`; systemd chỉ đánh dấu sẵn sàng sau khi `FeederRuntime.start()` hoàn tất lease, WAL Keeper, recovery và scheduler startup.
+- API dùng `Requires=`, `After=` và `BindsTo=` với Feeder; API đọc Candle API qua `127.0.0.1` và database path được mount read-only.
+- CI đã kiểm tra authenticated `GET /v1/candles`, từ chối request không token, chặn ghi filesystem của API, Feeder SIGKILL làm API dừng, khởi động lại với lease generation mới và thứ tự API dừng trước Feeder khi shutdown bình thường.
+- Bằng chứng: source SHA `0e73f9184bb15561341e76c31f698ba96e2a2703`, workflow run `42488536321`, job `128755620737`, artifact ID `13620800948`, digest `sha256:5a0e932e6145958a2aa9b88be14a5198075b107d9b1b01d3cd58849747f2305c`.
+- Chi tiết: [T0 Feeder/API systemd integration test plan](evidence/t0/T0_SYSTEMD_FEEDER_API_INTEGRATION_TEST_PLAN_2026-11-08.md).
+
+**Giới hạn:** Đây chỉ là chứng cứ CI trên runner systemd 259 với database tổng hợp. Chưa xác minh systemd/kernel/filesystem trên VPS Scaleway, quyền của service identity thực tế, production unit files, API đang chạy hoặc T2 kết nối API. Không tạo unit production, không triển khai VPS, không đổi quyền/secret/firewall, không bật T2 hoặc live execution. `/health` chỉ là liveness; kiểm tra data path phải dùng authenticated `/v1/candles`. PostgreSQL lifecycle acceptance vẫn là bộ kiểm chứng riêng, không suy ra từ harness SQLite này.
+
 ## 1. Runtime và CI
 
 **GitHub chỉ lưu source/PR. Codemagic chạy kiểm thử/build** theo `codemagic.yaml`:
