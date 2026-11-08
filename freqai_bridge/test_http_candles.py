@@ -187,6 +187,12 @@ class T2HttpConsumerRedTest(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises((Error, TypeError)):
                 Config(base_url="https://t0.example.invalid", token="secret", max_lag_ms=value)
 
+    def test_bearer_token_rejects_whitespace_and_header_control_characters(self):
+        _, Config, Error = self._adapter()
+        for value in ("token with spaces", "token\\r\\nInjected: yes", ""):
+            with self.subTest(value=value), self.assertRaises(Error):
+                Config(base_url="https://t0.example.invalid", token=value, max_lag_ms=120_000)
+
     def test_remote_plain_http_endpoint_is_rejected(self):
         _, Config, Error = self._adapter()
         with self.assertRaises(Error):
@@ -419,6 +425,14 @@ class T2HttpConsumerRedTest(unittest.TestCase):
             self._fetch(client)
         self.assertEqual(len(session.calls), 1)
         self.assertFalse(session.calls[0][1]["allow_redirects"])
+
+    def test_non_identity_content_encoding_is_rejected(self):
+        _, _, Error = self._adapter()
+        response = FakeResponse(payload=response_envelope())
+        response.headers["Content-Encoding"] = "gzip"
+        client, _ = self._client(responses=[response])
+        with self.assertRaises(Error):
+            self._fetch(client)
 
     def test_declared_content_length_over_cap_is_rejected(self):
         _, _, Error = self._adapter()
