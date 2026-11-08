@@ -102,7 +102,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile quant_system/ai_provenance_validator.py quant_system/test_ai_provenance_validator.py quant_system/ai_calibration_evaluator.py quant_system/test_ai_calibration_evaluator.py quant_system/ai_dynamic_leverage.py quant_system/test_ai_dynamic_leverage.py 2>&1 | tee t2-ai-leverage-evidence/compile.log
+          python -m py_compile quant_system/ai_provenance_validator.py quant_system/test_ai_provenance_validator.py quant_system/ai_label_direction_contract.py quant_system/test_ai_label_direction_contract.py quant_system/ai_calibration_evaluator.py quant_system/test_ai_calibration_evaluator.py quant_system/ai_dynamic_leverage.py quant_system/test_ai_dynamic_leverage.py 2>&1 | tee t2-ai-leverage-evidence/compile.log
           echo "PY_COMPILE=PASS" | tee -a t2-ai-leverage-evidence/compile.log
       - name: Run independent AI calibration evaluator tests
         shell: bash
