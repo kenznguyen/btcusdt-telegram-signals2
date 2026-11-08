@@ -37,7 +37,7 @@ GitHub Actions đã kiểm chứng một cấu hình **transient systemd** trên
 
 ## 1. Runtime và CI
 
-**GitHub chỉ lưu source/PR. Codemagic chạy kiểm thử/build** theo `codemagic.yaml`:
+**GitHub lưu source và bằng chứng; GitHub Actions là nơi chạy workflow kiểm thử. Codemagic chỉ là legacy/fallback nếu một workflow cụ thể còn được duy trì; không dùng trạng thái Codemagic thay cho bằng chứng GitHub Actions:**
 
 - `canonical-market-data`: kiểm thử Python cũ và toàn luồng paper mới.
 - `five-layer-dashboard`: npm frozen install không chạy dependency scripts, Node tests, build React và npm audit. Artifact `control_dashboard/dist/**`.
@@ -52,6 +52,20 @@ API, collector và FreqAI shadow cần chạy ở server/process có ổ đĩa b
 Codemagic là runner tác vụ hữu hạn, không dùng làm host scanner/API liên tục.
 Mã v1 cung cấp các lệnh ingestion theo cửa sổ; lịch đồng bộ liên tục, retention,
 giám sát vận hành và HA chưa được triển khai.
+
+## 1A. T0 Feeder/API systemd integration — CI proof boundary
+
+GitHub Actions đã kiểm chứng trên runner dùng dữ liệu SQLite tổng hợp và transient systemd units:
+
+- Feeder dùng `Type=notify`; `READY=1` chỉ phát sau khi runtime đã lấy lease, mở WAL Keeper, recovery và scheduler thành công.
+- API phụ thuộc Feeder qua `Requires=`, `After=` và `BindsTo=`; API chỉ đọc candle sau khi Feeder READY.
+- Bearer GET `/v1/candles` thành công; request không xác thực bị từ chối.
+- API bị chặn tạo file trong thư mục dữ liệu và bị SQLite từ chối câu lệnh UPDATE lên bảng `candles`.
+- Feeder SIGKILL làm API dừng; restart lấy lease generation mới; shutdown bình thường dừng API trước Feeder.
+
+Bằng chứng gần nhất: source SHA `9dd05c22046e5f34e547871f47b7dfb729a7efa1`, workflow run `42488635517`, job `128755920478`, artifact ID `13620273926`, digest `sha256:f46daaad5aea0525a60b66f20d4bd74df3feaa71b9a2e7a749a11be99e42d636`. Chi tiết nằm tại [T0 systemd integration test plan](evidence/t0/T0_SYSTEMD_FEEDER_API_INTEGRATION_TEST_PLAN_2026-11-08.md).
+
+**Giới hạn:** đây chỉ là PASS trên GitHub Actions runner với synthetic SQLite. Không chứng minh kernel/systemd/filesystem trên VPS, quyền của service user thực tế, PostgreSQL runtime, production `.service` units hoặc API đang chạy. Không dùng test unit làm cấu hình production trực tiếp. API deployment và T2 runtime vẫn BLOCKED cho tới khi có kiểm chứng VPS riêng và phê duyệt triển khai. Không có lệnh cài đặt, khởi động service hay thay đổi firewall trong phần hướng dẫn này.
 
 ## 2. Chuẩn bị tầng 0 và paper ledger
 
