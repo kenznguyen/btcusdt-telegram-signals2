@@ -6304,3 +6304,16 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Evidence report: `docs/evidence/t1/T1_ORDERBOOK_OFFLINE_TESTS_2026-11-08.md`, commit `30a85f56f54f7de7c55ba3095f17a7b1aa97c8c1`.
 - Verdict: source/test additions committed PASS; focused tests and overall CI NOT VERIFIED pending run 42448706196. No artifact from the failed first run.
 - Next: inspect run 42448706196, verify checked-out merge SHA and Collector Format/Clippy/Build/Test outcomes. If successful, record artifact metadata (if any) and update the evidence report/handoff. If it fails, fix only the demonstrated issue on the same branch and rerun GitHub Actions.
+
+
+## 2026-11-08 — T1 Order Book offline tests CI result and coverage refinement
+
+- Run 198: [42448706196](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42448706196) completed SUCCESS across all five jobs.
+- Checked-out synthetic merge SHA: `a3b2234fb0b113bb2a837ab6fe7ded0d45e1d7c8` (PR head `684ea8bed55d6a3cf0ad50d02ee8b9586bb9e789` + base `bc4f0ef633fbeee4a49defd72827f17162693805`).
+- Collector: Format, Clippy, release Build and `cargo test --all` PASS. 43 library tests + 1 main test passed; all three new Order Book tests explicitly PASS. Doc tests: 0. Sidecar format/Clippy PASS; sidecar tests 8 + 27 PASS. Dashboard frontend/backend, Docker build and security jobs PASS.
+- Artifact inventory for run 198 is empty; artifact prepare/upload steps were skipped. No binary artifact is claimed.
+- During result review, reconnect test was found to imply raw-tape persistence although it only exercised the in-memory book. Renamed it to `reconnect_pu_break_leaves_untouched_levels_stale_in_live_book` and changed assertions to avoid claiming raw-tape coverage.
+- Refinement source SHA: `3c2745a30f3cb20375a20188b5f4e10e7b7bbfef`; new CI run 200: [42448956679](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42448956679), pending final outcome at handoff update.
+- Evidence report updated in commit `0b3cede15535710432c98bc65754c9ed2e6c90d1`.
+- No VPS runtime, Binance connection, T0 runtime/database, resnapshot policy or live execution touched.
+- Next: verify run 42448956679 on exact merge SHA, then update final verdict. Raw-tape persistence and real reconnect recovery remain NOT VERIFIED by these tests.
