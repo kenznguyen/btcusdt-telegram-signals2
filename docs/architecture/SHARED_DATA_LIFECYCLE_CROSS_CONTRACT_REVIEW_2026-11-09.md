@@ -153,3 +153,13 @@ No values or defaults are selected by this review.
 **Status: REVIEW COMPLETE — CORRECTIONS RECOMMENDED — NOT IMPLEMENTED / NOT ACTIVE.**
 
 The documentation-only corrections in §5 have been applied and read back. The subsequent environment/evidence boundary is recorded in [Environment and Evidence Boundary](ENVIRONMENT_EVIDENCE_BOUNDARY.md). Next: perform a bounded read-only inventory of the experimental VPS, redact secrets, preserve exact timestamps and source identity, and classify all results as EXPERIMENTAL. Keep official-environment facts NOT VERIFIED. Do not perform source/schema/API changes, writes, migrations, retention, archive, vacuum, cleanup, or deletion without separate approval.
+
+
+## 2026-11-09 follow-up — CC-09 copy lifecycle design
+
+- Added [Data Copy, Backup, Replica, and Export Lifecycle Contract](DATA_COPY_BACKUP_REPLICA_LIFECYCLE_CONTRACT.md).
+- The new design separates replica, backup/recovery chain, export, local/working copy, cache/materialization, and evidence-copy governance. It defines copy identity/lineage requirements, separate copy lifecycle state, fail-closed disposition gates, recovery verification, exact-scope authorization, and post-operation reconciliation.
+- CC-09 is **DESIGN ADDRESSED**: the governance contract now exists. Runtime inventory, authoritative copy registry, backup/replica implementation, restore verification, and policy decisions remain **NOT VERIFIED / NOT IMPLEMENTED**.
+- The user's experimental VPS read-only inventory step is **DEFERRED**. This design does not depend on VPS inspection and does not promote the experimental VPS to official status.
+- No retention value, RPO/RTO, provider, official environment, backup expiry, replica removal, export deletion, local cleanup, archive, vacuum, or destructive operation was selected or authorized.
+- No source code, schema, API, workflow, service, database, VPS, Feeder, or runtime state was changed. CI/tests: NOT RUN; no artifact.
