@@ -608,3 +608,7 @@ Implement semantic reconciliation between the signed prediction JSONL and the si
 - Required contract: canonical split_protocol schema, training sample/label timestamp semantics, label horizon or per-sample label-end/availability, price basis/candle boundary convention, purge/embargo policy, same-timestamp prediction identity/cardinality.
 - Next: inspect the actual training pipeline/model artifact production process to derive those fields, or obtain user-approved definitions if not represented in source. Then add RED tests for split mismatch, training-label overlap, purge/embargo and OOS boundary cases.
 - `AI_EXECUTION_ENABLED=false`; no T0/T1 DB/feeder/exchange, paper/live runtime, calibration attestation or AI leverage authorization. PR #95 OPEN / DRAFT / NOT MERGED.
+
+### Cross-check note
+- Inspected separate `research_evidence/frozen-model/phase13b-20261104/phase13b-oos-protocol.json` (blob `0dbf07b12ccb4d4675f34827298456e8d7c69fb7`). It declares a 4-M15-candle label horizon and labels ending before holdout, but is for `chart-pro-okx-shadow-v1` on OKX and remains PRE_REGISTERED_PROTOCOL_CANDIDATE_NOT_SEALED with null seal fields.
+- Do NOT reuse that legacy Phase13B label horizon/purge assumptions for the independent AI strategy's signed split_protocol. Related Phase14 record says full model-pipeline fit causality is not certified.
