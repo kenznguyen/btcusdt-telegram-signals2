@@ -6474,3 +6474,17 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Verdict: **RED BASELINE CONFIRMED** for the three contract envelope/freshness gaps; existing regression behavior and canonical decimal assertion pass.
 - Next step: implement additive Contract v1 API envelope/freshness under TDD GREEN on this same branch, after explicit user authorization required by the contract design. Then run focused tests and full relevant suite/CI with exact SHA evidence.
 - Restrictions: no T2 HTTP client/FreqAI migration in this increment; no canonical DB, Feeder, VPS runtime, exchange, Data Quality Gate, or T1/T2 runtime actions; no source promotion or live execution. Keep `ai_execution_enabled=false`.
+
+
+## 2026-11-08 — T0 Candle Contract v1 API envelope implementation
+
+- Existing branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Exact source commit: `42fda132bf06edcf2cb5f5d3ea415fc3e7a47fc1`; changed file `market_data/api.py`; blob `e7db052605e449a7ba1e5d1da3b622822cd82b80`.
+- User explicitly authorized the API Contract v1 GREEN implementation.
+- Added the versioned response envelope: contract/schema versions, BTC base-asset volume unit, dataset-level source identity, and freshness observations including a null/non-evaluable shape for empty results.
+- Separated the 2,000-slot public API cap into `MAX_API_CANDLES`; did not change Store/write/sync limits.
+- TDD RED baseline: exact test SHA `9f5b9f12473ef5e25aa0caadf68c5230f3de2bb8`, 13 tests = 10 pass / 3 expected errors (user-provided Termux output).
+- GREEN focused/full tests: **NOT RUN / NOT VERIFIED**. Combined commit status has no reported checks; exact GitHub Actions run/job/log/artifact **NOT VERIFIED**.
+- Status: **IMPLEMENTED / NOT VERIFIED**; do not mark API contract PASS or promote consumers.
+- Next: user runs `python3 -m unittest market_data.test_api -v` against exact SHA `42fda132bf06edcf2cb5f5d3ea415fc3e7a47fc1`; then run full relevant suite and record CI proof. Address only observed failures.
+- Limits: T2 HTTP client/FreqAI migration not included; no T0 DB/Feeder/VPS/runtime, exchange, Data Quality Gate, T1/T2 runtime, deployment, or live execution. Keep `ai_execution_enabled=false`.
