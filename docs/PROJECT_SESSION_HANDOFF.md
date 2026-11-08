@@ -6627,3 +6627,88 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Plan update commit: `156697ef5ad0503b9c2f56e4b79f3d4abd9f76b6`.
 - Final status: architecture RED **CONFIRMED**; 28 behavior tests **AUTHORED / BLOCKED BY MISSING ADAPTER / NOT VERIFIED**; T2 HTTP client implementation and direct SQLite removal **NOT AUTHORIZED**; runtime/deployment **NOT AUTHORIZED**.
 - No production code or runtime changed. Keep `ai_execution_enabled=false`.
+
+
+## 2026-11-08 — T2 isolated HTTP candle client GREEN
+
+### Approval and scope
+
+- User explicitly approved Phase GREEN for implementing the isolated T2 HTTP candle client after the RED baseline.
+- Approved scope: implement freqai_bridge.http_candles against the already approved Contract v1, transport limits and freshness rule; add/run focused tests and Freqtrade 2026.9 load smoke.
+- Not included: T2 context/strategy wiring, direct SQLite removal, T2 runtime config migration, T0 API/store/DB, Feeder, VPS, exchange, model training, paper order routing, deployment or live execution.
+
+### Source identity
+
+- Repository: kenznguyen/btcusdt-telegram-signals2.
+- Branch: feature/t0-centralized-data-feeder-p1-20261101.
+- Exact source SHA used by final focused tests and Freqtrade smoke: 133bc8b0692a7f97c38bf9f2a1e3e9bbcde0fb48.
+- HTTP client implementation commit: 3223fb5746841bfd537258f27c14d2a5d8f57039.
+- Files added/changed in this increment:
+  - freqai_bridge/http_candles.py
+  - freqai_bridge/test_http_candles.py
+  - freqai_bridge/t2_http_migration_acceptance.py (separate, explicitly gated acceptance checks)
+  - .github/workflows/t2-http-consumer-red.yml (now runs the GREEN adapter suite)
+  - docs/architecture/T2_HTTP_CANDLE_CONSUMER_CONTRACT_AND_TEST_PLAN_2026-11-08.md
+  - docs/evidence/t2/T2_HTTP_CANDLE_CLIENT_GREEN_2026-11-08.md
+
+### Verification evidence
+
+1. Focused HTTP adapter suite:
+   - Run: 42469161176
+   - URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42469161176
+   - Event: push; checked-out SHA: 133bc8b0692a7f97c38bf9f2a1e3e9bbcde0fb48.
+   - Job: Verify T2 HTTP candle adapter; job ID 128695643657; conclusion SUCCESS.
+   - Isolated paper-only preflight PASS; py_compile PASS; 45 tests run in 0.220s; OK; T2_HTTP_GREEN=PASS.
+   - Artifact: t2-http-adapter-133bc8b0692a7f97c38bf9f2a1e3e9bbcde0fb48; ID 13612921873; SHA-256 ed03ef3b27e657d6a5ae009808b536a165c6427f663aa8635ec96c73b1d6e55d.
+
+2. Pinned Freqtrade 2026.9 strategy-load smoke:
+   - Run: 42469161057
+   - URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42469161057
+   - Event: push; checked-out SHA: 133bc8b0692a7f97c38bf9f2a1e3e9bbcde0fb48.
+   - Job: Pinned Freqtrade 2026.9 FreqAI strategy load; job ID 128695703023; conclusion SUCCESS.
+   - Paper-only/source guards PASS; pinned image and exact framework version PASS; existing strategy loaded without exchange sync or database access.
+   - Artifact: t2-freqtrade-2026-9-strategy-smoke-133bc8b0692a7f97c38bf9f2a1e3e9bbcde0fb48; ID 13612986619; SHA-256 957cfede82f55a61d75d49e59ea6d3ecef743574b03fdd04ddd376dd8e2ec669.
+
+### Implementation summary
+
+- CandleHttpConfig, CandleHttpClient, CandleHttpError and fetch(start_ms, end_ms, as_of_ms) are implemented.
+- Request bounded to BTCUSDT M15, aligned half-open range, 1–32 bars.
+- Bearer token header only; token excluded from config repr and safe exception text.
+- Remote HTTPS required; TLS verification on; no redirects; no-store; identity encoding.
+- 3s connect / 5s read; max 3 attempts; fixed 250ms / 500ms backoff; retry only transient transport/timeouts and 503.
+- Streamed response cap 256 KiB before JSON decode; strict UTF-8 JSON, duplicate-key and malformed/deep JSON rejection.
+- Strict schema/identity/range/dataset hash/coverage/candle/timestamp/decimal/OHLCV/freshness validation.
+- Ingestion delay calculation uses availableAtMs - closeTimeMs; exactly 120000 ms accepted and values above rejected. No comparison of 120000 against raw closeLagMs or observationAgeMs.
+- No SQLite/cache/synthetic/alternate-venue fallback inside the adapter.
+- requests was already declared in requirements.txt; no new runtime dependency was added.
+
+### Review boundary and remaining work
+
+- Self-review across correctness, readability, architecture, security and resource bounds completed; no confirmed critical defect found in the isolated adapter.
+- Independent second-reviewer sign-off remains NOT VERIFIED.
+- freqai_bridge/context.py still imports market_data.store and calls read_window().
+- freqai_bridge/ChartProFreqaiResearch.py still uses canonical_db_path and legacy canonical_context(database, ...).
+- Five direct-SQLite migration acceptance tests are preserved separately in freqai_bridge/t2_http_migration_acceptance.py. They were compile-checked but not executed because the consumer migration was not authorized in this increment.
+- Therefore the adapter itself is PASS, but T2 HTTP consumer migration/integration is NOT STARTED / NOT VERIFIED.
+- Runtime/deployment remains NOT AUTHORIZED. Keep ai_execution_enabled=false.
+- No T0 API/store/DB, Feeder, VPS, exchange, canonical storage, T2 runtime config, model, paper order routing, deployment or trading state changed.
+
+### Current status
+
+| Item | Status |
+|---|---|
+| T0 Candle Contract v1 design | CONDITIONAL PASS |
+| Transport/resource policy | APPROVED |
+| M15 freshness formula and threshold | APPROVED |
+| T2 HTTP adapter | PASS |
+| T2 focused adapter tests | PASS — 45/45 |
+| Freqtrade 2026.9 strategy-load smoke | PASS |
+| T2 context HTTP wiring | NOT STARTED |
+| Direct T0 SQLite removal from T2 | NOT STARTED |
+| No-fallback consumer migration acceptance | NOT RUN |
+| Independent second-reviewer sign-off | NOT VERIFIED |
+| T2 runtime/deployment | NOT AUTHORIZED |
+
+### Next step
+
+Request separate explicit authorization for the T2 consumer migration: switch canonical_context to the validated HTTP client, remove the direct market_data.store/read_window dependency and canonical_db_path config, then run the five migration acceptance tests plus relevant consumer regressions. Do not touch T0 or runtime.
