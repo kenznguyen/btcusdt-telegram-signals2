@@ -159,5 +159,80 @@ class AIProvenanceValidatorTests(unittest.TestCase):
         self.assertIn("SIGNATURE_ENCODING_INVALID", result.reasons)
 
 
+
+    def test_rejects_prediction_timestamp_before_oos_window(self):
+        artifacts = dict(self.artifacts)
+        artifacts["predictions"] = artifacts["predictions"].replace(
+            b'"prediction_timestamp_ms":1700000001000',
+            b'"prediction_timestamp_ms":1699999999000',
+        )
+        result = self.verify(artifacts=artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("PREDICTION_TIMESTAMP_OUTSIDE_OOS", result.reasons)
+
+    def test_rejects_prediction_timestamp_after_oos_window(self):
+        artifacts = dict(self.artifacts)
+        artifacts["predictions"] = artifacts["predictions"].replace(
+            b'"prediction_timestamp_ms":1700000001000',
+            b'"prediction_timestamp_ms":1710000000001',
+        )
+        result = self.verify(artifacts=artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("PREDICTION_TIMESTAMP_OUTSIDE_OOS", result.reasons)
+
+    def test_rejects_outcome_available_before_prediction(self):
+        artifacts = dict(self.artifacts)
+        artifacts["predictions"] = artifacts["predictions"].replace(
+            b'"outcome_available_at_ms":1700000002000',
+            b'"outcome_available_at_ms":1700000000000',
+        )
+        result = self.verify(artifacts=artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("OUTCOME_TIMESTAMP_INVALID", result.reasons)
+
+    def test_rejects_outcome_available_after_oos_window(self):
+        artifacts = dict(self.artifacts)
+        artifacts["predictions"] = artifacts["predictions"].replace(
+            b'"outcome_available_at_ms":1700000002000',
+            b'"outcome_available_at_ms":1710000000001',
+        )
+        result = self.verify(artifacts=artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("OUTCOME_TIMESTAMP_INVALID", result.reasons)
+
+    def test_rejects_prediction_model_version_mismatch(self):
+        artifacts = dict(self.artifacts)
+        artifacts["predictions"] = artifacts["predictions"].replace(
+            b'"model_version":"model-sha-test-v1"',
+            b'"model_version":"different-model"',
+        )
+        result = self.verify(artifacts=artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("PREDICTION_MODEL_VERSION_MISMATCH", result.reasons)
+
+    def test_rejects_prediction_dataset_version_mismatch(self):
+        artifacts = dict(self.artifacts)
+        artifacts["predictions"] = artifacts["predictions"].replace(
+            b'"dataset_version":"dataset-sha-test-v1"',
+            b'"dataset_version":"different-dataset"',
+        )
+        result = self.verify(artifacts=artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("PREDICTION_DATASET_VERSION_MISMATCH", result.reasons)
+
+    def test_rejects_empty_predictions_artifact(self):
+        artifacts = dict(self.artifacts)
+        artifacts["predictions"] = b""
+        result = self.verify(artifacts=artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("PREDICTIONS_EMPTY", result.reasons)
+
+    def test_rejects_malformed_prediction_jsonl(self):
+        artifacts = dict(self.artifacts)
+        artifacts["predictions"] = b'{"prediction_timestamp_ms":'
+        result = self.verify(artifacts=artifacts)
+        self.assertFalse(result.accepted)
+        self.assertIn("PREDICTION_ROW_INVALID", result.reasons)
+
 if __name__ == "__main__":
     unittest.main()
