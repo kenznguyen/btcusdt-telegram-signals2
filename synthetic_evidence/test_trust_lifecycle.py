@@ -222,6 +222,8 @@ class TrustLifecycleTests(unittest.TestCase):
         self.assertEqual(len(manifest["files"]), 3)
         self.assertTrue(verify_retention_manifest(manifest, files))
         self.assertIn("NOT_WORM", manifest["immutability"])
+        self.assertEqual(manifest["actions_artifact_retention_days"], 7)
+        self.assertIn("7-day Actions artifact", manifest["policy"])
     
     def test_retention_verification_rejects_missing_or_changed_payload(self):
         files = {"subject.zip": b"subject", "bundle.json": b"bundle", "root.jsonl": self.root_a}
