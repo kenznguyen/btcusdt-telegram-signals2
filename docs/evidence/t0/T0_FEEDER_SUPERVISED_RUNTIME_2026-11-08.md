@@ -63,3 +63,36 @@ This is not production certification, not 24x7 reliability evidence, and not reb
 3. Do not enable systemd/autostart/linger, install packages, change runtime configuration, activate T1, connect authenticated exchange endpoints, add symbols/timeframes, or enable trading without separate authorization.
 4. Record a fresh `git rev-parse HEAD` only if source provenance is needed; do not assume the historical checkout SHA is the runtime SHA.
 5. No GitHub Actions run or artifact was produced in this increment.
+
+## Addendum — T0 runtime recheck (2026-11-08, user-provided VPS output)
+
+### Scope and observations
+- Rechecked the already-running T0 Feeder without restarting or modifying it.
+- git rev-parse HEAD from /home/ubuntu/t0/app returned 4cf3959532024d286a76712bd93708b7a96489df.
+- git status --short showed only untracked runtime directories: .logs/ and .runtime/; no tracked-file modifications were reported.
+- Feeder process was present: tmux wrapper PID 6583 and Python PID 6584, command /home/ubuntu/t0/venv/bin/python -m market_data.feeder_service.
+- Environment shown in the tmux command: MARKET_DATA_BACKEND=sqlite; MARKET_DATA_DB=/home/ubuntu/t0/app/.data/market-data.sqlite3.
+- Active log path: /home/ubuntu/t0/app/.logs/feeder-restart-20261108T043225Z.log; visible content contained START_UTC=2026-11-08T04:32:25Z.
+- Read-only SQLite check through the project's Python virtualenv returned PRAGMA integrity_check=ok and PRAGMA journal_mode=wal.
+- Root filesystem at inspection: 7.9G total, 3.4G used, 4.5G available (43%).
+
+### Verdict and evidence boundary
+| Check | Status | Evidence boundary |
+|---|---|---|
+| Feeder process present at recheck | PASS | User-provided pgrep output, PID 6584 |
+| Runtime checkout HEAD observed | PASS | User-provided git rev-parse HEAD while process was present |
+| Tracked working tree clean | PASS | git status showed only untracked .logs/ and .runtime/ |
+| SQLite integrity | PASS | Read-only Python SQLite integrity_check=ok |
+| SQLite WAL mode | PASS | Read-only Python SQLite pragma |
+| Disk reserve >=2G | PASS | 4.5G available |
+| Exact process-to-source binary provenance | NOT VERIFIED | Checkout SHA observed while process was present; no executable/module hash or process launch trace binds loaded code byte-for-byte |
+| Current feeder lease/heartbeat and candle progress | NOT VERIFIED in this recheck | Not included in this output |
+| Long-duration reliability / reboot recovery | NOT VERIFIED | No such test performed |
+
+The observed checkout SHA is 4cf3959532024d286a76712bd93708b7a96489df. This is stronger than the earlier historical-only reference because it was captured while the feeder process was present, but it is not a cryptographic measurement of the running Python process's loaded code.
+
+### Restrictions and next step
+- No restart, stop, config change, package installation, or database write was performed.
+- Keep .logs/ and .runtime/ out of source commits; they are runtime state.
+- Preserve the running Feeder. Do not stop it, configure autostart, or start another instance without separate authorization.
+- GitHub Actions run/artifact: NOT RUN / NOT APPLICABLE for this VPS-only observation.
