@@ -7,6 +7,9 @@ Branch: `feature/t0-centralized-data-feeder-p1-20261101`
 
 This matrix covers PostgreSQL/TimescaleDB lifecycle and ordinary data-integrity behavior using disposable local CI services and synthetic fixtures only.
 
+**Scope clarification (2026-11-08):** “PostgreSQL lifecycle” in this document means database connection, migration, writer/lease and FeederRuntime lifecycle. It is **not** the system-wide dataset retention/deletion lifecycle. Data ownership and retention governance are defined separately in the [Shared Data Foundation ADR](architecture/SHARED_DATA_FOUNDATION_LIFECYCLE_ADR_2026-11-08.md). This matrix does not authorize archive, retention scheduling, vacuum, or deletion.
+
+
 Included:
 - connection and pool behavior;
 - explicit database initialization and migrations;
@@ -116,6 +119,6 @@ Do not implement automatic reconnect/recovery behavior merely to make these test
 - Exact managed-provider compatibility: NOT VERIFIED; no provider selected.
 - Backup/DR: DEFERRED — NOT IN CURRENT SCOPE.
 - PostgreSQL staging, VPS, canonical database and production Feeder: NOT AUTHORIZED.
-- T0 remains independent; `ai_execution_enabled=false`; paper-only; no live orders.
+- T0 remains the canonical data foundation under shared system ownership; this runtime matrix does not define dataset retention. `ai_execution_enabled=false`; paper-only; no live orders.
 
 Next permitted work: review the PG-LC state machine and choose the first isolated RED test. No provider provisioning, runtime activation, canonical DB, exchange connection or market-data sync is implied by this matrix.
