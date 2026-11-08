@@ -821,9 +821,11 @@ class FeederRuntime:
                     raise TypeError("recovery must provide recover_all()")
                 if recover_all() is not True:
                     self._release_startup_lease()
-                    self._close_wal_keeper()
-                    with self._lock:
-                        self._state = "FAILED"
+                    try:
+                        self._close_wal_keeper()
+                    finally:
+                        with self._lock:
+                            self._state = "FAILED"
                     self._emit("recovery_incomplete")
                     return False
             self._emit("recovery_completed")
@@ -848,15 +850,17 @@ class FeederRuntime:
                 raise
             try:
                 self._release_startup_lease()
-                self._close_wal_keeper()
             except RuntimeError:
                 # The exact generation could no longer be released. This
                 # means ownership changed while startup was failing; never
                 # report a generic startup failure or touch the replacement.
                 self.on_lease_lost()
                 raise
-            with self._lock:
-                self._state = "FAILED"
+            try:
+                self._close_wal_keeper()
+            finally:
+                with self._lock:
+                    self._state = "FAILED"
             raise
 
     def _release_startup_lease(self):
