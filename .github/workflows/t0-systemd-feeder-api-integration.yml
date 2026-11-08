@@ -55,7 +55,7 @@ jobs:
           sudo -n true
           systemctl is-system-running || test "$?" -eq 1
           python --version
-          systemd --version | head -n 1 | tee t0-systemd-version.txt
+          systemctl --version | head -n 1 | tee t0-systemd-version.txt
           git rev-parse HEAD | tee t0-systemd-source-sha.txt
           echo "T0_SYSTEMD_TARGET=DISPOSABLE_GITHUB_RUNNER_ONLY" | tee t0-systemd-scope.txt
       - name: Compile integration harness
