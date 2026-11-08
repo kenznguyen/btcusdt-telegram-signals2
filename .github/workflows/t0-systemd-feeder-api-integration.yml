@@ -84,6 +84,9 @@ jobs:
           done
           if [ -f t0-systemd-temp-root.txt ]; then
             ROOT="$(cat t0-systemd-temp-root.txt)"
+            if [ -f "$ROOT/events.log" ]; then
+              sudo cat "$ROOT/events.log" > t0-systemd-events.log
+            fi
             sudo rm -rf "$ROOT"
           fi
       - name: Upload integration evidence
@@ -98,6 +101,7 @@ jobs:
             t0-systemd-scope.txt
             t0-systemd-temp-root.txt
             t0-systemd-integration.log
+            t0-systemd-events.log
             t0-systemd-units.log
             t0-systemd-journal.log
             t0-systemd-cleanup.log
