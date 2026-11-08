@@ -152,4 +152,4 @@ No values or defaults are selected by this review.
 
 **Status: REVIEW COMPLETE — CORRECTIONS RECOMMENDED — NOT IMPLEMENTED / NOT ACTIVE.**
 
-Next: apply the documentation-only corrections in §5 on the existing branch, then repeat read-back and cross-contract review. Do not proceed to source/schema/API/runtime work, retention values, archive, vacuum, or deletion without separate approval.
+The documentation-only corrections in §5 have been applied and read back. The subsequent environment/evidence boundary is recorded in [Environment and Evidence Boundary](ENVIRONMENT_EVIDENCE_BOUNDARY.md). Next: maintain the static repository baseline and keep runtime facts NOT VERIFIED until a future official environment is separately designated and inspection scope is explicitly approved. The current experimental VPS remains excluded. Do not proceed to source/schema/API/runtime work, retention values, archive, vacuum, or deletion without separate approval.
