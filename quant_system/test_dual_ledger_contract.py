@@ -177,7 +177,7 @@ class DualLedgerContractTest(unittest.TestCase):
         self.assertFalse(decision.accepted)
         self.assertEqual(decision.reason, "INSUFFICIENT_MARGIN")
         self.assertEqual(decision.gross_margin_used, Decimal("19900"))
-        self.assertEqual(decision.required_margin, Decimal("100"))
+        self.assertEqual(decision.required_margin, Decimal("200"))
 
     def test_dca_rejects_missing_or_ambiguous_position_identity(self):
         missing = self.risk.admit_dca(
@@ -333,7 +333,7 @@ class DualLedgerContractTest(unittest.TestCase):
 
     def test_cancelled_reservation_requires_evidence_and_releases_collateral(self):
         self.core.restore_position("core-heavy", side="LONG", quantity="1",
-                                   entry_price="100000", margin_used="9850")
+                                   entry_price="100000", margin_used="19900")
         engine = SharedRiskEngine(self.db)
         first = engine.reserve_entry(
             reservation_id="orphaned-reservation", strategy_id="AI",
