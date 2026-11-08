@@ -7097,3 +7097,24 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Current status: WAL Keeper runtime lifecycle **PASS — disposable CI**; isolated systemd ReadOnlyPaths **PASS — disposable CI**; systemd Feeder readiness notification **NOT IMPLEMENTED**; two-service dependency/crash/restart integration **NOT RUN**; production units **NOT CREATED**; VPS/systemd compatibility **NOT VERIFIED**; API deployment **BLOCKED**; T2 runtime **NOT ACTIVATED**; `ai_execution_enabled=false`.
 - No VPS, canonical database, Feeder/API process, service manager, package, permission, secret, firewall, network, DNS, proxy, or T2 runtime was changed or accessed.
 - Next bounded step: TDD RED/GREEN for a small systemd notification adapter in the Feeder entrypoint, then a disposable GitHub Actions integration harness using real FeederRuntime + SQLiteWalKeeper and the existing WSGI API application under transient systemd units. Verify readiness gating, authenticated candle read, Feeder SIGKILL propagation, orderly API-before-Feeder shutdown, and restart. Do not create production service units or deploy to VPS without separate explicit approval.
+
+## 2026-11-08 — T0 Feeder systemd READY notification adapter (in progress)
+
+- Continued on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch or PR.
+- Starting HEAD was `b460f12e0b5d2ae02130dca3b2b6c6970edfd268`; the handoff was re-read before changes.
+- TDD RED commit: `dab219636fa9502a6f5cccd029863a0fe01fe21f`.
+  - Added three notification contracts to `market_data/test_feeder_lifecycle.py`: READY only after successful runtime start; no READY on failed startup; STOPPING before runtime drain on normal stop or lease loss.
+  - GitHub Actions run `42486715297`, exact checked-out SHA `dab219636fa9502a6f5cccd029863a0fe01fe21f`. Static Gateway contract job `128750078735` failed as expected in the behavioral regression step: 76 tests ran, 3 new tests errored because `run_service()` did not yet accept the `notify` callback. This is the intended RED result, not a regression introduced by a completed implementation.
+  - RED evidence artifact: `t0-swg-contract-evidence-dab219636fa9502a6f5cccd029863a0fe01fe21f`, ID `13619896899`, GitHub digest `sha256:2cacd2e97159cd2d161e7d9448591b348b883e51dfd88d1fed47964d3648243c`.
+- GREEN implementation commit: `2484cc73edc155b2566b9d73199ad713e04acb10`; source blob for `market_data/feeder_service.py`: `7bb77e2a3bc773b7b6b4644834c0654e6a9a327d`.
+  - Added `systemd_notify()` using the Unix datagram `NOTIFY_SOCKET` protocol, including abstract namespace socket handling. Missing NOTIFY_SOCKET is a no-op for non-systemd execution; an advertised but unusable socket propagates an error so a Type=notify startup fails closed.
+  - `run_service()` now sends `READY=1` only after `runtime.start()` succeeds; sends `STOPPING=1` before `runtime.stop()`; shutdown is still guaranteed if notification raises.
+  - The notification callback is injectable for deterministic unit tests. No Feeder strategy, data source, lease, writer, or runtime composition was changed.
+- GREEN verification is **PENDING** at the time of this handoff update:
+  - T0 Single Writer Gateway Contracts run `42486755480`, exact SHA `2484cc73edc155b2566b9d73199ad713e04acb10`, pending.
+  - T0 SQLite Read-only systemd Sandbox run `42486755421`, exact SHA above, SUCCESS (this is the existing WAL sandbox only; it does not exercise notification/dependency behavior).
+  - T2 Freqtrade smoke run `42486755447`, exact SHA above, pending.
+  - Do not claim GREEN until the T0 behavioral job logs show all three notification tests passing and the complete required regression results are reviewed.
+- No production systemd unit was created. No VPS, canonical DB, Feeder process, API process, system service manager, package, permission, secret, firewall, DNS, proxy, network or T2 runtime was changed or accessed.
+- Status: notification contracts RED reproduced **PASS**; notification adapter implemented **NOT YET VERIFIED**; disposable two-service integration harness **NOT IMPLEMENTED**; actual Feeder/API systemd dependency and crash propagation **NOT RUN**; production deployment **BLOCKED**; T2 runtime **NOT ACTIVATED**; `ai_execution_enabled=false`.
+- Next: inspect completion of runs `42486715297` and `42486755480`; verify the exact checked-out SHA and test logs; fix any implementation defect with TDD. Then add the disposable two-service systemd integration harness for Feeder READY gating, authenticated API candle read, Feeder SIGKILL propagation, orderly API-before-Feeder shutdown, and restart. Do not deploy units to VPS without separate explicit approval.
