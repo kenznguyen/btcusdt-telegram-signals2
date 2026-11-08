@@ -236,3 +236,21 @@ Current status:
 - PR #95 remains OPEN / DRAFT / NOT MERGED. No merge or rebase authorized.
 
 Next step: verify exact-source CI for `6bb1ecd899e9857dfef80635c4d53a745f7c2662`, then continue with an independent calibration-evidence evaluator only after acceptance thresholds and sample-size rules are specified. Keep runtime disabled.
+
+
+### Final exact-head CI update — AI Dynamic Leverage
+
+The pending verification recorded above is now resolved:
+- Exact code/test source SHA: `6bb1ecd899e9857dfef80635c4d53a745f7c2662`.
+- GitHub Actions run: [42457596650](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42457596650), push event, conclusion SUCCESS.
+- Job: `128659833226`, conclusion SUCCESS.
+- Exact-source test results from job logs: AI dynamic leverage 14/14; coordinator 11/11; dual-ledger 23/23; legacy Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. Total: 97/97 test invocations PASS.
+- Preflight: `AI_EXECUTION_ENABLED=false`; database targets empty; Binance and OKX credentials empty.
+- Artifacts: none.
+- Documentation evidence update commit: `7ea94d96ad812cf923a59662264d54c775037872`.
+- Current active branch head after this handoff update will be the resulting documentation commit; code/test evidence remains tied to the exact SHA above.
+
+Status correction:
+- AI dynamic leverage contract and the final exact-source contract/regression CI: PASS.
+- This is not evidence that a real calibration has passed. Confidence-domain endpoints, calibration metrics/acceptance thresholds, minimum OOS sample size, calibration artifact authenticity and directional/regime coverage remain BLOCKED / NOT VERIFIED.
+- No coordinator or paper runtime integration occurred. No paper or live orders were enabled.
