@@ -442,12 +442,20 @@ class SharedRiskEngine:
                 ).fetchone():
                     db.rollback()
                     return RiskDecision(False, "DUPLICATE_RESERVATION", required)
-                accounts = db.execute(
-                    "SELECT COUNT(*) AS count FROM strategy_accounts WHERE strategy_id IN ('CORE', 'AI')"
-                ).fetchone()["count"]
-                if accounts != 2:
+                account_rows = db.execute(
+                    "SELECT strategy_id, equity FROM strategy_accounts WHERE strategy_id IN ('CORE', 'AI')"
+                ).fetchall()
+                if len(account_rows) != 2:
                     db.rollback()
                     return RiskDecision(False, "INVALID_RISK_STATE", required)
+                portfolio_equity = sum(
+                    (Decimal(row["equity"]) for row in account_rows), Decimal("0")
+                )
+                if equity != portfolio_equity:
+                    db.rollback()
+                    return RiskDecision(False, "ACCOUNT_EQUITY_MISMATCH", required)
+                equity = portfolio_equity
+                required = equity * MARGIN_FRACTION
                 position = db.execute(
                     "SELECT 1 FROM strategy_positions WHERE strategy_id=? AND position_id=?",
                     (strategy_id, position_id),
@@ -593,6 +601,14 @@ class SharedRiskEngine:
                         data_fresh, state_reconciled, kill_switch):
         try:
             equity = _decimal(account_equity, "account_equity", positive=True)
+            if not isinstance(core_snapshot, LedgerSnapshot) or not isinstance(ai_snapshot, LedgerSnapshot):
+                raise ValueError("Both valid ledger snapshots are required")
+            if core_snapshot.strategy_id != "CORE" or ai_snapshot.strategy_id != "AI":
+                raise ValueError("Snapshots must be supplied in CORE, AI order")
+            portfolio_equity = core_snapshot.equity + ai_snapshot.equity
+            if equity != portfolio_equity:
+                return RiskDecision(False, "ACCOUNT_EQUITY_MISMATCH")
+            equity = portfolio_equity
             gross = self._gross_margin(core_snapshot, ai_snapshot)
             gross_exposure = self._gross_exposure(core_snapshot, ai_snapshot)
         except (ValueError, TypeError):
