@@ -131,6 +131,22 @@ class CalibrationEvaluatorTests(unittest.TestCase):
         self.assertEqual(len(first.report_sha256), 64)
         self.assertFalse(first.trade_authorized)
         self.assertFalse(first.attestation_issued)
+        self.assertEqual(len(first.input_sha256), 64)
+
+    def test_report_digest_changes_when_input_or_gate_policy_changes(self):
+        baseline = CalibrationEvaluator().evaluate(self.observations(), self.policy)
+        changed_rows = self.observations(long_trend=[(1, ".9"), (0, ".1")])
+        changed_input = CalibrationEvaluator().evaluate(changed_rows, self.policy)
+        changed_policy = CalibrationEvaluator().evaluate(
+            self.observations(),
+            CalibrationGatePolicy(
+                max_ece=".19", min_total_samples=8, min_group_samples=2,
+                ece_bins=4, required_regimes=("TREND", "RANGE"),
+            ),
+        )
+        self.assertNotEqual(baseline.input_sha256, changed_input.input_sha256)
+        self.assertNotEqual(baseline.report_sha256, changed_input.report_sha256)
+        self.assertNotEqual(baseline.report_sha256, changed_policy.report_sha256)
 
     def test_policy_is_explicit_and_has_no_implicit_acceptance_thresholds(self):
         with self.assertRaises(TypeError):
