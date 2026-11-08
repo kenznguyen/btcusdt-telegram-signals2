@@ -25,10 +25,12 @@ class T2HttpMigrationAcceptanceTest(unittest.TestCase):
         source = (BRIDGE / "ChartProFreqaiResearch.py").read_text(encoding="utf-8")
         self.assertNotIn("canonical_db_path", source)
 
-    def test_strategy_does_not_pass_database_to_canonical_context(self):
+    def test_strategy_calls_context_without_database_arguments(self):
         tree = ast.parse((BRIDGE / "ChartProFreqaiResearch.py").read_text(encoding="utf-8"))
         calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "canonical_context"]
-        self.assertEqual(calls, [])
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0].args, [], "T2 context must not receive a database path")
+        self.assertNotIn("database", {kw.arg for kw in calls[0].keywords})
 
     def test_http_unavailable_has_no_sqlite_cache_or_venue_fallback(self):
         source = (BRIDGE / "context.py").read_text(encoding="utf-8")
