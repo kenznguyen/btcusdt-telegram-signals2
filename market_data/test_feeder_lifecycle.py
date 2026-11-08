@@ -1089,3 +1089,54 @@ class RuntimeDatabaseProvisioningBoundaryTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SystemdNotificationContractTest(unittest.TestCase):
+    def test_run_service_notifies_ready_only_after_runtime_start_and_stopping_before_drain(self):
+        from market_data.feeder_service import run_service
+
+        events = []
+        runtime = Mock()
+        runtime.start.side_effect = lambda: events.append("runtime_started") or True
+        runtime.stop.side_effect = lambda timeout: events.append("runtime_stopped")
+        stop_event = threading.Event()
+        stop_event.set()
+
+        result = run_service(
+            runtime,
+            stop_event=stop_event,
+            notify=lambda message: events.append(message),
+        )
+
+        self.assertEqual(result, 0)
+        self.assertEqual(
+            events,
+            ["runtime_started", "READY=1", "STOPPING=1", "runtime_stopped"],
+        )
+
+    def test_run_service_does_not_notify_ready_when_runtime_start_fails(self):
+        from market_data.feeder_service import run_service
+
+        notifications = []
+        runtime = Mock()
+        runtime.start.return_value = False
+
+        result = run_service(runtime, notify=notifications.append)
+
+        self.assertEqual(result, 2)
+        self.assertEqual(notifications, [])
+        runtime.stop.assert_not_called()
+
+    def test_run_service_notifies_stopping_when_runtime_loses_lease(self):
+        from market_data.feeder_service import run_service
+
+        events = []
+        runtime = Mock()
+        runtime.start.return_value = True
+        runtime.state = "LEASE_LOST"
+        runtime.stop.side_effect = lambda timeout: events.append("runtime_stopped")
+
+        result = run_service(runtime, notify=events.append)
+
+        self.assertEqual(result, 3)
+        self.assertEqual(events, ["READY=1", "STOPPING=1", "runtime_stopped"])
