@@ -45,7 +45,7 @@ Existing workflow: `.github/workflows/ci.yml`, GitHub Actions, workflow name `CI
 - All three Order Book tests at merge SHA `a3b2234...`: PASS (included in 43 passing library tests).
 - Full Collector format/Clippy/release build/tests and all five CI jobs at run 198: PASS.
 - Raw-tape persistence and real reconnect resnapshot/recovery: NOT VERIFIED by these offline unit tests.
-- Latest source SHA `3c2745a30f3cb20375a20188b5f4e10e7b7bbfef`: run 200 PASS, 5/5 jobs. Collector Format, Clippy, release Build, and tests PASS; three named Order Book tests PASS; library 43/43, main 1/1. Sidecar tests 8/8 + 27/27; dashboard frontend/backend, Docker build, Security audit PASS. Checked-out synthetic merge SHA `3ec602e` (full SHA in workflow logs: `3ec602e...`), merging PR head `3c2745...` with base `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Latest source SHA `3c2745a30f3cb20375a20188b5f4e10e7b7bbfef`: run 200 PASS, 5/5 jobs. Collector Format, Clippy, release Build, and tests PASS; three named Order Book tests PASS; library 43/43, main 1/1. Sidecar tests 8/8 + 27/27; dashboard frontend/backend, Docker build, Security audit PASS. Checked-out synthetic merge SHA `3ec602e1c3508747fccb7a47e4d9e737a2239720`, merging PR head `3c2745...` with base `bc4f0ef633fbeee4a49defd72827f17162693805`.
 - Overall offline Order Book assurance: PASS for the three explicitly tested deterministic behaviors at latest source SHA `3c2745...`.
 
 No runtime or T0 runtime changes. No artifact was produced by runs 198 or 200; artifact preparation/upload were skipped in run 200. Raw-tape persistence and real reconnect resnapshot/recovery remain NOT VERIFIED.
