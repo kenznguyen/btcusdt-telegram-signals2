@@ -4,8 +4,8 @@
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
-- Latest verified code/test SHA: `34c6b41246b5eb580f7d6085c62e25b7a35c3160`.
-- Latest GREEN evidence commit before this handoff update: `a654dcb83e8d0ed83264821b5cdd9e660af46214`.
+- Latest verified code/test SHA: `23e51529d88e338d488fb8d6808fc567b023f93e`.
+- Latest GREEN evidence commit before this handoff update: `0b2e8946ba7d9b5589e74212717370dd0c852300`.
 - PR #95: OPEN / DRAFT / NOT MERGED.
 - PR base: `feature/dual-strategy-phase22-frozen-reproducibility-20261031` at `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
 - No new branch or PR was created.
@@ -109,9 +109,12 @@ The user selected combined portfolio equity as the 1% margin basis. The implemen
 
 - Coordinator contract RED run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455777252 — run ID `42455777252`, source SHA `c0c793689b06abe3f7261f618652b0e7e535d54b`; expected import failure because module did not exist. Only the unittest loader error ran; no behavioral methods executed.
 - Implementation commit: `78bf5b8b8b620dde7bd6f093ad197db4a9b22219`.
-- Final workflow commit and exact tested source SHA: `34c6b41246b5eb580f7d6085c62e25b7a35c3160`.
+- Final workflow regression-filter commit and exact tested PR head: `23e51529d88e338d488fb8d6808fc567b023f93e`.
 - GREEN run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455858929 — run ID `42455858929`, push event, SUCCESS; job `128654599899`.
 - Tests on exact source: coordinator 8/8, dual-ledger 23/23, legacy Phase 2 20/20, Phase 3 11/11, PaperLedger 18/18; **70/70 total PASS**.
+- Final direct-push workflow run `42455938655`: SUCCESS, job `128654850985`.
+- Final PR workflow run `42455942259`: SUCCESS, exact PR head `23e51529d88e338d488fb8d6808fc567b023f93e`, job `128654862209`.
+- Final legacy regression run `42455942275`: SUCCESS, job `128654862214`.
 - Offline preflight: `AI_EXECUTION_ENABLED=false`; database targets and Binance/OKX credentials empty. No artifact produced.
 - Opposing CORE LONG and AI SHORT are admitted independently when shared risk permits; each position is persisted to its own ledger. Single-source signals also route independently. ENTRY/DCA use combined portfolio equity and 1% shared reservations. DCA side mismatch is rejected. Kill Switch blocks increases while reductions remain available.
 - This is an offline coordinator slice only. It does not yet call `core_signal` / `ai_signal` itself or connect to the legacy `paper_bridge.py` / Freqtrade runtime.
