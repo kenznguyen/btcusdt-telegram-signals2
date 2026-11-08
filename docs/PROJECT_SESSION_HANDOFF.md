@@ -7426,3 +7426,12 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No runtime inventory, VPS/SSH command, storage read, source code, test, workflow, schema, API, database, Feeder, backup, replica, export, or local-copy mutation occurred. VPS inventory remains DEFERRED; current VPS remains EXPERIMENTAL; official T0 environment remains NOT DESIGNATED.
 - No retention, RPO/RTO, archive SLA, evidence freshness, provider, approval quorum, backup expiry, replica removal, export deletion, cleanup, vacuum, or destructive operation was selected or authorized.
 - Next step: resolve the remaining archive availability contract gap by reviewing the consumer dependency contract and proposing a minimal, fail-closed availability requirement vocabulary (online, low-latency, restore-acceptable, metadata-only) without numeric SLA or runtime implementation. Continue documentation-only; no lifecycle mutation or VPS inventory unless separately reopened.
+
+
+## 2026-11-09 — Branch divergence safety note
+
+- After the copy lifecycle cross-review commits, GitHub compare against repository default branch `main` returned status `diverged`, `ahead_by=1707`, `behind_by=1`; merge base `1e16b437456d56eac2f7d9564ca9ab8e7d032f62`; main HEAD at comparison `f5b74affb8777953fa66d241784965fbb0e577ba`; feature HEAD `b093548c0f2a0c1016d3b51c9eb4c848122a4a2e`.
+- This differs sharply from the earlier recorded compare result (8 ahead / 0 behind). Treat the new compare result as a **BLOCKER / INVESTIGATION REQUIRED** until branch ancestry and repository history are reconciled.
+- Do not rebase, merge, reset, force-push, create a new branch, or open a PR to address this discrepancy without explicit review/approval. Continue no further documentation commits on this branch until the cause is understood.
+- The documentation cross-review itself is recorded and read back successfully; its latest file blobs are: copy contract `4112c68eceef7d9047117efc5027750ae2edf2d8`, deletion contract `e055d88308d8576c5c6826e12280b847f5ec5717`, foundation `18f8566723b95c4b38586e3848bde5305295a4dc`, cross-review `3d6d8505da43d755d35efe4ac44e580e541a21ae`.
+- Next action is read-only Git history diagnosis: inspect branch tip parents, merge base, main's recent commits, and associated PR/history. Do not alter refs or content. The archive availability contract gap remains open and should be addressed only after branch ancestry is understood.
