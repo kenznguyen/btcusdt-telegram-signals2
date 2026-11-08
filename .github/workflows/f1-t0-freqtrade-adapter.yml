@@ -1,0 +1,100 @@
+name: F1 T0 to Freqtrade adapter contracts
+
+on:
+  push:
+    branches:
+      - feature/dual-strategy-phase22-preholdout-attestation-20261031
+    paths:
+      - "quant_system/t0_freqtrade_adapter.py"
+      - "quant_system/test_t0_freqtrade_adapter.py"
+      - ".github/workflows/f1-t0-freqtrade-adapter.yml"
+  pull_request:
+    paths:
+      - "quant_system/t0_freqtrade_adapter.py"
+      - "quant_system/test_t0_freqtrade_adapter.py"
+      - ".github/workflows/f1-t0-freqtrade-adapter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: f1-t0-freqtrade-adapter-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  offline-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      AI_EXECUTION_ENABLED: "false"
+      DATABASE_URL: ""
+      MARKET_DATA_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    steps:
+      - name: Checkout exact PR head or triggering source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Enforce offline paper-only boundary and source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$AI_EXECUTION_ENABLED" = "false"
+          test -z "$DATABASE_URL"
+          test -z "$MARKET_DATA_DB"
+          test -z "$PAPER_DB"
+          test -z "$BINANCE_API_KEY"
+          test -z "$BINANCE_API_SECRET"
+          test -z "$OKX_API_KEY"
+          test -z "$OKX_API_SECRET"
+          mkdir -p f1-evidence
+          CHECKED_OUT_SHA="$(git rev-parse HEAD)"
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            EXPECTED_SHA="${{ github.event.pull_request.head.sha }}"
+            PR_HEAD_SHA="$EXPECTED_SHA"
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            EXPECTED_SHA="$GITHUB_SHA"
+            PR_HEAD_SHA="NOT_APPLICABLE"
+            BASE_SHA="NOT_APPLICABLE"
+          fi
+          test "$CHECKED_OUT_SHA" = "$EXPECTED_SHA"
+          {
+            echo "checked_out_sha=$CHECKED_OUT_SHA"
+            echo "expected_sha=$EXPECTED_SHA"
+            echo "pr_head_sha=$PR_HEAD_SHA"
+            echo "base_sha=$BASE_SHA"
+            echo "event=$GITHUB_EVENT_NAME"
+            echo "run_id=$GITHUB_RUN_ID"
+            echo "ai_execution_enabled=$AI_EXECUTION_ENABLED"
+            echo "F1_OFFLINE_ONLY_PREFLIGHT=PASS"
+          } | tee f1-evidence/source-provenance.txt
+      - name: Compile adapter and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile quant_system/t0_freqtrade_adapter.py quant_system/test_t0_freqtrade_adapter.py 2>&1 | tee f1-evidence/compile.log
+          echo "PY_COMPILE=PASS" | tee -a f1-evidence/compile.log
+      - name: Run adapter contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest quant_system.test_t0_freqtrade_adapter -v 2>&1 | tee f1-evidence/tests.log
+      - name: Upload exact-source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: f1-t0-freqtrade-adapter-${{ github.sha }}
+          path: f1-evidence/**
+          if-no-files-found: error
+          retention-days: 30

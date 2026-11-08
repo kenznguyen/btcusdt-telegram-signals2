@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "attestation_type": "PHASE13B_PRE_HOLDOUT_EXTERNAL_ATTESTATION",
+  "status": "AWAITING_GITHUB_COMMIT_VERIFICATION",
+  "scope": "BTC/USDT:USDT OKX USDT perpetual paper-only",
+  "source_commit_sha": "082edc082996425f61f48c952be41fb037564103",
+  "model_bundle_sha256": "918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f",
+  "model_metadata_sha256": "07e9c1b65df7a477de8ee14c51d47325932e6bf9a0732f3ea64e3118abcac3e5",
+  "protocol_sha256": "b10d63c952a40fa70a3d4dfed2d952d676a888a0f72832734d3ff8d8c14c5b6e",
+  "historical_seal_snapshot_commit": "888efb11b613b42a2badb3bc8adfa19ff090f2bb",
+  "holdout_start_utc": "2026-11-04T00:00:00Z",
+  "holdout_end_utc": "2026-12-04T00:00:00Z",
+  "holdout_retraining_allowed": false,
+  "holdout_tuning_allowed": false,
+  "holdout_rows_read_before_start": false,
+  "independent_oos_verified": false,
+  "oos_certified": false,
+  "ai_promotion_eligible": false,
+  "live_orders_enabled": false,
+  "commit_verification": {
+    "provider": "GitHub",
+    "commit_sha": "POPULATED_ONLY_BY_EXTERNAL_GITHUB_LOOKUP",
+    "committer_timestamp_utc": "POPULATED_ONLY_BY_EXTERNAL_GITHUB_LOOKUP",
+    "verified": false
+  },
+  "note": "This attestation is not effective until an independent GitHub commit lookup confirms the exact file-containing commit and its committer timestamp is earlier than holdout_start_utc. No timestamp or commit SHA is self-asserted here."
+}

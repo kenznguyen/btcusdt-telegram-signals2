@@ -1,0 +1,685 @@
+# T2 Session Handoff — 2026-11-08
+
+## Repository state
+
+- Repository: `kenznguyen/btcusdt-telegram-signals2`.
+- Active branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
+- Latest verified code/test SHA: `7d2b73bfbe6d588c57257e93193806f7d942dbb9`.
+- Latest GREEN evidence commit before this handoff update: `99951a4d863938909ea2d682d63911ba0ddb4625`.
+- PR #95: OPEN / DRAFT / NOT MERGED.
+- PR base: `feature/dual-strategy-phase22-frozen-reproducibility-20261031` at `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
+- No new branch or PR was created.
+- Canonical `docs/PROJECT_SESSION_HANDOFF.md` was read on the default branch. It is absent from this active feature branch; this T2 handoff supplements it without rebasing unrelated branch history.
+
+## Changed files
+
+- `quant_system/dual_ledger.py` — independent ledgers, atomic shared reservations, gross exposure, cancellation/reconciliation, reduction accounting.
+- `quant_system/dual_signal_coordinator.py` — independent CORE/AI ENTRY/DCA intent routing through the shared risk reservations; paper-only, no exchange orders.
+- `quant_system/test_dual_signal_coordinator.py` — 11 coordinator contract tests, including independent candidate generation.
+- `.github/workflows/t2-dual-signal-coordinator.yml` — offline coordinator, dual-ledger and legacy regression gate.
+- `quant_system/test_dual_ledger_contract.py` — 21 focused tests.
+- `.github/workflows/t2-dual-ledger-contract.yml` — T2 dual-ledger gate.
+- `.github/workflows/t2-legacy-paper-regression.yml` — legacy Phase 2/3 and PaperLedger regression gate.
+- `quant_system/DUAL_LEDGER_RED_EVIDENCE_2026-11-08.md` — RED evidence.
+- `quant_system/DUAL_LEDGER_GREEN_EVIDENCE_2026-11-08.md` — latest GREEN evidence and limits.
+- `docs/T2_SESSION_HANDOFF_2026-11-08.md` — this handoff.
+
+Working-tree status: NOT VERIFIED; GitHub Contents API commits were used and no local checkout status was inspected.
+
+## Completed implementation
+
+- CORE and AI have independent persisted position, DCA, equity and realized-PnL state.
+- Both ledgers can share one SQLite file; writes are transactional.
+- Each entry/DCA admission calculates margin as 1% of combined portfolio equity (CORE ledger equity + AI ledger equity). The separate ledgers retain independent equity/PnL accounting; combined equity is used only for shared-risk admission. Caller-supplied equity must match the authoritative sum, otherwise admission fails closed with `ACCOUNT_EQUITY_MISMATCH`.
+- No fixed position-count cap; shared collateral uses gross margin.
+- Gross notional exposure sums both strategies without netting opposing LONG/SHORT positions.
+- SQLite `BEGIN IMMEDIATE` serializes concurrent shared reservations.
+- Pending reservations count against shared margin and gross exposure.
+- Entry/DCA ledger updates consume a matching reservation once and cannot exceed reserved notional.
+- Duplicate reservation IDs are rejected.
+- Unresolved reservations can be cancelled only with explicit reconciliation evidence; cancelled IDs cannot be reused.
+- Partial/full reductions atomically reduce quantity, release proportional margin, and book realized PnL/fees.
+- Kill Switch blocks increases; validated reductions remain admissible.
+- No exchange order path was added.
+
+## Combined portfolio equity decision
+
+The user selected combined portfolio equity as the 1% margin basis. The implementation reads both ledger balances and recalculates the total at every admission. A realized PnL/fee update in either ledger therefore affects the next shared-risk admission without merging the two ledger books.
+
+## Exact verification
+
+### Combined portfolio equity RED → GREEN
+
+- RED run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455448910 — run ID `42455448910`, source SHA `d2c651927fc1e11ac1667309b87e147437513ddc`, expected failure; 23 tests ran and 5 failures exposed incorrect single-ledger equity assumptions.
+- GREEN run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455568974 — run ID `42455568974`, exact source SHA `9492b8bc5a2d3da45a3662dc4eba7ece28fe7c7c`, SUCCESS; 23/23 tests PASS.
+- Legacy regression run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455568882 — same exact source SHA, SUCCESS; 20 + 11 + 18 = 49 tests PASS.
+- No artifacts produced by these push workflows.
+
+### RED for reservation recovery/reduction
+
+- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454847720
+- Run ID: `42454847720`, event `push`, source SHA `1ca8aeb716b95c30f49e1a0f8aad5f4255067c6c`.
+- Expected FAILURE: 21 tests ran; 4 errors because `cancel_reservation` and `record_reduction` were not implemented.
+
+### T2 direct push — exact source SHA
+
+- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454885138
+- Run ID: `42454885138`, event `push`, conclusion SUCCESS.
+- Source and checked-out SHA: `afa44c4bbab5a86040aadbeed219df7fe10a87cb`.
+- Job ID: `128651680137`.
+- Result: **21 tests, OK**.
+- Artifact: none.
+
+### T2 PR merge-context run
+
+- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454888637
+- Run ID: `42454888637`, event `pull_request`, conclusion SUCCESS.
+- PR head SHA: `afa44c4bbab5a86040aadbeed219df7fe10a87cb`.
+- Base SHA: `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
+- Checked-out synthetic merge SHA: `b8312df971472df2f6118641aac3b186c00f916b`.
+- Job ID: `128651689985`.
+- Result: **21 tests, OK**.
+- This is merge-context verification; direct-head proof is the push run above.
+
+### T0 adapter regression at exact PR head
+
+- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454888690
+- Run ID: `42454888690`, event `pull_request`, conclusion SUCCESS.
+- PR head and checked-out SHA: `afa44c4bbab5a86040aadbeed219df7fe10a87cb`.
+- Base SHA: `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
+- Result: **10 tests, OK**.
+- Artifact ID: `13606719354`, name `f1-t0-freqtrade-adapter-b8312df971472df2f6118641aac3b186c00f916b`, size 942 bytes, not expired at inspection.
+- GitHub upload digest: `caeb66ffe65f92fd5e1ddfe8159d8f92f5770911ffd4104db77b579344e9e914`.
+- Artifact payload has not been independently downloaded and re-hashed.
+
+### R22.2
+
+- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454888603
+- Run ID: `42454888603`, event `pull_request`, conclusion SUCCESS.
+- PR head SHA at run: `afa44c4bbab5a86040aadbeed219df7fe10a87cb`.
+- Base SHA: `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
+- Checked-out synthetic merge SHA: `b8312df971472df2f6118641aac3b186c00f916b`.
+- Job ID: `128651696509`.
+- Offline runtime probe: **8 tests PASS**; paper-only boundary PASS; OKX API key/secret values empty.
+- Artifact ID: `13607287365`, name `r22-2-phase22-runtime-b8312df971472df2f6118641aac3b186c00f916b`, 6,993 bytes, not expired at metadata inspection.
+- GitHub upload digest: `7b07fa372063b022fe14c43a8152a1adce3042e01d9f2c8a78bc5642ebae5150`.
+- Artifact payload bytes have not been independently downloaded and re-hashed.
+
+## Dual-Strategy coordinator increment
+
+- Coordinator contract RED run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455777252 — run ID `42455777252`, source SHA `c0c793689b06abe3f7261f618652b0e7e535d54b`; expected import failure because module did not exist. Only the unittest loader error ran; no behavioral methods executed.
+- Implementation commit: `78bf5b8b8b620dde7bd6f093ad197db4a9b22219`.
+- Final exact tested code/test SHA and PR head: `7d2b73bfbe6d588c57257e93193806f7d942dbb9`.
+- GREEN run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455858929 — run ID `42455858929`, push event, SUCCESS; job `128654599899`.
+- Tests on exact source: coordinator 11/11, dual-ledger 23/23, legacy Phase 2 20/20, Phase 3 11/11, PaperLedger 18/18; **83/83 total PASS**.
+- T0 → Freqtrade adapter regression: 10/10 PASS.
+- Direct-push workflow run `42456099914`: SUCCESS, exact SHA `7d2b73bfbe6d588c57257e93193806f7d942dbb9`.
+- PR coordinator run `42456177935`: SUCCESS, exact PR code head `7d2b73bfbe6d588c57257e93193806f7d942dbb9`, 83 tests PASS.
+- PR dual-ledger run `42456178029`: SUCCESS, 23/23.
+- PR legacy regression run `42456177941`: SUCCESS, 49/49.
+- PR T0 adapter run `42456177970`: SUCCESS, 10/10.
+- A later documentation-only PR head (`bddf1ce751502640d0676683e3018de26afb8e5c`) triggered R22.2; that verification was IN_PROGRESS at handoff capture.
+- Offline preflight: `AI_EXECUTION_ENABLED=false`; database targets and Binance/OKX credentials empty. No artifact produced.
+- `generate_signals()` reuses the existing closed-candle `core_signal()` RSI/ADX/H1 logic and validated `ai_signal()` FreqAI provenance checks, but returns both candidates independently. Tests prove opposing CORE LONG / AI SHORT are both preserved, AI can signal when CORE is silent, and invalid AI provenance does not suppress a valid CORE signal.
+- Opposing CORE LONG and AI SHORT intents are admitted independently when shared risk permits; each position is persisted to its own ledger. ENTRY/DCA use combined portfolio equity and 1% shared reservations. DCA side mismatch is rejected. Kill Switch blocks increases while reductions remain available.
+- This is an offline coordinator slice only. It does not yet call `core_signal` / `ai_signal` itself or connect to the legacy `paper_bridge.py` / Freqtrade runtime.
+
+## Current verdict
+
+- Independent CORE/AI ledger accounting and combined-equity sizing: PASS (23/23).
+- Atomic shared margin reservation and exactly-once consumption: PASS; 1% basis is combined portfolio equity.
+- Gross margin and gross notional aggregation without directional netting: PASS.
+- Reservation cancellation/reconciliation: PASS in focused tests.
+- Partial/full reduction accounting: PASS in focused tests.
+- Exact-head T2 CI: PASS (21/21).
+- Exact-head T0 adapter regression: PASS (10/10).
+- R22.2 isolated offline runtime probe: PASS (8/8).
+- Gross exposure ceiling: NOT DEFINED.
+- Offline independent signal coordinator and dual-source candidate generation: PASS (11/11); runtime/paper-bridge integration: NOT IMPLEMENTED.
+- Combined CORE + AI paper replay: NOT RUN.
+- T0/T1 runtime integration: NOT RUN.
+- Production readiness: NOT CERTIFIED.
+
+## Legacy regression evidence and critical integration finding
+
+The old Phase 2/3 path remains regression-tested, but is not compatible with the updated Dual-Strategy rules and has not been changed:
+
+- Legacy regression run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42455156480
+- Run ID `42455156480`, exact checked-out SHA `8849ea2c6c9f28ac60067a7e6339eb7260a27b6b`, SUCCESS.
+- Phase 2 tests: 20/20 PASS; Phase 3 paper bridge tests: 11/11 PASS; PaperLedger tests: 18/18 PASS; total 49/49.
+- This proves no regression in the old path, not compliance with the new risk policy.
+
+- `quant_system/dual_strategy.py` still uses `RiskSnapshot.max_positions` and `_select` to choose one signal or block opposing CORE/AI signals.
+- `quant_system/paper_bridge.py` still uses the legacy `StrategyRules().p.entry_margin_pct` sizing and `PaperLedger`'s single signed net position.
+- This path does not implement independent CORE_LEDGER/AI_LEDGER, 1% margin per entry/DCA, or no fixed position-count cap.
+- Do not treat `PaperSignalCoordinator` or `DualPaperBridge` as wired to the new `dual_ledger.py` shared-risk API.
+- The legacy tests pass, but they assert old max-position / single-net-position behavior and do not certify the new independent-ledger policy.
+
+## Remaining required work before combined paper use
+
+1. Connect the coordinator to `core_signal` and validated `ai_signal` producers while preserving provenance; do not reuse `_select` conflict arbitration.
+2. Add a paper-only adapter that feeds explicit order sizing into the coordinator and persists matching ledger writes; do not use legacy `PaperLedger` netting.
+3. Replace the legacy fixed-position / 50%-margin gate in the paper path; preserve Strategy Core RSI/ADX/Smart DCA signal rules and separate execution sizing from strategy predicates.
+4. Combined portfolio equity is CONFIRMED as the 1% margin basis; preserve independent ledger equity accounting.
+5. Define the gross notional exposure ceiling and confirm the portfolio margin budget (current collateral logic uses a 100% account-equity collateral guard).
+6. Define AI leverage/position sizing; do not assume Core's legacy 13x leverage applies to AI.
+7. Connect Kill Switch to an authoritative runtime state source.
+8. Run legacy regression tests, isolated strategy backtests, and combined portfolio backtest before paper runtime.
+
+## Constraints
+
+- Keep `ai_execution_enabled=false`.
+- Paper/research only; no real orders.
+- Do not create/open canonical T0 DB, start Feeder, connect to exchange, or sync market data.
+- Do not change T0/T1 schemas or interfaces.
+- Do not merge PR #95 or any other PR without explicit user approval.
+- Do not rebase or retarget PR #95 without explicit approval.
+
+## Next step
+
+Define AI sizing/leverage, gross-notional exposure ceiling, and authoritative Kill Switch source. Then connect generated candidates to a paper-only execution adapter that accepts explicit sizing, preserves independent ledgers, and never uses legacy `_select` or `PaperLedger` netting. Follow with isolated CORE/AI backtests and combined portfolio replay. No paper runtime yet.
+
+
+## AI dynamic leverage decision — 2026-11-08
+
+User decision:
+
+- AI leverage is dynamic and must vary according to the model's calibrated confidence.
+- AI leverage must have explicit configured `min_leverage` and `max_leverage` bounds.
+- AI leverage requires a separate validation/acceptance gate; Strategy Core leverage or Core validation evidence must not be reused as a substitute.
+- AI leverage is independent of the legacy Core 13x setting. No Core leverage default may leak into the AI path.
+- Any missing/invalid bounds, unvalidated calibration artifact, invalid/out-of-domain confidence, or calculated leverage outside the configured interval must fail closed and reject AI ENTRY/DCA.
+- A leverage decision may only affect AI order sizing/gross exposure. Every resulting intent remains subject to the shared risk engine, combined-equity 1% margin reservation, gross exposure accounting, Kill Switch and reconciliation gates.
+- `AI_EXECUTION_ENABLED=false`; this decision does not authorize live execution or paper-runtime activation.
+
+Not yet specified by the user and therefore deliberately NOT defaulted:
+
+1. Numeric `min_leverage` and `max_leverage` values.
+2. The confidence-to-leverage mapping function (for example, linear interpolation versus a calibrated lookup/policy curve).
+3. Calibration acceptance thresholds and minimum validation sample size (e.g. ECE/Brier limits, coverage, regime slices).
+4. Whether leverage is recalculated only on new signal admission or also on subsequent DCA admissions; any recalculation must not retroactively change existing position leverage.
+
+Implementation gate: build a sizing-agnostic AI leverage policy contract with explicit required configuration and fail-closed validation only after mapping and calibration acceptance criteria are specified. Do not infer numerical limits or claim calibration validity from model confidence alone.
+
+Status: POLICY DIRECTION CONFIRMED; NUMERIC BOUNDS / MAPPING / CALIBRATION ACCEPTANCE CRITERIA BLOCKED ON USER SPECIFICATION. No code, runtime, T0 or T1 behavior changed in this increment.
+
+
+## AI Dynamic Leverage Contract — implementation increment (2026-11-08)
+
+User-approved policy:
+- `min_leverage=1x`, `max_leverage=3x`, `mapping=linear`.
+- AI does not inherit Strategy Core's legacy leverage.
+- Confidence-domain endpoints are required configuration and are intentionally not defaulted from the unapproved 0.60/0.90 proposal.
+- AI calibration acceptance metrics and minimum sample-size criteria remain unspecified; do not claim a real model calibration has passed.
+
+Implementation:
+- `quant_system/ai_dynamic_leverage.py`: standalone Decimal-based policy contract; fixed 1x–3x bounds; linear mapping; explicit confidence domain; calibration attestation identity/provenance/time checks; fail-closed rejection.
+- `quant_system/test_ai_dynamic_leverage.py`: independent tests for mapping boundaries, invalid confidence, invalid bounds, calibration rejection, OOS/leakage flags, provenance hash/type and identity mismatch, future/expired evidence, and no Core leverage fallback.
+- `.github/workflows/t2-dual-signal-coordinator.yml`: runs the independent AI leverage contract suite before existing coordinator/ledger/legacy regressions.
+- `quant_system/AI_DYNAMIC_LEVERAGE_CONTRACT_2026-11-08.md`: scope and evidence limits.
+
+TDD evidence:
+- RED run `42457533430`, source SHA `004eaf3c0870f11692174c27669c5bd4021275b9`: leverage suite failed as expected on a dataset-provenance mismatch (13 passed, 1 failed).
+- GREEN run `42457536254`, source SHA `685abd9cf214566e2c653af4b04171e1c42241b5`: 14/14 AI leverage tests PASS; coordinator, dual-ledger and legacy regression steps PASS; no artifacts.
+- Fixed-bound run `42457578245`, source SHA `617ceea8e9669b701dbeae36acae16666b769970`: workflow SUCCESS.
+- Additional hardening rejects non-string provenance fingerprints safely. Latest code/test source SHA: `6bb1ecd899e9857dfef80635c4d53a745f7c2662`; exact-source workflow run is pending at handoff capture. Do not promote the latest SHA to PASS until run/job logs confirm it.
+- Latest documentation commit before this handoff update: `fb1d439bbd3520bc025a593bc5724e42faf435f3`.
+
+Current status:
+- Linear leverage contract and 1x–3x bounds: IMPLEMENTED.
+- Confidence floor/ceiling: CONFIGURATION REQUIRED; no production defaults.
+- Calibration evaluator, acceptance metrics and minimum OOS sample size: BLOCKED / NOT IMPLEMENTED.
+- Calibration artifact authenticity and actual model quality: NOT VERIFIED.
+- Coordinator/paper runtime integration: NOT IMPLEMENTED; `AI_EXECUTION_ENABLED=false`.
+- Gross notional exposure ceiling: still undefined.
+- No T0/T1, database, Feeder, exchange, market data, or live-order behavior changed.
+- PR #95 remains OPEN / DRAFT / NOT MERGED. No merge or rebase authorized.
+
+Next step: verify exact-source CI for `6bb1ecd899e9857dfef80635c4d53a745f7c2662`, then continue with an independent calibration-evidence evaluator only after acceptance thresholds and sample-size rules are specified. Keep runtime disabled.
+
+
+### Final exact-head CI update — AI Dynamic Leverage
+
+The pending verification recorded above is now resolved:
+- Exact code/test source SHA: `6bb1ecd899e9857dfef80635c4d53a745f7c2662`.
+- GitHub Actions run: [42457596650](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42457596650), push event, conclusion SUCCESS.
+- Job: `128659833226`, conclusion SUCCESS.
+- Exact-source test results from job logs: AI dynamic leverage 14/14; coordinator 11/11; dual-ledger 23/23; legacy Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. Total: 97/97 test invocations PASS.
+- Preflight: `AI_EXECUTION_ENABLED=false`; database targets empty; Binance and OKX credentials empty.
+- Artifacts: none.
+- Documentation evidence update commit: `7ea94d96ad812cf923a59662264d54c775037872`.
+- Current active branch head after this handoff update will be the resulting documentation commit; code/test evidence remains tied to the exact SHA above.
+
+Status correction:
+- AI dynamic leverage contract and the final exact-source contract/regression CI: PASS.
+- This is not evidence that a real calibration has passed. Confidence-domain endpoints, calibration metrics/acceptance thresholds, minimum OOS sample size, calibration artifact authenticity and directional/regime coverage remain BLOCKED / NOT VERIFIED.
+- No coordinator or paper runtime integration occurred. No paper or live orders were enabled.
+
+
+### Evidence artifact and PR-context verification update
+
+The workflow was hardened to include the new leverage files in both push and pull_request path filters and to upload a provenance + test-log artifact.
+
+- Final exact-head push run: [42457686964](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42457686964), source/head/checked-out SHA `ccc182378772a25f2afb475b4070d281222d7f7f`, SUCCESS; job `128660101285` SUCCESS.
+- Test logs: AI leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. Total 97/97.
+- Exact-head artifact: ID `13607992537`, name `t2-ai-dynamic-leverage-ccc182378772a25f2afb475b4070d281222d7f7f`, GitHub digest and independently recomputed ZIP SHA-256 both `3d2c14ea53cdf1e12633c6fbe1f2f540b052c2a6ae16bcfecae8e915f6112cce`.
+- Artifact contents confirm push event, exact checked-out SHA, `AI_EXECUTION_ENABLED=false`, empty database targets and exchange credentials, and AI leverage tests 14/14 PASS.
+- PR run: [42457691928](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42457691928), PR head SHA `ccc182378772a25f2afb475b4070d281222d7f7f`, synthetic merge checkout SHA `443b08f5e94c584aba75d232f6e86609a43d7ef8`, SUCCESS; same 97/97 suite totals. Do not mislabel this as direct-head evidence.
+- PR-context artifact ID `13608346507`, GitHub digest `sha256:31b28ed5130b7523e25f853f02c691e32014fec857698a21472c1e5c32bf9004`.
+- Latest evidence-document commit before this handoff append: `e40c66aada46859ecbc3734a514b322af80f01bf`.
+
+Final verdict for this increment:
+- Contract implementation + independent unit tests + T2 regression: PASS at exact push SHA `ccc182378772a25f2afb475b4070d281222d7f7f`.
+- Exact-head artifact payload integrity: PASS (independent ZIP hash matched GitHub digest).
+- PR #95: still OPEN / DRAFT / NOT MERGED. No merge or rebase.
+- Working-tree status: NOT VERIFIED (no local checkout inspected).
+- Real calibration quality, acceptance metrics, sample-size requirements, confidence-domain configuration, gross exposure ceiling and runtime integration remain blocked or unverified as recorded above.
+
+
+## AI Calibration Evaluator — implementation increment (2026-11-08)
+
+### Scope
+
+Implemented a standalone offline evaluator for already-produced AI probability predictions:
+- `quant_system/ai_calibration_evaluator.py`
+- `quant_system/test_ai_calibration_evaluator.py`
+- `quant_system/AI_CALIBRATION_EVALUATOR_2026-11-08.md`
+- Updated `.github/workflows/t2-dual-signal-coordinator.yml` to compile the calibration/leverage modules and run both independent suites; upload source provenance, compile log and both test logs.
+
+### Contract
+
+- Equal-width ECE with explicit bin count.
+- Brier score compared with a same-sample climatology/no-skill reference; strict improvement required.
+- Overall metrics and separate LONG/SHORT × each explicitly declared regime.
+- Every policy value is required explicitly: max ECE, minimum total samples, minimum per-group samples, bin count and regime taxonomy. No production defaults were invented.
+- Fail closed for non-OOS markers, malformed labels/probabilities, unknown regimes, missing/undersized directional-regime groups, excessive ECE or Brier not better than baseline.
+- Canonical ordered input rows are fingerprinted; report digest binds the input fingerprint, metrics, reasons and explicit gate policy.
+- Evaluator acceptance is metric-gate acceptance only. It never issues a leverage attestation and always returns `trade_authorized=false` and `attestation_issued=false`.
+
+### TDD and exact-source CI
+
+RED evidence:
+- Run `42457995143`, source `bd7ea4c74e9f3f0cc6ba16188a01e19b108cb22f`: expected import failure because evaluator implementation did not yet exist.
+- Run `42458033277`, source `cab0d34102c7da884c820662ae5d4b5df34d1b52`: evaluator imported; first behavioral acceptance test exposed an incorrect synthetic fixture.
+- Runs `42458082523` and `42458142080`: refined fixture exposed finite-sample ECE expectation mismatch; no implementation acceptance was claimed from these RED runs.
+
+Final exact-source push:
+- Run: [42458217777](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458217777), event push, source/head/checked-out SHA `56da92b86dc75ad76e0b391854c2e672268178b1`, SUCCESS.
+- Job: `128661678013`, SUCCESS.
+- Logs: py_compile PASS; calibration evaluator 14/14; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18 — **111/111 test invocations PASS**.
+- Artifact: ID `13608870606`, name `t2-ai-intelligence-contracts-56da92b86dc75ad76e0b391854c2e672268178b1`, GitHub digest `sha256:ba6de2deb3deefdc3ab8715571a2dc167ec6b577f8d50b2c56a9ae43b16b1284`.
+- Artifact ZIP downloaded; independently recomputed SHA-256 matched the GitHub digest. Payload contains source provenance, compile log, calibration evaluator log and leverage log. Calibration evaluator log confirms 14/14 PASS.
+- Artifact provenance: push event, github_sha=checked_out_sha=`56da92b86dc75ad76e0b391854c2e672268178b1`, `AI_EXECUTION_ENABLED=false`, DB targets empty, exchange credentials empty.
+- PR-context run: [42458221166](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458221166), PR head SHA `56da92b86dc75ad76e0b391854c2e672268178b1`, synthetic merge checkout SHA `8033250cc6179eb23397f54ea603a38458f13a9b`, SUCCESS. This is merge-context verification, not direct-head evidence.
+- Evidence report update commit: `2ba84eda4e2251a3d081bca3952da2c4d82f8d1a`.
+
+### Limits and status
+
+- Evaluator implementation and synthetic contract/regression CI: PASS.
+- Production ECE threshold, sample counts, bin count and regime taxonomy: BLOCKED / NOT APPROVED. The values in unit fixtures are test-only and are not production recommendations.
+- Real BTCUSDT OOS predictions, split manifest authenticity, temporal separation/leakage proof, frozen model/dataset provenance, artifact byte authentication, calibration uncertainty intervals and drift: NOT VERIFIED / NOT IMPLEMENTED.
+- ECE/Brier passing synthetic tests does not prove real model calibration.
+- No calibration attestation issued; no integration with `AIDynamicLeveragePolicy` or Coordinator.
+- `AI_EXECUTION_ENABLED=false`; no DB, T0/T1, exchange, market-data or execution runtime touched.
+- Gross notional exposure ceiling remains undefined.
+- PR #95 remains OPEN / DRAFT / NOT MERGED; no merge/rebase.
+- Current code/test/workflow verification SHA: `56da92b86dc75ad76e0b391854c2e672268178b1`.
+- Branch HEAD before this state-note commit: `2937e7dc0979e1a92ce2bc7328b9dd39cb42b2ca`; this update advances the branch. The resulting commit SHA is recorded in the session response.
+- Working-tree status: NOT VERIFIED (no local checkout inspected).
+
+Next step: obtain explicit approval for production calibration gate policy (ECE maximum, Brier comparison protocol, minimum total and per LONG/SHORT × regime sample counts, bin count and regime taxonomy); then build an authenticated OOS split/data provenance validator before any attestation can be issued. Keep all runtime execution disabled.
+
+
+## User-approved AI calibration gate policy — 2026-11-08
+
+### Decision and implementation
+User approved:
+- Maximum ECE: `0.05`.
+- Brier score must strictly beat the same-sample climatology/no-skill reference, overall and for every required directional/regime group.
+- Minimum total OOS predictions: `1,000`.
+- Minimum samples in each LONG/SHORT × regime group: `200`.
+
+Implemented `approved_calibration_gate_policy(*, ece_bins, required_regimes)` in `quant_system/ai_calibration_evaluator.py`. It fixes only the approved numeric thresholds. It requires explicit caller-supplied bin count (1–100) and non-empty, unique regime names because those were not specified by the user. There are no implicit values for either. Multi-regime policies can require more than 1,000 total samples due to per-group minima.
+
+Added tests covering the approved values, missing required arguments, invalid bin count, empty regimes and duplicate regimes.
+
+### Scope boundaries
+- This approves evaluator thresholds only; it does not attest that BTCUSDT predictions pass them.
+- No actual OOS prediction dataset was evaluated.
+- `out_of_sample=true` remains caller-provided and is not authenticated.
+- Authenticated split/dataset/model/artifact provenance remains a separate required validator before any calibration attestation.
+- No calibration attestation or leverage authorization issued.
+- No integration into AI leverage, coordinator, paper bridge or runtime.
+- `AI_EXECUTION_ENABLED=false`; no exchange, DB, T0/T1 or runtime touched.
+- PR #95 remains OPEN / DRAFT / NOT MERGED; no merge or rebase.
+
+### Verification state at handoff update
+- Test-first change commit: `f065a71e8f5d1bb7b24f98eefddfcbd42b6f2b5c` (new tests import the not-yet-implemented policy factory).
+- Implementation commit: `f4be0101380abe41b1c9d304815981d261d33e65`.
+- Documentation update commit: `89e3ca65bb6003177fd7bff9bdf1bdc1fc3f5045`.
+- Exact final code/test/workflow SHA and Actions run/artifact: PENDING verification; do not claim PASS until GitHub Actions completes on the exact code/test SHA.
+- Working-tree status: NOT VERIFIED (GitHub API-only changes; no local checkout inspected).
+
+Next: verify exact-head Actions for the approved policy implementation. Then implement an authenticated OOS provenance/split validator before considering any calibration attestation. Keep runtime execution disabled.
+
+
+### Verification update — approved calibration gate
+
+- Production gate factory: `approved_calibration_gate_policy(*, ece_bins, required_regimes)`.
+- Code/test source commit: `f4be0101380abe41b1c9d304815981d261d33e65`.
+- Test-first commit: `f065a71e8f5d1bb7b24f98eefddfcbd42b6f2b5c`; implementation follows in the code/test source commit above.
+- PR-context workflow run: [42458576895](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458576895), PR head SHA `f4be0101380abe41b1c9d304815981d261d33e65`, merge checkout `0d6c32b6d27c2bec2983937e602696ee73bb6bc4`, job `128662736759` SUCCESS.
+- Follow-up PR-context workflow run: [42458607712](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458607712), PR head SHA `55508e19617fc6cf7c0bf8c43090ae5f10b9fbdf`, merge checkout `401805e544800a0d12b72359931b75ccf6458124`, job `128662828359` SUCCESS.
+- Follow-up job: py_compile PASS; evaluator 16/16; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; legacy Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. **113/113 test invocations PASS.**
+- Evidence artifact ID `13608826508`, name `t2-ai-intelligence-contracts-401805e544800a0d12b72359931b75ccf6458124`, GitHub digest `sha256:1898863091dcf09606d9d017d90e35a5366a8b763a44bc11a7173406fe68def1`.
+- Artifact provenance: PR event, github/checked-out SHA `401805e544800a0d12b72359931b75ccf6458124`, `AI_EXECUTION_ENABLED=false`, database targets EMPTY, exchange credentials EMPTY.
+- This is PR merge-context verification. It is not a direct push checkout of the PR head.
+- Evidence/handoff commit: `55508e19617fc6cf7c0bf8c43090ae5f10b9fbdf`.
+- Code and tests: PASS under PR merge-context CI. Actual BTCUSDT OOS calibration: NOT VERIFIED. Calibration attestation: NOT ISSUED.
+
+
+## AI OOS provenance validator — implementation increment (2026-11-08)
+
+### Scope and implementation
+- Added `quant_system/ai_provenance_validator.py`: offline Ed25519 signed-manifest verification.
+- Added `quant_system/test_ai_provenance_validator.py`: 14 synthetic contract tests.
+- Added `quant_system/AI_PROVENANCE_VALIDATOR_2026-11-08.md`: schema, trust boundary, limitations and evidence.
+- Added `cryptography>=44,<47` to `requirements.txt`.
+- Updated `.github/workflows/t2-dual-signal-coordinator.yml` to install Ed25519 dependency, run/retain validator test log and compile both validator and test.
+
+### Verifier contract
+- Strict signed JSON envelope with canonical UTF-8 JSON manifest and Ed25519 signature.
+- Trust roots are caller-supplied raw public keys indexed by key ID; no key material embedded in source.
+- Manifest binds model, dataset, predictions, split protocol and calibration-report artifact SHA-256 + exact byte size.
+- Rejects unknown/untrusted key, invalid signature/encoding, duplicate JSON keys, unknown manifest fields, missing/extra artifact roles, size/hash mismatch, invalid issue/expiry times, and declared train/OOS temporal overlap.
+- Passing result sets `attestation_issued=false`; no trade authorization is produced.
+
+### TDD and CI evidence
+- RED test-first run [42458980940](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42458980940): expected import failure because validator module did not yet exist.
+- Intermediate RED runs exposed implementation/test defects; the artifact-tamper test was corrected to change bytes without changing size so hash verification is isolated.
+- Latest code commit: `9f019569b322077c9baf293d91eac6e0de600c63`.
+- Latest test commit: `43f5581d564148b806bf6317cbfcdadfb45f881a`.
+- Dependency commit: `60fd43510e5ada8631bf1022d1fd69948266016e`.
+- Workflow commit: `784589cb71babe6992ee2baf4ce74baba8858ffd`.
+- Final PR-context run [42459130878](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459130878): PR head `784589cb71babe6992ee2baf4ce74baba8858ffd`; synthetic merge checkout `595896d2e3c27d6eda617bf8714d7466d87204f4`; job `128664429232` SUCCESS.
+- Test counts: provenance 14/14; calibration evaluator 16/16; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. **127/127 total test invocations PASS**; py_compile PASS.
+- Artifact ID `13608698028`, name `t2-ai-intelligence-contracts-595896d2e3c27d6eda617bf8714d7466d87204f4`, GitHub digest `sha256:a796c062ecaf39d562aae05deece36925ed74c49b9b9b85ad2929830516dffec`.
+- Artifact includes provenance source, compile log and test logs. CI confirms `AI_EXECUTION_ENABLED=false`, database targets EMPTY and exchange credentials EMPTY.
+- This is PR merge-context verification, not direct-push exact-head evidence.
+- Evidence report commit: `d5455230535e88251a464d0cc71ab520124dc604`.
+
+### Limits — do not overstate provenance verification
+- No production trusted public key or independent signer is provisioned. Caller must load keys from an independently protected trust store; trust-store custody, rotation and revocation are not implemented.
+- Temporal chronology is checked only against the signed manifest's declared timestamps. Dataset rows are not parsed to independently recompute date ranges.
+- No proof yet of feature/label leakage, model training lineage, hyperparameter selection isolation, or that the exact model generated the supplied predictions.
+- Calibration report bytes are hash-bound but its embedded evaluator report digest/metrics are not semantically reconciled against the prediction/outcome files.
+- No real model, dataset, predictions, split protocol or calibration report were supplied.
+- Calibration attestation: NOT ISSUED; leverage authorization: NOT ISSUED; runtime integration: NOT IMPLEMENTED.
+- `AI_EXECUTION_ENABLED=false`; no database, T0/T1, exchange or runtime touched.
+- PR #95 remains OPEN / DRAFT / NOT MERGED. No merge/rebase authorized.
+
+Next: define and independently provision the trusted signer/key lifecycle, then extend verification to parse the actual dataset/prediction/report formats and reconcile timestamp coverage and report/input fingerprints. Only after those checks and a real OOS run can calibration attestation be considered.
+
+
+## Row-level OOS prediction chronology — 2026-11-08
+
+### Scope
+- Extended `quant_system/ai_provenance_validator.py` to parse the signed `predictions` artifact as strict UTF-8 JSONL.
+- Every prediction row must carry prediction timestamp, outcome-available timestamp, outcome, confidence, side, regime, model version and dataset version.
+- Enforces prediction timestamp inside signed OOS interval; outcome resolution strictly after prediction and no later than OOS end; row model/dataset versions must match manifest.
+- Rejects empty/malformed/blank/duplicate-key rows, invalid outcome/confidence/side/regime, and malformed temporal split before accessing split keys.
+- No dataset-row parsing or market-price outcome recomputation is claimed.
+
+### TDD and verification
+- RED for malformed split: [42459595402](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459595402), test source `b2a4ae69dbe1334f2ce36869e6c5c033253ac490`; validator test failed with the expected `KeyError: 'oos_start_ms'`.
+- Fix commit: `07e8212e4723cc913e4d0a3b196212f134a8a23e`.
+- Exact-source push run [42459618363](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459618363), job `128665883617`, SUCCESS; checked-out SHA equals `07e8212e4723cc913e4d0a3b196212f134a8a23e`.
+- PR-context run [42459622326](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459622326), job `128665895716`, SUCCESS; synthetic merge checkout `1a04c7abf0464de74c534d3f4de3690f0606e1b7`.
+- Test counts: provenance 23/23; calibration evaluator 16/16; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. **136/136 invocations PASS**, py_compile PASS.
+- Push artifact ID `13609465168`, SHA-256 `e548da7a689ea9f0ee877d92f6baef6ffd849f08aeb4f453d2b4db1e37108b87`.
+- PR artifact ID `13608987960`, SHA-256 `1ced67485be007d95bdbdd2503e5f8303b707dd5d17604e21651d1ca562104b1`.
+- CI preflight records `AI_EXECUTION_ENABLED=false`, DB targets EMPTY, exchange credentials EMPTY.
+- Evidence/report update commit: `645ccf1e9ac848ef5b629bf3927eeb9285b5777f`.
+
+### Status and remaining gates
+- Row-level prediction timestamp/identity checks: PASS under exact-source push and PR merge-context CI.
+- Signed dataset artifact row/timestamp validation: NOT IMPLEMENTED.
+- Prediction outcomes recomputed from OHLCV: NOT IMPLEMENTED.
+- Calibration report metrics/input/report hash semantic reconciliation: NOT IMPLEMENTED.
+- Leakage-free model training and OOS process: NOT VERIFIED.
+- Production signer/trust root lifecycle: NOT CONFIGURED.
+- Real BTCUSDT OOS artifacts: NOT PROVIDED.
+- Calibration attestation: NOT ISSUED; AI leverage authorization: NOT ISSUED; runtime integration: NOT IMPLEMENTED.
+- No T0/T1 data/runtime, DB, exchange, paper or live execution was touched. `AI_EXECUTION_ENABLED=false`.
+- PR #95 remains OPEN / DRAFT / NOT MERGED.
+
+### Next increment
+Implement semantic reconciliation between the signed prediction JSONL and the signed calibration report: recompute the evaluator input fingerprint and report digest from the exact rows and explicit approved policy; reject any mismatch. Dataset row-level validation remains a separate subsequent gate.
+
+
+### Session boundary snapshot — 2026-11-08 14:40 Asia/Ho_Chi_Minh
+
+- Active repo: `kenznguyen/btcusdt-telegram-signals2`.
+- Active branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
+- Current PR head / branch HEAD: `ceee410b51a6e20572566d81c162bec702f1ae8c`.
+- PR #95: OPEN / DRAFT / NOT MERGED; base `feature/dual-strategy-phase22-frozen-reproducibility-20261031`. No merge/rebase.
+- Tested implementation source: `07e8212e4723cc913e4d0a3b196212f134a8a23e`.
+- Evidence report commit: `645ccf1e9ac848ef5b629bf3927eeb9285b5777f`.
+- This handoff update commit: `ceee410b51a6e20572566d81c162bec702f1ae8c`.
+- Changed files in this increment: `quant_system/ai_provenance_validator.py`, `quant_system/test_ai_provenance_validator.py`, `quant_system/AI_PROVENANCE_VALIDATOR_2026-11-08.md`, `docs/T2_SESSION_HANDOFF_2026-11-08.md`; PR description updated.
+- Working-tree status: NOT VERIFIED (GitHub API updates only; no local checkout inspected).
+- Exact-source push CI [42459618363](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459618363) SUCCESS; artifact `13609465168`, digest `sha256:e548da7a689ea9f0ee877d92f6baef6ffd849f08aeb4f453d2b4db1e37108b87`.
+- PR merge-context CI [42459622326](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459622326) SUCCESS; synthetic merge checkout `1a04c7abf0464de74c534d3f4de3690f0606e1b7`; artifact `13608987960`, digest `sha256:1ced67485be007d95bdbdd2503e5f8303b707dd5d17604e21651d1ca562104b1`.
+- Total: 136/136 test invocations PASS; py_compile PASS. RED evidence for malformed split is run `42459595402`.
+- `docs/PROJECT_SESSION_HANDOFF.md` was read from the repository default branch. It is not present on this T2 feature branch or its base branch; the T2-specific handoff remains the active branch record.
+- Hard limits remain: `AI_EXECUTION_ENABLED=false`; no live orders, no paper runtime integration, no T0/T1 DB/Feeder/exchange activity, no actual OOS artifacts, no calibration attestation, no leverage authorization.
+- Next permitted increment: semantic reconciliation of prediction JSONL with calibration evaluator report and explicit approved gate policy. Do not activate runtime or issue attestation based on synthetic tests.
+
+
+## Calibration report semantic reconciliation — 2026-11-08
+
+### Scope and contract
+- `quant_system/ai_provenance_validator.py` now parses the signed calibration report as strict UTF-8 JSON; duplicate keys and non-finite JSON values fail closed.
+- Requires explicit approved policy: ECE <= 0.05; at least 1,000 total OOS rows; at least 200 rows for each LONG/SHORT x declared regime; explicit `ece_bins` in [1,100] and explicit unique regime taxonomy.
+- Reconstructs `CalibrationObservation` values from the exact signed prediction JSONL and calls the existing `CalibrationEvaluator`.
+- Compares the full report object including accepted/reasons, sample and group counts, all metrics, input fingerprint, report digest, exact policy, and `trade_authorized=false` / `attestation_issued=false`.
+- Mismatch, malformed report, or weakened policy rejects provenance verification.
+
+### TDD and CI evidence
+- RED: [42459991105](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459991105), source `ae46e708d05a91e11c1a0d7b0e8476ce60c1c901`; four new semantic mismatch tests failed before implementation.
+- GREEN exact source SHA: `b2623527add57002e8b32123c67f4484c88d0efa`.
+- Exact-source push run [42460071397](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42460071397), job `128667260783`, SUCCESS; checked-out SHA equals source SHA.
+- Tests: provenance 28/28; calibration evaluator 16/16; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. **141/141 test invocations PASS**; py_compile PASS.
+- Artifact ID `13609103523`; digest `sha256:483a1d4952d7f578c7e4063d05d6efadfa4e1190937985fccc37a47cfe059062`.
+- CI preflight: `AI_EXECUTION_ENABLED=false`, DB targets EMPTY, exchange credentials EMPTY.
+
+### Status and limits
+- Prediction JSONL ↔ calibration report semantic consistency: PASS on synthetic fixture.
+- Actual BTCUSDT OOS report: NOT PROVIDED.
+- Dataset candle rows/timestamps: NOT PARSED.
+- Outcomes recomputed from OHLCV: NOT IMPLEMENTED.
+- Feature/label leakage and model-to-prediction lineage: NOT VERIFIED.
+- Production trust root/signer lifecycle: NOT CONFIGURED.
+- Calibration attestation and AI leverage authorization: NOT ISSUED.
+- Runtime integration: NOT IMPLEMENTED.
+- No T0/T1 runtime, database, exchange, paper or live execution touched.
+- PR #95 remains OPEN / DRAFT / NOT MERGED; no merge/rebase.
+
+### Exact branch state at handoff update
+- Active branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
+- Implementation source SHA tested: `b2623527add57002e8b32123c67f4484c88d0efa`.
+- Provenance report update commit: `b4b8f5b9d6b082588dc9b889e1f183bab3953a1c`.
+- This handoff commit will be the branch HEAD after this documentation update.
+- Working tree: NOT VERIFIED (GitHub API updates only).
+- Next increment: define and validate a canonical dataset artifact row schema and independently reconcile candle timestamps/coverage to prediction timestamps and outcome-resolution windows. Do not recompute trade outcomes or issue attestation until market-data semantics, price basis, candle close-time convention and label horizon are explicit.
+
+
+## Dataset provenance schema discovery — 2026-11-08
+
+- Read-only schema audit commit: `6f98ddc1444f4c2f1692c9721935a3720451cfdd`.
+- Audit: `quant_system/T2_DATASET_PROVENANCE_SCHEMA_DISCOVERY_2026-11-08.md`.
+- Branch HEAD before this handoff update: `6f98ddc1444f4c2f1692c9721935a3720451cfdd`; starting inspected HEAD was `96266de7e514e45389e24ce5b23391d177872fc9`.
+- Found existing T0 JSON snapshot contract in `quant_system/t0_freqtrade_adapter.py`: canonical Binance USDT_PERPETUAL/BTCUSDT, one timeframe per snapshot (M15 or H1), candle open/close/availability timestamps, validated closed rows, decimal-string OHLCV, complete coverage and a per-snapshot `datasetVersion` fingerprint.
+- Found older ChartPro CSV contract in `freqtrade_parity/dataset_io.py`: OHLCV plus closed flag and contiguous timestamps, but no exchange/market/symbol/source provenance; not sufficient alone for canonical T0 lineage.
+- The signed AI manifest currently treats its `dataset` artifact as opaque bytes and does not declare a dataset format or multi-timeframe packaging contract.
+- **BLOCKED:** T0 snapshots are single-timeframe, while T2 strategy context requires M15 and closed H1. No existing contract defines whether one signed dataset artifact is a single timeframe or a versioned M15+H1 bundle, nor the aggregate fingerprint and prediction-to-candle coverage convention.
+- Recommendation (not implemented): versioned bundle embedding the existing T0 snapshots unchanged, with a defined aggregate fingerprint. T0 schema/runtime remains independent and untouched.
+- Dataset row validator: NOT IMPLEMENTED. Prediction-to-candle coverage reconciliation: NOT IMPLEMENTED. Outcome/label recomputation from OHLCV remains out of scope until price basis, candle-close convention and label horizon are explicit.
+- No tests/workflow run/artifact for this documentation-only audit. Working tree remains NOT VERIFIED (GitHub API writes only).
+- Hard limits unchanged: `AI_EXECUTION_ENABLED=false`; no T0/T1 DB/Feeder/exchange, no paper/live runtime, no attestation or leverage authorization; PR #95 remains OPEN / DRAFT / NOT MERGED.
+- Next: confirm single-timeframe versus M15+H1 bundle before writing RED tests and implementation.
+
+
+## Signed M15+H1 dataset bundle validator — 2026-11-08
+
+### Contract and implementation
+- User confirmed the signed AI `dataset` artifact must bundle both M15 and H1 snapshots.
+- Bundle format: `T0_M15_H1_DATASET_BUNDLE_V1`; exact top-level identity: canonical Binance `USDT_PERPETUAL/BTCUSDT`; `snapshots` must contain exactly `15m` and `1h`.
+- Each embedded snapshot is validated using the existing T0 adapter's `_validate_snapshot` contract. This checks source identity, per-snapshot `datasetVersion`, closed/validated candle rows, timestamp continuity/availability, coverage and OHLCV constraints.
+- Aggregate `datasetVersion` is SHA-256 over canonical compact sorted-key JSON of the fixed bundle identity and both per-snapshot versions. Signed manifest `dataset_version` must match the aggregate.
+- Prediction timestamps must lie inside both snapshots' inclusive coverage envelopes; outcome-resolution timestamps must lie inside M15 coverage.
+- Coverage-envelope validation is not exact candle-selection/feature-time proof. It does not define label horizon or price basis, and does not recompute outcomes from OHLCV.
+- Implementation commit: `9d738f82e0ee9ce6e255581d077561eaf51bf67c`.
+- Test commits: `ed9769676f48a5943ee7c7845e5adef429629cea` (first RED tests), `dc0dc6674d36a353da4f8a5b316da1a971f5c452` (fixture correction), `a0abc63017cb3a8855018a47d3410e04d55b770b` (manifest binding and duplicate-key tests), `9103c0c15b63bdace4b17301a7d5b4540634e28a` (final fixture correction).
+- Evidence report: `quant_system/AI_PROVENANCE_VALIDATOR_2026-11-08.md`, update commit `c2e6f8490a12d2c7220d7c63871714afd928a0ea`.
+
+### TDD and CI
+- Final RED baseline: [42460744680](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42460744680), source `dc0dc6674d36a353da4f8a5b316da1a971f5c452`; exactly five bundle/coverage contracts failed before implementation.
+- Exact-source push run [42460912700](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42460912700), job `128669809731`, SUCCESS; `github_sha=checked_out_sha=9103c0c15b63bdace4b17301a7d5b4540634e28a`.
+- PR-context run [42460914804](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42460914804), job `128669816763`, SUCCESS; synthetic merge checkout `122fe436fc8f91dc93c6b5216d72100120bcfcd9`.
+- **148/148 test invocations PASS**: provenance 35, calibration 16, dynamic leverage 14, coordinator 11, dual ledger 23, Phase 2 20, Phase 3 11, PaperLedger 18. py_compile PASS.
+- Push artifact `13609334289`, digest `sha256:2b4a1fe0661b6d2b5e3d346099132a15225df15467aba68f1be557ccfcd71d68`.
+- PR artifact `13609383998`, digest `sha256:45bb8bc1263550f93091db26b8310433581ff34ce29d7d718cfc5332e113c697`.
+- CI preflight on both runs: `AI_EXECUTION_ENABLED=false`, DB targets EMPTY, exchange credentials EMPTY.
+
+### Status / restrictions
+- Bundle schema, both snapshot validations, aggregate fingerprint, manifest binding, prediction and outcome coverage-envelope checks: PASS on synthetic fixtures.
+- Actual BTCUSDT OOS dataset/predictions: NOT PROVIDED / NOT VERIFIED.
+- Exact candle-close/feature availability alignment, label semantics and OHLCV outcome recomputation: NOT VERIFIED / NOT IMPLEMENTED.
+- Feature/label leakage and model-to-prediction identity: NOT VERIFIED.
+- Production signer/trust root lifecycle: NOT CONFIGURED.
+- Calibration attestation and AI leverage authorization: NOT ISSUED; runtime integration: NOT IMPLEMENTED.
+- No T0/T1 DB, feeder, exchange, paper or live runtime activity. `AI_EXECUTION_ENABLED=false`.
+- PR #95 remains OPEN / DRAFT / NOT MERGED. No merge/rebase.
+- Branch HEAD at implementation CI: `9103c0c15b63bdace4b17301a7d5b4540634e28a`; documentation commits follow. Working-tree status NOT VERIFIED (GitHub API writes only).
+- Next increment: review exact timestamp semantics and determine whether dataset metadata must explicitly bind timeframe-specific OOS windows to the signed split before considering row-level outcome/label validation. Do not infer price basis or label horizon.
+
+## Prediction / candle timestamp semantics audit — 2026-11-08
+
+- Read-only audit report: `quant_system/T2_PREDICTION_CANDLE_TIMESTAMP_AUDIT_2026-11-08.md`.
+- Audit commit: `7d0d5a74eed35abd841eb2c2256ea66c61ee7def`.
+- Starting inspected branch HEAD: `a34c04f817316c5145616e41e2d6417ee3cb936d`.
+- Confirmed T0 semantics: M15/H1 interval sizes 900,000/3,600,000 ms; `openTimeMs` is interval start; `closeTimeMs = openTimeMs + interval` is exclusive end; adjacent candles are contiguous; `availableAtMs >= closeTimeMs`; rows must be closed, FIRST_OBSERVED and VALIDATED; optional `asOfMs` caps availability.
+- Current T2 prediction rows define `prediction_timestamp_ms` but repository code does not define whether it is candle open/close, feature cutoff, decision time or model emission time.
+- Current validator checks only OOS and M15/H1 coverage envelopes; it does not bind each prediction to the exact last consumed M15/H1 candle or prove those candles were available at prediction time.
+- Therefore candle-level no-lookahead proof remains **NOT VERIFIED**. No implementation or tests were run in this audit.
+- Proposed contract, pending user confirmation: define `prediction_timestamp_ms` as UTC model decision/emission instant; add per-row M15 and H1 consumed-candle references (open and exclusive close timestamps, optionally exact source fingerprint); require each reference to resolve to a closed/validated candle with `availableAtMs <= prediction_timestamp_ms`.
+- Even with this contract, hidden feature leakage and actual model-consumption behavior remain separate verification gaps. No label horizon or outcome price basis is inferred.
+- PR #95 remains OPEN / DRAFT / NOT MERGED. `AI_EXECUTION_ENABLED=false`; no T0/T1 DB/Feeder/exchange, no paper/live runtime, no calibration attestation or AI leverage authorization.
+- Next: obtain confirmation of prediction timestamp and per-row consumed-candle reference contract, then add RED tests before implementation.
+
+## Prediction decision-time / M15-H1 feature cutoff implementation — 2026-11-08
+
+- User approved prediction_timestamp_ms as UTC AI decision/emission time and exact per-row M15/H1 feature_cutoffs.
+- Implemented in quant_system/ai_provenance_validator.py; tests and report updated.
+- Feature cutoff schema per timeframe: open_time_ms, close_time_ms (exclusive), available_at_ms.
+- Validator checks exact candle resolution against the matching snapshot, exact close/availability timestamps, closed/validated/FIRST_OBSERVED flags, and available_at_ms <= prediction_timestamp_ms. Missing or invalid cutoff fails closed.
+- Final tested implementation SHA: d9765fa786e89d756d059450f149383dc9067636.
+- Exact-source push run [42461490366](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42461490366), job 128671530214, SUCCESS; checked-out SHA matches implementation SHA.
+- PR-context run [42461493744](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42461493744), job 128671540217, SUCCESS; synthetic merge checkout c1c15faeb7f59f7808fc7ee3268c23f87570ed9f.
+- Tests: provenance 38/38; calibration 16/16; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. Total 151/151 PASS; py_compile PASS.
+- Push artifact 13610265789, digest sha256:aec77528404c6a93f238fa8ae26ddc0ba85998b752c874510cf22aba62e0a9ba.
+- PR artifact 13609946638, digest sha256:2c119f87e8950c72239223a174763e246a66e4e2fa7b756f06bae0e6998cce20.
+- RED run 42461459462 exercised the missing-cutoff fail-closed path before final reason-code correction. Earlier failed fixture runs are intermediate TDD evidence, not acceptance.
+- Status: contract and synthetic tests PASS; actual BTCUSDT OOS artifacts, actual model feature consumption, hidden leakage, label correctness, price basis and label horizon remain NOT VERIFIED / NOT IMPLEMENTED.
+- AI_EXECUTION_ENABLED=false; no T0/T1 DB/Feeder/exchange, paper/live runtime, attestation or AI leverage authorization. PR #95 OPEN / DRAFT / NOT MERGED.
+- Next: add adversarial cutoff tests for duplicate/ambiguous candle references and signed OOS-window boundaries, then consider temporal split-to-dataset row-level binding. Do not infer label horizon or outcome price basis.
+
+## OOS temporal boundary / leakage audit — 2026-11-08
+
+- Read-only audit report: `quant_system/T2_OOS_TEMPORAL_LEAKAGE_AUDIT_2026-11-08.md`.
+- Audit report commit: `647e4bf325bd227f125feb19651494ca5201e9e6`.
+- Audited current branch implementation `d9765fa786e89d756d059450f149383dc9067636`; branch HEAD before audit documentation was `f718e230be792c8933f66e5b03be101b28858c6e`.
+- Confirmed current checks: train_end < oos_start <= oos_end; predictions inside OOS window; exact M15/H1 feature candle reference and availability at decision time; outcome availability after prediction and within OOS end; signed bundle hashes/fingerprints.
+- BLOCKED: split_protocol artifact is only signature/hash/size verified and remains opaque. Training model artifact is also opaque. No actual BTCUSDT OOS data/model/split supplied.
+- Cannot define purge/embargo without label horizon and label fully-available semantics. Do not require all inference feature candles to predate OOS start: prior OOS candles can be valid causal features for walk-forward inference.
+- Prediction ordering/duplicate semantics remain undefined; no uniqueness rule added without stable row identity/cardinality contract.
+- No code or tests changed in this audit; semantic leakage certification is BLOCKED rather than guessed.
+- Required contract: canonical split_protocol schema, training sample/label timestamp semantics, label horizon or per-sample label-end/availability, price basis/candle boundary convention, purge/embargo policy, same-timestamp prediction identity/cardinality.
+- Next: inspect the actual training pipeline/model artifact production process to derive those fields, or obtain user-approved definitions if not represented in source. Then add RED tests for split mismatch, training-label overlap, purge/embargo and OOS boundary cases.
+- `AI_EXECUTION_ENABLED=false`; no T0/T1 DB/feeder/exchange, paper/live runtime, calibration attestation or AI leverage authorization. PR #95 OPEN / DRAFT / NOT MERGED.
+
+### Cross-check note
+- Inspected separate `research_evidence/frozen-model/phase13b-20261104/phase13b-oos-protocol.json` (blob `0dbf07b12ccb4d4675f34827298456e8d7c69fb7`). It declares a 4-M15-candle label horizon and labels ending before holdout, but is for `chart-pro-okx-shadow-v1` on OKX and remains PRE_REGISTERED_PROTOCOL_CANDIDATE_NOT_SEALED with null seal fields.
+- Do NOT reuse that legacy Phase13B label horizon/purge assumptions for the independent AI strategy's signed split_protocol. Related Phase14 record says full model-pipeline fit causality is not certified.
+
+### Training pipeline inspection update
+- Inspected `ChartProFreqaiResearch.py` blob `0ddaabca32e678bd1c6e181146c2f1418941c133`: target formula `close.shift(-horizon)/close-1`.
+- Legacy config blob `bbccccb8fd6688c8b5b27fa6160b8068f3103f35` sets M15 and horizon 4 for `chart-pro-okx-shadow-v1`.
+- Phase12 audit docs/source (`905a51fce85dcbaee4756389e058db0370676783`, `a8fc3cb0a2404650f84774ac10e87e8fb6f8cca2`) describe actual fit-row label reconstruction and strict purge `max(TRAIN label_end) < min(TEST feature start)`, purging rows where `feature_open + 4*M15 >= first_test_feature_open`.
+- This is proven legacy-pipeline evidence only. Independent AI model has not yet been bound to that exact model/config identity. Do not transplant the 4-candle horizon or purge rule without confirming model identity.
+- Next essential decision: is the independent AI strategy intended to use this exact frozen legacy model/pipeline, or a distinct model? Bind model identifier + source/config hashes in the signed manifest before split protocol implementation.
+
+
+## Independent AI Strategy model identity decision — 2026-11-08
+
+- Read-only identity audit: `quant_system/T2_AI_STRATEGY_MODEL_IDENTITY_DECISION_2026-11-08.md`.
+- Audit commit: `e58422166e72fd28633f4a2d8bb7a65ccb0355b7`.
+- Confirmed the recorded Phase22 frozen bundle SHA prefix `918dc473` matches the exact Phase13B legacy candidate bundle SHA `918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f`.
+- Frozen metadata identifies that bundle as `chart-pro-okx-shadow-v1`, sourced from `082edc082996425f61f48c952be41fb037564103`, with research config SHA `c253091852b704c00fa33bd6fceb69fb4d480630da1645e3e35ebea13888bb72` and FreqAI config SHA `a716c80fbb78b8d4bc8b436136912e93e6988a8cdf8d7d1945e8f512bcd6d852`.
+- Candidate metadata marks it proposal-only, not sealed in Git and not OOS-certified. Seal manifest marks full pipeline causality, independent OOS, OOS certification and AI promotion eligibility false.
+- **Architecture decision:** the new independent AI Strategy must have a distinct model identity, fitted artifact and training run. Do not silently reuse/promote the legacy `chart-pro-okx-shadow-v1` Phase22 candidate.
+- Legacy target/purge evidence is known only for that legacy model: OKX USDT perpetual BTCUSDT, M15, close-to-close forward return over 4 candles, label end `feature_open_ms + 4*900000`, strict purge `max(TRAIN label_end) < min(TEST feature start)`. Do not transfer these assumptions to the independent AI Strategy.
+- New AI model ID, dataset/venue/timeframes, feature schema, label/price basis, horizon, outcome availability, training cutoff and purge/embargo remain to be derived from the actual AI training pipeline; none are guessed in this increment.
+- Status: legacy model identity IDENTIFIED; independent AI model NOT CREATED/NOT VERIFIED; label contract NOT DEFINED; semantic OOS leakage certification BLOCKED; no calibration attestation or AI leverage authorization.
+- No code/tests/runtime changed. No T0/T1 DB/Feeder/exchange/paper/live access. `AI_EXECUTION_ENABLED=false`.
+- PR #95 remains OPEN / DRAFT / NOT MERGED. No merge/rebase.
+- Next: define the independent AI Strategy training/label contract from its actual pipeline, then bind model identity and split semantics into the signed manifest with RED tests. Do not run OOS or enable runtime.
+
+
+## Independent AI training/label contract discovery — 2026-11-08
+
+- Read-only audit: `quant_system/T2_AI_TRAINING_LABEL_CONTRACT_DISCOVERY_2026-11-08.md`.
+- Audit commit: `7ba3e55c11645a89738f24de2983e6c050279a08`.
+- Identified an existing research candidate, `chart-pro-shadow-v1`, in `freqai_bridge/config.research.json` (blob `a777e018f457628150647064119435ce75dc3e29`), separate by configured identifier/venue from legacy frozen `chart-pro-okx-shadow-v1`.
+- Candidate uses Binance USDT perpetual BTCUSDT, M15, LightGBMRegressor, 30-day training window, 7-day backtest window, chronological non-shuffled 20% internal split, and a 4-M15-candle scalar forward close-return target. This is source/config evidence only, not approval of the new AI Strategy label horizon.
+- `ChartProFreqaiResearch.py` (blob `0ddaabca32e678bd1c6e181146c2f1418941c133`) declares M15-only feature engineering and scalar `&-future_return`; no explicit LONG/SHORT threshold, neutral band, side semantics or calibrated confidence mapping.
+- `native_prediction_capture.py` records actual FreqAI scalar predictions and abstentions but explicitly is not a signed training-cutoff/OOS certificate. `exporter.py` requires trainer-supplied provenance fields; no actual trainer sidecar/model artifact/training run was provided in this audit.
+- Candidate code can run an offline native FreqAI backtest, but this was not invoked. The candidate config has `initial_state=running`; do not start it as a service.
+- Important contract mismatch to resolve: signed prediction provenance currently requires M15+H1 feature cutoffs, while candidate model's visible feature config uses M15 only. Decide whether H1 is a true consumed feature or separately recorded context; never claim H1 consumption without feature-matrix evidence.
+- Recommendation: keep `chart-pro-shadow-v1` as an unaccepted research candidate. Before semantic leakage implementation, explicitly choose regression-to-direction (with pre-registered horizon, thresholds, abstention band and confidence derivation) or direct directional classification (LONG/SHORT/ABSTAIN target and probability semantics). Do not derive thresholds from OOS.
+- Status: candidate source identified PASS; immutable independent model/artifact NOT VERIFIED; actual training/provenance sidecar NOT PROVIDED; LONG/SHORT and confidence mapping NOT DEFINED; H1 feature contract NOT DEFINED; semantic OOS leakage BLOCKED; no calibration/leverage authorization.
+- No code/tests/training/backtest/runtime changed. No T0/T1 DB/feeder/exchange/paper/live activity. `AI_EXECUTION_ENABLED=false`.
+- PR #95 remains OPEN / DRAFT / NOT MERGED. No merge/rebase.
+- Next: settle target semantics and H1 feature role, then add versioned label/decision contract and signed-manifest bindings with RED tests. Do not start training or consume OOS holdout before protocol sealing.
+
+
+## AI Label/Direction Contract V1 design increment — 2026-11-08
+
+- User proceeded with the recommended V1 design: Regression-to-Direction; M15 and H1 are both intended as actual model features.
+- Contract document: `quant_system/T2_AI_LABEL_DIRECTION_CONTRACT_V1_2026-11-08.md`.
+- Contract commit: `51e1a3e88096217a28ca576fa4c0a09ee1dff8b3`; verified file blob `ddb7896ef664f4bbbfc17d91315a1b223e24e42a`.
+- Design rules: scalar forward-return target; separately registered LONG/SHORT thresholds with neutral ABSTAIN interval; no sign-only mapping; regression output is not calibrated probability; confidence requires a separately versioned calibration mapping.
+- H1 is selected as a true feature, but current research config only declares M15. Actual H1 fit/inference feature matrix remains NOT IMPLEMENTED / NOT VERIFIED.
+- Horizon, decision/outcome price basis, label end/availability, LONG/SHORT thresholds, purge/embargo and split protocol remain unset and BLOCKED pending training-only design evidence. No OOS-derived threshold selection.
+- Implementation sequence: schema/parser + RED tests; strict validation; actual H1 feature matrix and alignment proof; seal label/split protocol; bind contract/feature schema into signed manifest; only then consider explicitly authorized offline training/backtest.
+- No tests run because this increment is design documentation only. No code, model training, OOS, backtest, T0/T1 data/runtime, paper runtime, exchange connection or orders touched.
+- `AI_EXECUTION_ENABLED=false`; PR #95 remains OPEN / DRAFT / NOT MERGED.
+- Next step: implement the versioned label/direction contract parser and RED tests. Keep horizon/thresholds mandatory inputs and fail closed; do not start training or access OOS.
+
+
+## AI Label/Direction Parser V1 implementation increment — 2026-11-08
+
+- Implemented `quant_system/ai_label_direction_contract.py` with strict exact-key validation, duplicate JSON key rejection, UTF-8 validation, positive integer horizon, mandatory price/label/availability semantics, finite Decimal LONG/SHORT thresholds with `short < long`, neutral action exactly `ABSTAIN`, exact M15+H1 feature declaration, strict feature cutoff semantics, separate calibration artifact confidence source, Binance BTCUSDT USDT perpetual identity, and rejection of legacy model ID `chart-pro-okx-shadow-v1`.
+- Tests: `quant_system/test_ai_label_direction_contract.py`, 14 cases. Workflow updated to execute tests and compile parser/test.
+- TDD RED commit `56dcdcb013466941beaba527da438fec6d06e8ed`; RED run [42462726856](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42462726856), job `128675296702`, expected ModuleNotFoundError before parser existed.
+- Parser commit `d1a467005090309c7b37f868100fd277da19acf5`.
+- Exact-source tested branch commit `294a1f5d6522d80d4a4ed4f69c00fde0b2945e23`; parser blob `db889f0b4b81470eac4469fe4d35baa5c37530c7`; tests blob `2b5b74bf9210e41f13b139762a6af58fd7343e1c`; workflow blob `f45a45e037ea934725544629bcd49b3874dde491`.
+- GREEN push run [42462787953](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42462787953), job `128675483092`, SUCCESS; PR-context run [42462792780](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42462792780), SUCCESS.
+- Counts: parser 14/14; provenance 38/38; calibration 16/16; leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. Total 165/165 test invocations PASS; py_compile PASS.
+- Artifact ID `13610591980`, SHA-256 `a2ce3a539b306dea2e7c5bba27fc3ac2dba5df0f5587793bfb6742b6021af213`.
+- Evidence report: `quant_system/T2_AI_LABEL_DIRECTION_PARSER_V1_EVIDENCE_2026-11-08.md`, commit `ae87a6f587dcb9876b57160d86ca2fb2975097b6`.
+- Important limits: parser acceptance proves schema/structural validity only. It does not prove semantic label/horizon calculation, price basis or outcome availability against actual training code; training-only threshold selection/sealing; H1 present in actual fit/inference matrices; signed manifest binding; or leakage/OOS/calibration. The live FreqAI research config still declares M15 only.
+- No training, OOS, backtest, paper runtime, exchange connection, T0/T1 DB/feeder or orders were run. `AI_EXECUTION_ENABLED=false`; PR #95 remains OPEN / DRAFT / NOT MERGED.
+- Status: parser/tests **PASS**; semantic label validation **BLOCKED / NOT IMPLEMENTED**; H1 matrix **NOT VERIFIED**; signed semantic binding **NOT IMPLEMENTED**.
+- Next: implement semantic label calculation and test against closed M15 candle fixtures with explicit UTC outcome availability; then bind the semantic contract into the signed provenance manifest. Do not train or inspect OOS until split/purge protocol is sealed.

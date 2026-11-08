@@ -1,0 +1,97 @@
+name: R22.2 isolated Phase 22 runtime verification
+
+on:
+  push:
+    branches:
+      - feature/dual-strategy-phase22-preholdout-attestation-20261031
+    paths:
+      - "quant_system/phase22_runtime_probe.py"
+      - "quant_system/test_phase22_runtime_probe.py"
+      - "freqai_bridge/config.okx-research.json"
+      - "freqai_bridge/ChartProFreqaiResearch.py"
+      - "research_evidence/frozen-model/phase13b-20261104/model-candidate-metadata.json"
+      - ".github/workflows/r22-2-phase22-runtime-verification.yml"
+  pull_request:
+    paths:
+      - "quant_system/phase22_runtime_probe.py"
+      - "quant_system/test_phase22_runtime_probe.py"
+      - "freqai_bridge/config.okx-research.json"
+      - "freqai_bridge/ChartProFreqaiResearch.py"
+      - "research_evidence/frozen-model/phase13b-20261104/model-candidate-metadata.json"
+      - ".github/workflows/r22-2-phase22-runtime-verification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r22-2-phase22-runtime-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  isolated-runtime-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      AI_EXECUTION_ENABLED: "false"
+      DATABASE_URL: ""
+      MARKET_DATA_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+      BYBIT_API_KEY: ""
+      BYBIT_API_SECRET: ""
+    steps:
+      - name: Checkout exact source without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up isolated Python runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Enforce source identity and paper-only boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$AI_EXECUTION_ENABLED" = "false"
+          test -z "$DATABASE_URL"
+          test -z "$MARKET_DATA_DB"
+          test -z "$PAPER_DB"
+          test -z "$BINANCE_API_KEY" && test -z "$BINANCE_API_SECRET"
+          test -z "$OKX_API_KEY" && test -z "$OKX_API_SECRET"
+          test -z "$BYBIT_API_KEY" && test -z "$BYBIT_API_SECRET"
+          mkdir -p r22-evidence
+          {
+            echo "source_sha=$(git rev-parse HEAD)"
+            echo "workflow_run_id=$GITHUB_RUN_ID"
+            echo "ai_execution_enabled=$AI_EXECUTION_ENABLED"
+            echo "exchange_credentials=ABSENT"
+            echo "database_targets=ABSENT"
+            echo "R22_2_ISOLATED_PREFLIGHT=PASS"
+          } | tee r22-evidence/preflight.txt
+      - name: Install exact pinned Freqtrade FreqAI runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --no-cache-dir "freqtrade[freqai]==2026.9" 2>&1 | tee r22-evidence/install.log
+          python -c 'import importlib.metadata; v=importlib.metadata.version("freqtrade"); print("freqtrade="+v); assert v=="2026.9"' | tee -a r22-evidence/install.log
+      - name: Run isolated runtime probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest quant_system.test_phase22_runtime_probe -v 2>&1 | tee r22-evidence/unit-tests.log
+          python quant_system/phase22_runtime_probe.py 2>&1 | tee r22-evidence/runtime-probe.json
+      - name: Upload exact-source R22.2 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r22-2-phase22-runtime-${{ github.sha }}
+          path: r22-evidence/**
+          if-no-files-found: error
+          retention-days: 30

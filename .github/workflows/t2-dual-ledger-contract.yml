@@ -1,0 +1,32 @@
+name: T2 Dual Ledger Contract
+
+on:
+  push:
+    branches:
+      - feature/dual-strategy-phase22-preholdout-attestation-20261031
+    paths:
+      - "quant_system/dual_ledger.py"
+      - "quant_system/test_dual_ledger_contract.py"
+      - ".github/workflows/t2-dual-ledger-contract.yml"
+  pull_request:
+    paths:
+      - "quant_system/dual_ledger.py"
+      - "quant_system/test_dual_ledger_contract.py"
+      - ".github/workflows/t2-dual-ledger-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  dual-ledger-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run dual-ledger contract tests
+        run: python -m unittest quant_system.test_dual_ledger_contract -v

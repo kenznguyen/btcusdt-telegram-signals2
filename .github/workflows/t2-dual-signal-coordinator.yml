@@ -1,0 +1,133 @@
+name: T2 Dual Signal Coordinator Contract
+
+on:
+  push:
+    branches:
+      - feature/dual-strategy-phase22-preholdout-attestation-20261031
+    paths:
+      - "quant_system/ai_provenance_validator.py"
+      - "quant_system/ai_label_direction_contract.py"
+      - "quant_system/test_ai_label_direction_contract.py"
+      - "quant_system/test_ai_provenance_validator.py"
+      - "quant_system/ai_calibration_evaluator.py"
+      - "quant_system/test_ai_calibration_evaluator.py"
+      - "quant_system/ai_dynamic_leverage.py"
+      - "quant_system/test_ai_dynamic_leverage.py"
+      - "quant_system/dual_signal_coordinator.py"
+      - "quant_system/test_dual_signal_coordinator.py"
+      - "quant_system/dual_ledger.py"
+      - "quant_system/dual_strategy.py"
+      - "quant_system/test_dual_ledger_contract.py"
+      - "quant_system/test_dual_strategy_phase2.py"
+      - "quant_system/test_phase3_paper_bridge.py"
+      - "quant_system/paper_bridge.py"
+      - "paper_execution/**"
+      - ".github/workflows/t2-dual-signal-coordinator.yml"
+  pull_request:
+    paths:
+      - "quant_system/ai_provenance_validator.py"
+      - "quant_system/test_ai_provenance_validator.py"
+      - "quant_system/ai_calibration_evaluator.py"
+      - "quant_system/test_ai_calibration_evaluator.py"
+      - "quant_system/ai_dynamic_leverage.py"
+      - "quant_system/test_ai_dynamic_leverage.py"
+      - "quant_system/dual_signal_coordinator.py"
+      - "quant_system/test_dual_signal_coordinator.py"
+      - "quant_system/dual_ledger.py"
+      - "quant_system/dual_strategy.py"
+      - "quant_system/test_dual_ledger_contract.py"
+      - "quant_system/test_dual_strategy_phase2.py"
+      - "quant_system/test_phase3_paper_bridge.py"
+      - "quant_system/paper_bridge.py"
+      - "paper_execution/**"
+      - ".github/workflows/t2-dual-signal-coordinator.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  dual-signal-coordinator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      AI_EXECUTION_ENABLED: "false"
+      DATABASE_URL: ""
+      MARKET_DATA_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Enforce paper-only offline boundary
+        run: |
+          test "$AI_EXECUTION_ENABLED" = "false"
+          test -z "$DATABASE_URL"
+          test -z "$MARKET_DATA_DB"
+          test -z "$PAPER_DB"
+          test -z "$BINANCE_API_KEY"
+          test -z "$BINANCE_API_SECRET"
+          test -z "$OKX_API_KEY"
+          test -z "$OKX_API_SECRET"
+      - name: Prepare AI leverage evidence
+        run: |
+          mkdir -p t2-ai-leverage-evidence
+          {
+            echo "event=$GITHUB_EVENT_NAME"
+            echo "github_sha=$GITHUB_SHA"
+            echo "checked_out_sha=$(git rev-parse HEAD)"
+            echo "ai_execution_enabled=$AI_EXECUTION_ENABLED"
+            echo "database_targets=EMPTY"
+            echo "exchange_credentials=EMPTY"
+          } | tee t2-ai-leverage-evidence/source-provenance.txt
+      - name: Install Ed25519 verification dependency
+        run: python -m pip install "cryptography>=44,<47"
+      - name: Run independent AI label and direction contract tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest quant_system.test_ai_label_direction_contract -v 2>&1 | tee t2-ai-leverage-evidence/ai-label-direction-contract-tests.log
+      - name: Run signed AI OOS provenance validator tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest quant_system.test_ai_provenance_validator -v 2>&1 | tee t2-ai-leverage-evidence/ai-provenance-validator-tests.log
+      - name: Compile AI calibration and leverage contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile quant_system/ai_provenance_validator.py quant_system/test_ai_provenance_validator.py quant_system/ai_label_direction_contract.py quant_system/test_ai_label_direction_contract.py quant_system/ai_calibration_evaluator.py quant_system/test_ai_calibration_evaluator.py quant_system/ai_dynamic_leverage.py quant_system/test_ai_dynamic_leverage.py 2>&1 | tee t2-ai-leverage-evidence/compile.log
+          echo "PY_COMPILE=PASS" | tee -a t2-ai-leverage-evidence/compile.log
+      - name: Run independent AI calibration evaluator tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest quant_system.test_ai_calibration_evaluator -v 2>&1 | tee t2-ai-leverage-evidence/ai-calibration-evaluator-tests.log
+      - name: Run independent AI dynamic leverage contract tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest quant_system.test_ai_dynamic_leverage -v 2>&1 | tee t2-ai-leverage-evidence/ai-dynamic-leverage-tests.log
+      - name: Upload AI leverage contract evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t2-ai-intelligence-contracts-${{ github.sha }}
+          path: t2-ai-leverage-evidence/**
+          if-no-files-found: error
+          retention-days: 30
+      - name: Run coordinator contract tests
+        run: python -m unittest quant_system.test_dual_signal_coordinator -v
+      - name: Run shared dual-ledger regression
+        run: python -m unittest quant_system.test_dual_ledger_contract -v
+      - name: Run legacy Phase 2 and Phase 3 regression
+        run: |
+          python -m unittest quant_system.test_dual_strategy_phase2 -v
+          python -m unittest quant_system.test_phase3_paper_bridge -v
+          python -m unittest paper_execution.test_ledger -v
