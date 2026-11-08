@@ -474,3 +474,41 @@ Implement semantic reconciliation between the signed prediction JSONL and the si
 - `docs/PROJECT_SESSION_HANDOFF.md` was read from the repository default branch. It is not present on this T2 feature branch or its base branch; the T2-specific handoff remains the active branch record.
 - Hard limits remain: `AI_EXECUTION_ENABLED=false`; no live orders, no paper runtime integration, no T0/T1 DB/Feeder/exchange activity, no actual OOS artifacts, no calibration attestation, no leverage authorization.
 - Next permitted increment: semantic reconciliation of prediction JSONL with calibration evaluator report and explicit approved gate policy. Do not activate runtime or issue attestation based on synthetic tests.
+
+
+## Calibration report semantic reconciliation — 2026-11-08
+
+### Scope and contract
+- `quant_system/ai_provenance_validator.py` now parses the signed calibration report as strict UTF-8 JSON; duplicate keys and non-finite JSON values fail closed.
+- Requires explicit approved policy: ECE <= 0.05; at least 1,000 total OOS rows; at least 200 rows for each LONG/SHORT x declared regime; explicit `ece_bins` in [1,100] and explicit unique regime taxonomy.
+- Reconstructs `CalibrationObservation` values from the exact signed prediction JSONL and calls the existing `CalibrationEvaluator`.
+- Compares the full report object including accepted/reasons, sample and group counts, all metrics, input fingerprint, report digest, exact policy, and `trade_authorized=false` / `attestation_issued=false`.
+- Mismatch, malformed report, or weakened policy rejects provenance verification.
+
+### TDD and CI evidence
+- RED: [42459991105](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459991105), source `ae46e708d05a91e11c1a0d7b0e8476ce60c1c901`; four new semantic mismatch tests failed before implementation.
+- GREEN exact source SHA: `b2623527add57002e8b32123c67f4484c88d0efa`.
+- Exact-source push run [42460071397](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42460071397), job `128667260783`, SUCCESS; checked-out SHA equals source SHA.
+- Tests: provenance 28/28; calibration evaluator 16/16; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. **141/141 test invocations PASS**; py_compile PASS.
+- Artifact ID `13609103523`; digest `sha256:483a1d4952d7f578c7e4063d05d6efadfa4e1190937985fccc37a47cfe059062`.
+- CI preflight: `AI_EXECUTION_ENABLED=false`, DB targets EMPTY, exchange credentials EMPTY.
+
+### Status and limits
+- Prediction JSONL ↔ calibration report semantic consistency: PASS on synthetic fixture.
+- Actual BTCUSDT OOS report: NOT PROVIDED.
+- Dataset candle rows/timestamps: NOT PARSED.
+- Outcomes recomputed from OHLCV: NOT IMPLEMENTED.
+- Feature/label leakage and model-to-prediction lineage: NOT VERIFIED.
+- Production trust root/signer lifecycle: NOT CONFIGURED.
+- Calibration attestation and AI leverage authorization: NOT ISSUED.
+- Runtime integration: NOT IMPLEMENTED.
+- No T0/T1 runtime, database, exchange, paper or live execution touched.
+- PR #95 remains OPEN / DRAFT / NOT MERGED; no merge/rebase.
+
+### Exact branch state at handoff update
+- Active branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
+- Implementation source SHA tested: `b2623527add57002e8b32123c67f4484c88d0efa`.
+- Provenance report update commit: `b4b8f5b9d6b082588dc9b889e1f183bab3953a1c`.
+- This handoff commit will be the branch HEAD after this documentation update.
+- Working tree: NOT VERIFIED (GitHub API updates only).
+- Next increment: define and validate a canonical dataset artifact row schema and independently reconcile candle timestamps/coverage to prediction timestamps and outcome-resolution windows. Do not recompute trade outcomes or issue attestation until market-data semantics, price basis, candle close-time convention and label horizon are explicit.
