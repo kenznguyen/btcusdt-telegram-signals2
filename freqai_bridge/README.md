@@ -1,8 +1,8 @@
 # FreqAI prediction-only bridge — tầng 2
 
 This bridge consumes **actual FreqAI predictions**, verifies their input OHLCV
-against the canonical store and emits a bounded JSON artifact for the paper
-pipeline. Missing model output, outlier flags, provenance, data or an exact
+against T0 through the versioned read-only HTTP Candle Contract v1 and emits a
+bounded JSON artifact for the paper pipeline. Missing model output, outlier flags, provenance, data or an exact
 candle match produces an unavailable artifact/`WAIT`; it does not invent an AI
 prediction or fall back to a technical rule labeled as AI.
 
@@ -50,23 +50,30 @@ requests never start training.
 
 ## Canonical data and provenance hand-off
 
-Run canonical CCXT collection before the prediction process. The strategy reads
-the shared SQLite database at `freqai_bridge.canonical_db_path`, by default
-`.data/market-data.sqlite3`. The inference window defaults to **two closed M15
-bars**, matching the common API. Its range is:
+T2 reads canonical candles only through T0's authenticated `GET /v1/candles`
+endpoint. It does not import the T0 store, open SQLite, use a local cache, or
+switch to another venue when HTTP is unavailable. The inference window defaults
+to **two closed M15 bars**. Configure these process environment variables
+outside the repository before starting a research process:
 
-```text
-[floor(now / 900000) * 900000 - 2 * 900000,
- floor(now / 900000) * 900000)
+```bash
+T0_CANDLE_API_BASE_URL   # HTTPS base URL for the T0 API
+T0_CANDLE_API_TOKEN      # Bearer token; never commit or log this value
+T0_CANDLE_MAX_LAG_MS=120000
 ```
 
-The query deliberately uses `as_of_ms=None` so its content hash does not change
-on every retry. All candle `availableAtMs` values are still required to be no
-later than the decision clock. To inspect/save the same context manually:
+The request uses the exact half-open range
+`[floor(now / 900000) * 900000 - bars * 900000,
+  floor(now / 900000) * 900000)` and sends the consumer observation cutoff as
+`asOfMs`. The HTTP client validates complete coverage, candle identity,
+availability, dataset hash and the approved 120-second ingestion-delay bound.
+Missing configuration, unavailable HTTP, or invalid data produces an
+unavailable prediction; there is no SQLite/cache/synthetic/alternate-venue
+fallback. To inspect/save the same context manually:
 
 ```bash
 python3 -m freqai_bridge.context \
-  --db .data/market-data.sqlite3 --output .data/canonical-window.json --bars 2
+  --output .data/canonical-window.json --bars 2
 ```
 
 Prediction publication requires `.data/freqai-provenance.json` from the actual
