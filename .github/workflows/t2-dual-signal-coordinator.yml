@@ -6,6 +6,8 @@ on:
       - feature/dual-strategy-phase22-preholdout-attestation-20261031
     paths:
       - "quant_system/ai_provenance_validator.py"
+      - "quant_system/ai_label_direction_contract.py"
+      - "quant_system/test_ai_label_direction_contract.py"
       - "quant_system/test_ai_provenance_validator.py"
       - "quant_system/ai_calibration_evaluator.py"
       - "quant_system/test_ai_calibration_evaluator.py"
@@ -86,6 +88,11 @@ jobs:
           } | tee t2-ai-leverage-evidence/source-provenance.txt
       - name: Install Ed25519 verification dependency
         run: python -m pip install "cryptography>=44,<47"
+      - name: Run independent AI label and direction contract tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest quant_system.test_ai_label_direction_contract -v 2>&1 | tee t2-ai-leverage-evidence/ai-label-direction-contract-tests.log
       - name: Run signed AI OOS provenance validator tests
         shell: bash
         run: |
