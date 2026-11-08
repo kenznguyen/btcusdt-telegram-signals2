@@ -26,6 +26,16 @@ Chọn collector vì phạm vi này cần cả trades, funding, OI và liquidati
 
 ## 2. Luồng dữ liệu và quyền sở hữu
 
+> **Quyết định mới 2026-11-08:** Mô hình “T0 là tài sản dữ liệu độc lập” trong các mô tả trước đây được thay thế bởi **Shared Data Foundation with Centralized Lifecycle Governance**. Dữ liệu là tài sản logic dùng chung của T0–T4; raw-data retention theo nhu cầu đã đăng ký; chính sách vòng đời do cấp hệ thống quản trị tập trung. Xem [ADR](architecture/SHARED_DATA_FOUNDATION_LIFECYCLE_ADR_2026-11-08.md).
+
+Ranh giới trách nhiệm:
+- T0 vẫn là canonical producer: ingestion, normalization, quality, provenance, fenced writes và read API.
+- Shared ownership không cấp quyền ghi/xóa canonical data cho consumer. T1–T4 dùng dữ liệu qua contract và đăng ký dependency; không ghi trực tiếp vào canonical T0.
+- Central lifecycle governance quản lý classification, consumer dependencies, retention policy version, holds, archive/expiry eligibility và deletion authorization.
+- “Demand” không có nghĩa xóa sau khi đọc. ACK chỉ giải phóng dependency của consumer/task tương ứng; không phải lệnh xóa.
+- Không có numeric retention period hoặc deletion automation nào được phê duyệt trong ADR này.
+
+
 ```mermaid
 flowchart TD
     T0["T0: dữ liệu thô + nến sạch"] --> T1["T1: đặc trưng futures"]
