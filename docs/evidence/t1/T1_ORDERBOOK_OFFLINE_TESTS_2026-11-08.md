@@ -96,3 +96,15 @@ No runtime or T0 runtime changes. No artifact was produced by runs 198 or 200; a
 - Verdict: artifact download/size/SHA-256 and internal binary checksum **PASS**; archive structure **PASS**; ELF architecture **PASS**. Runtime behavior, dynamic-library availability on target host, and execution remain **NOT VERIFIED / NOT RUN**.
 - No collector execution, Binance connection, VPS deployment, T0 action, live order, PR merge, or PR draft-state change.
 - Next: continue bounded offline/source review on the same T1 PR branch. Do not execute or deploy the binary without separate explicit authorization.
+
+
+## 2026-11-08 — T1 Sidecar finalization/append read-only source review
+
+- Reviewed exact T1 source SHA `ed126fa8ecae61d70939336d51ffd4bf86acc102`, file `crates/connection-sidecar/src/lib.rs` (blob `7e2b58557692386bd24699861ba4aa545863dd55`).
+- Review slice: `finalize_with_publish`, `publish_manifest_with`, `cleanup_temp_manifest_with`, `append_event`, and `validate_capture`.
+- Confirmed by source inspection: finalization marks the writer poisoned before filesystem work; event-write/flush/sync failure also poisons the writer; manifest publication uses hard-link without replacement; post-publication temp unlink/directory-sync errors propagate while the writer remains terminal; capture validation checks bounded regular files, JSONL object records, manifest size/schema, byte count, digest, and event count.
+- No additional confirmed correctness defect found within this bounded slice. This is a read-only source review, not a new test run or full hostile-filesystem/security certification.
+- Existing PR #1 state rechecked: OPEN, DRAFT, NOT MERGED; head remains `ed126fa8ecae61d70939336d51ffd4bf86acc102`. One inline review thread remains unresolved but is marked outdated; its post-hard-link writer-poison finding is addressed by the regression test and current source. Thread was not manually resolved.
+- Verdict: bounded source review **PASS — no new confirmed finding**; previously green CI remains the test evidence. TOCTOU/hostile-filesystem behavior, non-Unix durability semantics, and deployed runtime behavior remain **NOT VERIFIED**.
+- No source changes, tests, collector execution, Binance/VPS runtime, T0 operation, PR merge, or draft-state transition.
+- Next: choose a separate bounded T1 source-review slice (connection-state/event lifecycle and limits) before any broader integration/runtime proposal.
