@@ -7350,3 +7350,16 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Verification: review report read back at blob `6f034ec489c42e2f63e0c8f85c7b767bc9b05ca7`, 12,723 characters, 10 findings. Foundation read back at blob `f4f64d0b12bc8706cacc8aa832f90218425b81ab`, 19,498 characters; central deletion boundary and next-step references present. Lifecycle policy read back at blob `03f4b5764b0b449a0038b09778c4b725b763cbe6`, 22,889 characters; separate state domains and no-auto-release clarification present.
 - CI/tests: NOT RUN. No artifact. No source, tests, workflow, database/schema, API, VPS, Feeder, registry, scheduler, retention timer, archive, vacuum, backup expiry, cleanup, or deletion operation was changed or activated.
 - Next: create a read-only inventory of actual datasets, consumers, lineage, holds, reproducibility/recovery evidence, replicas, backups, exports, and local copies. Do not assign numeric retention periods or perform lifecycle operations until inventory evidence and separate approvals exist.
+
+
+## 2026-11-09 — Static dataset/consumer inventory baseline
+
+- Added `docs/architecture/DATASET_CONSUMER_INVENTORY_BASELINE_2026-11-09.md`, static inventory commit `e86c0f363e89c409b5aa2e597f6ef19d3e1f3777`.
+- Inventory covers T0 candles/instrument/lease metadata and SQLite/PostgreSQL alternatives; T1 collector CSV observations, bounded JSON intelligence snapshots, and non-integrated JSONL connection sidecar; T2 HTTP candle inputs, model/training provenance and prediction artifacts; paper ledger/risk/order/funding/audit state; synthetic CI evidence; and the unverified T4 read-model domain.
+- Separates source-defined structures from dated historical VPS evidence and design-only forward evidence proposals. Explicitly records that runtime paths, active files, DB presence, row counts, consumers, replicas, backups, exports, and actual dependency registrations remain NOT VERIFIED.
+- No VPS/SSH, filesystem listing, SQLite/PostgreSQL connection/query, database creation/migration/write, exchange/network probe, sync, collector, Feeder, Freqtrade, paper runtime, model training, backtest, archive, vacuum, cleanup, or deletion was performed.
+- Corrected stale T0 Read-only Candle Contract v1 documentation in commit `93a28f446cda32e8edf7c8ddb1c05566b42f0f04`: the old direct-SQLite T2 finding is marked superseded by the later HTTP migration evidence; source wiring and recorded offline CI are distinguished from live endpoint/deployment verification.
+- Inventory read-back: blob `b64f3579ea7f455b26c3d3d3ba662b00bc17d480`, 18,170 characters; static-only/no-runtime-inspection boundary present.
+- T0 contract read-back: blob `e4ce9e30b64c73610369dcfeeb8d76dd88f99be9`, 14,381 characters; superseded historical finding and current HTTP integration status present.
+- CI/tests: NOT RUN for this documentation increment. No artifact.
+- Next: request explicit approval before any read-only VPS/storage inventory capture. Do not assign numeric retention values or perform archive, vacuum, cleanup, backup expiry, or deletion based on this static baseline.
