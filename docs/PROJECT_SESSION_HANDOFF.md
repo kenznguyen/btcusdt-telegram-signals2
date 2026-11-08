@@ -7380,4 +7380,24 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No source code, tests, workflows, VPS, SSH, database, Feeder, Collector, sync, network probe, retention, archive, vacuum, cleanup, backup expiry, or deletion was performed or activated.
 - CI/tests: NOT RUN for this documentation-only alignment. No artifact.
 - Verification after handoff update: all seven architecture documents (environment boundary, foundation, lifecycle policy, consumer contract, deletion contract, cross-contract review, and static inventory) were fetched and checked; handoff blob was read back through GitHub Git Data; branch HEAD was verified as `080b031fc1448e8512f9b7d8b924856646f9b1c7`; compare from the environment-boundary commit is 8 ahead / 0 behind. Documentation read-back PASS. CI/tests NOT RUN; no artifact. No deployment or lifecycle action is authorized.
-- Next: keep runtime facts NOT VERIFIED until the user designates a future official environment and separately approves a least-privilege inventory scope. Continue only with source/documentation work that does not imply runtime inspection.
+- Next: perform a bounded read-only inventory of the current experimental VPS under the updated `ENVIRONMENT_EVIDENCE_BOUNDARY.md`. Label all observations EXPERIMENTAL; do not treat them as official T0 acceptance. No mutation, deployment, service restart, database write/migration, ingestion, sync, retention, archive, vacuum, cleanup, backup expiry, or deletion is authorized.
+
+
+## 2026-11-09 — User revokes blanket prohibition on experimental VPS data collection
+
+- User explicitly revoked the previous blanket prohibition on collecting data from the current VPS, including read-only inspection.
+- Permission now covers a bounded read-only inventory of the current experimental VPS: filesystem/mount/volume metadata, service/process metadata, redacted configuration, database identity/schema/version/table metadata/row counts/bounded coverage/integrity, and backup/replica/consumer metadata.
+- All observations must be labeled EXPERIMENTAL. The VPS remains non-official; official T0 environment remains NOT DESIGNATED. Experimental observations must not be promoted to official acceptance or canonical production claims.
+- Explicitly not authorized: writes, deletes, migrations, vacuum/compaction, restarts, deployments, installations, reconfiguration, permission changes, ingestion, sync, retention, archive, cleanup, backup expiry, or any other mutation/lifecycle operation.
+- Credentials, private keys, tokens, and unrestricted raw account/user data must not be collected into logs or committed evidence. Stop if a command's read-only behavior is uncertain.
+- Updated environment/evidence boundary and all lifecycle/inventory documents to remove the superseded blanket inspection ban:
+  - Environment boundary: `d536c743f058c69a97baaa93ba7dc3c362dbe38b`.
+  - Static inventory: `279af057f8793bdc0cad00cac8488b638c0d660f`.
+  - Shared Data Foundation: `4f71b5536db7df4c34c550fcaf03587de132e53f`.
+  - Central Data Lifecycle Policy: `f6c210eeba9fe2af60135b0d1499bb73a77c441b`.
+  - Dataset Consumer Contract: `ae09fc388a4d6ebe401465abaec202e0575aed11`.
+  - Data Deletion Safety Contract: `38e4d26033aa171ccaf10f20180144c586756697`.
+  - Cross-contract review: `c7ab2a4727584193b5558fee629196cb3fd0d779`.
+- No VPS connection or inventory command has yet been run in this increment. This change records authorization only.
+- CI/tests: NOT RUN. No artifact.
+- Next: prepare a read-only command plan, verify branch/source identity and access path, then collect bounded experimental metadata only. Record timestamps, commands, exit status, and redacted outputs. No mutation/lifecycle action without separate authorization.
