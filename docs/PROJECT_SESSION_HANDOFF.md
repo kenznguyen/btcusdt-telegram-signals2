@@ -6738,3 +6738,74 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - This provides regression evidence for T0/T1 code at the same source SHA, not a certification or activation of canonical T0 runtime. The full repository-wide unittest discovery suite was not run in this increment.
 - Artifacts from this workflow include Gateway 13613170916, provider bootstrap 13613190837, Timescale read-only 13612911518, paper consumers 13612946066, T1 importer 13613160296, and T1 Rust sidecar 13612966914. GitHub metadata digests are retained by the run; payload bytes were not independently downloaded and re-hashed here.
 - Evidence report: docs/evidence/t2/T2_HTTP_CANDLE_CLIENT_GREEN_2026-11-08.md.
+
+
+## 2026-11-08 — T2 HTTP consumer migration complete (supersedes prior NOT STARTED status)
+
+### Scope / approvals
+
+- User explicitly approved T2 consumer migration after isolated HTTP adapter GREEN.
+- Implemented on existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch/PR.
+- Source SHA used by final adapter + migration + exporter verification: `65fe065ccdc197a51b969da37ce99d5414201a92`.
+- Later documentation-only commits record the evidence; no T2 production/test source changed after SHA 65fe.
+
+### Code changes
+
+- `freqai_bridge/context.py`: replaced `market_data.store.INTERVAL_MS/read_window` with `CandleHttpClient` and `CandleHttpConfig`. Context API is now `canonical_context(now_ms=None, bars=2, *, client=None)`; it requests aligned BTCUSDT M15 candles through `GET /v1/candles` with `asOfMs` set to the consumer observation cutoff.
+- Required process environment: `T0_CANDLE_API_BASE_URL`, `T0_CANDLE_API_TOKEN`, `T0_CANDLE_MAX_LAG_MS`. The last must be an explicit integer and is bounded by the approved maximum 120000 ms. Credentials are not stored in config or committed.
+- `freqai_bridge/ChartProFreqaiResearch.py`: removed `canonical_db_path`; strategy calls HTTP context, catches safe HTTP errors, and emits prediction unavailable on missing/invalid data.
+- `freqai_bridge/config.research.json`: removed `canonical_db_path`.
+- `freqai_bridge/test_exporter.py`: no longer depends on SQLite to build its fixtures.
+- `freqai_bridge/README.md`: documents HTTP-only source and environment configuration.
+- No SQLite/cache/synthetic/alternate venue fallback. Native entry/exit flags remain zero; `confirm_trade_entry()` remains false.
+
+### Verification evidence
+
+1. **HTTP adapter + migration + exporter** — run `42470569288`
+   - URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42470569288
+   - Exact checkout SHA: `65fe065ccdc197a51b969da37ce99d5414201a92`.
+   - Job `128700143303`, conclusion SUCCESS.
+   - 45 HTTP adapter tests PASS; 11 context/migration tests PASS; 6 exporter tests PASS.
+   - Compile and paper-only preflight PASS.
+   - Artifact ID `13612932409`; name `t2-http-adapter-65fe065ccdc197a51b969da37ce99d5414201a92`; SHA-256 `2d93c86d272c13894e4662aef32229373a138701e0100dd6c02ad8f38b4d3f0f`.
+
+2. **Freqtrade 2026.9 smoke + consumer/exporter/pipeline regressions** — run `42470559497`
+   - URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42470559497
+   - Exact checkout SHA: `f016e82434609d77eb17a10eb48207933dd4040c`.
+   - Job `128700074546`, conclusion SUCCESS; Freqtrade 2026.9; paper-only preflight PASS; strategy load without exchange sync/database access; 31 tests PASS.
+   - Artifact ID `13613257638`; SHA-256 `fef2b839a84a5c25fa0e090e2356542736932f9669bf61e34541271786bcdcbc`.
+   - The only commit from this SHA to final verification SHA 65fe was a workflow-only update to `.github/workflows/t2-http-consumer-red.yml`; T2 source/test files were unchanged.
+
+3. **T0/T1 regression** — run `42470342807`
+   - URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42470342807
+   - Checkout SHA `720bdf77106a58dfcd4e537d67cd329806ca2243`; all six jobs SUCCESS: T1 importer, Rust sidecar, disposable provider bootstrap, paper consumer fixtures, static Gateway and isolated TimescaleDB read-only integration.
+   - Regression evidence only; no canonical T0 DB or VPS runtime was used.
+
+4. **Loopback HTTP integration**
+   - One of the 11 context/migration tests starts an in-process loopback HTTP server and calls the actual Requests-backed `CandleHttpClient` through `canonical_context`.
+   - Confirms Authorization Bearer header, endpoint path, request window/asOfMs, response validation and dataset hash.
+   - It is not a live T0 service/TLS/credential test.
+
+### Status
+
+| Item | Status |
+|---|---|
+| HTTP adapter | PASS |
+| T2 context HTTP wiring | PASS |
+| T2 direct SQLite dependency removal | PASS |
+| `canonical_db_path` removal | PASS |
+| No-fallback migration acceptance | PASS |
+| Loopback HTTP integration | PASS |
+| Freqtrade 2026.9 strategy-load smoke | PASS |
+| Live T0 endpoint / remote TLS / deployed credentials | NOT VERIFIED |
+| Independent second-reviewer sign-off | NOT VERIFIED |
+| Full repository-wide unittest discovery | NOT VERIFIED |
+| T2 runtime activation/deployment | NOT AUTHORIZED |
+
+### Limits / next step
+
+- No T0 API/store/DB, Feeder, VPS, exchange, runtime service, model training, paper order routing, deployment or live execution was changed or started.
+- Actual endpoint, certificate, token and environment values have not been deployed or verified. Runtime configuration and live read-only connectivity require a separate controlled verification plan and approval.
+- Keep `ai_execution_enabled=false`. Freqtrade entry/exit signals and trade-entry confirmation remain disabled.
+- Evidence report: `docs/evidence/t2/T2_HTTP_CANDLE_CLIENT_GREEN_2026-11-08.md`.
+- Architecture/test plan: `docs/architecture/T2_HTTP_CANDLE_CONSUMER_CONTRACT_AND_TEST_PLAN_2026-11-08.md`.
