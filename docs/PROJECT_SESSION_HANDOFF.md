@@ -6553,3 +6553,16 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Status: design plan committed; implementation NOT AUTHORIZED; tests NOT RUN; T2 HTTP migration NOT STARTED; T2 direct SQLite path remains NON-CONFORMANT; runtime activation/deployment NOT AUTHORIZED.
 - Next step: resolve the freshness boundary rule and approve operational HTTP limits. Only then request/obtain separate authorization for RED tests and implementation.
 - Safety unchanged: no T0 canonical DB/Feeder/VPS/exchange/Data Quality Gate action; no T1/T2 runtime activation; keep `ai_execution_enabled=false`; no live execution.
+
+## 2026-11-08 — User approval: T2 freshness boundary rule
+
+- Updated plan: `docs/architecture/T2_HTTP_CANDLE_CONSUMER_CONTRACT_AND_TEST_PLAN_2026-11-08.md`.
+- Decision documentation commit: `d854910e7e19b49d0b37694be3d79ca6136ff55c`.
+- User explicitly approved evaluating freshness/window completeness against the requested window, not requiring server-global `latestExpectedOpenTimeMs` to fall inside that window.
+- For M15, the latest required candle is `openTimeMs = endMs - 900000`. Server-global expected timestamp remains diagnostic metadata.
+- Continue validating `generatedAtMs`, `availableAtMs`, and mandatory configured M15 max-lag; missing/invalid threshold fails closed.
+- No automatic window shift/re-request and no SQLite/cache/synthetic/alternate-venue fallback.
+- Boundary tests must cover client/server clocks on opposite sides of a 15-minute boundary and stale-data rejection.
+- Approval scope is the freshness boundary design only. Numeric connect/read timeout, retry/backoff, and response-body-size limits remain NOT APPROVED. RED tests have not been added/run. HTTP implementation and runtime activation remain NOT AUTHORIZED.
+- No code, tests, T0 DB, Feeder, VPS, exchange, Data Quality Gate, T1/T2 runtime, deployment, or live execution changed. Keep `ai_execution_enabled=false`.
+- Next step: propose explicit numeric HTTP transport/resource limits for review; after those are approved, obtain separate authorization for RED tests and implementation.
