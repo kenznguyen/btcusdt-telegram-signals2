@@ -90,7 +90,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          python -m unittest quant_system.test_ai_provenance_validator -v
+          python -m unittest quant_system.test_ai_provenance_validator -v 2>&1 | tee t2-ai-leverage-evidence/ai-provenance-validator-tests.log
       - name: Compile AI calibration and leverage contracts
         shell: bash
         run: |
