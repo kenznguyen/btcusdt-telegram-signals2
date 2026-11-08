@@ -91,7 +91,7 @@ def response_envelope(**changes):
     return envelope
 
 
-class T2HttpConsumerRedTest(unittest.TestCase):
+class T2HttpConsumerTest(unittest.TestCase):
     def _adapter(self):
         from freqai_bridge.http_candles import CandleHttpClient, CandleHttpConfig, CandleHttpError
         return CandleHttpClient, CandleHttpConfig, CandleHttpError
@@ -250,7 +250,7 @@ class T2HttpConsumerRedTest(unittest.TestCase):
 
     def test_invalid_decimal_or_ohlc_relationship_is_rejected(self):
         _, _, Error = self._adapter()
-        for changes in ({"open": 100.0}, {"high": "NaN"}, {"low": "103"}, {"volume": "-1"}):
+        for changes in ({"open": 100.0}, {"high": "NaN"}, {"low": "103"}, {"volume": "-1"}, {"open": "1e2"}, {"close": "1_0"}):
             candle = response_envelope()["candles"][0] | changes
             client, _ = self._client(envelope=response_envelope(candles=[candle]))
             with self.subTest(changes=changes), self.assertRaises(Error):
