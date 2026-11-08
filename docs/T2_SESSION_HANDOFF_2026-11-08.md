@@ -4,106 +4,109 @@
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
-- Latest branch HEAD at handoff publication: `581fc72d6bab1441bf052e526f4b59793f61c441` (R22.2 evidence update).
-- Latest implementation/test source SHA: `d4e04a701ae229c585d4598e93632831791c74d3`.
-- Implementation source commit: `d4e5d05070e18478f9bfc7927d881e3658f7affe`.
+- Latest verified code/test SHA: `1d3359cbcadaa9b7d2b7872ff349b32c5be98390`.
+- Latest evidence-document commit before this handoff update: `a895dcdeb9725f12e7d194106d212e1bf5afe792`.
 - PR #95: OPEN / DRAFT / NOT MERGED.
+- PR head at code verification: `1d3359cbcadaa9b7d2b7872ff349b32c5be98390`.
 - PR base: `feature/dual-strategy-phase22-frozen-reproducibility-20261031` at `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
 - No new branch or PR was created.
-- The canonical `docs/PROJECT_SESSION_HANDOFF.md` exists on the repository default branch but was not present on this active feature branch. This T2-specific handoff supplements it without rebasing or merging unrelated branch history.
+- Canonical `docs/PROJECT_SESSION_HANDOFF.md` was read on the default branch. It is absent from this active feature branch; this T2-specific handoff supplements it without rebasing unrelated branch history.
 
-## Changed files in this workstream
+## Changed files
 
-- `quant_system/test_dual_ledger_contract.py` — 11 contract tests.
-- `.github/workflows/t2-dual-ledger-contract.yml` — GitHub Actions gate, unchanged in GREEN increment.
-- `quant_system/dual_ledger.py` — initial independent ledger and shared risk admission implementation.
-- `quant_system/DUAL_LEDGER_RED_EVIDENCE_2026-11-08.md` — original RED evidence.
-- `quant_system/DUAL_LEDGER_GREEN_EVIDENCE_2026-11-08.md` — GREEN evidence, test and review boundaries; updated after R22.2 completed SUCCESS.
+- `quant_system/dual_ledger.py` — isolated ledgers, persistent shared reservations, gross margin and gross notional exposure.
+- `quant_system/test_dual_ledger_contract.py` — 17 focused contract tests.
+- `.github/workflows/t2-dual-ledger-contract.yml` — existing GitHub Actions gate.
+- `quant_system/DUAL_LEDGER_RED_EVIDENCE_2026-11-08.md` — RED evidence.
+- `quant_system/DUAL_LEDGER_GREEN_EVIDENCE_2026-11-08.md` — current GREEN evidence and limitations.
 - `docs/T2_SESSION_HANDOFF_2026-11-08.md` — this handoff.
 
-Working-tree status: GitHub contents API commits were used; local working-tree status was not inspected and is therefore NOT VERIFIED.
+Working-tree status: NOT VERIFIED; changes were committed through GitHub Contents API and no local checkout status was inspected.
 
-## Completed work and exact evidence
+## Completed implementation
 
-### T2 Dual Ledger Contract
+- CORE and AI have separate persisted position, DCA, equity and realized-PnL state.
+- Both ledgers can share a SQLite file; writes use transactions.
+- Each accepted entry/DCA calculates margin as 1% of supplied account equity.
+- No fixed position-count cap; margin collateral is checked against shared gross margin.
+- Gross notional exposure sums absolute position notionals across both strategies; opposing LONG/SHORT positions do not net.
+- Atomic persistent reservation serializes competing CORE/AI admissions with SQLite `BEGIN IMMEDIATE`.
+- Pending reservation margin and notional exposure are counted before consumption.
+- Entry/DCA ledger updates consume a matching reservation exactly once and reject actual notional above the reserved amount.
+- Direct low-level state restoration is explicitly named `restore_position` / `restore_dca`; new strategy increases use reserved-write APIs.
+- Stale data, unreconciled state, Kill Switch and insufficient collateral fail closed.
+- No exchange execution path was added.
 
-- Direct push run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454140520
-  - Run ID: `42454140520`, event `push`, conclusion SUCCESS.
-  - PR/code source SHA and checked-out SHA: `d4e04a701ae229c585d4598e93632831791c74d3`.
-  - Job ID: `128649446306`.
-  - Tests: 11/11 PASS.
-  - Artifact: none.
-- PR run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454144922
-  - Run ID: `42454144922`, event `pull_request`, conclusion SUCCESS.
-  - PR head SHA: `d4e04a701ae229c585d4598e93632831791c74d3`.
-  - Base SHA: `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
-  - Checked-out synthetic merge SHA: `41a059bdc40c74c5c5b028ef78de3d7e8068935e`.
-  - Job ID: `128649460255`.
-  - Tests: 11/11 PASS.
-  - This is merge-context verification, not exact-head checkout; exact-head proof is the direct push run above.
+## Exact verification
 
-### T0 adapter regression
+### T2 direct push — exact source SHA
 
-- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454144881
-- Run ID: `42454144881`, event `pull_request`, conclusion SUCCESS.
-- PR head and checked-out SHA: `d4e04a701ae229c585d4598e93632831791c74d3`.
+- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454705548
+- Run ID: `42454705548`, event `push`, conclusion SUCCESS.
+- Source SHA and checked-out SHA: `1d3359cbcadaa9b7d2b7872ff349b32c5be98390`.
+- Job ID: `128651142263`.
+- Result: **17 tests, OK**.
+- Artifact: none.
+
+### T2 pull-request merge-context run
+
+- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454708246
+- Run ID: `42454708246`, event `pull_request`, conclusion SUCCESS.
+- PR head SHA: `1d3359cbcadaa9b7d2b7872ff349b32c5be98390`.
 - Base SHA: `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
-- Tests: 10/10 PASS.
-- Artifact ID: `13606424039`, name `f1-t0-freqtrade-adapter-41a059bdc40c74c5c5b028ef78de3d7e8068935e`, size 943 bytes, not expired at inspection.
-- GitHub upload digest: `7cff01c719d5a6f87396da40bb6ce6fd8cd6ff255d5b27289f15e61146707711`.
-- Artifact payload bytes have not been independently downloaded and re-hashed.
+- Checked-out synthetic merge SHA: `4fdcafafa008f1f2bfcae29134c7b56e512fde1a`.
+- Job ID: `128651150310`.
+- Result: **17 tests, OK**.
+- This is merge-context verification, not exact-head checkout; the direct push run above proves the exact source SHA.
 
-### R22.2 isolated Phase 22 verification
+### T0 adapter regression at exact PR head
 
-- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454144968
-- Run ID: `42454144968`, event `pull_request`, conclusion SUCCESS.
-- PR head SHA: `d4e04a701ae229c585d4598e93632831791c74d3`.
+- Run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454708185
+- Run ID: `42454708185`, event `pull_request`, conclusion SUCCESS.
+- PR head and checked-out SHA: `1d3359cbcadaa9b7d2b7872ff349b32c5be98390`.
 - Base SHA: `b8f120fa0975225e5b7ff6243bd374cbde80b158`.
-- Checked-out synthetic merge SHA: `41a059bdc40c74c5c5b028ef78de3d7e8068935e`.
-- Job ID: `128649460777`.
-- Offline runtime probe: 8 tests PASS.
-- Paper-only boundary passed; OKX API key/secret environment values were empty; no exchange execution.
-- Artifact ID: `13607047149`, name `r22-2-phase22-runtime-41a059bdc40c74c5c5b028ef78de3d7e8068935e`, size 7,026 bytes, not expired at inspection.
-- GitHub upload SHA-256 digest: `efcf2bade58264d6e257509998962b13b17f35bc45a6ebab76058740772f170b`.
-- Artifact payload bytes have not been independently downloaded and re-hashed.
+- Result: **10 tests, OK**.
+- Artifact ID: `13607446120`, name `f1-t0-freqtrade-adapter-4fdcafafa008f1f2bfcae29134c7b56e512fde1a`, 943 bytes, not expired at inspection.
+- GitHub upload digest: `d665868f664994c9d53085f047a84e14090df3e1f38ae07645295cc7a7941c33`.
+- Artifact payload has not been independently downloaded and re-hashed.
 
-## Current technical verdict
+### R22.2
 
-- Independent CORE/AI ledger storage contract: PASS (11/11).
-- Per-ledger position, DCA, equity and realized-PnL isolation: PASS in focused tests.
-- Shared gross-margin sum and 1% admission calculation: PASS in focused tests.
-- Kill Switch entry/DCA rejection and reduction-intent acceptance: PASS in focused tests.
-- Exact-head direct-push T2 verification: PASS.
-- T0 adapter regression at exact PR head: PASS.
-- R22.2 isolated offline probe: PASS.
-- Full atomic shared-risk admission: BLOCKED / NOT IMPLEMENTED.
-- Combined CORE + AI portfolio replay: NOT RUN.
+- Latest run for current code SHA: `42454708188`.
+- URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42454708188
+- At handoff capture: PENDING / NOT VERIFIED.
+- Earlier R22.2 PASS on SHA `d4e04a701ae229c585d4598e93632831791c74d3` does not certify subsequent atomic reservation and gross exposure changes.
+
+## Current verdict
+
+- Ledger isolation and persistence: PASS (focused tests).
+- Atomic reservation and exactly-once consumption: PASS (concurrency tests).
+- Gross margin and gross notional aggregation without directional netting: PASS (focused tests).
+- T2 exact-head CI: PASS (17/17).
+- T0 adapter regression exact-head: PASS (10/10).
+- R22.2 latest code: PENDING / NOT VERIFIED.
+- Combined CORE + AI signal coordinator: NOT IMPLEMENTED.
+- Combined paper replay: NOT RUN.
 - T0/T1 live data integration: NOT RUN.
 - Production readiness: NOT CERTIFIED.
 
-## Code-review findings — must address before combined paper use
+## Remaining required work before combined paper use
 
-1. SharedRiskEngine admission methods are read-only. They do not atomically reserve collateral. Concurrent CORE and AI admissions can inspect the same snapshots. Add a shared transactional reservation/fencing boundary.
-2. Ledger `record_entry` and `record_dca` accept writes without consuming a current accepted RiskDecision. The coordinator must bind every increase to a valid, single-use reservation.
-3. Current available-collateral calculation is supplied account equity minus gross recorded margin, effectively preventing recorded margin from exceeding 100% of that equity. This is provisional collateral behavior, not an approved total-risk ceiling. Confirm the intended portfolio margin budget before combined paper testing.
-4. Reduction admission is implemented, but reduction/close ledger accounting transitions are not yet implemented.
+1. Gross exposure ceiling has not been defined. Engine reports gross notional exposure but does not invent a maximum. Confirm the intended exposure limit.
+2. Available collateral currently uses account equity minus gross recorded/pending margin, effectively capping committed margin at 100% of supplied equity. Confirm this portfolio margin budget before combined paper use.
+3. Add evidence-backed cancellation/reconciliation for interrupted reservations. Until then, unresolved reservations remain fail-closed and continue holding collateral.
+4. Implement atomic reduction/close accounting: reduce quantity, release proportional margin, and book realized PnL/fees.
+5. Integrate CORE and AI signal routes through persistent `reserve_entry`/`reserve_dca` and the reserved ledger-write methods. No signal route has been wired yet.
 
 ## Constraints
 
-- `ai_execution_enabled=false`.
-- Paper/research only. No real orders.
-- Do not create/open canonical T0 database, start Feeder, connect to exchange, or sync market data.
-- Do not change T0/T1 schema or interfaces.
+- Keep `ai_execution_enabled=false`.
+- Paper/research only; no real orders.
+- Do not create/open canonical T0 DB, start Feeder, connect to exchange, or sync market data.
+- Do not change T0/T1 schemas or interfaces.
 - Do not merge PR #95 or any other PR without explicit user approval.
-- Do not rebase or retarget PR #95 without explicit scope approval.
+- Do not rebase or retarget PR #95 without explicit approval.
 
 ## Next step
 
-Start T2 GREEN 2 using TDD:
-1. Write RED tests for concurrent CORE/AI admissions against one shared collateral budget.
-2. Test duplicate reservation rejection and exactly-once reservation consumption.
-3. Test that ledger entry/DCA writes cannot bypass the risk reservation.
-4. Add reduction/close accounting tests.
-5. Implement the smallest transactional shared coordinator and rerun exact-head GitHub Actions plus existing regressions.
-
-Do not start combined paper replay until the atomicity and policy-budget questions above are resolved.
+Continue T2 with RED tests for reservation cancellation/reconciliation and reduction/close accounting. Implement those transactions, then wire both signal streams through the persistent shared-risk coordinator. Do not begin combined paper replay until the gross exposure ceiling and collateral budget are explicitly defined.
