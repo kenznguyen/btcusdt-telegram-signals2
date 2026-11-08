@@ -652,3 +652,17 @@ Implement semantic reconciliation between the signed prediction JSONL and the si
 - No code/tests/training/backtest/runtime changed. No T0/T1 DB/feeder/exchange/paper/live activity. `AI_EXECUTION_ENABLED=false`.
 - PR #95 remains OPEN / DRAFT / NOT MERGED. No merge/rebase.
 - Next: settle target semantics and H1 feature role, then add versioned label/decision contract and signed-manifest bindings with RED tests. Do not start training or consume OOS holdout before protocol sealing.
+
+
+## AI Label/Direction Contract V1 design increment — 2026-11-08
+
+- User proceeded with the recommended V1 design: Regression-to-Direction; M15 and H1 are both intended as actual model features.
+- Contract document: `quant_system/T2_AI_LABEL_DIRECTION_CONTRACT_V1_2026-11-08.md`.
+- Contract commit: `51e1a3e88096217a28ca576fa4c0a09ee1dff8b3`; verified file blob `ddb7896ef664f4bbbfc17d91315a1b223e24e42a`.
+- Design rules: scalar forward-return target; separately registered LONG/SHORT thresholds with neutral ABSTAIN interval; no sign-only mapping; regression output is not calibrated probability; confidence requires a separately versioned calibration mapping.
+- H1 is selected as a true feature, but current research config only declares M15. Actual H1 fit/inference feature matrix remains NOT IMPLEMENTED / NOT VERIFIED.
+- Horizon, decision/outcome price basis, label end/availability, LONG/SHORT thresholds, purge/embargo and split protocol remain unset and BLOCKED pending training-only design evidence. No OOS-derived threshold selection.
+- Implementation sequence: schema/parser + RED tests; strict validation; actual H1 feature matrix and alignment proof; seal label/split protocol; bind contract/feature schema into signed manifest; only then consider explicitly authorized offline training/backtest.
+- No tests run because this increment is design documentation only. No code, model training, OOS, backtest, T0/T1 data/runtime, paper runtime, exchange connection or orders touched.
+- `AI_EXECUTION_ENABLED=false`; PR #95 remains OPEN / DRAFT / NOT MERGED.
+- Next step: implement the versioned label/direction contract parser and RED tests. Keep horizon/thresholds mandatory inputs and fail closed; do not start training or access OOS.
