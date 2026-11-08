@@ -5,6 +5,8 @@ on:
     branches:
       - feature/dual-strategy-phase22-preholdout-attestation-20261031
     paths:
+      - "quant_system/ai_dynamic_leverage.py"
+      - "quant_system/test_ai_dynamic_leverage.py"
       - "quant_system/dual_signal_coordinator.py"
       - "quant_system/test_dual_signal_coordinator.py"
       - "quant_system/dual_ledger.py"
@@ -61,6 +63,8 @@ jobs:
           test -z "$BINANCE_API_SECRET"
           test -z "$OKX_API_KEY"
           test -z "$OKX_API_SECRET"
+      - name: Run independent AI dynamic leverage contract tests
+        run: python -m unittest quant_system.test_ai_dynamic_leverage -v
       - name: Run coordinator contract tests
         run: python -m unittest quant_system.test_dual_signal_coordinator -v
       - name: Run shared dual-ledger regression
