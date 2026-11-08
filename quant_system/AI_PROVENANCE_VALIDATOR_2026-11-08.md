@@ -112,3 +112,34 @@ This is a row-level chronology and lineage consistency check for prediction reco
 - No real BTCUSDT model, dataset, predictions, split protocol or calibration report were supplied.
 - No production trust root or independent signer is provisioned.
 - Calibration attestation remains NOT ISSUED; AI leverage authorization and runtime integration remain NOT IMPLEMENTED.
+
+
+## Calibration report semantic reconciliation — 2026-11-08
+
+### Implemented contract
+
+The signed `calibration_report` artifact is now parsed as strict UTF-8 JSON with duplicate-key and non-finite-number rejection. The report must contain the exact schema and explicitly declare the approved gate policy:
+- `max_ece = 0.05`
+- `min_total_samples = 1000`
+- `min_group_samples = 200`
+- `ece_bins` explicitly supplied in [1, 100]
+- non-empty, unique `required_regimes`
+
+The validator reconstructs calibration observations from the exact signed prediction JSONL rows, runs the existing `CalibrationEvaluator`, and compares the complete report: accepted state, reasons, sample/group counts, all metrics, `input_sha256`, `report_sha256`, policy, and the false trade/attestation flags. Any mismatch rejects the provenance verification. No calibration attestation is issued.
+
+### TDD and exact-source CI
+
+- RED test run [42459991105](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459991105), source `ae46e708d05a91e11c1a0d7b0e8476ce60c1c901`: four new semantic mismatch contracts failed as expected before implementation.
+- GREEN implementation source SHA: `b2623527add57002e8b32123c67f4484c88d0efa`.
+- Exact-source push run [42460071397](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42460071397), job `128667260783`, SUCCESS; `github_sha` and `checked_out_sha` both equal the source SHA.
+- Suite counts: provenance validator 28/28; calibration evaluator 16/16; dynamic leverage 14/14; coordinator 11/11; dual ledger 23/23; Phase 2 20/20; Phase 3 11/11; PaperLedger 18/18. **141/141 test invocations PASS**; py_compile PASS.
+- Artifact ID `13609103523`, name `t2-ai-intelligence-contracts-b2623527add57002e8b32123c67f4484c88d0efa`, digest `sha256:483a1d4952d7f578c7e4063d05d6efadfa4e1190937985fccc37a47cfe059062`.
+- CI preflight confirms `AI_EXECUTION_ENABLED=false`, DB targets EMPTY, exchange credentials EMPTY.
+
+### Remaining boundaries
+
+- This proves internal consistency between the signed prediction JSONL and signed calibration report, not that predictions/outcomes are true or that the dataset is authentic.
+- Dataset rows and candle timestamps remain opaque; prediction outcomes are not recomputed from OHLCV.
+- No proof of feature/label leakage absence, training lineage, or model-to-prediction execution identity.
+- No real BTCUSDT OOS artifacts or production trust root/independent signer were supplied.
+- Calibration attestation NOT ISSUED; leverage authorization NOT ISSUED; runtime integration NOT IMPLEMENTED.
