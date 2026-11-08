@@ -6458,3 +6458,19 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Production code unchanged. No T2 HTTP client or FreqAI migration. No canonical DB access/modification, Feeder action, exchange connection, data sync, Data Quality Gate, or T0/T1/T2 runtime activation.
 - Restrictions unchanged: keep the supervised Feeder untouched; keep `ai_execution_enabled=false`; no live execution.
 - Next step: run the focused API tests through the approved GitHub Actions workflow, record exact checked-out SHA and run/job/artifact evidence, and confirm RED before separately authorizing API implementation.
+
+
+
+## 2026-11-08 — T0 Candle Contract v1 corrected RED baseline
+
+- Workstream: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Corrected test-only source SHA: `9f5b9f12473ef5e25aa0caadf68c5230f3de2bb8`; commit `test(t0): align volume assertion with canonical decimal`.
+- User fetched the branch explicitly; both remote-tracking ref and detached HEAD matched `9f5b9f12473ef5e25aa0caadf68c5230f3de2bb8`; working tree reported clean.
+- Focused command: `python3 -m unittest market_data.test_api -v`, executed by user in Termux/Android.
+- Result: 13 tests, **10 PASS, 3 expected RED errors**, 0 assertion failures, 0.357s. The three remaining failures are missing `contractVersion` and missing `freshness` in two test cases. Canonical volume assertion now passes with `"2.5"`.
+- RED evidence closeout updated in commit `9e62b2fa86967ef0988f813102319adbf1a7fca4`: `docs/evidence/t0/T0_CANDLE_CONTRACT_V1_RED_EVIDENCE_CLOSEOUT_2026-11-08.md`.
+- GitHub Actions exact-head run/artifact: **NOT VERIFIED / NOT RECORDED** for this Termux execution.
+- Current branch HEAD after evidence-only update: `9e62b2fa86967ef0988f813102319adbf1a7fca4`. No production API code changed in this increment.
+- Verdict: **RED BASELINE CONFIRMED** for the three contract envelope/freshness gaps; existing regression behavior and canonical decimal assertion pass.
+- Next step: implement additive Contract v1 API envelope/freshness under TDD GREEN on this same branch, after explicit user authorization required by the contract design. Then run focused tests and full relevant suite/CI with exact SHA evidence.
+- Restrictions: no T2 HTTP client/FreqAI migration in this increment; no canonical DB, Feeder, VPS runtime, exchange, Data Quality Gate, or T1/T2 runtime actions; no source promotion or live execution. Keep `ai_execution_enabled=false`.
