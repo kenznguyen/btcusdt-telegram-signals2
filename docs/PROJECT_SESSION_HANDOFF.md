@@ -6414,3 +6414,19 @@ Documentation-only closeout is complete for this increment. If further assurance
 - Detailed startup/recovery logs and exact loaded-code provenance remain NOT VERIFIED. Reboot/autostart NOT RUN / NOT AUTHORIZED. No GitHub Actions run/artifact (VPS-only observation; no source change).
 - Restrictions: keep current Feeder running; no duplicate; no systemd/autostart/linger, no T1 activation, no authenticated exchange access, no symbol/timeframe expansion, no live execution.
 - Next bounded task: read-only T0 data-quality/continuity/age monitoring; define and review stale-data/gap thresholds before any readiness promotion.
+
+
+## 2026-11-08 — T0–T1–T2 data consumption architecture decision
+
+- Decision document: `docs/architecture/T0_T1_T2_DATA_CONSUMPTION_ARCHITECTURE_2026-11-08.md`.
+- Decision commit: `b320d2d7c8a03989d4f4dae289f01f5a714a4d4f`.
+- Status: **APPROVED ARCHITECTURE TARGET — IMPLEMENTATION NOT VERIFIED**.
+- T0 remains an independently owned canonical data asset and single-writer boundary. T1/T2 are separate consumers; no direct canonical SQLite access by default and no consumer writes/migrations/schema changes against T0.
+- T0 publishes scoped, versioned, read-only candle contracts. T1 receives only partial base-candle input from current T0 evidence; funding/OI/liquidations/Order Book/large-trade streams remain separate T1 inputs with their own provenance and quality gates.
+- T2 may proceed with fixture-first/read-only adapter integration. Existing OKX research/backtest baseline remains unchanged; T0 is not approved as official replacement or sole OOS source.
+- Shared Risk Engine/Kill Switch remains downstream of Core and independent AI signal generation. Both signal sources must pass the same risk controls before paper execution. Keep `ai_execution_enabled=false`.
+- Separate promotion gates: contract conformance **NOT VERIFIED**, Data Quality Gate **PAUSED / NOT VERIFIED**, strategy/source parity **NOT VERIFIED**.
+- This is a documentation-only decision. No code, tests, workflow, artifact, runtime, canonical DB, Feeder, exchange connection, or market-data sync was changed/run.
+- Restrictions preserved: keep the supervised T0 Feeder untouched; no T1/T2 runtime activation; no direct T0 DB access; no systemd/autostart/linger; no live execution.
+- Next step when separately authorized: review/version the T0 read-only candle contract, then fixture-first T2 adapter conformance; resume Data Quality Gate only with explicit authorization.
+- Source branch: `feature/t0-centralized-data-feeder-p1-20261101`. Parent source HEAD: `4ef0e8528a9980ed49eba7b0130b7676ed9e5772`. No GitHub Actions run/artifact: **NOT RUN / NOT APPLICABLE** (documentation-only change).
