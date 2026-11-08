@@ -455,3 +455,22 @@ Next: define and independently provision the trusted signer/key lifecycle, then 
 
 ### Next increment
 Implement semantic reconciliation between the signed prediction JSONL and the signed calibration report: recompute the evaluator input fingerprint and report digest from the exact rows and explicit approved policy; reject any mismatch. Dataset row-level validation remains a separate subsequent gate.
+
+
+### Session boundary snapshot — 2026-11-08 14:40 Asia/Ho_Chi_Minh
+
+- Active repo: `kenznguyen/btcusdt-telegram-signals2`.
+- Active branch: `feature/dual-strategy-phase22-preholdout-attestation-20261031`.
+- Current PR head / branch HEAD: `ceee410b51a6e20572566d81c162bec702f1ae8c`.
+- PR #95: OPEN / DRAFT / NOT MERGED; base `feature/dual-strategy-phase22-frozen-reproducibility-20261031`. No merge/rebase.
+- Tested implementation source: `07e8212e4723cc913e4d0a3b196212f134a8a23e`.
+- Evidence report commit: `645ccf1e9ac848ef5b629bf3927eeb9285b5777f`.
+- This handoff update commit: `ceee410b51a6e20572566d81c162bec702f1ae8c`.
+- Changed files in this increment: `quant_system/ai_provenance_validator.py`, `quant_system/test_ai_provenance_validator.py`, `quant_system/AI_PROVENANCE_VALIDATOR_2026-11-08.md`, `docs/T2_SESSION_HANDOFF_2026-11-08.md`; PR description updated.
+- Working-tree status: NOT VERIFIED (GitHub API updates only; no local checkout inspected).
+- Exact-source push CI [42459618363](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459618363) SUCCESS; artifact `13609465168`, digest `sha256:e548da7a689ea9f0ee877d92f6baef6ffd849f08aeb4f453d2b4db1e37108b87`.
+- PR merge-context CI [42459622326](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42459622326) SUCCESS; synthetic merge checkout `1a04c7abf0464de74c534d3f4de3690f0606e1b7`; artifact `13608987960`, digest `sha256:1ced67485be007d95bdbdd2503e5f8303b707dd5d17604e21651d1ca562104b1`.
+- Total: 136/136 test invocations PASS; py_compile PASS. RED evidence for malformed split is run `42459595402`.
+- `docs/PROJECT_SESSION_HANDOFF.md` was read from the repository default branch. It is not present on this T2 feature branch or its base branch; the T2-specific handoff remains the active branch record.
+- Hard limits remain: `AI_EXECUTION_ENABLED=false`; no live orders, no paper runtime integration, no T0/T1 DB/Feeder/exchange activity, no actual OOS artifacts, no calibration attestation, no leverage authorization.
+- Next permitted increment: semantic reconciliation of prediction JSONL with calibration evaluator report and explicit approved gate policy. Do not activate runtime or issue attestation based on synthetic tests.
