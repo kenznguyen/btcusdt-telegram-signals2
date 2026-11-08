@@ -79,3 +79,13 @@ Do not change storage precision semantics, create a PostgreSQL migration, run Da
 - Verdict: **IMPLEMENTED / NOT VERIFIED** (not PASS).
 - Next step: execute `python3 -m unittest market_data.test_api -v` on exact SHA `d88e3ddda0502708e64c4815ecae08ed707f4641`, then run the repository's full relevant test suite and capture exact GitHub Actions evidence where available. Fix only demonstrated failures on this branch.
 - Restrictions: no T2 HTTP client/FreqAI migration in this increment; no T0 DB, Feeder, VPS, exchange, Data Quality Gate, T1/T2 runtime, deployment, promotion, or live execution. Keep `ai_execution_enabled=false`.
+
+
+## 2026-11-08 — Freshness regression correction (verification pending)
+
+- User-provided focused run at source SHA `d88e3ddda0502708e64c4815ecae08ed707f4641`: 13 tests, 12 passed, 1 failed. The sole failure was `test_contract_v1_empty_as_of_window_has_null_freshness_and_is_not_evaluable`; `latestExpectedOpenTimeMs` was incorrectly capped by the requested `endMs`.
+- Root cause: `latestExpectedOpenTimeMs` is defined by the server generation clock and timeframe boundary, independent of the requested data window. Capping it at `endMs - interval` made an empty historical/as-of window report the wrong expected-candle timestamp.
+- Fix commit: `e317b7dc02363db0600737a89442dd918559af3c` — `fix(t0): calculate freshness from server clock`.
+- Changed file: `market_data/api.py`; blob SHA `81733c9b6de811cbebb2f5d472d41f37f337990c`.
+- The helper now computes `floor(generatedAtMs / interval) * interval - interval` directly. Candle selection, `asOfMs` filtering, store, DB, and runtime are unchanged.
+- Fix status: **IMPLEMENTED / NOT VERIFIED**. Required next check: `python3 -m unittest market_data.test_api -v` at exact SHA `e317b7dc02363db0600737a89442dd918559af3c`. No GREEN claim until user-provided test output and relevant CI evidence are reviewed.
