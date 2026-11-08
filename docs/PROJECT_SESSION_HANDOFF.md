@@ -7243,3 +7243,25 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - No production source/runtime behavior changed in this increment beyond the disposable CI harness assertion. No VPS, canonical database, Feeder/API production process, package, service definition, permission, secret, firewall, DNS, proxy, exchange connection, data retention/deletion, T2 runtime, or live order path was changed or accessed. `ai_execution_enabled=false`.
 - Status: Feeder READY notification **PASS — CI**; transient two-service systemd lifecycle **PASS — CI synthetic**; API directory write denial **PASS — CI synthetic**; API SQL mutation denial **PASS — CI synthetic**; runbook/acceptance matrix aligned **PASS — documentation read-back pending**; VPS compatibility **NOT VERIFIED**; production units **NOT CREATED**; API deployment **BLOCKED**; T2 runtime **NOT ACTIVATED**.
 - Next bounded step: read back the updated test plan, acceptance matrix and paper runbook at the final branch tip; verify the branch ref and exact document blobs. Then decide whether to design (not deploy) a VPS-specific compatibility checklist. No production unit creation or VPS changes without separate explicit approval.
+
+## 2026-11-08 — T0 lifecycle test SQLite connection ResourceWarning fixed
+
+- VPS compatibility investigation:
+  - VPS checkout HEAD was `4cf3959532024d286a76712bd93708b7a96489df`, branch `feature/t0-centralized-data-feeder-p1-20261101`.
+  - VPS working tree had untracked `.logs/` and `.runtime/`; both were left untouched.
+  - VPS Python 3.14.4 isolated dependency installation succeeded (`ccxt 4.5.92`, `psycopg 3.3.8`, `psycopg-binary 3.3.8`). SQLite WAL ext4 smoke passed. Before the fix, Write Gateway tests passed 9/9 and Feeder Lifecycle tests passed 25/25 but emitted a ResourceWarning.
+  - `PYTHONTRACEMALLOC=10` traced the warning to a test fixture using `with sqlite3.connect(db_path) as connection:`; sqlite3 connection context management controls transaction completion but does not close the connection.
+- Confirmed the same fixture remained in the current GitHub branch tip, at line 970 before the change. Fixed only the test fixture in `market_data/test_feeder_lifecycle.py`: added `contextlib.closing` around the connection and retained the nested connection transaction context. No FeederRuntime, WAL Keeper, database, or production behavior changed.
+- Commit: `b865163b2102afc4044a09688b85d0bf5a8d2d4e`; parent `78943d6a8f26412020425ed640292d1d49037caa`; file blob `35aa38e07b326f27f13df66345d7460169d893ec`.
+- GitHub Actions:
+  - T0 Single Writer Gateway Contracts run `42490426724`: **SUCCESS**; static Gateway job `128761371640`: **SUCCESS**; all workflow jobs completed successfully.
+  - The focused Lifecycle test `test_run_once_after_shutdown_never_starts_another_sync` passed with no ResourceWarning in the job log.
+  - Complete `market_data` regression: **292 tests, 42 skipped, OK**.
+  - T0 evidence artifact `13621366993`, digest `sha256:5ae0eb5ebef905e95d0f42ef26291c6ef493b75cdc96138257fba6046bf999c8`.
+  - T0 SQLite read-only systemd sandbox run `42490426709`: **SUCCESS**.
+  - T2 Freqtrade 2026.9 strategy load smoke run `42490428532`: **SUCCESS**.
+- Source comparison after commit: VPS checkout SHA `4cf3959532024d286a76712bd93708b7a96489df` is an ancestor of the current branch; branch is **256 commits ahead, 0 behind**. Do not pull/reset the VPS automatically: its untracked `.logs/` and `.runtime/` remain unreviewed.
+- Verification boundary: GitHub CI used Python 3.12. The prior VPS Python 3.14.4 run reproduced the warning before this branch fix; the fixed source has **not yet been rerun on VPS Python 3.14.4**. Do not claim post-fix Python 3.14 verification.
+- No VPS file, package, service, canonical DB, Feeder/API process, firewall, secret, permission, or network setting was changed. No production unit or ingestion was activated. `ai_execution_enabled=false`; paper-only.
+- Status: test fixture ResourceWarning fix **PASS — GitHub CI**; complete `market_data` suite **PASS — 292 tests / 42 skipped**; VPS Python 3.14 post-fix verification **NOT VERIFIED**; VPS deployment **BLOCKED**.
+- Next: preserve the VPS working tree and inspect the two untracked directories before any checkout synchronization. If synchronization is approved later, use a controlled source update and rerun the focused 25-test lifecycle suite under Python 3.14.4 with `-W error::ResourceWarning`. Do not start Feeder or alter canonical data as part of this test.
