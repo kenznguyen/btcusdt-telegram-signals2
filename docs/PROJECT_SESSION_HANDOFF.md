@@ -7143,3 +7143,20 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Current scope status: architecture decision and cross-document alignment recorded; detailed dataset registry/consumer contract, numeric retention policy, archive policy, deletion safety contract, and retention test plan remain DESIGN REQUIRED.
 - No source code, tests, workflow, database/schema, runtime configuration, VPS, Feeder/API process, exchange connection, market-data sync, archive, vacuum, or deletion was changed or activated. `ai_execution_enabled=false`; paper-only.
 - Next: design `SHARED_DATA_FOUNDATION.md` and `CENTRAL_DATA_LIFECYCLE_POLICY.md` on this same branch. Keep deletion implementation and all real-data destructive operations unauthorized until separate review and explicit approval.
+
+
+## 2026-11-08 — Feeder systemd notification GREEN verified; two-service test plan recorded
+
+- Re-opened current branch after shared-data architecture documentation updates. Existing branch remains `feature/t0-centralized-data-feeder-p1-20261101`; preceding branch tip was `86631c6acf6859571692fbc2410d8a7fa59fc466`.
+- Verified TDD GREEN at exact source SHA `2484cc73edc155b2566b9d73199ad713e04acb10`:
+  - T0 Single Writer Gateway Contracts run `42486755480`: SUCCESS; all six jobs completed successfully.
+  - Static Gateway job `128750279463`: all three `SystemdNotificationContractTest` cases passed; 76 targeted lifecycle/gateway tests passed; health/readiness contracts passed; process-level SIGKILL/restart/fencing acceptance passed; full `market_data` suite ran 292 tests, 42 skipped, OK.
+  - T0 SQLite Read-only systemd Sandbox run `42486755421`: SUCCESS.
+  - T2 Freqtrade 2026.9 smoke run `42486755447`: SUCCESS.
+  - Main evidence artifact `t0-swg-contract-evidence-2484cc73edc155b2566b9d73199ad713e04acb10`, ID `13619512355`, digest `sha256:e5cc2d4d09ede7e42d1bb184497f8dd00593caec8994de00412742b82505a8a0`.
+- Notification adapter source remains in `market_data/feeder_service.py`, blob `7bb77e2a3bc773b7b6b4644834c0654e6a9a327d`: Unix datagram `NOTIFY_SOCKET`, abstract socket support, READY only after `runtime.start()`, STOPPING before drain. Missing NOTIFY_SOCKET remains a no-op outside systemd; advertised but unusable socket fails closed.
+- Added disposable two-service integration test plan: `docs/evidence/t0/T0_SYSTEMD_FEEDER_API_INTEGRATION_TEST_PLAN_2026-11-08.md`; commit `36fba16e83a530ba0b08d96a2643ce2a21e3abb4`. It specifies synthetic SQLite only, real FeederRuntime + LeaseStore + SQLiteWalKeeper, existing WSGI Candle API, transient systemd units, readiness gating, authenticated data-path read, SIGKILL propagation, restart, orderly shutdown order, and read-only filesystem checks.
+- The test plan is design-only. No two-service integration harness or workflow has been implemented/run yet. Do not infer actual `Requires=`, `After=`, or `BindsTo=` behavior from the existing single-service sandbox.
+- No VPS, canonical DB, production systemd unit, Feeder/API service, package, permission, secret, firewall, DNS, proxy, or T2 runtime was changed or accessed. No exchange call or data deletion. `ai_execution_enabled=false` remains unchanged.
+- Status: notification adapter **PASS — disposable CI**; existing WAL sandbox **PASS — disposable CI**; two-service systemd integration **NOT IMPLEMENTED / NOT RUN**; VPS compatibility **NOT VERIFIED**; production deployment **BLOCKED**; T2 runtime **NOT ACTIVATED**.
+- Next bounded step: implement the disposable integration harness and workflow from the test plan, use only synthetic data, require the runner to fail closed if systemd prerequisites are missing, and preserve logs/artifact/digest. No production deployment without separate explicit approval.
