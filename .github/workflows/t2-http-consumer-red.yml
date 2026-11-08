@@ -1,10 +1,11 @@
-name: T2 HTTP Consumer RED Contracts
+name: T2 HTTP Candle Adapter Tests
 
 on:
   push:
     branches:
       - feature/t0-centralized-data-feeder-p1-20261101
     paths:
+      - "freqai_bridge/http_candles.py"
       - "freqai_bridge/test_http_candles.py"
       - ".github/workflows/t2-http-consumer-red.yml"
 
@@ -12,12 +13,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: t2-http-consumer-red-${{ github.ref }}
+  group: t2-http-adapter-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  t2-http-consumer-red:
-    name: Confirm T2 HTTP migration contract gaps
+  t2-http-adapter:
+    name: Verify T2 HTTP candle adapter
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -37,7 +38,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install HTTP test dependency
+      - name: Install HTTP client dependency
         run: python -m pip install --disable-pip-version-check "requests>=2.32.0,<3"
 
       - name: Enforce isolated paper-only test environment
@@ -51,107 +52,32 @@ jobs:
           test -z "${OKX_API_KEY}"
           test -z "${OKX_API_SECRET}"
           test "${AI_EXECUTION_ENABLED}" = "false"
-          echo "T2_HTTP_RED_PREFLIGHT=PASS"
-          echo "T2_HTTP_RED_SOURCE_SHA=$(git rev-parse HEAD)" | tee t2-http-red-source-sha.txt
+          echo "T2_HTTP_GREEN_PREFLIGHT=PASS"
+          echo "T2_HTTP_GREEN_SOURCE_SHA=$(git rev-parse HEAD)" | tee t2-http-source-sha.txt
 
-      - name: Compile RED contract tests
+      - name: Compile adapter and test modules
         run: |
           set -euo pipefail
-          python -m py_compile freqai_bridge/test_http_candles.py
-          echo "T2_HTTP_RED_COMPILE=PASS" | tee t2-http-red-compile.log
+          python -m py_compile freqai_bridge/http_candles.py freqai_bridge/test_http_candles.py freqai_bridge/t2_http_migration_acceptance.py
+          echo "T2_HTTP_GREEN_COMPILE=PASS" | tee t2-http-compile.log
 
-      - name: Confirm expected RED gaps without masking unexpected results
+      - name: Run HTTP adapter behavior tests
         shell: bash
         run: |
-          set +e
-          python -m unittest freqai_bridge.test_http_candles -v > t2-http-red-tests.log 2>&1
-          test_status=$?
-          set -e
-          cat t2-http-red-tests.log
-          python - <<'PY'
-          import re
-          from pathlib import Path
+          set -euo pipefail
+          python -m unittest freqai_bridge.test_http_candles -v 2>&1 | tee t2-http-tests.log
+          grep -Eq "^Ran 32 tests?" t2-http-tests.log
+          grep -Eq "^OK$" t2-http-tests.log
+          echo "T2_HTTP_GREEN=PASS"
+          echo "T2_HTTP_GREEN_TESTS=32"
 
-          output = Path("t2-http-red-tests.log").read_text(encoding="utf-8")
-          expected_failures = {
-              "test_http_adapter_module_exists",
-              "test_context_does_not_import_t0_store",
-              "test_context_does_not_call_t0_read_window",
-              "test_strategy_does_not_accept_canonical_db_path",
-              "test_strategy_does_not_pass_database_to_canonical_context",
-              "test_http_unavailable_has_no_sqlite_cache_or_venue_fallback",
-          }
-          expected_blocked_behavior = {
-              "test_valid_response_is_accepted_and_dataset_version_is_preserved",
-              "test_request_uses_exact_market_range_and_as_of_parameters",
-              "test_request_sends_bearer_header_and_no_token_in_url",
-              "test_request_enforces_transport_and_resource_limits",
-              "test_missing_or_blank_base_url_is_rejected",
-              "test_missing_or_blank_token_is_rejected",
-              "test_missing_or_invalid_freshness_threshold_fails_closed",
-              "test_remote_plain_http_endpoint_is_rejected",
-              "test_requested_window_must_be_aligned_and_contain_one_to_32_bars",
-              "test_contract_version_and_schema_version_must_match_exactly",
-              "test_market_identity_and_request_echo_must_match",
-              "test_dataset_version_must_be_sha256_formatted",
-              "test_incomplete_or_gapped_coverage_is_rejected",
-              "test_duplicate_or_off_grid_candle_timestamp_is_rejected",
-              "test_open_or_invalid_close_boundary_candle_is_rejected",
-              "test_invalid_decimal_or_ohlc_relationship_is_rejected",
-              "test_availability_after_as_of_cutoff_is_rejected",
-              "test_ingestion_delay_exactly_120000_ms_is_accepted",
-              "test_ingestion_delay_120001_ms_is_rejected",
-              "test_large_normal_m15_close_lag_and_observation_age_do_not_cause_false_stale_rejection",
-              "test_server_global_expected_slot_may_be_outside_request_window",
-              "test_unauthorized_response_is_not_retried",
-              "test_client_and_server_errors_400_404_405_are_not_retried",
-              "test_http_503_uses_at_most_three_attempts_and_fixed_backoff",
-              "test_transient_connection_timeout_uses_bounded_retry_policy",
-              "test_response_body_over_256_kib_is_rejected",
-              "test_wrong_content_type_or_malformed_json_is_rejected",
-              "test_secret_is_not_exposed_in_error_text",
-          }
-          failures = set(re.findall(r"^FAIL: (test_[^( ]+)", output, re.MULTILINE))
-          errors = set(re.findall(r"^ERROR: (test_[^( ]+)", output, re.MULTILINE))
-          missing_adapter_errors = re.findall(
-              r"ModuleNotFoundError: No module named 'freqai_bridge\.http_candles'",
-              output,
-          )
-          ran = re.findall(r"^Ran (\d+) tests?", output, re.MULTILINE)
-          summary = re.search(r"^FAILED \(failures=(\d+), errors=(\d+)\)$", output, re.MULTILINE)
-          passed_policy = (
-              "test_approved_freshness_formula_is_present_in_contract_plan" in output
-              and "test_transport_limits_are_recorded_in_contract_plan" in output
-              and "test_native_order_signals_remain_disabled" in output
-          )
-          print(f"T2_HTTP_RED_TESTS_RAN={ran[-1] if ran else 'UNKNOWN'}")
-          print(f"T2_HTTP_RED_EXPECTED_FAILURES={len(failures)}")
-          print(f"T2_HTTP_RED_BLOCKED_BEHAVIOR_TESTS={len(errors)}")
-          print(f"T2_HTTP_RED_MISSING_ADAPTER_IMPORT_ERRORS={len(missing_adapter_errors)}")
-          if (
-              len(ran) != 1
-              or ran[-1] != "37"
-              or failures != expected_failures
-              or errors != expected_blocked_behavior
-              or len(missing_adapter_errors) != 28
-              or not summary
-              or summary.groups() != ("6", "28")
-              or not passed_policy
-          ):
-              print("T2_HTTP_RED=INVALID")
-              raise SystemExit(1)
-          print("T2_HTTP_RED=CONFIRMED_ARCHITECTURE_GAPS")
-          print("T2_HTTP_BEHAVIOR_TESTS=AUTHORED_BUT_BLOCKED_BY_MISSING_ADAPTER")
-          print("T2_HTTP_POLICY_ASSERTIONS=PASS")
-          PY
-
-      - name: Upload exact-SHA RED evidence
+      - name: Upload exact-SHA adapter evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: t2-http-consumer-red-${{ github.sha }}
+          name: t2-http-adapter-${{ github.sha }}
           if-no-files-found: error
           path: |
-            t2-http-red-source-sha.txt
-            t2-http-red-compile.log
-            t2-http-red-tests.log
+            t2-http-source-sha.txt
+            t2-http-compile.log
+            t2-http-tests.log
