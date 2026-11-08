@@ -619,3 +619,19 @@ Implement semantic reconciliation between the signed prediction JSONL and the si
 - Phase12 audit docs/source (`905a51fce85dcbaee4756389e058db0370676783`, `a8fc3cb0a2404650f84774ac10e87e8fb6f8cca2`) describe actual fit-row label reconstruction and strict purge `max(TRAIN label_end) < min(TEST feature start)`, purging rows where `feature_open + 4*M15 >= first_test_feature_open`.
 - This is proven legacy-pipeline evidence only. Independent AI model has not yet been bound to that exact model/config identity. Do not transplant the 4-candle horizon or purge rule without confirming model identity.
 - Next essential decision: is the independent AI strategy intended to use this exact frozen legacy model/pipeline, or a distinct model? Bind model identifier + source/config hashes in the signed manifest before split protocol implementation.
+
+
+## Independent AI Strategy model identity decision — 2026-11-08
+
+- Read-only identity audit: `quant_system/T2_AI_STRATEGY_MODEL_IDENTITY_DECISION_2026-11-08.md`.
+- Audit commit: `e58422166e72fd28633f4a2d8bb7a65ccb0355b7`.
+- Confirmed the recorded Phase22 frozen bundle SHA prefix `918dc473` matches the exact Phase13B legacy candidate bundle SHA `918dc4737ee432df8f7f9d2c3e561ac3983aaf56d8791a731a55624ab836b81f`.
+- Frozen metadata identifies that bundle as `chart-pro-okx-shadow-v1`, sourced from `082edc082996425f61f48c952be41fb037564103`, with research config SHA `c253091852b704c00fa33bd6fceb69fb4d480630da1645e3e35ebea13888bb72` and FreqAI config SHA `a716c80fbb78b8d4bc8b436136912e93e6988a8cdf8d7d1945e8f512bcd6d852`.
+- Candidate metadata marks it proposal-only, not sealed in Git and not OOS-certified. Seal manifest marks full pipeline causality, independent OOS, OOS certification and AI promotion eligibility false.
+- **Architecture decision:** the new independent AI Strategy must have a distinct model identity, fitted artifact and training run. Do not silently reuse/promote the legacy `chart-pro-okx-shadow-v1` Phase22 candidate.
+- Legacy target/purge evidence is known only for that legacy model: OKX USDT perpetual BTCUSDT, M15, close-to-close forward return over 4 candles, label end `feature_open_ms + 4*900000`, strict purge `max(TRAIN label_end) < min(TEST feature start)`. Do not transfer these assumptions to the independent AI Strategy.
+- New AI model ID, dataset/venue/timeframes, feature schema, label/price basis, horizon, outcome availability, training cutoff and purge/embargo remain to be derived from the actual AI training pipeline; none are guessed in this increment.
+- Status: legacy model identity IDENTIFIED; independent AI model NOT CREATED/NOT VERIFIED; label contract NOT DEFINED; semantic OOS leakage certification BLOCKED; no calibration attestation or AI leverage authorization.
+- No code/tests/runtime changed. No T0/T1 DB/Feeder/exchange/paper/live access. `AI_EXECUTION_ENABLED=false`.
+- PR #95 remains OPEN / DRAFT / NOT MERGED. No merge/rebase.
+- Next: define the independent AI Strategy training/label contract from its actual pipeline, then bind model identity and split semantics into the signed manifest with RED tests. Do not run OOS or enable runtime.
