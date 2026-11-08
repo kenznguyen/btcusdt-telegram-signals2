@@ -6972,3 +6972,20 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - PR #1 remains OPEN / DRAFT / NOT MERGED. No merge action.
 - This is a formatting-only source correction; no T1 runtime, Binance, VPS, T0 DB/Feeder, or T2 runtime activity.
 - Next: wait for run `42479494373` exact-head conclusion; inspect Sidecar tests and artifact outcome; then obtain independent review closure before further T1→T2 integration.
+
+
+## 2026-11-08 — T0 Internal API SQLite read-only and WAL regression tests
+
+- Continued on existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch or PR.
+- Baseline HEAD: `d3d3b7523d7c29b7b6bc91f54c9253889f1501f1` (T0 Internal API Security Review commit).
+- Added two disposable-database regression tests to `market_data/test_store.py`:
+  - `test_read_only_uri_rejects_mutations_and_preserves_dataset`: verifies SQLite URI `mode=ro` rejects INSERT, UPDATE, DELETE and DDL, and the pre-existing dataset remains unchanged.
+  - `test_read_only_reader_observes_wal_snapshot_while_writer_commits`: holds a WAL writer transaction open, verifies the read path sees only committed rows, commits the writer, then verifies the next read sees the new row. Confirms WAL and SHM files exist during the concurrent phase.
+- Test commit / exact source SHA: `8e7816927810e391b3960c404ab79449708cf318`; test file blob SHA: `09e63a26c2e64ab32168bc90b11c1219bbcc9317`.
+- GitHub Actions run `42482866310`, workflow `T0 Single Writer Gateway Contracts`, exact head SHA above. Job `Static Gateway contract verification` (job ID `128738407447`) **PASS**. The full `market_data` suite ran **282 tests, 42 skipped, OK**; both new tests are explicitly recorded as `ok`.
+- Evidence artifact: `t0-swg-contract-evidence-8e7816927810e391b3960c404ab79449708cf318`, artifact ID `13617154808`, SHA-256 `907f6d739d9fd137ff64ef2b6de0689a8ea10e29ae73a39b4a4b2fde796eac79`; [workflow run](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42482866310).
+- At handoff update time, remaining workflow job `Isolated TimescaleDB read-only integration` was still **IN PROGRESS**; do not claim the complete multi-job workflow is finished until its conclusion is checked. Other jobs in this run were PASS.
+- Scope limit: these tests prove SQLite `mode=ro` mutation rejection and same-host WAL reader/writer behavior on a disposable GitHub runner. They do **not** prove systemd `ReadOnlyPaths` sandbox compatibility, API startup with WAL/SHM absent, OS identity isolation, Gunicorn deployment, or VPS behavior.
+- Status: SQLite read-only URI mutation rejection **PASS**; concurrent WAL read/write behavior **PASS**; systemd sandbox / filesystem isolation **NOT VERIFIED**; T0 API deployment **BLOCKED**; live endpoint **NOT RUN**; T2 runtime **NOT ACTIVATED**; `ai_execution_enabled=false`.
+- No canonical VPS database, Feeder, API service, systemd, filesystem permissions, secrets, firewall, DNS, proxy, or T2 runtime was accessed or changed. No live trading or exchange access.
+- Next: wait for and record the complete run `42482866310` conclusion; then design a separate disposable Linux sandbox test for `ReadOnlyPaths` and WAL/SHM startup/restart lifecycle. Do not deploy or alter VPS state without separate approval.
