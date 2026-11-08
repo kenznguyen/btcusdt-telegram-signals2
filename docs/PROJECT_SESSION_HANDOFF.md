@@ -7370,7 +7370,7 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - User clarified that the current VPS is only for experimental operation; it is not the official T0 environment.
 - Added `docs/architecture/ENVIRONMENT_EVIDENCE_BOUNDARY.md` at prior commit `517811d59e1e9fc01b5bf5bfb5a0a2f2bdc9a95a`. It classifies the VPS as experimental, explicitly excludes all data collection from it (including read-only inspection), marks the official environment NOT DESIGNATED, and separates source, synthetic CI, experimental, and future official evidence.
 - Aligned lifecycle documents so their next steps no longer request or imply runtime inventory from the experimental VPS:
-  - Shared Data Foundation: `1dbd8c1ab90f7d22ca32907d61e17d102f49285a`.
+  - Shared Data Foundation: `d89414e6b55e94e77f16dc43dff339bb0a8b99a7`.
   - Central Data Lifecycle Policy: `26842b21e723e7434be56bac8f487fabfa6a4af7`.
   - Dataset Consumer Contract: `f15ee5d3139c785559b2a3085d0733bea054c9a6`.
   - Data Deletion Safety Contract: `fd9ade82636cc8328aa89c85a1ad26b2cb10fa25`.
