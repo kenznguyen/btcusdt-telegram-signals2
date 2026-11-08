@@ -26,11 +26,48 @@ class AIProvenanceValidatorTests(unittest.TestCase):
             format=serialization.PublicFormat.Raw,
         )
         self.artifacts = {role: (f"synthetic-{role}-bytes").encode() for role in ROLES}
-        self.artifacts["predictions"] = (
-            b'{"prediction_timestamp_ms":1700000001000,"outcome_available_at_ms":1700000002000,'
-            b'"outcome":1,"confidence":"0.9","side":"LONG","regime":"trend",'
-            b'"model_version":"model-sha-test-v1","dataset_version":"dataset-sha-test-v1"}\n'
-        )
+        prediction_rows = []
+        observations = []
+        for index in range(1000):
+            timestamp = 1_700_000_000_100 + index * 1000
+            outcome = (index // 2) % 2
+            side = "LONG" if index % 2 == 0 else "SHORT"
+            confidence = "0.975" if outcome else "0.025"
+            row = {
+                "prediction_timestamp_ms": timestamp,
+                "outcome_available_at_ms": timestamp + 500,
+                "outcome": outcome,
+                "confidence": confidence,
+                "side": side,
+                "regime": "TREND",
+                "model_version": "model-sha-test-v1",
+                "dataset_version": "dataset-sha-test-v1",
+            }
+            prediction_rows.append(json.dumps(row, sort_keys=True, separators=(",", ":")))
+            observations.append(CalibrationObservation(
+                outcome=outcome, confidence=confidence, side=side,
+                regime="TREND", out_of_sample=True,
+            ))
+        self.artifacts["predictions"] = ("\n".join(prediction_rows) + "\n").encode()
+        policy = approved_calibration_gate_policy(ece_bins=10, required_regimes=("TREND",))
+        evaluation = CalibrationEvaluator().evaluate(observations, policy)
+        self.assertTrue(evaluation.accepted)
+        policy_payload = {
+            "max_ece": "0.05", "min_total_samples": 1000,
+            "min_group_samples": 200, "ece_bins": 10,
+            "required_regimes": ["TREND"],
+        }
+        report = {
+            "schema_version": 1, "policy": policy_payload,
+            "accepted": evaluation.accepted, "reasons": list(evaluation.reasons),
+            "sample_count": evaluation.sample_count, "group_count": evaluation.group_count,
+            "metrics": evaluation.metrics, "input_sha256": evaluation.input_sha256,
+            "report_sha256": evaluation.report_sha256,
+            "trade_authorized": False, "attestation_issued": False,
+        }
+        self.artifacts["calibration_report"] = json.dumps(
+            report, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode()
         self.now_ms = 1_800_000_000_000
         self.manifest = {
             "schema_version": 1,
