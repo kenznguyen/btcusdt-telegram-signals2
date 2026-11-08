@@ -3,17 +3,21 @@
 - Date: 2026-11-08 (Asia/Ho_Chi_Minh)
 - Repository: `kenznguyen/btcusdt-telegram-signals2`
 - Branch: `feature/t0-centralized-data-feeder-p1-20261101`
-- Tested source SHA: `0165fcad16a422f0ba7a6b833cc87eef8a626ca7`
-- Test execution environment: user-provided Termux output, Android
-- Test command: `python3 -m unittest market_data.test_api -v`
-- Test result: 13 tests; 9 passed; 3 errors; 1 failure; duration 0.585s.
-- GitHub Actions: NOT RUN. No workflow run or artifact exists for this local execution.
+- Initial tested source SHA: `0165fcad16a422f0ba7a6b833cc87eef8a626ca7` (superseded by the corrected rerun below).
+- Corrected tested source SHA: `9f5b9f12473ef5e25aa0caadf68c5230f3de2bb8`.
+- Test execution environment: user-provided Termux output, Android.
+- Test command: `python3 -m unittest market_data.test_api -v`.
+- Corrected test result: 13 tests; 10 passed; 3 errors; 0 assertion failures; duration 0.357s.
+- GitHub Actions: NOT VERIFIED for this local execution; no exact-head CI run/artifact is recorded here.
 
 ## 1. Exact source and test evidence
 
-The test worktree was created detached at the exact branch SHA above. The user-provided output confirms:
-- 9 existing regression tests passed.
-- 4 newly added Contract v1 assertions did not pass.
+The first execution was detached at `0165fcad...` and is retained as historical evidence only. The volume assertion was corrected in commit `9f5b9f12473ef5e25aa0caadf68c5230f3de2bb8`; GitHub branch comparison confirmed this commit is the branch head. The user then fetched the updated remote-tracking ref and confirmed both `origin/feature/t0-centralized-data-feeder-p1-20261101` and detached HEAD equal the corrected SHA. The worktree status was clean (`## HEAD (no branch)`).
+
+The corrected user-provided test output confirms:
+- 10 tests passed, including the corrected canonical volume assertion.
+- Exactly 3 contract envelope/freshness tests errored as expected.
+- No remaining assertion failure.
 
 Relevant source blobs at the tested ref:
 - `market_data/test_api.py`: blob `5ac29dd8ba65ae9cc13d890bdd39c6f0b3845896`
@@ -42,12 +46,12 @@ The assertion `self.assertEqual(candle["volume"], "2.50")` is not supported by t
 
 ## 4. Closeout verdict
 
-- Exact P1 source identified: PASS.
+- Exact P1 source identified and corrected rerun SHA confirmed: PASS.
 - Local test execution evidence received: PASS (user-provided Termux output).
-- Existing regression tests: PASS (9/9).
-- Contract v1 envelope/freshness RED: CONFIRMED (3 tests).
-- Volume precision RED: NOT CONFIRMED; assertion mismatch identified.
-- GitHub Actions exact-SHA evidence: NOT RUN.
+- Existing regression + corrected candle provenance/volume assertions: PASS (10/10).
+- Contract v1 envelope/freshness RED: CONFIRMED (3 errors: missing `contractVersion`, two missing `freshness`).
+- Volume precision mismatch: RESOLVED by changing the test expectation to canonical `"2.5"`; production storage semantics unchanged.
+- GitHub Actions exact-SHA evidence: NOT VERIFIED / no run recorded for this local execution.
 - API implementation: NOT CHANGED.
 - T2 HTTP migration: NOT STARTED.
 - T0 runtime, Feeder, canonical DB, exchange connection, and data sync: NOT TOUCHED / NOT AUTHORIZED.
@@ -55,6 +59,6 @@ The assertion `self.assertEqual(candle["volume"], "2.50")` is not supported by t
 
 ## 5. Next authorized engineering step
 
-Correct the volume assertion to match the documented canonical decimal representation, then run the focused API suite again to establish a clean RED baseline with only the three genuine envelope/freshness failures. After that, implement the additive Contract v1 response envelope under TDD GREEN on this same branch.
+The corrected RED baseline is now established at exact SHA `9f5b9f12473ef5e25aa0caadf68c5230f3de2bb8`: 10 passed, 3 expected errors. The next code step is to implement the additive Contract v1 response envelope under TDD GREEN on this same branch, but the contract design explicitly requires corresponding user authorization before code changes.
 
 Do not change storage precision semantics, create a PostgreSQL migration, run Data Quality Gate, activate T1/T2 runtime, or modify the production Feeder as part of this closeout.
