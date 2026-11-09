@@ -112,3 +112,55 @@ If a capability is absent, mark it OUT-OF-SCOPE / NOT PRESENT rather than deleti
 ## 7. Next step
 
 Perform a repository-wide read-only dependency audit for the six excluded commercial capability groups, and a separate dependency/consumer audit for PostgreSQL/TimescaleDB and Kraken Spot. Produce exact path/symbol/workflow references and classify each finding KEEP, DEFER, OUT-OF-SCOPE, NOT PRESENT, or REMOVE-CANDIDATE. Do not remove or modify anything until that audit has an independent review and a separate exact-scope owner approval.
+
+## 8. First-pass dependency audit (read-only, 2026-11-09)
+
+### 8.1 Commercial capability search
+
+A repository code-search pass for `tenant`, `billing`, `subscription`, `license`, `customer`, `SLA support tier`, `commercial readiness`, `onboarding entitlement payment`, `stripe invoice`, and `multi_tenant` returned:
+- No results for tenant, billing, subscription, customer, SLA/support tier, onboarding/entitlement/payment, Stripe/invoice, or multi_tenant.
+- One historical `license` match in `docs/PROJECT_SESSION_HANDOFF.md`, in an Android SDK license-acceptance setup context, not customer licensing.
+- Commercial-readiness matches in historical project documentation, not a T0 runtime subsystem.
+
+**Search limitation:** the GitHub code-search connector searches the repository's default branch, not the active feature branch. These zero-result searches are supporting evidence only and do not prove absence on this branch or in generated/runtime configuration. Full branch-wide absence remains NOT VERIFIED.
+
+### 8.2 PostgreSQL / TimescaleDB dependency evidence
+
+Current active-branch source confirms PostgreSQL is not merely dormant commercial scaffolding:
+- `market_data/storage.py` selects SQLite by default but supports explicit PostgreSQL configuration via `MARKET_DATA_BACKEND=postgres` and `MARKET_DATA_POSTGRES_DSN`; blob `13fe1ae01ebb5318b69e69eef3e512d207f74c49`.
+- `market_data/feeder_service.py` imports and composes `PostgresStore`, `PostgresLeaseStore`, `PostgresWriteGateway`, and a DB-clock lease adapter; blob `bdcecf6bc98a2ff070f83098d2c50154a160c99c`.
+- `market_data/test_postgres_feeder_runtime.py` contains runtime composition and lease-authority contracts; blob `dba7b3a61b3963984c58309e7d334b61c0889256`.
+- `market_data/test_postgres_feeder_runtime_lifecycle.py` contains disposable TimescaleDB lifecycle integration tests; blob `ff8458fd6250fca264799810d78b2566ebcfda10`.
+- `.github/workflows/t0-manual-validation.yml` exposes an isolated `timescaledb-integration` gate; blob `395ae93274a9202f14ab63d528be5cd582c30149`.
+- `requirements-market-data.txt` includes `psycopg[binary]`; blob `0c1b47046bc264be48fa9e11360ce3488046530d`.
+
+Classification: **DEFER / REVIEW — NOT A COMMERCIALIZATION COMPONENT**. It has concrete source, test and workflow dependencies. Whether the personal system should retain PostgreSQL long term is a separate operational/cost/maintenance decision. Do not remove the adapter or driver as part of de-commercialization.
+
+### 8.3 Kraken Spot dependency evidence
+
+Current active-branch source confirms a distinct isolated market-data subsystem:
+- `market_data/kraken_spot.py` — read-only source adapter; blob `d8191606d27617f964f23736e07fb7fe7458dc39`.
+- `market_data/kraken_spot_store.py` — separate SQLite persistence with explicit canonical Binance DB separation; blob `1736935cf143c11f0789651b5ef80a1821aabbb8`.
+- `market_data/kraken_spot_api.py` — separate read-only API; blob `5d8679f74fe5d4b70d89ba796f83550c6e1f2c58`.
+- `market_data/test_kraken_spot.py` — adapter contract tests; blob `d60bcc62d68d3a49cec3ab518e1c6a41866c11ae`.
+- `market_data/test_kraken_spot_store.py` — isolated persistence tests; blob `22dd48746e7b893523a8d8a728d37cccec85e9cb`.
+- `market_data/test_kraken_spot_api.py` — API tests; blob `e004b16ea41e45749925e032d2d9cb2bffc14c16`.
+- `.github/workflows/t0-manual-validation.yml` has separate `kraken-adapter`, `kraken-spot-sqlite`, and `kraken-spot-read-api` gates; blob `395ae93274a9202f14ab63d528be5cd582c30149`.
+
+Classification: **DEFER / REVIEW — NOT A COMMERCIALIZATION COMPONENT**. It is isolated from Binance USD-M canonical storage and has dedicated test/workflow coverage. Its ongoing research value and maintenance burden have not yet been decided. Do not merge it into canonical Binance data or remove it without consumer inventory and owner approval.
+
+### 8.4 First-pass disposition
+
+| Capability | First-pass result |
+|---|---|
+| Multi-tenant/customer isolation | No implementation found in bounded source review; repository-wide absence NOT VERIFIED |
+| Billing/subscription/payment | No implementation found in bounded source review; repository-wide absence NOT VERIFIED |
+| Customer audit portal | No implementation found in bounded source review; repository-wide absence NOT VERIFIED |
+| Commercial customer SLA/support workflow | No implementation found in bounded source review; repository-wide absence NOT VERIFIED |
+| Customer onboarding/licensing/package entitlement | No implementation found in bounded source review; repository-wide absence NOT VERIFIED |
+| Commercial-only compliance/certification workflow | No T0 runtime subsystem identified; full repository absence NOT VERIFIED |
+| PostgreSQL/TimescaleDB | DEFER / REVIEW; real source/test/workflow dependencies |
+| Kraken Spot | DEFER / REVIEW; isolated source/test/workflow dependencies |
+| Android commercial readiness/privacy/terms | OUTSIDE T0; retain separately |
+
+No component currently meets the evidence threshold for REMOVE-CANDIDATE. The audit did not execute tests, dispatch workflows, inspect live runtime configuration, or access VPS/database state.
