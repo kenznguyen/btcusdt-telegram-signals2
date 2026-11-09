@@ -2508,3 +2508,21 @@ This section supersedes the P1.42 handoff statement that C01–C24 source defini
 - Workflow run `42645946681` ended `startup_failure` with zero jobs. Exact current HEAD and the added edge tests remain NOT VERIFIED. Implementation behavior remains verified only at `ad03560b6409de3c28688fb25d57fa49aed66a9f` by green run `42644995874`.
 - P1.44 review addendum commit: `c6995836efb8e9dc11732c1162666c12b6bcceb5`; exact updated review blob `7a4fefc2d35b90daedf90c156ccf679546abef7e`.
 - No issue retargeting, PR merge, deployment, VPS/runtime operation, T1 activation, T0/T2 mutation or destructive operation occurred.
+
+
+## Latest continuation — T1 Actions startup investigation (2026-11-09)
+
+- Reopened and read the current handoff before continuing. Automatic retargeting of issue #138 remains REVOKED. No issue #138 update or retarget occurred; issue remains OPEN.
+- T1 collector repo/branch: `kenznguyen/binance-futures-collector` / `feature/t1-connection-sidecar-integration-20261107`.
+- Inspected exact workflow `.github/workflows/ci.yml`, blob `8329039c807d63cf6834ca9c85fbd0cd99e474d4`. It contains push triggers for `main` and the T1 feature branch, plus pull_request; no path filters or job-level conditions explain the empty run.
+- The T1 evidence record was updated at commit `4566cffbbcf8495182abbc0d3496fdc65709ac14`. This exact HEAD then produced:
+  - Run `42646416010` (push): `startup_failure`, zero jobs.
+  - Run `42646425898` (pull_request): `startup_failure`, zero jobs.
+- Both associated check suites show `latest_check_runs_count=0`, `rerequestable=false`; GitHub jobs API returns an empty list. No runner step or Rust test ran.
+- Available GitHub connector operations include rerun-failed-jobs and rerun-single-job, but not full-workflow rerun. Since these startup-failure runs have zero jobs and are not rerequestable, the connector cannot retry them. No workaround or workflow mutation was applied.
+- Latest exact T1 branch HEAD at investigation: `4566cffbbcf8495182abbc0d3496fdc65709ac14`; PR #1 remains OPEN/DRAFT, not merged.
+- Latest T1 evidence doc blob from the previous evidence update: `920e33a8df746faacdd95daf08dadc7d2a6940d5`.
+- Latest P1.44 review addendum commit: `5ce97e785d4726120e133d934f90bb4bb15b0408`; exact review blob: `0633286bafc112408e213f5d1f20b19575fbe43a`.
+- Status: implementation behavior remains CI-verified only at tested source SHA `ad03560b6409de3c28688fb25d57fa49aed66a9f` by green run `42644995874`; the added lexical edge tests and exact latest T1 HEAD remain NOT VERIFIED. Repeated startup failures are an Actions provisioning/platform blocker, not a test failure and not a source PASS.
+- Next step: wait for GitHub Actions service/provisioning to recover or use an explicitly available authorized workflow retry path; then obtain a green run against the exact latest T1 HEAD before closing the P1.44 test-verification gate. Do not change CI configuration without evidence of a repository workflow defect.
+- No issue retarget, PR merge, new branch/PR/issue, deployment, VPS/runtime operation, T1 activation, T0/T2 mutation, live order, exchange credential use or destructive data operation.
