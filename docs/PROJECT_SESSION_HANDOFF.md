@@ -1347,3 +1347,20 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - GitHub permission inventory remains PAUSED. T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Option C remains in force. Destructive authority NOT GRANTED.
 - Status: P1.8.145 STATIC REVIEW COMPLETE — PARTIAL — CONTRACT CLARIFICATION REQUIRED — NO IMPLEMENTATION OR DESTRUCTIVE AUTHORITY.
+
+
+## Latest completed work — P1.8.146 (2026-11-09)
+
+- Added documentation-only clarification supplement: `docs/evidence/p1-8/P1.8.146-retention-obligation-completeness-end-state-copy-graph-clarification.md`.
+- Commit: `e6f0f428771353b97e84babdd51085ce94fc5cce`.
+- Scope: addresses P1.8.145 IR145-01..05 without retroactively changing P1.8.144 or ratified owner decisions.
+- Defines bounded assessment scope, versioned source-of-truth manifest, source authority/coverage/freshness/reconciliation and fail-closed completeness proof.
+- Defines typed obligation states ACTIVE, SATISFIED, RELEASED, SUPERSEDED_WITH_SUCCESSOR, INDEFINITE and UNKNOWN, including terminal evidence, successor linkage and recurring/ongoing obligation handling.
+- Defines copy/backup/restore-set graph nodes, edges, shared dependencies and bounded affected-scope semantics without cascade disposition.
+- Reasserts RET-02 applies only to individually identified noncanonical copies; T0 canonical data and T0 availability/recovery copies remain protected under RET-01 B absent a separate exceptional owner decision.
+- Adds reviewer competency, independence, conflict-of-interest and specialist/legal attribution evidence requirements.
+- Status: CLARIFICATION DRAFTED; INDEPENDENT STATIC REVIEW REQUIRED. Documentary specification only; no runtime inventory, tests, provider/identity work or implementation.
+- Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE. Runtime enforcement NOT VERIFIED.
+- Option C remains in force; archive and destructive transitions remain non-executable. Destructive authority NOT GRANTED. GitHub permission inventory remains PAUSED.
+- No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk changes; no staging, restore, fault injection, provider/key/TSA operation, cleanup, vacuum, compaction, backup expiry, replica removal or deletion.
+- Next step: independent static review of P1.8.146 against P1.8.142–P1.8.145 and controlling lifecycle contracts. Any operational inventory, test execution or destructive work requires separate explicit approval.
