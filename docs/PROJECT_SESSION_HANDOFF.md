@@ -476,3 +476,18 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: DOCUMENTARY CONTRACT DESIGN COMPLETE; IMPLEMENTATION DECISIONS/RUNTIME EVIDENCE OPEN; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
 - No source/schema/API/workflow/service/registry/scheduler/database/VPS/Feeder/storage/copy/runtime change. No tests/CI, workflow dispatch, deletion dry-run, archive, cleanup, vacuum, restore, fault injection or destructive operation. Workflow run/artifact: NONE.
 - Next: P1.8.82 Deletion Authorization and Execution Contract. Do not begin V07/V08/Restore/TSA conflict review before P1.8.84 and independent deletion-design review.
+
+### P1.8.82 — Deletion Authorization and Execution Contract (2026-11-09)
+
+- Contract: `docs/evidence/p1-8/P1.8.82-deletion-authorization-and-execution-contract.md`.
+- Contract commit: `eb7c1b5a8779e72bf5d7146c82f986629b540d7c`.
+- Defines separation of duties for requester, steward, consumer owner, lifecycle reviewer, independent approver, execution authority, storage executor, independent verifier and auditor. Requester/approver must differ; executor cannot approve or authorize itself; verifier must independently establish outcome.
+- Requires immutable exact-scope manifest with canonical digest, dataset/version/object identities, operation, storage namespace, lineage/copy identity, policy version, dependency decision point, holds, recovery/copy evidence, actors and verification method. Wildcards, mutable aliases, dynamic predicates and unreviewed scope expansion are prohibited.
+- Approval package is immutable; manifest, policy, dependency, hold, owner, evidence, actor, adapter or verification changes invalidate approval and require re-review.
+- Separates approval from narrow, single-purpose execution authorization. Final rechecks cover manifest, current policy, authoritative dependency state, holds, copies, evidence, separation of duties, adapter capabilities and cancellation.
+- Defines cancellation/revocation races, executor capability boundaries, idempotency, ambiguous/partial outcomes, interruption handling and independent post-operation verification. No blind retry or inferred rollback.
+- Executor cannot decide eligibility, release dependencies/holds, widen scope, cascade copies or self-certify completion. Executor success alone is not VERIFIED_COMPLETE.
+- AUTH-01–AUTH-14 remain OPEN/MISSING where appropriate: approval quorum/compensating controls, identity/MFA/delegation, manifest canonicalization/digest/signature, grace/cancellation, approval/authorization lifetime, evidence freshness, revocation race control, idempotency durability, adapter enforcement, independent verifier, audit authority/retention, partial recovery, exceptional authority and separately approved non-production test.
+- Status: DOCUMENTARY CONTRACT DESIGN COMPLETE; IMPLEMENTATION DECISIONS/ADAPTER EVIDENCE OPEN; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
+- No source/schema/API/workflow/service/registry/scheduler/database/VPS/Feeder/storage/backup/replica/archive/runtime change. No tests/CI, workflow dispatch, deletion dry-run, cleanup, vacuum, restore, fault injection or destructive operation. Workflow run/artifact: NONE.
+- Next: P1.8.83 Copy and Evidence Lifecycle Closure, including copy identity/inventory completeness, backup-chain disposition, tombstone/audit evidence lifecycle and adapter safeguards at contract level. Do not begin V07/V08/Restore/TSA conflict review before P1.8.84 and independent deletion-design review.
