@@ -1,21 +1,25 @@
-# BTCUSDT Chart Pro và hệ thống phân tích futures
+# BTCUSDT Quant System — Hệ thống 5 tầng
 
-**GitHub lưu mã nguồn, nhánh và PR. Codemagic chạy toàn bộ kiểm thử, build APK và các tác vụ thủ công.** Cấu hình thực thi nằm ở [codemagic.yaml](codemagic.yaml); YAML GitHub Actions cũ đã chuyển sang [ci/archive/github-actions](ci/archive/github-actions/README.md) để lưu lịch sử.
+**GitHub là nơi lưu trữ mã nguồn, nhánh, lịch sử và bằng chứng; GitHub Actions là cơ chế thực thi CI/workflow của dự án.** Không xem Codemagic là runner chính của Hệ thống 5 tầng. Các workflow Codemagic và ứng dụng cũ được giữ lại như tài sản riêng/lịch sử, không phải dependency của hệ thống 5 tầng.
 
-## Thành phần
+Phạm vi kiến trúc và các ranh giới loại trừ được ghi tại [Five-Layer Architecture](docs/FIVE_LAYER_ARCHITECTURE.md) và [T0 Active Scope Index](docs/T0_ACTIVE_SCOPE_INDEX.md).
 
-- [Android BTCUSDT Chart Pro](android-app/README.md): biểu đồ M15/H1, chỉ báo, scanner và thông báo; vị thế được mô phỏng.
-- [Kho dữ liệu chuẩn](market_data/README.md): CCXT, SQLite và API chỉ đọc cho nến BTCUSDT perpetual.
-- [Hummingbot bridge](integrations/README.md): snapshot sổ lệnh; credentials Hummingbot nằm ở server.
-- [Kiến trúc 5 tầng](docs/FIVE_LAYER_ARCHITECTURE.md): phân chia dữ liệu, trinh sát, FreqAI, thực thi và giao diện. Đây là thiết kế đích; chưa triển khai toàn bộ.
-- [Luồng paper 5 tầng](docs/FIVE_LAYER_PAPER_RUNBOOK.md): CSV collector → dự báo FreqAI đã xác minh đầu vào → paper ledger → API/React. Mã và kiểm thử đã có; runtime/model/frontend build thực tế còn cần xác minh.
-- `app.py`: webhook Telegram và dashboard backend trên Render; gửi yêu cầu tới Codemagic.
-- `bot.py`, `telegram_commands.py`, `backtest.py`: logic tín hiệu, báo cáo và backtest hiện có, dữ liệu OKX. Không đặt lệnh sàn.
-- `dashboard/index.html`: xem báo cáo backtest, đồng bộ artifact Codemagic hoặc nạp JSON/CSV thủ công.
+## Thành phần thuộc Hệ thống 5 tầng
 
-## Chạy trên Codemagic
+- [Kho dữ liệu chuẩn T0](market_data/README.md): CCXT, SQLite và API chỉ đọc cho nến BTCUSDT perpetual.
+- [Hummingbot integration](integrations/README.md): adapter/snapshot sổ lệnh; credentials nằm ở server. Phạm vi và mức độ tích hợp cần căn cứ bằng chứng hiện hành.
+- [Kiến trúc 5 tầng](docs/FIVE_LAYER_ARCHITECTURE.md): dữ liệu, trinh sát, chiến lược/AI, paper execution và React control plane. Đây là thiết kế đích; chưa mặc nhiên có nghĩa mọi tầng đã triển khai hoặc được kiểm định.
+- [Luồng paper 5 tầng](docs/FIVE_LAYER_PAPER_RUNBOOK.md): luồng nghiên cứu/paper; fixture tests không chứng minh runtime, model hoặc frontend đã vận hành thực tế.
 
-Xem [hướng dẫn cấu hình Codemagic](docs/CODEMAGIC_SETUP.md) để chọn nhánh, cấu hình webhook/nhóm biến bảo mật và tải artifact.
+## Hệ thống riêng ngoài phạm vi 5 tầng
+
+Repository còn lưu Android Chart/Scanner, Python bot/backtest, Telegram và dashboard backtest cũ. Đây là các hệ thống độc lập; không phải T0–T4, consumer, dependency hoặc migration target của Hệ thống 5 tầng. Không suy diễn chúng phải dùng chung dữ liệu, API, chiến lược hoặc runtime.
+
+## CI và workflow
+
+GitHub Actions là runner chuẩn cho kiểm thử và workflow được quản lý trong repository. Chỉ xác nhận PASS khi có workflow run gắn với đúng source SHA và bằng chứng tương ứng. Xem các workflow hiện hành trong [`.github/workflows`](.github/workflows) và tài liệu evidence/handoff.
+
+Codemagic là cấu hình/runner legacy phục vụ một số quy trình cũ, đặc biệt Android và tác vụ backtest. [codemagic.yaml](codemagic.yaml) và [hướng dẫn Codemagic](docs/CODEMAGIC_SETUP.md) được giữ để tham chiếu lịch sử; chúng không định nghĩa CI của Hệ thống 5 tầng.
 
 | Workflow ID | Công việc | Kích hoạt |
 | --- | --- | --- |
