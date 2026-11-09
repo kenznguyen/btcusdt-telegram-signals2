@@ -763,19 +763,19 @@ Added isolated test-only files; they do not import market_data, open a database,
 
 | Artifact | Commit | Blob |
 |---|---|---|
-| synthetic_evidence/t0_checkpoint_contract.py | 51f4269b9bb3877ecfe571ddaae829e44ee48629 | f8f4d5d0917c8b1f2a58762418ab1f4bf16523e0 |
-| synthetic_evidence/test_t0_checkpoint_contract.py | 7e86e40cd078fe9b6e5322097152ec078e19b67b | a6578b3f1c2687b894182c5256b6f9b0d7911a51 |
+| synthetic_evidence/t0_checkpoint_contract.py | 8affc8b9aa12f17a969bc34c395b3b66b5871829 | 9efd800189e15d35e231530d703499d40d9d7e5d |
+| synthetic_evidence/test_t0_checkpoint_contract.py | 8882ef2e31d55eb726f9322a57096fa544797c2b | beffd8c4a6cb2682c9fe0acb09cd2b182c2fde7c |
 | .github/workflows/t0-evidence-contract-g2.yml | a33a99bb26c569127aea9d153f95795df2c9c045 | 5e22648c38fd3c6e631f912010de1489bb78f9b5 |
 
 The synthetic reference implements strict JSON parsing/duplicate-key rejection, T0-JCS-1 restricted canonical bytes, persisted candle-row validation, domain-separated object/row digests, row/partition/checkpoint Merkle roots, and the exact partition completeness oracle. Tests cover the normative 193-byte row vector, UTF-16 key ordering, Unicode preservation, duplicate keys, invalid UTF-8/BOM, numeric-value rejection, noncanonical bytes, digest domain/length binding, empty/single/odd Merkle trees, row ordering/timeframe separation, partition ordering/overlap, COMPLETE/INCOMPLETE/INVALID/UNKNOWN and gap boundaries.
 
 Verification boundary:
 - Local development copy: TDD RED observed when the reference module was absent; after implementation, the draft synthetic suite ran **28/28 PASS**. This local run used the development copy, not an independently re-fetched checkout of the final GitHub blobs.
-- Exact committed source files were fetched back and their blob SHAs verified. The final committed test suite has not been executed in a verified exact-commit environment.
+- Exact committed source files were fetched back and their blob SHAs verified. Same-session code self-review found and corrected: (1) malformed known rows were masked as UNKNOWN when input_complete=false; the oracle now validates available rows first and returns INVALID for known defects before UNKNOWN for missing pages; (2) the mixed-timeframe test now uses a valid H1 row so it tests the intended guard; (3) the object-digest helper now rejects noncanonical input bytes before hashing. These corrections were committed as test commit 8882ef2e31d55eb726f9322a57096fa544797c2b and source commit 8affc8b9aa12f17a969bc34c395b3b66b5871829. The final committed test suite has not been executed in a verified exact-commit environment.
 - The dedicated GitHub Actions workflow was committed to the existing branch and is configured for push/PR path triggers. The combined commit-status query for workflow commit a33a99bb26c569127aea9d153f95795df2c9c045 returned no status checks; a workflow run ID/artifact was not established. Therefore Actions result is **NOT VERIFIED**, not PASS.
 - No canonical T0 DB/data, runtime/VPS, exchange/provider, identity/key/trust-root, TSA/WORM, restore or fault-injection access occurred.
 
-**G2 status: IMPLEMENTATION ADDED — LOCAL DEVELOPMENT TESTS PASS — EXACT COMMITTED-SHA / GITHUB ACTIONS NOT VERIFIED — G2 NOT CLOSED.** A qualifying G3 reviewer must inspect the exact committed blobs, compare JCS behavior against independent RFC 8785 vectors/implementation, and review the oracle's edge cases. No G4 source/schema integration or G5 provider/runtime operation is authorized.
+**G2 status: IMPLEMENTATION ADDED AND SELF-REVIEW CORRECTIONS COMMITTED — LOCAL PRE-CORRECTION DEVELOPMENT TESTS 28/28 PASS — POST-CORRECTION EXACT COMMITTED-SHA / GITHUB ACTIONS NOT VERIFIED — G2 NOT CLOSED.** A qualifying G3 reviewer must inspect the exact committed blobs, compare JCS behavior against independent RFC 8785 vectors/implementation, and review the oracle's edge cases. No G4 source/schema integration or G5 provider/runtime operation is authorized.
 
 
 ## 14. Verification and authorization record
