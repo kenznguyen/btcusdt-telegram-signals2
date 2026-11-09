@@ -3858,3 +3858,17 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - No tests, compile, dry-run, fault injection, Actions dispatch, runtime/provider/VPS/database probes, permission changes, implementation or destructive operations were performed.
 
 **Stage C is complete for the approved documentary scope. Any next activity requires a separate owner decision; implementation, execution, TEST-08 and destructive authority are not granted by Stage C approval.**
+
+## Latest completed work — Stage D.0–D.5 / Implementation Readiness and Execution Authorization Proposal
+
+- Added documentation-only package: `docs/evidence/p1-8/STAGE_D0_D5_IMPLEMENTATION_READINESS_AND_EXECUTION_AUTHORIZATION_PROPOSAL_2026-11-10.md`.
+- Report commit: `f1e38b7673c77842c3cc0aea1f5cbeb2773d0f62`; report blob SHA recorded after read-back.
+- Owner approved automatic execution of Stage D steps within the previously proposed D.0–D.5 documentary scope. The package records prerequisite status, implementation dependency order, least-privilege permission design, the future TEST-08 request contract and owner disposition.
+- D.1 conclusion: implementation/execution readiness BLOCKED. TEST-01/02 implementation NOT ESTABLISHED; TEST-03 NOT VERIFIED; TEST-04 NOT ESTABLISHED; TEST-05 NOT ESTABLISHED; TEST-06 NOT ESTABLISHED; TEST-07 NOT ESTABLISHED; TEST-08 NOT GRANTED; LDA-07 87/87 NOT RUN; LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
+- D.2 documents a proposed dependency order only; no implementation authority.
+- D.3 defines least-privilege principal boundaries and evidence-destination requirements; no permission change, secrets access or provider selection.
+- D.4 records the minimum fields for a future exact-scope TEST-08 request. No vector subset, runner, run count, destination or isolation proof was approved; TEST-08 remains NOT GRANTED.
+- D.5 records Stage D documentary completion and the remaining owner decision boundary.
+- No code/schema/adapter/runner/workflow/permission/runtime/data changes; no tests, compile, dry-run, fault injection or Actions dispatch; no VPS/T0/T1/DB/provider/secret probes; no provisioning; no destructive operation. No workflow run or artifact is claimed.
+- Option C remains ACTIVE. TEST-08 remains NOT GRANTED. AI execution remains disabled; no live orders.
+- Next step: a separate owner decision is required before preparing any bounded implementation proposal. Stage D completion does not authorize implementation or execution.
