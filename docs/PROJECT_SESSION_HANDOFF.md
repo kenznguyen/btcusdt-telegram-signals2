@@ -3061,3 +3061,16 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status remains G2 NOT CLOSED. No canonical T0 DB/data, runtime/VPS, provider, identity/key/trust-root, TSA/WORM, restore, fault injection or destructive action. Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
 - Next: freeze exact G3 review inputs and request a genuinely independent review. Do not claim G3 PASS or use self-review as a substitute.
 
+
+
+## T0 Evidence Object / Checkpoint Contract v1 — G3 review package frozen (2026-11-10)
+
+- Prepared exact review-input manifest: docs/evidence/t0/T0_EVIDENCE_CHECKPOINT_G3_REVIEW_INPUTS_2026-11-10.md.
+- Manifest commit: 888f0033e669bee68894d7243a9aa579ace11b57; blob after read-back: c5ee25d46440bb391dd34b164a497aa64130b83d.
+- Frozen baseline commit before manifest: 593d4c7a1362aef47ce47f3cd07df75d73dc585e.
+- Manifest pins exact blobs for contract, G2 source/tests/workflow, T0 Candle source/migration/README, P1.8.67/.68/.77/.78, P1.8.80, L4-Minimum matrix and P1.8.152.
+- Review instructions require reviewer identity, competence, conflicts and independence declaration; exact blob inspection; independent RFC 8785 conformance review; completeness/snapshot/durability/authority/retention review; and explicit finding dispositions.
+- G3 remains PENDING / NOT VERIFIED. No qualifying independent reviewer identity or competence was established, and no independent review report exists. This manifest is not a review report, independent custody or PASS certificate.
+- G2 remains NOT CLOSED: post-correction exact-SHA test execution and GitHub Actions run/artifact NOT VERIFIED. G4/G5 remain NOT AUTHORIZED.
+- No canonical DB/data/runtime/VPS/provider/identity/key/trust-root/TSA/WORM/restore/fault-injection/destructive operation. Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
+
