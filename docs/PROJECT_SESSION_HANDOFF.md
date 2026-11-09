@@ -3047,3 +3047,17 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - No live orders; AI_EXECUTION_ENABLED=false; paper-only; Option C remains. G4 and G5 not authorized.
 - Next: self-review G2 artifacts and prepare a frozen G3 review-input manifest; no independent review is claimed or inferred.
 
+
+
+## T0 Evidence Object / Checkpoint Contract v1 — G2 self-review corrections (2026-11-10)
+
+- Self-review finding G2-SR-01: the synthetic completeness oracle returned UNKNOWN immediately when input_complete=false, masking known malformed rows. Corrected to validate every available row first; known malformed rows remain INVALID, while otherwise-valid partial input is UNKNOWN. Regression test added.
+- Self-review finding G2-SR-02: prior mixed-timeframe test used a 1h row timestamp not aligned to 1h, so it could pass for the wrong reason. Corrected to use a valid aligned 1h row and assert the mixed-timeframe rejection specifically.
+- Self-review finding G2-SR-03: checkpoint_object_digest accepted arbitrary bytes despite the canonical-byte contract. It now verifies strict canonical bytes before computing the digest.
+- Test correction commit: 8882ef2e31d55eb726f9322a57096fa544797c2b; test blob: beffd8c4a6cb2682c9fe0acb09cd2b182c2fde7c.
+- Source correction commit: 8affc8b9aa12f17a969bc34c395b3b66b5871829; source blob: 9efd800189e15d35e231530d703499d40d9d7e5d.
+- Local 28/28 test result predates these three corrections and MUST NOT be attributed to the final blobs. No post-correction exact-SHA test run has been verified. Combined commit status for source correction SHA returned no status checks; Actions run/artifact remain NOT VERIFIED.
+- Contract G2 update commit: 3ae31cace87ae1596a126ce83618c7455021c9f3; contract blob: 0d98a3dcbb0d403b213b5efcae0c882ac5461578.
+- Status remains G2 NOT CLOSED. No canonical T0 DB/data, runtime/VPS, provider, identity/key/trust-root, TSA/WORM, restore, fault injection or destructive action. Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
+- Next: freeze exact G3 review inputs and request a genuinely independent review. Do not claim G3 PASS or use self-review as a substitute.
+
