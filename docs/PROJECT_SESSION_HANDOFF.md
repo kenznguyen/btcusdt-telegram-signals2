@@ -2019,3 +2019,24 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No source implementation, tests, Actions dispatch, REST, VPS/runtime, T1 activation, T0/T2 changes or destructive operation occurred.
 - Next step: documentation-only correction of F02-R3, add the negative fixture, self-review the new exact contract SHA, and only then decide whether to retarget issue #138.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
+
+## P1.20 — F02-R3 restore-epoch correction and self-review (2026-11-09)
+
+- User approved automatic execution of the P1.19 next steps: correct F02-R3, add a negative fixture, self-review the exact new contract SHA, then retarget issue #138 only after the self-review.
+- Normative contract file: `docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_1_PRODUCER_WATERMARK_DURABILITY_2026-11-09.md`.
+- Contract correction commit: `22dc3cde9a709197e84c7524d5fec076f10c9d7e`.
+- Exact contract blob SHA: `77457a11aaf5b91f11aa8ea66cbf1414f7d9723a`.
+- F02-R3 correction: §18.3 now distinguishes ordinary approved backup restore from known/suspected full-root rollback; for the latter, quarantine immediately, reject a new generation under the old `source_root_id`, and require separately approved new `source_root_id`, new recovery epoch and fresh reconciliation.
+- §21.5 now explicitly states that local counter/checkpoint/receipt/manifest/data are not independent anchors; only an independently controlled monotonic anchor outside the source-root rollback domain could establish latest-state continuity, and none is provided by this profile.
+- §22.11 precedence now expressly includes §18.3 and makes the new-root/recovery-epoch rule authoritative for known/suspected full-root rollback.
+- New fixture C136 rejects recovery that retains the old `source_root_id` and only creates a new generation after known/suspected full-root rollback.
+- Self-review file: `docs/reviews/t1/P1_20_SELF_REVIEW_F02_R3_RESTORE_EPOCH_2026-11-09.md`.
+- Self-review commit: `ca91e2805cd4ddb55be6fab9a7572ad194e96be3`.
+- Self-review blob: `8866b9e2397f3323cf1303c287ccac0ac788b32a`.
+- Verdict: DOCUMENTATION-LEVEL PASS for F02-R3 and C136. IMPLEMENTATION READINESS NOT ESTABLISHED. F07 NOT VERIFIED. INDEPENDENT REVIEW REQUIRED.
+- F01 and F05-R2 consistency rechecked. Automatic detection of unobserved full-root rollback remains NOT PROVIDED.
+- C01–C136 remain NOT IMPLEMENTED / NOT EXECUTED; F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; pinned producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED.
+- No source implementation, tests, Actions dispatch, REST, VPS/runtime, T1 activation, T0/T2 changes or destructive operations occurred.
+- Next step: retarget issue #138 to exact contract blob `77457a11aaf5b91f11aa8ea66cbf1414f7d9723a` for genuinely independent review. This self-review is not independent.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
