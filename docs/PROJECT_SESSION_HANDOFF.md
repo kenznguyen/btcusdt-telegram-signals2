@@ -3231,3 +3231,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: selected source/workflow mapping PASS; full repo call graph, all workflow jobs, branch protection, deployed package/runtime and live consumers NOT VERIFIED. Tests/Actions NOT RUN. Independent review NOT PERFORMED. No code/test/workflow/package/schema/runtime/VPS/DB/provider/key/permission/data changes.
 - Option C unchanged; no automatic TTL/delete/archive/cleanup/vacuum/compaction/backup expiry/replica removal. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next: documentation-only T0 Active Scope Index distinguishing active SQLite, parked PostgreSQL, separate Kraken research, support probe and separate checkpoint assurance. No code deletion or workflow narrowing.
+
+
+## T0 Active Scope Index — documentation-only increment (2026-11-10)
+
+- Added `docs/T0_ACTIVE_SCOPE_INDEX.md`.
+- Index commit: `0a4edd648588fbce4fcf1bfe481546a447f218ef`.
+- Exact index blob SHA after read-back: `15391f262e1cf6379535141463546615809f153c`.
+- Source baseline before the index: `3811277f746a4cc4a777b25da68e8e56b63b5229`.
+- Separates five workstreams: canonical Binance USD-M BTCUSDT M15/H1 SQLite/Feeder/read-only API (ACTIVE); PostgreSQL (PARKED optional backend); Kraken Spot (separate preserved research domain); Binance connectivity probe (support-only); Evidence Object / Checkpoint G0–G3 (separate assurance workstream).
+- Explicitly preserves the active SQLite writer/lease/recovery/API and regression-test boundary. No component retirement, PostgreSQL removal, Kraken deletion, workflow narrowing or test-denominator reduction is authorized.
+- Records Option C — No Destructive Authority — and the prohibition on TTL/delete-after-use/cleanup/archive/compaction/vacuum/backup expiry/replica removal. Android Chart/Scanner and Python bot/backtest remain outside the five-layer system.
+- README reconciliation was intentionally deferred: `market_data/README.md` documents the canonical Candle API and PostgreSQL adapter details but does not serve as a global T0 scope index. No README was overwritten and no cross-reference was added in this increment.
+- Status: index content created and exact blob read back; documentation-only scope PASS. Tests / GitHub Actions NOT RUN / NOT DISPATCHED. Independent review NOT PERFORMED. Full repository call graph, all workflow jobs, branch protection, deployed package/runtime and live consumers remain NOT VERIFIED.
+- No source, test, workflow, package, schema, runtime, VPS, database, provider, key, permission or data changes. No PR or merge. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next safe step: separately review navigation/cross-references and decide whether a concise link belongs in `market_data/README.md`; do not alter package dependencies, workflow triggers or acceptance denominators.
