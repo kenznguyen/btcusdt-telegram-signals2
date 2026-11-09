@@ -657,3 +657,12 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Resolves SR-02 at abstract design level: protected decision vector, one mutation linearization point, per-object conditional mutation, race ordering, multi-object partial outcomes, adapter proof requirements and deterministic race catalogue.
 - Explicitly disqualifies read-then-write, polling, heartbeat/cache invalidation and lease-only substitutes. If registry/storage cannot prove atomic coupling, adapter remains INELIGIBLE. No provider/transaction product selected.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/database/VPS/storage change or destructive operation.
+
+### P1.8.94 — Negative Test Traceability and Missing Race Vectors (2026-11-09)
+
+- Document: `docs/evidence/p1-8/P1.8.94-negative-test-traceability-and-missing-race-vectors.md`.
+- Commit: `8b4ad817449a83e79f69d584591128c05bef8509`.
+- Blob SHA: `01277c46bdebf52a2d48fa7be64eb9aaaa6c5639`.
+- Resolves SR-03: explicit N01–N45 traceability to baseline P1.8.90 vectors; adds supplemental deterministic vectors for uncovered owner/heartbeat/bypass/hold/copy/recovery/availability/authorization/cascade/audit/policy/T0/scope races. Minimum catalogue: 61 vectors (47 baseline + 14 supplemental).
+- All vectors remain NOT_RUN; test runner, synthetic adapters, independent oracle and separate test approval remain OPEN. No test code or workflow created.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/database/VPS/storage change or destructive operation.
