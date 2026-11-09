@@ -3427,3 +3427,17 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Corrected execution-sequence numbering. No tests or Actions were run.
 - Final policy scope remains narrow: P1.8.152/P1.8.153 reviewer gates are not waived or closed. No independent assurance claim is allowed for L4-Minimum owner self-assessment.
 - Next work: reconcile F-01–F-09 against the revised matrix and separately preserve open P1.8.152/P1.8.153 lifecycle findings; do not require a qualifying independent reviewer for L4-Minimum itself.
+
+
+## F-01–F-09 and P1.8.152/P1.8.153 documentary reconciliation (2026-11-10)
+
+- Added `docs/evidence/T0_L4_F01_F09_P1_8_152_153_RECONCILIATION_2026-11-10.md`.
+- Reconciliation commit: `1fcb7823defade349e3a2f8217ef6d5bc40db95f`.
+- Read-only source HEAD: `3b2de476cb130cd414a956f3c16830f57237ec8a`; recursive tree `a2a3c1381561fd98c346336fb52f18edc29372fe`, complete.
+- F-01–F-04 and F-06 are addressed in current matrix wording, but operational proof/acceptance is NOT VERIFIED. F-05 reviewer requirement is superseded only for L4-Minimum by the owner waiver; it is not counted in the nine-control denominator and does not waive lifecycle reviewer requirements.
+- F-07–F-09 originating source records/criteria were not located in the complete inspected branch tree. They remain NOT VERIFIED; no closure inferred.
+- P1.8.152 blob `e1a4d95af216e94a58fa5528850fcd0c1ff465f8`: PARTIAL — lifecycle design not closed. RET-03 and RET-06–RET-10 remain open/not verified or non-executable; V07 BLOCKED; V08/Restore OPEN/BLOCKED; LDA-05/06/08 not verified; LDA-07 87 negative vectors NOT RUN; LDA-09 documentary alignment but formal closure pending lifecycle review.
+- P1.8.152 §7 recommends P1.8.153 as independent review of P1.8.152 and residual reviewer-control closure assessment. No P1.8.153 record exists in the complete current branch tree: NOT CREATED / NOT EXECUTED / NOT VERIFIED.
+- The L4M-09 waiver does not waive P1.8.152/P1.8.153 lifecycle reviewer requirements. No lifecycle waiver is recorded.
+- Overall L4-Minimum remains BLOCKED / NOT VERIFIED. No tests, Actions, runtime/permission/provider/data inventory or destructive operation performed.
+- Next step: identify the authoritative F-07–F-09 source records; separately determine whether to authorize the P1.8.153 lifecycle task. Preserve Option C, no-live-orders and all existing lifecycle statuses.
