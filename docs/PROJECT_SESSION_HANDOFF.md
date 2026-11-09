@@ -2719,3 +2719,16 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Tests NOT RUN; Actions NOT DISPATCHED; no workflow run/artifact. No source/config/dependency/workflow/runtime/data/credential/key/permission changes; no VPS/DB/provider operations.
 - No REMOVE-CANDIDATE or removal proposal. Option C — No Destructive Authority — remains in force.
 - Next: continue remaining source/config/docs/deployment and external-boundary review; maintain path/symbol coverage; do not promote repository-wide absence claims without complete evidence.
+
+
+## T0 commercial-scope remaining core/integration source audit — phase 2 (2026-11-09)
+
+- Read current handoff before work. Branch-pinned source audit used commit `7d885115e04c2196d0051356acbe7521fdb12f1e`; recursive tree `1ab56aebdec79bd07d9305fd52a7c51235d2780c`, `truncated=false`, 637 tracked blobs.
+- Inspected 16 remaining high-level source/config/doc files: root README/app/bot/Telegram commands; integrations README/Codemagic client/Hummingbot bridge; pipeline contracts/API/decision; Android release helper scripts; dashboard bootstrap; synthetic-evidence README. Exact paths and blob SHAs are recorded in `docs/evidence/COMMERCIAL_SCOPE_REMAINING_SOURCE_AUDIT_2026-11-09.md`.
+- No excluded commercial capability terms or implementation were identified in these 16 inspected files.
+- No application source file from this phase qualifies as a commercial-only REMOVE-CANDIDATE.
+- `android-app/COMMERCIAL_READINESS.md` remains a documentation-only potential candidate for explicit path-level review; it is not an executable subsystem. Android privacy/terms and release engineering are not automatically removable.
+- Evidence report creation commit: `dd87444326415a8467eb194860a1e00a3434c550`.
+- This remains a bounded audit, not a semantic review of all 637 blobs. Six-group repository-wide absence remains NOT VERIFIED. No source or docs were deleted; no tests or Actions were run; no runtime/VPS/database/data/credential/key/permission changes. No workflow run/artifact claimed.
+- Status: phase-2 bounded review PASS; repository-wide audit PARTIAL; independent second review NOT PERFORMED; no implementation REMOVE-CANDIDATE established; no deletion authorized/performed. Option C remains in force.
+- Next: finish the remaining documentation/configuration/test surfaces with coverage accounting; then independent second review. Any documentation deletion must name exact path(s), preserve Android legal/privacy obligations, and be authorized separately before mutation.
