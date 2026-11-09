@@ -3740,3 +3740,17 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - LDA-07 remains NOT RUN; 87/87 lifecycle vectors remain NOT RUN. LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
 - No tests, compile, dry-run, fault injection, provisioning, Actions dispatch, secrets/permission/runtime/VPS/database/provider/recipient/backup/replica access, source/schema/adapter/workflow/runner/permission/runtime/data changes or destructive operation.
 - Next bounded documentary step: Stage C.10 — TEST-06 Lifecycle-Specific Provenance Contract. Do not implement or execute until prerequisites and separate exact execution authorization are established.
+
+
+## Latest completed work — Stage C.10 / TEST-06
+
+- Added documentation-only lifecycle-specific provenance contract: `docs/evidence/p1-8/STAGE_C10_TEST06_LIFECYCLE_SPECIFIC_PROVENANCE_CONTRACT_2026-11-10.md`.
+- Report commit: b917c89e3b89935530b009fea35372ac3cc6839f; report blob SHA to be verified by read-back.
+- Defines the complete source/spec/vector → manifest → principal/process → operation/attempt → synthetic resource/version → event/independent observation → oracle assertion/verdict → artifact/publication chain.
+- Separates completeness, integrity, authenticity, attribution, causal consistency, independence and reproducibility; explicitly states that hashes, signatures, workflow attestations and artifact upload alone do not establish all these properties.
+- Specifies immutable identifier classes, versioned canonical provenance envelopes, exact source/spec/run/namespace/resource bindings, effective principal/capability evidence, event causality, replay/substitution/gap/fork detection, append-only corrections, trust/time claim limits, deterministic verifier sequence, PRV-01–PRV-17 evidence package and PRV-T01–PRV-T18 future acceptance assertions.
+- Does not select a serialization, digest/signature algorithm, attestation provider, TSA, trust root or key-management technology. No implementation or test coverage is claimed.
+- TEST-06: CONTRACT DOCUMENTED / LIFECYCLE-SPECIFIC PROVENANCE NOT ESTABLISHED; not closed. TEST-01/02 implementation not established; TEST-03 effective isolation not verified; TEST-04 independent oracle not established; TEST-05 deterministic concurrency not established; TEST-07 open; TEST-08 NOT GRANTED.
+- LDA-07 remains NOT RUN; 87/87 lifecycle vectors remain NOT RUN. LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
+- No tests, compile, dry-run, fault injection, provisioning, Actions dispatch, secrets/permission/runtime/VPS/database/provider/recipient/backup/replica probes, source/schema/adapter/workflow/runner/permission/runtime/data changes or destructive operations.
+- Next bounded documentary step: Stage C.11 — TEST-07 Synthetic-Only Cleanup Containment Contract. Option C remains active; TEST-08 exact-scope authorization is still required before any lifecycle test execution.
