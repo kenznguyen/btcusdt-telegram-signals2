@@ -3122,3 +3122,20 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: documentary/source inventory PASS; active T0 baseline PROPOSED pending owner ratification; dependency/call graph PARTIAL; live consumer/runtime inventory NOT VERIFIED; G2 exact-SHA NOT VERIFIED; G3 PENDING; L4-Minimum operational acceptance BLOCKED / NOT VERIFIED.
 - No source/test/workflow/schema/runtime/VPS/database/provider/key/permission change; no tests, dispatch, archive, vacuum, compaction, backup expiry, replica removal, cleanup or deletion. Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
 - Next: dependency map for parked candidates, followed by a separate proposal to reconcile active README/index. No removal without evidence and explicit approval.
+
+
+## T0 Dependency Mapping — first-pass static inventory (2026-11-10)
+
+- Exact inspected branch HEAD before audit commit: `cf0b66580cadfda54945e6c327f75b4cfb075bc4`.
+- Added first-pass read-only map: `docs/evidence/T0_DEPENDENCY_MAPPING_FIRST_PASS_2026-11-10.md`.
+- Audit commit: `42138ff2ef4b1e2741ef266cd28c4fe4a36b9f78`; audit blob after read-back: `79b6970c20365953c9250ce38fcdbda2054cdd2f`.
+- Current branch HEAD after audit commit: `42138ff2ef4b1e2741ef266cd28c4fe4a36b9f78`.
+- Confirmed from exact-branch source: `market_data.feeder_service` is executable entry point and composes runtime; `build_production_runtime` selects configured backend; SQLite and PostgreSQL writer paths are distinct; `sync_window` is shared by Feeder and one-shot CLI; `market_data.api` is bounded read-only API; FreqAI context uses HTTP Candle client.
+- First-pass KEEP: Feeder/runtime, Candle contract/store, storage selection abstraction, write gateway, sync logic, read-only API, SQLite bootstrap/migrations, T0/T2 parity contract.
+- PARK: PostgreSQL provider activation/qualification (source remains directly referenced by optional backend composition); Kraken Spot research domain (isolated source/storage/API with dedicated tests/manual gates); connectivity probe; synthetic checkpoint feature expansion after current G2/G3 gates.
+- No component classified CANDIDATE FOR RETIREMENT. No deletion or disabling is supported by current evidence.
+- T0 workflows reference core Feeder/gateway/recovery/API tests, T2 consumer tests, PostgreSQL/TimescaleDB tests, Kraken manual gates, connectivity probe, systemd/API integration and G2 synthetic evidence. Workflow presence does not prove current branch protection or execution success.
+- Limitations: selected exact-branch blobs/workflows inspected; repository-wide call graph and live runtime/deployment consumer inventory NOT VERIFIED. GitHub code-search connector is default-branch scoped and was not treated as exact-branch proof. No tests, workflow dispatch, runtime/VPS/DB/provider access.
+- Status: exact tree/blob identity PASS; core runtime composition PASS for inspected source; workflow/test map PARTIAL; global consumers NOT VERIFIED; live runtime NOT VERIFIED; L4-Minimum remains BLOCKED / NOT VERIFIED; G2 exact-SHA NOT VERIFIED; G3 PENDING.
+- Option C remains; no automatic deletion/TTL/archive/cleanup/vacuum/compaction/backup expiry/replica removal. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next: extend exact-branch consumer search across all source/configuration files and inspect workflow triggers/branch-protection dependencies. Then prepare a separate retirement proposal; no retirement or source change without explicit approval.
