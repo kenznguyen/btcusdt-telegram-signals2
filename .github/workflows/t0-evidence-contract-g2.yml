@@ -1,0 +1,82 @@
+name: T0 Evidence Contract G2 Synthetic Tests
+
+on:
+  push:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - "synthetic_evidence/t0_checkpoint_contract.py"
+      - "synthetic_evidence/test_t0_checkpoint_contract.py"
+      - ".github/workflows/t0-evidence-contract-g2.yml"
+  pull_request:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - "synthetic_evidence/t0_checkpoint_contract.py"
+      - "synthetic_evidence/test_t0_checkpoint_contract.py"
+      - ".github/workflows/t0-evidence-contract-g2.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-contract:
+    name: T0 Evidence Contract synthetic-only conformance
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      MARKET_DATA_DB: ""
+      MARKET_DATA_POSTGRES_DSN: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    steps:
+      - name: Checkout exact source without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Enforce isolated synthetic-only environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$MARKET_DATA_DB"
+          test -z "$MARKET_DATA_POSTGRES_DSN"
+          test -z "$T0_FEEDER_LEASE_DB"
+          test -z "$PAPER_DB"
+          test -z "$BINANCE_API_KEY"
+          test -z "$BINANCE_API_SECRET"
+          test -z "$OKX_API_KEY"
+          test -z "$OKX_API_SECRET"
+          echo "T0_EVIDENCE_G2_SCOPE=SYNTHETIC_ONLY" | tee t0-evidence-g2-scope.txt
+          git rev-parse HEAD | tee t0-evidence-g2-source-sha.txt
+      - name: Compile synthetic reference and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile synthetic_evidence/t0_checkpoint_contract.py synthetic_evidence/test_t0_checkpoint_contract.py
+          echo "T0_EVIDENCE_G2_COMPILE=PASS" | tee t0-evidence-g2-compile.txt
+      - name: Run deterministic synthetic contract suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest synthetic_evidence.test_t0_checkpoint_contract -v 2>&1 | tee t0-evidence-g2-tests.log
+          echo "T0_EVIDENCE_G2_TESTS=PASS" | tee t0-evidence-g2-verdict.txt
+      - name: Upload exact-source test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-evidence-contract-g2
+          if-no-files-found: error
+          path: |
+            t0-evidence-g2-scope.txt
+            t0-evidence-g2-source-sha.txt
+            t0-evidence-g2-compile.txt
+            t0-evidence-g2-tests.log
+            t0-evidence-g2-verdict.txt
