@@ -1816,3 +1816,18 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No GitHub Actions run or artifact is claimed. No T1 source edit, adapter implementation, test, REST, VPS/runtime, T1 activation, T0/T2, strategy/AI/ledger/risk/trading change. No deletion/archive/cleanup/vacuum/compaction/backup expiry/restore/destructive operation.
 - Next step: wait for genuinely independent written review tied to the exact new SHAs. Do not self-certify independence. Implementation and T1 activation remain blocked until independent review and F01/F05/F07 evidence gates are resolved.
 - Guardrails: T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
+
+
+## 2026-11-09 — Conditional source change governance decision
+
+- User requested evaluation of source-change authorization; conditional governance decision recorded in docs/decisions/D-2026-11-09-OPERATIONAL-FIRST-EMPIRICAL-VALIDATION.md.
+- Decision status: APPROVED WITH CONDITIONS — CHANGE GOVERNANCE ONLY. This is not blanket authorization to edit arbitrary source, refactor architecture, expand features, tune strategies, deploy, or activate runtime services.
+- Eligible candidate work: bounded, reproducible correctness/security defects; reliability, data-integrity, observability, recovery and resource-safety corrections; contract-conformance patches only after governing contract/review gates; documentation/evidence updates.
+- Every source patch requires an explicit bounded work item and approval before editing; exact branch/baseline SHA; files/components and exclusions; regression test/TDD where applicable; small isolated patch; GitHub Actions verification; exact tested SHA, run ID/artifacts/logs; and review on the final SHA. Major/security/data-integrity/concurrency/persistence/cross-layer changes require genuinely independent review.
+- Preserve the existing branch. Do not create parallel branch/PR unless separately approved. Do not weaken tests/gates to obtain PASS.
+- Source/CI PASS does not authorize deployment, VPS, DB, Feeder, exchange, runtime, paper execution, or live trading.
+- T1 implementation and activation remain NOT AUTHORIZED. P1.10 remains design/documentation only. Independent review is pending on contract SHA 32cf231227c52590ad1365473c6c742ab7dbc64a. REST completeness oracle NOT ACCEPTED; producer decimal f64/12-decimal/parse-to-zero defect CONFIRMED / NOT FIXED; target filesystem/provider durability and advisory-lock semantics NOT VERIFIED; implementation and fixtures NOT EXECUTED.
+- No blanket T0 or T2 source implementation authorization. Each concrete item needs target layer, exact baseline SHA, scope, tests, review gates, and explicit approval.
+- Explicit prohibitions remain: broad refactors/architecture replacement/feature expansion/strategy tuning; T0/T1/T2 runtime/VPS/DB/Feeder/exchange/deployment changes; data deletion/archive/retention/cleanup/vacuum/compaction/backup expiry/restore/fault injection/key destruction; live orders; enabling AI_EXECUTION_ENABLED; weakening T0 independence or adding T1 write path to T0.
+- Verification/effect: documentation-only. Tests NOT RUN; GitHub Actions NOT DISPATCHED; workflow run NONE; artifact NONE. No source/runtime/VPS/DB/Feeder/exchange/ledger/strategy/trading state changed.
+- Next step: prepare a bounded change request naming target layer/files and exact baseline SHA; wait for explicit approval before source edits. T1 remains blocked by independent-review and evidence gates.
