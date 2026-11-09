@@ -2419,3 +2419,37 @@ On 2026-11-09, the user explicitly approved the permissions needed to retarget i
 - Not authorized: close issue #138, mark an independent review PASS, fabricate reviewer feedback, change reviewers/assignees/labels, create a new issue/PR/branch, merge, dispatch GitHub Actions, modify source/runtime/T0/T2, activate T1, place orders, or perform destructive data operations.
 - Current issue #138 was retargeted to P1.42 and remains OPEN. Persisted body identifies contract blob `3510c6a187c2677e0ad54060d1164a84984705c2`, P1.42 review blob `5b790c38a811f7d54a93a7de9a83f22f72acac1f`, and handoff blob to be verified after this update.
 - Current review remains REQUEST CHANGES because F02-R24 is OPEN. This authorization does not waive any quality gate or independent-review requirement.
+
+
+## User authorization correction — revoke automatic retarget; unblock remediation
+
+Recorded 2026-11-09 from the user's clarification. This section supersedes the preceding “User authorization — bounded automatic retargeting of issue #138” permission grant.
+
+### Revocation
+- The prior permission for automatic retargeting of issue #138 is REVOKED immediately.
+- Do not change issue #138 title/body or otherwise retarget it unless the user gives a new, explicit instruction for that specific retarget operation.
+- Issue #138 must remain OPEN; do not close it or misstate review status.
+
+### Authorized remediation scope
+The user's intent is to grant the permissions needed to resolve the currently recorded BLOCKED items, not to automate issue retargeting. The following bounded work is authorized on existing repositories/branches only:
+- Search repository history, refs, tags, and existing artifacts for the authoritative original C01–C24 fixture definitions; recover only from verifiable source evidence. Do not invent missing fixture definitions.
+- Edit design documents, schemas, fixture inventories, source code, tests, and CI workflows necessary to address the recorded contract/producer blockers, while preserving T0 as an independent canonical data asset and keeping T1/T2 boundaries intact.
+- In the existing T1 collector repository/branch associated with PR #1, investigate and correct the confirmed decimal serialization / parse-to-zero defect and implement or clarify FINAL_ONLY and product-identity behavior, with deterministic regression tests and exact evidence.
+- Run repository-local tests and GitHub Actions workflows needed for validation; inspect workflow results and artifacts; update the existing handoff/evidence records with exact source SHAs, run IDs, artifact IDs, and PASS/BLOCKED/NOT VERIFIED status.
+- Use unauthenticated, read-only public Binance REST requests solely to establish source semantics/completeness evidence where needed. No exchange credentials or authenticated endpoints.
+- Run filesystem primitive/durability tests only in disposable isolated test directories or CI environments. Such tests must not target or mutate the canonical T0 database, existing VPS data, or user data.
+
+### Still prohibited / requires separate explicit approval
+- Any deployment, VPS login/configuration or runtime operation; starting/stopping feeders; changing systemd/autostart; modifying T0/T1/T2 runtime state or canonical databases.
+- Any destructive operation against existing data, including deletion, archive, cleanup, vacuum, compaction, backup expiry, restore-overwrite, or destructive fault injection.
+- Any test against the actual VPS target filesystem/device/provider that writes, renames, locks, fsyncs, or otherwise mutates existing paths. Read-only inspection may be proposed, but do not perform remote access unless an available authorized connector and exact scope are established.
+- T1 activation, production operation, live trading, real orders, exchange keys, OKX fallback/replacement, or changes to the strategy/risk engine.
+- Creating branches, PRs, issues, merging, changing reviewers/assignees/labels, or closing issue #138.
+- Claiming independent review PASS based on same-session self-review. A genuinely independent review remains a separate quality gate.
+
+### Required execution discipline
+- Work in dependency order; fix the smallest blocker first and add negative/crash/regression fixtures.
+- After each completed unit, self-review adversarially, run the relevant tests/CI, capture exact evidence, and update this handoff on the existing branch.
+- Mark environment-dependent items NOT VERIFIED until evidence comes from the actual target environment. CI simulation does not prove VPS filesystem/provider semantics.
+- Keep paper-only posture and `AI_EXECUTION_ENABLED=false`; no live orders.
+- This authorization does not waive independent review, contract acceptance, or any safety/quality gate.
