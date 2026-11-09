@@ -21,7 +21,7 @@ This gate does not authorize service start/stop/restart, deployment, source upda
 - Existing workflow extended: `.github/workflows/t0-manual-validation.yml`.
 - New manual gate: `scaleway-ssh-preflight`.
 - Protected GitHub Environment: `scaleway-preflight`.
-- Contract test: `ci/test_t0_ssh_preflight_contract.py`.
+- Contract test: `ci/test_t0_ssh_preflight_contract.py` (final hardening commit `8161b3ed1daeb7d0e27c7846b4cf0161353ea583`, blob `d27df67b24de575669aeed5e51f966f45768f79d`).
 - Forced remote command: `ops/ssh/t0-readonly-preflight.sh`.
 
 The workflow has two jobs:
