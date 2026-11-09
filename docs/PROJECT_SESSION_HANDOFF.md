@@ -376,3 +376,18 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: P1.8.66 DRAFT COMPLETE / NOT SENT; GlobalSign documentary follow-up candidate only / NOT SELECTED; DigiCert NOT SELECTED; Sectigo outside current general-purpose scope under reviewed CPS; no OCSP vendor selected; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; E2/E3/E4 NOT ACQUIRED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; 13 fault vectors historical SYNTHETIC PASS only; RPO/RTO planning targets only; `AI_EXECUTION_ENABLED=false`.
 - No provider contact/connection, OCSP query, key/trust-anchor operation, production probe, VPS/runtime/T0/T1/DB/Feeder change, staging, restore, fault injection or workflow dispatch. No CI run or artifact is claimed.
 - Next gate: owner review and explicit approval before sending P1.8.66 to GlobalSign. No sending or external action performed automatically.
+
+
+
+### P1.8.67 — Provider-neutral TSA architecture assessment (2026-11-09)
+
+- Assessment: `docs/evidence/p1-8/P1.8.67-provider-neutral-tsa-architecture-assessment.md`.
+- Document commit: `fb1e3454e598b1928b611a1e99ea8854cccdff58`.
+- Verified document blob SHA: `50654f3f4f4caa509598e4393e2634ea977df5dd`.
+- Defines TSA as asynchronous optional evidence outside the authoritative T0 write path; ingestion and durable ledger commits must continue during TSA outage.
+- Defines exact signed-checkpoint-object binding consistent with P1.8.36; logical durable intent/outbox; unknown submission outcomes; append-only evidence lifecycle; retry/duplicate handling; independent RFC 3161 verification; historical OCSP/CRL preservation; provider-neutral adapter boundary; long-term evidence package; failure matrix and commercial-claim limits.
+- RFC references: RFC 3161, RFC 6960 and RFC 9654. RFC 9654 updates RFC 6960 and obsoletes RFC 8954.
+- No provider, endpoint, OCSP responder, policy OID, algorithm, checkpoint format, retry threshold, retention duration, accuracy bound, trust anchor, DB/WAL commit semantics or failover model selected. All implementation-dependent and numeric parameters remain OPEN.
+- Status: DESIGN ASSESSMENT COMPLETE; INDEPENDENT REVIEW REQUIRED. V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; E2/E3/E4 NOT ACQUIRED; staging NOT AUTHORIZED; production NOT VERIFIED; `AI_EXECUTION_ENABLED=false`.
+- Documentation-only commit. No source/runtime, T0/T1, VPS, DB, Feeder, exchange, ledger, strategy or risk-engine changes; no provider contact, endpoint/OCSP call, key/trust-anchor operation, staging, restore, fault injection or workflow dispatch. Tests/workflows NOT RUN; artifact NONE.
+- Next step: independent static review of P1.8.67 against P1.8.36 and P1.8.51–P1.8.66. Keep all OPEN parameters and authorization gates unchanged.
