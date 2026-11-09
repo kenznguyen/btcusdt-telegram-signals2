@@ -667,6 +667,12 @@ os._exit(73)
                 "2026-11-07T00:00:45+00:00", "2026-11-07T00:02:00+00:00",
             )
             with self.assertRaisesRegex(RootBIntegrityError, "stale|late|boundary"):
+                journal.commit_checkpoint(
+                    "cp-a2-rejected", through_sequence=2,
+                    boundary_at="2026-11-07T00:01:00+00:00",
+                    sealed_at="2026-11-07T00:01:30+00:00",
+                )
+            with self.assertRaisesRegex(RootBIntegrityError, "stale|late|boundary"):
                 journal.recover_checkpoint()
 
     def test_a3_late_commit_of_post_boundary_event_does_not_invalidate_prior_checkpoint(self):
