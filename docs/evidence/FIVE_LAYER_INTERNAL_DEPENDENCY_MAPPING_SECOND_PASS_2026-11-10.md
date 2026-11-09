@@ -74,6 +74,15 @@
 - Status: SOURCE-CONFIRMED defaults; effective deployed values and exact risk-path selection NOT VERIFIED.
 - No strategy/risk code changed. This finding requires a separate risk-contract reconciliation before any execution-path change.
 
+
+### F5-07 — Common API ledger factory is not visibly strategy-scoped after dual-ledger migration
+
+- Evidence: `pipeline/api.py.ledger()` constructs `PaperLedger(...)` without a `strategy_id` argument, so the constructor default is `MANUAL`. The same API later calls `ledger().submit(..., strategy_id="STRATEGY_CORE"|"AI_FREQAI")`.
+- In `paper_execution/ledger.py`, `DUAL_STRATEGIES = {"STRATEGY_CORE", "AI_FREQAI"}`; `PaperLedger.submit()` enters the scoped path only when `self.strategy_id` is one of those values. For a MANUAL instance, the method checks whether dual-ledger migration is active and raises `DUAL_LEDGER_MIGRATION_ACTIVE_MANUAL_WRITE_BLOCKED` before the legacy write path.
+- Impact: the statically traced common API evaluate path appears inconsistent with the dual-ledger scoped-write requirement. This may block Core/AI paper submissions through the common API after dual-ledger migration. This is a source-level call-path finding, not a claim that a deployed request was attempted or failed.
+- Status: SOURCE-CONFIRMED CALL-PATH MISMATCH; runtime behavior NOT VERIFIED. Needs targeted unit/integration test and code-owner review before any fix.
+- No source/test/runtime changes made.
+
 ## 4. KEEP / PARK / OUT-OF-SCOPE disposition
 
 ### KEEP
