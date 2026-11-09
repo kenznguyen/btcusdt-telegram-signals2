@@ -68,7 +68,7 @@ The reader must:
 ### 3.2 SUPERSEDED — historical proposed schema versions
 
 - **Legacy v0:** existing header without `is_closed`. Read-only archival/diagnostic use only; NOT eligible for canonical candle aggregation.
-- **Proposed v1:** existing documented columns plus a final boolean `is_closed` column. The collector must write the actual Binance `k.x` value for each WebSocket update. This version is not yet implemented.
+- **Historical proposed v1 (SUPERSEDED; DO NOT IMPLEMENT):** existing columns plus a per-row `is_closed` column. The current v1.1 FINAL_ONLY manifest mode supersedes this proposal for the present scope; see v1.1 section 20.
 - The schema version must be declared in a small sidecar manifest for each file or in a deterministic file-level metadata record. The adapter must not infer version from a permissive partial-header match.
 - The manifest must include at minimum: `schema_version`, `collector_source_sha`, `exchange`, `market`, `datatype`, `symbol`, `partition_date_utc`, `file_relative_path`, `header_sha256`, and a monotonic file generation/identity.
 - A manifest is descriptive provenance, not proof of completeness or durability. The adapter verifies the header and content independently.
