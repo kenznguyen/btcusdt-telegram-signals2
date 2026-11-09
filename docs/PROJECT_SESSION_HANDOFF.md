@@ -3032,3 +3032,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - No code/schema/runtime/VPS/database/data/provider/identity/key/trust-root/permission operation; no tests/Actions; no TSA/WORM, restore, fault injection or destructive operation. Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
 - Next: G2 synthetic-only fixtures and deterministic negative/conformance tests, strictly isolated from canonical T0 and all external providers; independent G3 review remains a separate gate.
 
+
+
+## T0 Evidence Object / Checkpoint Contract v1 — G2 synthetic-only implementation (2026-11-10)
+
+- Added isolated synthetic reference oracle: synthetic_evidence/t0_checkpoint_contract.py, commit 51f4269b9bb3877ecfe571ddaae829e44ee48629, blob f8f4d5d0917c8b1f2a58762418ab1f4bf16523e0.
+- Added deterministic test suite: synthetic_evidence/test_t0_checkpoint_contract.py, commit 7e86e40cd078fe9b6e5322097152ec078e19b67b, blob a6578b3f1c2687b894182c5256b6f9b0d7911a51.
+- Added dedicated offline GitHub Actions workflow: .github/workflows/t0-evidence-contract-g2.yml, commit a33a99bb26c569127aea9d153f95795df2c9c045, blob 5e22648c38fd3c6e631f912010de1489bb78f9b5.
+- The synthetic module implements restricted JCS serialization, strict parsing, Candle row validation, object/row/partition/checkpoint digest roots, Merkle odd-node promotion, and partition completeness oracle. No market_data import or external integration.
+- Local development copy: TDD RED when module absent; draft synthetic suite then 28/28 PASS. This is not an exact-commit checkout run. Final GitHub blobs were fetched back and hashes matched.
+- Workflow commit combined-status query returned an empty status list; workflow run ID and artifact were not established. Exact committed-SHA Actions result remains NOT VERIFIED.
+- G2 status: IMPLEMENTATION ADDED; LOCAL DRAFT TESTS PASS; EXACT COMMITTED-SHA/ACTIONS NOT VERIFIED; G2 NOT CLOSED. No tests against canonical T0 DB, no source/schema/runtime/VPS/provider/key/trust-root changes.
+- Contract G2 record commit: f333533455eaf26f73b9e44a8cf162ec6ac1cfe0; contract blob: df828c878958b6eeaf4e6f2d6ca6ec2886b9449b.
+- No live orders; AI_EXECUTION_ENABLED=false; paper-only; Option C remains. G4 and G5 not authorized.
+- Next: self-review G2 artifacts and prepare a frozen G3 review-input manifest; no independent review is claimed or inferred.
+
