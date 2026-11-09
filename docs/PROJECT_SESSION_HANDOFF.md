@@ -1734,3 +1734,19 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Tests NOT RUN; GitHub Actions NOT DISPATCHED (run ID NONE; artifact NONE); REST NOT CALLED; T1 source/adapter NOT MODIFIED/IMPLEMENTED; T1 activation NOT AUTHORIZED.
 - No T0/T2, strategy/AI/ledger/risk changes; T0 remains independent/canonical; paper-only, `AI_EXECUTION_ENABLED=false`, no live orders, no OKX fallback/replacement. No deletion or destructive operation.
 - Next step: independent adversarial review against exact v1.1 blob `fd640ab36efed6975f1dfaaed750f9d0ae7f708c` and the archival v1 supersession change. Maintain implementation block until independent review and F01/F05/F07 gates are resolved.
+
+
+## Latest work — P1.8 independent review request refreshed for final contract (2026-11-09)
+
+- Re-read this handoff before continuing. GitHub issue #138 was OPEN with no comments and still targeted the pre-P1.7 design baseline.
+- Updated issue #138 title to `P1.8 — Independent adversarial review of final T1 Source Contract v1.1`, keeping it OPEN and replacing the review target with exact final document SHAs. Issue URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/issues/138.
+- Exact normative v1.1 blob SHA: `fd640ab36efed6975f1dfaaed750f9d0ae7f708c`.
+- Exact archival v1 blob SHA: `c64d6da7b16e608ef5ccebafabce03e51960cfcc`.
+- Pinned producer SHA remains `6e20fe94f3ad64cc450e73def80a167fe371e49e`.
+- Required reviewer output now explicitly includes independent reviewer identity, exact SHA linkage, severity-ranked findings, evidence/reproduction rationale and PASS / REQUEST CHANGES / BLOCKED verdict. Questions include watermark false-PASS, REST completeness/no-trade/boundary/pagination/finality, REST/WS common blind spots, FINAL_ONLY, GAP_DETECTED, health-journal persistence failure, decimal loss, product identity, manifest/cursor ordering, filesystem durability, fixtures and archival-v1 precedence.
+- Request record: `docs/reviews/t1/P1_8_INDEPENDENT_REVIEW_REQUEST_FINAL_CONTRACT_2026-11-09.md`; commit `9dd38e5c80313b1fe260064a9f0ebeda5998f694`.
+- Status: REQUEST UPDATED / ISSUE OPEN / INDEPENDENT REVIEW PENDING. No reviewer response or independent sign-off is claimed.
+- Unchanged blockers: F01 CRITICAL (REST completeness oracle not accepted); F05 HIGH (producer f64/12-decimal/parse-to-zero defect); F07 HIGH/operational (target filesystem durability unverified). C77–C81 remain planned only.
+- Verification: GitHub issue/documentation updates only. No tests, REST request, Actions dispatch, source edit, adapter implementation, VPS/runtime, T1 activation, T0/T2 or trading changes. No deletion/destructive operation.
+- Next step: wait for an independent reviewer to post a written review against the exact SHAs. If no reviewer is available, do not relabel self-review as independent; implementation remains blocked pending the review and F01/F05/F07 evidence gates.
+- Guardrails: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
