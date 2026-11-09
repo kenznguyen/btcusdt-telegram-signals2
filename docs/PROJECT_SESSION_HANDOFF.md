@@ -2368,3 +2368,23 @@ This section supersedes the immediately preceding “P1.38 second-pass adversari
 - The unplanned default-ref file/commit incident remains as recorded above; it is not part of the active feature branch target and no default-ref deletion/rewrite was attempted.
 
 Guardrails and blockers remain unchanged: F07 NOT VERIFIED; Binance REST completeness NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C197 NOT IMPLEMENTED / NOT EXECUTED; implementation and T1 activation NOT AUTHORIZED. No Actions, executable tests, REST, VPS, filesystem or runtime experiment was performed. T0 remains independent/canonical; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no destructive data operations.
+
+
+## Latest completed work — P1.40 / P1.41
+
+- Fresh adversarial readback found F02-R22 HIGH: issue #138 title said P1.38 but its persisted body still contained the historical P1.34 review target. The previous retarget-success claim was therefore incorrect.
+- P1.40 finding record: `docs/reviews/t1/P1_40_SELF_REVIEW_ISSUE_138_TARGET_INTEGRITY_2026-11-09.md`.
+  - Finding record initial commit: `0dcc4f51ee93fcc244771083dd13b20749ca6761`.
+  - Corrected exact-SHA record commit: `63b8433c254ed70d791a4bdb18fa197a73f45da0`.
+  - Exact review blob SHA: `456daf7c53c60a5238b4f66f17e51f39c6212d4e`.
+  - Verdict before correction: REQUEST CHANGES — F02-R22 HIGH.
+- Replaced issue #138 body with a single authoritative P1.40 target, then fetched it again. Readback confirmed exact contract SHA `b7b6786125be507c3ad4c29521830e5fe2a3b1b9`, exact P1.40 review SHA `456daf7c53c60a5238b4f66f17e51f39c6212d4e`, OPEN state, zero comments, no stale P1.34 SHA and no stale P1.37/P1.38 current-target headings.
+- P1.41 exact readback review: `docs/reviews/t1/P1_41_SELF_REVIEW_ISSUE_138_RETARGET_READBACK_2026-11-09.md`.
+  - Commit: `8c19149bfe55e2414a33d9443afa42313221f1ee`.
+  - Exact review blob SHA: `8a7120915851a74d56362abfc75b3e2a34bcb7d1`.
+  - Verdict: DOCUMENTATION/PROCESS-LEVEL PASS for F02-R22 correction and persisted issue-body readback; same-session, NOT independent.
+- Contract remains exact blob `b7b6786125be507c3ad4c29521830e5fe2a3b1b9`, commit `c96f56ae6e583e7fe15f420f5a0f78d3df0fc0c6`; DESIGN ONLY / NOT APPROVED FOR IMPLEMENTATION.
+- Handoff update is documentation/evidence only. No source implementation, executable tests, GitHub Actions dispatch, REST request, VPS/runtime or filesystem experiment was performed. No workflow run/artifact is claimed.
+- Next step: retarget issue #138 to the exact P1.40 contract/review plus P1.41 verification record; keep OPEN for genuinely independent review.
+- Blockers unchanged: independent review PENDING; F07 NOT VERIFIED; Binance REST completeness NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C197 NOT IMPLEMENTED / NOT EXECUTED; implementation and T1 activation NOT AUTHORIZED.
+- Guardrails unchanged: T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations.
