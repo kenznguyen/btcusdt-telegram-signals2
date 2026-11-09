@@ -167,6 +167,92 @@ A checkpoint created from a successful read may still have `durability_claim=NOT
 
 Current source mapping does not establish project-specific SQLite synchronous/fsync/host-loss guarantees or PostgreSQL synchronous-commit/replication guarantees. Those claims remain NOT VERIFIED until separately evidenced.
 
+
+### 4.6 G0.4 — Exact completeness oracle (2026-11-10)
+
+**Disposition: F-03 RESOLVED AT CONTRACT-DESIGN LEVEL.** This oracle defines membership/completeness for one declared timeframe/range partition. It does not prove snapshot consistency, database durability, exchange truth, market-data correctness or trusted historical time.
+
+#### A. Partition domain
+
+For timeframe interval Δ (15m = 900000 ms; 1h = 3600000 ms), a partition MUST satisfy:
+
+- start_ms and end_ms are nonnegative supported timestamps;
+- start_ms < end_ms;
+- start_ms mod Δ = 0 and end_ms mod Δ = 0;
+- the exact domain is the half-open interval [start_ms,end_ms);
+- expected_count N = (end_ms - start_ms) / Δ.
+
+The expected open-time set is exactly E = {start_ms + k×Δ | integer k, 0 ≤ k < N}. No exchange response count, first/last timestamp, database row count or API coverage flag may redefine E.
+
+#### B. Row membership and validation
+
+Every returned row MUST satisfy all of the following before it can enter the partition commitment:
+
+1. Exact exchange, market_type, symbol and timeframe match the partition identity.
+2. open_time_ms belongs to E; rows outside the half-open range or off the Δ grid are INVALID, not silently ignored.
+3. Each open_time_ms is unique and rows are strictly ascending by numeric open_time_ms.
+4. close boundary is exactly open_time_ms + Δ and is exclusive.
+5. available_at_ms is a valid nonnegative timestamp and is not earlier than the close boundary.
+6. OHLCV and decimal values pass the source Candle validation rules.
+7. No forward-fill, interpolation, synthetic insertion, deduplication-by-overwrite or silent correction is allowed.
+
+The verifier independently recomputes the expected domain and membership from the preserved manifest and row bytes. It MUST NOT trust producer-supplied expected_count, returned_count, complete, gaps or datasetVersion without recomputation.
+
+#### C. Exact completeness verdict
+
+Let R be the set of validated unique returned open_time_ms values after applying the manifest's explicit as_of_ms selection rule.
+
+- COMPLETE iff R = E, returned_count = expected_count = N, and the recomputed missing set is empty.
+- INCOMPLETE iff all returned rows are valid members of E but R is a strict subset of E.
+- INVALID iff any returned row violates identity, alignment, range, uniqueness, ordering, candle validation or canonical row encoding.
+- UNKNOWN iff the verifier cannot establish the exact input set or membership because bytes are missing, a read/page failed, the query was truncated, the snapshot boundary is unproven where required, or the relevant source evidence is unavailable.
+
+INVALID MUST NOT be downgraded to INCOMPLETE. UNKNOWN MUST NOT be promoted to INCOMPLETE or COMPLETE by assuming that unobserved rows are absent.
+
+For a nonempty valid partition, a zero-row result is INCOMPLETE (all expected slots are missing), not a complete empty dataset. A zero-length range is invalid and cannot be used to manufacture a vacuous COMPLETE result.
+
+#### D. Gap encoding
+
+The missing set M = E minus R is recomputed by the verifier. Consecutive missing slots are coalesced into maximal half-open intervals:
+
+- gap.start_ms is the first missing expected open time;
+- gap.end_ms is one Δ interval after the final missing open time;
+- gap.missing_count = (gap.end_ms - gap.start_ms) / Δ.
+
+Gaps MUST be sorted, non-overlapping, aligned to Δ, contained in [start_ms,end_ms), and their total missing_count MUST equal expected_count - returned_count. Gaps are evidence of missing membership, not proof of why the row is missing.
+
+When as_of_ms is present, it is part of the partition identity/selection rule and every returned row must satisfy available_at_ms <= as_of_ms. A missing slot MUST NOT be assigned a cause such as “not yet observed” unless separate source evidence establishes that cause. Completeness is evaluated against the full declared expected domain under the stated as-of filter; any excluded/missing expected slot makes that partition INCOMPLETE.
+
+#### E. Partition and checkpoint aggregation
+
+- Each timeframe/range is evaluated independently. M15 and H1 verdicts MUST NOT be combined into one expected-count arithmetic or watermark.
+- A checkpoint-level COMPLETE claim is permitted only when every declared partition is COMPLETE and snapshot consistency is independently PASS for the exact combined snapshot.
+- Any INVALID partition makes the checkpoint invalid for a COMPLETE claim.
+- Any UNKNOWN partition or UNKNOWN snapshot consistency makes aggregate completeness UNKNOWN/NOT VERIFIED.
+- Any INCOMPLETE partition makes aggregate completeness INCOMPLETE.
+- A checkpoint may preserve an incomplete dataset as evidence, but it MUST label it INCOMPLETE and MUST NOT present it as a complete checkpoint.
+- The content_root commits to the actual returned ordered rows and partition descriptors; the completeness verdict is separately recomputed and recorded. A digest does not prove completeness.
+
+#### F. Fixed oracle examples
+
+For M15, start_ms=0, end_ms=2700000, Δ=900000, so E={0,900000,1800000} and expected_count=3.
+
+- Returned open times {0,900000,1800000}: COMPLETE; gaps=[]; returned_count=3.
+- Returned open times {0,1800000}: INCOMPLETE; gaps=[{start_ms:900000,end_ms:1800000,missing_count:1}]; returned_count=2.
+- Returned open times {0,0,1800000}: INVALID due to duplicate timestamp, even though the distinct-set count is 2.
+- Returned open times {0,900001,1800000}: INVALID due to off-grid timestamp.
+- No returned rows: INCOMPLETE with one gap [0,2700000), missing_count=3.
+- Missing/truncated page or unavailable row bytes: UNKNOWN, not INCOMPLETE.
+
+#### G. G0.4 disposition and limits
+
+- Exact expected-domain formula, row membership, invalidity rules, as-of semantics, gap coalescing and aggregate verdict: **SPECIFIED**.
+- F-03: **RESOLVED AT CONTRACT-DESIGN LEVEL**.
+- Executable/property-based tests and cross-implementation verification: **DEFERRED TO G2**.
+- Snapshot consistency remains a separate prerequisite; this oracle cannot repair a non-atomic read.
+- This is same-session contract design/self-review, not independent review. No canonical database or runtime was accessed; no code, tests, Actions or provider operations were performed.
+
+
 ## 5. Canonical serialization and digest rules
 
 The normative v1 canonicalization profile is T0-JCS-1, defined in §5.1. It uses RFC 8785 JCS with stricter T0 schema rules. No production library/runtime is selected by this contract.
@@ -513,4 +599,4 @@ Gated sequence:
 - Restore, fault injection, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion: NOT AUTHORIZED / NOT PERFORMED.
 - Option C remains in force; T0 canonical data and recovery copies remain protected; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 
-**Final status: T0 EVIDENCE OBJECT / CHECKPOINT CONTRACT v1 DRAFTED — DOCUMENTATION ONLY — NOT IMPLEMENTED — G0.2 PASS (F-01 RESOLVED FOR INSPECTED BASELINE); G0.3 CONTRACT DESIGN PASS (F-02 RESOLVED AT DESIGN LEVEL; LIBRARY/EXECUTABLE CONFORMANCE NOT VERIFIED); F-03 AND SNAPSHOT/DURABILITY/OTHER G0 ITEMS OPEN; G0 NOT YET CLOSED; INDEPENDENT REVIEW REQUIRED.**
+**Final status: T0 EVIDENCE OBJECT / CHECKPOINT CONTRACT v1 DRAFTED — DOCUMENTATION ONLY — NOT IMPLEMENTED — G0.2 PASS (F-01 RESOLVED FOR INSPECTED BASELINE); G0.3 PASS AT CONTRACT-DESIGN LEVEL (F-02); G0.4 PASS AT CONTRACT-DESIGN LEVEL (F-03); EXECUTABLE CONFORMANCE DEFERRED TO G2; SNAPSHOT/DURABILITY/ISSUER/CUSTODY/ANCHOR ITEMS OPEN; G0 NOT YET CLOSED; INDEPENDENT REVIEW REQUIRED.**
