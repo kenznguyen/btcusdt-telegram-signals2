@@ -2348,3 +2348,23 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Issue #138 is to target the exact P1.37 contract blob and the updated review blob above, remain OPEN, and continue to request genuinely independent review. A same-assistant second pass cannot satisfy independence.
 - Residual gates unchanged: F07 NOT VERIFIED; Binance REST completeness NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; FINAL_ONLY/product identity NOT VERIFIED; implementation and T1 activation NOT AUTHORIZED; C01–C197 NOT IMPLEMENTED / NOT EXECUTED.
 - No GitHub Actions run/artifact, executable tests, REST request, VPS/runtime or filesystem experiment was performed. No source, T0/T2, strategy, trading or data operation changed. T0 remains independent/canonical; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no destructive operations.
+
+
+## Authoritative latest review state — P1.38 contract / P1.39 second pass
+
+This section supersedes the immediately preceding “P1.38 second-pass adversarial review” paragraph where it described the P1.37 contract blob as the current target. That pass was performed against a stale snapshot after the active branch had already advanced.
+
+- Current contract path: `docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_1_PRODUCER_WATERMARK_DURABILITY_2026-11-09.md`
+- Current exact contract blob SHA: `b7b6786125be507c3ad4c29521830e5fe2a3b1b9`
+- Contract update commit: `c96f56ae6e583e7fe15f420f5a0f78d3df0fc0c6`
+- Change: status metadata only, from stale P1.14 REVISION DRAFT to P1.37 REVISION; DESIGN ONLY / NOT APPROVED FOR IMPLEMENTATION preserved.
+- P1.38 review path: `docs/reviews/t1/P1_38_SELF_REVIEW_CONTRACT_REVISION_METADATA_2026-11-09.md`
+- P1.38 review update includes a P1.39 second-pass appendix:
+  - Update commit: `ca419a70fb3134be518d636eeff3e233ff4f5073`
+  - Exact review blob SHA: `920ac39b53c90f591bb6d1164ddac86ec5c99029`
+  - P1.39 verdict: DOCUMENTATION-LEVEL PASS for the metadata-only correction and directly coupled receipt-schema/fixture-inventory regression checks; same-session, NOT independent.
+- P1.37 contract/review second-pass work recorded above is historical and is NOT the current issue #138 target.
+- Issue #138 currently targets P1.38 and remains OPEN. It must be retargeted to the exact contract blob `b7b6786125be507c3ad4c29521830e5fe2a3b1b9` and updated review blob `920ac39b53c90f591bb6d1164ddac86ec5c99029`, with a genuinely independent review still PENDING.
+- The unplanned default-ref file/commit incident remains as recorded above; it is not part of the active feature branch target and no default-ref deletion/rewrite was attempted.
+
+Guardrails and blockers remain unchanged: F07 NOT VERIFIED; Binance REST completeness NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C197 NOT IMPLEMENTED / NOT EXECUTED; implementation and T1 activation NOT AUTHORIZED. No Actions, executable tests, REST, VPS, filesystem or runtime experiment was performed. T0 remains independent/canonical; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no destructive data operations.
