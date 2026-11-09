@@ -1716,3 +1716,21 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Verification: documentation writes only. Tests NOT RUN; GitHub Actions NOT DISPATCHED (run ID NONE; artifact NONE); no REST request, source edit, adapter implementation, VPS/runtime, T0/T2 or trading changes. No data deletion or destructive operation.
 - Next step: P1.7 documentation-only resolution of the three findings; mark original v1 finality/schema clauses superseded, define evidence semantics for `GAP_DETECTED`, and specify health-event persistence failure behavior. Preserve F01/F05/F07 blockers and request independent review only after the normative document set is reconciled.
 - Guardrails: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
+
+
+## Latest T1 contract work — P1.7 (2026-11-09)
+
+- P1.7 documentation-only clarification and same-session static check recorded in `docs/reviews/t1/P1_7_CONTRACT_CLARIFICATIONS_AND_STATIC_REVIEW_2026-11-09.md`.
+- Review commit: `8cfa5ca526fcc2fcd7ed436119732f65ce7d51e6`.
+- P1.7 closes the three P1.6 document findings at design level:
+  - Original v1 source-file design is now explicitly archival/non-normative for this producer scope; v1.1 is sole normative contract. Per-row `is_closed` and proposed v1 schema clauses are superseded/do-not-implement. Current FINAL_ONLY mode requires versioned manifest declaration, interval=1m and producer regression evidence; legacy/unversioned inputs remain ineligible.
+  - `GAP_DETECTED` is reserved and not assignable under current profile. Missing/empty REST, absent WS rows, no-trade inference, uncertain pagination/boundaries, transport/queue/parser/writer errors and unsealed windows cannot set it. A future authoritative gap profile requires separate versioning, approval and independent review.
+  - Failure to durably persist health evidence immediately causes sticky in-process invalidation and stops offset/manifest/watermark/seal advancement. Restart without verifiable clean-close/checkpoint state or with missing/corrupt health journal requires quarantine. No independent durable health channel is assumed; limitation is explicit.
+- Updated archival v1 final blob SHA: `c64d6da7b16e608ef5ccebafabce03e51960cfcc`.
+- Updated normative v1.1 blob SHA: `fd640ab36efed6975f1dfaaed750f9d0ae7f708c`.
+- P1.7 review verdict: DOCUMENTATION CLARIFICATIONS COMPLETE / SAME-SESSION STATIC CHECK PARTIAL-PASS. Not independent sign-off and not implementation readiness.
+- Planned negative fixtures C77–C81 added; NOT implemented or executed.
+- Unchanged blockers: F01 CRITICAL (REST completeness oracle not accepted); F05 HIGH (producer decimal f64/12-decimal/parse-to-zero defect confirmed); F07 HIGH/operational (target filesystem/provider durability unverified). Independent review issue #138 remains pending.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED (run ID NONE; artifact NONE); REST NOT CALLED; T1 source/adapter NOT MODIFIED/IMPLEMENTED; T1 activation NOT AUTHORIZED.
+- No T0/T2, strategy/AI/ledger/risk changes; T0 remains independent/canonical; paper-only, `AI_EXECUTION_ENABLED=false`, no live orders, no OKX fallback/replacement. No deletion or destructive operation.
+- Next step: independent adversarial review against exact v1.1 blob `fd640ab36efed6975f1dfaaed750f9d0ae7f708c` and the archival v1 supersession change. Maintain implementation block until independent review and F01/F05/F07 gates are resolved.
