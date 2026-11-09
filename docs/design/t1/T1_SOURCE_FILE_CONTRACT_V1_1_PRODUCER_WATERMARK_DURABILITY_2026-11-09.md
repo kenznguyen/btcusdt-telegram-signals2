@@ -224,3 +224,62 @@ The trace also confirms `message_handler.rs::process_kline` drops `is_closed=fal
 The inspected ExchangeInfoSymbol model exposes symbol, status, base_asset, quote_asset, underlying_type and contract_type. Symbol discovery checks TRADING, PERPETUAL, excludes PREMARKET and requires quote_asset=USDT. The inspected model does not expose margin_asset; it must remain optional/unavailable unless another authoritative source is verified.
 
 This amendment does not resolve R3. No code change, tests, workflow dispatch or runtime evidence exists. Implementation remains blocked and not authorized.
+
+
+## 14. Producer-owned reconciliation protocol — candidate, not yet accepted (P12-03)
+
+### 14.1 Source identified from pinned repository and official API contract
+
+The pinned T1 source SHA `6e20fe94f3ad64cc450e73def80a167fe371e49e` contains REST methods for mark-price, index-price and premium-index klines, but the inspected `src/rest/client.rs` does not expose the standard trade-kline endpoint. The collector therefore does not currently implement the reconciliation path required by this contract.
+
+Candidate authoritative recovery source: Binance USDⓈ-M Futures REST `GET /fapi/v1/klines`, with `symbol=BTCUSDT` and `interval=1m`. Binance documents Klines as uniquely identified by open time; the response contains open time, OHLC, base volume, close time, quote volume, trade count and taker-buy volumes as decimal strings/integers. Request limit is capped by the documented API maximum. Official documentation: https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data . The documentation catalog also lists the endpoint under USDⓈ-M market data: https://developers.binance.info/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data .
+
+This endpoint is a candidate, not yet approved as a completeness oracle. The existing T1 REST client does not call it, and the contract must not imply that it already does.
+
+### 14.2 Required reconciliation transaction
+
+For every affected symbol and UTC interval `[start_ms,end_ms)`, after startup/restart, WebSocket reconnect, queue overflow, writer error, process crash, unknown receive continuity or manifest-generation discontinuity:
+
+1. Freeze the affected interval as `RECONCILIATION_PENDING`; do not advance the source watermark.
+2. Query the USDⓈ-M standard trade-kline REST endpoint for `BTCUSDT`, `1m`, covering the exact affected range. Pagination must be deterministic, bounded by the documented endpoint limit and preserve the requested half-open interval after local filtering by open time.
+3. Retain the raw response bytes, request parameters, response status, retrieval time, endpoint identity, response digest and the trusted exchange-time observation used to establish that returned candles are closed.
+4. Validate schema, symbol, interval, UTC alignment, open-time uniqueness, close-time boundary, decimal strings, OHLC invariants and expected time coverage.
+5. Compare each REST final candle against the WebSocket-derived candidate. Identical values may be reconciled; any mismatch is `RECONCILIATION_CONFLICT` and quarantines the affected interval. No silent overwrite or source preference is allowed by this draft.
+6. Persist reconciliation evidence and resulting accepted final-candle records durably before publishing a manifest that advances `watermark_open_time_exclusive_ms`.
+7. Bind the evidence to the file generation and manifest using a reconciliation record ID, exact `[start_ms,end_ms)` range, endpoint/parameters, retrieval timestamp, server-time observation, response digest, validated candle count, gap/conflict result and the resulting committed prefix digest.
+
+If the REST source is unavailable, rate-limited, incomplete, delayed or cannot prove the queried candles are final, keep the affected interval pending and do not advance the watermark. Retries must be bounded and observable; exhaustion is a blocked interval, never a successful seal.
+
+### 14.3 Critical unresolved API semantics
+
+Before `RECONCILED_COMPLETE` may be emitted, verify from authoritative Binance documentation and deterministic observations:
+- exact `startTime` / `endTime` inclusion semantics and safe mapping to the half-open interval;
+- whether standard 1m klines are returned for every minute with no trades, or whether no-trade intervals can be omitted;
+- when a returned candle is guaranteed final and whether historical candles can be revised;
+- behavior during symbol status transitions, maintenance, API partial failure and delayed publication;
+- whether response pagination can be proven gap-free for the requested range.
+
+If the endpoint omits no-trade intervals, an absent REST row cannot be interpreted as a missing candle or a no-trade minute without an additional authoritative rule. The producer must either obtain a documented exchange guarantee plus a deterministic fixture for this behavior, or design a separate trade-level reconciliation protocol. It must not infer no-trade intervals from silence.
+
+If the endpoint's semantics do not establish completeness, this REST endpoint cannot authorize `RECONCILED_COMPLETE`; retain `UNKNOWN` and block the watermark. No synthetic candles, interpolation, carry-forward or fabricated zero-volume records are permitted.
+
+### 14.4 Late corrections and sealed history
+
+A later REST response that differs from an already sealed record must not rewrite the original file or silently mutate a sealed generation. Record an immutable correction event referencing the original candle key, prior payload digest, corrected payload digest, REST evidence and observation time. The correction path, downstream invalidation and re-aggregation semantics require a separately approved versioned contract. Until then, any post-seal discrepancy quarantines the affected interval and blocks downstream promotion.
+
+### 14.5 Additional deterministic fixtures
+
+Add:
+- C46 REST reconciliation returns exact full expected 1m coverage and values match WS → reconciled evidence may be committed.
+- C47 REST response omits a minute; no-trade semantics not proven → SOURCE_HEALTH_UNKNOWN, no watermark.
+- C48 REST response is delayed/partial/rate-limited → RECONCILIATION_PENDING, no watermark.
+- C49 REST and WS final candle differ → RECONCILIATION_CONFLICT, quarantine.
+- C50 REST pagination repeats or skips an open time → reconciliation fails closed.
+- C51 REST response contains a candle not yet proven closed by exchange-time boundary → pending, no watermark.
+- C52 REST evidence digest or request-range binding mismatch → reject reconciliation evidence.
+- C53 later REST correction to a sealed candle → immutable correction event or quarantine; never rewrite sealed source.
+- C54 restart/reconnect with overlapping REST reconciliation → idempotent evidence and candle keys, no duplicate accepted record.
+
+### 14.6 Status
+
+This section identifies a concrete candidate endpoint from the official API documentation and confirms that the pinned T1 code does not yet implement it. It does not prove the endpoint's no-trade, finality, correction or pagination semantics. `RECONCILED_COMPLETE` remains unavailable until those questions are answered, the producer contract is implemented and tested, and an independent review accepts the evidence model.
