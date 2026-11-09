@@ -1058,3 +1058,27 @@ Owner decision: explicit approval received to select **Option C — No Destructi
 - Restore/staging/fault injection/provider/key/TSA operations: NOT EXECUTED / NOT AUTHORIZED. Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Destructive/deletion authority: NOT GRANTED.
 - T0 remains an independent canonical data asset; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`.
 - Next gate: independent static review of P1.8.121. No tests, workflow dispatch, IAM, implementation, staging or destructive operation is authorized by this decision.
+
+
+## P1.8.122 — Independent Static Review of P1.8.121 Option C Owner Decision (2026-11-09)
+
+Owner approval: explicit approval received for independent static review of P1.8.121. Scope remained documentary only.
+
+- Review: `docs/evidence/p1-8/P1.8.122-independent-static-review-p1-8-121-option-c.md`.
+- Review commit: `edf4a0a3bc33378c0b39adeefbe322e9d1ee7e3b`.
+- Review blob SHA: `69cc991264317c3763aedab03a92d977f7758ed1`.
+- Exact reviewed P1.8.121 blob SHA: `b92c63f593af0088fc522a55dc841af0ad1e5ac7`.
+- Governing cross-checks: P1.8.114 blob `067038d870b30b18934c4f6fe1b6d25ccd529ac5`; P1.8.120 blob `dcd7e8e2bcc10d4e980b0d4e9482a374ff9cad2e`.
+- Verdict: **PARTIAL — Option C is internally consistent and safe at documentary level; effective-permission enforcement remains NOT VERIFIED.**
+- P1.8.121 owner selection, no-authority boundary, read-only/assessment separation, fail-closed semantics and future C-to-A conditions: PASS at documentary level.
+- P1.8.120 IR120-01 remains OPEN for Option B; selecting C does not close that finding for B.
+- IR122-01 MODERATE: before any operational enforcement claim, explicitly enumerate GitHub Actions GITHUB_TOKEN/reusable workflow permissions, repository/organization/environment secrets and variables, OIDC trust, GitHub Apps, deploy keys, PATs, self-hosted runner identities and external provider permissions. This is an inventory requirement, not a claim that any credential currently has destructive access.
+- Static review/readback: PASS — P1.8.122 fetched back from the branch; source blob SHA pinned above.
+- Tests: NOT RUN. GitHub Actions: NOT DISPATCHED. Workflow run/artifact: NONE.
+- IAM/role assignment/access grant/credential creation or activation: NOT EXECUTED / NOT AUTHORIZED.
+- Effective GitHub Actions/repository/organization/environment/OIDC/runner/App/PAT/deploy-key/provider permissions: NOT VERIFIED.
+- Runtime/provider/storage/registry/consumer/copy inventory: NOT VERIFIED / NOT PERFORMED.
+- Restore/staging/fault injection/provider/key/TSA operations: NOT EXECUTED / NOT AUTHORIZED.
+- Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Destructive/deletion authority: NOT GRANTED.
+- T0 remains an independent canonical data asset; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`.
+- Next gate: decide whether to approve a documentary control-plane identity inventory contract addressing IR122-01. No permission inspection beyond read-only metadata, IAM change, secret disclosure, workflow dispatch, implementation, staging or destructive operation is authorized by this review.
