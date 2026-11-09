@@ -491,3 +491,19 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: DOCUMENTARY CONTRACT DESIGN COMPLETE; IMPLEMENTATION DECISIONS/ADAPTER EVIDENCE OPEN; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
 - No source/schema/API/workflow/service/registry/scheduler/database/VPS/Feeder/storage/backup/replica/archive/runtime change. No tests/CI, workflow dispatch, deletion dry-run, cleanup, vacuum, restore, fault injection or destructive operation. Workflow run/artifact: NONE.
 - Next: P1.8.83 Copy and Evidence Lifecycle Closure, including copy identity/inventory completeness, backup-chain disposition, tombstone/audit evidence lifecycle and adapter safeguards at contract level. Do not begin V07/V08/Restore/TSA conflict review before P1.8.84 and independent deletion-design review.
+
+### P1.8.83 — Copy and Evidence Lifecycle Closure (2026-11-09)
+
+- Contract supplement: `docs/evidence/p1-8/P1.8.83-copy-and-evidence-lifecycle-closure.md`.
+- Contract commit: `b3c47969aef06643c9457de316abc132ad7cce8c`.
+- Closes design-level gaps for copy inventory completeness, backup-chain/recovery-point governance, evidence and tombstone lifecycle, and adapter-specific safety requirements.
+- Defines per-boundary inventory outcomes VERIFIED_COMPLETE_WITHIN_SCOPE, PARTIAL, UNKNOWN, CONFLICTED, STALE and NOT_APPLICABLE. Registry presence or recent observation alone cannot prove completeness. Runtime copy inventory remains NOT VERIFIED.
+- Requires exact copy/source identity, immutable version, scope, lineage, owner, location, consistency point, integrity, dependencies, holds, recovery and distribution evidence. Unknown or unmanaged copies remain protective.
+- Defines recovery-point identity across base/incremental/log chains, metadata and encryption-key dependencies; backup upload/checksum/job success is not restore proof. No chain pruning, backup expiry, restore or key destruction is authorized.
+- Defines decision/execution/verification/lineage/recovery evidence classes and tombstone minimum metadata. Payload, credentials, key material and unnecessary sensitive data are excluded. Evidence/tombstone retention remains OPEN and separately governed.
+- Adds contract-level safeguards for SQLite/filesystem (including WAL/journal/sidecars and path identity), PostgreSQL (WAL/replication/partitions/dependencies), object storage (immutable versions, delete markers, replication and lifecycle rules), exports/local copies (recipient and destination scope), and caches/materializations/model artifacts (exact lineage and rebuildability).
+- Adapter approval requires exact-scope enforcement, fail-closed authorization, concurrency/precondition protection, durable idempotency, interruption handling, no cascade, independent verification, recovery/audit preservation and negative-test evidence. No adapter is implemented or approved.
+- Open decisions COPY-INV-01–03, COPY-REC-01–03, COPY-EVD-01–02, COPY-ADP-01–06, COPY-POL-01 and COPY-ENV-01 remain OPEN, NOT VERIFIED, NOT IMPLEMENTED or NOT DESIGNATED as specified in the contract.
+- Status: DOCUMENTARY DESIGN CLOSURE COMPLETE; RUNTIME COPY INVENTORY NOT VERIFIED; ADAPTERS NOT IMPLEMENTED; NOT ACTIVE / NOT AUTHORIZED.
+- No source/schema/API/workflow/service/registry/scheduler/database/VPS/Feeder/storage/backup/replica/archive/runtime change. No tests/CI, workflow dispatch, runtime inventory, deletion dry-run, cleanup, vacuum, restore, fault injection or destructive operation. Workflow run/artifact: NONE.
+- Next: P1.8.84 Deletion Acceptance and Negative-Case Matrix. Consolidate end-to-end acceptance gates, fail-closed vectors, evidence requirements and non-goals across P1.8.79–P1.8.83. After P1.8.84, perform an independent deletion-design review before any V07/V08/Restore/TSA conflict review.
