@@ -40,3 +40,14 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: DESIGN COMPLETE; NOT EXECUTED. All 13 vectors remain synthetic PASS / production NOT VERIFIED.
 - No production implementation, runtime integration, destructive fault injection, VPS/T0/T1/DB/Feeder/exchange/strategy/ledger/risk changes, PR, or merge.
 - Next step: independent review of protocol completeness and environment equivalence criteria before separately approving any isolated staging execution.
+
+## Latest completed work — P1.8.28
+
+- Added `docs/evidence/p1-8/P1.8.28-verification-criteria-environment-equivalence.md`.
+- Document commit: `d14b512e6f8b146dabf0fbb08fe0462610df674a`.
+- Defined a production/staging environment equivalence matrix covering application, database, transactions, durability, storage, topology, concurrency, identity/key management, time, network, backup/restore, observability, and CI evidence.
+- Added measurable minimum deterministic coverage for V01–V13, separate D0–D4 durability claim levels, explicit revocation and checkpoint timestamp contracts, reconciliation fixture requirements, and provisional staging RPO/RTO targets requiring owner approval.
+- Added pre-execution/abort checklist and evidence manifest extensions.
+- Status: DESIGN COMPLETE; NOT EXECUTED. Environment equivalence NOT VERIFIED; staging BLOCKED / NOT AUTHORIZED; production NOT VERIFIED.
+- No source/runtime changes, staging provisioning, fault injection, workflow dispatch, PR, or merge. No CI run or artifact is claimed.
+- Next step: independent review of P1.8.28; obtain explicit owner decisions for revocation policy, checkpoint membership policy, and proposed RPO/RTO before any staging execution proposal.
