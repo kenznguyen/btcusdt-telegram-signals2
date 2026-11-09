@@ -574,3 +574,12 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: DOCUMENTARY DESIGN ONLY; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED.
 - No source, schema, API, workflow, service, registry, scheduler, database, VPS, Feeder, storage, backup, replica, archive or runtime mutation. No real-data inventory or destructive operation.
+
+### P1.8.86 canonical lifecycle state mapping (2026-11-09)
+
+- Document: `docs/evidence/p1-8/P1.8.86-canonical-lifecycle-state-mapping.md`.
+- Commit: `a3d2bac7736a82b2b45813d370e1f90aacaa509b`.
+- Blob SHA: `41bfe76e4afd2e26526684fc71a3070c651df566`.
+- Status: DOCUMENTARY DESIGN ONLY; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED.
+- No source, schema, API, workflow, service, registry, scheduler, database, VPS, Feeder, storage, backup, replica, archive or runtime mutation. No real-data inventory or destructive operation.
