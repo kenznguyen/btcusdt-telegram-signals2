@@ -165,3 +165,15 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - V07 remains BLOCKED; V08 and Restore remain OPEN/BLOCKED. Environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; `AI_EXECUTION_ENABLED=false`.
 - No source/runtime changes, VPS/T0/T1/DB/Feeder changes, provider selection, key operations, data probes, staging provisioning, restore rehearsal, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
 - Next gate: P1.8.38 documentation-only correction of TB-P01/TB-P02 expected outcomes, keeping all provider, cryptographic profile, time, revocation and numeric parameters OPEN; then independent re-review. Separate explicit staging authorization remains mandatory.
+
+## Latest completed work — P1.8.38
+
+- Added documentation-only amendment `docs/evidence/p1-8/P1.8.38-positive-timestamp-fixture-acceptance-clarification.md`.
+- Document commit: `12c85965dde76853a41506e756648acbe0c5a84b`.
+- Scope: resolves P1.8.37 finding F-11 by separating BINDING_RESULT, TOKEN_VALIDATION_RESULT, EVENT_SIGNATURE_RESULT, HISTORICAL_ELIGIBILITY_RESULT and FINAL_DISPOSITION.
+- TB-P01/TB-P02 now permit cryptographic binding PASS without implying historical acceptance. Until V07 is frozen and independently reviewed, historical eligibility remains BLOCKED / NOT DETERMINED and final disposition remains QUARANTINE / HOLD (or BLOCKED); ACCEPT is prohibited.
+- Late receipt in TB-P02 does not rewrite trusted genTime and does not bypass revocation freshness, replay/idempotency or quarantine controls.
+- P1.8.36 TB-N01–TB-N13 remain unchanged. All TSA/provider/profile, cryptographic encoding, time uncertainty, revocation, cache, propagation, rotation, fixture-byte and numeric parameters remain OPEN.
+- Status: F-11 addressed at documentation-oracle level; independent re-review REQUIRED. F-01 remains CLARIFIED / DESIGN PASS but formal closure pending frozen profile/fixtures/final review. V07 BLOCKED; V08 and Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; `AI_EXECUTION_ENABLED=false`.
+- No source/runtime changes, VPS/T0/T1/DB/Feeder changes, provider selection, key operations, data probes, staging provisioning, restore rehearsal, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
+- Next gate: independent static review of P1.8.38 against P1.8.26, P1.8.28 and P1.8.34–P1.8.37. Separate explicit staging authorization remains mandatory.
