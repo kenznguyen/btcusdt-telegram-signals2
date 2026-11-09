@@ -3270,3 +3270,19 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: documentation scope reconciliation PASS at text level. No claim that all current GitHub Actions workflows, branch protections, secrets or runtime execution were independently audited; those remain NOT VERIFIED. Tests and GitHub Actions NOT RUN / NOT DISPATCHED. Independent review NOT PERFORMED.
 - No source, test, workflow, package, schema, runtime, VPS, database, provider, key, permission or data changes. No PR or merge. Option C — No Destructive Authority — unchanged; no TTL, delete-after-use, cleanup, archive, compaction, vacuum, backup expiry or replica removal.
 - Next step: perform a read-only inventory of `.github/workflows` and referenced workflow documentation to establish the actual GitHub Actions execution map; do not dispatch workflows or modify workflow files without separate approval.
+
+
+## GitHub Actions Execution Map — Read-only Audit (2026-11-10)
+
+- Exact source baseline: `6ab6a11e88aff3b5a12cebe2adce74bc28e8da31` on `feature/t0-centralized-data-feeder-p1-20261101`.
+- Audit: `docs/evidence/GITHUB_ACTIONS_EXECUTION_MAP_READ_ONLY_AUDIT_2026-11-10.md`.
+- Audit commit: `6b00d7eca68d9422a9c6b43ec6d2d1251aea8b69`; audit blob SHA: `21cf79f9005809fef43de7f2746c4952a83d08f1`.
+- Exact branch `.github/workflows/` contains 14 YAML files. Workflow inventory, trigger/job classification and exact blob SHAs are recorded in the audit.
+- F-01 CONFIRMED: `t0-single-writer-gateway-red.yml` uses broad `market_data/**` and `pipeline/**` filters and runs a mixed T0/T1/paper/PostgreSQL job set. Do not narrow triggers or jobs until the complete test denominator and job dependencies are reviewed.
+- F-02 CONFIRMED / NOT EXECUTED: `t0-manual-validation.yml` has a Scaleway SSH preflight gate using protected SSH secrets and a remote pinned-host-key connection. This remains a manual external operation; no dispatch or SSH connection was made.
+- F-03 STATIC CONFLICT CONFIRMED / NOT EXECUTED: `ci/test_ci_policy.py` asserts there are no active GitHub Actions YAML files, but the exact branch contains 14. `codemagic.yaml` still declares a push-triggered `canonical-market-data` workflow that runs `unittest discover -s ci`, which includes this conflicting test. External Codemagic account/trigger execution state NOT VERIFIED. Do not modify CI tests/config without separate approval.
+- F-04 METADATA OBSERVED: active branch endpoint returned `protected=false`, protection disabled and no required status-check contexts. Organization/repository rulesets and effective governance NOT VERIFIED.
+- F-05 boundary: workflow definitions do not establish workflow execution PASS, G2 exact-SHA, L4-Minimum, or production readiness. Workflow runs/artifacts, external Codemagic state, secrets/effective permissions and reusable-workflow call sites remain NOT VERIFIED.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; independent review NOT PERFORMED. No source/test/workflow/config/secret/permission/runtime/VPS/DB/provider/data changes. No PR or merge.
+- Option C — No Destructive Authority — unchanged; no deletion, TTL, cleanup, archive, compaction, vacuum, backup expiry or replica removal.
+- Next gate: prepare a separate documentation-only CI ownership and test-denominator decision record for F-01/F-03. No workflow trigger, CI policy test, Codemagic config, branch protection, secret or dispatch changes without separate approval.
