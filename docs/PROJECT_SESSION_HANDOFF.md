@@ -3754,3 +3754,17 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - LDA-07 remains NOT RUN; 87/87 lifecycle vectors remain NOT RUN. LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
 - No tests, compile, dry-run, fault injection, provisioning, Actions dispatch, secrets/permission/runtime/VPS/database/provider/recipient/backup/replica probes, source/schema/adapter/workflow/runner/permission/runtime/data changes or destructive operations.
 - Next bounded documentary step: Stage C.11 — TEST-07 Synthetic-Only Cleanup Containment Contract. Option C remains active; TEST-08 exact-scope authorization is still required before any lifecycle test execution.
+
+
+## Latest completed work — Stage C.11 / TEST-07
+
+- Added documentation-only synthetic-only cleanup containment contract: `docs/evidence/p1-8/STAGE_C11_TEST07_SYNTHETIC_ONLY_CLEANUP_CONTAINMENT_CONTRACT_2026-11-10.md`.
+- Report commit: f20a3c0aae94ebac8add5f66c9e449f81a3084a4; report blob SHA to be verified by read-back.
+- Defines resource classification, immutable run-bound synthetic namespace, exact target manifest, complete inventory/lineage, independent pre/post observation, role separation, two-phase plan/execution authorization, fail-closed abort and append-only evidence requirements.
+- Explicitly preserves Option C — No Destructive Authority. No cleanup/deletion/archive/expiry/compaction/vacuum capability, implementation, dry-run, test or execution is authorized or introduced. Any future destructive operation requires separate exact owner approval; TEST-08 remains a separate execution gate.
+- Protected T0 canonical data/recovery copies, CORE_LEDGER, AI_LEDGER, required T3 reconstruction/audit evidence, governance history, backups/replicas/snapshots/exports and unknown/unclassified objects remain ineligible.
+- Specifies CLN-01–CLN-16 evidence package and CLN-T01–CLN-T16 future acceptance assertions. Contract does not prove current isolation, inventory completeness or cleanup containment.
+- TEST-07: CONTRACT DOCUMENTED / CLEANUP CONTAINMENT NOT ESTABLISHED; not closed. TEST-01/02 implementation not established; TEST-03 effective isolation not verified; TEST-04 independent oracle not established; TEST-05 deterministic concurrency not established; TEST-06 lifecycle provenance not established; TEST-08 NOT GRANTED.
+- LDA-07 remains NOT RUN; 87/87 lifecycle vectors remain NOT RUN. LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
+- No tests, compile, dry-run, fault injection, provisioning, Actions dispatch, cleanup/deletion/destructive operation, secrets/permission/runtime/VPS/database/provider/recipient/backup/replica probes or source/schema/adapter/workflow/runner/permission/runtime/data changes.
+- Next bounded documentary step: Stage C.12 — Consolidated TEST-01–07 Contract Traceability and Cross-Contract Consistency Review. This remains documentation-only; no implementation or execution authority follows automatically.
