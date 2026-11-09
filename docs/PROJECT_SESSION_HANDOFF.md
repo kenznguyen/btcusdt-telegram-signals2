@@ -2079,3 +2079,17 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Issue #138 retarget is permitted by this self-review gate and is to be updated to exact contract blob `20e8b31db364a15b73359810664f7e079aa86bc7` for genuinely independent review. Same-session self-review is not independent.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; no T0/T2 changes; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
 
+## Latest follow-up — P1.23 adversarial self-review of P1.22 (2026-11-09)
+
+- Re-read the active-branch handoff, exact P1.22 contract, P1.22 review, and issue #138 before this review.
+- Exact contract blob reviewed: `20e8b31db364a15b73359810664f7e079aa86bc7`.
+- Review file: `docs/reviews/t1/P1_23_SELF_REVIEW_OWNER_APPROVAL_AUTHORITY_2026-11-09.md`.
+- Review commit: `a0bbbc81c22a539ecaaee6fa6bc8fdff22d2bdd8`.
+- Verdict: **REQUEST CHANGES — F02-R5 HIGH**. The P1.22 rollback-recovery approval record is content-pinned but the contract does not authenticate the named `approver_github_login` or prove that the actor had authority to approve the exact recovery decision. A repository writer could create a self-asserted JSON approval, set the owner's login, and pin its commit/blob digest. A commit SHA and file digest prove content identity/integrity, not human approval authority.
+- Required before claiming enforceable approval: define an owner-controlled cryptographic signature/allowlist or a verifiable GitHub review/approval evidence process tied to exact commit/path/blob and actor authority; specify trusted authority source, role/allowlist, revocation/rotation, replay prevention and fail-closed behavior. Keep this separate from any independent anti-rollback anchor.
+- P1.22 F02-R4/F01-R2 contract corrections remain documentation-level PASS within their narrower scope. F02-R5 is a new unresolved blocker; do not claim rollback-recovery approval is enforceable.
+- Issue #138 remains OPEN and must continue targeting exact contract blob `20e8b31db364a15b73359810664f7e079aa86bc7` for independent review. Add F02-R5 to independent-review questions; do not retarget to a new contract SHA until a separately approved correction and exact-SHA self-review pass.
+- No contract source changed in P1.23. No implementation, executable tests, Actions dispatch, REST, VPS/runtime, T1 activation, T0/T2 changes, trading or destructive operations.
+- Existing blockers unchanged: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C140 NOT IMPLEMENTED / NOT EXECUTED.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
