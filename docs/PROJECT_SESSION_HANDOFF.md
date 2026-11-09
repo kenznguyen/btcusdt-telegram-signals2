@@ -397,8 +397,7 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 
 - Review: `docs/evidence/p1-8/P1.8.68-independent-static-review-provider-neutral-tsa-architecture.md`.
 - Review commit: `bde1e14c4e14eecaf13bd9f6637102e874ac5674`.- Verified review blob SHA: `9ae0c50830644d21d850da4c4d246a2837f62fc6`.
-- Reviewed P1.8.67 blob SHA: `50654f3f4f4caa509598e4393e2634ea977df5dd`.
-- Result: PASS within E0 documentary/static scope; no blocking or non-blocking findings. Confirmed write-path independence, exact-signature binding consistent with P1.8.36, limited `genTime` claim, RFC 3161 verification boundary, issuer-bound historical OCSP/CRL, RFC 9654 currency, unknown submission outcome handling, retry/idempotency, provider portability and commercialization-claim limits.
+- Reviewed P1.8.67 blob SHA: `50654f3f4f4caa509598e4393e2634ea977df5dd`.- Result: PASS within E0 documentary/static scope; no blocking or non-blocking findings. Confirmed write-path independence, exact-signature binding consistent with P1.8.36, limited `genTime` claim, RFC 3161 verification boundary, issuer-bound historical OCSP/CRL, RFC 9654 currency, unknown submission outcome handling, retry/idempotency, provider portability and commercialization-claim limits.
 - Limitations: no proof of current T0 implementation, DB/WAL boundary, provider interoperability, historical evidence restore, production reliability or commercial/legal readiness.
 - Status: P1.8.67 DESIGN ASSESSMENT COMPLETE; P1.8.68 REVIEW PASS (E0 only). P1.8.66 DRAFT ONLY / NOT SENT; provider NONE SELECTED; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; E2/E3/E4 NOT ACQUIRED; staging NOT AUTHORIZED; production NOT VERIFIED; `AI_EXECUTION_ENABLED=false`.
 - No E1 fixture freeze/execution, provider contact, endpoint/OCSP call, key/trust-anchor operation, staging, restore, fault injection, runtime/DB/VPS/Feeder change or workflow dispatch. Tests/workflows NOT RUN; artifact NONE.
@@ -797,8 +796,7 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 
 ## P1.8.104 — Cross-Contract Conflict Review: Self-Deletion vs V07 / V08 / Restore / TSA (2026-11-09)
 
-- Review: `docs/evidence/p1-8/P1.8.104-cross-contract-conflict-review.md`.
-- Review commit: `671dc975d3cba4f95cc2ac961bc7f46ef2e437dc`.
+- Review: `docs/evidence/p1-8/P1.8.104-cross-contract-conflict-review.md`.- Review commit: `671dc975d3cba4f95cc2ac961bc7f46ef2e437dc`.
 - Review blob SHA: `8cce46c9c32c369372453df6908f6e3b1a09a30a`.
 - Source branch/base commit reviewed: `feature/t0-centralized-data-feeder-p1-20261101` / `936abd84396152b71825c86241d705595d45ab24`.
 - Verdict: **PARTIAL — no direct policy contradiction found; cross-contract integration gaps remain.**
@@ -1197,8 +1195,7 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
   - Official GitHub REST documentation URLs are included in P1.8.131. Documentation was researched only; no live endpoint was called.
 - P1.8.132 independent review:
   - Path: `docs/evidence/p1-8/P1.8.132-independent-static-review-p1-8-131.md`.
-  - Commit: `8698d5b2cf11331be1e2e15c56d51149f0b621e2`.
-  - Verdict PARTIAL; new finding IR132-01 MODERATE: classic branch-protection GET endpoint missing from candidate matrix.
+  - Commit: `8698d5b2cf11331be1e2e15c56d51149f0b621e2`.  - Verdict PARTIAL; new finding IR132-01 MODERATE: classic branch-protection GET endpoint missing from candidate matrix.
 - P1.8.133 classic branch-protection closure:
   - Path: `docs/evidence/p1-8/P1.8.133-classic-branch-protection-endpoint-closure.md`.
   - Commit: `b3923082e24529e30abd72aace8dd982372b0769`.
@@ -1238,3 +1235,24 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No staging, restore, fault injection, key/TSA operation, archive, cleanup, vacuum or deletion. Option C remains the approved default; destructive/deletion authority NOT GRANTED.
 - T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next gate: owner decision on whether to authorize the bounded read-only inventory and, if so, approval of the exact execution parameters listed in P1.8.135. Automatic documentary approval does not grant this access.
+
+
+## P1.8.137–P1.8.138 — Bounded GitHub EP-01 Inventory Execution and Independent Review (2026-11-09)
+
+- Owner explicitly approved the bounded read-only inventory under P1.8.135 and separately permitted API inventory.
+- One repository metadata GET was executed through the GitHub connector for `kenznguyen/btcusdt-telegram-signals2`.
+- EP-01 result: READ SUCCESS. Repository ID `1411446586`; owner `kenznguyen`, type `User`; visibility `public`; archived `false`; default branch `main`.
+- Returned repository actor permissions: `admin=true`, `maintain=true`, `push=true`, `pull=true`, `triage=true`. These actor-role fields do not establish the underlying connector credential/token/App effective scopes.
+- EP-09 is EXCLUDED because owner type is `User`, not Organization.
+- EP-02–EP-08 were NOT RUN. Collection stopped at Phase 0 because the collector's effective read-only boundary and credential identity could not be independently established from non-secret evidence. No secret values/metadata, source contents, IAM/settings/permissions, workflows, runners or providers were accessed or changed.
+- P1.8.137 execution record: `docs/evidence/p1-8/P1.8.137-read-only-github-inventory-ep01-execution-record.md`.
+  - Commit: `cd17ece7ebe8af035f5354d66a42a6ad091d94d8`.
+  - Final blob SHA after read-back: `b563f377044336e7ce5eef7dd956ccd4e879d0ab`.
+  - Result: PARTIAL / BLOCKED at Phase 0 after EP-01.
+- P1.8.138 independent static review: `docs/evidence/p1-8/P1.8.138-independent-static-review-p1-8-137.md`.
+  - Commit: `45c0c53079f0aa1f383a08236b6c8b80671c6161`.
+  - Review verdict: PARTIAL. Stop decision and authorization boundaries PASS; IR137-01/02/03 remain OPEN for formal inventory provenance, collector principal attribution and response-minimization evidence.
+- IR122-01 remains operationally OPEN. Effective read-only identity/credential scope remains NOT VERIFIED. Full Option C technical enforcement remains NOT VERIFIED.
+- Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE. No source/runtime/VPS/T0/T1/database/Feeder/strategy/ledger/risk changes. No IAM/credential/permission changes. No destructive operation; deletion authority NOT GRANTED.
+- T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next gate: obtain non-secret, independently attributable evidence of the collector's effective read-only boundary within the existing scope. Do not call EP-02–EP-08 unless that precondition is established. Do not create or expand credentials or change permissions to bypass the stop. If proof cannot be obtained within the approved boundary, retain PARTIAL/NOT VERIFIED.
