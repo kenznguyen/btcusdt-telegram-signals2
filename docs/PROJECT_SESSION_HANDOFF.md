@@ -736,3 +736,13 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Defines per-object reconciliation partition and requires lifecycle-review acceptance plus separate execution-authority final recheck; old authorization is never revived. Ambiguous objects block resume.
 - No new role, self-approval, numeric TTL/freshness/time bound, identity/time provider, registry, event store or implementation selected. Owner decisions remain OPEN.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/VPS/database/storage change or inventory; no destructive operation.
+
+### P1.8.98 — Negative-Case Semantic Coverage Corrections (2026-11-09)
+
+- Record: `docs/evidence/p1-8/P1.8.98-negative-case-semantic-coverage-corrections.md`.
+- Commit: `cbbf038fd76d68460cad471ebada772d135575f9`.
+- Blob SHA: `c50619f54cc04effcda8221259e9cc22086d20a8`.
+- Closes P1.8.96 IR-02/IR-03/IR-04 at test-specification level. P1.8.94 updated with direct vectors for missing/ambiguous recovery-chain member (NEG-REC-03), unresolved ledger-specific obligation (NEG-T3-02), missing/dangling evidence reference (NEG-EVD-06), unresolved evidence provenance/source/scope (NEG-EVD-07), and unexplained residual reference/index/sidecar (NEG-ADP-10).
+- Corrected N09/N19/N24/N36 mappings. Static read-back: 45 traceability rows, 27 unique supplemental vectors, 74 total specified IDs (47 baseline + 27 supplemental).
+- All vectors remain NOT_RUN. No runner, fixture, adapter, workflow, CI job, runtime inventory or destructive operation.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED.
