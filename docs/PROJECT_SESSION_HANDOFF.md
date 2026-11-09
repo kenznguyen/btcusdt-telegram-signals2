@@ -422,3 +422,19 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - No source/schema/runtime implementation, provider contact, endpoint/OCSP call, key/trust-anchor operation, E1 fixture freeze/execution, E2/E3/E4 acquisition, staging, restore, fault injection, workflow dispatch, VPS/T0/T1/DB/Feeder/exchange/ledger/strategy/risk changes. Tests/workflows NOT RUN; artifact NONE.
 - Provider NONE SELECTED; P1.8.66 DRAFT ONLY / NOT SENT; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; E1 NOT AUTHORIZED; E2/E3/E4 NOT ACQUIRED; staging NOT AUTHORIZED; production NOT VERIFIED; `AI_EXECUTION_ENABLED=false`.
 - Next gate: any source/schema implementation proposal must first map the actual T0 checkpoint, DB/WAL durability, storage and lifecycle contracts and obtain separate bounded owner approval. These documentation PASS results do not authorize implementation or operational execution.
+
+
+
+### P1.8.77 / P1.8.78 — Read-only T0 source mapping for TSA compatibility (2026-11-09)
+
+- P1.8.77 report: `docs/evidence/p1-8/P1.8.77-read-only-t0-source-mapping-tsa-compatibility.md`; commit `5bb3f626c14e2724f0c20f479929836136a8a0f0`; verified blob `35057494b5b3c240e636cfdea3505e8870361ca5`.
+- Read-only source scope: `feature/t0-centralized-data-feeder-p1-20261101`; inspected market_data README, store/storage/Feeder/write-gateway/PostgreSQL code and migrations 001–004. Individual source blob SHAs are recorded in P1.8.77.
+- Finding F-19 (HIGH): inspected T0 path is a closed-candle store/Feeder, not a signed event ledger. No checkpoint/seal object, signing-key lifecycle, timestamp-intent/outbox, RFC 3161 verifier or TSA evidence archive exists in the inspected market_data source/migrations.
+- Current SQLite write path uses `BEGIN IMMEDIATE`, lease checks and explicit commit/rollback; WAL mode is enabled, but project-specific synchronous/fsync/failure-domain guarantees are not established by inspected application source.
+- Current PostgreSQL write path invokes the fenced candle function inside a transaction context; application-level `synchronous_commit`, replication and storage failure-domain guarantees are not established by inspected source.
+- Scheduler completion boundary is in-memory in the inspected FeederScheduler. API `datasetVersion` is a SHA-256 over the selected read-window response, not the whole database or a persisted checkpoint.
+- Critical distinction recorded: (A) dataset/checkpoint proof-of-existence over a deterministic manifest digest; versus (B) P1.8.36 signed-object historical verification requiring exact signature bytes/context and a signer/key lifecycle. These are distinct assurance claims and must not be conflated.
+- P1.8.78 static review: `docs/evidence/p1-8/P1.8.78-independent-review-t0-source-mapping.md`; commit `173b615089efa495ee4a679ff790e54226e562b7`; verified review blob `4794a531befa0bf1ce2fbb428ae466fcb6a280a9`. Result PASS within inspected source scope; no additional finding. F-19 remains OPEN/HIGH pending owner use-case decision.
+- Status: read-only source mapping COMPLETE; current implementation is not TSA-capable; provider NONE SELECTED; P1.8.66 DRAFT ONLY / NOT SENT; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; DB/WAL durability and production failure-domain equivalence NOT VERIFIED; E1 NOT AUTHORIZED; E2/E3/E4 NOT ACQUIRED; staging NOT AUTHORIZED; production NOT VERIFIED; `AI_EXECUTION_ENABLED=false`.
+- No source/schema/runtime/database/VPS/Feeder/exchange change; no provider contact, endpoint/OCSP call, data probe, test, workflow dispatch, staging, restore or fault injection. No CI run or artifact claimed.
+- Next gate: owner chooses TSA assurance subject: A (dataset/checkpoint proof-of-existence), B (signed-object historical verification), or A+B as separately versioned products. No source design or provider operation until the decision is explicit.
