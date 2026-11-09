@@ -283,3 +283,58 @@ Add:
 ### 14.6 Status
 
 This section identifies a concrete candidate endpoint from the official API documentation and confirms that the pinned T1 code does not yet implement it. It does not prove the endpoint's no-trade, finality, correction or pagination semantics. `RECONCILED_COMPLETE` remains unavailable until those questions are answered, the producer contract is implemented and tested, and an independent review accepts the evidence model.
+
+
+## 15. P1.3 conservative REST reconciliation acceptance profile
+
+### 15.1 Documentation evidence boundary
+
+The official USDⓈ-M REST market-data catalog documents `GET /fapi/v1/klines`, `symbol`, `interval`, optional `startTime`/`endTime`, `limit` (maximum 1500), and that klines are uniquely identified by open time. It documents the response tuple and close-time field. The documentation reviewed for this revision does not establish all of the following: whether every no-trade minute is emitted, exact inclusive/exclusive semantics for both time parameters, a formal finality guarantee, historical immutability/correction policy, or a complete pagination proof under all boundary conditions.
+
+Sources reviewed:
+- https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data
+- https://developers.binance.info/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data
+
+Therefore the endpoint remains a **candidate recovery/reconciliation source**, not an accepted completeness oracle. A 200 response, a non-empty array, a close-time field, or an apparent sequential result is not by itself proof that the requested interval is complete.
+
+### 15.2 Fail-closed acceptance rule
+
+For a requested UTC half-open interval `[start_ms,end_ms)` aligned to 1m, define the expected open-time set as every UTC minute boundary in that interval. The producer may mark the interval `RECONCILED_COMPLETE` only if all of the following are independently established:
+
+1. The authoritative request-boundary semantics are verified, and the retrieval strategy proves that the complete requested range was queried without silently excluding either boundary.
+2. Every expected minute has exactly one valid REST kline with that exact open time; duplicate, missing, out-of-range or non-aligned open times fail reconciliation.
+3. Every returned candle is proven final under an authoritative rule, not merely inferred from local wall-clock time or the presence of a close-time field.
+4. All pages are proven complete, ordered, non-overlapping after deduplication, and bound to the exact requested range and source identity.
+5. REST and any existing WebSocket candidate agree field-for-field after exact decimal normalization. Any disagreement quarantines the interval; this draft does not authorize silently choosing one source.
+6. Raw responses, request parameters, retrieval/server-time evidence, response digests, validation result, expected/observed open-time sets and generation/manifest binding are durably committed before watermark publication.
+
+**A missing REST minute is always `SOURCE_HEALTH_UNKNOWN` under this version.** It is not classified as a no-trade minute and is not classified as a confirmed market-data gap. It blocks `RECONCILED_COMPLETE`, watermark advancement and aggregation. The producer must not synthesize a zero-volume candle, interpolate, carry forward, or infer no trades from an empty response.
+
+This conservative rule may leave legitimate no-trade intervals permanently unsealable. That is an accepted reliability trade-off until a separate, authoritative no-trade proof is designed and approved. Do not relax this rule to improve availability.
+
+### 15.3 Boundary and pagination handling
+
+Because the reviewed documentation does not fully specify time-boundary inclusion, the producer must not assume `startTime` or `endTime` is inclusive or exclusive. A future implementation proposal must supply authoritative contract evidence for the exact semantics. Until then, a local filter cannot repair a server-side boundary omission that was never returned.
+
+The documented maximum `limit=1500` is a page-size ceiling, not proof of pagination completeness. A future implementation must define deterministic page advancement, overlap/replay handling, duplicate detection, exact expected-open-time verification, response truncation detection, rate-limit/error handling and a hard bounded retry policy. If any page cannot be proven complete, the whole affected interval remains pending/unknown.
+
+### 15.4 Finality and correction boundary
+
+A candle's documented `close time` field describes its interval boundary; it does not, by itself, prove the API response is immutable or that no later correction can occur. Finality must be established using an authoritative exchange guarantee or another independently accepted proof. Local `now > close_time`, a delay buffer, or repeated identical polls are not sufficient proof of immutability.
+
+If the exchange does not provide a documented no-revision guarantee, the design must explicitly limit its claim to a point-in-time reconciliation observation and retain a correction-detection/quarantine mechanism. It must not claim permanent finality. Any later mismatch against a previously sealed candle creates an immutable correction event and quarantine; sealed bytes are never rewritten.
+
+### 15.5 New deterministic fixtures
+
+- C55 one REST kline for each expected minute, exact range and verified boundary semantics → eligible for further finality/identity checks; not an unconditional pass.
+- C56 missing REST open time → SOURCE_HEALTH_UNKNOWN; no no-trade inference, no watermark.
+- C57 duplicate open time across overlapping pages → reject/quarantine; no watermark.
+- C58 first or last expected minute absent due uncertain request-boundary semantics → SOURCE_WATERMARK_UNTRUSTED; no watermark.
+- C59 page reaches documented limit and continuation cannot prove next expected open time → RECONCILIATION_PENDING; no watermark.
+- C60 candle close time has passed locally but no authoritative finality guarantee → pending; no watermark.
+- C61 later REST response differs from a previously reconciled candle → immutable correction event plus quarantine; never rewrite sealed bytes.
+- C62 endpoint returns an empty array for a requested interval → SOURCE_HEALTH_UNKNOWN; not proof of no trades or full coverage.
+
+### 15.6 P1.3 disposition
+
+The conservative acceptance profile is now explicit. It resolves the unsafe ambiguity in how missing REST rows are interpreted, but it does **not** resolve the external API-contract gaps. The endpoint remains a candidate only. `RECONCILED_COMPLETE` remains disabled until boundary semantics, no-trade behavior, finality/correction guarantees and pagination completeness are independently evidenced and accepted. No implementation or runtime action is authorized by this design update.
