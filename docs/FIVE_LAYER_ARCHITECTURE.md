@@ -1,6 +1,11 @@
 # Kiến trúc hệ thống 5 tầng
 
-Ngày rà soát: 2026-10-29. Trạng thái: **thiết kế đích và lựa chọn nguồn**, chưa phải hệ thống đã triển khai. Giữ APK Chart Pro làm một client; React Dashboard là client thứ hai của cùng backend. Giai đoạn đầu dùng Binance USDⓈ-M, BTCUSDT và paper trading, theo phạm vi hiện tại của dự án.
+Ngày rà soát: 2026-11-10. Trạng thái: **thiết kế đích và lựa chọn nguồn**, chưa phải hệ thống đã triển khai. Tài liệu này chỉ mô tả Hệ thống 5 tầng; Android Chart/Scanner và Python bot/backtest là các hệ thống riêng, nằm ngoài phạm vi kiến trúc, dependency, triển khai và acceptance của hệ thống này. Giai đoạn đầu dùng Binance USDⓈ-M, BTCUSDT và paper trading.
+
+
+## Phạm vi loại trừ
+
+Các thành phần sau không thuộc Hệ thống 5 tầng và không được đưa vào sơ đồ dependency, consumer contract, rollout, kiểm định hoặc acceptance của hệ thống: **Android Chart/Scanner** và **Python bot/backtest**. Việc chúng cùng tồn tại trong repository không tạo ra quan hệ tích hợp. Mọi tích hợp trong tương lai cần một quyết định phạm vi riêng; không tự động migrate, đồng bộ dữ liệu hoặc thay đổi nguồn dữ liệu của chúng.
 
 ## 1. Chọn thành phần theo nhiệm vụ
 
@@ -10,7 +15,7 @@ Ngày rà soát: 2026-10-29. Trạng thái: **thiết kế đích và lựa ch�
 | 1 — Trinh sát vi mô | Module Futures Intelligence của dự án, đọc các feed funding/OI/liquidation/trades từ collector | Tính taker buy/sell delta theo cửa sổ, biến động OI, funding context, giao dịch lớn và các sự kiện thanh lý quan sát được | Định nghĩa chỉ số, kiểm soát độ mới và bao phủ dữ liệu; module on-chain riêng khi có nguồn phù hợp |
 | 2 — Chiến lược và AI | [Freqtrade + FreqAI](https://github.com/freqtrade/freqtrade) | Backtest, train/predict và đánh giá chiến lược; xuất `TradeIntent` | Adapter ra quyết định và nhận trạng thái vị thế; cổng rủi ro trước thực thi |
 | 3 — Sổ lệnh và thực thi | [Hummingbot](https://github.com/hummingbot/hummingbot) + [Hummingbot API](https://github.com/hummingbot/hummingbot-api) | Đọc sổ lệnh, kiểm tra thanh khoản; chủ sở hữu duy nhất của lệnh khi có thực thi | Execution adapter, mô phỏng khớp lệnh, đối soát và kiểm thử khớp một phần/hủy/thay lệnh |
-| 4 — Trung tâm điều khiển | Mở rộng **Capture Desk React/TypeScript** trong repo collector; giữ APK Android hiện tại | Hiển thị dữ liệu, chất lượng feed, chiến lược/model, vị thế và trạng thái lệnh; gửi yêu cầu điều khiển qua backend | API chung có xác thực/phân quyền; giao diện chiến lược, paper orders, PnL và nhật ký thao tác |
+| 4 — Trung tâm điều khiển | **React Dashboard / Capture Desk React/TypeScript** | Hiển thị dữ liệu, chất lượng feed, chiến lược/model, vị thế và trạng thái lệnh; gửi yêu cầu điều khiển qua backend | API chung có xác thực/phân quyền; giao diện chiến lược, paper orders, PnL và nhật ký thao tác |
 
 Năm tầng là năm trách nhiệm logic, không bắt buộc năm repo hoặc năm dịch vụ độc lập. Tầng 0 và giao diện tầng 4 có thể tận dụng cùng repo collector. Chưa cần event bus hoặc một framework điều phối mới cho MVP.
 
@@ -52,14 +57,13 @@ flowchart TD
     T2 --> API
     S --> API
     API <--> T4["T4: React Dashboard"]
-    API <--> APK["APK Chart Pro"]
 ```
 
 FreqAI là thành phần học máy trong Freqtrade, không phải bộ thực thi độc lập. Freqtrade thông thường tự quản lý lệnh/vị thế. Nếu chọn Hummingbot làm executor, cần adapter xuất ý định chiến lược và đưa kết quả khớp/vị thế trở lại vòng đánh giá; không chạy hai bộ máy cùng gửi lệnh cho cùng chiến lược/tài khoản.
 
 `dry_run` của Freqtrade là mô phỏng của Freqtrade, không tự trở thành cầu nối thực thi sang Hummingbot. Trước khi có adapter nhận fill đúng, kết quả nghiên cứu được giữ ở chế độ shadow/research; không đồng nhất vị thế giả lập của Freqtrade với vị thế của executor.
 
-Kho lệnh/vị thế ở server là nguồn trạng thái chung. React và APK đọc cùng trạng thái, không tự tính một vị thế độc lập rồi coi đó là lệnh đã khớp. Kho này lưu event ID, mã lệnh sàn, lượng đã khớp, lượng còn lại và phí; đối soát với executor sau khởi động lại.
+Kho lệnh/vị thế ở server là nguồn trạng thái chung. React Dashboard đọc trạng thái qua backend, không tự tính một vị thế độc lập rồi coi đó là lệnh đã khớp. Kho này lưu event ID, mã lệnh sàn, lượng đã khớp, lượng còn lại và phí; đối soát với executor sau khởi động lại.
 
 ## 3. Hợp đồng tối thiểu
 
@@ -91,7 +95,7 @@ Limit order không đảm bảo khớp và không đảm bảo slippage thấp h
 
 Khi chia một intent thành nhiều lệnh limit, execution adapter lưu kế hoạch chia lệnh và ID ổn định cho từng lệnh con; tổng khối lượng còn mở/đã khớp phải nằm trong mục tiêu được duyệt. Rải lệnh không được làm phát sinh một mục tiêu vị thế mới ngoài cổng rủi ro.
 
-Khóa sàn và Hummingbot Basic credentials nằm ở server. Browser/APK chỉ gọi API theo quyền đọc hoặc điều khiển. Lệnh pause ngăn intent mới; cancel yêu cầu hủy lệnh đang mở; flatten là một hành động giảm vị thế riêng, không đồng nghĩa pause. Tác vụ trên giao diện phải hiển thị xác nhận từ backend và trạng thái đang chờ, không tự coi thao tác đã thành công.
+Khóa sàn và Hummingbot Basic credentials nằm ở server. Trình duyệt chỉ gọi API theo quyền đọc hoặc điều khiển. Lệnh pause ngăn intent mới; cancel yêu cầu hủy lệnh đang mở; flatten là một hành động giảm vị thế riêng, không đồng nghĩa pause. Tác vụ trên giao diện phải hiển thị xác nhận từ backend và trạng thái đang chờ, không tự coi thao tác đã thành công.
 
 ## 5. Kế hoạch triển khai có thể kiểm chứng
 
@@ -101,20 +105,20 @@ Khóa sàn và Hummingbot Basic credentials nằm ở server. Browser/APK chỉ 
 | 2 — Trinh sát | Bật collector BTCUSDT; funding/OI, taker delta và liquidation quan sát được | Fixture có mất kết nối/thiếu dữ liệu; đối chiếu nến capture với dataset chung; không trộn on-chain với giao dịch sàn |
 | 3 — AI/chiến lược | Freqtrade/FreqAI dùng dataset chung; xuất intent ở shadow mode | Backtest/walk-forward theo thời gian, không rò rỉ dữ liệu; thiếu model/dữ liệu thì không sinh intent có thể thực thi |
 | 4 — Paper execution | Risk gate + mô phỏng execution theo hợp đồng Hummingbot + sổ trạng thái | Retry cùng intent, timeout, partial fill, cancel và restart không tạo lệnh/vị thế trùng; đối soát được |
-| 5 — Điều khiển chung | Mở rộng Capture Desk; APK đọc cùng API | Cùng nguồn trạng thái, phân quyền, audit; thử pause/cancel và lỗi kết nối ở chế độ paper |
+| 5 — Điều khiển chung | React Dashboard dùng API chung | Cùng nguồn trạng thái, phân quyền, audit; thử pause/cancel và lỗi kết nối ở chế độ paper |
 
 Đây là thứ tự phát triển, không phải cam kết hoàn thành tất cả trong một thay đổi. Chưa bật live execution, chưa triển khai collector/dashboard và chưa chứng nhận mô hình/chiến lược. Live execution là bước riêng sau kiểm thử và yêu cầu kích hoạt cụ thể.
 
 ## 6. Hiện trạng của repository
 
 - Đã có bản tích hợp paper nối mã cả năm tầng: `futures_intelligence`, `freqai_bridge`, `pipeline`, `paper_execution`, `control_dashboard`. Xem [runbook](FIVE_LAYER_PAPER_RUNBOOK.md). Các kiểm thử fixture không chứng minh đã train AI, kết nối exchange hoặc build UI thành công; live execution vẫn không được hỗ trợ.
-- GitHub chỉ lưu mã nguồn/PR; Codemagic thực hiện CI/build và các tác vụ thủ công theo [CODEMAGIC_SETUP.md](CODEMAGIC_SETUP.md). Mã webhook/dashboard đã chuyển provider; cấu hình tài khoản, secrets và chạy live vẫn cần được xác minh.
+- GitHub lưu mã nguồn, nhánh và PR; **GitHub Actions là cơ chế thực thi workflow của dự án**. Không lấy Codemagic làm runner của Hệ thống 5 tầng. Tình trạng workflow, secrets và kết quả chạy phải được xác minh theo từng SHA/run; tài liệu Codemagic còn lại chỉ là thông tin lịch sử hoặc thuộc hệ thống ngoài phạm vi.
 
-- Bước 1 đã có mã nguồn tại [market_data](../market_data/README.md): kho SQLite, đồng bộ CCXT đúng BTCUSDT perpetual, nến đóng M15/H1, API chỉ đọc có gaps/as-of/content hash. Kiểm thử offline dùng kho và WSGI thật; chưa xác minh cài CCXT/kết nối Binance thật hoặc triển khai server. Chưa tự chuyển APK/Freqtrade sang API này.
-- [PR #59](https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/59): mã gateway Hummingbot chỉ đọc và tab Order Book cho APK. Bảy kiểm thử gateway đạt; Android build và kết nối Hummingbot thật chưa được xác minh. Timestamp API là thời điểm lấy snapshot; `sequenceVerified` chưa có, không dùng snapshot này làm bằng chứng đồng bộ để giao dịch.
-- Python bot/backtest hiện dùng OKX, APK dùng Binance Futures. Chưa có dataset chung hoặc chứng nhận ngang bằng; không tự đổi nguồn của phần Telegram/backtest đang có.
+- Bước 1 đã có mã nguồn tại [market_data](../market_data/README.md): kho SQLite, đồng bộ CCXT đúng BTCUSDT perpetual, nến đóng M15/H1, API chỉ đọc có gaps/as-of/content hash. Kiểm thử offline dùng kho và WSGI thật; chưa xác minh cài CCXT/kết nối Binance thật hoặc triển khai server.
+- Gateway Hummingbot chỉ đọc là thành phần tích hợp riêng; không đưa Android Chart/Scanner vào phạm vi T4 hoặc acceptance của hệ thống 5 tầng.
+- Python bot/backtest và Android Chart/Scanner là các hệ thống riêng, không phải consumer, client, dependency hay migration target của Hệ thống 5 tầng. Không suy diễn yêu cầu đồng bộ dữ liệu hoặc parity giữa các hệ thống này.
 - Nhánh `integration/android-freqtrade-analytics-20261025` có nghiên cứu và báo cáo Freqtrade/FreqAI riêng; không suy ra đã có AI live hoặc executor Hummingbot. Tích hợp có chọn lọc và giữ nhãn nghiên cứu.
-- `dashboard/index.html` hiện là giao diện JavaScript cho backtest; chưa phải Capture Desk/React hoặc control plane trực tiếp.
+- `dashboard/index.html` và các giao diện phục vụ backtest cũ không phải React Dashboard/control plane của Hệ thống 5 tầng.
 
 ## 7. Nguồn đã đối chiếu
 
