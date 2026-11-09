@@ -687,7 +687,7 @@ Final receipt publication MUST use an atomic no-replace primitive. On the suppor
 
 If the final receipt filename already exists, reject and quarantine; never overwrite it, even if its contents appear identical. Any duplicate sequence, unexpected final receipt, malformed receipt, conflicting manifest, orphan temp file, sequence/counter disagreement or receipt replacement suspicion causes quarantine. Readers enumerate and validate the complete receipt directory while holding the shared lock; they do not ignore unknown entries. Only the exact receipt for the current manifest sequence may match, and the sequence history must be consistent with the durable allocator. Orphan temporary files are not commits and are not automatically removed.
 
-C113–C116 cover no-replace collision, receipt overwrite attempt, orphan temporary receipt and unexpected/duplicate receipt entries. C117 covers restart with a visible receipt after an unconfirmed pre-crash directory barrier and requires recovery fsync before acceptance; C118 covers recovery directory-fsync failure and requires quarantine; C119 covers a crash after recovery fsync but before durable recovery checkpoint and requires the full recovery procedure to repeat; C120 covers a missing receipt with a consumed publication sequence and requires quarantine without sequence reuse.
+C113–C116 cover no-replace collision, receipt overwrite attempt, orphan temporary receipt and unexpected/duplicate receipt entries. C117 covers restart with a visible receipt after an unconfirmed pre-crash directory barrier and requires recovery fsync before acceptance; C118 covers recovery directory-fsync failure and requires quarantine; C119 covers a crash after recovery fsync but before durable recovery checkpoint and requires the full recovery procedure to repeat; C120 covers a missing receipt with a consumed publication sequence and requires quarantine without sequence reuse. C121 covers a missing initialization-record key and requires rejection; C122 covers an unknown extra initialization-record key and requires rejection; C123 covers owner, mode, root-directory or lock-file identity mismatch and requires quarantine; C124 covers missing/unknown ExchangeInfo envelope keys and verifies that absent allowlisted headers are omitted while unknown headers are rejected.
 
 ### 22.6.1 Recovery barrier and commit-acceptance linearization (F02)
 
@@ -730,7 +730,7 @@ Every negative fixture must assert not only the expected error/state but also ab
 - REST completeness oracle: BLOCKED; no-trade, boundary, pagination, finality/correction semantics unresolved.
 - Decimal preservation: BLOCKED; pinned producer still has f64/12-decimal/parse-to-zero defect.
 - Producer FINAL_ONLY/product identity: implementation and regression evidence NOT VERIFIED.
-- C01–C120: design scenarios only; NOT IMPLEMENTED / NOT EXECUTED.
+- C01–C124: design scenarios only; NOT IMPLEMENTED / NOT EXECUTED.
 - Independent review of this exact revision remains mandatory before implementation consideration.
 
 This section does not authorize source changes, adapter implementation, test execution, GitHub Actions dispatch, REST requests, VPS/runtime, T1 activation, T0/T2 changes, strategy/AI/ledger/risk/trading changes, or destructive data operations.
