@@ -391,3 +391,17 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: DESIGN ASSESSMENT COMPLETE; INDEPENDENT REVIEW REQUIRED. V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; E2/E3/E4 NOT ACQUIRED; staging NOT AUTHORIZED; production NOT VERIFIED; `AI_EXECUTION_ENABLED=false`.
 - Documentation-only commit. No source/runtime, T0/T1, VPS, DB, Feeder, exchange, ledger, strategy or risk-engine changes; no provider contact, endpoint/OCSP call, key/trust-anchor operation, staging, restore, fault injection or workflow dispatch. Tests/workflows NOT RUN; artifact NONE.
 - Next step: independent static review of P1.8.67 against P1.8.36 and P1.8.51–P1.8.66. Keep all OPEN parameters and authorization gates unchanged.
+
+
+
+### P1.8.68 — Independent static review of P1.8.67 (2026-11-09)
+
+- Review: `docs/evidence/p1-8/P1.8.68-independent-static-review-provider-neutral-tsa-architecture.md`.
+- Review commit: `bde1e14c4e14eecaf13bd9f6637102e874ac5674`.
+- Verified review blob SHA: `9ae0c50830644d21d850da4c4d246a2837f62fc6`.
+- Reviewed P1.8.67 blob SHA: `50654f3f4f4caa509598e4393e2634ea977df5dd`.
+- Result: PASS within E0 documentary/static scope; no blocking or non-blocking findings. Confirmed write-path independence, exact-signature binding consistent with P1.8.36, limited `genTime` claim, RFC 3161 verification boundary, issuer-bound historical OCSP/CRL, RFC 9654 currency, unknown submission outcome handling, retry/idempotency, provider portability and commercialization-claim limits.
+- Limitations: no proof of current T0 implementation, DB/WAL boundary, provider interoperability, historical evidence restore, production reliability or commercial/legal readiness.
+- Status: P1.8.67 DESIGN ASSESSMENT COMPLETE; P1.8.68 REVIEW PASS (E0 only). P1.8.66 DRAFT ONLY / NOT SENT; provider NONE SELECTED; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; E2/E3/E4 NOT ACQUIRED; staging NOT AUTHORIZED; production NOT VERIFIED; `AI_EXECUTION_ENABLED=false`.
+- No E1 fixture freeze/execution, provider contact, endpoint/OCSP call, key/trust-anchor operation, staging, restore, fault injection, runtime/DB/VPS/Feeder change or workflow dispatch. Tests/workflows NOT RUN; artifact NONE.
+- Next gate: decide whether to prepare a separate implementation-neutral evidence-contract decomposition before any source work. Do not infer implementation or execution authorization from the review PASS.
