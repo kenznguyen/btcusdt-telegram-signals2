@@ -119,3 +119,17 @@ A formatting-only correction was applied in the isolated VPS checkout after the 
 - GitHub Actions exact-HEAD dispatcher remains **BLOCKED / NOT VERIFIED** (runs `42646416010` and `42646425898`, both pre-job startup failures).
 - T1 → T0/T2 integration remains **NOT VERIFIED**; T1 activation/deployment remains **NOT AUTHORIZED / NOT PERFORMED**.
 - No source commit/push, collector launch, Binance connection, exchange credentials, runtime mutation, PR merge, issue retarget, or workflow change occurred.
+
+
+## Formatting-only source commit — 2026-11-09
+
+- Owner explicitly authorized committing the isolated Rustfmt-only correction to the existing T1 branch.
+- T1 repository: `kenznguyen/binance-futures-collector`.
+- Branch: `feature/t1-connection-sidecar-integration-20261107`.
+- Parent/source baseline: `4566cffbbcf8495182abbc0d3496fdc65709ac14`.
+- New commit: `f3bae0cfbc26aa694a4d6c9476965121818d3567` — [commit](https://github.com/kenznguyen/binance-futures-collector/commit/f3bae0cfbc26aa694a4d6c9476965121818d3567).
+- Changed file only: `src/utils/csv_writer.rs`; exact diff is 14 insertions and 2 deletions, wrapping the existing malformed-decimal test array and assertion to Rustfmt output. No behavior, fixtures, production code, or test assertions changed.
+- GitHub read-back verified file blob `0a4455134de9b353b4a7c25ffc6f0a252ca2c5a0` and commit diff contains only that formatting change.
+- The 7/7 manual Rust commands and 88 passing tests were executed against parent `4566cff...` plus the identical local formatting patch (patch SHA-256 `90cee952837cf753bf872c2cb19f75e1157dc5c64eb937d58c62cbe796a31ec6`). They are semantically equivalent to the formatting-only commit, but were not rerun against the new commit checkout. Therefore exact-new-SHA test status is **NOT VERIFIED**.
+- Workflow-run lookup for new SHA returned no runs. GitHub Actions CI for new SHA: **NOT VERIFIED**; do not infer dispatch success or failure from an empty returned list.
+- No T1 collector launch, Binance connection, exchange credentials, runtime mutation, T0/T2 mutation, PR merge, issue retarget, or deployment occurred.
