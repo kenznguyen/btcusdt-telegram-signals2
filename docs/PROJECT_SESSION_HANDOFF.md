@@ -3510,3 +3510,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Boundaries unchanged: Option C, lifecycle independent-review waiver, T0 independence, separate CORE_LEDGER/AI_LEDGER, paper-only, `AI_EXECUTION_ENABLED=false`.
 - New T2 analysis document commit: `2ee2eec6aae971563e5378363cff7338dc88a2c1`.
 - Next step: Stage A.4 T3 RET-03 owner-input resolution, focused on signal/risk/order/fill/reconciliation and paper-outcome reconstruction dependencies; keep ledger and required T3 records protected and do not infer retention periods.
+
+
+## Stage A.4 — T3 RET-03 Owner Input Resolution (2026-11-10)
+
+- Added `docs/evidence/p1-8/T3_RET03_OWNER_INPUT_RESOLUTION_2026-11-10.md` as a documentation-only source/contract trace of signal, risk decision, paper order, fill, reservation, replay and reconciliation obligations.
+- Source baseline HEAD: `77c6892efb7107f91c2aa5d20e33187e856a36a9`; exact source blob SHAs are pinned in the report.
+- Confirmed at source level: strategy decision emits PAPER intent; the dual-ledger writer persists orders and shared risk reservations; each simulated fill is written to an append-only account event journal with canonical payload digest and source book snapshot reference; replay loader validates execution/funding/mark coverage and replay engine reconstructs Core, AI and Legacy ledger values.
+- Gaps: no complete durable signal/WAIT/rejected-decision history established; no separate immutable full risk-evaluation journal established; order and reservation rows are mutable current-state records; the traced replay execution stream accepts FILL events and does not establish complete replay of order/risk/reservation lifecycle transitions; independent second evidence root and actual copy/restore graph NOT VERIFIED.
+- The reconstruction contract requires two distinct evidence roots and full replay coverage; source/design contracts are not operational proof. Book snapshot IDs/digests do not prove original source-byte custody or upstream completeness.
+- T3 protected scope includes CORE_LEDGER, AI_LEDGER, LEGACY_UNATTRIBUTED, signals/intents, risk decisions/config and Kill Switch history, order lifecycle, fills, reservations, fees/funding/marks/equity, cutover snapshots, event/audit journals, coverage, replay/reconciliation/correction evidence and required backups/restore/independent copies. Unknown/uninventoried copies remain protected.
+- T3 RET-03 remains OPEN / FLOOR_NOT_ESTABLISHED. No numeric floor, TTL, grace or expiry rule selected; no object deletion-eligible. Order/reservation expiry is not proof that all decision, accounting, replay, audit or recovery obligations ended.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact. No runtime/database/VPS/provider/consumer/copy inventory, legal determination, restore, reconciliation execution, source/schema/config/permission change or destructive operation.
+- Option C, lifecycle reviewer waiver boundaries, T0 independence, separate ledgers, paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- T3 analysis commit: `52302aee66db92d45a30b84fa589c098c4c33a84`; report blob SHA verified by read-back.
+- Next step: Stage A.5 T4 RET-03 Owner Input Resolution for dashboard/read models/exports/caches and their dependencies on protected T0–T3 records. Keep all unknown copies protected and do not select numeric floors without source-backed owner inputs.
