@@ -927,6 +927,11 @@ The following are additions to the design fixture catalogue; all remain NOT IMPL
 - C163: lost response after successful consumption is retried with a fresh nonce and exact same decision tuple; ERA returns same immutable receipt payload in a fresh correctly signed envelope.
 - C164: the same decision ID is retried with a changed tuple after a successful consume; reject and preserve original receipt unchanged.
 - C165: ERA trust bootstrap key is rotated/revoked; new key is accepted only after independent provisioning and exact trust-file verification.
+- C166: ERA response from an old authority snapshot or wrong endpoint identity is replayed; reject/quarantine even when its payload is internally self-consistent.
+- C167: recovery-epoch record references a receipt payload without its exact signed response envelope and consume request; reject/quarantine.
+- C168: evidence bundle request, receipt payload and response envelope have mismatched digest, nonce, operation, ERA identity, policy head, decision tuple or signature; reject/quarantine.
+- C169: evidence bundle is replaced, modified, symlinked, hard-linked unexpectedly or not durably synced before epoch publication; reject/quarantine and no epoch acceptance.
+- C170: restart validates an intact pinned evidence bundle offline, then fresh ERA policy-head check is unavailable; retain evidence but block the next gated operation and quarantine/hold without promotion.
 - C171: retained envelope authority_sequence is strictly less than authenticated revoked_at_authority_sequence; signature may verify as historical evidence, but current recovery authorization is denied because key status is REVOKED.
 - C172: envelope authority_sequence equals revoked_at_authority_sequence or is greater; reject as post-revocation response and quarantine.
 - C173: REVOKED key has missing/zero/untrusted revocation sequence, or ACTIVE key has non-null revocation sequence; reject/quarantine with no local-clock inference.
@@ -935,6 +940,7 @@ The following are additions to the design fixture catalogue; all remain NOT IMPL
 - C176: revocation receipt sequence differs from response-envelope authority_sequence or trust-file revoked_at_authority_sequence; reject/quarantine.
 - C177: ERA commits key revocation but client loses response before trust-file update; block operational-key authorization, query exact event using root-key-authenticated status, and never infer ACTIVE from stale local trust state.
 - C178: trust file marks a key REVOKED without exact matching immutable root-key-signed revocation evidence bundle reference/digest; reject/quarantine.
+- C179: REVOKE_ERA_KEY is requested by verifier role or a non-administrator caller; reject without state change.
 - C180: revocation evidence bundle omits request, receipt payload or signed envelope, or any digest/nonce/operation/key/sequence binding differs; reject/quarantine.
 - C181: trust-file update is published before revocation evidence bundle is durably persisted, or update is not read back at exact digest; operational key remains blocked and recovery quarantined.
 - C182: ERA root key is rotated without offline separately approved trust-bootstrap replacement, or old-root fallback is attempted after replacement/compromise; quarantine and require manual independent re-provisioning.
@@ -945,12 +951,6 @@ The following are additions to the design fixture catalogue; all remain NOT IMPL
 - C187: REVOKED status omits evidence bundle or embeds a bundle whose key ID, sequence, event ID, root signature or digest mismatches; reject/quarantine.
 - C188: ACTIVE status contains non-null revocation sequence/event/bundle fields, or REVOKED status contains null/invalid required fields; reject/quarantine.
 - C189: ERA_KEY_STATUS_V1 omits/adds a key, uses a noncanonical bundle encoding, or bundle bytes do not match the supplied digest; reject/quarantine.
-- C179: REVOKE_ERA_KEY is requested by verifier role or a non-administrator caller; reject without state change.
-- C166: ERA response from an old authority snapshot or wrong endpoint identity is replayed; reject/quarantine even when its payload is internally self-consistent.
-- C167: recovery-epoch record references a receipt payload without its exact signed response envelope and consume request; reject/quarantine.
-- C168: evidence bundle request, receipt payload and response envelope have mismatched digest, nonce, operation, ERA identity, policy head, decision tuple or signature; reject/quarantine.
-- C169: evidence bundle is replaced, modified, symlinked, hard-linked unexpectedly or not durably synced before epoch publication; reject/quarantine and no epoch acceptance.
-- C170: restart validates an intact pinned evidence bundle offline, then fresh ERA policy-head check is unavailable; retain evidence but block the next gated operation and quarantine/hold without promotion.
 
 The fixtures validate signed approval, policy freshness, replay prevention and revocation lifecycle. They do not prove a legal person's identity or protect against compromise/rollback of the independently trusted ERA control plane.
 
