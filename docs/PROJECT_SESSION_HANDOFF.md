@@ -1831,3 +1831,26 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Explicit prohibitions remain: broad refactors/architecture replacement/feature expansion/strategy tuning; T0/T1/T2 runtime/VPS/DB/Feeder/exchange/deployment changes; data deletion/archive/retention/cleanup/vacuum/compaction/backup expiry/restore/fault injection/key destruction; live orders; enabling AI_EXECUTION_ENABLED; weakening T0 independence or adding T1 write path to T0.
 - Verification/effect: documentation-only. Tests NOT RUN; GitHub Actions NOT DISPATCHED; workflow run NONE; artifact NONE. No source/runtime/VPS/DB/Feeder/exchange/ledger/strategy/trading state changed.
 - Next step: prepare a bounded change request naming target layer/files and exact baseline SHA; wait for explicit approval before source edits. T1 remains blocked by independent-review and evidence gates.
+
+
+## Latest completed work — P1.11 same-session self-review of revised T1 contract (2026-11-09)
+
+- User requested a self-review of the revised T1 Source Contract v1.1.
+- Review: `docs/reviews/t1/P1_11_SELF_REVIEW_REVISED_T1_CONTRACT_2026-11-09.md`.
+- Review commit: `a0c4d22949140aa2fbba653eaaf3695dd649f1b5`.
+- Review blob SHA: `08662369f1093658cdd42d56ede01a5b985e0f82`.
+- Exact reviewed normative contract blob SHA: `32cf231227c52590ad1365473c6c742ab7dbc64a`.
+- Review type: same-session adversarial self-review, NOT independent.
+- Verdict: REQUEST CHANGES — contract has a critical false-PASS path and material publication-sequence, lock-topology, schema and immutable-receipt gaps.
+- F01 CRITICAL: §4.2/§21.5 manifest schema still allows `source_health=RECONCILED_COMPLETE` with a merely retrievable `reconciliation_evidence_ref`, while P1.3 has not accepted any completeness oracle. Current v1.1 must reject this state; future enabling requires a new, versioned, independently reviewed evidence profile.
+- F02 HIGH: publication_sequence monotonic allocation and crash/no-reuse recovery are not specified, unlike generation_sequence.
+- F03 HIGH: advisory-lock topology is not bounded (single-host/local filesystem vs network/multi-host); lock API, initialization race and canonical lock-object identity are underspecified.
+- F04 HIGH: manifest, receipt, generation-counter and ExchangeInfo evidence schemas are not fully machine-unambiguous; canonical UUID/time/path, exact types/enums and counter recovery need specification.
+- F05 HIGH: ExchangeInfo evidence reference lacks immutable content-addressed storage/retrieval and exact raw-byte digest/canonicalization contract.
+- F06 MEDIUM: immutable receipt publication needs atomic no-replace semantics and explicit handling of duplicate/orphan/unexpected receipt files.
+- F07 HIGH: target filesystem durability remains unproven; process tests cannot establish host/power/provider durability.
+- Existing blockers revalidated: REST completeness BLOCKED; producer f64/12-decimal/parse-to-zero defect BLOCKED; filesystem/provider durability NOT VERIFIED; producer implementation and C01–C99 NOT VERIFIED/NOT EXECUTED.
+- No source changes, tests, Actions, REST calls, VPS/runtime, T1 activation, T0/T2 changes, trading, or destructive data operation.
+- Independent review issue #138 remains separate and must be retargeted to a corrected SHA after these findings are resolved. Do not treat this self-review as independent approval.
+- Next step: correct F01–F06 in the contract, add negative/crash/parser fixtures (planned only), perform a fresh static review, then update issue #138 with the exact corrected SHA for genuinely independent review.
+- Guardrails unchanged: implementation NOT AUTHORIZED; T1 activation NOT AUTHORIZED; T0 independent/canonical; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
