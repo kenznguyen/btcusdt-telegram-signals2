@@ -106,15 +106,34 @@ class RootBDuplicateAckAndCheckpointCrashTests(unittest.TestCase):
         with self.assertRaises(RootBIntegrityError):
             self.journal.recover_checkpoint()
 
-    def test_checkpoint_cannot_skip_a_sequence_or_include_unacknowledged_event(self):
+    def test_checkpoint_cannot_include_event_with_missing_observer_ack(self):
         self._ack_all("evt-1", self.journal.event_digest("evt-1"))
-        self._ack_all("evt-2", self.journal.event_digest("evt-2"))
+        self.journal.acknowledge("evt-2", "observer-a", self.journal.event_digest("evt-2"))
 
         with self.assertRaises(RootBIntegrityError):
-            self.journal.commit_checkpoint("cp-gap", through_sequence=3)
+            self.journal.commit_checkpoint("cp-incomplete", through_sequence=2)
 
-        self.journal.acknowledge("evt-2", "observer-b", "f" * 64) if False else None
-        self.assertEqual(self.journal.commit_checkpoint("cp-2", through_sequence=2), "CHECKPOINT_COMMITTED")
+        self.assertIsNone(self.journal.recover_checkpoint())
+        self.journal.acknowledge("evt-2", "observer-b", self.journal.event_digest("evt-2"))
+        self.assertEqual(
+            self.journal.commit_checkpoint("cp-2", through_sequence=2),
+            "CHECKPOINT_COMMITTED",
+        )
+
+    def test_crash_after_durable_write_can_replay_ack_without_duplicate_commit(self):
+        for event_id in ("evt-1", "evt-2"):
+            self._ack_all(event_id, self.journal.event_digest(event_id))
+
+        with self.assertRaises(SimulatedCrash):
+            self.journal.commit_checkpoint(
+                "cp-2", through_sequence=2, crash_at="after_durable_write"
+            )
+        self.assertEqual(self.journal.checkpoint_ack_count("cp-2"), 0)
+        self.assertEqual(
+            self.journal.commit_checkpoint("cp-2", through_sequence=2),
+            "CHECKPOINT_ACK_REPLAYED",
+        )
+        self.assertEqual(self.journal.checkpoint_ack_count("cp-2"), 1)
 
 
 if __name__ == "__main__":
