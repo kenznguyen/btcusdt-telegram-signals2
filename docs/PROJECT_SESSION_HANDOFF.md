@@ -812,3 +812,56 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - No source/runtime/schema/API/registry/adapter/scheduler/service/database/VPS/T0/T1/Feeder/ledger/strategy/risk changes; no staging, restore, fault injection, archive, cleanup, key operation or deletion.
 - No deletion authority granted; T0 canonical data and CORE_LEDGER/AI_LEDGER protections unchanged.
 - **Next gate:** obtain separate explicit approval before starting any P1.8.105–P1.8.108 work item. Implementation, staging and destructive actions remain separately gated.
+
+
+## P1.8.105–P1.8.108 — Approved Cross-Contract Lifecycle Closure Contracts (2026-11-09)
+
+Owner approval: explicit approval received for all four documentation-only work items in order. Approval does not authorize implementation, staging, restore, fault injection, provider selection, key/TSA operations, workflow dispatch, archive, cleanup, vacuum or deletion.
+
+### P1.8.105 — Restore Governance Epoch and Post-Restore Reconciliation
+- Document: `docs/evidence/p1-8/P1.8.105-restore-governance-epoch-post-restore-reconciliation-contract.md`.
+- Commit: `c1f7ccf5661fd9dce8c6803d35c7cc994ddd41c4`.
+- Blob SHA: `6a16805a066cdbc1d7c47c2eb33b8261e1e80f92`.
+- Defines distinct restore run, restore epoch, governance epoch, snapshot identity and operation-history high-water mark.
+- Requires quarantine by default, independent epoch issuance, invalidation of every pre-restore execution authorization, authoritative governance-event reconciliation, exact object-generation checks and operation-history/object-oracle agreement.
+- Snapshot presence/absence cannot prove a prior mutation committed or did not commit. Ambiguous outcomes remain quarantined; no blind retry.
+- Restore READY is scoped and requires complete governance, operation, copy-lineage, integrity and independent-review evidence.
+- Epoch authority, event-history source, provider operation-history guarantees, object oracle, role model and all measurement parameters remain OPEN.
+- Status: DOCUMENTARY CONTRACT DRAFT COMPLETE; STATIC REVIEW REQUIRED; RESTORE NOT EXECUTED / NOT AUTHORIZED.
+
+### P1.8.106 — V08 Checkpoint-to-Lifecycle Closure
+- Document: `docs/evidence/p1-8/P1.8.106-v08-checkpoint-to-lifecycle-closure-contract.md`.
+- Commit: `0c4d06797738ef4657a359fd60aae370c7b5723b`.
+- Blob SHA: `ecf1115f47817a217a03d7583a0710c72bda65e9`.
+- Binds exact dataset/version lifecycle review to source/partition inventory, monotonic watermark, UTC half-open windows, allowed-lateness policy, durable commit proof, seal linearization, immutable checkpoint and append-only correction lineage.
+- Missing partitions, unknown progress, uncertain clock boundaries, ambiguous commit/seal ordering or unresolved corrections block closure.
+- Checkpoint closure is only one eligibility input; it does not release dependencies or authorize deletion. T0 source data and all copies remain independently governed.
+- Watermark algorithm, lateness, precision, clock uncertainty, persistence/commit proof, correction schema and related values remain OPEN.
+- Status: DOCUMENTARY CONTRACT DRAFT COMPLETE; STATIC REVIEW REQUIRED; V08 PARAMETERS OPEN/BLOCKED; NOT EXECUTED.
+
+### P1.8.107 — Trusted-Time Cross-Domain Binding
+- Document: `docs/evidence/p1-8/P1.8.107-trusted-time-cross-domain-binding-contract.md`.
+- Commit: `602a3d146c4b0872970da3b6a1966972132e95e0`.
+- Blob SHA: `b11c6af1bdf1c48489879c52057af3fe02b88d87`.
+- Defines distinct semantics for signed_at, TSA genTime, received/observed time, revocation effective time, durable commit, seal, authorization and restore boundaries.
+- Requires exact event/object binding, precision/uncertainty, source/profile and fail-closed handling when intervals overlap or evidence is stale/ambiguous.
+- Binds V07, V08, lifecycle freshness/authorization, restore epoch and mutation fencing without transferring authority across domains.
+- TSA/provider, trust anchors, revocation source, freshness, uncertainty, expiry and all numerical/operational parameters remain OPEN.
+- Status: DOCUMENTARY CONTRACT DRAFT COMPLETE; STATIC SECURITY REVIEW REQUIRED; TRUST PROFILE/PARAMETERS OPEN; NOT EXECUTED.
+
+### P1.8.108 — TSA Evidence Copy and Historical Verification Lifecycle
+- Document: `docs/evidence/p1-8/P1.8.108-tsa-evidence-copy-historical-verification-lifecycle.md`.
+- Commit: `afa3c47b3a45c39c462309bdacef61b4540dd2a0`.
+- Blob SHA: `1cf8e33a5ce62d63a03e0ed2c15872649d84a705`.
+- Defines separate identities and lifecycle obligations for signed bytes/imprint inputs, timestamp tokens, trust-policy/anchor history, certificate chain, revocation evidence, verifier profile, verification result, manifests and each copy.
+- Requires historical verification to recompute the exact P1.8.36 imprint, validate applicable historical policy and preserve current-trust assessment separately.
+- No token-only assurance, no evidence co-deletion, no cascade across source/replica/backup/export, and no use of timestamp validity as deletion authority.
+- TSA/provider/profile, trust-anchor/revocation history, retention floors, copy topology, integrity oracle and all numerical/operational parameters remain OPEN.
+- Status: DOCUMENTARY CONTRACT DRAFT COMPLETE; STATIC REVIEW REQUIRED; TRUST/RETENTION/COPY PARAMETERS OPEN; NOT EXECUTED.
+
+### Combined status and next gate
+- All four documents were read back from the approved existing branch; exact blob SHAs recorded above.
+- Work was documentation-only. No code, schema, API, registry, adapter, scheduler, service, database, VPS, T0/T1, Feeder, ledger, strategy or risk-engine changes.
+- Tests: NOT RUN. GitHub Actions: NOT DISPATCHED. Workflow run/artifact: NONE. Runtime evidence: NOT VERIFIED. Provider selection: NONE. Staging/restore/fault injection/key/TSA operations: NOT EXECUTED.
+- No deletion authority granted. T0 canonical data and CORE_LEDGER/AI_LEDGER protections remain unchanged; `AI_EXECUTION_ENABLED=false`.
+- Next gate: focused independent static cross-contract review of P1.8.105–P1.8.108 against P1.8.26, P1.8.34–P1.8.37, P1.8.93–P1.8.104 and governing lifecycle/copy contracts. This review is not an implementation or execution authorization.
