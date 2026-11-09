@@ -191,3 +191,15 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - No new finding. V07 remains BLOCKED; V08 and Restore remain OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; `AI_EXECUTION_ENABLED=false`.
 - No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes; no provider/key operations, data probes, staging, restore, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
 - Next gate: documentation-only parameter-closure inventory for V07, V08 and Restore, listing each OPEN field, required evidence, decision owner and dependencies. Do not select unsupported values or authorize staging.
+
+
+## Latest completed work — P1.8.40
+
+- Added documentation-only inventory: `docs/evidence/p1-8/P1.8.40-parameter-closure-inventory.md`.
+- Commit: `f1ac12388ffce2645cf1d376c232befba0be9986`.
+- Blob SHA: `167e5b4a478f2b6bf5053f85d8260e755a2f18da`.
+- Enumerates V07-D1–D9, V08-D1–D9 and RST-D1–D9 with current status, evidence required, decision authority, dependencies and closure sequence.
+- Preserves approved policy directions without inventing numeric/provider/implementation values. Includes cross-stream dependency order, owner decision record requirements and explicit distinction between READY FOR REVIEW and execution authorization.
+- Status: INVENTORY COMPLETE; PARAMETERS OPEN; NOT EXECUTED. V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; synthetic 13/13 remains synthetic only; `AI_EXECUTION_ENABLED=false`.
+- No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes. No provider/key operations, data probes, staging, restore, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
+- Next gate: P1.8.41 independent static review of P1.8.40 for completeness, traceability and consistency with P1.8.26/P1.8.28/P1.8.33/P1.8.34/P1.8.39. Documentation-only; no new permissions required.
