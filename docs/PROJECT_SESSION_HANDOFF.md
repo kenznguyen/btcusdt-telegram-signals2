@@ -1977,3 +1977,24 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Issue #138 remains OPEN and targets the exact P1.15 contract SHA. No independent reviewer response is present. Do not treat P1.17 self-review as independent.
 - Next step: documentation-only correction of F05-R2 and F02-R2, add negative fixtures, then self-review final SHA before retargeting issue #138.
 - Authorization/guardrails unchanged: T1 implementation and activation NOT AUTHORIZED; T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
+
+
+## Latest completed work — P1.17 contract corrections and P1.18 self-review (2026-11-09)
+
+- User explicitly approved automatic execution: fix F05-R2 in §21.5 and precedence; clarify F02-R2 rollback boundary; add negative fixtures; self-review exact new contract SHA; only then retarget issue #138.
+- Work remained on existing branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Normative contract file: `docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_1_PRODUCER_WATERMARK_DURABILITY_2026-11-09.md`.
+- Final contract update commit: `d6610f571417873e4c0b74dd770f705c86b24a56`.
+- Exact final contract blob SHA: `984f7669f4dae5902b852b6f6fa1c09d799f9957`.
+- F05-R2 correction: §21.5 manifest field inventory and resolver both require the Envelope-record ID; envelope `raw_body_sha256` resolves the exact Raw-body object; a direct manifest Raw-body reference is explicitly invalid. §22.11 precedence now expressly includes §21.5.
+- F02-R2 clarification: local checkpoint/counter are crash-recovery evidence only; they do not detect/prevent full-root rollback. Automatic detection is NOT PROVIDED without a separately designed independent monotonic anchor. The protocol assumes no full-root rollback. If rollback is independently known or suspected, quarantine and require separately approved new root/recovery epoch. The text explicitly says internally consistent local files cannot reveal an unobserved rollback.
+- Added C133 (valid Raw-body ID incorrectly used as manifest ref → reject), C134 (independent restore/rollback indication → quarantine), C135 (self-consistent old root without external signal is indistinguishable locally; automatic detection NOT PROVIDED).
+- P1.18 self-review file: `docs/reviews/t1/P1_18_SELF_REVIEW_F05_R2_F02_R2_ROLLBACK_BOUNDARY_2026-11-09.md`.
+- P1.18 review commit: `dc29e843d10ad63209743b6672e8c9fe963e1a7f`.
+- P1.18 review blob: `960016187f1311d9d540a8f0c20340c8df31151c`.
+- Verdict: DOCUMENTATION-LEVEL PASS for F05-R2, F02-R2 capability-boundary clarification and C133–C135 fixture specifications. Same-session review only; NOT independent. Implementation readiness NOT ESTABLISHED.
+- Issue #138 was retargeted only after P1.18 review to exact contract blob `984f7669f4dae5902b852b6f6fa1c09d799f9957`; title now `P1.18 — Independent adversarial review of corrected T1 Source Contract`; state OPEN. It includes the P1.18 review blob and requests genuinely independent review. No reviewer response is claimed.
+- F07 target filesystem/provider behavior remains NOT VERIFIED. Binance REST completeness oracle NOT ACCEPTED. Pinned producer f64/12-decimal/parse-to-zero defect remains CONFIRMED / NOT FIXED. Producer FINAL_ONLY/product identity NOT VERIFIED. C01–C135 remain design-only, NOT IMPLEMENTED / NOT EXECUTED.
+- No T1 source implementation, adapter, tests, GitHub Actions run/artifact, Binance REST, VPS/runtime, T1 activation, T0/T2 change or destructive operation occurred.
+- Next step: wait for genuinely independent written review of exact contract blob `984f7669f4dae5902b852b6f6fa1c09d799f9957`. Do not implement, test, dispatch Actions, access REST/VPS or activate T1 before independent review, F07 evidence and remaining blockers are resolved and separately approved.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
