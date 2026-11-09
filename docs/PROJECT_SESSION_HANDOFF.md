@@ -3152,3 +3152,15 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Implication: do not claim T0 is already the sole canonical source for all app/strategy consumers. Android/Python migration remains PARK and must preserve existing behavior until separately designed/tested/approved.
 - No Android/Python source changed. No test/workflow/runtime/VPS/DB/provider operation.
 - Overall mapping remains PARTIAL; complete repository-wide call graph and live deployment consumer inventory NOT VERIFIED. No retirement candidate. Next: map configurable FiveLayer API baseUrl and backend route ownership from exact-branch configuration/deployment source; then inspect remaining Python bot/backtest source references. No consumer migration or deletion without explicit authorization.
+
+
+## Owner-directed retirement candidates — Android and Python consumers (2026-11-10)
+
+- Owner direction recorded in `docs/evidence/T0_DEPENDENCY_MAPPING_FIRST_PASS_2026-11-10.md`: add Android Chart/Scanner direct Binance Futures REST/WebSocket market-data path and Python bot/backtest legacy OKX source path to the **RETIREMENT CANDIDATE** list for the target architecture.
+- This targets only the legacy market-data source paths, not blanket removal of the Android app, Chart/Scanner features, Python bot, or backtesting engine.
+- Android replacement: approved T0 consumer/API boundary, after mapping FiveLayer API `baseUrl` to the actual backend route and proving M15/H1 parity, gaps/as-of/pagination, reconnect/background/recovery and UI/scanner regressions.
+- Python replacement: T0 canonical data contract, after exact-branch call-site/config inventory and historical, indicator, signal and backtest reproducibility checks.
+- Both candidates remain NOT VERIFIED for full dependency closure; migration tests NOT RUN. Preserve current paths until replacement, parity, rollback and a separate retirement approval are established.
+- No source, workflow, configuration, runtime, VPS, database or exchange changes; no deletion/disablement authorized. Existing T0 dependency map limitations remain.
+- Audit update commit: `fedc026ace62f34c653e17e12f3afa10021b2855`; audit blob SHA: `531ea1717cdb6199ca52b98bfb1fac3ee745215f`.
+- Next: continue exact-branch dependency/config mapping for FiveLayer API and Python OKX call sites; prepare migration/retirement plan without executing it.
