@@ -1252,3 +1252,22 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Next gate: obtain non-secret, independently attributable evidence of the collector's effective read-only boundary within the existing scope. Do not call EP-02–EP-08 unless that precondition is established. Do not create or expand credentials or change permissions to bypass the stop. If proof cannot be obtained within the approved boundary, retain PARTIAL/NOT VERIFIED.
 
 - P1.8.138 final review blob SHA after read-back: `61daada60027b6f962a674231a479b5ce75dc4f8`. The handoff was subsequently refreshed; this line records the earlier intermediate update only.
+
+## P1.8.139–P1.8.140 — Collector Identity and Effective Read-Only Assurance Feasibility (2026-11-09)
+
+- P1.8.139 documentation-only capability/authorization-boundary assessment:
+  - Path: `docs/evidence/p1-8/P1.8.139-collector-identity-read-only-assurance-feasibility.md`.
+  - Commit: `ef3eeafa9f2d48600bec9c43eee8c1a88e95f6a9`.
+  - Final blob SHA after read-back: `d2c5e874c17170fda7345a5436d82ea3a7ea0bb4`.
+  - Result: BLOCKED — no in-scope, non-secret evidence path currently establishes the effective read-only collector boundary. Connector catalog inspection found no exposed dedicated authenticated-principal/effective-scope introspection action in the inspected catalog. This is a limitation of the inspected connector path, not a claim about all GitHub APIs.
+  - No GitHub API endpoint was called; installation listing was explicitly not called because it is outside the approved P1.8.135 endpoint matrix and would not by itself prove the credential used for EP-01.
+- P1.8.140 independent static review:
+  - Path: `docs/evidence/p1-8/P1.8.140-independent-static-review-p1-8-139.md`.
+  - Commit: `827aeb5b2bec02c87f30d5ffe153024fa0669720`.
+  - Final blob SHA after read-back: `fad9b7e472f503a8ddbe7199bfd6de1cc8ca4640`.
+  - Verdict: PARTIAL. Fail-closed feasibility conclusion and stop boundary PASS. IR140-01 OPEN: connector catalog observation provenance not reproducible from artifact. IR140-02 OPEN: distinguish narrow repository endpoint-scope assurance from broader GitHub/provider control-plane assurance.
+- IR137-01/02/03 remain OPEN; IR140-01/02 remain OPEN; IR122-01 remains operationally OPEN.
+- Effective collector principal/credential scope and read-only boundary remain NOT VERIFIED. EP-02–EP-08 remain NOT RUN; EP-09 remains EXCLUDED because owner type is User. Full Option C technical enforcement remains NOT VERIFIED.
+- Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE. No API calls, credential/secret inspection, IAM/permission/credential changes, workflow/runner/provider operations, source/runtime/VPS/T0/T1/database/Feeder/strategy/ledger/risk changes, or destructive operations.
+- No destructive/deletion authority. Option C remains approved. T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next gate: keep the inventory BLOCKED unless non-secret evidence can independently bind a stable collector principal and effective read-only scope to the exact approved request path. Any broader control-plane assurance or different identity/credential path requires a separate bounded proposal and explicit owner approval. Do not call EP-02–EP-08 or installation listing to bypass the current stop.
