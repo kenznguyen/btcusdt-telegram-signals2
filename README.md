@@ -1,6 +1,6 @@
 # BTCUSDT Quant System — Hệ thống 5 tầng
 
-**GitHub là nơi lưu trữ mã nguồn, nhánh, lịch sử và bằng chứng; GitHub Actions là cơ chế thực thi CI/workflow của dự án.** Không xem Codemagic là runner chính của Hệ thống 5 tầng. Các workflow Codemagic và ứng dụng cũ được giữ lại như tài sản riêng/lịch sử, không phải dependency của hệ thống 5 tầng.
+**GitHub là nơi lưu trữ mã nguồn, nhánh, lịch sử và bằng chứng; GitHub Actions là cơ chế thực thi CI/workflow chuẩn của dự án.** Codemagic chỉ còn các workflow build/kiểm tra được giữ lại; không phải runner chính của Hệ thống 5 tầng. Ba tác vụ Python Telegram/scanner/backtest cũ đã được gỡ khỏi repository chung.
 
 Phạm vi kiến trúc và các ranh giới loại trừ được ghi tại [Five-Layer Architecture](docs/FIVE_LAYER_ARCHITECTURE.md) và [T0 Active Scope Index](docs/T0_ACTIVE_SCOPE_INDEX.md). Quyết định loại Android Chart/Scanner và Python bot/backtest khỏi phạm vi được ghi tại [Five-Layer Scope Exclusion Decision](docs/evidence/FIVE_LAYER_SCOPE_EXCLUSION_ANDROID_PYTHON_2026-11-10.md).
 
@@ -13,13 +13,13 @@ Phạm vi kiến trúc và các ranh giới loại trừ được ghi tại [Fiv
 
 ## Hệ thống riêng ngoài phạm vi 5 tầng — KHÔNG THUỘC SCOPE
 
-Android Chart/Scanner và Python bot/backtest được loại khỏi phạm vi Hệ thống 5 tầng: không thuộc kiến trúc T0–T4, dependency graph, consumer contract, deployment, rollout, acceptance hoặc test denominator của hệ thống. Telegram và dashboard backtest cũ cũng là tài sản của các hệ thống riêng. Chúng có thể tiếp tục tồn tại trong repository nhưng không tạo nghĩa vụ tích hợp, đồng bộ dữ liệu, API, chiến lược hoặc runtime. Không xóa hoặc thay đổi các tài sản này theo quyết định phạm vi.
+Android Chart/Scanner vẫn là hệ thống riêng ngoài phạm vi T0–T4. Mã Python cũ `bot.py`, `backtest.py`, `telegram_commands.py`, Telegram bridge, scanner/backtest workflows và dependency chỉ phục vụ chúng đã được loại khỏi repository chung theo manifest retirement. Không xóa Android Paper client, T0–T4 hoặc các script nghiên cứu độc lập không nằm trong manifest.
 
 ## CI và workflow
 
 GitHub Actions là runner chuẩn cho kiểm thử và workflow được quản lý trong repository. Chỉ xác nhận PASS khi có workflow run gắn với đúng source SHA và bằng chứng tương ứng. Xem các workflow hiện hành trong [`.github/workflows`](.github/workflows) và tài liệu evidence/handoff.
 
-Codemagic là cấu hình/runner legacy phục vụ một số quy trình cũ, đặc biệt Android và tác vụ backtest. [codemagic.yaml](codemagic.yaml) và [hướng dẫn Codemagic](docs/CODEMAGIC_SETUP.md) được giữ để tham chiếu lịch sử; chúng không định nghĩa CI của Hệ thống 5 tầng.
+Codemagic còn giữ các workflow build/kiểm tra khác được liệt kê trong [codemagic.yaml](codemagic.yaml). Các workflow Telegram command, signal scan và dashboard backtest đã được gỡ; xem [manifest](docs/evidence/LEGACY_PYTHON_WORKFLOW_RETIREMENT_MANIFEST_2026-11-10.md). Codemagic không thay thế GitHub Actions làm runner chuẩn của Hệ thống 5 tầng.
 
 Bảng dưới đây là inventory workflow của toàn repository, **không phải** danh sách workflow thuộc Hệ thống 5 tầng. Chỉ workflow có phạm vi T0–T4 đã được xác định mới được tính vào CI/acceptance của Hệ thống 5 tầng; các workflow Android, Telegram, backtest và scanner là legacy/out-of-scope.
 
@@ -28,34 +28,13 @@ Bảng dưới đây là inventory workflow của toàn repository, **không ph�
 | `canonical-market-data` | Cài CCXT/Flask, chạy kiểm thử Python và kiểm tra CLI | Push đúng nhánh/đường dẫn hoặc thủ công | Cần đối chiếu job/path cụ thể; không tự suy rộng thành acceptance toàn T0–T4 |
 | `android-chart-pro-debug` | Unit test Android và APK debug | Push đúng nhánh/đường dẫn hoặc thủ công | OUT OF SCOPE |
 | `android-chart-pro-release` | Unit test, APK release và kiểm tra chứng chỉ ký | Chỉ thủ công | OUT OF SCOPE |
-| `telegram-command` | Xử lý lệnh Telegram và backtest | API Codemagic hoặc thủ công | OUT OF SCOPE |
-| `dashboard-backtest` | Backtest theo tham số từ dashboard | API Codemagic hoặc thủ công | OUT OF SCOPE |
-| `signal-scan` | Một lượt quét mô phỏng với state cung cấp rõ ràng | Chỉ thủ công; không có lịch tự động | OUT OF SCOPE |
-
-Không cần GitHub Actions quota hoặc GitHub token có quyền Actions. GitHub webhook dùng để Codemagic nhận thay đổi mã nguồn; việc thêm YAML không tự cấu hình tài khoản, secrets hoặc chứng minh build đã chạy.
-
-## Webhook Telegram / Render
-
-Cài `requirements-web.txt`, chạy:
-
-```bash
-gunicorn --workers 1 --threads 4 --timeout 30 app:app
-```
-
-Health check: `/health`. Đăng ký đúng một webhook Telegram tại `/webhook` hoặc `/telegram-webhook`; giữ header xác thực `X-Telegram-Bot-Api-Secret-Token`.
-
-Các biến cấu hình: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_WEBHOOK_SECRET`, `CODEMAGIC_API_TOKEN`, `CODEMAGIC_APP_ID`, `CODEMAGIC_BRANCH`. Token Codemagic chỉ nằm ở server/nhóm biến bảo mật; không đưa vào trình duyệt hoặc APK.
-
-Các lệnh: `/help`, `/status`, `/position`, `/signal`, `/backtest`, `/btstatus`, `/btresult`. Lệnh được dispatch sang `telegram-command` trên nhánh có cấu hình mới. Cần deploy phiên bản bridge này cùng biến môi trường mới khi chuyển runner.
 
 ## Dữ liệu và trạng thái
 
-- Python bot/backtest dùng OKX; APK và kho chuẩn mới dùng Binance Futures. Chưa chứng nhận ngang bằng dữ liệu/chiến lược.
-- CI là runner tạm thời, không phải kho trạng thái vị thế. Không dùng cache để tuyên bố state mô phỏng là hiện hành.
-- Scanner thủ công cần `LEGACY_STATE_JSON` từ state đã xác minh; tải `state.json` và `state-provenance.json` sau lượt chạy. Chưa có điều phối state dùng chung; không chạy scanner chồng lấn hoặc coi đây là dịch vụ giám sát bền vững.
-- `/status` và `/position` yêu cầu state được cung cấp; thiếu/hỏng state báo không khả dụng, không tự tạo vị thế FLAT.
-- Lịch sử/artifact Codemagic qua adapter có kiểm tra schema, giới hạn kích thước và lỗi rõ ràng. Hợp đồng lịch sử REST được giữ từ tài liệu chính thức cũ, cần kiểm chứng với tài khoản thực tế; giao diện vẫn hỗ trợ tải artifact và nạp thủ công.
-- PnL, vị thế và giá khớp trong backtest là mô phỏng. Phạm vi hiện tại không bật live execution.
+- T0 là nguồn dữ liệu chuẩn của Hệ thống 5 tầng; không thay thế bằng state/cache của các hệ thống cũ.
+- `dashboard/index.html` được giữ như trình xem báo cáo thủ công: chỉ nạp JSON/CSV đã có, không dispatch workflow hoặc gọi API ngoài.
+- `backtest_rsi_percent_b_h1_adx.py` là script nghiên cứu riêng còn được giữ nguyên; không phải thành phần T0–T4. `requirements.txt` vẫn được giữ vì script này dùng các thư viện của nó.
+- Hệ thống 5 tầng vẫn paper-only; không bật live execution hoặc gửi lệnh thật.
 
 ## Kiểm thử local
 

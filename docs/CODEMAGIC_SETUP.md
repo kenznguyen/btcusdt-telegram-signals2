@@ -1,6 +1,6 @@
-# Codemagic là nơi chạy tác vụ
+# Codemagic — các workflow còn được giữ lại
 
-GitHub chỉ lưu source/nhánh/PR. Không còn YAML thực thi trong `.github/workflows` ở nhánh này; các bản cũ nằm tại `ci/archive/github-actions`. Artifact mới và log được giữ ở Codemagic. Việc đổi source không tự thay cài đặt trên các nhánh chưa merge hoặc triển khai Render đang chạy phiên bản cũ.
+GitHub lưu source/nhánh/PR và GitHub Actions là runner CI chuẩn của repository. Codemagic chỉ còn các workflow được giữ lại trong `codemagic.yaml`; không coi đây là runner chính của Hệ thống 5 tầng. Ba workflow Python Telegram/scanner/backtest cũ đã được gỡ. Việc đổi source không tự thay cài đặt trên các nhánh chưa merge hoặc runtime bên ngoài.
 
 ## 1. Kết nối và chọn nhánh
 
@@ -19,7 +19,7 @@ Workflow **`canonical-market-data`**:
 
 - Tạo Python venv riêng; cài `requirements-market-data.txt`, `requirements-web.txt`, `requirements-ci.txt`.
 - Kiểm tra import CCXT và Flask app.
-- Chạy toàn bộ kiểm thử kho nến/sync/API, gateway Hummingbot, client Codemagic và chính sách CI; kiểm tra CLI/syntax.
+- Chạy toàn bộ kiểm thử kho nến/sync/API, gateway Hummingbot và chính sách CI; kiểm tra CLI/syntax.
 - Thu `ci-source-sha.txt` và các file `*-tests.log`. Log unittest là log chữ, không gắn nhãn nhầm thành báo cáo JUnit.
 
 Workflow này không cần API key sàn và không gọi Telegram hoặc phát lệnh giao dịch. Kiểm thử giả lập biên HTTP không chứng minh kết nối Codemagic/Binance thật.
@@ -49,43 +49,9 @@ Không tạo key mới. Script giải mã vào file tạm quyền 0600, chạy u
 
 Khớp alias không đủ chứng minh cập nhật được APK đã cài. Cần dùng đúng keystore cũ và kiểm tra cài đè trên thiết bị sau build. Không tự đăng Play Store hoặc triển khai release.
 
-## 4. Chuyển webhook/dashboard runtime
+## 4. Các workflow legacy đã gỡ
 
-Đặt trên Render/server chạy `app.py`:
+Các workflow ID `telegram-command`, `dashboard-backtest` và `signal-scan` không còn được định nghĩa trong `codemagic.yaml`. Các bản GitHub Actions lưu trữ tương ứng cũng đã được loại bỏ khỏi `ci/archive/github-actions`; các file cùng tên không tồn tại dưới `.github/workflows` trên branch này.
 
-| Biến | Nội dung |
-| --- | --- |
-| `CODEMAGIC_API_TOKEN` | Token Codemagic chỉ giữ ở server |
-| `CODEMAGIC_APP_ID` | Application ID của repository này |
-| `CODEMAGIC_BRANCH` | Nhánh đã có đầy đủ workflow mới; dùng `feature/android-five-layer-control` cho bản APK 5 tầng |
-| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Bot/chat đã dùng trước đây |
-| `TELEGRAM_WEBHOOK_SECRET` | Secret của webhook hiện có |
+Không dùng Telegram webhook, `ci/run-legacy.py`, `bot.py`, `backtest.py` hoặc `telegram_commands.py` trong repository chung. Không thu hồi/xóa secrets, artifacts, cache, lịch sử build hoặc cấu hình tài khoản bên ngoài trong thay đổi source này. Các workflow Codemagic khác và GitHub Actions T0–T4 được giữ nguyên.
 
-Deploy bridge mới cùng cấu hình Codemagic; không cần đổi URL webhook hoặc tạo webhook Telegram thứ hai. `GITHUB_TOKEN`, `GITHUB_WORKFLOW_FILE`, `GITHUB_REF` và `ACTIONS_GITHUB_TOKEN` không còn được dùng để chạy tác vụ. Không xóa secrets cũ ở tài khoản bên ngoài chỉ vì source đã đổi; việc thu hồi credential là công việc riêng.
-
-Adapter dùng `POST https://api.codemagic.io/builds`, header `x-auth-token`, workflow ID cố định và các biến được allowlist. Lịch sử/artifact dùng hợp đồng `GET /builds` từng được tài liệu chính thức mô tả; khả năng tương thích hiện tại cần kiểm chứng bằng tài khoản thực tế. API trả lỗi nếu response không khớp, không bịa trạng thái build hoặc lặng lẽ quay lại GitHub Actions.
-
-Artifact chỉ tải từ URL Codemagic hợp lệ và các đích lưu trữ redirect được cho phép, có giới hạn kích thước; token Codemagic không được chuyển sang storage host. Dashboard có thể đồng bộ các JSON/CSV cùng một build; nếu history/artifact API chưa tương thích, tải artifact từ Codemagic và dùng chức năng nạp file hiện có.
-
-## 5. Tác vụ thủ công
-
-Trong Codemagic tạo nhóm **`codemagic_legacy`** chứa `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`; thêm `CODEMAGIC_API_TOKEN`, `CODEMAGIC_APP_ID`, `CODEMAGIC_BRANCH` nếu cần khôi phục báo cáo cho `/btstatus` và `/btresult`.
-
-| Workflow | Input | Kết quả |
-| --- | --- | --- |
-| `telegram-command` | `TELEGRAM_COMMAND`: help/status/position/signal/backtest/btstatus/btresult | Trả lời chat đã cấu hình; artifact backtest khi có |
-| `dashboard-backtest` | `BACKTEST_DAYS`, `BACKTEST_INITIAL_CAPITAL`, `ENTRY_MARGIN_PCT`, `DCA_MARGIN_RATIO` | Các file `dashboard_backtest_*` |
-| `signal-scan` | `LEGACY_STATE_JSON` chứa state mô phỏng đã xác minh | `state.json`, `state-provenance.json` và tín hiệu mô phỏng |
-
-Tham số backtest: ngày 1–365, vốn 1–100.000.000, entry margin 1–100%, DCA 0–500%. Wrapper chuyển phần trăm sang fraction rõ ràng trước khi gọi engine. Mỗi build dùng `CM_BUILD_ID` làm Run ID để phân biệt báo cáo.
-
-Scanner không có lịch tự động. Không dùng CI cache làm state có thẩm quyền. Khi chạy thủ công, cung cấp snapshot đúng trong `LEGACY_STATE_JSON`, giữ artifact đầu ra, rồi chuyển state mới sang lượt kế tiếp. Snapshot phải có `side`, `qty`, `avg_entry`, `account_balance`, số hữu hạn và vị thế hợp lệ; JSON rỗng không tự khởi tạo state mới. Không chạy chồng lấn. Đây là hand-off thủ công, chưa thay thế một kho state và bộ điều phối nguyên tử dùng chung; nếu cần scanner liên tục, phải triển khai phần đó riêng.
-
-`/status` và `/position` cũng cần snapshot rõ ràng; thiếu/hỏng state báo không khả dụng. Không tự suy ra FLAT từ runner vừa khởi động. `.github/backtest-trigger.txt` không còn kích hoạt backtest khi push; dùng API hoặc Start new build trên Codemagic.
-
-## 6. Nguồn cấu hình
-
-- [YAML và environment](https://github.com/codemagic-ci-cd/codemagic-docs/blob/master/content/yaml-basic-configuration/yaml-getting-started.md): không có key `environment.python`; dùng Python của image và venv.
-- [Image Xcode 26.3](https://github.com/codemagic-ci-cd/codemagic-docs/blob/master/content/specs-macos/xcode-26-3.md).
-- [Codemagic REST builds](https://github.com/codemagic-ci-cd/codemagic-docs/blob/master/content/rest-api/builds.md).
-- [Hợp đồng history cũ](https://github.com/codemagic-ci-cd/codemagic-docs/blob/3102fb2/content/rest-api/builds.md); chưa chứng nhận tương thích live.

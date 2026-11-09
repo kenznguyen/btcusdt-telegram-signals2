@@ -1,7 +1,6 @@
 # Repository maintenance and release safety
 
 ## Protected product surfaces
-- Telegram webhook and commands, Python backtest and dashboard.
 - Android BTCUSDT Chart Pro: M15/H1, H1 overlay, Multi-Symbol Scanner and chart symbol switching, MFI & %B, DMI/ADX, Order Book, alerts and Strategy Monitor.
 - Paper trading only; do not introduce live order placement.
 - Release APK must use the existing signing keystore and alias, and must update the installed app without uninstalling.
@@ -26,7 +25,7 @@
 - Older chart/scanner branches and stacked PRs (#42, #43, #44, #47): do not delete before verifying their feature code is present in the integrated Android branch.
 
 ## Documentation parity
-GitHub stores source and PRs only. All runner workflows are defined in `codemagic.yaml`; old GitHub Actions YAML is archived under `ci/archive/github-actions`. The Codemagic scanner remains manual-only, requires an explicit state snapshot, and has no automatic schedule. Follow `docs/CODEMAGIC_SETUP.md` when switching the Render bridge and secret groups.
+GitHub stores source and PR history; GitHub Actions is the canonical runner for the five-layer project. `codemagic.yaml` retains selected build/qualification workflows. The legacy Python Telegram/scanner/backtest tasks and their archived workflow copies have been removed from the shared repository; see the retirement manifest. External Codemagic account state, secrets, historical builds and artifacts were not changed.
 
 ## Do not do
 - Never delete backup/restore branches or keystore/secrets during routine cleanup.

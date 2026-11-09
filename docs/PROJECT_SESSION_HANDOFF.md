@@ -3358,3 +3358,16 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Clean SQLite-only import test NOT RUN; tests NOT RUN; GitHub Actions NOT DISPATCHED; independent review NOT PERFORMED. G2 NOT VERIFIED; G3 PENDING; L4-Minimum BLOCKED / NOT VERIFIED.
 - No source/test/workflow/package/config/runtime/VPS/database/provider/secret/permission/data changes. No PR or merge. PostgreSQL adapter/migrations/tests/workflows remain PARKED/PRESERVED; no test denominator reduction.
 - Next gate: complete branch-local exact text search for all requirements/psycopg/PostgreSQL entry-point/install references, reconcile any additional matches, then prepare dependency split design and per-job install matrix. Independent review required before implementation.
+
+
+## Legacy Python and workflow retirement — 2026-11-10
+
+- Owner authorized removal limited to `bot.py`, `backtest.py`, `telegram_commands.py`, their legacy workflow definitions and direct execution/dispatch dependencies from the shared repository.
+- Exact inspected source baseline on `feature/t0-centralized-data-feeder-p1-20261101`: `3838b452ac96f5d82c6071f2ae826ff954d9c4bc`.
+- Manifest: `docs/evidence/LEGACY_PYTHON_WORKFLOW_RETIREMENT_MANIFEST_2026-11-10.md`.
+- The three requested paths under `.github/workflows/` were absent at the inspected branch SHA. Their archived copies under `ci/archive/github-actions/` and active Codemagic workflow blocks in `codemagic.yaml` were identified and removed instead; all other active `.github/workflows/*.yml` workflows remain untouched.
+- Removed Python entry points: `bot.py`, `backtest.py`, `telegram_commands.py`; wrapper/test/client and archive dependencies are itemized in the manifest.
+- Preserved T0 health API in `app.py`, T0–T4 code/data/tests, Android Paper client, all other active workflows, and standalone `backtest_rsi_percent_b_h1_adx.py`. The old dashboard remains a manual JSON/CSV viewer only.
+- No repository/branch/history rewrite, external repository, secrets, caches, artifacts, external Codemagic state, Render deployment, VPS, database, exchange or canonical data was deleted or changed.
+- Status: source changes prepared for commit; tests NOT RUN; GitHub Actions NOT DISPATCHED; external Codemagic state NOT VERIFIED; independent review NOT PERFORMED. Existing unrelated CI policy contradiction F-03 remains outside this scope.
+- Next step: verify exact commit/tree and obtain separate authorization for focused GitHub Actions validation. No runtime or external cleanup is authorized by this source retirement.

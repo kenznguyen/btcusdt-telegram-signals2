@@ -18,7 +18,7 @@ class CiPolicyTest(unittest.TestCase):
         self.assertTrue((ROOT / "ci/archive/github-actions/market-data-ci.yml").exists())
 
     def test_manual_stateful_and_release_tasks_never_start_on_push(self):
-        for name in ("android-chart-pro-release", "signal-scan", "telegram-command", "dashboard-backtest"):
+        for name in ("android-chart-pro-release",):
             with self.subTest(name=name):
                 self.assertNotIn("triggering", self.workflows[name])
 
@@ -51,6 +51,40 @@ class CiPolicyTest(unittest.TestCase):
         self.assertIn("android-source-sha.txt", workflow["artifacts"])
         self.assertIn("android-apks.json", workflow["artifacts"])
         self.assertIn("artifacts/BTC-5-Tang-Paper-*.apk", workflow["artifacts"])
+
+    def test_retired_legacy_python_and_workflow_surface_is_absent(self):
+        retired_paths = (
+            "bot.py", "backtest.py", "telegram_commands.py",
+            "ci/run-legacy.py", "ci/test_legacy_runner.py",
+            "integrations/codemagic_client.py", "integrations/test_codemagic_client.py",
+            ".github/backtest-trigger.txt",
+            "ci/archive/github-actions/signal-scan.yml",
+            "ci/archive/github-actions/telegram-command.yml",
+            "ci/archive/github-actions/dashboard-backtest.yml",
+        )
+        for relative in retired_paths:
+            with self.subTest(path=relative):
+                self.assertFalse((ROOT / relative).exists())
+        for workflow in ("signal-scan", "telegram-command", "dashboard-backtest"):
+            with self.subTest(workflow=workflow):
+                self.assertNotIn(workflow, self.workflows)
+        app_source = (ROOT / "app.py").read_text()
+        for legacy_surface in (
+            "telegram_webhook", "dispatch_codemagic", "codemagic_client",
+            "/api/dashboard/status", "/api/dashboard/backtest", "/api/dashboard/run-backtest",
+        ):
+            with self.subTest(surface=legacy_surface):
+                self.assertNotIn(legacy_surface, app_source)
+        for retained_route in (
+            '@app.get("/health/live")', '@app.get("/health/ready")',
+            '@app.get("/health/data")', '@app.get("/health")', '@app.get("/dashboard")',
+        ):
+            with self.subTest(route=retained_route):
+                self.assertIn(retained_route, app_source)
+        dashboard = (ROOT / "dashboard/index.html").read_text()
+        for legacy_ui in ("syncDashboard", "/api/dashboard/", "runBacktestBtn", "setInterval("):
+            with self.subTest(ui=legacy_ui):
+                self.assertNotIn(legacy_ui, dashboard)
 
     def test_shell_scripts_parse_and_no_unsupported_python_version_key(self):
         for path in (ROOT / "ci").glob("*.sh"):
