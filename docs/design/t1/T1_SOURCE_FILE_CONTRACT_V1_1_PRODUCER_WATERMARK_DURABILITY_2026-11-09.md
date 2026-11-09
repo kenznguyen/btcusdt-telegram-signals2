@@ -338,3 +338,118 @@ If the exchange does not provide a documented no-revision guarantee, the design 
 ### 15.6 P1.3 disposition
 
 The conservative acceptance profile is now explicit. It resolves the unsafe ambiguity in how missing REST rows are interpreted, but it does **not** resolve the external API-contract gaps. The endpoint remains a candidate only. `RECONCILED_COMPLETE` remains disabled until boundary semantics, no-trade behavior, finality/correction guarantees and pagination completeness are independently evidenced and accepted. No implementation or runtime action is authorized by this design update.
+
+
+## 16. P1.5 clarification — REST-only rows and source provenance (F02)
+
+### 16.1 No implicit agreement when the WebSocket row is absent
+
+For a candle key expected in the affected reconciliation interval:
+
+- REST row present + matching WebSocket row present: compare every required field using exact decimal semantics. Equality is necessary but does not, by itself, prove completeness, finality or immutability.
+- REST row present + WebSocket row absent: classify as `RECONCILIATION_SOURCE_DIVERGENCE`, not as agreement. The absence may represent a missed WebSocket event, a producer drop, a source publication difference or an unresolved exchange semantic.
+- WebSocket row present + REST row absent: retain `SOURCE_HEALTH_UNKNOWN`; do not infer no-trade or a confirmed market gap.
+- Both present but any field differs: `RECONCILIATION_CONFLICT`; quarantine the interval. Do not choose a preferred source or overwrite either payload.
+
+Under the current contract revision, a REST-only row MUST NOT be inserted into a WebSocket-derived generation and MUST NOT advance its watermark. It is retained only as separately identified reconciliation evidence in isolated staging/quarantine. This conservative rule avoids silently changing the source composition of an existing generation.
+
+### 16.2 Future mixed-source mode requires a new explicit contract
+
+A future design may propose REST-supplied rows, but only as a separately versioned source mode. At minimum it must define:
+- per-row source provenance (`WS_FINAL` or `REST_RECONCILED`) and immutable source-record identity;
+- raw response/request evidence digest and exact interval binding for each REST-supplied row;
+- deterministic precedence/conflict policy that never silently overwrites an accepted record;
+- generation-level source composition and reconciliation transaction identity;
+- replay/idempotency and correction/quarantine behavior;
+- independent review and a separate explicit approval.
+
+Until that contract is accepted, the adapter must not merge REST-only rows into the canonical candidate file. The current REST endpoint remains an unaccepted completeness oracle (F01).
+
+## 17. P1.5 clarification — durable producer health and watermark invalidation (F03)
+
+### 17.1 Fail-closed health events
+
+The producer contract must expose explicit, monotonic health evidence for at least:
+- WebSocket disconnect, reconnect and subscription/session replacement;
+- inbound queue capacity exhaustion, dropped/rejected event, or inability to prove queue continuity;
+- parser/deserialization failure for a kline event;
+- writer task failure, buffer flush failure, short/failed write, fdatasync/fsync failure;
+- process shutdown, unexpected termination, restart and generation change;
+- reconciliation request failure, partial/ambiguous response, retry exhaustion or conflicting source result.
+
+Each detectable event must carry event type, collector instance, generation, symbol/interval scope, observation time, affected event-time range when known, sequence/counter where available, and durable record identity. Health evidence must be committed before any later manifest publication can claim the affected range complete.
+
+### 17.2 Sticky invalidation and recovery
+
+- Queue overflow/drop, unknown queue continuity, parse failure affecting a potentially eligible event, writer error, uncertain process termination or generation discontinuity invalidates the affected completeness claim.
+- Invalidation is sticky for the affected range and generation. A later healthy socket, successful write, or restarted process does not clear it.
+- If the exact affected range cannot be bounded, invalidate from the last independently proven checkpoint through the next independently reconciled boundary; if no trustworthy checkpoint exists, hold the generation watermark and quarantine the uncertain range.
+- No watermark may advance across an unresolved health event.
+- Recovery requires the separately accepted reconciliation protocol, durable evidence and a new validated publication transaction. Under current P1.3, unresolved or missing REST minutes remain `SOURCE_HEALTH_UNKNOWN`; therefore recovery may remain blocked.
+- On startup, absence of a clean durable shutdown/continuity record is itself uncertainty. Do not infer continuity from process uptime, file length, timestamps or a healthy current socket.
+
+### 17.3 Crash limitation and negative acceptance cases
+
+A process cannot guarantee that it writes a final health marker after abrupt power loss or forced termination. Therefore the design must not depend on a last-second shutdown callback. Generation allocation, durable checkpoints and restart reconciliation must make an unclean termination detectable from previously committed state; if it cannot be detected or bounded, quarantine and withhold the watermark.
+
+Add required negative fixtures (planned, not executed):
+- C63 queue full with explicit drop/reject → sticky invalidation; no watermark.
+- C64 queue continuity cannot be established → SOURCE_HEALTH_UNKNOWN; no watermark.
+- C65 parser rejects an eligible-event payload → affected range invalidated; no watermark.
+- C66 flush/write/sync error → no committed offset or watermark advance.
+- C67 process terminates without clean-shutdown record → restart generation marked uncertain; no continuity assumed.
+- C68 health event is recorded after a candidate manifest publication → reject ordering; no watermark.
+- C69 healthy reconnect after an unresolved gap → invalidation remains sticky.
+- C70 affected range cannot be bounded → quarantine from last trusted checkpoint or entire generation if none exists.
+- C71 repeated/overlapping reconciliation evidence → idempotent event identity; no duplicate acceptance and no bypass of unresolved gaps.
+
+These are contract acceptance requirements only. They do not assert that the current producer emits such events or that a tested implementation exists.
+
+## 18. P1.5 clarification — manifest integrity threat model (F04)
+
+### 18.1 Current protection claim
+
+The current adjacent manifest, header digest and committed-prefix digest are intended to detect accidental corruption, truncation, inconsistent publication and certain crash/recovery mismatches. A digest stored beside the data that it hashes is not, by itself, an authenticity mechanism.
+
+**Current contract scope is accidental failure/corruption detection only. It does not claim protection against a local attacker who can replace both data and manifest, roll both back, alter the host clock, or modify the collector and its credentials.**
+
+No security claim may describe the current SHA-256 prefix digest as tamper-proof, authenticated, anti-rollback or independently anchored.
+
+### 18.2 If adversarial local modification is in scope
+
+Before claiming protection against malicious local modification or rollback, a separately reviewed design must specify:
+- manifest authentication (for example, a keyed MAC or digital signature) with key custody separated from the data-writer's ordinary file permissions;
+- key rotation, revocation, recovery and compromise response;
+- monotonic generation/checkpoint anchoring outside the mutable data+manifest directory or another independently controlled trust boundary;
+- verification behavior when the anchor is unavailable, stale, rolled back or inconsistent;
+- threat coverage for host root compromise, credential compromise, backup restoration and clock manipulation.
+
+A MAC whose key is available to the same compromised writer/host does not protect against full host compromise. An external anchor and key separation must be described honestly; no mechanism is presumed available or implemented by this document.
+
+### 18.3 Fail-closed rollback handling
+
+Even within the current accidental-failure scope:
+- manifest version, generation, committed offset and durable checkpoint must never regress relative to the last trusted state available to the consumer;
+- missing, stale, conflicting or unverifiable prior state yields `SOURCE_MANIFEST_ROLLBACK` or `SOURCE_DURABILITY_UNPROVEN`, then quarantine;
+- restoration of an older backup is not silently accepted as a continuation of the current generation. It requires a separately recorded restore epoch/reconciliation decision and a new generation;
+- if no independent prior checkpoint exists, the consumer cannot claim adversarial rollback detection. It must state that limitation rather than infer trust from a self-consistent file/manifest pair.
+
+Add required negative fixtures (planned, not executed):
+- C72 data and adjacent manifest replaced together with a self-consistent older pair → not claimed detectable under current threat scope; adversarial rollback protection remains NOT PROVIDED.
+- C73 manifest generation/offset regresses against a trusted external checkpoint → reject and quarantine.
+- C74 manifest authentication fails or key is unavailable under an authenticated future profile → fail closed; no watermark.
+- C75 external monotonic anchor is stale/unavailable → no anti-rollback claim; hold promotion/watermark according to the approved profile.
+- C76 backup restore presents an older generation → require restore epoch and new generation; never append as if continuity were proven.
+
+These fixtures are design requirements only; none has been executed.
+
+## 19. P1.5 disposition and unchanged blockers
+
+- F02: clarified conservatively. REST-only rows are divergence evidence and cannot be inserted into the current WS-derived generation. A future mixed-source mode requires a new versioned contract.
+- F03: clarified at contract level with sticky invalidation, durable health-event ordering, unclean-shutdown uncertainty and negative fixtures. Actual producer instrumentation and failure semantics remain unimplemented and unverified.
+- F04: threat scope is explicitly limited to accidental failure/corruption detection. Adversarial local tampering/rollback protection is NOT PROVIDED unless a separately reviewed authenticated-manifest and independent-anchor design is approved.
+- F01 remains CRITICAL: Binance REST is not an accepted completeness oracle; no-trade, boundary, finality/correction and pagination semantics remain unresolved.
+- F05 remains HIGH: pinned producer decimal serialization defect is confirmed; no source correction is authorized or evidenced.
+- F07 remains MEDIUM/HIGH operational blocker: target filesystem/provider durability and crash-recovery behavior are unverified.
+
+This P1.5 update is documentation-only. It does not make the contract implementation-ready, does not authorize source changes, tests, Actions, VPS/runtime, T1 activation, T0/T2 changes, promotion, or destructive data operations.
