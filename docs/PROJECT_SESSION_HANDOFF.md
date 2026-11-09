@@ -3495,3 +3495,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact. External T1 repo/VPS/runtime/CSV/DB/provider/exchange/consumers not accessed. No source/runtime/permission/data or destructive changes.
 - Option C, T0 independence, protected classes, paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - Next step: obtain owner-supplied authoritative inputs for the four existing CSV feeds (purpose/owner, exact source scope, obligations, start/end events, consumer dependencies, holds and duration rationale). If not supplied, keep RET-03 OPEN and do not infer a floor. Any operational inventory requires separate bounded authorization.
+
+
+## Latest completed work — Stage A.3 T2 RET-03 Owner Input Resolution (2026-11-10)
+
+- Added `docs/evidence/p1-8/T2_RET03_OWNER_INPUT_RESOLUTION_2026-11-10.md` as a documentation-only static class/lineage and consumer-dependency analysis.
+- Analysis source baseline HEAD: `d5921afe81fc4ad801f445726e42ca37ba939358`; source blob SHAs are pinned in the new record.
+- T2 map distinguishes T0 canonical inputs, training data, features/labels, training manifests, model/run/evaluation artifacts, provenance/context/prediction JSON, final AI paper intents, AI ledger/risk state, and T3 reconstruction evidence.
+- Confirmed the prediction output path is a replaceable latest-output slot, not an append-only history. The final paper intent carries model/strategy/inference dataset/snapshot identifiers but does not carry `trainingDatasetVersion`, `trainedThroughMs`, `trainingCompletedAtMs`, or the prediction value. No immutable external lookup binding was established in the inspected source set.
+- Research config contains `purge_old_models=2` and `expired_hours=2`; their effective runtime semantics and actual effects are NOT VERIFIED. These settings are not an approved retention policy and no pruning was executed or authorized.
+- Actual training source/dataset manifest, model/run/evaluation artifacts, prediction history, paper DB/runtime, consumer registry, copy/backup/recipient graph, holds, terminal events and duration bases remain NOT VERIFIED / NOT PROVIDED.
+- Status: T2 static class/lineage map COMPLETE; RET-03 OPEN / FLOOR_NOT_ESTABLISHED; no numeric floor/TTL selected. No object is deletion-eligible.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run or artifact claimed. No training/backtest, runtime/VPS/DB/provider/consumer/copy inventory, config/source/workflow/permission change, model pruning or destructive action.
+- Boundaries unchanged: Option C, lifecycle independent-review waiver, T0 independence, separate CORE_LEDGER/AI_LEDGER, paper-only, `AI_EXECUTION_ENABLED=false`.
+- New T2 analysis document commit: `2ee2eec6aae971563e5378363cff7338dc88a2c1`.
+- Next step: Stage A.4 T3 RET-03 owner-input resolution, focused on signal/risk/order/fill/reconciliation and paper-outcome reconstruction dependencies; keep ledger and required T3 records protected and do not infer retention periods.
