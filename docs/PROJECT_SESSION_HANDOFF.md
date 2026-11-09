@@ -565,3 +565,12 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
   7. Correct section numbering in the copy lifecycle contract.
   8. Second independent review.
 - Do not begin V07/V08/Restore/TSA conflict review until second independent deletion-design review is complete. No implementation, staging, workflow dispatch, real-storage dry-run, archive, cleanup, restore, key destruction or deletion is authorized.
+
+### P1.8.85 hold lifecycle and mutation window fencing contract (2026-11-09)
+
+- Document: `docs/evidence/p1-8/P1.8.85-hold-lifecycle-and-mutation-window-fencing-contract.md`.
+- Commit: `a290d7e4012622fadf952de9a363e1fa59f22640`.
+- Blob SHA: `95d7c2655c327675e493851cdec2371da13b889a`.
+- Status: DOCUMENTARY DESIGN ONLY; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED.
+- No source, schema, API, workflow, service, registry, scheduler, database, VPS, Feeder, storage, backup, replica, archive or runtime mutation. No real-data inventory or destructive operation.
