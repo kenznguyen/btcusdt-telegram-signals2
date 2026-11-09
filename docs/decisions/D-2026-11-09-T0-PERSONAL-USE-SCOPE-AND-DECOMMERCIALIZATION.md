@@ -226,3 +226,51 @@ No critical contradiction was found in the written scope boundary. SR-01 and SR-
 - Therefore: **T0 commercial subsystem presence: NOT FOUND IN INSPECTED SURFACE; REPOSITORY-WIDE ABSENCE: NOT VERIFIED.** The previous HIGH blocker is narrowed but not closed.
 - No tests, GitHub Actions runs, provider calls, VPS/runtime/DB inspections, or mutations were performed. No workflow run/artifact is claimed. All work is read-only source inspection.
 - No REMOVE-CANDIDATE is established. No source deletion, workflow deletion, documentation deletion, runtime change, or data lifecycle action is authorized.
+
+
+## 11. Follow-on deployment, archived workflow and consumer audit (read-only, 2026-11-09)
+
+### 11.1 Exact branch pin and repository surface
+
+- Branch HEAD at audit start: `ae545616ed5c35767d6f3c00ad77f4deac7bb79f`; tree SHA: `755db16daeef9454c23bae36789afc6953522214`.
+- Git Trees API returned `truncated=false` and 636 tracked file paths.
+- The active `.github/workflows/` directory contains 13 workflow YAML files. This count is a tracked-tree observation, not a claim that every workflow has recently executed successfully.
+- Archived GitHub Actions references are under `ci/archive/github-actions/`, outside GitHub's active workflow discovery path. Their README says the archived definitions are historical and not executed by GitHub, but also says Codemagic runs jobs and points to Codemagic setup. That operational statement conflicts with the owner's current direction that GitHub Actions is the primary CI and Codemagic is deprecated/legacy fallback. Treat the README as stale documentation pending a separate documentation decision; do not infer that Codemagic account workflows are active or inactive from repository files alone.
+- `codemagic.yaml` remains tracked (blob `c8626f8b6b55fa7d76cd885a63beb60413d6fd77`) and defines multiple Codemagic workflows, including canonical market data, TimescaleDB, and manual Kraken jobs. This is configuration presence only; external Codemagic account state and actual execution are NOT VERIFIED.
+- `ci/run-legacy.py` (blob `2537a750beacea99a8aedd9981b466af99f8da7e`) explicitly describes a bounded Codemagic task and does not call the GitHub Actions API. Its presence is legacy integration code, not evidence of a commercial subsystem.
+- `ci/test_ci_policy.py` (blob `42b2c4164b28e1dac32457f36435d05207350714`) asserts that `.github/workflows/` contains no YAML files. That assertion is inconsistent with the same pinned tree, which contains 13 active workflow YAML files. The test is also included in the Codemagic `canonical-market-data` script via discovery of `ci/test_*.py`. This is a concrete CI-policy/configuration inconsistency and a likely failure if that Codemagic job runs against this exact tree; it was not executed here. Do not silently alter CI or workflow configuration as part of this de-commercialization audit.
+
+### 11.2 Deployment and archived workflow findings
+
+- No Docker Compose, Dockerfile, Kubernetes/Helm, Terraform, Ansible, Render/Fly/Railway manifest or conventional systemd unit file was found by the bounded tracked-path scan. This is a path-name scan only and does not prove deployment configuration is absent from scripts, external repositories, or the VPS.
+- Relevant tracked deployment evidence includes `.github/workflows/t0-systemd-feeder-api-integration.yml`, `ci/t0_systemd_feeder_api_integration.py`, `ops/ssh/t0-readonly-preflight.sh`, and T0/T2 deployment-gate documentation. These are reliability/integration controls, not customer-commercial features.
+- Archived workflow files reviewed include the archive README, market-data CI, T0 single-writer gateway, and dashboard backtest definitions. They are outside the active GitHub workflow directory. Their historical job contents do not establish an active production deployment.
+- No archived workflow or deployment path is a REMOVE-CANDIDATE based on this audit.
+
+### 11.3 PostgreSQL/TimescaleDB consumer and capability graph
+
+- `market_data/storage.py` (blob `13fe1ae01ebb5318b69e69eef3e512d207f74c49`) imports both SQLite and PostgreSQL adapters, defaults to SQLite, and supports explicit `MARKET_DATA_BACKEND=postgres` plus `MARKET_DATA_POSTGRES_DSN`.
+- `market_data/feeder_service.py` (blob `bdcecf6bc98a2ff070f83098d2c50154a160c99c`) has an explicit PostgreSQL production composition path: PostgreSQL candle store, DB-clock lease store, and transactionally fenced PostgreSQL write gateway on the same DSN. It enforces `sslmode=verify-full` and a remote hostname for PostgreSQL production configuration.
+- `market_data/postgres.py` (blob `2fe27fe2d066dda0c192a381b72d27404487b800`) contains read, lease, and fenced write adapter code. It is therefore more than a read-only optional adapter.
+- Runtime composition and lease contracts are in `market_data/test_postgres_feeder_runtime.py` (blob `dba7b3a61b3963984c58309e7d334b61c0889256`); disposable TimescaleDB lifecycle integration is in `market_data/test_postgres_feeder_runtime_lifecycle.py` (blob `ff8458fd6250fca264799810d78b2566ebcfda10`).
+- Active GitHub workflow coverage includes the `timescaledb-integration` manual gate in `.github/workflows/t0-manual-validation.yml` (blob `395ae93274a9202f14ab63d528be5cd582c30149`) and the separate PostgreSQL grantor reproduction workflow `.github/workflows/t0-postgres16-grantor-repro.yml` (tree entry present at the pinned commit). The lifecycle test is explicitly guarded by a disposable test DSN; it is not proof of a live production database.
+- Classification: **KEEP AS SUPPORTED OPTIONAL BACKEND / DEFER OPERATIONAL ADOPTION DECISION**. The code supports a complete alternate T0 runtime path, while SQLite remains the default. Actual owner runtime selection, deployed PostgreSQL use, and cost/maintenance trade-off remain NOT VERIFIED. No PostgreSQL removal is justified.
+
+### 11.4 Kraken Spot consumer and capability graph
+
+- The isolated adapter, store and API are `market_data/kraken_spot.py` (blob `d8191606d27617f964f23736e07fb7fe7458dc39`), `market_data/kraken_spot_store.py` (blob `1736935cf143c11f0789651b5ef80a1821aabbb8`), and `market_data/kraken_spot_api.py` (blob `5d8679f74fe5d4b70d89ba796f83550c6e1f2c58`).
+- The store requires a separate on-disk SQLite database and explicitly checks separation from the Binance canonical database. The API is a separate WSGI app at `/v1/kraken-spot/candles`; its module documentation says it does not call the canonical Binance API/storage factory, Futures strategy, backtest or paper execution.
+- Dedicated tests exist: adapter `market_data/test_kraken_spot.py` (blob `d60bcc62d68d3a49cec3ab518e1c6a41866c11ae`), store `market_data/test_kraken_spot_store.py` (blob `22dd48746e7b893523a8d8a728d37cccec85e9cb`), and read API `market_data/test_kraken_spot_api.py` (blob `e004b16ea41e45749925e032d2d9cb2bffc14c16`). The active T0 manual workflow exposes three separate Kraken gates.
+- The tracked path inventory shows Kraken-specific implementation, tests, docs and workflow references, but no separate consumer module name. The bounded file review found no demonstrated T1/T2/Futures consumer. This does not prove that no external client, manual research workflow, or dynamically configured consumer exists.
+- Classification: **DEFER / REVIEW; ISOLATED PERSONAL RESEARCH CAPABILITY, CONSUMER VALUE NOT VERIFIED**. Do not merge with Binance USD-M canonical data or remove until the owner confirms whether Kraken Spot research is wanted and any external/manual consumer is inventoried.
+
+### 11.5 Verdict, coverage limits and next gate
+
+- Branch-pinned path/deployment inventory: COMPLETE for the 636-path Git tree; semantic content audit: PARTIAL.
+- Archived workflow review: PARTIAL; four representative files reviewed, not every archived YAML/script.
+- PostgreSQL code-level dependency graph: STRONG EVIDENCE of an implemented optional full runtime backend; actual deployment/selection NOT VERIFIED.
+- Kraken code-level isolation: CONFIRMED in inspected adapter/store/API/tests/workflow; external/manual research consumer and value NOT VERIFIED.
+- CI policy inconsistency: FOUND; exact test and tracked workflow directory contradict. No test execution or CI dispatch was performed.
+- Commercial subsystem absence repository-wide: NOT VERIFIED.
+- No REMOVE-CANDIDATE established. No source, config, workflow, deployment, data or runtime changes authorized or performed. No tests, Actions run or artifact claimed.
+- Next gate: resolve the CI policy inconsistency in a separately scoped CI-maintenance task; complete the Kraken external/manual consumer inventory and owner value decision; then obtain a genuinely independent second review. Any removal still requires exact-path owner authorization. Option C — No Destructive Authority — remains in force.
