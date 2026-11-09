@@ -2189,3 +2189,18 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Existing blockers: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C174 NOT IMPLEMENTED / NOT EXECUTED.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
 
+## P1.30 — Signed ERA key revocation and follow-up self-review (2026-11-09)
+
+- Contract commit: `57f96ab0b6507f73473f180056cdbf5bc48dbfaf`.
+- Exact contract blob: `fef90de3176dffd7bd9979d46b68f976ceb5c878`.
+- Added `REVOKE_ERA_KEY`, closed request and root-key-signed revocation receipt payload; revocation sequence is bound to response-envelope authority sequence and host trust entry.
+- Added C175–C179.
+- P1.30 self-review file: `docs/reviews/t1/P1_30_SELF_REVIEW_ERA_SIGNED_KEY_REVOCATION_2026-11-09.md`.
+- Review commit: `fa25dac64327b6fb136cfcb5bf01ee7ce691c9dd`; review blob: `e91b070b3858cba122b8977129f47c78d67d2810`.
+- Verdict: **REQUEST CHANGES — F02-R13 HIGH; F02-R14 MEDIUM.** Trust file pins revocation receipt payload but not the signed response envelope; after restart root-key signature/authority sequence cannot be verified. ERA root-key rotation and compromise recovery are undefined.
+- Required next: bind exact signed envelope (or immutable evidence bundle) into trust-file revocation evidence, define durable publication/readback; define root-key rotation as separately approved offline transition and compromise quarantine; add fixtures.
+- Issue #138 remains targeted at P1.24 SHA until F02-R13/R14 are corrected and exact-SHA self-review passes.
+- No ERA implementation, executable tests, Actions dispatch, REST, VPS/runtime, T1 activation, T0/T2 changes, trading or destructive data operations.
+- Existing blockers: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C179 NOT IMPLEMENTED / NOT EXECUTED.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
