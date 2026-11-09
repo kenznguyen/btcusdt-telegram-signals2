@@ -3573,3 +3573,16 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Tests NOT RUN; Actions NOT DISPATCHED; no runtime/VPS/DB/provider/legal/permission/consumer/copy probes; no source/schema/config/workflow/permission/runtime/data changes or destructive actions.
 - Stage A.7 report commit: `5f975ed000ca53b0b0c78db9186182500dbaf81d`; report blob and final handoff commit to be verified by read-back.
 - Automatic owner approval applies to bounded documentary work across Stage A only. Continue Stage A.8 by specifying RET-06 and RET-08 required input/decision fields and fail-closed outcomes, without selecting values or authorizing exceptions. Stage B/C remain outside approval.
+
+
+## Stage A.8 — RET-06 / RET-08 Documentary Input Contracts (2026-11-10)
+
+- Added `docs/evidence/p1-8/STAGE_A8_RET06_RET08_DOCUMENTARY_INPUT_CONTRACTS_2026-11-10.md` as documentary requirements only.
+- Frozen baseline HEAD: `21b4f9f5aba3392760ca7f6e7069262abd8ce662`.
+- RET-06 contract enumerates policy/authorization identity, grace semantics/value, cancellation authority and race ordering, authorization lifetime/revocation, evidence freshness, trusted clock, revision binding, expiry behavior, evidence and recovery/replay requirements. All owner values remain NOT PROVIDED; V07, RET-05/LDA-05, V08, RET-07 and Restore dependencies remain unresolved.
+- RET-08 contract enumerates request categories and required requester/authority/jurisdiction/scope/deadline/conflict/decision/execution/evidence fields; defines a preserve/verify/escalate/fail-closed sequence. No competent authority register, legal/security protocol, exception or break-glass path is approved.
+- Explicitly separates request receipt/validation/decision from execution authority. Emergency/legal/security label, deadline or request does not bypass Option C, protected classes, RET-06, owner approval or technical gates.
+- Result: RET-06 and RET-08 documentary requirements PASS; substantive values/authority remain NOT PROVIDED / OPEN. No legal interpretation, numeric value, runtime implementation or mutation authority.
+- Tests NOT RUN; Actions NOT DISPATCHED; no runtime/legal-system/provider/permission/copy probes, source/schema/config/workflow/permission/data changes or destructive actions.
+- Stage A.8 report commit: `c4d751504145d2650a53dab9bc74da1a79eef2f9`; report blob and handoff commit to be verified by read-back.
+- Next: Stage A.9 — consolidate RET-03/06/07/08 into a single Stage A acceptance checklist and owner-input register; distinguish documentary completeness from unresolved owner/legal/operational inputs. If no authoritative source exists, preserve NOT PROVIDED and close Stage A as blocked on substantive inputs. No Stage B/C work without separate authorization.
