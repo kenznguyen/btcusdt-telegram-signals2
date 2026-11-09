@@ -1517,3 +1517,15 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - GitHub Actions NOT DISPATCHED for this operator-run runtime gate; workflow run ID NONE; Actions artifact ID NONE. This record does not claim process-loaded byte attestation.
 - T1 remains NOT ACTIVATED in this gate. No Feeder restart, DB/WAL mutation, strategy/model/signal/ledger/risk change, OKX replacement, live order, or data deletion. `AI_EXECUTION_ENABLED=false`.
 - Next step: review and authorize the next rollout gate separately; do not infer T1 activation or expanded T2 execution from this PASS.
+
+
+## Latest completed work — T1 Collector and Data Contract Compatibility Review (2026-11-09)
+
+- Added read-only static review: `docs/evidence/t1/T1_COLLECTOR_DATA_CONTRACT_COMPATIBILITY_REVIEW_2026-11-09.md`.
+- Evidence commit: `27838b1329ba3a3dc5a964d070f094d228814c91`.
+- Reviewed T1 repository `kenznguyen/binance-futures-collector`, PR #1 (OPEN / DRAFT / not merged), exact PR head SHA `6e20fe94f3ad64cc450e73def80a167fe371e49e`.
+- Source/contract findings: T1 persists partitioned CSV, not T0 canonical SQLite or Candle HTTP; documented kline source is 1m while canonical T0/T2 paths require 15m/1h; reviewed CSV schema does not establish the T0 candle envelope/coverage/quality/closed-candle semantics; buffered `flush()` is not a durable ingestion ACK; connection sidecar is explicitly not integrated and does not prove market-data completeness.
+- Exact-head GitHub Actions run `42479498182`: SUCCESS, 5/5 jobs; no artifact published. CI success is code-level evidence only and does not establish T0/T2 compatibility or runtime readiness.
+- Status: **PARTIAL — T1 repository CI PASS; T1→T0/T2 contract compatibility BLOCKED**. Static review only; no tests executed in this review, no VPS/runtime/deployment, no T1 activation, no adapter/integration, no T0/T2/strategy/ledger/risk changes.
+- Required next step: freeze a versioned T1 source-file contract and design a read-only, idempotent ingestion adapter plus deterministic 1m→15m/1h aggregation/coverage tests. Keep T0 canonical storage independent; do not allow T1 direct writes into T0. Independent review and a separate activation approval remain required.
+- Guardrails preserved: paper-only, `AI_EXECUTION_ENABLED=false`, no OKX replacement, no live orders, no data deletion/archive/cleanup/vacuum/compaction/backup expiry or destructive testing.
