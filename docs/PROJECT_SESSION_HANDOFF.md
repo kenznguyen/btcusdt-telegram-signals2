@@ -1302,3 +1302,18 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - GitHub permission inventory remains PAUSED. No additional API calls, runtime/data inventory, tests, workflow dispatch or artifacts.
 - No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk changes. No staging, restore, provider/key/TSA operation, synthetic execution or destructive action.
 - Status: DECISION PACKAGE PREPARED — OWNER RATIFICATION REQUIRED — NO POLICY CHANGE OR OPERATIONAL AUTHORITY ACTIVATED.
+
+## P1.8.143 — Owner Retention Policy Ratification (2026-11-09)
+
+- Owner explicitly approved RET-01 option B and RET-02 option B from P1.8.142.
+- Ratification record: `docs/evidence/p1-8/P1.8.143-owner-retention-policy-ratification.md`.
+- Record commit: `e938d90b2b95d4d432db0eb387b64601e21c5e3c`.
+- RET-01 B ratified: T0 canonical data is protected by default; no routine or automatic deletion. A narrowly scoped binding legal/security exception may only be considered through separate evidence, competent review and a new explicit owner decision. No exception or execution is approved.
+- RET-02 B ratified: only exact T4 rebuildable caches/read models/materializations, T2 ephemeral inference outputs, T1 raw observations meeting strict reproducibility/obligation-closure proof, and individually identified noncanonical copies may enter future read-only eligibility assessment. This does not make any class/object automatically eligible or authorize mutation.
+- T0, CORE_LEDGER, AI_LEDGER, required T3 reconstruction/audit records, governance approvals/policy history/tombstones/evidence, and unknown/unclassified/orphaned/incompletely inventoried data remain excluded from ordinary class-wide deletion review.
+- RET-03 through RET-10 remain OPEN/NOT VERIFIED as recorded in P1.8.142. No TTL, retention floor, grace, cadence, authorization lifetime or freshness value was set.
+- Option C — No Destructive Authority — remains in force. Archive remains non-executable. No deletion, cleanup, vacuum, compaction, backup expiry, replica removal, runtime inventory, provider operation or permission change is authorized.
+- GitHub permission inventory remains PAUSED. T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE. Runtime enforcement NOT VERIFIED. Lifecycle design closure NOT ESTABLISHED; P1.8.141 residual findings remain open.
+- Next gate: continue with bounded documentary analysis of unresolved P1.8.141 findings and RET-03–RET-10; each operational, identity, provider, test or destructive activity remains separately gated.
+- Status: RET-01/RET-02 OWNER-RATIFIED — POLICY ONLY — NO IMPLEMENTATION OR DESTRUCTIVE AUTHORITY.
