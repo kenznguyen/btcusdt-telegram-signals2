@@ -583,3 +583,12 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: DOCUMENTARY DESIGN ONLY; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED.
 - No source, schema, API, workflow, service, registry, scheduler, database, VPS, Feeder, storage, backup, replica, archive or runtime mutation. No real-data inventory or destructive operation.
+
+### P1.8.87 storage disposition semantics and bounded claims (2026-11-09)
+
+- Document: `docs/evidence/p1-8/P1.8.87-storage-disposition-semantics-and-bounded-claims.md`.
+- Commit: `3f68ce5ddfffd26f02ce0ce4ba036a296b60cba2`.
+- Blob SHA: `f803f7c14b6054e36fb8313329e25e38cdb8ff78`.
+- Status: DOCUMENTARY DESIGN ONLY; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED.
+- No source, schema, API, workflow, service, registry, scheduler, database, VPS, Feeder, storage, backup, replica, archive or runtime mutation. No real-data inventory or destructive operation.
