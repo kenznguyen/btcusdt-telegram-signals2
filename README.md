@@ -2,7 +2,7 @@
 
 **GitHub là nơi lưu trữ mã nguồn, nhánh, lịch sử và bằng chứng; GitHub Actions là cơ chế thực thi CI/workflow của dự án.** Không xem Codemagic là runner chính của Hệ thống 5 tầng. Các workflow Codemagic và ứng dụng cũ được giữ lại như tài sản riêng/lịch sử, không phải dependency của hệ thống 5 tầng.
 
-Phạm vi kiến trúc và các ranh giới loại trừ được ghi tại [Five-Layer Architecture](docs/FIVE_LAYER_ARCHITECTURE.md) và [T0 Active Scope Index](docs/T0_ACTIVE_SCOPE_INDEX.md).
+Phạm vi kiến trúc và các ranh giới loại trừ được ghi tại [Five-Layer Architecture](docs/FIVE_LAYER_ARCHITECTURE.md) và [T0 Active Scope Index](docs/T0_ACTIVE_SCOPE_INDEX.md). Quyết định loại Android Chart/Scanner và Python bot/backtest khỏi phạm vi được ghi tại [Five-Layer Scope Exclusion Decision](docs/evidence/FIVE_LAYER_SCOPE_EXCLUSION_ANDROID_PYTHON_2026-11-10.md).
 
 ## Thành phần thuộc Hệ thống 5 tầng
 
@@ -11,9 +11,9 @@ Phạm vi kiến trúc và các ranh giới loại trừ được ghi tại [Fiv
 - [Kiến trúc 5 tầng](docs/FIVE_LAYER_ARCHITECTURE.md): dữ liệu, trinh sát, chiến lược/AI, paper execution và React control plane. Đây là thiết kế đích; chưa mặc nhiên có nghĩa mọi tầng đã triển khai hoặc được kiểm định.
 - [Luồng paper 5 tầng](docs/FIVE_LAYER_PAPER_RUNBOOK.md): luồng nghiên cứu/paper; fixture tests không chứng minh runtime, model hoặc frontend đã vận hành thực tế.
 
-## Hệ thống riêng ngoài phạm vi 5 tầng
+## Hệ thống riêng ngoài phạm vi 5 tầng — KHÔNG THUỘC SCOPE
 
-Repository còn lưu Android Chart/Scanner, Python bot/backtest, Telegram và dashboard backtest cũ. Đây là các hệ thống độc lập; không phải T0–T4, consumer, dependency hoặc migration target của Hệ thống 5 tầng. Không suy diễn chúng phải dùng chung dữ liệu, API, chiến lược hoặc runtime.
+Android Chart/Scanner và Python bot/backtest được loại khỏi phạm vi Hệ thống 5 tầng: không thuộc kiến trúc T0–T4, dependency graph, consumer contract, deployment, rollout, acceptance hoặc test denominator của hệ thống. Telegram và dashboard backtest cũ cũng là tài sản của các hệ thống riêng. Chúng có thể tiếp tục tồn tại trong repository nhưng không tạo nghĩa vụ tích hợp, đồng bộ dữ liệu, API, chiến lược hoặc runtime. Không xóa hoặc thay đổi các tài sản này theo quyết định phạm vi.
 
 ## CI và workflow
 
