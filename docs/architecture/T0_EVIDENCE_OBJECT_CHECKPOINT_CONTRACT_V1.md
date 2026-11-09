@@ -181,6 +181,77 @@ V1 canonical serialization profile is a contract candidate, not a library select
 
 The final canonicalization profile MUST be tested against fixed byte-level test vectors before code implementation. No serializer/library has been selected by this document.
 
+
+### 5.1 G0.3 — Canonical byte profile and content-root algorithm (2026-11-10)
+
+**Owner decision under the user's G0–G3 automatic-approval delegation: adopt RFC 8785 JSON Canonicalization Scheme (JCS) with the T0 restrictions below.** Profile identifier: T0-JCS-1. This selects a normative byte algorithm; it does not select or authorize a production library, signer, key, provider, TSA or runtime integration.
+
+#### A. Input and canonical JSON restrictions
+
+1. Input MUST be valid UTF-8 without BOM. Invalid UTF-8, invalid Unicode scalar sequences and unpaired surrogates are rejected.
+2. Duplicate JSON object keys MUST be rejected by the parser before canonicalization. Unknown fields are rejected for versioned T0 schemas; schema-defined extension points must be explicit.
+3. Canonical output MUST follow RFC 8785 JCS exactly: ECMAScript-compatible JSON string serialization, no insignificant whitespace, deterministic object-key ordering by UTF-16 code units, and UTF-8 output. No Unicode normalization is performed; code points are preserved exactly. Schema identifiers/enums remain restricted to their declared ASCII values.
+4. JSON floating-point numbers are forbidden. To avoid IEEE-754 loss for signed-64-bit timestamps and counts, every logical integer (timestamps, counts, schema versions, sequence numbers) is serialized as a canonical base-10 JSON string. The logical schema may retain integer types; the canonical wire representation is string-only for numeric quantities.
+5. Canonical unsigned integer strings match 0|[1-9][0-9]*; no sign, leading zero, whitespace, exponent or decimal point. Range validation occurs before serialization against the logical field's declared range.
+6. Market decimal strings MUST be finite, nonnegative, non-exponent decimal values; zero is exactly 0; nonzero values have no leading integer zero except the value below one, no trailing fractional zero, no plus sign, no whitespace and no exponent. The canonical grammar is 0|[1-9][0-9]*(\.[0-9]*[1-9])?|0\.[0-9]*[1-9]. Values are range/precision-validated against the Candle contract before serialization. This agrees with the inspected Candle normalization behavior for accepted nonnegative values.
+7. Null versus omission is fixed by each schema version. A field declared nullable is always present with JSON null when absent; a field declared optional-but-omittable is omitted only when absent. The same logical object MUST NOT have multiple canonical representations.
+8. Arrays have schema-defined order. Candle rows are strictly ascending by numeric open_time_ms; duplicate timestamps are rejected. Partition descriptors are ordered by timeframe (15m, then 1h), then numeric start_ms, then numeric end_ms. Any other array order is invalid.
+9. Canonical bytes are the sole hash input. A verifier MUST canonicalize parsed logical content again and byte-compare it with the preserved input; merely parsing successfully is insufficient.
+
+#### B. Canonical row object
+
+The canonical row object commits to persisted, source-derived candle fields only:
+
+- exchange, market_type, symbol, timeframe;
+- open_time_ms as canonical unsigned integer string;
+- open, high, low, close, volume as canonical decimal strings;
+- available_at_ms as canonical unsigned integer string.
+
+It MUST NOT pretend that closeTimeMs, isClosed, availabilityKind, quality, source or ingestion_batch_id are populated persisted columns. Derived metadata may be included in a separately versioned manifest section, but is not part of this row schema/profile. ingestion_batch_id is excluded from v1 row identity because it is nullable and not populated by the inspected canonical writer.
+
+#### C. Domain-separated digest and Merkle construction
+
+All byte lengths are unsigned 64-bit big-endian. All digest values are raw 32-byte SHA-256 values internally and lowercase 64-character hexadecimal in JSON.
+
+- Evidence Object digest: SHA256(UTF8("T0-EVIDENCE-OBJECT-V1\0") || U64BE(canonical_bytes.length) || canonical_bytes).
+- Candle row leaf: SHA256(UTF8("T0-CANDLE-ROW-V1\0") || U64BE(row_bytes.length) || row_bytes).
+- Empty row-tree root: SHA256(UTF8("T0-EMPTY-ROWS-V1\0")).
+- Merkle parent: SHA256(UTF8("T0-MERKLE-NODE-V1\0") || left_digest_32 || right_digest_32).
+- At each Merkle level, adjacent nodes are paired in order. An unpaired final node is promoted unchanged to the next level (not duplicated). Repeat until one root remains. A single leaf is the root unchanged.
+- Partition leaf: SHA256(UTF8("T0-PARTITION-V1\0") || U64BE(descriptor_bytes.length) || descriptor_bytes), where descriptor_bytes are JCS bytes for the exact partition descriptor.
+- Checkpoint content_root is the Merkle root of the ordered partition leaves using the same parent rule. A checkpoint with no partitions is invalid; a declared empty range is represented by one partition descriptor with row_count "0", first_open_time_ms null, last_open_time_ms null and the empty row-tree root.
+
+A partition descriptor MUST include the exact market identity, timeframe, half-open start_ms/end_ms, row_count, first_open_time_ms, last_open_time_ms and row_root. Each is schema-validated; integer quantities are canonical strings. It MUST NOT merge 15m and 1h. The top-level manifest digest commits to snapshot boundary, provenance, completeness result, ordered partition descriptors and content_root; content_root itself commits to the partition descriptors and ordered row commitments. The external object descriptor, signature envelope, custody receipt and verification records remain outside the manifest bytes to avoid recursive hashing.
+
+#### D. Fixed byte-level vector (normative)
+
+Logical row:
+- exchange=binance; market_type=USDT_PERPETUAL; symbol=BTCUSDT; timeframe=15m;
+- open_time_ms=0; open=1; high=2; low=1; close=2; volume=0; available_at_ms=900000.
+
+Expected JCS UTF-8 bytes (193 bytes; no trailing newline):
+
+~~~json
+{"available_at_ms":"900000","close":"2","exchange":"binance","high":"2","low":"1","market_type":"USDT_PERPETUAL","open":"1","open_time_ms":"0","symbol":"BTCUSDT","timeframe":"15m","volume":"0"}
+~~~
+
+Expected row leaf SHA-256:
+ca1d9eae5d9ae2022ccfe5226cc06f3429f5c1428e04e1d1c54b1f83c56fa32f
+
+Expected empty row-tree root:
+ccf8ef877bb093aa73ae77a02b9200985c41519920c83b515a0a4a99561e73f7
+
+This vector fixes the canonical row field set, key order, integer-string representation, decimal-string representation, byte length and row-leaf domain separation. Additional vectors MUST cover Unicode escaping/key ordering, null versus omission, duplicate keys, invalid UTF-8, decimals with trailing zeros/exponents, int64 boundary values, multi-leaf trees, odd-node promotion, multiple partitions and object digest before implementation.
+
+#### E. G0.3 review disposition and limits
+
+- Canonicalization profile decision: **SELECTED — T0-JCS-1**.
+- Canonicalization library/runtime: **NOT SELECTED**; implementation remains out of scope.
+- Fixed row vector and empty-tree vector: **SPECIFIED**; executable cross-implementation conformance tests are deferred to G2 synthetic-only fixtures.
+- F-02: **RESOLVED AT CONTRACT-DESIGN LEVEL**; implementation/library equivalence and full vector suite remain NOT VERIFIED.
+- This is same-session contract design/self-review, not independent review. No source code, schema, runtime, database, provider or key was changed or accessed; no tests or Actions were run.
+
+
 ## 6. Signature Envelope and owner-controlled signing boundary
 
 A signature is a detached attestation over the exact Evidence Object digest and its declared purpose/context.
@@ -442,4 +513,4 @@ Gated sequence:
 - Restore, fault injection, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion: NOT AUTHORIZED / NOT PERFORMED.
 - Option C remains in force; T0 canonical data and recovery copies remain protected; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 
-**Final status: T0 EVIDENCE OBJECT / CHECKPOINT CONTRACT v1 DRAFTED — DOCUMENTATION ONLY — NOT IMPLEMENTED — G0.2 SOURCE MAPPING PASS (F-01 RESOLVED FOR INSPECTED BASELINE); F-02/F-03 AND OTHER G0 ITEMS OPEN; G0 NOT YET CLOSED; INDEPENDENT REVIEW REQUIRED.**
+**Final status: T0 EVIDENCE OBJECT / CHECKPOINT CONTRACT v1 DRAFTED — DOCUMENTATION ONLY — NOT IMPLEMENTED — G0.2 PASS (F-01 RESOLVED FOR INSPECTED BASELINE); G0.3 CONTRACT DESIGN PASS (F-02 RESOLVED AT DESIGN LEVEL; LIBRARY/EXECUTABLE CONFORMANCE NOT VERIFIED); F-03 AND SNAPSHOT/DURABILITY/OTHER G0 ITEMS OPEN; G0 NOT YET CLOSED; INDEPENDENT REVIEW REQUIRED.**
