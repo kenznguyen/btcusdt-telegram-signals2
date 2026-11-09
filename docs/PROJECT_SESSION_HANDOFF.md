@@ -1173,3 +1173,45 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No restore/staging/fault injection/provider/key/TSA operations. No archive/cleanup/vacuum/deletion. Destructive authority NOT GRANTED.
 - T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`.
 - Next gate: any live read-only inventory must be presented as a separate bounded authorization request. Automatic P1.8 documentary approval does not extend to live inspection, operational access or permission changes.
+
+
+## P1.8.129–P1.8.134 — Read-Only GitHub Inventory Proposal and Endpoint-Matrix Reviews (2026-11-09)
+
+- Continuation remained documentary-only under the owner's automatic P1.8 instruction. No live API inspection or inventory execution was authorized.
+- P1.8.129 proposal:
+  - Path: `docs/evidence/p1-8/P1.8.129-read-only-github-permission-inventory-execution-proposal.md`.
+  - Commit: `e958b1a17f24128243af0272782743f1db842e46`.
+  - Blob SHA: `563d476d98d1fc21cfe2b18fda3cfbd2deb9586d`.
+  - Bounded proposed repository: `kenznguyen/btcusdt-telegram-signals2`; metadata-only; source content, secret metadata, runner hosts, provider, VPS/T0/T1 and all mutation/execution paths excluded.
+  - Status: PROPOSED — NOT APPROVED FOR EXECUTION.
+- P1.8.130 independent review:
+  - Path: `docs/evidence/p1-8/P1.8.130-independent-static-review-p1-8-129.md`.
+  - Commit: `cc9dff21cf3e0b77ca27d1bcb064443ac720acef`.
+  - Findings: IR130-01 MAJOR endpoint/permission matrix incomplete; IR130-02 MODERATE owner namespace assumed; IR130-03 MODERATE secret metadata response safety insufficiently gated. Verdict PARTIAL.
+- P1.8.131 endpoint permission matrix and scope correction:
+  - Path: `docs/evidence/p1-8/P1.8.131-endpoint-permission-matrix-and-scope-correction.md`.
+  - Commit: `e6d7fd7416324200df2b77b47955ae63bc1228bb`.
+  - Blob SHA: `9a33fcd70087f48fc926f5af532689c7340a23ae`.
+  - Adds exact candidate GET endpoints and fine-grained read permissions for repository metadata, Actions policy/workflow permissions, workflow metadata, environments, rulesets, active branch rules and conditional organization Actions policy.
+  - Separates token permission from actor-role prerequisites. Excludes collaborator and runner endpoints requiring privileged actors; excludes secret metadata and deploy-key endpoints; records ruleset bypass-actor visibility limitations.
+  - Official GitHub REST documentation URLs are included in P1.8.131. Documentation was researched only; no live endpoint was called.
+- P1.8.132 independent review:
+  - Path: `docs/evidence/p1-8/P1.8.132-independent-static-review-p1-8-131.md`.
+  - Commit: `8698d5b2cf11331be1e2e15c56d51149f0b621e2`.
+  - Verdict PARTIAL; new finding IR132-01 MODERATE: classic branch-protection GET endpoint missing from candidate matrix.
+- P1.8.133 classic branch-protection closure:
+  - Path: `docs/evidence/p1-8/P1.8.133-classic-branch-protection-endpoint-closure.md`.
+  - Commit: `b3923082e24529e30abd72aace8dd982372b0769`.
+  - Blob SHA: `b90deed965714fa2beb09f11b04752fa0cf3a055`.
+  - Adds `GET /repos/{owner}/{repo}/branches/{branch}/protection`, documented repository `Administration: read`, response minimization, branch manifest scope and 404/inherited-rule limitations.
+- P1.8.134 independent review:
+  - Path: `docs/evidence/p1-8/P1.8.134-independent-static-review-p1-8-133.md`.
+  - Commit: `c0d17caa21378ade360aaf8c3d2a3f14b5c58c79`.
+  - Reviewed P1.8.133 blob: `b90deed965714fa2beb09f11b04752fa0cf3a055`.
+  - Verdict PASS; IR132-01 CLOSED at documentary-design level. IR130-01/02/03 remain CLOSED at documentary-design level.
+- Current state: IR122-01 remains operationally OPEN. P1.8.129 remains NOT APPROVED FOR EXECUTION. No actual GitHub effective permissions, collaborator/runner inventory, secret provenance, OIDC trust, external provider permissions or complete bypass paths have been verified. Full Option C technical enforcement remains NOT VERIFIED.
+- Static author/readback and independent review records: PASS where recorded. Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE.
+- No live GitHub/API/provider inventory, secret access, credential operation, IAM/permission change, workflow dispatch, runner job, provider probe or remediation.
+- No staging, restore, fault injection, key/TSA operation, archive, cleanup, vacuum or deletion. Option C remains the approved default; destructive/deletion authority NOT GRANTED.
+- T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next gate: independent static review of the consolidated P1.8.129–P1.8.134 evidence/status index. Any live inventory requires a separate explicit owner approval of exact scope, endpoint set, collector identity, evidence handling and independent reviewer.
