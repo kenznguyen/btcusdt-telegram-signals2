@@ -3011,3 +3011,24 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - G0.5/G0.6 are contract-design specifications only; implementation and deployment qualification NOT VERIFIED. No tests/Actions, canonical DB/runtime/VPS/storage/provider/key/trust-root/permission operation, TSA/WORM, restore, fault injection or destructive action. Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
 - Next: G1 role/authority decisions for A (issuer, absent signer, independent custodian, latest-head anchor, offline verifier, retention boundary) without selecting or provisioning providers.
 
+
+
+## T0 Evidence Object / Checkpoint Contract v1 — G1 owner decisions for A (2026-11-10)
+
+- G1 architecture decisions recorded under user's G0–G3 automatic-approval delegation:
+  - Initial evidence subject A — Dataset/checkpoint proof-of-existence.
+  - B / P1.8.36 signed-object historical verification deferred to a separate future contract/version.
+  - A has no signer/signature envelope; no signer authenticity or owner-intent claim.
+  - Issuer is a dedicated read-only checkpoint-builder role, distinct from T0 writer, signer, custodian, anchor administrator and verifier.
+  - Custody must be owner-controlled and outside T0/VPS and GitHub failure domains, with exact-object readback; provider/account/region not selected.
+  - Latest-head anchor is separate, owner-controlled, authenticated and monotonic; provider/implementation not selected.
+  - Offline verifier is standalone and deterministic; missing trust/policy/anchor material remains UNKNOWN.
+  - Independent reviewer must be genuinely separate; same-session self-review is not independent.
+  - RET-01 B / RET-02 B, Option C, no default TTL and no automatic delete-after-use remain unchanged.
+- Policy crosswalk: P1.8.80 blob a38710c9d01e5409ce989cc73f791c94bc73773f; L4-Minimum matrix blob ed3056d81edfaf163205a172cf5ad22e230d7b41. Dedicated WORM and multi-TSA quorum are not L4-Minimum requirements; independent custody/readback, offline verification and independent review remain required.
+- Contract update commit: 661e2392630be0134a94d18e09fff14c8b6eaec7; blob after update: daedf2fe41b4d590ad755f56898d157a9af3e878.
+- G1 disposition: PASS for architecture/claim/role boundaries. Provider/account/region/runtime identity/anchor/custody technology/TSA provider are intentionally not selected; no resource provisioning or external call.
+- G0.2 source mapping PASS; G0.3/G0.4 contract-design PASS; G0.5/G0.6 protocols specified but not implemented/qualified. Current backend durability NOT VERIFIED. G0 static crosswalk/closure and G3 independent review remain outstanding.
+- No code/schema/runtime/VPS/database/data/provider/identity/key/trust-root/permission operation; no tests/Actions; no TSA/WORM, restore, fault injection or destructive operation. Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
+- Next: G2 synthetic-only fixtures and deterministic negative/conformance tests, strictly isolated from canonical T0 and all external providers; independent G3 review remains a separate gate.
+
