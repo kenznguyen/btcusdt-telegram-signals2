@@ -1,7 +1,7 @@
 # T1 Source-File Contract v1.1 — Producer Completeness and Durable Publication
 
 Date: 2026-11-09
-Status: P1.37 REVISION — DESIGN ONLY — NOT APPROVED FOR IMPLEMENTATION
+Status: P1.42 REVISION — DESIGN ONLY — NOT APPROVED FOR IMPLEMENTATION
 
 This revision addresses R1–R7 in the adversarial pre-review. It tightens the v1 proposal without changing the original review record. The target remains Binance USD-M BTCUSDT 1m klines, isolated staging/report only. This document does not claim that the current collector implements any requirement below.
 
@@ -186,7 +186,7 @@ Retain C01–C24 from v1 and add:
 - C45 second writer claims same generation → fail closed.
 - C82 reader sees a renamed manifest before the parent-directory fsync has completed → no matching commit receipt exists; reject as PREPARED/UNCOMMITTED.
 - C83 manifest directory fsync completed but process crashes before commit receipt publication → reject/quarantine (safe false-negative); do not infer commit from manifest visibility.
-- C84 matching receipt is atomically visible after the manifest directory fsync, but receipt directory fsync has not completed → accept only if receipt file content validates and all bound manifest/data checks pass; after crash, missing receipt is a safe false-negative.
+- C84: a receipt is atomically visible after manifest-directory fsync but before successful `fsync(commits_dir_fd)` → it remains UNCONFIRMED; no reader may accept it while the writer holds the exclusive lock. After crash/restart, accept only after the complete §22.6.1 validation, successful `fsync(commits_dir_fd)` and `fsync(generation_dir_fd)`, durable recovery-checkpoint publication, and successful recovery-checkpoints/generation-directory fsync barriers; otherwise quarantine. Receipt absence after crash is a safe false-negative.
 - C85 receipt digest/generation/offset/prefix does not match manifest → reject and quarantine.
 - C86 two writer processes contend for stable lock → exactly one acquires exclusive ownership; the other cannot allocate generation or append.
 - C87 former writer is paused while holding lock; takeover attempt → blocked; no PID/age-based lock stealing.
@@ -708,7 +708,7 @@ C100–C116 are planned contract tests only:
 - C100: crash after publication-sequence reservation but before manifest write; sequence remains consumed.
 - C101: crash after manifest rename before directory fsync; no receipt; no reader acceptance.
 - C102: crash after manifest directory fsync before receipt publication; manifest remains uncommitted.
-- C103: crash after receipt no-replace rename before commits-directory fsync; sequence remains consumed; recovery accepts only if durable receipt/manifest/counter state validates, otherwise fail closed.
+- C103: crash after receipt no-replace rename before commits-directory fsync; sequence remains consumed and the visible receipt is UNCONFIRMED. Recovery accepts only after the full §22.6.1 validation, commits- and generation-directory fsync barriers, and durable recovery-checkpoint publication/barriers succeed; otherwise quarantine.
 - C104: writer and reader lock exclusion using two processes on supported local filesystem.
 - C105: paused lock owner cannot be displaced; second writer blocks/fails.
 - C106: process crash releases flock, but restart still validates all durable state before writer resumes.
