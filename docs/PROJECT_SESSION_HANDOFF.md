@@ -3703,3 +3703,16 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - LDA-07 remains NOT RUN; 87/87 lifecycle vectors remain NOT RUN. LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
 - No tests, compile, dry-run, fault injection, Actions dispatch, secrets/permission/runtime/VPS/database/provider/recipient/backup/replica access, or source/schema/adapter/workflow/runner/permission/runtime/data changes. No destructive operation.
 - Next bounded documentary step: Stage C.7 — TEST-03 Isolation Boundary Contract. Do not implement or execute until prerequisite evidence and separate exact execution authorization are established.
+
+
+## Latest completed work — Stage C.7 / TEST-03
+
+- Added documentation-only isolation contract: docs/evidence/p1-8/STAGE_C7_TEST03_ISOLATION_BOUNDARY_CONTRACT_2026-11-10.md.
+- Report commit: 7fe77c51e39895406354ca385b751a3ecda32b16; report blob SHA verified by read-back.
+- Defines trust zones and boundaries for controller/manifest, executor, synthetic resources, independent oracle, evidence zone and host/runner.
+- Specifies non-privileged process identity; no host namespaces/sockets/devices; filesystem and mount allowlist; traversal/symlink/hard-link/mount escape denial; initial network DENY_ALL; no DNS/proxy/tunnel/socket bypass; no secrets or ambient identity; pinned dependencies/configuration; run-bound synthetic storage; GitHub Actions least-privilege and ephemeral-runner requirements.
+- Defines ISO-01–ISO-12 evidence package, ISO-T01–ISO-T15 future acceptance assertions, stop conditions and closure criteria.
+- Contract is not proof of effective isolation. TEST-03: CONTRACT DOCUMENTED / EFFECTIVE ISOLATION NOT VERIFIED; not closed. TEST-04/05/07 remain open; TEST-06 PARTIAL; TEST-08 NOT GRANTED and requires separate exact-scope authorization.
+- LDA-07 remains NOT RUN; 87/87 lifecycle vectors remain NOT RUN. LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
+- No tests, compile, dry-run, fault injection, provisioning, Actions dispatch, secrets/permission/runtime/VPS/database/provider/recipient/backup/replica access, source/workflow/runner/permission/runtime/data changes or destructive operation.
+- Next bounded documentary step: Stage C.8 — TEST-04 Independent Oracle Contract. Do not implement or execute until prerequisites and separate exact execution authorization are established.
