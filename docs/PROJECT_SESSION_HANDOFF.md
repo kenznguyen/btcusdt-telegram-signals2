@@ -865,3 +865,23 @@ Owner approval: explicit approval received for all four documentation-only work 
 - Tests: NOT RUN. GitHub Actions: NOT DISPATCHED. Workflow run/artifact: NONE. Runtime evidence: NOT VERIFIED. Provider selection: NONE. Staging/restore/fault injection/key/TSA operations: NOT EXECUTED.
 - No deletion authority granted. T0 canonical data and CORE_LEDGER/AI_LEDGER protections remain unchanged; `AI_EXECUTION_ENABLED=false`.
 - Next gate: focused independent static cross-contract review of P1.8.105–P1.8.108 against P1.8.26, P1.8.34–P1.8.37, P1.8.93–P1.8.104 and governing lifecycle/copy contracts. This review is not an implementation or execution authorization.
+
+
+## P1.8.109 — Independent Cross-Contract Review of P1.8.105–P1.8.108 (2026-11-09)
+
+- Review: `docs/evidence/p1-8/P1.8.109-independent-cross-contract-review-p1-8-105-to-108.md`.
+- Review commit: `da441ac706d19db8166404fa647f53416ee738c5`.
+- Review blob SHA: `edf3b93b866ae2413a38982f295a36f068fad639`.
+- Scope: static/documentary review against P1.8.26, P1.8.28, P1.8.34, P1.8.36, P1.8.93, P1.8.102, P1.8.103, P1.8.104 and governing deletion, consumer, lifecycle and copy contracts.
+- Verdict: **PARTIAL — no direct policy contradiction found; five integration/authority findings remain.**
+- IR109-01 MAJOR: Restore Epoch and Governance Epoch are separately named but their issuance, ordering, concurrency/fencing and atomic binding to operation-history high-water mark are not frozen.
+- IR109-02 MODERATE: V08 requires deterministic commit/seal linearization but does not explicitly freeze same-representable-boundary/equality disposition or require an ordering token; equality/overlap must remain UNKNOWN/HOLD absent proof.
+- IR109-03 MAJOR: P1.8.107 trusted-time evidence needs a normative, versioned field-by-field crosswalk into P1.8.93 protected decision vector and mutation-boundary recheck.
+- IR109-04 MODERATE: TSA evidence objects need explicit parent/child dependency, consumer/audit/recovery hold and per-copy disposition crosswalk.
+- IR109-05 MAJOR: Restore readiness, V07 quarantine resolution, TSA verification, lifecycle eligibility, approval, execution authorization and storage execution roles remain OPEN; READY/quarantine release must not imply deletion approval.
+- PASS at documentary level: T0 canonical independence, CORE_LEDGER/AI_LEDGER separation, no default TTL, no automatic release, ACK/release separation, no cascade, fail-closed behavior and paper-only boundary.
+- Recommended follow-up documents P1.8.110–P1.8.114 are proposals only and are NOT authorized by P1.8.109 approval.
+- Tests: NOT RUN. GitHub Actions: NOT DISPATCHED. Workflow run/artifact: NONE. Runtime/provider evidence: NOT VERIFIED. Runtime inventory: NOT PERFORMED.
+- No implementation, source/runtime/schema/API/registry/adapter/scheduler/service/database/VPS/T0/T1/Feeder/ledger/strategy/risk-engine changes. No staging, restore, fault injection, provider selection, key/TSA operation, archive, cleanup, vacuum or deletion.
+- Deletion authority: NOT GRANTED. T0 and CORE_LEDGER/AI_LEDGER protections unchanged; `AI_EXECUTION_ENABLED=false`.
+- Next gate: owner review of the five findings and separate approval for any P1.8.110–P1.8.114 documentation work. No runtime or destructive action is authorized.
