@@ -125,3 +125,17 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Owner explicitly withheld staging authorization. Staging NOT AUTHORIZED; no provisioning, restore, fault injection, key operation, data collection/read probe, workflow dispatch, source/runtime change, PR or merge.
 - `AI_EXECUTION_ENABLED=false`; no live orders. Production NOT VERIFIED; D3/D4 NOT TESTED. No CI run or artifact is claimed for this documentation-only change.
 - Next gate: independent static review of P1.8.34 against P1.8.26–P1.8.33. Keep all measurement-dependent parameters OPEN; any staging proposal requires separate explicit approval.
+
+
+## Latest completed work — P1.8.35
+
+- Completed documentation-only independent static review of P1.8.34 against P1.8.26–P1.8.33.
+- Review: `docs/evidence/p1-8/P1.8.35-independent-static-review.md`.
+- Review commit: `06cb331a0cfc8cb46ebfe3a0bfcefb1bb20592e5`.
+- Review finding F-01 (HIGH): timestamp proof must cryptographically bind the exact signature being verified, not merely the payload/unsigned envelope; otherwise an old payload timestamp does not prove that a particular signature existed before revocation. Exact imprint construction, canonicalization, proof profile and authority remain OPEN.
+- PASS: owner decision/scope recording, C–C–B continuity, OPEN parameter preservation, V08 interval/watermark/checkpoint/correction direction, Restore measurement direction, assurance separation and authorization boundary.
+- Result: PARTIAL — policy consistency PASS with one security-critical V07 clarification required.
+- V07 remains BLOCKED pending F-01 resolution and all detailed parameters/fixtures. V08 detailed parameters remain OPEN/BLOCKED; Restore measurement contract remains OPEN/BLOCKED.
+- Environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; `AI_EXECUTION_ENABLED=false`.
+- No source/runtime changes, VPS/T0/T1/DB/Feeder changes, provider selection, key operations, data collection/read probes, staging provisioning, restore rehearsal, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
+- Next gate: documentation-only clarification of F-01, with exact timestamp-to-signature binding and positive/negative boundary fixtures; all provider/authority/numeric parameters remain OPEN. Then independent static review. Separate staging authorization remains mandatory.
