@@ -572,20 +572,25 @@ The v1.1 manifest is UTF-8 JSON using RFC 8785 JSON Canonicalization Scheme (JCS
 Required manifest fields and types:
 - manifest_version: exact string 1.1;
 - schema_version: exact string T1_KLINES_1M_FINAL_ONLY_V1;
-- generation_sequence: unsigned integer, strictly increasing within the source root;
-- generation_id: unique random identifier;
-- publication_sequence: unsigned integer, strictly increasing within the generation;
-- exchange_id, market_scope, contract_type, symbol, base_asset, quote_asset, datatype, interval, source_endpoint_family, output_mode: non-empty strings constrained to the approved values;
+- source_root_id: immutable UUIDv4 allocated at source-root initialization and persisted in the durable generation-counter state;
+- generation_sequence: unsigned JCS safe integer, strictly increasing within source_root_id;
+- generation_id: unique UUIDv4;
+- publication_sequence: unsigned JCS safe integer, strictly increasing within the generation;
+- exchange_id=binance, market_scope=BINANCE_USDM, contract_type=PERPETUAL, symbol=BTCUSDT, base_asset=BTC, quote_asset=USDT, datatype=klines, interval=1m, source_endpoint_family=BINANCE_USDM_WS_KLINE, output_mode=FINAL_ONLY;
 - endpoint_config_sha256, exchange_info_snapshot_sha256, symbol_record_sha256, collector_source_sha256, header_sha256, data_prefix_sha256: lowercase 64-character SHA-256 hex strings;
-- collector_instance_id, data_file_relative_path: non-empty strings;
-- data_file_identity: strict object with platform-specific stable filesystem identity fields (at minimum device/filesystem identity and inode/file ID); each component has a defined string type and is revalidated by the reader. If the filesystem exposes no stable identity tuple, reject the source; do not substitute path, size or mtime;
+- exchange_info_evidence_ref: immutable retrievable reference to the exact raw ExchangeInfo snapshot; the snapshot and exact BTCUSDT record digests must validate against the reference;
+- collector_instance_id: UUIDv4;
+- data_file_relative_path: non-empty relative path beneath the generation directory, with no absolute prefix, dot-dot segment or alternate encoding;
+- data_file_identity: strict object with exactly platform_id, filesystem_id, device_id and file_id; all are non-empty strings identifying the stable platform/filesystem/device/file tuple. If any required identity component is unavailable or unstable, reject the source;
 - state: one of ACTIVE, SEALED, QUARANTINED;
-- committed_offset_bytes, committed_record_count, watermark_open_time_exclusive_ms: non-negative integers;
+- committed_offset_bytes, committed_record_count, watermark_open_time_exclusive_ms: non-negative JCS safe integers;
 - source_health: one of RECONCILED_COMPLETE, UNKNOWN, INVALIDATED;
-- reconciliation_evidence_ref: required non-empty immutable evidence identifier whenever RECONCILED_COMPLETE is claimed; absent otherwise;
+- reconciliation_evidence_ref: required non-empty immutable retrievable evidence identifier whenever RECONCILED_COMPLETE is claimed; omitted otherwise;
 - created_at_utc, updated_at_utc: RFC 3339 UTC strings for audit only, never used as completeness or fencing evidence.
 
-The fixed manifest path is manifest.json within the generation directory. The generation directory name must contain and match the generation ID and sequence. exchange_info_evidence_ref must resolve to the immutable ExchangeInfo snapshot whose digest and exact symbol-record digest are present in the manifest. The manifest binds exactly one relative data-file path; the file must be a regular file and its identity, header, committed size and prefix digest must match. The commits/ subdirectory is created and durably established before the first publication in that generation. Each commit receipt is UTF-8 canonical JCS JSON with a strict closed schema: receipt_version, generation_sequence, generation_id, publication_sequence, manifest_sha256, data_file_identity, committed_offset_bytes, committed_record_count, data_prefix_sha256 and watermark_open_time_exclusive_ms. It is stored under a unique generation/publication-sequence filename. Every receipt field must exactly match the manifest; duplicate receipts for a sequence, multiple candidate manifests, or any path ambiguity causes quarantine.
+The source-root generation-counter state stores source_root_id and the last durably allocated generation_sequence. Restoring or copying a root without an independently trusted latest counter/checkpoint cannot claim continuity; assign a new source_root_id and quarantine/reconcile under a separately approved restore procedure.
+
+The fixed manifest path is manifest.json within the generation directory. The generation directory name must contain and match the generation ID and sequence. exchange_info_evidence_ref must resolve to the immutable ExchangeInfo snapshot whose digest and exact symbol-record digest are present in the manifest. The manifest binds exactly one relative data-file path; the file must be a regular file and its identity, header, committed size and prefix digest must match. The commits/ subdirectory is created and durably established before the first publication in that generation. Each commit receipt is UTF-8 canonical JCS JSON with a strict closed schema: receipt_version=1.0, source_root_id, generation_sequence, generation_id, publication_sequence, manifest_sha256, data_file_identity, committed_offset_bytes, committed_record_count, data_prefix_sha256 and watermark_open_time_exclusive_ms. It is stored under a unique generation/publication-sequence filename. Every receipt field must exactly match the manifest; duplicate receipts for a sequence, multiple candidate manifests, or any path ambiguity causes quarantine.
 
 The configured source root and all descendants must be opened without following symlinks (for example, directory-relative no-follow opens where supported). Symlinked root/components, manifest, receipt or data files are rejected. Unexpected hard links, non-regular files, path traversal, absolute paths, alternate encodings and file replacement during validation are rejected. If the platform cannot enforce these checks, source eligibility is NOT VERIFIED and the adapter must fail closed. The schema is closed-world for v1.1; extensions require a new schema version, not ignored fields.
 
