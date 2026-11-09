@@ -117,7 +117,8 @@ For each authorized acceptance run, retain:
 8. reviewer identity, competence, conflict/independence assessment and exact reviewed artifact hashes;
 9. per-control and aggregate PASS/BLOCKED/NOT VERIFIED disposition with unresolved limitations;
 10. frozen baseline ID, canonical manifest digest and freeze/closure record;
-11. separate reviewer disposition record referencing the exact frozen baseline ID and digest, retained as a linked evidence object without modifying the baseline.
+11. separate reviewer disposition record referencing the exact frozen baseline ID and digest, retained as a linked evidence object without modifying the baseline;
+12. review-input lineage manifest that records the exact SHA-256 of the current Acceptance Matrix and every supporting historical audit/decision artifact. The 2026-11-10 read-only audit report (blob `cfecb7428508adf23e6b9e71dc0dfe1e0e38080c`) records the then-current matrix blob `f39bef0c391e13a3656130f0e74f0e7a385b0c39`; that reference is historical and must not be mistaken for the current matrix (`8f9e34acb4e9ae0b89d5e7163566ab2982d99c63`). Preserve the audit report unchanged; reviewer must examine both exact artifacts and explicitly reconcile their version lineage.
 
 Do not include private signing keys or secrets. Record key fingerprints and custody references only.
 
@@ -139,8 +140,9 @@ Evidence package retention is governed by the applicable lifecycle obligations a
 ## 6. Execution sequencing and authorization gates
 
 1. Reconcile remaining P1.8.152 lifecycle/reviewer findings; do not infer that this matrix closes them.
-2. Freeze and identify the exact evidence baseline (canonical manifest, digest and closure record) before independent review.
-3. Obtain independent review of this revised matrix and the frozen baseline, aligned with P1.8.36 and P1.8.143–P1.8.152; require a separate disposition that references the exact baseline ID/digest.
+2. Treat the 2026-11-10 read-only audit report as a historical snapshot: it references the pre-F-01–F-08 matrix blob `f39bef0c391e13a3656130f0e74f0e7a385b0c39`. Do not rewrite that report or treat its matrix reference as current.
+3. Freeze and identify the exact review-input baseline (current matrix blob `8f9e34acb4e9ae0b89d5e7163566ab2982d99c63`, audit report blob `cfecb7428508adf23e6b9e71dc0dfe1e0e38080c`, and applicable controlling decision/lifecycle artifacts) in a canonical manifest with digest and closure record.
+4. Obtain independent review of the current matrix and all exact frozen review inputs, explicitly reconciling historical-to-current matrix lineage; require a separate disposition that references the exact baseline ID/digest.
 3. Inventory existing evidence and implementation only within separately approved, non-operational scope.
 4. Design isolated synthetic fixtures and expected outputs.
 5. Obtain explicit owner approval for any activity touching keys, trust roots, GitHub permissions, persistent storage, VPS, database, runtime inventories, providers, staging, restore or fault injection.
