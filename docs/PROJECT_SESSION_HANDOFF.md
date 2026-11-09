@@ -1557,3 +1557,22 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No source changes, adapter implementation, tests, workflow dispatch, VPS/runtime, T1 activation, T0/T2 or trading-system changes. No destructive data operations.
 - GitHub Actions: NOT DISPATCHED; run ID NONE; artifact NONE.
 - Guardrails remain: T0 independent/canonical, no T1 writes to T0, paper-only, `AI_EXECUTION_ENABLED=false`, no live orders, no OKX replacement/fallback, no data deletion/archive/cleanup/vacuum/compaction/backup expiry.
+
+
+## Latest completed work — P1.1 T1 Source Contract v1.1 revision draft (2026-11-09)
+
+- Added design revision: `docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_1_PRODUCER_WATERMARK_DURABILITY_2026-11-09.md`.
+- Design commit: `dd2d6eaaef2e0a1af4e2c74ea86b8d393f9f25d5`.
+- Revision addresses pre-review findings R1–R7 at contract level:
+  - Explicit Binance USD-M/perpetual product identity and trusted symbol metadata; no inference from generic `futures` or BTCUSDT spelling.
+  - Producer-owned exclusive event-time watermark tied to receive-health state, committed byte offset and durable source publication. Before valid seal, missing rows remain PENDING; after valid contiguous seal, missing rows are WINDOW_GAP and still block aggregation.
+  - Explicit interval=1m and is_closed schema requirements.
+  - Single-writer generation, ACTIVE/SEALED/QUARANTINED lifecycle, data-sync-before-atomic-manifest-publication ordering, and non-destructive crash recovery requirements.
+  - Decimal byte-preservation requirements and full producer call-path/golden-test gate.
+  - Bounded active-file scans, captured committed offsets and pre-commit identity/manifest revalidation.
+- Important limitation: this is a design revision only. Product metadata mapping, producer watermark/health implementation, exact decimal writer path, filesystem durability and adapter concurrency remain NOT VERIFIED. None of R1–R7 is implementation-resolved.
+- Status: **P1.1 DESIGN REVISION DRAFTED / IMPLEMENTATION BLOCKED / INDEPENDENT REVIEW REQUIRED**.
+- No T1 source code changes, adapter code, tests, workflow dispatch, VPS/runtime, T0/T2 or trading-system changes. No destructive data operations.
+- GitHub Actions: NOT DISPATCHED; run ID NONE; artifact NONE.
+- Guardrails: T0 remains independent/canonical; no T1 writes to T0; no OKX fallback; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
+- Next step: static consistency review of v1.1 against the actual T1 source and existing v1 design, with explicit traceability of the kline conversion/writer path. Then obtain a genuinely separate review; no implementation before separate approval.
