@@ -2866,3 +2866,17 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: DOCUMENTATION UPDATE COMPLETE; F-01–F-06 ADDRESSED IN MATRIX WORDING; lifecycle crosswalk recorded; **NOT INDEPENDENTLY REVIEWED**. P1.8.152 reviewer-control residual remains open; L4M-09 and overall L4 acceptance remain PENDING/BLOCKED as applicable.
 - Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact. No source, schema, API, runtime, VPS, DB, data, provider, identity, key, trust-root, permission, inventory, test, restore, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion operation.
 - Option C — No Destructive Authority — remains in force; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+
+
+## L4-Minimum Acceptance Matrix — F-07/F-08 correction and self-review (2026-11-10)
+
+- Updated the existing file in place: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`; no new matrix, branch or parallel document.
+- Update commit: `e3fe05ec85f20c58e9b8b0513bf016f7d4b6f4fc`.
+- New matrix blob SHA after read-back: `8f9e34acb4e9ae0b89d5e7163566ab2982d99c63`; previous blob SHA: `53591e9e3790b4d0b18787ff66bf36a3d45138e9`.
+- F-07: latest-head/monotonic anchor is explicitly included in L4M-01 owner-custody inventory and must be retained/readable outside both T0/VPS and GitHub failure domains. L4M-03 binds freshness to the exact anchor digest and independently verified custody/readback. G1/G2 require anchor readback under T0/VPS outage, GitHub outage and simultaneous outage; missing/stale/rolled-back/inaccessible anchor yields UNKNOWN/NOT VERIFIED.
+- F-08: evidence baseline must be frozen and identified by canonical manifest digest and closure record before independent review. Reviewer disposition is a separate linked evidence record referencing the exact baseline ID/digest; it is not inserted into or used to mutate the frozen baseline. Aggregate verdict binds the frozen baseline and its separate review disposition.
+- Same-session self-review/read-back: F-07 anchor custody binding, exact digest binding, outage scenarios and fail-closed semantics checked; F-08 freeze-before-review, separate digest-bound disposition, no baseline mutation, evidence package fields and sequencing checked. Required policy constraints F-01–F-06, RET-01/02, no-default-TTL/no-self-delete and Option C remain present.
+- Self-review is NOT independent. Matrix status remains **NOT INDEPENDENTLY REVIEWED**; qualifying L4M-09 review PENDING. L4 technical/operational acceptance remains BLOCKED / NOT VERIFIED.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact. No source, schema, API, runtime, VPS, DB, data, provider, identity, key, trust-root, permission, inventory, restore, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion operation.
+- Option C — No Destructive Authority — remains in force; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next: obtain a genuinely qualifying independent review of the exact revised matrix and related evidence; do not promote any acceptance status based on this self-review.
