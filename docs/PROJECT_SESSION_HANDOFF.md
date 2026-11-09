@@ -2247,3 +2247,18 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Existing blockers: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C189 NOT IMPLEMENTED / NOT EXECUTED.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
 
+## P1.34 — Fixture ordering correction and exact-SHA self-review PASS (2026-11-09)
+
+- Contract commit: `aaeff086a4320cee1e3ed521324bed179120dbce`.
+- Exact contract blob SHA: `0b4bef0ca9e0fdef7524dc3766cc32d897fa64ea`.
+- Reordered C146–C189 into strict numeric order.
+- Static inventory check: exactly 44 fixture lines; every ID C146–C189 exactly once; no omissions/duplicates; strictly ascending; terminal range C137–C189.
+- P1.34 self-review: `docs/reviews/t1/P1_34_SELF_REVIEW_FIXTURE_ORDER_AND_ERA_APPROVAL_LIFECYCLE_2026-11-09.md`.
+- Review commit: `e63cf519e5fb70c7072adbff1d632a47ddef3589`; exact review blob: `302939ee72397fa6893eaffb23f4042625b60edc`.
+- Verdict: **DOCUMENTATION-LEVEL PASS for F02-R6 through F02-R17 corrections and C146–C189 specifications.** Same-session static adversarial review only; NOT independent. It does not prove ERA implementation/cryptography/durability, filesystem semantics, Binance completeness or runtime readiness.
+- All P1.25–P1.33 findings F02-R6 through F02-R17 are addressed at contract-text level in exact contract blob `0b4bef0ca9e0fdef7524dc3766cc32d897fa64ea`.
+- This PASS permits retargeting issue #138 to the exact P1.34 contract SHA for genuinely independent review. It does not close issue #138 or authorize implementation.
+- Residual blockers unchanged: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; ERA/root-key/monotonic store NOT IMPLEMENTED / NOT VERIFIED; C01–C189 NOT IMPLEMENTED / NOT EXECUTED.
+- No Actions run/artifact, executable tests, REST, VPS/runtime, T1 activation, T0/T2 changes, trading or destructive data operations.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
