@@ -1629,3 +1629,19 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Remaining critical unknowns: REST start/end boundary semantics, no-trade-minute omission semantics, candle finality and historical revisions, maintenance/symbol-state behavior, and gap-free pagination. If no-trade minutes may be omitted without authoritative distinction, REST absence cannot prove either a data gap or no-trade minute. No watermark may advance until these are verified.
 - Status: CANDIDATE SOURCE IDENTIFIED / COMPLETENESS ORACLE NOT VERIFIED / IMPLEMENTATION NOT AUTHORIZED / INDEPENDENT REVIEW PENDING.
 - No REST endpoint called; no T1 code, tests, Actions workflow, VPS/runtime, T0/T2 or trading logic changed. No destructive data operations.
+
+
+## Latest completed work — P1.3 fail-closed REST reconciliation acceptance profile (2026-11-09)
+
+- Read current handoff and T1 Contract v1.1 before continuing. Active branch remains feature/t0-centralized-data-feeder-p1-20261101.
+- Reviewed official Binance USDⓈ-M Kline documentation: GET /fapi/v1/klines; open-time identity; optional startTime/endTime; documented maximum limit 1500; response includes close time and decimal-string fields. Sources: https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data and https://developers.binance.info/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data.
+- Documentation does not establish exact start/end inclusion semantics, whether no-trade minutes are emitted, formal candle finality/immutability, historical correction behavior or complete pagination proof. Do not infer these properties.
+- Updated design section 15 with conservative acceptance profile: exact one REST row for every expected minute plus verified boundaries, pagination, finality, source comparison and durable manifest-bound evidence. Any missing minute or empty response is SOURCE_HEALTH_UNKNOWN, not no-trade and not a confirmed gap; no watermark or aggregate. No synthetic zero-volume candle/interpolation/carry-forward. Post-seal mismatch creates immutable correction event/quarantine.
+- Design commit: 0e2cbec07b1289950a7aa7ec1b99ef0ec7f6302c; blob SHA: 1befbcbb9f9a1a489e2eec1fce43773bfb71cd04.
+- P1.3 record: docs/reviews/t1/P1_3_FAIL_CLOSED_REST_RECONCILIATION_ACCEPTANCE_PROFILE_2026-11-09.md; commit 975cbef397619b36702b1aeafb0030251e54df12.
+- Added deterministic contract fixtures C55–C62 for exact expected coverage, missing minute, duplicate page overlap, uncertain boundaries, incomplete pagination, unproven finality, post-seal correction and empty response.
+- Status: P1.3 DESIGN PROFILE RECORDED / REST COMPLETENESS ORACLE NOT VERIFIED / INDEPENDENT REVIEW PENDING / IMPLEMENTATION NOT AUTHORIZED.
+- This is same-session design work, not independent sign-off. No REST endpoint called; no T1 source, adapter, tests, CI workflow, VPS/runtime, T0/T2 or trading-system changes. No destructive data operations.
+- GitHub Actions: NOT DISPATCHED; run ID NONE; artifact NONE.
+- Guardrails: T0 independent/canonical; no T1 writes to T0; no T1 activation; paper-only; AI_EXECUTION_ENABLED=false; no live orders; no OKX fallback/replacement; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
+- Next step: independent review of P1.3 against the official API contract and pinned T1 producer source. If independent reviewer access is unavailable, keep status pending and do not label this work independent. Implementation requires a separate explicit approval.
