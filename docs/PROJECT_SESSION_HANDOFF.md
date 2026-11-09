@@ -620,3 +620,11 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Test design only: no test code, fixture, workflow or CI job created; no tests executed.
 - Status: TEST DESIGN ONLY; NOT EXECUTED / NOT IMPLEMENTED / NOT AUTHORIZED.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/storage/VPS/database mutation or inventory; no archive, cleanup, restore, vacuum, key destruction or deletion.
+
+### Copy Lifecycle Contract — section numbering correction (2026-11-09)
+
+- Document: `docs/architecture/DATA_COPY_BACKUP_REPLICA_LIFECYCLE_CONTRACT.md`.
+- Commit: `5b6b5b66bd1375ceb6479db01f5263fc03abdda3`.
+- Blob SHA: `639e5ee5b5a78130cc523a4bcab8b77c0a0a5463`.
+- Corrected §5.6/§5.5 ordering: Hold inheritance is now §5.5; Evidence copies is now §5.6. Content and lifecycle authority are unchanged.
+- Read-back confirms §5.5 precedes §5.6. No source/runtime or destructive operation.
