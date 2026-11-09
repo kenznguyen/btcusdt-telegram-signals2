@@ -1,7 +1,7 @@
 # T1 Source-File Contract v1.1 — Producer Completeness and Durable Publication
 
 Date: 2026-11-09
-Status: REVISION DRAFT — DESIGN ONLY — NOT APPROVED FOR IMPLEMENTATION
+Status: P1.12 REVISION DRAFT — DESIGN ONLY — NOT APPROVED FOR IMPLEMENTATION
 
 This revision addresses R1–R7 in the adversarial pre-review. It tightens the v1 proposal without changing the original review record. The target remains Binance USD-M BTCUSDT 1m klines, isolated staging/report only. This document does not claim that the current collector implements any requirement below.
 
@@ -610,3 +610,119 @@ C01–C99 are contract scenarios, not executed tests. A fixture PASS proves only
 - Filesystem durability: NOT VERIFIED; no target crash/recovery test authorized or executed.
 
 This section does not authorize producer or adapter code changes, test execution, GitHub Actions dispatch, REST requests, VPS/runtime, T1 activation, T0/T2 changes or destructive data operations.
+
+
+## 22. P1.12 normative correction — completeness-state prohibition, publication allocator, local-filesystem lock profile and immutable evidence
+
+This section is normative and supersedes conflicting clauses in §§4.2–4.3, 5.1–5.4, 8, 9 and 21. It is a documentation contract only. It does not authorize implementation, tests, runtime use or T1 activation.
+
+### 22.1 Current-profile completeness state is fail-closed (F01)
+
+For the current v1.1 / P1.3 evidence profile, `RECONCILED_COMPLETE` is **FORBIDDEN and MUST be rejected** in every manifest, receipt-derived view, adapter state and promotion decision. The only accepted `source_health` values are `UNKNOWN` and `INVALIDATED`. A source-health value outside this exact enum, including `RECONCILED_COMPLETE`, makes the generation ineligible and quarantined. `reconciliation_evidence_ref` is forbidden in the current manifest schema; its presence is an unknown/forbidden field and causes rejection.
+
+Consequently, the current profile cannot seal a market-data window, advance a completeness watermark for canonical consumption, or classify a missing minute as a confirmed gap. A durable publication receipt proves only that the declared bytes/manifest crossed the specified publication sequence; it does not prove Binance event completeness. The existing watermark field may be retained only as a non-authoritative observed-progress cursor and MUST NOT be interpreted as a completeness watermark, seal, or permission to aggregate. Implementations must expose the state as unsealed/unknown and withhold canonical eligibility.
+
+Any future completeness claim requires a new versioned evidence profile and contract/schema version. That profile must define the authoritative completeness/no-trade oracle, exact boundary and pagination rules, finality/correction semantics, source-health recovery, evidence binding and fixtures; receive genuinely independent review and explicit owner approval before it can be implemented. A reference string or self-asserted evidence object cannot enable completeness.
+
+### 22.2 Durable publication-sequence allocator and no-reuse recovery (F02)
+
+Each generation has a durable publication allocator file `publication-counter.json` in the generation directory. Its closed schema is exactly: `counter_version` (string `1.0`), `source_root_id` (canonical lowercase UUIDv4), `generation_sequence` (unsigned safe integer), `generation_id` (canonical lowercase UUIDv4), and `last_reserved_publication_sequence` (unsigned safe integer). No extra or missing keys are accepted.
+
+While holding the generation's exclusive writer lock, reserve the next sequence BEFORE writing/replacing a manifest:
+1. Read and validate the current counter and compare it with every final receipt filename/content, current manifest and any prior trusted checkpoint.
+2. Choose a value strictly greater than every value ever reserved or potentially published for this generation.
+3. Write canonical JCS bytes to a unique temporary file opened exclusively/no-follow; fsync the file.
+4. Atomically replace the counter file; fsync the generation directory.
+5. Only after the directory fsync succeeds may the writer prepare a manifest for that reserved sequence.
+
+A reserved sequence is consumed permanently, even if the writer crashes before manifest rename or receipt publication. Gaps in the sequence are allowed; reuse is not. A crash after reservation but before publication therefore leaves a skipped sequence, not a reusable number. A crash after manifest rename but before receipt publication leaves an uncommitted manifest and a consumed sequence. A crash after receipt rename leaves that sequence consumed whether or not the receipt survives a later crash.
+
+On restart, the allocator value, manifest, all final receipts and any durable recovery checkpoint must be mutually consistent. If any source is missing, regressed, duplicated, malformed, replaced, or cannot prove the highest possibly reserved/published sequence, quarantine the generation; do not reconstruct a lower counter and do not reuse a sequence. Orphan temporary counter/manifest/receipt files are never treated as commits. They may be preserved for diagnosis; this contract authorizes no cleanup or deletion. Recovery requires a new generation or separately approved recovery epoch.
+
+The receipt filename is exactly `<20-digit-zero-padded-publication_sequence>.receipt.json` within the generation's `commits/` directory. Sequence formatting is decimal ASCII, no sign, no alternate representation. The manifest's publication_sequence, receipt filename, receipt field and durable counter must agree. C100–C103 cover crashes before/after reservation, manifest rename, receipt rename and restart with orphan temporary files.
+
+### 22.3 Supported writer-lock topology and initialization (F03)
+
+The v1.1 reference profile is restricted to **one Linux host and one verified local POSIX filesystem**. Network filesystems, NFS, SMB, distributed filesystems, multi-host shared mounts, object stores, overlay/union filesystems and provider-managed mounts with undocumented lock/rename/fsync behavior are unsupported. No multi-host or failover claim is made. A future topology requires a separately versioned and independently tested fencing profile.
+
+The required primitive is Linux `flock(2)` on a stable regular lock file opened with `O_CLOEXEC | O_NOFOLLOW` (and directory-relative no-follow resolution). Writers use `LOCK_EX`; readers use `LOCK_SH`. All participants must use the same lock file object on the same host/filesystem. The lock file is created only by controlled offline initialization, with restrictive owner/mode; it is never unlinked, renamed, replaced or rotated during the lifetime of the source root. Every open verifies regular-file type, expected owner/mode, filesystem/device identity and stable file identity against the initialization record. Any mismatch, unsupported `flock` behavior, lock error, remount or storage failover whose lock continuity cannot be proven causes quarantine/stop.
+
+Source-root initialization is a single-operator, offline operation before any reader or writer is allowed. It creates the root, lock file, generation counter and required directory structure; fsyncs each created file and parent directory in the specified order; records the lock and filesystem identity; and then marks initialization complete. Concurrent initialization is prohibited rather than raced. A process must not create a replacement lock file if the expected file is absent. Missing/replaced lock identity blocks all access pending a separately approved new-root/recovery procedure.
+
+A paused process retains its kernel lock. A crashed process releases its lock, after which recovery must validate durable counter, manifest, receipt and file state before proceeding. No PID/age/lease takeover is allowed. This profile only fences cooperating processes; hostile root/process compromise is outside its claim. C104–C108 cover two-process reader/writer exclusion, paused owner, crash release, missing/replaced lock inode and unsupported topology rejection. These are planned deterministic tests, not runtime proof.
+
+### 22.4 Closed schemas and canonical encodings (F04)
+
+All JSON objects below use UTF-8, RFC 8785 JCS canonical serialization, duplicate-key rejection, no BOM, no trailing bytes, no floating-point values, no unknown keys, and exact key sets. Parsers must validate both semantic values and canonical bytes; parsing then reserializing to a different byte sequence is rejection.
+
+Canonical primitive encodings:
+- UUIDs: lowercase RFC 4122 UUIDv4 text, exactly 36 ASCII characters with hyphens at canonical positions; nil UUID and non-v4 versions rejected where UUIDv4 is required.
+- SHA-256: exactly 64 lowercase hexadecimal ASCII characters.
+- Timestamps: UTC RFC 3339 string exactly `YYYY-MM-DDTHH:MM:SS[.ffffff]Z`; fractional seconds, when present, contain 1–6 digits; leap seconds and offsets other than literal Z are rejected. Timestamps are audit-only and never establish ordering, freshness or completeness.
+- Unsigned integers: JSON integer only, range 0 through 9007199254740991; booleans, negative values, exponent notation and fractional values rejected.
+- Relative paths: UTF-8 NFC, slash-separated POSIX components; no empty component, dot, dot-dot, leading slash, backslash, NUL, control character, percent-encoding ambiguity or alternate separator. Every component is opened relative to a trusted directory descriptor with no-follow semantics.
+- Enum strings and fixed identity constants are case-sensitive exact ASCII literals.
+
+The manifest key set and exact types are the inventory in §21.5, with these normative constraints: `source_health` is only `UNKNOWN` or `INVALIDATED` under §22.1; `reconciliation_evidence_ref` is prohibited; all identity/hash/path/sequence fields follow the primitive rules above; `data_file_identity` has exactly four non-empty UTF-8 strings (`platform_id`, `filesystem_id`, `device_id`, `file_id`); state is exactly `ACTIVE`, `SEALED` or `QUARANTINED`. A SEALED manifest remains ineligible for canonical market-data use while source_health is UNKNOWN/INVALIDATED.
+
+The receipt key set is exactly: `receipt_version` string `1.0`; `source_root_id` UUIDv4; `generation_sequence` unsigned integer; `generation_id` UUIDv4; `publication_sequence` unsigned integer; `manifest_sha256` SHA-256; `data_file_identity` with the exact four-key object above; `committed_offset_bytes`, `committed_record_count`, `watermark_open_time_exclusive_ms` unsigned integers; `data_prefix_sha256` SHA-256. No other key is permitted. Receipt filename must match its publication_sequence exactly.
+
+The generation-counter key set is exactly the five keys defined in §22.2. The source-root initialization record is exactly `record_version` string `1.0`, `source_root_id` UUIDv4, `filesystem_id` string, `device_id` string, `lock_file_id` string and `initialized_at_utc` canonical timestamp. It is audit/identity state, not an external anti-rollback anchor. Missing or inconsistent initialization state quarantines the root.
+
+The platform's `file_id` and `lock_file_id` must be derived from stable OS file identity values and verified by fstat on every open; if the platform cannot provide stable identity, reject it. The data file must be a regular file with link count exactly one. Manifest, receipt, counter and lock paths must also be regular files with link count exactly one. No symlink or hardlink is accepted. These constraints define a strict Linux-local reference profile; platform-specific identity mapping must be recorded and independently reviewed before implementation.
+
+### 22.5 Immutable content-addressed ExchangeInfo evidence (F05)
+
+The ExchangeInfo evidence object is stored separately from mutable manifest/data paths in an immutable, content-addressed evidence directory controlled by the same restricted source-root owner. Its identifier is `sha256:<lowercase-hex>`, where the digest is calculated over the exact raw HTTP response body bytes as received, before JSON parsing or reserialization. The evidence file is created with exclusive/no-follow semantics; an existing object at the same digest path is accepted only after byte-for-byte digest revalidation. It is never overwritten.
+
+The evidence envelope is a separate canonical JCS object binding: envelope_version `1.0`; evidence_id; HTTP method `GET`; exact Binance USD-M ExchangeInfo endpoint path; exact request query (empty when none); response status; selected response headers needed to identify content type/date/request ID when present; raw_body_sha256; raw_body_length; retrieval timestamp (audit only); and collector source/instance identity. The raw response bytes remain separately retrievable and are the digest authority. The envelope itself is JCS-serialized and stored content-addressed by its own SHA-256. It must not substitute a normalized/reconstructed response for the raw body.
+
+The symbol-record digest is calculated over the exact raw JSON byte slice for the unique BTCUSDT symbol object within the raw response, using a parser that preserves source byte offsets; if exact slice extraction cannot be proven, the record digest is unavailable and identity is unproven. Exactly one BTCUSDT record must exist. Validate status=TRADING, contractType=PERPETUAL, baseAsset=BTC and quoteAsset=USDT; do not invent marginAsset. Manifest snapshot and symbol-record digests must match the retrievable raw evidence and extracted record. Evidence object or envelope missing, unavailable, replaced, digest-mismatched, malformed or containing zero/multiple matching symbol records rejects the generation and quarantines it. No URL/reference label alone proves immutability or authenticity. This is content-addressed corruption binding, not protection against a fully compromised local root/host.
+
+C109–C112 cover raw-byte digest, exact symbol-record extraction, duplicate symbol record, missing/replaced evidence and digest mismatch.
+
+### 22.6 Receipt publication must be atomic no-replace (F06)
+
+Final receipt publication MUST use an atomic no-replace primitive. On the supported Linux profile, use `renameat2(..., RENAME_NOREPLACE)` within the same filesystem. If unavailable or unsupported, fail closed; do not fall back to ordinary rename, overwrite, unlink-then-rename or a check-then-rename race. The temporary receipt is created exclusively/no-follow, fully written and fsynced before no-replace publication. After publication, fsync the `commits/` directory before releasing the writer lock. The prior manifest directory fsync remains mandatory and occurs before receipt creation.
+
+If the final receipt filename already exists, reject and quarantine; never overwrite it, even if its contents appear identical. Any duplicate sequence, unexpected final receipt, malformed receipt, conflicting manifest, orphan temp file, sequence/counter disagreement or receipt replacement suspicion causes quarantine. Readers enumerate and validate the complete receipt directory while holding the shared lock; they do not ignore unknown entries. Only the exact receipt for the current manifest sequence may match, and the sequence history must be consistent with the durable allocator. Orphan temporary files are not commits and are not automatically removed.
+
+C113–C116 cover no-replace collision, receipt overwrite attempt, orphan temporary receipt and unexpected/duplicate receipt entries.
+
+### 22.7 Required deterministic negative/crash fixture additions
+
+C100–C116 are planned contract tests only:
+- C100: crash after publication-sequence reservation but before manifest write; sequence remains consumed.
+- C101: crash after manifest rename before directory fsync; no receipt; no reader acceptance.
+- C102: crash after manifest directory fsync before receipt publication; manifest remains uncommitted.
+- C103: crash after receipt no-replace rename before commits-directory fsync; sequence remains consumed; recovery accepts only if durable receipt/manifest/counter state validates, otherwise fail closed.
+- C104: writer and reader lock exclusion using two processes on supported local filesystem.
+- C105: paused lock owner cannot be displaced; second writer blocks/fails.
+- C106: process crash releases flock, but restart still validates all durable state before writer resumes.
+- C107: lock file missing/replaced or identity differs; root quarantined, no replacement lock auto-created.
+- C108: network/multi-host/unsupported filesystem profile rejected before use.
+- C109: ExchangeInfo raw body digest differs; reject.
+- C110: exact BTCUSDT symbol raw-slice digest mismatch; reject.
+- C111: zero or multiple BTCUSDT symbol records; reject.
+- C112: evidence object missing, replaced or unavailable; reject.
+- C113: receipt final filename collision; atomic no-replace fails and generation quarantines.
+- C114: attempt to overwrite an existing receipt; rejected, existing bytes unchanged.
+- C115: orphan temporary receipt/counter/manifest; never treated as commit and never auto-cleaned.
+- C116: unexpected receipt, duplicate sequence, unknown directory entry or counter/receipt/manifest disagreement; quarantine.
+
+Every negative fixture must assert not only the expected error/state but also absence of a new accepted receipt, absence of canonical eligibility and absence of any completeness watermark advancement. Crash fixtures must enumerate the crash point and restart observation. These fixtures are not implemented or executed.
+
+### 22.8 Remaining evidence and authorization gates
+
+- Current-profile RECONCILED_COMPLETE: FORBIDDEN; any such manifest must be rejected.
+- Publication sequence allocator and crash recovery: DESIGN SPECIFIED; implementation/tests NOT VERIFIED.
+- Lock topology: restricted to one Linux host + verified local POSIX filesystem; target filesystem identity and flock/rename/fsync/no-replace behavior NOT VERIFIED.
+- Manifest/receipt/counter/ExchangeInfo schemas: DESIGN SPECIFIED; parser and evidence store NOT IMPLEMENTED.
+- Receipt no-replace: DESIGN SPECIFIED; target primitive availability NOT VERIFIED.
+- REST completeness oracle: BLOCKED; no-trade, boundary, pagination, finality/correction semantics unresolved.
+- Decimal preservation: BLOCKED; pinned producer still has f64/12-decimal/parse-to-zero defect.
+- Producer FINAL_ONLY/product identity: implementation and regression evidence NOT VERIFIED.
+- C01–C116: design scenarios only; NOT IMPLEMENTED / NOT EXECUTED.
+- Independent review of this exact revision remains mandatory before implementation consideration.
+
+This section does not authorize source changes, adapter implementation, test execution, GitHub Actions dispatch, REST requests, VPS/runtime, T1 activation, T0/T2 changes, strategy/AI/ledger/risk/trading changes, or destructive data operations.
