@@ -342,6 +342,13 @@ class DurableRootBJournal:
         if normalized_boundary and normalized_sealed:
             if datetime.fromisoformat(normalized_sealed) < datetime.fromisoformat(normalized_boundary):
                 raise RootBIntegrityError("sealed_at cannot precede boundary_at")
+            # Refuse to create a checkpoint that already omits or post-dates
+            # any event belonging to the declared event-time boundary.
+            self._validate_checkpoint_boundary(
+                through_sequence,
+                boundary_at=normalized_boundary,
+                sealed_at=normalized_sealed,
+            )
         if crash_at not in (None, "after_durable_write", "after_ack"):
             raise RootBIntegrityError("unknown checkpoint crash injection point")
 
