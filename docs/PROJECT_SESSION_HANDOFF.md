@@ -197,8 +197,7 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 
 - Added documentation-only inventory: `docs/evidence/p1-8/P1.8.40-parameter-closure-inventory.md`.
 - Commit: `f1ac12388ffce2645cf1d376c232befba0be9986`.
-- Blob SHA: `167e5b4a478f2b6bf5053f85d8260e755a2f18da`.
-- Enumerates V07-D1–D9, V08-D1–D9 and RST-D1–D9 with current status, evidence required, decision authority, dependencies and closure sequence.
+- Blob SHA: `167e5b4a478f2b6bf5053f85d8260e755a2f18da`.- Enumerates V07-D1–D9, V08-D1–D9 and RST-D1–D9 with current status, evidence required, decision authority, dependencies and closure sequence.
 - Preserves approved policy directions without inventing numeric/provider/implementation values. Includes cross-stream dependency order, owner decision record requirements and explicit distinction between READY FOR REVIEW and execution authorization.
 - Status: INVENTORY COMPLETE; PARAMETERS OPEN; NOT EXECUTED. V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; synthetic 13/13 remains synthetic only; `AI_EXECUTION_ENABLED=false`.
 - No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes. No provider/key operations, data probes, staging, restore, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
@@ -397,8 +396,7 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 ### P1.8.68 — Independent static review of P1.8.67 (2026-11-09)
 
 - Review: `docs/evidence/p1-8/P1.8.68-independent-static-review-provider-neutral-tsa-architecture.md`.
-- Review commit: `bde1e14c4e14eecaf13bd9f6637102e874ac5674`.
-- Verified review blob SHA: `9ae0c50830644d21d850da4c4d246a2837f62fc6`.
+- Review commit: `bde1e14c4e14eecaf13bd9f6637102e874ac5674`.- Verified review blob SHA: `9ae0c50830644d21d850da4c4d246a2837f62fc6`.
 - Reviewed P1.8.67 blob SHA: `50654f3f4f4caa509598e4393e2634ea977df5dd`.
 - Result: PASS within E0 documentary/static scope; no blocking or non-blocking findings. Confirmed write-path independence, exact-signature binding consistent with P1.8.36, limited `genTime` claim, RFC 3161 verification boundary, issuer-bound historical OCSP/CRL, RFC 9654 currency, unknown submission outcome handling, retry/idempotency, provider portability and commercialization-claim limits.
 - Limitations: no proof of current T0 implementation, DB/WAL boundary, provider interoperability, historical evidence restore, production reliability or commercial/legal readiness.
@@ -438,3 +436,15 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: read-only source mapping COMPLETE; current implementation is not TSA-capable; provider NONE SELECTED; P1.8.66 DRAFT ONLY / NOT SENT; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; DB/WAL durability and production failure-domain equivalence NOT VERIFIED; E1 NOT AUTHORIZED; E2/E3/E4 NOT ACQUIRED; staging NOT AUTHORIZED; production NOT VERIFIED; `AI_EXECUTION_ENABLED=false`.
 - No source/schema/runtime/database/VPS/Feeder/exchange change; no provider contact, endpoint/OCSP call, data probe, test, workflow dispatch, staging, restore or fault injection. No CI run or artifact claimed.
 - Next gate: owner chooses TSA assurance subject: A (dataset/checkpoint proof-of-existence), B (signed-object historical verification), or A+B as separately versioned products. No source design or provider operation until the decision is explicit.
+
+### P1.8.79 — Deletion Mechanism Gap Assessment (2026-11-09)
+
+- Assessment: `docs/evidence/p1-8/P1.8.79-deletion-mechanism-gap-assessment.md`.
+- Assessment commit: `ba951f4f9872422ddb072290d9149401f85d5de9`.
+- Reviewed deletion safety contract, consumer contract, central lifecycle policy, copy lifecycle contract, static dataset/consumer inventory, shared lifecycle cross-contract review, and environment evidence boundary on `feature/t0-centralized-data-feeder-p1-20261101`.
+- Result: **PARTIAL** — governance/authority separation, fail-closed rules, exact-scope intent, ACK-vs-release distinction, no-cascade rule, cancellation/reconciliation direction, and no-implementation boundary are established at design level.
+- Gaps recorded: class-by-class retention/eligibility decisions; T0 canonical deletion default; consumer archive-availability vocabulary; authoritative registry consistency/availability; manifest canonicalization and object-resolution proof; approval quorum/separation model; grace/cancellation/authorization/evidence-freshness parameters; legal/emergency governance; runtime copy inventory and restore/rebuild evidence; tombstone/audit lifecycle; adapter-specific safeguards; independent verifier/oracle; deterministic deletion acceptance matrix.
+- Next: P1.8.80 Retention and Eligibility Policy, then P1.8.81 Dependency and Consumer Governance, P1.8.82 Authorization and Execution Contract, P1.8.83 Copy and Evidence Lifecycle, P1.8.84 Acceptance Matrix, followed by independent static review. Do not begin V07/V08/Restore/TSA conflict review before deletion design completion and independent review.
+- No source/schema/API/workflow/service/registry/scheduler/storage/runtime change; no VPS/DB access; no tests or CI run; no workflow dispatch or artifact. No retention values or deletion permissions selected. No destructive operation authorized. `AI_EXECUTION_ENABLED=false`.
+- Status: DESIGN GAP ASSESSMENT COMPLETE; DELETION MECHANISM PARTIAL / NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
+
