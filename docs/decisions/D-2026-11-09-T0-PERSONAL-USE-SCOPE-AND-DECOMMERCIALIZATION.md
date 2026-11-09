@@ -274,3 +274,20 @@ No critical contradiction was found in the written scope boundary. SR-01 and SR-
 - Commercial subsystem absence repository-wide: NOT VERIFIED.
 - No REMOVE-CANDIDATE established. No source, config, workflow, deployment, data or runtime changes authorized or performed. No tests, Actions run or artifact claimed.
 - Next gate: resolve the CI policy inconsistency in a separately scoped CI-maintenance task; complete the Kraken external/manual consumer inventory and owner value decision; then obtain a genuinely independent second review. Any removal still requires exact-path owner authorization. Option C — No Destructive Authority — remains in force.
+
+
+## 12. Branch-pinned commercial-scope content audit — phase 1 (2026-11-09)
+
+- Read-only audit target: source commit `1569dde41f8219cd6fbc9a52d126450715a7995a`; tree SHA `4a0ec1c235aa0c12fa071b2a5c485b807a9f063a`; recursive tree complete (`truncated=false`), 636 tracked blobs.
+- Evidence report: `docs/evidence/COMMERCIAL_SCOPE_CONTENT_AUDIT_2026-11-09.md`; creation commit `8812a7a21de142654b27beaf2d2bd56537a93f88`.
+- Inspected key root/service entrypoints, API, dashboard, paper ledger, T0 market-data, T2/FreqAI bridge, futures intelligence, Android production source/manifest/dependencies, 13 active workflows, 8 archived workflow YAML files, Codemagic config and dependency manifests.
+- F01 multi-tenant: not found in inspected application surfaces. Important semantic correction: paper ledger does contain `account_id`, but `paper_accounts.account_id` is constrained to exactly 1 and migration inserts only account 1; this is a singleton internal PAPER account, not evidence of multi-tenancy. Common API uses shared environment Bearer tokens; no per-customer identity/tenant authorization found in inspected routes.
+- F02 billing/subscription/payment/entitlement: not found in inspected application source/dependency manifests. Infrastructure-provider billing/invoice/checkout language and Android future commercialization checklist are documentation, not implemented customer payment flows.
+- F03 customer portal: not found in inspected surfaces. Existing dashboard is the internal Five-Layer PAPER control dashboard; internal audit API is not a customer evidence portal.
+- F04 customer SLA/support tiers: not found in inspected surfaces. Internal RPO/RTO/freshness and provider SLA references are operational/vendor context, not customer commitments.
+- F05 onboarding/licensing/entitlement: not found in inspected surfaces. Android readiness checklist is future release guidance; Terms of Use contains ownership/third-party licence notices, not a customer licensing system.
+- F06 commercial-only certification: no customer-facing commercial certification workflow identified. Synthetic evidence/provenance/signing/verification are technical assurance controls and remain in scope.
+- All six repository-wide absence claims remain **NOT VERIFIED**. The phase is bounded; not every tracked blob, every document, generated artifact, external deployment/account or external consumer was semantically inspected.
+- No tests or GitHub Actions were run; no workflow run/artifact. No source/config/dependency/workflow/runtime/data/credential/key/permission changes; no VPS/DB/provider operations.
+- No REMOVE-CANDIDATE and no removal proposal. Option C — No Destructive Authority — remains in force.
+- Next: complete remaining source/config/docs and deployment/external-boundary review; maintain exact path/symbol coverage and do not upgrade repository-wide absence claims until full coverage is evidenced.
