@@ -64,3 +64,15 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: STATIC REVIEW COMPLETE; POLICY DECISIONS OPEN; NOT EXECUTED. Staging NOT AUTHORIZED; production NOT VERIFIED.
 - No source/runtime changes, staging provisioning, fault injection, workflow dispatch, PR, or merge. No CI run or artifact is claimed.
 - Next step: obtain owner decisions for DEC-01/02/03; then create a versioned policy baseline and re-review affected criteria before proposing isolated staging execution.
+
+## Latest completed work — P1.8.30
+
+- Recorded explicit owner-approved policy direction C–C–B in `docs/evidence/p1-8/P1.8.30-approved-policy-baseline.md`.
+- Policy baseline version: P1.8.30-v1.
+- Document commit: `585502f233924fdea70e6ebffb8755da61341306`.
+- DEC-01 option C approved: quarantine/fail-closed when key validity or revocation state cannot be proven. Exact timestamp authority, cache age, propagation, rotation overlap and quarantine release parameters remain unspecified; V07 BLOCKED.
+- DEC-02 option C approved: hybrid event-time + watermark + durable commit-time gate, immutable sealed checkpoints and explicit late-event/correction path. Exact watermark, allowed-lateness, equality and clock parameters remain unspecified; V08 BLOCKED.
+- DEC-03 option B approved: retain acknowledged-transaction RPO 0, snapshot RPO ≤5 minutes, staging RTO ≤60 minutes and 3 independent restores as planning targets only, not approved SLOs or measured capability. Restore acceptance BLOCKED pending measurement contract and separate staging authorization.
+- Status: OWNER DECISIONS APPROVED; DESIGN BASELINE RECORDED; NOT EXECUTED. 13/13 vectors remain synthetic PASS only; staging NOT AUTHORIZED; production NOT VERIFIED.
+- No source/runtime changes, staging provisioning, provider selection, key operations, restore/fault injection, workflow dispatch, PR, or merge. No CI run or artifact is claimed.
+- Next step: P1.8.31 documentation-only acceptance-contract update; fill exact test-contract fields and unresolved parameter gates without inventing numerical values, then static review.
