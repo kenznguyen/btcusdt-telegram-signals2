@@ -1384,7 +1384,7 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 
 - Added documentation-only supplement: `docs/evidence/p1-8/P1.8.148-reviewer-independence-conflict-control-clarification.md`.
 - Commit: `7bf13e2f9a5eb69a4e14fe504268c12ee34d51e6`.
-- Target blob SHA pending final read-back.
+- Final target blob SHA after read-back: `baea1eb363a06ea7e804fe986777b31e9b693513`.
 - Scope: closes the narrow documentary gap IR147-01 by requiring independence from requester, custodian, obligation owner, approver, executor and provider selector; mandates an independent second review for every affected claim when full role separation is infeasible; conflicted persons cannot be sole reviewers/verifiers.
 - Adds claim-to-role matrix, direct examination of underlying evidence, competence/specialist boundaries and fail-closed rules.
 - Preserves RET-01 B / RET-02 B, T0 protection, ledger separation and Option C — No Destructive Authority.
