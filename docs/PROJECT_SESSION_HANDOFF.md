@@ -1461,3 +1461,17 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No runtime, source, schema, API, registry, adapter, scheduler, VPS, T0/T1/T2/T3/T4, Feeder, ledger, strategy or risk changes. No operational inventory, provider/key/TSA, staging, restore, fault injection, archive, cleanup, vacuum, compaction, backup expiry, replica removal, export mutation or deletion.
 - Option C remains in force; T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; paper-only; `AI_EXECUTION_ENABLED=false`; destructive authority NOT GRANTED.
 - Next bounded documentary gate: P1.8.153 — independent review of P1.8.152 and residual reviewer-control closure assessment. No identity/personnel discovery, permission inventory, runtime/provider inventory, tests, workflow dispatch or destructive operations are implied.
+
+## T0 → T2 Loopback Deployment Gate — 2026-11-09
+
+- Owner approved same-VPS T0/T2 loopback deployment, allowed Feeder/DB changes and T1/T2 runtime activation within the ordered rollout; no OKX replacement and no live trading.
+- Deployment-gate record: `docs/evidence/t2/T0_T2_LOOPBACK_DEPLOYMENT_GATE_2026-11-09.md`.
+- Record commit: `9e7967adc6c328c6772607f2fb95842a627a313b`.
+- Latest recorded T0 VPS source SHA: `9ae2eeae4ece3d657781b68e96b6f4509cd95f24`.
+- Exact file blob parity between that T0 source commit and current branch HEAD `e11f174ea2e9dce4bc528b4de019d94d36be70c2` was verified for `market_data/api.py`, `market_data/feeder.py`, `market_data/feeder_service.py`, `market_data/write_gateway.py`, `market_data/storage.py`, and `market_data/store.py`. This is file-level source parity, not proof of loaded process bytes.
+- T2 HTTP consumer migration and isolated loopback integration remain PASS at their recorded source SHAs; live canonical T0 API read remains NOT VERIFIED.
+- Current T0 API listener/service state: NOT VERIFIED. The 2026-11-08 no-listener observation is historical and must not be treated as current.
+- No authenticated SSH/terminal action for the Scaleway VPS is exposed in the current tool connection; plugin discovery found no available SSH/VPS execution connector. No remote command, API deployment, T2 one-shot read, or runtime activation was performed.
+- Tests NOT RUN for this documentation increment. GitHub Actions NOT DISPATCHED; workflow run/artifact NONE. VPS/Feeder/DB/API/T2 runtime unchanged.
+- Status: PARTIAL / BLOCKED AT VPS EXECUTION. Next gate: obtain authenticated remote execution or operator-run reviewed procedure; verify API loopback-only, GET/auth/read-only behavior, complete/fresh M15 data, then run one-shot T2 context read. Do not start T1 before this gate passes.
+- No public API exposure, OKX source replacement, live orders, strategy/ledger/risk changes, or data deletion authorized. `AI_EXECUTION_ENABLED=false` remains in force.
