@@ -343,3 +343,13 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - No finding. No provider connection, key operation, E1 execution, data probe, VPS/runtime change, staging, restore, fault injection or workflow dispatch. No CI run or artifact is claimed.
 - Status: P1.8.62 REVIEW PASS; P1.8.58 SPECIFICATION COMPLETE / CRYPTOGRAPHIC BYTES NOT FROZEN / NOT EXECUTED; existing 13 vectors historical SYNTHETIC PASS only; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; E2/E3/E4 NOT ACQUIRED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; RPO/RTO planning targets only; `AI_EXECUTION_ENABLED=false`.
 - Next gate: determine which local E1 fixtures can be frozen without selecting unresolved policy/provider/implementation parameters. If no fixture meets that condition, record the blocker and do not fabricate values or request generic permission.
+
+
+### P1.8.63 — E1 fixture freeze eligibility
+- Assessment: `docs/evidence/p1-8/P1.8.63-e1-fixture-freeze-eligibility-assessment.md`; commit `63bbba09678c0f3a0a5ac741c805512ac626188c`.
+- Determination: no new V07/V08/Restore E1 fixture can be fully frozen without choosing unresolved profile, trust, revocation, precision/serialization, source/adapter or database/WAL implementation parameters.
+- Existing FV-01–FV-13 remain historical synthetic evidence and are not duplicated/re-frozen. V07 exact-signature/time/revocation/nonce fixture bytes remain blocked; V08 UTC half-open semantics are approved but exact executable serialization/precision and source/commit contract remain open; Restore fixture compatibility depends on a declared database/backup/WAL implementation and failure domain.
+- No new fixture bytes frozen or executed; no new owner numeric/provider/implementation decision is ready from documentary evidence alone.
+- Status: P1.8.63 ASSESSMENT COMPLETE; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; E2/E3/E4 NOT ACQUIRED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; 13 vectors historical SYNTHETIC PASS only; RPO/RTO planning targets only; `AI_EXECUTION_ENABLED=false`.
+- No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine change; no provider/key operation, data probe, E1 execution, staging, restore, fault injection or workflow dispatch. No CI run or artifact is claimed.
+- Next gate: wait for a concrete evidence-backed candidate/profile or implementation decision; do not manufacture test parameters or request generic permission.
