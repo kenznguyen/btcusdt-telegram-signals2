@@ -663,7 +663,7 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Document: `docs/evidence/p1-8/P1.8.94-negative-test-traceability-and-missing-race-vectors.md`.
 - Commit: `8b4ad817449a83e79f69d584591128c05bef8509`.
 - Blob SHA: `01277c46bdebf52a2d48fa7be64eb9aaaa6c5639`.
-- Resolves SR-03: explicit N01–N45 traceability to baseline P1.8.90 vectors; adds supplemental deterministic vectors for uncovered owner/heartbeat/bypass/hold/copy/recovery/availability/authorization/cascade/audit/policy/T0/scope races. Minimum catalogue: 66 vectors (47 baseline + 19 supplemental).
+- Resolves SR-03: explicit N01–N45 traceability to baseline P1.8.90 vectors; adds supplemental deterministic vectors for uncovered owner/heartbeat/bypass/hold/copy/recovery/availability/authorization/cascade/audit/policy/T0/scope races. Minimum catalogue: 69 vectors (47 baseline + 22 supplemental).
 - All vectors remain NOT_RUN; test runner, synthetic adapters, independent oracle and separate test approval remain OPEN. No test code or workflow created.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/database/VPS/storage change or destructive operation.
 
@@ -676,3 +676,10 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Resolves SR-05 at documentary alignment level: owner-attributed per-dependency availability declaration, qualitative classes, UNKNOWN/CONFLICTED protective behavior, most-protective compatible requirement, immutable revisions, ACK/release separation and archive admission gates.
 - Numeric latency/restore/freshness values, trusted time, registry/provider, runtime declarations and discovery completeness remain OPEN/NOT VERIFIED. No archive or deletion authority.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/database/VPS/storage or destructive operation.
+
+
+### P1.8.93 / P1.8.94 review-preparation corrections (2026-11-09)
+
+- P1.8.93 now explicitly pins applicable consumer availability-declaration revisions and owner-attestation references in the protected decision vector. Updated blob: `4cc158b5f766fb024e411519be36076bc1e3758a`.
+- P1.8.94 adds explicit vectors for unproven reviewer/approver separation (NEG-ID-05), unavailable independent verifier (NEG-VER-01), and inventory completeness without a declared boundary (NEG-INV-01). It corrects cascade vector identity to NEG-ADP-09 and minimum catalogue count to 69 (47 baseline + 22 supplemental). Updated blob: `cd2ae56f98b96a2271e8dcf02494c2061abe2572`.
+- These are documentary corrections only; all vectors remain NOT_RUN.
