@@ -2409,3 +2409,13 @@ Guardrails and blockers remain unchanged: F07 NOT VERIFIED; Binance REST complet
 - No source implementation, producer/adapter change, T0/T2 change, T1 activation, trading action or destructive data operation occurred.
 - Unchanged blockers: F07 NOT VERIFIED; Binance REST completeness NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; FINAL_ONLY/product identity implementation NOT VERIFIED; manifest/receipt/counter/checkpoint/ERA/trust-policy/ExchangeInfo implementation NOT IMPLEMENTED / NOT VERIFIED; C01–C197 NOT IMPLEMENTED / NOT EXECUTED.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive operations.
+
+
+## User authorization — bounded automatic retargeting of issue #138
+
+On 2026-11-09, the user explicitly approved the permissions needed to retarget issue #138 automatically. Scope:
+- Authorized: update the title/body of existing issue #138 to the exact latest verified contract, review and handoff blob SHAs on the existing feature branch; fetch the persisted issue afterward and verify the target; record the operation in this handoff.
+- Authorized when a new revision is actually ready: repeat the same retarget/readback process after its review record and handoff are committed and exact blob SHAs are verified. A REQUEST CHANGES target may be retargeted to accurately track the current revision; do not mislabel it PASS.
+- Not authorized: close issue #138, mark an independent review PASS, fabricate reviewer feedback, change reviewers/assignees/labels, create a new issue/PR/branch, merge, dispatch GitHub Actions, modify source/runtime/T0/T2, activate T1, place orders, or perform destructive data operations.
+- Current issue #138 was retargeted to P1.42 and remains OPEN. Persisted body identifies contract blob `3510c6a187c2677e0ad54060d1164a84984705c2`, P1.42 review blob `5b790c38a811f7d54a93a7de9a83f22f72acac1f`, and handoff blob to be verified after this update.
+- Current review remains REQUEST CHANGES because F02-R24 is OPEN. This authorization does not waive any quality gate or independent-review requirement.
