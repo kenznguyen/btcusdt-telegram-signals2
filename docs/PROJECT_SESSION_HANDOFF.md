@@ -281,3 +281,17 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: P1.8.51 DOCUMENTARY ASSESSMENT COMPLETE (E0 only); V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; 13 vectors SYNTHETIC PASS only; RPO/RTO planning targets only; `AI_EXECUTION_ENABLED=false`.
 - No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes; no provider connection, key operation, live probe, staging, restore, fault injection or workflow dispatch. No CI run or artifact is claimed.
 - Next gate: independent static review of P1.8.51 for standards interpretation, source traceability, candidate neutrality and preservation of all OPEN/permission gates. Continue documentation-only work; stop for explicit permission before any E2/E3/E4 or operational action.
+
+
+### P1.8.51 / P1.8.52 / P1.8.53 — Candidate assessment and independent review
+- P1.8.51 E0 documentary assessment: `docs/evidence/p1-8/P1.8.51-evidence-backed-candidate-assessment.md`.
+- Initial document commit: `052568f8c877de1f97675db80d2f7a242e72225a`; initial blob `1462169d0bcac9c5a4ce41a9d1e4016781eb381c`.
+- P1.8.52 independent review: `docs/evidence/p1-8/P1.8.52-independent-review-candidate-assessment.md`; commit `7e0ac520ea970a0e82d32b2c866248cd1b3a8c1d`. Result PARTIAL; finding F-15 identified that RFC 6960's OCSP Nonce extension had later updates.
+- Corrected P1.8.51 commit: `59d0cd86582c575fc10ec8165f003991ea893bad`; verified corrected blob SHA `55a20cdf127a1303f795ce9fb40d9e6bd5696802`.
+- Correction cites RFC 9654 as the current OCSP Nonce update to RFC 6960 and notes that it obsoletes RFC 8954; protocol constraints are explicitly distinguished from a project-selected nonce policy. Interoperability fixture categories are recorded; provider compatibility and project nonce parameters remain OPEN.
+- P1.8.53 independent re-review: `docs/evidence/p1-8/P1.8.53-independent-rereview-corrected-candidate-assessment.md`; commit `c27cb1f48a3b1614d6c26bc96bbb2b7b4cbe5f3d`.
+- P1.8.53 result: PASS; F-15 addressed at documentary standards-currency/traceability level; no additional finding within E0 scope.
+- Assessment conclusions remain: RFC 3161 accuracy absence is not zero; OCSP GOOD is not standalone historical issuance/validity proof; watermark is not durable-commit proof; exactly-once depends on source replayability and sink transaction/idempotency; backup success is not restore plus business reconciliation.
+- Status: P1.8.51 DOCUMENTARY ASSESSMENT PASS after correction; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; 13 vectors SYNTHETIC PASS only; RPO/RTO planning targets only; `AI_EXECUTION_ENABLED=false`.
+- No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes; no provider connection, key operation, data probe, staging, restore, fault injection or workflow dispatch. No CI run or artifact is claimed.
+- Next gate: prepare a consolidated evidence-to-decision matrix for the minimum E2/E3/E4 evidence needed to resolve each OPEN parameter family. Remain documentation-only until a concrete action requires separate explicit permission.
