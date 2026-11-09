@@ -76,3 +76,13 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: OWNER DECISIONS APPROVED; DESIGN BASELINE RECORDED; NOT EXECUTED. 13/13 vectors remain synthetic PASS only; staging NOT AUTHORIZED; production NOT VERIFIED.
 - No source/runtime changes, staging provisioning, provider selection, key operations, restore/fault injection, workflow dispatch, PR, or merge. No CI run or artifact is claimed.
 - Next step: P1.8.31 documentation-only acceptance-contract update; fill exact test-contract fields and unresolved parameter gates without inventing numerical values, then static review.
+
+## Latest completed work — P1.8.31
+
+- Added documentation-only acceptance contract: `docs/evidence/p1-8/P1.8.31-acceptance-contract-update.md`.
+- Document commit: `b11637060fff5d6bfd6c1eaf4a05150d7baf2e56`.
+- Converts P1.8.30 C–C–B policy direction into frozen-manifest requirements, scenario denominator rules, observer-principal independence, D0–D4 claim boundaries, durable-ACK scope, V07 revocation fixtures/gates, V08 checkpoint fixtures/gates, restore measurement contract, V01–V13 acceptance index, evidence provenance and stop conditions.
+- Unresolved values are intentionally not invented: V07 BLOCKED on timestamp authority/cache/propagation/rotation/quarantine parameters; V08 BLOCKED on watermark/lateness/boundary/clock/correction parameters; restore acceptance BLOCKED on failure-domain, RPO/RTO measurement and rehearsal-independence contract.
+- Status: DOCUMENTATION COMPLETE; STATIC REVIEW REQUIRED; NOT EXECUTED. Prior vectors V01–V06 and V09–V13 remain SYNTHETIC PASS only; V07/V08 remain BLOCKED pending parameters; staging NOT AUTHORIZED; production NOT VERIFIED.
+- No source/runtime changes, staging provisioning, provider selection, key operations, restore/fault injection, workflow dispatch, PR, or merge. No CI run or artifact is claimed.
+- Next step: independent static consistency review of P1.8.31 against P1.8.26–P1.8.30; then report findings before proposing any separately authorized staging work.
