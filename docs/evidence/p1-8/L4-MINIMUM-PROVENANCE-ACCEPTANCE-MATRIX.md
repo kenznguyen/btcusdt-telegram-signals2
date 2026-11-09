@@ -41,16 +41,16 @@ No L4 evidence object receives a default TTL or automatic self-deletion rule. No
 
 | ID | Requirement | Positive evidence required | Negative/adversarial cases | PASS condition |
 |---|---|---|---|---|
-| L4M-01 | Owner-controlled evidence custody | Complete package inventory and SHA-256 manifest; at least one owner-controlled copy outside both T0/VPS and GitHub failure domains; custody/location and readback procedure | T0/VPS unavailable; GitHub unavailable; both unavailable; copy missing, truncated or corrupted | Owner locates and integrity-checks the retained copy without T0/VPS or GitHub. The GitHub-unavailable readback is part of this control's PASS, not an optional G2 note |
+| L4M-01 | Owner-controlled evidence custody | Complete package inventory and SHA-256 manifest; at least one owner-controlled copy outside both T0/VPS and GitHub failure domains; custody/location and readback procedure. The separately authenticated latest-head/monotonic anchor required by L4M-03 is part of this custody package and must be retained/readable outside both failure domains. | T0/VPS unavailable; GitHub unavailable; both unavailable; latest-head anchor missing, stale, rolled back or inaccessible under either outage; copy missing, truncated or corrupted | Owner locates and integrity-checks the retained evidence copy and latest-head anchor without T0/VPS or GitHub. Both must remain independently readable and integrity-checkable during either failure-domain outage; the GitHub-unavailable readback is part of this control's PASS, not an optional G2 note |
 | L4M-02 | Signing authority separated from T0 | Signer identity, key custody, authorization boundary and recovery procedure; evidence signer is not an ordinary T0 runtime/admin credential | T0 compromise; signer unavailable; unauthorized signing request; key loss or substitution | T0 process/admin credentials alone cannot create an accepted owner signature; recovery path is documented and verified only in a separately authorized isolated test |
-| L4M-03 | Exact-object binding and freshness | Signed envelope binds exact checkpoint bytes/digest, schema/version, dataset identity, sequence/generation and context; separately authenticated owner-controlled latest-head/monotonic reference for any freshness claim | Single-byte mutation; payload/signature swap; dataset substitution; replay of older valid checkpoint; missing or rolled-back latest-head anchor | Exact object verifies; mutations/substitutions fail. Freshness/rollback is assessed against the separately retained authenticated latest-head anchor. If that anchor is absent, stale or unverifiable, freshness is UNKNOWN/NOT VERIFIED; sequence/generation alone cannot establish freshness |
+| L4M-03 | Exact-object binding and freshness | Signed envelope binds exact checkpoint bytes/digest, schema/version, dataset identity, sequence/generation and context; separately authenticated owner-controlled latest-head/monotonic reference for any freshness claim. The anchor is an exact evidence object included in the L4M-01 custody inventory and retained outside both T0/VPS and GitHub failure domains | Single-byte mutation; payload/signature swap; dataset substitution; replay of older valid checkpoint; missing, stale, substituted or rolled-back latest-head anchor; anchor unavailable when T0/VPS or GitHub is unavailable | Exact object verifies; mutations/substitutions fail. Freshness/rollback is assessed against the separately authenticated latest-head anchor, whose exact digest and custody/readback are verified independently of T0/VPS and GitHub. If the anchor is absent, stale, rolled back, inaccessible or unverifiable, freshness is UNKNOWN/NOT VERIFIED; sequence/generation alone cannot establish freshness |
 | L4M-04 | Independent offline verification | Verifier on a separate environment; pinned trust-policy snapshot; no ChatGPT, producer runtime or live network/TSA dependency for offline cryptographic verification | ChatGPT/producer/network unavailable; unknown root; malformed package; verifier crash; incomplete policy snapshot | Owner verifies the exact package offline; incomplete or ambiguous inputs fail closed. Historical time claims are limited by L4M-06 |
 | L4M-05 | Independent readback/recovery | Readback of retained evidence copy from owner-controlled custody; inventory/manifest/signatures rechecked; non-destructive recovery procedure and exact scope | Missing/truncated/corrupted/stale copy; partial readback; unavailable custody location; restore would overwrite an existing source | Missing/corrupt evidence is detected and result is either a fully verifiable readback or explicit failure. No restore-overwrite, production restore or destructive recovery test is implied or authorized |
 | L4M-06 | Key and trust lifecycle | Versioned trust policy; owner approval records for trust-root/key changes; rotation/revocation evidence; distinct fields for signature validity, current trust and historical trust-at-time | Unknown/revoked key; substituted root; policy rollback; absent or conflicting revocation evidence; no qualifying trusted-time proof | Verifier distinguishes cryptographic signature validity, current trust state and historical trust-at-time. Without sufficient time and revocation evidence, historical status is UNKNOWN/NOT ESTABLISHED. No historical validity is inferred from signature validity, local clock or current trust. TSA is not mandatory solely to satisfy L4-Minimum |
 | L4M-07 | Tamper-evident append-only evidence history | Original bytes, timestamp intents/attempts, tokens if present, verifier outputs, revocation evidence, policy versions and manifests linked by canonical identities/digests; owner-controlled independent retained manifest/copy | Retry after timeout; duplicate attempt; late token; conflicting verification; record overwrite; deletion; wholesale history replacement; storage-admin rewrite | Earlier records remain addressable and tampering/replacement is detectable against independently retained evidence. Claim is **tamper-evident**, not absolute immutability or WORM, unless a separately qualified immutable medium is actually evidenced. Storage-administrator trust assumptions are stated |
 | L4M-08 | Claim discipline | Each provenance statement identifies exact object, verification performed, time basis, trust assumptions and limits | Valid signature but false market data; incomplete source coverage; timestamp without durable-commit proof; consumer ACK misrepresented as lifecycle release | No inference of market-data truth, exchange completeness, DB durability, strategy correctness, obligation closure or deletion eligibility from a signature, timestamp, ACK or successful use alone |
 | L4M-09 | Qualifying independent review | Reviewer identity; relevant competence and specialist boundaries; independence from requester, custodian, obligation owner, approver, executor, provider selector and evidence producer; conflict assessment; exact artifact hashes, methods, scope and limitations | Same producer issues acceptance; conflicted preliminary reviewer presented as independent; reviewer lacks artifacts/competence; scope silently expands | A qualifying independent reviewer directly examines exact immutable artifacts and underlying evidence and alone issues the independent disposition. A conflicted contributor may provide factual input/preliminary analysis only, labelled non-independent and non-authoritative. If no qualifying reviewer exists, control remains PENDING/BLOCKED |
-| L4M-10 | Fail-closed per-control and aggregate acceptance | Machine-readable and human-readable per-control verdicts; evidence references; explicit aggregation rule and exact baseline identity | Missing evidence/custody; unknown trust state; verifier crash; unavailable dependency; mismatched digest; unresolved mandatory control; reviewer pending | Overall L4 PASS only when **all mandatory L4M-01–L4M-10 are PASS for the same immutable evidence baseline**. Known unsafe/unavailable prerequisite => BLOCKED. Missing, incomplete or unreviewed proof => NOT VERIFIED/PENDING. UNKNOWN never becomes PASS. A technical PASS cannot override failed custody or pending independent review |
+| L4M-10 | Fail-closed per-control and aggregate acceptance | Machine-readable and human-readable per-control verdicts; evidence references; explicit aggregation rule and exact baseline identity | Missing evidence/custody; unknown trust state; verifier crash; unavailable dependency; mismatched digest; unresolved mandatory control; reviewer pending | Before independent review, freeze and identify the evidence baseline (canonical manifest plus SHA-256 and immutable baseline ID). The reviewer examines that frozen baseline and issues a separate review-disposition record that references the exact baseline ID and digest; the disposition is not inserted into or used to mutate the frozen baseline. Aggregate verdict binds both the frozen baseline and its separately retained review disposition. Overall L4 PASS only when **all mandatory L4M-01–L4M-10 are PASS for the same frozen immutable evidence baseline**, and the qualifying review disposition explicitly references that baseline digest. Known unsafe/unavailable prerequisite => BLOCKED. Missing, incomplete or unreviewed proof => NOT VERIFIED/PENDING. UNKNOWN never becomes PASS. A technical PASS cannot override failed custody or pending independent review |
 
 ## 3. Required test groups
 
@@ -61,14 +61,16 @@ These are acceptance requirements, not authorization to execute tests.
 - Single-byte mutation and signature/payload swap fail.
 - Dataset identity, schema, sequence or generation substitution fails.
 - Older valid checkpoint is compared with an authenticated owner-controlled latest-head anchor.
-- If the latest-head anchor is absent, stale or unverifiable, freshness is UNKNOWN/NOT VERIFIED, not inferred from sequence alone.
+- Verify the anchor itself against its exact digest and owner-controlled custody copy while T0/VPS is unavailable, while GitHub is unavailable, and while both are unavailable.
+- If the anchor is absent, stale, rolled back, inaccessible or unverifiable, freshness is UNKNOWN/NOT VERIFIED, not inferred from sequence alone.
 
 ### G2 — Evidence custody and availability
 - Evidence readback works with T0/VPS unavailable.
 - Evidence readback works with GitHub unavailable.
 - Evidence readback works when both T0/VPS and GitHub are unavailable.
 - At least one owner-controlled copy outside both failure domains can be integrity-checked.
-- Missing/corrupt/partial copies are detected; no silent success.
+- The latest-head/monotonic anchor is included in that independently retained custody package and can be read and integrity-checked during T0/VPS outage, GitHub outage, and simultaneous outage.
+- Missing/corrupt/partial copies or anchor unavailability are detected; no silent success.
 - This tests assurance-evidence custody only; it does not require independent market-data sources.
 
 ### G3 — Signer and trust lifecycle
@@ -113,7 +115,9 @@ For each authorized acceptance run, retain:
 6. environment identity and network/availability conditions;
 7. owner-custody location reference and readback result, without exposing secrets;
 8. reviewer identity, competence, conflict/independence assessment and exact reviewed artifact hashes;
-9. per-control and aggregate PASS/BLOCKED/NOT VERIFIED disposition with unresolved limitations.
+9. per-control and aggregate PASS/BLOCKED/NOT VERIFIED disposition with unresolved limitations;
+10. frozen baseline ID, canonical manifest digest and freeze/closure record;
+11. separate reviewer disposition record referencing the exact frozen baseline ID and digest, retained as a linked evidence object without modifying the baseline.
 
 Do not include private signing keys or secrets. Record key fingerprints and custody references only.
 
@@ -128,12 +132,15 @@ Evidence package retention is governed by the applicable lifecycle obligations a
 - **UNKNOWN:** an operation's outcome or relevant state cannot be established; UNKNOWN is protective and must never be coerced to PASS or to an obligation end.
 - **FLOOR_NOT_ESTABLISHED / RETAIN / BLOCKED:** applicable obligation inventory/end conditions/copy lineage/time ordering are incomplete or uncertain under P1.8.144.
 - A document-only/static-review PASS applies only to the exact reviewed document and scope.
-- **Overall L4 PASS** requires every mandatory control L4M-01–L4M-10 to be PASS on the same immutable evidence baseline. No averaging, majority or compensating control is allowed.
+- Freeze and identify the evidence baseline before independent review; record its canonical manifest digest and closure record.
+- The independent reviewer issues a separate disposition referencing that exact baseline ID/digest. The disposition is linked evidence, not a mutation or append operation inside the frozen baseline.
+- **Overall L4 PASS** requires every mandatory control L4M-01–L4M-10 to be PASS on the same frozen immutable evidence baseline and a qualifying review disposition that names its exact digest. No averaging, majority or compensating control is allowed.
 
 ## 6. Execution sequencing and authorization gates
 
-1. Obtain independent review of this revised matrix and its alignment with P1.8.36 and P1.8.143–P1.8.152.
-2. Reconcile remaining P1.8.152 lifecycle/reviewer findings; do not infer that this matrix closes them.
+1. Reconcile remaining P1.8.152 lifecycle/reviewer findings; do not infer that this matrix closes them.
+2. Freeze and identify the exact evidence baseline (canonical manifest, digest and closure record) before independent review.
+3. Obtain independent review of this revised matrix and the frozen baseline, aligned with P1.8.36 and P1.8.143–P1.8.152; require a separate disposition that references the exact baseline ID/digest.
 3. Inventory existing evidence and implementation only within separately approved, non-operational scope.
 4. Design isolated synthetic fixtures and expected outputs.
 5. Obtain explicit owner approval for any activity touching keys, trust roots, GitHub permissions, persistent storage, VPS, database, runtime inventories, providers, staging, restore or fault injection.
@@ -165,7 +172,7 @@ P1.8.153 remains the next documented lifecycle gate in the handoff. This L4 matr
 
 ## 8. Current verdict
 
-- Matrix revision: DOCUMENTATION UPDATE — F-01 THROUGH F-06 ADDRESSED IN WORDING; NOT INDEPENDENTLY REVIEWED.
+- Matrix revision: DOCUMENTATION UPDATE — F-01 THROUGH F-08 ADDRESSED IN WORDING; NOT INDEPENDENTLY REVIEWED.
 - Lifecycle alignment: DOCUMENTARY CROSSWALK ADDED; P1.8.152 residual findings remain open.
 - Requirements implemented: NOT VERIFIED.
 - Test fixtures created/executed: NOT RUN / NOT CREATED BY THIS RECORD.
