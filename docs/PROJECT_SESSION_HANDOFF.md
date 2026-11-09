@@ -709,3 +709,20 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Final P1.8.94 blob: `0e25c253ecc0f0a2657e2b4056a97222b3e92877`; commit: `c4a8f53a73ff21a1ed97474a6dcbadba3321d449`.
 - Verified 45 distinct traceability rows and 22 unique supplemental vector IDs, including explicit NEG-ID-05, NEG-VER-01 and NEG-INV-01. No duplicate supplemental IDs remain.
 - Total specified vectors: 69 (47 baseline + 22 supplemental); NOT_RUN.
+
+### P1.8.96 — Independent Review of P1.8.92–P1.8.95 (2026-11-09)
+
+- Review: `docs/evidence/p1-8/P1.8.96-independent-review-of-p1-8-92-to-95.md`.
+- Commit: `PENDING_READBACK`.
+- Blob SHA: `5c8d3d8886269929bc8ac83ee4fc15c3aaaf9911`.
+- Verdict: **PARTIAL — remediation review complete; IR-01/IR-02/IR-03 MAJOR and IR-04 MINOR remain.**
+- IR-01 MAJOR: BLOCKED/reconciliation/expiry/revocation transition authority and events incomplete.
+- IR-02 MAJOR: N19 backup-chain ambiguity and N24 ledger-obligation mappings overstate vector coverage.
+- IR-03 MAJOR: N09 missing evidence/provenance uncertainty not directly tested.
+- IR-04 MINOR: N36 residual references/indexes not directly isolated.
+- IR-05 OBSERVATION: P1.8.93 fencing protocol is conservative; no adapter qualified.
+- IR-06 OBSERVATION: P1.8.95 resolves documentary contract alignment only; runtime declarations NOT VERIFIED.
+- IR-07 OBSERVATION: no destructive authority escalation found.
+- Read-back checks: 45 traceability rows, 47 baseline vectors, 22 unique supplemental vectors, 69 unique total IDs; exact state alias, availability revision pinning and contract §20 verified.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/VPS/database/storage mutation or inventory.
+- Next: P1.8.97 close transition authority; P1.8.98 correct negative-case semantic coverage; then focused independent review. Do not begin V07/V08/Restore/TSA before focused review and owner blockers are addressed.
