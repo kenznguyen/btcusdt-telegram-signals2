@@ -335,6 +335,15 @@ Therefore this contract is **not yet implementable as a production assurance cla
 
 ## 13. Open decisions and gated implementation sequence
 
+### 13.1 TSA compatibility boundary
+
+P1.8.67/P1.8.68 establish TSA as optional and asynchronous, outside the T0 authoritative ingestion/commit path. P1.8.77/P1.8.78 establish that the current T0 source has no signed checkpoint or TSA lifecycle and identify two distinct future purposes:
+
+- **A — Dataset/checkpoint proof-of-existence:** timestamp a frozen dataset/checkpoint manifest digest. This can support only the narrowly scoped existence-by-time claim allowed by the verified token/policy; it does not prove signer identity, exchange truth, completeness beyond the manifest, or database durability.
+- **B — Signed-object historical verification:** timestamp the exact signature bytes and verification context required by P1.8.36/V07. An unsigned dataset digest or generic envelope MUST NOT be substituted for this contract.
+
+The owner has not selected A, B, or two separately versioned evidence products. This contract does not authorize TSA requests or claim compatibility with P1.8.36 merely because it defines a signature envelope. Any future TSA integration MUST remain asynchronous, MUST NOT block T0 ingestion, and MUST only process an immutable checkpoint after its underlying data crosses a separately proven durable-commit boundary. TSA failure or UNKNOWN delivery outcome MUST NOT roll back an already valid T0 data commit.
+
 The following remain OPEN; this contract does not silently decide them:
 
 - canonicalization test vectors and exact serialization library;
