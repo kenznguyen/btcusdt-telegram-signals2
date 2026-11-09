@@ -601,3 +601,12 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: DOCUMENTARY DESIGN ONLY; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED.
 - No source, schema, API, workflow, service, registry, scheduler, database, VPS, Feeder, storage, backup, replica, archive or runtime mutation. No real-data inventory or destructive operation.
+
+### P1.8.89 inventory claim boundaries and discovery evidence (2026-11-09)
+
+- Document: `docs/evidence/p1-8/P1.8.89-inventory-claim-boundaries-and-discovery-evidence.md`.
+- Commit: `5029d1b324478ea51dc6e439de81b2c7f502cf5e`.
+- Blob SHA: `bfc84ed0dcf565f44041782ea6c0cc0f67422453`.
+- Status: DOCUMENTARY DESIGN ONLY; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED.
+- No source, schema, API, workflow, service, registry, scheduler, database, VPS, Feeder, storage, backup, replica, archive or runtime mutation. No real-data inventory or destructive operation.
