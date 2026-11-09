@@ -2732,3 +2732,17 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - This remains a bounded audit, not a semantic review of all 637 blobs. Six-group repository-wide absence remains NOT VERIFIED. No source or docs were deleted; no tests or Actions were run; no runtime/VPS/database/data/credential/key/permission changes. No workflow run/artifact claimed.
 - Status: phase-2 bounded review PASS; repository-wide audit PARTIAL; independent second review NOT PERFORMED; no implementation REMOVE-CANDIDATE established; no deletion authorized/performed. Option C remains in force.
 - Next: finish the remaining documentation/configuration/test surfaces with coverage accounting; then independent second review. Any documentation deletion must name exact path(s), preserve Android legal/privacy obligations, and be authorized separately before mutation.
+
+
+## T0 commercial-scope documentation/configuration review — phase 3 (2026-11-09)
+
+- Read handoff first. Exact source commit `2e4af7a218f06be5666f0e56cda9f1df825d9ab9`; recursive tree complete, 638 tracked blobs.
+- Inspected 23 documents covering architecture/runbooks, T0 staging/provider research, lifecycle/security, PostgreSQL/Kraken design, Codemagic docs and Android commercial/privacy/terms documents. Exact blob SHAs and findings are in `docs/evidence/COMMERCIAL_SCOPE_DOCUMENTATION_AUDIT_PHASE3_2026-11-09.md`.
+- Infrastructure provider billing/payment/provisioning language is infrastructure cost/security research, not customer billing. Keep these controls.
+- PostgreSQL/Kraken docs are technical data capability docs, not commercial services. Retain pending their separate consumer/architecture decision.
+- Exact documentation-only candidate identified: `android-app/COMMERCIAL_READINESS.md` (blob `9532b34f4a7c1dcac571b9ba4fe5064fa2cfc324`), a future public-release/paid-commercialization checklist. Proposed REMOVE only after independent second review and explicit owner approval.
+- `android-app/PRIVACY_POLICY.md` and `android-app/TERMS_OF_USE.md` are NOT removal candidates in this phase; retain pending any separate legal/privacy/ownership review.
+- Evidence report commit: `7d1bce2c91b2c5af5facfbb6158733d762745497`.
+- No source/config/docs/dependency/workflow/runtime/data/credential/key/permission mutation except this audit record and handoff. No deletion. Tests NOT RUN; Actions NOT DISPATCHED; no run/artifact.
+- Status: phase-3 bounded documentation review PASS; one documentation candidate identified but NOT APPROVED; repository-wide six-group absence NOT VERIFIED; independent second review NOT PERFORMED. Option C remains in force.
+- Next: request genuinely independent second review of the exact candidate and full audit evidence; if accepted, obtain explicit approval for deleting only `android-app/COMMERCIAL_READINESS.md`. Continue residual source/docs coverage accounting. No other deletion is in scope.
