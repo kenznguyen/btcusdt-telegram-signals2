@@ -1957,3 +1957,23 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No source implementation, tests, GitHub Actions dispatch, Binance REST, VPS/runtime, T1 activation, T0/T2, strategy/AI/ledger/risk/trading changes, or destructive data operations. No workflow run or artifact is claimed.
 - Next step: issue #138 is retargeted only after this final contract SHA and same-session review are recorded; wait for genuinely independent review. Implementation remains NOT AUTHORIZED and T1 activation remains NOT AUTHORIZED.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
+
+
+## Latest completed work — P1.17 follow-up adversarial self-review (2026-11-09)
+
+- User requested another self-review after P1.15/P1.16.
+- Exact reviewed normative contract blob SHA: `f78dc4410db61755149cb6a7e0c440330bc80741` (contract commit `69559bb0363934158351d794a48e17555f0222a8`).
+- Review file: `docs/reviews/t1/P1_17_SELF_REVIEW_F05_MANIFEST_REFERENCE_AND_F02_ROLLBACK_LIMIT_2026-11-09.md`.
+- Review commit: `17b4ddecfc7370163f6c78f3a5d778fe5a773a10`.
+- Review type: same-session static adversarial self-review; NOT independent.
+- Verdict: REQUEST CHANGES. Two residual findings:
+  - F05-R2 HIGH: §22.11.4 says manifest `exchange_info_evidence_ref` references the Envelope-record ID, but §21.5 still calls it a reference to the raw ExchangeInfo snapshot and says it resolves to that snapshot. §22.11's precedence statement does not expressly supersede §21.5. Update §21.5 and precedence; add a fixture that rejects a manifest reference to a valid Raw-body object.
+  - F02-R2 HIGH capability-boundary clarification: local checkpoint/counter/receipt/data all share one rollback domain. A same-filesystem full-root snapshot rollback can preserve all local identities and self-consistency; without an independent monotonic anchor the process cannot automatically detect that it is looking at an older state. The design must state that local checkpoint supports crash recovery only under a no-full-root-rollback assumption; known/suspected restore/clone/snapshot rollback must quarantine. Automatic full-root rollback detection is NOT PROVIDED absent a separately designed external anchor.
+- Rechecked F01: §22.1 expressly supersedes older conflicting clauses and forbids current-profile `RECONCILED_COMPLETE`; watermark is non-authoritative progress only.
+- F02-R1 checkpoint structure and fsync ordering are specified, but do not solve full-root rollback detection.
+- F05-R1 is not fully closed across the document until §21.5 is aligned with §22.11.4.
+- F03/F06/F07 target filesystem/provider behavior NOT VERIFIED; REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED.
+- C01–C132 remain design-only; NOT IMPLEMENTED / NOT EXECUTED. No source implementation, tests, Actions run/artifact, REST, VPS/runtime, T1 activation or destructive operation.
+- Issue #138 remains OPEN and targets the exact P1.15 contract SHA. No independent reviewer response is present. Do not treat P1.17 self-review as independent.
+- Next step: documentation-only correction of F05-R2 and F02-R2, add negative fixtures, then self-review final SHA before retargeting issue #138.
+- Authorization/guardrails unchanged: T1 implementation and activation NOT AUTHORIZED; T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
