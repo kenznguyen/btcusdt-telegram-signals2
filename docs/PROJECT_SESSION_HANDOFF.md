@@ -1364,3 +1364,17 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Option C remains in force; archive and destructive transitions remain non-executable. Destructive authority NOT GRANTED. GitHub permission inventory remains PAUSED.
 - No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk changes; no staging, restore, fault injection, provider/key/TSA operation, cleanup, vacuum, compaction, backup expiry, replica removal or deletion.
 - Next step: independent static review of P1.8.146 against P1.8.142–P1.8.145 and controlling lifecycle contracts. Any operational inventory, test execution or destructive work requires separate explicit approval.
+
+
+## Latest completed work — P1.8.147 (2026-11-09)
+
+- Completed documentation-only independent static review of P1.8.146 against P1.8.144, P1.8.145, P1.8.143, P1.8.93 and P1.8.117.
+- Review: `docs/evidence/p1-8/P1.8.147-independent-static-review-p1-8-146.md`.
+- Review commit: `f22befd498667b40df0ae54aa4e674dbcea233c7`.
+- Target P1.8.146 blob reviewed: `5efb0ae86d88ede5627ed7b77322463c39fb737e`.
+- Verdict: PARTIAL. IR145-01 through IR145-04 CLOSED at documentary specification level. IR145-05 substantially addressed but IR147-01 MODERATE remains OPEN: P1.8.146 records conflicts across requester/custodian/obligation-owner/approver/executor roles but does not mandate independence from all of them or require an independent second-review control where roles overlap.
+- Cross-contract review: RET-01 B, RET-02 B, Option C, T0 independence, CORE_LEDGER/AI_LEDGER separation, P1.8.93 mutation-fencing and P1.8.117 trusted-time final-boundary semantics remain consistent.
+- Recommended next step: P1.8.148 — Reviewer Independence and Conflict-Control Clarification, documentation-only, narrowly addressing mandatory role separation and independent second review.
+- Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE. Runtime/data/provider/identity inventory NOT PERFORMED. Runtime enforcement NOT VERIFIED.
+- No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk changes; no staging, restore, fault injection, provider/key/TSA operations, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion.
+- GitHub permission inventory remains PAUSED. Option C remains in force. Destructive authority NOT GRANTED.
