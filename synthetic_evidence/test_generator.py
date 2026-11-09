@@ -574,3 +574,227 @@ class DualFixtureArtifactContracts(unittest.TestCase):
             for relative in files_a:
                 with self.subTest(file=relative):
                     self.assertEqual((output_a / relative).read_bytes(), (output_b / relative).read_bytes())
+
+
+class P1820DurableBoundaryAndRecoveryTests(unittest.TestCase):
+    """Six integrated file-backed fault tests; synthetic-only, never production runtime."""
+
+    def _journal(self, path):
+        from synthetic_evidence.root_b_checkpoint_store import DurableRootBJournal
+        return DurableRootBJournal(path, required_observers={"observer-a", "observer-b"})
+
+    def _append_boundary_event(self, journal, event_id, occurred_at, committed_at):
+        raw = json.dumps(
+            {"event_id": event_id, "value": event_id},
+            sort_keys=True, separators=(",", ":"),
+        ).encode()
+        journal.append_event(
+            event_id, raw, occurred_at=occurred_at, committed_at=committed_at,
+        )
+        digest = journal.event_digest(event_id)
+        journal.acknowledge(event_id, "observer-a", digest)
+        journal.acknowledge(event_id, "observer-b", digest)
+
+    def _crash_after_order_events(self, db, events):
+        import os
+        import subprocess
+        import sys
+
+        payload = json.dumps(events, sort_keys=True, separators=(",", ":"))
+        script = r"""
+import json, os, sys
+from synthetic_evidence.root_b_checkpoint_store import DurableRootBJournal
+db, payload = sys.argv[1], sys.argv[2]
+journal = DurableRootBJournal(db, required_observers={"observer-a", "observer-b"})
+for event in json.loads(payload):
+    raw = json.dumps(event, sort_keys=True, separators=(",", ":")).encode()
+    journal.append_event(event["event_id"], raw)
+os._exit(73)
+"""
+        env = dict(os.environ)
+        env["PYTHONPATH"] = str(Path.cwd()) + os.pathsep + env.get("PYTHONPATH", "")
+        result = subprocess.run(
+            [sys.executable, "-c", script, str(db), payload],
+            cwd=Path.cwd(), env=env, capture_output=True, text=True, timeout=10,
+        )
+        self.assertEqual(result.returncode, 73, result.stderr)
+
+    def _persisted_events(self, db):
+        import sqlite3
+        with sqlite3.connect(db) as connection:
+            rows = connection.execute(
+                "SELECT event_bytes FROM events ORDER BY sequence"
+            ).fetchall()
+        return [json.loads(bytes(row[0])) for row in rows]
+
+    def test_a1_event_committed_before_seal_is_in_valid_durable_checkpoint(self):
+        from datetime import datetime, timezone
+        from synthetic_evidence.root_b_checkpoint_store import RootBIntegrityError
+
+        with tempfile.TemporaryDirectory() as tmp:
+            journal = self._journal(Path(tmp) / "journal.sqlite3")
+            self.addCleanup(journal.close)
+            self._append_boundary_event(
+                journal, "before-boundary",
+                "2026-11-07T00:00:00+00:00", "2026-11-07T00:00:30+00:00",
+            )
+            journal.commit_checkpoint(
+                "cp-a1", through_sequence=1,
+                boundary_at="2026-11-07T00:00:00+00:00",
+                sealed_at="2026-11-07T00:01:00+00:00",
+            )
+            recovered = journal.recover_checkpoint()
+            self.assertEqual(recovered["checkpoint_id"], "cp-a1")
+            self.assertEqual(recovered["through_sequence"], 1)
+
+    def test_a2_late_commit_of_pre_boundary_event_invalidates_sealed_checkpoint(self):
+        from synthetic_evidence.root_b_checkpoint_store import RootBIntegrityError
+
+        with tempfile.TemporaryDirectory() as tmp:
+            journal = self._journal(Path(tmp) / "journal.sqlite3")
+            self.addCleanup(journal.close)
+            self._append_boundary_event(
+                journal, "on-time",
+                "2026-11-07T00:00:00+00:00", "2026-11-07T00:00:20+00:00",
+            )
+            journal.commit_checkpoint(
+                "cp-a2", through_sequence=1,
+                boundary_at="2026-11-07T00:01:00+00:00",
+                sealed_at="2026-11-07T00:01:30+00:00",
+            )
+            self._append_boundary_event(
+                journal, "late-pre-boundary",
+                "2026-11-07T00:00:45+00:00", "2026-11-07T00:02:00+00:00",
+            )
+            with self.assertRaisesRegex(RootBIntegrityError, "stale|late|boundary"):
+                journal.recover_checkpoint()
+
+    def test_a3_late_commit_of_post_boundary_event_does_not_invalidate_prior_checkpoint(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            journal = self._journal(Path(tmp) / "journal.sqlite3")
+            self.addCleanup(journal.close)
+            self._append_boundary_event(
+                journal, "in-boundary",
+                "2026-11-07T00:00:00+00:00", "2026-11-07T00:00:30+00:00",
+            )
+            journal.commit_checkpoint(
+                "cp-a3", through_sequence=1,
+                boundary_at="2026-11-07T00:01:00+00:00",
+                sealed_at="2026-11-07T00:01:30+00:00",
+            )
+            self._append_boundary_event(
+                journal, "post-boundary",
+                "2026-11-07T00:01:01+00:00", "2026-11-07T00:03:00+00:00",
+            )
+            recovered = journal.recover_checkpoint()
+            self.assertEqual(recovered["checkpoint_id"], "cp-a3")
+            self.assertEqual(recovered["through_sequence"], 1)
+
+    def test_a4_process_death_after_checkpoint_write_then_late_event_fails_closed(self):
+        import os
+        import subprocess
+        import sys
+        from synthetic_evidence.root_b_checkpoint_store import RootBIntegrityError
+
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "journal.sqlite3"
+            seed = self._journal(db)
+            self._append_boundary_event(
+                seed, "seed",
+                "2026-11-07T00:00:00+00:00", "2026-11-07T00:00:20+00:00",
+            )
+            seed.close()
+            script = r"""
+import os, sys
+from synthetic_evidence.root_b_checkpoint_store import DurableRootBJournal, SimulatedCrash
+journal = DurableRootBJournal(sys.argv[1], required_observers={"observer-a", "observer-b"})
+try:
+    journal.commit_checkpoint(
+        "cp-a4", through_sequence=1,
+        boundary_at="2026-11-07T00:01:00+00:00",
+        sealed_at="2026-11-07T00:01:30+00:00",
+        crash_at="after_durable_write",
+    )
+except SimulatedCrash:
+    os._exit(73)
+os._exit(74)
+"""
+            env = dict(os.environ)
+            env["PYTHONPATH"] = str(Path.cwd()) + os.pathsep + env.get("PYTHONPATH", "")
+            result = subprocess.run(
+                [sys.executable, "-c", script, str(db)],
+                cwd=Path.cwd(), env=env, capture_output=True, text=True, timeout=10,
+            )
+            self.assertEqual(result.returncode, 73, result.stderr)
+            reopened = self._journal(db)
+            self.addCleanup(reopened.close)
+            self._append_boundary_event(
+                reopened, "late-after-restart",
+                "2026-11-07T00:00:45+00:00", "2026-11-07T00:02:00+00:00",
+            )
+            self.assertEqual(reopened.checkpoint_ack_count("cp-a4"), 0)
+            with self.assertRaisesRegex(RootBIntegrityError, "stale|late|boundary"):
+                reopened.recover_checkpoint()
+
+    def test_b1_process_death_after_partial_fill_cancel_replace_recovers_order_state(self):
+        from synthetic_evidence.fault_injection import replay_order_lifecycle
+
+        events = [
+            {"event_id": "1", "type": "ORDER_ACCEPTED", "order_id": "O1", "quantity": "10"},
+            {"event_id": "2", "type": "ORDER_PARTIAL_FILL", "order_id": "O1", "quantity": "3"},
+            {"event_id": "3", "type": "ORDER_CANCELLED", "order_id": "O1"},
+            {"event_id": "4", "type": "ORDER_REPLACED", "order_id": "O2", "replaces": "O1", "quantity": "7"},
+            {"event_id": "5", "type": "ORDER_PARTIAL_FILL", "order_id": "O2", "quantity": "2"},
+            {"event_id": "6", "type": "ORDER_FILLED", "order_id": "O2", "quantity": "5"},
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "journal.sqlite3"
+            self._crash_after_order_events(db, events[:4])
+            recovered_events = self._persisted_events(db)
+            recovered_prefix = replay_order_lifecycle(recovered_events)
+            self.assertEqual(recovered_prefix["remaining_quantity"], "7")
+            self.assertEqual(recovered_prefix["active_order_id"], "O2")
+            journal = self._journal(db)
+            self.addCleanup(journal.close)
+            for event in events[4:]:
+                journal.append_event(
+                    event["event_id"],
+                    json.dumps(event, sort_keys=True, separators=(",", ":")).encode(),
+                )
+            recovered = replay_order_lifecycle(self._persisted_events(db))
+            uninterrupted = replay_order_lifecycle(events)
+            self.assertEqual(recovered, uninterrupted)
+            self.assertEqual(recovered["filled_quantity"], "10")
+            self.assertEqual(recovered["status"], "FILLED")
+
+    def test_b2_restart_after_replacement_partial_fill_final_duplicate_is_idempotent(self):
+        from synthetic_evidence.fault_injection import replay_order_lifecycle
+        from synthetic_evidence.root_b_checkpoint_store import RootBIntegrityError
+
+        events = [
+            {"event_id": "1", "type": "ORDER_ACCEPTED", "order_id": "O1", "quantity": "10"},
+            {"event_id": "2", "type": "ORDER_PARTIAL_FILL", "order_id": "O1", "quantity": "3"},
+            {"event_id": "3", "type": "ORDER_CANCELLED", "order_id": "O1"},
+            {"event_id": "4", "type": "ORDER_REPLACED", "order_id": "O2", "replaces": "O1", "quantity": "7"},
+            {"event_id": "5", "type": "ORDER_PARTIAL_FILL", "order_id": "O2", "quantity": "2"},
+            {"event_id": "6", "type": "ORDER_FILLED", "order_id": "O2", "quantity": "5"},
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "journal.sqlite3"
+            self._crash_after_order_events(db, events[:5])
+            journal = self._journal(db)
+            self.addCleanup(journal.close)
+            final = events[5]
+            final_bytes = json.dumps(final, sort_keys=True, separators=(",", ":")).encode()
+            self.assertEqual(journal.append_event("6", final_bytes), "EVENT_APPENDED")
+            self.assertEqual(journal.append_event("6", final_bytes), "EVENT_DUPLICATE")
+            changed = dict(final, quantity="4")
+            with self.assertRaisesRegex(RootBIntegrityError, "changed bytes"):
+                journal.append_event(
+                    "6", json.dumps(changed, sort_keys=True, separators=(",", ":")).encode(),
+                )
+            recovered = replay_order_lifecycle(self._persisted_events(db))
+            uninterrupted = replay_order_lifecycle(events)
+            self.assertEqual(recovered, uninterrupted)
+            self.assertEqual(recovered["filled_quantity"], "10")
+            self.assertEqual(recovered["orders"]["O2"]["filled_quantity"], "7")
