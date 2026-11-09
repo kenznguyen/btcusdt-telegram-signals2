@@ -257,3 +257,14 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; synthetic 13/13 only; RPO/RTO planning targets only; `AI_EXECUTION_ENABLED=false`.
 - No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes; no provider/key operations, data probes, staging, restore, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
 - No evidence-backed numeric/provider owner decision is currently ready from the reviewed documents alone. Continue documentation-only work; ask for separate permission only when an exact privileged/operational action becomes necessary.
+
+
+### P1.8.49 / P1.8.50 — Evidence acquisition readiness
+- P1.8.49 plan: `docs/evidence/p1-8/P1.8.49-evidence-acquisition-readiness-plan.md`; commit `545aaf8dc52307d524c9fe127fcd9abc3b2f7980`; blob `f93cb1e2677074491340620eb2e931abc08dbc8d`.
+- Defines E0 documentary, E1 synthetic, E2 authorized non-production, E3 operational and E4 staging evidence classes; includes V07/V08/Restore evidence fields and permission prerequisites.
+- No sample size, duration, percentile, tolerance, provider, clock source or numeric threshold selected. No evidence acquired.
+- P1.8.50 review: `docs/evidence/p1-8/P1.8.50-independent-review-evidence-acquisition-plan.md`; commit `8b1adad56d575c2b10e3968b97ccd529c142c708`; blob `0bb24c6cf9e3c850ebe83acf4940747449190740`.
+- P1.8.50 result: PASS; no new findings. Evidence classes/provenance and separate E2/E3/E4 permission gates are consistent.
+- V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; no E2/E3/E4 evidence acquired; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; RPO/RTO planning targets only; `AI_EXECUTION_ENABLED=false`.
+- No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes; no provider/key operations, live data probes, staging, restore, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
+- Next gate: concise owner status/permission-boundary handoff. Do not request generic permission in advance; ask only when a specific evidence-backed action is ready.
