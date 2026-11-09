@@ -253,6 +253,58 @@ For M15, start_ms=0, end_ms=2700000, Δ=900000, so E={0,900000,1800000} and expe
 - This is same-session contract design/self-review, not independent review. No canonical database or runtime was accessed; no code, tests, Actions or provider operations were performed.
 
 
+
+### 4.7 G0.5 — Backend-specific multi-partition snapshot protocol (2026-11-10)
+
+**Disposition: contract design specified; implementation and deployment qualification remain NOT VERIFIED.** A checkpoint spanning multiple timeframe/range partitions MUST be read from one backend database identity and one pinned read transaction. Multiple calls to the current public read_window facade are not sufficient because each call opens its own connection/transaction.
+
+#### A. Common requirements
+
+1. One checkpoint MUST name exactly one source backend and one canonical database identity reference. A checkpoint MUST NOT combine rows read from SQLite and PostgreSQL or from different database instances.
+2. All declared partitions MUST be read through the same connection and transaction. The transaction isolation mode, backend version, schema/migration identity and read-only status MUST be recorded.
+3. The first consistent read establishes the snapshot. Every subsequent partition query and metadata query needed for the checkpoint MUST execute in that same transaction.
+4. The producer MUST retain the exact returned row bytes in memory or a noncanonical staging buffer until all partition reads and validations complete. No partial manifest is emitted if any query fails.
+5. A connection loss, transaction abort, timeout, schema change that invalidates the read, or uncertainty about whether every partition used the same snapshot yields snapshot_consistency=UNKNOWN and no COMPLETE checkpoint claim.
+6. Snapshot consistency is independent of completeness and durability. A stable snapshot can be incomplete; a complete set of rows can still lack a proven common snapshot; neither proves durable commit.
+7. Local start/end observation timestamps are operational metadata only, not trusted historical time.
+
+#### B. SQLite profile
+
+- Open one read-only connection to the selected canonical SQLite database.
+- Start one explicit read transaction with BEGIN; the first SELECT establishes the SQLite read snapshot.
+- Execute every partition SELECT, schema-version/migration metadata read and required source metadata read on that same connection before ending the transaction.
+- Keep the transaction open until all requested rows have been fetched and validated. Do not open a second connection per timeframe or page.
+- Record backend=sqlite, database identity reference, SQLite library version, journal mode observed, schema/migration identity, transaction mode=READ_TRANSACTION, and that a stable snapshot identifier is NOT_EXPOSED by this contract.
+- WAL mode permits writers to continue while the reader retains its snapshot; it does not by itself prove durability or create an externally verifiable snapshot token.
+- If the source is not in the expected journal mode or a stable same-transaction read cannot be established, snapshot consistency is UNKNOWN/BLOCKED; do not silently fall back to independent reads.
+
+The current SQLite read_window implementation starts a read transaction per invocation, but it opens its own connection. It therefore supports a consistent individual read_window, not a multi-partition checkpoint snapshot across separate calls.
+
+#### C. PostgreSQL profile
+
+- Open one connection and one explicit read-only transaction.
+- Set transaction isolation to REPEATABLE READ READ ONLY before the first data query.
+- Execute every partition SELECT and all required metadata reads on that same connection/transaction.
+- Record PostgreSQL server version, database identity reference, schema/migration identity, isolation=REPEATABLE READ, read_only=true, transaction start observation and snapshot token if the selected server exposes a suitable token. If no stable token is exposed, record snapshot_token=NOT_EXPOSED; do not synthesize one.
+- A connection/transaction restart between partitions invalidates the common-snapshot claim.
+- The current PostgreSQL read adapter already requests REPEATABLE READ READ ONLY for each read_window call, but each call opens a new connection/transaction. It therefore does not establish one common snapshot across multiple calls.
+
+#### D. Checkpoint construction boundary
+
+The producer MUST complete all reads inside the pinned transaction, validate partition membership/completeness, compute row and partition commitments, and capture the exact transaction/snapshot metadata before releasing the connection. It may serialize the manifest and compute its object digest after the read transaction ends because the exact rows and snapshot metadata have already been frozen. The manifest MUST distinguish “snapshot read completed” from “durable commit verified.”
+
+If any required partition is read after the transaction has ended or through a separate connection, the producer MUST restart the entire checkpoint read from a new common snapshot; it MUST NOT merge the old and new result sets.
+
+#### E. G0.5 disposition
+
+- Same-connection/same-transaction requirement: **SPECIFIED**.
+- SQLite: **READ TRANSACTION / FIRST SELECT SNAPSHOT / TOKEN NOT EXPOSED**.
+- PostgreSQL: **REPEATABLE READ READ ONLY / same connection / snapshot token only if actually exposed**.
+- Existing read_window facades: **INSUFFICIENT for a multi-partition common snapshot when invoked separately**.
+- Runtime implementation, database configuration parity, backend-version qualification and concurrency tests: **NOT VERIFIED; deferred to G2/G4 after separate gates**.
+- No canonical DB was opened and no runtime/database test was run. This is same-session design/self-review, not independent review.
+
+
 ## 5. Canonical serialization and digest rules
 
 The normative v1 canonicalization profile is T0-JCS-1, defined in §5.1. It uses RFC 8785 JCS with stricter T0 schema rules. No production library/runtime is selected by this contract.
@@ -599,4 +651,4 @@ Gated sequence:
 - Restore, fault injection, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion: NOT AUTHORIZED / NOT PERFORMED.
 - Option C remains in force; T0 canonical data and recovery copies remain protected; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 
-**Final status: T0 EVIDENCE OBJECT / CHECKPOINT CONTRACT v1 DRAFTED — DOCUMENTATION ONLY — NOT IMPLEMENTED — G0.2 PASS (F-01 RESOLVED FOR INSPECTED BASELINE); G0.3 PASS AT CONTRACT-DESIGN LEVEL (F-02); G0.4 PASS AT CONTRACT-DESIGN LEVEL (F-03); EXECUTABLE CONFORMANCE DEFERRED TO G2; SNAPSHOT/DURABILITY/ISSUER/CUSTODY/ANCHOR ITEMS OPEN; G0 NOT YET CLOSED; INDEPENDENT REVIEW REQUIRED.**
+**Final status: T0 EVIDENCE OBJECT / CHECKPOINT CONTRACT v1 DRAFTED — DOCUMENTATION ONLY — NOT IMPLEMENTED — G0.2 PASS (F-01); G0.3 PASS AT CONTRACT-DESIGN LEVEL (F-02); G0.4 PASS AT CONTRACT-DESIGN LEVEL (F-03); G0.5 SNAPSHOT PROTOCOL SPECIFIED BUT NOT IMPLEMENTED/QUALIFIED; EXECUTABLE CONFORMANCE DEFERRED TO G2; DURABILITY/ISSUER/CUSTODY/ANCHOR ITEMS OPEN; G0 NOT YET CLOSED; INDEPENDENT REVIEW REQUIRED.**
