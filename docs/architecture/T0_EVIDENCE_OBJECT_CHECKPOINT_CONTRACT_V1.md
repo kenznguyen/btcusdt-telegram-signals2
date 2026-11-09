@@ -305,6 +305,83 @@ If any required partition is read after the transaction has ended or through a s
 - No canonical DB was opened and no runtime/database test was run. This is same-session design/self-review, not independent review.
 
 
+
+### 4.8 G0.6 — Commit observation and durable-commit receipt semantics (2026-11-10)
+
+**Disposition: contract design specified; no current T0 durability profile is certified.** A successful API response, completed read, visible row or datasetVersion MUST NOT be described as a durable-commit receipt.
+
+#### A. Separate outcome states
+
+A commit observation MUST use one of these states:
+
+- COMMIT_OBSERVED: the writer received an unambiguous successful return from the database transaction commit boundary for the exact write operation.
+- COMMIT_REJECTED: the database returned an explicit failure and the transaction was confirmed rolled back.
+- COMMIT_OUTCOME_UNKNOWN: the writer lost the connection/process or otherwise cannot establish whether the transaction committed.
+- DATA_PRESENT_MATCH: a later independent read found all expected keys and exact values, but the original transaction outcome is not established.
+- DATA_PRESENT_CONFLICT: a later read found a conflicting value for one or more expected keys.
+- DATA_ABSENT_AT_READBACK: a later read did not find one or more expected keys; this does not by itself establish the original transaction outcome.
+
+DATA_PRESENT_MATCH MUST NOT be promoted to COMMIT_OBSERVED. An idempotent retry or pre-existing identical rows can explain a matching readback without proving that the specific attempted transaction committed.
+
+#### B. Commit observation record
+
+A future immutable Commit Observation record MUST bind:
+
+- unique operation_id generated before the write attempt;
+- exact source backend and database identity reference;
+- source schema/migration revision and writer source commit SHA;
+- exact writer/lease owner identity reference and lease generation (never lease secret);
+- exact ordered row-key set and row-content commitment root for the attempted batch;
+- attempted/validated/inserted/idempotently-matched row counts;
+- database transaction result state from §4.8.A;
+- backend-reported transaction identifier if genuinely exposed, otherwise explicit NOT_EXPOSED;
+- local transaction-start and commit-return observation times, marked untrusted;
+- effective durability-related configuration observed for that exact operation, including unavailable/unobservable settings;
+- error class/reason when rejected or unknown.
+
+The record is created outside the canonical candle row schema. This contract does not authorize adding columns/tables to T0 or changing the writer.
+
+#### C. Post-commit receipt and readback
+
+A Commit Receipt is a separate immutable evidence object created only after COMMIT_OBSERVED. It MUST bind the exact Commit Observation digest and operation_id, the batch commitment root, backend/database identity, and a post-commit readback result from a new read transaction.
+
+The readback MUST compare exact row keys and canonical values, not only row counts. Its result is one of READBACK_MATCH, READBACK_MISSING, READBACK_CONFLICT or READBACK_UNKNOWN. The receipt records the readback snapshot boundary and limitations.
+
+If the process terminates after database commit but before the Commit Observation/Receipt is durably preserved, the outcome remains COMMIT_OUTCOME_UNKNOWN or COMMIT_OBSERVED_UNRECORDED as applicable. Recovery may create a new reconciliation record, but MUST NOT fabricate a receipt for the lost original observation or infer the original commit from matching rows alone.
+
+The receipt itself requires independent custody and readback under L4-Minimum. A receipt stored only in the same database, same VPS or GitHub does not independently establish custody or failure-domain durability.
+
+#### D. Durability profile is a separate qualification
+
+COMMIT_OBSERVED and READBACK_MATCH establish only a transaction result and subsequent data visibility. They do not establish survival of process crash, OS crash, power loss, host loss, volume loss or provider failure.
+
+DURABILITY_PROFILE_VERIFIED requires all of the following for the exact backend/configuration/failure domain:
+
+1. effective runtime/database settings captured from the actual target configuration (not inferred from source defaults);
+2. documented database, filesystem, block-device and provider persistence semantics for the claimed failure domain;
+3. exact source/configuration and infrastructure identity frozen in the evidence;
+4. bounded destructive/fault testing on disposable isolated infrastructure only, with explicit separate authorization and recovery proof;
+5. qualifying independent review and preserved test/readback evidence;
+6. no extrapolation from SQLite to PostgreSQL or between providers/volumes/configurations.
+
+Until these criteria pass, durability remains NOT_ESTABLISHED or UNKNOWN. No numeric RPO/RTO or host/power-loss survival claim is inferred.
+
+#### E. TSA A eligibility boundary
+
+For the selected A use case (dataset/checkpoint proof-of-existence), a TSA request MUST NOT be issued merely because a read or database COMMIT returned successfully. It remains blocked until the exact checkpoint's source rows have a qualifying DURABILITY_PROFILE_VERIFIED receipt under §4.8.D and the immutable manifest is frozen. A TSA token, if later separately authorized, proves only the narrowly scoped existence-by-time claim allowed by its verified policy; it does not repair missing durability evidence.
+
+TSA remains asynchronous and outside the T0 write transaction and Feeder scheduling path. A TSA failure cannot roll back a valid candle commit.
+
+#### F. G0.6 disposition
+
+- Commit outcome states and lost-response semantics: **SPECIFIED**.
+- Post-commit exact-row readback receipt: **SPECIFIED**.
+- Backend-specific durability qualification: **NOT VERIFIED / NOT CERTIFIED** for current SQLite and PostgreSQL deployments.
+- TSA A submission eligibility: **BLOCKED until DURABILITY_PROFILE_VERIFIED and separate G5/provider authorization**.
+- Disposable fault testing, restore and provider/storage qualification: **NOT AUTHORIZED by G0–G3**; requires separate authorization.
+- No canonical database, runtime, provider, VPS, storage, key or trust root was accessed or changed. No tests or Actions were run. Same-session design/self-review only.
+
+
 ## 5. Canonical serialization and digest rules
 
 The normative v1 canonicalization profile is T0-JCS-1, defined in §5.1. It uses RFC 8785 JCS with stricter T0 schema rules. No production library/runtime is selected by this contract.
@@ -651,4 +728,4 @@ Gated sequence:
 - Restore, fault injection, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion: NOT AUTHORIZED / NOT PERFORMED.
 - Option C remains in force; T0 canonical data and recovery copies remain protected; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 
-**Final status: T0 EVIDENCE OBJECT / CHECKPOINT CONTRACT v1 DRAFTED — DOCUMENTATION ONLY — NOT IMPLEMENTED — G0.2 PASS (F-01); G0.3 PASS AT CONTRACT-DESIGN LEVEL (F-02); G0.4 PASS AT CONTRACT-DESIGN LEVEL (F-03); G0.5 SNAPSHOT PROTOCOL SPECIFIED BUT NOT IMPLEMENTED/QUALIFIED; EXECUTABLE CONFORMANCE DEFERRED TO G2; DURABILITY/ISSUER/CUSTODY/ANCHOR ITEMS OPEN; G0 NOT YET CLOSED; INDEPENDENT REVIEW REQUIRED.**
+**Final status: T0 EVIDENCE OBJECT / CHECKPOINT CONTRACT v1 DRAFTED — DOCUMENTATION ONLY — NOT IMPLEMENTED — G0.2 PASS (F-01); G0.3/G0.4 PASS AT CONTRACT-DESIGN LEVEL (F-02/F-03); G0.5 SNAPSHOT AND G0.6 COMMIT-RECEIPT PROTOCOLS SPECIFIED BUT NOT IMPLEMENTED/QUALIFIED; CURRENT BACKEND DURABILITY NOT VERIFIED; EXECUTABLE CONFORMANCE DEFERRED TO G2; ISSUER/CUSTODY/ANCHOR/RETENTION ITEMS OPEN; G0 NOT YET CLOSED; INDEPENDENT REVIEW REQUIRED.**
