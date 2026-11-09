@@ -1038,3 +1038,22 @@ Owner approval: explicit approval received for P1.8.120. Scope was limited to st
 - Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Deletion authority: NOT GRANTED.
 - T0 canonical independence and CORE_LEDGER/AI_LEDGER separation unchanged; `AI_EXECUTION_ENABLED=false`.
 - Next gate: owner decision on role-model direction remains OPEN. Option A or C can be considered as owner decisions; Option B first requires a separate mandatory pre-commit independent-control specification and review. Any IAM, implementation, test, workflow or operational work requires separate explicit authorization.
+
+
+## P1.8.121 — Owner Decision Ratification: Option C No Destructive Authority (2026-11-09)
+
+Owner decision: explicit approval received to select **Option C — No Destructive Authority** as the system's default authorization model.
+
+- Decision record: `docs/evidence/p1-8/P1.8.121-owner-decision-ratification-option-c-no-destructive-authority.md`.
+- Decision document commit: `c2ceed7f80b34494ce76a45ec69e27420323a60b`.
+- Option C is now the approved default: no worker, adapter, service, operator or individual receives destructive authority until independently controlled coverage is demonstrated and separately approved.
+- Read-only inspection, inventory/manifest reconciliation, non-mutating integrity checks and lifecycle eligibility assessment remain permissible only within existing access boundaries.
+- Delete, overwrite, truncate, purge, archive, destructive cleanup/vacuum and any equivalent mutation remain prohibited. No authority may arise from timeout, ACK, restore readiness, quarantine resolution, evidence PASS, repository write access or alternate credentials.
+- Option A is a possible future transition target, not selected. Any C-to-A proposal requires genuinely independent principals, separation of requester/approver/executor/verifier, exact-object authorization, bypass-resistant revocation/delegation/emergency controls, independent review and separate owner approval.
+- Option B remains unselected and not selection-ready while P1.8.120 IR120-01 remains unresolved. Selecting C does not close that finding for Option B.
+- P1.8.121 status: OWNER DECISION APPROVED; DOCUMENTARY RATIFICATION RECORDED; independent static review PENDING.
+- Static authoring/read-back: pending verification. Tests: NOT RUN. GitHub Actions: NOT DISPATCHED. Workflow run/artifact: NONE.
+- IAM/role assignment/access grant/credential/workflow activation: NOT EXECUTED / NOT AUTHORIZED. Runtime/provider/storage/registry/consumer/copy inventory: NOT VERIFIED / NOT PERFORMED.
+- Restore/staging/fault injection/provider/key/TSA operations: NOT EXECUTED / NOT AUTHORIZED. Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Destructive/deletion authority: NOT GRANTED.
+- T0 remains an independent canonical data asset; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`.
+- Next gate: independent static review of P1.8.121. No tests, workflow dispatch, IAM, implementation, staging or destructive operation is authorized by this decision.
