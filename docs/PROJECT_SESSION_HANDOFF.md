@@ -448,3 +448,15 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - No source/schema/API/workflow/service/registry/scheduler/storage/runtime change; no VPS/DB access; no tests or CI run; no workflow dispatch or artifact. No retention values or deletion permissions selected. No destructive operation authorized. `AI_EXECUTION_ENABLED=false`.
 - Status: DESIGN GAP ASSESSMENT COMPLETE; DELETION MECHANISM PARTIAL / NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
 
+### P1.8.80 — Retention and Eligibility Policy (2026-11-09)
+
+- Policy decomposition: `docs/evidence/p1-8/P1.8.80-retention-and-eligibility-policy.md`.
+- Document commit: `3d059cedbd5ce548ebfa7c229ab18a267c1a205b`.
+- Defines class-by-class retention and disposition posture across T0 canonical candles/metadata/feeder controls, T1 raw observations/derived snapshots/sidecar evidence, T2 inputs/features/training/models/predictions, T3 CORE_LEDGER/AI_LEDGER and execution/reconciliation state, T4 read models/caches, CI evidence, governance records, and backup/replica/export/local copies.
+- Separates PROTECTED, RETAIN_UNTIL_REVIEW, ARCHIVE_REVIEWABLE, DELETION_REVIEWABLE, BLOCKED_UNKNOWN and OPEN_OWNER_DECISION. These are policy outcomes, not runtime enums or execution permissions.
+- T0 canonical deletion remains OPEN; no deletion permission inferred. No dataset class is authorized for deletion. Archive is blocked where consumer availability/latency/restore requirements are unknown; P1.8.81 owns that contract gap.
+- Retention remains demand/obligation-based. No numeric retention floor, TTL, grace period, approval quorum, authorization lifetime or evidence-freshness window was invented. Rebuildability requires exact-source and transformation evidence.
+- RET-01–RET-10 owner decisions and missing evidence are recorded explicitly. CORE_LEDGER and AI_LEDGER remain separate; no copy cascade.
+- Status: DOCUMENTARY POLICY DECOMPOSITION COMPLETE; OWNER DECISIONS OPEN; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
+- No source/schema/API/workflow/service/registry/scheduler/storage/runtime change; no VPS/DB access; no tests/CI, deletion dry-run, archive, vacuum, cleanup, restore, fault injection or destructive operation. Workflow run/artifact: NONE.
+- Next: P1.8.81 Dependency and Consumer Governance; close normative availability/latency/restore vocabulary, authoritative registry consistency and dependency reconciliation. Do not begin V07/V08/Restore/TSA conflict review before P1.8.84 and independent deletion-design review.
