@@ -3258,3 +3258,15 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: T0 index navigation link PASS; technical README/index role separation PASS; architecture/root README broader reconciliation NOT VERIFIED / DEFERRED. Tests and GitHub Actions NOT RUN / NOT DISPATCHED. Independent review NOT PERFORMED.
 - No source, test, workflow, package, schema, runtime, VPS, database, provider, key, permission or data changes. No PR or merge. Option C — No Destructive Authority — unchanged; no TTL/delete-after-use/cleanup/archive/compaction/vacuum/backup expiry/replica removal.
 - Next step: separately reconcile `docs/FIVE_LAYER_ARCHITECTURE.md` and repository `README.md` against the approved five-layer scope and GitHub Actions operating model, without reintroducing Android Chart/Scanner or Python bot/backtest as five-layer dependencies. Do not change code or workflows during that documentation review.
+
+
+## Five-Layer Architecture Scope Reconciliation — 2026-11-10
+
+- Scope: documentation-only reconciliation of `docs/FIVE_LAYER_ARCHITECTURE.md` and repository `README.md` on the existing branch.
+- Architecture document now states the explicit exclusion boundary: Android Chart/Scanner and Python bot/backtest are separate systems, not T0–T4 components, consumers, dependencies, rollout targets or acceptance scope. T4 is React Dashboard/control plane only; APK references were removed from the five-layer flow and implementation plan. Legacy context is retained only as an exclusion statement.
+- Architecture update commit: `6eedeb135746ca3dc136feebcdd9ea80f939070a`; new blob SHA: `70e9cd84341ac245a5c6cfa86fa35cd9d8150ec6`.
+- Root README now identifies GitHub as source/evidence storage and GitHub Actions as the project's workflow runner; Codemagic is labeled legacy/out-of-scope runner context. The README separates five-layer components from Android Chart/Scanner, Python bot/backtest, Telegram and legacy backtest UI.
+- Root README update commit: `fbd8db6262ef9a7bdae55324041b36c17e487042`; new blob SHA: `65f58a94bd0f38e38e2d52d7d0d218c9df52242a`.
+- Status: documentation scope reconciliation PASS at text level. No claim that all current GitHub Actions workflows, branch protections, secrets or runtime execution were independently audited; those remain NOT VERIFIED. Tests and GitHub Actions NOT RUN / NOT DISPATCHED. Independent review NOT PERFORMED.
+- No source, test, workflow, package, schema, runtime, VPS, database, provider, key, permission or data changes. No PR or merge. Option C — No Destructive Authority — unchanged; no TTL, delete-after-use, cleanup, archive, compaction, vacuum, backup expiry or replica removal.
+- Next step: perform a read-only inventory of `.github/workflows` and referenced workflow documentation to establish the actual GitHub Actions execution map; do not dispatch workflows or modify workflow files without separate approval.
