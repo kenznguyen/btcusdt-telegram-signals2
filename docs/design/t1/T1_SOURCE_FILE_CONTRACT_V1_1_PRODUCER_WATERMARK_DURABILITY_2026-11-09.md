@@ -166,8 +166,8 @@ Retain C01–C24 from v1 and add:
 - C26 BTCUSDT spelling without trusted product metadata → SOURCE_IDENTITY_UNPROVEN.
 - C27 missing/non-1m interval → UNSUPPORTED_SCHEMA.
 - C28 missing minute before watermark reaches window end → PENDING / SOURCE_NOT_SEALED.
-- C29 missing minute after valid watermark and contiguous health → WINDOW_GAP, no aggregate.
-- C30 watermark with UNKNOWN/GAP_DETECTED health → no seal.
+- C29 missing minute despite nominal watermark under the current profile → SOURCE_HEALTH_UNKNOWN / RECONCILIATION_SOURCE_DIVERGENCE / SOURCE_NOT_SEALED as applicable; WINDOW_GAP is not assignable; no aggregate.
+- C30 watermark with UNKNOWN/INVALIDATED health, or any attempted GAP_DETECTED assignment under the current profile → no seal; reject/quarantine.
 - C31 caller-created watermark → SOURCE_WATERMARK_UNTRUSTED.
 - C32 manifest published before data sync → producer protocol failure.
 - C33 data sync succeeds but manifest rename fails → old manifest authoritative.
@@ -183,7 +183,6 @@ Retain C01–C24 from v1 and add:
 - C43 prefix digest mismatch → SOURCE_PREFIX_MISMATCH.
 - C44 append to SEALED generation → producer invariant violation.
 - C45 second writer claims same generation → fail closed.
-- C46 full REST coverage and matching WS values → only eligible for further review; commit is forbidden unless every identity, exact request-boundary, pagination, finality/correction, source-health, no-conflict, generation-binding, durable-publication and receipt-verification gate passes. This fixture must fail if any prerequisite is absent.
 - C82 reader sees a renamed manifest before the parent-directory fsync has completed → no matching commit receipt exists; reject as PREPARED/UNCOMMITTED.
 - C83 manifest directory fsync completed but process crashes before commit receipt publication → reject/quarantine (safe false-negative); do not infer commit from manifest visibility.
 - C84 matching receipt is atomically visible after the manifest directory fsync, but receipt directory fsync has not completed → accept only if receipt file content validates and all bound manifest/data checks pass; after crash, missing receipt is a safe false-negative.
@@ -300,7 +299,7 @@ A later REST response that differs from an already sealed record must not rewrit
 ### 14.5 Additional deterministic fixtures
 
 Add:
-- C46 REST reconciliation returns exact full expected 1m coverage and values match WS → reconciled evidence may be committed.
+- C46 REST reconciliation returns exact full expected 1m coverage and values match WS → eligible for further review only. Commit is forbidden unless every identity, exact request-boundary, pagination, finality/correction, source-health, no-conflict, generation-binding, durable-publication and receipt-verification gate passes. The fixture must fail if any prerequisite is absent.
 - C47 REST response omits a minute; no-trade semantics not proven → SOURCE_HEALTH_UNKNOWN, no watermark.
 - C48 REST response is delayed/partial/rate-limited → RECONCILIATION_PENDING, no watermark.
 - C49 REST and WS final candle differ → RECONCILIATION_CONFLICT, quarantine.
@@ -505,7 +504,7 @@ The following must never set `GAP_DETECTED`:
 - queue overflow, disconnect, parser/writer/sync failure, process crash, or unknown receive continuity;
 - a missing row in an unsealed or otherwise unproven window.
 
-Those cases remain `SOURCE_HEALTH_UNKNOWN`, `SOURCE_HEALTH_INVALIDATED`, `RECONCILIATION_SOURCE_DIVERGENCE`, or another precise quarantine/pending state as applicable. A transport/collector continuity failure is health invalidation, not proof of a market-data gap. `WINDOW_GAP` remains a consumer classification available only after a valid seal and complete health proof establish that a source row is absent; it does not authorize aggregation or synthesis. Under P1.3, the REST endpoint cannot currently provide that proof, so missing REST minutes remain UNKNOWN.
+Those cases remain `SOURCE_HEALTH_UNKNOWN`, `SOURCE_HEALTH_INVALIDATED`, `RECONCILIATION_SOURCE_DIVERGENCE`, or another precise quarantine/pending state as applicable. A transport/collector continuity failure is health invalidation, not proof of a market-data gap. `WINDOW_GAP` is reserved and not assignable under the current v1.1 profile, just like `GAP_DETECTED`. No current consumer may classify a missing row as a confirmed gap. Missing REST minutes remain UNKNOWN; source asymmetry remains divergence/unknown. A future separately versioned, authoritative and independently approved evidence profile is required before either gap state can be assigned. Neither state authorizes aggregation or synthesis.
 
 ### 20.3 Failure to durably persist health evidence
 
