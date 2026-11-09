@@ -2678,3 +2678,17 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - T1 → T0/T2 integration remains NOT VERIFIED; T1 activation/deployment NOT AUTHORIZED / NOT PERFORMED.
 - No T1 source commit/push, collector launch, Binance connection, credentials, runtime mutation, PR merge, issue retarget, or workflow configuration change.
 - Next: preserve the local patch and evidence. Before any source commit/push or new CI attempt, obtain explicit scope approval; do not create T1 commits solely to trigger the currently blocked dispatcher.
+
+
+## T0 de-commercialization follow-on deployment and consumer audit (2026-11-09)
+
+- Read handoff before work; confirmed branch HEAD at audit start: `ae545616ed5c35767d6f3c00ad77f4deac7bb79f`; tree SHA `755db16daeef9454c23bae36789afc6953522214`; recursive tree complete, 636 tracked paths, `truncated=false`.
+- Extended `docs/decisions/D-2026-11-09-T0-PERSONAL-USE-SCOPE-AND-DECOMMERCIALIZATION.md` §11 with branch-pinned deployment/archived-workflow and PostgreSQL/Kraken consumer evidence.
+- Decision-record update commit: `0fc395cfa780125812338f4d79da8fa229716650`; exact updated blob SHA: `a79c1128d393a48e0c47f20579602ff96de26093`.
+- PostgreSQL finding: code supports a complete optional T0 runtime path (candle store + DB-clock lease + fenced write gateway); SQLite remains default. Runtime/deployed backend selection NOT VERIFIED. Classification KEEP AS SUPPORTED OPTIONAL BACKEND; defer adoption/cost decision.
+- Kraken finding: isolated adapter, separate SQLite store and separate read API, dedicated tests and manual gates. No in-repository T1/T2/Futures consumer demonstrated in the bounded path/file review; external/manual consumer and owner research value NOT VERIFIED. Classification DEFER / REVIEW; no removal candidate.
+- Archived workflow/deployment review is PARTIAL. Archived workflow README states Codemagic runs jobs, conflicting with owner's current GitHub Actions-primary/Codemagic-deprecated direction; Codemagic config remains tracked but external account state/execution NOT VERIFIED.
+- CI-policy defect found: `ci/test_ci_policy.py` blob `42b2c4164b28e1dac32457f36435d05207350714` asserts `.github/workflows/` has no YAML files, while the pinned tree contains 13 active workflow YAML files. Codemagic's canonical-market-data workflow invokes CI policy tests via `ci/test_*.py` discovery. Likely exact-tree failure if that legacy Codemagic workflow runs; NOT EXECUTED. Separate CI-maintenance scope required; no change made.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact. No VPS/runtime/database/data/key/permission/provider operation. No source/config/workflow/deployment mutation. No deletion or destructive operation.
+- Status: branch-pinned path inventory COMPLETE; semantic audit PARTIAL; PostgreSQL implementation dependency confirmed but actual runtime use NOT VERIFIED; Kraken external/manual consumer NOT VERIFIED; CI policy inconsistency FOUND; repository-wide commercial absence NOT VERIFIED; independent second review BLOCKED; no REMOVE-CANDIDATE; Option C remains in force.
+- Next: separate CI-policy reconciliation; finish Kraken external/manual consumer/value inventory; obtain genuinely independent second review before any removal proposal.
