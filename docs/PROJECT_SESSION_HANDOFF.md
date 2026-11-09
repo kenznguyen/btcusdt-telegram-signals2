@@ -1879,3 +1879,23 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Status: P1.12 DOCUMENTATION CORRECTIONS COMPLETE / SAME-SESSION SELF-REVIEW PASS FOR F01–F06 AT CONTRACT LEVEL / F07 NOT VERIFIED / INDEPENDENT REVIEW PENDING / IMPLEMENTATION NOT AUTHORIZED / T1 ACTIVATION NOT AUTHORIZED.
 - Guardrails unchanged: T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
 - Next step: wait for genuinely independent written review on exact design blob SHA `4034d740c9694ef0d9da7d81cc1d1055a0175302`. Do not implement or activate T1 before independent review and separate approval/evidence gates.
+
+
+## Latest completed work — P1.13 same-session adversarial self-review of P1.12 T1 contract (2026-11-09)
+
+- Review: `docs/reviews/t1/P1_13_SELF_REVIEW_P1_12_T1_CONTRACT_2026-11-09.md`.
+- Review commit: `20cf3a4b2a86e0c4d262a34166428c64ca9b581d`.
+- Exact reviewed normative design blob SHA: `4034d740c9694ef0d9da7d81cc1d1055a0175302`.
+- Review type: same-session static adversarial self-review; NOT independent.
+- Verdict: REQUEST CHANGES — F04 is not closed because §22.4 defines a six-key source-root initialization record while §22.9 defines an eleven-key record, both using exact closed-schema language. Strict parser implementation cannot satisfy both definitions.
+- F02 PARTIAL: C103 covers crash after receipt rename before commits-directory fsync, but recovery does not explicitly require a recovery fsync barrier and define the acceptance linearization point before treating a surviving receipt as committed.
+- F01 PASS at documentation level: §22.1 forbids RECONCILED_COMPLETE and reconciliation_evidence_ref; watermark is non-authoritative observed progress only. No parser/adapter test exists.
+- F03 PASS at contract level; actual target filesystem, mount/provider, flock, renameat2 and fsync semantics remain NOT VERIFIED.
+- F05 PARTIAL: raw ExchangeInfo evidence binding is specified, but the exact evidence-envelope/header inventory should be normalized into one authoritative schema.
+- F06 PASS at contract level; implementation and target primitive availability NOT VERIFIED.
+- F07 remains NOT VERIFIED. Binance REST completeness semantics remain NOT ACCEPTED. Producer f64/12-decimal/parse-to-zero defect remains CONFIRMED / NOT FIXED. FINAL_ONLY/product identity implementation NOT VERIFIED. Manifest/receipt/counter/evidence store/adapter NOT IMPLEMENTED. C01–C116 NOT EXECUTED.
+- This review supersedes P1.12 self-review's implementation-readiness assessment. P1.12 design changes remain present; implementation is still NOT AUTHORIZED.
+- No source code, tests, Actions dispatch, REST, VPS/runtime, T0/T1/T2, strategy/AI/ledger/risk/trading changes, T1 activation, or destructive data operations. No workflow run or artifact is claimed.
+- Issue #138 remains OPEN and targets the exact P1.12 design SHA; it still requires genuinely independent review. P1.13 is not independent and does not close the issue.
+- Next step: correct F04 schema contradiction, clarify F02 recovery barrier/linearization, normalize F05 evidence-envelope schema, add negative/crash fixtures, then self-review the new exact SHA before independent review.
+- Guardrails: T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
