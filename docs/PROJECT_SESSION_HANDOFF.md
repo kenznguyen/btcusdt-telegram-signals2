@@ -1410,3 +1410,19 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk changes; no staging, restore, fault injection, provider/key/TSA operations, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion.
 - GitHub permission inventory remains PAUSED. Option C remains in force. Destructive authority NOT GRANTED.
 - Recommended next step: P1.8.150 — Conflicted Contributor versus Qualifying Independent Reviewer Clarification, documentation-only. No implementation or operational work is implied.
+
+
+## Latest completed work — P1.8.150 (2026-11-09)
+
+- Added documentation-only supplement: `docs/evidence/p1-8/P1.8.150-conflicted-contributor-independent-reviewer-clarification.md`.
+- Commit: `600704c5c969dc6bcbfbd48736bc45430a777b98`.
+- Final target blob SHA after read-back: `f23fbcfdc85c82b95271d835a1e452e4a9863db2`.
+- Scope: addresses P1.8.149 IR149-01 by distinguishing CONFLICTED CONTRIBUTOR / evidence producer from QUALIFYING INDEPENDENT REVIEWER.
+- A conflicted participant may provide factual inputs or a preliminary analysis only when labelled NON-INDEPENDENT — NON-AUTHORITATIVE — NOT AN ACCEPTANCE; cannot issue, approve, co-sign, veto or override the independent disposition.
+- Where role separation is infeasible, the independent second reviewer becomes the sole qualifying reviewer for the affected claim and must directly examine underlying evidence. If none is available, claim remains INDEPENDENT_REVIEW_REQUIRED / BLOCKED.
+- Preserves P1.8.143 RET-01 B / RET-02 B, T0 protection, CORE_LEDGER/AI_LEDGER separation and Option C — No Destructive Authority.
+- Status: CLARIFICATION DRAFTED — INDEPENDENT STATIC REVIEW REQUIRED. Documentary-only; no personnel/identity/permission inventory.
+- Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE. Runtime enforcement NOT VERIFIED.
+- No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk changes; no staging, restore, fault injection, provider/key/TSA operations, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion.
+- GitHub permission inventory remains PAUSED. Destructive authority NOT GRANTED.
+- Next gate: independent static review of P1.8.150 against P1.8.148–P1.8.149, P1.8.146 §6 and controlling lifecycle contracts. No implementation or operational work is implied.
