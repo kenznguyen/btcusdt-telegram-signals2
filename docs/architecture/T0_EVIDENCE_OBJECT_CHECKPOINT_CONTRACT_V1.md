@@ -333,6 +333,69 @@ The inspected T0 source mapping records:
 
 Therefore this contract is **not yet implementable as a production assurance claim**. The next work must close contract review and exact-source compatibility gaps before any schema/source integration.
 
+
+### 12.1 G0.2 — Exact T0 candle contract/source mapping (2026-11-10)
+
+**Disposition: F-01 RESOLVED FOR THE INSPECTED SOURCE BASELINE; no standalone document titled “T0 Candle Contract v1” was found in the inspected branch.** The authoritative contract for this review is therefore the conjunction of the executable Candle value object/serializer, SQLite schema and read path, PostgreSQL migration/read path, and market_data/README.md. This is a source-derived mapping, not an assertion about a live database or deployment.
+
+Exact inspected Git blob identities:
+
+| Artifact | Blob SHA | Role |
+|---|---|---|
+| market_data/store.py | 4e1b0c54bd56455abe5be0e5c7d0807e63e0bc78 | Candle validation, SQLite table, API serializer and read-window semantics |
+| market_data/storage.py | 13fe1ae01ebb5318b69e69eef3e512d207f74c49 | Backend selection; SQLite/PostgreSQL read facade |
+| market_data/postgres.py | 2fe27fe2d066dda0c192a381b72d27404487b800 | PostgreSQL read adapter, transaction isolation and shared Candle serializer |
+| market_data/migrations/001_initial_timescale.sql | 777d884d217004569e97821a76b506572ee8f5b7 | Physical PostgreSQL candle schema and constraints |
+| market_data/README.md | 660a2f0f4f88c0de4fa8c1be3c4af96df282de0e | Public API field/time/coverage/provenance semantics |
+| P1.8.77-read-only-t0-source-mapping-tsa-compatibility.md | 35057494b5b3c240e636cfdea3505e8870361ca5 | Prior read-only cross-file source map |
+| P1.8.78-independent-review-t0-source-mapping.md | 4794a531befa0bf1ce2fbb428ae466fcb6a280a9 | Static review of P1.8.77 within its declared scope |
+
+#### Physical persisted row
+
+The SQLite candles table and PostgreSQL market_data.candles table persist the following columns:
+
+- exchange, market_type, symbol, timeframe, open_time_ms;
+- open, high, low, close, volume;
+- available_at_ms;
+- PostgreSQL additionally has nullable ingestion_batch_id UUID; the inspected canonical writer does not populate it.
+
+The market/timeframe identity is fixed to Binance USD-M USDT perpetual BTCUSDT, with only 15m and 1h supported. The primary key is (exchange, market_type, symbol, timeframe, open_time_ms). Timestamps are nonnegative signed-64-bit millisecond integers; candle opens must align to timeframe; available_at_ms must be at or after the exclusive close boundary. OHLCV are stored as decimal/numeric values, with positive OHLC, nonnegative volume and OHLC consistency constraints. SQLite validates decimal strings before storage and reconstructs/validates Candle objects on read; PostgreSQL has matching database constraints and the read adapter reconstructs the same Candle type.
+
+#### API/serializer fields versus persisted columns
+
+The following fields are derived by Candle.as_dict(); they are **not independent persisted columns** in the inspected schema:
+
+| Serialized field | Derivation / semantics | Persisted? |
+|---|---|---|
+| closeTimeMs | openTimeMs + INTERVAL_MS[timeframe]; exclusive end boundary | No |
+| isClosed | Constant true after Candle validation requires availableAtMs >= closeTimeMs | No |
+| availabilityKind | Constant FIRST_OBSERVED | No |
+| quality | Constant VALIDATED; structural/OHLC/time checks only, not exchange-truth certification | No |
+| source | Constant ccxt.binanceusdm | No |
+
+The persisted available_at_ms is rendered as availableAtMs. The source identity ccxt.binanceusdm is serializer metadata, not a per-row source column. The constant FIRST_OBSERVED is not a separately persisted enum. A checkpoint must not describe these derived values as independently stored evidence.
+
+#### Read-window contract
+
+- Window is UTC milliseconds with exact half-open interval [startMs,endMs); both endpoints must align to timeframe, and the window must be nonempty and bounded.
+- Optional asOfMs filters rows by available_at_ms <= asOfMs.
+- Rows are selected by exact market identity and ordered by open_time_ms.
+- Coverage is derived from expected aligned intervals and actual returned rows; gaps are emitted as half-open intervals. datasetVersion hashes the selected response-window JSON, not a persisted checkpoint or entire database.
+- PostgreSQL reads use REPEATABLE READ READ ONLY; SQLite read_window opens a read transaction. These are source-level read semantics and do not yet define the multi-partition, multi-timeframe checkpoint snapshot protocol.
+
+#### Compatibility consequences for Evidence Object v1
+
+1. Evidence identity and row commitments MUST distinguish persisted source fields from serializer-derived fields. The manifest may include derived values only when it records the exact serializer/profile version and does not imply independent persistence.
+2. ingestion_batch_id MUST be treated as nullable and not assumed to identify every ingested row or batch.
+3. available_at_ms is the persisted first-observed availability timestamp in this implementation; it is not a trusted timestamp and does not establish historical existence before observation.
+4. quality=VALIDATED is a structural validation label only. It cannot be promoted to independent source truth, completeness, or economic correctness.
+5. 15m and 1h are separate aligned partitions. Their watermark and membership proofs MUST remain separate.
+6. A checkpoint completeness oracle must bind the exact requested range, timeframe interval, expected open-time set, returned open-time set and gap derivation. A row count or first/last timestamp alone is insufficient.
+7. This mapping does not prove current live schema parity, actual canonical DB contents, runtime configuration, storage durability, or that every historical branch/ref has this schema.
+
+**G0.2 self-review:** source definitions and README semantics agree on the supported market/timeframe, half-open range, close-boundary derivation, decimal OHLCV, availability filter, gap reporting and response digest. Physical-vs-derived field distinctions are explicit. No field was invented to fill a schema gap. Remaining open work is canonical byte profile/content-root (F-02), exact completeness oracle (F-03), and backend snapshot/durable receipt semantics. This is same-session static review, not independent review.
+
+
 ## 13. Open decisions and gated implementation sequence
 
 ### 13.1 TSA compatibility boundary
@@ -379,4 +442,4 @@ Gated sequence:
 - Restore, fault injection, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion: NOT AUTHORIZED / NOT PERFORMED.
 - Option C remains in force; T0 canonical data and recovery copies remain protected; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 
-**Final status: T0 EVIDENCE OBJECT / CHECKPOINT CONTRACT v1 DRAFTED — DOCUMENTATION ONLY — NOT IMPLEMENTED — OWNER DECISIONS AND INDEPENDENT REVIEW REQUIRED.**
+**Final status: T0 EVIDENCE OBJECT / CHECKPOINT CONTRACT v1 DRAFTED — DOCUMENTATION ONLY — NOT IMPLEMENTED — G0.2 SOURCE MAPPING PASS (F-01 RESOLVED FOR INSPECTED BASELINE); F-02/F-03 AND OTHER G0 ITEMS OPEN; G0 NOT YET CLOSED; INDEPENDENT REVIEW REQUIRED.**
