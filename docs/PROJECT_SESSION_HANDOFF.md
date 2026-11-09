@@ -2146,3 +2146,17 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Residual blockers unchanged: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C156 NOT IMPLEMENTED / NOT EXECUTED.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
 
+## P1.27 — ERA protocol specification and follow-up self-review (2026-11-09)
+
+- Contract commit: `7f40cf53687801dc4f4410c6ad61d5d347577ea2`.
+- Exact contract blob: `19b6ce968776c6ff017966573ce53cbd3d33daa5`.
+- Added ERA_V1 protocol, closed signed response envelope, separate ERA trust bootstrap/key, policy-head/advance/consumption payload schemas, nonce binding, caller roles, compare-and-advance, exact retry and monotonicity requirements.
+- Added C157–C166 for envelope tampering, bootstrap failure, policy-head/advance errors, unauthorized role, durability/reuse, exact retry, key rotation and stale response replay.
+- P1.27 self-review file: `docs/reviews/t1/P1_27_SELF_REVIEW_ERA_PROTOCOL_RECEIPT_SCHEMAS_2026-11-09.md`.
+- Review commit: `559ab93b6e636907371c26f831359cd6afea52f7`; review blob: `002f466f8e17e92afedb37dd5b26da3fae69ce37`.
+- Verdict: **REQUEST CHANGES — F02-R10 HIGH**. The recovery-epoch schema pins the ERA consumption payload but not the signed response envelope that authenticates it. The payload itself has no signature; after restart or ERA unavailability, durable epoch evidence cannot prove the ERA signature/authority sequence/operation. Require an immutable evidence bundle or explicit envelope ref/digest, bind exact payload digest, persist/fsync before epoch publication, verify after restart, and add negative fixtures.
+- Issue #138 remains targeted at P1.24 SHA until F02-R10 is corrected and a new exact-SHA self-review passes.
+- No ERA implementation, executable tests, Actions dispatch, REST, VPS/runtime, T1 activation, T0/T2 changes, trading or destructive data operations.
+- Existing blockers unchanged: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C166 NOT IMPLEMENTED / NOT EXECUTED.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
