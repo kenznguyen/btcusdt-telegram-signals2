@@ -145,6 +145,9 @@ Appends after scan_end are deferred to the next poll. Truncation, replacement, m
 - SOURCE_MANIFEST_ROLLBACK: manifest generation/version/offset regressed.
 - SOURCE_PREFIX_MISMATCH: committed-prefix digest differs from file bytes.
 - SOURCE_IDENTITY_CHANGED: file or generation changed during scan.
+- RECONCILIATION_SOURCE_DIVERGENCE: REST contains a candle key absent from the WebSocket-derived generation; no implicit agreement or row insertion.
+- SOURCE_HEALTH_INVALIDATED: a durable or inferred continuity failure invalidates the affected range/generation; watermark remains withheld until an accepted recovery procedure resolves it.
+
 
 Missing rows before a valid seal are PENDING, not a confirmed gap. Missing rows after a valid seal and contiguous health proof are WINDOW_GAP. Both block aggregation.
 
