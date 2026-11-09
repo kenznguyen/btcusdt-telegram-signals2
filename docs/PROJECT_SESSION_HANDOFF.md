@@ -2475,3 +2475,25 @@ This section supersedes the P1.42 handoff statement that C01–C24 source defini
 - No fixture code, tests, GitHub Actions dispatch, REST request, VPS/runtime or filesystem experiment, source implementation, T0/T2 mutation, T1 activation, trading action or destructive operation occurred.
 - Remaining blockers unchanged: F07 NOT VERIFIED; Binance REST completeness NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; FINAL_ONLY/product identity implementation NOT VERIFIED; manifest/receipt/counter/checkpoint/ERA/trust-policy/ExchangeInfo implementation NOT IMPLEMENTED / NOT VERIFIED.
 - Next step: proceed to the producer decimal defect on the existing T1 collector branch, with golden tests, without claiming compliance until CI evidence is recorded. Keep target-filesystem durability NOT VERIFIED and do not access or mutate the VPS/canonical T0 data.
+
+
+## Latest completed work — P1.44: T1 kline decimal-loss correction
+
+- Continued on existing T1 collector branch `feature/t1-connection-sidecar-integration-20261107`, PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Baseline T1 source SHA: `6e20fe94f3ad64cc450e73def80a167fe371e49e`.
+- Confirmed defect path: `src/websocket/message_handler.rs::process_kline` called `format_decimal_str`, which parsed strings through `f64` and normalized to 12 decimals; `src/utils/csv_writer.rs::write_kline` repeated the float conversion and used `unwrap_or(0.0)`.
+- Added regression tests first. TDD RED run `42644618882` at test-only SHA `c0a8a6fe506d6c8bf4596dbf1e0b8d0c15bf7ae2`: 43 passed / 3 failed as intended. Logs show exact precision loss and malformed/non-finite input acceptance.
+- Fix commits:
+  - Writer commit `268c4e85b5eef45f4f5d5788391057e341b012ed`; writer blob at that checkpoint `aa88bfb9f8b4d71bf70dd5c9333b527cf34b5d8e`.
+  - Decimal helper commit / tested source checkpoint `ad03560b6409de3c28688fb25d57fa49aed66a9f`; `src/models.rs` blob `9b195b921eda2863f3769eaac34b3bd0bae48bd1`.
+- Behavior: `format_decimal_str` now preserves the input lexeme; `write_kline` validates all eight decimal fields before opening/creating a file, then writes exact source strings without `f64` conversion. Malformed/non-finite numeric input returns an error; invalid input does not create a CSV file. No new dependency.
+- Green GitHub Actions run `42644995874`, event `push`, exact tested source SHA `ad03560b6409de3c28688fb25d57fa49aed66a9f`: SUCCESS, 5/5 jobs PASS. Collector library 46/46; sidecar library 12/12; sidecar integration 27/27; formatting, Clippy, release build, Docker, dashboard backend/frontend and security jobs PASS.
+- CI artifact `13686259637`, digest `sha256:eea348cc8cc370b9368abfc661655fa607aa0cb0ae0d9530ee81e081eecd1e04`, expires `2026-11-16T15:30:10Z`. Artifact is not deployment authorization.
+- Added two additional lexical-validator tests (plain/exponent acceptance and malformed/non-finite rejection) at T1 commit `bbd591895421e383af83d68afc921ebc6df2a1d4`, then added T1 evidence doc at commit `c502fa1032c71c8b34cc09a6c5cca8eb79996d13`. These commits do not change the implementation logic tested at `ad03560...`.
+- Exact current T1 branch HEAD: `c502fa1032c71c8b34cc09a6c5cca8eb79996d13`; current writer blob `c41cc7c13fc320e4083058fe6fe5683dc5c213d5`; current models blob `9b195b921eda2863f3769eaac34b3bd0bae48bd1`.
+- The two workflow attempts for exact current HEAD `c502fa1...` ended `startup_failure` before job creation: `42645569066` (push) and `42645581768` (pull_request), both zero jobs. They are not test failures, but the additional two lexical tests and exact current HEAD remain NOT VERIFIED.
+- T1 evidence doc: `docs/evidence/T1_KLINE_DECIMAL_PRESERVATION_2026-11-09.md`, blob `e7d0b03cef7800f94e13b6d1e761cb50bf3770d5`.
+- P1.44 code self-review: `docs/reviews/t1/P1_44_SELF_REVIEW_T1_KLINE_DECIMAL_PRESERVATION_2026-11-09.md`; review commit `8b758f1d95dceeac8994fd79bf84364b1bf03285`; exact review blob `22f4080a93bebb0e31e674b563daea71827f8b99`. Verdict: bounded code self-review PASS at tested SHA `ad03560...`; same-session, NOT independent. Current HEAD remains NOT VERIFIED.
+- Status: decimal-loss behavior FIXED and CI-VERIFIED at `ad03560...`; latest T1 branch HEAD / added edge tests NOT VERIFIED pending a fresh workflow run. No PR merge, deployment, VPS/runtime operation, T1 activation, T0/T2 mutation, live order, exchange credential use or destructive data operation.
+- Remaining blockers unchanged: FINAL_ONLY/product identity implementation NOT VERIFIED; Binance REST completeness NOT ACCEPTED; target filesystem/provider durability F07 NOT VERIFIED; no production readiness claim.
+- Next step: obtain a successful GitHub Actions run for exact T1 branch HEAD `c502fa1...` (or a later HEAD) so the added lexical edge tests are verified; only then proceed to FINAL_ONLY/product identity implementation review. Keep PR #1 OPEN/DRAFT and do not activate T1.
