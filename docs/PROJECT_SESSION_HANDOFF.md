@@ -610,3 +610,13 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: DOCUMENTARY DESIGN ONLY; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED.
 - No source, schema, API, workflow, service, registry, scheduler, database, VPS, Feeder, storage, backup, replica, archive or runtime mutation. No real-data inventory or destructive operation.
+
+### P1.8.90 — Executable Negative-Case Specification (2026-11-09)
+
+- Document: `docs/evidence/p1-8/P1.8.90-executable-negative-case-specification.md`.
+- Commit: `43ca42452d9d0b58dfa34c87899fde561887435f`.
+- Blob SHA: `8014ef15f347d255ee3d02f6f28847a02db27aff`.
+- Converts P1.8.84 and P1.8.85–P1.8.89 into deterministic future test specifications, including 47 minimum vectors, deterministic concurrency barriers, independent oracle requirements, result vocabulary and evidence package.
+- Test design only: no test code, fixture, workflow or CI job created; no tests executed.
+- Status: TEST DESIGN ONLY; NOT EXECUTED / NOT IMPLEMENTED / NOT AUTHORIZED.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/storage/VPS/database mutation or inventory; no archive, cleanup, restore, vacuum, key destruction or deletion.
