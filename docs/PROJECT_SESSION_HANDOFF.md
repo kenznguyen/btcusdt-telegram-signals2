@@ -2262,3 +2262,15 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No Actions run/artifact, executable tests, REST, VPS/runtime, T1 activation, T0/T2 changes, trading or destructive data operations.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
 
+
+
+## Latest review — P1.35 (2026-11-09)
+
+- Exact contract blob reviewed: `0b4bef0ca9e0fdef7524dc3766cc32d897fa64ea`.
+- P1.34 self-review blob: `302939ee72397fa6893eaffb23f4042625b60edc`.
+- Review: `docs/reviews/t1/P1_35_SELF_REVIEW_MANIFEST_HISTORY_RECOVERY_CHECKPOINTS_2026-11-09.md`.
+- Finding: F02-R18 HIGH — §21.5/§5.2 replace the single fixed `manifest.json` on each publication, while §22.11.2 requires every checkpoint's exact historical manifest to remain available and validate. No immutable historical-manifest storage model is defined.
+- Verdict: REQUEST CHANGES. Whole-contract documentation acceptance blocked until the historical manifest retention/binding model and negative/crash fixtures are specified and exact-SHA self-reviewed.
+- Issue #138 remains OPEN and must not be retargeted as PASS. Independent review remains pending.
+- No source implementation, executable tests, Actions dispatch, REST/VPS/runtime, T1 activation, T0/T2 change, trading or destructive data operation was performed or authorized.
+- Residual blockers unchanged: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; ERA services NOT IMPLEMENTED / NOT VERIFIED; C01–C189 NOT IMPLEMENTED / NOT EXECUTED.
