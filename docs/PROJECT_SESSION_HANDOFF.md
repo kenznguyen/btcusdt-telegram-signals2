@@ -3341,3 +3341,5 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Exclusion does not delete, disable, migrate or refactor Android/Python assets, source code, data or their legacy workflows. Telegram and old backtest dashboard remain separate repository assets as well.
 - Tests NOT RUN; GitHub Actions NOT DISPATCHED; independent review NOT PERFORMED. No source, workflow, package, data, runtime, VPS, database, provider, secret, permission or Codemagic changes. No PR/merge.
 - Next step: read-back consistency check of the decision record, README, T0 index, architecture and this handoff; no implementation is needed for this scope decision.
+
+- Follow-up README clarification: the repository workflow table is explicitly labeled as a whole-repository inventory, not the Five-Layer CI scope; Android, Telegram, backtest and scanner workflows are marked OUT OF SCOPE. Commit: `82c564784e626cef3a0e31cd64225ed36ef6f5f1`; README blob: `f74128561ff1cf56af63214c84e1d8915bd8c5a2`.
