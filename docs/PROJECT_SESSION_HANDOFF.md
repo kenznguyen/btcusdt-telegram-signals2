@@ -1617,3 +1617,15 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - GitHub Actions: NOT DISPATCHED; run ID NONE; artifact NONE.
 - Guardrails: T0 independent/canonical; no T1 writes to T0; paper-only; AI_EXECUTION_ENABLED=false; no live orders; no OKX fallback/replacement; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
 - Next step: revise v1.1 to define the producer-owned authoritative final-candle reconciliation protocol and manifest evidence schema; then request a genuinely independent review. No implementation until separate explicit approval.
+
+
+### P1.2 reconciliation-source addendum
+
+- Inspected pinned T1 source tree and src/rest/client.rs at SHA 6e20fe94f3ad64cc450e73def80a167fe371e49e. Existing REST client exposes mark-price, index-price and premium-index klines, but no standard trade-kline endpoint; T1 currently has no implemented source for the proposed completeness reconciliation.
+- Candidate identified from official Binance USDⓈ-M documentation: GET /fapi/v1/klines, symbol BTCUSDT, interval 1m. Official references: https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data and https://developers.binance.info/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data.
+- v1.1 design expanded with reconciliation transaction, raw response/digest evidence, WS-vs-REST conflict handling, bounded retries, generation/manifest binding, late correction quarantine and C46–C54 fixtures.
+- Design update commit: 88d08819dc253e50eaf4ea8ccac69ea6acfa4df2; blob SHA: 21c85a7867f3bcca1475353e89cacd8297f55d1a.
+- Source addendum: docs/reviews/t1/P1_2_BINANCE_REST_KLINE_RECONCILIATION_SOURCE_ADDENDUM_2026-11-09.md; commit 5dced81d20bb4e795fd2742822a0c66bc0424f4d.
+- Remaining critical unknowns: REST start/end boundary semantics, no-trade-minute omission semantics, candle finality and historical revisions, maintenance/symbol-state behavior, and gap-free pagination. If no-trade minutes may be omitted without authoritative distinction, REST absence cannot prove either a data gap or no-trade minute. No watermark may advance until these are verified.
+- Status: CANDIDATE SOURCE IDENTIFIED / COMPLETENESS ORACLE NOT VERIFIED / IMPLEMENTATION NOT AUTHORIZED / INDEPENDENT REVIEW PENDING.
+- No REST endpoint called; no T1 code, tests, Actions workflow, VPS/runtime, T0/T2 or trading logic changed. No destructive data operations.
