@@ -763,3 +763,90 @@ For ExchangeInfo evidence envelopes, §22.9 is likewise the sole authoritative c
 
 For receipt recovery, §22.6.1 defines the sole acceptance linearization point and restart barrier. A visible receipt without proven prior directory-fsync completion is unconfirmed until recovery validates all bound state, successfully fsyncs both commits and generation directories under the exclusive lock, and durably records the recovery checkpoint. Failure at any step means quarantine, not best-effort acceptance. C117–C120 are mandatory planned negative/crash scenarios.
 
+
+
+### 22.11 P1.15 recovery-checkpoint contract and evidence identifier namespaces (F02-R1, F05-R1)
+
+This section is normative and supersedes any ambiguous checkpoint or ExchangeInfo identifier wording in §§22.5, 22.6.1 and 22.9. It is a documentation-only contract correction. It does not authorize implementation, tests, runtime use or T1 activation.
+
+#### 22.11.1 Recovery checkpoint object, path and closed schema (F02-R1)
+
+The generation directory MUST contain a `recovery-checkpoints/` directory created during controlled offline generation initialization. The directory entry and its parent generation directory MUST be durably synchronized before the generation is made available to a writer or reader. The directory is never automatically cleaned or compacted under this contract.
+
+A recovery checkpoint is an immutable record for exactly one publication sequence. Its final path is:
+
+`recovery-checkpoints/<20-digit-zero-padded-publication_sequence>.checkpoint.json`
+
+The filename is decimal ASCII and MUST equal the `publication_sequence` field. A checkpoint is created only after the complete validation and recovery barriers in §22.6.1 succeed. Its closed schema contains exactly these keys and types:
+
+- `checkpoint_version`: exact string `1.0`;
+- `source_root_id`: canonical lowercase UUIDv4;
+- `generation_sequence`: unsigned safe integer;
+- `generation_id`: canonical lowercase UUIDv4;
+- `publication_sequence`: unsigned safe integer;
+- `receipt_filename`: exact canonical receipt filename for that sequence;
+- `receipt_sha256`: SHA-256 of the exact final receipt bytes;
+- `manifest_sha256`: SHA-256 of the exact manifest bytes;
+- `publication_counter_sha256`: SHA-256 of the exact canonical publication-counter bytes validated during recovery;
+- `committed_offset_bytes`: unsigned safe integer;
+- `committed_record_count`: unsigned safe integer;
+- `data_prefix_sha256`: SHA-256 of the exact committed data prefix;
+- `commits_directory_fsync_completed`: exact JSON boolean `true`;
+- `generation_directory_fsync_completed`: exact JSON boolean `true`;
+- `checkpoint_kind`: exact string `RECOVERY_ACCEPTANCE`;
+- `accepted_at_utc`: canonical audit timestamp, not ordering or trust evidence.
+
+The checkpoint is UTF-8 JCS canonical JSON, with duplicate-key rejection, no BOM, no trailing bytes, no floating-point values and no unknown/missing keys. All fields MUST exactly bind the validated receipt, manifest, counter, generation and committed data prefix. A parser MUST reject any mismatch, noncanonical encoding, wrong type or extra/missing key.
+
+Checkpoint publication MUST use exclusive/no-follow temporary creation, complete write, file fsync, atomic no-replace installation on the same filesystem, and fsync of the `recovery-checkpoints/` directory before the checkpoint can be considered durable. Existing final checkpoint paths MUST never be overwritten; a collision causes quarantine, even if the existing bytes appear identical. Temporary/orphan checkpoint files are not acceptance records and MUST be preserved for diagnosis; no automatic cleanup is authorized.
+
+#### 22.11.2 Checkpoint and publication-counter consistency; rollback boundary (F02-R1)
+
+While holding the exclusive generation lock, recovery MUST enumerate the complete recovery-checkpoints directory and validate every final checkpoint. It MUST reject duplicate sequences, unknown entries, malformed records, filename/content disagreement, missing referenced receipts, digest mismatch, generation mismatch, counter mismatch, non-monotonic sequence history or any checkpoint whose bound publication sequence exceeds the durable publication counter.
+
+For each checkpoint, the exact referenced receipt and manifest MUST still exist and validate; the counter digest and high-water value MUST be consistent with the validated publication history. A checkpoint is not permission to ignore or skip validation of the complete receipt directory, current manifest, counter or committed data prefix. A checkpoint for sequence N cannot establish acceptance of sequence N+1.
+
+A checkpoint created by recovery is durable local recovery evidence, not an independent anti-rollback anchor. The checkpoint, publication counter, receipts, manifests and data stored under one source root share the same rollback/failure domain. If the entire root, its checkpoint history and counter may have been copied or restored together and there is no separately trusted monotonic external anchor proving the latest state, continuity and latest accepted sequence are NOT PROVEN. The root MUST be quarantined; it MUST NOT reconstruct a lower counter, reuse a sequence, or claim continuity. Recovery then requires a separately approved new source_root_id/recovery epoch and fresh reconciliation. This v1.1 profile makes no protection claim against full-root snapshot rollback, host compromise or privileged tampering.
+
+The initialization record and a checkpoint located only within the same root MUST NOT be described as independently trusted external anchors. If the checkpoint directory is missing, empty when a previously accepted recovery checkpoint is expected, unreadable, rolled back, corrupted, copied without a trusted external continuity proof, or inconsistent with the counter/receipt history, recovery MUST fail closed and quarantine. No checkpoint may be synthesized from current files after ambiguity.
+
+#### 22.11.3 Recovery acceptance ordering (F02-R1)
+
+For a final receipt whose original commits-directory fsync completion is unproven, recovery MUST perform the following under the exclusive generation lock:
+
+1. Validate root initialization and generation identity; publication counter; complete receipt directory; exact receipt and manifest bytes; file identity; committed prefix; and all existing recovery checkpoints.
+2. Verify that the publication sequence is permanently consumed and that no counter/receipt/checkpoint history is missing, regressed, duplicated or ambiguous.
+3. Call `fsync(commits_dir_fd)`, then `fsync(generation_dir_fd)`; both must return successfully.
+4. Construct the exact closed-schema `RECOVERY_ACCEPTANCE` checkpoint binding the validated bytes and counter.
+5. Install the checkpoint with no-replace semantics; fsync the recovery-checkpoints directory.
+6. Only after step 5 succeeds may this recovery path report the receipt as durably recovery-accepted. Any crash before that point requires the entire validation and barrier sequence to be repeated.
+
+A crash after the checkpoint rename but before its directory fsync leaves the checkpoint unconfirmed; on restart it MUST NOT be accepted as durable. Recovery repeats the full procedure. If the checkpoint path already exists, it is validated as a prior durable checkpoint only if its directory durability is established by the trusted prior recovery record; otherwise the state is ambiguous and quarantined rather than overwritten. Failure of any operation means quarantine. The normal writer's commit-acceptance linearization point remains the successful commits-directory fsync defined in §22.6.1; this section adds a durable recovery acceptance record only for restart recovery of an unconfirmed receipt.
+
+#### 22.11.4 ExchangeInfo raw-body and envelope identity namespaces (F05-R1)
+
+The two content identities MUST be distinct and MUST NOT be used interchangeably:
+
+- **Raw-body object ID**: `sha256:<hex>`, where hex is SHA-256 over the exact original HTTP response body bytes. The raw body object is stored at `exchange-info/raw-body/sha256/<hex>`. This digest is the identity of the exchange-originated response bytes.
+- **Envelope-record ID**: `sha256:<hex>`, where hex is SHA-256 over the exact canonical JCS bytes of the closed evidence envelope defined in §22.9. The envelope record is stored at `exchange-info/envelopes/sha256/<hex>.json`. This digest is the identity of the provenance record, not the raw response body.
+
+The envelope's `evidence_id` field MUST equal its own Envelope-record ID. Its `raw_body_sha256` field MUST equal the bare 64-character digest of the referenced Raw-body object. The envelope does not contain its own digest recursively; the Envelope-record ID is computed after canonical serialization of the complete envelope bytes with the `evidence_id` field set according to the following deterministic construction: serialize the envelope with `evidence_id` set to the exact sentinel string `sha256:SELF`, hash those canonical bytes, then replace the sentinel with `sha256:<computed-hex>` and store the resulting canonical envelope bytes. Verification MUST reproduce this sentinel substitution and digest procedure exactly. (No other self-referential or alternate canonicalization scheme is permitted.)
+
+The manifest field `exchange_info_evidence_ref` MUST reference the Envelope-record ID, not the Raw-body object ID. Resolution order is strict: resolve the envelope path from the manifest reference; verify the envelope bytes against the Envelope-record ID using the sentinel procedure; parse and validate the closed schema; read the raw-body object named by `raw_body_sha256`; hash its exact bytes and compare; then extract and hash the unique BTCUSDT raw symbol-record byte slice. A caller-supplied label, filename or digest from one namespace MUST NOT satisfy a reference in the other namespace.
+
+The envelope's `evidence_id` MUST be named/documented as the Envelope-record ID. The raw-body digest MUST be named/documented as the Raw-body object ID. Any equality between the two digests is incidental and MUST NOT be assumed. Missing objects, swapped namespace references, sentinel/digest mismatch, raw-body mismatch, unavailable exact raw bytes or symbol-slice mismatch reject the evidence and quarantine the generation.
+
+#### 22.11.5 Required negative/crash fixtures for P1.15
+
+The following are additions to the design fixture catalogue; all remain NOT IMPLEMENTED / NOT EXECUTED:
+
+- C125: recovery checkpoint missing required key, extra key, wrong type, noncanonical JCS or duplicate JSON key → reject/quarantine; no recovery acceptance.
+- C126: checkpoint filename publication sequence differs from record sequence, or checkpoint binds another generation → reject/quarantine.
+- C127: checkpoint receipt/manifest/counter digest or committed-prefix binding mismatch → reject/quarantine.
+- C128: checkpoint sequence exceeds counter high-water, counter regresses below checkpoint history, duplicate checkpoint sequence or unknown checkpoint-directory entry → reject/quarantine; no sequence reuse.
+- C129: checkpoint file fsync or recovery-checkpoints directory fsync fails; or crash occurs after checkpoint rename but before directory fsync → checkpoint remains unconfirmed; repeat full recovery or quarantine; never accept from memory.
+- C130: checkpoint and counter are copied/restored together without an independently trusted external monotonic anchor → continuity NOT PROVEN; quarantine and require separately approved new root/recovery epoch.
+- C131: manifest references Raw-body ID where Envelope-record ID is required, or references an unrelated/wrong-namespace digest → reject/quarantine.
+- C132: envelope-record digest/sentinel verification fails, raw-body digest does not match envelope `raw_body_sha256`, or raw-body and envelope identifiers are swapped → reject/quarantine.
+
+Every fixture MUST assert absence of durable recovery acceptance, absence of canonical eligibility and absence of completeness-watermark advancement. These are deterministic software-contract scenarios only; they cannot prove target-filesystem/provider durability or Binance source completeness.
