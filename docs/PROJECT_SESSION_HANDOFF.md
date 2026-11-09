@@ -7497,3 +7497,38 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 ### Next step
 
 - Continue to the next approved P1.8/P1.9 evidence requirement; do not expand retention guarantees or enable runtime operations without a separate decision.
+
+
+## 2026-11-09 — P1.8 Ed25519 event-signature verifier
+
+### Scope and source changes
+
+- Approved scope: add an isolated, pinned Ed25519 dependency; implement TDD verifier and synthetic tests on the existing feature branch; commit/push for GitHub Actions verification. No merge approval was given.
+- Added `synthetic_evidence/test_event_signatures.py` (12 tests) in test-first commit `5098a7ac77f5e54da8129ad07d2e893463de1b97`.
+- Added isolated dependency pin `cryptography==50.0.2` in `synthetic_evidence/requirements.txt`, commit `740cafe40bd8e37c8d037d6bf5e1fb6adf69aa97`.
+- Updated P1.8 workflow to install and assert the exact dependency version before compile/tests, commit `2cbff1f6d4deeb502fb0edd0f45a1d32d7fc5596`.
+- Added `synthetic_evidence/event_signatures.py` with Ed25519 verification over exact event bytes and fail-closed public-key registry policy, commit `4f1e1a4e7ecc6ba06a1248ded16740e6b9406dd4`.
+- Corrected an over-escaped test signature fixture in commit `8b64798d2ec6a1767d19d33cc5d0a9a22d598510`.
+
+### TDD and CI verification
+
+- RED: run #131 [42552885089](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42552885089), source SHA `2cbff1f6d4deeb502fb0edd0f45a1d32d7fc5596`; dependency installation succeeded and the suite failed because the verifier module was not yet present.
+- First implementation run #132 [42552907830](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42552907830): 136 tests executed; one test fixture failed because its byte literal encoded a four-character escape sequence rather than one zero byte. Fixed the fixture; no cryptographic assertion was weakened.
+- GREEN: run #133 [42552961879](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42552961879), exact source SHA `8b64798d2ec6a1767d19d33cc5d0a9a22d598510`; overall conclusion SUCCESS, all three jobs PASS. Full synthetic suite **136/136 PASS**, including 12 new Ed25519 tests. Python compile, pinned dependency assertion, deterministic 1,000-event fixtures, provenance binding, independent Sigstore verification, retention manifest and archive all PASS.
+- Archive evidence commit: `a9dfe556c20da013f58ed94011db4703a48841a1`; evidence path: `docs/evidence/p1-8/8b64798d2ec6a1767d19d33cc5d0a9a22d598510/`.
+- Primary artifact ID `13645704472`, digest `sha256:2d14d27456c999be41ba332aebd9348dc1319f0a0de7e313816132b2eaf7b9da`; independent artifact ID `13645983585`, digest `sha256:1f09292992a035544c5af612e75b0084cd43a371b77d27da775b8d58471fe472`. Both expire `2026-11-16T02:48:42Z` (7 days).
+- Archive log markers: `SOURCE_SHA_BRANCH_ANCESTRY=PASS status=identical`, `RETENTION_PAYLOAD_INDEPENDENT_RECHECK=PASS`, `TRUST_ROOT_SNAPSHOT_CHAIN_APPEND=PASS`, `LONG_TERM_GIT_HISTORY_RETENTION=PASS`.
+
+### Assurance limits
+
+- Implemented only a synthetic verifier using `cryptography`; private keys are ephemeral in test memory. Production module contains no signing API and stores no private keys.
+- Public-key registry, validity intervals, rotation, revoked/unknown status and revocation-evidence fail-closed behavior are modeled only as test-supplied policy inputs.
+- **NOT IMPLEMENTED:** production key issuance/custody, signing, persistent registry, trusted revocation-evidence ingestion/cryptographic validation, automated rotation, or integration into event consumers/production execution.
+- This work does not modify T0/T1, VPS, DB, Feeder, market-data ingestion, Strategy Core, AI Strategy, ledgers, exchange adapters, or paper/live execution. `AI_EXECUTION_ENABLED=false` remains enforced.
+- Retention is unchanged: Git history plus seven-day Actions artifacts; `NOT_WORM`.
+
+### Status and next step
+
+- Synthetic Ed25519 verifier and 12 fault/negative tests: **PASS** for the exact source SHA above.
+- Production signing/key lifecycle: **NOT IMPLEMENTED / NOT AUTHORIZED**.
+- Next bounded work: continue the remaining synthetic fault-vector inventory (especially Root B duplicate-ACK/crash and checkpoint/recovery fault paths) before selecting another implementation scope. Do not expand retention or integrate production/runtime behavior without a separate decision.
