@@ -1426,3 +1426,20 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk changes; no staging, restore, fault injection, provider/key/TSA operations, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion.
 - GitHub permission inventory remains PAUSED. Destructive authority NOT GRANTED.
 - Next gate: independent static review of P1.8.150 against P1.8.148–P1.8.149, P1.8.146 §6 and controlling lifecycle contracts. No implementation or operational work is implied.
+
+
+## Latest completed work — P1.8.151 (2026-11-09)
+
+- Completed documentation-only independent static review of P1.8.150.
+- Review: `docs/evidence/p1-8/P1.8.151-independent-static-review-p1-8-150.md`.
+- Review commit: `d6ff977324461eb293f41e501e23c602fa7c2500`.
+- Target P1.8.150 blob reviewed: `f23fbcfdc85c82b95271d835a1e452e4a9863db2`.
+- Final review blob SHA after read-back: `64902f09d0f5576a47da44dbb194a56e18d727c2`.
+- Verdict: PASS — P1.8.150 resolves P1.8.149 IR149-01 at documentary specification level.
+- IR149-01 is CLOSED at documentary specification level: conflicted participants are contributors/evidence producers only, cannot issue or accept independent dispositions; where separation is infeasible, the independent second reviewer is the sole qualifying reviewer for the affected claim and directly examines underlying evidence; absence of a qualifying reviewer remains INDEPENDENT_REVIEW_REQUIRED / BLOCKED.
+- Cross-contract checks PASS for P1.8.148, P1.8.146 §6, P1.8.144, RET-01 B / RET-02 B, T0 protection, CORE_LEDGER / AI_LEDGER separation and Option C.
+- Limit: PASS is documentary only. Actual personnel/identity independence, competence, inventory completeness and runtime enforcement remain NOT VERIFIED. P1.8.141 residual findings and other prior open findings are not closed by this review.
+- Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE. Runtime/data/provider/identity inventory NOT PERFORMED.
+- No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk changes; no staging, restore, fault injection, provider/key/TSA operations, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion.
+- GitHub permission inventory remains PAUSED. Option C remains in force. Destructive authority NOT GRANTED.
+- Next gate: continue with the next unresolved documentary lifecycle finding from P1.8.141 / retention controls; do not infer closure or authorize operational/destructive work from P1.8.151.
