@@ -2314,3 +2314,19 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Issue #138 is to remain OPEN and target exact P1.37 contract/review blobs for independent adversarial review. Do not treat this same-session PASS as independent closure.
 - Guardrails unchanged: T0 remains independent/canonical; no T1 writes to T0; no T0/T2 changes; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations.
 - Next step: obtain genuinely independent review of exact P1.37 blobs via issue #138. No implementation, executable fixtures, Actions, REST, VPS/runtime or T1 activation before separate gates and approvals.
+
+
+## Latest completed work — P1.38
+
+- Re-read the P1.37 contract, self-review, handoff and issue #138. Found F02-R21 MEDIUM: the contract header still identified the document as P1.14 despite P1.37 corrections and the P1.37 independent-review target.
+- Corrected only the contract status line to `P1.37 REVISION — DESIGN ONLY — NOT APPROVED FOR IMPLEMENTATION`; implementation prohibition is unchanged.
+- Contract update commit: `c96f56ae6e583e7fe15f420f5a0f78d3df0fc0c6`.
+- Exact contract blob SHA: `b7b6786125be507c3ad4c29521830e5fe2a3b1b9`.
+- P1.38 self-review: `docs/reviews/t1/P1_38_SELF_REVIEW_CONTRACT_REVISION_METADATA_2026-11-09.md`.
+- Self-review commit: `ec9585e4d75ff933cc373bd5c8d4548c43defe7e`.
+- Exact self-review blob SHA: `b8e5a3095a03c6b65dd9142cb06de9bc9dfd7155`.
+- Verdict: DOCUMENTATION-LEVEL PASS for F02-R21 and rechecked F02-R19/R20 directly coupled requirements; same-session, NOT independent.
+- Exact SHA readback verified both contract and review blobs. No source implementation, executable tests, GitHub Actions dispatch, REST request, VPS/runtime or filesystem experiment was performed. No workflow run/artifact is claimed.
+- Status: P1.38 DOCUMENTATION-LEVEL PASS; independent review PENDING; F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; implementation NOT AUTHORIZED; T1 activation NOT AUTHORIZED.
+- Next step: retarget issue #138 to exact P1.38 contract/review blobs, keep OPEN for genuinely independent review.
+- Guardrails unchanged: T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
