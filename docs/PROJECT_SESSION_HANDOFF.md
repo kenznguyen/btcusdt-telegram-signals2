@@ -1899,3 +1899,24 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Issue #138 remains OPEN and targets the exact P1.12 design SHA; it still requires genuinely independent review. P1.13 is not independent and does not close the issue.
 - Next step: correct F04 schema contradiction, clarify F02 recovery barrier/linearization, normalize F05 evidence-envelope schema, add negative/crash fixtures, then self-review the new exact SHA before independent review.
 - Guardrails: T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
+
+
+## Latest completed work — P1.14 T1 schema/recovery corrections, self-review and independent-review retarget (2026-11-09)
+
+- User explicitly approved automatic execution of: F04 single initialization schema; F05 single authoritative ExchangeInfo evidence-envelope schema; F02 recovery fsync barrier/commit-acceptance linearization; negative/crash fixtures; self-review; issue #138 retarget.
+- Work remained on existing branch `feature/t0-centralized-data-feeder-p1-20261101`. Documentation/evidence only.
+- Normative design: `docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_1_PRODUCER_WATERMARK_DURABILITY_2026-11-09.md`.
+- Final design update commit: `5745248abed4fb02fa1a15688b1ba17771eaaa46`.
+- Final design blob SHA: `59d8988a368a5bfffa94eacf7fbb8d769aea9b60`.
+- F04: §22.4 now defers to §22.9; §22.9 is the sole authoritative eleven-key initialization-record schema; §22.10 expressly supersedes the former six-key inventory. C121–C123 cover missing/extra keys and identity/owner/mode mismatches.
+- F05: §§22.5/22.9/22.10 establish one authoritative closed ExchangeInfo evidence-envelope schema and explicit lowercase response-header allowlist/absence semantics. C124 covers missing/unknown envelope keys and header handling.
+- F02: §22.6.1 defines commit acceptance at successful commits-directory fsync after no-replace receipt installation, plus restart validation, commits/generation directory recovery fsync barriers, durable recovery checkpoint and fail-closed behavior. C117–C120 cover recovery barrier, fsync failure, crash before checkpoint and consumed sequence with missing receipt.
+- Fixture inventory is now C01–C124. All are design scenarios only; NOT IMPLEMENTED / NOT EXECUTED.
+- P1.14 same-session self-review: `docs/reviews/t1/P1_14_SELF_REVIEW_T1_CONTRACT_SCHEMA_RECOVERY_2026-11-09.md`; commit `744e9ec1c07cb2cb8f5f1db3b204f40ac52ba71e`; blob SHA `64ca44a5549ad51e66c9dc5d0e0dd4947e826552`.
+- Self-review verdict: DOCUMENTATION-LEVEL PASS for requested F04/F05/F02 corrections and C117–C124 specification; IMPLEMENTATION READINESS NOT ESTABLISHED; F07 NOT VERIFIED; INDEPENDENT REVIEW REQUIRED. This is same-session, not independent.
+- Issue #138 retargeted and remains OPEN: https://github.com/kenznguyen/btcusdt-telegram-signals2/issues/138. Title: `P1.14 — Independent adversarial review of corrected T1 Source Contract`. Exact target contract blob SHA `59d8988a368a5bfffa94eacf7fbb8d769aea9b60`; target commit `5745248abed4fb02fa1a15688b1ba17771eaaa46`. Latest readback: OPEN, 0 comments; no independent review received.
+- Remaining blockers unchanged: F07 target filesystem/provider durability and flock/renameat2/fsync behavior NOT VERIFIED; Binance REST completeness/no-trade/boundary/pagination/finality/correction semantics NOT ACCEPTED; producer f64/12-decimal/parse-to-zero defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; manifest/receipt/counter/evidence store/adapter NOT IMPLEMENTED; C01–C124 NOT EXECUTED.
+- No source code, tests, GitHub Actions dispatch, Binance REST, VPS/runtime, T1 activation, T0/T2, strategy/AI/ledger/risk/trading changes. No destructive data operations. No workflow run or artifact is claimed.
+- Status: P1.14 DOCUMENTATION CORRECTIONS COMPLETE / SAME-SESSION SELF-REVIEW PASS AT CONTRACT LEVEL FOR F02/F04/F05 / F07 NOT VERIFIED / INDEPENDENT REVIEW PENDING / IMPLEMENTATION NOT AUTHORIZED / T1 ACTIVATION NOT AUTHORIZED.
+- Guardrails unchanged: T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
+- Next step: wait for genuinely independent written review on exact contract blob SHA `59d8988a368a5bfffa94eacf7fbb8d769aea9b60`. Do not implement or activate T1 before independent review and separate evidence/approval gates.
