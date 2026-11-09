@@ -66,3 +66,12 @@ Explicit limitations:
 **DOCUMENTATION/CODE SELF-REVIEW PASS for the bounded kline decimal-loss fix at tested SHA `ad03560b6409de3c28688fb25d57fa49aed66a9f`.** Same-session, NOT independent.
 
 The exact latest T1 branch HEAD remains **NOT VERIFIED** because its two additional test cases have not run. Keep PR #1 OPEN/DRAFT. Do not merge, deploy, activate T1, access VPS, mutate T0/T2, or place orders based on this review.
+
+
+## Latest test-fixture correction — 2026-11-09
+
+- Corrected the malformed-input edge test so its input contains an actual embedded newline at runtime, rather than the two-character backslash-plus-`n` sequence.
+- T1 commit: `bb70a28d21486cb844d6fb8536be310172502abd`.
+- Current `src/utils/csv_writer.rs` blob: `6fa31c4b5874f2ca874db47b2cb3c35dfc02953c`.
+- This is a test-only change; implementation logic is unchanged from the green tested checkpoint `ad03560b6409de3c28688fb25d57fa49aed66a9f`.
+- Workflow run `42645946681` ended `startup_failure` with zero jobs. The exact latest branch HEAD and added test remain NOT VERIFIED. Do not interpret this as a test pass or a test failure.
