@@ -1,7 +1,7 @@
 # T1 Source-File Contract v1.1 — Producer Completeness and Durable Publication
 
 Date: 2026-11-09
-Status: P1.12 REVISION DRAFT — DESIGN ONLY — NOT APPROVED FOR IMPLEMENTATION
+Status: P1.14 REVISION DRAFT — DESIGN ONLY — NOT APPROVED FOR IMPLEMENTATION
 
 This revision addresses R1–R7 in the adversarial pre-review. It tightens the v1 proposal without changing the original review record. The target remains Binance USD-M BTCUSDT 1m klines, isolated staging/report only. This document does not claim that the current collector implements any requirement below.
 
