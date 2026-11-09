@@ -30,7 +30,7 @@ Exact field availability must be checked against the pinned Binance exchange met
 
 The first source contract is klines/1m. Manifest interval must equal 1m; missing, unknown or mismatched values are rejected. Never infer interval from a path or filename.
 
-Version 1 adds is_closed as a literal boolean copied from Binance WebSocket k.x. Legacy files without it are v0 and cannot feed canonical aggregation. Interim updates may be retained as raw observations but cannot contribute to an aggregate. Conflicting final payloads for the same semantic candle key quarantine the affected window.
+For the first adapter, choose one explicit producer mode: `output_mode=FINAL_ONLY`. The producer filters `is_closed=false` events before persistence, as the currently inspected message handler already intends to do. The v1 manifest must declare `output_mode=FINAL_ONLY`; producer regression tests must prove provisional events never reach the writer. The row schema does not need an `is_closed` column in this mode because every persisted row is contractually final. If a future producer persists interim updates, that is a different schema/output mode and must include a per-row finality flag; it cannot be silently interpreted as this FINAL_ONLY feed. Legacy files without a versioned manifest remain v0 and are ineligible. Conflicting final payloads for the same semantic candle key quarantine the affected window.
 
 ## 4. Producer-owned watermark and completeness (R2)
 
@@ -40,9 +40,9 @@ A missing row is not a confirmed gap until the producer publishes a valid comple
 
 The watermark is an exclusive event-time boundary with this producer-owned meaning:
 
-For the declared stream identity and file generation, every eligible kline update received and accepted by the collector with candle open time strictly less than watermark_open_time_exclusive_ms has been serialized into the source file, and all bytes through committed_offset_bytes have crossed the declared durability boundary before the watermark manifest is published.
+For the declared stream identity and file generation in `output_mode=FINAL_ONLY`, every eligible final 1m kline event received and accepted by the collector with candle open time strictly less than `watermark_open_time_exclusive_ms` has been serialized into the source file, and all bytes through `committed_offset_bytes` have crossed the declared durability boundary before the watermark manifest is published. Interim updates are outside this persisted feed and must never advance the final-candle watermark.
 
-This statement covers events actually received and accepted by the collector. It does not prove Binance emitted no event that the collector failed to receive. If reconnects, transport gaps or receive continuity are unknown, source_health must be GAP_DETECTED or UNKNOWN and the affected windows cannot be sealed. No wall-clock delay, file mtime, consumer-calculated watermark, connection sidecar or caller assertion can authorize completeness.
+This statement covers final events actually received and accepted by the collector. It does not prove Binance emitted no final event that the collector failed to receive. A healthy WebSocket connection or absence of a locally observed disconnect is not, by itself, proof that no event was missed. Until the producer has a separately validated reconciliation mechanism against an authoritative Binance USD-M kline source for every interval potentially affected by disconnect, reconnect, overload or uncertain delivery, `source_health` must be `UNKNOWN` for those intervals and the watermark must not seal them. No wall-clock delay, file mtime, consumer-calculated watermark, connection sidecar or caller assertion can authorize completeness.
 
 ### 4.2 Required manifest fields
 
@@ -55,19 +55,19 @@ Each file generation has a manifest containing:
 - state=ACTIVE | SEALED | QUARANTINED;
 - committed_offset_bytes and committed_record_count;
 - watermark_open_time_exclusive_ms;
-- source_health=CONTIGUOUS | GAP_DETECTED | UNKNOWN;
+- source_health=RECONCILED_COMPLETE | GAP_DETECTED | UNKNOWN;
 - source_gap_ranges or a digest linked to an immutable gap record;
 - header_sha256 and data_prefix_sha256 for bytes [0, committed_offset_bytes);
 - updated_at_utc.
 
-Watermark may advance only for a contiguous source-health interval. Detected or unknown transport continuity holds the watermark. A detected gap is reported; it is never permission to synthesize data.
+Watermark may advance only for an interval whose final-candle completeness has been reconciled by an explicitly defined and independently testable producer mechanism. A healthy socket alone is insufficient. Detected or unknown delivery continuity holds the watermark. A detected gap is reported; it is never permission to synthesize data.
 
 ### 4.3 Seal rule
 
 For a UTC half-open window [start_ms,end_ms), the adapter may classify the source as sealed only when:
 1. identity, schema and generation validate;
 2. state is ACTIVE or SEALED, never QUARANTINED;
-3. source_health is CONTIGUOUS across the whole window;
+3. source_health is RECONCILED_COMPLETE across the whole window;
 4. watermark_open_time_exclusive_ms >= end_ms;
 5. committed_offset_bytes and prefix digest validate;
 6. candidate rows are complete, final, schema-valid and within the committed prefix;
@@ -120,7 +120,7 @@ Requirements:
 - Golden fixtures cover leading/trailing zeros, tiny and large values, maximum documented precision, exponent notation if accepted, and malformed/non-finite values.
 - Verify JSON source string equality with decoded CSV field and deterministic exact aggregate sums.
 
-Status: NOT VERIFIED. The prior inspection confirmed String-typed model fields but did not trace the complete producer call path. Do not claim lossless persistence until trace and tests pass.
+Status: CONFIRMED PRODUCER DEFECT. The read-only trace at `docs/reviews/t1/T1_KLINE_PRODUCER_CALL_PATH_TRACE_2026-11-09.md` proves the current writer parses decimal strings as `f64`, formats to 12 fractional digits and substitutes `0.0` on parse failure. The lossless requirement is not met. Do not claim lossless persistence until a producer correction and golden tests pass.
 
 ## 7. Bounded file snapshot and cursor commit (R7)
 
@@ -219,7 +219,7 @@ The trace confirms a critical producer defect: `src/utils/csv_writer.rs::write_k
 
 The contract remains strict: producer serialization must preserve original decimal strings byte-for-byte and reject malformed numeric values; it must not weaken acceptance to match current lossy output. The producer correction requires separate explicit approval and regression tests.
 
-The trace also confirms `message_handler.rs::process_kline` drops `is_closed=false` messages before CSV writing. Current klines output is intended to be final-only, but the CSV schema does not declare this. The v1 manifest must explicitly declare a versioned `output_mode=FINAL_ONLY` and `interval=1m`, with producer regression tests proving provisional messages never reach the writer; alternatively, persist `is_closed=true` in every row. The chosen contract must be explicit and testable, not inferred from the source revision at read time.
+The trace also confirms `message_handler.rs::process_kline` drops `is_closed=false` messages before CSV writing. The selected v1 contract is therefore `output_mode=FINAL_ONLY` plus `interval=1m`, explicitly declared in the versioned manifest and proven by producer regression tests. Persisting `is_closed=true` per row is not part of this first v1 mode; any change to mixed/provisional persistence requires a separate schema version.
 
 The inspected ExchangeInfoSymbol model exposes symbol, status, base_asset, quote_asset, underlying_type and contract_type. Symbol discovery checks TRADING, PERPETUAL, excludes PREMARKET and requires quote_asset=USDT. The inspected model does not expose margin_asset; it must remain optional/unavailable unless another authoritative source is verified.
 
