@@ -2803,3 +2803,16 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Source/runtime/VPS/DB/Feeder/provider/key/permission changes: NONE. Tests NOT RUN; Actions NOT DISPATCHED; no run/artifact. No TSA/OCSP calls, provider contact, restore, fault injection, archive, cleanup or deletion.
 - Status: bounded read-only audit COMPLETE; TSA production BLOCKED; WORM in T0 NOT IMPLEMENTED/NOT VERIFIED; provider qualification NOT RUN; runtime copy/provider inventory NOT VERIFIED; independent review of this audit NOT PERFORMED.
 - Next: owner decision on TSA evidence subject and WORM scope before any implementation or provider qualification proposal. Preserve T0 canonical data and recovery copies; no destructive action.
+
+
+## T1 exact-commit manual VPS validation — 2026-11-10
+
+- Exact tested T1 source SHA: `f3bae0cfbc26aa694a4d6c9476965121818d3567`, isolated detached checkout `/home/ubuntu/t1-verify-f3bae0cf`.
+- All 7 Rust checks completed with exit code 0 on that exact commit: collector format, collector Clippy, release build, collector tests, sidecar format, sidecar Clippy, sidecar tests.
+- Test totals: collector 48 + 1; sidecar 12 + 27 = **88 PASS / 0 FAIL**.
+- Raw logs and their seven SHA-256 hashes are recorded in `docs/evidence/t1/T1_MANUAL_VPS_TEST_RECEIPT_2026-11-09.md`; logs remain on VPS at `/tmp/t1-verify-evidence-f3bae0cf-postcleanup`. No Actions artifact exists.
+- Root filesystem after build: 736 MB free; `/tmp`: 3.5 GB free. The old 2.7 GB baseline build target was explicitly removed after confirming no active Cargo/Rust process.
+- Cargo regenerated an untracked `crates/connection-sidecar/Cargo.lock` after the run. Its exact current hash/removal is pending verification; do not treat the worktree as clean yet. No tracked source changes were reported.
+- **Status:** exact-SHA manual validation PASS (7/7, 88/0); GitHub Actions exact-SHA NOT VERIFIED; T1→T0/T2 integration NOT VERIFIED; T1 activation/deployment NOT AUTHORIZED / NOT PERFORMED.
+- No collector launch, Binance connection, exchange credentials, live order, T0/T1 runtime mutation, PR merge, issue retarget, or workflow configuration change.
+- Next: verify the regenerated untracked lockfile's size/hash against the previously authorized Cargo-generated file before removing only that exact file; then verify clean checkout. Preserve all seven logs and do not run another build. Keep existing branch and record evidence only.
