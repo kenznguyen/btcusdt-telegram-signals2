@@ -14,6 +14,9 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertIn("StrictHostKeyChecking=yes", workflow)
         self.assertIn("UserKnownHostsFile=", workflow)
         self.assertIn("persist-credentials: false", workflow)
+        self.assertIn("HostKeyAlgorithms=ssh-ed25519", workflow)
+        self.assertIn('"$SCW_SSH_USER@$SCW_SSH_HOST" 2>', workflow)
+        self.assertNotIn("ssh-keyscan", workflow)
 
     def test_remote_script_is_forced_command_compatible_and_read_only(self):
         script = SCRIPT.read_text()
