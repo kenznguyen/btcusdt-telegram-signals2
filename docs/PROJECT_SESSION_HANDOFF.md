@@ -2785,3 +2785,8 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Tests NOT RUN; GitHub Actions NOT DISPATCHED; no run/artifact. Documentation-only change; test status is NOT VERIFIED, not PASS.
 - This applies the owner's explicit content instruction. It is not an independent second review; no independent reviewer claim is made.
 - Next: verify branch HEAD and exact file content/blob, then optionally reconcile Android README's Codemagic/GitHub Actions description in a separate scoped change. Keep paper-only boundary and Option C.
+
+
+- Follow-up content verification found that an initial `Explicitly excluded` paragraph still repeated commercial-category terms. Removed that paragraph so the checklist contains no pricing/refund/subscription/customer-support/commercial-rollout checklist section or residual category list.
+- Final checklist blob: `ec9d8bd800c17b11ce4807df5464aaa3634ec80d`; correction commit: `0a2f9ccb1624e737e78afc7de8b09a5169691753`.
+- Final content check verifies required personal-use sections present and commercial category terms absent. Handoff is updated below; final branch HEAD verification follows.
