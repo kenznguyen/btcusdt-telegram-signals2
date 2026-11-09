@@ -405,3 +405,20 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: P1.8.67 DESIGN ASSESSMENT COMPLETE; P1.8.68 REVIEW PASS (E0 only). P1.8.66 DRAFT ONLY / NOT SENT; provider NONE SELECTED; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; E2/E3/E4 NOT ACQUIRED; staging NOT AUTHORIZED; production NOT VERIFIED; `AI_EXECUTION_ENABLED=false`.
 - No E1 fixture freeze/execution, provider contact, endpoint/OCSP call, key/trust-anchor operation, staging, restore, fault injection, runtime/DB/VPS/Feeder change or workflow dispatch. Tests/workflows NOT RUN; artifact NONE.
 - Next gate: decide whether to prepare a separate implementation-neutral evidence-contract decomposition before any source work. Do not infer implementation or execution authorization from the review PASS.
+
+
+
+### P1.8.69–P1.8.76 — TSA evidence-contract decomposition and review (2026-11-09)
+
+- P1.8.69 contract decomposition: `docs/evidence/p1-8/P1.8.69-provider-neutral-tsa-evidence-contract-decomposition.md`.
+- Initial document commit: `d748e6ffe7f26cf82d54f2a06b6c289f0f674cb3`; initial blob `55eb96514c82b80fc1cf2b390bd1d6ae1ee48236`.
+- P1.8.70 static review: commit `f6f4820333681e51b0ddfcf0b3a6e1d3612f28e1`; identified F-17 (MEDIUM): one VERIFIED token could conceal unresolved submission attempts.
+- P1.8.69 correction for F-17: commit `ffaa0ce388881d958a843d89d5e6b7d744e8ab6b`; blob `66fbab5d537979fcd028877f1171cef2c6cf3708`. Separated proof availability from attempt/reconciliation state.
+- P1.8.72 re-review: commit `296428c01bd4f844b2b8a9e01ada7c6dfd3cbd92`; identified F-18 (LOW): OPEN/RETRYABLE and EXHAUSTED/SETTLED labels could overlap.
+- P1.8.69 correction for F-18: commit `450d9597fcd982d286296c4cd2d32d15d6f63e4a`; blob `7f788bb2f084414d42ad5dca1061702ecf0e4794`. Separated attempt resolution from retry disposition.
+- Final state-clarity correction: commit `cb77afc65b2ba8864208f530d439aa18c5abb091`; final P1.8.69 blob `caf0943865b096a0d592ae0718472754424991d0`. Explicitly defines attempt-resolution facts as non-exclusive and retry disposition as independent.
+- P1.8.76 final static review: `docs/evidence/p1-8/P1.8.76-final-static-review-corrected-evidence-contract.md`; commit `fe7086a40705acfdcdf5cc1eb519054665a6e17e`; verified review blob `f559f642b48f1e7ea1e7f37935d00273d53ba161`.
+- Result: P1.8.69 CONTRACT DECOMPOSITION PASS; F-17 and F-18 ADDRESSED; P1.8.76 REVIEW PASS within E0 documentary scope. Distinct checkpoint/intent/attempt/token/verification/revocation/archive identities; unknown outcomes; immutable verification history; provider-neutral adapter boundary; two-dimensional proof/attempt/retry projections confirmed.
+- No source/schema/runtime implementation, provider contact, endpoint/OCSP call, key/trust-anchor operation, E1 fixture freeze/execution, E2/E3/E4 acquisition, staging, restore, fault injection, workflow dispatch, VPS/T0/T1/DB/Feeder/exchange/ledger/strategy/risk changes. Tests/workflows NOT RUN; artifact NONE.
+- Provider NONE SELECTED; P1.8.66 DRAFT ONLY / NOT SENT; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; E1 NOT AUTHORIZED; E2/E3/E4 NOT ACQUIRED; staging NOT AUTHORIZED; production NOT VERIFIED; `AI_EXECUTION_ENABLED=false`.
+- Next gate: any source/schema implementation proposal must first map the actual T0 checkpoint, DB/WAL durability, storage and lifecycle contracts and obtain separate bounded owner approval. These documentation PASS results do not authorize implementation or operational execution.
