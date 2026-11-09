@@ -3525,3 +3525,20 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Option C, lifecycle reviewer waiver boundaries, T0 independence, separate ledgers, paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - T3 analysis commit: `52302aee66db92d45a30b84fa589c098c4c33a84`; report blob SHA verified by read-back.
 - Next step: Stage A.5 T4 RET-03 Owner Input Resolution for dashboard/read models/exports/caches and their dependencies on protected T0–T3 records. Keep all unknown copies protected and do not select numeric floors without source-backed owner inputs.
+
+
+## Stage A.5 — T4 RET-03 Owner Input Resolution (2026-11-10)
+
+- Added `docs/evidence/p1-8/T4_RET03_OWNER_INPUT_RESOLUTION_2026-11-10.md` as a documentation-only static trace of the current five-layer React `control_dashboard`, common API read paths, data dependencies, caches/build/export surfaces and retention ownership.
+- Source baseline HEAD: `0052c7821f8e01379d4d6a69acad8d2340b044fb`; exact selected source blob SHAs are pinned in the report.
+- Scope excludes Android Chart/Scanner and the legacy standalone backtest `dashboard/index.html`; neither is treated as the current five-layer T4 application.
+- Confirmed: React dashboard polls nine read endpoints every five seconds while visible; state and bearer tokens are held in memory, not browser persistent storage per README; request/API cache directives are no-store; charts are derived from bounded API responses; no explicit export/download function was found in selected current T4 React source.
+- T0 candle responses remain T0-owned canonical data; T1 intelligence report/CSV evidence remains T1-owned; T2 prediction/model provenance remains T2-owned; paper/audit/ledger/risk state remains T3-owned. T4 view limits/polling/request limits do not define source retention.
+- Critical finding T4-RET-01: GET `/v1/equity` calls `equity_snapshot()` and `PaperLedger.record_equity()`, which persist `paper_equity_history` and `paper_daily_baselines`. UI polling may invoke this path repeatedly; actual deployment/frequency NOT VERIFIED. These records are T3 risk/reconstruction evidence, not disposable T4 cache. Do not change or delete them in this workstream.
+- Hummingbot order-book process cache is three seconds in source; candidate ephemeral only after runtime/copy and T3 fill-reference closure. Fill-referenced book evidence remains protected.
+- Gateway remains architecture-only: route/auth mapping exists, but route translation to the target Gateway namespace, deployment, TLS/firewall and runtime origin remain NOT VERIFIED. Actual dist hashes, browser/proxy/CDN/service-worker/log/screenshot/download/export copies and consumers remain NOT VERIFIED.
+- T4 RET-03 OPEN / FLOOR_NOT_ESTABLISHED. No numeric floor/TTL selected; no object deletion-eligible. No retention value inferred from 3-second cache, 5-second polling, request timeout, 50-row audit view, 240-point chart, API limits or build tooling.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact. No build/deployment/runtime/browser/proxy/consumer/copy inventory, legal determination, source/schema/config/workflow/permission/runtime/data change or destructive operation.
+- Option C, lifecycle reviewer waiver boundaries, T0 independence, separate ledgers, required T3 reconstruction evidence, paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- T4 analysis commit: `ab8585cd9e1a00762a9254edb7ce58c622f42194`; report blob SHA verified by read-back.
+- Next step: Stage A.6 — consolidate T0–T4 RET-03 owner-input gaps into one documentary class/obligation matrix and identify which missing owner inputs can be resolved from authoritative repository records versus which require explicit owner/operational/legal evidence. Do not select numeric floors or authorize lifecycle actions.
