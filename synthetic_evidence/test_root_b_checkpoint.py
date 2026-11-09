@@ -25,6 +25,9 @@ class RootBDuplicateAckAndCheckpointCrashTests(unittest.TestCase):
         self.assertEqual(first, "ACK_RECORDED")
         self.assertEqual(duplicate, "ACK_DUPLICATE")
         self.assertEqual(self.journal.ack_count("evt-1"), 1)
+        self.assertFalse(self.journal.all_observers_acked("evt-1"))
+        self.journal.acknowledge("evt-1", "observer-b", digest)
+        self.assertEqual(self.journal.ack_count("evt-1"), 2)
         self.assertTrue(self.journal.all_observers_acked("evt-1"))
 
     def test_same_observer_ack_with_changed_digest_is_integrity_failure(self):
