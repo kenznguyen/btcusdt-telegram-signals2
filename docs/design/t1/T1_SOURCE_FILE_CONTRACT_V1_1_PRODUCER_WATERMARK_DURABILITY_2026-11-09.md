@@ -456,3 +456,54 @@ These fixtures are design requirements only; none has been executed.
 - F07 remains MEDIUM/HIGH operational blocker: target filesystem/provider durability and crash-recovery behavior are unverified.
 
 This P1.5 update is documentation-only. It does not make the contract implementation-ready, does not authorize source changes, tests, Actions, VPS/runtime, T1 activation, T0/T2 changes, promotion, or destructive data operations.
+
+
+## 20. P1.7 clarification — normative contract precedence, GAP_DETECTED and health-evidence failure
+
+### 20.1 Normative precedence and FINAL_ONLY
+
+For the current Binance USD-M BTCUSDT 1m producer-feed scope, this v1.1 document is the sole normative source-file and producer contract. The earlier `T1_SOURCE_FILE_CONTRACT_V1_AND_INGESTION_ADAPTER_DESIGN_2026-11-09.md` is archival/non-normative wherever it conflicts with this revision. Its proposed per-row `is_closed` field and related finality/schema requirements are superseded for this first mode.
+
+The current mode is exclusively `output_mode=FINAL_ONLY` with `interval=1m` declared in the versioned manifest. The producer must filter every `is_closed=false` event before persistence, and producer regression tests must prove that behavior. The absence of a per-row flag is acceptable only when the versioned manifest and producer implementation/test evidence jointly establish this exact mode. Legacy or unversioned files, missing manifests, unknown schema versions, and files without a verifiable FINAL_ONLY declaration are ineligible for canonical aggregation. This clarification does not make the current producer compliant; its decimal serialization defect and missing manifest/durability implementation remain blockers.
+
+### 20.2 Exact meaning and availability of GAP_DETECTED
+
+Under the current contract, `GAP_DETECTED` is a reserved state and is **not currently assignable**. No current producer or consumer may set it merely because an expected row is absent.
+
+It may be enabled only by a separately approved, versioned evidence profile that proves a specific missing source event over an exact symbol/interval/event-time range, identifies the authoritative source and completeness semantics, binds the evidence to the generation, and passes independent review. No such profile is accepted today.
+
+The following must never set `GAP_DETECTED`:
+- a missing or empty Binance REST response, uncertain REST boundary, incomplete pagination, rate limit, or unavailable reconciliation;
+- an absent WebSocket row, silence, no-trade inference, or REST/WS divergence;
+- queue overflow, disconnect, parser/writer/sync failure, process crash, or unknown receive continuity;
+- a missing row in an unsealed or otherwise unproven window.
+
+Those cases remain `SOURCE_HEALTH_UNKNOWN`, `SOURCE_HEALTH_INVALIDATED`, `RECONCILIATION_SOURCE_DIVERGENCE`, or another precise quarantine/pending state as applicable. A transport/collector continuity failure is health invalidation, not proof of a market-data gap. `WINDOW_GAP` remains a consumer classification available only after a valid seal and complete health proof establish that a source row is absent; it does not authorize aggregation or synthesis. Under P1.3, the REST endpoint cannot currently provide that proof, so missing REST minutes remain UNKNOWN.
+
+### 20.3 Failure to durably persist health evidence
+
+If the producer detects a health failure but cannot durably persist its health event or invalidation record (including disk full, write/flush/fsync/fdatasync failure, health-journal corruption, or unavailable storage):
+
+1. Immediately set a sticky in-process invalidation for the affected range/generation; if the range cannot be bounded, invalidate from the last independently trusted checkpoint, or the entire generation if no such checkpoint exists.
+2. Stop all committed-offset, manifest-state, watermark and seal advancement for that generation. Do not attempt to publish a success/healthy manifest through the failed persistence path. The implementation may stop the writer entirely; no further bytes from the uncertain generation are eligible for consumption.
+3. Treat the generation as uncertain/quarantined. A later successful write, healthy reconnect or process restart cannot clear this state.
+4. On restart, require a verifiable durable clean-close/seal record and matching generation/checkpoint/prefix state. If the prior generation was still ACTIVE, its close marker is absent, the health journal is missing/corrupt, or any checkpoint cannot be verified, quarantine the affected range/generation. Absence of a health event is never evidence that no failure occurred.
+5. Recovery requires a new generation and a separately accepted reconciliation/recovery procedure. Because the current REST profile does not establish completeness, recovery may remain blocked indefinitely.
+
+No independent durable health-event channel is currently specified or assumed. The present guarantee is deliberately limited: detect uncertainty through previously durable generation/checkpoint/clean-close state and fail closed; it does not guarantee that every last-moment failure event can itself be recorded. Any future independent journal/channel requires a separate design, failure-domain analysis, independent review and approval. If prior durable state cannot distinguish clean closure from interruption, the source cannot be trusted and remains quarantined.
+
+### 20.4 Additional negative acceptance fixtures (planned, not executed)
+
+- C77 health-event write fails due disk full or fsync/fdatasync error → immediate sticky in-process invalidation; no offset/manifest/watermark advance; generation quarantined.
+- C78 health journal missing, corrupt or unverifiable on restart → quarantine; absence of event is not interpreted as healthy continuity.
+- C79 restart finds prior generation ACTIVE or no verifiable durable clean-close marker → generation uncertain/quarantined; no watermark or aggregation.
+- C80 attempted transition from UNKNOWN/INVALIDATED to GAP_DETECTED based only on REST absence, WS absence, transport loss or no-trade inference → reject; state remains UNKNOWN/INVALIDATED.
+- C81 producer manifest omits `output_mode=FINAL_ONLY`, declares another mode, or producer regression evidence is absent → reject source for canonical aggregation.
+
+These fixtures are contract requirements only. They have not been implemented or executed. No current implementation is claimed.
+
+### 20.5 P1.7 disposition
+
+P1.6-F01 is resolved at documentation level by making v1 archival/non-normative and v1.1 the sole normative producer contract for this scope. P1.6-F02 is resolved conservatively by reserving `GAP_DETECTED` until a separately accepted authoritative evidence profile exists. P1.6-F03 is resolved at design level by defining immediate sticky invalidation, publication stop, restart quarantine and the absence of an assumed independent health channel.
+
+These clarifications do not resolve the pre-existing blockers: no accepted REST completeness oracle (F01), confirmed producer decimal-loss defect (F05), and unverified target filesystem/provider durability (F07). Independent review remains required. Design readiness and implementation authorization are not granted.
