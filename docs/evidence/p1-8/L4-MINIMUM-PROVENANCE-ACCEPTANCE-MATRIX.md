@@ -174,7 +174,7 @@ P1.8.153 remains the next documented lifecycle gate in the handoff. This L4 matr
 
 ## 8. Current verdict
 
-- Matrix revision: DOCUMENTATION UPDATE — F-01 THROUGH F-08 ADDRESSED IN WORDING; NOT INDEPENDENTLY REVIEWED.
+- Matrix revision: DOCUMENTATION UPDATE — F-01 THROUGH F-09 ADDRESSED IN WORDING; NOT INDEPENDENTLY REVIEWED.
 - Lifecycle alignment: DOCUMENTARY CROSSWALK ADDED; P1.8.152 residual findings remain open.
 - Requirements implemented: NOT VERIFIED.
 - Test fixtures created/executed: NOT RUN / NOT CREATED BY THIS RECORD.
