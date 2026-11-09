@@ -17,8 +17,8 @@ The review read the following documents from branch `feature/t0-centralized-data
 | `docs/architecture/DATASET_CONSUMER_CONTRACT.md` | `31d958360315eb24716a7656cef8b430187c82b1` |
 | `docs/architecture/DATA_COPY_BACKUP_REPLICA_LIFECYCLE_CONTRACT.md` | `4112c68eceef7d9047117efc5027750ae2edf2d8` |
 | `docs/architecture/SHARED_DATA_FOUNDATION.md` | `18f8566723b95c4b38586e3848bde5305295a4dc` |
-| `docs/evidence/p1-8/P1.8.79-deletion-mechanism-gap-assessment.md` | Re-read on review branch; content assessed |
-| `docs/evidence/p1-8/P1.8.80-retention-and-eligibility-policy.md` | Re-read on review branch; content assessed |
+| `docs/evidence/p1-8/P1.8.79-deletion-mechanism-gap-assessment.md` | `4942433048d1e052e989a9a9bca9a1a2ce3433ab` |
+| `docs/evidence/p1-8/P1.8.80-retention-and-eligibility-policy.md` | `a38710c9d01e5409ce989cc73f791c94bc73773f` |
 | `docs/evidence/p1-8/P1.8.81-dependency-and-consumer-governance-contract.md` | `f1423d16e0327f47e2b974ae13e622174c5a0cb6` |
 | `docs/evidence/p1-8/P1.8.82-deletion-authorization-and-execution-contract.md` | `99f7e5a4cdcdf3edf88c424dde30e8306ad78aae` |
 | `docs/evidence/p1-8/P1.8.83-copy-and-evidence-lifecycle-closure.md` | `3020dbeb47d54b41fa6b7608ddf2721f83b5b47e` |
