@@ -3139,3 +3139,16 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: exact tree/blob identity PASS; core runtime composition PASS for inspected source; workflow/test map PARTIAL; global consumers NOT VERIFIED; live runtime NOT VERIFIED; L4-Minimum remains BLOCKED / NOT VERIFIED; G2 exact-SHA NOT VERIFIED; G3 PENDING.
 - Option C remains; no automatic deletion/TTL/archive/cleanup/vacuum/compaction/backup expiry/replica removal. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next: extend exact-branch consumer search across all source/configuration files and inspect workflow triggers/branch-protection dependencies. Then prepare a separate retirement proposal; no retirement or source change without explicit approval.
+
+
+### T0 Dependency Mapping — supplemental consumer boundary findings (2026-11-10)
+
+- Supplemental audit commit: `e1351fe4eeaccbd29fc3d07dc811661ebf4bf050`.
+- Updated audit blob: `13929b6aa6fa1e84412bdfaf06e5b3a6344eb638`.
+- Confirmed Android chart/scanner path `MarketEngine.fetchCandles()` calls Binance Futures REST directly and MarketEngine opens Binance Futures WebSocket streams. `ChartMarketSession` and `ScannerMarketFeed` consume that MarketEngine path. Android market/chart/scanner is therefore not established as a T0 API consumer.
+- Android `FiveLayerApi` has a separate configurable `baseUrl` and `candles` route, but server mapping to `market_data.api /v1/candles` is NOT VERIFIED.
+- Python FreqAI bridge uses `CandleHttpClient -> /v1/candles`, the confirmed T0 HTTP consumer boundary; deployed endpoint remains NOT VERIFIED.
+- T0 README explicitly states it has not replaced the existing Python bot/backtest OKX source or direct APK source.
+- Implication: do not claim T0 is already the sole canonical source for all app/strategy consumers. Android/Python migration remains PARK and must preserve existing behavior until separately designed/tested/approved.
+- No Android/Python source changed. No test/workflow/runtime/VPS/DB/provider operation.
+- Overall mapping remains PARTIAL; complete repository-wide call graph and live deployment consumer inventory NOT VERIFIED. No retirement candidate. Next: map configurable FiveLayer API baseUrl and backend route ownership from exact-branch configuration/deployment source; then inspect remaining Python bot/backtest source references. No consumer migration or deletion without explicit authorization.
