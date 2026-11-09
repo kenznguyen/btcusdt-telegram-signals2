@@ -2631,3 +2631,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: scope decision CONFIRMED; first-pass dependency audit PARTIAL; commercial capability absence repository-wide NOT VERIFIED; PG/Kraken retain/remove decisions DEFERRED; no source removal authorized.
 - No tests, workflow dispatch, VPS/runtime/database inspection or mutation occurred. No workflow run/artifact is claimed. Documentation-only updates; no source/config/API/schema/credential/permission/data changes.
 - Next: independent adversarial review of the scope decision and audit evidence; if it passes, a separate consumer/value review for Kraken Spot and a maintenance/cost review for PostgreSQL. No removal until exact-scope owner approval.
+
+## T0 de-commercialization adversarial self-review (2026-11-09)
+
+- Added §9 to `docs/decisions/D-2026-11-09-T0-PERSONAL-USE-SCOPE-AND-DECOMMERCIALIZATION.md`.
+- Review commit: `179dc51ec989d48fa89c6082c311f43e8ea72a2e`; decision-record blob SHA: `f4198dd51e5bf58e07aba34a6fa1ab2d8d9bef6b`.
+- Review was an adversarial self-review by the same assistant/work session that authored the record; it is NOT independent second-reviewer acceptance.
+- Verdict: CONDITIONAL PASS for the written single-owner scope boundary; BLOCKED for independent audit acceptance and any removal.
+- SR-01 HIGH: GitHub code search targets the default branch, not the active feature branch; therefore cannot prove absence of commercial features on the current branch.
+- SR-02 MEDIUM: active-branch recursive tree path scan found only generic `market_data/test_support.py` among keyword-like path matches; path names alone do not prove content absence.
+- SR-03 MEDIUM: bounded inventory is not a full dependency graph across all 636 files, generated configuration, Android, T1/T2, deployment scripts or runtime environment.
+- SR-04 LOW: PG/Kraken source/test/workflow wiring is proven, but active owner runtime/research use is not.
+- SR-05 LOW: Android legal/distribution documents remain outside T0; no deletion/legal conclusion implied.
+- No critical contradiction found in the written scope boundary. Commercial capability absence remains NOT VERIFIED; dependency audit remains PARTIAL; no REMOVE-CANDIDATE; no source removal authorized.
+- No tests or Actions were run. No runtime, VPS, DB, data, key, permission or workflow changes.
+- Next: branch-pinned content/config/workflow/dependency audit, PostgreSQL/Kraken consumer/value mapping, and review by a genuinely independent second reviewer.
