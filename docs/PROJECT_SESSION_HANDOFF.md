@@ -308,3 +308,16 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: P1.8.54 DOCUMENTATION COMPLETE; P1.8.55 REVIEW PASS; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; 13 vectors SYNTHETIC PASS only; RPO/RTO planning targets only; `AI_EXECUTION_ENABLED=false`.
 - No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine change; no provider connection, key operation, production probe, staging, restore, fault injection or workflow dispatch. No CI run or artifact is claimed.
 - Next gate: consolidate local E1 fixture specifications and acceptance oracles, without executing provider, runtime, staging or operational tests. Any E2/E3/E4 action remains separately permission-gated.
+
+
+### P1.8.56 / P1.8.57 — Consolidated E1 fixture index
+- P1.8.56 index: `docs/evidence/p1-8/P1.8.56-consolidated-local-e1-fixture-index.md`; commit `c8ab57a279d078f6a23ddefcacdccd95f3a57d82`.
+- Consolidates the 13 historical synthetic fault vectors without renaming; cross-references TB-P01/P02 and TB-N01–TB-N13; defines proposed V08-E1-01–15 and RST-E1-01–10 index categories.
+- Preserves stage-separated V07 outcomes and adds RFC 9654 OCSP nonce interoperability categories. V08/Restore IDs are proposed fixture index IDs only, not existing test executions.
+- Requires fixture IDs, immutable bytes/digests, exact source/test SHA, deterministic setup/barriers, intermediate and terminal oracles, base-event vs delivery identity, and forbidden-side-effect assertions before freeze.
+- P1.8.57 independent review: `docs/evidence/p1-8/P1.8.57-independent-review-e1-fixture-index.md`; commit `5b613bfcc30ce6c90dfb03f3beb3c14509b941f4`.
+- P1.8.57 result: PASS within documentation/index scope; no omissions or oracle/authorization conflicts found.
+- No fixture bytes were frozen or executed; no new synthetic result is claimed. Existing 13 vectors remain historical SYNTHETIC PASS only.
+- Status: P1.8.56 INDEX COMPLETE; P1.8.57 REVIEW PASS; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; E2/E3/E4 NOT ACQUIRED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; RPO/RTO planning targets only; `AI_EXECUTION_ENABLED=false`.
+- No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes; no provider connection, key operation, data probe, staging, restore, fault injection or workflow dispatch. No CI run or artifact is claimed.
+- Next gate: prepare deterministic E1 fixture-byte specifications for high-risk V07 boundary/replay cases; do not execute tests or select OPEN policy values. E1 execution is a separate decision gate.
