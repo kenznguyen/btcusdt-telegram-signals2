@@ -3385,3 +3385,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: inspected files/install commands PASS; exhaustive branch-local occurrence scan NOT VERIFIED; clean SQLite-only import test NOT RUN; tests NOT RUN; GitHub Actions NOT DISPATCHED; independent review NOT PERFORMED. G2 NOT VERIFIED; G3 PENDING; L4-Minimum BLOCKED / NOT VERIFIED.
 - No runtime/VPS/database/provider/secret/permission/data operation. Option C unchanged; paper-only; no live orders.
 - Next safe step: continue read-only review of active SQLite startup/configuration ownership for proven duplication. Do not refactor or edit workflows without a separately established candidate and regression map.
+
+
+## T0 L4-Minimum / L4-Extended branch separation assessment — 2026-11-10
+
+- Added architecture/branching recommendation: `docs/evidence/T0_L4_MINIMUM_EXTENDED_BRANCHING_ASSESSMENT_2026-11-10.md`.
+- Assessment commit: `a4678fd14d4b5450c745224dedfd83e980fff3b7`.
+- Assessment baseline branch HEAD: `4d3945e37d74b8ce81227db3265a80dd85f29c24`.
+- Controlling L4-Minimum matrix blob: `ed3056d81edfaf163205a172cf5ad22e230d7b41`; T0 components-outside-L4-Minimum audit blob: `7bfc509b9eb918750b3a25acc18f8d4f989d387f`.
+- Recommendation: retain the existing `feature/t0-centralized-data-feeder-p1-20261101` branch as the T0 + L4-Minimum continuity/delivery line. Defer creation of `feature/l4-extended-provenance` until all L4M-01–L4M-10 controls PASS on one frozen evidence baseline and a qualifying independent review disposition references that exact baseline.
+- L4-Extended candidate scope is limited to additive optional assurance: claim-specific RFC 3161 TSA and its required trust/revocation interoperability, optional multi-TSA/quorum, dedicated WORM/Object Lock, and optional dual-root/Root A–Root B evidence topology. TSA stays asynchronous/outside Feeder commit path; WORM must not be conflated with SQLite canonical candle storage.
+- Explicitly classified PostgreSQL/TimescaleDB, HTTPS front door, D2–D4 durability, production DB restore/DR, Kraken/source corroboration, G0–G3 checkpoint qualification and lifecycle/retention as separate workstreams, not automatic L4-Extended scope.
+- Extended branch must preserve the complete L4M acceptance/test denominator; Extended tests are additive; no automatic merge back to the minimum line. Any adoption requires explicit owner approval, independent review and compatibility evidence.
+- Status: architecture recommendation PASS; L4-Minimum implementation/operational acceptance BLOCKED / NOT VERIFIED; qualifying independent review PENDING; Extended implementation DEFERRED / NOT STARTED.
+- No branch was created. No source/test/workflow/package/runtime/VPS/database/provider/key/trust-root/permission/data changes; no PR/merge/rebase/history rewrite; no workflow dispatch. Option C — No Destructive Authority — unchanged.
+- Next gate: continue L4-Minimum on the existing branch, close matrix review findings, produce exact evidence for L4M-01–L4M-10, and obtain qualifying independent review. Only then request authorization to create the Extended branch from the exact accepted baseline.
