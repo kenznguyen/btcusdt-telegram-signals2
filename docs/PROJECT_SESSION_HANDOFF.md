@@ -1443,3 +1443,21 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk changes; no staging, restore, fault injection, provider/key/TSA operations, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion.
 - GitHub permission inventory remains PAUSED. Option C remains in force. Destructive authority NOT GRANTED.
 - Next gate: continue with the next unresolved documentary lifecycle finding from P1.8.141 / retention controls; do not infer closure or authorize operational/destructive work from P1.8.151.
+
+
+## Latest completed work — P1.8.152 (2026-11-09)
+
+- Completed documentation-only reconciliation of P1.8.141 LDA-01 through LDA-09 against P1.8.142–P1.8.151.
+- Record: `docs/evidence/p1-8/P1.8.152-retention-and-lifecycle-residual-finding-reconciliation.md`.
+- Commit: `cc72eeb74e3b26c2fa39d2ddd6d436620c47553c`.
+- Final document blob SHA after read-back: `e1a4d95af216e94a58fa5528850fcd0c1ff465f8`.
+- Reconciled verdict: PARTIAL — lifecycle design NOT CLOSED.
+- LDA-01 PARTIALLY RESOLVED: RET-01 B / RET-02 B are owner-ratified; RET-03–RET-10 remain open, non-executable or not verified according to their individual status. P1.8.144 is not accepted as a complete retention-floor contract.
+- LDA-02 V07 BLOCKED; LDA-03 V08 OPEN/BLOCKED; LDA-04 Restore OPEN/BLOCKED; LDA-05 mutation fence/adapter NOT VERIFIED; LDA-06 runtime consumer/copy inventory NOT VERIFIED; LDA-07 87 negative vectors remain NOT RUN; LDA-08 Option C technical enforcement NOT VERIFIED and GitHub permission inventory remains PAUSED.
+- LDA-09 archive-policy alignment is evidenced at documentary level; archive remains non-executable under Option C. Formal finding closure requires independent review.
+- Reviewer-control distinction preserved: IR145-01..04 CLOSED at documentary specification level; IR147-01 remains NOT CLOSED (P1.8.149 says substantially addressed but not closed); IR149-01 CLOSED by P1.8.151. P1.8.144 therefore remains not accepted as a complete floor contract.
+- Source branch HEAD at start: `0804c02ede010697c69c80cacd43d3fbb301e5e2`.
+- Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE.
+- No runtime, source, schema, API, registry, adapter, scheduler, VPS, T0/T1/T2/T3/T4, Feeder, ledger, strategy or risk changes. No operational inventory, provider/key/TSA, staging, restore, fault injection, archive, cleanup, vacuum, compaction, backup expiry, replica removal, export mutation or deletion.
+- Option C remains in force; T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; paper-only; `AI_EXECUTION_ENABLED=false`; destructive authority NOT GRANTED.
+- Next bounded documentary gate: P1.8.153 — independent review of P1.8.152 and residual reviewer-control closure assessment. No identity/personnel discovery, permission inventory, runtime/provider inventory, tests, workflow dispatch or destructive operations are implied.
