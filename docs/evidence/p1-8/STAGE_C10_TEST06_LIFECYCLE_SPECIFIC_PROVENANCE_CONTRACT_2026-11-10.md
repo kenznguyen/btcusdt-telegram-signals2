@@ -226,7 +226,7 @@ Run aggregation is deterministic: FAIL if any required vector has a proven failu
 | PRV-T01 | Every selected vector has complete end-to-end provenance | One-to-one vector-to-chain mapping and denominator reconciliation |
 | PRV-T02 | Source, contracts and expected state are immutable and run-bound | Full commit/version/digest and frozen manifest |
 | PRV-T03 | Principal and process identities are attributable | Issuer-backed identity and effective capability evidence |
-| PRV-T04 | Executor cannot self-authoritative observer/oracle/publisher records | Role separation and denied capability evidence |
+| PRV-T04 | Executor cannot self-author or forge authoritative observer/oracle/publisher records | Role separation and denied capability evidence |
 | PRV-T05 | Logical operation and attempt identities are unambiguous | Stable operation ID, unique attempt IDs and payload binding |
 | PRV-T06 | Synthetic resource/version lineage is exact | Namespace and immutable object/version digest chain |
 | PRV-T07 | Events are complete and causally consistent | Sequence/cursor continuity and parent/happens-before validation |
