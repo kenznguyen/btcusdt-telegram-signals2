@@ -3373,3 +3373,15 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Post-commit read-back: PASS — all 11 authorized paths are absent; all 14 active `.github/workflows/*.yml` files remain; T0 health routes and other retained components are present.
 - Tests NOT RUN; GitHub Actions NOT DISPATCHED; commit status contexts empty; no workflow run/artifact claimed. External Codemagic state NOT VERIFIED; independent review NOT PERFORMED. Existing unrelated CI policy contradiction F-03 remains outside this scope.
 - Next step: obtain separate authorization for focused retirement and T0/API regression validation in GitHub Actions. No runtime or external cleanup is authorized by this source retirement.
+
+
+## T0 simplification — PostgreSQL packaging reassessment (2026-11-10)
+
+- Added read-only reassessment: `docs/evidence/T0_SIMPLIFICATION_POSTGRES_PACKAGING_REASSESSMENT_2026-11-10.md`.
+- Exact inspected source baseline: `4d3945e37d74b8ce81227db3265a80dd85f29c24`; tree: `b344c6b09f00e6a7abd7a2c5456f3d39f6608365`.
+- Reassessed the earlier candidate to split SQLite/base and PostgreSQL requirements. Recommendation: PARK the split; keep `requirements-market-data.txt` unchanged. The dependency over-install is real on some paths, but the benefit of removing one of two direct dependencies is not established against added requirements-file, workflow-branch and legacy-consumer complexity.
+- Current branch blobs were recorded for the shared requirements, storage/feeder/PostgreSQL modules, manual/G2/T0 Gateway workflows, Codemagic config and market-data README. The previous install-path inventory predates the latest source retirement; current Codemagic SHA was re-read.
+- PostgreSQL adapter, migrations, SQL, six qualification modules and disposable integration jobs remain preserved. No dependency, workflow, source or test change.
+- Status: inspected files/install commands PASS; exhaustive branch-local occurrence scan NOT VERIFIED; clean SQLite-only import test NOT RUN; tests NOT RUN; GitHub Actions NOT DISPATCHED; independent review NOT PERFORMED. G2 NOT VERIFIED; G3 PENDING; L4-Minimum BLOCKED / NOT VERIFIED.
+- No runtime/VPS/database/provider/secret/permission/data operation. Option C unchanged; paper-only; no live orders.
+- Next safe step: continue read-only review of active SQLite startup/configuration ownership for proven duplication. Do not refactor or edit workflows without a separately established candidate and regression map.
