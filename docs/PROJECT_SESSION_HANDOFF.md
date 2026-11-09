@@ -885,3 +885,59 @@ Owner approval: explicit approval received for all four documentation-only work 
 - No implementation, source/runtime/schema/API/registry/adapter/scheduler/service/database/VPS/T0/T1/Feeder/ledger/strategy/risk-engine changes. No staging, restore, fault injection, provider selection, key/TSA operation, archive, cleanup, vacuum or deletion.
 - Deletion authority: NOT GRANTED. T0 and CORE_LEDGER/AI_LEDGER protections unchanged; `AI_EXECUTION_ENABLED=false`.
 - Next gate: owner review of the five findings and separate approval for any P1.8.110–P1.8.114 documentation work. No runtime or destructive action is authorized.
+
+
+## P1.8.110–P1.8.114 — Approved Documentary Closure of P1.8.109 Findings (2026-11-09)
+
+Owner approval: explicit automatic approval received for all five documentary work items, in order. This authorizes documentation only; it does not authorize implementation, tests, workflow dispatch, staging, restore, provider/key/TSA operations, fault injection, IAM changes, archive, cleanup, vacuum or deletion.
+
+### P1.8.110 — Restore Epoch / High-Water-Mark Atomic Binding Clarification
+- Document: `docs/evidence/p1-8/P1.8.110-restore-epoch-high-water-mark-atomic-binding-clarification.md`.
+- Commit: `35b5e3311488483b450765141fefef5ef78fab6e`.
+- Blob SHA: `70e7f311b27679d5642ca99f2b7e6db8adda1cfa`.
+- Closes IR109-01 at documentary-design level: Restore Run ID, Restore Epoch, Governance Epoch, snapshot consistency point, operation-history HWM and governance revision vector are separate identities.
+- Requires an immutable binding record tying the epochs, exact snapshot, contiguous authenticated HWM and governance revision vector to one reconciliation cut; concurrent restore attempts must be fenced/serialized; ambiguous or mismatched binding remains QUARANTINED.
+- Epoch issuer, rollback/uniqueness proof, HWM source/completeness, atomic coupling mechanism, identity and numeric parameters remain OPEN. Restore NOT EXECUTED / NOT AUTHORIZED.
+
+### P1.8.111 — V08 Commit/Seal Equality and Total-Order Contract Clarification
+- Document: `docs/evidence/p1-8/P1.8.111-v08-commit-seal-equality-total-order-contract-clarification.md`.
+- Commit: `af2a00684e55e79405f7f1ca2cff78bdf5783ce6`.
+- Blob SHA: `50efc83fece41e6da62db299c765985203c16271`.
+- Closes IR109-02 at documentary-design level: exact before/after requires a proven common ordering domain/token; equal timestamps, equal sequence without tie semantics, overlapping uncertainty, missing tokens or incomparable domains are UNKNOWN/HOLD.
+- Preserves UTC half-open windows, watermark `>= window_end`, immutable sealed checkpoints and append-only corrections.
+- Commit/seal token, DB/provider durable boundary, clock, precision, lateness and correction parameters remain OPEN. V08 execution BLOCKED.
+
+### P1.8.112 — Trusted-Time to Mutation Decision-Vector Crosswalk
+- Document: `docs/evidence/p1-8/P1.8.112-trusted-time-mutation-decision-vector-crosswalk.md`.
+- Commit: `78e003a264626416ce6101f89fe69d2d863c8c14`.
+- Blob SHA: `fbe32e84308184abcd855428c0ce5ea537ae63a4`.
+- Closes IR109-03 at documentary-design level: maps exact evidence identity/version, subject/event binding, time semantic, source/profile, precision/uncertainty, historical trust/revocation state, freshness, authorization, restore binding and final-check identity into P1.8.93 protected vector.
+- Any material evidence/revision change invalidates the vector; final recheck must be atomic/transactionally coupled to mutation. Without proof, adapter remains INELIGIBLE.
+- TSA/profile, trust/revocation authorities, freshness/uncertainty values, authorization lifetime, registry and atomic fence remain OPEN; no adapter qualified.
+
+### P1.8.113 — TSA Evidence Dependency / Copy / Hold Graph Crosswalk
+- Document: `docs/evidence/p1-8/P1.8.113-tsa-evidence-dependency-copy-hold-graph-crosswalk.md`.
+- Commit: `f447f242102f5029195ef25a817267753464d27a`.
+- Blob SHA: `a5c49170d33c56cf21d218879091c1d1429bca98`.
+- Closes IR109-04 at documentary-design level: defines immutable evidence/copy node identity and typed CLAIM_REQUIRES, REPRODUCES, VALIDATED_UNDER, DERIVED_FROM, COPY_OF, RESTORE_DEPENDS_ON, AUDIT_REQUIRES, CONSUMER_DEPENDS_ON, HOLD_APPLIES_TO and SUPERSEDES edges.
+- Each copy has independent lifecycle state; incomplete graph, unknown edge or uncertain hold applicability remains protective. No cascade or automatic release.
+- Runtime inventory, registry, graph completeness, copy topology, hold authority, trust/revocation, retention and integrity oracle remain OPEN/NOT VERIFIED.
+
+### P1.8.114 — Lifecycle / Restore / Quarantine Authority Separation Decision Record
+- Document: `docs/evidence/p1-8/P1.8.114-lifecycle-restore-quarantine-authority-separation-decision-record.md`.
+- Commit: `f815aae06697ce0ad790db7c9b69ad0ca45ebf9f`.
+- Blob SHA: `067038d870b30b18934c4f6fe1b6d25ccd529ac5`.
+- Closes IR109-05 at documentary non-escalation level: separates restore readiness, V07 quarantine resolution, TSA/V08 verification, lifecycle assessment, independent approval, execution authorization, storage execution and independent verification.
+- Explicitly records that READY, quarantine resolution and evidence PASS do not imply lifecycle eligibility, approval or deletion authority.
+- The owner has NOT yet selected named principals, independent-approver or single-owner compensating-control model, delegation, emergency access or IAM assignments. Those decisions remain OPEN; default is no self-approval and no combining incompatible authority domains.
+- Deletion authority remains NOT GRANTED.
+
+### Combined result and evidence status
+- P1.8.110–P1.8.114 documents were fetched back from the existing branch after creation; all five exact blob SHAs and document headings were verified.
+- Work is documentation-only. No source/runtime/schema/API/registry/adapter/scheduler/service/database/VPS/T0/T1/Feeder/ledger/strategy/risk-engine or IAM changes.
+- Static authoring/read-back check: PASS. Independent review of the five new documents: NOT YET PERFORMED.
+- Tests: NOT RUN. GitHub Actions: NOT DISPATCHED. Workflow run/artifact: NONE. Runtime/provider evidence: NOT VERIFIED. Runtime inventory: NOT PERFORMED.
+- Restore/staging/fault injection/provider/key/TSA operation: NOT EXECUTED / NOT AUTHORIZED.
+- Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Deletion authority: NOT GRANTED.
+- T0 canonical independence and CORE_LEDGER/AI_LEDGER separation unchanged; `AI_EXECUTION_ENABLED=false`.
+- Next gate: focused independent static review of P1.8.110–P1.8.114 against P1.8.93, P1.8.103–P1.8.109 and governing lifecycle/consumer/copy contracts. Any implementation, tests, workflow dispatch, IAM, staging or operational work requires its own explicit authorization.
