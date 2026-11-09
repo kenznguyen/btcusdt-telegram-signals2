@@ -2093,3 +2093,23 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Existing blockers unchanged: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C140 NOT IMPLEMENTED / NOT EXECUTED.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
 
+## Latest completed work — P1.24 (2026-11-09)
+
+- User approved automatic correction of P1.23 F02-R5, negative fixtures, exact-SHA adversarial self-review, and conditional issue #138 retarget only if self-review passed.
+- Normative contract file: docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_1_PRODUCER_WATERMARK_DURABILITY_2026-11-09.md.
+- Final contract blob SHA: dd33b60649d8881ca935d34b62b8b54b6d0e9d42.
+- Contract commits:
+  - ddb4693d83443d42d13884c03502a7513bf91aaa — define twelve-key Ed25519-signed approval record and external approver trust policy.
+  - a990c76cc0418d2920fbf858c561e7c83ad6ee30 — align recovery-epoch record with signature/policy verification.
+  - 5e76d65399c76e8221ffe320e11adf5a870e0192 — bind key validity to trusted verifier clock at verification time; keep signed approval timestamp audit-only; order C139–C145 fixtures.
+- F02-R5 correction: self-asserted GitHub login is no longer authority. Approval requires Ed25519 signature over canonical JCS eleven-field payload (all twelve record fields except signature), key ID = SHA-256 of raw Ed25519 public key, and login-to-key match in an administrator-provisioned external trust policy.
+- External trust policy is a closed JCS schema outside source root and all source-root restore/clone/snapshot sets. It defines public keys, authorized logins, validity intervals, ACTIVE/REVOKED status, policy digest, ownership/mode/no-symlink checks, rotation, immediate revocation and fail-closed behavior. No GitHub-metadata fallback or source-root policy fallback.
+- approved_at_utc is signed audit metadata only; it does not prove signature creation time. Key validity is checked using verifier trusted clock at verification time. Signature/trust policy are not an independent monotonic anti-rollback anchor; compromise of external admin trust root/key remains an explicit out-of-profile threat.
+- Added C141–C145 negative fixture specifications for malformed/forged signature or altered payload, unknown/wrong key and login mapping, revoked key, invalid external trust policy, and unavailable crypto/trusted clock. C137–C145 remain design-only.
+- P1.24 self-review file: docs/reviews/t1/P1_24_SELF_REVIEW_SIGNED_RECOVERY_APPROVAL_2026-11-09.md.
+- Self-review commit: ff0ad7782288ea6bc778f5b79482fb43113fc422; blob SHA: 43f8a505a52045469b1c7fd68bb0f73fc9450117.
+- Verdict: DOCUMENTATION-LEVEL PASS for F02-R5 and C141–C145. Same-session review, NOT independent. No cryptographic keypair/signature/policy was generated or verified; checks are static contract consistency only.
+- Existing blockers unchanged: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C145 NOT IMPLEMENTED / NOT EXECUTED.
+- Issue #138 may now be retargeted to exact contract blob dd33b60649d8881ca935d34b62b8b54b6d0e9d42 for genuinely independent review; P1.24 self-review blob is 43f8a505a52045469b1c7fd68bb0f73fc9450117. Independent review remains pending.
+- No implementation, executable tests, GitHub Actions run/artifact, REST, VPS/runtime, T1 activation, T0/T2 changes, strategy/AI/ledger/risk changes, trading or destructive operations.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; AI_EXECUTION_ENABLED=false; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
