@@ -1332,3 +1332,18 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - GitHub permission inventory remains PAUSED. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next gate: read back P1.8.144 and obtain an independent static review of its completeness and consistency with P1.8.80–P1.8.143, especially consumer/dependency, copy/hold, restore, trusted-time, V07/V08/TSA and Option C contracts. No implementation or operational work is implied.
 - Status: CONTRACT DRAFTED — INDEPENDENT REVIEW REQUIRED — NO NUMERIC RETENTION POLICY OR DESTRUCTIVE AUTHORITY.
+
+## P1.8.145 — Independent Static Review of P1.8.144 (2026-11-09)
+
+- Review: `docs/evidence/p1-8/P1.8.145-independent-static-review-p1-8-144.md`.
+- Commit: `1ddf6337800d2a13f282911cd2938b08f9788a0d`.
+- Target P1.8.144 blob reviewed: `f3002ba709f874936ca434c883ef855d2f11784a`.
+- Verdict: PARTIAL — core safety direction PASS; P1.8.144 is NOT READY for retention-floor acceptance.
+- Findings: IR145-01 MAJOR — obligation-inventory completeness proof/source coverage not specified; IR145-02 MAJOR — typed terminal obligation states and recurring/indefinite obligation handling not specified; IR145-03 MODERATE — copy/backup-chain graph and floor aggregation semantics incomplete; IR145-04 MODERATE — RET-02 noncanonical-copy boundary should be explicit in class-specific rules; IR145-05 MINOR — reviewer independence/competency evidence underspecified.
+- Cross-contract: RET-01/02 ratification and Option C PASS; no weakening of P1.8.93 mutation-fence or P1.8.117 final-boundary trusted-time semantics identified. Restore/V08/TSA graph evidence remains PARTIAL; P1.8.141 residual findings remain open.
+- Recommended next documentary task: P1.8.146 — Retention Obligation Inventory Completeness, Typed End-State and Copy-Graph Clarification. This is a recommendation only; no additional authority is inferred.
+- Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE. Runtime/data/provider inventory NOT PERFORMED. Adapter enforcement NOT VERIFIED. Negative vectors NOT RUN.
+- No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk changes; no provider/identity/permission work; no staging, restore, fault injection, synthetic execution, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion.
+- GitHub permission inventory remains PAUSED. T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Option C remains in force. Destructive authority NOT GRANTED.
+- Status: P1.8.145 STATIC REVIEW COMPLETE — PARTIAL — CONTRACT CLARIFICATION REQUIRED — NO IMPLEMENTATION OR DESTRUCTIVE AUTHORITY.
