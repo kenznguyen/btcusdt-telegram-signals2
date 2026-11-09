@@ -1475,3 +1475,19 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Tests NOT RUN for this documentation increment. GitHub Actions NOT DISPATCHED; workflow run/artifact NONE. VPS/Feeder/DB/API/T2 runtime unchanged.
 - Status: PARTIAL / BLOCKED AT VPS EXECUTION. Next gate: obtain authenticated remote execution or operator-run reviewed procedure; verify API loopback-only, GET/auth/read-only behavior, complete/fresh M15 data, then run one-shot T2 context read. Do not start T1 before this gate passes.
 - No public API exposure, OKX source replacement, live orders, strategy/ledger/risk changes, or data deletion authorized. `AI_EXECUTION_ENABLED=false` remains in force.
+
+## Latest completed work — P1 GitHub Actions Authenticated SSH Preflight (2026-11-09)
+
+- Owner explicitly approved P1 within a strict read-only remote inspection scope. No service start/stop/restart, deployment, source update, DB mutation, permission broadening, firewall change, T1/T2 activation, API request, live trading or destructive action is included.
+- Extended existing manual workflow `.github/workflows/t0-manual-validation.yml` with gate `scaleway-ssh-preflight`; workflow final commit: `63094a1d550ed3fabf51e2627d247a49e0dc3128`; final workflow blob SHA: `395ae93274a9202f14ab63d528be5cd582c30149`.
+- Added forced-command read-only remote script `ops/ssh/t0-readonly-preflight.sh`; file commit: `94dd300014fc85444d60eb85ad09cd343a7da231`; final blob SHA: `39de5aa7602cdf7dc301ff6bc65a68fad417ea84`.
+- Added contract tests `ci/test_t0_ssh_preflight_contract.py`; file commit: `a4f5a0b3877567d8c4c1b884d406461acac935fa`; final blob SHA: `d485052f63d2bdc57d2129a8ce83496e82ce3206`.
+- Added setup/authorization/evidence record `docs/evidence/t2/P1_GITHUB_ACTIONS_AUTHENTICATED_SSH_PREFLIGHT_2026-11-09.md`; commit: `b8efdecc2d8104b8e9f7be4519650dadb334c289`; blob SHA: `21187d1362d7afb1705e17b263069f6f2479f309`.
+- Workflow security shape: contract job runs before SSH job; SSH job is protected by GitHub Environment `scaleway-preflight`; secrets are environment-scoped; host key pinning is mandatory; no runtime ssh-keyscan; SSH sends no remote command and relies on a server-side forced command; account must be dedicated, non-root, no sudo, and key restricted against forwarding/PTY.
+- Remote command only reports sanitized host/user, source SHA, Feeder PID(s), TCP 8788 listener binding and read-only SQLite integrity. DB access uses `mode=ro`, `PRAGMA query_only=ON`, and `PRAGMA integrity_check`.
+- Verification performed: remote shell `bash -n` PASS; Python test module `py_compile` PASS; GitHub read-back/static assertions 11/11 PASS; exact workflow/script/test/evidence blob SHAs verified.
+- Actual unit test execution NOT RUN; GitHub Actions workflow NOT DISPATCHED; workflow YAML not yet validated by a GitHub run. No SSH private key or connection secret was generated, received, or stored in this session.
+- Dedicated VPS account, root-owned forced-command installation, authorized_keys restriction, host-key pin verification, file ACL review and GitHub Environment/secrets setup remain NOT DONE. Remote SSH authentication and VPS inspection NOT VERIFIED.
+- Final implementation status: **PARTIAL — REPOSITORY IMPLEMENTATION RECORDED; OPERATOR SETUP AND REMOTE PREFLIGHT PENDING**. No VPS/T0/T1/DB/Feeder/API/T2 runtime change was made.
+- Next step: operator completes the one-time secure setup described in `docs/evidence/t2/P1_GITHUB_ACTIONS_AUTHENTICATED_SSH_PREFLIGHT_2026-11-09.md`, then manually dispatches `T0 Manual Validation → scaleway-ssh-preflight` on this branch. Record exact run ID, tested source SHA, artifact ID and final verdict after the run.
+- After P1 PASS, API deployment and T2 one-shot read remain separate rollout gates. No live trading; `AI_EXECUTION_ENABLED=false`.
