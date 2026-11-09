@@ -1576,3 +1576,16 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - GitHub Actions: NOT DISPATCHED; run ID NONE; artifact NONE.
 - Guardrails: T0 remains independent/canonical; no T1 writes to T0; no OKX fallback; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
 - Next step: static consistency review of v1.1 against the actual T1 source and existing v1 design, with explicit traceability of the kline conversion/writer path. Then obtain a genuinely separate review; no implementation before separate approval.
+
+
+## P1.1 source trace addendum — confirmed T1 kline decimal-loss defect (2026-11-09)
+
+- Read-only source trace recorded at `docs/reviews/t1/T1_KLINE_PRODUCER_CALL_PATH_TRACE_2026-11-09.md`.
+- Trace commit: `df4406d08fb16010f78a2bef3f9748582cca82be`.
+- Reviewed T1 source SHA: `6e20fe94f3ad64cc450e73def80a167fe371e49e`.
+- Critical confirmed defect: `src/utils/csv_writer.rs::write_kline` parses every kline decimal field as f64, formats to 12 fractional digits, and uses `unwrap_or(0.0)` on parse failure. Thus current CSV serialization is lossy and malformed numeric input may silently become zero. Exact decimal provenance cannot be reconstructed downstream. R3 is BLOCKED pending producer-only correction and regression tests.
+- Finality clarification: `message_handler.rs::process_kline` drops all `is_closed=false` events before CSV writing; persisted klines are intended to be final-only. But CSV/model header does not declare final-only semantics or persist the flag. v1 must explicitly declare a versioned FINAL_ONLY mode and prove it with tests, or persist `is_closed=true`.
+- Product metadata refinement: inspected ExchangeInfoSymbol model exposes symbol/status/base_asset/quote_asset/underlying_type/contract_type; discovery filters TRADING, PERPETUAL, excludes PREMARKET and requires quote_asset=USDT. The inspected model does not expose margin_asset; do not require it without another verified source.
+- No source edits, tests, workflow dispatch, VPS/runtime or T0/T2 changes. No data operations.
+- Current status: **P1.1 DESIGN DRAFT / R3 CONFIRMED BLOCKER / IMPLEMENTATION NOT AUTHORIZED / INDEPENDENT REVIEW REQUIRED**.
+- Next step: revise v1.1 design to require lossless raw decimal serialization and explicit final-only source semantics; then perform consistency review and obtain separate independent review. Any source code fix requires separate explicit approval.
