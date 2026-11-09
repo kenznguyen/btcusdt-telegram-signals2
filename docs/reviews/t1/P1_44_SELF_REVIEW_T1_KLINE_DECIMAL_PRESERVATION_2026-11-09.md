@@ -75,3 +75,16 @@ The exact latest T1 branch HEAD remains **NOT VERIFIED** because its two additio
 - Current `src/utils/csv_writer.rs` blob: `6fa31c4b5874f2ca874db47b2cb3c35dfc02953c`.
 - This is a test-only change; implementation logic is unchanged from the green tested checkpoint `ad03560b6409de3c28688fb25d57fa49aed66a9f`.
 - Workflow run `42645946681` ended `startup_failure` with zero jobs. The exact latest branch HEAD and added test remain NOT VERIFIED. Do not interpret this as a test pass or a test failure.
+
+
+## Latest GitHub Actions startup investigation — 2026-11-09
+
+- T1 evidence update commit: `4566cffbbcf8495182abbc0d3496fdc65709ac14`; exact current T1 branch HEAD at the end of this investigation: `4566cffbbcf8495182abbc0d3496fdc65709ac14`.
+- The evidence update itself triggered two new runs for the exact HEAD:
+  - [42646416010](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42646416010), push, `startup_failure`, zero jobs.
+  - [42646425898](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42646425898), pull_request, `startup_failure`, zero jobs.
+- Both check suites report `latest_check_runs_count=0` and `rerequestable=false`; job listing is empty. Thus no runner step or Rust test was started.
+- Workflow file `.github/workflows/ci.yml` is unchanged at blob `8329039c807d63cf6834ca9c85fbd0cd99e474d4`; it has the expected push and pull_request triggers. There is no path filter or job-level conditional that explains the zero-job runs.
+- The connected GitHub tools expose rerun-failed-jobs and rerun-single-job operations, but no full-workflow rerun operation. Since these runs contain zero jobs and are not rerequestable, a rerun is not available through the current authorized connector.
+- Verdict unchanged: source implementation is green-tested at `ad03560b6409de3c28688fb25d57fa49aed66a9f`; added lexical edge tests and latest T1 branch HEAD `4566cff...` remain NOT VERIFIED. This is an Actions platform/startup blocker, not evidence of source test failure.
+- No workflow change, PR merge, branch creation, issue retarget, deployment, VPS/runtime operation, T1 activation, T0/T2 mutation or destructive operation was performed.
