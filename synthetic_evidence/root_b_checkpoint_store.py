@@ -147,6 +147,10 @@ class DurableRootBJournal:
                 raise SimulatedCrash("crash before event transaction commit")
             self._connection.commit()
             return "EVENT_APPENDED"
+        except SimulatedCrash:
+            # Leave the transaction open so the subprocess test can terminate
+            # without cleanup; SQLite must recover the uncommitted journal.
+            raise
         except BaseException:
             self._rollback_if_open()
             raise
