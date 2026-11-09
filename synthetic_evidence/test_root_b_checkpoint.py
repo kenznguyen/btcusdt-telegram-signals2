@@ -120,6 +120,12 @@ class RootBDuplicateAckAndCheckpointCrashTests(unittest.TestCase):
             "CHECKPOINT_COMMITTED",
         )
 
+    def test_checkpoint_rejects_sequence_beyond_contiguous_log(self):
+        self._ack_all("evt-1", self.journal.event_digest("evt-1"))
+        with self.assertRaises(RootBIntegrityError):
+            self.journal.commit_checkpoint("cp-gap", through_sequence=3)
+        self.assertIsNone(self.journal.recover_checkpoint())
+
     def test_crash_after_durable_write_can_replay_ack_without_duplicate_commit(self):
         for event_id in ("evt-1", "evt-2"):
             self._ack_all(event_id, self.journal.event_digest(event_id))
