@@ -3416,3 +3416,14 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Scope boundary: P1.8.152/P1.8.153 reviewer requirements remain unchanged and open; this waiver does not close lifecycle findings. Option C and all operational/destructive authorization boundaries remain unchanged.
 - Status: owner policy change recorded; matrix updated. Technical implementation/evidence for the nine active controls remains NOT VERIFIED / BLOCKED. No tests or GitHub Actions dispatched; no source/runtime/VPS/database/key/permission/data/destructive changes.
 - Next step: read back the decision, matrix and handoff; then reconcile F-01–F-09 and P1.8.152/P1.8.153 without importing the waived L4 reviewer requirement into the separate lifecycle workstream.
+
+
+### L4 reviewer-waiver documentation reconciliation
+
+- Final matrix correction commit: `bb4f63424961faa2edca911e111d709e18edd849`; final matrix blob SHA: `c109bd162dbd4744876392ee6f625bc9478da7de`.
+- Decision status alignment commit: `246c7d99a7e18844d10fd2472ed612aa43ac8aa8`; final decision blob SHA: `75e057ba482d81f6a9d896ace2b017807c9396d9`.
+- The matrix now explicitly uses an owner-assessment baseline and separate owner disposition; the nine active mandatory controls are L4M-01–L4M-08 and L4M-10. L4M-09 is OWNER-WAIVED / NOT MANDATORY and is not counted as PASS.
+- Corrected the matrix's self-referential baseline instruction: the external frozen manifest identifies the exact matrix blob; the matrix does not hard-code a potentially stale current blob SHA.
+- Corrected execution-sequence numbering. No tests or Actions were run.
+- Final policy scope remains narrow: P1.8.152/P1.8.153 reviewer gates are not waived or closed. No independent assurance claim is allowed for L4-Minimum owner self-assessment.
+- Next work: reconcile F-01–F-09 against the revised matrix and separately preserve open P1.8.152/P1.8.153 lifecycle findings; do not require a qualifying independent reviewer for L4-Minimum itself.
