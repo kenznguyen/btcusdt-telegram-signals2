@@ -1286,3 +1286,19 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE.
 - No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/Feeder/ledger/strategy/risk changes; no provider/key/TSA/restore/staging/fault-injection operations; no archive/cleanup/vacuum/deletion. Destructive authority NOT GRANTED.
 - Next gate: owner-level, evidence-backed retention policy decisions; keep all runtime, provider, identity, test and destructive work separately gated. Do not infer numeric TTLs or deletion eligibility.
+
+## P1.8.142 — Owner Retention and Data-Class Disposition Decision Package (2026-11-09)
+
+- Package: `docs/evidence/p1-8/P1.8.142-owner-retention-and-data-class-disposition-decision-package.md`.
+- Commit: `13557657eeabfb80f5c810271896a605359a4762`.
+- Final blob SHA after read-back: `a8b6027c5ff25192ebba82dadc52c70dd1983c82`.
+- Scope: documentary owner-decision package based on P1.8.80, central lifecycle policy, consumer contract, deletion safety contract, copy/backup/replica contract, Option C and P1.8.141.
+- Recommendation RET-01: T0 canonical data protected by default, with only a narrowly scoped exceptional review path for a separately ratified binding legal/security requirement; no routine lifecycle deletion. This is a recommendation, NOT owner-ratified.
+- Recommendation RET-02: restrict any future read-only deletion-eligibility review to a limited noncanonical set: exact T4 rebuildable cache/read-model/materialization; T2 ephemeral inference output after proving no material downstream decision/claim; T1 raw observation only after exact reproducibility and obligation closure; individually identified copies after copy-specific checks. No class-wide or automatic eligibility.
+- T3 CORE_LEDGER and AI_LEDGER, T0 canonical data, governance/audit/tombstone evidence and unknown data remain protected/excluded from class-wide review.
+- Numeric retention floors, TTL, grace, review cadence, authorization lifetime and evidence freshness remain OPEN; no values inferred.
+- Archive remains non-executable under current Option C. No deletion, archive, cleanup, vacuum, compaction, backup expiry, replica removal or other destructive authority is granted.
+- Owner decisions RET-01 and RET-02 require explicit ratification/revision/deferment. Other RET decisions remain OPEN or NOT VERIFIED as recorded in package.
+- GitHub permission inventory remains PAUSED. No additional API calls, runtime/data inventory, tests, workflow dispatch or artifacts.
+- No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk changes. No staging, restore, provider/key/TSA operation, synthetic execution or destructive action.
+- Status: DECISION PACKAGE PREPARED — OWNER RATIFICATION REQUIRED — NO POLICY CHANGE OR OPERATIONAL AUTHORITY ACTIVATED.
