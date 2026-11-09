@@ -397,8 +397,7 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 
 - Review: `docs/evidence/p1-8/P1.8.68-independent-static-review-provider-neutral-tsa-architecture.md`.
 - Review commit: `bde1e14c4e14eecaf13bd9f6637102e874ac5674`.- Verified review blob SHA: `9ae0c50830644d21d850da4c4d246a2837f62fc6`.
-- Reviewed P1.8.67 blob SHA: `50654f3f4f4caa509598e4393e2634ea977df5dd`.- Result: PASS within E0 documentary/static scope; no blocking or non-blocking findings. Confirmed write-path independence, exact-signature binding consistent with P1.8.36, limited `genTime` claim, RFC 3161 verification boundary, issuer-bound historical OCSP/CRL, RFC 9654 currency, unknown submission outcome handling, retry/idempotency, provider portability and commercialization-claim limits.- Limitations: no proof of current T0 implementation, DB/WAL boundary, provider interoperability, historical evidence restore, production reliability or commercial/legal readiness.
-- Status: P1.8.67 DESIGN ASSESSMENT COMPLETE; P1.8.68 REVIEW PASS (E0 only). P1.8.66 DRAFT ONLY / NOT SENT; provider NONE SELECTED; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; E2/E3/E4 NOT ACQUIRED; staging NOT AUTHORIZED; production NOT VERIFIED; `AI_EXECUTION_ENABLED=false`.
+- Reviewed P1.8.67 blob SHA: `50654f3f4f4caa509598e4393e2634ea977df5dd`.- Result: PASS within E0 documentary/static scope; no blocking or non-blocking findings. Confirmed write-path independence, exact-signature binding consistent with P1.8.36, limited `genTime` claim, RFC 3161 verification boundary, issuer-bound historical OCSP/CRL, RFC 9654 currency, unknown submission outcome handling, retry/idempotency, provider portability and commercialization-claim limits.- Limitations: no proof of current T0 implementation, DB/WAL boundary, provider interoperability, historical evidence restore, production reliability or commercial/legal readiness.- Status: P1.8.67 DESIGN ASSESSMENT COMPLETE; P1.8.68 REVIEW PASS (E0 only). P1.8.66 DRAFT ONLY / NOT SENT; provider NONE SELECTED; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; E2/E3/E4 NOT ACQUIRED; staging NOT AUTHORIZED; production NOT VERIFIED; `AI_EXECUTION_ENABLED=false`.
 - No E1 fixture freeze/execution, provider contact, endpoint/OCSP call, key/trust-anchor operation, staging, restore, fault injection, runtime/DB/VPS/Feeder change or workflow dispatch. Tests/workflows NOT RUN; artifact NONE.
 - Next gate: decide whether to prepare a separate implementation-neutral evidence-contract decomposition before any source work. Do not infer implementation or execution authorization from the review PASS.
 
@@ -797,8 +796,7 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 
 - Review: `docs/evidence/p1-8/P1.8.104-cross-contract-conflict-review.md`.- Review commit: `671dc975d3cba4f95cc2ac961bc7f46ef2e437dc`.
 - Review blob SHA: `8cce46c9c32c369372453df6908f6e3b1a09a30a`.- Source branch/base commit reviewed: `feature/t0-centralized-data-feeder-p1-20261101` / `936abd84396152b71825c86241d705595d45ab24`.
-- Verdict: **PARTIAL — no direct policy contradiction found; cross-contract integration gaps remain.**
-- V07: PARTIAL; trusted-time authority/profile, freshness, propagation, revocation and boundary parameters remain OPEN/BLOCKED.
+- Verdict: **PARTIAL — no direct policy contradiction found; cross-contract integration gaps remain.**- V07: PARTIAL; trusted-time authority/profile, freshness, propagation, revocation and boundary parameters remain OPEN/BLOCKED.
 - V08: PARTIAL; deletion eligibility does not yet explicitly bind source-progress/watermark/seal/commit and correction-lineage closure evidence.
 - Restore: BLOCKED; explicit restore governance epoch, stale authorization invalidation, operation-history reconciliation and independent object-generation oracle remain incomplete.
 - TSA: PARTIAL; timestamp proof is narrowly scoped to exact signed-object existence no later than genTime; token/trust/revocation evidence lifecycle needs explicit copy/restore linkage.
@@ -1197,8 +1195,7 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - P1.8.133 classic branch-protection closure:
   - Path: `docs/evidence/p1-8/P1.8.133-classic-branch-protection-endpoint-closure.md`.  - Commit: `b3923082e24529e30abd72aace8dd982372b0769`.
   - Blob SHA: `b90deed965714fa2beb09f11b04752fa0cf3a055`.
-  - Adds `GET /repos/{owner}/{repo}/branches/{branch}/protection`, documented repository `Administration: read`, response minimization, branch manifest scope and 404/inherited-rule limitations.
-- P1.8.134 independent review:
+  - Adds `GET /repos/{owner}/{repo}/branches/{branch}/protection`, documented repository `Administration: read`, response minimization, branch manifest scope and 404/inherited-rule limitations.- P1.8.134 independent review:
   - Path: `docs/evidence/p1-8/P1.8.134-independent-static-review-p1-8-133.md`.
   - Commit: `c0d17caa21378ade360aaf8c3d2a3f14b5c58c79`.
   - Reviewed P1.8.133 blob: `b90deed965714fa2beb09f11b04752fa0cf3a055`.
