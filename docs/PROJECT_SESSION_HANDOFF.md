@@ -235,3 +235,14 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; synthetic 13/13 remains synthetic only; `AI_EXECUTION_ENABLED=false`.
 - No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes; no provider/key operations, data probes, staging, restore, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
 - Next gate: continue documentation-only closure inventory/review for V08 and Restore. Request owner decisions only when evidence-backed proposals are ready; request separate permission before any privileged or operational action.
+
+
+### P1.8.44 / P1.8.45 / P1.8.46 — V08 and Restore traceability
+- P1.8.44 review: `docs/evidence/p1-8/P1.8.44-independent-review-v08-restore-inventory.md`; commit `6c706fcde9956f839a97e34e736998d3c248eb6e`; blob `6163f6fb18ace869e290af9b86bd79918f13e415`.
+- P1.8.44 result: PARTIAL. V08-D1–D9 and RST-D1–D9 technical coverage PASS; F-14 LOW required per-row source-clause provenance.
+- P1.8.45 crosswalk: `docs/evidence/p1-8/P1.8.45-v08-restore-source-clause-crosswalk.md`; commit `82227e376181af4109abe26e4ff56ea9ae773906`; blob `bea314c9092a801102c180ca01104212d4664177`.
+- P1.8.46 independent review: `docs/evidence/p1-8/P1.8.46-independent-review-v08-restore-crosswalk.md`; commit `0dbc93f7ef000b9f4473731b64f5b8ce42580cbc`; blob `0a2e8d4f29bf2756cfdba26cd0325245aacad0c9`.
+- P1.8.46 result: PASS; F-14 ADDRESSED at documentation/traceability level. Every V08-D1–D9 and RST-D1–D9 row now maps to P1.8.33/P1.8.34 and relevant P1.8.26/P1.8.28 clauses.
+- No parameter values, provider, failure domain, SLO or authorization was promoted. V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; RPO/RTO remain planning targets only; `AI_EXECUTION_ENABLED=false`.
+- No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes; no provider/key operations, data probes, staging, restore, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
+- Next gate: consolidate a documentation-only owner decision readiness register, distinguishing decisions answerable from current documentary evidence from those requiring measurement or implementation/provider choice. No execution authorization implied.
