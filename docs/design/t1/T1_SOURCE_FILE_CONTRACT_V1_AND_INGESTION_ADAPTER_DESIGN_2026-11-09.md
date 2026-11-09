@@ -1,8 +1,15 @@
 # T1 Source-File Contract v1 and Ingestion Adapter Design — 2026-11-09
 
+> [!IMPORTANT]
+> **ARCHIVAL / NON-NORMATIVE — SUPERSEDED FOR PRODUCER SOURCE CONTRACT BY T1 SOURCE-FILE CONTRACT v1.1.**
+>
+> This document is retained as the historical adapter-design baseline. For the current Binance USD-M BTCUSDT 1m producer feed, the v1.1 document is the sole normative source-file/producer contract. If any statement here conflicts with v1.1, v1.1 controls. This document does not authorize implementation or runtime use.
+>
+> In particular, the per-row `is_closed` schema, the proposed v1 header, and the associated finality assumptions below are superseded by v1.1's versioned manifest declaration `output_mode=FINAL_ONLY` plus producer regression proof that provisional events are filtered before persistence. A per-row `is_closed` field is not required for this first mode. Legacy/unversioned files remain ineligible for canonical aggregation. The remaining adapter concepts below are historical design material only and require reconciliation with v1.1 before any implementation.
+
 ## Status and decision
 
-**DESIGN PROPOSAL — NOT IMPLEMENTED / NOT APPROVED FOR RUNTIME.**
+**ARCHIVAL DESIGN BASELINE — NON-NORMATIVE FOR PRODUCER CONTRACT; v1.1 CONTROLS. NOT IMPLEMENTED / NOT APPROVED FOR RUNTIME.**
 
 This document defines a bounded, fail-closed contract for a future T1 CSV reader and isolated canonicalization adapter. It does not change the T1 collector, T0, T2, VPS or runtime.
 
@@ -12,7 +19,7 @@ Reviewed T1 source:
 - Exact source SHA: `6e20fe94f3ad64cc450e73def80a167fe371e49e`
 - Relevant source files and blob SHAs are recorded in `T1_COLLECTOR_DATA_CONTRACT_COMPATIBILITY_REVIEW_2026-11-09.md`.
 
-## 1. Critical blocker: current CSV loses the closed-candle flag
+## 1. SUPERSEDED — historical per-row finality proposal (v1.1 controls)
 
 At the reviewed source SHA:
 - `KlineData` receives Binance field `x` as `is_closed: bool`.
@@ -58,7 +65,7 @@ The reader must:
 - Reject malformed quoting, truncated rows, invalid UTF-8, non-finite numbers, negative volume/trade count, invalid OHLC relationships, and invalid timestamp ranges.
 - Preserve the original source bytes and source-relative path as provenance; never rewrite T1 source files.
 
-### 3.2 Proposed schema versions
+### 3.2 SUPERSEDED — historical proposed schema versions
 
 - **Legacy v0:** existing header without `is_closed`. Read-only archival/diagnostic use only; NOT eligible for canonical candle aggregation.
 - **Proposed v1:** existing documented columns plus a final boolean `is_closed` column. The collector must write the actual Binance `k.x` value for each WebSocket update. This version is not yet implemented.
