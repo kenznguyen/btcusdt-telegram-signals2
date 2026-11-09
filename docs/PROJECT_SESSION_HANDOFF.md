@@ -639,3 +639,12 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Copy lifecycle numbering correction: commit `5b6b5b66bd1375ceb6479db01f5263fc03abdda3`; blob `639e5ee5b5a78130cc523a4bcab8b77c0a0a5463`; §5.5 Hold inheritance precedes §5.6 Evidence copies.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/database/VPS/storage change or inventory; no destructive operation.
 - Next: remediate documentary SR-01/SR-02/SR-03/SR-05, then focused independent re-review. Keep identity/time/retention owner decisions OPEN. Do not begin V07/V08/Restore/TSA conflict review while material findings remain unresolved.
+
+### P1.8.92 — Canonical State Transition Crosswalk (2026-11-09)
+
+- Document: `docs/evidence/p1-8/P1.8.92-canonical-state-transition-crosswalk.md`.
+- Commit: `c589e3fdffb5a565d36a6c0bbe10132c53fe96f1`.
+- Blob SHA: `0e74e1fd29abbc9328fe355a7b59d72d7de58a17`.
+- Resolves SR-01 with canonical request states, legacy-label crosswalk, transition authorities/events, domain-state separation, terminality and re-entry rules.
+- Does not collapse dataset/dependency/hold/copy/approval/authorization/object/evidence domains; no runtime state machine or implementation selected.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/database/VPS/storage or destructive operation.
