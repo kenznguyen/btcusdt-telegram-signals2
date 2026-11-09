@@ -2704,3 +2704,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Receipt updated in main repo: `docs/evidence/t1/T1_MANUAL_VPS_TEST_RECEIPT_2026-11-09.md`, documentation commit `d86a473389dce79b8a663e30ee4f34668c55b408`, blob `e8ff995c13b05fdea35effbc35f0bc416ca2304b`.
 - No collector launch, Binance connection, exchange credentials, T0/T2 or T1 runtime mutation, PR merge, issue retarget, or deployment.
 - Next: verify new exact SHA in an isolated checkout and rerun the bounded Rust checks if permitted; retain T1 inactive. Do not attempt to bypass or reconfigure the Actions dispatcher.
+
+
+## T0 de-commercialization — commercial-scope content audit phase 1 (2026-11-09)
+
+- Read-only source audit pinned to commit `1569dde41f8219cd6fbc9a52d126450715a7995a`; tree SHA `4a0ec1c235aa0c12fa071b2a5c485b807a9f063a`; recursive tree complete, 636 blobs.
+- Evidence: `docs/evidence/COMMERCIAL_SCOPE_CONTENT_AUDIT_2026-11-09.md`; creation commit `8812a7a21de142654b27beaf2d2bd56537a93f88`.
+- Decision record appended §12: commit `8e3e94095f76063c44bb67c015de28a8fbf15a13`; new blob SHA `c7891def00458604158984a00634d131060a1737`.
+- Inspected key root/service/API/dashboard/paper-ledger/T0/T2/FreqAI/Futures Intelligence/Android source surfaces, all 13 active workflows, all 8 archived workflow YAML files, Codemagic and key dependency manifests.
+- No commercial implementation identified in inspected surfaces across multi-tenancy, customer billing/subscription, customer portal, commercial SLA/support tiers, onboarding/licensing/entitlements or commercial-only certification.
+- Important distinction: paper ledger has `account_id` columns, but `paper_accounts.account_id` is constrained to 1 and migration inserts only account 1; this is one internal PAPER account, not multi-tenant evidence. API uses shared environment Bearer tokens, not inspected per-customer identity/tenant authorization.
+- Android `COMMERCIAL_READINESS.md` is a future release/paid-commercialization checklist, not an implementation. Provider billing/invoice/payment language is infrastructure-cost research. Android Terms licence references are ownership/third-party notices.
+- All six repository-wide absence claims remain NOT VERIFIED; this is a bounded content audit and not a semantic review of every tracked blob or external deployment/account/consumer.
+- Tests NOT RUN; Actions NOT DISPATCHED; no workflow run/artifact. No source/config/dependency/workflow/runtime/data/credential/key/permission changes; no VPS/DB/provider operations.
+- No REMOVE-CANDIDATE or removal proposal. Option C — No Destructive Authority — remains in force.
+- Next: continue remaining source/config/docs/deployment and external-boundary review; maintain path/symbol coverage; do not promote repository-wide absence claims without complete evidence.
