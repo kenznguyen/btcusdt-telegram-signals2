@@ -177,3 +177,17 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: F-11 addressed at documentation-oracle level; independent re-review REQUIRED. F-01 remains CLARIFIED / DESIGN PASS but formal closure pending frozen profile/fixtures/final review. V07 BLOCKED; V08 and Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; `AI_EXECUTION_ENABLED=false`.
 - No source/runtime changes, VPS/T0/T1/DB/Feeder changes, provider selection, key operations, data probes, staging provisioning, restore rehearsal, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
 - Next gate: independent static review of P1.8.38 against P1.8.26, P1.8.28 and P1.8.34–P1.8.37. Separate explicit staging authorization remains mandatory.
+
+
+## Latest completed work — P1.8.39
+
+- Completed documentation-only independent static security review of P1.8.38 against P1.8.26, P1.8.28 and P1.8.34–P1.8.37.
+- Review: `docs/evidence/p1-8/P1.8.39-independent-static-security-review.md`.
+- Review commit: `6d7edefd29e1199b591a5c43e10453f222d7bca3`.
+- Review blob SHA: `54c97c3e4bb1f59113261add539a1f976fb7e426`.
+- Reviewed P1.8.38 blob SHA: `21b0aec3a308cd2b9dcbdbada16699ee0476bca9`.
+- Result: PASS — P1.8.38 correctly separates binding, token validation, event-signature validation, historical eligibility and final disposition. TB-P01/TB-P02 remain BLOCKED / NOT DETERMINED and QUARANTINE / HOLD until V07 is frozen and independently reviewed.
+- P1.8.37 F-11 is ADDRESSED at documentation-oracle level. P1.8.35 F-01 remains CLARIFIED / DESIGN PASS; formal closure still requires frozen profile, fixture bytes/hashes and final review.
+- No new finding. V07 remains BLOCKED; V08 and Restore remain OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; `AI_EXECUTION_ENABLED=false`.
+- No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes; no provider/key operations, data probes, staging, restore, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
+- Next gate: documentation-only parameter-closure inventory for V07, V08 and Restore, listing each OPEN field, required evidence, decision owner and dependencies. Do not select unsupported values or authorize staging.
