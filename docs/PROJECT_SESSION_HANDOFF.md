@@ -2175,3 +2175,17 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Existing blockers: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C170 NOT IMPLEMENTED / NOT EXECUTED.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
 
+## P1.29 — ERA key revocation sequence and follow-up self-review (2026-11-09)
+
+- Contract commit: `2345c1dfa4da9cfab734c60daeb9ea224107bd2e`.
+- Exact contract blob: `bfb8331d459b4caeb081af67c84d6ab2cc23edb3`.
+- Added `revoked_at_authority_sequence` to ERA trust-key entries and separated historical signature verification from current authorization. Pre-revocation envelope can remain historical evidence only; equal/post-revocation sequence rejects; revoked key cannot authorize new recovery/gated operations; accepted epoch is quarantined before its next gated operation after revocation is observed.
+- Added C171–C174.
+- P1.29 self-review file: `docs/reviews/t1/P1_29_SELF_REVIEW_ERA_KEY_REVOCATION_SEQUENCE_2026-11-09.md`.
+- Review commit: `7cca787862d8d164f2bb4cb5c65a7aa57c7415b8`; review blob: `e533d8a41eb2de1ce6d6cf462f5d139603a97870`.
+- Verdict: **REQUEST CHANGES — F02-R12 MEDIUM**. The revocation-effective sequence in the external ERA trust file is not bound to a signed ERA revocation event. ERA operation enum and receipt schemas lack REVOKE_ERA_KEY. Add exact signed revocation operation/receipt, atomic sequence semantics, trust-file binding, crash recovery and fixtures.
+- Issue #138 remains targeted at P1.24 contract SHA until F02-R12 is corrected and exact-SHA self-review passes.
+- No ERA implementation, executable tests, Actions dispatch, REST, VPS/runtime, T1 activation, T0/T2 changes, trading or destructive data operations.
+- Existing blockers: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C174 NOT IMPLEMENTED / NOT EXECUTED.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
