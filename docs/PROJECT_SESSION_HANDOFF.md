@@ -7543,3 +7543,40 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Archive commit: `ba830d35d46217459913f142afd92b2560496934`; evidence path: `docs/evidence/p1-8/970d6f9c7c170eaf7ba63e47bad4b7c17bfe06ac/`.
 - Primary artifact ID `13646481085`, digest `sha256:898762fef3e83e5de518104857ca2b2d6cf59ca1617dca5877fd74a46047e890`; independent artifact ID `13646585699`, digest `sha256:c27a88a982cdddb43adcf18ffb6e654016e2e5c4de92c54620dbac6cbc2d6699`. Both expire `2026-11-16T02:49:57Z` (7 days).
 - This is a second consecutive successful run over the Ed25519 verifier and documentation state. Current branch HEAD after the archive push was verified as archive commit `ba830d35d46217459913f142afd92b2560496934` at the time of this update.
+
+
+## 2026-11-09 — P1.8.17 Root B duplicate-ACK and checkpoint crash harness
+
+### Approved scope and implementation
+
+- User approved a synthetic-only Root B duplicate-ACK/crash-window harness on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`.
+- Added `synthetic_evidence/root_b_checkpoint.py`: in-memory deterministic model for immutable event IDs/bytes, registered observer ACKs, duplicate ACK idempotency, ACK digest integrity, required-observer quorum, checkpoint event/ACK digests, checkpoint integrity, and recovery selection.
+- Added `synthetic_evidence/test_root_b_checkpoint.py` with 11 tests covering duplicate and conflicting ACKs, unknown event/observer, incomplete quorum, checkpoint sequence bounds, crash before durable write, crash after durable write but before ACK, crash after ACK, ACK replay, and post-checkpoint event-byte corruption.
+- The model's crash points are logical fault injections in memory. They do not simulate filesystem fsync, database transactions, power loss, broker delivery guarantees, or production observer protocol.
+- No production integration, runtime adapter, persistent storage, external service, or real execution path was added.
+
+### TDD and CI evidence
+
+- Test-first commit: `de33e53f0e753559c2fcda88698980e61a2da96a`; implementation commit: `2307da69ba6c03d15f967967eb422c317dc3d4c1`.
+- Initial workflow runs #136/#137 exposed the expected missing-module RED state while tests preceded implementation. Run #138 exposed a test assertion that incorrectly expected quorum after only one of two observers had ACKed; corrected the test to assert non-quorum first, then ACK the second observer. No implementation guard was weakened.
+- Final workflow run #139: [42554003945](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42554003945), event `push`, exact checked-out source SHA `7c7f7d0d98d4b7f0451d1c483e76245d4993d423`.
+- All three jobs PASS: deterministic local fixture contracts, independent runner Sigstore verification, and commit verified evidence to long-term Git history.
+- Full suite: **147/147 PASS**; Python compile PASS; synthetic-only preflight PASS; deterministic dual 1,000-event fixture comparison PASS; provenance binding PASS; prior P1.8.15 evidence backfill and verification PASS.
+- Archive job: `SOURCE_SHA_BRANCH_ANCESTRY=PASS status=identical`, `RETENTION_PAYLOAD_INDEPENDENT_RECHECK=PASS`, `TRUST_ROOT_SNAPSHOT_CHAIN_APPEND=PASS`, `LONG_TERM_GIT_HISTORY_RETENTION=PASS`.
+- Archive commit: `334e59bf826feb08e3046acf79df81afe017ff4c`; evidence path: `docs/evidence/p1-8/7c7f7d0d98d4b7f0451d1c483e76245d4993d423/`.
+- Primary artifact ID `13646811299`, digest `sha256:21ac21504e8bb06f46cabd4dcafb09e0e97e99c1b61f9fd9915a56a7791c2ef3`; independent artifact ID `13646443085`, digest `sha256:a609a9984e6b47a31c65fd748b3b5701257fb020b1ce0a2ef6a688ca17d475e1`. Both expire `2026-11-16T03:00:48Z` (7 days).
+- Branch remains `feature/t0-centralized-data-feeder-p1-20261101`; no merge or PR created.
+
+### Fault-vector inventory delta
+
+- `ROOT_B_DUPLICATE_ACK_CRASH`: synthetic model coverage added and CI verified (11 focused tests).
+- `CHECKPOINT_BOUNDARY`: remains PARTIAL; late pre-boundary commit invalidation exists, but crash consistency around persisted checkpoint commit is not yet proven.
+- `RECOVERY`: remains PARTIAL; in-memory replay equivalence is tested, but durable checkpoint restoration and storage-level crash recovery are not tested.
+
+### Assurance boundary and next step
+
+- **PASS:** isolated synthetic Root B ACK/checkpoint state-machine contract and deterministic crash-window cases for the exact source SHA above.
+- **NOT VERIFIED:** production Root B semantics, durable database/filesystem atomicity, multi-process concurrency, broker redelivery, real observer identity/authentication, and power-loss recovery.
+- Retention remains Git history plus 7-day Actions artifacts; `NOT_WORM`.
+- No T0/T1/VPS/database/Feeder/market-data/runtime/strategy/ledger/exchange/trading changes. `AI_EXECUTION_ENABLED=false`.
+- Next proposed scope: extend the checkpoint-boundary/recovery model to a durable test-only persistence adapter and fault-inject transaction boundaries, still isolated from all runtime systems; requires a separate approval before implementation.
