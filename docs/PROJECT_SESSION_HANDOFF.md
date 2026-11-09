@@ -3328,3 +3328,16 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: inspected source observations PASS; full install-path/workflow consumer inventory NOT VERIFIED; clean SQLite-only import test NOT RUN; tests NOT RUN; GitHub Actions NOT DISPATCHED; independent review NOT PERFORMED. G2 NOT VERIFIED; G3 PENDING; L4-Minimum BLOCKED / NOT VERIFIED.
 - No source/test/workflow/package/config/runtime/VPS/database/provider/permission/data changes; no destructive operation. Option C unchanged; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next safe step: read-only repository-wide dependency/install-path inventory; no package or workflow edits until separately authorized.
+
+
+## Five-Layer scope exclusion — Android Chart/Scanner and Python bot/backtest (2026-11-10)
+
+- Recorded explicit scope boundary in `docs/evidence/FIVE_LAYER_SCOPE_EXCLUSION_ANDROID_PYTHON_2026-11-10.md`.
+- Decision record commit: `3a2d8f328de558483d5ed00e840a6672b4b6a0ca`.
+- Android Chart/Scanner and Python bot/backtest are OUT OF SCOPE: not T0–T4 components, producers/consumers, dependencies, deployment/rollout or acceptance/test-denominator inputs. Repository co-location creates no integration obligation.
+- Updated `README.md` to make the exclusion explicit and link the decision record. README commit: `8eacc9dbb63364601f7b2a5654847d512fea6640`; blob: `bcb524b9862f99f8257c07b4e495856a5fdf7cb7`.
+- Updated `docs/T0_ACTIVE_SCOPE_INDEX.md` to state the same boundary. Index commit: `d80e319e18d2d9a7e75a848c551ac065f2f07f2b`; blob: `70c13603ec4f9d499273f2412c4106fcbc346af2`.
+- `docs/FIVE_LAYER_ARCHITECTURE.md` already explicitly excludes both systems from architecture, dependency, rollout, validation and acceptance; it was not changed in this increment.
+- Exclusion does not delete, disable, migrate or refactor Android/Python assets, source code, data or their legacy workflows. Telegram and old backtest dashboard remain separate repository assets as well.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; independent review NOT PERFORMED. No source, workflow, package, data, runtime, VPS, database, provider, secret, permission or Codemagic changes. No PR/merge.
+- Next step: read-back consistency check of the decision record, README, T0 index, architecture and this handoff; no implementation is needed for this scope decision.
