@@ -164,3 +164,40 @@ Classification: **DEFER / REVIEW — NOT A COMMERCIALIZATION COMPONENT**. It is 
 | Android commercial readiness/privacy/terms | OUTSIDE T0; retain separately |
 
 No component currently meets the evidence threshold for REMOVE-CANDIDATE. The audit did not execute tests, dispatch workflows, inspect live runtime configuration, or access VPS/database state.
+
+## 9. Adversarial self-review of the decision and first-pass audit (2026-11-09)
+
+- Review type: adversarial self-review by the same assistant/work session that authored the record. This is **not an independent second-reviewer sign-off**.
+- Reviewed the full decision record, the audit commit diff, the current branch tree at HEAD `b1345afdc5b467014e58624f6d86c6475537f497`, and the cited active-branch source/test/workflow files.
+
+### Findings
+
+| ID | Severity | Finding | Disposition |
+|---|---|---|---|
+| SR-01 | HIGH / acceptance blocker | GitHub code-search results used for commercial keyword absence target the repository default branch, not the active feature branch. They cannot establish branch-wide absence. | Correctly disclosed in §8.1. Keep commercial capability absence NOT VERIFIED. Requires branch-pinned source/config/workflow content audit. |
+| SR-02 | MEDIUM | The recursive active-branch tree path-name scan found only `market_data/test_support.py` among commercial-keyword-like paths; this is a generic test-support filename, not evidence of customer support functionality. Path names alone cannot prove absence in file contents. | Treat as weak corroboration only; do not upgrade status. |
+| SR-03 | MEDIUM | The bounded source list does not constitute a complete dependency graph across all 636 repository files, generated configuration, Android, T1/T2 consumers, deployment scripts, or runtime environment. | Keep dependency audit PARTIAL. Next audit must enumerate branch-pinned paths and inspect relevant content/config/workflows plus imports/references. |
+| SR-04 | LOW | PostgreSQL and Kraken are classified DEFER / REVIEW, but the current evidence demonstrates technical presence and test/workflow wiring, not whether either is currently used by the owner's active runtime or research workflow. | Classification remains appropriate; do not claim operational use. Add explicit consumer/value assessment before any retention/removal decision. |
+| SR-05 | LOW | Android commercial documents are outside T0 architecture, but may still have separate Android distribution/legal obligations. | Preserve separately; no deletion or legal conclusion implied. |
+
+### Review axes
+
+- **Correctness:** scope exclusions are distinct from implementation-presence claims; no unsupported absence assertion should be promoted to PASS.
+- **Architecture:** single-owner scope preserves internal service authentication, T0 canonical ownership, read-only consumers, writer fencing and provenance.
+- **Security/data integrity:** no proposed scope change weakens access control, signing/evidence custody, backup/recovery, or fail-closed behavior.
+- **Completeness:** incomplete; branch-wide content/dependency audit and runtime consumer inventory are outstanding.
+- **Verification:** no tests or Actions were run; documentation-only evidence cannot prove runtime behavior.
+
+### Verdict
+
+**SELF-REVIEW: CONDITIONAL PASS FOR SCOPE-BOUNDARY DOCUMENTATION; BLOCKED FOR INDEPENDENT ACCEPTANCE AND ANY REMOVAL.**
+
+No critical contradiction was found in the written scope boundary. SR-01 and SR-03 remain acceptance blockers for claims that commercial capabilities are absent repository-wide. No REMOVE-CANDIDATE is established. A second reviewer who did not author this decision/audit must review the record and evidence before the audit can be marked independently reviewed.
+
+### Next read-only work
+
+1. Perform a branch-pinned content audit over relevant source, configuration, docs, workflows, Android, T1/T2 interfaces and deployment manifests.
+2. Build exact import/reference edges for PostgreSQL and Kraken Spot, including consumer entrypoints and CI gates.
+3. Determine whether Kraken Spot has an actual personal research consumer and whether PostgreSQL is a supported target or merely an optional adapter.
+4. Obtain an independent second-reviewer verdict.
+5. Keep all physical removal and runtime/data lifecycle actions unauthorized pending exact-scope owner approval.
