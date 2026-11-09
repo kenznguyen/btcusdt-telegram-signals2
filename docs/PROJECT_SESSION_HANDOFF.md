@@ -713,7 +713,7 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 ### P1.8.96 — Independent Review of P1.8.92–P1.8.95 (2026-11-09)
 
 - Review: `docs/evidence/p1-8/P1.8.96-independent-review-of-p1-8-92-to-95.md`.
-- Commit: `PENDING_READBACK`.
+- Commit: `853dc7edf834f005f93aa1f15443354e0961cc61`.
 - Blob SHA: `5c8d3d8886269929bc8ac83ee4fc15c3aaaf9911`.
 - Verdict: **PARTIAL — remediation review complete; IR-01/IR-02/IR-03 MAJOR and IR-04 MINOR remain.**
 - IR-01 MAJOR: BLOCKED/reconciliation/expiry/revocation transition authority and events incomplete.
