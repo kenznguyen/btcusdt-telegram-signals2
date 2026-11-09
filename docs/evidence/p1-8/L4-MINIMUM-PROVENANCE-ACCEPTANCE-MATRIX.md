@@ -139,7 +139,7 @@ Evidence package retention is governed by the applicable lifecycle obligations a
 
 ## 6. Execution sequencing and authorization gates
 
-1. Reconcile remaining P1.8.152 lifecycle findings; the L4-Minimum reviewer waiver does not close or waive reviewer requirements in that separate lifecycle workstream.
+1. Reconcile remaining P1.8.152 lifecycle findings under `docs/decisions/D-2026-11-10-LIFECYCLE-INDEPENDENT-REVIEW-WAIVER.md`. Independent human review is owner-waived for the lifecycle workstream; substantive technical, retention-floor, inventory, enforcement and restore criteria remain open until evidenced.
 2. Treat the 2026-11-10 read-only audit report as a historical snapshot: it references the pre-F-01–F-08 matrix blob `f39bef0c391e13a3656130f0e74f0e7a385b0c39`. Do not rewrite that report or treat its matrix reference as current.
 3. Freeze and identify the exact owner-assessment baseline (the exact current matrix blob as read from GitHub, the historical audit report blob `cfecb7428508adf23e6b9e71dc0dfe1e0e38080c`, the reviewer-waiver decision and applicable controlling lifecycle artifacts) in a canonical manifest with digest and closure record. The external manifest, not a self-referential SHA embedded in this matrix, identifies the exact matrix blob.
 4. The owner assesses the exact frozen review-input baseline, explicitly reconciling historical-to-current matrix lineage, and records a separate owner disposition referencing the exact baseline ID/digest. Do not label this as independent review.
@@ -170,16 +170,17 @@ This document does not authorize any step that crosses an existing authorization
 | Restore | No measured provider/database recovery guarantee; no restore-overwrite authorized | OPEN / BLOCKED |
 | Mutation fence / Option C enforcement | No technical destructive authority assumed | NOT VERIFIED |
 
-P1.8.153 remains the next documented lifecycle gate in the handoff. This L4 matrix does not replace, close or retarget it. The unresolved P1.8.152 reviewer-control finding remains open under that separate lifecycle workstream; this L4-Minimum waiver does not close or waive it.
+P1.8.153 is OWNER-WAIVED / NOT REQUIRED as a mandatory independent-human-review gate under `docs/decisions/D-2026-11-10-LIFECYCLE-INDEPENDENT-REVIEW-WAIVER.md`; it is NOT EXECUTED and is not claimed PASS. IR147-01 and the reviewer-dependent portion of LDA-09 are waived as review gates only. Their substantive retention-floor, technical, inventory, enforcement and lifecycle criteria remain OPEN / NOT VERIFIED as applicable.
 
 ## 8. Current verdict
 
 - Matrix revision: OWNER-DIRECTED POLICY UPDATE — L4M-09 WAIVED; OWNER-ASSESSMENT MODEL; NOT IMPLEMENTED OR ACCEPTED.
-- Lifecycle alignment: DOCUMENTARY CROSSWALK ADDED; P1.8.152 residual findings remain open.
+- Lifecycle alignment: DOCUMENTARY CROSSWALK UPDATED; independent human review waived by the lifecycle owner decision; P1.8.152 substantive residual findings remain open.
 - Requirements implemented: NOT VERIFIED.
 - Test fixtures created/executed: NOT RUN / NOT CREATED BY THIS RECORD.
 - GitHub Actions: NOT DISPATCHED.
-- L4M-09 qualifying independent review: OWNER-WAIVED / NOT MANDATORY for L4-Minimum only.
+- L4M-09 qualifying independent review: OWNER-WAIVED / NOT MANDATORY for L4-Minimum.
+- Lifecycle independent human review / P1.8.153: OWNER-WAIVED / NOT REQUIRED by the separate lifecycle owner decision; technical verification and owner authorization gates remain mandatory.
 - L4 implementation/operational acceptance: BLOCKED / NOT VERIFIED; nine active controls remain unproven.
 - Destructive authority: NOT GRANTED; Option C remains in force.
 
