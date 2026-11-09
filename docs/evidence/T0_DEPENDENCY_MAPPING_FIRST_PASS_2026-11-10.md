@@ -113,3 +113,30 @@ Workflow blobs:
 - T0 L4-Minimum operational acceptance: remains BLOCKED / NOT VERIFIED.
 - G2 exact-SHA execution: NOT VERIFIED; G3 independent review: PENDING.
 - Option C remains in force; no automatic delete-after-use, TTL, archive, cleanup, vacuum, compaction, backup expiry or replica removal. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+
+
+## 8. Supplemental repository-wide consumer findings (same frozen source baseline)
+
+Additional exact-branch Android source inspection found an important boundary not captured in the initial Python-only path:
+
+- `android-app/.../MarketEngine.kt` blob `ed921c7278ce3397c85c49c9706c2b5550fc5012` directly builds HTTP requests to Binance Futures and opens Binance Futures WebSocket streams. Its `fetchCandles()` is consumed by `ChartMarketSession.kt` (blob `bfbf52e58358afa9f0c610aaa2496ed81f4cd8ac`) and `ScannerMarketFeed.kt` (blob `413f50b0996c219f0ebdcd185dcc835632539d2c`). Thus the Android market/chart/scanner path is not proven to consume T0 canonical Candle API.
+- `FiveLayerApi.kt` blob `91c9ce61a14dc54a2e2bf1b47285d5645b3f119e` exposes a distinct configurable `baseUrl` API client with a `candles` route and other five-layer service routes. Its candle decoder enforces a canonical-looking Binance BTCUSDT contract, but the exact deployment URL/server route mapping was not established here. Do not assume this endpoint is `market_data.api /v1/candles`.
+- `freqai_bridge/http_candles.py` blob `eb9aeccdf381e8a2ebc3450a7a31ae4e9da164ac` calls `/v1/candles`; `freqai_bridge/context.py` uses `CandleHttpClient`. This is the confirmed Python T2 HTTP consumer path.
+- `market_data/README.md` blob `660a2f0f4f88c0de4fa8c1be3c4af96df282de0e` explicitly states the initial T0 store/API has not replaced the direct OKX source of the existing Python bot/backtest or the direct APK source. This matches the Android source inspection.
+
+### Supplemental disposition
+
+| Consumer | Current observed source | Relationship to T0 | Decision |
+|---|---|---|---|
+| FreqAI bridge | `CandleHttpClient -> /v1/candles` | Confirmed T0 HTTP consumer boundary; deployment runtime still unverified | KEEP |
+| Android chart/scanner | `MarketEngine -> Binance Futures REST/WebSocket` | Direct exchange path, not T0 canonical API | PARK migration; do not silently switch |
+| Android FiveLayer API | Configurable `baseUrl`, `candles` route | Separate service API; server mapping to T0 not verified | NOT VERIFIED; keep separate |
+| Existing Python bot/backtest | README says OKX source remains | Not migrated to T0 in documented baseline | PARK migration; preserve current behavior |
+
+This is a significant architecture gap for any future claim that T0 is the sole canonical source for all app/strategy consumers. Do not alter Android or Python bot source as part of this mapping.
+
+### Scope update
+
+- Repository-wide search is still not complete: static inspection now covers selected Python T0 source, selected workflow files, Android market engine/API consumers, and T0 README declarations.
+- The new Android direct-Binance path is positive evidence that at least one app market-data path bypasses T0, not evidence of a defect in T0 itself.
+- Runtime endpoint/configuration mapping and live consumers remain NOT VERIFIED.
