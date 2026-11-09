@@ -3962,3 +3962,17 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - Option C — No Destructive Authority remains ACTIVE; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - No code/schema/adapter/runner/workflow/permission/runtime/data changes; no tests, compile, dry-run, fault injection, Actions dispatch, secrets/runtime/provider/VPS/database/recipient/backup/replica probes, provisioning, external evidence publication or destructive operation. No workflow run or artifact is claimed.
 - Next step: Stage K — Owner Adjudication of Contract Freeze Blockers, documentary-only. Any implementation requires separate explicit approval; lifecycle execution additionally requires TEST-08.
+
+
+## Latest completed work — Stage K.0–K.6 / Owner Adjudication Decision Package
+
+- Added documentary decision package: `docs/evidence/p1-8/STAGE_K0_K6_OWNER_ADJUDICATION_DECISION_PACKAGE_2026-11-10.md`.
+- Report commit: `d15740eecee8c2b39a4e254f1b3ea13ad9beac4a`.
+- Classified J-OPEN-01–13 as owner policy, technical specification, combined, or external evidence requirements.
+- Preserved Stage H approvals: JCS + SHA-256 direction; layered per-run isolation; distinct least-privilege principals; Git index + separate versioned evidence payload; independent exact-version verifier; retention governance.
+- Recorded conservative proposals only; no owner-specific provider, library, identity service, retention duration, recovery objective or numeric threshold was selected by inference.
+- J-OPEN-01–11 remain OPEN; J-OPEN-12 TEST-08 NOT GRANTED; J-OPEN-13 LDA-06 PARTIAL / NOT VERIFIED and LDA-08 HOLD / NOT VERIFIED.
+- Contract freeze NOT READY; technical readiness BLOCKED; implementation and execution NOT AUTHORIZED.
+- Option C — No Destructive Authority remains ACTIVE; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- No code/schema/adapter/runner/workflow/permission/runtime/data changes; no tests, compile, dry-run, fault injection, Actions dispatch, secrets/runtime/provider/VPS/database/recipient/backup/replica probes, provisioning, external evidence publication or destructive operation. No workflow run or artifact is claimed.
+- Next recommended stage: Stage L — Contract Profile Specification Draft, documentary-only, retaining TBD markers and requiring explicit owner decisions before freeze.
