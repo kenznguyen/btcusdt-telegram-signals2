@@ -1701,3 +1701,18 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Final P1.5 record commit: `5bbf73029c4100cf0f7c3e036b36db2d8276d847`; record blob SHA: `4663ac7d86a5c16d8ae3483ed6a34f0a77d2652c`.
 - Same-session consistency check: F02 does not weaken P1.3 missing-minute handling; F03 invalidation prevents P1.3 seal preconditions from passing until resolved; F04 narrows the manifest security claim without changing completeness rules. No contradiction found in reviewed clauses. This is not independent review.
 - Final status: P1.5 DOCUMENTATION CLARIFICATIONS COMPLETE / SAME-SESSION CONSISTENCY CHECK PARTIAL-PASS / DESIGN NOT READY FOR IMPLEMENTATION / INDEPENDENT REVIEW PENDING / F01, F05, F07 BLOCKED.
+
+
+## Latest completed work — P1.6 T1 contract cross-document consistency review (2026-11-09)
+
+- Re-read the current handoff and cross-checked original v1, current v1.1, P1.3, P1.4 and P1.5 documents against pinned T1 source SHA `6e20fe94f3ad64cc450e73def80a167fe371e49e`.
+- Review: `docs/reviews/t1/P1_6_CONTRACT_CROSS_DOCUMENT_CONSISTENCY_REVIEW_2026-11-09.md`.
+- Review commit: `2ce332b910a557c4afcc4eaa870e4793cb5fc5ab`.
+- Findings: P1.6-F01 HIGH — original v1 document retains per-row `is_closed` schema/finality wording superseded by v1.1 FINAL_ONLY mode, but is not marked superseded; P1.6-F02 MEDIUM — manifest `GAP_DETECTED` lacks source-specific evidence semantics and could be confused with REST-missing/unknown; P1.6-F03 HIGH — inability to durably persist a health event (e.g. fsync/disk-full) needs an explicit immediate sticky invalidation and restart/quarantine rule.
+- Cross-document PASS: REST remains candidate-only; missing REST minute remains SOURCE_HEALTH_UNKNOWN; no-trade inference/synthetic candles prohibited; REST-only rows are divergence and cannot enter WS generation; mismatches quarantine; sticky invalidation retained; manifest checksum claim limited to accidental corruption; decimal-loss defect and target-filesystem durability remain blockers; T0 remains independent.
+- Verdict: PARTIAL — core fail-closed principles are consistent, but document set is not yet one unambiguous implementation contract. REQUEST CHANGES before readiness assessment.
+- Review is same-session static review, not independent sign-off. Issue #138 remains the separate independent-review gate.
+- Status: P1.6 REVIEW RECORDED / P1.6-F01/F02/F03 OPEN / REST COMPLETENESS ORACLE NOT VERIFIED / IMPLEMENTATION NOT AUTHORIZED / T1 ACTIVATION NOT AUTHORIZED.
+- Verification: documentation writes only. Tests NOT RUN; GitHub Actions NOT DISPATCHED (run ID NONE; artifact NONE); no REST request, source edit, adapter implementation, VPS/runtime, T0/T2 or trading changes. No data deletion or destructive operation.
+- Next step: P1.7 documentation-only resolution of the three findings; mark original v1 finality/schema clauses superseded, define evidence semantics for `GAP_DETECTED`, and specify health-event persistence failure behavior. Preserve F01/F05/F07 blockers and request independent review only after the normative document set is reconciled.
+- Guardrails: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
