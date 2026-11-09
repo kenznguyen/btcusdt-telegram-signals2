@@ -63,3 +63,30 @@ Reviewed exact blob `9125e89b227fd9fa8364a02188d0be54ec3dd2ef`, not a mutable br
 - No destructive data operation or test performed.
 
 T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
+
+
+---
+
+## P1.38 — Second-pass adversarial review (2026-11-09)
+
+Review type: Fresh second-pass, same-session static adversarial self-review; NOT an independent third-party review.
+Exact normative contract blob re-reviewed: `9125e89b227fd9fa8364a02188d0be54ec3dd2ef`.
+
+**Verdict: DOCUMENTATION-LEVEL PASS.** No new actionable P1.37-level contract defect was identified in the directly coupled receipt/checkpoint/recovery rules examined.
+
+This second pass cross-checked §§5.2, 21.5, 22.2, 22.4, 22.6, 22.6.1 and 22.9–22.11, plus C100–C197 and the current implementation-status statements.
+
+Regression checks:
+- §22.4 contains exactly twelve receipt keys, including `manifest_jcs_base64url`; the same field is required by §5.2/§21.5 and consumed by §22.11.2/C190–C197.
+- The 87,382-character maximum is consistent with unpadded base64url encoding of 65,536 bytes. Decode/re-encode, UTF-8/JCS validation, manifest digest binding and receipt/manifest shared-field matching are specified.
+- Receipt byte bounds remain 1–131,072; embedded manifest bytes remain 1–65,536.
+- Historical manifest recovery uses immutable receipt-embedded bytes, not the replaceable active `manifest.json`.
+- Checkpoints pin exact receipt bytes using `receipt_sha256` and the historical manifest using `manifest_sha256`; recovery epoch is separately bound to initialization and immutable epoch records.
+- Publication order retains manifest directory fsync, no-replace receipt installation, commits-directory fsync under the writer lock, and lock release only after success.
+- §22.8 and §22.11.5 consistently state C01–C197 are design-only, NOT IMPLEMENTED / NOT EXECUTED.
+
+No new finding was raised. This is a bounded static document-consistency pass, not proof that every historical clause is correct, that the design is implementable, or that runtime durability/completeness is established.
+
+Residual gates unchanged: F07 NOT VERIFIED; Binance REST completeness NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; schemas/services/parsers/fixtures NOT IMPLEMENTED / NOT VERIFIED; C01–C197 NOT IMPLEMENTED / NOT EXECUTED. No Actions, executable tests, REST, VPS, filesystem or runtime experiment was performed.
+
+**Independent review remains PENDING.** A same-assistant review cannot become genuinely independent by being repeated. Issue #138 must remain OPEN. Implementation and T1 activation remain NOT AUTHORIZED. T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
