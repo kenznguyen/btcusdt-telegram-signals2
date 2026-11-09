@@ -3822,3 +3822,39 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Option C remains active; no cleanup/deletion/archive/expiry/compaction/vacuum or other destructive action was authorized or performed.
 - No tests, compile, dry-run, fault injection, provisioning, Actions dispatch, secrets/permission/runtime/VPS/database/provider/recipient/backup/replica probes, source/schema/adapter/workflow/runner/permission/runtime/data changes or destructive operations.
 - Next gate: Stage C documentary scope complete. Any further work requires a separately scoped owner decision; TEST-08 and all technical prerequisite gates remain mandatory.
+
+## Stage C.15 reconciliation — canonical records and duplicate-file correction
+
+The canonical Stage C.1–C.15 documentary sequence is complete. The following later revisions supersede earlier snapshots recorded above:
+
+- **C.14 exact source-to-assertion revision:** commit `04634a8800748a1f724ad990be59bd1eb1568c1b`; canonical report `docs/evidence/p1-8/STAGE_C14_87_VECTOR_TEST01_07_APPLICABILITY_TRACEABILITY_MATRIX_2026-11-10.md`; blob `12bba6c475fc2ad8c4e2246e75034ede22d3bc20`. Exact P1.8.90/P1.8.94 definitions matched 87/87; design-level TEST-01–07 assertion mapping 87/87; executable lifecycle binding 0/87; execution 0/87. This supersedes the earlier C.14 family-level-only status and the earlier 0/87 exact-mapping statement above.
+- **C.10 PRV-T04 editorial correction:** commit `b169cc74647eaad639504c96576ce0e865f7c3a3`; current C.10 blob `3fc63ae95b130d27de82cd615e9a79f6939fd62b`. Wording is now “Executor cannot self-author or forge authoritative observer/oracle/publisher records.” This is editorial only; role separation is not technically verified.
+- **Canonical C.12:** `docs/evidence/p1-8/STAGE_C12_TEST01_07_CROSS_CONTRACT_TRACEABILITY_REVIEW_2026-11-10.md`; blob `2205caf4c177fa036eafd26ec65569a3c40e0aaf`.
+- **Canonical C.15:** `docs/evidence/p1-8/STAGE_C15_OWNER_STATIC_CLOSURE_READINESS_REVIEW_2026-11-10.md`; commit `4a73a11596a7dbe3aaaa29206b430c8920fa1e43`; blob `7c7e49b722d4808c764b4a262b5ec7c79dd48b13`. It is the authoritative owner static closure-readiness review and records Stage C.1–C.15 documentary completion.
+
+### Non-canonical duplicate files created during a later continuation
+
+Two additional documentation files were created after their canonical Stage reports already existed. They are retained unchanged for repository-history transparency, but are **not canonical Stage C records**, do not supersede the reports above, and must not be used as the authoritative status source:
+
+| Non-canonical file | Creation commit | Blob SHA | Canonical record to use |
+|---|---|---|---|
+| `docs/evidence/p1-8/STAGE_C12_TEST01_TEST07_CONTRACT_TRACEABILITY_AND_CONSISTENCY_REVIEW_2026-11-10.md` | `c480b47a51d2a1962540427f35dbc0cfb3f50ad4` | `c0f71695b3225f1e896a2bd0e8463c7dd5bd5e1e` | `STAGE_C12_TEST01_07_CROSS_CONTRACT_TRACEABILITY_REVIEW_2026-11-10.md` |
+| `docs/evidence/p1-8/STAGE_C15_OWNER_STATIC_CLOSURE_READINESS_REGISTER_2026-11-10.md` | `6defe3ad77ef82a83fff01dfad7a4a9fef167efa` | `da7677065efe6d17699c77ff77fb1a61561e3e9a` | `STAGE_C15_OWNER_STATIC_CLOSURE_READINESS_REVIEW_2026-11-10.md` |
+
+No deletion or overwrite was attempted because Option C remains active. Future handoffs and reports must cite only the canonical C.12 and C.15 paths above.
+
+## Final Stage C status
+
+- Stage C.1–C.15: DOCUMENTARY PACKAGE COMPLETE.
+- TEST-01–07: CONTRACT DOCUMENTED; TECHNICAL CLOSURE NOT ESTABLISHED.
+- TEST-08: NOT GRANTED.
+- C12-F01/F03: RESOLVED AT LOGICAL DOCUMENTARY MAP LEVEL ONLY.
+- C12-F02: RESOLVED AT DESIGN-LEVEL VECTOR/ASSERTION TRACEABILITY ONLY.
+- C12-F04: RESOLVED EDITORIALLY ONLY.
+- LDA-07: 87/87 NOT RUN; no executable lifecycle coverage.
+- LDA-06: PARTIAL / NOT VERIFIED.
+- LDA-08: HOLD / NOT VERIFIED; branch-protection read gap remains HTTP 403; no permission change.
+- Option C: ACTIVE; no destructive authority.
+- No tests, compile, dry-run, fault injection, Actions dispatch, runtime/provider/VPS/database probes, permission changes, implementation or destructive operations were performed.
+
+**Stage C is complete for the approved documentary scope. Any next activity requires a separate owner decision; implementation, execution, TEST-08 and destructive authority are not granted by Stage C approval.**
