@@ -2274,3 +2274,21 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Issue #138 remains OPEN and must not be retargeted as PASS. Independent review remains pending.
 - No source implementation, executable tests, Actions dispatch, REST/VPS/runtime, T1 activation, T0/T2 change, trading or destructive data operation was performed or authorized.
 - Residual blockers unchanged: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; ERA services NOT IMPLEMENTED / NOT VERIFIED; C01–C189 NOT IMPLEMENTED / NOT EXECUTED.
+
+
+## Latest review — P1.36 (2026-11-09)
+
+- Normative contract: `docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_1_PRODUCER_WATERMARK_DURABILITY_2026-11-09.md`.
+- Exact contract blob SHA: `1957eee80d5f6eb80889506514aaecf4b6a912cb`.
+- Latest contract update commit: `d76c6e285db414d52a247f62c43f7c96c2ceb434`.
+- P1.35 finding F02-R18 HIGH is corrected: every immutable per-publication receipt now carries the exact historical manifest bytes in canonical `manifest_jcs_base64url`, with digest binding, canonical encoding and bounded parsing. Recovery validates historical manifests from immutable receipts rather than the replaceable active `manifest.json`.
+- Publication lock release now follows successful `fsync(commits_dir_fd)`, aligned with §22.6.1 commit-acceptance linearization.
+- C190–C197 specify historical manifest retention, malformed/missing evidence, digest/schema mismatch, conflicting history and crash cases. C146–C197 inventory checked: 52 entries, strictly ascending, unique.
+- Self-review: `docs/reviews/t1/P1_36_SELF_REVIEW_IMMUTABLE_RECEIPT_MANIFEST_HISTORY_2026-11-09.md`.
+- Self-review commit: `e452737a94223e4f808934f84018e863093cdab3`.
+- Exact self-review blob SHA: `163928749d5c2d756fb6aa98af6e1859bd95c7f6`.
+- Verdict: DOCUMENTATION-LEVEL PASS for F02-R18 and directly coupled publication/checkpoint requirements only; same-session, NOT independent.
+- Issue #138 is retargeted to exact P1.36 contract/review SHAs for genuinely independent review; it remains OPEN/PENDING.
+- No source implementation, executable tests, GitHub Actions dispatch/artifact, REST, VPS/runtime, filesystem durability experiment, T1 activation, T0/T2 change, trading or destructive data operation was performed or authorized.
+- Residual blockers unchanged: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; ERA services NOT IMPLEMENTED / NOT VERIFIED; C01–C197 NOT IMPLEMENTED / NOT EXECUTED.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
