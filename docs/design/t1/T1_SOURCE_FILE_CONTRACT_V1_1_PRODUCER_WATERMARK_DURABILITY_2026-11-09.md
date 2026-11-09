@@ -22,15 +22,17 @@ The generic persisted value market=futures does not prove the product contract. 
 - exchange_info_snapshot_sha256 and the exact symbol metadata record used for eligibility;
 - schema_version, collector_source_sha and file_generation.
 
-The producer must derive identity and symbol eligibility from the actual USD-M stream configuration and authoritative exchange metadata. Directory names, the generic futures label, symbol spelling or operator assertion alone are insufficient. The adapter independently checks the manifest against a pinned reviewable allowlist/fixture and embedded exchange metadata. Missing or contradictory evidence yields SOURCE_IDENTITY_UNPROVEN.
+The producer must derive identity and symbol eligibility from the actual configured Binance USD-M endpoint/stream and the exact authoritative ExchangeInfo symbol record captured for this generation. The manifest must bind the endpoint family/configuration digest, ExchangeInfo snapshot digest, exact symbol record and collector source SHA. The adapter independently validates these values; a static symbol allowlist or symbol spelling is not a substitute for the bound exchange record.
+
+A symbol-discovery exception or hardcoded allowlist MUST NOT bypass checks for status=TRADING, contract_type=PERPETUAL, quote_asset=USDT and the expected BTCUSDT/base_asset=BTC identity. Revalidate the exact record after any exception path and before opening a generation. A record that is absent, ambiguous, stale under the accepted snapshot policy, or contradictory yields SOURCE_IDENTITY_UNPROVEN. The pinned producer's BTCUSDT exception path is not accepted as proof because it does not recheck all eligibility fields.
 
 Exact field availability must be checked against the pinned Binance exchange metadata model before implementation. Do not invent margin_asset if unavailable; leave it unavailable and require an approved derivation or fail closed.
 
 ## 3. Explicit interval and row schema (R6)
 
-The first source contract is klines/1m. Manifest interval must equal 1m; missing, unknown or mismatched values are rejected. Never infer interval from a path or filename.
+The first source contract is klines/1m. Manifest interval MUST equal 1m; missing, unknown or mismatched values are rejected. Never infer interval from a path or filename. The configured WebSocket subscription identity and every incoming kline event interval must both be validated as 1m before the event reaches the persistence writer. An unexpected interval, stream name, symbol or endpoint family is rejected and invalidates/quarantines the affected generation; do not silently filter it and continue claiming a homogeneous feed.
 
-For the first adapter, choose one explicit producer mode: `output_mode=FINAL_ONLY`. The producer filters `is_closed=false` events before persistence, as the currently inspected message handler already intends to do. The v1 manifest must declare `output_mode=FINAL_ONLY`; producer regression tests must prove provisional events never reach the writer. The row schema does not need an `is_closed` column in this mode because every persisted row is contractually final. If a future producer persists interim updates, that is a different schema/output mode and must include a per-row finality flag; it cannot be silently interpreted as this FINAL_ONLY feed. Legacy files without a versioned manifest remain v0 and are ineligible. Conflicting final payloads for the same semantic candle key quarantine the affected window.
+For the first adapter, the only accepted producer mode is output_mode=FINAL_ONLY. The producer filters every is_closed=false event before persistence. The versioned manifest must declare output_mode=FINAL_ONLY, and producer regression tests must prove both that provisional events never reach the writer and that only 1m events from the exact declared subscription reach it. The row schema does not need an is_closed column in this mode because every persisted row is contractually final. If a future producer persists interim updates, that is a different schema/output mode and must include a per-row finality flag; it cannot be silently interpreted as this FINAL_ONLY feed. Legacy files without a versioned manifest remain v0 and are ineligible. Conflicting final payloads for the same semantic candle key quarantine the affected window. Close-time semantics must be validated against the 1m interval boundary according to the exchange's documented event schema; where that mapping is not proven, reject rather than infer finality from local wall-clock time.
 
 ## 4. Producer-owned watermark and completeness (R2)
 
@@ -55,8 +57,8 @@ Each file generation has a manifest containing:
 - state=ACTIVE | SEALED | QUARANTINED;
 - committed_offset_bytes and committed_record_count;
 - watermark_open_time_exclusive_ms;
-- source_health=RECONCILED_COMPLETE | GAP_DETECTED | UNKNOWN;
-- source_gap_ranges or a digest linked to an immutable gap record;
+- source_health=RECONCILED_COMPLETE | UNKNOWN | INVALIDATED;
+- optional reconciliation_evidence_ref bound to an immutable evidence record;
 - header_sha256 and data_prefix_sha256 for bytes [0, committed_offset_bytes);
 - updated_at_utc.
 
@@ -73,28 +75,34 @@ For a UTC half-open window [start_ms,end_ms), the adapter may classify the sourc
 6. candidate rows are complete, final, schema-valid and within the committed prefix;
 7. no unresolved receive gap or generation discontinuity overlaps the window.
 
-Only then may missing minute rows be classified as WINDOW_GAP. The adapter still emits no aggregate for a gap. If any precondition is absent, status remains pending/unsealed.
+Under the current v1.1 evidence profile, WINDOW_GAP is RESERVED AND NOT ASSIGNABLE, just like GAP_DETECTED. The current REST candidate does not establish complete coverage/no-trade semantics, and source asymmetry remains UNKNOWN/DIVERGENCE. A missing row therefore cannot be promoted to WINDOW_GAP by any current fixture or consumer. It remains SOURCE_HEALTH_UNKNOWN, SOURCE_HEALTH_INVALIDATED, RECONCILIATION_SOURCE_DIVERGENCE or SOURCE_NOT_SEALED as applicable. A future WINDOW_GAP state requires a separately versioned authoritative evidence profile, exact source/time-range binding, independent review and explicit approval. Even then it never authorizes synthetic data or aggregation across the gap.
 
 ## 5. Manifest lifecycle and durable publication (R4, R5)
 
 ### 5.1 Single writer and generations
 
-Exactly one writer owns an active file generation. A producer-side exclusive ownership mechanism prevents concurrent writers. Each process lifecycle durably allocates a monotonically increasing generation before append. If ownership or generation continuity is uncertain, quarantine the file; do not continue a stale cursor. Replacement, truncation, header rewrite or uncertain restart creates a new generation and explicit discontinuity evidence.
+Exactly one cooperative writer may own the source root at a time. The v1.1 reference ownership primitive is an OS kernel advisory exclusive lock on a pre-created, stable lock file in the source root; every writer MUST acquire it before generation allocation or any source mutation, and every reader MUST acquire the corresponding shared lock before reading the manifest, commit receipt or committed prefix. The lock file must never be unlinked, replaced or rotated. PID files, timestamps and lease expiry are not fencing primitives.
+
+The exclusive lock is held across generation allocation, append, data synchronization, manifest publication and commit-receipt publication. A paused former owner retains the kernel lock and blocks takeover; a crashed process releases the kernel lock. No operator may steal a lock based on age or PID. If the filesystem/provider does not provide the required cross-process lock semantics, or any process cannot acquire/verify the lock, fail closed and quarantine/stop. The lock protects only cooperating processes; source-root permissions and process identity remain part of the trust boundary.
+
+While holding the exclusive lock, allocate a monotonically increasing generation sequence using a durable counter transaction: write a complete temporary counter, fsync it, atomically rename it, fsync the parent directory, then and only then create/open the generation and append. A crash before the durable counter transaction completes must not have written source rows for that reserved sequence. If the counter, lock inode or generation history is missing, regressed or ambiguous, do not reuse a possibly published generation; quarantine and require an explicit recovery epoch/new root. Generation IDs also include a cryptographically random instance identifier so accidental sequence reuse is detectable.
 
 ### 5.2 Ordered publication protocol
 
-For every publication batch, the producer must:
-1. Serialize complete CSV records, each ending in one newline.
-2. Flush the userspace buffer.
-3. Invoke the platform durable file synchronization primitive (fdatasync or a verified equivalent); any error blocks progress.
-4. Capture exact durable end offset, record count and committed-prefix digest.
-5. Write a complete new manifest to a temporary file in the same directory.
-6. Flush and durably synchronize the temporary manifest.
-7. Atomically rename the temporary manifest over the published manifest.
-8. Durably synchronize the containing directory where required for rename durability.
-9. Only then expose the new committed offset and watermark to readers.
+For every publication batch, the producer must perform the following while holding the exclusive writer lock:
+1. Serialize complete CSV records, each ending in one newline; flush the userspace buffer.
+2. fdatasync/fsync the data file. Any error blocks progress and invalidates the generation.
+3. Capture exact file identity, durable end offset, record count and committed-prefix digest.
+4. Write a complete canonical manifest to a temporary file in the same directory; fsync the temporary manifest.
+5. Atomically rename the temporary manifest over the fixed manifest path.
+6. fsync the containing directory. Until this call succeeds, the new manifest is NOT COMMITTED and MUST NOT be accepted by readers.
+7. Only after step 6 succeeds, create an immutable commit-receipt file for this publication sequence. The receipt binds generation ID/sequence, manifest SHA-256, file identity, committed offset, record count, prefix digest and watermark. Write and fsync the receipt temporary file, then atomically rename it to its unique final receipt name.
+8. Readers accept a publication only when they hold the shared lock and find exactly one valid receipt that matches the exact manifest bytes and all bound fields. A visible manifest without a matching receipt is PREPARED/UNCOMMITTED and must be rejected. A receipt that mismatches, regresses or is ambiguous causes quarantine.
+9. The writer may release the exclusive lock only after the receipt is visible. A receipt may become visible before its own directory entry is durable; this is safe for acceptance because the receipt is created only after the manifest rename's directory fsync has succeeded. If the receipt entry is lost after a crash, the result is a false-negative (no matching receipt, fail closed), never acceptance of a manifest whose directory durability barrier did not complete.
 
-This is a proposed POSIX-style protocol, not evidence of current durability. Filesystem, mount, device and provider behavior must be verified on the target environment. If a required primitive fails or is unavailable, watermark must not advance.
+The reader MUST hold the shared lock while opening and validating the manifest, receipt and bounded data prefix, preventing observation of an in-progress publication by a cooperating writer. If a writer crashes before the receipt is published, its lock is released but the new manifest has no matching receipt and is rejected. If the previous receipt no longer matches the visible manifest, the reader quarantines rather than guessing which version is authoritative. No reader may fall back to a watermark copied from a filename, cache, previous process memory or an unmatched receipt.
+
+This protocol is a contract proposal, not evidence of current durability. The exact lock, atomic rename, file-sync and directory-sync semantics must be verified on the target filesystem, mount, device and provider. If any required primitive or lock behavior is unavailable or ambiguous, the source remains SOURCE_DURABILITY_UNPROVEN and no watermark advances.
 
 ### 5.3 Active and sealed states
 
@@ -149,7 +157,7 @@ Appends after scan_end are deferred to the next poll. Truncation, replacement, m
 - SOURCE_HEALTH_INVALIDATED: a durable or inferred continuity failure invalidates the affected range/generation; watermark remains withheld until an accepted recovery procedure resolves it.
 
 
-Missing rows before a valid seal are PENDING, not a confirmed gap. Missing rows after a valid seal and contiguous health proof are WINDOW_GAP. Both block aggregation.
+Missing rows before a valid seal are PENDING, not a confirmed gap. Under the current v1.1 evidence profile, missing rows after a nominal watermark are still UNKNOWN/DIVERGENCE unless an independently accepted profile proves completeness. WINDOW_GAP is reserved and unassignable in the current profile. Both missing-row states block aggregation.
 
 ## 9. Additional deterministic acceptance tests
 
@@ -175,6 +183,25 @@ Retain C01–C24 from v1 and add:
 - C43 prefix digest mismatch → SOURCE_PREFIX_MISMATCH.
 - C44 append to SEALED generation → producer invariant violation.
 - C45 second writer claims same generation → fail closed.
+- C46 full REST coverage and matching WS values → only eligible for further review; commit is forbidden unless every identity, exact request-boundary, pagination, finality/correction, source-health, no-conflict, generation-binding, durable-publication and receipt-verification gate passes. This fixture must fail if any prerequisite is absent.
+- C82 reader sees a renamed manifest before the parent-directory fsync has completed → no matching commit receipt exists; reject as PREPARED/UNCOMMITTED.
+- C83 manifest directory fsync completed but process crashes before commit receipt publication → reject/quarantine (safe false-negative); do not infer commit from manifest visibility.
+- C84 matching receipt is atomically visible after the manifest directory fsync, but receipt directory fsync has not completed → accept only if receipt file content validates and all bound manifest/data checks pass; after crash, missing receipt is a safe false-negative.
+- C85 receipt digest/generation/offset/prefix does not match manifest → reject and quarantine.
+- C86 two writer processes contend for stable lock → exactly one acquires exclusive ownership; the other cannot allocate generation or append.
+- C87 former writer is paused while holding lock; takeover attempt → blocked; no PID/age-based lock stealing.
+- C88 target filesystem lock semantics cannot be established or lock file identity changes → SOURCE_DURABILITY_UNPROVEN; no write or watermark.
+- C89 crash during generation-counter transaction before directory fsync → no source append was permitted; recovery may reuse only if no generation/file/receipt for that sequence exists and the counter state is unambiguous, otherwise quarantine.
+- C90 reader races with writer publication → shared lock blocks until writer completes or crashes; reader accepts only a manifest+receipt pair matching exact bytes.
+- C91 incoming kline event interval or configured subscription differs from 1m → reject event and invalidate/quarantine generation.
+- C92 hardcoded symbol exception attempts to bypass PERPETUAL/USDT quote-asset checks → SOURCE_IDENTITY_UNPROVEN.
+- C93 duplicate manifest keys, unknown v1.1 fields, invalid types, non-canonical bytes or invalid digest input → reject manifest.
+- C94 symlinked source root, manifest, receipt or data file; non-regular file; unexpected hard-link identity → reject/quarantine.
+- C95 multiple manifests or receipts claim the same generation/publication sequence → ambiguous state; quarantine.
+- C96 attempt to assign WINDOW_GAP from current REST/WS silence, absent row or unaccepted completeness evidence → reject; remain UNKNOWN/DIVERGENCE/NOT_SEALED.
+- C97 FINAL_ONLY producer receives provisional event → it never reaches persistence; test fails if writer is invoked.
+- C98 unexpected close-time/interval boundary semantics → reject; do not infer finality from local time.
+- C99 manifest field-to-file binding or generation/source SHA mismatch → SOURCE_IDENTITY_UNPROVEN or SOURCE_PREFIX_MISMATCH; quarantine.
 
 Unit fixtures cannot prove power-loss/storage durability. Any D2–D4 or provider-specific test needs a separate authorized environment gate.
 
@@ -507,3 +534,73 @@ These fixtures are contract requirements only. They have not been implemented or
 P1.6-F01 is resolved at documentation level by making v1 archival/non-normative and v1.1 the sole normative producer contract for this scope. P1.6-F02 is resolved conservatively by reserving `GAP_DETECTED` until a separately accepted authoritative evidence profile exists. P1.6-F03 is resolved at design level by defining immediate sticky invalidation, publication stop, restart quarantine and the absence of an assumed independent health channel.
 
 These clarifications do not resolve the pre-existing blockers: no accepted REST completeness oracle (F01), confirmed producer decimal-loss defect (F05), and unverified target filesystem/provider durability (F07). Independent review remains required. Design readiness and implementation authorization are not granted.
+
+
+## 21. P1.9 contract correction — publication receipts, writer fencing and gap-state availability
+
+This section is normative and supersedes any conflicting wording in §§2–5, 8–9 and 20. The exact behavior below is a design contract only; no implementation or filesystem claim is made.
+
+### 21.1 Publication commit point and reader visibility
+
+A manifest rename is not itself a commit point. The commit point for a publication is the visibility of a valid immutable commit receipt whose contents bind the exact manifest and data-prefix state, and which can only be created after the manifest's containing-directory fsync has returned successfully.
+
+The writer sequence and reader acceptance rules are specified in §5.2. In particular:
+- The manifest is PREPARED until the directory fsync after its rename succeeds.
+- The commit receipt is written only after that durability barrier; its unique filename and contents bind the manifest SHA-256, generation, publication sequence, file identity, offset, record count, prefix digest and watermark.
+- A reader requires a shared lock and an exact matching receipt. Manifest visibility without a matching receipt is never sufficient.
+- If the writer dies before receipt publication, readers reject the candidate manifest. If the receipt is lost after a crash, readers fail closed. This intentionally prefers false-negative availability over false-positive completeness.
+- Receipt visibility cannot certify a manifest that skipped the prior directory fsync, because the producer cannot enter the receipt-publication step until that fsync succeeds. This ordering must be proven by deterministic process-crash tests and then by an authorized target-filesystem crash/recovery test.
+
+### 21.2 Writer lock and generation fencing
+
+The stable lock-file protocol in §5.1 is mandatory for all writers and readers. The lock file is created once during controlled initialization, never replaced/unlinked, and all cooperating processes use the same filesystem object. The writer holds exclusive ownership from before generation allocation through publication-receipt visibility. Readers hold shared ownership across manifest/receipt/prefix validation. A paused process cannot be displaced by timeout or PID heuristics; it continues to hold the kernel lock. A crashed process loses the lock, but its incomplete publication is rejected because it has no matching receipt.
+
+Generation allocation is durable before any append is permitted. The counter update must complete file sync, atomic rename and parent-directory sync while holding the exclusive lock. An ambiguous counter or lock identity blocks reuse. Random generation-instance identity supplements but does not replace the monotonic sequence. If the target filesystem does not reliably implement the required locking and sync semantics, the contract is unsupported on that filesystem and remains blocked.
+
+### 21.3 WINDOW_GAP is reserved under the current profile
+
+The current v1.1 profile cannot assign WINDOW_GAP. P1.3 does not accept the REST endpoint as a completeness oracle; missing REST rows remain SOURCE_HEALTH_UNKNOWN, and REST/WS asymmetry remains divergence/unknown. A nominal watermark or local socket health cannot convert absence into a confirmed source gap. Therefore no current fixture, manifest writer or adapter may set WINDOW_GAP. A future profile must be separately versioned, authoritative for exact interval completeness (including no-trade semantics), independently reviewed and explicitly approved. Even under such a future profile, a gap blocks aggregation and never authorizes synthetic candles.
+
+### 21.4 Producer interval and product identity checks
+
+The producer must validate the configured USD-M endpoint/stream family and each incoming event's exact symbol and interval before persistence. Only BTCUSDT 1m final kline events from the declared USD-M perpetual stream are eligible. The producer must filter provisional events, reject mismatched intervals, and bind the exact ExchangeInfo snapshot/record to the generation. A hardcoded symbol exception is never sufficient and may not bypass status, contract type or quote-asset validation. The adapter repeats manifest checks independently. margin_asset remains optional/unavailable unless authoritative evidence supplies it.
+
+### 21.5 Strict v1.1 manifest serialization and file binding
+
+The v1.1 manifest is UTF-8 JSON using RFC 8785 JSON Canonicalization Scheme (JCS) for the digest input. The parser must reject duplicate keys, invalid UTF-8, non-canonical serialization, invalid types, missing required fields, null where not allowed, and unknown fields in schema v1.1. Numeric fields are integers only where specified; floating-point JSON numbers are prohibited. Decimal market values remain raw strings in CSV and are not placed in manifest floating-point fields.
+
+Required manifest fields and types:
+- manifest_version: exact string 1.1;
+- schema_version: exact supported schema identifier;
+- generation_sequence: unsigned integer, strictly increasing within the source root;
+- generation_id: unique random identifier;
+- publication_sequence: unsigned integer, strictly increasing within the generation;
+- exchange_id, market_scope, contract_type, symbol, base_asset, quote_asset, datatype, interval, source_endpoint_family, output_mode: non-empty strings constrained to the approved values;
+- endpoint_config_sha256, exchange_info_snapshot_sha256, symbol_record_sha256, collector_source_sha256, header_sha256, data_prefix_sha256: lowercase 64-character SHA-256 hex strings;
+- collector_instance_id, data_file_relative_path, data_file_identity: non-empty strings; file identity includes the platform identity tuple captured by the producer and revalidated by the reader;
+- state: one of ACTIVE, SEALED, QUARANTINED;
+- committed_offset_bytes, committed_record_count, watermark_open_time_exclusive_ms: non-negative integers;
+- source_health: one of RECONCILED_COMPLETE, UNKNOWN, INVALIDATED;
+- reconciliation_evidence_ref: required non-empty immutable evidence identifier whenever RECONCILED_COMPLETE is claimed; absent otherwise;
+- created_at_utc, updated_at_utc: RFC 3339 UTC strings for audit only, never used as completeness or fencing evidence.
+
+The fixed manifest path is manifest.json within the generation directory. The generation directory name must contain and match the generation ID and sequence. The manifest binds exactly one relative data-file path; the file must be a regular file and its identity, header, committed size and prefix digest must match. The commit receipt is stored under a fixed commits/ subdirectory with a unique generation/publication-sequence filename and contains the manifest digest plus the exact bound commit fields. Duplicate receipts for a sequence, multiple candidate manifests, or any path ambiguity causes quarantine.
+
+The configured source root and all descendants must be opened without following symlinks (for example, directory-relative no-follow opens where supported). Symlinked root/components, manifest, receipt or data files are rejected. Unexpected hard links, non-regular files, path traversal, absolute paths, alternate encodings and file replacement during validation are rejected. If the platform cannot enforce these checks, source eligibility is NOT VERIFIED and the adapter must fail closed. The schema is closed-world for v1.1; extensions require a new schema version, not ignored fields.
+
+### 21.6 Fixture acceptance rule
+
+C01–C99 are contract scenarios, not executed tests. A fixture PASS proves only its deterministic software property; it cannot prove Binance completeness or target-filesystem D2–D4 durability. C46 is explicitly conditional on every P1.3 prerequisite. C82–C90 cover publication/locking/generation; C91–C92 cover interval and product identity; C93–C95 cover manifest parsing/binding/path safety; C96 covers unavailable WINDOW_GAP; C97–C99 cover FINAL_ONLY/finality/manifest binding. The test suite must assert both expected rejection and absence of committed watermark/receipt where applicable.
+
+### 21.7 Remaining blockers and disposition
+
+- Publication protocol: DESIGN CLARIFIED; implementation and target-filesystem proof NOT VERIFIED.
+- Writer fencing/generation: DESIGN CLARIFIED; lock semantics and crash behavior NOT VERIFIED on target storage.
+- WINDOW_GAP: RESERVED / NOT ASSIGNABLE under current profile.
+- FINAL_ONLY/interval/product identity: CONTRACT REQUIREMENTS CLARIFIED; producer implementation/tests NOT VERIFIED; pinned source remains non-compliant until corrected.
+- Manifest schema/fixture catalog: DESIGN SPECIFIED; parser and fixtures NOT IMPLEMENTED/EXECUTED.
+- REST completeness oracle: BLOCKED; no-trade, boundary, pagination, finality/correction unresolved.
+- Decimal preservation: BLOCKED; pinned writer f64/12-decimal/parse-to-zero defect remains.
+- Filesystem durability: NOT VERIFIED; no target crash/recovery test authorized or executed.
+
+This section does not authorize producer or adapter code changes, test execution, GitHub Actions dispatch, REST requests, VPS/runtime, T1 activation, T0/T2 changes or destructive data operations.
