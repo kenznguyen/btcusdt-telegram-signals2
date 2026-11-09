@@ -1920,3 +1920,22 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Status: P1.14 DOCUMENTATION CORRECTIONS COMPLETE / SAME-SESSION SELF-REVIEW PASS AT CONTRACT LEVEL FOR F02/F04/F05 / F07 NOT VERIFIED / INDEPENDENT REVIEW PENDING / IMPLEMENTATION NOT AUTHORIZED / T1 ACTIVATION NOT AUTHORIZED.
 - Guardrails unchanged: T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
 - Next step: wait for genuinely independent written review on exact contract blob SHA `59d8988a368a5bfffa94eacf7fbb8d769aea9b60`. Do not implement or activate T1 before independent review and separate evidence/approval gates.
+
+
+## Latest completed work — P1.15 follow-up adversarial self-review of P1.14 (2026-11-09)
+
+- User requested a fresh self-review of P1.14.
+- Review: `docs/reviews/t1/P1_15_SELF_REVIEW_P1_14_CHECKPOINT_AND_EVIDENCE_ID_2026-11-09.md`.
+- Review commit: `bdc4d66e86e4fffeccb7338f9a34621de1d829ca`.
+- Exact reviewed normative contract blob SHA: `59d8988a368a5bfffa94eacf7fbb8d769aea9b60`.
+- Review type: same-session adversarial static self-review; NOT independent.
+- Verdict: REQUEST CHANGES. F04's former six-key/eleven-key conflict is closed at documentation level, but two residual ambiguities were found:
+  - F02-R1 HIGH: §22.6.1 requires a durable recovery checkpoint but does not define its exact closed schema/path/version, immutable or replacement semantics, monotonic relationship to the publication counter, or how rollback/copy of checkpoint and counter together is detected. The checkpoint is the proof used to resolve an otherwise unconfirmed receipt, so this is a required contract correction. Add missing/corrupt/regressed/copied/conflicting checkpoint fixtures.
+  - F05-R1 MEDIUM: §22.5 describes the raw HTTP body digest as the evidence object identifier, while §22.9 defines `evidence_id` as the digest of the canonical envelope. The contract must explicitly separate the raw-body object ID from the envelope-record ID and define exactly which one `exchange_info_evidence_ref` references. Add swapped-ID/reference-confusion fixtures.
+- Rechecked: F01 contract-level PASS; F03/F06 specified but runtime/target primitive NOT VERIFIED; F04 documentation-level PASS for schema precedence; F02 recovery linearization/fsync sequence specified but checkpoint proof contract incomplete; F05 raw evidence requirements specified but identifier namespace/reference unresolved.
+- C117–C124 remain design-only; checkpoint rollback/corruption cases are not covered. C01–C124 NOT IMPLEMENTED / NOT EXECUTED.
+- Unchanged blockers: F07 target filesystem/provider/flock/rename/fsync behavior NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer f64/12-decimal/parse-to-zero defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; manifest/receipt/counter/checkpoint/evidence store/adapter NOT IMPLEMENTED.
+- Issue #138 remains OPEN and targets P1.14 blob `59d8988a368a5bfffa94eacf7fbb8d769aea9b60`; no independent reviewer response is present. Do not retarget until a corrected final SHA exists.
+- No source changes, tests, Actions dispatch, REST, VPS/runtime, T1 activation, T0/T2, strategy/AI/ledger/risk/trading changes, or destructive data operations. No workflow run/artifact is claimed.
+- Status: P1.15 SELF-REVIEW COMPLETE / REQUEST CHANGES / IMPLEMENTATION NOT AUTHORIZED / INDEPENDENT REVIEW STILL REQUIRED.
+- Next step: documentation-only correction of F02-R1 and F05-R1, add negative fixtures, then review the final SHA and retarget issue #138. All existing authorization boundaries remain unchanged.
