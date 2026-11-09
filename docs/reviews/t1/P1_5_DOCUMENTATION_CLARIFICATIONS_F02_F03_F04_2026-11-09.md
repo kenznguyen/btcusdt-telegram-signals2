@@ -9,8 +9,8 @@ Type: Documentation-only design update; same-session author review, NOT independ
 - P1.4 self-review: `docs/reviews/t1/P1_4_SELF_REVIEW_T1_SOURCE_CONTRACT_V1_1_AND_P1_3_2026-11-09.md`, blob `f29919bc6eafc24738a1c3e55adb86b04b553643`
 - Prior design/P1.3 baseline commit: `0e2cbec07b1289950a7aa7ec1b99ef0ec7f6302c`
 - Updated design: `docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_1_PRODUCER_WATERMARK_DURABILITY_2026-11-09.md`
-- Updated design commit: `d5865355bdf941aab5978480b568767988d01d6c`
-- Updated design blob: `fccd57ef184b9bf2092140e5d323a90348c348cc`
+- Updated design commit: `630b118fc9f8c1d9d6e97253881dc51be42bcde5`
+- Updated design blob: `42d0238edc6baa5bc8990ba27022b3db7c54772b`
 
 ## Changes
 
@@ -71,3 +71,12 @@ Documentation only. No source edits, executable tests, Binance REST request, Git
 - Implementation: NOT AUTHORIZED.
 - T1 activation: NOT AUTHORIZED.
 - `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
+
+
+## P1.5.1 consistency amendment
+
+- Added the two explicit states `RECONCILIATION_SOURCE_DIVERGENCE` and `SOURCE_HEALTH_INVALIDATED` to the existing status taxonomy so the new F02/F03 rules have machine-readable contract outcomes.
+- Final design commit: `630b118fc9f8c1d9d6e97253881dc51be42bcde5`.
+- Final design blob SHA: `42d0238edc6baa5bc8990ba27022b3db7c54772b`.
+- Static consistency check: F02 row-provenance rule aligns with P1.3 exact comparison and no-missing-minute policy; F03 sticky invalidation cannot satisfy the P1.3 seal preconditions until resolved; F04 explicitly limits checksum claims and does not alter P1.3 completeness rules.
+- No contradiction identified in the reviewed clauses. This is same-session static consistency only, not independent review.
