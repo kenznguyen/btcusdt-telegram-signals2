@@ -3542,3 +3542,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Option C, lifecycle reviewer waiver boundaries, T0 independence, separate ledgers, required T3 reconstruction evidence, paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - T4 analysis commit: `ab8585cd9e1a00762a9254edb7ce58c622f42194`; report blob SHA verified by read-back.
 - Next step: Stage A.6 — consolidate T0–T4 RET-03 owner-input gaps into one documentary class/obligation matrix and identify which missing owner inputs can be resolved from authoritative repository records versus which require explicit owner/operational/legal evidence. Do not select numeric floors or authorize lifecycle actions.
+
+
+## Stage A.6 — T0–T4 RET-03 Consolidated Owner-Input Matrix (2026-11-10)
+
+- Added `docs/evidence/p1-8/T0_T4_RET03_CONSOLIDATED_OWNER_INPUT_MATRIX_2026-11-10.md` as a documentation-only consolidation of Stage A.1–A.5.
+- Frozen source baseline HEAD before this increment: `1f0ec96fb1a99406a484e6c4057db616583ec35e`.
+- Pinned report blobs: A.1 `e26d056f9f0c2ea57a9951a650b29af11939c422`; A.2 `061ea9340e07a9f633a8864928c945f44adc5295`; A.3 `8d5a4172a28044539c8ccf451866b197735d1617`; A.4 `1b73122e1d7eb6d582462a3d8013d7b6f4f6edcb`; A.5 `cc6c0d9f193b1abb8194a6865cac43f9e8667466`.
+- Consolidates T0 canonical/recovery protection; T1 raw CSV, proposed 1m kline and connection-sidecar separation; T2 ephemeral inference versus model/training/decision lineage; T3 signals/risk/orders/reservations/fills/ledgers/equity/replay; and T4 presentation/cache versus persistent T3 side effects and unknown deployment/export copies.
+- Maps cross-layer dependencies and identifies non-terminal events: read/ACK/consumption, job completion, prediction replacement, order expiry/cancel, fill completion, replay completion, cache TTL, dashboard polling and display limits.
+- Separates further repository-document reconciliation from owner/operational/legal evidence that is not present. No numeric floor, TTL, positive terminal event or deletion eligibility is inferred.
+- Result: T0–T4 documentary matrix PASS within inspected report scope; RET-03 OPEN / FLOOR_NOT_ESTABLISHED; RET-07 OPEN; full consumer/copy/restore inventory NOT VERIFIED; owner/legal/operational inputs NOT PROVIDED.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact claimed. No runtime/VPS/DB/provider/legal/inventory probes, source/schema/config/workflow/permission/data changes, or destructive operations.
+- Option C unchanged; T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false`.
+- Matrix file commit: `403c993f6d74aac9620e3d0fbbd26219a201c34f`; exact blob SHA and final handoff commit to be verified by read-back.
+- Next step: only a bounded documentary search for already-committed authoritative owner/obligation records that resolve specific missing inputs; where none exist, record NOT PROVIDED and stop for that class. RET-06/RET-08 remain separate Stage A items; Stage B/C require separate scope/authorization.
