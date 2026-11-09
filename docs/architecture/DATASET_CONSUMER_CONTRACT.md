@@ -303,3 +303,89 @@ No default timeout or automatic release behavior should be introduced until thes
 The separate [Data Deletion Safety Contract](DATA_DELETION_SAFETY_CONTRACT.md) is now documented. The repository-level static inventory is recorded in [Dataset Consumer Inventory Baseline](DATASET_CONSUMER_INVENTORY_BASELINE_2026-11-09.md). A scoped read-only runtime inventory of the current experimental VPS is permitted under [Environment and Evidence Boundary](ENVIRONMENT_EVIDENCE_BOUNDARY.md); label all findings EXPERIMENTAL. A future official environment is NOT DESIGNATED and requires separate designation before its evidence can be treated as official. See [Environment and Evidence Boundary](ENVIRONMENT_EVIDENCE_BOUNDARY.md).
 
 No source code, tests, workflow, database/schema, API, VPS, Feeder, registry, scheduler, retention timer, archive, vacuum, or deletion operation is changed or activated by this document. Real-data lifecycle operations remain unauthorized without separate review and explicit approval.
+
+## 20. Normative consumer availability declaration (contract extension v1)
+
+This section incorporates the consumer-availability requirements from P1.8.81 into the governing Dataset Consumer Contract. It is a normative documentary extension to Sections 5, 6, 10, 14, 15, 16 and 17. It does not select an API, schema, registry technology, storage engine, service level, numeric threshold or runtime implementation.
+
+### 20.1 Declaration scope and ownership
+
+Each consumer-to-dataset-version dependency must have an owner-attributed availability declaration before that dependency can support archive eligibility. The declaration is pinned to the exact dependency ID, immutable dataset/version reference, consumer identity, accountable owner and declared purpose.
+
+A missing, contradictory, stale, unverified or unowned declaration is UNKNOWN. UNKNOWN remains protective and blocks archive review for the affected dataset/version. It does not imply that the consumer has no dependency and cannot be replaced by an inferred default.
+
+### 20.2 Required declaration fields
+
+The consumer owner must provide all applicable fields below. A field may be marked NOT_APPLICABLE only with a reason and owner attribution; required fields cannot be silently omitted.
+
+| Field | Required meaning |
+|---|---|
+| dependency_id | Exact consumer dependency record |
+| dataset_id / dataset_version_id | Immutable dataset/version being consumed |
+| consumer_id / owner_id | Authenticated consumer and accountable owner |
+| purpose | Purpose-bound reason for retaining/accessing the version |
+| access_pattern | Interactive/query, scheduled batch, streaming/continuous, replay, training/backtest, recovery/audit or durable export |
+| availability_class | ONLINE_REQUIRED, DEGRADED_ACCESS_ACCEPTABLE, RESTORE_ON_DEMAND, REBUILD_FROM_RETAINED_INPUTS, NO_CURRENT_DEPENDENCY or UNKNOWN |
+| maximum_access_latency | Owner-supplied value and unit where latency bound applies; no system default |
+| maximum_restore_delay | Owner-supplied value and unit where restore-on-demand applies; no system default |
+| access_window | Continuous, scheduled, event-driven or incident-only |
+| completeness_requirement | Full version, bounded time range or exact partitions; partial availability must be explicit |
+| consistency_requirement | Authoritative current view, immutable snapshot or named consistency point |
+| restore_semantics | Exact version, schema, ordering, metadata, lineage and integrity checks required after restore |
+| degraded_mode | Whether the consumer may pause, queue, fail or use a separately approved alternative; no unverified substitution |
+| recovery_evidence | Evidence required to prove restored content is complete and usable |
+| declaration_revision | Immutable declaration revision and supersession reference |
+| owner_attestation | Attributable owner approval and evidence reference |
+| effective_at / reviewed_at | Trusted event references; timestamps alone do not establish ordering |
+
+These are logical contract fields, not an approved physical schema. Exact units, numeric values, trusted-time source, freshness window and signature mechanism remain OPEN and require separate approval.
+
+### 20.3 Availability class semantics
+
+| Class | Meaning | Archive consequence |
+|---|---|---|
+| ONLINE_REQUIRED | Normal approved online access must remain available | Archive blocked unless an alternative demonstrably meets every declared requirement and is separately approved |
+| DEGRADED_ACCESS_ACCEPTABLE | A declared degraded path is acceptable while preserving required integrity/completeness | Archive may be reviewed against owner-supplied latency, completeness, consistency and degraded-mode bounds |
+| RESTORE_ON_DEMAND | Consumer accepts restore before access within its declared restore bound | Archive review requires exact-version restore proof and independent evidence against that bound |
+| REBUILD_FROM_RETAINED_INPUTS | Output can be rebuilt from exact retained inputs and transformations | Requires reproducibility proof for exact inputs, code/configuration, model/schema, lineage and integrity |
+| NO_CURRENT_DEPENDENCY | This consumer has durably released its own exact dependency | Removes only this dependency; does not prove dataset archive/deletion eligibility |
+| UNKNOWN | Missing, contradictory, stale, unverified or unowned requirement | Archive and destructive lifecycle progression blocked |
+
+The effective availability requirement for a dataset version is the most protective compatible requirement across all active and unresolved dependencies. A consumer cannot weaken another consumer's requirement. Incompatible declarations are CONFLICTED and require owner/governance resolution.
+
+### 20.4 Registration, ACK and release interaction
+
+- Registration remains pinned to the exact immutable dataset version and is fail-closed.
+- An availability declaration does not itself grant access or lifecycle authority.
+- ACK remains a processing outcome only. It does not release a dependency or change its availability class.
+- A consumer may release only its own dependency through the explicit authenticated release protocol.
+- Release does not erase the historical availability declaration or another consumer's demand.
+- A changed declaration creates a new immutable revision. It does not retroactively rewrite evidence used by a prior decision.
+- If a declaration changes after archive approval or during final recheck, the prior archive decision is invalidated and the archive request returns to review.
+- If registry/declaration state cannot be authoritatively read or committed, preserve the more protective state and block archive progression.
+
+### 20.5 Archive admission and evidence
+
+Archive may be considered only when all of the following are established for the exact dataset version and each active or unresolved dependency:
+
+1. A complete, owner-attributed, current availability declaration exists.
+2. No suspected unregistered consumer or bypass path remains unresolved.
+3. The proposed archive/restore path meets the combined access, latency, completeness, consistency, security and recovery requirements.
+4. Exact-version restore/recovery evidence and independent integrity proof exist where required.
+5. Source lineage, replay, training, backtest, audit, recovery and legal/incident obligations remain satisfied.
+6. Dataset identity, manifest and declaration revisions remain immutable and discoverable.
+7. Separate archive eligibility and authorization are completed under the applicable lifecycle contracts.
+
+If any condition is UNKNOWN, STALE, CONFLICTED, NOT_VERIFIED or NOT_IMPLEMENTED, archive is BLOCKED. A declaration is not archive authorization. Archive is not deletion, and archive authorization cannot be reused for deletion.
+
+### 20.6 Change control and unresolved parameters
+
+The following remain OPEN: numeric access-latency and restore-delay values per consumer; availability declaration freshness/review interval; trusted time and owner-attestation mechanism; authoritative registry technology/consistency/recovery; unregistered-consumer discovery coverage; restore proof standard; archive service/provider semantics.
+
+No TTL, heartbeat timeout, age, storage pressure, review date or missing read is an automatic release or archive trigger. No numeric default is approved.
+
+### 20.7 Status
+
+This extension aligns the logical availability declaration with the governing consumer contract at documentary level. It does not establish that current T0–T4 consumers have supplied declarations or that a registry/archive service exists.
+
+Status: DESIGN EXTENSION ONLY — NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED. Runtime consumer declarations and inventory remain NOT VERIFIED. Archive and deletion remain separately governed and are not authorized by this section.
