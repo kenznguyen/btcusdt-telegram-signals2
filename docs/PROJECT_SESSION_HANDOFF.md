@@ -7532,3 +7532,14 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 - Synthetic Ed25519 verifier and 12 fault/negative tests: **PASS** for the exact source SHA above.
 - Production signing/key lifecycle: **NOT IMPLEMENTED / NOT AUTHORIZED**.
 - Next bounded work: continue the remaining synthetic fault-vector inventory (especially Root B duplicate-ACK/crash and checkpoint/recovery fault paths) before selecting another implementation scope. Do not expand retention or integrate production/runtime behavior without a separate decision.
+
+
+### Follow-up documentation verification — run #134
+
+- Architecture implementation record commit: `970d6f9c7c170eaf7ba63e47bad4b7c17bfe06ac`.
+- Handoff record commit: `f7cb673a44c540c5e0db7b920b247035a12337cd`.
+- Run #134: [42553069029](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42553069029), exact triggering source SHA `970d6f9c7c170eaf7ba63e47bad4b7c17bfe06ac`; all three jobs PASS and the full suite again reports **136/136 PASS**.
+- Archive ancestry check passed with compare status `ahead` because the handoff commit was already on the branch after the triggering docs commit. Independent retention recheck and trust-root chain append passed.
+- Archive commit: `ba830d35d46217459913f142afd92b2560496934`; evidence path: `docs/evidence/p1-8/970d6f9c7c170eaf7ba63e47bad4b7c17bfe06ac/`.
+- Primary artifact ID `13646481085`, digest `sha256:898762fef3e83e5de518104857ca2b2d6cf59ca1617dca5877fd74a46047e890`; independent artifact ID `13646585699`, digest `sha256:c27a88a982cdddb43adcf18ffb6e654016e2e5c4de92c54620dbac6cbc2d6699`. Both expire `2026-11-16T02:49:57Z` (7 days).
+- This is a second consecutive successful run over the Ed25519 verifier and documentation state. Current branch HEAD after the archive push was verified as archive commit `ba830d35d46217459913f142afd92b2560496934` at the time of this update.
