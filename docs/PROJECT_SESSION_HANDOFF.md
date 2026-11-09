@@ -3781,3 +3781,17 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - 87/87 lifecycle vectors remain NOT RUN. LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
 - No tests, compile, dry-run, fault injection, provisioning, Actions dispatch, secrets/permission/runtime/VPS/database/provider/recipient/backup/replica probes, source/schema/adapter/workflow/runner/permission/runtime/data changes or destructive operations.
 - Next bounded documentary steps: C.13 integrated schema/field and evidence-destination contract map; C.14 87-vector applicability/assertion traceability matrix; C.15 consolidated owner static review and closure-readiness register. No implementation or execution authority follows automatically. Option C and TEST-08 gate remain unchanged.
+
+
+## Latest completed work — Stage C.13 / Integrated Schema and Evidence-Destination Map
+
+- Added documentation-only logical field map: `docs/evidence/p1-8/STAGE_C13_INTEGRATED_SCHEMA_FIELD_AND_EVIDENCE_DESTINATION_MAP_2026-11-10.md`.
+- Report commit: 86f068f724975eb340f83a18e8e8d0b40d247106; report blob SHA to be verified by read-back.
+- Defines the proposed logical `LIFECYCLE_EVIDENCE_CHAIN_V1` profile, common record envelope, TEST-01 root manifest, source/spec/vector, principal/process, operation/attempt, resource/event, observation/oracle, provenance/artifact/publication and TEST-07 cleanup-plan entity maps.
+- Defines cardinality, immutable reference, cross-run/namespace rejection, causal lineage, denominator and append-only rules.
+- Defines immutable evidence destination identity, trust zone, effective access policy, append-only publisher/verifier roles, retention/hold protection and separation from cleanup candidate namespaces. No provider, storage technology, retention value or permission is selected.
+- C12-F01 and C12-F03 are RESOLVED AT LOGICAL DOCUMENTARY MAP LEVEL ONLY. Executable schemas, canonicalization, destination provider/effective permissions, retention and recovery evidence remain OPEN/NOT VERIFIED.
+- C12-F02 remains OPEN for Stage C.14 87-vector applicability/assertion traceability. C12-F04 remains OPEN for Stage C.15 editorial correction.
+- TEST-01–07 remain NOT CLOSED; TEST-08 NOT GRANTED; 87/87 lifecycle vectors remain NOT RUN. LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
+- No tests, compile, dry-run, fault injection, provisioning, Actions dispatch, secrets/permission/runtime/VPS/database/provider/recipient/backup/replica probes, source/schema/adapter/workflow/runner/permission/runtime/data changes or destructive operations.
+- Next bounded documentary step: Stage C.14 — 87-vector applicability and TEST-01–07 assertion traceability matrix. No implementation or execution authority follows automatically; Option C and TEST-08 remain unchanged.
