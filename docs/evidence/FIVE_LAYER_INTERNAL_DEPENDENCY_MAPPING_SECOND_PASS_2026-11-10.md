@@ -75,13 +75,18 @@
 - No strategy/risk code changed. This finding requires a separate risk-contract reconciliation before any execution-path change.
 
 
-### F5-07 — Common API ledger factory is not visibly strategy-scoped after dual-ledger migration
+### F5-07 — Common API ledger factory remains MANUAL-scoped across dual-ledger migration
 
-- Evidence: `pipeline/api.py.ledger()` constructs `PaperLedger(...)` without a `strategy_id` argument, so the constructor default is `MANUAL`. The same API later calls `ledger().submit(..., strategy_id="STRATEGY_CORE"|"AI_FREQAI")`.
-- In `paper_execution/ledger.py`, `DUAL_STRATEGIES = {"STRATEGY_CORE", "AI_FREQAI"}`; `PaperLedger.submit()` enters the scoped path only when `self.strategy_id` is one of those values. For a MANUAL instance, the method checks whether dual-ledger migration is active and raises `DUAL_LEDGER_MIGRATION_ACTIVE_MANUAL_WRITE_BLOCKED` before the legacy write path.
-- Impact: the statically traced common API evaluate path appears inconsistent with the dual-ledger scoped-write requirement. This may block Core/AI paper submissions through the common API after dual-ledger migration. This is a source-level call-path finding, not a claim that a deployed request was attempted or failed.
-- Status: SOURCE-CONFIRMED CALL-PATH MISMATCH; runtime behavior NOT VERIFIED. Needs targeted unit/integration test and code-owner review before any fix.
-- No source/test/runtime changes made.
+- Evidence:
+  1. `pipeline/api.py.ledger()` constructs `PaperLedger(...)` without `strategy_id`, so it uses the constructor default `MANUAL`.
+  2. On an evaluate intent, the common API first calls `ledger().record_equity(...)`, then calls `ledger().submit(..., strategy_id="STRATEGY_CORE"|"AI_FREQAI")`.
+  3. In `paper_execution/ledger.py`, `record_equity()` raises `DUAL_LEDGER_ACCOUNT_EQUITY_REQUIRES_SHARED_RECONCILIATION` when the instance is strategy-scoped. Conversely, the MANUAL instance's `submit()` checks for `paper_schema_migrations` and raises `DUAL_LEDGER_MIGRATION_ACTIVE_MANUAL_WRITE_BLOCKED` after dual-ledger migration.
+  4. `pipeline/api.py.application()` maps `ValueError` to HTTP 400 `INVALID_INPUT`. The common API test fixture in `pipeline/test_api.py` initializes a fresh CandleStore and does not migrate it to dual-ledger schema before exercising Core/AI.
+- Impact: the API's evaluate path is not visibly compatible with a database after dual-ledger migration. Depending on which operation is reached, Core/AI evaluation can be rejected before order submission. Existing API tests do not cover this migrated-database state. The test `test_core_and_ai_signals_are_independent_and_share_the_risk_gate` exercises only a fresh legacy fixture.
+- CI gap: `.github/workflows/dual-ledger-red.yml` triggers only for `paper_execution/**` and its own workflow file; it runs paper_execution tests, not `pipeline/test_api.py`. A test-only change in `pipeline/**` would not trigger that workflow under its current path filter.
+- Status: SOURCE-CONFIRMED INCOMPATIBLE CALL-PATH; no migrated-database API request/test was executed. Runtime impact NOT VERIFIED. A focused API regression test and an appropriate workflow trigger/test step are required before proposing a fix.
+- Proposed isolated reproduction (not implemented): initialize the normal API test fixture, migrate its temporary SQLite database by constructing a strategy-scoped `PaperLedger`, then POST both `{"source":"CORE"}` and default/AI evaluate with deterministic intents and complete mark candles. Assert current response is 400 `INVALID_INPUT`, no Core/AI order/reservation is created, and no ledger position changes. A later GREEN test must assert the approved scoped path admits only through the shared risk engine. Use temporary test DB only; no VPS/runtime/exchange.
+- No source/test/workflow/runtime changes made.
 
 ## 4. KEEP / PARK / OUT-OF-SCOPE disposition
 
