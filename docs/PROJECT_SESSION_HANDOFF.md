@@ -592,3 +592,12 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: DOCUMENTARY DESIGN ONLY; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED.
 - No source, schema, API, workflow, service, registry, scheduler, database, VPS, Feeder, storage, backup, replica, archive or runtime mutation. No real-data inventory or destructive operation.
+
+### P1.8.88 identity trusted time and approval governance (2026-11-09)
+
+- Document: `docs/evidence/p1-8/P1.8.88-identity-trusted-time-and-approval-governance.md`.
+- Commit: `e83e5f332f004ddc214f18c4bb28c088b6db61c5`.
+- Blob SHA: `7cdc8647823596925df9d991963ec11660078d7f`.
+- Status: DOCUMENTARY DESIGN ONLY; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED.
+- No source, schema, API, workflow, service, registry, scheduler, database, VPS, Feeder, storage, backup, replica, archive or runtime mutation. No real-data inventory or destructive operation.
