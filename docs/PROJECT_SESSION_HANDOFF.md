@@ -793,3 +793,22 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/schema/API/registry/adapter/scheduler/service/database/VPS/Feeder/storage/ledger/runtime mutation or inventory. No staging, synthetic execution, fault injection, archive, cleanup, restore, key operation or deletion.
 - No deletion authority is granted. T0 canonical data and CORE_LEDGER/AI_LEDGER protections remain unchanged.
 - Next gate: assess cross-contract conflicts between the completed self-deletion design and V07/V08/Restore/TSA as a separate documentary review only; do not implement or execute without separate explicit approval.
+
+
+## P1.8.104 — Cross-Contract Conflict Review: Self-Deletion vs V07 / V08 / Restore / TSA (2026-11-09)
+
+- Review: `docs/evidence/p1-8/P1.8.104-cross-contract-conflict-review.md`.
+- Review commit: `671dc975d3cba4f95cc2ac961bc7f46ef2e437dc`.
+- Review blob SHA: `8cce46c9c32c369372453df6908f6e3b1a09a30a`.
+- Source branch/base commit reviewed: `feature/t0-centralized-data-feeder-p1-20261101` / `936abd84396152b71825c86241d705595d45ab24`.
+- Verdict: **PARTIAL — no direct policy contradiction found; cross-contract integration gaps remain.**
+- V07: PARTIAL; trusted-time authority/profile, freshness, propagation, revocation and boundary parameters remain OPEN/BLOCKED.
+- V08: PARTIAL; deletion eligibility does not yet explicitly bind source-progress/watermark/seal/commit and correction-lineage closure evidence.
+- Restore: BLOCKED; explicit restore governance epoch, stale authorization invalidation, operation-history reconciliation and independent object-generation oracle remain incomplete.
+- TSA: PARTIAL; timestamp proof is narrowly scoped to exact signed-object existence no later than genTime; token/trust/revocation evidence lifecycle needs explicit copy/restore linkage.
+- Findings: CCX-01 MAJOR restore governance epoch; CCX-02 MAJOR V08 closure evidence; CCX-03 MAJOR trusted-time cross-domain binding; CCX-04 MODERATE TSA evidence lifecycle; CCX-05 MAJOR restore operation history/object oracle.
+- Recommended next documentary work items P1.8.105–P1.8.108 are proposals only and are NOT authorized by P1.8.104.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; workflow run/artifact NONE; runtime evidence NOT VERIFIED; inventory NOT PERFORMED.
+- No source/runtime/schema/API/registry/adapter/scheduler/service/database/VPS/T0/T1/Feeder/ledger/strategy/risk changes; no staging, restore, fault injection, archive, cleanup, key operation or deletion.
+- No deletion authority granted; T0 canonical data and CORE_LEDGER/AI_LEDGER protections unchanged.
+- **Next gate:** obtain separate explicit approval before starting any P1.8.105–P1.8.108 work item. Implementation, staging and destructive actions remain separately gated.
