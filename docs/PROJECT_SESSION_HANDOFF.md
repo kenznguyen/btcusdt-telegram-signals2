@@ -2982,3 +2982,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - No source/schema/runtime/VPS/database/data/provider/identity/key/trust-root/permission operation; no TSA/WORM calls, restore, fault injection, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion. Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
 - Next: G0.4 define exact completeness oracle and its boundary conditions. G0.3 is contract-design/self-review only, NOT independently reviewed.
 
+
+
+## T0 Evidence Object / Checkpoint Contract v1 — G0.4 completeness oracle (2026-11-10)
+
+- Defined exact partition domain for 15m/1h using aligned half-open [start_ms,end_ms), interval Δ and expected set E={start_ms+k×Δ | 0≤k<N}.
+- Defined row membership and validation: exact market/timeframe identity, in-range/aligned timestamps, unique ascending rows, exact exclusive close boundary, available_at_ms not before close, Candle validation; no fill/interpolation/synthetic rows or silent correction.
+- Verdicts: COMPLETE iff returned set equals E; INCOMPLETE iff valid rows are a strict subset; INVALID for malformed/duplicate/off-grid/out-of-range/invalid rows; UNKNOWN for missing bytes, truncation, read/page failure or unestablished required snapshot. INVALID cannot be downgraded.
+- Defined maximal aligned gap coalescing and exact missing_count arithmetic; as_of_ms is part of selection semantics and missing reasons are not inferred.
+- Checkpoint COMPLETE requires every partition COMPLETE and snapshot consistency PASS. M15/H1 never merged. Digest does not prove completeness.
+- Normative M15 example [0,2700000), Δ=900000: {0,1800000} yields gap [900000,1800000), missing_count=1; duplicate/off-grid examples are INVALID; no rows is INCOMPLETE; missing page is UNKNOWN.
+- Contract update commit: 3e4fcbaeac745939d6b67b6171c7b030f04c2342; blob after update: 5a976cc1ddf99f1d4193ee704364a95c156564df.
+- G0.4/F-03 PASS at contract-design level only; executable/property-based tests deferred to G2. Snapshot consistency is separate and still open. Self-review only; not independent review.
+- No code/tests/Actions, canonical DB/runtime/VPS/data/provider/key/trust-root/permission access or mutation. No TSA/WORM, restore, fault injection or destructive operation. Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
+- Next: G0.5 define backend-specific multi-partition snapshot protocol and its observable evidence.
+
