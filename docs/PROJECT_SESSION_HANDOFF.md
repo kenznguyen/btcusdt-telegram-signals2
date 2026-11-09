@@ -2880,3 +2880,15 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact. No source, schema, API, runtime, VPS, DB, data, provider, identity, key, trust-root, permission, inventory, restore, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion operation.
 - Option C — No Destructive Authority — remains in force; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next: obtain a genuinely qualifying independent review of the exact revised matrix and related evidence; do not promote any acceptance status based on this self-review.
+
+
+## L4-Minimum follow-on self-review — F-09 audit/matrix version lineage (2026-11-10)
+
+- Cross-checked current Acceptance Matrix against the bounded read-only audit report and personal-scope decision.
+- Self-review finding F-09: the audit report is a historical snapshot and explicitly references the then-current matrix blob `f39bef0c391e13a3656130f0e74f0e7a385b0c39`, while the current matrix had advanced through F-01–F-08 to blob `8f9e34acb4e9ae0b89d5e7163566ab2982d99c63`. This is historically accurate, not a defect in the old report, but the review package needed an explicit version-lineage rule to prevent treating the old matrix as current.
+- Corrected the existing matrix in place; no new matrix/report/branch. Update commit: `12fe524c1434dc3fe22bcdaaa791074b9b2e376a`; new matrix blob: `4de23da056b96e0eaf4a3525ad221195da6ed977`.
+- Added evidence-package requirement for a review-input lineage manifest with exact SHA-256 values; explicitly preserves the historical audit report unchanged; requires reviewer to examine both the exact audit report and current matrix and reconcile their lineage. Review sequencing now freezes the exact combined review-input baseline before independent review.
+- Self-review: F-09 wording and lineage binding added; F-07/F-08 requirements retained; RET-01/02, no-default-TTL/no-self-delete and Option C retained. This is same-session self-review only, NOT independent review.
+- Current matrix status remains **NOT INDEPENDENTLY REVIEWED**; L4M-09 remains PENDING; overall L4 implementation/operational acceptance remains BLOCKED / NOT VERIFIED.
+- No tests, GitHub Actions, source/runtime/VPS/database/data/key/trust-root/permission/provider/restore/archive/cleanup/deletion operations. Option C remains in force; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next: freeze a manifest for the exact review inputs and obtain a genuinely qualifying independent review. The handoff's P1.8.153 reference still has no exact artifact path/identity in the inspected handoff text; do not invent or execute that gate until its exact record is located and reconciled.
