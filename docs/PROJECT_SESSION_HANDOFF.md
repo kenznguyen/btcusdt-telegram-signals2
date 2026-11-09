@@ -648,3 +648,12 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Resolves SR-01 with canonical request states, legacy-label crosswalk, transition authorities/events, domain-state separation, terminality and re-entry rules.
 - Does not collapse dataset/dependency/hold/copy/approval/authorization/object/evidence domains; no runtime state machine or implementation selected.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/database/VPS/storage or destructive operation.
+
+### P1.8.93 — Registry-to-Storage Mutation Fencing Protocol (2026-11-09)
+
+- Document: `docs/evidence/p1-8/P1.8.93-registry-to-storage-mutation-fencing-protocol.md`.
+- Commit: `4b3dcc00fa2eef0d7d1d687e7cc91e1b528d0e6e`.
+- Blob SHA: `8b3ee3a332f9a91616fb6cb8fadcac7c29e1be2d`.
+- Resolves SR-02 at abstract design level: protected decision vector, one mutation linearization point, per-object conditional mutation, race ordering, multi-object partial outcomes, adapter proof requirements and deterministic race catalogue.
+- Explicitly disqualifies read-then-write, polling, heartbeat/cache invalidation and lease-only substitutes. If registry/storage cannot prove atomic coupling, adapter remains INELIGIBLE. No provider/transaction product selected.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/database/VPS/storage change or destructive operation.
