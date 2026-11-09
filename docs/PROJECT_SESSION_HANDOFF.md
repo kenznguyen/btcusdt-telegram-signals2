@@ -3400,3 +3400,19 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: architecture recommendation PASS; L4-Minimum implementation/operational acceptance BLOCKED / NOT VERIFIED; qualifying independent review PENDING; Extended implementation DEFERRED / NOT STARTED.
 - No branch was created. No source/test/workflow/package/runtime/VPS/database/provider/key/trust-root/permission/data changes; no PR/merge/rebase/history rewrite; no workflow dispatch. Option C — No Destructive Authority — unchanged.
 - Next gate: continue L4-Minimum on the existing branch, close matrix review findings, produce exact evidence for L4M-01–L4M-10, and obtain qualifying independent review. Only then request authorization to create the Extended branch from the exact accepted baseline.
+
+
+## Latest owner decision — L4-Minimum independent-review waiver (2026-11-10)
+
+- Owner decision: `docs/decisions/D-2026-11-10-L4-INDEPENDENT-REVIEW-WAIVER.md`.
+- Decision commit: `40a8c1b11372d341b7979e2fc2079fd12923ac57`.
+- Decision: mandatory independent human/third-party review is removed from L4-Minimum only. The 2026-11-09 scope decision remains an unchanged historical record; the 2026-11-10 decision supersedes its reviewer requirement prospectively for L4-Minimum.
+- Acceptance matrix updated: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`.
+- Matrix update commit: `672f3b25c0065326656b0833f642049152838c5e`; new matrix blob: `31bb02ec25aa29794306167ae0e66abcfb1b8f79`.
+- L4M-09 remains as a traceability ID but is OWNER-WAIVED / NOT MANDATORY, neither PASS nor FAIL, and excluded from the mandatory denominator. Active controls: L4M-01–L4M-08 and L4M-10 (nine controls).
+- Aggregate L4-Minimum PASS now requires all nine active controls PASS on the same frozen baseline and a separate owner disposition referencing its exact digest. No independent reviewer disposition is required.
+- Technical independence remains mandatory: evidence custody outside T0/VPS and GitHub, separate-environment offline verification, independent evidence readback, signer separation, authenticated freshness and tamper-evident history.
+- Assurance limitation: owner self-assessment is not independent assurance. No independent audit, third-party review, certification or reviewer-confirmed acceptance claim is permitted.
+- Scope boundary: P1.8.152/P1.8.153 reviewer requirements remain unchanged and open; this waiver does not close lifecycle findings. Option C and all operational/destructive authorization boundaries remain unchanged.
+- Status: owner policy change recorded; matrix updated. Technical implementation/evidence for the nine active controls remains NOT VERIFIED / BLOCKED. No tests or GitHub Actions dispatched; no source/runtime/VPS/database/key/permission/data/destructive changes.
+- Next step: read back the decision, matrix and handoff; then reconcile F-01–F-09 and P1.8.152/P1.8.153 without importing the waived L4 reviewer requirement into the separate lifecycle workstream.
