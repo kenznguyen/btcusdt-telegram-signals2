@@ -1779,3 +1779,18 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Issue #138 remains the independent-review gate. This self-review does not satisfy independence.
 - Next step: documentation-only correction of P1.9 findings, beginning with publication visibility ordering; then independent review against new exact SHAs. Implementation and T1 activation remain NOT AUTHORIZED.
 - Guardrails retained: paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no T0 write path; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
+
+
+## 2026-11-09 — Strategic decision D-2026-11-09: Operational First, Empirical Validation
+
+- User-approved decision recorded at `docs/decisions/D-2026-11-09-OPERATIONAL-FIRST-EMPIRICAL-VALIDATION.md`.
+- Decision: prioritize minimum reliable operation before additional strategy optimization/feature expansion; then evaluate Strategy Core and independent AI Strategy using real market data with paper-only simulated execution.
+- Required order: T0 data integrity → T1 collection reliability → T2 Dual-Strategy Intelligence → integrated operations/recovery/observability → paper baseline capture → empirical evaluation → controlled optimization.
+- Strategy boundary: preserve RSI + ADX + Smart DCA Core; preserve independent AI LONG/SHORT signal generation and separate attribution/ledgers; both must pass the shared Risk Engine and Kill Switch.
+- Acceptance requires traceable data/model/config/signal/execution assumptions; record rejected as well as accepted signals; evaluate Core and AI separately and measure AI incremental risk-adjusted contribution after shared risk admission; separate technical reliability from trading performance; avoid strategy tuning during baseline collection except safety/correctness/data-integrity fixes.
+- No calendar deadline substitutes for sufficient observations and market-regime coverage.
+- Safety unchanged: paper/signal-only; `ai_execution_enabled=false`; no live orders; T0 remains an independent canonical data asset. This decision does not authorize production activation, VPS/runtime changes, destructive data operations, or any previously blocked work.
+- Existing P1.8/P1.9 findings, independent-review gates, exact-SHA evidence requirements and T0/T1 activation restrictions remain binding.
+- Verification: documentation-only. Tests NOT RUN; GitHub Actions NOT DISPATCHED (run ID NONE); artifact NONE. No source, workflow, runtime, database, Feeder, exchange, market-data sync, ledger or trading state changed.
+- Current work continues on existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no parallel branch or PR created for this decision.
+- Next step: continue closing current T0/T1 contract correctness findings and obtain independent review on exact final SHA before implementation/activation gates are reconsidered.
