@@ -1589,3 +1589,12 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No source edits, tests, workflow dispatch, VPS/runtime or T0/T2 changes. No data operations.
 - Current status: **P1.1 DESIGN DRAFT / R3 CONFIRMED BLOCKER / IMPLEMENTATION NOT AUTHORIZED / INDEPENDENT REVIEW REQUIRED**.
 - Next step: revise v1.1 design to require lossless raw decimal serialization and explicit final-only source semantics; then perform consistency review and obtain separate independent review. Any source code fix requires separate explicit approval.
+
+
+### P1.1 v1.1 design amended with producer trace findings
+
+- Updated design commit: `80e5a54940793f1a8ebbd3a1296ce3d7c635f161`.
+- Updated design blob SHA: `b7bdaccda1c3519ab0d899ee907f5e04f0912e6e`.
+- The v1.1 design now explicitly records the confirmed f64/12-decimal/unwrap_or(0.0) serialization defect and requires byte-preserving raw decimal output plus malformed-value rejection.
+- It also clarifies that the current producer filters provisional kline events; v1 must explicitly declare FINAL_ONLY + interval=1m in versioned metadata with regression tests, or persist is_closed=true on each row.
+- This does not resolve the defect. R3 remains BLOCKED; source implementation is not authorized.
