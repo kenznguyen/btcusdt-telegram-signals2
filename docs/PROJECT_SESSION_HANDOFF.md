@@ -7558,7 +7558,7 @@ Request separate explicit authorization for the T2 consumer migration: switch ca
 ### TDD and CI evidence
 
 - Test-first commit: `de33e53f0e753559c2fcda88698980e61a2da96a`; implementation commit: `2307da69ba6c03d15f967967eb422c317dc3d4c1`.
-- Initial workflow runs #136/#137 exposed the expected missing-module RED state while tests preceded implementation. Run #138 exposed a test assertion that incorrectly expected quorum after only one of two observers had ACKed; corrected the test to assert non-quorum first, then ACK the second observer. No implementation guard was weakened.
+- Workflow run #135 (test-first source SHA `de33e53f0e753559c2fcda88698980e61a2da96a`) produced the expected RED result: `ModuleNotFoundError` because the Root B implementation did not yet exist. Runs #136, #137 and #138 then exposed the same test-specification error: the test expected quorum after only one of two required observers had ACKed. Corrected the assertion to verify non-quorum, ACK the second observer, then verify quorum. No implementation guard was weakened.
 - Final workflow run #139: [42554003945](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42554003945), event `push`, exact checked-out source SHA `7c7f7d0d98d4b7f0451d1c483e76245d4993d423`.
 - All three jobs PASS: deterministic local fixture contracts, independent runner Sigstore verification, and commit verified evidence to long-term Git history.
 - Full suite: **147/147 PASS**; Python compile PASS; synthetic-only preflight PASS; deterministic dual 1,000-event fixture comparison PASS; provenance binding PASS; prior P1.8.15 evidence backfill and verification PASS.
