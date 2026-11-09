@@ -1544,3 +1544,16 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - GitHub Actions: NOT DISPATCHED; run ID NONE; artifact NONE. No test execution or runtime proof claimed.
 - Next step: independent review of the design, then explicit approval before any T1 source-schema change. Adapter implementation and T0 promotion are separate future gates.
 - Guardrails preserved: T0 remains independent/canonical; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders, OKX replacement/fallback, data deletion/archive/cleanup/vacuum/compaction/backup expiry or destructive tests.
+
+
+## Latest completed work — T1 Contract v1 Adversarial Pre-Review (2026-11-09)
+
+- Added review record: `docs/reviews/t1/T1_SOURCE_FILE_CONTRACT_V1_ADVERSARIAL_PREREVIEW_2026-11-09.md`.
+- Review commit: `378ac2264fbb6be5a117798b639e16e434fb2212`.
+- Review type is a same-session adversarial pre-review, **not an independent reviewer sign-off**. Do not report this as independent approval.
+- Verdict: **REQUEST CHANGES — DESIGN NOT READY FOR IMPLEMENTATION**.
+- Findings: (R1 Critical) persisted `market=futures` does not prove exact USD-M/USDT-M perpetual identity; (R2 Critical) no producer-owned durable completeness watermark/seal protocol; (R3 High) exact decimal preservation from WS payload through CSV bytes has not been traced/proven; (R4 High) manifest/file-generation lifecycle and atomic publication ordering are undefined; (R5 High) T1 `flush()` is not durable fsync evidence and producer crash/restart durability remains unproven; (R6 Medium) fixed 1m interval must be explicitly encoded/validated in v1 metadata; (R7 Medium) active-file reads need captured-length bounded scans and identity revalidation before cursor commit.
+- Required next steps: revise source contract for product identity, interval, durable watermark/manifest lifecycle, decimal preservation, bounded read snapshot semantics and additional fixtures; then obtain a genuinely independent review from another reviewer/model or designated human.
+- No source changes, adapter implementation, tests, workflow dispatch, VPS/runtime, T1 activation, T0/T2 or trading-system changes. No destructive data operations.
+- GitHub Actions: NOT DISPATCHED; run ID NONE; artifact NONE.
+- Guardrails remain: T0 independent/canonical, no T1 writes to T0, paper-only, `AI_EXECUTION_ENABLED=false`, no live orders, no OKX replacement/fallback, no data deletion/archive/cleanup/vacuum/compaction/backup expiry.
