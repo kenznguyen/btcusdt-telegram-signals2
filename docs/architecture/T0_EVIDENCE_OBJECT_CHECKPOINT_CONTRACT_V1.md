@@ -106,7 +106,7 @@ Required top-level fields:
 | `created_at_ms` | Local observation only; not trusted historical time |
 | `durability_claim` | Explicit enum; default `NOT_ESTABLISHED` until proven |
 | `completeness_claim` | Explicit enum derived from exact expected/returned/gap evidence |
-| `manifest_object_ref` | Exact Evidence Object ID and digest for the serialized manifest |
+| `manifest_binding` | Not embedded in the manifest; supplied by the external Evidence Object descriptor/receipt that binds the serialized manifest bytes to its object ID and digest |
 
 Each partition MUST include:
 
@@ -122,6 +122,8 @@ Each partition MUST include:
 - `as_of_ms` where applicable and the rule used to select observations.
 
 The checkpoint MUST describe 15m and 1h as separate partitions. It MUST NOT invent one global watermark by combining the two timeframes. A checkpoint may contain one timeframe only if its scope says so.
+
+The serialized Checkpoint Manifest MUST NOT contain its own Evidence Object ID or digest. The external Evidence Object descriptor binds the exact manifest bytes to the object identity and digest. This prevents recursive/self-referential hashing. The top-level `content_root` commits only to the canonical partition descriptors and ordered row commitments; it excludes the external descriptor, signature envelope, custody receipt and verification records.
 
 ### 4.3 Candle row commitment
 
