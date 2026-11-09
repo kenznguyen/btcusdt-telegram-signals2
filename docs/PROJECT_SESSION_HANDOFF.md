@@ -1854,3 +1854,28 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Independent review issue #138 remains separate and must be retargeted to a corrected SHA after these findings are resolved. Do not treat this self-review as independent approval.
 - Next step: correct F01–F06 in the contract, add negative/crash/parser fixtures (planned only), perform a fresh static review, then update issue #138 with the exact corrected SHA for genuinely independent review.
 - Guardrails unchanged: implementation NOT AUTHORIZED; T1 activation NOT AUTHORIZED; T0 independent/canonical; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
+
+
+## Latest completed work — P1.12 T1 contract corrections and independent-review retarget (2026-11-09)
+
+- User explicitly approved automatic execution of the ordered documentation-only work: F01–F06 corrections, negative/crash fixture additions, self-review of the final SHA, and retargeting issue #138 for independent review.
+- Work remained on existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no parallel branch or PR created.
+- Normative design: `docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_1_PRODUCER_WATERMARK_DURABILITY_2026-11-09.md`.
+- Final design update commit: `353f6b0ff11a379b53da6292682eefa09073f5f8`.
+- Final design blob SHA: `4034d740c9694ef0d9da7d81cc1d1055a0175302`.
+- P1.12 section 22.1 closes F01 at contract level: current v1.1 forbids `RECONCILED_COMPLETE` and `reconciliation_evidence_ref`; only UNKNOWN/INVALIDATED are accepted; no current completeness seal or canonical aggregation is permitted. A future completeness profile requires new versioning, independent review and explicit approval.
+- Section 22.2 closes F02 at design level: durable per-generation publication counter, reserve-before-manifest, consumed sequence never reused, crash recovery and quarantine on ambiguous state.
+- Section 22.3 closes F03 at design level: single Linux host + verified local POSIX filesystem only; Linux `flock(2)`, stable lock inode, no-follow opens, offline single-operator initialization; unsupported network/multi-host/overlay/provider filesystems fail closed.
+- Sections 22.4 and 22.9 close F04 at documentation level: closed JCS schemas and exact encodings for manifest, receipt, generation counter, source-root initialization and ExchangeInfo evidence envelope; root/lock/file identity, owner/mode, paths, link-count and raw JSON parser constraints.
+- Sections 22.5 and 22.9 close F05 at contract level: content-addressed raw ExchangeInfo response evidence, exact raw-byte digest, endpoint/request/response envelope, unique BTCUSDT raw symbol-record slice and fail-closed retrieval.
+- Section 22.6 closes F06 at contract level: atomic `renameat2(RENAME_NOREPLACE)`, no overwrite fallback, commits-directory fsync, full receipt-directory validation and quarantine for collision/orphan/unexpected entries.
+- Added planned deterministic negative/crash/parser/lock/evidence fixtures C100–C116. These remain NOT IMPLEMENTED / NOT EXECUTED.
+- Same-session self-review: `docs/reviews/t1/P1_12_SELF_REVIEW_T1_CONTRACT_CORRECTIONS_2026-11-09.md`; commit `d56358aed26a42c0b90f65270ef5b3c20864540f`; blob SHA `402c10c899837bbcebd2545b24117837fba1ac75`.
+- Self-review verdict: DOCUMENTATION-LEVEL PASS FOR F01–F06 CORRECTIONS / IMPLEMENTATION READINESS NOT ESTABLISHED / INDEPENDENT REVIEW REQUIRED. It is not independent.
+- F07 remains NOT VERIFIED: actual target filesystem/mount/device/provider identity, flock, rename, fsync/directory-fsync and renameat2 semantics have not been tested. No host/power/provider crash test authorized or executed.
+- Unchanged blockers: Binance REST completeness/no-trade/boundary/pagination/finality/correction semantics NOT ACCEPTED; pinned producer f64/12-decimal/parse-to-zero defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; manifest/receipt/counter/evidence store/adapter NOT IMPLEMENTED; C01–C116 NOT EXECUTED.
+- GitHub issue #138 retargeted and remains OPEN: https://github.com/kenznguyen/btcusdt-telegram-signals2/issues/138. New title: `P1.12 — Independent adversarial review of corrected T1 Source Contract`. Exact target design blob SHA `4034d740c9694ef0d9da7d81cc1d1055a0175302`; latest design commit `353f6b0ff11a379b53da6292682eefa09073f5f8`. Issue requires genuinely independent reviewer, severity-ranked findings and explicit PASS / REQUEST CHANGES / BLOCKED. Latest readback: OPEN, 0 comments; no independent review has been received.
+- No source implementation, test execution, GitHub Actions dispatch, Binance REST request, VPS/runtime, T1 activation, T0/T2, strategy/AI/ledger/risk/trading change. No data deletion/archive/cleanup/vacuum/compaction/backup expiry/restore/destructive operation. No workflow run or artifact is claimed.
+- Status: P1.12 DOCUMENTATION CORRECTIONS COMPLETE / SAME-SESSION SELF-REVIEW PASS FOR F01–F06 AT CONTRACT LEVEL / F07 NOT VERIFIED / INDEPENDENT REVIEW PENDING / IMPLEMENTATION NOT AUTHORIZED / T1 ACTIVATION NOT AUTHORIZED.
+- Guardrails unchanged: T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
+- Next step: wait for genuinely independent written review on exact design blob SHA `4034d740c9694ef0d9da7d81cc1d1055a0175302`. Do not implement or activate T1 before independent review and separate approval/evidence gates.
