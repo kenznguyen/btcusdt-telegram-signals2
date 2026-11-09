@@ -408,3 +408,30 @@ No T0 runtime, VPS, database, Feeder, market-data ingestion, exchange connection
 - P1.8 evidence generation, independent verification, retention-manifest verification, and Git archive append for source SHA `70cc776...`: **PASS**.
 - Retention remains Git history plus seven-day Actions artifacts; this is not WORM and no long-term retention guarantee or external archive is claimed.
 - No merge, branch rewrite, T0 runtime, VPS, database, Feeder, ingestion, or trading execution change was made. `AI_EXECUTION_ENABLED=false` remains enforced in the synthetic workflow.
+
+
+## 2026-11-09 — Synthetic Ed25519 event-signature verifier
+
+### Scope and implementation
+
+- Added isolated dependency file `synthetic_evidence/requirements.txt` with exact pin `cryptography==50.0.2`; the P1.8 workflow installs this file and asserts the installed version before compiling or testing. The dependency is not added to the repository-wide runtime requirements.
+- Added `synthetic_evidence/event_signatures.py`: Ed25519 verification over the exact caller-supplied event bytes; a public-key-only registry record; strict key ID, signature length, public-key length, UTC validity interval, key status, revocation status, and revocation-evidence fail-closed checks.
+- Added `synthetic_evidence/test_event_signatures.py` with 12 tests. Test private keys are generated ephemerally in memory; production module exposes no signing API and does not persist private keys.
+- Validity interval is half-open `[valid_from, valid_until)`. Unknown key IDs, malformed key/signature data, invalid signatures, changed event bytes, keys outside the validity window, revoked keys, unknown revocation state, and unverified revocation evidence are rejected.
+- Rotation test proves an old key is rejected after its validity boundary and a new key is accepted at its configured start boundary.
+
+### TDD and CI evidence
+
+- Test-first RED was observed in run #131: [42552885089](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42552885089), source SHA `2cbff1f6d4deeb502fb0edd0f45a1d32d7fc5596`. Dependency installation succeeded; the suite failed because `synthetic_evidence.event_signatures` did not yet exist. This confirms the new test was exercising the missing behavior.
+- First implementation run #132: [42552907830](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42552907830), source SHA `4f1e1a4e7ecc6ba06a1248ded16740e6b9406dd4`. The suite ran 136 tests and exposed a malformed test fixture (an over-escaped byte literal), not a verifier defect. Corrected the fixture in commit `8b64798d2ec6a1767d19d33cc5d0a9a22d598510`.
+- Verification run #133: [42552961879](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42552961879), exact source SHA `8b64798d2ec6a1767d19d33cc5d0a9a22d598510`. All three jobs PASS: deterministic fixture/contracts, independent Sigstore verification, and evidence archive. Full synthetic suite: **136/136 PASS**, including all 12 Ed25519 tests. Python compile, pinned dependency assertion, deterministic 1,000-event fixture comparison, provenance, independent verification and retention-manifest checks also PASS.
+- Archive job confirmed `SOURCE_SHA_BRANCH_ANCESTRY=PASS status=identical`, `RETENTION_PAYLOAD_INDEPENDENT_RECHECK=PASS`, `TRUST_ROOT_SNAPSHOT_CHAIN_APPEND=PASS`, and `LONG_TERM_GIT_HISTORY_RETENTION=PASS`.
+- Archive commit: `a9dfe556c20da013f58ed94011db4703a48841a1`; evidence path: `docs/evidence/p1-8/8b64798d2ec6a1767d19d33cc5d0a9a22d598510/`.
+- Primary artifact ID `13645704472`, digest `sha256:2d14d27456c999be41ba332aebd9348dc1319f0a0de7e313816132b2eaf7b9da`; independent artifact ID `13645983585`, digest `sha256:1f09292992a035544c5af612e75b0084cd43a371b77d27da775b8d58471fe472`. Both actual GitHub expiry timestamps: `2026-11-16T02:48:42Z` (7 days).
+
+### Assurance boundary
+
+- **PASS:** isolated Ed25519 cryptographic verification and synthetic key-policy rejection cases are exercised in GitHub Actions.
+- **NOT IMPLEMENTED:** production key issuance/custody, signing, persistent key registry, trusted revocation-evidence ingestion/cryptographic validation, automated key rotation, consumer integration, or enforcement against production event streams. `revocation_evidence_verified` is a synthetic policy input, not proof of a production revocation authority.
+- This verifier is not wired into Strategy Core, AI Strategy, ledgers, T0/T1, databases, exchange adapters, or any trading execution path. No production signing key was generated or stored. `AI_EXECUTION_ENABLED=false`.
+- No VPS, T0 runtime, database, Feeder, market-data ingestion, exchange, retention policy, or live/paper execution behavior was changed. Actions artifact retention remains seven days and Git history remains `NOT_WORM`.
