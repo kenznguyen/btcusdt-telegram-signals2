@@ -2967,3 +2967,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Authorization: user granted automatic approval within G0–G3. This does not authorize G4 implementation or G5 runtime/provider operations. Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
 - Status: G0.2 PASS (source mapping only); G0 overall PARTIAL/OPEN; contract NOT IMPLEMENTED; independent review required. Next: G0.3 canonical byte profile and exact canonicalization vectors, followed by G0.4 completeness oracle.
 
+
+
+## T0 Evidence Object / Checkpoint Contract v1 — G0.3 canonical byte profile (2026-11-10)
+
+- Under the user's automatic-approval delegation for G0–G3, selected RFC 8785 JCS with strict T0 schema restrictions as profile T0-JCS-1. No production library/runtime selected.
+- Canonical wire rules: UTF-8 JCS without BOM/trailing newline; reject duplicate keys/invalid Unicode/unknown schema fields; no JSON numeric values; logical integers and timestamps serialize as canonical decimal strings; decimals use a strict nonnegative normalized grammar; null/omission and array order are schema-fixed.
+- Row identity commits only persisted candle fields (market identity, timeframe, open_time_ms, OHLCV, available_at_ms); serializer-derived closeTimeMs/isClosed/availabilityKind/quality/source and nullable/unpopulated ingestion_batch_id are excluded from physical row identity.
+- Defined domain-separated SHA-256 for Evidence Object, candle row leaf, empty row tree, Merkle parent, partition leaf and checkpoint content_root; odd Merkle nodes are promoted unchanged. 15m and 1h remain separately ordered partitions.
+- Normative single-row JCS vector: 193 bytes; row leaf ca1d9eae5d9ae2022ccfe5226cc06f3429f5c1428e04e1d1c54b1f83c56fa32f; empty row-tree root ccf8ef877bb093aa73ae77a02b9200985c41519920c83b515a0a4a99561e73f7.
+- Contract design commit: ab683ea8b576a8a63bbb7f3f2d505fdee8615366; initial G0.3 blob cc64f3eda4ce84b39a949f813fe04805fcfef424. Same-session consistency self-review found and corrected conflicts with the earlier generic digest definition and row commitment description. Correction commit: a8eabc07613e2da8802e1a672eb83e4afe005a30; contract blob after correction: 42afa35b0d8d902520c567190361985bb58920a9.
+- G0.3 disposition: F-02 RESOLVED AT CONTRACT-DESIGN LEVEL. Production JCS library and full cross-implementation vector suite remain NOT SELECTED/NOT VERIFIED; executable conformance deferred to G2. No code/tests/Actions were run.
+- G0.2 remains PASS for source mapping only. F-03 completeness oracle remains OPEN; SQLite/PostgreSQL multi-partition snapshot and durable commit receipt remain open. G0 overall PARTIAL/OPEN.
+- No source/schema/runtime/VPS/database/data/provider/identity/key/trust-root/permission operation; no TSA/WORM calls, restore, fault injection, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion. Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
+- Next: G0.4 define exact completeness oracle and its boundary conditions. G0.3 is contract-design/self-review only, NOT independently reviewed.
+
