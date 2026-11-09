@@ -133,3 +133,38 @@ A formatting-only correction was applied in the isolated VPS checkout after the 
 - The 7/7 manual Rust commands and 88 passing tests were executed against parent `4566cff...` plus the identical local formatting patch (patch SHA-256 `90cee952837cf753bf872c2cb19f75e1157dc5c64eb937d58c62cbe796a31ec6`). They are semantically equivalent to the formatting-only commit, but were not rerun against the new commit checkout. Therefore exact-new-SHA test status is **NOT VERIFIED**.
 - Workflow-run lookup for new SHA returned no runs. GitHub Actions CI for new SHA: **NOT VERIFIED**; do not infer dispatch success or failure from an empty returned list.
 - No T1 collector launch, Binance connection, exchange credentials, runtime mutation, T0/T2 mutation, PR merge, issue retarget, or deployment occurred.
+
+
+## Exact-commit manual VPS revalidation — 2026-11-10
+
+- Tested T1 source commit: `f3bae0cfbc26aa694a4d6c9476965121818d3567` (detached isolated checkout `/home/ubuntu/t1-verify-f3bae0cf`).
+- Source identity was confirmed before the run. The checkout was reported clean after removal of the previously verified Cargo-generated lockfile and before starting the 7 checks.
+- Build target: `/home/ubuntu/t1-verify-target-f3bae0cf` on the root filesystem. The previous 2.7 GB target on `/tmp` had been explicitly removed after confirming no Cargo/Rust process was active; no source or runtime files were removed.
+- Exact 7 commands and exit codes:
+  | Check | Command | Exit |
+  |---|---|---:|
+  | Collector format | `cargo fmt --all --check` | 0 |
+  | Collector Clippy | `cargo clippy --all-targets --all-features -- -D warnings` | 0 |
+  | Release build | `cargo build --release` | 0 |
+  | Collector tests | `cargo test --all-targets` | 0 |
+  | Sidecar format | `cargo fmt --manifest-path crates/connection-sidecar/Cargo.toml --check` | 0 |
+  | Sidecar Clippy | `cargo clippy --manifest-path crates/connection-sidecar/Cargo.toml --all-targets --all-features -- -D warnings` | 0 |
+  | Sidecar tests | `cargo test --manifest-path crates/connection-sidecar/Cargo.toml --all-targets` | 0 |
+- Test counts: collector 48 + 1; sidecar 12 + 27 = **88 passed, 0 failed**.
+- Log directory: `/tmp/t1-verify-evidence-f3bae0cf-postcleanup`. Raw logs remain on VPS; no GitHub Actions artifact was produced.
+- Log SHA-256:
+  | File | SHA-256 |
+  |---|---|
+  | `collector_clippy.log` | `68f231ba099d1ce2bb0a105da307e17da9e4af6c34d06c2b59bffa168c966f50` |
+  | `collector_fmt.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+  | `collector_tests.log` | `a3234d558aa0419304e24e1abb5b42e6a22ceaea47998bd7d424345804cf521c` |
+  | `release_build.log` | `e291366305596d1478be1d65e4ba10d9868086287b0d966bb9eff1e89a51090b` |
+  | `sidecar_clippy.log` | `1cc9081216dc555d9daedb02eca124fc1f33737f4627538139ab30aabb7df23e` |
+  | `sidecar_fmt.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+  | `sidecar_tests.log` | `88f27a18a98c7616a91e42f2cf57e0eb2eaf1440ec697031c1fdcc3cae84f345` |
+- All seven recorded `.exit` files contain `0`. Manual exact-commit verification: **7/7 PASS; 88 PASS / 0 FAIL**.
+- Post-run checkout status showed the exact HEAD SHA but a newly regenerated untracked `crates/connection-sidecar/Cargo.lock`. This is a Cargo-generated side effect; its hash was not included in the operator's latest output and cleanup is pending exact-hash verification. No tracked source modification was reported.
+- Disk after run: root filesystem 736 MB available (91% used); `/tmp` 3.5 GB available. Do not run further builds or remove other files without inspecting exact scope.
+- GitHub Actions exact-SHA status: **NOT VERIFIED**. Prior lookup returned no workflow runs; this is not a CI PASS and does not prove dispatch success or failure.
+- T1 runtime/collector activation: NOT AUTHORIZED / NOT PERFORMED. No Binance connection, exchange credentials, live orders, T0/T2 mutation, PR merge, issue retarget, or workflow configuration change.
+- Status: **MANUAL EXACT-SHA VALIDATION PASS**; **GITHUB ACTIONS NOT VERIFIED**; **T1→T0/T2 INTEGRATION NOT VERIFIED**; **ACTIVATION NOT AUTHORIZED / NOT PERFORMED**.
