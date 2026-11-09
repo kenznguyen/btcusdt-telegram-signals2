@@ -1317,3 +1317,18 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE. Runtime enforcement NOT VERIFIED. Lifecycle design closure NOT ESTABLISHED; P1.8.141 residual findings remain open.
 - Next gate: continue with bounded documentary analysis of unresolved P1.8.141 findings and RET-03–RET-10; each operational, identity, provider, test or destructive activity remains separately gated.
 - Status: RET-01/RET-02 OWNER-RATIFIED — POLICY ONLY — NO IMPLEMENTATION OR DESTRUCTIVE AUTHORITY.
+
+## P1.8.144 — Retention Floor Evidence Contract (2026-11-09)
+
+- Contract: `docs/evidence/p1-8/P1.8.144-retention-floor-evidence-contract.md`.
+- Commit: `0d1547edc0eb98148c3b573eb4dcc40d8ff8954b`.
+- Scope: documentation-only contract defining how an evidence-backed minimum retention floor may be established for an exact object/version/copy without inventing TTLs or confusing retention completion with deletion authority.
+- Defines the obligation-set rule: candidate floor is the latest proven end among all applicable obligations, and is valid only when scope/inventory is sufficiently complete, every applicable end condition is evidenced, holds/dependencies/recovery/copy obligations are closed, and time/order evidence is adequate. Unknown or unproven obligations produce FLOOR_NOT_ESTABLISHED / RETAIN / BLOCKED.
+- Covers legal/contractual, canonical/source, consumer, replay/correction, training/inference/evaluation, backtest/research, trading/paper reconstruction, audit/security/incident, recovery/backup, replica/failover, export/recipient, governance/evidence, copy lineage and availability domains.
+- Applies ratified RET-01 B / RET-02 B: T0 remains protected with no routine deletion path; only the limited noncanonical RET-02 classes may enter future read-only exact-object/version assessment. CORE_LEDGER and AI_LEDGER remain separate/protected; unknown data remains blocked.
+- No numeric retention floor, TTL, grace, freshness, cadence or authorization lifetime was selected. RET-03 remains OPEN. Archive remains non-executable; Option C remains in force; destructive authority NOT GRANTED.
+- Independent review REQUIRED / NOT RUN. Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE. Read-back pending.
+- No runtime/data/provider inventory, source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk change, staging, restore, fault injection, workflow dispatch, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion.
+- GitHub permission inventory remains PAUSED. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next gate: read back P1.8.144 and obtain an independent static review of its completeness and consistency with P1.8.80–P1.8.143, especially consumer/dependency, copy/hold, restore, trusted-time, V07/V08/TSA and Option C contracts. No implementation or operational work is implied.
+- Status: CONTRACT DRAFTED — INDEPENDENT REVIEW REQUIRED — NO NUMERIC RETENTION POLICY OR DESTRUCTIVE AUTHORITY.
