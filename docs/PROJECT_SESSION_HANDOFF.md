@@ -3456,3 +3456,13 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - No technical control is promoted to PASS by this waiver. Owner self-assessment is not independent assurance; no third-party review, certification or reviewer-confirmed acceptance claim is permitted.
 - No tests or GitHub Actions dispatched; no source/runtime/VPS/database/identity/permission/provider/data/inventory/staging/restore/fault-injection or destructive operation. Option C, T0 protection, paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
 - Next step: continue lifecycle residual assessment under the revised owner policy; keep all substantive statuses and execution prohibitions intact.
+
+
+## Lifecycle reviewer-waiver reconciliation and residual dependency plan — 2026-11-10
+
+- Prospective lifecycle waiver aligned into the F-01–F-09 / P1.8.152–153 crosswalk by addendum; historical as-of sections preserved. Crosswalk commit `3e9b78dfb1485ee5ad3a12ab2c1c8f8865333659`; final blob SHA `3d084c04cd9712ed05d790ce5c431e988b64ce32`.
+- Created `docs/evidence/p1-8/T0_LIFECYCLE_RESIDUAL_DEPENDENCY_AND_ACCEPTANCE_PLAN_2026-11-10.md`; commit `98780188c73edff0badc71b46b017c0c0bead6f7`. It sequences documentary class/floor inputs, V07/RET-10, V08, mutation fencing, restore, inventory/enforcement and negative vectors without promoting any residual status.
+- Immediate next bounded task: Stage A documentary clarification of RET-03 and RET-07 class-specific floor inputs. Do not invent numeric floors; identify missing owner/legal/operational basis and stop where inputs are insufficient.
+- Reviewer gate: lifecycle independent human review OWNER-WAIVED / NOT MANDATORY; P1.8.153 OWNER-WAIVED / NOT REQUIRED, NOT EXECUTED, NOT PASS. Owner assessment is not independent assurance; RET-10 technical/environmental verifier separation remains required.
+- Residuals preserved: RET-03/06/07/08 OPEN; RET-04 NON-EXECUTABLE; RET-05 technical enforcement NOT VERIFIED; RET-09 NOT VERIFIED; RET-10 OPEN/NOT VERIFIED; V07 BLOCKED; V08/Restore OPEN/BLOCKED; LDA-05/06 NOT VERIFIED; LDA-07 87 vectors NOT RUN; LDA-08 HOLD/NOT VERIFIED; F-07–F-09 NOT VERIFIED.
+- No tests/Actions, source/runtime/VPS/database/provider/permission/inventory/staging/restore/fault-injection or destructive operations. Option C, T0 protection, paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
