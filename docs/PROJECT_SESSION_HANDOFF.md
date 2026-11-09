@@ -2040,3 +2040,20 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No source implementation, tests, Actions dispatch, REST, VPS/runtime, T1 activation, T0/T2 changes or destructive operations occurred.
 - Next step: retarget issue #138 to exact contract blob `77457a11aaf5b91f11aa8ea66cbf1414f7d9723a` for genuinely independent review. This self-review is not independent.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
+
+## Latest follow-up — P1.21 adversarial self-review of P1.20 (2026-11-09)
+
+- Re-read the handoff, exact P1.20 normative contract and P1.20 self-review from the active branch before reviewing.
+- Exact contract blob reviewed: `77457a11aaf5b91f11aa8ea66cbf1414f7d9723a`.
+- New review: `docs/reviews/t1/P1_21_SELF_REVIEW_RECOVERY_EPOCH_AND_RECONCILIATION_RESUMPTION_2026-11-09.md`.
+- Review commit: `7a51ddcfc94513f584f5e9350609cdc944817910`.
+- Verdict: **REQUEST CHANGES** — two residual contract-level ambiguities:
+  - F02-R4 HIGH: recovery epoch is required by §§18.3/21.5/22.11 and C136, but no authoritative identity/schema/persistence/binding exists in the source-root initialization, generation-counter or recovery-checkpoint schemas.
+  - F01-R2 HIGH: recovery clauses require “fresh reconciliation”, but §22.1 forbids `RECONCILED_COMPLETE` and `reconciliation_evidence_ref` in current v1.1. Clarify that v1.1 recovery can at most resume isolated/unsealed collection with UNKNOWN health; canonical eligibility requires a separately versioned, independently reviewed and owner-approved completeness profile.
+- F02-R3, F02-R2 rollback boundary, F05-R2 namespace separation and C136's limited fail-closed purpose remain consistent at documentation level.
+- F07 NOT VERIFIED; Binance REST completeness semantics NOT ACCEPTED; pinned producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; implementation and C01–C136 execution NOT VERIFIED / NOT EXECUTED.
+- Issue #138 remains OPEN and still targets P1.20 contract blob `77457a11aaf5b91f11aa8ea66cbf1414f7d9723a`; independent comments: 0. Do not retarget until the approved documentation corrections and another exact-SHA self-review are complete.
+- No source implementation, tests, GitHub Actions dispatch, REST request, VPS/runtime, T1 activation, T0/T2 changes or destructive operation.
+- Next step: documentation-only correction of F02-R4 and F01-R2, add negative fixtures, then self-review exact new SHA. Independent review and all authorization gates remain mandatory.
+- T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
