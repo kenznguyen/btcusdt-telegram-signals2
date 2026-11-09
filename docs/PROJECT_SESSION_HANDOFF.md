@@ -2160,3 +2160,18 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Existing blockers unchanged: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C166 NOT IMPLEMENTED / NOT EXECUTED.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
 
+## P1.28 — Signed ERA evidence bundle and follow-up self-review (2026-11-09)
+
+- Contract commit: `66360c48824eb4ed1485bb56405e2dd7a850c6bf`.
+- Exact contract blob: `b6c613c41613a409dca741d9ce64bdad4670c293`.
+- Recovery epoch now binds an immutable evidence-bundle reference/digest instead of only an unsigned receipt payload.
+- Bundle contains exact canonical consume-request bytes/digest, receipt-payload bytes/digest, signed response-envelope bytes/digest and bundle digest. Nonce, operation, ERA identity, payload digest, tuple, signature and policy head are cross-checked. Bundle no-replace/file-fsync/parent-fsync precedes epoch publication; offline verification after restart is specified, while fresh live ERA policy/revocation check remains required.
+- Added C167–C170.
+- P1.28 self-review file: `docs/reviews/t1/P1_28_SELF_REVIEW_SIGNED_ERA_EVIDENCE_BUNDLE_2026-11-09.md`.
+- Review commit: `71bb31107d526e179efed750a68a1f24b6d8fd9f`; review blob: `bb4a35286f6058ba92e2ac1b5d439a02153f3284`.
+- Verdict: **REQUEST CHANGES — F02-R11 MEDIUM**. ERA key trust entries lack authenticated revocation-effective authority sequence. Offline historical signature verification and current authorization after revocation are ambiguous. Define pre/post/equal-sequence behavior; retain historical cryptographic evidence but deny new authorization after revocation; fail closed if revocation ordering is unavailable; add fixtures.
+- Issue #138 remains targeted at P1.24 contract SHA until F02-R11 is corrected and exact-SHA self-review passes.
+- No ERA implementation, executable tests, Actions dispatch, REST, VPS/runtime, T1 activation, T0/T2 changes, trading or destructive data operations.
+- Existing blockers: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C170 NOT IMPLEMENTED / NOT EXECUTED.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
