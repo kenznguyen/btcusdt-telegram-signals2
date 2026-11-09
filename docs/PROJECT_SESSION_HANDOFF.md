@@ -3441,3 +3441,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - The L4M-09 waiver does not waive P1.8.152/P1.8.153 lifecycle reviewer requirements. No lifecycle waiver is recorded.
 - Overall L4-Minimum remains BLOCKED / NOT VERIFIED. No tests, Actions, runtime/permission/provider/data inventory or destructive operation performed.
 - Next step: identify the authoritative F-07–F-09 source records; separately determine whether to authorize the P1.8.153 lifecycle task. Preserve Option C, no-live-orders and all existing lifecycle statuses.
+
+
+## Latest owner decision — lifecycle independent-review waiver (2026-11-10)
+
+- Owner decision: `docs/decisions/D-2026-11-10-LIFECYCLE-INDEPENDENT-REVIEW-WAIVER.md`.
+- Decision commit: `0389b15f2e72557519793ba3941d9ff440970983`.
+- The owner waived mandatory independent human/third-party review across the T0 retention/lifecycle workstream covered by P1.8.141–P1.8.153 and the linked RET/LDA/IR reviewer-control chain.
+- P1.8.153 is OWNER-WAIVED / NOT REQUIRED as a mandatory gate; it is NOT EXECUTED and is not claimed PASS. Do not create P1.8.153 solely to repeat the waived independent review.
+- IR147-01 and the reviewer-dependent portion of LDA-09 are waived as review gates only. Their substantive retention-floor, technical, inventory, adapter, enforcement, restore and evidence criteria remain OPEN / BLOCKED / NOT VERIFIED as applicable.
+- Current L4 acceptance matrix aligned: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`; update commit `a0f24c1daaeefabda4e85100c220259d601e07f9`; final blob SHA `2ba85af550fb7e369ea39ade6d73878d78dbf6bc`.
+- P1.8.152 and earlier lifecycle records remain unchanged as historical records.
+- Retained controls: explicit owner approval gates; Option C — No Destructive Authority; T0 canonical-data and protected-class exclusions; RET-03–RET-10 substantive requirements; technical/environmental independence for verification where required; exact-object binding; inventory; mutation fencing; fail-closed behavior; negative tests; restore/reconciliation evidence. “Independent verifier” in RET-10 remains a technical separation requirement, not a waived human reviewer.
+- No technical control is promoted to PASS by this waiver. Owner self-assessment is not independent assurance; no third-party review, certification or reviewer-confirmed acceptance claim is permitted.
+- No tests or GitHub Actions dispatched; no source/runtime/VPS/database/identity/permission/provider/data/inventory/staging/restore/fault-injection or destructive operation. Option C, T0 protection, paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
+- Next step: continue lifecycle residual assessment under the revised owner policy; keep all substantive statuses and execution prohibitions intact.
