@@ -3286,3 +3286,16 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Tests NOT RUN; GitHub Actions NOT DISPATCHED; independent review NOT PERFORMED. No source/test/workflow/config/secret/permission/runtime/VPS/DB/provider/data changes. No PR or merge.
 - Option C — No Destructive Authority — unchanged; no deletion, TTL, cleanup, archive, compaction, vacuum, backup expiry or replica removal.
 - Next gate: prepare a separate documentation-only CI ownership and test-denominator decision record for F-01/F-03. No workflow trigger, CI policy test, Codemagic config, branch protection, secret or dispatch changes without separate approval.
+
+
+## CI Ownership and Test Denominator Decision Record — 2026-11-10
+
+- Added `docs/evidence/CI_OWNERSHIP_AND_TEST_DENOMINATOR_DECISION_2026-11-10.md` as a documentation-only proposal addressing GitHub Actions ownership, legacy Codemagic disposition, F-03 CI policy contradiction and F-01 mixed-workflow test denominator.
+- Decision record commit: `154079695cd65424e532b0de360d35abbb9a4108`; exact blob SHA verified below.
+- Proposed target: GitHub Actions is the sole canonical five-layer CI runner; Codemagic remains PARKED/legacy with no deletion or deactivation until its external app/webhook/workflow state is separately inventoried. This is a proposal, not a claim that Codemagic is disabled.
+- F-03: recommend eventual replacement of the obsolete “no active GitHub Actions YAML” assertion with explicit ownership/evidence invariants. No CI test or Codemagic config changed.
+- F-01: recorded job-level coverage preservation for T0 core, T2/paper consumer, T1 importer, Rust sidecar and parked PostgreSQL/TimescaleDB. No job, trigger, path filter or test denominator was changed.
+- Required future evidence contract records workflow/blob SHA, trigger/filter, exact source SHA, all job conclusions, test counts, artifacts/digests, operation class and PASS/PARTIAL/BLOCKED/NOT VERIFIED status.
+- Status: documentation proposal PASS; owner approval PENDING; implementation NOT AUTHORIZED. Tests NOT RUN; GitHub Actions NOT DISPATCHED; workflow runs/artifacts NOT VERIFIED; Codemagic external state NOT VERIFIED; independent review NOT PERFORMED.
+- No source/test/workflow/config/secret/permission/ruleset/branch-protection/runtime/VPS/DB/provider/data changes. No PR or merge. Option C unchanged; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
+- Next gate: owner decision on D-01–D-05, especially external Codemagic disposition. Do not implement F-01/F-03 or dispatch workflows until separately approved.
