@@ -1016,3 +1016,25 @@ Owner approval: explicit approval received for all four proposed documentary wor
 - Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Deletion authority: NOT GRANTED.
 - T0 canonical independence and CORE_LEDGER/AI_LEDGER separation unchanged; `AI_EXECUTION_ENABLED=false`.
 - Next gate: independent static cross-contract review of P1.8.116–P1.8.119, including validation of the protected-vector completeness crosswalk, final-boundary trusted-time semantics, graph edge/traversal definitions and the non-selected owner role options. Any tests, implementation, IAM, staging or operational work requires separate explicit authorization.
+
+## P1.8.120 — Independent Static Review of P1.8.116–P1.8.119 (2026-11-09)
+
+Owner approval: explicit approval received for P1.8.120. Scope was limited to static/documentary cross-contract review. No implementation, tests, GitHub Actions dispatch, IAM, restore, staging, provider/key/TSA operation, fault injection or destructive action was authorized.
+
+- Review: `docs/evidence/p1-8/P1.8.120-independent-static-review-p1-8-116-to-119.md`.
+- Review commit: `a07bddab30492b8672a9e5da2be99b208f305664`.
+- Review blob SHA: `dcd7e8e2bcc10d4e980b0d4e9482a374ff9cad2e`.
+- Exact reviewed source blob SHAs are pinned in §2 of P1.8.120.
+- Verdict: **PARTIAL — P1.8.116–P1.8.118 PASS at documentary-design level; P1.8.119 correctly leaves the owner decision open; Option B is not selection-ready.**
+- IR115-01: CLOSED at documentary-design level. P1.8.116 explicitly crosswalks all applicable P1.8.93 protected-vector fields, including per-consumer declarations/attestations and per-copy backup/recovery disposition revisions; implementation/source completeness NOT VERIFIED.
+- IR115-02: CLOSED at documentary-design level. P1.8.117 requires trusted current-time observation and age/uncertainty recomputation at the final mutation boundary, bound to exact intent/object/vector/fence; provider/adapter atomicity proof remains OPEN.
+- IR115-03: CLOSED at documentary-design level. P1.8.118 defines directed edge semantics, deterministic traversal, conservative hold propagation and graph completeness requirements; runtime inventory/completeness NOT VERIFIED.
+- IR115-04: OWNER DECISION OPEN. P1.8.119 is a decision framework, not an owner selection. No A/B/C option is selected.
+- IR120-01 MAJOR: Option B lacks a mandatory, technically enforced independent pre-commit veto/control. “Where appropriate” review/delay and retrospective verification cannot establish prevention of unilateral destructive action. Option B is NOT SELECTION-READY; it requires a separately reviewed control definition. If unavailable, Option B must not be selected.
+- Current authority remains unchanged: no self-approval, no incompatible role combination, no IAM/access change, no destructive capability and no deletion authority.
+- Tests: NOT RUN. GitHub Actions: NOT DISPATCHED. Workflow run/artifact: NONE.
+- Runtime/provider/IAM/graph/consumer/copy inventory: NOT VERIFIED / NOT PERFORMED.
+- Restore/staging/fault injection/provider/key/TSA operations: NOT EXECUTED / NOT AUTHORIZED.
+- Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Deletion authority: NOT GRANTED.
+- T0 canonical independence and CORE_LEDGER/AI_LEDGER separation unchanged; `AI_EXECUTION_ENABLED=false`.
+- Next gate: owner decision on role-model direction remains OPEN. Option A or C can be considered as owner decisions; Option B first requires a separate mandatory pre-commit independent-control specification and review. Any IAM, implementation, test, workflow or operational work requires separate explicit authorization.
