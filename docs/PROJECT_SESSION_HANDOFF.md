@@ -28,3 +28,15 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - No PR or merge was created.
 - Continue to use GitHub Actions for validation and retain evidence on the existing branch.
 - Any future production integration or change to assurance claims requires separate explicit approval.
+
+## Latest completed work — P1.8.26
+
+- Designed an isolated staging Production Verification Protocol for all 13 fault/negative vectors.
+- Protocol: `docs/evidence/p1-8/P1.8.26-production-verification-protocol.md`.
+- Scope includes prerequisites, per-vector procedure and PASS criteria, durability/storage, concurrency, key lifecycle, business-state reconciliation, evidence package contract, stop gates, and explicit prohibitions.
+- Protocol commit / current branch HEAD at checkpoint: `3910544269aa2b759df28183efcbde491fe64d70`.
+- Protocol blob SHA: `863707a63f21327b83f5ee1511b72eae871623de`.
+- GitHub check-runs queried for protocol commit: 0; commit status: pending with no status contexts. No workflow run or artifact is claimed for P1.8.26.
+- Status: DESIGN COMPLETE; NOT EXECUTED. All 13 vectors remain synthetic PASS / production NOT VERIFIED.
+- No production implementation, runtime integration, destructive fault injection, VPS/T0/T1/DB/Feeder/exchange/strategy/ledger/risk changes, PR, or merge.
+- Next step: independent review of protocol completeness and environment equivalence criteria before separately approving any isolated staging execution.
