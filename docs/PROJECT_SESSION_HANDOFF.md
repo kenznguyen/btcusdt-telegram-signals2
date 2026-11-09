@@ -3182,3 +3182,16 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - No tests or GitHub Actions run, no source/schema/workflow/runtime/VPS/database/exchange changes. L4-Minimum remains BLOCKED / NOT VERIFIED; G2 exact-SHA NOT VERIFIED; G3 independent review PENDING.
 - Option C remains; no automatic deletion/TTL/archive/cleanup/vacuum/compaction/backup expiry/replica removal. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next safe increment: implement/execute only an isolated temporary-SQLite regression test for F5-07 after approval, and update the GitHub Actions path filter/test command so `pipeline/test_api.py` is actually exercised. Do not change API/ledger behavior until the regression is demonstrated and the shared account-equity/risk contract is approved. Continue F5-01/F5-02/F5-06 design-only reconciliation separately.
+
+## T1 producer-to-consumer dependency trace (2026-11-10)
+
+- Static trace report: `docs/evidence/T1_PRODUCER_TO_CONSUMER_DEPENDENCY_TRACE_2026-11-10.md`; blob `7eff3b98b94296dffc48e6badd59e38ea0ca1120`.
+- Inspected baseline: `5480ba9cfc138e1f629b2ba11d897dacb464a36c`.
+- T1 CSV observation path is a CLI importer reading explicit CSV paths from external collector source pinned at `bc4f0ef633fbeee4a49defd72827f17162693805`; it produces a validated `OBSERVED_ONLY` JSON snapshot with per-file hashes. No in-repo scheduler/watcher or continuous capture invocation established.
+- Snapshot is consumed by `pipeline.api.intelligence_snapshot()` from `INTELLIGENCE_REPORT_PATH`; decision uses trade flow only after freshness/quality gates. The snapshot remains `complete=false`, `connectionStatus=UNVERIFIABLE`; local file hashes do not prove upstream completeness or authenticity.
+- Rust sidecar writer and Python validator are separate offline components; neither is integrated into pinned upstream collector, importer, feed quality or decision gating. Sidecar digest is unsigned and requires separately trusted custody.
+- T1 1m kline source contract v1.1 is a distinct DESIGN ONLY / NOT APPROVED data product; it is not the current trades/funding/OI/liquidation importer and no accepted adapter/promotion path was found.
+- Findings T1-DEP-01..05 cover CLI-only orchestration, observation-vs-completeness distinction, sidecar integration gap, unsigned sidecar trust boundary, and separate unimplemented 1m kline contract.
+- Static source boundary trace PASS for inspected paths; complete repo/runtime inventory PARTIAL. Actual collector, CSV files, snapshot, runtime scheduling, live continuity and trusted sidecar custody NOT VERIFIED.
+- No source/test/workflow/VPS/DB/collector/exchange/runtime operation performed; no tests or Actions dispatched. L4-Minimum remains BLOCKED / NOT VERIFIED. G2/G3 status unchanged. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders. Option C unchanged.
+- Next safe increment: static-only T4 route/auth/control dependency map. F5-07 remains explicitly deferred at user request; do not implement its regression test until reauthorized.
