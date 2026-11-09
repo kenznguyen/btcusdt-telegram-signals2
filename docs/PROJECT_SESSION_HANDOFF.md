@@ -100,3 +100,15 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: P1.8.31 STRUCTURAL/TRACEABILITY REVIEW PASS; execution readiness NOT ESTABLISHED. Staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED. Prior vectors remain SYNTHETIC PASS only.
 - No source/runtime changes, staging provisioning, provider selection, key operations, restore/fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
 - Next step: prepare an owner-review package for unresolved V07, V08 and restore parameters; no staging action until values are frozen and separately authorized.
+
+## Latest completed work — P1.8.33
+
+- Added `docs/evidence/p1-8/P1.8.33-owner-parameter-decision-package.md`.
+- Package commit: `0d7aa316c710a5c7eabf4825bba7b1a196e594e1`.
+- Package blob SHA: `6858d5d4d8dca961eb03954a0f3fa0b7ed483f03`.
+- Scope: owner decision register for V07 revocation parameters (V07-D1–D9), V08 checkpoint parameters (V08-D1–D9), and restore measurement parameters (RST-D1–D9); includes fixture matrices, evidence-derived lateness workflow, RPO/RTO measurement definitions, dependency order and decision-record template.
+- Recommendations are explicitly nonbinding. No exact cache-age, propagation, rotation, watermark, lateness, clock-skew, provider, failure-domain or RTO/RPO measurement parameter has been owner-approved by this package.
+- DEC-01 C / DEC-02 C / DEC-03 B remain the approved policy directions. Detailed V07, V08 and restore gates remain OPEN/BLOCKED pending explicit owner decisions and supporting evidence.
+- Status: DECISION PACKAGE PREPARED; OWNER DECISIONS PENDING; NOT EXECUTED. Environment equivalence NOT VERIFIED; staging NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; `AI_EXECUTION_ENABLED=false`.
+- No source/runtime changes, VPS/T0/T1/DB/Feeder changes, provider selection, key operations, data collection/read probes, staging provisioning, restore/fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
+- Next step: owner reviews the decision register and explicitly selects or revises each parameter; only then prepare a versioned parameter baseline and independent static review.
