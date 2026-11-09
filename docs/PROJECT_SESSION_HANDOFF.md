@@ -152,3 +152,16 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: F-01 CLARIFICATION DRAFTED; independent static security review REQUIRED; V07 remains BLOCKED. V08 and Restore remain OPEN/BLOCKED. Environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; `AI_EXECUTION_ENABLED=false`.
 - No source/runtime changes, VPS/T0/T1/DB/Feeder changes, provider selection, key provisioning/signing/rotation/revocation, data collection/read probes, staging provisioning, restore rehearsal, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
 - Next gate: independent static security review of P1.8.36 against P1.8.26–P1.8.35, especially exact signature-byte binding and the limited `genTime` claim. Separate explicit staging authorization remains mandatory.
+
+## Latest completed work — P1.8.37
+
+- Completed documentation-only independent static security review of P1.8.36 against P1.8.26, P1.8.28, P1.8.34 and P1.8.35.
+- Review: `docs/evidence/p1-8/P1.8.37-independent-security-review.md`.
+- Review commit: `3dd25969d8039bd052975dc29be7d7f0aa481879`.
+- Reviewed P1.8.36 blob SHA: `9883ed1fb856a161fc56f5c5721e36813a6fabe7`.
+- Result: PARTIAL — exact-signature binding design PASS; narrow fixture-disposition clarification required.
+- F-01 is CLARIFIED / DESIGN PASS: imprint binds exact signature bytes and immutable verification context; the `genTime` claim is properly limited to existence no later than the TSA assertion, not exact signature creation time.
+- New finding F-11 (MEDIUM): TB-P01/TB-P02 wording “historical policy decision proceeds” could be read as acceptance even though the V07 trust profile, revocation authority, precision, uncertainty and equality parameters remain OPEN. Clarify that cryptographic fixture PASS does not imply historical acceptance; final disposition remains BLOCKED/NOT DETERMINED until V07 is frozen.
+- V07 remains BLOCKED; V08 and Restore remain OPEN/BLOCKED. Environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; `AI_EXECUTION_ENABLED=false`.
+- No source/runtime changes, VPS/T0/T1/DB/Feeder changes, provider selection, key operations, data probes, staging provisioning, restore rehearsal, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
+- Next gate: P1.8.38 documentation-only correction of TB-P01/TB-P02 expected outcomes, keeping all provider, cryptographic profile, time, revocation and numeric parameters OPEN; then independent re-review. Separate explicit staging authorization remains mandatory.
