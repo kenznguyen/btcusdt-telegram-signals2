@@ -1529,3 +1529,18 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Status: **PARTIAL — T1 repository CI PASS; T1→T0/T2 contract compatibility BLOCKED**. Static review only; no tests executed in this review, no VPS/runtime/deployment, no T1 activation, no adapter/integration, no T0/T2/strategy/ledger/risk changes.
 - Required next step: freeze a versioned T1 source-file contract and design a read-only, idempotent ingestion adapter plus deterministic 1m→15m/1h aggregation/coverage tests. Keep T0 canonical storage independent; do not allow T1 direct writes into T0. Independent review and a separate activation approval remain required.
 - Guardrails preserved: paper-only, `AI_EXECUTION_ENABLED=false`, no OKX replacement, no live orders, no data deletion/archive/cleanup/vacuum/compaction/backup expiry or destructive testing.
+
+
+## Latest completed work — T1 Source-File Contract v1 and Ingestion Adapter Design (2026-11-09)
+
+- Added design proposal: `docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_AND_INGESTION_ADAPTER_DESIGN_2026-11-09.md`.
+- Design commit: `ce9546e98ff898b2537d2188567a35a772388093`.
+- Design is based on T1 PR #1 exact source SHA `6e20fe94f3ad64cc450e73def80a167fe371e49e`, including README, config, CSV writer, models, constants and `docs/SCHEMA.md`.
+- Critical finding: T1's WebSocket `KlineData` includes Binance `is_closed` (`x`), but persisted `KlineCsv` and `HEADER_KLINES` omit it. Current CSV therefore cannot prove final-candle status. Legacy CSV must not be used for canonical 1m→15m/1h aggregation. A versioned source change or explicit final-only output is a prerequisite.
+- Proposed boundary: read-only T1 source files → isolated adapter-owned staging store → validated 15m/1h candidate windows/report. No T1 writes to T0; no T0 API/SQLite access or promotion path in this design.
+- Defined proposed v1 header/manifest requirements, path/row validation, byte-offset cursor and atomic checkpoint/idempotency semantics, conflict/quarantine behavior, UTC 1m→15m/1h aggregation rules, provenance, error taxonomy and 24 deterministic fixture scenarios.
+- Explicitly identified that buffered T1 `flush()` is not a durable-commit acknowledgement; collector-side durability/sealing semantics remain unproven and require a separate source contract.
+- Status: **DESIGN COMPLETE / IMPLEMENTATION BLOCKED** pending T1 source schema change, source durability semantics and independent review. No code implementation, tests, workflow dispatch, VPS/runtime, T0/T2, strategy/AI/ledger/risk changes. T1 remains NOT ACTIVATED.
+- GitHub Actions: NOT DISPATCHED; run ID NONE; artifact NONE. No test execution or runtime proof claimed.
+- Next step: independent review of the design, then explicit approval before any T1 source-schema change. Adapter implementation and T0 promotion are separate future gates.
+- Guardrails preserved: T0 remains independent/canonical; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders, OKX replacement/fallback, data deletion/archive/cleanup/vacuum/compaction/backup expiry or destructive tests.
