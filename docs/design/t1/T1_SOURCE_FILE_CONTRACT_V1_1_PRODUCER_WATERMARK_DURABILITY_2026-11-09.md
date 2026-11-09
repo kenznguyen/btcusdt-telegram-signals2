@@ -162,6 +162,45 @@ Missing rows before a valid seal are PENDING, not a confirmed gap. Under the cur
 
 ## 9. Additional deterministic acceptance tests
 
+### 9.1 Authoritative recovery of the v1 fixture definitions
+
+The complete original C01–C24 definitions are recovered from the archived v1 design document:
+- Path: `docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_AND_INGESTION_ADAPTER_DESIGN_2026-11-09.md`
+- Exact blob SHA: `41a543f9772d890a47d5ebb923668609f5b1e7ea`
+- Present with the same blob in parent commit `4d797bbb286e3e8fdc6c04ee7af70ec2fa7baeee` and commit `0e2cbec07b1289950a7aa7ec1b99ef0ec7f6302c`; the latter records the P1.3 conservative REST reconciliation update.
+- Original definitions occupy lines 154–179 of that source. This is a provenance pin, not a claim that the archival document remains normative.
+
+The following table preserves every original fixture ID and scenario while stating its current v1.1 disposition. Where the original expected result conflicts with this v1.1 contract, the v1.1 disposition is normative under §20.1.
+
+| ID | Recovered v1 scenario | Current v1.1 disposition |
+|---|---|---|
+| C01 | Valid v1 header and one final row | Parse PASS only with the current versioned manifest, exact FINAL_ONLY/1m declaration, verified source identity and all §21.5 checks. |
+| C02 | Legacy v0 header without `is_closed` | UNSUPPORTED_SCHEMA; no staging row, cursor advance or watermark. |
+| C03 | Interim row (`is_closed=false`) | Producer must filter it before persistence. If an interim row is found in a FINAL_ONLY file, source/producer contract violation; reject/quarantine, never aggregate it. |
+| C04 | One valid final 1m candle | Staging row PASS only; no 15m/1h aggregate. |
+| C05 | Exactly 15 contiguous final 1m rows | 15m aggregation is eligible only after current identity, source-health, committed-prefix, seal/watermark and exact-decimal gates pass. |
+| C06 | Exactly 60 contiguous final 1m rows | 1h aggregation is eligible only after the same v1.1 gates pass. |
+| C07 | Missing one minute in a 15m/1h bucket | Original WINDOW_GAP expectation is superseded. Under the current profile classify as PENDING/UNKNOWN or SOURCE_HEALTH_UNKNOWN as applicable; no aggregate; WINDOW_GAP remains reserved and unassignable. |
+| C08 | Identical duplicate final row | Idempotently deduplicate only when all identity and exact-content checks prove it is the same semantic row; no duplicate aggregate or watermark advancement. |
+| C09 | Conflicting duplicate final row | CANDLE_CONFLICT / quarantine; block affected window; never silently select or overwrite. |
+| C10 | Partial final CSV line | Do not consume partial bytes or advance cursor. If a partial record lies inside the supposedly committed prefix, treat the publication/prefix as invalid and quarantine. |
+| C11 | Restart after staging transaction before acknowledgement | Replay is idempotent; committed rows/cursor remain consistent and no duplicate aggregate is created. |
+| C12 | Crash before transaction commit | Rows and cursor remain uncommitted together; recovery replays safely without partial commit. |
+| C13 | File truncation/replacement/header change | SOURCE_IDENTITY_CHANGED or integrity quarantine; halt that source generation; never continue from stale cursor. |
+| C14 | Wrong symbol/date/market/exchange in row | ROW_INVALID / SOURCE_IDENTITY_UNPROVEN; reject and quarantine as required; no aggregate. |
+| C15 | UTC midnight/day partition boundary | Select the correct UTC partition and half-open time bucket using verified manifest identity; directory naming alone is not authority. |
+| C16 | High/low/OHLC invariant violation | ROW_INVALID; reject row and block affected aggregate. |
+| C17 | Decimal precision stress | Preserve source decimal strings exactly and aggregate with deterministic decimal arithmetic; any float conversion, rounding or parse-to-zero fails. |
+| C18 | Late final minute after prior incomplete window | Keep window pending until all expected minutes and current v1.1 completeness/seal gates are proven; then it may become eligible. |
+| C19 | Conflicting late correction after validation | Immutable correction evidence plus quarantine; never silently rewrite sealed bytes or prior accepted output. |
+| C20 | Source file changes while being read | Consume only the fixed, validated committed prefix under the required lock/snapshot protocol; on identity/generation/prefix change abort and retry/reconcile, otherwise quarantine. |
+| C21 | Source manifest/header hash mismatch | Reject as UNSUPPORTED_SCHEMA / SOURCE_IDENTITY_CHANGED / integrity quarantine; no cursor or watermark advance. |
+| C22 | T0 DB path accidentally supplied | Reject configuration before opening it; T1 has no T0 write path or credential; canonical T0 remains isolated. |
+| C23 | Missing data with OKX available | Fail closed; no OKX or other venue fallback; no synthetic fill, aggregation or watermark advancement. |
+| C24 | 1m stream contains duplicate interim updates and one final update | FINAL_ONLY producer filters all interim updates before persistence; exactly one final semantic candle may enter aggregation. |
+
+These 24 rows are a recovered design fixture inventory, not executed tests. The original v1 expected results are preserved as provenance; current v1.1 dispositions above control where semantics have changed. No fixture implementation or execution is implied.
+
 Retain C01–C24 from v1 and add:
 - C25 wrong market scope → SOURCE_IDENTITY_UNPROVEN.
 - C26 BTCUSDT spelling without trusted product metadata → SOURCE_IDENTITY_UNPROVEN.
