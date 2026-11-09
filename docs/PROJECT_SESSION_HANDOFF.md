@@ -522,3 +522,46 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: DOCUMENTARY MATRIX COMPLETE; INDEPENDENT REVIEW PENDING; TESTS/CI NOT RUN; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
 - No source/schema/API/workflow/service/registry/scheduler/database/VPS/Feeder/storage/backup/replica/archive/runtime change. No tests/CI, workflow dispatch, runtime inventory, deletion dry-run, cleanup, vacuum, restore, fault injection or destructive operation. Workflow run/artifact: NONE.
 - Next: independent deletion-design review of P1.8.79–P1.8.84 and governing contracts. Assess completeness, contradictions, missing failure modes, authority separation and testability. Do not begin V07/V08/Restore/TSA conflict review until this review is complete.
+
+### Independent Deletion-Design Review — P1.8.79–P1.8.84 (2026-11-09)
+
+- Review: `docs/evidence/p1-8/INDEPENDENT-DELETION-DESIGN-REVIEW-P1.8.79-84.md`.
+- Initial review commit: `e0ef71b068f57e6f1ed9d053362344542e8e9cbf`.
+- Exact evidence SHA pinning update commit: `1e36d8b56975c56c04a57b81b8486715cee2a9dc`.
+- Review blob SHA after pinning: `2439a48bcb6c74bce9e6844a168a347e01219abe`.
+- Verdict: **PARTIAL — design principles coherent; material closure gaps remain.** No unsafe contradiction was found that grants or implies destructive authority.
+- Reviewed governing evidence includes:
+  - Data Deletion Safety Contract blob `e055d88308d8576c5c6826e12280b847f5ec5717`;
+  - Central Data Lifecycle Policy blob `9fd46c029cff643ccc35492fd09620581f6eff35`;
+  - Dataset Consumer Contract blob `31d958360315eb24716a7656cef8b430187c82b1`;
+  - Copy/Backup/Replica Lifecycle Contract blob `4112c68eceef7d9047117efc5027750ae2edf2d8`;
+  - Shared Data Foundation blob `18f8566723b95c4b38586e3848bde5305295a4dc`;
+  - P1.8.79 blob `4942433048d1e052e989a9a9bca9a1a2ce3433ab`;
+  - P1.8.80 blob `a38710c9d01e5409ce989cc73f791c94bc73773f`;
+  - P1.8.81 blob `f1423d16e0327f47e2b974ae13e622174c5a0cb6`;
+  - P1.8.82 blob `99f7e5a4cdcdf3edf88c424dde30e8306ad78aae`;
+  - P1.8.83 blob `3020dbeb47d54b41fa6b7608ddf2721f83b5b47e`;
+  - P1.8.84 blob `99b2e688075b0b39e84fc1a07673ebd2a7e69a62`.
+- Findings:
+  - DR-01 MAJOR: hold lifecycle, propagation and concurrent change semantics incomplete.
+  - DR-02 MAJOR: no single canonical state-machine mapping across dataset/dependency/copy/request/authorization/object/evidence domains.
+  - DR-03 MAJOR: registry/hold decision barrier is not fenced through the full multi-object mutation window.
+  - DR-04 MAJOR: storage disposition semantics and bounded deletion claims are not normalized per adapter.
+  - DR-05 MAJOR: personal-project requester/approver identity and compensating-control model is not approved/operable.
+  - DR-06 MAJOR: runtime and unmanaged external-copy inventory completeness remains unproven.
+  - DR-07 MAJOR: 45 negative cases are not yet deterministic executable test specifications with independent oracles.
+  - DR-08 MAJOR: trusted time, event ordering and evidence freshness are not operationally bound.
+  - DR-09 MINOR: copy lifecycle contract section numbering has §5.6 before §5.5.
+  - DR-10 OBSERVATION: no unsafe cross-contract contradiction found in the reviewed design set.
+- T0 canonical data and T3 CORE_LEDGER/AI_LEDGER protection remain intact. No deletion authority is granted.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/schema/API/workflow/service/registry/scheduler/database/VPS/Feeder/storage/backup/replica/archive/runtime mutation or inventory was performed.
+- Next documentary work, in order:
+  1. P1.8.85 Hold Lifecycle and Mutation-Window Fencing Contract (DR-01, DR-03).
+  2. P1.8.86 Canonical Lifecycle State Mapping (DR-02).
+  3. P1.8.87 Storage Disposition Semantics and Bounded Claims (DR-04).
+  4. P1.8.88 Identity, Trusted Time and Approval Governance (DR-05, DR-08).
+  5. P1.8.89 Inventory Claim Boundaries and Discovery Evidence (DR-06).
+  6. P1.8.90 Executable Negative-Case Specification (DR-07), design-only; no test run without separate authorization.
+  7. Correct section numbering in the copy lifecycle contract.
+  8. Second independent review.
+- Do not begin V07/V08/Restore/TSA conflict review until second independent deletion-design review is complete. No implementation, staging, workflow dispatch, real-storage dry-run, archive, cleanup, restore, key destruction or deletion is authorized.
