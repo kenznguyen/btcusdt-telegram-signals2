@@ -3087,3 +3087,14 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Disposition: blob identity PASS; exact final-tree test execution NOT VERIFIED; G2 Actions BLOCKED; G2 NOT CLOSED; G3 PENDING / NOT VERIFIED. No independent reviewer report exists.
 - No canonical T0 DB/data/runtime/VPS/provider/identity/key/trust-root/permission operations; no provider calls, restore, fault injection, destructive actions or workflow dispatch. Option C remains; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders. G4/G5 not authorized.
 - Next: establish why the G2 workflow terminates before creating jobs/artifacts. Correct only the isolated G2 workflow if a concrete cause is identified; then require a successful exact-source run and retained artifact before closing G2 or proceeding to G3 disposition.
+
+
+## T0 Evidence Contract G2 — post-incident status (2026-11-10)
+
+- Public GitHub Status currently reports All Systems Operational; the Nov 9 Webhooks/Actions incident is listed as resolved. This supports recovery of the platform but does not retroactively repair failed workflow runs.
+- Read-only recheck: G2 runs 42672254786 (head 8882ef2e31d55eb726f9322a57096fa544797c2b) and 42672280358 (head 8affc8b9aa12f17a969bc34c395b3b66b5871829) remain FAILURE, each with 0 jobs and 0 artifacts.
+- Branch HEAD at this update: 054a7acdf589317252feb2392dc18c9c0be905d0. G2 workflow blob remains 5e22648c38fd3c6e631f912010de1489bb78f9b5; it contains one synthetic-only job, compile, unittest, and always-upload evidence steps. No workflow configuration defect has been established.
+- User-supplied GitHub Status screenshot shows an incident with Actions and Checks API and elevated errors; timing aligns with failed run creation. Exact internal root cause remains NOT ESTABLISHED.
+- No source/workflow change, workflow dispatch/rerun, canonical DB/data, runtime/VPS, provider, credential, identity/key/trust-root, restore, fault-injection or destructive action performed.
+- Status: GitHub platform incident resolved; historical G2 runs remain unusable; exact final-source SHA test execution NOT VERIFIED; G2 NOT CLOSED; G3 PENDING / NOT VERIFIED.
+- Next: obtain a fresh successful exact-SHA G2 Actions run after platform recovery and retain its source-SHA/test artifact. No dispatch/rerun was initiated in this step. G4/G5 remain NOT AUTHORIZED; Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
