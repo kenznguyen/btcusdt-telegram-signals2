@@ -3669,3 +3669,14 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - LDA-07 NOT RUN; LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED. V07/V08/RET-10/Restore remain BLOCKED or NOT VERIFIED. Option C unchanged.
 - No tests/compile/dry-run/fault injection, Actions dispatch, secrets read, runtime/VPS/DB/provider/recipient/backup/replica probes, permission/workflow/source/schema/adapter/runtime/data changes, or destructive operations.
 - Next bounded work: complete remaining static source/path crosswalk and prepare precise prerequisite closure proposals for TEST-01–07; do not implement or run harness until prerequisites are evidenced and TEST-08 exact scope is separately approved. Branch-protection metadata still requires GitHub Administration: read-only (or equivalent) to resolve HTTP 403; no such grant asserted.
+
+
+## Stage C.4 — TEST-01–07 Prerequisite Closure Plan (2026-11-10)
+
+- Added `docs/evidence/p1-8/STAGE_C4_TEST_PREREQUISITE_CLOSURE_PLAN_2026-11-10.md` as a documentation-only prerequisite plan. File commit: `9b763c13c640c9ef8f7be574360b2bb0e3ea6d74`.
+- Defines evidence-bearing entry gates for TEST-01 runner, TEST-02 synthetic adapters, TEST-03 isolation, TEST-04 independent oracle, TEST-05 deterministic concurrency, TEST-06 lifecycle-specific provenance and TEST-07 synthetic-only cleanup containment.
+- Specifies cross-cutting fail-closed, synthetic namespace, no-secret/no-network, protected-root invariance, independent observation, reproducibility, vector-level coverage and abort invariants.
+- TEST-08 remains a separate exact-scope owner authorization gate. This plan does not authorize implementation, tests, dry-run, fault injection, Actions dispatch, permission changes, secrets access, runtime/provider/VPS/database probes or destructive operations.
+- Current states remain TEST-01–05 OPEN / NOT ESTABLISHED; TEST-06 PARTIAL / NOT ESTABLISHED; TEST-07 OPEN / NOT ESTABLISHED; TEST-08 NOT GRANTED. LDA-07 NOT RUN (87/87); LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
+- No test, compile, dry-run, fault injection or Actions dispatch. No source/schema/adapter/workflow/runner/permission/runtime/data changes. No secret values read. Option C and protected T0/T3/CORE_LEDGER/AI_LEDGER evidence remain unchanged.
+- Next: keep implementation blocked; resolve prerequisite evidence one bounded contract at a time. Before any harness execution, obtain TEST-08 exact authorization and prove all relevant TEST-01–07 gates. No automatic promotion from documentary completion to execution.
