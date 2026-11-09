@@ -3213,3 +3213,21 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: selected source/blob identity PASS; static route/method/auth inventory PASS; Gateway route contract PARTIAL; runtime topology, edge controls and credential custody NOT VERIFIED. No tests or Actions run; no independent review claimed.
 - No source/test/workflow/permission/secret/proxy/DNS/firewall/VPS/database/ledger/risk/runtime change. Option C unchanged; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next safe increment: reconcile the `/api/*` Gateway namespace with current `/v1/*` handlers and define an approved-origin/credential-destination contract, documentation-only. Do not implement or deploy the Gateway without separate approval.
+
+
+## T0 simplification — dependency and retirement gate review second pass (2026-11-10)
+
+- Added read-only audit: `docs/evidence/T0_SIMPLIFICATION_DEPENDENCY_REVIEW_SECOND_PASS_2026-11-10.md`.
+- Audit commit: `a0ad4570c1e063e84905c136ebd03c11dd802506`; exact blob SHA to be verified by read-back.
+- Inspected branch HEAD baseline: `d584a31c936d8c1d50370a3c74d4c737c853c881`.
+- Confirmed active SQLite dependency chain: `feeder_service -> build_production_runtime -> storage factory -> build_runtime -> FeederRuntime/Scheduler/RecoveryCoordinator -> sync_window -> SQLiteWriteGateway + LeaseStore -> SQLite WAL keeper`; bounded read-only `market_data.api` uses the storage facade and T2 FreqAI consumer uses `CandleHttpClient -> /v1/candles`.
+- Reaffirmed KEEP: Feeder/runtime, Candle contract/store, shared sync function, SQLite fenced writer, WAL keeper, SQLite storage facade, read-only API, explicit initializer/migrations and regression tests.
+- PostgreSQL is runtime-optional but not fully isolated: direct imports exist in `storage.py` and `feeder_service.py`, optional composition is present, and `requirements-market-data.txt` installs psycopg unconditionally. Disposition PARK; do not remove adapter, migrations, tests or driver yet.
+- Kraken Spot is a separate research domain with isolated store/API/tests; exclude it from canonical T0 active acceptance, but preserve it. No deletion candidate established.
+- Binance connectivity probe is manual support-only, not part of Feeder ingestion; keep outside always-on runtime.
+- `sync.py` combines shared ingestion function with one-shot CLI and ShadowWriteGateway; do not split until full import/test/CLI compatibility is mapped.
+- Checkpoint Evidence G0–G3 remains a separate assurance workstream, not a basic ingestion prerequisite; preserve records and blockers, freeze feature expansion.
+- T0-SM7: broad `market_data/**` trigger in `t0-single-writer-gateway-red.yml` couples research-domain changes to core T0 validation. Do not narrow before all job commands, branch protection and test denominator are reviewed.
+- Status: selected source/workflow mapping PASS; full repo call graph, all workflow jobs, branch protection, deployed package/runtime and live consumers NOT VERIFIED. Tests/Actions NOT RUN. Independent review NOT PERFORMED. No code/test/workflow/package/schema/runtime/VPS/DB/provider/key/permission/data changes.
+- Option C unchanged; no automatic TTL/delete/archive/cleanup/vacuum/compaction/backup expiry/replica removal. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next: documentation-only T0 Active Scope Index distinguishing active SQLite, parked PostgreSQL, separate Kraken research, support probe and separate checkpoint assurance. No code deletion or workflow narrowing.
