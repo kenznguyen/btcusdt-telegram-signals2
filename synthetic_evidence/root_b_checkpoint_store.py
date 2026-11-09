@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
@@ -32,6 +33,18 @@ def _canonical(value: object) -> bytes:
     return json.dumps(
         value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
     ).encode("utf-8")
+
+
+def _normalize_utc_timestamp(value: str, field: str) -> str:
+    if not isinstance(value, str) or not value:
+        raise RootBIntegrityError(f"{field} must be a timezone-aware ISO-8601 timestamp")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise RootBIntegrityError(f"{field} must be a valid ISO-8601 timestamp") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise RootBIntegrityError(f"{field} must include a UTC offset")
+    return parsed.astimezone(timezone.utc).isoformat(timespec="microseconds")
 
 
 class DurableRootBJournal:
@@ -61,7 +74,9 @@ class DurableRootBJournal:
             CREATE TABLE IF NOT EXISTS events (
                 sequence INTEGER PRIMARY KEY AUTOINCREMENT,
                 event_id TEXT NOT NULL UNIQUE,
-                event_bytes BLOB NOT NULL
+                event_bytes BLOB NOT NULL,
+                occurred_at TEXT,
+                committed_at TEXT
             );
             CREATE TABLE IF NOT EXISTS acknowledgements (
                 event_id TEXT NOT NULL REFERENCES events(event_id),
@@ -74,13 +89,31 @@ class DurableRootBJournal:
                 through_sequence INTEGER NOT NULL,
                 event_log_sha256 TEXT NOT NULL,
                 acknowledgement_sha256 TEXT NOT NULL,
-                checkpoint_sha256 TEXT NOT NULL
+                checkpoint_sha256 TEXT NOT NULL,
+                boundary_at TEXT,
+                sealed_at TEXT
             );
             CREATE TABLE IF NOT EXISTS checkpoint_acks (
                 checkpoint_id TEXT PRIMARY KEY REFERENCES checkpoints(checkpoint_id)
             );
             """
         )
+        # Additive migrations keep this isolated test adapter reopenable across revisions.
+        event_columns = {
+            row[1] for row in self._connection.execute("PRAGMA table_info(events)")
+        }
+        if "occurred_at" not in event_columns:
+            self._connection.execute("ALTER TABLE events ADD COLUMN occurred_at TEXT")
+        if "committed_at" not in event_columns:
+            self._connection.execute("ALTER TABLE events ADD COLUMN committed_at TEXT")
+        checkpoint_columns = {
+            row[1] for row in self._connection.execute("PRAGMA table_info(checkpoints)")
+        }
+        if "boundary_at" not in checkpoint_columns:
+            self._connection.execute("ALTER TABLE checkpoints ADD COLUMN boundary_at TEXT")
+        if "sealed_at" not in checkpoint_columns:
+            self._connection.execute("ALTER TABLE checkpoints ADD COLUMN sealed_at TEXT")
+
         configured = json.dumps(sorted(self._required_observers), separators=(",", ":"))
         row = self._connection.execute(
             "SELECT value FROM metadata WHERE key='required_observers'"
@@ -121,27 +154,47 @@ class DurableRootBJournal:
         event_id: str,
         canonical_event_bytes: bytes,
         *,
+        occurred_at: str | None = None,
+        committed_at: str | None = None,
         crash_at: AppendCrashPoint | None = None,
     ) -> str:
         if not isinstance(event_id, str) or not event_id:
             raise RootBIntegrityError("event_id must be a non-empty string")
         if not isinstance(canonical_event_bytes, bytes) or not canonical_event_bytes:
             raise RootBIntegrityError("event bytes must be non-empty bytes")
+        if (occurred_at is None) != (committed_at is None):
+            raise RootBIntegrityError("occurred_at and committed_at must be supplied together")
+        normalized_occurred = (
+            _normalize_utc_timestamp(occurred_at, "occurred_at")
+            if occurred_at is not None else None
+        )
+        normalized_committed = (
+            _normalize_utc_timestamp(committed_at, "committed_at")
+            if committed_at is not None else None
+        )
+        if normalized_occurred and normalized_committed:
+            if datetime.fromisoformat(normalized_committed) < datetime.fromisoformat(normalized_occurred):
+                raise RootBIntegrityError("committed_at cannot precede occurred_at")
         if crash_at not in (None, "before_commit"):
             raise RootBIntegrityError("unknown append crash injection point")
         self._begin()
         try:
             existing = self._connection.execute(
-                "SELECT event_bytes FROM events WHERE event_id=?", (event_id,)
+                "SELECT event_bytes, occurred_at, committed_at FROM events WHERE event_id=?",
+                (event_id,),
             ).fetchone()
             if existing is not None:
-                if bytes(existing[0]) != canonical_event_bytes:
-                    raise RootBIntegrityError("same event ID appended with changed bytes")
+                if (bytes(existing[0]) != canonical_event_bytes
+                        or existing[1] != normalized_occurred
+                        or existing[2] != normalized_committed):
+                    raise RootBIntegrityError("same event ID appended with changed bytes or timestamps")
                 self._connection.commit()
                 return "EVENT_DUPLICATE"
             self._connection.execute(
-                "INSERT INTO events(event_id, event_bytes) VALUES(?, ?)",
-                (event_id, sqlite3.Binary(canonical_event_bytes)),
+                "INSERT INTO events(event_id, event_bytes, occurred_at, committed_at) "
+                "VALUES(?, ?, ?, ?)",
+                (event_id, sqlite3.Binary(canonical_event_bytes),
+                 normalized_occurred, normalized_committed),
             )
             if crash_at == "before_commit":
                 raise SimulatedCrash("crash before event transaction commit")
@@ -194,7 +247,7 @@ class DurableRootBJournal:
 
     def _event_log_digest(self, through_sequence: int) -> str:
         rows = self._connection.execute(
-            "SELECT sequence, event_id, event_bytes FROM events "
+            "SELECT sequence, event_id, event_bytes, occurred_at, committed_at FROM events "
             "WHERE sequence<=? ORDER BY sequence",
             (through_sequence,),
         ).fetchall()
@@ -203,9 +256,13 @@ class DurableRootBJournal:
         ):
             raise RootBIntegrityError("checkpoint sequence is not a contiguous event prefix")
         payload = [
-            {"sequence": int(sequence), "event_id": event_id,
-             "event_sha256": _sha256(bytes(event_bytes))}
-            for sequence, event_id, event_bytes in rows
+            ({
+                "sequence": int(sequence), "event_id": event_id,
+                "event_sha256": _sha256(bytes(event_bytes)),
+                **({"occurred_at": occurred_at, "committed_at": committed_at}
+                   if occurred_at is not None and committed_at is not None else {}),
+            })
+            for sequence, event_id, event_bytes, occurred_at, committed_at in rows
         ]
         return _sha256(_canonical(payload))
 
@@ -244,19 +301,26 @@ class DurableRootBJournal:
         through_sequence: int,
         event_log_sha256: str,
         acknowledgement_sha256: str,
+        boundary_at: str | None = None,
+        sealed_at: str | None = None,
     ) -> str:
-        return _sha256(_canonical({
+        payload = {
             "checkpoint_id": checkpoint_id,
             "through_sequence": through_sequence,
             "event_log_sha256": event_log_sha256,
             "acknowledgement_sha256": acknowledgement_sha256,
-        }))
+        }
+        if boundary_at is not None and sealed_at is not None:
+            payload.update({"boundary_at": boundary_at, "sealed_at": sealed_at})
+        return _sha256(_canonical(payload))
 
     def commit_checkpoint(
         self,
         checkpoint_id: str,
         *,
         through_sequence: int,
+        boundary_at: str | None = None,
+        sealed_at: str | None = None,
         crash_at: CheckpointCrashPoint | None = None,
     ) -> str:
         if not isinstance(checkpoint_id, str) or not checkpoint_id:
@@ -265,21 +329,39 @@ class DurableRootBJournal:
             raise RootBIntegrityError("checkpoint sequence must be an integer")
         if not 1 <= through_sequence <= self.event_count():
             raise RootBIntegrityError("checkpoint sequence is outside the committed event log")
+        if (boundary_at is None) != (sealed_at is None):
+            raise RootBIntegrityError("boundary_at and sealed_at must be supplied together")
+        normalized_boundary = (
+            _normalize_utc_timestamp(boundary_at, "boundary_at")
+            if boundary_at is not None else None
+        )
+        normalized_sealed = (
+            _normalize_utc_timestamp(sealed_at, "sealed_at")
+            if sealed_at is not None else None
+        )
+        if normalized_boundary and normalized_sealed:
+            if datetime.fromisoformat(normalized_sealed) < datetime.fromisoformat(normalized_boundary):
+                raise RootBIntegrityError("sealed_at cannot precede boundary_at")
         if crash_at not in (None, "after_durable_write", "after_ack"):
             raise RootBIntegrityError("unknown checkpoint crash injection point")
 
         event_digest = self._event_log_digest(through_sequence)
         ack_digest = self._acknowledgement_digest(through_sequence)
         checkpoint_digest = self._checkpoint_digest(
-            checkpoint_id, through_sequence, event_digest, ack_digest
+            checkpoint_id, through_sequence, event_digest, ack_digest,
+            normalized_boundary, normalized_sealed,
         )
-        candidate = (through_sequence, event_digest, ack_digest, checkpoint_digest)
+        candidate = (
+            through_sequence, event_digest, ack_digest, checkpoint_digest,
+            normalized_boundary, normalized_sealed,
+        )
 
         self._begin()
         try:
             existing = self._connection.execute(
                 "SELECT through_sequence, event_log_sha256, acknowledgement_sha256, "
-                "checkpoint_sha256 FROM checkpoints WHERE checkpoint_id=?",
+                "checkpoint_sha256, boundary_at, sealed_at "
+                "FROM checkpoints WHERE checkpoint_id=?",
                 (checkpoint_id,),
             ).fetchone()
             if existing is not None:
@@ -296,8 +378,8 @@ class DurableRootBJournal:
             else:
                 self._connection.execute(
                     "INSERT INTO checkpoints(checkpoint_id, through_sequence, "
-                    "event_log_sha256, acknowledgement_sha256, checkpoint_sha256) "
-                    "VALUES(?, ?, ?, ?, ?)",
+                    "event_log_sha256, acknowledgement_sha256, checkpoint_sha256, "
+                    "boundary_at, sealed_at) VALUES(?, ?, ?, ?, ?, ?, ?)",
                     (checkpoint_id, *candidate),
                 )
                 self._connection.commit()
@@ -330,23 +412,57 @@ class DurableRootBJournal:
         ).fetchone()
         return int(row[0])
 
+    def _validate_checkpoint_boundary(
+        self, through_sequence: int, *, boundary_at: str, sealed_at: str,
+    ) -> None:
+        boundary = datetime.fromisoformat(boundary_at)
+        sealed = datetime.fromisoformat(sealed_at)
+        rows = self._connection.execute(
+            "SELECT sequence, event_id, occurred_at, committed_at "
+            "FROM events ORDER BY sequence"
+        ).fetchall()
+        for sequence, event_id, occurred_at, committed_at in rows:
+            if occurred_at is None or committed_at is None:
+                raise RootBIntegrityError(
+                    "boundary checkpoint cannot validate an event without occurrence and commit timestamps"
+                )
+            occurred = datetime.fromisoformat(occurred_at)
+            committed = datetime.fromisoformat(committed_at)
+            if occurred <= boundary:
+                if committed > sealed:
+                    raise RootBIntegrityError(
+                        f"checkpoint is stale: late pre-boundary event {event_id} committed after seal"
+                    )
+                if int(sequence) > through_sequence:
+                    raise RootBIntegrityError(
+                        f"checkpoint omits pre-boundary event {event_id}"
+                    )
+
     def recover_checkpoint(self) -> dict[str, object] | None:
         rows = self._connection.execute(
             "SELECT checkpoint_id, through_sequence, event_log_sha256, "
-            "acknowledgement_sha256, checkpoint_sha256 FROM checkpoints "
-            "ORDER BY through_sequence, checkpoint_id"
+            "acknowledgement_sha256, checkpoint_sha256, boundary_at, sealed_at "
+            "FROM checkpoints ORDER BY through_sequence, checkpoint_id"
         ).fetchall()
         if not rows:
             return None
         latest = None
-        for checkpoint_id, sequence, stored_event, stored_ack, stored_digest in rows:
+        for (checkpoint_id, sequence, stored_event, stored_ack, stored_digest,
+             boundary_at, sealed_at) in rows:
             sequence = int(sequence)
+            if (boundary_at is None) != (sealed_at is None):
+                raise RootBIntegrityError("stored checkpoint has incomplete boundary metadata")
+            if boundary_at is not None:
+                self._validate_checkpoint_boundary(
+                    sequence, boundary_at=boundary_at, sealed_at=sealed_at,
+                )
             if not 1 <= sequence <= self.event_count():
                 raise RootBIntegrityError("stored checkpoint sequence is outside event log")
             event_digest = self._event_log_digest(sequence)
             ack_digest = self._acknowledgement_digest(sequence)
             expected = self._checkpoint_digest(
-                checkpoint_id, sequence, event_digest, ack_digest
+                checkpoint_id, sequence, event_digest, ack_digest,
+                boundary_at, sealed_at,
             )
             if (stored_event, stored_ack, stored_digest) != (
                 event_digest, ack_digest, expected
