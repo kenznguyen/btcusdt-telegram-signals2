@@ -2330,3 +2330,21 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Status: P1.38 DOCUMENTATION-LEVEL PASS; independent review PENDING; F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; implementation NOT AUTHORIZED; T1 activation NOT AUTHORIZED.
 - Next step: retarget issue #138 to exact P1.38 contract/review blobs, keep OPEN for genuinely independent review.
 - Guardrails unchanged: T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
+
+## Latest review — P1.38 second-pass adversarial review
+
+- Re-read the exact P1.37 contract blob `9125e89b227fd9fa8364a02188d0be54ec3dd2ef` across §§5.2, 21.5, 22.2, 22.4, 22.6, 22.6.1 and 22.9–22.11; cross-checked C100–C197 and current status statements.
+- No new actionable contract defect was identified in the bounded receipt/checkpoint/recovery scope. P1.38 verdict: DOCUMENTATION-LEVEL PASS, same-session only; not independent.
+- To preserve the active branch, the P1.38 second-pass result was appended to the existing review file on the current branch:
+  - Path: `docs/reviews/t1/P1_37_SELF_REVIEW_RECEIPT_SCHEMA_COHERENCE_2026-11-09.md`
+  - Update commit: `8dc365de8c2baad8ac9f0006afd1aa21c0be9a41`
+  - Exact updated review blob: `450909e836ad0e4cf4b25d745d17f1140ff79a20`
+- The exact contract blob remains `9125e89b227fd9fa8364a02188d0be54ec3dd2ef`; no contract correction was needed in P1.38.
+- Tool-path incident: a separate P1.38 review file was inadvertently created on the repository default ref rather than the active feature branch:
+  - Commit: `e02cbe14c506c5f02ace6c250862e726a2ad57e5`
+  - File blob: `3fa2f4725b5e7711b95716774fe3b5a6b2cf6509`
+  - Verified by fetching the file with the default ref; it was not present on the active feature branch. It was not merged/cherry-picked into the feature branch. No deletion or rewrite of the default ref was attempted. Treat this as an isolated unplanned documentation commit requiring separate disposition; do not infer the active branch moved.
+- Issue #138 is to target the exact P1.37 contract blob and the updated review blob above, remain OPEN, and continue to request genuinely independent review. A same-assistant second pass cannot satisfy independence.
+- Residual gates unchanged: F07 NOT VERIFIED; Binance REST completeness NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; FINAL_ONLY/product identity NOT VERIFIED; implementation and T1 activation NOT AUTHORIZED; C01–C197 NOT IMPLEMENTED / NOT EXECUTED.
+- No GitHub Actions run/artifact, executable tests, REST request, VPS/runtime or filesystem experiment was performed. No source, T0/T2, strategy, trading or data operation changed. T0 remains independent/canonical; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no destructive operations.
