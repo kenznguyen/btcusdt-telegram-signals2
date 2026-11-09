@@ -79,7 +79,7 @@ Keep the following components together unless a future behavior-preserving refac
 - No changes to canonical data, database, Feeder, VPS, provider, keys, permissions, runtime or live consumers.
 - `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - No workflow path narrowing, test-denominator reduction, source retirement or dependency removal is approved by this index.
-- Android Chart/Scanner and the separate Python bot/backtest are outside the 5-layer system and are not T0 dependencies.
+- Android Chart/Scanner and Python bot/backtest are explicitly OUT OF SCOPE of the Five-Layer System: not T0–T4 components, producers/consumers, dependencies, deployment or acceptance inputs. Repository co-location creates no integration obligation. See `docs/evidence/FIVE_LAYER_SCOPE_EXCLUSION_ANDROID_PYTHON_2026-11-10.md`.
 
 ## 8. Evidence and limitations
 
