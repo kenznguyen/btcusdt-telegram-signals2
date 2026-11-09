@@ -3976,3 +3976,17 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - Option C — No Destructive Authority remains ACTIVE; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - No code/schema/adapter/runner/workflow/permission/runtime/data changes; no tests, compile, dry-run, fault injection, Actions dispatch, secrets/runtime/provider/VPS/database/recipient/backup/replica probes, provisioning, external evidence publication or destructive operation. No workflow run or artifact is claimed.
 - Next recommended stage: Stage L — Contract Profile Specification Draft, documentary-only, retaining TBD markers and requiring explicit owner decisions before freeze.
+
+
+## Latest completed work — Stage L.0–L.7 / Contract Profile Specification Draft
+
+- Added companion documentary profile: `docs/evidence/p1-8/STAGE_L0_L7_CONTRACT_PROFILE_SPECIFICATION_DRAFT_2026-11-10.md`.
+- Report commit: `ff4a1789b50f973adfd5c749cdc5a06e6c9cb080`.
+- Base contract remains `H5-LIFECYCLE-TECHNICAL-CONTRACT` 1.0.0-draft; companion profile `1.1.0-profile-draft` is not frozen, executable or implemented.
+- Consolidated candidate JCS/SHA-256 profile, common evidence envelope, digest reference, record families, operation/attempt and observation/verdict invariants, resource classifications, isolation/principal boundaries, evidence destination/verifier, time/causal ordering and retention/authority constraints.
+- Explicit TBD markers retained for library/version, numeric/Unicode profile, digest/ID envelope, exact schema, clock/sequence semantics, retry/correction state machine, isolation topology, identity provider, evidence provider, verifier trust roots and retention/recovery values.
+- C.14 denominator preserved: 87/87 design-mapped, 0/87 executable, 87/87 NOT RUN. No test or production status upgraded.
+- Contract freeze NOT READY; TEST-08 NOT GRANTED; LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
+- Option C — No Destructive Authority remains ACTIVE; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- No executable schema, code, adapter, runner, workflow, permission, credential, provider, runtime or data changes; no tests, compile, dry-run, fault injection, Actions dispatch, probes, provisioning or destructive operations. No workflow run or artifact is claimed.
+- Next recommended stage: Stage M — Profile Consistency and Test-Traceability Review, documentary-only.
