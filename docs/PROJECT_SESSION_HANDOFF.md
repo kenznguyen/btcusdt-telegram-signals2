@@ -2388,3 +2388,24 @@ Guardrails and blockers remain unchanged: F07 NOT VERIFIED; Binance REST complet
 - Next step: retarget issue #138 to the exact P1.40 contract/review plus P1.41 verification record; keep OPEN for genuinely independent review.
 - Blockers unchanged: independent review PENDING; F07 NOT VERIFIED; Binance REST completeness NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C197 NOT IMPLEMENTED / NOT EXECUTED; implementation and T1 activation NOT AUTHORIZED.
 - Guardrails unchanged: T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations.
+
+
+## Latest completed work — P1.42
+
+- Re-read the exact P1.41 contract and issue #138 state. Issue #138 remains OPEN with zero comments; no genuinely independent reviewer response is present.
+- Found F02-R23 HIGH: §9 C84 permitted acceptance of a visible receipt before `fsync(commits_dir_fd)`, contradicting §22.6.1.
+- Corrected C84 and directly coupled C103 to require UNCONFIRMED state before the commit barrier and full §22.6.1 recovery validation, commits/generation directory fsyncs, durable recovery-checkpoint publication and its directory barriers.
+- Contract update commit: `1557e9080e364d32a313694b5222ead8c790acce`.
+- Exact current contract blob SHA: `3510c6a187c2677e0ad54060d1164a84984705c2`.
+- Contract status: `P1.42 REVISION — DESIGN ONLY — NOT APPROVED FOR IMPLEMENTATION`.
+- Adversarial readback confirms old unsafe C84 wording is absent; C84/C103 require the normative recovery barrier; §22.6.1 still defines successful commits-directory fsync as the only normal commit-acceptance linearization point.
+- Found F02-R24 MEDIUM: §9 says retain C01–C24 from v1, but C02–C23 are not enumerated in the current contract and no exact original-v1 source path/commit/blob is pinned. The P1.3 base artifact at commit `0e2cbec07b1289950a7aa7ec1b99ef0ec7f6302c` also contains only the retention instruction, not those definitions. Do not invent the missing fixtures. Inventory completeness remains NOT VERIFIED pending the exact source or a verified restoration.
+- P1.42 self-review: `docs/reviews/t1/P1_42_SELF_REVIEW_RECEIPT_BARRIER_AND_FIXTURE_TRACEABILITY_2026-11-09.md`.
+  - Review commit: `cbf296da2b78fc3fb37f2765710755c18de13134`.
+  - Exact review blob SHA: `5b790c38a811f7d54a93a7de9a83f22f72acac1f`.
+  - Verdict: REQUEST CHANGES. F02-R23 is resolved at documentation level; F02-R24 remains open. Same-session review, NOT independent.
+- Issue #138 remains OPEN and still points to the previous P1.41 contract blob. Do not retarget it to claim PASS until F02-R24 is resolved and a new adversarial pass succeeds; independent review remains a separate gate.
+- No executable tests, GitHub Actions dispatch, REST request, VPS/runtime or filesystem experiment was performed. No workflow run/artifact is claimed.
+- No source implementation, producer/adapter change, T0/T2 change, T1 activation, trading action or destructive data operation occurred.
+- Unchanged blockers: F07 NOT VERIFIED; Binance REST completeness NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; FINAL_ONLY/product identity implementation NOT VERIFIED; manifest/receipt/counter/checkpoint/ERA/trust-policy/ExchangeInfo implementation NOT IMPLEMENTED / NOT VERIFIED; C01–C197 NOT IMPLEMENTED / NOT EXECUTED.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive operations.
