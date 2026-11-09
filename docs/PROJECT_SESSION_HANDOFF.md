@@ -2746,3 +2746,14 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - No source/config/docs/dependency/workflow/runtime/data/credential/key/permission mutation except this audit record and handoff. No deletion. Tests NOT RUN; Actions NOT DISPATCHED; no run/artifact.
 - Status: phase-3 bounded documentation review PASS; one documentation candidate identified but NOT APPROVED; repository-wide six-group absence NOT VERIFIED; independent second review NOT PERFORMED. Option C remains in force.
 - Next: request genuinely independent second review of the exact candidate and full audit evidence; if accepted, obtain explicit approval for deleting only `android-app/COMMERCIAL_READINESS.md`. Continue residual source/docs coverage accounting. No other deletion is in scope.
+
+
+## Commercial candidate self-review correction (2026-11-10)
+
+- Re-read the complete `android-app/COMMERCIAL_READINESS.md` (blob `9532b34f4a7c1dcac571b9ba4fe5064fa2cfc324`) against the owner personal-use scope decision.
+- Corrected Phase-3 overbroad disposition: the file is mixed-purpose, not wholly commercial. It contains retained personal-use assurance content: Android device QA, M15/H1 alert and Python parity checks, reconnect/background/recovery checks, performance/accessibility checks, signing-key and CI-secret custody, artifact signature/SHA-256 verification, install/upgrade/migration hygiene, privacy/risk/source-attribution/provider-terms checks.
+- Whole-file deletion is REJECTED. Remove or rewrite only clearly commercial/customer/public-store commercialization items after checking actual distribution context. Preserve internal QA, security, privacy and release engineering controls.
+- Self-review evidence: `docs/evidence/COMMERCIAL_SCOPE_CANDIDATE_SELF_REVIEW_2026-11-10.md`; commit `3e6bec20d809e3d937c7d80826d72131dc0920f6`.
+- This is same-assistant self-review, NOT an independent second review. No source edit or deletion performed. No tests or Actions run. No runtime/data/credential/key/permission/workflow changes.
+- Status: whole-file REMOVE CANDIDATE withdrawn; revised disposition = REWRITE / PRUNE COMMERCIAL-ONLY CONTENT, preserve personal-use controls. Repository-wide six-group absence remains NOT VERIFIED.
+- Next step: search references to the document and produce a minimal replacement/pruning diff, then obtain independent review before applying it. Any store-specific legal requirements remain conditional on actual distribution and applicable law.
