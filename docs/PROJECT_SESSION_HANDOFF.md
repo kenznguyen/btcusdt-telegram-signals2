@@ -3299,3 +3299,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: documentation proposal PASS; owner approval PENDING; implementation NOT AUTHORIZED. Tests NOT RUN; GitHub Actions NOT DISPATCHED; workflow runs/artifacts NOT VERIFIED; Codemagic external state NOT VERIFIED; independent review NOT PERFORMED.
 - No source/test/workflow/config/secret/permission/ruleset/branch-protection/runtime/VPS/DB/provider/data changes. No PR or merge. Option C unchanged; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
 - Next gate: owner decision on D-01–D-05, especially external Codemagic disposition. Do not implement F-01/F-03 or dispatch workflows until separately approved.
+
+
+## Owner approval — CI Ownership and Test Denominator D-01–D-05 (2026-11-10)
+
+- Owner explicitly approved all five decisions as proposed in `docs/evidence/CI_OWNERSHIP_AND_TEST_DENOMINATOR_DECISION_2026-11-10.md`.
+- Decision record update commit: `a8ddba3f31cd669dbe32a10370384bfe59ec679c`; updated blob SHA: `68c14033f32bdd8bbbd675ed58ea8157f95dcb3d`.
+- D-01 APPROVED: GitHub Actions is the sole canonical CI/workflow runner for the five-layer project; GitHub remains source/history/evidence storage; acceptance requires exact-SHA runs and complete job/artifact evidence.
+- D-02 APPROVED: Codemagic PARKED / legacy / no new five-layer dependency / no deletion yet. External app/webhook/branch-filter/workflow/environment-group/execution state remains NOT VERIFIED. No disable/delete or external account access is authorized.
+- D-03 APPROVED: replace the obsolete no-GitHub-Actions test assumption with explicit ownership/evidence invariants as the target. Editing the test remains NOT AUTHORIZED until active test denominator and Codemagic ownership are mapped.
+- D-04 APPROVED: preserve the complete denominator across T0, T1 importer, T1 sidecar, T2/paper, optional parked PostgreSQL/TimescaleDB and remaining cross-domain contracts. No job/test/path-filter reduction authorized.
+- D-05 APPROVED: adopt the proposed domain-separated workflow organization as target design, subject to complete mapping and separate implementation authorization.
+- Approval is policy/design-only. It does NOT authorize workflow/test/config edits, Codemagic metadata access/deactivation, workflow dispatch/rerun, branch/ruleset/permission/secret changes, SSH/VPS/provider/database/runtime operations, or destructive actions.
+- Status: D-01–D-05 OWNER-APPROVED; implementation NOT AUTHORIZED / NOT STARTED; tests NOT RUN; GitHub Actions NOT DISPATCHED; Codemagic external state NOT VERIFIED; rulesets/effective permissions NOT VERIFIED; independent review NOT PERFORMED.
+- No source/test/workflow/config/secret/permission/ruleset/branch-protection/runtime/VPS/DB/provider/data changes; no PR or merge. Option C unchanged; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next safe step: prepare a documentation-only implementation plan for F-03 and F-01, preserving the full test denominator and listing all preconditions. Do not implement or dispatch until a separate implementation authorization is given.
