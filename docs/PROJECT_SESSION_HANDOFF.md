@@ -2926,3 +2926,13 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Open decisions remain: canonicalization vectors/library, DB snapshot mechanism, durable commit receipt, issuer/signer authority, algorithm/key custody lifecycle, independent custody/readback, latest-head anchor, offline verifier packaging, retention/hold mapping, and TSA necessity for any specifically scoped historical-time claim.
 - Status: CONTRACT DRAFTED; NOT IMPLEMENTED; owner decisions and independent review required. L4M-09 remains pending; overall L4 remains BLOCKED / NOT VERIFIED. Option C — No Destructive Authority — remains; T0 canonical/recovery data protected; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next bounded step: contract consistency review against T0 Candle Contract v1, P1.8.67–P1.8.78, L4-Minimum matrix and lifecycle decisions; then resolve owner decisions before synthetic fixtures or source implementation.
+
+
+### Contract self-review correction — eliminate recursive manifest binding (2026-11-10)
+
+- Same-session static self-review found SR-01: the initial Checkpoint Manifest table embedded `manifest_object_ref` inside the manifest while also requiring the Evidence Object digest to hash the serialized manifest. That creates a recursive/self-referential digest dependency.
+- Corrected §4.2: manifest object ID/digest binding is external, in the Evidence Object descriptor/receipt; the serialized manifest does not contain its own object ID/digest. Clarified that `content_root` commits only to canonical partition descriptors and ordered row commitments, excluding the external descriptor, signature envelope, custody receipt and verification records.
+- Correction commit: `b6cc97b769d0c348bb6b8065e13da343601fbe35`; contract blob after read-back: `9e89e69de69fbe352bfef9d2d5107a719117294f`.
+- Re-review confirms the self-reference is removed and the object digest can be computed over finite canonical bytes. Remaining contract gaps are intentionally OPEN: exact content-root construction/test vectors, serializer profile implementation, backend snapshot mechanism and durability receipt semantics, issuer/signer/custody/anchor authority. No source implementation is implied.
+- Documentation-only; no tests/Actions, runtime/VPS/DB/data/provider/identity/key/trust-root/permission operations or destructive actions. Option C remains; paper-only; `AI_EXECUTION_ENABLED=false`.
+- Status: SR-01 CORRECTED IN WORDING; contract remains DRAFT / NOT IMPLEMENTED / NOT INDEPENDENTLY REVIEWED.
