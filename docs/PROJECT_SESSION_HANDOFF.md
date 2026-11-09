@@ -689,7 +689,7 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 
 - P1.8.93 now explicitly pins applicable consumer availability-declaration revisions and owner-attestation references in the protected decision vector. Updated blob: `4cc158b5f766fb024e411519be36076bc1e3758a`.
 - P1.8.94 adds explicit vectors for unproven reviewer/approver separation (NEG-ID-05), unavailable independent verifier (NEG-VER-01), and inventory completeness without a declared boundary (NEG-INV-01). Cascade vector is NEG-ADP-09. Updated branch blob: `40d8e30bb7e247fbc81f1657998d13032650590a`. Minimum catalogue: 69 vectors (47 baseline + 22 supplemental); all remain NOT_RUN.
-- A file creation was inadvertently sent to the repository default branch during this correction. The accidental file was then deleted from the default branch; read-back returned NOT_FOUND, restoring the prior absence. Deletion commit: `1599e5f4d9a9b23e0295d1ab8073f92ab0473761`. No source/runtime files were involved. Project work continues only on `feature/t0-centralized-data-feeder-p1-20261101`.
+- A file creation was inadvertently sent to the repository default branch during this correction (commit `9099e4ffc7f58d700cd3886425e86225e6d0f9cc`), followed by a content update (commit `cbf41b04b47bfaad287bcebb51a610ed41cdccdc`) and deletion (commit `1599e5f4d9a9b23e0295d1ab8073f92ab0473761`). Final default-branch read-back returned NOT_FOUND, restoring the prior absence of this file; the default-branch history retains the create/update/delete commits. No source/runtime files were involved. Project work continues only on `feature/t0-centralized-data-feeder-p1-20261101`.
 
 
 ### P1.8.94 coverage closure correction (2026-11-09)
