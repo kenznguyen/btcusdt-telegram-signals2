@@ -1,6 +1,9 @@
 # Canonical market data — tầng 0
 
-Kho nến dùng chung cho các tầng phân tích. Bản đầu hỗ trợ **Binance USDⓈ-M perpetual BTCUSDT**, khung **15m/1h**, SQLite và API WSGI chỉ đọc. Bộ đồng bộ lấy OHLCV qua CCXT; không cần API key sàn. Chưa thay nguồn OKX của Python bot/backtest hay nguồn trực tiếp trong APK.
+Kho nến dùng chung cho các tầng phân tích.
+
+Phạm vi T0 đang được duy trì (ACTIVE/PARKED/separate workstreams) được tổng hợp tại [T0 Active Scope Index](../docs/T0_ACTIVE_SCOPE_INDEX.md). Tài liệu này tập trung vào hợp đồng kỹ thuật của kho nến và API; index là nguồn điều hướng phạm vi tổng thể.
+ Bản đầu hỗ trợ **Binance USDⓈ-M perpetual BTCUSDT**, khung **15m/1h**, SQLite và API WSGI chỉ đọc. Bộ đồng bộ lấy OHLCV qua CCXT; không cần API key sàn. Chưa thay nguồn OKX của Python bot/backtest hay nguồn trực tiếp trong APK.
 
 ## Chạy đồng bộ
 
