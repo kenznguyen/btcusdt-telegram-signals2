@@ -2292,3 +2292,25 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No source implementation, executable tests, GitHub Actions dispatch/artifact, REST, VPS/runtime, filesystem durability experiment, T1 activation, T0/T2 change, trading or destructive data operation was performed or authorized.
 - Residual blockers unchanged: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; ERA services NOT IMPLEMENTED / NOT VERIFIED; C01–C197 NOT IMPLEMENTED / NOT EXECUTED.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
+
+## Latest completed work — P1.37
+
+- P1.36 exact-SHA adversarial self-review identified F02-R19 HIGH: §22.4's exact closed receipt key set omitted `manifest_jcs_base64url`, despite §5.2, §21.5 and §22.11.2 requiring the field. A parser following §22.4 would reject the receipt required by P1.36.
+- P1.36 review also exposed F02-R20 MEDIUM: §22.8 still listed C01–C124 although the current contract's fixture inventory had expanded through C197.
+- Corrected the existing contract in place on the existing branch; no branch divergence:
+  - Contract path: `docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_1_PRODUCER_WATERMARK_DURABILITY_2026-11-09.md`
+  - Contract update commit: `a1d28543f5b0b77ee84b34871f77d42a87aa87e6`
+  - Exact contract blob SHA: `9125e89b227fd9fa8364a02188d0be54ec3dd2ef`
+  - §22.4 now defines all twelve receipt keys including `manifest_jcs_base64url`, exact canonical unpadded base64url rules, decode/re-encode, byte bounds, complete §21.5 validation and digest binding.
+  - §22.8 now records C01–C197 as design scenarios only, NOT IMPLEMENTED / NOT EXECUTED.
+- P1.37 same-session adversarial self-review:
+  - Path: `docs/reviews/t1/P1_37_SELF_REVIEW_RECEIPT_SCHEMA_COHERENCE_2026-11-09.md`
+  - Review commit: `dc5bba967fa6f8316d254b4c057b58755fbf97ed`
+  - Exact review blob SHA: `2f4e036e4b0db7395588424783e6319e28779344`
+  - Verdict: DOCUMENTATION-LEVEL PASS for F02-R19, F02-R20 and directly coupled P1.36 receipt/checkpoint requirements only. Same-session, NOT independent.
+- Exact SHA readback verified both contract and review blobs. No source implementation, executable tests, GitHub Actions dispatch, REST request, VPS/runtime or filesystem experiment was performed. No workflow run/artifact is claimed.
+- Status: P1.37 DOCUMENTATION-LEVEL PASS; independent review PENDING; F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; implementation NOT AUTHORIZED; T1 activation NOT AUTHORIZED.
+- Issue #138 is to remain OPEN and target exact P1.37 contract/review blobs for independent adversarial review. Do not treat this same-session PASS as independent closure.
+- Guardrails unchanged: T0 remains independent/canonical; no T1 writes to T0; no T0/T2 changes; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations.
+- Next step: obtain genuinely independent review of exact P1.37 blobs via issue #138. No implementation, executable fixtures, Actions, REST, VPS/runtime or T1 activation before separate gates and approvals.
