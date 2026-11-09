@@ -2113,3 +2113,21 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Issue #138 may now be retargeted to exact contract blob dd33b60649d8881ca935d34b62b8b54b6d0e9d42 for genuinely independent review; P1.24 self-review blob is 43f8a505a52045469b1c7fd68bb0f73fc9450117. Independent review remains pending.
 - No implementation, executable tests, GitHub Actions run/artifact, REST, VPS/runtime, T1 activation, T0/T2 changes, strategy/AI/ledger/risk changes, trading or destructive operations.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; AI_EXECUTION_ENABLED=false; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
+## Latest follow-up — P1.25 adversarial self-review of P1.24 (2026-11-09)
+
+- Re-read the active-branch handoff, exact P1.24 contract, P1.24 review and issue #138 before this review.
+- Exact contract blob reviewed: `dd33b60649d8881ca935d34b62b8b54b6d0e9d42` (unchanged; no normative contract edits in P1.25).
+- Review file: `docs/reviews/t1/P1_25_SELF_REVIEW_TRUST_POLICY_ROLLBACK_AND_APPROVAL_REPLAY_2026-11-09.md`.
+- Review commit: `40d7233e439c1de93424e24075e662632eec5921`.
+- Review blob: `a3b6561cc077ff97acbf3198a20e70aa78378a15`.
+- Verdict: **REQUEST CHANGES — F02-R6 HIGH, F02-R7 MEDIUM, F02-R8 MEDIUM.**
+- F02-R6 HIGH: external approver trust policy has no monotonic revision/latest-policy digest or append-only revocation anchor. A stale but internally valid external policy backup can restore a revoked key to ACTIVE; self-digest and outside-source-root placement prove neither freshness nor rollback resistance.
+- F02-R7 MEDIUM: decision_record_id and root/epoch binding exist, but durable one-time consumption or explicit same-epoch idempotency/replay semantics are not specified. Define replay domain and add duplicate/cross-root/cross-epoch/crash-retry fixtures.
+- F02-R8 MEDIUM: revocation invalidates previously recorded approvals, but verification lifecycle and effect on pending, accepted and active recovery epochs are unspecified. Define verification points, quarantine transitions and post-acceptance behavior.
+- P1.24 F02-R5 signature structure remains present, but its complete approval lifecycle is NOT CLOSED at contract level. P1.24 DOCUMENTATION-LEVEL PASS is limited to signed-approval authority design and C141–C145 specification.
+- Do not retarget issue #138 to a new SHA until F02-R6/R7/R8 are corrected, fixtures added and a new exact-SHA self-review passes. Issue #138 remains pointed to P1.24 contract blob `dd33b60649d8881ca935d34b62b8b54b6d0e9d42` and must include these follow-up findings.
+- No implementation, executable tests, Actions dispatch, REST, VPS/runtime, T1 activation, T0/T2 changes, trading or destructive data operations.
+- Existing blockers unchanged: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C145 NOT IMPLEMENTED / NOT EXECUTED.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
