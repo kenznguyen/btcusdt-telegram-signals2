@@ -3466,3 +3466,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Reviewer gate: lifecycle independent human review OWNER-WAIVED / NOT MANDATORY; P1.8.153 OWNER-WAIVED / NOT REQUIRED, NOT EXECUTED, NOT PASS. Owner assessment is not independent assurance; RET-10 technical/environmental verifier separation remains required.
 - Residuals preserved: RET-03/06/07/08 OPEN; RET-04 NON-EXECUTABLE; RET-05 technical enforcement NOT VERIFIED; RET-09 NOT VERIFIED; RET-10 OPEN/NOT VERIFIED; V07 BLOCKED; V08/Restore OPEN/BLOCKED; LDA-05/06 NOT VERIFIED; LDA-07 87 vectors NOT RUN; LDA-08 HOLD/NOT VERIFIED; F-07–F-09 NOT VERIFIED.
 - No tests/Actions, source/runtime/VPS/database/provider/permission/inventory/staging/restore/fault-injection or destructive operations. Option C, T0 protection, paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## Stage A RET-03 / RET-07 documentary clarification (2026-11-10)
+
+- Added `docs/evidence/p1-8/T0_RET03_RET07_RETENTION_FLOOR_INPUT_GAP_ANALYSIS_2026-11-10.md`.
+- Document commit: `d5095f4c64a9715cb12719d899269c70f3d1e679`; verified content blob SHA: `e26d056f9f0c2ea57a9951a650b29af11939c422`.
+- Read-only source baseline before the document: `9c93e0c4f5ab211df660feb6a538cc27bf6b83da`; source record blob SHAs are enumerated in the analysis.
+- RET-03 class boundary clarified: only T1 raw observations, T2 ephemeral inference outputs, T4 deterministic caches/read models/materializations and individually identified noncanonical copies may enter a future read-only exact-object/version assessment under RET-02 B. No class/object is made deletion-eligible by this analysis.
+- T0 canonical data and availability/recovery copies, CORE_LEDGER, AI_LEDGER, required T3 reconstruction/audit records, governance evidence while needed, and unknown/unclassified/orphaned/incompletely inventoried data remain protected/excluded.
+- RET-03 inputs still missing: source-backed purpose/obligation basis, accountable owner, exact scope, start/terminal events, duration rationale, trusted-time/order, dependency/hold and copy-graph closure, compliance evidence and explicit owner disposition. No numeric floor/TTL selected.
+- RET-07 evidence groups separated into policy/approval, assessment manifests, dependency/hold, tombstone/state-transition, audit/security/incident, copy/restore, verification/acceptance and external-recipient evidence. Terminal/reopen/successor semantics, competent release authority, clock basis, evidence-store/custody requirements and owner-approved duration remain missing. No expiry rule selected.
+- Reviewer waiver is only a reviewer-gate waiver; it does not waive substantive evidence requirements or create expiry authority. Owner assessment is not independent assurance.
+- Status: STAGE A DOCUMENTARY CLARIFICATION COMPLETE; RET-03 OPEN; RET-07 OPEN; no legal determination, operational inventory, tests, Actions, implementation or destructive operation.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact. Option C and all prior residual statuses unchanged.
+- Next step: obtain source-backed owner inputs for one eligible data class or evidence group at a time; if authoritative basis or competent determination is absent, record the gap and stop. No numeric values or legal rules may be inferred.
