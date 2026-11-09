@@ -53,3 +53,53 @@ The objective is to move from design/backtest-led confidence to evidence-backed 
 ## Next step
 
 Continue the currently active T0/T1 contract work on the existing branch. Close its documented correctness findings and obtain independent review against the exact final SHA before implementation/activation gates are reconsidered. Do not open a parallel branch or PR for this decision.
+
+
+## 2026-11-09 — Source change governance decision (conditional)
+
+Status: APPROVED WITH CONDITIONS — CHANGE GOVERNANCE ONLY
+
+### Decision
+
+Allow narrowly scoped source changes when necessary to correct verified defects or improve correctness, security, reliability, data integrity, observability, or recovery. This is not blanket authorization to modify the repository, change architecture, expand features, optimize trading strategy, deploy to runtime, or activate any service. Each implementation work item still requires an explicit scope and approval before editing source.
+
+### Mandatory change controls
+
+1. Change request: state the defect/objective, affected files/components, expected behavior, explicit exclusions, rollback approach, and acceptance criteria.
+2. Baseline: verify the existing branch, clean/known working state, exact source SHA, and relevant dependency/configuration versions before editing. Preserve the existing branch; do not create a parallel branch/PR unless separately approved.
+3. Tests first: add or identify a deterministic failing regression test or executable acceptance test before implementation where applicable. Do not weaken/remove existing tests or gates to obtain a pass.
+4. Small implementation: one bounded concern per patch; avoid unrelated refactors, dependency changes, schema migrations, data mutations, and behavior changes.
+5. Verification: run targeted tests and required regression suite through GitHub Actions; retain logs, test counts, workflow run ID, artifacts, exact tested SHA, and limitations. If not run, mark NOT RUN; never infer PASS.
+6. Review and disposition: obtain review on the exact final SHA. Major, security-sensitive, data-integrity, concurrency, persistence, or cross-layer changes require genuinely independent review. Record PASS / REQUEST CHANGES / BLOCKED / NOT VERIFIED and the next gate.
+7. Runtime separation: source/CI PASS does not authorize deployment, VPS commands, DB/Feeder changes, service activation, exchange connectivity changes, paper execution, or live trading. Each requires its own explicit approval.
+
+### Allowed candidate categories (not blanket implementation approval)
+
+- Reproducible correctness/security defects and regression tests.
+- Bounded reliability, recovery, observability, and resource-safety corrections.
+- Contract-conformance changes only after the governing contract and review gates are satisfied.
+- Documentation/evidence updates that accurately report exact SHAs and verification status.
+
+### Explicitly prohibited without separate approval
+
+- Broad refactors, architecture/framework replacement, new feature expansion, strategy tuning, or changes to Core RSI + ADX + Smart DCA, independent AI signal generation, ledgers, Shared Risk Engine, or Kill Switch.
+- T0/T1/T2 runtime, VPS, database, Feeder, exchange, or deployment changes.
+- Data deletion, archive/retention changes, cleanup, vacuum, compaction, backup expiry, restore/fault injection, or key destruction.
+- Live orders or enabling ai_execution_enabled; keep AI_EXECUTION_ENABLED=false.
+- Weakening T0 independence/canonical data guarantees or adding a T1 write path into T0.
+
+### Current workstream restrictions
+
+- T1 source implementation and activation remain NOT AUTHORIZED. P1.10 contract corrections are documentation/design only; independent review on exact contract SHA 32cf231227c52590ad1365473c6c742ab7dbc64a remains pending. REST completeness oracle remains NOT ACCEPTED; decimal f64/12-decimal/parse-to-zero defect remains confirmed and NOT FIXED; target filesystem/provider durability and advisory-lock semantics remain NOT VERIFIED; implementation and fixtures remain NOT EXECUTED.
+- No blanket T0 or T2 source implementation is authorized by this governance decision. A concrete work item must identify its target layer, exact baseline SHA, change scope, tests, and review gate, and receive explicit approval.
+- Operational First / Empirical Validation sequencing remains in force. Strategy changes are deferred until the operational baseline and empirical evaluation stage.
+
+### Verification and effect
+
+- This is a policy/governance record only. No source code, tests, workflow, runtime, VPS, database, Feeder, exchange, ledger, strategy, or trading state was changed.
+- Tests: NOT RUN. GitHub Actions: NOT DISPATCHED. Workflow run: NONE. Artifact: NONE.
+- This decision does not claim any code, runtime, or production status as PASS.
+
+### Next step
+
+For the next proposed source change, first submit a bounded change request with exact target layer/files and baseline SHA. Preserve the existing branch and do not begin source editing until that specific scope is explicitly approved. T1 remains blocked by its independent-review and evidence gates.
