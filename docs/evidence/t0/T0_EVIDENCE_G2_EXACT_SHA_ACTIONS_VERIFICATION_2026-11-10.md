@@ -48,3 +48,23 @@ A separate historical P1.8 workflow run `42557957929` had 3 successful jobs and 
 ## Next step
 
 Diagnose why the G2 workflow runs terminate with zero jobs and zero artifacts. Correct only the isolated G2 workflow/configuration if a concrete cause is established, then obtain a successful run whose artifact records the exact tested source SHA. Do not claim G2 PASS or G3 PASS before that evidence and a genuinely independent G3 review exist.
+
+
+## Correlated GitHub Status incident evidence (user-supplied screenshot)
+
+A screenshot of the public GitHub Status page supplied in this session shows an incident titled **“Incident with Actions and Checks API”** with these updates (all 2026-11-09 UTC):
+
+- 18:12 — investigating degraded availability for Actions.
+- 18:14 — Actions experiencing degraded availability.
+- 18:23 — Webhooks experiencing degraded performance.
+- 18:24 — investigating elevated errors affecting GitHub Actions and the Checks API.
+
+The G2 run `42672280358` and P1.8 run `42672280539` both started at 18:14:27 UTC, coincident with the published Actions degradation window. The screenshot's 18:24 update further confirms that the Actions/Checks API incident was ongoing after those runs started.
+
+This is strong corroborating evidence for a GitHub platform-side failure and makes a source-code/test defect an unsupported attribution for these particular run failures. It does not establish the exact internal failure mechanism or prove that the workflow configuration is otherwise correct. The run records still show failure, zero jobs/artifacts for G2, and no usable logs through the available API.
+
+Updated disposition:
+- G2 workflow execution: **BLOCKED — external GitHub Actions/Checks API incident strongly corroborated**.
+- G2 test verdict: **NOT VERIFIED**; no tests can be claimed to have executed.
+- Source-code defect: **NOT ESTABLISHED**.
+- Next action: preserve the current source SHA; after GitHub Status reports recovery, rerun/verify the same frozen SHA only with explicit authorization for workflow dispatch or an ordinary push-triggered run. Do not alter implementation code merely to address this platform incident.
