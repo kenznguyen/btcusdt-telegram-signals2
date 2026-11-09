@@ -28,7 +28,7 @@ At the reviewed source SHA:
 
 Therefore the current persisted CSV cannot independently prove whether a row is a final candle or an interim WebSocket update. A consumer must not infer finality from file age, row order, elapsed wall-clock time, or the last row observed.
 
-**Required source change before canonical candle ingestion:** persist `is_closed` explicitly in a versioned CSV schema, or publish a distinct final-candle-only file/stream with equivalent provenance. Interim rows must remain distinguishable from final rows. Existing schema files without this field are legacy/untrusted for canonical 1m→15m/1h aggregation and must be rejected by this adapter mode, not silently guessed.
+**Historical requirement — superseded by v1.1:** the current normative mode is a versioned manifest declaring `output_mode=FINAL_ONLY` and `interval=1m`, with producer regression evidence proving that `is_closed=false` events never reach persistence. A per-row `is_closed` column is not required for this first mode. Legacy/unversioned files or files without a verifiable FINAL_ONLY manifest remain ineligible. See v1.1 section 20.
 
 No collector source change is included in this design task.
 
