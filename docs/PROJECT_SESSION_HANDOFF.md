@@ -1498,3 +1498,22 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Test hardening commit: `8161b3ed1daeb7d0e27c7846b4cf0161353ea583`; final test blob SHA: `d27df67b24de575669aeed5e51f966f45768f79d`.
 - Updated P1 evidence record commit: `badc696a436409062906debe6333652adfe3cdfa`; final evidence blob SHA: `74f8d7e86aa7cae22af0f987371db7c8aeb5b233`.
 - Static GitHub read-back assertions PASS; shell syntax and Python compilation PASS. Actual unit test run and GitHub Actions dispatch remain NOT RUN; no remote access or VPS mutation.
+
+
+## T0 → T2 Loopback Runtime Verification — 2026-11-09
+
+- Completed the owner-approved same-VPS loopback API gate and bounded T2 one-shot canonical-context read.
+- Evidence record: `docs/evidence/t2/T0_T2_LOOPBACK_RUNTIME_VERIFICATION_2026-11-09.md`.
+- Evidence record commit: `e5d7ceac664ce419f0b421ddeee291aa92d27d3d`.
+- T0 VPS source SHA reported by operator: `9ae2eeae4ece3d657781b68e96b6f4509cd95f24`.
+- T2 `freqai_bridge/context.py` SHA-256 reported from VPS: `e22d6c7d186b1fb9a5079eb9b4224c8acbcd835a0938dc970e9bc4b072eb75d3`.
+- T0 Candle API: active under systemd, bound only to `127.0.0.1:8788`; `/health` HTTP 200; unauthenticated candle request HTTP 401; authenticated M15/H1 requests HTTP 200. Service remains disabled for boot autostart.
+- M15/H1 each returned 2/2 closed VALIDATED candles, complete coverage, no gaps. API dataset versions recorded in the evidence document.
+- T2 freshness logic was inspected: `max_lag_ms=120000` applies to ingestion lag `availableAtMs - closeTimeMs`, not candle age / `closeLagMs`. Observed latest M15 ingestion lag 8,558 ms; PASS. No threshold change.
+- T2 one-shot command with `--bars 2`: exit code 0; BTCUSDT M15; 2 candles; complete coverage; JSON parse PASS.
+- T2 dataset version: `sha256:104e7a83286ac0b35c4665964ae29c5926e8deb18220b715e73f51b94cffb05f`.
+- Local VPS artifact: `/tmp/t2-canonical-window-20261109T112946Z.json`. It was not uploaded to GitHub Actions artifacts.
+- Overall gate: **PASS — T0 loopback API and bounded T2 canonical-context read**.
+- GitHub Actions NOT DISPATCHED for this operator-run runtime gate; workflow run ID NONE; Actions artifact ID NONE. This record does not claim process-loaded byte attestation.
+- T1 remains NOT ACTIVATED in this gate. No Feeder restart, DB/WAL mutation, strategy/model/signal/ledger/risk change, OKX replacement, live order, or data deletion. `AI_EXECUTION_ENABLED=false`.
+- Next step: review and authorize the next rollout gate separately; do not infer T1 activation or expanded T2 execution from this PASS.
