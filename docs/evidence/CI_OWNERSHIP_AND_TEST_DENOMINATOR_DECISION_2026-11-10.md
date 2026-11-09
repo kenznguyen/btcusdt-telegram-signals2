@@ -138,3 +138,20 @@ Option C — No Destructive Authority — remains in force. T0 canonical data, r
 - Independent review: NOT PERFORMED.
 
 **Next gate:** owner decision on D-01 through D-05, especially whether Codemagic is to be treated as disabled/legacy after an external metadata-only check. Only after that decision should a separate implementation plan be prepared for F-03 and F-01. No CI changes are authorized by “documentation PASS.”
+
+
+## 7. Owner approval — 2026-11-10
+
+The repository owner explicitly approved D-01 through D-05 as proposed in this record.
+
+- D-01 APPROVED: GitHub Actions is the sole canonical CI/workflow execution system for the five-layer project. GitHub remains source/history/evidence storage; acceptance requires exact-SHA run and complete job/artifact evidence.
+- D-02 APPROVED: Codemagic is PARKED / legacy / no new five-layer dependency / no deletion yet. Its external app, webhook, branch filters, workflows, environment-group metadata and execution state remain NOT VERIFIED. This approval does not disable or delete Codemagic and does not authorize external account access or deactivation.
+- D-03 APPROVED: the target correction is to replace the obsolete “no active GitHub Actions workflows” assumption with explicit CI ownership and evidence invariants. The test edit itself remains NOT AUTHORIZED until the active test denominator and Codemagic ownership are mapped.
+- D-04 APPROVED: preserve the complete job/test denominator across T0 core, T1 importer, T1 sidecar, T2/paper consumers, optional parked PostgreSQL/TimescaleDB and remaining cross-domain contracts. No job/test/path filter may be dropped or narrowed by this approval.
+- D-05 APPROVED: adopt the proposed future domain-separated workflow organization as the target design, subject to complete dependency/command/fixture/artifact/path/ruleset/consumer mapping and a separate implementation authorization.
+
+### Approval boundary
+
+This is owner approval of the five policy/design decisions only. It does NOT authorize implementation, workflow edits, CI test edits, Codemagic configuration/account changes, metadata access to external Codemagic, workflow dispatch/rerun, branch protection/ruleset/permission changes, secret access, SSH/VPS/provider/database/runtime operations, or any destructive action. Such actions require their separately specified authorization gates.
+
+Updated status: D-01–D-05 OWNER-APPROVED; implementation NOT AUTHORIZED / NOT STARTED; tests NOT RUN; GitHub Actions NOT DISPATCHED; external Codemagic state NOT VERIFIED; rulesets/effective permissions NOT VERIFIED; independent review NOT PERFORMED.
