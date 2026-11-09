@@ -963,3 +963,56 @@ Owner approval: explicit approval received for P1.8.115. Scope was limited to st
 - Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Deletion authority: NOT GRANTED.
 - T0 and CORE_LEDGER/AI_LEDGER protections unchanged; `AI_EXECUTION_ENABLED=false`.
 - Recommended next documentary decisions: P1.8.116 Restore Governance Vector Completeness Crosswalk; P1.8.117 Trusted-Time Freshness at Mutation Linearization; P1.8.118 TSA Graph Orientation/Closure/Hold Propagation; P1.8.119 Owner Role-Model Decision Record. These are proposals only and require separate explicit approval.
+
+
+## P1.8.116–P1.8.119 — Approved Documentary Closure Work (2026-11-09)
+
+Owner approval: explicit approval received for all four proposed documentary work items. Scope is documentation/decision-record preparation only. The approval does not authorize implementation, tests, GitHub Actions dispatch, IAM, restore, staging, provider/key/TSA operations, fault injection, archive, cleanup, vacuum or deletion.
+
+### P1.8.116 — Restore Governance Vector Completeness Crosswalk
+- Document: `docs/evidence/p1-8/P1.8.116-restore-governance-vector-completeness-crosswalk.md`.
+- Commit: `616e9b123e73290c443b748997887e7aa7580118`.
+- Blob SHA: `161e76b643c65ec768c7ccecd81a5cf9fb771af2`.
+- Explicitly crosswalks all P1.8.93 protected-vector domains, including per-consumer availability declaration/owner-attestation references and per-copy backup/recovery disposition revisions.
+- Requires schema-versioned completeness proof and one consistent restore reconciliation cut; digest alone does not prove completeness.
+- Missing/non-coincident revisions, HWM gaps or unverifiable parent-child revision coverage keep restore QUARANTINED.
+- Registry/HWM authority, consistency mechanism, identity/time sources and parameters remain OPEN.
+
+### P1.8.117 — Trusted-Time Freshness at Mutation Linearization
+- Document: `docs/evidence/p1-8/P1.8.117-trusted-time-freshness-at-mutation-linearization.md`.
+- Commit: `254ef9bfb1a8aeb19f57c087bba022525b9045fa`.
+- Blob SHA: `873a0bd4726ab7870a9691bb5681f57c8871632a`.
+- Separates preflight freshness from final mutation-boundary evaluation.
+- Requires trusted current-time observation bound to exact object, generation, mutation intent and protected decision vector; recomputes age/uncertainty at the final fence.
+- Requires atomic/transactionally coupled or provably ordered observation; uncertainty overlap, stale revocation or unavailable trust source means HOLD/adapter INELIGIBLE.
+- Time/TSA/revocation providers, policy values, uncertainty model and adapter proof remain OPEN.
+
+### P1.8.118 — TSA Graph Orientation, Closure and Hold-Propagation Semantics
+- Document: `docs/evidence/p1-8/P1.8.118-tsa-graph-orientation-closure-hold-propagation.md`.
+- Commit: `b4114bbeb108126c171cf1c4a57e94174bc1be46`.
+- Blob SHA: `3b8f314b6690231cbeed8057fb2c28f3a851e5a8`.
+- Defines canonical dependent/derived/copy-to-prerequisite/source edge orientation for every P1.8.113 edge type.
+- Defines deterministic prerequisite, descendant, hold, consumer and audit/restore traversal; source holds conservatively cover known copies/representations/derived descendants.
+- Absence claims require authenticated registry/HWM, full inventory/pagination/partition coverage, queue/delegation reconciliation and independent completeness proof.
+- Runtime graph inventory, source coverage, graph registry and completeness oracle remain OPEN/NOT VERIFIED.
+
+### P1.8.119 — Owner Role-Model Decision Record
+- Document: `docs/evidence/p1-8/P1.8.119-owner-role-model-decision-record.md`.
+- Commit: `f8e215604f4ba707840999f96ba816fc04dab5d5`.
+- Blob SHA: `f9b516605d026e9e514d9d2239f293a7bf15dbd9`.
+- Presents three explicit owner choices: A independent multi-principal separation; B single-owner with separately proven compensating controls; C no destructive authority until independent coverage exists.
+- **No option was selected by this work.** Approval to create the decision record is not a role-model selection.
+- Default remains no self-approval, no incompatible authority combination, no IAM/access changes and no destructive capability.
+- Named principals, delegation, emergency access, effective-permission analysis and owner selection remain OPEN. IR115-04 is therefore DECISION READY / OWNER DECISION OPEN, not closed.
+
+### Combined result and evidence status
+- All four documents were fetched back from GitHub; exact headings, blob SHAs and fail-closed/authority boundaries were verified.
+- Static authoring/read-back: PASS.
+- Independent review of P1.8.116–P1.8.119: NOT YET PERFORMED.
+- Tests: NOT RUN. GitHub Actions: NOT DISPATCHED. Workflow run/artifact: NONE.
+- Runtime/provider/graph/consumer/copy inventory: NOT VERIFIED / NOT PERFORMED.
+- Restore/staging/fault injection/provider/key/TSA operations: NOT EXECUTED / NOT AUTHORIZED.
+- IAM/role assignment/access grant/workflow activation: NOT EXECUTED / NOT AUTHORIZED.
+- Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Deletion authority: NOT GRANTED.
+- T0 canonical independence and CORE_LEDGER/AI_LEDGER separation unchanged; `AI_EXECUTION_ENABLED=false`.
+- Next gate: independent static cross-contract review of P1.8.116–P1.8.119, including validation of the protected-vector completeness crosswalk, final-boundary trusted-time semantics, graph edge/traversal definitions and the non-selected owner role options. Any tests, implementation, IAM, staging or operational work requires separate explicit authorization.
