@@ -689,4 +689,11 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 
 - P1.8.93 now explicitly pins applicable consumer availability-declaration revisions and owner-attestation references in the protected decision vector. Updated blob: `4cc158b5f766fb024e411519be36076bc1e3758a`.
 - P1.8.94 adds explicit vectors for unproven reviewer/approver separation (NEG-ID-05), unavailable independent verifier (NEG-VER-01), and inventory completeness without a declared boundary (NEG-INV-01). Cascade vector is NEG-ADP-09. Updated branch blob: `40d8e30bb7e247fbc81f1657998d13032650590a`. Minimum catalogue: 69 vectors (47 baseline + 22 supplemental); all remain NOT_RUN.
-- A file-content update was inadvertently sent to the repository default branch during this correction. It was immediately restored to the same pre-correction content as the working branch; no source/runtime files were involved. Default-branch restored blob: `40d8e30bb7e247fbc81f1657998d13032650590a`; restoration commit: `cbf41b04b47bfaad287bcebb51a610ed41cdccdc`. Project work continues only on `feature/t0-centralized-data-feeder-p1-20261101`.
+- A file creation was inadvertently sent to the repository default branch during this correction. The accidental file was then deleted from the default branch; read-back returned NOT_FOUND, restoring the prior absence. Deletion commit: `1599e5f4d9a9b23e0295d1ab8073f92ab0473761`. No source/runtime files were involved. Project work continues only on `feature/t0-centralized-data-feeder-p1-20261101`.
+
+
+### P1.8.94 coverage closure correction (2026-11-09)
+
+- Final branch document blob: `5388a9186e6acaf9dc0869acfa9e54af98055584`; commit: `5d0ca0bd1987295ee214c356588915288d7d0e61`.
+- Added missing explicit vectors for reviewer/approver separation (NEG-ID-05), independent verifier unavailable (NEG-VER-01), and inventory completeness without a declared boundary (NEG-INV-01). The cascade vector remains NEG-ADP-09.
+- Full traceability remains N01–N45; minimum catalogue is 69 vectors: 47 baseline + 22 supplemental. All are specifications only and NOT_RUN.
