@@ -460,3 +460,19 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: DOCUMENTARY POLICY DECOMPOSITION COMPLETE; OWNER DECISIONS OPEN; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
 - No source/schema/API/workflow/service/registry/scheduler/storage/runtime change; no VPS/DB access; no tests/CI, deletion dry-run, archive, vacuum, cleanup, restore, fault injection or destructive operation. Workflow run/artifact: NONE.
 - Next: P1.8.81 Dependency and Consumer Governance; close normative availability/latency/restore vocabulary, authoritative registry consistency and dependency reconciliation. Do not begin V07/V08/Restore/TSA conflict review before P1.8.84 and independent deletion-design review.
+
+### P1.8.81 — Dependency and Consumer Governance Contract (2026-11-09)
+
+- Contract: `docs/evidence/p1-8/P1.8.81-dependency-and-consumer-governance-contract.md`.
+- Contract commit: `6cae08c666c5780e3cd28a5244a48b3d1e3ba1a8`.
+- Defines mandatory consumer availability declarations: access pattern, qualitative availability class, owner-supplied latency/restore bounds, completeness, consistency, degraded mode and restore evidence.
+- Defines qualitative classes ONLINE_REQUIRED, DEGRADED_ACCESS_ACCEPTABLE, RESTORE_ON_DEMAND, REBUILD_FROM_RETAINED_INPUTS, NO_CURRENT_DEPENDENCY and UNKNOWN. These are design vocabulary only; no numeric SLO, SLA, RPO/RTO, or runtime enum is activated.
+- Archive is blocked when any consumer requirement is unknown, the registry is unavailable/inconsistent, an unregistered consumer is suspected, or restore evidence is missing.
+- Defines logical authoritative registry requirements: durable acknowledged commits, atomic uniqueness/transitions, authoritative decision barrier, fail-closed partition/recovery behavior, audit continuity. No registry technology/topology is selected.
+- Stale replicas/read models cannot prove dependency absence. Heartbeat loss, timeout, ACK, review date or consumer decommissioning never auto-release dependency.
+- Adds reconciliation outcomes for active/released, transfer pending, unreachable/owner unknown, registry unavailable, evidence conflict, ambiguous state and suspected unregistered consumers. Unknown/mismatch remains protective.
+- T0–T4 and independent backup/replica/export lifecycle boundaries retained. No dependency governance operation grants archive/deletion authority.
+- Open GOV-01–GOV-12: registry technology, consistency/commit proof, recovery evidence, consumer-specific bounds, freshness/reconciliation intervals, identity/delegation, registration enforcement, operational cadence, RPO/RTO/SLO, audit authority, exceptional adjudication, and runtime inventory.
+- Status: DOCUMENTARY CONTRACT DESIGN COMPLETE; IMPLEMENTATION DECISIONS/RUNTIME EVIDENCE OPEN; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
+- No source/schema/API/workflow/service/registry/scheduler/database/VPS/Feeder/storage/copy/runtime change. No tests/CI, workflow dispatch, deletion dry-run, archive, cleanup, vacuum, restore, fault injection or destructive operation. Workflow run/artifact: NONE.
+- Next: P1.8.82 Deletion Authorization and Execution Contract. Do not begin V07/V08/Restore/TSA conflict review before P1.8.84 and independent deletion-design review.
