@@ -209,3 +209,18 @@ T0 remains independent and canonical. No T1 writes to T0. No T1 activation/VPS c
 **P1.1 DESIGN REVISION DRAFTED / IMPLEMENTATION BLOCKED / INDEPENDENT REVIEW REQUIRED.**
 
 No code changed, tests run, workflow dispatched or runtime/filesystem property verified.
+
+
+## 13. Source-trace amendment — confirmed producer behavior
+
+A read-only trace of T1 source SHA `6e20fe94f3ad64cc450e73def80a167fe371e49e` is recorded in `docs/reviews/t1/T1_KLINE_PRODUCER_CALL_PATH_TRACE_2026-11-09.md` (trace commit `df4406d08fb16010f78a2bef3f9748582cca82be`).
+
+The trace confirms a critical producer defect: `src/utils/csv_writer.rs::write_kline` parses each kline decimal field as `f64`, formats to 12 fractional digits, and substitutes `0.0` when parsing fails. The current CSV path therefore does not preserve raw source decimals and can silently serialize invalid numeric input as zero. R3 is a confirmed blocker, not merely an unverified risk.
+
+The contract remains strict: producer serialization must preserve original decimal strings byte-for-byte and reject malformed numeric values; it must not weaken acceptance to match current lossy output. The producer correction requires separate explicit approval and regression tests.
+
+The trace also confirms `message_handler.rs::process_kline` drops `is_closed=false` messages before CSV writing. Current klines output is intended to be final-only, but the CSV schema does not declare this. The v1 manifest must explicitly declare a versioned `output_mode=FINAL_ONLY` and `interval=1m`, with producer regression tests proving provisional messages never reach the writer; alternatively, persist `is_closed=true` in every row. The chosen contract must be explicit and testable, not inferred from the source revision at read time.
+
+The inspected ExchangeInfoSymbol model exposes symbol, status, base_asset, quote_asset, underlying_type and contract_type. Symbol discovery checks TRADING, PERPETUAL, excludes PREMARKET and requires quote_asset=USDT. The inspected model does not expose margin_asset; it must remain optional/unavailable unless another authoritative source is verified.
+
+This amendment does not resolve R3. No code change, tests, workflow dispatch or runtime evidence exists. Implementation remains blocked and not authorized.
