@@ -697,3 +697,8 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Final branch document blob: `5388a9186e6acaf9dc0869acfa9e54af98055584`; commit: `5d0ca0bd1987295ee214c356588915288d7d0e61`.
 - Added missing explicit vectors for reviewer/approver separation (NEG-ID-05), independent verifier unavailable (NEG-VER-01), and inventory completeness without a declared boundary (NEG-INV-01). The cascade vector remains NEG-ADP-09.
 - Full traceability remains N01–N45; minimum catalogue is 69 vectors: 47 baseline + 22 supplemental. All are specifications only and NOT_RUN.
+
+### P1.8.92 / P1.8.94 quality corrections before independent review (2026-11-09)
+
+- P1.8.92 now explicitly maps the exact P1.8.86 alias `AWAITING_EXECUTION_AUTHORIZATION` to FINAL_RECHECK. Updated blob: `20bc00017200969acdf8675b6837ec458301c25d`.
+- P1.8.94 removed duplicate supplemental rows for NEG-VER-01 and NEG-INV-01 and labels the traceability column as P1.8.90/P1.8.94 vector mapping. Unique catalogue remains 69 vectors: 47 baseline + 22 supplemental. Updated blob: `c9fd74ef74be96cdc4ce31469715d563db98c022`.
