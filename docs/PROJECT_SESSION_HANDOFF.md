@@ -1271,3 +1271,18 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE. No API calls, credential/secret inspection, IAM/permission/credential changes, workflow/runner/provider operations, source/runtime/VPS/T0/T1/database/Feeder/strategy/ledger/risk changes, or destructive operations.
 - No destructive/deletion authority. Option C remains approved. T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next gate: keep the inventory BLOCKED unless non-secret evidence can independently bind a stable collector principal and effective read-only scope to the exact approved request path. Any broader control-plane assurance or different identity/credential path requires a separate bounded proposal and explicit owner approval. Do not call EP-02–EP-08 or installation listing to bypass the current stop.
+
+## P1.8.141 — Holistic Data Lifecycle Design Closure Assessment (2026-11-09)
+
+- Assessment: `docs/evidence/p1-8/P1.8.141-holistic-data-lifecycle-design-closure-assessment.md`.
+- Commit: `2e7f90c7dbc97a46a1ab1653eb5581ea35dfafa6`.
+- Final blob SHA after read-back: `c20616d79f6dcedde08128f589a5c0e04d6257f1`.
+- Source branch HEAD at review start: `7c35fb80d8abed17d21602fa597699cfae420c2a`.
+- Scope: documentation-only holistic review of the lifecycle architecture and P1.8.80–P1.8.140 evidence. Compared retention, consumer/dependency, hold, copy/evidence, request-state, mutation-fencing, negative-case, availability, V07/V08/Restore/TSA and Option C contracts.
+- Verdict: PARTIAL — core safety model is coherent at documentary level; lifecycle design is NOT READY FOR CLOSURE OR IMPLEMENTATION.
+- No direct cross-contract contradiction granting destructive authority was found. Option C remains the owner-approved default. T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate.
+- Residual findings LDA-01–LDA-09: retention/class disposition decisions OPEN; V07 trust/revocation parameters BLOCKED; V08 durable ordering parameters OPEN/BLOCKED; Restore measurement/provider proof OPEN/BLOCKED; mutation-fence/backend adapter capability NOT VERIFIED; runtime consumer/copy inventory NOT VERIFIED; 87 negative vectors specified but all NOT_RUN; Option C technical enforcement NOT VERIFIED; current Option C also keeps archive/irreversible transitions non-executable.
+- GitHub permission inventory remains PAUSED by owner instruction. No additional API calls, collector identity proposal, credential inspection or permission changes were performed.
+- Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE.
+- No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/Feeder/ledger/strategy/risk changes; no provider/key/TSA/restore/staging/fault-injection operations; no archive/cleanup/vacuum/deletion. Destructive authority NOT GRANTED.
+- Next gate: owner-level, evidence-backed retention policy decisions; keep all runtime, provider, identity, test and destructive work separately gated. Do not infer numeric TTLs or deletion eligibility.
