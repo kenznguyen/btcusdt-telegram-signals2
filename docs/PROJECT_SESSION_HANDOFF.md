@@ -3555,5 +3555,6 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Result: T0–T4 documentary matrix PASS within inspected report scope; RET-03 OPEN / FLOOR_NOT_ESTABLISHED; RET-07 OPEN; full consumer/copy/restore inventory NOT VERIFIED; owner/legal/operational inputs NOT PROVIDED.
 - Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact claimed. No runtime/VPS/DB/provider/legal/inventory probes, source/schema/config/workflow/permission/data changes, or destructive operations.
 - Option C unchanged; T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false`.
-- Matrix file commit: `403c993f6d74aac9620e3d0fbbd26219a201c34f`; exact blob SHA and final handoff commit to be verified by read-back.
+- Matrix file commit: `403c993f6d74aac9620e3d0fbbd26219a201c34f`; matrix blob SHA verified by read-back: `4f51bd8a959b47df3c38275d70dd414d4a317ad7`.
+- Handoff update commit before this read-back note: `5f1d4a7e9fa39aca6b736f7bda7aacde1a0d46cd`; handoff blob read-back: `2cdadbdc233543cb319da10b5adf09f28c236e79`.
 - Next step: only a bounded documentary search for already-committed authoritative owner/obligation records that resolve specific missing inputs; where none exist, record NOT PROVIDED and stop for that class. RET-06/RET-08 remain separate Stage A items; Stage B/C require separate scope/authorization.
