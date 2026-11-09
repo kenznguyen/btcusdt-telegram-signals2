@@ -746,3 +746,17 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Corrected N09/N19/N24/N36 mappings. Static read-back: 45 traceability rows, 27 unique supplemental vectors, 74 total specified IDs (47 baseline + 27 supplemental).
 - All vectors remain NOT_RUN. No runner, fixture, adapter, workflow, CI job, runtime inventory or destructive operation.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED.
+
+### P1.8.99 — Independent Review of P1.8.97–P1.8.98 (2026-11-09)
+
+- Review: `docs/evidence/p1-8/P1.8.99-independent-review-of-p1-8-97-to-98.md`.
+- Commit: `be025bcfffbd64f9921e1b871285078c3f61332d`.
+- Blob SHA: `dac951b5a45b2ba466e387ca682228e893f38485`.
+- Verdict: **PARTIAL — P1.8.98 closes IR-02/IR-03/IR-04 at specification level; P1.8.97 retains three MAJOR findings IR2-01/IR2-02/IR2-03.**
+- IR2-01 MAJOR: generic Any non-terminal → BLOCKED can bypass reconciliation from EXECUTING/VERIFICATION_PENDING; restrict BLOCKED to pre-mutation and keep observer report-only.
+- IR2-02 MAJOR: CANCELLED_WITH_PARTIAL_OUTCOME must not terminalize while any object remains ambiguous; unresolved objects require RECONCILIATION_REQUIRED/NOT_VERIFIED.
+- IR2-03 MAJOR: BLOCKED → FINAL_RECHECK requires positive complete proof that no object intent or side effect began.
+- IR-02/03/04 resolved at specification level: direct vectors NEG-REC-03, NEG-T3-02, NEG-EVD-06, NEG-EVD-07, NEG-ADP-10.
+- Static checks: 45 traceability rows, 47 baseline vectors, 27 unique supplemental vectors, 74 unique total IDs. All vectors NOT_RUN.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/VPS/database/storage/ledger mutation or inventory.
+- Next: P1.8.100–P1.8.102 correct three transition-safety findings, then focused independent review. Do not start V07/V08/Restore/TSA or any destructive/runtime work.
