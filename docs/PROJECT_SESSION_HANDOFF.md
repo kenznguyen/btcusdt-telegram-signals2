@@ -2997,3 +2997,17 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - No code/tests/Actions, canonical DB/runtime/VPS/data/provider/key/trust-root/permission access or mutation. No TSA/WORM, restore, fault injection or destructive operation. Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
 - Next: G0.5 define backend-specific multi-partition snapshot protocol and its observable evidence.
 
+
+
+## T0 Evidence Object / Checkpoint Contract v1 — G0.5 snapshot and G0.6 durability boundary (2026-11-10)
+
+- G0.5 defines one backend/database identity and one pinned read-only transaction for all partitions. SQLite profile: one read-only connection, explicit BEGIN, first SELECT pins snapshot, all timeframe/range queries on same connection; snapshot token NOT_EXPOSED. PostgreSQL profile: one connection, REPEATABLE READ READ ONLY transaction, same connection for all partitions; record server/database/schema identity and only record a snapshot token if actually exposed.
+- Current read_window facades open their own connection/transaction per call and are therefore insufficient for a multi-partition common snapshot when invoked separately. No runtime implementation or DB access occurred.
+- G0.6 separates COMMIT_OBSERVED, COMMIT_REJECTED, COMMIT_OUTCOME_UNKNOWN, DATA_PRESENT_MATCH, DATA_PRESENT_CONFLICT and DATA_ABSENT_AT_READBACK. Matching readback cannot prove the original transaction committed.
+- Defined immutable post-commit Commit Receipt binding exact operation/batch and exact-row readback. Receipt is not to be stored only in same DB/VPS/GitHub if used as independent custody evidence.
+- Durability remains separate: COMMIT_OBSERVED + READBACK_MATCH do not prove process/OS/power/host/volume/provider failure survival. DURABILITY_PROFILE_VERIFIED requires exact effective config, provider/storage failure-domain semantics, disposable fault testing, independent review and preserved evidence.
+- Selected TSA use case A remains blocked from submission until a qualifying DURABILITY_PROFILE_VERIFIED receipt exists and separate G5/provider authorization is granted. TSA remains asynchronous and outside T0 ingestion.
+- Contract update commit: f99fcb12e5a3b184465b353c06b7a4ea27af9ab4; blob after update: 081a48094e8ae366c5e25304f7e17f1396c68e4a.
+- G0.5/G0.6 are contract-design specifications only; implementation and deployment qualification NOT VERIFIED. No tests/Actions, canonical DB/runtime/VPS/storage/provider/key/trust-root/permission operation, TSA/WORM, restore, fault injection or destructive action. Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
+- Next: G1 role/authority decisions for A (issuer, absent signer, independent custodian, latest-head anchor, offline verifier, retention boundary) without selecting or provisioning providers.
+
