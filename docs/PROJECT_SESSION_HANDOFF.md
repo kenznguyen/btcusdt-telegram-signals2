@@ -3164,3 +3164,21 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - No Android/Python source, workflow, configuration, runtime, VPS, database or data was changed.
 - Corrected audit commit: `f3cfb063c1b1585bb51ac6ee592fd0de34fb6e4e`; audit blob SHA: `62aecd9e14b2f966c54a57ac6ae42a588cce0180`.
 - Next: continue T0 dependency mapping only for components actually inside Hệ thống 5 tầng.
+
+## Hệ thống 5 tầng — internal dependency mapping second pass (2026-11-10)
+
+- Exact source baseline inspected: `4063d289dbf5287d9685c628ef9386a13474a7d3`.
+- Added `docs/evidence/FIVE_LAYER_INTERNAL_DEPENDENCY_MAPPING_SECOND_PASS_2026-11-10.md`; initial audit commit `85714de0dce54135f9495d431bcd0c710ccd41c5`, self-review correction commit `b853c7df00b21d8aba3886f28f46bf63ad1965f1`, final audit blob `d47755e49e0e752153eddc831ea8893ce500e009`.
+- Scope is only in-system T0–T4. Android Chart/Scanner and Python bot/backtest remain OUT OF SCOPE and must not be included in five-layer retirement/migration work.
+- Mapped source edges: T0 Feeder/store/API; T1 collector CSV importer and separate connection sidecar; T2 FreqAI HTTP Candle client and independent Strategy Core signal path; T3 dual-ledger paper simulation and read-only Hummingbot Order Book adapter; T4 React frontend/common API.
+- Findings F5-01: FreqAI bridge uses T0 HTTP, but `pipeline.api` reads canonical storage directly for its own candle/Core/equity/quality paths. Uniform T0 API boundary is NOT ESTABLISHED.
+- F5-02: T0 candle and paper ledger paths use `MARKET_DATA_DB`; logical table separation exists, but physical storage/failure-domain isolation is NOT ESTABLISHED.
+- F5-03: T1 CSV importer is source-defined; active collector files and connection-sidecar integration NOT VERIFIED.
+- F5-04: Hummingbot adapter is GET-only Order Book snapshot; T3 paper ledger simulates fills and has no live order client.
+- F5-05: T4 Gateway is an architecture decision; edge proxy implementation/deployment NOT VERIFIED.
+- F5-06: Strategy Core and general ledger source defaults include leverage 13 and entry margin 50%; these conflict with recorded conservative Core risk direction and require risk-contract reconciliation. Effective environment values NOT VERIFIED.
+- F5-07 (self-review): common API `ledger()` constructs a default MANUAL PaperLedger but calls submit with STRATEGY_CORE/AI_FREQAI; after dual-ledger migration, source path appears to hit `DUAL_LEDGER_MIGRATION_ACTIVE_MANUAL_WRITE_BLOCKED` instead of scoped ledger submission. SOURCE-CONFIRMED call-path mismatch; runtime NOT VERIFIED. Targeted test/code review required before any fix.
+- Classification: KEEP core T0–T4 modules; PARK unresolved integrations/boundaries; no in-scope component marked retirement candidate.
+- No tests or GitHub Actions run, no source/schema/workflow/runtime/VPS/database/exchange changes. L4-Minimum remains BLOCKED / NOT VERIFIED; G2 exact-SHA NOT VERIFIED; G3 independent review PENDING.
+- Option C remains; no automatic deletion/TTL/archive/cleanup/vacuum/compaction/backup expiry/replica removal. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next safe increment: separately define the expected T0 boundary for common API/Core path, physical T0/paper storage boundary, risk sizing contract, and targeted F5-07 test/fix proposal. Do not implement until the applicable design and change gates are approved.
