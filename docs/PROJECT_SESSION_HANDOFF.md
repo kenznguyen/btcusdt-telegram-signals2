@@ -1675,3 +1675,20 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Review only. No tests, REST request, source edits, adapter implementation, Actions dispatch, VPS/runtime, T0/T2 or trading changes. No data deletion or destructive operation.
 - GitHub Actions: NOT DISPATCHED; run ID NONE; artifact NONE.
 - Next step: address F02–F04 as documentation-only clarifications, preserve F01/F05/F07 blockers, then request a genuinely independent review. Any source implementation requires separate explicit approval.
+
+
+## Latest completed work — P1.5 documentation clarifications for F02/F03/F04 (2026-11-09)
+
+- Re-read current handoff, P1.4 self-review and T1 Source Contract v1.1 before continuing. Existing branch retained: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Updated design: `docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_1_PRODUCER_WATERMARK_DURABILITY_2026-11-09.md`.
+- Design commit: `d5865355bdf941aab5978480b568767988d01d6c`; design blob SHA: `fccd57ef184b9bf2092140e5d323a90348c348cc`.
+- P1.5 record: `docs/reviews/t1/P1_5_DOCUMENTATION_CLARIFICATIONS_F02_F03_F04_2026-11-09.md`; commit: `6df3a24a35af845ebefc48824b506c82c840388b`.
+- F02 clarified: REST-only row with no WS counterpart is RECONCILIATION_SOURCE_DIVERGENCE, not agreement. Current contract forbids inserting it into a WS-derived generation or advancing watermark. A mixed-source mode requires a new versioned contract and separate review/approval.
+- F03 clarified: explicit producer health events, sticky invalidation, failure ordering and unclean-shutdown uncertainty are required. Added planned negative fixtures C63–C71. Actual producer instrumentation remains NOT IMPLEMENTED/NOT VERIFIED.
+- F04 clarified: current adjacent manifest/prefix digests cover accidental corruption/inconsistency only. No claim of adversarial tamper/rollback protection. Authenticated manifests, separated key custody and independent monotonic anchor require a separately reviewed design. Added planned fixtures C72–C76.
+- Disposition: F02/F03/F04 clarified at design level only. F01 remains CRITICAL (REST completeness oracle not accepted); F05 remains HIGH (confirmed decimal-loss defect); F07 remains an unverified target-filesystem durability blocker.
+- Status: P1.5 DOCUMENTATION UPDATE COMPLETE / DESIGN NOT READY FOR IMPLEMENTATION / INDEPENDENT REVIEW PENDING / COMPLETENESS ORACLE NOT VERIFIED / IMPLEMENTATION NOT AUTHORIZED / T1 ACTIVATION NOT AUTHORIZED.
+- Verification: GitHub content writes only; no executable tests, REST request, Actions dispatch, VPS/runtime, source edit, T0/T2 or trading change. No data deletion or destructive operation.
+- GitHub Actions: NOT DISPATCHED; run ID NONE; artifact NONE.
+- Next step: perform a consistency review of P1.5 clauses against the existing v1.1/P1.3 rules, then request independent review against the updated design SHA. Do not self-label as independent. Implementation still requires separate explicit approval.
+- Guardrails retained: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
