@@ -683,3 +683,10 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - P1.8.93 now explicitly pins applicable consumer availability-declaration revisions and owner-attestation references in the protected decision vector. Updated blob: `4cc158b5f766fb024e411519be36076bc1e3758a`.
 - P1.8.94 adds explicit vectors for unproven reviewer/approver separation (NEG-ID-05), unavailable independent verifier (NEG-VER-01), and inventory completeness without a declared boundary (NEG-INV-01). It corrects cascade vector identity to NEG-ADP-09 and minimum catalogue count to 69 (47 baseline + 22 supplemental). Updated blob: `cd2ae56f98b96a2271e8dcf02494c2061abe2572`.
 - These are documentary corrections only; all vectors remain NOT_RUN.
+
+
+### P1.8.93 / P1.8.94 review-preparation corrections (2026-11-09)
+
+- P1.8.93 now explicitly pins applicable consumer availability-declaration revisions and owner-attestation references in the protected decision vector. Updated blob: `4cc158b5f766fb024e411519be36076bc1e3758a`.
+- P1.8.94 adds explicit vectors for unproven reviewer/approver separation (NEG-ID-05), unavailable independent verifier (NEG-VER-01), and inventory completeness without a declared boundary (NEG-INV-01). Cascade vector is NEG-ADP-09. Updated branch blob: `40d8e30bb7e247fbc81f1657998d13032650590a`. Minimum catalogue: 69 vectors (47 baseline + 22 supplemental); all remain NOT_RUN.
+- A file-content update was inadvertently sent to the repository default branch during this correction. It was immediately restored to the same pre-correction content as the working branch; no source/runtime files were involved. Default-branch restored blob: `40d8e30bb7e247fbc81f1657998d13032650590a`; restoration commit: `cbf41b04b47bfaad287bcebb51a610ed41cdccdc`. Project work continues only on `feature/t0-centralized-data-feeder-p1-20261101`.
