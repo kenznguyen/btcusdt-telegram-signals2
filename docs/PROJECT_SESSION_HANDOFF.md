@@ -2945,3 +2945,25 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Preserves P1.8.67 invariants: TSA optional/asynchronous/outside T0 write path; only timestamp after separately proven durable commit; TSA failure/UNKNOWN cannot roll back a valid T0 data commit.
 - Latest contract update commit: `ff6a75bda9037eec3d15f5de3518681da002c0ab`; latest contract blob: `1973191e79c36c12424b06bd66b3796c948523f0`.
 - Static consistency review only; no independent reviewer, tests, Actions, provider, runtime, key, trust-root or destructive operation. Contract remains DRAFT / NOT IMPLEMENTED / NOT INDEPENDENTLY REVIEWED.
+
+
+## T0 Evidence Object / Checkpoint Contract v1 — G0.2 exact candle source mapping (2026-11-10)
+
+- Scope: documentation-only source mapping in the existing branch; no standalone artifact titled “T0 Candle Contract v1” was found. The executable Candle value object/serializer, SQLite schema/read path, PostgreSQL migration/read path and README together define the inspected candle contract.
+- Inspected source blobs:
+  - market_data/store.py: 4e1b0c54bd56455abe5be0e5c7d0807e63e0bc78
+  - market_data/storage.py: 13fe1ae01ebb5318b69e69eef3e512d207f74c49
+  - market_data/postgres.py: 2fe27fe2d066dda0c192a381b72d27404487b800
+  - market_data/migrations/001_initial_timescale.sql: 777d884d217004569e97821a76b506572ee8f5b7
+  - market_data/README.md: 660a2f0f4f88c0de4fa8c1be3c4af96df282de0e
+  - P1.8.77 source map: 35057494b5b3c240e636cfdea3505e8870361ca5
+  - P1.8.78 static review: 4794a531befa0bf1ce2fbb428ae466fcb6a280a9
+- Physical columns are exchange, market_type, symbol, timeframe, open_time_ms, OHLCV, available_at_ms; PostgreSQL also has nullable ingestion_batch_id, not populated by the inspected canonical writer. closeTimeMs, isClosed, availabilityKind, quality and source are serializer-derived, not persisted columns. 15m and 1h remain separate partitions.
+- Read semantics: aligned bounded [startMs,endMs), optional asOfMs filters available_at_ms, sorted open_time_ms, coverage/gaps derived from interval membership; datasetVersion is a response-window digest, not a checkpoint. PostgreSQL read uses REPEATABLE READ READ ONLY; SQLite read_window uses a read transaction. This does not establish a multi-timeframe checkpoint snapshot or durability proof.
+- G0.2 finding F-01: RESOLVED for the inspected source baseline. No live DB/runtime parity inferred. Remaining G0 gaps include F-02 canonical bytes/content-root and F-03 exact completeness oracle; snapshot/durability and other owner decisions remain open.
+- Contract update commit: 2451b2a452ad1a36fb6aae0b8bda1cc88790c7f1; contract blob after read-back: 00e0281eba256523d324b8762f4798fcbae3ef20.
+- Self-review: source/readme/migration field mapping cross-checked; persisted versus derived fields distinguished; no schema fields invented. Same-session static review only, NOT independent review.
+- Tests: NOT RUN (documentation-only). GitHub Actions: NOT DISPATCHED. No source/schema/runtime/VPS/database/data/provider/identity/key/trust-root/permission operations. No TSA/WORM calls, restore, fault injection, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion.
+- Authorization: user granted automatic approval within G0–G3. This does not authorize G4 implementation or G5 runtime/provider operations. Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
+- Status: G0.2 PASS (source mapping only); G0 overall PARTIAL/OPEN; contract NOT IMPLEMENTED; independent review required. Next: G0.3 canonical byte profile and exact canonicalization vectors, followed by G0.4 completeness oracle.
+
