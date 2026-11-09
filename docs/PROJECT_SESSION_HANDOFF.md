@@ -2576,3 +2576,15 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Tests NOT RUN; GitHub Actions NOT DISPATCHED; workflow run/artifact NONE. This is a documentation-only change.
 - No source/runtime/schema/API/VPS/T0/T1/T2/DB/Feeder/ledger/strategy/risk changes; no permission or key operation; no TSA/provider call; no staging, restore, fault injection, archive, cleanup, compaction, vacuum, backup expiry, replica removal or deletion.
 - Option C — No Destructive Authority — remains in force; GitHub permission inventory remains PAUSED; T0 remains independent; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+
+
+## L4-Minimum scope approval and acceptance matrix (2026-11-09)
+
+- Owner explicitly approved the L4-Minimum personal/non-commercial provenance scope in conversation on 2026-11-09. Approval covers scope and documentation-level acceptance profile only; it is not implementation or runtime authorization.
+- Updated decision record: `docs/decisions/D-2026-11-09-L4-PROVENANCE-PERSONAL-SCOPE.md`; update commit `c4e71562d5f42ba45053c2b40ce80b11c3917646`; exact blob SHA `6b96c2c37a4989b7ceba291d027a3f8459eecb3b`.
+- Created acceptance matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`; commit `d14d1c98fdad38d18447e0ec82e5eb11ae487dc5`; exact blob SHA `f39bef0c391e13a3656130f0e74f0e7a385b0c39`.
+- Matrix defines L4M-01 through L4M-10: owner evidence custody; signing separation from T0; exact-object binding; independent offline verification; independent readback/recovery; key/trust lifecycle; append-only evidence history; claim discipline; independent review; fail-closed verdict semantics. It includes adversarial test groups and a minimum evidence package.
+- Matrix status: DOCUMENTATION PASS only. No fixtures/tests executed, no GitHub Actions dispatch, no independent technical review. Requirements remain NOT IMPLEMENTED / NOT VERIFIED; L4 implementation and operational acceptance remain BLOCKED.
+- Next L4-specific gate: independent review of the matrix against P1.8.36 and current lifecycle constraints, without runtime/secret/permission access. This does not replace the separate lifecycle next step P1.8.153.
+- Existing boundaries unchanged: no source/runtime/schema/API/VPS/T0/T1/T2/DB/Feeder/ledger/strategy/risk changes; no key/trust-root/permission operation; no TSA/provider calls; no staging, restore, fault injection, workflow dispatch or destructive operation.
+- Option C — No Destructive Authority — remains in force; GitHub permission inventory remains PAUSED; T0 remains independent; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
