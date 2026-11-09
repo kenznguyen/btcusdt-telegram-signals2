@@ -3481,3 +3481,17 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: STAGE A DOCUMENTARY CLARIFICATION COMPLETE; RET-03 OPEN; RET-07 OPEN; no legal determination, operational inventory, tests, Actions, implementation or destructive operation.
 - Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact. Option C and all prior residual statuses unchanged.
 - Next step: obtain source-backed owner inputs for one eligible data class or evidence group at a time; if authoritative basis or competent determination is absent, record the gap and stop. No numeric values or legal rules may be inferred.
+
+
+## Stage A.2 — T1 RET-03 owner-input resolution (2026-11-10)
+
+- Added `docs/evidence/p1-8/T1_RET03_OWNER_INPUT_RESOLUTION_2026-11-10.md`.
+- Document commit: `1a9b98dd723639078e208510adfa29cea54176dc`; verified content blob SHA: `061ea9340e07a9f633a8864928c945f44adc5295`.
+- Source branch baseline: `c0823759c96362d79174b90d29ec4bde1c9b8ef3`; exact source evidence blobs are enumerated in the document.
+- T1 paths separated: existing trades/funding/open-interest/liquidations CSV importer; proposed 1m Binance USD-M kline source-file product (v1.1 DESIGN ONLY / NOT APPROVED FOR IMPLEMENTATION); connection-lifecycle sidecar (separate offline evidence, not a market-data feed); T0 canonical candles remain independently owned.
+- Static trace confirms importer is pull/CLI driven; snapshot is OBSERVED_ONLY / complete=false / continuity UNVERIFIED / connection UNVERIFIABLE. Trade flow is consumed after quality gates; funding/OI/liquidations are exposed for dashboard/downstream analysis in the inspected decision path. File hashes do not prove transport completeness.
+- Actual CSV files/locations/rotation, producer runtime/schedule, complete consumer and copy inventory, obligation start/end events, holds and authoritative owner/legal/operational sources remain NOT VERIFIED / NOT PROVIDED.
+- RET-03 T1 status: OPEN / FLOOR_NOT_ESTABLISHED. No numeric floor/TTL selected. No T1 object made deletion-eligible. Central policy no-delete-after-read remains controlling.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact. External T1 repo/VPS/runtime/CSV/DB/provider/exchange/consumers not accessed. No source/runtime/permission/data or destructive changes.
+- Option C, T0 independence, protected classes, paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- Next step: obtain owner-supplied authoritative inputs for the four existing CSV feeds (purpose/owner, exact source scope, obligations, start/end events, consumer dependencies, holds and duration rationale). If not supplied, keep RET-03 OPEN and do not infer a floor. Any operational inventory requires separate bounded authorization.
