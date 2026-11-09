@@ -246,3 +246,14 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - No parameter values, provider, failure domain, SLO or authorization was promoted. V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; RPO/RTO remain planning targets only; `AI_EXECUTION_ENABLED=false`.
 - No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes; no provider/key operations, data probes, staging, restore, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
 - Next gate: consolidate a documentation-only owner decision readiness register, distinguishing decisions answerable from current documentary evidence from those requiring measurement or implementation/provider choice. No execution authorization implied.
+
+
+### P1.8.47 / P1.8.48 — Owner decision readiness
+- P1.8.47 register: `docs/evidence/p1-8/P1.8.47-owner-decision-readiness-register.md`; commit `98404af889e5bca6c1bd99e6db5dcb1a63ffbbf8`; blob `b78e7151eab25e852b2f6ed61f98a0de94365dd1`.
+- Separates approved policy directions, documentation-ready items, evidence-required values, implementation-dependent values, owner decisions after evidence/design, and separate permission gates.
+- Explicitly states when to ask owner; no unsupported numeric/provider choices and no new owner decision recorded.
+- P1.8.48 independent review: `docs/evidence/p1-8/P1.8.48-independent-review-owner-decision-readiness.md`; commit `776ffcf82bea98b4fa56cf3157834fd91ab3b217`; blob `90ac80acd1c92d63b9669b549b6242b576124f8b`.
+- P1.8.48 result: PASS; no implied owner approval or execution permission; no new findings.
+- V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; synthetic 13/13 only; RPO/RTO planning targets only; `AI_EXECUTION_ENABLED=false`.
+- No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes; no provider/key operations, data probes, staging, restore, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
+- No evidence-backed numeric/provider owner decision is currently ready from the reviewed documents alone. Continue documentation-only work; ask for separate permission only when an exact privileged/operational action becomes necessary.
