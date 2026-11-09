@@ -1045,14 +1045,15 @@ Owner approval: explicit approval received for P1.8.120. Scope was limited to st
 Owner decision: explicit approval received to select **Option C — No Destructive Authority** as the system's default authorization model.
 
 - Decision record: `docs/evidence/p1-8/P1.8.121-owner-decision-ratification-option-c-no-destructive-authority.md`.
-- Decision document commit: `c2ceed7f80b34494ce76a45ec69e27420323a60b`.
+- Decision document commit: `d06b50db98025c8c6b31c5e921924d20cb43ea38`.
+- Decision document blob SHA: `b92c63f593af0088fc522a55dc841af0ad1e5ac7`.
 - Option C is now the approved default: no worker, adapter, service, operator or individual receives destructive authority until independently controlled coverage is demonstrated and separately approved.
 - Read-only inspection, inventory/manifest reconciliation, non-mutating integrity checks and lifecycle eligibility assessment remain permissible only within existing access boundaries.
 - Delete, overwrite, truncate, purge, archive, destructive cleanup/vacuum and any equivalent mutation remain prohibited. No authority may arise from timeout, ACK, restore readiness, quarantine resolution, evidence PASS, repository write access or alternate credentials.
 - Option A is a possible future transition target, not selected. Any C-to-A proposal requires genuinely independent principals, separation of requester/approver/executor/verifier, exact-object authorization, bypass-resistant revocation/delegation/emergency controls, independent review and separate owner approval.
 - Option B remains unselected and not selection-ready while P1.8.120 IR120-01 remains unresolved. Selecting C does not close that finding for Option B.
 - P1.8.121 status: OWNER DECISION APPROVED; DOCUMENTARY RATIFICATION RECORDED; independent static review PENDING.
-- Static authoring/read-back: pending verification. Tests: NOT RUN. GitHub Actions: NOT DISPATCHED. Workflow run/artifact: NONE.
+- Static authoring/read-back: PASS — exact document fetched back from the branch; decision and authority boundary verified. Tests: NOT RUN. GitHub Actions: NOT DISPATCHED. Workflow run/artifact: NONE.
 - IAM/role assignment/access grant/credential/workflow activation: NOT EXECUTED / NOT AUTHORIZED. Runtime/provider/storage/registry/consumer/copy inventory: NOT VERIFIED / NOT PERFORMED.
 - Restore/staging/fault injection/provider/key/TSA operations: NOT EXECUTED / NOT AUTHORIZED. Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Destructive/deletion authority: NOT GRANTED.
 - T0 remains an independent canonical data asset; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`.
