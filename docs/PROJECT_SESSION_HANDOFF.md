@@ -1491,3 +1491,10 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Final implementation status: **PARTIAL — REPOSITORY IMPLEMENTATION RECORDED; OPERATOR SETUP AND REMOTE PREFLIGHT PENDING**. No VPS/T0/T1/DB/Feeder/API/T2 runtime change was made.
 - Next step: operator completes the one-time secure setup described in `docs/evidence/t2/P1_GITHUB_ACTIONS_AUTHENTICATED_SSH_PREFLIGHT_2026-11-09.md`, then manually dispatches `T0 Manual Validation → scaleway-ssh-preflight` on this branch. Record exact run ID, tested source SHA, artifact ID and final verdict after the run.
 - After P1 PASS, API deployment and T2 one-shot read remain separate rollout gates. No live trading; `AI_EXECUTION_ENABLED=false`.
+
+### P1 follow-up — contract-test hardening
+
+- Strengthened `ci/test_t0_ssh_preflight_contract.py` to assert Ed25519-only host-key algorithm pinning, the fixed SSH target invocation with no remote command argument, and absence of `ssh-keyscan`.
+- Test hardening commit: `8161b3ed1daeb7d0e27c7846b4cf0161353ea583`; final test blob SHA: `d27df67b24de575669aeed5e51f966f45768f79d`.
+- Updated P1 evidence record commit: `badc696a436409062906debe6333652adfe3cdfa`; final evidence blob SHA: `74f8d7e86aa7cae22af0f987371db7c8aeb5b233`.
+- Static GitHub read-back assertions PASS; shell syntax and Python compilation PASS. Actual unit test run and GitHub Actions dispatch remain NOT RUN; no remote access or VPS mutation.
