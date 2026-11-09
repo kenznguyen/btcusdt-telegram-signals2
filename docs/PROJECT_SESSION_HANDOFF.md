@@ -2619,3 +2619,15 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact claimed. Documentation-only change; no code, workflow, runtime, VPS, DB, T0/T1/T2, credential, permission or data changes.
 - Option C — No Destructive Authority — remains in force. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next: read-only repository-wide dependency audit for excluded commercial groups and separate consumer/dependency audit for PostgreSQL/TimescaleDB and Kraken Spot. Independent review and exact-scope approval are required before any removal.
+
+## T0 de-commercialization first-pass dependency audit (2026-11-09)
+
+- Extended `docs/decisions/D-2026-11-09-T0-PERSONAL-USE-SCOPE-AND-DECOMMERCIALIZATION.md` with the read-only dependency audit.
+- Audit update commit: `1ae7ca5822661eb1ff7530b7d2ff2d0f06043d09`; final decision-record blob SHA: `8381c6556e84cfc004a08372edcda7e76b03308c`.
+- GitHub code search returned no matches for tenant, billing, subscription, customer, SLA/support tier, payment/onboarding/entitlement, Stripe/invoice, or multi_tenant. One `license` match was historical Android SDK license acceptance. Important limitation: the connector code search targets the default branch, not the active feature branch; repository-wide absence is therefore NOT VERIFIED.
+- PostgreSQL/TimescaleDB is actively wired in current branch source: storage factory, Feeder runtime composition, lease adapter, fenced write gateway, runtime contracts, disposable lifecycle tests, manual validation gate, and psycopg dependency. Classification: DEFER / REVIEW; not a commercial feature and not approved for removal.
+- Kraken Spot has a separate adapter, dedicated SQLite store, isolated read API, three test modules, and three manual workflow gates. Classification: DEFER / REVIEW pending actual research-consumer/value assessment; not a commercial feature and not approved for removal.
+- No current component meets REMOVE-CANDIDATE threshold. Android commercial readiness/privacy/terms remain outside T0 and are retained separately.
+- Status: scope decision CONFIRMED; first-pass dependency audit PARTIAL; commercial capability absence repository-wide NOT VERIFIED; PG/Kraken retain/remove decisions DEFERRED; no source removal authorized.
+- No tests, workflow dispatch, VPS/runtime/database inspection or mutation occurred. No workflow run/artifact is claimed. Documentation-only updates; no source/config/API/schema/credential/permission/data changes.
+- Next: independent adversarial review of the scope decision and audit evidence; if it passes, a separate consumer/value review for Kraken Spot and a maintenance/cost review for PostgreSQL. No removal until exact-scope owner approval.
