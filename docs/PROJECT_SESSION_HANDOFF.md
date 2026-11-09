@@ -3195,3 +3195,21 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Static source boundary trace PASS for inspected paths; complete repo/runtime inventory PARTIAL. Actual collector, CSV files, snapshot, runtime scheduling, live continuity and trusted sidecar custody NOT VERIFIED.
 - No source/test/workflow/VPS/DB/collector/exchange/runtime operation performed; no tests or Actions dispatched. L4-Minimum remains BLOCKED / NOT VERIFIED. G2/G3 status unchanged. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders. Option C unchanged.
 - Next safe increment: static-only T4 route/auth/control dependency map. F5-07 remains explicitly deferred at user request; do not implement its regression test until reauthorized.
+
+
+## T4 route / auth / control dependency mapping (2026-11-10)
+
+- Static mapping report: `docs/evidence/T4_ROUTE_AUTH_CONTROL_DEPENDENCY_MAPPING_2026-11-10.md`.
+- Report commit: `8ab4150a059802c034019e4ef3e5d8e416c44ba4`; report blob: `536dbe3beb749afe41614d04e960a89508a2ce44`.
+- Exact source baseline inspected: `5309e93e59f51f561ecb5ede16d8225158b00c1b`.
+- Mapped public `/health` and static `/control/*`, authenticated GET routes using `MARKET_DATA_TOKEN`, and paper control POST routes using distinct `CONTROL_TOKEN`. Backend enforces method allowlist, bounded body, constant-time bearer comparison, distinct read/control token and 30/minute shared control budget.
+- React polls nine GET endpoints every five seconds; control actions use the separate control token. Tokens are held in React state in inspected source; API requests use bearer headers, omit cookies, reject redirects and cap response size.
+- Finding T4-RA-01: Gateway implementation/deployment and direct-port exposure NOT VERIFIED.
+- T4-RA-02: React accepts any configured HTTPS API origin; no approved Gateway host allowlist/pinning. Source-level credential-destination risk; no actual token leak established.
+- T4-RA-03: frontend/development proxy use `/v1/*`, while Gateway architecture target describes `/api/t0/*`, `/api/t1/*`, `/api/t2/*`; route translation contract NOT IMPLEMENTED.
+- T4-RA-04: shared static read/control secrets are separate, but per-user identity, granular roles, expiry, rotation and revocation protocol are NOT ESTABLISHED in inspected source.
+- T4-RA-05: health and dashboard static shell are public; actual edge exposure NOT VERIFIED.
+- T4-RA-06: paper controls remain backend-owned and Core/AI evaluation submits through PaperLedger; UI gating is not an authorization boundary. F5-07 remains DEFERRED and was not retested.
+- Status: selected source/blob identity PASS; static route/method/auth inventory PASS; Gateway route contract PARTIAL; runtime topology, edge controls and credential custody NOT VERIFIED. No tests or Actions run; no independent review claimed.
+- No source/test/workflow/permission/secret/proxy/DNS/firewall/VPS/database/ledger/risk/runtime change. Option C unchanged; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next safe increment: reconcile the `/api/*` Gateway namespace with current `/v1/*` handlers and define an approved-origin/credential-destination contract, documentation-only. Do not implement or deploy the Gateway without separate approval.
