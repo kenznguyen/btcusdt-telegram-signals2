@@ -666,3 +666,13 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Resolves SR-03: explicit N01–N45 traceability to baseline P1.8.90 vectors; adds supplemental deterministic vectors for uncovered owner/heartbeat/bypass/hold/copy/recovery/availability/authorization/cascade/audit/policy/T0/scope races. Minimum catalogue: 66 vectors (47 baseline + 19 supplemental).
 - All vectors remain NOT_RUN; test runner, synthetic adapters, independent oracle and separate test approval remain OPEN. No test code or workflow created.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/database/VPS/storage change or destructive operation.
+
+### P1.8.95 — Consumer Availability Contract Alignment (2026-11-09)
+
+- Alignment record: `docs/evidence/p1-8/P1.8.95-consumer-availability-contract-alignment.md`.
+- Record commit: `f4b828a13748ae6e60b3e2a129f77db154e11689`.
+- Record blob SHA: `10a2bbef6e8ebe27f5d839f7fb5401448d1e5359`.
+- Governing contract updated: `docs/architecture/DATASET_CONSUMER_CONTRACT.md`, §20 normative extension v1; update commit `8d326ae6b41292e14609b0f579bdca59ff916e56`; blob `ef5e946b26ad17410023a79a765be73aeb198f0f`.
+- Resolves SR-05 at documentary alignment level: owner-attributed per-dependency availability declaration, qualitative classes, UNKNOWN/CONFLICTED protective behavior, most-protective compatible requirement, immutable revisions, ACK/release separation and archive admission gates.
+- Numeric latency/restore/freshness values, trusted time, registry/provider, runtime declarations and discovery completeness remain OPEN/NOT VERIFIED. No archive or deletion authority.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/database/VPS/storage or destructive operation.
