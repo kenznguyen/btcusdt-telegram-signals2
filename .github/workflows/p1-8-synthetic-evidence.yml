@@ -55,6 +55,12 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install pinned synthetic evidence dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --requirement synthetic_evidence/requirements.txt
+          python -c 'import cryptography; assert cryptography.__version__ == "50.0.2"; print("ED25519_DEPENDENCY_PIN=PASS cryptography=50.0.2")'
+
       - name: Enforce synthetic-only environment and record source SHA
         shell: bash
         run: |
