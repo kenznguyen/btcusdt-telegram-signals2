@@ -787,7 +787,8 @@ The filename is decimal ASCII and MUST equal the `publication_sequence` field. A
 - `receipt_filename`: exact canonical receipt filename for that sequence;
 - `receipt_sha256`: SHA-256 of the exact final receipt bytes;
 - `manifest_sha256`: SHA-256 of the exact manifest bytes;
-- `publication_counter_sha256`: SHA-256 of the exact canonical publication-counter bytes validated during recovery;
+- `publication_counter_snapshot`: the exact five-key closed publication-counter object defined in §22.2, with all values captured at this recovery acceptance point;
+- `publication_counter_snapshot_sha256`: SHA-256 of the JCS canonical bytes of `publication_counter_snapshot`;
 - `committed_offset_bytes`: unsigned safe integer;
 - `committed_record_count`: unsigned safe integer;
 - `data_prefix_sha256`: SHA-256 of the exact committed data prefix;
@@ -804,7 +805,7 @@ Checkpoint publication MUST use exclusive/no-follow temporary creation, complete
 
 While holding the exclusive generation lock, recovery MUST enumerate the complete recovery-checkpoints directory and validate every final checkpoint. It MUST reject duplicate sequences, unknown entries, malformed records, filename/content disagreement, missing referenced receipts, digest mismatch, generation mismatch, counter mismatch, non-monotonic sequence history or any checkpoint whose bound publication sequence exceeds the durable publication counter.
 
-For each checkpoint, the exact referenced receipt and manifest MUST still exist and validate; the counter digest and high-water value MUST be consistent with the validated publication history. A checkpoint is not permission to ignore or skip validation of the complete receipt directory, current manifest, counter or committed data prefix. A checkpoint for sequence N cannot establish acceptance of sequence N+1.
+For each checkpoint, the exact referenced receipt and manifest MUST still exist and validate; the embedded `publication_counter_snapshot` MUST pass the §22.2 five-key schema, its digest MUST reproduce, and its root/generation identity and high-water value MUST cover that checkpoint's publication sequence. The current publication counter MUST have the same root/generation identity and a high-water value greater than or equal to every valid checkpoint and receipt sequence. Its value MUST NOT regress below the embedded snapshot of any checkpoint. The snapshot is historical evidence and is not required to equal the current counter bytes after later reservations. A checkpoint is not permission to ignore or skip validation of the complete receipt directory, current manifest, current counter or committed data prefix. A checkpoint for sequence N cannot establish acceptance of sequence N+1.
 
 A checkpoint created by recovery is durable local recovery evidence, not an independent anti-rollback anchor. The checkpoint, publication counter, receipts, manifests and data stored under one source root share the same rollback/failure domain. If the entire root, its checkpoint history and counter may have been copied or restored together and there is no separately trusted monotonic external anchor proving the latest state, continuity and latest accepted sequence are NOT PROVEN. The root MUST be quarantined; it MUST NOT reconstruct a lower counter, reuse a sequence, or claim continuity. Recovery then requires a separately approved new source_root_id/recovery epoch and fresh reconciliation. This v1.1 profile makes no protection claim against full-root snapshot rollback, host compromise or privileged tampering.
 
