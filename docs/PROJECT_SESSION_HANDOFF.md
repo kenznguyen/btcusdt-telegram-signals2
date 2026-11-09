@@ -203,3 +203,23 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: INVENTORY COMPLETE; PARAMETERS OPEN; NOT EXECUTED. V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; synthetic 13/13 remains synthetic only; `AI_EXECUTION_ENABLED=false`.
 - No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes. No provider/key operations, data probes, staging, restore, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
 - Next gate: P1.8.41 independent static review of P1.8.40 for completeness, traceability and consistency with P1.8.26/P1.8.28/P1.8.33/P1.8.34/P1.8.39. Documentation-only; no new permissions required.
+
+
+## Latest continuation — P1.8.41 / P1.8.42
+
+### P1.8.41 — Independent review of P1.8.40
+- Review: `docs/evidence/p1-8/P1.8.41-independent-review-parameter-closure-inventory.md`.
+- Review commit: `b390f8e6a7b29c43b66a1ffd9fed07f0290b010a`.
+- Review blob SHA: `c869b2fd47abe3405689e588e0905f6b1991a465`.
+- Result: PARTIAL. All 27 top-level decision IDs and V08/Restore coverage pass; findings F-12 (V07 trust-time sub-items not individually enumerated) and F-13 (source-clause traceability) require a narrow documentation supplement.
+- No parameter values were selected; all gates and authorization limits remain unchanged.
+
+### P1.8.42 — V07 trusted-time profile sub-register
+- Supplement: `docs/evidence/p1-8/P1.8.42-v07-trusted-time-profile-subregister.md`.
+- Commit: `f71e864d6dc17341077faaba33d0f6843ee6023f`.
+- Blob SHA: `2b11706786f0f825fff46b368f92c575a797d7dc`.
+- Adds explicit traceable sub-items for trust authority/profile, trust-anchor lifecycle, certificate/path validation, timestamp accuracy/uncertainty, nonce/replay, imprint encoding, canonical envelope/context, exact signature binding, fixture bytes/digests and stage-separated oracle; maps them to P1.8.33/P1.8.34/P1.8.36/P1.8.38/P1.8.39.
+- All provider, algorithm, clock, uncertainty, trust and fixture parameters remain OPEN. Stage-separated oracle documentation rule remains as previously approved/reviewed; executable fixtures remain OPEN.
+- Status: F-12/F-13 DOCUMENTATION RESPONSE RECORDED; independent review REQUIRED. V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; `AI_EXECUTION_ENABLED=false`.
+- No code/tests, provider selection, key operation, data probe, staging, restore, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
+- Next gate: P1.8.43 independent static review of P1.8.42. Documentation-only; no new permission required.
