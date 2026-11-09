@@ -1750,3 +1750,32 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Verification: GitHub issue/documentation updates only. No tests, REST request, Actions dispatch, source edit, adapter implementation, VPS/runtime, T1 activation, T0/T2 or trading changes. No deletion/destructive operation.
 - Next step: wait for an independent reviewer to post a written review against the exact SHAs. If no reviewer is available, do not relabel self-review as independent; implementation remains blocked pending the review and F01/F05/F07 evidence gates.
 - Guardrails: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
+
+
+## Latest work — P1.9 same-session adversarial self-review of final T1 contract (2026-11-09)
+
+- Re-read the handoff and reviewed the exact normative v1.1 contract, archival v1, P1.3, P1.7, P1.8 request and pinned T1 source files. This is explicitly a same-session self-review, NOT independent review.
+- Review record: `docs/reviews/t1/P1_9_SELF_REVIEW_FINAL_T1_CONTRACT_2026-11-09.md`.
+- Review commit: `75ecdf3758f5ba8f49d09fb1297814412afc64b7`.
+- Exact review inputs:
+  - v1.1 contract blob `fd640ab36efed6975f1dfaaed750f9d0ae7f708c`
+  - archival v1 blob `c64d6da7b16e608ef5ccebafabce03e51960cfcc`
+  - P1.3 blob `a99cf2e21edc4519a2f2d0833c6cdf1e6d768599`
+  - P1.7 review blob `a83bb0246b9480f593516dd410782fc619122127`
+  - pinned T1 source `6e20fe94f3ad64cc450e73def80a167fe371e49e`
+  - source blobs: csv_writer `2c4538dcef7dfa758a854292031239c15f7c282b`; message_handler `7d7f221fbf4b31470049baea55584645352f61b7`; models `993419725268d1308645e3a37c15e9779a9e92cc`; rest client `3f2068a07fbf6a6e348fb227274f7b0d54703e8d`; symbol discovery `34e453cbb96d5964d1f58e204bbfbe147041ced6`; constants `0bf50b5fe02f4f196b38481cde6ecab9e2adb941`.
+- Verdict: REQUEST CHANGES — DESIGN NOT READY FOR IMPLEMENTATION.
+- New findings:
+  - F01 CRITICAL: manifest rename becomes visible before directory fsync; no reader/writer barrier prevents consumers accepting a not-yet-durable watermark. Specify enforceable publication visibility/commit protocol and tests.
+  - F02 HIGH: single-writer ownership and generation fencing lack a concrete stale-owner/takeover protocol.
+  - F03 HIGH: WINDOW_GAP has no reachable assignment path under the current rules requiring complete REST rows and treating source asymmetry/missing REST as UNKNOWN/divergence; explicitly disable it or add a separately approved evidence profile.
+  - F04 HIGH: FINAL_ONLY proof does not yet require explicit producer interval validation; pinned handler filters provisional events but does not validate `interval == 1m` or persist interval/close_time.
+  - F05 HIGH: pinned symbol discovery has hardcoded BTCUSDT/DOGEUSDT exceptions that re-add symbols based on TRADING status without rechecking PERPETUAL and quote_asset=USDT; manifest producer must independently validate exact metadata.
+  - F06 MEDIUM: manifest machine-readable schema, canonicalization, file-to-manifest binding, path/symlink and duplicate-manifest rules underspecified.
+  - F07 MEDIUM: C46 wording may be read as accepting coverage/equality before all P1.3 identity/boundary/pagination/finality/durability gates pass.
+- Existing blockers re-confirmed: F01 REST completeness oracle not accepted; F05 producer f64/12-decimal/parse-to-zero defect confirmed; F07 target filesystem/provider durability unverified. Review record uses P1.9 finding labels locally; these do not replace the historical F01/F05/F07 blocker labels.
+- Positive checks: archival v1 is clearly non-normative; v1.1 is normative; missing REST stays UNKNOWN; no-trade inference/synthetic candles prohibited; REST-only rows not silently inserted; health invalidation sticky; manifest security claim bounded to accidental corruption; T0 independent.
+- Verification: read-only GitHub inspection only. Tests NOT RUN; REST NOT CALLED; Actions NOT DISPATCHED (run ID NONE; artifact NONE); no source edit, adapter, VPS/runtime, T1 activation, T0/T2 or trading change. No deletion/destructive operation.
+- Issue #138 remains the independent-review gate. This self-review does not satisfy independence.
+- Next step: documentation-only correction of P1.9 findings, beginning with publication visibility ordering; then independent review against new exact SHAs. Implementation and T1 activation remain NOT AUTHORIZED.
+- Guardrails retained: paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no T0 write path; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
