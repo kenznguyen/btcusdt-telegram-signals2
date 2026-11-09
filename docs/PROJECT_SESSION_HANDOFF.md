@@ -3716,3 +3716,15 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - LDA-07 remains NOT RUN; 87/87 lifecycle vectors remain NOT RUN. LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
 - No tests, compile, dry-run, fault injection, provisioning, Actions dispatch, secrets/permission/runtime/VPS/database/provider/recipient/backup/replica access, source/workflow/runner/permission/runtime/data changes or destructive operation.
 - Next bounded documentary step: Stage C.8 — TEST-04 Independent Oracle Contract. Do not implement or execute until prerequisites and separate exact execution authorization are established.
+
+
+## Latest completed work — Stage C.8 / TEST-04
+
+- Added documentation-only independent oracle contract: docs/evidence/p1-8/STAGE_C8_TEST04_INDEPENDENT_ORACLE_CONTRACT_2026-11-10.md.
+- Report commit: f8196ef23d02bec38cd29c63793fc509cb596370; report blob SHA verified by read-back.
+- Defines role separation across owner/specification authority/controller/executor/observer/evaluator/evidence publisher; frozen expected-state package; independent read-only observations; exact object/version and namespace binding; deterministic comparison; PASS/FAIL/INDETERMINATE and run-level BLOCKED/NOT RUN semantics.
+- Specifies evidence provenance and append-only integrity, replay without re-execution, disagreement handling, protected-root invariance, ORA-01–ORA-15 evidence package and ORA-T01–ORA-T15 future acceptance assertions.
+- Contract does not establish an existing independent oracle. TEST-04: CONTRACT DOCUMENTED / INDEPENDENT ORACLE NOT ESTABLISHED; not closed. TEST-01/02 implementation not established; TEST-03 effective isolation not verified; TEST-05/07 open; TEST-06 partial; TEST-08 not granted.
+- LDA-07 remains NOT RUN; 87/87 lifecycle vectors remain NOT RUN. LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
+- No tests, compile, dry-run, fault injection, provisioning, Actions dispatch, secrets/permission/runtime/VPS/database/provider/recipient/backup/replica access, source/schema/adapter/workflow/runner/permission/runtime/data changes or destructive operation.
+- Next bounded documentary step: Stage C.9 — TEST-05 Deterministic Concurrency Contract. Do not implement or execute until prerequisites and separate exact execution authorization are established.
