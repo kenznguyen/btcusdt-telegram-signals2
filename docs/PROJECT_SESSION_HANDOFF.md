@@ -941,3 +941,25 @@ Owner approval: explicit automatic approval received for all five documentary wo
 - Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Deletion authority: NOT GRANTED.
 - T0 canonical independence and CORE_LEDGER/AI_LEDGER separation unchanged; `AI_EXECUTION_ENABLED=false`.
 - Next gate: focused independent static review of P1.8.110–P1.8.114 against P1.8.93, P1.8.103–P1.8.109 and governing lifecycle/consumer/copy contracts. Any implementation, tests, workflow dispatch, IAM, staging or operational work requires its own explicit authorization.
+
+
+## P1.8.115 — Independent Static Review of P1.8.110–P1.8.114 (2026-11-09)
+
+Owner approval: explicit approval received for P1.8.115. Scope was limited to static/documentary cross-contract review. No implementation, tests, workflow dispatch, IAM, staging, restore, provider/key/TSA operation or destructive action was authorized.
+
+- Review: `docs/evidence/p1-8/P1.8.115-independent-static-review-p1-8-110-to-114.md`.
+- Review commit: `9ce5fd1c8ad690767ee9a2b80637a6ebb5a4f4de`.
+- Review blob SHA: `cc78bc8c7d13eb7c82024dd9666a5b9689178e03`.
+- Exact reviewed document SHAs are pinned in §2 of the review.
+- Verdict: **PARTIAL — no direct policy contradiction found; four residual closure findings remain (2 MAJOR, 2 MODERATE).**
+- IR115-01 MAJOR: P1.8.110 restore governance revision vector does not explicitly cover every applicable P1.8.93 protected-vector revision/reference, notably consumer availability declarations/owner attestations and copy/backup/recovery disposition revision.
+- IR115-02 MODERATE: P1.8.112 does not explicitly require freshness age/uncertainty to be recomputed using a trusted current-time observation at the actual mutation linearization point.
+- IR115-03 MODERATE: P1.8.113 defines typed graph edges but does not normatively define per-type edge orientation/canonical traversal; graph closure and source-hold mapping to descendants need deterministic semantics.
+- IR115-04 MAJOR: P1.8.114 records safe non-escalation boundaries but leaves the owner role-model decision open. Independent approver availability, single-owner compensating-control acceptability, named role ownership/delegation and effective permission separation remain undecided. IR109-05 is therefore PARTIAL/OPEN, not closed.
+- P1.8.111: PASS at documentary-design level. Equality/overlap without a proven common ordering token/domain remains UNKNOWN/HOLD; V08 execution remains blocked.
+- Positive invariants preserved: T0 canonical independence; CORE_LEDGER/AI_LEDGER separation; no default TTL; no automatic consumer release; no cascade; fail-closed; paper-only boundary.
+- Tests: NOT RUN. GitHub Actions: NOT DISPATCHED. Workflow run/artifact: NONE. Runtime/provider semantics: NOT VERIFIED. Runtime graph/copy inventory: NOT PERFORMED.
+- Restore/staging/fault injection/provider/key/TSA operations: NOT EXECUTED / NOT AUTHORIZED.
+- Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Deletion authority: NOT GRANTED.
+- T0 and CORE_LEDGER/AI_LEDGER protections unchanged; `AI_EXECUTION_ENABLED=false`.
+- Recommended next documentary decisions: P1.8.116 Restore Governance Vector Completeness Crosswalk; P1.8.117 Trusted-Time Freshness at Mutation Linearization; P1.8.118 TSA Graph Orientation/Closure/Hold Propagation; P1.8.119 Owner Role-Model Decision Record. These are proposals only and require separate explicit approval.
