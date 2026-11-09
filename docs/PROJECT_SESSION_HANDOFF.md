@@ -1082,3 +1082,26 @@ Owner approval: explicit approval received for independent static review of P1.8
 - Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Destructive/deletion authority: NOT GRANTED.
 - T0 remains an independent canonical data asset; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`.
 - Next gate: decide whether to approve a documentary control-plane identity inventory contract addressing IR122-01. No permission inspection beyond read-only metadata, IAM change, secret disclosure, workflow dispatch, implementation, staging or destructive operation is authorized by this review.
+
+
+## P1.8.123 — GitHub Control-Plane Identity and Effective-Permission Inventory Contract (2026-11-09)
+
+Owner approval: explicit approval received for **P1.8.123 documentary-only contract**. Work was limited to drafting and recording the inventory/evidence specification on the existing branch.
+
+- Contract: `docs/evidence/p1-8/P1.8.123-github-control-plane-identity-effective-permission-inventory-contract.md`.
+- Contract commit: `fc08497ff0d9f101ca19b4ede2e050023507b21e`.
+- Contract blob SHA: `d2c2a4a22b63b2214448b4405b44dc69de29b864`.
+- Contract defines future bounded inventory coverage for GitHub Actions workflow/job permissions and reusable workflows; triggers and protection gates; secrets/variables metadata only; GitHub Apps, PATs, deploy keys, bot/human principals; runner identities; OIDC federation; external provider identities and resource policies.
+- Defines operation-level capability classes, direct/inherited/delegated/effective-permission graph, credential-minting and control-plane-to-data-plane paths, required inventory fields, completeness rules and UNKNOWN/NOT VERIFIED handling.
+- Explicitly prohibits retrieving or exposing secret values, running jobs or host inspection, contacting provider endpoints, changing IAM/permissions/credentials/workflows, remediation, and destructive tests.
+- Option C remains the approved default. No destructive authority is granted. Effective permissions remain NOT VERIFIED.
+- Static authoring/read-back: PASS — exact document fetched back from the approved branch; title, Option C boundary, secret-value prohibition and core inventory coverage inspected.
+- Tests: NOT RUN. GitHub Actions: NOT DISPATCHED. Workflow run/artifact: NONE.
+- IAM/role assignment/access grant/permission change/credential creation-rotation-revocation/workflow activation: NOT EXECUTED / NOT AUTHORIZED.
+- Live GitHub/org/environment/OIDC/runner/provider permission inventory: NOT PERFORMED / NOT VERIFIED.
+- Runner jobs/host inspection/provider endpoint probes: NOT EXECUTED / NOT AUTHORIZED.
+- Restore/staging/fault injection/provider/key/TSA operations: NOT EXECUTED / NOT AUTHORIZED.
+- Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Destructive/deletion authority: NOT GRANTED.
+- IR122-01 remains OPEN pending a separately approved read-only inventory execution and independent review. This contract does not close it or claim Option C is technically enforced.
+- T0 remains an independent canonical data asset; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`.
+- Next gate: independent static review of P1.8.123 contract. Any read-only metadata collection, permission inspection, remediation or enforcement verification requires its own explicit approval and bounded scope.
