@@ -2131,3 +2131,18 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Existing blockers unchanged: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C145 NOT IMPLEMENTED / NOT EXECUTED.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
 
+## Latest follow-up — P1.26 corrections and self-review (2026-11-09)
+
+- User authorized automatic correction/self-review iterations until issue #138 can be retargeted after a self-review PASS.
+- P1.26 normative contract commit: `2a2e07d7a781d837f90fc8a366d9db80414872aa`.
+- Exact contract blob SHA: `312f3062cdacbdbaa2480ef5a0b3fa8d7693bcec`.
+- P1.26 addresses P1.25 findings F02-R6/R7/R8 at documentation level: policy revision/previous digest plus an external monotonic ERA policy head; atomic one-time decision consumption bound to approval/root/epoch/scope tuple with exact-retry idempotency; recovery-epoch binding to signed consumption receipt; revalidation at open/read/write/transition gates and quarantine after revocation is observed.
+- Added C146–C156 specifications for stale-policy restore, policy revision fork/skip, ERA unavailable/stale, exact retry, tuple reuse, crash windows, revocation timing, stale cache and malformed/replayed receipts.
+- P1.26 self-review file: `docs/reviews/t1/P1_26_SELF_REVIEW_ERA_POLICY_FRESHNESS_REPLAY_REVOCATION_2026-11-09.md`.
+- Self-review commit: `cc9f96583913677fd95c0323b6e3bac075bf8f80`; exact review blob SHA: `ab2ce3daaaeb59993b3bd3f76fa7e4b279f4c2b3`.
+- Verdict: **REQUEST CHANGES — F02-R9 HIGH**. ERA is security-critical but no closed response/receipt schemas, signed payload boundary, exact signature/key-ID encoding, nonce/replay binding, trust bootstrap/rotation or independently auditable durability protocol are specified. Prose requirements do not provide an implementable/verifiable ERA wire contract.
+- Do not retarget issue #138 until F02-R9 is corrected, negative fixtures are added, and a new exact-SHA self-review passes. Issue #138 remains targeted at P1.24 contract SHA `dd33b60649d8881ca935d34b62b8b54b6d0e9d42`; independent review pending.
+- No ERA implementation, executable tests, Actions dispatch, REST, VPS/runtime, T1 activation, T0/T2 changes, trading or destructive data operations.
+- Residual blockers unchanged: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C156 NOT IMPLEMENTED / NOT EXECUTED.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
