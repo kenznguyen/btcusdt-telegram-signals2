@@ -1660,3 +1660,18 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Status: P1.4 REVIEW REQUEST OPEN / INDEPENDENT REVIEW NOT YET RECEIVED / COMPLETENESS ORACLE NOT VERIFIED / IMPLEMENTATION NOT AUTHORIZED / T1 ACTIVATION NOT AUTHORIZED.
 - Guardrails: T0 independent/canonical; no T1 writes to T0; paper-only; AI_EXECUTION_ENABLED=false; no live orders; no OKX fallback/replacement; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
 - Next step: obtain an independent reviewer response on issue #138, then assess findings against exact SHAs. Do not self-certify independence or implement until separately approved.
+
+
+## Latest completed work — P1.4 same-session self-review (2026-11-09)
+
+- User requested a self-review of T1 Source Contract v1.1 / P1.3.
+- Review record: `docs/reviews/t1/P1_4_SELF_REVIEW_T1_SOURCE_CONTRACT_V1_1_AND_P1_3_2026-11-09.md`.
+- Review commit: `65d9bcbee55a3ac9690cc4bd7ffce1ffdd36b5c8`.
+- Review verdict: REQUEST CHANGES — design is conservative but not implementation-ready.
+- Findings: F01 CRITICAL — no accepted completeness oracle; F02 HIGH — REST-only recovery/source provenance underspecified; F03 HIGH — receive-path failure signals and durable health events underspecified; F04 HIGH — manifest rollback/authenticity threat model incomplete; F05 HIGH — confirmed f64/12-decimal/parse-to-zero producer defect; F06 MEDIUM — FINAL_ONLY is not immutable-finality proof; F07 MEDIUM — durability protocol is design only, target filesystem unverified; F08 MEDIUM — C01–C62 are planned fixtures, not executed tests.
+- Positive controls: strict fail-closed missing-minute handling, no synthetic/no-trade inference, REST remains candidate only, post-seal correction quarantine, T0 independence and no-T0-write boundary retained.
+- This is explicitly a same-session self-review and does NOT satisfy independent review. Issue #138 remains OPEN with no reviewer/comments at last check.
+- Status: SELF-REVIEW COMPLETE / REQUEST CHANGES / INDEPENDENT REVIEW PENDING / COMPLETENESS ORACLE NOT VERIFIED / IMPLEMENTATION NOT AUTHORIZED / T1 ACTIVATION NOT AUTHORIZED.
+- Review only. No tests, REST request, source edits, adapter implementation, Actions dispatch, VPS/runtime, T0/T2 or trading changes. No data deletion or destructive operation.
+- GitHub Actions: NOT DISPATCHED; run ID NONE; artifact NONE.
+- Next step: address F02–F04 as documentation-only clarifications, preserve F01/F05/F07 blockers, then request a genuinely independent review. Any source implementation requires separate explicit approval.
