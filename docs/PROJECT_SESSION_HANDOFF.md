@@ -3098,3 +3098,14 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - No source/workflow change, workflow dispatch/rerun, canonical DB/data, runtime/VPS, provider, credential, identity/key/trust-root, restore, fault-injection or destructive action performed.
 - Status: GitHub platform incident resolved; historical G2 runs remain unusable; exact final-source SHA test execution NOT VERIFIED; G2 NOT CLOSED; G3 PENDING / NOT VERIFIED.
 - Next: obtain a fresh successful exact-SHA G2 Actions run after platform recovery and retain its source-SHA/test artifact. No dispatch/rerun was initiated in this step. G4/G5 remain NOT AUTHORIZED; Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
+
+
+## T0 components outside L4-Minimum scope audit (2026-11-10)
+
+- Read-only scope audit: `docs/evidence/T0_COMPONENTS_OUTSIDE_L4_MINIMUM_AUDIT_2026-11-10.md`.
+- Audit commit: `1b1a1643a25e54e21d29bc89b56b3953198ce76c`; blob verified on branch: `7bfc509b9eb918750b3a25acc18f8d4f989d387f`.
+- Reviewed controlling L4 matrix, existing T0 L4 audit and adversarial review, TSA/WORM audit, T0 checkpoint contract, Shared Data Foundation, HTTPS front-door design, PostgreSQL role/provider decision, PostgreSQL atomic writer proposal, P1.8.80 and P1.8.152.
+- Classified TSA/RFC3161, multi-TSA quorum, dedicated WORM/Root A-Root B topology, independent market-data source corroboration/multi-venue consensus, paid assurance and commercial controls as outside L4-Minimum. HTTPS front door, PostgreSQL provider/role qualification, D2-D4 durability and production DR are separate T0 engineering/operations gates, not L4 provenance controls. Retention floors and automated lifecycle mutation remain separate and non-executable under Option C.
+- Reaffirmed mandatory L4M-01–L4M-10 controls; exclusions do not waive independent evidence custody/readback, owner signing separation, exact-object/freshness anchor, offline verification, key/trust lifecycle, tamper-evident history, claim discipline or genuinely independent review.
+- Audit status: documentary scope classification PASS; no independent review, tests, workflow dispatch, runtime/VPS/DB/provider/key/permission operation or destructive action. L4 implementation/operational acceptance remains BLOCKED / NOT VERIFIED.
+- No source/runtime changes. Option C remains; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
