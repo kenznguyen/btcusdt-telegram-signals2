@@ -756,12 +756,35 @@ No single role may silently combine issuer, custodian, anchor administrator and 
 **G1 disposition: PASS — architecture/claim/role boundaries decided for A.** Exact provider, account, region, runtime identity, anchor/custody technology and TSA service remain intentionally unselected and outside G1 implementation authority. No external calls or resource provisioning occurred.
 
 
+
+### 13.3 G2 — Synthetic-only reference oracle and conformance tests (2026-11-10)
+
+Added isolated test-only files; they do not import market_data, open a database, contact an exchange/provider, access a key, or interact with a runtime:
+
+| Artifact | Commit | Blob |
+|---|---|---|
+| synthetic_evidence/t0_checkpoint_contract.py | 51f4269b9bb3877ecfe571ddaae829e44ee48629 | f8f4d5d0917c8b1f2a58762418ab1f4bf16523e0 |
+| synthetic_evidence/test_t0_checkpoint_contract.py | 7e86e40cd078fe9b6e5322097152ec078e19b67b | a6578b3f1c2687b894182c5256b6f9b0d7911a51 |
+| .github/workflows/t0-evidence-contract-g2.yml | a33a99bb26c569127aea9d153f95795df2c9c045 | 5e22648c38fd3c6e631f912010de1489bb78f9b5 |
+
+The synthetic reference implements strict JSON parsing/duplicate-key rejection, T0-JCS-1 restricted canonical bytes, persisted candle-row validation, domain-separated object/row digests, row/partition/checkpoint Merkle roots, and the exact partition completeness oracle. Tests cover the normative 193-byte row vector, UTF-16 key ordering, Unicode preservation, duplicate keys, invalid UTF-8/BOM, numeric-value rejection, noncanonical bytes, digest domain/length binding, empty/single/odd Merkle trees, row ordering/timeframe separation, partition ordering/overlap, COMPLETE/INCOMPLETE/INVALID/UNKNOWN and gap boundaries.
+
+Verification boundary:
+- Local development copy: TDD RED observed when the reference module was absent; after implementation, the draft synthetic suite ran **28/28 PASS**. This local run used the development copy, not an independently re-fetched checkout of the final GitHub blobs.
+- Exact committed source files were fetched back and their blob SHAs verified. The final committed test suite has not been executed in a verified exact-commit environment.
+- The dedicated GitHub Actions workflow was committed to the existing branch and is configured for push/PR path triggers. The combined commit-status query for workflow commit a33a99bb26c569127aea9d153f95795df2c9c045 returned no status checks; a workflow run ID/artifact was not established. Therefore Actions result is **NOT VERIFIED**, not PASS.
+- No canonical T0 DB/data, runtime/VPS, exchange/provider, identity/key/trust-root, TSA/WORM, restore or fault-injection access occurred.
+
+**G2 status: IMPLEMENTATION ADDED — LOCAL DEVELOPMENT TESTS PASS — EXACT COMMITTED-SHA / GITHUB ACTIONS NOT VERIFIED — G2 NOT CLOSED.** A qualifying G3 reviewer must inspect the exact committed blobs, compare JCS behavior against independent RFC 8785 vectors/implementation, and review the oracle's edge cases. No G4 source/schema integration or G5 provider/runtime operation is authorized.
+
+
 ## 14. Verification and authorization record
 
 - Work type: documentation-only contract draft.
 - Source baseline branch HEAD before this change: `e010beefa1ddc5469ae5be4c5dc9a3f8b676a541`.
 - Related source mapping: P1.8.77 and P1.8.78; current T0 Candle Contract v1.
-- Tests: NOT RUN — no executable code changed.
+- G2 synthetic-only development tests: draft local suite 28/28 PASS; final committed blobs exact-SHA execution NOT VERIFIED.
+- GitHub Actions: dedicated G2 workflow committed; run/status/artifact NOT VERIFIED.
 - GitHub Actions: NOT DISPATCHED.
 - Runtime, VPS, database, data, provider, identity, key, trust-root and permission operations: NOT PERFORMED.
 - Schema/API/Feeder/writer changes: NONE.
@@ -769,4 +792,4 @@ No single role may silently combine issuer, custodian, anchor administrator and 
 - Restore, fault injection, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion: NOT AUTHORIZED / NOT PERFORMED.
 - Option C remains in force; T0 canonical data and recovery copies remain protected; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 
-**Final status: T0 EVIDENCE OBJECT / CHECKPOINT CONTRACT v1 DRAFTED — DOCUMENTATION ONLY — NOT IMPLEMENTED — G0.2 PASS (F-01); G0.3/G0.4 PASS AT CONTRACT-DESIGN LEVEL (F-02/F-03); G0.5/G0.6 PROTOCOLS SPECIFIED BUT NOT IMPLEMENTED/QUALIFIED; G1 PASS FOR A CLAIM AND ROLE BOUNDARIES; PROVIDER/IDENTITY ENROLLMENT AND CURRENT BACKEND DURABILITY NOT VERIFIED; EXECUTABLE CONFORMANCE DEFERRED TO G2; G0 STATIC CROSSWALK/REVIEW AND G3 INDEPENDENT REVIEW STILL REQUIRED; G0 NOT YET CLOSED.**
+**Final status: T0 EVIDENCE OBJECT / CHECKPOINT CONTRACT v1 DRAFTED — G0.2–G0.4 CONTRACT DESIGN PASS; G0.5/G0.6 PROTOCOLS SPECIFIED BUT NOT IMPLEMENTED/QUALIFIED; G1 PASS FOR A CLAIM/ROLE BOUNDARIES; G2 SYNTHETIC FIXTURES ADDED, LOCAL DRAFT TESTS 28/28 PASS, EXACT COMMITTED-SHA ACTIONS NOT VERIFIED; G0 STATIC CROSSWALK/REVIEW AND G3 INDEPENDENT REVIEW REMAIN OPEN; CURRENT BACKEND DURABILITY AND PROVIDER/IDENTITY ENROLLMENT NOT VERIFIED; NO G4/G5 AUTHORITY.**
