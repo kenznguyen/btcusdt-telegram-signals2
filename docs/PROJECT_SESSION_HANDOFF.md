@@ -2663,3 +2663,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - No tests or Actions were run; no workflow run/artifact. No provider calls, VPS/runtime/DB inspection or mutation. No code/config/workflow/data changes beyond decision/handoff documentation.
 - No REMOVE-CANDIDATE. No deletion or destructive operation authorized. Option C — No Destructive Authority — remains in force.
 - Next: finish content review of remaining relevant non-T0 modules/archived workflows/deployment files and map actual PG/Kraken consumers; then obtain a genuinely independent reviewer. Do not remove anything before independent acceptance and exact-scope owner approval.
+
+
+## T1 post-rustfmt manual VPS revalidation — 2026-11-09
+
+- Receipt updated: [T1 manual VPS test receipt](docs/evidence/t1/T1_MANUAL_VPS_TEST_RECEIPT_2026-11-09.md), documentation commit `35fd00cb6640fed0f2054d1d057522ec5a7db485`, receipt blob `75bf4bd77379ecfe0b9678809407a86e8fceb5ab`.
+- Isolated checkout baseline HEAD: `4566cffbbcf8495182abbc0d3496fdc65709ac14` (detached).
+- Formatting-only local patch: `src/utils/csv_writer.rs`, 14 insertions / 2 deletions; patch SHA-256 `90cee952837cf753bf872c2cb19f75e1157dc5c64eb937d58c62cbe796a31ec6`. No production logic changed.
+- Re-run of all 7 CI Rust commands: **7/7 exit code 0**; collector 49 tests + sidecar 39 tests = **88 PASS / 0 FAIL**. Rustfmt and Clippy checks, release build, and both test suites passed.
+- Raw logs remain on VPS at `/tmp/t1-manual-evidence-postfmt-4566cffbbcf8495182abbc0d3496fdc65709ac14`; SHA-256 manifest is in the receipt. No GitHub Actions artifact exists for this manual run.
+- Generated untracked sidecar Cargo.lock was verified by size/hash and removed under the user's explicit authorization. Final checkout had only the intended modified Rust source file and no generated lockfile.
+- **Status:** bounded manual validation PASS for baseline plus uncommitted formatting patch. This is not a new commit SHA, not GitHub Actions CI PASS, and not independent review.
+- GitHub Actions dispatcher remains BLOCKED / NOT VERIFIED; runs `42646416010` and `42646425898` were pre-job startup failures with zero jobs. No support packet/ticket was prepared or submitted (user skipped that step).
+- T1 → T0/T2 integration remains NOT VERIFIED; T1 activation/deployment NOT AUTHORIZED / NOT PERFORMED.
+- No T1 source commit/push, collector launch, Binance connection, credentials, runtime mutation, PR merge, issue retarget, or workflow configuration change.
+- Next: preserve the local patch and evidence. Before any source commit/push or new CI attempt, obtain explicit scope approval; do not create T1 commits solely to trigger the currently blocked dispatcher.
