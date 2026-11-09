@@ -726,3 +726,13 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Read-back checks: 45 traceability rows, 47 baseline vectors, 22 unique supplemental vectors, 69 unique total IDs; exact state alias, availability revision pinning and contract §20 verified.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/VPS/database/storage mutation or inventory.
 - Next: P1.8.97 close transition authority; P1.8.98 correct negative-case semantic coverage; then focused independent review. Do not begin V07/V08/Restore/TSA before focused review and owner blockers are addressed.
+
+### P1.8.97 — Blocked, Reconciliation and Terminal Transition Authority Closure (2026-11-09)
+
+- Document: `docs/evidence/p1-8/P1.8.97-blocked-reconciliation-terminal-transition-authority.md`.
+- Commit: `e437e61743145616be49efc84e5347acc00d0971`.
+- Blob SHA: `45c35ae20c68f21a00584179fa8e98f53ec56f1c`.
+- Closes P1.8.96 IR-01 at documentary design level: explicit authority/event/guard rows for BLOCKED quarantine and resolution, reconciliation resume, expiry, revocation and observer-only reporting.
+- Defines per-object reconciliation partition and requires lifecycle-review acceptance plus separate execution-authority final recheck; old authorization is never revived. Ambiguous objects block resume.
+- No new role, self-approval, numeric TTL/freshness/time bound, identity/time provider, registry, event store or implementation selected. Owner decisions remain OPEN.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/VPS/database/storage change or inventory; no destructive operation.
