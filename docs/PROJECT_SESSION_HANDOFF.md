@@ -1998,3 +1998,24 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No T1 source implementation, adapter, tests, GitHub Actions run/artifact, Binance REST, VPS/runtime, T1 activation, T0/T2 change or destructive operation occurred.
 - Next step: wait for genuinely independent written review of exact contract blob `984f7669f4dae5902b852b6f6fa1c09d799f9957`. Do not implement, test, dispatch Actions, access REST/VPS or activate T1 before independent review, F07 evidence and remaining blockers are resolved and separately approved.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
+
+## Latest follow-up — P1.19 adversarial self-review (2026-11-09)
+
+- User requested another self-review of the latest P1.18 contract.
+- Exact reviewed contract blob remains `984f7669f4dae5902b852b6f6fa1c09d799f9957`, commit `d6610f571417873e4c0b74dd770f705c86b24a56`.
+- Review file: `docs/reviews/t1/P1_19_SELF_REVIEW_RESTORE_EPOCH_PRECEDENCE_2026-11-09.md`.
+- Review commit: `2b2677fa0c92a2c28d97c4579881bc1be7b2bdcb`.
+- Verdict: REQUEST CHANGES. F02-R3 MEDIUM — restore/recovery-epoch semantics are not harmonized across §18.3, §21.5 and §22.11.2:
+  - §18.3 says older-backup restore requires restore epoch/reconciliation and a new generation.
+  - §21.5 says assign a new `source_root_id` when restore/copy cannot prove continuity.
+  - §22.11.2 requires separately approved new `source_root_id`/recovery epoch and fresh reconciliation for known/suspected full-root rollback.
+  - §22.11 precedence does not expressly harmonize §18.3. An implementer could misread "new generation" as sufficient.
+  - §21.5 phrase "independently trusted latest counter/checkpoint" should clarify that only an independently controlled anchor outside the source-root rollback domain can establish latest-state continuity; local checkpoint/counter are not independent.
+- Required: harmonize §18.3 and §21.5, add a fixture rejecting recovery via new generation only under old `source_root_id`, then self-review the corrected SHA.
+- F05-R2 and F02-R2 core corrections were rechecked and remain sound at documentation level.
+- No contract update or issue #138 retarget was made during P1.19. Issue #138 remains targeted to P1.18 contract SHA `984f7669f4dae5902b852b6f6fa1c09d799f9957`, OPEN; no independent reviewer comments were present at last check.
+- C01–C135 remain NOT IMPLEMENTED / NOT EXECUTED; F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; pinned producer decimal defect CONFIRMED / NOT FIXED; FINAL_ONLY/product identity NOT VERIFIED.
+- No source implementation, tests, Actions dispatch, REST, VPS/runtime, T1 activation, T0/T2 changes or destructive operation occurred.
+- Next step: documentation-only correction of F02-R3, add the negative fixture, self-review the new exact contract SHA, and only then decide whether to retarget issue #138.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
