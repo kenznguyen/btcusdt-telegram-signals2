@@ -71,9 +71,9 @@ Required logical fields:
 | `object_type` | versioned enum | `T0_CHECKPOINT_MANIFEST`, `T0_CANDLE_SEGMENT`, `T0_SIGNATURE_ENVELOPE`, `T0_CUSTODY_RECEIPT`, `T0_VERIFICATION_RECORD` |
 | `object_schema_version` | integer | Schema version of the exact object |
 | `media_type` | string | Declared serialization/media type |
-| `canonicalization_profile` | versioned identifier | Exact canonical byte-encoding rules |
+| `canonicalization_profile` | versioned identifier | T0-JCS-1 for v1 canonical wire bytes |
 | `digest_algorithm` | enum | v1 requires SHA-256 |
-| `content_digest` | lowercase hex | SHA-256 of exact canonical bytes |
+| `content_digest` | lowercase hex | Domain-separated SHA-256 of exact canonical bytes per §5.1.C |
 | `byte_length` | nonnegative integer | Exact byte length |
 | `created_at_ms` | integer or null | Local creation observation only; not trusted time |
 | `producer_identity` | opaque identity reference | Issuer/process identity evidence reference |
@@ -127,15 +127,16 @@ The serialized Checkpoint Manifest MUST NOT contain its own Evidence Object ID o
 
 ### 4.3 Candle row commitment
 
-For v1, each candle commitment MUST bind the exact logical values:
+For v1, each candle row commitment MUST bind the exact persisted source fields:
 
-- open time and close boundary;
-- OHLCV as decimal strings, not binary floating-point JSON numbers;
-- `is_closed`;
-- `available_at_ms` and `availability_kind`;
-- quality state and source identity.
+- exchange, market_type, symbol and timeframe;
+- open_time_ms;
+- OHLCV as canonical decimal strings;
+- available_at_ms.
 
-Rows MUST be ordered by `open_time_ms` ascending. Duplicate timestamps, implicit forward-fill, interpolation, synthetic rows, missing required values or unaligned timestamps invalidate a complete checkpoint.
+The row commitment does not pretend that derived closeTimeMs, isClosed, availabilityKind, quality or source values are separately persisted. Such derived metadata, if needed, belongs in a separately versioned manifest section and MUST identify the serializer/profile that produced it. Nullable ingestion_batch_id is excluded from v1 row identity because it is not populated by the inspected canonical writer and is not present in the SQLite schema.
+
+Rows MUST be ordered by open_time_ms ascending. Duplicate timestamps, implicit forward-fill, interpolation, synthetic rows, missing required values or unaligned timestamps invalidate a complete checkpoint.
 
 The manifest MUST commit to the exact ordered row sequence, not merely row count or first/last timestamp. The verifier MUST recompute each partition digest and the top-level content root.
 
@@ -168,19 +169,18 @@ Current source mapping does not establish project-specific SQLite synchronous/fs
 
 ## 5. Canonical serialization and digest rules
 
-V1 canonical serialization profile is a contract candidate, not a library selection:
+The normative v1 canonicalization profile is T0-JCS-1, defined in §5.1. It uses RFC 8785 JCS with stricter T0 schema rules. No production library/runtime is selected by this contract.
 
-1. UTF-8 JSON with deterministic canonicalization profile identifier `T0-CJSON-1`.
-2. Object keys are canonicalized by the named profile; insignificant whitespace is absent.
-3. All timestamps, counts and schema versions are integers within the declared range.
-4. All monetary/market decimal values are strings in a validated canonical decimal representation; JSON floating-point values are forbidden.
-5. Optional fields are either explicitly null or omitted only where the schema marks them optional; the choice is fixed per schema version.
-6. Arrays have schema-defined order. Candle arrays are ascending by open time.
-7. Duplicate object keys, invalid UTF-8, unknown required enum values and non-canonical encodings are rejected.
-8. Hash inputs are the exact canonical bytes. The digest field itself is excluded from the bytes it commits to, or placed in a detached descriptor to avoid recursive hashing.
+1. Canonical bytes are UTF-8 RFC 8785 JCS output without BOM or trailing newline.
+2. Duplicate object keys, invalid UTF-8, invalid Unicode scalar sequences, unpaired surrogates, unknown schema fields and invalid enum values are rejected.
+3. JSON floating-point and JSON integer values are forbidden in canonical wire objects. All logical integer quantities (including timestamps, counts and schema versions) are canonical unsigned base-10 strings. All market decimals are canonical decimal strings.
+4. Nullable and omittable fields follow one fixed representation per schema version; no alternate encodings are permitted.
+5. Arrays have schema-defined order. Candle rows are strictly ascending by numeric open_time_ms; partition descriptors are ordered by timeframe (15m then 1h), then numeric start_ms and end_ms.
+6. A verifier MUST parse, validate, canonicalize and byte-compare the exact preserved input before accepting its digest.
+7. Evidence Object content_digest is the domain-separated SHA-256 defined in §5.1.C, not an unprefixed hash. Row and partition commitments use their own domain-separated constructions.
+8. The digest is carried by the external Evidence Object descriptor and MUST NOT be embedded recursively in the bytes it commits to.
 
-The final canonicalization profile MUST be tested against fixed byte-level test vectors before code implementation. No serializer/library has been selected by this document.
-
+The logical object model may represent timestamps/counts/schema versions as integer types. Their canonical wire representation is always a decimal JSON string to avoid IEEE-754 precision loss.
 
 ### 5.1 G0.3 — Canonical byte profile and content-root algorithm (2026-11-10)
 
@@ -480,7 +480,7 @@ The owner has not selected A, B, or two separately versioned evidence products. 
 
 The following remain OPEN; this contract does not silently decide them:
 
-- canonicalization test vectors and exact serialization library;
+- production JCS library/runtime selection and remaining cross-implementation conformance vectors (G2);
 - checkpoint snapshot mechanism for SQLite and PostgreSQL;
 - durable commit receipt semantics and failure-domain profile;
 - checkpoint issuer identity and owner approval boundary;
