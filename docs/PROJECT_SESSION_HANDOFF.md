@@ -333,3 +333,13 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: P1.8.58 SPECIFICATION COMPLETE; CRYPTOGRAPHIC BYTES NOT FROZEN; NOT EXECUTED; P1.8.61 REVIEW PASS; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; E2/E3/E4 NOT ACQUIRED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; existing 13 vectors historical SYNTHETIC PASS only; RPO/RTO planning targets only; `AI_EXECUTION_ENABLED=false`.
 - No fixture bytes generated or executed; no provider, key, runtime, VPS, DB, Feeder, production, staging, restore, fault injection or workflow operation. No CI run or artifact is claimed.
 - Next gate: independent review of separation between policy design, frozen E1 bytes, E1 execution and external/provider integration. Keep all OPEN decisions and execution permissions separate.
+
+
+### P1.8.62 — E1 lifecycle and external integration boundary review
+- Review: `docs/evidence/p1-8/P1.8.62-independent-review-e1-lifecycle-boundaries.md`; commit `5005773501220d1bc6869e18e65f2289c317e731`.
+- Result: PASS. Confirms policy design vs fixture specification vs frozen bytes vs executed E1; E1 vs E2; E2 vs E3; E3 vs E4; E4 vs production; and readiness vs execution authorization remain distinct.
+- V07 RFC 9654 nonce omission behavior remains correctly separated from nonce-echo PASS. No provider/profile/algorithm/trust/nonce/accuracy/revocation parameter selected.
+- V08/Restore proposed fixture IDs remain specifications, not executions; watermark/checkpoint/backup/startup are not accepted as durable commit or restore/reconciliation proof.
+- No finding. No provider connection, key operation, E1 execution, data probe, VPS/runtime change, staging, restore, fault injection or workflow dispatch. No CI run or artifact is claimed.
+- Status: P1.8.62 REVIEW PASS; P1.8.58 SPECIFICATION COMPLETE / CRYPTOGRAPHIC BYTES NOT FROZEN / NOT EXECUTED; existing 13 vectors historical SYNTHETIC PASS only; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; E2/E3/E4 NOT ACQUIRED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; RPO/RTO planning targets only; `AI_EXECUTION_ENABLED=false`.
+- Next gate: determine which local E1 fixtures can be frozen without selecting unresolved policy/provider/implementation parameters. If no fixture meets that condition, record the blocker and do not fabricate values or request generic permission.
