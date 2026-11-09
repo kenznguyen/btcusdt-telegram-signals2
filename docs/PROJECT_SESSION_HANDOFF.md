@@ -3680,3 +3680,13 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Current states remain TEST-01–05 OPEN / NOT ESTABLISHED; TEST-06 PARTIAL / NOT ESTABLISHED; TEST-07 OPEN / NOT ESTABLISHED; TEST-08 NOT GRANTED. LDA-07 NOT RUN (87/87); LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
 - No test, compile, dry-run, fault injection or Actions dispatch. No source/schema/adapter/workflow/runner/permission/runtime/data changes. No secret values read. Option C and protected T0/T3/CORE_LEDGER/AI_LEDGER evidence remain unchanged.
 - Next: keep implementation blocked; resolve prerequisite evidence one bounded contract at a time. Before any harness execution, obtain TEST-08 exact authorization and prove all relevant TEST-01–07 gates. No automatic promotion from documentary completion to execution.
+
+
+## Stage C.5 — TEST-01 Lifecycle Runner Contract (2026-11-10)
+
+- Added `docs/evidence/p1-8/STAGE_C5_TEST01_LIFECYCLE_RUNNER_CONTRACT_2026-11-10.md`; documentation-only contract commit `b76e743a378a56062d44c4da71eb68077e7c9c6e`.
+- Defines manifest fields, strict validation, explicit vector selection, one-to-one vector/test mapping, per-vector result schema, run-level exit semantics, deterministic discovery/order/retries, reproducibility, evidence completeness and fail-closed isolation assumptions.
+- Runner must have no cleanup capability; network DENY_ALL; synthetic adapters only; no secrets; no path/backend fallback to canonical systems. T0 canonical data/recovery copies, CORE_LEDGER, AI_LEDGER and T3 reconstruction/audit evidence remain protected.
+- TEST-01 status: CONTRACT DOCUMENTED / IMPLEMENTATION NOT ESTABLISHED; not closed. TEST-02–05 and TEST-07 remain OPEN / NOT ESTABLISHED; TEST-06 PARTIAL / NOT ESTABLISHED; TEST-08 NOT GRANTED. LDA-07 NOT RUN (87/87); LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
+- No implementation, tests, compile, dry-run, fault injection or Actions dispatch. No secrets/runtime/VPS/database/provider/recipient/backup/replica access. No source/schema/adapter/workflow/runner/permission/runtime/data changes; no destructive operation.
+- Next bounded step: Stage C.6 TEST-02 Synthetic Adapter Interface Contract. No implementation or execution until prerequisites are evidenced and TEST-08 exact scope is separately approved.
