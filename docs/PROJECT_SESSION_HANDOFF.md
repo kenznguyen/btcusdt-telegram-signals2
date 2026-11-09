@@ -2219,3 +2219,17 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Existing blockers: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C182 NOT IMPLEMENTED / NOT EXECUTED.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
 
+## P1.32 — Live ERA key-status operation and follow-up self-review (2026-11-09)
+
+- Contract commit: `ea6fc3e74ae5803e0ff48f03ca3a9300b10c0376`.
+- Exact contract blob: `57f1d6a7126de56b4ccd4707d8039dc0032d7e7e`.
+- Added `READ_ERA_KEY_STATUS` with nonce-bound request and root-key-signed status payload; remote/local state reconciliation; remote REVOKED/local ACTIVE triggers evidence validation and quarantine; remote ACTIVE/local REVOKED or any mismatch triggers split-brain quarantine; unavailable/stale/unknown fails closed.
+- Added C183–C188.
+- P1.32 self-review file: `docs/reviews/t1/P1_32_SELF_REVIEW_ERA_LIVE_KEY_STATUS_2026-11-09.md`.
+- Review commit: `4bbfb837cd0200336ae9b8509e136a6bf6ddd608`; review blob: `dccc923e60d33e9749bea2063d97e94c25993615`.
+- Verdict: **REQUEST CHANGES — F02-R16 MEDIUM**. ERA_KEY_STATUS_V1 claims exactly seven keys but also requires an eighth `revocation_evidence_bundle_jcs_base64url` field. Correct cardinality/types and add missing/extra/malformed-field fixture.
+- Issue #138 remains targeted at P1.24 SHA until F02-R16 is corrected and exact-SHA self-review passes.
+- No ERA implementation, executable tests, Actions dispatch, REST, VPS/runtime, T1 activation, T0/T2 changes, trading or destructive data operations.
+- Existing blockers: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C188 NOT IMPLEMENTED / NOT EXECUTED.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
