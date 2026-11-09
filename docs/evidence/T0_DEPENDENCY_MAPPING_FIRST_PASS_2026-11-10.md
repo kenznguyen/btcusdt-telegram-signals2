@@ -140,3 +140,28 @@ This is a significant architecture gap for any future claim that T0 is the sole 
 - Repository-wide search is still not complete: static inspection now covers selected Python T0 source, selected workflow files, Android market engine/API consumers, and T0 README declarations.
 - The new Android direct-Binance path is positive evidence that at least one app market-data path bypasses T0, not evidence of a defect in T0 itself.
 - Runtime endpoint/configuration mapping and live consumers remain NOT VERIFIED.
+
+
+## Owner-directed retirement candidates — 2026-11-10
+
+The owner has directed that the following legacy consumer paths be placed on the **RETIREMENT CANDIDATE** list for the target architecture. This is a planning/disposition decision only; it does not authorize immediate deletion, disabling, migration, or runtime changes.
+
+| Candidate | Current path evidenced | Target disposition | Preconditions before retirement |
+|---|---|---|---|
+| Android Chart/Scanner direct market feed | `MarketEngine.fetchCandles()` uses Binance Futures REST; MarketEngine also opens Binance Futures WebSocket streams; `ChartMarketSession` and `ScannerMarketFeed` consume this path | Retire the direct-exchange market-data path and route Chart/Scanner through the approved T0 consumer/API boundary | Map FiveLayer API baseUrl and server route ownership; establish T0 endpoint contract and availability; verify M15/H1 parity, pagination/gaps/as-of semantics, reconnect/background/recovery behavior, scanner/chart regression and rollback |
+| Python bot/backtest legacy market-data source | T0 README records that the existing Python bot/backtest still uses OKX directly | Retire the legacy OKX source path and migrate consumers to T0 canonical data | Complete exact-branch call-site/config inventory; identify all bot/backtest entry points and timeframe/symbol assumptions; establish T0 contract mapping; verify historical parity, indicator/signal/backtest reproducibility, failure behavior and rollback |
+
+### Retirement boundaries
+
+- The target is the **legacy consumer/source path**, not blanket deletion of the Android application, Chart/Scanner features, Python bot, backtesting engine, or their unrelated modules.
+- Preserve current behavior until replacement paths pass the required tests and receive a separate migration/retirement approval.
+- Do not infer that Android FiveLayer API is already routed to `market_data.api /v1/candles`; that deployment mapping remains NOT VERIFIED.
+- Do not infer that every Python bot/backtest call site has been inventoried; the OKX dependency is documented, but the repository-wide call graph remains NOT VERIFIED.
+- No files, workflows, configuration, runtime, VPS, database, exchange access, or consumer behavior were changed by this decision.
+
+### Status
+
+- Owner direction to list both paths as retirement candidates: RECORDED.
+- Dependency closure and replacement design: NOT VERIFIED / OPEN.
+- Migration and regression evidence: NOT RUN.
+- Actual retirement/deletion: NOT AUTHORIZED by this record.
