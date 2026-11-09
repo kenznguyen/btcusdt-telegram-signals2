@@ -2497,3 +2497,14 @@ This section supersedes the P1.42 handoff statement that C01–C24 source defini
 - Status: decimal-loss behavior FIXED and CI-VERIFIED at `ad03560...`; latest T1 branch HEAD / added edge tests NOT VERIFIED pending a fresh workflow run. No PR merge, deployment, VPS/runtime operation, T1 activation, T0/T2 mutation, live order, exchange credential use or destructive data operation.
 - Remaining blockers unchanged: FINAL_ONLY/product identity implementation NOT VERIFIED; Binance REST completeness NOT ACCEPTED; target filesystem/provider durability F07 NOT VERIFIED; no production readiness claim.
 - Next step: obtain a successful GitHub Actions run for exact T1 branch HEAD `c502fa1...` (or a later HEAD) so the added lexical edge tests are verified; only then proceed to FINAL_ONLY/product identity implementation review. Keep PR #1 OPEN/DRAFT and do not activate T1.
+
+
+### P1.44 latest-head test fixture correction
+
+- Adversarial review addendum corrected the test fixture for embedded-newline rejection: the runtime input is now an actual newline, not a literal backslash followed by `n`.
+- T1 collector commit: `bb70a28d21486cb844d6fb8536be310172502abd`.
+- Exact current T1 branch HEAD: `bb70a28d21486cb844d6fb8536be310172502abd`.
+- Current writer blob SHA: `6fa31c4b5874f2ca874db47b2cb3c35dfc02953c`; models blob remains `9b195b921eda2863f3769eaac34b3bd0bae48bd1`.
+- Workflow run `42645946681` ended `startup_failure` with zero jobs. Exact current HEAD and the added edge tests remain NOT VERIFIED. Implementation behavior remains verified only at `ad03560b6409de3c28688fb25d57fa49aed66a9f` by green run `42644995874`.
+- P1.44 review addendum commit: `c6995836efb8e9dc11732c1162666c12b6bcceb5`; exact updated review blob `7a4fefc2d35b90daedf90c156ccf679546abef7e`.
+- No issue retargeting, PR merge, deployment, VPS/runtime operation, T1 activation, T0/T2 mutation or destructive operation occurred.
