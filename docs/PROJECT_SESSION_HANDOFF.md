@@ -1251,4 +1251,4 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next gate: obtain non-secret, independently attributable evidence of the collector's effective read-only boundary within the existing scope. Do not call EP-02–EP-08 unless that precondition is established. Do not create or expand credentials or change permissions to bypass the stop. If proof cannot be obtained within the approved boundary, retain PARTIAL/NOT VERIFIED.
 
-- P1.8.138 final review blob SHA after read-back: `61daada60027b6f962a674231a479b5ce75dc4f8`. Final handoff update commit: `66616b8acbf5d2c33e7fe2c3ccaba7deaeb15272`; handoff blob SHA: `381a66695b686c71a601f56f3dcf9a22addfa551`.
+- P1.8.138 final review blob SHA after read-back: `61daada60027b6f962a674231a479b5ce75dc4f8`. The handoff was subsequently refreshed; this line records the earlier intermediate update only.
