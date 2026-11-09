@@ -3930,3 +3930,20 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - Option C — No Destructive Authority remains ACTIVE; `AI_EXECUTION_ENABLED=false`; no live orders.
 - No source/code/schema/adapter/runner/workflow/permission/runtime/data changes; no tests, compile, dry-run, fault injection, Actions dispatch, secrets/runtime/provider/VPS/database/recipient/backup/replica probes, provisioning, external evidence publication or destructive operation. No workflow run or artifact is claimed.
 - Next step: prepare a versioned documentary technical contract from the approved directions while retaining all OPEN parameters. Implementation requires separate explicit approval; lifecycle execution additionally requires TEST-08.
+
+
+## Latest completed work — Stage I.0–I.5 / Versioned Technical Contract
+
+- Added documentary draft baseline: `docs/evidence/p1-8/STAGE_I0_I5_VERSIONED_TECHNICAL_CONTRACT_2026-11-10.md`.
+- Contract ID/version: `H5-LIFECYCLE-TECHNICAL-CONTRACT` / `1.0.0-draft`; not frozen, not implemented, not executable.
+- Report creation commit: `3757f58b2c91296e51d1867c602f58d001705527`.
+- I.1 specifies the JCS + SHA-256 direction, source-byte digest distinction, domain-separated identifiers, schema evolution and required conformance fixtures; exact profile/library and numeric/Unicode rules remain OPEN.
+- I.2 defines run/namespace binding, resource classification and layered synthetic isolation; concrete technology and effective isolation proof remain OPEN.
+- I.3 defines distinct principal roles, identity binding and capability requirements; provider/credential mechanism and effective permission proof remain OPEN.
+- I.4 defines logical evidence envelope, verifier inputs/checks/results and provider-neutral destination boundary; exact field schema, trust roots and provider remain OPEN.
+- I.5 defines retention/recovery decision fields and preserves 87-vector traceability: 87/87 design-mapped, 0/87 executable, 87/87 NOT RUN.
+- C.13 exact canonical path could not be resolved by current GitHub lookup; field-level crosswalk is explicitly OPEN / NOT VERIFIED, not claimed complete.
+- Stage I documentary draft COMPLETE; technical readiness BLOCKED; implementation and execution NOT AUTHORIZED. TEST-08 NOT GRANTED; TEST-01/02/04/05/06/07 NOT ESTABLISHED; TEST-03 NOT VERIFIED; LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
+- Option C — No Destructive Authority remains ACTIVE; `AI_EXECUTION_ENABLED=false`; no live orders.
+- No code/schema/adapter/runner/workflow/permission/runtime/data changes; no tests, compile, dry-run, fault injection, Actions dispatch, secrets/runtime/provider/VPS/database/recipient/backup/replica probes, provisioning, external evidence publication or destructive operation. No workflow run or artifact is claimed.
+- Next step: documentary contract reconciliation/revision to resolve C.13 source crosswalk and adjudicate OPEN fields. Implementation requires separate explicit approval; lifecycle execution additionally requires TEST-08.
