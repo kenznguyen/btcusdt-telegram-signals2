@@ -66,8 +66,9 @@ class MerkleTests(unittest.TestCase):
         self.assertEqual(len(candle_rows_root([row0, row1])), 64)
         with self.assertRaises(ValueError):
             candle_rows_root([row1, row0])
-        with self.assertRaises(ValueError):
-            candle_rows_root([row0, dict(row1, timeframe="1h")])
+        h1_row = dict(row0, timeframe="1h", open_time_ms="3600000", available_at_ms="7200000")
+        with self.assertRaisesRegex(ValueError, "mix timeframes"):
+            candle_rows_root([row0, h1_row])
 
     def test_partition_root_and_ordered_checkpoint_root(self):
         base = {"exchange": "binance", "market_type": "USDT_PERPETUAL", "symbol": "BTCUSDT",
@@ -126,6 +127,11 @@ class CompletenessOracleTests(unittest.TestCase):
         for rows in cases:
             with self.subTest(rows=rows):
                 self.assertEqual(self.assess(rows)["status"], "INVALID")
+
+    def test_incomplete_input_still_rejects_known_invalid_rows(self):
+        duplicate = [self.row(0), self.row(0)]
+        result = self.assess(duplicate, input_complete=False)
+        self.assertEqual(result["status"], "INVALID")
 
     def test_asof_violation_is_invalid_and_missing_page_is_unknown(self):
         self.assertEqual(self.assess([self.row(0)], as_of_ms="899999")["status"], "INVALID")
