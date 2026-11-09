@@ -68,3 +68,17 @@ Updated disposition:
 - G2 test verdict: **NOT VERIFIED**; no tests can be claimed to have executed.
 - Source-code defect: **NOT ESTABLISHED**.
 - Next action: preserve the current source SHA; after GitHub Status reports recovery, rerun/verify the same frozen SHA only with explicit authorization for workflow dispatch or an ordinary push-triggered run. Do not alter implementation code merely to address this platform incident.
+
+
+## Post-incident read-only recheck (2026-11-10)
+
+- Public GitHub Status currently reports **All Systems Operational**, including Actions and API Requests. Its incident history lists the Nov 9 incident with Webhooks and Actions as resolved. Sources checked: https://www.githubstatus.com/ and https://www.githubstatus.com/history .
+- Rechecked G2 runs after the incident status returned to operational:
+  - Run `42672254786`, head `8882ef2e31d55eb726f9322a57096fa544797c2b`: still FAILURE; 0 jobs; 0 artifacts.
+  - Run `42672280358`, head `8affc8b9aa12f17a969bc34c395b3b66b5871829`: still FAILURE; 0 jobs; 0 artifacts.
+- Branch HEAD remains `054a7acdf589317252feb2392dc18c9c0be905d0`. No new G2/P1.8 runs appeared after the incident runs in the latest repository Actions listing.
+- Read-back of `.github/workflows/t0-evidence-contract-g2.yml` remains blob `5e22648c38fd3c6e631f912010de1489bb78f9b5`. It defines one job (`synthetic-contract`) with compile, unittest, and always-upload artifact steps. The failed runs did not expose job records, so there is no evidence that this job or its steps started.
+- The user's screenshot independently shows the “Incident with Actions and Checks API” and updates describing elevated Actions/Checks API errors. This aligns with the failed-run window. The screenshot's displayed update times are preserved as user-supplied evidence; no unsupported reconciliation of timezone differences is asserted.
+- Interpretation: the GitHub platform incident is strongly corroborated as the likely cause of the zero-job failures. Exact internal cause remains NOT ESTABLISHED. Workflow configuration has been read and no concrete YAML defect has been identified; this is not a full workflow correctness certification.
+- No code/config change, workflow dispatch, rerun, DB/runtime/VPS/provider operation was performed.
+- Current disposition: platform status recovered; historical runs remain failed and unusable as test evidence; G2 exact-SHA execution remains NOT VERIFIED / NOT CLOSED. A fresh exact-SHA workflow run is required after recovery, but it has not been initiated.
