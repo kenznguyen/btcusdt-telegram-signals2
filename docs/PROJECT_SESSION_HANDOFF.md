@@ -2692,3 +2692,15 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact. No VPS/runtime/database/data/key/permission/provider operation. No source/config/workflow/deployment mutation. No deletion or destructive operation.
 - Status: branch-pinned path inventory COMPLETE; semantic audit PARTIAL; PostgreSQL implementation dependency confirmed but actual runtime use NOT VERIFIED; Kraken external/manual consumer NOT VERIFIED; CI policy inconsistency FOUND; repository-wide commercial absence NOT VERIFIED; independent second review BLOCKED; no REMOVE-CANDIDATE; Option C remains in force.
 - Next: separate CI-policy reconciliation; finish Kraken external/manual consumer/value inventory; obtain genuinely independent second review before any removal proposal.
+
+
+## T1 formatting-only Rustfmt commit — 2026-11-09
+
+- Owner-authorized formatting-only source commit on existing T1 branch `feature/t1-connection-sidecar-integration-20261107`.
+- T1 parent SHA `4566cffbbcf8495182abbc0d3496fdc65709ac14`; new commit `f3bae0cfbc26aa694a4d6c9476965121818d3567` ([commit](https://github.com/kenznguyen/binance-futures-collector/commit/f3bae0cfbc26aa694a4d6c9476965121818d3567)).
+- Single changed path `src/utils/csv_writer.rs`; 14 insertions / 2 deletions, formatting-only adjustment to an existing test. GitHub commit diff and file read-back verified; new file blob `0a4455134de9b353b4a7c25ffc6f0a252ca2c5a0`.
+- Manual test evidence: 7/7 Rust commands PASS, 88 PASS / 0 FAIL on parent SHA plus the exact same local patch (patch SHA-256 `90cee952837cf753bf872c2cb19f75e1157dc5c64eb937d58c62cbe796a31ec6`). The newly committed SHA itself was not checked out/retested: exact-SHA verification NOT VERIFIED.
+- Workflow run lookup for new SHA returned no runs; Actions CI status for new SHA NOT VERIFIED. Existing dispatcher incident remains unresolved; do not claim CI PASS.
+- Receipt updated in main repo: `docs/evidence/t1/T1_MANUAL_VPS_TEST_RECEIPT_2026-11-09.md`, documentation commit `d86a473389dce79b8a663e30ee4f34668c55b408`, blob `e8ff995c13b05fdea35effbc35f0bc416ca2304b`.
+- No collector launch, Binance connection, exchange credentials, T0/T2 or T1 runtime mutation, PR merge, issue retarget, or deployment.
+- Next: verify new exact SHA in an isolated checkout and rerun the bounded Rust checks if permitted; retain T1 inactive. Do not attempt to bypass or reconfigure the Actions dispatcher.
