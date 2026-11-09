@@ -112,3 +112,16 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: DECISION PACKAGE PREPARED; OWNER DECISIONS PENDING; NOT EXECUTED. Environment equivalence NOT VERIFIED; staging NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; `AI_EXECUTION_ENABLED=false`.
 - No source/runtime changes, VPS/T0/T1/DB/Feeder changes, provider selection, key operations, data collection/read probes, staging provisioning, restore/fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
 - Next step: owner reviews the decision register and explicitly selects or revises each parameter; only then prepare a versioned parameter baseline and independent static review.
+
+## Latest completed work — P1.8.34
+
+- Recorded explicit owner approval of the V07, V08 and Restore recommendations in `docs/evidence/p1-8/P1.8.34-owner-approved-parameter-policy.md`.
+- P1.8.34 document commit: `e0ac51452053c968c4d08dd53df77f359851f504`.
+- P1.8.34 document blob SHA: `fa996f9573ba73609efcf697340b6b969c70479e`.
+- Approved V07 direction: independently verifiable trusted timestamp proof; distinct trusted-time/received/revocation semantics; fail-closed and quarantine; explicit revocation authority, key-rotation boundaries and audited quarantine release. Exact authority, proof profile, cache age, propagation, cutover, roles and other numeric/operational parameters remain OPEN.
+- Approved V08 direction: UTC half-open `[start,end)` windows; monotonic source-progress watermark; lateness derived from evidence; seal when `watermark >= window_end`; clock uncertainty hold/quarantine; durable commit boundary tied to actual implementation; deterministic seal/commit linearization; immutable checkpoints and append-only idempotent corrections. Exact lateness, skew, clock, source, precision, provider/commit proof and correction contract details remain OPEN.
+- Approved Restore measurement direction: explicit failure domain; durable ACK boundary; frozen transaction-ID/digest population; snapshot RPO by time and missing committed transactions; auditable RTO start/stop; three separate rehearsals; integrity/reconciliation oracle; rollback and cleanup. Exact failure domain, provider/database semantics, formulas, rehearsal independence and operational controls remain OPEN.
+- Existing planning targets remain unchanged and are not SLOs or measured capabilities: acknowledged-transaction RPO 0 only within tested boundary/failure domain; snapshot RPO ≤5 minutes; staging RTO ≤60 minutes; 3 independent restore rehearsals.
+- Owner explicitly withheld staging authorization. Staging NOT AUTHORIZED; no provisioning, restore, fault injection, key operation, data collection/read probe, workflow dispatch, source/runtime change, PR or merge.
+- `AI_EXECUTION_ENABLED=false`; no live orders. Production NOT VERIFIED; D3/D4 NOT TESTED. No CI run or artifact is claimed for this documentation-only change.
+- Next gate: independent static review of P1.8.34 against P1.8.26–P1.8.33. Keep all measurement-dependent parameters OPEN; any staging proposal requires separate explicit approval.
