@@ -1105,3 +1105,25 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - IR122-01 remains OPEN pending a separately approved read-only inventory execution and independent review. This contract does not close it or claim Option C is technically enforced.
 - T0 remains an independent canonical data asset; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`.
 - Next gate: independent static review of P1.8.123 contract. Any read-only metadata collection, permission inspection, remediation or enforcement verification requires its own explicit approval and bounded scope.
+
+
+## P1.8.124 — Independent Static Review of P1.8.123 (2026-11-09)
+
+- Owner approval: explicit approval received for P1.8.124 independent static/documentary review only.
+- Review: `docs/evidence/p1-8/P1.8.124-independent-static-review-p1-8-123.md`.
+- Review commit: `69ac77ad7761452e2cc998dd058b8761c709bb8c`.
+- Reviewed P1.8.123 blob SHA: `d2c2a4a22b63b2214448b4405b44dc69de29b864`.
+- Cross-contract sources: P1.8.122 blob `69cc991264317c3763aedab03a92d977f7758ed1`; P1.8.121 blob `b92c63f593af0088fc522a55dc841af0ad1e5ac7`; P1.8.114 blob `067038d870b30b18934c4f6fe1b6d25ccd529ac5`; P1.8.93 blob `4cc158b5f766fb024e411519be36076bc1e3758a`.
+- Verdict: **PARTIAL**. P1.8.123's core identity inventory and fail-closed model are directionally sound and consistent with Option C, but three clarifications are required before using it as the basis for a read-only inventory proposal or an Option C technical-enforcement claim.
+- IR124-01 MAJOR: multi-source inventory snapshot consistency, collection drift detection, final read-only revalidation and manifest-bound observation window are underspecified.
+- IR124-02 MAJOR: opaque secret-derived credentials need explicit non-secret provenance requirements and mandatory UNKNOWN/NOT VERIFIED handling when effective scope cannot be established without revealing values.
+- IR124-03 MODERATE: explicitly map GitHub organization/repository administration, Actions policy, ruleset/environment bypass, runner-group administration, privileged workflow approval/rerun, and artifact/cache supply-chain edges.
+- P1.8.123 core scope retained; no direct contradiction with P1.8.121 Option C or P1.8.93 mutation-fencing boundary found.
+- P1.8.122 IR122-01 remains OPEN: contract design is not live permission evidence. P1.8.120 IR120-01 remains OPEN for Option B; B remains unselected/not selection-ready.
+- Static review: COMPLETE. Tests: NOT RUN. GitHub Actions: NOT DISPATCHED. Workflow run/artifact: NONE.
+- Live GitHub/org/environment/OIDC/runner/provider permission inventory: NOT PERFORMED / NOT VERIFIED.
+- Secret-value retrieval, IAM/role/permission change, credential creation/rotation/revocation, workflow activation/remediation, runner jobs/host inspection/provider probes: NOT EXECUTED / NOT AUTHORIZED.
+- Restore/staging/fault injection/provider/key/TSA operations: NOT EXECUTED / NOT AUTHORIZED.
+- Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Destructive/deletion authority: NOT GRANTED.
+- Option C remains the approved default; T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`.
+- Next gate: prepare a documentation-only P1.8.125 clarification for IR124-01/02/03, then independently review it. Any live read-only metadata inventory still requires separate explicit owner approval and bounded scope.
