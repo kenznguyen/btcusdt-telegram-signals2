@@ -3599,3 +3599,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Tests NOT RUN; Actions NOT DISPATCHED; no runtime/VPS/DB/provider/legal/permission/consumer/copy probes; no source/schema/config/workflow/permission/runtime/data changes or destructive operations.
 - Stage A.9 report commit: `c30f1f2a15e6665fbf78c5fe4b8bf3a1bdffef20`; report blob and final handoff commit to be verified by read-back.
 - Next: stop at Stage A boundary. Collect the explicit owner/operational/competent legal inputs listed in the checklist. Stage B or C requires separate explicit authorization; automatic Stage A approval does not extend to either.
+
+
+## Stage B.1 — T0 Lifecycle Technical Contract Assessment (2026-11-10)
+
+- Owner explicitly approved Stage B.1 assessment only. Scope: documentary assessment of V07 trusted time/revocation, V08 durable checkpoint/seal ordering, RET-10 adapter/separate verifier, RET-05/LDA-05 mutation fencing and Restore/Recovery.
+- Added `docs/evidence/p1-8/STAGE_B1_T0_LIFECYCLE_TECHNICAL_CONTRACT_ASSESSMENT_2026-11-10.md`.
+- Frozen source baseline HEAD: `851f67881420d0e646d1663221a1de10bed03c59`.
+- Pinned controlling plan blob: `bfbd3ae5ec49e644632c72a1865745628ef574f3`; lifecycle independent-review waiver blob: `555951e36f6365012cb5b9e48ba24e455b775d16`; Stage A.9 checklist blob: `dd67a21b741416889f8d0a1d16b205f3d7fdbcec`; Stage A.8 RET-06/08 contract blob: `286f47ef2d9e3d2a177218bd2544f09683a7bbcf`.
+- Assessment result: V07 BLOCKED/NOT VERIFIED; V08 OPEN/BLOCKED; RET-10 OPEN/NOT VERIFIED; RET-05 policy boundary approved but technical enforcement NOT VERIFIED; LDA-05 NOT VERIFIED; Restore OPEN/BLOCKED. Requirements and dependencies are documented, but no technical contract is qualified and no status promoted to PASS.
+- Bounded fetch did not locate dedicated standalone current-branch contract files at anticipated paths; this is not an exhaustive repository-absence claim. No source implementation was qualified.
+- Dependency sequence proposed: B.2 V07; B.3 V08; B.4 RET-10; B.5 RET-05/LDA-05; B.6 Restore. Each later increment requires separate approval.
+- Tests NOT RUN; Actions NOT DISPATCHED; no runtime/VPS/DB/provider/permission/consumer/copy/backup/legal probes; no source/schema/config/workflow/permission/runtime/data changes or destructive actions.
+- Human independent review remains owner-waived; technical/environmental verifier separation remains mandatory. Option C and protected classes unchanged.
+- Stage B.1 report commit: `970c7c303f0eb2dc23622d350897f269c1592bce`; report blob and final handoff commit to be verified by read-back.
+- Next proposed increment: B.2 documentary V07 trust/time/revocation contract specification only. No provider/key/trust-root selection, numeric freshness/clock threshold, implementation, tests, Actions or runtime probes without separate explicit approval.
