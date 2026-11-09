@@ -49,7 +49,7 @@ class EventSignatureTests(unittest.TestCase):
     def test_rejects_invalid_signature(self):
         with self.assertRaises(SignatureVerificationError) as caught:
             verify_event_signature(
-                self.message, b"\\x00" * 64, "test-key-1", self.registry, at_time=NOW
+                self.message, b"\x00" * 64, "test-key-1", self.registry, at_time=NOW
             )
         self.assertEqual(caught.exception.code, "REJECT_SIGNATURE")
 
