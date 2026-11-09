@@ -3902,3 +3902,15 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - No code/schema/adapter/runner/workflow/permission/runtime/data changes; no tests, compile, dry-run, fault injection or Actions dispatch; no secrets/runtime/VPS/T0/T1/DB/provider/recipient/backup/replica probes; no provisioning or destructive operation. No workflow run or artifact is claimed.
 - Option C remains ACTIVE; `AI_EXECUTION_ENABLED=false`; no live orders.
 - Next gate: owner decision package for unresolved canonicalization/schema profile, synthetic resource/principal boundary and evidence destination/verifier. Any implementation, probes or lifecycle execution require separate scope and authorization; TEST-08 remains mandatory.
+
+
+## Latest completed work — Stage G.0–G.5
+
+- Completed documentary-only owner decision package: `docs/evidence/p1-8/STAGE_G0_G5_OWNER_DECISION_PACKAGE_2026-11-10.md`.
+- Report creation commit: `fd4b57f4773edac585c68ecea319114deb9314ba`.
+- Scope: G.1 proposes RFC 8785 JCS + SHA-256 with strict conformance; G.2 proposes layered per-run synthetic isolation; G.3 defines distinct least-privilege principals/capabilities; G.4 compares evidence destinations and recommends a provider-neutral hybrid model with independent exact-version verifier; G.5 records six pending owner decisions.
+- All six G-DEC decisions remain PENDING; recommendations are not owner-approved technical baselines.
+- Status: Stage G documentary package COMPLETE; technical readiness BLOCKED; implementation and execution NOT AUTHORIZED. TEST-08 NOT GRANTED; TEST-01/02/04/05/06/07 NOT ESTABLISHED; TEST-03 NOT VERIFIED; LDA-07 87/87 NOT RUN; LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
+- Option C — No Destructive Authority remains ACTIVE; `AI_EXECUTION_ENABLED=false`; no live orders.
+- No code/schema/adapter/runner/workflow/permission/runtime/data changes; no tests, compile, dry-run, fault injection, Actions dispatch, secrets/runtime/provider/VPS/database/recipient/backup/replica probes, provisioning or destructive operations. No workflow run or artifact is claimed.
+- Next step: owner disposition of G-DEC-01 through G-DEC-06; only after explicit decisions may a versioned technical contract be prepared. Any implementation and lifecycle execution require separate authorization.
