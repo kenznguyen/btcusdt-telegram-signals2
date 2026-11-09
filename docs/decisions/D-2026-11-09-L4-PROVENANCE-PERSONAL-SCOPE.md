@@ -100,7 +100,7 @@ Option C — No Destructive Authority — remains in force. T0 remains an indepe
 ## 8. Decision status
 
 - Personal/non-commercial system direction: CONFIRMED from the owner's prior explicit project decision.
-- L4-Minimum control profile: PROPOSED; detailed owner ratification and independent review still required.
+- L4-Minimum control profile: OWNER-APPROVED on 2026-11-09 in the conversation; approval covers the scope and acceptance profile in this record only. Implementation and independent technical acceptance remain outstanding.
 - L4-Extended commercial assurance features: DEFERRED unless a concrete need is established.
 - L4 overall: BLOCKED / NOT VERIFIED for implementation and operational acceptance.
 - This record does not close P1.8.152 residual findings or replace the documented next gate P1.8.153.
