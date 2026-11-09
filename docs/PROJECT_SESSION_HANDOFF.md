@@ -1215,3 +1215,26 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No staging, restore, fault injection, key/TSA operation, archive, cleanup, vacuum or deletion. Option C remains the approved default; destructive/deletion authority NOT GRANTED.
 - T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next gate: independent static review of the consolidated P1.8.129–P1.8.134 evidence/status index. Any live inventory requires a separate explicit owner approval of exact scope, endpoint set, collector identity, evidence handling and independent reviewer.
+
+
+## P1.8.135–P1.8.136 — GitHub Read-Only Inventory Proposal Closure Index (2026-11-09)
+
+- P1.8.135 index:
+  - Path: `docs/evidence/p1-8/P1.8.135-github-read-only-inventory-proposal-closure-index.md`.
+  - Final commit after exact review-blob reconciliation: `86c6d5e6148e15ebfd4ae9e0afcf178bb828bc25`.
+  - Final blob SHA: `3fd9196de5745e00545b24e1101619e8fb4149e6`.
+  - Consolidates P1.8.129–P1.8.134 proposal, findings, endpoint matrix, exclusions, exact commit/blob identities and future owner-approval gates.
+- P1.8.136 independent static review:
+  - Path: `docs/evidence/p1-8/P1.8.136-independent-static-review-p1-8-135.md`.
+  - Commit: `3e19a5e18ccd36eda9e3226882bd998177687721`.
+  - Blob SHA: `74b7db83fd05f6b934012e794c9cc1535cf5d770`.
+  - Reviewed P1.8.135 blob: `3fd9196de5745e00545b24e1101619e8fb4149e6`.
+  - Verdict: PASS — evidence references, findings, scope exclusions and authorization boundaries are internally consistent.
+- Documentary finding state: IR130-01/02/03 and IR132-01 CLOSED at design level. IR122-01 remains operationally OPEN.
+- P1.8.129 remains NOT APPROVED FOR EXECUTION. The candidate endpoint list is not an execution list until the owner separately approves exact scope, endpoint subset, collector identity and effective read-only boundary, evidence handling, observation window and independent reviewer.
+- Important blind spots remain explicit: collaborator/runner actor-role prerequisites, ruleset bypass-actor visibility, secret metadata and provenance, deploy keys, workflow source, OIDC and provider paths. The metadata-only phase cannot prove full Option C technical enforcement.
+- Static author/readback and independent review: PASS. Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE.
+- No live GitHub/API/provider endpoint was called. No live repository/org metadata, credentials or secrets were inspected. No IAM/permission/credential/workflow/runner changes, runner jobs, provider probes or remediation.
+- No staging, restore, fault injection, key/TSA operation, archive, cleanup, vacuum or deletion. Option C remains the approved default; destructive/deletion authority NOT GRANTED.
+- T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next gate: owner decision on whether to authorize the bounded read-only inventory and, if so, approval of the exact execution parameters listed in P1.8.135. Automatic documentary approval does not grant this access.
