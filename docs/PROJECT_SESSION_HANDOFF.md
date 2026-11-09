@@ -1645,3 +1645,18 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - GitHub Actions: NOT DISPATCHED; run ID NONE; artifact NONE.
 - Guardrails: T0 independent/canonical; no T1 writes to T0; no T1 activation; paper-only; AI_EXECUTION_ENABLED=false; no live orders; no OKX fallback/replacement; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
 - Next step: independent review of P1.3 against the official API contract and pinned T1 producer source. If independent reviewer access is unavailable, keep status pending and do not label this work independent. Implementation requires a separate explicit approval.
+
+
+## P1.4 — Independent adversarial review request (2026-11-09)
+
+- Re-read current handoff and T1 Contract v1.1 before continuing. Branch: feature/t0-centralized-data-feeder-p1-20261101.
+- Created GitHub issue #138 requesting an independent reviewer for Contract v1.1/P1.3: https://github.com/kenznguyen/btcusdt-telegram-signals2/issues/138. Issue is OPEN; no reviewer assigned and no review submitted.
+- Review request record: docs/reviews/t1/P1_4_INDEPENDENT_ADVERSARIAL_REVIEW_REQUEST_2026-11-09.md; commit d5445b8653d95f5b822cf18ae2e0fb8d613fc4a5.
+- Exact target: design at P1.3 commit 0e2cbec07b1289950a7aa7ec1b99ef0ec7f6302c and pinned T1 source SHA 6e20fe94f3ad64cc450e73def80a167fe371e49e.
+- Review scope asks about watermark false-PASS, no-trade minute semantics, REST boundary/pagination, finality/corrections, shared WS/REST blind spots, decimal preservation, product identity, manifest/filesystem durability and bounded reads. Required output: reviewer identity, SHA-pinned evidence, severity-ranked findings and PASS/REQUEST CHANGES/BLOCKED verdict.
+- Independence gate remains PENDING. Issue creation is not a review and does not constitute independent sign-off.
+- No source code, adapter, tests, Actions, VPS/runtime, T0/T2, strategy or trading changes. No data deletion or destructive operation. No REST call.
+- GitHub Actions: NOT DISPATCHED; run ID NONE; artifact NONE.
+- Status: P1.4 REVIEW REQUEST OPEN / INDEPENDENT REVIEW NOT YET RECEIVED / COMPLETENESS ORACLE NOT VERIFIED / IMPLEMENTATION NOT AUTHORIZED / T1 ACTIVATION NOT AUTHORIZED.
+- Guardrails: T0 independent/canonical; no T1 writes to T0; paper-only; AI_EXECUTION_ENABLED=false; no live orders; no OKX fallback/replacement; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
+- Next step: obtain an independent reviewer response on issue #138, then assess findings against exact SHAs. Do not self-certify independence or implement until separately approved.
