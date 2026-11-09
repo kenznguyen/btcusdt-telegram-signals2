@@ -702,3 +702,10 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 
 - P1.8.92 now explicitly maps the exact P1.8.86 alias `AWAITING_EXECUTION_AUTHORIZATION` to FINAL_RECHECK. Updated blob: `20bc00017200969acdf8675b6837ec458301c25d`.
 - P1.8.94 removed duplicate supplemental rows for NEG-VER-01 and NEG-INV-01 and labels the traceability column as P1.8.90/P1.8.94 vector mapping. Unique catalogue remains 69 vectors: 47 baseline + 22 supplemental. Updated blob: `c9fd74ef74be96cdc4ce31469715d563db98c022`.
+
+
+### P1.8.94 unique supplemental vector verification (2026-11-09)
+
+- Final P1.8.94 blob: `0e25c253ecc0f0a2657e2b4056a97222b3e92877`; commit: `c4a8f53a73ff21a1ed97474a6dcbadba3321d449`.
+- Verified 45 distinct traceability rows and 22 unique supplemental vector IDs, including explicit NEG-ID-05, NEG-VER-01 and NEG-INV-01. No duplicate supplemental IDs remain.
+- Total specified vectors: 69 (47 baseline + 22 supplemental); NOT_RUN.
