@@ -201,3 +201,28 @@ No critical contradiction was found in the written scope boundary. SR-01 and SR-
 3. Determine whether Kraken Spot has an actual personal research consumer and whether PostgreSQL is a supported target or merely an optional adapter.
 4. Obtain an independent second-reviewer verdict.
 5. Keep all physical removal and runtime/data lifecycle actions unauthorized pending exact-scope owner approval.
+
+## 10. Branch-pinned content audit (read-only, 2026-11-09)
+
+- Audit target: exact branch HEAD `a1053f40a2f762af52237401da2a0d00c4e813b1`.
+- Retrieved recursive Git tree successfully: `truncated=false`, 636 tracked blob paths.
+- All 13 active `.github/workflows/*.yml` files were fetched by exact commit ref and checked for the excluded commercial capability terms. No relevant matches were found. Workflows remain CI/manual engineering validation; T0 workflows include isolated Kraken and TimescaleDB gates, and T2 HTTP consumer gates.
+- Branch-pinned T0 runtime surface checked: `market_data/api.py`, `storage.py`, `postgres.py`, `feeder.py`, `feeder_service.py`, `store.py`, `write_gateway.py`, `kraken_spot.py`, `kraken_spot_api.py`, and `kraken_spot_store.py`. No multi-tenant, billing, subscription, customer onboarding, customer licensing, entitlement, customer SLA/support tier, payment, customer audit portal, or commercial certification implementation terms were found. One `certificate` match in `feeder_service.py` is production PostgreSQL TLS certificate/hostname verification, a security control.
+- Branch-pinned T2/dashboard surface checked: `freqai_bridge/ChartProFreqaiResearch.py`, `context.py`, `exporter.py`, `http_candles.py`, `config.research.json`, `control_dashboard/package.json`, `control_dashboard/src/App.jsx`, and `control_dashboard/src/api.js`. No excluded commercial capability terms were found.
+- Branch-pinned Android docs/config checked: `android-app/COMMERCIAL_READINESS.md`, `PRIVACY_POLICY.md`, `TERMS_OF_USE.md`, `README.md`, app Gradle config and Android manifest. The explicit commercial-readiness/paid commercialization checklist exists only as an Android release/product document and is outside T0. Android terms contain third-party copyright/licence notices, not a customer licensing system. These files are retained; no change is authorized.
+- Additional false-positive/context checks:
+  - `futures_intelligence/README.md` uses “subscription set” in the WebSocket market-data topic/subscription sense, not a paid subscription.
+  - `docs/T0_STAGING_PROVIDER_RESEARCH.md` uses billing/invoice/payment in cloud infrastructure cost/provider research; it explicitly records provisioning/trial/payment as NOT AUTHORIZED. This is not customer billing.
+  - `docs/architecture/T0_T1_T2_DATA_CONSUMPTION_ARCHITECTURE_2026-11-08.md` refers to model certification, not commercial certification.
+  - `market_data/test_support.py` is a generic test-support filename; it is not a customer-support workflow.
+- Branch-pinned T0 architecture/security docs checked: Candle Contract v1, T0/T1/T2 consumption architecture, Shared Data Foundation, API domain selection criteria, production security/backup/RPO/RTO, staging acceptance checklist and staging provider research. Matches for certificate/TLS, infrastructure billing or model certification are security/provider/research context, not customer commercial subsystems.
+- Dependency evidence reaffirmed: PostgreSQL source and runtime composition are concrete; Kraken has a separate adapter/store/API and dedicated test/workflow coverage. Their active use/value remains unverified.
+
+### Updated branch-pinned audit verdict
+
+- No evidence of a T0 customer-facing commercial subsystem was found in the inspected branch-pinned T0 runtime, active workflow, T2/dashboard, or architecture/security surfaces.
+- The Android commercial-readiness checklist is real but belongs to Android release/product documentation, not T0.
+- This is a **bounded content audit**, not proof over every one of the 636 files. Not every blob was fetched or semantically reviewed; broad non-T0 Python modules, Android implementation files, archived workflows, deployment/runtime files, generated artifacts and external consumer repositories remain incompletely inspected.
+- Therefore: **T0 commercial subsystem presence: NOT FOUND IN INSPECTED SURFACE; REPOSITORY-WIDE ABSENCE: NOT VERIFIED.** The previous HIGH blocker is narrowed but not closed.
+- No tests, GitHub Actions runs, provider calls, VPS/runtime/DB inspections, or mutations were performed. No workflow run/artifact is claimed. All work is read-only source inspection.
+- No REMOVE-CANDIDATE is established. No source deletion, workflow deletion, documentation deletion, runtime change, or data lifecycle action is authorized.
