@@ -3586,3 +3586,16 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Tests NOT RUN; Actions NOT DISPATCHED; no runtime/legal-system/provider/permission/copy probes, source/schema/config/workflow/permission/data changes or destructive actions.
 - Stage A.8 report commit: `c4d751504145d2650a53dab9bc74da1a79eef2f9`; report blob and handoff commit to be verified by read-back.
 - Next: Stage A.9 — consolidate RET-03/06/07/08 into a single Stage A acceptance checklist and owner-input register; distinguish documentary completeness from unresolved owner/legal/operational inputs. If no authoritative source exists, preserve NOT PROVIDED and close Stage A as blocked on substantive inputs. No Stage B/C work without separate authorization.
+
+
+## Stage A.9 — Lifecycle Stage A Acceptance Checklist (2026-11-10)
+
+- Added `docs/evidence/p1-8/STAGE_A9_LIFECYCLE_STAGE_A_ACCEPTANCE_CHECKLIST_2026-11-10.md` consolidating Stage A.1–A.8 artifacts, acceptance criteria, unresolved owner-input register and exit disposition.
+- Frozen baseline HEAD: `afd060c1eb8361184ba7bc4835716acb0b9144ac`.
+- Documentary T0–T4 class/dependency map, RET-06 and RET-08 requirements vocabulary and governance boundary are complete within pinned source scope.
+- Stage A is **DOCUMENTARILY COMPLETE BUT SUBSTANTIVELY BLOCKED**: RET-03 numeric floors/terminal events and RET-07 evidence floors have no owner/obligation source; RET-06 values/trusted-time profile are NOT PROVIDED; RET-08 competent authority/jurisdictional protocol is NOT PROVIDED; RET-09 inventory NOT VERIFIED; F-07–F-09 NOT VERIFIED.
+- Lifecycle statuses unchanged: RET-03 OPEN/FLOOR_NOT_ESTABLISHED; RET-04 NON-EXECUTABLE; RET-05 technical enforcement NOT VERIFIED; RET-06 OPEN; RET-07 OPEN; RET-08 OPEN; RET-09 NOT VERIFIED; RET-10 OPEN/NOT VERIFIED; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; LDA-05/06 NOT VERIFIED; LDA-07 NOT RUN; LDA-08 HOLD/NOT VERIFIED; LDA-09 reviewer gate waived, documentary only; IR147-01 reviewer gate waived, substantive floor OPEN; L4-Minimum BLOCKED/NOT VERIFIED.
+- No retention policy acceptance, numeric values, deletion eligibility or destructive authority resulted from Stage A completion.
+- Tests NOT RUN; Actions NOT DISPATCHED; no runtime/VPS/DB/provider/legal/permission/consumer/copy probes; no source/schema/config/workflow/permission/runtime/data changes or destructive operations.
+- Stage A.9 report commit: `c30f1f2a15e6665fbf78c5fe4b8bf3a1bdffef20`; report blob and final handoff commit to be verified by read-back.
+- Next: stop at Stage A boundary. Collect the explicit owner/operational/competent legal inputs listed in the checklist. Stage B or C requires separate explicit authorization; automatic Stage A approval does not extend to either.
