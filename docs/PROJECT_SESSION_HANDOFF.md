@@ -3795,3 +3795,16 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - TEST-01–07 remain NOT CLOSED; TEST-08 NOT GRANTED; 87/87 lifecycle vectors remain NOT RUN. LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
 - No tests, compile, dry-run, fault injection, provisioning, Actions dispatch, secrets/permission/runtime/VPS/database/provider/recipient/backup/replica probes, source/schema/adapter/workflow/runner/permission/runtime/data changes or destructive operations.
 - Next bounded documentary step: Stage C.14 — 87-vector applicability and TEST-01–07 assertion traceability matrix. No implementation or execution authority follows automatically; Option C and TEST-08 remain unchanged.
+
+
+## Latest completed work — Stage C.14 / 87-Vector Applicability Matrix
+
+- Added documentation-only 87-row family-level matrix: `docs/evidence/p1-8/STAGE_C14_87_VECTOR_TEST01_07_APPLICABILITY_TRACEABILITY_MATRIX_2026-11-10.md`.
+- Report commit: 2a52255fa9d5f55c0098c6fb2839bfe07d643ede; report blob SHA to be verified by read-back.
+- Reconciled the exact 87 vector rows from Stage C.3 and mapped provisional candidate TEST-01–07 gates by control family.
+- Explicit limitation: Stage C.3 register contains IDs/family labels/nearest modules but not the complete normative precondition/action/expected-state definition for each vector. Exact assertion IDs and N/A decisions were therefore not invented.
+- Matrix result: 87/87 family-level candidate rows; 0/87 exact vector-to-assertion mappings established; 0/87 executed. Adjacent-domain tests receive no coverage credit.
+- C12-F02 is PARTIALLY ADDRESSED only; exact source-catalogue semantic reconciliation and assertion-level mapping remain OPEN.
+- TEST-01–07 remain NOT CLOSED; TEST-08 NOT GRANTED; LDA-07 87/87 NOT RUN; LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
+- No tests, compile, dry-run, fault injection, provisioning, Actions dispatch, secrets/permission/runtime/VPS/database/provider/recipient/backup/replica probes, source/schema/adapter/workflow/runner/permission/runtime/data changes or destructive operations.
+- Next bounded documentary step: Stage C.15 — reconcile exact source catalogue definitions, correct PRV-T04 wording, and produce the owner static closure-readiness register. If exact source definitions cannot be retrieved from the repository evidence, retain the vector mappings as BLOCKED/UNRESOLVED rather than infer semantics.
