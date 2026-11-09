@@ -295,3 +295,16 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: P1.8.51 DOCUMENTARY ASSESSMENT PASS after correction; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; 13 vectors SYNTHETIC PASS only; RPO/RTO planning targets only; `AI_EXECUTION_ENABLED=false`.
 - No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes; no provider connection, key operation, data probe, staging, restore, fault injection or workflow dispatch. No CI run or artifact is claimed.
 - Next gate: prepare a consolidated evidence-to-decision matrix for the minimum E2/E3/E4 evidence needed to resolve each OPEN parameter family. Remain documentation-only until a concrete action requires separate explicit permission.
+
+
+### P1.8.54 / P1.8.55 — Minimum evidence-to-decision matrix
+- P1.8.54 matrix: `docs/evidence/p1-8/P1.8.54-minimum-evidence-to-decision-matrix.md`; commit `40f63f9f4d26fb845d1ab8ca8494aab62f93793f`.
+- Maps each OPEN V07/V08/Restore parameter family to minimum evidence categories, earliest useful evidence class, owner decision supported and explicit permission gate.
+- Defines cross-cutting evidence manifest (source/configuration SHA, environment, identity, UTC/uncertainty, raw artifact digest, verifier, oracle, custody, retention, rollback/cleanup).
+- Separates E0/E1 documentary/synthetic evidence from E2 non-production, E3 operational read-only and E4 staging evidence. No blanket permission requested; provider, key, production, VPS, staging, restore, fault injection and side-effect workflow actions each require explicit bounded approval.
+- P1.8.55 independent review: `docs/evidence/p1-8/P1.8.55-independent-review-evidence-to-decision-matrix.md`; commit `e7c21d14d28677f458a35523ffe63746b4995592`.
+- P1.8.55 result: PASS within documentary scope; coverage, proportionality, evidence classes, decision mapping, provenance and permission boundaries consistent; no findings.
+- No sample counts, durations, numeric thresholds, providers, failure domains or SLOs selected. No E2/E3/E4 evidence acquired.
+- Status: P1.8.54 DOCUMENTATION COMPLETE; P1.8.55 REVIEW PASS; V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; 13 vectors SYNTHETIC PASS only; RPO/RTO planning targets only; `AI_EXECUTION_ENABLED=false`.
+- No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine change; no provider connection, key operation, production probe, staging, restore, fault injection or workflow dispatch. No CI run or artifact is claimed.
+- Next gate: consolidate local E1 fixture specifications and acceptance oracles, without executing provider, runtime, staging or operational tests. Any E2/E3/E4 action remains separately permission-gated.
