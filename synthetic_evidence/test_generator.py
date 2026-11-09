@@ -335,8 +335,6 @@ class StrictInputAndReplayFaultVectors(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "sequence gap or reorder"):
             verify_local_replay(events)
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class SyntheticFaultInjectionTests(unittest.TestCase):
@@ -804,3 +802,148 @@ os._exit(74)
             self.assertEqual(recovered, uninterrupted)
             self.assertEqual(recovered["filled_quantity"], "10")
             self.assertEqual(recovered["orders"]["O2"]["filled_quantity"], "7")
+
+
+class SyntheticSignatureVerificationTests(unittest.TestCase):
+    """Ed25519 verification faults use ephemeral test keys only."""
+
+    def setUp(self):
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+        self.private_key = Ed25519PrivateKey.generate()
+        self.other_private_key = Ed25519PrivateKey.generate()
+        self.public_bytes = self.private_key.public_key().public_bytes(
+            serialization.Encoding.Raw, serialization.PublicFormat.Raw,
+        )
+        self.public_keys = {"ephemeral-key-1": self.public_bytes}
+        self.message = b"synthetic P1.8 signature verification vector"
+
+    def test_accepts_valid_ed25519_signature_from_active_key(self):
+        from synthetic_evidence.signing import verify_ed25519_signature
+
+        signature = self.private_key.sign(self.message)
+        self.assertTrue(verify_ed25519_signature(
+            self.message, signature, key_id="ephemeral-key-1",
+            public_keys=self.public_keys,
+        ))
+
+    def test_rejects_invalid_ed25519_signature(self):
+        from synthetic_evidence.signing import InvalidSignatureError, verify_ed25519_signature
+
+        signature = self.other_private_key.sign(self.message)
+        with self.assertRaises(InvalidSignatureError):
+            verify_ed25519_signature(
+                self.message, signature, key_id="ephemeral-key-1",
+                public_keys=self.public_keys,
+            )
+
+    def test_rejects_unknown_signing_key(self):
+        from synthetic_evidence.signing import UnknownSigningKeyError, verify_ed25519_signature
+
+        signature = self.private_key.sign(self.message)
+        with self.assertRaises(UnknownSigningKeyError):
+            verify_ed25519_signature(
+                self.message, signature, key_id="not-registered",
+                public_keys=self.public_keys,
+            )
+
+    def test_rejects_revoked_signing_key_even_when_signature_is_valid(self):
+        from synthetic_evidence.signing import RevokedSigningKeyError, verify_ed25519_signature
+
+        signature = self.private_key.sign(self.message)
+        with self.assertRaises(RevokedSigningKeyError):
+            verify_ed25519_signature(
+                self.message, signature, key_id="ephemeral-key-1",
+                public_keys=self.public_keys,
+                revoked_key_ids={"ephemeral-key-1"},
+            )
+
+
+class RootBDuplicateAckCrashRecoveryTests(unittest.TestCase):
+    """Duplicate observer ACK plus process death around durable checkpoint commit."""
+
+    def test_duplicate_observer_ack_and_checkpoint_crash_recover_idempotently(self):
+        import os
+        import subprocess
+        import sys
+        from synthetic_evidence.root_b_checkpoint_store import DurableRootBJournal
+
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "root-b-duplicate-ack.sqlite3"
+            journal = DurableRootBJournal(
+                db, required_observers={"observer-a", "observer-b"},
+            )
+            event = {"event_id": "root-b-ack-crash-1", "payload": "synthetic"}
+            raw = json.dumps(event, sort_keys=True, separators=(",", ":")).encode()
+            self.assertEqual(journal.append_event(event["event_id"], raw), "EVENT_APPENDED")
+            digest = journal.event_digest(event["event_id"])
+            self.assertEqual(
+                journal.acknowledge(event["event_id"], "observer-a", digest),
+                "ACK_RECORDED",
+            )
+            self.assertEqual(
+                journal.acknowledge(event["event_id"], "observer-a", digest),
+                "ACK_DUPLICATE",
+            )
+            self.assertEqual(
+                journal.acknowledge(event["event_id"], "observer-b", digest),
+                "ACK_RECORDED",
+            )
+            journal.close()
+
+            script = r"""
+import os, sys
+from synthetic_evidence.root_b_checkpoint_store import DurableRootBJournal, SimulatedCrash
+journal = DurableRootBJournal(
+    sys.argv[1], required_observers={"observer-a", "observer-b"},
+)
+try:
+    journal.commit_checkpoint(
+        "cp-root-b-duplicate-ack-crash", through_sequence=1,
+        crash_at="after_durable_write",
+    )
+except SimulatedCrash:
+    os._exit(73)
+os._exit(74)
+"""
+            env = dict(os.environ)
+            env["PYTHONPATH"] = str(Path.cwd()) + os.pathsep + env.get("PYTHONPATH", "")
+            result = subprocess.run(
+                [sys.executable, "-c", script, str(db)],
+                cwd=Path.cwd(), env=env, capture_output=True, text=True, timeout=10,
+            )
+            self.assertEqual(result.returncode, 73, result.stderr)
+
+            reopened = DurableRootBJournal(
+                db, required_observers={"observer-a", "observer-b"},
+            )
+            self.addCleanup(reopened.close)
+            self.assertEqual(
+                reopened.acknowledge(event["event_id"], "observer-a", digest),
+                "ACK_DUPLICATE",
+            )
+            self.assertEqual(
+                reopened.acknowledge(event["event_id"], "observer-b", digest),
+                "ACK_DUPLICATE",
+            )
+            self.assertEqual(
+                reopened.checkpoint_ack_count("cp-root-b-duplicate-ack-crash"), 0,
+            )
+            self.assertEqual(
+                reopened.commit_checkpoint(
+                    "cp-root-b-duplicate-ack-crash", through_sequence=1,
+                ),
+                "CHECKPOINT_ACK_REPLAYED",
+            )
+            self.assertEqual(
+                reopened.checkpoint_ack_count("cp-root-b-duplicate-ack-crash"), 1,
+            )
+            recovered = reopened.recover_checkpoint()
+            self.assertEqual(
+                recovered["checkpoint_id"], "cp-root-b-duplicate-ack-crash",
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()
