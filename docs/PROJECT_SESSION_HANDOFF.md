@@ -1152,3 +1152,24 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Destructive/deletion authority: NOT GRANTED.
 - Option C remains the approved default; T0 remains an independent canonical data asset; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`.
 - Next bounded P1.8 documentary step: prepare a consolidated crosswalk/closure index mapping P1.8.121–P1.8.126, findings, owner decisions, evidence blobs, unresolved operational gates and the separate authorization needed for live inventory. Do not execute live inventory under automatic documentary approval.
+
+
+## P1.8.127–P1.8.128 — Lifecycle Authority and Permission-Assurance Closure Index (2026-11-09)
+
+- Owner instruction: automatic continuation within P1.8 remains limited to documentary work and independent static reviews under existing guardrails.
+- P1.8.127 index: `docs/evidence/p1-8/P1.8.127-lifecycle-authority-and-github-permission-assurance-closure-index.md`.
+  - Commit: `ad46716f709de05c761cde81c1ef9415e01f32ef`.
+  - Blob SHA: `9e78a0d890f6b190e95746fd31a5fc1ebece33bb`.
+  - Consolidates P1.8.121–P1.8.126 owner decision, review findings, commit/blob identities, documentary dispositions and live-inventory authorization gates.
+  - Explicitly preserves Option C, distinguishes documentary closure from operational closure, and records IR122-01 as operationally OPEN.
+- P1.8.128 independent static review: `docs/evidence/p1-8/P1.8.128-independent-static-review-p1-8-127.md`.
+  - Review commit: `9e073483b2f1397ed450b8efd6803754fe22c93e`.
+  - Review blob SHA: `04546d990cb355c10c824a3d1ab9ca74caa952f2`.
+  - Reviewed P1.8.127 blob: `9e78a0d890f6b190e95746fd31a5fc1ebece33bb`.
+  - Verdict: PASS — traceability and decision/status consistency verified; no status inflation or authority expansion found.
+- Static readback: PASS. Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE.
+- IR124-01/02/03 remain CLOSED at documentary-design level. IR122-01 remains operationally OPEN pending separately authorized read-only inventory and independent review. Option C technical enforcement remains NOT VERIFIED.
+- No live GitHub/API/provider inventory, secret access, IAM/permission/credential/workflow/runner changes, runner jobs, provider probes, remediation or destructive operations were performed or authorized.
+- No restore/staging/fault injection/provider/key/TSA operations. No archive/cleanup/vacuum/deletion. Destructive authority NOT GRANTED.
+- T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`.
+- Next gate: any live read-only inventory must be presented as a separate bounded authorization request. Automatic P1.8 documentary approval does not extend to live inspection, operational access or permission changes.
