@@ -139,3 +139,16 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; `AI_EXECUTION_ENABLED=false`.
 - No source/runtime changes, VPS/T0/T1/DB/Feeder changes, provider selection, key operations, data collection/read probes, staging provisioning, restore rehearsal, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
 - Next gate: documentation-only clarification of F-01, with exact timestamp-to-signature binding and positive/negative boundary fixtures; all provider/authority/numeric parameters remain OPEN. Then independent static review. Separate staging authorization remains mandatory.
+
+
+## Latest completed work — P1.8.36
+
+- Added documentation-only contract `docs/evidence/p1-8/P1.8.36-trusted-timestamp-signature-binding-contract.md`.
+- Document commit: `62dc6ee297401287270adef9beaf7c754db572ad`.
+- Resolves the design ambiguity raised by P1.8.35 F-01 at contract level: the trusted timestamp imprint must cryptographically bind the exact signature value and immutable verification context, not only payload bytes or an unsigned envelope.
+- Carefully limits the claim: a valid token establishes that the timestamped signed object existed no later than TSA `genTime`; it does not prove the exact signature creation instant or signer intent.
+- Defines deterministic verification obligations, immutable context binding, token/trust validation requirements, fail-closed behavior, historical revocation boundary handling and 14 positive/negative contract fixtures (TB-P01, TB-P02, TB-N01–TB-N13).
+- No fixture code or test execution was added. Fixture bytes, imprint encoding, digest algorithm, TSA protocol/profile, trust anchors, policy OID, timestamp uncertainty, revocation equality semantics and all other provider/numeric parameters remain OPEN.
+- Status: F-01 CLARIFICATION DRAFTED; independent static security review REQUIRED; V07 remains BLOCKED. V08 and Restore remain OPEN/BLOCKED. Environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; `AI_EXECUTION_ENABLED=false`.
+- No source/runtime changes, VPS/T0/T1/DB/Feeder changes, provider selection, key provisioning/signing/rotation/revocation, data collection/read probes, staging provisioning, restore rehearsal, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
+- Next gate: independent static security review of P1.8.36 against P1.8.26–P1.8.35, especially exact signature-byte binding and the limited `genTime` claim. Separate explicit staging authorization remains mandatory.
