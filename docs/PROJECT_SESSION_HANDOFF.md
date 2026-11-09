@@ -2771,3 +2771,17 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: proposal drafted; NOT APPLIED. Independent second review NOT PERFORMED. Owner approval to replace source file NOT YET GIVEN. Tests NOT RUN; Actions NOT DISPATCHED; no artifact.
 - No source/runtime/VPS/DB/data/credential/key/permission/workflow changes.
 - Next: independent reviewer evaluates proposal and source context; after review, obtain explicit owner approval before updating the source checklist. Keep Option C; no destructive action.
+
+
+## Android checklist converted to personal-use QA (2026-11-10)
+
+- Owner explicitly approved replacing the contents while retaining exact path `android-app/COMMERCIAL_READINESS.md`.
+- Updated only that file. New content covers Android M15/H1 QA; deterministic Android/Python engine parity; reconnect/background/process-restart/recovery/notification behavior; signing-key custody and GitHub Actions secrets; exact source SHA, APK identity, signature and SHA-256 verification; privacy, risk disclosure and third-party attribution; public-store requirements only if the owner later explicitly chooses public distribution.
+- Removed pricing, paid/free packaging, refunds, payments/billing, subscriptions/customer licensing, customer support/onboarding/provisioning, commercial sales/rollout and customer-facing service commitments.
+- Source before update blob: `9532b34f4a7c1dcac571b9ba4fe5064fa2cfc324`.
+- Updated file blob: `cbea17bb36300193b6e4cf05780a35d01c7d7500`.
+- Source update commit: `d24207badf1350d1a710540e2bb9b5eceed29bf9`.
+- No file rename or deletion. No other source/config/workflow/runtime/VPS/database/data/credential/key/permission changes.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; no run/artifact. Documentation-only change; test status is NOT VERIFIED, not PASS.
+- This applies the owner's explicit content instruction. It is not an independent second review; no independent reviewer claim is made.
+- Next: verify branch HEAD and exact file content/blob, then optionally reconcile Android README's Codemagic/GitHub Actions description in a separate scoped change. Keep paper-only boundary and Option C.
