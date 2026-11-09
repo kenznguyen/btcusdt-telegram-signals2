@@ -3314,3 +3314,17 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: D-01–D-05 OWNER-APPROVED; implementation NOT AUTHORIZED / NOT STARTED; tests NOT RUN; GitHub Actions NOT DISPATCHED; Codemagic external state NOT VERIFIED; rulesets/effective permissions NOT VERIFIED; independent review NOT PERFORMED.
 - No source/test/workflow/config/secret/permission/ruleset/branch-protection/runtime/VPS/DB/provider/data changes; no PR or merge. Option C unchanged; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next safe step: prepare a documentation-only implementation plan for F-03 and F-01, preserving the full test denominator and listing all preconditions. Do not implement or dispatch until a separate implementation authorization is given.
+
+
+## T0 simplification — optional PostgreSQL packaging isolation review (2026-11-10)
+
+- Added documentation-only static review: `docs/evidence/T0_OPTIONAL_POSTGRES_PACKAGING_ISOLATION_REVIEW_2026-11-10.md`.
+- Report commit: `b2713ba95cf42bc16db18792cc562d62e0a9e1f3`.
+- Exact source baseline inspected: `27d22fe1c3103732eaa9da8a36e22d77b19d4688`.
+- Confirmed `requirements-market-data.txt` installs both CCXT and `psycopg[binary]` unconditionally, while SQLite is the selected default. `market_data/storage.py` and `feeder_service.py` import PostgreSQL adapter modules at module load; inspected `postgres.py` imports the psycopg driver inside the connection function.
+- Confirmed the current workflow uses the shared requirements file for SQLite/T0 tests and disposable PostgreSQL/TimescaleDB qualification jobs. A careless removal of psycopg would break the latter.
+- Finding: a SQLite/base requirements set plus a separate PostgreSQL qualification requirements set is a valid design candidate; no evidence supports deleting PostgreSQL adapter, migrations, SQL, tests or integration jobs. Lazy adapter imports are a separate optional refactor and are deferred.
+- Required next mapping: repository-wide references to requirements files, psycopg, PostgreSQL tests/entry points, local setup instructions and every workflow install command. Then design the dependency split and clean-environment import tests without running runtime/exchange operations.
+- Status: inspected source observations PASS; full install-path/workflow consumer inventory NOT VERIFIED; clean SQLite-only import test NOT RUN; tests NOT RUN; GitHub Actions NOT DISPATCHED; independent review NOT PERFORMED. G2 NOT VERIFIED; G3 PENDING; L4-Minimum BLOCKED / NOT VERIFIED.
+- No source/test/workflow/package/config/runtime/VPS/database/provider/permission/data changes; no destructive operation. Option C unchanged; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next safe step: read-only repository-wide dependency/install-path inventory; no package or workflow edits until separately authorized.
