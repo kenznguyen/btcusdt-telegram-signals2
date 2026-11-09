@@ -201,7 +201,7 @@ The following table preserves every original fixture ID and scenario while stati
 
 These 24 rows are a recovered design fixture inventory, not executed tests. The original v1 expected results are preserved as provenance; current v1.1 dispositions above control where semantics have changed. No fixture implementation or execution is implied.
 
-Retain C01–C24 from v1 and add:
+Add the following v1.1-specific scenarios (C01–C24 are enumerated above):
 - C25 wrong market scope → SOURCE_IDENTITY_UNPROVEN.
 - C26 BTCUSDT spelling without trusted product metadata → SOURCE_IDENTITY_UNPROVEN.
 - C27 missing/non-1m interval → UNSUPPORTED_SCHEMA.
