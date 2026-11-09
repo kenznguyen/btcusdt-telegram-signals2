@@ -2561,3 +2561,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - P1.44 exact-head verification gate: BLOCKED by Actions startup/dispatcher behavior.
 - Next: restore Actions dispatch through GitHub Support or another explicitly authorized recovery path, then run CI against an exact recorded HEAD. Only after that proceed to FINAL_ONLY/product identity.
 - No T0/T2 changes, VPS/runtime access, T1 activation, real orders, destructive data operation, issue retarget or PR merge.
+
+
+## L4 Provenance — Personal Non-Commercial Scope Record (2026-11-09)
+
+- Recorded the owner's established personal/non-commercial system direction and translated it into a bounded L4 provenance scope proposal.
+- Decision record: `docs/decisions/D-2026-11-09-L4-PROVENANCE-PERSONAL-SCOPE.md`.
+- Decision-record commit: `68c8498013a08288c96a2d29c5a3884529061851`.
+- Exact decision-record blob SHA after read-back: `d8a4b7e1b7dd6bc2923fbd37e93565a6f10a553d`.
+- Scope: L4-Minimum proposes owner-controlled signing, exact-object binding, independent offline verification, independent evidence custody, append-only evidence history, key/trust lifecycle controls and claim discipline. Multi-tenant/SaaS, customer SLA, commercial compliance claims, multi-TSA quorum and dedicated WORM are deferred unless a concrete personal risk or obligation justifies them.
+- This is a scope proposal, not ratification of each technical control and not an implementation acceptance. L4 remains BLOCKED / NOT VERIFIED for implementation and operational acceptance.
+- Evidence baseline read: P1.8.67 blob `50654f3f4f4caa509598e4393e2634ea977df5dd`; P1.8.68 blob `9ae0c50830644d21d850da4c4d246a2837f62fc6`; P1.8.69 blob `caf0943865b096a0d592ae0718472754424991d0`; P1.8.76 blob `f559f642b48f1e7ea1e7f37935d00273d53ba161`; P1.8.141 blob `c20616d79f6dcedde08128f589a5c0e04d6257f1`; P1.8.152 blob `e1a4d95af216e94a58fa5528850fcd0c1ff465f8`.
+- Existing limitations preserved: V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; mutation fencing/adapter, runtime consumer/copy inventory and Option C technical enforcement NOT VERIFIED; lifecycle negative vectors NOT RUN. P1.8.153 remains the documented next lifecycle gate and is not displaced by this scope note.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; workflow run/artifact NONE. This is a documentation-only change.
+- No source/runtime/schema/API/VPS/T0/T1/T2/DB/Feeder/ledger/strategy/risk changes; no permission or key operation; no TSA/provider call; no staging, restore, fault injection, archive, cleanup, compaction, vacuum, backup expiry, replica removal or deletion.
+- Option C — No Destructive Authority — remains in force; GitHub permission inventory remains PAUSED; T0 remains independent; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
