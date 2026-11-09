@@ -1440,3 +1440,16 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Remaining acceptance gap: no PostgreSQL-backed FeederRuntime integration test currently exercises the runtime heartbeat thread over time, lease loss/takeover while running, readiness closure on PG lease loss, shutdown drain timeout/lease retention, or restart acquiring the next PG fencing generation. SQLite lifecycle tests cover related lifecycle behavior, and PostgreSQL lease/writer tests cover their lower-level primitives, but that is not equivalent to end-to-end PostgreSQL runtime lifecycle acceptance. Mark these scenarios **NOT VERIFIED**.
 - Production role/credential/TLS/network provisioning, backup/PITR, restore/RPO/RTO, canonical DB creation, VPS deployment and real Binance ingestion remain **NOT VERIFIED / NOT AUTHORIZED**. No Feeder was activated. `ai_execution_enabled=false` remains unchanged.
 - Next safe increment: add the missing PostgreSQL runtime lifecycle acceptance scenarios above against disposable TimescaleDB only; preserve SQLite default. Do not provision production DB, deploy VPS, connect Binance, or activate the production Feeder.
+
+
+## 2026-11-09 — Project contribution and effort ledger baseline
+
+- Added `docs/PROJECT_CONTRIBUTION_EFFORT_LEDGER.md` to record human and AI contributions, evidence-backed milestones, time-accounting rules, and verification limits.
+- Ledger commit: `d9610348260a79269bad45aa60c8d456ede75a5f` on `main`.
+- The ledger distinguishes the user's project ownership, architecture decisions, approvals, and evidenced hands-on operations from ChatGPT's technical analysis, design, coding assistance, test design, debugging, and documentation support.
+- Exact cumulative hours are **NOT VERIFIED**. Available history supports an observed activity window from at least 2026-10-24 through 2026-11-09, but does not establish continuous work or measured hours. No historical durations were fabricated.
+- Selected milestone counts and results are explicitly marked as recorded evidence, not a complete inventory or production certification.
+- Documentation-only change. No source code, CI workflow, runtime configuration, VPS, canonical database, Feeder, exchange connection, market-data sync, or trading state was changed. No tests/workflows were run for this documentation-only update.
+- Current branch used: `main`; no new branch or PR created. CI result: **NOT RUN**. Artifact: **NONE**.
+- Ledger status: **PARTIAL BASELINE**. Full commit/PR/workflow/artifact reconciliation and prospective time recording remain pending.
+- Next permitted step: reconcile GitHub history and evidence into the ledger; keep all existing runtime and execution restrictions unchanged.
