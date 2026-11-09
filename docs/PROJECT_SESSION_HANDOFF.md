@@ -2790,3 +2790,16 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Follow-up content verification found that an initial `Explicitly excluded` paragraph still repeated commercial-category terms. Removed that paragraph so the checklist contains no pricing/refund/subscription/customer-support/commercial-rollout checklist section or residual category list.
 - Final checklist blob: `ec9d8bd800c17b11ce4807df5464aaa3634ec80d`; correction commit: `0a2f9ccb1624e737e78afc7de8b09a5169691753`.
 - Final content check verifies required personal-use sections present and commercial category terms absent. Handoff is updated below; final branch HEAD verification follows.
+
+
+## T0 TSA and WORM read-only audit — 2026-11-10
+
+- Read handoff first; verified branch `feature/t0-centralized-data-feeder-p1-20261101`, source HEAD `326ebd3723587323aa39660777becd44ed273105`, tree `4c48cfa3ea45c339f8c6b395f06ca6533252ba32`, complete (`truncated=false`, 711 entries).
+- Added bounded read-only audit: `docs/evidence/T0_TSA_WORM_READ_ONLY_AUDIT_2026-11-10.md`.
+- TSA: P1.8.67/P1.8.68 target architecture is documentary/static PASS; P1.8.77 source mapping shows no signed T0 checkpoint, timestamp outbox, RFC 3161 client/verifier or TSA evidence archive. TSA production remains BLOCKED; owner decision required between dataset/checkpoint proof (A), signed-object historical verification (B), or separately versioned A+B.
+- WORM: no WORM adapter/lock configuration in T0 `market_data` source/migrations. Forward-evidence Root A/Root B WORM architecture is a separate evidence subsystem, not T0 canonical candle storage. AWS S3 Compliance Mode is a preferred Root A candidate; GCS/Azure are Root B disposable-test candidates; Cloudflare R2 is lower assurance. No provider selected, provisioned or tested.
+- Synthetic-only `synthetic_evidence/trust_lifecycle.py` explicitly marks retention `GIT_HISTORY`, `immutability=NOT_WORM`, Actions artifact retention 7 days. Local SQLite Root B is a synthetic model, not provider WORM.
+- Owner-ratified RET-01 B protects T0 canonical data from routine/automatic/scheduled deletion; this is policy, not technical WORM. Option C — No Destructive Authority — remains in force.
+- Source/runtime/VPS/DB/Feeder/provider/key/permission changes: NONE. Tests NOT RUN; Actions NOT DISPATCHED; no run/artifact. No TSA/OCSP calls, provider contact, restore, fault injection, archive, cleanup or deletion.
+- Status: bounded read-only audit COMPLETE; TSA production BLOCKED; WORM in T0 NOT IMPLEMENTED/NOT VERIFIED; provider qualification NOT RUN; runtime copy/provider inventory NOT VERIFIED; independent review of this audit NOT PERFORMED.
+- Next: owner decision on TSA evidence subject and WORM scope before any implementation or provider qualification proposal. Preserve T0 canonical data and recovery copies; no destructive action.
