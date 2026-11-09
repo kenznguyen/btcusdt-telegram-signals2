@@ -2588,3 +2588,20 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Next L4-specific gate: independent review of the matrix against P1.8.36 and current lifecycle constraints, without runtime/secret/permission access. This does not replace the separate lifecycle next step P1.8.153.
 - Existing boundaries unchanged: no source/runtime/schema/API/VPS/T0/T1/T2/DB/Feeder/ledger/strategy/risk changes; no key/trust-root/permission operation; no TSA/provider calls; no staging, restore, fault injection, workflow dispatch or destructive operation.
 - Option C — No Destructive Authority — remains in force; GitHub permission inventory remains PAUSED; T0 remains independent; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+
+
+## T1 isolated manual VPS validation — exact HEAD 4566cff (2026-11-09)
+
+- Recorded bounded manual test receipt: `docs/evidence/t1/T1_MANUAL_VPS_TEST_RECEIPT_2026-11-09.md`.
+- Receipt commit: `8a4e6174310f5ecb1d595330855ebd0143b6a0a3`; receipt blob SHA after read-back: `ed5c3fa6a4cf8ca6ea77dfd9d0eacedc3c8e5182`.
+- Tested T1 source SHA: `4566cffbbcf8495182abbc0d3496fdc65709ac14`; isolated checkout: `/home/ubuntu/t1-test`, detached HEAD. Build target and evidence logs were stored under `/tmp/t1-manual-target-4566cffbbcf8495182abbc0d3496fdc65709ac14` and `/tmp/t1-manual-evidence-4566cffbbcf8495182abbc0d3496fdc65709ac14`.
+- Manual Rust validation ran all 7 commands declared by the T1 CI workflow: collector Clippy PASS; collector fmt FAIL; collector release build PASS; collector tests PASS; sidecar fmt PASS; sidecar Clippy PASS; sidecar tests PASS.
+- Test logs show collector 48 + 1 passed and sidecar 12 + 27 passed; 88 total test cases PASS, 0 FAIL. The collector test output also contains a zero-test target.
+- Formatting finding: `cargo fmt --all --check` reports formatting-only diff at `src/utils/csv_writer.rs:1303`, in `decimal_lexical_validation_rejects_non_finite_and_malformed_forms`. No source fix was made in this pinned-SHA test.
+- Log SHA-256 values, exit codes, generated lockfile metadata, cleanup evidence, and Actions run IDs are recorded in the receipt. Raw logs remain on the VPS evidence directory; they are not uploaded as GitHub artifacts.
+- A Cargo-generated untracked `crates/connection-sidecar/Cargo.lock` (SHA-256 `c6fa4823bb25ac00873464ed733eb0816e962ffc370e13451dc291f160b01bdc`) was removed only after explicit owner approval. Final verification: HEAD unchanged at `4566cffbbcf8495182abbc0d3496fdc65709ac14`, clean detached checkout, generated file absent.
+- Exact-HEAD GitHub Actions runs remain pre-job `startup_failure`, zero jobs: push `42646416010`, pull_request `42646425898`. No GitHub Actions tests or artifacts are claimed for this HEAD.
+- Status: manual validation **PARTIAL PASS (6/7 commands)**; GitHub Actions exact HEAD **BLOCKED**; independent review **NOT VERIFIED**; T1→T0/T2 integration **NOT VERIFIED**; T1 activation/deployment **NOT AUTHORIZED / NOT PERFORMED**.
+- No collector launch, Binance connection, exchange credentials, T0/T1 runtime or canonical data mutation, source modification, PR merge, issue #138 retarget, workflow configuration change, or live order occurred.
+- Next step: preserve exact-HEAD evidence and investigate Actions dispatcher recovery through an owner-authorized supported path. Do not create further T1 commits solely to provoke CI. Any formatting correction requires separate scope approval and a new exact-SHA validation. Keep T1 inactive and integration unaccepted.
+- This documentation update does not claim a CI run or artifact; it records the manual evidence only.
