@@ -1939,3 +1939,21 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No source changes, tests, Actions dispatch, REST, VPS/runtime, T1 activation, T0/T2, strategy/AI/ledger/risk/trading changes, or destructive data operations. No workflow run/artifact is claimed.
 - Status: P1.15 SELF-REVIEW COMPLETE / REQUEST CHANGES / IMPLEMENTATION NOT AUTHORIZED / INDEPENDENT REVIEW STILL REQUIRED.
 - Next step: documentation-only correction of F02-R1 and F05-R1, add negative fixtures, then review the final SHA and retarget issue #138. All existing authorization boundaries remain unchanged.
+
+
+## Latest completed work — P1.15 corrections and P1.16 self-review (2026-11-09)
+
+- User explicitly approved automatic execution of: F02-R1 recovery-checkpoint contract/rollback boundary; F05-R1 separation of raw-body and envelope IDs; negative/crash fixtures; self-review; then retarget issue #138 for independent review.
+- Work remained on existing branch `feature/t0-centralized-data-feeder-p1-20261101`; documentation/evidence only.
+- Normative contract: `docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_1_PRODUCER_WATERMARK_DURABILITY_2026-11-09.md`.
+- Final contract update commit: `69559bb0363934158351d794a48e17555f0222a8`.
+- Exact final contract blob SHA: `f78dc4410db61755149cb6a7e0c440330bc80741`.
+- F02-R1: §22.11.1 defines the recovery-checkpoint path, immutable per-publication record, closed 17-key schema, canonical JCS, file/directory fsync and no-replace publication. §22.11.2 embeds a five-key publication-counter snapshot and digest, validates monotonic consistency, and explicitly denies local checkpoint/counter status as an independent anti-rollback anchor. Full-root copy/restore without a separately trusted monotonic external anchor => continuity NOT PROVEN and quarantine. §22.11.3 defines restart revalidation and repeat fsync barriers before recovery acceptance.
+- F05-R1: §22.11.4 separates Raw-body object ID (digest of exact original HTTP bytes) from Envelope-record ID (digest of canonical envelope projection with `evidence_id` omitted). The manifest reference must identify the Envelope-record ID; the envelope raw_body_sha256 binds the raw body. Resolution order and namespace confusion rejection are explicit.
+- Added C125–C130 for checkpoint schema, binding, counter, rollback and crash/fsync failures; C131–C132 for raw-body/envelope namespace confusion and digest failures. C01–C132 remain design scenarios only; NOT IMPLEMENTED / NOT EXECUTED.
+- Same-session self-review: `docs/reviews/t1/P1_16_SELF_REVIEW_P1_15_RECOVERY_CHECKPOINT_AND_EVIDENCE_ID_2026-11-09.md`; commit `9fe360f25c07610dd248eedab112397152aaef59`; blob `aa26ad804d151b07ceae1c2731b65fc121b9a197`.
+- P1.16 verdict: DOCUMENTATION-LEVEL PASS for F02-R1/F05-R1 corrections and C125–C132 specification. This is same-session, NOT independent. Implementation readiness NOT ESTABLISHED; F07 NOT VERIFIED.
+- Unchanged blockers: target filesystem/provider/flock/renameat2/fsync behavior NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; pinned producer f64/12-decimal/parse-to-zero defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; manifest/receipt/counter/checkpoint/evidence store/adapter NOT IMPLEMENTED.
+- No source implementation, tests, GitHub Actions dispatch, Binance REST, VPS/runtime, T1 activation, T0/T2, strategy/AI/ledger/risk/trading changes, or destructive data operations. No workflow run or artifact is claimed.
+- Next step: issue #138 is retargeted only after this final contract SHA and same-session review are recorded; wait for genuinely independent review. Implementation remains NOT AUTHORIZED and T1 activation remains NOT AUTHORIZED.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
