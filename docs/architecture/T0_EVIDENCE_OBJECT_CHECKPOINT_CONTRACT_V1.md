@@ -691,7 +691,7 @@ P1.8.67/P1.8.68 establish TSA as optional and asynchronous, outside the T0 autho
 - **A — Dataset/checkpoint proof-of-existence:** timestamp a frozen dataset/checkpoint manifest digest. This can support only the narrowly scoped existence-by-time claim allowed by the verified token/policy; it does not prove signer identity, exchange truth, completeness beyond the manifest, or database durability.
 - **B — Signed-object historical verification:** timestamp the exact signature bytes and verification context required by P1.8.36/V07. An unsigned dataset digest or generic envelope MUST NOT be substituted for this contract.
 
-The owner has not selected A, B, or two separately versioned evidence products. This contract does not authorize TSA requests or claim compatibility with P1.8.36 merely because it defines a signature envelope. Any future TSA integration MUST remain asynchronous, MUST NOT block T0 ingestion, and MUST only process an immutable checkpoint after its underlying data crosses a separately proven durable-commit boundary. TSA failure or UNKNOWN delivery outcome MUST NOT roll back an already valid T0 data commit.
+Under the user's explicit automatic-approval delegation for G0–G3, the initial evidence subject is selected as **A — Dataset/checkpoint proof-of-existence**. B — Signed-object historical verification (P1.8.36/V07) is deferred to a separate future contract/version and is not satisfied by A. This selection does not authorize TSA requests, provider selection or contact, key operations, or runtime integration. Any future TSA integration MUST remain asynchronous, MUST NOT block T0 ingestion, and MUST only process an immutable checkpoint after its underlying data crosses a separately proven durable-commit boundary. TSA failure or UNKNOWN delivery outcome MUST NOT roll back an already valid T0 data commit.
 
 The following remain OPEN; this contract does not silently decide them:
 
@@ -715,6 +715,47 @@ Gated sequence:
 5. **G4 — Separate implementation authorization:** only after G0–G3, authorize a narrowly scoped code/schema change with TDD, migration/rollback plan, test evidence and exact SHA.
 6. **G5 — Runtime/provider qualification:** separate explicit approval; no implied VPS, key, TSA, WORM, restore or destructive-operation authority.
 
+
+### 13.2 G1 — Owner decisions for initial A evidence product (2026-11-10)
+
+The following architecture decisions are made under the user's explicit automatic-approval delegation limited to G0–G3. These decisions define role boundaries and claims; they do not provision identities, accounts, providers, keys, storage or runtime services.
+
+| Decision area | G1 decision | Explicit boundary |
+|---|---|---|
+| Initial evidence subject | **A — Dataset/checkpoint proof-of-existence** | Bind a frozen T0 checkpoint manifest digest. B / P1.8.36 signed-object historical verification is deferred to a separate version. |
+| Claim supported by A | Exact manifest commitment existed no later than a later-valid TSA assertion, subject to token, policy and verification evidence | Does not prove exchange truth, source correctness, completeness, durability, owner intent, signer identity or historical signature validity. Each remains a separate evidence dimension. |
+| Checkpoint issuer | A dedicated checkpoint-builder role/process with read-only access to the selected canonical source and no candle-write, signing, custody, anchor-admin or verification authority | Issuer identity is provenance, not owner approval or a cryptographic signer identity. If workload identity cannot be evidenced, issuer identity remains UNKNOWN. |
+| Signer for A | **ABSENT / OUT OF SCOPE** | A v1 does not require or imply a signature. No signature envelope, key, algorithm, KMS/HSM or signing service is selected. No signer-authenticity claim is allowed. |
+| Evidence custodian | A distinct owner-controlled custody role/system outside T0/VPS and GitHub failure domains, with exact-object readback and outage-tested access paths | Provider, account, region, storage technology and WORM mode remain NOT SELECTED. GitHub artifacts/releases are not independent custody. Dedicated WORM is not an L4-Minimum prerequisite. |
+| Latest-head anchor | A separate owner-controlled monotonic anchor, authenticated and retained/readable outside T0/VPS and GitHub failure domains | Anchor writer/admin authority is separate from checkpoint issuer and ordinary T0 writer. Provider and implementation remain NOT SELECTED. Until qualified, latestness/freshness is UNKNOWN. |
+| Offline verifier | A standalone deterministic verifier that can validate preserved bytes, JCS profile, row/partition roots, completeness, snapshot/commit receipts, custody receipts and anchor state without producer runtime or network access | TSA token validation, if later used, requires preserved token, signer certificate chain and applicable trust/revocation evidence. Missing trust material yields UNKNOWN. |
+| Independent reviewer | A genuinely qualifying reviewer who did not author/operate the reviewed evidence or control the relevant issuer/custody/anchor process | Self-review cannot satisfy L4M-09 or G3. Reviewer identity, competence and independence remain NOT VERIFIED until evidenced. |
+| Retention and lifecycle | Apply RET-01 B / RET-02 B and Option C exactly; no default TTL, no deletion after read/use/verification/ACK, no automatic expiry | Evidence, manifests, receipts, trust snapshots, anchor history, review and governance records remain protected by default. RET-03–RET-10 remain open; no numeric retention floor/cadence is invented. |
+
+#### G1 role separation
+
+The intended trust boundaries are:
+
+1. T0 Feeder/writer: writes canonical candles under existing lease/fencing rules; no checkpoint issuer, signer, custodian, anchor-admin or verifier authority.
+2. Checkpoint builder/issuer: reads one pinned source snapshot and prepares unsigned canonical checkpoint bytes; no T0 write or evidence custody authority.
+3. Custodian: accepts exact immutable objects and performs independent readback; cannot alter checkpoint bytes or rewrite issuer provenance.
+4. Anchor authority: advances the owner-controlled latest-head reference under a separately authenticated monotonic policy; cannot rewrite historical checkpoint bytes.
+5. Verifier: independently validates exact bytes and evidence; cannot modify the source object or act as its sole creator.
+6. TSA provider, if later separately approved: receives only the frozen digest for A after §4.8 durability eligibility; it is not the source of dataset truth or a substitute for custody/anchor.
+
+No single role may silently combine issuer, custodian, anchor administrator and independent verifier. Provider-specific implementation and identity enrollment are deferred to G5 and require separate authorization.
+
+#### G1 policy crosswalk
+
+- P1.8.80 retention/eligibility policy blob: a38710c9d01e5409ce989cc73f791c94bc73773f.
+- L4-Minimum Acceptance Matrix blob: ed3056d81edfaf163205a172cf5ad22e230d7b41.
+- RET-01 B, RET-02 B, no-default-TTL, no automatic deletion and Option C are preserved.
+- L4-Minimum does not require dedicated WORM or multi-TSA quorum; independent custody/readback, offline verification and qualifying independent review remain mandatory.
+- No market-data source independence requirement is introduced.
+
+**G1 disposition: PASS — architecture/claim/role boundaries decided for A.** Exact provider, account, region, runtime identity, anchor/custody technology and TSA service remain intentionally unselected and outside G1 implementation authority. No external calls or resource provisioning occurred.
+
+
 ## 14. Verification and authorization record
 
 - Work type: documentation-only contract draft.
@@ -728,4 +769,4 @@ Gated sequence:
 - Restore, fault injection, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion: NOT AUTHORIZED / NOT PERFORMED.
 - Option C remains in force; T0 canonical data and recovery copies remain protected; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 
-**Final status: T0 EVIDENCE OBJECT / CHECKPOINT CONTRACT v1 DRAFTED — DOCUMENTATION ONLY — NOT IMPLEMENTED — G0.2 PASS (F-01); G0.3/G0.4 PASS AT CONTRACT-DESIGN LEVEL (F-02/F-03); G0.5 SNAPSHOT AND G0.6 COMMIT-RECEIPT PROTOCOLS SPECIFIED BUT NOT IMPLEMENTED/QUALIFIED; CURRENT BACKEND DURABILITY NOT VERIFIED; EXECUTABLE CONFORMANCE DEFERRED TO G2; ISSUER/CUSTODY/ANCHOR/RETENTION ITEMS OPEN; G0 NOT YET CLOSED; INDEPENDENT REVIEW REQUIRED.**
+**Final status: T0 EVIDENCE OBJECT / CHECKPOINT CONTRACT v1 DRAFTED — DOCUMENTATION ONLY — NOT IMPLEMENTED — G0.2 PASS (F-01); G0.3/G0.4 PASS AT CONTRACT-DESIGN LEVEL (F-02/F-03); G0.5/G0.6 PROTOCOLS SPECIFIED BUT NOT IMPLEMENTED/QUALIFIED; G1 PASS FOR A CLAIM AND ROLE BOUNDARIES; PROVIDER/IDENTITY ENROLLMENT AND CURRENT BACKEND DURABILITY NOT VERIFIED; EXECUTABLE CONFORMANCE DEFERRED TO G2; G0 STATIC CROSSWALK/REVIEW AND G3 INDEPENDENT REVIEW STILL REQUIRED; G0 NOT YET CLOSED.**
