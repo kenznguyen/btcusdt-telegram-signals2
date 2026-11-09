@@ -98,7 +98,7 @@ Unknown identity, lineage, completeness, consistency, or ownership is a blocking
 - A cache label or TTL does not itself authorize deletion.
 - A derived copy with independent consumer value, audit obligations, or non-reproducible information must be governed as a dataset, not assumed disposable.
 
-### 5.6 Hold inheritance across source and copies
+### 5.5 Hold inheritance across source and copies
 
 - A hold on a source dataset/version is a protective constraint for every known copy that contains, represents, or derives from the held scope.
 - A copy must not be treated as unheld merely because its copy record has no local hold entry. The source-hold relationship must be resolved during copy inventory and disposition review.
@@ -107,7 +107,7 @@ Unknown identity, lineage, completeness, consistency, or ownership is a blocking
 - Releasing a source hold removes only that hold constraint after an authenticated, auditable release. It does not itself authorize copy disposition; all other dependencies, holds, recovery obligations, and disposition gates still apply.
 - If lineage is incomplete, the source hold cannot be reliably mapped, or applicability is disputed, the copy remains protected and disposition is blocked.
 
-### 5.5 Evidence copies
+### 5.6 Evidence copies
 
 - Evidence required to substantiate an acceptance, incident, financial reconstruction, or audit claim must be protected from deletion while that obligation remains active.
 - GitHub source history and CI artifacts are not substitutes for operational account-event storage or independently verified backups.
