@@ -2605,3 +2605,17 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - No collector launch, Binance connection, exchange credentials, T0/T1 runtime or canonical data mutation, source modification, PR merge, issue #138 retarget, workflow configuration change, or live order occurred.
 - Next step: preserve exact-HEAD evidence and investigate Actions dispatcher recovery through an owner-authorized supported path. Do not create further T1 commits solely to provoke CI. Any formatting correction requires separate scope approval and a new exact-SHA validation. Keep T1 inactive and integration unaccepted.
 - This documentation update does not claim a CI run or artifact; it records the manual evidence only.
+
+## T0 personal-use scope and de-commercialization boundary (2026-11-09)
+
+- Recorded the owner-confirmed single-owner, non-commercial T0 scope in `docs/decisions/D-2026-11-09-T0-PERSONAL-USE-SCOPE-AND-DECOMMERCIALIZATION.md`.
+- Decision commit: `ee026149c402f349686f770faf0ef0bc5d6d566c`.
+- Scope exclusions: multi-tenant/customer isolation; subscription/billing/payment; customer-facing audit portal; commercial customer SLA/support; customer onboarding/licensing/package management; compliance/certification whose sole purpose is commercialization.
+- The record distinguishes scope exclusions from proven code presence: the bounded inventory did not establish these subsystems in T0, and repository-wide absence remains NOT VERIFIED.
+- Preserved owner-data controls: canonical source/market identity, candle validation/provenance, atomic writes, lease/generation fencing, read-only API, least privilege/authentication, backup/recovery, evidence and L4-Minimum controls.
+- PostgreSQL/TimescaleDB and isolated Kraken Spot adapter are DEFER / REVIEW, not presumed commercial and not approved for removal. Android commercial-readiness/privacy/terms documents remain outside T0 scope and are retained separately.
+- Dependency inventory reviewed includes T0 README/API/storage/PostgreSQL/write gateway/Kraken adapter files; T0 security, staging, provider and consumer-architecture docs; Android commercial documents. Repository-wide dependency graph remains incomplete.
+- Status: owner scope CONFIRMED; first-pass inventory PARTIAL; repository-wide absence of commercial capabilities NOT VERIFIED; physical removal NOT AUTHORIZED.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact claimed. Documentation-only change; no code, workflow, runtime, VPS, DB, T0/T1/T2, credential, permission or data changes.
+- Option C — No Destructive Authority — remains in force. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next: read-only repository-wide dependency audit for excluded commercial groups and separate consumer/dependency audit for PostgreSQL/TimescaleDB and Kraken Spot. Independent review and exact-scope approval are required before any removal.
