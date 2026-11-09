@@ -51,3 +51,16 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: DESIGN COMPLETE; NOT EXECUTED. Environment equivalence NOT VERIFIED; staging BLOCKED / NOT AUTHORIZED; production NOT VERIFIED.
 - No source/runtime changes, staging provisioning, fault injection, workflow dispatch, PR, or merge. No CI run or artifact is claimed.
 - Next step: independent review of P1.8.28; obtain explicit owner decisions for revocation policy, checkpoint membership policy, and proposed RPO/RTO before any staging execution proposal.
+
+## Latest completed work — P1.8.29
+
+- Completed independent static review of P1.8.26 and P1.8.28; recorded findings F01–F10 and owner decision register DEC-01/02/03.
+- Review document: `docs/evidence/p1-8/P1.8.29-independent-review-policy-decision-register.md`.
+- Document commit: `ad0fa98728520a6088733d08d28beaefb0205d1a`.
+- Findings cover replay denominator/scenario breadth, observer principal independence, D0–D4 claim separation, durable-ACK/RPO scope, unresolved revocation and checkpoint policies, provisional RPO/RTO, claim-scoped environment equivalence, frozen deterministic test plans, and independent evidence provenance.
+- DEC-01 signing-key revocation semantics: OPEN; V07 execution BLOCKED.
+- DEC-02 checkpoint membership semantics: OPEN; V08 execution BLOCKED.
+- DEC-03 restore RPO/RTO targets and failure domain: OPEN; restore acceptance BLOCKED.
+- Status: STATIC REVIEW COMPLETE; POLICY DECISIONS OPEN; NOT EXECUTED. Staging NOT AUTHORIZED; production NOT VERIFIED.
+- No source/runtime changes, staging provisioning, fault injection, workflow dispatch, PR, or merge. No CI run or artifact is claimed.
+- Next step: obtain owner decisions for DEC-01/02/03; then create a versioned policy baseline and re-review affected criteria before proposing isolated staging execution.
