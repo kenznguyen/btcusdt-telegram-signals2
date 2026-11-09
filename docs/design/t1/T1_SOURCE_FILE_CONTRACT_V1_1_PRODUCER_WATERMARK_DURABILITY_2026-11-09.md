@@ -48,19 +48,20 @@ This statement covers final events actually received and accepted by the collect
 
 ### 4.2 Required manifest fields
 
-Each file generation has a manifest containing:
-- manifest_version, schema_version, file_generation;
-- exchange_id, market_scope, contract_type, symbol, base_asset, quote_asset;
-- datatype, interval, source_endpoint_family;
-- exchange_info_snapshot_sha256 and symbol metadata record;
-- collector_source_sha, collector_instance_id;
+Each generation has exactly one strict v1.1 manifest at the fixed path manifest.json. Required fields and types are fully specified in §21.5; the compact field inventory is:
+- manifest_version, schema_version, generation_sequence, generation_id, publication_sequence;
+- exchange_id, market_scope, contract_type, symbol, base_asset, quote_asset, datatype, interval, source_endpoint_family, output_mode;
+- endpoint_config_sha256, exchange_info_snapshot_sha256, symbol_record_sha256;
+- collector_source_sha256, collector_instance_id;
+- data_file_relative_path, data_file_identity;
 - state=ACTIVE | SEALED | QUARANTINED;
-- committed_offset_bytes and committed_record_count;
-- watermark_open_time_exclusive_ms;
+- committed_offset_bytes, committed_record_count, watermark_open_time_exclusive_ms;
 - source_health=RECONCILED_COMPLETE | UNKNOWN | INVALIDATED;
-- optional reconciliation_evidence_ref bound to an immutable evidence record;
-- header_sha256 and data_prefix_sha256 for bytes [0, committed_offset_bytes);
-- updated_at_utc.
+- reconciliation_evidence_ref (required whenever RECONCILED_COMPLETE is claimed);
+- header_sha256, data_prefix_sha256;
+- created_at_utc, updated_at_utc.
+
+The manifest and its immutable commit receipt use canonical UTF-8 JSON per RFC 8785 JCS. The receipt binds the exact manifest digest and all committed-prefix fields. A manifest without exactly one matching receipt is PREPARED/UNCOMMITTED and cannot be read as a canonical source.
 
 Watermark may advance only for an interval whose final-candle completeness has been reconciled by an explicitly defined and independently testable producer mechanism. A healthy socket alone is insufficient. Detected or unknown delivery continuity holds the watermark. A detected gap is reported; it is never permission to synthesize data.
 
