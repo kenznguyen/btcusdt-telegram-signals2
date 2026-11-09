@@ -68,13 +68,6 @@ Public-store and public-distribution obligations are **out of scope for current 
 - [ ] Review current platform rules for financial features and market-data branding/attribution.
 - [ ] Record the owner's explicit public-distribution decision and the scope of the release review.
 
-## Explicitly excluded
-
-- Pricing, paid/free packaging and monetization.
-- Refund policy, payment processing and billing.
-- Subscription or licensing for customers.
-- Customer support tiers, customer onboarding and customer account provisioning.
-- Commercial sales, customer rollout, paid commercialization and customer-facing service commitments.
 
 ## Evidence and status rules
 
