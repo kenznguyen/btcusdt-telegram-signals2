@@ -3246,3 +3246,15 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Status: index content created and exact blob read back; documentation-only scope PASS. Tests / GitHub Actions NOT RUN / NOT DISPATCHED. Independent review NOT PERFORMED. Full repository call graph, all workflow jobs, branch protection, deployed package/runtime and live consumers remain NOT VERIFIED.
 - No source, test, workflow, package, schema, runtime, VPS, database, provider, key, permission or data changes. No PR or merge. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next safe step: separately review navigation/cross-references and decide whether a concise link belongs in `market_data/README.md`; do not alter package dependencies, workflow triggers or acceptance denominators.
+
+
+## T0 Documentation Cross-reference Review — 2026-11-10
+
+- Reviewed `docs/T0_ACTIVE_SCOPE_INDEX.md`, `market_data/README.md`, repository `README.md`, and `docs/FIVE_LAYER_ARCHITECTURE.md` on the active branch.
+- Added a concise navigation link from `market_data/README.md` to the T0 Active Scope Index. The README remains the technical contract/run guide; the index remains the global T0 scope authority.
+- README update commit: `4aeec0819bc2a7cf73d15df7a89906e6644415f8`; new README blob SHA: `19485ce933e15433c412a54ab15d9cbc1860dfd7`; prior blob: `660a2f0f4f88c0de4fa8c1be3c4af96df282de0e`.
+- Cross-reference review found no reason to overwrite the technical README or alter package/workflow/runtime content. The architecture document still contains legacy references to Android Chart Pro as a client and to the separate Python bot/backtest in its broader historical/design narrative. Because these statements are outside the narrow T0 navigation change and require a separate architecture-scope reconciliation, they were not silently rewritten here; treat them as documentation drift to review in a separately scoped task.
+- Repository root README also retains legacy Codemagic-centric runner descriptions that conflict with the current GitHub Actions operating preference; not changed in this T0-only increment.
+- Status: T0 index navigation link PASS; technical README/index role separation PASS; architecture/root README broader reconciliation NOT VERIFIED / DEFERRED. Tests and GitHub Actions NOT RUN / NOT DISPATCHED. Independent review NOT PERFORMED.
+- No source, test, workflow, package, schema, runtime, VPS, database, provider, key, permission or data changes. No PR or merge. Option C — No Destructive Authority — unchanged; no TTL/delete-after-use/cleanup/archive/compaction/vacuum/backup expiry/replica removal.
+- Next step: separately reconcile `docs/FIVE_LAYER_ARCHITECTURE.md` and repository `README.md` against the approved five-layer scope and GitHub Actions operating model, without reintroducing Android Chart/Scanner or Python bot/backtest as five-layer dependencies. Do not change code or workflows during that documentation review.
