@@ -2646,3 +2646,20 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - No critical contradiction found in the written scope boundary. Commercial capability absence remains NOT VERIFIED; dependency audit remains PARTIAL; no REMOVE-CANDIDATE; no source removal authorized.
 - No tests or Actions were run. No runtime, VPS, DB, data, key, permission or workflow changes.
 - Next: branch-pinned content/config/workflow/dependency audit, PostgreSQL/Kraken consumer/value mapping, and review by a genuinely independent second reviewer.
+
+## T0 branch-pinned de-commercialization content audit (2026-11-09)
+
+- Added §10 to `docs/decisions/D-2026-11-09-T0-PERSONAL-USE-SCOPE-AND-DECOMMERCIALIZATION.md`.
+- Audit commit: `6340f42473adba3de4217fc54755321502c244fe`; decision record blob SHA: `97c13bcc8b6389ec576a338bd54f79b17f2a4621`.
+- Exact audited branch HEAD before this documentation update: `a1053f40a2f762af52237401da2a0d00c4e813b1`; recursive tree read was complete (`truncated=false`, 636 tracked paths).
+- Fetched all 13 active GitHub Actions workflows at that exact commit; no excluded commercial capability terms found.
+- Fetched and keyword-reviewed core T0 runtime source (API/storage/Postgres/Feeder/store/write gateway/Kraken adapter-store-API); no customer commercial subsystem terms found. The certificate match is PostgreSQL TLS certificate/hostname verification.
+- Fetched and reviewed key T2 HTTP bridge/dashboard files; no excluded commercial capability terms found.
+- Reviewed Android commercial readiness/privacy/terms/README and Gradle/manifest. Commercial-readiness/paid commercialization checklist is Android product documentation, not T0; Android legal/product docs retained separately.
+- Resolved keyword false positives: WebSocket “subscription set” in futures README; cloud provider billing/invoice/payment in staging research; model certification in architecture; generic test_support filename. None establishes customer commercial functionality.
+- Rechecked T0 architecture/security/staging docs. TLS/certificates and infrastructure-cost controls are security/operational controls, not commercial customer services.
+- PostgreSQL/TimescaleDB remains DEFER / REVIEW due to real source/runtime/test/workflow dependencies. Kraken Spot remains DEFER / REVIEW due to isolated adapter/store/API/tests/workflows; active personal research consumer/value is still NOT VERIFIED.
+- Verdict: no commercial T0 subsystem found in inspected branch-pinned surfaces. This is a bounded content audit, not a semantic review of every blob among 636 paths. Repository-wide absence remains NOT VERIFIED; earlier HIGH blocker narrowed but not closed. Archived workflows, all non-T0 modules, Android implementation, deployment/runtime files and external consumer repos remain incomplete.
+- No tests or Actions were run; no workflow run/artifact. No provider calls, VPS/runtime/DB inspection or mutation. No code/config/workflow/data changes beyond decision/handoff documentation.
+- No REMOVE-CANDIDATE. No deletion or destructive operation authorized. Option C — No Destructive Authority — remains in force.
+- Next: finish content review of remaining relevant non-T0 modules/archived workflows/deployment files and map actual PG/Kraken consumers; then obtain a genuinely independent reviewer. Do not remove anything before independent acceptance and exact-scope owner approval.
