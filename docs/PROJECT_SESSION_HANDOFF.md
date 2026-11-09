@@ -3614,3 +3614,17 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Human independent review remains owner-waived; technical/environmental verifier separation remains mandatory. Option C and protected classes unchanged.
 - Stage B.1 report commit: `970c7c303f0eb2dc23622d350897f269c1592bce`; report blob and final handoff commit to be verified by read-back.
 - Next proposed increment: B.2 documentary V07 trust/time/revocation contract specification only. No provider/key/trust-root selection, numeric freshness/clock threshold, implementation, tests, Actions or runtime probes without separate explicit approval.
+
+
+## Stage B.2–B.6 — T0 Lifecycle Technical Contract Package (2026-11-10)
+
+- Owner approved automatic completion of all Stage B documentary increments B.2–B.6 on the existing branch. Approval does not extend to Stage C or implementation/execution.
+- Added five contract documents: B.2 V07 trusted time/revocation; B.3 V08 checkpoint/seal/watermark/correction; B.4 RET-10 adapter and technically separate verifier; B.5 RET-05/LDA-05 mutation-fence state machine; B.6 Restore/Recovery oracle, epoch/fencing and measurement contract.
+- Exact read-back blob SHAs: B.2 `40fccef3d95a52a32008a70e378603be79a49966`; B.3 `8a88a89d7d751904f7c78221b543f9135fb985fc`; B.4 `5e0423d923a15a5a6c8d4ac55b3ad36985ce5149`; B.5 `a6bb72708d03854f7b8b1a3ca7fc78c565a19af2`; B.6 `6511bb848663fe07c4d1d73010653f93e07b539c`.
+- Added consolidated package/acceptance record: `docs/evidence/p1-8/STAGE_B_T0_LIFECYCLE_TECHNICAL_CONTRACT_PACKAGE_2026-11-10.md`; commit `8cbe2ec0fa064bc6fa09aa51423be3b9bc70ca9e`; blob SHA `cc95d07017b8b2ca78da5257512fe5e53d655f13`.
+- Documentary Stage B package: COMPLETE. Technical qualification is not established. V07 BLOCKED/NOT QUALIFIED/NOT VERIFIED; V08 OPEN/BLOCKED/NOT QUALIFIED/NOT VERIFIED; RET-10 OPEN/NOT QUALIFIED/NOT VERIFIED; RET-05 technical enforcement NOT VERIFIED; LDA-05 NOT VERIFIED; Restore OPEN/BLOCKED/NOT VERIFIED.
+- No PASS promotion. RET-03/06/07/08 owner-input gaps remain OPEN/NOT PROVIDED; RET-09/LDA-06 NOT VERIFIED; LDA-07 NOT RUN; LDA-08 HOLD/NOT VERIFIED.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; no runtime/VPS/DB/storage/provider/permission/consumer/copy/backup/legal probes; no source/schema/API/adapter/scheduler/workflow/secret/key/permission/runtime/data changes.
+- No staging, restore, fault injection, provider/key operation, or destructive lifecycle operation. Option C and protected data classes unchanged. AI_EXECUTION_ENABLED=false; no live orders.
+- Independent human review remains owner-waived; technical/environmental verifier separation remains mandatory. No independent assurance claim.
+- Next: stop at Stage B documentary boundary. Stage C, implementation, test execution, provider selection, permissions review/change, staging or runtime work requires separate bounded owner authorization.
