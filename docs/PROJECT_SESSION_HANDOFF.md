@@ -2057,3 +2057,25 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No source implementation, tests, GitHub Actions dispatch, REST request, VPS/runtime, T1 activation, T0/T2 changes or destructive operation.
 - Next step: documentation-only correction of F02-R4 and F01-R2, add negative fixtures, then self-review exact new SHA. Independent review and all authorization gates remain mandatory.
 - T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
+## Latest completed work — P1.22 (2026-11-09)
+
+- User approved automatic correction of P1.21 findings, negative-fixture specification, exact-SHA self-review, and conditional retargeting of issue #138 only if self-review passed.
+- Normative contract: `docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_1_PRODUCER_WATERMARK_DURABILITY_2026-11-09.md`.
+- Final contract blob SHA: `20e8b31db364a15b73359810664f7e079aa86bc7`.
+- Contract update commits (same existing branch, sequential):
+  - `d2faa88f0af30adabf898483dbf039420b78d5a6` — define recovery epoch identity, root initialization binding, counter/checkpoint binding, and v1.1 resumption boundary.
+  - `b1ddb3fe4b588a6adb7d751b43ccc6f9caa328ba` — align six-key counter / twelve-key initialization precedence and checkpoint snapshot.
+  - `542e7c80d0a3fd5b933645f2eb6af58ae3d143b2` — close owner-approval record schema and immutable GitHub commit reference.
+  - `98ea1474800ff81bba50f47e8636326baaacd628` — correct initialization-schema field delimiter.
+- F02-R4: recovery_epoch_id is a distinct UUIDv4; root initialization is exactly twelve keys; immutable recovery-epoch record is closed schema; rollback recovery binds a separate immutable, commit-pinned owner approval record; generation publication counter is six keys; recovery checkpoint and historical counter snapshots bind the same epoch.
+- F01-R2: “fresh reconciliation” is clarified as post-recovery structural/source-identity validation only. Current v1.1 permits at most separately approved isolated UNKNOWN/unsealed collection; no RECONCILED_COMPLETE, reconciliation_evidence_ref, canonical seal, completeness watermark, T0 promotion or aggregation. Canonical resumption requires a new versioned completeness profile, accepted oracle, independent review and explicit owner approval.
+- Added negative fixture specifications C137–C140 for missing/reused epoch, identity mismatch across root/counter/checkpoint, invalid/mismatched owner approval, and attempted canonical promotion under v1.1.
+- P1.22 self-review: `docs/reviews/t1/P1_22_SELF_REVIEW_RECOVERY_EPOCH_SCHEMA_AND_V1_1_RESUMPTION_2026-11-09.md`.
+- Self-review commit: `f755c620c4f40c040466490b9cb63d91ac63ebf3`; blob SHA: `f3fca61dfd5d139e97a8b25fb34023c7e2f629ed`.
+- Verdict: DOCUMENTATION-LEVEL PASS for F02-R4, F01-R2 and C137–C140 specifications. Same-session review, NOT independent. Implementation readiness NOT ESTABLISHED.
+- Static checks: initialization/epoch/approval schemas; six-key counter; checkpoint epoch binding; §22.4/§22.9/§22.10 precedence; rollback boundary; UNKNOWN/unsealed-only recovery; C136–C140; F05 namespace rule — PASS.
+- C01–C140 remain NOT IMPLEMENTED / NOT EXECUTED. F07 NOT VERIFIED. Binance REST completeness semantics NOT ACCEPTED. Pinned producer decimal defect CONFIRMED / NOT FIXED. Producer FINAL_ONLY/product identity NOT VERIFIED. No implementation, executable test suite, GitHub Actions run/artifact, REST, VPS/runtime or T1 activation.
+- Issue #138 retarget is permitted by this self-review gate and is to be updated to exact contract blob `20e8b31db364a15b73359810664f7e079aa86bc7` for genuinely independent review. Same-session self-review is not independent.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; no T0/T2 changes; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
