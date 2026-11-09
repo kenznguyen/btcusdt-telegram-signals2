@@ -1,7 +1,7 @@
 # L4-Minimum Provenance Acceptance Matrix — Lifecycle-Aligned Revision
 
 Date: 2026-11-10
-Parent decision: `docs/decisions/D-2026-11-09-L4-PROVENANCE-PERSONAL-SCOPE.md`
+Parent decision: `docs/decisions/D-2026-11-09-L4-PROVENANCE-PERSONAL-SCOPE.md`; superseding reviewer-waiver decision: `docs/decisions/D-2026-11-10-L4-INDEPENDENT-REVIEW-WAIVER.md`
 Scope: personal, non-commercial BTCUSDT Quant System
 Status: **OWNER POLICY UPDATED — DOCUMENTARY REVISION — NOT IMPLEMENTED, NOT EXECUTED, NOT ACCEPTED**
 
@@ -141,13 +141,13 @@ Evidence package retention is governed by the applicable lifecycle obligations a
 
 1. Reconcile remaining P1.8.152 lifecycle findings; the L4-Minimum reviewer waiver does not close or waive reviewer requirements in that separate lifecycle workstream.
 2. Treat the 2026-11-10 read-only audit report as a historical snapshot: it references the pre-F-01–F-08 matrix blob `f39bef0c391e13a3656130f0e74f0e7a385b0c39`. Do not rewrite that report or treat its matrix reference as current.
-3. Freeze and identify the exact review-input baseline (current matrix blob `8f9e34acb4e9ae0b89d5e7163566ab2982d99c63`, audit report blob `cfecb7428508adf23e6b9e71dc0dfe1e0e38080c`, and applicable controlling decision/lifecycle artifacts) in a canonical manifest with digest and closure record.
+3. Freeze and identify the exact owner-assessment baseline (the exact current matrix blob as read from GitHub, the historical audit report blob `cfecb7428508adf23e6b9e71dc0dfe1e0e38080c`, the reviewer-waiver decision and applicable controlling lifecycle artifacts) in a canonical manifest with digest and closure record. The external manifest, not a self-referential SHA embedded in this matrix, identifies the exact matrix blob.
 4. The owner assesses the exact frozen review-input baseline, explicitly reconciling historical-to-current matrix lineage, and records a separate owner disposition referencing the exact baseline ID/digest. Do not label this as independent review.
-3. Inventory existing evidence and implementation only within separately approved, non-operational scope.
-4. Design isolated synthetic fixtures and expected outputs.
-5. Obtain explicit owner approval for any activity touching keys, trust roots, GitHub permissions, persistent storage, VPS, database, runtime inventories, providers, staging, restore or fault injection.
-6. Run only the explicitly approved test scope; preserve exact source SHA, workflow run and artifact where applicable.
-7. Record owner self-assessment and disposition before changing any acceptance status; do not claim independent assurance.
+5. Inventory existing evidence and implementation only within separately approved, non-operational scope.
+6. Design isolated synthetic fixtures and expected outputs.
+7. Obtain explicit owner approval for any activity touching keys, trust roots, GitHub permissions, persistent storage, VPS, database, runtime inventories, providers, staging, restore or fault injection.
+8. Run only the explicitly approved test scope; preserve exact source SHA, workflow run and artifact where applicable.
+9. Record owner self-assessment and disposition before changing any acceptance status; do not claim independent assurance.
 
 This document does not authorize any step that crosses an existing authorization boundary. It does not authorize key operations, permission inventory, provider calls, runtime/data/copy inventory, staging, restore, fault injection, workflow dispatch, implementation, archive or destructive operations.
 
