@@ -3109,3 +3109,16 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Reaffirmed mandatory L4M-01–L4M-10 controls; exclusions do not waive independent evidence custody/readback, owner signing separation, exact-object/freshness anchor, offline verification, key/trust lifecycle, tamper-evident history, claim discipline or genuinely independent review.
 - Audit status: documentary scope classification PASS; no independent review, tests, workflow dispatch, runtime/VPS/DB/provider/key/permission operation or destructive action. L4 implementation/operational acceptance remains BLOCKED / NOT VERIFIED.
 - No source/runtime changes. Option C remains; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+
+
+## T0 Scope Minimization Review (2026-11-10)
+
+- Read-only source/document scope review: `docs/evidence/T0_SCOPE_MINIMIZATION_REVIEW_2026-11-10.md`.
+- Review commit: `ae2c20ecc26c653eed0af56594732f4a0f579814`; blob verified on branch: `43c919521352cd3c2b00ba6da891a8675a6c5ed6`.
+- Proposed active T0 baseline: Binance USD-M BTCUSDT M15/H1 canonical SQLite, fenced single writer/lease, fail-closed recovery/integrity, bounded read-only Candle API, T2 contract and core regression tests.
+- Classified PostgreSQL provider/migration, Kraken Spot research, public HTTPS/DNS/proxy, checkpoint G0-G3 expansion, TSA/WORM/Root A-Root B, lifecycle registry/scheduler/archive/retention implementation, and Daily Baseline/dual reconstruction integration as parked/separate tracks. No deletion or source changes.
+- Protected core: canonical market identity, candle validation, fenced writer/lease, fail-closed recovery, read-only boundary, API bounds/auth, tests, evidence provenance, canonical data/recovery copies and no automatic delete-after-use.
+- Findings SM-01–SM-10 cover active-scope inflation, market-domain mixing, evidence expansion, optional backend complexity, premature public API, lifecycle proliferation, forward-evidence conflation, recovery-domain leakage, false simplification and premature cleanup.
+- Status: documentary/source inventory PASS; active T0 baseline PROPOSED pending owner ratification; dependency/call graph PARTIAL; live consumer/runtime inventory NOT VERIFIED; G2 exact-SHA NOT VERIFIED; G3 PENDING; L4-Minimum operational acceptance BLOCKED / NOT VERIFIED.
+- No source/test/workflow/schema/runtime/VPS/database/provider/key/permission change; no tests, dispatch, archive, vacuum, compaction, backup expiry, replica removal, cleanup or deletion. Option C remains; AI_EXECUTION_ENABLED=false; paper-only; no live orders.
+- Next: dependency map for parked candidates, followed by a separate proposal to reconcile active README/index. No removal without evidence and explicit approval.
