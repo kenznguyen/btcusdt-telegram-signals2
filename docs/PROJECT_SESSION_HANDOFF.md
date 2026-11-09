@@ -2233,3 +2233,17 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Existing blockers: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C188 NOT IMPLEMENTED / NOT EXECUTED.
 - Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
 
+## P1.33 — ERA status schema correction and follow-up self-review (2026-11-09)
+
+- Contract commit: `e88de095e30211fbe43dedf422dec6f5152785c1`.
+- Exact contract blob: `bcf78f3a70233aeb666fee468897f162405d03a0`.
+- ERA_KEY_STATUS_V1 now has exactly eight always-present keys, explicit ACTIVE/REVOKED nullability, canonical base64url bundle encoding and digest verification.
+- Added C189.
+- P1.33 self-review file: `docs/reviews/t1/P1_33_SELF_REVIEW_ERA_KEY_STATUS_SCHEMA_2026-11-09.md`.
+- Review commit: `c9fba0035689245f8f17577cc31aa9fe6c127552`; review blob: `a798eb4333af4a145c9a766cbf8fd9967cacf121`.
+- Verdict: **REQUEST CHANGES — F02-R17 LOW**. Fixture IDs C146–C189 are out of numerical order (C171–C189 precede C166–C170; C179 appears after C189). Reorder and verify each ID exactly once.
+- Issue #138 remains targeted at P1.24 SHA until F02-R17 is corrected and exact-SHA self-review passes.
+- No ERA implementation, executable tests, Actions dispatch, REST, VPS/runtime, T1 activation, T0/T2 changes, trading or destructive data operations.
+- Existing blockers: F07 NOT VERIFIED; Binance REST completeness oracle NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; C01–C189 NOT IMPLEMENTED / NOT EXECUTED.
+- Guardrails unchanged: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive data operations without separate explicit approval.
+
