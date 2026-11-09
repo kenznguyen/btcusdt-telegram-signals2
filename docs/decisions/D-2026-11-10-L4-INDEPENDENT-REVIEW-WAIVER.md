@@ -81,7 +81,7 @@ The historical 2026-11-10 audits and the 2026-11-09 owner decision must not be r
 ## 7. Current status
 
 - Owner decision to waive mandatory independent review for L4-Minimum: **APPROVED BY THIS RECORD**.
-- Matrix alignment: **PENDING UNTIL UPDATED AND READ BACK**.
+- Matrix alignment: **UPDATED AND READ BACK** in `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`; final matrix blob SHA `c109bd162dbd4744876392ee6f625bc9478da7de`.
 - L4M-01–L4M-08 and L4M-10 implementation/evidence: **NOT VERIFIED / BLOCKED as previously assessed**; this decision does not promote any technical control.
 - L4M-09: **OWNER-WAIVED / NOT A MANDATORY CONTROL**.
 - L4-Minimum technical/operational acceptance: **BLOCKED / NOT VERIFIED** until the nine active controls have evidence and owner disposition.
