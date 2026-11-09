@@ -18,9 +18,9 @@ The generic persisted value market=futures does not prove the product contract. 
 - symbol=BTCUSDT, base_asset=BTC, quote_asset=USDT;
 - margin_asset=USDT only where authoritative metadata provides it;
 - datatype=klines, interval=1m;
-- source_endpoint_family identifying the configured USD-M stream;
-- exchange_info_snapshot_sha256 and the exact symbol metadata record used for eligibility;
-- schema_version, collector_source_sha and file_generation.
+- source_endpoint_family and endpoint_config_sha256 identifying the configured USD-M stream;
+- exchange_info_snapshot_sha256, exchange_info_evidence_ref and symbol_record_sha256 binding the exact ExchangeInfo record used for eligibility;
+- schema_version=T1_KLINES_1M_FINAL_ONLY_V1, collector_source_sha256, generation_sequence and generation_id.
 
 The producer must derive identity and symbol eligibility from the actual configured Binance USD-M endpoint/stream and the exact authoritative ExchangeInfo symbol record captured for this generation. The manifest must bind the endpoint family/configuration digest, ExchangeInfo snapshot digest, exact symbol record and collector source SHA. The adapter independently validates these values; a static symbol allowlist or symbol spelling is not a substitute for the bound exchange record.
 
@@ -51,7 +51,7 @@ This statement covers final events actually received and accepted by the collect
 Each generation has exactly one strict v1.1 manifest at the fixed path manifest.json. Required fields and types are fully specified in §21.5; the compact field inventory is:
 - manifest_version, schema_version, generation_sequence, generation_id, publication_sequence;
 - exchange_id, market_scope, contract_type, symbol, base_asset, quote_asset, datatype, interval, source_endpoint_family, output_mode;
-- endpoint_config_sha256, exchange_info_snapshot_sha256, symbol_record_sha256;
+- endpoint_config_sha256, exchange_info_snapshot_sha256, exchange_info_evidence_ref, symbol_record_sha256;
 - collector_source_sha256, collector_instance_id;
 - data_file_relative_path, data_file_identity;
 - state=ACTIVE | SEALED | QUARANTINED;
@@ -63,7 +63,7 @@ Each generation has exactly one strict v1.1 manifest at the fixed path manifest.
 
 The manifest and its immutable commit receipt use canonical UTF-8 JSON per RFC 8785 JCS. The receipt binds the exact manifest digest and all committed-prefix fields. A manifest without exactly one matching receipt is PREPARED/UNCOMMITTED and cannot be read as a canonical source.
 
-Watermark may advance only for an interval whose final-candle completeness has been reconciled by an explicitly defined and independently testable producer mechanism. A healthy socket alone is insufficient. Detected or unknown delivery continuity holds the watermark. A detected gap is reported; it is never permission to synthesize data.
+Watermark may advance only for an interval whose final-candle completeness has been reconciled by an explicitly defined and independently testable producer mechanism. A healthy socket alone is insufficient. Detected or unknown delivery continuity holds the watermark. An apparent missing row is retained as UNKNOWN/DIVERGENCE/INVALIDATED under the current profile; it is not reported as a confirmed gap. GAP_DETECTED and WINDOW_GAP remain reserved and unassignable. No state is permission to synthesize data.
 
 ### 4.3 Seal rule
 
@@ -536,7 +536,7 @@ P1.6-F01 is resolved at documentation level by making v1 archival/non-normative 
 These clarifications do not resolve the pre-existing blockers: no accepted REST completeness oracle (F01), confirmed producer decimal-loss defect (F05), and unverified target filesystem/provider durability (F07). Independent review remains required. Design readiness and implementation authorization are not granted.
 
 
-## 21. P1.9 contract correction — publication receipts, writer fencing and gap-state availability
+## 21. P1.10 contract correction — publication receipts, writer fencing and gap-state availability
 
 This section is normative and supersedes any conflicting wording in §§2–5, 8–9 and 20. The exact behavior below is a design contract only; no implementation or filesystem claim is made.
 
@@ -577,14 +577,15 @@ Required manifest fields and types:
 - publication_sequence: unsigned integer, strictly increasing within the generation;
 - exchange_id, market_scope, contract_type, symbol, base_asset, quote_asset, datatype, interval, source_endpoint_family, output_mode: non-empty strings constrained to the approved values;
 - endpoint_config_sha256, exchange_info_snapshot_sha256, symbol_record_sha256, collector_source_sha256, header_sha256, data_prefix_sha256: lowercase 64-character SHA-256 hex strings;
-- collector_instance_id, data_file_relative_path, data_file_identity: non-empty strings; file identity includes the platform identity tuple captured by the producer and revalidated by the reader;
+- collector_instance_id, data_file_relative_path: non-empty strings;
+- data_file_identity: strict object with platform-specific stable filesystem identity fields (at minimum device/filesystem identity and inode/file ID); each component has a defined string type and is revalidated by the reader. If the filesystem exposes no stable identity tuple, reject the source; do not substitute path, size or mtime;
 - state: one of ACTIVE, SEALED, QUARANTINED;
 - committed_offset_bytes, committed_record_count, watermark_open_time_exclusive_ms: non-negative integers;
 - source_health: one of RECONCILED_COMPLETE, UNKNOWN, INVALIDATED;
 - reconciliation_evidence_ref: required non-empty immutable evidence identifier whenever RECONCILED_COMPLETE is claimed; absent otherwise;
 - created_at_utc, updated_at_utc: RFC 3339 UTC strings for audit only, never used as completeness or fencing evidence.
 
-The fixed manifest path is manifest.json within the generation directory. The generation directory name must contain and match the generation ID and sequence. The manifest binds exactly one relative data-file path; the file must be a regular file and its identity, header, committed size and prefix digest must match. The commits/ subdirectory is created and durably established before the first publication in that generation. Each commit receipt is UTF-8 canonical JCS JSON with a strict closed schema: receipt_version, generation_sequence, generation_id, publication_sequence, manifest_sha256, data_file_identity, committed_offset_bytes, committed_record_count, data_prefix_sha256 and watermark_open_time_exclusive_ms. It is stored under a unique generation/publication-sequence filename. Every receipt field must exactly match the manifest; duplicate receipts for a sequence, multiple candidate manifests, or any path ambiguity causes quarantine.
+The fixed manifest path is manifest.json within the generation directory. The generation directory name must contain and match the generation ID and sequence. exchange_info_evidence_ref must resolve to the immutable ExchangeInfo snapshot whose digest and exact symbol-record digest are present in the manifest. The manifest binds exactly one relative data-file path; the file must be a regular file and its identity, header, committed size and prefix digest must match. The commits/ subdirectory is created and durably established before the first publication in that generation. Each commit receipt is UTF-8 canonical JCS JSON with a strict closed schema: receipt_version, generation_sequence, generation_id, publication_sequence, manifest_sha256, data_file_identity, committed_offset_bytes, committed_record_count, data_prefix_sha256 and watermark_open_time_exclusive_ms. It is stored under a unique generation/publication-sequence filename. Every receipt field must exactly match the manifest; duplicate receipts for a sequence, multiple candidate manifests, or any path ambiguity causes quarantine.
 
 The configured source root and all descendants must be opened without following symlinks (for example, directory-relative no-follow opens where supported). Symlinked root/components, manifest, receipt or data files are rejected. Unexpected hard links, non-regular files, path traversal, absolute paths, alternate encodings and file replacement during validation are rejected. If the platform cannot enforce these checks, source eligibility is NOT VERIFIED and the adapter must fail closed. The schema is closed-world for v1.1; extensions require a new schema version, not ignored fields.
 
