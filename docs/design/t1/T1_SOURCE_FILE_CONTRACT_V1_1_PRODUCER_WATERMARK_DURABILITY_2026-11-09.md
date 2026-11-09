@@ -843,7 +843,7 @@ The following are additions to the design fixture catalogue; all remain NOT IMPL
 
 - C125: recovery checkpoint missing required key, extra key, wrong type, noncanonical JCS or duplicate JSON key → reject/quarantine; no recovery acceptance.
 - C126: checkpoint filename publication sequence differs from record sequence, or checkpoint binds another generation → reject/quarantine.
-- C127: checkpoint receipt/manifest/counter digest or committed-prefix binding mismatch → reject/quarantine.
+- C127: checkpoint receipt/manifest/counter-snapshot digest or committed-prefix binding mismatch → reject/quarantine.
 - C128: checkpoint sequence exceeds counter high-water, counter regresses below checkpoint history, duplicate checkpoint sequence or unknown checkpoint-directory entry → reject/quarantine; no sequence reuse.
 - C129: checkpoint file fsync or recovery-checkpoints directory fsync fails; or crash occurs after checkpoint rename but before directory fsync → checkpoint remains unconfirmed; restart revalidates the candidate and repeats recovery-checkpoints plus generation-directory fsync before acceptance; never accept from memory.
 - C130: checkpoint and counter are copied/restored together without an independently trusted external monotonic anchor → continuity NOT PROVEN; quarantine and require separately approved new root/recovery epoch.
