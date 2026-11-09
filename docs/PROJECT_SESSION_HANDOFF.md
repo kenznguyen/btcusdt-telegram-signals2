@@ -1127,3 +1127,28 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Destructive/deletion authority: NOT GRANTED.
 - Option C remains the approved default; T0 remains independent; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`.
 - Next gate: prepare a documentation-only P1.8.125 clarification for IR124-01/02/03, then independently review it. Any live read-only metadata inventory still requires separate explicit owner approval and bounded scope.
+
+
+## P1.8.125–P1.8.126 — Effective-Permission Inventory Clarification and Independent Review (2026-11-09)
+
+- Owner instruction: automatic continuation approved within P1.8. This approval is bounded by existing P1.8 guardrails; it does not grant live inspection, permission changes, credential operations, workflow activation, provider access or destructive authority.
+- P1.8.125 clarification: `docs/evidence/p1-8/P1.8.125-clarification-of-effective-permission-inventory-contract.md`.
+  - Commit: `7c332935160140b256afcc70cbff96aac77eed50`.
+  - Blob SHA: `d1c3ca152ce3bc4986574c524b0ac99442c576a2`.
+  - Adds a bounded multi-source inventory cut, per-source observation/revision and pagination evidence, drift detection, high-impact final revalidation, manifest binding and invalidation on material change.
+  - Preserves the absolute no-secret-value rule and defines non-secret provenance requirements; opaque/unbounded credential paths are UNKNOWN/NOT VERIFIED and can block an Option C technical-enforcement PASS.
+  - Adds explicit GitHub organization/repository administration, Actions policy, workflow, ruleset/environment bypass, runner, artifact/cache/dependency and high-risk trigger graph edges.
+  - Numeric freshness/clock/collection thresholds and source/provider guarantees remain OPEN; no global atomic snapshot is claimed.
+- P1.8.126 independent static review: `docs/evidence/p1-8/P1.8.126-independent-static-review-p1-8-125.md`.
+  - Review commit: `dde3516e89252e380774550e76cd6cca05e72f61`.
+  - Review blob SHA: `d18d9d30329855af1dbcb81d0711346fc0aa2956`.
+  - Reviewed P1.8.125 blob: `d1c3ca152ce3bc4986574c524b0ac99442c576a2`.
+  - Verdict: PASS — IR124-01, IR124-02 and IR124-03 CLOSED at documentary-design level. No direct contradiction with P1.8.123 or P1.8.121 Option C found.
+- IR122-01 remains OPEN pending separately authorized live read-only inventory and independent review. Option C technical enforcement remains NOT VERIFIED. P1.8.120 IR120-01 remains OPEN for Option B; B remains unselected/not selection-ready.
+- Static author/readback and review readback: PASS. Tests: NOT RUN. GitHub Actions: NOT DISPATCHED. Workflow run/artifact: NONE.
+- Live GitHub/org/environment/OIDC/runner/provider permission inventory: NOT PERFORMED / NOT VERIFIED. Secret values were not accessed.
+- IAM/role/permission changes, credential creation/rotation/revocation, workflow activation/remediation, runner jobs/host inspection/provider probes: NOT EXECUTED / NOT AUTHORIZED.
+- Restore/staging/fault injection/provider/key/TSA operations: NOT EXECUTED / NOT AUTHORIZED.
+- Archive/cleanup/vacuum/deletion: NOT EXECUTED / NOT AUTHORIZED. Destructive/deletion authority: NOT GRANTED.
+- Option C remains the approved default; T0 remains an independent canonical data asset; CORE_LEDGER and AI_LEDGER remain separate; `AI_EXECUTION_ENABLED=false`.
+- Next bounded P1.8 documentary step: prepare a consolidated crosswalk/closure index mapping P1.8.121–P1.8.126, findings, owner decisions, evidence blobs, unresolved operational gates and the separate authorization needed for live inventory. Do not execute live inventory under automatic documentary approval.
