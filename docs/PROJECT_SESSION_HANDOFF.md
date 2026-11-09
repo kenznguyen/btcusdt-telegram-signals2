@@ -2936,3 +2936,12 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Re-review confirms the self-reference is removed and the object digest can be computed over finite canonical bytes. Remaining contract gaps are intentionally OPEN: exact content-root construction/test vectors, serializer profile implementation, backend snapshot mechanism and durability receipt semantics, issuer/signer/custody/anchor authority. No source implementation is implied.
 - Documentation-only; no tests/Actions, runtime/VPS/DB/data/provider/identity/key/trust-root/permission operations or destructive actions. Option C remains; paper-only; `AI_EXECUTION_ENABLED=false`.
 - Status: SR-01 CORRECTED IN WORDING; contract remains DRAFT / NOT IMPLEMENTED / NOT INDEPENDENTLY REVIEWED.
+
+
+### Contract consistency crosswalk — TSA boundary (2026-11-10)
+
+- Cross-checked the draft against P1.8.67/P1.8.68 and P1.8.77/P1.8.78. Added §13.1 to preserve the explicit distinction between A (dataset/checkpoint proof-of-existence) and B (P1.8.36/V07 exact signed-object historical verification).
+- Explicitly records that the owner has not selected A, B or two separately versioned evidence products; the new contract does not authorize TSA requests and does not claim P1.8.36 compatibility merely by defining a signature envelope.
+- Preserves P1.8.67 invariants: TSA optional/asynchronous/outside T0 write path; only timestamp after separately proven durable commit; TSA failure/UNKNOWN cannot roll back a valid T0 data commit.
+- Latest contract update commit: `ff6a75bda9037eec3d15f5de3518681da002c0ab`; latest contract blob: `1973191e79c36c12424b06bd66b3796c948523f0`.
+- Static consistency review only; no independent reviewer, tests, Actions, provider, runtime, key, trust-root or destructive operation. Contract remains DRAFT / NOT IMPLEMENTED / NOT INDEPENDENTLY REVIEWED.
