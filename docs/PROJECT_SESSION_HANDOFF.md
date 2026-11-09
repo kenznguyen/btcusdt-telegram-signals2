@@ -3558,3 +3558,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Matrix file commit: `403c993f6d74aac9620e3d0fbbd26219a201c34f`; matrix blob SHA verified by read-back: `4f51bd8a959b47df3c38275d70dd414d4a317ad7`.
 - Handoff update commit before this read-back note: `5f1d4a7e9fa39aca6b736f7bda7aacde1a0d46cd`; handoff blob read-back: `2cdadbdc233543cb319da10b5adf09f28c236e79`.
 - Next step: only a bounded documentary search for already-committed authoritative owner/obligation records that resolve specific missing inputs; where none exist, record NOT PROVIDED and stop for that class. RET-06/RET-08 remain separate Stage A items; Stage B/C require separate scope/authorization.
+
+
+## Stage A.7 — Governance and Owner-Source Reconciliation (2026-11-10)
+
+- Added `docs/evidence/p1-8/STAGE_A7_GOVERNANCE_OWNER_SOURCE_RECONCILIATION_2026-11-10.md` as a documentation-only review of pinned lifecycle governance records and bounded repository discovery.
+- Frozen baseline HEAD: `85256312da7bcf3d06f91abc404b63deb1e89aa0`.
+- Confirmed lifecycle independent-review waiver blob `555951e36f6365012cb5b9e48ba24e455b775d16` authorizes only waiver of the human-review gate; it does not provide class-specific retention purpose, owner/custodian, obligation, numeric duration, start/terminal event or deletion authority.
+- Confirmed lifecycle dependency plan blob `bfbd3ae5ec49e644632c72a1865745628ef574f3` is a planning/acceptance document, not an authoritative legal/operational retention schedule. RET-03/07, RET-06 and RET-08 remain open.
+- Reviewed consolidated T0–T4 matrix blob `4f51bd8a959b47df3c38275d70dd414d4a317ad7`, crosswalk blob `3d084c04cd9712ed05d790ce5c431e988b64ce32`, P1.8.152 historical blob `e1a4d95af216e94a58fa5528850fcd0c1ff465f8` and T1 owner-input report blob `061ea9340e07a9f633a8864928c945f44adc5295`.
+- No new authoritative class-specific owner/obligation source was found in the pinned governance set. T1 report references Central Data Lifecycle Policy design blob `9fd46c029cff643ccc35492fd09620581f6eff35`, but exact current-branch document path/content and approval status were not independently resolved; not treated as normative.
+- Bounded GitHub code search uses default-branch index and is not exhaustive for this feature branch; no exhaustive-negative repository claim is made. F-07–F-09 remain NOT VERIFIED.
+- Result: review-waiver and Option C boundaries confirmed; class-specific owner/obligation, numeric floors, start/terminal events, RET-06 values and RET-08 authority protocol remain NOT PROVIDED / OPEN; RET-09 inventory NOT VERIFIED.
+- Tests NOT RUN; Actions NOT DISPATCHED; no runtime/VPS/DB/provider/legal/permission/consumer/copy probes; no source/schema/config/workflow/permission/runtime/data changes or destructive actions.
+- Stage A.7 report commit: `5f975ed000ca53b0b0c78db9186182500dbaf81d`; report blob and final handoff commit to be verified by read-back.
+- Automatic owner approval applies to bounded documentary work across Stage A only. Continue Stage A.8 by specifying RET-06 and RET-08 required input/decision fields and fail-closed outcomes, without selecting values or authorizing exceptions. Stage B/C remain outside approval.
