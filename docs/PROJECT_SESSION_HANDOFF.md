@@ -507,3 +507,18 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: DOCUMENTARY DESIGN CLOSURE COMPLETE; RUNTIME COPY INVENTORY NOT VERIFIED; ADAPTERS NOT IMPLEMENTED; NOT ACTIVE / NOT AUTHORIZED.
 - No source/schema/API/workflow/service/registry/scheduler/database/VPS/Feeder/storage/backup/replica/archive/runtime change. No tests/CI, workflow dispatch, runtime inventory, deletion dry-run, cleanup, vacuum, restore, fault injection or destructive operation. Workflow run/artifact: NONE.
 - Next: P1.8.84 Deletion Acceptance and Negative-Case Matrix. Consolidate end-to-end acceptance gates, fail-closed vectors, evidence requirements and non-goals across P1.8.79–P1.8.83. After P1.8.84, perform an independent deletion-design review before any V07/V08/Restore/TSA conflict review.
+
+### P1.8.84 — Deletion Acceptance and Negative-Case Matrix (2026-11-09)
+
+- Matrix: `docs/evidence/p1-8/P1.8.84-deletion-acceptance-and-negative-case-matrix.md`.
+- Matrix commit: `8fbda4c1e26621c5eb165c120818e52936cc8583`.
+- Consolidates P1.8.79–P1.8.83 and governing lifecycle contracts into 15 end-to-end gates from scope/authority through post-closure monitoring.
+- Defines acceptance vocabulary distinguishing DESIGN_DEFINED, EVIDENCE_REQUIRED, OPEN_DECISION, NOT_IMPLEMENTED, BLOCKED, NOT_VERIFIED and ACCEPTED_DESIGN_ONLY; documentary design status is explicitly not runtime acceptance.
+- Adds 45 negative cases covering identity/role separation, immutable manifest, policy/evidence changes, registry and consumer uncertainty, ACK vs release, holds, copy/backup/recovery gaps, T0/T3 protected state, archive/rebuildability, authorization/cancellation races, adapter scope, idempotency, ambiguous/partial execution, independent verification, residuals, audit evidence and prohibited TTL/age-based deletion.
+- Consolidates cross-domain invariants and protected boundaries for T0–T4, CI/research evidence, copies and governance/audit/tombstones.
+- Defines the required future acceptance evidence package, including exact SHA, immutable vector, isolated synthetic fixture, manifest digest, dependency/hold/copy/recovery snapshots, actual observations, independent verification and artifact provenance when a workflow is separately authorized.
+- ACC-01–ACC-17 remain OPEN, NOT VERIFIED, NOT IMPLEMENTED, NOT AUTHORIZED or NOT DESIGNATED as stated. No numeric retention/grace/freshness/quorum/lifetime/RPO/RTO/provider is selected.
+- P1.8.79–P1.8.84 documentary design work is ready for independent review only; this is not production acceptance and grants no deletion/archive/cleanup authority.
+- Status: DOCUMENTARY MATRIX COMPLETE; INDEPENDENT REVIEW PENDING; TESTS/CI NOT RUN; NOT IMPLEMENTED / NOT ACTIVE / NOT AUTHORIZED.
+- No source/schema/API/workflow/service/registry/scheduler/database/VPS/Feeder/storage/backup/replica/archive/runtime change. No tests/CI, workflow dispatch, runtime inventory, deletion dry-run, cleanup, vacuum, restore, fault injection or destructive operation. Workflow run/artifact: NONE.
+- Next: independent deletion-design review of P1.8.79–P1.8.84 and governing contracts. Assess completeness, contradictions, missing failure modes, authority separation and testability. Do not begin V07/V08/Restore/TSA conflict review until this review is complete.
