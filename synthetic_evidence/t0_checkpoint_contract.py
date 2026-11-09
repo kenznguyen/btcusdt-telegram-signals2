@@ -149,6 +149,7 @@ def _domain_hash(domain, payload):
 def checkpoint_object_digest(data: bytes) -> str:
     if not isinstance(data, bytes):
         raise ValueError("canonical object must be bytes")
+    verify_canonical_bytes(data)
     return _domain_hash(b"T0-EVIDENCE-OBJECT-V1\0", data).hex()
 
 
@@ -205,10 +206,10 @@ def assess_partition(timeframe, start_ms, end_ms, rows, *, as_of_ms=None, input_
     step = INTERVAL_MS[timeframe]
     if start >= end or start % step or end % step:
         return _invalid("RANGE_NOT_NONEMPTY_AND_ALIGNED")
-    if not isinstance(input_complete, bool) or not input_complete:
-        return {"status": "UNKNOWN", "reason": "INPUT_BYTES_OR_PAGE_INCOMPLETE"}
     if not isinstance(rows, list):
         return {"status": "UNKNOWN", "reason": "ROW_INPUT_UNAVAILABLE"}
+    if not isinstance(input_complete, bool):
+        return _invalid("INPUT_COMPLETENESS_FLAG_INVALID")
     expected_count, previous, openings = (end - start) // step, None, []
     for row in rows:
         try:
@@ -224,6 +225,8 @@ def assess_partition(timeframe, start_ms, end_ms, rows, *, as_of_ms=None, input_
             return _invalid("ROW_EXCLUDED_BY_AS_OF_FILTER")
         previous = opening
         openings.append(opening)
+    if not input_complete:
+        return {"status": "UNKNOWN", "reason": "INPUT_BYTES_OR_PAGE_INCOMPLETE"}
     gaps, cursor = [], start
     for opening in openings:
         if opening > cursor:
