@@ -2526,3 +2526,38 @@ This section supersedes the P1.42 handoff statement that C01–C24 source defini
 - Status: implementation behavior remains CI-verified only at tested source SHA `ad03560b6409de3c28688fb25d57fa49aed66a9f` by green run `42644995874`; the added lexical edge tests and exact latest T1 HEAD remain NOT VERIFIED. Repeated startup failures are an Actions provisioning/platform blocker, not a test failure and not a source PASS.
 - Next step: wait for GitHub Actions service/provisioning to recover or use an explicitly available authorized workflow retry path; then obtain a green run against the exact latest T1 HEAD before closing the P1.44 test-verification gate. Do not change CI configuration without evidence of a repository workflow defect.
 - No issue retarget, PR merge, new branch/PR/issue, deployment, VPS/runtime operation, T1 activation, T0/T2 mutation, live order, exchange credential use or destructive data operation.
+
+
+## P1.44 — GitHub Actions dispatcher investigation update (2026-11-09)
+
+### Observed signature
+
+T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/t1-connection-sidecar-integration-20261107`:
+- Current exact HEAD: `4566cffbbcf8495182abbc0d3496fdc65709ac14`.
+- Latest run `42646416010` (push) reports `path=BuildFailed`, empty workflow name, `conclusion=startup_failure`, zero jobs.
+- Latest PR run `42646425898` reports the same signature.
+- Jobs API returns an empty list. No runner assignment, step logs, test execution or artifacts.
+- Workflow file `.github/workflows/ci.yml` remains unchanged, blob `8329039c807d63cf6834ca9c85fbd0cd99e474d4`; its push and pull_request triggers and job definitions are present.
+- The failed run payload exposes synthetic workflow ID `412243529`. The connector's allowlist rejects direct GET of `/actions/workflows/{workflow_id}`, so its registration state (active/deleted) could not be independently confirmed.
+
+### Diagnosis confidence
+
+- This exact `BuildFailed` / empty-name / `startup_failure` / zero-job signature is reported by multiple GitHub Community discussions as a possible orphaned/synthetic Actions workflow registration or dispatcher/control-plane problem. Relevant reports: https://github.com/orgs/community/discussions/206103 and https://github.com/orgs/community/discussions/209847.
+- This is corroborating pattern evidence only. It does NOT prove workflow ID `412243529` is deleted/orphaned or establish the root cause in this repository.
+- No repository YAML defect or Rust source defect is evidenced by these runs; no runner ever started.
+
+### Safe operating decision
+
+- STOP generating further commits on the affected T1 branch solely to trigger CI. New pushes are producing more zero-job startup failures and no test evidence.
+- Do not toggle repository Actions, delete/recreate workflows, alter billing/settings, change workflow YAML, create throwaway repositories, or attempt undocumented registry repair.
+- Preserve PR #1 OPEN/DRAFT and current T1 source HEAD. Do not merge or activate T1.
+- Recommended recovery path: submit the evidence packet to GitHub Support through the repository/account owner's authorized support channel, requesting investigation of Actions workflow registration/dispatcher for synthetic workflow ID `412243529`. Include run IDs `42646416010`, `42646425898`, exact branch HEAD, workflow blob, and zero-job evidence. No support ticket has been filed by this assistant.
+- The connector cannot perform a full-workflow rerun; the affected runs have zero jobs and are not rerequestable.
+
+### Status
+
+- T1 decimal fix implementation: CI PASS only at source SHA `ad03560b6409de3c28688fb25d57fa49aed66a9f`, run `42644995874`.
+- Added lexical edge tests and current exact T1 HEAD: NOT VERIFIED.
+- P1.44 exact-head verification gate: BLOCKED by Actions startup/dispatcher behavior.
+- Next: restore Actions dispatch through GitHub Support or another explicitly authorized recovery path, then run CI against an exact recorded HEAD. Only after that proceed to FINAL_ONLY/product identity.
+- No T0/T2 changes, VPS/runtime access, T1 activation, real orders, destructive data operation, issue retarget or PR merge.
