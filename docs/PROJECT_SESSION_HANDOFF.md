@@ -86,3 +86,17 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: DOCUMENTATION COMPLETE; STATIC REVIEW REQUIRED; NOT EXECUTED. Prior vectors V01–V06 and V09–V13 remain SYNTHETIC PASS only; V07/V08 remain BLOCKED pending parameters; staging NOT AUTHORIZED; production NOT VERIFIED.
 - No source/runtime changes, staging provisioning, provider selection, key operations, restore/fault injection, workflow dispatch, PR, or merge. No CI run or artifact is claimed.
 - Next step: independent static consistency review of P1.8.31 against P1.8.26–P1.8.30; then report findings before proposing any separately authorized staging work.
+
+## Latest completed work — P1.8.31 / P1.8.32
+
+- P1.8.31 acceptance contract: `docs/evidence/p1-8/P1.8.31-acceptance-contract-update.md`.
+- P1.8.31 initial commit: `b11637060fff5d6bfd6c1eaf4a05150d7baf2e56`; subsequent documented refinements aligned D0–D4 to P1.8.28, strengthened independent-principal and environment-equivalence requirements, mapped F01–F10, and normalized sections.
+- Final reviewed P1.8.31 blob SHA: `bc124a346eac9d8239d2dc6b8d44fd86a96c072c`.
+- P1.8.32 independent static review: `docs/evidence/p1-8/P1.8.32-independent-static-review.md`.
+- P1.8.32 final document commit: `d8cbf9d7de43ea85d96101ce5aac66048f4c16c0`; blob SHA: `ad9ed529342e3694a376f9c158a5d8f392523cd4`.
+- Static review: PASS for V01–V13 catalog traceability, F01–F10 mapping, C–C–B policy binding, D0–D4 alignment, RPO/RTO planning values, V07/V08 timestamp contracts, observer independence, claim-scoped environment matrix, section structure and authorization boundaries.
+- Review caught and corrected the first P1.8.31 D0–D4 table so definitions exactly match P1.8.28: D0 application/process termination; D1 database process restart; D2 host restart; D3 storage/provider interruption; D4 power loss/device failure/filesystem corruption.
+- Residual gates remain: V07 BLOCKED on exact revocation parameters; V08 BLOCKED on exact watermark/boundary parameters; restore acceptance BLOCKED on measurement contract and separate staging authorization; environment equivalence NOT VERIFIED; D3/D4 NOT TESTED.
+- Status: P1.8.31 STRUCTURAL/TRACEABILITY REVIEW PASS; execution readiness NOT ESTABLISHED. Staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED. Prior vectors remain SYNTHETIC PASS only.
+- No source/runtime changes, staging provisioning, provider selection, key operations, restore/fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
+- Next step: prepare an owner-review package for unresolved V07, V08 and restore parameters; no staging action until values are frozen and separately authorized.
