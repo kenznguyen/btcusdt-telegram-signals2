@@ -3369,5 +3369,7 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Removed Python entry points: `bot.py`, `backtest.py`, `telegram_commands.py`; wrapper/test/client and archive dependencies are itemized in the manifest.
 - Preserved T0 health API in `app.py`, T0–T4 code/data/tests, Android Paper client, all other active workflows, and standalone `backtest_rsi_percent_b_h1_adx.py`. The old dashboard remains a manual JSON/CSV viewer only.
 - No repository/branch/history rewrite, external repository, secrets, caches, artifacts, external Codemagic state, Render deployment, VPS, database, exchange or canonical data was deleted or changed.
-- Status: source changes prepared for commit; tests NOT RUN; GitHub Actions NOT DISPATCHED; external Codemagic state NOT VERIFIED; independent review NOT PERFORMED. Existing unrelated CI policy contradiction F-03 remains outside this scope.
+- Source commit: `4617c3f74bc7a0119094fc4890e7ca0d8d6ed53f`; tree: `db43e502a3fe75835da8ed24fca453f2fa04cfc3`.
+- Post-commit read-back: PASS — all 11 authorized paths are absent; all 14 active `.github/workflows/*.yml` files remain; T0 health routes and other retained components are present.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; commit status contexts empty; no workflow run/artifact claimed. External Codemagic state NOT VERIFIED; independent review NOT PERFORMED. Existing unrelated CI policy contradiction F-03 remains outside this scope.
 - Next step: verify exact commit/tree and obtain separate authorization for focused GitHub Actions validation. No runtime or external cleanup is authorized by this source retirement.

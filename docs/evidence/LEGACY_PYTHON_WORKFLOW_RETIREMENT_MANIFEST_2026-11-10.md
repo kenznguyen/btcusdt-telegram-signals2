@@ -56,10 +56,10 @@ At the inspected branch SHA, the paths `.github/workflows/signal-scan.yml`, `.gi
 ## Verification status
 
 - Source/path inventory at baseline: PASS for the listed paths and direct dependencies.
-- Post-change read-back: pending commit creation.
-- Unit/integration tests: NOT RUN in this environment.
-- GitHub Actions: NOT DISPATCHED; no run or artifact is claimed.
+- Post-change read-back: PASS — commit `4617c3f74bc7a0119094fc4890e7ca0d8d6ed53f`; tree `db43e502a3fe75835da8ed24fca453f2fa04cfc3`. All 11 authorized deletion paths are absent; all 14 active `.github/workflows/*.yml` files remain; retained T0 API, T0/T2 pipeline, paper ledger, Android manifest and archived market-data workflow are present.
+- Unit/integration tests: NOT RUN in this environment; the added retirement guard and T0/API regression suite remain NOT VERIFIED.
+- GitHub Actions: NOT DISPATCHED; commit status endpoint returned no status contexts; no run or artifact is claimed.
 - External Codemagic account/workflow state: NOT VERIFIED; source configuration only was changed.
 - Independent review: NOT PERFORMED.
 - T0–T4 runtime/data/acceptance status: unchanged; no new PASS claim.
-- Next step: inspect the resulting commit/tree, then run the focused retirement and T0/API regression tests in GitHub Actions after a separately authorized validation step.
+- Next step: obtain separate authorization for focused retirement and T0/API regression validation in GitHub Actions.
