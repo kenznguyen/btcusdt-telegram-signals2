@@ -2844,3 +2844,25 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Result: matrix readiness PARTIAL; findings open. This is explicitly NOT a genuinely independent third-party review and does not satisfy L4M-09. Genuine independent review remains PENDING.
 - No tests, Actions workflow, source/runtime/VPS/DB/keys/permissions/data changes or destructive actions. Option C remains; paper-only; `AI_EXECUTION_ENABLED=false`.
 - Next: correct matrix wording for F-01–F-06, then obtain a genuinely independent review of the corrected matrix and exact audit report. Keep L4 technical/operational acceptance BLOCKED / NOT VERIFIED.
+
+
+## L4-Minimum Acceptance Matrix — F-01–F-06 and lifecycle-aligned revision (2026-11-10)
+
+- Updated existing path `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`; no parallel matrix or branch created.
+- Update commit: `9c96d0fa4a664d553719c273b9c2ff36fef247de`.
+- New matrix blob SHA after read-back: `53591e9e3790b4d0b18787ff66bf36a3d45138e9`.
+- Previous matrix blob: `f39bef0c391e13a3656130f0e74f0e7a385b0c39`.
+- F-01: L4M-01 now requires an owner-controlled evidence copy outside both T0/VPS and GitHub failure domains; GitHub-unavailable readback is part of the PASS condition.
+- F-02: L4M-03 now requires a separately authenticated owner-controlled latest-head/monotonic anchor for freshness; without it freshness is UNKNOWN/NOT VERIFIED, not inferred from sequence/generation.
+- F-03: L4M-06 separates cryptographic signature validity, current trust and historical trust-at-time; absent qualifying time/revocation evidence yields UNKNOWN/NOT ESTABLISHED. TSA remains non-mandatory for L4-Minimum.
+- F-04: L4M-07 claims tamper-evident append-only history, not WORM/absolute immutability; it requires independently retained evidence to detect rewriting/replacement and states the storage-administrator trust assumption.
+- F-05: L4M-09 now requires reviewer competence, independence from relevant lifecycle/evidence roles, conflict assessment and direct examination of exact immutable artifacts; conflicted contributors cannot issue the independent disposition.
+- F-06: L4M-10 now requires every mandatory control L4M-01–L4M-10 to PASS on the same immutable baseline; no averaging or compensating control; BLOCKED/NOT VERIFIED/PENDING/UNKNOWN precedence is explicit.
+- Lifecycle crosswalk added against P1.8.143 (blob `6f4451f1eb193e763970581bcd6d8a782508acfd`), P1.8.144 (`f3002ba709f874936ca434c883ef855d2f11784a`) and P1.8.152 (`e1a4d95af216e94a58fa5528850fcd0c1ff465f8`).
+- RET-01 B preserved: T0 canonical data and availability/recovery copies protected; no routine/automatic/scheduled deletion. RET-02 B preserved: only enumerated noncanonical classes/individually identified copies may enter future read-only exact-object/version assessment; no class/object is automatically eligible.
+- Explicitly states L4 evidence is governance/provenance evidence: no default TTL or self-deletion after read/use/verification/consumption/ACK. A retention floor is not deletion approval. Unknown obligations/copies/holds/dependencies remain RETAIN/BLOCKED.
+- RET-03–RET-10, V07, V08, Restore, mutation-fence and Option C enforcement retain P1.8.152 status. P1.8.153 remains the next documented lifecycle gate and is not displaced.
+- Read-back verification confirmed new blob `53591e9e3790b4d0b18787ff66bf36a3d45138e9` and key F-01–F-06/lifecycle/Option C/no-TTL/no-self-delete clauses.
+- Status: DOCUMENTATION UPDATE COMPLETE; F-01–F-06 ADDRESSED IN MATRIX WORDING; lifecycle crosswalk recorded; **NOT INDEPENDENTLY REVIEWED**. P1.8.152 reviewer-control residual remains open; L4M-09 and overall L4 acceptance remain PENDING/BLOCKED as applicable.
+- Tests NOT RUN; GitHub Actions NOT DISPATCHED; no workflow run/artifact. No source, schema, API, runtime, VPS, DB, data, provider, identity, key, trust-root, permission, inventory, test, restore, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion operation.
+- Option C — No Destructive Authority — remains in force; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
