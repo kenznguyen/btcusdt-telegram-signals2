@@ -2453,3 +2453,25 @@ The user's intent is to grant the permissions needed to resolve the currently re
 - Mark environment-dependent items NOT VERIFIED until evidence comes from the actual target environment. CI simulation does not prove VPS filesystem/provider semantics.
 - Keep paper-only posture and `AI_EXECUTION_ENABLED=false`; no live orders.
 - This authorization does not waive independent review, contract acceptance, or any safety/quality gate.
+
+
+## Latest completed work — P1.43: recover authoritative C01–C24 fixture definitions
+
+This section supersedes the P1.42 handoff statement that C01–C24 source definitions could not be located. The source has now been found and verified.
+
+- Recovered source: `docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_AND_INGESTION_ADAPTER_DESIGN_2026-11-09.md`.
+- Exact archived source blob SHA: `41a543f9772d890a47d5ebb923668609f5b1e7ea`.
+- Provenance verified at parent commit `4d797bbb286e3e8fdc6c04ee7af70ec2fa7baeee` and P1.3 commit `0e2cbec07b1289950a7aa7ec1b99ef0ec7f6302c`; both refs return the same source blob SHA. The original C01–C24 rows are lines 156–179.
+- Restored all 24 original scenario IDs and descriptions in §9.1 of the normative v1.1 contract, with explicit current v1.1 dispositions and §20.1 precedence. The archival source remains non-normative wherever it conflicts with v1.1.
+- C07's former WINDOW_GAP expectation is explicitly superseded; WINDOW_GAP remains reserved/unassignable. C03/C24 are reconciled to producer-side FINAL_ONLY filtering. C17 retains exact decimal preservation. C22/C23 retain T0 isolation and no venue fallback.
+- Contract update commits: `e93b3f779cd74d16335751965b8ad10d6a8f2b21` and continuation clarification `87ddd9ed93ab0ec0969625a2e8279c5ce61674ab`.
+- Exact final normative contract blob SHA: `bafe555b6e3941bed4188575c7b7591c4ce3b473`.
+- P1.43 self-review: `docs/reviews/t1/P1_43_SELF_REVIEW_RECOVERED_V1_FIXTURE_INVENTORY_2026-11-09.md`.
+- Self-review commit: `d30f69f574624c0f090e3c8dad50bb25cfc227d2`.
+- Exact self-review blob SHA: `0b4dd7f52bf0b6945b7e2a223246ba544813d628`.
+- Static inventory check: C01–C197 = 197 definitions, 197 unique IDs, no missing IDs or duplicate definition rows. C01–C24 each appear exactly once. Documentation-level self-review verdict PASS for F02-R24 traceability/restoration only; same-session, NOT independent.
+- Status: F02-R24 RESOLVED AT DOCUMENTATION/TRACEABILITY LEVEL; independent review PENDING. C01–C197 remain design scenarios only, NOT IMPLEMENTED / NOT EXECUTED. No workflow run or artifact is claimed.
+- No issue retargeting was performed. Issue #138 remains OPEN and continues to reference its prior target until a new explicit user instruction for that specific retarget.
+- No fixture code, tests, GitHub Actions dispatch, REST request, VPS/runtime or filesystem experiment, source implementation, T0/T2 mutation, T1 activation, trading action or destructive operation occurred.
+- Remaining blockers unchanged: F07 NOT VERIFIED; Binance REST completeness NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; FINAL_ONLY/product identity implementation NOT VERIFIED; manifest/receipt/counter/checkpoint/ERA/trust-policy/ExchangeInfo implementation NOT IMPLEMENTED / NOT VERIFIED.
+- Next step: proceed to the producer decimal defect on the existing T1 collector branch, with golden tests, without claiming compliance until CI evidence is recorded. Keep target-filesystem durability NOT VERIFIED and do not access or mutate the VPS/canonical T0 data.
