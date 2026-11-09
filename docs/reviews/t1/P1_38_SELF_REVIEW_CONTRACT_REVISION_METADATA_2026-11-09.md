@@ -56,3 +56,28 @@ Reviewed exact blob `b7b6786125be507c3ad4c29521830e5fe2a3b1b9`, not a mutable br
 - No destructive data operation or test performed.
 
 T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement.
+
+
+---
+
+## P1.39 — Second-pass adversarial review of P1.38 (2026-11-09)
+
+Review type: Fresh same-session static adversarial pass; NOT an independent third-party review.
+Exact contract blob rechecked: `b7b6786125be507c3ad4c29521830e5fe2a3b1b9`.
+Exact initial P1.38 review blob rechecked: `b8e5a3095a03c6b65dd9142cb06de9bc9dfd7155`.
+
+**Verdict: DOCUMENTATION-LEVEL PASS.** No new actionable defect was found in the P1.38 metadata correction or the directly coupled receipt-schema and fixture-inventory requirements rechecked.
+
+Checks:
+- The contract header now names the latest substantive contract revision P1.37 and continues to state DESIGN ONLY / NOT APPROVED FOR IMPLEMENTATION. P1.38 is the metadata-correction/review iteration, not a new protocol schema or implementation approval.
+- The only P1.38 contract diff is the status-line change from the stale P1.14 label to P1.37; no protocol semantics, schemas, producer source, adapter, runtime or data path changed.
+- The review record identifies the exact contract blob and the prior contract/review blobs consistently.
+- §22.4 retains the exact twelve-key receipt schema including `manifest_jcs_base64url`; §21.5 and §22.11.2 retain its encoding, size, digest and historical-recovery rules.
+- §22.8 and §22.11.5 retain C01–C197 as design scenarios only, NOT IMPLEMENTED / NOT EXECUTED.
+- The design-only and no-implementation guardrails remain intact.
+
+No new finding was raised. This is a bounded static metadata/regression review, not a genuinely independent review and not proof of implementation/runtime safety.
+
+Residual gates unchanged: independent review PENDING; F07 NOT VERIFIED; Binance REST completeness NOT ACCEPTED; producer decimal defect CONFIRMED / NOT FIXED; producer FINAL_ONLY/product identity NOT VERIFIED; schemas/services/parsers/fixtures NOT IMPLEMENTED / NOT VERIFIED; C01–C197 NOT IMPLEMENTED / NOT EXECUTED. No Actions, executable tests, REST, VPS, filesystem or runtime experiment was performed.
+
+Issue #138 must remain OPEN and target the exact P1.38 contract blob plus this updated review blob. Implementation and T1 activation remain NOT AUTHORIZED. T0 remains independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no destructive operations.
