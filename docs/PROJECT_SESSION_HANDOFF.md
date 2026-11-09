@@ -3728,3 +3728,15 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - LDA-07 remains NOT RUN; 87/87 lifecycle vectors remain NOT RUN. LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
 - No tests, compile, dry-run, fault injection, provisioning, Actions dispatch, secrets/permission/runtime/VPS/database/provider/recipient/backup/replica access, source/schema/adapter/workflow/runner/permission/runtime/data changes or destructive operation.
 - Next bounded documentary step: Stage C.9 — TEST-05 Deterministic Concurrency Contract. Do not implement or execute until prerequisites and separate exact execution authorization are established.
+
+
+## Latest completed work — Stage C.9 / TEST-05
+
+- Added documentation-only deterministic concurrency contract: docs/evidence/p1-8/STAGE_C9_TEST05_DETERMINISTIC_CONCURRENCY_CONTRACT_2026-11-10.md.
+- Report commit: d4e4ee8fbd5610ef18d99e083cdff9d77b67a85b; report blob SHA verified by read-back.
+- Defines explicit consistency-model declaration; immutable/materialized bounded schedules; deterministic barriers/interleavings; competing writers; duplicate delivery/idempotency; retry after ambiguous acknowledgement; lease/epoch fencing and stale-owner rejection at mutation boundary; causal event ordering; checkpoint/cursor races; reader visibility; synthetic crash/restart boundaries.
+- Specifies independent TEST-04 oracle binding, PASS/FAIL/INDETERMINATE/BLOCKED/NOT RUN semantics, abort behavior, evidence package CON-01–CON-15 and future acceptance assertions CON-T01–CON-T15.
+- Contract does not select a concurrency algorithm or prove current systems are race-safe. TEST-05: CONTRACT DOCUMENTED / DETERMINISTIC CONCURRENCY NOT ESTABLISHED; not closed. TEST-01/02 implementation not established; TEST-03 effective isolation not verified; TEST-04 independent oracle not established; TEST-06 partial; TEST-07 open; TEST-08 not granted.
+- LDA-07 remains NOT RUN; 87/87 lifecycle vectors remain NOT RUN. LDA-06 PARTIAL / NOT VERIFIED; LDA-08 HOLD / NOT VERIFIED.
+- No tests, compile, dry-run, fault injection, provisioning, Actions dispatch, secrets/permission/runtime/VPS/database/provider/recipient/backup/replica access, source/schema/adapter/workflow/runner/permission/runtime/data changes or destructive operation.
+- Next bounded documentary step: Stage C.10 — TEST-06 Lifecycle-Specific Provenance Contract. Do not implement or execute until prerequisites and separate exact execution authorization are established.
