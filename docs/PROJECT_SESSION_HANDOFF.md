@@ -760,3 +760,36 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Static checks: 45 traceability rows, 47 baseline vectors, 27 unique supplemental vectors, 74 unique total IDs. All vectors NOT_RUN.
 - Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/VPS/database/storage/ledger mutation or inventory.
 - Next: P1.8.100–P1.8.102 correct three transition-safety findings, then focused independent review. Do not start V07/V08/Restore/TSA or any destructive/runtime work.
+
+
+## P1.8.100–P1.8.103 — Transition-safety remediation and focused review (2026-11-09)
+
+- Approved scope: P1.8.100–P1.8.102 documentary remediation plus focused independent review. No implementation, test execution, runtime, storage or destructive authority was included.
+- P1.8.100 — BLOCKED Transition Restriction and Observer-Only Quarantine:
+  - Document: `docs/evidence/p1-8/P1.8.100-blocked-transition-and-observer-quarantine.md`.
+  - Commit: `4a7459ec108db81ac6e9940c52200de435404685`.
+  - Blob SHA: `8193d24dbba321a7091732847d3f83e03cfe15ef`.
+  - Restricts BLOCKED to positively established pre-mutation states; in-flight/uncertain mutations route to RECONCILIATION_REQUIRED. Observer report and protective quarantine are separate from canonical state authority.
+- P1.8.101 — Partial-Cancellation Terminality:
+  - Document: `docs/evidence/p1-8/P1.8.101-partial-cancellation-terminality.md`.
+  - Commit: `c6057fe4bffe060b14684dbfb90526910e0fc697`.
+  - Blob SHA: `f115bc49541ad1c70f113ce11b86f1072ab241f0`.
+  - Requires determinate, independently supported disposition for every manifest object; any ambiguous, unknown, NOT_VERIFIED or in-flight object prohibits terminalization.
+- P1.8.102 — Positive No-Mutation Proof:
+  - Document: `docs/evidence/p1-8/P1.8.102-positive-no-mutation-proof.md`.
+  - Commit: `c52743d26c4d3eef064972929b609a2a9325899c`.
+  - Blob SHA: `6b5c1a5b8253c37a7f0096c9c6deb885e1cf25a6`.
+  - Requires complete, positive, revision-bound proof over the immutable manifest, mutation-intent boundary, backend submissions, independent object oracle, workers/queues, authorization and audit continuity before BLOCKED → FINAL_RECHECK.
+- P1.8.94 updated with 13 additional negative vectors:
+  - First update commit: `dde587cfe7ff91ab91df02bfbd4de92b9b715edf`; intermediate blob: `6952180425c7e1499427d88b926c3e9988ed4b05`.
+  - Denominator correction commit: `5b41bf548d8a30cbbd3123593784f0e8df584877`; final blob: `4588379d8e101ee496bcf8927186c6c989e6c6a6`.
+  - Final catalogue: 47 baseline + 40 unique supplemental = 87 unique specified vectors. 45 original N01–N45 rows remain. All 87 vectors are NOT_RUN.
+- P1.8.103 — Focused Independent Review:
+  - Review: `docs/evidence/p1-8/P1.8.103-independent-review-of-p1-8-100-to-102.md`.
+  - Commit: `e7fadc6582ae2e660a815870f36570c81ab53514`.
+  - Blob SHA: `50579909b0312368ee6692fab7deb1f94c8891bc`.
+  - Verdict: PASS at documentary specification level; P1.8.99 IR2-01/IR2-02/IR2-03 closed. Overall implementation/readiness remains NOT VERIFIED.
+  - Residual gates remain OPEN: independent approver/compensating-control model; trusted identity/time/freshness; atomic registry/storage fencing implementation; independent oracle; complete worker/queue discovery; inventory completeness; executable synthetic runner and separate test/staging authorization.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/schema/API/registry/adapter/scheduler/service/database/VPS/Feeder/storage/ledger/runtime mutation or inventory. No staging, synthetic execution, fault injection, archive, cleanup, restore, key operation or deletion.
+- No deletion authority is granted. T0 canonical data and CORE_LEDGER/AI_LEDGER protections remain unchanged.
+- Next gate: assess cross-contract conflicts between the completed self-deletion design and V07/V08/Restore/TSA as a separate documentary review only; do not implement or execute without separate explicit approval.
