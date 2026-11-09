@@ -2832,3 +2832,15 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - No tests run for this audit; Actions NOT DISPATCHED; no new workflow run/artifact. No source/schema/runtime/VPS/Feeder/database/data/provider/credential/key/permission change, no operational inventory, no TSA/OCSP call, no restore/fault injection, no archive/cleanup/deletion.
 - Paper-only; `AI_EXECUTION_ENABLED=false`; Option C — No Destructive Authority — remains in force.
 - Next: independent review of the exact L4 acceptance matrix and audit report; then define a T0 evidence object/checkpoint and owner-controlled signing/custody boundary before considering any implementation. Do not claim independent review by the report author.
+
+
+## T0 L4-Minimum adversarial static review — 2026-11-10
+
+- Added `docs/evidence/T0_L4_MINIMUM_ADVERSARIAL_REVIEW_2026-11-10.md`.
+- Review commit: `80e9429b0f63ea58b96a51a42ce53b88aa95ab50`; review blob SHA: `a7aec29330d71cb4d34193d6db81b8e20eb295f1`.
+- Exact inputs: acceptance matrix blob `f39bef0c391e13a3656130f0e74f0e7a385b0c39`; audit report blob `cfecb7428508adf23e6b9e71dc0dfe1e0e38080c`; scope decision blob `6b96c2c37a4989b7ceba291d027a3f8459eecb3b`.
+- Same-session adversarial static review identified F-01–F-06: (F-01) bind owner evidence custody explicitly to T0/VPS and GitHub outage domains; (F-02) define an independently retained latest-head anchor for freshness/rollback claims; (F-03) keep historical trust-at-time UNKNOWN absent qualifying time/revocation evidence; (F-04) distinguish tamper-evident append-only history from WORM/absolute immutability; (F-05) specify reviewer competence and conflict evidence; (F-06) define aggregate verdict precedence across all ten controls.
+- Scope clarified: no independence of market-data sources is required; independent evidence custody/readback and independent reviewer remain separate L4 assurance requirements. TSA and dedicated WORM remain non-mandatory L4-Extended capabilities.
+- Result: matrix readiness PARTIAL; findings open. This is explicitly NOT a genuinely independent third-party review and does not satisfy L4M-09. Genuine independent review remains PENDING.
+- No tests, Actions workflow, source/runtime/VPS/DB/keys/permissions/data changes or destructive actions. Option C remains; paper-only; `AI_EXECUTION_ENABLED=false`.
+- Next: correct matrix wording for F-01–F-06, then obtain a genuinely independent review of the corrected matrix and exact audit report. Keep L4 technical/operational acceptance BLOCKED / NOT VERIFIED.
