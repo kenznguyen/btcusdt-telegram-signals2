@@ -717,6 +717,14 @@ C100–C116 are planned contract tests only:
 - C114: attempt to overwrite an existing receipt; rejected, existing bytes unchanged.
 - C115: orphan temporary receipt/counter/manifest; never treated as commit and never auto-cleaned.
 - C116: unexpected receipt, duplicate sequence, unknown directory entry or counter/receipt/manifest disagreement; quarantine.
+- C117: after crash between receipt rename and the original commits-directory fsync, restart sees a final receipt; receipt remains unaccepted until complete validation and recovery fsync of commits and generation directories succeed under the exclusive lock.
+- C118: recovery commits-directory or generation-directory fsync fails; quarantine and do not accept the receipt.
+- C119: crash after recovery directory fsync but before durable recovery checkpoint; restart repeats validation and both recovery barriers before checkpoint/acceptance.
+- C120: receipt is missing while the durable counter shows a consumed sequence; quarantine and never reuse the sequence.
+- C121: initialization record omits any required key; strict parser rejects it and quarantines the root.
+- C122: initialization record contains an unknown extra key; strict parser rejects it and quarantines the root.
+- C123: root-directory identity, filesystem/device identity, owner UID/GID, directory/lock mode or lock-file identity differs from the authoritative initialization record; reject/quarantine.
+- C124: ExchangeInfo envelope omits a required key or contains an unknown key; reject. Verify absent allowlisted response headers are omitted and unrecognized headers are not admitted into the envelope.
 
 Every negative fixture must assert not only the expected error/state but also absence of a new accepted receipt, absence of canonical eligibility and absence of any completeness watermark advancement. Crash fixtures must enumerate the crash point and restart observation. These fixtures are not implemented or executed.
 
