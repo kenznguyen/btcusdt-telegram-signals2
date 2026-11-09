@@ -1692,3 +1692,12 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - GitHub Actions: NOT DISPATCHED; run ID NONE; artifact NONE.
 - Next step: perform a consistency review of P1.5 clauses against the existing v1.1/P1.3 rules, then request independent review against the updated design SHA. Do not self-label as independent. Implementation still requires separate explicit approval.
 - Guardrails retained: T0 independent/canonical; no T1 writes to T0; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders; no OKX fallback/replacement; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
+
+
+### P1.5.1 taxonomy and consistency amendment
+
+- Added `RECONCILIATION_SOURCE_DIVERGENCE` and `SOURCE_HEALTH_INVALIDATED` to the contract status taxonomy so F02/F03 rules have explicit outcomes.
+- Final design commit: `630b118fc9f8c1d9d6e97253881dc51be42bcde5`; final design blob SHA: `42d0238edc6baa5bc8990ba27022b3db7c54772b`.
+- Final P1.5 record commit: `5bbf73029c4100cf0f7c3e036b36db2d8276d847`; record blob SHA: `4663ac7d86a5c16d8ae3483ed6a34f0a77d2652c`.
+- Same-session consistency check: F02 does not weaken P1.3 missing-minute handling; F03 invalidation prevents P1.3 seal preconditions from passing until resolved; F04 narrows the manifest security claim without changing completeness rules. No contradiction found in reviewed clauses. This is not independent review.
+- Final status: P1.5 DOCUMENTATION CLARIFICATIONS COMPLETE / SAME-SESSION CONSISTENCY CHECK PARTIAL-PASS / DESIGN NOT READY FOR IMPLEMENTATION / INDEPENDENT REVIEW PENDING / F01, F05, F07 BLOCKED.
