@@ -1378,3 +1378,18 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE. Runtime/data/provider/identity inventory NOT PERFORMED. Runtime enforcement NOT VERIFIED.
 - No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk changes; no staging, restore, fault injection, provider/key/TSA operations, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion.
 - GitHub permission inventory remains PAUSED. Option C remains in force. Destructive authority NOT GRANTED.
+
+
+## Latest completed work — P1.8.148 (2026-11-09)
+
+- Added documentation-only supplement: `docs/evidence/p1-8/P1.8.148-reviewer-independence-conflict-control-clarification.md`.
+- Commit: `7bf13e2f9a5eb69a4e14fe504268c12ee34d51e6`.
+- Target blob SHA pending final read-back.
+- Scope: closes the narrow documentary gap IR147-01 by requiring independence from requester, custodian, obligation owner, approver, executor and provider selector; mandates an independent second review for every affected claim when full role separation is infeasible; conflicted persons cannot be sole reviewers/verifiers.
+- Adds claim-to-role matrix, direct examination of underlying evidence, competence/specialist boundaries and fail-closed rules.
+- Preserves RET-01 B / RET-02 B, T0 protection, ledger separation and Option C — No Destructive Authority.
+- Status: CLARIFICATION DRAFTED — INDEPENDENT STATIC REVIEW REQUIRED. No identity/personnel/permission inventory or operational assessment.
+- Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE. Runtime enforcement NOT VERIFIED.
+- No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk changes; no staging, restore, fault injection, provider/key/TSA operations, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion.
+- GitHub permission inventory remains PAUSED. Destructive authority NOT GRANTED.
+- Next gate: independent static review of P1.8.148 against P1.8.146–P1.8.147 and controlling lifecycle contracts. No implementation or operational work is implied.
