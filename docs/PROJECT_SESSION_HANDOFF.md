@@ -3343,3 +3343,18 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - Next step: read-back consistency check of the decision record, README, T0 index, architecture and this handoff; no implementation is needed for this scope decision.
 
 - Follow-up README clarification: the repository workflow table is explicitly labeled as a whole-repository inventory, not the Five-Layer CI scope; Android, Telegram, backtest and scanner workflows are marked OUT OF SCOPE. Commit: `82c564784e626cef3a0e31cd64225ed36ef6f5f1`; README blob: `f74128561ff1cf56af63214c84e1d8915bd8c5a2`.
+
+
+## T0 PostgreSQL dependency/install-path inventory — 2026-11-10
+
+- Added read-only inventory: `docs/evidence/T0_POSTGRES_DEPENDENCY_INSTALL_PATH_INVENTORY_2026-11-10.md`.
+- Inventory commit: `4e1ed20658cadc27f25b370843c7f8fd5461c634`.
+- Exact active branch HEAD inspected before the inventory: `92ab5e937ed8eba5e5ce1f1f4b19dcdc85b235d8`; previous packaging baseline `27d22fe1c3103732eaa9da8a36e22d77b19d4688`; compare showed 8 commits ahead, 0 behind and no source/workflow changes since the previous baseline.
+- Enumerated 662 repository blobs and fetched all 14 active-branch GitHub Actions workflow definitions plus the relevant requirements, storage/feeder/PostgreSQL/migration modules, six PostgreSQL test modules, setup helper, TimescaleDB test script, Codemagic config and market-data README.
+- Confirmed consumers: `t0-manual-validation.yml`, `p5-3-11-g2-integration-green.yml`, two isolated TimescaleDB jobs in `t0-single-writer-gateway-red.yml`, explicit psycopg install/import in `t0-postgres16-grantor-repro.yml`, legacy `codemagic.yaml` jobs, `ci/setup-python.sh`, `ci/test-timescaledb.sh`, and SQLite install instructions in `market_data/README.md`.
+- Confirmed direct runtime psycopg import remains lazy inside `market_data/postgres.py::connection`; `storage.py` and `feeder_service.py` import PostgreSQL adapter classes at module scope. `migrations.py` uses the adapter connection.
+- Identified six PostgreSQL qualification modules to preserve: `test_postgres_provider_bootstrap`, `test_postgres_write_gateway`, `test_postgres_feeder_runtime`, `test_postgres_feeder_runtime_lifecycle`, `test_postgres_role_privileges`, and `test_timescaledb`.
+- Status: source/workflow observations PASS for fetched files; exact all-repository textual occurrence count PARTIAL / NOT VERIFIED because GitHub code search is default-branch indexed and no branch-local shell grep/checkout was available. No additional match is claimed absent based on incomplete search.
+- Clean SQLite-only import test NOT RUN; tests NOT RUN; GitHub Actions NOT DISPATCHED; independent review NOT PERFORMED. G2 NOT VERIFIED; G3 PENDING; L4-Minimum BLOCKED / NOT VERIFIED.
+- No source/test/workflow/package/config/runtime/VPS/database/provider/secret/permission/data changes. No PR or merge. PostgreSQL adapter/migrations/tests/workflows remain PARKED/PRESERVED; no test denominator reduction.
+- Next gate: complete branch-local exact text search for all requirements/psycopg/PostgreSQL entry-point/install references, reconcile any additional matches, then prepare dependency split design and per-job install matrix. Independent review required before implementation.
