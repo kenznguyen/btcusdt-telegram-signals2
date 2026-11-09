@@ -27,7 +27,7 @@ This is a process/evidence integrity defect: an independent reviewer following t
 ### Corrective action
 
 - Replace issue #138 body with one authoritative P1.40 target section.
-- Pin exact contract blob SHA `b7b6786125be507c3ad4c29521830e5fe3b1b9` only if readback confirms it; otherwise use the actual fetched SHA.
+- Pin exact contract blob SHA `b7b6786125be507c3ad4c29521830e5fe2a3b1b9` only if readback confirms it; otherwise use the actual fetched SHA.
 - Pin this review record's exact blob SHA after commit/readback.
 - Verify issue title, OPEN state, body target SHAs and absence of stale P1.34/P1.37/P1.38 current-target instructions.
 - Update handoff with exact issue-body readback and all relevant commit/blob SHAs.
