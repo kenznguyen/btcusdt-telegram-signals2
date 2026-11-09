@@ -1598,3 +1598,22 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - The v1.1 design now explicitly records the confirmed f64/12-decimal/unwrap_or(0.0) serialization defect and requires byte-preserving raw decimal output plus malformed-value rejection.
 - It also clarifies that the current producer filters provisional kline events; v1 must explicitly declare FINAL_ONLY + interval=1m in versioned metadata with regression tests, or persist is_closed=true on each row.
 - This does not resolve the defect. R3 remains BLOCKED; source implementation is not authorized.
+
+
+## Latest completed work — P1.2 T1 Contract v1.1 static consistency review (2026-11-09)
+
+- Updated v1.1 design: docs/design/t1/T1_SOURCE_FILE_CONTRACT_V1_1_PRODUCER_WATERMARK_DURABILITY_2026-11-09.md.
+- Design revision commit: d83e6555556e5e6482015df93c408a3669fe8120; blob SHA: 746de0920e8a79eaa79dc196b2489f198edaf977.
+- Consistency review: docs/reviews/t1/P1_2_T1_CONTRACT_V1_1_STATIC_CONSISTENCY_REVIEW_2026-11-09.md.
+- Review commit: 1add1d325c4ef89daf9f13d71430e74cd73b20ad.
+- Review is same-session static consistency review, not an independent reviewer sign-off.
+- P12-01 PASS: design correctly records confirmed producer decimal-loss defect (f64, 12-decimal formatting, parse failure to 0.0); requires lossless raw decimal serialization and malformed-value rejection.
+- P12-02 PASS: v1 source mode is now coherent: versioned output_mode=FINAL_ONLY + interval=1m; per-row is_closed is not required for this first mode; provisional-event filtering must be regression-tested. Existing unversioned CSV is not retroactively trusted.
+- P12-03 BLOCKER: design recognizes WebSocket health alone cannot prove no final candle was missed and introduces RECONCILED_COMPLETE, but the producer-owned authoritative reconciliation procedure/evidence contract is not defined. Must specify source, ranges/boundaries, delayed/unavailable/conflicting responses, evidence binding to generation/manifest, late corrections and deterministic fixtures. Until then watermark remains withheld; no aggregate/promotion.
+- P12-04 HIGH: FINAL_ONLY manifest declaration and producer regression tests do not yet exist.
+- P12-05 HIGH: target filesystem/provider durability and crash recovery remain unverified.
+- Status: P1.2 STATIC CONSISTENCY REVIEW PARTIAL / RECONCILIATION PROOF BLOCKED / INDEPENDENT REVIEW PENDING / IMPLEMENTATION NOT AUTHORIZED.
+- No T1 source edits, adapter implementation, tests, Actions dispatch, VPS/runtime, T0/T2 or trading-system changes. No destructive data operations.
+- GitHub Actions: NOT DISPATCHED; run ID NONE; artifact NONE.
+- Guardrails: T0 independent/canonical; no T1 writes to T0; paper-only; AI_EXECUTION_ENABLED=false; no live orders; no OKX fallback/replacement; no deletion/archive/cleanup/vacuum/compaction/backup expiry.
+- Next step: revise v1.1 to define the producer-owned authoritative final-candle reconciliation protocol and manifest evidence schema; then request a genuinely independent review. No implementation until separate explicit approval.
