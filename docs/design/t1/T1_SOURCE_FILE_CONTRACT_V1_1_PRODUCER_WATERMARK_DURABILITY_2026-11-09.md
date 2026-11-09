@@ -670,7 +670,7 @@ Canonical primitive encodings:
 
 The manifest key set and exact types are the inventory in §21.5, with these normative constraints: `source_health` is only `UNKNOWN` or `INVALIDATED` under §22.1; `reconciliation_evidence_ref` is prohibited; all identity/hash/path/sequence fields follow the primitive rules above; `data_file_identity` has exactly four non-empty UTF-8 strings (`platform_id`, `filesystem_id`, `device_id`, `file_id`); state is exactly `ACTIVE`, `SEALED` or `QUARANTINED`. A SEALED manifest remains ineligible for canonical market-data use while source_health is UNKNOWN/INVALIDATED.
 
-The receipt key set is exactly: `receipt_version` string `1.0`; `source_root_id` UUIDv4; `generation_sequence` unsigned integer; `generation_id` UUIDv4; `publication_sequence` unsigned integer; `manifest_sha256` SHA-256; `data_file_identity` with the exact four-key object above; `committed_offset_bytes`, `committed_record_count`, `watermark_open_time_exclusive_ms` unsigned integers; `data_prefix_sha256` SHA-256. No other key is permitted. Receipt filename must match its publication_sequence exactly.
+The receipt key set is exactly these twelve keys: `receipt_version` string `1.0`; `source_root_id` UUIDv4; `generation_sequence` unsigned integer; `generation_id` UUIDv4; `publication_sequence` unsigned integer; `manifest_sha256` SHA-256; `manifest_jcs_base64url` canonical unpadded base64url string containing the exact UTF-8 JCS manifest bytes for this publication; `data_file_identity` with the exact four-key object above; `committed_offset_bytes`, `committed_record_count`, `watermark_open_time_exclusive_ms` unsigned integers; and `data_prefix_sha256` SHA-256. No other key is permitted. `manifest_jcs_base64url` MUST use only `A-Z`, `a-z`, `0-9`, `-` and `_`, with no padding or whitespace; it MUST decode and re-encode byte-exactly, decode to 1–65,536 bytes, pass the complete §21.5 closed manifest parser, and hash to `manifest_sha256`. Its encoded value MUST be at most 87,382 ASCII bytes. The complete receipt remains subject to the 1–131,072-byte bound in §21.5. Receipt filename must match its publication_sequence exactly.
 
 The generation-counter key set is exactly the six keys defined in §22.2. The source-root initialization record schema is defined authoritatively and only once in §22.9. Implementations MUST use that exact twelve-key schema; the earlier six-key inventory in this paragraph is superseded and MUST NOT be implemented. The record is audit/identity state, not an external anti-rollback anchor. Missing or inconsistent initialization state quarantines the root.
 
@@ -743,7 +743,7 @@ Every negative fixture must assert not only the expected error/state but also ab
 - REST completeness oracle: BLOCKED; no-trade, boundary, pagination, finality/correction semantics unresolved.
 - Decimal preservation: BLOCKED; pinned producer still has f64/12-decimal/parse-to-zero defect.
 - Producer FINAL_ONLY/product identity: implementation and regression evidence NOT VERIFIED.
-- C01–C124: design scenarios only; NOT IMPLEMENTED / NOT EXECUTED.
+- C01–C197: design scenarios only; NOT IMPLEMENTED / NOT EXECUTED.
 - Independent review of this exact revision remains mandatory before implementation consideration.
 
 This section does not authorize source changes, adapter implementation, test execution, GitHub Actions dispatch, REST requests, VPS/runtime, T1 activation, T0/T2 changes, strategy/AI/ledger/risk/trading changes, or destructive data operations.
