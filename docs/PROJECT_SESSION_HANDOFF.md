@@ -628,3 +628,14 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Blob SHA: `639e5ee5b5a78130cc523a4bcab8b77c0a0a5463`.
 - Corrected §5.6/§5.5 ordering: Hold inheritance is now §5.5; Evidence copies is now §5.6. Content and lifecycle authority are unchanged.
 - Read-back confirms §5.5 precedes §5.6. No source/runtime or destructive operation.
+
+### P1.8.91 — Second Independent Deletion-Design Review (2026-11-09)
+
+- Review: `docs/evidence/p1-8/P1.8.91-second-independent-deletion-design-review.md`.
+- Commit: `d79c6791a9988b8dcd52647551418c1c5a5457c3`.
+- Review blob SHA: `be3b4839fdb048b428c2b46ced5e4afc3e360223`.
+- Verdict: **PARTIAL — second independent design review complete; material design, owner and implementation gaps remain.** No unsafe cross-contract authority escalation found.
+- Findings: SR-01 MAJOR state-vocabulary crosswalk; SR-02 MAJOR mutation-window fencing mechanism; SR-03 MAJOR test traceability/missing race vectors; SR-04 MAJOR personal-project independent approver model not approved; SR-05 MAJOR archive availability contract alignment; SR-06 MAJOR trusted identity/time/freshness not bound; SR-07 MAJOR runtime/external-copy inventory NOT VERIFIED; SR-08 MAJOR adapters/verifier NOT IMPLEMENTED; SR-09 MAJOR retention/deletion owner decisions OPEN; SR-10 MINOR P1.8.90 title clarity; SR-11 numbering correction verified; SR-12 no unsafe authority escalation observed.
+- Copy lifecycle numbering correction: commit `5b6b5b66bd1375ceb6479db01f5263fc03abdda3`; blob `639e5ee5b5a78130cc523a4bcab8b77c0a0a5463`; §5.5 Hold inheritance precedes §5.6 Evidence copies.
+- Tests/CI NOT RUN; workflow run/artifact NONE; runtime evidence NOT VERIFIED. No source/runtime/database/VPS/storage change or inventory; no destructive operation.
+- Next: remediate documentary SR-01/SR-02/SR-03/SR-05, then focused independent re-review. Keep identity/time/retention owner decisions OPEN. Do not begin V07/V08/Restore/TSA conflict review while material findings remain unresolved.
