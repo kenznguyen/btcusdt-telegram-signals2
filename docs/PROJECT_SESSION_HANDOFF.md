@@ -223,3 +223,15 @@ Production evidence remains NOT VERIFIED for all 13 vectors. The file-backed SQL
 - Status: F-12/F-13 DOCUMENTATION RESPONSE RECORDED; independent review REQUIRED. V07 BLOCKED; V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; `AI_EXECUTION_ENABLED=false`.
 - No code/tests, provider selection, key operation, data probe, staging, restore, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
 - Next gate: P1.8.43 independent static review of P1.8.42. Documentation-only; no new permission required.
+
+
+### P1.8.43 — Independent review of V07 trusted-time sub-register
+- Review: `docs/evidence/p1-8/P1.8.43-independent-review-v07-trusted-time-subregister.md`.
+- Review commit: `1be0658896fcffd0b4edbee3fa562aace5e90d57`.
+- Review blob SHA: `1a92beda8eb52d681353e62133a4fa6507c9e78a`.
+- Reviewed P1.8.42 blob SHA: `2b11706786f0f825fff46b368f92c575a797d7dc`.
+- Result: PASS. P1.8.41 F-12/F-13 are addressed at documentation/traceability level. V07-D1a–D1f and V07-D2a–D2e explicitly enumerate trust-anchor lifecycle, TSA profile/token validation, timestamp uncertainty, nonce/replay, imprint encoding, exact signature binding, fixture bytes/digests and stage-separated oracle.
+- This is register completeness only; no provider/profile/algorithm/value is approved, fixtures are not frozen/executed, and V07 remains BLOCKED.
+- V08 OPEN/BLOCKED; Restore OPEN/BLOCKED; environment equivalence NOT VERIFIED; staging NOT EXECUTED / NOT AUTHORIZED; production NOT VERIFIED; D3/D4 NOT TESTED; synthetic 13/13 remains synthetic only; `AI_EXECUTION_ENABLED=false`.
+- No source/runtime, VPS/T0/T1/DB/Feeder, exchange, ledger, strategy or risk-engine changes; no provider/key operations, data probes, staging, restore, fault injection, workflow dispatch, PR or merge. No CI run or artifact is claimed.
+- Next gate: continue documentation-only closure inventory/review for V08 and Restore. Request owner decisions only when evidence-backed proposals are ready; request separate permission before any privileged or operational action.
