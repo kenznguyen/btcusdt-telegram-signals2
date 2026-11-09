@@ -2757,3 +2757,17 @@ T1 collector repository `kenznguyen/binance-futures-collector`, branch `feature/
 - This is same-assistant self-review, NOT an independent second review. No source edit or deletion performed. No tests or Actions run. No runtime/data/credential/key/permission/workflow changes.
 - Status: whole-file REMOVE CANDIDATE withdrawn; revised disposition = REWRITE / PRUNE COMMERCIAL-ONLY CONTENT, preserve personal-use controls. Repository-wide six-group absence remains NOT VERIFIED.
 - Next step: search references to the document and produce a minimal replacement/pruning diff, then obtain independent review before applying it. Any store-specific legal requirements remain conditional on actual distribution and applicable law.
+
+
+## Android personal-use checklist pruning proposal (2026-11-10)
+
+- Re-read handoff and source on active branch before continuing.
+- Inspected current candidate `android-app/COMMERCIAL_READINESS.md` (blob `9532b34f4a7c1dcac571b9ba4fe5064fa2cfc324`), Android README (blob `0289d6a94ca70d2eeacef8b6ebedf40ca31aa3d9`), active Android paired release workflow (blob `b6f6b3deccc01f27fb3c00b0bb5657033508be5c`), and release/build/APK verification scripts (blobs `bea2164a5a264f4cda8bd47908f5e61805f86ab9`, `2a122c3b9385f74722292841e6d5f2067a159d92`, `9131207cdcc2fcda95b3aae2a6d97cb5255c6e9c`, `8a2bf3b1d3b173c8ec67c1e88541fa43f1cd316d`).
+- Confirmed checklist is mixed-purpose. Internal QA, Python parity, Android lifecycle/recovery, signing-key custody, CI secret hygiene, artifact SHA/signer verification, privacy, risk disclosure and attribution must remain.
+- Created a proposed replacement/pruning document: `docs/evidence/ANDROID_PERSONAL_USE_CHECKLIST_PRUNING_PROPOSAL_2026-11-10.md`; proposal commit `8d3fad75be397b20612dc9d13b21a72ed89d5a54`.
+- Proposal keeps the existing source path to avoid unnecessary rename/reference churn; removes only commercial/customer-specific work; public-store obligations are conditional on future owner decision to distribute publicly.
+- Search limitation: GitHub code search covers the default branch, not this feature branch; no claim of exhaustive reference absence is made. Feature branch tree at the inspected HEAD was complete (640 blobs), but full content-level reference/dependency proof remains incomplete.
+- Separate issue noted: `android-app/README.md` says Codemagic runs build/test jobs, while current owner direction is GitHub Actions primary and Codemagic deprecated/legacy fallback. Not changed; separate scoped documentation correction required.
+- Status: proposal drafted; NOT APPLIED. Independent second review NOT PERFORMED. Owner approval to replace source file NOT YET GIVEN. Tests NOT RUN; Actions NOT DISPATCHED; no artifact.
+- No source/runtime/VPS/DB/data/credential/key/permission/workflow changes.
+- Next: independent reviewer evaluates proposal and source context; after review, obtain explicit owner approval before updating the source checklist. Keep Option C; no destructive action.
