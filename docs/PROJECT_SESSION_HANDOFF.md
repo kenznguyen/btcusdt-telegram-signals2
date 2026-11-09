@@ -1393,3 +1393,20 @@ Owner approval: explicit approval received for **P1.8.123 documentary-only contr
 - No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk changes; no staging, restore, fault injection, provider/key/TSA operations, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion.
 - GitHub permission inventory remains PAUSED. Destructive authority NOT GRANTED.
 - Next gate: independent static review of P1.8.148 against P1.8.146–P1.8.147 and controlling lifecycle contracts. No implementation or operational work is implied.
+
+
+## Latest completed work — P1.8.149 (2026-11-09)
+
+- Completed documentation-only independent static review of P1.8.148 against P1.8.146 §6, P1.8.147, P1.8.144, P1.8.143 and controlling lifecycle authority boundaries.
+- Review: `docs/evidence/p1-8/P1.8.149-independent-static-review-p1-8-148.md`.
+- Review commit: `cdf0322affefb053fec1a9b1a0d4a9ba6e784d1e`.
+- Target P1.8.148 blob reviewed: `baea1eb363a06ea7e804fe986777b31e9b693513`.
+- Final review blob SHA after read-back: `cce7aa0bf9c7b6048b61ef5c436433e3ac0c01c4`.
+- Verdict: PARTIAL. P1.8.148 materially strengthens mandatory role separation, second review, evidence provenance, competence and fail-closed behavior. IR147-01 is substantially addressed but not closed.
+- IR149-01 MODERATE OPEN: ambiguity remains whether a conflicted person may act as primary reviewer when a qualifying independent second reviewer is used. Required clarification: distinguish conflicted contributor/non-authoritative preliminary assessment from the qualifying independent reviewer who alone issues the independent review disposition.
+- Cross-contract: RET-01 B / RET-02 B, T0 protection, CORE_LEDGER/AI_LEDGER separation, retention-floor evidence-only boundary and Option C remain PASS/preserved.
+- Status: STATIC REVIEW COMPLETE — PARTIAL — DOCUMENTARY CLARIFICATION REQUIRED.
+- Tests NOT RUN. GitHub Actions NOT DISPATCHED. Workflow run/artifact NONE. Runtime enforcement NOT VERIFIED. Identity/personnel/permission and operational inventories NOT PERFORMED.
+- No source/runtime/schema/API/registry/adapter/scheduler/VPS/T0/T1/T2/T3/T4/Feeder/ledger/strategy/risk changes; no staging, restore, fault injection, provider/key/TSA operations, archive, cleanup, vacuum, compaction, backup expiry, replica removal or deletion.
+- GitHub permission inventory remains PAUSED. Option C remains in force. Destructive authority NOT GRANTED.
+- Recommended next step: P1.8.150 — Conflicted Contributor versus Qualifying Independent Reviewer Clarification, documentation-only. No implementation or operational work is implied.
