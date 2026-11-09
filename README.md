@@ -21,14 +21,16 @@ GitHub Actions là runner chuẩn cho kiểm thử và workflow được quản 
 
 Codemagic là cấu hình/runner legacy phục vụ một số quy trình cũ, đặc biệt Android và tác vụ backtest. [codemagic.yaml](codemagic.yaml) và [hướng dẫn Codemagic](docs/CODEMAGIC_SETUP.md) được giữ để tham chiếu lịch sử; chúng không định nghĩa CI của Hệ thống 5 tầng.
 
-| Workflow ID | Công việc | Kích hoạt |
-| --- | --- | --- |
-| `canonical-market-data` | Cài CCXT/Flask, chạy kiểm thử Python và kiểm tra CLI | Push đúng nhánh/đường dẫn hoặc thủ công |
-| `android-chart-pro-debug` | Unit test Android và APK debug | Push đúng nhánh/đường dẫn hoặc thủ công |
-| `android-chart-pro-release` | Unit test, APK release và kiểm tra chứng chỉ ký | Chỉ thủ công |
-| `telegram-command` | Xử lý lệnh Telegram và backtest | API Codemagic hoặc thủ công |
-| `dashboard-backtest` | Backtest theo tham số từ dashboard | API Codemagic hoặc thủ công |
-| `signal-scan` | Một lượt quét mô phỏng với state cung cấp rõ ràng | Chỉ thủ công; không có lịch tự động |
+Bảng dưới đây là inventory workflow của toàn repository, **không phải** danh sách workflow thuộc Hệ thống 5 tầng. Chỉ workflow có phạm vi T0–T4 đã được xác định mới được tính vào CI/acceptance của Hệ thống 5 tầng; các workflow Android, Telegram, backtest và scanner là legacy/out-of-scope.
+
+| Workflow ID | Công việc | Kích hoạt | Phạm vi 5 tầng |
+| --- | --- | --- | --- |
+| `canonical-market-data` | Cài CCXT/Flask, chạy kiểm thử Python và kiểm tra CLI | Push đúng nhánh/đường dẫn hoặc thủ công | Cần đối chiếu job/path cụ thể; không tự suy rộng thành acceptance toàn T0–T4 |
+| `android-chart-pro-debug` | Unit test Android và APK debug | Push đúng nhánh/đường dẫn hoặc thủ công | OUT OF SCOPE |
+| `android-chart-pro-release` | Unit test, APK release và kiểm tra chứng chỉ ký | Chỉ thủ công | OUT OF SCOPE |
+| `telegram-command` | Xử lý lệnh Telegram và backtest | API Codemagic hoặc thủ công | OUT OF SCOPE |
+| `dashboard-backtest` | Backtest theo tham số từ dashboard | API Codemagic hoặc thủ công | OUT OF SCOPE |
+| `signal-scan` | Một lượt quét mô phỏng với state cung cấp rõ ràng | Chỉ thủ công; không có lịch tự động | OUT OF SCOPE |
 
 Không cần GitHub Actions quota hoặc GitHub token có quyền Actions. GitHub webhook dùng để Codemagic nhận thay đổi mã nguồn; việc thêm YAML không tự cấu hình tài khoản, secrets hoặc chứng minh build đã chạy.
 
