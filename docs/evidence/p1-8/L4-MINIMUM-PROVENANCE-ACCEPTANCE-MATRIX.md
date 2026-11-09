@@ -3,7 +3,7 @@
 Date: 2026-11-10
 Parent decision: `docs/decisions/D-2026-11-09-L4-PROVENANCE-PERSONAL-SCOPE.md`
 Scope: personal, non-commercial BTCUSDT Quant System
-Status: **DESIGN / TEST-PLAN ONLY — DOCUMENTARY REVISION — NOT IMPLEMENTED, NOT EXECUTED, NOT ACCEPTED**
+Status: **OWNER POLICY UPDATED — DOCUMENTARY REVISION — NOT IMPLEMENTED, NOT EXECUTED, NOT ACCEPTED**
 
 Controlling lifecycle records:
 - P1.8.143 — Owner Retention Policy Ratification, blob `6f4451f1eb193e763970581bcd6d8a782508acfd`.
@@ -17,7 +17,7 @@ Translate the owner-approved L4-Minimum provenance profile into falsifiable acce
 
 L4-Minimum is proportionate to a single-owner, personal, non-commercial system. It does not require SaaS/multi-tenant features, customer SLA, commercial compliance certification, multi-TSA quorum, dedicated WORM or a paid third-party assurance service absent a concrete need.
 
-**Market-data source independence is excluded from this L4 scope.** No requirement is imposed for multiple exchanges, independent market-data corroboration or independent market-data replicas. This exclusion does not remove independent evidence custody, independent offline verification or qualifying independent review.
+**Market-data source independence is excluded from this L4 scope.** No requirement is imposed for multiple exchanges, independent market-data corroboration or independent market-data replicas. This exclusion does not remove independent evidence custody, independent offline verification or independent evidence readback. Mandatory independent human/third-party review is waived for L4-Minimum by `docs/decisions/D-2026-11-10-L4-INDEPENDENT-REVIEW-WAIVER.md`.
 
 This matrix is subordinate to P1.8.143 and P1.8.152 and cannot amend owner policy or grant operational authority. Where a conflict exists, the stricter protective rule applies and must be escalated.
 
@@ -49,8 +49,8 @@ No L4 evidence object receives a default TTL or automatic self-deletion rule. No
 | L4M-06 | Key and trust lifecycle | Versioned trust policy; owner approval records for trust-root/key changes; rotation/revocation evidence; distinct fields for signature validity, current trust and historical trust-at-time | Unknown/revoked key; substituted root; policy rollback; absent or conflicting revocation evidence; no qualifying trusted-time proof | Verifier distinguishes cryptographic signature validity, current trust state and historical trust-at-time. Without sufficient time and revocation evidence, historical status is UNKNOWN/NOT ESTABLISHED. No historical validity is inferred from signature validity, local clock or current trust. TSA is not mandatory solely to satisfy L4-Minimum |
 | L4M-07 | Tamper-evident append-only evidence history | Original bytes, timestamp intents/attempts, tokens if present, verifier outputs, revocation evidence, policy versions and manifests linked by canonical identities/digests; owner-controlled independent retained manifest/copy | Retry after timeout; duplicate attempt; late token; conflicting verification; record overwrite; deletion; wholesale history replacement; storage-admin rewrite | Earlier records remain addressable and tampering/replacement is detectable against independently retained evidence. Claim is **tamper-evident**, not absolute immutability or WORM, unless a separately qualified immutable medium is actually evidenced. Storage-administrator trust assumptions are stated |
 | L4M-08 | Claim discipline | Each provenance statement identifies exact object, verification performed, time basis, trust assumptions and limits | Valid signature but false market data; incomplete source coverage; timestamp without durable-commit proof; consumer ACK misrepresented as lifecycle release | No inference of market-data truth, exchange completeness, DB durability, strategy correctness, obligation closure or deletion eligibility from a signature, timestamp, ACK or successful use alone |
-| L4M-09 | Qualifying independent review | Reviewer identity; relevant competence and specialist boundaries; independence from requester, custodian, obligation owner, approver, executor, provider selector and evidence producer; conflict assessment; exact artifact hashes, methods, scope and limitations | Same producer issues acceptance; conflicted preliminary reviewer presented as independent; reviewer lacks artifacts/competence; scope silently expands | A qualifying independent reviewer directly examines exact immutable artifacts and underlying evidence and alone issues the independent disposition. A conflicted contributor may provide factual input/preliminary analysis only, labelled non-independent and non-authoritative. If no qualifying reviewer exists, control remains PENDING/BLOCKED |
-| L4M-10 | Fail-closed per-control and aggregate acceptance | Machine-readable and human-readable per-control verdicts; evidence references; explicit aggregation rule and exact baseline identity | Missing evidence/custody; unknown trust state; verifier crash; unavailable dependency; mismatched digest; unresolved mandatory control; reviewer pending | Before independent review, freeze and identify the evidence baseline (canonical manifest plus SHA-256 and immutable baseline ID). The reviewer examines that frozen baseline and issues a separate review-disposition record that references the exact baseline ID and digest; the disposition is not inserted into or used to mutate the frozen baseline. Aggregate verdict binds both the frozen baseline and its separately retained review disposition. Overall L4 PASS only when **all mandatory L4M-01–L4M-10 are PASS for the same frozen immutable evidence baseline**, and the qualifying review disposition explicitly references that baseline digest. Known unsafe/unavailable prerequisite => BLOCKED. Missing, incomplete or unreviewed proof => NOT VERIFIED/PENDING. UNKNOWN never becomes PASS. A technical PASS cannot override failed custody or pending independent review |
+| L4M-09 | Independent human/third-party review — OWNER-WAIVED / NOT MANDATORY | Retained for historical traceability only; no evidence required for L4-Minimum acceptance | Do not represent owner self-assessment, automated checks or technical separation as independent human/third-party review | This control is excluded from the mandatory acceptance denominator by owner decision D-2026-11-10. It is neither PASS nor FAIL and cannot block L4-Minimum. No independent-assurance claim is permitted |
+| L4M-10 | Fail-closed per-control and aggregate owner acceptance | Machine-readable and human-readable per-control verdicts; evidence references; explicit aggregation rule; exact baseline identity; owner assessor identity and disposition | Missing evidence/custody; unknown trust state; verifier crash; unavailable dependency; mismatched digest; unresolved mandatory control; owner conflict or incomplete self-assessment disclosure | Freeze and identify the evidence baseline (canonical manifest plus SHA-256 and immutable baseline ID). The owner assesses the exact baseline, records assessor identity/role and conflict disclosure, and issues a separate owner disposition referencing the exact baseline ID and digest. Overall L4 PASS only when **all nine active mandatory controls (L4M-01–L4M-08 and L4M-10) are PASS on the same frozen immutable evidence baseline**, and the owner disposition references that baseline digest. L4M-09 is OWNER-WAIVED and excluded from the denominator. Known unsafe/unavailable prerequisite => BLOCKED. Missing/incomplete proof => NOT VERIFIED. UNKNOWN never becomes PASS. No independent-assurance claim may be made |
 
 ## 3. Required test groups
 
@@ -114,11 +114,11 @@ For each authorized acceptance run, retain:
 5. verifier output and exit status;
 6. environment identity and network/availability conditions;
 7. owner-custody location reference and readback result, without exposing secrets;
-8. reviewer identity, competence, conflict/independence assessment and exact reviewed artifact hashes;
+8. owner assessor identity/role, conflict disclosure and exact artifact hashes;
 9. per-control and aggregate PASS/BLOCKED/NOT VERIFIED disposition with unresolved limitations;
 10. frozen baseline ID, canonical manifest digest and freeze/closure record;
-11. separate reviewer disposition record referencing the exact frozen baseline ID and digest, retained as a linked evidence object without modifying the baseline;
-12. review-input lineage manifest that records the exact SHA-256 of the Acceptance Matrix version frozen for review and every supporting historical audit/decision artifact. The 2026-11-10 read-only audit report (blob `cfecb7428508adf23e6b9e71dc0dfe1e0e38080c`) records the then-current matrix blob `f39bef0c391e13a3656130f0e74f7a385b0c39`; that reference is historical and must not be mistaken for a later revision. Do not hard-code a purported current SHA inside this self-versioned matrix: its own blob SHA changes whenever its content changes. The external frozen manifest is authoritative for the exact current review baseline. Preserve the audit report unchanged; reviewer must examine both exact artifacts and explicitly reconcile their version lineage.
+11. separate owner disposition record referencing the exact frozen baseline ID and digest, retained as a linked evidence object without modifying the baseline;
+12. baseline-lineage manifest recording the exact SHA-256 of the matrix and every supporting historical audit/decision/lifecycle artifact used for owner assessment. The 2026-11-10 read-only audit report remains an unchanged historical snapshot and its former matrix SHA must not be mistaken for the current matrix. Do not hard-code this self-versioned matrix's current SHA in its own contents; the external frozen manifest is authoritative for the assessed baseline. Preserve historical reports unchanged and record how later owner decisions supersede prior policy.
 
 Do not include private signing keys or secrets. Record key fingerprints and custody references only.
 
@@ -126,28 +126,28 @@ Evidence package retention is governed by the applicable lifecycle obligations a
 
 ## 5. Required state semantics
 
-- **PASS:** all required evidence for the exact claim is present, integrity-checked and independently verified.
+- **PASS:** all required evidence for the exact claim is present, integrity-checked and verified by the owner using the defined procedures; automated verification outputs are retained.
 - **BLOCKED:** a required prerequisite is known to be unavailable, unsafe, prohibited or unresolved.
-- **NOT VERIFIED:** evidence is absent, incomplete, stale or has not been independently checked.
-- **PENDING:** a required qualifying independent review or owner decision has not occurred.
+- **NOT VERIFIED:** evidence is absent, incomplete, stale or has not been checked and dispositioned by the owner.
+- **PENDING:** a required owner decision or owner assessment has not occurred.
 - **UNKNOWN:** an operation's outcome or relevant state cannot be established; UNKNOWN is protective and must never be coerced to PASS or to an obligation end.
 - **FLOOR_NOT_ESTABLISHED / RETAIN / BLOCKED:** applicable obligation inventory/end conditions/copy lineage/time ordering are incomplete or uncertain under P1.8.144.
 - A document-only/static-review PASS applies only to the exact reviewed document and scope.
-- Freeze and identify the evidence baseline before independent review; record its canonical manifest digest and closure record.
-- The independent reviewer issues a separate disposition referencing that exact baseline ID/digest. The disposition is linked evidence, not a mutation or append operation inside the frozen baseline.
-- **Overall L4 PASS** requires every mandatory control L4M-01–L4M-10 to be PASS on the same frozen immutable evidence baseline and a qualifying review disposition that names its exact digest. No averaging, majority or compensating control is allowed.
+- Freeze and identify the evidence baseline before owner assessment; record its canonical manifest digest and closure record.
+- The owner issues a separate disposition referencing that exact baseline ID/digest. The disposition is linked evidence, not a mutation or append operation inside the frozen baseline.
+- **Overall L4 PASS** requires all nine active mandatory controls L4M-01–L4M-08 and L4M-10 to be PASS on the same frozen immutable evidence baseline and a separate owner disposition naming its exact digest. L4M-09 is owner-waived and excluded, not treated as PASS. No averaging, majority or compensating control is allowed.
 
 ## 6. Execution sequencing and authorization gates
 
-1. Reconcile remaining P1.8.152 lifecycle/reviewer findings; do not infer that this matrix closes them.
+1. Reconcile remaining P1.8.152 lifecycle findings; the L4-Minimum reviewer waiver does not close or waive reviewer requirements in that separate lifecycle workstream.
 2. Treat the 2026-11-10 read-only audit report as a historical snapshot: it references the pre-F-01–F-08 matrix blob `f39bef0c391e13a3656130f0e74f0e7a385b0c39`. Do not rewrite that report or treat its matrix reference as current.
 3. Freeze and identify the exact review-input baseline (current matrix blob `8f9e34acb4e9ae0b89d5e7163566ab2982d99c63`, audit report blob `cfecb7428508adf23e6b9e71dc0dfe1e0e38080c`, and applicable controlling decision/lifecycle artifacts) in a canonical manifest with digest and closure record.
-4. Obtain independent review of the current matrix and all exact frozen review inputs, explicitly reconciling historical-to-current matrix lineage; require a separate disposition that references the exact baseline ID/digest.
+4. The owner assesses the exact frozen review-input baseline, explicitly reconciling historical-to-current matrix lineage, and records a separate owner disposition referencing the exact baseline ID/digest. Do not label this as independent review.
 3. Inventory existing evidence and implementation only within separately approved, non-operational scope.
 4. Design isolated synthetic fixtures and expected outputs.
 5. Obtain explicit owner approval for any activity touching keys, trust roots, GitHub permissions, persistent storage, VPS, database, runtime inventories, providers, staging, restore or fault injection.
 6. Run only the explicitly approved test scope; preserve exact source SHA, workflow run and artifact where applicable.
-7. Obtain qualifying independent review before changing any acceptance status.
+7. Record owner self-assessment and disposition before changing any acceptance status; do not claim independent assurance.
 
 This document does not authorize any step that crosses an existing authorization boundary. It does not authorize key operations, permission inventory, provider calls, runtime/data/copy inventory, staging, restore, fault injection, workflow dispatch, implementation, archive or destructive operations.
 
@@ -170,17 +170,17 @@ This document does not authorize any step that crosses an existing authorization
 | Restore | No measured provider/database recovery guarantee; no restore-overwrite authorized | OPEN / BLOCKED |
 | Mutation fence / Option C enforcement | No technical destructive authority assumed | NOT VERIFIED |
 
-P1.8.153 remains the next documented lifecycle gate in the handoff. This L4 matrix does not replace, close or retarget it. The unresolved P1.8.152 reviewer-control finding remains open until a qualifying independent review explicitly closes it.
+P1.8.153 remains the next documented lifecycle gate in the handoff. This L4 matrix does not replace, close or retarget it. The unresolved P1.8.152 reviewer-control finding remains open under that separate lifecycle workstream; this L4-Minimum waiver does not close or waive it.
 
 ## 8. Current verdict
 
-- Matrix revision: DOCUMENTATION UPDATE — F-01 THROUGH F-09 ADDRESSED IN WORDING; NOT INDEPENDENTLY REVIEWED.
+- Matrix revision: OWNER-DIRECTED POLICY UPDATE — L4M-09 WAIVED; OWNER-ASSESSMENT MODEL; NOT IMPLEMENTED OR ACCEPTED.
 - Lifecycle alignment: DOCUMENTARY CROSSWALK ADDED; P1.8.152 residual findings remain open.
 - Requirements implemented: NOT VERIFIED.
 - Test fixtures created/executed: NOT RUN / NOT CREATED BY THIS RECORD.
 - GitHub Actions: NOT DISPATCHED.
-- Qualifying independent review of this revised matrix: PENDING.
-- L4 implementation/operational acceptance: BLOCKED / NOT VERIFIED.
+- L4M-09 qualifying independent review: OWNER-WAIVED / NOT MANDATORY for L4-Minimum only.
+- L4 implementation/operational acceptance: BLOCKED / NOT VERIFIED; nine active controls remain unproven.
 - Destructive authority: NOT GRANTED; Option C remains in force.
 
 No code, schema, API, workflow, runtime, VPS, database, T0/T1/T2/T3/T4, feeder, ledger, strategy, risk, key, trust-root, permission, provider, inventory, test, archive or destructive operation is authorized or performed by this revision.
