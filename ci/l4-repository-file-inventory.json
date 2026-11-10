@@ -129,6 +129,22 @@
     {
       "path": "docs/evidence/T0_L4M01_L4M03_OWNER_EVIDENCE_INTAKE_CONTRACT_2026-11-10.md",
       "git_blob_sha1": "914fb398bf6f0e4ef26ae6b706212c5f2969d1c1"
+    },
+    {
+      "path": "docs/evidence/T0_COMPONENTS_OUTSIDE_L4_MINIMUM_AUDIT_2026-11-10.md",
+      "git_blob_sha1": "7bfc509b9eb918750b3a25acc18f8d4f989d387f"
+    },
+    {
+      "path": "docs/evidence/p1-8/P1.8.142-owner-retention-and-data-class-disposition-decision-package.md",
+      "git_blob_sha1": "a8b6027c5ff25192ebba82dadc52c70dd1983c82"
+    },
+    {
+      "path": "docs/evidence/COMMERCIAL_SCOPE_CONTENT_AUDIT_2026-11-09.md",
+      "git_blob_sha1": "dc313df4a9c11893751e43cec41042c58198cfff"
+    },
+    {
+      "path": "docs/evidence/T0_L4_REPOSITORY_FILE_INVENTORY_SCOPE_RECONCILIATION_2026-11-11.md",
+      "git_blob_sha1": "2f93102a78baf40edfcd6f58fc1c1ac8e4ca62e0"
     }
   ]
 }
