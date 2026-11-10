@@ -72,7 +72,7 @@ jobs:
           python -m unittest ci.test_t0_final_runtime_config -v 2>&1 | tee t0-final-runtime-config-tests.log
           python -m py_compile ci/t0_final_runtime_config.py ci/test_t0_final_runtime_config.py
           python -m ci.t0_final_runtime_config | tee t0-final-runtime-config-report.json
-          printf '%s\\n' 'PC_CANONICAL_PATH=NOT_VERIFIED' 'CANONICAL_DB_INTEGRITY=NOT_RUN' 'FEEDER_RUNTIME=NOT_RUN' | tee t0-final-runtime-config-scope.txt
+          printf '%s\n' 'PC_CANONICAL_PATH=NOT_VERIFIED' 'CANONICAL_DB_INTEGRITY=NOT_RUN' 'FEEDER_RUNTIME=NOT_RUN' | tee t0-final-runtime-config-scope.txt
       - name: Run P3 isolated component contracts
         if: ${{ inputs.gate == 'component-tests-p3' }}
         run: |
@@ -225,7 +225,7 @@ jobs:
           else
             ssh_status=$?
           fi
-          printf '%s\\n' "$ssh_status" > preflight-ssh-exit-code.txt
+          printf '%s\n' "$ssh_status" > preflight-ssh-exit-code.txt
           python - "$RUNNER_TEMP/ssh-client-stderr.log" "$ssh_status" <<'PY'
           import pathlib
           import sys
@@ -248,13 +248,13 @@ jobs:
               found = ["NON_EMPTY_UNCLASSIFIED"]
           lines = [f"SSH_STDERR_CLASS={label}" for label in found]
           lines.append(f"SSH_EXIT_CODE={sys.argv[2]}")
-          pathlib.Path("preflight-ssh-diagnostic.txt").write_text("\\n".join(lines) + "\\n")
+          pathlib.Path("preflight-ssh-diagnostic.txt").write_text("\n".join(lines) + "\n")
           PY
           if [[ "$ssh_status" -ne 0 ]]; then
             exit "$ssh_status"
           fi
           if ! grep -Fxq 'P1_SSH_PREFLIGHT_VERSION=1' "$remote_log" || ! grep -Fxq 'P1_SSH_PREFLIGHT_END=1' "$remote_log"; then
-            printf '%s\\n' 'SSH_STDERR_CLASS=REMOTE_PROTOCOL_NOT_CONFIRMED' >> preflight-ssh-diagnostic.txt
+            printf '%s\n' 'SSH_STDERR_CLASS=REMOTE_PROTOCOL_NOT_CONFIRMED' >> preflight-ssh-diagnostic.txt
             exit 1
           fi
       - name: Classify preflight evidence
