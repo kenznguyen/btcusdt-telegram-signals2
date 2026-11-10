@@ -80,19 +80,36 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertIn("PARTIAL_OR_BLOCKED_PROBE_UNAVAILABLE", text)
 
 
-    def run_preflight_with_stubs(self, *, include_awk=True, awk_exit=None, include_pgrep=True, pgrep_exit=1, ss_address='127.0.0.1:8788'):
+    def run_preflight_with_stubs(
+        self, *, include_awk=True, awk_exit=None, include_pgrep=True,
+        pgrep_exit=1, include_ss=True, ss_exit=None,
+        ss_address='127.0.0.1:8788'
+    ):
         with tempfile.TemporaryDirectory() as directory:
             bin_dir = Path(directory)
-            for command in ("hostname", "id", "git"):
+            for command in ("hostname", "id"):
                 resolved = shutil.which(command, path="/usr/bin:/bin")
                 self.assertIsNotNone(resolved, command)
                 (bin_dir / command).symlink_to(resolved)
-            ss = bin_dir / "ss"
-            ss.write_text(
-                "#!/bin/sh" + chr(10) + "printf '%s" + chr(92) + "n' 'LISTEN 0 128 " + ss_address + " 0.0.0.0:*'" + chr(10),
+            git = bin_dir / "git"
+            git.write_text(
+                "#!/bin/sh" + chr(10) + "printf '%s\\n' 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'" + chr(10),
                 encoding="utf-8",
             )
-            ss.chmod(0o755)
+            git.chmod(0o755)
+            python3 = bin_dir / "python3"
+            python3.write_text("#!/bin/sh" + chr(10) + "cat >/dev/null" + chr(10) + "exit 0" + chr(10), encoding="utf-8")
+            python3.chmod(0o755)
+            if include_ss:
+                ss = bin_dir / "ss"
+                if ss_exit is not None:
+                    ss.write_text("#!/bin/sh" + chr(10) + f"exit {ss_exit}" + chr(10), encoding="utf-8")
+                else:
+                    ss.write_text(
+                        "#!/bin/sh" + chr(10) + "printf '%s" + chr(92) + "n' 'LISTEN 0 128 " + ss_address + " 0.0.0.0:*'" + chr(10),
+                        encoding="utf-8",
+                    )
+                ss.chmod(0o755)
             if include_awk:
                 awk = bin_dir / "awk"
                 if awk_exit is None:
@@ -118,7 +135,27 @@ class T0SSHPreflightContractTests(unittest.TestCase):
 
     def test_loopback_listener_is_classified_only_after_successful_parse(self):
         result = self.run_preflight_with_stubs()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("API_8788=LOOPBACK_LISTENER", result.stdout)
+        self.assertIn("SQLITE_INTEGRITY=PASS", result.stdout)
+
+    def test_missing_ss_fails_closed(self):
+        result = self.run_preflight_with_stubs(include_ss=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("API_8788=CHECK_UNAVAILABLE", result.stdout)
+        self.assertNotIn("API_8788=LOOPBACK_LISTENER", result.stdout)
+
+    def test_failed_ss_fails_closed(self):
+        result = self.run_preflight_with_stubs(ss_exit=2)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("API_8788=CHECK_FAILED", result.stdout)
+        self.assertNotIn("API_8788=LOOPBACK_LISTENER", result.stdout)
+
+    def test_workflow_ends_at_the_single_evidence_upload_block(self):
+        workflow = (SCRIPT.parents[2] / ".github" / "workflows" / "t0-manual-validation.yml")
+        text = workflow.read_text(encoding="utf-8")
+        self.assertTrue(text.endswith("            preflight-verdict.txt\\n"))
+        self.assertNotIn("\\n preflight-remote.log; then", text)
 
     def test_non_loopback_listener_is_rejected(self):
         result = self.run_preflight_with_stubs(ss_address="0.0.0.0:8788")
