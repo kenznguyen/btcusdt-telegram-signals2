@@ -4480,3 +4480,21 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - The prior proposed G4 endpoint mapping to `127.0.0.1:8788/health/data` is withdrawn. No script, workflow, VPS, SSH forced-command, `authorized_keys`, process, or canonical DB was changed by this correction.
 - Next repository-only step: add a test-first G4 contract that verifies endpoint separation, read-only SQLite access, allowlisted invocation, fail-closed missing configuration, and sanitized evidence. Run on GitHub Actions before any VPS installation. VPS installation remains gated on an explicit, compatible deployment path and must not widen SSH access.
 - Current status: endpoint/source inspection **PASS**; G4 implementation **NOT STARTED**; VPS G4 runtime **NOT VERIFIED**; T1 remains NOT ACTIVATED; PostgreSQL remains PARKED; `AI_EXECUTION_ENABLED=false`; paper-only.
+
+
+## G4a — isolated read-only SQLite probe contract added (2026-11-10)
+
+- Scope is repository/CI only. This stage defines and tests a sanitized SQLite snapshot primitive; it is **not** the live VPS G4 acceptance and does not install or invoke anything on the VPS.
+- Test-first contract file: `ci/test_t0_runtime_acceptance.py`. It creates only disposable temporary SQLite fixtures and covers integrity, canonical lease state, owner fingerprint redaction, expired/missing lease fail-closed behavior, missing DB non-creation, unchanged DB bytes, endpoint separation and M15/H1 watermark calculations.
+- Probe: `ci/t0_runtime_acceptance.py`. It requires an existing database, opens SQLite URI `mode=ro`, enforces `PRAGMA query_only=ON`, checks `integrity_check`, reads the canonical `binance-btcusdt-canonical` lease and M15/H1 candle watermarks, and returns only a truncated owner fingerprint (never the raw owner). It does not create schema or call acquire/heartbeat/release/write helpers.
+- Endpoint separation test preserves the source distinction: candle WSGI app on the historical 8788 service exposes generic `/health` and authenticated `/v1/candles`; detailed `/health/data` belongs to the separate Flask feeder-health app. The probe does not assume that Flask listener exists on the VPS.
+- Workflow adds path-scoped G4 contract detection and an isolated GitHub-hosted job. The job requires G1, G2 and G3 jobs to succeed in the same run, has `contents: read`, `persist-credentials: false`, empty DB/token/exchange credential environment, no SSH secrets, no VPS access, and uploads source SHA, test log and verdict. It is explicitly labeled `DISPOSABLE_FIXTURE_ONLY`.
+- Files/blob SHAs at the latest G4 workflow commit:
+  - `.github/workflows/t0-manual-validation.yml`: `a4c37d91daa4a6555270bd5cbabe8c9c081641f4`.
+  - `ci/t0_runtime_acceptance.py`: `82629f083d40c8b5f90a3e72c86ab5d46bedb4e1`.
+  - `ci/test_t0_runtime_acceptance.py`: `f82fd24dc21118bf8a1930a8235ccfa54da6458c`.
+  - `ci/test_t0_ssh_preflight_contract.py`: `7eabbe273487b72aa0025df04756c5c9a6a3344a`.
+- Workflow source commit `c3e4283361d4702c867540a109d0b2a0f068cb8b` triggered run [42822851406](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42822851406). At handoff update time the run was pending; test execution, job conclusions and artifacts are **NOT VERIFIED**. An earlier run [42822774540](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42822774540) was triggered before the final dependency-install correction and is not accepted as final evidence.
+- Current status: G4a implementation committed; G4a CI **PENDING / NOT VERIFIED**. This does not establish runtime freshness, real lease state, actual VPS API authentication, watermark progression over time, or process stability. G4 VPS execution remains **NOT AUTHORIZED / NOT VERIFIED** until a safe deployment path is established and separately approved.
+- No VPS/SSH/forced-command/authorized_keys changes, canonical SQLite access, process restart, T1 activation, PostgreSQL work, data deletion, or trading action occurred. T1 NOT ACTIVATED; PostgreSQL PARKED; `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next step: inspect run `42822851406` jobs and artifact. If G4a CI passes, continue with separate HTTP/API contract probes and a deployment-path review; do not label the VPS runtime PASS.
