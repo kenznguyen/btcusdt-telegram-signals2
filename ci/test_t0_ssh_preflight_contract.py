@@ -89,7 +89,7 @@ class T0SSHPreflightContractTests(unittest.TestCase):
                 (bin_dir / command).symlink_to(resolved)
             ss = bin_dir / "ss"
             ss.write_text(
-                "#!/bin/sh\\nprintf '%s\\\\n' 'LISTEN 0 128 127.0.0.1:8788 0.0.0.0:*'\\n",
+                "#!/bin/sh" + chr(10) + "printf '%s" + chr(92) + "n' 'LISTEN 0 128 127.0.0.1:8788 0.0.0.0:*'" + chr(10),
                 encoding="utf-8",
             )
             ss.chmod(0o755)
@@ -100,11 +100,11 @@ class T0SSHPreflightContractTests(unittest.TestCase):
                     self.assertIsNotNone(resolved, "awk")
                     awk.symlink_to(resolved)
                 else:
-                    awk.write_text(f"#!/bin/sh\\nexit {awk_exit}\\n", encoding="utf-8")
+                    awk.write_text("#!/bin/sh" + chr(10) + f"exit {awk_exit}" + chr(10), encoding="utf-8")
                     awk.chmod(0o755)
             if include_pgrep:
                 pgrep = bin_dir / "pgrep"
-                pgrep.write_text(f"#!/bin/sh\\nexit {pgrep_exit}\\n", encoding="utf-8")
+                pgrep.write_text("#!/bin/sh" + chr(10) + f"exit {pgrep_exit}" + chr(10), encoding="utf-8")
                 pgrep.chmod(0o755)
             result = subprocess.run(
                 ["/bin/bash", str(SCRIPT)],
