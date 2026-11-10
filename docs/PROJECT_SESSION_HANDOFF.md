@@ -66,17 +66,13 @@ Updated: 2026-11-10 (Asia/Ho_Chi_Minh)
 - Secure remote source for `MARKET_DATA_TOKEN`: **NOT VERIFIED**. Never place the token in an SSH command, URL, shell history, log, or artifact.
 - Deployment-path review: `docs/evidence/G4_RUNTIME_DEPLOYMENT_PATH_REVIEW_2026-11-10.md`, commit `5db0c0acbc2a8e8014671db2cd3015577c083dcb`.
 - Existing SSH forced command is a fixed read-only preflight; current workflow has no approved SCP/rsync/installer path or second-probe dispatcher. Do not add general shell access or bypass the forced-command boundary.
+- Dispatcher design review: `docs/evidence/G4_FORCED_COMMAND_DISPATCHER_DESIGN_REVIEW_2026-11-10.md`, commit `50c99cf3c71e8d85dddaceeb4f8e604000a254c5`. Target contract documented; implementation NOT STARTED.
 
 ### Next permitted step
 
-Review a narrowly scoped, root-owned forced-command dispatcher design that:
-1. preserves the existing preflight behavior;
-2. accepts only exact, fixed command selectors (no arbitrary arguments or shell);
-3. invokes only bounded read-only SQLite/HTTP probes;
-4. redacts lease owner/token and emits sanitized evidence;
-5. obtains the API token only through a separately verified secure source.
+Obtain the bounded owner-supplied deployment evidence described in `docs/evidence/T0_OWNER_READONLY_DEPLOYMENT_EVIDENCE_PROTOCOL_2026-11-10.md`, especially the effective forced-command entry and root-owned update path, with secrets redacted. This is a documentary evidence step; it does not require probe installation or a new remote command.
 
-The exact proposed change and risk boundary require separate approval before any VPS installation or remote probe invocation. Do not treat the existing G4 scope approval as approval for a new installation mechanism or wider SSH access.
+The dispatcher target design is recorded in `docs/evidence/G4_FORCED_COMMAND_DISPATCHER_DESIGN_REVIEW_2026-11-10.md`. Reassess implementation only after the installed command path, root-owned update mechanism, secure token source, and any claimed Flask listener are evidenced. Obtain separate approval for the exact implementation and risk boundary before any VPS installation or new remote invocation. Existing G4 scope approval does not authorize a new installation mechanism or wider SSH access.
 
 ## 5. Session procedure
 
