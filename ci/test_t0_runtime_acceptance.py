@@ -6,6 +6,11 @@ import tempfile
 import unittest
 
 from ci.t0_runtime_acceptance import inspect_sqlite_read_only
+import json
+from urllib.parse import parse_qs, urlsplit
+
+from ci.t0_runtime_acceptance import ProbeError, probe_candle_api, probe_feeder_health
+
 from app import app as feeder_health_app
 from market_data.api import application as candle_api_application
 from wsgiref.util import setup_testing_defaults
@@ -41,6 +46,74 @@ def create_fixture(path, *, include_lease=True, lease_expiry=NOW + 60_000):
         )
     connection.commit()
     connection.close()
+
+
+
+class FakeResponse:
+    def __init__(self, payload, status=200):
+        self.payload = json.dumps(payload).encode()
+        self.status = status
+        self.headers = {"Content-Type": "application/json"}
+
+    def read(self, limit=-1):
+        return self.payload if limit < 0 else self.payload[:limit]
+
+    def getcode(self):
+        return self.status
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+
+class FakeOpener:
+    def __init__(self, responder):
+        self.responder = responder
+        self.requests = []
+
+    def open(self, request, timeout):
+        self.requests.append((request, timeout))
+        return self.responder(request)
+
+
+def candle_payload(timeframe, now_ms):
+    interval = {"15m": 900_000, "1h": 3_600_000}[timeframe]
+    end_ms = (now_ms // interval) * interval
+    start_ms = end_ms - 2 * interval
+    candles = []
+    for open_time in (start_ms, start_ms + interval):
+        candles.append({
+            "exchange": "binance", "marketType": "USDT_PERPETUAL",
+            "symbol": "BTCUSDT", "timeframe": timeframe,
+            "openTimeMs": open_time, "closeTimeMs": open_time + interval,
+            "open": "100", "high": "101", "low": "99", "close": "100",
+            "volume": "1", "isClosed": True,
+            "availableAtMs": open_time + interval + 100,
+            "availabilityKind": "FIRST_OBSERVED", "quality": "VALIDATED",
+            "source": "ccxt.binanceusdm",
+        })
+    return {
+        "exchange": "binance", "marketType": "USDT_PERPETUAL",
+        "symbol": "BTCUSDT", "timeframe": timeframe,
+        "startMs": start_ms, "endMs": end_ms, "asOfMs": now_ms,
+        "datasetVersion": "sha256:" + "a" * 64,
+        "coverage": {"expected": 2, "returned": 2, "complete": True, "gaps": []},
+        "contractVersion": "1.0.0", "schemaVersion": 1,
+        "volumeUnit": "BTC_BASE_ASSET", "source": "ccxt.binanceusdm",
+        "generatedAtMs": now_ms,
+        "freshness": {
+            "latestExpectedOpenTimeMs": end_ms - interval,
+            "latestReturnedOpenTimeMs": end_ms - interval,
+            "latestCloseTimeMs": end_ms,
+            "latestAvailableAtMs": end_ms + 100,
+            "observationAgeMs": now_ms - (end_ms + 100),
+            "closeLagMs": now_ms - end_ms,
+            "evaluable": True,
+        },
+        "candles": candles,
+    }
 
 
 class ReadOnlySQLiteAcceptanceTests(unittest.TestCase):
@@ -141,6 +214,93 @@ class ReadOnlySQLiteAcceptanceTests(unittest.TestCase):
             )
             self.assertEqual(item["latest_close_time_ms"],
                            item["latest_open_time_ms"] + interval)
+
+
+    def test_candle_api_probe_checks_both_timeframes_with_bearer_header_only(self):
+        now_ms = NOW + 5_000
+        fake = FakeOpener(lambda request: (
+            FakeResponse({"ok": True, "service": "canonical-market-data"})
+            if urlsplit(request.full_url).path == "/health"
+            else FakeResponse(candle_payload(
+                parse_qs(urlsplit(request.full_url).query)["timeframe"][0], now_ms
+            ))
+        ))
+        result = probe_candle_api(
+            "http://127.0.0.1:8788", "fixture-token-secret",
+            now_ms=now_ms, opener_factory=lambda: fake,
+        )
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(set(result["timeframes"]), {"15m", "1h"})
+        for request, timeout in fake.requests:
+            self.assertLessEqual(timeout, 5)
+            self.assertNotIn("fixture-token-secret", request.full_url)
+            if urlsplit(request.full_url).path == "/v1/candles":
+                self.assertEqual(request.get_header("Authorization"),
+                                 "Bearer fixture-token-secret")
+
+    def test_candle_api_probe_rejects_non_loopback_and_missing_token(self):
+        with self.assertRaises(ProbeError):
+            probe_candle_api("https://example.com", "token", now_ms=NOW)
+        with self.assertRaises(ProbeError):
+            probe_candle_api("http://127.0.0.1:8788", "", now_ms=NOW)
+
+    def test_candle_api_probe_fails_closed_on_incomplete_coverage(self):
+        now_ms = NOW + 5_000
+        def respond(request):
+            if urlsplit(request.full_url).path == "/health":
+                return FakeResponse({"ok": True, "service": "canonical-market-data"})
+            payload = candle_payload(
+                parse_qs(urlsplit(request.full_url).query)["timeframe"][0], now_ms
+            )
+            payload["coverage"]["complete"] = False
+            payload["coverage"]["gaps"] = [{"startMs": 1, "endMs": 2}]
+            return FakeResponse(payload)
+        with self.assertRaises(ProbeError):
+            probe_candle_api(
+                "http://127.0.0.1:8788", "token", now_ms=now_ms,
+                opener_factory=lambda: FakeOpener(respond),
+            )
+
+    def test_candle_api_probe_fails_closed_on_stale_watermark(self):
+        now_ms = NOW + 5_000
+        def respond(request):
+            if urlsplit(request.full_url).path == "/health":
+                return FakeResponse({"ok": True, "service": "canonical-market-data"})
+            timeframe = parse_qs(urlsplit(request.full_url).query)["timeframe"][0]
+            payload = candle_payload(timeframe, now_ms)
+            payload["freshness"]["closeLagMs"] = 2 * {"15m": 900_000, "1h": 3_600_000}[timeframe]
+            return FakeResponse(payload)
+        with self.assertRaises(ProbeError):
+            probe_candle_api(
+                "http://127.0.0.1:8788", "token", now_ms=now_ms,
+                opener_factory=lambda: FakeOpener(respond),
+            )
+
+    def test_detailed_health_probe_never_guesses_missing_flask_listener(self):
+        result = probe_feeder_health(None, now_ms=NOW)
+        self.assertEqual(result["status"], "NOT_VERIFIED")
+        self.assertEqual(result["reason"], "LISTENER_NOT_CONFIGURED")
+
+    def test_detailed_health_probe_requires_both_timeframes_healthy(self):
+        payload = {
+            "state": "HEALTHY", "live": True, "ready": True,
+            "timeframes": {
+                "15m": {"state": "HEALTHY", "unresolved_gap_count": 0, "sync_error": None},
+                "1h": {"state": "HEALTHY", "unresolved_gap_count": 0, "sync_error": None},
+            },
+        }
+        fake = FakeOpener(lambda _request: FakeResponse(payload))
+        result = probe_feeder_health(
+            "http://127.0.0.1:8790", now_ms=NOW,
+            opener_factory=lambda: fake,
+        )
+        self.assertEqual(result["status"], "PASS")
+        payload["timeframes"]["1h"]["state"] = "STALE"
+        with self.assertRaises(ProbeError):
+            probe_feeder_health(
+                "http://127.0.0.1:8790", now_ms=NOW,
+                opener_factory=lambda: FakeOpener(lambda _request: FakeResponse(payload)),
+            )
 
 if __name__ == "__main__":
     unittest.main()
