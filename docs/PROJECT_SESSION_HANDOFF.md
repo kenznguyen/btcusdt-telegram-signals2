@@ -4338,3 +4338,14 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - Status: **PARTIAL** — selective source port committed; CI execution pending. Do not infer PASS from the previous branch's successful run.
 - Explicit limits: no VPS connection, no SSH preflight rerun, no runtime/service/Feeder changes, no canonical SQLite access or migration, no PostgreSQL work, no live trading.
 - Next step: run GitHub Actions workflow `T0 Manual Validation` on this branch with gate `scaleway-ssh-contract-only`; inspect exact checked-out SHA, job conclusion and artifact. Only after that evidence passes should any further workflow promotion be considered.
+
+
+## 2026-11-10 — T0 SSH preflight contract-only CI verification
+
+- Owner supplied workflow run [42813723910](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42813723910).
+- Workflow job `P1 SSH preflight contract checks` (job ID `129821369757`): **SUCCESS**. The log confirms checkout of exact source commit `3cadf2e5b483a5fb3beb93b5a3f94db33c880fdb`.
+- Executed checks: `bash -n ops/ssh/t0-readonly-preflight.sh` PASS; `python -m unittest ci.test_t0_ssh_preflight_contract -v` PASS, 5/5 tests; inline workflow diagnostic/artifact contract assertions PASS.
+- `T0 manual isolated acceptance` (job ID `129821372078`) and `P1 authenticated Scaleway read-only preflight` (job ID `129821445560`) were both **SKIPPED**, as required for the contract-only gate. No artifacts were produced.
+- Status: T0 SSH preflight workflow contract and focused tests **PASS** at source SHA `3cadf2e5b483a5fb3beb93b5a3f94db33c880fdb`. Authenticated SSH/VPS preflight and T0 runtime acceptance remain **NOT RUN / NOT VERIFIED** in this run.
+- No VPS/SSH connection, runtime/service/Feeder operation, canonical SQLite access/migration, PostgreSQL work, T1 activation, trading, or data mutation occurred.
+- Next step: do not promote runtime status based on contract CI. Any authenticated Scaleway read-only preflight requires a separate explicit owner approval and must use the dedicated `scaleway-ssh-preflight` gate; keep the remote command strictly read-only.
