@@ -20,7 +20,7 @@ The active denominator is nine controls: L4M-01–08 and L4M-10. L4M-09 remains 
 
 | Control | Existing evidence class | Exact remaining evidence needed | Acquisition boundary | Current disposition |
 |---|---|---|---|---|
-| L4M-01 — Owner custody | GitHub records and short-lived CI artifacts; no qualifying owner copy demonstrated | Owner-controlled package inventory; SHA-256 manifest; custody reference outside both T0/VPS and GitHub; exact readback/integrity result during T0 outage, GitHub outage and simultaneous outage; include latest-head anchor | Owner-supplied sanitized evidence only. Do not access private storage or request secrets | NOT VERIFIED |
+| L4M-01 — Owner custody | GitHub records and short-lived CI artifacts; no qualifying owner copy demonstrated | Owner-controlled package inventory; SHA-256 manifest; custody reference to VPS and/or GitHub; exact readback/integrity result for each claimed copy; include latest-head anchor. No external backup is required. Single-location outage claims require a verified copy in the remaining location; simultaneous VPS+GitHub outage recovery is outside scope | Owner-supplied sanitized evidence only. VPS/GitHub are the approved custody scope; do not access private storage or request secrets | NOT VERIFIED |
 | L4M-02 — Signer separation | Synthetic ephemeral-key tests and verifier-only source; no production owner signer proof | Signer identity/fingerprint; custody and recovery boundary; evidence that T0 runtime/admin credentials cannot sign or authorize signing; approved recovery procedure and separately authorized isolated proof | No key generation, import, export, rotation, provider call or permission probe | NOT VERIFIED |
 | L4M-03 — Exact binding/freshness | Synthetic event-byte verifier and CI subject-digest checks; T0 has no signed canonical checkpoint | Exact T0 checkpoint/manifest definition; signed envelope and digest binding; authenticated latest-head anchor; exact anchor digest; owner-custody/readback proof; older-valid-checkpoint rollback result against anchor | No canonical T0 schema/write-path change; no signing operation or freshness test | PARTIAL — SYNTHETIC/DESIGN ONLY |
 | L4M-04 — Offline verification | Local synthetic Sigstore bundle verifier and CI evidence | Owner-run verification of the exact retained T0 package on a separate environment, with T0/VPS, GitHub, ChatGPT and network unavailable; verifier build/source hash; trust-policy snapshot; complete output and exit status | Do not run verifier or install dependencies without separate authorization | PARTIAL — SYNTHETIC/CI ONLY |
@@ -45,7 +45,7 @@ This sequence is a dependency plan, not an authorization to perform the activiti
 
 - Preserve the exact original bytes and source SHA; do not replace historical reports when policy changes.
 - Distinguish source/design documentation, synthetic tests, CI artifacts, owner-supplied evidence and production/runtime evidence. These categories are not interchangeable.
-- A GitHub Actions artifact or Git history alone is not independent custody outside GitHub.
+- GitHub Actions artifacts and Git history remain within the GitHub failure domain; GitHub is an approved owner custody location but is not an independent third-party provider. No external copy is required under D-2026-11-10-L4-EVIDENCE-CUSTODY-VPS-GITHUB-ONLY.
 - A successful upload is not exact-version readback verification.
 - A verifier script existing in the repository is not proof that the owner independently verified a T0 package.
 - A signature is not proof of market-data truth, source completeness, database durability or trading correctness.
@@ -69,7 +69,7 @@ This sequence is a dependency plan, not an authorization to perform the activiti
 
 ## 6. Next gate
 
-The next meaningful input is owner-controlled L4M-01 custody evidence and its L4M-03 latest-head anchor, followed by L4M-02 signer-separation evidence. Without those, further synthetic design work cannot close the central assurance gaps.
+The next meaningful input is owner-controlled L4M-01 custody evidence from VPS and/or GitHub and its L4M-03 latest-head anchor, followed by L4M-02 signer-separation evidence. No additional backup outside VPS/GitHub is required. Without those, further synthetic design work cannot close the central assurance gaps.
 
 ## 7. Limits
 
