@@ -21,7 +21,7 @@ The controlling matrix is `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-M
 
 The owner waiver is `docs/decisions/D-2026-11-10-L4-INDEPENDENT-REVIEW-WAIVER.md`, blob `75e057ba482d81f6a9d896ace2b017807c9396d9`.
 
-The current acquisition register is `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md`, blob `0125abfe77c0d0f9172e66aa5d09ec8fc8a33623`.
+The current acquisition register is `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md`, blob `e67a58591b5f6168ab3a0f3f403557292aca45d5`.
 
 L4M-10 requires:
 - one identified frozen evidence baseline;
