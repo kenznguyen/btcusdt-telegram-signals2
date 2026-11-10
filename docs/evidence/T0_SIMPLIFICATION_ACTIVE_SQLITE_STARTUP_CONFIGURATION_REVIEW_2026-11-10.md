@@ -25,6 +25,8 @@ No evidence supports merging lifecycle, scheduler, recovery, storage, lease or w
 | `market_data/api.py` | `81733c9b6de811cbebb2f5d472d41f37f337990c` | Read API preflight and store-factory call |
 | `market_data/storage.py` | `13fe1ae01ebb5318b69e69eef3e512d207f74c49` | Side-effect-free SQLite/PostgreSQL store factory and environment backend selection |
 | `market_data/test_storage.py` | `b2635f575323187f936360d033b4fc630d8138e0` | Store factory, SQLite default, invalid backend, no implicit DB creation and storage contract |
+| `market_data/test_api.py` | `49df7e0bec12908adae67f18a4aa19063e461093` | API auth, SQLite configuration, missing store, explicit PostgreSQL-without-DSN and HTTP error semantics |
+| `market_data/test_postgres_feeder_runtime.py` | `dba7b3a61b3963984c58309e7d334b61c0889256` | Production builder PostgreSQL TLS, host, lease identity, forbidden SQLite lease DB and per-process owner ID contracts |
 | `market_data/test_feeder_lifecycle.py` | `5797d51e3165721863ceacb1fac76f44055f18a7` | Runtime lifecycle, lease fencing, recovery, startup and shutdown behavior |
 | `market_data/test_feeder_process_restart.py` | `607228708c174bfa3af437b8a4d419f30a7030c3` | Isolated temporary-SQLite process crash/restart and generation fencing |
 | `market_data/test_feeder_scheduler.py` | `695c53548c58763cffecc86626171f6a691e75fd` | Scheduler defaults and poll/close-boundary behavior |
@@ -82,23 +84,27 @@ These boundaries have distinct responsibilities and should remain separate.
 
 ## 5. Regression and evidence gaps before any C-01 implementation
 
-A future change must first map every caller and test path for `build_production_runtime`, `create_store_from_env`, `create_store`, and environment parsing, including the active GitHub Actions jobs.
+A future change must preserve both the store-selection contract and the distinct API/feeder guards.
 
-Minimum regression cases to preserve:
-- missing backend defaults to SQLite;
-- explicit SQLite backend and configured database path;
-- unknown backend fails closed;
-- PostgreSQL without DSN fails closed;
-- PostgreSQL without `sslmode=verify-full` or remote hostname fails closed;
-- PostgreSQL canonical lease identity is fixed;
-- PostgreSQL rejects `T0_FEEDER_LEASE_DB`;
-- SQLite requires canonical DB or explicit lease DB and preserves the same-file invariant;
-- configured owner ID is rejected and generated owner identity remains per-process;
+**Existing coverage found (static inspection only; tests were not run):**
+- `test_storage.py`: default SQLite factory, explicit PostgreSQL DSN fail-closed, unknown backend rejection, side-effect-free factory, no DB creation on missing SQLite read, SQLite factory/write/read contract.
+- `test_api.py`: bearer authorization, missing SQLite path returns `UNCONFIGURED`, missing DB returns `STORE_UNAVAILABLE`, PostgreSQL without DSN returns `STORE_UNAVAILABLE`, read-only and response-contract behavior.
+- `test_postgres_feeder_runtime.py`: production builder PostgreSQL selection, verified-TLS requirement, remote hostname requirement, accepted DSN forms, per-process owner generation, fixed canonical lease name and rejection of a separate SQLite lease DB.
+- `test_feeder_lifecycle.py` and `test_feeder_process_restart.py`: runtime lease/recovery/readiness/drain and isolated SQLite crash/restart behavior. These do not establish that the production builder's SQLite branch is covered.
+- The systemd/API integration script composes `FeederRuntime` and `run_service` directly; it does not call `build_production_runtime()`.
+
+**Additional regression cases needed before any C-01 change:**
+- production builder with absent backend selects SQLite using `MARKET_DATA_DB`;
+- production builder with explicit `MARKET_DATA_BACKEND=sqlite`;
+- production builder rejects unknown backend before constructing an exchange/runtime;
+- SQLite missing DB and explicit `T0_FEEDER_LEASE_DB` semantics, including same-file invariant;
+- store factory and API preflight resolve the same backend without changing API's current pre-auth `UNCONFIGURED` / auth `401` / store `503` ordering;
+- PostgreSQL builder cases above remain unchanged;
+- constructing the SQLite production runtime does not create the canonical database or run migrations;
 - recovery lookback and all validated config bounds remain unchanged;
-- constructing the runtime does not provision canonical SQLite storage or run migrations;
-- readiness remains after recovery and scheduler startup only.
+- readiness remains after lease acquisition, WAL keeper setup, recovery and scheduler startup only.
 
-Current reviewed tests cover several lower-level factory and lifecycle contracts, but a focused production-builder contract suite was not identified in this bounded inspection. Full branch-wide caller/workflow coverage is **NOT VERIFIED**.
+The active workflow inventory identifies the full `market_data` regression job and separate PostgreSQL qualification jobs, but no workflow run was executed in this review. Full branch-wide caller/trigger coverage remains **NOT VERIFIED**.
 
 ## 6. Workflow and caller inventory (bounded)
 
