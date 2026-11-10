@@ -18,6 +18,7 @@ run-name: T0 manual gate - ${{ inputs.gate }} (${{ github.sha }})
           - timescaledb-integration
           - scaleway-ssh-preflight
           - scaleway-ssh-contract-only
+          - sqlite-lease-fencing
   pull_request:
     paths:
       - .github/workflows/t0-manual-validation.yml
@@ -78,6 +79,13 @@ jobs:
           python -m py_compile ci/t0_final_runtime_config.py ci/test_t0_final_runtime_config.py
           python -m ci.t0_final_runtime_config | tee t0-final-runtime-config-report.json
           printf '%s\n' 'PC_CANONICAL_PATH=NOT_VERIFIED' 'CANONICAL_DB_INTEGRITY=NOT_RUN' 'FEEDER_RUNTIME=NOT_RUN' | tee t0-final-runtime-config-scope.txt
+      - name: Run isolated SQLite lease and fencing tests
+        if: ${{ inputs.gate == 'sqlite-lease-fencing' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest market_data.test_feeder_lease market_data.test_write_gateway market_data.test_feeder_lifecycle -v 2>&1 | tee sqlite-lease-fencing-tests.log
+          echo "SQLITE_LEASE_FENCING=PASS" | tee sqlite-lease-fencing-verdict.txt
       - name: Run P3 isolated component contracts
         if: ${{ inputs.gate == 'component-tests-p3' }}
         run: |
@@ -124,6 +132,8 @@ jobs:
             t0-final-runtime-config-report.json
             t0-final-runtime-config-scope.txt
             t0-component-tests-p3.log
+            sqlite-lease-fencing-tests.log
+            sqlite-lease-fencing-verdict.txt
             kraken-adapter-tests.log
             kraken-spot-sqlite-tests.log
             kraken-spot-read-api-tests.log
