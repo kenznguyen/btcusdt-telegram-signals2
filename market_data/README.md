@@ -31,7 +31,7 @@ Mỗi page tối đa 1.000 nến được ghi nguyên tử. Nếu page sau lỗi
 Cấu hình trong môi trường chạy, không commit giá trị token:
 
 | Biến | Nội dung |
-| --- | --- |
+|---|---|
 | `MARKET_DATA_DB` | Đường dẫn SQLite đã tạo bằng tác vụ sync |
 | `MARKET_DATA_TOKEN` | Token riêng chỉ đọc, dùng header Bearer |
 | `PORT` | Port phát triển, mặc định 8788 |
@@ -42,11 +42,15 @@ Tạo token bằng `python3 -c 'import secrets; print(secrets.token_urlsafe(32))
 python3 -m market_data.api
 ```
 
-Máy chủ phát triển chỉ bind `127.0.0.1`. Khi triển khai, cài Gunicorn đã khai báo trong `requirements-web.txt`, đặt sau HTTPS reverse proxy và chạy:
+Máy chủ phát triển chỉ bind `127.0.0.1`. Khi triển khai Gunicorn, cài gói đã khai báo trong `requirements-web.txt` và chạy:
 
 ```bash
 gunicorn --bind 127.0.0.1:8788 --workers 1 --threads 4 --timeout 20 market_data.api:application
 ```
+
+**Topology T0 → T2 cùng máy:** giữ Candle API bind loopback `127.0.0.1:8788`; T2 truy cập trực tiếp qua loopback. Không cần Nginx, HTTPS reverse proxy hoặc public listener cho luồng nội bộ này.
+
+**Truy cập từ xa/trình duyệt:** không mở trực tiếp Candle API ra mạng công cộng. Nếu có nhu cầu remote/browser, phải thiết kế và phê duyệt riêng gateway/reverse proxy có TLS, xác thực và routing phù hợp; không suy ra nhu cầu đó từ topology T0 → T2 loopback hiện tại. Cấu hình gateway không thuộc hợp đồng triển khai T0 hiện tại.
 
 ### `GET /v1/candles`
 
@@ -61,7 +65,7 @@ Header: `Authorization: Bearer <MARKET_DATA_TOKEN>`.
 Phản hồi gồm:
 
 | Trường | Ý nghĩa |
-| --- | --- |
+|---|---|
 | `exchange`, `marketType`, `symbol`, `timeframe` | Định danh cố định của nguồn futures; không trộn spot/OKX |
 | `startMs`, `endMs`, `asOfMs` | Phạm vi đọc, UTC milliseconds, `[startMs,endMs)` |
 | `candles` | Nến đã đóng theo thứ tự tăng dần |
@@ -85,7 +89,7 @@ Các số decimal được lưu và trả về không tính toán qua float tron
 ### Lỗi và health
 
 | HTTP | Mã lỗi |
-| --- | --- |
+|---|---|
 | 400 | `INVALID_QUERY` |
 | 401 | `UNAUTHORIZED` |
 | 404 | `NOT_FOUND` |
@@ -109,6 +113,7 @@ Các kiểm thử offline dùng SQLite tạm, handler WSGI thật và giả lậ
 Kiểm thử TimescaleDB không dùng canonical database. Bộ integration yêu cầu đồng thời `MARKET_DATA_TEST_DISPOSABLE=1`, `MARKET_DATA_REQUIRE_TIMESCALE=1` và DSN cục bộ đúng database/user `t0_test`; nếu thiếu điều kiện, bộ test sẽ fail closed hoặc bị skip theo cấu hình. PostgreSQL read adapter (`PostgresCandleStore`) vẫn read-only. Feeder canonical write path là `PostgresWriteGateway`, gọi hàm DB `market_data.write_canonical_candle()` có `SECURITY DEFINER`, kiểm tra lease trong DB và xử lý idempotency/conflict. Migration tạo capability role `t0_feeder_writer`; login role của Feeder phải được cấp membership rõ ràng, không được cấp `INSERT/UPDATE/DELETE/TRUNCATE` trực tiếp trên `market_data.candles`. Quyền `EXECUTE` không cấp cho `PUBLIC`. Các kiểm thử ghi dùng riêng database TimescaleDB disposable.
 
 Nguồn adapter: [CCXT binanceusdm](https://github.com/ccxt/ccxt/blob/master/python/ccxt/binanceusdm.py), [Binance fetch_ohlcv/fetch_time](https://github.com/ccxt/ccxt/blob/master/python/ccxt/binance.py), [Freqtrade data download](https://github.com/freqtrade/freqtrade/blob/develop/docs/data-download.md). Bước sau: xuất dataset dùng chung cho nghiên cứu Freqtrade/FreqAI và nối đặc trưng trinh sát theo [kiến trúc 5 tầng](../docs/FIVE_LAYER_ARCHITECTURE.md).
+
 
 
 ## P1.9 — Binance USD-M connectivity probe (read-only)
