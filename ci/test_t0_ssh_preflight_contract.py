@@ -50,8 +50,10 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertIn('parser_result="', self.source)
 
     def test_listener_parser_accepts_only_positive_loopback_classification(self):
-        self.assertIn('parser_result="LOOPBACK_LISTENER"', self.source)
-        self.assertIn('parser_result="NON_LOOPBACK_LISTENER"', self.source)
+        # Assert the parser's accepted case labels and fail-closed default,
+        # without requiring a particular intermediate variable assignment.
+        self.assertIn('LOOPBACK_LISTENER) api_state="LOOPBACK_LISTENER" ;;', self.source)
+        self.assertIn('NON_LOOPBACK_LISTENER) api_state="NON_LOOPBACK_LISTENER" ;;', self.source)
         self.assertIn('*) api_state="CHECK_FAILED" ;;', self.source)
 
     def test_feeder_regex_matches_expected_module_and_not_unrelated_process(self):
@@ -97,9 +99,9 @@ class T0SSHPreflightContractTests(unittest.TestCase):
                 encoding="utf-8",
             )
             git.chmod(0o755)
-            python3 = bin_dir / "python3"
-            python3.write_text("#!/bin/sh" + chr(10) + "while IFS= read -r line; do :; done" + chr(10) + "exit 0" + chr(10), encoding="utf-8")
-            python3.chmod(0o755)
+            resolved_python = shutil.which("python3", path="/usr/bin:/bin")
+            self.assertIsNotNone(resolved_python, "python3")
+            (bin_dir / "python3").symlink_to(resolved_python)
             if include_ss:
                 ss = bin_dir / "ss"
                 if ss_exit is not None:
@@ -123,8 +125,27 @@ class T0SSHPreflightContractTests(unittest.TestCase):
                 pgrep = bin_dir / "pgrep"
                 pgrep.write_text("#!/bin/sh" + chr(10) + f"exit {pgrep_exit}" + chr(10), encoding="utf-8")
                 pgrep.chmod(0o755)
+            # Run an isolated copy of the preflight with a real temporary
+            # SQLite database. The production script path remains unchanged.
+            import sqlite3
+            db_path = Path(directory) / "market-data.sqlite3"
+            connection = sqlite3.connect(db_path)
+            try:
+                connection.execute("CREATE TABLE contract_fixture (value INTEGER)")
+                connection.commit()
+            finally:
+                connection.close()
+
+            isolated_script = Path(directory) / "t0-readonly-preflight.sh"
+            script_text = self.source.replace(
+                'readonly T0_DB_PATH="/home/ubuntu/t0/app/.data/market-data.sqlite3"',
+                f'readonly T0_DB_PATH="{db_path}"',
+            )
+            self.assertNotEqual(script_text, self.source, "temporary DB path substitution must apply")
+            isolated_script.write_text(script_text, encoding="utf-8")
+
             result = subprocess.run(
-                ["/bin/bash", str(SCRIPT)],
+                ["/bin/bash", str(isolated_script)],
                 env={**os.environ, "PATH": str(bin_dir)},
                 text=True,
                 capture_output=True,
