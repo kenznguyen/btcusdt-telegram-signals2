@@ -9,19 +9,24 @@ Status: INTAKE SPECIFICATION ONLY — NO EVIDENCE RECEIVED OR VERIFIED
 
 Make the next owner evidence handoff precise without asking for credentials, private keys, public storage URLs, account identifiers or access to owner systems. This is a submission contract, not an authorization to create, move, sign, read back, test or mutate evidence.
 
-## A. L4M-01 — independent custody package
+## A. L4M-01 — approved custody package
 
-Supply only sanitized metadata and evidence references for an already-existing owner-controlled copy:
+Supply only sanitized metadata and evidence references for already-existing owner-controlled copies retained in one or both approved locations:
 
-1. **Custody boundary:** identify the storage class/provider generically (for example, owner-controlled offline disk or separately controlled object storage); state explicitly that it is outside both T0/VPS and GitHub failure domains. Do not disclose account ID, bucket name, public URL, precise private location or credentials.
+- Project VPS.
+- Project GitHub repository / GitHub Actions evidence storage, subject to artifact-retention limits and exact-object readback requirements.
+
+No custody copy outside VPS and GitHub is required. Do not describe either location as an independent third-party failure domain. A GitHub-hosted runner or artifact remains within the GitHub failure domain.
+
+1. **Custody location:** identify whether each exact copy is in VPS, GitHub, or both. Use a generic location/class reference; do not disclose account IDs, public URLs, precise private locations or credentials.
 2. **Package identity:** opaque package ID, creation timestamp (UTC), package format/version, total file count and total byte count.
-3. **Manifest:** SHA-256 manifest for every retained file, plus the manifest's own SHA-256. Redact sensitive filenames if necessary, but preserve stable opaque item IDs and counts.
-4. **Custody provenance:** who/which owner-controlled role placed the copy, when, and how the custody event is evidenced. Do not include personal identifiers.
-5. **Readback record:** date, environment class, verifier/tool version, manifest digest, files/bytes checked, result and exit status. A claimed readback must identify the exact package digest.
-6. **Availability statement:** distinguish what has actually been observed from planned capability. Do not claim T0-outage, GitHub-outage or simultaneous-outage availability unless such a scenario has already been safely and separately authorized and observed.
-7. **Latest-head anchor linkage:** include the exact L4M-03 anchor object ID and digest in the same custody inventory. A statement that the copy is “backed up” is insufficient.
+3. **Manifest:** SHA-256 manifest for every retained file, plus the canonical manifest's own SHA-256. Redact sensitive filenames if necessary, but preserve stable opaque item IDs, byte lengths and counts.
+4. **Custody provenance:** identify the owner-controlled role that placed or retained each copy, when, and how the custody event is evidenced. Do not include personal identifiers.
+5. **Exact-object readback:** date, environment class, verifier/tool version, exact object/version reference, manifest digest, files/bytes checked, result and exit status. A claimed readback must identify the exact package digest.
+6. **Availability statement:** distinguish observed availability from planned capability. A single-location outage claim requires an already-observed, safely authorized readback from the remaining approved location. Do not claim simultaneous VPS+GitHub outage recovery; that scenario is outside the accepted claim.
+7. **Latest-head anchor linkage:** include the exact L4M-03 anchor object ID and digest in the same custody inventory and identify its exact VPS/GitHub copy and readback reference.
 
-A GitHub repository copy, Actions artifact, CI log, or VPS/T0 copy alone does not satisfy the independent failure-domain requirement.
+Where copies are claimed in both locations, each copy must be identified by exact object/version and independently read back and checked against the canonical manifest digest. A successful upload, commit, workflow run or artifact creation is not readback verification. A single-location outage claim requires a verified accessible copy in the remaining approved location. Simultaneous unavailability or loss of both VPS and GitHub is outside the accepted recovery-availability claim.
 
 ## B. L4M-03 — exact object and freshness anchor
 
@@ -60,7 +65,7 @@ Do not convert missing evidence into an inferred PASS. A reference is not itself
 
 ## E. Acceptance boundary
 
-L4M-01 cannot PASS until the owner-controlled VPS/GitHub custody location(s), complete manifest, custody provenance and exact readback are evidenced, including the separately authenticated latest-head anchor in the same custody package. No copy outside VPS and GitHub is required. Any single-location outage claim must be supported by a verified copy in the remaining location; simultaneous VPS+GitHub outage recovery is outside scope.
+L4M-01 cannot PASS until the owner-controlled VPS/GitHub custody location(s), complete manifest, custody provenance and exact-object readback are evidenced, including the separately authenticated latest-head anchor in the same custody inventory. No copy outside VPS and GitHub is required. Where both locations are claimed, each copy must be independently read back and digest-checked. Any single-location outage claim must be supported by a verified copy in the remaining location; simultaneous VPS+GitHub outage recovery is outside scope.
 
 L4M-03 cannot PASS until the exact checkpoint is cryptographically bound and freshness is evaluated against the separately authenticated latest-head anchor retained/read back from an approved VPS/GitHub location. Missing or unverifiable anchor means freshness UNKNOWN, not PASS.
 
