@@ -102,6 +102,7 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertIn("fetch-depth: 0", scope_job)
         self.assertIn("git diff --name-only", scope_job)
         for path in (
+            "ci/test_t0_ssh_preflight_contract.py",
             "market_data/feeder.py",
             "market_data/feeder_service.py",
             "market_data/test_feeder_recovery.py",
