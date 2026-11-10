@@ -3,7 +3,7 @@
 Date: 2026-11-10
 Repository: `kenznguyen/btcusdt-telegram-signals2`
 Branch: `feature/t0-centralized-data-feeder-p1-20261101`
-Status: **OWNER-APPROVED PLAN — LINEAGE GATE PASS — FOUR-ARTIFACT ACTIONS INVENTORY PILOT PASS — 32-FILE REPOSITORY INVENTORY CI PASS; REMAINING L4 CONTROLS NOT VERIFIED**
+Status: **OWNER-APPROVED PLAN — LINEAGE GATE PASS — FOUR-ARTIFACT ACTIONS INVENTORY PILOT PASS — 36-FILE REPOSITORY INVENTORY CI PASS; REFERENCE RECONCILIATION PARTIAL PASS; REMAINING L4 CONTROLS NOT VERIFIED**
 Approval: owner approval in conversation on 2026-11-10 to automate L4M-01–08 as far as technically possible and reserve owner participation for real-world custody/control assertions and L4M-10 acceptance.
 Controlling matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md` (current branch blob at plan preparation: `75db0d98134fd656d91a8545bc307c56595aebf7`).
 Current register at plan preparation: `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` (blob `fe4a188d336a8b0279e8e14941c9cb171c23ae0e`).
@@ -133,3 +133,15 @@ Each implementation increment must be reviewed and tested before proceeding. Do 
 - The inventory job uses the exact checked-out Git object database, not network/API retrieval. It rejects missing/ambiguous paths, wrong object type/mode, stale blob SHA, wrong commit/branch, unsafe/duplicate paths, oversized individual files and oversized aggregate content. No token, secret, VPS or canonical database is used.
 - Predecessor inventory run `42913229506` failed closed because the Automation Plan blob changed in the same commit but the inventory config still expected its previous blob SHA. The config was rebound to current Plan blob `8413befc9a1d7acaaa935e3d21a9993dc2d26484`; retry run `42913380578` passed. The failed run remains visible.
 - Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED. The 32-file inventory is a bounded source-object set; it does not prove completeness of all L4 evidence, VPS custody, owner signer separation, offline verification, or final owner disposition. No control is promoted by this CI result.
+
+
+### 36-file repository inventory and reference reconciliation — verified
+
+- Run [42914049188](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42914049188), source SHA `b2abc8e8014b5ae0c48f7c67736712bf1a7cd9db`, overall SUCCESS. Lineage job `130171747981`: 12/12 PASS. Repository-file inventory job `130171829416`: 10/10 PASS. Artifact manifest job `130171829353`: 19/19 PASS. Total 41/41 contract tests PASS.
+- Inventory artifact `13806969533`, name `t0-l4-repository-file-inventory-42914049188`, 4,100 bytes, expiry `2026-11-17T22:23:03Z`; upload digest and independently recomputed ZIP SHA-256 `0b7b5588330d4070e13db361ff28931b86e4a08584b7ba9e65f2e1bb1fe6fb5a`.
+- JSON SHA-256 `12ffa072f340ec421274dd062e901951969df29a36f24b307862f6fef4ed1b60` matches the included sidecar. Manifest binds source commit `b2abc8e8014b5ae0c48f7c67736712bf1a7cd9db`, 36 unique paths and 453,535 source bytes.
+- Added source objects: `T0_COMPONENTS_OUTSIDE_L4_MINIMUM_AUDIT_2026-11-10.md` (historical L4 scope classification), `P1.8.142-owner-retention-and-data-class-disposition-decision-package.md` (predecessor lifecycle package), `COMMERCIAL_SCOPE_CONTENT_AUDIT_2026-11-09.md` (supporting personal/non-commercial scope audit), and the scope reconciliation report `T0_L4_REPOSITORY_FILE_INVENTORY_SCOPE_RECONCILIATION_2026-11-11.md`.
+- Reference reconciliation is **PARTIAL PASS**: direct references in the scanned current matrix/register/plan/decisions/historical review/lifecycle documents were classified. Handoff, T0 deployment/API/DR architecture and T1/T2 runtime records were excluded as process or separate engineering/layer evidence, with exact paths/blob SHAs recorded in the reconciliation report. Three additional material L4 scope/lifecycle records were included.
+- The historical T0 components-outside-L4 audit contains basename-only source citations that have not been resolved to exact repository paths. They are not guessed or added. If a later L4 claim relies on one, resolve the exact path/blob before inclusion. This and the bounded nature of the scan prevent a claim of complete repository-wide evidence discovery.
+- The reconciliation report is documentary and does not rewrite any historical source. It explicitly preserves old matrix references as historical and distinguishes out-of-scope T0/T1/T2 documents from L4 evidence.
+- Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED; no control is promoted by the 36-file CI result. VPS custody, signer separation, authenticated freshness anchor, offline verification, readback/recovery, trust lifecycle, tamper-evident history and L4M-10 owner disposition remain unproven as previously recorded.
