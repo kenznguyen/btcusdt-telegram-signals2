@@ -6,7 +6,7 @@ Branch: `feature/t0-centralized-data-feeder-p1-20261101`
 Status: **OWNER-APPROVED PLAN — DESIGN/DOCUMENTATION ONLY — AUTOMATION NOT IMPLEMENTED**
 Approval: owner approval in conversation on 2026-11-10 to automate L4M-01–08 as far as technically possible and reserve owner participation for real-world custody/control assertions and L4M-10 acceptance.
 Controlling matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md` (current branch blob at plan preparation: `75db0d98134fd656d91a8545bc307c56595aebf7`).
-Current register at plan preparation: `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` (blob `c7605704c5868ef2534017029cef2766e94eca6a`).
+Current register at plan preparation: `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` (blob `cee949666da611a4efca7e7b51aea47ab4b13eff`).
 
 ## 1. Approved operating principle
 
