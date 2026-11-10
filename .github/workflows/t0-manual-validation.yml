@@ -49,6 +49,8 @@ run-name: T0 manual gate - ${{ inputs.gate }} (${{ github.sha }})
     paths:
       - .github/workflows/t0-manual-validation.yml
       - ci/test_t0_ssh_preflight_contract.py
+      - ci/t0_runtime_acceptance.py
+      - ci/test_t0_runtime_acceptance.py
       - market_data/feeder.py
       - market_data/store.py
       - market_data/write_gateway.py
@@ -433,7 +435,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m unittest ci.test_t0_runtime_acceptance -v 2>&1 | tee g4-runtime-contract-tests.log
+          python -m unittest ci.test_t0_ssh_preflight_contract ci.test_t0_runtime_acceptance -v 2>&1 | tee g4-runtime-contract-tests.log
           echo "G4_READ_ONLY_SQLITE_CONTRACT=PASS" | tee g4-verdict.txt
       - name: Upload G4 contract evidence
         if: always()
