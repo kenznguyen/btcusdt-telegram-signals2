@@ -14,6 +14,11 @@ on:
       - ci/test_t0_l4_repository_file_inventory.py
       - ci/l4-repository-file-inventory.json
       - docs/architecture/CENTRAL_DATA_LIFECYCLE_POLICY.md
+      - docs/architecture/P1.8.14_EXTERNAL_TRUST_ANCHOR_PROVENANCE_AUTHENTICITY_2026-11-07.md
+      - docs/architecture/T0_EVIDENCE_OBJECT_CHECKPOINT_CONTRACT_V1.md
+      - docs/evidence/t0/T0_EVIDENCE_CHECKPOINT_G3_REVIEW_INPUTS_2026-11-10.md
+      - docs/evidence/T0_L4M01_L4M03_EXISTING_TRUST_EVIDENCE_NON_SUBSTITUTION_2026-11-10.md
+      - docs/evidence/T0_L4M01_L4M03_OWNER_EVIDENCE_INTAKE_CONTRACT_2026-11-10.md
       - docs/evidence/p1-8/P1.8.14*.md
       - docs/decisions/D-2026-11-09-*.md
       - docs/decisions/D-2026-11-10-*.md
@@ -26,7 +31,6 @@ on:
       - docs/evidence/T0_L4M02_SIGNER_SEPARATION_EXISTING_EVIDENCE_ASSESSMENT_2026-11-10.md
       - docs/evidence/T0_L4M08_CLAIM_DISCIPLINE_DOCUMENTARY_ASSESSMENT_2026-11-10.md
       - docs/evidence/T0_L4M10_FROZEN_BASELINE_OWNER_SELF_ASSESSMENT_READINESS_2026-11-10.md
-      - docs/PROJECT_SESSION_HANDOFF.md
 
 permissions:
   contents: read

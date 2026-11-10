@@ -109,6 +109,26 @@
     {
       "path": "docs/evidence/p1-8/P1.8.151-independent-static-review-p1-8-150.md",
       "git_blob_sha1": "64902f09d0f5576a47da44dbb194a56e18d727c2"
+    },
+    {
+      "path": "docs/evidence/T0_L4M01_L4M03_EXISTING_TRUST_EVIDENCE_NON_SUBSTITUTION_2026-11-10.md",
+      "git_blob_sha1": "1fea06d455e020fb3e87d7378c8f95bb127f9c4b"
+    },
+    {
+      "path": "docs/architecture/P1.8.14_EXTERNAL_TRUST_ANCHOR_PROVENANCE_AUTHENTICITY_2026-11-07.md",
+      "git_blob_sha1": "1922b8b9640db86b22e2297956b6744ca1d9b660"
+    },
+    {
+      "path": "docs/architecture/T0_EVIDENCE_OBJECT_CHECKPOINT_CONTRACT_V1.md",
+      "git_blob_sha1": "0d98a3dcbb0d403b213b5efcae0c882ac5461578"
+    },
+    {
+      "path": "docs/evidence/t0/T0_EVIDENCE_CHECKPOINT_G3_REVIEW_INPUTS_2026-11-10.md",
+      "git_blob_sha1": "c5ee25d46440bb391dd34b164a497aa64130b83d"
+    },
+    {
+      "path": "docs/evidence/T0_L4M01_L4M03_OWNER_EVIDENCE_INTAKE_CONTRACT_2026-11-10.md",
+      "git_blob_sha1": "914fb398bf6f0e4ef26ae6b706212c5f2969d1c1"
     }
   ]
 }

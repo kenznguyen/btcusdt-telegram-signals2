@@ -3,7 +3,7 @@
 Date: 2026-11-10
 Repository: `kenznguyen/btcusdt-telegram-signals2`
 Branch: `feature/t0-centralized-data-feeder-p1-20261101`
-Status: **OWNER-APPROVED PLAN — LINEAGE GATE PASS — FOUR-ARTIFACT INVENTORY/MANIFEST PILOT PASS — SOURCE-CONTROLLED FILE INVENTORY AND REMAINING L4 AUTOMATION NOT IMPLEMENTED**
+Status: **OWNER-APPROVED PLAN — LINEAGE GATE PASS — FOUR-ARTIFACT ACTIONS INVENTORY PILOT PASS — 27-FILE REPOSITORY INVENTORY CI PASS; SCOPE EXPANSION TO 32 REFERENCED FILES PENDING**
 Approval: owner approval in conversation on 2026-11-10 to automate L4M-01–08 as far as technically possible and reserve owner participation for real-world custody/control assertions and L4M-10 acceptance.
 Controlling matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md` (current branch blob at plan preparation: `75db0d98134fd656d91a8545bc307c56595aebf7`).
 Current register at plan preparation: `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` (blob `fe4a188d336a8b0279e8e14941c9cb171c23ae0e`).
@@ -114,3 +114,11 @@ Each implementation increment must be reviewed and tested before proceeding. Do 
 - Output manifest artifact `13774501896` (3,038 bytes), ZIP SHA-256 `6f121108e6e3f98b84327251bbc965c9d6a9a849f40b2bba6d6efb8b4eff88ba`; downloaded and independently re-hashed. Manifest JSON SHA-256 `25b0db3de3fadd9504d030310b4c2243e18cdf4601bd88d2f41c2d1bf86ab07a` matches its sidecar.
 - New source lineage artifact `13774031418` ZIP SHA-256 `801bbc22e1979b3e5260371a22db305d37ddd2bc6837aae3c00c99d60595abcf`; independently re-hashed with all four member hashes matched. Current run's own lineage output artifact `13772649665` was also independently re-hashed (SHA-256 `9c4c7fabdf076abb1f719d32e28edf47b2bfaec91fa5528531d178c91a51bfc4`).
 - Next implementation gap: collector inventories Actions artifacts only. Build a separate exact-path/ref GitHub repository-file inventory for the current matrix, decisions, historical audits and lifecycle evidence; bind each object to Git path, commit/ref, Git blob SHA and SHA-256 of retrieved bytes. Do not infer completeness from the four-artifact pilot. Keep signature and offline gates downstream.
+
+
+### Repository-file inventory scope review — 2026-11-11
+
+- Initial repository-file inventory run [42912784110](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42912784110), source SHA `57898ea1dd0d812f2aa39575b90d957cbbb6d2d9`: repository-file job 10/10 PASS; 27 files; total source bytes 300,623. Output artifact ID `13808276963`, size 3,271 bytes, expiry `2026-11-17T22:15:02Z`, GitHub digest and independently recomputed ZIP SHA-256 `b9635c842ca3df2c1f8e19d7f4403e6c01c5be94db91092cf68747e877d78f59`; JSON SHA-256 `9133738d21c8c09492059182fe9c09cb817f853683e2d234d94721afc29b9d96` matches sidecar.
+- Review of the included historical non-substitution assessment identified five additional direct source objects omitted from the first-pass list: `T0_L4M01_L4M03_EXISTING_TRUST_EVIDENCE_NON_SUBSTITUTION_2026-11-10.md`, the cited P1.8.14 external trust-anchor record, T0 checkpoint contract v1, G3 review-input manifest, and owner evidence intake contract. Their exact blob SHAs were fetched at the same source commit and are now included in the 32-file scope.
+- Workflow triggers now cover those exact paths and the handoff file no longer triggers this workflow by itself; handoff-only evidence updates must not create redundant validation runs.
+- Current source-object inventory remains a bounded, explicit list, not a claim that every L4-related repository object has been discovered. Preserve historical documents unchanged.
