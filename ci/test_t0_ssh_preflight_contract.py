@@ -72,12 +72,12 @@ class T0SSHPreflightContractTests(unittest.TestCase):
     def test_workflow_does_not_treat_unavailable_feeder_probe_as_absent(self):
         workflow = (SCRIPT.parents[2] / ".github" / "workflows" / "t0-manual-validation.yml")
         text = workflow.read_text(encoding="utf-8")
-        self.assertIn("FEEDER_PIDS=CHECK_UNAVAILABLE", text)
-        self.assertIn("FEEDER_PIDS=CHECK_FAILED", text)
+        self.assertIn("CHECK_(UNAVAILABLE|FAILED)", text)
+        self.assertIn("PARTIAL_OR_BLOCKED_PROBE_UNAVAILABLE", text)
 
     def test_no_mutating_host_or_database_commands_are_present(self):
         forbidden_commands = re.compile(
-            r"\\b(rm|mv|cp|chmod|chown|kill|pkill|systemctl|service|reboot|shutdown|truncate)\\b"
+            r"\b(rm|mv|cp|chmod|chown|kill|pkill|systemctl|service|reboot|shutdown|truncate)\\b"
         )
         forbidden_sql = re.compile(
             r"\\b(INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER|VACUUM)\\b",
