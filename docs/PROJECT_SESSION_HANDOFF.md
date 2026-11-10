@@ -1,3 +1,22 @@
+## Latest T0 G2 automation — SQLite recovery (2026-11-10)
+
+- Owner approved a separate G2 recovery gate, isolated from VPS/canonical SQLite and dependent on G1 lease/fencing PASS.
+- Existing branch retained: `feature/t0-centralized-data-feeder-p1-20261101`; no PR/branch split.
+- Final workflow change commit: `ebd3ff51577c80653e9378153927f7705193c19a`; final workflow blob: `0b8bccfaf03809e591c92b0c5ada0f0c21c8deea`.
+- Recovery gate was introduced in workflow commit `00cedf0e5dfd9fd78ed654519e714999177ac365`; follow-up scope and full-history checkout corrections are included in final commit `ebd3ff51577c80653e9378153927f7705193c19a`.
+- Workflow contract test commits: correction/deduplication `bd65e14ecc6876447bfe4be668025028c373b5d1`; recovery-scope assertion `fbaaa02e95f1740423198766383886db05667341`; final test blob `8c7a5e5f735ff05f0726ac26c4118dd02bf3a684`.
+- Automatic G2 sequence: `recovery-change-scope` checks push/PR changed paths; `sqlite-recovery-auto` requires successful `sqlite-lease-fencing-auto` and `recovery-change-scope.outputs.changed == true`. Scope includes workflow, recovery/lifecycle implementation and tests, and the workflow contract test. PR/push filters include recovery source/test paths.
+- G2 runs only on GitHub-hosted disposable runner with read-only `contents: read`, exact source checkout, `fetch-depth: 0` for diff evidence, `persist-credentials: false`, empty DB/API-key environment variables, no SSH secrets/environment, and uploads source SHA, changed-path evidence, tests and verdict.
+- G2 suite: `market_data.test_feeder_recovery`, `market_data.test_feeder_scheduler`, `market_data.test_feeder_lifecycle`; final result **64/64 PASS**. Coverage includes chronological/aligned gap recovery, coverage recheck and fail-closed behavior, scheduler watermark behavior, restart recovery before readiness, lease renewal and takeover during paged recovery, and real temporary-SQLite integration with synthetic exchange fixtures.
+- Final workflow run: [42817869706](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42817869706), event `push`, branch `feature/t0-centralized-data-feeder-p1-20261101`, source SHA `ebd3ff51577c80653e9378153927f7705193c19a`, conclusion **SUCCESS**.
+- Final G1 job: 10 workflow contract tests PASS + 55 lease/fencing/write-gateway/lifecycle tests PASS. Artifact ID `13765172690`, name `t0-sqlite-lease-fencing-auto-42817869706`, SHA-256 `ce3eb85efc6197743f630181ba232d857ca6044927152e5f1d4eacd68d86e0d2`; [artifact](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42817869706/artifacts/13765172690).
+- Final G2 job: 64 recovery/scheduler/lifecycle tests PASS; verdict `SQLITE_RECOVERY=PASS`. Artifact ID `13765782460`, name `t0-sqlite-recovery-auto-42817869706`, SHA-256 `32b4d61ad94bda605b489e22a37eb565f35ab232b65f0be8fb043bf1725ed105`; [artifact](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42817869706/artifacts/13765782460).
+- Intermediate failed attempts were not treated as PASS: run `42817517277` exposed an over-escaped contract assertion; run `42817725074` exposed a shallow-checkout `fatal: bad object` when G2 recorded the push diff. Contract assertion was corrected and G2 checkout now fetches full history. Final run `42817869706` validates the corrected workflow and both gates. Earlier malformed intermediate workflow revisions were replaced by the final read-back-verified workflow; no T0 runtime/source data was changed.
+- Disposition: **G1 AUTOMATED CI PASS; G2 AUTOMATED CI PASS** for isolated tests. This is not proof of current VPS recovery, live lease ownership, canonical DB state, deployed Feeder readiness or production data continuity. Runtime acceptance remains **NOT VERIFIED**.
+- G3 end-to-end data flow remains deferred. Next step: define a separate isolated G3 data-flow gate (Feeder sync contract → disposable SQLite → read-only API → consumer contract), requiring G1 and G2 PASS; do not access VPS or canonical DB.
+- No SSH/VPS operation, canonical SQLite access/change, Feeder/service operation, T1 activation, PostgreSQL work, T2/strategy/trading change, live order or data deletion occurred. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders; PostgreSQL/TimescaleDB PARKED.
+
+---
 ## Latest T0 G1 automation — SQLite lease/fencing (2026-11-10)
 
 - Owner approved converting G1 from manual-only to automatic execution on path-scoped `push` and `pull_request` events. Existing `workflow_dispatch` gate `sqlite-lease-fencing` remains available.
