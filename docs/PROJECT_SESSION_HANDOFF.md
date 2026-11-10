@@ -4277,3 +4277,20 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - No workflow was dispatched, no SSH connection was attempted, and no artifact/run exists from this change. Secrets/environment configuration and VPS forced-command installation remain NOT VERIFIED.
 - Status: workflow exposure on main PASS (GitHub commit/readback); SSH preflight execution NOT RUN. No T0 runtime, database, data, trading or VPS mutation.
 - Next step: manually run `T0 Manual Validation` from Actions with branch `feature/t0-centralized-data-feeder-p1-20261101` and gate `scaleway-ssh-preflight`; inspect run and artifact before changing deployment status.
+
+
+## Latest continuation — sanitized Scaleway SSH preflight diagnostics (2026-11-10)
+
+- Owner approved a narrowly scoped diagnostic workflow change after SSH preflight run `42773990222` exited 255 with an empty remote output log and no surfaced SSH client stderr.
+- Only workflow source changed: `.github/workflows/t0-manual-validation.yml`; no remote command, SSH security option, secret, VPS, runtime, database or data changes.
+- Workflow commit sequence on `feature/t0-centralized-data-feeder-p1-20261101`:
+  - `0c8f0a9105d05b903c0a45fb670a7f7714466cc6` — add sanitized diagnostic classification and artifact files.
+  - `69a795af30deda9a8403836eb3fe74d98dd6d7c5` — correct contract assertion to inspect the artifact upload path.
+  - `a20be6d68a065351b42d7a6f7fe526b308f72cb4` — normalize newline encoding in generated diagnostic files.
+- Final workflow blob SHA: `a0c466e4e2a25d034593cdc262c3cabb8f998b28`.
+- Final diagnostic artifact additions: `preflight-ssh-diagnostic.txt` (classification labels + exit code only) and `preflight-ssh-exit-code.txt`. Raw `$RUNNER_TEMP/ssh-client-stderr.log` is not uploaded.
+- Static GitHub readback confirms pinned host-key checks, `IdentitiesOnly=yes`, key-only authentication, no agent/port forwarding, no TTY, 60-second timeout and the existing forced-command SSH target remain unchanged.
+- Compare against pre-change source `897faa0f058d4c98506d79d263927a4a11a56060`: branch ahead 3, behind 0; compare reports only `.github/workflows/t0-manual-validation.yml` changed (57 additions, 5 deletions).
+- Review status: STRUCTURAL REVIEW PASS; test execution NOT VERIFIED; workflow dispatch NOT RUN. The inline contract check has not yet been executed by GitHub Actions. No claim is made about current VPS state or SSH connectivity.
+- Overall diagnostic change status: PARTIAL / NOT VERIFIED pending a manual `scaleway-ssh-preflight` run on this feature branch and inspection of the resulting artifact.
+- Next step: owner manually dispatches `T0 Manual Validation` with branch `feature/t0-centralized-data-feeder-p1-20261101` and gate `scaleway-ssh-preflight`; then inspect the contract job, SSH job and sanitized artifact. Do not rerun against `main` and do not broaden the remote command.
