@@ -1,4 +1,4 @@
-"""Read back one explicitly allowlisted GitHub Actions artifact and emit a SHA-256 manifest."""
+"""Read back explicitly allowlisted GitHub Actions artifacts and emit a deterministic SHA-256 manifest."""
 from __future__ import annotations
 
 import argparse
@@ -15,11 +15,14 @@ from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path, PurePosixPath
 
-MAX_ARCHIVE_BYTES = 8 * 1024 * 1024
-MAX_MEMBER_BYTES = 1024 * 1024
-MAX_TOTAL_UNCOMPRESSED_BYTES = 4 * 1024 * 1024
+MAX_ARCHIVE_BYTES = 20 * 1024 * 1024
+MAX_MEMBER_BYTES = 8 * 1024 * 1024
+MAX_TOTAL_UNCOMPRESSED_BYTES = 32 * 1024 * 1024
+MAX_TOTAL_DOWNLOAD_BYTES = 50 * 1024 * 1024
 MAX_API_RESPONSE_BYTES = 1024 * 1024
-EXPECTED_MEMBERS = frozenset({
+MAX_ARCHIVE_MEMBERS = 100
+MAX_COMPRESSION_RATIO = 200
+LINEAGE_MEMBERS = frozenset({
     "l4-source-sha.txt",
     "l4-validation-scope.txt",
     "l4-lineage-contract-tests.log",
@@ -35,6 +38,68 @@ class ArtifactManifestError(ValueError):
 
 def _fail(code):
     raise ArtifactManifestError(code)
+
+
+def validate_allowlist(allowlist, current_branch):
+    required_top = ("schema_version", "artifacts")
+    if not isinstance(allowlist, dict) or any(key not in allowlist for key in required_top):
+        _fail("ALLOWLIST_INVALID")
+    if allowlist["schema_version"] != "T0_L4_ARTIFACT_ALLOWLIST_V1":
+        _fail("ALLOWLIST_SCHEMA_UNSUPPORTED")
+    items = allowlist["artifacts"]
+    if not isinstance(items, list) or not 1 <= len(items) <= 20:
+        _fail("ALLOWLIST_ARTIFACT_COUNT_INVALID")
+    seen_ids = set()
+    normalized = []
+    required = (
+        "source_run_id", "source_artifact_id", "source_branch", "source_sha",
+        "source_artifact_name", "workflow_path", "evidence_class",
+    )
+    for item in items:
+        if not isinstance(item, dict) or any(not item.get(key) for key in required):
+            _fail("ALLOWLIST_ENTRY_INCOMPLETE")
+        run_id = item["source_run_id"]
+        artifact_id = item["source_artifact_id"]
+        if not isinstance(run_id, int) or isinstance(run_id, bool) or run_id <= 0:
+            _fail("ALLOWLIST_RUN_ID_INVALID")
+        if not isinstance(artifact_id, int) or isinstance(artifact_id, bool) or artifact_id <= 0:
+            _fail("ALLOWLIST_ARTIFACT_ID_INVALID")
+        if artifact_id in seen_ids:
+            _fail("ALLOWLIST_DUPLICATE_ARTIFACT_ID")
+        seen_ids.add(artifact_id)
+        if item["source_branch"] != current_branch:
+            _fail("ALLOWLIST_BRANCH_MISMATCH")
+        if not re.fullmatch(r"[0-9a-f]{40}", str(item["source_sha"])):
+            _fail("ALLOWLIST_SOURCE_SHA_INVALID")
+        workflow_path = item["workflow_path"]
+        if (
+            not isinstance(workflow_path, str)
+            or not workflow_path.startswith(".github/workflows/")
+            or not workflow_path.endswith((".yml", ".yaml"))
+            or ".." in PurePosixPath(workflow_path).parts
+        ):
+            _fail("ALLOWLIST_WORKFLOW_PATH_INVALID")
+        artifact_name = item["source_artifact_name"]
+        if not isinstance(artifact_name, str) or not artifact_name or len(artifact_name) > 256:
+            _fail("ALLOWLIST_ARTIFACT_NAME_INVALID")
+        if not isinstance(item["evidence_class"], str) or not item["evidence_class"]:
+            _fail("ALLOWLIST_EVIDENCE_CLASS_INVALID")
+        expected_members = item.get("expected_members")
+        if expected_members is not None:
+            if (
+                not isinstance(expected_members, list)
+                or not expected_members
+                or len(expected_members) != len(set(expected_members))
+                or any(not isinstance(name, str) or not name for name in expected_members)
+            ):
+                _fail("ALLOWLIST_EXPECTED_MEMBERS_INVALID")
+        lineage_contract = item.get("lineage_contract", False)
+        if not isinstance(lineage_contract, bool):
+            _fail("ALLOWLIST_LINEAGE_FLAG_INVALID")
+        if lineage_contract and set(expected_members or ()) != LINEAGE_MEMBERS:
+            _fail("ALLOWLIST_LINEAGE_MEMBERS_INVALID")
+        normalized.append(item)
+    return tuple(normalized)
 
 
 def _parse_timestamp(value, field):
@@ -62,8 +127,8 @@ def _safe_zip_members(archive_bytes):
     with archive:
         infos = archive.infolist()
         names = [info.filename for info in infos]
-        if len(infos) > len(EXPECTED_MEMBERS):
-            _fail("ARCHIVE_MEMBER_COUNT_EXCEEDED")
+        if not infos or len(infos) > MAX_ARCHIVE_MEMBERS:
+            _fail("ARCHIVE_MEMBER_COUNT_INVALID")
         if len(names) != len(set(names)):
             _fail("ARCHIVE_DUPLICATE_MEMBER")
         total_size = 0
@@ -71,12 +136,13 @@ def _safe_zip_members(archive_bytes):
         for info in infos:
             name = info.filename
             path = PurePosixPath(name)
+            raw_parts = name.split("/")
             if (
                 not name
                 or path.is_absolute()
                 or "\\" in name
                 or ":" in name
-                or any(part in ("", ".", "..") for part in path.parts)
+                or any(part in ("", ".", "..") for part in raw_parts)
                 or info.is_dir()
             ):
                 _fail("ARCHIVE_UNSAFE_MEMBER_PATH")
@@ -88,26 +154,26 @@ def _safe_zip_members(archive_bytes):
                 _fail("ARCHIVE_NON_REGULAR_MEMBER")
             if info.file_size > MAX_MEMBER_BYTES:
                 _fail("ARCHIVE_MEMBER_TOO_LARGE")
+            if info.file_size > max(1, info.compress_size) * MAX_COMPRESSION_RATIO:
+                _fail("ARCHIVE_COMPRESSION_RATIO_EXCEEDED")
             total_size += info.file_size
             if total_size > MAX_TOTAL_UNCOMPRESSED_BYTES:
                 _fail("ARCHIVE_TOTAL_SIZE_EXCEEDED")
             try:
                 content = archive.read(info)
-            except (zipfile.BadZipFile, RuntimeError, OSError):
+            except (zipfile.BadZipFile, RuntimeError, OSError, NotImplementedError):
                 _fail("ARCHIVE_MEMBER_READ_FAILED")
             if len(content) != info.file_size:
                 _fail("ARCHIVE_MEMBER_SIZE_MISMATCH")
             members[name] = content
-    if set(members) != EXPECTED_MEMBERS:
-        _fail("ARCHIVE_MEMBER_SET_MISMATCH")
     return members
 
 
 def build_manifest(run_metadata, artifact_metadata, archive_bytes, expected, now=None):
-    """Validate exact run/artifact binding and return a deterministic manifest object."""
+    """Validate one exact run/artifact binding and return its manifest entry."""
     required = (
         "repository", "run_id", "artifact_id", "branch", "source_sha",
-        "collector_source_sha", "workflow_path", "artifact_name",
+        "collector_source_sha", "workflow_path", "artifact_name", "evidence_class",
     )
     if not isinstance(expected, dict) or any(not expected.get(key) for key in required):
         _fail("EXPECTED_IDENTITY_INCOMPLETE")
@@ -153,15 +219,19 @@ def build_manifest(run_metadata, artifact_metadata, archive_bytes, expected, now
         _fail("ARTIFACT_SIZE_MISMATCH")
 
     members = _safe_zip_members(archive_bytes)
-    if members["l4-source-sha.txt"].strip() != expected["source_sha"].encode("ascii"):
-        _fail("ARTIFACT_SOURCE_MARKER_MISMATCH")
-    if members["l4-validation-scope.txt"].strip() != SCOPE_MARKER:
-        _fail("ARTIFACT_SCOPE_MARKER_MISMATCH")
-    if members["l4-lineage-contract-verdict.txt"].strip() != PASS_MARKER:
-        _fail("ARTIFACT_LINEAGE_VERDICT_NOT_PASS")
-    test_log = members["l4-lineage-contract-tests.log"]
-    if not re.search(rb"Ran [1-9][0-9]* tests? in [0-9.]+s", test_log) or not re.search(rb"(?m)^OK$", test_log):
-        _fail("ARTIFACT_TEST_LOG_NOT_PASS")
+    expected_members = expected.get("expected_members")
+    if expected_members is not None and set(members) != set(expected_members):
+        _fail("ARCHIVE_MEMBER_SET_MISMATCH")
+    if expected.get("lineage_contract") is True:
+        if members["l4-source-sha.txt"].strip() != expected["source_sha"].encode("ascii"):
+            _fail("ARTIFACT_SOURCE_MARKER_MISMATCH")
+        if members["l4-validation-scope.txt"].strip() != SCOPE_MARKER:
+            _fail("ARTIFACT_SCOPE_MARKER_MISMATCH")
+        if members["l4-lineage-contract-verdict.txt"].strip() != PASS_MARKER:
+            _fail("ARTIFACT_LINEAGE_VERDICT_NOT_PASS")
+        test_log = members["l4-lineage-contract-tests.log"]
+        if not re.search(rb"Ran [1-9][0-9]* tests? in [0-9.]+s", test_log) or not re.search(rb"(?m)^OK$", test_log):
+            _fail("ARTIFACT_TEST_LOG_NOT_PASS")
 
     member_entries = [
         {"path": name, "size_bytes": len(content), "sha256": hashlib.sha256(content).hexdigest()}
@@ -179,6 +249,7 @@ def build_manifest(run_metadata, artifact_metadata, archive_bytes, expected, now
         "artifacts": [{
             "artifact_id": artifact_id,
             "artifact_name": artifact["name"],
+            "evidence_class": expected["evidence_class"],
             "created_at": created_at.isoformat().replace("+00:00", "Z"),
             "expires_at": expires_at.isoformat().replace("+00:00", "Z"),
             "size_bytes": size,
@@ -225,60 +296,84 @@ def _open_github(url, token, limit):
     return body
 
 
-def collect_allowlisted_artifact(repository, allowlist, collector_source_sha, current_branch, token):
+def collect_allowlisted_artifacts(repository, allowlist, collector_source_sha, current_branch, token):
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
         _fail("REPOSITORY_ID_INVALID")
     if not token:
         _fail("GITHUB_TOKEN_MISSING")
-    required = ("schema_version", "source_run_id", "source_artifact_id", "source_branch", "source_sha", "source_artifact_name", "workflow_path")
-    if not isinstance(allowlist, dict) or any(not allowlist.get(key) for key in required):
-        _fail("ALLOWLIST_INVALID")
-    if allowlist["schema_version"] != "T0_L4_ARTIFACT_ALLOWLIST_V1":
-        _fail("ALLOWLIST_SCHEMA_UNSUPPORTED")
-    if allowlist["source_branch"] != current_branch:
-        _fail("ALLOWLIST_BRANCH_MISMATCH")
-    if not isinstance(allowlist["source_run_id"], int) or isinstance(allowlist["source_run_id"], bool) or allowlist["source_run_id"] <= 0:
-        _fail("ALLOWLIST_RUN_ID_INVALID")
-    if not isinstance(allowlist["source_artifact_id"], int) or isinstance(allowlist["source_artifact_id"], bool) or allowlist["source_artifact_id"] <= 0:
-        _fail("ALLOWLIST_ARTIFACT_ID_INVALID")
-    if not re.fullmatch(r"[0-9a-f]{40}", str(allowlist["source_sha"])):
-        _fail("ALLOWLIST_SOURCE_SHA_INVALID")
-    if allowlist["workflow_path"] != ".github/workflows/t0-l4-minimum-validation.yml":
-        _fail("ALLOWLIST_WORKFLOW_PATH_INVALID")
-    if allowlist["source_artifact_name"] != "t0-l4-minimum-lineage-" + str(allowlist["source_run_id"]):
-        _fail("ALLOWLIST_ARTIFACT_NAME_INVALID")
-    expected = {
-        "repository": repository,
-        "run_id": allowlist["source_run_id"],
-        "artifact_id": allowlist["source_artifact_id"],
-        "branch": allowlist["source_branch"],
-        "source_sha": allowlist["source_sha"],
-        "collector_source_sha": collector_source_sha,
-        "workflow_path": allowlist["workflow_path"],
-        "artifact_name": allowlist["source_artifact_name"],
-    }
     if not re.fullmatch(r"[0-9a-f]{40}", str(collector_source_sha)):
         _fail("COLLECTOR_SOURCE_SHA_INVALID")
-
+    items = validate_allowlist(allowlist, current_branch)
     base = "https://api.github.com/repos/" + repository
-    try:
-        run_metadata = json.loads(_open_github(f"{base}/actions/runs/{expected['run_id']}", token, MAX_API_RESPONSE_BYTES))
-        listing = json.loads(_open_github(f"{base}/actions/runs/{expected['run_id']}/artifacts?per_page=100", token, MAX_API_RESPONSE_BYTES))
-        compare = json.loads(_open_github(f"{base}/compare/{expected['source_sha']}...{collector_source_sha}", token, MAX_API_RESPONSE_BYTES))
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        _fail("GITHUB_JSON_INVALID")
-    if not isinstance(listing, dict) or not isinstance(listing.get("artifacts"), list):
-        _fail("GITHUB_ARTIFACT_LIST_INVALID")
-    if listing.get("total_count") != len(listing["artifacts"]):
-        _fail("GITHUB_ARTIFACT_LIST_TRUNCATED")
-    if not isinstance(compare, dict) or compare.get("status") not in ("ahead", "identical") or compare.get("behind_by") != 0:
-        _fail("ALLOWLISTED_SOURCE_NOT_ANCESTOR")
-    matching = [item for item in listing["artifacts"] if isinstance(item, dict) and item.get("name") == expected["artifact_name"]]
-    if len(matching) != 1 or matching[0].get("id") != expected["artifact_id"]:
-        _fail("ALLOWLISTED_ARTIFACT_ID_OR_NAME_MISMATCH")
-    archive_url = f"{base}/actions/artifacts/{expected['artifact_id']}/zip"
-    archive_bytes = _open_github(archive_url, token, MAX_ARCHIVE_BYTES)
-    return build_manifest(run_metadata, listing["artifacts"], archive_bytes, expected)
+    run_cache = {}
+    artifact_cache = {}
+    compare_cache = {}
+    manifest_entries = []
+    total_download_bytes = 0
+
+    for item in items:
+        run_id = item["source_run_id"]
+        source_sha = item["source_sha"]
+        if run_id not in run_cache:
+            try:
+                run_cache[run_id] = json.loads(_open_github(f"{base}/actions/runs/{run_id}", token, MAX_API_RESPONSE_BYTES))
+                listing = json.loads(_open_github(f"{base}/actions/runs/{run_id}/artifacts?per_page=100", token, MAX_API_RESPONSE_BYTES))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                _fail("GITHUB_JSON_INVALID")
+            if not isinstance(listing, dict) or not isinstance(listing.get("artifacts"), list):
+                _fail("GITHUB_ARTIFACT_LIST_INVALID")
+            if listing.get("total_count") != len(listing["artifacts"]):
+                _fail("GITHUB_ARTIFACT_LIST_TRUNCATED")
+            artifact_cache[run_id] = listing["artifacts"]
+        if source_sha not in compare_cache:
+            try:
+                compare_cache[source_sha] = json.loads(_open_github(
+                    f"{base}/compare/{source_sha}...{collector_source_sha}", token, MAX_API_RESPONSE_BYTES
+                ))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                _fail("GITHUB_COMPARE_INVALID")
+        compare = compare_cache[source_sha]
+        if not isinstance(compare, dict) or compare.get("status") not in ("ahead", "identical") or compare.get("behind_by") != 0:
+            _fail("ALLOWLISTED_SOURCE_NOT_ANCESTOR")
+
+        matching = [
+            artifact for artifact in artifact_cache[run_id]
+            if isinstance(artifact, dict) and artifact.get("name") == item["source_artifact_name"]
+        ]
+        if len(matching) != 1 or matching[0].get("id") != item["source_artifact_id"]:
+            _fail("ALLOWLISTED_ARTIFACT_ID_OR_NAME_MISMATCH")
+        archive_bytes = _open_github(
+            f"{base}/actions/artifacts/{item['source_artifact_id']}/zip", token, MAX_ARCHIVE_BYTES
+        )
+        total_download_bytes += len(archive_bytes)
+        if total_download_bytes > MAX_TOTAL_DOWNLOAD_BYTES:
+            _fail("TOTAL_ARTIFACT_DOWNLOAD_LIMIT_EXCEEDED")
+        expected = {
+            "repository": repository,
+            "run_id": run_id,
+            "artifact_id": item["source_artifact_id"],
+            "branch": item["source_branch"],
+            "source_sha": source_sha,
+            "collector_source_sha": collector_source_sha,
+            "workflow_path": item["workflow_path"],
+            "artifact_name": item["source_artifact_name"],
+            "evidence_class": item["evidence_class"],
+            "expected_members": item.get("expected_members"),
+            "lineage_contract": item.get("lineage_contract", False),
+        }
+        single = build_manifest(
+            run_cache[run_id], artifact_cache[run_id], archive_bytes, expected
+        )
+        manifest_entries.extend(single["artifacts"])
+
+    manifest_entries.sort(key=lambda entry: entry["artifact_id"])
+    return {
+        "schema_version": "T0_L4_GITHUB_ARTIFACT_MANIFEST_V1",
+        "repository": repository,
+        "branch": current_branch,
+        "collector_source_sha": collector_source_sha,
+        "artifacts": manifest_entries,
+    }
 
 
 def main(argv=None):
@@ -292,7 +387,7 @@ def main(argv=None):
         current_branch = os.environ["GITHUB_REF_NAME"]
         token = os.environ["GITHUB_TOKEN"]
         allowlist = json.loads(Path(args.allowlist).read_text(encoding="utf-8"))
-        manifest = collect_allowlisted_artifact(repository, allowlist, collector_source_sha, current_branch, token)
+        manifest = collect_allowlisted_artifacts(repository, allowlist, collector_source_sha, current_branch, token)
         output_dir = Path(args.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         manifest_bytes = (json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")

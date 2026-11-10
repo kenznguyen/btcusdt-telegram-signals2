@@ -1,9 +1,39 @@
 {
   "schema_version": "T0_L4_ARTIFACT_ALLOWLIST_V1",
-  "source_run_id": 42831240089,
-  "source_artifact_id": 13771662067,
-  "source_branch": "feature/t0-centralized-data-feeder-p1-20261101",
-  "source_sha": "27aea002a3f404792d4c1a3dc56eff77c2163840",
-  "source_artifact_name": "t0-l4-minimum-lineage-42831240089",
-  "workflow_path": ".github/workflows/t0-l4-minimum-validation.yml"
+  "artifacts": [
+    {
+      "source_run_id": 42304505004,
+      "source_artifact_id": 13546255148,
+      "source_branch": "feature/t0-centralized-data-feeder-p1-20261101",
+      "source_sha": "19a6629212f2f98aaa08c4ebe6ceb68801881732",
+      "source_artifact_name": "p1-8-synthetic-evidence-19a6629212f2f98aaa08c4ebe6ceb68801881732",
+      "workflow_path": ".github/workflows/p1-8-synthetic-evidence.yml",
+      "evidence_class": "CI_SYNTHETIC_TEST_BUNDLE"
+    },
+    {
+      "source_run_id": 42304505004,
+      "source_artifact_id": 13545287609,
+      "source_branch": "feature/t0-centralized-data-feeder-p1-20261101",
+      "source_sha": "19a6629212f2f98aaa08c4ebe6ceb68801881732",
+      "source_artifact_name": "p1-8-independent-attestation-verification-19a6629212f2f98aaa08c4ebe6ceb68801881732",
+      "workflow_path": ".github/workflows/p1-8-synthetic-evidence.yml",
+      "evidence_class": "CI_SYNTHETIC_INDEPENDENT_RUNNER_VERIFICATION"
+    },
+    {
+      "source_run_id": 42831240089,
+      "source_artifact_id": 13771662067,
+      "source_branch": "feature/t0-centralized-data-feeder-p1-20261101",
+      "source_sha": "27aea002a3f404792d4c1a3dc56eff77c2163840",
+      "source_artifact_name": "t0-l4-minimum-lineage-42831240089",
+      "workflow_path": ".github/workflows/t0-l4-minimum-validation.yml",
+      "evidence_class": "L4_LINEAGE_CONTRACT_CI",
+      "expected_members": [
+        "l4-source-sha.txt",
+        "l4-validation-scope.txt",
+        "l4-lineage-contract-tests.log",
+        "l4-lineage-contract-verdict.txt"
+      ],
+      "lineage_contract": true
+    }
+  ]
 }
