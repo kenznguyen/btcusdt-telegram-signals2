@@ -1597,3 +1597,20 @@ This section supersedes the earlier PR #140 next-step note that requested implem
 - PR #140 remains **OPEN / DRAFT / NOT MERGED**; GitHub reports `mergeable=false`. Current comparison against main: **42 commits ahead / 2 behind**, merge base `9cb38cdd995158704fe2993e277396bb9bf4b50a`. Merge remains blocked pending reconciliation of divergence/mergeability and independent review.
 - No SSH connection, VPS command, secret/credential change, deployment, runtime/service/database/data change, exchange connection, market-data sync, or trading action occurred.
 - Next: inspect the two commits behind main and resolve ancestry/conflict risk on the existing PR branch without changing protected runtime scope; rerun exact-head CI if source changes. Do not dispatch `scaleway-ssh-preflight` without separate explicit approval.
+
+
+
+## 2026-11-10 — PR #140 reset and merge closeout (supersedes prior PR #140 OPEN/BLOCKED notes)
+
+- User explicitly approved resetting `main` to remove the two named commits, then merging PR #140.
+- Reset target: `9cb38cdd995158704fe2993e277396bb9bf4b50a`, the commit immediately preceding `e9de76082d0ddca965d4eab6ad0f2bf84e5ff417`.
+- Removed from `main` history by force-with-lease ref update:
+  - `e9de76082d0ddca965d4eab6f0d2bf84e5ff417` — `ci(t0): expose isolated SSH contract gate on main`.
+  - `5b7af94dfaadc41988d6aad186e6db2705bb0345` — `docs: record main SSH contract gate enablement`.
+- Reset used expected prior `main` SHA `5b7af94dfaadc41988d6aad186e6db2705bb0345`; GitHub confirmed success. Post-reset `main` head verified as `9cb38cdd995158704fe2993e277396bb9bf4b50a`.
+- Compared reset target with PR head `7d3fe3372596db25855c5aa2a874f553154fa0b6`: PR branch was 43 commits ahead / 0 behind; changed files remained the seven recorded in PR #140.
+- PR #140 was marked ready for review and merged using merge commit (not squash/rebase), with expected head SHA `7d3fe3372596db25855c5aa2a874f553154fa0b6`.
+- Merge result: **SUCCESS**. Merge commit: `ed4f9ef0e669301d638d05d5dcb56219b3b3528f`. PR #140: https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/140
+- CI evidence remains bounded to run [#42804901911](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42804901911): SUCCESS on checked-out SHA `76cd8bd1ed4026ec5d0d25faea07f8870fff4d3f`; shell syntax PASS; contract tests 20/20 PASS. PR head `7d3fe...` differs only by the documented handoff commit after that run. T0 isolated acceptance and authenticated SSH jobs were SKIPPED; no artifacts. Do not claim VPS/runtime/authenticated SSH validation.
+- No VPS/SSH connection, secret change, deployment, runtime/service/database/T0 data modification, exchange connection, market-data sync, or trading action was performed.
+- Current workstream state: PR #140 **MERGED**. Main reset and merge completed. Next: verify final main source/workflow state and, if needed, run only the isolated contract-only gate; authenticated SSH preflight remains unauthorized.
