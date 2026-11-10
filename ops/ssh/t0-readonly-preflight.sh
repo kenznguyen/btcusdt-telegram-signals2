@@ -9,10 +9,10 @@ readonly T0_DB_PATH="/home/ubuntu/t0/app/.data/market-data.sqlite3"
 readonly API_PORT="8788"
 
 emit() {
-  printf '%s=%s\n' "$1" "$2"
+  printf '%s=%s\\n' "$1" "$2"
 }
 
-printf '%s\n' "P1_SSH_PREFLIGHT_VERSION=1"
+printf '%s\\n' "P1_SSH_PREFLIGHT_VERSION=1"
 
 emit "HOSTNAME" "$(hostname 2>/dev/null || printf 'UNAVAILABLE')"
 emit "SSH_USER" "$(id -un 2>/dev/null || printf 'UNAVAILABLE')"
@@ -25,11 +25,21 @@ else
   emit "SOURCE_SHA" "UNKNOWN"
 fi
 
-feeder_pids="NONE"
+feeder_pids="CHECK_UNAVAILABLE"
 if command -v pgrep >/dev/null 2>&1; then
-  detected_pids="$(pgrep -f '[m]arket_data\.feeder' 2>/dev/null || true)"
-  if [[ -n "$detected_pids" ]]; then
-    feeder_pids="$(printf '%s' "$detected_pids" | tr '\n' ' ' | sed 's/[[:space:]]*$//')"
+  if detected_pids="$(pgrep -f '[m]arket_data\.feeder' 2>/dev/null)"; then
+    if [[ -n "$detected_pids" ]]; then
+      feeder_pids="$(printf '%s' "$detected_pids" | tr '\\n' ' ' | sed 's/[[:space:]]*$//')"
+    else
+      feeder_pids="NONE"
+    fi
+  else
+    pgrep_status=$?
+    if [[ "$pgrep_status" -eq 1 ]]; then
+      feeder_pids="NONE"
+    else
+      feeder_pids="CHECK_FAILED"
+    fi
   fi
 fi
 emit "FEEDER_PIDS" "$feeder_pids"
@@ -39,18 +49,30 @@ if command -v ss >/dev/null 2>&1; then
   if listeners="$(ss -H -ltn "sport = :$API_PORT" 2>/dev/null)"; then
     if [[ -z "$listeners" ]]; then
       api_state="NOT_LISTENING"
-    elif printf '%s\n' "$listeners" | awk '
-      {
-        address = $4
-        if (address !~ /^127\.0\.0\.1:/ && address !~ /^\[::1\]:/) {
-          non_loopback = 1
+    elif command -v awk >/dev/null 2>&1; then
+      if parser_result="$(printf '%s\\n' "$listeners" | awk '
+        {
+          address = $4
+          if (address !~ /^127\\.0\\.0\\.1:/ && address !~ /^\\[::1\\]:/) {
+            non_loopback = 1
+          }
         }
-      }
-      END { exit !non_loopback }
-    '; then
-      api_state="NON_LOOPBACK_LISTENER"
+        END {
+          if (NR == 0) exit 2
+          if (non_loopback) print "NON_LOOPBACK_LISTENER"
+          else print "LOOPBACK_LISTENER"
+        }
+      ')"; then
+        case "$parser_result" in
+          LOOPBACK_LISTENER) api_state="LOOPBACK_LISTENER" ;;
+          NON_LOOPBACK_LISTENER) api_state="NON_LOOPBACK_LISTENER" ;;
+          *) api_state="CHECK_FAILED" ;;
+        esac
+      else
+        api_state="CHECK_FAILED"
+      fi
     else
-      api_state="LOOPBACK_LISTENER"
+      api_state="CHECK_UNAVAILABLE"
     fi
   else
     api_state="CHECK_FAILED"
@@ -83,7 +105,7 @@ PY
 fi
 emit "SQLITE_INTEGRITY" "$sqlite_state"
 
-printf '%s\n' "P1_SSH_PREFLIGHT_END=1"
+printf '%s\\n' "P1_SSH_PREFLIGHT_END=1"
 
 # A preflight is successful only when the evidence is complete and safe.
 [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]] || exit 1
@@ -91,4 +113,6 @@ printf '%s\n' "P1_SSH_PREFLIGHT_END=1"
 [[ "$api_state" != "NON_LOOPBACK_LISTENER" ]] || exit 1
 [[ "$api_state" != "CHECK_UNAVAILABLE" ]] || exit 1
 [[ "$api_state" != "CHECK_FAILED" ]] || exit 1
+[[ "$feeder_pids" != "CHECK_UNAVAILABLE" ]] || exit 1
+[[ "$feeder_pids" != "CHECK_FAILED" ]] || exit 1
 exit 0
