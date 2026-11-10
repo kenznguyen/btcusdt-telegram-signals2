@@ -175,6 +175,7 @@ jobs:
       SCW_SSH_PORT: ${{ secrets.SCW_SSH_PORT }}
       SCW_SSH_USER: ${{ secrets.SCW_SSH_USER }}
       SCW_SSH_PRIVATE_KEY: ${{ secrets.SCW_SSH_PRIVATE_KEY }}
+      SCW_SSH_KEY_PASSPHRASE: ${{ secrets.SCW_SSH_KEY_PASSPHRASE }}
       SCW_SSH_KNOWN_HOSTS: ${{ secrets.SCW_SSH_KNOWN_HOSTS }}
     steps:
       - name: Checkout exact source commit
@@ -186,7 +187,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for key in SCW_SSH_HOST SCW_SSH_PORT SCW_SSH_USER SCW_SSH_PRIVATE_KEY SCW_SSH_KNOWN_HOSTS; do
+          for key in SCW_SSH_HOST SCW_SSH_PORT SCW_SSH_USER SCW_SSH_PRIVATE_KEY SCW_SSH_KEY_PASSPHRASE SCW_SSH_KNOWN_HOSTS; do
             if [[ -z "${!key:-}" ]]; then echo "Missing required environment secret: $key"; exit 1; fi
           done
           [[ "$SCW_SSH_PORT" =~ ^[0-9]{1,5}$ ]] || { echo "Invalid SSH port"; exit 1; }
@@ -200,14 +201,28 @@ jobs:
           set -euo pipefail
           key_file="$RUNNER_TEMP/scw_preflight_ed25519"
           known_hosts_file="$RUNNER_TEMP/scw_known_hosts"
+          askpass_file="$RUNNER_TEMP/scw_ssh_askpass"
           remote_log="preflight-remote.log"
           printf '%s\n' "$SCW_SSH_PRIVATE_KEY" > "$key_file"
           printf '%s\n' "$SCW_SSH_KNOWN_HOSTS" > "$known_hosts_file"
           chmod 600 "$key_file" "$known_hosts_file"
-          trap 'rm -f "$key_file" "$known_hosts_file"' EXIT
+          eval "$(ssh-agent -s)" >/dev/null
+          cleanup() {
+            ssh-agent -k >/dev/null 2>&1 || true
+            rm -f "$key_file" "$known_hosts_file" "$askpass_file"
+          }
+          trap cleanup EXIT
+          printf '%s\n' '#!/bin/sh' 'printf "%s\\n" "$SCW_SSH_KEY_PASSPHRASE"' > "$askpass_file"
+          chmod 700 "$askpass_file"
+          if ! SSH_ASKPASS="$askpass_file" SSH_ASKPASS_REQUIRE=force DISPLAY=:0 setsid -w ssh-add -t 300 "$key_file" </dev/null 2>"$RUNNER_TEMP/ssh-add-stderr.log"; then
+            printf '%s\n' 'SSH_STDERR_CLASS=SSH_KEY_LOAD_OR_PASSPHRASE_REJECTED' 'SSH_EXIT_CODE=255' > preflight-ssh-diagnostic.txt
+            printf '%s\n' '255' > preflight-ssh-exit-code.txt
+            exit 255
+          fi
           if timeout 60s ssh -T \
             -p "$SCW_SSH_PORT" \
             -i "$key_file" \
+            -o IdentityAgent="$SSH_AUTH_SOCK" \
             -o BatchMode=yes \
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
