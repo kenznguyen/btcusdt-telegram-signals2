@@ -1,6 +1,6 @@
 ## T0 → T2 historical runtime evidence reconciliation (2026-11-10)
 
-- Corrective record: `docs/evidence/T0_T2_DEPLOYMENT_PARITY_EVIDENCE_RECONCILIATION_2026-11-10.md`; commit `08a98e04b337c491313030dbdd94f4c405349137`.
+- Corrective record: `docs/evidence/T0_T2_DEPLOYMENT_PARITY_EVIDENCE_RECONCILIATION_2026-11-10.md`; branch commit `987c245a9e6dec3e1aa169458280399f6d1bc70c`; readback blob `25aa2cae62fb7a693bc31d80a359fe304555e7ad`.
 - Corrects the new checklist's intake status: prior operator-provided runtime evidence dated 2026-11-09 already exists in `docs/evidence/t2/T0_T2_LOOPBACK_RUNTIME_VERIFICATION_2026-11-09.md` (blob `568b7d2c5ba6f606221519aba7ee4b298dff34c8`) and the deployment gate (blob `4919abb30afc5f6fd7a98e013633d1e19d112325`).
 - Historical bounded gate result: loopback API at `127.0.0.1:8788`; `/health` 200; missing token 401; authenticated M15/H1 reads 200; each returned 2/2 complete closed VALIDATED candles; M15 ingestion lag 8,558 ms under 120,000 ms; one-shot T2 2-bar M15 context command exit 0 and JSON parse PASS.
 - Historical T0 source SHA `9ae2eeae4ece3d657781b68e96b6f4509cd95f24`; T2 context file SHA-256 `e22d6c7d186b1fb9a5079eb9b4224c8acbcd835a0938dc970e9bc4b072eb75d3`. Process-loaded byte identity was not independently attested. T2 artifact stayed local at `/tmp/t2-canonical-window-20261109T112946Z.json`; no GitHub Actions artifact/run exists for this operator-run gate.
