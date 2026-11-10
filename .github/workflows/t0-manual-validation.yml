@@ -25,6 +25,8 @@ run-name: T0 manual gate - ${{ inputs.gate }} (${{ github.sha }})
     paths:
       - .github/workflows/t0-manual-validation.yml
       - ci/test_t0_ssh_preflight_contract.py
+      - ci/t0_runtime_acceptance.py
+      - ci/test_t0_runtime_acceptance.py
       - market_data/feeder.py
       - market_data/store.py
       - market_data/write_gateway.py
@@ -350,6 +352,101 @@ jobs:
             data-flow-changed-files.txt
             sqlite-data-flow-tests.log
             sqlite-data-flow-verdict.txt
+
+  g4-runtime-contract-change-scope:
+    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
+    name: Detect G4 read-only runtime contract changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.detect.outputs.changed }}
+    steps:
+      - name: Checkout exact source history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detect G4 contract changes
+        id: detect
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then BASE_SHA="$PR_BASE"; HEAD_SHA="$PR_HEAD"; else BASE_SHA="$PUSH_BEFORE"; HEAD_SHA="$GITHUB_SHA"; fi
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then echo "changed=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" > g4-changed-files.txt
+          cat g4-changed-files.txt
+          changed=false
+          for path in .github/workflows/t0-manual-validation.yml ci/t0_runtime_acceptance.py ci/test_t0_runtime_acceptance.py; do
+            if grep -Fxq "$path" g4-changed-files.txt; then changed=true; fi
+          done
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
+  sqlite-g4-runtime-contract-auto:
+    needs:
+      - sqlite-lease-fencing-auto
+      - sqlite-recovery-auto
+      - sqlite-data-flow-auto
+      - g4-runtime-contract-change-scope
+    if: ${{ needs.sqlite-lease-fencing-auto.result == 'success' && needs.sqlite-recovery-auto.result == 'success' && needs.sqlite-data-flow-auto.result == 'success' && needs.g4-runtime-contract-change-scope.result == 'success' && needs.g4-runtime-contract-change-scope.outputs.changed == 'true' }}
+    name: G4 read-only runtime probe contract tests (isolated)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      MARKET_DATA_TOKEN: ""
+      T0_CANDLE_API_TOKEN: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verify isolated environment and record source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB MARKET_DATA_TOKEN T0_CANDLE_API_TOKEN BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+            if [[ -n "${!key:-}" ]]; then echo "Unsafe environment variable present: $key"; exit 1; fi
+          done
+          git rev-parse HEAD | tee g4-source-sha.txt
+          echo "G4_SQLITE_PROBE=DISPOSABLE_FIXTURE_ONLY" | tee g4-scope.txt
+      - name: Run read-only SQLite G4 contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest ci.test_t0_runtime_acceptance -v 2>&1 | tee g4-runtime-contract-tests.log
+          echo "G4_READ_ONLY_SQLITE_CONTRACT=PASS" | tee g4-verdict.txt
+      - name: Upload G4 contract evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-g4-runtime-contract-auto-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            g4-source-sha.txt
+            g4-scope.txt
+            g4-runtime-contract-tests.log
+            g4-verdict.txt
+
   manual-gate:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.gate != 'scaleway-ssh-preflight' && inputs.gate != 'scaleway-ssh-contract-only' }}
     name: T0 manual isolated acceptance
