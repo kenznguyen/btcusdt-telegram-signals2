@@ -1614,3 +1614,21 @@ This section supersedes the earlier PR #140 next-step note that requested implem
 - CI evidence remains bounded to run [#42804901911](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42804901911): SUCCESS on checked-out SHA `76cd8bd1ed4026ec5d0d25faea07f8870fff4d3f`; shell syntax PASS; contract tests 20/20 PASS. PR head `7d3fe...` differs only by the documented handoff commit after that run. T0 isolated acceptance and authenticated SSH jobs were SKIPPED; no artifacts. Do not claim VPS/runtime/authenticated SSH validation.
 - No VPS/SSH connection, secret change, deployment, runtime/service/database/T0 data modification, exchange connection, market-data sync, or trading action was performed.
 - Current workstream state: PR #140 **MERGED**. Main reset and merge completed. Next: verify final main source/workflow state and, if needed, run only the isolated contract-only gate; authenticated SSH preflight remains unauthorized.
+
+
+## 2026-11-10 — PR #140 post-merge main contract-only verification
+
+- Main HEAD verified for this run: `36e8b86b9f4b46009ce7f48aecc106c90b856f67`.
+- Workflow run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42807827033
+- Run ID: `42807827033`; event: `workflow_dispatch`; branch: `main`; conclusion: `success`; attempt: 1.
+- Selected gate: `scaleway-ssh-contract-only`.
+- Checkout log confirms exact checked-out SHA `36e8b86b9f4b46009ce7f48aecc106c90b856f67`.
+- Contract job `P1 SSH preflight contract checks`, job ID `129801445184`: **SUCCESS**.
+- `bash -n ops/ssh/t0-readonly-preflight.sh`: PASS.
+- `python -m unittest ci.test_t0_ssh_preflight_contract -v`: **20/20 PASS**; log reports `Ran 20 tests` and `OK`.
+- `T0 manual isolated acceptance`, job ID `129801447156`: **SKIPPED**.
+- `P1 authenticated Scaleway read-only preflight`, job ID `129801496906`: **SKIPPED**. No authenticated SSH/VPS connection was made.
+- Artifacts: **NONE**; GitHub returned an empty artifact list for this run.
+- Verdict: post-merge main-line isolated SSH preflight contract CI **PASS** at exact main SHA `36e8b86b9f4b46009ce7f48aecc106c90b856f67`. This proves shell syntax and the 20 source/workflow contract tests only; it does not verify VPS/T0 runtime, deployed script identity, API listener, Feeder state, or SQLite integrity on the VPS.
+- No VPS/SSH connection, secret/credential change, deployment, runtime/service/database/data modification, exchange connection, market-data sync, or trading action occurred.
+- Next: keep authenticated SSH preflight **NOT AUTHORIZED**. Any future runtime verification requires separate explicit approval and a fresh scope review. No further contract-only rerun is needed absent a source change or concrete evidence gap.
