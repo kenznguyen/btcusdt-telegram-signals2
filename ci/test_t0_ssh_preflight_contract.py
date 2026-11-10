@@ -18,6 +18,16 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertIn('"$SCW_SSH_USER@$SCW_SSH_HOST" 2>', workflow)
         self.assertNotIn("ssh-keyscan", workflow)
 
+    def test_encrypted_private_key_is_loaded_non_interactively_from_secret_passphrase(self):
+        workflow = WORKFLOW.read_text()
+        self.assertIn("SCW_SSH_KEY_PASSPHRASE: ${{ secrets.SCW_SSH_KEY_PASSPHRASE }}", workflow)
+        self.assertIn("SSH_ASKPASS_REQUIRE=force", workflow)
+        self.assertIn("ssh-add -t 300", workflow)
+        self.assertIn("SCW_SSH_KEY_PASSPHRASE", workflow)
+        self.assertIn("SSH_KEY_LOAD_OR_PASSPHRASE_REJECTED", workflow)
+        self.assertIn("ssh-agent -k", workflow)
+        self.assertNotIn("set -x", workflow)
+
     def test_remote_script_is_forced_command_compatible_and_read_only(self):
         script = SCRIPT.read_text()
         self.assertIn("P1_SSH_PREFLIGHT_VERSION=1", script)
