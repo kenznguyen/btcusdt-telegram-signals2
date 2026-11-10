@@ -93,3 +93,41 @@ Do not disclose secret values. If current evidence is unavailable, retain NOT VE
 ## Safety boundary
 
 No code, test, dependency, workflow, permission, secret, runtime, VPS, database, service, network or data changes were made. No cleanup/deletion, PostgreSQL activation, T1 activation, strategy execution, ledger/risk mutation or live order was performed. `AI_EXECUTION_ENABLED=false`; paper-only.
+
+
+## Artifact byte-level inspection addendum (2026-11-10)
+
+Four GitHub Actions ZIP artifacts were downloaded and inspected locally. The SHA-256 values below identify the exact downloaded ZIP bytes in this inspection session; they are not signatures or independent custody proofs.
+
+| Artifact ID | Downloaded file | SHA-256 | Inspected contents / scope |
+|---|---|---|---|
+| `13627939321` | `artifact-13627939321.zip` | `d91536d963cd58738b9c892a62d01cd0d346f3288abc2a700574b527c76bad66` | Gateway contract/behavior, health readiness, process restart, and T0 market-data full-suite logs |
+| `13628397213` | `artifact-13628397213.zip` | `7b5b4ac30fc6387bbddae6b284a94e528769c61356d98a2f3aff7346cf4db027` | Freqtrade strategy-load and T2 HTTP consumer regression logs |
+| `13628521899` | `artifact-13628521899.zip` | `1a0f61f396c6fb4c7f57382d9b635cd958c97008e541de28178a9e31827d4a98` | T0 systemd feeder/API integration logs, events, unit/journal records and scope metadata |
+| `13627924430` | `artifact-13627924430.zip` | `7a14b9cf72c1396ca194b21f081d6c88f08e8769e937b18bdc82374fdef684d0` | T0 SQLite read-only WAL/systemd sandbox tests and scope metadata |
+
+### Observed test and integration evidence
+
+- T0 market-data full suite: 298 tests, log reports successful completion.
+- Gateway behavior: 77 tests PASS.
+- Health/readiness: 21 tests PASS.
+- Gateway contract: 10 tests PASS.
+- Process restart: 2 tests PASS.
+- T2 HTTP consumer regression: 31 tests PASS.
+- T2 strategy load: `ChartProFreqaiResearch` reported `OK` under Freqtrade 2026.9; environment log reports Python 3.14.7 and CCXT 4.5.84.
+- T0 systemd integration log records feeder readiness generations 1 and 2, API read-only mutation denial, authenticated candle read, restart read, SIGTERM/SIGKILL propagation and orderly reverse shutdown; final verdict `T0_SYSTEMD_FEEDER_API_INTEGRATION=PASS`.
+- T0 systemd WAL sandbox explicitly labels target `DISPOSABLE_GITHUB_RUNNER_ONLY`; verdict `T0_SYSTEMD_READONLY_WAL_SANDBOX=PASS`. It records read-only WAL reads PASS, filesystem/SQLite writes DENIED, and cold start without sidecars BLOCKED_AS_EXPECTED.
+- T0 systemd artifacts include source SHA `9ae2eeae4ece3d657781b68e96b6f4509cd95f24`.
+
+### Interpretation limits
+
+These are CI/disposable-runner tests and logs, not VPS captures. The `DISPOSABLE_GITHUB_RUNNER_ONLY` label is explicit. They do not prove that the current VPS uses systemd units/configuration represented in these artifacts, that the current API is listening, that current environment variables are correct, or that current process-loaded bytes match the repository. Test counts are per artifact log and may cover overlapping suites; do not sum them into a unique-test total.
+
+### Updated gate interpretation
+
+- Repository/CI evidence depth: strengthened; inspected artifact bytes and recorded local ZIP SHA-256.
+- G1 deployed SHA: still PARTIAL / NOT VERIFIED.
+- G2/G3/G5: historical runtime evidence only; current VPS state NOT VERIFIED.
+- G4: T2 static migration tests and runner integration strengthen code-level evidence, but current deployed data-path enforcement remains NOT VERIFIED.
+- G6: NOT RUN.
+- No new test or workflow was run; existing artifact logs were inspected only.
