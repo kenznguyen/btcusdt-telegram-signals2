@@ -1,3 +1,17 @@
+## Latest T0 continuation — launch source revalidation (2026-11-10)
+
+- Revalidated the DEP intake and launch reconciliation references against current branch HEAD `d1617c16da83fc5afd0d97759fbf2666b6d9dffc`.
+- Report: `docs/evidence/T0_LAUNCH_CONTRACT_SOURCE_REVALIDATION_2026-11-10.md`.
+- Feeder blob `bdcecf6bc98a2ff070f83098d2c50154a160c99c`, API blob `81733c9b6de811cbebb2f5d472d41f37f337990c`, README blob `d90f84f8135c8ab9da1b57863e145d86565bf179`; all match the previously recorded reconciliation references.
+- Static assertions PASS: Feeder module entrypoint, post-start READY notification, STOPPING notification, 30-second drain, missing-notify-socket behavior, API health/data routes and 2000-candle limit, Gunicorn target/bind/workers/threads/timeout, same-host loopback and separate remote/browser gateway wording.
+- This establishes current repository source/document consistency only. Deployed VPS SHA, unit properties, process identity, listener ownership, API/Feeder readiness and data freshness remain NOT VERIFIED / NOT RUN.
+- DEP owner evidence remains NOT SUPPLIED. Old `ops/ssh/t0-readonly-preflight.sh` remains NOT APPROVED for metadata-only collection and was not run.
+- No source/runtime/test/workflow/VPS/SSH/DB/data/secret/permission/network changes; no tests or Actions dispatch. No workflow run/artifact is claimed.
+- Option C ACTIVE; canonical T0 SQLite retained; PostgreSQL PARKED; `AI_EXECUTION_ENABLED=false`; no live orders.
+- Next step: receive sanitized DEP-01–DEP-09 owner evidence and reconcile exact deployed facts. No host access or runtime probe is authorized.
+
+---
+
 ## Latest T0 continuation — DEP intake preparation and deployment contract status (2026-11-10)
 
 - Latest baseline before this continuation: `fa65e4d5e4817be1273f4f5646d4c526357975ec`; active branch remains `feature/t0-centralized-data-feeder-p1-20261101`.
