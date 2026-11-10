@@ -302,5 +302,28 @@ class ReadOnlySQLiteAcceptanceTests(unittest.TestCase):
                 opener_factory=lambda: FakeOpener(lambda _request: FakeResponse(payload)),
             )
 
+
+    def test_http_transport_is_bounded_loopback_only_and_rejects_redirects(self):
+        from ci import t0_runtime_acceptance as probe
+        self.assertIn("ProxyHandler({})", probe._default_opener.__code__.co_consts)
+        self.assertIn("_RejectRedirects", probe._default_opener.__code__.co_names)
+        self.assertEqual(probe.MAX_HTTP_BODY_BYTES, 1_048_576)
+        for unsafe_url in (
+            "http://user:pass@127.0.0.1:8788",
+            "http://127.0.0.1:8788/prefix",
+            "http://127.0.0.1:8788?token=secret",
+            "http://192.0.2.1:8788",
+        ):
+            with self.subTest(url=unsafe_url), self.assertRaises(ProbeError):
+                probe._loopback_base_url(unsafe_url)
+
+    def test_candle_api_probe_rejects_non_200_health_response(self):
+        fake = FakeOpener(lambda _request: FakeResponse({"ok": False}, status=302))
+        with self.assertRaises(ProbeError):
+            probe_candle_api(
+                "http://127.0.0.1:8788", "token", now_ms=NOW,
+                opener_factory=lambda: fake,
+            )
+
 if __name__ == "__main__":
     unittest.main()
