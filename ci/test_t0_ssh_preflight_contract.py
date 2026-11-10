@@ -230,7 +230,7 @@ class T0SSHPreflightContractTests(unittest.TestCase):
     def test_g4_runtime_contract_is_path_scoped_and_requires_g1_g2_g3(self):
         workflow = WORKFLOW.read_text()
         for event in ("push:", "pull_request:"):
-            event_block = workflow.split("  " + event, 1)[1].split("\\n\\n", 1)[0]
+            event_block = workflow.split("  " + event, 1)[1].split("\n\n", 1)[0]
             self.assertIn("ci/t0_runtime_acceptance.py", event_block)
             self.assertIn("ci/test_t0_runtime_acceptance.py", event_block)
 
