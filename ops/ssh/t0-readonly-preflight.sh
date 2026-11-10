@@ -34,15 +34,26 @@ if command -v pgrep >/dev/null 2>&1; then
 fi
 emit "FEEDER_PIDS" "$feeder_pids"
 
-api_state="NOT_LISTENING"
+api_state="CHECK_UNAVAILABLE"
 if command -v ss >/dev/null 2>&1; then
-  listeners="$(ss -H -ltn "sport = :$API_PORT" 2>/dev/null || true)"
-  if [[ -n "$listeners" ]]; then
-    if printf '%s\n' "$listeners" | awk '{print $4}' | grep -Ev '^127\.0\.0\.1:' >/dev/null; then
+  if listeners="$(ss -H -ltn "sport = :$API_PORT" 2>/dev/null)"; then
+    if [[ -z "$listeners" ]]; then
+      api_state="NOT_LISTENING"
+    elif printf '%s\\n' "$listeners" | awk '
+      {
+        address = $4
+        if (address !~ /^127\\.0\\.0\\.1:/ && address !~ /^\\[::1\\]:/) {
+          non_loopback = 1
+        }
+      }
+      END { exit !non_loopback }
+    '; then
       api_state="NON_LOOPBACK_LISTENER"
     else
       api_state="LOOPBACK_LISTENER"
     fi
+  else
+    api_state="CHECK_FAILED"
   fi
 fi
 emit "API_8788" "$api_state"
@@ -78,4 +89,6 @@ printf '%s\n' "P1_SSH_PREFLIGHT_END=1"
 [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]] || exit 1
 [[ "$sqlite_state" == "PASS" ]] || exit 1
 [[ "$api_state" != "NON_LOOPBACK_LISTENER" ]] || exit 1
+[[ "$api_state" != "CHECK_UNAVAILABLE" ]] || exit 1
+[[ "$api_state" != "CHECK_FAILED" ]] || exit 1
 exit 0
