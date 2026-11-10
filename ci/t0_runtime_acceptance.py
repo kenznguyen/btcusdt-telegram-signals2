@@ -4,9 +4,18 @@ This module never provisions schema, acquires/renews/releases leases, or writes 
 It is not installed or invoked on the VPS by this change.
 """
 import hashlib
+import ipaddress
+import json
 import sqlite3
 from pathlib import Path
-from urllib.parse import quote
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode, urlsplit
+from urllib.request import (
+    HTTPRedirectHandler,
+    ProxyHandler,
+    Request,
+    build_opener,
+)
 
 from market_data.store import INTERVAL_MS
 
@@ -152,17 +161,6 @@ def inspect_sqlite_read_only(db_path, *, now_ms):
 
 # HTTP probes are intentionally loopback-only. The detailed Flask health service
 # is separately configured; it is never inferred from the candle API port.
-import ipaddress
-import json
-from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode, urlsplit
-from urllib.request import (
-    HTTPRedirectHandler,
-    ProxyHandler,
-    Request,
-    build_opener,
-)
-
 MAX_HTTP_BODY_BYTES = 1_048_576
 HTTP_TIMEOUT_SECONDS = 3
 
