@@ -63,3 +63,5 @@ Verify the new L4-Minimum GitHub Actions lineage workflow, diagnose failures, an
 ## Next step
 
 Implement the GitHub-only artifact inventory/readback collector and deterministic SHA-256 manifest as a separate, test-first increment. Require explicit artifact/run allowlisting, source SHA binding, artifact name/ID/expiry capture, exact ZIP byte download and independent digest calculation. Fail closed on missing, expired, substituted, ambiguous or mismatched artifacts. Do not perform signature or offline verification in this increment.
+
+Historical source snapshot note (2026-11-10): this record captures the Evidence Register blob `cee949666da611a4efca7e7b51aea47ab4b13eff` as it existed when this lineage-gate evidence was first assembled. That register revision is superseded by current register blob `4379b5f115c5dac5a2779b857ab8fababf88e4f3`; the old reference is retained only to preserve the exact historical source snapshot, not as a current binding.

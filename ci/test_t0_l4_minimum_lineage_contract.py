@@ -14,6 +14,8 @@ REGISTER = ROOT / "docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION
 PLAN = ROOT / "docs/evidence/T0_L4_MINIMUM_AUTOMATION_PLAN_2026-11-10.md"
 MATRIX = ROOT / "docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md"
 HISTORICAL_SNAPSHOT = ROOT / "docs/evidence/T0_L4M01_L4M03_EXISTING_TRUST_EVIDENCE_NON_SUBSTITUTION_2026-11-10.md"
+HISTORICAL_LINEAGE_RECORD = ROOT / "docs/evidence/T0_L4_MINIMUM_LINEAGE_GATE_EVIDENCE_2026-11-10.md"
+HISTORICAL_DOCS = (HISTORICAL_SNAPSHOT, HISTORICAL_LINEAGE_RECORD)
 SUPPORTING_DOCS = (
     ROOT / "docs/evidence/T0_L4_MINIMUM_POLICY_HISTORICAL_AUDIT_RECONCILIATION_2026-11-10.md",
     ROOT / "docs/evidence/T0_L4M02_SIGNER_SEPARATION_EXISTING_EVIDENCE_ASSESSMENT_2026-11-10.md",
@@ -77,9 +79,15 @@ class T0L4MinimumLineageContractTests(unittest.TestCase):
         offenders = []
         for path in active_l4_documents():
             content = path.read_text()
-            if any(digest in content for digest in superseded) and path != HISTORICAL_SNAPSHOT:
+            if any(digest in content for digest in superseded) and path not in HISTORICAL_DOCS:
                 offenders.append(str(path.relative_to(ROOT)))
         self.assertEqual([], offenders)
+
+    def test_historical_lineage_record_labels_previous_register_blob_as_superseded(self):
+        content = HISTORICAL_LINEAGE_RECORD.read_text()
+        self.assertIn(PREVIOUS_REGISTER_SHA, content)
+        self.assertIn("historical source snapshot", content.lower())
+        self.assertIn("superseded by current register blob `4379b5f115c5dac5a2779b857ab8fababf88e4f3`", content)
 
     def test_historical_snapshot_explicitly_labels_its_old_register_reference(self):
         content = HISTORICAL_SNAPSHOT.read_text()
