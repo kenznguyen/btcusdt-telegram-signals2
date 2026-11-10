@@ -23,7 +23,7 @@ L4M-02 remains **NOT VERIFIED**.
 | `synthetic_evidence/trust_anchor.py` | `0f95a5a8714b69fe81ca5421b871dfa586af5121` | Validates GitHub CLI verification output, subject digest and trusted-root bytes/pin | Verifies GitHub/Sigstore attestation evidence; does not establish a separate T0 owner signer |
 | `synthetic_evidence/trust_roots/README.md` | `e7df7d5f4575c66503a6d03a361bf312153d9401` | Documents GitHub/Sigstore trust-root pinning and explicit revocation limitations | Root history is GitHub/Sigstore trust material; README says external owner copy is not automated or claimed. It is not T0 signing-key custody evidence |
 | `docs/architecture/P1.8.14_EXTERNAL_TRUST_ANCHOR_PROVENANCE_AUTHENTICITY_2026-11-07.md` | `1922b8b9640db86b22e2297956b6744ca1d9b660` | Historical synthetic CI archive attestation with GitHub OIDC/Sigstore identity and second GitHub-hosted runner verification | Authenticates a GitHub workflow attestation for a synthetic archive, not an owner-authorized T0 checkpoint signer or separation from T0 admin authority |
-| `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` | `0125abfe77c0d0f9172e66aa5d09ec8fc8a33623` | Explicitly records missing signer evidence and acquisition restrictions | No actual signer identity, custody or recovery evidence is present |
+| `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` | `e67a58591b5f6168ab3a0f3f403557292aca45d5` | Explicitly records missing signer evidence and acquisition restrictions | No actual signer identity, custody or recovery evidence is present |
 
 ## 3. Required proof not found
 
