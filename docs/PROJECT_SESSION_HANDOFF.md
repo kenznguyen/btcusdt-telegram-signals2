@@ -1500,9 +1500,9 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 This section supersedes the earlier PR #140 next-step note that requested implementation of R1–R3.
 
 - PR: [#140](https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/140), branch `fix/p1-ssh-preflight-contract-20261110`, base `main`.
-- Latest source commit before this handoff update: `55c08a312543260f320d20c54d06033a5a414554`.
+- Latest source commit before this handoff update: `a41ca435ce593af36eb7bc25a32d9095c54c9564`.
 - Script blob: `6fc3a54c4d91e0ef82aedf1fba2543b4468c756e`.
-- Contract test blob: `b823ed3fc5c3d5f7629fee97d237e44eb8e68577`.
+- Contract test blob: `a97f3399fe36a09fce7f4b8432793e1f4389109f`.
 - Workflow blob: `749d53bf94168a0e0423e1b52f8699ffe2a605d3`.
 - Evidence report: `docs/evidence/PR140_FAIL_CLOSED_PROBE_FIX_20261110.md`, created in commit `fa7aadb3878dd5ade67ce8bd6d112807b16c8b3d`.
 
