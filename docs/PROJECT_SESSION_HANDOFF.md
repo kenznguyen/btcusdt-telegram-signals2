@@ -1,3 +1,16 @@
+## Runtime verification continuation — SSH preflight recovered, deeper acceptance still pending (2026-11-10)
+
+- Owner confirms SSH preflight is now working. Repository evidence independently confirms run [42814402445](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42814402445): contract job `129823665846` SUCCESS; authenticated read-only SSH job `129823736309` SUCCESS; manual isolated acceptance job `129823667801` SKIPPED.
+- Exact workflow checkout/source SHA: `8ad36cae8aa971a537a6f363902f86046aa32e5e`. Remote deployed checkout SHA reported by the forced command: `9ae2eeae4ece3d657781b68e96b6f4509cd95f24`.
+- Remote read-only snapshot: host `btcquant-t0-t1-test-01`; SSH user `ubuntu`; Feeder PIDs `22045,22046`; API 8788 bound to `127.0.0.1:8788` (`LOOPBACK_ONLY`); SQLite `PRAGMA integrity_check=ok` (`SQLITE_INTEGRITY=PASS`). No remote write/restart was performed.
+- Artifact ID `13762564163`, name `p1-scaleway-ssh-preflight-42814402445`, SHA-256 `f6303919c69b05d412722492f05b8dd3aefa1a655043fa98029a94fee5ee8c28`, expires `2026-11-17T12:16:53Z`.
+- This successful preflight supersedes the earlier SSH authentication failure in run `42792435714` for connectivity status. It is a point-in-time read-only snapshot only; the installed forced command currently checks hostname/user, Git SHA, matching Feeder process command lines, API listener binding and SQLite integrity.
+- Runtime checks not yet covered: authenticated `/health` and `/v1/candles` response from the VPS, candle freshness/coverage against current time, current SQLite lease owner/generation/expiry, recent candle watermark progression over an observation interval, and Feeder/API stability over time. The manual acceptance job was skipped; therefore these remain NOT VERIFIED.
+- Existing workflow has no dedicated live-runtime acceptance gate. The GitHub Actions integration available in this session can inspect runs/logs/artifacts and update repository files, but does not expose a workflow-dispatch action. No fresh run was triggered in this session.
+- Safe next stage: prepare a narrowly allowlisted read-only runtime acceptance contract and tests in the existing branch; first inspect SQLite schema and current lease/freshness invariants from source. Do not expand the VPS forced command, copy/install a script, change `authorized_keys`, restart processes, write the canonical DB, activate T1 or place orders without separate explicit approval.
+- Current disposition: SSH authentication/connectivity **PASS at the time of run 42814402445**; process/listener/integrity baseline **PASS at that snapshot**; full T0 runtime acceptance **NOT VERIFIED**. T1 remains NOT ACTIVATED; PostgreSQL remains PARKED; `AI_EXECUTION_ENABLED=false`; paper-only.
+
+---
 ## G1–G3 evidence review and next blocker (2026-11-10)
 
 - Reviewed final G3 workflow, contract assertions, integration fixture and component test inventories against run `42818787474` and source SHA `fa75ed84f6a4f84bc936d8f20d0e971d872d00d1`.
