@@ -157,7 +157,7 @@ jobs:
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" > recovery-changed-files.txt
           cat recovery-changed-files.txt
           changed=false
-          for path in .github/workflows/t0-manual-validation.yml market_data/feeder.py market_data/feeder_service.py market_data/test_feeder_recovery.py market_data/test_feeder_scheduler.py market_data/test_feeder_lifecycle.py; do
+          for path in .github/workflows/t0-manual-validation.yml ci/test_t0_ssh_preflight_contract.py market_data/feeder.py market_data/feeder_service.py market_data/test_feeder_recovery.py market_data/test_feeder_scheduler.py market_data/test_feeder_lifecycle.py; do
             if grep -Fxq "$path" recovery-changed-files.txt; then changed=true; fi
           done
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
