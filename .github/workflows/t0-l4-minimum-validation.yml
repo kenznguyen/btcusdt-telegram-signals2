@@ -1,0 +1,69 @@
+name: T0 L4-Minimum Validation
+
+on:
+  push:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - .github/workflows/t0-l4-minimum-validation.yml
+      - ci/test_t0_l4_minimum_lineage_contract.py
+      - docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md
+      - docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md
+      - docs/evidence/T0_L4_MINIMUM_AUTOMATION_PLAN_2026-11-10.md
+      - docs/evidence/T0_L4_MINIMUM_POLICY_HISTORICAL_AUDIT_RECONCILIATION_2026-11-10.md
+      - docs/evidence/T0_L4M02_SIGNER_SEPARATION_EXISTING_EVIDENCE_ASSESSMENT_2026-11-10.md
+      - docs/evidence/T0_L4M08_CLAIM_DISCIPLINE_DOCUMENTARY_ASSESSMENT_2026-11-10.md
+      - docs/evidence/T0_L4M10_FROZEN_BASELINE_OWNER_SELF_ASSESSMENT_READINESS_2026-11-10.md
+      - docs/PROJECT_SESSION_HANDOFF.md
+
+permissions:
+  contents: read
+
+concurrency:
+  group: t0-l4-minimum-validation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  l4-minimum-lineage-contract:
+    name: L4-Minimum source lineage and policy contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Record exact source SHA and validation scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD | tee l4-source-sha.txt
+          echo "T0_L4_MINIMUM_LINEAGE=GITHUB_HOSTED_READ_ONLY" | tee l4-validation-scope.txt
+
+      - name: Run L4-Minimum lineage contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest ci.test_t0_l4_minimum_lineage_contract -v 2>&1 | tee l4-lineage-contract-tests.log
+          echo "L4_MINIMUM_LINEAGE_CONTRACT=PASS" | tee l4-lineage-contract-verdict.txt
+
+      - name: Upload L4-Minimum lineage evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-l4-minimum-lineage-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            l4-source-sha.txt
+            l4-validation-scope.txt
+            l4-lineage-contract-tests.log
+            l4-lineage-contract-verdict.txt
