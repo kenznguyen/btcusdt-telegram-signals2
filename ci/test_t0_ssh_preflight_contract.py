@@ -262,5 +262,15 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertNotIn("environment:", job)
         self.assertIn("G4_SQLITE_PROBE=DISPOSABLE_FIXTURE_ONLY", job)
 
+        recovery_scope = workflow.split("  recovery-change-scope:", 1)[1].split(
+            "  sqlite-recovery-auto:", 1
+        )[0]
+        data_flow_scope = workflow.split("  data-flow-change-scope:", 1)[1].split(
+            "  sqlite-data-flow-auto:", 1
+        )[0]
+        for probe_path in ("ci/t0_runtime_acceptance.py", "ci/test_t0_runtime_acceptance.py"):
+            self.assertIn(probe_path, recovery_scope)
+            self.assertIn(probe_path, data_flow_scope)
+
 if __name__ == "__main__":
     unittest.main()
