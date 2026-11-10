@@ -36,7 +36,7 @@
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_AUTOMATION_PLAN_2026-11-10.md",
-      "git_blob_sha1": "555f9b8d6c01bb2387ed702e41284af4b8500b3d"
+      "git_blob_sha1": "75e07028322f651f13efade0ce27800f66f4c94f"
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_ADVERSARIAL_REVIEW_2026-11-10.md",
@@ -144,7 +144,23 @@
     },
     {
       "path": "docs/evidence/T0_L4_REPOSITORY_FILE_INVENTORY_SCOPE_RECONCILIATION_2026-11-11.md",
-      "git_blob_sha1": "2f93102a78baf40edfcd6f58fc1c1ac8e4ca62e0"
+      "git_blob_sha1": "cd865b09c0340fa910412a9d469a7da980357e35"
+    },
+    {
+      "path": "docs/evidence/T0_TSA_WORM_READ_ONLY_AUDIT_2026-11-10.md",
+      "git_blob_sha1": "4a7b872656ec240ddd6862f7ed6d92ca6c26fcee"
+    },
+    {
+      "path": "docs/evidence/p1-8/P1.8.80-retention-and-eligibility-policy.md",
+      "git_blob_sha1": "a38710c9d01e5409ce989cc73f791c94bc73773f"
+    },
+    {
+      "path": "docs/evidence/p1-8/P1.8.121-owner-decision-ratification-option-c-no-destructive-authority.md",
+      "git_blob_sha1": "b92c63f593af0088fc522a55dc841af0ad1e5ac7"
+    },
+    {
+      "path": "docs/evidence/p1-8/P1.8.141-holistic-data-lifecycle-design-closure-assessment.md",
+      "git_blob_sha1": "c20616d79f6dcedde08128f589a5c0e04d6257f1"
     }
   ]
 }

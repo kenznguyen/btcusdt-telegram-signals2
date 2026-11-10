@@ -21,8 +21,12 @@ Three additional files are included in the next inventory revision because they 
 | `docs/evidence/T0_COMPONENTS_OUTSIDE_L4_MINIMUM_AUDIT_2026-11-10.md` | `7bfc509b9eb918750b3a25acc18f8d4f989d387f` | Historical scope audit distinguishing L4-Minimum controls from optional T0/TSA/WORM/HTTPS/PostgreSQL/DR work; preserve as historical, not as current acceptance authority |
 | `docs/evidence/p1-8/P1.8.142-owner-retention-and-data-class-disposition-decision-package.md` | `a8b6027c5ff25192ebba82dadc52c70dd1983c82` | Predecessor lifecycle decision package; historical lineage to owner-ratified P1.8.143 and later P1.8.152 |
 | `docs/evidence/COMMERCIAL_SCOPE_CONTENT_AUDIT_2026-11-09.md` | `dc313df4a9c11893751e43cec41042c58198cfff` | Supporting scope audit for the personal/non-commercial owner decision; its bounded audit result is not repository-wide proof of absence |
+| `docs/evidence/T0_TSA_WORM_READ_ONLY_AUDIT_2026-11-10.md` | `4a7b872656ec240ddd6862f7ed6d92ca6c26fcee` | Historical review of TSA/WORM claims; included to preserve L4 scope boundaries, not as operational TSA/WORM evidence |
+| `docs/evidence/p1-8/P1.8.80-retention-and-eligibility-policy.md` | `a38710c9d01e5409ce989cc73f791c94bc73773f` | Historical retention-policy predecessor; subordinate to current owner-ratified lifecycle records |
+| `docs/evidence/p1-8/P1.8.121-owner-decision-ratification-option-c-no-destructive-authority.md` | `b92c63f593af0088fc522a55dc841af0ad1e5ac7` | Historical owner ratification establishing Option C — No Destructive Authority |
+| `docs/evidence/p1-8/P1.8.141-holistic-data-lifecycle-design-closure-assessment.md` | `c20616d79f6dcedde08128f589a5c0e04d6257f1` | Historical lifecycle assessment preceding P1.8.142 and current P1.8.143/152 records |
 
-The reconciliation report itself is also included as a source-controlled scope record. The selected repository-file inventory therefore expands from 32 to 36 exact paths.
+The reconciliation report itself is also included as a source-controlled scope record. The selected repository-file inventory therefore expands from 36 to 40 exact paths.
 
 ## 3. Referenced paths excluded from the L4-Minimum evidence-source set
 
@@ -41,6 +45,13 @@ The following exact paths were found in the scanned documents and resolved at th
 | `docs/evidence/t0/T0_INTERNAL_API_SECURITY_REVIEW_2026-11-08.md` | `a94db66682d3410d858e39176b075f67262c9c54` | Separate API security review; does not prove L4 signer/custody controls |
 | `docs/evidence/t1/T1_MANUAL_VPS_TEST_RECEIPT_2026-11-09.md` | `0f756f89140eb1272e0f30d7e9de332921581e17` | T1 manual VPS test evidence; separate layer/runtime scope |
 | `docs/evidence/t2/T2_LIVE_T0_ENDPOINT_OFFLINE_READINESS_AUDIT_2026-11-08.md` | `51629f6086b8aea4ab606895ec329ecaa435fc91` | T2 endpoint readiness evidence; not L4 evidence custody or offline cryptographic verification |
+
+| `docs/architecture/SHARED_DATA_FOUNDATION.md` | `18f8566723b95c4b38586e3848bde5305295a4dc` | Shared data architecture background; not an L4 control evidence object |
+| `docs/architecture/T0_PG16_ROLE_PROVISIONING_PROVIDER_CAPABILITY_DECISION.md` | `f6f8fffcc05214e2fc285cf5920a413da526a9b9` | PostgreSQL provider/role qualification, separate backend engineering gate |
+| `docs/architecture/T0_POSTGRESQL_ATOMIC_WRITER_P0_2026-11-05.md` | `beca4f06321bfda109c9a326b3b6ff078a72e616` | PostgreSQL writer implementation design, separate T0 backend gate |
+| `docs/architecture/DATASET_CONSUMER_CONTRACT.md` | `ef5e946b26ad17410023a79a765be73aeb198f0f` | General consumer lifecycle contract; not a signed L4 evidence object |
+| `docs/architecture/DATA_DELETION_SAFETY_CONTRACT.md` | `e055d88308d8576c5c6826e12280b847f5ec5717` | General deletion-safety design; does not grant destructive authority |
+| `docs/architecture/DATA_COPY_BACKUP_REPLICA_LIFECYCLE_CONTRACT.md` | `639e5ee5b5a78130cc523a4bcab8b77c0a0a5463` | General copy/backup/replica lifecycle contract; broader than L4 evidence custody |
 
 These exclusions do not invalidate the documents or their separate engineering gates. They prevent cross-layer readiness material from being silently counted as L4 control evidence.
 
@@ -63,7 +74,7 @@ These exclusions do not invalidate the documents or their separate engineering g
 
 ## 6. Verdict
 
-**Reference reconciliation: PARTIAL PASS.** The additional three material source records are added to the repository-file inventory scope; operational, API, T1/T2 and handoff references are explicitly excluded with reasons. Basename-only references in historical scope material remain unresolved and are not guessed.
+**Reference reconciliation: PARTIAL PASS.** Seven historical scope/lifecycle records and this reconciliation report are included in the 40-file inventory; operational, API, PostgreSQL/provider, T1/T2 and handoff references are explicitly excluded with reasons. All known basename-only citations in the historical T0 components-outside-L4 audit have exact paths and blob SHAs resolved; the scan remains bounded and is not a repository-wide completeness proof.
 
 **L4-Minimum aggregate: BLOCKED / NOT VERIFIED.** No L4 control is promoted. Signature/negative verification and network-disabled offline verification remain downstream until the complete source and Actions-artifact inventories are reconciled and stable.
 

@@ -3,7 +3,7 @@
 Date: 2026-11-10
 Repository: `kenznguyen/btcusdt-telegram-signals2`
 Branch: `feature/t0-centralized-data-feeder-p1-20261101`
-Status: **OWNER-APPROVED PLAN — LINEAGE GATE PASS — FOUR-ARTIFACT ACTIONS INVENTORY PILOT PASS — 36-FILE REPOSITORY INVENTORY CI PASS; REFERENCE RECONCILIATION PARTIAL PASS; REMAINING L4 CONTROLS NOT VERIFIED**
+Status: **OWNER-APPROVED PLAN — LINEAGE GATE PASS — FOUR-ARTIFACT ACTIONS INVENTORY PILOT PASS — 40-FILE REPOSITORY INVENTORY CI PASS; REFERENCE RECONCILIATION PARTIAL PASS; REMAINING L4 CONTROLS NOT VERIFIED**
 Approval: owner approval in conversation on 2026-11-10 to automate L4M-01–08 as far as technically possible and reserve owner participation for real-world custody/control assertions and L4M-10 acceptance.
 Controlling matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md` (current branch blob at plan preparation: `75db0d98134fd656d91a8545bc307c56595aebf7`).
 Current register at plan preparation: `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` (blob `fe4a188d336a8b0279e8e14941c9cb171c23ae0e`).
@@ -145,3 +145,11 @@ Each implementation increment must be reviewed and tested before proceeding. Do 
 - The historical T0 components-outside-L4 audit contains basename-only source citations that have not been resolved to exact repository paths. They are not guessed or added. If a later L4 claim relies on one, resolve the exact path/blob before inclusion. This and the bounded nature of the scan prevent a claim of complete repository-wide evidence discovery.
 - The reconciliation report is documentary and does not rewrite any historical source. It explicitly preserves old matrix references as historical and distinguishes out-of-scope T0/T1/T2 documents from L4 evidence.
 - Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED; no control is promoted by the 36-file CI result. VPS custody, signer separation, authenticated freshness anchor, offline verification, readback/recovery, trust lifecycle, tamper-evident history and L4M-10 owner disposition remain unproven as previously recorded.
+
+
+### Historical source-reference resolution — 2026-11-11
+
+- Resolved the exact paths/blob SHAs for basename-only citations in the historical T0 components-outside-L4 audit at source tree `da0dc7bce6d3130a718a7ff7a504d8b4c06451cb`.
+- Added to the inventory: `T0_TSA_WORM_READ_ONLY_AUDIT_2026-11-10.md`, `P1.8.80-retention-and-eligibility-policy.md`, `P1.8.121-owner-decision-ratification-option-c-no-destructive-authority.md`, and `P1.8.141-holistic-data-lifecycle-design-closure-assessment.md`.
+- Resolved but excluded as separate T0 architecture/backend/lifecycle background: shared data foundation, PostgreSQL role/writer decisions, and generic consumer/deletion/copy-lifecycle contracts. Exact paths and blob SHAs are recorded in the scope reconciliation report.
+- The 40-file inventory remains a bounded L4 source set, not repository-wide completeness proof. Reference reconciliation remains PARTIAL PASS.
