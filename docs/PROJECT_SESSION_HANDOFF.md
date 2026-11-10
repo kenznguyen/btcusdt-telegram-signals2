@@ -4050,3 +4050,12 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - L4M-01/02 remain NOT VERIFIED; L4M-03–07 remain PARTIAL synthetic/design only; L4M-08 documentary PASS only; L4M-10 NOT VERIFIED/PENDING owner assessment. Aggregate remains BLOCKED / NOT VERIFIED.
 - No owner storage evidence was accessed or read back. No tests, Actions dispatch, runtime/VPS/DB/data/key/provider/permission changes or destructive operations. Option C ACTIVE; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
 - Next gate: owner-supplied sanitized L4M-01 custody evidence and L4M-03 latest-head anchor, followed by L4M-02 signer-separation evidence.
+
+
+## Latest continuation — L4M-01/L4M-03 owner evidence intake contract (2026-11-10)
+
+- Added `docs/evidence/T0_L4M01_L4M03_OWNER_EVIDENCE_INTAKE_CONTRACT_2026-11-10.md` to make the next owner-supplied evidence handoff precise and redaction-safe.
+- L4M-01 intake requires an existing owner-controlled copy outside T0/VPS and GitHub, package inventory/byte counts, per-file SHA-256 manifest, custody provenance and exact-package readback evidence. Availability claims are limited to actually observed failure scenarios.
+- L4M-03 intake requires exact checkpoint byte/digest identity, schema/dataset/sequence semantics, existing signature metadata if available, and the separately authenticated latest-head anchor linked into the same L4M-01 custody inventory. Sequence/generation alone is insufficient; missing anchor means freshness UNKNOWN.
+- No evidence received or verified; no owner storage access. No credentials/private keys/private URLs requested. No tests, outage simulation, signing, runtime/VPS/DB/provider/permission changes, Actions dispatch or destructive operations. Option C ACTIVE; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
+- Next gate remains owner-supplied sanitized evidence for existing L4M-01 custody and L4M-03 anchor. L4M-01 NOT VERIFIED; L4M-03 PARTIAL synthetic/design only; aggregate L4-Minimum BLOCKED.
