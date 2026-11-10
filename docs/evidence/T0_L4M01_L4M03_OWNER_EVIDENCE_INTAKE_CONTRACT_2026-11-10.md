@@ -34,10 +34,10 @@ Supply sanitized metadata for an already-existing, owner-authorized checkpoint/a
 5. Sequence/generation and the precise semantics/authority of that field.
 6. Signature envelope algorithm/profile, signer fingerprint (not key material), signature byte digest and verification result, if an existing signed object exists.
 7. Latest-head anchor object ID, exact digest, issuer/authority class, monotonicity rule and custody inventory entry.
-8. Evidence that the anchor is independently retained/readable outside T0/VPS and GitHub; reference the same L4M-01 package and readback record.
+8. Evidence that the anchor is retained/readable in the approved VPS and/or GitHub custody location; reference the same L4M-01 package and exact readback record. No external custody copy is required.
 9. Rollback assessment: identify the older checkpoint digest and anchor digest and the observed decision. If no approved test/observation exists, mark `NOT RUN`; do not perform a replay or rollback test.
 
-Sequence/generation alone cannot establish freshness. If anchor authenticity, latest-head authority, monotonicity, independent custody or readback is absent, freshness is `UNKNOWN / NOT VERIFIED`.
+Sequence/generation alone cannot establish freshness. If anchor authenticity, latest-head authority, monotonicity, approved-location custody or exact readback is absent, freshness is `UNKNOWN / NOT VERIFIED`. Simultaneous VPS+GitHub unavailability is outside the recovery claim.
 
 ## C. Required response vocabulary
 
@@ -60,9 +60,9 @@ Do not convert missing evidence into an inferred PASS. A reference is not itself
 
 ## E. Acceptance boundary
 
-L4M-01 cannot PASS until an owner-controlled independent copy, complete manifest, custody provenance and exact readback are evidenced, including the separately authenticated latest-head anchor in the same custody package. The outage availability claims must remain limited to scenarios actually evidenced.
+L4M-01 cannot PASS until the owner-controlled VPS/GitHub custody location(s), complete manifest, custody provenance and exact readback are evidenced, including the separately authenticated latest-head anchor in the same custody package. No copy outside VPS and GitHub is required. Any single-location outage claim must be supported by a verified copy in the remaining location; simultaneous VPS+GitHub outage recovery is outside scope.
 
-L4M-03 cannot PASS until the exact checkpoint is cryptographically bound and freshness is evaluated against the independently authenticated latest-head anchor. Missing or unverifiable anchor means freshness UNKNOWN, not PASS.
+L4M-03 cannot PASS until the exact checkpoint is cryptographically bound and freshness is evaluated against the separately authenticated latest-head anchor retained/read back from an approved VPS/GitHub location. Missing or unverifiable anchor means freshness UNKNOWN, not PASS.
 
 L4M-01 and L4M-03 remain separate controls with shared evidence references. Neither control is promoted by this intake specification.
 
