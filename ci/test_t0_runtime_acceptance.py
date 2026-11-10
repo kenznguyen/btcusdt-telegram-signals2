@@ -287,8 +287,12 @@ class ReadOnlySQLiteAcceptanceTests(unittest.TestCase):
         payload = {
             "state": "HEALTHY", "live": True, "ready": True,
             "timeframes": {
-                "15m": {"state": "HEALTHY", "unresolved_gap_count": 0, "sync_error": None},
-                "1h": {"state": "HEALTHY", "unresolved_gap_count": 0, "sync_error": None},
+                "15m": {"state": "HEALTHY", "unresolved_gap_count": 0, "sync_error": None,
+                        "age_ms": 5_000, "latest_closed_candle_close_ms": NOW,
+                        "last_successful_sync_ms": NOW},
+                "1h": {"state": "HEALTHY", "unresolved_gap_count": 0, "sync_error": None,
+                       "age_ms": 5_000, "latest_closed_candle_close_ms": NOW,
+                       "last_successful_sync_ms": NOW},
             },
         }
         fake = FakeOpener(lambda _request: FakeResponse(payload))
