@@ -316,7 +316,7 @@ def probe_candle_api(base_url, token, *, now_ms, timeout=HTTP_TIMEOUT_SECONDS,
     if type(now_ms) is not int or now_ms < 0:
         raise ValueError("now_ms must be a nonnegative integer")
     if (not isinstance(token, str) or not token.strip()
-            or any(char in token for char in "\\r\\n")):
+            or any(char in token for char in "\r\n")):
         raise ProbeError("CANDLE_API_TOKEN_REQUIRED")
     base = _loopback_base_url(base_url)
     opener = opener_factory() if opener_factory else _default_opener()
