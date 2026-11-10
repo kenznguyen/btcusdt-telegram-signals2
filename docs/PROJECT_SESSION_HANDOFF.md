@@ -4266,3 +4266,14 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - CI evidence is stronger at artifact-byte level, but current deployed SHA/listener/config/process and data-path remain NOT VERIFIED. G1 PARTIAL; G2/G3/G5 historical only; G4 PARTIAL; G6 NOT RUN.
 - No SSH/VPS/DB/network probe, new tests, compile, workflow dispatch, source/runtime/data mutation or destructive action.
 - Next step remains owner-supplied sanitized current VPS evidence. If unavailable, do not upgrade any current deployment gate to PASS.
+
+
+## Latest continuation — expose Scaleway SSH preflight dispatch from main (2026-11-10)
+
+- Copied the already-reviewed `.github/workflows/t0-manual-validation.yml` from `feature/t0-centralized-data-feeder-p1-20261101` to `main`; this was the only file changed on `main`.
+- Main commit: `9cb38cdd995158704fe2993e277396bb9bf4b50a`; workflow blob after GitHub readback: `395ae93274a9202f14ab63d528be5cd582c30149`.
+- Diff is limited to adding the `scaleway-ssh-preflight` manual gate, excluding that gate from the existing generic job, and adding the two SSH contract/preflight jobs. Existing manual gates were retained.
+- Main readback confirms the gate option and both jobs. The matching remote script and contract test are present on the feature branch, not on main; therefore dispatch must select `feature/t0-centralized-data-feeder-p1-20261101` in the GitHub branch selector so the workflow checks out the matching source tree. Do not select `main` for the SSH run.
+- No workflow was dispatched, no SSH connection was attempted, and no artifact/run exists from this change. Secrets/environment configuration and VPS forced-command installation remain NOT VERIFIED.
+- Status: workflow exposure on main PASS (GitHub commit/readback); SSH preflight execution NOT RUN. No T0 runtime, database, data, trading or VPS mutation.
+- Next step: manually run `T0 Manual Validation` from Actions with branch `feature/t0-centralized-data-feeder-p1-20261101` and gate `scaleway-ssh-preflight`; inspect run and artifact before changing deployment status.
