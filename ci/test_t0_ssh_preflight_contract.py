@@ -47,6 +47,42 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertIn("github.event_name == 'workflow_dispatch' && inputs.gate == 'scaleway-ssh-preflight'", workflow)
         self.assertIn("SCW_SSH_KEY_PASSPHRASE", workflow)
 
+
+    def test_sqlite_lease_fencing_auto_trigger_is_path_scoped(self):
+        workflow = WORKFLOW.read_text()
+        self.assertIn("push:", workflow)
+        self.assertIn("branches:", workflow)
+        self.assertIn("feature/t0-centralized-data-feeder-p1-20261101", workflow)
+        for path in (
+            ".github/workflows/t0-manual-validation.yml",
+            "ci/test_t0_ssh_preflight_contract.py",
+            "market_data/feeder.py",
+            "market_data/store.py",
+            "market_data/write_gateway.py",
+            "market_data/test_feeder_lease.py",
+            "market_data/test_write_gateway.py",
+            "market_data/test_feeder_lifecycle.py",
+        ):
+            self.assertIn(path, workflow)
+
+    def test_sqlite_lease_fencing_auto_job_isolated_and_evidence_backed(self):
+        workflow = WORKFLOW.read_text()
+        self.assertIn("  sqlite-lease-fencing-auto:", workflow)
+        auto_job = workflow.split("  sqlite-lease-fencing-auto:", 1)[1]
+        self.assertIn("github.event_name == 'push' || github.event_name == 'pull_request'", auto_job)
+        self.assertIn("permissions:", auto_job)
+        self.assertIn("contents: read", auto_job)
+        self.assertIn("ref: ${{ github.sha }}", auto_job)
+        self.assertIn("persist-credentials: false", auto_job)
+        self.assertIn("python -m unittest market_data.test_feeder_lease market_data.test_write_gateway market_data.test_feeder_lifecycle -v", auto_job)
+        self.assertIn("sqlite-lease-fencing-tests.log", auto_job)
+        self.assertIn("sqlite-lease-fencing-verdict.txt", auto_job)
+        self.assertIn("ci-source-sha.txt", auto_job)
+        self.assertIn("actions/upload-artifact@v4", auto_job)
+        self.assertNotIn("secrets.", auto_job)
+        self.assertNotIn("ssh ", auto_job)
+        self.assertNotIn("environment:", auto_job)
+
     def test_remote_script_is_forced_command_compatible_and_read_only(self):
         script = SCRIPT.read_text()
         self.assertIn("P1_SSH_PREFLIGHT_VERSION=1", script)
