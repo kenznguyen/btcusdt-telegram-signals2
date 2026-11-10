@@ -3,8 +3,8 @@
 Date: 2026-11-10
 Repository: `kenznguyen/btcusdt-telegram-signals2`
 Branch: `feature/t0-centralized-data-feeder-p1-20261101`
-Work type: evidence acquisition planning; automation approved, implementation not started
-Status: **REGISTER RECONCILED TO CURRENT MATRIX — AUTOMATION APPROVED — IMPLEMENTATION NOT STARTED — AGGREGATE ACCEPTANCE BLOCKED**
+Work type: evidence acquisition planning and bounded GitHub CI evidence automation
+Status: **REGISTER RECONCILED — LINEAGE GATE PASS — THREE-ARTIFACT GITHUB INVENTORY/MANIFEST PILOT PASS — AGGREGATE ACCEPTANCE BLOCKED**
 
 ## 1. Controlling policy and source baseline
 
@@ -20,7 +20,7 @@ The active denominator is nine controls: L4M-01–08 and L4M-10. L4M-09 remains 
 
 | Control | Existing evidence class | Exact remaining evidence needed | Acquisition boundary | Current disposition |
 |---|---|---|---|---|
-| L4M-01 — Owner custody | GitHub records and short-lived CI artifacts; no qualifying owner copy demonstrated | Owner-controlled package inventory; SHA-256 manifest; custody reference to VPS and/or GitHub; exact readback/integrity result for each claimed copy; include latest-head anchor. No external backup is required. Single-location outage claims require a verified copy in the remaining location; simultaneous VPS+GitHub outage recovery is outside scope | Automate GitHub artifact discovery, exact download/readback, inventory and SHA-256 manifest. For VPS, consider a bounded read-only collector only after separate access-contract approval. Owner confirms only the real-world designation/control of a copy where machine evidence cannot establish it; never request secrets | NOT VERIFIED |
+| L4M-01 — Owner custody | GitHub records and short-lived CI artifacts; no qualifying owner copy demonstrated | Owner-controlled package inventory; SHA-256 manifest; custody reference to VPS and/or GitHub; exact readback/integrity result for each claimed copy; include latest-head anchor. No external backup is required. Single-location outage claims require a verified copy in the remaining location; simultaneous VPS+GitHub outage recovery is outside scope | Automate GitHub artifact discovery, exact download/readback, inventory and SHA-256 manifest. Pilot verified three explicitly allowlisted GitHub artifacts (two P1.8.14 CI artifacts and one L4 lineage artifact); not a complete L4 package. For VPS, consider a bounded read-only collector only after separate access-contract approval. Owner confirms only real-world designation/control of a copy where machine evidence cannot establish it; never request secrets | PARTIAL — 3 GitHub artifacts read back and SHA-256 verified; owner custody and complete package NOT VERIFIED |
 | L4M-02 — Signer separation | Synthetic ephemeral-key tests and verifier-only source; no production owner signer proof | Signer identity/fingerprint; custody and recovery boundary; evidence that T0 runtime/admin credentials cannot sign or authorize signing; approved recovery procedure and separately authorized isolated proof | Automate signer metadata/fingerprint checks and code/permission-boundary tests. Owner confirms actual key custody/recovery only where not machine-verifiable. No key generation, import, export, rotation, provider call or privilege probe | NOT VERIFIED |
 | L4M-03 — Exact binding/freshness | Synthetic event-byte verifier and CI subject-digest checks; T0 has no signed canonical checkpoint | Exact T0 checkpoint/manifest definition; signed envelope and digest binding; authenticated latest-head anchor; exact anchor digest; owner-custody/readback proof; older-valid-checkpoint rollback result against anchor | Automate exact-byte/signature/anchor verification and mutation/replay/substitution tests on supplied evidence. Missing anchor remains UNKNOWN. No canonical T0 schema/write-path change or signing operation | PARTIAL — SYNTHETIC/DESIGN ONLY |
 | L4M-04 — Offline verification | Local synthetic Sigstore bundle verifier and CI evidence | Owner-run verification of the exact retained T0 package on a separate environment, with T0/VPS, GitHub, ChatGPT and network unavailable; verifier build/source hash; trust-policy snapshot; complete output and exit status | Automate a network-disabled GitHub verification job against exact package and pinned trust snapshot; report CI-offline and owner-offline separately. Owner-run offline evidence remains required only to satisfy the matrix's owner-environment assertion. No VPS or local installation | PARTIAL — SYNTHETIC/CI ONLY |
@@ -54,7 +54,7 @@ This sequence is a dependency plan, not an authorization to perform the activiti
 
 ## 5. Consolidated status
 
-- L4M-01: NOT VERIFIED.
+- L4M-01: PARTIAL — three allowlisted GitHub artifacts inventoried/read back; owner custody and complete package NOT VERIFIED.
 - L4M-02: NOT VERIFIED.
 - L4M-03: PARTIAL — synthetic/design only.
 - L4M-04: PARTIAL — synthetic/CI only.
@@ -69,8 +69,8 @@ This sequence is a dependency plan, not an authorization to perform the activiti
 
 ## 6. Next gate
 
-The approved next step is implementation in small, contract-first GitHub Actions increments, beginning with lineage/reference checks and GitHub artifact inventory/readback. This avoids asking the owner to perform checks that CI can prove. Owner-supplied assertions remain limited to actual custody/control facts not machine-verifiable from approved sources, and final L4M-10 acceptance. No additional backup outside VPS/GitHub is required.
+The lineage gate (11/11) and three-artifact GitHub inventory/manifest pilot (19/19 contract tests; 3/3 ZIP and 53/53 member hashes independently verified) are PASS for their declared scopes only. Next, reconcile all remaining existing GitHub evidence artifacts referenced by the current matrix/register and extend the explicit allowlist with exact run/artifact metadata. Do not call the pilot a complete L4 package. After the available evidence inventory is complete and stable, proceed to exact-object signature/negative verification and then network-disabled offline verification. Owner-supplied assertions remain limited to actual custody/control facts not machine-verifiable from approved sources, and final L4M-10 acceptance. No additional backup outside VPS/GitHub is required.
 
 ## 7. Limits
 
-Register update only. Automation plan is recorded in `docs/evidence/T0_L4_MINIMUM_AUTOMATION_PLAN_2026-11-10.md`. No tests, compile, dry-run, fault injection, Actions dispatch or workflow execution. No source/schema/API/runner/adapter/workflow/permission/key/trust/provider/runtime/VPS/database/network/data changes. No owner storage access or VPS evidence readback was performed. No workflow run or artifact is claimed. No archive, cleanup, expiry, vacuum, compaction, backup expiry, replica removal or deletion. Option C — No Destructive Authority remains ACTIVE; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+Register/evidence update. GitHub-hosted lineage and three-artifact inventory/manifest workflows were executed and independently read back. No source/schema/API/runtime/VPS/database/data changes, owner storage access, VPS evidence readback, signer/key/trust/provider operation, signature verification or offline verification occurred. No archive, cleanup, expiry, vacuum, compaction, backup expiry, replica removal or deletion. Option C — No Destructive Authority remains ACTIVE; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.

@@ -9,7 +9,7 @@ Updated: 2026-11-10 (Asia/Ho_Chi_Minh)
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
 - Default branch: `main`. Do not switch branches or create a parallel PR without a task-specific reason and approval.
-- Latest repository HEAD before this handoff update: `5dc935aa4663bf3b2ccf6075b704189896e45e63` (expanded L4 lineage gate; 11/11 tests PASS).
+- Latest repository HEAD before this handoff update: `db01cbe7750b75fcaafd4576d646d04c5b029c4b` (multi-artifact inventory/manifest pilot; lineage 11/11 and manifest 19/19 PASS).
 - Full previous handoff preserved verbatim in `docs/archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md`; archive commit: `2fcad94aef8b15002cdba58aafe62ad208dc818b`.
 - PR #139 is OPEN / DRAFT / NOT MERGED. It concerns SSH passphrase handling and targets this active branch. Do not merge or alter it as part of unrelated work.
 
@@ -101,17 +101,23 @@ Do not infer approval from prior conversation when the durable record is ambiguo
 - Proposed independent L4 GitHub Actions gates: lineage/contract; exact GitHub artifact inventory and readback; SHA-256 manifest; cryptographic and negative verification; network-disabled offline verification; disposable-copy readback/recovery; tamper-evident history; claim-discipline scan; deterministic aggregate report.
 - CI subchecks and owner-only assertions must be reported separately. CI success must never issue owner acceptance or override missing custody/signer evidence.
 - First lineage workflow/test were added in commits `ed82a1cf7bc12429ccc3ddb3c0ab6896f3f854e7` and `8f0c5136edaa677d73278c45fb4a4d4c07e86a13`; plan register SHA correction is in `d60be930c5b35254fd336de4777ce8058187ed01`. Expanded lineage gate and trigger coverage were committed in `5b24397773eb957a7efeb0694773b1c0ff446c06`; Git blob header calculation fix in `5dc935aa4663bf3b2ccf6075b704189896e45e63`.
-- Current test file blob: `af18ee5ce18bc832519f84b7519beeac56be1400`; workflow blob: `c868a786c60b88f1dd30c7e8fd12aab3af4dc221`; automation plan blob: `1e057265290b279e5823b0acb8f86df7c8e7a0d3`.
+- Current lineage test blob: `af18ee5ce18bc832519f84b7519beeac56be1400`; artifact collector blob: `77b9fd9a7fafd1d17539fb517bcf84c4c8e024d4`; collector tests blob: `ae122dc7bf3a53be443e17edce8c19e6cb32d868`; explicit allowlist blob: `d80b386e981bc1aec259e1026463a7abe39b4b1c`; workflow blob: `b01842b3b4ad7e834256b0f270688f758b8abed9`; automation plan blob: `1e057265290b279e5823b0acb8f86df7c8e7a0d3`.
 - Expanded contract checks exact matrix/register references, computes their actual Git blob SHA-1 values, scans active L4 decision/evidence documents for superseded matrix/register references, explicitly preserves the historical non-substitution assessment, verifies L4M-01–10 presence, and enforces custody/waiver policy. Workflow triggers now cover L4 decision and evidence docs.
 - Initial workflow run [42829414892](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42829414892), source `ed82a1cf7bc12429ccc3ddb3c0ab6896f3f854e7`, failed 1/7 because the plan still referenced the old register blob. Corrected; runs [42829483832](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42829483832) and [42829518609](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42829518609) passed 7/7.
 - Expanded run [42830499889](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42830499889), source `5b24397773eb957a7efeb0694773b1c0ff446c06`, failed 1/11 because the new Git blob SHA helper encoded a literal backslash-zero instead of a NUL byte. Fixed in `5dc935aa4663bf3b2ccf6075b704189896e45e63`.
-- Latest run [42830696970](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42830696970), event `push`, exact checkout/source SHA `5dc935aa4663bf3b2ccf6075b704189896e45e63`, job `129879611464` SUCCESS, **11/11 tests PASS**. Artifact `t0-l4-minimum-lineage-42830696970`, ID `13771616562`, 1,124 bytes, expires `2026-11-17T14:06:04Z`; Actions upload log reports ZIP SHA-256 `e71871a8872a78d18b3092c087c0de3394d2fe77bb84d732219ed976fac5690e`. Artifact payload was not downloaded/re-hashed; payload digest remains NOT VERIFIED.
+- Lineage gate is stable: run [42831240089](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42831240089), 11/11 PASS, source SHA `27aea002a3f404792d4c1a3dc56eff77c2163840`.
+- Artifact inventory/manifest pilot: run [42834966105](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42834966105), event `push`, source SHA `db01cbe7750b75fcaafd4576d646d04c5b029c4b`; lineage job `129894622621` SUCCESS (11/11), manifest job `129894707925` SUCCESS (19/19), `L4_ARTIFACT_MANIFEST=PASS`.
+- Explicit allowlist currently contains three GitHub artifacts: P1.8.14 synthetic bundle ID `13546255148`, independent-runner verification ID `13545287609` (both run `42304505004`, source `19a6629212f2f98aaa08c4ebe6ceb68801881732`), and L4 lineage artifact ID `13771662067` (run `42831240089`, source `27aea002a3f404792d4c1a3dc56eff77c2163840`).
+- Manifest artifact `t0-l4-artifact-manifest-42834966105`, ID `13772792245`, 2,877 bytes, expires `2026-11-17T14:31:38Z`; ZIP SHA-256 `a361eae206bffc312e1e1c04cd86aa9f9b75c8eb748900b6f663955efa08e9e4` independently confirmed after download. Manifest JSON SHA-256 `a2d4089abd2fcf820919c4ba4cb39108fc1e1823c0e325efb2b8b005fdb5c4ec` matches its `.sha256` file.
+- Source ZIP SHA-256 values independently re-read and verified against manifest: `13546255148` = `14e157cd8a393a743e01e12a915ab69636cf7cb4765f8a331953daeef1987b6f`; `13545287609` = `418fff2ffa874003527db5d83d8717bf8946b489c4e3a62b023f4c5e5e6feedd`; `13771662067` = `50991097fb0febf8f38398c656c6edf600f8a079bccd2dbf23a36873931bba68`. All 53 member digests (47+2+4) independently matched. P1.8.14 artifacts expire `2026-11-13T22:24:44Z`; lineage source artifact expires `2026-11-17T14:09:25Z`.
+- This is a **three-artifact GitHub inventory pilot**, not a complete L4 evidence package or proof of owner custody. All source objects remain in the GitHub failure domain. Signature verification and offline verification have NOT been run.
 
 ### Current status
 - Automation direction: APPROVED.
 - Design/documentation: RECORDED.
-- L4 lineage/contract workflow: **PASS — 11/11 tests on exact SHA `5dc935aa4663bf3b2ccf6075b704189896e45e63`**.
-- GitHub artifact inventory/readback and independently computed SHA-256 manifest: NOT STARTED; upload artifact payload digest NOT VERIFIED.
+- L4 lineage/contract workflow: **PASS — 11/11**.
+- GitHub artifact inventory/readback + SHA-256 manifest: **PARTIAL PASS — 3 explicitly allowlisted artifacts; 19/19 contract tests; 3/3 ZIP and 53/53 member hashes independently verified**.
+- Complete L4 evidence package inventory, owner custody/readback, signature verification and network-disabled offline verification: **NOT VERIFIED / NOT STARTED**.
 - VPS custody/readback: NOT VERIFIED.
 - Actual owner signer/custody assertions: PENDING EVIDENCE only where not machine-verifiable.
 - L4M-01–08: retain prior per-control dispositions; no PASS promoted.
@@ -120,7 +126,7 @@ Do not infer approval from prior conversation when the durable record is ambiguo
 - Aggregate L4-Minimum: BLOCKED / NOT VERIFIED.
 
 ### Next permitted step
-Expanded lineage gate is stable at 11/11 PASS on exact source SHA `5dc935aa4663bf3b2ccf6075b704189896e45e63`. It also confirmed that the old register SHA survives only in the explicitly historical non-substitution assessment; that record was not rewritten. Next permitted increment: design and test a GitHub-only artifact inventory/readback collector and deterministic SHA-256 manifest, with an explicit allowlist of source run/artifact IDs, exact source SHA binding, artifact expiry and fail-closed handling. Download and hash actual ZIP bytes before claiming payload integrity. Keep signature verification and network-disabled offline verification out of scope until the artifact inventory/manifest gate is independently stable. No VPS dispatch.
+Lineage gate is stable at 11/11 PASS. The GitHub-only collector now inventories three explicitly allowlisted artifacts and independently verifies ZIP/member digests. Next: reconcile the remaining GitHub evidence artifacts referenced by the current L4 matrix/register and extend the allowlist only with exact, verified run/artifact metadata. Do not treat this pilot as a frozen L4 package. After the available evidence inventory is complete and its manifest gate remains stable, proceed to exact-object signature/negative verification and then network-disabled offline verification. Keep owner custody assertions separate; no VPS dispatch.
 
 ### Explicit limits
 No canonical T0 SQLite access or mutation; no VPS/SSH/forced-command changes; no probe installation or remote command; no key generation/signing/rotation/revocation; no trust-root/provider mutation; no artifact deletion/retention changes; no T1, PostgreSQL, service restart, live trading or real orders. Option C — No Destructive Authority remains ACTIVE. CI PASS is not VPS runtime PASS and is not L4 acceptance.
