@@ -32,9 +32,9 @@ Also update the authenticated workflow's evidence classifier so unavailable/fail
 
 - PR: [#140](https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/140)
 - Branch: `fix/p1-ssh-preflight-contract-20261110`
-- Current source commit: `3a80256f8fced1be6e8060bb23859b9edf7baa1e`
+- Current source commit: `55c08a312543260f320d20c54d06033a5a414554`
 - Script blob: `6fc3a54c4d91e0ef82aedf1fba2543b4468c756e`
-- Test blob: `d96fb8a8cb20a32421cb32c4359420ff6d077e47`
+- Test blob: `b823ed3fc5c3d5f7629fee97d237e44eb8e68577`
 - Workflow blob: `749d53bf94168a0e0423e1b52f8699ffe2a605d3`
 
 ## Verification
