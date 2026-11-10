@@ -154,8 +154,8 @@ class T0SSHPreflightContractTests(unittest.TestCase):
     def test_workflow_ends_at_the_single_evidence_upload_block(self):
         workflow = (SCRIPT.parents[2] / ".github" / "workflows" / "t0-manual-validation.yml")
         text = workflow.read_text(encoding="utf-8")
-        self.assertTrue(text.endswith("            preflight-verdict.txt\\n"))
-        self.assertNotIn("\\n preflight-remote.log; then", text)
+        self.assertTrue(text.endswith("            preflight-verdict.txt\n"))
+        self.assertNotIn("\n preflight-remote.log; then", text)
 
     def test_non_loopback_listener_is_rejected(self):
         result = self.run_preflight_with_stubs(ss_address="0.0.0.0:8788")
