@@ -3,12 +3,12 @@
 Date: 2026-11-10
 Repository: `kenznguyen/btcusdt-telegram-signals2`
 Branch: `feature/t0-centralized-data-feeder-p1-20261101`
-Review type: documentary cross-reference reconciliation only
+Review type: documentary cross-reference reconciliation; updated to current owner-approved custody matrix and automation plan
 
 ## Exact current inputs
 
 - Current acceptance matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`
-  - Current blob SHA: `2ba85af550fb7e369ea39ade6d73878d78dbf6bc`
+  - Current blob SHA: `75db0d98134fd656d91a8545bc307c56595aebf7`
 - Owner waiver decision: `docs/decisions/D-2026-11-10-L4-INDEPENDENT-REVIEW-WAIVER.md`
   - Decision: L4M-09 OWNER-WAIVED / NOT MANDATORY; nine active controls are L4M-01–08 and L4M-10.
 - Historical read-only audit: `docs/evidence/T0_L4_MINIMUM_READ_ONLY_AUDIT_2026-11-10.md`
