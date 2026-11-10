@@ -10,6 +10,13 @@ on:
       - ci/test_t0_l4_artifact_manifest.py
       - ci/t0_l4_artifact_manifest.py
       - ci/l4-artifact-allowlist.json
+      - ci/t0_l4_repository_file_inventory.py
+      - ci/test_t0_l4_repository_file_inventory.py
+      - ci/l4-repository-file-inventory.json
+      - docs/architecture/CENTRAL_DATA_LIFECYCLE_POLICY.md
+      - docs/evidence/p1-8/P1.8.14*.md
+      - docs/decisions/D-2026-11-09-*.md
+      - docs/decisions/D-2026-11-10-*.md
       - docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md
       - docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md
       - docs/evidence/T0_L4_MINIMUM_AUTOMATION_PLAN_2026-11-10.md
@@ -121,3 +128,28 @@ jobs:
           path: |
             l4-artifact-manifest/l4-artifact-manifest.json
             l4-artifact-manifest/l4-artifact-manifest.sha256
+
+  l4-repository-file-inventory:
+    name: L4-Minimum exact-commit repository-file inventory
+    needs: l4-minimum-lineage-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run repository-file inventory contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest ci.test_t0_l4_repository_file_inventory -v
