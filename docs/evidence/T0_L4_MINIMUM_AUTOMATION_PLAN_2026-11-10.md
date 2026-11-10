@@ -3,10 +3,10 @@
 Date: 2026-11-10
 Repository: `kenznguyen/btcusdt-telegram-signals2`
 Branch: `feature/t0-centralized-data-feeder-p1-20261101`
-Status: **OWNER-APPROVED PLAN — LINEAGE GATE PASS — FOUR-ARTIFACT ACTIONS INVENTORY PILOT PASS — 40-FILE REPOSITORY INVENTORY CI PASS; REFERENCE RECONCILIATION PARTIAL PASS; REMAINING L4 CONTROLS NOT VERIFIED**
+Status: **OWNER-APPROVED PLAN — LINEAGE GATE PASS — SIX-ARTIFACT ACTIONS INVENTORY PASS — 40-FILE REPOSITORY INVENTORY CI PASS; REFERENCE RECONCILIATION PARTIAL PASS; REMAINING L4 CONTROLS NOT VERIFIED**
 Approval: owner approval in conversation on 2026-11-10 to automate L4M-01–08 as far as technically possible and reserve owner participation for real-world custody/control assertions and L4M-10 acceptance.
 Controlling matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md` (current branch blob at plan preparation: `75db0d98134fd656d91a8545bc307c56595aebf7`).
-Current register at plan preparation: `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` (blob `0125abfe77c0d0f9172e66aa5d09ec8fc8a33623`).
+Current register at plan preparation: `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` (blob `e67a58591b5f6168ab3a0f3f403557292aca45d5`).
 
 ## 1. Approved operating principle
 
@@ -98,8 +98,8 @@ Each implementation increment must be reviewed and tested before proceeding. Do 
 
 - Approval to automate: **APPROVED**.
 - Documentation/design plan: **RECORDED**.
-- L4 workflow implementation: **LINEAGE CONTRACT GATE PASS (12/12); FOUR-ARTIFACT GITHUB INVENTORY/READBACK + SHA-256 MANIFEST PILOT PASS (19/19 CONTRACT TESTS)**.
-- GitHub-side artifact inventory/readback: **PARTIAL PASS — 4 explicitly allowlisted artifacts, 57 member digests; not a complete L4 evidence package**.
+- L4 workflow implementation: **LINEAGE CONTRACT GATE PASS (12/12); SIX-ARTIFACT GITHUB INVENTORY/READBACK + SHA-256 MANIFEST PASS (19/19 CONTRACT TESTS)**.
+- GitHub-side artifact inventory/readback: **PARTIAL PASS — 6 explicitly allowlisted artifacts, 65 member digests; not a complete L4 evidence package**.
 - VPS-side custody/readback: **NOT VERIFIED**.
 - Owner signer/custody assertions: **PENDING EVIDENCE**.
 - L4-Minimum aggregate: **BLOCKED / NOT VERIFIED**.
@@ -153,3 +153,11 @@ Each implementation increment must be reviewed and tested before proceeding. Do 
 - Added to the inventory: `T0_TSA_WORM_READ_ONLY_AUDIT_2026-11-10.md`, `P1.8.80-retention-and-eligibility-policy.md`, `P1.8.121-owner-decision-ratification-option-c-no-destructive-authority.md`, and `P1.8.141-holistic-data-lifecycle-design-closure-assessment.md`.
 - Resolved but excluded as separate T0 architecture/backend/lifecycle background: shared data foundation, PostgreSQL role/writer decisions, and generic consumer/deletion/copy-lifecycle contracts. Exact paths and blob SHAs are recorded in the scope reconciliation report.
 - The 40-file inventory remains a bounded L4 source set, not repository-wide completeness proof. Reference reconciliation remains PARTIAL PASS.
+
+
+### Six-artifact allowlist reconciliation — 2026-11-11
+
+- Current Evidence Register blob: `e67a58591b5f6168ab3a0f3f403557292aca45d5`.
+- Current allowlist blob: `0280cd7751c9660baec237242ca7aadef09205a6`; six entries: two P1.8.14 synthetic artifacts and four L4 lineage CI artifacts.
+- Validation run [42922670634](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42922670634), exact source SHA `0251a8cc7995903d2516fc84cc0a33b73ec02777`: lineage 12/12, repository inventory 10/10, manifest 19/19; 41/41 total PASS.
+- All three current-run output ZIPs independently downloaded and re-hashed; manifest declares six inputs and excludes its own outputs. Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
