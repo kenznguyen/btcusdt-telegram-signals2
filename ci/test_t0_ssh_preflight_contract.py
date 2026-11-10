@@ -215,5 +215,52 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertNotIn('"$@"', script)
         self.assertNotIn("${{", script)
 
+
+    def test_g4_probe_uses_read_only_sqlite_and_never_mutates_lease(self):
+        probe = (ROOT / "ci/t0_runtime_acceptance.py").read_text()
+        self.assertIn("?mode=ro", probe)
+        self.assertIn("PRAGMA query_only=ON", probe)
+        self.assertIn("PRAGMA integrity_check", probe)
+        self.assertIn("SELECT owner, generation, expires_at_ms", probe)
+        self.assertIn("SELECT open_time_ms, available_at_ms", probe)
+        for forbidden in ("BEGIN IMMEDIATE", "INSERT INTO", "UPDATE feeder_leases",
+                          "DELETE FROM", ".acquire(", ".heartbeat(", ".release("):
+            self.assertNotIn(forbidden, probe)
+
+    def test_g4_runtime_contract_is_path_scoped_and_requires_g1_g2_g3(self):
+        workflow = WORKFLOW.read_text()
+        for event in ("push:", "pull_request:"):
+            event_block = workflow.split("  " + event, 1)[1].split("\\n\\n", 1)[0]
+            self.assertIn("ci/t0_runtime_acceptance.py", event_block)
+            self.assertIn("ci/test_t0_runtime_acceptance.py", event_block)
+
+        scope = workflow.split("  g4-runtime-contract-change-scope:", 1)[1].split(
+            "  sqlite-g4-runtime-contract-auto:", 1
+        )[0]
+        self.assertIn("fetch-depth: 0", scope)
+        self.assertIn("git diff --name-only", scope)
+
+        job = workflow.split("  sqlite-g4-runtime-contract-auto:", 1)[1].split(
+            "  manual-gate:", 1
+        )[0]
+        for prerequisite in (
+            "sqlite-lease-fencing-auto", "sqlite-recovery-auto",
+            "sqlite-data-flow-auto",
+        ):
+            self.assertIn(prerequisite, job)
+        self.assertIn("needs.sqlite-lease-fencing-auto.result == 'success'", job)
+        self.assertIn("needs.sqlite-recovery-auto.result == 'success'", job)
+        self.assertIn("needs.sqlite-data-flow-auto.result == 'success'", job)
+        self.assertIn("contents: read", job)
+        self.assertIn("persist-credentials: false", job)
+        self.assertIn("python -m unittest ci.test_t0_ssh_preflight_contract ci.test_t0_runtime_acceptance -v", job)
+        self.assertIn("g4-runtime-contract-tests.log", job)
+        self.assertIn("g4-verdict.txt", job)
+        self.assertIn("actions/upload-artifact@v4", job)
+        self.assertNotIn("secrets.", job)
+        self.assertNotIn("ssh ", job)
+        self.assertNotIn("environment:", job)
+        self.assertIn("G4_SQLITE_PROBE=DISPOSABLE_FIXTURE_ONLY", job)
+
 if __name__ == "__main__":
     unittest.main()
