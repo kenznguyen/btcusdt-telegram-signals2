@@ -1605,7 +1605,7 @@ This section supersedes the earlier PR #140 next-step note that requested implem
 - User explicitly approved resetting `main` to remove the two named commits, then merging PR #140.
 - Reset target: `9cb38cdd995158704fe2993e277396bb9bf4b50a`, the commit immediately preceding `e9de76082d0ddca965d4eab6ad0f2bf84e5ff417`.
 - Removed from `main` history by force-with-lease ref update:
-  - `e9de76082d0ddca965d4eab6f0d2bf84e5ff417` — `ci(t0): expose isolated SSH contract gate on main`.
+  - `e9de76082d0ddca965d4eab6ad0f2bf84e5ff417` — `ci(t0): expose isolated SSH contract gate on main`.
   - `5b7af94dfaadc41988d6aad186e6db2705bb0345` — `docs: record main SSH contract gate enablement`.
 - Reset used expected prior `main` SHA `5b7af94dfaadc41988d6aad186e6db2705bb0345`; GitHub confirmed success. Post-reset `main` head verified as `9cb38cdd995158704fe2993e277396bb9bf4b50a`.
 - Compared reset target with PR head `7d3fe3372596db25855c5aa2a874f553154fa0b6`: PR branch was 43 commits ahead / 0 behind; changed files remained the seven recorded in PR #140.
