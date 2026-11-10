@@ -1,3 +1,16 @@
+## T0 → T2 historical runtime evidence reconciliation (2026-11-10)
+
+- Corrective record: `docs/evidence/T0_T2_DEPLOYMENT_PARITY_EVIDENCE_RECONCILIATION_2026-11-10.md`; commit `08a98e04b337c491313030dbdd94f4c405349137`.
+- Corrects the new checklist's intake status: prior operator-provided runtime evidence dated 2026-11-09 already exists in `docs/evidence/t2/T0_T2_LOOPBACK_RUNTIME_VERIFICATION_2026-11-09.md` (blob `568b7d2c5ba6f606221519aba7ee4b298dff34c8`) and the deployment gate (blob `4919abb30afc5f6fd7a98e013633d1e19d112325`).
+- Historical bounded gate result: loopback API at `127.0.0.1:8788`; `/health` 200; missing token 401; authenticated M15/H1 reads 200; each returned 2/2 complete closed VALIDATED candles; M15 ingestion lag 8,558 ms under 120,000 ms; one-shot T2 2-bar M15 context command exit 0 and JSON parse PASS.
+- Historical T0 source SHA `9ae2eeae4ece3d657781b68e96b6f4509cd95f24`; T2 context file SHA-256 `e22d6c7d186b1fb9a5079eb9b4224c8acbcd835a0938dc970e9bc4b072eb75d3`. Process-loaded byte identity was not independently attested. T2 artifact stayed local at `/tmp/t2-canonical-window-20261109T112946Z.json`; no GitHub Actions artifact/run exists for this operator-run gate.
+- Corrected status: historical bounded T0→T2 loopback gate = PASS; current deployment parity on 2026-11-10 = PARTIAL / NOT VERIFIED because current VPS source SHA, service/listener state, environment/token state and current data freshness have not been re-established. Do not repeat historical success as current-state proof.
+- T1 remained NOT ACTIVATED in that gate. No broader Freqtrade runtime activation, strategy/model training, signal publication, ledger/risk change, live order or data deletion occurred.
+- No new VPS/SSH/runtime/DB/network probe, test, compile, Actions dispatch or artifact upload was performed for this reconciliation.
+- Next step: compare historical evidence with owner-supplied current sanitized source/service/config evidence; propose a new bounded read-only check only if needed and separately approved.
+- `AI_EXECUTION_ENABLED=false`; paper-only; PostgreSQL/TimescaleDB PARKED. Option C REVOKED; no destructive action authority implied.
+
+---
 ## Latest T0 → T2 deployment parity evidence checklist (2026-11-10)
 
 - Added `docs/evidence/T0_T2_DEPLOYMENT_PARITY_EVIDENCE_CHECKLIST_2026-11-10.md`.
