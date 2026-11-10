@@ -4078,3 +4078,15 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - L4M-02 remains NOT VERIFIED. No production signer is inferred absent beyond the reviewed source/document scope. No key operations, signing, permission probes, tests, provider calls, Actions dispatch, runtime/VPS/DB/network changes or owner-system access.
 - Next admissible input: sanitized owner references for an already-existing signer role/fingerprint, custody/recovery boundary, authorization policy and T0 credential separation. If none exists, record NOT AVAILABLE; any new signer design or operation needs separate approval.
 - L4M-01 remains NOT VERIFIED; L4M-03 remains PARTIAL synthetic/design only; aggregate L4-Minimum BLOCKED. Option C ACTIVE; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
+
+
+## Latest continuation — L4M-08 claim discipline assessment (2026-11-10)
+
+- Added `docs/evidence/T0_L4M08_CLAIM_DISCIPLINE_DOCUMENTARY_ASSESSMENT_2026-11-10.md`.
+- Assessment commit: `936b04a567695b512a837b05b644e7c7e429299e`; report blob SHA: `702f7ee2d26edeeb5f9e59081da6d9339088fb74`.
+- Reviewed exact matrix blob `2ba85af550fb7e369ea39ade6d73878d78dbf6bc`, evidence register blob `4ec993d23a7b6d282350d0dea0add0254cac87cb`, policy reconciliation blob `531b9b4b42337439697ac27286486ced8d19df25`, and L4M-02 assessment blob `ea32f996cf5053fc8f320b9dc325bd242da1c034`.
+- Bounded documentary review found no overclaim in those four exact documents: signature validity, timestamp, Sigstore/CI, synthetic tests, ACK/consumption, tamper-evident history and independent-assurance claims remain explicitly scoped.
+- L4M-08 remains DOCUMENTARY PASS ONLY; complete owner-controlled package claim inventory is absent and exact frozen-package revalidation remains required. Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
+- No tests, verifier execution, Actions dispatch, owner storage readback, signing/key/provider/runtime/VPS/DB/data/permission/network changes or destructive lifecycle action. No workflow run/artifact claimed.
+- Option C ACTIVE; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next gate: L4M-10 readiness assessment, but do not freeze a baseline or issue owner acceptance while L4M-01–07 evidence remains incomplete. Owner evidence remains the critical dependency.
