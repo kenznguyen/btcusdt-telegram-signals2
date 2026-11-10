@@ -6,7 +6,7 @@
 - If copies are claimed in both locations, each copy must be read back and digest-checked. A single-location outage recovery claim requires an accessible verified copy in the remaining location.
 - Simultaneous VPS + GitHub unavailability is outside the accepted recovery-availability claim. Do not claim recovery for that combined outage.
 - GitHub-hosted runners/artifacts remain within the GitHub failure domain and are not independent third-party custody. This decision does not assume VPS/GitHub credentials, administrators, regions or failure domains are otherwise independent.
-- Updated acceptance matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`, commit `294f0134b342f5152b9ab949ecde6cdb5f2e1803`, blob `6f51cfd2b36b054776db156f15a6bd4594fad196`.
+- Updated acceptance matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`, initial commit `294f0134b342f5152b9ab949ecde6cdb5f2e1803`; terminology clarification commit `a4e8fcde9942ef032e261fb3d69e1eef0e64d090`, final blob `75db0d98134fd656d91a8545bc307c56595aebf7`.
 - Updated intake contract: commit `a0f0b0771b7f4fe47ac4a07fc20198d053051b19`, blob `3d65bf941b7884010ec79cb6fc23e42998713770`.
 - Updated acquisition register: commit `c69fafbf57f6a3b928a7af6a9ca58768f60526c9`, blob `c7605704c5868ef2534017029cef2766e94eca6a`.
 - Updated historical non-substitution assessment to mark its former external-custody criterion superseded while retaining technical findings: commit `c35f031852dcfa688e4d2005feb504f14bf6978b`, blob `1fea06d455e020fb3e87d7378c8f95bb127f9c4b`.
