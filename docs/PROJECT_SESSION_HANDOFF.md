@@ -330,3 +330,15 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - These are generated outputs, not added to the source allowlist. Their upload digests have not yet been independently re-hashed.
 - The workflow validation applies to report source commit, not the later handoff-only commits. The current branch HEAD is expected to move with this handoff update; verify after write.
 - Gate: 32/32 L4 workflow runs inventoried; 59 outputs classified; CI validation 41/41 PASS. Independent payload re-hash of all 59 historical outputs remains NOT PERFORMED. Complete inventory of every workflow in the repository remains out of scope/not verified. Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
+
+
+### Latest successful lineage candidate review and allowlist refresh (2026-11-11)
+
+- Independently downloaded latest prior successful lineage artifacts:
+  - Run `42916283963`, source SHA `946e2b0d1da4ec35046ef3b37f4408f438dff27f`, artifact `13810400590`, ZIP 1,151 bytes, SHA-256 `3a77cdcd09328e5bfc54050110ddf7d2a2793d169f602a0f64f5ccc1b250f158`.
+  - Run `42917592435`, source SHA `febb5ad8478d1334c13f32969a6cfae9e005656e`, artifact `13810855669`, ZIP 1,151 bytes, SHA-256 `83252ff9ec79730ecaa5dc13e6c7df9dca83824eaba8a0dbf94e3bcbefce838a`.
+- Both archives contain exactly the four required lineage members. Each source marker matches its exact source SHA; scope marker is `T0_L4_MINIMUM_LINEAGE=GITHUB_HOSTED_READ_ONLY`; verdict is PASS; test log reports 12 tests and `OK`. Latest run `42917592435` is a more current successful lineage snapshot than the two lineage artifacts previously allowlisted.
+- Verified source ancestry: `febb5ad8478d1334c13f32969a6cfae9e005656e` is an ancestor of prior branch HEAD `6a0df4d752438b622a43b43b3b47a654ca072adb` (`ahead_by=3`, `behind_by=0`).
+- Added latest lineage artifact `13810855669` to `ci/l4-artifact-allowlist.json`; allowlist now has five entries. New allowlist blob `2fe01dbd2e3367db821f8e18503f965dc32fd42b`; commit `cab8122c94e8bb8f30052ae44483fb1ec7e4de65`.
+- New allowlist entry is a CI lineage-contract output only. It does not constitute owner-held source evidence, independent custody, offline recovery, or control acceptance. The older lineage entries remain preserved; no historical record was deleted.
+- Validation run [42917935285](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42917935285) is running on exact allowlist-update source SHA `cab8122c94e8bb8f30052ae44483fb1ec7e4de65`. At this handoff edit, lineage job `130185080754` SUCCESS; manifest job `130185161436` and repository inventory job `130185161572` still IN_PROGRESS. Do not claim PASS until run is complete.
