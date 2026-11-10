@@ -9,7 +9,7 @@ Updated: 2026-11-10 (Asia/Ho_Chi_Minh)
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
 - Default branch: `main`. Do not switch branches or create a parallel PR without a task-specific reason and approval.
-- Latest repository HEAD before the current handoff update: `50c99cf3c71e8d85dddaceeb4f8e604000a254c5` (G4 dispatcher design review commit).
+- Latest repository HEAD before this handoff update: `0ca4c3f7427f81d7adb3e382e5603cb87b6dcad6` (L4 evidence register aligned to approved automation plan).
 - Full previous handoff preserved verbatim in `docs/archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md`; archive commit: `2fcad94aef8b15002cdba58aafe62ad208dc818b`.
 - PR #139 is OPEN / DRAFT / NOT MERGED. It concerns SSH passphrase handling and targets this active branch. Do not merge or alter it as part of unrelated work.
 
@@ -84,3 +84,36 @@ The dispatcher target design is recorded in `docs/evidence/G4_FORCED_COMMAND_DIS
 6. Update this handoff after the gate result, recording exact commit/run/artifact identifiers and the next authorized step.
 
 Do not infer approval from prior conversation when the durable record is ambiguous. When scope conflicts, stop and ask.
+
+## 6. Current workstream — T0 L4-Minimum automation
+
+**Owner approval (2026-11-10):** automate L4M-01–08 as far as technically possible using GitHub Actions and bounded read-only verification. Do not require owner manual work for deterministic checks CI can perform. Owner participation is reserved for real-world custody/control assertions that cannot be machine-proved from approved sources and final L4M-10 disposition. L4M-09 remains OWNER-WAIVED.
+
+### Current source/evidence
+- Controlling matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`, current blob `75db0d98134fd656d91a8545bc307c56595aebf7`. Matrix criteria were not changed in this increment.
+- Automation plan: `docs/evidence/T0_L4_MINIMUM_AUTOMATION_PLAN_2026-11-10.md`, added in commit `c1a85698395b8660c1e71ecbe5e4bfcf3c504a5e`.
+- Evidence register: `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md`, updated in commit `0ca4c3f7427f81d7adb3e382e5603cb87b6dcad6`, blob `cee949666da611a4efca7e7b51aea47ab4b13eff`.
+- Branch remains `feature/t0-centralized-data-feeder-p1-20261101`; no parallel branch or PR created.
+
+### Automation design
+- Proposed independent L4 GitHub Actions gates: lineage/contract; exact GitHub artifact inventory and readback; SHA-256 manifest; cryptographic and negative verification; network-disabled offline verification; disposable-copy readback/recovery; tamper-evident history; claim-discipline scan; deterministic aggregate report.
+- CI subchecks and owner-only assertions must be reported separately. CI success must never issue owner acceptance or override missing custody/signer evidence.
+- Workflow implementation is NOT STARTED. This increment records the approved plan and updates the acquisition register only.
+
+### Current status
+- Automation direction: APPROVED.
+- Design/documentation: RECORDED.
+- L4 workflow implementation: NOT STARTED.
+- GitHub artifact inventory/readback automation: NOT VERIFIED / NOT STARTED.
+- VPS custody/readback: NOT VERIFIED.
+- Actual owner signer/custody assertions: PENDING EVIDENCE only where not machine-verifiable.
+- L4M-01–08: retain prior per-control dispositions; no PASS promoted.
+- L4M-09: OWNER-WAIVED.
+- L4M-10: NOT VERIFIED; final disposition remains owner-only.
+- Aggregate L4-Minimum: BLOCKED / NOT VERIFIED.
+
+### Next permitted step
+Reconcile all stale matrix/register/decision blob references in the L4 supporting documents, preserving historical records. Then implement workflow contract tests first on the existing branch. Read TDD skill and inspect all relevant source/contracts before any behavior or workflow change. Keep each gate incremental and GitHub-runner-only. Do not dispatch or invoke VPS workflows as part of this plan.
+
+### Explicit limits
+No canonical T0 SQLite access or mutation; no VPS/SSH/forced-command changes; no probe installation or remote command; no key generation/signing/rotation/revocation; no trust-root/provider mutation; no artifact deletion/retention changes; no T1, PostgreSQL, service restart, live trading or real orders. Option C — No Destructive Authority remains ACTIVE. CI PASS is not VPS runtime PASS and is not L4 acceptance.
