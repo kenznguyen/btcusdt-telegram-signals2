@@ -4518,3 +4518,33 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - Disposition: G1/G2/G3 isolated CI gates revalidated PASS on source SHA `c3e428...`; G4a read-only SQLite probe/API-separation contracts PASS. This proves only disposable GitHub-runner behavior. It does **not** prove current VPS lease, SQLite state, candle freshness, authenticated API response, watermark progression, or process stability. VPS G4 runtime remains **NOT VERIFIED**.
 - No SSH/VPS connection, forced-command or `authorized_keys` change, probe installation, canonical DB read/write, service restart, T1 activation, PostgreSQL work, data deletion, or trading action occurred. T1 NOT ACTIVATED; PostgreSQL PARKED; `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next step: define and test separate bounded HTTP probes for the canonical candle API and the explicitly configured detailed feeder-health API; missing Flask listener configuration must remain NOT VERIFIED. Then review a deployment mechanism that preserves forced-command allowlisting. No VPS installation or runtime invocation without separate explicit approval.
+
+
+## G4b — bounded loopback HTTP acceptance probes and integration CI PASS (2026-11-10)
+
+- Added two separate probes to `ci/t0_runtime_acceptance.py`:
+  - `probe_candle_api`: requires an explicit loopback URL and token; checks canonical candle service `/health`, then authenticated `/v1/candles` for two closed M15 and two closed H1 candles. It validates contract identity/version, dataset hash marker, source/provenance, complete coverage, no gaps, and freshness below one timeframe interval. Token is sent only in the Bearer header, never in the URL or output.
+  - `probe_feeder_health`: accepts a separate explicitly configured loopback base URL for Flask `/health/data`; checks aggregate liveness/readiness and both timeframe health, gap count, sync error, watermark and age. If no listener URL is configured, returns `NOT_VERIFIED / LISTENER_NOT_CONFIGURED`; it never assumes port 8788.
+- HTTP boundary protections: loopback-only URL validation; reject URL credentials, query/fragment and path prefixes; disable environment proxies; reject redirects; GET-only; JSON content type; maximum 1 MiB response; timeout capped at 5 seconds (default 3); sanitized error classes.
+- Added tests for Bearer-header-only behavior, external host/token rejection, incomplete coverage, stale freshness, missing detailed-health listener, unhealthy M15/H1 state, transport bounds and redirects. A new integration test runs the actual T0 WSGI candle API over ephemeral loopback against a disposable temporary SQLite DB and exercises the real probe end-to-end. It does not use the VPS or canonical DB.
+- Final workflow run [42824628084](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42824628084): event `push`, branch `feature/t0-centralized-data-feeder-p1-20261101`, exact source SHA `a6d939252f1651c4f8f5478bf49581824cc67cc9`, overall conclusion **SUCCESS**.
+- Job results:
+  - G1 `129858601820`: SUCCESS.
+  - G2 `129858742012`: SUCCESS.
+  - G3 `129858906857`: SUCCESS.
+  - G4 read-only runtime probe contract job `129859066455`: **34/34 tests PASS**; verdict `G4_READ_ONLY_SQLITE_CONTRACT=PASS`. This includes 17 workflow/isolation contracts and 17 runtime-probe tests, including actual local WSGI + disposable SQLite integration.
+  - SSH preflight and manual VPS acceptance jobs: SKIPPED; no remote operation was attempted.
+- Artifacts:
+  - G1 ID `13768266382`, SHA-256 `3dbdd163c79e7e7390e34b335ae482c96eb16c2b9124c7a1e1c33cedd51ba71f`.
+  - G2 ID `13768104049`, SHA-256 `a0f547d2d3284ee33c437f154e95fe057d913d6469667c51614cc5147a4fa782`.
+  - G3 ID `13769375389`, SHA-256 `15bc0d8987fcef699428287aedf518269b26fda2bf16158639e7ac86af5e26ee`.
+  - G4 ID `13768391449`, SHA-256 `bafc77c273497e762860b7e39e8b341e5493aaae3e3cbba07e991d7a5179f910`; [artifact](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42824628084/artifacts/13768391449).
+  - All four artifacts expire `2026-11-17T13:27:06Z`.
+- Final source blobs at run SHA:
+  - `ci/t0_runtime_acceptance.py`: `479cf707feb931e6f46f3261f5a2824afa11e2c2`.
+  - `ci/test_t0_runtime_acceptance.py`: `72b429683e3ce5b21f7514a0bf5d0c819e9982e3`.
+  - `ci/test_t0_ssh_preflight_contract.py`: `f617d42f83d9ea8f88bbb7125284ab2e9804b232`.
+  - `.github/workflows/t0-manual-validation.yml`: `b776c2ddf33874dce0dfe7c6ed71562b30d5df62`.
+- Disposition: G4a SQLite read-only contracts and G4b HTTP probe contracts **CI PASS** on disposable GitHub runners. This still does not prove current VPS API authentication, detailed Flask listener existence, canonical DB lease validity, live candle freshness, watermark progression across time, or Feeder/API process stability. VPS G4 runtime remains **NOT VERIFIED**.
+- No VPS/SSH/forced-command/authorized_keys change, probe installation or execution, canonical SQLite read/write, service restart, T1 activation, PostgreSQL work, data deletion, or trading action occurred. T1 NOT ACTIVATED; PostgreSQL PARKED; `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next step: review a safe installation/invocation path for these read-only probes within the existing forced-command allowlist. First establish whether the detailed Flask health service is actually deployed and its loopback listener, without guessing. Do not add generic shell access or install/run the probe on VPS without separate explicit approval.
