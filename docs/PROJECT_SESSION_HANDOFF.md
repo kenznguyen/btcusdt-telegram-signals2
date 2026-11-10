@@ -4069,3 +4069,12 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - L4M-01 remains NOT VERIFIED; L4M-03 remains PARTIAL synthetic/design only and freshness UNKNOWN / NOT VERIFIED. No controls promoted; aggregate remains BLOCKED.
 - No tests, Actions dispatch, owner storage access, signing, runtime/VPS/DB/provider/key/permission/network changes or destructive operations. Option C ACTIVE; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
 - Next gate remains owner-supplied sanitized evidence for an already-existing L4M-01 package and L4M-03 latest-head anchor. If absent, record NOT AVAILABLE; do not manufacture evidence.
+
+
+## Latest continuation — L4M-02 signer-separation existing-evidence assessment (2026-11-10)
+
+- Added `docs/evidence/T0_L4M02_SIGNER_SEPARATION_EXISTING_EVIDENCE_ASSESSMENT_2026-11-10.md` after read-only inspection of the synthetic Ed25519 verifier/tests, Sigstore trust-root documentation, P1.8.14 and the active evidence register.
+- Finding: synthetic verifier is explicitly verifier-only; tests create ephemeral keys; P1.8.14 authenticates a GitHub workflow's synthetic archive. None establishes an owner-authorized T0 signer, private-key custody/recovery boundary, or that T0 runtime/admin credentials cannot invoke/authorize signing.
+- L4M-02 remains NOT VERIFIED. No production signer is inferred absent beyond the reviewed source/document scope. No key operations, signing, permission probes, tests, provider calls, Actions dispatch, runtime/VPS/DB/network changes or owner-system access.
+- Next admissible input: sanitized owner references for an already-existing signer role/fingerprint, custody/recovery boundary, authorization policy and T0 credential separation. If none exists, record NOT AVAILABLE; any new signer design or operation needs separate approval.
+- L4M-01 remains NOT VERIFIED; L4M-03 remains PARTIAL synthetic/design only; aggregate L4-Minimum BLOCKED. Option C ACTIVE; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
