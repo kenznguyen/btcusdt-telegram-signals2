@@ -4294,3 +4294,16 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - Review status: STRUCTURAL REVIEW PASS; test execution NOT VERIFIED; workflow dispatch NOT RUN. The inline contract check has not yet been executed by GitHub Actions. No claim is made about current VPS state or SSH connectivity.
 - Overall diagnostic change status: PARTIAL / NOT VERIFIED pending a manual `scaleway-ssh-preflight` run on this feature branch and inspection of the resulting artifact.
 - Next step: owner manually dispatches `T0 Manual Validation` with branch `feature/t0-centralized-data-feeder-p1-20261101` and gate `scaleway-ssh-preflight`; then inspect the contract job, SSH job and sanitized artifact. Do not rerun against `main` and do not broaden the remote command.
+
+
+## Latest continuation — Scaleway SSH preflight authentication diagnosis (2026-11-10)
+
+- Owner supplied workflow run `42792435714` for the approved `scaleway-ssh-preflight` gate.
+- Workflow run: completed / FAILURE; event `workflow_dispatch`; branch `feature/t0-centralized-data-feeder-p1-20261101`; exact checkout/source SHA `ff1f1768cab1b899494910df1b9ba0d98d35835f`.
+- Job `P1 SSH preflight contract checks`: PASS. Job `P1 authenticated Scaleway read-only preflight`: FAILURE. The isolated acceptance job was SKIPPED.
+- SSH client exit code: `255`. Sanitized diagnostic artifact classifies `SSH_STDERR_CLASS=AUTHENTICATION_REJECTED`; raw SSH stderr was intentionally not uploaded. This narrows the failure to SSH authentication rejection but does not identify whether the private/public key pair, SSH username, or key provisioning/authorization is the cause.
+- Artifact: `p1-scaleway-ssh-preflight-42792435714`; artifact ID `13752555729`; size 863 bytes; SHA-256 `7c8e1ed37861d9df1bc7f0b7fe32cbf2cbbdf48fe01fe1f167a70fa647c0d902`; expires `2026-11-17T09:38:40Z`. Contents inspected: source SHA, empty remote log, verdict `P1_SSH_PREFLIGHT=PARTIAL_OR_BLOCKED_EVIDENCE`, authentication-rejected classification and exit code 255.
+- Forced-command output was not received. No VPS state, service, listener, SQLite integrity, feeder PID, API or deployed source SHA was verified. No remote write, restart, database/data mutation or destructive operation occurred.
+- Status: workflow contract PASS; SSH preflight BLOCKED by authentication rejection; VPS runtime state NOT VERIFIED.
+- Next step: compare the fingerprint of the public key corresponding to the exact private key stored in `SCW_SSH_PRIVATE_KEY` with the restricted key entry in the intended account's `authorized_keys`, and confirm the configured SSH username. Do not disclose or upload private key material or passphrases. Keep strict host-key checking and forced-command restrictions unchanged. Any secret/key/authorized_keys change requires separate explicit approval.
+- No workflow rerun is authorized by this record. No arbitrary SSH shell or remote command is authorized. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
