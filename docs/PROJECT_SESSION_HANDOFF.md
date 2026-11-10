@@ -1,3 +1,17 @@
+## Latest T0 simplification — backend configuration caller/workflow inventory (2026-11-10)
+
+- Expanded read-only review: `docs/evidence/T0_SIMPLIFICATION_ACTIVE_SQLITE_STARTUP_CONFIGURATION_REVIEW_2026-11-10.md`.
+- Expanded review commit: `073878c07a640fd4325e04994b4e9d34d11bf0bd`; final report blob `c6728bdcb6fecc332cbf77750ecf52aefc9f4417`.
+- Found three reads of `MARKET_DATA_BACKEND`: API preflight in `market_data/api.py`, production backend/TLS/lease selection in `market_data/feeder_service.py`, and store selection in `market_data/storage.py`.
+- Important compatibility limit: API preflight precedes bearer authorization/query handling; do not move or reorder it without preserving current HTTP status behavior.
+- `build_production_runtime()` is defined and called by `feeder_service.py` main; CI systemd integration composes `FeederRuntime`/ `run_service` directly and does not exercise the production builder.
+- Read-only workflow map includes T0 Gateway full market_data regression, T0 systemd/API integration, SQLite sandbox, manual validation, G2, T2 smoke and T2 HTTP consumer workflow. Exact workflow blob SHAs are in the report.
+- C-01 remains candidate only; no source implementation approval. Full repository-wide caller/trigger denominator NOT VERIFIED. Tests/compile NOT RUN; Actions NOT DISPATCHED; no run/artifact.
+- Next safe step: finish repository-wide references outside `market_data` and map the exact C-01 regression cases, preserving API preflight/auth ordering and SQLite/PostgreSQL fail-closed behavior.
+- No code/test/package/workflow/runtime/VPS/DB/provider/secret/permission/network/data changes. L4-Minimum remains administratively closed BLOCKED / NOT VERIFIED; L4-Extended PARKED. Option C ACTIVE; paper-only; no live orders.
+
+---
+
 ## Latest T0 simplification — active SQLite startup/configuration review (2026-11-10)
 
 - Read-only review: `docs/evidence/T0_SIMPLIFICATION_ACTIVE_SQLITE_STARTUP_CONFIGURATION_REVIEW_2026-11-10.md`.
