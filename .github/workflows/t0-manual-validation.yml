@@ -17,6 +17,7 @@ run-name: T0 manual gate - ${{ inputs.gate }} (${{ github.sha }})
           - kraken-spot-read-api
           - timescaledb-integration
           - scaleway-ssh-preflight
+          - scaleway-ssh-contract-only
   pull_request:
     paths:
       - .github/workflows/t0-manual-validation.yml
@@ -31,7 +32,7 @@ concurrency:
 
 jobs:
   manual-gate:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.gate != 'scaleway-ssh-preflight' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.gate != 'scaleway-ssh-preflight' && inputs.gate != 'scaleway-ssh-contract-only' }}
     name: T0 manual isolated acceptance
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -130,7 +131,7 @@ jobs:
             timescaledb-verdict.txt
 
   ssh-preflight-contract:
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.gate == 'scaleway-ssh-preflight') || github.event_name == 'pull_request' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && (inputs.gate == 'scaleway-ssh-preflight' || inputs.gate == 'scaleway-ssh-contract-only')) || github.event_name == 'pull_request' }}
     name: P1 SSH preflight contract checks
     runs-on: ubuntu-latest
     timeout-minutes: 5
