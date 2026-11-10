@@ -17,6 +17,10 @@ run-name: T0 manual gate - ${{ inputs.gate }} (${{ github.sha }})
           - kraken-spot-read-api
           - timescaledb-integration
           - scaleway-ssh-preflight
+  pull_request:
+    paths:
+      - .github/workflows/t0-manual-validation.yml
+      - ci/test_t0_ssh_preflight_contract.py
 
 permissions:
   contents: read
@@ -27,7 +31,7 @@ concurrency:
 
 jobs:
   manual-gate:
-    if: ${{ inputs.gate != 'scaleway-ssh-preflight' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.gate != 'scaleway-ssh-preflight' }}
     name: T0 manual isolated acceptance
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -126,7 +130,7 @@ jobs:
             timescaledb-verdict.txt
 
   ssh-preflight-contract:
-    if: ${{ inputs.gate == 'scaleway-ssh-preflight' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.gate == 'scaleway-ssh-preflight') || github.event_name == 'pull_request' }}
     name: P1 SSH preflight contract checks
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -158,10 +162,9 @@ jobs:
           missing = [item for item in required if item not in workflow]
           assert not missing, f"Missing sanitized SSH diagnostic contract: {missing}"
           assert "ssh-client-stderr.log" not in workflow.rsplit("path: |", 1)[-1]
-          PY
 
   ssh-preflight:
-    if: ${{ inputs.gate == 'scaleway-ssh-preflight' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.gate == 'scaleway-ssh-preflight' }}
     name: P1 authenticated Scaleway read-only preflight
     needs: ssh-preflight-contract
     runs-on: ubuntu-latest
@@ -196,18 +199,80 @@ jobs:
           git rev-parse HEAD > ci-source-sha.txt
       - name: Establish pinned-key SSH and run forced read-only command
         shell: bash
+        env:
+          SCW_SSH_KEY_PASSPHRASE: ${{ secrets.SCW_SSH_KEY_PASSPHRASE }}
         run: |
           set -euo pipefail
+          umask 077
           key_file="$RUNNER_TEMP/scw_preflight_ed25519"
           known_hosts_file="$RUNNER_TEMP/scw_known_hosts"
+          passphrase_file="$RUNNER_TEMP/scw_ssh_passphrase"
+          askpass_file="$RUNNER_TEMP/scw_ssh_askpass"
+          public_key_file="$RUNNER_TEMP/scw_preflight_ed25519.pub"
           remote_log="preflight-remote.log"
+
+          cleanup() {
+            if [[ -n "${SSH_AGENT_PID:-}" ]]; then
+              ssh-agent -k >/dev/null 2>&1 || true
+            fi
+            rm -f -- "$key_file" "$known_hosts_file" "$passphrase_file" "$askpass_file" "$public_key_file" "$RUNNER_TEMP/ssh-add-stderr.log" "$RUNNER_TEMP/ssh-client-stderr.log"
+          }
+          trap cleanup EXIT
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+
+          if [[ -z "${SCW_SSH_KEY_PASSPHRASE:-}" ]]; then
+            echo "SCW_SSH_KEY_PASSPHRASE secret is required for the encrypted deployment key"
+            printf '%s\n' 'SSH_PRIVATE_KEY_UNLOCK=BLOCKED_MISSING_PASSPHRASE' > preflight-ssh-diagnostic.txt
+            printf '%s\n' '1' > preflight-ssh-exit-code.txt
+            exit 1
+          fi
+
           printf '%s\n' "$SCW_SSH_PRIVATE_KEY" > "$key_file"
           printf '%s\n' "$SCW_SSH_KNOWN_HOSTS" > "$known_hosts_file"
-          chmod 600 "$key_file" "$known_hosts_file"
-          trap 'rm -f "$key_file" "$known_hosts_file"' EXIT
+          printf '%s' "$SCW_SSH_KEY_PASSPHRASE" > "$passphrase_file"
+          chmod 600 "$key_file" "$known_hosts_file" "$passphrase_file"
+
+          cat > "$askpass_file" <<'ASKPASS'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          cat -- "$SCW_SSH_PASSPHRASE_FILE"
+          ASKPASS
+          chmod 700 "$askpass_file"
+          export SCW_SSH_PASSPHRASE_FILE="$passphrase_file"
+
+          eval "$(ssh-agent -s -t 300)"
+          if SSH_ASKPASS="$askpass_file" SSH_ASKPASS_REQUIRE=force DISPLAY=:0 \
+              ssh-add -t 300 "$key_file" </dev/null 2>"$RUNNER_TEMP/ssh-add-stderr.log"; then
+            echo "SSH_PRIVATE_KEY_UNLOCK=PASS"
+          else
+            printf '%s\n' 'SSH_PRIVATE_KEY_UNLOCK=FAILED' > preflight-ssh-diagnostic.txt
+            printf '%s\n' '1' > preflight-ssh-exit-code.txt
+            exit 1
+          fi
+
+          unset SCW_SSH_KEY_PASSPHRASE
+          rm -f -- "$key_file" "$passphrase_file"
+          unset SCW_SSH_PASSPHRASE_FILE SSH_ASKPASS SSH_ASKPASS_REQUIRE DISPLAY
+
+          ssh-add -L > "$public_key_file"
+          if [[ "$(wc -l < "$public_key_file")" -ne 1 ]]; then
+            printf '%s\n' 'SSH_KEY_FINGERPRINT=BLOCKED_UNEXPECTED_IDENTITY_COUNT' > preflight-ssh-diagnostic.txt
+            printf '%s\n' '1' > preflight-ssh-exit-code.txt
+            exit 1
+          fi
+          fingerprint="$(ssh-keygen -lf "$public_key_file" -E sha256 | awk '{print $2}')"
+          expected_fingerprint="SHA256:z6b+FNalGgXhZvT9dc9TszFeUjB3Z/1z5SiWCgWQq/w"
+          if [[ "$fingerprint" != "$expected_fingerprint" ]]; then
+            printf '%s\n' 'SSH_KEY_FINGERPRINT=MISMATCH' > preflight-ssh-diagnostic.txt
+            printf '%s\n' '1' > preflight-ssh-exit-code.txt
+            exit 1
+          fi
+          printf '%s\n' 'SSH_PRIVATE_KEY_UNLOCK=PASS' 'SSH_KEY_FINGERPRINT=PASS' > preflight-ssh-diagnostic.txt
+
           if timeout 60s ssh -T \
             -p "$SCW_SSH_PORT" \
-            -i "$key_file" \
+            -i "$public_key_file" \
             -o BatchMode=yes \
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
@@ -246,7 +311,8 @@ jobs:
               found = ["STDERR_EMPTY"]
           elif not found:
               found = ["NON_EMPTY_UNCLASSIFIED"]
-          lines = [f"SSH_STDERR_CLASS={label}" for label in found]
+          lines = pathlib.Path("preflight-ssh-diagnostic.txt").read_text().splitlines()
+          lines.extend(f"SSH_STDERR_CLASS={label}" for label in found)
           lines.append(f"SSH_EXIT_CODE={sys.argv[2]}")
           pathlib.Path("preflight-ssh-diagnostic.txt").write_text("\n".join(lines) + "\n")
           PY
