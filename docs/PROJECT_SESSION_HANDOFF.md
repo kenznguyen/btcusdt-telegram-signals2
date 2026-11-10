@@ -2,7 +2,7 @@
 
 - Read-only comparison record: `docs/evidence/T0_T2_REPOSITORY_SOURCE_PARITY_REVIEW_2026-11-10.md`; creation commit `7e2080c2410fe8ab889338684390eed453535069`; verified report blob `204cd41aefc38abaf33838b1723c4d84533d0818`.
 - Compared historical runtime T0 source commit `9ae2eeae4ece3d657781b68e96b6f4509cd95f24` with branch HEAD before this report `1b1b4d49c1af9ae63d75343774df229d1249f02e` (GitHub compare: ahead 828, behind 0).
-- Fourteen inspected runtime-relevant blobs are identical: T0 API/feeder/feeder_service/storage, T2 context/http client/research config, T0 API/storage tests, T2 context/http tests, and T2 HTTP consumer + Freqtrade smoke workflows. Exact blob IDs are in the report.
+- Thirteen inspected runtime-relevant blobs are identical: T0 API/feeder/feeder_service/storage, T2 context/http client/research config, T0 API/storage tests, T2 context/http tests, and T2 HTTP consumer + Freqtrade smoke workflows. Exact blob IDs are in the report.
 - Only `market_data/README.md` differs among the selected paths: historical blob `660a2f0f4f88c0de4fa8c1be3c4af96df282de0e`; current blob `d90f84f8135c8ab9da1b57863e145d86565bf179`. The change is documentation-only and clarifies loopback topology / no public reverse proxy required for same-host T0→T2.
 - Disposition: inspected repository source parity PASS; current VPS checkout SHA, service configuration/listener state, environment and process-loaded byte parity remain NOT VERIFIED. Static Git blob equality does not attest deployed runtime.
 - No tests, compile, Actions dispatch/artifact, SSH/VPS/runtime/DB/network/provider probe, source/test/workflow/dependency change, service operation, T1 activation, trading or data mutation occurred.
