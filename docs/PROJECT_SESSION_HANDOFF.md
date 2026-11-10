@@ -1,3 +1,22 @@
+## Latest L4-Minimum continuation — owner narrows evidence custody to VPS + GitHub (2026-11-10)
+
+- Owner decision: `docs/decisions/D-2026-11-10-L4-EVIDENCE-CUSTODY-VPS-GITHUB-ONLY.md`; commit `89f7b5a9ba8f6b86b126cf24fa6b4235760878b9`.
+- Explicit scope: no additional backup/custody copy outside the project VPS and GitHub is required. No third-party object store or paid external custody service is required.
+- Assurance boundary: VPS and/or GitHub are the approved custody locations. Exact package inventory, SHA-256 manifest, custody provenance, authenticated latest-head anchor, signer separation, exact-object readback and digest verification remain required.
+- If copies are claimed in both locations, each copy must be read back and digest-checked. A single-location outage recovery claim requires an accessible verified copy in the remaining location.
+- Simultaneous VPS + GitHub unavailability is outside the accepted recovery-availability claim. Do not claim recovery for that combined outage.
+- GitHub-hosted runners/artifacts remain within the GitHub failure domain and are not independent third-party custody. This decision does not assume VPS/GitHub credentials, administrators, regions or failure domains are otherwise independent.
+- Updated acceptance matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`, commit `294f0134b342f5152b9ab949ecde6cdb5f2e1803`, blob `6f51cfd2b36b054776db156f15a6bd4594fad196`.
+- Updated intake contract: commit `a0f0b0771b7f4fe47ac4a07fc20198d053051b19`, blob `3d65bf941b7884010ec79cb6fc23e42998713770`.
+- Updated acquisition register: commit `c69fafbf57f6a3b928a7af6a9ca58768f60526c9`, blob `c7605704c5868ef2534017029cef2766e94eca6a`.
+- Updated historical non-substitution assessment to mark its former external-custody criterion superseded while retaining technical findings: commit `c35f031852dcfa688e4d2005feb504f14bf6978b`, blob `1fea06d455e020fb3e87d7378c8f95bb127f9c4b`.
+- L4M-01 remains NOT VERIFIED pending exact inventory/manifest/custody/readback. L4M-03 remains PARTIAL / NOT VERIFIED pending authenticated latest-head anchor and exact-object freshness evidence. Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED. No control promoted.
+- No external storage provisioned or accessed; no VPS/SSH/runtime/DB/provider/key/permission/network operation; no tests, workflow dispatch, run or artifact; no destructive lifecycle operation.
+- Option C — No Destructive Authority — remains ACTIVE. T0 canonical SQLite; PostgreSQL PARKED; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next gate: owner-supplied sanitized evidence for the exact VPS/GitHub custody object(s), manifest and L4M-03 anchor. No external backup is requested.
+
+---
+
 ## Latest L4-Minimum continuation — L4M-10 frozen-baseline readiness (2026-11-10)
 
 - Documentary assessment: `docs/evidence/T0_L4M10_FROZEN_BASELINE_OWNER_SELF_ASSESSMENT_READINESS_2026-11-10.md`.
