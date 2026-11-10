@@ -17,6 +17,7 @@ run-name: T0 manual gate - ${{ inputs.gate }} (${{ github.sha }})
           - kraken-spot-read-api
           - timescaledb-integration
           - scaleway-ssh-preflight
+          - scaleway-ssh-contract-only
 
 permissions:
   contents: read
@@ -27,7 +28,7 @@ concurrency:
 
 jobs:
   manual-gate:
-    if: ${{ inputs.gate != 'scaleway-ssh-preflight' }}
+    if: ${{ inputs.gate != 'scaleway-ssh-preflight' && inputs.gate != 'scaleway-ssh-contract-only' }}
     name: T0 manual isolated acceptance
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -126,7 +127,7 @@ jobs:
             timescaledb-verdict.txt
 
   ssh-preflight-contract:
-    if: ${{ inputs.gate == 'scaleway-ssh-preflight' }}
+    if: ${{ inputs.gate == 'scaleway-ssh-preflight' || inputs.gate == 'scaleway-ssh-contract-only' }}
     name: P1 SSH preflight contract checks
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -214,6 +215,10 @@ jobs:
           set -euo pipefail
           if [[ -f preflight-remote.log ]] && grep -q '^API_8788=NON_LOOPBACK_LISTENER$' preflight-remote.log; then
             echo 'P1_SSH_PREFLIGHT=BLOCKED_NON_LOOPBACK_API_LISTENER' | tee preflight-verdict.txt
+            exit 1
+          fi
+          if [[ -f preflight-remote.log ]] && grep -Eq '^(FEEDER_PIDS|API_8788)=CHECK_(UNAVAILABLE|FAILED)$' preflight-remote.log; then
+            echo 'P1_SSH_PREFLIGHT=PARTIAL_OR_BLOCKED_PROBE_UNAVAILABLE' | tee preflight-verdict.txt
             exit 1
           fi
           if [[ ! -f preflight-remote.log ]] || ! grep -Eq '^SOURCE_SHA=[0-9a-f]{40}$' preflight-remote.log || ! grep -Fxq 'SQLITE_INTEGRITY=PASS' preflight-remote.log; then

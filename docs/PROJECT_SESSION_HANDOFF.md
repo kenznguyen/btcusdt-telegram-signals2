@@ -1453,3 +1453,147 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Current branch used: `main`; no new branch or PR created. CI result: **NOT RUN**. Artifact: **NONE**.
 - Ledger status: **PARTIAL BASELINE**. Full commit/PR/workflow/artifact reconciliation and prospective time recording remain pending.
 - Next permitted step: reconcile GitHub history and evidence into the ledger; keep all existing runtime and execution restrictions unchanged.
+
+
+## 2026-11-10 — expose isolated SSH contract-only gate on main
+
+- User-authorized change on `main`: added `scaleway-ssh-contract-only` to the `T0 Manual Validation` workflow dispatch choices.
+- Workflow commit: `e9de76082d0ddca965d4eab6ad0f2bf84e5ff417`.
+- Workflow path: `.github/workflows/t0-manual-validation.yml`; new blob SHA: `19930f4269e67440c3be4b4ea510454fe3759048`.
+- Static contract checks: dispatch choice exists; generic T0 job excludes contract-only gate; SSH contract job accepts both full preflight and contract-only gate; authenticated SSH job remains restricted to `scaleway-ssh-preflight`. **PASS (static content checks only)**.
+- No tests or GitHub Actions run were triggered by this commit. Workflow dispatch availability on GitHub UI and runtime behavior: **NOT VERIFIED**.
+- Scope intentionally excludes PR #140's R1–R3 fail-closed script/test/classifier changes; those remain on its feature branch and PR #140 remains OPEN / DRAFT / NOT MERGED.
+- No SSH/VPS connection, secret/credential change, host/runtime/service change, database access, T0 data change, deployment, or trading action occurred.
+- Next: refresh `T0 Manual Validation` on `main` and verify `scaleway-ssh-contract-only` appears. If available, run only that gate on `main`; do not select `scaleway-ssh-preflight` absent separate authorization.
+
+
+## 2026-11-10 — PR #140: isolated SSH contract-only gate
+
+- User explicitly approved adding a manual GitHub Actions gate that runs the P1 SSH contract checks without attempting an SSH connection to Scaleway.
+- Updated `.github/workflows/t0-manual-validation.yml` on existing PR branch `fix/p1-ssh-preflight-contract-20261110`. Workflow blob SHA: `19930f4269e67440c3be4b4ea510454fe3759048`.
+- Commit: `e63ed5f9481d4d5968d7eeba122963d5f6fbc769`.
+- Added dispatch choice `scaleway-ssh-contract-only`; excluded it from the generic manual gate; enabled the existing shell syntax + Python contract test job for both SSH gate variants; retained the authenticated SSH job condition exclusively for `scaleway-ssh-preflight`.
+- Static workflow inspection: dispatch option present; generic job excluded; contract job shared; authenticated SSH job restricted to the original gate; SSH private-key secret is not referenced by the contract job. **PASS (static inspection only)**.
+- GitHub Actions workflow execution for the new gate: **NOT RUN / NOT VERIFIED**. No workflow run ID or artifact yet. The user must manually dispatch `T0 Manual Validation` with `scaleway-ssh-contract-only` on this PR branch.
+- PR #140 remains OPEN and Draft at the time of this update. Current PR head after the workflow commit: `e63ed5f9481d4d5968d7eeba122963d5f6fbc769`.
+- No SSH connection, VPS command, credential/secret change, runtime/configuration change, database access, data deletion, service restart, exchange connection, or trading action was performed.
+- Next step: run the contract-only gate and inspect its exact source SHA, job conclusion, logs, and artifact. Keep merge blocked until the run passes and PR review conditions are satisfied.
+
+
+## 2026-11-10 — PR #140 isolated SSH contract-only workflow verification
+
+- GitHub Actions run [#42793308850](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42793308850): **SUCCESS**.
+- Event: `workflow_dispatch`; selected gate: `scaleway-ssh-contract-only`; branch: `fix/p1-ssh-preflight-contract-20261110`.
+- Exact checked-out source SHA: `87146b00c07cfc32ccc12cb2286e10cb68bb6a5b`; it matches the PR #140 head SHA at dispatch.
+- Contract job ID `129751983182`: **SUCCESS**. Checkout log confirms exact SHA; `bash -n ops/ssh/t0-readonly-preflight.sh` passed; `python -m unittest ci.test_t0_ssh_preflight_contract -v` ran 5 tests, all **PASS**.
+- Job `T0 manual isolated acceptance` ID `129751985956`: **SKIPPED**. Authenticated Scaleway SSH job ID `129752054929`: **SKIPPED**. This confirms this dispatch did not attempt the authenticated SSH path.
+- Artifacts: none. No workflow artifact ID, payload, or digest exists for this run.
+- Verification verdict: isolated SSH preflight contract CI **PASS** on exact PR head SHA. VPS/Scaleway state, SSH authentication, deployed source identity, T0 service/listener/database state remain **NOT VERIFIED**.
+- No SSH connection, VPS command, credential/secret change, runtime/configuration change, database access, service restart, data deletion, PostgreSQL/T1 activation, exchange connection, or trading action was performed.
+- PR #140 remains OPEN / DRAFT / NOT MERGED. This CI result alone is not merge approval and does not authorize the authenticated `scaleway-ssh-preflight` gate.
+- Next permitted step: review PR #140 and its changed files for merge readiness; retain the no-SSH/no-VPS boundary unless separately approved. Do not dispatch `scaleway-ssh-preflight` without explicit authorization.
+
+ 
+## 2026-11-10 — PR #140 fail-closed API listener probe
+
+- Follow-up to contract-only run #42793308850: review found that a missing `ss` utility was conflated with a verified `NOT_LISTENING` result, and an `ss` command error was suppressed.
+- TDD RED: a focused local contract check against the pre-fix source confirmed that the required `CHECK_UNAVAILABLE`, `CHECK_FAILED`, and nonzero fail-closed guards were absent. **RED reproduced**.
+- Added contract test `test_listener_probe_fails_closed_when_ss_is_unavailable_or_fails` in `ci/test_t0_ssh_preflight_contract.py`. Current test blob SHA: `1da7b0eb0f20a4c2f69542ee9d7c211cd4e2e67f`.
+- Updated `ops/ssh/t0-readonly-preflight.sh`: initialize listener state as `CHECK_UNAVAILABLE`; classify missing `ss` as unavailable; distinguish a failed `ss` invocation as `CHECK_FAILED`; only classify empty successful output as `NOT_LISTENING`; treat IPv4 127.0.0.1 and IPv6 ::1 as loopback; fail nonzero for unavailable/failed probes and non-loopback listeners. Current script blob SHA: `b89b6315fd56965db95be1dcf92ac9256c394f97`.
+- Source changes are limited to the SSH preflight script and its static contract test. No workflow logic, credentials, host configuration, runtime, database, or VPS state changed.
+- Full GREEN verification on this source SHA: **NOT RUN**. The existing contract-only workflow must be manually dispatched on the current branch; capture exact checked-out SHA, job result, test count/log, and artifact metadata (if any). The previous run #42793308850 applies to the earlier source SHA and does not verify this follow-up.
+- PR #140 current head at handoff update: `bf26a0478dab4dd86050787367da6c1b80ffd482`; remains OPEN / DRAFT / NOT MERGED.
+- No SSH/VPS connection, no authenticated preflight, no secrets/credentials change, no DB access, no service restart, no deletion, no deployment, and no trading action.
+- Next step: manually run `T0 Manual Validation` with `scaleway-ssh-contract-only` on branch `fix/p1-ssh-preflight-contract-20261110`, then provide the workflow URL for evidence review. Do not run `scaleway-ssh-preflight` without separate explicit approval.
+
+
+## 2026-11-10 — PR #140 R1–R3 fail-closed probe follow-up
+
+This section supersedes the earlier PR #140 next-step note that requested implementation of R1–R3.
+
+- PR: [#140](https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/140), branch `fix/p1-ssh-preflight-contract-20261110`, base `main`.
+- Latest source commit before this handoff update: `a41ca435ce593af36eb7bc25a32d9095c54c9564`.
+- Script blob: `6fc3a54c4d91e0ef82aedf1fba2543b4468c756e`.
+- Contract test blob: `a97f3399fe36a09fce7f4b8432793e1f4389109f`.
+- Workflow blob: `749d53bf94168a0e0423e1b52f8699ffe2a605d3`.
+- Evidence report: `docs/evidence/PR140_FAIL_CLOSED_PROBE_FIX_20261110.md`, created in commit `fa7aadb3878dd5ade67ce8bd6d112807b16c8b3d`.
+
+### Findings addressed in source
+
+- R1: listener parser dependency absence is `CHECK_UNAVAILABLE`; parser failure is `CHECK_FAILED`; only explicit successful parser output may produce `LOOPBACK_LISTENER`. Unavailable/failed states fail nonzero.
+- R2: Feeder expression corrected to `[m]arket_data\.feeder`; contract includes semantic matching assertions for representative module and unrelated process command lines.
+- R3: `pgrep` absence/failure is distinct from successful no-match; exit 1 means `NONE`, other nonzero statuses mean `CHECK_FAILED`; unavailable/failed states fail nonzero.
+- Authenticated workflow classifier now rejects unavailable/failed Feeder or API probes instead of promoting them to a successful preflight.
+- Added subprocess tests using controlled command stubs for missing/failed `awk`, missing/failed `pgrep`, empty process result, loopback listener, and non-loopback listener. The contract suite now contains 17 tests; execution remains NOT RUN pending the exact-head GitHub Actions run.
+
+### Verification status
+
+- Source review of modified blocks: completed; static review only.
+- Python contract suite: **NOT RUN** on this source revision.
+- `bash -n`: **NOT RUN** on this source revision.
+- Exact-head GitHub Actions contract-only run: **NOT RUN**.
+- VPS/SSH/deployed script behavior: **NOT VERIFIED**.
+- Artifact: none for this source revision.
+- PR remains **OPEN / DRAFT / NOT MERGED**.
+
+### Safety and next action
+
+- No authenticated SSH workflow, VPS connection, remote command, deployment, secret/credential change, host/runtime/service change, database access, T0 data change, Feeder activation, exchange connection, market-data sync, or trading action occurred.
+- Next: manually dispatch **T0 Manual Validation** on `fix/p1-ssh-preflight-contract-20261110` with gate `scaleway-ssh-contract-only` only. Verify the run checked out the exact source commit, shell syntax, all tests, authenticated SSH job skipped, and artifact metadata. Do not select `scaleway-ssh-preflight`.
+
+
+## 2026-11-10 — PR #140 workflow integrity and contract-test hardening
+
+- Continued on the existing branch `fix/p1-ssh-preflight-contract-20261110`; no parallel branch or PR created.
+- Source head before this handoff update: `7abb55421d3faf6924004e8df4b08ec5ef4330e4`.
+- Found 38 lines of duplicated/truncated shell-classifier and artifact-upload fragments appended after the valid end of `.github/workflows/t0-manual-validation.yml`. Removed the malformed trailing content; the workflow now ends at the single intended evidence-upload block.
+- Workflow blob SHA: `0c4a9812062054abb01e521a9b04121854ec5207`; cleanup commit: `01efb54f6b948af0f0f5c538540f3a083dc22741`.
+- Hardened `ci/test_t0_ssh_preflight_contract.py`: controlled stubs now provide a valid source SHA and a successful read-only SQLite probe for the positive path; the loopback case asserts exit 0 and `SQLITE_INTEGRITY=PASS`; added missing/failed `ss` fail-closed cases and a regression assertion that the workflow has no duplicated tail.
+- Contract test blob SHA: `f53638821ee118c8e6f44b468bd76e0a1438dd5d`; latest test commit: `7abb55421d3faf6924004e8df4b08ec5ef4330e4`. Test inventory: 20 test methods.
+- Preflight script remains unchanged at blob SHA `6fc3a54c4d91e0ef82aedf1fba2543b4468c756e`.
+- Exact-head GitHub Actions verification for the updated workflow/tests: **NOT RUN / NOT VERIFIED**. No run ID or artifact exists for this revision. The prior runs do not verify these changes.
+- Current PR status before this documentation commit: OPEN / DRAFT / NOT MERGED; GitHub reports `mergeable=false`. Compare against current `main` tip `5b7af94dfaadc41988d6aad186e6db2705bb0345`: branch is 37 commits ahead and 2 behind; merge base remains `9cb38cdd995158704fe2993e277396bb9bf4b50a`. Do not merge or promote to ready while mergeability and exact-head CI remain unresolved.
+- No review submissions or inline review threads were present at inspection.
+- No SSH/VPS connection, authenticated preflight, secret change, deployment, runtime/service/database/data change, exchange connection, or trading action occurred.
+- Next: manually dispatch `T0 Manual Validation` on this branch using only `scaleway-ssh-contract-only`; verify exact checked-out SHA, shell syntax, all 20 tests, authenticated SSH job skipped, and artifact metadata. Then reconcile the two commits behind `main` and recheck PR mergeability. Do not run `scaleway-ssh-preflight` without separate explicit authorization.
+
+
+## 2026-11-10 — PR #140 main-line handoff reconciliation
+
+- Preserved the latest `main` handoff content (including the isolated SSH contract-only gate record) on the existing PR branch, then retained all PR #140-specific review, implementation, and verification history after it.
+- Synchronization commit: `abeacb931b0d429f3ceb532d4cb5355a6a292e6e`; handoff blob: `824892a3b080631d386fcf0944af3254e6d76919`.
+- The PR branch workflow includes the same `scaleway-ssh-contract-only` dispatch choice and isolation conditions now present on `main`, plus the PR-specific fail-closed evidence classifier. Workflow blob remains `0c4a9812062054abb01e521a9b04121854ec5207`.
+- PR head before this handoff update: `abeacb931b0d429f3ceb532d4cb5355a6a292e6e`; exact-head CI remains **NOT RUN / NOT VERIFIED**.
+- GitHub still reports PR #140 `mergeable=false`. Ancestry comparison remains 39 commits ahead / 2 behind `main`; the two newer main commits are the gate workflow update and its handoff record. The content-level updates have been carried onto the PR branch, but ancestry/mergeability is not yet proven resolved.
+- PR remains OPEN / DRAFT / NOT MERGED. No merge or authenticated SSH action was taken.
+- Next: run only `scaleway-ssh-contract-only` on the final PR head, then recheck mergeability and resolve any remaining base conflict before considering review readiness. No merge approval is inferred.
+
+
+## 2026-11-10 — PR #140 contract test harness correction
+
+- User explicitly approved correction of the two failing contract tests and the isolated harness only.
+- Prior failing workflow: [run #42804276391](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42804276391), checked out PR source SHA `9566b40cb8c14b1ceaacf688773ebb91c034ac64`. Result: contract job failed; 18/20 tests passed. T0 acceptance and authenticated SSH jobs were skipped; no artifact was produced.
+- TDD reproduction: the prior run exposed two test defects: parser assertion depended on a non-existent intermediate assignment string; the positive-path harness replaced `python3` with a no-op stub and did not provide the fixed-path SQLite database, so it could not exercise the actual read-only integrity check.
+- Updated only `ci/test_t0_ssh_preflight_contract.py`:
+  - Parser contract now asserts accepted `case` labels and fail-closed default rather than an implementation-specific `parser_result` assignment.
+  - Positive-path harness creates a disposable SQLite database in its temporary directory, runs an isolated copy of the script with only the DB path redirected, and invokes the real Python interpreter/SQLite integrity check. Production script and T0 paths remain unchanged.
+- Test file blob SHA: `42daf67a0bd58728ec191612ba25abccb0f73da4`.
+- Test-fix commit: `47002584fbab0fdabc031668658af408f057d3d3`.
+- Local test execution: **NOT RUN** (the execution environment could not resolve github.com to obtain a local checkout). Exact-head GitHub Actions verification: **PENDING**.
+- No changes to the preflight script, workflow, T0/VPS, secrets, credentials, runtime, services, database, or data. No SSH, deployment, exchange connection, or trading action.
+- PR remains OPEN / DRAFT / NOT MERGED; mergeability remains unresolved. Do not merge.
+- Next: manually dispatch `T0 Manual Validation` on `fix/p1-ssh-preflight-contract-20261110` using `scaleway-ssh-contract-only` only. Confirm exact checked-out SHA, all contract tests, shell syntax, skipped authenticated SSH job, and artifact status. Do not select `scaleway-ssh-preflight`.
+
+
+## 2026-11-10 — PR #140 exact-head contract-only verification
+
+- GitHub Actions run [#42804901911](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42804901911): **SUCCESS**, event `workflow_dispatch`, run attempt 1.
+- Workflow: `.github/workflows/t0-manual-validation.yml`; branch: `fix/p1-ssh-preflight-contract-20261110`; selected gate: `scaleway-ssh-contract-only`.
+- Exact checked-out source SHA from checkout logs: `76cd8bd1ed4026ec5d0d25faea07f8870fff4d3f`; matches PR #140 head at dispatch.
+- Contract job `P1 SSH preflight contract checks`, ID `129791416163`: **SUCCESS**. `bash -n ops/ssh/t0-readonly-preflight.sh`: PASS. `python -m unittest ci.test_t0_ssh_preflight_contract -v`: **20/20 PASS**.
+- `T0 manual isolated acceptance`, ID `129791418839`: **SKIPPED**. `P1 authenticated Scaleway read-only preflight`, ID `129791476033`: **SKIPPED**. The authenticated SSH path was not executed.
+- Artifacts: **NONE**; run reports an empty artifact list.
+- Verdict: exact-head isolated contract CI **PASS** for shell syntax and all 20 contract tests. This does not verify deployed VPS/T0 runtime, authenticated SSH, live API/Feeder/SQLite state, or operational behavior.
+- PR #140 remains **OPEN / DRAFT / NOT MERGED**; GitHub reports `mergeable=false`. Current comparison against main: **42 commits ahead / 2 behind**, merge base `9cb38cdd995158704fe2993e277396bb9bf4b50a`. Merge remains blocked pending reconciliation of divergence/mergeability and independent review.
+- No SSH connection, VPS command, secret/credential change, deployment, runtime/service/database/data change, exchange connection, market-data sync, or trading action occurred.
+- Next: inspect the two commits behind main and resolve ancestry/conflict risk on the existing PR branch without changing protected runtime scope; rerun exact-head CI if source changes. Do not dispatch `scaleway-ssh-preflight` without separate explicit approval.
