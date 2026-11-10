@@ -19,10 +19,28 @@ run-name: T0 manual gate - ${{ inputs.gate }} (${{ github.sha }})
           - scaleway-ssh-preflight
           - scaleway-ssh-contract-only
           - sqlite-lease-fencing
+  push:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - .github/workflows/t0-manual-validation.yml
+      - ci/test_t0_ssh_preflight_contract.py
+      - market_data/feeder.py
+      - market_data/store.py
+      - market_data/write_gateway.py
+      - market_data/test_feeder_lease.py
+      - market_data/test_write_gateway.py
+      - market_data/test_feeder_lifecycle.py
   pull_request:
     paths:
       - .github/workflows/t0-manual-validation.yml
       - ci/test_t0_ssh_preflight_contract.py
+      - market_data/feeder.py
+      - market_data/store.py
+      - market_data/write_gateway.py
+      - market_data/test_feeder_lease.py
+      - market_data/test_write_gateway.py
+      - market_data/test_feeder_lifecycle.py
 
 permissions:
   contents: read
@@ -32,6 +50,60 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  sqlite-lease-fencing-auto:
+    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
+    name: Automatic isolated SQLite lease and fencing tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install isolated market-data dependencies
+        run: python -m pip install -r requirements-market-data.txt
+      - name: Enforce isolated environment and record source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+            if [[ -n "${!key:-}" ]]; then echo "Unsafe environment variable present: $key"; exit 1; fi
+          done
+          git rev-parse HEAD | tee ci-source-sha.txt
+          echo "T0_SQLITE_LEASE_FENCING_AUTO=ISOLATED" | tee sqlite-lease-fencing-scope.txt
+      - name: Run SQLite lease and fencing tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest market_data.test_feeder_lease market_data.test_write_gateway market_data.test_feeder_lifecycle -v 2>&1 | tee sqlite-lease-fencing-tests.log
+          echo "SQLITE_LEASE_FENCING=PASS" | tee sqlite-lease-fencing-verdict.txt
+      - name: Upload automatic lease-fencing evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-sqlite-lease-fencing-auto-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            ci-source-sha.txt
+            sqlite-lease-fencing-scope.txt
+            sqlite-lease-fencing-tests.log
+            sqlite-lease-fencing-verdict.txt
+
   manual-gate:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.gate != 'scaleway-ssh-preflight' && inputs.gate != 'scaleway-ssh-contract-only' }}
     name: T0 manual isolated acceptance
