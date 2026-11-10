@@ -19,7 +19,7 @@ MAX_ARCHIVE_BYTES = 20 * 1024 * 1024
 MAX_MEMBER_BYTES = 8 * 1024 * 1024
 MAX_TOTAL_UNCOMPRESSED_BYTES = 32 * 1024 * 1024
 MAX_TOTAL_DOWNLOAD_BYTES = 50 * 1024 * 1024
-MAX_API_RESPONSE_BYTES = 1024 * 1024
+MAX_API_RESPONSE_BYTES = 4 * 1024 * 1024
 MAX_ARCHIVE_MEMBERS = 100
 MAX_COMPRESSION_RATIO = 200
 LINEAGE_MEMBERS = frozenset({
@@ -328,7 +328,7 @@ def collect_allowlisted_artifacts(repository, allowlist, collector_source_sha, c
         if source_sha not in compare_cache:
             try:
                 compare_cache[source_sha] = json.loads(_open_github(
-                    f"{base}/compare/{source_sha}...{collector_source_sha}", token, MAX_API_RESPONSE_BYTES
+                    f"{base}/compare/{source_sha}...{collector_source_sha}?per_page=1", token, MAX_API_RESPONSE_BYTES
                 ))
             except (json.JSONDecodeError, UnicodeDecodeError):
                 _fail("GITHUB_COMPARE_INVALID")
