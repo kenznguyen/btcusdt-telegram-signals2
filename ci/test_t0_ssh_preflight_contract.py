@@ -38,6 +38,13 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertIn('api_state="LOOPBACK_LISTENER"', self.source)
         self.assertIn('[[ "$api_state" != "NON_LOOPBACK_LISTENER" ]] || exit 1', self.source)
 
+    def test_listener_probe_fails_closed_when_ss_is_unavailable_or_fails(self):
+        self.assertIn('api_state="CHECK_UNAVAILABLE"', self.source)
+        self.assertIn('command -v ss', self.source)
+        self.assertIn('api_state="CHECK_FAILED"', self.source)
+        self.assertIn('[[ "$api_state" != "CHECK_UNAVAILABLE" ]] || exit 1', self.source)
+        self.assertIn('[[ "$api_state" != "CHECK_FAILED" ]] || exit 1', self.source)
+
     def test_no_mutating_host_or_database_commands_are_present(self):
         forbidden_commands = re.compile(
             r"\b(rm|mv|cp|chmod|chown|kill|pkill|systemctl|service|reboot|shutdown|truncate)\b"
