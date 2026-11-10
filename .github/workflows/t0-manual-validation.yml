@@ -181,10 +181,11 @@ jobs:
       OKX_API_KEY: ""
       OKX_API_SECRET: ""
     steps:
-      - name: Checkout exact source commit
+      - name: Checkout exact source history
         uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@v5
