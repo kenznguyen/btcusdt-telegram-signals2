@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # P1 Scaleway preflight: bounded, read-only evidence collection.
-# Install as /usr/local/sbin/t0-readonly-preflight and force it from authorized_keys.
+# Install as /usr/local/libexec/t0-readonly-preflight and force it from authorized_keys.
 set -u
 umask 077
 
