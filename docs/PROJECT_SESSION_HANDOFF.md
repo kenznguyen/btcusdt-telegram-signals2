@@ -1453,3 +1453,16 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Current branch used: `main`; no new branch or PR created. CI result: **NOT RUN**. Artifact: **NONE**.
 - Ledger status: **PARTIAL BASELINE**. Full commit/PR/workflow/artifact reconciliation and prospective time recording remain pending.
 - Next permitted step: reconcile GitHub history and evidence into the ledger; keep all existing runtime and execution restrictions unchanged.
+
+
+## 2026-11-10 — PR #140: isolated SSH contract-only gate
+
+- User explicitly approved adding a manual GitHub Actions gate that runs the P1 SSH contract checks without attempting an SSH connection to Scaleway.
+- Updated `.github/workflows/t0-manual-validation.yml` on existing PR branch `fix/p1-ssh-preflight-contract-20261110`. Workflow blob SHA: `19930f4269e67440c3be4b4ea510454fe3759048`.
+- Commit: `e63ed5f9481d4d5968d7eeba122963d5f6fbc769`.
+- Added dispatch choice `scaleway-ssh-contract-only`; excluded it from the generic manual gate; enabled the existing shell syntax + Python contract test job for both SSH gate variants; retained the authenticated SSH job condition exclusively for `scaleway-ssh-preflight`.
+- Static workflow inspection: dispatch option present; generic job excluded; contract job shared; authenticated SSH job restricted to the original gate; SSH private-key secret is not referenced by the contract job. **PASS (static inspection only)**.
+- GitHub Actions workflow execution for the new gate: **NOT RUN / NOT VERIFIED**. No workflow run ID or artifact yet. The user must manually dispatch `T0 Manual Validation` with `scaleway-ssh-contract-only` on this PR branch.
+- PR #140 remains OPEN and Draft at the time of this update. Current PR head after the workflow commit: `e63ed5f9481d4d5968d7eeba122963d5f6fbc769`.
+- No SSH connection, VPS command, credential/secret change, runtime/configuration change, database access, data deletion, service restart, exchange connection, or trading action was performed.
+- Next step: run the contract-only gate and inspect its exact source SHA, job conclusion, logs, and artifact. Keep merge blocked until the run passes and PR review conditions are satisfied.
