@@ -4307,3 +4307,17 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - Status: workflow contract PASS; SSH preflight BLOCKED by authentication rejection; VPS runtime state NOT VERIFIED.
 - Next step: compare the fingerprint of the public key corresponding to the exact private key stored in `SCW_SSH_PRIVATE_KEY` with the restricted key entry in the intended account's `authorized_keys`, and confirm the configured SSH username. Do not disclose or upload private key material or passphrases. Keep strict host-key checking and forced-command restrictions unchanged. Any secret/key/authorized_keys change requires separate explicit approval.
 - No workflow rerun is authorized by this record. No arbitrary SSH shell or remote command is authorized. `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+
+
+
+## Latest continuation — vận hành ưu tiên SQLite, PostgreSQL tùy chọn được tạm dừng (2026-11-10)
+
+- Owner quyết định PostgreSQL chỉ là backend tùy chọn; không cần tiếp tục phát triển ở giai đoạn hiện tại.
+- PostgreSQL/TimescaleDB được đặt trạng thái PARKED: giữ nguyên adapter, mã nguồn và kiểm thử hiện có; không mở rộng tính năng/lifecycle acceptance, không migration Canonical T0 và không bật PostgreSQL làm backend vận hành.
+- Canonical T0 tiếp tục dùng SQLite. Bảo toàn dữ liệu và tính độc lập của T0; ưu tiên kiểm định single-writer, lease/fencing, recovery, backup/restore và độ ổn định feeder/API theo phạm vi đã được phê duyệt.
+- Thứ tự ưu tiên tiếp theo: (1) SQLite T0; (2) T1 collector và luồng nhập dữ liệu; (3) T0–T1–T2 integration; (4) Strategy Core RSI + ADX + Smart DCA và AI Strategy LONG/SHORT độc lập; (5) Shared Risk Engine/Kill Switch; (6) paper-only reliability và independent out-of-sample.
+- GitHub Actions tiếp tục là nơi chạy kiểm định; GitHub lưu source, handoff và evidence. VPS chỉ là mục tiêu vận hành T0; trạng thái runtime hiện tại vẫn NOT VERIFIED. Android là kênh giám sát, không phải máy vận hành chính.
+- Quyết định này chỉ thay đổi ưu tiên công việc, không thay đổi source/runtime/database. Không chạy workflow, không SSH/VPS, không migration, không restart Feeder, không thay đổi cấu hình/secret và không giao dịch thật.
+- Evidence: handoff được cập nhật trên branch hiện có `feature/t0-centralized-data-feeder-p1-20261101`; baseline source commit gần nhất đã xác minh trước cập nhật là `0c8498ac530cdcbb750b0864881e018572a31fe6`; handoff blob trước cập nhật là `d20b4279012ccc2b3ea409bafd8743330d9b1440`.
+- Status: DECISION RECORDED; code/test execution NOT RUN; SQLite VPS runtime NOT VERIFIED; PostgreSQL PARKED.
+- Next step: tiếp tục rà soát SQLite T0 theo evidence đã có, xác định đúng gate còn thiếu trước khi dispatch bất kỳ workflow nào. Không thực hiện SSH preflight hoặc thay đổi runtime nếu chưa có phê duyệt riêng.
