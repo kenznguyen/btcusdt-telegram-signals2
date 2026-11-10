@@ -4349,3 +4349,26 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - Status: T0 SSH preflight workflow contract and focused tests **PASS** at source SHA `3cadf2e5b483a5fb3beb93b5a3f94db33c880fdb`. Authenticated SSH/VPS preflight and T0 runtime acceptance remain **NOT RUN / NOT VERIFIED** in this run.
 - No VPS/SSH connection, runtime/service/Feeder operation, canonical SQLite access/migration, PostgreSQL work, T1 activation, trading, or data mutation occurred.
 - Next step: do not promote runtime status based on contract CI. Any authenticated Scaleway read-only preflight requires a separate explicit owner approval and must use the dedicated `scaleway-ssh-preflight` gate; keep the remote command strictly read-only.
+
+
+## 2026-11-10 — Approved Scaleway SSH read-only preflight PASS
+
+- Owner explicitly approved running the dedicated `scaleway-ssh-preflight` gate. Workflow run [42814402445](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42814402445) completed with conclusion **SUCCESS**.
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`; exact workflow checkout/source SHA: `8ad36cae8aa971a537a6f363902f86046aa32e5e`; event `workflow_dispatch`; run attempt 1.
+- Jobs:
+  - `P1 SSH preflight contract checks`, job ID `129823665846`: **SUCCESS**. `bash -n ops/ssh/t0-readonly-preflight.sh` PASS; focused unittest suite PASS, 5/5; inline sanitized diagnostic/artifact contract assertions PASS.
+  - `P1 authenticated Scaleway read-only preflight`, job ID `129823736309`: **SUCCESS**.
+  - `T0 manual isolated acceptance`, job ID `129823667801`: **SKIPPED** by design for this gate.
+- Authenticated SSH diagnostic: encrypted private key unlock PASS; pinned SSH key fingerprint PASS; SSH stderr class `STDERR_EMPTY`; SSH exit code `0`.
+- Inspected remote read-only output from artifact:
+  - `P1_SSH_PREFLIGHT_VERSION=1` and end marker present.
+  - VPS hostname: `btcquant-t0-t1-test-01`; SSH user: `ubuntu`.
+  - VPS deployed/source SHA reported by remote: `9ae2eeae4ece3d657781b68e96b6f4509cd95f24`.
+  - Feeder PIDs observed: `22045,22046`.
+  - API 8788 endpoint: `127.0.0.1:8788`; status `LOOPBACK_ONLY`.
+  - Canonical SQLite integrity: `PASS`.
+  - Workflow verdict: `P1_SSH_PREFLIGHT=PASS_READ_ONLY_PREFLIGHT`.
+- Artifact: `p1-scaleway-ssh-preflight-42814402445`; artifact ID `13762564163`; size 1,066 bytes; SHA-256 `f6303919c69b05d412722492f05b8dd3aefa1a655043fa98029a94fee5ee8c28`; expires `2026-11-17T12:16:53Z`. All five files were downloaded and inspected: `ci-source-sha.txt`, `preflight-remote.log`, `preflight-verdict.txt`, `preflight-ssh-diagnostic.txt`, `preflight-ssh-exit-code.txt`.
+- Status: **PASS — authenticated SSH read-only preflight snapshot** at run time. SSH connectivity/authentication, pinned key, host identity verification (strict host-key checking), remote forced-command protocol, observed Feeder PIDs, API loopback binding, and SQLite integrity were verified at this snapshot.
+- Scope/limits: this is a point-in-time read-only snapshot, not continuous monitoring or proof of current runtime after the run. The isolated T0 acceptance job was skipped; no full recovery/lease/fencing or data-delivery acceptance is claimed. No restart, configuration change, service mutation, DB write, migration, data deletion, PostgreSQL work, T1 activation, or trade occurred.
+- Next step: preserve this evidence and continue with the next separately scoped SQLite T0 validation. Do not infer broader runtime acceptance from this preflight; any operation beyond read-only inspection requires separate approval.
