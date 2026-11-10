@@ -129,6 +129,76 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertNotIn("ssh ", recovery_job)
         self.assertNotIn("environment:", recovery_job)
 
+    def test_g3_data_flow_paths_trigger_push_and_pull_request(self):
+        workflow = WORKFLOW.read_text()
+        paths = (
+            "market_data/sync.py", "market_data/api.py", "market_data/storage.py",
+            "market_data/test_sync.py", "market_data/test_api.py",
+            "market_data/test_e2e_data_flow.py", "freqai_bridge/context.py",
+            "freqai_bridge/http_candles.py", "freqai_bridge/test_http_candles.py",
+        )
+        for event in ("push:", "pull_request:"):
+            event_block = workflow.split("  " + event, 1)[1].split("\n\n", 1)[0]
+            for path in paths:
+                with self.subTest(event=event, path=path):
+                    self.assertIn(path, event_block)
+
+    def test_g2_is_rerun_as_a_required_prerequisite_for_g3_source_changes(self):
+        workflow = WORKFLOW.read_text()
+        recovery_scope = workflow.split("  recovery-change-scope:", 1)[1].split("  sqlite-recovery-auto:", 1)[0]
+        for path in (
+            "market_data/sync.py", "market_data/api.py", "market_data/storage.py",
+            "market_data/test_sync.py", "market_data/test_api.py",
+            "market_data/test_e2e_data_flow.py", "freqai_bridge/context.py",
+            "freqai_bridge/http_candles.py", "freqai_bridge/test_http_candles.py",
+        ):
+            self.assertIn(path, recovery_scope)
+
+    def test_g3_scope_detects_the_end_to_end_data_flow_surface(self):
+        workflow = WORKFLOW.read_text()
+        scope_job = workflow.split("  data-flow-change-scope:", 1)[1].split("  sqlite-data-flow-auto:", 1)[0]
+        self.assertIn("fetch-depth: 0", scope_job)
+        self.assertIn("git diff --name-only", scope_job)
+        for path in (
+            "market_data/sync.py", "market_data/store.py", "market_data/write_gateway.py",
+            "market_data/api.py", "market_data/storage.py", "market_data/test_e2e_data_flow.py",
+            "freqai_bridge/context.py", "freqai_bridge/http_candles.py",
+        ):
+            self.assertIn(path, scope_job)
+
+    def test_g3_requires_g1_and_g2_pass_and_uploads_isolated_evidence(self):
+        workflow = WORKFLOW.read_text()
+        data_flow_job = workflow.split("  sqlite-data-flow-auto:", 1)[1].split("  manual-gate:", 1)[0]
+        self.assertIn("sqlite-lease-fencing-auto", data_flow_job)
+        self.assertIn("sqlite-recovery-auto", data_flow_job)
+        self.assertIn("data-flow-change-scope", data_flow_job)
+        self.assertIn("needs.sqlite-lease-fencing-auto.result == 'success'", data_flow_job)
+        self.assertIn("needs.sqlite-recovery-auto.result == 'success'", data_flow_job)
+        self.assertIn("needs.data-flow-change-scope.outputs.changed == 'true'", data_flow_job)
+        self.assertIn("contents: read", data_flow_job)
+        self.assertIn("persist-credentials: false", data_flow_job)
+        self.assertIn("MARKET_DATA_DB: \"\"", data_flow_job)
+        self.assertIn("MARKET_DATA_TOKEN: \"\"", data_flow_job)
+        self.assertIn("T0_CANDLE_API_TOKEN: \"\"", data_flow_job)
+        self.assertIn("python -m unittest ci.test_t0_ssh_preflight_contract market_data.test_e2e_data_flow market_data.test_sync market_data.test_api freqai_bridge.test_http_candles -v", data_flow_job)
+        self.assertIn("sqlite-data-flow-tests.log", data_flow_job)
+        self.assertIn("sqlite-data-flow-verdict.txt", data_flow_job)
+        self.assertIn("data-flow-source-sha.txt", data_flow_job)
+        self.assertIn("actions/upload-artifact@v4", data_flow_job)
+        self.assertNotIn("secrets.", data_flow_job)
+        self.assertNotIn("ssh ", data_flow_job)
+        self.assertNotIn("environment:", data_flow_job)
+
+    def test_g3_integration_uses_only_synthetic_exchange_and_loopback_http(self):
+        source = (ROOT / "market_data/test_e2e_data_flow.py").read_text()
+        self.assertIn("class SyntheticBinanceUsdM", source)
+        self.assertIn("sync_window(", source)
+        self.assertIn("make_server(\"127.0.0.1\", 0, application)", source)
+        self.assertIn("canonical_context(", source)
+        self.assertIn("COVERAGE_INCOMPLETE", source)
+        self.assertNotIn("ccxt.binanceusdm(", source)
+        self.assertNotIn("BINANCE_API_KEY", source)
+
     def test_remote_script_is_forced_command_compatible_and_read_only(self):
         script = SCRIPT.read_text()
         self.assertIn("P1_SSH_PREFLIGHT_VERSION=1", script)
