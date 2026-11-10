@@ -23,7 +23,7 @@ However, the remote preflight script still contains a fail-open branch and an in
 ### R1 — awk failure is incorrectly treated as a verified loopback listener
 
 - File: `ops/ssh/t0-readonly-preflight.sh`
-- Relevant block: `printf '%s\\n' "$listeners" | awk ...`
+- Relevant block: `printf '%s\n' "$listeners" | awk ...`
 - Severity: **Required / security correctness blocker**.
 - Current behavior: the `if` condition's pipeline returns nonzero when `awk` is unavailable or fails. Its `else` branch then assigns `api_state="LOOPBACK_LISTENER"`. Because the script only rejects `NON_LOOPBACK_LISTENER`, `CHECK_UNAVAILABLE`, and `CHECK_FAILED`, this unverified state can exit 0.
 - Required correction: explicitly verify the parser dependency and classify parser absence/failure as `CHECK_UNAVAILABLE` / `CHECK_FAILED`; only emit `LOOPBACK_LISTENER` after a successful parse that positively validates every listener address. Preserve fail-closed nonzero exit behavior.
@@ -32,7 +32,7 @@ However, the remote preflight script still contains a fail-open branch and an in
 ### R2 — feeder process pattern is over-escaped
 
 - File: `ops/ssh/t0-readonly-preflight.sh`
-- Relevant expression: `pgrep -f '[m]arket_data\\\\.feeder'`
+- Relevant expression: `pgrep -f '[m]arket_data\\.feeder'`
 - Severity: **Required / evidence correctness blocker**.
 - Finding: the single-quoted argument passes two backslashes before the dot to the extended regular-expression matcher. The resulting expression matches a literal backslash followed by a character, rather than the dot in the expected module name. A representative command line `python -m market_data.feeder` does not match this pattern (reproduced with the equivalent Python regular expression engine).
 - Impact: an existing Feeder can be reported as `FEEDER_PIDS=NONE`, producing misleading runtime evidence and a false partial-component classification.
