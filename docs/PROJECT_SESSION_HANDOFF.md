@@ -1493,3 +1493,38 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - PR #140 current head at handoff update: `bf26a0478dab4dd86050787367da6c1b80ffd482`; remains OPEN / DRAFT / NOT MERGED.
 - No SSH/VPS connection, no authenticated preflight, no secrets/credentials change, no DB access, no service restart, no deletion, no deployment, and no trading action.
 - Next step: manually run `T0 Manual Validation` with `scaleway-ssh-contract-only` on branch `fix/p1-ssh-preflight-contract-20261110`, then provide the workflow URL for evidence review. Do not run `scaleway-ssh-preflight` without separate explicit approval.
+
+
+## 2026-11-10 — PR #140 R1–R3 fail-closed probe follow-up
+
+This section supersedes the earlier PR #140 next-step note that requested implementation of R1–R3.
+
+- PR: [#140](https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/140), branch `fix/p1-ssh-preflight-contract-20261110`, base `main`.
+- Latest source commit before this handoff update: `3a80256f8fced1be6e8060bb23859b9edf7baa1e`.
+- Script blob: `6fc3a54c4d91e0ef82aedf1fba2543b4468c756e`.
+- Contract test blob: `d96fb8a8cb20a32421cb32c4359420ff6d077e47`.
+- Workflow blob: `749d53bf94168a0e0423e1b52f8699ffe2a605d3`.
+- Evidence report: `docs/evidence/PR140_FAIL_CLOSED_PROBE_FIX_20261110.md`, created in commit `fa7aadb3878dd5ade67ce8bd6d112807b16c8b3d`.
+
+### Findings addressed in source
+
+- R1: listener parser dependency absence is `CHECK_UNAVAILABLE`; parser failure is `CHECK_FAILED`; only explicit successful parser output may produce `LOOPBACK_LISTENER`. Unavailable/failed states fail nonzero.
+- R2: Feeder expression corrected to `[m]arket_data\.feeder`; contract includes semantic matching assertions for representative module and unrelated process command lines.
+- R3: `pgrep` absence/failure is distinct from successful no-match; exit 1 means `NONE`, other nonzero statuses mean `CHECK_FAILED`; unavailable/failed states fail nonzero.
+- Authenticated workflow classifier now rejects unavailable/failed Feeder or API probes instead of promoting them to a successful preflight.
+- Added subprocess tests using controlled command stubs for missing/failed `awk`, missing/failed `pgrep`, empty process result, loopback listener, and non-loopback listener.
+
+### Verification status
+
+- Source review of modified blocks: completed; static review only.
+- Python contract suite: **NOT RUN** on this source revision.
+- `bash -n`: **NOT RUN** on this source revision.
+- Exact-head GitHub Actions contract-only run: **NOT RUN**.
+- VPS/SSH/deployed script behavior: **NOT VERIFIED**.
+- Artifact: none for this source revision.
+- PR remains **OPEN / DRAFT / NOT MERGED**.
+
+### Safety and next action
+
+- No authenticated SSH workflow, VPS connection, remote command, deployment, secret/credential change, host/runtime/service change, database access, T0 data change, Feeder activation, exchange connection, market-data sync, or trading action occurred.
+- Next: manually dispatch **T0 Manual Validation** on `fix/p1-ssh-preflight-contract-20261110` with gate `scaleway-ssh-contract-only` only. Verify the run checked out the exact source commit, shell syntax, all tests, authenticated SSH job skipped, and artifact metadata. Do not select `scaleway-ssh-preflight`.
