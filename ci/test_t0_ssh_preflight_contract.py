@@ -157,7 +157,7 @@ class T0SSHPreflightContractTests(unittest.TestCase):
             r"\b(rm|mv|cp|chmod|chown|kill|pkill|systemctl|service|reboot|shutdown|truncate)\b"
         )
         forbidden_sql = re.compile(
-            r"\\b(INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER|VACUUM)\\b",
+            r"\b(INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER|VACUUM)\b",
             re.IGNORECASE,
         )
         self.assertIsNone(forbidden_commands.search(self.source))
