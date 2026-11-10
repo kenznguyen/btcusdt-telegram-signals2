@@ -6,6 +6,9 @@ import tempfile
 import unittest
 
 from ci.t0_runtime_acceptance import inspect_sqlite_read_only
+from app import app as feeder_health_app
+from market_data.api import application as candle_api_application
+from wsgiref.util import setup_testing_defaults
 
 NOW = 1_800_000_000_000
 LEASE_NAME = "binance-btcusdt-canonical"
@@ -101,6 +104,43 @@ class ReadOnlySQLiteAcceptanceTests(unittest.TestCase):
             after = hashlib.sha256(path.read_bytes()).hexdigest()
         self.assertEqual(after, before)
 
+
+
+    def test_detailed_feeder_health_and_candle_api_are_separate_applications(self):
+        self.assertIn("/health/data", {
+            rule.rule for rule in feeder_health_app.url_map.iter_rules()
+        })
+        environ = {}
+        setup_testing_defaults(environ)
+        environ.update({"REQUEST_METHOD": "GET", "PATH_INFO": "/health/data"})
+        response = {}
+
+        def start_response(status, headers):
+            response["status"] = status
+
+        body = b"".join(candle_api_application(environ, start_response))
+        self.assertTrue(response["status"].startswith("404"))
+        self.assertIn(b"NOT_FOUND", body)
+
+        environ["PATH_INFO"] = "/health"
+        body = b"".join(candle_api_application(environ, start_response))
+        self.assertTrue(response["status"].startswith("200"))
+        self.assertIn(b"canonical-market-data", body)
+        self.assertNotIn(b"timeframes", body)
+
+    def test_watermarks_report_close_lag_without_claiming_health(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "canonical.sqlite3"
+            create_fixture(path)
+            result = inspect_sqlite_read_only(str(path), now_ms=NOW + 5_000)
+        for timeframe, interval in (("15m", 900_000), ("1h", 3_600_000)):
+            item = result["timeframes"][timeframe]
+            self.assertEqual(
+                item["close_lag_ms"],
+                NOW + 5_000 - item["latest_close_time_ms"],
+            )
+            self.assertEqual(item["latest_close_time_ms"],
+                           item["latest_open_time_ms"] + interval)
 
 if __name__ == "__main__":
     unittest.main()
