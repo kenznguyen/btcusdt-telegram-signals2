@@ -1,0 +1,114 @@
+{
+  "schema_version": "T0_L4_REPOSITORY_FILE_INVENTORY_V1",
+  "source_branch": "feature/t0-centralized-data-feeder-p1-20261101",
+  "files": [
+    {
+      "path": "docs/decisions/D-2026-11-09-L4-PROVENANCE-PERSONAL-SCOPE.md",
+      "git_blob_sha1": "6b96c2c37a4989b7ceba291d027a3f8459eecb3b"
+    },
+    {
+      "path": "docs/decisions/D-2026-11-09-OPERATIONAL-FIRST-EMPIRICAL-VALIDATION.md",
+      "git_blob_sha1": "cb71b31e9ee87599f45662bc78b88a1ba4bf523d"
+    },
+    {
+      "path": "docs/decisions/D-2026-11-09-T0-PERSONAL-USE-SCOPE-AND-DECOMMERCIALIZATION.md",
+      "git_blob_sha1": "c7891def00458604158984a00634d131060a1737"
+    },
+    {
+      "path": "docs/decisions/D-2026-11-10-L4-EVIDENCE-CUSTODY-VPS-GITHUB-ONLY.md",
+      "git_blob_sha1": "2df5bdeb36ec53158c66871b740c43b859a5013c"
+    },
+    {
+      "path": "docs/decisions/D-2026-11-10-L4-INDEPENDENT-REVIEW-WAIVER.md",
+      "git_blob_sha1": "75e057ba482d81f6a9d896ace2b017807c9396d9"
+    },
+    {
+      "path": "docs/decisions/D-2026-11-10-LIFECYCLE-INDEPENDENT-REVIEW-WAIVER.md",
+      "git_blob_sha1": "555951e36f6365012cb5b9e48ba24e455b775d16"
+    },
+    {
+      "path": "docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md",
+      "git_blob_sha1": "75db0d98134fd656d91a8545bc307c56595aebf7"
+    },
+    {
+      "path": "docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md",
+      "git_blob_sha1": "fe4a188d336a8b0279e8e14941c9cb171c23ae0e"
+    },
+    {
+      "path": "docs/evidence/T0_L4_MINIMUM_AUTOMATION_PLAN_2026-11-10.md",
+      "git_blob_sha1": "4c1d0e6f50bc909d95be02490f51bebf55d739cc"
+    },
+    {
+      "path": "docs/evidence/T0_L4_MINIMUM_ADVERSARIAL_REVIEW_2026-11-10.md",
+      "git_blob_sha1": "a7aec29330d71cb4d34193d6db81b8e20eb295f1"
+    },
+    {
+      "path": "docs/evidence/T0_L4_MINIMUM_READ_ONLY_AUDIT_2026-11-10.md",
+      "git_blob_sha1": "cfecb7428508adf23e6b9e71dc0dfe1e0e38080c"
+    },
+    {
+      "path": "docs/evidence/T0_L4_MINIMUM_POLICY_HISTORICAL_AUDIT_RECONCILIATION_2026-11-10.md",
+      "git_blob_sha1": "017bca148719006b22431d6eafa383fe6337a10c"
+    },
+    {
+      "path": "docs/architecture/CENTRAL_DATA_LIFECYCLE_POLICY.md",
+      "git_blob_sha1": "9fd46c029cff643ccc35492fd09620581f6eff35"
+    },
+    {
+      "path": "docs/evidence/p1-8/P1.8.143-owner-retention-policy-ratification.md",
+      "git_blob_sha1": "6f4451f1eb193e763970581bcd6d8a782508acfd"
+    },
+    {
+      "path": "docs/evidence/p1-8/P1.8.144-retention-floor-evidence-contract.md",
+      "git_blob_sha1": "f3002ba709f874936ca434c883ef855d2f11784a"
+    },
+    {
+      "path": "docs/evidence/p1-8/P1.8.152-retention-and-lifecycle-residual-finding-reconciliation.md",
+      "git_blob_sha1": "e1a4d95af216e94a58fa5528850fcd0c1ff465f8"
+    },
+    {
+      "path": "docs/evidence/T0_L4_MINIMUM_EXTENDED_BRANCHING_ASSESSMENT_2026-11-10.md",
+      "git_blob_sha1": "8b11913830f25d347a7e7c6f3140adfe5c4cef78"
+    },
+    {
+      "path": "docs/evidence/T0_L4_MINIMUM_LINEAGE_GATE_EVIDENCE_2026-11-10.md",
+      "git_blob_sha1": "6cc2a2abb766948d2cd1d05e668a52a2a90484f1"
+    },
+    {
+      "path": "docs/evidence/T0_L4M08_CLAIM_DISCIPLINE_DOCUMENTARY_ASSESSMENT_2026-11-10.md",
+      "git_blob_sha1": "fe1956e9ca8ed189779d925e7f0ff390436fa95c"
+    },
+    {
+      "path": "docs/evidence/T0_L4M10_FROZEN_BASELINE_OWNER_SELF_ASSESSMENT_READINESS_2026-11-10.md",
+      "git_blob_sha1": "dd32b9e6e0c5e5cf5638ae4ecde79bd3974f2f67"
+    },
+    {
+      "path": "docs/evidence/T0_L4M02_SIGNER_SEPARATION_EXISTING_EVIDENCE_ASSESSMENT_2026-11-10.md",
+      "git_blob_sha1": "20cfefce858487480ba1ee9508a9f5df85a72c61"
+    },
+    {
+      "path": "docs/evidence/p1-8/P1.8.146-retention-obligation-completeness-end-state-copy-graph-clarification.md",
+      "git_blob_sha1": "5efb0ae86d88ede5627ed7b77322463c39fb737e"
+    },
+    {
+      "path": "docs/evidence/p1-8/P1.8.147-independent-static-review-p1-8-146.md",
+      "git_blob_sha1": "4bc99b2886fce32efd54efb2294732655fc63253"
+    },
+    {
+      "path": "docs/evidence/p1-8/P1.8.148-reviewer-independence-conflict-control-clarification.md",
+      "git_blob_sha1": "baea1eb363a06ea7e804fe986777b31e9b693513"
+    },
+    {
+      "path": "docs/evidence/p1-8/P1.8.149-independent-static-review-p1-8-148.md",
+      "git_blob_sha1": "cce7aa0bf9c7b6048b61ef5c436433e3ac0c01c4"
+    },
+    {
+      "path": "docs/evidence/p1-8/P1.8.150-conflicted-contributor-independent-reviewer-clarification.md",
+      "git_blob_sha1": "f23fbcfdc85c82b95271d835a1e452e4a9863db2"
+    },
+    {
+      "path": "docs/evidence/p1-8/P1.8.151-independent-static-review-p1-8-150.md",
+      "git_blob_sha1": "64902f09d0f5576a47da44dbb194a56e18d727c2"
+    }
+  ]
+}

@@ -153,3 +153,20 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest ci.test_t0_l4_repository_file_inventory -v
+
+      - name: Build exact-commit repository-file inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python ci/t0_l4_repository_file_inventory.py --config ci/l4-repository-file-inventory.json --output-dir l4-repository-file-inventory
+          cat l4-repository-file-inventory/l4-repository-file-inventory.sha256
+
+      - name: Upload repository-file inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-l4-repository-file-inventory-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            l4-repository-file-inventory/l4-repository-file-inventory.json
+            l4-repository-file-inventory/l4-repository-file-inventory.sha256
