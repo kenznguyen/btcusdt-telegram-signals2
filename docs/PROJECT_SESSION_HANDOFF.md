@@ -1583,3 +1583,17 @@ This section supersedes the earlier PR #140 next-step note that requested implem
 - No changes to the preflight script, workflow, T0/VPS, secrets, credentials, runtime, services, database, or data. No SSH, deployment, exchange connection, or trading action.
 - PR remains OPEN / DRAFT / NOT MERGED; mergeability remains unresolved. Do not merge.
 - Next: manually dispatch `T0 Manual Validation` on `fix/p1-ssh-preflight-contract-20261110` using `scaleway-ssh-contract-only` only. Confirm exact checked-out SHA, all contract tests, shell syntax, skipped authenticated SSH job, and artifact status. Do not select `scaleway-ssh-preflight`.
+
+
+## 2026-11-10 — PR #140 exact-head contract-only verification
+
+- GitHub Actions run [#42804901911](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42804901911): **SUCCESS**, event `workflow_dispatch`, run attempt 1.
+- Workflow: `.github/workflows/t0-manual-validation.yml`; branch: `fix/p1-ssh-preflight-contract-20261110`; selected gate: `scaleway-ssh-contract-only`.
+- Exact checked-out source SHA from checkout logs: `76cd8bd1ed4026ec5d0d25faea07f8870fff4d3f`; matches PR #140 head at dispatch.
+- Contract job `P1 SSH preflight contract checks`, ID `129791416163`: **SUCCESS**. `bash -n ops/ssh/t0-readonly-preflight.sh`: PASS. `python -m unittest ci.test_t0_ssh_preflight_contract -v`: **20/20 PASS**.
+- `T0 manual isolated acceptance`, ID `129791418839`: **SKIPPED**. `P1 authenticated Scaleway read-only preflight`, ID `129791476033`: **SKIPPED**. The authenticated SSH path was not executed.
+- Artifacts: **NONE**; run reports an empty artifact list.
+- Verdict: exact-head isolated contract CI **PASS** for shell syntax and all 20 contract tests. This does not verify deployed VPS/T0 runtime, authenticated SSH, live API/Feeder/SQLite state, or operational behavior.
+- PR #140 remains **OPEN / DRAFT / NOT MERGED**; GitHub reports `mergeable=false`. Current comparison against main: **42 commits ahead / 2 behind**, merge base `9cb38cdd995158704fe2993e277396bb9bf4b50a`. Merge remains blocked pending reconciliation of divergence/mergeability and independent review.
+- No SSH connection, VPS command, secret/credential change, deployment, runtime/service/database/data change, exchange connection, market-data sync, or trading action occurred.
+- Next: inspect the two commits behind main and resolve ancestry/conflict risk on the existing PR branch without changing protected runtime scope; rerun exact-head CI if source changes. Do not dispatch `scaleway-ssh-preflight` without separate explicit approval.
