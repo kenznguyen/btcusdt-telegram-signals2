@@ -1,4 +1,4 @@
-"""Static contract tests for the P1 read-only Scaleway SSH preflight."""
+"""Contract tests for the P1 read-only Scaleway SSH preflight."""
 
 from pathlib import Path
 import re
@@ -33,24 +33,54 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertIn("PRAGMA integrity_check", self.source)
 
     def test_api_listener_classification_fails_closed_for_non_loopback(self):
-        self.assertIn('api_state="NOT_LISTENING"', self.source)
-        self.assertIn('api_state="NON_LOOPBACK_LISTENER"', self.source)
-        self.assertIn('api_state="LOOPBACK_LISTENER"', self.source)
+        for state in ("NOT_LISTENING", "NON_LOOPBACK_LISTENER", "LOOPBACK_LISTENER"):
+            self.assertIn(f'api_state="{state}"', self.source)
         self.assertIn('[[ "$api_state" != "NON_LOOPBACK_LISTENER" ]] || exit 1', self.source)
 
-    def test_listener_probe_fails_closed_when_ss_is_unavailable_or_fails(self):
+    def test_listener_parser_unavailable_or_failed_is_not_loopback(self):
         self.assertIn('api_state="CHECK_UNAVAILABLE"', self.source)
-        self.assertIn('command -v ss', self.source)
+        self.assertIn('command -v awk', self.source)
         self.assertIn('api_state="CHECK_FAILED"', self.source)
         self.assertIn('[[ "$api_state" != "CHECK_UNAVAILABLE" ]] || exit 1', self.source)
         self.assertIn('[[ "$api_state" != "CHECK_FAILED" ]] || exit 1', self.source)
+        self.assertIn('parser_result="', self.source)
+
+    def test_listener_parser_accepts_only_positive_loopback_classification(self):
+        self.assertIn('parser_result="LOOPBACK_LISTENER"', self.source)
+        self.assertIn('parser_result="NON_LOOPBACK_LISTENER"', self.source)
+        self.assertIn('*) api_state="CHECK_FAILED" ;;', self.source)
+
+    def test_feeder_regex_matches_expected_module_and_not_unrelated_process(self):
+        pattern = re.search(r"pgrep -f '([^']+)'", self.source)
+        self.assertIsNotNone(pattern)
+        expression = pattern.group(1)
+        self.assertIsNotNone(re.search(expression, "python -m market_data.feeder"))
+        self.assertIsNone(re.search(expression, "python -m market_data.api"))
+        self.assertIsNone(re.search(expression, "pgrep -f '[m]arket_data\\.feeder'"))
+
+    def test_feeder_probe_distinguishes_empty_unavailable_and_failed(self):
+        for token in (
+            'feeder_pids="CHECK_UNAVAILABLE"',
+            'feeder_pids="CHECK_FAILED"',
+            'feeder_pids="NONE"',
+            'command -v pgrep',
+            '[[ "$feeder_pids" != "CHECK_UNAVAILABLE" ]] || exit 1',
+            '[[ "$feeder_pids" != "CHECK_FAILED" ]] || exit 1',
+        ):
+            self.assertIn(token, self.source)
+
+    def test_workflow_does_not_treat_unavailable_feeder_probe_as_absent(self):
+        workflow = (SCRIPT.parents[2] / ".github" / "workflows" / "t0-manual-validation.yml")
+        text = workflow.read_text(encoding="utf-8")
+        self.assertIn("FEEDER_PIDS=CHECK_UNAVAILABLE", text)
+        self.assertIn("FEEDER_PIDS=CHECK_FAILED", text)
 
     def test_no_mutating_host_or_database_commands_are_present(self):
         forbidden_commands = re.compile(
-            r"\b(rm|mv|cp|chmod|chown|kill|pkill|systemctl|service|reboot|shutdown|truncate)\b"
+            r"\\b(rm|mv|cp|chmod|chown|kill|pkill|systemctl|service|reboot|shutdown|truncate)\\b"
         )
         forbidden_sql = re.compile(
-            r"\b(INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER|VACUUM)\b",
+            r"\\b(INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER|VACUUM)\\b",
             re.IGNORECASE,
         )
         self.assertIsNone(forbidden_commands.search(self.source))
