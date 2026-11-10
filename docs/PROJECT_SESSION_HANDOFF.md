@@ -1,3 +1,19 @@
+## Latest T0 simplification — active SQLite startup/configuration review (2026-11-10)
+
+- Read-only review: `docs/evidence/T0_SIMPLIFICATION_ACTIVE_SQLITE_STARTUP_CONFIGURATION_REVIEW_2026-11-10.md`.
+- Review commit: `e0b545aab4512da91cf16063472d460e49871fb7`.
+- Inspected source baseline: last recorded branch commit before this review `c66c34ab709d6677530c0a745d37791034331651`.
+- Exact source blobs: `market_data/feeder.py` `935d295ef42c94482a48ce6ccdc927ebfa4c7e22`; `market_data/feeder_service.py` `bdcecf6bc98a2ff070f83098d2c50154a160c99c`; `market_data/storage.py` `13fe1ae01ebb5318b69e69eef3e512d207f74c49`; relevant tests and README are recorded in the review.
+- Mapped ownership: FeederConfig; production environment builder; side-effect-free store factory; runtime composition; FeederRuntime lifecycle; process/systemd readiness.
+- C-01 candidate: `MARKET_DATA_BACKEND` is independently parsed in `build_production_runtime()` and `create_store_from_env()`. Candidate only; NOT IMPLEMENTED / NOT APPROVED pending complete caller/workflow inventory and focused production-builder regression matrix.
+- Timeframe defaults, retry defaults, close-grace reuse, runtime readiness and systemd readiness were assessed as intentional or not proven harmful; KEEP.
+- Bounded source review PASS. Full repository-wide caller/workflow denominator NOT VERIFIED. Tests/compile/dry-run NOT RUN. GitHub Actions NOT DISPATCHED; no run/artifact. Independent review NOT PERFORMED.
+- No source/test/package/workflow/runtime/VPS/DB/provider/secret/permission/network/data changes.
+- Next safe step: read-only branch-local caller and workflow inventory for `build_production_runtime` and store factory; then define C-01 regression matrix before any implementation approval.
+- L4-Minimum remains ADMINISTRATIVELY CLOSED — BLOCKED / NOT VERIFIED; L4-Extended remains PARKED. Option C ACTIVE; canonical SQLite protected; PostgreSQL PARKED; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
+
+---
+
 ## Latest work — L4-Minimum administrative closure and T0 Core handoff (2026-11-10)
 
 - Administrative closure record: `docs/evidence/T0_L4_MINIMUM_ADMINISTRATIVE_CLOSURE_2026-11-10.md`.
