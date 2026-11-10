@@ -1466,3 +1466,17 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - PR #140 remains OPEN and Draft at the time of this update. Current PR head after the workflow commit: `e63ed5f9481d4d5968d7eeba122963d5f6fbc769`.
 - No SSH connection, VPS command, credential/secret change, runtime/configuration change, database access, data deletion, service restart, exchange connection, or trading action was performed.
 - Next step: run the contract-only gate and inspect its exact source SHA, job conclusion, logs, and artifact. Keep merge blocked until the run passes and PR review conditions are satisfied.
+
+
+## 2026-11-10 — PR #140 isolated SSH contract-only workflow verification
+
+- GitHub Actions run [#42793308850](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42793308850): **SUCCESS**.
+- Event: `workflow_dispatch`; selected gate: `scaleway-ssh-contract-only`; branch: `fix/p1-ssh-preflight-contract-20261110`.
+- Exact checked-out source SHA: `87146b00c07cfc32ccc12cb2286e10cb68bb6a5b`; it matches the PR #140 head SHA at dispatch.
+- Contract job ID `129751983182`: **SUCCESS**. Checkout log confirms exact SHA; `bash -n ops/ssh/t0-readonly-preflight.sh` passed; `python -m unittest ci.test_t0_ssh_preflight_contract -v` ran 5 tests, all **PASS**.
+- Job `T0 manual isolated acceptance` ID `129751985956`: **SKIPPED**. Authenticated Scaleway SSH job ID `129752054929`: **SKIPPED**. This confirms this dispatch did not attempt the authenticated SSH path.
+- Artifacts: none. No workflow artifact ID, payload, or digest exists for this run.
+- Verification verdict: isolated SSH preflight contract CI **PASS** on exact PR head SHA. VPS/Scaleway state, SSH authentication, deployed source identity, T0 service/listener/database state remain **NOT VERIFIED**.
+- No SSH connection, VPS command, credential/secret change, runtime/configuration change, database access, service restart, data deletion, PostgreSQL/T1 activation, exchange connection, or trading action was performed.
+- PR #140 remains OPEN / DRAFT / NOT MERGED. This CI result alone is not merge approval and does not authorize the authenticated `scaleway-ssh-preflight` gate.
+- Next permitted step: review PR #140 and its changed files for merge readiness; retain the no-SSH/no-VPS boundary unless separately approved. Do not dispatch `scaleway-ssh-preflight` without explicit authorization.
