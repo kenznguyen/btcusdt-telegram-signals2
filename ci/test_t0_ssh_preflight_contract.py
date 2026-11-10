@@ -128,6 +128,50 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertNotIn("ssh ", recovery_job)
         self.assertNotIn("environment:", recovery_job)
 
+    def test_sqlite_recovery_auto_trigger_is_path_scoped(self):
+        workflow = WORKFLOW.read_text()
+        for path in (
+            ".github/workflows/t0-manual-validation.yml",
+            "market_data/feeder.py",
+            "market_data/feeder_service.py",
+            "market_data/test_feeder_recovery.py",
+            "market_data/test_feeder_scheduler.py",
+            "market_data/test_feeder_lifecycle.py",
+        ):
+            self.assertIn(path, workflow)
+
+    def test_sqlite_recovery_scope_detects_only_recovery_changes(self):
+        workflow = WORKFLOW.read_text()
+        scope_job = workflow.split("  recovery-change-scope:", 1)[1].split("  sqlite-recovery-auto:", 1)[0]
+        self.assertIn("fetch-depth: 0", scope_job)
+        self.assertIn("git diff --name-only", scope_job)
+        for path in (
+            "market_data/feeder.py",
+            "market_data/feeder_service.py",
+            "market_data/test_feeder_recovery.py",
+            "market_data/test_feeder_scheduler.py",
+            "market_data/test_feeder_lifecycle.py",
+        ):
+            self.assertIn(path, scope_job)
+
+    def test_sqlite_recovery_auto_requires_g1_pass_and_uploads_evidence(self):
+        workflow = WORKFLOW.read_text()
+        recovery_job = workflow.split("  sqlite-recovery-auto:", 1)[1].split("  manual-gate:", 1)[0]
+        self.assertIn("sqlite-lease-fencing-auto", recovery_job)
+        self.assertIn("recovery-change-scope", recovery_job)
+        self.assertIn("needs.sqlite-lease-fencing-auto.result == 'success'", recovery_job)
+        self.assertIn("needs.recovery-change-scope.outputs.changed == 'true'", recovery_job)
+        self.assertIn("contents: read", recovery_job)
+        self.assertIn("persist-credentials: false", recovery_job)
+        self.assertIn("python -m unittest market_data.test_feeder_recovery market_data.test_feeder_scheduler market_data.test_feeder_lifecycle -v", recovery_job)
+        self.assertIn("sqlite-recovery-tests.log", recovery_job)
+        self.assertIn("sqlite-recovery-verdict.txt", recovery_job)
+        self.assertIn("recovery-source-sha.txt", recovery_job)
+        self.assertIn("actions/upload-artifact@v4", recovery_job)
+        self.assertNotIn("secrets.", recovery_job)
+        self.assertNotIn("ssh ", recovery_job)
+        self.assertNotIn("environment:", recovery_job)
+
     def test_remote_script_is_forced_command_compatible_and_read_only(self):
         script = SCRIPT.read_text()
         self.assertIn("P1_SSH_PREFLIGHT_VERSION=1", script)
