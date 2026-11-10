@@ -9,10 +9,10 @@ readonly T0_DB_PATH="/home/ubuntu/t0/app/.data/market-data.sqlite3"
 readonly API_PORT="8788"
 
 emit() {
-  printf '%s=%s\\n' "$1" "$2"
+  printf '%s=%s\n' "$1" "$2"
 }
 
-printf '%s\\n' "P1_SSH_PREFLIGHT_VERSION=1"
+printf '%s\n' "P1_SSH_PREFLIGHT_VERSION=1"
 
 emit "HOSTNAME" "$(hostname 2>/dev/null || printf 'UNAVAILABLE')"
 emit "SSH_USER" "$(id -un 2>/dev/null || printf 'UNAVAILABLE')"
@@ -29,7 +29,7 @@ feeder_pids="CHECK_UNAVAILABLE"
 if command -v pgrep >/dev/null 2>&1; then
   if detected_pids="$(pgrep -f '[m]arket_data\.feeder' 2>/dev/null)"; then
     if [[ -n "$detected_pids" ]]; then
-      feeder_pids="$(printf '%s' "$detected_pids" | tr '\\n' ' ' | sed 's/[[:space:]]*$//')"
+      feeder_pids="$(printf '%s' "$detected_pids" | tr '\n' ' ' | sed 's/[[:space:]]*$//')"
     else
       feeder_pids="NONE"
     fi
@@ -50,10 +50,10 @@ if command -v ss >/dev/null 2>&1; then
     if [[ -z "$listeners" ]]; then
       api_state="NOT_LISTENING"
     elif command -v awk >/dev/null 2>&1; then
-      if parser_result="$(printf '%s\\n' "$listeners" | awk '
+      if parser_result="$(printf '%s\n' "$listeners" | awk '
         {
           address = $4
-          if (address !~ /^127\\.0\\.0\\.1:/ && address !~ /^\\[::1\\]:/) {
+          if (address !~ /^127\.0\.0\.1:/ && address !~ /^\[::1\]:/) {
             non_loopback = 1
           }
         }
@@ -105,7 +105,7 @@ PY
 fi
 emit "SQLITE_INTEGRITY" "$sqlite_state"
 
-printf '%s\\n' "P1_SSH_PREFLIGHT_END=1"
+printf '%s\n' "P1_SSH_PREFLIGHT_END=1"
 
 # A preflight is successful only when the evidence is complete and safe.
 [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]] || exit 1
