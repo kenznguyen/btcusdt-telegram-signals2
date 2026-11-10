@@ -16,6 +16,7 @@ run-name: T0 manual gate - ${{ inputs.gate }} (${{ github.sha }})
           - kraken-spot-sqlite
           - kraken-spot-read-api
           - timescaledb-integration
+          - scaleway-ssh-preflight
 
 permissions:
   contents: read
@@ -26,6 +27,7 @@ concurrency:
 
 jobs:
   manual-gate:
+    if: ${{ inputs.gate != 'scaleway-ssh-preflight' }}
     name: T0 manual isolated acceptance
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -122,3 +124,114 @@ jobs:
             kraken-spot-read-api-tests.log
             timescaledb-tests.log
             timescaledb-verdict.txt
+
+  ssh-preflight-contract:
+    if: ${{ inputs.gate == 'scaleway-ssh-preflight' }}
+    name: P1 SSH preflight contract checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Validate read-only remote command and workflow contract
+        run: |
+          set -euo pipefail
+          bash -n ops/ssh/t0-readonly-preflight.sh
+          python -m unittest ci.test_t0_ssh_preflight_contract -v
+
+  ssh-preflight:
+    if: ${{ inputs.gate == 'scaleway-ssh-preflight' }}
+    name: P1 authenticated Scaleway read-only preflight
+    needs: ssh-preflight-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: scaleway-preflight
+    permissions:
+      contents: read
+    env:
+      SCW_SSH_HOST: ${{ secrets.SCW_SSH_HOST }}
+      SCW_SSH_PORT: ${{ secrets.SCW_SSH_PORT }}
+      SCW_SSH_USER: ${{ secrets.SCW_SSH_USER }}
+      SCW_SSH_PRIVATE_KEY: ${{ secrets.SCW_SSH_PRIVATE_KEY }}
+      SCW_SSH_KNOWN_HOSTS: ${{ secrets.SCW_SSH_KNOWN_HOSTS }}
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Validate protected SSH inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in SCW_SSH_HOST SCW_SSH_PORT SCW_SSH_USER SCW_SSH_PRIVATE_KEY SCW_SSH_KNOWN_HOSTS; do
+            if [[ -z "${!key:-}" ]]; then echo "Missing required environment secret: $key"; exit 1; fi
+          done
+          [[ "$SCW_SSH_PORT" =~ ^[0-9]{1,5}$ ]] || { echo "Invalid SSH port"; exit 1; }
+          (( SCW_SSH_PORT >= 1 && SCW_SSH_PORT <= 65535 )) || { echo "Invalid SSH port"; exit 1; }
+          [[ "$SCW_SSH_HOST" =~ ^[A-Za-z0-9.-]+$ ]] || { echo "Invalid SSH host"; exit 1; }
+          [[ "$SCW_SSH_USER" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]] || { echo "Invalid SSH user"; exit 1; }
+          git rev-parse HEAD > ci-source-sha.txt
+      - name: Establish pinned-key SSH and run forced read-only command
+        shell: bash
+        run: |
+          set -euo pipefail
+          key_file="$RUNNER_TEMP/scw_preflight_ed25519"
+          known_hosts_file="$RUNNER_TEMP/scw_known_hosts"
+          remote_log="preflight-remote.log"
+          printf '%s\n' "$SCW_SSH_PRIVATE_KEY" > "$key_file"
+          printf '%s\n' "$SCW_SSH_KNOWN_HOSTS" > "$known_hosts_file"
+          chmod 600 "$key_file" "$known_hosts_file"
+          trap 'rm -f "$key_file" "$known_hosts_file"' EXIT
+          timeout 60s ssh -T \
+            -p "$SCW_SSH_PORT" \
+            -i "$key_file" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$known_hosts_file" \
+            -o GlobalKnownHostsFile=/dev/null \
+            -o HostKeyAlgorithms=ssh-ed25519 \
+            -o PasswordAuthentication=no \
+            -o KbdInteractiveAuthentication=no \
+            -o ForwardAgent=no \
+            -o ClearAllForwardings=yes \
+            -o RequestTTY=no \
+            -o LogLevel=ERROR \
+            "$SCW_SSH_USER@$SCW_SSH_HOST" 2>"$RUNNER_TEMP/ssh-client-stderr.log" | tee "$remote_log"
+          grep -Fxq 'P1_SSH_PREFLIGHT_VERSION=1' "$remote_log"
+          grep -Fxq 'P1_SSH_PREFLIGHT_END=1' "$remote_log"
+      - name: Classify preflight evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f preflight-remote.log ]] && grep -q '^API_8788=NON_LOOPBACK_LISTENER$' preflight-remote.log; then
+            echo 'P1_SSH_PREFLIGHT=BLOCKED_NON_LOOPBACK_API_LISTENER' | tee preflight-verdict.txt
+            exit 1
+          fi
+          if [[ ! -f preflight-remote.log ]] || ! grep -Eq '^SOURCE_SHA=[0-9a-f]{40}$' preflight-remote.log || ! grep -Fxq 'SQLITE_INTEGRITY=PASS' preflight-remote.log; then
+            echo 'P1_SSH_PREFLIGHT=PARTIAL_OR_BLOCKED_EVIDENCE' | tee preflight-verdict.txt
+            exit 1
+          fi
+          if grep -Fxq 'FEEDER_PIDS=NONE' preflight-remote.log || grep -Fxq 'API_8788=NOT_LISTENING' preflight-remote.log; then
+            echo 'P1_SSH_PREFLIGHT=PARTIAL_RUNTIME_COMPONENT_NOT_PRESENT' | tee preflight-verdict.txt
+          else
+            echo 'P1_SSH_PREFLIGHT=PASS_READ_ONLY_PREFLIGHT' | tee preflight-verdict.txt
+          fi
+      - name: Upload sanitized preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-scaleway-ssh-preflight-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            ci-source-sha.txt
+            preflight-remote.log
+            preflight-verdict.txt
