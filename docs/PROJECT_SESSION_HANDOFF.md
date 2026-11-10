@@ -1,3 +1,18 @@
+## Latest L4-Minimum continuation — L4M-10 frozen-baseline readiness (2026-11-10)
+
+- Documentary assessment: `docs/evidence/T0_L4M10_FROZEN_BASELINE_OWNER_SELF_ASSESSMENT_READINESS_2026-11-10.md`.
+- Assessment commit: `05bfa000db33e933eeb7958b2349bdb4b6f9fe73`.
+- Assessment: NOT READY. Baseline NOT CREATED; owner acceptance NOT ISSUED.
+- Readiness analysis: L4M-01/02 NOT VERIFIED; L4M-03–07 remain synthetic/design/CI/model/policy partial; L4M-08 DOCUMENTARY PASS ONLY; L4M-09 OWNER-WAIVED / NOT MANDATORY; L4M-10 NOT VERIFIED.
+- Defined future-only baseline packaging sequence: package boundary, custody/latest-head anchor, signer/trust evidence, offline verification/readback, tamper-evident history, claim mapping, canonical manifest and digest, non-self-referential baseline identity, freeze gate, owner disposition.
+- Defined owner self-assessment safeguards: assessor identity/role, producer/custodian/approver conflict disclosure, nine per-control verdicts and exact baseline ID/digest reference. No independent assurance claim.
+- Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED. L4-Extended branch remains BLOCKED.
+- No baseline creation/freeze/signing, owner storage access/readback, tests, compile, dry-run, fault injection, Actions dispatch, workflow run/artifact, runtime/VPS/DB/data/secret/permission/network/service changes or destructive operations.
+- Option C ACTIVE; T0 canonical SQLite; PostgreSQL PARKED; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Next gate: owner-supplied sanitized L4M-01 custody evidence with L4M-03 authenticated latest-head anchor, then L4M-02 signer-separation evidence.
+
+---
+
 ## Latest T0 continuation — launch source revalidation (2026-11-10)
 
 - Revalidated the DEP intake and launch reconciliation references against current branch HEAD `d1617c16da83fc5afd0d97759fbf2666b6d9dffc`.
