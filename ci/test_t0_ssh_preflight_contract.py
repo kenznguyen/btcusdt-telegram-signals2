@@ -32,6 +32,11 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertNotIn('echo "$SCW_SSH_KEY_PASSPHRASE"', workflow)
         self.assertNotIn("ssh-add-stderr.log", workflow.rsplit("path: |", 1)[-1])
         self.assertNotIn("ssh-client-stderr.log", workflow.rsplit("path: |", 1)[-1])
+        ssh_job = workflow.split("  ssh-preflight:\\n", 1)[1]
+        job_header = ssh_job.split("    steps:\\n", 1)[0]
+        self.assertNotIn("SCW_SSH_PRIVATE_KEY: ${{ secrets.SCW_SSH_PRIVATE_KEY }}", job_header)
+        self.assertNotIn("SCW_SSH_KEY_PASSPHRASE: ${{ secrets.SCW_SSH_KEY_PASSPHRASE }}", job_header)
+        self.assertIn("SCW_SSH_PRIVATE_KEY: ${{ secrets.SCW_SSH_PRIVATE_KEY }}", ssh_job)
 
     def test_pull_request_runs_contract_only_without_exposing_ssh_secrets(self):
         workflow = WORKFLOW.read_text()
