@@ -3,7 +3,7 @@
 Date: 2026-11-10
 Repository: `kenznguyen/btcusdt-telegram-signals2`
 Branch: `feature/t0-centralized-data-feeder-p1-20261101`
-Status: **OWNER-APPROVED PLAN — DESIGN/DOCUMENTATION ONLY — AUTOMATION NOT IMPLEMENTED**
+Status: **OWNER-APPROVED PLAN — FIRST LINEAGE CONTRACT GATE IMPLEMENTED — REMAINING AUTOMATION NOT IMPLEMENTED**
 Approval: owner approval in conversation on 2026-11-10 to automate L4M-01–08 as far as technically possible and reserve owner participation for real-world custody/control assertions and L4M-10 acceptance.
 Controlling matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md` (current branch blob at plan preparation: `75db0d98134fd656d91a8545bc307c56595aebf7`).
 Current register at plan preparation: `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` (blob `cee949666da611a4efca7e7b51aea47ab4b13eff`).
@@ -98,7 +98,7 @@ Each implementation increment must be reviewed and tested before proceeding. Do 
 
 - Approval to automate: **APPROVED**.
 - Documentation/design plan: **RECORDED**.
-- L4 workflow implementation: **NOT STARTED**.
+- L4 workflow implementation: **FIRST LINEAGE CONTRACT GATE IMPLEMENTED; ADDITIONAL ACQUISITION/VERIFICATION GATES NOT STARTED**.
 - GitHub-side artifact inventory/readback: **NOT VERIFIED / NOT STARTED**.
 - VPS-side custody/readback: **NOT VERIFIED**.
 - Owner signer/custody assertions: **PENDING EVIDENCE**.

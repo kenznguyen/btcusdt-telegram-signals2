@@ -1,4 +1,5 @@
 """L4-Minimum source-lineage and policy contract tests (GitHub-hosted, read-only)."""
+import hashlib
 import pathlib
 import unittest
 
@@ -11,12 +12,28 @@ SUPERSEDED_REGISTER_SHA = "4ec993d23a7b6d282350d0dea0add0254cac87cb"
 REGISTER = ROOT / "docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md"
 PLAN = ROOT / "docs/evidence/T0_L4_MINIMUM_AUTOMATION_PLAN_2026-11-10.md"
 MATRIX = ROOT / "docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md"
+HISTORICAL_SNAPSHOT = ROOT / "docs/evidence/T0_L4M01_L4M03_EXISTING_TRUST_EVIDENCE_NON_SUBSTITUTION_2026-11-10.md"
 SUPPORTING_DOCS = (
     ROOT / "docs/evidence/T0_L4_MINIMUM_POLICY_HISTORICAL_AUDIT_RECONCILIATION_2026-11-10.md",
     ROOT / "docs/evidence/T0_L4M02_SIGNER_SEPARATION_EXISTING_EVIDENCE_ASSESSMENT_2026-11-10.md",
     ROOT / "docs/evidence/T0_L4M08_CLAIM_DISCIPLINE_DOCUMENTARY_ASSESSMENT_2026-11-10.md",
     ROOT / "docs/evidence/T0_L4M10_FROZEN_BASELINE_OWNER_SELF_ASSESSMENT_READINESS_2026-11-10.md",
 )
+
+
+def git_blob_sha1(path):
+    data = path.read_bytes()
+    header = f"blob {len(data)}\\0".encode("ascii")
+    return hashlib.sha1(header + data).hexdigest()
+
+
+def active_l4_documents():
+    decisions = ROOT / "docs/decisions"
+    evidence = ROOT / "docs/evidence"
+    paths = set(decisions.glob("D-*-L4*.md"))
+    paths.update(evidence.glob("T0_L4*.md"))
+    paths.add(MATRIX)
+    return tuple(sorted(path for path in paths if path.is_file()))
 
 
 class T0L4MinimumLineageContractTests(unittest.TestCase):
@@ -48,6 +65,32 @@ class T0L4MinimumLineageContractTests(unittest.TestCase):
                 content = path.read_text()
                 for digest in digests:
                     self.assertIn(digest, content)
+
+    def test_matrix_and_register_constants_match_checked_out_git_blobs(self):
+        self.assertEqual(MATRIX_SHA, git_blob_sha1(MATRIX))
+        self.assertEqual(REGISTER_SHA, git_blob_sha1(REGISTER))
+
+    def test_superseded_blob_references_are_confined_to_historical_snapshot(self):
+        superseded = (SUPERSEDED_MATRIX_SHA, SUPERSEDED_REGISTER_SHA)
+        offenders = []
+        for path in active_l4_documents():
+            content = path.read_text()
+            if any(digest in content for digest in superseded) and path != HISTORICAL_SNAPSHOT:
+                offenders.append(str(path.relative_to(ROOT)))
+        self.assertEqual([], offenders)
+
+    def test_historical_snapshot_explicitly_labels_its_old_register_reference(self):
+        content = HISTORICAL_SNAPSHOT.read_text()
+        self.assertIn(SUPERSEDED_REGISTER_SHA, content)
+        self.assertIn("At the time of this historical assessment", content)
+        self.assertIn("location requirement is now superseded", content)
+
+    def test_all_control_ids_are_present_in_matrix_and_register(self):
+        for number in range(1, 11):
+            control_id = f"L4M-{number:02d}"
+            with self.subTest(control=control_id):
+                self.assertIn(control_id, MATRIX.read_text())
+                self.assertIn(control_id, REGISTER.read_text())
 
     def test_matrix_keeps_approved_vps_github_custody_boundary(self):
         content = MATRIX.read_text()
