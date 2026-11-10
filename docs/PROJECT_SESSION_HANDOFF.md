@@ -4250,3 +4250,19 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - No SSH/VPS/DB/network probe, test, compile, Actions dispatch, runtime/service/data/secret/permission change or destructive action. No current VPS evidence was generated.
 - Next gate: collect owner-supplied sanitized current T0/T2 source SHA, service identity/launch, bind/endpoint, redacted config/token-presence, status/log and alternate data-path evidence. A new G6 read requires separate explicit approval.
 - `AI_EXECUTION_ENABLED=false`; paper-only; no live orders. T0 canonical SQLite protected; PostgreSQL/TimescaleDB PARKED; T1 not activated.
+
+
+## Supplemental CI artifact byte inspection (2026-11-10)
+
+- Downloaded and inspected four existing GitHub Actions artifacts; no workflow was dispatched and no tests were run in this step.
+- Updated evidence report `docs/evidence/T0_T2_GITHUB_EVIDENCE_COLLECTION_2026-11-10.md`; update commit `c3a16dbb571da8296c82a2203fa42411e8f73892`; verified report blob `ac6fedfc3b0e7c315ec23e5e4f23d19de3beb929`.
+- Artifact ZIP SHA-256:
+  - `13627939321`: `d91536d963cd58738b9c892a62d01cd0d346f3288abc2a700574b527c76bad66`
+  - `13628397213`: `7b5b4ac30fc6387bbddae6b284a94e528769c61356d98a2f3aff7346cf4db027`
+  - `13628521899`: `1a0f61f396c6fb4c7f57382d9b635cd958c97008e541de28178a9e31827d4a98`
+  - `13627924430`: `7a14b9cf72c1396ca194b21f081d6c88f08e8769e937b18bdc82374fdef684d0`
+- Inspected log evidence: T0 full suite 298 tests; gateway behavior 77; health/readiness 21; gateway contract 10; process restart 2; T2 HTTP consumer regression 31. T2 strategy load reports `ChartProFreqaiResearch` OK under Freqtrade 2026.9.
+- T0 systemd feeder/API integration log reports PASS; T0 SQLite read-only WAL sandbox reports PASS. The latter explicitly scopes itself to `DISPOSABLE_GITHUB_RUNNER_ONLY`; it is not VPS evidence.
+- CI evidence is stronger at artifact-byte level, but current deployed SHA/listener/config/process and data-path remain NOT VERIFIED. G1 PARTIAL; G2/G3/G5 historical only; G4 PARTIAL; G6 NOT RUN.
+- No SSH/VPS/DB/network probe, new tests, compile, workflow dispatch, source/runtime/data mutation or destructive action.
+- Next step remains owner-supplied sanitized current VPS evidence. If unavailable, do not upgrade any current deployment gate to PASS.
