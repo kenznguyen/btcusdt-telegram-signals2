@@ -422,6 +422,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Install isolated probe dependencies
+        run: python -m pip install -r requirements-market-data.txt -r requirements-web.txt
       - name: Verify isolated environment and record source SHA
         shell: bash
         run: |
