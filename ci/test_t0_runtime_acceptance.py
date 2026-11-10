@@ -305,8 +305,11 @@ class ReadOnlySQLiteAcceptanceTests(unittest.TestCase):
 
     def test_http_transport_is_bounded_loopback_only_and_rejects_redirects(self):
         from ci import t0_runtime_acceptance as probe
-        self.assertIn("ProxyHandler({})", probe._default_opener.__code__.co_consts)
-        self.assertIn("_RejectRedirects", probe._default_opener.__code__.co_names)
+        import inspect
+        transport_source = inspect.getsource(probe._default_opener) + inspect.getsource(probe._request_json)
+        self.assertIn("ProxyHandler({})", transport_source)
+        self.assertIn("_RejectRedirects", transport_source)
+        self.assertIn("MAX_HTTP_BODY_BYTES + 1", transport_source)
         self.assertEqual(probe.MAX_HTTP_BODY_BYTES, 1_048_576)
         for unsafe_url in (
             "http://user:pass@127.0.0.1:8788",
