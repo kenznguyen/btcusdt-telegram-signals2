@@ -162,6 +162,7 @@ jobs:
           missing = [item for item in required if item not in workflow]
           assert not missing, f"Missing sanitized SSH diagnostic contract: {missing}"
           assert "ssh-client-stderr.log" not in workflow.rsplit("path: |", 1)[-1]
+          PY
 
   ssh-preflight:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.gate == 'scaleway-ssh-preflight' }}
