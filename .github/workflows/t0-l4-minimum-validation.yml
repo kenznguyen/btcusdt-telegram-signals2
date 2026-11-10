@@ -7,6 +7,8 @@ on:
     paths:
       - .github/workflows/t0-l4-minimum-validation.yml
       - ci/test_t0_l4_minimum_lineage_contract.py
+      - ci/test_t0_l4_artifact_manifest.py
+      - ci/t0_l4_artifact_manifest.py
       - docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md
       - docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md
       - docs/evidence/T0_L4_MINIMUM_AUTOMATION_PLAN_2026-11-10.md
@@ -69,3 +71,51 @@ jobs:
             l4-validation-scope.txt
             l4-lineage-contract-tests.log
             l4-lineage-contract-verdict.txt
+
+  l4-artifact-manifest:
+    name: L4-Minimum GitHub artifact readback and SHA-256 manifest
+    needs: l4-minimum-lineage-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run artifact manifest contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest ci.test_t0_l4_artifact_manifest -v
+
+      - name: Read back exact current-run artifact and build manifest
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          python ci/t0_l4_artifact_manifest.py --output-dir l4-artifact-manifest
+
+      - name: Upload L4 artifact inventory and SHA-256 manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-l4-artifact-manifest-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            l4-artifact-manifest/l4-artifact-manifest.json
+            l4-artifact-manifest/l4-artifact-manifest.sha256
