@@ -1,3 +1,16 @@
+## Latest T0 simplification — C-01 regression coverage map (2026-11-10)
+
+- Updated read-only report: `docs/evidence/T0_SIMPLIFICATION_ACTIVE_SQLITE_STARTUP_CONFIGURATION_REVIEW_2026-11-10.md`.
+- Update commit: `d8fbf57e67afcb146b64246048714961f73e507e`; final report blob `71950724964e5cb29df01b987d858a14b7a8c341`.
+- Corrected coverage map: production-builder tests exist for PostgreSQL in `market_data/test_postgres_feeder_runtime.py`; API status/auth semantics are covered in `market_data/test_api.py`; store factory behavior is covered in `market_data/test_storage.py`.
+- No equivalent production-builder SQLite branch coverage was identified in the bounded inspected test set. The systemd/API CI script composes `FeederRuntime` directly and does not call `build_production_runtime()`.
+- C-01 regression plan now preserves API pre-auth UNCONFIGURED / auth 401 / store 503 ordering, SQLite default/explicit selection and same-file lease invariant, PostgreSQL TLS/host/lease restrictions, per-process owner generation, no implicit DB/schema provisioning, and recovery-before-readiness.
+- This is a static coverage map only. Tests NOT RUN; Actions NOT DISPATCHED; full repository-wide caller/trigger coverage NOT VERIFIED. No implementation approval or source change.
+- Next step: finish read-only references outside `market_data`; then decide whether C-01 merits a minimal test-first change. Keep T0 canonical SQLite and PostgreSQL PARKED.
+- L4-Minimum remains administratively closed BLOCKED / NOT VERIFIED; L4-Extended PARKED. Option C ACTIVE; paper-only; no live orders.
+
+---
+
 ## Latest T0 simplification — backend configuration caller/workflow inventory (2026-11-10)
 
 - Expanded read-only review: `docs/evidence/T0_SIMPLIFICATION_ACTIVE_SQLITE_STARTUP_CONFIGURATION_REVIEW_2026-11-10.md`.
