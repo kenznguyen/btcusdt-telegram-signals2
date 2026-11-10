@@ -1,3 +1,19 @@
+## Latest L4-Extended documentary scope assessment (2026-11-10)
+
+- Added `docs/evidence/L4_EXTENDED_DOCUMENTARY_SCOPE_BOUNDARY_ASSESSMENT_2026-11-10.md`.
+- Assessment commit: `2d8f1bd3bb4d7055f1ceaec7694eeb056e266daa`.
+- Assessment reconciles the personal/non-commercial L4 scope, VPS + GitHub-only evidence custody decision, Option C, prior TSA architecture and the T0 TSA/WORM read-only audit.
+- Scope narrowed for future review: optional single-provider-neutral RFC3161 proof for a specifically defined immutable evidence object, plus required OCSP/CRL historical evidence and local independent verification. This is a candidate scope only, not an approved design or implementation.
+- Multi-TSA/quorum and third-party WORM/Object Lock are deferred/not required by current owner direction; Root A/Root B remains a separate forward-evidence architecture, not T0 custody evidence.
+- T0 source has no production TSA/checkpoint/outbox/verifier path in the reviewed audit; T0 canonical SQLite is not WORM. No provider selected.
+- Earlier branch separation record's “branch creation blocked until accepted L4-Minimum” is superseded only as to branch creation by the later explicit owner approval. That approval did not satisfy L4-Minimum or authorize implementation.
+- L4-Minimum remains ADMINISTRATIVELY CLOSED — BLOCKED / NOT VERIFIED; L4M-01 NOT VERIFIED; L4M-03 PARTIAL / NOT VERIFIED; no frozen baseline/owner acceptance.
+- L4-Extended implementation remains PARKED / NOT AUTHORIZED pending prerequisite resolution and separate explicit owner approval.
+- Tests/compile NOT RUN; Actions NOT DISPATCHED; no workflow run/artifact. No source/tests/packages/workflows/runtime/VPS/DB/provider/key/permission/network/data or destructive lifecycle changes.
+- Option C ACTIVE; VPS + GitHub only; T0 canonical SQLite protected; PostgreSQL PARKED; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
+
+---
+
 ## Latest L4-Extended branch initialization (2026-11-10)
 
 - Owner explicitly approved creation of `feature/l4-extended-provenance`.
