@@ -4031,3 +4031,12 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - Branch search found no existing `feature/l4-extended-provenance`; no branch was created and no code was moved/deleted.
 - No tests or Actions dispatch; no runtime/VPS/DB/data/secrets/permissions/network changes. No workflow run/artifact claimed. Option C ACTIVE; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
 - Next gate: close L4-Minimum acceptance on one frozen evidence baseline, then create Extended from that exact commit SHA.
+
+
+## Latest continuation — L4-Minimum policy and historical audit reconciliation (2026-11-10)
+
+- Added `docs/evidence/T0_L4_MINIMUM_POLICY_HISTORICAL_AUDIT_RECONCILIATION_2026-11-10.md` to reconcile current policy against historical read-only/adversarial/scope audits.
+- Current matrix blob is `2ba85af550fb7e369ea39ade6d73878d78dbf6bc`; controlling owner waiver excludes L4M-09. Nine active controls are L4M-01–08 and L4M-10.
+- Historical audits remain unchanged. Their prior independent-review blocker statements describe earlier policy; the outside-scope audit's contrary wording is superseded prospectively for L4-Minimum only. Other lifecycle/security/operational reviewer gates are not waived.
+- L4M-01–08 and L4M-10 remain NOT VERIFIED / BLOCKED as applicable. Aggregate acceptance remains BLOCKED pending one frozen baseline with nine PASS controls and owner disposition.
+- Extended branch creation remains blocked pending accepted/frozen L4-Minimum commit. No source/runtime/data/permission changes; no tests or Actions dispatch; Option C ACTIVE; paper-only; no live orders.
