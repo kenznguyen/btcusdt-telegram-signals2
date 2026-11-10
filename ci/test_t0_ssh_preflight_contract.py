@@ -40,10 +40,10 @@ class T0SSHPreflightContractTests(unittest.TestCase):
 
     def test_no_mutating_host_or_database_commands_are_present(self):
         forbidden_commands = re.compile(
-            r"\\b(rm|mv|cp|chmod|chown|kill|pkill|systemctl|service|reboot|shutdown|truncate)\\b"
+            r"\b(rm|mv|cp|chmod|chown|kill|pkill|systemctl|service|reboot|shutdown|truncate)\b"
         )
         forbidden_sql = re.compile(
-            r"\\b(INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER|VACUUM)\\b",
+            r"\b(INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER|VACUUM)\b",
             re.IGNORECASE,
         )
         self.assertIsNone(forbidden_commands.search(self.source))
