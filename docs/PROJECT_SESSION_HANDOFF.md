@@ -1,3 +1,22 @@
+## Latest T0 G1 automation — SQLite lease/fencing (2026-11-10)
+
+- Owner approved converting G1 from manual-only to automatic execution on path-scoped `push` and `pull_request` events. Existing `workflow_dispatch` gate `sqlite-lease-fencing` remains available.
+- Existing branch retained: `feature/t0-centralized-data-feeder-p1-20261101`; no branch/PR split.
+- Workflow automation commit: `c1ce31f5d74b68c558a0354ca7eb1f9494bbd0ea`; workflow blob at that commit: `950b9d183f98fa7ac17916cab5819135e5185e53`.
+- Follow-up workflow-contract execution commit: `df1a58f33be66c36d932e1c16f934b0895841421`; final workflow blob: `a4a285491861b958e8e62ce82c55296c4b1e5887`.
+- Contract tests added in `ci/test_t0_ssh_preflight_contract.py`: test commit `a0a06467024ff9bac9af7e8b0dea9d669e8a73df`; false-positive scope correction commit `56c3130d81a9413f5f4f32607a62d6796e95170a`; final test blob: `a646c381d600bfccaadc472280729ac590042367`.
+- Trigger scope is limited to the existing feature branch for push, and to PRs with changes in the workflow, contract test, T0 lease/write/lifecycle source or the three corresponding test modules. The automatic job uses a GitHub-hosted disposable runner, read-only contents permission, no SSH environment/secrets, empty DB/key environment variables, exact checkout SHA, and uploads source SHA + test logs + verdict.
+- Final automatic run: [42816562930](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42816562930), event `push`, branch `feature/t0-centralized-data-feeder-p1-20261101`, source SHA `56c3130d81a9413f5f4f32607a62d6796e95170a`, conclusion **SUCCESS**.
+- Job `Automatic isolated SQLite lease and fencing tests`: **PASS**. Workflow trigger/isolation contract: 7 tests PASS. G1 lease/fencing/write-gateway/lifecycle suite: 55 tests PASS. Verdict `SQLITE_LEASE_FENCING=PASS`.
+- Artifact: `t0-sqlite-lease-fencing-auto-42816562930`; artifact ID `13764396878`; SHA-256 `c4b8c9fb630ed4ca5012ceed6ce9c566d67fe34d9022b6544fd7222f1e005df8`; [artifact page](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42816562930/artifacts/13764396878).
+- An intermediate run `42816455084` failed only because the new contract test searched beyond the G1 job into unrelated SSH job configuration; the assertion was narrowed to the G1 job and final run `42816562930` passed. Earlier run `42816359160` independently recorded 55/55 G1 tests PASS before the contract-test step was added.
+- Disposition: **G1 AUTOMATED CI GATE PASS** for isolated SQLite lease/fencing/lifecycle contracts. This is not proof of current VPS lease/fencing state or deployed runtime acceptance; VPS/runtime/DB were not accessed.
+- G2 recovery and G3 end-to-end data-flow gates remain deferred. No SSH/VPS operation, canonical SQLite access/change, Feeder/service operation, T1 activation, PostgreSQL work, T2/strategy/trading change, live order or data deletion occurred.
+- Next step: review G1 CI evidence, then define/approve a separate isolated G2 recovery gate. Do not infer recovery or data-flow PASS from G1.
+- Safety posture unchanged: `AI_EXECUTION_ENABLED=false`; paper-only; no live orders; T1 NOT ACTIVATED; PostgreSQL/TimescaleDB PARKED; T0 canonical SQLite protected.
+
+---
+
 ## T0 → T2 repository source parity review (2026-11-10)
 
 - Read-only comparison record: `docs/evidence/T0_T2_REPOSITORY_SOURCE_PARITY_REVIEW_2026-11-10.md`; creation commit `7e2080c2410fe8ab889338684390eed453535069`; verified report blob `204cd41aefc38abaf33838b1723c4d84533d0818`.
