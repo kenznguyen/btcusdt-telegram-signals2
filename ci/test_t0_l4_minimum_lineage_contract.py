@@ -5,9 +5,10 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 MATRIX_SHA = "75db0d98134fd656d91a8545bc307c56595aebf7"
-REGISTER_SHA = "cee949666da611a4efca7e7b51aea47ab4b13eff"
+REGISTER_SHA = "4379b5f115c5dac5a2779b857ab8fababf88e4f3"
 SUPERSEDED_MATRIX_SHA = "2ba85af550fb7e369ea39ade6d73878d78dbf6bc"
 SUPERSEDED_REGISTER_SHA = "4ec993d23a7b6d282350d0dea0add0254cac87cb"
+PREVIOUS_REGISTER_SHA = "cee949666da611a4efca7e7b51aea47ab4b13eff"
 
 REGISTER = ROOT / "docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md"
 PLAN = ROOT / "docs/evidence/T0_L4_MINIMUM_AUTOMATION_PLAN_2026-11-10.md"
@@ -52,6 +53,7 @@ class T0L4MinimumLineageContractTests(unittest.TestCase):
                 content = path.read_text()
                 self.assertNotIn(SUPERSEDED_MATRIX_SHA, content)
                 self.assertNotIn(SUPERSEDED_REGISTER_SHA, content)
+                self.assertNotIn(PREVIOUS_REGISTER_SHA, content)
 
     def test_supporting_documents_bind_to_current_matrix_and_register(self):
         expected = {
@@ -71,7 +73,7 @@ class T0L4MinimumLineageContractTests(unittest.TestCase):
         self.assertEqual(REGISTER_SHA, git_blob_sha1(REGISTER))
 
     def test_superseded_blob_references_are_confined_to_historical_snapshot(self):
-        superseded = (SUPERSEDED_MATRIX_SHA, SUPERSEDED_REGISTER_SHA)
+        superseded = (SUPERSEDED_MATRIX_SHA, SUPERSEDED_REGISTER_SHA, PREVIOUS_REGISTER_SHA)
         offenders = []
         for path in active_l4_documents():
             content = path.read_text()
