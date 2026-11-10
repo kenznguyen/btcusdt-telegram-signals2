@@ -66,6 +66,22 @@
         "l4-lineage-contract-verdict.txt"
       ],
       "lineage_contract": true
+    },
+    {
+      "source_run_id": 42917935285,
+      "source_artifact_id": 13810187202,
+      "source_branch": "feature/t0-centralized-data-feeder-p1-20261101",
+      "source_sha": "cab8122c94e8bb8f30052ae44483fb1ec7e4de65",
+      "source_artifact_name": "t0-l4-minimum-lineage-42917935285",
+      "workflow_path": ".github/workflows/t0-l4-minimum-validation.yml",
+      "evidence_class": "L4_LINEAGE_CONTRACT_CI",
+      "expected_members": [
+        "l4-source-sha.txt",
+        "l4-validation-scope.txt",
+        "l4-lineage-contract-tests.log",
+        "l4-lineage-contract-verdict.txt"
+      ],
+      "lineage_contract": true
     }
   ]
 }
