@@ -68,7 +68,7 @@ class T0SSHPreflightContractTests(unittest.TestCase):
     def test_sqlite_lease_fencing_auto_job_isolated_and_evidence_backed(self):
         workflow = WORKFLOW.read_text()
         self.assertIn("  sqlite-lease-fencing-auto:", workflow)
-        auto_job = workflow.split("  sqlite-lease-fencing-auto:", 1)[1]
+        auto_job = workflow.split("  sqlite-lease-fencing-auto:", 1)[1].split("  manual-gate:", 1)[0]
         self.assertIn("github.event_name == 'push' || github.event_name == 'pull_request'", auto_job)
         self.assertIn("permissions:", auto_job)
         self.assertIn("contents: read", auto_job)
