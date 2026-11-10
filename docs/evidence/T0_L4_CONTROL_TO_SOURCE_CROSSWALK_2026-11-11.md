@@ -2,7 +2,7 @@
 
 Date: 2026-11-11  
 Branch: `feature/t0-centralized-data-feeder-p1-20261101`  
-Validated source baseline: `0251a8cc7995903d2516fc84cc0a33b73ec02777`  
+Validated source baseline: `b9c2ebff7337420194f5c36a9523df28dbc6d4fc`  
 Matrix blob: `75db0d98134fd656d91a8545bc307c56595aebf7`  
 Evidence Register blob: `e67a58591b5f6168ab3a0f3f403557292aca45d5`  
 Status: **DERIVED CROSSWALK ONLY — NO CONTROL ACCEPTANCE — AGGREGATE BLOCKED**
@@ -18,7 +18,7 @@ Status: **DERIVED CROSSWALK ONLY — NO CONTROL ACCEPTANCE — AGGREGATE BLOCKED
 
 | Control | Current exact source objects | Existing CI/Actions evidence | Missing evidence / disposition |
 |---|---|---|---|
-| **L4M-01 Owner custody** | `T0_L4M01_L4M03_EXISTING_TRUST_EVIDENCE_NON_SUBSTITUTION_2026-11-10.md` blob `1fea06d455e020fb3e87d7378c8f95bb127f9c4b`; `T0_L4M01_L4M03_OWNER_EVIDENCE_INTAKE_CONTRACT_2026-11-10.md` blob `914fb398bf6f0e4ef26ae6b706212c5f2969d1c1`; current matrix/register | Six allowlisted Actions sources: IDs `13546255148`, `13545287609`, `13771662067`, `13774031418`, `13810855669`, `13810187202`; latest repository inventory output `13811119271` | No complete owner-controlled package, authenticated latest-head anchor, copy designation/control proof or per-copy owner readback. **PARTIAL** |
+| **L4M-01 Owner custody** | `T0_L4M01_L4M03_EXISTING_TRUST_EVIDENCE_NON_SUBSTITUTION_2026-11-10.md` blob `1fea06d455e020fb3e87d7378c8f95bb127f9c4b`; `T0_L4M01_L4M03_OWNER_EVIDENCE_INTAKE_CONTRACT_2026-11-10.md` blob `914fb398bf6f0e4ef26ae6b706212c5f2969d1c1`; current matrix/register | Six allowlisted Actions sources: IDs `13546255148`, `13545287609`, `13771662067`, `13774031418`, `13810855669`, `13810187202`; latest repository inventory output `13812812210` | No complete owner-controlled package, authenticated latest-head anchor, copy designation/control proof or per-copy owner readback. **PARTIAL** |
 | **L4M-02 Signer separation** | `T0_L4M02_SIGNER_SEPARATION_EXISTING_EVIDENCE_ASSESSMENT_2026-11-10.md` blob `acea504de4608520c59b1870fe6cb7241492830e`; waiver decision blob `75e057ba482d81f6a9d896ace2b017807c9396d9` | Synthetic ephemeral-key tests only | No owner signer identity/fingerprint, custody/recovery proof or runtime/admin signing separation. **NOT VERIFIED** |
 | **L4M-03 Exact binding/freshness** | Non-substitution assessment above; `T0_EVIDENCE_OBJECT_CHECKPOINT_CONTRACT_V1.md` blob `0d98a3dcbb0d403b213b5efcae0c882ac5461578`; lineage evidence blob `6cc2a2abb766948d2cd1d05e668a52a2a90484f1` | P1.8.14 synthetic evidence and independent-runner artifacts; lineage contract | No signed canonical T0 checkpoint, authenticated latest-head anchor or rollback result against anchor. **PARTIAL — SYNTHETIC/DESIGN ONLY** |
 | **L4M-04 Offline verification** | Checkpoint contract; P1.8.14 verification records; matrix | Synthetic verifier and GitHub-hosted CI | No owner-run verification of exact retained T0 package with T0/VPS, GitHub, ChatGPT and network unavailable; no owner environment output/trust snapshot. **PARTIAL — SYNTHETIC/CI ONLY** |
@@ -31,16 +31,16 @@ Status: **DERIVED CROSSWALK ONLY — NO CONTROL ACCEPTANCE — AGGREGATE BLOCKED
 
 ## Latest CI evidence
 
-Run [42922670634](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42922670634), exact source SHA `0251a8cc7995903d2516fc84cc0a33b73ec02777`:
+Run [42923181975](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42923181975), exact source SHA `b9c2ebff7337420194f5c36a9523df28dbc6d4fc`:
 - Lineage: 12/12 PASS.
-- Artifact manifest: 19/19 PASS.
-- Repository-file inventory: 10/10 PASS.
+- Artifact manifest: 19/19 PASS; collector verdict `L4_ARTIFACT_MANIFEST=PASS`.
+- Repository-file inventory: 10/10 PASS; verdict `L4_REPOSITORY_FILE_INVENTORY=PASS`.
 - Total: 41/41 tests PASS; all three jobs SUCCESS.
-- Six-item source allowlist blob: `0280cd7751c9660baec237242ca7aadef09205a6`; two P1.8.14 synthetic artifacts plus four L4 lineage CI artifacts.
-- Newly selected lineage artifact `13810187202`, run `42917935285`, source SHA `cab8122c94e8bb8f30052ae44483fb1ec7e4de65`, ZIP SHA-256 `db4e86e8b976304ae1daf90b14dc49cd2f4b149c9c2449867d796b515cd76d07`; exact four-member payload independently verified.
-- Current run manifest artifact `13813280057`: ZIP SHA-256 `cc969116e687792321240e19cfa2125abfb8a884328e03715937746709b9b26d`; JSON SHA-256 `520fd49f87595cd39b412a0533ce579c8ead1456ad0361a712b52786bebad428` matches sidecar; exactly six source artifacts and no self-inclusion.
-- Current run repository inventory artifact `13811119271`: ZIP SHA-256 `ab8944fe9edb3446a50df1b8041743e93bb6bb628dee70956913c54b862222da`; JSON sidecar matches; 40 unique files, 518,716 source bytes, exact source commit `0251a8cc7995903d2516fc84cc0a33b73ec02777`.
-- Current run lineage output artifact `13813120888`: ZIP SHA-256 `4686edd0c1e80f4a5793aa8d79ac4ce232ee64bd59cee2bfa633c14afd3d29d1`; exact source marker, 12 tests and PASS verdict.
+- Six-item source allowlist blob: `0280cd7751c9660baec237242ca7aadef09205a6`; two P1.8.14 synthetic artifacts and four L4 lineage CI artifacts.
+- Selected latest lineage source artifact `13810187202`, run `42917935285`, source SHA `cab8122c94e8bb8f30052ae44483fb1ec7e4de65`, ZIP SHA-256 `db4e86e8b976304ae1daf90b14dc49cd2f4b149c9c2449867d796b515cd76d07`; independently verified exact four-member payload.
+- Current run manifest artifact `13813285687`: ZIP SHA-256 `edcc77775e6dbe57248d87e484277dd79cf9103224c6b2e2ab05bce7bc0040cf`; JSON SHA-256 `18ed9d405bd68b3c137d56bccecf6f7f20b8b941deea8c0d7af4e3c1f97bc405` matches sidecar; exactly six source artifacts and no self-inclusion.
+- Current run repository inventory artifact `13812812210`: ZIP SHA-256 `d96efd8908f51c98160eb8089b175baa47c7695b2318555ce31fa1ab34b4f72b`; JSON SHA-256 `287398ccb0c9fbd76ea6b8316cd10748335f354e4e979fda5a36c62b2cbb2397` matches sidecar; 40 unique files, 521,853 source bytes, exact source commit `b9c2ebff7337420194f5c36a9523df28dbc6d4fc`.
+- Current run lineage output artifact `13812403380`: ZIP SHA-256 `2714104e7112fb7eac02e2ef6e00ed749f98be3e5259e4d70cc28d8379187291`; source marker matches exact source SHA, scope is GitHub-hosted read-only, 12 tests and PASS verdict.
 - All three current-run output ZIPs were independently downloaded and re-hashed. These are generated outputs, not new source evidence.
 
 ## Aggregate disposition
@@ -55,3 +55,8 @@ Next: reconcile any additional eligible Actions artifacts against exact run/arti
 ## Latest allowlist reconciliation
 
 The six-item allowlist and current six-entry manifest are reconciled to the exact source SHA `0251a8cc7995903d2516fc84cc0a33b73ec02777`. Candidate selection rationale and limitations are recorded in `T0_L4_LINEAGE_CANDIDATE_REVIEW_2026-11-11.md`. This derived crosswalk does not promote any control; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
+
+
+## Latest allowlist and repository-source reconciliation
+
+The six-entry source allowlist and six-entry artifact manifest are validated on the current evidence-document source baseline. The exact-commit repository inventory has been rebound to the refreshed register, automation plan and supporting assessments; the latest 40-file inventory is from source SHA `b9c2ebff7337420194f5c36a9523df28dbc6d4fc`. Candidate selection rationale and payload verification are recorded in `T0_L4_LINEAGE_CANDIDATE_REVIEW_2026-11-11.md`. This derived crosswalk does not promote any control; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
