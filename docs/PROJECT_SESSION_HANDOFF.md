@@ -1556,3 +1556,14 @@ This section supersedes the earlier PR #140 next-step note that requested implem
 - No review submissions or inline review threads were present at inspection.
 - No SSH/VPS connection, authenticated preflight, secret change, deployment, runtime/service/database/data change, exchange connection, or trading action occurred.
 - Next: manually dispatch `T0 Manual Validation` on this branch using only `scaleway-ssh-contract-only`; verify exact checked-out SHA, shell syntax, all 20 tests, authenticated SSH job skipped, and artifact metadata. Then reconcile the two commits behind `main` and recheck PR mergeability. Do not run `scaleway-ssh-preflight` without separate explicit authorization.
+
+
+## 2026-11-10 — PR #140 main-line handoff reconciliation
+
+- Preserved the latest `main` handoff content (including the isolated SSH contract-only gate record) on the existing PR branch, then retained all PR #140-specific review, implementation, and verification history after it.
+- Synchronization commit: `abeacb931b0d429f3ceb532d4cb5355a6a292e6e`; handoff blob: `824892a3b080631d386fcf0944af3254e6d76919`.
+- The PR branch workflow includes the same `scaleway-ssh-contract-only` dispatch choice and isolation conditions now present on `main`, plus the PR-specific fail-closed evidence classifier. Workflow blob remains `0c4a9812062054abb01e521a9b04121854ec5207`.
+- PR head before this handoff update: `abeacb931b0d429f3ceb532d4cb5355a6a292e6e`; exact-head CI remains **NOT RUN / NOT VERIFIED**.
+- GitHub still reports PR #140 `mergeable=false`. Ancestry comparison remains 39 commits ahead / 2 behind `main`; the two newer main commits are the gate workflow update and its handoff record. The content-level updates have been carried onto the PR branch, but ancestry/mergeability is not yet proven resolved.
+- PR remains OPEN / DRAFT / NOT MERGED. No merge or authenticated SSH action was taken.
+- Next: run only `scaleway-ssh-contract-only` on the final PR head, then recheck mergeability and resolve any remaining base conflict before considering review readiness. No merge approval is inferred.
