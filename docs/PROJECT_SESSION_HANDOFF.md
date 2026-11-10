@@ -1,3 +1,17 @@
+## Latest L4-Extended branch initialization (2026-11-10)
+
+- Owner explicitly approved creation of `feature/l4-extended-provenance`.
+- Branch was created from the exact T0 branch base commit `80fc3b3e6c8d8aeab7705281c9b887117074e6e6`; no source changes were present at creation.
+- Initialization record: `docs/evidence/L4_EXTENDED_BRANCH_INITIALIZATION_2026-11-10.md`.
+- Initialization record commit: `4c5cd2fdff582db4e26ff82e7aa2ada4f532a44a`.
+- Scope is branch creation and documentary isolation only. L4-Minimum remains ADMINISTRATIVELY CLOSED — BLOCKED / NOT VERIFIED; L4M-01 NOT VERIFIED; L4M-03 PARTIAL / NOT VERIFIED; no frozen baseline or owner acceptance.
+- L4-Extended implementation remains PARKED / NOT AUTHORIZED pending resolution of L4-Minimum prerequisite and separate explicit implementation approval.
+- Reserved topics only: RFC3161 TSA, OCSP/CRL, Multi-TSA/quorum, WORM/Object Lock, Root A/B. No design/implementation is approved by branch creation.
+- No source/tests/packages/workflows/runtime/VPS/DB/provider/secrets/permissions/network/data or destructive lifecycle changes. Tests NOT RUN; Actions NOT DISPATCHED; no workflow run/artifact.
+- Option C ACTIVE; VPS and GitHub remain approved custody locations; T0 canonical SQLite protected; PostgreSQL PARKED; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
+
+---
+
 ## Latest T0 simplification — C-01 regression coverage map (2026-11-10)
 
 - Updated read-only report: `docs/evidence/T0_SIMPLIFICATION_ACTIVE_SQLITE_STARTUP_CONFIGURATION_REVIEW_2026-11-10.md`.
