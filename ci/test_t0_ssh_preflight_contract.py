@@ -1,7 +1,11 @@
 """Contract tests for the P1 read-only Scaleway SSH preflight."""
 
 from pathlib import Path
+import os
 import re
+import shutil
+import subprocess
+import tempfile
 import unittest
 
 
@@ -74,6 +78,64 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         text = workflow.read_text(encoding="utf-8")
         self.assertIn("CHECK_(UNAVAILABLE|FAILED)", text)
         self.assertIn("PARTIAL_OR_BLOCKED_PROBE_UNAVAILABLE", text)
+
+
+    def run_preflight_with_stubs(self, *, include_awk=True, awk_exit=None, include_pgrep=True, pgrep_exit=1):
+        with tempfile.TemporaryDirectory() as directory:
+            bin_dir = Path(directory)
+            for command in ("hostname", "id", "git"):
+                resolved = shutil.which(command, path="/usr/bin:/bin")
+                self.assertIsNotNone(resolved, command)
+                (bin_dir / command).symlink_to(resolved)
+            ss = bin_dir / "ss"
+            ss.write_text(
+                "#!/bin/sh\\nprintf '%s\\\\n' 'LISTEN 0 128 127.0.0.1:8788 0.0.0.0:*'\\n",
+                encoding="utf-8",
+            )
+            ss.chmod(0o755)
+            if include_awk:
+                awk = bin_dir / "awk"
+                if awk_exit is None:
+                    resolved = shutil.which("awk", path="/usr/bin:/bin")
+                    self.assertIsNotNone(resolved, "awk")
+                    awk.symlink_to(resolved)
+                else:
+                    awk.write_text(f"#!/bin/sh\\nexit {awk_exit}\\n", encoding="utf-8")
+                    awk.chmod(0o755)
+            if include_pgrep:
+                pgrep = bin_dir / "pgrep"
+                pgrep.write_text(f"#!/bin/sh\\nexit {pgrep_exit}\\n", encoding="utf-8")
+                pgrep.chmod(0o755)
+            result = subprocess.run(
+                ["/bin/bash", str(SCRIPT)],
+                env={**os.environ, "PATH": str(bin_dir)},
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            return result
+
+    def test_missing_awk_fails_closed(self):
+        result = self.run_preflight_with_stubs(include_awk=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("API_8788=CHECK_UNAVAILABLE", result.stdout)
+        self.assertNotIn("API_8788=LOOPBACK_LISTENER", result.stdout)
+
+    def test_failed_awk_fails_closed(self):
+        result = self.run_preflight_with_stubs(awk_exit=2)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("API_8788=CHECK_FAILED", result.stdout)
+        self.assertNotIn("API_8788=LOOPBACK_LISTENER", result.stdout)
+
+    def test_missing_pgrep_fails_closed(self):
+        result = self.run_preflight_with_stubs(include_pgrep=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("FEEDER_PIDS=CHECK_UNAVAILABLE", result.stdout)
+
+    def test_failed_pgrep_fails_closed(self):
+        result = self.run_preflight_with_stubs(pgrep_exit=2)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("FEEDER_PIDS=CHECK_FAILED", result.stdout)
 
     def test_no_mutating_host_or_database_commands_are_present(self):
         forbidden_commands = re.compile(
