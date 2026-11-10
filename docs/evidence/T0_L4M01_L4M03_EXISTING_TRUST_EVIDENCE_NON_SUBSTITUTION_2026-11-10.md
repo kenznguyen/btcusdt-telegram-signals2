@@ -4,9 +4,11 @@ Date: 2026-11-10
 Repository: `kenznguyen/btcusdt-telegram-signals2`
 Branch: `feature/t0-centralized-data-feeder-p1-20261101`
 Work type: documentary crosswalk only
-Status: **ASSESSMENT RECORDED — NO CONTROL PROMOTED**
+Status: **HISTORICAL ASSESSMENT — STORAGE-SCOPE PORTION SUPERSEDED BY OWNER DECISION — NO CONTROL PROMOTED**
 
 ## 1. Question
+
+**Scope update:** The former requirement for a custody copy outside both T0/VPS and GitHub is superseded by owner decision `docs/decisions/D-2026-11-10-L4-EVIDENCE-CUSTODY-VPS-GITHUB-ONLY.md`. This historical assessment remains valid for its original review date and for its technical findings: the cited CI attestation is synthetic, does not attest a T0 checkpoint, and does not provide an authenticated latest-head anchor. It must not be used to re-impose an external-backup requirement.
 
 Can the existing P1.8.14 GitHub Artifact Attestations / Sigstore result, T0 Evidence Object / Checkpoint Contract v1, or G3 review-input manifest substitute for the owner-controlled custody and latest-head anchor evidence required by L4M-01 and L4M-03?
 
@@ -23,11 +25,11 @@ Can the existing P1.8.14 GitHub Artifact Attestations / Sigstore result, T0 Evid
 
 ## 3. Control-by-control assessment
 
-### L4M-01 — owner-controlled independent custody
+### L4M-01 — owner-controlled VPS/GitHub custody
 
-P1.8.14's primary and independent verification artifacts are GitHub Actions artifacts. A second GitHub-hosted runner is a distinct execution environment, but it remains within the GitHub service/failure domain. This does not satisfy the required owner-controlled evidence copy outside both T0/VPS and GitHub.
+P1.8.14's primary and independent verification artifacts are GitHub Actions artifacts. A second GitHub-hosted runner is a distinct execution environment, but it remains within the GitHub service/failure domain. At the time of this historical assessment, the then-current matrix required a copy outside both T0/VPS and GitHub. That location requirement is now superseded. The remaining technical distinction still applies: GitHub CI artifacts are not T0 checkpoint signatures, signer-separation proof, or authenticated latest-head anchors.
 
-The reported successful online verification also does not prove that the exact retained T0 package can be read back and verified when GitHub is unavailable. No owner custody inventory, complete per-file manifest, custody provenance or exact-package owner readback record was identified in these reviewed documents.
+The reported successful online verification does not, by itself, prove exact retained T0 package readback. Under the revised policy, readback must be evidenced from the approved VPS/GitHub location(s); simultaneous unavailability of both is outside the recovery claim. No owner custody inventory, complete per-file manifest, custody provenance or exact-package owner readback record was identified in these reviewed documents.
 
 **Disposition remains: NOT VERIFIED.**
 
@@ -35,7 +37,7 @@ The reported successful online verification also does not prove that the exact r
 
 P1.8.14 attests a synthetic CI archive, not a T0 canonical checkpoint. Its subject digest and workflow identity cannot be repurposed as a T0 checkpoint signature or latest-head anchor.
 
-The T0 checkpoint contract describes a logical model, but is explicitly draft/documentary and does not authorize implementation. The G3 manifest is a review-input index and explicitly says independent review has not been performed. Neither supplies an existing authenticated owner-controlled latest-head anchor, its exact digest, independent custody/readback or an observed rollback disposition.
+The T0 checkpoint contract describes a logical model, but is explicitly draft/documentary and does not authorize implementation. The G3 manifest is a review-input index and explicitly says independent review has not been performed. Neither supplies an existing authenticated owner-controlled latest-head anchor, its exact digest, approved-location custody/readback or an observed rollback disposition.
 
 Sequence/generation, Git branch HEAD, GitHub attestation timestamps or a synthetic test result must not be silently promoted to an owner-controlled T0 monotonic anchor.
 
