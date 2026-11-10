@@ -86,6 +86,11 @@ jobs:
           done
           git rev-parse HEAD | tee ci-source-sha.txt
           echo "T0_SQLITE_LEASE_FENCING_AUTO=ISOLATED" | tee sqlite-lease-fencing-scope.txt
+      - name: Run automatic trigger and isolation contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest ci.test_t0_ssh_preflight_contract -v 2>&1 | tee sqlite-lease-fencing-workflow-contract-tests.log
       - name: Run SQLite lease and fencing tests
         shell: bash
         run: |
@@ -101,6 +106,7 @@ jobs:
           path: |
             ci-source-sha.txt
             sqlite-lease-fencing-scope.txt
+            sqlite-lease-fencing-workflow-contract-tests.log
             sqlite-lease-fencing-tests.log
             sqlite-lease-fencing-verdict.txt
 
