@@ -1500,9 +1500,9 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 This section supersedes the earlier PR #140 next-step note that requested implementation of R1–R3.
 
 - PR: [#140](https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/140), branch `fix/p1-ssh-preflight-contract-20261110`, base `main`.
-- Latest source commit before this handoff update: `3a80256f8fced1be6e8060bb23859b9edf7baa1e`.
+- Latest source commit before this handoff update: `55c08a312543260f320d20c54d06033a5a414554`.
 - Script blob: `6fc3a54c4d91e0ef82aedf1fba2543b4468c756e`.
-- Contract test blob: `d96fb8a8cb20a32421cb32c4359420ff6d077e47`.
+- Contract test blob: `b823ed3fc5c3d5f7629fee97d237e44eb8e68577`.
 - Workflow blob: `749d53bf94168a0e0423e1b52f8699ffe2a605d3`.
 - Evidence report: `docs/evidence/PR140_FAIL_CLOSED_PROBE_FIX_20261110.md`, created in commit `fa7aadb3878dd5ade67ce8bd6d112807b16c8b3d`.
 
@@ -1512,7 +1512,7 @@ This section supersedes the earlier PR #140 next-step note that requested implem
 - R2: Feeder expression corrected to `[m]arket_data\.feeder`; contract includes semantic matching assertions for representative module and unrelated process command lines.
 - R3: `pgrep` absence/failure is distinct from successful no-match; exit 1 means `NONE`, other nonzero statuses mean `CHECK_FAILED`; unavailable/failed states fail nonzero.
 - Authenticated workflow classifier now rejects unavailable/failed Feeder or API probes instead of promoting them to a successful preflight.
-- Added subprocess tests using controlled command stubs for missing/failed `awk`, missing/failed `pgrep`, empty process result, loopback listener, and non-loopback listener.
+- Added subprocess tests using controlled command stubs for missing/failed `awk`, missing/failed `pgrep`, empty process result, loopback listener, and non-loopback listener. The contract suite now contains 17 tests; execution remains NOT RUN pending the exact-head GitHub Actions run.
 
 ### Verification status
 
