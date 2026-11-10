@@ -507,7 +507,6 @@ jobs:
           fi
 
   sqlite-recovery-auto:
-    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
     needs:
       - sqlite-lease-fencing-auto
       - recovery-change-scope
@@ -561,7 +560,6 @@ jobs:
           path: |
             recovery-source-sha.txt
             sqlite-recovery-scope.txt
-            recovery-changed-files.txt
             sqlite-recovery-tests.log
             sqlite-recovery-verdict.txt
 
