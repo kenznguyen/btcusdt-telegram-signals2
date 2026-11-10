@@ -217,7 +217,15 @@ jobs:
             echo 'P1_SSH_PREFLIGHT=BLOCKED_NON_LOOPBACK_API_LISTENER' | tee preflight-verdict.txt
             exit 1
           fi
-          if [[ -f preflight-remote.log ]] && grep -Eq '^(FEEDER_PIDS|API_8788)=CHECK_(UNAVAILABLE|FAILED)          if grep -Fxq 'FEEDER_PIDS=NONE' preflight-remote.log || grep -Fxq 'API_8788=NOT_LISTENING' preflight-remote.log; then
+          if [[ -f preflight-remote.log ]] && grep -Eq '^(FEEDER_PIDS|API_8788)=CHECK_(UNAVAILABLE|FAILED)$' preflight-remote.log; then
+            echo 'P1_SSH_PREFLIGHT=PARTIAL_OR_BLOCKED_PROBE_UNAVAILABLE' | tee preflight-verdict.txt
+            exit 1
+          fi
+          if [[ ! -f preflight-remote.log ]] || ! grep -Eq '^SOURCE_SHA=[0-9a-f]{40}$' preflight-remote.log || ! grep -Fxq 'SQLITE_INTEGRITY=PASS' preflight-remote.log; then
+            echo 'P1_SSH_PREFLIGHT=PARTIAL_OR_BLOCKED_EVIDENCE' | tee preflight-verdict.txt
+            exit 1
+          fi
+          if grep -Fxq 'FEEDER_PIDS=NONE' preflight-remote.log || grep -Fxq 'API_8788=NOT_LISTENING' preflight-remote.log; then
             echo 'P1_SSH_PREFLIGHT=PARTIAL_RUNTIME_COMPONENT_NOT_PRESENT' | tee preflight-verdict.txt
           else
             echo 'P1_SSH_PREFLIGHT=PASS_READ_ONLY_PREFLIGHT' | tee preflight-verdict.txt
