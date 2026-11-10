@@ -3,7 +3,7 @@
 Date: 2026-11-10
 Repository: `kenznguyen/btcusdt-telegram-signals2`
 Branch: `feature/t0-centralized-data-feeder-p1-20261101`
-Status: **OWNER-APPROVED PLAN — LINEAGE GATE PASS — FOUR-ARTIFACT ACTIONS INVENTORY PILOT PASS — 27-FILE REPOSITORY INVENTORY CI PASS; SCOPE EXPANSION TO 32 REFERENCED FILES PENDING**
+Status: **OWNER-APPROVED PLAN — LINEAGE GATE PASS — FOUR-ARTIFACT ACTIONS INVENTORY PILOT PASS — 32-FILE REPOSITORY INVENTORY CI PASS; REMAINING L4 CONTROLS NOT VERIFIED**
 Approval: owner approval in conversation on 2026-11-10 to automate L4M-01–08 as far as technically possible and reserve owner participation for real-world custody/control assertions and L4M-10 acceptance.
 Controlling matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md` (current branch blob at plan preparation: `75db0d98134fd656d91a8545bc307c56595aebf7`).
 Current register at plan preparation: `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` (blob `fe4a188d336a8b0279e8e14941c9cb171c23ae0e`).
@@ -122,3 +122,14 @@ Each implementation increment must be reviewed and tested before proceeding. Do 
 - Review of the included historical non-substitution assessment identified five additional direct source objects omitted from the first-pass list: `T0_L4M01_L4M03_EXISTING_TRUST_EVIDENCE_NON_SUBSTITUTION_2026-11-10.md`, the cited P1.8.14 external trust-anchor record, T0 checkpoint contract v1, G3 review-input manifest, and owner evidence intake contract. Their exact blob SHAs were fetched at the same source commit and are now included in the 32-file scope.
 - Workflow triggers now cover those exact paths and the handoff file no longer triggers this workflow by itself; handoff-only evidence updates must not create redundant validation runs.
 - Current source-object inventory remains a bounded, explicit list, not a claim that every L4-related repository object has been discovered. Preserve historical documents unchanged.
+
+
+### 32-file exact-commit repository inventory — verified
+
+- Workflow run [42913380578](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42913380578), source SHA `7d6cbb10f903625f2051db7d5322e0648ae7727d`, overall SUCCESS. Lineage job `130169487545` SUCCESS; repository-file inventory job `130169556821` SUCCESS (10/10 tests); artifact-manifest job `130169556932` SUCCESS (19/19 tests). Lineage test count remains 12/12; total workflow contract tests 41/41.
+- Repository-file inventory artifact ID `13807208514`, name `t0-l4-repository-file-inventory-42913380578`, 3,750 bytes, expires `2026-11-17T22:18:48Z`; uploaded digest and independently recomputed ZIP SHA-256 `f77ed0a0480134e5f7d9f386e900acc6547177033130b35ff0e1ab6cfd5cc3f6`.
+- Manifest JSON SHA-256 `67876c21dd8639892362c426a377533d9fdd093b4f9a3e0b1adc082ccfb7180d` matches the included SHA-256 sidecar. ZIP contains exactly two regular files: JSON manifest and sidecar.
+- Manifest source commit `7d6cbb10f903625f2051db7d5322e0648ae7727d`, branch `feature/t0-centralized-data-feeder-p1-20261101`, file count 32, total source size 399,691 bytes, 32 unique paths. Each entry includes exact path, Git blob SHA-1, byte size and SHA-256.
+- The inventory job uses the exact checked-out Git object database, not network/API retrieval. It rejects missing/ambiguous paths, wrong object type/mode, stale blob SHA, wrong commit/branch, unsafe/duplicate paths, oversized individual files and oversized aggregate content. No token, secret, VPS or canonical database is used.
+- Predecessor inventory run `42913229506` failed closed because the Automation Plan blob changed in the same commit but the inventory config still expected its previous blob SHA. The config was rebound to current Plan blob `8413befc9a1d7acaaa935e3d21a9993dc2d26484`; retry run `42913380578` passed. The failed run remains visible.
+- Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED. The 32-file inventory is a bounded source-object set; it does not prove completeness of all L4 evidence, VPS custody, owner signer separation, offline verification, or final owner disposition. No control is promoted by this CI result.
