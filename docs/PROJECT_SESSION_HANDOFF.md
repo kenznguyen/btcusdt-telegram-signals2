@@ -4498,3 +4498,23 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - Current status: G4a implementation committed; G4a CI **PENDING / NOT VERIFIED**. This does not establish runtime freshness, real lease state, actual VPS API authentication, watermark progression over time, or process stability. G4 VPS execution remains **NOT AUTHORIZED / NOT VERIFIED** until a safe deployment path is established and separately approved.
 - No VPS/SSH/forced-command/authorized_keys changes, canonical SQLite access, process restart, T1 activation, PostgreSQL work, data deletion, or trading action occurred. T1 NOT ACTIVATED; PostgreSQL PARKED; `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next step: inspect run `42822851406` jobs and artifact. If G4a CI passes, continue with separate HTTP/API contract probes and a deployment-path review; do not label the VPS runtime PASS.
+
+
+## G4a CI evidence — isolated read-only SQLite probe contracts PASS (2026-11-10)
+
+- Final automated run [42822851406](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42822851406): event `push`, branch `feature/t0-centralized-data-feeder-p1-20261101`, exact checkout/source SHA `c3e4283361d4702c867540a109d0b2a0f068cb8b`, overall conclusion **SUCCESS**.
+- Job results:
+  - G1 lease/fencing job `129852909252`: **17/17 workflow/isolation contract tests PASS** and **55/55 lease/fencing/write-gateway/lifecycle tests PASS**.
+  - G2 recovery job `129853080651`: **64/64 recovery/scheduler/lifecycle tests PASS**.
+  - G3 data-flow job `129853274221`: **87/87 tests PASS** (17 workflow contracts + 2 E2E + 10 sync + 13 API + 45 T2 HTTP consumer).
+  - G4a read-only runtime probe contract job `129853501017`: **25/25 tests PASS** (17 workflow/isolation contracts + 8 disposable-SQLite/API-separation probe tests); verdict `G4_READ_ONLY_SQLITE_CONTRACT=PASS`.
+  - G4 scope detection and all prerequisite scope jobs: SUCCESS. SSH preflight and manual VPS acceptance jobs: SKIPPED, as required for this isolated run.
+- Artifacts from the same source SHA:
+  - G1 artifact ID `13766943924`, SHA-256 `88c7f56fc6b692945da1416297ed852a4112b6465871853da6f4cfe65675cc38`.
+  - G2 artifact ID `13766978835`, SHA-256 `9928ea5dfbc522b2252111b44536a803fc6be08e9e583eadada24e66d99f5488`.
+  - G3 artifact ID `13766769313`, SHA-256 `77aeb28e288d64a11408c9a991565ff51c1702ed5a3d3c7536c495c71c5988d0`.
+  - G4a artifact ID `13767153847`, SHA-256 `832a74be2687aed4f753e02727cfb6a3054f72af737026f622b950e3c95d5c26`; [artifact](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42822851406/artifacts/13767153847).
+  - All four artifacts expire `2026-11-17T13:15:23Z`.
+- Disposition: G1/G2/G3 isolated CI gates revalidated PASS on source SHA `c3e428...`; G4a read-only SQLite probe/API-separation contracts PASS. This proves only disposable GitHub-runner behavior. It does **not** prove current VPS lease, SQLite state, candle freshness, authenticated API response, watermark progression, or process stability. VPS G4 runtime remains **NOT VERIFIED**.
+- No SSH/VPS connection, forced-command or `authorized_keys` change, probe installation, canonical DB read/write, service restart, T1 activation, PostgreSQL work, data deletion, or trading action occurred. T1 NOT ACTIVATED; PostgreSQL PARKED; `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next step: define and test separate bounded HTTP probes for the canonical candle API and the explicitly configured detailed feeder-health API; missing Flask listener configuration must remain NOT VERIFIED. Then review a deployment mechanism that preserves forced-command allowlisting. No VPS installation or runtime invocation without separate explicit approval.
