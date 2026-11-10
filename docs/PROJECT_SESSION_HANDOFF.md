@@ -4020,3 +4020,14 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - Option C — No Destructive Authority remains ACTIVE; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - No executable schema, code, adapter, runner, workflow, permission, credential, provider, runtime or data changes; no tests, compile, dry-run, fault injection, Actions dispatch, probes, provisioning or destructive operations. No workflow run or artifact is claimed.
 - Next recommended stage: Stage M — Profile Consistency and Test-Traceability Review, documentary-only.
+
+
+## Latest continuation — T0 L4-Extended branch separation (2026-11-10)
+
+- Recorded scope and branch-separation plan in `docs/evidence/T0_L4_EXTENDED_BRANCH_SEPARATION_PROGRESS_2026-11-10.md`.
+- T0 Core + L4-Minimum remain on `feature/t0-centralized-data-feeder-p1-20261101`; planned Extended branch is `feature/l4-extended-provenance`.
+- Extended scope: RFC3161 TSA, OCSP/CRL, Multi-TSA/quorum, WORM/Object Lock, Root A/B. PostgreSQL/TimescaleDB, public HTTPS and DR remain separate/PARKED.
+- Extended branch creation is intentionally BLOCKED until a frozen, accepted L4-Minimum commit exists. L4-Minimum remains BLOCKED / NOT VERIFIED; L4M-01–08 mandatory, L4M-09 owner-waived, L4M-10 owner self-assessment; all nine applicable controls must PASS on one frozen evidence baseline.
+- Branch search found no existing `feature/l4-extended-provenance`; no branch was created and no code was moved/deleted.
+- No tests or Actions dispatch; no runtime/VPS/DB/data/secrets/permissions/network changes. No workflow run/artifact claimed. Option C ACTIVE; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
+- Next gate: close L4-Minimum acceptance on one frozen evidence baseline, then create Extended from that exact commit SHA.
