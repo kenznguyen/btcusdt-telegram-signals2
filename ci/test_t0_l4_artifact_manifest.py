@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from ci.t0_l4_artifact_manifest import ArtifactManifestError, build_manifest
 
 SOURCE_SHA = "5dc935aa4663bf3b2ccf6075b704189896e45e63"
-NOW = datetime(2026, 11, 10, 14, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 11, 10, 14, 10, tzinfo=timezone.utc)
 EXPECTED = {
     "repository": "kenznguyen/btcusdt-telegram-signals2",
     "run_id": 42830696970,
