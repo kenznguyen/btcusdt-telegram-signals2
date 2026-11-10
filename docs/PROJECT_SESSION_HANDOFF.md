@@ -4236,3 +4236,17 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - No tests, verifier execution, Actions dispatch, owner storage readback, signing/key/provider/runtime/VPS/DB/data/permission/network changes or destructive lifecycle action. No workflow run/artifact claimed.
 - Option C ACTIVE; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 - Next gate: L4M-10 readiness assessment, but do not freeze a baseline or issue owner acceptance while L4M-01–07 evidence remains incomplete. Owner evidence remains the critical dependency.
+
+
+## Latest work — T0 → T2 GitHub evidence collection (2026-11-10)
+
+- Added `docs/evidence/T0_T2_GITHUB_EVIDENCE_COLLECTION_2026-11-10.md`.
+- Commit: `33c33d46a8d77a7f18d74639145b5abf3d8b4f4d`; verified report blob: `adb218ce054ed721e11aa0c5a13e31993740949b`.
+- Retrieved GitHub evidence for historical T0 Feeder runtime, T0 API → T2 loopback runtime, repository source parity, four historical Actions runs, job conclusions and artifact metadata.
+- Historical bounded T0→T2 gate dated 2026-11-09 remains PASS; T0 Feeder runtime report remains PARTIAL PASS. These are historical operator-provided observations, not current runtime evidence.
+- Inspected 13 runtime-relevant source blobs remain identical in the previously reviewed comparison. Branch exists; current deployed VPS SHA, process-loaded bytes, current listener/service state and current environment remain NOT VERIFIED.
+- GitHub Actions job records retrieved for runs `42508364088`, `42508364089`, `42508364090`, `42508364114`; listed jobs report completed/success. Historical artifacts were found with expiry `2026-11-15T18:07:17Z`; no new workflow was dispatched.
+- Current G1 PARTIAL / NOT VERIFIED; G2/G3/G5 HISTORICAL PASS but current NOT VERIFIED; G4 PARTIAL / NOT VERIFIED; G6 NOT RUN.
+- No SSH/VPS/DB/network probe, test, compile, Actions dispatch, runtime/service/data/secret/permission change or destructive action. No current VPS evidence was generated.
+- Next gate: collect owner-supplied sanitized current T0/T2 source SHA, service identity/launch, bind/endpoint, redacted config/token-presence, status/log and alternate data-path evidence. A new G6 read requires separate explicit approval.
+- `AI_EXECUTION_ENABLED=false`; paper-only; no live orders. T0 canonical SQLite protected; PostgreSQL/TimescaleDB PARKED; T1 not activated.
