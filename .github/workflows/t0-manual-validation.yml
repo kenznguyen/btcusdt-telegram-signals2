@@ -227,7 +227,7 @@ jobs:
           for key in SCW_SSH_PRIVATE_KEY SCW_SSH_KNOWN_HOSTS; do
             if [[ -z "${!key:-}" ]]; then
               echo "Missing required protected SSH input: $key"
-              printf '%s\\n' 'SSH_PRIVATE_KEY_SETUP=BLOCKED_MISSING_INPUT' > preflight-ssh-diagnostic.txt
+              printf '%s\n' 'SSH_PRIVATE_KEY_SETUP=BLOCKED_MISSING_INPUT' > preflight-ssh-diagnostic.txt
               printf '%s\\n' '1' > preflight-ssh-exit-code.txt
               exit 1
             fi
