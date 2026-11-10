@@ -4040,3 +4040,13 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - Historical audits remain unchanged. Their prior independent-review blocker statements describe earlier policy; the outside-scope audit's contrary wording is superseded prospectively for L4-Minimum only. Other lifecycle/security/operational reviewer gates are not waived.
 - L4M-01–08 and L4M-10 remain NOT VERIFIED / BLOCKED as applicable. Aggregate acceptance remains BLOCKED pending one frozen baseline with nine PASS controls and owner disposition.
 - Extended branch creation remains blocked pending accepted/frozen L4-Minimum commit. No source/runtime/data/permission changes; no tests or Actions dispatch; Option C ACTIVE; paper-only; no live orders.
+
+
+## Latest continuation — L4-Minimum nine-control evidence acquisition register (2026-11-10)
+
+- Added `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md`.
+- Register separates design/synthetic/CI evidence from owner-controlled and production evidence for active controls L4M-01–08 and L4M-10. L4M-09 remains owner-waived.
+- Acquisition order prioritizes L4M-01 custody plus L4M-03 latest-head anchor, then L4M-02 signer separation, L4M-04/05 offline verification and readback, L4M-06/07 trust and tamper-evident history, L4M-08 claim review, and L4M-10 frozen baseline/owner disposition.
+- L4M-01/02 remain NOT VERIFIED; L4M-03–07 remain PARTIAL synthetic/design only; L4M-08 documentary PASS only; L4M-10 NOT VERIFIED/PENDING owner assessment. Aggregate remains BLOCKED / NOT VERIFIED.
+- No owner storage evidence was accessed or read back. No tests, Actions dispatch, runtime/VPS/DB/data/key/provider/permission changes or destructive operations. Option C ACTIVE; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
+- Next gate: owner-supplied sanitized L4M-01 custody evidence and L4M-03 latest-head anchor, followed by L4M-02 signer-separation evidence.
