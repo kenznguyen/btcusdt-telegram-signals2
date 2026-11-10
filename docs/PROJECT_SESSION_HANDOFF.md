@@ -1,3 +1,19 @@
+## Latest work — L4-Minimum administrative closure and T0 Core handoff (2026-11-10)
+
+- Administrative closure record: `docs/evidence/T0_L4_MINIMUM_ADMINISTRATIVE_CLOSURE_2026-11-10.md`.
+- Closure record commit: `9ae183c586d47bc319369ccda1615c144b8e66b8`.
+- Disposition: **ADMINISTRATIVELY CLOSED — BLOCKED / NOT VERIFIED**. This closes the current work cycle only; it is not PASS, technical acceptance, baseline freeze, or owner acceptance.
+- L4M-01 remains NOT VERIFIED: no actual owner package inventory, canonical SHA-256 manifest, custody provenance, or exact-object readback evidence.
+- L4M-03 remains PARTIAL / NOT VERIFIED: no actual authenticated latest-head anchor, exact digest, custody/readback linkage, or freshness/rollback evidence.
+- Other control dispositions remain unchanged. No control promoted; no frozen baseline; no owner acceptance.
+- L4-Extended remains BLOCKED/PARKED. Do not create its branch or implement it until L4-Minimum is accepted and frozen.
+- Next workstream: resume T0 Core simplification on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`, separate from L4-Extended. Start with bounded source/document inspection.
+- No code, test, compile, Actions dispatch, runtime/VPS/SSH/DB probe, storage mutation, or destructive lifecycle operation was performed for this closure.
+- Option C — No Destructive Authority — ACTIVE; T0 canonical SQLite protected; PostgreSQL/TimescaleDB PARKED; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+- Latest closure record commit: `9ae183c586d47bc319369ccda1615c144b8e66b8`. No workflow run or artifact is claimed.
+
+---
+
 ## Latest L4-Minimum continuation — owner narrows evidence custody to VPS + GitHub (2026-11-10)
 
 - Owner decision: `docs/decisions/D-2026-11-10-L4-EVIDENCE-CUSTODY-VPS-GITHUB-ONLY.md`; commit `89f7b5a9ba8f6b86b126cf24fa6b4235760878b9`.
