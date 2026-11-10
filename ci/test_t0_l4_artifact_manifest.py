@@ -6,15 +6,17 @@ from datetime import datetime, timezone
 
 from ci.t0_l4_artifact_manifest import ArtifactManifestError, build_manifest
 
-SOURCE_SHA = "5dc935aa4663bf3b2ccf6075b704189896e45e63"
-NOW = datetime(2026, 11, 10, 14, 10, tzinfo=timezone.utc)
+SOURCE_SHA = "27aea002a3f404792d4c1a3dc56eff77c2163840"
+NOW = datetime(2026, 11, 10, 14, 20, tzinfo=timezone.utc)
 EXPECTED = {
     "repository": "kenznguyen/btcusdt-telegram-signals2",
-    "run_id": 42830696970,
+    "run_id": 42831240089,
+    "artifact_id": 13771662067,
+    "collector_source_sha": "e4f5ede7ffa5c555ecffc3e19ef7460c9568987d",
     "branch": "feature/t0-centralized-data-feeder-p1-20261101",
     "source_sha": SOURCE_SHA,
     "workflow_path": ".github/workflows/t0-l4-minimum-validation.yml",
-    "artifact_name": "t0-l4-minimum-lineage-42830696970",
+    "artifact_name": "t0-l4-minimum-lineage-42831240089",
 }
 MEMBERS = {
     "l4-source-sha.txt": (SOURCE_SHA + "\n").encode(),
@@ -47,11 +49,11 @@ def make_run(**overrides):
 
 def make_artifact(archive_bytes, **overrides):
     artifact = {
-        "id": 13771616562,
+        "id": 13771662067,
         "name": EXPECTED["artifact_name"],
         "size_in_bytes": len(archive_bytes),
         "expired": False,
-        "created_at": "2026-11-10T14:06:04Z",
+        "created_at": "2026-11-10T14:09:25Z",
         "expires_at": "2026-11-17T14:06:04Z",
     }
     artifact.update(overrides)

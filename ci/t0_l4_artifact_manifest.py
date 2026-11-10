@@ -1,4 +1,4 @@
-"""Read back one exact GitHub Actions artifact and emit a deterministic SHA-256 manifest."""
+"""Read back one explicitly allowlisted GitHub Actions artifact and emit a SHA-256 manifest."""
 from __future__ import annotations
 
 import argparse
@@ -13,8 +13,7 @@ import urllib.request
 import zipfile
 from datetime import datetime, timezone
 from io import BytesIO
-from pathlib import PurePosixPath
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 MAX_ARCHIVE_BYTES = 8 * 1024 * 1024
 MAX_MEMBER_BYTES = 1024 * 1024
@@ -106,11 +105,15 @@ def _safe_zip_members(archive_bytes):
 
 def build_manifest(run_metadata, artifact_metadata, archive_bytes, expected, now=None):
     """Validate exact run/artifact binding and return a deterministic manifest object."""
-    required_expected = ("repository", "run_id", "branch", "source_sha", "workflow_path", "artifact_name")
-    if not isinstance(expected, dict) or any(not expected.get(key) for key in required_expected):
+    required = (
+        "repository", "run_id", "artifact_id", "branch", "source_sha",
+        "collector_source_sha", "workflow_path", "artifact_name",
+    )
+    if not isinstance(expected, dict) or any(not expected.get(key) for key in required):
         _fail("EXPECTED_IDENTITY_INCOMPLETE")
-    if not re.fullmatch(r"[0-9a-f]{40}", str(expected["source_sha"])):
-        _fail("EXPECTED_SOURCE_SHA_INVALID")
+    for key in ("source_sha", "collector_source_sha"):
+        if not re.fullmatch(r"[0-9a-f]{40}", str(expected[key])):
+            _fail("EXPECTED_" + key.upper() + "_INVALID")
     if not isinstance(run_metadata, dict):
         _fail("RUN_METADATA_INVALID")
     if run_metadata.get("id") != expected["run_id"]:
@@ -131,8 +134,8 @@ def build_manifest(run_metadata, artifact_metadata, archive_bytes, expected, now
         _fail("ALLOWLISTED_ARTIFACT_NOT_UNIQUE")
     artifact = matching[0]
     artifact_id = artifact.get("id")
-    if not isinstance(artifact_id, int) or artifact_id <= 0:
-        _fail("ARTIFACT_ID_INVALID")
+    if not isinstance(artifact_id, int) or isinstance(artifact_id, bool) or artifact_id != expected["artifact_id"]:
+        _fail("ARTIFACT_ID_MISMATCH")
     if artifact.get("expired") is not False:
         _fail("ARTIFACT_EXPIRED_OR_UNKNOWN")
     created_at = _parse_timestamp(artifact.get("created_at"), "created_at")
@@ -161,11 +164,7 @@ def build_manifest(run_metadata, artifact_metadata, archive_bytes, expected, now
         _fail("ARTIFACT_TEST_LOG_NOT_PASS")
 
     member_entries = [
-        {
-            "path": name,
-            "size_bytes": len(content),
-            "sha256": hashlib.sha256(content).hexdigest(),
-        }
+        {"path": name, "size_bytes": len(content), "sha256": hashlib.sha256(content).hexdigest()}
         for name, content in sorted(members.items())
     ]
     return {
@@ -176,6 +175,7 @@ def build_manifest(run_metadata, artifact_metadata, archive_bytes, expected, now
         "source_run_id": expected["run_id"],
         "source_run_url": run_metadata.get("html_url"),
         "source_sha": expected["source_sha"],
+        "collector_source_sha": expected["collector_source_sha"],
         "artifacts": [{
             "artifact_id": artifact_id,
             "artifact_name": artifact["name"],
@@ -225,53 +225,64 @@ def _open_github(url, token, limit):
     return body
 
 
-def collect_current_run_artifact(repository, run_id, branch, source_sha, token):
+def collect_allowlisted_artifact(repository, allowlist, collector_source_sha, current_branch, token):
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
         _fail("REPOSITORY_ID_INVALID")
     if not token:
         _fail("GITHUB_TOKEN_MISSING")
-    if not isinstance(run_id, int) or run_id <= 0:
-        _fail("RUN_ID_INVALID")
+    required = ("schema_version", "source_run_id", "source_artifact_id", "source_branch", "source_sha", "source_artifact_name", "workflow_path")
+    if not isinstance(allowlist, dict) or any(not allowlist.get(key) for key in required):
+        _fail("ALLOWLIST_INVALID")
+    if allowlist["schema_version"] != "T0_L4_ARTIFACT_ALLOWLIST_V1":
+        _fail("ALLOWLIST_SCHEMA_UNSUPPORTED")
+    if allowlist["source_branch"] != current_branch:
+        _fail("ALLOWLIST_BRANCH_MISMATCH")
     expected = {
         "repository": repository,
-        "run_id": run_id,
-        "branch": branch,
-        "source_sha": source_sha,
-        "workflow_path": ".github/workflows/t0-l4-minimum-validation.yml",
-        "artifact_name": f"t0-l4-minimum-lineage-{run_id}",
+        "run_id": allowlist["source_run_id"],
+        "artifact_id": allowlist["source_artifact_id"],
+        "branch": allowlist["source_branch"],
+        "source_sha": allowlist["source_sha"],
+        "collector_source_sha": collector_source_sha,
+        "workflow_path": allowlist["workflow_path"],
+        "artifact_name": allowlist["source_artifact_name"],
     }
+    if not re.fullmatch(r"[0-9a-f]{40}", str(collector_source_sha)):
+        _fail("COLLECTOR_SOURCE_SHA_INVALID")
+
     base = "https://api.github.com/repos/" + repository
     try:
-        run_metadata = json.loads(_open_github(f"{base}/actions/runs/{run_id}", token, MAX_API_RESPONSE_BYTES))
-        listing = json.loads(_open_github(f"{base}/actions/runs/{run_id}/artifacts?per_page=100", token, MAX_API_RESPONSE_BYTES))
+        run_metadata = json.loads(_open_github(f"{base}/actions/runs/{expected['run_id']}", token, MAX_API_RESPONSE_BYTES))
+        listing = json.loads(_open_github(f"{base}/actions/runs/{expected['run_id']}/artifacts?per_page=100", token, MAX_API_RESPONSE_BYTES))
+        compare = json.loads(_open_github(f"{base}/compare/{expected['source_sha']}...{collector_source_sha}", token, MAX_API_RESPONSE_BYTES))
     except (json.JSONDecodeError, UnicodeDecodeError):
         _fail("GITHUB_JSON_INVALID")
     if not isinstance(listing, dict) or not isinstance(listing.get("artifacts"), list):
         _fail("GITHUB_ARTIFACT_LIST_INVALID")
     if listing.get("total_count") != len(listing["artifacts"]):
         _fail("GITHUB_ARTIFACT_LIST_TRUNCATED")
+    if not isinstance(compare, dict) or compare.get("status") not in ("ahead", "identical") or compare.get("behind_by") != 0:
+        _fail("ALLOWLISTED_SOURCE_NOT_ANCESTOR")
     matching = [item for item in listing["artifacts"] if isinstance(item, dict) and item.get("name") == expected["artifact_name"]]
-    if len(matching) != 1:
-        _fail("ALLOWLISTED_ARTIFACT_NOT_UNIQUE")
-    artifact_id = matching[0].get("id")
-    if not isinstance(artifact_id, int) or artifact_id <= 0:
-        _fail("ARTIFACT_ID_INVALID")
-    archive_url = f"{base}/actions/artifacts/{artifact_id}/zip"
+    if len(matching) != 1 or matching[0].get("id") != expected["artifact_id"]:
+        _fail("ALLOWLISTED_ARTIFACT_ID_OR_NAME_MISMATCH")
+    archive_url = f"{base}/actions/artifacts/{expected['artifact_id']}/zip"
     archive_bytes = _open_github(archive_url, token, MAX_ARCHIVE_BYTES)
     return build_manifest(run_metadata, listing["artifacts"], archive_bytes, expected)
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--allowlist", required=True)
     parser.add_argument("--output-dir", required=True)
     args = parser.parse_args(argv)
     try:
         repository = os.environ["GITHUB_REPOSITORY"]
-        run_id = int(os.environ["GITHUB_RUN_ID"])
-        source_sha = os.environ["GITHUB_SHA"]
-        branch = os.environ["GITHUB_REF_NAME"]
+        collector_source_sha = os.environ["GITHUB_SHA"]
+        current_branch = os.environ["GITHUB_REF_NAME"]
         token = os.environ["GITHUB_TOKEN"]
-        manifest = collect_current_run_artifact(repository, run_id, branch, source_sha, token)
+        allowlist = json.loads(Path(args.allowlist).read_text(encoding="utf-8"))
+        manifest = collect_allowlisted_artifact(repository, allowlist, collector_source_sha, current_branch, token)
         output_dir = Path(args.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         manifest_bytes = (json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
@@ -282,7 +293,7 @@ def main(argv=None):
     except ArtifactManifestError as exc:
         print("L4_ARTIFACT_MANIFEST=BLOCKED " + str(exc), file=sys.stderr)
         return 1
-    except (KeyError, ValueError):
+    except (KeyError, ValueError, OSError):
         print("L4_ARTIFACT_MANIFEST=BLOCKED CONFIGURATION_INVALID", file=sys.stderr)
         return 1
     print("L4_ARTIFACT_MANIFEST=PASS")
