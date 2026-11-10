@@ -1528,3 +1528,19 @@ This section supersedes the earlier PR #140 next-step note that requested implem
 
 - No authenticated SSH workflow, VPS connection, remote command, deployment, secret/credential change, host/runtime/service change, database access, T0 data change, Feeder activation, exchange connection, market-data sync, or trading action occurred.
 - Next: manually dispatch **T0 Manual Validation** on `fix/p1-ssh-preflight-contract-20261110` with gate `scaleway-ssh-contract-only` only. Verify the run checked out the exact source commit, shell syntax, all tests, authenticated SSH job skipped, and artifact metadata. Do not select `scaleway-ssh-preflight`.
+
+
+## 2026-11-10 — PR #140 workflow integrity and contract-test hardening
+
+- Continued on the existing branch `fix/p1-ssh-preflight-contract-20261110`; no parallel branch or PR created.
+- Source head before this handoff update: `7abb55421d3faf6924004e8df4b08ec5ef4330e4`.
+- Found 38 lines of duplicated/truncated shell-classifier and artifact-upload fragments appended after the valid end of `.github/workflows/t0-manual-validation.yml`. Removed the malformed trailing content; the workflow now ends at the single intended evidence-upload block.
+- Workflow blob SHA: `0c4a9812062054abb01e521a9b04121854ec5207`; cleanup commit: `01efb54f6b948af0f0f5c538540f3a083dc22741`.
+- Hardened `ci/test_t0_ssh_preflight_contract.py`: controlled stubs now provide a valid source SHA and a successful read-only SQLite probe for the positive path; the loopback case asserts exit 0 and `SQLITE_INTEGRITY=PASS`; added missing/failed `ss` fail-closed cases and a regression assertion that the workflow has no duplicated tail.
+- Contract test blob SHA: `f53638821ee118c8e6f44b468bd76e0a1438dd5d`; latest test commit: `7abb55421d3faf6924004e8df4b08ec5ef4330e4`. Test inventory: 20 test methods.
+- Preflight script remains unchanged at blob SHA `6fc3a54c4d91e0ef82aedf1fba2543b4468c756e`.
+- Exact-head GitHub Actions verification for the updated workflow/tests: **NOT RUN / NOT VERIFIED**. No run ID or artifact exists for this revision. The prior runs do not verify these changes.
+- Current PR status before this documentation commit: OPEN / DRAFT / NOT MERGED; GitHub reports `mergeable=false`. Compare against current `main` tip `5b7af94dfaadc41988d6aad186e6db2705bb0345`: branch is 37 commits ahead and 2 behind; merge base remains `9cb38cdd995158704fe2993e277396bb9bf4b50a`. Do not merge or promote to ready while mergeability and exact-head CI remain unresolved.
+- No review submissions or inline review threads were present at inspection.
+- No SSH/VPS connection, authenticated preflight, secret change, deployment, runtime/service/database/data change, exchange connection, or trading action occurred.
+- Next: manually dispatch `T0 Manual Validation` on this branch using only `scaleway-ssh-contract-only`; verify exact checked-out SHA, shell syntax, all 20 tests, authenticated SSH job skipped, and artifact metadata. Then reconcile the two commits behind `main` and recheck PR mergeability. Do not run `scaleway-ssh-preflight` without separate explicit authorization.
