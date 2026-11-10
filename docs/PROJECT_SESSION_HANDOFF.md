@@ -4468,3 +4468,15 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - G1 acceptance remains pending the owner-dispatched `sqlite-lease-fencing` workflow run, exact checkout SHA, successful test result and artifact inspection.
 - G2 recovery and G3 data-flow gates have not been added; they remain deferred until G1 evidence is reviewed. No workflow dispatch was performed in this change.
 - Next step: manually dispatch `T0 Manual Validation` on this same branch with gate `sqlite-lease-fencing`; inspect job conclusion, test count/log and artifact before deciding whether to proceed to recovery.
+
+
+## G4 runtime acceptance design correction — endpoint separation (2026-11-10)
+
+- Follow-up source inspection found an endpoint-separation issue that must be resolved before implementing or dispatching G4.
+- `market_data/api.py` is the canonical candle WSGI service (historically port 8788). Its `GET /health` is only a generic service response `{"ok": true, "service": "canonical-market-data"}`; it does not expose `/health/live`, `/health/ready`, or `/health/data`. Its authenticated `GET /v1/candles` requires `MARKET_DATA_TOKEN` and a bounded query.
+- Detailed feeder health endpoints `/health/live`, `/health/ready`, `/health/data`, and the aggregate `/health` are implemented in Flask `app.py`, a separate application. Current repository evidence does not establish that this Flask app is running on the VPS or identify its bound port. Do not assume port 8788 serves these endpoints.
+- G4 must therefore discover/verify service binding before issuing endpoint-specific requests. The canonical candle API and detailed feeder-health API are separate acceptance subjects. Missing/unidentified detailed-health listener must be reported as `NOT_VERIFIED`, not silently mapped to port 8788.
+- Read-only SQLite inspection must use a URI with `mode=ro`, set `PRAGMA query_only=ON`, and issue SELECT/PRAGMA integrity checks only. Do not call lease mutation helpers or create schema. The lease row must be interpreted using the existing owner/generation/expiry contract; missing or expired lease is a failed runtime gate.
+- The prior proposed G4 endpoint mapping to `127.0.0.1:8788/health/data` is withdrawn. No script, workflow, VPS, SSH forced-command, `authorized_keys`, process, or canonical DB was changed by this correction.
+- Next repository-only step: add a test-first G4 contract that verifies endpoint separation, read-only SQLite access, allowlisted invocation, fail-closed missing configuration, and sanitized evidence. Run on GitHub Actions before any VPS installation. VPS installation remains gated on an explicit, compatible deployment path and must not widen SSH access.
+- Current status: endpoint/source inspection **PASS**; G4 implementation **NOT STARTED**; VPS G4 runtime **NOT VERIFIED**; T1 remains NOT ACTIVATED; PostgreSQL remains PARKED; `AI_EXECUTION_ENABLED=false`; paper-only.
