@@ -6,7 +6,7 @@ Branch: `feature/t0-centralized-data-feeder-p1-20261101`
 Status: **OWNER-APPROVED PLAN — LINEAGE GATE PASS — FOUR-ARTIFACT ACTIONS INVENTORY PILOT PASS — 40-FILE REPOSITORY INVENTORY CI PASS; REFERENCE RECONCILIATION PARTIAL PASS; REMAINING L4 CONTROLS NOT VERIFIED**
 Approval: owner approval in conversation on 2026-11-10 to automate L4M-01–08 as far as technically possible and reserve owner participation for real-world custody/control assertions and L4M-10 acceptance.
 Controlling matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md` (current branch blob at plan preparation: `75db0d98134fd656d91a8545bc307c56595aebf7`).
-Current register at plan preparation: `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` (blob `fe4a188d336a8b0279e8e14941c9cb171c23ae0e`).
+Current register at plan preparation: `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` (blob `0125abfe77c0d0f9172e66aa5d09ec8fc8a33623`).
 
 ## 1. Approved operating principle
 

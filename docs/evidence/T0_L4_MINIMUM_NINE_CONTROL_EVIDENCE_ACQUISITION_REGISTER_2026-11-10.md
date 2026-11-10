@@ -4,7 +4,7 @@ Date: 2026-11-10
 Repository: `kenznguyen/btcusdt-telegram-signals2`
 Branch: `feature/t0-centralized-data-feeder-p1-20261101`
 Work type: evidence acquisition planning and bounded GitHub CI evidence automation
-Status: **REGISTER RECONCILED — LINEAGE GATE PASS — FOUR-ARTIFACT GITHUB INVENTORY/MANIFEST PILOT PASS — AGGREGATE ACCEPTANCE BLOCKED**
+Status: **REGISTER RECONCILED — LINEAGE GATE PASS — FOUR-ARTIFACT ACTIONS PILOT PASS — 40-FILE REPOSITORY INVENTORY PASS — REFERENCE RECONCILIATION PARTIAL PASS — AGGREGATE ACCEPTANCE BLOCKED**
 
 ## 1. Controlling policy and source baseline
 
@@ -12,7 +12,7 @@ Status: **REGISTER RECONCILED — LINEAGE GATE PASS — FOUR-ARTIFACT GITHUB INV
 - Owner waiver: `docs/decisions/D-2026-11-10-L4-INDEPENDENT-REVIEW-WAIVER.md`; L4M-09 is OWNER-WAIVED / NOT MANDATORY.
 - Historical read-only audit: `docs/evidence/T0_L4_MINIMUM_READ_ONLY_AUDIT_2026-11-10.md`, blob `cfecb7428508adf23e6b9e71dc0dfe1e0e38080c`.
 - Historical adversarial review: `docs/evidence/T0_L4_MINIMUM_ADVERSARIAL_REVIEW_2026-11-10.md`, blob `a7aec29330d71cb4d34193d6db81b8e20eb295f1`.
-- Current-policy reconciliation: `docs/evidence/T0_L4_MINIMUM_POLICY_HISTORICAL_AUDIT_RECONCILIATION_2026-11-10.md`, blob `531b9b4b42337439697ac27286486ced8d19df25`.
+- Current-policy reconciliation: `docs/evidence/T0_L4_MINIMUM_POLICY_HISTORICAL_AUDIT_RECONCILIATION_2026-11-10.md`, blob `017bca148719006b22431d6eafa383fe6337a10c`.
 
 The active denominator is nine controls: L4M-01–08 and L4M-10. L4M-09 remains a historical traceability identifier only. No independent-assurance claim is permitted.
 
@@ -20,7 +20,7 @@ The active denominator is nine controls: L4M-01–08 and L4M-10. L4M-09 remains 
 
 | Control | Existing evidence class | Exact remaining evidence needed | Acquisition boundary | Current disposition |
 |---|---|---|---|---|
-| L4M-01 — Owner custody | GitHub records and short-lived CI artifacts; no qualifying owner copy demonstrated | Owner-controlled package inventory; SHA-256 manifest; custody reference to VPS and/or GitHub; exact readback/integrity result for each claimed copy; include latest-head anchor. No external backup is required. Single-location outage claims require a verified copy in the remaining location; simultaneous VPS+GitHub outage recovery is outside scope | Automate GitHub artifact discovery, exact download/readback, inventory and SHA-256 manifest. Pilot verified four explicitly allowlisted GitHub artifacts (two P1.8.14 CI artifacts and two L4 lineage artifacts); not a complete L4 package. For VPS, consider a bounded read-only collector only after separate access-contract approval. Owner confirms only real-world designation/control of a copy where machine evidence cannot establish it; never request secrets | PARTIAL — 3 GitHub artifacts read back and SHA-256 verified; owner custody and complete package NOT VERIFIED |
+| L4M-01 — Owner custody | GitHub records and short-lived CI artifacts; no qualifying owner copy demonstrated | Owner-controlled package inventory; SHA-256 manifest; custody reference to VPS and/or GitHub; exact readback/integrity result for each claimed copy; include latest-head anchor. No external backup is required. Single-location outage claims require a verified copy in the remaining location; simultaneous VPS+GitHub outage recovery is outside scope | Automate GitHub artifact discovery, exact download/readback, inventory and SHA-256 manifest. Pilot verified four explicitly allowlisted GitHub Actions artifacts (two P1.8.14 CI artifacts and two L4 lineage artifacts). A separate 40-file exact-commit repository-source inventory and reference reconciliation are recorded in the current workflow; neither is a complete L4 package. For VPS, consider a bounded read-only collector only after separate access-contract approval. Owner confirms only real-world designation/control of a copy where machine evidence cannot establish it; never request secrets | PARTIAL — four GitHub Actions artifacts and 40 repository source files inventoried/read back; owner custody and complete package NOT VERIFIED |
 | L4M-02 — Signer separation | Synthetic ephemeral-key tests and verifier-only source; no production owner signer proof | Signer identity/fingerprint; custody and recovery boundary; evidence that T0 runtime/admin credentials cannot sign or authorize signing; approved recovery procedure and separately authorized isolated proof | Automate signer metadata/fingerprint checks and code/permission-boundary tests. Owner confirms actual key custody/recovery only where not machine-verifiable. No key generation, import, export, rotation, provider call or privilege probe | NOT VERIFIED |
 | L4M-03 — Exact binding/freshness | Synthetic event-byte verifier and CI subject-digest checks; T0 has no signed canonical checkpoint | Exact T0 checkpoint/manifest definition; signed envelope and digest binding; authenticated latest-head anchor; exact anchor digest; owner-custody/readback proof; older-valid-checkpoint rollback result against anchor | Automate exact-byte/signature/anchor verification and mutation/replay/substitution tests on supplied evidence. Missing anchor remains UNKNOWN. No canonical T0 schema/write-path change or signing operation | PARTIAL — SYNTHETIC/DESIGN ONLY |
 | L4M-04 — Offline verification | Local synthetic Sigstore bundle verifier and CI evidence | Owner-run verification of the exact retained T0 package on a separate environment, with T0/VPS, GitHub, ChatGPT and network unavailable; verifier build/source hash; trust-policy snapshot; complete output and exit status | Automate a network-disabled GitHub verification job against exact package and pinned trust snapshot; report CI-offline and owner-offline separately. Owner-run offline evidence remains required only to satisfy the matrix's owner-environment assertion. No VPS or local installation | PARTIAL — SYNTHETIC/CI ONLY |
@@ -54,7 +54,7 @@ This sequence is a dependency plan, not an authorization to perform the activiti
 
 ## 5. Consolidated status
 
-- L4M-01: PARTIAL — four allowlisted GitHub artifacts inventoried/read back; owner custody and complete package NOT VERIFIED.
+- L4M-01: PARTIAL — four allowlisted GitHub Actions artifacts plus 40 repository source files inventoried/read back; owner custody and complete package NOT VERIFIED.
 - L4M-02: NOT VERIFIED.
 - L4M-03: PARTIAL — synthetic/design only.
 - L4M-04: PARTIAL — synthetic/CI only.
@@ -69,7 +69,7 @@ This sequence is a dependency plan, not an authorization to perform the activiti
 
 ## 6. Next gate
 
-The lineage gate is PASS (latest: 12/12). The four-artifact GitHub inventory/manifest pilot is PASS for its declared scope (19/19 contract tests; 4/4 ZIP and 57/57 member digests independently verified). This remains a selected pilot, not a complete L4 evidence package. Next, inventory the exact source-controlled matrix, decisions, historical audits and lifecycle evidence as GitHub file objects with immutable path/ref/blob identity and SHA-256; separately discover any additional eligible Actions artifacts from authoritative run metadata. Do not invent or silently substitute artifact IDs. Only after the complete source-object and Actions-artifact inventory is reconciled should the next gate be designed. Signature/negative verification and network-disabled offline verification remain downstream gates. Owner-supplied assertions remain limited to actual custody/control facts not machine-verifiable from approved sources, and final L4M-10 acceptance. No additional backup outside VPS/GitHub is required.
+The lineage gate is PASS (latest: 12/12). The four-artifact GitHub Actions inventory/manifest pilot remains PASS for its declared scope (19/19 contract tests; 4/4 ZIP and 57/57 member digests independently verified). The separate exact-commit repository-file inventory is PASS for 40 explicitly allowlisted source objects (10/10 tests) with a downloaded/re-hashed output artifact. Reference reconciliation is PARTIAL PASS; some unrelated T0/T1/T2 and process references are excluded with reasons. This remains a bounded source inventory, not a complete L4 evidence package or owner custody proof. Next, finalize the control-to-source crosswalk for L4M-01–08 and L4M-10, and reconcile additional eligible Actions artifacts only from authoritative run metadata. Do not invent or silently substitute artifact IDs. Signature/negative verification and network-disabled offline verification remain downstream gates. Owner-supplied assertions remain limited to actual custody/control facts not machine-verifiable from approved sources, and final L4M-10 acceptance. No additional backup outside VPS/GitHub is required.
 
 ## 7. Limits
 
@@ -86,3 +86,12 @@ Register/evidence update. GitHub-hosted lineage and three-artifact inventory/man
 - Output lineage artifact ID `13772649665`, name `t0-l4-minimum-lineage-42837579509`, 1,151 bytes, expiry `2026-11-17T14:46:58Z`, ZIP SHA-256 `9c4c7fabdf076abb1f719d32e28edf47b2bfaec91fa5528531d178c91a51bfc4`; independently downloaded and re-hashed. It records source SHA `5c9941112f24edb213c129a5962187461d8f4308` and 12/12 lineage tests PASS.
 - The four-artifact manifest still does not contain the newly generated output artifacts from run `42837579509` itself; those are outputs and may only be considered as inputs in a subsequent run after exact verification. The manifest is a selected GitHub Actions artifact inventory, not the complete evidence package or owner custody proof.
 - Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED. Signature verification, network-disabled offline verification, owner custody/readback and L4M-10 owner disposition remain NOT VERIFIED / NOT STARTED.
+
+
+## 9. Latest repository-source inventory — run 42914799884
+
+- Workflow run [42914799884](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42914799884), source SHA `9442386151f3ff7ce7c699e00e617b8f4033aa3c`, overall SUCCESS.
+- Lineage 12/12 PASS; artifact-manifest 19/19 PASS; repository-file inventory 10/10 PASS; total 41/41 contract tests.
+- Repository-file inventory artifact ID `13807289589`, 4,477 bytes, expires `2026-11-17T22:27:57Z`, independently downloaded/re-hashed ZIP SHA-256 `40ec49a9ac0e0f3caa2883c6808cdf150151a0586f46b41901a37b4377fdf6f3`; JSON SHA-256 `a64553ba61414ea15c4d7c97bcd18f192df5b74094b193ae37f86dbd8ebc43b1` matches sidecar. Inventory: 40 unique files, 517,128 source bytes.
+- Historical scope/lifecycle references resolved and added: T0 TSA/WORM read-only audit, P1.8.80 retention predecessor, P1.8.121 Option C ratification and P1.8.141 holistic lifecycle assessment. Their exact paths and Git blob SHAs are in the inventory. Separate PostgreSQL/provider/shared-data and generic lifecycle architecture docs are explicitly excluded with exact reasons.
+- Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED. No control is promoted by this inventory result.
