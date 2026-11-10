@@ -354,3 +354,23 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - New five-entry allowlist blob `2fe01dbd2e3367db821f8e18503f965dc32fd42b` passed manifest contract and actual GitHub artifact readback. This confirms the collector accepted the latest lineage artifact's run/SHA/name/ID/member markers and verified archive/member hashes at runtime.
 - Allowlist refresh is a CI evidence-selection update only; it does not establish owner custody or upgrade any L4 control. Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
 - Next: assess whether the remaining 29 non-allowlisted lineage outputs have any distinct provenance value. Do not bulk-add them; only select a historical artifact if it contributes a distinct source/evidence class and verify its payload before any allowlist change. No keys/signing, trust-root changes, offline verification, VPS/SQLite access, deletion, cleanup or destructive actions; Option C remains ACTIVE.
+
+
+### Six-entry lineage allowlist update and CI validation — 2026-11-11
+
+- Candidate review report: `docs/evidence/T0_L4_LINEAGE_CANDIDATE_REVIEW_2026-11-11.md`, commit `4b4926944fa2548c0a7c29e7aa54c95fbdb13512`.
+- Selected the newer successful lineage output from run `42917935285` because it records the exact source snapshot that introduced and validated the prior five-entry allowlist. This is still the existing `L4_LINEAGE_CONTRACT_CI` evidence class, not owner-held custody evidence.
+- Candidate artifact `13810187202`, source SHA `cab8122c94e8bb8f30052ae44483fb1ec7e4de65`, 1,151 bytes; independently downloaded ZIP SHA-256 `db4e86e8b976304ae1daf90b14dc49cd2f4b149c9c2449867d796b515cd76d07`. Exact four members, matching source marker, scope `T0_L4_MINIMUM_LINEAGE=GITHUB_HOSTED_READ_ONLY`, verdict PASS, 12/12 tests.
+- Allowlist update commit `0251a8cc7995903d2516fc84cc0a33b73ec02777`; new allowlist blob `0280cd7751c9660baec237242ca7aadef09205a6`; six entries total. All previous five entries preserved.
+- CI run [42922670634](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42922670634), event `push`, exact checkout/source SHA `0251a8cc7995903d2516fc84cc0a33b73ec02777`, overall SUCCESS.
+  - Lineage job `130201149131`: 12/12 PASS.
+  - Repository inventory job `130201222951`: 10/10 PASS.
+  - Artifact manifest job `130201223038`: 19/19 PASS.
+  - Total 41/41 tests PASS.
+- Current-run output artifacts independently downloaded and re-hashed:
+  - Manifest `13813280057`: 3,269 bytes; ZIP SHA-256 `cc969116e687792321240e19cfa2125abfb8a884328e03715937746709b9b26d`. JSON member 12,001 bytes; SHA-256 `520fd49f87595cd39b412a0533ce579c8ead1456ad0361a712b52786bebad428`; sidecar matches. Exactly six source artifacts; no self-inclusion.
+  - Lineage `13813120888`: 1,151 bytes; ZIP SHA-256 `4686edd0c1e80f4a5793aa8d79ac4ce232ee64bd59cee2bfa633c14afd3d29d1`; source marker matches `0251a8cc7995903d2516fc84cc0a33b73ec02777`; 12 tests; PASS.
+  - Repository inventory `13811119271`: 4,490 bytes; ZIP SHA-256 `ab8944fe9edb3446a50df1b8041743e93bb6bb628dee70956913c54b862222da`; JSON sidecar matches; exact source commit `0251a8cc7995903d2516fc84cc0a33b73ec02777`; 40 paths / 518,716 bytes.
+- The other historical lineage outputs remain unselected. Metadata shows the same generated lineage CI class; this does not claim every remaining archive was independently downloaded/member-rehashed. Their payload status remains NOT VERIFIED unless separately documented.
+- Dispositions unchanged: no L4 control promoted; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED. Option C — No Destructive Authority remains ACTIVE.
+- Next: reconcile the six-entry allowlist/manifest with the current evidence register and control-to-source crosswalk. Then determine readiness for signature/negative-verification design only. No key generation/signing, trust-root change, offline verification, VPS/SQLite access, artifact deletion, retention change or destructive operation.
