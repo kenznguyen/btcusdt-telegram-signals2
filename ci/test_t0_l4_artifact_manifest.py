@@ -4,7 +4,8 @@ import unittest
 import zipfile
 from datetime import datetime, timezone
 
-from ci.t0_l4_artifact_manifest import ArtifactManifestError, build_manifest
+from ci.t0_l4_artifact_manifest import ArtifactManifestError, build_manifest, collect_allowlisted_artifact, _StripAuthorizationRedirectHandler
+import urllib.request
 
 SOURCE_SHA = "27aea002a3f404792d4c1a3dc56eff77c2163840"
 NOW = datetime(2026, 11, 10, 14, 20, tzinfo=timezone.utc)
@@ -151,6 +152,33 @@ class L4ArtifactManifestContractTests(unittest.TestCase):
         wrong_verdict["l4-lineage-contract-verdict.txt"] = b"FAIL\n"
         with self.assertRaises(ArtifactManifestError):
             self.build(archive_bytes=make_archive(wrong_verdict))
+
+    def test_redirect_handler_does_not_forward_bearer_authorization(self):
+        request = urllib.request.Request(
+            "https://api.github.com/repos/example/repo/actions/artifacts/1/zip",
+            headers={"Authorization": "Bearer secret-value", "Accept": "application/vnd.github+json"},
+        )
+        redirected = _StripAuthorizationRedirectHandler().redirect_request(
+            request, None, 302, "Found", {}, "https://artifact-storage.example/signed.zip"
+        )
+        self.assertFalse(any(key.lower() == "authorization" for key in redirected.headers))
+        self.assertFalse(any(key.lower() == "authorization" for key in redirected.unredirected_hdrs))
+
+    def test_rejects_invalid_allowlist_identity_before_network_access(self):
+        allowlist = {
+            "schema_version": "T0_L4_ARTIFACT_ALLOWLIST_V1",
+            "source_run_id": "../999",
+            "source_artifact_id": EXPECTED["artifact_id"],
+            "source_branch": EXPECTED["branch"],
+            "source_sha": SOURCE_SHA,
+            "source_artifact_name": EXPECTED["artifact_name"],
+            "workflow_path": EXPECTED["workflow_path"],
+        }
+        with self.assertRaises(ArtifactManifestError):
+            collect_allowlisted_artifact(
+                EXPECTED["repository"], allowlist, EXPECTED["collector_source_sha"],
+                EXPECTED["branch"], "test-token"
+            )
 
     def test_rejects_unhealthy_test_log(self):
         bad_log = dict(MEMBERS)

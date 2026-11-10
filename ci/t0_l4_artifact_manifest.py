@@ -237,6 +237,16 @@ def collect_allowlisted_artifact(repository, allowlist, collector_source_sha, cu
         _fail("ALLOWLIST_SCHEMA_UNSUPPORTED")
     if allowlist["source_branch"] != current_branch:
         _fail("ALLOWLIST_BRANCH_MISMATCH")
+    if not isinstance(allowlist["source_run_id"], int) or isinstance(allowlist["source_run_id"], bool) or allowlist["source_run_id"] <= 0:
+        _fail("ALLOWLIST_RUN_ID_INVALID")
+    if not isinstance(allowlist["source_artifact_id"], int) or isinstance(allowlist["source_artifact_id"], bool) or allowlist["source_artifact_id"] <= 0:
+        _fail("ALLOWLIST_ARTIFACT_ID_INVALID")
+    if not re.fullmatch(r"[0-9a-f]{40}", str(allowlist["source_sha"])):
+        _fail("ALLOWLIST_SOURCE_SHA_INVALID")
+    if allowlist["workflow_path"] != ".github/workflows/t0-l4-minimum-validation.yml":
+        _fail("ALLOWLIST_WORKFLOW_PATH_INVALID")
+    if allowlist["source_artifact_name"] != "t0-l4-minimum-lineage-" + str(allowlist["source_run_id"]):
+        _fail("ALLOWLIST_ARTIFACT_NAME_INVALID")
     expected = {
         "repository": repository,
         "run_id": allowlist["source_run_id"],
