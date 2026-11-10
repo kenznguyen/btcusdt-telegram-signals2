@@ -4059,3 +4059,13 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - L4M-03 intake requires exact checkpoint byte/digest identity, schema/dataset/sequence semantics, existing signature metadata if available, and the separately authenticated latest-head anchor linked into the same L4M-01 custody inventory. Sequence/generation alone is insufficient; missing anchor means freshness UNKNOWN.
 - No evidence received or verified; no owner storage access. No credentials/private keys/private URLs requested. No tests, outage simulation, signing, runtime/VPS/DB/provider/permission changes, Actions dispatch or destructive operations. Option C ACTIVE; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
 - Next gate remains owner-supplied sanitized evidence for existing L4M-01 custody and L4M-03 anchor. L4M-01 NOT VERIFIED; L4M-03 PARTIAL synthetic/design only; aggregate L4-Minimum BLOCKED.
+
+
+## Latest continuation — L4M-01/L4M-03 existing trust evidence non-substitution (2026-11-10)
+
+- Added `docs/evidence/T0_L4M01_L4M03_EXISTING_TRUST_EVIDENCE_NON_SUBSTITUTION_2026-11-10.md` after checking the existing P1.8.14 Sigstore trust-anchor report, T0 checkpoint contract v1 and G3 review-input manifest against the active L4 evidence requirements.
+- Determination: P1.8.14 remains a valid historical synthetic CI-artifact attestation result, but GitHub-hosted artifacts/runners do not establish owner custody outside the GitHub failure domain, owner readback during GitHub outage, offline verification, a signed T0 canonical checkpoint or an owner-controlled monotonic latest-head anchor.
+- T0 checkpoint contract remains DRAFT/documentary; G3 manifest remains review-input-only with independent review not performed. Neither supplies production checkpoint/anchor evidence.
+- L4M-01 remains NOT VERIFIED; L4M-03 remains PARTIAL synthetic/design only and freshness UNKNOWN / NOT VERIFIED. No controls promoted; aggregate remains BLOCKED.
+- No tests, Actions dispatch, owner storage access, signing, runtime/VPS/DB/provider/key/permission/network changes or destructive operations. Option C ACTIVE; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
+- Next gate remains owner-supplied sanitized evidence for an already-existing L4M-01 package and L4M-03 latest-head anchor. If absent, record NOT AVAILABLE; do not manufacture evidence.
