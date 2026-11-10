@@ -1,3 +1,16 @@
+## Latest T0 → T2 deployment parity evidence checklist (2026-11-10)
+
+- Added `docs/evidence/T0_T2_DEPLOYMENT_PARITY_EVIDENCE_CHECKLIST_2026-11-10.md`.
+- Checklist commit: `d91dbeffc40b96059b865d3700eb811588c6573b`.
+- Defines owner-supplied sanitized evidence for T0/T2 exact source SHAs, API bind/port, T0 SQLite ownership, token presence without disclosure, T2 endpoint and explicit 120,000 ms lag threshold, service identity/status, and any alternate data paths.
+- Adds gates G1–G5 for documentary source/config/endpoint/storage/contract parity; G6 is a bounded non-destructive read test requiring separate explicit approval.
+- Reconciles transport behavior: T2 code accepts HTTPS for non-loopback and HTTP only for localhost/127.0.0.1/::1; T2 README describes HTTPS. Actual endpoint/topology parity remains NOT VERIFIED.
+- Deployment parity remains NOT VERIFIED. No owner-supplied evidence, VPS/SSH/runtime/DB/network probes, tests, compile, Actions dispatch or data changes were performed.
+- Next step: collect the six sanitized evidence categories in the checklist; omitted items remain NOT VERIFIED. Do not access VPS or run operational tests without separate approval.
+- Option C remains REVOKED; this does not grant destructive authority. VPS operational-data lifecycle cleanup remains a separate proposal.
+- `AI_EXECUTION_ENABLED=false`; paper-only; no live orders; PostgreSQL/TimescaleDB PARKED.
+
+---
 ## Latest T0 → T2 synchronization review (2026-11-10)
 
 - Added `docs/evidence/T0_T2_HTTP_SYNCHRONIZATION_CONTRACT_REVIEW_2026-11-10.md`.
