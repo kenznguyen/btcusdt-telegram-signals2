@@ -1,3 +1,19 @@
+## Latest T0 continuation — DEP intake preparation and deployment contract status (2026-11-10)
+
+- Latest baseline before this continuation: `fa65e4d5e4817be1273f4f5646d4c526357975ec`; active branch remains `feature/t0-centralized-data-feeder-p1-20261101`.
+- Completed T0 static preflight audit: `docs/evidence/T0_READONLY_PREFLIGHT_STATIC_SAFETY_AUDIT_2026-11-10.md`. The old `ops/ssh/t0-readonly-preflight.sh` is NOT approved as a metadata-only DEP collector because it reads process command lines and runs SQLite `PRAGMA integrity_check`. Script was not run or changed.
+- Completed Feeder/Candle API launch contract reconciliation: `docs/evidence/T0_DEPLOYMENT_LAUNCH_CONTRACT_RECONCILIATION_2026-11-10.md`.
+- Clarified `market_data/README.md`: same-host T0 → T2 uses loopback `127.0.0.1:8788` and does not require Nginx/reverse proxy; remote/browser access is a separate design/approval scope.
+- Previous reconciliation commit: `fa65e4d5e4817be1273f4f5646d4c526357975ec`.
+- Current source launch contracts: Feeder `python -m market_data.feeder_service`; Candle API Gunicorn `market_data.api:application` bound to `127.0.0.1:8788`. Feeder source emits `READY=1` / `STOPPING=1`; actual systemd `Type` / `NotifyAccess` and effective unit properties are host evidence, not inferred.
+- Added next-step template: `docs/evidence/T0_DEP01_DEP09_OWNER_EVIDENCE_INTAKE_2026-11-10.md`. It is a blank intake sheet, not host evidence.
+- DEP-01–DEP-09 owner evidence remains NOT SUPPLIED; deployment parity NOT VERIFIED; operational readiness NOT VERIFIED.
+- No VPS/SSH access, preflight execution, systemd/Nginx/API probe, DB/data/secret access, service/runtime/network change, tests or GitHub Actions dispatch. No workflow run/artifact is claimed.
+- Option C — No Destructive Authority — ACTIVE; T0 remains canonical SQLite; PostgreSQL PARKED; `AI_EXECUTION_ENABLED=false`; no live orders.
+- Next step: wait for owner-supplied sanitized DEP-01–DEP-09 evidence, then compare against the launch contract and record only evidence-supported discrepancies. Do not infer host parity or initiate host access.
+
+---
+
 # Project Session Handoff
 
 Updated: 2026-11-09 UTC  
