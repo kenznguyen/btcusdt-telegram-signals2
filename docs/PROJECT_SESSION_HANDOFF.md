@@ -4321,3 +4321,20 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - Evidence: handoff được cập nhật trên branch hiện có `feature/t0-centralized-data-feeder-p1-20261101`; baseline source commit gần nhất đã xác minh trước cập nhật là `0c8498ac530cdcbb750b0864881e018572a31fe6`; handoff blob trước cập nhật là `d20b4279012ccc2b3ea409bafd8743330d9b1440`.
 - Status: DECISION RECORDED; code/test execution NOT RUN; SQLite VPS runtime NOT VERIFIED; PostgreSQL PARKED.
 - Next step: tiếp tục rà soát SQLite T0 theo evidence đã có, xác định đúng gate còn thiếu trước khi dispatch bất kỳ workflow nào. Không thực hiện SSH preflight hoặc thay đổi runtime nếu chưa có phê duyệt riêng.
+
+
+## 2026-11-10 — T0 SSH preflight workflow parity (selective port)
+
+- Scope: port only the encrypted-key SSH preflight workflow hardening from the previously successful branch; preserve the T0 branch and its existing manual validation gates.
+- Target branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Latest source commit: `ffc7caa7b62dbc0000e55c2f91659f5d681c6b4c`.
+- Updated files:
+  - `.github/workflows/t0-manual-validation.yml` blob `ee2eb9db57bf3a8da188eab6c68d9639e062b11e`.
+  - `ci/test_t0_ssh_preflight_contract.py` blob `74e4d28315860049bb7b25cf84f34a12027ac334`.
+  - `ops/ssh/t0-readonly-preflight.sh` unchanged; blob remains `39de5aa7602cdf7dc301ff6bc65a68fad417ea84`.
+- Changes: support encrypted SSH private key using a short-lived ssh-agent (300s), verify pinned key fingerprint, scope secrets to the steps that need them, clean up temporary secret files/agent, add PR contract-only execution, and add manual gate `scaleway-ssh-contract-only` that does not invoke the authenticated SSH job.
+- Preserved prior successful evidence: run [42791255299](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42791255299), source SHA `7e635a6462c29456f1adb2e7ddcd01443909a5ac`; artifact [13750314557](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42791255299/artifacts/13750314557), SHA-256 `26b0564a006d19150a9ab8cda5ec1bcf40a3e77ad6a7483bc7798e9bf540e17c`. The prior artifact reported SSH exit 0, key unlock/fingerprint PASS, SQLite integrity PASS, API 8788 loopback-only, and remote source SHA `9ae2eeae4ece3d657781b68e96b6f4509cd95f24`.
+- Validation: source-level review confirms the SSH job runs only for `workflow_dispatch` gate `scaleway-ssh-preflight`; PR and `scaleway-ssh-contract-only` execute the contract job only. Automated GitHub Actions contract-only run has **NOT RUN** yet; test result is therefore **NOT VERIFIED**.
+- Status: **PARTIAL** — selective source port committed; CI execution pending. Do not infer PASS from the previous branch's successful run.
+- Explicit limits: no VPS connection, no SSH preflight rerun, no runtime/service/Feeder changes, no canonical SQLite access or migration, no PostgreSQL work, no live trading.
+- Next step: run GitHub Actions workflow `T0 Manual Validation` on this branch with gate `scaleway-ssh-contract-only`; inspect exact checked-out SHA, job conclusion and artifact. Only after that evidence passes should any further workflow promotion be considered.
