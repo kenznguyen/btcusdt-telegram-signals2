@@ -80,7 +80,7 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertIn("PARTIAL_OR_BLOCKED_PROBE_UNAVAILABLE", text)
 
 
-    def run_preflight_with_stubs(self, *, include_awk=True, awk_exit=None, include_pgrep=True, pgrep_exit=1):
+    def run_preflight_with_stubs(self, *, include_awk=True, awk_exit=None, include_pgrep=True, pgrep_exit=1, ss_address='127.0.0.1:8788'):
         with tempfile.TemporaryDirectory() as directory:
             bin_dir = Path(directory)
             for command in ("hostname", "id", "git"):
@@ -89,7 +89,7 @@ class T0SSHPreflightContractTests(unittest.TestCase):
                 (bin_dir / command).symlink_to(resolved)
             ss = bin_dir / "ss"
             ss.write_text(
-                "#!/bin/sh" + chr(10) + "printf '%s" + chr(92) + "n' 'LISTEN 0 128 127.0.0.1:8788 0.0.0.0:*'" + chr(10),
+                "#!/bin/sh" + chr(10) + "printf '%s" + chr(92) + "n' 'LISTEN 0 128 " + ss_address + " 0.0.0.0:*'" + chr(10),
                 encoding="utf-8",
             )
             ss.chmod(0o755)
@@ -114,6 +114,21 @@ class T0SSHPreflightContractTests(unittest.TestCase):
                 check=False,
             )
             return result
+
+
+    def test_loopback_listener_is_classified_only_after_successful_parse(self):
+        result = self.run_preflight_with_stubs()
+        self.assertIn("API_8788=LOOPBACK_LISTENER", result.stdout)
+
+    def test_non_loopback_listener_is_rejected(self):
+        result = self.run_preflight_with_stubs(ss_address="0.0.0.0:8788")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("API_8788=NON_LOOPBACK_LISTENER", result.stdout)
+
+    def test_successful_empty_pgrep_result_is_distinct_from_probe_failure(self):
+        result = self.run_preflight_with_stubs(pgrep_exit=1)
+        self.assertIn("FEEDER_PIDS=NONE", result.stdout)
+        self.assertNotIn("FEEDER_PIDS=CHECK_FAILED", result.stdout)
 
     def test_missing_awk_fails_closed(self):
         result = self.run_preflight_with_stubs(include_awk=False)
