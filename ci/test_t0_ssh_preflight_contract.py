@@ -41,6 +41,8 @@ class T0SSHPreflightContractTests(unittest.TestCase):
     def test_pull_request_runs_contract_only_without_exposing_ssh_secrets(self):
         workflow = WORKFLOW.read_text()
         self.assertIn("pull_request:", workflow)
+        self.assertIn("scaleway-ssh-contract-only", workflow)
+        self.assertIn("inputs.gate == 'scaleway-ssh-contract-only'", workflow)
         self.assertIn("github.event_name == 'pull_request'", workflow)
         self.assertIn("github.event_name == 'workflow_dispatch' && inputs.gate == 'scaleway-ssh-preflight'", workflow)
         self.assertIn("SCW_SSH_KEY_PASSPHRASE", workflow)
