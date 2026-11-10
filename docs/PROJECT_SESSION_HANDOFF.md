@@ -374,3 +374,28 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - The other historical lineage outputs remain unselected. Metadata shows the same generated lineage CI class; this does not claim every remaining archive was independently downloaded/member-rehashed. Their payload status remains NOT VERIFIED unless separately documented.
 - Dispositions unchanged: no L4 control promoted; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED. Option C — No Destructive Authority remains ACTIVE.
 - Next: reconcile the six-entry allowlist/manifest with the current evidence register and control-to-source crosswalk. Then determine readiness for signature/negative-verification design only. No key generation/signing, trust-root change, offline verification, VPS/SQLite access, artifact deletion, retention change or destructive operation.
+
+
+### Register-reference repair and latest crosswalk validation — 2026-11-11
+
+- Root cause of the temporary lineage CI failures: the Evidence Register blob changed from `0125abfe77c0d0f9172e66aa5d09ec8fc8a33623` to `e67a58591b5f6168ab3a0f3f403557292aca45d5`, but `ci/test_t0_l4_minimum_lineage_contract.py` still pinned the old `REGISTER_SHA`. Runs [42922931718](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42922931718) and [42922961366](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42922961366) both reproduced the same assertion failure: expected old blob vs actual new blob; lineage 11/12, downstream jobs skipped.
+- Corrected the test constant and synchronized the current register SHA in the Automation Plan and the L4M-02/L4M-08/L4M-10 supporting assessments. No test was skipped or weakened.
+- Rebound `ci/l4-repository-file-inventory.json` to the new exact Git blob SHAs for the Register, Automation Plan and three supporting assessments. Current config blob: `95dd58f688b9ca14874613b1b94c5d5486d2e30f`.
+- Latest exact-source validation of the synchronized docs/config: run [42923181975](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42923181975), source SHA `b9c2ebff7337420194f5c36a9523df28dbc6d4fc`, SUCCESS:
+  - Lineage job `130202982454`: 12/12 PASS.
+  - Artifact manifest job `130203053477`: 19/19 PASS; `L4_ARTIFACT_MANIFEST=PASS`.
+  - Repository inventory job `130203053514`: 10/10 PASS; `L4_REPOSITORY_FILE_INVENTORY=PASS`.
+  - Total 41/41.
+- Run `42923181975` output artifacts independently downloaded/re-hashed:
+  - Manifest `13813285687`: 3,266 bytes; ZIP SHA-256 `edcc77775e6dbe57248d87e484277dd79cf9103224c6b2e2ab05bce7bc0040cf`; JSON SHA-256 `18ed9d405bd68b3c137d56bccecf6f7f20b8b941deea8c0d7af4e3c1f97bc405`, sidecar matches; six inputs.
+  - Repository inventory `13812812210`: 4,494 bytes; ZIP SHA-256 `d96efd8908f51c98160eb8089b175baa47c7695b2318555ce31fa1ab34b4f72b`; JSON SHA-256 `287398ccb0c9fbd76ea6b8316cd10748335f354e4e979fda5a36c62b2cbb2397`, sidecar matches; 40 files / 521,853 bytes; source SHA `b9c2ebff7337420194f5c36a9523df28dbc6d4fc`.
+  - Lineage `13812403380`: 1,151 bytes; ZIP SHA-256 `2714104e7112fb7eac02e2ef6e00ed749f98be3e5259e4d70cc28d8379187291`; exact source marker, 12 tests, PASS.
+- Updated the derived control-to-source crosswalk to point to the latest 40-file inventory and latest exact-source validation. Crosswalk blob: `b434ceb10b2c7ad5910802a6ea6de467a1769322`; commit `3ee50e77532ce5f55201c8736ad25b708915b871`. The six-entry allowlist and six-entry source manifest are unchanged.
+- Crosswalk commit validation: run [42923379138](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42923379138), exact source SHA `3ee50e77532ce5f55201c8736ad25b708915b871`, all three jobs SUCCESS: lineage 12/12, manifest 19/19, repository inventory 10/10; total 41/41.
+- Run `42923379138` outputs independently downloaded/re-hashed:
+  - Lineage `13812917711`: 1,151 bytes; ZIP SHA-256 `69d36c6dcdce463d728cd79b9a4f76996d14023527470d7a1cbdcf808ad73930`; exact source marker `3ee50e77532ce5f55201c8736ad25b708915b871`; 12 tests; PASS.
+  - Manifest `13812149048`: 3,267 bytes; ZIP SHA-256 `b84b1414ed9a2e9edcb9290d445ff361a96f4d738ff75c76edfa2c5ccb878afe`; JSON SHA-256 `444bb489964ddfca1ff437d7105c0ad0cc823cbbd8664f9bf2cd93a14f626428`, sidecar matches; exactly six source artifacts, no self-inclusion.
+  - Repository inventory `13811464393`: 4,493 bytes; ZIP SHA-256 `5acbcf97ccf89fefae1a8e5f6af0e34b986c2a16177809d92fc0cc8f9fec0200`; JSON SHA-256 `d023c753582936faffad319a507630b49ae3d19df467658a8524eeb2e43007d2`, sidecar matches; 40 files / 521,853 bytes; exact source commit `3ee50e77532ce5f55201c8736ad25b708915b871`.
+- The failures above were caused by a stale repository blob reference during evidence-document synchronization. The corrected exact-source runs are PASS; the failed historical runs remain visible and are not erased.
+- No T0/VPS/SQLite/runtime access, key generation/signing, trust-root changes, offline verification, artifact deletion or destructive operation occurred. L4 control dispositions remain unchanged; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
+- Next: review whether the reconciled six-artifact manifest and 40-file source inventory are stable enough to start **signature/negative-verification design only**. Do not generate keys, sign, change trust roots or run offline verification without separate approval. Option C — No Destructive Authority remains ACTIVE.
