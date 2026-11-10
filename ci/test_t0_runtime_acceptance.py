@@ -4,8 +4,12 @@ import json
 import pathlib
 import sqlite3
 import tempfile
+import threading
+import time
 import unittest
 from urllib.parse import parse_qs, urlsplit
+from unittest.mock import patch
+from wsgiref.simple_server import make_server
 
 from app import app as feeder_health_app
 from ci.t0_runtime_acceptance import (
@@ -333,6 +337,54 @@ class ReadOnlySQLiteAcceptanceTests(unittest.TestCase):
                 "http://127.0.0.1:8788", "token", now_ms=NOW,
                 opener_factory=lambda: fake,
             )
+
+
+    def test_candle_api_probe_integrates_with_real_local_wsgi_api_and_temp_sqlite(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "probe.sqlite3"
+            connection = sqlite3.connect(path)
+            connection.execute("""CREATE TABLE candles (
+                exchange TEXT NOT NULL, market_type TEXT NOT NULL, symbol TEXT NOT NULL,
+                timeframe TEXT NOT NULL, open_time_ms INTEGER NOT NULL,
+                open TEXT NOT NULL, high TEXT NOT NULL, low TEXT NOT NULL,
+                close TEXT NOT NULL, volume TEXT NOT NULL, available_at_ms INTEGER NOT NULL,
+                PRIMARY KEY (exchange, market_type, symbol, timeframe, open_time_ms)
+            )""")
+            now_ms = (time.time_ns() // 1_000_000 // 900_000) * 900_000 + 60_000
+            for timeframe, interval in (("15m", 900_000), ("1h", 3_600_000)):
+                end_ms = (now_ms // interval) * interval
+                for open_time in (end_ms - 2 * interval, end_ms - interval):
+                    connection.execute(
+                        "INSERT INTO candles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        ("binance", "USDT_PERPETUAL", "BTCUSDT", timeframe,
+                         open_time, "100", "101", "99", "100", "1",
+                         open_time + interval + 100),
+                    )
+            connection.commit()
+            connection.close()
+
+            env = {
+                "MARKET_DATA_BACKEND": "sqlite",
+                "MARKET_DATA_DB": str(path),
+                "MARKET_DATA_TOKEN": "local-test-token",
+            }
+            with patch.dict("os.environ", env, clear=False):
+                with patch("market_data.api.time.time_ns", return_value=now_ms * 1_000_000):
+                    with make_server("127.0.0.1", 0, candle_api_application) as server:
+                        thread = threading.Thread(target=server.serve_forever, daemon=True)
+                        thread.start()
+                        try:
+                            result = probe_candle_api(
+                                f"http://127.0.0.1:{server.server_port}",
+                                "local-test-token", now_ms=now_ms,
+                            )
+                        finally:
+                            server.shutdown()
+                            thread.join(timeout=2)
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["timeframes"]["15m"]["returned"], 2)
+        self.assertEqual(result["timeframes"]["1h"]["returned"], 2)
 
 if __name__ == "__main__":
     unittest.main()
