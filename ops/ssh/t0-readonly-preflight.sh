@@ -39,10 +39,10 @@ if command -v ss >/dev/null 2>&1; then
   if listeners="$(ss -H -ltn "sport = :$API_PORT" 2>/dev/null)"; then
     if [[ -z "$listeners" ]]; then
       api_state="NOT_LISTENING"
-    elif printf '%s\\n' "$listeners" | awk '
+    elif printf '%s\n' "$listeners" | awk '
       {
         address = $4
-        if (address !~ /^127\\.0\\.0\\.1:/ && address !~ /^\\[::1\\]:/) {
+        if (address !~ /^127\.0\.0\.1:/ && address !~ /^\[::1\]:/) {
           non_loopback = 1
         }
       }
