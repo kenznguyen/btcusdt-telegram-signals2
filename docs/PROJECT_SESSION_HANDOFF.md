@@ -9,7 +9,7 @@ Updated: 2026-11-10 (Asia/Ho_Chi_Minh)
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
 - Default branch: `main`. Do not switch branches or create a parallel PR without a task-specific reason and approval.
-- Source HEAD before this handoff-only update: `f63fbc5b1ce2695d3e6beb5228838e34bef905d7`.
+- Latest repository HEAD before the current handoff update: `50c99cf3c71e8d85dddaceeb4f8e604000a254c5` (G4 dispatcher design review commit).
 - Full previous handoff preserved verbatim in `docs/archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md`; archive commit: `2fcad94aef8b15002cdba58aafe62ad208dc818b`.
 - PR #139 is OPEN / DRAFT / NOT MERGED. It concerns SSH passphrase handling and targets this active branch. Do not merge or alter it as part of unrelated work.
 
@@ -76,7 +76,7 @@ Review a narrowly scoped, root-owned forced-command dispatcher design that:
 4. redacts lease owner/token and emits sanitized evidence;
 5. obtains the API token only through a separately verified secure source.
 
-First prove the installation/update path and token source. Present the exact proposed change and risk boundary for approval before any VPS installation or remote probe invocation. Do not treat the existing G4 scope approval as approval for a new installation mechanism or wider SSH access.
+The exact proposed change and risk boundary require separate approval before any VPS installation or remote probe invocation. Do not treat the existing G4 scope approval as approval for a new installation mechanism or wider SSH access.
 
 ## 5. Session procedure
 
