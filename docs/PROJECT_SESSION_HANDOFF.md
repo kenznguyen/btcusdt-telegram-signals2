@@ -1480,3 +1480,16 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - No SSH connection, VPS command, credential/secret change, runtime/configuration change, database access, service restart, data deletion, PostgreSQL/T1 activation, exchange connection, or trading action was performed.
 - PR #140 remains OPEN / DRAFT / NOT MERGED. This CI result alone is not merge approval and does not authorize the authenticated `scaleway-ssh-preflight` gate.
 - Next permitted step: review PR #140 and its changed files for merge readiness; retain the no-SSH/no-VPS boundary unless separately approved. Do not dispatch `scaleway-ssh-preflight` without explicit authorization.
+
+ 
+## 2026-11-10 — PR #140 fail-closed API listener probe
+
+- Follow-up to contract-only run #42793308850: review found that a missing `ss` utility was conflated with a verified `NOT_LISTENING` result, and an `ss` command error was suppressed.
+- TDD RED: a focused local contract check against the pre-fix source confirmed that the required `CHECK_UNAVAILABLE`, `CHECK_FAILED`, and nonzero fail-closed guards were absent. **RED reproduced**.
+- Added contract test `test_listener_probe_fails_closed_when_ss_is_unavailable_or_fails` in `ci/test_t0_ssh_preflight_contract.py`. Current test blob SHA: `1da7b0eb0f20a4c2f69542ee9d7c211cd4e2e67f`.
+- Updated `ops/ssh/t0-readonly-preflight.sh`: initialize listener state as `CHECK_UNAVAILABLE`; classify missing `ss` as unavailable; distinguish a failed `ss` invocation as `CHECK_FAILED`; only classify empty successful output as `NOT_LISTENING`; treat IPv4 127.0.0.1 and IPv6 ::1 as loopback; fail nonzero for unavailable/failed probes and non-loopback listeners. Current script blob SHA: `b89b6315fd56965db95be1dcf92ac9256c394f97`.
+- Source changes are limited to the SSH preflight script and its static contract test. No workflow logic, credentials, host configuration, runtime, database, or VPS state changed.
+- Full GREEN verification on this source SHA: **NOT RUN**. The existing contract-only workflow must be manually dispatched on the current branch; capture exact checked-out SHA, job result, test count/log, and artifact metadata (if any). The previous run #42793308850 applies to the earlier source SHA and does not verify this follow-up.
+- PR #140 current head at handoff update: `bf26a0478dab4dd86050787367da6c1b80ffd482`; remains OPEN / DRAFT / NOT MERGED.
+- No SSH/VPS connection, no authenticated preflight, no secrets/credentials change, no DB access, no service restart, no deletion, no deployment, and no trading action.
+- Next step: manually run `T0 Manual Validation` with `scaleway-ssh-contract-only` on branch `fix/p1-ssh-preflight-contract-20261110`, then provide the workflow URL for evidence review. Do not run `scaleway-ssh-preflight` without separate explicit approval.
