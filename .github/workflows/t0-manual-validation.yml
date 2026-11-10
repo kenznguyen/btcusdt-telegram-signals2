@@ -34,6 +34,15 @@ run-name: T0 manual gate - ${{ inputs.gate }} (${{ github.sha }})
       - market_data/feeder_service.py
       - market_data/test_feeder_recovery.py
       - market_data/test_feeder_scheduler.py
+      - market_data/sync.py
+      - market_data/api.py
+      - market_data/storage.py
+      - market_data/test_sync.py
+      - market_data/test_api.py
+      - market_data/test_e2e_data_flow.py
+      - freqai_bridge/context.py
+      - freqai_bridge/http_candles.py
+      - freqai_bridge/test_http_candles.py
   pull_request:
     paths:
       - .github/workflows/t0-manual-validation.yml
@@ -47,6 +56,15 @@ run-name: T0 manual gate - ${{ inputs.gate }} (${{ github.sha }})
       - market_data/feeder_service.py
       - market_data/test_feeder_recovery.py
       - market_data/test_feeder_scheduler.py
+      - market_data/sync.py
+      - market_data/api.py
+      - market_data/storage.py
+      - market_data/test_sync.py
+      - market_data/test_api.py
+      - market_data/test_e2e_data_flow.py
+      - freqai_bridge/context.py
+      - freqai_bridge/http_candles.py
+      - freqai_bridge/test_http_candles.py
 
 permissions:
   contents: read
@@ -157,7 +175,7 @@ jobs:
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" > recovery-changed-files.txt
           cat recovery-changed-files.txt
           changed=false
-          for path in .github/workflows/t0-manual-validation.yml ci/test_t0_ssh_preflight_contract.py market_data/feeder.py market_data/feeder_service.py market_data/test_feeder_recovery.py market_data/test_feeder_scheduler.py market_data/test_feeder_lifecycle.py; do
+          for path in .github/workflows/t0-manual-validation.yml ci/test_t0_ssh_preflight_contract.py market_data/feeder.py market_data/feeder_service.py market_data/test_feeder_recovery.py market_data/test_feeder_scheduler.py market_data/test_feeder_lifecycle.py market_data/sync.py market_data/api.py market_data/storage.py market_data/test_sync.py market_data/test_api.py market_data/test_e2e_data_flow.py freqai_bridge/context.py freqai_bridge/http_candles.py freqai_bridge/test_http_candles.py; do
             if grep -Fxq "$path" recovery-changed-files.txt; then changed=true; fi
           done
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
@@ -227,6 +245,111 @@ jobs:
             recovery-changed-files.txt
             sqlite-recovery-tests.log
             sqlite-recovery-verdict.txt
+  data-flow-change-scope:
+    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
+    name: Detect end-to-end data-flow changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.detect.outputs.changed }}
+    steps:
+      - name: Checkout exact source history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detect data-flow source changes
+        id: detect
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then BASE_SHA="$PR_BASE"; HEAD_SHA="$PR_HEAD"; else BASE_SHA="$PUSH_BEFORE"; HEAD_SHA="$GITHUB_SHA"; fi
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then echo "changed=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" > data-flow-changed-files.txt
+          cat data-flow-changed-files.txt
+          changed=false
+          for path in .github/workflows/t0-manual-validation.yml ci/test_t0_ssh_preflight_contract.py market_data/sync.py market_data/store.py market_data/write_gateway.py market_data/feeder.py market_data/api.py market_data/storage.py market_data/test_sync.py market_data/test_api.py market_data/test_e2e_data_flow.py freqai_bridge/context.py freqai_bridge/http_candles.py freqai_bridge/test_http_candles.py; do
+            if grep -Fxq "$path" data-flow-changed-files.txt; then changed=true; fi
+          done
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
+  sqlite-data-flow-auto:
+    needs:
+      - sqlite-lease-fencing-auto
+      - sqlite-recovery-auto
+      - data-flow-change-scope
+    if: ${{ needs.sqlite-lease-fencing-auto.result == 'success' && needs.sqlite-recovery-auto.result == 'success' && needs.data-flow-change-scope.result == 'success' && needs.data-flow-change-scope.outputs.changed == 'true' }}
+    name: Automatic isolated T0 to T2 data-flow tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    env:
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      MARKET_DATA_TOKEN: ""
+      T0_CANDLE_API_BASE_URL: ""
+      T0_CANDLE_API_TOKEN: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    steps:
+      - name: Checkout exact source history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install isolated market-data and HTTP client dependencies
+        run: python -m pip install -r requirements-market-data.txt
+      - name: Enforce isolated environment and record source/change evidence
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB MARKET_DATA_TOKEN T0_CANDLE_API_BASE_URL T0_CANDLE_API_TOKEN BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+            if [[ -n "${!key:-}" ]]; then echo "Unsafe environment variable present: $key"; exit 1; fi
+          done
+          git rev-parse HEAD | tee data-flow-source-sha.txt
+          echo "T0_TO_T2_DATA_FLOW=ISOLATED_LOOPBACK" | tee data-flow-scope.txt
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then BASE_SHA="$PR_BASE"; HEAD_SHA="$PR_HEAD"; else BASE_SHA="$PUSH_BEFORE"; HEAD_SHA="$GITHUB_SHA"; fi
+          if [[ -n "$BASE_SHA" && ! "$BASE_SHA" =~ ^0+$ ]]; then git diff --name-only "$BASE_SHA" "$HEAD_SHA" > data-flow-changed-files.txt; else echo "INITIAL_PUSH_NO_BASE" > data-flow-changed-files.txt; fi
+      - name: Run isolated T0 sync, API and T2 HTTP consumer integration suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest ci.test_t0_ssh_preflight_contract market_data.test_e2e_data_flow market_data.test_sync market_data.test_api freqai_bridge.test_http_candles -v 2>&1 | tee sqlite-data-flow-tests.log
+          echo "SQLITE_T0_TO_T2_DATA_FLOW=PASS" | tee sqlite-data-flow-verdict.txt
+      - name: Upload automatic data-flow evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-sqlite-data-flow-auto-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            data-flow-source-sha.txt
+            data-flow-scope.txt
+            data-flow-changed-files.txt
+            sqlite-data-flow-tests.log
+            sqlite-data-flow-verdict.txt
   manual-gate:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.gate != 'scaleway-ssh-preflight' && inputs.gate != 'scaleway-ssh-contract-only' }}
     name: T0 manual isolated acceptance
