@@ -1,17 +1,19 @@
 """G4 read-only runtime acceptance probe contracts; uses disposable SQLite fixtures only."""
 import hashlib
+import json
 import pathlib
 import sqlite3
 import tempfile
 import unittest
-
-from ci.t0_runtime_acceptance import inspect_sqlite_read_only
-import json
 from urllib.parse import parse_qs, urlsplit
 
-from ci.t0_runtime_acceptance import ProbeError, probe_candle_api, probe_feeder_health
-
 from app import app as feeder_health_app
+from ci.t0_runtime_acceptance import (
+    ProbeError,
+    inspect_sqlite_read_only,
+    probe_candle_api,
+    probe_feeder_health,
+)
 from market_data.api import application as candle_api_application
 from wsgiref.util import setup_testing_defaults
 
