@@ -17,7 +17,7 @@ Translate the owner-approved L4-Minimum provenance profile into falsifiable acce
 
 L4-Minimum is proportionate to a single-owner, personal, non-commercial system. It does not require SaaS/multi-tenant features, customer SLA, commercial compliance certification, multi-TSA quorum, dedicated WORM or a paid third-party assurance service absent a concrete need.
 
-**Market-data source independence is excluded from this L4 scope.** No requirement is imposed for multiple exchanges, independent market-data corroboration or independent market-data replicas. This exclusion does not remove independent evidence custody, independent offline verification or independent evidence readback. Mandatory independent human/third-party review is waived for L4-Minimum by `docs/decisions/D-2026-11-10-L4-INDEPENDENT-REVIEW-WAIVER.md`.
+**Market-data source independence is excluded from this L4 scope.** No requirement is imposed for multiple exchanges, independent market-data corroboration or independent market-data replicas. This exclusion does not remove owner-controlled evidence custody within the approved VPS/GitHub scope, offline verification or exact evidence readback. Mandatory independent human/third-party review is waived for L4-Minimum by `docs/decisions/D-2026-11-10-L4-INDEPENDENT-REVIEW-WAIVER.md`.
 
 This matrix is subordinate to P1.8.143, P1.8.152 and owner decision `docs/decisions/D-2026-11-10-L4-EVIDENCE-CUSTODY-VPS-GITHUB-ONLY.md`. The owner decision supersedes any prior requirement for an evidence copy outside both VPS and GitHub. This matrix cannot grant operational authority. Where a conflict exists, the stricter protective rule applies unless expressly narrowed by a later owner decision.
 
