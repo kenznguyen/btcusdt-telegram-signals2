@@ -30,7 +30,7 @@ Compare the exact source files identified by the historical 2026-11-09 T0 → T2
 | `.github/workflows/t2-http-consumer-red.yml` | `7690780e076c317345879dcef081951e78cf2c6a` | same | IDENTICAL |
 | `.github/workflows/t2-freqtrade-2026-9-strategy-smoke.yml` | `89fe779e88c11c9a1598d2138286b7d4bfe7742b` | same | IDENTICAL |
 
-The listed T0 API, Feeder, storage, T2 HTTP consumer, research config, regression tests and T2 HTTP workflow have identical Git blobs at the historical source commit and current branch HEAD.
+The thirteen listed T0 API, Feeder, storage, T2 HTTP consumer, research config, regression test and T2 HTTP workflow files have identical Git blobs at the historical source commit and current branch HEAD.
 
 ## Documentation-only difference
 
