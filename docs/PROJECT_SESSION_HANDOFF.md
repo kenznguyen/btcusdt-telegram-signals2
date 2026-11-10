@@ -1567,3 +1567,19 @@ This section supersedes the earlier PR #140 next-step note that requested implem
 - GitHub still reports PR #140 `mergeable=false`. Ancestry comparison remains 39 commits ahead / 2 behind `main`; the two newer main commits are the gate workflow update and its handoff record. The content-level updates have been carried onto the PR branch, but ancestry/mergeability is not yet proven resolved.
 - PR remains OPEN / DRAFT / NOT MERGED. No merge or authenticated SSH action was taken.
 - Next: run only `scaleway-ssh-contract-only` on the final PR head, then recheck mergeability and resolve any remaining base conflict before considering review readiness. No merge approval is inferred.
+
+
+## 2026-11-10 — PR #140 contract test harness correction
+
+- User explicitly approved correction of the two failing contract tests and the isolated harness only.
+- Prior failing workflow: [run #42804276391](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42804276391), checked out PR source SHA `9566b40cb8c14b1ceaacf688773ebb91c034ac64`. Result: contract job failed; 18/20 tests passed. T0 acceptance and authenticated SSH jobs were skipped; no artifact was produced.
+- TDD reproduction: the prior run exposed two test defects: parser assertion depended on a non-existent intermediate assignment string; the positive-path harness replaced `python3` with a no-op stub and did not provide the fixed-path SQLite database, so it could not exercise the actual read-only integrity check.
+- Updated only `ci/test_t0_ssh_preflight_contract.py`:
+  - Parser contract now asserts accepted `case` labels and fail-closed default rather than an implementation-specific `parser_result` assignment.
+  - Positive-path harness creates a disposable SQLite database in its temporary directory, runs an isolated copy of the script with only the DB path redirected, and invokes the real Python interpreter/SQLite integrity check. Production script and T0 paths remain unchanged.
+- Test file blob SHA: `42daf67a0bd58728ec191612ba25abccb0f73da4`.
+- Test-fix commit: `47002584fbab0fdabc031668658af408f057d3d3`.
+- Local test execution: **NOT RUN** (the execution environment could not resolve github.com to obtain a local checkout). Exact-head GitHub Actions verification: **PENDING**.
+- No changes to the preflight script, workflow, T0/VPS, secrets, credentials, runtime, services, database, or data. No SSH, deployment, exchange connection, or trading action.
+- PR remains OPEN / DRAFT / NOT MERGED; mergeability remains unresolved. Do not merge.
+- Next: manually dispatch `T0 Manual Validation` on `fix/p1-ssh-preflight-contract-20261110` using `scaleway-ssh-contract-only` only. Confirm exact checked-out SHA, all contract tests, shell syntax, skipped authenticated SSH job, and artifact status. Do not select `scaleway-ssh-preflight`.
