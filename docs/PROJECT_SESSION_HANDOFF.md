@@ -9,7 +9,7 @@ Updated: 2026-11-10 (Asia/Ho_Chi_Minh)
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
 - Default branch: `main`. Do not switch branches or create a parallel PR without a task-specific reason and approval.
-- Latest repository HEAD before this handoff update: `306645446ed1d4a5eacf1f84ac18337b6acbfc72` (L4 source-reference reconciliation).
+- Latest repository HEAD before this handoff update: `d60be930c5b35254fd336de4777ce8058187ed01` (L4 automation-plan lineage correction).
 - Full previous handoff preserved verbatim in `docs/archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md`; archive commit: `2fcad94aef8b15002cdba58aafe62ad208dc818b`.
 - PR #139 is OPEN / DRAFT / NOT MERGED. It concerns SSH passphrase handling and targets this active branch. Do not merge or alter it as part of unrelated work.
 
@@ -100,7 +100,9 @@ Do not infer approval from prior conversation when the durable record is ambiguo
 ### Automation design
 - Proposed independent L4 GitHub Actions gates: lineage/contract; exact GitHub artifact inventory and readback; SHA-256 manifest; cryptographic and negative verification; network-disabled offline verification; disposable-copy readback/recovery; tamper-evident history; claim-discipline scan; deterministic aggregate report.
 - CI subchecks and owner-only assertions must be reported separately. CI success must never issue owner acceptance or override missing custody/signer evidence.
-- Workflow implementation is NOT STARTED. This increment records the approved plan and updates the acquisition register only.
+- Workflow implementation is STARTED at the first contract gate only. New test file `ci/test_t0_l4_minimum_lineage_contract.py` added in commit `8f0c5136edaa677d73278c45fb4a4d4c07e86a13`; new workflow `.github/workflows/t0-l4-minimum-validation.yml` added in commit `ed82a1cf7bc12429ccc3ddb3c0ab6896f3f854e7`; automation plan register SHA corrected in commit `d60be930c5b35254fd336de4777ce8058187ed01` (plan blob `217f5707a4d4da0e3dc84254b2246e5e17c8109f`).
+- Contract test currently checks exact matrix/register blob references, absence of superseded refs in current supporting docs, approved VPS/GitHub custody boundary and owner-waiver/active-control invariants. The plan correction addresses the known stale register reference in the plan.
+- GitHub Actions execution result for this new workflow: **NOT VERIFIED**. No run ID, job result or artifact digest is recorded yet. Do not infer PASS from workflow/file creation.
 
 ### Current status
 - Automation direction: APPROVED.
@@ -115,7 +117,7 @@ Do not infer approval from prior conversation when the durable record is ambiguo
 - Aggregate L4-Minimum: BLOCKED / NOT VERIFIED.
 
 ### Next permitted step
-The identified stale matrix/register references in the policy reconciliation, L4M-02, L4M-08 and L4M-10 supporting documents have been updated; a readback check found no remaining references to the two superseded blob SHAs in those four files. Next: inspect existing CI contract-test conventions and implement failing tests first for L4 source-lineage rules. TDD skill has been read. Keep each gate incremental and GitHub-runner-only. Do not dispatch or invoke VPS workflows as part of this plan.
+The identified stale matrix/register references in the policy reconciliation, L4M-02, L4M-08 and L4M-10 supporting documents have been updated; a readback check found no remaining references to the two superseded blob SHAs in those four files. First L4 lineage test/workflow are now committed. Next: verify the exact workflow run and artifact; if the contract test fails, fix only the reported stale reference and rerun. Then extend contract coverage before implementing package inventory/readback. TDD skill has been read. Keep each gate incremental and GitHub-runner-only. Do not dispatch or invoke VPS workflows as part of this plan.
 
 ### Explicit limits
 No canonical T0 SQLite access or mutation; no VPS/SSH/forced-command changes; no probe installation or remote command; no key generation/signing/rotation/revocation; no trust-root/provider mutation; no artifact deletion/retention changes; no T1, PostgreSQL, service restart, live trading or real orders. Option C — No Destructive Authority remains ACTIVE. CI PASS is not VPS runtime PASS and is not L4 acceptance.
