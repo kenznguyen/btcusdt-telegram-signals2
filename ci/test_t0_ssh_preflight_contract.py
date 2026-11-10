@@ -98,7 +98,7 @@ class T0SSHPreflightContractTests(unittest.TestCase):
             )
             git.chmod(0o755)
             python3 = bin_dir / "python3"
-            python3.write_text("#!/bin/sh" + chr(10) + "cat >/dev/null" + chr(10) + "exit 0" + chr(10), encoding="utf-8")
+            python3.write_text("#!/bin/sh" + chr(10) + "while IFS= read -r line; do :; done" + chr(10) + "exit 0" + chr(10), encoding="utf-8")
             python3.chmod(0o755)
             if include_ss:
                 ss = bin_dir / "ss"
