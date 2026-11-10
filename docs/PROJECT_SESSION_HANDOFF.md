@@ -1455,6 +1455,18 @@ The three PR-triggered runs recorded above (#42121204871, #42121787389, #4212219
 - Next permitted step: reconcile GitHub history and evidence into the ledger; keep all existing runtime and execution restrictions unchanged.
 
 
+## 2026-11-10 — expose isolated SSH contract-only gate on main
+
+- User-authorized change on `main`: added `scaleway-ssh-contract-only` to the `T0 Manual Validation` workflow dispatch choices.
+- Workflow commit: `e9de76082d0ddca965d4eab6ad0f2bf84e5ff417`.
+- Workflow path: `.github/workflows/t0-manual-validation.yml`; new blob SHA: `19930f4269e67440c3be4b4ea510454fe3759048`.
+- Static contract checks: dispatch choice exists; generic T0 job excludes contract-only gate; SSH contract job accepts both full preflight and contract-only gate; authenticated SSH job remains restricted to `scaleway-ssh-preflight`. **PASS (static content checks only)**.
+- No tests or GitHub Actions run were triggered by this commit. Workflow dispatch availability on GitHub UI and runtime behavior: **NOT VERIFIED**.
+- Scope intentionally excludes PR #140's R1–R3 fail-closed script/test/classifier changes; those remain on its feature branch and PR #140 remains OPEN / DRAFT / NOT MERGED.
+- No SSH/VPS connection, secret/credential change, host/runtime/service change, database access, T0 data change, deployment, or trading action occurred.
+- Next: refresh `T0 Manual Validation` on `main` and verify `scaleway-ssh-contract-only` appears. If available, run only that gate on `main`; do not select `scaleway-ssh-preflight` absent separate authorization.
+
+
 ## 2026-11-10 — PR #140: isolated SSH contract-only gate
 
 - User explicitly approved adding a manual GitHub Actions gate that runs the P1 SSH contract checks without attempting an SSH connection to Scaleway.
