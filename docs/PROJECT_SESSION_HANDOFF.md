@@ -1,3 +1,18 @@
+## Latest T0 → T2 synchronization review (2026-11-10)
+
+- Added `docs/evidence/T0_T2_HTTP_SYNCHRONIZATION_CONTRACT_REVIEW_2026-11-10.md`.
+- Review commit: `f2032ffaa50a8c67beeef4d1710a8c9b7412bf1e`.
+- Review records the exact T0 API / T2 HTTP consumer source blobs and confirms the intended same-host loopback topology: T0 read-only API at `127.0.0.1:8788`, T2 `CandleHttpClient`, no local SQLite or exchange fallback in the inspected T2 context path.
+- T2 adapter is currently M15-only with a maximum 32-candle context; T0 also exposes H1, but the inspected FreqAI research configuration is M15-only. No H1 consumer change is implied.
+- `T0_CANDLE_MAX_LAG_MS=120000` is applied to `latestAvailableAtMs - latestCloseTimeMs`, not observation age or close lag. Feeder source schedules with 5-second close grace and 5-second polling; this supports a nominal 5–10 second scheduling contribution, but does not establish measured production latency. 120 seconds remains an explicit fail-closed ceiling, not a production SLA.
+- Historical T2 migration validation is recorded as 45 + 11 + 6 = 62 tests PASS at baseline `65fe065ccdc197a51b969da37ce99d5414201a92`; current review did not rerun tests or Actions. Combined status lookup for that commit returned no status contexts; no workflow run/artifact is claimed here.
+- Deployment environment, actual T0 API listener/source SHA, deployed T2 consumer path and production freshness distribution remain NOT VERIFIED. No VPS/SSH/runtime/DB/network/provider probes, tests, compile, Actions dispatch or data changes were performed.
+- Next step: prepare deployment-parity evidence intake for owner-supplied sanitized T0 API/T2 service configuration. No host access or runtime probe is authorized by this review.
+- Current governance correction: Option C — No Destructive Authority — was revoked by the owner on 2026-11-10. This does not itself authorize any destructive operation. T0 canonical data and protected ledgers/audit/recovery evidence remain protected; VPS operational-data cleanup is a separate proposal awaiting classification, retention and execution approvals.
+- `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
+
+---
+
 ## Latest T0 simplification — C-01 regression coverage map (2026-11-10)
 
 - Updated read-only report: `docs/evidence/T0_SIMPLIFICATION_ACTIVE_SQLITE_STARTUP_CONFIGURATION_REVIEW_2026-11-10.md`.
