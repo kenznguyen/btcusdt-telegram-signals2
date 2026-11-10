@@ -4372,3 +4372,20 @@ No deletion or overwrite was attempted because Option C remains active. Future h
 - Status: **PASS — authenticated SSH read-only preflight snapshot** at run time. SSH connectivity/authentication, pinned key, host identity verification (strict host-key checking), remote forced-command protocol, observed Feeder PIDs, API loopback binding, and SQLite integrity were verified at this snapshot.
 - Scope/limits: this is a point-in-time read-only snapshot, not continuous monitoring or proof of current runtime after the run. The isolated T0 acceptance job was skipped; no full recovery/lease/fencing or data-delivery acceptance is claimed. No restart, configuration change, service mutation, DB write, migration, data deletion, PostgreSQL work, T1 activation, or trade occurred.
 - Next step: preserve this evidence and continue with the next separately scoped SQLite T0 validation. Do not infer broader runtime acceptance from this preflight; any operation beyond read-only inspection requires separate approval.
+
+## 2026-11-10 — Approved isolated SQLite lease/fencing CI gate added
+
+- Owner explicitly approved a narrowly scoped workflow change to begin SQLite T0 validation with lease/fencing.
+- Existing branch retained: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Workflow commit: `a3ec0d7a9e826eb95ea2f434dee9b5b27b3ca16c`.
+- Updated file: `.github/workflows/t0-manual-validation.yml`; prior blob `ee2eb9db57bf3a8da188eab6c68d9639e062b11e`; new blob `c1161d75587affb0994692022223a3c091e40f67`.
+- Added manual gate `sqlite-lease-fencing`, running only in GitHub Actions against the runner's disposable temporary SQLite databases through:
+  - `market_data.test_feeder_lease`
+  - `market_data.test_write_gateway`
+  - `market_data.test_feeder_lifecycle`
+- The gate writes a focused test log and `SQLITE_LEASE_FENCING=PASS` verdict artifact only after the unittest command succeeds. Workflow readback verified the gate option, conditional execution, exact test command and artifact paths.
+- No production source, test logic, runtime configuration, VPS, canonical SQLite database, service, secret, T1/T2 integration or trading behavior was changed.
+- Validation status: **WORKFLOW STRUCTURE PASS** by GitHub readback. **TEST EXECUTION NOT RUN**; no Actions run or artifact exists yet. This is not a G1 PASS.
+- G1 acceptance remains pending the owner-dispatched `sqlite-lease-fencing` workflow run, exact checkout SHA, successful test result and artifact inspection.
+- G2 recovery and G3 data-flow gates have not been added; they remain deferred until G1 evidence is reviewed. No workflow dispatch was performed in this change.
+- Next step: manually dispatch `T0 Manual Validation` on this same branch with gate `sqlite-lease-fencing`; inspect job conclusion, test count/log and artifact before deciding whether to proceed to recovery.
