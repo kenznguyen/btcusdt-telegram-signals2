@@ -182,9 +182,13 @@ jobs:
           persist-credentials: false
       - name: Validate protected SSH inputs
         shell: bash
+        env:
+          SCW_SSH_HOST: ${{ secrets.SCW_SSH_HOST }}
+          SCW_SSH_PORT: ${{ secrets.SCW_SSH_PORT }}
+          SCW_SSH_USER: ${{ secrets.SCW_SSH_USER }}
         run: |
           set -euo pipefail
-          for key in SCW_SSH_HOST SCW_SSH_PORT SCW_SSH_USER SCW_SSH_PRIVATE_KEY SCW_SSH_KNOWN_HOSTS; do
+          for key in SCW_SSH_HOST SCW_SSH_PORT SCW_SSH_USER; do
             if [[ -z "${!key:-}" ]]; then echo "Missing required environment secret: $key"; exit 1; fi
           done
           [[ "$SCW_SSH_PORT" =~ ^[0-9]{1,5}$ ]] || { echo "Invalid SSH port"; exit 1; }
