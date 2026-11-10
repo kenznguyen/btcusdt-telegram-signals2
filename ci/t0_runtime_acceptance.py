@@ -366,13 +366,19 @@ def probe_feeder_health(base_url, *, now_ms, timeout=HTTP_TIMEOUT_SECONDS,
         or not isinstance(timeframes, dict)
     ):
         raise ProbeError("FEEDER_HEALTH_NOT_READY")
-    for timeframe in INTERVAL_MS:
+    for timeframe, interval_ms in INTERVAL_MS.items():
         item = timeframes.get(timeframe)
         if (
             not isinstance(item, dict)
             or item.get("state") != "HEALTHY"
             or item.get("unresolved_gap_count") != 0
             or item.get("sync_error") is not None
+            or type(item.get("age_ms")) is not int
+            or not 0 <= item["age_ms"] < interval_ms
+            or type(item.get("latest_closed_candle_close_ms")) is not int
+            or item["latest_closed_candle_close_ms"] > now_ms
+            or type(item.get("last_successful_sync_ms")) is not int
+            or item["last_successful_sync_ms"] > now_ms
         ):
             raise ProbeError(f"{timeframe}_FEEDER_HEALTH_NOT_READY")
     return {
