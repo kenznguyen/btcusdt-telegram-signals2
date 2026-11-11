@@ -17,7 +17,8 @@ def valid_corpus():
  kinds=sorted(D10_TYPES); cases=["SYN-01","SYN-29","SYN-30","SYN-31","SYN-32"]
  inputs={f"syn-fixture-{i:03d}":fixture_bytes(f"syn-fixture-{i:03d}",cases[i%5],kind) for i,kind in enumerate(kinds,1)}
  oracle={fid:{"expected_reason_code":None} for fid in inputs}
- return inputs,oracle,list(inputs),cases,kinds
+ manifest={fid:{"case_id":cases[i%5],"fixture_type":kind} for i,(fid,kind) in enumerate(zip(inputs,kinds))}
+ return inputs,oracle,manifest,list(inputs),cases,kinds
 
 class MeasurementHarnessTests(unittest.TestCase):
  def test_valid_synthetic_fixture_conforms_to_d05_and_d10(self):
@@ -55,22 +56,22 @@ class MeasurementHarnessTests(unittest.TestCase):
  def test_rejects_invalid_unicode_scalar(self):
   self.assertEqual(parse_json_bytes(b'"\\ud800"').reason_code,"PARSE_INVALID_UNICODE")
  def test_oracle_separation_and_exact_key_correspondence(self):
-  inputs,oracle,ids,cases,kinds=valid_corpus()
+  inputs,oracle,manifest,ids,cases,kinds=valid_corpus()
   self.assertTrue(validate_oracle_separation(inputs,oracle))
   self.assertFalse(validate_oracle_separation(inputs,{**oracle,"syn-fixture-extra":{"expected_reason_code":None}}))
   injected=dict(inputs); injected[ids[0]]=injected[ids[0]].replace(b'"claims":{}',b'"claims":{},"expected":{}')
   self.assertFalse(validate_oracle_separation(injected,oracle))
  def test_manifest_requires_exact_inventory_five_cases_and_all_d10(self):
-  inputs,oracle,ids,cases,kinds=valid_corpus()
-  self.assertTrue(validate_manifest(inputs,oracle,ids,cases,kinds))
-  self.assertFalse(validate_manifest(inputs,oracle,ids[:-1],cases,kinds))
-  self.assertFalse(validate_manifest(inputs,oracle,ids,cases,kinds[:-1]))
+  inputs,oracle,manifest,ids,cases,kinds=valid_corpus()
+  self.assertTrue(validate_manifest(inputs,oracle,manifest,ids,cases,kinds))
+  self.assertFalse(validate_manifest(inputs,oracle,manifest,ids[:-1],cases,kinds))
+  self.assertFalse(validate_manifest(inputs,oracle,manifest,ids,cases,kinds[:-1]))
  def test_d05_accepts_declared_parse_negative_and_positive_controls(self):
-  inputs,oracle,ids,cases,kinds=valid_corpus(); self.assertTrue(validate_d05_corpus(inputs,oracle))
+  inputs,oracle,manifest,ids,cases,kinds=valid_corpus(); self.assertTrue(validate_d05_corpus(inputs,oracle))
   fid=ids[0]; inputs[fid]=b'{"x":1,"x":2}'; oracle[fid]={"expected_reason_code":"PARSE_DUPLICATE_KEY"}
   self.assertTrue(validate_d05_corpus(inputs,oracle))
  def test_d05_rejects_oracle_mismatch(self):
-  inputs,oracle,ids,cases,kinds=valid_corpus(); oracle[ids[0]]={"expected_reason_code":"SCHEMA_FIELD_MISSING"}
+  inputs,oracle,manifest,ids,cases,kinds=valid_corpus(); oracle[ids[0]]={"expected_reason_code":"SCHEMA_FIELD_MISSING"}
   self.assertFalse(validate_d05_corpus(inputs,oracle))
  def test_measurement_uses_exact_bytes_and_root_depth_one(self):
   raw=b'{"a":[{"b":"\xc3\xa9"}]}'; m=measure_parser_input(raw)
@@ -89,7 +90,7 @@ class MeasurementHarnessTests(unittest.TestCase):
   self.assertEqual(corpus_digest(inputs,list(inputs)),expected)
   self.assertNotEqual(corpus_digest(inputs,list(inputs)),corpus_digest(inputs,list(reversed(inputs))))
  def test_aggregate_recomputed_from_rows(self):
-  inputs,oracle,ids,cases,kinds=valid_corpus(); m=measure_corpus(inputs,ids)
+  inputs,oracle,manifest,ids,cases,kinds=valid_corpus(); m=measure_corpus(inputs,ids)
   self.assertEqual(recompute_aggregates(m["rows"]),m["aggregates"])
  def test_provenance_hash_is_computed_and_compared(self):
   source=b"frozen harness source"; digest=hashlib.sha256(source).hexdigest()
@@ -97,7 +98,7 @@ class MeasurementHarnessTests(unittest.TestCase):
   self.assertTrue(validate_provenance(provenance,source,digest))
   self.assertFalse(validate_provenance(provenance,source+b"tampered",digest))
  def test_report_readback_checks_schema_aggregate_and_duplicate_keys(self):
-  inputs,oracle,ids,cases,kinds=valid_corpus(); m=measure_corpus(inputs,ids)
+  inputs,oracle,manifest,ids,cases,kinds=valid_corpus(); m=measure_corpus(inputs,ids)
   assertions={f"A-{i:02d}":True for i in range(1,14)}
   provenance=runtime_provenance("corpus-v1","a"*40,"b"*64,"measure")
   report=build_report("corpus-v1",m,assertions,provenance); self.assertTrue(validate_report_readback(report))
@@ -120,21 +121,21 @@ class MeasurementHarnessTests(unittest.TestCase):
  def test_measurement_api_rejects_combined_oracle_object(self):
   with self.assertRaises(TypeError): measure_parser_input({"raw":b"x","expected":{"reason":"x"}})
  def test_all_thirteen_assertions_pass_on_complete_evidence(self):
-  inputs,oracle,ids,cases,kinds=valid_corpus(); m=measure_corpus(inputs,ids)
+  inputs,oracle,manifest,ids,cases,kinds=valid_corpus(); m=measure_corpus(inputs,ids)
   source=inspect.getsource(__import__("tools.s1_measurement_harness",fromlist=["x"])).encode()
   provenance=runtime_provenance("corpus-v1","a"*40,hashlib.sha256(source).hexdigest(),"python -m unittest")
   report=build_report("corpus-v1",m,{f"A-{i:02d}":True for i in range(1,14)},provenance)
-  e={"parser_inputs":inputs,"oracle_records":oracle,"expected_fixture_ids":ids,"expected_case_ids":cases,
+  e={"parser_inputs":inputs,"oracle_records":oracle,"manifest":manifest,"expected_fixture_ids":ids,"expected_case_ids":cases,
    "expected_fixture_types":kinds,"measurement":m,"measurement_pass_1":m,"measurement_pass_2":m,
    "provenance":provenance,"harness_source_bytes":source,"frozen_source_sha256":hashlib.sha256(source).hexdigest(),
    "report_bytes":report,"execution_trace":{"payload_persistence_events":[],"external_access_events":[]}}
   self.assertEqual(evaluate_assertions(e),{f"A-{i:02d}":True for i in range(1,14)})
  def test_each_assertion_fails_closed_when_its_evidence_is_broken(self):
-  inputs,oracle,ids,cases,kinds=valid_corpus(); m=measure_corpus(inputs,ids)
+  inputs,oracle,manifest,ids,cases,kinds=valid_corpus(); m=measure_corpus(inputs,ids)
   source=inspect.getsource(__import__("tools.s1_measurement_harness",fromlist=["x"])).encode()
   provenance=runtime_provenance("corpus-v1","a"*40,hashlib.sha256(source).hexdigest(),"python -m unittest")
   report=build_report("corpus-v1",m,{f"A-{i:02d}":True for i in range(1,14)},provenance)
-  base={"parser_inputs":inputs,"oracle_records":oracle,"expected_fixture_ids":ids,"expected_case_ids":cases,
+  base={"parser_inputs":inputs,"oracle_records":oracle,"manifest":manifest,"expected_fixture_ids":ids,"expected_case_ids":cases,
    "expected_fixture_types":kinds,"measurement":m,"measurement_pass_1":m,"measurement_pass_2":m,
    "provenance":provenance,"harness_source_bytes":source,"frozen_source_sha256":hashlib.sha256(source).hexdigest(),
    "report_bytes":report,"execution_trace":{"payload_persistence_events":[],"external_access_events":[]}}
