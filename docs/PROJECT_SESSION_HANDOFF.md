@@ -1431,3 +1431,16 @@ At source HEAD `723570f845c0f52ef5776218cc5486f8864e72f8`, the next read-only in
 - No authoritative instrument-filter provider in the inspected paths. The existing Binance USD-M connectivity probe calls `/fapi/v1/exchangeInfo` but only validates BTCUSDT contract status/assets, not tick/lot/minimum-notional filters. Hummingbot book depth is not instrument metadata.
 - Binance USD-M `/fapi/v1/exchangeInfo` is a candidate for a future read-only adapter, not a verified implementation.
 - G0-01/G0-02/G0-03/G0-05 remain BLOCKED. No network request, tests, workflow, code edits, DB/runtime/VPS/exchange actions occurred. GREEN-1..5 remain NOT AUTHORIZED.
+
+
+## Latest work — GREEN-0 design contracts (2026-11-11)
+
+Owner approved design/documentation and source-contract inspection only. Added two proposal documents:
+- `docs/architecture/AI_CALIBRATION_ARTIFACT_CONTRACT.md`: trusted calibration registry/manifest, artifact digest, provenance compatibility, temporal OOS, calibrated confidence validation and fail-closed behavior. No trusted registry/provider, schema, calibration method, C_min or thresholds selected.
+- `docs/architecture/BINANCE_USDM_INSTRUMENT_RULES_CONTRACT.md`: candidate public Binance USD-M `/fapi/v1/exchangeInfo` source, BTCUSDT filter requirements (PRICE_FILTER, LOT_SIZE, MARKET_LOT_SIZE scope, applicable notional filters), normalized snapshot/digest/version/freshness and fail-closed behavior. No adapter or network request.
+
+Commits: calibration contract `65b22d179f037a6f595467bccea2425897189c9c`; instrument contract `9e2ee63f5bb6bcab3e953c24ffa40f9a4ee530ee`. These are design proposals only; no implementation spec is yet frozen for coding.
+
+Current blockers: G0-01/02/03 calibration provider/provenance/policy; G0-05 authoritative instrument provider/filter/freshness policy; G0-07 reservation snapshot choice. G0-04 reuse and G0-06 AI DCA disabled v1 remain approved. GREEN-1..5 NOT AUTHORIZED.
+
+No production code/test edits, tests, workflow, network/exchange calls, schema/DB/migration, calibration/model, T0/T1/T2 runtime, VPS, deployment or live orders occurred. Paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
