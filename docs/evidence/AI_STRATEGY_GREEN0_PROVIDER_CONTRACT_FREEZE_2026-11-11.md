@@ -134,3 +134,12 @@ However, GREEN-0 cannot freeze a complete AI admission context yet. Calibration 
 - No database, T0/T1/T2 runtime, VPS, deployment, order or reservation accessed or changed.
 
 **Result:** calibration provider **NOT FOUND** in inspected paths; instrument provider **NOT FOUND**. Binance `exchangeInfo` is a plausible authoritative upstream candidate but remains unimplemented and unverified for filter completeness. G0-01/02/03/05 remain BLOCKED; GREEN-1..5 remain NOT AUTHORIZED.
+
+
+## GREEN-0 design contracts drafted — 2026-11-11
+
+Owner approved design/documentation only. Added:
+- `docs/architecture/AI_CALIBRATION_ARTIFACT_CONTRACT.md`: logical trusted calibration artifact and registry requirements, provenance/temporal OOS compatibility, confidence validation, policy binding and fail-closed behavior. No provider, schema, method or thresholds selected.
+- `docs/architecture/BINANCE_USDM_INSTRUMENT_RULES_CONTRACT.md`: read-only candidate source `/fapi/v1/exchangeInfo`, BTCUSDT filter requirements, normalization/version/digest/freshness and fail-closed semantics. No adapter or network request.
+
+Both documents remain design proposals. G0-01/02/03 and G0-05 remain BLOCKED pending provider/policy decisions. No code, tests, workflow, exchange request, DB, runtime, VPS or deployment action occurred. GREEN-1..5 remain NOT AUTHORIZED.
