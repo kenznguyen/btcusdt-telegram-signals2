@@ -1506,3 +1506,18 @@ Owner approved a bounded research/evaluation workstream for an independent AI St
 - GREEN-1..5 remain NOT AUTHORIZED; numerical `C_min` and calibration thresholds remain unset. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
 
 Next: owner review of R1 research choices. Do not execute experiments until those choices are frozen and separately authorized.
+
+
+## AI Strategy Research Gate R1 — freeze proposal recorded (2026-11-11)
+
+Following owner approval of R0, a documentation-only R1 freeze proposal was added:
+- Proposal: `docs/architecture/AI_STRATEGY_RESEARCH_R1_FREEZE_PROPOSAL.md`, commit `82f770adc8b2936243174b97e3e83a1ee46f1f63`.
+- Evidence: `docs/evidence/AI_STRATEGY_RESEARCH_R1_FREEZE_PROPOSAL_2026-11-11.md`, commit `b11225bcca208ef6ef973b314b6dd03b84b239d7`.
+
+Proposal recommends BTCUSDT M15 decisions with completed H1 context; an immutable read-only T0-derived bundle candidate `T0_M15_H1_DATASET_BUNDLE_V1); restricted trailing-only OHLCV features; a candidate 4-hour fixed-horizon directional label with cost-aware neutral band; expanding chronological validation, separate later calibration, untouched final holdout and purge/embargo; conservative fee/spread/slippage/funding/fill assumptions; flat/Core/simple-momentum baselines; and pre-registered statistical/economic thresholds.
+
+Important: this is a proposal, not a frozen configuration. The candidate bundle's existence, digest, coverage and quality have not been verified. Exact feature schema, label threshold, split timestamps, cost parameters, sample minima and numerical acceptance thresholds remain unfrozen. Owner decisions D1-D6 are required, followed by artifact-level verification and final R1 freeze approval.
+
+No dataset read/export/copy, T0 DB/runtime access or mutation, feature computation, label generation, model/calibration training, backtest, tests/workflow, code, DB/schema/migration, T0/T1/T2 runtime, VPS, deployment, exchange connectivity, feature activation, order or destructive data operation occurred. No test run or artifact produced. R2 remains NOT AUTHORIZED; GREEN-1..5 remain NOT AUTHORIZED. Strategy Core unchanged; AI DCA disabled v1; paper-only and `AI_EXECUTION_ENABLED=false` remain.
+
+Next: owner review D1-D6 in the R1 proposal. Do not freeze numerical values or run R2 until source evidence is available and the complete R1 configuration plus separate R2 scope are explicitly approved.
