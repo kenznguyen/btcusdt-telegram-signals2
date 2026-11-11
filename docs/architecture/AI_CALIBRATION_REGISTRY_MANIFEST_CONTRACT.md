@@ -154,7 +154,7 @@ The Owner approved RFC 8785 JSON Canonicalization Scheme (JCS), Ed25519 verifica
 ### 12.1 Manifest v1
 
 - Schema ID: `ai-calibration-manifest/v1`.
-- The exact required field set is the 36 fields implemented by `pipeline/calibration_registry.py::MANIFEST_FIELDS`; unknown and missing fields are rejected.
+- The exact required field set is the 37 fields implemented by `pipeline/calibration_registry.py::MANIFEST_FIELDS`; unknown and missing fields are rejected.
 - Every manifest value is a JSON string. JSON numeric values, floating-point values and non-finite constants are rejected; counters, sizes, sample counts, horizons and decimal values use canonical decimal strings.
 - UTF-8 without BOM; duplicate object keys, invalid UTF-8, invalid JSON and noncanonical serialization are rejected.
 - Canonical bytes are exactly `rfc8785.dumps(parsed_manifest)`; fetched bytes must equal those canonical bytes before signature verification. No parse-and-reserialize normalization is performed on accepted noncanonical input.
