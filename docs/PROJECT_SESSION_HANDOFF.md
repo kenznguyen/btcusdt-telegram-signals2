@@ -1638,3 +1638,22 @@ Next: use ordinary non-SSH T0 validation on the exact active branch SHA if workf
 - PR #139 was confirmed CLOSED / NOT MERGED at `2026-11-11T13:02:13Z`; it is no longer an open/draft task.
 - Active G4 runtime instructions were replaced with a retired-workstream record. Historical run references remain only as historical evidence. Former Scaleway VPS was deleted; current deployment parity remains NOT VERIFIED.
 - G0.7 was documentation-only. Tests NOT RUN; Actions CI NOT VERIFIED; no VPS, SSH, runtime, T0 data, source, workflow, T1/T2 deployment or trading changes.
+
+## G0.8-A — T1 Connection Sidecar and CI read-only review (2026-11-11)
+
+Owner approved a bounded read-only review of T1 Connection Sidecar, its offline tests, Collector integration boundary, BTCUSDT configuration implications and exact-SHA CI evidence.
+
+- T1 repository: `kenznguyen/binance-futures-collector`.
+- Reviewed branch: `feature/t1-connection-sidecar-integration-20261107`.
+- Exact reviewed branch HEAD: `f3bae0cfbc26aa694a4d6c9476965121818d3567`.
+- Evidence report: `docs/evidence/G0_8_A_T1_CONNECTION_SIDECAR_REVIEW_2026-11-11.md`, T1 commit `b1df599697d521d0ba68c0f37468bbe61d1e20b9`.
+- Sidecar library is a standalone offline crate, explicitly documented as not integrated into the upstream Collector. Root `Cargo.toml` has no workspace/dependency entry for it; inspected Collector order-book manager and CSV writer do not invoke `SidecarWriter`.
+- Sidecar library contract and isolated CI checks: PASS. This does not prove live Collector event emission, actual Ping/Pong correlation, market-data completeness or Binance runtime behavior.
+- Exact-SHA CI: run [42656715617](https://github.com/kenznguyen/binance-futures-collector/actions/runs/42656715617), source `f3bae0cfbc26aa694a4d6c9476965121818d3567`, 5/5 jobs SUCCESS. Sidecar formatting, Clippy and offline tests succeeded. Push-only binary artifact steps were skipped; no artifact was produced. Exact individual test counts were not available from the retrieved job summary.
+- T1 feature branch remains diverged from `main`: 144 commits ahead, 1 behind, merge base `bc4f0ef633fbeee4a49defd72827f17162693805`. No branch reconciliation was performed.
+- Checked-in `config.example.toml` uses `symbols = []`, meaning all discovered USDT-M perpetuals. README's ~40 GB/day estimate is for the full ~500-symbol universe at 500 ms; it is not a BTCUSDT-only estimate. An explicit BTCUSDT whitelist is a configuration direction only and was not applied or runtime-tested. A non-empty whitelist skips dynamic discovery/delisting detection.
+- G0.8-A disposition: sidecar standalone contract/CI PASS; live integration NOT IMPLEMENTED / BLOCKED; BTCUSDT runtime config and disk rate NOT VERIFIED; Binance soak NOT RUN; branch reconciliation NOT STARTED.
+- No source/test/workflow/config changes, workflow dispatch, artifact, VPS/SSH, service, database, market-data payload, exchange connection, T0 canonical data, AI training or trading action occurred. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+Next: G0.8-B read-only T0 → T1 → T2 contract mapping. Any live sidecar integration, config change, test dispatch, branch reconciliation, VPS provisioning or deployment requires separate bounded approval.
+
