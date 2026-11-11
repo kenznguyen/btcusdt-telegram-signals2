@@ -7,6 +7,9 @@ on:
     paths:
       - "pipeline/test_ai_strategy_contract_red.py"
       - "pipeline/test_decision.py"
+      - "pipeline/test_ai_calibration_registry.py"
+      - "pipeline/calibration_registry.py"
+      - "requirements-web.txt"
       - "paper_execution/test_dual_strategy_api_red.py"
       - "pipeline/decision.py"
       - "pipeline/api.py"
@@ -80,7 +83,7 @@ jobs:
       - name: Compile focused RED test modules
         run: |
           set -euo pipefail
-          python -m py_compile pipeline/test_ai_strategy_contract_red.py pipeline/test_decision.py paper_execution/test_dual_strategy_api_red.py
+          python -m py_compile pipeline/test_ai_strategy_contract_red.py pipeline/test_decision.py pipeline/test_ai_calibration_registry.py paper_execution/test_dual_strategy_api_red.py
           echo "AI_STRATEGY_RED_COMPILE=PASS" | tee ai-strategy-compile.log
 
       - name: Execute calibrated confidence and provenance tests
@@ -89,6 +92,7 @@ jobs:
           set -euo pipefail
           python -m unittest pipeline.test_ai_strategy_contract_red -k calibration -k confidence -v 2>&1 | tee ai-calibration-contract-tests.log
           python -m unittest pipeline.test_decision -v 2>&1 | tee ai-decision-regression-tests.log
+          python -m unittest pipeline.test_ai_calibration_registry -v 2>&1 | tee ai-calibration-registry-tests.log
 
       - name: Execute focused AI Strategy RED tests
         shell: bash
@@ -109,3 +113,4 @@ jobs:
             ai-strategy-red-tests.log
             ai-calibration-contract-tests.log
             ai-decision-regression-tests.log
+            ai-calibration-registry-tests.log
