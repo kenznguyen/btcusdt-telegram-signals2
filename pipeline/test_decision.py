@@ -25,7 +25,7 @@ class DecisionTest(unittest.TestCase):
         self.prediction = {"schemaVersion": 1, "exchange": "binance", "marketType": "USDT_PERPETUAL",
             "symbol": "BTCUSDT", "timeframe": "15m", "candleOpenTimeMs": opening,
             "candleCloseTimeMs": opening+interval, "availableAtMs": self.now-2000,
-            "trainedThroughMs": opening, "modelVersion": "model-1", "strategyVersion": "strategy-1",
+            "trainedThroughMs": opening-1_800_000, "modelVersion": "model-1", "strategyVersion": "strategy-1",
             "trainingCompletedAtMs": opening+1000, "trainingDatasetVersion": "sha256:"+"a"*64,
             "predictedReturn": "0.004", "doPredict": 1, "datasetVersion": self.window["datasetVersion"]}
         trade_path = Path(self.temp.name) / "trades.csv"
@@ -50,11 +50,29 @@ class DecisionTest(unittest.TestCase):
         payload = {k: v for k, v in self.intelligence.items() if k != "snapshotId"}
         self.intelligence["snapshotId"] = identity("intelligence:", payload)
 
+    def admission_context(self):
+        return {"ai_policy": {
+            "policyVersion": "decision-test-v1",
+            "confidenceMin": "0.6",
+            "minCalibrationSamples": 100,
+            "minCalibrationPeriodMs": 100,
+            "maxCalibrationAgeMs": 60000,
+            "labelDefinition": "direction_correct_at_horizon",
+            "forecastHorizonMs": 900000,
+        }}
+
     def evaluate(self, **changes):
         values = dict(candle_window=self.window, intelligence=self.intelligence,
-                      prediction=self.prediction, book=self.book, now_ms=self.now)
+                      prediction=self.prediction, book=self.book, now_ms=self.now,
+                      admission_context=self.admission_context())
         values.update(changes)
         return evaluate(**values)
+
+    def test_missing_admission_context_fails_closed(self):
+        result = evaluate(self.window, self.intelligence, self.prediction,
+                          self.book, self.now)
+        self.assertEqual(result["action"], "WAIT", result)
+        self.assertIsNone(result["intent"], result)
 
     def test_real_model_output_and_aligned_flow_create_stable_paper_intent(self):
         result = self.evaluate()
