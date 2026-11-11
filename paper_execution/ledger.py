@@ -1286,6 +1286,11 @@ class PaperLedger:
             raise ValueError("Invalid paper risk configuration")
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with closing(self.connect()) as connection, connection:
+            if self.strategy_id in DUAL_STRATEGIES and not apply_migrations:
+                connection.execute("PRAGMA query_only=ON")
+                if not _dual_ledger_migrations_ready(connection):
+                    raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
+                return
             connection.execute("PRAGMA journal_mode=WAL")
             initialized = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_state'").fetchone()
             connection.execute("""CREATE TABLE IF NOT EXISTS paper_state (
