@@ -46,4 +46,4 @@ Reviewed source baseline: `6ef0d7456b2791fae73bfea8855ee30482774673`.
 
 ## Next step
 
-Run the focused RED test file in the repository's GitHub Actions test environment against exact SHA `d0f1b014463e6ad1eff36425a18411233c484ba2`. Inspect failures and correct test fixtures/specification only. Then add the missing E2E ownership/risk-denial RED test. Do not implement GREEN behavior until a separate owner approval is recorded.
+Run both focused RED test files in the repository's GitHub Actions test environment against exact SHA `550a529c2a726f82911602aee207f0df32c78eb9`. Inspect failures and correct test fixtures/specification only. Do not implement GREEN behavior until a separate owner approval is recorded.
