@@ -47,3 +47,10 @@ The proposal gives owner-review recommendations for:
 D1 dataset/timeframe scope; D2 feature inventory; D3 primary label/horizon; D4 chronological split design; D5 execution-cost framework; D6 acceptance-threshold categories and pre-registration rule.
 
 After those conceptual decisions, exact bundle and cost evidence must be verified before numerical parameters and timestamps can be frozen. R2 still requires separate explicit authorization.
+
+
+## Owner decision update — SHA-256 and manifest
+
+On 2026-11-11, the owner approved in principle a lightweight SHA-256 + manifest policy for AI Research dataset identity, integrity comparison and provenance tracking. Each immutable bundle is to have a stable ID, manifest digest and per-file SHA-256 values; experiment records should retain these with source-code SHA and configuration. Changed data must be represented as a new immutable version, not an overwrite. SHA-256 does not prove data correctness or provenance by itself.
+
+This does not verify the existence or contents of `T0_M15_H1_DATASET_BUNDLE_V1`, nor authorize T0 data access/export/copy. D1 remains PARTIALLY DECIDED pending a separately approved read-only verification scope and actual bundle evidence. R1 remains NOT FROZEN; R2 remains NOT AUTHORIZED. No dataset or runtime was accessed, and no tests/workflow were run.
