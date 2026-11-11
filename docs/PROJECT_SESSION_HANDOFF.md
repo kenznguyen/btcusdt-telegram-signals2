@@ -2201,3 +2201,18 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Documentation-only: no corpus generation/measurement, harness/parser/tests/CI/benchmark, dependencies, external/network/provider/database/VPS/runtime, T0/T1/T2, market-data, model, ledger, lifecycle or destructive changes.
 - Next gate: optionally prepare a new owner decision package for a distinct future attempt, after preflight requirements are reviewed. No execution until a separate explicit approval. Parser/tests/CI remain NOT AUTHORIZED.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+## G0.39 — S1 Measurement Harness Implementation Authorization Package (2026-11-11)
+
+- Baseline HEAD: `e635f157884be14c1a2735d70511f39633716515`; baseline handoff blob: `ad343ebf9f5101d76cb8bd4b942b1ca95fa8ccf3`.
+- Input analysis: G0.38 report blob `01775588ebc768801e07c72dc1c72fab874e0765`.
+- Report: `docs/evidence/G0_39_S1_MEASUREMENT_HARNESS_IMPLEMENTATION_AUTHORIZATION_PACKAGE_2026-11-11.md`.
+- Report creation commit: `084851b2765441b746a2e1e9bb35bc63390e5d01`.
+- G0.39 proposes a staged gate: first separately authorize a standalone deterministic measurement harness and focused tests; only after implementation, verification, review and source freeze may a separate G0.40 package request a new measurement.
+- Requested paths: `tools/s1_measurement_harness.py` and `tools/test_s1_measurement_harness.py`, plus evidence/handoff. This explicitly requests a narrow D14 amendment; it does not assume the original G0.31 path boundary already permits these files.
+- Proposed focused commands, only after approval: `python -m unittest tools.test_s1_measurement_harness -v` and `python -m py_compile tools/s1_measurement_harness.py tools/test_s1_measurement_harness.py`.
+- G0.39 verdict: **PACKAGE READY — G0.39-A harness implementation and D14 amendment PENDING EXPLICIT OWNER APPROVAL**.
+- No source/test file, corpus, measurement, parser, CI, benchmark, dependency, external/runtime/VPS/database/network or production change. No tests or compile command run.
+- G0.37-A remains FAILED / INCOMPLETE and consumed; its intermediate metrics/digest remain NOT VERIFIED for D11 policy use. G0.34 metrics also remain NOT VERIFIED. Numeric D11 ceilings OPEN / NOT RATIFIED.
+- G0.40 measurement is NOT AUTHORIZED and requires a separate package and explicit approval. Parser/verifier implementation and CI remain NOT AUTHORIZED.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
