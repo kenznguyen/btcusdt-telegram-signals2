@@ -2040,3 +2040,18 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Documentation-only. No source/test/fixture/schema/API/registry/adapter/runner/workflow/permission/credential/key/trust-root/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no cryptographic operations, provider/network/database/VPS access or inventory; no archive, quarantine, cleanup, expiry, compaction, VACUUM or deletion.
 - Next: owner must explicitly choose the scope of the first executable milestone, including supported evidence classes and claims. Do not infer this scope decision or any D01–D14 ratification from a continuation request.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.29 — First Executable Milestone Scope Proposal (2026-11-11)
+
+- Baseline HEAD: `842b6aed7cf71e9681b227a1a14b3cb5a4e339db`; baseline handoff blob: `d3b424a5aecd08baee554285ecf1009d2e802ec8`.
+- Owner approved preparation of the G0.29 proposal; this does not authorize implementation or tests.
+- Report: `docs/evidence/G0_29_FIRST_EXECUTABLE_MILESTONE_SCOPE_PROPOSAL_2026-11-11.md`.
+- Report creation commit: `048df0cd0bdba0b32c2641f29211e18186954f09`.
+- Compared S1 deterministic synthetic parser/contract tests without cryptography against S2 synthetic cryptographic verifier tests with isolated test-only keys.
+- Recommendation: **S1 first** because it has a smaller dependency and risk surface; it can validate deterministic parsing, schema, exact structural binding, bounded inputs and fail-closed behavior without selecting cryptographic algorithms or creating keys. S2 is deferred until S1 acceptance and separate approval.
+- S1 prerequisites before implementation: D05 synthetic schema/version contract; D10 explicit synthetic-only class allowlist; D11 measured bounded resource limits; D14 exact implementation/test gate. D01–D04, D06–D09, D12 and D13 remain OPEN and excluded only because S1 explicitly makes no dependent claims.
+- G0.29 verdict: **PROPOSAL PASS — S1 recommended; S1 implementation/test execution NOT AUTHORIZED; no D01–D14 ratified**.
+- Documentation-only. No source/test/fixture/schema/API/registry/adapter/runner/workflow/permission/credential/key/trust-root/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no cryptographic operations, provider/network/database/VPS access or inventory; no archive, quarantine, cleanup, expiry, compaction, VACUUM or deletion.
+- Next owner decision: explicitly approve or modify the exact S1 scope, D05/D10/D11/D14 decisions, permitted paths, commands, CI inclusion and acceptance evidence. Do not infer implementation authorization from approval of this proposal.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
