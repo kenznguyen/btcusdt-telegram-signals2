@@ -24,8 +24,8 @@ EXPECTED_CASE_COUNTS = {
     "SYN-31": 3,
     "SYN-32": 3,
 }
-_SHA256_RE = re.compile(r"[0-9a-f]{64}\\Z")
-_COMMIT_RE = re.compile(r"[0-9a-f]{40,64}\\Z")
+_SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
+_COMMIT_RE = re.compile(r"[0-9a-f]{40,64}\Z")
 
 
 def _fixture_value(fixture_id: str, case_id: str, fixture_type: str) -> dict:
