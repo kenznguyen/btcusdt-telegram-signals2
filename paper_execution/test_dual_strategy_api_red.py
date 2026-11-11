@@ -40,6 +40,19 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
             self.db, strategy_id="STRATEGY_CORE", source_sha="d"*40,
         )
 
+
+    def get(self, path):
+        environ = {
+            "PATH_INFO": path, "REQUEST_METHOD": "GET", "QUERY_STRING": "",
+            "HTTP_AUTHORIZATION": "Bearer read-token", "CONTENT_LENGTH": "0",
+            "wsgi.input": io.BytesIO(b""),
+        }
+        statuses = []
+        payload = b"".join(api.application(
+            environ, lambda status, headers: statuses.append((status, headers))
+        ))
+        return int(statuses[0][0].split()[0]), json.loads(payload)
+
     def request(self, path, body):
         raw = json.dumps(body).encode()
         environ = {
@@ -190,6 +203,40 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_schema_migrations'"
             ).fetchone()
         self.assertIsNone(migration_table)
+
+
+    def test_paper_read_api_separates_account_and_both_strategy_ledgers(self):
+        self.activate_dual_schema()
+        status, result = self.get("/v1/paper")
+
+        self.assertEqual(status, 200)
+        self.assertFalse(result["liveTradingSupported"])
+        self.assertEqual(
+            result["strategyCore"]["strategyState"]["strategyId"], "STRATEGY_CORE"
+        )
+        self.assertEqual(
+            result["aiStrategy"]["strategyState"]["strategyId"], "AI_FREQAI"
+        )
+        self.assertFalse(result["account"]["riskReady"])
+        self.assertEqual(
+            result["account"]["unavailableReason"],
+            "ACCOUNT_RISK_SNAPSHOT_UNAVAILABLE",
+        )
+
+    def test_resolver_rejects_unverified_strategy_owner_even_if_document_claims_one(self):
+        from pipeline.api import resolve_order_strategy
+
+        with sqlite3.connect(self.db) as connection:
+            connection.execute(
+                "CREATE TABLE paper_orders (order_id TEXT PRIMARY KEY, strategy_id TEXT, document TEXT)"
+            )
+            connection.execute(
+                "INSERT INTO paper_orders VALUES (?,?,?)",
+                ("legacy-order", None, json.dumps({"strategyId": "STRATEGY_CORE"})),
+            )
+
+        with self.assertRaisesRegex(ValueError, "PAPER_ORDER_OWNER_UNVERIFIED"):
+            resolve_order_strategy(str(self.db), "legacy-order")
 
 if __name__ == "__main__":
     unittest.main()
