@@ -497,8 +497,7 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - Signature amendment A1 §14.1 and disposition reconciled with owner decision: commit `6baed29b63ddaa31cd390ede3e690e2211d3e21a`; blob `22fb42ba201f9105c8e612ca9b4695f6a0519382`.
 - L4 control-to-source crosswalk updated to record the bounded custody scope and assurance limitation: commit `be003f35c79934833e3edbfd1af1a5da9eae0f2d`; blob `9781c299a8fd5536a9a1ff03b703ff6a5ff3dc49`.
 - This resolves CR-01 at owner-governance/contract level. It does not promote any L4 control. L4-Minimum remains BLOCKED / NOT VERIFIED pending actual per-location custody evidence/readback, signer/anchor separation, authenticated trust bootstrap, signed anchor-chain verification, offline verification and separate owner acceptance.
-- A1 remains DRAFT / NOT FROZEN pending final consistency verification and qualifying independent review. The prior static consistency review is not an independent review. Production algorithm/profile, root ceremony, signer/anchor identities, anchor concurrency and trusted-time/TSA decisions remain open.
-- No implementation, code/test/workflow/CI, key generation/signing, trust-root/policy/anchor instance, provider, VPS/SSH/runtime, SQLite or canonical T0 data operation was performed or authorized. No destructive action was authorized.
+- A1 remains DRAFT / NOT FROZEN pending final consistency verification and qualifying independent review. The prior static consistency review is not an independent review. Production algorithm/profile, root ceremony, signer/anchor identities, anchor concurrency and trusted-time/TSA decisions remain open.- No implementation, code/test/workflow/CI, key generation/signing, trust-root/policy/anchor instance, provider, VPS/SSH/runtime, SQLite or canonical T0 data operation was performed or authorized. No destructive action was authorized.
 - Next permitted step: re-read the amended contract, A1 and crosswalk for exact consistency; then request a qualifying independent review of the frozen contract and negative-verification test matrix. Implementation remains blocked pending that review and a separate explicit approval.
 
 
@@ -998,7 +997,6 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 
 
 ### Dual-Strategy API/equity follow-up findings — 2026-11-11
-
 - Second static pass appended to the baseline report; latest report blob: `743a752e7b27cf67f0ac06b3dadd9a286fb642f1`; addendum commit: `d8b164d682c828d7a53c2051afc7ec487e2afae9`.
 - Expanded DS-01:
   - `/v1/paper/cancel` uses the MANUAL ledger instance; the MANUAL compatibility path rejects cancellation of Core/AI-owned orders.
@@ -1497,7 +1495,6 @@ No dataset read/export/copy, T0 DB/runtime access or mutation, feature computati
 
 Next: owner review D1-D6 in the R1 proposal. Do not freeze numerical values or run R2 until source evidence is available and the complete R1 configuration plus separate R2 scope are explicitly approved.
 
-
 ### R1 owner decision — dataset integrity policy (2026-11-11)
 
 Owner approved in principle a minimal SHA-256 + manifest policy for AI Research dataset identity, integrity comparison and provenance:
@@ -1656,4 +1653,41 @@ Owner approved a bounded read-only review of T1 Connection Sidecar, its offline 
 - No source/test/workflow/config changes, workflow dispatch, artifact, VPS/SSH, service, database, market-data payload, exchange connection, T0 canonical data, AI training or trading action occurred. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
 
 Next: G0.8-B read-only T0 → T1 → T2 contract mapping. Any live sidecar integration, config change, test dispatch, branch reconciliation, VPS provisioning or deployment requires separate bounded approval.
+
+## G0.8-B — T0 → T1 → T2 data contract mapping (2026-11-11)
+
+Owner approved a read-only source-level mapping of implemented T0/T1/T2 data paths and contracts.
+
+- T0/T2 reviewed branch HEAD: `43ba5a917f162dd5060bfd49bc57a89a9f1d88d8`.
+- T1 reviewed branch HEAD: `f3bae0cfbc26aa694a4d6c9476965121818d3567`.
+- Evidence report: `docs/evidence/G0_8_B_T0_T1_T2_DATA_CONTRACT_MAP_2026-11-11.md`, created in commit `adad8efd4d23d17b0b548cf362cec145febdae5a`.
+
+### Contract findings
+
+- T0 independently ingests Binance USD-M BTCUSDT M15/H1 closed candles via CCXT and exposes authenticated read-only GET `/v1/candles`. SQLite remains the default backend; PostgreSQL is opt-in/uncertified. No T1→T0 canonical write contract was identified.
+- T0→T2 source path exists through `freqai_bridge/context.py` and strict `CandleHttpClient`, but the current client consumes M15 only, 1–32 bars, even though T0 supports M15 and H1. The HTTP endpoint/runtime is NOT VERIFIED.
+- T1 captures raw Binance futures data to CSV: depth diffs/snapshots, trades, 1m klines, liquidations, funding, open interest, long/short ratios, mark/index/premium klines and taker ratios. Example config `symbols=[]` means all discovered USDT-M perpetuals; BTCUSDT-only runtime config and disk rate are NOT VERIFIED.
+- A T1→T2 file-import path exists for four streams only (trades, funding, open interest, liquidations), through `futures_intelligence/import_collector.py`. It creates bounded `OBSERVED_ONLY` snapshots and records input-file SHA-256, but explicitly sets per-stream `complete=false` and connection status `UNVERIFIABLE`. This is not a direct service/API feed.
+- **Critical provenance discrepancy:** the importer pins `SOURCE_COMMIT=bc4f0ef633fbeee4a49defd72827f17162693805`, the T1 merge-base SHA, while reviewed T1 feature branch HEAD is `f3bae0cfbc26aa694a4d6c9476965121818d3567`. Accepted CSV headers do not attest the producer SHA. Current feature-branch CSV producer provenance is therefore NOT VERIFIED.
+- T1 order-book CSV is not consumed by the inspected T2 paper decision function. That function requires an order-book input with source `hummingbot` and connector `binance_perpetual`.
+- FreqAI exporter validates dataframe OHLCV against T0 canonical candles and requires training dataset/model/strategy provenance. Its artifact is `predictedReturn` + `doPredict`, not a standalone LONG/SHORT signal contract.
+- `pipeline/decision.py` combines T0 M15 candles, T1-derived intelligence snapshot, prediction and Hummingbot book; it fails closed to WAIT and otherwise emits BUY/SELL PAPER target-position intent. It defaults to fixed `target_base=0.001` BTC. This source review does not prove Shared Risk Engine enforcement, 1% equity margin cap, leverage controls, Kill Switch, separate Core/AI ledgers, or current runtime integration.
+- The candidate immutable `T0_M15_H1_DATASET_BUNDLE_V1` remains NOT VERIFIED; API `datasetVersion` is a per-query hash, not a whole-bundle manifest.
+
+### G0.8-B disposition
+
+- Source-level contract mapping: **PASS**.
+- T0 canonical independence: **PRESERVED IN INSPECTED SOURCE**.
+- T0→T2 M15 HTTP client: **IMPLEMENTED IN SOURCE / LIVE NOT VERIFIED**.
+- T1→T2 four-stream CSV import: **IMPLEMENTED IN SOURCE / PRODUCER PROVENANCE NOT VERIFIED**.
+- T1 Sidecar live integration: **NOT IMPLEMENTED**.
+- T1 order-book → T2 adapter: **NOT IDENTIFIED**.
+- H1 consumption by current FreqAI bridge: **NOT IMPLEMENTED IN INSPECTED CLIENT**.
+- Shared Risk Engine enforcement on the inspected paper decision path: **NOT VERIFIED**.
+- FreqAI scheduled training and immutable bundle: **NOT VERIFIED / NOT FROZEN**.
+- End-to-end runtime: **NOT VERIFIED**. Tests/workflows NOT RUN for this read-only mapping.
+
+No source/config/test/workflow change, workflow dispatch, data read/export/copy, API request/token use, SQLite access, exchange connection, VPS provisioning, service start, AI training, strategy activation, order or destructive operation occurred. T0 remains independent; paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+Next: G0.8-C replacement VPS capacity planning may use BTCUSDT-only as a scenario, not an applied configuration. Separate budgets are required for T0 canonical candles, T1 raw streams, T2 model artifacts/logs and FreqAI training scratch. All disk-rate, RAM and training-time values remain estimates until separately approved bounded benchmarks. VPS provisioning/deployment remains unauthorized.
 
