@@ -6,10 +6,12 @@ import re
 import shutil
 import subprocess
 import tempfile
+import textwrap
 import unittest
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "ops" / "ssh" / "t0-readonly-preflight.sh"
+WORKFLOW = SCRIPT.parents[2] / ".github" / "workflows" / "t0-manual-validation.yml"
 
 
 class T0SSHPreflightContractTests(unittest.TestCase):
@@ -175,7 +177,7 @@ class T0SSHPreflightContractTests(unittest.TestCase):
     def test_workflow_ends_at_the_single_evidence_upload_block(self):
         workflow = (SCRIPT.parents[2] / ".github" / "workflows" / "t0-manual-validation.yml")
         text = workflow.read_text(encoding="utf-8")
-        self.assertTrue(text.endswith("            preflight-verdict.txt\n"))
+        self.assertTrue(text.endswith("            preflight-ssh-exit-code.txt\n"))
         self.assertNotIn("\n preflight-remote.log; then", text)
 
     def test_non_loopback_listener_is_rejected(self):
@@ -226,6 +228,142 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertIn('/home/ubuntu/t0/app/.data/market-data.sqlite3', self.source)
         self.assertIn('readonly API_PORT="8788"', self.source)
 
+
+    def test_encrypted_private_key_is_unlocked_only_in_ephemeral_agent(self):
+        workflow = WORKFLOW.read_text()
+        self.assertIn("SCW_SSH_KEY_PASSPHRASE", workflow)
+        self.assertIn("SSH_ASKPASS_REQUIRE=force", workflow)
+        self.assertIn('ssh-add -t 300 "$key_file"', workflow)
+        self.assertIn('eval "$(ssh-agent -s -t 300)"', workflow)
+        self.assertIn("ssh-agent -k", workflow)
+        self.assertIn('rm -f -- "$key_file" "$passphrase_file"', workflow)
+        self.assertIn("SHA256:z6b+FNalGgXhZvT9dc9TszFeUjB3Z/1z5SiWCgWQq/w", workflow)
+        self.assertIn('-i "$public_key_file"', workflow)
+        self.assertNotIn('-i "$key_file"', workflow)
+        self.assertNotIn('echo "$SCW_SSH_KEY_PASSPHRASE"', workflow)
+        self.assertNotIn("ssh-add-stderr.log", workflow.rsplit("path: |", 1)[-1])
+        self.assertNotIn("ssh-client-stderr.log", workflow.rsplit("path: |", 1)[-1])
+        ssh_job = workflow.split("  ssh-preflight:\n", 1)[1]
+        job_header = ssh_job.split("    steps:\n", 1)[0]
+        self.assertNotIn("SCW_SSH_PRIVATE_KEY: ${{ secrets.SCW_SSH_PRIVATE_KEY }}", job_header)
+        self.assertNotIn("SCW_SSH_KEY_PASSPHRASE: ${{ secrets.SCW_SSH_KEY_PASSPHRASE }}", job_header)
+        self.assertIn("SCW_SSH_PRIVATE_KEY: ${{ secrets.SCW_SSH_PRIVATE_KEY }}", ssh_job)
+
+    def test_pull_request_runs_contract_only_without_exposing_ssh_secrets(self):
+        workflow = WORKFLOW.read_text()
+        self.assertIn("pull_request:", workflow)
+        self.assertIn("github.event_name == 'pull_request'", workflow)
+        self.assertIn("github.event_name == 'workflow_dispatch' && inputs.gate == 'scaleway-ssh-preflight'", workflow)
+        self.assertIn("SCW_SSH_KEY_PASSPHRASE", workflow)
+
+
+    def test_verdict_requires_successful_ssh_exit_code(self):
+        workflow = WORKFLOW.read_text()
+        classifier = workflow.split("      - name: Classify preflight evidence\n", 1)[1].split(
+            "      - name: Upload sanitized preflight evidence\n", 1
+        )[0]
+        self.assertIn("preflight-ssh-exit-code.txt", classifier)
+        self.assertIn("grep -Fxq '0' preflight-ssh-exit-code.txt", classifier)
+        self.assertLess(
+            classifier.index("grep -Fxq '0' preflight-ssh-exit-code.txt"),
+            classifier.index("P1_SSH_PREFLIGHT=PASS_READ_ONLY_PREFLIGHT"),
+        )
+
+    def test_verdict_requires_complete_framed_probe_evidence(self):
+        workflow = WORKFLOW.read_text()
+        classifier = workflow.split("      - name: Classify preflight evidence\n", 1)[1].split(
+            "      - name: Upload sanitized preflight evidence\n", 1
+        )[0]
+        for required in (
+            "P1_SSH_PREFLIGHT_VERSION=1",
+            "P1_SSH_PREFLIGHT_END=1",
+            "HOSTNAME=",
+            "SSH_USER=",
+            "SOURCE_SHA=",
+            "FEEDER_PIDS=",
+            "API_8788=",
+            "SQLITE_INTEGRITY=PASS",
+        ):
+            self.assertIn(required, classifier)
+        self.assertIn("P1_SSH_PREFLIGHT=PARTIAL_OR_BLOCKED_EVIDENCE", classifier)
+
+    def test_verdict_artifact_includes_sanitized_ssh_diagnostics(self):
+        workflow = WORKFLOW.read_text()
+        artifact = workflow.split("      - name: Upload sanitized preflight evidence\n", 1)[1]
+        for required in ("preflight-ssh-diagnostic.txt", "preflight-ssh-exit-code.txt"):
+            self.assertIn(required, artifact)
+
+
+    def run_classifier(self, *, ssh_exit_code="0", remote_log=None):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        step = workflow.split("      - name: Classify preflight evidence\n", 1)[1].split(
+            "      - name: Upload sanitized preflight evidence\n", 1
+        )[0]
+        script = textwrap.dedent(step.split("        run: |\n", 1)[1])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            if ssh_exit_code is not None:
+                (root / "preflight-ssh-exit-code.txt").write_text(
+                    f"{ssh_exit_code}\n", encoding="utf-8"
+                )
+            if remote_log is not None:
+                (root / "preflight-remote.log").write_text(remote_log, encoding="utf-8")
+            result = subprocess.run(
+                ["bash", "-c", script],
+                cwd=root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            verdict_path = root / "preflight-verdict.txt"
+            verdict = verdict_path.read_text(encoding="utf-8") if verdict_path.exists() else ""
+            return result, verdict
+
+    @staticmethod
+    def complete_remote_evidence():
+        return "\n".join(
+            (
+                "P1_SSH_PREFLIGHT_VERSION=1",
+                "HOSTNAME=btcquant-test",
+                "SSH_USER=ubuntu",
+                "SOURCE_SHA=" + "a" * 40,
+                "FEEDER_PIDS=1234",
+                "API_8788=LOOPBACK_LISTENER",
+                "SQLITE_INTEGRITY=PASS",
+                "P1_SSH_PREFLIGHT_END=1",
+                "",
+            )
+        )
+
+    def test_classifier_blocks_failed_ssh_even_when_valid_remote_log_exists(self):
+        result, verdict = self.run_classifier(
+            ssh_exit_code="255", remote_log=self.complete_remote_evidence()
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("P1_SSH_PREFLIGHT=BLOCKED_SSH_STEP_FAILED_OR_NOT_RUN", verdict)
+        self.assertNotIn("P1_SSH_PREFLIGHT=PASS_READ_ONLY_PREFLIGHT", verdict)
+
+    def test_classifier_blocks_incomplete_protocol_framing(self):
+        evidence = self.complete_remote_evidence().replace(
+            "P1_SSH_PREFLIGHT_END=1\n", ""
+        )
+        result, verdict = self.run_classifier(ssh_exit_code="0", remote_log=evidence)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("P1_SSH_PREFLIGHT=PARTIAL_OR_BLOCKED_EVIDENCE", verdict)
+        self.assertNotIn("P1_SSH_PREFLIGHT=PASS_READ_ONLY_PREFLIGHT", verdict)
+
+    def test_classifier_blocks_missing_required_probe_field(self):
+        evidence = self.complete_remote_evidence().replace("HOSTNAME=btcquant-test\n", "")
+        result, verdict = self.run_classifier(ssh_exit_code="0", remote_log=evidence)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("P1_SSH_PREFLIGHT=PARTIAL_OR_BLOCKED_EVIDENCE", verdict)
+
+    def test_classifier_passes_only_complete_successful_loopback_evidence(self):
+        result, verdict = self.run_classifier(
+            ssh_exit_code="0", remote_log=self.complete_remote_evidence()
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("P1_SSH_PREFLIGHT=PASS_READ_ONLY_PREFLIGHT", verdict)
 
 if __name__ == "__main__":
     unittest.main()
