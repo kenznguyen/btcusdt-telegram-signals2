@@ -1302,3 +1302,21 @@ Next: execute both focused RED test files in GitHub Actions against exact SHA `5
 - No T0 canonical data, T1 activation, T2 runtime, DB, credentials, exchange state or deployment state changed.
 
 Next: review and prioritize the 23 RED assertions, freeze remaining AI API contract details, then request separate owner approval before GREEN implementation.
+
+
+## AI Strategy RED triage and API proposal — 2026-11-11
+
+- Read the latest handoff before continuing. Reviewed the AI contract, exact RED test source and GitHub run logs.
+- Exact RED baseline remains `aa7897520b5435ff4c981b3f2ab8a6710f811eea`, run [42989566675](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42989566675): 36 tests, 23 assertion failures, 0 runtime errors.
+- Classified 23 failures:
+  - P0 calibration fail-closed: 17 (missing calibrated confidence 1; invalid/non-finite/bool confidence 6; missing calibration provenance fields 10).
+  - P0 AI leverage isolation/bounds: 4 (missing explicit admitted-leverage API 1; AI ledger accepts 0.99x, 3.01x and 13x 3).
+  - P0 equity sizing/readiness: 2 (no decision sizing interface and no missing/stale-equity behavior).
+- Created proposal-only `docs/architecture/AI_STRATEGY_API_CONTRACT_PROPOSAL.md`, commit `b62f0c3de6e72c5f8419f1cb7da062389a8af80b`. It proposes a pure decision function plus server-created immutable admission context (versioned AI policy, reconciled account risk, instrument rules and AI-ledger position), explicit AI admitted leverage, and behavioral API-level tests instead of permanent signature introspection.
+- Proposal status: **OWNER REVIEW REQUIRED**. It does not amend the owner-approved AI Strategy contract, authorize test changes or authorize GREEN.
+- Additional RED coverage proposed: C_min/leverage mapping boundaries; trusted calibration artifact hash, model/dataset/horizon matching, temporal leakage, calibration freshness/sample thresholds; lot rounding and min quantity/notional; AI-only DCA; Shared Risk Engine/Kill Switch no-partial-reservation; idempotent replay; Core 13x and strategy regression.
+- Open owner decisions: numerical C_min; calibration sample/period/age thresholds; trusted calibration artifact registry; account-risk snapshot provider/freshness contract; instrument-rule source; AI DCA v1 eligibility; immutable snapshot persistence shape.
+- Evidence report triage update commit: `f6d4000c6bd7a6421349319754acdd60ac879499`.
+- Disposition: RED triage PASS — analysis/documentation only. API proposal pending owner review. GREEN NOT AUTHORIZED. No production source, test source, DB/schema, migration, T0/T1/T2 runtime, VPS, credentials, deployment or exchange state changed.
+
+Next: owner review the API proposal and resolve open design decisions. Only then, seek separate approval for test-only refinement; GREEN implementation remains a separate approval gate.
