@@ -2726,3 +2726,14 @@ Critical limits:
 - Scope review: the frozen v1 contract restricts artifact paths to the registry artifact subtree; rejecting backslashes removes cross-platform path interpretation ambiguity while retaining valid POSIX registry paths.
 - No production key, registry event chain, trusted-time/OOS provider, calibration data/artifact, model training, database, T0/T1/T2, VPS, runtime, or live trading change.
 - **Disposition: code committed; CI QUEUED / NOT VERIFIED.** Next: inspect run 43069684925; then continue only verifier-v1-safe correctness fixes. Active/revocation chain, trusted-time, OOS evidence schema/lineage and numerical policy remain blocked by their separate approval/evidence gates.
+
+### Exact CI result — path-separator hardening
+
+- Run 43069684925, job 130693994891, exact source SHA 2ccff7a55c8572125a9e8c50fd575f97e7082f70, completed FAILURE.
+- Compile step PASS.
+- Calibrated confidence/provenance: 14/14 PASS.
+- Decision regression: 15/15 PASS.
+- Calibration registry verifier/transform: 21/21 PASS, including single-backslash rejection and both UTF-8 BOM rejection tests.
+- Full AI/dual-strategy RED remains 54 tests, 12 failures, 6 errors in unrelated leverage mapping, equity/sizing, instrument constraints, Kill Switch and AI ledger/API scope. This run is not a full-system PASS.
+- Artifact: ID 13876519708; name ai-strategy-contract-red-2ccff7a55c8572125a9e8c50fd575f97e7082f70; ZIP SHA-256 8aace1904bb0c6ae9667f329876f4b7af793e12f8aa175a6274baa2768d3930a.
+- Focused verifier disposition: PASS at exact SHA above. Overall calibrated confidence/provenance remains BLOCKED / NOT VERIFIED due absent production trust pin/key lifecycle, active/revocation chain, trusted time, evaluation bytes/dataset lineage/OOS evidence, real calibration artifact and Owner-approved numeric policy.
