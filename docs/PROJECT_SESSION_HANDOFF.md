@@ -598,7 +598,8 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 
 ## A2.2 signature-contract correction and adversarial self-review — 2026-11-11
 
-- User said "tiếp theo" following the proposal to prepare a new A2.2 documentation-only candidate; work was limited to drafting and self-review. No implementation approval is implied.- New candidate: `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A2_2_2026-11-11.md`.
+- User said "tiếp theo" following the proposal to prepare a new A2.2 documentation-only candidate; work was limited to drafting and self-review. No implementation approval is implied.
+- New candidate: `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A2_2_2026-11-11.md`.
 - A2.2 create commit: `c3bf12457d5d81ec0e4a86c279c2e5f75b821e02`. Subsequent documentation correction commits: `6c91b7e709888afa147bc4fb5c359a59e965c572`, `56d698148c18cce2ede624f75cfb2c32098195dd`, `4b1bb83ae6aa17c8676a228d273dce222948ff3c`, `67122890358691aee25f3233448023984b3818df`, `bfb27bd11a8665248d9afea505baa52e8899fed1`, `94eb0bb578391f429b4f6a4eab1c3c23922ffad4`, `e02971b1ce4d6ee16b3782b1dcd41f4cc69b127a`, final fixture clarification commit `3a3bbcb802f72904e789e4f6a94bc64986fc3bee`.
 - Final A2.2 blob: `2090112370e3b4a9925e78cf1ab0e2bb8428640c`.
 - A2.2 addresses A2.1 second-review findings R2-01..R2-05:
@@ -1198,7 +1199,8 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
   comes from generic `LEVERAGE`; dual-mode submission selects
   `ledger(strategy_id="AI_FREQAI")`.
 - `paper_execution/ledger.py`: account admission uses 1% current equity and
-  the ledger's `self.leverage`; Core is now pinned to 13x, but AI has no  min/max leverage enforcement.
+  the ledger's `self.leverage`; Core is now pinned to 13x, but AI has no
+  min/max leverage enforcement.
 - `freqai_bridge/exporter.py`: prediction artifact has predictedReturn and
   training provenance, no calibrated confidence.
 - `freqai_bridge/ChartProFreqaiResearch.py`: dry-run research strategy with
@@ -1798,7 +1800,8 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Review target source HEAD: `7ddf48c83edffd76b339ca1be6e09b1e300eb73a`.
 - Reviewed evaluator blob: `a528861c342c7c20ae48a9042338fec4ee2afa24`; tests blob: `068a22f833ebe922da422df5fba520e36b77586a`; G0.12 contract blob: `fa4e595126fe0c59ed2f9d91f274d7707d636b51`.
 - Scope: source/spec review only. No source/test/schema/workflow/runtime change. G0.13 focused 20/20 tests and compile are referenced from its report, not rerun during G0.14.
-- Verdict: **REQUEST CHANGES — REQUIRED FINDINGS OPEN**.- R1 REQUIRED: malformed unhashable copy state can raise TypeError instead of fail-closed BLOCKED_UNKNOWN; add type guard and regression tests.
+- Verdict: **REQUEST CHANGES — REQUIRED FINDINGS OPEN**.
+- R1 REQUIRED: malformed unhashable copy state can raise TypeError instead of fail-closed BLOCKED_UNKNOWN; add type guard and regression tests.
 - R2 REQUIRED: COPY_SPECIFIC_REVIEW does not require a matching exact copy/version in complete copies inventory or bind the copy identity to the evaluated object; define canonical relation and test empty/mismatched/duplicate inventory.
 - R3 REQUIRED: protected early return omits applicable UNK_* codes for missing hold/dependency/lineage/copy/process metadata; preserve PROTECTED while collecting required unknown codes.
 - R4 REQUIRED: no sensitivity-label field/validation and no class-to-policy/version mapping; policy allowlist is global rather than class-specific. Remediation must use exact owner-ratified values only; do not invent a vocabulary or mapping.
@@ -2262,12 +2265,12 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 ## G0.40 — S1 Measurement Owner Decision Package (2026-11-11)
 
 - Baseline HEAD: `c3eeff5810e64673c6404bfcbae1364b76944a11`; baseline handoff blob: `8b1b133090ae9955b26c524ce25a9b91373e7dc8`.
-- G0.39-B exact-source verification is confirmed: workflow run `43046949518`, job `130613317796`, 24/24 focused tests PASS, compile PASS; exact checkout `30fa54e6a24e95a275c4fbfd27170371e1d56d78`; artifact `13867028275`.
+- G0.39-B exact-source verification: workflow run `43046949518`, job `130613317796`, 24/24 focused tests PASS, compile PASS; exact checkout `30fa54e6a24e95a275c4fbfd27170371e1d56d78`; artifact `13867028275`.
 - Harness source/test blobs: `0f713a1cc87f4c0c355d4488f1cf6af4d8f08d98` / `ff5e3c9d584e13948fc4265f9ca261e697fa9da6`.
 - Decision package: `docs/evidence/G0_40_S1_MEASUREMENT_OWNER_DECISION_PACKAGE_2026-11-11.md`; report commit `a59c6c1899d0a16d471741359819933bc163b4f1`; report blob `40e6313e20684519f3c5c2522961fc1c22658acf`.
-- G0.40 recommends a staged G0.40-A gate: deterministic in-memory corpus builder/measurement orchestrator plus focused tests, exact paths `tools/s1_measurement_runner.py` and `tools/test_s1_measurement_runner.py`; narrow D14 amendment requested. Existing frozen harness remains unchanged.
-- G0.40-A would not generate or measure a corpus outside unit tests. A separate G0.41 package and explicit owner approval are required for one measurement attempt.
+- Recommended G0.40-A: deterministic in-memory corpus builder/measurement orchestrator and focused tests; exact paths `tools/s1_measurement_runner.py`, `tools/test_s1_measurement_runner.py`; narrow D14 amendment requested. Existing frozen harness remains unchanged.
+- G0.40-A does not execute corpus measurement. A separate G0.41 package and explicit owner approval are required for one measurement attempt.
 - G0.41 measurement, numeric D11 ceiling proposal/ratification/enforcement, parser/verifier, CI/workflow, external/runtime/VPS, T0/T1/T2, market data, model, ledgers and destructive operations remain NOT AUTHORIZED.
-- Historical G0.34 and G0.37-A metrics/digests remain NOT VERIFIED for D11 use; their one-attempt authorizations remain consumed. No retry or reuse.
-- G0.40 package verdict: **REVIEW PACKAGE READY — G0.40-A and D14 runner-path amendment PENDING EXPLICIT OWNER APPROVAL**.
-- Documentation-only change. No runner, corpus, fixture, measurement, test, compile, workflow, runtime, database, T0/T1/T2, model, ledger or lifecycle operation was performed. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- Historical G0.34/G0.37-A metrics and digests remain NOT VERIFIED for D11 use; their one-attempt authorizations remain consumed. No retry or reuse.
+- Verdict: **REVIEW PACKAGE READY — G0.40-A and D14 runner-path amendment PENDING EXPLICIT OWNER APPROVAL**.
+- Documentation-only. No runner, corpus, fixture, measurement, test, compile, workflow, runtime, database, T0/T1/T2, model, ledger or lifecycle operation. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
