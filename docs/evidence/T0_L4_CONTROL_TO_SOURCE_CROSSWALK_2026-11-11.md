@@ -89,6 +89,11 @@ No implementation, key generation/signing, trust-root mutation, anchor creation,
 
 ## Signature / negative-verification design status — final consistency correction (2026-11-11)
 
+### Bounded-custody readback clarification
+
+The owner-approved amendment supersedes the former requirement to demonstrate recovery/readback while both approved locations are simultaneously unavailable. The two permitted outage-isolation tests are VPS-copy readback while GitHub is unavailable and GitHub-copy readback while VPS is unavailable. No third-domain recovery or both-unavailable availability claim is made. A verifier requiring exact two-copy agreement MUST fail closed if either required copy is currently inaccessible.
+
+
 - Current contract source: T0_EVIDENCE_OBJECT_CHECKPOINT_CONTRACT_V1.md; current A1 source: T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A1_2026-11-11.md. Exact blobs are recorded in the session handoff after commit.
 - Owner custody decision is propagated through the contract addendum, A1 §2.1/§11/§14 and the §13.2 G1 custody-row clarification. VPS + GitHub is the bounded two-location scope; common-mode joint rollback is not detectable. No third-domain, WORM, global latestness or absolute anti-rollback claim is permitted.
 - The initial G1 A proof-of-existence product remains explicitly unsigned. A1 defines a separate signature/trust extension and does not retroactively add signer-authenticity claims to G1 A.
