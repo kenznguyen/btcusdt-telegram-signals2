@@ -130,9 +130,10 @@ class LifecycleDispositionTests(unittest.TestCase):
         base = {"data_class":"T1_RAW_OBSERVATION","review_group":"T1_RAW_OBSERVATION",
                 "rebuildability":{"required":False,"proven":False}}
         missing_provenance = evaluate_disposition(record(**base))
-        verified = evaluate_disposition(record(**base,
-            rebuildability={"required":True,"proven":True,"evidence_ref":"rebuild-proof"},
-            producer_provenance_verified=True))
+        verified_values = dict(base)
+        verified_values.update(rebuildability={"required":True,"proven":True,"evidence_ref":"rebuild-proof"},
+                               producer_provenance_verified=True)
+        verified = evaluate_disposition(record(**verified_values))
         self.assertEqual(missing_provenance["disposition"], "BLOCKED_UNKNOWN")
         self.assertIn("UNK_SOURCE_LINEAGE", missing_provenance["reason_codes"])
         self.assertEqual(verified["disposition"], "REVIEWABLE_NONCANONICAL")
