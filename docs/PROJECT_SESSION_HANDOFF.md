@@ -1085,3 +1085,38 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - DS-01/DS-02 remain **PASS — source/CI scope only**. Runtime migration, account cutover, funding proof, VPS activation/deployment and live execution remain **NOT AUTHORIZED / NOT PERFORMED / NOT VERIFIED**. Risk remains fail-closed until a separately approved account cutover.
 - DS-03 remains **BLOCKED**; DS-04 remains **OPEN**. Stage II A2.3 remains **PAUSED BY OWNER**.
 - Next step: preserve this evidence and proceed only with read-only DS-04 documentation reconciliation or a separately scoped owner proposal. Do not migrate/activate the runtime, alter T0, change Core sizing/leverage or enable live execution without separate approval.
+
+
+
+## DS-04 Dual Ledger documentation reconciliation — 2026-11-11
+
+- Documentation-only, append-only reconciliation completed and recorded in
+  `docs/evidence/DUAL_LEDGER_DOCUMENTATION_STATUS_RECONCILIATION_2026-11-11.md`.
+- Report commit: `320abd075eb12814507762e3aac70ef903093323`.
+- Appended current bounded-approval / verification status to:
+  - `docs/architecture/DUAL_LEDGER_CONTRACT.md`
+    (commit `6e90c95a6f801d1b8edf2aa4295bc721f0799fd5`);
+  - `docs/architecture/DUAL_LEDGER_SCHEMA_MIGRATION_PLAN.md`
+    (commit `2c077effb9cd4d09f7642204c0dda900c10aa055`);
+  - `docs/architecture/DUAL_LEDGER_OPEN_DECISIONS_PROPOSAL.md`
+    (commit `39bc98069d1fbc5f0de6fdd28b35170045bd447e`).
+- Historical status statements, design decisions, migration checksums, schema
+  versions and earlier evidence were retained; dated addenda clarify that the
+  later owner approval covers only DS-01 / DS-02 source/test implementation.
+- DS-01 / DS-02: PASS — source and isolated CI only, exact SHA
+  `8d9eee6cd503237f8b8a398fcaf1e055dfa9d644`, run
+  [42971136555](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42971136555),
+  300 paper_execution tests PASS, artifact `13833202840`,
+  SHA-256 `0eb0bbb6ad5bfbca27c9665e06548a11dba37e2d25d4939ea891301a6054f506`.
+- DS-04: PASS — documentation-only reconciliation.
+- Full Dual Ledger contract acceptance: NOT VERIFIED. Persistent DB migration,
+  account cutover, funding readiness, runtime activation/deployment and live
+  execution remain NOT AUTHORIZED / NOT PERFORMED / NOT VERIFIED.
+- DS-03 remains BLOCKED; Stage II A2.3 / Ed25519 adapter remains PAUSED BY OWNER.
+- No source code, tests, workflows, SQLite DB, T0 canonical data, lease/fencing,
+  VPS process, credentials or exchange state was changed in this documentation
+  increment.
+- Next step: prepare a separate owner proposal for DS-03 Core sizing/leverage
+  policy or await another explicit scope. Do not perform account migration,
+  cutover, runtime activation, T0 changes, deployment or live execution without
+  separate approval.
