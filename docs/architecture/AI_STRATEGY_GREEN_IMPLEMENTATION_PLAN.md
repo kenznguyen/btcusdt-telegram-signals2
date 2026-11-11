@@ -125,3 +125,20 @@ Not included:
 | D | Migration, backtest/OOS acceptance, VPS/runtime, deployment or activation | NOT AUTHORIZED |
 
 **Requested next decision:** approve or revise this implementation sequence and resolve GREEN-0 provider/policy ownership. Approval of this plan alone must not be interpreted as approval to edit production code. GREEN requires a separate explicit authorization naming the permitted gates.
+
+
+## GREEN-0 provider inventory — 2026-11-11
+
+**Owner authorized GREEN-0 inspection/documentation only.** The source inventory is recorded in `docs/evidence/AI_STRATEGY_GREEN0_PROVIDER_CONTRACT_FREEZE_2026-11-11.md`.
+
+- Existing account-risk read provider: `paper_execution.ledger::read_account_risk_snapshot`; existing final transaction-time admission: `PaperLedger._submit_scoped`; existing account policy constant: `ORDER_MARGIN_BUDGET_PCT=0.01`; existing Core leverage: 13x.
+- Existing AI ledger position read: `read_snapshot(..., strategy_id="AI_FREQAI")`; existing Kill Switch: `paper_execution.risk_control`.
+- Current account snapshot freshness is 30 minutes. It includes account equity, gross/reserved exposure, mark observation, dataset version and Kill Switch state, but no immutable risk-policy version identifier was identified.
+- Current prediction/export path has training provenance but no calibrated-confidence artifact or trusted calibration registry.
+- No authoritative BTCUSDT tick/lot/minimum-notional provider was identified in the inspected AI admission paths.
+- AI ledger supports DCA event mechanics, but the AI decision path does not define an independent DCA trigger/eligibility policy.
+- Existing intent replay hashes payload identity and rejects changed-payload reuse; complete immutable calibration/equity/risk/instrument snapshot replay is not yet established.
+
+**GREEN-0 disposition:** source inventory COMPLETE; provider/policy freeze PARTIAL and BLOCKED on owner decisions G0-01–G0-07 in the evidence report. No defaults selected. No tests/workflow run; no code, schema, DB, migration, calibration, model, T0/T1/T2, VPS/runtime, deployment or exchange state changed.
+
+The existing 1% reservation budget, Core 13x and account-risk provider are identified; this does not authorize implementation. GREEN-1 through GREEN-5 remain NOT AUTHORIZED.
