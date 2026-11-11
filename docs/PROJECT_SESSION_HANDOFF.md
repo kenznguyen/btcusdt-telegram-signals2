@@ -1668,3 +1668,22 @@ This section supersedes the earlier PR #140 next-step note that requested implem
 - Verdict: post-merge `main` contract-only verification **PASS** at exact source SHA `9b49cd70af18f7cc734c718be016b85aecd047c4`. This proves shell syntax and 29 source/workflow contract tests only; it does not prove deployed VPS script identity, live Feeder/API/SQLite state, or VPS operational behavior.
 - No secrets/credentials, VPS/runtime/services, database/data, deployment, exchange connection, market-data sync, or trading action occurred.
 - Next: keep VPS-installed Preflight provenance and runtime state **NOT VERIFIED**. Authenticated SSH remains **NOT AUTHORIZED** unless separately approved. No further contract-only rerun is needed absent source changes or a specific evidence gap.
+
+
+## SSH Preflight retirement — 2026-11-11
+
+Owner approved repository-wide retirement of SSH Preflight while preserving Git history and historical evidence.
+
+- Evidence report: `docs/evidence/SSH_PREFLIGHT_RETIREMENT_2026-11-11.md`.
+- Evidence commit on `main`: `5a950eeaf7b2bf138774cfad3b7daa18c884a0e7`.
+- Evidence commit on active T0/T2 branch: `885779a5e2602b73c2266ac65ef02515ea2e96b5`.
+- Removed the SSH Preflight script `ops/ssh/t0-readonly-preflight.sh`, contract test `ci/test_t0_ssh_preflight_contract.py`, workflow inputs/jobs, and SSH-only pull-request trigger.
+- Removed remaining references to the deleted test module from the active T0/T2 workflow while retaining unrelated T0 gates.
+- Updated six existing refs: `main`, `feature/t0-centralized-data-feeder-p1-20261101`, `fix/p1-ssh-preflight-contract-20261110`, `fix/p1-ssh-preflight-main-20261111`, `fix/scaleway-ssh-passphrase-preflight-20261110`, and `fix/t0-ssh-preflight-passphrase-20261110`. Exact post-change heads are in the evidence report.
+- PR #139 closed without merge after updating its head branch. PR #140 and #144 were already merged and remain historical.
+- GitHub readback: workflow has no SSH Preflight jobs/references; script and test paths are absent on all six refs. Source removal/readback **PASS**.
+- Workflow YAML/Actions execution **NOT VERIFIED**; no workflow dispatched. Regression suites **NOT RUN**. No artifacts produced.
+- No SSH/VPS connection, credential/secret/ForceCommand change, T0 data/database/runtime change, T1/T2 deployment, AI training, exchange connection, or trading action. The former Scaleway VPS had already been deleted. Paper-only and `AI_EXECUTION_ENABLED=false` remain.
+- Four SSH-specific branch refs were retained; no history rewrite, force-push, merge, rebase, cherry-pick, or branch deletion occurred.
+
+Next: use ordinary non-SSH T0 validation on the exact active branch SHA if workflow runtime verification is required. Do not restore SSH Preflight or alter VPS/SSH configuration without new explicit approval.
