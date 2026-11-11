@@ -2486,3 +2486,17 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - The frozen S1 measurement recipe has empty claims objects and no non-empty claims schemas; parser therefore rejects non-empty claims fail-closed. No unratified claims schema was invented.
 - Focused source review performed; independent reviewer sign-off NOT PERFORMED. Full repository suite and GitHub Actions were not run because the G0.45 D14 scope excluded broader suite/CI changes.
 - **G0.45: PASS — bounded S1 synthetic parser implementation and focused verification.** Production verifier/cryptography/trust/runtime remain NOT IMPLEMENTED / NOT AUTHORIZED. T0 protected; T1/T2 unchanged; ledgers separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.46 — S2 minimal trust and key owner decision package (2026-11-11)
+
+- Owner approved preparation of G0.46 as documentation-only work on the existing branch. Baseline before this increment: `799d8dfc273a690c16279ee40c1ca6fa02aa0f59`.
+- Added `docs/evidence/G0_46_S2_MINIMAL_TRUST_AND_KEY_OWNER_DECISION_PACKAGE_2026-11-11.md` in package commit `04a60805821400b656eebeaabcfe4e11d72720af`.
+- Package applies G0.26 minimality: digest integrity, issuer authenticity, owner authorization, freshness/anti-replay, and evidence truth/completeness/custody remain separate claims.
+- G1 A remains unsigned under T0 Checkpoint Contract v1; A1 remains a separate extension. No retroactive signature requirement is introduced.
+- D01–D04 remain OPEN / NOT RATIFIED. Recommendations are conditional: digest-only where integrity is sufficient; evaluate DSSE/Ed25519/SHA-256 only for named issuer-authenticity claims; JCS only for structured signed statements; avoid delegated multi-issuer topology unless distinct principals require it; no real key operation in the current paper-only posture.
+- D06–D09 and D12–D14 remain dependencies for evidence authority, inventory closure, freshness/revocation, owner authentication, audit/custody, verified-facts binding and exact S2 implementation scope.
+- Independent reviewer sign-off remains waived as a mandatory gate under the prior owner decision; no independent assurance claim is made.
+- G0.46 changed only the owner decision package and this handoff. No source, tests, fixtures, schemas, workflow, CI permission, dependency, key, trust root, provider, database, VPS, runtime, T0/T1/T2, ledger, risk engine, or lifecycle operation changed.
+- **G0.46: PACKAGE PREPARED — docs-only scope PASS. D01–D04 OPEN / NOT RATIFIED. S2 IMPLEMENTATION NOT AUTHORIZED.**
+- Next: owner decides exact evidence classes requiring issuer authenticity and whether manual owner attestation is sufficient initially. Only after the dependent decisions close should a separate exact S2 implementation package be prepared for approval.
