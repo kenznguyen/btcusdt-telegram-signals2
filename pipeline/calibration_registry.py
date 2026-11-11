@@ -6,7 +6,7 @@ not establish registry promotion, revocation state, OOS quality or admission.
 """
 import base64
 import binascii
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
 import json
 import re
@@ -83,6 +83,15 @@ def _sha256(data):
     return "sha256:" + hashlib.sha256(data).hexdigest()
 
 
+def _unsigned(value, reason):
+    if not isinstance(value, str) or len(value) > 20 or _UNSIGNED.fullmatch(value) is None:
+        _fail(reason)
+    parsed = int(value)
+    if parsed > 18_446_744_073_709_551_615:
+        _fail(reason)
+    return parsed
+
+
 def _require_string(value, reason, pattern=None):
     if not isinstance(value, str) or not value:
         _fail(reason)
@@ -148,17 +157,16 @@ def _validate_manifest(payload):
     ):
         if _DIGEST.fullmatch(payload[name]) is None:
             _fail("MANIFEST_DIGEST_INVALID:" + name)
-    for name in ("record_sequence", "artifact_size_bytes", "sample_count",
-                 "forecast_horizon_value"):
-        if _UNSIGNED.fullmatch(payload[name]) is None:
-            _fail("MANIFEST_INTEGER_STRING_INVALID:" + name)
-    if int(payload["record_sequence"]) < 1 or int(payload["artifact_size_bytes"]) < 1 or int(
-        payload["sample_count"]
-    ) < 1 or int(payload["forecast_horizon_value"]) < 1:
+    sequence = _unsigned(payload["record_sequence"], "MANIFEST_INTEGER_STRING_INVALID:record_sequence")
+    artifact_size = _unsigned(payload["artifact_size_bytes"], "MANIFEST_INTEGER_STRING_INVALID:artifact_size_bytes")
+    sample_count = _unsigned(payload["sample_count"], "MANIFEST_INTEGER_STRING_INVALID:sample_count")
+    horizon = _unsigned(payload["forecast_horizon_value"], "MANIFEST_INTEGER_STRING_INVALID:forecast_horizon_value")
+    if sequence < 1 or artifact_size < 1 or sample_count < 1 or horizon < 1:
         _fail("MANIFEST_INTEGER_RANGE_INVALID")
-    if payload["previous_record_digest"] != "GENESIS" and _DIGEST.fullmatch(
-        payload["previous_record_digest"]
-    ) is None:
+    previous = payload["previous_record_digest"]
+    if (sequence == 1 and previous != "GENESIS") or (
+        sequence > 1 and _DIGEST.fullmatch(previous) is None
+    ):
         _fail("PREVIOUS_RECORD_DIGEST_INVALID")
     if payload["forecast_horizon_unit"] not in {"ms", "s", "m", "h"}:
         _fail("FORECAST_HORIZON_UNIT_INVALID")
@@ -170,18 +178,26 @@ def _validate_manifest(payload):
             pure.is_absolute() or "\\\\" in path or
             any(part in {"", ".", ".."} for part in path.split("/"))):
         _fail("ARTIFACT_PATH_OUTSIDE_REGISTRY")
+    parsed_times = {}
     for name in ("training_cutoff", "calibration_start", "calibration_end", "created_at"):
         value = payload[name]
         if _TIMESTAMP.fullmatch(value) is None:
             _fail("MANIFEST_TIMESTAMP_INVALID:" + name)
         try:
-            datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+            parsed_times[name] = datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
         except ValueError:
             _fail("MANIFEST_TIMESTAMP_INVALID:" + name)
-    if payload["calibration_start"] <= payload["training_cutoff"]:
+    horizon_ms = horizon * {"ms": 1, "s": 1_000, "m": 60_000, "h": 3_600_000}[
+        payload["forecast_horizon_unit"]
+    ]
+    if parsed_times["calibration_start"] < parsed_times["training_cutoff"] + timedelta(
+        milliseconds=horizon_ms
+    ):
         _fail("CALIBRATION_WINDOW_NOT_OUT_OF_SAMPLE")
-    if payload["calibration_end"] < payload["calibration_start"]:
+    if parsed_times["calibration_end"] < parsed_times["calibration_start"]:
         _fail("CALIBRATION_WINDOW_INVALID")
+    if parsed_times["created_at"] < parsed_times["calibration_end"]:
+        _fail("ARTIFACT_CREATED_BEFORE_CALIBRATION_END")
     return payload
 
 
