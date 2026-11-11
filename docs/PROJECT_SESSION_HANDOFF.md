@@ -892,3 +892,16 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - Status: **OPTIONS RECORDED / OWNER DECISION REQUIRED / CONTRACT FREEZE BLOCKED**.
 - Documentation-only; no tests run. No A1/A2.2 normative amendment, code, dependencies, keys, trust root, policy/anchor state, CI dispatch, VPS/T0/runtime, trading or destructive operation changed.
 - Next owner decision: choose A or B and E1 or E2, or request a bounded revision. Independent security review and separate implementation approval remain required downstream.
+
+
+### Stage II — owner approved provenance/envelope architecture B + E2 (2026-11-11)
+
+- Owner explicitly approved **Option B + E2**, limited to documentation and contract refinement.
+- Option B: use a separately signed Authorization Evidence Object for signing software/build identity, signing request/decision reference, and signer authority/custody evidence reference. The main Signature Statement binds the object through an immutable descriptor.
+- Option E2: use a detached envelope descriptor. Its ID is independently assigned as an opaque identifier and MUST NOT be derived from a descriptor serialization that contains the same ID. Envelope digest/length are computed only after complete envelope bytes exist.
+- Contract refinement appended to `docs/evidence/T0_SIGNATURE_A2_2_STAGE_II_ED25519_ADAPTER_CONTRACT_2026-11-11.md`; commit `27b12af862846a8893a44a5148c7a02dbe59bb1e`; blob `e1b12fc1fc4b463fc82ff8b6b5f0b2701af5888b`.
+- Mapping review decision addendum commit `6726731ba9c29a40c7147ec6167f96129aff4489`; blob `1185a3bf65d66c8cd203bd1dbc7994fdca0b1ad1`.
+- Options note superseding decision addendum commit `5de8596118e1c17f6cd2c8950982f57ca1f0a383`; blob `23f3dde4e5c7cf871e6527c85a59218a0ebd61b2`.
+- Detailed Authorization Evidence Object schema, signature domain/signer trust chain, descriptor schema/ID namespace and retry rules, Verification Record schema, resource ceilings, pinned dependency/build provenance, and independent security review remain open. Thus **architecture pattern approved; detailed contract NOT FROZEN; implementation BLOCKED / NOT AUTHORIZED**.
+- Ed25519 adapter remains exact-bytes-only and stateless. No tests were run (documentation-only). No code, dependencies, keys, trust root, Trust Policy/Monotonic Anchor state, CI dispatch, VPS/T0/runtime, trading, or destructive operation changed.
+- Next step: define the detailed object and descriptor schemas in a bounded contract draft, then run A1/A2.2 consistency review and independent security review before seeking separate implementation approval.
