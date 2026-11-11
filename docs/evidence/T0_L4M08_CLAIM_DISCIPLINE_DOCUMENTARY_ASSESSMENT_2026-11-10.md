@@ -19,7 +19,7 @@ This is a bounded documentary pass. It does not establish that every claim in a 
 | Source | Exact blob SHA | Claim-scope observation |
 |---|---|---|
 | `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md` | `7c413504db397877b308345b21c9f6f58271c89a` | Defines exact object/method/time/trust/limitations; explicitly rejects inferences from signatures, timestamps and ACKs; separates tamper-evident from WORM |
-| `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` | `7ee8b11b47bec4bbd983f35e8f4a4d0f012c03bc` | Separates synthetic/CI evidence from owner evidence and production evidence; L4M-08 is documentary-only and requires revalidation against frozen package |
+| `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` | `56f36428375527e5f421543b815177449435ce51` | Separates synthetic/CI evidence from owner evidence and production evidence; L4M-08 is documentary-only and requires revalidation against frozen package |
 | `docs/evidence/T0_L4_MINIMUM_POLICY_HISTORICAL_AUDIT_RECONCILIATION_2026-11-10.md` | `531b9b4b42337439697ac27286486ced8d19df25` | Preserves historical audits, corrects current-policy interpretation prospectively and prohibits independent-assurance claim |
 | `docs/evidence/T0_L4M02_SIGNER_SEPARATION_EXISTING_EVIDENCE_ASSESSMENT_2026-11-10.md` | `ea32f996cf5053fc8f320b9dc325bd242da1c034` | Limits conclusions to inspected source/docs; explicitly avoids inferring absence of signing capability elsewhere |
 
