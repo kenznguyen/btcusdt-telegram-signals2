@@ -527,3 +527,21 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - A1 remains DRAFT / NOT FROZEN pending final consistency verification and qualifying independent review. The prior static consistency review is not an independent review. Production algorithm/profile, root ceremony, signer/anchor identities, anchor concurrency and trusted-time/TSA decisions remain open.
 - No implementation, code/test/workflow/CI, key generation/signing, trust-root/policy/anchor instance, provider, VPS/SSH/runtime, SQLite or canonical T0 data operation was performed or authorized. No destructive action was authorized.
 - Next permitted step: re-read the amended contract, A1 and crosswalk for exact consistency; then request a qualifying independent review of the frozen contract and negative-verification test matrix. Implementation remains blocked pending that review and a separate explicit approval.
+
+
+## Signature contract final consistency review — frozen review candidate (2026-11-11)
+
+- Read-only final consistency review report: `docs/evidence/T0_SIGNATURE_CONTRACT_FINAL_CONSISTENCY_REVIEW_2026-11-11.md`; active-branch commit `cce3869098644cf35411e2fc98083f1c5f01444b`; exact report blob `8304e8e3c9f396d1baac11f851af17a173c91157`.
+- Frozen review source snapshot (before report/handoff commits): branch HEAD `887f5ed6a71c31c5412e061bef58695323903512`.
+  - Checkpoint Contract v1 + owner-approved custody addendum blob: `a6825270d59bde274bfe765d5f942144b66a84de`.
+  - Signature Amendment A1 blob: `d8643e52a874c406339dad8f62bfe3a9ecda0577`.
+  - L4 crosswalk blob: `28689ea74a4047e11e51e80e61fd0123ff424aa0`.
+- Final consistency corrections closed: stale pending-owner language in A1 §2.1/§11/§14; harmonized contract §13.2 G1 custody rows; clarified §7 outage/readback scope for the bounded two-location custody; refreshed L4M-03 source pins; preserved the initial G1 A no-signer boundary while treating A1 as a separate signature/trust extension.
+- Static checks: current contract/A1/crosswalk blob pins match; A1 pending-ratification language absent; A1 includes 30 negative cases; bounded joint-rollback and both-locations-unavailable limitations explicit; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
+- Review disposition: **CROSS-DOCUMENT CONSISTENCY PASS; REVIEW CANDIDATE FROZEN FOR INDEPENDENT REVIEW**. This is same-session static review, not independent assurance.
+- Qualifying independent review: **NOT REQUESTED / NOT VERIFIED** because no reviewer identity or review channel is designated. The reviewer must be independent of document authors/editors and relevant T0/signing/trust/anchor/custody operators; must disclose identity, competence and conflicts; and must review the exact three source blobs pinned in the report.
+- General L4M-09 remains OWNER-WAIVED for the L4 baseline. This does not waive the separate independent review requested for the signature architecture before implementation.
+- Open implementation blockers: production signature algorithm/profile; owner-pinned root bootstrap/recovery; actual signer and anchor identities; atomic anchor concurrency mechanism; trusted-time/TSA decision; exact signed provenance/authorization field mapping; policy/anchor retention/recovery; independent byte-vector implementation; verifier and all 30 negative tests; offline integration and actual owner-copy readback.
+- No code/tests/workflow/CI, keys/signatures/trust-root/policy/anchor instances, provider/TSA, VPS/SSH/runtime, SQLite/canonical T0 data or destructive operation was changed or exercised. No implementation approval is implied.
+- Next: designate a qualifying independent reviewer (identity/channel) and send the frozen review packet. Do not edit the frozen source blobs during review; any required correction creates a new snapshot and restarts review. Implementation remains blocked pending review and separate explicit owner approval.
+- Branch hygiene: the first report-file create action landed on `main` because the optional branch was omitted; it was not reverted or treated as active-branch evidence. The same report was then created explicitly on this active branch in commit `cce3869098644cf35411e2fc98083f1c5f01444b`. No merge/rebase/force-push was performed.
