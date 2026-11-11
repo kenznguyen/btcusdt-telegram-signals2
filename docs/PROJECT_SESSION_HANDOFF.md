@@ -2303,3 +2303,28 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - G0.40-A focused implementation verification: **PASS**. TDD RED execution remains NOT VERIFIED; this workflow does not prove a pre-implementation failing test run.
 - No separate corpus generation/measurement occurred. G0.41 measurement remains NOT AUTHORIZED; numeric D11 ceilings OPEN / NOT RATIFIED. No parser/verifier implementation, broad CI, runtime/VPS, external/provider/database/network, T0/T1/T2, market data, model, ledger, lifecycle or destructive operation.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.40-A — Source Review and G0.41 Readiness (2026-11-11)
+
+- Read-only review baseline: frozen source commit `a68d0096f6a04b9ce25591118a47b89660c0965c`.
+- Reviewed runner blob `784d2b5381fa50007ceba468b8bc81ce045b80c2`, tests blob `47363d0a30cd12795fe43b22e0b5a22f934854bf`, harness blob `0f713a1cc87f4c0c355d4488f1cf6af4d8f08d98`.
+- Prior exact-source Actions run `43048826022` remains SUCCESS (18/18 tests and compile PASS).
+- Review report: `docs/evidence/G0_40A_SOURCE_REVIEW_G0_41_READINESS_2026-11-11.md`; report commit `f3267fc2b1516e89fcbf28322fad5f789f7d3553`; report blob `eb334331362374db279e37a3a48e3ef1248eeac2`.
+- Findings R1–R3 REQUIRED and OPEN:
+  - R1: tests use placeholder runner/harness bytes, not actual frozen source; CI blob assertions are separate and not bound into preflight provenance.
+  - R2: AST capability denylist can be bypassed by archive extraction, aliased file APIs and unlisted network-capable modules; existing negative probes are incomplete.
+  - R3: report readback checks shape/aggregates and digest syntax but not exact ordered fixture inventory, uniqueness or digest binding to parser-input bytes.
+- G0.40-A remains PASS for its bounded implementation/test/compile/Actions scope. Review does not retroactively alter that CI result.
+- G0.41 measurement readiness: **BLOCKED** until R1–R3 are corrected, focused verification and exact-source CI pass, and source review is complete. No measurement was run during review.
+- Numeric D11 ceilings remain OPEN / NOT RATIFIED. G0.34 and G0.37-A one-attempt authorizations remain consumed; no retry or reuse.
+
+## G0.40-B — Exact-Source Assurance Corrections Owner Package
+
+- Package: `docs/evidence/G0_40B_EXACT_SOURCE_ASSURANCE_CORRECTIONS_OWNER_PACKAGE_2026-11-11.md`.
+- Package commit `8f273495b334c8dca35a2dfaa1d59bea12b27867`; package blob `304bd6976ffee472b07bfbb5312311bc733d5104`.
+- Requests explicit approval for exactly four paths: `tools/s1_measurement_harness.py`, `tools/s1_measurement_runner.py`, `tools/test_s1_measurement_runner.py`, and `.github/workflows/g040-b-exact-source-verification.yml`.
+- Acceptance criteria explicitly close R1 actual-source provenance, R2 bounded capability policy, and R3 report-to-corpus integrity.
+- This is docs-only. **G0.40-B implementation and workflow are NOT AUTHORIZED pending owner approval.**
+- G0.41 corpus generation/measurement remains NOT AUTHORIZED; numeric D11 ceilings OPEN / NOT RATIFIED.
+- No T0/T1/T2, market data, model, ledger, runtime/VPS, external/provider/database/network, lifecycle, or destructive changes. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
