@@ -4,6 +4,7 @@ Rules mirror the signal-only bot.py implementation. It consumes only validated,
 closed BTCUSDT candles and never accesses exchange trading endpoints.
 """
 import math
+import os
 from decimal import Decimal
 from paper_execution.risk_policy import CORE_LEVERAGE, ORDER_MARGIN_BUDGET_PCT
 from pipeline.values import identity, number, stamp
