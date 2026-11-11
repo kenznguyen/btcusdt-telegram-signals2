@@ -2911,3 +2911,18 @@ Critical limits:
 - The eight-item manifest reconciles the two P1.8.14 synthetic artifacts and six L4 CI source artifacts. It keeps generated current-run outputs separate from source inputs; the current run's outputs are not self-included. The newly produced current-run lineage and repository-inventory outputs have not yet been independently read back and are not in the eight-item source allowlist.
 - **Disposition: EIGHT-ITEM SOURCE ALLOWLIST + COLLECTOR MANIFEST — PASS at the stated CI/readback scope; L4-MINIMUM AGGREGATE — BLOCKED / NOT VERIFIED.** No owner custody, signer separation, authenticated latest-head, trusted-time, network-disabled offline verification or control acceptance is established.
 - Next: freeze the current eight-item source inventory unless a separately reviewed candidate materially adds evidence; proceed only with read-only exact-object signature/negative-verification design review. No key generation/signing/rotation, trust-root/provider mutation, offline owner execution, VPS/T0 access, data deletion, T1 activation, runtime or trading.
+
+
+### Eight-item L4 source inventory — follow-up CI and manifest readback (2026-11-11)
+
+- Allowlist commit/source: `f00b30af40f65a5ce06501ade6ccf72a27740306`; allowlist blob `c1f270fc64d101c1c94da78d5909ac6ce5a79fde`; eight unique source artifacts.
+- Workflow run [43078412140](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43078412140), event `push`, exact checkout/source SHA `f00b30af40f65a5ce06501ade6ccf72a27740306`, overall **SUCCESS**.
+- Job `130724283481`: lineage 12/12 PASS.
+- Job `130724361663`: repository-file inventory 10/10 PASS; `L4_REPOSITORY_FILE_INVENTORY=PASS`.
+- Job `130724361672`: artifact manifest 19/19 PASS; `L4_ARTIFACT_MANIFEST=PASS`.
+- Total: **41/41 tests PASS**.
+- Output artifacts: lineage `13883561072` (1,150 bytes; upload ZIP SHA-256 `7533fb1f81acd5001509e01c4808ed41f5e5e2151c826f9faaaaf043a53cacaa`); repository inventory `13882149316` (4,489 bytes; `a48fe17269f6faf58237f9adfca1887cf9e7cd22b82cdd4647e786396b83ea55`); manifest `13881878807` (3,626 bytes; `8ea24a3eafd04cb424593251a9bb76c5c62b88409e19634162ffe1786a0ffe95`). All expire `2026-11-18T18:30:27Z`. These are GitHub upload digests until independently read back.
+- Independently downloaded artifact `13881878807`: ZIP SHA-256 `8ea24a3eafd04cb424593251a9bb76c5c62b88409e19634162ffe1786a0ffe95`, matching GitHub metadata; ZIP CRC passed. Manifest JSON SHA-256 `4b37dbe429626deae17f50b95b903e16bc6b6e9210b71567764fb608d0343627` matches sidecar. Parsed schema `T0_L4_GITHUB_ARTIFACT_MANIFEST_V1`, collector SHA `f00b30af40f65a5ce06501ade6ccf72a27740306`, eight entries, exactly reconciling the two P1.8.14 synthetic sources and six L4 CI sources in the allowlist.
+- Current-run outputs `13883561072` and `13882149316` remain outputs, not inputs to their own manifest; they have not yet been independently downloaded/read back. Do not self-include.
+- **Disposition: EIGHT-ITEM ALLOWLIST AND MANIFEST — PASS at stated scope; L4-MINIMUM AGGREGATE — BLOCKED / NOT VERIFIED.** This does not establish owner custody, signer separation, authenticated freshness, trusted time, offline verification or control acceptance.
+- Next: refresh the exact-object signature/negative-verification design review against the current amended Checkpoint Contract v1, A1/A2.2/A2.3 documents and current custody decision. Keep implementation, keys, trust bootstrap, anchor persistence, VPS/T0/runtime and trading excluded.
