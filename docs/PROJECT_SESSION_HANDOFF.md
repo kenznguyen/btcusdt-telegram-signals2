@@ -1632,3 +1632,22 @@ This section supersedes the earlier PR #140 next-step note that requested implem
 - Verdict: post-merge main-line isolated SSH preflight contract CI **PASS** at exact main SHA `36e8b86b9f4b46009ce7f48aecc106c90b856f67`. This proves shell syntax and the 20 source/workflow contract tests only; it does not verify VPS/T0 runtime, deployed script identity, API listener, Feeder state, or SQLite integrity on the VPS.
 - No VPS/SSH connection, secret/credential change, deployment, runtime/service/database/data modification, exchange connection, market-data sync, or trading action occurred.
 - Next: keep authenticated SSH preflight **NOT AUTHORIZED**. Any future runtime verification requires separate explicit approval and a fresh scope review. No further contract-only rerun is needed absent a source change or concrete evidence gap.
+
+
+
+## 2026-11-11 — PR #144 SSH Preflight hardening merged
+
+- PR: [#144](https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/144), title: `Secure Scaleway SSH preflight passphrase handling`.
+- Status: **MERGED / CLOSED** into `main` using a merge commit.
+- PR head SHA: `b1363358c56dcf80b02ec504e8343f5edd63502d`.
+- Base SHA before merge: `8ed3be3707560bdb3930479c5e552d3e03a42fd4`.
+- Merge commit SHA and verified `main` HEAD immediately after merge: `5f7763e0a8f57a5b35813493e31f13f119c8b0d8`.
+- Changed files: `.github/workflows/t0-manual-validation.yml` and `ci/test_t0_ssh_preflight_contract.py` (2 files).
+- Pre-merge contract CI: [run #43008659748](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43008659748), job `130482424025`, **SUCCESS**. Contract tests: 29/29 PASS; `bash -n ops/ssh/t0-readonly-preflight.sh`: PASS.
+- Regression coverage includes nonzero SSH despite valid/stale remote output, missing protocol end marker, missing required probe field, and complete successful loopback evidence.
+- Manual isolated acceptance and authenticated Scaleway SSH jobs were SKIPPED as expected. No artifact was emitted by the contract-only run.
+- Post-merge workflow run lookup for merge commit `5f7763e0a8f57a5b35813493e31f13f119c8b0d8`: no workflow runs returned. Do not claim post-merge CI or artifact evidence.
+- Review state at merge: no submitted PR reviews or inline review threads were present. The final self-review found no required findings in the two-file scope; this is not an independent external security audit.
+- No VPS connection, authenticated SSH preflight, deployment, secret/credential mutation, runtime/service/database/data change, Feeder activation, exchange connection, market-data sync, or trading action occurred.
+- VPS-installed script provenance/hash and live VPS behavior remain **NOT VERIFIED**.
+- Next permitted step: reconcile the merged `main` workflow/script/test state and decide whether an isolated contract-only post-merge check is needed. Authenticated SSH remains **NOT AUTHORIZED** absent separate explicit approval. No runtime or VPS action is implied.
