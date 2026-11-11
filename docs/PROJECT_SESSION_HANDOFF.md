@@ -968,3 +968,34 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - No code, dependency, lockfile, workflow, runtime or canonical data changes were made by this decision update.
 - Status: **INDEPENDENT REVIEW GATE WITHDRAWN BY OWNER / CONTRACT NOT FROZEN / IMPLEMENTATION NOT YET PASS**.
 - Branch at decision time: `feature/t0-centralized-data-feeder-p1-20261101`; pre-update HEAD: `eb9ed7784d8db7db517bd145b0380ba166d01c8d`.
+
+
+## Owner direction decision — pause Stage II, prioritize operational and Dual-Strategy system (2026-11-11)
+
+**Owner explicitly confirmed this direction (“chốt phương hướng”). This entry is the current governing priority and supersedes the prior Stage II “automatic continuation until completion” instruction to the extent it conflicts with this pause.**
+
+### Decision
+- **Stage II A2.3 / Ed25519 adapter: PAUSED.** Do not continue contract refinement, dependency/provenance work, adapter implementation, tests or CI for Stage II unless the owner explicitly reopens it.
+- Preserve all Stage I and Stage II work products, source blobs, GitHub runs, artifacts and historical evidence. Do not delete, rewrite or relabel them. Stage I synthetic CI/test gate remains **PASS** for its exact source; this is not production cryptographic assurance.
+- Redirect active priority to the usable system: T0/T1/T2 operational readiness and data-flow consistency, then the BTCUSDT Dual-Strategy Intelligence design and implementation planning.
+- Preserve Strategy Core unchanged: RSI + ADX + Smart DCA.
+- AI Strategy is a separate signal-producing strategy and may emit independent LONG/SHORT signals even when Strategy Core emits no signal.
+- Core and AI retain separate strategy identities/ledgers. Every candidate signal/order intent must pass the common Shared Risk Engine and Kill Switch before it can become an eligible paper-trade action. Risk controls are shared; signal generation is independent.
+- Preserve paper-only posture: `AI_EXECUTION_ENABLED=false`; no live trading, real exchange orders, production deployment or execution enablement.
+- Existing risk direction remains: maximum margin allocation for each new order is 1% of portfolio equity; AI leverage policy, where applicable, is sizing-only and cannot bypass shared risk checks.
+- T0 remains an independent canonical data foundation. No canonical T0 data, lease/fencing state, durable evidence, owner custody/trust evidence or protected runtime state may be mutated as part of this reprioritization.
+- Continue to preserve the current branch and Git history; no parallel branch/PR solely for this decision.
+
+### Execution sequence
+1. Reconcile current repository state and existing evidence for T0/T1/T2 and Dual-Strategy before proposing code changes.
+2. Identify the smallest operational blockers affecting reliable T0→T2 data delivery and close them within already approved read-only/documentation/CI scopes.
+3. Freeze the Dual-Strategy boundary: independent Core/AI signal contracts, separate ledgers, shared risk interface, Kill Switch precedence, sizing/leverage limits, paper-only execution boundary and deterministic conflict handling.
+4. Only then propose bounded implementation increments with explicit tests, evidence and approvals. No blanket implementation, VPS/runtime or exchange-execution authority is implied by this priority decision.
+
+### Status and limits
+- Stage I synthetic harness: **PASS** for exact run/source/artifact recorded above; preserve.
+- Stage II A2.3: **PAUSED BY OWNER**; contract remains draft/not frozen; no adapter implementation or runtime integration.
+- T0/T1/T2 operational acceptance: retain each existing per-gate disposition; do not promote NOT VERIFIED/BLOCKED evidence.
+- Dual-Strategy implementation: **NOT YET AUTHORIZED BY THIS PRIORITY DECISION**; next step is repository-state assessment and contract-level planning.
+- No tests, CI workflow, runtime, VPS, SQLite/canonical T0, credentials, keys/trust state, trading ledger or exchange order state were changed by this decision.
+
