@@ -82,19 +82,32 @@ These checks establish document structure and consistency only. They are not exe
 1. Both bootstrap paths are deliberately unavailable. A2.2 does not establish an operational owner authority, verifier administrative trust anchor, operator identity, authenticated provisioning channel or bootstrap pin.
 2. The production signature algorithm, key type, owner authority, signer identity/custody, anchor authority and durable implementation remain unselected.
 3. The A2.2 negative matrix is a contract/test specification only. No test runner or cryptographic implementation was executed.
-4. Qualifying independent review of this exact A2.2 blob and pinned dependencies remains required. This same-session review is not independent assurance/G3.
+4. The owner has waived qualifying independent review as a mandatory gate for A2.2 via `docs/evidence/OWNER_DECISION_WAIVE_INDEPENDENT_REVIEW_A2_2_2026-11-11.md`. The waiver does not claim independent review occurred or establish independent assurance/G3.
 5. Separate explicit owner approval is required before any implementation. Any future implementation must be narrowly bounded and synthetic-only unless separately authorized.
 6. The accepted VPS + GitHub custody boundary and its known joint-rollback limitation remain unchanged. No WORM, third failure domain, external monotonic anchor, global latestness or absolute anti-rollback claim is made.
 
 ## 6. Overall disposition
 
-**PASS WITH RESIDUAL GATES — A2.2 IS READY FOR QUALIFYING INDEPENDENT REVIEW** for documentation review only.
+**PASS WITH RESIDUAL GATES — A2.2 SELF-REVIEW PASS; INDEPENDENT REVIEW WAIVED** for documentation review only.
 
 - Self-review: **PASS** for the exact A2.2 blob listed above.
-- Independent review: **NOT PERFORMED / NOT VERIFIED**.
-- Implementation: **BLOCKED / NOT APPROVED**.
+- Independent review: **WAIVED AS A MANDATORY GATE / NOT PERFORMED**.
+- Independent assurance/G3: **NOT ESTABLISHED**.
+- Implementation: **BLOCKED / NOT APPROVED; separate explicit owner approval still required**.
 - CI/workflow: **NOT RUN** for this documentation-only increment; no run or artifact is claimed.
 
 ## 7. Unchanged boundaries
 
 No code, executable tests, workflow, CI configuration, key, signature, trust root, bootstrap instance, policy/anchor instance, provider/TSA, VPS/SSH/runtime, SQLite database, canonical T0 data or destructive operation was changed or exercised. Paper-only posture and AI_EXECUTION_ENABLED=false remain unchanged.
+
+
+## 8. Owner waiver and exact-blob delta check
+
+The owner decision recorded in `docs/evidence/OWNER_DECISION_WAIVE_INDEPENDENT_REVIEW_A2_2_2026-11-11.md` withdraws independent review as a mandatory gate for A2.2. This is a governance waiver only.
+
+After that decision, the A2.2 document was updated from its previously self-reviewed blob `2090112370e3b4a9925e78cf1ab0e2bb8428640c` to the current blob `f9138497e4b3d846260fef3c88c88d89e2ee1123`. The delta is limited to replacing the mandatory independent-review sentence with the owner-waiver reference and updating the disposition label. The technical clauses, negative-test matrix, bootstrap restrictions, profile bindings and implementation prohibitions were not changed in that delta. This is a targeted same-session delta check, not an independent review and not a fresh full re-review of all technical content.
+
+Current A2.2 source blob: `f9138497e4b3d846260fef3c88c88d89e2ee1123`.  
+Owner waiver record: `docs/evidence/OWNER_DECISION_WAIVE_INDEPENDENT_REVIEW_A2_2_2026-11-11.md`.  
+Independent review: **WAIVED / NOT PERFORMED**.  
+Implementation: **NOT APPROVED**.
