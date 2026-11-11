@@ -4,6 +4,11 @@ Updated: 2026-11-10 (Asia/Ho_Chi_Minh)
 
 > Start here in every new session. GitHub is the source of truth. Read this short file first; consult the [archived handoff history](archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md) only when an older decision or evidence record is needed.
 
+## Current governance override — 2026-11-11
+
+**Option C — No Destructive Authority: REVOKED by explicit owner instruction on 2026-11-11.** This supersedes every earlier ACTIVE/in-force statement in the historical handoff and lifecycle records. Do not treat Option C as a blanket prohibition. This revocation does not authorize any specific deletion, archive, cleanup, expiry, vacuum, compaction, provider operation or other destructive action. Each concrete action still requires a separately explicit, bounded approval with exact target/data class, scope, preconditions, expected effect, verification and recovery/rollback plan. T0 canonical data, lease/fencing state, ledgers, audit/reconstruction/recovery evidence, owner custody and trust evidence remain protected unless specifically approved. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+
 ## 1. Repository and active work
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
@@ -411,3 +416,26 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - T0 remains an independent data asset. Do not infer that canonical T0 data, owner evidence, GitHub artifacts or audit records are disposable merely because Option C was revoked.
 - All prior L4 test results and control dispositions remain as recorded; revoking Option C does not itself promote L4 controls or establish custody/signature/offline-verification assurance.
 - Next: update any active governance/evidence documents that still describe Option C as ACTIVE, preserving historical records and recording this revocation as a dated owner decision. No destructive action is authorized by this handoff update alone.
+
+
+### Option C revocation synchronization and exact-source CI — 2026-11-11
+
+- Owner revocation recorded in commit `22d8c01a86e1961e7a216ea90de751f680865c56`, handoff blob `12e9a7694e16a969ac5e542fb6aa36488d75b2d7`. Option C is REVOKED; earlier ACTIVE/in-force wording is historical and superseded.
+- Added dated superseding governance notes to 37 relevant decision, lifecycle, L4, evidence, checkpoint, trust and custody documents. Historical source text was preserved; no old owner decision or test result was erased. The T0→T2 deployment parity reconciliation already states Option C REVOKED.
+- Updated the 40-path repository inventory config to exact current Git blob SHAs. Latest config blob: `88835e2763f7053b2f41b2115cdd1b93e56cd255`. Latest matrix blob: `7c413504db397877b308345b21c9f6f58271c89a`; latest Evidence Register blob: `7ee8b11b47bec4bbd983f35e8f4a4d0f012c03bc`. Lineage test constants and Automation Plan/supporting references were synchronized to those exact blobs.
+- Transient CI failures were not hidden:
+  - Run `42936165865`, source SHA `c7a89bb64ac3ce731139e96771a98136fb89accf`: lineage 11/12 due stale matrix blob pin.
+  - Run `42936425181`, source SHA `444ac7dd7f52c33b6b6b0fada6ec96c022f40d3a`: lineage 11/12 due stale register blob pin; repository inventory also exposed stale P1.8.147 inventory blob.
+  - Corrected matrix/register pins and P1.8.147 inventory SHA; no test was removed or weakened.
+- Final successful exact-source validation: run [42936903511](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42936903511), checkout/source SHA `2e66102ced45e7a59d8885026a29fa5e38dab01e`, all jobs SUCCESS:
+  - Lineage: 12/12 PASS.
+  - Artifact manifest: 19/19 PASS.
+  - Repository-file inventory: 10/10 PASS.
+  - Total: 41/41 PASS.
+- Run `42936903511` artifacts downloaded and independently re-hashed:
+  - Lineage artifact `13818891470`, 1,151 bytes; ZIP SHA-256 `a56b20af26c134e1d767ac2503dcd03c1fecfbaa7bab334edd0da55bffe2d531`; source marker exact; GitHub-hosted read-only scope; 12 tests; PASS.
+  - Manifest artifact `13818887032`, 3,268 bytes; ZIP SHA-256 `69e55931705e387f60d8acd4093a713f00ba41b76256a4355674608be50ec6e9`; JSON member SHA-256 `f8954b20d2ce7c05318fcb220a07286c59f1119cfbdbfb6a60a6f7aaca7c95cf`, sidecar matches; exactly six source artifacts, no self-inclusion.
+  - Repository inventory artifact `13818139442`, 4,482 bytes; ZIP SHA-256 `90866af79fc34e5eced9f552a4c178b211ca4490279ea472aa61fdb15c2e4dcb`; JSON member SHA-256 `5780dafa00ff6f7781ffa7dccd7f577901b71ef325845072d37c8931c5e21397`, sidecar matches; 40 paths / 559,566 bytes; exact source SHA `2e66102ced45e7a59d8885026a29fa5e38dab01e`.
+- Updated control-to-source crosswalk: blob `b1f4daac9624d8deedfaf14234e0b6bb79ff81ca`, commit `8bda3c987e2145a636bbcc9d8609c5ea15a492b9`. It now records current matrix/register refs, latest 40-file inventory and run `42936903511`; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
+- No destructive operation, retention execution, artifact deletion, VPS/SQLite access, runtime change, key generation/signing, trust-root change or offline verification was performed. T0 remains an independent protected data asset; paper-only posture remains unchanged.
+- Next: verify the post-crosswalk/post-handoff CI run on the final branch HEAD. After that, proceed only with signature/negative-verification design review; do not generate keys, sign, change trust roots or run offline verification without separate approval.
