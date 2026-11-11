@@ -66,6 +66,8 @@ class MeasurementHarnessTests(unittest.TestCase):
   self.assertTrue(validate_manifest(inputs,oracle,manifest,ids,cases,kinds))
   self.assertFalse(validate_manifest(inputs,oracle,manifest,ids[:-1],cases,kinds))
   self.assertFalse(validate_manifest(inputs,oracle,manifest,ids,cases,kinds[:-1]))
+  malformed=dict(inputs); malformed[ids[0]]=b"\\xff"
+  self.assertTrue(validate_manifest(malformed,oracle,manifest,ids,cases,kinds))
  def test_d05_accepts_declared_parse_negative_and_positive_controls(self):
   inputs,oracle,manifest,ids,cases,kinds=valid_corpus(); self.assertTrue(validate_d05_corpus(inputs,oracle))
   fid=ids[0]; inputs[fid]=b'{"x":1,"x":2}'; oracle[fid]={"expected_reason_code":"PARSE_DUPLICATE_KEY"}
