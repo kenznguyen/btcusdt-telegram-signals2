@@ -130,3 +130,35 @@ T0 canonical data and lease/fencing remain independent and protected. CORE_LEDGE
 **G0.31: OWNER-RATIFICATION PASS — D05, D10, D11 measurement-first policy and D14 S1 boundary ratified as recorded. Numeric D11 ceilings remain unapproved. S1 implementation and test execution remain NOT AUTHORIZED.**
 
 Next gate: prepare the measured synthetic corpus profile and numeric-limit proposal as documentation/evidence only, or request a separate explicit owner authorization for the exact bounded corpus-preparation/implementation step. Do not infer implementation permission from this ratification.
+
+
+## 9. D14 narrow amendment — G0.41 one-shot measurement workflow
+
+Date: 2026-11-11 (Asia/Ho_Chi_Minh)  
+Owner decision: explicit approval of the exact G0.41 package in `docs/evidence/G0_41_S1_SINGLE_MEASUREMENT_OWNER_DECISION_PACKAGE_2026-11-11.md`  
+Package commit: `ed37acab60df5f35d303f4e352cf474bcae339be`
+
+The owner has separately approved one narrowly bounded G0.41 measurement operation. D14 is amended only as follows:
+
+**One additional permitted path:** `.github/workflows/g041-s1-single-measurement.yml`.
+
+That workflow may execute exactly one invocation of the already frozen `tools.s1_measurement_runner.prepare_preflight(...)` against the exact event checkout, and may persist exactly one bounded JSON measurement report as one seven-day GitHub Actions artifact. It must assert the three frozen Python source Git blobs and record those plus the workflow's own Git blob, exact checkout SHA, run/job identity and artifact metadata.
+
+The workflow is limited to the one push event that adds this exact workflow file on `feature/t0-centralized-data-feeder-p1-20261101`. It must not trigger on later workflow modifications, manual dispatch, schedule, pull request, tag or another branch. It must guard `github.run_attempt == 1`; any rerun attempt must skip the job before measurement. The job uses read-only `contents: read`, exact SHA checkout, no secrets, no package installation, no external services, no application network, no provider/database/VPS/exchange access, no retry, and a maximum five-minute timeout. It persists only the JSON report, never parser-input bytes, oracle metadata, corpus files, fixture files, caches or intermediate source copies.
+
+The approved measurement consists of the runner's one call, including its two internal deterministic construction/measurement passes. The workflow may read only the three frozen source files and Git/GitHub-provided checkout/run metadata. It must not read secrets, arbitrary environment variables, user files, clock state or external resources. The report may contain only the fields and bounded measurement data specified in the G0.41 package. The source and report checks must fail closed.
+
+This amendment does **not** authorize:
+- a second invocation, retry, rerun or replacement attempt;
+- any modification to the frozen harness, runner, tests or dependencies;
+- standalone tests that call the measurement runner multiple times;
+- any additional workflow, CI expansion, write permission, secret, network, package installation or service;
+- raw corpus/oracle persistence or any additional artifact;
+- diagnostic-output dimension invention or numeric D11 ceiling proposal, ratification or enforcement;
+- parser/verifier production implementation, cryptography, trust/key changes, or any S2 work;
+- T0/T1/T2, canonical market data, model/training, ledgers, Shared Risk Engine, Kill Switch, PostgreSQL, VPS/runtime, providers, databases, external network or destructive lifecycle operations.
+
+If an exact source assertion or pre-invocation environment guard fails, no measurement has begun; stop and return for a new owner decision. If any failure occurs after the measurement invocation begins, the one-shot authorization is consumed and the result is G0.41 FAILED/INCOMPLETE. No repair-and-rerun is allowed.
+
+**D14 amendment verdict:** OWNER-APPROVED FOR THIS EXACT G0.41 ONE-SHOT WORKFLOW ONLY. All other D14 exclusions remain in force. Numeric D11 ceilings remain OPEN / NOT RATIFIED. This amendment grants no production parser/verifier or runtime authority.
+
