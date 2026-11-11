@@ -2840,3 +2840,16 @@ Critical limits:
 - Existing evidence unchanged: offline OOS validator tests 13/13 PASS at source SHA `0a3f73801cc5f1f5225658673b447ec658ac454d`, workflow run `43073542645`, job `130707512877`; overall workflow FAILURE due separate AI/Dual Strategy RED suite (12 failures, 6 errors).
 - **Disposition: IMPLEMENTATION SCOPE PREPARED; CODE IMPLEMENTATION NOT AUTHORIZED; OOS NOT VERIFIED; AI ADMISSION FAIL-CLOSED.**
 - Next: Owner reviews WP0–WP4 and approves the exact inventory and contract freeze gates before any code/test/workflow changes.
+
+
+## OOS lineage WP0 — read-only repository inventory (2026-11-12)
+
+- Owner authorized automatic continuation toward completion of Calibrated Confidence and Provenance, subject to all existing scope boundaries and explicit approval gates. This does not override the WP0 stop condition or authorize T0/VPS/runtime/data access, bundle creation, training, real OOS evaluation, provider/trust implementation, S2 or trading.
+- Inspected active branch HEAD `f012305b9c13d0deb7ec1bdfeda22a2affb7a5d2`; recursive Git tree `14a19ff0f659eaaf9114cd77ed08c9d6ac1da429`, 978 entries, not truncated. Handoff and approved implementation scope were read first.
+- WP0 inventory report: `docs/evidence/AI_CALIBRATION_OOS_LINEAGE_WP0_REPOSITORY_INVENTORY_2026-11-12.md`; commit `8426a5a417018f5a091a3999f6c9f5098437f9f3`; blob `6d1bfac8977e10b47da5a5431c8990624be20bdf`.
+- Findings: the named `T0_M15_H1_DATASET_BUNDLE_V1` schema, immutable bundle payload, producer and consumer binding are not present/identifiable in the tracked branch. Synthetic P1.8 evidence bundles are unrelated and cannot be substituted. A prior bounded D1 inventory also recorded the candidate as absent from the then-inspected Git tree; neither inventory proves absence outside GitHub.
+- Existing T2 source proves only a bounded M15 T0 HTTP inference window. FreqAI source has M15 features and a four-candle future-return target; config has `shuffle=false` and `test_size=0.2`, but no frozen three-way train/calibration/evaluation split, sample IDs, sample-level feature/label mapping, H1 bundle binding, or explicit horizon/feature embargo. Training provenance is supplied by an external sidecar and is not independently reconstructed by this code.
+- Dataset consumer contract remains design-only. OOS offline validator explicitly does not verify authoritative lineage, sample-level embargo, reproducibility, trusted time or statistical acceptability.
+- **Disposition: WP0 BLOCKED / PARTIAL STATIC INVENTORY COMPLETE.** No WP1/WP2 contract freeze or WP3 implementation may proceed against an inferred schema. OOS, lineage, horizon embargo and reproducibility remain NOT_VERIFIED; AI admission remains fail-closed.
+- No tests were run (documentation-only evidence capture). No source, test, workflow, dependency, dataset, T0/T1/T2, DB, VPS/runtime, trust/key/time, registry, S2, ledger/risk/Kill Switch or trading path changed.
+- Next: identify the exact authoritative read-only location/reference and access method for the already-existing bundle, if it exists outside GitHub. Any T0/VPS/database access requires its own bounded approval. If no bundle exists, Owner must separately approve whether/how to specify a derived read-only bundle without mutating T0.
