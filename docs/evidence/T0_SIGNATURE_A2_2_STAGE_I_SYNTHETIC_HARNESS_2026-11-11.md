@@ -93,3 +93,35 @@ No production cryptography, real key generation/import, signing/verification, tr
 ## Next step
 
 Contract-only correction proposal is now recorded at `docs/evidence/T0_SIGNATURE_A2_2_STAGE_I_CONTRACT_AMBIGUITY_PROPOSAL_2026-11-11.md` (blob `37bff74053ddc1034e09f40d9cc3bf558588e897`, commit `d5695ed7ac752d8e5570354a1389ef9c8403033c`). The proposal is NOT OWNER-APPROVED and does not amend A2.2. Obtain explicit owner approval or rejection of its exact domain bytes and T0-JCS-1 numeric grammar before changing the three blocked digest helpers. Do not dispatch the workflow until this blocker is resolved and workflow execution is separately authorized.
+
+
+---
+
+## Post-approval contract clarification and implementation delta (2026-11-11)
+
+This section supersedes the earlier "Next step" disposition above. The proposal was subsequently owner-approved, and the governing A2.2 contract plus isolated Stage I code/tests were updated.
+
+### Owner decision and governing contract
+- Approved proposal blob: `37bff74053ddc1034e09f40d9cc3bf558588e897`.
+- Normative amendment: A2.2 §20 in `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A2_2_2026-11-11.md`.
+- Amendment commit: `e1cb154755f127587e5a868c3ac9423ecf9bf15f`; blob: `3f4cb1fc36a58bc6ccaa26872360b8ee2961270b`.
+- The amendment specifies four exact ASCII-plus-NUL domain byte strings as hex and a restricted T0-JCS-1 numeric grammar. It preserves A1 §14.2's stricter decimal-string encoding for logical integer fields; A2.2's fixed profile-version discriminator remains integer `2`.
+
+### TDD implementation delta
+- RED test-first commit: `f1bc86d25b7ca773848c0ff5093e887e389f9a88`; test blob: `8e47af0bb98cae6e8501c609c97259ebc5e0c78f`.
+- GREEN implementation commit: `8af2aeca99ddcab6d93133c5a689276582e4b358`; `primitives.py` blob: `91496d70a67d12525b8399b46aeb1318693b17ee`.
+- The three former fail-closed digest helpers now use the exact approved domain constants. The Evidence Object helper was also normalized to the same explicit hex constant.
+- Primitive tests now contain 23 test methods; fixture/verdict tests contain 11; expected total is **34 tests**.
+- New test coverage includes four independent fixed SHA-256 vectors, four exact domain-hex assertions, cross-domain separation, safe-integer boundaries, overflow, negative-zero, fractional and exponent-form rejection.
+- A separate Python smoke check of the four fixed digest vectors and numeric-token cases passed: 4/4 digest vectors, 4 distinct domains, 2 safe-integer boundaries accepted and 6 invalid numeric forms rejected. This is a spot-check, not execution of the repository test suite.
+
+### Verification status after the change
+- Repository unittest suite: **NOT RUN**. A fresh local clone was attempted but GitHub DNS resolution failed; no claim of a full local test result is made.
+- `compileall`: **NOT RUN** after the latest source changes.
+- GitHub Actions workflow: **NOT DISPATCHED**. The workflow is manual-only and dispatch remains outside the approved scope.
+- Workflow run/job IDs and artifacts: **NONE**.
+- Python 3.12 parity: **NOT VERIFIED**.
+- Current disposition: **CONTRACT CLARIFICATION APPLIED / IMPLEMENTATION COMMITTED / TEST EXECUTION NOT VERIFIED**. Do not promote Stage I acceptance to PASS until the exact 34-test suite and compile check run successfully on the committed source, preferably through the dedicated workflow after separate dispatch authorization.
+
+### Scope and boundaries
+No production cryptography, real keys, trust-root enrollment, Path A/B activation, durable policy/anchor state, VPS/SSH/runtime, canonical T0, custody publication, CI secrets, deployment, trading or destructive operation was changed. Independent review remains waived/not performed; G3 is not established.
