@@ -114,8 +114,11 @@ class LifecycleDispositionTests(unittest.TestCase):
 
     def test_exact_copy_is_scoped_and_requires_full_lineage(self):
         base = {"data_class":"NONCANONICAL_COPY","review_group":"NONCANONICAL_COPY","object_kind":"COPY"}
+        base["object_id"] = "c1"
         good = evaluate_disposition(record(**base, copy_lineage={"complete":True,"copy_id":"c1",
-            "source_object_id":"s1","source_version_id":"v1"}))
+            "source_object_id":"s1","source_version_id":"v1"},
+            copies={"complete":True,"items":[{"copy_id":"c1","version_id":"v1",
+                "kind":"NONCANONICAL_COPY","state":"PRESENT"}]}))
         bad = evaluate_disposition(record(**base, copy_lineage={"complete":False}))
         self.assertEqual(good["disposition"], "COPY_SPECIFIC_REVIEW")
         self.assertEqual(bad["disposition"], "BLOCKED_UNKNOWN")
@@ -182,6 +185,46 @@ class LifecycleDispositionTests(unittest.TestCase):
         ]}))
         self.assertEqual(out["disposition"], "RETAIN_UNTIL_OBLIGATIONS_CLOSE")
         self.assertIn("RET_DEPENDENCY_ACTIVE", out["reason_codes"])
+
+    def test_copy_inventory_unhashable_state_fails_closed(self):
+        base = {"data_class":"NONCANONICAL_COPY", "review_group":"NONCANONICAL_COPY",
+                "object_kind":"COPY", "object_id":"copy-1",
+                "copy_lineage":{"complete":True,"copy_id":"copy-1",
+                    "source_object_id":"s1","source_version_id":"v1"},
+                "copies":{"complete":True,"items":[{"copy_id":"copy-1",
+                    "version_id":"v1","kind":"NONCANONICAL_COPY","state":[]} ]}}
+        out = evaluate_disposition(record(**base))
+        self.assertEqual(out["disposition"], "BLOCKED_UNKNOWN")
+        self.assertIn("UNK_COPY_LINEAGE", out["reason_codes"])
+
+    def test_copy_review_requires_one_exact_inventory_match(self):
+        base = {"data_class":"NONCANONICAL_COPY", "review_group":"NONCANONICAL_COPY",
+                "object_kind":"COPY", "object_id":"copy-1",
+                "copy_lineage":{"complete":True,"copy_id":"copy-1",
+                    "source_object_id":"s1","source_version_id":"v1"}}
+        exact = {"complete":True,"items":[{"copy_id":"copy-1","version_id":"v1",
+            "kind":"NONCANONICAL_COPY","state":"PRESENT"}]}
+        cases = [
+            ({"complete":True,"items":[]}),
+            ({"complete":True,"items":[{"copy_id":"copy-1","version_id":"v2",
+                "kind":"NONCANONICAL_COPY","state":"PRESENT"}]}),
+            ({"complete":True,"items":[exact["items"][0], exact["items"][0]]}),
+        ]
+        self.assertEqual(evaluate_disposition(record(**base, copies=exact))["disposition"],
+                         "COPY_SPECIFIC_REVIEW")
+        for inventory in cases:
+            with self.subTest(inventory=inventory):
+                out = evaluate_disposition(record(**base, copies=inventory))
+                self.assertEqual(out["disposition"], "BLOCKED_UNKNOWN")
+                self.assertIn("UNK_COPY_LINEAGE", out["reason_codes"])
+
+    def test_protected_precedence_still_reports_all_unknown_metadata(self):
+        out = evaluate_disposition(record(data_class="T0_CANONICAL", holds=None,
+            lineage=None, dependencies=None, copies=None, process_state=None))
+        self.assertEqual(out["disposition"], "PROTECTED")
+        for code in ("PROT_CLASS_T0_CANONICAL", "UNK_HOLD_STATE", "UNK_SOURCE_LINEAGE",
+                     "UNK_DEPENDENCY_REGISTRY", "UNK_COPY_LINEAGE", "UNK_PROCESS_STATE"):
+            self.assertIn(code, out["reason_codes"])
 
     def test_unratified_group_and_malformed_input_block(self):
         out = evaluate_disposition(record(review_group="UNRATIFIED"))

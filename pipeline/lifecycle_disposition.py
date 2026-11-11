@@ -71,9 +71,7 @@ def evaluate_disposition(record):
                 hold_unknown = True
     if binding_hold and identity_ok:
         codes.add("PROT_BINDING_HOLD_ACTIVE")
-    if codes:
-        _unknowns(record, codes)
-        return _result("PROTECTED", codes)
+    protected = bool(codes)
 
     if not identity_ok:
         codes.add("UNK_OBJECT_IDENTITY")
@@ -109,7 +107,12 @@ def evaluate_disposition(record):
         codes.add("UNK_COPY_LINEAGE")
     else:
         for item in copies["items"]:
-            if not isinstance(item, Mapping) or not all(_text(item.get(k)) for k in ("copy_id", "version_id", "kind", "state")) or item.get("state") not in {"PRESENT", "RETIRED"}:
+            if not isinstance(item, Mapping):
+                codes.add("UNK_COPY_LINEAGE")
+                continue
+            state = item.get("state")
+            if (not all(_text(item.get(k)) for k in ("copy_id", "version_id", "kind"))
+                or not isinstance(state, str) or state not in {"PRESENT", "RETIRED"}):
                 codes.add("UNK_COPY_LINEAGE")
 
     process = record.get("process_state")
@@ -130,6 +133,8 @@ def evaluate_disposition(record):
     if not isinstance(material, str) or material not in {"YES", "NO"}:
         codes.add("UNK_MATERIAL_USE_STATUS")
 
+    if protected:
+        return _result("PROTECTED", codes)
     if codes:
         return _result("BLOCKED_UNKNOWN", codes)
 
@@ -151,7 +156,20 @@ def evaluate_disposition(record):
         copy = record.get("copy_lineage")
         if (record.get("object_kind") != "COPY" or not isinstance(copy, Mapping)
             or copy.get("complete") is not True
-            or not all(_text(copy.get(k)) for k in ("copy_id", "source_object_id", "source_version_id"))):
+            or not all(_text(copy.get(k)) for k in ("copy_id", "source_object_id", "source_version_id"))
+            or copy.get("copy_id") != record.get("object_id")):
+            return _result("BLOCKED_UNKNOWN", {"UNK_COPY_LINEAGE"})
+        inventory = record.get("copies")
+        exact_matches = []
+        if isinstance(inventory, Mapping) and inventory.get("complete") is True and isinstance(inventory.get("items"), list):
+            exact_matches = [item for item in inventory["items"]
+                if isinstance(item, Mapping)
+                and item.get("copy_id") == copy.get("copy_id")
+                and item.get("version_id") == record.get("version_id")
+                and item.get("kind") == "NONCANONICAL_COPY"
+                and isinstance(item.get("state"), str)
+                and item.get("state") in {"PRESENT", "RETIRED"}]
+        if len(exact_matches) != 1:
             return _result("BLOCKED_UNKNOWN", {"UNK_COPY_LINEAGE"})
         return _result("COPY_SPECIFIC_REVIEW", {"COPY_EXACT_VERSION_REVIEW", "COPY_SOURCE_CHAIN_VERIFIED"})
 
