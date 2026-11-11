@@ -1,0 +1,75 @@
+name: G0.40-B Exact-Source Assurance Verification
+
+on:
+  push:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - tools/s1_measurement_harness.py
+      - tools/s1_measurement_runner.py
+      - tools/test_s1_measurement_runner.py
+      - .github/workflows/g040-b-exact-source-verification.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: g040-b-exact-source-verification
+  cancel-in-progress: false
+
+jobs:
+  focused-verification:
+    name: Verify exact G0.40-B source and regression tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      G0_SOURCE_COMMIT: ${{ github.sha }}
+    steps:
+      - name: Checkout exact event source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Assert exact checkout and frozen source blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REF" = "refs/heads/feature/t0-centralized-data-feeder-p1-20261101"
+          test "$(git rev-parse HEAD:tools/s1_measurement_harness.py)" = "0643ff82d7f890ec7e63c49c5dd238152c051af6"
+          test "$(git rev-parse HEAD:tools/s1_measurement_runner.py)" = "23a35aab7f7aeacd8a3f63d630a875fe76b1ff6a"
+          test "$(git rev-parse HEAD:tools/test_s1_measurement_runner.py)" = "79f3e79d7d9d53bd618d261ba1c1225d42fc91de"
+          {
+            echo "checkout_sha=$(git rev-parse HEAD)"
+            echo "harness_blob=$(git rev-parse HEAD:tools/s1_measurement_harness.py)"
+            echo "runner_blob=$(git rev-parse HEAD:tools/s1_measurement_runner.py)"
+            echo "tests_blob=$(git rev-parse HEAD:tools/test_s1_measurement_runner.py)"
+            echo "workflow_blob=$(git rev-parse HEAD:.github/workflows/g040-b-exact-source-verification.yml)"
+            python --version
+          } | tee verification-identity.txt
+
+      - name: Run focused regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tools.test_s1_measurement_runner -v 2>&1 | tee unittest.log
+
+      - name: Run focused compile check
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile tools/s1_measurement_harness.py tools/s1_measurement_runner.py tools/test_s1_measurement_runner.py 2>&1 | tee py_compile.log
+
+      - name: Upload bounded verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: g040-b-exact-source-verification
+          path: |
+            verification-identity.txt
+            unittest.log
+            py_compile.log
+          if-no-files-found: warn
+          retention-days: 7
