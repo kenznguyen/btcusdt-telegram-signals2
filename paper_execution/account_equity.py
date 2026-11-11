@@ -10,6 +10,10 @@ from paper_execution import equity as equity_history
 
 def record_account_mark(ledger, mark_price, candle_close_ms, observed_at_ms, dataset_version, initial_capital="100"):
     """Atomically reconcile one account-wide mark across all strategy ledgers."""
+    from paper_execution.ledger import (
+        MIGRATION_VERSION, _funding_provenance_ready,
+        read_account_risk_snapshot, stored_state, text,
+    )
     if ledger.strategy_id != "MANUAL":
         raise ValueError("ACCOUNT_MARK_REQUIRES_ACCOUNT_SCOPE")
     mark = number(str(mark_price))
