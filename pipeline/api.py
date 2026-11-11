@@ -70,7 +70,7 @@ def book_snapshot(timestamp):
         return result
 
 
-def ledger():
+def ledger(strategy_id="MANUAL"):
     from paper_execution.ledger import PaperLedger
     from paper_execution.equity import parse_limits
     path = os.environ.get("MARKET_DATA_DB")
@@ -81,7 +81,37 @@ def ledger():
                        fee_rate=os.environ.get("PAPER_FEE_RATE", "0.0005"),
                        max_spread_bps=os.environ.get("PAPER_MAX_SPREAD_BPS", "50"),
                        risk_limits=limits, require_risk_limits=True,
-                       leverage=os.environ.get("LEVERAGE", "13"))
+                       leverage=os.environ.get("LEVERAGE", "13"),
+                       strategy_id=strategy_id)
+
+
+def resolve_order_strategy(db_path, order_id):
+    """Resolve an order's persisted owner before selecting a strategy-scoped writer."""
+    path = Path(db_path).resolve()
+    if not path.is_file():
+        raise FileNotFoundError("Paper ledger is unavailable")
+    with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=10) as connection:
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(paper_orders)")}
+        if not columns:
+            raise ValueError("Unknown paper order")
+        if "strategy_id" in columns:
+            row = connection.execute(
+                "SELECT strategy_id,document FROM paper_orders WHERE order_id=?",
+                (order_id,),
+            ).fetchone()
+            if row is None:
+                raise ValueError("Unknown paper order")
+            owner = row[0] or json.loads(row[1]).get("strategyId") or "MANUAL"
+        else:
+            row = connection.execute(
+                "SELECT document FROM paper_orders WHERE order_id=?", (order_id,)
+            ).fetchone()
+            if row is None:
+                raise ValueError("Unknown paper order")
+            owner = json.loads(row[0]).get("strategyId") or "MANUAL"
+    if owner not in {"MANUAL", "STRATEGY_CORE", "AI_FREQAI"}:
+        raise ValueError("PAPER_ORDER_STRATEGY_SCOPE_UNSUPPORTED")
+    return owner
 
 
 def control_permit(timestamp):
@@ -158,7 +188,9 @@ def core_decide(timestamp, book=None):
                             initial_capital=os.environ.get("PAPER_INITIAL_CAPITAL", "100"),
                             max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"))
         from paper_execution.ledger import read_snapshot
-        paper = read_snapshot(os.environ.get("MARKET_DATA_DB", ""))
+        paper = read_snapshot(
+            os.environ.get("MARKET_DATA_DB", ""), strategy_id="STRATEGY_CORE"
+        )
         state = paper["strategyState"]
         book = book_snapshot(timestamp) if book is None else book
         report = produce(m15, h1, paper, state, book, timestamp,
@@ -378,7 +410,8 @@ def application(environ, start_response):
             if path == "/v1/paper/pause" and set(payload) == {"paused"} and type(payload["paused"]) is bool:
                 result = ledger().set_paused(payload["paused"], timestamp)
             elif path == "/v1/paper/cancel" and set(payload) == {"orderId"} and isinstance(payload["orderId"], str) and 0 < len(payload["orderId"]) <= 100:
-                result = ledger().cancel(payload["orderId"], timestamp)
+                owner = resolve_order_strategy(os.environ["MARKET_DATA_DB"], payload["orderId"])
+                result = ledger(strategy_id=owner).cancel(payload["orderId"], timestamp)
             elif path == "/v1/paper/kill" and set(payload) == {"enabled"} and payload["enabled"] is True:
                 result = ledger().set_killed(True, timestamp, "OPERATOR_KILL_SWITCH")
             elif path == "/v1/paper/reset-kill" and set(payload) == {"acknowledge"} and payload["acknowledge"] is True:
@@ -408,7 +441,7 @@ def application(environ, start_response):
                     source_id = "STRATEGY_CORE" if source == "CORE" else "AI_FREQAI"
                     reason = decision.get("reason")
                     event = "ENTRY" if reason in ("RSI_ADX_ENTRY","ALIGNED_PAPER_SIGNAL") else "DCA" if reason == "DCA" else "EXIT" if reason in ("EMERGENCY_SL","SOFT_SL","TAKE_PROFIT","CLOSE") else None
-                    order = ledger().submit(decision["intent"], data["book"], timestamp,
+                    order = ledger(strategy_id=source_id).submit(decision["intent"], data["book"], timestamp,
                         strategy_id=source_id, strategy_event=event)
                     if mark_window["candles"] and mark_window["coverage"]["complete"]:
                         ledger().record_equity(mark["close"],mark["closeTimeMs"],timestamp,
