@@ -93,7 +93,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(result["strategyId"], "STRATEGY_CORE")
         resolve_owner.assert_called_once_with(str(self.db), "core-order")
-        ledger_factory.assert_called_once_with("STRATEGY_CORE")
+        ledger_factory.assert_called_once_with(strategy_id="STRATEGY_CORE")
         ledger_factory.return_value.cancel.assert_called_once_with(
             "core-order", api.now_ms.return_value if hasattr(api.now_ms, "return_value") else unittest.mock.ANY
         )
@@ -115,7 +115,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.assertEqual(result["accountEquityQuote"], "100")
         account.record_account_mark.assert_called_once_with(
             "105", 1_799_999_940_000, 1_800_000_000_000,
-            "sha256:" + "e" * 64,
+            "sha256:" + "e" * 64, "100",
         )
         account.record_equity.assert_not_called()
 
