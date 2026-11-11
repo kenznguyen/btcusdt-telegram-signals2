@@ -1393,3 +1393,19 @@ Next: inspect whether remaining RED test expectations can be made contract-level
 - Current disposition: API Contract APPROVED; RED baseline VERIFIED with downstream tests SKIPPED/BLOCKED; GREEN plan WRITTEN; GREEN implementation NOT AUTHORIZED.
 
 Next: owner reviews the GREEN implementation sequence and resolves GREEN-0 provider/policy decisions. Plan approval alone does not authorize production edits; obtain separate explicit GREEN gate authorization.
+
+
+## AI Strategy GREEN-0 provider inventory — 2026-11-11
+
+- Owner approved GREEN-0 inspection/documentation only. No GREEN implementation authority.
+- Evidence report: `docs/evidence/AI_STRATEGY_GREEN0_PROVIDER_CONTRACT_FREEZE_2026-11-11.md`, commit `db6bc89db41cda48c58d1abf889cc584abd8a998`.
+- Plan update: `docs/architecture/AI_STRATEGY_GREEN_IMPLEMENTATION_PLAN.md`, commit `59c4d983dc071b1d1d5f5862fdcafcf2603d87b1`.
+- Existing account-risk read provider identified: `paper_execution.ledger::read_account_risk_snapshot`; it validates account equity/risk/funding state and a 30-minute mark freshness bound, and returns gross/reserved exposure, mark observation, dataset version and Kill Switch state.
+- Existing final admission identified: `PaperLedger._submit_scoped` transactionally rechecks account risk/exposure, the 1% margin budget, strategy leverage and Kill Switch before reservation/fill. `risk_policy.py` supplies Core 13x and `ORDER_MARGIN_BUDGET_PCT=0.01`.
+- Existing AI ledger position read identified: `read_snapshot(..., strategy_id="AI_FREQAI")`. Existing Kill Switch provider: `paper_execution.risk_control`.
+- Calibration trust/manifest registry and calibrated-confidence artifact are not present in the reviewed prediction exporter/decision path. No authoritative BTCUSDT lot/tick/minimum-notional provider was identified in the reviewed AI admission paths. AI DCA event mechanics exist in the ledger, but no independent AI DCA trigger/eligibility policy is defined in the decision path. Existing idempotent intent replay does not yet establish immutable replay of the full AI calibration/equity/risk/instrument snapshot.
+- GREEN-0 disposition: source inventory COMPLETE; provider/policy freeze PARTIAL/BLOCKED pending owner decisions G0-01–G0-07. Current 30-minute account-mark freshness is documented as existing behavior, not approved replacement policy. No numeric C_min or calibration thresholds selected.
+- No tests or workflow were run. No production source/test changes, schema/DB/migration, calibration/model, T0/T1/T2 runtime, VPS, deployment, exchange connectivity or live orders changed.
+- Latest RED evidence remains run `42991526067`, exact SHA `d37c0d4b554bbdcb936c419ebc134c6a8ff28783`: compile PASS; 46 tests, 5 assertion failures, 48 skipped, 0 errors. GREEN-1 through GREEN-5 remain NOT AUTHORIZED.
+- Current GitHub commits for this update sequence: evidence `db6bc89db41cda48c58d1abf889cc584abd8a998`; plan `59c4d983dc071b1d1d5f5862fdcafcf2603d87b1`. Handoff update follows.
+- Next: owner resolves G0-01–G0-07. Do not implement production code or schema until separate explicit approval names the GREEN gates.
