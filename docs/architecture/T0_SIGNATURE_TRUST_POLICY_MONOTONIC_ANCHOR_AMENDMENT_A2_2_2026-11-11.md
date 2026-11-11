@@ -10,8 +10,8 @@ Status: **DRAFT A2.2 — DOCUMENTATION ONLY — NOT APPROVED FOR IMPLEMENTATION*
 ## 1. Authority, precedence and preservation
 
 1. A2.2 is a contract-correction candidate responding to A2.1 second self-review findings A2.1-R2-01 through A2.1-R2-05. It preserves A2 and A2.1 as historical inputs and applies the explicit overrides in §§14–18 below.
-2. A1 remains preserved unchanged as historical design evidence. A2 supersedes A1 only where A2 explicitly replaces or supplements a rule below. All other A1 and Checkpoint Contract v1 requirements remain in force.
-3. The reviewed A1 snapshot and its source blobs are immutable review inputs. A2 is a new candidate; it does not retroactively change the frozen A1 snapshot or its review result.
+2. A1 remains preserved unchanged as historical design evidence. A2.2 supersedes A2.1, A2 and A1 only where this candidate explicitly replaces or supplements a rule below; all earlier versions remain historical inputs. All other A1 and Checkpoint Contract v1 requirements remain in force.
+3. The reviewed A1 snapshot and its source blobs are immutable review inputs. A2.2 is the current new candidate; A2 and A2.1 remain historical candidates and review inputs. This revision does not retroactively change any prior frozen snapshot or review result.
 4. This document defines contract semantics and test expectations only. It does not authorize code, schema migration, keys, signatures, trust-root installation, policy or anchor instances, provider/TSA use, VPS/SSH/runtime access, T0 database access, custody mutation or destructive operations.
 5. A2.2 does not satisfy independent review. It requires review against its own exact frozen blob set and separate implementation authorization.
 6. The accepted custody boundary remains the owner-approved bounded VPS + GitHub arrangement. Joint rollback of both locations to the same older valid chain remains undetectable. No WORM, third failure domain, global latestness or absolute anti-rollback claim is made.
@@ -313,7 +313,7 @@ The following terms MUST be used consistently:
 - **Owner-approved contract decision:** only the specifically recorded owner-approved scope is approved; this does not imply implementation authority.
 - **Implementation-approved:** a separate explicit owner authorization after qualifying independent review, with exact scope and source snapshot.
 
-A2.2 is a **DRAFT CONTRACT / BYTE-FROZEN ONLY WHEN A SPECIFIC REVIEW SNAPSHOT IS DECLARED**. It is not implementation-approved. The prior A1 snapshot remains byte-frozen as historical review input. A same-session self-review MUST NOT be called independent review, external review or G3.
+A2.2 is a **DRAFT CONTRACT / BYTE-FROZEN ONLY WHEN A SPECIFIC REVIEW SNAPSHOT IS DECLARED**. It is not implementation-approved. The prior A1, A2 and A2.1 snapshots remain historical review inputs. A same-session self-review MUST NOT be called independent review, external review or G3.
 
 ## 9. Updated owner/security decisions and implementation blockers
 
@@ -333,9 +333,9 @@ The owner-approved VPS + GitHub bounded custody decision remains resolved only f
 ## 10. Acceptance gates and unchanged boundaries
 
 Before implementation can be considered:
-1. Freeze A2 exact source commit/blob set.
-2. Perform a fresh adversarial self-review of that frozen A2 candidate.
-3. Obtain a qualifying independent review of the exact A2 blobs, including the revised field schema, state machine, byte vectors and test matrix.
+1. Freeze the exact A2.2 source blob and all dependency blob pins.
+2. Perform a fresh adversarial self-review of that exact A2.2 candidate.
+3. Obtain a qualifying independent review of the exact A2.2 blob set, including the revised field schema, state machine, byte vectors and test matrix.
 4. Resolve all blocking findings and owner/security decisions.
 5. Obtain a separate explicit owner implementation approval for a narrowly scoped synthetic-only implementation plan.
 6. Implement only after approval, with TDD, independent vector oracle, offline tests, exact-SHA CI evidence and rollback plan.
@@ -356,7 +356,7 @@ This section is normative and overrides any inconsistent implication in §§1–
 4. A historical A1 object MAY be evaluated only by an explicitly selected A1 historical-verification profile and its pinned historical Trust Policy. The verifier MUST retain the object's A1 version/type and original purpose. It MUST NOT relabel, upgrade, reinterpret or re-issue the historical object as A2/A2.1. A1 historical acceptance MUST NOT authorize an A2.1 object.
 5. An A2.1 verifier MUST NOT silently downgrade to A1 when an A2.1 purpose or policy check fails. Profile selection is explicit and bound to the verification request and signed object descriptor.
 6. Add mandatory negative cases:
-   - **A2.2-NV-01:** A2.1 object carries legacy `T0_CHECKPOINT_OWNER_ATTESTATION` with an otherwise valid signature → `UNTRUSTED`, `PURPOSE_NOT_SUPPORTED_BY_PROFILE`; accepted state unchanged.
+   - **A2.1-NV-01:** A2.1 object carries legacy `T0_CHECKPOINT_OWNER_ATTESTATION` with an otherwise valid signature → `UNTRUSTED`, `PURPOSE_NOT_SUPPORTED_BY_PROFILE`; accepted state unchanged.
    - **A2.1-NV-02:** A2.1 policy omits issuer purpose or uses wildcard/implicit fallback → `BLOCKED`, `POLICY_PURPOSE_NOT_EXPLICIT`; accepted state unchanged.
    - **A2.1-NV-03:** A1 historical object is relabeled as A2.1 or silently verified through A2.1 profile → `INVALID`, `PROFILE_VERSION_MISMATCH`; accepted state unchanged.
    - **A2.1-NV-04:** A2.1 purpose check fails and verifier attempts automatic A1 fallback → `BLOCKED`, `PROFILE_DOWNGRADE_FORBIDDEN`; accepted state unchanged.
