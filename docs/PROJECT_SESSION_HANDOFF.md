@@ -2561,3 +2561,16 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Tests/compile/CI: NOT RUN (docs-only). Runtime/VPS/database/provider/key operations: NOT PERFORMED.
 - **G0.50: PACKAGE PREPARED — D12/D13/D14 READY FOR OWNER DECISION; ALL THREE OPEN / NOT RATIFIED; S2 IMPLEMENTATION NOT AUTHORIZED.**
 - Next: Owner selects or amends D12, D13 and D14. No automatic S2 progression.
+
+
+## G0.51 — D12/D13/D14 Owner decision record (2026-11-11)
+
+- Owner explicitly agreed to all three option-A recommendations in G0.50. Decision record: `docs/evidence/G0_51_D12_D13_D14_OWNER_DECISION_RECORD_2026-11-11.md`.
+- D12-A OWNER-DECIDED: append-only logical audit history in the existing approved GitHub repository/commit history; GitHub-domain custody only, not independent backup/DR/WORM. Exact artifact payload must be retrieved and independently digest-checked before making custody/readability claims. Redaction/correction/supersession is a new linked event, not silent historical rewrite. No retention duration, automated expiry/deletion, second custody domain or backup schedule approved.
+- D13-A OWNER-DECIDED as the required future target: immutable/versioned verifier-created envelope bound to exact subject, source, evidence digests, claim/scope, policy, verifier build/contract and evaluation/evidence set. No caller-created generic trust boolean; consumers reject mismatches/unknown states; claim dimensions remain separate; no execution authority. D13-B is not selected as a substitute. Any single-process synthetic experiment would require its own exact approval and would not satisfy D13-A.
+- D14-A OWNER-DECIDED: strict per-increment Owner approval. Each executable stage, S2 implementation step, workflow/permission change, real evidence adapter, provider/runtime operation and lifecycle/destructive action requires separate exact-scope approval. CI PASS never substitutes for Owner authorization or acceptance. No automatic stage transition and no standing authorization granted here.
+- D06/D09 manual platform-attributed Owner action remains; no cryptographic signature or autonomous issuer key is introduced. D07/D08 remain controlling. S1 parser remains synthetic-only.
+- G0.51 changed only the D12/D13/D14 decision record and this handoff. No source, tests, fixtures, schemas, workflows, dependencies, keys, trust roots, providers, database, VPS, runtime, T0/T1/T2, ledgers, risk engine or lifecycle operation changed.
+- Tests/compile/CI: NOT RUN (docs-only). Runtime/VPS/database/provider/key operations: NOT PERFORMED.
+- **G0.51: DOCUMENTATION PASS — D12-A/D13-A/D14-A OWNER-DECIDED; S2 IMPLEMENTATION AND OPERATIONAL/DESTRUCTIVE ACTIONS NOT AUTHORIZED.**
+- Next: reconcile remaining open dependencies and prepare a separate exact-scope S2 readiness package only after closure. No automatic implementation.
