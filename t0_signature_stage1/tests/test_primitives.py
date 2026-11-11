@@ -47,9 +47,24 @@ class StrictJsonTests(unittest.TestCase):
         value = {"\ue000": 1, "😀": 2}
         self.assertEqual(canonicalize(value), '{"😀":2,"\ue000":1}'.encode())
 
+    def test_accepts_safe_integer_boundaries(self):
+        for raw in (b'{"n":9007199254740991}', b'{"n":-9007199254740991}'):
+            with self.subTest(raw=raw):
+                self.assertEqual(parse_canonical_json(raw)["n"], int(raw.split(b":")[1][:-1]))
+
     def test_rejects_json_integer_outside_safe_integer_range(self):
+        for raw in (b'{"n":9007199254740992}', b'{"n":-9007199254740992}'):
+            with self.subTest(raw=raw), self.assertRaisesRegex(StageIError, "NONCANONICAL_STATEMENT"):
+                parse_canonical_json(raw)
+
+    def test_rejects_negative_zero_wire_token(self):
         with self.assertRaisesRegex(StageIError, "NONCANONICAL_STATEMENT"):
-            parse_canonical_json(b'{"n":9007199254740992}')
+            parse_canonical_json(b'{"n":-0}')
+
+    def test_rejects_fractional_and_exponent_numeric_tokens(self):
+        for raw in (b'{"n":0.0}', b'{"n":1.25}', b'{"n":1e0}', b'{"n":-2E+3}'):
+            with self.subTest(raw=raw), self.assertRaisesRegex(StageIError, "NONCANONICAL_STATEMENT"):
+                parse_canonical_json(raw)
 
     def test_rejects_unpaired_surrogate(self):
         with self.assertRaisesRegex(StageIError, "NONCANONICAL_STATEMENT"):
@@ -114,14 +129,39 @@ class DigestTests(unittest.TestCase):
         expected = hashlib.sha256(b"T0-EVIDENCE-OBJECT-V1\x00" + len(payload).to_bytes(8, "big") + payload).hexdigest()
         self.assertEqual(evidence_object_digest(payload), expected)
 
-    def test_trust_policy_digest_fails_closed_on_ambiguous_domain_escape(self):
-        with self.assertRaisesRegex(StageIError, "DOMAIN_SEPARATOR_ENCODING_UNRESOLVED"):
-            trust_policy_body_digest(b'{"policy_id":"synthetic"}')
+    def test_all_four_domain_vectors_match_independent_sha256_oracles(self):
+        payload = b'{"a":1}'
+        vectors = (
+            (evidence_object_digest, bytes.fromhex("54302d45564944454e43452d4f424a4543542d563100"),
+             "0f1316baed0d89e9ba62338a559c1f2728c527def0a9e17a9074ae8910e71e04"),
+            (trust_policy_body_digest, bytes.fromhex("54302d54525553542d504f4c4943592d424f44592d563100"),
+             "bb3b028d6113cf9bc833dfd69fd2ea7c3fa9ecbfa5af8db053b24e7fca97e2cf"),
+            (anchor_object_digest, bytes.fromhex("54302d4d4f4e4f544f4e49432d414e43484f522d4f424a4543542d563100"),
+             "5d1dbc9ba3b95b1c515b7bf8594f54e349cd0d395ab9a65ff5b8bd380482f57e"),
+            (signature_envelope_digest, bytes.fromhex("54302d5349474e41545552452d454e56454c4f50452d4f424a4543542d563100"),
+             "e3513e6be24b4bb4f9f048d0f747cf07a2993e41d172008832efeef63956cf35"),
+        )
+        actual = []
+        for digest_fn, domain, expected in vectors:
+            with self.subTest(domain=domain.hex()):
+                oracle = hashlib.sha256(domain + len(payload).to_bytes(8, "big") + payload).hexdigest()
+                self.assertEqual(oracle, expected)
+                self.assertEqual(digest_fn(payload), expected)
+                actual.append(digest_fn(payload))
+        self.assertEqual(len(set(actual)), 4)
 
-    def test_anchor_envelope_digest_fails_closed_on_ambiguous_domain_escape(self):
-        with self.assertRaisesRegex(StageIError, "DOMAIN_SEPARATOR_ENCODING_UNRESOLVED"):
-            anchor_object_digest(b'{"anchor_type":"synthetic"}')
-
-    def test_signature_envelope_digest_fails_closed_on_ambiguous_domain_escape(self):
-        with self.assertRaisesRegex(StageIError, "DOMAIN_SEPARATOR_ENCODING_UNRESOLVED"):
-            signature_envelope_digest(b'{"signature":"mock"}')
+    def test_domain_bytes_are_exactly_ascii_name_plus_one_nul(self):
+        from t0_signature_stage1.primitives import (
+            _DOMAIN_EVIDENCE_OBJECT, _DOMAIN_TRUST_POLICY_BODY,
+            _DOMAIN_ANCHOR_OBJECT, _DOMAIN_SIGNATURE_ENVELOPE,
+        )
+        expected = (
+            "54302d45564944454e43452d4f424a4543542d563100",
+            "54302d54525553542d504f4c4943592d424f44592d563100",
+            "54302d4d4f4e4f544f4e49432d414e43484f522d4f424a4543542d563100",
+            "54302d5349474e41545552452d454e56454c4f50452d4f424a4543542d563100",
+        )
+        self.assertEqual(tuple(x.hex() for x in (
+            _DOMAIN_EVIDENCE_OBJECT, _DOMAIN_TRUST_POLICY_BODY,
+            _DOMAIN_ANCHOR_OBJECT, _DOMAIN_SIGNATURE_ENVELOPE,
+        )), expected)
