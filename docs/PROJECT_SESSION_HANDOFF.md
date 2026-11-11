@@ -2383,3 +2383,18 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - This approval does not authorize harness/runner/test/dependency changes, production parser/verifier, crypto/trust changes, S2, T0/T1/T2, market/model data, CORE_LEDGER/AI_LEDGER, Shared Risk Engine, Kill Switch, PostgreSQL, VPS/runtime, external services/network or destructive lifecycle actions.
 - D11 numeric ceilings remain **OPEN / NOT RATIFIED**. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - At this point the D14 amendment is recorded; the exact workflow file is the remaining implementation step. No G0.41 measurement has yet been invoked.
+
+
+### G0.41 — Workflow admission blocked before measurement (2026-11-11)
+
+- Owner-approved G0.41 package: commit `ed37acab60df5f35d303f4e352cf474bcae339be`; D14 narrow amendment commit `79c7023690c66d1b7295ff52feb5db52e102177d`, blob `f2bb2252b68188caf96742a29d2f879cfb33ff5b`.
+- Exact workflow `.github/workflows/g041-s1-single-measurement.yml` added in commit / event checkout `168d06fbd46348ae23fb21d61e05fb6930c00e10`; workflow blob `c2b0227429a9858860f7b2aef9a8b94f06bca57c`.
+- Frozen source blobs remain unchanged: harness `e8db71c11e0503ea6d9a2480d75470185c4d5100`; runner `23a35aab7f7aeacd8a3f63d630a875fe76b1ff6a`; tests `d06a5b533af14378ed284051e5b057cf57377876`.
+- GitHub Actions run [43052133091](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43052133091), run attempt 1, job `130631821560`: **SKIPPED**. No steps reported and no artifacts.
+- Job-level admission condition did not admit the job. Available metadata does not identify which sub-expression evaluated false; root cause **NOT VERIFIED**.
+- `prepare_preflight(...)`: **NOT INVOKED**. No corpus measurement, digest, A-01–A-13 run or report was generated. G0.41 measurement is **NOT RUN**; workflow admission **BLOCKED**.
+- Per the approved package's stop condition, no workflow edit, rerun, dispatch, retry or replacement attempt is permitted under the prior approval. The measurement one-shot itself was not consumed because invocation did not begin, but a **new explicit owner decision is required** before correcting the admission gate or attempting another push.
+- Evidence report: `docs/evidence/G0_41_S1_PRE_MEASUREMENT_WORKFLOW_BLOCKED_2026-11-11.md`; report commit `90a8cca7dec6ecd9310276fc0237cf53e15784ba`.
+- D11 numeric ceilings remain **OPEN / NOT RATIFIED**. No harness/runner/tests/dependency changes, no production parser/verifier/crypto/trust work, no T0/T1/T2, market/model data, ledgers, Shared Risk Engine, Kill Switch, PostgreSQL, VPS/runtime, external provider/network/database or destructive lifecycle action.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- Next gate: prepare a new owner decision package limited to diagnosing/correcting the exact workflow admission condition and requesting a fresh one-shot G0.41 attempt. No edits or execution until separately approved.
