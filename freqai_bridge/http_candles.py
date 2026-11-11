@@ -245,13 +245,17 @@ class CandleHttpClient:
             "timeframe": timeframe, "startMs": start_ms, "endMs": end_ms,
             "asOfMs": as_of_ms, "candles": candles,
         }
-        version = hashlib.sha256(
-            json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
+        if len(pages) == 1:
+            dataset_version = pages[0]["datasetVersion"]
+        else:
+            version = hashlib.sha256(
+                json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest()
+            dataset_version = "sha256:" + version
         return {
             **identity,
             "contractVersion": "1.0.0", "schemaVersion": 1,
-            "datasetVersion": "sha256:" + version,
+            "datasetVersion": dataset_version,
             "coverage": {"expected": slots, "returned": len(candles), "complete": len(candles) == slots, "gaps": [] if len(candles) == slots else [{"startMs": start_ms, "endMs": end_ms}]},
             "volumeUnit": "BTC_BASE_ASSET", "source": "ccxt.binanceusdm",
             "generatedAtMs": generated,
