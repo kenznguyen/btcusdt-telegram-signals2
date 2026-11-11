@@ -104,13 +104,23 @@ class AIStrategyContractRedTest(unittest.TestCase):
     def test_ai_ledger_rejects_leverage_outside_approved_one_to_three_range(self):
         from paper_execution.ledger import PaperLedger
 
-        for leverage in ("0.99", "3.01", "13"):
-            with self.subTest(leverage=leverage):
-                with tempfile.TemporaryDirectory() as directory:
-                    db = os.path.join(directory, "paper.sqlite3")
+        with tempfile.TemporaryDirectory() as directory:
+            db = os.path.join(directory, "paper.sqlite3")
+            legacy = PaperLedger(db)
+            timestamp = 1_800_000_000_000
+            legacy.record_equity(
+                "100", timestamp - 60_000, timestamp,
+                "sha256:" + "c" * 64, "100",
+            )
+            PaperLedger(
+                db, strategy_id="STRATEGY_CORE", source_sha="d" * 40,
+            )
+            for leverage in ("0.99", "3.01", "13"):
+                with self.subTest(leverage=leverage):
                     with self.assertRaises(ValueError):
                         PaperLedger(
                             db, strategy_id="AI_FREQAI", leverage=leverage,
+                            apply_migrations=False,
                         )
 
     def test_missing_or_stale_reconciled_equity_never_creates_an_ai_intent(self):
