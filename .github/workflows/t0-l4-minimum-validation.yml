@@ -14,6 +14,12 @@ on:
       - ci/test_t0_l4_repository_file_inventory.py
       - ci/test_t0_l4_claim_discipline.py
       - ci/t0_l4_claim_discipline.py
+      - synthetic_evidence/trust_lifecycle.py
+      - synthetic_evidence/test_trust_lifecycle.py
+      - synthetic_evidence/root_b_checkpoint_store.py
+      - synthetic_evidence/test_root_b_checkpoint_store.py
+      - synthetic_evidence/test_workflow_archive_contract.py
+      - .github/workflows/p1-8-synthetic-evidence.yml
       - ci/l4-repository-file-inventory.json
       - docs/architecture/CENTRAL_DATA_LIFECYCLE_POLICY.md
       - docs/architecture/P1.8.14_EXTERNAL_TRUST_ANCHOR_PROVENANCE_AUTHENTICITY_2026-11-07.md
@@ -219,3 +225,83 @@ jobs:
           path: |
             l4-claim-discipline/claim-discipline-report.json
             l4-claim-discipline/claim-discipline-report.sha256
+
+  l4-synthetic-history-trust:
+    name: L4M-06/07 synthetic trust and append-only history
+    needs: l4-minimum-lineage-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      DATABASE_URL: ""
+      DATABASE_PATH: ""
+      SQLITE_PATH: ""
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      PAPER_TRADING_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      EXCHANGE_API_KEY: ""
+      EXCHANGE_API_SECRET: ""
+      AI_EXECUTION_ENABLED: "false"
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Enforce synthetic-only environment and record source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in DATABASE_URL DATABASE_PATH SQLITE_PATH MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB PAPER_TRADING_DB BINANCE_API_KEY BINANCE_API_SECRET EXCHANGE_API_KEY EXCHANGE_API_SECRET; do
+            if [[ -n "${!key:-}" ]]; then
+              echo "Unsafe environment variable present: $key"
+              exit 1
+            fi
+          done
+          test "$AI_EXECUTION_ENABLED" = "false"
+          git rev-parse HEAD | tee l4-synthetic-history-source-sha.txt
+          echo "L4_SYNTHETIC_ONLY=PASS" | tee l4-synthetic-history-scope.txt
+
+      - name: Compile isolated trust and history modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile synthetic_evidence/trust_lifecycle.py synthetic_evidence/test_trust_lifecycle.py synthetic_evidence/root_b_checkpoint_store.py synthetic_evidence/test_root_b_checkpoint_store.py synthetic_evidence/test_workflow_archive_contract.py
+
+      - name: Run L4M-06 synthetic trust lifecycle tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest synthetic_evidence.test_trust_lifecycle -v 2>&1 | tee l4m06-trust-lifecycle-tests.log
+          echo "L4M06_SYNTHETIC_TRUST_LIFECYCLE=PASS" | tee l4m06-trust-lifecycle-verdict.txt
+
+      - name: Run L4M-07 synthetic event/checkpoint and archive-history tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest synthetic_evidence.test_root_b_checkpoint_store synthetic_evidence.test_workflow_archive_contract -v 2>&1 | tee l4m07-history-tests.log
+          echo "L4M07_SYNTHETIC_HISTORY=PASS" | tee l4m07-history-verdict.txt
+
+      - name: Upload synthetic trust and history evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-l4-synthetic-history-trust-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            l4-synthetic-history-source-sha.txt
+            l4-synthetic-history-scope.txt
+            l4m06-trust-lifecycle-tests.log
+            l4m06-trust-lifecycle-verdict.txt
+            l4m07-history-tests.log
+            l4m07-history-verdict.txt
